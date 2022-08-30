@@ -102,7 +102,6 @@ roaring::Roaring Database::bma(size_t pos, Residue r) const {
 int db_info(const unique_ptr<Database>& db, ostream& io){
    io << "sequence count: " << db->sequenceCount << endl;
    io << "total size: " << db->computeSize() << endl;
-   io << "Running benchmark" << endl;
    return 0;
 }
 

@@ -48,7 +48,7 @@ static void interpret(Database& db, const vector<string>& genomes){
 
 static void interpret_ordered(Database& db, const vector<pair<uint64_t, string>>& genomes);
 
-static unique_ptr<Database> process_ordered(istream& in, unordered_map<uint64_t, uint16_t> epi_to_pango) {
+static unique_ptr<Database> process_ordered(istream& in, const unordered_map<uint64_t, uint16_t>& epi_to_pango) {
    static constexpr unsigned chunkSize = 1024;
 
    unique_ptr<Database> db = make_unique<Database>();
@@ -61,8 +61,8 @@ static unique_ptr<Database> process_ordered(istream& in, unordered_map<uint64_t,
          cerr << "length mismatch!" << endl;
          return nullptr;
       }
-      uint64_t epi = stoi(epi_isl.substr(7));
-      genomes.emplace_back(((uint64_t) epi_to_pango[epi] << 48), std::move(genome));
+      uint64_t epi = stoi(epi_isl.substr(9));
+      genomes.emplace_back(((uint64_t) epi_to_pango.at(epi) << 24), std::move(genome));
       if (genomes.size() >= chunkSize) {
          interpret_ordered(*db, genomes);
          genomes.clear();
@@ -124,27 +124,24 @@ void processMeta(istream& in){
       if (!getline(in, country, '\t')) break;*/
       if (!getline(in, division, '\n')) break;
 
-      const string& pangoPref = getPangoPrefix(pango_lineage);
-
-      if (!lineages.contains(pangoPref)) {
-         lineages[pangoPref] = 1;
+      if (!lineages.contains(pango_lineage)) {
+         lineages[pango_lineage] = 1;
       }
       else{
-         lineages[pangoPref]++;
+         lineages[pango_lineage]++;
       }
    }
 
-   cout << "total lineages: " << lineages.size() << endl;
-
    for (auto &x: lineages)
       std::cout << x.first << ':' << x.second << '\n';
-   cout << "total lineages: " << lineages.size() << endl;
+
+   cout << "total partitions: " << lineages.size() << endl;
 }
 
 
 // Meta-Data is input
-void processMeta(istream& in, vector<string> i_to_pango, unordered_map<string, uint16_t> pango_to_i,
-                 unordered_map<uint64_t, uint16_t> epi_to_pango){
+void processMeta(istream& in, vector<string>& i_to_pango, unordered_map<string, uint16_t>& pango_to_i,
+                 unordered_map<uint64_t, uint16_t>& epi_to_pango){
    in.ignore(LONG_MAX, '\n');
 
    uint16_t idx = 0;
@@ -157,7 +154,8 @@ void processMeta(istream& in, vector<string> i_to_pango, unordered_map<string, u
       if (!getline(in, country, '\t')) break;*/
       if (!getline(in, division, '\n')) break;
 
-      uint64_t epi = stoi(epi_isl.substr(7));
+      string tmp = epi_isl.substr(8);
+      uint64_t epi = stoi(tmp);
       uint16_t pango_idx;
       if(pango_to_i.contains(pango_lineage)){
          pango_idx = pango_to_i[pango_lineage];
@@ -174,7 +172,7 @@ void processMeta(istream& in, vector<string> i_to_pango, unordered_map<string, u
 }
 
 int handle_command(vector<string> args){
-   const std::string db_filename = "../out/roaring_sequences.silo";
+   const std::string db_filename = "../silo/roaring_sequences.silo";
    if(args.empty()){
       return -1;
    }
@@ -220,33 +218,53 @@ int handle_command(vector<string> args){
    }
    else if ("test" == args[0]){
       if(args.size() < 2) {
-         cout << "Expected syntax: \"test METAFILE\"" << endl;
+         cout << "Expected syntax: \"test METAFILE [SEQFILE]\"" << endl;
+      }
+
+      cout << "Building meta-data indexes from input file: " << args[1] << endl;
+      ifstream in(args[1]);
+
+      unordered_map<uint64_t, uint16_t> epi_to_pango;
+      vector<string> i_to_pango;
+      unordered_map<string, uint16_t> pango_to_i;
+      processMeta(in, i_to_pango, pango_to_i, epi_to_pango);
+
+      cout << "Processed Meta" << endl;
+
+      unique_ptr<Database> db;
+      if(args.size() == 2){
+         db = process_ordered(cin, epi_to_pango);
       }
       else {
-         cout << "Building meta-data indexes from input file: " << args[1] << endl;
-         ifstream in(args[1]);
-         unordered_map<uint64_t, uint16_t> epi_to_pango;
-         vector<string> i_to_pango;
-         unordered_map<string, uint16_t> pango_to_i;
-         processMeta(in, i_to_pango, pango_to_i, epi_to_pango);
+         ifstream in2(args[2]);
+         db = process_ordered(in2, epi_to_pango);
       }
+
+      db_info(db, cout);
+   }
+   else if ("build" == args[0]){
+      return 1;
    }
    else{
       cout << "Unknown command " << args[0] << ".\n." << endl;
-      return -1;
+      return 0;
    }
    return 0;
 }
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
+       cout << endl << "> ";
        std::string s;
        while(getline(std::cin, s)) {
           std::stringstream ss(s);
           std::istream_iterator<std::string> begin(ss);
           std::istream_iterator<std::string> end;
           std::vector<std::string> vstrings(begin, end);
-          handle_command(vstrings);
+          if(handle_command(vstrings)){
+             return 0;
+          }
+          cout << "> ";
        }
     } else {
        vector<string> args;

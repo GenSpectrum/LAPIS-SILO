@@ -1,5 +1,35 @@
-# Prerequisites
-*.d
+/Data
+/silo
+
+.DS_Store
+
+# Cmake Build folders
+/release
+/Release
+/RelWithDebInfo
+
+/debug
+/Debug
+
+/build
+/Build
+/.build
+
+# CCLS cache
+/.ccls-cache
+
+# Compile commands
+/compile_commands.json
+
+# VSCode
+/.vscode
+
+# KDevelop
+/*.kdev4
+
+# CLion
+/.idea
+/cmake-build-debug
 
 # Compiled Object files
 *.slo
@@ -15,10 +45,6 @@
 *.so
 *.dylib
 *.dll
-
-# Fortran module files
-*.mod
-*.smod
 
 # Compiled Static libraries
 *.lai

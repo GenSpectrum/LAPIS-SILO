@@ -10,8 +10,8 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/binary_object.hpp>
 #include <boost/serialization/split_member.hpp>
-#include "../include/roaring.hh"
-#include "../include/roaring.c"
+#include "roaring/roaring.hh"
+#include "roaring/roaring.c"
 
 using namespace std;
 
