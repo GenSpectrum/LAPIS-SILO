@@ -62,7 +62,12 @@ static unique_ptr<Database> process_ordered(istream& in, const unordered_map<uin
          return nullptr;
       }
       uint64_t epi = stoi(epi_isl.substr(9));
-      genomes.emplace_back(((uint64_t) epi_to_pango.at(epi) << 24), std::move(genome));
+      if(epi_to_pango.contains(epi)) {
+         genomes.emplace_back(((uint32_t) epi_to_pango.at(epi) << 24), std::move(genome));
+      }
+      else{
+         genomes.emplace_back((0xFF << 24), std::move(genome));
+      }
       if (genomes.size() >= chunkSize) {
          interpret_ordered(*db, genomes);
          genomes.clear();
