@@ -168,6 +168,10 @@ void processMeta(istream& in, vector<string>& i_to_pango, unordered_map<string, 
       epi_to_pango[epi] = pango_idx;
    }
 
+   cout << "pango_to_i:" << endl;
+   for (auto &x: pango_to_i)
+      std::cout << x.first << ':' << x.second << '\n';
+
    cout << "Built Meta-indices." << endl;
 }
 
@@ -241,6 +245,7 @@ int handle_command(vector<string> args){
       }
 
       db_info(db, cout);
+      benchmark(db);
    }
    else if ("build" == args[0]){
       return 1;
