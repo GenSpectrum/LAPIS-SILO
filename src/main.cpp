@@ -48,7 +48,8 @@ static void interpret(Database& db, const vector<string>& genomes){
 
 static void interpret_ordered(Database& db, const vector<pair<uint64_t, string>>& genomes);
 
-static unique_ptr<Database> process_ordered(istream& in, const unordered_map<uint64_t, uint16_t>& epi_to_pango) {
+static unique_ptr<Database> process_ordered(istream& in, const unordered_map<uint64_t, uint16_t>& epi_to_pango,
+                                            vector<uint32_t> partition_to_offset) {
    static constexpr unsigned chunkSize = 1024;
 
    unique_ptr<Database> db = make_unique<Database>();
@@ -62,12 +63,17 @@ static unique_ptr<Database> process_ordered(istream& in, const unordered_map<uin
          return nullptr;
       }
       uint64_t epi = stoi(epi_isl.substr(9));
+
+      uint8_t partition;
       if(epi_to_pango.contains(epi)) {
-         genomes.emplace_back(((uint32_t) epi_to_pango.at(epi) << 24), std::move(genome));
+         auto pango_id = epi_to_pango.at(epi);
+         partition = pango_id % 256;
       }
       else{
-         genomes.emplace_back((0xFF << 24), std::move(genome));
+         partition = 0xFF;
       }
+      uint32_t index = partition_to_offset[partition]++;
+      genomes.emplace_back(index, std::move(genome));
       if (genomes.size() >= chunkSize) {
          interpret_ordered(*db, genomes);
          genomes.clear();
@@ -82,11 +88,10 @@ static unique_ptr<Database> process_ordered(istream& in, const unordered_map<uin
 static void interpret_ordered(Database& db, const vector<pair<uint64_t, string>>& genomes){
    vector<unsigned> offsets[symbolCount];
    for (unsigned index = 0; index != genomeLength; ++index) {
-      for (unsigned index2 = 0, limit2 = genomes.size(); index2 != limit2; ++index2) {
-         char c = genomes[index2].second[index];
+      for (const auto & idx_genome : genomes) {
+         char c = idx_genome.second[index];
          Symbol s = to_symbol(c);
-         // genomes[index2].first is the prefix (highest 16 bits), so we guarantee ordering by pango lineage
-         offsets[s].push_back(genomes[index2].first + db.sequenceCount + index2);
+         offsets[s].push_back(idx_genome.first);
       }
       for (unsigned index2 = 0; index2 != symbolCount; ++index2) {
          if (!offsets[index2].empty()) {
@@ -238,15 +243,23 @@ int handle_command(vector<string> args){
       unordered_map<string, uint16_t> pango_to_i;
       processMeta(in, i_to_pango, pango_to_i, epi_to_pango);
 
+      // Pango to partition is just mod 256 for now...
+
+      vector<uint32_t> partition_to_offset;
+      partition_to_offset.reserve(256);
+      for(uint32_t i = 0; i<256; i++){
+         partition_to_offset.push_back(i << 24);
+      }
+
       cout << "Processed Meta" << endl;
 
       unique_ptr<Database> db;
       if(args.size() == 2){
-         db = process_ordered(cin, epi_to_pango);
+         db = process_ordered(cin, epi_to_pango, partition_to_offset);
       }
       else {
          ifstream in2(args[2]);
-         db = process_ordered(in2, epi_to_pango);
+         db = process_ordered(in2, epi_to_pango, partition_to_offset);
       }
 
       db_info(db, cout);
