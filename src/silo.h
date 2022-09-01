@@ -10,6 +10,10 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/binary_object.hpp>
 #include <boost/serialization/split_member.hpp>
+#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/filter/lzma.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/exception/diagnostic_information.hpp>
 #include "roaring/roaring.hh"
 #include "roaring/roaring.c"
 

@@ -12,7 +12,7 @@ struct Position {
    roaring::Roaring bitmaps[symbolCount];
 };
 
-struct Database {
+struct SequenceStore {
    friend class boost::serialization::access;
    template<class Archive>
    void serialize(Archive & ar, [[maybe_unused]] const unsigned int version)
@@ -67,7 +67,7 @@ struct Database {
    [[nodiscard]] roaring::Roaring bma(size_t pos, Residue r) const;
 };
 
-roaring::Roaring Database::bma(size_t pos, Residue r) const {
+roaring::Roaring SequenceStore::bma(size_t pos, Residue r) const {
    switch(r){
       case aA:{
          const roaring::Roaring* tmp[8] = {bm(pos, A), bm(pos, N),
@@ -99,13 +99,13 @@ roaring::Roaring Database::bma(size_t pos, Residue r) const {
 }
 
 
-int db_info(const unique_ptr<Database>& db, ostream& io){
+int db_info(const unique_ptr<SequenceStore>& db, ostream& io){
    io << "sequence count: " << db->sequenceCount << endl;
    io << "total size: " << db->computeSize() << endl;
    return 0;
 }
 
-static unsigned save_db(const Database& db, const std::string& db_filename) {
+static unsigned save_db(const SequenceStore& db, const std::string& db_filename) {
    std::cout << "Writing out db." << std::endl;
 
    ofstream wf(db_filename, ios::out | ios::binary);
@@ -124,7 +124,7 @@ static unsigned save_db(const Database& db, const std::string& db_filename) {
    return 0;
 }
 
-static unsigned load_db(Database* db, const std::string& db_filename) {
+static unsigned load_db(SequenceStore* db, const std::string& db_filename) {
    {
       // create and open an archive for input
       std::ifstream ifs(db_filename, ios::binary);

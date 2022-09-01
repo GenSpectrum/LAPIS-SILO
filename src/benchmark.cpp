@@ -1,6 +1,6 @@
 #include "monosilo.cpp"
 
-void benchmark(const unique_ptr<Database> &db){
+void benchmark(const unique_ptr<SequenceStore> &db){
 
    string ref_genome;
    ifstream in("../Data/reference_genome.txt");

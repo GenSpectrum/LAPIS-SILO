@@ -1,12 +1,11 @@
 #include "benchmark.cpp"
 
+static void interpret(SequenceStore& db, const vector<string>& genomes);
 
-static void interpret(Database& db, const vector<string>& genomes);
-
-static unique_ptr<Database> process(istream& in) {
+static unique_ptr<SequenceStore> process(istream& in) {
    static constexpr unsigned chunkSize = 1024;
 
-   unique_ptr<Database> db = make_unique<Database>();
+   unique_ptr<SequenceStore> db = make_unique<SequenceStore>();
    vector<string> genomes;
    while (true) {
       string name, genome;
@@ -28,7 +27,7 @@ static unique_ptr<Database> process(istream& in) {
    return db;
 }
 
-static void interpret(Database& db, const vector<string>& genomes){
+static void interpret(SequenceStore& db, const vector<string>& genomes){
    vector<unsigned> offsets[symbolCount];
    for (unsigned index = 0; index != genomeLength; ++index) {
       for (unsigned index2 = 0, limit2 = genomes.size(); index2 != limit2; ++index2) {
@@ -46,13 +45,13 @@ static void interpret(Database& db, const vector<string>& genomes){
 }
 
 
-static void interpret_ordered(Database& db, const vector<pair<uint64_t, string>>& genomes);
+static void interpret_ordered(SequenceStore& db, const vector<pair<uint64_t, string>>& genomes);
 
-static unique_ptr<Database> process_ordered(istream& in, const unordered_map<uint64_t, uint16_t>& epi_to_pango,
-                                            vector<uint32_t> partition_to_offset) {
+static unique_ptr<SequenceStore> process_ordered(istream& in, const unordered_map<uint64_t, uint16_t>& epi_to_pango,
+                                                 vector<uint32_t> partition_to_offset) {
    static constexpr unsigned chunkSize = 1024;
 
-   unique_ptr<Database> db = make_unique<Database>();
+   unique_ptr<SequenceStore> db = make_unique<SequenceStore>();
    vector<pair<uint64_t, string>> genomes;
    while (true) {
       string epi_isl, genome;
@@ -85,7 +84,7 @@ static unique_ptr<Database> process_ordered(istream& in, const unordered_map<uin
    return db;
 }
 
-static void interpret_ordered(Database& db, const vector<pair<uint64_t, string>>& genomes){
+static void interpret_ordered(SequenceStore& db, const vector<pair<uint64_t, string>>& genomes){
    vector<unsigned> offsets[symbolCount];
    for (unsigned index = 0; index != genomeLength; ++index) {
       for (const auto & idx_genome : genomes) {
@@ -103,7 +102,7 @@ static void interpret_ordered(Database& db, const vector<pair<uint64_t, string>>
    db.sequenceCount += genomes.size();
 }
 
-static string getPangoPrefix(const string &pango_lineage){
+[[maybe_unused]] static string getPangoPrefix(const string &pango_lineage){
    string pangoPref;
    if(pango_lineage.size() > 2){
       std::stringstream ss(pango_lineage);
@@ -188,23 +187,20 @@ void processMeta(istream& in, vector<string>& i_to_pango, unordered_map<string, 
 int handle_command(vector<string> args){
    const std::string db_filename = "../silo/roaring_sequences.silo";
    if(args.empty()){
-      return -1;
+      return 0;
    }
    if("load" == args[0]){
-      unique_ptr<Database> db = make_unique<Database>();
+      unique_ptr<SequenceStore> db = make_unique<SequenceStore>();
       std::cout << "Loading index from " << db_filename << std::endl;
       load_db(db.get(), db_filename);
       db_info(db, cout);
       benchmark(db);
    }
    else if ("build" == args[0]){
-      unique_ptr<Database> db;
+      unique_ptr<SequenceStore> db;
       if(args.size() == 1) {
          cout << "Building indexes from stdin" << endl;
          db = process(cin);
-         if (db) {
-            save_db(*db, db_filename);
-         }
       }
       else {
          cout << "Building indexes from input file: " << args[1] << endl;
@@ -230,9 +226,9 @@ int handle_command(vector<string> args){
          processMeta(in);
       }
    }
-   else if ("test" == args[0]){
+   else if ("test1" == args[0]){
       if(args.size() < 2) {
-         cout << "Expected syntax: \"test METAFILE [SEQFILE]\"" << endl;
+         cout << "Expected syntax: \"test1 METAFILE [SEQFILE]\"" << endl;
       }
 
       cout << "Building meta-data indexes from input file: " << args[1] << endl;
@@ -253,8 +249,8 @@ int handle_command(vector<string> args){
 
       cout << "Processed Meta" << endl;
 
-      unique_ptr<Database> db;
-      if(args.size() == 2){
+      unique_ptr<SequenceStore> db;
+      if(args.size() < 3){
          db = process_ordered(cin, epi_to_pango, partition_to_offset);
       }
       else {
@@ -265,20 +261,41 @@ int handle_command(vector<string> args){
       db_info(db, cout);
       benchmark(db);
    }
-   else if ("build" == args[0]){
+   else if ("readtest" == args[0]){
+      if(args.size() < 2) {
+         cout << "Expected syntax: \"readtest SEQFILEXZ\"" << endl;
+      }
+
+      cout << "Trying to read using lzma lib" << endl;
+
+      std::ifstream file(args[1], std::ios::binary);
+
+      boost::iostreams::filtering_istreambuf in;
+      in.push(boost::iostreams::lzma_decompressor());
+      in.push(file);
+
+      try {
+         boost::iostreams::copy(in, cout);
+      } catch(boost::iostreams::lzma_error const& e) {
+         std::cout << boost::diagnostic_information(e, true);
+         std::cout << e.code() << ": " << e.code().message() << "\n";
+      } catch(boost::exception const& e) {
+         std::cout << boost::diagnostic_information(e, true);
+      }
+   }
+   else if ("exit" == args[0]){
       return 1;
    }
    else{
       cout << "Unknown command " << args[0] << ".\n." << endl;
-      return 0;
    }
    return 0;
 }
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-       cout << endl << "> ";
        std::string s;
+       cout << "> ";
        while(getline(std::cin, s)) {
           std::stringstream ss(s);
           std::istream_iterator<std::string> begin(ss);
@@ -291,7 +308,7 @@ int main(int argc, char* argv[]) {
        }
     } else {
        vector<string> args;
-       for(unsigned i = 1; i<argc; i++){
+       for(int i = 1; i<argc; i++){
           args.emplace_back(argv[i]);
        }
        handle_command(args);
