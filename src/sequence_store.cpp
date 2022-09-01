@@ -1,4 +1,4 @@
-#include "silo.h"
+#include "meta_store.cpp"
 
 struct Position {
    friend class boost::serialization::access;
@@ -37,7 +37,7 @@ struct SequenceStore {
    }
 
    /// pos: 1 indexed position of the genome
-   [[nodiscard]] const roaring::Roaring * bm(size_t pos, Symbol s) const {
+   [[nodiscard]] const roaring::Roaring *bm(size_t pos, Symbol s) const {
       return &positions[pos-1].bitmaps[s];
    }
 
@@ -99,9 +99,9 @@ roaring::Roaring SequenceStore::bma(size_t pos, Residue r) const {
 }
 
 
-int db_info(const unique_ptr<SequenceStore>& db, ostream& io){
-   io << "sequence count: " << db->sequenceCount << endl;
-   io << "total size: " << db->computeSize() << endl;
+int db_info(const SequenceStore& db, ostream& io){
+   io << "sequence count: " << db.sequenceCount << endl;
+   io << "total size: " << db.computeSize() << endl;
    return 0;
 }
 
@@ -124,15 +124,113 @@ static unsigned save_db(const SequenceStore& db, const std::string& db_filename)
    return 0;
 }
 
-static unsigned load_db(SequenceStore* db, const std::string& db_filename) {
+static unsigned load_db(SequenceStore& db, const std::string& db_filename) {
    {
       // create and open an archive for input
       std::ifstream ifs(db_filename, ios::binary);
       boost::archive::binary_iarchive ia(ifs);
       // read class state from archive
-      ia >> *db;
+      ia >> db;
       // archive and stream closed when destructors are called
    }
    return 0;
 }
 
+static void interpret(SequenceStore& db, const vector<string>& genomes);
+
+static void process(SequenceStore& db, istream& in) {
+   static constexpr unsigned chunkSize = 1024;
+
+   vector<string> genomes;
+   while (true) {
+      string name, genome;
+      if (!getline(in, name) || name.empty()) break;
+      if (!getline(in, genome)) break;
+      if (genome.length() != genomeLength) {
+         cerr << "length mismatch!" << endl;
+         return;
+      }
+      genomes.push_back(std::move(genome));
+      if (genomes.size() >= chunkSize) {
+         interpret(db, genomes);
+         genomes.clear();
+      }
+   }
+   interpret(db, genomes);
+   cout << "sequence count: " << db.sequenceCount << endl;
+   cout << "total size: " << db.computeSize() << endl;
+   // TODO think about return type
+}
+
+static void interpret(SequenceStore& db, const vector<string>& genomes){
+   vector<unsigned> offsets[symbolCount];
+   for (unsigned index = 0; index != genomeLength; ++index) {
+      for (unsigned index2 = 0, limit2 = genomes.size(); index2 != limit2; ++index2) {
+         char c = genomes[index2][index];
+         Symbol s = to_symbol(c);
+         offsets[s].push_back(db.sequenceCount + index2);
+      }
+      for (unsigned index2 = 0; index2 != symbolCount; ++index2)
+         if (!offsets[index2].empty()) {
+            db.positions[index].bitmaps[index2].addMany(offsets[index2].size(), offsets[index2].data());
+            offsets[index2].clear();
+         }
+   }
+   db.sequenceCount += genomes.size();
+}
+
+
+static void interpret_ordered(SequenceStore& db, const vector<pair<uint64_t, string>>& genomes);
+
+static void process_ordered(SequenceStore& db, istream& in, const unordered_map<uint64_t, uint16_t>& epi_to_pango,
+                                                 vector<uint32_t> partition_to_offset) {
+   static constexpr unsigned chunkSize = 1024;
+
+   vector<pair<uint64_t, string>> genomes;
+   while (true) {
+      string epi_isl, genome;
+      if (!getline(in, epi_isl)) break;
+      if (!getline(in, genome)) break;
+      if (genome.length() != genomeLength) {
+         cerr << "length mismatch!" << endl;
+         return;
+      }
+      uint64_t epi = stoi(epi_isl.substr(9));
+
+      uint8_t partition;
+      if(epi_to_pango.contains(epi)) {
+         auto pango_id = epi_to_pango.at(epi);
+         partition = pango_id % 256;
+      }
+      else{
+         partition = 0xFF;
+      }
+      uint32_t index = partition_to_offset[partition]++;
+      genomes.emplace_back(index, std::move(genome));
+      if (genomes.size() >= chunkSize) {
+         interpret_ordered(db, genomes);
+         genomes.clear();
+      }
+   }
+   interpret_ordered(db, genomes);
+   cout << "sequence count: " << db.sequenceCount << endl;
+   cout << "total size: " << db.computeSize() << endl;
+}
+
+static void interpret_ordered(SequenceStore& db, const vector<pair<uint64_t, string>>& genomes){
+   vector<unsigned> offsets[symbolCount];
+   for (unsigned index = 0; index != genomeLength; ++index) {
+      for (const auto & idx_genome : genomes) {
+         char c = idx_genome.second[index];
+         Symbol s = to_symbol(c);
+         offsets[s].push_back(idx_genome.first);
+      }
+      for (unsigned index2 = 0; index2 != symbolCount; ++index2) {
+         if (!offsets[index2].empty()) {
+            db.positions[index].bitmaps[index2].addMany(offsets[index2].size(), offsets[index2].data());
+            offsets[index2].clear();
+         }
+      }
+   }
+   db.sequenceCount += genomes.size();
+}

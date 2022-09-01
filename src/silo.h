@@ -16,6 +16,7 @@
 #include <boost/exception/diagnostic_information.hpp>
 #include "roaring/roaring.hh"
 #include "roaring/roaring.c"
+#include "util.h"
 
 using namespace std;
 

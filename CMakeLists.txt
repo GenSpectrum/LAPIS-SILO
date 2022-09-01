@@ -23,5 +23,5 @@ include_directories(
         ${LIBLZMA_INCLUDE_DIRS}
 )
 
-add_executable(silo src/main.cpp ${Boost_INCLUDE_DIRS} ${LIBLZMA_INCLUDE_DIRS})
-target_link_libraries(silo PUBLIC ${Boost_LIBRARIES} ${LIBLZMA_LIBRARIES})
+add_executable(silo src/main.cpp ${Boost_INCLUDE_DIRS})
+target_link_libraries(silo PUBLIC ${Boost_LIBRARIES})
