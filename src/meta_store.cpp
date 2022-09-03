@@ -12,8 +12,20 @@ struct MetaStore{
       // TODO
    }
 
-   vector<uint32_t> partition_to_offset;
+   // Maps the epis to the ID, which is assigned to the pango lineage (pid)
+   // pids are starting at 0 and are dense, so that we can save the respective data in vectors.
+   unordered_map<uint64_t, uint16_t> epi_to_pid;
+   uint16_t next_pid = 0;
    unsigned sequenceCount = 0;
+
+   vector<string> pid_to_pango;
+   unordered_map<string, uint16_t> pango_to_pid;
+
+   // Often we want to limit the number of partitions. Therefore, we map (multiple) pango-lineages to partitions.
+   vector<uint16_t> pid_to_partition;
+
+
+   vector<uint32_t> partition_to_offset;
 
    [[nodiscard]] size_t computeSize() const {
       // TODO
@@ -60,15 +72,10 @@ void analyseMeta(istream& in){
 
 
 // Meta-Data is input
-void processMeta(istream& in, vector<string>& pid_to_pango, unordered_map<string, uint16_t>& pango_to_pid,
-                 unordered_map<uint64_t, uint16_t>& epi_to_pid){
+void processMeta(MetaStore& mdb, istream& in){
    in.ignore(LONG_MAX, '\n');
 
-   uint16_t next_idx = 0;
    while (true) {
-      int next = in.peek();
-      if(next == EOF || next == '\n') break;
-
       string epi_isl, pango_lineage, date, region, country, division;
       if (!getline(in, epi_isl, '\t')) break;
       if (!getline(in, pango_lineage, '\t')) break;
@@ -89,20 +96,22 @@ void processMeta(istream& in, vector<string>& pid_to_pango, unordered_map<string
       string tmp = epi_isl.substr(8);
       uint64_t epi = stoi(tmp);
       uint16_t pango_idx;
-      if(pango_to_pid.contains(pango_lineage)){
-         pango_idx = pango_to_pid[pango_lineage];
+      if(mdb.pango_to_pid.contains(pango_lineage)){
+         pango_idx = mdb.pango_to_pid[pango_lineage];
       }
       else{
-         pango_idx = next_idx++;
-         pid_to_pango.push_back(pango_lineage);
-         pango_to_pid[pango_lineage] = pango_idx;
+         pango_idx = mdb.next_pid++;
+         mdb.pid_to_pango.push_back(pango_lineage);
+         mdb.pango_to_pid[pango_lineage] = pango_idx;
       }
-      epi_to_pid[epi] = pango_idx;
+      mdb.epi_to_pid[epi] = pango_idx;
    }
+}
 
-   cout << "pango_to_pid:" << endl;
-   for (auto &x: pango_to_pid)
-      std::cout << x.first << ':' << x.second << '\n';
+void meta_info(MetaStore& mdb, ostream& out){
+   out << "pango_to_pid:" << endl;
+   for (auto &x: mdb.pango_to_pid)
+      out << x.first << ':' << x.second << endl;
 
-   cout << "Built Meta-indices." << endl;
+   out << "mdb size: " << mdb.computeSize();
 }

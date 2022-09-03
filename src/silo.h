@@ -18,6 +18,10 @@
 #include "roaring/roaring.c"
 #include "util.h"
 
+
+typedef boost::iostreams::filtering_istream xzistream;
+typedef boost::iostreams::filtering_ostream xzostream;
+
 using namespace std;
 
 static constexpr unsigned genomeLength = 29903;
@@ -107,3 +111,21 @@ namespace boost::serialization {
       bitmask = roaring::Roaring::readSafe(buffer.data(), size_in_bytes);
    }
 }  // namespace boost
+
+
+[[maybe_unused]] static std::string getPangoPrefix(const std::string &pango_lineage){
+   std::string pangoPref;
+   if(pango_lineage.size() > 2){
+      std::stringstream ss(pango_lineage);
+      if(!getline(ss, pangoPref, '.')){
+         std::cerr << "Non-covered case of pango lineage!" << std::endl;
+         return "Not-recognized";
+      }
+   }
+   else{
+      pangoPref = pango_lineage;
+   }
+   return pangoPref;
+}
+
+

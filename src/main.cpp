@@ -1,57 +1,6 @@
 #include "query_engine.cpp"
 
 
-[[maybe_unused]] static unique_ptr<istream> maybe_xz_reader(const string& ending, const string& filename){
-   if(filename.ends_with(ending)){
-      return std::make_unique<ifstream>(filename);
-   }
-   else if(filename.ends_with(ending + ".xz")){
-      std::ifstream file(filename, std::ios::binary);
-
-      boost::iostreams::filtering_istreambuf in;
-      in.push(boost::iostreams::lzma_decompressor());
-      in.push(file);
-
-      return std::make_unique<istream>(&in);
-   }
-   else{
-      cerr << "Unrecognized file format (please specify "<< ending << " or " << ending << ".xz files as input)";
-      cerr << "Received input filename: " << filename << endl;
-      return nullptr;
-   }
-}
-
-[[maybe_unused]] static unique_ptr<istream> fasta_reader(const string& fasta_filename){
-   return maybe_xz_reader(".fasta", fasta_filename);
-}
-
-[[maybe_unused]] static unique_ptr<ostream> maybe_xz_writer(const string& ending, const string& filename){
-   if(filename.ends_with(ending)){
-      return std::make_unique<ofstream>(filename);
-   }
-   else if(filename.ends_with(ending + ".xz")){
-      std::ofstream file(filename, std::ios::binary);
-
-      boost::iostreams::filtering_ostreambuf in;
-      in.push(boost::iostreams::lzma_compressor());
-      in.push(file);
-
-      return std::make_unique<ostream>(&in);
-   }
-   else{
-      cerr << "Unrecognized file format (please specify " << ending << " or " << ending << ".xz files as output):";
-      cerr << "Received input filename: " << filename << endl;
-      return nullptr;
-   }
-}
-
-
-[[maybe_unused]] static unique_ptr<ostream> fasta_writer(const string& fasta_filename){
-   return maybe_xz_writer(".fasta", fasta_filename);
-}
-
-
-
 
 int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
    const std::string default_db_filename = "../silo/roaring_sequences.silo";
@@ -87,6 +36,9 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
    else if("info" == args[0]){
       db_info(db, cout);
    }
+   else if("meta_info" == args[0]){
+      meta_info(meta_db, cout);
+   }
    else if("benchmark" == args[0]){
       benchmark(db);
    }
@@ -96,10 +48,17 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
          process(db, cin);
       }
       else if(args.size() == 2){
-         unique_ptr<istream> in = fasta_reader(args[1]);
-         if(in) {
+         auto file = ifstream(args[1], ios::binary);
+         if(args[1].ends_with(".xz")){
+            xzistream archive;
+            archive.push(boost::iostreams::lzma_decompressor());
+            archive.push(file);
+            cout << "Building sequence-store from input archive: " << args[1] << endl;
+            process(db, archive);
+         }
+         else {
             cout << "Building sequence-store from input file: " << args[1] << endl;
-            process(db, *in);
+            process(db, file);
          }
       }
       else{
@@ -107,7 +66,32 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
       }
    }
    else if("partition" == args[0]){
-      // TODO
+      if(args.size() < 2) {
+         cout << "Expected syntax: \"partition out_prefix [fasta_file | fasta_archive]\"" << endl;
+         return 0;
+      }
+      if(meta_db.epi_to_pid.empty()){
+         cout << "No meta_data built."  << endl;
+         return 0;
+      }
+      if(args.size() == 2){
+         cout << "Partition sequence input from stdin" << endl;
+         partition(meta_db, cin, args[1]);
+      }
+      else {
+         auto file = ifstream(args[2], ios::binary);
+         if(args[2].ends_with(".xz")){
+            xzistream archive;
+            archive.push(boost::iostreams::lzma_decompressor());
+            archive.push(file);
+            cout << "Partition sequence input from input archive: " << args[2] << endl;
+            partition(meta_db, archive, args[1]);
+         }
+         else {
+            cout << "Partition sequence input from input file: " << args[2] << endl;
+            partition(meta_db, file, args[1]);
+         }
+      }
       return 0;
    }
    else if ("analysemeta" == args[0]){
@@ -116,37 +100,61 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
          analyseMeta(cin);
       }
       else {
-         cout << "Analysing meta-data from input file: " << args[1] << endl;
-         unique_ptr<istream> in = fasta_reader(args[1]);
-         if(in) {
-            analyseMeta(*in);
+         auto file = ifstream(args[1], ios::binary);
+         if(args[1].ends_with(".xz")){
+            xzistream archive;
+            archive.push(boost::iostreams::lzma_decompressor());
+            archive.push(file);
+            cout << "Analysing meta-data from input archive: " << args[1] << endl;
+            analyseMeta(archive);
+         }
+         else {
+            cout << "Analysing meta-data from input file: " << args[1] << endl;
+            analyseMeta(file);
          }
       }
    }
    else if ("build_meta" == args[0]){
       if(args.size() < 2) {
          cout << "Expected syntax: \"build_meta METAFILE\"" << endl;
-      }
-
-      cout << "Building meta-data indexes from input file: " << args[1] << endl;
-      unique_ptr<istream> in = maybe_xz_reader("tsv", args[1]);
-
-      if(!in){
          return 0;
       }
 
-      unordered_map<uint64_t, uint16_t> epi_to_pid;
-      vector<string> pid_to_pango;
-      unordered_map<string, uint16_t> pango_to_pid;
-      processMeta(*in, pid_to_pango, pango_to_pid, epi_to_pid);
 
-      // Pango to partition is just mod 256 for now...
-
-      vector<uint32_t> partition_to_offset;
-      partition_to_offset.reserve(256);
-      for(uint32_t i = 0; i<256; i++){
-         partition_to_offset.push_back(i << 24);
+      auto file = ifstream(args[1], ios::binary);
+      if(args[1].ends_with(".xz")){
+         xzistream archive;
+         archive.push(boost::iostreams::lzma_decompressor());
+         archive.push(file);
+         cout << "Building meta-data indexes from input archive: " << args[1] << endl;
+         processMeta(meta_db, archive);
       }
+      else {
+         cout << "Building meta-data indexes from input file: " << args[1] << endl;
+         processMeta(meta_db, file);
+      }
+   }
+   else if("test" == args[0]){
+      std::ifstream file("../tmp.fasta.xz", std::ios::binary);
+
+
+
+      boost::iostreams::filtering_istream in2;
+      in2.push(boost::iostreams::lzma_decompressor());
+      in2.push(file);
+
+      istream& in = in2;
+
+      if(!in) {
+         cout << "Could not create in_stream."  << endl;
+         return 0;
+      }
+      cout << "Reading." << endl;
+      string s;
+      istream& tmp = in;
+      getline(tmp,s);
+      cout << "Read:'" <<  s << "'" << endl;
+      return 0;
    }
    else if ("exit" == args[0] || "quit" == args[0] ){
       return 1;
@@ -158,30 +166,46 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
          cout << "Expected syntax: \"build_with_prefix METAFILE [SEQFILE]\"" << endl;
       }
 
-      cout << "Building meta-data indexes from input file: " << args[1] << endl;
-      unique_ptr<istream> in = fasta_reader(args[1]);
-
-      unordered_map<uint64_t, uint16_t> epi_to_pid;
-      vector<string> pid_to_pango;
-      unordered_map<string, uint16_t> pango_to_pid;
-      processMeta(*in, pid_to_pango, pango_to_pid, epi_to_pid);
+      auto file = ifstream(args[1], ios::binary);
+      if(args[1].ends_with(".xz")){
+         xzistream archive;
+         archive.push(boost::iostreams::lzma_decompressor());
+         archive.push(file);
+         cout << "Building meta-data indexes from input archive: " << args[1] << endl;
+         processMeta(meta_db, archive);
+      }
+      else {
+         cout << "Building meta-data indexes from input file: " << args[1] << endl;
+         processMeta(meta_db, file);
+      }
 
       // Pango to partition is just mod 256 for now...
+      meta_db.partition_to_offset.clear();
+      meta_db.partition_to_offset.reserve(256);
 
-      vector<uint32_t> partition_to_offset;
-      partition_to_offset.reserve(256);
       for(uint32_t i = 0; i<256; i++){
-         partition_to_offset.push_back(i << 24);
+         meta_db.partition_to_offset.push_back(i << 24);
       }
 
       cout << "Processed Meta" << endl;
 
       if(args.size() < 3){
-         process_ordered(db, cin, epi_to_pid, partition_to_offset);
+         process_ordered(db, cin, meta_db.epi_to_pid, meta_db.partition_to_offset);
       }
       else {
-         unique_ptr<istream> in2 = fasta_reader(args[2]);
-         process_ordered(db, *in2, epi_to_pid, partition_to_offset);
+
+         auto file2 = ifstream(args[2], ios::binary);
+         if(args[2].ends_with(".xz")){
+            xzistream archive;
+            archive.push(boost::iostreams::lzma_decompressor());
+            archive.push(file);
+            cout << "Processing sequences with on-the-fly partitioning from input archive: " << args[2] << endl;
+            process_ordered(db, archive, meta_db.epi_to_pid, meta_db.partition_to_offset);
+         }
+         else {
+            cout << "Processing sequences with on-the-fly partitioning from input file: " << args[2] << endl;
+            process_ordered(db, file2, meta_db.epi_to_pid, meta_db.partition_to_offset);
+         }
       }
 
       db_info(db, cout);

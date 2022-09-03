@@ -234,3 +234,39 @@ static void interpret_ordered(SequenceStore& db, const vector<pair<uint64_t, str
    }
    db.sequenceCount += genomes.size();
 }
+
+static void partition(MetaStore &mdb, istream& in, const string& output_prefix_){
+   vector<unique_ptr<xzostream>> pid_to_ostream;
+   const string output_prefix = output_prefix_ + '_';
+   for(auto& x : mdb.pid_to_pango){
+      ofstream file(output_prefix + x + ".fasta.xz");
+      auto out = make_unique<xzostream>();
+      out->push(boost::iostreams::lzma_compressor());
+      out->push(file);
+      pid_to_ostream.emplace_back(std::move(out));
+   }
+   ofstream undefined_pid_file(output_prefix + "NOMETADATA.fasta.xz");
+   xzostream undefined_pid_ostream;
+   undefined_pid_ostream.push(boost::iostreams::lzma_compressor());
+   undefined_pid_ostream.push(undefined_pid_file);
+   while (true) {
+      string epi_isl, genome;
+      if (!getline(in, epi_isl)) break;
+      if (!getline(in, genome)) break;
+      if (genome.length() != genomeLength) {
+         cerr << "length mismatch!" << endl;
+         return;
+      }
+      uint64_t epi = stoi(epi_isl.substr(9));
+
+      if(mdb.epi_to_pid.contains(epi)) {
+         auto pid = mdb.epi_to_pid.at(epi);
+         *pid_to_ostream[pid] << epi_isl << endl << genome << endl;
+
+      }
+      else{
+         undefined_pid_ostream << epi_isl << endl << genome << endl;
+      }
+   }
+}
+
