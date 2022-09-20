@@ -20,7 +20,6 @@
 
 
 typedef boost::iostreams::filtering_istream xzistream;
-typedef boost::iostreams::filtering_ostream xzostream;
 
 using namespace std;
 
