@@ -236,21 +236,23 @@ static void interpret_ordered(SequenceStore& db, const vector<pair<uint64_t, str
 }
 
 static void partition(MetaStore &mdb, istream& in, const string& output_prefix_){
+   cout << "Now partitioning fasta file to " << output_prefix_ << endl;
    vector<unique_ptr<ostream>> pid_to_ostream;
    const string output_prefix = output_prefix_ + '_';
    for(auto& x : mdb.pid_to_pango){
       ofstream file(output_prefix + x + ".fasta.xz");
       boost::iostreams::filtering_ostreambuf out_buf;
-      out_buf.push(boost::iostreams::lzma_compressor());
+      // out_buf.push(boost::iostreams::lzma_compressor());
       out_buf.push(file);
       auto out = make_unique<ostream>(&out_buf);
       pid_to_ostream.emplace_back(std::move(out));
    }
+   cout << "Created file streams for  " << output_prefix_ << endl;
    ofstream undefined_pid_file(output_prefix + "NOMETADATA.fasta.xz");
    boost::iostreams::filtering_ostreambuf undefined_pid_ostream_buf;
-   undefined_pid_ostream_buf.push(boost::iostreams::lzma_compressor());
+   // undefined_pid_ostream_buf.push(boost::iostreams::lzma_compressor());
    undefined_pid_ostream_buf.push(undefined_pid_file);
-   ostream undefined_pid_ostream{&undefined_pid_ostream_buf};
+   ostream undefined_pid_ostream(&undefined_pid_ostream_buf);
    while (true) {
       string epi_isl, genome;
       if (!getline(in, epi_isl)) break;
