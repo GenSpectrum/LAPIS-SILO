@@ -163,7 +163,6 @@ static void process(SequenceStore& db, istream& in) {
    interpret(db, genomes);
    cout << "sequence count: " << db.sequenceCount << endl;
    cout << "total size: " << db.computeSize() << endl;
-   // TODO think about return type
 }
 
 
