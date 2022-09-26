@@ -166,13 +166,14 @@ static void process(SequenceStore& db, istream& in) {
    // TODO think about return type
 }
 
-static void interpret(SequenceStore& db, const vector<string>& genomes){
+
+static void interpret_offset(SequenceStore& db, const vector<string>& genomes, uint32_t offset){
    vector<unsigned> offsets[symbolCount];
    for (unsigned index = 0; index != genomeLength; ++index) {
       for (unsigned index2 = 0, limit2 = genomes.size(); index2 != limit2; ++index2) {
          char c = genomes[index2][index];
          Symbol s = to_symbol(c);
-         offsets[s].push_back(db.sequenceCount + index2);
+         offsets[s].push_back(offset + index2);
       }
       for (unsigned index2 = 0; index2 != symbolCount; ++index2)
          if (!offsets[index2].empty()) {
@@ -183,14 +184,19 @@ static void interpret(SequenceStore& db, const vector<string>& genomes){
    db.sequenceCount += genomes.size();
 }
 
+static void interpret(SequenceStore& db, const vector<string>& genomes){
+   // Putting sequences to the end is the same as offsetting them to sequence_count
+   interpret_offset(db, genomes, db.sequenceCount);
+}
 
-static void interpret_ordered(SequenceStore& db, const vector<pair<uint64_t, string>>& genomes);
 
-static void process_ordered(SequenceStore& db, istream& in, const unordered_map<uint64_t, uint16_t>& epi_to_pango,
-                                                 vector<uint32_t> partition_to_offset) {
+static void process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, istream& in) {
    static constexpr unsigned chunkSize = 1024;
 
-   vector<pair<uint64_t, string>> genomes;
+   vector<uint32_t> dynamic_offsets(mdb.pid_to_offset);
+
+   vector<vector<string>> pid_to_genomes;
+   pid_to_genomes.resize(mdb.pid_count + 1);
    while (true) {
       string epi_isl, genome;
       if (!getline(in, epi_isl)) break;
@@ -201,22 +207,24 @@ static void process_ordered(SequenceStore& db, istream& in, const unordered_map<
       }
       uint64_t epi = stoi(epi_isl.substr(9));
 
-      uint8_t partition;
-      if(epi_to_pango.contains(epi)) {
-         auto pango_id = epi_to_pango.at(epi);
-         partition = pango_id % 256;
+      uint16_t pid;
+      if(mdb.epi_to_pid.contains(epi)) {
+         pid = mdb.epi_to_pid.at(epi);
       }
       else{
-         partition = 0xFF;
+         pid = mdb.pid_count;
       }
-      uint32_t index = partition_to_offset[partition]++;
-      genomes.emplace_back(index, std::move(genome));
+      auto& genomes = pid_to_genomes[pid];
+      genomes.emplace_back(std::move(genome));
       if (genomes.size() >= chunkSize) {
-         interpret_ordered(db, genomes);
+         interpret_offset(db, genomes, dynamic_offsets[pid]);
+         dynamic_offsets[pid] += genomes.size();
          genomes.clear();
       }
    }
-   interpret_ordered(db, genomes);
+   for(uint16_t pid = 0; pid < mdb.pid_count+1; pid++){
+      interpret_offset(db, pid_to_genomes[pid], dynamic_offsets[pid]);
+   }
    cout << "sequence count: " << db.sequenceCount << endl;
    cout << "total size: " << db.computeSize() << endl;
 }

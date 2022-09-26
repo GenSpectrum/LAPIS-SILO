@@ -145,12 +145,12 @@ void calc_partition_offsets(MetaStore& mdb, istream& in){
    }
 
    // Escalate offsets from start to finish
-   /* uint32_t cumulative_offset = 0;
+   uint32_t cumulative_offset = 0;
    for(uint32_t& offset : mdb.pid_to_offset){
       auto tmp = offset;
       offset = cumulative_offset;
       cumulative_offset += tmp;
-   }*/
+   }
 
    // cumulative_offset should be equal to sequence count now
 
@@ -166,7 +166,7 @@ void meta_info2(const MetaStore& mdb, ostream& out){
 void meta_info(const MetaStore& mdb, ostream& out) {
    out << "Infos by pango:" << endl;
    for (unsigned i = 0; i < mdb.pid_count; i++) {
-      out << "(pid: " << i << ",\tpango-lin: " <<  mdb.pid_to_pango[i] << ",\toffset: " << i  << ')' << endl;
+      out << "(pid: " << i << ",\tpango-lin: " <<  mdb.pid_to_pango[i] << ",\toffset: " << mdb.pid_to_offset[i]  << ')' << endl;
    }
 }
 

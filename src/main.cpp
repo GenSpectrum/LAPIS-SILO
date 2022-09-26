@@ -150,13 +150,34 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
          cout << "No meta_data built."  << endl;
          return 0;
       }
-      // TODO
+      else if(meta_db.pid_to_offset.empty()){
+         cout << "Need to first calculate offsets. See 'calc_partition_offsets'."  << endl;
+      }
+      if(args.size() < 2) {
+         cout << "build_partitioned_otf from stdin." << endl;
+         process_partitioned_on_the_fly(db, meta_db, cin);
+      }
+      else{
+         auto file = ifstream(args[1], ios::binary);
+         if(args[1].ends_with(".xz")){
+            xzistream archive;
+            archive.push(boost::iostreams::lzma_decompressor());
+            archive.push(file);
+            cout << "build_partitioned_otf from input archive: " << args[1] << endl;
+            process_partitioned_on_the_fly(db, meta_db, archive);
+         }
+         else {
+            cout << "build_partitioned_otf from input file: " << args[1] << endl;
+            process_partitioned_on_the_fly(db, meta_db, file);
+         }
+      }
    }
    else if ("build_partitioned" == args[0]) {
       if(meta_db.epi_to_pid.empty()){
          cout << "No meta_data built."  << endl;
          return 0;
       }
+      cout << "TODO."  << endl;
       // TODO
    }
    else if ("analysemeta" == args[0]){
