@@ -34,7 +34,7 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
          cout << "Expected syntax: \"save [file_name.silo]\"" << endl;
       }
    }
-   if("load_meta" == args[0]){
+   else if("load_meta" == args[0]){
       if(args.size() < 2) {
          std::cout << "Loading meta_store from " << default_meta_filename << std::endl;
          load_meta(meta_db, default_db_filename);
@@ -224,56 +224,6 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
       getline(tmp,s);
       cout << "Read:'" <<  s << "'" << endl;
       return 0;
-   }
-   else if ("build_with_prefix" == args[0]){
-      if(args.size() < 2) {
-         cout << "Expected syntax: \"build_with_prefix METAFILE [SEQFILE]\"" << endl;
-      }
-
-      auto file = ifstream(args[1], ios::binary);
-      if(args[1].ends_with(".xz")){
-         xzistream archive;
-         archive.push(boost::iostreams::lzma_decompressor());
-         archive.push(file);
-         cout << "Building meta-data indexes from input archive: " << args[1] << endl;
-         processMeta(meta_db, archive);
-      }
-      else {
-         cout << "Building meta-data indexes from input file: " << args[1] << endl;
-         processMeta(meta_db, file);
-      }
-
-      // Pango to partition is just mod 256 for now...
-      meta_db.partition_to_offset.clear();
-      meta_db.partition_to_offset.reserve(256);
-
-      for(uint32_t i = 0; i<256; i++){
-         meta_db.partition_to_offset.push_back(i << 24);
-      }
-
-      cout << "Processed Meta" << endl;
-
-      if(args.size() < 3){
-         process_ordered(db, cin, meta_db.epi_to_pid, meta_db.partition_to_offset);
-      }
-      else {
-
-         auto file2 = ifstream(args[2], ios::binary);
-         if(args[2].ends_with(".xz")){
-            xzistream archive;
-            archive.push(boost::iostreams::lzma_decompressor());
-            archive.push(file);
-            cout << "Processing sequences with on-the-fly partitioning from input archive: " << args[2] << endl;
-            process_ordered(db, archive, meta_db.epi_to_pid, meta_db.partition_to_offset);
-         }
-         else {
-            cout << "Processing sequences with on-the-fly partitioning from input file: " << args[2] << endl;
-            process_ordered(db, file2, meta_db.epi_to_pid, meta_db.partition_to_offset);
-         }
-      }
-
-      db_info(db, cout);
-      benchmark(db);
    }
    else{
       cout << "Unknown command " << args[0] << "." << endl;
