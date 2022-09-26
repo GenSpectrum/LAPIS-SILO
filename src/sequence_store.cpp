@@ -1,3 +1,7 @@
+//
+// Created by Alexander Taepper on 01.09.22.
+//
+
 #include "meta_store.cpp"
 
 struct Position {
@@ -240,21 +244,14 @@ static void partition(MetaStore &mdb, istream& in, const string& output_prefix_)
    vector<unique_ptr<ostream>> pid_to_ostream;
    const string output_prefix = output_prefix_ + '_';
    for(auto& x : mdb.pid_to_pango){
-      // ofstream file(output_prefix + x + ".fasta.xz");
-      // boost::iostreams::filtering_ostreambuf out_buf;
-      // out_buf.push(boost::iostreams::lzma_compressor());
-      // out_buf.push(file);
-      // auto out = make_unique<ostream>(&out_buf);
       auto out = make_unique<ofstream>(output_prefix + x + ".fasta");
       pid_to_ostream.emplace_back(std::move(out));
    }
+   unsigned long last_gpos = 0;
+   unsigned long gcount =  in.gcount();
+   boost::progress_display bar(gcount);
    cout << "Created file streams for  " << output_prefix_ << endl;
    ofstream undefined_pid_ostream(output_prefix + "NOMETADATA.fasta.xz");
-   // ofstream undefined_pid_file(output_prefix + "NOMETADATA.fasta.xz");
-   // boost::iostreams::filtering_ostreambuf undefined_pid_ostream_buf;
-   // undefined_pid_ostream_buf.push(boost::iostreams::lzma_compressor());
-   //undefined_pid_ostream_buf.push(undefined_pid_file);
-   // ostream undefined_pid_ostream(&undefined_pid_ostream_buf);
    while (true) {
       string epi_isl, genome;
       if (!getline(in, epi_isl)) break;
@@ -265,6 +262,10 @@ static void partition(MetaStore &mdb, istream& in, const string& output_prefix_)
       }
       uint64_t epi = stoi(epi_isl.substr(9));
 
+      unsigned long tmp = in.tellg();
+      bar += tmp - last_gpos;
+      last_gpos = tmp;
+
       if(mdb.epi_to_pid.contains(epi)) {
          auto pid = mdb.epi_to_pid.at(epi);
          *pid_to_ostream[pid] << epi_isl << endl << genome << endl;
@@ -273,5 +274,6 @@ static void partition(MetaStore &mdb, istream& in, const string& output_prefix_)
          undefined_pid_ostream << epi_isl << endl << genome << endl;
       }
    }
+   cout << "Finished partitioning to " << output_prefix_ << endl;
 }
 

@@ -4,6 +4,7 @@
 
 int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
    const std::string default_db_filename = "../silo/roaring_sequences.silo";
+   const std::string default_meta_filename = "../silo/meta_store.silo";
    if(args.empty()){
       return 0;
    }
@@ -30,7 +31,33 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
          save_db(db, args[1]);
       }
       else{
-         cout << "Expected syntax: \"load [file_name.silo]\"" << endl;
+         cout << "Expected syntax: \"save [file_name.silo]\"" << endl;
+      }
+   }
+   if("load_meta" == args[0]){
+      if(args.size() < 2) {
+         std::cout << "Loading meta_store from " << default_meta_filename << std::endl;
+         load_meta(meta_db, default_db_filename);
+      }
+      else if(args.size() == 2 && args[1].ends_with(".silo")){
+         std::cout << "Loading meta_store from " << args[1] << std::endl;
+         load_meta(meta_db, args[1]);
+      }
+      else{
+         cout << "Expected syntax: \"load_meta [file_name.silo]\"" << endl;
+      }
+   }
+   else if("save_meta" == args[0]){
+      if(args.size() < 2) {
+         std::cout << "Saving meta_store to " << default_meta_filename << std::endl;
+         save_meta(meta_db, default_db_filename);
+      }
+      else if(args.size() == 2 && args[1].ends_with(".silo")){
+         std::cout << "Saving meta_store to " << args[1] << std::endl;
+         save_meta(meta_db, args[1]);
+      }
+      else{
+         cout << "Expected syntax: \"save_meta [file_name.silo]\"" << endl;
       }
    }
    else if("info" == args[0]){
@@ -94,6 +121,43 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
       }
       return 0;
    }
+   else if ("calc_partition_offsets" == args[0]) {
+      if(meta_db.epi_to_pid.empty()){
+         cout << "No meta_data built."  << endl;
+         return 0;
+      }
+      if(args.size() < 2) {
+         calc_partition_offsets(meta_db, cin);
+      }
+      else{
+         auto file = ifstream(args[2], ios::binary);
+         if(args[2].ends_with(".xz")){
+            xzistream archive;
+            archive.push(boost::iostreams::lzma_decompressor());
+            archive.push(file);
+            cout << "Partition sequence input from input archive: " << args[2] << endl;
+            calc_partition_offsets(meta_db, archive);
+         }
+         else {
+            cout << "Partition sequence input from input file: " << args[2] << endl;
+            calc_partition_offsets(meta_db, file);
+         }
+      }
+   }
+   else if ("build_partitioned_otf" == args[0]) {
+      if(meta_db.epi_to_pid.empty()){
+         cout << "No meta_data built."  << endl;
+         return 0;
+      }
+      // TODO
+   }
+   else if ("build_partitioned" == args[0]) {
+      if(meta_db.epi_to_pid.empty()){
+         cout << "No meta_data built."  << endl;
+         return 0;
+      }
+      // TODO
+   }
    else if ("analysemeta" == args[0]){
       if(args.size() == 1) {
          cout << "Analysing meta-data from stdin" << endl;
@@ -134,6 +198,11 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
          processMeta(meta_db, file);
       }
    }
+   else if ("exit" == args[0] || "quit" == args[0] ){
+      return 1;
+   }
+   // ___________________________________________________________________________________________________________
+   // From here on soon to be deprecated / altered. Compose these bigger commands differently using the above smaller ones
    else if("test" == args[0]){
       std::ifstream file("../tmp.fasta.xz", std::ios::binary);
 
@@ -156,11 +225,6 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
       cout << "Read:'" <<  s << "'" << endl;
       return 0;
    }
-   else if ("exit" == args[0] || "quit" == args[0] ){
-      return 1;
-   }
-   // ___________________________________________________________________________________________________________
-   // From here on soon to be deprecated / altered. Compose these bigger commands differently using the above smaller ones
    else if ("build_with_prefix" == args[0]){
       if(args.size() < 2) {
          cout << "Expected syntax: \"build_with_prefix METAFILE [SEQFILE]\"" << endl;

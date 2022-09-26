@@ -3,34 +3,41 @@
 //
 
 #include "silo.h"
+#include <boost/progress.hpp>
+#include <boost/serialization/unordered_map.hpp>
+
+#include <boost/serialization/vector.hpp>
+
 
 struct MetaStore{
    friend class boost::serialization::access;
    template<class Archive>
    void serialize(Archive & ar, [[maybe_unused]] const unsigned int version)
    {
-      // TODO
+      ar & pid_count;
+      ar & epi_count;
+
+      // vector
+      ar & pid_to_pango;
+      ar & pid_to_offset;
+
+      // unordered_map
+      ar & pango_to_pid;
+      ar & epi_to_pid;
    }
+
+   uint64_t epi_count = 0;
+   uint16_t pid_count = 0;
 
    // Maps the epis to the ID, which is assigned to the pango lineage (pid)
    // pids are starting at 0 and are dense, so that we can save the respective data in vectors.
    unordered_map<uint64_t, uint16_t> epi_to_pid;
-   uint16_t next_pid = 0;
-   unsigned sequenceCount = 0;
 
    vector<string> pid_to_pango;
    unordered_map<string, uint16_t> pango_to_pid;
 
-   // Often we want to limit the number of partitions. Therefore, we map (multiple) pango-lineages to partitions.
-   vector<uint16_t> pid_to_partition;
-
-
-   vector<uint32_t> partition_to_offset;
-
-   [[nodiscard]] size_t computeSize() const {
-      // TODO
-      return 0;
-   }
+   // pid to offsets
+   vector<uint32_t> pid_to_offset;
 };
 
 
@@ -100,18 +107,98 @@ void processMeta(MetaStore& mdb, istream& in){
          pango_idx = mdb.pango_to_pid[pango_lineage];
       }
       else{
-         pango_idx = mdb.next_pid++;
+         pango_idx = mdb.pid_count++;
          mdb.pid_to_pango.push_back(pango_lineage);
          mdb.pango_to_pid[pango_lineage] = pango_idx;
       }
+      // Note that epi may not be contained twice. Can later be checked by epi_count == epi_to_pid.size()
+      mdb.epi_count++;
       mdb.epi_to_pid[epi] = pango_idx;
+   }
+
+   if(mdb.epi_count != mdb.epi_to_pid.size()){
+      cout << "ERROR: EPI is represented twice." << endl;
    }
 }
 
-void meta_info(MetaStore& mdb, ostream& out){
+void calc_partition_offsets(MetaStore& mdb, istream& in){
+   cout << "Now calculating partition offsets" << endl;
+
+   // Clear the vector and resize
+   mdb.pid_to_offset.clear();
+   mdb.pid_to_offset.resize(mdb.pid_count + 1);
+
+   unsigned long last_gpos = 0;
+   unsigned long gcount =  in.gcount();
+   boost::progress_display bar(gcount);
+
+   while (true) {
+      string epi_isl;
+      if (!getline(in, epi_isl)) break;
+      in.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+      // Add the count to the respective pid
+      uint64_t epi = stoi(epi_isl.substr(9));
+      if(mdb.epi_to_pid.contains(epi)) {
+         uint16_t pid = mdb.epi_to_pid[epi];
+         mdb.pid_to_offset[pid]++;
+      }
+      else{
+         uint16_t pid = mdb.pid_count;
+         mdb.pid_to_offset[pid]++;
+      }
+
+      unsigned long tmp = in.tellg();
+      bar += tmp - last_gpos;
+      last_gpos = tmp;
+   }
+
+   // Escalate offsets from start to finish
+   uint32_t cumulative_offset = 0;
+   for(uint32_t& offset : mdb.pid_to_offset){
+      auto tmp = offset;
+      offset = cumulative_offset;
+      cumulative_offset += tmp;
+   }
+
+   // cumulative_offset should be equal to sequence count now
+
+   cout << "Finished calculating partition offsets." << endl;
+}
+
+void meta_info(const MetaStore& mdb, ostream& out){
    out << "pango_to_pid:" << endl;
    for (auto &x: mdb.pango_to_pid)
       out << x.first << ':' << x.second << endl;
+}
 
-   out << "mdb size: " << mdb.computeSize();
+static unsigned save_meta(const MetaStore& db, const std::string& db_filename) {
+   std::cout << "Writing out meta." << std::endl;
+
+   ofstream wf(db_filename, ios::out | ios::binary);
+   if(!wf) {
+      cerr << "Cannot open ofile: " << db_filename << endl;
+      return 1;
+   }
+
+   {
+      boost::archive::binary_oarchive oa(wf);
+      // write class instance to archive
+      oa << db;
+      // archive and stream closed when destructors are called
+   }
+
+   return 0;
+}
+
+static unsigned load_meta(MetaStore& db, const std::string& db_filename) {
+   {
+      // create and open an archive for input
+      std::ifstream ifs(db_filename, ios::binary);
+      boost::archive::binary_iarchive ia(ifs);
+      // read class state from archive
+      ia >> db;
+      // archive and stream closed when destructors are called
+   }
+   return 0;
 }
