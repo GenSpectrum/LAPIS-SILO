@@ -1,4 +1,4 @@
-#include "sequence_store.cpp"
+#include "sequence_store.h"
 
 void benchmark(const SequenceStore& db){
 
