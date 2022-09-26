@@ -3,9 +3,6 @@
 //
 
 #include "silo.h"
-#include <boost/serialization/unordered_map.hpp>
-
-#include <boost/serialization/vector.hpp>
 
 
 struct MetaStore{
@@ -155,12 +152,6 @@ void calc_partition_offsets(MetaStore& mdb, istream& in){
    // cumulative_offset should be equal to sequence count now
 
    cout << "Finished calculating partition offsets." << endl;
-}
-
-void meta_info2(const MetaStore& mdb, ostream& out){
-   out << "pango_to_pid:" << endl;
-   for (auto &x: mdb.pango_to_pid)
-      out << x.first << ':' << x.second << endl;
 }
 
 void meta_info(const MetaStore& mdb, ostream& out) {

@@ -92,35 +92,6 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
          cout << "Expected syntax: \"build [fasta_file | fasta_archive]\"" << endl;
       }
    }
-   else if("partition" == args[0]){
-      if(args.size() < 2) {
-         cout << "Expected syntax: \"partition out_prefix [fasta_file | fasta_archive]\"" << endl;
-         return 0;
-      }
-      if(meta_db.epi_to_pid.empty()){
-         cout << "No meta_data built."  << endl;
-         return 0;
-      }
-      if(args.size() == 2){
-         cout << "Partition sequence input from stdin" << endl;
-         partition(meta_db, cin, args[1]);
-      }
-      else {
-         auto file = ifstream(args[2], ios::binary);
-         if(args[2].ends_with(".xz")){
-            xzistream archive;
-            archive.push(boost::iostreams::lzma_decompressor());
-            archive.push(file);
-            cout << "Partition sequence input from input archive: " << args[2] << endl;
-            partition(meta_db, archive, args[1]);
-         }
-         else {
-            cout << "Partition sequence input from input file: " << args[2] << endl;
-            partition(meta_db, file, args[1]);
-         }
-      }
-      return 0;
-   }
    else if ("calc_partition_offsets" == args[0]) {
       if(meta_db.epi_to_pid.empty()){
          cout << "No meta_data built."  << endl;
@@ -172,13 +143,60 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
          }
       }
    }
-   else if ("build_partitioned" == args[0]) {
+   else if("partition" == args[0]){
+      if(args.size() < 2) {
+         cout << "Expected syntax: \"partition out_prefix [fasta_file | fasta_archive]\"" << endl;
+         return 0;
+      }
       if(meta_db.epi_to_pid.empty()){
          cout << "No meta_data built."  << endl;
          return 0;
       }
-      cout << "TODO."  << endl;
-      // TODO
+      if(args.size() == 2){
+         cout << "Partition sequence input from stdin" << endl;
+         partition(meta_db, cin, args[1]);
+      }
+      else {
+         auto file = ifstream(args[2], ios::binary);
+         if(args[2].ends_with(".xz")){
+            xzistream archive;
+            archive.push(boost::iostreams::lzma_decompressor());
+            archive.push(file);
+            cout << "Partition sequence input from input archive: " << args[2] << endl;
+            partition(meta_db, archive, args[1]);
+         }
+         else {
+            cout << "Partition sequence input from input file: " << args[2] << endl;
+            partition(meta_db, file, args[1]);
+         }
+      }
+      return 0;
+   }
+   else if ("build_partitioned" == args[0]) {
+      if(args.size() < 2) {
+         cout << "Expected syntax: \"build_partitioned in_prefix\"" << endl;
+         return 0;
+      }
+      const string in_prefix = args[1] + '_';
+      for(auto& x : meta_db.pid_to_pango){
+         ifstream in(in_prefix + x + ".fasta");
+         process(db, in);
+      }
+   }
+   else if ("build_partitioned_c" == args[0]) {
+      if(args.size() < 2) {
+         cout << "Expected syntax: \"build_partitioned_c in_prefix\"" << endl;
+         return 0;
+      }
+      const string in_prefix = args[1] + '_';
+      for(auto& x : meta_db.pid_to_pango){
+         ifstream in(in_prefix + x + ".fasta.xz");
+         xzistream archive;
+         archive.push(boost::iostreams::lzma_decompressor());
+         archive.push(in);
+         cout << "Building sequence-store from input archive: " << args[1] << endl;
+         process(db, archive);
+      }
    }
    else if ("analysemeta" == args[0]){
       if(args.size() == 1) {
