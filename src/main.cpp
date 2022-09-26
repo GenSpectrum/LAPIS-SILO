@@ -131,16 +131,16 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
          calc_partition_offsets(meta_db, cin);
       }
       else{
-         auto file = ifstream(args[2], ios::binary);
-         if(args[2].ends_with(".xz")){
+         auto file = ifstream(args[1], ios::binary);
+         if(args[1].ends_with(".xz")){
             xzistream archive;
             archive.push(boost::iostreams::lzma_decompressor());
             archive.push(file);
-            cout << "calc_partition_offsets from input archive: " << args[2] << endl;
+            cout << "calc_partition_offsets from input archive: " << args[1] << endl;
             calc_partition_offsets(meta_db, archive);
          }
          else {
-            cout << "calc_partition_offsets from input file: " << args[2] << endl;
+            cout << "calc_partition_offsets from input file: " << args[1] << endl;
             calc_partition_offsets(meta_db, file);
          }
       }
