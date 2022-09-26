@@ -50,7 +50,7 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
    else if("save_meta" == args[0]){
       if(args.size() < 2) {
          std::cout << "Saving meta_store to " << default_meta_filename << std::endl;
-         save_meta(meta_db, default_db_filename);
+         save_meta(meta_db, default_meta_filename);
       }
       else if(args.size() == 2 && args[1].ends_with(".silo")){
          std::cout << "Saving meta_store to " << args[1] << std::endl;
@@ -127,6 +127,7 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
          return 0;
       }
       if(args.size() < 2) {
+         cout << "calc_partition_offsets from stdin." << endl;
          calc_partition_offsets(meta_db, cin);
       }
       else{
@@ -135,11 +136,11 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
             xzistream archive;
             archive.push(boost::iostreams::lzma_decompressor());
             archive.push(file);
-            cout << "Partition sequence input from input archive: " << args[2] << endl;
+            cout << "calc_partition_offsets from input archive: " << args[2] << endl;
             calc_partition_offsets(meta_db, archive);
          }
          else {
-            cout << "Partition sequence input from input file: " << args[2] << endl;
+            cout << "calc_partition_offsets from input file: " << args[2] << endl;
             calc_partition_offsets(meta_db, file);
          }
       }

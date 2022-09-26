@@ -128,9 +128,9 @@ void calc_partition_offsets(MetaStore& mdb, istream& in){
    mdb.pid_to_offset.clear();
    mdb.pid_to_offset.resize(mdb.pid_count + 1);
 
-   unsigned long last_gpos = 0;
-   unsigned long gcount =  in.gcount();
-   boost::progress_display bar(gcount);
+   // unsigned long last_gpos = 0;
+   // unsigned long gcount =  in.gcount();
+   // boost::progress_display bar(gcount);
 
    while (true) {
       string epi_isl;
@@ -148,9 +148,9 @@ void calc_partition_offsets(MetaStore& mdb, istream& in){
          mdb.pid_to_offset[pid]++;
       }
 
-      unsigned long tmp = in.tellg();
-      bar += tmp - last_gpos;
-      last_gpos = tmp;
+      // unsigned long tmp = in.tellg();
+      // bar += tmp - last_gpos;
+      // last_gpos = tmp;
    }
 
    // Escalate offsets from start to finish
