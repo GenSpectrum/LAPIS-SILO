@@ -157,10 +157,17 @@ void calc_partition_offsets(MetaStore& mdb, istream& in){
    cout << "Finished calculating partition offsets." << endl;
 }
 
-void meta_info(const MetaStore& mdb, ostream& out){
+void meta_info2(const MetaStore& mdb, ostream& out){
    out << "pango_to_pid:" << endl;
    for (auto &x: mdb.pango_to_pid)
       out << x.first << ':' << x.second << endl;
+}
+
+void meta_info(const MetaStore& mdb, ostream& out) {
+   out << "Infos by pango:" << endl;
+   for (unsigned i = 0; i < mdb.pid_count; i++) {
+      out << "(pid: " << i << ", pango-lin: " <<  mdb.pid_to_pango[i] << ", offset: " << i  << ')' << endl;
+   }
 }
 
 static unsigned save_meta(const MetaStore& db, const std::string& db_filename) {
