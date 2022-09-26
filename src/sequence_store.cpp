@@ -247,9 +247,6 @@ static void partition(MetaStore &mdb, istream& in, const string& output_prefix_)
       auto out = make_unique<ofstream>(output_prefix + x + ".fasta");
       pid_to_ostream.emplace_back(std::move(out));
    }
-   unsigned long last_gpos = 0;
-   unsigned long gcount =  in.gcount();
-   boost::progress_display bar(gcount);
    cout << "Created file streams for  " << output_prefix_ << endl;
    ofstream undefined_pid_ostream(output_prefix + "NOMETADATA.fasta.xz");
    while (true) {
@@ -261,10 +258,6 @@ static void partition(MetaStore &mdb, istream& in, const string& output_prefix_)
          return;
       }
       uint64_t epi = stoi(epi_isl.substr(9));
-
-      unsigned long tmp = in.tellg();
-      bar += tmp - last_gpos;
-      last_gpos = tmp;
 
       if(mdb.epi_to_pid.contains(epi)) {
          auto pid = mdb.epi_to_pid.at(epi);
