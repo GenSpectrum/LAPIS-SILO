@@ -188,7 +188,8 @@ void silo::calc_partition_offsets(MetaStore& mdb, istream& in){
 void silo::meta_info(const MetaStore& mdb, ostream& out) {
    out << "Infos by pango:" << endl;
    for (unsigned i = 0; i < mdb.pid_count; i++) {
-      out << "(pid: " << i << ",\tpango-lin: " <<  mdb.pid_to_pango[i] << ",\toffset: " << mdb.pid_to_offset[i]  << ')' << endl;
+      out << "(pid: " << i << ",\tpango-lin: " <<  mdb.pid_to_pango[i] << ",\toffset: "
+          << number_fmt(mdb.pid_to_offset[i])  << ')' << endl;
    }
 }
 

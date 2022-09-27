@@ -38,8 +38,8 @@ roaring::Roaring SequenceStore::bma(size_t pos, Residue r) const {
 
 
 int silo::db_info(const SequenceStore& db, ostream& io){
-   io << "sequence count: " << db.sequenceCount << endl;
-   io << "total size: " << db.computeSize() << endl;
+   io << "sequence count: " << number_fmt(db.sequenceCount) << endl;
+   io << "total size: " << number_fmt(db.computeSize()) << endl;
    return 0;
 }
 
@@ -115,8 +115,7 @@ void silo::process(SequenceStore& db, istream& in) {
       }
    }
    interpret(db, genomes);
-   cout << "sequence count: " << db.sequenceCount << endl;
-   cout << "total size: " << db.computeSize() << endl;
+   db_info(db,cout);
 }
 
 

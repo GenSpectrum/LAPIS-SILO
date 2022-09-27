@@ -71,6 +71,14 @@ namespace silo {
 
    std::string getPangoPrefix(const std::string &pango_lineage);
 
+   static inline std::string number_fmt(unsigned long n)
+   {
+      std::ostringstream oss;
+      oss.imbue(std::locale(oss.getloc()));
+      oss << n;
+      return oss.str();
+   }
+
 } // namespace silo;
 
 BOOST_SERIALIZATION_SPLIT_FREE(::roaring::Roaring)
