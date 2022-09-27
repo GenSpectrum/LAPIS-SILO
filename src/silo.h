@@ -1,3 +1,6 @@
+#ifndef SILO_H
+#define SILO_H
+
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -18,116 +21,80 @@
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/exception/diagnostic_information.hpp>
 #include "roaring/roaring.hh"
-#include "roaring/roaring.c"
 #include "util.h"
-
-
-typedef boost::iostreams::filtering_istream xzistream;
 
 using namespace std;
 
-static constexpr unsigned genomeLength = 29903;
+namespace silo {
+
+   typedef boost::iostreams::filtering_istream xzistream;
+
+
+   static constexpr unsigned genomeLength = 29903;
 
 // https://www.bioinformatics.org/sms/iupac.html
-enum Symbol {
-   gap, // . or -, gap
-   A, // Adenine
-   C, // Cytosine
-   G, // Guanine
-   T, // (or U) Thymine (or Uracil)
-   R, // A or G
-   Y, // C or T
-   S, // G or C
-   W, // A or T
-   K, // G or T
-   M, // A or C
-   B, // C or G or T
-   D, // A or G or T
-   H, // A or C or T
-   V, // A or C or G
-   N, // any base
-};
+   enum Symbol {
+      gap, // . or -, gap
+      A, // Adenine
+      C, // Cytosine
+      G, // Guanine
+      T, // (or U) Thymine (or Uracil)
+      R, // A or G
+      Y, // C or T
+      S, // G or C
+      W, // A or T
+      K, // G or T
+      M, // A or C
+      B, // C or G or T
+      D, // A or G or T
+      H, // A or C or T
+      V, // A or C or G
+      N, // any base
+   };
 
-enum Residue{
-   aA,
-   aC,
-   aG,
-   aT
-};
+   enum Residue {
+      aA,
+      aC,
+      aG,
+      aT
+   };
 
-static constexpr unsigned symbolCount = static_cast<unsigned>(Symbol::N) + 1;
+   static constexpr unsigned symbolCount = static_cast<unsigned>(Symbol::N) + 1;
 
-static constexpr char symbol_rep[symbolCount] = {
-        '-', 'A', 'C', 'G', 'T', 'R', 'Y', 'S',
-        'W', 'K', 'M', 'B', 'D', 'H', 'V', 'N'};
+   static constexpr char symbol_rep[symbolCount] = {
+           '-', 'A', 'C', 'G', 'T', 'R', 'Y', 'S',
+           'W', 'K', 'M', 'B', 'D', 'H', 'V', 'N'};
 
+   static_assert(symbol_rep[static_cast<unsigned>(Symbol::N)] == 'N');
 
-Symbol to_symbol(char c){
-   Symbol s = Symbol::gap;
-   switch (c) {
-      case '.':
-      case '-': s = Symbol::gap; break;
-      case 'A': s = Symbol::A; break;
-      case 'C': s = Symbol::C; break;
-      case 'G': s = Symbol::G; break;
-      case 'T':
-      case 'U': s = Symbol::T; break;
-      case 'R': s = Symbol::R; break;
-      case 'Y': s = Symbol::Y; break;
-      case 'S': s = Symbol::S; break;
-      case 'W': s = Symbol::W; break;
-      case 'K': s = Symbol::K; break;
-      case 'M': s = Symbol::M; break;
-      case 'B': s = Symbol::B; break;
-      case 'D': s = Symbol::D; break;
-      case 'H': s = Symbol::H; break;
-      case 'V': s = Symbol::V; break;
-      case 'N': s = Symbol::N; break;
-      default: cerr << "unrecognized symbol " << c << endl;
-   }
-   return s;
-}
+   Symbol to_symbol(char c);
 
-static_assert(symbol_rep[static_cast<unsigned>(Symbol::N)] == 'N');
+   std::string getPangoPrefix(const std::string &pango_lineage);
 
-BOOST_SERIALIZATION_SPLIT_FREE(roaring::Roaring)
+} // namespace silo;
+
+BOOST_SERIALIZATION_SPLIT_FREE(::roaring::Roaring)
 namespace boost::serialization {
 
-   template <class Archive>
-   [[maybe_unused]] void save(Archive& ar, const roaring::Roaring& bitmask,
+   template<class Archive>
+   [[maybe_unused]] void save(Archive &ar, const roaring::Roaring &bitmask,
                               [[maybe_unused]] const unsigned int version) {
       std::size_t expected_size_in_bytes = bitmask.getSizeInBytes();
       std::vector<char> buffer(expected_size_in_bytes);
-      std::size_t       size_in_bytes = bitmask.write(buffer.data());
+      std::size_t size_in_bytes = bitmask.write(buffer.data());
 
-      ar& size_in_bytes;
-      ar& boost::serialization::make_binary_object(buffer.data(), size_in_bytes);
+      ar & size_in_bytes;
+      ar & ::boost::serialization::make_binary_object(buffer.data(), size_in_bytes);
    }
 
-   template <class Archive>
-   void load(Archive& ar, roaring::Roaring& bitmask, [[maybe_unused]] const unsigned int version) {
+   template<class Archive>
+   [[maybe_unused]] void load(Archive &ar, roaring::Roaring &bitmask, [[maybe_unused]] const unsigned int version) {
       std::size_t size_in_bytes = 0;
-      ar& size_in_bytes;
+      ar & size_in_bytes;
       std::vector<char> buffer(size_in_bytes);
-      ar&  boost::serialization::make_binary_object(buffer.data(), size_in_bytes);
+      ar & ::boost::serialization::make_binary_object(buffer.data(), size_in_bytes);
       bitmask = roaring::Roaring::readSafe(buffer.data(), size_in_bytes);
    }
 }  // namespace boost
 
-
-[[maybe_unused]] static std::string getPangoPrefix(const std::string &pango_lineage){
-   std::string pangoPref;
-   if(pango_lineage.size() > 2){
-      std::stringstream ss(pango_lineage);
-      if(!getline(ss, pangoPref, '.')){
-         std::cerr << "Non-covered case of pango lineage!" << std::endl;
-         return "Not-recognized";
-      }
-   }
-   else{
-      pangoPref = pango_lineage;
-   }
-   return pangoPref;
-}
-
-
+#endif //SILO_H

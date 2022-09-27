@@ -3,6 +3,8 @@
 //
 #include "sequence_store.h"
 
+using namespace silo;
+
 roaring::Roaring SequenceStore::bma(size_t pos, Residue r) const {
    switch(r){
       case aA:{
@@ -35,13 +37,13 @@ roaring::Roaring SequenceStore::bma(size_t pos, Residue r) const {
 }
 
 
-int db_info(const SequenceStore& db, ostream& io){
+int silo::db_info(const SequenceStore& db, ostream& io){
    io << "sequence count: " << db.sequenceCount << endl;
    io << "total size: " << db.computeSize() << endl;
    return 0;
 }
 
-static unsigned save_db(const SequenceStore& db, const std::string& db_filename) {
+unsigned silo::save_db(const SequenceStore& db, const std::string& db_filename) {
    std::cout << "Writing out db." << std::endl;
 
    ofstream wf(db_filename, ios::out | ios::binary);
@@ -51,7 +53,7 @@ static unsigned save_db(const SequenceStore& db, const std::string& db_filename)
    }
 
    {
-      boost::archive::binary_oarchive oa(wf);
+      ::boost::archive::binary_oarchive oa(wf);
       // write class instance to archive
       oa << db;
       // archive and stream closed when destructors are called
@@ -60,43 +62,17 @@ static unsigned save_db(const SequenceStore& db, const std::string& db_filename)
    return 0;
 }
 
-static unsigned load_db(SequenceStore& db, const std::string& db_filename) {
+unsigned silo::load_db(SequenceStore& db, const std::string& db_filename) {
    {
       // create and open an archive for input
       std::ifstream ifs(db_filename, ios::binary);
-      boost::archive::binary_iarchive ia(ifs);
+      ::boost::archive::binary_iarchive ia(ifs);
       // read class state from archive
       ia >> db;
       // archive and stream closed when destructors are called
    }
    return 0;
 }
-
-static void interpret(SequenceStore& db, const vector<string>& genomes);
-
-static void process(SequenceStore& db, istream& in) {
-   static constexpr unsigned chunkSize = 1024;
-
-   vector<string> genomes;
-   while (true) {
-      string name, genome;
-      if (!getline(in, name) || name.empty()) break;
-      if (!getline(in, genome)) break;
-      if (genome.length() != genomeLength) {
-         cerr << "length mismatch!" << endl;
-         return;
-      }
-      genomes.push_back(std::move(genome));
-      if (genomes.size() >= chunkSize) {
-         interpret(db, genomes);
-         genomes.clear();
-      }
-   }
-   interpret(db, genomes);
-   cout << "sequence count: " << db.sequenceCount << endl;
-   cout << "total size: " << db.computeSize() << endl;
-}
-
 
 static void interpret_offset(SequenceStore& db, const vector<string>& genomes, uint32_t offset){
    vector<unsigned> offsets[symbolCount];
@@ -120,8 +96,31 @@ static void interpret(SequenceStore& db, const vector<string>& genomes){
    interpret_offset(db, genomes, db.sequenceCount);
 }
 
+void silo::process(SequenceStore& db, istream& in) {
+   static constexpr unsigned chunkSize = 1024;
 
-static void process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, istream& in) {
+   vector<string> genomes;
+   while (true) {
+      string name, genome;
+      if (!getline(in, name) || name.empty()) break;
+      if (!getline(in, genome)) break;
+      if (genome.length() != genomeLength) {
+         cerr << "length mismatch!" << endl;
+         return;
+      }
+      genomes.push_back(std::move(genome));
+      if (genomes.size() >= chunkSize) {
+         interpret(db, genomes);
+         genomes.clear();
+      }
+   }
+   interpret(db, genomes);
+   cout << "sequence count: " << db.sequenceCount << endl;
+   cout << "total size: " << db.computeSize() << endl;
+}
+
+
+void silo::process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, istream& in) {
    static constexpr unsigned chunkSize = 1024;
 
    vector<uint32_t> dynamic_offsets(mdb.pid_to_offset);
@@ -160,7 +159,8 @@ static void process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, is
    cout << "total size: " << db.computeSize() << endl;
 }
 
-static void interpret_ordered(SequenceStore& db, const vector<pair<uint64_t, string>>& genomes){
+// Only for testing purposes. Very inefficient
+void interpret_specific(SequenceStore& db, const vector<pair<uint64_t, string>>& genomes){
    vector<unsigned> offsets[symbolCount];
    for (unsigned index = 0; index != genomeLength; ++index) {
       for (const auto & idx_genome : genomes) {
@@ -178,7 +178,7 @@ static void interpret_ordered(SequenceStore& db, const vector<pair<uint64_t, str
    db.sequenceCount += genomes.size();
 }
 
-static void partition(MetaStore &mdb, istream& in, const string& output_prefix_){
+void silo::partition(MetaStore &mdb, istream& in, const string& output_prefix_){
    cout << "Now partitioning fasta file to " << output_prefix_ << endl;
    vector<unique_ptr<ostream>> pid_to_ostream;
    const string output_prefix = output_prefix_ + '_';

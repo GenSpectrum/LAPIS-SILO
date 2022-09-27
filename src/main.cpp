@@ -1,6 +1,6 @@
-#include "query_engine.cpp"
+#include "sequence_store.h"
 
-
+using namespace silo;
 
 int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
    const std::string default_db_filename = "../silo/roaring_sequences.silo";
@@ -67,7 +67,7 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
       meta_info(meta_db, cout);
    }
    else if("benchmark" == args[0]){
-      benchmark(db);
+      // benchmark(db);
    }
    else if ("build" == args[0]){
       if(args.size() == 1) {
@@ -218,12 +218,11 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
          }
       }
    }
-   else if ("build_meta" == args[0]){
+   else if ("build_meta_uns" == args[0]){
       if(args.size() < 2) {
          cout << "Expected syntax: \"build_meta METAFILE\"" << endl;
          return 0;
       }
-
 
       auto file = ifstream(args[1], ios::binary);
       if(args[1].ends_with(".xz")){
@@ -236,6 +235,25 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
       else {
          cout << "Building meta-data indexes from input file: " << args[1] << endl;
          processMeta(meta_db, file);
+      }
+   }
+   else if ("build_meta" == args[0]){
+      if(args.size() < 2) {
+         cout << "Expected syntax: \"build_meta METAFILE\"" << endl;
+         return 0;
+      }
+
+      auto file = ifstream(args[1], ios::binary);
+      if(args[1].ends_with(".xz")){
+         xzistream archive;
+         archive.push(boost::iostreams::lzma_decompressor());
+         archive.push(file);
+         cout << "Building meta-data indexes from input archive: " << args[1] << endl;
+         processMeta_ordered(meta_db, archive);
+      }
+      else {
+         cout << "Building meta-data indexes from input file: " << args[1] << endl;
+         processMeta_ordered(meta_db, file);
       }
    }
    else if ("exit" == args[0] || "quit" == args[0] ){

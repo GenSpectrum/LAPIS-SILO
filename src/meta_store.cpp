@@ -4,9 +4,10 @@
 
 #include "meta_store.h"
 
+using namespace silo;
 
 // Meta-Data is input
-void analyseMeta(istream& in){
+void silo::analyseMeta(istream& in){
    in.ignore(LONG_MAX, '\n');
 
    // vector<string> lineage_vec;
@@ -42,7 +43,7 @@ void analyseMeta(istream& in){
 }
 
 
-void processMeta(MetaStore& mdb, istream& in){
+void silo::processMeta(MetaStore& mdb, istream& in){
    in.ignore(LONG_MAX, '\n');
 
    while (true) {
@@ -84,28 +85,17 @@ void processMeta(MetaStore& mdb, istream& in){
    }
 }
 
-void processMeta_ordered(MetaStore& mdb, istream& in){
+void silo::processMeta_ordered(MetaStore& mdb, istream& in){
    in.ignore(LONG_MAX, '\n');
 
    while (true) {
-      string epi_isl, pango_lineage, date, region, country, division;
-      if (!getline(in, epi_isl, '\t')) break;
+      string pango_lineage;
+      in.ignore(LONG_MAX, '\t');
       if (!getline(in, pango_lineage, '\t')) break;
       in.ignore(LONG_MAX, '\n');
 
-
-      if(pango_lineage.empty()){
-         cout << "Empty pango-lineage: " << pango_lineage << " " << epi_isl << endl;
-      }
-      else if(pango_lineage.length()==1 && pango_lineage != "A" && pango_lineage != "B"){
-         cout << "One-Char pango-lineage:" << epi_isl  << " Lineage:'" << pango_lineage << "'";
-         cout << "(Keycode=" << (uint) pango_lineage.at(1) << ")" << endl;
-      }
-
-      string tmp = epi_isl.substr(8);
-      uint64_t epi = stoi(tmp);
       if(!mdb.pango_to_pid.contains(pango_lineage)){
-         mdb.pango_to_pid[pango_lineage] = mdb.pid_count++;;
+         mdb.pango_to_pid[pango_lineage] = mdb.pid_count++;
          mdb.pid_to_pango.push_back(pango_lineage);
       }
    }
@@ -133,13 +123,13 @@ void processMeta_ordered(MetaStore& mdb, istream& in){
       if (!getline(in, country, '\t')) break;*/
       if (!getline(in, division, '\n')) break;
 
-
-      if(pango_lineage.empty()){
-         cout << "Empty pango-lineage: " << pango_lineage << " " << epi_isl << endl;
-      }
-      else if(pango_lineage.length()==1 && pango_lineage != "A" && pango_lineage != "B"){
-         cout << "One-Char pango-lineage:" << epi_isl  << " Lineage:'" << pango_lineage << "'";
-         cout << "(Keycode=" << (uint) pango_lineage.at(1) << ")" << endl;
+      if(pango_lineage.length() < 2) {
+         if (pango_lineage.empty()) {
+            cout << "Empty pango-lineage: " << pango_lineage << " " << epi_isl << endl;
+         } else if (pango_lineage.length() == 1 && pango_lineage != "A" && pango_lineage != "B") {
+            cout << "One-Char pango-lineage:" << epi_isl << " Lineage:'" << pango_lineage << "'";
+            cout << "(Keycode=" << (uint) pango_lineage.at(1) << ")" << endl;
+         }
       }
 
       string tmp = epi_isl.substr(8);
@@ -158,7 +148,7 @@ void processMeta_ordered(MetaStore& mdb, istream& in){
    }
 }
 
-void calc_partition_offsets(MetaStore& mdb, istream& in){
+void silo::calc_partition_offsets(MetaStore& mdb, istream& in){
    cout << "Now calculating partition offsets" << endl;
 
    // Clear the vector and resize
@@ -195,14 +185,14 @@ void calc_partition_offsets(MetaStore& mdb, istream& in){
    cout << "Finished calculating partition offsets." << endl;
 }
 
-void meta_info(const MetaStore& mdb, ostream& out) {
+void silo::meta_info(const MetaStore& mdb, ostream& out) {
    out << "Infos by pango:" << endl;
    for (unsigned i = 0; i < mdb.pid_count; i++) {
       out << "(pid: " << i << ",\tpango-lin: " <<  mdb.pid_to_pango[i] << ",\toffset: " << mdb.pid_to_offset[i]  << ')' << endl;
    }
 }
 
-static unsigned save_meta(const MetaStore& db, const std::string& db_filename) {
+unsigned silo::save_meta(const MetaStore& db, const std::string& db_filename) {
    std::cout << "Writing out meta." << std::endl;
 
    ofstream wf(db_filename, ios::out | ios::binary);
@@ -221,7 +211,7 @@ static unsigned save_meta(const MetaStore& db, const std::string& db_filename) {
    return 0;
 }
 
-static unsigned load_meta(MetaStore& db, const std::string& db_filename) {
+unsigned silo::load_meta(MetaStore& db, const std::string& db_filename) {
    {
       // create and open an archive for input
       std::ifstream ifs(db_filename, ios::binary);
