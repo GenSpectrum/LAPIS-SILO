@@ -301,7 +301,7 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, const std::string& com
 }
 
 
-int smain(int argc, char* argv[]) {
+int main(int argc, char* argv[]) {
    auto db = make_unique<SequenceStore>();
    auto meta_db = make_unique<MetaStore>();
    {

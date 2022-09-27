@@ -21,8 +21,8 @@ namespace silo {
 
       /// Evaluate the expression by interpreting it.
       /// @args: all function arguments that can be referenced by an @Argument
-      virtual roaring::Roaring evaluate(const SequenceStore& db, const MetaStore& mdb){
-         throw std::runtime_error("Not Implemented exception. Does not redeclare Expression::evaluate.");
+      virtual Roaring* evaluate(const SequenceStore& db, const MetaStore& mdb){
+         throw std::runtime_error("Not Implemented exception. Does not override Expression::evaluate.");
       };
 
       /* Maybe generate code in the future
@@ -34,18 +34,26 @@ namespace silo {
    struct VectorEx : public Expression {
       std::vector<unique_ptr<Expression>> children;
 
-
       explicit VectorEx(const boost::json::object &js) : Expression(js) {
          children = value_to< std::vector< unique_ptr<Expression> > >( js.at("children") );
       }
    };
 
    struct AndEx : public VectorEx {
-      explicit AndEx(const boost::json::object &js) : VectorEx(js) {}
+      unique_ptr<Expression> start;
+
+      explicit AndEx(const boost::json::object &js) : VectorEx(js) {
+         start = std::move(children.back());
+         children.pop_back();
+      }
+
+      Roaring* evaluate(const SequenceStore &db, const MetaStore &mdb) override;
    };
 
    struct OrEx : public VectorEx {
       explicit OrEx(const boost::json::object &js) : VectorEx(js) {}
+
+      Roaring* evaluate(const SequenceStore &db, const MetaStore &mdb) override;
    };
 
    struct NOfEx : public VectorEx {
@@ -55,31 +63,40 @@ namespace silo {
          n = value_to<unsigned>( js.at( "n" ) );
          exactly = value_to<bool>( js.at( "exactly" ) );
       }
+
+      Roaring* evaluate(const SequenceStore &db, const MetaStore &mdb) override;
    };
 
    struct NegEx : public Expression {
       unique_ptr<Expression> child;
       explicit NegEx(const boost::json::object &js) : Expression(js) {
-         child = value_to< unique_ptr<Expression>>( js.at("child") );;
+         child = value_to< unique_ptr<Expression>>(js.at("child"));
       }
+
+      Roaring* evaluate(const SequenceStore &db, const MetaStore &mdb) override;
    };
 
    struct DateBetwEx : public Expression {
       string from;
-      string to;
       bool open_from;
+      string to;
       bool open_to;
       explicit DateBetwEx(const boost::json::object &js) : Expression(js) {
          if(js.at( "from" ).is_null()){
             open_from = true;
+            from = "";
          }
          else {
+            open_from = false;
             from = value_to<string>(js.at("from"));
          }
+
          if(js.at( "to" ).is_null()){
             open_to = true;
+            to = "";
          }
          else {
+            open_to = false;
             to = value_to<string>( js.at( "to" ) );
          }
       }
@@ -99,6 +116,7 @@ namespace silo {
       explicit NucMutEx(const boost::json::object &js) : Expression(js) {
          position = value_to<unsigned>( js.at( "position" ) );
       }
+
    };
 
    struct PangoLineageEx : public Expression {
@@ -108,6 +126,7 @@ namespace silo {
          includeSubLineages = value_to<bool>( js.at( "includeSubLineages" ) );
          value = value_to<string>( js.at( "value" ) );
       }
+
    };
 
    struct StrEqEx : public Expression {
@@ -117,9 +136,10 @@ namespace silo {
          column = value_to<string>( js.at( "column" ) );
          value = value_to<string>( js.at( "value" ) );
       }
+
    };
 
-   unique_ptr<Expression> tag_invoke( boost::json::value_to_tag< unique_ptr<Expression> >, boost::json::value const& jv );
+   unique_ptr<Expression> tag_invoke( boost::json::value_to_tag< unique_ptr<Expression> >, const boost::json::value& jv );
 
 }
 

@@ -60,6 +60,64 @@ string test = "{\n"
 "  }";
 
 
+Roaring* AndEx::evaluate(const silo::SequenceStore &db, const silo::MetaStore &mdb) {
+   auto ret = start->evaluate(db, mdb);
+   for(auto& child : children){
+      auto bm = child->evaluate(db, mdb);
+      *ret &= *bm;
+      delete bm;
+   }
+   return ret;
+}
+
+Roaring* OrEx::evaluate(const silo::SequenceStore &db, const silo::MetaStore &mdb) {
+   unsigned n = children.size();
+   const Roaring *child_res[n];
+   for(int i = 0; i<n; i++){
+      child_res[i] = children[i]->evaluate(db, mdb);
+   }
+   auto ret = new Roaring(Roaring::fastunion(children.size(), child_res));
+   delete[] *child_res;
+   return ret;
+}
+
+Roaring* NOfEx::evaluate(const silo::SequenceStore &db, const silo::MetaStore &mdb) {
+   vector<uint16_t> count;
+   count.resize(db.sequenceCount);
+   for(auto & child : children){
+      auto bm = child->evaluate(db, mdb);
+      for(uint32_t id : *bm){
+         count[id]++;
+      }
+      delete bm;
+   }
+   vector<uint32_t> correct;
+
+   if(exactly){
+      for(int i = 0; i< db.sequenceCount; i++){
+         if(count[i] == n){
+            correct.push_back(i);
+         }
+      }
+   }
+   else{
+      for(int i = 0; i< db.sequenceCount; i++){
+         if(count[i] >= n){
+            correct.push_back(i);
+         }
+      }
+   }
+
+   return new Roaring(correct.size(), &correct[0]);
+}
+
+Roaring* NegEx::evaluate(const SequenceStore &db, const MetaStore &mdb){
+   auto ret = child->evaluate(db, mdb);
+   ret->flip(0, db.sequenceCount);
+   return ret;
+}
+
+
 unique_ptr<Expression> silo::tag_invoke( boost::json::value_to_tag< unique_ptr<Expression>>, boost::json::value const& jv )
 {
    // boost::algorithm::erase_all(test, " \n");
@@ -98,13 +156,13 @@ unique_ptr<Expression> silo::tag_invoke( boost::json::value_to_tag< unique_ptr<E
    }
 }
 
-int main(){
+int testmain(){
    /*boost::json::parse_options opt;
    opt.allow_comments = true;
    opt.allow_trailing_commas = true;*/
 
-   boost::json::value const& jv = boost::json::parse( test);
-   boost::json::object const& obj = jv.as_object();
+   const boost::json::value& jv = boost::json::parse(test);
+   const boost::json::object& obj = jv.as_object();
    auto x =  value_to<unique_ptr<Expression>>(jv);
    cout << x;
 }
