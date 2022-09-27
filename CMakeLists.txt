@@ -15,7 +15,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
-find_package(Boost REQUIRED COMPONENTS system iostreams serialization )
+find_package(Boost REQUIRED COMPONENTS system iostreams serialization json)
 find_package(LibLZMA)
 
 include_directories(
@@ -23,5 +23,9 @@ include_directories(
         ${LIBLZMA_INCLUDE_DIRS}
 )
 
-add_executable(silo src/main.cpp src/silo.cpp src/meta_store.cpp src/sequence_store.cpp src/roaring/roaring.c ${Boost_INCLUDE_DIRS})
+
+set(targets src/silo.cpp src/meta_store.cpp src/sequence_store.cpp
+        src/query_engine.cpp src/roaring/roaring.c)
+
+add_executable(silo src/main.cpp ${targets} ${Boost_INCLUDE_DIRS})
 target_link_libraries(silo PUBLIC ${Boost_LIBRARIES})

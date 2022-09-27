@@ -1,6 +1,8 @@
-#include "sequence_store.h"
+#include "query_engine.h"
 
 using namespace silo;
+
+using xzistream = boost::iostreams::filtering_istream;
 
 int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
    const std::string default_db_filename = "../silo/roaring_sequences.silo";
@@ -299,7 +301,7 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, const std::string& com
 }
 
 
-int main(int argc, char* argv[]) {
+int smain(int argc, char* argv[]) {
    auto db = make_unique<SequenceStore>();
    auto meta_db = make_unique<MetaStore>();
    {

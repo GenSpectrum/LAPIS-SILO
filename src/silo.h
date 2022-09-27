@@ -27,9 +27,6 @@ using namespace std;
 
 namespace silo {
 
-   typedef boost::iostreams::filtering_istream xzistream;
-
-
    static constexpr unsigned genomeLength = 29903;
 
 // https://www.bioinformatics.org/sms/iupac.html

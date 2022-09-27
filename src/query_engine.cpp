@@ -1,6 +1,116 @@
-#include "sequence_store.h"
+#include "query_engine.h"
 
-void benchmark(const SequenceStore& db){
+using namespace silo;
+
+string test = "{\n"
+"    \"type\": \"And\",\n"
+"    \"children\": [\n"
+"      {\n"
+"        \"type\": \"StrEq\",\n"
+"        \"column\": \"country\",\n"
+"        \"value\": \"Switzerland\"\n"
+"      },\n"
+"      {\n"
+"        \"type\": \"DateBetw\",\n"
+"        \"from\": \"2022-01-01\",\n"
+"        \"to\": null\n"
+"      },\n"
+"      {\n"
+"        \"type\": \"Or\",\n"
+"        \"children\": [\n"
+"          {\n"
+"            \"type\": \"NucEq\",\n"
+"            \"position\": 25407,\n"
+"            \"value\": \"A\"\n"
+"          },\n"
+"          {\n"
+"            \"type\": \"Neg\",\n"
+"            \"child\": {\n"
+"              \"type\": \"PangoLineage\",\n"
+"              \"column\": \"pango_lineage\",\n"
+"              \"includeSubLineages\": true,\n"
+"              \"value\": \"B.1.1.529\"\n"
+"            }\n"
+"          },\n"
+"          {\n"
+"            \"type\": \"N-Of\",\n"
+"            \"n\": 2,\n"
+"            \"exactly\": false,\n"
+"            \"children\": [\n"
+"              {\n"
+"                \"type\": \"NucEq\",\n"
+"                \"position\": 241,\n"
+"                \"value\": \"T\"\n"
+"              },\n"
+"              {\n"
+"                \"type\": \"NucEq\",\n"
+"                \"position\": 29734,\n"
+"                \"value\": \"T\"\n"
+"              },\n"
+"              {\n"
+"                \"type\": \"NucEq\",\n"
+"                \"position\": 28330,\n"
+"                \"value\": \"G\"\n"
+"              }\n"
+"            ]\n"
+"          }\n"
+"        ]\n"
+"      }\n"
+"    ]\n"
+"  }";
+
+
+unique_ptr<Expression> silo::tag_invoke( boost::json::value_to_tag< unique_ptr<Expression>>, boost::json::value const& jv )
+{
+   // boost::algorithm::erase_all(test, " \n");
+   boost::json::object const& js = jv.as_object();
+   auto type = value_to<string>(js.at("type"));
+   //type = type.substr(1, type.size() - 2);
+   if(type == "And"){
+      return make_unique<AndEx>(js);
+   }
+   else if(type == "Or"){
+      return make_unique<OrEx>(js);
+   }
+   else if(type == "N-Of"){
+      return make_unique<NOfEx>(js);
+   }
+   else if(type == "Neg"){
+      return make_unique<NegEx>(js);
+   }
+   else if(type == "DateBetw"){
+      return make_unique<DateBetwEx>(js);
+   }
+   else if(type == "NucEq"){
+      return make_unique<NucEqEx>(js);
+   }
+   else if(type == "NucMut"){
+      return make_unique<NucMutEx>(js);
+   }
+   else if(type == "PangoLineage"){
+      return make_unique<PangoLineageEx>(js);
+   }
+   else if(type == "StrEq"){
+      return make_unique<StrEqEx>(js);
+   }
+   else {
+      throw std::runtime_error("Undefined type. Change this later to parsing exceptions.");
+   }
+}
+
+int main(){
+   /*boost::json::parse_options opt;
+   opt.allow_comments = true;
+   opt.allow_trailing_commas = true;*/
+
+   boost::json::value const& jv = boost::json::parse( test);
+   boost::json::object const& obj = jv.as_object();
+   auto x =  value_to<unique_ptr<Expression>>(jv);
+   cout << x;
+}
+
+void benchmark(const SequenceStore& db)
+{
 
    string ref_genome;
    ifstream in("../Data/reference_genome.txt");

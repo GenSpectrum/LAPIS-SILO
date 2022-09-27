@@ -186,7 +186,7 @@ void silo::partition(MetaStore &mdb, istream& in, const string& output_prefix_){
       pid_to_ostream.emplace_back(std::move(out));
    }
    cout << "Created file streams for  " << output_prefix_ << endl;
-   ofstream undefined_pid_ostream(output_prefix + "NOMETADATA.fasta.xz");
+   ofstream undefined_pid_ostream(output_prefix + "NOMETADATA.fasta");
    while (true) {
       string epi_isl, genome;
       if (!getline(in, epi_isl)) break;
