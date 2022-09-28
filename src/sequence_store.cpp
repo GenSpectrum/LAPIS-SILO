@@ -138,7 +138,7 @@ void silo::process_raw(SequenceStore& db, istream& in) {
 void silo::process(SequenceStore& db, MetaStore& mdb, istream& in) {
    static constexpr unsigned chunkSize = 1024;
 
-   uint32_t sid_ctr = 0;
+   uint32_t sid_ctr = db.sequenceCount;
    vector<string> genomes;
    while (true) {
       string epi_isl, genome;
@@ -155,22 +155,63 @@ void silo::process(SequenceStore& db, MetaStore& mdb, istream& in) {
          interpret(db, genomes);
          genomes.clear();
       }
+
+      uint32_t sid = sid_ctr++;
+      db.epi_to_sid[epi] = sid;
+      db.sid_to_epi.push_back(epi);
    }
    interpret(db, genomes);
    db_info(db,cout);
 }
 
+void silo::calc_partition_offsets(SequenceStore& db, MetaStore& mdb, istream& in){
+   cout << "Now calculating partition offsets" << endl;
 
-// This clears the SequenceStore...
+   // Clear the vector and resize
+   // TODO for future proofing, instead of clearing, extending them?
+   db.pid_to_offset.clear();
+   db.pid_to_offset.resize(mdb.pid_count);
+   db.pid_to_realcount.clear();
+   db.pid_to_realcount.resize(mdb.pid_count);
+
+   while (true) {
+      string epi_isl;
+      if (!getline(in, epi_isl)) break;
+      in.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+      // Add the count to the respective pid
+      uint64_t epi = stoi(epi_isl.substr(9));
+
+      if(!mdb.epi_to_pid.contains(epi)) {
+         // TODO logging
+         continue;
+      }
+
+      uint16_t pid = mdb.epi_to_pid[epi];
+      db.pid_to_realcount[pid]++;
+   }
+
+   // Escalate offsets from start to finish
+   uint32_t cumulative_offset = 0;
+   for(int i = 0; i<mdb.pid_count; i++){
+      db.pid_to_offset[i] += cumulative_offset;
+      cumulative_offset += db.pid_to_realcount[i];
+   }
+
+   // cumulative_offset should be equal to sequence count now
+
+   cout << "Finished calculating partition offsets." << endl;
+}
+
+
+// TODO this clears the SequenceStore? noo doesn't have to be...
 void silo::process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, istream& in) {
    static constexpr unsigned chunkSize = 1024;
 
-   db = SequenceStore{};
-
    // these offsets lag by chunk.
-   vector<uint32_t> dynamic_offsets(mdb.pid_to_offset);
+   vector<uint32_t> dynamic_offsets(db.pid_to_offset);
    // actually these are the same offsets just without lagging by chunk.
-   vector<uint32_t> sid_ctrs(mdb.pid_to_offset);
+   vector<uint32_t> sid_ctrs(db.pid_to_offset);
    vector<vector<string>> pid_to_genomes;
    pid_to_genomes.resize(mdb.pid_count + 1);
    while (true) {
@@ -189,7 +230,7 @@ void silo::process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, ist
       }
 
       uint16_t pid = mdb.epi_to_pid.at(epi);
-      mdb.pid_to_realcount[pid]++;
+      db.pid_to_realcount[pid]++;
 
       auto& genomes = pid_to_genomes[pid];
       genomes.emplace_back(std::move(genome));
@@ -216,7 +257,7 @@ void silo::process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, ist
    db_info(db, cout);
 }
 
-// Only for testing purposes. Very inefficient
+// Only for testing purposes. Very inefficient. Will insert the genome in specific positions to the sequenceStore
 void interpret_specific(SequenceStore& db, const vector<pair<uint64_t, string>>& genomes){
    vector<unsigned> offsets[symbolCount];
    for (unsigned index = 0; index != genomeLength; ++index) {

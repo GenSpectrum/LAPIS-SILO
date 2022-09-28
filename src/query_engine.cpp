@@ -111,12 +111,14 @@ Roaring* AndEx::evaluate(const silo::SequenceStore &db, const silo::MetaStore &m
 
 Roaring* OrEx::evaluate(const silo::SequenceStore &db, const silo::MetaStore &mdb) {
    unsigned n = children.size();
-   const Roaring *child_res[n];
+   const Roaring* child_res[n];
    for(int i = 0; i<n; i++){
       child_res[i] = children[i]->evaluate(db, mdb);
    }
    auto ret = new Roaring(Roaring::fastunion(children.size(), child_res));
-   delete[] *child_res;
+   for(int i = 0; i<n; i++){
+      delete child_res[i];
+   }
    return ret;
 }
 

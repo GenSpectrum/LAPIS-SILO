@@ -32,8 +32,7 @@ namespace silo {
 
          // vector
          ar & pid_to_pango;
-         ar & pid_to_offset;
-         ar & pid_to_realcount;
+         ar & pid_to_metacount;
       }
 
       // Maps the epis to the ID, which is assigned to the pango lineage (pid)
@@ -49,12 +48,8 @@ namespace silo {
       unordered_map<string, uint16_t> pango_to_pid;
 
       vector<string> pid_to_pango;
-      // real count refers to the count of sequences actually found in the fasta file, these may differ from meta_data
-      /// filled by calc_offset or build
-      vector<uint32_t> pid_to_realcount;
-      // pid to offsets, offsets calculated from the respective counts
-      /// Only filled by calc_offset
-      vector<uint32_t> pid_to_offset;
+      // counts the occurence of each pid in the metadata
+      vector<uint32_t> pid_to_metacount;
 
       uint32_t epi_count = 0;
       uint16_t pid_count = 0;
@@ -66,8 +61,6 @@ namespace silo {
    void processMeta(MetaStore &mdb, istream &in);
 
    void processMeta_ordered(MetaStore &mdb, istream &in);
-
-   void calc_partition_offsets(MetaStore &mdb, istream &in);
 
    void meta_info(const MetaStore &mdb, ostream &out);
 

@@ -31,11 +31,22 @@ namespace silo {
          ar & epi_to_sid;
 
          ar & positions;
+
+         ar & pid_to_offset;
+         ar & pid_to_realcount;
       }
 
       Position positions[genomeLength];
       vector<uint64_t> sid_to_epi;
       unordered_map<uint64_t, uint32_t> epi_to_sid;
+
+      // real count refers to the count of sequences actually found in the fasta file, these may differ from meta_data
+      /// filled by calc_offset or build
+      vector<uint32_t> pid_to_realcount;
+      // pid to offsets, offsets calculated from the respective counts
+      /// Only filled by calc_offset
+      vector<uint32_t> pid_to_offset;
+
       unsigned sequenceCount = 0;
 
       [[nodiscard]] size_t computeSize() const {
@@ -94,11 +105,9 @@ namespace silo {
 
    void process(SequenceStore &db, MetaStore &mdb, istream &in);
 
-   // static void interpret_offset(SequenceStore& db, const vector<string>& genomes, uint32_t offset);
+   void calc_partition_offsets(SequenceStore &db, MetaStore &mdb, istream &in);
 
    void process_partitioned_on_the_fly(SequenceStore &db, MetaStore &mdb, istream &in);
-
-   // static void interpret_specific(SequenceStore& db, const vector<pair<uint64_t, string>>& genomes);
 
    void partition(MetaStore &mdb, istream &in, const string &output_prefix_);
 

@@ -2,8 +2,6 @@
 
 using namespace silo;
 
-using xzistream = boost::iostreams::filtering_istream;
-
 int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
    const std::string default_db_filename = "../silo/roaring_sequences.silo";
    const std::string default_meta_filename = "../silo/meta_store.silo";
@@ -80,18 +78,8 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
          process_raw(db, cin);
       }
       else if(args.size() == 2){
-         auto file = ifstream(args[1], ios::binary);
-         if(args[1].ends_with(".xz")){
-            xzistream archive;
-            archive.push(boost::iostreams::lzma_decompressor());
-            archive.push(file);
-            cout << "Building sequence-store from input archive: " << args[1] << endl;
-            process_raw(db, archive);
-         }
-         else {
-            cout << "Building sequence-store from input file: " << args[1] << endl;
-            process_raw(db, file);
-         }
+         istream_wrapper file(args[1]);
+         process_raw(db, file.get_is());
       }
       else{
          cout << "Expected syntax: \"build [fasta_file | fasta_archive]\"" << endl;
@@ -107,18 +95,8 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
          process(db, meta_db, cin);
       }
       else if(args.size() == 2){
-         auto file = ifstream(args[1], ios::binary);
-         if(args[1].ends_with(".xz")){
-            xzistream archive;
-            archive.push(boost::iostreams::lzma_decompressor());
-            archive.push(file);
-            cout << "Building sequence-store from input archive: " << args[1] << endl;
-            process(db, meta_db, archive);
-         }
-         else {
-            cout << "Building sequence-store from input file: " << args[1] << endl;
-            process(db, meta_db, file);
-         }
+         istream_wrapper file(args[1]);
+         process(db, meta_db, file.get_is());
       }
       else{
          cout << "Expected syntax: \"build [fasta_file | fasta_archive]\"" << endl;
@@ -131,21 +109,11 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
       }
       if(args.size() < 2) {
          cout << "calc_partition_offsets from stdin." << endl;
-         calc_partition_offsets(meta_db, cin);
+         calc_partition_offsets(db, meta_db, cin);
       }
       else{
-         auto file = ifstream(args[1], ios::binary);
-         if(args[1].ends_with(".xz")){
-            xzistream archive;
-            archive.push(boost::iostreams::lzma_decompressor());
-            archive.push(file);
-            cout << "calc_partition_offsets from input archive: " << args[1] << endl;
-            calc_partition_offsets(meta_db, archive);
-         }
-         else {
-            cout << "calc_partition_offsets from input file: " << args[1] << endl;
-            calc_partition_offsets(meta_db, file);
-         }
+         istream_wrapper file(args[1]);
+         calc_partition_offsets(db, meta_db, file.get_is());
       }
    }
    else if ("build_partitioned_otf" == args[0]) {
@@ -153,10 +121,10 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
          cout << "No meta_data built."  << endl;
          return 0;
       }
-      else if(meta_db.pid_to_offset.empty()){
+      else if(db.pid_to_offset.empty()){
          cout << "Need to first calculate offsets. See 'calc_partition_offsets'."  << endl;
       }
-      cout << "This clears all currently stored sequences.\nPress (y) to continue." << endl;
+      cout << "This clears all currently stored sequences. TODO no longer does this.\nPress (y) to continue." << endl;
       string s;
       cin >> s;
       if(s != "y" && s != "Y"){
@@ -167,18 +135,8 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
          process_partitioned_on_the_fly(db, meta_db, cin);
       }
       else{
-         auto file = ifstream(args[1], ios::binary);
-         if(args[1].ends_with(".xz")){
-            xzistream archive;
-            archive.push(boost::iostreams::lzma_decompressor());
-            archive.push(file);
-            cout << "build_partitioned_otf from input archive: " << args[1] << endl;
-            process_partitioned_on_the_fly(db, meta_db, archive);
-         }
-         else {
-            cout << "build_partitioned_otf from input file: " << args[1] << endl;
-            process_partitioned_on_the_fly(db, meta_db, file);
-         }
+         istream_wrapper file(args[1]);
+         process_partitioned_on_the_fly(db, meta_db, file.get_is());
       }
    }
    else if("partition" == args[0]){
@@ -195,18 +153,8 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
          partition(meta_db, cin, args[1]);
       }
       else {
-         auto file = ifstream(args[2], ios::binary);
-         if(args[2].ends_with(".xz")){
-            xzistream archive;
-            archive.push(boost::iostreams::lzma_decompressor());
-            archive.push(file);
-            cout << "Partition sequence input from input archive: " << args[2] << endl;
-            partition(meta_db, archive, args[1]);
-         }
-         else {
-            cout << "Partition sequence input from input file: " << args[2] << endl;
-            partition(meta_db, file, args[1]);
-         }
+         istream_wrapper file(args[2]);
+         partition(meta_db, file.get_is(), args[1]);
       }
       return 0;
    }
@@ -229,7 +177,7 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
       const string in_prefix = args[1] + '_';
       for(auto& x : meta_db.pid_to_pango){
          ifstream in(in_prefix + x + ".fasta.xz");
-         xzistream archive;
+         boost::iostreams::filtering_istream archive;
          archive.push(boost::iostreams::lzma_decompressor());
          archive.push(in);
          cout << "Building sequence-store from input archive: " << args[1] << endl;
@@ -242,18 +190,8 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
          analyseMeta(cin);
       }
       else {
-         auto file = ifstream(args[1], ios::binary);
-         if(args[1].ends_with(".xz")){
-            xzistream archive;
-            archive.push(boost::iostreams::lzma_decompressor());
-            archive.push(file);
-            cout << "Analysing meta-data from input archive: " << args[1] << endl;
-            analyseMeta(archive);
-         }
-         else {
-            cout << "Analysing meta-data from input file: " << args[1] << endl;
-            analyseMeta(file);
-         }
+         istream_wrapper file(args[1]);
+         analyseMeta(file.get_is());
       }
    }
    else if ("build_meta_uns" == args[0]){
@@ -262,18 +200,8 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
          return 0;
       }
 
-      auto file = ifstream(args[1], ios::binary);
-      if(args[1].ends_with(".xz")){
-         xzistream archive;
-         archive.push(boost::iostreams::lzma_decompressor());
-         archive.push(file);
-         cout << "Building meta-data indexes from input archive: " << args[1] << endl;
-         processMeta(meta_db, archive);
-      }
-      else {
-         cout << "Building meta-data indexes from input file: " << args[1] << endl;
-         processMeta(meta_db, file);
-      }
+      istream_wrapper file(args[1]);
+      processMeta(meta_db, file.get_is());
    }
    else if ("build_meta" == args[0]){
       if(args.size() < 2) {
@@ -281,18 +209,9 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
          return 0;
       }
 
-      auto file = ifstream(args[1], ios::binary);
-      if(args[1].ends_with(".xz")){
-         xzistream archive;
-         archive.push(boost::iostreams::lzma_decompressor());
-         archive.push(file);
-         cout << "Building meta-data indexes from input archive: " << args[1] << endl;
-         processMeta_ordered(meta_db, archive);
-      }
-      else {
-         cout << "Building meta-data indexes from input file: " << args[1] << endl;
-         processMeta_ordered(meta_db, file);
-      }
+      istream_wrapper file(args[1]);
+      processMeta_ordered(meta_db, file.get_is());
+
    }
    else if ("exit" == args[0] || "quit" == args[0] ){
       return 1;

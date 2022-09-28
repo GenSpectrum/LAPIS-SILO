@@ -8,6 +8,7 @@ using namespace silo;
 
 /// Deprecated
 void silo::analyseMeta(istream& in){
+   // Ignore header line.
    in.ignore(LONG_MAX, '\n');
 
    // vector<string> lineage_vec;
@@ -45,6 +46,7 @@ void silo::analyseMeta(istream& in){
 static inline void inputSequenceMeta(MetaStore& mdb, uint64_t epi, uint16_t pango_idx, const string& date,
                                       const string& region, const string& country, const string& division){
    mdb.epi_to_pid[epi] = pango_idx;
+   mdb.pid_to_metacount[pango_idx]++;
 
    uint32_t sidM = mdb.epi_count++;
    mdb.sidM_to_epi.push_back(epi);
@@ -61,6 +63,7 @@ static inline void inputSequenceMeta(MetaStore& mdb, uint64_t epi, uint16_t pang
 }
 
 void silo::processMeta(MetaStore& mdb, istream& in){
+   // Ignore header line.
    in.ignore(LONG_MAX, '\n');
 
    while (true) {
@@ -90,6 +93,7 @@ void silo::processMeta(MetaStore& mdb, istream& in){
       else{
          pango_idx = mdb.pid_count++;
          mdb.pid_to_pango.push_back(pango_lineage);
+         mdb.pid_to_metacount.push_back(0);
          mdb.pango_to_pid[pango_lineage] = pango_idx;
       }
 
@@ -102,6 +106,7 @@ void silo::processMeta(MetaStore& mdb, istream& in){
 }
 
 void silo::processMeta_ordered(MetaStore& mdb, istream& in){
+   // Ignore header line.
    in.ignore(LONG_MAX, '\n');
 
    while (true) {
@@ -125,6 +130,7 @@ void silo::processMeta_ordered(MetaStore& mdb, istream& in){
       auto pango = mdb.pid_to_pango[pid];
       mdb.pango_to_pid[pango] = pid;
    }
+   mdb.pid_to_metacount.resize(mdb.pid_count);
 
    in.clear();                         // clear fail and eof bits
    in.seekg(0, std::ios::beg); // back to the start!
@@ -161,48 +167,11 @@ void silo::processMeta_ordered(MetaStore& mdb, istream& in){
    }
 }
 
-void silo::calc_partition_offsets(MetaStore& mdb, istream& in){
-   cout << "Now calculating partition offsets" << endl;
-
-   // Clear the vector and resize
-   mdb.pid_to_offset.clear();
-   mdb.pid_to_offset.resize(mdb.pid_count);
-
-   while (true) {
-      string epi_isl;
-      if (!getline(in, epi_isl)) break;
-      in.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-
-      // Add the count to the respective pid
-      uint64_t epi = stoi(epi_isl.substr(9));
-
-      if(!mdb.epi_to_pid.contains(epi)) {
-         // TODO logging
-         continue;
-      }
-
-      uint16_t pid = mdb.epi_to_pid[epi];
-      mdb.pid_to_offset[pid]++;
-   }
-
-   // Escalate offsets from start to finish
-   uint32_t cumulative_offset = 0;
-   for(uint32_t& offset : mdb.pid_to_offset){
-      auto tmp = offset;
-      offset = cumulative_offset;
-      cumulative_offset += tmp;
-   }
-
-   // cumulative_offset should be equal to sequence count now
-
-   cout << "Finished calculating partition offsets." << endl;
-}
-
 void silo::meta_info(const MetaStore& mdb, ostream& out) {
    out << "Infos by pango:" << endl;
    for (unsigned i = 0; i < mdb.pid_count; i++) {
-      out << "(pid: " << i << ",\tpango-lin: " <<  mdb.pid_to_pango[i] << ",\toffset: "
-          << number_fmt(mdb.pid_to_offset[i])  << ')' << endl;
+      out << "(pid: " << i << ",\tpango-lin: " <<  mdb.pid_to_pango[i]
+         << ",\tcount: " << number_fmt(mdb.pid_to_metacount[i])  << ')' << endl;
    }
 }
 
