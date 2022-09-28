@@ -6,7 +6,7 @@
 
 using namespace silo;
 
-// Meta-Data is input
+/// Deprecated
 void silo::analyseMeta(istream& in){
    in.ignore(LONG_MAX, '\n');
 
@@ -42,6 +42,23 @@ void silo::analyseMeta(istream& in){
    cout << "total partitions: " << lineages.size() << endl;
 }
 
+static inline void inputSequenceMeta(MetaStore& mdb, uint64_t epi, uint16_t pango_idx, const string& date,
+                                      const string& region, const string& country, const string& division){
+   mdb.epi_to_pid[epi] = pango_idx;
+
+   uint32_t sidM = mdb.epi_count++;
+   mdb.sidM_to_epi.push_back(epi);
+   mdb.epi_to_sidM[epi] = sidM;
+
+   struct std::tm tm{};
+   std::istringstream ss(date);
+   ss >> std::get_time(&tm, "%Y-%m-%d");
+   std::time_t time = mktime(&tm);
+
+   mdb.sidM_to_date.push_back(time);
+   mdb.sidM_to_country.push_back(country);
+   mdb.sidM_to_region.push_back(region);
+}
 
 void silo::processMeta(MetaStore& mdb, istream& in){
    in.ignore(LONG_MAX, '\n');
@@ -50,9 +67,9 @@ void silo::processMeta(MetaStore& mdb, istream& in){
       string epi_isl, pango_lineage, date, region, country, division;
       if (!getline(in, epi_isl, '\t')) break;
       if (!getline(in, pango_lineage, '\t')) break;
-      /*if (!getline(in, date, '\t')) break;
+      if (!getline(in, date, '\t')) break;
       if (!getline(in, region, '\t')) break;
-      if (!getline(in, country, '\t')) break;*/
+      if (!getline(in, country, '\t')) break;
       if (!getline(in, division, '\n')) break;
 
 
@@ -61,7 +78,7 @@ void silo::processMeta(MetaStore& mdb, istream& in){
       }
       else if(pango_lineage.length()==1 && pango_lineage != "A" && pango_lineage != "B"){
          cout << "One-Char pango-lineage:" << epi_isl  << " Lineage:'" << pango_lineage << "'";
-         cout << "(Keycode=" << (uint) pango_lineage.at(1) << ")" << endl;
+         cout << "(Keycode=" << (uint) pango_lineage.at(0) << ") may be relevant if it is not printable" << endl;
       }
 
       string tmp = epi_isl.substr(8);
@@ -75,9 +92,8 @@ void silo::processMeta(MetaStore& mdb, istream& in){
          mdb.pid_to_pango.push_back(pango_lineage);
          mdb.pango_to_pid[pango_lineage] = pango_idx;
       }
-      // Note that epi may not be contained twice. Can later be checked by epi_count == epi_to_pid.size()
-      mdb.epi_count++;
-      mdb.epi_to_pid[epi] = pango_idx;
+
+      inputSequenceMeta(mdb, epi, pango_idx, date, region, country, division);
    }
 
    if(mdb.epi_count != mdb.epi_to_pid.size()){
@@ -100,8 +116,8 @@ void silo::processMeta_ordered(MetaStore& mdb, istream& in){
       }
    }
 
-
    // Now sort alphabetically so that we get better compression.
+   // -> similar PIDs next to each other in sequence_store -> better run-length compression
    std::sort(mdb.pid_to_pango.begin(), mdb.pid_to_pango.end());
 
    mdb.pango_to_pid.clear();
@@ -118,9 +134,9 @@ void silo::processMeta_ordered(MetaStore& mdb, istream& in){
       string epi_isl, pango_lineage, date, region, country, division;
       if (!getline(in, epi_isl, '\t')) break;
       if (!getline(in, pango_lineage, '\t')) break;
-      /*if (!getline(in, date, '\t')) break;
+      if (!getline(in, date, '\t')) break;
       if (!getline(in, region, '\t')) break;
-      if (!getline(in, country, '\t')) break;*/
+      if (!getline(in, country, '\t')) break;
       if (!getline(in, division, '\n')) break;
 
       if(pango_lineage.length() < 2) {
@@ -134,13 +150,10 @@ void silo::processMeta_ordered(MetaStore& mdb, istream& in){
 
       string tmp = epi_isl.substr(8);
       uint64_t epi = stoi(tmp);
-      uint16_t pango_idx;
       // Guaranteed to find, due to first-pass above
-      pango_idx = mdb.pango_to_pid[pango_lineage];
+      uint16_t pango_idx = mdb.pango_to_pid[pango_lineage];
 
-      // Note that epi may not be contained twice. Can later be checked by epi_count == epi_to_pid.size()
-      mdb.epi_count++;
-      mdb.epi_to_pid[epi] = pango_idx;
+      inputSequenceMeta(mdb, epi, pango_idx, date, region, country, division);
    }
 
    if(mdb.epi_count != mdb.epi_to_pid.size()){
@@ -153,7 +166,7 @@ void silo::calc_partition_offsets(MetaStore& mdb, istream& in){
 
    // Clear the vector and resize
    mdb.pid_to_offset.clear();
-   mdb.pid_to_offset.resize(mdb.pid_count + 1);
+   mdb.pid_to_offset.resize(mdb.pid_count);
 
    while (true) {
       string epi_isl;
@@ -162,14 +175,14 @@ void silo::calc_partition_offsets(MetaStore& mdb, istream& in){
 
       // Add the count to the respective pid
       uint64_t epi = stoi(epi_isl.substr(9));
-      if(mdb.epi_to_pid.contains(epi)) {
-         uint16_t pid = mdb.epi_to_pid[epi];
-         mdb.pid_to_offset[pid]++;
+
+      if(!mdb.epi_to_pid.contains(epi)) {
+         // TODO logging
+         continue;
       }
-      else{
-         uint16_t pid = mdb.pid_count;
-         mdb.pid_to_offset[pid]++;
-      }
+
+      uint16_t pid = mdb.epi_to_pid[epi];
+      mdb.pid_to_offset[pid]++;
    }
 
    // Escalate offsets from start to finish

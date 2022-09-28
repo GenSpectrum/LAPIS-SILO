@@ -104,10 +104,21 @@ namespace silo {
 
    struct NucEqEx : public Expression {
       unsigned position;
-      char value;
+      Symbol value;
       explicit NucEqEx(const boost::json::object &js) : Expression(js) {
          position = value_to<unsigned>( js.at( "position" ) );
-         value = value_to<string>( js.at( "value" ) ).at(0);
+         value = to_symbol(value_to<string>( js.at( "value" ) ).at(0));
+      }
+
+      Roaring* evaluate(const SequenceStore &db, const MetaStore &mdb) override;
+   };
+
+   struct NucMbEx : public Expression {
+      unsigned position;
+      Symbol value;
+      explicit NucMbEx(const boost::json::object &js) : Expression(js) {
+         position = value_to<unsigned>( js.at( "position" ) );
+         value = to_symbol(value_to<string>( js.at( "value" ) ).at(0));
       }
    };
 

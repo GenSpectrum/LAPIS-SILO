@@ -14,9 +14,7 @@ namespace silo {
 
       template<class Archive>
       void serialize(Archive &ar, [[maybe_unused]] const unsigned int version) {
-         unsigned i;
-         for (i = 0; i < symbolCount; ++i)
-            ar & bitmaps[i];
+         ar & bitmaps;
       }
 
       roaring::Roaring bitmaps[symbolCount];
@@ -28,12 +26,16 @@ namespace silo {
       template<class Archive>
       void serialize(Archive &ar, [[maybe_unused]] const unsigned int version) {
          ar & sequenceCount;
-         unsigned i;
-         for (i = 0; i < genomeLength; ++i)
-            ar & positions[i];
+
+         ar & sid_to_epi;
+         ar & epi_to_sid;
+
+         ar & positions;
       }
 
       Position positions[genomeLength];
+      vector<uint64_t> sid_to_epi;
+      unordered_map<uint64_t, uint32_t> epi_to_sid;
       unsigned sequenceCount = 0;
 
       [[nodiscard]] size_t computeSize() const {
@@ -79,13 +81,18 @@ namespace silo {
 
    int db_info(const SequenceStore &db, ostream &io);
 
+   int db_info_detailed(const SequenceStore &db, ostream &io);
+
    unsigned save_db(const SequenceStore &db, const std::string &db_filename);
 
    unsigned load_db(SequenceStore &db, const std::string &db_filename);
 
    // static void interpret(SequenceStore& db, const vector<string>& genomes);
 
-   void process(SequenceStore &db, istream &in);
+   /// WARNING: This does not look at meta-data nor fill any indices required for queries. Use with caution
+   void process_raw(SequenceStore &db, istream &in);
+
+   void process(SequenceStore &db, MetaStore &mdb, istream &in);
 
    // static void interpret_offset(SequenceStore& db, const vector<string>& genomes, uint32_t offset);
 

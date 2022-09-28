@@ -17,27 +17,47 @@ namespace silo {
          ar & pid_count;
          ar & epi_count;
 
+         // unordered_map
+         ar & epi_to_pid;
+         ar & epi_to_sidM;
+
          // vector
-         ar & pid_to_pango;
-         ar & pid_to_offset;
+         ar & sidM_to_epi;
+         ar & sidM_to_date;
+         ar & sidM_to_region;
+         ar & sidM_to_country;
 
          // unordered_map
          ar & pango_to_pid;
-         ar & epi_to_pid;
-      }
 
-      uint64_t epi_count = 0;
-      uint16_t pid_count = 0;
+         // vector
+         ar & pid_to_pango;
+         ar & pid_to_offset;
+         ar & pid_to_realcount;
+      }
 
       // Maps the epis to the ID, which is assigned to the pango lineage (pid)
       // pids are starting at 0 and are dense, so that we can save the respective data in vectors.
       unordered_map<uint64_t, uint16_t> epi_to_pid;
+      unordered_map<uint64_t, uint32_t> epi_to_sidM;
 
-      vector<string> pid_to_pango;
+      vector<uint64_t> sidM_to_epi;
+      vector<time_t> sidM_to_date;
+      vector<string> sidM_to_region;
+      vector<string> sidM_to_country;
+
       unordered_map<string, uint16_t> pango_to_pid;
 
-      // pid to offsets
+      vector<string> pid_to_pango;
+      // real count refers to the count of sequences actually found in the fasta file, these may differ from meta_data
+      /// filled by calc_offset or build
+      vector<uint32_t> pid_to_realcount;
+      // pid to offsets, offsets calculated from the respective counts
+      /// Only filled by calc_offset
       vector<uint32_t> pid_to_offset;
+
+      uint32_t epi_count = 0;
+      uint16_t pid_count = 0;
    };
 
 // Meta-Data is input

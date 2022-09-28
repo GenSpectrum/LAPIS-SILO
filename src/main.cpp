@@ -65,16 +65,19 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
    else if("info" == args[0]){
       db_info(db, cout);
    }
+   else if("info_d" == args[0]){
+      db_info_detailed(db, cout);
+   }
    else if("meta_info" == args[0]){
       meta_info(meta_db, cout);
    }
    else if("benchmark" == args[0]){
       // benchmark(db);
    }
-   else if ("build" == args[0]){
+   else if ("build_raw" == args[0]){
       if(args.size() == 1) {
          cout << "Building sequence-store from stdin" << endl;
-         process(db, cin);
+         process_raw(db, cin);
       }
       else if(args.size() == 2){
          auto file = ifstream(args[1], ios::binary);
@@ -83,11 +86,38 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
             archive.push(boost::iostreams::lzma_decompressor());
             archive.push(file);
             cout << "Building sequence-store from input archive: " << args[1] << endl;
-            process(db, archive);
+            process_raw(db, archive);
          }
          else {
             cout << "Building sequence-store from input file: " << args[1] << endl;
-            process(db, file);
+            process_raw(db, file);
+         }
+      }
+      else{
+         cout << "Expected syntax: \"build [fasta_file | fasta_archive]\"" << endl;
+      }
+   }
+   else if ("build" == args[0]){
+      if(meta_db.epi_to_pid.empty()){
+         cout << "No meta_data built."  << endl;
+         return 0;
+      }
+      if(args.size() == 1) {
+         cout << "Building sequence-store from stdin" << endl;
+         process(db, meta_db, cin);
+      }
+      else if(args.size() == 2){
+         auto file = ifstream(args[1], ios::binary);
+         if(args[1].ends_with(".xz")){
+            xzistream archive;
+            archive.push(boost::iostreams::lzma_decompressor());
+            archive.push(file);
+            cout << "Building sequence-store from input archive: " << args[1] << endl;
+            process(db, meta_db, archive);
+         }
+         else {
+            cout << "Building sequence-store from input file: " << args[1] << endl;
+            process(db, meta_db, file);
          }
       }
       else{
@@ -125,6 +155,12 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
       }
       else if(meta_db.pid_to_offset.empty()){
          cout << "Need to first calculate offsets. See 'calc_partition_offsets'."  << endl;
+      }
+      cout << "This clears all currently stored sequences.\nPress (y) to continue." << endl;
+      string s;
+      cin >> s;
+      if(s != "y" && s != "Y"){
+         return 0;
       }
       if(args.size() < 2) {
          cout << "build_partitioned_otf from stdin." << endl;
@@ -182,7 +218,7 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
       const string in_prefix = args[1] + '_';
       for(auto& x : meta_db.pid_to_pango){
          ifstream in(in_prefix + x + ".fasta");
-         process(db, in);
+         process(db, meta_db, in);
       }
    }
    else if ("build_partitioned_c" == args[0]) {
@@ -197,7 +233,7 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
          archive.push(boost::iostreams::lzma_decompressor());
          archive.push(in);
          cout << "Building sequence-store from input archive: " << args[1] << endl;
-         process(db, archive);
+         process(db, meta_db, archive);
       }
    }
    else if ("analysemeta" == args[0]){
@@ -222,7 +258,7 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
    }
    else if ("build_meta_uns" == args[0]){
       if(args.size() < 2) {
-         cout << "Expected syntax: \"build_meta METAFILE\"" << endl;
+         cout << "Expected syntax: \"build_meta meta_file\"" << endl;
          return 0;
       }
 
@@ -263,28 +299,6 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
    }
    // ___________________________________________________________________________________________________________
    // From here on soon to be deprecated / altered. Compose these bigger commands differently using the above smaller ones
-   else if("test" == args[0]){
-      std::ifstream file("../tmp.fasta.xz", std::ios::binary);
-
-
-
-      boost::iostreams::filtering_istream in2;
-      in2.push(boost::iostreams::lzma_decompressor());
-      in2.push(file);
-
-      istream& in = in2;
-
-      if(!in) {
-         cout << "Could not create in_stream."  << endl;
-         return 0;
-      }
-      cout << "Reading." << endl;
-      string s;
-      istream& tmp = in;
-      getline(tmp,s);
-      cout << "Read:'" <<  s << "'" << endl;
-      return 0;
-   }
    else{
       cout << "Unknown command " << args[0] << "." << endl;
    }
@@ -321,6 +335,5 @@ int main(int argc, char* argv[]) {
          cout << "> ";
       }
    }
-   cout << "All objects destroyed. Exiting." << endl;
    return 0;
 }

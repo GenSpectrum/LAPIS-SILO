@@ -43,6 +43,22 @@ int silo::db_info(const SequenceStore& db, ostream& io){
    return 0;
 }
 
+int silo::db_info_detailed(const SequenceStore& db, ostream& io){
+   db_info(db, io);
+   vector<size_t> size_by_symbols;
+   size_by_symbols.resize(symbolCount);
+   for(const auto & position : db.positions){
+      for(unsigned symbol = 0; symbol < symbolCount; symbol++){
+         size_by_symbols[symbol] += position.bitmaps[symbol].getSizeInBytes();
+      }
+   }
+   for(unsigned symbol = 0; symbol < symbolCount; symbol++){
+      io << "size for symbol '" << symbol_rep[symbol] << "': "
+         << number_fmt(size_by_symbols[symbol]) << endl;
+   }
+   return 0;
+}
+
 unsigned silo::save_db(const SequenceStore& db, const std::string& db_filename) {
    std::cout << "Writing out db." << std::endl;
 
@@ -96,13 +112,13 @@ static void interpret(SequenceStore& db, const vector<string>& genomes){
    interpret_offset(db, genomes, db.sequenceCount);
 }
 
-void silo::process(SequenceStore& db, istream& in) {
+void silo::process_raw(SequenceStore& db, istream& in) {
    static constexpr unsigned chunkSize = 1024;
 
    vector<string> genomes;
    while (true) {
-      string name, genome;
-      if (!getline(in, name) || name.empty()) break;
+      string epi_isl, genome;
+      if (!getline(in, epi_isl) || epi_isl.empty()) break;
       if (!getline(in, genome)) break;
       if (genome.length() != genomeLength) {
          cerr << "length mismatch!" << endl;
@@ -119,11 +135,42 @@ void silo::process(SequenceStore& db, istream& in) {
 }
 
 
+void silo::process(SequenceStore& db, MetaStore& mdb, istream& in) {
+   static constexpr unsigned chunkSize = 1024;
+
+   uint32_t sid_ctr = 0;
+   vector<string> genomes;
+   while (true) {
+      string epi_isl, genome;
+      if (!getline(in, epi_isl) || epi_isl.empty()) break;
+      if (!getline(in, genome)) break;
+      if (genome.length() != genomeLength) {
+         cerr << "length mismatch!" << endl;
+         return;
+      }
+      uint64_t epi = stoi(epi_isl.substr(9));
+
+      genomes.push_back(std::move(genome));
+      if (genomes.size() >= chunkSize) {
+         interpret(db, genomes);
+         genomes.clear();
+      }
+   }
+   interpret(db, genomes);
+   db_info(db,cout);
+}
+
+
+// This clears the SequenceStore...
 void silo::process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, istream& in) {
    static constexpr unsigned chunkSize = 1024;
 
-   vector<uint32_t> dynamic_offsets(mdb.pid_to_offset);
+   db = SequenceStore{};
 
+   // these offsets lag by chunk.
+   vector<uint32_t> dynamic_offsets(mdb.pid_to_offset);
+   // actually these are the same offsets just without lagging by chunk.
+   vector<uint32_t> sid_ctrs(mdb.pid_to_offset);
    vector<vector<string>> pid_to_genomes;
    pid_to_genomes.resize(mdb.pid_count + 1);
    while (true) {
@@ -136,13 +183,14 @@ void silo::process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, ist
       }
       uint64_t epi = stoi(epi_isl.substr(9));
 
-      uint16_t pid;
-      if(mdb.epi_to_pid.contains(epi)) {
-         pid = mdb.epi_to_pid.at(epi);
+      if(!mdb.epi_to_pid.contains(epi)) {
+         // TODO logging
+         continue;
       }
-      else{
-         pid = mdb.pid_count;
-      }
+
+      uint16_t pid = mdb.epi_to_pid.at(epi);
+      mdb.pid_to_realcount[pid]++;
+
       auto& genomes = pid_to_genomes[pid];
       genomes.emplace_back(std::move(genome));
       if (genomes.size() >= chunkSize) {
@@ -150,12 +198,22 @@ void silo::process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, ist
          dynamic_offsets[pid] += genomes.size();
          genomes.clear();
       }
+
+      uint32_t sid = sid_ctrs[pid]++;
+      db.epi_to_sid[epi] = sid;
    }
+
    for(uint16_t pid = 0; pid < mdb.pid_count+1; pid++){
       interpret_offset(db, pid_to_genomes[pid], dynamic_offsets[pid]);
    }
-   cout << "sequence count: " << db.sequenceCount << endl;
-   cout << "total size: " << db.computeSize() << endl;
+
+   // now also calculate the reverse direction for the epi<->sid relationship.
+   db.sid_to_epi.resize(db.epi_to_sid.size());
+   for(auto& x : db.epi_to_sid){
+      db.sid_to_epi[x.second] = x.first;
+   }
+
+   db_info(db, cout);
 }
 
 // Only for testing purposes. Very inefficient
@@ -186,7 +244,6 @@ void silo::partition(MetaStore &mdb, istream& in, const string& output_prefix_){
       pid_to_ostream.emplace_back(std::move(out));
    }
    cout << "Created file streams for  " << output_prefix_ << endl;
-   ofstream undefined_pid_ostream(output_prefix + "NOMETADATA.fasta");
    while (true) {
       string epi_isl, genome;
       if (!getline(in, epi_isl)) break;
@@ -197,13 +254,13 @@ void silo::partition(MetaStore &mdb, istream& in, const string& output_prefix_){
       }
       uint64_t epi = stoi(epi_isl.substr(9));
 
-      if(mdb.epi_to_pid.contains(epi)) {
-         auto pid = mdb.epi_to_pid.at(epi);
-         *pid_to_ostream[pid] << epi_isl << endl << genome << endl;
+      if(!mdb.epi_to_pid.contains(epi)) {
+         // TODO logging
+         continue;
       }
-      else{
-         undefined_pid_ostream << epi_isl << endl << genome << endl;
-      }
+
+      auto pid = mdb.epi_to_pid.at(epi);
+      *pid_to_ostream[pid] << epi_isl << endl << genome << endl;
    }
    cout << "Finished partitioning to " << output_prefix_ << endl;
 }
