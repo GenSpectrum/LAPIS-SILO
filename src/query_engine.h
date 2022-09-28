@@ -6,7 +6,7 @@
 #define SILO_QUERY_ENGINE_H
 
 #include "sequence_store.h"
-#include <boost/json.hpp>
+#include <boost/json/src.hpp>
 
 namespace silo {
 
