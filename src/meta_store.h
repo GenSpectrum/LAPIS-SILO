@@ -37,32 +37,32 @@ namespace silo {
 
       // Maps the epis to the ID, which is assigned to the pango lineage (pid)
       // pids are starting at 0 and are dense, so that we can save the respective data in vectors.
-      unordered_map<uint64_t, uint16_t> epi_to_pid;
-      unordered_map<uint64_t, uint32_t> epi_to_sidM;
+      std::unordered_map<uint64_t, uint16_t> epi_to_pid;
+      std::unordered_map<uint64_t, uint32_t> epi_to_sidM;
 
-      vector<uint64_t> sidM_to_epi;
-      vector<time_t> sidM_to_date;
-      vector<string> sidM_to_region;
-      vector<string> sidM_to_country;
+      std::vector<uint64_t> sidM_to_epi;
+      std::vector<time_t> sidM_to_date;
+      std::vector<std::string> sidM_to_region;
+      std::vector<std::string> sidM_to_country;
 
-      unordered_map<string, uint16_t> pango_to_pid;
+      std::unordered_map<std::string, uint16_t> pango_to_pid;
 
-      vector<string> pid_to_pango;
+      std::vector<std::string> pid_to_pango;
       // counts the occurence of each pid in the metadata
-      vector<uint32_t> pid_to_metacount;
+      std::vector<uint32_t> pid_to_metacount;
 
       uint32_t epi_count = 0;
       uint16_t pid_count = 0;
    };
 
 // Meta-Data is input
-   void analyseMeta(istream &in);
+   void analyseMeta(std::istream &in);
 
-   void processMeta(MetaStore &mdb, istream &in);
+   void processMeta(MetaStore &mdb, std::istream &in);
 
-   void processMeta_ordered(MetaStore &mdb, istream &in);
+   void processMeta_ordered(MetaStore &mdb, std::istream &in);
 
-   void meta_info(const MetaStore &mdb, ostream &out);
+   void meta_info(const MetaStore &mdb, std::ostream &out);
 
    unsigned save_meta(const MetaStore &db, const std::string &db_filename);
 

@@ -2,7 +2,8 @@
 
 using namespace silo;
 
-int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
+int handle_command(SequenceStore& db, MetaStore& meta_db, std::vector<std::string> args){
+   using namespace std;
    const std::string default_db_filename = "../silo/roaring_sequences.silo";
    const std::string default_meta_filename = "../silo/meta_store.silo";
    if(args.empty()){
@@ -18,7 +19,7 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
          load_db(db, args[1]);
       }
       else{
-         cout << "Expected syntax: \"load [file_name.silo]\"" << endl;
+         std::cout << "Expected syntax: \"load [file_name.silo]\"" << std::endl;
       }
    }
    else if("save" == args[0]){
@@ -31,7 +32,7 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
          save_db(db, args[1]);
       }
       else{
-         cout << "Expected syntax: \"save [file_name.silo]\"" << endl;
+         std::cout << "Expected syntax: \"save [file_name.silo]\"" << std::endl;
       }
    }
    else if("load_meta" == args[0]){
@@ -44,7 +45,7 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
          load_meta(meta_db, args[1]);
       }
       else{
-         cout << "Expected syntax: \"load_meta [file_name.silo]\"" << endl;
+         std::cout << "Expected syntax: \"load_meta [file_name.silo]\"" << std::endl;
       }
    }
    else if("save_meta" == args[0]){
@@ -187,7 +188,7 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, vector<string> args){
    else if ("analysemeta" == args[0]){
       if(args.size() == 1) {
          cout << "Analysing meta-data from stdin" << endl;
-         analyseMeta(cin);
+         analyseMeta(std::cin);
       }
       else {
          istream_wrapper file(args[1]);
@@ -235,8 +236,8 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, const std::string& com
 
 
 int main(int argc, char* argv[]) {
-   auto db = make_unique<SequenceStore>();
-   auto meta_db = make_unique<MetaStore>();
+   auto db = std::make_unique<SequenceStore>();
+   auto meta_db = std::make_unique<MetaStore>();
    {
       if (argc >= 2) {
          for (int i = 1; i < argc; i++) {
@@ -246,12 +247,12 @@ int main(int argc, char* argv[]) {
          }
       }
       std::string s;
-      cout << "> ";
+      std::cout << "> ";
       while (getline(std::cin, s)) {
          if (handle_command(*db, *meta_db, s)) {
             return 0;
          }
-         cout << "> ";
+         std::cout << "> ";
       }
    }
    return 0;

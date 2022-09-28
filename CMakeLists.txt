@@ -15,7 +15,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
-find_package(Boost REQUIRED COMPONENTS system iostreams serialization json)
+find_package(Boost REQUIRED COMPONENTS system iostreams serialization)
 find_package(LibLZMA)
 
 include_directories(

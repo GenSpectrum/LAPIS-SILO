@@ -4,6 +4,7 @@
 #include "sequence_store.h"
 
 using namespace silo;
+using ios = std::ios;
 
 roaring::Roaring SequenceStore::bma(size_t pos, Residue r) const {
    switch(r){
@@ -32,20 +33,20 @@ roaring::Roaring SequenceStore::bma(size_t pos, Residue r) const {
          return roaring::Roaring::fastunion(8, tmp);
       }
    }
-   cerr << "Should not happen, number of residue changed?" << endl;
+   std::cerr << "Should not happen, number of residue changed?" << std::endl;
    return roaring::Roaring{};
 }
 
 
-int silo::db_info(const SequenceStore& db, ostream& io){
-   io << "sequence count: " << number_fmt(db.sequenceCount) << endl;
-   io << "total size: " << number_fmt(db.computeSize()) << endl;
+int silo::db_info(const SequenceStore& db, std::ostream& io){
+   io << "sequence count: " << number_fmt(db.sequenceCount) << std::endl;
+   io << "total size: " << number_fmt(db.computeSize()) << std::endl;
    return 0;
 }
 
-int silo::db_info_detailed(const SequenceStore& db, ostream& io){
+int silo::db_info_detailed(const SequenceStore& db, std::ostream& io){
    db_info(db, io);
-   vector<size_t> size_by_symbols;
+   std::vector<size_t> size_by_symbols;
    size_by_symbols.resize(symbolCount);
    for(const auto & position : db.positions){
       for(unsigned symbol = 0; symbol < symbolCount; symbol++){
@@ -54,7 +55,7 @@ int silo::db_info_detailed(const SequenceStore& db, ostream& io){
    }
    for(unsigned symbol = 0; symbol < symbolCount; symbol++){
       io << "size for symbol '" << symbol_rep[symbol] << "': "
-         << number_fmt(size_by_symbols[symbol]) << endl;
+         << number_fmt(size_by_symbols[symbol]) << std::endl;
    }
    return 0;
 }
@@ -62,9 +63,9 @@ int silo::db_info_detailed(const SequenceStore& db, ostream& io){
 unsigned silo::save_db(const SequenceStore& db, const std::string& db_filename) {
    std::cout << "Writing out db." << std::endl;
 
-   ofstream wf(db_filename, ios::out | ios::binary);
+   std::ofstream wf(db_filename, ios::out | ios::binary);
    if(!wf) {
-      cerr << "Cannot open ofile: " << db_filename << endl;
+      std::cerr << "Cannot open ofile: " << db_filename << std::endl;
       return 1;
    }
 
@@ -90,8 +91,8 @@ unsigned silo::load_db(SequenceStore& db, const std::string& db_filename) {
    return 0;
 }
 
-static void interpret_offset(SequenceStore& db, const vector<string>& genomes, uint32_t offset){
-   vector<unsigned> offsets[symbolCount];
+static void interpret_offset(SequenceStore& db, const std::vector<std::string>& genomes, uint32_t offset){
+   std::vector<unsigned> offsets[symbolCount];
    for (unsigned index = 0; index != genomeLength; ++index) {
       for (unsigned index2 = 0, limit2 = genomes.size(); index2 != limit2; ++index2) {
          char c = genomes[index2][index];
@@ -107,21 +108,21 @@ static void interpret_offset(SequenceStore& db, const vector<string>& genomes, u
    db.sequenceCount += genomes.size();
 }
 
-static void interpret(SequenceStore& db, const vector<string>& genomes){
+static void interpret(SequenceStore& db, const std::vector<std::string>& genomes){
    // Putting sequences to the end is the same as offsetting them to sequence_count
    interpret_offset(db, genomes, db.sequenceCount);
 }
 
-void silo::process_raw(SequenceStore& db, istream& in) {
+void silo::process_raw(SequenceStore& db, std::istream& in) {
    static constexpr unsigned chunkSize = 1024;
 
-   vector<string> genomes;
+   std::vector<std::string> genomes;
    while (true) {
-      string epi_isl, genome;
+      std::string epi_isl, genome;
       if (!getline(in, epi_isl) || epi_isl.empty()) break;
       if (!getline(in, genome)) break;
       if (genome.length() != genomeLength) {
-         cerr << "length mismatch!" << endl;
+         std::cerr << "length mismatch!" << std::endl;
          return;
       }
       genomes.push_back(std::move(genome));
@@ -131,21 +132,21 @@ void silo::process_raw(SequenceStore& db, istream& in) {
       }
    }
    interpret(db, genomes);
-   db_info(db,cout);
+   db_info(db,std::cout);
 }
 
 
-void silo::process(SequenceStore& db, MetaStore& mdb, istream& in) {
+void silo::process(SequenceStore& db, MetaStore& mdb, std::istream& in) {
    static constexpr unsigned chunkSize = 1024;
 
    uint32_t sid_ctr = db.sequenceCount;
-   vector<string> genomes;
+   std::vector<std::string> genomes;
    while (true) {
-      string epi_isl, genome;
+      std::string epi_isl, genome;
       if (!getline(in, epi_isl) || epi_isl.empty()) break;
       if (!getline(in, genome)) break;
       if (genome.length() != genomeLength) {
-         cerr << "length mismatch!" << endl;
+         std::cerr << "length mismatch!" << std::endl;
          return;
       }
       uint64_t epi = stoi(epi_isl.substr(9));
@@ -161,11 +162,11 @@ void silo::process(SequenceStore& db, MetaStore& mdb, istream& in) {
       db.sid_to_epi.push_back(epi);
    }
    interpret(db, genomes);
-   db_info(db,cout);
+   db_info(db,std::cout);
 }
 
-void silo::calc_partition_offsets(SequenceStore& db, MetaStore& mdb, istream& in){
-   cout << "Now calculating partition offsets" << endl;
+void silo::calc_partition_offsets(SequenceStore& db, MetaStore& mdb, std::istream& in){
+   std::cout << "Now calculating partition offsets" << std::endl;
 
    // Clear the vector and resize
    // TODO for future proofing, instead of clearing, extending them?
@@ -175,7 +176,7 @@ void silo::calc_partition_offsets(SequenceStore& db, MetaStore& mdb, istream& in
    db.pid_to_realcount.resize(mdb.pid_count);
 
    while (true) {
-      string epi_isl;
+      std::string epi_isl;
       if (!getline(in, epi_isl)) break;
       in.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
@@ -200,26 +201,26 @@ void silo::calc_partition_offsets(SequenceStore& db, MetaStore& mdb, istream& in
 
    // cumulative_offset should be equal to sequence count now
 
-   cout << "Finished calculating partition offsets." << endl;
+   std::cout << "Finished calculating partition offsets." << std::endl;
 }
 
 
 // TODO this clears the SequenceStore? noo doesn't have to be...
-void silo::process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, istream& in) {
+void silo::process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, std::istream& in) {
    static constexpr unsigned chunkSize = 1024;
 
    // these offsets lag by chunk.
-   vector<uint32_t> dynamic_offsets(db.pid_to_offset);
+   std::vector<uint32_t> dynamic_offsets(db.pid_to_offset);
    // actually these are the same offsets just without lagging by chunk.
-   vector<uint32_t> sid_ctrs(db.pid_to_offset);
-   vector<vector<string>> pid_to_genomes;
+   std::vector<uint32_t> sid_ctrs(db.pid_to_offset);
+   std::vector<std::vector<std::string>> pid_to_genomes;
    pid_to_genomes.resize(mdb.pid_count + 1);
    while (true) {
-      string epi_isl, genome;
+      std::string epi_isl, genome;
       if (!getline(in, epi_isl)) break;
       if (!getline(in, genome)) break;
       if (genome.length() != genomeLength) {
-         cerr << "length mismatch!" << endl;
+         std::cerr << "length mismatch!" << std::endl;
          return;
       }
       uint64_t epi = stoi(epi_isl.substr(9));
@@ -254,12 +255,12 @@ void silo::process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, ist
       db.sid_to_epi[x.second] = x.first;
    }
 
-   db_info(db, cout);
+   db_info(db, std::cout);
 }
 
 // Only for testing purposes. Very inefficient. Will insert the genome in specific positions to the sequenceStore
-void interpret_specific(SequenceStore& db, const vector<pair<uint64_t, string>>& genomes){
-   vector<unsigned> offsets[symbolCount];
+void interpret_specific(SequenceStore& db, const std::vector<std::pair<uint64_t, std::string>>& genomes){
+   std::vector<unsigned> offsets[symbolCount];
    for (unsigned index = 0; index != genomeLength; ++index) {
       for (const auto & idx_genome : genomes) {
          char c = idx_genome.second[index];
@@ -276,21 +277,21 @@ void interpret_specific(SequenceStore& db, const vector<pair<uint64_t, string>>&
    db.sequenceCount += genomes.size();
 }
 
-void silo::partition(MetaStore &mdb, istream& in, const string& output_prefix_){
-   cout << "Now partitioning fasta file to " << output_prefix_ << endl;
-   vector<unique_ptr<ostream>> pid_to_ostream;
-   const string output_prefix = output_prefix_ + '_';
+void silo::partition(MetaStore &mdb, std::istream& in, const std::string& output_prefix_){
+   std::cout << "Now partitioning fasta file to " << output_prefix_ << std::endl;
+   std::vector<std::unique_ptr<std::ostream>> pid_to_ostream;
+   const std::string output_prefix = output_prefix_ + '_';
    for(auto& x : mdb.pid_to_pango){
-      auto out = make_unique<ofstream>(output_prefix + x + ".fasta");
+      auto out = make_unique<std::ofstream>(output_prefix + x + ".fasta");
       pid_to_ostream.emplace_back(std::move(out));
    }
-   cout << "Created file streams for  " << output_prefix_ << endl;
+   std::cout << "Created file streams for  " << output_prefix_ << std::endl;
    while (true) {
-      string epi_isl, genome;
+      std::string epi_isl, genome;
       if (!getline(in, epi_isl)) break;
       if (!getline(in, genome)) break;
       if (genome.length() != genomeLength) {
-         cerr << "length mismatch!" << endl;
+         std::cerr << "length mismatch!" << std::endl;
          return;
       }
       uint64_t epi = stoi(epi_isl.substr(9));
@@ -301,8 +302,8 @@ void silo::partition(MetaStore &mdb, istream& in, const string& output_prefix_){
       }
 
       auto pid = mdb.epi_to_pid.at(epi);
-      *pid_to_ostream[pid] << epi_isl << endl << genome << endl;
+      *pid_to_ostream[pid] << epi_isl << std::endl << genome << std::endl;
    }
-   cout << "Finished partitioning to " << output_prefix_ << endl;
+   std::cout << "Finished partitioning to " << output_prefix_ << std::endl;
 }
 

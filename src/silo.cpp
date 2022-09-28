@@ -58,7 +58,7 @@ silo::Symbol silo::to_symbol(char c) {
          s = Symbol::N;
          break;
       default:
-         cerr << "unrecognized symbol " << c << endl;
+         std::cerr << "unrecognized symbol " << c << std::endl;
    }
    return s;
 }

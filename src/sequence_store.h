@@ -37,15 +37,15 @@ namespace silo {
       }
 
       Position positions[genomeLength];
-      vector<uint64_t> sid_to_epi;
-      unordered_map<uint64_t, uint32_t> epi_to_sid;
+      std::vector<uint64_t> sid_to_epi;
+      std::unordered_map<uint64_t, uint32_t> epi_to_sid;
 
       // real count refers to the count of sequences actually found in the fasta file, these may differ from meta_data
       /// filled by calc_offset or build
-      vector<uint32_t> pid_to_realcount;
+      std::vector<uint32_t> pid_to_realcount;
       // pid to offsets, offsets calculated from the respective counts
       /// Only filled by calc_offset
-      vector<uint32_t> pid_to_offset;
+      std::vector<uint32_t> pid_to_offset;
 
       unsigned sequenceCount = 0;
 
@@ -65,12 +65,12 @@ namespace silo {
       }
 
       /// pos: 1 indexed position of the genome
-      [[nodiscard]] roaring::Roaring bmr(size_t pos, string s) const {
+      [[nodiscard]] roaring::Roaring bmr(size_t pos, std::string s) const {
          return positions[pos - 1].bitmaps[to_symbol(s.at(pos - 1))];
       }
 
       /// pos: 1 indexed position of the genome
-      [[nodiscard]] roaring::Roaring ref_mut(size_t pos, string s) const {
+      [[nodiscard]] roaring::Roaring ref_mut(size_t pos, std::string s) const {
          Roaring tmp = bmr(pos, std::move(s));
          tmp.flip(0, sequenceCount);
          return tmp;
@@ -90,9 +90,9 @@ namespace silo {
       [[nodiscard]] roaring::Roaring bma(size_t pos, Residue r) const;
    };
 
-   int db_info(const SequenceStore &db, ostream &io);
+   int db_info(const SequenceStore &db, std::ostream &io);
 
-   int db_info_detailed(const SequenceStore &db, ostream &io);
+   int db_info_detailed(const SequenceStore &db, std::ostream &io);
 
    unsigned save_db(const SequenceStore &db, const std::string &db_filename);
 
@@ -101,15 +101,15 @@ namespace silo {
    // static void interpret(SequenceStore& db, const vector<string>& genomes);
 
    /// WARNING: This does not look at meta-data nor fill any indices required for queries. Use with caution
-   void process_raw(SequenceStore &db, istream &in);
+   void process_raw(SequenceStore &db, std::istream &in);
 
-   void process(SequenceStore &db, MetaStore &mdb, istream &in);
+   void process(SequenceStore &db, MetaStore &mdb, std::istream &in);
 
-   void calc_partition_offsets(SequenceStore &db, MetaStore &mdb, istream &in);
+   void calc_partition_offsets(SequenceStore &db, MetaStore &mdb, std::istream &in);
 
-   void process_partitioned_on_the_fly(SequenceStore &db, MetaStore &mdb, istream &in);
+   void process_partitioned_on_the_fly(SequenceStore &db, MetaStore &mdb, std::istream &in);
 
-   void partition(MetaStore &mdb, istream &in, const string &output_prefix_);
+   void partition(MetaStore &mdb, std::istream &in, const std::string &output_prefix_);
 
 } //namespace silo;
 
