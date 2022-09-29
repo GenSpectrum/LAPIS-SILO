@@ -1,23 +1,23 @@
 
 
-#include <boost/json/src.hpp>
 #include "silo/query_engine.h"
 
 namespace silo {
+
 
    struct Expression {
       // For future, maybe different (return) types of expressions?
       // TypeV type;
 
       /// Destructor
-      explicit Expression(const boost::json::object &js) {}
+      explicit Expression(const rapidjson::Value &js) {}
 
       /// Destructor
       virtual ~Expression() = default;
 
       /// Evaluate the expression by interpreting it.
       /// @args: all function arguments that can be referenced by an @Argument
-      virtual Roaring *evaluate(const SequenceStore &db, const MetaStore &mdb) {
+      virtual Roaring *evaluate(const SequenceStore&, const MetaStore&) {
          throw std::runtime_error("Not Implemented exception. Does not override Expression::evaluate.");
       };
 
@@ -27,18 +27,23 @@ namespace silo {
       virtual llvm::Value *build(llvm::IRBuilder<> &builder, llvm::Value *args);*/
    };
 
+   std::unique_ptr<Expression> to_ex(const rapidjson::Value& js);
+
    struct VectorEx : public Expression {
       std::vector<std::unique_ptr<Expression>> children;
 
-      explicit VectorEx(const boost::json::object &js) : Expression(js) {
-         children = value_to<std::vector<std::unique_ptr<Expression> > >(js.at("children"));
+      explicit VectorEx(const rapidjson::Value &js) : Expression(js) {
+         assert(js.HasMember("children"));
+         assert(js["children"].IsArray());
+         std::transform(js["children"].GetArray().begin(), js["children"].GetArray().end(),
+                        std::back_inserter(children), to_ex);
       }
    };
 
    struct AndEx : public VectorEx {
       std::unique_ptr<Expression> start;
 
-      explicit AndEx(const boost::json::object &js) : VectorEx(js) {
+      explicit AndEx(const rapidjson::Value &js) : VectorEx(js) {
          start = std::move(children.back());
          children.pop_back();
       }
@@ -47,7 +52,7 @@ namespace silo {
    };
 
    struct OrEx : public VectorEx {
-      explicit OrEx(const boost::json::object &js) : VectorEx(js) {}
+      explicit OrEx(const rapidjson::Value &js) : VectorEx(js) {}
 
       Roaring *evaluate(const SequenceStore &db, const MetaStore &mdb) override;
    };
@@ -56,9 +61,9 @@ namespace silo {
       unsigned n;
       bool exactly;
 
-      explicit NOfEx(const boost::json::object &js) : VectorEx(js) {
-         n = value_to<unsigned>(js.at("n"));
-         exactly = value_to<bool>(js.at("exactly"));
+      explicit NOfEx(const rapidjson::Value &js) : VectorEx(js) {
+         n = js["n"].GetUint();
+         exactly = js["exactly"].GetBool();
       }
 
       Roaring *evaluate(const SequenceStore &db, const MetaStore &mdb) override;
@@ -67,8 +72,8 @@ namespace silo {
    struct NegEx : public Expression {
       std::unique_ptr<Expression> child;
 
-      explicit NegEx(const boost::json::object &js) : Expression(js) {
-         child = value_to<std::unique_ptr<Expression>>(js.at("child"));
+      explicit NegEx(const rapidjson::Value &js) : Expression(js) {
+         child = to_ex(js["child"]);
       }
 
       Roaring *evaluate(const SequenceStore &db, const MetaStore &mdb) override;
@@ -80,21 +85,21 @@ namespace silo {
       std::string to;
       bool open_to;
 
-      explicit DateBetwEx(const boost::json::object &js) : Expression(js) {
-         if (js.at("from").is_null()) {
+      explicit DateBetwEx(const rapidjson::Value  &js) : Expression(js) {
+         if (js["from"].IsNull()) {
             open_from = true;
             from = "";
          } else {
             open_from = false;
-            from = value_to<std::string>(js.at("from"));
+            to = js["from"].GetString();
          }
 
-         if (js.at("to").is_null()) {
+         if (js["to"].IsNull()) {
             open_to = true;
             to = "";
          } else {
             open_to = false;
-            to = value_to<std::string>(js.at("to"));
+            to = js["to"].GetString();
          }
       }
    };
@@ -103,9 +108,9 @@ namespace silo {
       unsigned position;
       Symbol value;
 
-      explicit NucEqEx(const boost::json::object &js) : Expression(js) {
-         position = value_to<unsigned>(js.at("position"));
-         value = to_symbol(value_to<std::string>(js.at("value")).at(0));
+      explicit NucEqEx(const rapidjson::Value &js) : Expression(js) {
+         position = js["position"].GetUint();
+         value = to_symbol(js["value"].GetString()[0]);
       }
 
       Roaring *evaluate(const SequenceStore &db, const MetaStore &mdb) override;
@@ -115,17 +120,17 @@ namespace silo {
       unsigned position;
       Symbol value;
 
-      explicit NucMbEx(const boost::json::object &js) : Expression(js) {
-         position = value_to<unsigned>(js.at("position"));
-         value = to_symbol(value_to<std::string>(js.at("value")).at(0));
+      explicit NucMbEx(const rapidjson::Value &js) : Expression(js) {
+         position = js["position"].GetUint();
+         value = to_symbol(js["value"].GetString()[0]);
       }
    };
 
    struct NucMutEx : public Expression {
       unsigned position;
 
-      explicit NucMutEx(const boost::json::object &js) : Expression(js) {
-         position = value_to<unsigned>(js.at("position"));
+      explicit NucMutEx(const rapidjson::Value &js) : Expression(js) {
+         position = js["position"].GetUint();
       }
 
    };
@@ -134,9 +139,9 @@ namespace silo {
       std::string value;
       bool includeSubLineages;
 
-      explicit PangoLineageEx(const boost::json::object &js) : Expression(js) {
-         includeSubLineages = value_to<bool>(js.at("includeSubLineages"));
-         value = value_to<std::string>(js.at("value"));
+      explicit PangoLineageEx(const rapidjson::Value &js) : Expression(js) {
+         includeSubLineages = js["includeSubLineages"].GetBool();
+         value = js["value"].GetString();
       }
 
    };
@@ -145,17 +150,16 @@ namespace silo {
       std::string column;
       std::string value;
 
-      explicit StrEqEx(const boost::json::object &js) : Expression(js) {
-         column = value_to<std::string>(js.at("column"));
-         value = value_to<std::string>(js.at("value"));
+      explicit StrEqEx(const rapidjson::Value& js) : Expression(js) {
+         column = js["column"].GetString();
+         value = js["value"].GetString();
       }
 
    };
 
 
-   std::unique_ptr<Expression> tag_invoke(boost::json::value_to_tag<std::unique_ptr<Expression>>, boost::json::value const &jv) {
-      boost::json::object const &js = jv.as_object();
-      auto type = value_to<std::string>(js.at("type"));
+   std::unique_ptr<Expression> to_ex(const rapidjson::Value& js){
+      std::string type = js["type"].GetString();
       if (type == "And") {
          return std::make_unique<AndEx>(js);
       } else if (type == "Or") {
@@ -178,6 +182,7 @@ namespace silo {
          throw std::runtime_error("Undefined type. Change this later to a parse exception.");
       }
    }
+
 
    Roaring *AndEx::evaluate(const silo::SequenceStore &db, const silo::MetaStore &mdb) {
       auto ret = start->evaluate(db, mdb);

@@ -15,7 +15,13 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
-find_package(Boost REQUIRED COMPONENTS system iostreams serialization json)
+# ---------------------------------------------------------------------------
+# Dependencies
+# ---------------------------------------------------------------------------
+
+include("${CMAKE_SOURCE_DIR}/vendor/rapidjson.cmake")
+
+find_package(Boost REQUIRED COMPONENTS system iostreams serialization)
 find_package(LibLZMA)
 
 
@@ -26,10 +32,11 @@ find_package(LibLZMA)
 
 include("${CMAKE_SOURCE_DIR}/include/local.cmake")
 
-include_directories(
+include_directories(SYSTEM
         ${CMAKE_SOURCE_DIR}/include
         ${Boost_INCLUDE_DIRS}
         ${LIBLZMA_INCLUDE_DIRS}
+        ${RAPIDJSON_INCLUDE_DIR}
 )
 
 
@@ -45,4 +52,4 @@ add_library(silolib STATIC ${SRC_CC} ${INCLUDE_H})
 
 add_executable(silo src/main.cpp ${SRC_CC} ${Boost_INCLUDE_DIRS})
 
-target_link_libraries(silo PUBLIC silolib ${Boost_LIBRARIES})
+target_link_libraries(silo PUBLIC silolib rapidjson ${Boost_LIBRARIES})

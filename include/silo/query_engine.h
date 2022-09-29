@@ -6,6 +6,7 @@
 #define SILO_QUERY_ENGINE_H
 
 #include "sequence_store.h"
+#include "rapidjson/document.h"
 
 namespace silo {
 

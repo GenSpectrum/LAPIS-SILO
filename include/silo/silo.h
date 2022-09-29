@@ -105,7 +105,6 @@ namespace silo {
 
 BOOST_SERIALIZATION_SPLIT_FREE(::roaring::Roaring)
 namespace boost::serialization {
-
    template<class Archive>
    [[maybe_unused]] void save(Archive &ar, const roaring::Roaring &bitmask,
                               [[maybe_unused]] const unsigned int version) {
@@ -125,6 +124,6 @@ namespace boost::serialization {
       ar & ::boost::serialization::make_binary_object(buffer.data(), size_in_bytes);
       bitmask = roaring::Roaring::readSafe(buffer.data(), size_in_bytes);
    }
-}  // namespace boost
+}  // namespace boost::serialization
 
 #endif //SILO_H
