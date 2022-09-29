@@ -19,14 +19,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "roaring.h"
+#include "silo/roaring/roaring.h"
 
 /* used for http://dmalloc.com/ Dmalloc - Debug Malloc Library */
 #ifdef DMALLOC
 #include "dmalloc.h"
 #endif
 
-#include "roaring.h"  /* include public API definitions */
+#include "silo/roaring/roaring.h"  /* include public API definitions */
 /* begin file include/roaring/isadetection.h */
 /* From
 https://github.com/endorno/pytorch/blob/master/torch/lib/TH/generic/simd/simd.h

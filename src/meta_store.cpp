@@ -2,7 +2,7 @@
 // Created by Alexander Taepper on 01.09.22.
 //
 
-#include "meta_store.h"
+#include "silo/meta_store.h"
 
 using namespace silo;
 

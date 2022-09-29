@@ -22,7 +22,6 @@
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/exception/diagnostic_information.hpp>
 #include "roaring/roaring.hh"
-#include "util.h"
 
 namespace silo {
 

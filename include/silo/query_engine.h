@@ -9,6 +9,8 @@
 
 namespace silo {
 
+   std::string execute_query(const std::string& query);
+
 }
 
 #endif //SILO_QUERY_ENGINE_H

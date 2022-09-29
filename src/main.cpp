@@ -1,4 +1,4 @@
-#include "query_engine.h"
+#include "silo/query_engine.h"
 
 using namespace silo;
 

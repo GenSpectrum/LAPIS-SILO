@@ -2,7 +2,7 @@
 // Created by Alexander Taepper on 27.09.22.
 //
 
-#include "silo.h"
+#include "silo/silo.h"
 
 silo::Symbol silo::to_symbol(char c) {
    Symbol s = Symbol::gap;

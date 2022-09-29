@@ -1,7 +1,7 @@
 //
 // Created by Alexander Taepper on 01.09.22.
 //
-#include "sequence_store.h"
+#include "silo/sequence_store.h"
 
 using namespace silo;
 using ios = std::ios;
