@@ -5,6 +5,7 @@ if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif ()
 
+
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 set(CMAKE_CXX_FLAGS "-Wall")
@@ -57,12 +58,20 @@ target_link_libraries(silo PUBLIC silolib rapidjson ${Boost_LIBRARIES})
 # ---------------------------------------------------------------------------
 
 
+enable_testing()
 add_test(
-        NAME build_meta_test COMMAND silo \"build_meta ${PROJECT_SOURCE_DIR}/Data/metadata.50k.tsv\"
+        NAME build_meta_runs COMMAND silo "build_meta ${PROJECT_SOURCE_DIR}/Data/metadata.50k.tsv" exit
+)
+add_test(
+        NAME sequence_raw COMMAND silo "build_raw ${PROJECT_SOURCE_DIR}/Data/aligned.50k.fasta" exit
+)
+add_test(
+        NAME build_both COMMAND silo "build_meta ${PROJECT_SOURCE_DIR}/Data/metadata.50k.tsv"
+        "build ${PROJECT_SOURCE_DIR}/Data/aligned.50k.fasta" exit
 )
 
-add_executable(test test/test.cpp ${SRC_CC} ${Boost_INCLUDE_DIRS})
-target_link_libraries(test PUBLIC rapidjson ${Boost_LIBRARIES})
+add_executable(mytest test/test.cpp ${SRC_CC} ${Boost_INCLUDE_DIRS})
+target_link_libraries(mytest PUBLIC rapidjson ${Boost_LIBRARIES})
 
 
 include("${CMAKE_SOURCE_DIR}/test/local.cmake")

@@ -3,7 +3,9 @@
 //
 #include "silo/silo.h"
 
-int main() {
+int main() {}
+
+int limit_meta_to_seqs() {
    std::unordered_set<uint64_t> set;
    uint32_t found_seq = 0;
    uint32_t found_meta = 0;
@@ -26,7 +28,7 @@ int main() {
          }
       }
    }
-   std::cout << "Finished in (" << found_seq << ")" << std::endl;
+   std::cout << "Finished seq_reading (" << found_seq << ")" << std::endl;
    {
       std::ifstream in("../Data/metadata.tsv");
       std::ofstream out("../Data/metadata.50k.tsv", std::ios::out);
