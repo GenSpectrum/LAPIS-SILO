@@ -6,8 +6,7 @@
 
 using namespace silo;
 
-
-void benchmark(const SequenceStore &db) {
+void benchmark(const SequenceStore& db) {
    using system_clock = std::chrono::system_clock;
 
    std::string ref_genome;
@@ -32,35 +31,38 @@ void benchmark(const SequenceStore &db) {
    // std::cout << "Res1: " << q1res1 << " Res1 amb.: " << q1res1a << std::endl;
    // std::cout << "Res2: " << q1res2 << " Res2 amb.: " << q1res2a << std::endl;
    std::cout << "Res: " << q1res << " Res amb.: " << q1resa << std::endl;
-   std::cout << "Computation took " << elapsed_seconds.count() << "seconds." << std::endl << std::endl;
+   std::cout << "Computation took " << elapsed_seconds.count() << "seconds." << std::endl
+             << std::endl;
 
    std::cout << "Q4 any mutation at given positions" << std::endl;
    std::cout << "What is the number of sequences where the following positions are mutated (i.e., not\n"
                 "the same as the reference genome) or deleted? \n"
-                "21618, 23948, 24424, 25000, 29510" << std::endl;
+                "21618, 23948, 24424, 25000, 29510"
+             << std::endl;
 
    start = system_clock::now();
    roaring::Roaring bms[5] = {db.bmr(21618, ref_genome), db.bmr(23948, ref_genome),
                               db.bmr(24424, ref_genome), db.bmr(25000, ref_genome),
                               db.bmr(29510, ref_genome)};
-   for (auto &bm: bms) {
+   for (auto& bm : bms) {
       bm.flip(0, db.sequenceCount);
    }
-   const roaring::Roaring *inputs[5] = {&bms[0], &bms[1], &bms[2], &bms[3], &bms[4]};
+   const roaring::Roaring* inputs[5] = {&bms[0], &bms[1], &bms[2], &bms[3], &bms[4]};
    uint64_t res2 = db.sequenceCount - roaring::Roaring::fastunion(5, inputs).cardinality();
    elapsed_seconds = system_clock::now() - start;
    std::cout << res2 << std::endl;
-   std::cout << "Computation took " << elapsed_seconds.count() << "seconds." << std::endl << std::endl;
-
+   std::cout << "Computation took " << elapsed_seconds.count() << "seconds." << std::endl
+             << std::endl;
 
    std::cout << "Q9 boolean algebra" << std::endl;
 
    start = system_clock::now();
    uint64_t res9 = (((db.ref_mut(21618, ref_genome)) & db.ref_mut(23984, ref_genome)) |
                     (db.ref_mut(21618, ref_genome) |
-                     (db.neg_bm(23948, Symbol::T) | db.neg_bm(18163, Symbol::G)))).cardinality();
+                     (db.neg_bm(23948, Symbol::T) | db.neg_bm(18163, Symbol::G))))
+                      .cardinality();
    elapsed_seconds = system_clock::now() - start;
    std::cout << res9 << std::endl;
-   std::cout << "Computation took " << elapsed_seconds.count() << "seconds." << std::endl << std::endl;
-
+   std::cout << "Computation took " << elapsed_seconds.count() << "seconds." << std::endl
+             << std::endl;
 }

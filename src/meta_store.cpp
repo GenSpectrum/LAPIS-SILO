@@ -7,7 +7,7 @@
 using namespace silo;
 
 /// Deprecated
-void silo::analyseMeta(std::istream& in){
+void silo::analyseMeta(std::istream& in) {
    // Ignore header line.
    in.ignore(LONG_MAX, '\n');
 
@@ -15,7 +15,7 @@ void silo::analyseMeta(std::istream& in){
    std::unordered_map<std::string, uint32_t> lineages;
    while (true) {
       int next = in.peek();
-      if(next == EOF || next == '\n') break;
+      if (next == EOF || next == '\n') break;
 
       std::string epi_isl, pango_lineage, date, region, country, division;
       if (!getline(in, epi_isl, '\t')) break;
@@ -25,26 +25,25 @@ void silo::analyseMeta(std::istream& in){
       if (!getline(in, country, '\t')) break;*/
       if (!getline(in, division, '\n')) break;
 
-      if(pango_lineage.empty()){
+      if (pango_lineage.empty()) {
          std::cout << "Empty pango-lineage: " << epi_isl << std::endl;
       }
 
       if (!lineages.contains(pango_lineage)) {
          lineages[pango_lineage] = 1;
-      }
-      else{
+      } else {
          lineages[pango_lineage]++;
       }
    }
 
-   for (auto &x: lineages)
+   for (auto& x : lineages)
       std::cout << x.first << ':' << x.second << '\n';
 
    std::cout << "total partitions: " << lineages.size() << std::endl;
 }
 
 static inline void inputSequenceMeta(MetaStore& mdb, uint64_t epi, uint16_t pango_idx, const std::string& date,
-                                      const std::string& region, const std::string& country, const std::string& division){
+                                     const std::string& region, const std::string& country, const std::string& division) {
    mdb.epi_to_pid[epi] = pango_idx;
    mdb.pid_to_metacount[pango_idx]++;
 
@@ -52,7 +51,7 @@ static inline void inputSequenceMeta(MetaStore& mdb, uint64_t epi, uint16_t pang
    mdb.sidM_to_epi.push_back(epi);
    mdb.epi_to_sidM[epi] = sidM;
 
-   struct std::tm tm{};
+   struct std::tm tm {};
    std::istringstream ss(date);
    ss >> std::get_time(&tm, "%Y-%m-%d");
    std::time_t time = mktime(&tm);
@@ -62,7 +61,7 @@ static inline void inputSequenceMeta(MetaStore& mdb, uint64_t epi, uint16_t pang
    mdb.sidM_to_region.push_back(region);
 }
 
-void silo::processMeta(MetaStore& mdb, std::istream& in){
+void silo::processMeta(MetaStore& mdb, std::istream& in) {
    // Ignore header line.
    in.ignore(LONG_MAX, '\n');
 
@@ -75,22 +74,19 @@ void silo::processMeta(MetaStore& mdb, std::istream& in){
       if (!getline(in, country, '\t')) break;
       if (!getline(in, division, '\n')) break;
 
-
-      if(pango_lineage.empty()){
+      if (pango_lineage.empty()) {
          std::cout << "Empty pango-lineage: " << pango_lineage << " " << epi_isl << std::endl;
-      }
-      else if(pango_lineage.length()==1 && pango_lineage != "A" && pango_lineage != "B"){
-         std::cout << "One-Char pango-lineage:" << epi_isl  << " Lineage:'" << pango_lineage << "'";
+      } else if (pango_lineage.length() == 1 && pango_lineage != "A" && pango_lineage != "B") {
+         std::cout << "One-Char pango-lineage:" << epi_isl << " Lineage:'" << pango_lineage << "'";
          std::cout << "(Keycode=" << (uint) pango_lineage.at(0) << ") may be relevant if it is not printable" << std::endl;
       }
 
       std::string tmp = epi_isl.substr(8);
       uint64_t epi = stoi(tmp);
       uint16_t pango_idx;
-      if(mdb.pango_to_pid.contains(pango_lineage)){
+      if (mdb.pango_to_pid.contains(pango_lineage)) {
          pango_idx = mdb.pango_to_pid[pango_lineage];
-      }
-      else{
+      } else {
          pango_idx = mdb.pid_count++;
          mdb.pid_to_pango.push_back(pango_lineage);
          mdb.pid_to_metacount.push_back(0);
@@ -100,12 +96,12 @@ void silo::processMeta(MetaStore& mdb, std::istream& in){
       inputSequenceMeta(mdb, epi, pango_idx, date, region, country, division);
    }
 
-   if(mdb.epi_count != mdb.epi_to_pid.size()){
+   if (mdb.epi_count != mdb.epi_to_pid.size()) {
       std::cout << "ERROR: EPI is represented twice." << std::endl;
    }
 }
 
-void silo::processMeta_ordered(MetaStore& mdb, std::istream& in){
+void silo::processMeta_ordered(MetaStore& mdb, std::istream& in) {
    // Ignore header line.
    in.ignore(LONG_MAX, '\n');
 
@@ -115,7 +111,7 @@ void silo::processMeta_ordered(MetaStore& mdb, std::istream& in){
       if (!getline(in, pango_lineage, '\t')) break;
       in.ignore(LONG_MAX, '\n');
 
-      if(!mdb.pango_to_pid.contains(pango_lineage)){
+      if (!mdb.pango_to_pid.contains(pango_lineage)) {
          mdb.pango_to_pid[pango_lineage] = mdb.pid_count++;
          mdb.pid_to_pango.push_back(pango_lineage);
       }
@@ -126,13 +122,13 @@ void silo::processMeta_ordered(MetaStore& mdb, std::istream& in){
    std::sort(mdb.pid_to_pango.begin(), mdb.pid_to_pango.end());
 
    mdb.pango_to_pid.clear();
-   for(uint16_t pid = 0; pid<mdb.pid_count; ++pid){
+   for (uint16_t pid = 0; pid < mdb.pid_count; ++pid) {
       auto pango = mdb.pid_to_pango[pid];
       mdb.pango_to_pid[pango] = pid;
    }
    mdb.pid_to_metacount.resize(mdb.pid_count);
 
-   in.clear();                         // clear fail and eof bits
+   in.clear(); // clear fail and eof bits
    in.seekg(0, std::ios::beg); // back to the start!
 
    in.ignore(LONG_MAX, '\n');
@@ -145,7 +141,7 @@ void silo::processMeta_ordered(MetaStore& mdb, std::istream& in){
       if (!getline(in, country, '\t')) break;
       if (!getline(in, division, '\n')) break;
 
-      if(pango_lineage.length() < 2) {
+      if (pango_lineage.length() < 2) {
          if (pango_lineage.empty()) {
             std::cout << "Empty pango-lineage: " << pango_lineage << " " << epi_isl << std::endl;
          } else if (pango_lineage.length() == 1 && pango_lineage != "A" && pango_lineage != "B") {
@@ -162,7 +158,7 @@ void silo::processMeta_ordered(MetaStore& mdb, std::istream& in){
       inputSequenceMeta(mdb, epi, pango_idx, date, region, country, division);
    }
 
-   if(mdb.epi_count != mdb.epi_to_pid.size()){
+   if (mdb.epi_count != mdb.epi_to_pid.size()) {
       std::cout << "ERROR: EPI is represented twice." << std::endl;
    }
 }
@@ -170,8 +166,8 @@ void silo::processMeta_ordered(MetaStore& mdb, std::istream& in){
 void silo::meta_info(const MetaStore& mdb, std::ostream& out) {
    out << "Infos by pango:" << std::endl;
    for (unsigned i = 0; i < mdb.pid_count; i++) {
-      out << "(pid: " << i << ",\tpango-lin: " <<  mdb.pid_to_pango[i]
-         << ",\tcount: " << number_fmt(mdb.pid_to_metacount[i])  << ')' << std::endl;
+      out << "(pid: " << i << ",\tpango-lin: " << mdb.pid_to_pango[i]
+          << ",\tcount: " << number_fmt(mdb.pid_to_metacount[i]) << ')' << std::endl;
    }
 }
 
@@ -179,7 +175,7 @@ unsigned silo::save_meta(const MetaStore& db, const std::string& db_filename) {
    std::cout << "Writing out meta." << std::endl;
 
    std::ofstream wf(db_filename, std::ios::out | std::ios::binary);
-   if(!wf) {
+   if (!wf) {
       std::cerr << "Cannot open ofile: " << db_filename << std::endl;
       return 1;
    }

@@ -5,13 +5,13 @@
 #ifndef SILO_QUERY_ENGINE_H
 #define SILO_QUERY_ENGINE_H
 
-#include "sequence_store.h"
 #include "rapidjson/document.h"
+#include "sequence_store.h"
 
 namespace silo {
 
-   std::string execute_query(const std::string& query);
+std::string execute_query(const std::string& query);
 
-}
+} // namespace silo;
 
 #endif //SILO_QUERY_ENGINE_H

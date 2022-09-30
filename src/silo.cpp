@@ -63,7 +63,7 @@ silo::Symbol silo::to_symbol(char c) {
    return s;
 }
 
-std::string silo::getPangoPrefix(const std::string &pango_lineage) {
+std::string silo::getPangoPrefix(const std::string& pango_lineage) {
    std::string pangoPref;
    if (pango_lineage.size() > 2) {
       std::stringstream ss(pango_lineage);
