@@ -189,11 +189,11 @@ Roaring* AndEx::evaluate(const silo::SequenceStore& db, const silo::MetaStore& m
 Roaring* OrEx::evaluate(const silo::SequenceStore& db, const silo::MetaStore& mdb) {
    unsigned n = children.size();
    const Roaring* child_res[n];
-   for (int i = 0; i < n; i++) {
+   for (unsigned i = 0; i < n; i++) {
       child_res[i] = children[i]->evaluate(db, mdb);
    }
    auto ret = new Roaring(Roaring::fastunion(children.size(), child_res));
-   for (int i = 0; i < n; i++) {
+   for (unsigned i = 0; i < n; i++) {
       delete child_res[i];
    }
    return ret;
@@ -212,13 +212,13 @@ Roaring* NOfEx::evaluate(const silo::SequenceStore& db, const silo::MetaStore& m
    std::vector<uint32_t> correct;
 
    if (exactly) {
-      for (int i = 0; i < db.sequenceCount; i++) {
+      for (unsigned i = 0; i < db.sequenceCount; i++) {
          if (count[i] == n) {
             correct.push_back(i);
          }
       }
    } else {
-      for (int i = 0; i < db.sequenceCount; i++) {
+      for (unsigned i = 0; i < db.sequenceCount; i++) {
          if (count[i] >= n) {
             correct.push_back(i);
          }

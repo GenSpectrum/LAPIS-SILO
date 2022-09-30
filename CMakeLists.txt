@@ -1,16 +1,15 @@
 cmake_minimum_required(VERSION 3.22)
 project(SILO)
 
-if(NOT CMAKE_BUILD_TYPE)
+if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
-endif()
+endif ()
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 set(CMAKE_CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
@@ -25,7 +24,6 @@ find_package(Boost REQUIRED COMPONENTS system iostreams serialization)
 find_package(LibLZMA)
 
 
-
 # ---------------------------------------------------------------------------
 # Includes
 # ---------------------------------------------------------------------------
@@ -37,8 +35,7 @@ include_directories(SYSTEM
         ${Boost_INCLUDE_DIRS}
         ${LIBLZMA_INCLUDE_DIRS}
         ${RAPIDJSON_INCLUDE_DIR}
-)
-
+        )
 
 # ---------------------------------------------------------------------------
 # Sources
@@ -53,3 +50,19 @@ add_library(silolib STATIC ${SRC_CC} ${INCLUDE_H})
 add_executable(silo src/main.cpp ${SRC_CC} ${Boost_INCLUDE_DIRS})
 
 target_link_libraries(silo PUBLIC silolib rapidjson ${Boost_LIBRARIES})
+
+
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
+
+
+add_test(
+        NAME build_meta_test COMMAND silo \"build_meta ${PROJECT_SOURCE_DIR}/Data/metadata.50k.tsv\"
+)
+
+add_executable(test test/test.cpp ${SRC_CC} ${Boost_INCLUDE_DIRS})
+target_link_libraries(test PUBLIC rapidjson ${Boost_LIBRARIES})
+
+
+include("${CMAKE_SOURCE_DIR}/test/local.cmake")
