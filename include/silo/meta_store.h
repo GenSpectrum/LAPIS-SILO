@@ -11,29 +11,28 @@ namespace silo {
 
 struct MetaStore {
    friend class boost::serialization::access;
-
    template <class Archive>
-   void serialize(Archive& ar, [[maybe_unused]] const unsigned int version) {
+   [[maybe_unused]] void serialize(Archive& ar, const unsigned int /* version */) {
+      ar& sequence_count;
       ar& pid_count;
-      ar& epi_count;
 
-      // unordered_map
+      ar& alias_key;
+
       ar& epi_to_pid;
       ar& epi_to_sidM;
 
-      // vector
       ar& sidM_to_epi;
       ar& sidM_to_date;
       ar& sidM_to_region;
       ar& sidM_to_country;
 
-      // unordered_map
       ar& pango_to_pid;
 
-      // vector
       ar& pid_to_pango;
       ar& pid_to_metacount;
    }
+
+   std::unordered_map<std::string, std::string> alias_key;
 
    // Maps the epis to the ID, which is assigned to the pango lineage (pid)
    // pids are starting at 0 and are dense, so that we can save the respective data in vectors.
@@ -51,8 +50,18 @@ struct MetaStore {
    // counts the occurence of each pid in the metadata
    std::vector<uint32_t> pid_to_metacount;
 
-   uint32_t epi_count = 0;
+   uint32_t sequence_count = 0;
    uint16_t pid_count = 0;
+
+   MetaStore() {
+      std::ifstream alias_key_file("../Data/pango_alias.txt");
+      while (true) {
+         std::string alias, val;
+         if (!getline(alias_key_file, alias, '\t')) break;
+         if (!getline(alias_key_file, val, '\n')) break;
+         alias_key[alias] = val;
+      }
+   }
 };
 
 // Meta-Data is input

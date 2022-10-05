@@ -5,6 +5,15 @@
 namespace silo {
 
 struct QueryParseException : public std::exception {
+   private:
+   const std::string& message;
+
+   public:
+   explicit QueryParseException(const std::string& msg) : message(msg) {}
+
+   /*std::string what() {
+      return message;
+   }*/
 };
 
 struct Expression {
@@ -18,7 +27,6 @@ struct Expression {
    virtual ~Expression() = default;
 
    /// Evaluate the expression by interpreting it.
-   /// @args: all function arguments that can be referenced by an @Argument
    virtual Roaring* evaluate(const SequenceStore&, const MetaStore&) {
       throw std::runtime_error("Not Implemented exception. Does not override Expression::evaluate.");
    };
@@ -172,7 +180,7 @@ std::unique_ptr<Expression> to_ex(const rapidjson::Value& js) {
    } else if (type == "StrEq") {
       return std::make_unique<StrEqEx>(js);
    } else {
-      throw std::runtime_error("Undefined type. Change this later to a parse exception.");
+      throw QueryParseException("Unknown object type");
    }
 }
 
@@ -260,12 +268,14 @@ Roaring* NucEqEx::evaluate(const SequenceStore& db, const MetaStore&) {
    return new Roaring(*db.bm(position, to_symbol(value)));
 }
 
-std::string execute_query(const SequenceStore& db, const MetaStore& mdb, const std::string& query) {
+} // namespace silo;
+
+std::string silo::execute_query(const SequenceStore& db, const MetaStore& mdb, const std::string& query) {
    rapidjson::Document doc;
    doc.Parse(query.c_str());
-   if (!doc.HasMember("filter") || !doc["action"].IsObject() ||
+   if (!doc.HasMember("filter") || !doc["filter"].IsObject() ||
        !doc.HasMember("action") || !doc["action"].IsObject()) {
-      throw QueryParseException{};
+      throw QueryParseException("Query json must contain filter and action.");
    }
 
    std::unique_ptr<Expression> filter = to_ex(doc["filter"]);
@@ -276,5 +286,3 @@ std::string execute_query(const SequenceStore& db, const MetaStore& mdb, const s
    delete result;
    return ret.str();
 }
-
-} // namespace silo;

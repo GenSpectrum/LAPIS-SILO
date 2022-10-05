@@ -1,8 +1,9 @@
+#include "../test/query_test.cpp"
 #include "silo/query_engine.h"
 
 using namespace silo;
 
-int handle_command(SequenceStore& db, MetaStore& meta_db, std::vector<std::string> args) {
+int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> args) {
    using namespace std;
    const std::string default_db_filename = "../silo/roaring_sequences.silo";
    const std::string default_meta_filename = "../silo/meta_store.silo";
@@ -32,20 +33,20 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, std::vector<std::strin
    } else if ("load_meta" == args[0]) {
       if (args.size() < 2) {
          std::cout << "Loading meta_store from " << default_meta_filename << std::endl;
-         load_meta(meta_db, default_db_filename);
+         load_meta(mdb, default_meta_filename);
       } else if (args.size() == 2 && args[1].ends_with(".silo")) {
          std::cout << "Loading meta_store from " << args[1] << std::endl;
-         load_meta(meta_db, args[1]);
+         load_meta(mdb, args[1]);
       } else {
          std::cout << "Expected syntax: \"load_meta [file_name.silo]\"" << std::endl;
       }
    } else if ("save_meta" == args[0]) {
       if (args.size() < 2) {
          std::cout << "Saving meta_store to " << default_meta_filename << std::endl;
-         save_meta(meta_db, default_meta_filename);
+         save_meta(mdb, default_meta_filename);
       } else if (args.size() == 2 && args[1].ends_with(".silo")) {
          std::cout << "Saving meta_store to " << args[1] << std::endl;
-         save_meta(meta_db, args[1]);
+         save_meta(mdb, args[1]);
       } else {
          cout << "Expected syntax: \"save_meta [file_name.silo]\"" << endl;
       }
@@ -54,7 +55,7 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, std::vector<std::strin
    } else if ("info_d" == args[0]) {
       db_info_detailed(db, cout);
    } else if ("meta_info" == args[0]) {
-      meta_info(meta_db, cout);
+      meta_info(mdb, cout);
    } else if ("benchmark" == args[0]) {
       // benchmark(db);
    } else if ("build_raw" == args[0]) {
@@ -68,33 +69,33 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, std::vector<std::strin
          cout << "Expected syntax: \"build [fasta_file | fasta_archive]\"" << endl;
       }
    } else if ("build" == args[0]) {
-      if (meta_db.epi_to_pid.empty()) {
+      if (mdb.epi_to_pid.empty()) {
          cout << "No meta_data built." << endl;
          return 0;
       }
       if (args.size() == 1) {
          cout << "Building sequence-store from stdin" << endl;
-         process(db, meta_db, cin);
+         process(db, mdb, cin);
       } else if (args.size() == 2) {
          istream_wrapper file(args[1]);
-         process(db, meta_db, file.get_is());
+         process(db, mdb, file.get_is());
       } else {
          cout << "Expected syntax: \"build [fasta_file | fasta_archive]\"" << endl;
       }
    } else if ("calc_partition_offsets" == args[0]) {
-      if (meta_db.epi_to_pid.empty()) {
+      if (mdb.epi_to_pid.empty()) {
          cout << "No meta_data built." << endl;
          return 0;
       }
       if (args.size() < 2) {
          cout << "calc_partition_offsets from stdin." << endl;
-         calc_partition_offsets(db, meta_db, cin);
+         calc_partition_offsets(db, mdb, cin);
       } else {
          istream_wrapper file(args[1]);
-         calc_partition_offsets(db, meta_db, file.get_is());
+         calc_partition_offsets(db, mdb, file.get_is());
       }
    } else if ("build_partitioned_otf" == args[0]) {
-      if (meta_db.epi_to_pid.empty()) {
+      if (mdb.epi_to_pid.empty()) {
          cout << "No meta_data built." << endl;
          return 0;
       } else if (db.pid_to_offset.empty()) {
@@ -108,26 +109,26 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, std::vector<std::strin
       }
       if (args.size() < 2) {
          cout << "build_partitioned_otf from stdin." << endl;
-         process_partitioned_on_the_fly(db, meta_db, cin);
+         process_partitioned_on_the_fly(db, mdb, cin);
       } else {
          istream_wrapper file(args[1]);
-         process_partitioned_on_the_fly(db, meta_db, file.get_is());
+         process_partitioned_on_the_fly(db, mdb, file.get_is());
       }
    } else if ("partition" == args[0]) {
       if (args.size() < 2) {
          cout << "Expected syntax: \"partition out_prefix [fasta_file | fasta_archive]\"" << endl;
          return 0;
       }
-      if (meta_db.epi_to_pid.empty()) {
+      if (mdb.epi_to_pid.empty()) {
          cout << "No meta_data built." << endl;
          return 0;
       }
       if (args.size() == 2) {
          cout << "Partition sequence input from stdin" << endl;
-         partition(meta_db, cin, args[1]);
+         partition(mdb, cin, args[1]);
       } else {
          istream_wrapper file(args[2]);
-         partition(meta_db, file.get_is(), args[1]);
+         partition(mdb, file.get_is(), args[1]);
       }
       return 0;
    } else if ("build_partitioned" == args[0]) {
@@ -136,9 +137,9 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, std::vector<std::strin
          return 0;
       }
       const string in_prefix = args[1] + '_';
-      for (auto& x : meta_db.pid_to_pango) {
+      for (auto& x : mdb.pid_to_pango) {
          ifstream in(in_prefix + x + ".fasta");
-         process(db, meta_db, in);
+         process(db, mdb, in);
       }
    } else if ("build_partitioned_c" == args[0]) {
       if (args.size() < 2) {
@@ -146,13 +147,13 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, std::vector<std::strin
          return 0;
       }
       const string in_prefix = args[1] + '_';
-      for (auto& x : meta_db.pid_to_pango) {
+      for (auto& x : mdb.pid_to_pango) {
          ifstream in(in_prefix + x + ".fasta.xz");
          boost::iostreams::filtering_istream archive;
          archive.push(boost::iostreams::lzma_decompressor());
          archive.push(in);
          cout << "Building sequence-store from input archive: " << args[1] << endl;
-         process(db, meta_db, archive);
+         process(db, mdb, archive);
       }
    } else if ("analysemeta" == args[0]) {
       if (args.size() == 1) {
@@ -169,7 +170,7 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, std::vector<std::strin
       }
 
       istream_wrapper file(args[1]);
-      processMeta(meta_db, file.get_is());
+      processMeta(mdb, file.get_is());
    } else if ("build_meta" == args[0]) {
       if (args.size() < 2) {
          cout << "Expected syntax: \"build_meta METAFILE\"" << endl;
@@ -177,8 +178,27 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, std::vector<std::strin
       }
 
       istream_wrapper file(args[1]);
-      processMeta_ordered(meta_db, file.get_is());
+      processMeta_ordered(mdb, file.get_is());
 
+   } else if ("query" == args[0]) {
+      if (args.size() < 2) {
+         cout << "Expected syntax: \"query JSON_QUERY\"" << endl;
+         return 0;
+      }
+
+      std::stringstream query2;
+      query2 << "{\n"
+                "  \"action\": {\n"
+                "    \"type\": \"Aggregated\",\n"
+                "    \"groupByFields\": [\n"
+                "      \"date\",\n"
+                "      \"division\"\n"
+                "    ]\n"
+                "  },  \n"
+                "\n"
+                "  \"filter\": "
+             << filter3 << "}";
+      cout << execute_query(db, mdb, query2.str()) << endl;
    } else if ("exit" == args[0] || "quit" == args[0]) {
       return 1;
    }
@@ -190,21 +210,21 @@ int handle_command(SequenceStore& db, MetaStore& meta_db, std::vector<std::strin
    return 0;
 }
 
-int handle_command(SequenceStore& db, MetaStore& meta_db, const std::string& command_str) {
+int handle_command(SequenceStore& db, MetaStore& mdb, const std::string& command_str) {
    std::stringstream ss(command_str);
    std::istream_iterator<std::string> begin(ss);
    std::istream_iterator<std::string> end;
    std::vector<std::string> command(begin, end);
-   return handle_command(db, meta_db, command);
+   return handle_command(db, mdb, command);
 }
 
 int main(int argc, char* argv[]) {
    auto db = std::make_unique<SequenceStore>();
-   auto meta_db = std::make_unique<MetaStore>();
+   auto mdb = std::make_unique<MetaStore>();
    {
       if (argc >= 2) {
          for (int i = 1; i < argc; i++) {
-            if (handle_command(*db, *meta_db, argv[i])) {
+            if (handle_command(*db, *mdb, argv[i])) {
                return 0;
             }
          }
@@ -212,7 +232,7 @@ int main(int argc, char* argv[]) {
       std::string s;
       std::cout << "> ";
       while (getline(std::cin, s)) {
-         if (handle_command(*db, *meta_db, s)) {
+         if (handle_command(*db, *mdb, s)) {
             return 0;
          }
          std::cout << "> ";

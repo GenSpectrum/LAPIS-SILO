@@ -47,7 +47,7 @@ static inline void inputSequenceMeta(MetaStore& mdb, uint64_t epi, uint16_t pang
    mdb.epi_to_pid[epi] = pango_idx;
    mdb.pid_to_metacount[pango_idx]++;
 
-   uint32_t sidM = mdb.epi_count++;
+   uint32_t sidM = mdb.sequence_count++;
    mdb.sidM_to_epi.push_back(epi);
    mdb.epi_to_sidM[epi] = sidM;
 
@@ -96,7 +96,7 @@ void silo::processMeta(MetaStore& mdb, std::istream& in) {
       inputSequenceMeta(mdb, epi, pango_idx, date, region, country, division);
    }
 
-   if (mdb.epi_count != mdb.epi_to_pid.size()) {
+   if (mdb.sequence_count != mdb.epi_to_pid.size()) {
       std::cout << "ERROR: EPI is represented twice." << std::endl;
    }
 }
@@ -158,7 +158,7 @@ void silo::processMeta_ordered(MetaStore& mdb, std::istream& in) {
       inputSequenceMeta(mdb, epi, pango_idx, date, region, country, division);
    }
 
-   if (mdb.epi_count != mdb.epi_to_pid.size()) {
+   if (mdb.sequence_count != mdb.epi_to_pid.size()) {
       std::cout << "ERROR: EPI is represented twice." << std::endl;
    }
 }
@@ -171,10 +171,10 @@ void silo::meta_info(const MetaStore& mdb, std::ostream& out) {
    }
 }
 
-unsigned silo::save_meta(const MetaStore& db, const std::string& db_filename) {
+unsigned silo::save_meta(const MetaStore& mdb, const std::string& db_filename) {
    std::cout << "Writing out meta." << std::endl;
 
-   std::ofstream wf(db_filename, std::ios::out | std::ios::binary);
+   std::ofstream wf(db_filename, std::ios::binary);
    if (!wf) {
       std::cerr << "Cannot open ofile: " << db_filename << std::endl;
       return 1;
@@ -183,20 +183,19 @@ unsigned silo::save_meta(const MetaStore& db, const std::string& db_filename) {
    {
       boost::archive::binary_oarchive oa(wf);
       // write class instance to archive
-      oa << db;
+      oa << mdb.sidM_to_epi;
       // archive and stream closed when destructors are called
    }
-
    return 0;
 }
 
-unsigned silo::load_meta(MetaStore& db, const std::string& db_filename) {
+unsigned silo::load_meta(MetaStore& mdb, const std::string& db_filename) {
+   // create and open an archive for input
+   std::ifstream ifs(db_filename, std::ios::binary);
    {
-      // create and open an archive for input
-      std::ifstream ifs(db_filename, std::ios::binary);
       boost::archive::binary_iarchive ia(ifs);
       // read class state from archive
-      ia >> db;
+      ia >> mdb.sidM_to_epi;
       // archive and stream closed when destructors are called
    }
    return 0;

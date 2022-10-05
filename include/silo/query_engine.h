@@ -10,7 +10,7 @@
 
 namespace silo {
 
-std::string execute_query(const std::string& query);
+std::string execute_query(const SequenceStore& db, const MetaStore& mdb, const std::string& query);
 
 } // namespace silo;
 

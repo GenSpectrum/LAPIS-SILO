@@ -66,6 +66,10 @@ add_test(
         NAME sequence_raw COMMAND silo "build_raw ${PROJECT_SOURCE_DIR}/Data/aligned.50k.fasta" exit
 )
 add_test(
+        NAME build_save_load_meta COMMAND silo "build_meta ../Data/metadata.50k.tsv" save_meta load_meta exit
+)
+
+add_test(
         NAME build_both COMMAND silo "build_meta ${PROJECT_SOURCE_DIR}/Data/metadata.50k.tsv"
         "build ${PROJECT_SOURCE_DIR}/Data/aligned.50k.fasta" exit
 )

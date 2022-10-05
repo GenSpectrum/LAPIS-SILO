@@ -1,9 +1,26 @@
 //
 // Created by Alexander Taepper on 30.09.22.
 //
+#include "query_test.cpp"
 #include "silo/silo.h"
 
-int main() {}
+int main() {
+   std::vector<uint64_t> x;
+   {
+      std::ofstream wf("tmp", std::ios::binary);
+      boost::archive::binary_oarchive oa(wf);
+      // write class instance to archive
+      oa << x;
+   }
+
+   std::vector<uint64_t> y;
+   {
+      std::ifstream ifs("tmp", std::ios::binary);
+      boost::archive::binary_iarchive ia(ifs);
+      // write class instance to archive
+      ia >> x;
+   }
+}
 
 int limit_meta_to_seqs() {
    std::unordered_set<uint64_t> set;
