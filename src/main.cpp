@@ -54,8 +54,10 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
       db_info(db, cout);
    } else if ("info_d" == args[0]) {
       db_info_detailed(db, cout);
-   } else if ("meta_info" == args[0]) {
-      meta_info(mdb, cout);
+   } else if ("pango_info" == args[0]) {
+      pango_info(mdb, cout);
+   } else if ("partition_info" == args[0]) {
+      partition_info(mdb, cout);
    } else if ("benchmark" == args[0]) {
       // benchmark(db);
    } else if ("build_raw" == args[0]) {
@@ -125,10 +127,10 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
       }
       if (args.size() == 2) {
          cout << "Partition sequence input from stdin" << endl;
-         partition(mdb, cin, args[1]);
+         partition_sequences(mdb, cin, args[1]);
       } else {
          istream_wrapper file(args[2]);
-         partition(mdb, file.get_is(), args[1]);
+         partition_sequences(mdb, file.get_is(), args[1]);
       }
       return 0;
    } else if ("build_partitioned" == args[0]) {
@@ -137,8 +139,8 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
          return 0;
       }
       const string in_prefix = args[1] + '_';
-      for (auto& x : mdb.pid_to_pango) {
-         ifstream in(in_prefix + x + ".fasta");
+      for (unsigned i = 0; i < mdb.pangos.size(); i++) {
+         ifstream in(in_prefix + std::to_string(i) + ".fasta");
          process(db, mdb, in);
       }
    } else if ("build_partitioned_c" == args[0]) {
@@ -147,21 +149,13 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
          return 0;
       }
       const string in_prefix = args[1] + '_';
-      for (auto& x : mdb.pid_to_pango) {
-         ifstream in(in_prefix + x + ".fasta.xz");
+      for (unsigned i = 0; i < mdb.pangos.size(); i++) {
+         ifstream in(in_prefix + std::to_string(i) + ".fasta.xz");
          boost::iostreams::filtering_istream archive;
          archive.push(boost::iostreams::lzma_decompressor());
          archive.push(in);
          cout << "Building sequence-store from input archive: " << args[1] << endl;
          process(db, mdb, archive);
-      }
-   } else if ("analysemeta" == args[0]) {
-      if (args.size() == 1) {
-         cout << "Analysing meta-data from stdin" << endl;
-         analyseMeta(std::cin);
-      } else {
-         istream_wrapper file(args[1]);
-         analyseMeta(file.get_is());
       }
    } else if ("build_meta_uns" == args[0]) {
       if (args.size() < 2) {

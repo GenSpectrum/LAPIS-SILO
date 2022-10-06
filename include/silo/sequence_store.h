@@ -37,6 +37,7 @@ struct SequenceStore {
    }
 
    Position positions[genomeLength];
+
    std::vector<uint64_t> sid_to_epi;
    std::unordered_map<uint64_t, uint32_t> epi_to_sid;
 
@@ -109,7 +110,7 @@ void calc_partition_offsets(SequenceStore& db, MetaStore& mdb, std::istream& in)
 
 void process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, std::istream& in);
 
-void partition(MetaStore& mdb, std::istream& in, const std::string& output_prefix_);
+void partition_sequences(MetaStore& mdb, std::istream& in, const std::string& output_prefix_);
 
 } //namespace silo;
 

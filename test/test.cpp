@@ -1,24 +1,20 @@
 //
 // Created by Alexander Taepper on 30.09.22.
 //
+#include "meta_store_test.cpp"
 #include "query_test.cpp"
 #include "silo/silo.h"
 
-int main() {
-   std::vector<uint64_t> x;
-   {
-      std::ofstream wf("tmp", std::ios::binary);
-      boost::archive::binary_oarchive oa(wf);
-      // write class instance to archive
-      oa << x;
+int main(int argc, char* argv[]) {
+   if (argc < 2) {
+      throw std::runtime_error("No test specified");
    }
-
-   std::vector<uint64_t> y;
-   {
-      std::ifstream ifs("tmp", std::ios::binary);
-      boost::archive::binary_iarchive ia(ifs);
-      // write class instance to archive
-      ia >> x;
+   std::string arg(argv[1]);
+   if (arg == "resolve_alias") {
+      resolve_alias_test();
+   } else if (arg == "pango_util") {
+   } else {
+      throw std::runtime_error("Unknown Test. " + arg);
    }
 }
 

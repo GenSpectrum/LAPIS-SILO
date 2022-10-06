@@ -107,6 +107,7 @@ static void interpret_offset(SequenceStore& db, const std::vector<std::string>& 
    db.sequenceCount += genomes.size();
 }
 
+/// Appends the sequences in genome to the current bitmaps in SequenceStore and increases sequenceCount
 static void interpret(SequenceStore& db, const std::vector<std::string>& genomes) {
    // Putting sequences to the end is the same as offsetting them to sequence_count
    interpret_offset(db, genomes, db.sequenceCount);
@@ -203,6 +204,7 @@ void silo::calc_partition_offsets(SequenceStore& db, MetaStore& mdb, std::istrea
 }
 
 // TODO this clears the SequenceStore? noo doesn't have to be...
+//      see also calc_partition_offsets, maybe condense into one function?
 void silo::process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, std::istream& in) {
    static constexpr unsigned chunkSize = 1024;
 
@@ -274,12 +276,12 @@ void interpret_specific(SequenceStore& db, const std::vector<std::pair<uint64_t,
    db.sequenceCount += genomes.size();
 }
 
-void silo::partition(MetaStore& mdb, std::istream& in, const std::string& output_prefix_) {
+void silo::partition_sequences(MetaStore& mdb, std::istream& in, const std::string& output_prefix_) {
    std::cout << "Now partitioning fasta file to " << output_prefix_ << std::endl;
    std::vector<std::unique_ptr<std::ostream>> pid_to_ostream;
    const std::string output_prefix = output_prefix_ + '_';
-   for (auto& x : mdb.pid_to_pango) {
-      auto out = make_unique<std::ofstream>(output_prefix + x + ".fasta");
+   for (unsigned i = 0; i < mdb.partitions.size(); i++) {
+      auto out = make_unique<std::ofstream>(output_prefix + std::to_string(i) + ".fasta");
       pid_to_ostream.emplace_back(std::move(out));
    }
    std::cout << "Created file streams for  " << output_prefix_ << std::endl;

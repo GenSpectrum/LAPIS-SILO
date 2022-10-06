@@ -68,6 +68,9 @@ add_test(
 add_test(
         NAME build_save_load_meta COMMAND silo "build_meta ../Data/metadata.50k.tsv" save_meta load_meta exit
 )
+add_test(
+        NAME resolve_alias COMMAND mytest resolve_alias
+)
 
 add_test(
         NAME build_both COMMAND silo "build_meta ${PROJECT_SOURCE_DIR}/Data/metadata.50k.tsv"

@@ -6,14 +6,14 @@ namespace silo {
 
 struct QueryParseException : public std::exception {
    private:
-   const std::string& message;
+   const char* message;
 
    public:
-   explicit QueryParseException(const std::string& msg) : message(msg) {}
+   explicit QueryParseException(const std::string& msg) : message(msg.c_str()) {}
 
-   /*std::string what() {
+   [[nodiscard]] const char* what() const noexcept override {
       return message;
-   }*/
+   }
 };
 
 struct Expression {
