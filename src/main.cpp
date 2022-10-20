@@ -136,6 +136,17 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
          partition_sequences(mdb, file.get_is(), args[1]);
       }
       return 0;
+   } else if ("sort_partitions" == args[0]) {
+      if (args.size() != 2) {
+         cout << "Expected syntax: \"partition out_prefix\"" << endl;
+         return 0;
+      }
+      if (mdb.epi_to_pid.empty()) {
+         cout << "No meta_data built." << endl;
+         return 0;
+      }
+      sort_partitions(mdb, args[1]);
+      return 0;
    } else if ("build_partitioned" == args[0]) {
       if (args.size() < 2) {
          cout << "Expected syntax: \"build_partitioned in_prefix\"" << endl;
