@@ -41,7 +41,7 @@ void silo::processMeta(MetaStore& mdb, std::istream& in) {
          std::cout << "Empty pango-lineage: " << pango_lineage << " " << epi_isl << std::endl;
       } else if (pango_lineage.length() == 1 && pango_lineage != "A" && pango_lineage != "B") {
          std::cout << "One-Char pango-lineage:" << epi_isl << " Lineage:'" << pango_lineage << "'";
-         std::cout << "(Keycode=" << (uint) pango_lineage.at(0) << ") may be relevant if it is not printable" << std::endl;
+         std::cout << "(Keycode=" << (uint) pango_lineage.at(0) << ") may be relevant if char is not printable" << std::endl;
       }
 
       /// Deal with pango_lineage alias:
@@ -136,8 +136,12 @@ void silo::processMeta_ordered(MetaStore& mdb, std::istream& in) {
    }
 }
 
+/// Takes pango_lineages as initial partition and merges them, trying to merge more closely related ones first
+/// Will merge 2 partitions if on is smaller than min_size or both are smaller than target_size
+/// Updates pango_lineages to contain the partition each pango_lineage is contained in and returns vector of partitions
 std::vector<partition_t> silo::merge_pangos_to_partitions(std::vector<pango_t>& pangos,
                                                           unsigned target_size, unsigned min_size) {
+   // Initialize partitions such that every partition is just a pango_lineage
    std::list<partition_t> partitions;
    for (uint32_t pid = 0; pid < pangos.size(); pid++) {
       std::vector<uint32_t> v;
@@ -145,6 +149,9 @@ std::vector<partition_t> silo::merge_pangos_to_partitions(std::vector<pango_t>& 
       partition_t tmp = {pangos[pid].pango_lineage, pangos[pid].count, v};
       partitions.emplace_back(tmp);
    }
+   // We want to prioritise merges more closely related partitions.
+   // Therefore, we first merge the partitions, with longer matching prefixes.
+   // Precalculate the longest a prefix can be (which is the max length of lineages)
    uint32_t max_len = std::max_element(pangos.begin(), pangos.end(),
                                        [](const pango_t& lhs, const pango_t& rhs) {
                                           return lhs.pango_lineage.size() < rhs.pango_lineage.size();
@@ -154,16 +161,21 @@ std::vector<partition_t> silo::merge_pangos_to_partitions(std::vector<pango_t>& 
       for (auto it = partitions.begin(); it != partitions.end() && std::next(it) != partitions.end();) {
          auto&& [pango1, pango2] = std::tie(*it, *std::next(it));
          std::string pref = common_pango_prefix(pango1.prefix, pango2.prefix);
+         // We only look at possible merges with a common_prefix length of #len
          if (pref.size() == len &&
+             // Either, one of the partitions is very small,
              (pango1.count < min_size || pango2.count < min_size ||
+              // or both still want to grow
               (pango1.count < target_size && pango2.count < target_size))) {
             pango2.prefix = pref;
             pango2.count += pango1.count;
             pango2.pids.insert(pango2.pids.end(),
                                pango1.pids.begin(),
                                pango1.pids.end());
-            it = partitions.erase(it);
 
+            // We merged pango1 into pango2 -> Now delete pango1
+            // Do not need to increment, because erase will make it automatically point to next element
+            it = partitions.erase(it);
          } else {
             ++it;
          }
@@ -212,31 +224,23 @@ void silo::partition_info(const MetaStore& mdb, std::ostream& out) {
 }
 
 unsigned silo::save_meta(const MetaStore& mdb, const std::string& db_filename) {
-   std::cout << "Writing out meta." << std::endl;
-
    std::ofstream wf(db_filename, std::ios::binary);
    if (!wf) {
       std::cerr << "Cannot open ofile: " << db_filename << std::endl;
       return 1;
    }
-
-   {
-      boost::archive::binary_oarchive oa(wf);
-      // write class instance to archive
-      oa << mdb;
-      // archive and stream closed when destructors are called
-   }
+   boost::archive::binary_oarchive oa(wf);
+   oa << mdb;
    return 0;
 }
 
 unsigned silo::load_meta(MetaStore& mdb, const std::string& db_filename) {
-   // create and open an archive for input
    std::ifstream ifs(db_filename, std::ios::binary);
-   {
-      boost::archive::binary_iarchive ia(ifs);
-      // read class state from archive
-      ia >> mdb;
-      // archive and stream closed when destructors are called
+   if (!ifs) {
+      std::cerr << "Cannot open ifile: " << db_filename << std::endl;
+      return 1;
    }
+   boost::archive::binary_iarchive ia(ifs);
+   ia >> mdb;
    return 0;
 }

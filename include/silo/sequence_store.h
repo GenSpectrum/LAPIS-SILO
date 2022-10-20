@@ -112,6 +112,14 @@ void process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, std::istr
 
 void partition_sequences(MetaStore& mdb, std::istream& in, const std::string& output_prefix_);
 
+enum SortOption {
+   bydate
+};
+
+void sort_partitions(MetaStore& mdb, const std::string& output_prefix_);
+
+void sort_partition(const MetaStore& mdb, const std::string& file_name, unsigned pid, SortOption option);
+
 } //namespace silo;
 
 #endif //SILO_SEQUENCE_STORE_H

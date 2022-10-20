@@ -46,11 +46,9 @@ include_directories(SYSTEM
 set(SRC_CC src/silo.cpp src/meta_store.cpp src/sequence_store.cpp
         src/query_engine.cpp src/roaring/roaring.c)
 
-add_library(silolib STATIC ${SRC_CC} ${INCLUDE_H})
-
 add_executable(silo src/main.cpp ${SRC_CC} ${Boost_INCLUDE_DIRS})
 
-target_link_libraries(silo PUBLIC silolib rapidjson ${Boost_LIBRARIES})
+target_link_libraries(silo PUBLIC rapidjson ${Boost_LIBRARIES})
 
 
 # ---------------------------------------------------------------------------

@@ -18,6 +18,7 @@
 #include <locale>
 #include <memory>
 #include <sstream>
+#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>

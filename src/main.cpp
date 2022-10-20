@@ -4,7 +4,10 @@
 using namespace silo;
 
 int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> args) {
-   using namespace std;
+   using std::cin;
+   using std::cout;
+   using std::endl;
+
    const std::string default_db_filename = "../silo/roaring_sequences.silo";
    const std::string default_meta_filename = "../silo/meta_store.silo";
    if (args.empty()) {
@@ -12,40 +15,40 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
    }
    if ("load" == args[0]) {
       if (args.size() < 2) {
-         std::cout << "Loading sequence_store from " << default_db_filename << std::endl;
+         cout << "Loading sequence_store from " << default_db_filename << endl;
          load_db(db, default_db_filename);
       } else if (args.size() == 2 && args[1].ends_with(".silo")) {
-         std::cout << "Loading sequence_store from " << args[1] << std::endl;
+         cout << "Loading sequence_store from " << args[1] << endl;
          load_db(db, args[1]);
       } else {
-         std::cout << "Expected syntax: \"load [file_name.silo]\"" << std::endl;
+         cout << "Expected syntax: \"load [file_name.silo]\"" << endl;
       }
    } else if ("save" == args[0]) {
       if (args.size() < 2) {
-         std::cout << "Saving sequence_store to " << default_db_filename << std::endl;
+         cout << "Saving sequence_store to " << default_db_filename << endl;
          save_db(db, default_db_filename);
       } else if (args.size() == 2 && args[1].ends_with(".silo")) {
-         std::cout << "Saving sequence_store to " << args[1] << std::endl;
+         cout << "Saving sequence_store to " << args[1] << endl;
          save_db(db, args[1]);
       } else {
-         std::cout << "Expected syntax: \"save [file_name.silo]\"" << std::endl;
+         cout << "Expected syntax: \"save [file_name.silo]\"" << endl;
       }
    } else if ("load_meta" == args[0]) {
       if (args.size() < 2) {
-         std::cout << "Loading meta_store from " << default_meta_filename << std::endl;
+         cout << "Loading meta_store from " << default_meta_filename << endl;
          load_meta(mdb, default_meta_filename);
       } else if (args.size() == 2 && args[1].ends_with(".silo")) {
-         std::cout << "Loading meta_store from " << args[1] << std::endl;
+         cout << "Loading meta_store from " << args[1] << endl;
          load_meta(mdb, args[1]);
       } else {
-         std::cout << "Expected syntax: \"load_meta [file_name.silo]\"" << std::endl;
+         cout << "Expected syntax: \"load_meta [file_name.silo]\"" << endl;
       }
    } else if ("save_meta" == args[0]) {
       if (args.size() < 2) {
-         std::cout << "Saving meta_store to " << default_meta_filename << std::endl;
+         cout << "Saving meta_store to " << default_meta_filename << endl;
          save_meta(mdb, default_meta_filename);
       } else if (args.size() == 2 && args[1].ends_with(".silo")) {
-         std::cout << "Saving meta_store to " << args[1] << std::endl;
+         cout << "Saving meta_store to " << args[1] << endl;
          save_meta(mdb, args[1]);
       } else {
          cout << "Expected syntax: \"save_meta [file_name.silo]\"" << endl;
@@ -104,7 +107,7 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
          cout << "Need to first calculate offsets. See 'calc_partition_offsets'." << endl;
       }
       cout << "This clears all currently stored sequences. TODO no longer does this.\nPress (y) to continue." << endl;
-      string s;
+      std::string s;
       cin >> s;
       if (s != "y" && s != "Y") {
          return 0;
@@ -138,9 +141,9 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
          cout << "Expected syntax: \"build_partitioned in_prefix\"" << endl;
          return 0;
       }
-      const string in_prefix = args[1] + '_';
+      const std::string in_prefix = args[1] + '_';
       for (unsigned i = 0; i < mdb.pangos.size(); i++) {
-         ifstream in(in_prefix + std::to_string(i) + ".fasta");
+         std::ifstream in(in_prefix + std::to_string(i) + ".fasta");
          process(db, mdb, in);
       }
    } else if ("build_partitioned_c" == args[0]) {
@@ -148,9 +151,9 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
          cout << "Expected syntax: \"build_partitioned_c in_prefix\"" << endl;
          return 0;
       }
-      const string in_prefix = args[1] + '_';
+      const std::string in_prefix = args[1] + '_';
       for (unsigned i = 0; i < mdb.pangos.size(); i++) {
-         ifstream in(in_prefix + std::to_string(i) + ".fasta.xz");
+         std::ifstream in(in_prefix + std::to_string(i) + ".fasta.xz");
          boost::iostreams::filtering_istream archive;
          archive.push(boost::iostreams::lzma_decompressor());
          archive.push(in);
