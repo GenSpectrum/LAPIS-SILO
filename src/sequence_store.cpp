@@ -169,17 +169,17 @@ void silo::calc_partition_offsets(SequenceStore& db, MetaStore& mdb, std::istrea
 
    // Clear the vector and resize
    // TODO for future proofing, instead of clearing, extending them?
-   db.pid_to_offset.clear();
-   db.pid_to_offset.resize(mdb.pid_count);
-   db.pid_to_realcount.clear();
-   db.pid_to_realcount.resize(mdb.pid_count);
+   db.part_to_offset.clear();
+   db.part_to_offset.resize(mdb.pid_count);
+   db.part_to_realcount.clear();
+   db.part_to_realcount.resize(mdb.pid_count);
 
    while (true) {
       std::string epi_isl;
       if (!getline(in, epi_isl)) break;
       in.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-      // Add the count to the respective pid
+      // Add the count to the respective part
       uint64_t epi = stoi(epi_isl.substr(9));
 
       if (!mdb.epi_to_pid.contains(epi)) {
@@ -188,14 +188,15 @@ void silo::calc_partition_offsets(SequenceStore& db, MetaStore& mdb, std::istrea
       }
 
       uint16_t pid = mdb.epi_to_pid[epi];
-      db.pid_to_realcount[pid]++;
+      auto part = mdb.pid_to_partition[pid];
+      db.part_to_realcount[part]++;
    }
 
    // Escalate offsets from start to finish
    uint32_t cumulative_offset = 0;
    for (int i = 0; i < mdb.pid_count; i++) {
-      db.pid_to_offset[i] += cumulative_offset;
-      cumulative_offset += db.pid_to_realcount[i];
+      db.part_to_offset[i] += cumulative_offset;
+      cumulative_offset += db.part_to_realcount[i];
    }
 
    // cumulative_offset should be equal to sequence count now
@@ -209,9 +210,9 @@ void silo::process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, std
    static constexpr unsigned chunkSize = 1024;
 
    // these offsets lag by chunk.
-   std::vector<uint32_t> dynamic_offsets(db.pid_to_offset);
+   std::vector<uint32_t> dynamic_offsets(db.part_to_offset);
    // actually these are the same offsets just without lagging by chunk.
-   std::vector<uint32_t> sid_ctrs(db.pid_to_offset);
+   std::vector<uint32_t> sid_ctrs(db.part_to_offset);
    std::vector<std::vector<std::string>> pid_to_genomes;
    pid_to_genomes.resize(mdb.pid_count + 1);
    while (true) {
@@ -230,7 +231,8 @@ void silo::process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, std
       }
 
       uint16_t pid = mdb.epi_to_pid.at(epi);
-      db.pid_to_realcount[pid]++;
+      auto part = mdb.pid_to_partition[pid];
+      db.part_to_realcount[pid]++;
 
       auto& genomes = pid_to_genomes[pid];
       genomes.emplace_back(std::move(genome));
@@ -278,11 +280,11 @@ void interpret_specific(SequenceStore& db, const std::vector<std::pair<uint64_t,
 
 void silo::partition_sequences(MetaStore& mdb, std::istream& in, const std::string& output_prefix_) {
    std::cout << "Now partitioning fasta file to " << output_prefix_ << std::endl;
-   std::vector<std::unique_ptr<std::ostream>> pid_to_ostream;
+   std::vector<std::unique_ptr<std::ostream>> part_to_ostream;
    const std::string output_prefix = output_prefix_ + '_';
-   for (unsigned i = 0; i < mdb.partitions.size(); i++) {
-      auto out = make_unique<std::ofstream>(output_prefix + std::to_string(i) + ".fasta");
-      pid_to_ostream.emplace_back(std::move(out));
+   for (unsigned part = 0; part < mdb.partitions.size(); part++) {
+      auto out = make_unique<std::ofstream>(output_prefix + std::to_string(part) + ".fasta");
+      part_to_ostream.emplace_back(std::move(out));
    }
    std::cout << "Created file streams for  " << output_prefix_ << std::endl;
    while (true) {
@@ -301,8 +303,9 @@ void silo::partition_sequences(MetaStore& mdb, std::istream& in, const std::stri
       }
 
       auto pid = mdb.epi_to_pid.at(epi);
-      *pid_to_ostream[pid] << epi_isl << std::endl
-                           << genome << std::endl;
+      auto part = mdb.pid_to_partition[pid];
+      *part_to_ostream[part] << epi_isl << std::endl
+                             << genome << std::endl;
    }
    std::cout << "Finished partitioning to " << output_prefix_ << std::endl;
 }
@@ -312,17 +315,17 @@ void silo::sort_partitions(MetaStore& mdb, const std::string& output_prefix_) {
 
    unsigned n = mdb.partitions.size();
    std::vector<std::thread> threads(n);
-   for (unsigned pid = 0; pid < n; ++pid) {
-      const std::string& file_name = output_prefix + std::to_string(pid);
-      threads[n] = std::thread(sort_partition, mdb, file_name, pid, SortOption::bydate);
+   for (unsigned part = 0; part < n; ++part) {
+      const std::string& file_name = output_prefix + std::to_string(part);
+      threads[n] = std::thread(sort_partition, mdb, file_name, part, SortOption::bydate);
    }
 
-   for (unsigned pid = 0; pid < n; ++pid) {
-      threads[n].join();
+   for (unsigned part = 0; part < n; ++part) {
+      threads[part].join();
    }
 }
 
-void silo::sort_partition(const MetaStore& mdb, const std::string& file_name, unsigned pid, SortOption option) {
+void silo::sort_partition(const MetaStore& mdb, const std::string& file_name, unsigned part, SortOption option) {
    if (option != SortOption::bydate) {
       return;
    }
@@ -348,7 +351,7 @@ void silo::sort_partition(const MetaStore& mdb, const std::string& file_name, un
       uint32_t file_pos;
    };
    std::vector<EPIDate> firstRun;
-   firstRun.reserve(mdb.partitions.at(pid).count);
+   firstRun.reserve(mdb.partitions.at(part).count);
 
    uint32_t count = 0;
    while (true) {

@@ -60,7 +60,7 @@ struct MetaStore {
 
    std::unordered_map<std::string, std::string> alias_key;
 
-   // Maps the epis to the ID, which is assigned to the pango lineage (pid)
+   // Maps the epis to the ID, which is assigned to the pango id (pid)
    // pids are starting at 0 and are dense, so that we can save the respective data in vectors.
    std::unordered_map<uint64_t, uint16_t> epi_to_pid;
    std::unordered_map<uint64_t, uint32_t> epi_to_sidM;
@@ -83,6 +83,7 @@ struct MetaStore {
    std::vector<silo::pango_t> pangos;
 
    std::vector<silo::partition_t> partitions;
+   std::vector<uint32_t> pid_to_partition;
 
    uint32_t sequence_count = 0;
    uint16_t pid_count = 0;

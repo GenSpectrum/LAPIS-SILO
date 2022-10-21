@@ -105,6 +105,13 @@ void silo::processMeta_ordered(MetaStore& mdb, std::istream& in) {
    mdb.partitions =
       silo::merge_pangos_to_partitions(mdb.pangos,
                                        mdb.sequence_count / 100, mdb.sequence_count / 200);
+   // For lookup of partition by pid (e.g. when inputting sequences) precompute lookup vector
+   mdb.pid_to_partition.resize(mdb.pangos.size());
+   for (uint32_t i = 0; i < mdb.partitions.size(); i++) {
+      for (auto pid : mdb.partitions[i].pids) {
+         mdb.pid_to_partition[pid] = i;
+      }
+   }
 
    mdb.sequence_count = 0;
    in.clear(); // clear fail and eof bits

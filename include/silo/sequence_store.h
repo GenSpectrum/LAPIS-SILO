@@ -32,8 +32,8 @@ struct SequenceStore {
 
       ar& positions;
 
-      ar& pid_to_offset;
-      ar& pid_to_realcount;
+      ar& part_to_offset;
+      ar& part_to_realcount;
    }
 
    Position positions[genomeLength];
@@ -43,10 +43,10 @@ struct SequenceStore {
 
    // real count refers to the count of sequences actually found in the fasta file, these may differ from meta_data
    /// filled by calc_offset or build
-   std::vector<uint32_t> pid_to_realcount;
+   std::vector<uint32_t> part_to_realcount;
    // pid to offsets, offsets calculated from the respective counts
    /// Only filled by calc_offset
-   std::vector<uint32_t> pid_to_offset;
+   std::vector<uint32_t> part_to_offset;
 
    unsigned sequenceCount = 0;
 

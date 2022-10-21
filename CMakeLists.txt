@@ -43,8 +43,12 @@ include_directories(SYSTEM
 # ---------------------------------------------------------------------------
 
 
-set(SRC_CC src/silo.cpp src/meta_store.cpp src/sequence_store.cpp
-        src/query_engine.cpp src/roaring/roaring.c)
+set(SRC_CC
+        src/silo.cpp
+        src/meta_store.cpp
+        src/sequence_store.cpp
+        src/query_engine.cpp
+        src/roaring/roaring.c)
 
 add_executable(silo src/main.cpp ${SRC_CC} ${Boost_INCLUDE_DIRS})
 
@@ -75,7 +79,7 @@ add_test(
         "build ${PROJECT_SOURCE_DIR}/Data/aligned.50k.fasta" exit
 )
 
-add_executable(mytest test/test.cpp ${SRC_CC} ${Boost_INCLUDE_DIRS})
+add_executable(mytest test/test.cpp ${SRC_CC})
 target_link_libraries(mytest PUBLIC rapidjson ${Boost_LIBRARIES})
 
 

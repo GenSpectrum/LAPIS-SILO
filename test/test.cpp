@@ -7,14 +7,16 @@
 
 int main(int argc, char* argv[]) {
    if (argc < 2) {
-      throw std::runtime_error("No test specified");
+      std::cerr << "No test specified" << std::endl;
+      return -1;
    }
    std::string arg(argv[1]);
    if (arg == "resolve_alias") {
       resolve_alias_test();
    } else if (arg == "pango_util") {
    } else {
-      throw std::runtime_error("Unknown Test. " + arg);
+      std::cerr << "Unknown Test. " << arg << std::endl;
+      return -1;
    }
 }
 
