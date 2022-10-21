@@ -103,7 +103,7 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
       if (mdb.epi_to_pid.empty()) {
          cout << "No meta_data built." << endl;
          return 0;
-      } else if (db.pid_to_offset.empty()) {
+      } else if (db.part_to_offset.empty()) {
          cout << "Need to first calculate offsets. See 'calc_partition_offsets'." << endl;
       }
       cout << "This clears all currently stored sequences. TODO no longer does this.\nPress (y) to continue." << endl;
