@@ -116,7 +116,7 @@ enum SortOption {
    bydate
 };
 
-void sort_partitions(MetaStore& mdb, const std::string& output_prefix_);
+void sort_partitions(const MetaStore& mdb, const std::string& output_prefix_);
 
 void sort_partition(const MetaStore& mdb, const std::string& file_name, unsigned pid, SortOption option);
 

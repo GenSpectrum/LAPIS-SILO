@@ -187,7 +187,7 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
 
       istream_wrapper file(args[1]);
       processMeta_ordered(mdb, file.get_is());
-
+      cout << "Loaded meta_data from file " << args[1] << endl;
    } else if ("query" == args[0]) {
       if (args.size() < 2) {
          cout << "Expected syntax: \"query JSON_QUERY\"" << endl;
