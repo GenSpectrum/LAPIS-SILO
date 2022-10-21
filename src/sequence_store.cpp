@@ -232,7 +232,7 @@ void silo::process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, std
 
       uint16_t pid = mdb.epi_to_pid.at(epi);
       auto part = mdb.pid_to_partition[pid];
-      db.part_to_realcount[pid]++;
+      db.part_to_realcount[part]++;
 
       auto& genomes = pid_to_genomes[pid];
       genomes.emplace_back(std::move(genome));
