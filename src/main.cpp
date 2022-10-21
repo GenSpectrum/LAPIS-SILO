@@ -3,6 +3,27 @@
 
 using namespace silo;
 
+void info_messages() {
+   using std::cin;
+   using std::cout;
+   using std::endl;
+   cout << "SILO" << endl
+        << endl;
+   cout << "Usage:" << endl;
+   cout << "\tsilo" << endl;
+   cout << "\tStart silo in interactive mode" << endl
+        << endl;
+   cout << "\tsilo \"<command>\" ..." << endl;
+   cout << "\tExecute the commands in the given order, then enter interactive mode." << endl
+        << endl;
+   cout << "\tCommands:" << endl
+        << "\tbuild_meta [metadata.tsv]" << endl
+        << "\tpartition <out_prefix> [fasta_archive]" << endl
+        << "\tsort_partitions <io_prefix> [fasta_archive]" << endl
+        << "\tbuild_meta [metadata.tsv]" << endl
+        << "\tbuild [faste_archive]" << endl;
+}
+
 int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> args) {
    using std::cin;
    using std::cout;

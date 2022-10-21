@@ -375,10 +375,13 @@ void silo::sort_partition(const MetaStore& mdb, const std::string& file_name, un
    std::cout << "Sorted first run for partition: " << part << std::endl;
 
    std::vector<uint32_t> file_pos_to_sorted_pos(count);
-   count = 0;
+   unsigned count2 = 0;
    for (auto& x : firstRun) {
-      file_pos_to_sorted_pos[x.file_pos] = count++;
+      file_pos_to_sorted_pos[x.file_pos] = count2++;
    }
+
+   assert(count == count2);
+
    std::cout << "Calculated postitions for every sequence: " << part << std::endl;
 
    in.clear(); // clear fail and eof bits
@@ -389,11 +392,17 @@ void silo::sort_partition(const MetaStore& mdb, const std::string& file_name, un
    std::vector<std::string> lines_sorted(2 * count);
    for (auto pos : file_pos_to_sorted_pos) {
       std::string epi_isl, genome;
-      if (!getline(in, lines_sorted[pos])) break;
-      if (!getline(in, lines_sorted[pos + 1])) break;
+      if (!getline(in, lines_sorted[2 * pos])) {
+         std::cerr << "Reached EOF too early." << std::endl;
+         return;
+      }
+      if (!getline(in, lines_sorted[2 * pos + 1])) {
+         std::cerr << "Reached EOF too early." << std::endl;
+         return;
+      }
    }
 
    for (const std::string& line : lines_sorted) {
-      out << line;
+      out << line << '\n';
    }
 }
