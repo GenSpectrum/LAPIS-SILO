@@ -45,10 +45,10 @@ int silo::db_info(const SequenceStore& db, std::ostream& io) {
 
 using r_stat = roaring::api::roaring_statistics_t;
 
-static inline void addStat(r_stat r1, r_stat r2){
+static inline void addStat(r_stat r1, r_stat r2) {
    r1.cardinality += r2.cardinality;
-   if(r2.max_value > r1.max_value) r1.max_value = r2.max_value;
-   if(r2.min_value < r1.min_value) r1.min_value = r2.min_value;
+   if (r2.max_value > r1.max_value) r1.max_value = r2.max_value;
+   if (r2.min_value < r1.min_value) r1.min_value = r2.min_value;
    r1.n_array_containers += r2.n_array_containers;
    r1.n_run_containers += r2.n_run_containers;
    r1.n_bitset_containers += r2.n_bitset_containers;
@@ -77,13 +77,28 @@ int silo::db_info_detailed(const SequenceStore& db, std::ostream& io) {
    }
 
    r_stat s_total;
-   r_stat s;
-   for(const Position& p : db.positions){
-      for(const Roaring& bm : p.bitmaps){
-         roaring_bitmap_statistics(&db.positions[0].bitmaps[0].roaring, &s);
-         addStat(s_total, s);
+   {
+      r_stat s;
+      for (const Position& p : db.positions) {
+         for (const Roaring& bm : p.bitmaps) {
+            roaring_bitmap_statistics(&db.positions[0].bitmaps[0].roaring, &s);
+            addStat(s_total, s);
+         }
       }
    }
+   io << "Total bitmap containers " << s_total.n_containers << "of those there are " << std::endl
+      << "array: " << s_total.n_array_containers << std::endl
+      << "run: " << s_total.n_run_containers << std::endl
+      << "bitset: " << s_total.n_bitset_containers << std::endl;
+   io << "Total bitmap values " << s_total.cardinality << "of those there are " << std::endl
+      << "array: " << s_total.n_values_array_containers << std::endl
+      << "run: " << s_total.n_values_run_containers << std::endl
+      << "bitset: " << s_total.n_values_bitset_containers << std::endl;
+   io << "Total bitmap byte size " << db.computeSize() << "of those there are " << std::endl
+      << "array: " << s_total.n_bytes_array_containers << std::endl
+      << "run: " << s_total.n_bytes_run_containers << std::endl
+      << "bitset: " << s_total.n_bytes_bitset_containers << std::endl;
+
    return 0;
 }
 
