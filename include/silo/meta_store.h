@@ -90,6 +90,9 @@ struct MetaStore {
 
    MetaStore() {
       std::ifstream alias_key_file("../Data/pango_alias.txt");
+      if(!alias_key_file){
+         std::cerr << "Expected file Data/pango_alias.txt." << std::endl;
+      }
       while (true) {
          std::string alias, val;
          if (!getline(alias_key_file, alias, '\t')) break;

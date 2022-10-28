@@ -99,6 +99,8 @@ unsigned save_db(const SequenceStore& db, const std::string& db_filename);
 
 unsigned load_db(SequenceStore& db, const std::string& db_filename);
 
+unsigned runoptimize(SequenceStore& db);
+
 // static void interpret(SequenceStore& db, const vector<string>& genomes);
 
 /// WARNING: This does not look at meta-data nor fill any indices required for queries. Use with caution

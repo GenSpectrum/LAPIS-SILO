@@ -9,7 +9,7 @@ endif ()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 set(CMAKE_CXX_FLAGS "-Wall")
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=undefined,address")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 set(CMAKE_CXX_STANDARD 20)
@@ -22,7 +22,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 include("${CMAKE_SOURCE_DIR}/vendor/rapidjson.cmake")
 
 find_package(Boost REQUIRED COMPONENTS system iostreams serialization)
-find_package(LibLZMA)
+find_package(LibLZMA REQUIRED)
 
 
 # ---------------------------------------------------------------------------
@@ -52,7 +52,7 @@ set(SRC_CC
 
 add_executable(silo src/main.cpp ${SRC_CC} ${Boost_INCLUDE_DIRS})
 
-target_link_libraries(silo PUBLIC rapidjson ${Boost_LIBRARIES})
+target_link_libraries(silo PUBLIC rapidjson readline ${Boost_LIBRARIES})
 
 
 # ---------------------------------------------------------------------------

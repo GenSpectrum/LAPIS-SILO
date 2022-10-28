@@ -65,6 +65,6 @@ int limit_meta_to_seqs() {
          }
       }
    }
-   std::cout << "Found Seq: " << found_seq << "\nFount Meta: " << found_meta << std::endl;
+   std::cout << "Found Seq: " << found_seq << "\nFound Meta: " << found_meta << std::endl;
    return 0;
 }

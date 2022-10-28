@@ -43,18 +43,46 @@ int silo::db_info(const SequenceStore& db, std::ostream& io) {
    return 0;
 }
 
+using r_stat = roaring::api::roaring_statistics_t;
+
+static inline void addStat(r_stat r1, r_stat r2){
+   r1.cardinality += r2.cardinality;
+   if(r2.max_value > r1.max_value) r1.max_value = r2.max_value;
+   if(r2.min_value < r1.min_value) r1.min_value = r2.min_value;
+   r1.n_array_containers += r2.n_array_containers;
+   r1.n_run_containers += r2.n_run_containers;
+   r1.n_bitset_containers += r2.n_bitset_containers;
+   r1.n_bytes_array_containers += r2.n_bytes_array_containers;
+   r1.n_bytes_run_containers += r2.n_bytes_run_containers;
+   r1.n_bytes_bitset_containers += r2.n_bytes_bitset_containers;
+   r1.n_values_array_containers += r2.n_values_array_containers;
+   r1.n_values_run_containers += r2.n_values_run_containers;
+   r1.n_values_bitset_containers += r2.n_values_bitset_containers;
+   r1.n_containers += r2.n_containers;
+   r1.sum_value += r2.sum_value;
+}
+
 int silo::db_info_detailed(const SequenceStore& db, std::ostream& io) {
    db_info(db, io);
    std::vector<size_t> size_by_symbols;
    size_by_symbols.resize(symbolCount);
    for (const auto& position : db.positions) {
-      for (unsigned symbol = 0; symbol < symbolCount; symbol++) {
+      for (unsigned symbol = 0; symbol < symbolCount; ++symbol) {
          size_by_symbols[symbol] += position.bitmaps[symbol].getSizeInBytes();
       }
    }
-   for (unsigned symbol = 0; symbol < symbolCount; symbol++) {
+   for (unsigned symbol = 0; symbol < symbolCount; ++symbol) {
       io << "size for symbol '" << symbol_rep[symbol] << "': "
          << number_fmt(size_by_symbols[symbol]) << std::endl;
+   }
+
+   r_stat s_total;
+   r_stat s;
+   for(const Position& p : db.positions){
+      for(const Roaring& bm : p.bitmaps){
+         roaring_bitmap_statistics(&db.positions[0].bitmaps[0].roaring, &s);
+         addStat(s_total, s);
+      }
    }
    return 0;
 }
@@ -164,6 +192,16 @@ void silo::process(SequenceStore& db, MetaStore& mdb, std::istream& in) {
    db_info(db, std::cout);
 }
 
+unsigned silo::runoptimize(SequenceStore& db) {
+   unsigned count_true = 0;
+   for (Position& p : db.positions) {
+      for (auto& bm : p.bitmaps) {
+         if (bm.runOptimize()) ++count_true;
+      }
+   }
+   return count_true;
+}
+
 void silo::calc_partition_offsets(SequenceStore& db, MetaStore& mdb, std::istream& in) {
    std::cout << "Now calculating partition offsets" << std::endl;
 
@@ -189,12 +227,12 @@ void silo::calc_partition_offsets(SequenceStore& db, MetaStore& mdb, std::istrea
 
       uint16_t pid = mdb.epi_to_pid[epi];
       auto part = mdb.pid_to_partition[pid];
-      db.part_to_realcount[part]++;
+      ++db.part_to_realcount[part];
    }
 
    // Escalate offsets from start to finish
    uint32_t cumulative_offset = 0;
-   for (int i = 0; i < mdb.pid_count; i++) {
+   for (int i = 0; i < mdb.pid_count; ++i) {
       db.part_to_offset[i] += cumulative_offset;
       cumulative_offset += db.part_to_realcount[i];
    }
@@ -204,8 +242,9 @@ void silo::calc_partition_offsets(SequenceStore& db, MetaStore& mdb, std::istrea
    std::cout << "Finished calculating partition offsets." << std::endl;
 }
 
-// TODO this clears the SequenceStore? noo doesn't have to be...
-//      see also calc_partition_offsets, maybe condense into one function?
+// TODO  this clears the SequenceStore? doesn't have to be
+//       see also calc_partition_offsets, maybe condense into one function?
+//       Does not really make much senese to call them independently
 void silo::process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, std::istream& in) {
    static constexpr unsigned chunkSize = 1024;
 
@@ -232,7 +271,7 @@ void silo::process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, std
 
       uint16_t pid = mdb.epi_to_pid.at(epi);
       auto part = mdb.pid_to_partition[pid];
-      db.part_to_realcount[part]++;
+      ++db.part_to_realcount[part];
 
       auto& genomes = pid_to_genomes[pid];
       genomes.emplace_back(std::move(genome));
@@ -246,7 +285,7 @@ void silo::process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, std
       db.epi_to_sid[epi] = sid;
    }
 
-   for (uint16_t pid = 0; pid < mdb.pid_count + 1; pid++) {
+   for (uint16_t pid = 0; pid < mdb.pid_count + 1; ++pid) {
       interpret_offset(db, pid_to_genomes[pid], dynamic_offsets[pid]);
    }
 
@@ -282,7 +321,7 @@ void silo::partition_sequences(MetaStore& mdb, std::istream& in, const std::stri
    std::cout << "Now partitioning fasta file to " << output_prefix_ << std::endl;
    std::vector<std::unique_ptr<std::ostream>> part_to_ostream;
    const std::string output_prefix = output_prefix_ + '_';
-   for (unsigned part = 0; part < mdb.partitions.size(); part++) {
+   for (unsigned part = 0; part < mdb.partitions.size(); ++part) {
       auto out = make_unique<std::ofstream>(output_prefix + std::to_string(part) + ".fasta");
       part_to_ostream.emplace_back(std::move(out));
    }

@@ -52,7 +52,7 @@ void silo::processMeta(MetaStore& mdb, std::istream& in) {
       uint16_t pango_idx;
       if (mdb.pango_to_pid.contains(pango_lineage)) {
          pango_idx = mdb.pango_to_pid[pango_lineage];
-         mdb.pangos[pango_idx].count++;
+         ++mdb.pangos[pango_idx].count;
       } else {
          pango_idx = mdb.pid_count++;
          mdb.pangos.push_back({pango_lineage, 1, 0});
@@ -80,10 +80,10 @@ void silo::processMeta_ordered(MetaStore& mdb, std::istream& in) {
       /// Deal with pango_lineage alias:
       resolve_alias(mdb.alias_key, pango_lineage);
 
-      mdb.sequence_count++;
+      ++mdb.sequence_count;
       if (mdb.pango_to_pid.contains(pango_lineage)) {
          auto pid = mdb.pango_to_pid[pango_lineage];
-         mdb.pangos[pid].count++;
+         ++mdb.pangos[pid].count;
       } else {
          mdb.pango_to_pid[pango_lineage] = mdb.pid_count++;
          mdb.pangos.emplace_back(pango_t{pango_lineage, 1, 0});
@@ -107,7 +107,7 @@ void silo::processMeta_ordered(MetaStore& mdb, std::istream& in) {
                                        mdb.sequence_count / 100, mdb.sequence_count / 200);
    // For lookup of partition by pid (e.g. when inputting sequences) precompute lookup vector
    mdb.pid_to_partition.resize(mdb.pangos.size());
-   for (uint32_t i = 0; i < mdb.partitions.size(); i++) {
+   for (uint32_t i = 0; i < mdb.partitions.size(); ++i) {
       for (auto pid : mdb.partitions[i].pids) {
          mdb.pid_to_partition[pid] = i;
       }
@@ -138,9 +138,7 @@ void silo::processMeta_ordered(MetaStore& mdb, std::istream& in) {
       inputSequenceMeta(mdb, epi, pango_idx, date, region, country, division);
    }
 
-   if (mdb.sequence_count != mdb.epi_to_pid.size()) {
-      std::cout << "ERROR: EPI is represented twice." << std::endl;
-   }
+   assert(mdb.sequence_count == mdb.epi_to_pid.size()); // EPIs should be unique
 }
 
 /// Takes pango_lineages as initial partition and merges them, trying to merge more closely related ones first
@@ -150,7 +148,7 @@ std::vector<partition_t> silo::merge_pangos_to_partitions(std::vector<pango_t>& 
                                                           unsigned target_size, unsigned min_size) {
    // Initialize partitions such that every partition is just a pango_lineage
    std::list<partition_t> partitions;
-   for (uint32_t pid = 0; pid < pangos.size(); pid++) {
+   for (uint32_t pid = 0; pid < pangos.size(); ++pid) {
       std::vector<uint32_t> v;
       v.push_back(pid);
       partition_t tmp = {pangos[pid].pango_lineage, pangos[pid].count, v};
@@ -208,7 +206,7 @@ std::vector<partition_t> silo::merge_pangos_to_partitions(std::vector<pango_t>& 
 
 void silo::pango_info(const MetaStore& mdb, std::ostream& out) {
    out << "Infos by pango:" << std::endl;
-   for (unsigned i = 0; i < mdb.pid_count; i++) {
+   for (unsigned i = 0; i < mdb.pid_count; ++i) {
       out << "(pid: " << i << ",\tpango-lin: " << mdb.pangos[i].pango_lineage
           << ",\tcount: " << number_fmt(mdb.pangos[i].count)
           << ",\tpartition: " << number_fmt(mdb.pangos[i].partition) << ')' << std::endl;
@@ -217,7 +215,7 @@ void silo::pango_info(const MetaStore& mdb, std::ostream& out) {
 
 void silo::partition_info(const MetaStore& mdb, std::ostream& out) {
    out << "Infos by pango:" << std::endl;
-   for (unsigned i = 0; i < mdb.partitions.size(); i++) {
+   for (unsigned i = 0; i < mdb.partitions.size(); ++i) {
       out << "(partition: " << i << ",\tprefix: " << mdb.partitions[i].prefix
           << ",\tcount: " << number_fmt(mdb.partitions[i].count)
           << ",\tpango range:" << mdb.pangos[mdb.partitions[i].pids.front()].pango_lineage
