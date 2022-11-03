@@ -45,7 +45,7 @@ int silo::db_info(const SequenceStore& db, std::ostream& io) {
 
 using r_stat = roaring::api::roaring_statistics_t;
 
-static inline void addStat(r_stat r1, r_stat r2) {
+static inline void addStat(r_stat& r1, r_stat& r2) {
    r1.cardinality += r2.cardinality;
    if (r2.max_value > r1.max_value) r1.max_value = r2.max_value;
    if (r2.min_value < r1.min_value) r1.min_value = r2.min_value;
@@ -76,28 +76,28 @@ int silo::db_info_detailed(const SequenceStore& db, std::ostream& io) {
          << number_fmt(size_by_symbols[symbol]) << std::endl;
    }
 
-   r_stat s_total;
+   r_stat s_total{};
    {
       r_stat s;
       for (const Position& p : db.positions) {
          for (const Roaring& bm : p.bitmaps) {
-            roaring_bitmap_statistics(&db.positions[0].bitmaps[0].roaring, &s);
+            roaring_bitmap_statistics(&bm.roaring, &s);
             addStat(s_total, s);
          }
       }
    }
-   io << "Total bitmap containers " << s_total.n_containers << "of those there are " << std::endl
-      << "array: " << s_total.n_array_containers << std::endl
-      << "run: " << s_total.n_run_containers << std::endl
-      << "bitset: " << s_total.n_bitset_containers << std::endl;
-   io << "Total bitmap values " << s_total.cardinality << "of those there are " << std::endl
-      << "array: " << s_total.n_values_array_containers << std::endl
-      << "run: " << s_total.n_values_run_containers << std::endl
-      << "bitset: " << s_total.n_values_bitset_containers << std::endl;
-   io << "Total bitmap byte size " << db.computeSize() << "of those there are " << std::endl
-      << "array: " << s_total.n_bytes_array_containers << std::endl
-      << "run: " << s_total.n_bytes_run_containers << std::endl
-      << "bitset: " << s_total.n_bytes_bitset_containers << std::endl;
+   io << "Total bitmap containers " << number_fmt(s_total.n_containers) << ", of those there are " << std::endl
+      << "array: " << number_fmt(s_total.n_array_containers) << std::endl
+      << "run: " << number_fmt(s_total.n_run_containers) << std::endl
+      << "bitset: " << number_fmt(s_total.n_bitset_containers) << std::endl;
+   io << "Total bitmap values " << number_fmt(s_total.cardinality) << ", of those there are " << std::endl
+      << "array: " << number_fmt(s_total.n_values_array_containers) << std::endl
+      << "run: " << number_fmt(s_total.n_values_run_containers) << std::endl
+      << "bitset: " << number_fmt(s_total.n_values_bitset_containers) << std::endl;
+   io << "Total bitmap byte size " << number_fmt(db.computeSize()) << ", of those there are " << std::endl
+      << "array: " << number_fmt(s_total.n_bytes_array_containers) << std::endl
+      << "run: " << number_fmt(s_total.n_bytes_run_containers) << std::endl
+      << "bitset: " << number_fmt(s_total.n_bytes_bitset_containers) << std::endl;
 
    return 0;
 }
@@ -125,6 +125,11 @@ unsigned silo::load_db(SequenceStore& db, const std::string& db_filename) {
    {
       // create and open an archive for input
       std::ifstream ifs(db_filename, ios::binary);
+
+      if (!ifs) {
+         std::cerr << db_filename << " not found." << std::endl;
+         return -1;
+      }
       ::boost::archive::binary_iarchive ia(ifs);
       // read class state from archive
       ia >> db;
@@ -178,7 +183,7 @@ void silo::process_raw(SequenceStore& db, std::istream& in) {
    db_info(db, std::cout);
 }
 
-void silo::process(SequenceStore& db, MetaStore& mdb, std::istream& in) {
+void silo::process(SequenceStore& db, MetaStore& /*mdb*/, std::istream& in) {
    static constexpr unsigned chunkSize = 1024;
 
    uint32_t sid_ctr = db.sequenceCount;

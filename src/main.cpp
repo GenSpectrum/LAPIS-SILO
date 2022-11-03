@@ -24,8 +24,7 @@ void info_message() {
         << "\tbuild_meta [metadata.tsv]" << endl
         << "\tpartition <out_prefix> [fasta_archive]" << endl
         << "\tsort_partitions <io_prefix> [fasta_archive]" << endl
-        << "\tbuild_partitioned [_#PARTNO.fasta_file_prefix]" << endl
-        << "\tbuild_partitioned_c [#PARTNO.fasta.xz_archives_prefix]" << endl;
+        << "\tbuild_partitioned [part_prefix] [part_suffix]" << endl;
 }
 
 int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> args) {
@@ -206,41 +205,26 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
       sort_partitions(mdb, part_prefix);
       return 0;
    } else if ("build_partitioned" == args[0]) {
-      std::string part_prefix;
+      std::string part_prefix, part_suffix;
       if (args.size() == 1) {
          part_prefix = default_partition_prefix;
+         part_suffix = ".fasta";
       } else if (args.size() == 2) {
          part_prefix = args[1];
+         part_suffix = ".fasta";
+      } else if (args.size() == 3) {
+         part_prefix = args[1];
+         part_suffix = args[2];
       } else {
-         cout << "Expected syntax: \"build_partitioned [partition_prefix]\"" << endl;
+         cout << "Expected syntax: \"build_partitioned [partition_prefix] [partition_suffix]\"" << endl;
          return 0;
       }
-      const std::string in_prefix = part_prefix + '_';
       for (unsigned i = 0; i < mdb.partitions.size(); i++) {
-         std::string name = in_prefix + std::to_string(i) + ".fasta";
-         std::ifstream in(name);
+         std::string name = part_prefix + std::to_string(i);
+         name += part_suffix;
+         istream_wrapper in(name);
          cout << "Building sequence-store from input file: " << name << endl;
-         process(db, mdb, in);
-      }
-   } else if ("build_partitioned_c" == args[0]) {
-      std::string part_prefix;
-      if (args.size() == 1) {
-         part_prefix = default_partition_prefix;
-      } else if (args.size() == 2) {
-         part_prefix = args[1];
-      } else {
-         cout << "Expected syntax: \"build_partitioned_c [partition_prefix]\"" << endl;
-         return 0;
-      }
-      const std::string in_prefix = part_prefix + '_';
-      for (unsigned i = 0; i < mdb.pangos.size(); i++) {
-         std::string name = in_prefix + std::to_string(i) + ".fasta.xz";
-         std::ifstream in(name);
-         boost::iostreams::filtering_istream archive;
-         archive.push(boost::iostreams::lzma_decompressor());
-         archive.push(in);
-         cout << "Building sequence-store from input archive: " << name << endl;
-         process(db, mdb, archive);
+         process(db, mdb, in.get_is());
       }
    } else if ("build_meta_uns" == args[0]) {
       std::string meta_file;
