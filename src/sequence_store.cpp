@@ -236,12 +236,15 @@ void silo::process(SequenceStore& db, MetaStore& /*mdb*/, std::istream& in) {
 }
 
 unsigned silo::runoptimize(SequenceStore& db) {
-   unsigned count_true = 0;
-   for (Position& p : db.positions) {
-      for (auto& bm : p.bitmaps) {
-         if (bm.runOptimize()) ++count_true;
+   std::atomic<unsigned> count_true = 0;
+   tbb::blocked_range<Position*> r(&db.positions[0], &db.positions[genomeLength]);
+   tbb::parallel_for(r, [&](const decltype(r) local) {
+      for (Position& p : local) {
+         for (auto& bm : p.bitmaps) {
+            if (bm.runOptimize()) ++count_true;
+         }
       }
-   }
+   });
    return count_true;
 }
 
