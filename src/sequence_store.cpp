@@ -2,6 +2,9 @@
 // Created by Alexander Taepper on 01.09.22.
 //
 #include "silo/sequence_store.h"
+#include <tbb/blocked_range.h>
+#include <tbb/enumerable_thread_specific.h>
+#include <tbb/parallel_for.h>
 
 using namespace silo;
 using ios = std::ios;
@@ -155,10 +158,30 @@ static void interpret_offset(SequenceStore& db, const std::vector<std::string>& 
    db.sequenceCount += genomes.size();
 }
 
+static void interpret_offset_p(SequenceStore& db, const std::vector<std::string>& genomes, uint32_t offset) {
+   tbb::blocked_range<unsigned> range(0, genomeLength, genomeLength / 64);
+   tbb::parallel_for(range, [&](const decltype(range)& local) {
+      std::vector<std::vector<unsigned>> symbolPositions(symbolCount);
+      for (unsigned col = local.begin(); col != local.end(); ++col) {
+         for (unsigned index2 = 0, limit2 = genomes.size(); index2 != limit2; ++index2) {
+            char c = genomes[index2][col];
+            Symbol s = to_symbol(c);
+            symbolPositions[s].push_back(offset + index2);
+         }
+         for (unsigned symbol = 0; symbol != symbolCount; ++symbol)
+            if (!symbolPositions[symbol].empty()) {
+               db.positions[col].bitmaps[symbol].addMany(symbolPositions[symbol].size(), symbolPositions[symbol].data());
+               symbolPositions[symbol].clear();
+            }
+      }
+   });
+   db.sequenceCount += genomes.size();
+}
+
 /// Appends the sequences in genome to the current bitmaps in SequenceStore and increases sequenceCount
 static void interpret(SequenceStore& db, const std::vector<std::string>& genomes) {
    // Putting sequences to the end is the same as offsetting them to sequence_count
-   interpret_offset(db, genomes, db.sequenceCount);
+   interpret_offset_p(db, genomes, db.sequenceCount);
 }
 
 void silo::process_raw(SequenceStore& db, std::istream& in) {
@@ -296,7 +319,7 @@ void silo::process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, std
       auto& genomes = pid_to_genomes[pid];
       genomes.emplace_back(std::move(genome));
       if (genomes.size() >= chunkSize) {
-         interpret_offset(db, genomes, dynamic_offsets[pid]);
+         interpret_offset_p(db, genomes, dynamic_offsets[pid]);
          dynamic_offsets[pid] += genomes.size();
          genomes.clear();
       }
@@ -306,7 +329,7 @@ void silo::process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, std
    }
 
    for (uint16_t pid = 0; pid < mdb.pid_count + 1; ++pid) {
-      interpret_offset(db, pid_to_genomes[pid], dynamic_offsets[pid]);
+      interpret_offset_p(db, pid_to_genomes[pid], dynamic_offsets[pid]);
    }
 
    // now also calculate the reverse direction for the epi<->sid relationship.
