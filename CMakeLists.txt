@@ -23,6 +23,7 @@ include("${CMAKE_SOURCE_DIR}/vendor/rapidjson.cmake")
 
 find_package(Boost REQUIRED COMPONENTS system iostreams serialization)
 find_package(LibLZMA REQUIRED)
+find_package(TBB REQUIRED)
 
 
 # ---------------------------------------------------------------------------
@@ -50,9 +51,12 @@ set(SRC_CC
         src/query_engine.cpp
         src/roaring/roaring.c)
 
-add_executable(silo src/main.cpp ${SRC_CC} ${Boost_INCLUDE_DIRS})
 
-target_link_libraries(silo PUBLIC rapidjson readline ${Boost_LIBRARIES})
+add_library(siloapi ${SRC_CC} ${Boost_INCLUDE_DIRS})
+target_link_libraries(siloapi PUBLIC rapidjson readline ${Boost_LIBRARIES} TBB::tbb)
+
+add_executable(silo src/main.cpp)
+target_link_libraries(silo PUBLIC siloapi)
 
 
 # ---------------------------------------------------------------------------
@@ -79,8 +83,8 @@ add_test(
         "build ${PROJECT_SOURCE_DIR}/Data/aligned.50k.fasta" exit
 )
 
-add_executable(mytest test/test.cpp ${SRC_CC})
-target_link_libraries(mytest PUBLIC rapidjson ${Boost_LIBRARIES})
+add_executable(mytest test/test.cpp)
+target_link_libraries(mytest PUBLIC siloapi)
 
 
 include("${CMAKE_SOURCE_DIR}/test/local.cmake")
