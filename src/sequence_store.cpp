@@ -398,19 +398,13 @@ void silo::partition_sequences(MetaStore& mdb, std::istream& in, const std::stri
 void silo::sort_partitions(const MetaStore& mdb, const std::string& output_prefix_) {
    const std::string output_prefix = output_prefix_ + '_';
 
-   unsigned n = mdb.partitions.size();
-   // std::vector<std::thread> threads(n);
-   for (unsigned part = 0; part < n; ++part) {
-      const std::string& file_name = output_prefix + std::to_string(part);
-      sort_partition(mdb, file_name, part, SortOption::bydate);
-      // threads[n] = std::thread(sort_partition, mdb, file_name, part, SortOption::bydate);
-   }
-
-   /*
-   for (unsigned part = 0; part < n; ++part) {
-      threads[part].join();
-   }
-   */
+   tbb::blocked_range<unsigned> r(0, mdb.partitions.size());
+   tbb::parallel_for(r, [&](const decltype(r) local) {
+      for (unsigned part = local.begin(); part < local.end(); ++part) {
+         const std::string& file_name = output_prefix + std::to_string(part);
+         sort_partition(mdb, file_name, part, SortOption::bydate);
+      }
+   });
 }
 
 void silo::sort_partition(const MetaStore& mdb, const std::string& file_name, unsigned part, SortOption option) {
@@ -450,14 +444,14 @@ void silo::sort_partition(const MetaStore& mdb, const std::string& file_name, un
       firstRun.emplace_back(EPIDate{epi, date, count++});
    }
 
-   std::cout << "Finished first run for partition: " << part << std::endl;
+   // std::cout << "Finished first run for partition: " << part << std::endl;
 
    auto sorter = [](const EPIDate& s1, const EPIDate& s2) {
       return s1.date < s2.date;
    };
    std::sort(firstRun.begin(), firstRun.end(), sorter);
 
-   std::cout << "Sorted first run for partition: " << part << std::endl;
+   // std::cout << "Sorted first run for partition: " << part << std::endl;
 
    std::vector<uint32_t> file_pos_to_sorted_pos(count);
    unsigned count2 = 0;
@@ -467,12 +461,12 @@ void silo::sort_partition(const MetaStore& mdb, const std::string& file_name, un
 
    assert(count == count2);
 
-   std::cout << "Calculated postitions for every sequence: " << part << std::endl;
+   // std::cout << "Calculated postitions for every sequence: " << part << std::endl;
 
    in.clear(); // clear fail and eof bits
    in.seekg(0, std::ios::beg); // back to the start!
 
-   std::cout << "Reset file seek, now read second time, sorted: " << part << std::endl;
+   // std::cout << "Reset file seek, now read second time, sorted: " << part << std::endl;
 
    std::vector<std::string> lines_sorted(2 * count);
    for (auto pos : file_pos_to_sorted_pos) {
