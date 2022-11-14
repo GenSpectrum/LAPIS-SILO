@@ -2,6 +2,7 @@
 // Created by Alexander Taepper on 01.09.22.
 //
 #include "silo/sequence_store.h"
+#include <syncstream>
 #include <tbb/blocked_range.h>
 #include <tbb/enumerable_thread_specific.h>
 #include <tbb/parallel_for.h>
@@ -407,24 +408,6 @@ void silo::sort_partitions(const MetaStore& mdb, const std::string& output_prefi
    });
 }
 
-class sync_stdout: public std::ostringstream
-{
-   public:
-   sync_stdout() = default;
-
-   ~sync_stdout()
-   {
-      std::lock_guard<std::mutex> guard(_mutexPrint);
-      std::cout << this->str();
-   }
-
-   private:
-   static std::mutex _mutexPrint;
-};
-
-std::mutex sync_stdout::_mutexPrint{};
-
-
 void silo::sort_partition(const MetaStore& mdb, const std::string& file_name, unsigned part, SortOption option) {
    if (option != SortOption::bydate) {
       return;
@@ -462,14 +445,14 @@ void silo::sort_partition(const MetaStore& mdb, const std::string& file_name, un
       firstRun.emplace_back(EPIDate{epi, date, count++});
    }
 
-   sync_stdout() << "Finished first run for partition: " << part << std::endl;
+   std::osyncstream(std::cout) << "Finished first run for partition: " << part << std::endl;
 
    auto sorter = [](const EPIDate& s1, const EPIDate& s2) {
       return s1.date < s2.date;
    };
    std::sort(firstRun.begin(), firstRun.end(), sorter);
 
-   sync_stdout() << "Sorted first run for partition: " << part << std::endl;
+   std::osyncstream(std::cout) << "Sorted first run for partition: " << part << std::endl;
 
    std::vector<uint32_t> file_pos_to_sorted_pos(count);
    unsigned count2 = 0;
@@ -479,12 +462,12 @@ void silo::sort_partition(const MetaStore& mdb, const std::string& file_name, un
 
    assert(count == count2);
 
-   sync_stdout() << "Calculated postitions for every sequence: " << part << std::endl;
+   std::osyncstream(std::cout) << "Calculated postitions for every sequence: " << part << std::endl;
 
    in.clear(); // clear fail and eof bits
    in.seekg(0, std::ios::beg); // back to the start!
 
-   sync_stdout() << "Reset file seek, now read second time, sorted: " << part << std::endl;
+   std::osyncstream(std::cout) << "Reset file seek, now read second time, sorted: " << part << std::endl;
 
    std::vector<std::string> lines_sorted(2 * count);
    for (auto pos : file_pos_to_sorted_pos) {
