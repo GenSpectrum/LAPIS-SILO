@@ -101,15 +101,15 @@ void silo::processMeta_ordered(MetaStore& mdb, std::istream& in) {
       mdb.pango_to_pid[pango.pango_lineage] = pid;
    }
 
-   // Merge pango_lineages, such that partitions are not get very small
-   mdb.partitions =
-      silo::merge_pangos_to_partitions(mdb.pangos,
-                                       mdb.sequence_count / 100, mdb.sequence_count / 200);
-   // For lookup of partition by pid (e.g. when inputting sequences) precompute lookup vector
-   mdb.pid_to_partition.resize(mdb.pangos.size());
-   for (uint32_t i = 0; i < mdb.partitions.size(); ++i) {
-      for (auto pid : mdb.partitions[i].pids) {
-         mdb.pid_to_partition[pid] = i;
+   // Merge pango_lineages, such that chunks are not get very small
+   mdb.chunks =
+      silo::merge_pangos_to_chunks(mdb.pangos,
+                                   mdb.sequence_count / 100, mdb.sequence_count / 200);
+   // For lookup of chunk by pid (e.g. when inputting sequences) precompute lookup vector
+   mdb.pid_to_chunk.resize(mdb.pangos.size());
+   for (uint32_t i = 0; i < mdb.chunks.size(); ++i) {
+      for (auto pid : mdb.chunks[i].pids) {
+         mdb.pid_to_chunk[pid] = i;
       }
    }
 
@@ -141,21 +141,21 @@ void silo::processMeta_ordered(MetaStore& mdb, std::istream& in) {
    assert(mdb.sequence_count == mdb.epi_to_pid.size()); // EPIs should be unique
 }
 
-/// Takes pango_lineages as initial partition and merges them, trying to merge more closely related ones first
-/// Will merge 2 partitions if on is smaller than min_size or both are smaller than target_size
-/// Updates pango_lineages to contain the partition each pango_lineage is contained in and returns vector of partitions
-std::vector<partition_t> silo::merge_pangos_to_partitions(std::vector<pango_t>& pangos,
-                                                          unsigned target_size, unsigned min_size) {
-   // Initialize partitions such that every partition is just a pango_lineage
-   std::list<partition_t> partitions;
+/// Takes pango_lineages as initial chunk and merges them, trying to merge more closely related ones first
+/// Will merge 2 chunks if on is smaller than min_size or both are smaller than target_size
+/// Updates pango_lineages to contain the chunk each pango_lineage is contained in and returns vector of chunks
+std::vector<chunk_t> silo::merge_pangos_to_chunks(std::vector<pango_t>& pangos,
+                                                  unsigned target_size, unsigned min_size) {
+   // Initialize chunks such that every chunk is just a pango_lineage
+   std::list<chunk_t> chunks;
    for (uint32_t pid = 0; pid < pangos.size(); ++pid) {
       std::vector<uint32_t> v;
       v.push_back(pid);
-      partition_t tmp = {pangos[pid].pango_lineage, pangos[pid].count, v};
-      partitions.emplace_back(tmp);
+      chunk_t tmp = {pangos[pid].pango_lineage, pangos[pid].count, 0, v};
+      chunks.emplace_back(tmp);
    }
-   // We want to prioritise merges more closely related partitions.
-   // Therefore, we first merge the partitions, with longer matching prefixes.
+   // We want to prioritise merges more closely related chunks.
+   // Therefore, we first merge the chunks, with longer matching prefixes.
    // Precalculate the longest a prefix can be (which is the max length of lineages)
    uint32_t max_len = std::max_element(pangos.begin(), pangos.end(),
                                        [](const pango_t& lhs, const pango_t& rhs) {
@@ -163,12 +163,12 @@ std::vector<partition_t> silo::merge_pangos_to_partitions(std::vector<pango_t>& 
                                        })
                          ->pango_lineage.size();
    for (uint32_t len = max_len; len > 0; len--) {
-      for (auto it = partitions.begin(); it != partitions.end() && std::next(it) != partitions.end();) {
+      for (auto it = chunks.begin(); it != chunks.end() && std::next(it) != chunks.end();) {
          auto&& [pango1, pango2] = std::tie(*it, *std::next(it));
          std::string pref = common_pango_prefix(pango1.prefix, pango2.prefix);
          // We only look at possible merges with a common_prefix length of #len
          if (pref.size() == len &&
-             // Either, one of the partitions is very small,
+             // Either, one of the chunks is very small,
              (pango1.count < min_size || pango2.count < min_size ||
               // or both still want to grow
               (pango1.count < target_size && pango2.count < target_size))) {
@@ -180,7 +180,7 @@ std::vector<partition_t> silo::merge_pangos_to_partitions(std::vector<pango_t>& 
 
             // We merged pango1 into pango2 -> Now delete pango1
             // Do not need to increment, because erase will make it automatically point to next element
-            it = partitions.erase(it);
+            it = chunks.erase(it);
          } else {
             ++it;
          }
@@ -188,18 +188,18 @@ std::vector<partition_t> silo::merge_pangos_to_partitions(std::vector<pango_t>& 
    }
 
    uint32_t part_id = 0;
-   for (auto& partition : partitions) {
-      std::sort(partition.pids.begin(), partition.pids.end());
-      for (const auto& pid : partition.pids) {
-         pangos[pid].partition = part_id;
+   for (auto& chunk : chunks) {
+      std::sort(chunk.pids.begin(), chunk.pids.end());
+      for (const auto& pid : chunk.pids) {
+         pangos[pid].chunk = part_id;
       }
       ++part_id;
    }
 
-   std::vector<partition_t> ret;
+   std::vector<chunk_t> ret;
    std::copy(
-      std::begin(partitions),
-      std::end(partitions),
+      std::begin(chunks),
+      std::end(chunks),
       std::back_inserter(ret));
    return ret;
 }
@@ -209,20 +209,20 @@ void silo::pango_info(const MetaStore& mdb, std::ostream& out) {
    for (unsigned i = 0; i < mdb.pid_count; ++i) {
       out << "(pid: " << i << ",\tpango-lin: " << mdb.pangos[i].pango_lineage
           << ",\tcount: " << number_fmt(mdb.pangos[i].count)
-          << ",\tpartition: " << number_fmt(mdb.pangos[i].partition) << ')' << std::endl;
+          << ",\tchunk: " << number_fmt(mdb.pangos[i].chunk) << ')' << std::endl;
    }
 }
 
-void silo::partition_info(const MetaStore& mdb, std::ostream& out) {
+void silo::chunk_info(const MetaStore& mdb, std::ostream& out) {
    out << "Infos by pango:" << std::endl;
-   for (unsigned i = 0; i < mdb.partitions.size(); ++i) {
-      out << "(partition: " << i << ",\tprefix: " << mdb.partitions[i].prefix
-          << ",\tcount: " << number_fmt(mdb.partitions[i].count)
-          << ",\tpango range:" << mdb.pangos[mdb.partitions[i].pids.front()].pango_lineage
-          << "-" << mdb.pangos[mdb.partitions[i].pids.back()].pango_lineage
+   for (unsigned i = 0; i < mdb.chunks.size(); ++i) {
+      out << "(chunk: " << i << ",\tprefix: " << mdb.chunks[i].prefix
+          << ",\tcount: " << number_fmt(mdb.chunks[i].count)
+          << ",\tpango range:" << mdb.pangos[mdb.chunks[i].pids.front()].pango_lineage
+          << "-" << mdb.pangos[mdb.chunks[i].pids.back()].pango_lineage
           << ",\tpid vec: ";
-      std::copy(mdb.partitions[i].pids.begin(),
-                mdb.partitions[i].pids.end(),
+      std::copy(mdb.chunks[i].pids.begin(),
+                mdb.chunks[i].pids.end(),
                 std::ostream_iterator<uint32_t>(std::cout, " "));
       std::cout << ')' << std::endl;
    }

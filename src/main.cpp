@@ -23,8 +23,8 @@ void info_message() {
         << "\tbuild [fasta_archive]" << endl
         << "\tbuild_meta [metadata.tsv]" << endl
         << "\tpartition <out_prefix> [fasta_archive]" << endl
-        << "\tsort_partitions <io_prefix> [fasta_archive]" << endl
-        << "\tbuild_partitioned [part_prefix] [part_suffix]" << endl;
+        << "\tsort_chunks <io_prefix> [fasta_archive]" << endl
+        << "\tbuild_chunked [part_prefix] [part_suffix]" << endl;
 }
 
 int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> args) {
@@ -36,7 +36,9 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
    const std::string default_meta_savefile = "../silo/meta_store.silo";
    const std::string default_sequence_input = "../Data/aligned.fasta.xz";
    const std::string default_metadata_input = "../Data/metadata.tsv";
-   const std::string default_partition_prefix = "../Data/Partitioned/aligned";
+   const std::string default_seq_partition_prefix = "../Data/Partitioned/sequences/aligned";
+   const std::string default_meta_partition_prefix = "../Data/Partitioned/meta/metadata";
+   const std::string default_query_dir = "../Data/queries";
    if (args.empty()) {
       return 0;
    }
@@ -86,8 +88,8 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
       db_info_detailed(db, cout);
    } else if ("pango_info" == args[0]) {
       pango_info(mdb, cout);
-   } else if ("partition_info" == args[0]) {
-      partition_info(mdb, cout);
+   } else if ("chunk_info" == args[0]) {
+      chunk_info(mdb, cout);
    } else if ("benchmark" == args[0]) {
       cout << "Unavailable." << endl;
       // benchmark(db);
@@ -122,7 +124,7 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
       cout << "Building sequence-store from " << inputfile << endl;
       istream_wrapper file(inputfile);
       process(db, mdb, file.get_is());
-   } else if ("calc_partition_offsets" == args[0]) {
+   } else if ("build_chunked_otf" == args[0]) {
       if (mdb.epi_to_pid.empty()) {
          cout << "No meta_data built." << endl;
          return 0;
@@ -133,37 +135,12 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
       } else if (args.size() == 2) {
          inputfile = args[1];
       } else {
-         cout << "Expected syntax: \"calc_partition_offsets [fasta_file | fasta_archive]\"" << endl;
+         cout << "Expected syntax: \"build_chunked_otf [fasta_file | fasta_archive]\"" << endl;
          return 0;
       }
-      cout << "calc_partition_offsets from " << inputfile << endl;
+      cout << "build_chunked_otf from " << inputfile << endl;
       istream_wrapper file(inputfile);
-      calc_partition_offsets(db, mdb, file.get_is());
-   } else if ("build_partitioned_otf" == args[0]) {
-      if (mdb.epi_to_pid.empty()) {
-         cout << "No meta_data built." << endl;
-         return 0;
-      } else if (db.part_to_offset.empty()) {
-         cout << "Need to first calculate offsets. See 'calc_partition_offsets'." << endl;
-      }
-      cout << "This clears all currently stored sequences. TODO no longer does this.\nPress (y) to continue." << endl;
-      std::string s;
-      cin >> s;
-      if (s != "y" && s != "Y") {
-         return 0;
-      }
-      std::string inputfile;
-      if (args.size() == 1) {
-         inputfile = default_sequence_input;
-      } else if (args.size() == 2) {
-         inputfile = args[1];
-      } else {
-         cout << "Expected syntax: \"calc_partition_offsets [fasta_file | fasta_archive]\"" << endl;
-         return 0;
-      }
-      cout << "build_partitioned_otf from " << inputfile << endl;
-      istream_wrapper file(inputfile);
-      process_partitioned_on_the_fly(db, mdb, file.get_is());
+      process_chunked_on_the_fly(db, mdb, file.get_is());
    } else if ("partition" == args[0]) {
       if (mdb.epi_to_pid.empty()) {
          cout << "No meta_data built." << endl;
@@ -172,10 +149,10 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
       std::string inputfile, part_prefix;
       if (args.size() == 1) {
          inputfile = default_sequence_input;
-         part_prefix = default_partition_prefix;
+         part_prefix = default_seq_partition_prefix;
       } else if (args.size() == 2) {
          inputfile = args[1];
-         part_prefix = default_partition_prefix;
+         part_prefix = default_seq_partition_prefix;
       } else if (args.size() == 3) {
          inputfile = args[1];
          part_prefix = args[2];
@@ -187,27 +164,27 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
       istream_wrapper file(inputfile);
       partition_sequences(mdb, file.get_is(), part_prefix);
       return 0;
-   } else if ("sort_partitions" == args[0]) {
+   } else if ("sort_chunks" == args[0]) {
       if (mdb.epi_to_pid.empty()) {
          cout << "No meta_data built." << endl;
          return 0;
       }
       std::string part_prefix;
       if (args.size() == 1) {
-         part_prefix = default_partition_prefix;
+         part_prefix = default_seq_partition_prefix;
       } else if (args.size() == 2) {
          part_prefix = args[1];
       } else {
-         cout << "Expected syntax: \"partition [out_prefix]\"" << endl;
+         cout << "Expected syntax: \"sort_chunks [out_prefix]\"" << endl;
          return 0;
       }
-      cout << "sort_partitions in " << part_prefix << endl;
-      sort_partitions(mdb, part_prefix);
+      cout << "sort_chunks in " << part_prefix << endl;
+      sort_chunks(mdb, part_prefix);
       return 0;
-   } else if ("build_partitioned" == args[0]) {
+   } else if ("build_chunked" == args[0]) {
       std::string part_prefix, part_suffix;
       if (args.size() == 1) {
-         part_prefix = default_partition_prefix;
+         part_prefix = default_seq_partition_prefix;
          part_suffix = ".fasta";
       } else if (args.size() == 2) {
          part_prefix = args[1];
@@ -219,27 +196,13 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
          cout << "Expected syntax: \"build_partitioned [partition_prefix] [partition_suffix]\"" << endl;
          return 0;
       }
-      for (unsigned i = 0; i < mdb.partitions.size(); i++) {
+      for (unsigned i = 0; i < mdb.chunks.size(); i++) {
          std::string name = part_prefix + std::to_string(i);
          name += part_suffix;
          istream_wrapper in(name);
          cout << "Building sequence-store from input file: " << name << endl;
          process(db, mdb, in.get_is());
       }
-   } else if ("build_meta_uns" == args[0]) {
-      std::string meta_file;
-      if (args.size() == 1) {
-         meta_file = default_metadata_input;
-      } else if (args.size() == 2) {
-         meta_file = args[1];
-      } else {
-         cout << "Expected syntax: \"build_meta_uns [meta_file]\"" << endl;
-         return 0;
-      }
-
-      cout << "Building meta_data (unsorted) from file " << meta_file << endl;
-      istream_wrapper file(meta_file);
-      processMeta(mdb, file.get_is());
    } else if ("build_meta" == args[0]) {
       std::string meta_file;
       if (args.size() == 1) {

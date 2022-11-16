@@ -15,23 +15,25 @@ struct pango_t {
    [[maybe_unused]] void serialize(Archive& ar, const unsigned int /* version */) {
       ar& pango_lineage;
       ar& count;
-      ar& partition;
+      ar& chunk;
    }
    std::string pango_lineage;
    uint32_t count;
-   uint32_t partition;
+   uint32_t chunk;
 };
 
-struct partition_t {
+struct chunk_t {
    friend class boost::serialization::access;
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& ar, const unsigned int /* version */) {
       ar& prefix;
       ar& count;
+      ar& offset;
       ar& pids;
    }
    std::string prefix;
    uint32_t count;
+   uint32_t offset;
    std::vector<uint32_t> pids;
 };
 
@@ -55,7 +57,7 @@ struct MetaStore {
       ar& pango_to_pid;
 
       ar& pangos;
-      ar& partitions;
+      ar& chunks;
    }
 
    std::unordered_map<std::string, std::string> alias_key;
@@ -76,21 +78,21 @@ struct MetaStore {
    std::vector<std::string> all_countries;
    std::vector<roaring::Roaring> country_bitmaps;
 
-   std::unordered_map<std::string, uint32_t> dictionary;
+   std::unordered_map<std::string, uint32_t> dict_lookup;
    std::vector<std::string> dict;
 
    std::unordered_map<std::string, uint16_t> pango_to_pid;
    std::vector<silo::pango_t> pangos;
 
-   std::vector<silo::partition_t> partitions;
-   std::vector<uint32_t> pid_to_partition;
+   std::vector<silo::chunk_t> chunks;
+   std::vector<uint32_t> pid_to_chunk;
 
    uint32_t sequence_count = 0;
    uint16_t pid_count = 0;
 
    MetaStore() {
       std::ifstream alias_key_file("../Data/pango_alias.txt");
-      if(!alias_key_file){
+      if (!alias_key_file) {
          std::cerr << "Expected file Data/pango_alias.txt." << std::endl;
       }
       while (true) {
@@ -107,14 +109,14 @@ void processMeta_ordered(MetaStore& mdb, std::istream& in);
 
 void pango_info(const MetaStore& mdb, std::ostream& out);
 
-void partition_info(const MetaStore& mdb, std::ostream& out);
+void chunk_info(const MetaStore& mdb, std::ostream& out);
 
 unsigned save_meta(const MetaStore& db, const std::string& db_filename);
 
 unsigned load_meta(MetaStore& db, const std::string& db_filename);
 
-std::vector<partition_t> merge_pangos_to_partitions(std::vector<pango_t>& pangos,
-                                                    unsigned target_size, unsigned min_size);
+std::vector<chunk_t> merge_pangos_to_chunks(std::vector<pango_t>& pangos,
+                                            unsigned target_size, unsigned min_size);
 
 static bool resolve_alias(const std::unordered_map<std::string, std::string>& alias_key, std::string& pango_lineage) {
    std::string pango_pref;

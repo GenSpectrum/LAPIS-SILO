@@ -142,23 +142,6 @@ unsigned silo::load_db(SequenceStore& db, const std::string& db_filename) {
    return 0;
 }
 
-static void interpret_offset(SequenceStore& db, const std::vector<std::string>& genomes, uint32_t offset) {
-   std::vector<unsigned> offsets[symbolCount];
-   for (unsigned index = 0; index != genomeLength; ++index) {
-      for (unsigned index2 = 0, limit2 = genomes.size(); index2 != limit2; ++index2) {
-         char c = genomes[index2][index];
-         Symbol s = to_symbol(c);
-         offsets[s].push_back(offset + index2);
-      }
-      for (unsigned index2 = 0; index2 != symbolCount; ++index2)
-         if (!offsets[index2].empty()) {
-            db.positions[index].bitmaps[index2].addMany(offsets[index2].size(), offsets[index2].data());
-            offsets[index2].clear();
-         }
-   }
-   db.sequenceCount += genomes.size();
-}
-
 static void interpret_offset_p(SequenceStore& db, const std::vector<std::string>& genomes, uint32_t offset) {
    tbb::blocked_range<unsigned> range(0, genomeLength, genomeLength / 64);
    tbb::parallel_for(range, [&](const decltype(range)& local) {
@@ -238,7 +221,7 @@ void silo::process(SequenceStore& db, MetaStore& /*mdb*/, std::istream& in) {
 
 unsigned silo::runoptimize(SequenceStore& db) {
    std::atomic<unsigned> count_true = 0;
-   tbb::blocked_range<Position*> r(&db.positions[0], &db.positions[genomeLength]);
+   tbb::blocked_range<Position*> r(std::begin(db.positions), std::end(db.positions));
    tbb::parallel_for(r, [&](const decltype(r) local) {
       for (Position& p : local) {
          for (auto& bm : p.bitmaps) {
@@ -249,15 +232,13 @@ unsigned silo::runoptimize(SequenceStore& db) {
    return count_true;
 }
 
-void silo::calc_partition_offsets(SequenceStore& db, MetaStore& mdb, std::istream& in) {
+void silo::process_chunked_on_the_fly(SequenceStore& sdb, MetaStore& mdb, std::istream& in) {
    std::cout << "Now calculating partition offsets" << std::endl;
 
    // Clear the vector and resize
    // TODO for future proofing, instead of clearing, extending them?
-   db.part_to_offset.clear();
-   db.part_to_offset.resize(mdb.pid_count);
-   db.part_to_realcount.clear();
-   db.part_to_realcount.resize(mdb.pid_count);
+   std::vector<uint32_t> chunk_to_offset(mdb.pid_count);
+   std::vector<uint32_t> chunk_to_realcount(mdb.pid_count);
 
    while (true) {
       std::string epi_isl;
@@ -273,32 +254,27 @@ void silo::calc_partition_offsets(SequenceStore& db, MetaStore& mdb, std::istrea
       }
 
       uint16_t pid = mdb.epi_to_pid[epi];
-      auto part = mdb.pid_to_partition[pid];
-      ++db.part_to_realcount[part];
+      auto part = mdb.pid_to_chunk[pid];
+      ++chunk_to_realcount[part];
    }
 
    // Escalate offsets from start to finish
    uint32_t cumulative_offset = 0;
    for (int i = 0; i < mdb.pid_count; ++i) {
-      db.part_to_offset[i] += cumulative_offset;
-      cumulative_offset += db.part_to_realcount[i];
+      chunk_to_offset[i] += cumulative_offset;
+      cumulative_offset += chunk_to_realcount[i];
    }
 
    // cumulative_offset should be equal to sequence count now
 
-   std::cout << "Finished calculating partition offsets." << std::endl;
-}
+   std::cout << "Finished calculating chunk offsets." << std::endl;
 
-// TODO  this clears the SequenceStore? doesn't have to be
-//       see also calc_partition_offsets, maybe condense into one function?
-//       Does not really make much senese to call them independently
-void silo::process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, std::istream& in) {
-   static constexpr unsigned chunkSize = 1024;
+   static constexpr unsigned interpretSize = 1024;
 
    // these offsets lag by chunk.
-   std::vector<uint32_t> dynamic_offsets(db.part_to_offset);
+   std::vector<uint32_t> dynamic_offsets(chunk_to_offset);
    // actually these are the same offsets just without lagging by chunk.
-   std::vector<uint32_t> sid_ctrs(db.part_to_offset);
+   std::vector<uint32_t> sid_ctrs(chunk_to_offset);
    std::vector<std::vector<std::string>> pid_to_genomes;
    pid_to_genomes.resize(mdb.pid_count + 1);
    while (true) {
@@ -317,32 +293,32 @@ void silo::process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, std
       }
 
       uint16_t pid = mdb.epi_to_pid.at(epi);
-      auto part = mdb.pid_to_partition[pid];
-      ++db.part_to_realcount[part];
+      auto part = mdb.pid_to_chunk[pid];
+      ++chunk_to_realcount[part];
 
       auto& genomes = pid_to_genomes[pid];
       genomes.emplace_back(std::move(genome));
-      if (genomes.size() >= chunkSize) {
-         interpret_offset_p(db, genomes, dynamic_offsets[pid]);
+      if (genomes.size() >= interpretSize) {
+         interpret_offset_p(sdb, genomes, dynamic_offsets[pid]);
          dynamic_offsets[pid] += genomes.size();
          genomes.clear();
       }
 
       uint32_t sid = sid_ctrs[pid]++;
-      db.epi_to_sid[epi] = sid;
+      sdb.epi_to_sid[epi] = sid;
    }
 
    for (uint16_t pid = 0; pid < mdb.pid_count + 1; ++pid) {
-      interpret_offset_p(db, pid_to_genomes[pid], dynamic_offsets[pid]);
+      interpret_offset_p(sdb, pid_to_genomes[pid], dynamic_offsets[pid]);
    }
 
    // now also calculate the reverse direction for the epi<->sid relationship.
-   db.sid_to_epi.resize(db.epi_to_sid.size());
-   for (auto& x : db.epi_to_sid) {
-      db.sid_to_epi[x.second] = x.first;
+   sdb.sid_to_epi.resize(sdb.epi_to_sid.size());
+   for (auto& x : sdb.epi_to_sid) {
+      sdb.sid_to_epi[x.second] = x.first;
    }
 
-   db_info(db, std::cout);
+   db_info(sdb, std::cout);
 }
 
 // Only for testing purposes. Very inefficient. Will insert the genome in specific positions to the sequenceStore
@@ -368,7 +344,7 @@ void silo::partition_sequences(MetaStore& mdb, std::istream& in, const std::stri
    std::cout << "Now partitioning fasta file to " << output_prefix_ << std::endl;
    std::vector<std::unique_ptr<std::ostream>> part_to_ostream;
    const std::string output_prefix = output_prefix_ + '_';
-   for (unsigned part = 0; part < mdb.partitions.size(); ++part) {
+   for (unsigned part = 0; part < mdb.chunks.size(); ++part) {
       auto out = make_unique<std::ofstream>(output_prefix + std::to_string(part) + ".fasta");
       part_to_ostream.emplace_back(std::move(out));
    }
@@ -389,29 +365,24 @@ void silo::partition_sequences(MetaStore& mdb, std::istream& in, const std::stri
       }
 
       auto pid = mdb.epi_to_pid.at(epi);
-      auto part = mdb.pid_to_partition[pid];
+      auto part = mdb.pid_to_chunk[pid];
       *part_to_ostream[part] << epi_isl << std::endl
                              << genome << std::endl;
    }
    std::cout << "Finished partitioning to " << output_prefix_ << std::endl;
 }
 
-void silo::sort_partitions(const MetaStore& mdb, const std::string& output_prefix_) {
-   const std::string output_prefix = output_prefix_ + '_';
-
-   tbb::blocked_range<unsigned> r(0, mdb.partitions.size());
+void silo::sort_chunks(const MetaStore& mdb, const std::string& output_prefix) {
+   tbb::blocked_range<unsigned> r(0, mdb.chunks.size());
    tbb::parallel_for(r, [&](const decltype(r) local) {
       for (unsigned part = local.begin(); part < local.end(); ++part) {
          const std::string& file_name = output_prefix + std::to_string(part);
-         sort_partition(mdb, file_name, part, SortOption::bydate);
+         sort_chunk(mdb, file_name, part);
       }
    });
 }
 
-void silo::sort_partition(const MetaStore& mdb, const std::string& file_name, unsigned part, SortOption option) {
-   if (option != SortOption::bydate) {
-      return;
-   }
+void silo::sort_chunk(const MetaStore& mdb, const std::string& file_name, unsigned part) {
    silo::istream_wrapper in_wrap(file_name + ".fasta");
    std::istream& in = in_wrap.get_is();
    std::ofstream out(file_name + "_sorted.fasta");
@@ -428,7 +399,7 @@ void silo::sort_partition(const MetaStore& mdb, const std::string& file_name, un
       uint32_t file_pos;
    };
    std::vector<EPIDate> firstRun;
-   firstRun.reserve(mdb.partitions.at(part).count);
+   firstRun.reserve(mdb.chunks.at(part).count);
 
    uint32_t count = 0;
    while (true) {

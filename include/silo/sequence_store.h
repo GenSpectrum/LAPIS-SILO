@@ -31,22 +31,12 @@ struct SequenceStore {
       ar& epi_to_sid;
 
       ar& positions;
-
-      ar& part_to_offset;
-      ar& part_to_realcount;
    }
 
    Position positions[genomeLength];
 
    std::vector<uint64_t> sid_to_epi;
    std::unordered_map<uint64_t, uint32_t> epi_to_sid;
-
-   // real count refers to the count of sequences actually found in the fasta file, these may differ from meta_data
-   /// filled by calc_offset or build
-   std::vector<uint32_t> part_to_realcount;
-   // pid to offsets, offsets calculated from the respective counts
-   /// Only filled by calc_offset
-   std::vector<uint32_t> part_to_offset;
 
    unsigned sequenceCount = 0;
 
@@ -108,19 +98,13 @@ void process_raw(SequenceStore& db, std::istream& in);
 
 void process(SequenceStore& db, MetaStore& mdb, std::istream& in);
 
-void calc_partition_offsets(SequenceStore& db, MetaStore& mdb, std::istream& in);
-
-void process_partitioned_on_the_fly(SequenceStore& db, MetaStore& mdb, std::istream& in);
+void process_chunked_on_the_fly(SequenceStore& db, MetaStore& mdb, std::istream& in);
 
 void partition_sequences(MetaStore& mdb, std::istream& in, const std::string& output_prefix_);
 
-enum SortOption {
-   bydate
-};
+void sort_chunks(const MetaStore& mdb, const std::string& output_prefix_);
 
-void sort_partitions(const MetaStore& mdb, const std::string& output_prefix_);
-
-void sort_partition(const MetaStore& mdb, const std::string& file_name, unsigned pid, SortOption option);
+void sort_chunk(const MetaStore& mdb, const std::string& file_name, unsigned pid);
 
 } //namespace silo;
 
