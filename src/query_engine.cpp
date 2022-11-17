@@ -302,10 +302,10 @@ Roaring* DateBetwEx::evaluate(const SequenceStore& db, const MetaStore& mdb) {
    }
 
    auto ret = new Roaring;
-   auto base = &mdb.sidM_to_date[0];
+   auto base = &mdb.sid_to_date[0];
    for (const chunk_t& chunk : mdb.chunks) {
-      auto begin = &mdb.sidM_to_date[chunk.offset];
-      auto end = &mdb.sidM_to_date[chunk.offset + chunk.count];
+      auto begin = &mdb.sid_to_date[chunk.offset];
+      auto end = &mdb.sid_to_date[chunk.offset + chunk.count];
       uint32_t lower = open_to ? begin - base : std::lower_bound(begin, end, this->from) - base;
       uint32_t upper = open_to ? end - base : std::upper_bound(begin, end, this->to) - base;
       ret->addRange(lower, upper);

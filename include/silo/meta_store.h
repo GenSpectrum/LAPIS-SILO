@@ -38,6 +38,7 @@ struct MetaStore {
 
    std::vector<uint64_t> sid_to_epi;
    std::vector<time_t> sid_to_date;
+   std::vector<std::string> sid_to_lineage;
 
    std::vector<std::string> sid_to_region;
    std::vector<std::string> all_regions;

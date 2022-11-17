@@ -151,6 +151,7 @@ silo::pango_descriptor_t silo::build_pango_defs(const alias_key_t& alias_key, st
    // -> similar PIDs next to each other in sequence_store -> better run-length compression
    std::sort(pango_defs.pangos.begin(), pango_defs.pangos.end(),
              [](const pango_t& lhs, const pango_t& rhs) { return lhs.pango_lineage < rhs.pango_lineage; });
+   return pango_defs;
 }
 
 void save_pango_defs(const silo::pango_descriptor_t& pd, std::ostream& out) {
@@ -169,6 +170,7 @@ silo::pango_descriptor_t load_pango_defs(std::istream& in) {
       in >> count;
       descriptor.pangos.emplace_back(silo::pango_t{lineage, count});
    }
+   return descriptor;
 }
 
 static std::string common_pango_prefix(const std::string& s1, const std::string& s2) {
@@ -276,8 +278,10 @@ silo::partitioning_descriptor_t silo::build_partitioning_descriptor(silo::pango_
 
          descriptor.partitions[0].count = total_count;
          return descriptor;
-      case hybrid: throw std::runtime_error("Hybrid arch not yet implemented.");
+      case hybrid:
+         break;
    }
+   throw std::runtime_error("Arch not yet implemented.");
 }
 
 void save_partitioning_descriptor(const silo::partitioning_descriptor_t& pd, std::ostream& out) {

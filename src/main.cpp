@@ -1,5 +1,6 @@
-#include "../test/query_test.cpp"
-#include "silo/query_engine.h"
+
+#include <silo/prepare_dataset.h>
+#include <silo/query_engine.h>
 
 #include <readline/history.h>
 #include <readline/readline.h>
@@ -86,8 +87,6 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
       db_info(db, cout);
    } else if ("info_d" == args[0]) {
       db_info_detailed(db, cout);
-   } else if ("pango_info" == args[0]) {
-      pango_info(mdb, cout);
    } else if ("chunk_info" == args[0]) {
       chunk_info(mdb, cout);
    } else if ("benchmark" == args[0]) {
@@ -123,7 +122,7 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
       }
       cout << "Building sequence-store from " << inputfile << endl;
       istream_wrapper file(inputfile);
-      process(db, mdb, file.get_is());
+      process(db, file.get_is());
    } else if ("build_chunked_otf" == args[0]) {
       if (mdb.epi_to_pid.empty()) {
          cout << "No meta_data built." << endl;
@@ -160,7 +159,7 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
          cout << "Expected syntax: \"partition [fasta_file | fasta_archive] [out_prefix]\"" << endl;
          return 0;
       }
-      cout << "build_partitioned_otf from " << inputfile << " into " << part_prefix << endl;
+      cout << "partition from " << inputfile << " into " << part_prefix << endl;
       istream_wrapper file(inputfile);
       partition_sequences(mdb, file.get_is(), part_prefix);
       return 0;
