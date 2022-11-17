@@ -63,13 +63,131 @@ static constexpr char symbol_rep[symbolCount] = {
 
 static_assert(symbol_rep[static_cast<unsigned>(Symbol::N)] == 'N');
 
-Symbol to_symbol(char c);
+inline Symbol to_symbol(char c) {
+   Symbol s = Symbol::gap;
+   switch (c) {
+      case '.':
+      case '-':
+         s = Symbol::gap;
+         break;
+      case 'A':
+         s = Symbol::A;
+         break;
+      case 'C':
+         s = Symbol::C;
+         break;
+      case 'G':
+         s = Symbol::G;
+         break;
+      case 'T':
+      case 'U':
+         s = Symbol::T;
+         break;
+      case 'R':
+         s = Symbol::R;
+         break;
+      case 'Y':
+         s = Symbol::Y;
+         break;
+      case 'S':
+         s = Symbol::S;
+         break;
+      case 'W':
+         s = Symbol::W;
+         break;
+      case 'K':
+         s = Symbol::K;
+         break;
+      case 'M':
+         s = Symbol::M;
+         break;
+      case 'B':
+         s = Symbol::B;
+         break;
+      case 'D':
+         s = Symbol::D;
+         break;
+      case 'H':
+         s = Symbol::H;
+         break;
+      case 'V':
+         s = Symbol::V;
+         break;
+      case 'N':
+         s = Symbol::N;
+         break;
+      default:
+         std::cerr << "unrecognized symbol " << c << std::endl;
+   }
+   return s;
+}
 
-std::string getPangoPrefix(const std::string& pango_lineage);
+enum architecture_type {
+   single_chunk,
+   single_partition,
+   hybrid
+};
+
+typedef std::unordered_map<std::string, std::string> alias_key_t;
+
+inline std::string resolve_alias(const alias_key_t& alias_key, std::string& pango_lineage) {
+   std::string pango_pref;
+   std::stringstream pango_lin_stream(pango_lineage);
+   getline(pango_lin_stream, pango_pref, '.');
+   if (alias_key.contains(pango_pref)) {
+      if (pango_lin_stream.eof()) {
+         return alias_key.at(pango_pref);
+      }
+      std::string x((std::istream_iterator<char>(pango_lin_stream)), std::istream_iterator<char>());
+      return alias_key.at(pango_pref) + '.' + x;
+   } else {
+      return pango_lineage;
+   }
+}
+
+inline std::string getPangoPrefix(const std::string& pango_lineage) {
+   std::string pangoPref;
+   if (pango_lineage.size() > 2) {
+      std::stringstream ss(pango_lineage);
+      if (!getline(ss, pangoPref, '.')) {
+         std::cerr << "Non-covered case of pango lineage!" << std::endl;
+         return "Not-recognized";
+      }
+   } else {
+      pangoPref = pango_lineage;
+   }
+   return pangoPref;
+}
 
 struct separate_thousands : std::numpunct<char> {
    [[nodiscard]] char_type do_thousands_sep() const override { return '\''; }
    [[nodiscard]] string_type do_grouping() const override { return "\3"; }
+};
+
+struct pango_t {
+   friend class boost::serialization::access;
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& ar, const unsigned int /* version */) {
+      ar& pango_lineage;
+      ar& count;
+   }
+   std::string pango_lineage;
+   uint32_t count;
+};
+
+struct chunk_t {
+   friend class boost::serialization::access;
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& ar, const unsigned int /* version */) {
+      ar& prefix;
+      ar& count;
+      ar& offset;
+      ar& pangos;
+   }
+   std::string prefix;
+   uint32_t count;
+   uint32_t offset;
+   std::vector<std::string> pangos;
 };
 
 static inline std::string number_fmt(unsigned long n) {

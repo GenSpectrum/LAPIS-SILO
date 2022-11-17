@@ -96,11 +96,9 @@ unsigned runoptimize(SequenceStore& db);
 /// WARNING: This does not look at meta-data nor fill any indices required for queries. Use with caution
 void process_raw(SequenceStore& db, std::istream& in);
 
-void process(SequenceStore& db, MetaStore& mdb, std::istream& in);
+void process(SequenceStore& db, std::istream& in);
 
 void process_chunked_on_the_fly(SequenceStore& db, MetaStore& mdb, std::istream& in);
-
-void partition_sequences(MetaStore& mdb, std::istream& in, const std::string& output_prefix_);
 
 void sort_chunks(const MetaStore& mdb, const std::string& output_prefix_);
 

@@ -11,17 +11,17 @@ static inline void inputSequenceMeta(MetaStore& mdb, uint64_t epi, uint16_t pang
    mdb.epi_to_pid[epi] = pango_idx;
 
    uint32_t sidM = mdb.sequence_count++;
-   mdb.sidM_to_epi.push_back(epi);
-   mdb.epi_to_sidM[epi] = sidM;
+   mdb.sid_to_epi.push_back(epi);
+   mdb.epi_to_sid[epi] = sidM;
 
    struct std::tm tm {};
    std::istringstream ss(date);
    ss >> std::get_time(&tm, "%Y-%m-%d");
    std::time_t time = mktime(&tm);
 
-   mdb.sidM_to_date.push_back(time);
-   mdb.sidM_to_country.push_back(country);
-   mdb.sidM_to_region.push_back(region);
+   mdb.sid_to_date.push_back(time);
+   mdb.sid_to_country.push_back(country);
+   mdb.sid_to_region.push_back(region);
 }
 
 void silo::processMeta(MetaStore& mdb, std::istream& in) {
@@ -29,23 +29,16 @@ void silo::processMeta(MetaStore& mdb, std::istream& in) {
    in.ignore(LONG_MAX, '\n');
 
    while (true) {
-      std::string epi_isl, pango_lineage, date, region, country, division;
+      std::string epi_isl, pango_lineage_raw, date, region, country, division;
       if (!getline(in, epi_isl, '\t')) break;
-      if (!getline(in, pango_lineage, '\t')) break;
+      if (!getline(in, pango_lineage_raw, '\t')) break;
       if (!getline(in, date, '\t')) break;
       if (!getline(in, region, '\t')) break;
       if (!getline(in, country, '\t')) break;
       if (!getline(in, division, '\n')) break;
 
-      if (pango_lineage.empty()) {
-         std::cout << "Empty pango-lineage: " << pango_lineage << " " << epi_isl << std::endl;
-      } else if (pango_lineage.length() == 1 && pango_lineage != "A" && pango_lineage != "B") {
-         std::cout << "One-Char pango-lineage:" << epi_isl << " Lineage:'" << pango_lineage << "'";
-         std::cout << "(Keycode=" << (uint) pango_lineage.at(0) << ") may be relevant if char is not printable" << std::endl;
-      }
-
       /// Deal with pango_lineage alias:
-      resolve_alias(mdb.alias_key, pango_lineage);
+      std::string pango_lineage = resolve_alias(mdb.alias_key, pango_lineage_raw);
 
       std::string tmp = epi_isl.substr(8);
       uint64_t epi = stoi(tmp);
@@ -68,149 +61,27 @@ void silo::processMeta(MetaStore& mdb, std::istream& in) {
 }
 
 void silo::processMeta_ordered(MetaStore& mdb, std::istream& in) {
-   // Ignore header line.
-   in.ignore(LONG_MAX, '\n');
-
-   while (true) {
-      std::string pango_lineage;
-      in.ignore(LONG_MAX, '\t');
-      if (!getline(in, pango_lineage, '\t')) break;
-      in.ignore(LONG_MAX, '\n');
-
-      /// Deal with pango_lineage alias:
-      resolve_alias(mdb.alias_key, pango_lineage);
-
-      ++mdb.sequence_count;
-      if (mdb.pango_to_pid.contains(pango_lineage)) {
-         auto pid = mdb.pango_to_pid[pango_lineage];
-         ++mdb.pangos[pid].count;
-      } else {
-         mdb.pango_to_pid[pango_lineage] = mdb.pid_count++;
-         mdb.pangos.emplace_back(pango_t{pango_lineage, 1, 0});
-      }
-   }
-
-   // Now sort alphabetically so that we get better compression.
-   // -> similar PIDs next to each other in sequence_store -> better run-length compression
-   std::sort(mdb.pangos.begin(), mdb.pangos.end(),
-             [](const pango_t& lhs, const pango_t& rhs) { return lhs.pango_lineage < rhs.pango_lineage; });
-
-   mdb.pango_to_pid.clear();
-   for (uint16_t pid = 0; pid < mdb.pid_count; ++pid) {
-      auto pango = mdb.pangos[pid];
-      mdb.pango_to_pid[pango.pango_lineage] = pid;
-   }
-
-   // Merge pango_lineages, such that chunks are not get very small
-   mdb.chunks =
-      silo::merge_pangos_to_chunks(mdb.pangos,
-                                   mdb.sequence_count / 100, mdb.sequence_count / 200);
-   // For lookup of chunk by pid (e.g. when inputting sequences) precompute lookup vector
-   mdb.pid_to_chunk.resize(mdb.pangos.size());
-   for (uint32_t i = 0; i < mdb.chunks.size(); ++i) {
-      for (auto pid : mdb.chunks[i].pids) {
-         mdb.pid_to_chunk[pid] = i;
-      }
-   }
-
-   mdb.sequence_count = 0;
-   in.clear(); // clear fail and eof bits
-   in.seekg(0, std::ios::beg); // back to the start!
-
    in.ignore(LONG_MAX, '\n');
    while (true) {
-      std::string epi_isl, pango_lineage, date, region, country, division;
+      std::string epi_isl, pango_lineage_raw, date, region, country, division;
       if (!getline(in, epi_isl, '\t')) break;
-      if (!getline(in, pango_lineage, '\t')) break;
+      if (!getline(in, pango_lineage_raw, '\t')) break;
       if (!getline(in, date, '\t')) break;
       if (!getline(in, region, '\t')) break;
       if (!getline(in, country, '\t')) break;
       if (!getline(in, division, '\n')) break;
 
       /// Deal with pango_lineage alias:
-      resolve_alias(mdb.alias_key, pango_lineage);
+      std::string pango_lineage = resolve_alias(mdb.alias_key, pango_lineage_raw);
 
       std::string tmp = epi_isl.substr(8);
       uint64_t epi = stoi(tmp);
-      // Guaranteed to find, due to first-pass above
       uint16_t pango_idx = mdb.pango_to_pid[pango_lineage];
 
       inputSequenceMeta(mdb, epi, pango_idx, date, region, country, division);
    }
 
    assert(mdb.sequence_count == mdb.epi_to_pid.size()); // EPIs should be unique
-}
-
-/// Takes pango_lineages as initial chunk and merges them, trying to merge more closely related ones first
-/// Will merge 2 chunks if on is smaller than min_size or both are smaller than target_size
-/// Updates pango_lineages to contain the chunk each pango_lineage is contained in and returns vector of chunks
-std::vector<chunk_t> silo::merge_pangos_to_chunks(std::vector<pango_t>& pangos,
-                                                  unsigned target_size, unsigned min_size) {
-   // Initialize chunks such that every chunk is just a pango_lineage
-   std::list<chunk_t> chunks;
-   for (uint32_t pid = 0; pid < pangos.size(); ++pid) {
-      std::vector<uint32_t> v;
-      v.push_back(pid);
-      chunk_t tmp = {pangos[pid].pango_lineage, pangos[pid].count, 0, v};
-      chunks.emplace_back(tmp);
-   }
-   // We want to prioritise merges more closely related chunks.
-   // Therefore, we first merge the chunks, with longer matching prefixes.
-   // Precalculate the longest a prefix can be (which is the max length of lineages)
-   uint32_t max_len = std::max_element(pangos.begin(), pangos.end(),
-                                       [](const pango_t& lhs, const pango_t& rhs) {
-                                          return lhs.pango_lineage.size() < rhs.pango_lineage.size();
-                                       })
-                         ->pango_lineage.size();
-   for (uint32_t len = max_len; len > 0; len--) {
-      for (auto it = chunks.begin(); it != chunks.end() && std::next(it) != chunks.end();) {
-         auto&& [pango1, pango2] = std::tie(*it, *std::next(it));
-         std::string pref = common_pango_prefix(pango1.prefix, pango2.prefix);
-         // We only look at possible merges with a common_prefix length of #len
-         if (pref.size() == len &&
-             // Either, one of the chunks is very small,
-             (pango1.count < min_size || pango2.count < min_size ||
-              // or both still want to grow
-              (pango1.count < target_size && pango2.count < target_size))) {
-            pango2.prefix = pref;
-            pango2.count += pango1.count;
-            pango2.pids.insert(pango2.pids.end(),
-                               pango1.pids.begin(),
-                               pango1.pids.end());
-
-            // We merged pango1 into pango2 -> Now delete pango1
-            // Do not need to increment, because erase will make it automatically point to next element
-            it = chunks.erase(it);
-         } else {
-            ++it;
-         }
-      }
-   }
-
-   uint32_t part_id = 0;
-   for (auto& chunk : chunks) {
-      std::sort(chunk.pids.begin(), chunk.pids.end());
-      for (const auto& pid : chunk.pids) {
-         pangos[pid].chunk = part_id;
-      }
-      ++part_id;
-   }
-
-   std::vector<chunk_t> ret;
-   std::copy(
-      std::begin(chunks),
-      std::end(chunks),
-      std::back_inserter(ret));
-   return ret;
-}
-
-void silo::pango_info(const MetaStore& mdb, std::ostream& out) {
-   out << "Infos by pango:" << std::endl;
-   for (unsigned i = 0; i < mdb.pid_count; ++i) {
-      out << "(pid: " << i << ",\tpango-lin: " << mdb.pangos[i].pango_lineage
-          << ",\tcount: " << number_fmt(mdb.pangos[i].count)
-          << ",\tchunk: " << number_fmt(mdb.pangos[i].chunk) << ')' << std::endl;
-   }
 }
 
 void silo::chunk_info(const MetaStore& mdb, std::ostream& out) {

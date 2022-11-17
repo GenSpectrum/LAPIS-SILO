@@ -7,4 +7,6 @@ set(
         include/silo/sequence_store.h
         include/silo/meta_store.h
         include/silo/query_engine.h
+        include/silo/prepare_dataset.h
+        include/silo/database.h
 )

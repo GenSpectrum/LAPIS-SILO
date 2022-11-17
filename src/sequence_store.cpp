@@ -2,7 +2,6 @@
 // Created by Alexander Taepper on 01.09.22.
 //
 #include "silo/sequence_store.h"
-#include <syncstream>
 #include <tbb/blocked_range.h>
 #include <tbb/enumerable_thread_specific.h>
 #include <tbb/parallel_for.h>
@@ -169,7 +168,7 @@ static void interpret(SequenceStore& db, const std::vector<std::string>& genomes
 }
 
 void silo::process_raw(SequenceStore& db, std::istream& in) {
-   static constexpr unsigned chunkSize = 1024;
+   static constexpr unsigned interpretSize = 1024;
 
    std::vector<std::string> genomes;
    while (true) {
@@ -181,7 +180,7 @@ void silo::process_raw(SequenceStore& db, std::istream& in) {
          return;
       }
       genomes.push_back(std::move(genome));
-      if (genomes.size() >= chunkSize) {
+      if (genomes.size() >= interpretSize) {
          interpret(db, genomes);
          genomes.clear();
       }
@@ -190,8 +189,8 @@ void silo::process_raw(SequenceStore& db, std::istream& in) {
    db_info(db, std::cout);
 }
 
-void silo::process(SequenceStore& db, MetaStore& /*mdb*/, std::istream& in) {
-   static constexpr unsigned chunkSize = 1024;
+void silo::process(SequenceStore& db, std::istream& in) {
+   static constexpr unsigned interpretSize = 1024;
 
    uint32_t sid_ctr = db.sequenceCount;
    std::vector<std::string> genomes;
@@ -206,7 +205,7 @@ void silo::process(SequenceStore& db, MetaStore& /*mdb*/, std::istream& in) {
       uint64_t epi = stoi(epi_isl.substr(9));
 
       genomes.push_back(std::move(genome));
-      if (genomes.size() >= chunkSize) {
+      if (genomes.size() >= interpretSize) {
          interpret(db, genomes);
          genomes.clear();
       }
@@ -235,8 +234,6 @@ unsigned silo::runoptimize(SequenceStore& db) {
 void silo::process_chunked_on_the_fly(SequenceStore& sdb, MetaStore& mdb, std::istream& in) {
    std::cout << "Now calculating partition offsets" << std::endl;
 
-   // Clear the vector and resize
-   // TODO for future proofing, instead of clearing, extending them?
    std::vector<uint32_t> chunk_to_offset(mdb.pid_count);
    std::vector<uint32_t> chunk_to_realcount(mdb.pid_count);
 
@@ -338,122 +335,4 @@ void interpret_specific(SequenceStore& db, const std::vector<std::pair<uint64_t,
       }
    }
    db.sequenceCount += genomes.size();
-}
-
-void silo::partition_sequences(MetaStore& mdb, std::istream& in, const std::string& output_prefix_) {
-   std::cout << "Now partitioning fasta file to " << output_prefix_ << std::endl;
-   std::vector<std::unique_ptr<std::ostream>> part_to_ostream;
-   const std::string output_prefix = output_prefix_ + '_';
-   for (unsigned part = 0; part < mdb.chunks.size(); ++part) {
-      auto out = make_unique<std::ofstream>(output_prefix + std::to_string(part) + ".fasta");
-      part_to_ostream.emplace_back(std::move(out));
-   }
-   std::cout << "Created file streams for  " << output_prefix_ << std::endl;
-   while (true) {
-      std::string epi_isl, genome;
-      if (!getline(in, epi_isl)) break;
-      if (!getline(in, genome)) break;
-      if (genome.length() != genomeLength) {
-         std::cerr << "length mismatch!" << std::endl;
-         return;
-      }
-      uint64_t epi = stoi(epi_isl.substr(9));
-
-      if (!mdb.epi_to_pid.contains(epi)) {
-         // TODO logging
-         continue;
-      }
-
-      auto pid = mdb.epi_to_pid.at(epi);
-      auto part = mdb.pid_to_chunk[pid];
-      *part_to_ostream[part] << epi_isl << std::endl
-                             << genome << std::endl;
-   }
-   std::cout << "Finished partitioning to " << output_prefix_ << std::endl;
-}
-
-void silo::sort_chunks(const MetaStore& mdb, const std::string& output_prefix) {
-   tbb::blocked_range<unsigned> r(0, mdb.chunks.size());
-   tbb::parallel_for(r, [&](const decltype(r) local) {
-      for (unsigned part = local.begin(); part < local.end(); ++part) {
-         const std::string& file_name = output_prefix + std::to_string(part);
-         sort_chunk(mdb, file_name, part);
-      }
-   });
-}
-
-void silo::sort_chunk(const MetaStore& mdb, const std::string& file_name, unsigned part) {
-   silo::istream_wrapper in_wrap(file_name + ".fasta");
-   std::istream& in = in_wrap.get_is();
-   std::ofstream out(file_name + "_sorted.fasta");
-
-   // Function does:
-   // Read file once, fill all dates, sort dates,
-   // calculated target position for every genome
-   // Reset gpointer, read file again, putting every genome at the correct position.
-   // Write file to ostream
-
-   struct EPIDate {
-      uint64_t epi;
-      time_t date;
-      uint32_t file_pos;
-   };
-   std::vector<EPIDate> firstRun;
-   firstRun.reserve(mdb.chunks.at(part).count);
-
-   uint32_t count = 0;
-   while (true) {
-      std::string epi_isl;
-      if (!getline(in, epi_isl)) break;
-      in.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-
-      // Add the count to the respective pid
-      uint64_t epi = stoi(epi_isl.substr(9));
-
-      // Could assert that pid is the same as in meta_data?
-      uint32_t sidm = mdb.epi_to_sidM.at(epi);
-      time_t date = mdb.sidM_to_date[sidm];
-      firstRun.emplace_back(EPIDate{epi, date, count++});
-   }
-
-   std::osyncstream(std::cout) << "Finished first run for partition: " << part << std::endl;
-
-   auto sorter = [](const EPIDate& s1, const EPIDate& s2) {
-      return s1.date < s2.date;
-   };
-   std::sort(firstRun.begin(), firstRun.end(), sorter);
-
-   std::osyncstream(std::cout) << "Sorted first run for partition: " << part << std::endl;
-
-   std::vector<uint32_t> file_pos_to_sorted_pos(count);
-   unsigned count2 = 0;
-   for (auto& x : firstRun) {
-      file_pos_to_sorted_pos[x.file_pos] = count2++;
-   }
-
-   assert(count == count2);
-
-   std::osyncstream(std::cout) << "Calculated postitions for every sequence: " << part << std::endl;
-
-   in.clear(); // clear fail and eof bits
-   in.seekg(0, std::ios::beg); // back to the start!
-
-   std::osyncstream(std::cout) << "Reset file seek, now read second time, sorted: " << part << std::endl;
-
-   std::vector<std::string> lines_sorted(2 * count);
-   for (auto pos : file_pos_to_sorted_pos) {
-      std::string epi_isl, genome;
-      if (!getline(in, lines_sorted[2 * pos])) {
-         std::cerr << "Reached EOF too early." << std::endl;
-         return;
-      }
-      if (!getline(in, lines_sorted[2 * pos + 1])) {
-         std::cerr << "Reached EOF too early." << std::endl;
-         return;
-      }
-   }
-
-   for (const std::string& line : lines_sorted) {
-      out << line << '\n';
-   }
 }

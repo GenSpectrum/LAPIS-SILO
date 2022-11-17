@@ -49,6 +49,8 @@ set(SRC_CC
         src/meta_store.cpp
         src/sequence_store.cpp
         src/query_engine.cpp
+        src/database.cpp
+        src/prepare_dataset.cpp
         src/roaring/roaring.c)
 
 
