@@ -175,6 +175,10 @@ struct pango_t {
    uint32_t count;
 };
 
+static inline std::string chunk_string(unsigned partition, unsigned chunk) {
+   return "P" + std::to_string(partition) + "_C" + std::to_string(chunk);
+}
+
 struct chunk_t {
    friend class boost::serialization::access;
    template <class Archive>

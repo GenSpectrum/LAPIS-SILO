@@ -6,8 +6,8 @@
 
 using namespace silo;
 
-static inline void inputSequenceMeta(MetaStore& mdb, uint64_t epi, const std::string& pango_lineage, const std::string& date,
-                                     const std::string& region, const std::string& country, const std::string& /*TODO division*/) {
+void silo::inputSequenceMeta(MetaStore& mdb, uint64_t epi, const std::string& pango_lineage, const std::string& date,
+                             const std::string& region, const std::string& country, const std::string& /*TODO division*/) {
    uint32_t sidM = mdb.sequence_count++;
    mdb.sid_to_epi.push_back(epi);
    mdb.epi_to_sid[epi] = sidM;
@@ -21,33 +21,6 @@ static inline void inputSequenceMeta(MetaStore& mdb, uint64_t epi, const std::st
    mdb.sid_to_date.push_back(time);
    mdb.sid_to_country.push_back(country);
    mdb.sid_to_region.push_back(region);
-}
-
-void silo::processMeta(MetaStore& mdb, std::istream& in) {
-   // Ignore header line.
-   in.ignore(LONG_MAX, '\n');
-
-   while (true) {
-      std::string epi_isl, pango_lineage_raw, date, region, country, division;
-      if (!getline(in, epi_isl, '\t')) break;
-      if (!getline(in, pango_lineage_raw, '\t')) break;
-      if (!getline(in, date, '\t')) break;
-      if (!getline(in, region, '\t')) break;
-      if (!getline(in, country, '\t')) break;
-      if (!getline(in, division, '\n')) break;
-
-      /// Deal with pango_lineage alias:
-      std::string pango_lineage = resolve_alias(mdb.alias_key, pango_lineage_raw);
-
-      std::string tmp = epi_isl.substr(8);
-      uint64_t epi = stoi(tmp);
-
-      inputSequenceMeta(mdb, epi, pango_lineage, date, region, country, division);
-   }
-
-   if (mdb.sequence_count != mdb.epi_to_pid.size()) {
-      std::cout << "ERROR: EPI is represented twice." << std::endl;
-   }
 }
 
 void silo::chunk_info(const MetaStore& mdb, std::ostream& out) {

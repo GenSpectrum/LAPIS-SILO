@@ -1,6 +1,6 @@
 
+#include <silo/database.h>
 #include <silo/prepare_dataset.h>
-#include <silo/query_engine.h>
 
 #include <readline/history.h>
 #include <readline/readline.h>
@@ -28,7 +28,7 @@ void info_message() {
         << "\tbuild_chunked [part_prefix] [part_suffix]" << endl;
 }
 
-int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> args) {
+int handle_command(Database& db, std::vector<std::string> args) {
    using std::cin;
    using std::cout;
    using std::endl;
@@ -37,13 +37,25 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
    const std::string default_meta_savefile = "../silo/meta_store.silo";
    const std::string default_sequence_input = "../Data/aligned.fasta.xz";
    const std::string default_metadata_input = "../Data/metadata.tsv";
-   const std::string default_seq_partition_prefix = "../Data/Partitioned/sequences/aligned";
-   const std::string default_meta_partition_prefix = "../Data/Partitioned/meta/metadata";
+   const std::string default_partition_prefix = "../Data/Partitioned/";
+   const std::string default_pango_def_file = "../Data/pango_def.txt";
+   const std::string default_part_def_file = "../Data/part_def.txt";
    const std::string default_query_dir = "../Data/queries";
    if (args.empty()) {
       return 0;
    }
-   if ("load" == args[0]) {
+   if ("repair_meta" == args[0]) {
+      auto meta_input = args.size() > 1 ? std::ifstream(args[1]) : std::ifstream(default_metadata_input);
+      auto sequence_input = args.size() > 2 ? silo::istream_wrapper(args[2]) : silo::istream_wrapper(default_sequence_input);
+      auto meta_out = args.size() > 3 ? std::ofstream(args[3]) : std::ofstream(default_metadata_input + ".repair");
+      prune_meta(meta_input, sequence_input.get_is(), meta_out);
+   } else if ("repair_sequences" == args[0]) {
+      auto meta_input = args.size() > 1 ? std::ifstream(args[1]) : std::ifstream(default_metadata_input);
+      auto sequence_input = args.size() > 2 ? silo::istream_wrapper(args[2]) : silo::istream_wrapper(default_sequence_input);
+      auto sequence_out = args.size() > 3 ? std::ofstream(args[3]) : std::ofstream(default_sequence_input + ".repair");
+      prune_sequences(meta_input, sequence_input.get_is(), sequence_out);
+   } else if ("load" == args[0]) {
+      std::cerr << "TODO" << std::endl; /*
       if (args.size() < 2) {
          cout << "Loading sequence_store from " << default_db_savefile << endl;
          load_db(db, default_db_savefile);
@@ -52,8 +64,9 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
          load_db(db, args[1]);
       } else {
          cout << "Expected syntax: \"load [file_name.silo]\"" << endl;
-      }
+      }*/
    } else if ("save" == args[0]) {
+      std::cerr << "TODO" << std::endl; /*
       if (args.size() < 2) {
          cout << "Saving sequence_store to " << default_db_savefile << endl;
          save_db(db, default_db_savefile);
@@ -62,8 +75,9 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
          save_db(db, args[1]);
       } else {
          cout << "Expected syntax: \"save [file_name.silo]\"" << endl;
-      }
+      }*/
    } else if ("load_meta" == args[0]) {
+      std::cerr << "TODO" << std::endl; /*
       if (args.size() < 2) {
          cout << "Loading meta_store from " << default_meta_savefile << endl;
          load_meta(mdb, default_meta_savefile);
@@ -72,8 +86,9 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
          load_meta(mdb, args[1]);
       } else {
          cout << "Expected syntax: \"load_meta [file_name.silo]\"" << endl;
-      }
+      }*/
    } else if ("save_meta" == args[0]) {
+      std::cerr << "TODO" << std::endl; /*
       if (args.size() < 2) {
          cout << "Saving meta_store to " << default_meta_savefile << endl;
          save_meta(mdb, default_meta_savefile);
@@ -82,147 +97,127 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
          save_meta(mdb, args[1]);
       } else {
          cout << "Expected syntax: \"save_meta [file_name.silo]\"" << endl;
-      }
+      } */
    } else if ("info" == args[0]) {
-      db_info(db, cout);
+      std::cerr << "TODO" << std::endl;
+      // db_info(db, cout);
    } else if ("info_d" == args[0]) {
-      db_info_detailed(db, cout);
+      std::cerr << "TODO" << std::endl;
+      // db_info_detailed(db, cout);
    } else if ("chunk_info" == args[0]) {
-      chunk_info(mdb, cout);
+      std::cerr << "TODO" << std::endl;
+      // chunk_info(mdb, cout);
    } else if ("benchmark" == args[0]) {
       cout << "Unavailable." << endl;
       // benchmark(db);
    } else if ("runoptimize" == args[0]) {
-      cout << runoptimize(db) << endl;
-   } else if ("build_raw" == args[0]) {
-      if (args.size() == 1) {
-         cout << "Building sequence-store from stdin" << endl;
-         process_raw(db, cin);
-      } else if (args.size() == 2) {
-         istream_wrapper file(args[1]);
-         process_raw(db, file.get_is());
-      } else {
-         cout << "Expected syntax: \"build [fasta_file | fasta_archive]\"" << endl;
-         info_message();
+      std::cerr << "TODO" << std::endl;
+      // cout << runoptimize(db) << endl;
+   } else if ("build_pango_def" == args[0]) {
+      auto meta_input_str = args.size() > 1 ? args[1] : default_metadata_input;
+      auto meta_input = std::ifstream(meta_input_str);
+      if (!meta_input) {
+         std::cerr << "meta_input file " << meta_input_str << " not found." << std::endl;
          return 0;
       }
-   } else if ("build" == args[0]) {
-      if (mdb.epi_to_pid.empty()) {
-         cout << "No meta_data built." << endl;
+      std::cout << "Build pango_def from file " << meta_input_str << std::endl;
+      db.pango_def = std::make_unique<pango_descriptor_t>(silo::build_pango_defs(db.get_alias_key(), meta_input));
+      return 0;
+   } else if ("save_pango_def" == args[0]) {
+      if (!db.pango_def) {
+         std::cout << "No pango_def initialized. See 'build_pango_def' | 'load_pango_def'" << std::endl;
          return 0;
       }
-      std::string inputfile;
-      if (args.size() == 1) {
-         inputfile = default_sequence_input;
-      } else if (args.size() == 2) {
-         inputfile = args[1];
-      } else {
-         cout << "Expected syntax: \"build [fasta_file | fasta_archive]\"" << endl;
+      auto pango_def_output_str = args.size() > 1 ? args[1] : default_pango_def_file;
+      auto pango_def_output = std::ofstream(pango_def_output_str);
+      std::cout << "Save pango_def to file " << pango_def_output_str << std::endl;
+      silo::save_pango_defs(*db.pango_def, pango_def_output);
+      return 0;
+   } else if ("load_pango_def" == args[0]) {
+      auto pango_def_input_str = args.size() > 1 ? args[1] : default_pango_def_file;
+      auto pango_def_input = std::ifstream(pango_def_input_str);
+      if (!pango_def_input) {
+         std::cerr << "pango_def_input file " << pango_def_input_str << " not found." << std::endl;
          return 0;
       }
-      cout << "Building sequence-store from " << inputfile << endl;
-      istream_wrapper file(inputfile);
-      process(db, file.get_is());
-   } else if ("build_chunked_otf" == args[0]) {
-      if (mdb.epi_to_pid.empty()) {
-         cout << "No meta_data built." << endl;
+      std::cout << "Load pango_def from input file " << pango_def_input_str << std::endl;
+      db.pango_def = std::make_unique<pango_descriptor_t>(silo::load_pango_defs(pango_def_input));
+      return 0;
+   } else if ("build_part_def" == args[0]) {
+      if (!db.pango_def) {
+         std::cerr << "No pango_def initialized. See 'build_pango_def' | 'load_pango_def'" << std::endl;
          return 0;
       }
-      std::string inputfile;
-      if (args.size() == 1) {
-         inputfile = default_sequence_input;
-      } else if (args.size() == 2) {
-         inputfile = args[1];
-      } else {
-         cout << "Expected syntax: \"build_chunked_otf [fasta_file | fasta_archive]\"" << endl;
+      std::cout << "Build part_def from pango_def" << std::endl;
+      partitioning_descriptor_t part_def = silo::build_partitioning_descriptor(*db.pango_def, architecture_type::single_partition);
+      db.part_def = std::make_unique<partitioning_descriptor_t>(part_def);
+      return 0;
+   } else if ("save_part_def" == args[0]) {
+      if (!db.part_def) {
+         std::cerr << "No part_def initialized. See 'build_part_def' | 'load_part_def'" << std::endl;
          return 0;
       }
-      cout << "build_chunked_otf from " << inputfile << endl;
-      istream_wrapper file(inputfile);
-      process_chunked_on_the_fly(db, mdb, file.get_is());
+      auto part_def_output = args.size() > 1 ? std::ofstream(args[1]) : std::ofstream(default_part_def_file);
+      silo::save_partitioning_descriptor(*db.part_def, part_def_output);
+      return 0;
+   } else if ("load_part_def" == args[0]) {
+      auto part_def_input_str = args.size() > 1 ? args[1] : default_part_def_file;
+      auto part_def_input = std::ifstream(part_def_input_str);
+      if (!part_def_input) {
+         std::cerr << "part_def_input file " << part_def_input_str << " not found." << std::endl;
+         return 0;
+      }
+      partitioning_descriptor_t part_def = silo::load_partitioning_descriptor(part_def_input);
+      db.part_def = std::make_unique<partitioning_descriptor_t>(part_def);
+      return 0;
    } else if ("partition" == args[0]) {
-      if (mdb.epi_to_pid.empty()) {
-         cout << "No meta_data built." << endl;
+      if (!db.part_def) {
+         cout << "Build partitioning descriptor first. See 'build_part_def' | 'load_part_def'" << endl;
          return 0;
       }
-      std::string inputfile, part_prefix;
-      if (args.size() == 1) {
-         inputfile = default_sequence_input;
-         part_prefix = default_seq_partition_prefix;
-      } else if (args.size() == 2) {
-         inputfile = args[1];
-         part_prefix = default_seq_partition_prefix;
-      } else if (args.size() == 3) {
-         inputfile = args[1];
-         part_prefix = args[2];
-      } else {
-         cout << "Expected syntax: \"partition [fasta_file | fasta_archive] [out_prefix]\"" << endl;
+      silo::partitioning_descriptor_t& partitioning_descripter = *db.part_def;
+      std::string meta_input = args.size() > 1 ? args[1] : default_metadata_input;
+      std::string sequence_input = args.size() > 2 ? args[2] : default_sequence_input;
+      std::string part_prefix = args.size() > 3 ? args[3] : default_partition_prefix;
+      cout << "partition from " << sequence_input << " and " << meta_input << " into " << part_prefix << endl;
+      istream_wrapper seq_file(sequence_input);
+      if (!seq_file.get_is()) {
+         std::cerr << "sequence_input file " << sequence_input << " not found." << std::endl;
          return 0;
       }
-      cout << "partition from " << inputfile << " into " << part_prefix << endl;
-      istream_wrapper file(inputfile);
-      partition_sequences(mdb, file.get_is(), part_prefix);
-      return 0;
-   } else if ("sort_chunks" == args[0]) {
-      if (mdb.epi_to_pid.empty()) {
-         cout << "No meta_data built." << endl;
-         return 0;
-      }
-      std::string part_prefix;
-      if (args.size() == 1) {
-         part_prefix = default_seq_partition_prefix;
-      } else if (args.size() == 2) {
-         part_prefix = args[1];
-      } else {
-         cout << "Expected syntax: \"sort_chunks [out_prefix]\"" << endl;
-         return 0;
-      }
-      cout << "sort_chunks in " << part_prefix << endl;
-      sort_chunks(mdb, part_prefix);
-      return 0;
-   } else if ("build_chunked" == args[0]) {
-      std::string part_prefix, part_suffix;
-      if (args.size() == 1) {
-         part_prefix = default_seq_partition_prefix;
-         part_suffix = ".fasta";
-      } else if (args.size() == 2) {
-         part_prefix = args[1];
-         part_suffix = ".fasta";
-      } else if (args.size() == 3) {
-         part_prefix = args[1];
-         part_suffix = args[2];
-      } else {
-         cout << "Expected syntax: \"build_partitioned [partition_prefix] [partition_suffix]\"" << endl;
-         return 0;
-      }
-      for (unsigned i = 0; i < mdb.chunks.size(); i++) {
-         std::string name = part_prefix + std::to_string(i);
-         name += part_suffix;
-         istream_wrapper in(name);
-         cout << "Building sequence-store from input file: " << name << endl;
-         process(db, mdb, in.get_is());
-      }
-   } else if ("build_meta" == args[0]) {
-      std::string meta_file;
-      if (args.size() == 1) {
-         meta_file = default_metadata_input;
-      } else if (args.size() == 2) {
-         meta_file = args[1];
-      } else {
-         cout << "Expected syntax: \"build_meta [meta_file]\"" << endl;
+      std::ifstream meta_file(meta_input);
+      if (!meta_file) {
+         std::cerr << "meta_input file " << meta_input << " not found." << std::endl;
          return 0;
       }
 
-      cout << "Building meta_data from file " << meta_file << endl;
-      istream_wrapper file(meta_file);
-      processMeta_ordered(mdb, file.get_is());
-      cout << "Finished building meta_data from file " << meta_file << endl;
+      partition_sequences(partitioning_descripter, meta_file, seq_file.get_is(), part_prefix, db.get_alias_key());
+      return 0;
+   } else if ("sort_chunks" == args[0]) {
+      if (!db.part_def) {
+         cout << "Build partitioning descriptor first. See 'build_part_def' | 'load_part_def'" << endl;
+         return 0;
+      }
+      std::string part_prefix = args.size() > 1 ? args[1] : default_partition_prefix;
+      cout << "sort_chunks in " << part_prefix << endl;
+      silo::sort_chunks(*db.part_def, part_prefix);
+      return 0;
+   } else if ("build" == args[0]) {
+      if (!db.part_def) {
+         cout << "Build partitioning descriptor first. See 'build_part_def' | 'load_part_def'" << endl;
+         return 0;
+      }
+      std::string part_prefix = args.size() > 1 ? args[1] : default_partition_prefix;
+      std::string meta_suffix = args.size() > 2 ? args[2] : ".meta.tsv";
+      std::string seq_suffix = args.size() > 3 ? args[3] : ".fasta";
+      db.build(part_prefix, meta_suffix, seq_suffix);
    } else if ("query" == args[0]) {
       if (args.size() < 2) {
          cout << "Expected syntax: \"query JSON_QUERY\"" << endl;
          return 0;
       }
-
+      std::cerr << "TODO" << std::endl;
+      /*
       std::stringstream query2;
       query2 << "{\n"
                 "  \"action\": {\n"
@@ -235,7 +230,7 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
                 "\n"
                 "  \"filter\": "
              << filter3 << "}";
-      cout << execute_query(db, mdb, query2.str()) << endl;
+      cout << execute_query(db, mdb, query2.str()) << endl;*/
    } else if ("exit" == args[0] || "quit" == args[0]) {
       return 1;
    } else if ("help" == args[0] || "-h" == args[0] || "--help" == args[0]) {
@@ -251,21 +246,20 @@ int handle_command(SequenceStore& db, MetaStore& mdb, std::vector<std::string> a
    return 0;
 }
 
-int handle_command(SequenceStore& db, MetaStore& mdb, const std::string& command_str) {
+int handle_command(Database& db, const std::string& command_str) {
    std::stringstream ss(command_str);
    std::istream_iterator<std::string> begin(ss);
    std::istream_iterator<std::string> end;
    std::vector<std::string> command(begin, end);
-   return handle_command(db, mdb, command);
+   return handle_command(db, command);
 }
 
 int main(int argc, char* argv[]) {
-   auto db = std::make_unique<SequenceStore>();
-   auto mdb = std::make_unique<MetaStore>();
-   {
+   try {
+      auto db = std::make_unique<Database>();
       if (argc >= 2) {
          for (int i = 1; i < argc; i++) {
-            if (handle_command(*db, *mdb, argv[i])) {
+            if (handle_command(*db, argv[i])) {
                return 0;
             }
          }
@@ -276,13 +270,15 @@ int main(int argc, char* argv[]) {
          if (strlen(buf) > 0) {
             add_history(buf);
 
-            if (handle_command(*db, *mdb, std::string(buf))) {
+            if (handle_command(*db, std::string(buf))) {
                return 0;
             }
          }
          // readline malloc's a new buffer every time.
          free(buf);
       }
+   } catch (std::runtime_error& e) {
+      std::cerr << e.what() << std::endl;
    }
    return 0;
 }

@@ -1,7 +1,7 @@
 //
 // Created by Alexander Taepper on 06.10.22.
 //
-#include "silo/meta_store.h"
+#include "silo/silo.h"
 
 void resolve_alias_test() {
    std::unordered_map<std::string, std::string> alias_key;

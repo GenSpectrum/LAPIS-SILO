@@ -5,11 +5,12 @@
 #include "silo/prepare_dataset.h"
 
 #include <syncstream>
+#include <silo/database.h>
 #include <tbb/blocked_range.h>
 #include <tbb/enumerable_thread_specific.h>
 #include <tbb/parallel_for.h>
 
-void prune_meta(std::istream& meta_in, std::istream& sequences_in, std::ostream& meta_out) {
+void silo::prune_meta(std::istream& meta_in, std::istream& sequences_in, std::ostream& meta_out) {
    std::unordered_set<uint64_t> set;
    uint32_t found_seq = 0;
    uint32_t found_meta = 0;
@@ -65,9 +66,8 @@ void prune_meta(std::istream& meta_in, std::istream& sequences_in, std::ostream&
    std::cout << "Found Seq: " << found_seq << "\nFound Meta: " << found_meta << std::endl;
 }
 
-void prune_sequences(std::istream& meta_in, std::istream& sequences_in, std::ostream& sequences_out) {
+void silo::prune_sequences(std::istream& meta_in, std::istream& sequences_in, std::ostream& sequences_out) {
    std::unordered_set<uint64_t> set;
-   uint32_t found_seq = 0;
    uint32_t found_meta = 0;
    {
       std::string header;
@@ -93,7 +93,8 @@ void prune_sequences(std::istream& meta_in, std::istream& sequences_in, std::ost
          }
       }
    }
-   std::cout << "Finished meta_reading (" << found_seq << ")" << std::endl;
+   std::cout << "Finished meta_reading (" << found_meta << ")" << std::endl;
+   uint32_t found_seq = 0;
    {
       while (true) {
          std::string epi_isl, genome;
@@ -125,7 +126,7 @@ silo::pango_descriptor_t silo::build_pango_defs(const alias_key_t& alias_key, st
    // Ignore header line.
    meta_in.ignore(LONG_MAX, '\n');
 
-   uint32_t pid_count;
+   uint32_t pid_count = 0;
 
    std::unordered_map<std::string, uint32_t> pango_to_id;
 
@@ -154,20 +155,21 @@ silo::pango_descriptor_t silo::build_pango_defs(const alias_key_t& alias_key, st
    return pango_defs;
 }
 
-void save_pango_defs(const silo::pango_descriptor_t& pd, std::ostream& out) {
+void silo::save_pango_defs(const silo::pango_descriptor_t& pd, std::ostream& out) {
    for (auto& x : pd.pangos) {
-      out << x.pango_lineage << ' ' << x.count << '\n';
+      out << x.pango_lineage << '\t' << x.count << '\n';
    }
    out.flush();
 }
 
-silo::pango_descriptor_t load_pango_defs(std::istream& in) {
+silo::pango_descriptor_t silo::load_pango_defs(std::istream& in) {
    silo::pango_descriptor_t descriptor;
-   std::string lineage;
+   std::string lineage, count_str;
    uint32_t count;
    while (in && !in.eof()) {
-      in >> lineage;
-      in >> count;
+      if (!getline(in, lineage, '\t')) break;
+      if (!getline(in, count_str, '\n')) break;
+      count = atoi(count_str.c_str());
       descriptor.pangos.emplace_back(silo::pango_t{lineage, count});
    }
    return descriptor;
@@ -248,7 +250,7 @@ std::vector<silo::chunk_t> merge_pangos_to_chunks(std::vector<pango_t>& pangos,
    return ret;
 }
 
-silo::partitioning_descriptor_t silo::build_partitioning_descriptor(silo::pango_descriptor_t& pango_defs, architecture_type arch) {
+silo::partitioning_descriptor_t silo::build_partitioning_descriptor(silo::pango_descriptor_t pango_defs, architecture_type arch) {
    uint32_t total_count = 0;
    for (auto& x : pango_defs.pangos) {
       total_count += x.count;
@@ -284,46 +286,49 @@ silo::partitioning_descriptor_t silo::build_partitioning_descriptor(silo::pango_
    throw std::runtime_error("Arch not yet implemented.");
 }
 
-void save_partitioning_descriptor(const silo::partitioning_descriptor_t& pd, std::ostream& out) {
+void silo::save_partitioning_descriptor(const silo::partitioning_descriptor_t& pd, std::ostream& out) {
    for (auto& part : pd.partitions) {
-      out << "P " << part.name << ' ' << part.chunks.size() << ' ' << part.count << '\n';
+      out << "P\t" << part.name << '\t' << part.chunks.size() << '\t' << part.count << '\n';
       for (auto& chunk : part.chunks) {
-         out << "C " << chunk.prefix << ' ' << chunk.pangos.size() << ' ' << chunk.count << chunk.offset << '\n';
+         out << "C\t" << chunk.prefix << '\t' << chunk.pangos.size() << '\t' << chunk.count << '\t' << chunk.offset << '\n';
          for (auto& pango : chunk.pangos) {
-            out << "L " << pango << '\n';
+            out << "L\t" << pango << '\n';
          }
       }
    }
 }
 
-silo::partitioning_descriptor_t load_partitioning_descriptor(std::istream& in) {
-   silo::partitioning_descriptor_t descriptor;
-   std::string type, name;
-   uint32_t size, count, offset;
+silo::partitioning_descriptor_t silo::load_partitioning_descriptor(std::istream& in) {
+   silo::partitioning_descriptor_t descriptor = {std::vector<partition_t>()};
+   std::string type, name, size_str, count_str, offset_str;
+   uint32_t count, offset;
    while (in && !in.eof()) {
-      in >> type >> name;
-      if (type.size() == 1 && type.at(0) == 'P') {
-         in >> size >> count;
+      if (!getline(in, type, '\t')) break;
+
+      if (type.size() != 1) {
+         throw std::runtime_error("load_partitioning_descriptor format exception");
+      } else if (type.at(0) == 'P') {
+         if (!getline(in, name, '\t')) break;
+         if (!getline(in, size_str, '\t')) break;
+         if (!getline(in, count_str, '\n')) break;
+         // size = atoi(size_str.c_str()); unused, only meta information
+         count = atoi(count_str.c_str());
+
          silo::partition_t part{name, count, std::vector<silo::chunk_t>()};
-         while (in && !in.eof()) {
-            in >> type >> name;
-            if (type.size() == 1 && type.at(0) == 'C') {
-               in >> size >> count >> offset;
-               silo::chunk_t chunk{name, count, offset, std::vector<std::string>()};
-               while (in && !in.eof()) {
-                  in >> type >> name;
-                  if (type.size() == 1 && type.at(0) == 'L') {
-                     chunk.pangos.push_back(name);
-                  } else {
-                     throw std::runtime_error("load_partitioning_descriptor format exception");
-                  }
-               }
-               part.chunks.push_back(chunk);
-            } else {
-               throw std::runtime_error("load_partitioning_descriptor format exception");
-            }
-         }
          descriptor.partitions.push_back(part);
+      } else if (type.at(0) == 'C') {
+         if (!getline(in, name, '\t')) break;
+         if (!getline(in, size_str, '\t')) break;
+         if (!getline(in, count_str, '\t')) break;
+         if (!getline(in, offset_str, '\n')) break;
+         // size = atoi(size_str.c_str()); unused, only meta information
+         count = atoi(count_str.c_str());
+         offset = atoi(offset_str.c_str());
+         silo::chunk_t chunk{name, count, offset, std::vector<std::string>()};
+         descriptor.partitions.back().chunks.push_back(chunk);
+      } else if (type.at(0) == 'L') {
+         if (!getline(in, name, '\n')) break;
+         descriptor.partitions.back().chunks.back().pangos.push_back(name);
       } else {
          throw std::runtime_error("load_partitioning_descriptor format exception");
       }
@@ -331,68 +336,75 @@ silo::partitioning_descriptor_t load_partitioning_descriptor(std::istream& in) {
    return descriptor;
 }
 
-void silo::partition_sequences(const partitioning_descriptor_t& pd, std::istream& sequence_in, std::istream& meta_in,
+void silo::partition_sequences(const partitioning_descriptor_t& pd, std::istream& meta_in, std::istream& sequence_in,
                                const std::string& output_prefix, const alias_key_t& alias_key) {
-   std::unordered_map<std::string, uint32_t> pango_to_partition;
+   std::unordered_map<std::string, std::string> pango_to_chunk;
+   std::vector<std::string> chunk_strs;
    for (unsigned i = 0, limit = pd.partitions.size(); i < limit; ++i) {
       const auto& part = pd.partitions[i];
-      for (auto& chunk : part.chunks) {
+      for (unsigned j = 0, limit2 = part.chunks.size(); j < limit2; ++j) {
+         auto& chunk = part.chunks[j];
+         chunk_strs.push_back(silo::chunk_string(i, j));
          for (auto& pango : chunk.pangos) {
-            pango_to_partition[pango] = i;
+            pango_to_chunk[pango] = chunk_strs.back();
          }
       }
    }
 
-   std::unordered_map<uint64_t, uint32_t> epi_to_partition;
+   std::unordered_map<uint64_t, std::string> epi_to_chunk;
 
-   std::cout << "Now partitioning metafile to " << output_prefix << std::endl;
-   std::vector<std::unique_ptr<std::ostream>> part_to_meta_ostream;
-   for (unsigned part = 0; part < pd.partitions.size(); ++part) {
-      auto out = make_unique<std::ofstream>(output_prefix + std::to_string(part) + ".meta.tsv");
-      part_to_meta_ostream.emplace_back(std::move(out));
-   }
-
-   // Ignore Header
-   meta_in.ignore(LONG_MAX, '\n');
-   while (true) {
-      std::string epi_isl, pango_lineage_raw, rest;
-      if (!getline(meta_in, epi_isl, '\t')) break;
-      if (!getline(meta_in, pango_lineage_raw, '\t')) break;
-      if (!getline(meta_in, rest, '\n')) break;
-
-      /// Deal with pango_lineage alias:
-      std::string pango_lineage = resolve_alias(alias_key, pango_lineage_raw);
-
-      std::string tmp = epi_isl.substr(8);
-      uint64_t epi = stoi(tmp);
-
-      uint32_t part = pango_to_partition[pango_lineage];
-      *part_to_meta_ostream[part] << epi_isl << '\t' << pango_lineage << '\t' << rest << '\n';
-
-      // Now save where the epi will go for the sequence partitioning
-      epi_to_partition[epi] = part;
-   }
-
-   std::cout << "Now partitioning fasta file to " << output_prefix << std::endl;
-   std::vector<std::unique_ptr<std::ostream>> part_to_ostream;
-   for (unsigned part = 0; part < pd.partitions.size(); ++part) {
-      auto out = make_unique<std::ofstream>(output_prefix + std::to_string(part) + ".fasta");
-      part_to_ostream.emplace_back(std::move(out));
-   }
-   std::cout << "Created file streams for  " << output_prefix << std::endl;
-   while (true) {
-      std::string epi_isl, genome;
-      if (!getline(sequence_in, epi_isl)) break;
-      if (!getline(sequence_in, genome)) break;
-      if (genome.length() != genomeLength) {
-         std::cerr << "length mismatch!" << std::endl;
-         return;
+   {
+      std::cout << "Now partitioning metafile to " << output_prefix << std::endl;
+      std::unordered_map<std::string, std::unique_ptr<std::ostream>> chunk_to_meta_ostream;
+      for (const std::string& chunk_s : chunk_strs) {
+         auto out = make_unique<std::ofstream>(output_prefix + chunk_s + ".meta.tsv");
+         chunk_to_meta_ostream[chunk_s] = std::move(out);
       }
-      const uint64_t epi = stoi(epi_isl.substr(9));
 
-      uint32_t part = epi_to_partition.at(epi);
-      *part_to_ostream[part] << epi_isl << '\n'
-                             << genome << '\n';
+      // Ignore Header
+      meta_in.ignore(LONG_MAX, '\n');
+      while (true) {
+         std::string epi_isl, pango_lineage_raw, rest;
+         if (!getline(meta_in, epi_isl, '\t')) break;
+         if (!getline(meta_in, pango_lineage_raw, '\t')) break;
+         if (!getline(meta_in, rest, '\n')) break;
+
+         /// Deal with pango_lineage alias:
+         std::string pango_lineage = resolve_alias(alias_key, pango_lineage_raw);
+
+         std::string tmp = epi_isl.substr(8);
+         uint64_t epi = stoi(tmp);
+
+         std::string chunk = pango_to_chunk[pango_lineage];
+         *chunk_to_meta_ostream[chunk] << epi_isl << '\t' << pango_lineage << '\t' << rest << '\n';
+
+         // Now save where the epi will go for the sequence partitioning
+         epi_to_chunk[epi] = chunk;
+      }
+   }
+
+   {
+      std::cout << "Now partitioning fasta file to " << output_prefix << std::endl;
+      std::unordered_map<std::string, std::unique_ptr<std::ostream>> chunk_to_seq_ostream;
+      for (const std::string& chunk_s : chunk_strs) {
+         auto out = make_unique<std::ofstream>(output_prefix + chunk_s + ".fasta");
+         chunk_to_seq_ostream[chunk_s] = std::move(out);
+      }
+      std::cout << "Created file streams for  " << output_prefix << std::endl;
+      while (true) {
+         std::string epi_isl, genome;
+         if (!getline(sequence_in, epi_isl)) break;
+         if (!getline(sequence_in, genome)) break;
+         if (genome.length() != genomeLength) {
+            std::cerr << "length mismatch!" << std::endl;
+            return;
+         }
+         const uint64_t epi = stoi(epi_isl.substr(9));
+
+         std::string chunk = epi_to_chunk.at(epi);
+         *chunk_to_seq_ostream[chunk] << epi_isl << '\n'
+                                      << genome << '\n';
+      }
    }
    std::cout << "Finished partitioning to " << output_prefix << std::endl;
 }
@@ -401,6 +413,8 @@ struct part_chunk {
    uint32_t part;
    uint32_t chunk;
    uint32_t size;
+
+   part_chunk(uint32_t part, uint32_t chunk, uint32_t size) : part(part), chunk(chunk), size(size) {}
 };
 
 void sort_chunk(std::istream& meta_in, std::istream& sequence_in, std::ostream& meta_out, std::ostream& sequence_out,
@@ -472,7 +486,7 @@ void sort_chunk(std::istream& meta_in, std::istream& sequence_in, std::ostream& 
       while (true) {
          std::string epi_isl;
          if (!getline(sequence_in, epi_isl)) break;
-         sequence_in.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+         sequence_in.ignore(LONG_MAX, '\n');
 
          // Add the count to the respective pid
          uint64_t epi = stoi(epi_isl.substr(9));
@@ -530,7 +544,7 @@ void silo::sort_chunks(const partitioning_descriptor_t& pd, const std::string& o
       const auto& part = pd.partitions[part_id];
       for (uint32_t chunk_id = 0, limit2 = part.chunks.size(); chunk_id < limit2; ++chunk_id) {
          const auto& chunk = part.chunks[chunk_id];
-         all_chunks.push_back({part_id, chunk_id, chunk.count});
+         all_chunks.emplace_back(part_id, chunk_id, chunk.count);
       }
    }
 

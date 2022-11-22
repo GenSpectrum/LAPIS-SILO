@@ -16,8 +16,6 @@ struct MetaStore {
       ar& sequence_count;
       ar& pid_count;
 
-      ar& alias_key;
-
       ar& epi_to_pid;
       ar& epi_to_sid;
 
@@ -28,8 +26,6 @@ struct MetaStore {
 
       ar& chunks;
    }
-
-   std::unordered_map<std::string, std::string> alias_key;
 
    // Maps the epis to the ID, which is assigned to the pango id (pid)
    // pids are starting at 0 and are dense, so that we can save the respective data in vectors.
@@ -56,23 +52,10 @@ struct MetaStore {
 
    uint32_t sequence_count = 0;
    uint16_t pid_count = 0;
-
-   MetaStore() {
-      std::ifstream alias_key_file("../Data/pango_alias.txt");
-      if (!alias_key_file) {
-         std::cerr << "Expected file Data/pango_alias.txt." << std::endl;
-      }
-      while (true) {
-         std::string alias, val;
-         if (!getline(alias_key_file, alias, '\t')) break;
-         if (!getline(alias_key_file, val, '\n')) break;
-         alias_key[alias] = val;
-      }
-   }
 };
-void processMeta(MetaStore& mdb, std::istream& in);
 
-void processMeta_ordered(MetaStore& mdb, std::istream& in);
+void inputSequenceMeta(MetaStore& mdb, uint64_t epi, const std::string& pango_lineage, const std::string& date,
+                       const std::string& region, const std::string& country, const std::string& division);
 
 void chunk_info(const MetaStore& mdb, std::ostream& out);
 

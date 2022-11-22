@@ -141,7 +141,7 @@ unsigned silo::load_db(SequenceStore& db, const std::string& db_filename) {
    return 0;
 }
 
-static void interpret_offset_p(SequenceStore& db, const std::vector<std::string>& genomes, uint32_t offset) {
+void interpret_offset_p(SequenceStore& db, const std::vector<std::string>& genomes, uint32_t offset) {
    tbb::blocked_range<unsigned> range(0, genomeLength, genomeLength / 64);
    tbb::parallel_for(range, [&](const decltype(range)& local) {
       std::vector<std::vector<unsigned>> symbolPositions(symbolCount);
@@ -162,60 +162,9 @@ static void interpret_offset_p(SequenceStore& db, const std::vector<std::string>
 }
 
 /// Appends the sequences in genome to the current bitmaps in SequenceStore and increases sequenceCount
-static void interpret(SequenceStore& db, const std::vector<std::string>& genomes) {
+void silo::interpret(SequenceStore& db, const std::vector<std::string>& genomes) {
    // Putting sequences to the end is the same as offsetting them to sequence_count
    interpret_offset_p(db, genomes, db.sequenceCount);
-}
-
-void silo::process_raw(SequenceStore& db, std::istream& in) {
-   static constexpr unsigned interpretSize = 1024;
-
-   std::vector<std::string> genomes;
-   while (true) {
-      std::string epi_isl, genome;
-      if (!getline(in, epi_isl) || epi_isl.empty()) break;
-      if (!getline(in, genome)) break;
-      if (genome.length() != genomeLength) {
-         std::cerr << "length mismatch!" << std::endl;
-         return;
-      }
-      genomes.push_back(std::move(genome));
-      if (genomes.size() >= interpretSize) {
-         interpret(db, genomes);
-         genomes.clear();
-      }
-   }
-   interpret(db, genomes);
-   db_info(db, std::cout);
-}
-
-void silo::process(SequenceStore& db, std::istream& in) {
-   static constexpr unsigned interpretSize = 1024;
-
-   uint32_t sid_ctr = db.sequenceCount;
-   std::vector<std::string> genomes;
-   while (true) {
-      std::string epi_isl, genome;
-      if (!getline(in, epi_isl) || epi_isl.empty()) break;
-      if (!getline(in, genome)) break;
-      if (genome.length() != genomeLength) {
-         std::cerr << "length mismatch!" << std::endl;
-         return;
-      }
-      uint64_t epi = stoi(epi_isl.substr(9));
-
-      genomes.push_back(std::move(genome));
-      if (genomes.size() >= interpretSize) {
-         interpret(db, genomes);
-         genomes.clear();
-      }
-
-      uint32_t sid = sid_ctr++;
-      db.epi_to_sid[epi] = sid;
-      db.sid_to_epi.push_back(epi);
-   }
-   interpret(db, genomes);
-   db_info(db, std::cout);
 }
 
 unsigned silo::runoptimize(SequenceStore& db) {

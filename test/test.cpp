@@ -1,8 +1,8 @@
 //
 // Created by Alexander Taepper on 30.09.22.
 //
-#include "meta_store_test.cpp"
 #include "query_test.cpp"
+#include "resolve_alias_test.cpp"
 #include "silo/silo.h"
 
 int main(int argc, char* argv[]) {
@@ -21,5 +21,5 @@ int main(int argc, char* argv[]) {
 }
 
 int limit_meta_to_seqs() {
-
+   return -1;
 }

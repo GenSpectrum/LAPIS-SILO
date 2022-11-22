@@ -9,7 +9,7 @@ endif ()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 set(CMAKE_CXX_FLAGS "-Wall")
-set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=undefined,address")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 set(CMAKE_CXX_STANDARD 20)

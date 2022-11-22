@@ -96,7 +96,7 @@ unsigned runoptimize(SequenceStore& db);
 /// WARNING: This does not look at meta-data nor fill any indices required for queries. Use with caution
 void process_raw(SequenceStore& db, std::istream& in);
 
-void process(SequenceStore& db, std::istream& in);
+void interpret(SequenceStore& db, const std::vector<std::string>& genomes);
 
 void process_chunked_on_the_fly(SequenceStore& db, MetaStore& mdb, std::istream& in);
 
