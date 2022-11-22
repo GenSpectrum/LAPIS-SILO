@@ -6,7 +6,6 @@
 #define SILO_DATABASE_H
 
 #include <silo/meta_store.h>
-#include <silo/query_engine.h>
 #include <silo/sequence_store.h>
 #include <silo/silo.h>
 
@@ -38,13 +37,13 @@ class DatabasePartition {
 
 class Database {
    private:
-   std::vector<DatabasePartition> partitions;
    std::unordered_map<std::string, std::string> alias_key;
 
    std::unordered_map<std::string, uint32_t> dict_lookup;
    std::vector<std::string> dict;
 
    public:
+   std::vector<DatabasePartition> partitions;
    std::unique_ptr<pango_descriptor_t> pango_def;
    std::unique_ptr<partitioning_descriptor_t> part_def;
 

@@ -1,9 +1,9 @@
 
-#include <silo/database.h>
-#include <silo/prepare_dataset.h>
-
 #include <readline/history.h>
 #include <readline/readline.h>
+#include <silo/database.h>
+#include <silo/prepare_dataset.h>
+#include <silo/query_engine.h>
 
 using namespace silo;
 
@@ -40,7 +40,7 @@ int handle_command(Database& db, std::vector<std::string> args) {
    const std::string default_partition_prefix = "../Data/Partitioned/";
    const std::string default_pango_def_file = "../Data/pango_def.txt";
    const std::string default_part_def_file = "../Data/part_def.txt";
-   const std::string default_query_dir = "../Data/queries";
+   const std::string default_query_dir = "../Data/queries/";
    if (args.empty()) {
       return 0;
    }
@@ -99,19 +99,36 @@ int handle_command(Database& db, std::vector<std::string> args) {
          cout << "Expected syntax: \"save_meta [file_name.silo]\"" << endl;
       } */
    } else if ("info" == args[0]) {
-      std::cerr << "TODO" << std::endl;
+      std::cerr << "TODO" << std::endl; // TODO
       // db_info(db, cout);
    } else if ("info_d" == args[0]) {
-      std::cerr << "TODO" << std::endl;
+      std::cerr << "TODO" << std::endl; // TODO
       // db_info_detailed(db, cout);
    } else if ("chunk_info" == args[0]) {
-      std::cerr << "TODO" << std::endl;
+      std::cerr << "TODO" << std::endl; // TODO
       // chunk_info(mdb, cout);
    } else if ("benchmark" == args[0]) {
-      cout << "Unavailable." << endl;
+      auto query_dir_str = args.size() > 1 ? args[1] : default_query_dir;
+      auto query_defs = std::ifstream(query_dir_str + "queries.txt");
+      if (!query_defs) {
+         std::cerr << "query_defs file " << (query_dir_str + "queries.txt") << " not found." << std::endl;
+         return 0;
+      }
+      while (true) {
+         std::string test_name;
+         query_defs >> test_name;
+         auto query_file = std::ifstream(query_dir_str + test_name);
+         if (!query_file) {
+            std::cerr << "query_file " << (query_dir_str + test_name) << " not found." << std::endl;
+            return 0;
+         }
+         execute_query(db, query_file);
+      }
+
+      std::cerr << "TODO." << endl; // TODO
       // benchmark(db);
    } else if ("runoptimize" == args[0]) {
-      std::cerr << "TODO" << std::endl;
+      std::cerr << "TODO" << std::endl; // TODO
       // cout << runoptimize(db) << endl;
    } else if ("build_pango_def" == args[0]) {
       auto meta_input_str = args.size() > 1 ? args[1] : default_metadata_input;

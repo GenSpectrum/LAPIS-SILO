@@ -319,7 +319,8 @@ Roaring* NucEqEx::evaluate(const DatabasePartition& db) {
 
 } // namespace silo;
 
-std::string silo::execute_query(const DatabasePartition& db, const std::string& query) {
+std::string execute_query_part(const silo::DatabasePartition& db, const std::string& query) {
+   using namespace silo;
    rapidjson::Document doc;
    doc.Parse(query.c_str());
    if (!doc.HasMember("filter") || !doc["filter"].IsObject() ||
@@ -334,4 +335,26 @@ std::string silo::execute_query(const DatabasePartition& db, const std::string& 
    ret << "{\"count\":" << result->cardinality() << "}";
    delete result;
    return ret.str();
+}
+
+std::string silo::execute_query(const silo::Database& db, const std::istream& query_stream) {
+   std::stringstream buffer;
+   buffer << query_stream.rdbuf();
+   std::string query = buffer.str();
+
+   rapidjson::Document doc;
+   doc.Parse(query.c_str());
+   if (!doc.HasMember("filter") || !doc["filter"].IsObject() ||
+       !doc.HasMember("action") || !doc["action"].IsObject()) {
+      throw QueryParseException("Query json must contain filter and action.");
+   }
+
+   std::unique_ptr<BoolExpression> filter = to_ex(doc["filter"]);
+   // std::string action = doc["action"];
+   for (const silo::DatabasePartition& dbp : db.partitions) {
+      // TODO preaggregate
+      execute_query_part(dbp, query);
+   }
+   // TODO aggregate
+   return "";
 }

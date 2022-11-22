@@ -9,11 +9,9 @@
 #include "rapidjson/document.h"
 #include "sequence_store.h"
 
-class DatabasePartition;
-
 namespace silo {
 
-std::string execute_query(const DatabasePartition& db, const std::string& query);
+std::string execute_query(const Database& db, const std::istream& query);
 
 } // namespace silo;
 
