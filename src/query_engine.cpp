@@ -16,18 +16,18 @@ struct QueryParseException : public std::exception {
    }
 };
 
-struct Expression {
+struct BoolExpression {
    // For future, maybe different (return) types of expressions?
    // TypeV type;
 
    /// Constructor
-   explicit Expression(const rapidjson::Value& js) {}
+   explicit BoolExpression(const rapidjson::Value& js) {}
 
    /// Destructor
-   virtual ~Expression() = default;
+   virtual ~BoolExpression() = default;
 
    /// Evaluate the expression by interpreting it.
-   virtual Roaring* evaluate(const SequenceStore&, const MetaStore&) {
+   virtual Roaring* evaluate(const DatabasePartition& /*db*/) {
       throw std::runtime_error("Not Implemented exception. Does not override Expression::evaluate.");
    };
 
@@ -37,12 +37,12 @@ struct Expression {
       virtual llvm::Value *build(llvm::IRBuilder<> &builder, llvm::Value *args);*/
 };
 
-std::unique_ptr<Expression> to_ex(const rapidjson::Value& js);
+std::unique_ptr<BoolExpression> to_ex(const rapidjson::Value& js);
 
-struct VectorEx : public Expression {
-   std::vector<std::unique_ptr<Expression>> children;
+struct VectorEx : public BoolExpression {
+   std::vector<std::unique_ptr<BoolExpression>> children;
 
-   explicit VectorEx(const rapidjson::Value& js) : Expression(js) {
+   explicit VectorEx(const rapidjson::Value& js) : BoolExpression(js) {
       assert(js.HasMember("children"));
       assert(js["children"].IsArray());
       std::transform(js["children"].GetArray().begin(), js["children"].GetArray().end(),
@@ -53,13 +53,13 @@ struct VectorEx : public Expression {
 struct AndEx : public VectorEx {
    explicit AndEx(const rapidjson::Value& js) : VectorEx(js) {}
 
-   Roaring* evaluate(const SequenceStore& db, const MetaStore& mdb) override;
+   Roaring* evaluate(const DatabasePartition& db) override;
 };
 
 struct OrEx : public VectorEx {
    explicit OrEx(const rapidjson::Value& js) : VectorEx(js) {}
 
-   Roaring* evaluate(const SequenceStore& db, const MetaStore& mdb) override;
+   Roaring* evaluate(const DatabasePartition& db) override;
 };
 
 struct NOfEx : public VectorEx {
@@ -77,26 +77,26 @@ struct NOfEx : public VectorEx {
       }
    }
 
-   Roaring* evaluate(const SequenceStore& db, const MetaStore& mdb) override;
+   Roaring* evaluate(const DatabasePartition& db) override;
 };
 
-struct NegEx : public Expression {
-   std::unique_ptr<Expression> child;
+struct NegEx : public BoolExpression {
+   std::unique_ptr<BoolExpression> child;
 
-   explicit NegEx(const rapidjson::Value& js) : Expression(js) {
+   explicit NegEx(const rapidjson::Value& js) : BoolExpression(js) {
       child = to_ex(js["child"]);
    }
 
-   Roaring* evaluate(const SequenceStore& db, const MetaStore& mdb) override;
+   Roaring* evaluate(const DatabasePartition& db) override;
 };
 
-struct DateBetwEx : public Expression {
+struct DateBetwEx : public BoolExpression {
    time_t from;
    bool open_from;
    time_t to;
    bool open_to;
 
-   explicit DateBetwEx(const rapidjson::Value& js) : Expression(js) {
+   explicit DateBetwEx(const rapidjson::Value& js) : BoolExpression(js) {
       if (js["from"].IsNull()) {
          open_from = true;
       } else {
@@ -120,60 +120,60 @@ struct DateBetwEx : public Expression {
       }
    }
 
-   Roaring* evaluate(const SequenceStore& db, const MetaStore& mdb) override;
+   Roaring* evaluate(const DatabasePartition& db) override;
 };
 
-struct NucEqEx : public Expression {
+struct NucEqEx : public BoolExpression {
    unsigned position;
    Symbol value;
 
-   explicit NucEqEx(const rapidjson::Value& js) : Expression(js) {
+   explicit NucEqEx(const rapidjson::Value& js) : BoolExpression(js) {
       position = js["position"].GetUint();
       value = to_symbol(js["value"].GetString()[0]);
    }
 
-   Roaring* evaluate(const SequenceStore& db, const MetaStore& mdb) override;
+   Roaring* evaluate(const DatabasePartition& db) override;
 };
 
-struct NucMbEx : public Expression {
+struct NucMbEx : public BoolExpression {
    unsigned position;
    Symbol value;
 
-   explicit NucMbEx(const rapidjson::Value& js) : Expression(js) {
+   explicit NucMbEx(const rapidjson::Value& js) : BoolExpression(js) {
       position = js["position"].GetUint();
       value = to_symbol(js["value"].GetString()[0]);
    }
 };
 
-struct NucMutEx : public Expression {
+struct NucMutEx : public BoolExpression {
    unsigned position;
 
-   explicit NucMutEx(const rapidjson::Value& js) : Expression(js) {
+   explicit NucMutEx(const rapidjson::Value& js) : BoolExpression(js) {
       position = js["position"].GetUint();
    }
 };
 
-struct PangoLineageEx : public Expression {
+struct PangoLineageEx : public BoolExpression {
    std::string value;
    bool includeSubLineages;
 
-   explicit PangoLineageEx(const rapidjson::Value& js) : Expression(js) {
+   explicit PangoLineageEx(const rapidjson::Value& js) : BoolExpression(js) {
       includeSubLineages = js["includeSubLineages"].GetBool();
       value = js["value"].GetString();
    }
 };
 
-struct StrEqEx : public Expression {
+struct StrEqEx : public BoolExpression {
    std::string column;
    std::string value;
 
-   explicit StrEqEx(const rapidjson::Value& js) : Expression(js) {
+   explicit StrEqEx(const rapidjson::Value& js) : BoolExpression(js) {
       column = js["column"].GetString();
       value = js["value"].GetString();
    }
 };
 
-std::unique_ptr<Expression> to_ex(const rapidjson::Value& js) {
+std::unique_ptr<BoolExpression> to_ex(const rapidjson::Value& js) {
    std::string type = js["type"].GetString();
    if (type == "And") {
       return std::make_unique<AndEx>(js);
@@ -198,21 +198,21 @@ std::unique_ptr<Expression> to_ex(const rapidjson::Value& js) {
    }
 }
 
-Roaring* AndEx::evaluate(const silo::SequenceStore& db, const silo::MetaStore& mdb) {
-   auto ret = children[0]->evaluate(db, mdb);
+Roaring* AndEx::evaluate(const DatabasePartition& db) {
+   auto ret = children[0]->evaluate(db);
    for (auto& child : children) {
-      auto bm = child->evaluate(db, mdb);
+      auto bm = child->evaluate(db);
       *ret &= *bm;
       delete bm;
    }
    return ret;
 }
 
-Roaring* OrEx::evaluate(const silo::SequenceStore& db, const silo::MetaStore& mdb) {
+Roaring* OrEx::evaluate(const DatabasePartition& db) {
    unsigned n = children.size();
    const Roaring* child_res[n];
    for (unsigned i = 0; i < n; i++) {
-      child_res[i] = children[i]->evaluate(db, mdb);
+      child_res[i] = children[i]->evaluate(db);
    }
    auto ret = new Roaring(Roaring::fastunion(children.size(), child_res));
    for (unsigned i = 0; i < n; i++) {
@@ -242,14 +242,14 @@ void vec_and_not(std::vector<uint32_t> dest, std::vector<uint32_t> v1, std::vect
    }
 }
 
-Roaring* NOfExevaluateImpl0(const NOfEx* self, const silo::SequenceStore& db, const silo::MetaStore& mdb) {
+Roaring* NOfExevaluateImpl0(const NOfEx* self, const DatabasePartition& db) {
    if (self->exactly) {
       std::vector<uint16_t> count;
       std::vector<uint32_t> at_least;
       std::vector<uint32_t> too_much;
       count.resize(db.sequenceCount);
       for (auto& child : self->children) {
-         auto bm = child->evaluate(db, mdb);
+         auto bm = child->evaluate(db);
          for (uint32_t id : *bm) {
             if (++count[id] == self->n) {
                at_least.push_back(id);
@@ -268,7 +268,7 @@ Roaring* NOfExevaluateImpl0(const NOfEx* self, const silo::SequenceStore& db, co
       std::vector<uint32_t> correct;
       count.resize(db.sequenceCount);
       for (auto& child : self->children) {
-         auto bm = child->evaluate(db, mdb);
+         auto bm = child->evaluate(db);
          for (uint32_t id : *bm) {
             if (++count[id] == self->n) {
                correct.push_back(id);
@@ -280,21 +280,21 @@ Roaring* NOfExevaluateImpl0(const NOfEx* self, const silo::SequenceStore& db, co
    }
 }
 
-Roaring* NOfEx::evaluate(const silo::SequenceStore& db, const silo::MetaStore& mdb) {
+Roaring* NOfEx::evaluate(const DatabasePartition& db) {
    switch (impl) {
       case 0:
       default:
-         return NOfExevaluateImpl0(this, db, mdb);
+         return NOfExevaluateImpl0(this, db);
    }
 }
 
-Roaring* NegEx::evaluate(const SequenceStore& db, const MetaStore& mdb) {
-   auto ret = child->evaluate(db, mdb);
+Roaring* NegEx::evaluate(const DatabasePartition& db) {
+   auto ret = child->evaluate(db);
    ret->flip(0, db.sequenceCount);
    return ret;
 }
 
-Roaring* DateBetwEx::evaluate(const SequenceStore& db, const MetaStore& mdb) {
+Roaring* DateBetwEx::evaluate(const DatabasePartition& db) {
    if (open_from && open_to) {
       auto ret = new Roaring;
       ret->addRange(0, db.sequenceCount);
@@ -302,10 +302,10 @@ Roaring* DateBetwEx::evaluate(const SequenceStore& db, const MetaStore& mdb) {
    }
 
    auto ret = new Roaring;
-   auto base = &mdb.sid_to_date[0];
-   for (const chunk_t& chunk : mdb.chunks) {
-      auto begin = &mdb.sid_to_date[chunk.offset];
-      auto end = &mdb.sid_to_date[chunk.offset + chunk.count];
+   auto base = &db.meta_store.sid_to_date[0];
+   for (const chunk_t& chunk : db.chunks) {
+      auto begin = &db.meta_store.sid_to_date[chunk.offset];
+      auto end = &db.meta_store.sid_to_date[chunk.offset + chunk.count];
       uint32_t lower = open_to ? begin - base : std::lower_bound(begin, end, this->from) - base;
       uint32_t upper = open_to ? end - base : std::upper_bound(begin, end, this->to) - base;
       ret->addRange(lower, upper);
@@ -313,13 +313,13 @@ Roaring* DateBetwEx::evaluate(const SequenceStore& db, const MetaStore& mdb) {
    return ret;
 }
 
-Roaring* NucEqEx::evaluate(const SequenceStore& db, const MetaStore&) {
-   return new Roaring(*db.bm(position, to_symbol(value)));
+Roaring* NucEqEx::evaluate(const DatabasePartition& db) {
+   return new Roaring(*db.seq_store.bm(position, to_symbol(value)));
 }
 
 } // namespace silo;
 
-std::string silo::execute_query(const SequenceStore& db, const MetaStore& mdb, const std::string& query) {
+std::string silo::execute_query(const DatabasePartition& db, const std::string& query) {
    rapidjson::Document doc;
    doc.Parse(query.c_str());
    if (!doc.HasMember("filter") || !doc["filter"].IsObject() ||
@@ -327,9 +327,9 @@ std::string silo::execute_query(const SequenceStore& db, const MetaStore& mdb, c
       throw QueryParseException("Query json must contain filter and action.");
    }
 
-   std::unique_ptr<Expression> filter = to_ex(doc["filter"]);
+   std::unique_ptr<BoolExpression> filter = to_ex(doc["filter"]);
    // std::string action = doc["action"];
-   Roaring* result = filter->evaluate(db, mdb);
+   Roaring* result = filter->evaluate(db);
    std::stringstream ret;
    ret << "{\"count\":" << result->cardinality() << "}";
    delete result;

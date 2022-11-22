@@ -26,15 +26,23 @@ struct pango_descriptor_t {
    std::vector<pango_t> pangos;
 };
 
-struct DatabasePartition {
+class DatabasePartition {
+   public:
    MetaStore meta_store;
    SequenceStore seq_store;
+
+   std::vector<silo::chunk_t> chunks;
+
+   unsigned sequenceCount;
 };
 
 class Database {
    private:
    std::vector<DatabasePartition> partitions;
    std::unordered_map<std::string, std::string> alias_key;
+
+   std::unordered_map<std::string, uint32_t> dict_lookup;
+   std::vector<std::string> dict;
 
    public:
    std::unique_ptr<pango_descriptor_t> pango_def;
@@ -60,9 +68,9 @@ class Database {
    void build(const std::string& part_prefix, const std::string& meta_suffix, const std::string& seq_suffix);
 };
 
-void processSeq(SequenceStore& seq_store, std::istream& in);
+unsigned processSeq(SequenceStore& seq_store, std::istream& in);
 
-void processMeta(MetaStore& meta_store, std::istream& in, const std::unordered_map<std::string, std::string> alias_key);
+unsigned processMeta(MetaStore& meta_store, std::istream& in, const std::unordered_map<std::string, std::string>& alias_key);
 
 } // namespace silo
 

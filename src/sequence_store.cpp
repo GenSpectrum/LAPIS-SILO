@@ -40,9 +40,9 @@ roaring::Roaring SequenceStore::bma(size_t pos, Residue r) const {
    return roaring::Roaring{};
 }
 
-int silo::db_info(const SequenceStore& db, std::ostream& io) {
-   io << "sequence count: " << number_fmt(db.sequenceCount) << std::endl;
-   io << "total size: " << number_fmt(db.computeSize()) << std::endl;
+int SequenceStore::db_info(std::ostream& io) const {
+   io << "sequence count: " << number_fmt(this->sequence_count) << std::endl;
+   io << "total size: " << number_fmt(this->computeSize()) << std::endl;
    return 0;
 }
 
@@ -66,7 +66,7 @@ static inline void addStat(r_stat& r1, r_stat& r2) {
 }
 
 int silo::db_info_detailed(const SequenceStore& db, std::ostream& io) {
-   db_info(db, io);
+   db.db_info(io);
    std::vector<size_t> size_by_symbols;
    size_by_symbols.resize(symbolCount);
    for (const auto& position : db.positions) {
@@ -141,7 +141,7 @@ unsigned silo::load_db(SequenceStore& db, const std::string& db_filename) {
    return 0;
 }
 
-void interpret_offset_p(SequenceStore& db, const std::vector<std::string>& genomes, uint32_t offset) {
+void SequenceStore::interpret_offset_p(const std::vector<std::string>& genomes, uint32_t offset) {
    tbb::blocked_range<unsigned> range(0, genomeLength, genomeLength / 64);
    tbb::parallel_for(range, [&](const decltype(range)& local) {
       std::vector<std::vector<unsigned>> symbolPositions(symbolCount);
@@ -153,18 +153,18 @@ void interpret_offset_p(SequenceStore& db, const std::vector<std::string>& genom
          }
          for (unsigned symbol = 0; symbol != symbolCount; ++symbol)
             if (!symbolPositions[symbol].empty()) {
-               db.positions[col].bitmaps[symbol].addMany(symbolPositions[symbol].size(), symbolPositions[symbol].data());
+               this->positions[col].bitmaps[symbol].addMany(symbolPositions[symbol].size(), symbolPositions[symbol].data());
                symbolPositions[symbol].clear();
             }
       }
    });
-   db.sequenceCount += genomes.size();
+   this->sequence_count += genomes.size();
 }
 
 /// Appends the sequences in genome to the current bitmaps in SequenceStore and increases sequenceCount
-void silo::interpret(SequenceStore& db, const std::vector<std::string>& genomes) {
+void SequenceStore::interpret(const std::vector<std::string>& genomes) {
    // Putting sequences to the end is the same as offsetting them to sequence_count
-   interpret_offset_p(db, genomes, db.sequenceCount);
+   interpret_offset_p(genomes, this->sequence_count);
 }
 
 unsigned silo::runoptimize(SequenceStore& db) {
@@ -178,110 +178,4 @@ unsigned silo::runoptimize(SequenceStore& db) {
       }
    });
    return count_true;
-}
-
-void silo::process_chunked_on_the_fly(SequenceStore& sdb, MetaStore& mdb, std::istream& in) {
-   std::cout << "Now calculating partition offsets" << std::endl;
-
-   std::vector<uint32_t> chunk_to_offset(mdb.pid_count);
-   std::vector<uint32_t> chunk_to_realcount(mdb.pid_count);
-
-   while (true) {
-      std::string epi_isl;
-      if (!getline(in, epi_isl)) break;
-      in.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-
-      // Add the count to the respective part
-      uint64_t epi = stoi(epi_isl.substr(9));
-
-      if (!mdb.epi_to_pid.contains(epi)) {
-         // TODO logging
-         continue;
-      }
-
-      uint16_t pid = mdb.epi_to_pid[epi];
-      auto part = mdb.pid_to_chunk[pid];
-      ++chunk_to_realcount[part];
-   }
-
-   // Escalate offsets from start to finish
-   uint32_t cumulative_offset = 0;
-   for (int i = 0; i < mdb.pid_count; ++i) {
-      chunk_to_offset[i] += cumulative_offset;
-      cumulative_offset += chunk_to_realcount[i];
-   }
-
-   // cumulative_offset should be equal to sequence count now
-
-   std::cout << "Finished calculating chunk offsets." << std::endl;
-
-   static constexpr unsigned interpretSize = 1024;
-
-   // these offsets lag by chunk.
-   std::vector<uint32_t> dynamic_offsets(chunk_to_offset);
-   // actually these are the same offsets just without lagging by chunk.
-   std::vector<uint32_t> sid_ctrs(chunk_to_offset);
-   std::vector<std::vector<std::string>> pid_to_genomes;
-   pid_to_genomes.resize(mdb.pid_count + 1);
-   while (true) {
-      std::string epi_isl, genome;
-      if (!getline(in, epi_isl)) break;
-      if (!getline(in, genome)) break;
-      if (genome.length() != genomeLength) {
-         std::cerr << "length mismatch!" << std::endl;
-         return;
-      }
-      uint64_t epi = stoi(epi_isl.substr(9));
-
-      if (!mdb.epi_to_pid.contains(epi)) {
-         // TODO logging
-         continue;
-      }
-
-      uint16_t pid = mdb.epi_to_pid.at(epi);
-      auto part = mdb.pid_to_chunk[pid];
-      ++chunk_to_realcount[part];
-
-      auto& genomes = pid_to_genomes[pid];
-      genomes.emplace_back(std::move(genome));
-      if (genomes.size() >= interpretSize) {
-         interpret_offset_p(sdb, genomes, dynamic_offsets[pid]);
-         dynamic_offsets[pid] += genomes.size();
-         genomes.clear();
-      }
-
-      uint32_t sid = sid_ctrs[pid]++;
-      sdb.epi_to_sid[epi] = sid;
-   }
-
-   for (uint16_t pid = 0; pid < mdb.pid_count + 1; ++pid) {
-      interpret_offset_p(sdb, pid_to_genomes[pid], dynamic_offsets[pid]);
-   }
-
-   // now also calculate the reverse direction for the epi<->sid relationship.
-   sdb.sid_to_epi.resize(sdb.epi_to_sid.size());
-   for (auto& x : sdb.epi_to_sid) {
-      sdb.sid_to_epi[x.second] = x.first;
-   }
-
-   db_info(sdb, std::cout);
-}
-
-// Only for testing purposes. Very inefficient. Will insert the genome in specific positions to the sequenceStore
-void interpret_specific(SequenceStore& db, const std::vector<std::pair<uint64_t, std::string>>& genomes) {
-   std::vector<unsigned> offsets[symbolCount];
-   for (unsigned index = 0; index != genomeLength; ++index) {
-      for (const auto& idx_genome : genomes) {
-         char c = idx_genome.second[index];
-         Symbol s = to_symbol(c);
-         offsets[s].push_back(idx_genome.first);
-      }
-      for (unsigned index2 = 0; index2 != symbolCount; ++index2) {
-         if (!offsets[index2].empty()) {
-            db.positions[index].bitmaps[index2].addMany(offsets[index2].size(), offsets[index2].data());
-            offsets[index2].clear();
-         }
-      }
-   }
-   db.sequenceCount += genomes.size();
 }

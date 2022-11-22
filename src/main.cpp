@@ -167,6 +167,7 @@ int handle_command(Database& db, std::vector<std::string> args) {
          std::cerr << "part_def_input file " << part_def_input_str << " not found." << std::endl;
          return 0;
       }
+      std::cout << "Load part_def from input file " << part_def_input_str << std::endl;
       partitioning_descriptor_t part_def = silo::load_partitioning_descriptor(part_def_input);
       db.part_def = std::make_unique<partitioning_descriptor_t>(part_def);
       return 0;

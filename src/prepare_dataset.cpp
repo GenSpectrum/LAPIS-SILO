@@ -355,14 +355,20 @@ void silo::partition_sequences(const partitioning_descriptor_t& pd, std::istream
 
    {
       std::cout << "Now partitioning metafile to " << output_prefix << std::endl;
+
+      std::string header;
+      if (!getline(meta_in, header, '\n')) {
+         std::cerr << "No header file in meta input." << std::endl;
+         return;
+      }
+
       std::unordered_map<std::string, std::unique_ptr<std::ostream>> chunk_to_meta_ostream;
       for (const std::string& chunk_s : chunk_strs) {
          auto out = make_unique<std::ofstream>(output_prefix + chunk_s + ".meta.tsv");
          chunk_to_meta_ostream[chunk_s] = std::move(out);
+         *chunk_to_meta_ostream[chunk_s] << header << '\n';
       }
 
-      // Ignore Header
-      meta_in.ignore(LONG_MAX, '\n');
       while (true) {
          std::string epi_isl, pango_lineage_raw, rest;
          if (!getline(meta_in, epi_isl, '\t')) break;

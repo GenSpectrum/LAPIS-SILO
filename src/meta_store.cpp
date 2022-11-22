@@ -8,9 +8,7 @@ using namespace silo;
 
 void silo::inputSequenceMeta(MetaStore& mdb, uint64_t epi, const std::string& pango_lineage, const std::string& date,
                              const std::string& region, const std::string& country, const std::string& /*TODO division*/) {
-   uint32_t sidM = mdb.sequence_count++;
    mdb.sid_to_epi.push_back(epi);
-   mdb.epi_to_sid[epi] = sidM;
    mdb.sid_to_lineage.push_back(pango_lineage);
 
    struct std::tm tm {};
@@ -23,6 +21,7 @@ void silo::inputSequenceMeta(MetaStore& mdb, uint64_t epi, const std::string& pa
    mdb.sid_to_region.push_back(region);
 }
 
+/*
 void silo::chunk_info(const MetaStore& mdb, std::ostream& out) {
    out << "Infos by pango:" << std::endl;
    for (unsigned i = 0; i < mdb.chunks.size(); ++i) {
@@ -34,7 +33,7 @@ void silo::chunk_info(const MetaStore& mdb, std::ostream& out) {
                 std::ostream_iterator<std::string>(std::cout, " "));
       std::cout << ')' << std::endl;
    }
-}
+}*/
 
 unsigned silo::save_meta(const MetaStore& mdb, const std::string& db_filename) {
    std::ofstream wf(db_filename, std::ios::binary);

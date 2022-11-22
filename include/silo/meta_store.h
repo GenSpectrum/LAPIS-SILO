@@ -13,24 +13,11 @@ struct MetaStore {
    friend class boost::serialization::access;
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& ar, const unsigned int /* version */) {
-      ar& sequence_count;
-      ar& pid_count;
-
-      ar& epi_to_pid;
-      ar& epi_to_sid;
-
       ar& sid_to_epi;
       ar& sid_to_date;
       ar& sid_to_region;
       ar& sid_to_country;
-
-      ar& chunks;
    }
-
-   // Maps the epis to the ID, which is assigned to the pango id (pid)
-   // pids are starting at 0 and are dense, so that we can save the respective data in vectors.
-   std::unordered_map<uint64_t, uint16_t> epi_to_pid;
-   std::unordered_map<uint64_t, uint32_t> epi_to_sid;
 
    std::vector<uint64_t> sid_to_epi;
    std::vector<time_t> sid_to_date;
@@ -43,15 +30,6 @@ struct MetaStore {
    std::vector<std::string> sid_to_country;
    std::vector<std::string> all_countries;
    std::vector<roaring::Roaring> country_bitmaps;
-
-   std::unordered_map<std::string, uint32_t> dict_lookup;
-   std::vector<std::string> dict;
-
-   std::vector<silo::chunk_t> chunks;
-   std::vector<uint32_t> pid_to_chunk;
-
-   uint32_t sequence_count = 0;
-   uint16_t pid_count = 0;
 };
 
 void inputSequenceMeta(MetaStore& mdb, uint64_t epi, const std::string& pango_lineage, const std::string& date,
