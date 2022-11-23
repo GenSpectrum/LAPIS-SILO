@@ -57,9 +57,7 @@ unsigned silo::save_db(const SequenceStore& db, const std::string& db_filename) 
 
    {
       ::boost::archive::binary_oarchive oa(wf);
-      // write class instance to archive
       oa << db;
-      // archive and stream closed when destructors are called
    }
 
    return 0;
@@ -108,7 +106,7 @@ void SequenceStore::interpret(const std::vector<std::string>& genomes) {
    interpret_offset_p(genomes, this->sequence_count);
 }
 
-unsigned silo::runoptimize(SequenceStore& db) {
+[[maybe_unused]] unsigned silo::runoptimize(SequenceStore& db) {
    std::atomic<unsigned> count_true = 0;
    tbb::blocked_range<Position*> r(std::begin(db.positions), std::end(db.positions));
    tbb::parallel_for(r, [&](const decltype(r) local) {

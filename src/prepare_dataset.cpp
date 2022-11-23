@@ -5,6 +5,7 @@
 #include "silo/prepare_dataset.h"
 
 #include <syncstream>
+#include <unordered_set>
 #include <silo/database.h>
 #include <tbb/blocked_range.h>
 #include <tbb/enumerable_thread_specific.h>
@@ -121,7 +122,7 @@ void silo::prune_sequences(std::istream& meta_in, std::istream& sequences_in, st
    std::cout << "Found Seq: " << found_seq << "\nFound Meta: " << found_meta << std::endl;
 }
 
-silo::pango_descriptor_t silo::build_pango_defs(const alias_key_t& alias_key, std::istream& meta_in) {
+silo::pango_descriptor_t silo::build_pango_defs(const std::unordered_map<std::string, std::string>& alias_key, std::istream& meta_in) {
    silo::pango_descriptor_t pango_defs;
    // Ignore header line.
    meta_in.ignore(LONG_MAX, '\n');
@@ -153,26 +154,6 @@ silo::pango_descriptor_t silo::build_pango_defs(const alias_key_t& alias_key, st
    std::sort(pango_defs.pangos.begin(), pango_defs.pangos.end(),
              [](const pango_t& lhs, const pango_t& rhs) { return lhs.pango_lineage < rhs.pango_lineage; });
    return pango_defs;
-}
-
-void silo::save_pango_defs(const silo::pango_descriptor_t& pd, std::ostream& out) {
-   for (auto& x : pd.pangos) {
-      out << x.pango_lineage << '\t' << x.count << '\n';
-   }
-   out.flush();
-}
-
-silo::pango_descriptor_t silo::load_pango_defs(std::istream& in) {
-   silo::pango_descriptor_t descriptor;
-   std::string lineage, count_str;
-   uint32_t count;
-   while (in && !in.eof()) {
-      if (!getline(in, lineage, '\t')) break;
-      if (!getline(in, count_str, '\n')) break;
-      count = atoi(count_str.c_str());
-      descriptor.pangos.emplace_back(silo::pango_t{lineage, count});
-   }
-   return descriptor;
 }
 
 static std::string common_pango_prefix(const std::string& s1, const std::string& s2) {
@@ -286,18 +267,6 @@ silo::partitioning_descriptor_t silo::build_partitioning_descriptor(silo::pango_
    throw std::runtime_error("Arch not yet implemented.");
 }
 
-void silo::save_partitioning_descriptor(const silo::partitioning_descriptor_t& pd, std::ostream& out) {
-   for (auto& part : pd.partitions) {
-      out << "P\t" << part.name << '\t' << part.chunks.size() << '\t' << part.count << '\n';
-      for (auto& chunk : part.chunks) {
-         out << "C\t" << chunk.prefix << '\t' << chunk.pangos.size() << '\t' << chunk.count << '\t' << chunk.offset << '\n';
-         for (auto& pango : chunk.pangos) {
-            out << "L\t" << pango << '\n';
-         }
-      }
-   }
-}
-
 silo::partitioning_descriptor_t silo::load_partitioning_descriptor(std::istream& in) {
    silo::partitioning_descriptor_t descriptor = {std::vector<partition_t>()};
    std::string type, name, size_str, count_str, offset_str;
@@ -337,7 +306,7 @@ silo::partitioning_descriptor_t silo::load_partitioning_descriptor(std::istream&
 }
 
 void silo::partition_sequences(const partitioning_descriptor_t& pd, std::istream& meta_in, std::istream& sequence_in,
-                               const std::string& output_prefix, const alias_key_t& alias_key) {
+                               const std::string& output_prefix, const std::unordered_map<std::string, std::string>& alias_key) {
    std::unordered_map<std::string, std::string> pango_to_chunk;
    std::vector<std::string> chunk_strs;
    for (unsigned i = 0, limit = pd.partitions.size(); i < limit; ++i) {

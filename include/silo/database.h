@@ -9,6 +9,8 @@
 #include <silo/sequence_store.h>
 #include <silo/silo.h>
 
+#include <utility>
+
 namespace silo {
 
 struct partition_t {
@@ -26,11 +28,24 @@ struct pango_descriptor_t {
 };
 
 class DatabasePartition {
+   friend class Database;
+   friend class boost::serialization::access;
+
+   template <class Archive>
+   void serialize(Archive& ar, [[maybe_unused]] const unsigned int version) {
+      ar& meta_store;
+      ar& seq_store;
+   }
+
+   std::vector<silo::chunk_t> chunks;
+
    public:
    MetaStore meta_store;
    SequenceStore seq_store;
 
-   std::vector<silo::chunk_t> chunks;
+   const std::vector<silo::chunk_t>& get_chunks() const {
+      return chunks;
+   }
 
    unsigned sequenceCount;
    void finalize();
@@ -66,14 +81,27 @@ class Database {
    }
 
    void build(const std::string& part_prefix, const std::string& meta_suffix, const std::string& seq_suffix);
-   void analyse();
+   // void analyse();
+   int db_info(std::ostream& io);
    int db_info_detailed(std::ostream& io);
    void finalize();
+
+   void save(const std::string& save_dir);
+
+   void load(const std::string& save_dir);
 };
 
 unsigned processSeq(SequenceStore& seq_store, std::istream& in);
 
 unsigned processMeta(MetaStore& meta_store, std::istream& in, const std::unordered_map<std::string, std::string>& alias_key);
+
+void save_pango_defs(const pango_descriptor_t& pd, std::ostream& out);
+
+pango_descriptor_t load_pango_defs(std::istream& in);
+
+void save_partitioning_descriptor(const partitioning_descriptor_t& pd, std::ostream& out);
+
+partitioning_descriptor_t load_partitioning_descriptor(std::istream& in);
 
 } // namespace silo
 

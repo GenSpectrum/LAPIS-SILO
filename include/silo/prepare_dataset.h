@@ -14,20 +14,12 @@ void prune_sequences(std::istream& meta_in, std::istream& sequences_in, std::ost
 
 void prune_meta(std::istream& meta_in, std::istream& sequences_in, std::ostream& meta_out);
 
-pango_descriptor_t build_pango_defs(const alias_key_t& alias_key, std::istream& meta_in);
-
-void save_pango_defs(const pango_descriptor_t& pd, std::ostream& out);
-
-pango_descriptor_t load_pango_defs(std::istream& in);
+pango_descriptor_t build_pango_defs(const std::unordered_map<std::string, std::string>& alias_key, std::istream& meta_in);
 
 partitioning_descriptor_t build_partitioning_descriptor(pango_descriptor_t pango_defs, architecture_type arch);
 
-void save_partitioning_descriptor(const partitioning_descriptor_t& pd, std::ostream& out);
-
-partitioning_descriptor_t load_partitioning_descriptor(std::istream& in);
-
 void partition_sequences(const partitioning_descriptor_t& pd, std::istream& meta_in, std::istream& sequence_in,
-                         const std::string& output_prefix, const alias_key_t& alias_key);
+                         const std::string& output_prefix, const std::unordered_map<std::string, std::string>& alias_key);
 
 void sort_chunks(const partitioning_descriptor_t& pd, const std::string& output_prefix);
 

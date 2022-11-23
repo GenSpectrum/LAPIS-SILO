@@ -19,7 +19,6 @@
 #include <memory>
 #include <sstream>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -127,9 +126,7 @@ enum architecture_type {
    hybrid
 };
 
-typedef std::unordered_map<std::string, std::string> alias_key_t;
-
-inline std::string resolve_alias(const alias_key_t& alias_key, std::string& pango_lineage) {
+inline std::string resolve_alias(const std::unordered_map<std::string, std::string>& alias_key, std::string& pango_lineage) {
    std::string pango_pref;
    std::stringstream pango_lin_stream(pango_lineage);
    getline(pango_lin_stream, pango_pref, '.');

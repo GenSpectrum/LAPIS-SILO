@@ -33,8 +33,7 @@ int handle_command(Database& db, std::vector<std::string> args) {
    using std::cout;
    using std::endl;
 
-   const std::string default_db_savefile = "../silo/roaring_sequences.silo";
-   const std::string default_meta_savefile = "../silo/meta_store.silo";
+   const std::string default_db_savedir = "../silo/";
    const std::string default_sequence_input = "../Data/aligned.fasta.xz";
    const std::string default_metadata_input = "../Data/metadata.tsv";
    const std::string default_partition_prefix = "../Data/Partitioned/";
@@ -55,52 +54,15 @@ int handle_command(Database& db, std::vector<std::string> args) {
       auto sequence_out = args.size() > 3 ? std::ofstream(args[3]) : std::ofstream(default_sequence_input + ".repair");
       prune_sequences(meta_input, sequence_input.get_is(), sequence_out);
    } else if ("load" == args[0]) {
-      std::cerr << "TODO" << std::endl; /*
-      if (args.size() < 2) {
-         cout << "Loading sequence_store from " << default_db_savefile << endl;
-         load_db(db, default_db_savefile);
-      } else if (args.size() == 2 && args[1].ends_with(".silo")) {
-         cout << "Loading sequence_store from " << args[1] << endl;
-         load_db(db, args[1]);
-      } else {
-         cout << "Expected syntax: \"load [file_name.silo]\"" << endl;
-      }*/
+      std::string db_savedir = args.size() > 1 ? args[1] : default_db_savedir;
+      cout << "Loading Database from " << db_savedir << endl;
+      db.save(db_savedir);
    } else if ("save" == args[0]) {
-      std::cerr << "TODO" << std::endl; /*
-      if (args.size() < 2) {
-         cout << "Saving sequence_store to " << default_db_savefile << endl;
-         save_db(db, default_db_savefile);
-      } else if (args.size() == 2 && args[1].ends_with(".silo")) {
-         cout << "Saving sequence_store to " << args[1] << endl;
-         save_db(db, args[1]);
-      } else {
-         cout << "Expected syntax: \"save [file_name.silo]\"" << endl;
-      }*/
-   } else if ("load_meta" == args[0]) {
-      std::cerr << "TODO" << std::endl; /*
-      if (args.size() < 2) {
-         cout << "Loading meta_store from " << default_meta_savefile << endl;
-         load_meta(mdb, default_meta_savefile);
-      } else if (args.size() == 2 && args[1].ends_with(".silo")) {
-         cout << "Loading meta_store from " << args[1] << endl;
-         load_meta(mdb, args[1]);
-      } else {
-         cout << "Expected syntax: \"load_meta [file_name.silo]\"" << endl;
-      }*/
-   } else if ("save_meta" == args[0]) {
-      std::cerr << "TODO" << std::endl; /*
-      if (args.size() < 2) {
-         cout << "Saving meta_store to " << default_meta_savefile << endl;
-         save_meta(mdb, default_meta_savefile);
-      } else if (args.size() == 2 && args[1].ends_with(".silo")) {
-         cout << "Saving meta_store to " << args[1] << endl;
-         save_meta(mdb, args[1]);
-      } else {
-         cout << "Expected syntax: \"save_meta [file_name.silo]\"" << endl;
-      } */
+      std::string db_savedir = args.size() > 1 ? args[1] : default_db_savedir;
+      cout << "Saving Database to " << db_savedir << endl;
+      db.save(db_savedir);
    } else if ("info" == args[0]) {
-      std::cerr << "TODO" << std::endl; // TODO
-      // db_info(db, cout);
+      db.db_info(cout);
    } else if ("info_d" == args[0]) {
       db.db_info_detailed(cout);
    } else if ("chunk_info" == args[0]) {

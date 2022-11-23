@@ -69,11 +69,11 @@ class SequenceStore {
    int db_info(std::ostream& io) const;
 };
 
-unsigned save_db(const SequenceStore& db, const std::string& db_filename);
+[[maybe_unused]] unsigned save_db(const SequenceStore& db, const std::string& db_filename);
 
-unsigned load_db(SequenceStore& db, const std::string& db_filename);
+[[maybe_unused]] unsigned load_db(SequenceStore& db, const std::string& db_filename);
 
-unsigned runoptimize(SequenceStore& db);
+[[maybe_unused]] unsigned runoptimize(SequenceStore& db);
 
 } //namespace silo;
 

@@ -303,7 +303,7 @@ Roaring* DateBetwEx::evaluate(const DatabasePartition& db) {
 
    auto ret = new Roaring;
    auto base = &db.meta_store.sid_to_date[0];
-   for (const chunk_t& chunk : db.chunks) {
+   for (const chunk_t& chunk : db.get_chunks()) {
       auto begin = &db.meta_store.sid_to_date[chunk.offset];
       auto end = &db.meta_store.sid_to_date[chunk.offset + chunk.count];
       uint32_t lower = open_to ? begin - base : std::lower_bound(begin, end, this->from) - base;

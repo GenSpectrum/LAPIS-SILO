@@ -9,31 +9,29 @@
 
 void silo::Database::build(const std::string& part_prefix, const std::string& meta_suffix, const std::string& seq_suffix) {
    partitions.resize(part_def->partitions.size());
-   tbb::blocked_range<size_t> r(0, part_def->partitions.size());
-   tbb::parallel_for(r, [&](const decltype(r)& subr) {
-      for (size_t i = subr.begin(), limit = subr.end(); i != limit; ++i) {
-         const auto& part = part_def->partitions[i];
-         for (unsigned j = 0; j < part.chunks.size(); ++j) {
-            std::string name;
-            if (i > 0) { // TODO cleaner dealing with chunk to filename mapping..
-               name = part_prefix + chunk_string(j, i);
-            } else {
-               name = part_prefix + chunk_string(i, j);
-            }
-            istream_wrapper seq_in(name + seq_suffix);
-            std::ifstream meta_in(name + meta_suffix);
-            std::osyncstream(std::cout) << "Extending sequence-store from input file: " << name << std::endl;
-            unsigned count1 = processSeq(partitions[i].seq_store, seq_in.get_is());
-            unsigned count2 = processMeta(partitions[i].meta_store, meta_in, alias_key);
-            if (count1 != count2) {
-               // Fatal error
-               std::cerr << "Sequences in meta data and sequence data for chunk " << chunk_string(i, j) << " are not equal." << std::endl;
-               std::cerr << "Abort build." << std::endl;
-               partitions.clear();
-               return;
-            }
-            partitions[i].sequenceCount += count1;
+   tbb::parallel_for((size_t) 0, part_def->partitions.size(), [&](size_t i) {
+      const auto& part = part_def->partitions[i];
+      partitions[i].chunks = part.chunks;
+      for (unsigned j = 0; j < part.chunks.size(); ++j) {
+         std::string name;
+         if (i > 0) { // TODO cleaner dealing with chunk to filename mapping..
+            name = part_prefix + chunk_string(j, i);
+         } else {
+            name = part_prefix + chunk_string(i, j);
          }
+         istream_wrapper seq_in(name + seq_suffix);
+         std::ifstream meta_in(name + meta_suffix);
+         std::osyncstream(std::cout) << "Extending sequence-store from input file: " << name << std::endl;
+         unsigned count1 = processSeq(partitions[i].seq_store, seq_in.get_is());
+         unsigned count2 = processMeta(partitions[i].meta_store, meta_in, alias_key);
+         if (count1 != count2) {
+            // Fatal error
+            std::cerr << "Sequences in meta data and sequence data for chunk " << chunk_string(i, j) << " are not equal." << std::endl;
+            std::cerr << "Abort build." << std::endl;
+            partitions.clear();
+            return;
+         }
+         partitions[i].sequenceCount += count1;
       }
    });
 }
@@ -67,8 +65,9 @@ void silo::Database::finalize() {
    });
 }
 
+/*
 void silo::Database::analyse() {
-   /* std::vector<std::vector<unsigned>> counts_per_pos_per_symbol;
+   std::vector<std::vector<unsigned>> counts_per_pos_per_symbol;
    counts_per_pos_per_symbol.resize(genomeLength);
    for (std::vector<unsigned>& v : counts_per_pos_per_symbol) {
       v.resize(symbolCount);
@@ -80,8 +79,8 @@ void silo::Database::analyse() {
             ++counts_per_pos_per_symbol[p][symbol];
          }
       });
-   } */
-}
+   }
+}*/
 
 using r_stat = roaring::api::roaring_statistics_t;
 
@@ -102,6 +101,20 @@ static inline void addStat(r_stat& r1, r_stat& r2) {
    r1.sum_value += r2.sum_value;
 }
 
+
+
+int silo::Database::db_info(std::ostream& io) {
+   std::atomic<uint32_t> sequence_count = 0;
+   std::atomic<uint64_t> total_size = 0;
+   tbb::parallel_for_each(partitions.begin(), partitions.end(), [&](const DatabasePartition& dbp){
+      sequence_count += dbp.sequenceCount;
+      total_size += dbp.seq_store.computeSize();
+   });
+
+   io << "sequence count: " << number_fmt(sequence_count) << std::endl;
+   io << "total size: " << number_fmt(total_size) << std::endl;
+}
+
 int silo::Database::db_info_detailed(std::ostream& io) {
    std::vector<size_t> size_by_symbols(symbolCount);
 
@@ -119,19 +132,18 @@ int silo::Database::db_info_detailed(std::ostream& io) {
 
    std::mutex lock;
    std::vector<uint32_t> bitset_containers_by_500pos((genomeLength / 500) + 1);
+   std::vector<uint32_t> gap_bitset_containers_by_500pos((genomeLength / 500) + 1);
    r_stat s_total{};
    uint64_t total_size_comp = 0;
    uint64_t total_size_frozen = 0;
    /// Because the counters in r_stat are 32 bit and overflow..
-   uint64_t n_bytes_array_containers; /* number of allocated bytes in array
-                                           containers */
-   uint64_t n_bytes_run_containers; /* number of allocated bytes in run
-                                           containers */
-   uint64_t n_bytes_bitset_containers; /* number of allocated bytes in  bitmap
-                                           containers */
+   uint64_t n_bytes_array_containers = 0;
+   uint64_t n_bytes_run_containers = 0;
+   uint64_t n_bytes_bitset_containers = 0;
 
    tbb::parallel_for_each(partitions.begin(), partitions.end(), [&](const DatabasePartition& dbp) {
       std::vector<uint32_t> bitset_containers_by_500pos_local((genomeLength / 500) + 1);
+      std::vector<uint32_t> gap_bitset_containers_by_500pos_local((genomeLength / 500) + 1);
       r_stat s_local{};
       uint64_t total_size_comp_local = 0;
       uint64_t total_size_frozen_local = 0;
@@ -151,9 +163,10 @@ int silo::Database::db_info_detailed(std::ostream& io) {
                n_bytes_run_containers_local += s.n_bytes_run_containers;
                n_bytes_bitset_containers_local += s.n_bytes_bitset_containers;
                if (s.n_bitset_containers > 0) {
-                  lock.lock();
                   bitset_containers_by_500pos_local[pos / 500] += s.n_bitset_containers;
-                  lock.unlock();
+                  if (pos == Symbol::N) {
+                     gap_bitset_containers_by_500pos_local[pos / 500] += s.n_bitset_containers;
+                  }
                }
             }
          }
@@ -161,6 +174,9 @@ int silo::Database::db_info_detailed(std::ostream& io) {
       lock.lock();
       for (unsigned i = 0; i < bitset_containers_by_500pos.size(); ++i) {
          bitset_containers_by_500pos[i] += bitset_containers_by_500pos_local[i];
+      }
+      for (unsigned i = 0; i < bitset_containers_by_500pos.size(); ++i) {
+         gap_bitset_containers_by_500pos[i] += gap_bitset_containers_by_500pos_local[i];
       }
       addStat(s_total, s_local);
       total_size_comp += total_size_comp_local;
@@ -187,12 +203,22 @@ int silo::Database::db_info_detailed(std::ostream& io) {
       << "run: " << number_fmt(s_total.n_bytes_run_containers) << std::endl
       << "bitset: " << number_fmt(s_total.n_bytes_bitset_containers) << std::endl;
 
-   io << "Bitmap distribution by position " << std::endl;
+   io << "Bitmap distribution by position #NON_GAP (#GAP)" << std::endl;
    for (unsigned i = 0; i < (genomeLength / 500) + 1; ++i) {
-      uint32_t bitmaps_at_pos = bitset_containers_by_500pos[i];
-      io << "Pos: [" << i * 500 << "," << ((i + 1) * 500) << "): " << bitmaps_at_pos << '\n';
+      uint32_t gap_bitsets_at_pos = gap_bitset_containers_by_500pos[i];
+      uint32_t bitmaps_at_pos = bitset_containers_by_500pos[i] - gap_bitsets_at_pos;
+      io << "Pos: [" << i * 500 << "," << ((i + 1) * 500) << "): " << bitmaps_at_pos << " (N: " << gap_bitsets_at_pos << ")" << '\n';
    }
    io.flush();
+
+   io << "Partition reference genomes: " << std::endl;
+   for (const DatabasePartition& dbp : partitions) {
+      for(const Position& pos : dbp.seq_store.positions){
+         io << symbol_rep[pos.reference];
+      }
+      io << std::endl;
+   }
+
 
    return 0;
 }
@@ -252,4 +278,104 @@ unsigned silo::processMeta(MetaStore& mdb, std::istream& in, const std::unordere
    }
 
    return sequence_count;
+}
+
+void silo::save_pango_defs(const silo::pango_descriptor_t& pd, std::ostream& out) {
+   for (auto& x : pd.pangos) {
+      out << x.pango_lineage << '\t' << x.count << '\n';
+   }
+   out.flush();
+}
+
+silo::pango_descriptor_t silo::load_pango_defs(std::istream& in) {
+   silo::pango_descriptor_t descriptor;
+   std::string lineage, count_str;
+   uint32_t count;
+   while (in && !in.eof()) {
+      if (!getline(in, lineage, '\t')) break;
+      if (!getline(in, count_str, '\n')) break;
+      count = atoi(count_str.c_str());
+      descriptor.pangos.emplace_back(silo::pango_t{lineage, count});
+   }
+   return descriptor;
+}
+
+void silo::save_partitioning_descriptor(const silo::partitioning_descriptor_t& pd, std::ostream& out) {
+   for (auto& part : pd.partitions) {
+      out << "P\t" << part.name << '\t' << part.chunks.size() << '\t' << part.count << '\n';
+      for (auto& chunk : part.chunks) {
+         out << "C\t" << chunk.prefix << '\t' << chunk.pangos.size() << '\t' << chunk.count << '\t' << chunk.offset << '\n';
+         for (auto& pango : chunk.pangos) {
+            out << "L\t" << pango << '\n';
+         }
+      }
+   }
+}
+
+void silo::Database::save(const std::string& save_dir) {
+   if (!part_def) {
+      std::cerr << "Cannot save db without part_def." << std::endl;
+      return;
+   }
+
+   if (pango_def) {
+      std::ofstream pango_def_file(save_dir + "pango_def.txt");
+      if (!pango_def_file) {
+         std::cerr << "Cannot open pango_def output file: " << (save_dir + "pango_def.txt") << std::endl;
+         return;
+      }
+      save_pango_defs(*pango_def, pango_def_file);
+   }
+   {
+      std::ofstream part_def_file(save_dir + "part_def.txt");
+      if (!part_def_file) {
+         std::cerr << "Cannot open part_def output file: " << (save_dir + "part_def.txt") << std::endl;
+         return;
+      }
+      save_partitioning_descriptor(*part_def, part_def_file);
+   }
+
+   std::vector<std::ofstream> file_vec;
+   for (unsigned i = 0; i < part_def->partitions.size(); ++i) {
+      file_vec.push_back(std::ofstream(save_dir + 'P' + std::to_string(i) + ".silo"));
+
+      if (!file_vec.back()) {
+         std::cerr << "Cannot open partition output file for saving: " << (save_dir + 'P' + std::to_string(i) + ".silo") << std::endl;
+         return;
+      }
+   }
+
+   tbb::parallel_for((size_t) 0, part_def->partitions.size(), [&](size_t i) {
+      ::boost::archive::binary_oarchive oa(file_vec[i]);
+      oa << partitions[i];
+   });
+}
+
+void silo::Database::load(const std::string& save_dir) {
+   std::ifstream part_def_file(save_dir + "part_def.txt");
+   if (!part_def_file) {
+      std::cerr << "Cannot open part_def input file for loading: " << (save_dir + "part_def.txt") << std::endl;
+      return;
+   }
+   *part_def = load_partitioning_descriptor(part_def_file);
+
+   std::ifstream pango_def_file(save_dir + "pango_def.txt");
+   if (pango_def_file) {
+      *pango_def = load_pango_defs(pango_def_file);
+   }
+
+   std::vector<std::ifstream> file_vec;
+   for (unsigned i = 0; i < part_def->partitions.size(); ++i) {
+      file_vec.push_back(std::ifstream(save_dir + 'P' + std::to_string(i) + ".silo"));
+
+      if (!file_vec.back()) {
+         std::cerr << "Cannot open partition input file for loading: " << (save_dir + 'P' + std::to_string(i) + ".silo") << std::endl;
+         return;
+      }
+   }
+
+   tbb::parallel_for((size_t) 0, part_def->partitions.size(), [&](size_t i) {
+      ::boost::archive::binary_iarchive ia(file_vec[i]);
+      ia >> partitions[i];
+   });
 }
