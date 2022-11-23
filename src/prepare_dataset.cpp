@@ -259,15 +259,15 @@ silo::partitioning_descriptor_t silo::build_partitioning_descriptor(silo::pango_
    silo::partitioning_descriptor_t descriptor;
 
    switch (arch) {
-      case architecture_type::single_chunk:
+      case architecture_type::max_partitions:
          for (auto& chunk : merge_pangos_to_chunks(pango_defs.pangos,
                                                    total_count / 100, total_count / 200)) {
             descriptor.partitions.push_back(silo::partition_t{});
             descriptor.partitions.back().name = "full";
             descriptor.partitions.back().chunks.push_back(chunk);
             descriptor.partitions.back().count = chunk.count;
-            return descriptor;
          }
+         return descriptor;
       case architecture_type::single_partition:
          descriptor.partitions.push_back(silo::partition_t{});
 
@@ -557,7 +557,7 @@ void silo::sort_chunks(const partitioning_descriptor_t& pd, const std::string& o
    tbb::blocked_range<std::vector<part_chunk>::iterator> r(all_chunks.begin(), all_chunks.end());
    tbb::parallel_for(r, [&](const decltype(r) local) {
       for (auto x = local.begin(); x < local.end(); ++x) {
-         const std::string& file_name = output_prefix + 'P' + std::to_string(x->part) + "_C" + std::to_string(x->chunk);
+         const std::string& file_name = output_prefix + silo::chunk_string(x->part, x->chunk);
          silo::istream_wrapper sequence_in(file_name + ".fasta");
          silo::istream_wrapper meta_in(file_name + ".meta.tsv");
          std::ofstream sequence_out(file_name + "_sorted.fasta");

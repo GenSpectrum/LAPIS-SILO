@@ -33,6 +33,7 @@ class DatabasePartition {
    std::vector<silo::chunk_t> chunks;
 
    unsigned sequenceCount;
+   void finalize();
 };
 
 class Database {
@@ -65,6 +66,9 @@ class Database {
    }
 
    void build(const std::string& part_prefix, const std::string& meta_suffix, const std::string& seq_suffix);
+   void analyse();
+   int db_info_detailed(std::ostream& io);
+   void finalize();
 };
 
 unsigned processSeq(SequenceStore& seq_store, std::istream& in);

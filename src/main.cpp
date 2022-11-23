@@ -11,7 +11,7 @@ void info_message() {
    using std::cin;
    using std::cout;
    using std::endl;
-   cout << "SILO - Sequence Indexing engine for aLigned Ordered genomic data" << endl
+   cout << "SILO - Sequence Indexing engine for Large genOmic data" << endl
         << endl;
    cout << "Usage:" << endl;
    cout << "\tsilo" << endl;
@@ -102,8 +102,7 @@ int handle_command(Database& db, std::vector<std::string> args) {
       std::cerr << "TODO" << std::endl; // TODO
       // db_info(db, cout);
    } else if ("info_d" == args[0]) {
-      std::cerr << "TODO" << std::endl; // TODO
-      // db_info_detailed(db, cout);
+      db.db_info_detailed(cout);
    } else if ("chunk_info" == args[0]) {
       std::cerr << "TODO" << std::endl; // TODO
       // chunk_info(mdb, cout);
@@ -122,11 +121,11 @@ int handle_command(Database& db, std::vector<std::string> args) {
             std::cerr << "query_file " << (query_dir_str + test_name) << " not found." << std::endl;
             return 0;
          }
+
+         std::cerr << "TODO." << endl; // TODO
+         // benchmark(db);
          execute_query(db, query_file);
       }
-
-      std::cerr << "TODO." << endl; // TODO
-      // benchmark(db);
    } else if ("runoptimize" == args[0]) {
       std::cerr << "TODO" << std::endl; // TODO
       // cout << runoptimize(db) << endl;
@@ -166,7 +165,10 @@ int handle_command(Database& db, std::vector<std::string> args) {
          return 0;
       }
       std::cout << "Build part_def from pango_def" << std::endl;
-      partitioning_descriptor_t part_def = silo::build_partitioning_descriptor(*db.pango_def, architecture_type::single_partition);
+      architecture_type arch = args.size() <= 1 || args[1] == "1" ? architecture_type::single_partition :
+         args[1] == "2"                                           ? architecture_type::max_partitions :
+                                                                    architecture_type::hybrid;
+      partitioning_descriptor_t part_def = silo::build_partitioning_descriptor(*db.pango_def, arch);
       db.part_def = std::make_unique<partitioning_descriptor_t>(part_def);
       return 0;
    } else if ("save_part_def" == args[0]) {
@@ -174,7 +176,9 @@ int handle_command(Database& db, std::vector<std::string> args) {
          std::cerr << "No part_def initialized. See 'build_part_def' | 'load_part_def'" << std::endl;
          return 0;
       }
-      auto part_def_output = args.size() > 1 ? std::ofstream(args[1]) : std::ofstream(default_part_def_file);
+      auto part_def_output_str = args.size() > 1 ? args[1] : default_part_def_file;
+      auto part_def_output = std::ofstream(part_def_output_str);
+      std::cout << "Save part_def to file " << part_def_output_str << std::endl;
       silo::save_partitioning_descriptor(*db.part_def, part_def_output);
       return 0;
    } else if ("load_part_def" == args[0]) {
@@ -229,6 +233,8 @@ int handle_command(Database& db, std::vector<std::string> args) {
       std::string meta_suffix = args.size() > 2 ? args[2] : ".meta.tsv";
       std::string seq_suffix = args.size() > 3 ? args[3] : ".fasta";
       db.build(part_prefix, meta_suffix, seq_suffix);
+   } else if ("experiment" == args[0]) {
+      db.finalize();
    } else if ("query" == args[0]) {
       if (args.size() < 2) {
          cout << "Expected syntax: \"query JSON_QUERY\"" << endl;

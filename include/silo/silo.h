@@ -18,7 +18,6 @@
 #include <locale>
 #include <memory>
 #include <sstream>
-#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -123,7 +122,7 @@ inline Symbol to_symbol(char c) {
 }
 
 enum architecture_type {
-   single_chunk,
+   max_partitions,
    single_partition,
    hybrid
 };

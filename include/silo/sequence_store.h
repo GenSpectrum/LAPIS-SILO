@@ -14,10 +14,12 @@ struct Position {
 
    template <class Archive>
    void serialize(Archive& ar, [[maybe_unused]] const unsigned int version) {
+      ar& reference;
       ar& bitmaps;
    }
 
    roaring::Roaring bitmaps[symbolCount];
+   unsigned int reference;
 };
 
 class SequenceStore {
@@ -66,8 +68,6 @@ class SequenceStore {
 
    int db_info(std::ostream& io) const;
 };
-
-int db_info_detailed(const SequenceStore& db, std::ostream& io);
 
 unsigned save_db(const SequenceStore& db, const std::string& db_filename);
 
