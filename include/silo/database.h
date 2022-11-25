@@ -27,6 +27,43 @@ struct pango_descriptor_t {
    std::vector<pango_t> pangos;
 };
 
+class Dictionary {
+   private:
+   std::unordered_map<std::string_view, uint32_t> pango_dict;
+   std::unordered_map<std::string_view, uint32_t> country_dict;
+   std::unordered_map<std::string_view, uint32_t> region_dict;
+   std::unordered_map<std::string_view, uint32_t> general_dict;
+
+   std::vector<std::string> pango_lookup;
+   std::vector<std::string> country_lookup;
+   std::vector<std::string> region_lookup;
+   std::vector<std::string> general_lookup;
+
+   uint32_t next_pango_id;
+   uint32_t next_country_id;
+   uint32_t next_region_id;
+   uint32_t next_general_id;
+
+   public:
+   uint32_t get_pangoid(const std::string& str);
+
+   const std::string& get_pango(uint32_t id);
+
+   uint32_t get_countryid(const std::string& str);
+
+   const std::string& get_country(uint32_t id);
+
+   uint32_t get_regionid(const std::string& str);
+
+   const std::string& get_region(uint32_t id);
+
+   uint32_t get_id(const std::string& str);
+
+   const std::string& get_str(uint32_t id);
+
+   void save_dict(std::ostream& dict_file);
+};
+
 class DatabasePartition {
    friend class Database;
    friend class boost::serialization::access;

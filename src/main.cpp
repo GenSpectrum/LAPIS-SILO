@@ -56,7 +56,7 @@ int handle_command(Database& db, std::vector<std::string> args) {
    } else if ("load" == args[0]) {
       std::string db_savedir = args.size() > 1 ? args[1] : default_db_savedir;
       cout << "Loading Database from " << db_savedir << endl;
-      db.save(db_savedir);
+      db.load(db_savedir);
    } else if ("save" == args[0]) {
       std::string db_savedir = args.size() > 1 ? args[1] : default_db_savedir;
       cout << "Saving Database to " << db_savedir << endl;

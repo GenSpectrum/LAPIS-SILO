@@ -20,39 +20,3 @@ void silo::inputSequenceMeta(MetaStore& mdb, uint64_t epi, const std::string& pa
    mdb.sid_to_country.push_back(country);
    mdb.sid_to_region.push_back(region);
 }
-
-/*
-void silo::chunk_info(const MetaStore& mdb, std::ostream& out) {
-   out << "Infos by pango:" << std::endl;
-   for (unsigned i = 0; i < mdb.chunks.size(); ++i) {
-      out << "(chunk: " << i << ",\tprefix: " << mdb.chunks[i].prefix
-          << ",\tcount: " << number_fmt(mdb.chunks[i].count)
-          << ",\tpango vec: ";
-      std::copy(mdb.chunks[i].pangos.begin(),
-                mdb.chunks[i].pangos.end(),
-                std::ostream_iterator<std::string>(std::cout, " "));
-      std::cout << ')' << std::endl;
-   }
-}*/
-
-unsigned silo::save_meta(const MetaStore& mdb, const std::string& db_filename) {
-   std::ofstream wf(db_filename, std::ios::binary);
-   if (!wf) {
-      std::cerr << "Cannot open ofile: " << db_filename << std::endl;
-      return 1;
-   }
-   boost::archive::binary_oarchive oa(wf);
-   oa << mdb;
-   return 0;
-}
-
-unsigned silo::load_meta(MetaStore& mdb, const std::string& db_filename) {
-   std::ifstream ifs(db_filename, std::ios::binary);
-   if (!ifs) {
-      std::cerr << "Cannot open ifile: " << db_filename << std::endl;
-      return 1;
-   }
-   boost::archive::binary_iarchive ia(ifs);
-   ia >> mdb;
-   return 0;
-}

@@ -15,21 +15,25 @@ struct MetaStore {
    [[maybe_unused]] void serialize(Archive& ar, const unsigned int /* version */) {
       ar& sid_to_epi;
       ar& sid_to_date;
+      ar& sid_to_lineage;
       ar& sid_to_region;
       ar& sid_to_country;
    }
 
    std::vector<uint64_t> sid_to_epi;
    std::vector<time_t> sid_to_date;
-   std::vector<std::string> sid_to_lineage;
 
-   std::vector<std::string> sid_to_region;
-   std::vector<std::string> all_regions;
+   // TODO only ints -> Dictionary:
+   std::vector<uint32_t> sid_to_lineage;
+   std::vector<roaring::Roaring> lineage_bitmaps;
+
+   std::vector<uint32_t> sid_to_region;
    std::vector<roaring::Roaring> region_bitmaps;
 
-   std::vector<std::string> sid_to_country;
-   std::vector<std::string> all_countries;
+   std::vector<uint32_t> sid_to_country;
    std::vector<roaring::Roaring> country_bitmaps;
+
+   std::vector<std::vector<uint32_t>> columns;
 };
 
 void inputSequenceMeta(MetaStore& mdb, uint64_t epi, const std::string& pango_lineage, const std::string& date,

@@ -84,7 +84,7 @@ void silo::Database::analyse() {
 
 using r_stat = roaring::api::roaring_statistics_t;
 
-static inline void addStat(r_stat& r1, r_stat& r2) {
+static inline void addStat(r_stat& r1, const r_stat& r2) {
    r1.cardinality += r2.cardinality;
    if (r2.max_value > r1.max_value) r1.max_value = r2.max_value;
    if (r2.min_value < r1.min_value) r1.min_value = r2.min_value;
@@ -101,18 +101,18 @@ static inline void addStat(r_stat& r1, r_stat& r2) {
    r1.sum_value += r2.sum_value;
 }
 
-
-
 int silo::Database::db_info(std::ostream& io) {
    std::atomic<uint32_t> sequence_count = 0;
    std::atomic<uint64_t> total_size = 0;
-   tbb::parallel_for_each(partitions.begin(), partitions.end(), [&](const DatabasePartition& dbp){
+   tbb::parallel_for_each(partitions.begin(), partitions.end(), [&](const DatabasePartition& dbp) {
       sequence_count += dbp.sequenceCount;
       total_size += dbp.seq_store.computeSize();
    });
 
    io << "sequence count: " << number_fmt(sequence_count) << std::endl;
    io << "total size: " << number_fmt(total_size) << std::endl;
+
+   return 0;
 }
 
 int silo::Database::db_info_detailed(std::ostream& io) {
@@ -133,6 +133,7 @@ int silo::Database::db_info_detailed(std::ostream& io) {
    std::mutex lock;
    std::vector<uint32_t> bitset_containers_by_500pos((genomeLength / 500) + 1);
    std::vector<uint32_t> gap_bitset_containers_by_500pos((genomeLength / 500) + 1);
+   std::vector<uint32_t> N_bitset_containers_by_500pos((genomeLength / 500) + 1);
    r_stat s_total{};
    uint64_t total_size_comp = 0;
    uint64_t total_size_frozen = 0;
@@ -141,9 +142,7 @@ int silo::Database::db_info_detailed(std::ostream& io) {
    uint64_t n_bytes_run_containers = 0;
    uint64_t n_bytes_bitset_containers = 0;
 
-   tbb::parallel_for_each(partitions.begin(), partitions.end(), [&](const DatabasePartition& dbp) {
-      std::vector<uint32_t> bitset_containers_by_500pos_local((genomeLength / 500) + 1);
-      std::vector<uint32_t> gap_bitset_containers_by_500pos_local((genomeLength / 500) + 1);
+   tbb::parallel_for((unsigned) 0, genomeLength, [&](unsigned pos) {
       r_stat s_local{};
       uint64_t total_size_comp_local = 0;
       uint64_t total_size_frozen_local = 0;
@@ -152,7 +151,7 @@ int silo::Database::db_info_detailed(std::ostream& io) {
       uint64_t n_bytes_bitset_containers_local = 0;
       {
          r_stat s;
-         for (unsigned pos = 0; pos < genomeLength; ++pos) {
+         for (const auto& dbp : partitions) {
             const Position& p = dbp.seq_store.positions[pos];
             for (const Roaring& bm : p.bitmaps) {
                roaring_bitmap_statistics(&bm.roaring, &s);
@@ -163,21 +162,18 @@ int silo::Database::db_info_detailed(std::ostream& io) {
                n_bytes_run_containers_local += s.n_bytes_run_containers;
                n_bytes_bitset_containers_local += s.n_bytes_bitset_containers;
                if (s.n_bitset_containers > 0) {
-                  bitset_containers_by_500pos_local[pos / 500] += s.n_bitset_containers;
                   if (pos == Symbol::N) {
-                     gap_bitset_containers_by_500pos_local[pos / 500] += s.n_bitset_containers;
+                     N_bitset_containers_by_500pos[pos / 500] += s.n_bitset_containers;
+                  } else if (pos == Symbol::gap) {
+                     gap_bitset_containers_by_500pos[pos / 500] += s.n_bitset_containers;
+                  } else {
+                     bitset_containers_by_500pos[pos / 500] += s.n_bitset_containers;
                   }
                }
             }
          }
       }
       lock.lock();
-      for (unsigned i = 0; i < bitset_containers_by_500pos.size(); ++i) {
-         bitset_containers_by_500pos[i] += bitset_containers_by_500pos_local[i];
-      }
-      for (unsigned i = 0; i < bitset_containers_by_500pos.size(); ++i) {
-         gap_bitset_containers_by_500pos[i] += gap_bitset_containers_by_500pos_local[i];
-      }
       addStat(s_total, s_local);
       total_size_comp += total_size_comp_local;
       total_size_frozen += total_size_frozen_local;
@@ -206,19 +202,19 @@ int silo::Database::db_info_detailed(std::ostream& io) {
    io << "Bitmap distribution by position #NON_GAP (#GAP)" << std::endl;
    for (unsigned i = 0; i < (genomeLength / 500) + 1; ++i) {
       uint32_t gap_bitsets_at_pos = gap_bitset_containers_by_500pos[i];
-      uint32_t bitmaps_at_pos = bitset_containers_by_500pos[i] - gap_bitsets_at_pos;
-      io << "Pos: [" << i * 500 << "," << ((i + 1) * 500) << "): " << bitmaps_at_pos << " (N: " << gap_bitsets_at_pos << ")" << '\n';
+      uint32_t N_bitmaps_at_pos = N_bitset_containers_by_500pos[i];
+      uint32_t bitmaps_at_pos = bitset_containers_by_500pos[i];
+      io << "Pos: [" << i * 500 << "," << ((i + 1) * 500) << "): " << bitmaps_at_pos << " (N: " << N_bitmaps_at_pos << ", -: " << gap_bitsets_at_pos << ")" << '\n';
    }
    io.flush();
 
    io << "Partition reference genomes: " << std::endl;
    for (const DatabasePartition& dbp : partitions) {
-      for(const Position& pos : dbp.seq_store.positions){
+      for (const Position& pos : dbp.seq_store.positions) {
          io << symbol_rep[pos.reference];
       }
       io << std::endl;
    }
-
 
    return 0;
 }
@@ -374,6 +370,7 @@ void silo::Database::load(const std::string& save_dir) {
       }
    }
 
+   partitions.resize(part_def->partitions.size());
    tbb::parallel_for((size_t) 0, part_def->partitions.size(), [&](size_t i) {
       ::boost::archive::binary_iarchive ia(file_vec[i]);
       ia >> partitions[i];

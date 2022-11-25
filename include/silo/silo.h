@@ -15,11 +15,8 @@
 #include <chrono>
 #include <fstream>
 #include <iostream>
-#include <locale>
 #include <memory>
-#include <sstream>
 #include <unordered_map>
-#include <utility>
 #include <vector>
 
 namespace silo {

@@ -46,40 +46,6 @@ int SequenceStore::db_info(std::ostream& io) const {
    return 0;
 }
 
-unsigned silo::save_db(const SequenceStore& db, const std::string& db_filename) {
-   std::cout << "Writing out db." << std::endl;
-
-   std::ofstream wf(db_filename, ios::out | ios::binary);
-   if (!wf) {
-      std::cerr << "Cannot open ofile: " << db_filename << std::endl;
-      return 1;
-   }
-
-   {
-      ::boost::archive::binary_oarchive oa(wf);
-      oa << db;
-   }
-
-   return 0;
-}
-
-unsigned silo::load_db(SequenceStore& db, const std::string& db_filename) {
-   {
-      // create and open an archive for input
-      std::ifstream ifs(db_filename, ios::binary);
-
-      if (!ifs) {
-         std::cerr << db_filename << " not found." << std::endl;
-         return -1;
-      }
-      ::boost::archive::binary_iarchive ia(ifs);
-      // read class state from archive
-      ia >> db;
-      // archive and stream closed when destructors are called
-   }
-   return 0;
-}
-
 void SequenceStore::interpret_offset_p(const std::vector<std::string>& genomes, uint32_t offset) {
    tbb::blocked_range<unsigned> range(0, genomeLength, genomeLength / 64);
    tbb::parallel_for(range, [&](const decltype(range)& local) {
