@@ -7,7 +7,7 @@
 
 #include "database.h"
 #include "rapidjson/document.h"
-#include "sequence_store.h"
+#include "silo/db_components/sequence_store.h"
 
 namespace silo {
 

@@ -2,7 +2,10 @@
 // Created by Alexander Taepper on 16.11.22.
 //
 
+#include <silo/common/fix_rh_map.hpp>
 #include <syncstream>
+#include <silo/common/SizeSketch.h>
+#include <silo/common/hashing.h>
 #include <silo/database.h>
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for_each.h>
@@ -23,7 +26,7 @@ void silo::Database::build(const std::string& part_prefix, const std::string& me
          std::ifstream meta_in(name + meta_suffix);
          std::osyncstream(std::cout) << "Extending sequence-store from input file: " << name << std::endl;
          unsigned count1 = processSeq(partitions[i].seq_store, seq_in.get_is());
-         unsigned count2 = processMeta(partitions[i].meta_store, meta_in, alias_key);
+         unsigned count2 = processMeta(partitions[i].meta_store, meta_in, alias_key, *dict);
          if (count1 != count2) {
             // Fatal error
             std::cerr << "Sequences in meta data and sequence data for chunk " << chunk_string(i, j) << " are not equal." << std::endl;
@@ -248,7 +251,7 @@ unsigned silo::processSeq(silo::SequenceStore& seq_store, std::istream& in) {
    return sequence_count;
 }
 
-unsigned silo::processMeta(MetaStore& mdb, std::istream& in, const std::unordered_map<std::string, std::string>& alias_key) {
+unsigned silo::processMeta(MetaStore& mdb, std::istream& in, const std::unordered_map<std::string, std::string>& alias_key, const Dictionary& dict) {
    // Ignore header line.
    in.ignore(LONG_MAX, '\n');
 
@@ -269,7 +272,16 @@ unsigned silo::processMeta(MetaStore& mdb, std::istream& in, const std::unordere
       std::string tmp = epi_isl.substr(8);
       uint64_t epi = stoi(tmp);
 
-      silo::inputSequenceMeta(mdb, epi, pango_lineage, date, region, country, division);
+      struct std::tm tm {};
+      std::istringstream ss(date);
+      ss >> std::get_time(&tm, "%Y-%m-%d");
+      std::time_t time = mktime(&tm);
+
+      std::vector<uint64_t> extra_cols;
+      extra_cols.push_back(dict.get_id(division));
+
+      silo::inputSequenceMeta(mdb, epi, time, dict.get_pangoid(pango_lineage),
+                              dict.get_regionid(region), dict.get_countryid(country), extra_cols);
       ++sequence_count;
    }
 

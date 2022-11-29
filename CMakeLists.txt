@@ -46,8 +46,9 @@ include_directories(SYSTEM
 
 set(SRC_CC
         src/silo.cpp
-        src/meta_store.cpp
-        src/sequence_store.cpp
+        src/db_components/Dictionary.cpp
+        src/db_components/meta_store.cpp
+        src/db_components/sequence_store.cpp
         src/query_engine.cpp
         src/database.cpp
         src/prepare_dataset.cpp

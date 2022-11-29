@@ -186,7 +186,45 @@ int handle_command(Database& db, std::vector<std::string> args) {
       cout << "sort_chunks in " << part_prefix << endl;
       silo::sort_chunks(*db.part_def, part_prefix);
       return 0;
-   } else if ("build" == args[0]) {
+   } else if ("build_dict" == args[0]) {
+      if (!db.part_def) {
+         std::cerr << "No part_def initialized. See 'build_part_def' | 'load_part_def'" << std::endl;
+         return 0;
+      }
+      if (!db.dict) {
+         std::cerr << "Dict not initialized. See 'build_dict' | 'load_dict'" << std::endl;
+         return 0;
+      }
+      std::string part_prefix = args.size() > 1 ? args[1] : default_partition_prefix;
+      std::string meta_suffix = args.size() > 2 ? args[2] : ".meta.tsv";
+      std::cout << "Build dictionary from meta_data in " << part_prefix << std::endl;
+      std::vector<std::ifstream> meta_files;
+      db.dict = std::make_unique<Dictionary>(meta_in);
+      return 0;
+   } else if ("save_dict" == args[0]) {
+      if (!db.part_def) {
+         std::cerr << "No part_def initialized. See 'build_part_def' | 'load_part_def'" << std::endl;
+         return 0;
+      }
+      auto part_def_output_str = args.size() > 1 ? args[1] : default_part_def_file;
+      auto part_def_output = std::ofstream(part_def_output_str);
+      std::cout << "Save part_def to file " << part_def_output_str << std::endl;
+      silo::save_partitioning_descriptor(*db.part_def, part_def_output);
+      return 0;
+   } else if ("load_dict" == args[0]) {
+      auto part_def_input_str = args.size() > 1 ? args[1] : default_part_def_file;
+      auto part_def_input = std::ifstream(part_def_input_str);
+      if (!part_def_input) {
+         std::cerr << "part_def_input file " << part_def_input_str << " not found." << std::endl;
+         return 0;
+      }
+      std::cout << "Load part_def from input file " << part_def_input_str << std::endl;
+      partitioning_descriptor_t part_def = silo::load_partitioning_descriptor(part_def_input);
+      db.part_def = std::make_unique<partitioning_descriptor_t>(part_def);
+      return 0;
+   }
+
+   else if ("build" == args[0]) {
       if (!db.part_def) {
          cout << "Build partitioning descriptor first. See 'build_part_def' | 'load_part_def'" << endl;
          return 0;

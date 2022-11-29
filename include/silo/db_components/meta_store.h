@@ -5,7 +5,7 @@
 #ifndef SILO_META_STORE_H
 #define SILO_META_STORE_H
 
-#include "silo.h"
+#include "silo/silo.h"
 
 namespace silo {
 
@@ -33,11 +33,11 @@ struct MetaStore {
    std::vector<uint32_t> sid_to_country;
    std::vector<roaring::Roaring> country_bitmaps;
 
-   std::vector<std::vector<uint32_t>> columns;
+   std::vector<std::vector<uint64_t>> cols;
 };
 
-void inputSequenceMeta(MetaStore& mdb, uint64_t epi, const std::string& pango_lineage, const std::string& date,
-                       const std::string& region, const std::string& country, const std::string& division);
+void inputSequenceMeta(MetaStore& mdb, uint64_t epi, time_t date, uint32_t pango_lineage,
+                       uint32_t region, uint32_t country, const std::vector<uint64_t>& vals);
 
 void chunk_info(const MetaStore& mdb, std::ostream& out);
 
