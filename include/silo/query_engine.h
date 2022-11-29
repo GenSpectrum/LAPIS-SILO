@@ -4,6 +4,8 @@
 
 #ifndef SILO_QUERY_ENGINE_H
 #define SILO_QUERY_ENGINE_H
+#include <string>
+#include "silo/database.h"
 
 namespace silo {
 
