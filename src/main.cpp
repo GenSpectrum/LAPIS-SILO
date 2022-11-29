@@ -39,6 +39,7 @@ int handle_command(Database& db, std::vector<std::string> args) {
    const std::string default_partition_prefix = "../Data/Partitioned/";
    const std::string default_pango_def_file = "../Data/pango_def.txt";
    const std::string default_part_def_file = "../Data/part_def.txt";
+   const std::string default_dict_file = "../Data/dict.txt";
    const std::string default_query_dir = "../Data/queries/";
    if (args.empty()) {
       return 0;
@@ -191,40 +192,54 @@ int handle_command(Database& db, std::vector<std::string> args) {
          std::cerr << "No part_def initialized. See 'build_part_def' | 'load_part_def'" << std::endl;
          return 0;
       }
+      std::string part_prefix = args.size() > 1 ? args[1] : default_partition_prefix;
+      std::string meta_suffix = args.size() > 2 ? args[2] : ".meta.tsv";
+      std::cout << "Build dictionary from meta_data in " << part_prefix << std::endl;
+      db.dict = std::make_unique<Dictionary>();
+
+      for (size_t i = 0; i < db.part_def->partitions.size(); ++i) {
+         const auto& part = db.part_def->partitions[i];
+         for (unsigned j = 0; j < part.chunks.size(); ++j) {
+            std::string name;
+            if (i > 0) { // TODO cleaner dealing with chunk to filename mapping..
+               name = part_prefix + chunk_string(j, i);
+            } else {
+               name = part_prefix + chunk_string(i, j);
+            }
+            std::ifstream meta_in(name + meta_suffix);
+            if (!meta_in) {
+               std::cerr << "Meta_data file " << (name + meta_suffix) << " not found." << std::endl;
+               return 0;
+            }
+            db.dict->update_dict(meta_in, db.get_alias_key());
+         }
+      }
+      return 0;
+   } else if ("save_dict" == args[0]) {
       if (!db.dict) {
          std::cerr << "Dict not initialized. See 'build_dict' | 'load_dict'" << std::endl;
          return 0;
       }
-      std::string part_prefix = args.size() > 1 ? args[1] : default_partition_prefix;
-      std::string meta_suffix = args.size() > 2 ? args[2] : ".meta.tsv";
-      std::cout << "Build dictionary from meta_data in " << part_prefix << std::endl;
-      std::vector<std::ifstream> meta_files;
-      db.dict = std::make_unique<Dictionary>(meta_in);
-      return 0;
-   } else if ("save_dict" == args[0]) {
-      if (!db.part_def) {
-         std::cerr << "No part_def initialized. See 'build_part_def' | 'load_part_def'" << std::endl;
+      auto dict_output_str = args.size() > 1 ? args[1] : default_dict_file;
+      auto dict_output = std::ofstream(dict_output_str);
+      if (!dict_output) {
+         std::cerr << "Could not open '" << dict_output_str << "'." << std::endl;
          return 0;
       }
-      auto part_def_output_str = args.size() > 1 ? args[1] : default_part_def_file;
-      auto part_def_output = std::ofstream(part_def_output_str);
-      std::cout << "Save part_def to file " << part_def_output_str << std::endl;
-      silo::save_partitioning_descriptor(*db.part_def, part_def_output);
+      std::cout << "Save dictionary to file " << dict_output_str << std::endl;
+      db.dict->save_dict(dict_output);
       return 0;
    } else if ("load_dict" == args[0]) {
-      auto part_def_input_str = args.size() > 1 ? args[1] : default_part_def_file;
-      auto part_def_input = std::ifstream(part_def_input_str);
-      if (!part_def_input) {
-         std::cerr << "part_def_input file " << part_def_input_str << " not found." << std::endl;
+      auto dict_input_str = args.size() > 1 ? args[1] : default_dict_file;
+      auto dict_input = std::ifstream(dict_input_str);
+      if (!dict_input) {
+         std::cerr << "dict_input file " << dict_input_str << " not found." << std::endl;
          return 0;
       }
-      std::cout << "Load part_def from input file " << part_def_input_str << std::endl;
-      partitioning_descriptor_t part_def = silo::load_partitioning_descriptor(part_def_input);
-      db.part_def = std::make_unique<partitioning_descriptor_t>(part_def);
+      std::cout << "Load dictionary from input file " << dict_input_str << std::endl;
+      db.dict = std::make_unique<Dictionary>(Dictionary::load_dict(dict_input));
       return 0;
-   }
-
-   else if ("build" == args[0]) {
+   } else if ("build" == args[0]) {
       if (!db.part_def) {
          cout << "Build partitioning descriptor first. See 'build_part_def' | 'load_part_def'" << endl;
          return 0;

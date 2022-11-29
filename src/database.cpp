@@ -365,11 +365,11 @@ void silo::Database::load(const std::string& save_dir) {
       std::cerr << "Cannot open part_def input file for loading: " << (save_dir + "part_def.txt") << std::endl;
       return;
    }
-   *part_def = load_partitioning_descriptor(part_def_file);
+   part_def = std::make_unique<partitioning_descriptor_t>(load_partitioning_descriptor(part_def_file));
 
    std::ifstream pango_def_file(save_dir + "pango_def.txt");
    if (pango_def_file) {
-      *pango_def = load_pango_defs(pango_def_file);
+      pango_def = std::make_unique<pango_descriptor_t>(load_pango_defs(pango_def_file));
    }
 
    std::vector<std::ifstream> file_vec;

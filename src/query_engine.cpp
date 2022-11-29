@@ -1,6 +1,8 @@
 
 
 #include "silo/query_engine.h"
+#include "rapidjson/document.h"
+#include "silo/database.h"
 
 namespace silo {
 

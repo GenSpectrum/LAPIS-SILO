@@ -5,10 +5,6 @@
 #ifndef SILO_QUERY_ENGINE_H
 #define SILO_QUERY_ENGINE_H
 
-#include "database.h"
-#include "rapidjson/document.h"
-#include "silo/db_components/sequence_store.h"
-
 namespace silo {
 
 std::string execute_query(const Database& db, const std::istream& query);
