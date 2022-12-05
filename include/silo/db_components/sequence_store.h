@@ -60,7 +60,7 @@ class SequenceStore {
    /// where the residue is interpreted in the _a_pproximate meaning
    /// That means a symbol matches all mixed symbols, which can indicate the residue
    /// pos: 1 indexed position of the genome
-   [[nodiscard]] roaring::Roaring bma(size_t pos, Residue r) const;
+   [[nodiscard]] roaring::Roaring* bma(size_t pos, Symbol r) const;
 
    void interpret(const std::vector<std::string>& genomes);
 

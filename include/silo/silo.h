@@ -41,13 +41,6 @@ enum Symbol {
    N, // any base
 };
 
-enum Residue {
-   aA,
-   aC,
-   aG,
-   aT
-};
-
 static constexpr unsigned symbolCount = static_cast<unsigned>(Symbol::N) + 1;
 
 static constexpr char symbol_rep[symbolCount] = {

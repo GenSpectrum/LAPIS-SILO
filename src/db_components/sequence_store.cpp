@@ -9,35 +9,40 @@
 using namespace silo;
 using ios = std::ios;
 
-roaring::Roaring SequenceStore::bma(size_t pos, Residue r) const {
+roaring::Roaring* SequenceStore::bma(size_t pos, Symbol r) const {
    switch (r) {
-      case aA: {
+      case A: {
          const roaring::Roaring* tmp[8] = {bm(pos, A), bm(pos, N),
                                            bm(pos, R), bm(pos, W), bm(pos, M),
                                            bm(pos, D), bm(pos, H), bm(pos, V)};
-         return roaring::Roaring::fastunion(8, tmp);
+         roaring::Roaring* ret = new roaring::Roaring(roaring::Roaring::fastunion(8, tmp));
+         return ret;
       }
-      case aC: {
+      case C: {
          const roaring::Roaring* tmp[8] = {bm(pos, C), bm(pos, N),
                                            bm(pos, Y), bm(pos, S), bm(pos, M),
                                            bm(pos, B), bm(pos, H), bm(pos, V)};
-         return roaring::Roaring::fastunion(8, tmp);
+         roaring::Roaring* ret = new roaring::Roaring(roaring::Roaring::fastunion(8, tmp));
+         return ret;
       }
-      case aG: {
+      case G: {
          const roaring::Roaring* tmp[8] = {bm(pos, G), bm(pos, N),
                                            bm(pos, R), bm(pos, S), bm(pos, K),
                                            bm(pos, D), bm(pos, B), bm(pos, V)};
-         return roaring::Roaring::fastunion(8, tmp);
+         roaring::Roaring* ret = new roaring::Roaring(roaring::Roaring::fastunion(8, tmp));
+         return ret;
       }
-      case aT: {
+      case T: {
          const roaring::Roaring* tmp[8] = {bm(pos, T), bm(pos, N),
                                            bm(pos, Y), bm(pos, W), bm(pos, K),
                                            bm(pos, D), bm(pos, H), bm(pos, B)};
-         return roaring::Roaring::fastunion(8, tmp);
+         roaring::Roaring* ret = new roaring::Roaring(roaring::Roaring::fastunion(8, tmp));
+         return ret;
+      }
+      default:{
+         throw std::runtime_error("Approximate query only on A C G T allowed.");
       }
    }
-   std::cerr << "Should not happen, number of residue changed?" << std::endl;
-   return roaring::Roaring{};
 }
 
 int SequenceStore::db_info(std::ostream& io) const {
