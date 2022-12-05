@@ -411,7 +411,11 @@ void sort_chunk(std::istream& meta_in, std::istream& sequence_in, std::ostream& 
       lines.reserve(chunk_d.size);
 
       // Ignore Header
-      meta_in.ignore(LONG_MAX, '\n');
+      std::string header;
+      if (!getline(meta_in, header, '\n')) {
+         std::cerr << "No header in metadata file. Abort." << std::endl;
+         return;
+      }
       while (true) {
          std::string epi_isl, pango_lineage, date_str, rest;
          if (!getline(meta_in, epi_isl, '\t')) break;
@@ -436,6 +440,8 @@ void sort_chunk(std::istream& meta_in, std::istream& sequence_in, std::ostream& 
          return s1.date < s2.date;
       };
       std::sort(lines.begin(), lines.end(), sorter);
+
+      meta_out << header << '\n';
 
       for (const MetaLine& line : lines) {
          meta_out << "EPI_ISL_" << line.epi << '\t' << line.pango << '\t' << line.date_str << '\t' << line.rest << '\n';
