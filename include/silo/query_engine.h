@@ -4,12 +4,13 @@
 
 #ifndef SILO_QUERY_ENGINE_H
 #define SILO_QUERY_ENGINE_H
-#include <string>
+
 #include "silo/database.h"
+#include <string>
 
 namespace silo {
 
-std::string execute_query(const Database& db, const std::istream& query);
+std::string execute_query(const Database& db, const std::string& query);
 
 } // namespace silo;
 

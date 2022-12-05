@@ -87,7 +87,10 @@ int handle_command(Database& db, std::vector<std::string> args) {
 
          std::cerr << "TODO." << endl; // TODO
          // benchmark(db);
-         execute_query(db, query_file);
+         std::stringstream buffer;
+         buffer << query_file.rdbuf();
+         std::string query = "{\"action\": {\"type\": \"Aggregated\",\"groupByFields\": [\"date\",\"division\"]},\"filter\": {" + buffer.str() + "}}";
+         execute_query(db, query);
       }
    } else if ("runoptimize" == args[0]) {
       std::cerr << "TODO" << std::endl; // TODO
@@ -295,7 +298,7 @@ int handle_command(Database& db, const std::string& command_str) {
 
 int main(int argc, char* argv[]) {
    try {
-      auto db = std::make_unique<Database>();
+      auto db = std::make_unique<Database>("../Data/");
       if (argc >= 2) {
          for (int i = 1; i < argc; i++) {
             if (handle_command(*db, argv[i])) {

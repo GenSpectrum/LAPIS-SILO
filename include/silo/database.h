@@ -57,6 +57,7 @@ class Database {
    std::unordered_map<std::string, std::string> alias_key;
 
    public:
+   std::vector<std::string> global_reference;
    std::vector<DatabasePartition> partitions;
    std::unique_ptr<pango_descriptor_t> pango_def;
    std::unique_ptr<partitioning_descriptor_t> part_def;
@@ -65,10 +66,26 @@ class Database {
       return alias_key;
    }
 
-   Database() {
-      std::ifstream alias_key_file("../Data/pango_alias.txt");
+   Database(const std::string& wd) {
+      std::ifstream reference_file(wd + "reference_genome.txt");
+      if (!reference_file) {
+         std::cerr << "Expected file " << wd << "reference_genome.txt." << std::endl;
+         return;
+      }
+      while(true) {
+         std::string tmp;
+         if(!getline(reference_file, tmp, '\n')) break;
+         global_reference.push_back(tmp);
+      }
+      if(global_reference.empty()){
+         std::cerr << "No genome in " << wd << "reference_genome.txt." << std::endl;
+         return;
+      }
+
+      std::ifstream alias_key_file(wd + "pango_alias.txt");
       if (!alias_key_file) {
-         std::cerr << "Expected file Data/pango_alias.txt." << std::endl;
+         std::cerr << "Expected file " << wd << "pango_alias.txt." << std::endl;
+         return;
       }
       while (true) {
          std::string alias, val;

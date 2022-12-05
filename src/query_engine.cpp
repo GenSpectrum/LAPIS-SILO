@@ -2,6 +2,8 @@
 
 #include "silo/query_engine.h"
 #include "rapidjson/document.h"
+#include "tbb/parallel_for.h"
+#include "tbb/parallel_for_each.h"
 
 namespace silo {
 
@@ -22,13 +24,13 @@ struct BoolExpression {
    // TypeV type;
 
    /// Constructor
-   explicit BoolExpression(const rapidjson::Value& js) {}
+   explicit BoolExpression(const rapidjson::Value& /*js*/) {}
 
    /// Destructor
    virtual ~BoolExpression() = default;
 
    /// Evaluate the expression by interpreting it.
-   virtual Roaring* evaluate(const DatabasePartition& /*db*/) {
+   virtual Roaring* evaluate(const Database& /*db*/, const DatabasePartition& /*dbp*/) {
       throw std::runtime_error("Not Implemented exception. Does not override Expression::evaluate.");
    };
 
@@ -54,13 +56,13 @@ struct VectorEx : public BoolExpression {
 struct AndEx : public VectorEx {
    explicit AndEx(const rapidjson::Value& js) : VectorEx(js) {}
 
-   Roaring* evaluate(const DatabasePartition& db) override;
+   Roaring* evaluate(const Database& db, const DatabasePartition& dbp) override;
 };
 
 struct OrEx : public VectorEx {
    explicit OrEx(const rapidjson::Value& js) : VectorEx(js) {}
 
-   Roaring* evaluate(const DatabasePartition& db) override;
+   Roaring* evaluate(const Database& db, const DatabasePartition& dbp) override;
 };
 
 struct NOfEx : public VectorEx {
@@ -78,7 +80,7 @@ struct NOfEx : public VectorEx {
       }
    }
 
-   Roaring* evaluate(const DatabasePartition& db) override;
+   Roaring* evaluate(const Database& db, const DatabasePartition& dbp) override;
 };
 
 struct NegEx : public BoolExpression {
@@ -88,7 +90,7 @@ struct NegEx : public BoolExpression {
       child = to_ex(js["child"]);
    }
 
-   Roaring* evaluate(const DatabasePartition& db) override;
+   Roaring* evaluate(const Database& db, const DatabasePartition& dbp) override;
 };
 
 struct DateBetwEx : public BoolExpression {
@@ -121,7 +123,7 @@ struct DateBetwEx : public BoolExpression {
       }
    }
 
-   Roaring* evaluate(const DatabasePartition& db) override;
+   Roaring* evaluate(const Database& db, const DatabasePartition& dbp) override;
 };
 
 struct NucEqEx : public BoolExpression {
@@ -133,7 +135,7 @@ struct NucEqEx : public BoolExpression {
       value = to_symbol(js["value"].GetString()[0]);
    }
 
-   Roaring* evaluate(const DatabasePartition& db) override;
+   Roaring* evaluate(const Database& db, const DatabasePartition& dbp) override;
 };
 
 struct NucMbEx : public BoolExpression {
@@ -144,14 +146,20 @@ struct NucMbEx : public BoolExpression {
       position = js["position"].GetUint();
       value = to_symbol(js["value"].GetString()[0]);
    }
+
+   Roaring* evaluate(const Database& db, const DatabasePartition& dbp) override;
 };
 
 struct NucMutEx : public BoolExpression {
+   unsigned reference; // Multiple reference genomes in the future. This indicates, which is queried against.
    unsigned position;
 
    explicit NucMutEx(const rapidjson::Value& js) : BoolExpression(js) {
+      reference = js.HasMember("reference") && js["reference"].IsUint() ? js["reference"].GetUint() : 0;
       position = js["position"].GetUint();
    }
+
+   Roaring* evaluate(const Database& db, const DatabasePartition& dbp) override;
 };
 
 struct PangoLineageEx : public BoolExpression {
@@ -162,6 +170,8 @@ struct PangoLineageEx : public BoolExpression {
       includeSubLineages = js["includeSubLineages"].GetBool();
       value = js["value"].GetString();
    }
+
+   // TODO Roaring* evaluate(const Database& db, const DatabasePartition& dbp) override;
 };
 
 struct StrEqEx : public BoolExpression {
@@ -172,9 +182,13 @@ struct StrEqEx : public BoolExpression {
       column = js["column"].GetString();
       value = js["value"].GetString();
    }
+
+   Roaring* evaluate(const Database& db, const DatabasePartition& dbp) override;
 };
 
 std::unique_ptr<BoolExpression> to_ex(const rapidjson::Value& js) {
+   assert(js.HasMember("type"));
+   assert(js["type"].IsString());
    std::string type = js["type"].GetString();
    if (type == "And") {
       return std::make_unique<AndEx>(js);
@@ -199,21 +213,21 @@ std::unique_ptr<BoolExpression> to_ex(const rapidjson::Value& js) {
    }
 }
 
-Roaring* AndEx::evaluate(const DatabasePartition& db) {
-   auto ret = children[0]->evaluate(db);
+Roaring* AndEx::evaluate(const Database& db, const DatabasePartition& dbp) {
+   auto ret = children[0]->evaluate(db, dbp);
    for (auto& child : children) {
-      auto bm = child->evaluate(db);
+      auto bm = child->evaluate(db, dbp);
       *ret &= *bm;
       delete bm;
    }
    return ret;
 }
 
-Roaring* OrEx::evaluate(const DatabasePartition& db) {
+Roaring* OrEx::evaluate(const Database& db, const DatabasePartition& dbp) {
    unsigned n = children.size();
    const Roaring* child_res[n];
    for (unsigned i = 0; i < n; i++) {
-      child_res[i] = children[i]->evaluate(db);
+      child_res[i] = children[i]->evaluate(db, dbp);
    }
    auto ret = new Roaring(Roaring::fastunion(children.size(), child_res));
    for (unsigned i = 0; i < n; i++) {
@@ -222,40 +236,24 @@ Roaring* OrEx::evaluate(const DatabasePartition& db) {
    return ret;
 }
 
-void vec_and_not(std::vector<uint32_t> dest, std::vector<uint32_t> v1, std::vector<uint32_t> v2) {
-   // And not of correct and incorrect
-   auto it1 = v1.begin(), it2 = v2.begin(),
-        limit1 = v1.end(), limit2 = v2.end();
-   while (true) {
-      if (it1 >= limit1) return;
-      if (it2 >= limit2) {
-         dest.insert(dest.end(), it1, limit1);
-         return;
-      }
-      if (*it1 == *it2) {
-         ++it1;
-         ++it2;
-      } else if (*it1 < *it2) {
-         dest.emplace_back(*it1);
-      } else { // *it1 > *it2
-         ++it1;
-      }
-   }
+void vec_and_not(std::vector<uint32_t>& dest, std::vector<uint32_t> v1, std::vector<uint32_t> v2) {
+   std::set_difference(v1.begin(), v1.end(), v2.begin(), v2.end(), std::back_inserter(dest));
 }
 
-Roaring* NOfExevaluateImpl0(const NOfEx* self, const DatabasePartition& db) {
+Roaring* NOfExevaluateImpl0(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
    if (self->exactly) {
       std::vector<uint16_t> count;
       std::vector<uint32_t> at_least;
       std::vector<uint32_t> too_much;
-      count.resize(db.sequenceCount);
+      count.resize(dbp.sequenceCount);
       for (auto& child : self->children) {
-         auto bm = child->evaluate(db);
+         auto bm = child->evaluate(db, dbp);
          for (uint32_t id : *bm) {
-            if (++count[id] == self->n) {
-               at_least.push_back(id);
-            } else if (count[id] == self->n + 1) {
+            ++count[id];
+            if (count[id] == self->n + 1) {
                too_much.push_back(id);
+            } else if (count[id] == self->n) {
+               at_least.push_back(id);
             }
          }
          delete bm;
@@ -267,9 +265,9 @@ Roaring* NOfExevaluateImpl0(const NOfEx* self, const DatabasePartition& db) {
    } else {
       std::vector<uint16_t> count;
       std::vector<uint32_t> correct;
-      count.resize(db.sequenceCount);
+      count.resize(dbp.sequenceCount);
       for (auto& child : self->children) {
-         auto bm = child->evaluate(db);
+         auto bm = child->evaluate(db, dbp);
          for (uint32_t id : *bm) {
             if (++count[id] == self->n) {
                correct.push_back(id);
@@ -281,32 +279,32 @@ Roaring* NOfExevaluateImpl0(const NOfEx* self, const DatabasePartition& db) {
    }
 }
 
-Roaring* NOfEx::evaluate(const DatabasePartition& db) {
+Roaring* NOfEx::evaluate(const Database& db, const DatabasePartition& dbp) {
    switch (impl) {
       case 0:
       default:
-         return NOfExevaluateImpl0(this, db);
+         return NOfExevaluateImpl0(this, db, dbp);
    }
 }
 
-Roaring* NegEx::evaluate(const DatabasePartition& db) {
-   auto ret = child->evaluate(db);
-   ret->flip(0, db.sequenceCount);
+Roaring* NegEx::evaluate(const Database& db, const DatabasePartition& dbp) {
+   auto ret = child->evaluate(db, dbp);
+   ret->flip(0, dbp.sequenceCount);
    return ret;
 }
 
-Roaring* DateBetwEx::evaluate(const DatabasePartition& db) {
+Roaring* DateBetwEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
    if (open_from && open_to) {
       auto ret = new Roaring;
-      ret->addRange(0, db.sequenceCount);
+      ret->addRange(0, dbp.sequenceCount);
       return ret;
    }
 
    auto ret = new Roaring;
-   auto base = &db.meta_store.sid_to_date[0];
-   for (const chunk_t& chunk : db.get_chunks()) {
-      auto begin = &db.meta_store.sid_to_date[chunk.offset];
-      auto end = &db.meta_store.sid_to_date[chunk.offset + chunk.count];
+   auto base = &dbp.meta_store.sid_to_date[0];
+   for (const chunk_t& chunk : dbp.get_chunks()) {
+      auto begin = &dbp.meta_store.sid_to_date[chunk.offset];
+      auto end = &dbp.meta_store.sid_to_date[chunk.offset + chunk.count];
       uint32_t lower = open_to ? begin - base : std::lower_bound(begin, end, this->from) - base;
       uint32_t upper = open_to ? end - base : std::upper_bound(begin, end, this->to) - base;
       ret->addRange(lower, upper);
@@ -314,13 +312,41 @@ Roaring* DateBetwEx::evaluate(const DatabasePartition& db) {
    return ret;
 }
 
-Roaring* NucEqEx::evaluate(const DatabasePartition& db) {
-   return new Roaring(*db.seq_store.bm(position, to_symbol(value)));
+Roaring* NucEqEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
+   return new Roaring(*dbp.seq_store.bm(position, to_symbol(value)));
+}
+
+Roaring* NucMbEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp){
+   return dbp.seq_store.bma(this->position, this->value);
+}
+
+Roaring* NucMutEx::evaluate(const Database& db, const DatabasePartition& dbp){
+   char symbol = db.global_reference[this->reference].at(this->position - 1);
+   return dbp.seq_store.bma(this->position, to_symbol(symbol));
+}
+
+
+Roaring* StrEqEx::evaluate(const Database& db, const DatabasePartition& dbp){
+   unsigned columnIndex = db.dict->get_colid(this->column);
+   constexpr unsigned BUFFER_SIZE = 1024;
+   std::vector<uint32_t> buffer(BUFFER_SIZE);
+   Roaring* ret = new Roaring;
+   for(uint32_t seq : dbp.meta_store.cols[columnIndex]){
+      buffer.push_back(seq);
+      if(buffer.size() == BUFFER_SIZE){
+         ret->addMany(BUFFER_SIZE, buffer.data());
+         buffer.clear();
+      }
+   }
+   if(buffer.size() > 0){
+      ret->addMany(buffer.size(), buffer.data());
+   }
+   return ret;
 }
 
 } // namespace silo;
 
-std::string execute_query_part(const silo::DatabasePartition& db, const std::string& query) {
+std::string execute_query_part(const silo::Database& db, const silo::DatabasePartition& dbp, const std::string& query) {
    using namespace silo;
    rapidjson::Document doc;
    doc.Parse(query.c_str());
@@ -331,17 +357,22 @@ std::string execute_query_part(const silo::DatabasePartition& db, const std::str
 
    std::unique_ptr<BoolExpression> filter = to_ex(doc["filter"]);
    // std::string action = doc["action"];
-   Roaring* result = filter->evaluate(db);
+   Roaring* result = filter->evaluate(db, dbp);
    std::stringstream ret;
    ret << "{\"count\":" << result->cardinality() << "}";
    delete result;
    return ret.str();
 }
 
-std::string silo::execute_query(const silo::Database& db, const std::istream& query_stream) {
-   std::stringstream buffer;
-   buffer << query_stream.rdbuf();
-   std::string query = buffer.str();
+uint64_t execute_count(const silo::Database& db, std::unique_ptr<silo::BoolExpression> ex) {
+   std::atomic<uint32_t> count = 0;
+   tbb::parallel_for_each(db.partitions.begin(), db.partitions.end(), [&](const auto& dbp) {
+      count += ex->evaluate(db, dbp)->cardinality();
+   });
+   return count;
+}
+
+std::string silo::execute_query(const silo::Database& db, const std::string& query) {
 
    rapidjson::Document doc;
    doc.Parse(query.c_str());
@@ -351,11 +382,27 @@ std::string silo::execute_query(const silo::Database& db, const std::istream& qu
    }
 
    std::unique_ptr<BoolExpression> filter = to_ex(doc["filter"]);
-   // std::string action = doc["action"];
-   for (const silo::DatabasePartition& dbp : db.partitions) {
-      // TODO preaggregate
-      execute_query_part(dbp, query);
+   const auto& action = doc["action"];
+   const auto& action_type = action["type"].GetString();
+
+   if (action.HasMember("groupByFields")) {
+      std::vector<std::string> groupByFields;
+      for (const auto& it : action["groupBy"].GetArray()) {
+         groupByFields.push_back(it.GetString());
+      }
+      if (strcmp(action_type, "Aggregated")) {
+
+      } else if (strcmp(action_type, "List")) {
+
+      } else if (strcmp(action_type, "Mutations")) {
+
+      }
+   } else {
+      if (strcmp(action_type, "Aggregated")) {
+         unsigned count = execute_count(db, std::move(filter));
+         return "count: " + std::to_string(count);
+      } else if (strcmp(action_type, "List")) {
+      } else if (strcmp(action_type, "Mutations")) {
+      }
    }
-   // TODO aggregate
-   return "";
 }

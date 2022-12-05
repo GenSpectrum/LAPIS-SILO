@@ -112,8 +112,8 @@ int silo::Database::db_info(std::ostream& io) {
       total_size += dbp.seq_store.computeSize();
    });
 
-   io << "sequence count: " << number_fmt(sequence_count) << std::endl;
-   io << "total size: " << number_fmt(total_size) << std::endl;
+   std::osyncstream(io) << "sequence count: " << number_fmt(sequence_count) << std::endl;
+   std::osyncstream(io) << "total size: " << number_fmt(total_size) << std::endl;
 
    return 0;
 }
@@ -342,6 +342,15 @@ void silo::Database::save(const std::string& save_dir) {
       }
       save_partitioning_descriptor(*part_def, part_def_file);
    }
+   {
+      std::ofstream dict_output(save_dir + "dict.txt");
+      if (!dict_output) {
+         std::cerr << "Could not open '" << (save_dir + "dict.txt") << "'." << std::endl;
+         return;
+      }
+      // std::cout << "Save dictionary to file " << (save_dir + "dict.txt") << std::endl;
+      dict->save_dict(dict_output);
+   }
 
    std::vector<std::ofstream> file_vec;
    for (unsigned i = 0; i < part_def->partitions.size(); ++i) {
@@ -370,6 +379,16 @@ void silo::Database::load(const std::string& save_dir) {
    std::ifstream pango_def_file(save_dir + "pango_def.txt");
    if (pango_def_file) {
       pango_def = std::make_unique<pango_descriptor_t>(load_pango_defs(pango_def_file));
+   }
+
+   {
+      auto dict_input = std::ifstream(save_dir + "dict.txt");
+      if (!dict_input) {
+         std::cerr << "dict_input file " << (save_dir + "dict.txt") << " not found." << std::endl;
+         return;
+      }
+      std::cout << "Load dictionary from input file " << (save_dir + "dict.txt") << std::endl;
+      dict = std::make_unique<Dictionary>(Dictionary::load_dict(dict_input));
    }
 
    std::vector<std::ifstream> file_vec;
