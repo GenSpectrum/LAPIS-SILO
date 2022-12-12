@@ -37,6 +37,8 @@ void silo::Database::build(const std::string& part_prefix, const std::string& me
          partitions[i].sequenceCount += count1;
       }
    });
+   // Flip Bitmaps of most common symbol, precompute Bitmaps for selected columns.
+   finalize();
 }
 
 void silo::DatabasePartition::finalize() {
@@ -66,6 +68,7 @@ void silo::Database::finalize() {
    tbb::parallel_for_each(partitions.begin(), partitions.end(), [&](DatabasePartition& p) {
       p.finalize();
    });
+
 }
 
 /*

@@ -405,4 +405,6 @@ std::string silo::execute_query(const silo::Database& db, const std::string& que
       } else if (strcmp(action_type, "Mutations")) {
       }
    }
+
+   return "Not implemented.";
 }

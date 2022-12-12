@@ -66,9 +66,6 @@ int handle_command(Database& db, std::vector<std::string> args) {
       db.db_info(cout);
    } else if ("info_d" == args[0]) {
       db.db_info_detailed(cout);
-   } else if ("chunk_info" == args[0]) {
-      std::cerr << "TODO" << std::endl; // TODO
-      // chunk_info(mdb, cout);
    } else if ("benchmark" == args[0]) {
       auto query_dir_str = args.size() > 1 ? args[1] : default_query_dir;
       auto query_defs = std::ifstream(query_dir_str + "queries.txt");
@@ -92,9 +89,6 @@ int handle_command(Database& db, std::vector<std::string> args) {
          std::string query = "{\"action\": {\"type\": \"Aggregated\",\"groupByFields\": [\"date\",\"division\"]},\"filter\": {" + buffer.str() + "}}";
          execute_query(db, query);
       }
-   } else if ("runoptimize" == args[0]) {
-      std::cerr << "TODO" << std::endl; // TODO
-      // cout << runoptimize(db) << endl;
    } else if ("build_pango_def" == args[0]) {
       auto meta_input_str = args.size() > 1 ? args[1] : default_metadata_input;
       auto meta_input = std::ifstream(meta_input_str);

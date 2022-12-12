@@ -9,7 +9,7 @@
 #include <silo/database.h>
 #include <tbb/blocked_range.h>
 #include <tbb/enumerable_thread_specific.h>
-#include <tbb/parallel_for.h>
+#include <tbb/parallel_for_each.h>
 
 void silo::prune_meta(std::istream& meta_in, std::istream& sequences_in, std::ostream& meta_out) {
    std::unordered_set<uint64_t> set;
@@ -529,16 +529,13 @@ void silo::sort_chunks(const partitioning_descriptor_t& pd, const std::string& o
       }
    }
 
-   tbb::blocked_range<std::vector<part_chunk>::iterator> r(all_chunks.begin(), all_chunks.end());
-   tbb::parallel_for(r, [&](const decltype(r) local) {
-      for (auto x = local.begin(); x < local.end(); ++x) {
-         const std::string& file_name = output_prefix + silo::chunk_string(x->part, x->chunk);
-         silo::istream_wrapper sequence_in(file_name + ".fasta");
-         silo::istream_wrapper meta_in(file_name + ".meta.tsv");
-         std::ofstream sequence_out(file_name + "_sorted.fasta");
-         std::ofstream meta_out(file_name + "_sorted.meta.tsv");
+   tbb::parallel_for_each(all_chunks.begin(), all_chunks.end(), [&](const part_chunk& x) {
+      const std::string& file_name = output_prefix + silo::chunk_string(x.part, x.chunk);
+      silo::istream_wrapper sequence_in(file_name + ".fasta");
+      silo::istream_wrapper meta_in(file_name + ".meta.tsv");
+      std::ofstream sequence_out(file_name + "_sorted.fasta");
+      std::ofstream meta_out(file_name + "_sorted.meta.tsv");
 
-         sort_chunk(meta_in.get_is(), sequence_in.get_is(), meta_out, sequence_out, *x);
-      }
+      sort_chunk(meta_in.get_is(), sequence_in.get_is(), meta_out, sequence_out, x);
    });
 }
