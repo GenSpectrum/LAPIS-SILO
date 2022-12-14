@@ -225,7 +225,14 @@ std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value
    } else if (type == "PangoLineage") {
       return std::make_unique<PangoLineageEx>(db, js);
    } else if (type == "StrEq") {
-      return std::make_unique<StrEqEx>(db, js);
+      const std::string& col = js["column"].GetString();
+      if (col == "country") {
+         return std::make_unique<CountryEx>(db, js);
+      } else if (col == "region") {
+         return std::make_unique<RegionEx>(db, js);
+      } else {
+         return std::make_unique<StrEqEx>(db, js);
+      }
    } else {
       throw QueryParseException("Unknown object type");
    }
@@ -351,11 +358,11 @@ Roaring* PangoLineageEx::evaluate(const Database& /*db*/, const DatabasePartitio
    }
 }
 
-Roaring* CountryEx::evaluate(const Database& db, const DatabasePartition& dbp) {
+Roaring* CountryEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
    return new Roaring(dbp.meta_store.country_bitmaps[countryKey]);
 }
 
-Roaring* RegionEx::evaluate(const Database& db, const DatabasePartition& dbp) {
+Roaring* RegionEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
    return new Roaring(dbp.meta_store.region_bitmaps[regionKey]);
 }
 
