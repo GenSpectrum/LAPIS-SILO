@@ -41,7 +41,7 @@ void silo::Database::build(const std::string& part_prefix, const std::string& me
    finalize();
 }
 
-void silo::DatabasePartition::finalize() {
+void silo::DatabasePartition::finalize(const Dictionary& dict) {
    std::vector<std::vector<unsigned>> counts_per_pos_per_symbol;
    counts_per_pos_per_symbol.resize(genomeLength);
    for (std::vector<unsigned>& v : counts_per_pos_per_symbol) {
@@ -62,13 +62,78 @@ void silo::DatabasePartition::finalize() {
       seq_store.positions[p].reference = max_symbol;
       seq_store.positions[p].bitmaps[max_symbol].flip(0, sequenceCount);
    });
+
+   { /// Precompute all bitmaps for pango_lineages and -sublineages
+      const uint32_t pango_count = dict.get_pango_count();
+      std::vector<std::vector<uint32_t>> group_by_lineages(pango_count);
+      for (uint32_t sid = 0; sid < sequenceCount; ++sid) {
+         const auto lineage = meta_store.sid_to_lineage[sid];
+         group_by_lineages[lineage].push_back(sid);
+      }
+
+      meta_store.lineage_bitmaps.resize(pango_count);
+      for (uint32_t pango = 0; pango < pango_count; ++pango) {
+         meta_store.lineage_bitmaps[pango].addMany(group_by_lineages[pango].size(), group_by_lineages[pango].data());
+      }
+
+      meta_store.sublineage_bitmaps.resize(pango_count);
+
+      for (uint32_t pango1 = 0; pango1 < pango_count; ++pango1) {
+         // Initialize with all lineages that are in pango1
+         std::vector<uint32_t> group_by_lineages_sub(group_by_lineages[pango1]);
+
+         // Now add all lineages that I am a prefix of
+         for (uint32_t pango2 = 0; pango2 < pango_count; ++pango2) {
+            const std::string& str1 = dict.get_pango(pango1);
+            const std::string& str2 = dict.get_pango(pango2);
+            if (str1.length() >= str2.length()) {
+               continue;
+            }
+            // Check if str1 is a prefix of str2 -> str2 is a sublineage of str1
+            if (str2.starts_with(str1)) {
+               for (uint32_t pid : group_by_lineages[pango2])
+                  group_by_lineages_sub.push_back(pid);
+            }
+         }
+         // Sort, for roaring insert
+         std::sort(group_by_lineages_sub.begin(), group_by_lineages_sub.end());
+         meta_store.sublineage_bitmaps[pango1].addMany(group_by_lineages_sub.size(), group_by_lineages_sub.data());
+      }
+   }
+
+   { /// Precompute all bitmaps for countries
+      const uint32_t country_count = dict.get_country_count();
+      std::vector<std::vector<uint32_t>> group_by_country(country_count);
+      for (uint32_t sid = 0; sid < sequenceCount; ++sid) {
+         const auto& country = meta_store.sid_to_country[sid];
+         group_by_country[country].push_back(sid);
+      }
+
+      meta_store.country_bitmaps.resize(country_count);
+      for (uint32_t country = 0; country < country_count; ++country) {
+         meta_store.country_bitmaps[country].addMany(group_by_country[country].size(), group_by_country[country].data());
+      }
+   }
+
+   { /// Precompute all bitmaps for regions
+      const uint32_t region_count = dict.get_region_count();
+      std::vector<std::vector<uint32_t>> group_by_region(region_count);
+      for (uint32_t sid = 0; sid < sequenceCount; ++sid) {
+         const auto& region = meta_store.sid_to_region[sid];
+         group_by_region[region].push_back(sid);
+      }
+
+      meta_store.region_bitmaps.resize(region_count);
+      for (uint32_t region = 0; region < region_count; ++region) {
+         meta_store.region_bitmaps[region].addMany(group_by_region[region].size(), group_by_region[region].data());
+      }
+   }
 }
 
 void silo::Database::finalize() {
    tbb::parallel_for_each(partitions.begin(), partitions.end(), [&](DatabasePartition& p) {
-      p.finalize();
+      p.finalize(*dict);
    });
-
 }
 
 /*

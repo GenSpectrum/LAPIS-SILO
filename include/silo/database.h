@@ -49,7 +49,7 @@ class DatabasePartition {
    }
 
    unsigned sequenceCount;
-   void finalize();
+   void finalize(const Dictionary& dict);
 };
 
 class Database {
@@ -61,6 +61,7 @@ class Database {
    std::vector<DatabasePartition> partitions;
    std::unique_ptr<pango_descriptor_t> pango_def;
    std::unique_ptr<partitioning_descriptor_t> part_def;
+   std::unique_ptr<Dictionary> dict;
 
    const std::unordered_map<std::string, std::string> get_alias_key() {
       return alias_key;
@@ -104,7 +105,6 @@ class Database {
    void save(const std::string& save_dir);
 
    void load(const std::string& save_dir);
-   std::unique_ptr<Dictionary> dict;
 };
 
 unsigned processSeq(SequenceStore& seq_store, std::istream& in);

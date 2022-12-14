@@ -30,9 +30,7 @@ struct BoolExpression {
    virtual ~BoolExpression() = default;
 
    /// Evaluate the expression by interpreting it.
-   virtual Roaring* evaluate(const Database& /*db*/, const DatabasePartition& /*dbp*/) {
-      throw std::runtime_error("Not Implemented exception. Does not override Expression::evaluate.");
-   };
+   virtual Roaring* evaluate(const Database& /*db*/, const DatabasePartition& /*dbp*/) = 0;
 
    /* Maybe generate code in the future
       /// Build the expression LLVM IR code.
@@ -40,27 +38,27 @@ struct BoolExpression {
       virtual llvm::Value *build(llvm::IRBuilder<> &builder, llvm::Value *args);*/
 };
 
-std::unique_ptr<BoolExpression> to_ex(const rapidjson::Value& js);
+std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value& js);
 
 struct VectorEx : public BoolExpression {
    std::vector<std::unique_ptr<BoolExpression>> children;
 
-   explicit VectorEx(const rapidjson::Value& js) : BoolExpression(js) {
+   explicit VectorEx(const Database& db, const rapidjson::Value& js) : BoolExpression(js) {
       assert(js.HasMember("children"));
       assert(js["children"].IsArray());
       std::transform(js["children"].GetArray().begin(), js["children"].GetArray().end(),
-                     std::back_inserter(children), to_ex);
+                     std::back_inserter(children), [&](const rapidjson::Value& js) { return to_ex(db, js); });
    }
 };
 
 struct AndEx : public VectorEx {
-   explicit AndEx(const rapidjson::Value& js) : VectorEx(js) {}
+   explicit AndEx(const Database& db, const rapidjson::Value& js) : VectorEx(db, js) {}
 
    Roaring* evaluate(const Database& db, const DatabasePartition& dbp) override;
 };
 
 struct OrEx : public VectorEx {
-   explicit OrEx(const rapidjson::Value& js) : VectorEx(js) {}
+   explicit OrEx(const Database& db, const rapidjson::Value& js) : VectorEx(db, js) {}
 
    Roaring* evaluate(const Database& db, const DatabasePartition& dbp) override;
 };
@@ -70,7 +68,7 @@ struct NOfEx : public VectorEx {
    unsigned impl;
    bool exactly;
 
-   explicit NOfEx(const rapidjson::Value& js) : VectorEx(js) {
+   explicit NOfEx(const Database& db, const rapidjson::Value& js) : VectorEx(db, js) {
       n = js["n"].GetUint();
       exactly = js["exactly"].GetBool();
       if (js.HasMember("impl")) {
@@ -86,8 +84,8 @@ struct NOfEx : public VectorEx {
 struct NegEx : public BoolExpression {
    std::unique_ptr<BoolExpression> child;
 
-   explicit NegEx(const rapidjson::Value& js) : BoolExpression(js) {
-      child = to_ex(js["child"]);
+   explicit NegEx(const Database& db, const rapidjson::Value& js) : BoolExpression(js) {
+      child = to_ex(db, js["child"]);
    }
 
    Roaring* evaluate(const Database& db, const DatabasePartition& dbp) override;
@@ -99,7 +97,7 @@ struct DateBetwEx : public BoolExpression {
    time_t to;
    bool open_to;
 
-   explicit DateBetwEx(const rapidjson::Value& js) : BoolExpression(js) {
+   explicit DateBetwEx(const Database& /*db*/, const rapidjson::Value& js) : BoolExpression(js) {
       if (js["from"].IsNull()) {
          open_from = true;
       } else {
@@ -130,7 +128,7 @@ struct NucEqEx : public BoolExpression {
    unsigned position;
    Symbol value;
 
-   explicit NucEqEx(const rapidjson::Value& js) : BoolExpression(js) {
+   explicit NucEqEx(const Database& /*db*/, const rapidjson::Value& js) : BoolExpression(js) {
       position = js["position"].GetUint();
       value = to_symbol(js["value"].GetString()[0]);
    }
@@ -142,7 +140,7 @@ struct NucMbEx : public BoolExpression {
    unsigned position;
    Symbol value;
 
-   explicit NucMbEx(const rapidjson::Value& js) : BoolExpression(js) {
+   explicit NucMbEx(const Database& /*db*/, const rapidjson::Value& js) : BoolExpression(js) {
       position = js["position"].GetUint();
       value = to_symbol(js["value"].GetString()[0]);
    }
@@ -154,7 +152,7 @@ struct NucMutEx : public BoolExpression {
    unsigned reference; // Multiple reference genomes in the future. This indicates, which is queried against.
    unsigned position;
 
-   explicit NucMutEx(const rapidjson::Value& js) : BoolExpression(js) {
+   explicit NucMutEx(const Database& /*db*/, const rapidjson::Value& js) : BoolExpression(js) {
       reference = js.HasMember("reference") && js["reference"].IsUint() ? js["reference"].GetUint() : 0;
       position = js["position"].GetUint();
    }
@@ -163,22 +161,42 @@ struct NucMutEx : public BoolExpression {
 };
 
 struct PangoLineageEx : public BoolExpression {
-   std::string value;
+   uint32_t lineageKey;
    bool includeSubLineages;
 
-   explicit PangoLineageEx(const rapidjson::Value& js) : BoolExpression(js) {
+   explicit PangoLineageEx(const Database& db, const rapidjson::Value& js) : BoolExpression(js) {
       includeSubLineages = js["includeSubLineages"].GetBool();
-      value = js["value"].GetString();
+      lineageKey = db.dict->get_pangoid(js["value"].GetString());
    }
 
-   // TODO Roaring* evaluate(const Database& db, const DatabasePartition& dbp) override;
+   Roaring* evaluate(const Database& db, const DatabasePartition& dbp) override;
+};
+
+struct CountryEx : public BoolExpression {
+   uint32_t countryKey;
+
+   explicit CountryEx(const Database& db, const rapidjson::Value& js) : BoolExpression(js) {
+      countryKey = db.dict->get_countryid(js["value"].GetString());
+   }
+
+   Roaring* evaluate(const Database& db, const DatabasePartition& dbp) override;
+};
+
+struct RegionEx : public BoolExpression {
+   uint32_t regionKey;
+
+   explicit RegionEx(const Database& db, const rapidjson::Value& js) : BoolExpression(js) {
+      regionKey = db.dict->get_regionid(js["value"].GetString());
+   }
+
+   Roaring* evaluate(const Database& db, const DatabasePartition& dbp) override;
 };
 
 struct StrEqEx : public BoolExpression {
    std::string column;
    std::string value;
 
-   explicit StrEqEx(const rapidjson::Value& js) : BoolExpression(js) {
+   explicit StrEqEx(const Database& /*db*/, const rapidjson::Value& js) : BoolExpression(js) {
       column = js["column"].GetString();
       value = js["value"].GetString();
    }
@@ -186,28 +204,28 @@ struct StrEqEx : public BoolExpression {
    Roaring* evaluate(const Database& db, const DatabasePartition& dbp) override;
 };
 
-std::unique_ptr<BoolExpression> to_ex(const rapidjson::Value& js) {
+std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value& js) {
    assert(js.HasMember("type"));
    assert(js["type"].IsString());
    std::string type = js["type"].GetString();
    if (type == "And") {
-      return std::make_unique<AndEx>(js);
+      return std::make_unique<AndEx>(db, js);
    } else if (type == "Or") {
-      return std::make_unique<OrEx>(js);
+      return std::make_unique<OrEx>(db, js);
    } else if (type == "N-Of") {
-      return std::make_unique<NOfEx>(js);
+      return std::make_unique<NOfEx>(db, js);
    } else if (type == "Neg") {
-      return std::make_unique<NegEx>(js);
+      return std::make_unique<NegEx>(db, js);
    } else if (type == "DateBetw") {
-      return std::make_unique<DateBetwEx>(js);
+      return std::make_unique<DateBetwEx>(db, js);
    } else if (type == "NucEq") {
-      return std::make_unique<NucEqEx>(js);
+      return std::make_unique<NucEqEx>(db, js);
    } else if (type == "NucMut") {
-      return std::make_unique<NucMutEx>(js);
+      return std::make_unique<NucMutEx>(db, js);
    } else if (type == "PangoLineage") {
-      return std::make_unique<PangoLineageEx>(js);
+      return std::make_unique<PangoLineageEx>(db, js);
    } else if (type == "StrEq") {
-      return std::make_unique<StrEqEx>(js);
+      return std::make_unique<StrEqEx>(db, js);
    } else {
       throw QueryParseException("Unknown object type");
    }
@@ -316,29 +334,44 @@ Roaring* NucEqEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp)
    return new Roaring(*dbp.seq_store.bm(position, to_symbol(value)));
 }
 
-Roaring* NucMbEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp){
+Roaring* NucMbEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
    return dbp.seq_store.bma(this->position, this->value);
 }
 
-Roaring* NucMutEx::evaluate(const Database& db, const DatabasePartition& dbp){
+Roaring* NucMutEx::evaluate(const Database& db, const DatabasePartition& dbp) {
    char symbol = db.global_reference[this->reference].at(this->position - 1);
    return dbp.seq_store.bma(this->position, to_symbol(symbol));
 }
 
+Roaring* PangoLineageEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
+   if (includeSubLineages) {
+      return new Roaring(dbp.meta_store.sublineage_bitmaps[lineageKey]);
+   } else {
+      return new Roaring(dbp.meta_store.lineage_bitmaps[lineageKey]);
+   }
+}
 
-Roaring* StrEqEx::evaluate(const Database& db, const DatabasePartition& dbp){
+Roaring* CountryEx::evaluate(const Database& db, const DatabasePartition& dbp) {
+   return new Roaring(dbp.meta_store.country_bitmaps[countryKey]);
+}
+
+Roaring* RegionEx::evaluate(const Database& db, const DatabasePartition& dbp) {
+   return new Roaring(dbp.meta_store.region_bitmaps[regionKey]);
+}
+
+Roaring* StrEqEx::evaluate(const Database& db, const DatabasePartition& dbp) {
    unsigned columnIndex = db.dict->get_colid(this->column);
    constexpr unsigned BUFFER_SIZE = 1024;
    std::vector<uint32_t> buffer(BUFFER_SIZE);
    Roaring* ret = new Roaring;
-   for(uint32_t seq : dbp.meta_store.cols[columnIndex]){
+   for (uint32_t seq : dbp.meta_store.cols[columnIndex]) {
       buffer.push_back(seq);
-      if(buffer.size() == BUFFER_SIZE){
+      if (buffer.size() == BUFFER_SIZE) {
          ret->addMany(BUFFER_SIZE, buffer.data());
          buffer.clear();
       }
    }
-   if(buffer.size() > 0){
+   if (buffer.size() > 0) {
       ret->addMany(buffer.size(), buffer.data());
    }
    return ret;
@@ -355,7 +388,7 @@ std::string execute_query_part(const silo::Database& db, const silo::DatabasePar
       throw QueryParseException("Query json must contain filter and action.");
    }
 
-   std::unique_ptr<BoolExpression> filter = to_ex(doc["filter"]);
+   std::unique_ptr<BoolExpression> filter = to_ex(db, doc["filter"]);
    // std::string action = doc["action"];
    Roaring* result = filter->evaluate(db, dbp);
    std::stringstream ret;
@@ -373,7 +406,6 @@ uint64_t execute_count(const silo::Database& db, std::unique_ptr<silo::BoolExpre
 }
 
 std::string silo::execute_query(const silo::Database& db, const std::string& query) {
-
    rapidjson::Document doc;
    doc.Parse(query.c_str());
    if (!doc.HasMember("filter") || !doc["filter"].IsObject() ||
@@ -381,7 +413,7 @@ std::string silo::execute_query(const silo::Database& db, const std::string& que
       throw QueryParseException("Query json must contain filter and action.");
    }
 
-   std::unique_ptr<BoolExpression> filter = to_ex(doc["filter"]);
+   std::unique_ptr<BoolExpression> filter = to_ex(db, doc["filter"]);
    const auto& action = doc["action"];
    const auto& action_type = action["type"].GetString();
 
@@ -391,11 +423,8 @@ std::string silo::execute_query(const silo::Database& db, const std::string& que
          groupByFields.push_back(it.GetString());
       }
       if (strcmp(action_type, "Aggregated")) {
-
       } else if (strcmp(action_type, "List")) {
-
       } else if (strcmp(action_type, "Mutations")) {
-
       }
    } else {
       if (strcmp(action_type, "Aggregated")) {

@@ -39,13 +39,25 @@ class Dictionary {
 
    const std::string& get_pango(uint32_t id) const;
 
+   uint32_t get_pango_count() const{
+      return pango_count;
+   }
+
    uint32_t get_countryid(const std::string& str) const;
 
    const std::string& get_country(uint32_t id) const;
 
+   uint32_t get_country_count() const{
+      return country_count;
+   }
+
    uint32_t get_regionid(const std::string& str) const;
 
    const std::string& get_region(uint32_t id) const;
+
+   uint32_t get_region_count() const{
+      return region_count;
+   }
 
    uint64_t get_id(const std::string& str) const;
 

@@ -26,6 +26,7 @@ struct MetaStore {
    // TODO only ints -> Dictionary:
    std::vector<uint32_t> sid_to_lineage;
    std::vector<roaring::Roaring> lineage_bitmaps;
+   std::vector<roaring::Roaring> sublineage_bitmaps;
 
    std::vector<uint32_t> sid_to_region;
    std::vector<roaring::Roaring> region_bitmaps;
