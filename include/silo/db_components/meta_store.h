@@ -14,10 +14,20 @@ struct MetaStore {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& ar, const unsigned int /* version */) {
       ar& sid_to_epi;
+
       ar& sid_to_date;
+
       ar& sid_to_lineage;
+      ar& lineage_bitmaps;
+      ar& sublineage_bitmaps;
+
       ar& sid_to_region;
+      ar& region_bitmaps;
+
       ar& sid_to_country;
+      ar& country_bitmaps;
+
+      ar& cols;
    }
 
    std::vector<uint64_t> sid_to_epi;
