@@ -459,6 +459,7 @@ void silo::Database::load(const std::string& save_dir) {
       dict = std::make_unique<Dictionary>(Dictionary::load_dict(dict_input));
    }
 
+   std::cout << "Loading partitions from " << save_dir << std::endl;
    std::vector<std::ifstream> file_vec;
    for (unsigned i = 0; i < part_def->partitions.size(); ++i) {
       file_vec.push_back(std::ifstream(save_dir + 'P' + std::to_string(i) + ".silo"));

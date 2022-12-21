@@ -82,12 +82,12 @@ int handle_command(Database& db, std::vector<std::string> args) {
             return 0;
          }
 
-         std::cerr << "TODO." << endl; // TODO
-         // benchmark(db);
+         std::cerr << "WIP:" << endl; // TODO
          std::stringstream buffer;
          buffer << query_file.rdbuf();
-         std::string query = "{\"action\": {\"type\": \"Aggregated\",\"groupByFields\": [\"date\",\"division\"]},\"filter\": {" + buffer.str() + "}}";
-         execute_query(db, query);
+         std::string query = "{\"action\": {\"type\": \"Aggregated\"" /*,\"groupByFields\": [\"date\",\"division\"]*/ "},\"filter\": " + buffer.str() + "}";
+         const std::string& result = execute_query(db, query);
+         std::cout << result << std::endl;
       }
    } else if ("build_pango_def" == args[0]) {
       auto meta_input_str = args.size() > 1 ? args[1] : default_metadata_input;

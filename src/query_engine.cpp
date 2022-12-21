@@ -166,7 +166,10 @@ struct PangoLineageEx : public BoolExpression {
 
    explicit PangoLineageEx(const Database& db, const rapidjson::Value& js) : BoolExpression(js) {
       includeSubLineages = js["includeSubLineages"].GetBool();
-      lineageKey = db.dict->get_pangoid(js["value"].GetString());
+      std::string lineage = js["value"].GetString();
+      std::transform(lineage.begin(), lineage.end(), lineage.begin(), ::toupper);
+      lineage = resolve_alias(db.alias_key, lineage);
+      lineageKey = db.dict->get_pangoid(lineage);
    }
 
    Roaring* evaluate(const Database& db, const DatabasePartition& dbp) override;
@@ -351,8 +354,9 @@ Roaring* NucMutEx::evaluate(const Database& db, const DatabasePartition& dbp) {
 }
 
 Roaring* PangoLineageEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
+   if (lineageKey == UINT32_MAX) return new Roaring();
    if (includeSubLineages) {
-      return new Roaring(dbp.meta_store.sublineage_bitmaps[lineageKey]);
+      return new Roaring(dbp.meta_store.lineage_bitmaps[lineageKey]);
    } else {
       return new Roaring(dbp.meta_store.lineage_bitmaps[lineageKey]);
    }
@@ -413,6 +417,8 @@ uint64_t execute_count(const silo::Database& db, std::unique_ptr<silo::BoolExpre
 }
 
 std::string silo::execute_query(const silo::Database& db, const std::string& query) {
+   std::cout << "Executing query: " << query << std::endl;
+
    rapidjson::Document doc;
    doc.Parse(query.c_str());
    if (!doc.HasMember("filter") || !doc["filter"].IsObject() ||
@@ -422,23 +428,26 @@ std::string silo::execute_query(const silo::Database& db, const std::string& que
 
    std::unique_ptr<BoolExpression> filter = to_ex(db, doc["filter"]);
    const auto& action = doc["action"];
+   assert(action.HasMember("type"));
+   assert(action["type"].IsString());
    const auto& action_type = action["type"].GetString();
 
    if (action.HasMember("groupByFields")) {
+      assert(action["groupByFields"].IsArray());
       std::vector<std::string> groupByFields;
-      for (const auto& it : action["groupBy"].GetArray()) {
+      for (const auto& it : action["groupByFields"].GetArray()) {
          groupByFields.push_back(it.GetString());
       }
-      if (strcmp(action_type, "Aggregated")) {
-      } else if (strcmp(action_type, "List")) {
-      } else if (strcmp(action_type, "Mutations")) {
+      if (strcmp(action_type, "Aggregated") == 0) {
+      } else if (strcmp(action_type, "List") == 0) {
+      } else if (strcmp(action_type, "Mutations") == 0) {
       }
    } else {
-      if (strcmp(action_type, "Aggregated")) {
+      if (strcmp(action_type, "Aggregated") == 0) {
          unsigned count = execute_count(db, std::move(filter));
          return "count: " + std::to_string(count);
-      } else if (strcmp(action_type, "List")) {
-      } else if (strcmp(action_type, "Mutations")) {
+      } else if (strcmp(action_type, "List") == 0) {
+      } else if (strcmp(action_type, "Mutations") == 0) {
       }
    }
 

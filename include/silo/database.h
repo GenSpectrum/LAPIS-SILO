@@ -53,9 +53,6 @@ class DatabasePartition {
 };
 
 class Database {
-   private:
-   std::unordered_map<std::string, std::string> alias_key;
-
    public:
    std::vector<std::string> global_reference;
    std::vector<DatabasePartition> partitions;
@@ -105,6 +102,7 @@ class Database {
    void save(const std::string& save_dir);
 
    void load(const std::string& save_dir);
+   std::unordered_map<std::string, std::string> alias_key;
 };
 
 unsigned processSeq(SequenceStore& seq_store, std::istream& in);
