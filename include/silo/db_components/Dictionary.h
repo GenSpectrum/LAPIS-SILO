@@ -63,9 +63,9 @@ class Dictionary {
 
    const std::string& get_str(uint64_t id) const;
 
-   uint64_t get_colid(const std::string& str) const;
+   uint32_t get_colid(const std::string& str) const;
 
-   const std::string& get_col(uint64_t id) const;
+   const std::string& get_col(uint32_t id) const;
 };
 
 #endif //SILO_DICTIONARY_H

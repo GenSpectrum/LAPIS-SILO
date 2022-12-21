@@ -10,37 +10,37 @@
 using namespace silo;
 
 void Dictionary::update_dict(std::istream& meta_in, const std::unordered_map<std::string, std::string>& alias_key) {
-
    // Parse header. Assert order EPI, PANGO, DATE, REGION, COUNTRY, then fill additional columns
    {
       std::string header;
-      if(!getline(meta_in, header, '\n')) {
+      if (!getline(meta_in, header, '\n')) {
          std::cerr << "Failed to read header line. Abort." << std::endl;
          return;
       }
       std::stringstream header_in(header);
       std::string col_name;
-      if(!getline(header_in, col_name, '\t') || col_name != "gisaid_epi_isl") {
+      if (!getline(header_in, col_name, '\t') || col_name != "gisaid_epi_isl") {
          std::cerr << "Expected 'gisaid_epi_isl' as first column in metadata." << std::endl;
          return;
       }
-      if(!getline(header_in, col_name, '\t') || col_name != "pango_lineage") {
+      if (!getline(header_in, col_name, '\t') || col_name != "pango_lineage") {
          std::cerr << "Expected 'pango_lineage' as first column in metadata." << std::endl;
          return;
       }
-      if(!getline(header_in, col_name, '\t') || col_name != "date") {
+      if (!getline(header_in, col_name, '\t') || col_name != "date") {
          std::cerr << "Expected 'date' as first column in metadata." << std::endl;
          return;
       }
-      if(!getline(header_in, col_name, '\t') || col_name != "region") {
+      if (!getline(header_in, col_name, '\t') || col_name != "region") {
          std::cerr << "Expected 'region' as first column in metadata." << std::endl;
          return;
       }
-      if(!getline(header_in, col_name, '\t') || col_name != "country") {
+      if (!getline(header_in, col_name, '\t') || col_name != "country") {
          std::cerr << "Expected 'country' as first column in metadata." << std::endl;
          return;
       }
-      while(getline(header_in, col_name, '\t')){
+      while (!header_in.eof()) {
+         getline(header_in, col_name, '\t');
          col_lookup.push_back(col_name);
          col_dict[col_name] = col_count++;
       }
@@ -92,7 +92,7 @@ void Dictionary::save_dict(std::ostream& dict_file) const {
    for (uint32_t i = 0; i < country_count; ++i) {
       dict_file << country_lookup[i] << '\t' << i << '\n';
    }
-   for (uint64_t i = 0; i < col_count; ++i) {
+   for (uint32_t i = 0; i < col_count; ++i) {
       dict_file << col_lookup[i] << '\t' << i << '\n';
    }
    for (uint64_t i = 0; i < general_count; ++i) {
@@ -101,10 +101,61 @@ void Dictionary::save_dict(std::ostream& dict_file) const {
 }
 
 Dictionary Dictionary::load_dict(std::istream& dict_file) {
+   Dictionary ret;
+
    std::string str;
    uint32_t pango_count, region_count, country_count, col_count, dict_count;
-   dict_file >> str >> pango_count >> str >> region_count >> str >> country_count >> str >> col_count >> str >> dict_count;
-   Dictionary ret;
+
+   if (!getline(dict_file, str, '\t')) {
+      std::cerr << "Invalid dict-header1a." << std::endl;
+      return ret;
+   }
+   if (!getline(dict_file, str, '\n')) {
+      std::cerr << "Invalid dict-header1b." << std::endl;
+      return ret;
+   }
+   pango_count = atoi(str.c_str());
+
+   if (!getline(dict_file, str, '\t')) {
+      std::cerr << "Invalid dict-header2a." << std::endl;
+      return ret;
+   }
+   if (!getline(dict_file, str, '\n')) {
+      std::cerr << "Invalid dict-header2b." << std::endl;
+      return ret;
+   }
+   region_count = atoi(str.c_str());
+
+   if (!getline(dict_file, str, '\t')) {
+      std::cerr << "Invalid dict-header3a." << std::endl;
+      return ret;
+   }
+   if (!getline(dict_file, str, '\n')) {
+      std::cerr << "Invalid dict-header3b." << std::endl;
+      return ret;
+   }
+   country_count = atoi(str.c_str());
+
+   if (!getline(dict_file, str, '\t')) {
+      std::cerr << "Invalid dict-header4a." << std::endl;
+      return ret;
+   }
+   if (!getline(dict_file, str, '\n')) {
+      std::cerr << "Invalid dict-header4b." << std::endl;
+      return ret;
+   }
+   col_count = atoi(str.c_str());
+
+   if (!getline(dict_file, str, '\t')) {
+      std::cerr << "Invalid dict-header5a." << std::endl;
+      return ret;
+   }
+   if (!getline(dict_file, str, '\n')) {
+      std::cerr << "Invalid dict-header5b." << std::endl;
+      return ret;
+   }
+   dict_count = atoi(str.c_str());
+
    ret.pango_count = pango_count;
    ret.pango_lookup.resize(pango_count);
    ret.region_count = region_count;
@@ -115,30 +166,69 @@ Dictionary Dictionary::load_dict(std::istream& dict_file) {
    ret.col_lookup.resize(col_count);
    ret.general_count = dict_count;
    ret.general_lookup.resize(dict_count);
-   uint32_t id;
+   std::string id_str;
    for (uint32_t i = 0; i < pango_count; ++i) {
-      dict_file >> str >> id;
+      if (!getline(dict_file, str, '\t')) {
+         std::cerr << "Unexpected end of file. Expected pango_count:" << pango_count << " many lineages in the dict file. No str" << std::endl;
+         return ret;
+      }
+      if (!getline(dict_file, id_str, '\n')) {
+         std::cerr << "Unexpected end of file. Expected pango_count:" << pango_count << " many lineages in the dict file. No id" << std::endl;
+         return ret;
+      }
+      uint32_t id = atoi(str.c_str());
       ret.pango_lookup[id] = str;
       ret.pango_dict[str] = id;
    }
    for (uint32_t i = 0; i < region_count; ++i) {
-      dict_file >> str >> id;
+      if (!getline(dict_file, str, '\t')) {
+         std::cerr << "Unexpected end of file. Expected region_count:" << region_count << " many regions in the dict file. No str" << std::endl;
+         return ret;
+      }
+      if (!getline(dict_file, id_str, '\n')) {
+         std::cerr << "Unexpected end of file. Expected region_count:" << region_count << " many regions in the dict file. No id" << std::endl;
+         return ret;
+      }
+      uint32_t id = atoi(str.c_str());
       ret.region_lookup[id] = str;
       ret.region_dict[str] = id;
    }
-   for (uint32_t i = 0; i < col_count; ++i) {
-      dict_file >> str >> id;
-      ret.col_lookup[id] = str;
-      ret.col_dict[str] = id;
-   }
    for (uint32_t i = 0; i < country_count; ++i) {
-      dict_file >> str >> id;
+      if (!getline(dict_file, str, '\t')) {
+         std::cerr << "Unexpected end of file. Expected country_count:" << country_count << " many countries in the dict file. No str" << std::endl;
+         return ret;
+      }
+      if (!getline(dict_file, id_str, '\n')) {
+         std::cerr << "Unexpected end of file. Expected country_count:" << country_count << " many countries in the dict file. No id" << std::endl;
+         return ret;
+      }
+      uint32_t id = atoi(str.c_str());
       ret.country_lookup[id] = str;
       ret.country_dict[str] = id;
    }
+   for (uint32_t i = 0; i < col_count; ++i) {
+      if (!getline(dict_file, str, '\t')) {
+         std::cerr << "Unexpected end of file. Expected col_count:" << col_count << " many columns in the dict file. No str" << std::endl;
+         return ret;
+      }
+      if (!getline(dict_file, id_str, '\n')) {
+         std::cerr << "Unexpected end of file. Expected col_count:" << col_count << " many columns in the dict file. No id" << std::endl;
+         return ret;
+      }
+      uint32_t id = atoi(str.c_str());
+      ret.col_lookup[id] = str;
+      ret.col_dict[str] = id;
+   }
    for (uint64_t i = 0; i < dict_count; ++i) {
-      uint64_t id64;
-      dict_file >> str >> id64;
+      if (!getline(dict_file, str, '\t')) {
+         std::cerr << "Unexpected end of file. Expected dict_count:" << dict_count << " many lookups in the dict file. No str" << std::endl;
+         return ret;
+      }
+      if (!getline(dict_file, id_str, '\n')) {
+         std::cerr << "Unexpected end of file. Expected dict_count:" << dict_count << " many lookups in the dict file. No id" << std::endl;
+         return ret;
+      }
+      uint64_t id64 = atoi(str.c_str());
       ret.general_lookup[id64] = str;
       ret.general_dict[str] = id64;
    }
@@ -146,7 +236,11 @@ Dictionary Dictionary::load_dict(std::istream& dict_file) {
 }
 
 uint32_t Dictionary::get_pangoid(const std::string& str) const {
-   return pango_dict.at(str);
+   if (pango_dict.contains(str)) {
+      return pango_dict.at(str);
+   } else {
+      return UINT32_MAX;
+   }
 }
 
 const std::string& Dictionary::get_pango(uint32_t id) const {
@@ -155,7 +249,11 @@ const std::string& Dictionary::get_pango(uint32_t id) const {
 }
 
 uint32_t Dictionary::get_countryid(const std::string& str) const {
-   return country_dict.at(str);
+   if (country_dict.contains(str)) {
+      return country_dict.at(str);
+   } else {
+      return UINT32_MAX;
+   }
 }
 
 const std::string& Dictionary::get_country(uint32_t id) const {
@@ -164,7 +262,11 @@ const std::string& Dictionary::get_country(uint32_t id) const {
 }
 
 uint32_t Dictionary::get_regionid(const std::string& str) const {
-   return region_dict.at(str);
+   if (region_dict.contains(str)) {
+      return region_dict.at(str);
+   } else {
+      return UINT32_MAX;
+   }
 }
 
 const std::string& Dictionary::get_region(uint32_t id) const {
@@ -173,7 +275,11 @@ const std::string& Dictionary::get_region(uint32_t id) const {
 }
 
 uint64_t Dictionary::get_id(const std::string& str) const {
-   return general_dict.at(str);
+   if (general_dict.contains(str)) {
+      return general_dict.at(str);
+   } else {
+      return UINT64_MAX;
+   }
 }
 
 const std::string& Dictionary::get_str(uint64_t id) const {
@@ -181,11 +287,15 @@ const std::string& Dictionary::get_str(uint64_t id) const {
    return general_lookup[id];
 }
 
-uint64_t Dictionary::get_colid(const std::string& str) const {
-   return col_dict.at(str);
+uint32_t Dictionary::get_colid(const std::string& str) const {
+   if (col_dict.contains(str)) {
+      return col_dict.at(str);
+   } else {
+      return UINT32_MAX;
+   }
 }
 
-const std::string& Dictionary::get_col(uint64_t id) const {
+const std::string& Dictionary::get_col(uint32_t id) const {
    assert(id < col_count);
    return col_lookup[id];
 }
