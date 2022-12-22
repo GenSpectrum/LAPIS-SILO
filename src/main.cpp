@@ -73,6 +73,8 @@ int handle_command(Database& db, std::vector<std::string> args) {
          std::cerr << "query_defs file " << (query_dir_str + "queries.txt") << " not found." << std::endl;
          return 0;
       }
+      unsigned n_queries = args.size() > 2 ? atoi(args[2].c_str()) : 5;
+      unsigned count = 0;
       while (true) {
          std::string test_name;
          query_defs >> test_name;
@@ -88,6 +90,9 @@ int handle_command(Database& db, std::vector<std::string> args) {
          std::string query = "{\"action\": {\"type\": \"Aggregated\"" /*,\"groupByFields\": [\"date\",\"division\"]*/ "},\"filter\": " + buffer.str() + "}";
          const std::string& result = execute_query(db, query);
          std::cout << result << std::endl;
+         if (count++ == n_queries) {
+            return 0;
+         }
       }
    } else if ("build_pango_def" == args[0]) {
       auto meta_input_str = args.size() > 1 ? args[1] : default_metadata_input;
@@ -198,11 +203,7 @@ int handle_command(Database& db, std::vector<std::string> args) {
          const auto& part = db.part_def->partitions[i];
          for (unsigned j = 0; j < part.chunks.size(); ++j) {
             std::string name;
-            if (i > 0) { // TODO cleaner dealing with chunk to filename mapping..
-               name = part_prefix + chunk_string(j, i);
-            } else {
-               name = part_prefix + chunk_string(i, j);
-            }
+            name = part_prefix + chunk_string(i, j);
             std::ifstream meta_in(name + meta_suffix);
             if (!meta_in) {
                std::cerr << "Meta_data file " << (name + meta_suffix) << " not found." << std::endl;

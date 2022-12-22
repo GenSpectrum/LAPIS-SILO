@@ -17,13 +17,17 @@ void silo::Database::build(const std::string& part_prefix, const std::string& me
       partitions[i].chunks = part.chunks;
       for (unsigned j = 0; j < part.chunks.size(); ++j) {
          std::string name;
-         if (i > 0) { // TODO cleaner dealing with chunk to filename mapping..
-            name = part_prefix + chunk_string(j, i);
-         } else {
-            name = part_prefix + chunk_string(i, j);
-         }
+         name = part_prefix + chunk_string(i, j);
          istream_wrapper seq_in(name + seq_suffix);
          std::ifstream meta_in(name + meta_suffix);
+         if(!seq_in.get_is()){
+            std::cerr << "Sequence_file " << (name + seq_suffix) << "not found" << std::endl;
+            return;
+         }
+         if(!meta_in){
+            std::cerr << "Meta_in file " << (name + meta_suffix) << "not found" << std::endl;
+            return;
+         }
          std::osyncstream(std::cout) << "Extending sequence-store from input file: " << name << std::endl;
          unsigned count1 = processSeq(partitions[i].seq_store, seq_in.get_is());
          unsigned count2 = processMeta(partitions[i].meta_store, meta_in, alias_key, *dict);

@@ -130,7 +130,8 @@ struct NucEqEx : public BoolExpression {
 
    explicit NucEqEx(const Database& /*db*/, const rapidjson::Value& js) : BoolExpression(js) {
       position = js["position"].GetUint();
-      value = to_symbol(js["value"].GetString()[0]);
+      const std::string& s = js["value"].GetString();
+      value = to_symbol(s.at(0));
    }
 
    Roaring* evaluate(const Database& db, const DatabasePartition& dbp) override;
@@ -142,7 +143,8 @@ struct NucMbEx : public BoolExpression {
 
    explicit NucMbEx(const Database& /*db*/, const rapidjson::Value& js) : BoolExpression(js) {
       position = js["position"].GetUint();
-      value = to_symbol(js["value"].GetString()[0]);
+      const std::string& s = js["value"].GetString();
+      value = to_symbol(s.at(0));
    }
 
    Roaring* evaluate(const Database& db, const DatabasePartition& dbp) override;
@@ -341,7 +343,7 @@ Roaring* DateBetwEx::evaluate(const Database& /*db*/, const DatabasePartition& d
 }
 
 Roaring* NucEqEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
-   return new Roaring(*dbp.seq_store.bm(position, to_symbol(value)));
+   return new Roaring(*dbp.seq_store.bm(position, value));
 }
 
 Roaring* NucMbEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
@@ -349,14 +351,14 @@ Roaring* NucMbEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp)
 }
 
 Roaring* NucMutEx::evaluate(const Database& db, const DatabasePartition& dbp) {
-   char symbol = db.global_reference[this->reference].at(this->position - 1);
-   return dbp.seq_store.bma(this->position, to_symbol(symbol));
+   const char symbol = db.global_reference[reference].at(position - 1);
+   return dbp.seq_store.bma(position, to_symbol(symbol));
 }
 
 Roaring* PangoLineageEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
    if (lineageKey == UINT32_MAX) return new Roaring();
    if (includeSubLineages) {
-      return new Roaring(dbp.meta_store.lineage_bitmaps[lineageKey]);
+      return new Roaring(dbp.meta_store.sublineage_bitmaps[lineageKey]);
    } else {
       return new Roaring(dbp.meta_store.lineage_bitmaps[lineageKey]);
    }
