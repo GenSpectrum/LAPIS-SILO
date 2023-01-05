@@ -23,7 +23,7 @@ static constexpr unsigned genomeLength = 29903;
 
 // https://www.bioinformatics.org/sms/iupac.html
 enum Symbol {
-   gap, // . or -, gap
+   gap, // -, gap
    A, // Adenine
    C, // Cytosine
    G, // Guanine
