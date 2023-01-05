@@ -15,4 +15,5 @@ set(
         include/silo/query_engine.h
         include/silo/prepare_dataset.h
         include/silo/database.h
+        include/silo/benchmark.h
 )

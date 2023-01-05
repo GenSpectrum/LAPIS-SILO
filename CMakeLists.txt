@@ -52,6 +52,7 @@ set(SRC_CC
         src/query_engine.cpp
         src/database.cpp
         src/prepare_dataset.cpp
+        src/benchmark.cpp
         src/roaring/roaring.c)
 
 

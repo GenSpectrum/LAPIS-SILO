@@ -2,6 +2,7 @@
 #include <silo/common/PerfEvent.hpp>
 #include <readline/history.h>
 #include <readline/readline.h>
+#include <silo/benchmark.h>
 #include <silo/database.h>
 #include <silo/prepare_dataset.h>
 #include <silo/query_engine.h>
@@ -69,43 +70,13 @@ int handle_command(Database& db, std::vector<std::string> args) {
       db.db_info_detailed(cout);
    } else if ("benchmark" == args[0]) {
       auto query_dir_str = args.size() > 1 ? args[1] : default_query_dir;
+
       auto query_defs = std::ifstream(query_dir_str + "queries.txt");
       if (!query_defs) {
          std::cerr << "query_defs file " << (query_dir_str + "queries.txt") << " not found." << std::endl;
          return 0;
       }
-      unsigned n_queries = args.size() > 2 ? atoi(args[2].c_str()) : 5;
-      unsigned count = 0;
-
-      std::ofstream perf_table(query_dir_str + "perf.tsv");
-      if (!perf_table) {
-         std::cerr << "Perf " << (query_dir_str + "perf.tsv") << " table could not be created." << std::endl;
-         return 0;
-      }
-      perf_table << "test_name\tparse_time\texecution_time\n";
-
-      while (!query_defs.eof() && query_defs.good()) {
-         std::string test_name;
-         query_defs >> test_name;
-         std::ifstream query_file(query_dir_str + test_name);
-         if (!query_file || test_name.empty() || !query_file.good()) {
-            std::cerr << "query_file " << (query_dir_str + test_name) << " not found." << std::endl;
-            return 0;
-         }
-
-         std::cerr << "query: " << test_name << endl;
-         std::stringstream buffer;
-         buffer << query_file.rdbuf();
-         std::string query = "{\"action\": {\"type\": \"Aggregated\"" /*,\"groupByFields\": [\"date\",\"division\"]*/ "},\"filter\": " + buffer.str() + "}";
-         std::ofstream result_file(query_dir_str + test_name + ".res");
-         std::ofstream performance_file(query_dir_str + test_name + ".perf");
-         auto result = execute_query(db, query, result_file, performance_file);
-         std::cout << result.return_message << std::endl;
-         perf_table << test_name << "\t" << result.parse_time << "\t" << result.execution_time << std::endl;
-         if (count++ == n_queries) {
-            return 0;
-         }
-      }
+      return benchmark(db, query_defs, query_dir_str);
    } else if ("build_pango_def" == args[0]) {
       auto meta_input_str = args.size() > 1 ? args[1] : default_metadata_input;
       auto meta_input = std::ifstream(meta_input_str);
@@ -378,7 +349,6 @@ int main(int argc, char* argv[]) {
       auto db = std::make_unique<Database>(wd);
 
       for (auto& command : startup_commands) {
-
          // Stop execution if handle_command returns anything other than 0
          if (handle_command(*db, command) != 0) {
             return 0;
