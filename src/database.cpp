@@ -20,11 +20,11 @@ void silo::Database::build(const std::string& part_prefix, const std::string& me
          name = part_prefix + chunk_string(i, j);
          istream_wrapper seq_in(name + seq_suffix);
          std::ifstream meta_in(name + meta_suffix);
-         if(!seq_in.get_is()){
+         if (!seq_in.get_is()) {
             std::cerr << "Sequence_file " << (name + seq_suffix) << "not found" << std::endl;
             return;
          }
-         if(!meta_in){
+         if (!meta_in) {
             std::cerr << "Meta_in file " << (name + meta_suffix) << "not found" << std::endl;
             return;
          }
@@ -64,7 +64,7 @@ void silo::DatabasePartition::finalize(const Dictionary& dict) {
          }
       }
       seq_store.positions[p].reference = max_symbol;
-      seq_store.positions[p].bitmaps[max_symbol].flip(0, sequenceCount);
+      // seq_store.positions[p].bitmaps[max_symbol].flip(0, sequenceCount);
    });
 
    { /// Precompute all bitmaps for pango_lineages and -sublineages
