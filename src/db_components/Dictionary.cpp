@@ -243,7 +243,12 @@ uint32_t Dictionary::get_pangoid(const std::string& str) const {
    }
 }
 
+std::string error_string = "NOID";
+
 const std::string& Dictionary::get_pango(uint32_t id) const {
+   if (id == UINT32_MAX) {
+      return error_string;
+   }
    assert(id < pango_count);
    return pango_lookup[id];
 }
@@ -257,6 +262,9 @@ uint32_t Dictionary::get_countryid(const std::string& str) const {
 }
 
 const std::string& Dictionary::get_country(uint32_t id) const {
+   if (id == UINT32_MAX) {
+      return error_string;
+   }
    assert(id < country_count);
    return country_lookup[id];
 }
@@ -270,6 +278,9 @@ uint32_t Dictionary::get_regionid(const std::string& str) const {
 }
 
 const std::string& Dictionary::get_region(uint32_t id) const {
+   if (id == UINT32_MAX) {
+      return error_string;
+   }
    assert(id < region_count);
    return region_lookup[id];
 }
@@ -283,6 +294,9 @@ uint64_t Dictionary::get_id(const std::string& str) const {
 }
 
 const std::string& Dictionary::get_str(uint64_t id) const {
+   if (id == UINT32_MAX) {
+      return error_string;
+   }
    assert(id < general_count);
    return general_lookup[id];
 }
@@ -296,6 +310,9 @@ uint32_t Dictionary::get_colid(const std::string& str) const {
 }
 
 const std::string& Dictionary::get_col(uint32_t id) const {
+   if (id == UINT32_MAX) {
+      return error_string;
+   }
    assert(id < col_count);
    return col_lookup[id];
 }

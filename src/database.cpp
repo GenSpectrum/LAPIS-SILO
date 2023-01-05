@@ -228,7 +228,7 @@ int silo::Database::db_info_detailed(std::ostream& io) {
          r_stat s;
          for (const auto& dbp : partitions) {
             const Position& p = dbp.seq_store.positions[pos];
-            for (const Roaring& bm : p.bitmaps) {
+            for (const roaring::Roaring& bm : p.bitmaps) {
                roaring_bitmap_statistics(&bm.roaring, &s);
                addStat(s_local, s);
                total_size_comp_local += bm.getSizeInBytes();

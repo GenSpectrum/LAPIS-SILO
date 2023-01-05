@@ -54,6 +54,7 @@ class DatabasePartition {
 
 class Database {
    public:
+   const std::string wd; // working directory
    std::vector<std::string> global_reference;
    std::vector<DatabasePartition> partitions;
    std::unique_ptr<pango_descriptor_t> pango_def;
@@ -64,18 +65,18 @@ class Database {
       return alias_key;
    }
 
-   Database(const std::string& wd) {
+   Database(const std::string& wd) : wd(wd) {
       std::ifstream reference_file(wd + "reference_genome.txt");
       if (!reference_file) {
          std::cerr << "Expected file " << wd << "reference_genome.txt." << std::endl;
          return;
       }
-      while(true) {
+      while (true) {
          std::string tmp;
-         if(!getline(reference_file, tmp, '\n')) break;
+         if (!getline(reference_file, tmp, '\n')) break;
          global_reference.push_back(tmp);
       }
-      if(global_reference.empty()){
+      if (global_reference.empty()) {
          std::cerr << "No genome in " << wd << "reference_genome.txt." << std::endl;
          return;
       }

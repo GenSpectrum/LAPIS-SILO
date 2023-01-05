@@ -34,14 +34,14 @@ int handle_command(Database& db, std::vector<std::string> args) {
    using std::cout;
    using std::endl;
 
-   const std::string default_db_savedir = "../silo/";
-   const std::string default_sequence_input = "../Data/aligned.fasta.xz";
-   const std::string default_metadata_input = "../Data/metadata.tsv";
-   const std::string default_partition_prefix = "../Data/Partitioned/";
-   const std::string default_pango_def_file = "../Data/pango_def.txt";
-   const std::string default_part_def_file = "../Data/part_def.txt";
-   const std::string default_dict_file = "../Data/dict.txt";
-   const std::string default_query_dir = "../Data/queries/";
+   const std::string default_db_savedir = db.wd + "bin_save/";
+   const std::string default_sequence_input = db.wd + "aligned.fasta.xz";
+   const std::string default_metadata_input = db.wd + "metadata.tsv";
+   const std::string default_partition_prefix = db.wd + "Partitioned/";
+   const std::string default_pango_def_file = db.wd + "pango_def.txt";
+   const std::string default_part_def_file = db.wd + "part_def.txt";
+   const std::string default_dict_file = db.wd + "dict.txt";
+   const std::string default_query_dir = db.wd + "queries/";
    if (args.empty()) {
       return 0;
    }
@@ -84,11 +84,11 @@ int handle_command(Database& db, std::vector<std::string> args) {
       }
       perf_table << "test_name\tparse_time\texecution_time\n";
 
-      while (!query_defs.eof()) {
+      while (!query_defs.eof() && query_defs.good()) {
          std::string test_name;
          query_defs >> test_name;
          std::ifstream query_file(query_dir_str + test_name);
-         if (!query_file) {
+         if (!query_file || test_name.empty() || !query_file.good()) {
             std::cerr << "query_file " << (query_dir_str + test_name) << " not found." << std::endl;
             return 0;
          }
@@ -353,12 +353,35 @@ int handle_command(Database& db, const std::string& command_str) {
 
 int main(int argc, char* argv[]) {
    try {
-      auto db = std::make_unique<Database>("../Data/");
+      std::string wd = "./";
+      std::vector<std::string> startup_commands;
       if (argc >= 2) {
          for (int i = 1; i < argc; i++) {
-            if (handle_command(*db, argv[i])) {
-               return 0;
+            std::string arg = argv[i];
+            if (arg == "-w") {
+               if (i + 1 < argc) {
+                  wd = argv[i + 1];
+                  i++;
+               } else {
+                  std::cerr << "-w option passed without wd parameter following it." << std::endl;
+                  return 0;
+               }
+            } else if (arg.starts_with("-w=")) {
+               wd = arg.substr(2);
+            } else {
+               // All parameters are fed to the database as inputs following the parsing of parameters
+               startup_commands.push_back(argv[i]);
             }
+         }
+      }
+
+      auto db = std::make_unique<Database>(wd);
+
+      for (auto& command : startup_commands) {
+
+         // Stop execution if handle_command returns anything other than 0
+         if (handle_command(*db, command) != 0) {
+            return 0;
          }
       }
 
@@ -367,7 +390,7 @@ int main(int argc, char* argv[]) {
          if (strlen(buf) > 0) {
             add_history(buf);
 
-            if (handle_command(*db, std::string(buf))) {
+            if (handle_command(*db, std::string(buf)) != 0) {
                return 0;
             }
          }
