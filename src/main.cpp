@@ -1,4 +1,5 @@
 
+#include <silo/common/PerfEvent.hpp>
 #include <readline/history.h>
 #include <readline/readline.h>
 #include <silo/database.h>
@@ -75,21 +76,32 @@ int handle_command(Database& db, std::vector<std::string> args) {
       }
       unsigned n_queries = args.size() > 2 ? atoi(args[2].c_str()) : 5;
       unsigned count = 0;
-      while (true) {
+
+      std::ofstream perf_table(query_dir_str + "perf.tsv");
+      if (!perf_table) {
+         std::cerr << "Perf " << (query_dir_str + "perf.tsv") << " table could not be created." << std::endl;
+         return 0;
+      }
+      perf_table << "test_name\tparse_time\texecution_time\n";
+
+      while (!query_defs.eof()) {
          std::string test_name;
          query_defs >> test_name;
-         auto query_file = std::ifstream(query_dir_str + test_name);
+         std::ifstream query_file(query_dir_str + test_name);
          if (!query_file) {
             std::cerr << "query_file " << (query_dir_str + test_name) << " not found." << std::endl;
             return 0;
          }
 
-         std::cerr << "WIP:" << endl; // TODO
+         std::cerr << "query: " << test_name << endl;
          std::stringstream buffer;
          buffer << query_file.rdbuf();
          std::string query = "{\"action\": {\"type\": \"Aggregated\"" /*,\"groupByFields\": [\"date\",\"division\"]*/ "},\"filter\": " + buffer.str() + "}";
-         const std::string& result = execute_query(db, query);
-         std::cout << result << std::endl;
+         std::ofstream result_file(query_dir_str + test_name + ".res");
+         std::ofstream performance_file(query_dir_str + test_name + ".perf");
+         auto result = execute_query(db, query, result_file, performance_file);
+         std::cout << result.return_message << std::endl;
+         perf_table << test_name << "\t" << result.parse_time << "\t" << result.execution_time << std::endl;
          if (count++ == n_queries) {
             return 0;
          }
@@ -130,8 +142,8 @@ int handle_command(Database& db, std::vector<std::string> args) {
          return 0;
       }
       std::cout << "Build part_def from pango_def" << std::endl;
-      architecture_type arch = args.size() <= 1 || args[1] == "1" ? architecture_type::single_partition :
-         args[1] == "2"                                           ? architecture_type::max_partitions :
+      architecture_type arch = args.size() <= 1 || args[1] == "2" ? architecture_type::max_partitions :
+         args[1] == "1"                                           ? architecture_type::single_partition :
                                                                     architecture_type::hybrid;
       partitioning_descriptor_t part_def = silo::build_partitioning_descriptor(*db.pango_def, arch);
       db.part_def = std::make_unique<partitioning_descriptor_t>(part_def);
@@ -272,9 +284,57 @@ int handle_command(Database& db, std::vector<std::string> args) {
       return 1;
    } else if ("help" == args[0] || "-h" == args[0] || "--help" == args[0]) {
       info_message();
+   } else if ("gap_analysis" == args[0]) {
+      std::ofstream out("../gap_analysis.tsv");
+      out << "EPI\tstart_gaps\tend_gaps\n";
+
+      istream_wrapper in(default_sequence_input);
+      std::string epi, genome;
+      while (true) {
+         if (!getline(in.get_is(), epi, '\n')) break;
+         if (!getline(in.get_is(), genome, '\n')) break;
+
+         unsigned start_gaps = 0;
+         while (start_gaps < genome.length() && genome.at(start_gaps) == '-') {
+            start_gaps++;
+         }
+
+         unsigned end_gaps = 0;
+         while (end_gaps < genome.length() && genome.at(genome.length() - 1 - end_gaps) == '-') {
+            end_gaps++;
+         }
+
+         out << epi << "\t" << std::to_string(start_gaps) << "\t" << std::to_string(end_gaps) << "\n";
+      }
+      out.flush();
+   } else if ("N_analysis" == args[0]) {
+      std::ofstream out("../N_len_analysis.tsv");
+      out << /*"EPI\tpos\t*/ "len\n";
+
+      istream_wrapper in(default_sequence_input);
+      std::string epi, genome;
+      while (true) {
+         if (!getline(in.get_is(), epi, '\n')) break;
+         if (!getline(in.get_is(), genome, '\n')) break;
+
+         unsigned idx = 0;
+         while (idx < genomeLength) {
+            while (genome.at(idx) != 'N') {
+               idx++;
+               if (idx == genomeLength) break;
+            }
+            if (idx == genomeLength) break;
+            unsigned N_start = idx;
+            while (genome.at(idx) == 'N') {
+               idx++;
+               if (idx == genomeLength) break;
+            }
+            out << /* epi << "\t" << std::to_string(N_start) << "\t" << */ std::to_string(idx - N_start) << "\n";
+         }
+      }
+      out.flush();
    }
    // ___________________________________________________________________________________________________________
-   // From here on soon to be deprecated / altered. Compose these bigger commands differently using the above smaller ones
    else {
       cout << "Unknown command " << args[0] << "." << endl;
       cout << "Type 'help' for additional information." << endl;

@@ -10,7 +10,15 @@
 
 namespace silo {
 
-std::string execute_query(const Database& db, const std::string& query);
+struct result_s {
+   std::string return_message;
+   int64_t parse_time;
+   int64_t execution_time;
+};
+
+result_s execute_query(const Database& db, const std::string& query, std::ostream& res_out, std::ostream& perf_out);
+
+result_s analyse_query(const Database& db, const std::string& query);
 
 } // namespace silo;
 
