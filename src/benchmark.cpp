@@ -80,4 +80,5 @@ int silo::benchmark(const Database& db, std::istream& query_defs, const std::str
          mutations_perf_table << test_name << "\t" << result.parse_time << "\t" << result.execution_time << std::endl;
       }
    }
+   return 0;
 }
