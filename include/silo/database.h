@@ -36,6 +36,8 @@ class DatabasePartition {
    void serialize(Archive& ar, [[maybe_unused]] const unsigned int version) {
       ar& meta_store;
       ar& seq_store;
+      ar& sequenceCount;
+      ar& chunks;
    }
 
    std::vector<silo::chunk_t> chunks;
@@ -43,12 +45,12 @@ class DatabasePartition {
    public:
    MetaStore meta_store;
    SequenceStore seq_store;
+   unsigned sequenceCount;
 
    const std::vector<silo::chunk_t>& get_chunks() const {
       return chunks;
    }
 
-   unsigned sequenceCount;
    void finalize(const Dictionary& dict);
 };
 
