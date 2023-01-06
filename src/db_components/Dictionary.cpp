@@ -176,7 +176,7 @@ Dictionary Dictionary::load_dict(std::istream& dict_file) {
          std::cerr << "Unexpected end of file. Expected pango_count:" << pango_count << " many lineages in the dict file. No id" << std::endl;
          return ret;
       }
-      uint32_t id = atoi(str.c_str());
+      uint32_t id = atoi(id_str.c_str());
       ret.pango_lookup[id] = str;
       ret.pango_dict[str] = id;
    }
@@ -189,7 +189,7 @@ Dictionary Dictionary::load_dict(std::istream& dict_file) {
          std::cerr << "Unexpected end of file. Expected region_count:" << region_count << " many regions in the dict file. No id" << std::endl;
          return ret;
       }
-      uint32_t id = atoi(str.c_str());
+      uint32_t id = atoi(id_str.c_str());
       ret.region_lookup[id] = str;
       ret.region_dict[str] = id;
    }
@@ -202,7 +202,7 @@ Dictionary Dictionary::load_dict(std::istream& dict_file) {
          std::cerr << "Unexpected end of file. Expected country_count:" << country_count << " many countries in the dict file. No id" << std::endl;
          return ret;
       }
-      uint32_t id = atoi(str.c_str());
+      uint32_t id = atoi(id_str.c_str());
       ret.country_lookup[id] = str;
       ret.country_dict[str] = id;
    }
@@ -215,7 +215,7 @@ Dictionary Dictionary::load_dict(std::istream& dict_file) {
          std::cerr << "Unexpected end of file. Expected col_count:" << col_count << " many columns in the dict file. No id" << std::endl;
          return ret;
       }
-      uint32_t id = atoi(str.c_str());
+      uint32_t id = atoi(id_str.c_str());
       ret.col_lookup[id] = str;
       ret.col_dict[str] = id;
    }
@@ -228,7 +228,7 @@ Dictionary Dictionary::load_dict(std::istream& dict_file) {
          std::cerr << "Unexpected end of file. Expected dict_count:" << dict_count << " many lookups in the dict file. No id" << std::endl;
          return ret;
       }
-      uint64_t id64 = atoi(str.c_str());
+      uint64_t id64 = atoi(id_str.c_str());
       ret.general_lookup[id64] = str;
       ret.general_dict[str] = id64;
    }
@@ -294,7 +294,7 @@ uint64_t Dictionary::get_id(const std::string& str) const {
 }
 
 const std::string& Dictionary::get_str(uint64_t id) const {
-   if (id == UINT32_MAX) {
+   if (id == UINT64_MAX) {
       return error_string;
    }
    assert(id < general_count);
