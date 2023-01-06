@@ -7,39 +7,38 @@
 #include <tbb/parallel_for.h>
 
 using namespace silo;
-using ios = std::ios;
 
 roaring::Roaring* SequenceStore::bma(size_t pos, Symbol r) const {
    switch (r) {
       case A: {
-         const roaring::Roaring* tmp[8] = {bm(pos, A), bm(pos, N),
+         const roaring::Roaring* tmp[8] = {bm(pos, A),
                                            bm(pos, R), bm(pos, W), bm(pos, M),
                                            bm(pos, D), bm(pos, H), bm(pos, V)};
          roaring::Roaring* ret = new roaring::Roaring(roaring::Roaring::fastunion(8, tmp));
          return ret;
       }
       case C: {
-         const roaring::Roaring* tmp[8] = {bm(pos, C), bm(pos, N),
+         const roaring::Roaring* tmp[8] = {bm(pos, C),
                                            bm(pos, Y), bm(pos, S), bm(pos, M),
                                            bm(pos, B), bm(pos, H), bm(pos, V)};
          roaring::Roaring* ret = new roaring::Roaring(roaring::Roaring::fastunion(8, tmp));
          return ret;
       }
       case G: {
-         const roaring::Roaring* tmp[8] = {bm(pos, G), bm(pos, N),
+         const roaring::Roaring* tmp[8] = {bm(pos, G),
                                            bm(pos, R), bm(pos, S), bm(pos, K),
                                            bm(pos, D), bm(pos, B), bm(pos, V)};
          roaring::Roaring* ret = new roaring::Roaring(roaring::Roaring::fastunion(8, tmp));
          return ret;
       }
       case T: {
-         const roaring::Roaring* tmp[8] = {bm(pos, T), bm(pos, N),
+         const roaring::Roaring* tmp[8] = {bm(pos, T),
                                            bm(pos, Y), bm(pos, W), bm(pos, K),
                                            bm(pos, D), bm(pos, H), bm(pos, B)};
          roaring::Roaring* ret = new roaring::Roaring(roaring::Roaring::fastunion(8, tmp));
          return ret;
       }
-      default:{
+      default: {
          throw std::runtime_error("Approximate query only on A C G T allowed.");
       }
    }
