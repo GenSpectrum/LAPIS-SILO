@@ -225,6 +225,10 @@ int handle_command(Database& db, std::vector<std::string> args) {
          cout << "Build partitioning descriptor first. See 'build_part_def' | 'load_part_def'" << endl;
          return 0;
       }
+      if (!db.dict) {
+         cout << "Build dictionary first. See 'build_dict' | 'load_dict'" << endl;
+         return 0;
+      }
       std::string part_prefix = args.size() > 1 ? args[1] : default_partition_prefix;
       std::string meta_suffix = args.size() > 2 ? args[2] : ".meta.tsv";
       std::string seq_suffix = args.size() > 3 ? args[3] : ".fasta";
