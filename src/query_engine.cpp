@@ -420,13 +420,9 @@ evaluate_result_t AndEx::evaluate(const Database& db, const DatabasePartition& d
       return {ret, nullptr};
    }
 
-   std::cerr << "Evaluating AND:" << std::endl;
    auto tmp = children[0]->evaluate(db, dbp);
    Roaring* ret = tmp.mutable_res ? tmp.mutable_res : new Roaring(*tmp.immutable_res);
-   std::cerr << ret->cardinality() << std::endl;
-   unsigned count = 0;
    for (auto& child : children) {
-      std::cerr << "i:" << std::to_string(count++) << std::endl;
       auto bm = child->evaluate(db, dbp);
       if (bm.mutable_res) {
          ret->intersect(*bm.mutable_res);
@@ -434,7 +430,6 @@ evaluate_result_t AndEx::evaluate(const Database& db, const DatabasePartition& d
       } else {
          ret->intersect(*bm.immutable_res);
       }
-      std::cerr << ret->cardinality() << std::endl;
    }
    return {ret, nullptr};
 }
@@ -534,16 +529,74 @@ evaluate_result_t NOfExevaluateImpl1(const NOfEx* self, const Database& db, cons
    return {dp.back(), nullptr};
 }
 
-// N-Way Heap-Merge
+// N-Way Heap-Merge, for exact queries
 evaluate_result_t NOfExevaluateImpl2a(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
+   std::vector<evaluate_result_t> child_maps;
+   struct bitmap_iterator {
+      roaring::RoaringSetBitForwardIterator cur;
+      roaring::RoaringSetBitForwardIterator end;
+   };
+   std::vector<bitmap_iterator> iterator_heap;
+   for (const auto& child : self->children) {
+      auto tmp = child->evaluate(db, dbp);
+      child_maps.push_back(tmp);
+      if (tmp.getAsConst()->begin() != tmp.getAsConst()->end())
+         iterator_heap.push_back({tmp.getAsConst()->begin(), tmp.getAsConst()->end()});
+   }
+
+   auto sorter = [](const bitmap_iterator& a,
+                    const bitmap_iterator& b) {
+      return *a.cur > *b.cur;
+   };
+
+   std::make_heap(iterator_heap.begin(), iterator_heap.end(), sorter);
+
+   auto ret = new Roaring();
+
+   constexpr size_t BUFFERSIZE = 1024;
+   std::vector<uint32_t> buffer;
+   buffer.reserve(BUFFERSIZE);
+
+   uint32_t last_val = -1;
+   uint32_t cur_count = 0;
+
+   while (!iterator_heap.empty()) {
+      std::pop_heap(iterator_heap.begin(), iterator_heap.end(), sorter);
+      uint32_t val = *iterator_heap.back().cur;
+      cur_count = val == last_val ? cur_count + 1 : 1;
+      if (cur_count == self->n) {
+         buffer.push_back(val);
+         if (buffer.size() == BUFFERSIZE) {
+            ret->addMany(BUFFERSIZE, &buffer[0]);
+            buffer.clear();
+         }
+      } else {
+         last_val = val;
+         iterator_heap.back().cur++;
+         if (iterator_heap.back().cur == iterator_heap.back().end) {
+            iterator_heap.pop_back();
+         } else {
+            std::push_heap(iterator_heap.begin(), iterator_heap.end(), sorter);
+         }
+      }
+   }
+
+   if (buffer.size() > 0) {
+      ret->addMany(buffer.size(), &buffer[0]);
+   }
+
+   for (auto& child_map : child_maps)
+      child_map.free();
+
+   return {ret, nullptr};
 }
 
 evaluate_result_t NOfEx::evaluate(const Database& db, const DatabasePartition& dbp) {
    switch (impl) {
+      default:
       case 1:
          return NOfExevaluateImpl1(this, db, dbp);
       case 0:
-      default:
          return NOfExevaluateImpl0(this, db, dbp);
    }
 }
