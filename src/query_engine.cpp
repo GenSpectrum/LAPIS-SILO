@@ -802,27 +802,27 @@ std::vector<mut_struct> execute_mutations(const silo::Database& db, std::unique_
    });
 
    std::vector<mut_struct> ret;
-   for(unsigned pos = 0; pos < silo::genomeLength; ++pos){
+   for (unsigned pos = 0; pos < silo::genomeLength; ++pos) {
       char pos_ref = db.global_reference[0].at(pos);
       std::vector<std::pair<char, uint32_t>> candidates;
-      if(pos_ref != 'C')
+      if (pos_ref != 'C')
          candidates.push_back({'C', C_per_pos[pos]});
-      if(pos_ref != 'T')
+      if (pos_ref != 'T')
          candidates.push_back({'T', T_per_pos[pos]});
-      if(pos_ref != 'A')
+      if (pos_ref != 'A')
          candidates.push_back({'A', A_per_pos[pos]});
-      if(pos_ref != 'G')
+      if (pos_ref != 'G')
          candidates.push_back({'G', G_per_pos[pos]});
       /// This should always be the case. For future-proof-ness (gaps in reference), keep this check in.
-      if(pos_ref != '-')
+      if (pos_ref != '-')
          candidates.push_back({'-', gap_per_pos[pos]});
 
       /// Could also calculate by subtracting Ns from total count
       uint32_t total = C_per_pos[pos] + T_per_pos[pos] + A_per_pos[pos] + G_per_pos[pos] + gap_per_pos[pos];
 
-      for(auto& cand : candidates){
+      for (auto& cand : candidates) {
          double proportion = (double) cand.second / (double) total;
-         if(proportion >= proportion_threshold){
+         if (proportion >= proportion_threshold) {
             ret.push_back({pos_ref + std::to_string(pos + 1) + cand.first, proportion, cand.second});
          }
       }
