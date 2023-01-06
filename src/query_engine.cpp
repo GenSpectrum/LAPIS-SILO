@@ -529,8 +529,8 @@ evaluate_result_t NOfExevaluateImpl1(const NOfEx* self, const Database& db, cons
    return {dp.back(), nullptr};
 }
 
-// N-Way Heap-Merge, for exact queries
-evaluate_result_t NOfExevaluateImpl2a(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
+// N-Way Heap-Merge, for threshold queries
+evaluate_result_t NOfExevaluateImpl2threshold(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
    std::vector<evaluate_result_t> child_maps;
    struct bitmap_iterator {
       roaring::RoaringSetBitForwardIterator cur;
@@ -591,6 +591,69 @@ evaluate_result_t NOfExevaluateImpl2a(const NOfEx* self, const Database& db, con
    return {ret, nullptr};
 }
 
+// N-Way Heap-Merge, for exact queries
+evaluate_result_t NOfExevaluateImpl2exact(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
+   std::vector<evaluate_result_t> child_maps;
+   struct bitmap_iterator {
+      roaring::RoaringSetBitForwardIterator cur;
+      roaring::RoaringSetBitForwardIterator end;
+   };
+   std::vector<bitmap_iterator> iterator_heap;
+   for (const auto& child : self->children) {
+      auto tmp = child->evaluate(db, dbp);
+      child_maps.push_back(tmp);
+      if (tmp.getAsConst()->begin() != tmp.getAsConst()->end())
+         iterator_heap.push_back({tmp.getAsConst()->begin(), tmp.getAsConst()->end()});
+   }
+
+   auto sorter = [](const bitmap_iterator& a,
+                    const bitmap_iterator& b) {
+      return *a.cur > *b.cur;
+   };
+
+   std::make_heap(iterator_heap.begin(), iterator_heap.end(), sorter);
+
+   auto ret = new Roaring();
+
+   constexpr size_t BUFFERSIZE = 1024;
+   std::vector<uint32_t> buffer;
+   buffer.reserve(BUFFERSIZE);
+
+   uint32_t last_val = -1;
+   uint32_t cur_count = 0;
+
+   while (!iterator_heap.empty()) {
+      std::pop_heap(iterator_heap.begin(), iterator_heap.end(), sorter);
+      uint32_t val = *iterator_heap.back().cur;
+      if (cur_count == self->n && val != last_val) {
+         cur_count = 1;
+         buffer.push_back(val);
+         if (buffer.size() == BUFFERSIZE) {
+            ret->addMany(BUFFERSIZE, &buffer[0]);
+            buffer.clear();
+         }
+      } else {
+         cur_count = val == last_val ? cur_count + 1 : 1;
+         last_val = val;
+         iterator_heap.back().cur++;
+         if (iterator_heap.back().cur == iterator_heap.back().end) {
+            iterator_heap.pop_back();
+         } else {
+            std::push_heap(iterator_heap.begin(), iterator_heap.end(), sorter);
+         }
+      }
+   }
+
+   if (buffer.size() > 0) {
+      ret->addMany(buffer.size(), &buffer[0]);
+   }
+
+   for (auto& child_map : child_maps)
+      child_map.free();
+
+   return {ret, nullptr};
+}
+
 evaluate_result_t NOfEx::evaluate(const Database& db, const DatabasePartition& dbp) {
    switch (impl) {
       default:
@@ -598,6 +661,12 @@ evaluate_result_t NOfEx::evaluate(const Database& db, const DatabasePartition& d
          return NOfExevaluateImpl1(this, db, dbp);
       case 0:
          return NOfExevaluateImpl0(this, db, dbp);
+      case 2:
+         if (exactly) {
+            return NOfExevaluateImpl2exact(this, db, dbp);
+         } else {
+            return NOfExevaluateImpl2threshold(this, db, dbp);
+         }
    }
 }
 
@@ -693,7 +762,9 @@ std::string execute_query_part(const silo::Database& db, const silo::DatabasePar
 uint64_t execute_count(const silo::Database& db, std::unique_ptr<silo::BoolExpression> ex) {
    std::atomic<uint32_t> count = 0;
    tbb::parallel_for_each(db.partitions.begin(), db.partitions.end(), [&](const auto& dbp) {
-      count += ex->evaluate(db, dbp).getAsConst()->cardinality();
+      silo::evaluate_result_t filter = ex->evaluate(db, dbp);
+      count += filter.getAsConst()->cardinality();
+      filter.free();
    });
    return count;
 }
@@ -704,8 +775,59 @@ struct mut_struct {
    unsigned count;
 };
 
-std::vector<mut_struct> execute_mutations(const silo::Database& db, std::unique_ptr<silo::BoolExpression> ex) {
+std::vector<mut_struct> execute_mutations(const silo::Database& db, std::unique_ptr<silo::BoolExpression> ex, double proportion_threshold) {
+   using roaring::Roaring;
+
+   // std::vector<std::atomic<uint32_t>> N_per_pos(silo::genomeLength);
+   std::vector<std::atomic<uint32_t>> C_per_pos(silo::genomeLength);
+   std::vector<std::atomic<uint32_t>> T_per_pos(silo::genomeLength);
+   std::vector<std::atomic<uint32_t>> A_per_pos(silo::genomeLength);
+   std::vector<std::atomic<uint32_t>> G_per_pos(silo::genomeLength);
+   std::vector<std::atomic<uint32_t>> gap_per_pos(silo::genomeLength);
+
+   tbb::parallel_for_each(db.partitions.begin(), db.partitions.end(), [&](const silo::DatabasePartition& dbp) {
+      silo::evaluate_result_t filter = ex->evaluate(db, dbp);
+      const Roaring& bm = *filter.getAsConst();
+
+      tbb::blocked_range<uint32_t> range(0, silo::genomeLength, /*grainsize=*/500);
+      tbb::parallel_for(range.begin(), range.end(), [&](uint32_t pos) {
+         // N_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::N]);
+         C_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C]);
+         T_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T]);
+         A_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A]);
+         G_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G]);
+         gap_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap]);
+      });
+      filter.free();
+   });
+
    std::vector<mut_struct> ret;
+   for(unsigned pos = 0; pos < silo::genomeLength; ++pos){
+      char pos_ref = db.global_reference[0].at(pos);
+      std::vector<std::pair<char, uint32_t>> candidates;
+      if(pos_ref != 'C')
+         candidates.push_back({'C', C_per_pos[pos]});
+      if(pos_ref != 'T')
+         candidates.push_back({'T', T_per_pos[pos]});
+      if(pos_ref != 'A')
+         candidates.push_back({'A', A_per_pos[pos]});
+      if(pos_ref != 'G')
+         candidates.push_back({'G', G_per_pos[pos]});
+      /// This should always be the case. For future-proof-ness (gaps in reference), keep this check in.
+      if(pos_ref != '-')
+         candidates.push_back({'-', gap_per_pos[pos]});
+
+      /// Could also calculate by subtracting Ns from total count
+      uint32_t total = C_per_pos[pos] + T_per_pos[pos] + A_per_pos[pos] + G_per_pos[pos] + gap_per_pos[pos];
+
+      for(auto& cand : candidates){
+         double proportion = (double) cand.second / (double) total;
+         if(proportion >= proportion_threshold){
+            ret.push_back({pos_ref + std::to_string(pos + 1) + cand.first, proportion, cand.second});
+         }
+      }
+   }
+
    return ret;
 }
 
@@ -757,7 +879,7 @@ silo::result_s silo::execute_query(const silo::Database& db, const std::string& 
             ret.return_message = "{\"count\": " + std::to_string(count) + "}";
          } else if (strcmp(action_type, "List") == 0) {
          } else if (strcmp(action_type, "Mutations") == 0) {
-            std::vector<mut_struct> mutations = execute_mutations(db, std::move(filter));
+            std::vector<mut_struct> mutations = execute_mutations(db, std::move(filter), 0.02);
             ret.return_message = "";
             for (auto& s : mutations) {
                ret.return_message += "{\"mutation\":\"" + s.mutation +
