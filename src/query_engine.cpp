@@ -778,55 +778,126 @@ struct mut_struct {
 std::vector<mut_struct> execute_mutations(const silo::Database& db, std::unique_ptr<silo::BoolExpression> ex, double proportion_threshold) {
    using roaring::Roaring;
 
-   // std::vector<std::atomic<uint32_t>> N_per_pos(silo::genomeLength);
-   std::vector<std::atomic<uint32_t>> C_per_pos(silo::genomeLength);
-   std::vector<std::atomic<uint32_t>> T_per_pos(silo::genomeLength);
-   std::vector<std::atomic<uint32_t>> A_per_pos(silo::genomeLength);
-   std::vector<std::atomic<uint32_t>> G_per_pos(silo::genomeLength);
-   std::vector<std::atomic<uint32_t>> gap_per_pos(silo::genomeLength);
+   std::vector<uint32_t> N_per_pos(silo::genomeLength);
+   std::vector<uint32_t> C_per_pos(silo::genomeLength);
+   std::vector<uint32_t> T_per_pos(silo::genomeLength);
+   std::vector<uint32_t> A_per_pos(silo::genomeLength);
+   std::vector<uint32_t> G_per_pos(silo::genomeLength);
+   std::vector<uint32_t> gap_per_pos(silo::genomeLength);
 
-   tbb::parallel_for_each(db.partitions.begin(), db.partitions.end(), [&](const silo::DatabasePartition& dbp) {
-      silo::evaluate_result_t filter = ex->evaluate(db, dbp);
-      const Roaring& bm = *filter.getAsConst();
+   std::vector<silo::evaluate_result_t> partition_filters(db.partitions.size());
+   tbb::blocked_range<size_t> r(0, db.partitions.size(), 1);
+   tbb::parallel_for(r.begin(), r.end(), [&](const size_t& i){
+      partition_filters[i] = ex->evaluate(db,db.partitions[i]);
+   });
+
+   int64_t microseconds = 0;
+   {
+      BlockTimer timer(microseconds);
 
       tbb::blocked_range<uint32_t> range(0, silo::genomeLength, /*grainsize=*/500);
       tbb::parallel_for(range.begin(), range.end(), [&](uint32_t pos) {
-         // N_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::N]);
-         C_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C]);
-         T_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T]);
-         A_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A]);
-         G_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G]);
-         gap_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap]);
+         for (unsigned i = 0; i< db.partitions.size(); ++i) {
+            const silo::DatabasePartition& dbp = db.partitions[i];
+            silo::evaluate_result_t filter = partition_filters[i];
+            const Roaring& bm = *filter.getAsConst();
+            char pos_ref = db.global_reference[0].at(pos);
+            if (pos_ref == 'C') {
+               N_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::N]);
+               // C_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C]);
+               T_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T]);
+               A_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A]);
+               G_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G]);
+               gap_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap]);
+            } else if (pos_ref == 'T') {
+               N_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::N]);
+               C_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C]);
+               // T_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T]);
+               A_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A]);
+               G_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G]);
+               gap_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap]);
+            } else if (pos_ref == 'A') {
+               N_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::N]);
+               C_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C]);
+               T_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T]);
+               // A_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A]);
+               G_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G]);
+               gap_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap]);
+            } else if (pos_ref == 'G') {
+               N_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::N]);
+               C_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C]);
+               T_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T]);
+               A_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A]);
+               // G_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G]);
+               gap_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap]);
+            } else if (pos_ref == '-') {
+               N_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::N]);
+               C_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C]);
+               T_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T]);
+               A_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A]);
+               G_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G]);
+               // gap_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap]);
+            }
+         }
       });
-      filter.free();
-   });
+   }
+   std::cerr << "Per pos calculation: " << std::to_string(microseconds) << std::endl;
 
+   for (unsigned i = 0; i< db.partitions.size(); ++i) {
+      partition_filters[i].free();
+   }
+
+   uint32_t sequence_count = 0;
+   for (auto& dbp : db.partitions) {
+      sequence_count += dbp.sequenceCount;
+   }
    std::vector<mut_struct> ret;
-   for (unsigned pos = 0; pos < silo::genomeLength; ++pos) {
-      char pos_ref = db.global_reference[0].at(pos);
-      std::vector<std::pair<char, uint32_t>> candidates;
-      if (pos_ref != 'C')
-         candidates.push_back({'C', C_per_pos[pos]});
-      if (pos_ref != 'T')
-         candidates.push_back({'T', T_per_pos[pos]});
-      if (pos_ref != 'A')
-         candidates.push_back({'A', A_per_pos[pos]});
-      if (pos_ref != 'G')
-         candidates.push_back({'G', G_per_pos[pos]});
-      /// This should always be the case. For future-proof-ness (gaps in reference), keep this check in.
-      if (pos_ref != '-')
-         candidates.push_back({'-', gap_per_pos[pos]});
-
-      /// Could also calculate by subtracting Ns from total count
-      uint32_t total = C_per_pos[pos] + T_per_pos[pos] + A_per_pos[pos] + G_per_pos[pos] + gap_per_pos[pos];
-
-      for (auto& cand : candidates) {
-         double proportion = (double) cand.second / (double) total;
-         if (proportion >= proportion_threshold) {
-            ret.push_back({pos_ref + std::to_string(pos + 1) + cand.first, proportion, cand.second});
+   microseconds = 0;
+   {
+      BlockTimer timer(microseconds);
+      for (unsigned pos = 0; pos < silo::genomeLength; ++pos) {
+         char pos_ref = db.global_reference[0].at(pos);
+         std::vector<std::pair<char, uint32_t>> candidates;
+         uint32_t total = sequence_count - N_per_pos[pos];
+         if (pos_ref != 'C') {
+            const uint32_t tmp = C_per_pos[pos];
+            double proportion = (double) tmp / (double) total;
+            if (proportion >= proportion_threshold) {
+               ret.push_back({pos_ref + std::to_string(pos + 1) + 'C', proportion, tmp});
+            }
+         }
+         if (pos_ref != 'T') {
+            const uint32_t tmp = T_per_pos[pos];
+            double proportion = (double) tmp / (double) total;
+            if (proportion >= proportion_threshold) {
+               ret.push_back({pos_ref + std::to_string(pos + 1) + 'T', proportion, tmp});
+            }
+         }
+         if (pos_ref != 'A') {
+            const uint32_t tmp = A_per_pos[pos];
+            double proportion = (double) tmp / (double) total;
+            if (proportion >= proportion_threshold) {
+               ret.push_back({pos_ref + std::to_string(pos + 1) + 'A', proportion, tmp});
+            }
+         }
+         if (pos_ref != 'G') {
+            const uint32_t tmp = G_per_pos[pos];
+            double proportion = (double) tmp / (double) total;
+            if (proportion >= proportion_threshold) {
+               ret.push_back({pos_ref + std::to_string(pos + 1) + 'G', proportion, tmp});
+            }
+         }
+         /// This should always be the case. For future-proof-ness (gaps in reference), keep this check in.
+         if (pos_ref != '-') {
+            const uint32_t tmp = gap_per_pos[pos];
+            double proportion = (double) tmp / (double) total;
+            if (proportion >= proportion_threshold) {
+               ret.push_back({pos_ref + std::to_string(pos + 1) + '-', proportion, tmp});
+            }
          }
       }
    }
+   std::cerr << "Proportion / ret calculation: " << std::to_string(microseconds) << std::endl;
 
    return ret;
 }
