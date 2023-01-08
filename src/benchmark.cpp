@@ -30,9 +30,9 @@ int silo::benchmark(const Database& db, std::istream& query_defs, const std::str
       return 0;
    }
 
-   count_perf_table << "test_name\tparse_time\texecution_time\n";
-   list_perf_table << "test_name\tparse_time\texecution_time\n";
-   mutations_perf_table << "test_name\tparse_time\texecution_time\n";
+   count_perf_table << "test_name\tparse_time\tfilter_time\taction_time\n";
+   list_perf_table << "test_name\tparse_time\tfilter_time\taction_time\n";
+   mutations_perf_table << "test_name\tparse_time\tfilter_time\taction_time\n";
 
    while (!query_defs.eof() && query_defs.good()) {
       std::string test_name;
@@ -57,7 +57,7 @@ int silo::benchmark(const Database& db, std::istream& query_defs, const std::str
          std::ofstream performance_file(count_query_out_dir_str + test_name + ".perf");
          auto result = execute_query(db, query, result_file, performance_file);
          std::cout << result.return_message << std::endl;
-         count_perf_table << test_name << "\t" << result.parse_time << "\t" << result.execution_time << std::endl;
+         count_perf_table << test_name << "\t" << result.parse_time << "\t" << result.filter_time << "\t" << result.action_time << std::endl;
       }
 
       // LIST
@@ -67,7 +67,7 @@ int silo::benchmark(const Database& db, std::istream& query_defs, const std::str
          std::ofstream performance_file(list_query_out_dir_str + test_name + ".perf");
          auto result = execute_query(db, query, result_file, performance_file);
          std::cout << result.return_message << std::endl;
-         list_perf_table << test_name << "\t" << result.parse_time << "\t" << result.execution_time << std::endl;
+         list_perf_table << test_name << "\t" << result.parse_time << "\t" << result.filter_time << "\t" << result.action_time << std::endl;
       }
 
       // MUTATIONS
@@ -77,7 +77,7 @@ int silo::benchmark(const Database& db, std::istream& query_defs, const std::str
          std::ofstream performance_file(mutations_query_out_dir_str + test_name + ".perf");
          auto result = execute_query(db, query, result_file, performance_file);
          std::cout << result.return_message << std::endl;
-         mutations_perf_table << test_name << "\t" << result.parse_time << "\t" << result.execution_time << std::endl;
+         mutations_perf_table << test_name << "\t" << result.parse_time << "\t" << result.filter_time << "\t" << result.action_time << std::endl;
       }
    }
    return 0;

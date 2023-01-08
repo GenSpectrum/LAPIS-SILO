@@ -759,10 +759,9 @@ std::string execute_query_part(const silo::Database& db, const silo::DatabasePar
    return ret.str();
 }
 
-uint64_t execute_count(const silo::Database& db, std::unique_ptr<silo::BoolExpression> ex) {
+uint64_t execute_count(const silo::Database& /*db*/, std::vector<silo::evaluate_result_t>& partition_filters) {
    std::atomic<uint32_t> count = 0;
-   tbb::parallel_for_each(db.partitions.begin(), db.partitions.end(), [&](const auto& dbp) {
-      silo::evaluate_result_t filter = ex->evaluate(db, dbp);
+   tbb::parallel_for_each(partition_filters.begin(), partition_filters.end(), [&](auto& filter) {
       count += filter.getAsConst()->cardinality();
       filter.free();
    });
@@ -775,7 +774,7 @@ struct mut_struct {
    unsigned count;
 };
 
-std::vector<mut_struct> execute_mutations(const silo::Database& db, std::unique_ptr<silo::BoolExpression> ex, double proportion_threshold) {
+std::vector<mut_struct> execute_mutations(const silo::Database& db, std::vector<silo::evaluate_result_t>& partition_filters, double proportion_threshold) {
    using roaring::Roaring;
 
    std::vector<uint32_t> N_per_pos(silo::genomeLength);
@@ -785,19 +784,13 @@ std::vector<mut_struct> execute_mutations(const silo::Database& db, std::unique_
    std::vector<uint32_t> G_per_pos(silo::genomeLength);
    std::vector<uint32_t> gap_per_pos(silo::genomeLength);
 
-   std::vector<silo::evaluate_result_t> partition_filters(db.partitions.size());
-   tbb::blocked_range<size_t> r(0, db.partitions.size(), 1);
-   tbb::parallel_for(r.begin(), r.end(), [&](const size_t& i){
-      partition_filters[i] = ex->evaluate(db,db.partitions[i]);
-   });
-
    int64_t microseconds = 0;
    {
       BlockTimer timer(microseconds);
 
       tbb::blocked_range<uint32_t> range(0, silo::genomeLength, /*grainsize=*/500);
       tbb::parallel_for(range.begin(), range.end(), [&](uint32_t pos) {
-         for (unsigned i = 0; i< db.partitions.size(); ++i) {
+         for (unsigned i = 0; i < db.partitions.size(); ++i) {
             const silo::DatabasePartition& dbp = db.partitions[i];
             silo::evaluate_result_t filter = partition_filters[i];
             const Roaring& bm = *filter.getAsConst();
@@ -844,7 +837,7 @@ std::vector<mut_struct> execute_mutations(const silo::Database& db, std::unique_
    std::cerr << "Per pos calculation: " << std::to_string(microseconds) << std::endl;
 
    uint32_t sequence_count = 0;
-   for (unsigned i = 0; i< db.partitions.size(); ++i) {
+   for (unsigned i = 0; i < db.partitions.size(); ++i) {
       sequence_count += partition_filters[i].getAsConst()->cardinality();
       partition_filters[i].free();
    }
@@ -922,8 +915,18 @@ silo::result_s silo::execute_query(const silo::Database& db, const std::string& 
 
    perf_out << "Parse: " << std::to_string(ret.parse_time) << " microseconds\n";
 
+   std::vector<silo::evaluate_result_t> partition_filters(db.partitions.size());
    {
-      BlockTimer timer(ret.execution_time);
+      BlockTimer timer(ret.filter_time);
+      tbb::blocked_range<size_t> r(0, db.partitions.size(), 1);
+      tbb::parallel_for(r.begin(), r.end(), [&](const size_t& i) {
+         partition_filters[i] = filter->evaluate(db, db.partitions[i]);
+      });
+   }
+   perf_out << "Execution (filter): " << std::to_string(ret.filter_time) << " microseconds\n";
+
+   {
+      BlockTimer timer(ret.action_time);
       const auto& action = doc["action"];
       assert(action.HasMember("type"));
       assert(action["type"].IsString());
@@ -944,11 +947,11 @@ silo::result_s silo::execute_query(const silo::Database& db, const std::string& 
          }
       } else {
          if (strcmp(action_type, "Aggregated") == 0) {
-            unsigned count = execute_count(db, std::move(filter));
+            unsigned count = execute_count(db, partition_filters);
             ret.return_message = "{\"count\": " + std::to_string(count) + "}";
          } else if (strcmp(action_type, "List") == 0) {
          } else if (strcmp(action_type, "Mutations") == 0) {
-            std::vector<mut_struct> mutations = execute_mutations(db, std::move(filter), 0.02);
+            std::vector<mut_struct> mutations = execute_mutations(db, partition_filters, 0.02);
             ret.return_message = "";
             for (auto& s : mutations) {
                ret.return_message += "{\"mutation\":\"" + s.mutation +
@@ -962,7 +965,7 @@ silo::result_s silo::execute_query(const silo::Database& db, const std::string& 
       }
    }
 
-   perf_out << "Execution: " << std::to_string(ret.execution_time) << " microseconds\n";
+   perf_out << "Execution (action): " << std::to_string(ret.action_time) << " microseconds\n";
 
    res_out << ret.return_message;
 
