@@ -19,7 +19,46 @@ struct Position {
    }
 
    roaring::Roaring bitmaps[symbolCount];
+   // Reference bitmap is flipped
    unsigned int reference;
+};
+
+struct CompressedPosition {
+   friend class boost::serialization::access;
+
+   template <class Archive>
+   void serialize(Archive& ar, [[maybe_unused]] const unsigned int version) {
+      ar& reference;
+      ar& bitmaps;
+   }
+
+   roaring::Roaring bitmaps[symbolCount];
+   // Reference bitmap is flipped
+   unsigned int reference;
+};
+
+class SequenceStore;
+
+class CompressedSequenceStore {
+   private:
+   unsigned sequence_count;
+
+   public:
+   friend class boost::serialization::access;
+
+   template <class Archive>
+   void serialize(Archive& ar, [[maybe_unused]] const unsigned int version) {
+      ar& sequence_count;
+      ar& positions;
+      ar& start_gaps;
+      ar& end_gaps;
+   }
+
+   explicit CompressedSequenceStore(const SequenceStore& seq_store);
+
+   CompressedPosition positions[genomeLength];
+   std::vector<uint32_t> start_gaps;
+   std::vector<uint32_t> end_gaps;
 };
 
 class SequenceStore {
@@ -27,6 +66,7 @@ class SequenceStore {
    unsigned sequence_count;
 
    public:
+   friend class CompressedSequenceStore;
    friend class boost::serialization::access;
 
    template <class Archive>

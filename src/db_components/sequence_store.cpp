@@ -88,3 +88,40 @@ void SequenceStore::interpret(const std::vector<std::string>& genomes) {
    });
    return count_true;
 }
+
+CompressedSequenceStore::CompressedSequenceStore(const SequenceStore& seq_store) {
+   using roaring::Roaring;
+
+   for(unsigned i = 0; i<genomeLength; i++){
+      positions[i].reference = seq_store.positions[i].reference;
+      for(uint16_t s = 0; s < symbolCount; s++){
+         positions[i].bitmaps[s] = seq_store.positions[i].bitmaps[s];
+      }
+   }
+   {
+      Roaring current_gap_extension_candidates;
+      current_gap_extension_candidates.addRange(0, seq_store.sequence_count);
+      for (unsigned i = 0; i < genomeLength / 4; i++) {
+         current_gap_extension_candidates &= seq_store.positions[i].bitmaps[Symbol::gap];
+         roaring::api::roaring_bitmap_andnot_inplace(&this->positions[i].bitmaps[Symbol::gap].roaring, &current_gap_extension_candidates.roaring);
+         uint16_t reference = this->positions[i].reference;
+         roaring::api::roaring_bitmap_andnot_inplace(&this->positions[i].bitmaps[reference].roaring, &current_gap_extension_candidates.roaring);
+         for (unsigned gap_pos : current_gap_extension_candidates) {
+            this->start_gaps[gap_pos]++;
+         }
+      }
+   }
+   {
+      Roaring current_gap_extension_candidates;
+      current_gap_extension_candidates.addRange(0, seq_store.sequence_count);
+      for (unsigned i = genomeLength - 1; i >= genomeLength - genomeLength / 4; i--) {
+         current_gap_extension_candidates &= seq_store.positions[i].bitmaps[Symbol::gap];
+         roaring::api::roaring_bitmap_andnot_inplace(&this->positions[i].bitmaps[Symbol::gap].roaring, &current_gap_extension_candidates.roaring);
+         uint16_t reference = this->positions[i].reference;
+         roaring::api::roaring_bitmap_andnot_inplace(&this->positions[i].bitmaps[reference].roaring, &current_gap_extension_candidates.roaring);
+         for (unsigned gap_pos : current_gap_extension_candidates) {
+            this->end_gaps[gap_pos]++;
+         }
+      }
+   }
+}
