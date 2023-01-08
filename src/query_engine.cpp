@@ -843,14 +843,12 @@ std::vector<mut_struct> execute_mutations(const silo::Database& db, std::unique_
    }
    std::cerr << "Per pos calculation: " << std::to_string(microseconds) << std::endl;
 
+   uint32_t sequence_count = 0;
    for (unsigned i = 0; i< db.partitions.size(); ++i) {
+      sequence_count += partition_filters[i].getAsConst()->cardinality();
       partition_filters[i].free();
    }
 
-   uint32_t sequence_count = 0;
-   for (auto& dbp : db.partitions) {
-      sequence_count += dbp.sequenceCount;
-   }
    std::vector<mut_struct> ret;
    microseconds = 0;
    {
