@@ -66,7 +66,6 @@ class SequenceStore {
    unsigned sequence_count;
 
    public:
-
    friend class CompressedSequenceStore;
    friend class boost::serialization::access;
 
@@ -87,8 +86,11 @@ class SequenceStore {
       return result;
    }
 
+   /// default constructor
+   SequenceStore() {}
+
    /// decompress sequence_store
-   SequenceStore(const CompressedSequenceStore& c_seq_store);
+   explicit SequenceStore(const CompressedSequenceStore& c_seq_store);
 
    /// pos: 1 indexed position of the genome
    [[nodiscard]] const roaring::Roaring* bm(size_t pos, Symbol s) const {

@@ -21,8 +21,11 @@ void silo::Database::build(const std::string& part_prefix, const std::string& me
          istream_wrapper seq_in(name + seq_suffix);
          std::ifstream meta_in(name + meta_suffix);
          if (!seq_in.get_is()) {
-            std::cerr << "Sequence_file " << (name + seq_suffix) << "not found" << std::endl;
-            return;
+            seq_in = istream_wrapper(name + seq_suffix + ".xz");
+            if (!seq_in.get_is()) {
+               std::cerr << "Sequence_file " << (name + seq_suffix) << "not found" << std::endl;
+               return;
+            }
          }
          if (!meta_in) {
             std::cerr << "Meta_in file " << (name + meta_suffix) << "not found" << std::endl;
