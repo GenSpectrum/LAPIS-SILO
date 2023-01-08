@@ -788,7 +788,7 @@ std::vector<mut_struct> execute_mutations(const silo::Database& db, std::vector<
    {
       BlockTimer timer(microseconds);
 
-      tbb::blocked_range<uint32_t> range(0, silo::genomeLength, /*grainsize=*/500);
+      tbb::blocked_range<uint32_t> range(0, silo::genomeLength, /*grainsize=*/300);
       tbb::parallel_for(range.begin(), range.end(), [&](uint32_t pos) {
          for (unsigned i = 0; i < db.partitions.size(); ++i) {
             const silo::DatabasePartition& dbp = db.partitions[i];
@@ -850,39 +850,40 @@ std::vector<mut_struct> execute_mutations(const silo::Database& db, std::vector<
          char pos_ref = db.global_reference[0].at(pos);
          std::vector<std::pair<char, uint32_t>> candidates;
          uint32_t total = sequence_count - N_per_pos[pos];
+         uint32_t threshold_count = total * proportion_threshold;
          if (pos_ref != 'C') {
             const uint32_t tmp = C_per_pos[pos];
-            double proportion = (double) tmp / (double) total;
-            if (proportion >= proportion_threshold) {
+            if (tmp >= threshold_count) {
+               double proportion = (double) tmp / (double) total;
                ret.push_back({pos_ref + std::to_string(pos + 1) + 'C', proportion, tmp});
             }
          }
          if (pos_ref != 'T') {
             const uint32_t tmp = T_per_pos[pos];
-            double proportion = (double) tmp / (double) total;
-            if (proportion >= proportion_threshold) {
+            if (tmp >= threshold_count) {
+               double proportion = (double) tmp / (double) total;
                ret.push_back({pos_ref + std::to_string(pos + 1) + 'T', proportion, tmp});
             }
          }
          if (pos_ref != 'A') {
             const uint32_t tmp = A_per_pos[pos];
-            double proportion = (double) tmp / (double) total;
-            if (proportion >= proportion_threshold) {
+            if (tmp >= threshold_count) {
+               double proportion = (double) tmp / (double) total;
                ret.push_back({pos_ref + std::to_string(pos + 1) + 'A', proportion, tmp});
             }
          }
          if (pos_ref != 'G') {
             const uint32_t tmp = G_per_pos[pos];
-            double proportion = (double) tmp / (double) total;
-            if (proportion >= proportion_threshold) {
+            if (tmp >= threshold_count) {
+               double proportion = (double) tmp / (double) total;
                ret.push_back({pos_ref + std::to_string(pos + 1) + 'G', proportion, tmp});
             }
          }
          /// This should always be the case. For future-proof-ness (gaps in reference), keep this check in.
          if (pos_ref != '-') {
             const uint32_t tmp = gap_per_pos[pos];
-            double proportion = (double) tmp / (double) total;
-            if (proportion >= proportion_threshold) {
+            if (tmp >= threshold_count) {
+               double proportion = (double) tmp / (double) total;
                ret.push_back({pos_ref + std::to_string(pos + 1) + '-', proportion, tmp});
             }
          }
