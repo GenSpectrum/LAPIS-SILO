@@ -125,3 +125,42 @@ CompressedSequenceStore::CompressedSequenceStore(const SequenceStore& seq_store)
       }
    }
 }
+
+SequenceStore::SequenceStore(const CompressedSequenceStore& c_seq_store) {
+   using roaring::Roaring;
+
+   for(unsigned i = 0; i<genomeLength; ++i){
+      positions[i].reference = c_seq_store.positions[i].reference;
+      for(uint16_t s = 0; s < symbolCount; s++){
+         positions[i].bitmaps[s] = c_seq_store.positions[i].bitmaps[s];
+      }
+   }
+   {
+      std::vector<std::vector<uint32_t>> gaps_per_pos(genomeLength / 4);
+      for (unsigned seq_id = 0; seq_id < sequence_count; ++seq_id) {
+         for(unsigned pos = 0; pos < c_seq_store.start_gaps[seq_id]; ++pos){
+            gaps_per_pos[pos].push_back(seq_id);
+         }
+      }
+      for (unsigned i = 0; i < genomeLength / 4; i++) {
+         const Roaring tmp(gaps_per_pos[i].size(), gaps_per_pos[i].data());
+         roaring::api::roaring_bitmap_or_inplace(&this->positions[i].bitmaps[Symbol::gap].roaring, &tmp.roaring);
+         uint16_t reference = this->positions[i].reference;
+         roaring::api::roaring_bitmap_or_inplace(&this->positions[i].bitmaps[reference].roaring, &tmp.roaring);
+      }
+   }
+   {
+      std::vector<std::vector<uint32_t>> gaps_per_pos(genomeLength / 4);
+      for (unsigned seq_id = 0; seq_id < sequence_count; ++seq_id) {
+         for(unsigned pos = 0; pos < c_seq_store.end_gaps[seq_id]; ++pos){
+            gaps_per_pos[pos].push_back(seq_id);
+         }
+      }
+      for (unsigned i = genomeLength - 1; i >= genomeLength - genomeLength / 4; i--) {
+         const Roaring tmp(gaps_per_pos[genomeLength - i - 1].size(), gaps_per_pos[genomeLength - i - 1].data());
+         roaring::api::roaring_bitmap_or_inplace(&this->positions[i].bitmaps[Symbol::gap].roaring, &tmp.roaring);
+         uint16_t reference = this->positions[i].reference;
+         roaring::api::roaring_bitmap_or_inplace(&this->positions[i].bitmaps[reference].roaring, &tmp.roaring);
+      }
+   }
+}

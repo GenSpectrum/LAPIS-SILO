@@ -66,6 +66,7 @@ class SequenceStore {
    unsigned sequence_count;
 
    public:
+
    friend class CompressedSequenceStore;
    friend class boost::serialization::access;
 
@@ -86,14 +87,12 @@ class SequenceStore {
       return result;
    }
 
+   /// decompress sequence_store
+   SequenceStore(const CompressedSequenceStore& c_seq_store);
+
    /// pos: 1 indexed position of the genome
    [[nodiscard]] const roaring::Roaring* bm(size_t pos, Symbol s) const {
       return &positions[pos - 1].bitmaps[s];
-   }
-
-   /// pos: 1 indexed position of the genome
-   [[nodiscard]] roaring::Roaring bmr(size_t pos, std::string s) const {
-      return positions[pos - 1].bitmaps[to_symbol(s.at(pos - 1))];
    }
 
    /// Returns an Roaring-bitmap which has the given residue r at the position pos,
