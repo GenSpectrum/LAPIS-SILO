@@ -2,8 +2,8 @@
 // Created by Alexander Taepper on 01.09.22.
 //
 
-#include "silo/storage/sequence_store.h"
 #include <syncstream>
+#include <silo/storage/sequence_store.h>
 #include <tbb/blocked_range.h>
 #include <tbb/enumerable_thread_specific.h>
 #include <tbb/parallel_for.h>

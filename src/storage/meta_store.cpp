@@ -2,7 +2,7 @@
 // Created by Alexander Taepper on 01.09.22.
 //
 
-#include "silo/storage/meta_store.h"
+#include <silo/storage/meta_store.h>
 
 void silo::inputSequenceMeta(MetaStore& mdb, uint64_t epi, time_t date, uint32_t pango_lineage,
                              uint32_t region, uint32_t country, const std::vector<uint64_t>& vals) {

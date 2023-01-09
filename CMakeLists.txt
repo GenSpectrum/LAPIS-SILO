@@ -32,24 +32,6 @@ find_package(TBB REQUIRED)
 
 include("${CMAKE_SOURCE_DIR}/include/local.cmake")
 
-set(
-        INCLUDE_H
-        include/silo/common/FixHashtable.hpp
-        include/silo/common/hashing.h
-        include/silo/common/PerfEvent.hpp
-        include/silo/common/SizeSketch.h
-        include/silo/common/Vec8U.h
-        include/silo/storage/Dictionary.h
-        include/silo/storage/meta_store.h
-        include/silo/storage/sequence_store.h
-        include/silo/roaring/roaring.hh
-        include/silo/roaring/roaring.h
-        include/silo/silo.h
-        include/silo/query_engine/query_engine.h
-        include/silo/prepare_dataset.h
-        include/silo/database.h
-        include/silo/benchmark.h
-)
 
 include_directories(SYSTEM
         ${CMAKE_SOURCE_DIR}/include
@@ -75,7 +57,6 @@ set(SRC_CC
         src/benchmark.cpp
         src/roaring/roaring.c)
 
-message(${INCLUDE_H})
 
 add_library(siloapi ${SRC_CC} ${Boost_INCLUDE_DIRS})
 target_link_libraries(siloapi PUBLIC rapidjson readline ${Boost_LIBRARIES} TBB::tbb)
