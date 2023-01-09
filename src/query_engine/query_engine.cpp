@@ -142,11 +142,9 @@ filter_t AndEx::evaluate(const Database& db, const DatabasePartition& dbp) {
    negated_children.reserve(negated_children.size());
    std::transform(negated_children.begin(), negated_children.end(), std::back_inserter(negated_children_bm),
                   [&](const auto& child) { return child->evaluate(db, dbp); });
+   /// Sort ascending, such that intermediate results are kept small
    std::sort(children_bm.begin(), children_bm.end(),
              [](const filter_t& a, const filter_t& b) { return a.getAsConst()->cardinality() < b.getAsConst()->cardinality(); });
-   /// Sort negated children descending by size
-   std::sort(negated_children_bm.begin(), negated_children_bm.end(),
-             [](const filter_t& a, const filter_t& b) { return a.getAsConst()->cardinality() > b.getAsConst()->cardinality(); });
 
    Roaring* ret;
    if (children_bm.empty()) {
@@ -169,6 +167,9 @@ filter_t AndEx::evaluate(const Database& db, const DatabasePartition& dbp) {
          auto tmp = roaring::api::roaring_bitmap_andnot(&children_bm[0].immutable_res->roaring, &negated_children_bm[0].getAsConst()->roaring);
          ret = new Roaring(tmp);
       }
+      /// Sort negated children descending by size
+      std::sort(negated_children_bm.begin(), negated_children_bm.end(),
+                [](const filter_t& a, const filter_t& b) { return a.getAsConst()->cardinality() > b.getAsConst()->cardinality(); });
       for (auto neg_bm : negated_children_bm) {
          roaring::api::roaring_bitmap_andnot_inplace(&ret->roaring, &neg_bm.getAsConst()->roaring);
          neg_bm.free();
@@ -191,6 +192,9 @@ filter_t AndEx::evaluate(const Database& db, const DatabasePartition& dbp) {
          *ret &= *bm.getAsConst();
          bm.free();
       }
+      /// Sort negated children descending by size
+      std::sort(negated_children_bm.begin(), negated_children_bm.end(),
+                [](const filter_t& a, const filter_t& b) { return a.getAsConst()->cardinality() > b.getAsConst()->cardinality(); });
       for (auto neg_bm : negated_children_bm) {
          roaring::api::roaring_bitmap_andnot_inplace(&ret->roaring, &neg_bm.getAsConst()->roaring);
          neg_bm.free();
