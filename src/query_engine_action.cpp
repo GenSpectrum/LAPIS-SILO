@@ -95,7 +95,10 @@ std::vector<silo::mut_struct> silo::execute_mutations(const silo::Database& db, 
          char pos_ref = db.global_reference[0].at(pos);
          std::vector<std::pair<char, uint32_t>> candidates;
          uint32_t total = sequence_count - N_per_pos[pos];
-         uint32_t threshold_count = total * proportion_threshold;
+         if(total == 0){
+            continue;
+         }
+         uint32_t threshold_count = (double) total * (double) proportion_threshold;
          if (pos_ref != 'C') {
             const uint32_t tmp = C_per_pos[pos];
             if (tmp >= threshold_count) {

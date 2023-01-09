@@ -5,6 +5,7 @@
 #include "tbb/parallel_for.h"
 #include "tbb/parallel_for_each.h"
 #include <silo/common/PerfEvent.hpp>
+#include <syncstream>
 
 namespace silo {
 
@@ -942,7 +943,8 @@ silo::result_s silo::execute_query(const silo::Database& db, const std::string& 
       tbb::blocked_range<size_t> r(0, db.partitions.size(), 1);
       tbb::parallel_for(r.begin(), r.end(), [&](const size_t& i) {
          std::unique_ptr<BoolExpression> part_filter = filter->simplify(db, db.partitions[i]);
-         partition_filters[i] = filter->evaluate(db, db.partitions[i]);
+         std::osyncstream(std::cout) << "Simplified query: " << part_filter->to_string(db) << std::endl;
+         partition_filters[i] = part_filter->evaluate(db, db.partitions[i]);
       });
    }
    perf_out << "Execution (filter): " << std::to_string(ret.filter_time) << " microseconds\n";
