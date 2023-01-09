@@ -5,6 +5,7 @@
 #include "silo/silo.h"
 #include <boost/iostreams/filter/lzma.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
+#include <syncstream>
 
 silo::istream_wrapper::istream_wrapper(const std::string& file_name) {
    if (file_name.ends_with(".xz")) {

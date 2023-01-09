@@ -2,6 +2,7 @@
 // Created by Alexander Taepper on 01.09.22.
 //
 #include "silo/db_components/sequence_store.h"
+#include <syncstream>
 #include <tbb/blocked_range.h>
 #include <tbb/enumerable_thread_specific.h>
 #include <tbb/parallel_for.h>
@@ -45,8 +46,8 @@ roaring::Roaring* SequenceStore::bma(size_t pos, Symbol r) const {
 }
 
 int SequenceStore::db_info(std::ostream& io) const {
-   io << "sequence count: " << number_fmt(this->sequence_count) << std::endl;
-   io << "total size: " << number_fmt(this->computeSize()) << std::endl;
+   std::osyncstream(io) << "partition sequence count: " << number_fmt(this->sequence_count) << std::endl;
+   std::osyncstream(io) << "partition size: " << number_fmt(this->computeSize()) << std::endl;
    return 0;
 }
 

@@ -18,28 +18,31 @@ void silo::Database::build(const std::string& part_prefix, const std::string& me
       for (unsigned j = 0; j < part.chunks.size(); ++j) {
          std::string name;
          name = part_prefix + chunk_string(i, j);
-         istream_wrapper seq_in(name + seq_suffix);
+         std::string seq_file_str = name + seq_suffix;
          std::ifstream meta_in(name + meta_suffix);
-         if (!seq_in.get_is()) {
-            seq_in = istream_wrapper(name + seq_suffix + ".xz");
-            if (!seq_in.get_is()) {
-               std::cerr << "Sequence_file " << (name + seq_suffix) << "not found" << std::endl;
+         if (!istream_wrapper(seq_file_str).get_is()) {
+            seq_file_str += ".xz";
+            if (!istream_wrapper(seq_file_str).get_is()) {
+               std::osyncstream(std::cerr) << "Sequence_file " << (name + seq_suffix) << " not found" << std::endl;
                return;
             }
+            std::osyncstream(std::cerr) << "Using sequence_file " << (seq_file_str) << std::endl;
+         } else {
+            std::osyncstream(std::cerr) << "Using sequence_file " << (seq_file_str) << std::endl;
          }
          if (!meta_in) {
-            std::cerr << "Meta_in file " << (name + meta_suffix) << "not found" << std::endl;
+            std::osyncstream(std::cerr) << "Meta_in file " << (name + meta_suffix) << " not found" << std::endl;
             return;
          }
-         std::osyncstream(std::cout) << "Extending sequence-store from input file: " << name << std::endl;
+         silo::istream_wrapper seq_in(seq_file_str);
+         std::osyncstream(std::cerr) << "Using meta_in file " << (name + meta_suffix) << std::endl;
          unsigned count1 = processSeq(partitions[i].seq_store, seq_in.get_is());
          unsigned count2 = processMeta(partitions[i].meta_store, meta_in, alias_key, *dict);
          if (count1 != count2) {
             // Fatal error
-            std::cerr << "Sequences in meta data and sequence data for chunk " << chunk_string(i, j) << " are not equal." << std::endl;
-            std::cerr << "Abort build." << std::endl;
-            partitions.clear();
-            return;
+            std::osyncstream(std::cerr) << "Sequences in meta data and sequence data for chunk " << chunk_string(i, j) << " are not equal." << std::endl;
+            std::osyncstream(std::cerr) << "Abort build." << std::endl;
+            throw std::runtime_error("Error");
          }
          partitions[i].sequenceCount += count1;
       }
@@ -308,29 +311,31 @@ int silo::Database::db_info_detailed(std::ostream& io) {
 }
 
 unsigned silo::processSeq(silo::SequenceStore& seq_store, std::istream& in) {
-   static constexpr unsigned interpretSize = 1024;
+   static constexpr unsigned BUFFER_SIZE = 1024;
 
    unsigned sequence_count = 0;
 
-   std::vector<std::string> genomes;
+   std::vector<std::string> genome_buffer;
    while (true) {
       std::string epi_isl, genome;
-      if (!getline(in, epi_isl)) break;
+      if (!getline(in, epi_isl)) {
+         break;
+      }
       if (!getline(in, genome)) break;
       if (genome.length() != genomeLength) {
          std::cerr << "length mismatch!" << std::endl;
          throw std::runtime_error("length mismatch.");
       }
 
-      genomes.push_back(std::move(genome));
-      if (genomes.size() >= interpretSize) {
-         seq_store.interpret(genomes);
-         genomes.clear();
+      genome_buffer.push_back(std::move(genome));
+      if (genome_buffer.size() >= BUFFER_SIZE) {
+         seq_store.interpret(genome_buffer);
+         genome_buffer.clear();
       }
 
       ++sequence_count;
    }
-   seq_store.interpret(genomes);
+   seq_store.interpret(genome_buffer);
    seq_store.db_info(std::cout);
 
    return sequence_count;
@@ -433,7 +438,6 @@ void silo::Database::save(const std::string& save_dir) {
          std::cerr << "Could not open '" << (save_dir + "dict.txt") << "'." << std::endl;
          return;
       }
-      // std::cout << "Save dictionary to file " << (save_dir + "dict.txt") << std::endl;
       dict->save_dict(dict_output);
    }
 
