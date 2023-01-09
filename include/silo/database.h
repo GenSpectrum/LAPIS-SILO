@@ -38,17 +38,18 @@ class DatabasePartition {
       ar& seq_store;
       ar& sequenceCount;
       ar& chunks;
+      ar& sorted_lineages;
    }
 
    std::vector<silo::chunk_t> chunks;
 
    public:
-   // Sorted Lineage ids that are contained in this partition (for expression simplification)
-   std::vector<uint32_t> sorted_lineages;
-
    MetaStore meta_store;
    SequenceStore seq_store;
    unsigned sequenceCount;
+   // Sorted Lineage ids that are contained in this partition (for expression simplification)
+   std::vector<uint32_t> sorted_lineages;
+
 
    const std::vector<silo::chunk_t>& get_chunks() const {
       return chunks;
