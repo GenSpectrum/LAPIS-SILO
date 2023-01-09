@@ -3,7 +3,7 @@
 //
 #include "query_test.cpp"
 #include "resolve_alias_test.cpp"
-#include "silo/silo.h"
+#include "silo/common/silo_symbols.h"
 
 int main(int argc, char* argv[]) {
    if (argc < 2) {

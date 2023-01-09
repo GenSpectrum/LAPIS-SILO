@@ -332,7 +332,7 @@ struct NucEqEx : public BoolExpression {
 
    std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& dbp) const override {
       std::unique_ptr<BoolExpression> ret = std::make_unique<NucEqEx>(position, value);
-      if (dbp.seq_store.positions[position].flipped_bitmap == value) { /// Bitmap of position is flipped! Introduce Neg
+      if (dbp.seq_store.positions[position - 1].flipped_bitmap == value) { /// Bitmap of position is flipped! Introduce Neg
          return std::make_unique<NegEx>(std::move(ret));
       } else {
          return ret;
@@ -362,7 +362,7 @@ struct NucMbEx : public BoolExpression {
 
    std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& dbp) const override {
       std::unique_ptr<NucMbEx> ret = std::make_unique<NucMbEx>(position, value);
-      if (dbp.seq_store.positions[position].flipped_bitmap == value) { /// Bitmap of reference is flipped! Introduce Neg
+      if (dbp.seq_store.positions[position - 1].flipped_bitmap == value) { /// Bitmap of reference is flipped! Introduce Neg
          ret->negated = true;
          return std::make_unique<NegEx>(std::move(ret));
       } else {

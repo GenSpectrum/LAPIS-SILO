@@ -11,7 +11,8 @@ set(
         include/silo/storage/sequence_store.h
         include/silo/roaring/roaring.hh
         include/silo/roaring/roaring.h
-        include/silo/silo.h
+        include/silo/roaring/roaring_serialize.h
+        include/silo/common/silo_symbols.h
         include/silo/query_engine/query_engine.h
         include/silo/prepare_dataset.h
         include/silo/database.h

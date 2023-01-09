@@ -418,7 +418,13 @@ filter_t NucEqEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp)
 }
 
 filter_t NucMbEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
-   return {dbp.seq_store.bma(this->position, this->value), nullptr};
+   if (!negated) {
+      /// Normal case
+      return {dbp.seq_store.bma(position, value), nullptr};
+   } else {
+      /// The bitmap of this->value has been flipped... still have to union it with the other symbols
+      return {dbp.seq_store.bma_neg(position, value), nullptr};
+   }
 }
 
 filter_t PangoLineageEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
