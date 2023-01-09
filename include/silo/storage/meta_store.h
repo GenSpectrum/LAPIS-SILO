@@ -5,7 +5,12 @@
 #ifndef SILO_META_STORE_H
 #define SILO_META_STORE_H
 
-#include "silo/silo.h"
+#include "silo/common/silo_symbols.h"
+#include "silo/roaring/roaring.hh"
+
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <silo/roaring/roaring_serialize.h>
 
 namespace silo {
 

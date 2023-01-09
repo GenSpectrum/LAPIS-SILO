@@ -2,10 +2,11 @@
 // Created by Alexander Taepper on 27.09.22.
 //
 
-#include "silo/silo.h"
 #include <boost/iostreams/filter/lzma.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <syncstream>
+#include <silo/common/istream_wrapper.h>
+#include <silo/common/silo_symbols.h>
 
 silo::istream_wrapper::istream_wrapper(const std::string& file_name) {
    if (file_name.ends_with(".xz")) {
@@ -18,7 +19,6 @@ silo::istream_wrapper::istream_wrapper(const std::string& file_name) {
       actual_stream = make_unique<std::ifstream>(file_name, std::ios::binary);
    }
 }
-
 struct separate_thousands : std::numpunct<char> {
    [[nodiscard]] char_type do_thousands_sep() const override { return '\''; }
    [[nodiscard]] string_type do_grouping() const override { return "\3"; }
@@ -32,7 +32,7 @@ std::string silo::number_fmt(unsigned long n) {
    return oss.str();
 }
 
-std::string silo::getPangoPrefix(const std::string& pango_lineage) {
+std::string getPangoPrefix(const std::string& pango_lineage) {
    std::string pangoPref;
    if (pango_lineage.size() > 2) {
       std::stringstream ss(pango_lineage);

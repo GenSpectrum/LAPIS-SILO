@@ -3,6 +3,7 @@
 #include <readline/history.h>
 #include <readline/readline.h>
 #include <silo/benchmark.h>
+#include <silo/common/istream_wrapper.h>
 #include <silo/database.h>
 #include <silo/prepare_dataset.h>
 #include <silo/query_engine/query_engine.h>

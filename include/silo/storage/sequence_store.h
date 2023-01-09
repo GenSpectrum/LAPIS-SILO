@@ -6,6 +6,8 @@
 #define SILO_SEQUENCE_STORE_H
 
 #include "meta_store.h"
+#include "silo/roaring/roaring.hh"
+#include "silo/roaring/roaring_serialize.h"
 
 namespace silo {
 
@@ -102,6 +104,9 @@ class SequenceStore {
    /// That means a symbol matches all mixed symbols, which can indicate the residue
    /// pos: 1 indexed position of the genome
    [[nodiscard]] roaring::Roaring* bma(size_t pos, Symbol r) const;
+
+   /// Same as before for flipped bitmaps for r
+   [[nodiscard]] roaring::Roaring* bma_neg(size_t pos, Symbol r) const;
 
    void interpret(const std::vector<std::string>& genomes);
 

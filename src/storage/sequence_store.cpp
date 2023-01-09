@@ -41,7 +41,45 @@ roaring::Roaring* SequenceStore::bma(size_t pos, Symbol r) const {
          return ret;
       }
       default: {
-         throw std::runtime_error("Approximate query only on A C G T allowed.");
+         return new roaring::Roaring(*bm(pos, r));
+      }
+   }
+}
+
+roaring::Roaring* SequenceStore::bma_neg(size_t pos, Symbol r) const {
+   auto tmp1 = bm(pos, r);
+   roaring::api::roaring_bitmap_flip(&tmp1->roaring, 0, sequence_count);
+   switch (r) {
+      case A: {
+         const roaring::Roaring* tmp[8] = {tmp1,
+                                           bm(pos, R), bm(pos, W), bm(pos, M),
+                                           bm(pos, D), bm(pos, H), bm(pos, V)};
+         roaring::Roaring* ret = new roaring::Roaring(roaring::Roaring::fastunion(8, tmp));
+         return ret;
+      }
+      case C: {
+         const roaring::Roaring* tmp[8] = {tmp1,
+                                           bm(pos, Y), bm(pos, S), bm(pos, M),
+                                           bm(pos, B), bm(pos, H), bm(pos, V)};
+         roaring::Roaring* ret = new roaring::Roaring(roaring::Roaring::fastunion(8, tmp));
+         return ret;
+      }
+      case G: {
+         const roaring::Roaring* tmp[8] = {tmp1,
+                                           bm(pos, R), bm(pos, S), bm(pos, K),
+                                           bm(pos, D), bm(pos, B), bm(pos, V)};
+         roaring::Roaring* ret = new roaring::Roaring(roaring::Roaring::fastunion(8, tmp));
+         return ret;
+      }
+      case T: {
+         const roaring::Roaring* tmp[8] = {tmp1,
+                                           bm(pos, Y), bm(pos, W), bm(pos, K),
+                                           bm(pos, D), bm(pos, H), bm(pos, B)};
+         roaring::Roaring* ret = new roaring::Roaring(roaring::Roaring::fastunion(8, tmp));
+         return ret;
+      }
+      default: {
+         return new roaring::Roaring(*bm(pos, r));
       }
    }
 }

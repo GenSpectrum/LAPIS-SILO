@@ -5,8 +5,8 @@
 #ifndef SILO_PREPARE_DATASET_H
 #define SILO_PREPARE_DATASET_H
 
+#include <silo/common/silo_symbols.h>
 #include <silo/database.h>
-#include <silo/silo.h>
 
 namespace silo {
 
@@ -15,6 +15,12 @@ void prune_sequences(std::istream& meta_in, std::istream& sequences_in, std::ost
 void prune_meta(std::istream& meta_in, std::istream& sequences_in, std::ostream& meta_out);
 
 pango_descriptor_t build_pango_defs(const std::unordered_map<std::string, std::string>& alias_key, std::istream& meta_in);
+
+enum architecture_type {
+   max_partitions,
+   single_partition,
+   hybrid
+};
 
 partitioning_descriptor_t build_partitioning_descriptor(pango_descriptor_t pango_defs, architecture_type arch);
 

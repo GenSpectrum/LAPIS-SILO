@@ -4,7 +4,7 @@
 
 #include <iostream>
 #include <silo/common/SizeSketch.h>
-#include <silo/silo.h>
+#include <silo/common/silo_symbols.h>
 #include <silo/storage/Dictionary.h>
 
 using namespace silo;

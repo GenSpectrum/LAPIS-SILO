@@ -5,7 +5,7 @@
 #ifndef SILO_DATABASE_H
 #define SILO_DATABASE_H
 
-#include <silo/silo.h>
+#include <silo/common/silo_symbols.h>
 #include <silo/storage/Dictionary.h>
 #include <silo/storage/meta_store.h>
 #include <silo/storage/sequence_store.h>
@@ -13,6 +13,21 @@
 #include <utility>
 
 namespace silo {
+
+struct chunk_t {
+   friend class boost::serialization::access;
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& ar, const unsigned int /* version */) {
+      ar& prefix;
+      ar& count;
+      ar& offset;
+      ar& pangos;
+   }
+   std::string prefix;
+   uint32_t count;
+   uint32_t offset;
+   std::vector<std::string> pangos;
+};
 
 struct partition_t {
    std::string name;
@@ -22,6 +37,11 @@ struct partition_t {
 
 struct partitioning_descriptor_t {
    std::vector<partition_t> partitions;
+};
+
+struct pango_t {
+   std::string pango_lineage;
+   uint32_t count;
 };
 
 struct pango_descriptor_t {

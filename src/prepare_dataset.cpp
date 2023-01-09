@@ -6,6 +6,7 @@
 
 #include <syncstream>
 #include <unordered_set>
+#include <silo/common/istream_wrapper.h>
 #include <silo/database.h>
 #include <tbb/blocked_range.h>
 #include <tbb/enumerable_thread_specific.h>
