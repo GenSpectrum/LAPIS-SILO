@@ -29,6 +29,33 @@ struct result_s {
    int64_t action_time;
 };
 
+/// The return value of the BoolExpression::evaluate method.
+/// May return either a mutable or immutable bitmap.
+struct filter_t {
+   roaring::Roaring* mutable_res;
+   const roaring::Roaring* immutable_res;
+
+   inline const roaring::Roaring* getAsConst() {
+      return mutable_res ? mutable_res : immutable_res;
+   }
+
+   inline void free() {
+      if (mutable_res) delete mutable_res;
+   }
+};
+
+struct mut_struct {
+   std::string mutation;
+   double proportion;
+   unsigned count;
+};
+
+/// Action
+std::vector<mut_struct> execute_mutations(const silo::Database&, std::vector<silo::filter_t>&, double proportion_threshold);
+
+uint64_t execute_count(const silo::Database& /*db*/, std::vector<silo::filter_t>& partition_filters);
+
+/// Filter then call action
 result_s execute_query(const Database& db, const std::string& query, std::ostream& res_out, std::ostream& perf_out);
 
 } // namespace silo;

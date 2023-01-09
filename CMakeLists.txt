@@ -50,6 +50,7 @@ set(SRC_CC
         src/db_components/meta_store.cpp
         src/db_components/sequence_store.cpp
         src/query_engine.cpp
+        src/query_engine_action.cpp
         src/database.cpp
         src/prepare_dataset.cpp
         src/benchmark.cpp

@@ -14,13 +14,13 @@ struct Position {
 
    template <class Archive>
    void serialize(Archive& ar, [[maybe_unused]] const unsigned int version) {
-      ar& reference;
+      ar& flipped_bitmap;
       ar& bitmaps;
    }
 
    roaring::Roaring bitmaps[symbolCount];
    // Reference bitmap is flipped
-   unsigned int reference;
+   uint32_t flipped_bitmap;
 };
 
 struct CompressedPosition {
@@ -28,13 +28,13 @@ struct CompressedPosition {
 
    template <class Archive>
    void serialize(Archive& ar, [[maybe_unused]] const unsigned int version) {
-      ar& reference;
+      ar& flipped_bitmap;
       ar& bitmaps;
    }
 
    roaring::Roaring bitmaps[symbolCount];
    // Reference bitmap is flipped
-   unsigned int reference;
+   uint32_t flipped_bitmap;
 };
 
 class SequenceStore;

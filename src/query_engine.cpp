@@ -10,19 +10,15 @@ namespace silo {
 
 using roaring::Roaring;
 
-/// The return value of the BoolExpression::evaluate method.
-/// May return either a mutable or immutable bitmap.
-struct evaluate_result_t {
-   Roaring* mutable_res;
-   const Roaring* immutable_res;
-
-   inline const Roaring* getAsConst() {
-      return mutable_res ? mutable_res : immutable_res;
-   }
-
-   inline void free() {
-      if (mutable_res) delete mutable_res;
-   }
+enum ExType {
+   AND,
+   OR,
+   NOF,
+   NEG,
+   INDEX_FILTER,
+   PRED,
+   EMPTY,
+   FULL
 };
 
 struct BoolExpression {
@@ -38,15 +34,16 @@ struct BoolExpression {
    /// Destructor
    virtual ~BoolExpression() = default;
 
-   /// Evaluate the expression by interpreting it.
-   /// If mutable bitmap is returned, caller must free the result
-   virtual evaluate_result_t evaluate(const Database& /*db*/, const DatabasePartition& /*dbp*/) = 0;
+   virtual ExType type() const = 0;
 
    /// Evaluate the expression by interpreting it.
-   virtual void normalize(const Database& /*db*/) = 0;
+   /// If mutable bitmap is returned, caller must free the result
+   virtual filter_t evaluate(const Database& /*db*/, const DatabasePartition& /*dbp*/) = 0;
 
    /// Transforms the expression to a human readable string.
    virtual std::string to_string(const Database& db) = 0;
+
+   virtual std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const = 0;
 
    /* Maybe generate code in the future
       /// Build the expression LLVM IR code.
@@ -56,23 +53,56 @@ struct BoolExpression {
 
 std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value& js);
 
-struct VectorEx : public BoolExpression {
-   std::vector<std::unique_ptr<BoolExpression>> children;
+struct EmptyEx : public BoolExpression {
+   ExType type() const override {
+      return ExType::EMPTY;
+   };
 
-   explicit VectorEx(const Database& db, const rapidjson::Value& js) : BoolExpression(js) {
-      assert(js.HasMember("children"));
-      assert(js["children"].IsArray());
-      std::transform(js["children"].GetArray().begin(), js["children"].GetArray().end(),
-                     std::back_inserter(children), [&](const rapidjson::Value& js) { return to_ex(db, js); });
+   /// EmptyEx should be simplified away.
+   filter_t evaluate(const Database& /*db*/, const DatabasePartition& /*dbp*/) override {
+      return {new Roaring(), nullptr};
+   }
+
+   std::string to_string(const Database& /*db*/) override {
+      return "FALSE";
+   }
+
+   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
+      return std::make_unique<silo::EmptyEx>();
    }
 };
 
-struct AndEx : public VectorEx {
-   explicit AndEx(const Database& db, const rapidjson::Value& js) : VectorEx(db, js) {}
+struct FullEx : public BoolExpression {
+   ExType type() const override {
+      return ExType::FULL;
+   };
 
-   evaluate_result_t evaluate(const Database& db, const DatabasePartition& dbp) override;
+   /// EmptyEx should be simplified away.
+   filter_t evaluate(const Database& /*db*/, const DatabasePartition& dbp) override {
+      Roaring* ret = new Roaring();
+      ret->addRange(0, dbp.sequenceCount);
+      return {ret, nullptr};
+   }
 
-   void normalize(const Database& db) override;
+   std::string to_string(const Database& /*db*/) override {
+      return "TRUE";
+   }
+
+   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
+      return std::make_unique<silo::FullEx>();
+   }
+};
+
+struct AndEx : public BoolExpression {
+   std::vector<std::unique_ptr<BoolExpression>> children;
+
+   explicit AndEx() {}
+
+   ExType type() const override {
+      return ExType::AND;
+   };
+
+   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
    std::string to_string(const Database& db) override {
       std::string res = "(";
@@ -83,14 +113,53 @@ struct AndEx : public VectorEx {
       res += ")";
       return res;
    }
+
+   std::unique_ptr<BoolExpression> simplify(const Database& db, const DatabasePartition& dbp) const override {
+      std::vector<std::unique_ptr<BoolExpression>> new_children;
+      std::transform(children.begin(), children.end(),
+                     std::back_inserter(new_children), [&](const std::unique_ptr<BoolExpression>& c) { return c->simplify(db, dbp); });
+      std::unique_ptr<AndEx> ret = std::make_unique<AndEx>();
+      for (unsigned i = 0; i < new_children.size(); i++) {
+         auto& child = new_children[i];
+         if (child->type() == FULL) {
+            continue;
+         } else if (child->type() == EMPTY) {
+            return std::make_unique<EmptyEx>();
+         } else if (child->type() == AND) {
+            AndEx* or_child = dynamic_cast<AndEx*>(child.get());
+            std::transform(or_child->children.begin(), or_child->children.end(),
+                           std::back_inserter(new_children), [&](std::unique_ptr<BoolExpression>& c) { return std::move(c); });
+         } else {
+            ret->children.push_back(std::move(child));
+         }
+      }
+      if (ret->children.empty()) {
+         return std::make_unique<EmptyEx>();
+      }
+      if (ret->children.size() == 1) {
+         return std::move(ret->children[0]);
+      }
+      return ret;
+   }
 };
 
-struct OrEx : public VectorEx {
-   explicit OrEx(const Database& db, const rapidjson::Value& js) : VectorEx(db, js) {}
+struct OrEx : public BoolExpression {
+   std::vector<std::unique_ptr<BoolExpression>> children;
+   explicit OrEx(const Database& db, const rapidjson::Value& js) {
+      assert(js.HasMember("children"));
+      assert(js["children"].IsArray());
+      std::transform(js["children"].GetArray().begin(), js["children"].GetArray().end(),
+                     std::back_inserter(children), [&](const rapidjson::Value& js) { return to_ex(db, js); });
+   }
 
-   evaluate_result_t evaluate(const Database& db, const DatabasePartition& dbp) override;
+   explicit OrEx() {
+   }
 
-   void normalize(const Database& db) override;
+   ExType type() const override {
+      return ExType::OR;
+   };
+
+   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
    std::string to_string(const Database& db) override {
       std::string res = "(";
@@ -101,14 +170,53 @@ struct OrEx : public VectorEx {
       res += ")";
       return res;
    }
+
+   std::unique_ptr<BoolExpression> simplify(const Database& db, const DatabasePartition& dbp) const override {
+      std::vector<std::unique_ptr<BoolExpression>> new_children;
+      std::transform(children.begin(), children.end(),
+                     std::back_inserter(new_children), [&](const std::unique_ptr<BoolExpression>& c) { return c->simplify(db, dbp); });
+      std::unique_ptr<OrEx> ret = std::make_unique<OrEx>();
+      for (unsigned i = 0; i < new_children.size(); i++) {
+         auto& child = new_children[i];
+         if (child->type() == EMPTY) {
+            continue;
+         } else if (child->type() == FULL) {
+            return std::make_unique<FullEx>();
+         } else if (child->type() == OR) {
+            OrEx* or_child = dynamic_cast<OrEx*>(child.get());
+            std::transform(or_child->children.begin(), or_child->children.end(),
+                           std::back_inserter(new_children), [&](std::unique_ptr<BoolExpression>& c) { return std::move(c); });
+         } else {
+            ret->children.push_back(std::move(child));
+         }
+      }
+      if (ret->children.empty()) {
+         return std::make_unique<EmptyEx>();
+      }
+      if (ret->children.size() == 1) {
+         return std::move(ret->children[0]);
+      }
+      return ret;
+   }
 };
 
-struct NOfEx : public VectorEx {
+struct NOfEx : public BoolExpression {
+   std::vector<std::unique_ptr<BoolExpression>> children;
    unsigned n;
    unsigned impl;
    bool exactly;
 
-   explicit NOfEx(const Database& db, const rapidjson::Value& js) : VectorEx(db, js) {
+   ExType type() const override {
+      return ExType::NOF;
+   };
+
+   explicit NOfEx(unsigned n, unsigned impl, bool exactly) : n(n), impl(impl), exactly(exactly) {}
+
+   explicit NOfEx(const Database& db, const rapidjson::Value& js) {
+      assert(js.HasMember("children"));
+      assert(js["children"].IsArray());
+      std::transform(js["children"].GetArray().begin(), js["children"].GetArray().end(),
+                     std::back_inserter(children), [&](const rapidjson::Value& js) { return to_ex(db, js); });
       n = js["n"].GetUint();
       exactly = js["exactly"].GetBool();
       if (js.HasMember("impl")) {
@@ -118,13 +226,7 @@ struct NOfEx : public VectorEx {
       }
    }
 
-   evaluate_result_t evaluate(const Database& db, const DatabasePartition& dbp) override;
-
-   void normalize(const Database& db) override {
-      for (auto& child : children) {
-         child->normalize(db);
-      }
-   }
+   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
    std::string to_string(const Database& db) override {
       std::string res;
@@ -140,10 +242,21 @@ struct NOfEx : public VectorEx {
       res += "]";
       return res;
    }
+
+   std::unique_ptr<BoolExpression> simplify(const Database& db, const DatabasePartition& dbp) const override {
+      std::unique_ptr<NOfEx> ret = std::make_unique<NOfEx>(n, impl, exactly);
+      std::transform(children.begin(), children.end(),
+                     std::back_inserter(ret->children), [&](const std::unique_ptr<BoolExpression>& c) { return c->simplify(db, dbp); });
+      return ret;
+   }
 };
 
 struct NegEx : public BoolExpression {
    std::unique_ptr<BoolExpression> child;
+
+   ExType type() const override {
+      return ExType::NEG;
+   };
 
    explicit NegEx(const Database& db, const rapidjson::Value& js) : BoolExpression(js) {
       child = to_ex(db, js["child"]);
@@ -151,15 +264,19 @@ struct NegEx : public BoolExpression {
 
    explicit NegEx(std::unique_ptr<BoolExpression> child) : child(std::move(child)) {}
 
-   evaluate_result_t evaluate(const Database& db, const DatabasePartition& dbp) override;
-
-   void normalize(const Database& db) override {
-      child->normalize(db);
-   }
+   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
    std::string to_string(const Database& db) override {
       std::string res = "!" + child->to_string(db);
       return res;
+   }
+
+   std::unique_ptr<BoolExpression> simplify(const Database& db, const DatabasePartition& dbp) const override {
+      std::unique_ptr<NegEx> ret = std::make_unique<NegEx>(child->simplify(db, dbp));
+      if (ret->child->type() == ExType::NEG) {
+         return std::move(dynamic_cast<NegEx*>(ret->child.get())->child);
+      }
+      return ret;
    }
 };
 
@@ -168,6 +285,13 @@ struct DateBetwEx : public BoolExpression {
    bool open_from;
    time_t to;
    bool open_to;
+
+   ExType type() const override {
+      return ExType::INDEX_FILTER;
+   };
+
+   explicit DateBetwEx(time_t from, bool open_from, time_t to, bool open_to)
+      : from(from), open_from(open_from), to(to), open_to(open_to) {}
 
    explicit DateBetwEx(const Database& /*db*/, const rapidjson::Value& js) : BoolExpression(js) {
       if (js["from"].IsNull()) {
@@ -193,9 +317,7 @@ struct DateBetwEx : public BoolExpression {
       }
    }
 
-   evaluate_result_t evaluate(const Database& db, const DatabasePartition& dbp) override;
-
-   void normalize(const Database& db) override{};
+   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
    std::string to_string(const Database& /*db*/) override {
       std::string res = "[Date-between ";
@@ -205,11 +327,19 @@ struct DateBetwEx : public BoolExpression {
       res += "]";
       return res;
    }
+
+   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
+      return std::make_unique<DateBetwEx>(from, open_from, to, open_to);
+   }
 };
 
 struct NucEqEx : public BoolExpression {
    unsigned position;
    Symbol value;
+
+   ExType type() const override {
+      return ExType::INDEX_FILTER;
+   };
 
    explicit NucEqEx(unsigned position, Symbol value) : position(position), value(value) {}
 
@@ -224,19 +354,33 @@ struct NucEqEx : public BoolExpression {
       }
    }
 
-   evaluate_result_t evaluate(const Database& db, const DatabasePartition& dbp) override;
-
-   void normalize(const Database& db) override{};
+   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
    std::string to_string(const Database& /*db*/) override {
       std::string res = std::to_string(position) + symbol_rep[value];
       return res;
+   }
+
+   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& dbp) const override {
+      std::unique_ptr<BoolExpression> ret = std::make_unique<NucEqEx>(position, value);
+      if (dbp.seq_store.positions[position].flipped_bitmap == value) { /// Bitmap of position is flipped! Introduce Neg
+         return std::make_unique<NegEx>(std::move(ret));
+      } else {
+         return ret;
+      }
    }
 };
 
 struct NucMbEx : public BoolExpression {
    unsigned position;
    Symbol value;
+   bool negated = false;
+
+   ExType type() const override {
+      return ExType::INDEX_FILTER;
+   };
+
+   explicit NucMbEx(unsigned position, Symbol value) : position(position), value(value) {}
 
    explicit NucMbEx(const Database& db, const rapidjson::Value& js) : BoolExpression(js) {
       position = js["position"].GetUint();
@@ -249,19 +393,34 @@ struct NucMbEx : public BoolExpression {
       }
    }
 
-   evaluate_result_t evaluate(const Database& db, const DatabasePartition& dbp) override;
-
-   void normalize(const Database& db) override{};
+   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
    std::string to_string(const Database& /*db*/) override {
       std::string res = "?" + std::to_string(position) + symbol_rep[value];
       return res;
+   }
+
+   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& dbp) const override {
+      std::unique_ptr<NucMbEx> ret = std::make_unique<NucMbEx>(position, value);
+      if (dbp.seq_store.positions[position].flipped_bitmap == value) { /// Bitmap of reference is flipped! Introduce Neg
+         ret->negated = true;
+         return std::make_unique<NegEx>(std::move(ret));
+      } else {
+         return ret;
+      }
    }
 };
 
 struct PangoLineageEx : public BoolExpression {
    uint32_t lineageKey;
    bool includeSubLineages;
+
+   ExType type() const override {
+      return ExType::INDEX_FILTER;
+   };
+
+   explicit PangoLineageEx(uint32_t lineageKey, bool includeSubLineages)
+      : lineageKey(lineageKey), includeSubLineages(includeSubLineages) {}
 
    explicit PangoLineageEx(const Database& db, const rapidjson::Value& js) : BoolExpression(js) {
       includeSubLineages = js["includeSubLineages"].GetBool();
@@ -272,9 +431,7 @@ struct PangoLineageEx : public BoolExpression {
       std::cout << "Lineage: " << lineage << ": " << lineageKey << std::endl;
    }
 
-   evaluate_result_t evaluate(const Database& db, const DatabasePartition& dbp) override;
-
-   void normalize(const Database& db) override{};
+   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
    std::string to_string(const Database& db) override {
       std::string res = db.dict->get_pango(lineageKey);
@@ -283,39 +440,67 @@ struct PangoLineageEx : public BoolExpression {
       }
       return res;
    }
+
+   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& dbp) const override {
+      if (lineageKey == UINT32_MAX) {
+         return std::make_unique<EmptyEx>();
+      }
+      if (!this->includeSubLineages && !std::binary_search(dbp.sorted_lineages.begin(), dbp.sorted_lineages.end(), lineageKey)) {
+         return std::make_unique<EmptyEx>();
+      } else {
+         return std::make_unique<PangoLineageEx>(lineageKey, includeSubLineages);
+      }
+   }
 };
 
 struct CountryEx : public BoolExpression {
    uint32_t countryKey;
 
+   ExType type() const override {
+      return ExType::INDEX_FILTER;
+   };
+
+   explicit CountryEx(uint32_t countryKey) : countryKey(countryKey) {}
+
    explicit CountryEx(const Database& db, const rapidjson::Value& js) : BoolExpression(js) {
       countryKey = db.dict->get_countryid(js["value"].GetString());
    }
 
-   evaluate_result_t evaluate(const Database& db, const DatabasePartition& dbp) override;
-
-   void normalize(const Database& db) override{};
+   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
    std::string to_string(const Database& db) override {
       std::string res = "Country=" + db.dict->get_country(countryKey);
       return res;
+   }
+
+   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
+      return std::make_unique<CountryEx>(countryKey);
    }
 };
 
 struct RegionEx : public BoolExpression {
    uint32_t regionKey;
 
+   ExType type() const override {
+      return ExType::INDEX_FILTER;
+   };
+
+   explicit RegionEx(uint32_t regionKey) : regionKey(regionKey) {
+   }
+
    explicit RegionEx(const Database& db, const rapidjson::Value& js) : BoolExpression(js) {
       regionKey = db.dict->get_regionid(js["value"].GetString());
    }
 
-   evaluate_result_t evaluate(const Database& db, const DatabasePartition& dbp) override;
-
-   void normalize(const Database& db) override{};
+   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
    std::string to_string(const Database& db) override {
       std::string res = "Region=" + db.dict->get_region(regionKey);
       return res;
+   }
+
+   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
+      return std::make_unique<RegionEx>(regionKey);
    }
 };
 
@@ -323,18 +508,26 @@ struct StrEqEx : public BoolExpression {
    std::string column;
    std::string value;
 
+   ExType type() const override {
+      return ExType::PRED;
+   };
+
+   explicit StrEqEx(const std::string& column, const std::string& value) : column(column), value(value) {}
+
    explicit StrEqEx(const Database& /*db*/, const rapidjson::Value& js) : BoolExpression(js) {
       column = js["column"].GetString();
       value = js["value"].GetString();
    }
 
-   evaluate_result_t evaluate(const Database& db, const DatabasePartition& dbp) override;
-
-   void normalize(const Database& db) override{};
+   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
    std::string to_string(const Database& /*db*/) override {
       std::string res = column + "=" + value;
       return res;
+   }
+
+   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
+      return std::make_unique<StrEqEx>(column, value);
    }
 };
 
@@ -343,7 +536,12 @@ std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value
    assert(js["type"].IsString());
    std::string type = js["type"].GetString();
    if (type == "And") {
-      return std::make_unique<AndEx>(db, js);
+      auto ret = std::make_unique<AndEx>();
+      assert(js.HasMember("children"));
+      assert(js["children"].IsArray());
+      std::transform(js["children"].GetArray().begin(), js["children"].GetArray().end(),
+                     std::back_inserter(ret->children), [&](const rapidjson::Value& js) { return to_ex(db, js); });
+      return ret;
    } else if (type == "Or") {
       return std::make_unique<OrEx>(db, js);
    } else if (type == "N-Of") {
@@ -375,69 +573,28 @@ std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value
    }
 }
 
-void AndEx::normalize(const Database& db) {
-   std::vector<std::unique_ptr<silo::BoolExpression>> new_children;
-   for (auto& child : children) {
-      child->normalize(db);
-      AndEx* tmp = dynamic_cast<AndEx*>(child.get());
-      if (tmp != nullptr) {
-         for (auto& grandchild : tmp->children) {
-            new_children.push_back(std::move(grandchild));
-         }
-      }
-   }
-   erase_if(children, [](auto& child) {
-      return dynamic_cast<const AndEx*>(child.get()) != nullptr;
-   });
-   for (auto& child : new_children) {
-      children.push_back(std::move(child));
-   }
-}
-
-void OrEx::normalize(const Database& db) {
-   std::vector<std::unique_ptr<silo::BoolExpression>> new_children;
-   for (auto& child : children) {
-      child->normalize(db);
-      OrEx* tmp = dynamic_cast<OrEx*>(child.get());
-      if (tmp != nullptr) {
-         for (auto& grandchild : tmp->children) {
-            new_children.push_back(std::move(grandchild));
-         }
-      }
-   }
-   erase_if(children, [](auto& child) {
-      return dynamic_cast<const OrEx*>(child.get()) != nullptr;
-   });
-   for (auto& child : new_children) {
-      children.push_back(std::move(child));
-   }
-}
-
-evaluate_result_t AndEx::evaluate(const Database& db, const DatabasePartition& dbp) {
-   if (children.empty()) {
-      Roaring* ret = new Roaring();
-      ret->addRange(0, dbp.sequenceCount);
-      return {ret, nullptr};
-   }
-
+filter_t AndEx::evaluate(const Database& db, const DatabasePartition& dbp) {
    auto tmp = children[0]->evaluate(db, dbp);
-   Roaring* ret = tmp.mutable_res ? tmp.mutable_res : new Roaring(*tmp.immutable_res);
-   for (auto& child : children) {
+   Roaring* ret;
+   if (tmp.mutable_res) {
+      ret = tmp.mutable_res;
+      *ret &= *children[1]->evaluate(db, dbp).getAsConst();
+   } else {
+      auto x = roaring_bitmap_and(&tmp.immutable_res->roaring, &children[1]->evaluate(db, dbp).getAsConst()->roaring);
+      ret = new Roaring(x);
+   }
+   for (unsigned i = 2; i < children.size(); i++) {
+      auto& child = children[i];
       auto bm = child->evaluate(db, dbp);
-      if (bm.mutable_res) {
-         ret->intersect(*bm.mutable_res);
-         delete bm.mutable_res;
-      } else {
-         ret->intersect(*bm.immutable_res);
-      }
+      *ret &= *bm.getAsConst();
    }
    return {ret, nullptr};
 }
 
-evaluate_result_t OrEx::evaluate(const Database& db, const DatabasePartition& dbp) {
+filter_t OrEx::evaluate(const Database& db, const DatabasePartition& dbp) {
    unsigned n = children.size();
    const Roaring* union_tmp[n];
-   evaluate_result_t child_res[n];
+   filter_t child_res[n];
    for (unsigned i = 0; i < n; i++) {
       auto tmp = children[i]->evaluate(db, dbp);
       child_res[i] = tmp;
@@ -456,7 +613,7 @@ void vec_and_not(std::vector<uint32_t>& dest, const std::vector<uint32_t>& v1, c
    std::set_difference(v1.begin(), v1.end(), v2.begin(), v2.end(), std::back_inserter(dest));
 }
 
-evaluate_result_t NOfExevaluateImpl0(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
+filter_t NOfEx_evaluateImpl0(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
    if (self->exactly) {
       std::vector<uint16_t> count;
       std::vector<uint32_t> at_least;
@@ -495,7 +652,7 @@ evaluate_result_t NOfExevaluateImpl0(const NOfEx* self, const Database& db, cons
 }
 
 // DPLoop
-evaluate_result_t NOfExevaluateImpl1(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
+filter_t NOfEx_evaluateImpl1(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
    std::vector<Roaring*> dp(self->n);
    /// Copy bm of first child if immutable, otherwise use it directly
    auto tmp = self->children[0]->evaluate(db, dbp);
@@ -530,8 +687,8 @@ evaluate_result_t NOfExevaluateImpl1(const NOfEx* self, const Database& db, cons
 }
 
 // N-Way Heap-Merge, for threshold queries
-evaluate_result_t NOfExevaluateImpl2threshold(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
-   std::vector<evaluate_result_t> child_maps;
+filter_t NOfEx_evaluateImpl2threshold(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
+   std::vector<filter_t> child_maps;
    struct bitmap_iterator {
       roaring::RoaringSetBitForwardIterator cur;
       roaring::RoaringSetBitForwardIterator end;
@@ -553,9 +710,9 @@ evaluate_result_t NOfExevaluateImpl2threshold(const NOfEx* self, const Database&
 
    auto ret = new Roaring();
 
-   constexpr size_t BUFFERSIZE = 1024;
+   constexpr size_t BUFFER_SIZE = 1024;
    std::vector<uint32_t> buffer;
-   buffer.reserve(BUFFERSIZE);
+   buffer.reserve(BUFFER_SIZE);
 
    uint32_t last_val = -1;
    uint32_t cur_count = 0;
@@ -566,8 +723,8 @@ evaluate_result_t NOfExevaluateImpl2threshold(const NOfEx* self, const Database&
       cur_count = val == last_val ? cur_count + 1 : 1;
       if (cur_count == self->n) {
          buffer.push_back(val);
-         if (buffer.size() == BUFFERSIZE) {
-            ret->addMany(BUFFERSIZE, &buffer[0]);
+         if (buffer.size() == BUFFER_SIZE) {
+            ret->addMany(BUFFER_SIZE, &buffer[0]);
             buffer.clear();
          }
       } else {
@@ -592,8 +749,8 @@ evaluate_result_t NOfExevaluateImpl2threshold(const NOfEx* self, const Database&
 }
 
 // N-Way Heap-Merge, for exact queries
-evaluate_result_t NOfExevaluateImpl2exact(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
-   std::vector<evaluate_result_t> child_maps;
+filter_t NOfEx_evaluateImpl2exact(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
+   std::vector<filter_t> child_maps;
    struct bitmap_iterator {
       roaring::RoaringSetBitForwardIterator cur;
       roaring::RoaringSetBitForwardIterator end;
@@ -615,9 +772,9 @@ evaluate_result_t NOfExevaluateImpl2exact(const NOfEx* self, const Database& db,
 
    auto ret = new Roaring();
 
-   constexpr size_t BUFFERSIZE = 1024;
+   constexpr size_t BUFFER_SIZE = 1024;
    std::vector<uint32_t> buffer;
-   buffer.reserve(BUFFERSIZE);
+   buffer.reserve(BUFFER_SIZE);
 
    uint32_t last_val = -1;
    uint32_t cur_count = 0;
@@ -628,8 +785,8 @@ evaluate_result_t NOfExevaluateImpl2exact(const NOfEx* self, const Database& db,
       if (cur_count == self->n && val != last_val) {
          cur_count = 1;
          buffer.push_back(val);
-         if (buffer.size() == BUFFERSIZE) {
-            ret->addMany(BUFFERSIZE, &buffer[0]);
+         if (buffer.size() == BUFFER_SIZE) {
+            ret->addMany(BUFFER_SIZE, &buffer[0]);
             buffer.clear();
          }
       } else {
@@ -654,30 +811,30 @@ evaluate_result_t NOfExevaluateImpl2exact(const NOfEx* self, const Database& db,
    return {ret, nullptr};
 }
 
-evaluate_result_t NOfEx::evaluate(const Database& db, const DatabasePartition& dbp) {
+filter_t NOfEx::evaluate(const Database& db, const DatabasePartition& dbp) {
    switch (impl) {
       default:
       case 1:
-         return NOfExevaluateImpl1(this, db, dbp);
+         return NOfEx_evaluateImpl1(this, db, dbp);
       case 0:
-         return NOfExevaluateImpl0(this, db, dbp);
+         return NOfEx_evaluateImpl0(this, db, dbp);
       case 2:
          if (exactly) {
-            return NOfExevaluateImpl2exact(this, db, dbp);
+            return NOfEx_evaluateImpl2exact(this, db, dbp);
          } else {
-            return NOfExevaluateImpl2threshold(this, db, dbp);
+            return NOfEx_evaluateImpl2threshold(this, db, dbp);
          }
    }
 }
 
-evaluate_result_t NegEx::evaluate(const Database& db, const DatabasePartition& dbp) {
+filter_t NegEx::evaluate(const Database& db, const DatabasePartition& dbp) {
    auto tmp = child->evaluate(db, dbp);
    auto ret = tmp.mutable_res ? tmp.mutable_res : new Roaring(*tmp.immutable_res);
    ret->flip(0, dbp.sequenceCount);
    return {ret, nullptr};
 }
 
-evaluate_result_t DateBetwEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
+filter_t DateBetwEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
    if (open_from && open_to) {
       auto ret = new Roaring();
       ret->addRange(0, dbp.sequenceCount);
@@ -696,15 +853,15 @@ evaluate_result_t DateBetwEx::evaluate(const Database& /*db*/, const DatabasePar
    return {ret, nullptr};
 }
 
-evaluate_result_t NucEqEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
+filter_t NucEqEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
    return {nullptr, dbp.seq_store.bm(position, value)};
 }
 
-evaluate_result_t NucMbEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
+filter_t NucMbEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
    return {dbp.seq_store.bma(this->position, this->value), nullptr};
 }
 
-evaluate_result_t PangoLineageEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
+filter_t PangoLineageEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
    if (lineageKey == UINT32_MAX) return {new Roaring(), nullptr};
    if (includeSubLineages) {
       return {nullptr, &dbp.meta_store.sublineage_bitmaps[lineageKey]};
@@ -713,15 +870,15 @@ evaluate_result_t PangoLineageEx::evaluate(const Database& /*db*/, const Databas
    }
 }
 
-evaluate_result_t CountryEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
+filter_t CountryEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
    return {nullptr, &dbp.meta_store.country_bitmaps[countryKey]};
 }
 
-evaluate_result_t RegionEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
+filter_t RegionEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
    return {nullptr, &dbp.meta_store.region_bitmaps[regionKey]};
 }
 
-evaluate_result_t StrEqEx::evaluate(const Database& db, const DatabasePartition& dbp) {
+filter_t StrEqEx::evaluate(const Database& db, const DatabasePartition& dbp) {
    unsigned columnIndex = db.dict->get_colid(this->column);
    constexpr unsigned BUFFER_SIZE = 1024;
    std::vector<uint32_t> buffer(BUFFER_SIZE);
@@ -759,141 +916,6 @@ std::string execute_query_part(const silo::Database& db, const silo::DatabasePar
    return ret.str();
 }
 
-uint64_t execute_count(const silo::Database& /*db*/, std::vector<silo::evaluate_result_t>& partition_filters) {
-   std::atomic<uint32_t> count = 0;
-   tbb::parallel_for_each(partition_filters.begin(), partition_filters.end(), [&](auto& filter) {
-      count += filter.getAsConst()->cardinality();
-      filter.free();
-   });
-   return count;
-}
-
-struct mut_struct {
-   std::string mutation;
-   double proportion;
-   unsigned count;
-};
-
-std::vector<mut_struct> execute_mutations(const silo::Database& db, std::vector<silo::evaluate_result_t>& partition_filters, double proportion_threshold) {
-   using roaring::Roaring;
-
-   std::vector<uint32_t> N_per_pos(silo::genomeLength);
-   std::vector<uint32_t> C_per_pos(silo::genomeLength);
-   std::vector<uint32_t> T_per_pos(silo::genomeLength);
-   std::vector<uint32_t> A_per_pos(silo::genomeLength);
-   std::vector<uint32_t> G_per_pos(silo::genomeLength);
-   std::vector<uint32_t> gap_per_pos(silo::genomeLength);
-
-   int64_t microseconds = 0;
-   {
-      BlockTimer timer(microseconds);
-
-      tbb::blocked_range<uint32_t> range(0, silo::genomeLength, /*grainsize=*/300);
-      tbb::parallel_for(range.begin(), range.end(), [&](uint32_t pos) {
-         for (unsigned i = 0; i < db.partitions.size(); ++i) {
-            const silo::DatabasePartition& dbp = db.partitions[i];
-            silo::evaluate_result_t filter = partition_filters[i];
-            const Roaring& bm = *filter.getAsConst();
-            char pos_ref = db.global_reference[0].at(pos);
-            if (pos_ref == 'C') {
-               N_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::N]);
-               // C_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C]);
-               T_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T]);
-               A_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A]);
-               G_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G]);
-               gap_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap]);
-            } else if (pos_ref == 'T') {
-               N_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::N]);
-               C_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C]);
-               // T_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T]);
-               A_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A]);
-               G_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G]);
-               gap_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap]);
-            } else if (pos_ref == 'A') {
-               N_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::N]);
-               C_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C]);
-               T_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T]);
-               // A_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A]);
-               G_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G]);
-               gap_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap]);
-            } else if (pos_ref == 'G') {
-               N_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::N]);
-               C_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C]);
-               T_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T]);
-               A_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A]);
-               // G_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G]);
-               gap_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap]);
-            } else if (pos_ref == '-') {
-               N_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::N]);
-               C_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C]);
-               T_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T]);
-               A_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A]);
-               G_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G]);
-               // gap_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap]);
-            }
-         }
-      });
-   }
-   std::cerr << "Per pos calculation: " << std::to_string(microseconds) << std::endl;
-
-   uint32_t sequence_count = 0;
-   for (unsigned i = 0; i < db.partitions.size(); ++i) {
-      sequence_count += partition_filters[i].getAsConst()->cardinality();
-      partition_filters[i].free();
-   }
-
-   std::vector<mut_struct> ret;
-   microseconds = 0;
-   {
-      BlockTimer timer(microseconds);
-      for (unsigned pos = 0; pos < silo::genomeLength; ++pos) {
-         char pos_ref = db.global_reference[0].at(pos);
-         std::vector<std::pair<char, uint32_t>> candidates;
-         uint32_t total = sequence_count - N_per_pos[pos];
-         uint32_t threshold_count = total * proportion_threshold;
-         if (pos_ref != 'C') {
-            const uint32_t tmp = C_per_pos[pos];
-            if (tmp >= threshold_count) {
-               double proportion = (double) tmp / (double) total;
-               ret.push_back({pos_ref + std::to_string(pos + 1) + 'C', proportion, tmp});
-            }
-         }
-         if (pos_ref != 'T') {
-            const uint32_t tmp = T_per_pos[pos];
-            if (tmp >= threshold_count) {
-               double proportion = (double) tmp / (double) total;
-               ret.push_back({pos_ref + std::to_string(pos + 1) + 'T', proportion, tmp});
-            }
-         }
-         if (pos_ref != 'A') {
-            const uint32_t tmp = A_per_pos[pos];
-            if (tmp >= threshold_count) {
-               double proportion = (double) tmp / (double) total;
-               ret.push_back({pos_ref + std::to_string(pos + 1) + 'A', proportion, tmp});
-            }
-         }
-         if (pos_ref != 'G') {
-            const uint32_t tmp = G_per_pos[pos];
-            if (tmp >= threshold_count) {
-               double proportion = (double) tmp / (double) total;
-               ret.push_back({pos_ref + std::to_string(pos + 1) + 'G', proportion, tmp});
-            }
-         }
-         /// This should always be the case. For future-proof-ness (gaps in reference), keep this check in.
-         if (pos_ref != '-') {
-            const uint32_t tmp = gap_per_pos[pos];
-            if (tmp >= threshold_count) {
-               double proportion = (double) tmp / (double) total;
-               ret.push_back({pos_ref + std::to_string(pos + 1) + '-', proportion, tmp});
-            }
-         }
-      }
-   }
-   std::cerr << "Proportion / ret calculation: " << std::to_string(microseconds) << std::endl;
-
-   return ret;
-}
-
 silo::result_s silo::execute_query(const silo::Database& db, const std::string& query, std::ostream& res_out, std::ostream& perf_out) {
    std::cout << "Executing query: " << query << std::endl;
 
@@ -910,17 +932,16 @@ silo::result_s silo::execute_query(const silo::Database& db, const std::string& 
       BlockTimer timer(ret.parse_time);
       filter = to_ex(db, doc["filter"]);
       std::cout << "Parsed query: " << filter->to_string(db) << std::endl;
-      filter->normalize(db);
-      std::cout << "Normalized query: " << filter->to_string(db) << std::endl;
    }
 
    perf_out << "Parse: " << std::to_string(ret.parse_time) << " microseconds\n";
 
-   std::vector<silo::evaluate_result_t> partition_filters(db.partitions.size());
+   std::vector<silo::filter_t> partition_filters(db.partitions.size());
    {
       BlockTimer timer(ret.filter_time);
       tbb::blocked_range<size_t> r(0, db.partitions.size(), 1);
       tbb::parallel_for(r.begin(), r.end(), [&](const size_t& i) {
+         std::unique_ptr<BoolExpression> part_filter = filter->simplify(db, db.partitions[i]);
          partition_filters[i] = filter->evaluate(db, db.partitions[i]);
       });
    }

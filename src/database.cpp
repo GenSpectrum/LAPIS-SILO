@@ -55,19 +55,29 @@ void silo::DatabasePartition::finalize(const Dictionary& dict) {
       v.resize(symbolCount);
    }
 
-   tbb::parallel_for((unsigned) 0, genomeLength, [&](unsigned p) {
-      unsigned max_symbol = 0;
-      unsigned max_count = seq_store.positions[p].bitmaps[0].cardinality();
+   for (auto& chunk : chunks) {
+      for (auto& pango : chunk.pangos) {
+         uint32_t pango_id = dict.get_pangoid(pango);
+         if (pango_id != UINT32_MAX && std::find(sorted_lineages.begin(), sorted_lineages.end(), pango_id) != sorted_lineages.end()) {
+            sorted_lineages.push_back(pango_id);
+         }
+      }
+   }
+   std::sort(sorted_lineages.begin(), sorted_lineages.end());
 
-      for (unsigned symbol = 1; symbol < symbolCount; ++symbol) {
+   tbb::parallel_for((unsigned) 0, genomeLength, [&](unsigned p) {
+      unsigned max_symbol = Symbol::A;
+      unsigned max_count = seq_store.positions[p].bitmaps[Symbol::A].cardinality();
+
+      for (unsigned symbol = Symbol::C; symbol <= Symbol::T; ++symbol) {
          unsigned count = seq_store.positions[p].bitmaps[symbol].cardinality();
          if (count > max_count) {
             max_symbol = symbol;
             max_count = count;
          }
       }
-      seq_store.positions[p].reference = max_symbol;
-      // seq_store.positions[p].bitmaps[max_symbol].flip(0, sequenceCount);
+      seq_store.positions[p].flipped_bitmap = max_symbol;
+      seq_store.positions[p].bitmaps[max_symbol].flip(0, sequenceCount);
    });
 
    { /// Precompute all bitmaps for pango_lineages and -sublineages
@@ -289,7 +299,7 @@ int silo::Database::db_info_detailed(std::ostream& io) {
    io << "Partition reference genomes: " << std::endl;
    for (const DatabasePartition& dbp : partitions) {
       for (const Position& pos : dbp.seq_store.positions) {
-         io << symbol_rep[pos.reference];
+         io << symbol_rep[pos.flipped_bitmap];
       }
       io << std::endl;
    }
