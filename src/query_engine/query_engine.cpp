@@ -11,7 +11,7 @@ namespace silo {
 
 using roaring::Roaring;
 
-std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value& js) {
+std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value& js, int exact) {
    assert(js.HasMember("type"));
    assert(js["type"].IsString());
    std::string type = js["type"].GetString();
@@ -20,14 +20,14 @@ std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value
       assert(js.HasMember("children"));
       assert(js["children"].IsArray());
       std::transform(js["children"].GetArray().begin(), js["children"].GetArray().end(),
-                     std::back_inserter(ret->children), [&](const rapidjson::Value& js) { return to_ex(db, js); });
+                     std::back_inserter(ret->children), [&](const rapidjson::Value& js) { return to_ex(db, js, exact); });
       return ret;
    } else if (type == "Or") {
       auto ret = std::make_unique<OrEx>();
       assert(js.HasMember("children"));
       assert(js["children"].IsArray());
       std::transform(js["children"].GetArray().begin(), js["children"].GetArray().end(),
-                     std::back_inserter(ret->children), [&](const rapidjson::Value& js) { return to_ex(db, js); });
+                     std::back_inserter(ret->children), [&](const rapidjson::Value& js) { return to_ex(db, js, exact); });
       return ret;
    } else if (type == "N-Of") {
       assert(js.HasMember("children"));
@@ -37,14 +37,14 @@ std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value
 
       auto ret = std::make_unique<NOfEx>(js["n"].GetUint(), 0, js["exactly"].GetBool());
       std::transform(js["children"].GetArray().begin(), js["children"].GetArray().end(),
-                     std::back_inserter(ret->children), [&](const rapidjson::Value& js) { return to_ex(db, js); });
+                     std::back_inserter(ret->children), [&](const rapidjson::Value& js) { return to_ex(db, js, exact); });
       if (js.HasMember("impl") && js["impl"].IsUint()) {
          ret->impl = js["impl"].GetUint();
       }
       return ret;
    } else if (type == "Neg") {
       auto ret = std::make_unique<NegEx>();
-      ret->child = to_ex(db, js["child"]);
+      ret->child = to_ex(db, js["child"], -exact);
       return ret;
    } else if (type == "DateBetw") {
       auto ret = std::make_unique<DateBetwEx>();
@@ -71,32 +71,39 @@ std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value
       }
       return ret;
    } else if (type == "NucEq") {
-      auto ret = std::make_unique<NucEqEx>();
-      ret->position = js["position"].GetUint();
-      const std::string& s = js["value"].GetString();
-      if (s.at(0) == '.') {
-         char c = db.global_reference[0].at(ret->position);
-         ret->value = to_symbol(c);
-      } else {
-         ret->value = to_symbol(s.at(0));
+      if (exact >= 0) {
+         auto ret = std::make_unique<NucEqEx>();
+         ret->position = js["position"].GetUint();
+         const std::string& s = js["value"].GetString();
+         if (s.at(0) == '.') {
+            char c = db.global_reference[0].at(ret->position);
+            ret->value = to_symbol(c);
+         } else {
+            ret->value = to_symbol(s.at(0));
+         }
+         return ret;
+      } else { // Approximate query!
+         auto ret = std::make_unique<NucMbEx>();
+         ret->position = js["position"].GetUint();
+         const std::string& s = js["value"].GetString();
+         if (s.at(0) == '.') {
+            char c = db.global_reference[0].at(ret->position);
+            ret->value = to_symbol(c);
+         } else {
+            ret->value = to_symbol(s.at(0));
+         }
+         return ret;
       }
-      return ret;
    } else if (type == "NucMut") {
       assert(js.HasMember("position"));
       unsigned pos = js["position"].GetUint();
       char ref_symbol = db.global_reference[0].at(pos);
-      return std::make_unique<NegEx>(std::make_unique<NucEqEx>(pos, silo::to_symbol(ref_symbol)));
-   } else if (type == "NucMbEq") {
-      auto ret = std::make_unique<NucMbEx>();
-      ret->position = js["position"].GetUint();
-      const std::string& s = js["value"].GetString();
-      if (s.at(0) == '.') {
-         char c = db.global_reference[0].at(ret->position);
-         ret->value = to_symbol(c);
+      /// this <= is correct! the negation would flip the exact bit from -1 to +1 and vice versa
+      if (exact <= 0) {
+         return std::make_unique<NegEx>(std::make_unique<NucEqEx>(pos, silo::to_symbol(ref_symbol)));
       } else {
-         ret->value = to_symbol(s.at(0));
+         return std::make_unique<NegEx>(std::make_unique<NucMbEx>(pos, silo::to_symbol(ref_symbol)));
       }
-      return ret;
    } else if (type == "PangoLineage") {
       bool includeSubLineages = js["includeSubLineages"].GetBool();
       std::string lineage = js["value"].GetString();
@@ -113,6 +120,14 @@ std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value
       } else {
          return std::make_unique<StrEqEx>(js["column"].GetString(), js["value"].GetString());
       }
+   } else if (type == "Maybe") {
+      auto ret = std::make_unique<NegEx>();
+      ret->child = to_ex(db, js["child"], -1);
+      return ret;
+   } else if (type == "Exact") {
+      auto ret = std::make_unique<NegEx>();
+      ret->child = to_ex(db, js["child"], 1);
+      return ret;
    } else {
       throw QueryParseException("Unknown object type");
    }
@@ -466,7 +481,7 @@ silo::result_s silo::execute_query(const silo::Database& db, const std::string& 
    std::unique_ptr<BoolExpression> filter;
    {
       BlockTimer timer(ret.parse_time);
-      filter = to_ex(db, doc["filter"]);
+      filter = to_ex(db, doc["filter"], 0);
       std::cout << "Parsed query: " << filter->to_string(db) << std::endl;
    }
 
