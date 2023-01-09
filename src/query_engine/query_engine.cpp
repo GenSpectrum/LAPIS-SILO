@@ -134,21 +134,67 @@ std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value
 }
 
 filter_t AndEx::evaluate(const Database& db, const DatabasePartition& dbp) {
-   auto tmp = children[0]->evaluate(db, dbp);
+   std::vector<filter_t> children_bm(children.size());
+   std::transform(children.begin(), children.end(), std::back_inserter(children_bm),
+                  [&](const auto& child) { return child->evaluate(db, dbp); });
+   std::vector<filter_t> negated_children_bm(negated_children.size());
+   std::transform(negated_children.begin(), negated_children.end(), std::back_inserter(negated_children_bm),
+                  [&](const auto& child) { return child->evaluate(db, dbp); });
+   std::sort(children_bm.begin(), children_bm.end(),
+             [](const filter_t& a, const filter_t& b) { return a.getAsConst()->cardinality() < b.getAsConst()->cardinality(); });
+   /// Sort negated children descending by size
+   std::sort(negated_children_bm.begin(), negated_children_bm.end(),
+             [](const filter_t& a, const filter_t& b) { return a.getAsConst()->cardinality() > b.getAsConst()->cardinality(); });
+
    Roaring* ret;
-   if (tmp.mutable_res) {
-      ret = tmp.mutable_res;
-      *ret &= *children[1]->evaluate(db, dbp).getAsConst();
+   if (children_bm.empty()) {
+      const unsigned n = negated_children_bm.size();
+      const Roaring* union_tmp[n];
+      for (unsigned i = 0; i < n; i++) {
+         union_tmp[i] = negated_children_bm[i].getAsConst();
+      }
+      ret = new Roaring(Roaring::fastunion(n, union_tmp));
+      ret->flip(0, dbp.sequenceCount);
+      for (auto& bm : negated_children_bm) {
+         bm.free();
+      }
+      return {ret, nullptr};
+   } else if (children_bm.size() == 1) {
+      assert(negated_children_bm.size() >= 1);
+      if (children_bm[0].mutable_res) {
+         ret = children_bm[0].mutable_res;
+      } else {
+         auto tmp = roaring::api::roaring_bitmap_andnot(&children_bm[0].immutable_res->roaring, &negated_children_bm[0].getAsConst()->roaring);
+         ret = new Roaring(tmp);
+      }
+      for (auto neg_bm : negated_children_bm) {
+         roaring::api::roaring_bitmap_andnot_inplace(&ret->roaring, &neg_bm.getAsConst()->roaring);
+         neg_bm.free();
+      }
+      return {ret, nullptr};
    } else {
-      auto x = roaring_bitmap_and(&tmp.immutable_res->roaring, &children[1]->evaluate(db, dbp).getAsConst()->roaring);
-      ret = new Roaring(x);
+      if (children_bm[0].mutable_res) {
+         ret = children_bm[0].mutable_res;
+         *ret &= *children_bm[1].getAsConst();
+         children_bm[1].free();
+      } else if (children_bm[1].mutable_res) {
+         ret = children_bm[1].mutable_res;
+         *ret &= *children_bm[0].getAsConst();
+      } else {
+         auto x = roaring_bitmap_and(&children_bm[0].immutable_res->roaring, &children_bm[1].immutable_res->roaring);
+         ret = new Roaring(x);
+      }
+      for (unsigned i = 2; i < children.size(); i++) {
+         auto bm = children_bm[i];
+         *ret &= *bm.getAsConst();
+         bm.free();
+      }
+      for (auto neg_bm : negated_children_bm) {
+         roaring::api::roaring_bitmap_andnot_inplace(&ret->roaring, &neg_bm.getAsConst()->roaring);
+         neg_bm.free();
+      }
+      return {ret, nullptr};
    }
-   for (unsigned i = 2; i < children.size(); i++) {
-      auto& child = children[i];
-      auto bm = child->evaluate(db, dbp);
-      *ret &= *bm.getAsConst();
-   }
-   return {ret, nullptr};
 }
 
 filter_t OrEx::evaluate(const Database& db, const DatabasePartition& dbp) {
@@ -158,13 +204,11 @@ filter_t OrEx::evaluate(const Database& db, const DatabasePartition& dbp) {
    for (unsigned i = 0; i < n; i++) {
       auto tmp = children[i]->evaluate(db, dbp);
       child_res[i] = tmp;
-      union_tmp[i] = tmp.mutable_res ? tmp.mutable_res : tmp.immutable_res;
+      union_tmp[i] = tmp.getAsConst();
    }
    Roaring* ret = new Roaring(Roaring::fastunion(children.size(), union_tmp));
    for (unsigned i = 0; i < n; i++) {
-      if (child_res[i].mutable_res) {
-         delete child_res[i].mutable_res;
-      }
+      child_res[i].free();
    }
    return {ret, nullptr};
 }

@@ -35,7 +35,7 @@ struct filter_t {
    roaring::Roaring* mutable_res;
    const roaring::Roaring* immutable_res;
 
-   inline const roaring::Roaring* getAsConst() {
+   inline const roaring::Roaring* getAsConst() const {
       return mutable_res ? mutable_res : immutable_res;
    }
 
@@ -117,6 +117,7 @@ struct FullEx : public BoolExpression {
 
 struct AndEx : public BoolExpression {
    std::vector<std::unique_ptr<BoolExpression>> children;
+   std::vector<std::unique_ptr<BoolExpression>> negated_children;
 
    explicit AndEx() {}
 
@@ -129,40 +130,18 @@ struct AndEx : public BoolExpression {
    std::string to_string(const Database& db) override {
       std::string res = "(";
       for (auto& child : children) {
-         res += child->to_string(db);
          res += " & ";
+         res += child->to_string(db);
+      }
+      for (auto& child : negated_children) {
+         res += " &! ";
+         res += child->to_string(db);
       }
       res += ")";
       return res;
    }
 
-   std::unique_ptr<BoolExpression> simplify(const Database& db, const DatabasePartition& dbp) const override {
-      std::vector<std::unique_ptr<BoolExpression>> new_children;
-      std::transform(children.begin(), children.end(),
-                     std::back_inserter(new_children), [&](const std::unique_ptr<BoolExpression>& c) { return c->simplify(db, dbp); });
-      std::unique_ptr<AndEx> ret = std::make_unique<AndEx>();
-      for (unsigned i = 0; i < new_children.size(); i++) {
-         auto& child = new_children[i];
-         if (child->type() == FULL) {
-            continue;
-         } else if (child->type() == EMPTY) {
-            return std::make_unique<EmptyEx>();
-         } else if (child->type() == AND) {
-            AndEx* or_child = dynamic_cast<AndEx*>(child.get());
-            std::transform(or_child->children.begin(), or_child->children.end(),
-                           std::back_inserter(new_children), [&](std::unique_ptr<BoolExpression>& c) { return std::move(c); });
-         } else {
-            ret->children.push_back(std::move(child));
-         }
-      }
-      if (ret->children.empty()) {
-         return std::make_unique<EmptyEx>();
-      }
-      if (ret->children.size() == 1) {
-         return std::move(ret->children[0]);
-      }
-      return ret;
-   }
+   std::unique_ptr<BoolExpression> simplify(const Database& db, const DatabasePartition& dbp) const override;
 };
 
 struct OrEx : public BoolExpression {

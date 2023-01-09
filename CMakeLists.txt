@@ -51,6 +51,7 @@ set(SRC_CC
         src/storage/meta_store.cpp
         src/storage/sequence_store.cpp
         src/query_engine/query_engine.cpp
+        src/query_engine/query_simplification.cpp
         src/query_engine/query_engine_action.cpp
         src/database.cpp
         src/prepare_dataset.cpp
