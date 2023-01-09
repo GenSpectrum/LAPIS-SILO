@@ -3,7 +3,7 @@
 //
 
 #include "silo/benchmark.h"
-#include "silo/query_engine.h"
+#include "silo/query_engine/query_engine.h"
 
 using namespace silo;
 

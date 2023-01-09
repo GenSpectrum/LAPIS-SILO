@@ -2,7 +2,7 @@
 // Created by Alexander Taepper on 08.01.23.
 //
 
-#include "silo/query_engine.h"
+#include "silo/query_engine/query_engine.h"
 #include <silo/common/PerfEvent.hpp>
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>

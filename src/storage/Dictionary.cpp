@@ -2,9 +2,9 @@
 // Created by Alexander Taepper on 25.11.22.
 //
 
+#include "../../include/silo/storage/Dictionary.h"
 #include <iostream>
 #include <silo/common/SizeSketch.h>
-#include <silo/db_components/Dictionary.h>
 #include <silo/silo.h>
 
 using namespace silo;

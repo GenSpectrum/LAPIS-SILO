@@ -5,12 +5,12 @@
 #ifndef SILO_DATABASE_H
 #define SILO_DATABASE_H
 
-#include <silo/db_components/meta_store.h>
-#include <silo/db_components/sequence_store.h>
 #include <silo/silo.h>
+#include <silo/storage/Dictionary.h>
+#include <silo/storage/meta_store.h>
+#include <silo/storage/sequence_store.h>
 
 #include <utility>
-#include <silo/db_components/Dictionary.h>
 
 namespace silo {
 
@@ -49,7 +49,6 @@ class DatabasePartition {
    unsigned sequenceCount;
    // Sorted Lineage ids that are contained in this partition (for expression simplification)
    std::vector<uint32_t> sorted_lineages;
-
 
    const std::vector<silo::chunk_t>& get_chunks() const {
       return chunks;

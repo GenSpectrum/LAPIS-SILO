@@ -1,6 +1,6 @@
 
 
-#include "silo/query_engine.h"
+#include "silo/query_engine/query_engine.h"
 #include "rapidjson/document.h"
 #include "tbb/parallel_for.h"
 #include "tbb/parallel_for_each.h"

@@ -1,7 +1,8 @@
 //
 // Created by Alexander Taepper on 01.09.22.
 //
-#include "silo/db_components/sequence_store.h"
+
+#include "silo/storage/sequence_store.h"
 #include <syncstream>
 #include <tbb/blocked_range.h>
 #include <tbb/enumerable_thread_specific.h>
