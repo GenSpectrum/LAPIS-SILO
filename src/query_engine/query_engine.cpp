@@ -134,10 +134,12 @@ std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value
 }
 
 filter_t AndEx::evaluate(const Database& db, const DatabasePartition& dbp) {
-   std::vector<filter_t> children_bm(children.size());
+   std::vector<filter_t> children_bm;
+   children_bm.reserve(children.size());
    std::transform(children.begin(), children.end(), std::back_inserter(children_bm),
                   [&](const auto& child) { return child->evaluate(db, dbp); });
-   std::vector<filter_t> negated_children_bm(negated_children.size());
+   std::vector<filter_t> negated_children_bm;
+   negated_children.reserve(negated_children.size());
    std::transform(negated_children.begin(), negated_children.end(), std::back_inserter(negated_children_bm),
                   [&](const auto& child) { return child->evaluate(db, dbp); });
    std::sort(children_bm.begin(), children_bm.end(),
@@ -213,7 +215,7 @@ filter_t OrEx::evaluate(const Database& db, const DatabasePartition& dbp) {
    return {ret, nullptr};
 }
 
-void vec_and_not(std::vector<uint32_t>& dest, const std::vector<uint32_t>& v1, const std::vector<uint32_t>& v2) {
+inline void vec_and_not(std::vector<uint32_t>& dest, const std::vector<uint32_t>& v1, const std::vector<uint32_t>& v2) {
    std::set_difference(v1.begin(), v1.end(), v2.begin(), v2.end(), std::back_inserter(dest));
 }
 
