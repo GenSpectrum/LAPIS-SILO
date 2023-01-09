@@ -533,6 +533,9 @@ silo::result_s silo::execute_query(const silo::Database& db, const std::string& 
          } else if (strcmp(action_type, "Mutations") == 0) {
             double min_proportion = 0.02;
             if (action.HasMember("minProportion") && action["minProportion"].IsDouble()) {
+               if (action["minProportion"].GetDouble() <= 0.0) {
+                  ret.return_message = "{\"message\": \"minProportion must be in interval (0.0,1.0]\"}";
+               }
                min_proportion = action["minProportion"].GetDouble();
             }
             std::vector<mutation_proportion> mutations = execute_mutations(db, partition_filters, min_proportion);
