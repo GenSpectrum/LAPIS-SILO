@@ -975,11 +975,18 @@ silo::result_s silo::execute_query(const silo::Database& db, const std::string& 
             ret.return_message = "{\"count\": " + std::to_string(count) + "}";
          } else if (strcmp(action_type, "List") == 0) {
          } else if (strcmp(action_type, "Mutations") == 0) {
-            std::vector<mut_struct> mutations = execute_mutations(db, partition_filters, 0.02);
+            double min_proportion = 0.02;
+            if (action.HasMember("minProportion") && action["minProportion"].IsDouble()) {
+               min_proportion = action["minProportion"].GetDouble();
+            }
+            std::vector<mutation_proportion> mutations = execute_mutations(db, partition_filters, min_proportion);
             ret.return_message = "";
             for (auto& s : mutations) {
-               ret.return_message += "{\"mutation\":\"" + s.mutation +
-                  "\",\"proportion\":" + std::to_string(s.proportion) +
+               ret.return_message += "{\"mutation\":\"";
+               ret.return_message += s.mut_from;
+               ret.return_message += std::to_string(s.position);
+               ret.return_message += s.mut_to;
+               ret.return_message += "\",\"proportion\":" + std::to_string(s.proportion) +
                   ",\"count\":" + std::to_string(s.count) + "},";
             }
          } else {

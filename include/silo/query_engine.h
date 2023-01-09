@@ -44,14 +44,20 @@ struct filter_t {
    }
 };
 
-struct mut_struct {
-   std::string mutation;
+class mutation_proportion {
+   public:
    double proportion;
+   unsigned position;
    unsigned count;
+   char mut_from;
+   char mut_to;
+
+   mutation_proportion(char mut_from, unsigned position, char mut_to, double proportion, unsigned count)
+      : mut_from(mut_from), position(position), mut_to(mut_to), proportion(proportion), count(count) {}
 };
 
 /// Action
-std::vector<mut_struct> execute_mutations(const silo::Database&, std::vector<silo::filter_t>&, double proportion_threshold);
+std::vector<mutation_proportion> execute_mutations(const silo::Database&, std::vector<silo::filter_t>&, double proportion_threshold);
 
 uint64_t execute_count(const silo::Database& /*db*/, std::vector<silo::filter_t>& partition_filters);
 

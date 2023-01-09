@@ -17,7 +17,7 @@ uint64_t silo::execute_count(const silo::Database& /*db*/, std::vector<silo::fil
    return count;
 }
 
-std::vector<silo::mut_struct> silo::execute_mutations(const silo::Database& db, std::vector<silo::filter_t>& partition_filters, double proportion_threshold) {
+std::vector<silo::mutation_proportion> silo::execute_mutations(const silo::Database& db, std::vector<silo::filter_t>& partition_filters, double proportion_threshold) {
    using roaring::Roaring;
 
    std::vector<uint32_t> N_per_pos(silo::genomeLength);
@@ -87,7 +87,7 @@ std::vector<silo::mut_struct> silo::execute_mutations(const silo::Database& db, 
       partition_filters[i].free();
    }
 
-   std::vector<silo::mut_struct> ret;
+   std::vector<silo::mutation_proportion> ret;
    microseconds = 0;
    {
       BlockTimer timer(microseconds);
@@ -95,7 +95,7 @@ std::vector<silo::mut_struct> silo::execute_mutations(const silo::Database& db, 
          char pos_ref = db.global_reference[0].at(pos);
          std::vector<std::pair<char, uint32_t>> candidates;
          uint32_t total = sequence_count - N_per_pos[pos];
-         if(total == 0){
+         if (total == 0) {
             continue;
          }
          uint32_t threshold_count = (double) total * (double) proportion_threshold;
@@ -103,28 +103,28 @@ std::vector<silo::mut_struct> silo::execute_mutations(const silo::Database& db, 
             const uint32_t tmp = C_per_pos[pos];
             if (tmp >= threshold_count) {
                double proportion = (double) tmp / (double) total;
-               ret.push_back({pos_ref + std::to_string(pos + 1) + 'C', proportion, tmp});
+               ret.push_back({pos_ref, pos, 'C', proportion, tmp});
             }
          }
          if (pos_ref != 'T') {
             const uint32_t tmp = T_per_pos[pos];
             if (tmp >= threshold_count) {
                double proportion = (double) tmp / (double) total;
-               ret.push_back({pos_ref + std::to_string(pos + 1) + 'T', proportion, tmp});
+               ret.push_back({pos_ref, pos, 'T', proportion, tmp});
             }
          }
          if (pos_ref != 'A') {
             const uint32_t tmp = A_per_pos[pos];
             if (tmp >= threshold_count) {
                double proportion = (double) tmp / (double) total;
-               ret.push_back({pos_ref + std::to_string(pos + 1) + 'A', proportion, tmp});
+               ret.push_back({pos_ref, pos, 'A', proportion, tmp});
             }
          }
          if (pos_ref != 'G') {
             const uint32_t tmp = G_per_pos[pos];
             if (tmp >= threshold_count) {
                double proportion = (double) tmp / (double) total;
-               ret.push_back({pos_ref + std::to_string(pos + 1) + 'G', proportion, tmp});
+               ret.push_back({pos_ref, pos, 'G', proportion, tmp});
             }
          }
          /// This should always be the case. For future-proof-ness (gaps in reference), keep this check in.
@@ -132,7 +132,7 @@ std::vector<silo::mut_struct> silo::execute_mutations(const silo::Database& db, 
             const uint32_t tmp = gap_per_pos[pos];
             if (tmp >= threshold_count) {
                double proportion = (double) tmp / (double) total;
-               ret.push_back({pos_ref + std::to_string(pos + 1) + '-', proportion, tmp});
+               ret.push_back({pos_ref, pos, '-', proportion, tmp});
             }
          }
       }
