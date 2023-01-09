@@ -8,7 +8,7 @@
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_for_each.h>
 
-uint64_t execute_count(const silo::Database& /*db*/, std::vector<silo::filter_t>& partition_filters) {
+uint64_t silo::execute_count(const silo::Database& /*db*/, std::vector<silo::filter_t>& partition_filters) {
    std::atomic<uint32_t> count = 0;
    tbb::parallel_for_each(partition_filters.begin(), partition_filters.end(), [&](auto& filter) {
       count += filter.getAsConst()->cardinality();
@@ -17,7 +17,7 @@ uint64_t execute_count(const silo::Database& /*db*/, std::vector<silo::filter_t>
    return count;
 }
 
-std::vector<silo::mut_struct> execute_mutations(const silo::Database& db, std::vector<silo::filter_t>& partition_filters, double proportion_threshold) {
+std::vector<silo::mut_struct> silo::execute_mutations(const silo::Database& db, std::vector<silo::filter_t>& partition_filters, double proportion_threshold) {
    using roaring::Roaring;
 
    std::vector<uint32_t> N_per_pos(silo::genomeLength);
@@ -31,7 +31,7 @@ std::vector<silo::mut_struct> execute_mutations(const silo::Database& db, std::v
    {
       BlockTimer timer(microseconds);
 
-      tbb::blocked_range<uint32_t> range(0, silo::genomeLength, /*grainsize=*/300);
+      tbb::blocked_range<uint32_t> range(0, silo::genomeLength, /*grain_size=*/300);
       tbb::parallel_for(range.begin(), range.end(), [&](uint32_t pos) {
          for (unsigned i = 0; i < db.partitions.size(); ++i) {
             const silo::DatabasePartition& dbp = db.partitions[i];
@@ -42,35 +42,35 @@ std::vector<silo::mut_struct> execute_mutations(const silo::Database& db, std::v
 
             char pos_ref = db.global_reference[0].at(pos);
             if (pos_ref != 'C') {
-               if (dbp.seq_store.positions[pos].reference != silo::Symbol::C) { /// everything fine
+               if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::C) { /// everything fine
                   C_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C]);
                } else { /// Bitmap was flipped
                   C_per_pos[pos] += dbp.sequenceCount - bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C]);
                }
             }
             if (pos_ref != 'T') {
-               if (dbp.seq_store.positions[pos].reference != silo::Symbol::T) { /// everything fine
+               if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::T) { /// everything fine
                   T_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T]);
                } else { /// Bitmap was flipped
                   T_per_pos[pos] += dbp.sequenceCount - bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T]);
                }
             }
             if (pos_ref != 'A') {
-               if (dbp.seq_store.positions[pos].reference != silo::Symbol::A) { /// everything fine
+               if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::A) { /// everything fine
                   A_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A]);
                } else { /// Bitmap was flipped
                   A_per_pos[pos] += dbp.sequenceCount - bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A]);
                }
             }
             if (pos_ref != 'G') {
-               if (dbp.seq_store.positions[pos].reference != silo::Symbol::G) { /// everything fine
+               if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::G) { /// everything fine
                   G_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G]);
                } else { /// Bitmap was flipped
                   G_per_pos[pos] += dbp.sequenceCount - bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G]);
                }
             }
             if (pos_ref == '-') {
-               if (dbp.seq_store.positions[pos].reference != silo::Symbol::gap) { /// everything fine
+               if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::gap) { /// everything fine
                   gap_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap]);
                } else { /// Bitmap was flipped
                   gap_per_pos[pos] += dbp.sequenceCount - bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap]);

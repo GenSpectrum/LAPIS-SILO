@@ -104,9 +104,9 @@ CompressedSequenceStore::CompressedSequenceStore(const SequenceStore& seq_store)
       for (unsigned i = 0; i < genomeLength / 4; i++) {
          current_gap_extension_candidates &= seq_store.positions[i].bitmaps[Symbol::gap];
          roaring::api::roaring_bitmap_andnot_inplace(&this->positions[i].bitmaps[Symbol::gap].roaring, &current_gap_extension_candidates.roaring);
-         uint32_t reference = this->positions[i].reference;
-         if (reference != UINT32_MAX)
-            roaring::api::roaring_bitmap_andnot_inplace(&this->positions[i].bitmaps[reference].roaring, &current_gap_extension_candidates.roaring);
+         uint32_t flipped_bitmap = this->positions[i].flipped_bitmap;
+         if (flipped_bitmap != UINT32_MAX)
+            roaring::api::roaring_bitmap_andnot_inplace(&this->positions[i].bitmaps[flipped_bitmap].roaring, &current_gap_extension_candidates.roaring);
          for (unsigned gap_pos : current_gap_extension_candidates) {
             this->start_gaps[gap_pos]++;
          }
@@ -118,9 +118,9 @@ CompressedSequenceStore::CompressedSequenceStore(const SequenceStore& seq_store)
       for (unsigned i = genomeLength - 1; i >= genomeLength - genomeLength / 4; i--) {
          current_gap_extension_candidates &= seq_store.positions[i].bitmaps[Symbol::gap];
          roaring::api::roaring_bitmap_andnot_inplace(&this->positions[i].bitmaps[Symbol::gap].roaring, &current_gap_extension_candidates.roaring);
-         uint32_t reference = this->positions[i].reference;
-         if (reference != UINT32_MAX)
-            roaring::api::roaring_bitmap_andnot_inplace(&this->positions[i].bitmaps[reference].roaring, &current_gap_extension_candidates.roaring);
+         uint32_t flipped_bitmap = this->positions[i].flipped_bitmap;
+         if (flipped_bitmap != UINT32_MAX)
+            roaring::api::roaring_bitmap_andnot_inplace(&this->positions[i].bitmaps[flipped_bitmap].roaring, &current_gap_extension_candidates.roaring);
          for (unsigned gap_pos : current_gap_extension_candidates) {
             this->end_gaps[gap_pos]++;
          }
@@ -147,9 +147,9 @@ SequenceStore::SequenceStore(const CompressedSequenceStore& c_seq_store) {
       for (unsigned i = 0; i < genomeLength / 4; i++) {
          const Roaring tmp(gaps_per_pos[i].size(), gaps_per_pos[i].data());
          roaring::api::roaring_bitmap_or_inplace(&this->positions[i].bitmaps[Symbol::gap].roaring, &tmp.roaring);
-         uint32_t reference = this->positions[i].flipped_bitmap;
-         if (reference != UINT32_MAX)
-            roaring::api::roaring_bitmap_or_inplace(&this->positions[i].bitmaps[reference].roaring, &tmp.roaring);
+         uint32_t flipped_bitmap = this->positions[i].flipped_bitmap;
+         if (flipped_bitmap != UINT32_MAX)
+            roaring::api::roaring_bitmap_or_inplace(&this->positions[i].bitmaps[flipped_bitmap].roaring, &tmp.roaring);
       }
    }
    {
@@ -162,9 +162,9 @@ SequenceStore::SequenceStore(const CompressedSequenceStore& c_seq_store) {
       for (unsigned i = genomeLength - 1; i >= genomeLength - genomeLength / 4; i--) {
          const Roaring tmp(gaps_per_pos[genomeLength - i - 1].size(), gaps_per_pos[genomeLength - i - 1].data());
          roaring::api::roaring_bitmap_or_inplace(&this->positions[i].bitmaps[Symbol::gap].roaring, &tmp.roaring);
-         uint32_t reference = this->positions[i].flipped_bitmap;
-         if (reference != UINT32_MAX)
-            roaring::api::roaring_bitmap_or_inplace(&this->positions[i].bitmaps[reference].roaring, &tmp.roaring);
+         uint32_t flipped_bitmap = this->positions[i].flipped_bitmap;
+         if (flipped_bitmap != UINT32_MAX)
+            roaring::api::roaring_bitmap_or_inplace(&this->positions[i].bitmaps[flipped_bitmap].roaring, &tmp.roaring);
       }
    }
 }
