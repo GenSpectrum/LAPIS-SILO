@@ -307,7 +307,12 @@ int silo::Database::db_info_detailed(std::ostream& io) {
    io << "Partition reference genomes: " << std::endl;
    for (const DatabasePartition& dbp : partitions) {
       for (const Position& pos : dbp.seq_store.positions) {
-         io << symbol_rep[pos.flipped_bitmap];
+         if(pos.flipped_bitmap == UINT32_MAX){
+            io << 'o';
+         }
+         else{
+            io << symbol_rep[pos.flipped_bitmap];
+         }
       }
       io << std::endl;
    }
