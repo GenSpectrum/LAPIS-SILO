@@ -257,13 +257,18 @@ int handle_command(Database& db, std::vector<std::string> args) {
              << filter3 << "}";
       cout << execute_query(db, mdb, query2.str()) << endl;*/
    } else if ("run_optimize" == args[0]) {
+      uint32_t optimised = 0;
       for (auto& dbp : db.partitions) {
-         runOptimize(dbp.seq_store);
+         optimised += runOptimize(dbp.seq_store);
       }
+      uint32_t total_bitmaps = (genomeLength * Symbol::N * db.partitions.size());
+      std::cout << "Optimised " << std::to_string(optimised) << " out of " << total_bitmaps << " bitmaps." << std::endl;
    } else if ("shrink_to_fit" == args[0]) {
+      size_t saved = 0;
       for (auto& dbp : db.partitions) {
-         shrinkToFit(dbp.seq_store);
+         saved += shrinkToFit(dbp.seq_store);
       }
+      std::cout << "Saved " << saved << " bytes by call to shrink_to_fit." << std::endl;
    } else if ("exit" == args[0] || "quit" == args[0]) {
       return 1;
    } else if ("help" == args[0] || "-h" == args[0] || "--help" == args[0]) {
