@@ -119,7 +119,9 @@ class SequenceStore {
 
 [[maybe_unused]] unsigned load_db(SequenceStore& db, const std::string& db_filename);
 
-[[maybe_unused]] unsigned runoptimize(SequenceStore& db);
+[[maybe_unused]] unsigned runOptimize(SequenceStore& db);
+
+[[maybe_unused]] unsigned shrinkToFit(SequenceStore& db);
 
 } //namespace silo;
 

@@ -116,7 +116,7 @@ void SequenceStore::interpret(const std::vector<std::string>& genomes) {
    interpret_offset_p(genomes, this->sequence_count);
 }
 
-[[maybe_unused]] unsigned silo::runoptimize(SequenceStore& db) {
+[[maybe_unused]] unsigned silo::runOptimize(SequenceStore& db) {
    std::atomic<unsigned> count_true = 0;
    tbb::blocked_range<Position*> r(std::begin(db.positions), std::end(db.positions));
    tbb::parallel_for(r, [&](const decltype(r) local) {
@@ -127,6 +127,21 @@ void SequenceStore::interpret(const std::vector<std::string>& genomes) {
       }
    });
    return count_true;
+}
+
+[[maybe_unused]] unsigned silo::shrinkToFit(SequenceStore& db) {
+   std::atomic<size_t> saved = 0;
+   tbb::blocked_range<Position*> r(std::begin(db.positions), std::end(db.positions));
+   tbb::parallel_for(r, [&](const decltype(r) local) {
+      size_t local_saved = 0;
+      for (Position& p : local) {
+         for (auto& bm : p.bitmaps) {
+            local_saved += bm.shrinkToFit();
+         }
+      }
+      saved += local_saved;
+   });
+   return saved;
 }
 
 CompressedSequenceStore::CompressedSequenceStore(const SequenceStore& seq_store) {

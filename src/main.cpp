@@ -256,6 +256,14 @@ int handle_command(Database& db, std::vector<std::string> args) {
                 "  \"filter\": "
              << filter3 << "}";
       cout << execute_query(db, mdb, query2.str()) << endl;*/
+   } else if ("run_optimize" == args[0]) {
+      for (auto& dbp : db.partitions) {
+         runOptimize(dbp.seq_store);
+      }
+   } else if ("shrink_to_fit" == args[0]) {
+      for (auto& dbp : db.partitions) {
+         shrinkToFit(dbp.seq_store);
+      }
    } else if ("exit" == args[0] || "quit" == args[0]) {
       return 1;
    } else if ("help" == args[0] || "-h" == args[0] || "--help" == args[0]) {
