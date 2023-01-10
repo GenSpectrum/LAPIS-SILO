@@ -166,33 +166,7 @@ struct OrEx : public BoolExpression {
       return res;
    }
 
-   std::unique_ptr<BoolExpression> simplify(const Database& db, const DatabasePartition& dbp) const override {
-      std::vector<std::unique_ptr<BoolExpression>> new_children;
-      std::transform(children.begin(), children.end(),
-                     std::back_inserter(new_children), [&](const std::unique_ptr<BoolExpression>& c) { return c->simplify(db, dbp); });
-      std::unique_ptr<OrEx> ret = std::make_unique<OrEx>();
-      for (unsigned i = 0; i < new_children.size(); i++) {
-         auto& child = new_children[i];
-         if (child->type() == EMPTY) {
-            continue;
-         } else if (child->type() == FULL) {
-            return std::make_unique<FullEx>();
-         } else if (child->type() == OR) {
-            OrEx* or_child = dynamic_cast<OrEx*>(child.get());
-            std::transform(or_child->children.begin(), or_child->children.end(),
-                           std::back_inserter(new_children), [&](std::unique_ptr<BoolExpression>& c) { return std::move(c); });
-         } else {
-            ret->children.push_back(std::move(child));
-         }
-      }
-      if (ret->children.empty()) {
-         return std::make_unique<EmptyEx>();
-      }
-      if (ret->children.size() == 1) {
-         return std::move(ret->children[0]);
-      }
-      return ret;
-   }
+   std::unique_ptr<BoolExpression> simplify(const Database& db, const DatabasePartition& dbp) const override;
 };
 
 struct NOfEx : public BoolExpression {
@@ -224,12 +198,7 @@ struct NOfEx : public BoolExpression {
       return res;
    }
 
-   std::unique_ptr<BoolExpression> simplify(const Database& db, const DatabasePartition& dbp) const override {
-      std::unique_ptr<NOfEx> ret = std::make_unique<NOfEx>(n, impl, exactly);
-      std::transform(children.begin(), children.end(),
-                     std::back_inserter(ret->children), [&](const std::unique_ptr<BoolExpression>& c) { return c->simplify(db, dbp); });
-      return ret;
-   }
+   std::unique_ptr<BoolExpression> simplify(const Database& db, const DatabasePartition& dbp) const override;
 };
 
 struct NegEx : public BoolExpression {
