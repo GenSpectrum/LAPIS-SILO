@@ -29,7 +29,7 @@ std::unique_ptr<BoolExpression> AndEx::simplify(const Database& db, const Databa
       }
    }
    if (ret->children.empty() && ret->negated_children.empty()) {
-      return std::make_unique<EmptyEx>();
+      return std::make_unique<FullEx>();
    }
    if (ret->children.size() == 1 && ret->negated_children.empty()) {
       return std::move(ret->children[0]);
