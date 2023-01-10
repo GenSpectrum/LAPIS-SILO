@@ -72,18 +72,20 @@ void silo::DatabasePartition::finalize(const Dictionary& dict) {
    std::sort(sorted_lineages.begin(), sorted_lineages.end());
 
    tbb::parallel_for((unsigned) 0, genomeLength, [&](unsigned p) {
-      unsigned max_symbol = Symbol::A;
-      unsigned max_count = seq_store.positions[p].bitmaps[Symbol::A].cardinality();
+      unsigned max_symbol = UINT32_MAX;
+      unsigned max_count = 0;
 
-      for (unsigned symbol = Symbol::C; symbol <= Symbol::T; ++symbol) {
+      for (unsigned symbol = 0; symbol <= Symbol::N; ++symbol) {
          unsigned count = seq_store.positions[p].bitmaps[symbol].cardinality();
          if (count > max_count) {
             max_symbol = symbol;
             max_count = count;
          }
       }
-      seq_store.positions[p].flipped_bitmap = max_symbol;
-      seq_store.positions[p].bitmaps[max_symbol].flip(0, sequenceCount);
+      if (max_symbol == Symbol::A || max_symbol == Symbol::C || max_symbol == Symbol::G || max_symbol == Symbol::T) {
+         seq_store.positions[p].flipped_bitmap = max_symbol;
+         seq_store.positions[p].bitmaps[max_symbol].flip(0, sequenceCount);
+      }
    });
 
    { /// Precompute all bitmaps for pango_lineages and -sublineages

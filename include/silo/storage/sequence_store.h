@@ -22,7 +22,7 @@ struct Position {
 
    roaring::Roaring bitmaps[symbolCount];
    // Reference bitmap is flipped
-   uint32_t flipped_bitmap;
+   uint32_t flipped_bitmap = UINT32_MAX;
 };
 
 struct CompressedPosition {
