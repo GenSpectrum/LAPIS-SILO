@@ -1,5 +1,0 @@
-Large room for improvements in expression evaluation.
-istream wrapper
-Roaring update
-Reduce number of "partitions" by looking at sizes and merging
-Sort by date within partitions?
