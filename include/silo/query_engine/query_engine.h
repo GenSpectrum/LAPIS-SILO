@@ -340,16 +340,7 @@ struct PangoLineageEx : public BoolExpression {
       return res;
    }
 
-   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& dbp) const override {
-      if (lineageKey == UINT32_MAX) {
-         return std::make_unique<EmptyEx>();
-      }
-      if (!this->includeSubLineages && !std::binary_search(dbp.sorted_lineages.begin(), dbp.sorted_lineages.end(), lineageKey)) {
-         return std::make_unique<EmptyEx>();
-      } else {
-         return std::make_unique<PangoLineageEx>(lineageKey, includeSubLineages);
-      }
-   }
+   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& dbp) const override;
 };
 
 struct CountryEx : public BoolExpression {

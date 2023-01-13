@@ -64,7 +64,7 @@ void silo::DatabasePartition::finalize(const Dictionary& dict) {
    for (auto& chunk : chunks) {
       for (auto& pango : chunk.pangos) {
          uint32_t pango_id = dict.get_pangoid(pango);
-         if (pango_id != UINT32_MAX && std::find(sorted_lineages.begin(), sorted_lineages.end(), pango_id) != sorted_lineages.end()) {
+         if (pango_id != UINT32_MAX && std::find(sorted_lineages.begin(), sorted_lineages.end(), pango_id) == sorted_lineages.end()) {
             sorted_lineages.push_back(pango_id);
          }
       }
