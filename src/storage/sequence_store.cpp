@@ -86,7 +86,9 @@ roaring::Roaring* SequenceStore::bma_neg(size_t pos, Symbol r) const {
 
 int SequenceStore::db_info(std::ostream& io) const {
    std::osyncstream(io) << "partition sequence count: " << number_fmt(this->sequence_count) << std::endl;
-   std::osyncstream(io) << "partition size: " << number_fmt(this->computeSize()) << std::endl;
+   auto tmp = computeSize();
+   std::osyncstream(io) << "partition size (portable): " << number_fmt(tmp.first) << std::endl;
+   std::osyncstream(io) << "partition size: " << number_fmt(tmp.second) << std::endl;
    return 0;
 }
 
@@ -147,6 +149,12 @@ void SequenceStore::interpret(const std::vector<std::string>& genomes) {
 CompressedSequenceStore::CompressedSequenceStore(const SequenceStore& seq_store) {
    using roaring::Roaring;
 
+
+   this->sequence_count = seq_store.sequence_count;
+
+   start_gaps.resize(seq_store.sequence_count);
+   end_gaps.resize(seq_store.sequence_count);
+
    for (unsigned i = 0; i < genomeLength; i++) {
       positions[i].flipped_bitmap = seq_store.positions[i].flipped_bitmap;
       for (uint16_t s = 0; s < symbolCount; s++) {
@@ -186,6 +194,8 @@ CompressedSequenceStore::CompressedSequenceStore(const SequenceStore& seq_store)
 SequenceStore::SequenceStore(const CompressedSequenceStore& c_seq_store) {
    using roaring::Roaring;
 
+   this->sequence_count = c_seq_store.sequence_count;
+
    for (unsigned i = 0; i < genomeLength; ++i) {
       positions[i].flipped_bitmap = c_seq_store.positions[i].flipped_bitmap;
       for (uint16_t s = 0; s < symbolCount; s++) {
@@ -208,6 +218,7 @@ SequenceStore::SequenceStore(const CompressedSequenceStore& c_seq_store) {
       }
    }
    {
+      /// for every position where end gaps are possible, calculate the vector of all IDs
       std::vector<std::vector<uint32_t>> gaps_per_pos(genomeLength / 4);
       for (unsigned seq_id = 0; seq_id < sequence_count; ++seq_id) {
          for (unsigned pos = 0; pos < c_seq_store.end_gaps[seq_id]; ++pos) {

@@ -25,26 +25,9 @@ struct Position {
    uint32_t flipped_bitmap = UINT32_MAX;
 };
 
-struct CompressedPosition {
-   friend class boost::serialization::access;
-
-   template <class Archive>
-   void serialize(Archive& ar, [[maybe_unused]] const unsigned int version) {
-      ar& flipped_bitmap;
-      ar& bitmaps;
-   }
-
-   roaring::Roaring bitmaps[symbolCount];
-   // Reference bitmap is flipped
-   uint32_t flipped_bitmap;
-};
-
 class SequenceStore;
 
 class CompressedSequenceStore {
-   private:
-   unsigned sequence_count;
-
    public:
    friend class boost::serialization::access;
 
@@ -56,11 +39,29 @@ class CompressedSequenceStore {
       ar& end_gaps;
    }
 
+   explicit CompressedSequenceStore() : sequence_count(0) {
+      start_gaps = std::vector<uint32_t>(0);
+      end_gaps = std::vector<uint32_t>(0);
+   }
+
    explicit CompressedSequenceStore(const SequenceStore& seq_store);
 
-   CompressedPosition positions[genomeLength];
+   std::pair<size_t, size_t> size() const {
+      size_t size_portable = 0;
+      size_t size = 0;
+      for (auto& position : positions) {
+         for (auto& bm : position.bitmaps) {
+            size_portable += bm.getSizeInBytes(true);
+            size += bm.getSizeInBytes(false);
+         }
+      }
+      return {size_portable, size};
+   }
+
+   Position positions[genomeLength];
    std::vector<uint32_t> start_gaps;
    std::vector<uint32_t> end_gaps;
+   unsigned sequence_count;
 };
 
 class SequenceStore {
@@ -78,14 +79,16 @@ class SequenceStore {
    }
    Position positions[genomeLength];
 
-   [[nodiscard]] size_t computeSize() const {
+   [[nodiscard]] std::pair<size_t, size_t> computeSize() const {
+      size_t result_port = 0;
       size_t result = 0;
       for (auto& p : positions) {
          for (auto& b : p.bitmaps) {
-            result += b.getSizeInBytes();
+            result_port += b.getSizeInBytes(true);
+            result += b.getSizeInBytes(false);
          }
       }
-      return result;
+      return {result_port, result};
    }
 
    /// default constructor

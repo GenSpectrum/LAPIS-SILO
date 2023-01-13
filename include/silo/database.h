@@ -125,9 +125,10 @@ class Database {
    int db_info_detailed(std::ostream& io);
    void finalize();
 
-   void save(const std::string& save_dir);
+   void save(const std::string& save_dir, bool compressed);
 
-   void load(const std::string& save_dir);
+   void load(const std::string& save_dir, bool compressed);
+   
    std::unordered_map<std::string, std::string> alias_key;
 };
 

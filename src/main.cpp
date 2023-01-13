@@ -24,11 +24,14 @@ void info_message() {
    cout << "\tExecute the commands in the given order, then enter interactive mode." << endl
         << endl;
    cout << "\tCommands:" << endl
+        << "\trepair_meta [metadata_file] [sequence_file] [meta_out]" << endl
+        << "\trepair_sequences [metadata_file] [sequence_file] [sequences_out]" << endl
+        << "\tsave [save_directory]" << endl
+        << "\tload [load_directory]" << endl
         << "\tbuild [fasta_archive]" << endl
-        << "\tbuild_meta [metadata.tsv]" << endl
         << "\tpartition <out_prefix> [fasta_archive]" << endl
         << "\tsort_chunks <io_prefix> [fasta_archive]" << endl
-        << "\tbuild_chunked [part_prefix] [part_suffix]" << endl;
+        << "\tbenchmark [query_dir] [num_queries]" << endl;
 }
 
 int handle_command(Database& db, std::vector<std::string> args) {
@@ -48,23 +51,51 @@ int handle_command(Database& db, std::vector<std::string> args) {
       return 0;
    }
    if ("repair_meta" == args[0]) {
-      auto meta_input = args.size() > 1 ? std::ifstream(args[1]) : std::ifstream(default_metadata_input);
-      auto sequence_input = args.size() > 2 ? silo::istream_wrapper(args[2]) : silo::istream_wrapper(default_sequence_input);
+      auto meta_input_str = args.size() > 1 ? args[1] : default_metadata_input;
+      auto meta_input = std::ifstream(meta_input_str);
+      if (!meta_input) {
+         std::cerr << "metadata file " << (meta_input_str) << " not found." << std::endl;
+         return 0;
+      }
+      auto sequence_input_str = args.size() > 2 ? args[2] : default_sequence_input;
+      auto sequence_input = silo::istream_wrapper(sequence_input_str);
+      if (!sequence_input.get_is()) {
+         std::cerr << "sequence file " << (sequence_input_str) << " not found." << std::endl;
+         return 0;
+      }
       auto meta_out = args.size() > 3 ? std::ofstream(args[3]) : std::ofstream(default_metadata_input + ".repair");
       prune_meta(meta_input, sequence_input.get_is(), meta_out);
    } else if ("repair_sequences" == args[0]) {
-      auto meta_input = args.size() > 1 ? std::ifstream(args[1]) : std::ifstream(default_metadata_input);
-      auto sequence_input = args.size() > 2 ? silo::istream_wrapper(args[2]) : silo::istream_wrapper(default_sequence_input);
+      auto meta_input_str = args.size() > 1 ? args[1] : default_metadata_input;
+      auto meta_input = std::ifstream(meta_input_str);
+      if (!meta_input) {
+         std::cerr << "metadata file " << (meta_input_str) << " not found." << std::endl;
+         return 0;
+      }
+      auto sequence_input_str = args.size() > 2 ? args[2] : default_sequence_input;
+      auto sequence_input = silo::istream_wrapper(sequence_input_str);
+      if (!sequence_input.get_is()) {
+         std::cerr << "sequence file " << (sequence_input_str) << " not found." << std::endl;
+         return 0;
+      }
       auto sequence_out = args.size() > 3 ? std::ofstream(args[3]) : std::ofstream(default_sequence_input + ".repair");
       prune_sequences(meta_input, sequence_input.get_is(), sequence_out);
    } else if ("load" == args[0]) {
       std::string db_savedir = args.size() > 1 ? args[1] : default_db_savedir;
       cout << "Loading Database from " << db_savedir << endl;
-      db.load(db_savedir);
+      db.load(db_savedir, false);
    } else if ("save" == args[0]) {
       std::string db_savedir = args.size() > 1 ? args[1] : default_db_savedir;
       cout << "Saving Database to " << db_savedir << endl;
-      db.save(db_savedir);
+      db.save(db_savedir, false);
+   } else if ("loadc" == args[0]) {
+      std::string db_savedir = args.size() > 1 ? args[1] : default_db_savedir;
+      cout << "Loading Database compressed from " << db_savedir << endl;
+      db.load(db_savedir, true);
+   } else if ("savec" == args[0]) {
+      std::string db_savedir = args.size() > 1 ? args[1] : default_db_savedir;
+      cout << "Saving Database compressed to " << db_savedir << endl;
+      db.save(db_savedir, true);
    } else if ("info" == args[0]) {
       db.db_info(cout);
    } else if ("info_d" == args[0]) {
