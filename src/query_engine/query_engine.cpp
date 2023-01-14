@@ -262,7 +262,7 @@ filter_t NOfEx_evaluateImpl0(const NOfEx* self, const Database& db, const Databa
 }
 
 // DPLoop
-filter_t NOfEx_evaluateImpl1(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
+filter_t NOfEx_evaluateImpl1_threshold(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
    std::vector<Roaring*> dp(self->n);
    /// Copy bm of first child if immutable, otherwise use it directly
    auto tmp = self->children[0]->evaluate(db, dbp);
@@ -276,16 +276,13 @@ filter_t NOfEx_evaluateImpl1(const NOfEx* self, const Database& db, const Databa
    for (unsigned i = 1; i < self->n; ++i)
       dp[i] = new Roaring();
 
-   for (unsigned i = 1; i < self->n; ++i) {
+   for (unsigned i = 1; i < self->children.size(); ++i) {
       auto bm = self->children[i]->evaluate(db, dbp);
       /// positions higher than (i-1) cannot have been reached yet, are therefore all 0s and the conjunction would return 0
       for (unsigned j = std::min(self->n - 1, i); j >= 1; ++j) {
          *dp[j] |= *dp[j - 1] & *bm.getAsConst();
       }
       *dp[0] |= *bm.getAsConst();
-      if (self->exactly && i >= self->n) {
-         roaring::api::roaring_bitmap_andnot_inplace(&dp[self->n - 1]->roaring, &bm.getAsConst()->roaring);
-      }
       bm.free();
    }
 
@@ -296,8 +293,45 @@ filter_t NOfEx_evaluateImpl1(const NOfEx* self, const Database& db, const Databa
    return {dp.back(), nullptr};
 }
 
+/// DPP
+filter_t NOfEx_evaluateImpl1_exact(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
+   std::vector<Roaring*> dp(self->n + 1);
+   /// Copy bm of first child if immutable, otherwise use it directly
+   auto tmp = self->children[0]->evaluate(db, dbp);
+   if (tmp.mutable_res) {
+      /// Do not need to delete tmp.mutable_res later, because dp[0] will be deleted
+      dp[0] = tmp.mutable_res;
+   } else {
+      dp[0] = new Roaring(*tmp.immutable_res);
+   }
+   /// Initialize all bitmaps. Delete them later.
+   for (unsigned i = 1; i < self->n + 1; ++i)
+      dp[i] = new Roaring();
+
+   for (unsigned i = 1; i < self->children.size(); ++i) {
+      auto bm = self->children[i]->evaluate(db, dbp);
+      /// positions higher than (i-1) cannot have been reached yet, are therefore all 0s and the conjunction would return 0
+      for (unsigned j = std::min(self->n, i); j >= 1; ++j) {
+         *dp[j] |= *dp[j - 1] & *bm.getAsConst();
+      }
+      *dp[0] |= *bm.getAsConst();
+      bm.free();
+   }
+
+   /// Delete
+   for (unsigned i = 0; i < self->n - 1; ++i)
+      delete dp[i];
+
+   /// Because exact, we remove all that have too many
+   roaring::api::roaring_bitmap_andnot_inplace(&dp[self->n - 1]->roaring, &dp[self->n]->roaring);
+
+   delete dp[self->n];
+
+   return {dp[self->n - 1], nullptr};
+}
+
 // N-Way Heap-Merge, for threshold queries
-filter_t NOfEx_evaluateImpl2threshold(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
+filter_t NOfEx_evaluateImpl2_threshold(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
    std::vector<filter_t> child_maps;
    struct bitmap_iterator {
       roaring::RoaringSetBitForwardIterator cur;
@@ -359,7 +393,7 @@ filter_t NOfEx_evaluateImpl2threshold(const NOfEx* self, const Database& db, con
 }
 
 // N-Way Heap-Merge, for exact queries
-filter_t NOfEx_evaluateImpl2exact(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
+filter_t NOfEx_evaluateImpl2_exact(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
    std::vector<filter_t> child_maps;
    struct bitmap_iterator {
       roaring::RoaringSetBitForwardIterator cur;
@@ -423,16 +457,20 @@ filter_t NOfEx_evaluateImpl2exact(const NOfEx* self, const Database& db, const D
 
 filter_t NOfEx::evaluate(const Database& db, const DatabasePartition& dbp) {
    switch (impl) {
-      default:
       case 1:
-         return NOfEx_evaluateImpl1(this, db, dbp);
+         if (exactly) {
+            return NOfEx_evaluateImpl1_exact(this, db, dbp);
+         } else {
+            return NOfEx_evaluateImpl1_threshold(this, db, dbp);
+         }
+      default:
       case 0:
          return NOfEx_evaluateImpl0(this, db, dbp);
       case 2:
          if (exactly) {
-            return NOfEx_evaluateImpl2exact(this, db, dbp);
+            return NOfEx_evaluateImpl2_exact(this, db, dbp);
          } else {
-            return NOfEx_evaluateImpl2threshold(this, db, dbp);
+            return NOfEx_evaluateImpl2_threshold(this, db, dbp);
          }
    }
 }
