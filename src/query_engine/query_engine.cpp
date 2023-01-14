@@ -164,14 +164,14 @@ filter_t AndEx::evaluate(const Database& db, const DatabasePartition& dbp) {
       if (children_bm[0].mutable_res) {
          ret = children_bm[0].mutable_res;
       } else {
-         auto tmp = roaring::api::roaring_bitmap_andnot(&children_bm[0].immutable_res->roaring, &negated_children_bm[0].getAsConst()->roaring);
+         auto tmp = *children_bm[0].immutable_res - *negated_children_bm[0].getAsConst();
          ret = new Roaring(tmp);
       }
       /// Sort negated children descending by size
       std::sort(negated_children_bm.begin(), negated_children_bm.end(),
                 [](const filter_t& a, const filter_t& b) { return a.getAsConst()->cardinality() > b.getAsConst()->cardinality(); });
       for (auto neg_bm : negated_children_bm) {
-         roaring::api::roaring_bitmap_andnot_inplace(&ret->roaring, &neg_bm.getAsConst()->roaring);
+         *ret -= *neg_bm.getAsConst();
          neg_bm.free();
       }
       return {ret, nullptr};
@@ -184,7 +184,7 @@ filter_t AndEx::evaluate(const Database& db, const DatabasePartition& dbp) {
          ret = children_bm[1].mutable_res;
          *ret &= *children_bm[0].getAsConst();
       } else {
-         auto x = roaring_bitmap_and(&children_bm[0].immutable_res->roaring, &children_bm[1].immutable_res->roaring);
+         auto x = *children_bm[0].immutable_res & *children_bm[1].immutable_res;
          ret = new Roaring(x);
       }
       for (unsigned i = 2; i < children.size(); i++) {
@@ -196,7 +196,7 @@ filter_t AndEx::evaluate(const Database& db, const DatabasePartition& dbp) {
       std::sort(negated_children_bm.begin(), negated_children_bm.end(),
                 [](const filter_t& a, const filter_t& b) { return a.getAsConst()->cardinality() > b.getAsConst()->cardinality(); });
       for (auto neg_bm : negated_children_bm) {
-         roaring::api::roaring_bitmap_andnot_inplace(&ret->roaring, &neg_bm.getAsConst()->roaring);
+         *ret -= *neg_bm.getAsConst();
          neg_bm.free();
       }
       return {ret, nullptr};
@@ -329,7 +329,7 @@ filter_t NOfEx_evaluateImpl1_exact(const NOfEx* self, const Database& db, const 
       delete dp[i];
 
    /// Because exact, we remove all that have too many
-   roaring::api::roaring_bitmap_andnot_inplace(&dp[self->n - 1]->roaring, &dp[self->n]->roaring);
+   *dp[self->n - 1] -= *dp[self->n];
 
    delete dp[self->n];
 
