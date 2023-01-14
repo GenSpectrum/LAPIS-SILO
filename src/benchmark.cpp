@@ -30,6 +30,8 @@ int silo::benchmark(const Database& db, std::istream& query_defs, const std::str
       return 0;
    }
 
+   std::ofstream nullstream("/dev/null", std::ofstream::out | std::ofstream::app);
+
    count_perf_table << "test_name\tparse_time\tfilter_time\taction_time\n";
    list_perf_table << "test_name\tparse_time\tfilter_time\taction_time\n";
    mutations_perf_table << "test_name\tparse_time\tfilter_time\taction_time\n";
@@ -50,35 +52,56 @@ int silo::benchmark(const Database& db, std::istream& query_defs, const std::str
       std::stringstream buffer;
       buffer << query_file.rdbuf();
 
+      unsigned reps = 10;
+
       // COUNT
-      {
+      int64_t parse = 0;
+      int64_t filter = 0;
+      int64_t action = 0;
+      for (unsigned i = 0; i < reps; ++i) {
          std::string query = "{\"action\": {\"type\": \"Aggregated\"" /*,\"groupByFields\": [\"date\",\"division\"]*/ "},\"filter\": " + buffer.str() + "}";
+         std::ofstream parse_file(count_query_out_dir_str + test_name + ".parse");
          std::ofstream result_file(count_query_out_dir_str + test_name + ".res");
          std::ofstream performance_file(count_query_out_dir_str + test_name + ".perf");
-         auto result = execute_query(db, query, result_file, performance_file);
-         std::cout << result.return_message << std::endl;
-         count_perf_table << test_name << "\t" << result.parse_time << "\t" << result.filter_time << "\t" << result.action_time << std::endl;
+         auto result = execute_query(db, query, parse_file, result_file, performance_file);
+         // std::cout << result.return_message << std::endl;
+         parse += result.parse_time;
+         filter += result.filter_time;
+         action += result.action_time;
       }
+      count_perf_table << test_name << "\t" << parse << "\t" << filter << "\t" << action << std::endl;
 
       // LIST
-      {
+      parse = 0;
+      filter = 0;
+      action = 0;
+      for (unsigned i = 0; i < reps; ++i) {
          std::string query = "{\"action\": {\"type\": \"List\"},\"filter\": " + buffer.str() + "}";
          std::ofstream result_file(list_query_out_dir_str + test_name + ".res");
          std::ofstream performance_file(list_query_out_dir_str + test_name + ".perf");
-         auto result = execute_query(db, query, result_file, performance_file);
-         std::cout << result.return_message << std::endl;
-         list_perf_table << test_name << "\t" << result.parse_time << "\t" << result.filter_time << "\t" << result.action_time << std::endl;
+         auto result = execute_query(db, query, nullstream, result_file, performance_file);
+         // std::cout << result.return_message << std::endl;
+         parse += result.parse_time;
+         filter += result.filter_time;
+         action += result.action_time;
       }
+      list_perf_table << test_name << "\t" << parse << "\t" << filter << "\t" << action << std::endl;
 
       // MUTATIONS
-      {
+      parse = 0;
+      filter = 0;
+      action = 0;
+      for (unsigned i = 0; i < reps; ++i) {
          std::string query = "{\"action\": {\"type\": \"Mutations\"},\"filter\": " + buffer.str() + "}";
          std::ofstream result_file(mutations_query_out_dir_str + test_name + ".res");
          std::ofstream performance_file(mutations_query_out_dir_str + test_name + ".perf");
-         auto result = execute_query(db, query, result_file, performance_file);
-         std::cout << result.return_message << std::endl;
-         mutations_perf_table << test_name << "\t" << result.parse_time << "\t" << result.filter_time << "\t" << result.action_time << std::endl;
+         auto result = execute_query(db, query, nullstream, result_file, performance_file);
+         // std::cout << result.return_message << std::endl;
+         parse += result.parse_time;
+         filter += result.filter_time;
+         action += result.action_time;
       }
+      mutations_perf_table << test_name << "\t" << parse << "\t" << filter << "\t" << action << std::endl;
    }
    return 0;
 }

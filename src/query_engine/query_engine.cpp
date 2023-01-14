@@ -223,42 +223,48 @@ inline void vec_and_not(std::vector<uint32_t>& dest, const std::vector<uint32_t>
    std::set_difference(v1.begin(), v1.end(), v2.begin(), v2.end(), std::back_inserter(dest));
 }
 
-filter_t NOfEx_evaluateImpl0(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
-   if (self->exactly) {
-      std::vector<uint16_t> count;
-      std::vector<uint32_t> at_least;
-      std::vector<uint32_t> too_much;
-      count.resize(dbp.sequenceCount);
-      for (auto& child : self->children) {
-         auto bm = child->evaluate(db, dbp);
-         for (uint32_t id : *bm.getAsConst()) {
-            ++count[id];
-            if (count[id] == self->n + 1) {
-               too_much.push_back(id);
-            } else if (count[id] == self->n) {
-               at_least.push_back(id);
-            }
+filter_t NOfEx_evaluateImpl0_threshold(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
+   Roaring* ret = new Roaring();
+   std::vector<uint16_t> count(dbp.sequenceCount);
+   std::vector<uint32_t> correct;
+   for (auto& child : self->children) {
+      auto bm = child->evaluate(db, dbp);
+      for (uint32_t id : *bm.getAsConst()) {
+         if (++count[id] == self->n) {
+            correct.push_back(id);
          }
-         bm.free();
       }
-      std::vector<uint32_t> correct;
-      vec_and_not(correct, at_least, too_much);
-      return {new Roaring(correct.size(), &correct[0]), nullptr};
-   } else {
-      std::vector<uint16_t> count;
-      std::vector<uint32_t> correct;
-      count.resize(dbp.sequenceCount);
-      for (auto& child : self->children) {
-         auto bm = child->evaluate(db, dbp);
-         for (uint32_t id : *bm.getAsConst()) {
-            if (++count[id] == self->n) {
-               correct.push_back(id);
-            }
-         }
-         bm.free();
+      bm.free();
+      if (!correct.empty()) {
+         ret->addMany(correct.size(), &correct[0]);
+         correct.clear();
       }
-      return {new Roaring(correct.size(), &correct[0]), nullptr};
    }
+   return {ret, nullptr};
+}
+
+filter_t NOfEx_evaluateImpl0_exact(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
+   std::vector<uint16_t> count;
+   std::vector<uint32_t> at_least;
+   std::vector<uint32_t> too_much;
+   count.resize(dbp.sequenceCount);
+   for (auto& child : self->children) {
+      auto bm = child->evaluate(db, dbp);
+      for (uint32_t id : *bm.getAsConst()) {
+         ++count[id];
+         if (count[id] == self->n + 1) {
+            too_much.push_back(id);
+         } else if (count[id] == self->n) {
+            at_least.push_back(id);
+         }
+      }
+      bm.free();
+   }
+   std::sort(at_least.begin(), at_least.end());
+   std::sort(too_much.begin(), too_much.end());
+   std::vector<uint32_t> correct;
+   vec_and_not(correct, at_least, too_much);
+   return {new Roaring(correct.size(), &correct[0]), nullptr};
 }
 
 // DPLoop
@@ -341,10 +347,13 @@ filter_t NOfEx_evaluateImpl2_threshold(const NOfEx* self, const Database& db, co
    for (const auto& child : self->children) {
       auto tmp = child->evaluate(db, dbp);
       child_maps.push_back(tmp);
+      /// Invariant: All heap members 'cur' field must contain an element that needs to be processed
       if (tmp.getAsConst()->begin() != tmp.getAsConst()->end())
          iterator_heap.push_back({tmp.getAsConst()->begin(), tmp.getAsConst()->end()});
    }
 
+   /// stl heap is max-heap. We want min, therefore we define a greater-than sorter
+   /// as opposed to the standard less-than sorter
    auto sorter = [](const bitmap_iterator& a,
                     const bitmap_iterator& b) {
       return *a.cur > *b.cur;
@@ -363,23 +372,30 @@ filter_t NOfEx_evaluateImpl2_threshold(const NOfEx* self, const Database& db, co
 
    while (!iterator_heap.empty()) {
       std::pop_heap(iterator_heap.begin(), iterator_heap.end(), sorter);
+      /// Take element and ensure invariant
       uint32_t val = *iterator_heap.back().cur;
-      cur_count = val == last_val ? cur_count + 1 : 1;
-      if (cur_count == self->n) {
-         buffer.push_back(val);
-         if (buffer.size() == BUFFER_SIZE) {
-            ret->addMany(BUFFER_SIZE, &buffer[0]);
-            buffer.clear();
-         }
+      iterator_heap.back().cur++;
+      if (iterator_heap.back().cur == iterator_heap.back().end) {
+         iterator_heap.pop_back();
       } else {
-         last_val = val;
-         iterator_heap.back().cur++;
-         if (iterator_heap.back().cur == iterator_heap.back().end) {
-            iterator_heap.pop_back();
-         } else {
-            std::push_heap(iterator_heap.begin(), iterator_heap.end(), sorter);
-         }
+         std::push_heap(iterator_heap.begin(), iterator_heap.end(), sorter);
       }
+      if (val == last_val) {
+         cur_count++;
+      } else {
+         if (cur_count >= self->n) {
+            buffer.push_back(last_val);
+            if (buffer.size() == BUFFER_SIZE) {
+               ret->addMany(BUFFER_SIZE, &buffer[0]);
+               buffer.clear();
+            }
+         }
+         last_val = val;
+         cur_count = 1;
+      }
+   }
+   if (cur_count >= self->n) {
+      buffer.push_back(last_val);
    }
 
    if (buffer.size() > 0) {
@@ -403,10 +419,13 @@ filter_t NOfEx_evaluateImpl2_exact(const NOfEx* self, const Database& db, const 
    for (const auto& child : self->children) {
       auto tmp = child->evaluate(db, dbp);
       child_maps.push_back(tmp);
+      /// Invariant: All heap members 'cur' field must contain an element that needs to be processed
       if (tmp.getAsConst()->begin() != tmp.getAsConst()->end())
          iterator_heap.push_back({tmp.getAsConst()->begin(), tmp.getAsConst()->end()});
    }
 
+   /// stl heap is max-heap. We want min, therefore we define a greater-than sorter
+   /// as opposed to the standard less-than sorter
    auto sorter = [](const bitmap_iterator& a,
                     const bitmap_iterator& b) {
       return *a.cur > *b.cur;
@@ -425,24 +444,30 @@ filter_t NOfEx_evaluateImpl2_exact(const NOfEx* self, const Database& db, const 
 
    while (!iterator_heap.empty()) {
       std::pop_heap(iterator_heap.begin(), iterator_heap.end(), sorter);
+      /// Take element and ensure invariant
       uint32_t val = *iterator_heap.back().cur;
-      if (cur_count == self->n && val != last_val) {
-         cur_count = 1;
-         buffer.push_back(val);
-         if (buffer.size() == BUFFER_SIZE) {
-            ret->addMany(BUFFER_SIZE, &buffer[0]);
-            buffer.clear();
-         }
+      iterator_heap.back().cur++;
+      if (iterator_heap.back().cur == iterator_heap.back().end) {
+         iterator_heap.pop_back();
       } else {
-         cur_count = val == last_val ? cur_count + 1 : 1;
-         last_val = val;
-         iterator_heap.back().cur++;
-         if (iterator_heap.back().cur == iterator_heap.back().end) {
-            iterator_heap.pop_back();
-         } else {
-            std::push_heap(iterator_heap.begin(), iterator_heap.end(), sorter);
-         }
+         std::push_heap(iterator_heap.begin(), iterator_heap.end(), sorter);
       }
+      if (val == last_val) {
+         cur_count++;
+      } else {
+         if (cur_count == self->n) {
+            buffer.push_back(last_val);
+            if (buffer.size() == BUFFER_SIZE) {
+               ret->addMany(BUFFER_SIZE, &buffer[0]);
+               buffer.clear();
+            }
+         }
+         last_val = val;
+         cur_count = 1;
+      }
+   }
+   if (cur_count == self->n) {
+      buffer.push_back(last_val);
    }
 
    if (buffer.size() > 0) {
@@ -457,15 +482,19 @@ filter_t NOfEx_evaluateImpl2_exact(const NOfEx* self, const Database& db, const 
 
 filter_t NOfEx::evaluate(const Database& db, const DatabasePartition& dbp) {
    switch (impl) {
+      case 0:
+         if (exactly) {
+            return NOfEx_evaluateImpl0_exact(this, db, dbp);
+         } else {
+            return NOfEx_evaluateImpl0_threshold(this, db, dbp);
+         }
       case 1:
+      default:
          if (exactly) {
             return NOfEx_evaluateImpl1_exact(this, db, dbp);
          } else {
             return NOfEx_evaluateImpl1_threshold(this, db, dbp);
          }
-      default:
-      case 0:
-         return NOfEx_evaluateImpl0(this, db, dbp);
       case 2:
          if (exactly) {
             return NOfEx_evaluateImpl2_exact(this, db, dbp);
@@ -561,8 +590,8 @@ filter_t EmptyEx::evaluate(const Database&, const DatabasePartition&) {
 }
 } // namespace silo;
 
-silo::result_s silo::execute_query(const silo::Database& db, const std::string& query, std::ostream& res_out, std::ostream& perf_out) {
-   std::cout << "Executing query: " << query << std::endl;
+silo::result_s silo::execute_query(const silo::Database& db, const std::string& query, std::ostream& parse_out, std::ostream& res_out, std::ostream& perf_out) {
+   // std::cout << "Executing query: " << query << std::endl;
 
    rapidjson::Document doc;
    doc.Parse(query.c_str());
@@ -570,6 +599,8 @@ silo::result_s silo::execute_query(const silo::Database& db, const std::string& 
        !doc.HasMember("action") || !doc["action"].IsObject()) {
       throw QueryParseException("Query json must contain filter and action.");
    }
+
+   std::vector<std::string> simplified_queries(db.partitions.size());
 
    result_s ret;
    std::unique_ptr<BoolExpression> filter;
@@ -587,9 +618,12 @@ silo::result_s silo::execute_query(const silo::Database& db, const std::string& 
       tbb::blocked_range<size_t> r(0, db.partitions.size(), 1);
       tbb::parallel_for(r.begin(), r.end(), [&](const size_t& i) {
          std::unique_ptr<BoolExpression> part_filter = filter->simplify(db, db.partitions[i]);
-         std::osyncstream(std::cout) << "Simplified query: " << part_filter->to_string(db) << std::endl;
+         simplified_queries[i] = part_filter->to_string(db);
          partition_filters[i] = part_filter->evaluate(db, db.partitions[i]);
       });
+   }
+   for (unsigned i = 0; i < db.partitions.size(); ++i) {
+      parse_out << "Simplified query for partition " << i << ": " << simplified_queries[i] << std::endl;
    }
    perf_out << "Execution (filter): " << std::to_string(ret.filter_time) << " microseconds\n";
 

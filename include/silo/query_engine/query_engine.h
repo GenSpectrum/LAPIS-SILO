@@ -421,7 +421,7 @@ class mutation_proportion {
 };
 
 /// Filter then call action
-result_s execute_query(const Database& db, const std::string& query, std::ostream& res_out, std::ostream& perf_out);
+result_s execute_query(const Database& db, const std::string& query, std::ostream& parse_out, std::ostream& res_out, std::ostream& perf_out);
 
 /// Action
 std::vector<mutation_proportion> execute_mutations(const silo::Database&, std::vector<silo::filter_t>&, double proportion_threshold);
