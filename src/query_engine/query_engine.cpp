@@ -279,7 +279,7 @@ filter_t NOfEx_evaluateImpl1_threshold(const NOfEx* self, const Database& db, co
    for (unsigned i = 1; i < self->children.size(); ++i) {
       auto bm = self->children[i]->evaluate(db, dbp);
       /// positions higher than (i-1) cannot have been reached yet, are therefore all 0s and the conjunction would return 0
-      for (unsigned j = std::min(self->n - 1, i); j >= 1; ++j) {
+      for (unsigned j = std::min(self->n - 1, i); j >= 1; --j) {
          *dp[j] |= *dp[j - 1] & *bm.getAsConst();
       }
       *dp[0] |= *bm.getAsConst();
@@ -311,7 +311,7 @@ filter_t NOfEx_evaluateImpl1_exact(const NOfEx* self, const Database& db, const 
    for (unsigned i = 1; i < self->children.size(); ++i) {
       auto bm = self->children[i]->evaluate(db, dbp);
       /// positions higher than (i-1) cannot have been reached yet, are therefore all 0s and the conjunction would return 0
-      for (unsigned j = std::min(self->n, i); j >= 1; ++j) {
+      for (unsigned j = std::min(self->n, i); j >= 1; --j) {
          *dp[j] |= *dp[j - 1] & *bm.getAsConst();
       }
       *dp[0] |= *bm.getAsConst();
