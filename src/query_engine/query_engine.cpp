@@ -354,12 +354,12 @@ filter_t NOfEx_evaluateImpl2_threshold(const NOfEx* self, const Database& db, co
 
    /// stl heap is max-heap. We want min, therefore we define a greater-than sorter
    /// as opposed to the standard less-than sorter
-   auto sorter = [](const bitmap_iterator& a,
-                    const bitmap_iterator& b) {
+   auto min_heap_sort = [](const bitmap_iterator& a,
+                           const bitmap_iterator& b) {
       return *a.cur > *b.cur;
    };
 
-   std::make_heap(iterator_heap.begin(), iterator_heap.end(), sorter);
+   std::make_heap(iterator_heap.begin(), iterator_heap.end(), min_heap_sort);
 
    auto ret = new Roaring();
 
@@ -371,14 +371,14 @@ filter_t NOfEx_evaluateImpl2_threshold(const NOfEx* self, const Database& db, co
    uint32_t cur_count = 0;
 
    while (!iterator_heap.empty()) {
-      std::pop_heap(iterator_heap.begin(), iterator_heap.end(), sorter);
+      std::pop_heap(iterator_heap.begin(), iterator_heap.end(), min_heap_sort);
       /// Take element and ensure invariant
       uint32_t val = *iterator_heap.back().cur;
       iterator_heap.back().cur++;
       if (iterator_heap.back().cur == iterator_heap.back().end) {
          iterator_heap.pop_back();
       } else {
-         std::push_heap(iterator_heap.begin(), iterator_heap.end(), sorter);
+         std::push_heap(iterator_heap.begin(), iterator_heap.end(), min_heap_sort);
       }
       if (val == last_val) {
          cur_count++;
