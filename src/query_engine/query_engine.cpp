@@ -439,7 +439,7 @@ filter_t NOfEx_evaluateImpl2_exact(const NOfEx* self, const Database& db, const 
    std::vector<uint32_t> buffer;
    buffer.reserve(BUFFER_SIZE);
 
-   uint32_t last_val = -1;
+   uint32_t last_val = UINT32_MAX;
    uint32_t cur_count = 0;
 
    while (!iterator_heap.empty()) {

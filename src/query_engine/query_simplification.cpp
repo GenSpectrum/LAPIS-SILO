@@ -79,6 +79,22 @@ std::unique_ptr<BoolExpression> OrEx::simplify(const Database& db, const Databas
    return ret;
 }
 
+std::unique_ptr<BoolExpression> NegEx::simplify(const Database& db, const DatabasePartition& dbp) const {
+   std::unique_ptr<NegEx> ret = std::make_unique<NegEx>(child->simplify(db, dbp));
+   if (ret->child->type() == ExType::NEG) {
+      return std::move(dynamic_cast<NegEx*>(ret->child.get())->child);
+   } else if (ret->child->type() == ExType::OR) {
+      OrEx* neg_or = dynamic_cast<OrEx*>(ret->child.get());
+      auto new_ret = std::make_unique<AndEx>();
+      /// Because OR was already simplified, we know that we have at least two children and none of them are FullEx or EmptyEx
+      for (auto& or_child : neg_or->children) {
+         new_ret->children.emplace_back(std::make_unique<NegEx>(std::move(or_child)));
+      }
+      return new_ret->simplify(db, dbp);
+   }
+   return ret;
+}
+
 std::unique_ptr<BoolExpression> NOfEx::simplify(const Database& db, const DatabasePartition& dbp) const {
    std::vector<std::unique_ptr<BoolExpression>> new_children;
    std::transform(children.begin(), children.end(),

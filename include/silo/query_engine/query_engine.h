@@ -219,13 +219,7 @@ struct NegEx : public BoolExpression {
       return res;
    }
 
-   std::unique_ptr<BoolExpression> simplify(const Database& db, const DatabasePartition& dbp) const override {
-      std::unique_ptr<NegEx> ret = std::make_unique<NegEx>(child->simplify(db, dbp));
-      if (ret->child->type() == ExType::NEG) {
-         return std::move(dynamic_cast<NegEx*>(ret->child.get())->child);
-      }
-      return ret;
-   }
+   std::unique_ptr<BoolExpression> simplify(const Database& db, const DatabasePartition& dbp) const override;
 };
 
 struct DateBetwEx : public BoolExpression {
