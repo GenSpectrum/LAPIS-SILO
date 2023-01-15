@@ -7,6 +7,24 @@
 
 using namespace silo;
 
+std::unique_ptr<BoolExpression> NucEqEx::simplify(const Database& /*db*/, const DatabasePartition& dbp) const {
+   std::unique_ptr<NucEqEx> ret = std::make_unique<NucEqEx>(position, value);
+   if (!individualized && dbp.seq_store.positions[position - 1].flipped_bitmap == value) { /// Bitmap of position is flipped! Introduce Neg
+      ret->individualized = true;
+      return std::make_unique<NegEx>(std::move(ret));
+   } else {
+      return ret;
+   }
+}
+
+std::unique_ptr<BoolExpression> NucMbEx::simplify(const Database& /*db*/, const DatabasePartition& dbp) const {
+   std::unique_ptr<NucMbEx> ret = std::make_unique<NucMbEx>(position, value);
+   if (dbp.seq_store.positions[position - 1].flipped_bitmap == value) { /// Bitmap of reference is flipped! Introduce Neg
+      ret->negated = true;
+   }
+   return ret;
+}
+
 std::unique_ptr<BoolExpression> PangoLineageEx::simplify(const Database& /*db*/, const DatabasePartition& dbp) const {
    if (lineageKey == UINT32_MAX) {
       return std::make_unique<EmptyEx>();
@@ -47,6 +65,9 @@ std::unique_ptr<BoolExpression> AndEx::simplify(const Database& db, const Databa
    }
    if (ret->children.size() == 1 && ret->negated_children.empty()) {
       return std::move(ret->children[0]);
+   }
+   if (ret->negated_children.size() == 1 && ret->children.empty()) {
+      return std::make_unique<NegEx>(std::move(ret->negated_children[0]));
    }
    return ret;
 }

@@ -256,6 +256,7 @@ struct DateBetwEx : public BoolExpression {
 struct NucEqEx : public BoolExpression {
    unsigned position;
    Symbol value;
+   bool individualized = false;
 
    ExType type() const override {
       return ExType::INDEX_FILTER;
@@ -272,14 +273,7 @@ struct NucEqEx : public BoolExpression {
       return res;
    }
 
-   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& dbp) const override {
-      std::unique_ptr<BoolExpression> ret = std::make_unique<NucEqEx>(position, value);
-      if (dbp.seq_store.positions[position - 1].flipped_bitmap == value) { /// Bitmap of position is flipped! Introduce Neg
-         return std::make_unique<NegEx>(std::move(ret));
-      } else {
-         return ret;
-      }
-   }
+   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& dbp) const override;
 };
 
 struct NucMbEx : public BoolExpression {
@@ -302,15 +296,7 @@ struct NucMbEx : public BoolExpression {
       return res;
    }
 
-   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& dbp) const override {
-      std::unique_ptr<NucMbEx> ret = std::make_unique<NucMbEx>(position, value);
-      if (dbp.seq_store.positions[position - 1].flipped_bitmap == value) { /// Bitmap of reference is flipped! Introduce Neg
-         ret->negated = true;
-         return std::make_unique<NegEx>(std::move(ret));
-      } else {
-         return ret;
-      }
-   }
+   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& dbp) const override;
 };
 
 struct PangoLineageEx : public BoolExpression {
