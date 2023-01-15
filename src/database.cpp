@@ -203,19 +203,20 @@ static inline void addStat(r_stat& r1, const r_stat& r2) {
 
 int silo::Database::db_info(std::ostream& io) {
    std::atomic<uint32_t> sequence_count = 0;
-   std::atomic<uint64_t> total_size_portable = 0;
    std::atomic<uint64_t> total_size = 0;
+   std::atomic<size_t> N_bitmaps_size = 0;
 
    tbb::parallel_for_each(partitions.begin(), partitions.end(), [&](const DatabasePartition& dbp) {
       sequence_count += dbp.sequenceCount;
-      auto tmp = dbp.seq_store.computeSize();
-      total_size_portable += tmp.first;
-      total_size += tmp.second;
+      total_size += dbp.seq_store.computeSize();
+      for (auto& r : dbp.seq_store.N_bitmaps) {
+         N_bitmaps_size += r.getSizeInBytes(false);
+      }
    });
 
    std::osyncstream(io) << "sequence count: " << number_fmt(sequence_count) << std::endl;
-   std::osyncstream(io) << "total size (portable): " << number_fmt(total_size_portable) << std::endl;
    std::osyncstream(io) << "total size: " << number_fmt(total_size) << std::endl;
+   std::osyncstream(io) << "partition N_bitmap per sequence, total size: " << number_fmt(N_bitmaps_size) << std::endl;
 
    return 0;
 }
@@ -491,32 +492,23 @@ void silo::Database::save(const std::string& save_dir, bool compressed) {
          }
       }
 
-      std::atomic<size_t> seq_store_size_portable = 0;
       std::atomic<size_t> seq_store_size = 0;
 
-      std::atomic<size_t> c_seq_store_size_portable = 0;
       std::atomic<size_t> c_seq_store_size = 0;
 
       tbb::parallel_for((size_t) 0, part_def->partitions.size(), [&](size_t i) {
          ::boost::archive::binary_oarchive oa(file_vec[i]);
 
-         auto tmp_size = partitions[i].seq_store.computeSize();
-         seq_store_size_portable += tmp_size.first;
-         seq_store_size += tmp_size.second;
+         seq_store_size += partitions[i].seq_store.computeSize();
 
          auto tmp = std::make_unique<silo::CompressedSequenceStore>(partitions[i].seq_store);
-         auto tmp_c_size = tmp->size();
-         c_seq_store_size_portable += tmp_c_size.first;
-         c_seq_store_size += tmp_c_size.second;
+         c_seq_store_size += tmp->size();
          oa << partitions[i].meta_store;
          oa << *tmp;
          oa << partitions[i].sequenceCount;
          oa << partitions[i].chunks;
          oa << partitions[i].sorted_lineages;
       });
-
-      std::cout << "Portable size before compression " << silo::number_fmt(seq_store_size_portable) << std::endl;
-      std::cout << "Portable size after compression  " << silo::number_fmt(c_seq_store_size_portable) << std::endl;
 
       std::cout << "Size before compression " << silo::number_fmt(seq_store_size) << std::endl;
       std::cout << "Size after compression  " << silo::number_fmt(c_seq_store_size) << std::endl;

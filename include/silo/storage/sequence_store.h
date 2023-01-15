@@ -18,6 +18,7 @@ struct Position {
    void serialize(Archive& ar, [[maybe_unused]] const unsigned int version) {
       ar& flipped_bitmap;
       ar& bitmaps;
+      ar& N_indexed;
    }
 
    roaring::Roaring bitmaps[symbolCount];
@@ -47,16 +48,14 @@ class CompressedSequenceStore {
 
    explicit CompressedSequenceStore(const SequenceStore& seq_store);
 
-   std::pair<size_t, size_t> size() const {
-      size_t size_portable = 0;
+   size_t size() const {
       size_t size = 0;
       for (auto& position : positions) {
          for (auto& bm : position.bitmaps) {
-            size_portable += bm.getSizeInBytes(true);
             size += bm.getSizeInBytes(false);
          }
       }
-      return {size_portable, size};
+      return size;
    }
 
    Position positions[genomeLength];
@@ -77,20 +76,19 @@ class SequenceStore {
    void serialize(Archive& ar, [[maybe_unused]] const unsigned int version) {
       ar& sequence_count;
       ar& positions;
+      ar& N_bitmaps;
    }
    Position positions[genomeLength];
    std::vector<roaring::Roaring> N_bitmaps;
 
-   [[nodiscard]] std::pair<size_t, size_t> computeSize() const {
-      size_t result_port = 0;
+   [[nodiscard]] size_t computeSize() const {
       size_t result = 0;
       for (auto& p : positions) {
          for (auto& b : p.bitmaps) {
-            result_port += b.getSizeInBytes(true);
             result += b.getSizeInBytes(false);
          }
       }
-      return {result_port, result};
+      return result;
    }
 
    /// default constructor

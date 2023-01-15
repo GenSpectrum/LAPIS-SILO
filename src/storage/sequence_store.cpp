@@ -88,9 +88,13 @@ roaring::Roaring* SequenceStore::bma_neg(size_t pos, Symbol r) const {
 
 int SequenceStore::db_info(std::ostream& io) const {
    std::osyncstream(io) << "partition sequence count: " << number_fmt(this->sequence_count) << std::endl;
-   auto tmp = computeSize();
-   std::osyncstream(io) << "partition size (portable): " << number_fmt(tmp.first) << std::endl;
-   std::osyncstream(io) << "partition size: " << number_fmt(tmp.second) << std::endl;
+   std::osyncstream(io) << "partition index size: " << number_fmt(computeSize()) << std::endl;
+
+   size_t size = 0;
+   for (auto& r : N_bitmaps) {
+      size += r.getSizeInBytes(false);
+   }
+   std::osyncstream(io) << "partition N_bitmap per sequence, total size: " << number_fmt(size) << std::endl;
    return 0;
 }
 

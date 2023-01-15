@@ -568,7 +568,7 @@ filter_t PosNEqEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp
    std::vector<uint32_t> buffer(BUFFER_SIZE);
    Roaring* ret = new Roaring();
    for (uint32_t seq = 0; seq < dbp.sequenceCount; seq++) {
-      if (dbp.seq_store.) {
+      if (dbp.seq_store.N_bitmaps[seq].contains(position)) {
          buffer.push_back(seq);
          if (buffer.size() == BUFFER_SIZE) {
             ret->addMany(BUFFER_SIZE, buffer.data());
@@ -587,7 +587,7 @@ filter_t PosNEqEx::filter(const Database& /*db*/, const DatabasePartition& dbp, 
    std::vector<uint32_t> buffer(BUFFER_SIZE);
    Roaring* ret = new Roaring();
    for (uint32_t seq : *in_filter.getAsConst()) {
-      if (dbp.meta_store.cols[column][seq] == value) {
+      if (dbp.seq_store.N_bitmaps[seq].contains(position)) {
          buffer.push_back(seq);
          if (buffer.size() == BUFFER_SIZE) {
             ret->addMany(BUFFER_SIZE, buffer.data());

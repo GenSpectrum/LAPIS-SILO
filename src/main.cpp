@@ -265,7 +265,7 @@ int handle_command(Database& db, std::vector<std::string> args) {
       std::string meta_suffix = args.size() > 2 ? args[2] : ".meta.tsv";
       std::string seq_suffix = args.size() > 3 ? args[3] : ".fasta";
       db.build(part_prefix, meta_suffix, seq_suffix);
-   } else if ("experiment" == args[0]) {
+   } else if ("finalize" == args[0]) {
       db.finalize();
    } else if ("query" == args[0]) {
       if (args.size() < 2) {
