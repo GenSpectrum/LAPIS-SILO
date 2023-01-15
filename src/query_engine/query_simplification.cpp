@@ -36,6 +36,22 @@ std::unique_ptr<BoolExpression> PangoLineageEx::simplify(const Database& /*db*/,
    }
 }
 
+std::unique_ptr<BoolExpression> CountryEx::simplify(const Database& /*db*/, const DatabasePartition& dbp) const {
+   if (countryKey == UINT32_MAX || dbp.meta_store.country_bitmaps[countryKey].isEmpty()) {
+      return std::make_unique<EmptyEx>();
+   } else {
+      return std::make_unique<CountryEx>(countryKey);
+   }
+}
+
+std::unique_ptr<BoolExpression> RegionEx::simplify(const Database& /*db*/, const DatabasePartition& dbp) const {
+   if (regionKey == UINT32_MAX || dbp.meta_store.region_bitmaps[regionKey].isEmpty()) {
+      return std::make_unique<EmptyEx>();
+   } else {
+      return std::make_unique<RegionEx>(regionKey);
+   }
+}
+
 std::unique_ptr<BoolExpression> AndEx::simplify(const Database& db, const DatabasePartition& dbp) const {
    std::vector<std::unique_ptr<BoolExpression>> new_children;
    std::transform(children.begin(), children.end(),

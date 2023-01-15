@@ -50,7 +50,7 @@ enum ExType {
    NOF,
    NEG,
    INDEX_FILTER,
-   PRED,
+   FILTER,
    EMPTY,
    FULL
 };
@@ -339,9 +339,7 @@ struct CountryEx : public BoolExpression {
       return res;
    }
 
-   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
-      return std::make_unique<CountryEx>(countryKey);
-   }
+   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override;
 };
 
 struct RegionEx : public BoolExpression {
@@ -361,22 +359,50 @@ struct RegionEx : public BoolExpression {
       return res;
    }
 
-   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
-      return std::make_unique<RegionEx>(regionKey);
+   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override;
+};
+
+struct FilterExpression : public BoolExpression {
+
+   virtual filter_t filter(const Database& db, const DatabasePartition& dbp, filter_t in_filter) = 0;
+};
+
+struct PosNEqEx : public FilterExpression {
+   unsigned position;
+
+   ExType type() const override {
+      return ExType::FILTER;
+   };
+
+   explicit PosNEqEx(unsigned position) : position(position) {}
+
+   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
+
+   filter_t filter(const Database& db, const DatabasePartition& dbp, filter_t in_filter) override;
+
+   std::string to_string(const Database& /*db*/) override {
+      std::string res = std::to_string(position) + "N";
+      return res;
+   }
+
+   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override{
+      return std::make_unique<PosNEqEx>(position);
    }
 };
 
-struct StrEqEx : public BoolExpression {
-   std::string column;
-   std::string value;
+struct StrEqEx : public FilterExpression {
+   uint32_t column;
+   uint64_t value;
 
    ExType type() const override {
-      return ExType::PRED;
+      return ExType::FILTER;
    };
 
-   explicit StrEqEx(const std::string& column, const std::string& value) : column(column), value(value) {}
+   explicit StrEqEx(uint32_t column, uint64_t value) : column(column), value(value) {}
 
    filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
+
+   filter_t filter(const Database& db, const DatabasePartition& dbp, filter_t in_filter) override;
 
    std::string to_string(const Database& /*db*/) override {
       std::string res = column + "=" + value;
@@ -384,6 +410,9 @@ struct StrEqEx : public BoolExpression {
    }
 
    std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
+      if(column == UINT32_MAX || value == UINT64_MAX){
+         return std::make_unique<EmptyEx>();
+      }
       return std::make_unique<StrEqEx>(column, value);
    }
 };

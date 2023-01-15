@@ -23,6 +23,7 @@ struct Position {
    roaring::Roaring bitmaps[symbolCount];
    // Reference bitmap is flipped
    uint32_t flipped_bitmap = UINT32_MAX;
+   bool N_indexed = false;
 };
 
 class SequenceStore;
@@ -78,6 +79,7 @@ class SequenceStore {
       ar& positions;
    }
    Position positions[genomeLength];
+   std::vector<roaring::Roaring> N_bitmaps;
 
    [[nodiscard]] std::pair<size_t, size_t> computeSize() const {
       size_t result_port = 0;
@@ -113,7 +115,9 @@ class SequenceStore {
 
    void interpret(const std::vector<std::string>& genomes);
 
-   void interpret_offset_p(const std::vector<std::string>& genomes, uint32_t offset);
+   void indexAllN();
+
+   void indexAllN_naive();
 
    int db_info(std::ostream& io) const;
 };

@@ -300,6 +300,14 @@ int handle_command(Database& db, std::vector<std::string> args) {
          saved += shrinkToFit(dbp.seq_store);
       }
       std::cout << "Saved " << saved << " bytes by call to shrink_to_fit." << std::endl;
+   } else if ("index_all_n" == args[0]) {
+      for (auto& dbp : db.partitions) {
+         dbp.seq_store.indexAllN();
+      }
+   } else if ("index_all_n_naive" == args[0]) {
+      for (auto& dbp : db.partitions) {
+         dbp.seq_store.indexAllN_naive();
+      }
    } else if ("exit" == args[0] || "quit" == args[0]) {
       return 1;
    } else if ("help" == args[0] || "-h" == args[0] || "--help" == args[0]) {

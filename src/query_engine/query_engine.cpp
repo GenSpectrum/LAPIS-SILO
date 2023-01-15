@@ -118,7 +118,9 @@ std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value
       } else if (col == "region") {
          return std::make_unique<RegionEx>(db.dict->get_regionid(js["value"].GetString()));
       } else {
-         return std::make_unique<StrEqEx>(js["column"].GetString(), js["value"].GetString());
+         uint32_t colKey = db.dict->get_colid(js["column"].GetString());
+         uint32_t valueKey = db.dict->get_pangoid(js["value"].GetString());
+         return std::make_unique<StrEqEx>(colKey, valueKey);
       }
    } else if (type == "Maybe") {
       auto ret = std::make_unique<NegEx>();
@@ -561,16 +563,74 @@ filter_t RegionEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp
    return {nullptr, &dbp.meta_store.region_bitmaps[regionKey]};
 }
 
-filter_t StrEqEx::evaluate(const Database& db, const DatabasePartition& dbp) {
-   unsigned columnIndex = db.dict->get_colid(this->column);
+filter_t PosNEqEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
    constexpr unsigned BUFFER_SIZE = 1024;
    std::vector<uint32_t> buffer(BUFFER_SIZE);
    Roaring* ret = new Roaring();
-   for (uint32_t seq : dbp.meta_store.cols[columnIndex]) {
-      buffer.push_back(seq);
-      if (buffer.size() == BUFFER_SIZE) {
-         ret->addMany(BUFFER_SIZE, buffer.data());
-         buffer.clear();
+   for (uint32_t seq = 0; seq < dbp.sequenceCount; seq++) {
+      if (dbp.seq_store.) {
+         buffer.push_back(seq);
+         if (buffer.size() == BUFFER_SIZE) {
+            ret->addMany(BUFFER_SIZE, buffer.data());
+            buffer.clear();
+         }
+      }
+   }
+   if (buffer.size() > 0) {
+      ret->addMany(buffer.size(), buffer.data());
+   }
+   return {ret, nullptr};
+}
+
+filter_t PosNEqEx::filter(const Database& /*db*/, const DatabasePartition& dbp, filter_t in_filter) {
+   constexpr unsigned BUFFER_SIZE = 1024;
+   std::vector<uint32_t> buffer(BUFFER_SIZE);
+   Roaring* ret = new Roaring();
+   for (uint32_t seq : *in_filter.getAsConst()) {
+      if (dbp.meta_store.cols[column][seq] == value) {
+         buffer.push_back(seq);
+         if (buffer.size() == BUFFER_SIZE) {
+            ret->addMany(BUFFER_SIZE, buffer.data());
+            buffer.clear();
+         }
+      }
+   }
+   if (buffer.size() > 0) {
+      ret->addMany(buffer.size(), buffer.data());
+   }
+   return {ret, nullptr};
+}
+
+filter_t StrEqEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
+   constexpr unsigned BUFFER_SIZE = 1024;
+   std::vector<uint32_t> buffer(BUFFER_SIZE);
+   Roaring* ret = new Roaring();
+   for (uint32_t seq = 0; seq < dbp.sequenceCount; seq++) {
+      if (dbp.meta_store.cols[column][seq] == value) {
+         buffer.push_back(seq);
+         if (buffer.size() == BUFFER_SIZE) {
+            ret->addMany(BUFFER_SIZE, buffer.data());
+            buffer.clear();
+         }
+      }
+   }
+   if (buffer.size() > 0) {
+      ret->addMany(buffer.size(), buffer.data());
+   }
+   return {ret, nullptr};
+}
+
+filter_t StrEqEx::filter(const Database& /*db*/, const DatabasePartition& dbp, filter_t in_filter) {
+   constexpr unsigned BUFFER_SIZE = 1024;
+   std::vector<uint32_t> buffer(BUFFER_SIZE);
+   Roaring* ret = new Roaring();
+   for (uint32_t seq : *in_filter.getAsConst()) {
+      if (dbp.meta_store.cols[column][seq] == value) {
+         buffer.push_back(seq);
+         if (buffer.size() == BUFFER_SIZE) {
+            ret->addMany(BUFFER_SIZE, buffer.data());
+            buffer.clear();
+         }
       }
    }
    if (buffer.size() > 0) {
