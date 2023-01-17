@@ -27,43 +27,6 @@ struct Position {
    bool N_indexed = false;
 };
 
-class SequenceStore;
-
-class CompressedSequenceStore {
-   public:
-   friend class boost::serialization::access;
-
-   template <class Archive>
-   void serialize(Archive& ar, [[maybe_unused]] const unsigned int version) {
-      ar& sequence_count;
-      ar& positions;
-      ar& start_gaps;
-      ar& end_gaps;
-   }
-
-   explicit CompressedSequenceStore() : sequence_count(0) {
-      start_gaps = std::vector<uint32_t>(0);
-      end_gaps = std::vector<uint32_t>(0);
-   }
-
-   explicit CompressedSequenceStore(const SequenceStore& seq_store);
-
-   size_t size() const {
-      size_t size = 0;
-      for (auto& position : positions) {
-         for (auto& bm : position.bitmaps) {
-            size += bm.getSizeInBytes(false);
-         }
-      }
-      return size;
-   }
-
-   Position positions[genomeLength];
-   std::vector<uint32_t> start_gaps;
-   std::vector<uint32_t> end_gaps;
-   unsigned sequence_count;
-};
-
 class SequenceStore {
    private:
    unsigned sequence_count;
@@ -93,9 +56,6 @@ class SequenceStore {
 
    /// default constructor
    SequenceStore() {}
-
-   /// decompress sequence_store
-   explicit SequenceStore(const CompressedSequenceStore& c_seq_store);
 
    /// pos: 1 indexed position of the genome
    [[nodiscard]] const roaring::Roaring* bm(size_t pos, Symbol s) const {

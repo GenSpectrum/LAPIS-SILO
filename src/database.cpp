@@ -445,7 +445,7 @@ void silo::save_partitioning_descriptor(const silo::partitioning_descriptor_t& p
    }
 }
 
-void silo::Database::save(const std::string& save_dir, bool compressed) {
+void silo::Database::save(const std::string& save_dir) {
    if (!part_def) {
       std::cerr << "Cannot save db without part_def." << std::endl;
       return;
@@ -480,56 +480,23 @@ void silo::Database::save(const std::string& save_dir, bool compressed) {
       dict->save_dict(dict_output);
    }
 
-   if (!compressed) {
-      std::vector<std::ofstream> file_vec;
-      for (unsigned i = 0; i < part_def->partitions.size(); ++i) {
-         file_vec.push_back(std::ofstream(save_dir + 'P' + std::to_string(i) + ".silo"));
+   std::vector<std::ofstream> file_vec;
+   for (unsigned i = 0; i < part_def->partitions.size(); ++i) {
+      file_vec.push_back(std::ofstream(save_dir + 'P' + std::to_string(i) + ".silo"));
 
-         if (!file_vec.back()) {
-            std::cerr << "Cannot open partition output file for saving: " << (save_dir + 'P' + std::to_string(i) + ".silo") << std::endl;
-            return;
-         }
+      if (!file_vec.back()) {
+         std::cerr << "Cannot open partition output file for saving: " << (save_dir + 'P' + std::to_string(i) + ".silo") << std::endl;
+         return;
       }
-
-      tbb::parallel_for((size_t) 0, part_def->partitions.size(), [&](size_t i) {
-         ::boost::archive::binary_oarchive oa(file_vec[i]);
-         oa << partitions[i];
-      });
-   } else {
-      /// save compressed and output size
-      std::vector<std::ofstream> file_vec;
-      for (unsigned i = 0; i < part_def->partitions.size(); ++i) {
-         file_vec.push_back(std::ofstream(save_dir + 'P' + std::to_string(i) + ".siloc"));
-
-         if (!file_vec.back()) {
-            std::cerr << "Cannot open compressed partition output file for saving: " << (save_dir + 'P' + std::to_string(i) + ".siloc") << std::endl;
-            return;
-         }
-      }
-
-      std::atomic<size_t> seq_store_size = 0;
-
-      std::atomic<size_t> c_seq_store_size = 0;
-
-      tbb::parallel_for((size_t) 0, part_def->partitions.size(), [&](size_t i) {
-         ::boost::archive::binary_oarchive oa(file_vec[i]);
-
-         seq_store_size += partitions[i].seq_store.computeSize();
-
-         auto tmp = std::make_unique<silo::CompressedSequenceStore>(partitions[i].seq_store);
-         c_seq_store_size += tmp->size();
-         oa << partitions[i].meta_store;
-         oa << *tmp;
-         oa << partitions[i].sequenceCount;
-         oa << partitions[i].chunks;
-      });
-
-      std::cout << "Size before compression " << silo::number_fmt(seq_store_size) << std::endl;
-      std::cout << "Size after compression  " << silo::number_fmt(c_seq_store_size) << std::endl;
    }
+
+   tbb::parallel_for((size_t) 0, part_def->partitions.size(), [&](size_t i) {
+      ::boost::archive::binary_oarchive oa(file_vec[i]);
+      oa << partitions[i];
+   });
 }
 
-void silo::Database::load(const std::string& save_dir, bool compressed) {
+void silo::Database::load(const std::string& save_dir) {
    std::ifstream part_def_file(save_dir + "part_def.txt");
    if (!part_def_file) {
       std::cerr << "Cannot open part_def input file for loading: " << (save_dir + "part_def.txt") << std::endl;
@@ -554,49 +521,21 @@ void silo::Database::load(const std::string& save_dir, bool compressed) {
       dict = std::make_unique<Dictionary>(Dictionary::load_dict(dict_input));
    }
 
-   if (!compressed) {
-      std::cout << "Loading partitions from " << save_dir << std::endl;
-      std::vector<std::ifstream> file_vec;
-      for (unsigned i = 0; i < part_def->partitions.size(); ++i) {
-         file_vec.push_back(std::ifstream(save_dir + 'P' + std::to_string(i) + ".silo"));
+   std::cout << "Loading partitions from " << save_dir << std::endl;
+   std::vector<std::ifstream> file_vec;
+   for (unsigned i = 0; i < part_def->partitions.size(); ++i) {
+      file_vec.push_back(std::ifstream(save_dir + 'P' + std::to_string(i) + ".silo"));
 
-         if (!file_vec.back()) {
-            std::cerr << "Cannot open partition input file for loading: " << (save_dir + 'P' + std::to_string(i) + ".silo") << std::endl;
-            return;
-         }
+      if (!file_vec.back()) {
+         std::cerr << "Cannot open partition input file for loading: " << (save_dir + 'P' + std::to_string(i) + ".silo") << std::endl;
+         return;
       }
-
-      partitions.resize(part_def->partitions.size());
-      tbb::parallel_for((size_t) 0, part_def->partitions.size(), [&](size_t i) {
-         ::boost::archive::binary_iarchive ia(file_vec[i]);
-         ia >> partitions[i];
-      });
-   } else {
-      /// load compressed
-      std::cout << "Loading compressed partitions from " << save_dir << std::endl;
-      std::vector<std::ifstream> file_vec;
-      for (unsigned i = 0; i < part_def->partitions.size(); ++i) {
-         file_vec.push_back(std::ifstream(save_dir + 'P' + std::to_string(i) + ".siloc"));
-
-         if (!file_vec.back()) {
-            std::cerr << "Cannot open compressed partition input file for loading: " << (save_dir + 'P' + std::to_string(i) + ".siloc") << std::endl;
-            return;
-         }
-      }
-
-      partitions.resize(part_def->partitions.size());
-      tbb::parallel_for((size_t) 0, part_def->partitions.size(), [&](size_t i) {
-         // for (size_t i = 0; i < part_def->partitions.size(); ++i) {
-         ::boost::archive::binary_iarchive ia(file_vec[i]);
-
-         auto tmp = std::make_unique<CompressedSequenceStore>();
-         ia >> partitions[i].meta_store;
-         ia >> *tmp;
-         auto tmp2 = std::make_unique<SequenceStore>(*tmp);
-         partitions[i].seq_store = *tmp2;
-         ia >> partitions[i].sequenceCount;
-         ia >> partitions[i].chunks;
-         // }
-      });
    }
+
+   partitions.resize(part_def->partitions.size());
+   tbb::parallel_for((size_t) 0, part_def->partitions.size(), [&](size_t i) {
+      ::boost::archive::binary_iarchive ia(file_vec[i]);
+      ia >> partitions[i];
+   });
+
 }

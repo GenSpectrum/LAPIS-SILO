@@ -83,19 +83,11 @@ int handle_command(Database& db, std::vector<std::string> args) {
    } else if ("load" == args[0]) {
       std::string db_savedir = args.size() > 1 ? args[1] : default_db_savedir;
       cout << "Loading Database from " << db_savedir << endl;
-      db.load(db_savedir, false);
+      db.load(db_savedir);
    } else if ("save" == args[0]) {
       std::string db_savedir = args.size() > 1 ? args[1] : default_db_savedir;
       cout << "Saving Database to " << db_savedir << endl;
-      db.save(db_savedir, false);
-   } else if ("loadc" == args[0]) {
-      std::string db_savedir = args.size() > 1 ? args[1] : default_db_savedir;
-      cout << "Loading Database compressed from " << db_savedir << endl;
-      db.load(db_savedir, true);
-   } else if ("savec" == args[0]) {
-      std::string db_savedir = args.size() > 1 ? args[1] : default_db_savedir;
-      cout << "Saving Database compressed to " << db_savedir << endl;
-      db.save(db_savedir, true);
+      db.save(db_savedir);
    } else if ("info" == args[0]) {
       db.db_info(cout);
    } else if ("info_d" == args[0]) {
