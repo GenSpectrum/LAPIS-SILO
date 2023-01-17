@@ -73,9 +73,7 @@ std::vector<silo::mutation_proportion> silo::execute_mutations(const silo::Datab
    }
    std::cerr << "Per pos calculation: " << std::to_string(microseconds) << std::endl;
 
-   uint32_t sequence_count = 0;
    for (unsigned i = 0; i < db.partitions.size(); ++i) {
-      sequence_count += partition_filters[i].getAsConst()->cardinality();
       partition_filters[i].free();
    }
 
@@ -84,13 +82,13 @@ std::vector<silo::mutation_proportion> silo::execute_mutations(const silo::Datab
    {
       BlockTimer timer(microseconds);
       for (unsigned pos = 0; pos < silo::genomeLength; ++pos) {
-         char pos_ref = db.global_reference[0].at(pos);
-         std::vector<std::pair<char, uint32_t>> candidates;
          uint32_t total = A_per_pos[pos] + C_per_pos[pos] + G_per_pos[pos] + T_per_pos[pos] + gap_per_pos[pos];
          if (total == 0) {
             continue;
          }
          uint32_t threshold_count = std::ceil((double) total * (double) proportion_threshold) - 1;
+
+         char pos_ref = db.global_reference[0].at(pos);
          if (pos_ref != 'C') {
             const uint32_t tmp = C_per_pos[pos];
             if (tmp > threshold_count) {

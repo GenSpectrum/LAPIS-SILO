@@ -66,16 +66,6 @@ void silo::DatabasePartition::finalize(const Dictionary& dict) {
       v.resize(symbolCount);
    }
 
-   for (auto& chunk : chunks) {
-      for (auto& pango : chunk.pangos) {
-         uint32_t pango_id = dict.get_pangoid(pango);
-         if (pango_id != UINT32_MAX && std::find(sorted_lineages.begin(), sorted_lineages.end(), pango_id) == sorted_lineages.end()) {
-            sorted_lineages.push_back(pango_id);
-         }
-      }
-   }
-   std::sort(sorted_lineages.begin(), sorted_lineages.end());
-
    tbb::parallel_for((unsigned) 0, genomeLength, [&](unsigned p) {
       unsigned max_symbol = UINT32_MAX;
       unsigned max_count = 0;
@@ -530,7 +520,6 @@ void silo::Database::save(const std::string& save_dir, bool compressed) {
          oa << *tmp;
          oa << partitions[i].sequenceCount;
          oa << partitions[i].chunks;
-         oa << partitions[i].sorted_lineages;
       });
 
       std::cout << "Size before compression " << silo::number_fmt(seq_store_size) << std::endl;
@@ -605,7 +594,6 @@ void silo::Database::load(const std::string& save_dir, bool compressed) {
          partitions[i].seq_store = *tmp2;
          ia >> partitions[i].sequenceCount;
          ia >> partitions[i].chunks;
-         ia >> partitions[i].sorted_lineages;
          // }
       });
    }

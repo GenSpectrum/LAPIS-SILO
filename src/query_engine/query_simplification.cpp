@@ -29,7 +29,9 @@ std::unique_ptr<BoolExpression> PangoLineageEx::simplify(const Database& /*db*/,
    if (lineageKey == UINT32_MAX) {
       return std::make_unique<EmptyEx>();
    }
-   if (!this->includeSubLineages && !std::binary_search(dbp.sorted_lineages.begin(), dbp.sorted_lineages.end(), lineageKey)) {
+   if (includeSubLineages && dbp.meta_store.sublineage_bitmaps[lineageKey].isEmpty()) {
+      return std::make_unique<EmptyEx>();
+   } else if (!includeSubLineages && dbp.meta_store.lineage_bitmaps[lineageKey].isEmpty()) {
       return std::make_unique<EmptyEx>();
    } else {
       return std::make_unique<PangoLineageEx>(lineageKey, includeSubLineages);
