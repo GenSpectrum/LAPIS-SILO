@@ -51,40 +51,14 @@ void silo::Database::build(const std::string& part_prefix, const std::string& me
          partitions[i].sequenceCount += count1;
       }
    });
-   std::cout << "Info before bitmap flipping: " << std::endl;
+   std::cout << "Info directly after build: " << std::endl;
    db_info(std::cout);
    db_info_detailed(std::cout);
-   // Flip Bitmaps of most common symbol, precompute Bitmaps for selected columns.
-   finalize();
-   std::cout << "Info after bitmap flipping: " << std::endl;
-   db_info(std::cout);
-   db_info_detailed(std::cout);
+   // Precompute Bitmaps for metadata.
+   finalizeBuild();
 }
 
-void silo::DatabasePartition::finalize(const Dictionary& dict) {
-   std::vector<std::vector<unsigned>> counts_per_pos_per_symbol;
-   counts_per_pos_per_symbol.resize(genomeLength);
-   for (std::vector<unsigned>& v : counts_per_pos_per_symbol) {
-      v.resize(symbolCount);
-   }
-
-   tbb::parallel_for((unsigned) 0, genomeLength, [&](unsigned p) {
-      unsigned max_symbol = UINT32_MAX;
-      unsigned max_count = 0;
-
-      for (unsigned symbol = 0; symbol <= Symbol::N; ++symbol) {
-         unsigned count = seq_store.positions[p].bitmaps[symbol].cardinality();
-         if (count > max_count) {
-            max_symbol = symbol;
-            max_count = count;
-         }
-      }
-      if (max_symbol == Symbol::A || max_symbol == Symbol::C || max_symbol == Symbol::G || max_symbol == Symbol::T || max_symbol == Symbol::N) {
-         seq_store.positions[p].flipped_bitmap = max_symbol;
-         seq_store.positions[p].bitmaps[max_symbol].flip(0, sequenceCount);
-      }
-   });
-
+void silo::DatabasePartition::finalizeBuild(const Dictionary& dict) {
    { /// Precompute all bitmaps for pango_lineages and -sublineages
       const uint32_t pango_count = dict.get_pango_count();
       std::vector<std::vector<uint32_t>> group_by_lineages(pango_count);
@@ -152,9 +126,30 @@ void silo::DatabasePartition::finalize(const Dictionary& dict) {
    }
 }
 
-void silo::Database::finalize() {
+void silo::Database::finalizeBuild() {
    tbb::parallel_for_each(partitions.begin(), partitions.end(), [&](DatabasePartition& p) {
-      p.finalize(*dict);
+      p.finalizeBuild(*dict);
+   });
+}
+
+void silo::Database::flipBitmaps() {
+   tbb::parallel_for_each(partitions.begin(), partitions.end(), [&](DatabasePartition& dbp) {
+      tbb::parallel_for((unsigned) 0, genomeLength, [&](unsigned p) {
+         unsigned max_symbol = UINT32_MAX;
+         unsigned max_count = 0;
+
+         for (unsigned symbol = 0; symbol <= Symbol::N; ++symbol) {
+            unsigned count = dbp.seq_store.positions[p].bitmaps[symbol].cardinality();
+            if (count > max_count) {
+               max_symbol = symbol;
+               max_count = count;
+            }
+         }
+         if (max_symbol == Symbol::A || max_symbol == Symbol::C || max_symbol == Symbol::G || max_symbol == Symbol::T || max_symbol == Symbol::N) {
+            dbp.seq_store.positions[p].flipped_bitmap = max_symbol;
+            dbp.seq_store.positions[p].bitmaps[max_symbol].flip(0, dbp.sequenceCount);
+         }
+      });
    });
 }
 
@@ -537,5 +532,4 @@ void silo::Database::load(const std::string& save_dir) {
       ::boost::archive::binary_iarchive ia(file_vec[i]);
       ia >> partitions[i];
    });
-
 }

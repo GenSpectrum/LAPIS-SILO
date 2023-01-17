@@ -71,7 +71,7 @@ class DatabasePartition {
       return chunks;
    }
 
-   void finalize(const Dictionary& dict);
+   void finalizeBuild(const Dictionary& dict);
 };
 
 class Database {
@@ -120,7 +120,10 @@ class Database {
    // void analyse();
    int db_info(std::ostream& io);
    int db_info_detailed(std::ostream& io);
-   void finalize();
+
+   void finalizeBuild();
+
+   void flipBitmaps();
 
    void indexAllN();
 
