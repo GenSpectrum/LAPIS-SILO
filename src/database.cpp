@@ -53,10 +53,12 @@ void silo::Database::build(const std::string& part_prefix, const std::string& me
    });
    std::cout << "Info before bitmap flipping: " << std::endl;
    db_info(std::cout);
+   db_info_detailed(std::cout);
    // Flip Bitmaps of most common symbol, precompute Bitmaps for selected columns.
    finalize();
    std::cout << "Info after bitmap flipping: " << std::endl;
    db_info(std::cout);
+   db_info_detailed(std::cout);
 }
 
 void silo::DatabasePartition::finalize(const Dictionary& dict) {
