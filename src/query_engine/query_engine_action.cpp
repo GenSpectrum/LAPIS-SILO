@@ -21,7 +21,6 @@ uint64_t silo::execute_count(const silo::Database& /*db*/, std::vector<silo::fil
 std::vector<silo::mutation_proportion> silo::execute_mutations(const silo::Database& db, std::vector<silo::filter_t>& partition_filters, double proportion_threshold) {
    using roaring::Roaring;
 
-   std::vector<uint32_t> N_per_pos(silo::genomeLength);
    std::vector<uint32_t> C_per_pos(silo::genomeLength);
    std::vector<uint32_t> T_per_pos(silo::genomeLength);
    std::vector<uint32_t> A_per_pos(silo::genomeLength);
@@ -39,48 +38,35 @@ std::vector<silo::mutation_proportion> silo::execute_mutations(const silo::Datab
             silo::filter_t filter = partition_filters[i];
             const Roaring& bm = *filter.getAsConst();
 
-            N_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::N]);
-
-            char pos_ref = db.global_reference[0].at(pos);
-            if (pos_ref != 'C') {
-               if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::C) { /// everything fine
-                  C_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C]);
-               } else { /// Bitmap was flipped
-                  C_per_pos[pos] +=
-                     roaring::api::roaring_bitmap_andnot_cardinality(&bm.roaring, &dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C].roaring);
-               }
+            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::C) { /// everything fine
+               C_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C]);
+            } else { /// Bitmap was flipped
+               C_per_pos[pos] +=
+                  roaring::api::roaring_bitmap_andnot_cardinality(&bm.roaring, &dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C].roaring);
             }
-            if (pos_ref != 'T') {
-               if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::T) { /// everything fine
-                  T_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T]);
-               } else { /// Bitmap was flipped
-                  T_per_pos[pos] +=
-                     roaring::api::roaring_bitmap_andnot_cardinality(&bm.roaring, &dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T].roaring);
-               }
+            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::T) { /// everything fine
+               T_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T]);
+            } else { /// Bitmap was flipped
+               T_per_pos[pos] +=
+                  roaring::api::roaring_bitmap_andnot_cardinality(&bm.roaring, &dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T].roaring);
             }
-            if (pos_ref != 'A') {
-               if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::A) { /// everything fine
-                  A_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A]);
-               } else { /// Bitmap was flipped
-                  A_per_pos[pos] +=
-                     roaring::api::roaring_bitmap_andnot_cardinality(&bm.roaring, &dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A].roaring);
-               }
+            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::A) { /// everything fine
+               A_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A]);
+            } else { /// Bitmap was flipped
+               A_per_pos[pos] +=
+                  roaring::api::roaring_bitmap_andnot_cardinality(&bm.roaring, &dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A].roaring);
             }
-            if (pos_ref != 'G') {
-               if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::G) { /// everything fine
-                  G_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G]);
-               } else { /// Bitmap was flipped
-                  G_per_pos[pos] +=
-                     roaring::api::roaring_bitmap_andnot_cardinality(&bm.roaring, &dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G].roaring);
-               }
+            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::G) { /// everything fine
+               G_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G]);
+            } else { /// Bitmap was flipped
+               G_per_pos[pos] +=
+                  roaring::api::roaring_bitmap_andnot_cardinality(&bm.roaring, &dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G].roaring);
             }
-            if (pos_ref == '-') {
-               if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::gap) { /// everything fine
-                  gap_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap]);
-               } else { /// Bitmap was flipped
-                  gap_per_pos[pos] +=
-                     roaring::api::roaring_bitmap_andnot_cardinality(&bm.roaring, &dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap].roaring);
-               }
+            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::gap) { /// everything fine
+               gap_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap]);
+            } else { /// Bitmap was flipped
+               gap_per_pos[pos] +=
+                  roaring::api::roaring_bitmap_andnot_cardinality(&bm.roaring, &dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap].roaring);
             }
          }
       });
@@ -100,7 +86,7 @@ std::vector<silo::mutation_proportion> silo::execute_mutations(const silo::Datab
       for (unsigned pos = 0; pos < silo::genomeLength; ++pos) {
          char pos_ref = db.global_reference[0].at(pos);
          std::vector<std::pair<char, uint32_t>> candidates;
-         uint32_t total = sequence_count - N_per_pos[pos];
+         uint32_t total = A_per_pos[pos] + C_per_pos[pos] + G_per_pos[pos] + T_per_pos[pos] + gap_per_pos[pos];
          if (total == 0) {
             continue;
          }
