@@ -35,7 +35,7 @@ std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value
       assert(js.HasMember("n"));
       assert(js["n"].IsUint());
 
-      auto ret = std::make_unique<NOfEx>(js["n"].GetUint(), 0, js["exactly"].GetBool());
+      auto ret = std::make_unique<NOfEx>(js["n"].GetUint(), js["exactly"].GetBool());
       std::transform(js["children"].GetArray().begin(), js["children"].GetArray().end(),
                      std::back_inserter(ret->children), [&](const rapidjson::Value& js) { return to_ex(db, js, exact); });
       if (js.HasMember("impl") && js["impl"].IsUint()) {

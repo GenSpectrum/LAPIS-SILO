@@ -181,6 +181,8 @@ struct NOfEx : public BoolExpression {
 
    explicit NOfEx(unsigned n, unsigned impl, bool exactly) : n(n), impl(impl), exactly(exactly) {}
 
+   explicit NOfEx(unsigned n, bool exactly) : n(n), impl(1), exactly(exactly) {}
+
    filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
    std::string to_string(const Database& db) override {
