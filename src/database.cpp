@@ -4,6 +4,7 @@
 
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
+#include <silo/common/PerfEvent.hpp>
 #include <silo/common/fix_rh_map.hpp>
 #include <syncstream>
 #include <silo/common/SizeSketch.h>
@@ -216,9 +217,31 @@ int silo::Database::db_info(std::ostream& io) {
 
    std::osyncstream(io) << "sequence count: " << number_fmt(sequence_count) << std::endl;
    std::osyncstream(io) << "total size: " << number_fmt(total_size) << std::endl;
-   std::osyncstream(io) << "partition N_bitmap per sequence, total size: " << number_fmt(N_bitmaps_size) << std::endl;
+   std::osyncstream(io) << "N_bitmaps per sequence, total size: " << number_fmt(N_bitmaps_size) << std::endl;
 
    return 0;
+}
+
+void silo::Database::indexAllN() {
+   int64_t microseconds = 0;
+   {
+      BlockTimer timer(microseconds);
+      tbb::parallel_for_each(partitions.begin(), partitions.end(), [&](DatabasePartition& dbp) {
+         dbp.seq_store.indexAllN();
+      });
+   }
+   std::cerr << "index all N took " << number_fmt(microseconds) << " microseconds." << std::endl;
+}
+
+void silo::Database::indexAllN_naive() {
+   int64_t microseconds = 0;
+   {
+      BlockTimer timer(microseconds);
+      tbb::parallel_for_each(partitions.begin(), partitions.end(), [&](DatabasePartition& dbp) {
+         dbp.seq_store.indexAllN_naive();
+      });
+   }
+   std::cerr << "index all N naive took " << number_fmt(microseconds) << " microseconds." << std::endl;
 }
 
 int silo::Database::db_info_detailed(std::ostream& io) {

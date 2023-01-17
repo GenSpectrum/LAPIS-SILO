@@ -125,6 +125,10 @@ class Database {
    int db_info_detailed(std::ostream& io);
    void finalize();
 
+   void indexAllN();
+
+   void indexAllN_naive();
+
    void save(const std::string& save_dir, bool compressed);
 
    void load(const std::string& save_dir, bool compressed);

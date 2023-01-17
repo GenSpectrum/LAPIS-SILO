@@ -174,67 +174,57 @@ void SequenceStore::interpret(const std::vector<std::string>& genomes) {
 }
 
 void SequenceStore::indexAllN() {
-   int64_t microseconds = 0;
-   {
-      BlockTimer timer(microseconds);
-      std::vector<std::vector<std::vector<uint32_t>>> ids_per_position_per_upper((sequence_count >> 16) + 1);
-      tbb::blocked_range<uint32_t> range(0, (sequence_count >> 16) + 1);
-      tbb::parallel_for(range.begin(), range.end(), [&](uint32_t local) {
-         auto& ids_per_position = ids_per_position_per_upper[local];
-         ids_per_position.resize(genomeLength);
+   std::vector<std::vector<std::vector<uint32_t>>> ids_per_position_per_upper((sequence_count >> 16) + 1);
+   tbb::blocked_range<uint32_t> range(0, (sequence_count >> 16) + 1);
+   tbb::parallel_for(range.begin(), range.end(), [&](uint32_t local) {
+      auto& ids_per_position = ids_per_position_per_upper[local];
+      ids_per_position.resize(genomeLength);
 
-         uint32_t genome_upper = local << 16;
-         uint32_t limit = genome_upper == (sequence_count & 0xFFFF0000) ? sequence_count - genome_upper : 1u << 16;
-         for (uint32_t genome_lower = 0; genome_lower < limit; ++genome_lower) {
-            const uint32_t genome = genome_upper | genome_lower;
-            for (uint32_t pos : N_bitmaps[genome]) {
-               ids_per_position[pos].push_back(genome);
-            }
+      uint32_t genome_upper = local << 16;
+      uint32_t limit = genome_upper == (sequence_count & 0xFFFF0000) ? sequence_count - genome_upper : 1u << 16;
+      for (uint32_t genome_lower = 0; genome_lower < limit; ++genome_lower) {
+         const uint32_t genome = genome_upper | genome_lower;
+         for (uint32_t pos : N_bitmaps[genome]) {
+            ids_per_position[pos].push_back(genome);
          }
-      });
-
-      for (uint32_t pos = 0; pos < genomeLength; ++pos) {
-         for (uint32_t upper = 0; upper < (sequence_count >> 16) + 1; ++upper) {
-            auto& v = ids_per_position_per_upper[upper][pos];
-            positions[pos].bitmaps[Symbol::N].addMany(v.size(), v.data());
-         }
-         positions[pos].N_indexed = true;
       }
+   });
+
+   for (uint32_t pos = 0; pos < genomeLength; ++pos) {
+      for (uint32_t upper = 0; upper < (sequence_count >> 16) + 1; ++upper) {
+         auto& v = ids_per_position_per_upper[upper][pos];
+         positions[pos].bitmaps[Symbol::N].addMany(v.size(), v.data());
+      }
+      positions[pos].N_indexed = true;
    }
-   std::cerr << "index all N took " << std::to_string(microseconds) << std::endl;
 }
 
 void SequenceStore::indexAllN_naive() {
-   int64_t microseconds = 0;
-   {
-      BlockTimer timer(microseconds);
-      tbb::enumerable_thread_specific<std::vector<std::vector<uint32_t>>> ids_per_position;
-      tbb::blocked_range<uint32_t> range(0, (sequence_count >> 16) + 1);
-      tbb::parallel_for(range.begin(), range.end(), [&](uint32_t local) {
-         ids_per_position.local().resize(genomeLength);
+   tbb::enumerable_thread_specific<std::vector<std::vector<uint32_t>>> ids_per_position;
+   tbb::blocked_range<uint32_t> range(0, (sequence_count >> 16) + 1);
+   tbb::parallel_for(range.begin(), range.end(), [&](uint32_t local) {
+      ids_per_position.local().resize(genomeLength);
 
-         uint32_t genome_upper = local << 16;
-         uint32_t limit = genome_upper == (sequence_count & 0xFFFF0000) ? sequence_count - genome_upper : 1u << 16;
-         for (uint32_t genome_lower = 0; genome_lower < limit; ++genome_lower) {
-            const uint32_t genome = genome_upper | genome_lower;
-            for (uint32_t pos : N_bitmaps[genome]) {
-               ids_per_position.local()[pos].push_back(genome);
-            }
-         }
-      });
-
-      for (auto& v1 : ids_per_position) {
-         for (uint32_t pos = 0; pos < genomeLength; ++pos) {
-            auto& v = v1[pos];
-            positions[pos].bitmaps[Symbol::N].addMany(v.size(), v.data());
+      uint32_t genome_upper = local << 16;
+      uint32_t limit = genome_upper == (sequence_count & 0xFFFF0000) ? sequence_count - genome_upper : 1u << 16;
+      for (uint32_t genome_lower = 0; genome_lower < limit; ++genome_lower) {
+         const uint32_t genome = genome_upper | genome_lower;
+         for (uint32_t pos : N_bitmaps[genome]) {
+            ids_per_position.local()[pos].push_back(genome);
          }
       }
+   });
 
+   for (auto& v1 : ids_per_position) {
       for (uint32_t pos = 0; pos < genomeLength; ++pos) {
-         positions[pos].N_indexed = true;
+         auto& v = v1[pos];
+         positions[pos].bitmaps[Symbol::N].addMany(v.size(), v.data());
       }
    }
-   std::cerr << "index all N naive took " << std::to_string(microseconds) << std::endl;
+
+   for (uint32_t pos = 0; pos < genomeLength; ++pos) {
+      positions[pos].N_indexed = true;
+   }
 }
 
 [[maybe_unused]] unsigned silo::runOptimize(SequenceStore& db) {
