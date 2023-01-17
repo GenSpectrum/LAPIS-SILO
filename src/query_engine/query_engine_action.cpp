@@ -21,10 +21,10 @@ uint64_t silo::execute_count(const silo::Database& /*db*/, std::vector<silo::fil
 std::vector<silo::mutation_proportion> silo::execute_mutations(const silo::Database& db, std::vector<silo::filter_t>& partition_filters, double proportion_threshold) {
    using roaring::Roaring;
 
-   std::vector<uint32_t> C_per_pos(silo::genomeLength);
-   std::vector<uint32_t> T_per_pos(silo::genomeLength);
    std::vector<uint32_t> A_per_pos(silo::genomeLength);
+   std::vector<uint32_t> C_per_pos(silo::genomeLength);
    std::vector<uint32_t> G_per_pos(silo::genomeLength);
+   std::vector<uint32_t> T_per_pos(silo::genomeLength);
    std::vector<uint32_t> gap_per_pos(silo::genomeLength);
 
    int64_t microseconds = 0;
@@ -37,30 +37,32 @@ std::vector<silo::mutation_proportion> silo::execute_mutations(const silo::Datab
             const silo::DatabasePartition& dbp = db.partitions[i];
             silo::filter_t filter = partition_filters[i];
             const Roaring& bm = *filter.getAsConst();
+            if(bm.isEmpty())
+               continue;
 
-            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::C) { /// everything fine
-               C_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C]);
-            } else { /// Bitmap was flipped
-               C_per_pos[pos] +=
-                  roaring::api::roaring_bitmap_andnot_cardinality(&bm.roaring, &dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C].roaring);
-            }
-            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::T) { /// everything fine
-               T_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T]);
-            } else { /// Bitmap was flipped
-               T_per_pos[pos] +=
-                  roaring::api::roaring_bitmap_andnot_cardinality(&bm.roaring, &dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T].roaring);
-            }
             if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::A) { /// everything fine
                A_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A]);
             } else { /// Bitmap was flipped
                A_per_pos[pos] +=
                   roaring::api::roaring_bitmap_andnot_cardinality(&bm.roaring, &dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A].roaring);
             }
+            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::C) { /// everything fine
+               C_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C]);
+            } else { /// Bitmap was flipped
+               C_per_pos[pos] +=
+                  roaring::api::roaring_bitmap_andnot_cardinality(&bm.roaring, &dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C].roaring);
+            }
             if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::G) { /// everything fine
                G_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G]);
             } else { /// Bitmap was flipped
                G_per_pos[pos] +=
                   roaring::api::roaring_bitmap_andnot_cardinality(&bm.roaring, &dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G].roaring);
+            }
+            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::T) { /// everything fine
+               T_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T]);
+            } else { /// Bitmap was flipped
+               T_per_pos[pos] +=
+                  roaring::api::roaring_bitmap_andnot_cardinality(&bm.roaring, &dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T].roaring);
             }
             if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::gap) { /// everything fine
                gap_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap]);
@@ -89,20 +91,6 @@ std::vector<silo::mutation_proportion> silo::execute_mutations(const silo::Datab
          uint32_t threshold_count = std::ceil((double) total * (double) proportion_threshold) - 1;
 
          char pos_ref = db.global_reference[0].at(pos);
-         if (pos_ref != 'C') {
-            const uint32_t tmp = C_per_pos[pos];
-            if (tmp > threshold_count) {
-               double proportion = (double) tmp / (double) total;
-               ret.push_back({pos_ref, pos, 'C', proportion, tmp});
-            }
-         }
-         if (pos_ref != 'T') {
-            const uint32_t tmp = T_per_pos[pos];
-            if (tmp > threshold_count) {
-               double proportion = (double) tmp / (double) total;
-               ret.push_back({pos_ref, pos, 'T', proportion, tmp});
-            }
-         }
          if (pos_ref != 'A') {
             const uint32_t tmp = A_per_pos[pos];
             if (tmp > threshold_count) {
@@ -110,11 +98,25 @@ std::vector<silo::mutation_proportion> silo::execute_mutations(const silo::Datab
                ret.push_back({pos_ref, pos, 'A', proportion, tmp});
             }
          }
+         if (pos_ref != 'C') {
+            const uint32_t tmp = C_per_pos[pos];
+            if (tmp > threshold_count) {
+               double proportion = (double) tmp / (double) total;
+               ret.push_back({pos_ref, pos, 'C', proportion, tmp});
+            }
+         }
          if (pos_ref != 'G') {
             const uint32_t tmp = G_per_pos[pos];
             if (tmp > threshold_count) {
                double proportion = (double) tmp / (double) total;
                ret.push_back({pos_ref, pos, 'G', proportion, tmp});
+            }
+         }
+         if (pos_ref != 'T') {
+            const uint32_t tmp = T_per_pos[pos];
+            if (tmp > threshold_count) {
+               double proportion = (double) tmp / (double) total;
+               ret.push_back({pos_ref, pos, 'T', proportion, tmp});
             }
          }
          /// This should always be the case. For future-proof-ness (gaps in reference), keep this check in.
