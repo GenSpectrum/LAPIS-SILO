@@ -262,6 +262,7 @@ filter_t NOfEx_evaluateImpl0_exact(const NOfEx* self, const Database& db, const 
       }
       bm.free();
    }
+   /// Sort because set_difference needs sorted vectors
    std::sort(at_least.begin(), at_least.end());
    std::sort(too_much.begin(), too_much.end());
    std::vector<uint32_t> correct;
@@ -294,14 +295,14 @@ filter_t NOfEx_evaluateImpl1_threshold(const NOfEx* self, const Database& db, co
       bm.free();
    }
 
-   /// Delete
+   /// Delete all unneeded bitmaps
    for (unsigned i = 0; i < self->n - 1; ++i)
       delete dp[i];
 
    return {dp.back(), nullptr};
 }
 
-/// DPP
+/// DPLoop
 filter_t NOfEx_evaluateImpl1_exact(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
    std::vector<Roaring*> dp(self->n + 1);
    /// Copy bm of first child if immutable, otherwise use it directly
