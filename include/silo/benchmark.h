@@ -10,6 +10,7 @@
 namespace silo {
 
 int benchmark(const silo::Database& db, std::istream& query_defs, const std::string& query_dir_str);
+int benchmark_throughput(const silo::Database& db, std::istream& query_defs, const std::string& query_dir_str);
 
 }
 
