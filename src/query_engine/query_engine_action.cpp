@@ -27,18 +27,32 @@ std::vector<silo::mutation_proportion> silo::execute_mutations(const silo::Datab
    std::vector<uint32_t> T_per_pos(silo::genomeLength);
    std::vector<uint32_t> gap_per_pos(silo::genomeLength);
 
+   std::vector<unsigned> partition_filters_to_evaluate;
+   std::vector<unsigned> full_partition_filters_to_evaluate;
+   for (unsigned i = 0; i < db.partitions.size(); ++i) {
+      const silo::DatabasePartition& dbp = db.partitions[i];
+      silo::filter_t filter = partition_filters[i];
+      const Roaring& bm = *filter.getAsConst();
+      if (bm.isEmpty()) {
+         continue;
+      } else if (bm.cardinality() == dbp.sequenceCount) {
+         full_partition_filters_to_evaluate.push_back(i);
+      } else {
+         // TODO check if run-compression is beneficial here
+         partition_filters_to_evaluate.push_back(i);
+      }
+   }
+
    int64_t microseconds = 0;
    {
       BlockTimer timer(microseconds);
 
       tbb::blocked_range<uint32_t> range(0, silo::genomeLength, /*grain_size=*/300);
       tbb::parallel_for(range.begin(), range.end(), [&](uint32_t pos) {
-         for (unsigned i = 0; i < db.partitions.size(); ++i) {
+         for (unsigned i : partition_filters_to_evaluate) {
             const silo::DatabasePartition& dbp = db.partitions[i];
             silo::filter_t filter = partition_filters[i];
             const Roaring& bm = *filter.getAsConst();
-            if(bm.isEmpty())
-               continue;
 
             if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::A) { /// everything fine
                A_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A]);
@@ -69,6 +83,35 @@ std::vector<silo::mutation_proportion> silo::execute_mutations(const silo::Datab
             } else { /// Bitmap was flipped
                gap_per_pos[pos] +=
                   roaring::api::roaring_bitmap_andnot_cardinality(&bm.roaring, &dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap].roaring);
+            }
+         }
+         /// For these partitions, we have full bitmaps. Do not need to bother with AND cardinality
+         for (unsigned i : full_partition_filters_to_evaluate) {
+            const silo::DatabasePartition& dbp = db.partitions[i];
+            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::A) { /// everything fine
+               A_per_pos[pos] += dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A].cardinality();
+            } else { /// Bitmap was flipped
+               A_per_pos[pos] += dbp.sequenceCount - dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A].cardinality();
+            }
+            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::C) { /// everything fine
+               C_per_pos[pos] += dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C].cardinality();
+            } else { /// Bitmap was flipped
+               C_per_pos[pos] += dbp.sequenceCount - dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C].cardinality();
+            }
+            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::G) { /// everything fine
+               G_per_pos[pos] += dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G].cardinality();
+            } else { /// Bitmap was flipped
+               G_per_pos[pos] += dbp.sequenceCount - dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G].cardinality();
+            }
+            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::T) { /// everything fine
+               T_per_pos[pos] += dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T].cardinality();
+            } else { /// Bitmap was flipped
+               T_per_pos[pos] += dbp.sequenceCount - dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T].cardinality();
+            }
+            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::gap) { /// everything fine
+               gap_per_pos[pos] += dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap].cardinality();
+            } else { /// Bitmap was flipped
+               gap_per_pos[pos] += dbp.sequenceCount - dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap].cardinality();
             }
          }
       });
