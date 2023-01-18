@@ -57,32 +57,27 @@ std::vector<silo::mutation_proportion> silo::execute_mutations(const silo::Datab
             if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::A) { /// everything fine
                A_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A]);
             } else { /// Bitmap was flipped
-               A_per_pos[pos] +=
-                  roaring::api::roaring_bitmap_andnot_cardinality(&bm.roaring, &dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A].roaring);
+               A_per_pos[pos] += bm.andnot_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A]);
             }
             if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::C) { /// everything fine
                C_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C]);
             } else { /// Bitmap was flipped
-               C_per_pos[pos] +=
-                  roaring::api::roaring_bitmap_andnot_cardinality(&bm.roaring, &dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C].roaring);
+               C_per_pos[pos] += bm.andnot_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C]);
             }
             if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::G) { /// everything fine
                G_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G]);
             } else { /// Bitmap was flipped
-               G_per_pos[pos] +=
-                  roaring::api::roaring_bitmap_andnot_cardinality(&bm.roaring, &dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G].roaring);
+               G_per_pos[pos] += bm.andnot_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G]);
             }
             if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::T) { /// everything fine
                T_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T]);
             } else { /// Bitmap was flipped
-               T_per_pos[pos] +=
-                  roaring::api::roaring_bitmap_andnot_cardinality(&bm.roaring, &dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T].roaring);
+               T_per_pos[pos] += bm.andnot_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T]);
             }
             if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::gap) { /// everything fine
                gap_per_pos[pos] += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap]);
             } else { /// Bitmap was flipped
-               gap_per_pos[pos] +=
-                  roaring::api::roaring_bitmap_andnot_cardinality(&bm.roaring, &dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap].roaring);
+               gap_per_pos[pos] += bm.andnot_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap]);
             }
          }
          /// For these partitions, we have full bitmaps. Do not need to bother with AND cardinality
@@ -116,7 +111,7 @@ std::vector<silo::mutation_proportion> silo::execute_mutations(const silo::Datab
          }
       });
    }
-   std::cerr << "Per pos calculation: " << std::to_string(microseconds) << std::endl;
+   // std::cerr << "Per pos calculation: " << std::to_string(microseconds) << std::endl;
 
    for (unsigned i = 0; i < db.partitions.size(); ++i) {
       partition_filters[i].free();
@@ -172,7 +167,7 @@ std::vector<silo::mutation_proportion> silo::execute_mutations(const silo::Datab
          }
       }
    }
-   std::cerr << "Proportion / ret calculation: " << std::to_string(microseconds) << std::endl;
+   // std::cerr << "Proportion / ret calculation: " << std::to_string(microseconds) << std::endl;
 
    return ret;
 }
