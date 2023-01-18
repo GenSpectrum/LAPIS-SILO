@@ -19,7 +19,8 @@ pango_descriptor_t build_pango_defs(const std::unordered_map<std::string, std::s
 enum architecture_type {
    max_partitions,
    single_partition,
-   hybrid
+   hybrid,
+   single_single
 };
 
 partitioning_descriptor_t build_partitioning_descriptor(pango_descriptor_t pango_defs, architecture_type arch);

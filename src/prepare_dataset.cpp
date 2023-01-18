@@ -262,6 +262,19 @@ silo::partitioning_descriptor_t silo::build_partitioning_descriptor(silo::pango_
 
          descriptor.partitions[0].count = total_count;
          return descriptor;
+      case architecture_type::single_single:
+
+         descriptor.partitions.push_back(silo::partition_t{});
+         descriptor.partitions[0].name = "full_full";
+
+         // Merge pango_lineages, such that chunks are not get very small
+         descriptor.partitions[0].chunks.push_back(silo::chunk_t{"", total_count, 0, std::vector<std::string>()});
+         for(auto& pango : pango_defs.pangos){
+            descriptor.partitions[0].chunks.back().pangos.push_back(pango.pango_lineage);
+         }
+
+         descriptor.partitions[0].count = total_count;
+         return descriptor;
       case hybrid:
          break;
    }
