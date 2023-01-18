@@ -99,9 +99,9 @@ std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value
       unsigned pos = js["position"].GetUint();
       char ref_symbol = db.global_reference[0].at(pos);
       /// this <= is correct! the negation would flip the exact bit from -1 to +1 and vice versa
-      if (exact <= 0) {
+      if (exact <= 0) { /// NucEqEx
          return std::make_unique<NegEx>(std::make_unique<NucEqEx>(pos, silo::to_symbol(ref_symbol)));
-      } else {
+      } else { /// NucMbEx
          return std::make_unique<NegEx>(std::make_unique<NucMbEx>(pos, silo::to_symbol(ref_symbol)));
       }
    } else if (type == "PangoLineage") {
@@ -270,7 +270,38 @@ filter_t NOfEx_evaluateImpl0_exact(const NOfEx* self, const Database& db, const 
    return {new Roaring(correct.size(), &correct[0]), nullptr};
 }
 
-// DPLoop
+filter_t NOfEx_evaluateImpl0b_exact(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
+   Roaring* ret = new Roaring();
+   Roaring* too_much = new Roaring();
+   std::vector<uint16_t> count;
+   std::vector<uint32_t> correct_buffer;
+   std::vector<uint32_t> too_much_buffer;
+   for (auto& child : self->children) {
+      auto bm = child->evaluate(db, dbp);
+      for (uint32_t id : *bm.getAsConst()) {
+         ++count[id];
+         if (count[id] == self->n) {
+            correct_buffer.push_back(id);
+         } else if (count[id] == self->n + 1) {
+            too_much_buffer.push_back(id);
+         }
+      }
+      bm.free();
+      if (!correct_buffer.empty()) {
+         ret->addMany(correct_buffer.size(), &correct_buffer[0]);
+         correct_buffer.clear();
+      }
+      if (!too_much_buffer.empty()) {
+         too_much->addMany(too_much_buffer.size(), &too_much_buffer[0]);
+         too_much_buffer.clear();
+      }
+   }
+   *ret -= *too_much;
+   delete too_much;
+   return {ret, nullptr};
+}
+
+/// DPLoop
 filter_t NOfEx_evaluateImpl1_threshold(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
    std::vector<Roaring*> dp(self->n);
    /// Copy bm of first child if immutable, otherwise use it directly
@@ -652,8 +683,6 @@ filter_t EmptyEx::evaluate(const Database&, const DatabasePartition&) {
 } // namespace silo;
 
 silo::result_s silo::execute_query(const silo::Database& db, const std::string& query, std::ostream& parse_out, std::ostream& res_out, std::ostream& perf_out) {
-   // std::cout << "Executing query: " << query << std::endl;
-
    rapidjson::Document doc;
    doc.Parse(query.c_str());
    if (!doc.HasMember("filter") || !doc["filter"].IsObject() ||
@@ -668,7 +697,7 @@ silo::result_s silo::execute_query(const silo::Database& db, const std::string& 
    {
       BlockTimer timer(ret.parse_time);
       filter = to_ex(db, doc["filter"], 0);
-      std::cout << "Parsed query: " << filter->to_string(db) << std::endl;
+      parse_out << "Parsed query: " << filter->to_string(db) << std::endl;
    }
 
    perf_out << "Parse: " << std::to_string(ret.parse_time) << " microseconds\n";
