@@ -91,11 +91,15 @@ class Database {
       std::ifstream reference_file(wd + "reference_genome.txt");
       if (!reference_file) {
          std::cerr << "Expected file " << wd << "reference_genome.txt." << std::endl;
-         return;
+         throw std::runtime_error("Expected file " + wd + "reference_genome.txt.");
       }
       while (true) {
          std::string tmp;
          if (!getline(reference_file, tmp, '\n')) break;
+         if (tmp.find('N') != std::string::npos) {
+            std::cerr << "No N in reference genome allowed." << std::endl;
+            throw std::runtime_error("No N in reference genome allowed.");
+         }
          global_reference.push_back(tmp);
       }
       if (global_reference.empty()) {

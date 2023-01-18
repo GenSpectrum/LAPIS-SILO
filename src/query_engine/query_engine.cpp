@@ -71,28 +71,19 @@ std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value
       }
       return ret;
    } else if (type == "NucEq") {
+      unsigned position = js["position"].GetUint();
+      const std::string& s = js["value"].GetString();
+      Symbol value;
+      if (s.at(0) == '.') {
+         char c = db.global_reference[0].at(position);
+         value = to_symbol(c);
+      } else {
+         value = to_symbol(s.at(0));
+      }
       if (exact >= 0) {
-         auto ret = std::make_unique<NucEqEx>();
-         ret->position = js["position"].GetUint();
-         const std::string& s = js["value"].GetString();
-         if (s.at(0) == '.') {
-            char c = db.global_reference[0].at(ret->position);
-            ret->value = to_symbol(c);
-         } else {
-            ret->value = to_symbol(s.at(0));
-         }
-         return ret;
+         return std::make_unique<NucEqEx>(position, value);
       } else { // Approximate query!
-         auto ret = std::make_unique<NucMbEx>();
-         ret->position = js["position"].GetUint();
-         const std::string& s = js["value"].GetString();
-         if (s.at(0) == '.') {
-            char c = db.global_reference[0].at(ret->position);
-            ret->value = to_symbol(c);
-         } else {
-            ret->value = to_symbol(s.at(0));
-         }
-         return ret;
+         return std::make_unique<NucMbEx>(position, value);
       }
    } else if (type == "NucMut") {
       assert(js.HasMember("position"));
