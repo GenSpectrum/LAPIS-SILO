@@ -18,7 +18,7 @@ uint64_t silo::execute_count(const silo::Database& /*db*/, std::vector<silo::fil
    return count;
 }
 
-std::vector<silo::mutation_proportion> silo::execute_mutations(const silo::Database& db, std::vector<silo::filter_t>& partition_filters, double proportion_threshold) {
+std::vector<silo::mutation_proportion> silo::execute_mutations(const silo::Database& db, std::vector<silo::filter_t>& partition_filters, double proportion_threshold, std::ostream& performance_file) {
    using roaring::Roaring;
 
    std::vector<uint32_t> A_per_pos(silo::genomeLength);
@@ -111,7 +111,7 @@ std::vector<silo::mutation_proportion> silo::execute_mutations(const silo::Datab
          }
       });
    }
-   // std::cerr << "Per pos calculation: " << std::to_string(microseconds) << std::endl;
+   performance_file << "pos_calculation\t" << std::to_string(microseconds) << std::endl;
 
    for (unsigned i = 0; i < db.partitions.size(); ++i) {
       partition_filters[i].free();
@@ -167,7 +167,7 @@ std::vector<silo::mutation_proportion> silo::execute_mutations(const silo::Datab
          }
       }
    }
-   // std::cerr << "Proportion / ret calculation: " << std::to_string(microseconds) << std::endl;
+   performance_file << "Proportion_calculation\t" << std::to_string(microseconds) << std::endl;
 
    return ret;
 }

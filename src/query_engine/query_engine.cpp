@@ -741,7 +741,7 @@ silo::result_s silo::execute_query(const silo::Database& db, const std::string& 
                }
                min_proportion = action["minProportion"].GetDouble();
             }
-            std::vector<mutation_proportion> mutations = execute_mutations(db, partition_filters, min_proportion);
+            std::vector<mutation_proportion> mutations = execute_mutations(db, partition_filters, min_proportion, perf_out);
             ret.return_message = "";
             for (auto& s : mutations) {
                ret.return_message += "{\"mutation\":\"";

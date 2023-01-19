@@ -365,7 +365,6 @@ struct RegionEx : public BoolExpression {
 };
 
 struct FilterExpression : public BoolExpression {
-
    virtual filter_t filter(const Database& db, const DatabasePartition& dbp, filter_t in_filter) = 0;
 };
 
@@ -387,7 +386,7 @@ struct PosNEqEx : public FilterExpression {
       return res;
    }
 
-   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override{
+   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
       return std::make_unique<PosNEqEx>(position);
    }
 };
@@ -412,7 +411,7 @@ struct StrEqEx : public FilterExpression {
    }
 
    std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
-      if(column == UINT32_MAX || value == UINT64_MAX){
+      if (column == UINT32_MAX || value == UINT64_MAX) {
          return std::make_unique<EmptyEx>();
       }
       return std::make_unique<StrEqEx>(column, value);
@@ -435,7 +434,7 @@ class mutation_proportion {
 result_s execute_query(const Database& db, const std::string& query, std::ostream& parse_out, std::ostream& res_out, std::ostream& perf_out);
 
 /// Action
-std::vector<mutation_proportion> execute_mutations(const silo::Database&, std::vector<silo::filter_t>&, double proportion_threshold);
+std::vector<mutation_proportion> execute_mutations(const silo::Database&, std::vector<silo::filter_t>&, double proportion_threshold, std::ostream& performance_file);
 
 uint64_t execute_count(const silo::Database& /*db*/, std::vector<silo::filter_t>& partition_filters);
 
