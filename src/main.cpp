@@ -312,6 +312,15 @@ int handle_command(Database& db, std::vector<std::string> args) {
       }
       uint32_t total_bitmaps = (genomeLength * Symbol::N * db.partitions.size());
       std::cout << "Optimised " << std::to_string(optimised) << " out of " << total_bitmaps << " bitmaps." << std::endl;
+   } else if ("remove_run_optimize" == args[0]) {
+      for (auto& dbp : db.partitions) {
+         for (auto& position : dbp.seq_store.positions) {
+            for (auto& bm : position.bitmaps) {
+               bm.removeRunCompression();
+            }
+         }
+      }
+      std::cout << "Removed run compression." << std::endl;
    } else if ("shrink_to_fit" == args[0]) {
       size_t saved = 0;
       for (auto& dbp : db.partitions) {
