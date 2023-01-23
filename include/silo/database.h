@@ -120,7 +120,7 @@ class Database {
       }
    }
 
-   void build(const std::string& part_prefix, const std::string& meta_suffix, const std::string& seq_suffix);
+   void build(const std::string& part_prefix, const std::string& meta_suffix, const std::string& seq_suffix, std::ostream& out);
    // void analyse();
    int db_info(std::ostream& io);
    int db_info_detailed(std::ostream& io);

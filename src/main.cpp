@@ -23,20 +23,35 @@ void info_message() {
    cout << "\tsilo \"<command>\" ..." << endl;
    cout << "\tExecute the commands in the given order, then enter interactive mode." << endl
         << endl;
-   cout << "\tCommands:" << endl
+   cout << "\tPreprocessing commands:" << endl
         << "\trepair_meta [metadata_file] [sequence_file] [meta_out]" << endl
         << "\trepair_sequences [metadata_file] [sequence_file] [sequences_out]" << endl
+        << "\tbuild_pango_def [metadata_file]" << endl
+        << "\tbuild_part_def [Partition mode: 1=all chunks, 2=all partitions, 3=single single]" << endl
+        << "\tpartition [metadata_file] [sequence_file] [partition_directory]" << endl
+        << "\tsort_chunks [partition_directory]" << endl
+        << endl
+        << "\tDatabase building commands:" << endl
+        << "\tbuild_dict [partition_directory] [meta_suffix]" << endl
+        << "\tbuild [partition_directory] [meta_suffix] [fasta_suffix] [info out]" << endl
         << "\tsave [save_directory]" << endl
         << "\tload [load_directory]" << endl
-        << "\tbuild [fasta_archive]" << endl
-        << "\tpartition <out_prefix> [fasta_archive]" << endl
-        << "\tsort_chunks <io_prefix> [fasta_archive]" << endl
-        << "\tbenchmark [query_dir] [num_queries]" << endl;
+        << "\tflip_bitmaps" << endl
+        << "\trun_optimize" << endl
+        << "\tremove_run_optimize" << endl
+        << "\tshrink_to_fit" << endl
+        << "\tindex_all_n" << endl
+        << "\tindex_all_n_naive" << endl
+        << endl
+        << "\tAnalytics commands:" << endl
+        << "\tinfo [outfile]" << endl
+        << "\tinfo_d [outfile]" << endl
+        << "\tbenchmark [query_dir]" << endl
+        << "\tbenchmark_throughput [query_dir]" << endl
+        << "\tquery [query_name] [query_dir]" << endl;
 }
 
 int handle_command(Database& db, std::vector<std::string> args) {
-   using std::cin;
-   using std::cout;
    using std::endl;
 
    const std::string default_db_savedir = db.wd + "bin_save/";
@@ -80,18 +95,36 @@ int handle_command(Database& db, std::vector<std::string> args) {
       }
       auto sequence_out = args.size() > 3 ? std::ofstream(args[3]) : std::ofstream(default_sequence_input + ".repair");
       prune_sequences(meta_input, sequence_input.get_is(), sequence_out);
+   } else if ("info" == args[0]) {
+      if (args.size() > 1) {
+         std::ofstream out(args[1]);
+         if (!out) {
+            std::cout << "Could not open outfile " << args[1] << endl;
+            return 0;
+         }
+         db.db_info(out);
+      } else {
+         db.db_info(std::cout);
+      }
+   } else if ("info_d" == args[0]) {
+      if (args.size() > 1) {
+         std::ofstream out(args[1]);
+         if (!out) {
+            std::cout << "Could not open outfile " << args[1] << endl;
+            return 0;
+         }
+         db.db_info_detailed(out);
+      } else {
+         db.db_info_detailed(std::cout);
+      }
    } else if ("load" == args[0]) {
       std::string db_savedir = args.size() > 1 ? args[1] : default_db_savedir;
-      cout << "Loading Database from " << db_savedir << endl;
+      std::cout << "Loading Database from " << db_savedir << endl;
       db.load(db_savedir);
    } else if ("save" == args[0]) {
       std::string db_savedir = args.size() > 1 ? args[1] : default_db_savedir;
-      cout << "Saving Database to " << db_savedir << endl;
+      std::cout << "Saving Database to " << db_savedir << endl;
       db.save(db_savedir);
-   } else if ("info" == args[0]) {
-      db.db_info(cout);
-   } else if ("info_d" == args[0]) {
-      db.db_info_detailed(cout);
    } else if ("benchmark" == args[0]) {
       auto query_dir_str = args.size() > 1 ? args[1] : default_query_dir;
 
@@ -176,14 +209,14 @@ int handle_command(Database& db, std::vector<std::string> args) {
       return 0;
    } else if ("partition" == args[0]) {
       if (!db.part_def) {
-         cout << "Build partitioning descriptor first. See 'build_part_def' | 'load_part_def'" << endl;
+         std::cout << "Build partitioning descriptor first. See 'build_part_def' | 'load_part_def'" << endl;
          return 0;
       }
       silo::partitioning_descriptor_t& partitioning_descripter = *db.part_def;
       std::string meta_input = args.size() > 1 ? args[1] : default_metadata_input;
       std::string sequence_input = args.size() > 2 ? args[2] : default_sequence_input;
       std::string part_prefix = args.size() > 3 ? args[3] : default_partition_prefix;
-      cout << "partition from " << sequence_input << " and " << meta_input << " into " << part_prefix << endl;
+      std::cout << "partition from " << sequence_input << " and " << meta_input << " into " << part_prefix << endl;
       istream_wrapper seq_file(sequence_input);
       if (!seq_file.get_is()) {
          std::cerr << "sequence_input file " << sequence_input << " not found." << std::endl;
@@ -199,11 +232,11 @@ int handle_command(Database& db, std::vector<std::string> args) {
       return 0;
    } else if ("sort_chunks" == args[0]) {
       if (!db.part_def) {
-         cout << "Build partitioning descriptor first. See 'build_part_def' | 'load_part_def'" << endl;
+         std::cout << "Build partitioning descriptor first. See 'build_part_def' | 'load_part_def'" << endl;
          return 0;
       }
       std::string part_prefix = args.size() > 1 ? args[1] : default_partition_prefix;
-      cout << "sort_chunks in " << part_prefix << endl;
+      std::cout << "sort_chunks in " << part_prefix << endl;
       silo::sort_chunks(*db.part_def, part_prefix);
       return 0;
    } else if ("build_dict" == args[0]) {
@@ -256,22 +289,31 @@ int handle_command(Database& db, std::vector<std::string> args) {
       return 0;
    } else if ("build" == args[0]) {
       if (!db.part_def) {
-         cout << "Build partitioning descriptor first. See 'build_part_def' | 'load_part_def'" << endl;
+         std::cout << "Build partitioning descriptor first. See 'build_part_def' | 'load_part_def'" << endl;
          return 0;
       }
       if (!db.dict) {
-         cout << "Build dictionary first. See 'build_dict' | 'load_dict'" << endl;
+         std::cout << "Build dictionary first. See 'build_dict' | 'load_dict'" << endl;
          return 0;
       }
       std::string part_prefix = args.size() > 1 ? args[1] : default_partition_prefix;
       std::string meta_suffix = args.size() > 2 ? args[2] : ".meta.tsv";
       std::string seq_suffix = args.size() > 3 ? args[3] : ".fasta";
-      db.build(part_prefix, meta_suffix, seq_suffix);
+      if (args.size() > 4) {
+         std::ofstream out(args[4]);
+         if (!out) {
+            std::cout << "Could not open outfile " << args[4] << endl;
+            return 0;
+         }
+         db.build(part_prefix, meta_suffix, seq_suffix, out);
+      } else {
+         db.build(part_prefix, meta_suffix, seq_suffix, std::cout);
+      }
    } else if ("flip_bitmaps" == args[0]) {
       db.flipBitmaps();
    } else if ("query" == args[0]) {
       if (args.size() < 2) {
-         cout << "Expected syntax: \"query JSON_QUERY\"" << endl;
+         std::cout << "Expected syntax: \"query <JSON_QUERY> [query_dir]\"" << endl;
          return 0;
       }
       std::string test_name = args[1];
@@ -387,8 +429,8 @@ int handle_command(Database& db, std::vector<std::string> args) {
    }
    // ___________________________________________________________________________________________________________
    else {
-      cout << "Unknown command " << args[0] << "." << endl;
-      cout << "Type 'help' for additional information." << endl;
+      std::cout << "Unknown command " << args[0] << "." << endl;
+      std::cout << "Type 'help' for additional information." << endl;
       return 0;
    }
    return 0;

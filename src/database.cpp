@@ -14,48 +14,57 @@
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for_each.h>
 
-void silo::Database::build(const std::string& part_prefix, const std::string& meta_suffix, const std::string& seq_suffix) {
-   partitions.resize(part_def->partitions.size());
-   tbb::parallel_for((size_t) 0, part_def->partitions.size(), [&](size_t i) {
-      const auto& part = part_def->partitions[i];
-      partitions[i].chunks = part.chunks;
-      for (unsigned j = 0; j < part.chunks.size(); ++j) {
-         std::string name;
-         name = part_prefix + chunk_string(i, j);
-         std::string seq_file_str = name + seq_suffix;
-         std::ifstream meta_in(name + meta_suffix);
-         if (!istream_wrapper(seq_file_str).get_is()) {
-            seq_file_str += ".xz";
+void silo::Database::build(const std::string& part_prefix, const std::string& meta_suffix, const std::string& seq_suffix, std::ostream& out) {
+   int64_t micros = 0;
+   {
+      BlockTimer timer(micros);
+      partitions.resize(part_def->partitions.size());
+      tbb::parallel_for((size_t) 0, part_def->partitions.size(), [&](size_t i) {
+         const auto& part = part_def->partitions[i];
+         partitions[i].chunks = part.chunks;
+         for (unsigned j = 0; j < part.chunks.size(); ++j) {
+            std::string name;
+            name = part_prefix + chunk_string(i, j);
+            std::string seq_file_str = name + seq_suffix;
+            std::ifstream meta_in(name + meta_suffix);
             if (!istream_wrapper(seq_file_str).get_is()) {
-               std::osyncstream(std::cerr) << "Sequence_file " << (name + seq_suffix) << " not found" << std::endl;
+               seq_file_str += ".xz";
+               if (!istream_wrapper(seq_file_str).get_is()) {
+                  std::osyncstream(std::cerr) << "Sequence_file " << (name + seq_suffix) << " not found" << std::endl;
+                  return;
+               }
+               std::osyncstream(std::cerr) << "Using sequence_file " << (seq_file_str) << std::endl;
+            } else {
+               std::osyncstream(std::cerr) << "Using sequence_file " << (seq_file_str) << std::endl;
+            }
+            if (!meta_in) {
+               std::osyncstream(std::cerr) << "Meta_in file " << (name + meta_suffix) << " not found" << std::endl;
                return;
             }
-            std::osyncstream(std::cerr) << "Using sequence_file " << (seq_file_str) << std::endl;
-         } else {
-            std::osyncstream(std::cerr) << "Using sequence_file " << (seq_file_str) << std::endl;
+            silo::istream_wrapper seq_in(seq_file_str);
+            std::osyncstream(std::cerr) << "Using meta_in file " << (name + meta_suffix) << std::endl;
+            unsigned count1 = processSeq(partitions[i].seq_store, seq_in.get_is());
+            unsigned count2 = processMeta(partitions[i].meta_store, meta_in, alias_key, *dict);
+            if (count1 != count2) {
+               // Fatal error
+               std::osyncstream(std::cerr) << "Sequences in meta data and sequence data for chunk " << chunk_string(i, j) << " are not equal." << std::endl;
+               std::osyncstream(std::cerr) << "Abort build." << std::endl;
+               throw std::runtime_error("Error");
+            }
+            partitions[i].sequenceCount += count1;
          }
-         if (!meta_in) {
-            std::osyncstream(std::cerr) << "Meta_in file " << (name + meta_suffix) << " not found" << std::endl;
-            return;
-         }
-         silo::istream_wrapper seq_in(seq_file_str);
-         std::osyncstream(std::cerr) << "Using meta_in file " << (name + meta_suffix) << std::endl;
-         unsigned count1 = processSeq(partitions[i].seq_store, seq_in.get_is());
-         unsigned count2 = processMeta(partitions[i].meta_store, meta_in, alias_key, *dict);
-         if (count1 != count2) {
-            // Fatal error
-            std::osyncstream(std::cerr) << "Sequences in meta data and sequence data for chunk " << chunk_string(i, j) << " are not equal." << std::endl;
-            std::osyncstream(std::cerr) << "Abort build." << std::endl;
-            throw std::runtime_error("Error");
-         }
-         partitions[i].sequenceCount += count1;
-      }
-   });
-   std::cout << "Info directly after build: " << std::endl;
-   db_info(std::cout);
-   db_info_detailed(std::cout);
-   // Precompute Bitmaps for metadata.
-   finalizeBuild();
+      });
+   }
+   out << "Build took " << std::to_string(micros) << "seconds." << std::endl;
+   out << "Info directly after build: " << std::endl;
+   db_info(out);
+   db_info_detailed(out);
+   {
+      BlockTimer timer(micros);
+      // Precompute Bitmaps for metadata.
+      finalizeBuild();
+   }
+   out << "Index precomputation for metadata took " << std::to_string(micros) << "seconds." << std::endl;
 }
 
 void silo::DatabasePartition::finalizeBuild(const Dictionary& dict) {
