@@ -224,37 +224,6 @@ struct NegEx : public BoolExpression {
    std::unique_ptr<BoolExpression> simplify(const Database& db, const DatabasePartition& dbp) const override;
 };
 
-struct DateBetwEx : public BoolExpression {
-   time_t from;
-   bool open_from;
-   time_t to;
-   bool open_to;
-
-   ExType type() const override {
-      return ExType::INDEX_FILTER;
-   };
-
-   explicit DateBetwEx() {}
-
-   explicit DateBetwEx(time_t from, bool open_from, time_t to, bool open_to)
-      : from(from), open_from(open_from), to(to), open_to(open_to) {}
-
-   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
-
-   std::string to_string(const Database& /*db*/) override {
-      std::string res = "[Date-between ";
-      res += (open_from ? "unbound" : std::to_string(from));
-      res += " and ";
-      res += (open_to ? "unbound" : std::to_string(to));
-      res += "]";
-      return res;
-   }
-
-   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
-      return std::make_unique<DateBetwEx>(from, open_from, to, open_to);
-   }
-};
-
 struct NucEqEx : public BoolExpression {
    unsigned position;
    Symbol value;
@@ -364,11 +333,47 @@ struct RegionEx : public BoolExpression {
    std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override;
 };
 
-struct FilterExpression : public BoolExpression {
-   virtual filter_t filter(const Database& db, const DatabasePartition& dbp, filter_t in_filter) = 0;
+struct SelectEx : public BoolExpression {
+   virtual filter_t select(const Database& db, const DatabasePartition& dbp, filter_t in_filter) = 0;
+   virtual filter_t neg_select(const Database& db, const DatabasePartition& dbp, filter_t in_filter) = 0;
 };
 
-struct PosNEqEx : public FilterExpression {
+struct DateBetwEx : public SelectEx {
+   time_t from;
+   bool open_from;
+   time_t to;
+   bool open_to;
+
+   ExType type() const override {
+      return ExType::INDEX_FILTER;
+   };
+
+   explicit DateBetwEx() {}
+
+   explicit DateBetwEx(time_t from, bool open_from, time_t to, bool open_to)
+      : from(from), open_from(open_from), to(to), open_to(open_to) {}
+
+   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
+
+   filter_t select(const Database& db, const DatabasePartition& dbp, filter_t in_filter) override;
+
+   filter_t neg_select(const Database& db, const DatabasePartition& dbp, filter_t in_filter) override;
+
+   std::string to_string(const Database& /*db*/) override {
+      std::string res = "[Date-between ";
+      res += (open_from ? "unbound" : std::to_string(from));
+      res += " and ";
+      res += (open_to ? "unbound" : std::to_string(to));
+      res += "]";
+      return res;
+   }
+
+   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
+      return std::make_unique<DateBetwEx>(from, open_from, to, open_to);
+   }
+};
+
+struct PosNEqEx : public SelectEx {
    unsigned position;
 
    ExType type() const override {
@@ -379,7 +384,9 @@ struct PosNEqEx : public FilterExpression {
 
    filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
-   filter_t filter(const Database& db, const DatabasePartition& dbp, filter_t in_filter) override;
+   filter_t select(const Database& db, const DatabasePartition& dbp, filter_t in_filter) override;
+
+   filter_t neg_select(const Database& db, const DatabasePartition& dbp, filter_t in_filter) override;
 
    std::string to_string(const Database& /*db*/) override {
       std::string res = std::to_string(position) + "N";
@@ -391,7 +398,7 @@ struct PosNEqEx : public FilterExpression {
    }
 };
 
-struct StrEqEx : public FilterExpression {
+struct StrEqEx : public SelectEx {
    uint32_t column;
    uint64_t value;
 
@@ -403,7 +410,9 @@ struct StrEqEx : public FilterExpression {
 
    filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
-   filter_t filter(const Database& db, const DatabasePartition& dbp, filter_t in_filter) override;
+   filter_t select(const Database& db, const DatabasePartition& dbp, filter_t in_filter) override;
+
+   filter_t neg_select(const Database& db, const DatabasePartition& dbp, filter_t in_filter) override;
 
    std::string to_string(const Database& /*db*/) override {
       std::string res = column + "=" + value;

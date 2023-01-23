@@ -548,11 +548,60 @@ filter_t DateBetwEx::evaluate(const Database& /*db*/, const DatabasePartition& d
    for (const chunk_t& chunk : dbp.get_chunks()) {
       auto begin = &dbp.meta_store.sid_to_date[chunk.offset];
       auto end = &dbp.meta_store.sid_to_date[chunk.offset + chunk.count];
-      uint32_t lower = open_to ? begin - base : std::lower_bound(begin, end, this->from) - base;
+      uint32_t lower = open_from ? begin - base : std::lower_bound(begin, end, this->from) - base;
       uint32_t upper = open_to ? end - base : std::upper_bound(begin, end, this->to) - base;
       ret->addRange(lower, upper);
    }
    return {ret, nullptr};
+}
+
+filter_t DateBetwEx::select(const Database& /*db*/, const DatabasePartition& dbp, filter_t in_filter) {
+   if (open_from && open_to) {
+      return in_filter;
+   } else {
+      Roaring* ret;
+      if (in_filter.mutable_res) {
+         ret = in_filter.mutable_res;
+      } else {
+         ret = new Roaring(*in_filter.getAsConst());
+      }
+      auto base = &dbp.meta_store.sid_to_date[0];
+      uint32_t lower = 0;
+      uint32_t upper = 0;
+      for (const chunk_t& chunk : dbp.get_chunks()) {
+         auto begin = &dbp.meta_store.sid_to_date[chunk.offset];
+         auto end = &dbp.meta_store.sid_to_date[chunk.offset + chunk.count];
+         lower = open_from ? begin - base : std::lower_bound(begin, end, this->from) - base;
+         ret->removeRange(upper, lower);
+         upper = open_to ? end - base : std::upper_bound(begin, end, this->to) - base;
+      }
+      if (!open_to) {
+         ret->removeRange(upper, dbp.sequenceCount);
+      }
+      return {ret, nullptr};
+   }
+}
+
+filter_t DateBetwEx::neg_select(const Database& /*db*/, const DatabasePartition& dbp, filter_t in_filter) {
+   if (open_from && open_to) {
+      return in_filter;
+   } else {
+      Roaring* ret;
+      if (in_filter.mutable_res) {
+         ret = in_filter.mutable_res;
+      } else {
+         ret = new Roaring(*in_filter.getAsConst());
+      }
+      auto base = &dbp.meta_store.sid_to_date[0];
+      for (const chunk_t& chunk : dbp.get_chunks()) {
+         auto begin = &dbp.meta_store.sid_to_date[chunk.offset];
+         auto end = &dbp.meta_store.sid_to_date[chunk.offset + chunk.count];
+         uint32_t lower = open_from ? begin - base : std::lower_bound(begin, end, this->from) - base;
+         uint32_t upper = open_to ? end - base : std::upper_bound(begin, end, this->to) - base;
+         ret->removeRange(lower, upper);
+      }
+      return {ret, nullptr};
+   }
 }
 
 filter_t NucEqEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
@@ -605,7 +654,7 @@ filter_t PosNEqEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp
    return {ret, nullptr};
 }
 
-filter_t PosNEqEx::filter(const Database& /*db*/, const DatabasePartition& dbp, filter_t in_filter) {
+filter_t PosNEqEx::select(const Database& /*db*/, const DatabasePartition& dbp, filter_t in_filter) {
    constexpr unsigned BUFFER_SIZE = 1024;
    std::vector<uint32_t> buffer(BUFFER_SIZE);
    Roaring* ret = new Roaring();
@@ -621,6 +670,27 @@ filter_t PosNEqEx::filter(const Database& /*db*/, const DatabasePartition& dbp, 
    if (buffer.size() > 0) {
       ret->addMany(buffer.size(), buffer.data());
    }
+   in_filter.free();
+   return {ret, nullptr};
+}
+
+filter_t PosNEqEx::neg_select(const Database& /*db*/, const DatabasePartition& dbp, filter_t in_filter) {
+   constexpr unsigned BUFFER_SIZE = 1024;
+   std::vector<uint32_t> buffer(BUFFER_SIZE);
+   Roaring* ret = new Roaring();
+   for (uint32_t seq : *in_filter.getAsConst()) {
+      if (!dbp.seq_store.N_bitmaps[seq].contains(position)) {
+         buffer.push_back(seq);
+         if (buffer.size() == BUFFER_SIZE) {
+            ret->addMany(BUFFER_SIZE, buffer.data());
+            buffer.clear();
+         }
+      }
+   }
+   if (buffer.size() > 0) {
+      ret->addMany(buffer.size(), buffer.data());
+   }
+   in_filter.free();
    return {ret, nullptr};
 }
 
@@ -643,7 +713,7 @@ filter_t StrEqEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp)
    return {ret, nullptr};
 }
 
-filter_t StrEqEx::filter(const Database& /*db*/, const DatabasePartition& dbp, filter_t in_filter) {
+filter_t StrEqEx::select(const Database& /*db*/, const DatabasePartition& dbp, filter_t in_filter) {
    constexpr unsigned BUFFER_SIZE = 1024;
    std::vector<uint32_t> buffer(BUFFER_SIZE);
    Roaring* ret = new Roaring();
@@ -659,6 +729,27 @@ filter_t StrEqEx::filter(const Database& /*db*/, const DatabasePartition& dbp, f
    if (buffer.size() > 0) {
       ret->addMany(buffer.size(), buffer.data());
    }
+   in_filter.free();
+   return {ret, nullptr};
+}
+
+filter_t StrEqEx::neg_select(const Database& /*db*/, const DatabasePartition& dbp, filter_t in_filter) {
+   constexpr unsigned BUFFER_SIZE = 1024;
+   std::vector<uint32_t> buffer(BUFFER_SIZE);
+   Roaring* ret = new Roaring();
+   for (uint32_t seq : *in_filter.getAsConst()) {
+      if (dbp.meta_store.cols[column][seq] != value) {
+         buffer.push_back(seq);
+         if (buffer.size() == BUFFER_SIZE) {
+            ret->addMany(BUFFER_SIZE, buffer.data());
+            buffer.clear();
+         }
+      }
+   }
+   if (buffer.size() > 0) {
+      ret->addMany(buffer.size(), buffer.data());
+   }
+   in_filter.free();
    return {ret, nullptr};
 }
 
