@@ -179,9 +179,10 @@ int handle_command(Database& db, std::vector<std::string> args) {
          return 0;
       }
       std::cout << "Build part_def from pango_def" << std::endl;
-      architecture_type arch = args.size() <= 1 || args[1] == "2" ? architecture_type::max_partitions :
-         args[1] == "1"                                           ? architecture_type::single_partition :
-         args[1] == "3"                                           ? architecture_type::single_single :
+      architecture_type arch =
+         args.size() <= 1 || args[1] == "2" || args[1] == "mp"    ? architecture_type::max_partitions :
+         args[1] == "1"   || args[1] == "sp"                      ? architecture_type::single_partition :
+         args[1] == "3"   || args[1] == "ss"                      ? architecture_type::single_single :
                                                                     architecture_type::hybrid;
       partitioning_descriptor_t part_def = silo::build_partitioning_descriptor(*db.pango_def, arch);
       db.part_def = std::make_unique<partitioning_descriptor_t>(part_def);
