@@ -379,8 +379,8 @@ int handle_command(Database& db, std::vector<std::string> args) {
    } else if ("help" == args[0] || "-h" == args[0] || "--help" == args[0]) {
       info_message();
    } else if ("gap_analysis" == args[0]) {
-      std::ofstream out("../gap_analysis.tsv");
-      out << "EPI\tstart_gaps\tend_gaps\n";
+      std::ofstream out("../start_end_N_analysis.tsv");
+      out << /*"EPI\t*/ "start_N\tend_N\n";
 
       istream_wrapper in(default_sequence_input);
       std::string epi, genome;
@@ -389,16 +389,16 @@ int handle_command(Database& db, std::vector<std::string> args) {
          if (!getline(in.get_is(), genome, '\n')) break;
 
          unsigned start_gaps = 0;
-         while (start_gaps < genome.length() && genome.at(start_gaps) == '-') {
+         while (start_gaps < genome.length() && genome.at(start_gaps) == 'N') {
             start_gaps++;
          }
 
          unsigned end_gaps = 0;
-         while (end_gaps < genome.length() && genome.at(genome.length() - 1 - end_gaps) == '-') {
+         while (end_gaps < genome.length() && genome.at(genome.length() - 1 - end_gaps) == 'N') {
             end_gaps++;
          }
 
-         out << epi << "\t" << std::to_string(start_gaps) << "\t" << std::to_string(end_gaps) << "\n";
+         out << /*epi << "\t" <<*/ std::to_string(start_gaps) << "\t" << std::to_string(end_gaps) << "\n";
       }
       out.flush();
    } else if ("N_analysis" == args[0]) {
