@@ -143,6 +143,24 @@ int handle_command(Database& db, std::vector<std::string> args) {
          return 0;
       }
       return benchmark_throughput(db, query_defs, query_dir_str);
+   } else if ("benchmark_throughput50" == args[0]) {
+      auto query_dir_str = args.size() > 1 ? args[1] : default_query_dir;
+
+      auto query_defs = std::ifstream(query_dir_str + "queries.txt");
+      if (!query_defs) {
+         std::cerr << "query_defs file " << (query_dir_str + "queries.txt") << " not found." << std::endl;
+         return 0;
+      }
+      return benchmark_throughput_mix(db, query_defs, query_dir_str);
+   } else if ("benchmark_throughput_mut" == args[0]) {
+      auto query_dir_str = args.size() > 1 ? args[1] : default_query_dir;
+
+      auto query_defs = std::ifstream(query_dir_str + "queries.txt");
+      if (!query_defs) {
+         std::cerr << "query_defs file " << (query_dir_str + "queries.txt") << " not found." << std::endl;
+         return 0;
+      }
+      return benchmark_throughput_mut(db, query_defs, query_dir_str);
    } else if ("build_pango_def" == args[0]) {
       auto meta_input_str = args.size() > 1 ? args[1] : default_metadata_input;
       auto meta_input = std::ifstream(meta_input_str);
