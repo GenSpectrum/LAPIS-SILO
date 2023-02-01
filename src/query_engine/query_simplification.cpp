@@ -167,17 +167,17 @@ std::unique_ptr<BoolExpression> NOfEx::simplify(const Database& db, const Databa
       for (auto& child : ret->children) {
          new_ret->children.emplace_back(std::move(child));
       }
-      return new_ret;
+      return new_ret->simplify(db, dbp);
    }
    if (ret->n == 0) {
       if (ret->exactly) {
-         auto new_ret = std::make_unique<OrEx>();
+         auto new_ret = std::make_unique<AndEx>();
          for (auto& child : ret->children) {
-            new_ret->children.emplace_back(std::move(child));
+            new_ret->children.emplace_back(std::make_unique<NegEx>(std::move(child)));
          }
-         return std::make_unique<NegEx>(std::move(new_ret));
+         return new_ret->simplify(db, dbp);
       } else {
-         return std::make_unique<EmptyEx>();
+         return std::make_unique<FullEx>();
       }
    }
    if (ret->n == 1 && !ret->exactly) {
@@ -188,9 +188,11 @@ std::unique_ptr<BoolExpression> NOfEx::simplify(const Database& db, const Databa
       return new_ret;
    }
    if (ret->children.empty()) {
+      std::cerr << "NOf simplification bug: children empty, n>0, but no not children.size() < n?" << std::endl;
       return std::make_unique<EmptyEx>();
    }
    if (ret->children.size() == 1) {
+      std::cerr << "NOf simplification bug: 0 < n < children.size(), but children.size() == 1?" << std::endl;
       return std::move(ret->children[0]);
    }
    return ret;
