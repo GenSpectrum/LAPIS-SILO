@@ -153,7 +153,7 @@ int handle_command(Database& db, std::vector<std::string> args) {
          return 0;
       }
       return benchmark_throughput_mix(db, query_defs, query_dir_str);
-   } else if ("generate" == args[0]) {
+   } else if ("bootstrap" == args[0]) {
       if (args.size() <= 2) {
          std::cerr << "Need to specify output directory and seed for bootstrapping." << std::endl;
          return 0;

@@ -209,7 +209,7 @@ std::vector<std::vector<uint32_t>> silo::execute_all_dist(const silo::Database& 
 
             unsigned running_total = 0;
 
-            for (auto symbol = 0; symbol < Symbol::N; symbol++) {
+            for (uint32_t symbol = 0; symbol < Symbol::N; symbol++) {
                if (dbp.seq_store.positions[pos].flipped_bitmap != symbol) { /// everything fine
                   running_total += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[symbol]);
                } else { /// Bitmap was flipped
@@ -222,7 +222,7 @@ std::vector<std::vector<uint32_t>> silo::execute_all_dist(const silo::Database& 
          for (unsigned i : full_partition_filters_to_evaluate) {
             const silo::DatabasePartition& dbp = db.partitions[i];
             unsigned running_total = 0;
-            for (auto symbol = 0; symbol < Symbol::N; symbol++) {
+            for (uint32_t symbol = 0; symbol < Symbol::N; symbol++) {
                if (dbp.seq_store.positions[pos].flipped_bitmap != symbol) { /// everything fine
                   running_total += dbp.seq_store.positions[pos].bitmaps[symbol].cardinality();
                } else { /// Bitmap was flipped

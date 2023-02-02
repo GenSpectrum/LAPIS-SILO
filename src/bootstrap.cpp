@@ -7,7 +7,7 @@
 
 unsigned gen_start_N() {
    unsigned r = rand() % 14495618;
-   std::vector<std::pair<unsigned, unsigned>> breaks = /// histogram, first is count, second is bucket upper
+   std::vector<std::pair<unsigned, unsigned>> breaks = /// histogram, first is count in bucket, second is bucket upper limit
       {
          {2256125, 25},
          {5840168, 45},
@@ -31,13 +31,13 @@ unsigned gen_start_N() {
          return (double) (r - last_br.first) / (double) (br.first - last_br.first) * (br.second - last_br.second);
       }
    }
-   std::cerr << "Shouldnt happen, passed last break 1 " << std::to_string(r) << std::endl;
+   std::cerr << "Shouldn't happen, passed last break 1 " << std::to_string(r) << std::endl;
    return 1;
 }
 
 unsigned gen_end_N() {
    unsigned r = rand() % 14495618;
-   std::vector<std::pair<unsigned, unsigned>> breaks = /// histogram, first is count, second is bucket upper
+   std::vector<std::pair<unsigned, unsigned>> breaks = /// histogram, first is count in bucket, second is bucket upper limit
       {
          {1823567, 25},
          {2898370, 45},
@@ -61,13 +61,13 @@ unsigned gen_end_N() {
          return (double) (r - last_br.first) / (double) (br.first - last_br.first) * (br.second - last_br.second);
       }
    }
-   std::cerr << "Shouldnt happen, passed last break 2 " << std::to_string(r) << std::endl;
+   std::cerr << "Shouldn't happen, passed last break 2 " << std::to_string(r) << std::endl;
    return 1;
 }
 
 unsigned gen_N_len() {
    unsigned r = rand() % 77869427;
-   std::vector<std::pair<unsigned, unsigned>> breaks = /// histogram, first is count, second is bucket upper
+   std::vector<std::pair<unsigned, unsigned>> breaks = /// histogram, first is count in bucket, second is bucket upper limit
       {
          {43610073, 25},
          {50662078, 45},
@@ -91,7 +91,7 @@ unsigned gen_N_len() {
          return (double) (r - last_br.first) / (double) (br.first - last_br.first) * (br.second - last_br.second);
       }
    }
-   std::cerr << "Shouldnt happen, passed last break 3 " << std::to_string(r) << std::endl;
+   std::cerr << "Shouldn't happen, passed last break 3 " << std::to_string(r) << std::endl;
    return 1;
 }
 
@@ -102,6 +102,8 @@ char sample_pos(std::vector<uint32_t>& dist) {
          return silo::symbol_rep[symbol];
       }
    }
+   std::cerr << "Shouldn't happen, passed last break 4 " << std::to_string(r) << " " << std::to_string(dist.back()) << std::endl;
+   return 'A';
 }
 
 void gen_genome(char* ret, std::vector<std::vector<uint32_t>>& dist) {
@@ -137,6 +139,7 @@ void gen_genome(char* ret, std::vector<std::vector<uint32_t>>& dist) {
 int bootstrap(const silo::Database& db, std::string& out_dir, unsigned seed, unsigned factor) {
    srand(seed);
    unsigned pango_count = db.dict->get_pango_count();
+   unsigned epi_factor = pango_count * factor;
    for (unsigned pango_id = 0; pango_id < pango_count; pango_id++) {
       auto predicate = std::make_unique<silo::PangoLineageEx>(pango_id, false);
       auto part_filters = silo::execute_predicate(db, predicate.get());
@@ -153,7 +156,7 @@ int bootstrap(const silo::Database& db, std::string& out_dir, unsigned seed, uns
                return -1;
             }
             for (unsigned i = 0; i < count; i++) {
-               out_file << "EPI_ISL_" << std::to_string(pango_id) << "_" << std::to_string(rep) << "_" << std::to_string(i) << '\n';
+               out_file << "EPI_ISL_" << std::to_string(i * epi_factor + rep * pango_count + pango_id) << '\n';
                char genome[silo::genomeLength];
                gen_genome(genome, dist);
                out_file << genome << '\n';
@@ -161,8 +164,13 @@ int bootstrap(const silo::Database& db, std::string& out_dir, unsigned seed, uns
          }
          /// xz compress output file
          {
-            std::string compress_command = "xz -t 0 " + file_name;
-            system(compress_command.c_str());
+            std::string compress_command = "xz -T0 -z " + file_name;
+            int ret_code = system(compress_command.c_str());
+            if (ret_code) {
+               std::cerr << "Command to compress generated file " << file_name << ":\n"
+                         << compress_command << '\n'
+                         << "Returned with non zero return code " << ret_code << std::endl;
+            }
          }
       }
    }
