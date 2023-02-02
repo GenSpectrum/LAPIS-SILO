@@ -33,12 +33,16 @@ std::vector<silo::mutation_proportion> silo::execute_mutations(const silo::Datab
       const silo::DatabasePartition& dbp = db.partitions[i];
       silo::filter_t filter = partition_filters[i];
       const Roaring& bm = *filter.getAsConst();
-      if (bm.isEmpty()) {
+      // TODO check naive run_compression
+      const unsigned card = bm.cardinality();
+      if (card == 0) {
          continue;
-      } else if (bm.cardinality() == dbp.sequenceCount) {
+      } else if (card == dbp.sequenceCount) {
          full_partition_filters_to_evaluate.push_back(i);
       } else {
-         // TODO check if run-compression is beneficial here
+         if (filter.mutable_res) {
+            filter.mutable_res->runOptimize();
+         }
          partition_filters_to_evaluate.push_back(i);
       }
    }
@@ -168,6 +172,71 @@ std::vector<silo::mutation_proportion> silo::execute_mutations(const silo::Datab
       }
    }
    performance_file << "Proportion_calculation\t" << std::to_string(microseconds) << std::endl;
+
+   return ret;
+}
+
+std::vector<std::vector<uint32_t>> silo::execute_all_dist(const silo::Database& db, std::vector<silo::filter_t>& partition_filters) {
+   using roaring::Roaring;
+   std::vector<unsigned> partition_filters_to_evaluate;
+   std::vector<unsigned> full_partition_filters_to_evaluate;
+   for (unsigned i = 0; i < db.partitions.size(); ++i) {
+      const silo::DatabasePartition& dbp = db.partitions[i];
+      silo::filter_t filter = partition_filters[i];
+      const Roaring& bm = *filter.getAsConst();
+      const unsigned card = bm.cardinality();
+      if (card == 0) {
+         continue;
+      } else if (card == dbp.sequenceCount) {
+         full_partition_filters_to_evaluate.push_back(i);
+      } else {
+         partition_filters_to_evaluate.push_back(i);
+      }
+   }
+
+   std::vector<std::vector<uint32_t>> ret(genomeLength);
+   for (auto& v : ret) {
+      v.resize(Symbol::N);
+   }
+
+   {
+      tbb::blocked_range<uint32_t> range(0, silo::genomeLength, /*grain_size=*/300);
+      tbb::parallel_for(range.begin(), range.end(), [&](uint32_t pos) {
+         for (unsigned i : partition_filters_to_evaluate) {
+            const silo::DatabasePartition& dbp = db.partitions[i];
+            silo::filter_t filter = partition_filters[i];
+            const Roaring& bm = *filter.getAsConst();
+
+            unsigned running_total = 0;
+
+            for (auto symbol = 0; symbol < Symbol::N; symbol++) {
+               if (dbp.seq_store.positions[pos].flipped_bitmap != symbol) { /// everything fine
+                  running_total += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[symbol]);
+               } else { /// Bitmap was flipped
+                  running_total += bm.andnot_cardinality(dbp.seq_store.positions[pos].bitmaps[symbol]);
+               }
+               ret[pos][symbol] += running_total;
+            }
+         }
+         /// For these partitions, we have full bitmaps. Do not need to bother with AND cardinality
+         for (unsigned i : full_partition_filters_to_evaluate) {
+            const silo::DatabasePartition& dbp = db.partitions[i];
+            unsigned running_total = 0;
+            for (auto symbol = 0; symbol < Symbol::N; symbol++) {
+               if (dbp.seq_store.positions[pos].flipped_bitmap != symbol) { /// everything fine
+                  running_total += dbp.seq_store.positions[pos].bitmaps[symbol].cardinality();
+               } else { /// Bitmap was flipped
+                  running_total += dbp.sequenceCount - dbp.seq_store.positions[pos].bitmaps[symbol].cardinality();
+               }
+               ret[pos][symbol] += running_total;
+            }
+         }
+      });
+   }
+
+   for (unsigned i = 0; i < db.partitions.size(); ++i) {
+      partition_filters[i].free();
+   }
 
    return ret;
 }

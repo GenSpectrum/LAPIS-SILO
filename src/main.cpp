@@ -3,6 +3,7 @@
 #include <readline/history.h>
 #include <readline/readline.h>
 #include <silo/benchmark.h>
+#include <silo/bootstrap.h>
 #include <silo/common/istream_wrapper.h>
 #include <silo/database.h>
 #include <silo/prepare_dataset.h>
@@ -143,7 +144,7 @@ int handle_command(Database& db, std::vector<std::string> args) {
          return 0;
       }
       return benchmark_throughput(db, query_defs, query_dir_str);
-   } else if ("benchmark_throughput50" == args[0]) {
+   } else if ("benchmark_throughput_mix" == args[0]) {
       auto query_dir_str = args.size() > 1 ? args[1] : default_query_dir;
 
       auto query_defs = std::ifstream(query_dir_str + "queries.txt");
@@ -152,6 +153,15 @@ int handle_command(Database& db, std::vector<std::string> args) {
          return 0;
       }
       return benchmark_throughput_mix(db, query_defs, query_dir_str);
+   } else if ("generate" == args[0]) {
+      if (args.size() <= 2) {
+         std::cerr << "Need to specify output directory and seed for bootstrapping." << std::endl;
+         return 0;
+      }
+      auto out_dir = args[1];
+      auto seed = atoi(args[2].c_str());
+      auto factor = args.size() > 3 ? atoi(args[3].c_str()) : 10;
+      return bootstrap(db, out_dir, seed, factor);
    } else if ("benchmark_throughput_mut" == args[0]) {
       auto query_dir_str = args.size() > 1 ? args[1] : default_query_dir;
 
@@ -198,10 +208,10 @@ int handle_command(Database& db, std::vector<std::string> args) {
       }
       std::cout << "Build part_def from pango_def" << std::endl;
       architecture_type arch =
-         args.size() <= 1 || args[1] == "2" || args[1] == "mp"    ? architecture_type::max_partitions :
-         args[1] == "1"   || args[1] == "sp"                      ? architecture_type::single_partition :
-         args[1] == "3"   || args[1] == "ss"                      ? architecture_type::single_single :
-                                                                    architecture_type::hybrid;
+         args.size() <= 1 || args[1] == "2" || args[1] == "mp" ? architecture_type::max_partitions :
+         args[1] == "1" || args[1] == "sp"                     ? architecture_type::single_partition :
+         args[1] == "3" || args[1] == "ss"                     ? architecture_type::single_single :
+                                                                 architecture_type::hybrid;
       partitioning_descriptor_t part_def = silo::build_partitioning_descriptor(*db.pango_def, arch);
       db.part_def = std::make_unique<partitioning_descriptor_t>(part_def);
       return 0;
@@ -420,7 +430,7 @@ int handle_command(Database& db, std::vector<std::string> args) {
       }
       out.flush();
    } else if ("N_analysis" == args[0]) {
-      std::ofstream out("../N_len_analysis.tsv");
+      std::ofstream out("../N_analysis.tsv");
       out << /*"EPI\tpos\t*/ "len\n";
 
       istream_wrapper in(default_sequence_input);
@@ -442,6 +452,42 @@ int handle_command(Database& db, std::vector<std::string> args) {
                if (idx == genomeLength) break;
             }
             out << /* epi << "\t" << std::to_string(N_start) << "\t" << */ std::to_string(idx - N_start) << "\n";
+         }
+      }
+      out.flush();
+   } else if ("inner_N_analysis" == args[0]) {
+      std::ofstream out("../inner_N_analysis.tsv");
+      out << /*"EPI\tpos\t*/ "len\n";
+
+      istream_wrapper in(default_sequence_input);
+      std::string epi, genome;
+      while (true) {
+         if (!getline(in.get_is(), epi, '\n')) break;
+         if (!getline(in.get_is(), genome, '\n')) break;
+
+         unsigned last_seen = 0;
+         bool first = true;
+
+         unsigned idx = 0;
+         while (idx < genomeLength) {
+            while (genome.at(idx) != 'N') {
+               idx++;
+               if (idx == genomeLength) break;
+            }
+            if (idx == genomeLength) break;
+            unsigned N_start = idx;
+            while (genome.at(idx) == 'N') {
+               idx++;
+               if (idx == genomeLength) break;
+            }
+            if (last_seen) {
+               out << /* epi << "\t" << std::to_string(N_start) << "\t" << */ std::to_string(last_seen) << "\n";
+            }
+            if (first) {
+               first = false;
+            } else {
+               last_seen = idx - N_start;
+            }
          }
       }
       out.flush();

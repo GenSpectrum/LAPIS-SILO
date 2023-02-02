@@ -18,4 +18,5 @@ set(
         include/silo/prepare_dataset.h
         include/silo/database.h
         include/silo/benchmark.h
+        include/silo/bootstrap.h
 )
