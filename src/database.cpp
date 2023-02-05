@@ -240,6 +240,20 @@ void silo::Database::indexAllN_naive() {
    std::cerr << "index all N naive took " << number_fmt(microseconds) << " microseconds." << std::endl;
 }
 
+void silo::Database::print_flipped(std::ostream& io) {
+   io << "Flipped genome positions: " << std::endl;
+   for (unsigned part_id = 0; part_id < partitions.size(); ++part_id) {
+      const DatabasePartition& dbp = partitions[part_id];
+      for (unsigned i = 0; genomeLength; ++i) {
+         const Position& pos = dbp.seq_store.positions[i];
+         if (pos.flipped_bitmap != silo::to_symbol(global_reference[0].at(i))) {
+            io << std::to_string(part_id) << ": " << std::to_string(i) << symbol_rep[pos.flipped_bitmap] << std::endl;
+         }
+      }
+      io << std::endl;
+   }
+}
+
 int silo::Database::db_info_detailed(std::ostream& io) {
    std::vector<size_t> size_by_symbols(symbolCount);
 

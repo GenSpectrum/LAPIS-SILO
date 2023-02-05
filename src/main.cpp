@@ -47,6 +47,7 @@ void info_message() {
         << "\tAnalytics commands:" << endl
         << "\tinfo [outfile]" << endl
         << "\tinfo_d [outfile]" << endl
+        << "\tprint_flipped [outfile]" << endl
         << "\tbenchmark [query_dir]" << endl
         << "\tbenchmark_throughput [query_dir]" << endl
         << "\tquery [query_name] [query_dir]" << endl;
@@ -117,6 +118,17 @@ int handle_command(Database& db, std::vector<std::string> args) {
          db.db_info_detailed(out);
       } else {
          db.db_info_detailed(std::cout);
+      }
+   } else if ("print_flipped" == args[0]) {
+      if (args.size() > 1) {
+         std::ofstream out(args[1]);
+         if (!out) {
+            std::cout << "Could not open outfile " << args[1] << endl;
+            return 0;
+         }
+         db.print_flipped(out);
+      } else {
+         db.print_flipped(std::cout);
       }
    } else if ("load" == args[0]) {
       std::string db_savedir = args.size() > 1 ? args[1] : default_db_savedir;

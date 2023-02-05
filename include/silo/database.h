@@ -124,6 +124,7 @@ class Database {
    // void analyse();
    int db_info(std::ostream& io);
    int db_info_detailed(std::ostream& io);
+   void print_flipped(std::ostream& io);
 
    void finalizeBuild();
 
