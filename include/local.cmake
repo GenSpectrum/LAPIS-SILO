@@ -8,6 +8,8 @@ set(
         include/silo/common/Vec8U.h
         include/silo/common/silo_symbols.h
         include/silo/common/istream_wrapper.h
+        include/silo/common/lehmer64.h
+        include/silo/common/splitmix64.h
         include/silo/storage/Dictionary.h
         include/silo/storage/meta_store.h
         include/silo/storage/sequence_store.h
