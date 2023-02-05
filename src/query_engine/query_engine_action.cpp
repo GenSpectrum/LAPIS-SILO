@@ -196,7 +196,7 @@ std::vector<std::vector<uint32_t>> silo::execute_all_dist(const silo::Database& 
 
    std::vector<std::vector<uint32_t>> ret(genomeLength);
    for (auto& v : ret) {
-      v.resize(Symbol::N);
+      v.resize(silo::symbolCount - 1);
    }
 
    {
@@ -210,7 +210,7 @@ std::vector<std::vector<uint32_t>> silo::execute_all_dist(const silo::Database& 
             unsigned running_total = 0;
 
             for (uint32_t symbol = 0; symbol < Symbol::N; symbol++) {
-               if (dbp.seq_store.positions[pos].flipped_bitmap != symbol) { /// everything fine
+               if (dbp.seq_store.positions[pos].flipped_bitmap != symbol) { /// everything normal
                   running_total += bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[symbol]);
                } else { /// Bitmap was flipped
                   running_total += bm.andnot_cardinality(dbp.seq_store.positions[pos].bitmaps[symbol]);
