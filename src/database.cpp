@@ -255,6 +255,11 @@ void silo::Database::print_flipped(std::ostream& io) {
 }
 
 int silo::Database::db_info_detailed(std::ostream& io) {
+   std::string csv_line_storage;
+   std::string csv_line_containers;
+   std::string csv_header_histogram;
+   std::string csv_line_histogram;
+
    std::vector<size_t> size_by_symbols(symbolCount);
 
    tbb::parallel_for((unsigned) 0, symbolCount, [&](unsigned symbol) {
@@ -264,10 +269,16 @@ int silo::Database::db_info_detailed(std::ostream& io) {
          }
       }
    });
+   uint64_t size_sum = 0;
    for (unsigned symbol = 0; symbol < symbolCount; ++symbol) {
+      size_sum += size_by_symbols[symbol];
       io << "size for symbol '" << symbol_rep[symbol] << "': "
          << number_fmt(size_by_symbols[symbol]) << std::endl;
+      csv_line_storage += std::to_string(size_by_symbols[symbol]);
+      csv_line_storage += ",";
    }
+   csv_line_storage += std::to_string(size_sum) + ",";
+   csv_line_storage += std::to_string(size_sum - size_by_symbols[Symbol::N]) + ",";
 
    std::mutex lock;
    std::vector<uint32_t> bitset_containers_by_500pos((genomeLength / 500) + 1);
@@ -326,18 +337,24 @@ int silo::Database::db_info_detailed(std::ostream& io) {
       << "array: " << number_fmt(s_total.n_array_containers) << std::endl
       << "run: " << number_fmt(s_total.n_run_containers) << std::endl
       << "bitset: " << number_fmt(s_total.n_bitset_containers) << std::endl;
+   csv_line_containers += std::to_string(s_total.n_containers) + "," + std::to_string(s_total.n_array_containers) + ",";
+   csv_line_containers += std::to_string(s_total.n_run_containers) + "," + std::to_string(s_total.n_bitset_containers) + ",";
    io << "Total bitmap values " << number_fmt(s_total.cardinality) << ", of those there are " << std::endl
       << "array: " << number_fmt(s_total.n_values_array_containers) << std::endl
       << "run: " << number_fmt(s_total.n_values_run_containers) << std::endl
       << "bitset: " << number_fmt(s_total.n_values_bitset_containers) << std::endl;
-   uint64_t total_size = n_bytes_array_containers + n_bytes_run_containers + n_bytes_bitset_containers;
+   csv_line_containers += std::to_string(s_total.cardinality) + "," + std::to_string(s_total.n_values_array_containers) + ",";
+   csv_line_containers += std::to_string(s_total.n_values_run_containers) + "," + std::to_string(s_total.n_values_bitset_containers) + ",";
 
+   uint64_t total_size = n_bytes_array_containers + n_bytes_run_containers + n_bytes_bitset_containers;
    io << "Total bitmap byte size " << number_fmt(total_size_frozen) << " (frozen) " << std::endl;
    io << "Total bitmap byte size " << number_fmt(total_size_comp) << " (compute_size) " << std::endl;
    io << "Total bitmap byte size " << number_fmt(total_size) << ", of those there are " << std::endl
       << "array: " << number_fmt(s_total.n_bytes_array_containers) << std::endl
       << "run: " << number_fmt(s_total.n_bytes_run_containers) << std::endl
       << "bitset: " << number_fmt(s_total.n_bytes_bitset_containers) << std::endl;
+   csv_line_containers += std::to_string(total_size) + "," + std::to_string(s_total.n_bytes_array_containers) + ",";
+   csv_line_containers += std::to_string(s_total.n_bytes_run_containers) + "," + std::to_string(s_total.n_bytes_bitset_containers) + ",";
 
    io << "Bitmap distribution by position #NON_GAP (#GAP)" << std::endl;
    for (unsigned i = 0; i < (genomeLength / 500) + 1; ++i) {
@@ -345,21 +362,18 @@ int silo::Database::db_info_detailed(std::ostream& io) {
       uint32_t N_bitmaps_at_pos = N_bitset_containers_by_500pos[i];
       uint32_t bitmaps_at_pos = bitset_containers_by_500pos[i];
       io << "Pos: [" << i * 500 << "," << ((i + 1) * 500) << "): " << bitmaps_at_pos << " (N: " << N_bitmaps_at_pos << ", -: " << gap_bitsets_at_pos << ")" << '\n';
+      csv_header_histogram += std::to_string(i * 500) + "-" + std::to_string((i + 1) * 500) + ",";
+      csv_header_histogram += std::to_string(i * 500) + "-" + std::to_string((i + 1) * 500) + "N,";
+      csv_header_histogram += std::to_string(i * 500) + "-" + std::to_string((i + 1) * 500) + "-,";
+      csv_line_histogram += std::to_string(bitmaps_at_pos) + "," + std::to_string(N_bitmaps_at_pos) + "," + std::to_string(gap_bitsets_at_pos) + ",";
    }
-   io.flush();
-   /*
-   io << "Partition reference genomes: " << std::endl;
-   for (const DatabasePartition& dbp : partitions) {
-      for (const Position& pos : dbp.seq_store.positions) {
-         if (pos.flipped_bitmap == UINT32_MAX) {
-            io << 'o';
-         } else {
-            io << symbol_rep[pos.flipped_bitmap];
-         }
-      }
-      io << std::endl;
-   }*/
 
+   io << "Storage:" << std::endl;
+   io << csv_line_storage << std::endl;
+   io << "Containers:" << std::endl;
+   io << csv_line_containers << std::endl;
+   io << csv_header_histogram << std::endl;
+   io << csv_line_histogram << std::endl;
    return 0;
 }
 
