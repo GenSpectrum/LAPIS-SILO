@@ -90,6 +90,13 @@ std::unique_ptr<BoolExpression> AndEx::simplify(const Database& db, const Databa
    if (ret->negated_children.size() == 1 && ret->children.empty()) {
       return std::make_unique<NegEx>(std::move(ret->negated_children[0]));
    }
+   if (ret->children.empty()) {
+      std::unique_ptr<OrEx> or_ret = std::make_unique<OrEx>();
+      for (auto& child : ret->negated_children) {
+         or_ret->children.push_back(std::move(child));
+      }
+      return std::make_unique<NegEx>(std::move(or_ret));
+   }
    return ret;
 }
 
@@ -118,21 +125,27 @@ std::unique_ptr<BoolExpression> OrEx::simplify(const Database& db, const Databas
    if (ret->children.size() == 1) {
       return std::move(ret->children[0]);
    }
-   return ret;
+   if (std::any_of(new_children.begin(), new_children.end(), [](const std::unique_ptr<BoolExpression>& child) {
+          return child->type() == NEG;
+       })) {
+      std::unique_ptr<AndEx> and_ret = std::make_unique<AndEx>();
+      for (auto& child : ret->children) {
+         if (child->type() == NEG) {
+            and_ret->negated_children.emplace_back(std::move(dynamic_cast<NegEx*>(child.get())->child));
+         } else {
+            and_ret->children.push_back(std::move(child));
+         }
+      }
+      return and_ret;
+   } else {
+      return ret;
+   }
 }
 
 std::unique_ptr<BoolExpression> NegEx::simplify(const Database& db, const DatabasePartition& dbp) const {
    std::unique_ptr<NegEx> ret = std::make_unique<NegEx>(child->simplify(db, dbp));
    if (ret->child->type() == ExType::NEG) {
       return std::move(dynamic_cast<NegEx*>(ret->child.get())->child);
-   } else if (ret->child->type() == ExType::OR) {
-      OrEx* neg_or = dynamic_cast<OrEx*>(ret->child.get());
-      auto new_ret = std::make_unique<AndEx>();
-      /// Because OR was already simplified, we know that we have at least two children and none of them are FullEx or EmptyEx
-      for (auto& or_child : neg_or->children) {
-         new_ret->children.emplace_back(std::make_unique<NegEx>(std::move(or_child)));
-      }
-      return new_ret->simplify(db, dbp);
    }
    return ret;
 }
