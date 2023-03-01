@@ -7,7 +7,6 @@
 #include <silo/common/PerfEvent.hpp>
 #include <silo/common/fix_rh_map.hpp>
 #include <syncstream>
-#include <silo/common/SizeSketch.h>
 #include <silo/common/hashing.h>
 #include <silo/common/istream_wrapper.h>
 #include <silo/database.h>
