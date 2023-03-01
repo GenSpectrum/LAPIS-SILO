@@ -20,6 +20,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/")
 # ---------------------------------------------------------------------------
 
 find_package(Boost REQUIRED COMPONENTS system serialization iostreams)
+find_package(Poco REQUIRED COMPONENTS Net Util)
 find_package(LibLZMA REQUIRED)
 find_package(TBB REQUIRED)
 find_package(RapidJSON REQUIRED INTERFACE)
@@ -72,6 +73,8 @@ target_link_libraries(siloapi PUBLIC ${Boost_LIBRARIES} TBB::tbb ${readline_LIBR
 add_executable(silo src/main.cpp)
 target_link_libraries(silo PUBLIC siloapi)
 
+add_executable(siloWebApi src/api.cpp)
+target_link_libraries(siloWebApi PUBLIC siloapi Poco::Net Poco::Util)
 
 # ---------------------------------------------------------------------------
 # Tests
