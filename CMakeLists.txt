@@ -19,11 +19,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 # Dependencies
 # ---------------------------------------------------------------------------
 
-include("${CMAKE_SOURCE_DIR}/vendor/rapidjson.cmake")
-
 find_package(Boost REQUIRED COMPONENTS system iostreams serialization)
 find_package(LibLZMA REQUIRED)
 find_package(TBB REQUIRED)
+find_package(RapidJSON REQUIRED INTERFACE)
 
 
 # ---------------------------------------------------------------------------
@@ -61,7 +60,7 @@ set(SRC_CC
 
 
 add_library(siloapi ${SRC_CC} ${Boost_INCLUDE_DIRS})
-target_link_libraries(siloapi PUBLIC rapidjson readline ${Boost_LIBRARIES} TBB::tbb)
+target_link_libraries(siloapi PUBLIC readline ${Boost_LIBRARIES} TBB::tbb)
 
 add_executable(silo src/main.cpp)
 target_link_libraries(silo PUBLIC siloapi)

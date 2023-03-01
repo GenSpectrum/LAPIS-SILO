@@ -4,7 +4,6 @@ set(
         include/silo/common/FixHashtable.hpp
         include/silo/common/hashing.h
         include/silo/common/PerfEvent.hpp
-        include/silo/common/SizeSketch.h
         include/silo/common/Vec8U.h
         include/silo/common/silo_symbols.h
         include/silo/common/istream_wrapper.h
