@@ -8,7 +8,8 @@ RUN apk update && \
         git=2.38.4-r0 \
         libtbb-dev=2021.7.0-r0 \
         readline-dev=8.2.0-r0 \
-        xz-dev=5.2.9-r0
+        xz-dev=5.2.9-r0 \
+        rapidjson-dev=1.1.0-r4
 
 WORKDIR /src
 COPY . .
