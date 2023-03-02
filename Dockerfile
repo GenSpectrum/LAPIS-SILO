@@ -5,7 +5,6 @@ RUN apk update && \
         build-base=0.5-r3 \
         cmake=3.24.3-r0 \
         boost1.80-dev=1.80.0-r3 \
-        git=2.38.4-r0 \
         libtbb-dev=2021.7.0-r0 \
         readline-dev=8.2.0-r0 \
         xz-dev=5.2.9-r0 \
