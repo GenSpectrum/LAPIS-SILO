@@ -56,7 +56,10 @@ void silo::Database::build(const std::string& part_prefix, const std::string& me
    }
    out << "Build took " << std::to_string(micros) << "seconds." << std::endl;
    out << "Info directly after build: " << std::endl;
-   db_info(out);
+   const auto info = get_db_info();
+   out << "Sequence count: " << info.sequence_count << std::endl;
+   out << "Total size: " << info.total_size << std::endl;
+   out << "N_bitmaps per sequence, total size: " << number_fmt(info.N_bitmaps_size) << std::endl;
    db_info_detailed(out);
    {
       BlockTimer timer(micros);
@@ -197,7 +200,7 @@ static inline void addStat(r_stat& r1, const r_stat& r2) {
    r1.sum_value += r2.sum_value;
 }
 
-int silo::Database::db_info(std::ostream& io) {
+silo::db_info_t silo::Database::get_db_info() {
    std::atomic<uint32_t> sequence_count = 0;
    std::atomic<uint64_t> total_size = 0;
    std::atomic<size_t> N_bitmaps_size = 0;
@@ -210,11 +213,7 @@ int silo::Database::db_info(std::ostream& io) {
       }
    });
 
-   std::osyncstream(io) << "sequence count: " << number_fmt(sequence_count) << std::endl;
-   std::osyncstream(io) << "total size: " << number_fmt(total_size) << std::endl;
-   std::osyncstream(io) << "N_bitmaps per sequence, total size: " << number_fmt(N_bitmaps_size) << std::endl;
-
-   return 0;
+   return silo::db_info_t{sequence_count, total_size, N_bitmaps_size};
 }
 
 void silo::Database::indexAllN() {

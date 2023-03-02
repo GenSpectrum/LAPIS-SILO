@@ -23,6 +23,6 @@ RUN \
     --mount=type=cache,target=build/.cmake \
     cmake --build build
 
-RUN cp build/silo . && cp testBaseData/* .
+RUN cp build/siloWebApi . && cp testBaseData/* .
 
-CMD ["./siloWebApi", "api"]
+CMD ["./siloWebApi", "--api"]

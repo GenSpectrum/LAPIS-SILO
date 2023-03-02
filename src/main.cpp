@@ -97,17 +97,6 @@ int handle_command(Database& db, std::vector<std::string> args) {
       }
       auto sequence_out = args.size() > 3 ? std::ofstream(args[3]) : std::ofstream(default_sequence_input + ".repair");
       prune_sequences(meta_input, sequence_input.get_is(), sequence_out);
-   } else if ("info" == args[0]) {
-      if (args.size() > 1) {
-         std::ofstream out(args[1]);
-         if (!out) {
-            std::cout << "Could not open outfile " << args[1] << endl;
-            return 0;
-         }
-         db.db_info(out);
-      } else {
-         db.db_info(std::cout);
-      }
    } else if ("info_d" == args[0]) {
       if (args.size() > 1) {
          std::ofstream out(args[1]);
