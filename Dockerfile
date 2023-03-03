@@ -9,7 +9,8 @@ RUN apk update && \
         readline-dev=8.2.0-r0 \
         xz-dev=5.2.9-r0 \
         rapidjson-dev=1.1.0-r4 \
-        poco-dev=1.12.2-r1
+        poco-dev=1.12.2-r1 \
+        gtest-dev=1.12.1-r0
 
 WORKDIR /src
 COPY . .

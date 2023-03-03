@@ -5,11 +5,14 @@ readline/8.1.2
 xz_utils/5.4.0
 rapidjson/cci.20220822
 poco/1.12.4
+gtest/cci.20210126
 
 [generators]
 cmake_find_package
 cmake_paths
 [options]
+gtest:no_main=True
+
 boost:lzma=True
 boost:shared=False
 
