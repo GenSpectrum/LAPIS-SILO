@@ -22,11 +22,15 @@ struct QueryParseException : public std::exception {
    }
 };
 
+struct query_result {
+   int64_t count;
+};
+
 struct result_s {
-   std::string return_message;
-   int64_t parse_time;
-   int64_t filter_time;
-   int64_t action_time;
+   silo::query_result returnMessage;
+   int64_t parseTime;
+   int64_t filterTime;
+   int64_t actionTime;
 };
 
 /// The return value of the BoolExpression::evaluate method.

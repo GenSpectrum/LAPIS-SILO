@@ -68,9 +68,9 @@ int silo::benchmark(const Database& db, std::istream& query_defs, const std::str
          std::ofstream performance_file(count_query_out_dir_str + test_name + ".perf");
          auto result = execute_query(db, query, parse_file, result_file, performance_file);
          // std::cout << result.return_message << std::endl;
-         parse += result.parse_time;
-         filter += result.filter_time;
-         action += result.action_time;
+         parse += result.parseTime;
+         filter += result.filterTime;
+         action += result.actionTime;
       }
       count_perf_table << test_name << "\t" << parse << "\t" << filter << "\t" << action << std::endl;
 
@@ -84,9 +84,9 @@ int silo::benchmark(const Database& db, std::istream& query_defs, const std::str
          std::ofstream performance_file(list_query_out_dir_str + test_name + ".perf");
          auto result = execute_query(db, query, nullstream, result_file, performance_file);
          // std::cout << result.return_message << std::endl;
-         parse += result.parse_time;
-         filter += result.filter_time;
-         action += result.action_time;
+         parse += result.parseTime;
+         filter += result.filterTime;
+         action += result.actionTime;
       }
       list_perf_table << test_name << "\t" << parse << "\t" << filter << "\t" << action << std::endl;
 
@@ -100,9 +100,9 @@ int silo::benchmark(const Database& db, std::istream& query_defs, const std::str
          std::ofstream performance_file(mutations_query_out_dir_str + test_name + ".perf");
          auto result = execute_query(db, query, nullstream, result_file, performance_file);
          // std::cout << result.return_message << std::endl;
-         parse += result.parse_time;
-         filter += result.filter_time;
-         action += result.action_time;
+         parse += result.parseTime;
+         filter += result.filterTime;
+         action += result.actionTime;
       }
       mutations_perf_table << test_name << "\t" << parse << "\t" << filter << "\t" << action << std::endl;
    }

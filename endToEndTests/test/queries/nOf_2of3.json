@@ -1,0 +1,38 @@
+{
+  "testCaseName": "N-Of query requesting 2 of 3 mutations",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filter": {
+      "type": "N-Of",
+      "n": 2,
+      "exactly": false,
+      "children": [
+        {
+          "type": "NucEq",
+          "position": 241,
+          "value": "T"
+        },
+        {
+          "type": "NucEq",
+          "position": 29734,
+          "value": "T"
+        },
+        {
+          "type": "NucEq",
+          "position": 28330,
+          "value": "G"
+        }
+      ]
+    }
+  },
+  "expectedResponse": {
+    "actionTime": 9,
+    "filterTime": 0,
+    "parseTime": 12,
+    "returnMessage": {
+      "count": 0
+    }
+  }
+}

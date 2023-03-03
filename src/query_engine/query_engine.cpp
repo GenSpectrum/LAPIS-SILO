@@ -789,16 +789,16 @@ silo::result_s silo::execute_query(const silo::Database& db, const std::string& 
    result_s ret;
    std::unique_ptr<BoolExpression> filter;
    {
-      BlockTimer timer(ret.parse_time);
+      BlockTimer timer(ret.parseTime);
       filter = to_ex(db, doc["filter"], 0);
       parse_out << "Parsed query: " << filter->to_string(db) << std::endl;
    }
 
-   perf_out << "Parse: " << std::to_string(ret.parse_time) << " microseconds\n";
+   perf_out << "Parse: " << std::to_string(ret.parseTime) << " microseconds\n";
 
    std::vector<silo::filter_t> partition_filters(db.partitions.size());
    {
-      BlockTimer timer(ret.filter_time);
+      BlockTimer timer(ret.filterTime);
       tbb::blocked_range<size_t> r(0, db.partitions.size(), 1);
       tbb::parallel_for(r.begin(), r.end(), [&](const size_t& i) {
          std::unique_ptr<BoolExpression> part_filter = filter->simplify(db, db.partitions[i]);
@@ -809,10 +809,10 @@ silo::result_s silo::execute_query(const silo::Database& db, const std::string& 
    for (unsigned i = 0; i < db.partitions.size(); ++i) {
       parse_out << "Simplified query for partition " << i << ": " << simplified_queries[i] << std::endl;
    }
-   perf_out << "Execution (filter): " << std::to_string(ret.filter_time) << " microseconds\n";
+   perf_out << "Execution (filter): " << std::to_string(ret.filterTime) << " microseconds\n";
 
    {
-      BlockTimer timer(ret.action_time);
+      BlockTimer timer(ret.actionTime);
       const auto& action = doc["action"];
       assert(action.HasMember("type"));
       assert(action["type"].IsString());
@@ -828,42 +828,42 @@ silo::result_s silo::execute_query(const silo::Database& db, const std::string& 
          } else if (strcmp(action_type, "List") == 0) {
          } else if (strcmp(action_type, "Mutations") == 0) {
          } else {
-            ret.return_message = "Unknown action ";
-            ret.return_message += action_type;
+//            ret.returnMessage = "Unknown action ";
+//            ret.returnMessage += action_type;
          }
       } else {
          if (strcmp(action_type, "Aggregated") == 0) {
             unsigned count = execute_count(db, partition_filters);
-            ret.return_message = "{\"count\": " + std::to_string(count) + "}";
+            ret.returnMessage = query_result{count};
          } else if (strcmp(action_type, "List") == 0) {
          } else if (strcmp(action_type, "Mutations") == 0) {
             double min_proportion = 0.02;
             if (action.HasMember("minProportion") && action["minProportion"].IsDouble()) {
                if (action["minProportion"].GetDouble() <= 0.0) {
-                  ret.return_message = "{\"message\": \"minProportion must be in interval (0.0,1.0]\"}";
+//                  ret.returnMessage = "{\"message\": \"minProportion must be in interval (0.0,1.0]\"}";
                }
                min_proportion = action["minProportion"].GetDouble();
             }
             std::vector<mutation_proportion> mutations = execute_mutations(db, partition_filters, min_proportion, perf_out);
-            ret.return_message = "";
-            for (auto& s : mutations) {
-               ret.return_message += "{\"mutation\":\"";
-               ret.return_message += s.mut_from;
-               ret.return_message += std::to_string(s.position);
-               ret.return_message += s.mut_to;
-               ret.return_message += "\",\"proportion\":" + std::to_string(s.proportion) +
-                  ",\"count\":" + std::to_string(s.count) + "},";
-            }
+//            ret.returnMessage = "";
+//            for (auto& s : mutations) {
+//               ret.returnMessage += "{\"mutation\":\"";
+//               ret.returnMessage += s.mut_from;
+//               ret.returnMessage += std::to_string(s.position);
+//               ret.returnMessage += s.mut_to;
+//               ret.returnMessage += "\",\"proportion\":" + std::to_string(s.proportion) +
+//                  ",\"count\":" + std::to_string(s.count) + "},";
+//            }
          } else {
-            ret.return_message = "Unknown action ";
-            ret.return_message += action_type;
+//            ret.returnMessage = "Unknown action ";
+//            ret.returnMessage += action_type;
          }
       }
    }
 
-   perf_out << "Execution (action): " << std::to_string(ret.action_time) << " microseconds\n";
+   perf_out << "Execution (action): " << std::to_string(ret.actionTime) << " microseconds\n";
 
-   res_out << ret.return_message;
+//   res_out << ret.returnMessage;
 
    return ret;
 }
