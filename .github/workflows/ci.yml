@@ -34,3 +34,22 @@ jobs:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
+
+  endToEndTests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+      - uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+      - name: npm install
+        run: cd endToEndTests && npm ci
+      - name: Run Tests
+        run: cd endToEndTests && npm run test
+      - name: Check Format
+        run: cd endToEndTests&& npm run check-format
