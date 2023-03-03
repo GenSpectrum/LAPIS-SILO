@@ -4,9 +4,12 @@ on:
   push:
   pull_request:
 
+env:
+  DOCKER_IMAGE_NAME: ghcr.io/GenSpectrum/LAPIS-SILO
+
 jobs:
   dockerImage:
-    name: 'Build Docker image'
+    name: Build Docker Image
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' }}
     steps:
@@ -15,8 +18,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: |
-            ghcr.io/GenSpectrum/LAPIS-SILO
+          images: ${{ env.DOCKER_IMAGE_NAME }}
           tags: |
             type=ref,event=branch
             type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
@@ -36,7 +38,9 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
 
   endToEndTests:
+    name: Run End To End Tests
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' }}
     steps:
       - uses: actions/checkout@v3
       - name: Use Node.js ${{ matrix.node-version }}
@@ -49,7 +53,21 @@ jobs:
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
       - name: npm install
         run: cd endToEndTests && npm ci
-      - name: Run Tests
-        run: cd endToEndTests && npm run test
       - name: Check Format
-        run: cd endToEndTests&& npm run check-format
+        run: cd endToEndTests && npm run check-format
+      - name: Docker Metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.DOCKER_IMAGE_NAME }}
+          tags: type=ref,event=branch
+      - name: Wait for Docker Image
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          ref: ${{ github.ref }}
+          check-name: 'Build Docker Image'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Start Docker Container
+        run: docker run -p 8080:8080 -d ${{ steps.meta.outputs.tags }}
+      - name: Run Tests
+        run: cd endToEndTests && SILO_URL=localhost:8080 npm run test
