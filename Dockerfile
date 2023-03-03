@@ -13,13 +13,15 @@ RUN apk update && \
 WORKDIR /src
 COPY . .
 
-WORKDIR build
+RUN \
+    --mount=type=cache,target=build/CMakeFiles \
+    --mount=type=cache,target=build/.cmake \
+     cmake -D CMAKE_BUILD_TYPE=Release -B build .
+RUN \
+    --mount=type=cache,target=build/CMakeFiles \
+    --mount=type=cache,target=build/.cmake \
+    cmake --build build
 
-
-RUN cmake ..
-RUN cmake --build .
-
-WORKDIR /src
 RUN cp build/silo . && cp testBaseData/* .
 
 CMD ["./silo"]

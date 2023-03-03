@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 project(SILO)
 
 if (NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release)
+    set(CMAKE_BUILD_TYPE Debug)
 endif ()
 
 
@@ -13,17 +13,25 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/")
 
 # ---------------------------------------------------------------------------
 # Dependencies
 # ---------------------------------------------------------------------------
 
-find_package(Boost REQUIRED COMPONENTS system iostreams serialization)
+find_package(Boost REQUIRED COMPONENTS system serialization iostreams)
 find_package(LibLZMA REQUIRED)
 find_package(TBB REQUIRED)
 find_package(RapidJSON REQUIRED INTERFACE)
 
+# workaround: conans readline is different from apk readline
+# Remove when readline is no longer needed
+# TODO: #16 Implement reading database data in SILO API
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    find_package(readline REQUIRED)
+else()
+    set(readline_LIBRARIES readline)
+endif ()
 
 # ---------------------------------------------------------------------------
 # Includes
@@ -31,18 +39,17 @@ find_package(RapidJSON REQUIRED INTERFACE)
 
 include("${CMAKE_SOURCE_DIR}/include/local.cmake")
 
-
 include_directories(SYSTEM
         ${CMAKE_SOURCE_DIR}/include
         ${Boost_INCLUDE_DIRS}
         ${LIBLZMA_INCLUDE_DIRS}
-        ${RAPIDJSON_INCLUDE_DIR}
+        ${RapidJSON_INCLUDE_DIRS}
+        ${readline_INCLUDE_DIRS}
         )
 
 # ---------------------------------------------------------------------------
 # Sources
 # ---------------------------------------------------------------------------
-
 
 set(SRC_CC
         src/silo.cpp
@@ -59,8 +66,8 @@ set(SRC_CC
         src/roaring/roaring.c)
 
 
-add_library(siloapi ${SRC_CC} ${Boost_INCLUDE_DIRS})
-target_link_libraries(siloapi PUBLIC readline ${Boost_LIBRARIES} TBB::tbb)
+add_library(siloapi ${SRC_CC})
+target_link_libraries(siloapi PUBLIC ${Boost_LIBRARIES} TBB::tbb ${readline_LIBRARIES})
 
 add_executable(silo src/main.cpp)
 target_link_libraries(silo PUBLIC siloapi)
