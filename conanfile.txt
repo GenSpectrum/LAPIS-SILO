@@ -5,6 +5,7 @@ readline/8.1.2
 xz_utils/5.4.0
 rapidjson/cci.20220822
 poco/1.12.4
+nlohmann_json/3.11.2
 gtest/cci.20210126
 
 [generators]

@@ -15,9 +15,21 @@
 #include "silo/database.h"
 #include "silo/query_engine/query_engine.h"
 #include <iostream>
+#include <nlohmann/json.hpp>
 #include <vector>
 
 using namespace silo;
+
+struct error_response {
+   std::string error;
+   std::string message;
+};
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(error_response, error, message);
+
+namespace silo {
+   NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(db_info_t, sequence_count, total_size, N_bitmaps_size);
+}
 
 class QueryRequestHandler : public Poco::Net::HTTPRequestHandler {
    private:
@@ -44,15 +56,11 @@ class QueryRequestHandler : public Poco::Net::HTTPRequestHandler {
       } catch (const silo::QueryParseException& ex) {
          response.setStatus(Poco::Net::HTTPResponse::HTTP_BAD_REQUEST);
          std::ostream& out_stream = response.send();
-         Poco::JSON::Object output;
-         output.set("error", ex.what());
-         output.stringify(out_stream);
+         out_stream << nlohmann::json(error_response{"Bad request", ex.what()});
       } catch (const std::exception& ex) {
          response.setStatus(Poco::Net::HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
          std::ostream& out_stream = response.send();
-         Poco::JSON::Object output;
-         output.set("error", ex.what());
-         output.stringify(out_stream);
+         out_stream << nlohmann::json(error_response{"Internal server error", ex.what()});
       }
    }
 };
@@ -70,11 +78,7 @@ class InfoHandler : public Poco::Net::HTTPRequestHandler {
 
       response.setContentType("application/json");
       std::ostream& out_stream = response.send();
-      Poco::JSON::Object output;
-      output.set("sequenceCount", db_info.sequence_count);
-      output.set("totalSize", db_info.total_size);
-      output.set("nBitmapsSize", db_info.N_bitmaps_size);
-      output.stringify(out_stream);
+      out_stream << nlohmann::json(db_info);
    }
 };
 
@@ -83,9 +87,7 @@ class NotFoundHandler : public Poco::Net::HTTPRequestHandler {
       response.setContentType("application/json");
       response.setStatus(Poco::Net::HTTPResponse::HTTP_NOT_FOUND);
       std::ostream& out_stream = response.send();
-      Poco::JSON::Object output;
-      output.set("error", "not found");
-      output.stringify(out_stream);
+      out_stream << nlohmann::json(error_response{"Not found", "Resource does not exist"});
    }
 };
 

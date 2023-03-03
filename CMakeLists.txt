@@ -24,6 +24,7 @@ find_package(Poco REQUIRED COMPONENTS Net Util JSON)
 find_package(LibLZMA REQUIRED)
 find_package(TBB REQUIRED)
 find_package(RapidJSON REQUIRED INTERFACE)
+find_package(nlohmann_json REQUIRED)
 
 # workaround: conans readline is different from apk readline
 # Remove when readline is no longer needed
@@ -74,7 +75,7 @@ add_executable(silo src/main.cpp)
 target_link_libraries(silo PUBLIC siloapi)
 
 add_executable(siloWebApi src/api.cpp)
-target_link_libraries(siloWebApi PUBLIC siloapi Poco::Net Poco::Util Poco::JSON)
+target_link_libraries(siloWebApi PUBLIC siloapi Poco::Net Poco::Util Poco::JSON nlohmann_json::nlohmann_json)
 
 # ---------------------------------------------------------------------------
 # Tests
