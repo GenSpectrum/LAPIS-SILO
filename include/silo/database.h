@@ -48,6 +48,12 @@ struct pango_descriptor_t {
    std::vector<pango_t> pangos;
 };
 
+struct db_info_t {
+   uint32_t sequence_count;
+   uint64_t total_size;
+   size_t N_bitmaps_size;
+};
+
 class DatabasePartition {
    friend class Database;
    friend class boost::serialization::access;
@@ -122,7 +128,7 @@ class Database {
 
    void build(const std::string& part_prefix, const std::string& meta_suffix, const std::string& seq_suffix, std::ostream& out);
    // void analyse();
-   int db_info(std::ostream& io);
+   silo::db_info_t get_db_info();
    int db_info_detailed(std::ostream& io);
    void print_flipped(std::ostream& io);
 

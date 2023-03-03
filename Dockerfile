@@ -8,7 +8,8 @@ RUN apk update && \
         libtbb-dev=2021.7.0-r0 \
         readline-dev=8.2.0-r0 \
         xz-dev=5.2.9-r0 \
-        rapidjson-dev=1.1.0-r4
+        rapidjson-dev=1.1.0-r4 \
+        poco-dev=1.12.2-r1
 
 WORKDIR /src
 COPY . .
@@ -22,6 +23,6 @@ RUN \
     --mount=type=cache,target=build/.cmake \
     cmake --build build
 
-RUN cp build/silo . && cp testBaseData/* .
+RUN cp build/siloWebApi . && cp testBaseData/* .
 
-CMD ["./silo"]
+CMD ["./siloWebApi", "--api"]

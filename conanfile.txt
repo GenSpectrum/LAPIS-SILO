@@ -4,6 +4,7 @@ onetbb/2021.7.0
 readline/8.1.2
 xz_utils/5.4.0
 rapidjson/cci.20220822
+poco/1.12.4
 
 [generators]
 cmake_find_package
@@ -44,3 +45,23 @@ boost:without_thread=True
 boost:without_timer=True
 boost:without_type_erasure=True
 boost:without_wave=True
+
+poco:shared=False
+poco:enable_json=True
+poco:enable_net=True
+poco:enable_util=True
+
+poco:enable_crypto=False
+poco:enable_activerecord=False
+poco:enable_active_record=False
+poco:enable_data=False
+poco:enable_data_mysql=False
+poco:enable_data_postgresql=False
+poco:enable_data_sqlite=False
+poco:enable_encodings=False
+poco:enable_jwt=False
+poco:enable_mongodb=False
+poco:enable_netssl=False
+poco:enable_redis=False
+poco:enable_xml=False
+poco:enable_zip=False

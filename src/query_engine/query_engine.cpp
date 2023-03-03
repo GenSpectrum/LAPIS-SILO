@@ -1,11 +1,13 @@
 
 
 #include "silo/query_engine/query_engine.h"
-#include "rapidjson/document.h"
 #include "tbb/parallel_for.h"
 #include "tbb/parallel_for_each.h"
 #include <silo/common/PerfEvent.hpp>
 #include <syncstream>
+
+#define RAPIDJSON_ASSERT(x) if (!(x)) throw silo::QueryParseException("The query was not a valid JSON: " + std::string(RAPIDJSON_STRINGIFY(x)))
+#include "rapidjson/document.h"
 
 namespace silo {
 
