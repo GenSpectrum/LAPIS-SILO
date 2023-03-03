@@ -49,9 +49,9 @@ struct pango_descriptor_t {
 };
 
 struct db_info_t {
-   uint32_t sequence_count;
-   uint64_t total_size;
-   size_t N_bitmaps_size;
+   uint32_t sequenceCount;
+   uint64_t totalSize;
+   size_t nBitmapsSize;
 };
 
 class DatabasePartition {

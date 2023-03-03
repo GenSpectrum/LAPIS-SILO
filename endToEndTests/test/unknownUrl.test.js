@@ -6,7 +6,7 @@ describe('SILO', () => {
       .get('/unknown-url')
       .expect(404)
       .expect('Content-Type', 'application/json')
-      .expect({ error: 'not found' })
+      .expect({ error: 'Not found', message: 'Resource does not exist' })
       .end(done);
   });
 
@@ -15,7 +15,7 @@ describe('SILO', () => {
       .post('/unknown-url')
       .expect(404)
       .expect('Content-Type', 'application/json')
-      .expect({ error: 'not found' })
+      .expect({ error: 'Not found', message: 'Resource does not exist' })
       .end(done);
   });
 });

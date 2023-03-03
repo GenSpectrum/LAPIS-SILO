@@ -28,7 +28,9 @@ struct error_response {
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(error_response, error, message);
 
 namespace silo {
-   NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(db_info_t, sequence_count, total_size, N_bitmaps_size);
+   NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(db_info_t, sequenceCount, totalSize, nBitmapsSize);
+   NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(query_result, count);
+   NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(result_s, returnMessage, parseTime, filterTime, actionTime);
 }
 
 class QueryRequestHandler : public Poco::Net::HTTPRequestHandler {
@@ -47,12 +49,10 @@ class QueryRequestHandler : public Poco::Net::HTTPRequestHandler {
       response.setContentType("application/json");
 
       try {
-         const result_s& query_result = silo::execute_query(*database, query, std::cout, std::cout, std::cout);
+         const auto query_result = silo::execute_query(*database, query, std::cout, std::cout, std::cout);
 
          std::ostream& out_stream = response.send();
-         Poco::JSON::Object output;
-         output.set("result", query_result.return_message);
-         output.stringify(out_stream);
+         out_stream << nlohmann::json(query_result);
       } catch (const silo::QueryParseException& ex) {
          response.setStatus(Poco::Net::HTTPResponse::HTTP_BAD_REQUEST);
          std::ostream& out_stream = response.send();

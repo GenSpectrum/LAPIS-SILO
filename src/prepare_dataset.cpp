@@ -202,14 +202,12 @@ std::vector<silo::chunk_t> merge_pangos_to_chunks(std::vector<pango_t>& pangos,
    for (uint32_t len = max_len; len > 0; len--) {
       for (auto it = chunks.begin(); it != chunks.end() && std::next(it) != chunks.end();) {
          auto&& [pango1, pango2] = std::tie(*it, *std::next(it));
-         std::string pref = common_pango_prefix(pango1.prefix, pango2.prefix);
+         std::string common_prefix = common_pango_prefix(pango1.prefix, pango2.prefix);
          // We only look at possible merges with a common_prefix length of #len
-         if (pref.size() == len &&
-             // Either, one of the chunks is very small,
-             (pango1.count < min_size || pango2.count < min_size ||
-              // or both still want to grow
-              (pango1.count < target_size && pango2.count < target_size))) {
-            pango2.prefix = pref;
+         bool one_chunk_is_very_small = pango1.count < min_size || pango2.count < min_size;
+         bool both_chunks_still_want_to_grow = pango1.count < target_size && pango2.count < target_size;
+         if (common_prefix.size() == len && (one_chunk_is_very_small || both_chunks_still_want_to_grow)) {
+            pango2.prefix = common_prefix;
             pango2.count += pango1.count;
             pango2.pangos.insert(pango2.pangos.end(),
                                  pango1.pangos.begin(),
@@ -269,7 +267,7 @@ silo::partitioning_descriptor_t silo::build_partitioning_descriptor(silo::pango_
 
          // Merge pango_lineages, such that chunks are not get very small
          descriptor.partitions[0].chunks.push_back(silo::chunk_t{"", total_count, 0, std::vector<std::string>()});
-         for(auto& pango : pango_defs.pangos){
+         for (auto& pango : pango_defs.pangos) {
             descriptor.partitions[0].chunks.back().pangos.push_back(pango.pango_lineage);
          }
 
