@@ -14,6 +14,7 @@
 #include "Poco/Util/ServerApplication.h"
 #include "silo/database.h"
 #include "silo/query_engine/query_engine.h"
+#include "silo/variant_json_serializer.h"
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <vector>
@@ -28,9 +29,12 @@ struct error_response {
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(error_response, error, message);
 
 namespace silo {
-   NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(db_info_t, sequenceCount, totalSize, nBitmapsSize);
-   NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(query_result, count);
-   NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(result_s, returnMessage, parseTime, filterTime, actionTime);
+namespace response{
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(aggregation_result, count);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(mutation_proportion, mutation, proportion, count);
+}
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(db_info_t, sequenceCount, totalSize, nBitmapsSize);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(result_s, queryResult, parseTime, filterTime, actionTime);
 }
 
 class QueryRequestHandler : public Poco::Net::HTTPRequestHandler {

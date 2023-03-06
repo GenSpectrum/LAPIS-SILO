@@ -5,15 +5,17 @@
 #include "tbb/parallel_for_each.h"
 #include <silo/common/PerfEvent.hpp>
 #include <syncstream>
+#include <vector>
 
-#define RAPIDJSON_ASSERT(x) if (!(x)) throw silo::QueryParseException("The query was not a valid JSON: " + std::string(RAPIDJSON_STRINGIFY(x)))
+#define RAPIDJSON_ASSERT(x) \
+   if (!(x)) throw silo::QueryParseException("The query was not a valid JSON: " + std::string(RAPIDJSON_STRINGIFY(x)))
 #include "rapidjson/document.h"
 
 namespace silo {
 
 using roaring::Roaring;
 
-std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value& js, int exact) {
+std::unique_ptr<BoolExpression> parse_expression(const Database& db, const rapidjson::Value& js, int exact) {
    assert(js.HasMember("type"));
    assert(js["type"].IsString());
    std::string type = js["type"].GetString();
@@ -22,14 +24,14 @@ std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value
       assert(js.HasMember("children"));
       assert(js["children"].IsArray());
       std::transform(js["children"].GetArray().begin(), js["children"].GetArray().end(),
-                     std::back_inserter(ret->children), [&](const rapidjson::Value& js) { return to_ex(db, js, exact); });
+                     std::back_inserter(ret->children), [&](const rapidjson::Value& js) { return parse_expression(db, js, exact); });
       return ret;
    } else if (type == "Or") {
       auto ret = std::make_unique<OrEx>();
       assert(js.HasMember("children"));
       assert(js["children"].IsArray());
       std::transform(js["children"].GetArray().begin(), js["children"].GetArray().end(),
-                     std::back_inserter(ret->children), [&](const rapidjson::Value& js) { return to_ex(db, js, exact); });
+                     std::back_inserter(ret->children), [&](const rapidjson::Value& js) { return parse_expression(db, js, exact); });
       return ret;
    } else if (type == "N-Of") {
       assert(js.HasMember("children"));
@@ -39,14 +41,14 @@ std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value
 
       auto ret = std::make_unique<NOfEx>(js["n"].GetUint(), js["exactly"].GetBool());
       std::transform(js["children"].GetArray().begin(), js["children"].GetArray().end(),
-                     std::back_inserter(ret->children), [&](const rapidjson::Value& js) { return to_ex(db, js, exact); });
+                     std::back_inserter(ret->children), [&](const rapidjson::Value& js) { return parse_expression(db, js, exact); });
       if (js.HasMember("impl") && js["impl"].IsUint()) {
          ret->impl = js["impl"].GetUint();
       }
       return ret;
    } else if (type == "Neg") {
       auto ret = std::make_unique<NegEx>();
-      ret->child = to_ex(db, js["child"], -exact);
+      ret->child = parse_expression(db, js["child"], -exact);
       return ret;
    } else if (type == "DateBetw") {
       auto ret = std::make_unique<DateBetwEx>();
@@ -117,11 +119,11 @@ std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value
       }
    } else if (type == "Maybe") {
       auto ret = std::make_unique<NegEx>();
-      ret->child = to_ex(db, js["child"], -1);
+      ret->child = parse_expression(db, js["child"], -1);
       return ret;
    } else if (type == "Exact") {
       auto ret = std::make_unique<NegEx>();
-      ret->child = to_ex(db, js["child"], 1);
+      ret->child = parse_expression(db, js["child"], 1);
       return ret;
    } else {
       throw QueryParseException("Unknown object type");
@@ -790,7 +792,7 @@ silo::result_s silo::execute_query(const silo::Database& db, const std::string& 
    std::unique_ptr<BoolExpression> filter;
    {
       BlockTimer timer(ret.parseTime);
-      filter = to_ex(db, doc["filter"], 0);
+      filter = parse_expression(db, doc["filter"], 0);
       parse_out << "Parsed query: " << filter->to_string(db) << std::endl;
    }
 
@@ -834,7 +836,7 @@ silo::result_s silo::execute_query(const silo::Database& db, const std::string& 
       } else {
          if (strcmp(action_type, "Aggregated") == 0) {
             unsigned count = execute_count(db, partition_filters);
-            ret.returnMessage = query_result{count};
+            ret.queryResult = response::aggregation_result{count};
          } else if (strcmp(action_type, "List") == 0) {
          } else if (strcmp(action_type, "Mutations") == 0) {
             double min_proportion = 0.02;
@@ -845,15 +847,15 @@ silo::result_s silo::execute_query(const silo::Database& db, const std::string& 
                min_proportion = action["minProportion"].GetDouble();
             }
             std::vector<mutation_proportion> mutations = execute_mutations(db, partition_filters, min_proportion, perf_out);
-//            ret.returnMessage = "";
-//            for (auto& s : mutations) {
-//               ret.returnMessage += "{\"mutation\":\"";
-//               ret.returnMessage += s.mut_from;
-//               ret.returnMessage += std::to_string(s.position);
-//               ret.returnMessage += s.mut_to;
-//               ret.returnMessage += "\",\"proportion\":" + std::to_string(s.proportion) +
-//                  ",\"count\":" + std::to_string(s.count) + "},";
-//            }
+
+            std::vector<response::mutation_proportion> mutationProportions(mutations.size());
+            std::transform(mutations.begin(), mutations.end(), mutationProportions.begin(), [](mutation_proportion mutation_proportion){
+               return response::mutation_proportion{
+                  mutation_proportion.mut_from + std::to_string(mutation_proportion.position) + mutation_proportion.mut_to,
+                  mutation_proportion.proportion,
+                  mutation_proportion.count};
+            });
+            ret.queryResult = mutationProportions;
          } else {
 //            ret.returnMessage = "Unknown action ";
 //            ret.returnMessage += action_type;
@@ -863,7 +865,7 @@ silo::result_s silo::execute_query(const silo::Database& db, const std::string& 
 
    perf_out << "Execution (action): " << std::to_string(ret.actionTime) << " microseconds\n";
 
-//   res_out << ret.returnMessage;
+   //   res_out << ret.returnMessage;
 
    return ret;
 }
