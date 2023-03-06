@@ -53,6 +53,8 @@ include_directories(SYSTEM
 # Sources
 # ---------------------------------------------------------------------------
 
+file(GLOB SRC_TEST "src/*/*.test.cpp", "src/*.test.cpp")
+
 set(SRC_CC
         src/silo.cpp
         src/storage/Dictionary.cpp
@@ -67,6 +69,8 @@ set(SRC_CC
         src/bootstrap.cpp
         src/roaring/roaring.c)
 
+file(GLOB SRC_API_CC "src/silo_api/*")
+list(REMOVE_ITEM SRC_API_CC ${SRC_TEST})
 
 add_library(siloapi ${SRC_CC})
 target_link_libraries(siloapi PUBLIC ${Boost_LIBRARIES} TBB::tbb ${readline_LIBRARIES})
@@ -74,7 +78,7 @@ target_link_libraries(siloapi PUBLIC ${Boost_LIBRARIES} TBB::tbb ${readline_LIBR
 add_executable(silo src/main.cpp)
 target_link_libraries(silo PUBLIC siloapi)
 
-add_executable(siloWebApi src/api.cpp)
+add_executable(siloWebApi src/api.cpp ${SRC_API_CC})
 target_link_libraries(siloWebApi PUBLIC siloapi Poco::Net Poco::Util Poco::JSON nlohmann_json::nlohmann_json)
 
 # ---------------------------------------------------------------------------
@@ -85,11 +89,9 @@ enable_testing()
 find_package(GTest REQUIRED)
 include_directories(${GTest_INCLUDE_DIRS})
 
-file(GLOB SRC_TEST "src/*/*.test.cpp", "src/*.test.cpp")
-
-add_executable(silo_test ${SRC_TEST})
+add_executable(silo_test ${SRC_TEST} ${SRC_API_CC})
 
 if(NOT GTest_LIBRARIES)
     set(GTest_LIBRARIES gtest gmock)
 endif()
-target_link_libraries(silo_test ${GTest_LIBRARIES} nlohmann_json::nlohmann_json)
+target_link_libraries(silo_test ${GTest_LIBRARIES} siloapi Poco::Net Poco::Util Poco::JSON nlohmann_json::nlohmann_json)
