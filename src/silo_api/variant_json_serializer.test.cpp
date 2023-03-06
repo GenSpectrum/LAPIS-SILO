@@ -1,9 +1,8 @@
-#include "gmock/gmock.h"
+#include "silo_api/variant_json_serializer.h"
 #include "gtest/gtest.h"
 #include "nlohmann/json.hpp"
-#include <variant>
 #include <string>
-#include "silo/variant_json_serializer.h"
+#include <variant>
 
 struct test_struct {
    std::string stringField;

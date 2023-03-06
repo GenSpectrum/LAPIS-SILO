@@ -93,6 +93,8 @@ class Database {
       return alias_key;
    }
 
+   Database() {}
+
    Database(const std::string& wd) : wd(wd) {
       std::ifstream reference_file(wd + "reference_genome.txt");
       if (!reference_file) {
@@ -128,7 +130,7 @@ class Database {
 
    void build(const std::string& part_prefix, const std::string& meta_suffix, const std::string& seq_suffix, std::ostream& out);
    // void analyse();
-   silo::db_info_t get_db_info();
+   virtual silo::db_info_t get_db_info();
    int db_info_detailed(std::ostream& io);
    void print_flipped(std::ostream& io);
 
