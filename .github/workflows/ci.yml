@@ -37,6 +37,38 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
 
+  unitTests:
+    name: Run unit tests
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.DOCKER_IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Wait for Docker Image
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          ref: ${{ github.ref }}
+          check-name: 'Build Docker Image'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run tests
+        uses: addnab/docker-run-action@v3
+        with:
+          image: ${{ steps.meta.outputs.tags }}
+          run: ./silo_test
+
   endToEndTests:
     name: Run End To End Tests
     runs-on: ubuntu-latest

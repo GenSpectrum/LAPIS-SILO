@@ -25,5 +25,6 @@ RUN \
     cmake --build build
 
 RUN cp build/siloWebApi . && cp testBaseData/* .
+RUN cp build/silo_test .
 
 CMD ["./siloWebApi", "--api"]
