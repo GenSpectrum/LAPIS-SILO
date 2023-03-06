@@ -6,7 +6,9 @@
 #define SILO_QUERY_ENGINE_H
 
 #include "silo/database.h"
+#include "query_result.h"
 #include <string>
+#include <variant>
 
 namespace silo {
 
@@ -22,12 +24,8 @@ struct QueryParseException : public std::exception {
    }
 };
 
-struct query_result {
-   int64_t count;
-};
-
 struct result_s {
-   silo::query_result returnMessage;
+   std::variant<response::aggregation_result, std::vector<response::mutation_proportion>> queryResult;
    int64_t parseTime;
    int64_t filterTime;
    int64_t actionTime;

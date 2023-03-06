@@ -31,7 +31,7 @@
     "actionTime": 9,
     "filterTime": 0,
     "parseTime": 12,
-    "returnMessage": {
+    "queryResult": {
       "count": 0
     }
   }
