@@ -2,6 +2,7 @@
 // Created by Alexander Taepper on 25.11.22.
 //
 
+#include <cassert>
 #include <iostream>
 #include <silo/common/silo_symbols.h>
 #include <silo/storage/Dictionary.h>

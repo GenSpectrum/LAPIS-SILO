@@ -5,7 +5,6 @@
 #ifndef SILO_DICTIONARY_H
 #define SILO_DICTIONARY_H
 
-#include <silo/common/fix_rh_map.hpp>
 #include <unordered_map>
 
 class Dictionary {

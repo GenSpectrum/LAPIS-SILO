@@ -84,7 +84,7 @@ enable_testing()
 find_package(GTest REQUIRED)
 include_directories(${GTest_INCLUDE_DIRS})
 
-file(GLOB SRC_TEST "test/*.cpp")
+file(GLOB SRC_TEST "src/*/*.test.cpp", "src/*.test.cpp")
 
 add_executable(silo_test ${SRC_TEST})
 
