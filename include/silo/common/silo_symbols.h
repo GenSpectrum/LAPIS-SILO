@@ -101,7 +101,7 @@ inline Symbol to_symbol(char c) {
    return s;
 }
 
-inline std::string resolve_alias(const std::unordered_map<std::string, std::string>& alias_key, std::string& pango_lineage) {
+inline std::string resolve_alias(const std::unordered_map<std::string, std::string>& alias_key, const std::string& pango_lineage) {
    std::string pango_pref;
    std::stringstream pango_lin_stream(pango_lineage);
    getline(pango_lin_stream, pango_pref, '.');

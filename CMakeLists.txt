@@ -30,7 +30,7 @@ find_package(RapidJSON REQUIRED INTERFACE)
 # TODO: #16 Implement reading database data in SILO API
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     find_package(readline REQUIRED)
-else()
+else ()
     set(readline_LIBRARIES readline)
 endif ()
 
@@ -80,27 +80,15 @@ target_link_libraries(siloWebApi PUBLIC siloapi Poco::Net Poco::Util Poco::JSON)
 # Tests
 # ---------------------------------------------------------------------------
 
-
 enable_testing()
-add_test(
-        NAME build_meta_runs COMMAND silo "build_meta ${PROJECT_SOURCE_DIR}/Data/metadata.50k.tsv" exit
-)
-add_test(
-        NAME sequence_raw COMMAND silo "build_raw ${PROJECT_SOURCE_DIR}/Data/aligned.50k.fasta" exit
-)
-add_test(
-        NAME build_save_load_meta COMMAND silo "build_meta ../Data/metadata.50k.tsv" save_meta load_meta exit
-)
-add_test(
-        NAME resolve_alias COMMAND mytest resolve_alias
-)
+find_package(GTest REQUIRED)
+include_directories(${GTest_INCLUDE_DIRS})
 
-add_test(
-        NAME build_both COMMAND silo "build_meta ${PROJECT_SOURCE_DIR}/Data/metadata.50k.tsv"
-        "build ${PROJECT_SOURCE_DIR}/Data/aligned.50k.fasta" exit
-)
+file(GLOB SRC_TEST "src/*/*.test.cpp", "src/*.test.cpp")
 
-add_executable(mytest test/test.cpp)
-target_link_libraries(mytest PUBLIC siloapi)
+add_executable(silo_test ${SRC_TEST})
 
-include("${CMAKE_SOURCE_DIR}/test/local.cmake")
+if(NOT GTest_LIBRARIES)
+    set(GTest_LIBRARIES gtest gmock)
+endif()
+target_link_libraries(silo_test ${GTest_LIBRARIES})

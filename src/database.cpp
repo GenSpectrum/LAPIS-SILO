@@ -5,7 +5,6 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <silo/common/PerfEvent.hpp>
-#include <silo/common/fix_rh_map.hpp>
 #include <syncstream>
 #include <silo/common/hashing.h>
 #include <silo/common/istream_wrapper.h>
