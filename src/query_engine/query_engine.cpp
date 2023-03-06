@@ -103,7 +103,7 @@ std::unique_ptr<BoolExpression> parse_expression(const Database& db, const rapid
       bool includeSubLineages = js["includeSubLineages"].GetBool();
       std::string lineage = js["value"].GetString();
       std::transform(lineage.begin(), lineage.end(), lineage.begin(), ::toupper);
-      lineage = resolve_alias(db.alias_key, lineage);
+      lineage = resolve_alias(db.getAliasKey(), lineage);
       uint32_t lineageKey = db.dict->get_pangoid(lineage);
       return std::make_unique<PangoLineageEx>(lineageKey, includeSubLineages);
    } else if (type == "StrEq") {

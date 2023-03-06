@@ -39,8 +39,6 @@ endif ()
 # Includes
 # ---------------------------------------------------------------------------
 
-include("${CMAKE_SOURCE_DIR}/include/local.cmake")
-
 include_directories(SYSTEM
         ${CMAKE_SOURCE_DIR}/include
         ${Boost_INCLUDE_DIRS}
@@ -67,7 +65,9 @@ set(SRC_CC
         src/prepare_dataset.cpp
         src/benchmark.cpp
         src/bootstrap.cpp
-        src/roaring/roaring.c)
+        src/roaring/roaring.c
+        src/preprocessing/preprocessing_config.cpp
+        src/preprocessing/preprocessing_exception.cpp)
 
 file(GLOB SRC_API_CC "src/silo_api/*")
 list(REMOVE_ITEM SRC_API_CC ${SRC_TEST})

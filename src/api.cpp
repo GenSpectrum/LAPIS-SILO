@@ -12,6 +12,9 @@
 #include <silo_api/info_handler.h>
 #include <silo_api/query_handler.h>
 #include <silo_api/error.h>
+#include <iostream>
+#include <vector>
+#include <silo/preprocessing/preprocessing_config.h>
 
 using namespace silo;
 
@@ -79,8 +82,14 @@ class SiloServer : public Poco::Util::ServerApplication {
    void handleApi(const std::string&, const std::string&) {
       int port = 8080;
 
-      const char* working_directory = "./";
-      auto database = silo::Database(working_directory);
+      const std::string input_directory("./");
+      const std::string output_directory("./");
+      auto config = silo::PreprocessingConfig(input_directory, output_directory, "minimal_metadata_set.tsv", "minimal_sequence_set.fasta");
+
+      auto database = silo::Database(input_directory);
+
+      database.preprocessing(config);
+      std::cout << "finished preprocessing " << std::endl;
 
       Poco::Net::ServerSocket server_socket(port);
       Poco::Net::HTTPServer server(new SiloRequestHandlerFactory(database), server_socket, new Poco::Net::HTTPServerParams);

@@ -6,7 +6,7 @@ describe('The /info endpoint', () => {
       .get('/info')
       .expect(200)
       .expect('Content-Type', 'application/json')
-      .expect({ nBitmapsSize: 0, sequenceCount: 0, totalSize: 0 })
+      .expect({ nBitmapsSize: 193, sequenceCount: 10, totalSize: 5797916 })
       .end(done);
   });
 });

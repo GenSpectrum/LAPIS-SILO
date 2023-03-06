@@ -318,7 +318,8 @@ silo::partitioning_descriptor_t silo::load_partitioning_descriptor(std::istream&
 }
 
 void silo::partition_sequences(const partitioning_descriptor_t& pd, std::istream& meta_in, std::istream& sequence_in,
-                               const std::string& output_prefix, const std::unordered_map<std::string, std::string>& alias_key) {
+                               const std::string& output_prefix, const std::unordered_map<std::string, std::string>& alias_key,
+                               const std::string& metadata_file_extension, const std::string& sequence_file_extension) {
    std::unordered_map<std::string, std::string> pango_to_chunk;
    std::vector<std::string> chunk_strs;
    for (unsigned i = 0, limit = pd.partitions.size(); i < limit; ++i) {
@@ -345,7 +346,7 @@ void silo::partition_sequences(const partitioning_descriptor_t& pd, std::istream
 
       std::unordered_map<std::string, std::unique_ptr<std::ostream>> chunk_to_meta_ostream;
       for (const std::string& chunk_s : chunk_strs) {
-         auto out = make_unique<std::ofstream>(output_prefix + chunk_s + ".meta.tsv");
+         auto out = make_unique<std::ofstream>(output_prefix + chunk_s + metadata_file_extension);
          chunk_to_meta_ostream[chunk_s] = std::move(out);
          *chunk_to_meta_ostream[chunk_s] << header << '\n';
       }
@@ -374,7 +375,7 @@ void silo::partition_sequences(const partitioning_descriptor_t& pd, std::istream
       std::cout << "Now partitioning fasta file to " << output_prefix << std::endl;
       std::unordered_map<std::string, std::unique_ptr<std::ostream>> chunk_to_seq_ostream;
       for (const std::string& chunk_s : chunk_strs) {
-         auto out = make_unique<std::ofstream>(output_prefix + chunk_s + ".fasta");
+         auto out = make_unique<std::ofstream>(output_prefix + chunk_s + sequence_file_extension);
          chunk_to_seq_ostream[chunk_s] = std::move(out);
       }
       std::cout << "Created file streams for  " << output_prefix << std::endl;
@@ -531,7 +532,8 @@ void sort_chunk(std::istream& meta_in, std::istream& sequence_in, std::ostream& 
    }
 }
 
-void silo::sort_chunks(const partitioning_descriptor_t& pd, const std::string& output_prefix) {
+void silo::sort_chunks(const partitioning_descriptor_t& pd, const std::string& output_prefix,
+                       const std::string& metadata_file_extension, const std::string& sequence_file_extension) {
    std::vector<part_chunk> all_chunks;
    for (uint32_t part_id = 0, limit = pd.partitions.size(); part_id < limit; ++part_id) {
       const auto& part = pd.partitions[part_id];
@@ -543,11 +545,10 @@ void silo::sort_chunks(const partitioning_descriptor_t& pd, const std::string& o
 
    tbb::parallel_for_each(all_chunks.begin(), all_chunks.end(), [&](const part_chunk& x) {
       const std::string& file_name = output_prefix + silo::chunk_string(x.part, x.chunk);
-      silo::istream_wrapper sequence_in(file_name + ".fasta");
-      silo::istream_wrapper meta_in(file_name + ".meta.tsv");
-      std::ofstream sequence_out(file_name + "_sorted.fasta");
-      std::ofstream meta_out(file_name + "_sorted.meta.tsv");
-
+      silo::istream_wrapper sequence_in(file_name + sequence_file_extension);
+      silo::istream_wrapper meta_in(file_name + metadata_file_extension);
+      std::ofstream sequence_out(file_name + "_sorted" + sequence_file_extension);
+      std::ofstream meta_out(file_name + "_sorted" + metadata_file_extension);
       sort_chunk(meta_in.get_is(), sequence_in.get_is(), meta_out, sequence_out, x);
    });
 }
