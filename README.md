@@ -8,18 +8,10 @@ Original genome indexing logic with roaring bitmaps by Prof. Neumann: https://db
 # Building
 
 ## With Conan
-for local development (tested on Ubuntu 22.04.2 LTS):
-- requires: python3, pip3
+We use Conan to install dependencies for local development. See Dockerfile for how to set up Conan and its requirements.
+This has been tested on Ubuntu 22.04 and is not guaranteed to work on other systems.
 
-Install conan version 1.59.0. We use this version because TBB is not yet ported to version 2.0.   
-```shell
-pip3 install conan==1.59.0
-```
-Set path for pip (if not already set)
-```shell
-export PATH="$HOME/.local/bin:$PATH"
-```
-Get default profile (myProfile) of own system and write to `~/.conan/profiles/myProfile`
+The Conan profile (myProfile) on your system might differ: Create a new profile `~/.conan/profiles/myProfile`
 ```shell
 conan profile new myProfile --detect
 ```
@@ -29,10 +21,7 @@ Build silo in `./build`. This build will load and build the required libraries t
 ```shell
 ./build_with_conan
 ```
-Run silo
-```shell
-./build/silo
-```
+Executables are located in `build/` upon a successful build.
 
 ## With Docker:
 (for CI and release)
