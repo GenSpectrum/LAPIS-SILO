@@ -1,5 +1,5 @@
 {
-  "testCaseName": "N-Of query requesting 2 of 3 mutations",
+  "testCaseName": "query with invalid action",
   "query": {
     "action": {
       "type": "invalid action"
