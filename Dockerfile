@@ -1,31 +1,32 @@
 FROM alpine:3.17.0 AS build
 
-RUN apk update && \
-    apk add --no-cache \
-        build-base=0.5-r3 \
-        cmake=3.24.3-r0 \
-        boost1.80-dev=1.80.0-r3 \
-        libtbb-dev=2021.7.0-r0 \
-        readline-dev=8.2.0-r0 \
-        xz-dev=5.2.9-r0 \
-        rapidjson-dev=1.1.0-r4 \
-        nlohmann-json=3.11.2-r0 \
-        poco-dev=1.12.2-r1 \
-        gtest-dev=1.12.1-r0
+RUN apk update && apk add --no-cache py3-pip \
+    build-base=0.5-r3 \
+    cmake=3.24.3-r0 \
+    linux-headers=5.19.5-r0 \
+    boost-build=1.79.0-r0
+
+RUN pip install conan==1.59.0
 
 WORKDIR /src
 COPY . .
 
-RUN \
-    --mount=type=cache,target=build/CMakeFiles \
-    --mount=type=cache,target=build/.cmake \
-     cmake -D CMAKE_BUILD_TYPE=Release -B build .
-RUN \
-    --mount=type=cache,target=build/CMakeFiles \
-    --mount=type=cache,target=build/.cmake \
-    cmake --build build
+RUN mv conanprofile.docker conanprofile
+RUN --mount=type=cache,target=/root/.conan conan install . --build=missing --profile ./conanprofile -if=/build
 
-RUN cp build/siloWebApi . && cp testBaseData/* .
-RUN cp build/silo_test .
+RUN  \
+    --mount=type=cache,target=/root/.conan \
+    --mount=type=cache,target=build/CMakeFiles \
+    --mount=type=cache,target=build/.cmake \
+    ash ./build_with_conan.sh release
+
+
+FROM alpine:3.17.0 AS server
+
+RUN apk update && apk add libtbb=2021.7.0-r0
+
+WORKDIR /app
+COPY testBaseData .
+COPY --from=build /src/build/siloWebApi .
 
 CMD ["./siloWebApi", "--api"]
