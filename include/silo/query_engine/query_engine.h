@@ -433,16 +433,12 @@ struct StrEqEx : public SelectEx {
    }
 };
 
-class mutation_proportion {
-   public:
-   double proportion;
-   unsigned position;
-   unsigned count;
+struct MutationProportion {
    char mut_from;
+   unsigned position;
    char mut_to;
-
-   mutation_proportion(char mut_from, unsigned position, char mut_to, double proportion, unsigned count)
-      : mut_from(mut_from), position(position), mut_to(mut_to), proportion(proportion), count(count) {}
+   double proportion;
+   unsigned count;
 };
 
 /// Filter then call action
@@ -451,7 +447,7 @@ QueryResult execute_query(const Database& db, const std::string& query, std::ost
 std::vector<silo::filter_t> execute_predicate(const silo::Database& db, const BoolExpression* filter);
 
 /// Action
-std::vector<mutation_proportion> execute_mutations(const silo::Database&, std::vector<silo::filter_t>&, double proportion_threshold, std::ostream& performance_file);
+std::vector<MutationProportion> execute_mutations(const silo::Database&, std::vector<silo::filter_t>&, double proportion_threshold, std::ostream& performance_file);
 
 std::vector<std::vector<uint32_t>> execute_all_dist(const silo::Database& db, std::vector<silo::filter_t>& partition_filters);
 

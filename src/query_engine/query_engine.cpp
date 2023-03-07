@@ -846,16 +846,20 @@ silo::QueryResult silo::execute_query(const silo::Database& db, const std::strin
                }
                min_proportion = action["minProportion"].GetDouble();
             }
-            std::vector<mutation_proportion> mutations = execute_mutations(db, partition_filters, min_proportion, perf_out);
+            std::vector<MutationProportion> mutations = execute_mutations(db, partition_filters, min_proportion, perf_out);
 
-            std::vector<response::MutationProportion> mutationProportions(mutations.size());
-            std::transform(mutations.begin(), mutations.end(), mutationProportions.begin(), [](mutation_proportion mutation_proportion) {
-               return response::MutationProportion{
-                  mutation_proportion.mut_from + std::to_string(mutation_proportion.position) + mutation_proportion.mut_to,
-                  mutation_proportion.proportion,
-                  mutation_proportion.count};
-            });
-            query_result.queryResult = mutationProportions;
+            std::vector<response::MutationProportion> output_mutation_proportions(mutations.size());
+            std::transform(
+               mutations.begin(),
+               mutations.end(),
+               output_mutation_proportions.begin(),
+               [](MutationProportion mutation_proportion) {
+                  return response::MutationProportion{
+                     mutation_proportion.mut_from + std::to_string(mutation_proportion.position) + mutation_proportion.mut_to,
+                     mutation_proportion.proportion,
+                     mutation_proportion.count};
+               });
+            query_result.queryResult = output_mutation_proportions;
          } else {
             query_result.queryResult = response::ErrorResult{"Unknown action", std::string(action_type) + " is not a valid action"};
          }
