@@ -64,9 +64,8 @@ int silo::benchmark(const Database& db, std::istream& query_defs, const std::str
       for (unsigned i = 0; i < reps; ++i) {
          std::string query = "{\"action\": {\"type\": \"Aggregated\"" /*,\"groupByFields\": [\"date\",\"division\"]*/ "},\"filter\": " + buffer.str() + "}";
          std::ofstream parse_file(count_query_out_dir_str + test_name + ".parse");
-         std::ofstream result_file(count_query_out_dir_str + test_name + ".res");
          std::ofstream performance_file(count_query_out_dir_str + test_name + ".perf");
-         auto result = execute_query(db, query, parse_file, result_file, performance_file);
+         auto result = execute_query(db, query, parse_file, performance_file);
          // std::cout << result.return_message << std::endl;
          parse += result.parseTime;
          filter += result.filterTime;
@@ -80,9 +79,8 @@ int silo::benchmark(const Database& db, std::istream& query_defs, const std::str
       action = 0;
       for (unsigned i = 0; i < reps; ++i) {
          std::string query = "{\"action\": {\"type\": \"List\"},\"filter\": " + buffer.str() + "}";
-         std::ofstream result_file(list_query_out_dir_str + test_name + ".res");
          std::ofstream performance_file(list_query_out_dir_str + test_name + ".perf");
-         auto result = execute_query(db, query, nullstream, result_file, performance_file);
+         auto result = execute_query(db, query, nullstream, performance_file);
          // std::cout << result.return_message << std::endl;
          parse += result.parseTime;
          filter += result.filterTime;
@@ -96,9 +94,8 @@ int silo::benchmark(const Database& db, std::istream& query_defs, const std::str
       action = 0;
       for (unsigned i = 0; i < reps; ++i) {
          std::string query = "{\"action\": {\"type\": \"Mutations\"},\"filter\": " + buffer.str() + "}";
-         std::ofstream result_file(mutations_query_out_dir_str + test_name + ".res");
          std::ofstream performance_file(mutations_query_out_dir_str + test_name + ".perf");
-         auto result = execute_query(db, query, nullstream, result_file, performance_file);
+         auto result = execute_query(db, query, nullstream, performance_file);
          // std::cout << result.return_message << std::endl;
          parse += result.parseTime;
          filter += result.filterTime;
@@ -156,7 +153,7 @@ int silo::benchmark_throughput_mix(const Database& db, std::istream& query_defs,
    {
       BlockTimer timer(microseconds);
       for (auto& query : all_queries) {
-         auto result = execute_query(db, query.query, nullstream, nullstream, nullstream);
+         auto result = execute_query(db, query.query, nullstream, nullstream);
       }
    }
    std::cout << "Took " << microseconds << " microseconds for " << all_queries.size() << " queries serial." << std::endl;
@@ -167,7 +164,7 @@ int silo::benchmark_throughput_mix(const Database& db, std::istream& query_defs,
       tbb::parallel_for(tbb::blocked_range<size_t>(0, all_queries.size()), [&](const auto& local) {
          for (unsigned i = local.begin(); i != local.end(); i++) {
             auto& query = all_queries[i];
-            auto result = execute_query(db, query.query, nullstream, nullstream, nullstream);
+            auto result = execute_query(db, query.query, nullstream, nullstream);
          }
       });
    }
@@ -215,7 +212,7 @@ int silo::benchmark_throughput(const Database& db, std::istream& query_defs, con
    {
       BlockTimer timer(microseconds);
       for (auto& query : all_queries) {
-         auto result = execute_query(db, query.query, nullstream, nullstream, nullstream);
+         auto result = execute_query(db, query.query, nullstream, nullstream);
       }
    }
    std::cout << "Took " << microseconds << " microseconds for " << all_queries.size() << " queries serial." << std::endl;
@@ -226,7 +223,7 @@ int silo::benchmark_throughput(const Database& db, std::istream& query_defs, con
       tbb::parallel_for(tbb::blocked_range<size_t>(0, all_queries.size()), [&](const auto& local) {
          for (unsigned i = local.begin(); i != local.end(); i++) {
             auto& query = all_queries[i];
-            auto result = execute_query(db, query.query, nullstream, nullstream, nullstream);
+            auto result = execute_query(db, query.query, nullstream, nullstream);
          }
       });
    }
@@ -274,7 +271,7 @@ int silo::benchmark_throughput_mut(const Database& db, std::istream& query_defs,
    {
       BlockTimer timer(microseconds);
       for (auto& query : all_queries) {
-         auto result = execute_query(db, query.query, nullstream, nullstream, nullstream);
+         auto result = execute_query(db, query.query, nullstream, nullstream);
       }
    }
    std::cout << "Took " << microseconds << " microseconds for " << all_queries.size() << " queries serial." << std::endl;
@@ -285,7 +282,7 @@ int silo::benchmark_throughput_mut(const Database& db, std::istream& query_defs,
       tbb::parallel_for(tbb::blocked_range<size_t>(0, all_queries.size()), [&](const auto& local) {
          for (unsigned i = local.begin(); i != local.end(); i++) {
             auto& query = all_queries[i];
-            auto result = execute_query(db, query.query, nullstream, nullstream, nullstream);
+            auto result = execute_query(db, query.query, nullstream, nullstream);
          }
       });
    }

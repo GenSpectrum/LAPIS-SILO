@@ -341,42 +341,6 @@ int handle_command(Database& db, std::vector<std::string> args) {
       }
    } else if ("flip_bitmaps" == args[0]) {
       db.flipBitmaps();
-   } else if ("query" == args[0]) {
-      if (args.size() < 2) {
-         std::cout << "Expected syntax: \"query <JSON_QUERY> [query_dir]\"" << endl;
-         return 0;
-      }
-      std::string test_name = args[1];
-
-      std::string query_dir_str = args.size() > 2 ? args[2] : default_query_dir;
-
-      std::ifstream query_file(query_dir_str + test_name);
-      if (!query_file || !query_file.good()) {
-         std::cerr << "query_file " << (query_dir_str + test_name) << " not found." << std::endl;
-         return 0;
-      }
-
-      std::stringstream buffer;
-      buffer << query_file.rdbuf();
-
-      std::string query = "{\"action\": {\"type\": \"Aggregated\"" /*,\"groupByFields\": [\"date\",\"division\"]*/ "},\"filter\": " + buffer.str() + "}";
-      execute_query(db, query, std::cout, std::cout, std::cout);
-      query = "{\"action\": {\"type\": \"Mutations\"},\"filter\": " + buffer.str() + "}";
-      execute_query(db, query, std::cout, std::cout, std::cout);
-      /*
-      std::stringstream query2;
-      query2 << "{\n"
-                "  \"action\": {\n"
-                "    \"type\": \"Aggregated\",\n"
-                "    \"groupByFields\": [\n"
-                "      \"date\",\n"
-                "      \"division\"\n"
-                "    ]\n"
-                "  },  \n"
-                "\n"
-                "  \"filter\": "
-             << filter3 << "}";
-      cout << execute_query(db, mdb, query2.str()) << endl;*/
    } else if ("run_optimize" == args[0]) {
       uint32_t optimised = 0;
       for (auto& dbp : db.partitions) {

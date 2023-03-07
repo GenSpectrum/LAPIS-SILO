@@ -5,8 +5,8 @@
 #ifndef SILO_QUERY_ENGINE_H
 #define SILO_QUERY_ENGINE_H
 
-#include "silo/database.h"
 #include "query_result.h"
+#include "silo/database.h"
 #include <string>
 #include <variant>
 
@@ -24,8 +24,12 @@ struct QueryParseException : public std::exception {
    }
 };
 
-struct result_s {
-   std::variant<response::aggregation_result, std::vector<response::mutation_proportion>> queryResult;
+struct QueryResult {
+   std::variant<
+      response::AggregationResult,
+      std::vector<response::MutationProportion>,
+      response::ErrorResult>
+      queryResult;
    int64_t parseTime;
    int64_t filterTime;
    int64_t actionTime;
@@ -442,7 +446,7 @@ class mutation_proportion {
 };
 
 /// Filter then call action
-result_s execute_query(const Database& db, const std::string& query, std::ostream& parse_out, std::ostream& res_out, std::ostream& perf_out);
+QueryResult execute_query(const Database& db, const std::string& query, std::ostream& parse_out, std::ostream& perf_out);
 
 std::vector<silo::filter_t> execute_predicate(const silo::Database& db, const BoolExpression* filter);
 
