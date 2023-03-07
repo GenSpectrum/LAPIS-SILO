@@ -1,5 +1,6 @@
 const { server } = require('./common');
 const fs = require('fs');
+const { expect } = require('chai');
 
 const queriesPath = __dirname + '/queries';
 const queryTestFiles = fs.readdirSync(queriesPath);
@@ -8,14 +9,13 @@ describe('The /query endpoint', () => {
   queryTestFiles
     .map(file => JSON.parse(fs.readFileSync(`${queriesPath}/${file}`)))
     .forEach(testCase =>
-      it('should return data for the test case ' + testCase.testCaseName, done => {
-        server
+      it('should return data for the test case ' + testCase.testCaseName, async () => {
+        const response = await server
           .post('/query')
           .send(testCase.query)
           .expect(200)
-          .expect('Content-Type', 'application/json')
-          .expect(testCase.expectedResponse)
-          .end(done);
+          .expect('Content-Type', 'application/json');
+        return expect(response.body.queryResult).to.deep.equal(testCase.expectedQueryResult);
       })
     );
 

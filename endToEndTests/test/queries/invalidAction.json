@@ -1,0 +1,18 @@
+{
+  "testCaseName": "N-Of query requesting 2 of 3 mutations",
+  "query": {
+    "action": {
+      "type": "invalid action"
+    },
+    "filter": {
+      "type": "N-Of",
+      "n": 2,
+      "exactly": false,
+      "children": []
+    }
+  },
+  "expectedQueryResult": {
+    "error": "Unknown action",
+    "message": "invalid action is not a valid action"
+  }
+}
