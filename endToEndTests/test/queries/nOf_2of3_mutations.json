@@ -27,10 +27,5 @@
       ]
     }
   },
-  "expectedResponse": {
-    "actionTime": 9,
-    "filterTime": 0,
-    "parseTime": 12,
-    "queryResult": []
-  }
+  "expectedQueryResult": []
 }

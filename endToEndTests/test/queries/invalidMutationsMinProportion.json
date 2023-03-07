@@ -1,0 +1,19 @@
+{
+  "testCaseName": "N-Of query requesting 2 of 3 mutations",
+  "query": {
+    "action": {
+      "type": "Mutations",
+      "minProportion": -0.5
+    },
+    "filter": {
+      "type": "N-Of",
+      "n": 2,
+      "exactly": false,
+      "children": []
+    }
+  },
+  "expectedQueryResult": {
+    "error": "Invalid proportion",
+    "message": "minProportion must be in interval (0.0,1.0]"
+  }
+}
