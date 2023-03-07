@@ -63,11 +63,11 @@ set(SRC_CC
 file(GLOB SRC_API_CC "src/silo_api/*")
 list(REMOVE_ITEM SRC_API_CC ${SRC_TEST})
 
-add_library(siloapi ${SRC_CC})
-target_link_libraries(siloapi PUBLIC ${Boost_LIBRARIES} TBB::tbb)
+add_library(silo ${SRC_CC})
+target_link_libraries(silo PUBLIC ${Boost_LIBRARIES} TBB::tbb)
 
-add_executable(siloWebApi src/api.cpp ${SRC_API_CC})
-target_link_libraries(siloWebApi PUBLIC siloapi Poco::Net Poco::Util Poco::JSON nlohmann_json::nlohmann_json)
+add_executable(siloApi src/api.cpp ${SRC_API_CC})
+target_link_libraries(siloApi PUBLIC silo Poco::Net Poco::Util Poco::JSON nlohmann_json::nlohmann_json)
 
 # ---------------------------------------------------------------------------
 # Tests
@@ -82,4 +82,4 @@ add_executable(silo_test ${SRC_TEST} ${SRC_API_CC})
 if(NOT GTest_LIBRARIES)
     set(GTest_LIBRARIES gtest gmock)
 endif()
-target_link_libraries(silo_test ${GTest_LIBRARIES} siloapi Poco::Net Poco::Util Poco::JSON nlohmann_json::nlohmann_json)
+target_link_libraries(silo_test ${GTest_LIBRARIES} silo Poco::Net Poco::Util Poco::JSON nlohmann_json::nlohmann_json)
