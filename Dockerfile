@@ -27,6 +27,6 @@ RUN apk update && apk add libtbb=2021.7.0-r0
 
 WORKDIR /app
 COPY testBaseData .
-COPY --from=build /src/build/siloWebApi .
+COPY --from=build /src/build/siloApi .
 
-CMD ["./siloWebApi", "--api"]
+CMD ["./siloApi", "--api"]
