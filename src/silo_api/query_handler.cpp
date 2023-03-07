@@ -11,10 +11,11 @@
 
 namespace silo {
 namespace response{
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(aggregation_result, count);
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(mutation_proportion, mutation, proportion, count);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(AggregationResult, count);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MutationProportion, mutation, proportion, count);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ErrorResult, error, message);
 }
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(result_s, queryResult, parseTime, filterTime, actionTime);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(QueryResult, queryResult, parseTime, filterTime, actionTime);
 }
 
 namespace silo_api {
@@ -26,7 +27,7 @@ void QueryHandler::handleRequest(Poco::Net::HTTPServerRequest& request, Poco::Ne
       response.setContentType("application/json");
 
       try {
-         const auto query_result = silo::execute_query(database, query, std::cout, std::cout, std::cout);
+         const auto query_result = silo::execute_query(database, query, std::cout, std::cout);
 
          std::ostream& out_stream = response.send();
          out_stream << nlohmann::json(query_result);
