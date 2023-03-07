@@ -2,8 +2,9 @@
 
 set -e
 
-if [ "$1" == "clean" ]
+if [[ "$*" == *"clean"* ]]
 then
+  echo "cleaning build directory..."
   rm -rf build
 fi
 mkdir -p build
@@ -18,7 +19,15 @@ echo "----------------------------------"
 echo "cmake -B build"
 echo "----------------------------------"
 
-cmake -B build
+
+if [[ "$*" == *"release"* ]]
+then
+  echo "triggered RELEASE build"
+  cmake -D CMAKE_BUILD_TYPE=Release -B build
+else
+  echo "triggered DEBUG build"
+  cmake -B build
+fi
 
 echo "----------------------------------"
 echo "cmake --build build"

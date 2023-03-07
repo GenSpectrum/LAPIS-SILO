@@ -1,5 +1,8 @@
 *
 !CMakeLists.txt
+!build_with_conan.sh
+!conanprofile.docker
+!conanfile.txt
 !src/
 !include/
 !testBaseData/

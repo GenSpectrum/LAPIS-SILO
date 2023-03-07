@@ -1,7 +1,6 @@
 [requires]
 boost/1.80.0
 onetbb/2021.7.0
-readline/8.1.2
 xz_utils/5.4.0
 rapidjson/cci.20220822
 poco/1.12.4
