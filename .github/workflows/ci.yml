@@ -11,7 +11,6 @@ jobs:
   dockerImage:
     name: Build Docker Image
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'push' }}
     steps:
       -
         uses: actions/checkout@v3
@@ -53,6 +52,7 @@ jobs:
           path: /tmp/unitTestsImage.tar
       -
         name: Build and push production image
+        if: ${{ github.event_name == 'push' }}
         uses: docker/build-push-action@v4
         with:
           context: .
@@ -64,7 +64,6 @@ jobs:
   unitTests:
     name: Run unit tests
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'push' }}
     steps:
       -
         uses: actions/checkout@v3
