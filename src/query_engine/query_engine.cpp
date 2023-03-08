@@ -5,15 +5,17 @@
 #include "tbb/parallel_for_each.h"
 #include <silo/common/PerfEvent.hpp>
 #include <syncstream>
+#include <vector>
 
-#define RAPIDJSON_ASSERT(x) if (!(x)) throw silo::QueryParseException("The query was not a valid JSON: " + std::string(RAPIDJSON_STRINGIFY(x)))
+#define RAPIDJSON_ASSERT(x) \
+   if (!(x)) throw silo::QueryParseException("The query was not a valid JSON: " + std::string(RAPIDJSON_STRINGIFY(x)))
 #include "rapidjson/document.h"
 
 namespace silo {
 
 using roaring::Roaring;
 
-std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value& js, int exact) {
+std::unique_ptr<BoolExpression> parse_expression(const Database& db, const rapidjson::Value& js, int exact) {
    assert(js.HasMember("type"));
    assert(js["type"].IsString());
    std::string type = js["type"].GetString();
@@ -22,14 +24,14 @@ std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value
       assert(js.HasMember("children"));
       assert(js["children"].IsArray());
       std::transform(js["children"].GetArray().begin(), js["children"].GetArray().end(),
-                     std::back_inserter(ret->children), [&](const rapidjson::Value& js) { return to_ex(db, js, exact); });
+                     std::back_inserter(ret->children), [&](const rapidjson::Value& js) { return parse_expression(db, js, exact); });
       return ret;
    } else if (type == "Or") {
       auto ret = std::make_unique<OrEx>();
       assert(js.HasMember("children"));
       assert(js["children"].IsArray());
       std::transform(js["children"].GetArray().begin(), js["children"].GetArray().end(),
-                     std::back_inserter(ret->children), [&](const rapidjson::Value& js) { return to_ex(db, js, exact); });
+                     std::back_inserter(ret->children), [&](const rapidjson::Value& js) { return parse_expression(db, js, exact); });
       return ret;
    } else if (type == "N-Of") {
       assert(js.HasMember("children"));
@@ -39,14 +41,14 @@ std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value
 
       auto ret = std::make_unique<NOfEx>(js["n"].GetUint(), js["exactly"].GetBool());
       std::transform(js["children"].GetArray().begin(), js["children"].GetArray().end(),
-                     std::back_inserter(ret->children), [&](const rapidjson::Value& js) { return to_ex(db, js, exact); });
+                     std::back_inserter(ret->children), [&](const rapidjson::Value& js) { return parse_expression(db, js, exact); });
       if (js.HasMember("impl") && js["impl"].IsUint()) {
          ret->impl = js["impl"].GetUint();
       }
       return ret;
    } else if (type == "Neg") {
       auto ret = std::make_unique<NegEx>();
-      ret->child = to_ex(db, js["child"], -exact);
+      ret->child = parse_expression(db, js["child"], -exact);
       return ret;
    } else if (type == "DateBetw") {
       auto ret = std::make_unique<DateBetwEx>();
@@ -117,11 +119,11 @@ std::unique_ptr<BoolExpression> to_ex(const Database& db, const rapidjson::Value
       }
    } else if (type == "Maybe") {
       auto ret = std::make_unique<NegEx>();
-      ret->child = to_ex(db, js["child"], -1);
+      ret->child = parse_expression(db, js["child"], -1);
       return ret;
    } else if (type == "Exact") {
       auto ret = std::make_unique<NegEx>();
-      ret->child = to_ex(db, js["child"], 1);
+      ret->child = parse_expression(db, js["child"], 1);
       return ret;
    } else {
       throw QueryParseException("Unknown object type");
@@ -776,7 +778,7 @@ std::vector<silo::filter_t> silo::execute_predicate(const silo::Database& db, co
    return partition_filters;
 }
 
-silo::result_s silo::execute_query(const silo::Database& db, const std::string& query, std::ostream& parse_out, std::ostream& res_out, std::ostream& perf_out) {
+silo::QueryResult silo::execute_query(const silo::Database& db, const std::string& query, std::ostream& parse_out, std::ostream& perf_out) {
    rapidjson::Document doc;
    doc.Parse(query.c_str());
    if (!doc.HasMember("filter") || !doc["filter"].IsObject() ||
@@ -786,19 +788,19 @@ silo::result_s silo::execute_query(const silo::Database& db, const std::string& 
 
    std::vector<std::string> simplified_queries(db.partitions.size());
 
-   result_s ret;
+   QueryResult query_result;
    std::unique_ptr<BoolExpression> filter;
    {
-      BlockTimer timer(ret.parse_time);
-      filter = to_ex(db, doc["filter"], 0);
+      BlockTimer timer(query_result.parseTime);
+      filter = parse_expression(db, doc["filter"], 0);
       parse_out << "Parsed query: " << filter->to_string(db) << std::endl;
    }
 
-   perf_out << "Parse: " << std::to_string(ret.parse_time) << " microseconds\n";
+   perf_out << "Parse: " << std::to_string(query_result.parseTime) << " microseconds\n";
 
    std::vector<silo::filter_t> partition_filters(db.partitions.size());
    {
-      BlockTimer timer(ret.filter_time);
+      BlockTimer timer(query_result.filterTime);
       tbb::blocked_range<size_t> r(0, db.partitions.size(), 1);
       tbb::parallel_for(r.begin(), r.end(), [&](const size_t& i) {
          std::unique_ptr<BoolExpression> part_filter = filter->simplify(db, db.partitions[i]);
@@ -809,10 +811,10 @@ silo::result_s silo::execute_query(const silo::Database& db, const std::string& 
    for (unsigned i = 0; i < db.partitions.size(); ++i) {
       parse_out << "Simplified query for partition " << i << ": " << simplified_queries[i] << std::endl;
    }
-   perf_out << "Execution (filter): " << std::to_string(ret.filter_time) << " microseconds\n";
+   perf_out << "Execution (filter): " << std::to_string(query_result.filterTime) << " microseconds\n";
 
    {
-      BlockTimer timer(ret.action_time);
+      BlockTimer timer(query_result.actionTime);
       const auto& action = doc["action"];
       assert(action.HasMember("type"));
       assert(action["type"].IsString());
@@ -822,48 +824,49 @@ silo::result_s silo::execute_query(const silo::Database& db, const std::string& 
          assert(action["groupByFields"].IsArray());
          std::vector<std::string> groupByFields;
          for (const auto& it : action["groupByFields"].GetArray()) {
-            groupByFields.push_back(it.GetString());
+            groupByFields.emplace_back(it.GetString());
          }
          if (strcmp(action_type, "Aggregated") == 0) {
          } else if (strcmp(action_type, "List") == 0) {
          } else if (strcmp(action_type, "Mutations") == 0) {
          } else {
-            ret.return_message = "Unknown action ";
-            ret.return_message += action_type;
+            query_result.queryResult = response::ErrorResult{"Unknown action", std::string(action_type) + " is not a valid action"};
          }
       } else {
          if (strcmp(action_type, "Aggregated") == 0) {
             unsigned count = execute_count(db, partition_filters);
-            ret.return_message = "{\"count\": " + std::to_string(count) + "}";
+            query_result.queryResult = response::AggregationResult{count};
          } else if (strcmp(action_type, "List") == 0) {
          } else if (strcmp(action_type, "Mutations") == 0) {
             double min_proportion = 0.02;
             if (action.HasMember("minProportion") && action["minProportion"].IsDouble()) {
                if (action["minProportion"].GetDouble() <= 0.0) {
-                  ret.return_message = "{\"message\": \"minProportion must be in interval (0.0,1.0]\"}";
+                  query_result.queryResult = response::ErrorResult{"Invalid proportion", "minProportion must be in interval (0.0,1.0]"};
+                  return query_result;
                }
                min_proportion = action["minProportion"].GetDouble();
             }
-            std::vector<mutation_proportion> mutations = execute_mutations(db, partition_filters, min_proportion, perf_out);
-            ret.return_message = "";
-            for (auto& s : mutations) {
-               ret.return_message += "{\"mutation\":\"";
-               ret.return_message += s.mut_from;
-               ret.return_message += std::to_string(s.position);
-               ret.return_message += s.mut_to;
-               ret.return_message += "\",\"proportion\":" + std::to_string(s.proportion) +
-                  ",\"count\":" + std::to_string(s.count) + "},";
-            }
+            std::vector<MutationProportion> mutations = execute_mutations(db, partition_filters, min_proportion, perf_out);
+
+            std::vector<response::MutationProportion> output_mutation_proportions(mutations.size());
+            std::transform(
+               mutations.begin(),
+               mutations.end(),
+               output_mutation_proportions.begin(),
+               [](MutationProportion mutation_proportion) {
+                  return response::MutationProportion{
+                     mutation_proportion.mut_from + std::to_string(mutation_proportion.position) + mutation_proportion.mut_to,
+                     mutation_proportion.proportion,
+                     mutation_proportion.count};
+               });
+            query_result.queryResult = output_mutation_proportions;
          } else {
-            ret.return_message = "Unknown action ";
-            ret.return_message += action_type;
+            query_result.queryResult = response::ErrorResult{"Unknown action", std::string(action_type) + " is not a valid action"};
          }
       }
    }
 
-   perf_out << "Execution (action): " << std::to_string(ret.action_time) << " microseconds\n";
+   perf_out << "Execution (action): " << std::to_string(query_result.actionTime) << " microseconds\n";
 
-   res_out << ret.return_message;
-
-   return ret;
+   return query_result;
 }

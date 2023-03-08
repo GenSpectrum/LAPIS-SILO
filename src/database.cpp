@@ -56,9 +56,9 @@ void silo::Database::build(const std::string& part_prefix, const std::string& me
    out << "Build took " << std::to_string(micros) << "seconds." << std::endl;
    out << "Info directly after build: " << std::endl;
    const auto info = get_db_info();
-   out << "Sequence count: " << info.sequence_count << std::endl;
-   out << "Total size: " << info.total_size << std::endl;
-   out << "N_bitmaps per sequence, total size: " << number_fmt(info.N_bitmaps_size) << std::endl;
+   out << "Sequence count: " << info.sequenceCount << std::endl;
+   out << "Total size: " << info.totalSize << std::endl;
+   out << "N_bitmaps per sequence, total size: " << number_fmt(info.nBitmapsSize) << std::endl;
    db_info_detailed(out);
    {
       BlockTimer timer(micros);

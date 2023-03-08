@@ -5,8 +5,10 @@
 #ifndef SILO_QUERY_ENGINE_H
 #define SILO_QUERY_ENGINE_H
 
+#include "query_result.h"
 #include "silo/database.h"
 #include <string>
+#include <variant>
 
 namespace silo {
 
@@ -22,11 +24,15 @@ struct QueryParseException : public std::exception {
    }
 };
 
-struct result_s {
-   std::string return_message;
-   int64_t parse_time;
-   int64_t filter_time;
-   int64_t action_time;
+struct QueryResult {
+   std::variant<
+      response::AggregationResult,
+      std::vector<response::MutationProportion>,
+      response::ErrorResult>
+      queryResult;
+   int64_t parseTime;
+   int64_t filterTime;
+   int64_t actionTime;
 };
 
 /// The return value of the BoolExpression::evaluate method.
@@ -427,25 +433,21 @@ struct StrEqEx : public SelectEx {
    }
 };
 
-class mutation_proportion {
-   public:
-   double proportion;
-   unsigned position;
-   unsigned count;
+struct MutationProportion {
    char mut_from;
+   unsigned position;
    char mut_to;
-
-   mutation_proportion(char mut_from, unsigned position, char mut_to, double proportion, unsigned count)
-      : mut_from(mut_from), position(position), mut_to(mut_to), proportion(proportion), count(count) {}
+   double proportion;
+   unsigned count;
 };
 
 /// Filter then call action
-result_s execute_query(const Database& db, const std::string& query, std::ostream& parse_out, std::ostream& res_out, std::ostream& perf_out);
+QueryResult execute_query(const Database& db, const std::string& query, std::ostream& parse_out, std::ostream& perf_out);
 
 std::vector<silo::filter_t> execute_predicate(const silo::Database& db, const BoolExpression* filter);
 
 /// Action
-std::vector<mutation_proportion> execute_mutations(const silo::Database&, std::vector<silo::filter_t>&, double proportion_threshold, std::ostream& performance_file);
+std::vector<MutationProportion> execute_mutations(const silo::Database&, std::vector<silo::filter_t>&, double proportion_threshold, std::ostream& performance_file);
 
 std::vector<std::vector<uint32_t>> execute_all_dist(const silo::Database& db, std::vector<silo::filter_t>& partition_filters);
 
