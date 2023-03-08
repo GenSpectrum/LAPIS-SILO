@@ -1,24 +1,76 @@
-//
-// Created by Alexander Taepper on 16.11.22.
-//
-
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
+#include <filesystem>
 #include <silo/common/PerfEvent.hpp>
 #include <syncstream>
 #include <silo/common/hashing.h>
 #include <silo/common/istream_wrapper.h>
 #include <silo/database.h>
+#include <silo/prepare_dataset.h>
+#include <silo/preprocessing/preprocessing_config.h>
+#include <silo/preprocessing/preprocessing_exception.h>
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for_each.h>
+
+const std::string REFERENCE_GENOME_FILENAME = "reference_genome.txt";
+const std::string PANGO_ALIAS_FILENAME = "pango_alias.txt";
+
+std::vector<std::string> initGlobalReference(const std::string& working_directory) {
+   std::filesystem::path reference_genome_path(working_directory + REFERENCE_GENOME_FILENAME);
+   if (!std::filesystem::exists(reference_genome_path)) {
+      throw std::filesystem::filesystem_error("Global reference genome file " + std::string(reference_genome_path.relative_path()) + " does not exist", std::error_code());
+   }
+
+   std::ifstream reference_file(reference_genome_path);
+   std::vector<std::string> global_reference;
+   while (true) {
+      std::string tmp;
+      if (!getline(reference_file, tmp, '\n')) break;
+      if (tmp.find('N') != std::string::npos) {
+         throw std::runtime_error("No N in reference genome allowed.");
+      }
+      global_reference.push_back(tmp);
+   }
+   if (global_reference.empty()) {
+      throw std::runtime_error("No genome in " + std::string(reference_genome_path));
+   }
+   return global_reference;
+};
+
+std::unordered_map<std::string, std::string> initAliasKey(const std::string& working_directory) {
+   std::filesystem::path alias_key_path(working_directory + PANGO_ALIAS_FILENAME);
+   if (!std::filesystem::exists(alias_key_path)) {
+      throw std::filesystem::filesystem_error("Alias key file " + std::string(alias_key_path.relative_path()) + " does not exist", std::error_code());
+   }
+
+   std::unordered_map<std::string, std::string> alias_keys;
+   std::ifstream alias_key_file(alias_key_path.relative_path());
+   while (true) {
+      std::string alias, val;
+      if (!getline(alias_key_file, alias, '\t')) break;
+      if (!getline(alias_key_file, val, '\n')) break;
+      alias_keys[alias] = val;
+   }
+
+   return alias_keys;
+}
+
+silo::Database::Database(const std::string& wd) : wd(wd),
+                                                  global_reference(initGlobalReference(wd)),
+                                                  alias_key(initAliasKey(wd)) {
+}
+
+const std::unordered_map<std::string, std::string>& silo::Database::getAliasKey() const {
+   return alias_key;
+}
 
 void silo::Database::build(const std::string& part_prefix, const std::string& meta_suffix, const std::string& seq_suffix, std::ostream& out) {
    int64_t micros = 0;
    {
       BlockTimer timer(micros);
-      partitions.resize(part_def->partitions.size());
-      tbb::parallel_for((size_t) 0, part_def->partitions.size(), [&](size_t i) {
-         const auto& part = part_def->partitions[i];
+      partitions.resize(partition_descriptor->partitions.size());
+      tbb::parallel_for((size_t) 0, partition_descriptor->partitions.size(), [&](size_t i) {
+         const auto& part = partition_descriptor->partitions[i];
          partitions[i].chunks = part.chunks;
          for (unsigned j = 0; j < part.chunks.size(); ++j) {
             std::string name;
@@ -73,8 +125,8 @@ void silo::DatabasePartition::finalizeBuild(const Dictionary& dict) {
       const uint32_t pango_count = dict.get_pango_count();
       std::vector<std::vector<uint32_t>> group_by_lineages(pango_count);
       for (uint32_t sid = 0; sid < sequenceCount; ++sid) {
-         const auto lineage = meta_store.sid_to_lineage[sid];
-         group_by_lineages[lineage].push_back(sid);
+         const auto lineage = meta_store.sid_to_lineage.at(sid);
+         group_by_lineages.at(lineage).push_back(sid);
       }
 
       meta_store.lineage_bitmaps.resize(pango_count);
@@ -83,7 +135,6 @@ void silo::DatabasePartition::finalizeBuild(const Dictionary& dict) {
       }
 
       meta_store.sublineage_bitmaps.resize(pango_count);
-
       for (uint32_t pango1 = 0; pango1 < pango_count; ++pango1) {
          // Initialize with all lineages that are in pango1
          std::vector<uint32_t> group_by_lineages_sub(group_by_lineages[pango1]);
@@ -162,23 +213,6 @@ void silo::Database::flipBitmaps() {
       });
    });
 }
-
-/*
-void silo::Database::analyse() {
-   std::vector<std::vector<unsigned>> counts_per_pos_per_symbol;
-   counts_per_pos_per_symbol.resize(genomeLength);
-   for (std::vector<unsigned>& v : counts_per_pos_per_symbol) {
-      v.resize(symbolCount);
-   }
-
-   for (const DatabasePartition& dbp : partitions) {
-      tbb::parallel_for((unsigned) 0, genomeLength, [&](unsigned p) {
-         for (unsigned symbol = 0; symbol < symbolCount; ++symbol) {
-            ++counts_per_pos_per_symbol[p][symbol];
-         }
-      });
-   }
-}*/
 
 using r_stat = roaring::api::roaring_statistics_t;
 
@@ -475,28 +509,28 @@ void silo::save_partitioning_descriptor(const silo::partitioning_descriptor_t& p
 }
 
 void silo::Database::save(const std::string& save_dir) {
-   if (!part_def) {
-      std::cerr << "Cannot save db without part_def." << std::endl;
+   if (!partition_descriptor) {
+      std::cerr << "Cannot save db without partition_descriptor." << std::endl;
       return;
    }
 
-   if (pango_def) {
-      std::ofstream pango_def_file(save_dir + "pango_def.txt");
+   if (pango_descriptor) {
+      std::ofstream pango_def_file(save_dir + "pango_descriptor.txt");
       if (!pango_def_file) {
-         std::cerr << "Cannot open pango_def output file: " << (save_dir + "pango_def.txt") << std::endl;
+         std::cerr << "Cannot open pango_descriptor output file: " << (save_dir + "pango_descriptor.txt") << std::endl;
          return;
       }
-      std::cout << "Save pango lineage descriptor to output file " << (save_dir + "pango_def.txt") << std::endl;
-      save_pango_defs(*pango_def, pango_def_file);
+      std::cout << "Save pango lineage descriptor to output file " << (save_dir + "pango_descriptor.txt") << std::endl;
+      save_pango_defs(*pango_descriptor, pango_def_file);
    }
    {
-      std::ofstream part_def_file(save_dir + "part_def.txt");
+      std::ofstream part_def_file(save_dir + "partition_descriptor.txt");
       if (!part_def_file) {
-         std::cerr << "Cannot open part_def output file: " << (save_dir + "part_def.txt") << std::endl;
+         std::cerr << "Cannot open partition_descriptor output file: " << (save_dir + "partition_descriptor.txt") << std::endl;
          return;
       }
-      std::cout << "Save partitioning descriptor to output file " << (save_dir + "part_def.txt") << std::endl;
-      save_partitioning_descriptor(*part_def, part_def_file);
+      std::cout << "Save partitioning descriptor to output file " << (save_dir + "partition_descriptor.txt") << std::endl;
+      save_partitioning_descriptor(*partition_descriptor, part_def_file);
    }
    {
       std::ofstream dict_output(save_dir + "dict.txt");
@@ -510,7 +544,7 @@ void silo::Database::save(const std::string& save_dir) {
    }
 
    std::vector<std::ofstream> file_vec;
-   for (unsigned i = 0; i < part_def->partitions.size(); ++i) {
+   for (unsigned i = 0; i < partition_descriptor->partitions.size(); ++i) {
       file_vec.push_back(std::ofstream(save_dir + 'P' + std::to_string(i) + ".silo"));
 
       if (!file_vec.back()) {
@@ -518,26 +552,27 @@ void silo::Database::save(const std::string& save_dir) {
          return;
       }
    }
+   std::cout << "Save partitions " << partitions.size() << std::endl;
 
-   tbb::parallel_for((size_t) 0, part_def->partitions.size(), [&](size_t i) {
+   tbb::parallel_for((size_t) 0, partition_descriptor->partitions.size(), [&](size_t i) {
       ::boost::archive::binary_oarchive oa(file_vec[i]);
       oa << partitions[i];
    });
+   std::cout << "Finished saving partitions" << std::endl;
 }
-
 void silo::Database::load(const std::string& save_dir) {
-   std::ifstream part_def_file(save_dir + "part_def.txt");
+   std::ifstream part_def_file(save_dir + "partition_descriptor.txt");
    if (!part_def_file) {
-      std::cerr << "Cannot open part_def input file for loading: " << (save_dir + "part_def.txt") << std::endl;
+      std::cerr << "Cannot open partition_descriptor input file for loading: " << (save_dir + "partition_descriptor.txt") << std::endl;
       return;
    }
-   std::cout << "Load partitioning_def from input file " << (save_dir + "part_def.txt") << std::endl;
-   part_def = std::make_unique<partitioning_descriptor_t>(load_partitioning_descriptor(part_def_file));
+   std::cout << "Load partitioning_def from input file " << (save_dir + "partition_descriptor.txt") << std::endl;
+   partition_descriptor = std::make_unique<partitioning_descriptor_t>(load_partitioning_descriptor(part_def_file));
 
-   std::ifstream pango_def_file(save_dir + "pango_def.txt");
+   std::ifstream pango_def_file(save_dir + "pango_descriptor.txt");
    if (pango_def_file) {
-      std::cout << "Load pango_def from input file " << (save_dir + "pango_def.txt") << std::endl;
-      pango_def = std::make_unique<pango_descriptor_t>(load_pango_defs(pango_def_file));
+      std::cout << "Load pango_descriptor from input file " << (save_dir + "pango_descriptor.txt") << std::endl;
+      pango_descriptor = std::make_unique<pango_descriptor_t>(load_pango_defs(pango_def_file));
    }
 
    {
@@ -552,7 +587,7 @@ void silo::Database::load(const std::string& save_dir) {
 
    std::cout << "Loading partitions from " << save_dir << std::endl;
    std::vector<std::ifstream> file_vec;
-   for (unsigned i = 0; i < part_def->partitions.size(); ++i) {
+   for (unsigned i = 0; i < partition_descriptor->partitions.size(); ++i) {
       file_vec.push_back(std::ifstream(save_dir + 'P' + std::to_string(i) + ".silo"));
 
       if (!file_vec.back()) {
@@ -561,9 +596,57 @@ void silo::Database::load(const std::string& save_dir) {
       }
    }
 
-   partitions.resize(part_def->partitions.size());
-   tbb::parallel_for((size_t) 0, part_def->partitions.size(), [&](size_t i) {
+   partitions.resize(partition_descriptor->partitions.size());
+   tbb::parallel_for((size_t) 0, partition_descriptor->partitions.size(), [&](size_t i) {
       ::boost::archive::binary_iarchive ia(file_vec[i]);
       ia >> partitions[i];
    });
+}
+void silo::Database::preprocessing(const PreprocessingConfig& config) {
+   std::cout << "build_pango_defs" << std::endl;
+   std::ifstream metadata_stream(config.metadata_file.relative_path());
+   pango_descriptor = std::make_unique<pango_descriptor_t>(silo::build_pango_defs(alias_key, metadata_stream));
+
+   std::cout << "build_partitioning_descriptor" << std::endl;
+   partition_descriptor = std::make_unique<partitioning_descriptor_t>(silo::build_partitioning_descriptor(*pango_descriptor, architecture_type::max_partitions));
+
+   std::cout << "partition_sequences" << std::endl;
+   std::ifstream metadata_stream2(config.metadata_file.relative_path());
+   istream_wrapper sequence_stream(config.sequence_file.relative_path());
+   partition_sequences(
+      *partition_descriptor,
+      metadata_stream2,
+      sequence_stream.get_is(),
+      config.partition_folder.relative_path(),
+      alias_key,
+      config.metadata_file.extension(),
+      config.sequence_file.extension());
+
+   std::cout << "sort_chunks" << std::endl;
+   silo::sort_chunks(
+      *partition_descriptor,
+      config.partition_folder.relative_path(),
+      config.metadata_file.extension(),
+      config.sequence_file.extension());
+
+   std::cout << "Dictionary" << std::endl;
+   dict = std::make_unique<Dictionary>();
+   for (size_t i = 0; i < partition_descriptor->partitions.size(); ++i) {
+      const auto& part = partition_descriptor->partitions.at(i);
+      for (unsigned j = 0; j < part.chunks.size(); ++j) {
+         std::string name = std::string(config.partition_folder.relative_path()) + chunk_string(i, j) + std::string(config.metadata_file.extension());
+         std::ifstream meta_in(name);
+         if (!meta_in) {
+            throw PreprocessingException("Meta_data file " + name + " not found.");
+         }
+         dict->update_dict(meta_in, getAliasKey());
+      }
+   }
+
+   std::cout << "Build" << std::endl;
+   build(
+      config.partition_folder.relative_path(),
+      config.metadata_file.extension(),
+      config.sequence_file.extension(),
+      std::cout);
 }

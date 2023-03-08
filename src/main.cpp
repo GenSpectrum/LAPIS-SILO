@@ -57,11 +57,11 @@ int handle_command(Database& db, std::vector<std::string> args) {
    using std::endl;
 
    const std::string default_db_savedir = db.wd + "bin_save/";
-   const std::string default_sequence_input = db.wd + "aligned.fasta.xz";
-   const std::string default_metadata_input = db.wd + "metadata.tsv";
+   const std::string default_sequence_input = db.wd + "minimal_sequence_set.fasta";
+   const std::string default_metadata_input = db.wd + "minimal_metadata_set.tsv";
    const std::string default_partition_prefix = db.wd + "Partitioned/";
-   const std::string default_pango_def_file = db.wd + "pango_def.txt";
-   const std::string default_part_def_file = db.wd + "part_def.txt";
+   const std::string default_pango_def_file = db.wd + "pango_descriptor.txt";
+   const std::string default_part_def_file = db.wd + "partition_descriptor.txt";
    const std::string default_dict_file = db.wd + "dict.txt";
    const std::string default_query_dir = db.wd + "queries/";
    if (args.empty()) {
@@ -172,25 +172,15 @@ int handle_command(Database& db, std::vector<std::string> args) {
          return 0;
       }
       return benchmark_throughput_mut(db, query_defs, query_dir_str);
-   } else if ("build_pango_def" == args[0]) {
-      auto meta_input_str = args.size() > 1 ? args[1] : default_metadata_input;
-      auto meta_input = std::ifstream(meta_input_str);
-      if (!meta_input) {
-         std::cerr << "meta_input file " << meta_input_str << " not found." << std::endl;
-         return 0;
-      }
-      std::cout << "Build pango_def from file " << meta_input_str << std::endl;
-      db.pango_def = std::make_unique<pango_descriptor_t>(silo::build_pango_defs(db.get_alias_key(), meta_input));
-      return 0;
    } else if ("save_pango_def" == args[0]) {
-      if (!db.pango_def) {
-         std::cout << "No pango_def initialized. See 'build_pango_def' | 'load_pango_def'" << std::endl;
+      if (!db.pango_descriptor) {
+         std::cout << "No pango_descriptor initialized. See 'build_pango_def' | 'load_pango_def'" << std::endl;
          return 0;
       }
       auto pango_def_output_str = args.size() > 1 ? args[1] : default_pango_def_file;
       auto pango_def_output = std::ofstream(pango_def_output_str);
-      std::cout << "Save pango_def to file " << pango_def_output_str << std::endl;
-      silo::save_pango_defs(*db.pango_def, pango_def_output);
+      std::cout << "Save pango_descriptor to file " << pango_def_output_str << std::endl;
+      silo::save_pango_defs(*db.pango_descriptor, pango_def_output);
       return 0;
    } else if ("load_pango_def" == args[0]) {
       auto pango_def_input_str = args.size() > 1 ? args[1] : default_pango_def_file;
@@ -199,32 +189,18 @@ int handle_command(Database& db, std::vector<std::string> args) {
          std::cerr << "pango_def_input file " << pango_def_input_str << " not found." << std::endl;
          return 0;
       }
-      std::cout << "Load pango_def from input file " << pango_def_input_str << std::endl;
-      db.pango_def = std::make_unique<pango_descriptor_t>(silo::load_pango_defs(pango_def_input));
-      return 0;
-   } else if ("build_part_def" == args[0]) {
-      if (!db.pango_def) {
-         std::cerr << "No pango_def initialized. See 'build_pango_def' | 'load_pango_def'" << std::endl;
-         return 0;
-      }
-      std::cout << "Build part_def from pango_def" << std::endl;
-      architecture_type arch =
-         args.size() <= 1 || args[1] == "2" || args[1] == "mp" ? architecture_type::max_partitions :
-         args[1] == "1" || args[1] == "sp"                     ? architecture_type::single_partition :
-         args[1] == "3" || args[1] == "ss"                     ? architecture_type::single_single :
-                                                                 architecture_type::hybrid;
-      partitioning_descriptor_t part_def = silo::build_partitioning_descriptor(*db.pango_def, arch);
-      db.part_def = std::make_unique<partitioning_descriptor_t>(part_def);
+      std::cout << "Load pango_descriptor from input file " << pango_def_input_str << std::endl;
+      db.pango_descriptor = std::make_unique<pango_descriptor_t>(silo::load_pango_defs(pango_def_input));
       return 0;
    } else if ("save_part_def" == args[0]) {
-      if (!db.part_def) {
-         std::cerr << "No part_def initialized. See 'build_part_def' | 'load_part_def'" << std::endl;
+      if (!db.partition_descriptor) {
+         std::cerr << "No partition_descriptor initialized. See 'build_part_def' | 'load_part_def'" << std::endl;
          return 0;
       }
       auto part_def_output_str = args.size() > 1 ? args[1] : default_part_def_file;
       auto part_def_output = std::ofstream(part_def_output_str);
-      std::cout << "Save part_def to file " << part_def_output_str << std::endl;
-      silo::save_partitioning_descriptor(*db.part_def, part_def_output);
+      std::cout << "Save partition_descriptor to file " << part_def_output_str << std::endl;
+      silo::save_partitioning_descriptor(*db.partition_descriptor, part_def_output);
       return 0;
    } else if ("load_part_def" == args[0]) {
       auto part_def_input_str = args.size() > 1 ? args[1] : default_part_def_file;
@@ -233,65 +209,9 @@ int handle_command(Database& db, std::vector<std::string> args) {
          std::cerr << "part_def_input file " << part_def_input_str << " not found." << std::endl;
          return 0;
       }
-      std::cout << "Load part_def from input file " << part_def_input_str << std::endl;
+      std::cout << "Load partition_descriptor from input file " << part_def_input_str << std::endl;
       partitioning_descriptor_t part_def = silo::load_partitioning_descriptor(part_def_input);
-      db.part_def = std::make_unique<partitioning_descriptor_t>(part_def);
-      return 0;
-   } else if ("partition" == args[0]) {
-      if (!db.part_def) {
-         std::cout << "Build partitioning descriptor first. See 'build_part_def' | 'load_part_def'" << endl;
-         return 0;
-      }
-      silo::partitioning_descriptor_t& partitioning_descripter = *db.part_def;
-      std::string meta_input = args.size() > 1 ? args[1] : default_metadata_input;
-      std::string sequence_input = args.size() > 2 ? args[2] : default_sequence_input;
-      std::string part_prefix = args.size() > 3 ? args[3] : default_partition_prefix;
-      std::cout << "partition from " << sequence_input << " and " << meta_input << " into " << part_prefix << endl;
-      istream_wrapper seq_file(sequence_input);
-      if (!seq_file.get_is()) {
-         std::cerr << "sequence_input file " << sequence_input << " not found." << std::endl;
-         return 0;
-      }
-      std::ifstream meta_file(meta_input);
-      if (!meta_file) {
-         std::cerr << "meta_input file " << meta_input << " not found." << std::endl;
-         return 0;
-      }
-
-      partition_sequences(partitioning_descripter, meta_file, seq_file.get_is(), part_prefix, db.get_alias_key());
-      return 0;
-   } else if ("sort_chunks" == args[0]) {
-      if (!db.part_def) {
-         std::cout << "Build partitioning descriptor first. See 'build_part_def' | 'load_part_def'" << endl;
-         return 0;
-      }
-      std::string part_prefix = args.size() > 1 ? args[1] : default_partition_prefix;
-      std::cout << "sort_chunks in " << part_prefix << endl;
-      silo::sort_chunks(*db.part_def, part_prefix);
-      return 0;
-   } else if ("build_dict" == args[0]) {
-      if (!db.part_def) {
-         std::cerr << "No part_def initialized. See 'build_part_def' | 'load_part_def'" << std::endl;
-         return 0;
-      }
-      std::string part_prefix = args.size() > 1 ? args[1] : default_partition_prefix;
-      std::string meta_suffix = args.size() > 2 ? args[2] : ".meta.tsv";
-      std::cout << "Build dictionary from meta_data in " << part_prefix << std::endl;
-      db.dict = std::make_unique<Dictionary>();
-
-      for (size_t i = 0; i < db.part_def->partitions.size(); ++i) {
-         const auto& part = db.part_def->partitions[i];
-         for (unsigned j = 0; j < part.chunks.size(); ++j) {
-            std::string name;
-            name = part_prefix + chunk_string(i, j);
-            std::ifstream meta_in(name + meta_suffix);
-            if (!meta_in) {
-               std::cerr << "Meta_data file " << (name + meta_suffix) << " not found." << std::endl;
-               return 0;
-            }
-            db.dict->update_dict(meta_in, db.get_alias_key());
-         }
-      }
+      db.partition_descriptor = std::make_unique<partitioning_descriptor_t>(part_def);
       return 0;
    } else if ("save_dict" == args[0]) {
       if (!db.dict) {
@@ -317,28 +237,6 @@ int handle_command(Database& db, std::vector<std::string> args) {
       std::cout << "Load dictionary from input file " << dict_input_str << std::endl;
       db.dict = std::make_unique<Dictionary>(Dictionary::load_dict(dict_input));
       return 0;
-   } else if ("build" == args[0]) {
-      if (!db.part_def) {
-         std::cout << "Build partitioning descriptor first. See 'build_part_def' | 'load_part_def'" << endl;
-         return 0;
-      }
-      if (!db.dict) {
-         std::cout << "Build dictionary first. See 'build_dict' | 'load_dict'" << endl;
-         return 0;
-      }
-      std::string part_prefix = args.size() > 1 ? args[1] : default_partition_prefix;
-      std::string meta_suffix = args.size() > 2 ? args[2] : ".meta.tsv";
-      std::string seq_suffix = args.size() > 3 ? args[3] : ".fasta";
-      if (args.size() > 4) {
-         std::ofstream out(args[4]);
-         if (!out) {
-            std::cout << "Could not open outfile " << args[4] << endl;
-            return 0;
-         }
-         db.build(part_prefix, meta_suffix, seq_suffix, out);
-      } else {
-         db.build(part_prefix, meta_suffix, seq_suffix, std::cout);
-      }
    } else if ("flip_bitmaps" == args[0]) {
       db.flipBitmaps();
    } else if ("run_optimize" == args[0]) {

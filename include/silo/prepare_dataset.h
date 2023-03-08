@@ -14,6 +14,7 @@ void prune_sequences(std::istream& meta_in, std::istream& sequences_in, std::ost
 
 void prune_meta(std::istream& meta_in, std::istream& sequences_in, std::ostream& meta_out);
 
+
 pango_descriptor_t build_pango_defs(const std::unordered_map<std::string, std::string>& alias_key, std::istream& meta_in);
 
 enum architecture_type {
@@ -26,9 +27,10 @@ enum architecture_type {
 partitioning_descriptor_t build_partitioning_descriptor(pango_descriptor_t pango_defs, architecture_type arch);
 
 void partition_sequences(const partitioning_descriptor_t& pd, std::istream& meta_in, std::istream& sequence_in,
-                         const std::string& output_prefix, const std::unordered_map<std::string, std::string>& alias_key);
+                         const std::string& output_prefix, const std::unordered_map<std::string, std::string>& alias_key,
+                         const std::string& metadata_file_extension, const std::string& sequence_file_extension);
 
-void sort_chunks(const partitioning_descriptor_t& pd, const std::string& output_prefix);
+void sort_chunks(const partitioning_descriptor_t& pd, const std::string& output_prefix, const std::string& metadata_file_extension, const std::string& sequence_file_extension);
 
 } // namespace silo
 

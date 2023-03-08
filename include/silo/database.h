@@ -1,7 +1,3 @@
-//
-// Created by Alexander Taepper on 16.11.22.
-//
-
 #ifndef SILO_DATABASE_H
 #define SILO_DATABASE_H
 
@@ -80,60 +76,33 @@ class DatabasePartition {
    void finalizeBuild(const Dictionary& dict);
 };
 
+struct PreprocessingConfig;
+
 class Database {
    public:
    const std::string wd; // working directory
    std::vector<std::string> global_reference;
    std::vector<DatabasePartition> partitions;
-   std::unique_ptr<pango_descriptor_t> pango_def;
-   std::unique_ptr<partitioning_descriptor_t> part_def;
+   std::unique_ptr<pango_descriptor_t> pango_descriptor;
+   std::unique_ptr<partitioning_descriptor_t> partition_descriptor;
    std::unique_ptr<Dictionary> dict;
 
-   const std::unordered_map<std::string, std::string> get_alias_key() {
-      return alias_key;
-   }
+   Database() {};
 
-   Database() {}
+   Database(const std::string& wd);
 
-   Database(const std::string& wd) : wd(wd) {
-      std::ifstream reference_file(wd + "reference_genome.txt");
-      if (!reference_file) {
-         std::cerr << "Expected file " << wd << "reference_genome.txt." << std::endl;
-         throw std::runtime_error("Expected file " + wd + "reference_genome.txt.");
-      }
-      while (true) {
-         std::string tmp;
-         if (!getline(reference_file, tmp, '\n')) break;
-         if (tmp.find('N') != std::string::npos) {
-            std::cerr << "No N in reference genome allowed." << std::endl;
-            throw std::runtime_error("No N in reference genome allowed.");
-         }
-         global_reference.push_back(tmp);
-      }
-      if (global_reference.empty()) {
-         std::cerr << "No genome in " << wd << "reference_genome.txt." << std::endl;
-         return;
-      }
+   void preprocessing(const PreprocessingConfig& config);
 
-      std::ifstream alias_key_file(wd + "pango_alias.txt");
-      if (!alias_key_file) {
-         std::cerr << "Expected file " << wd << "pango_alias.txt." << std::endl;
-         return;
-      }
-      while (true) {
-         std::string alias, val;
-         if (!getline(alias_key_file, alias, '\t')) break;
-         if (!getline(alias_key_file, val, '\n')) break;
-         alias_key[alias] = val;
-      }
-   }
+   void build(
+      const std::string& part_prefix,
+      const std::string& meta_suffix,
+      const std::string& seq_suffix,
+      std::ostream& out);
 
-   void build(const std::string& part_prefix, const std::string& meta_suffix, const std::string& seq_suffix, std::ostream& out);
-   // void analyse();
    virtual silo::db_info_t get_db_info();
+
    int db_info_detailed(std::ostream& io);
    void print_flipped(std::ostream& io);
-
    void finalizeBuild();
 
    void flipBitmaps();
@@ -146,6 +115,9 @@ class Database {
 
    void load(const std::string& save_dir);
 
+   const std::unordered_map<std::string, std::string>& getAliasKey() const;
+
+   private:
    std::unordered_map<std::string, std::string> alias_key;
 };
 
