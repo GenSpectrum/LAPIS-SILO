@@ -10,7 +10,7 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 set(CMAKE_CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -static-libstdc++ -static-libgcc")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/")
@@ -25,15 +25,6 @@ find_package(LibLZMA REQUIRED)
 find_package(TBB REQUIRED)
 find_package(RapidJSON REQUIRED INTERFACE)
 find_package(nlohmann_json REQUIRED)
-
-# workaround: conans readline is different from apk readline
-# Remove when readline is no longer needed
-# TODO: #16 Implement reading database data in SILO API
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    find_package(readline REQUIRED)
-else ()
-    set(readline_LIBRARIES readline)
-endif ()
 
 # ---------------------------------------------------------------------------
 # Includes
@@ -72,14 +63,11 @@ set(SRC_CC
 file(GLOB SRC_API_CC "src/silo_api/*")
 list(REMOVE_ITEM SRC_API_CC ${SRC_TEST})
 
-add_library(siloapi ${SRC_CC})
-target_link_libraries(siloapi PUBLIC ${Boost_LIBRARIES} TBB::tbb ${readline_LIBRARIES})
+add_library(silo ${SRC_CC})
+target_link_libraries(silo PUBLIC ${Boost_LIBRARIES} TBB::tbb)
 
-add_executable(silo src/main.cpp)
-target_link_libraries(silo PUBLIC siloapi)
-
-add_executable(siloWebApi src/api.cpp ${SRC_API_CC})
-target_link_libraries(siloWebApi PUBLIC siloapi Poco::Net Poco::Util Poco::JSON nlohmann_json::nlohmann_json)
+add_executable(siloApi src/api.cpp ${SRC_API_CC})
+target_link_libraries(siloApi PUBLIC silo Poco::Net Poco::Util Poco::JSON nlohmann_json::nlohmann_json)
 
 # ---------------------------------------------------------------------------
 # Tests
@@ -94,4 +82,4 @@ add_executable(silo_test ${SRC_TEST} ${SRC_API_CC})
 if(NOT GTest_LIBRARIES)
     set(GTest_LIBRARIES gtest gmock)
 endif()
-target_link_libraries(silo_test ${GTest_LIBRARIES} siloapi Poco::Net Poco::Util Poco::JSON nlohmann_json::nlohmann_json)
+target_link_libraries(silo_test ${GTest_LIBRARIES} silo Poco::Net Poco::Util Poco::JSON nlohmann_json::nlohmann_json)
