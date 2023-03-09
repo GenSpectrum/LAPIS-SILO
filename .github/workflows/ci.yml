@@ -9,6 +9,27 @@ env:
   DOCKER_TEST_IMAGE_NAME: silo/unittests
 
 jobs:
+  formatting-check:
+    name: Formatting Check
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        path:
+          - check: 'src'
+            exclude: 'roaring.c'
+          - check: 'include'
+            exclude: '(roaring.h|roaring.hh|splitmix64.h|PerfEvent.hpp)'
+    steps:
+      -
+        uses: actions/checkout@v3
+      -
+        name: Run clang-format style check
+        uses: jidicula/clang-format-action@v4.10.2
+        with:
+          clang-format-version: '15'
+          check-path: ${{ matrix.path['check'] }}
+          exclude-regex: ${{ matrix.path['exclude'] }}
+
   dockerImage:
     name: Build And Run Unit Tests
     runs-on: ubuntu-latest
