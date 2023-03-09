@@ -6,24 +6,15 @@ on:
 
 env:
   DOCKER_IMAGE_NAME: ghcr.io/GenSpectrum/LAPIS-SILO
+  DOCKER_TEST_IMAGE_NAME: silo/unittests
 
 jobs:
   dockerImage:
-    name: Build Docker Image
+    name: Build And Run Unit Tests
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'push' }}
     steps:
       -
         uses: actions/checkout@v3
-      -
-        name: Docker metadata
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: ${{ env.DOCKER_IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
       -
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -35,63 +26,41 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       -
-        name: Build and push unit test image
+        name: Build unit test image
         uses: docker/build-push-action@v4
         with:
           context: .
           push: false
+          load: true
           target: builder
-          tags: unittests:latest
+          tags: ${{ env.DOCKER_TEST_IMAGE_NAME }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          outputs: type=docker,dest=/tmp/unitTestsImage.tar
-      -
-        name: Temporarily store unit test image
-        uses: actions/upload-artifact@v2
-        with:
-          name: unitTestsImage
-          path: /tmp/unitTestsImage.tar
-      -
-        name: Build and push production image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  unitTests:
-    name: Run unit tests
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'push' }}
-    steps:
-      -
-        uses: actions/checkout@v3
-      -
-        name: Wait for Docker Image
-        uses: lewagon/wait-on-check-action@v1.3.1
-        with:
-          ref: ${{ github.ref }}
-          check-name: 'Build Docker Image'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-      -
-        name: Download artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: unitTestsImage
-          path: /tmp
-      -
-        name: Load Docker image
-        run: |
-          docker load --input /tmp/unitTestsImage.tar
-          docker image ls -a
       -
         name: Run tests
         uses: addnab/docker-run-action@v3
         with:
-          image: unittests
+          image: ${{ env.DOCKER_TEST_IMAGE_NAME }}
           run: ./silo_test
+      -
+        name: Docker metadata
+        id: dockerMetadata
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.DOCKER_IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+      -
+        name: Build and push production image
+        if: ${{ github.event_name == 'push' }}
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.dockerMetadata.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   endToEndTests:
     name: Run End To End Tests
@@ -118,7 +87,7 @@ jobs:
         run: cd endToEndTests && npm run check-format
       -
         name: Docker Metadata
-        id: meta
+        id: dockerMetadata
         uses: docker/metadata-action@v4
         with:
           images: ${{ env.DOCKER_IMAGE_NAME }}
@@ -128,11 +97,11 @@ jobs:
         uses: lewagon/wait-on-check-action@v1.3.1
         with:
           ref: ${{ github.ref }}
-          check-name: 'Build Docker Image'
+          check-name: Build And Run Unit Tests
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       -
         name: Start Docker Container
-        run: docker run -p 8080:8080 -d ${{ steps.meta.outputs.tags }}
+        run: docker run -p 8080:8080 -d ${{ steps.dockerMetadata.outputs.tags }}
       -
         name: Run Tests
         run: cd endToEndTests && SILO_URL=localhost:8080 npm run test
