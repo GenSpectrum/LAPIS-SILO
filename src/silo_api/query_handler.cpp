@@ -1,4 +1,5 @@
 #include "silo_api/query_handler.h"
+#include <silo/query_engine/QueryParseException.h>
 #include <nlohmann/json.hpp>
 #include "Poco/Net/HTTPRequestHandler.h"
 #include "Poco/Net/HTTPServerRequest.h"

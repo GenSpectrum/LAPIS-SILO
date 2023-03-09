@@ -1,6 +1,7 @@
 
 
 #include "silo/query_engine/query_engine.h"
+#include <silo/query_engine/QueryParseException.h>
 #include <silo/common/PerfEvent.hpp>
 #include <syncstream>
 #include <vector>

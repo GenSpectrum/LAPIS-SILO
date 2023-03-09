@@ -9,17 +9,6 @@
 
 namespace silo {
 
-struct QueryParseException : public std::exception {
-  private:
-   const char* message;
-
-  public:
-   explicit QueryParseException(const std::string& msg)
-       : message(msg.c_str()) {}
-
-   [[nodiscard]] const char* what() const noexcept override { return message; }
-};
-
 struct QueryResult {
    std::variant<
       response::AggregationResult,
