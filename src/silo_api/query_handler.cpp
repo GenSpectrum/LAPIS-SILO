@@ -44,4 +44,6 @@ void QueryHandler::handleRequest(
       out_stream << nlohmann::json(ErrorResponse{"Internal server error", ex.what()});
    }
 }
+QueryHandler::QueryHandler(silo::Database& database)
+    : database(database) {}
 }  // namespace silo_api

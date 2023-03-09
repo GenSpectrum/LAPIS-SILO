@@ -15,7 +15,10 @@ struct ErrorResponse {
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ErrorResponse, error, message);
 
 class NotFoundHandler : public Poco::Net::HTTPRequestHandler {
-   void handleRequest(Poco::Net::HTTPServerRequest&, Poco::Net::HTTPServerResponse& response);
+   void handleRequest(
+      Poco::Net::HTTPServerRequest& request,
+      Poco::Net::HTTPServerResponse& response
+   ) override;
 };
 }  // namespace silo_api
 

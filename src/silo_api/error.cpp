@@ -6,7 +6,7 @@
 
 namespace silo_api {
 void NotFoundHandler::handleRequest(
-   Poco::Net::HTTPServerRequest&,
+   Poco::Net::HTTPServerRequest& /*request*/,
    Poco::Net::HTTPServerResponse& response
 ) {
    response.setContentType("application/json");
