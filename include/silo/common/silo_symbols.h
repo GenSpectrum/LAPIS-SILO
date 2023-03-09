@@ -16,29 +16,28 @@ static constexpr unsigned genomeLength = 29903;
 
 // https://www.bioinformatics.org/sms/iupac.html
 enum Symbol {
-   gap, // -, gap
-   A, // Adenine
-   C, // Cytosine
-   G, // Guanine
-   T, // (or U) Thymine (or Uracil)
-   R, // A or G
-   Y, // C or T
-   S, // G or C
-   W, // A or T
-   K, // G or T
-   M, // A or C
-   B, // C or G or T
-   D, // A or G or T
-   H, // A or C or T
-   V, // A or C or G
-   N, // any base
+   gap,  // -, gap
+   A,    // Adenine
+   C,    // Cytosine
+   G,    // Guanine
+   T,    // (or U) Thymine (or Uracil)
+   R,    // A or G
+   Y,    // C or T
+   S,    // G or C
+   W,    // A or T
+   K,    // G or T
+   M,    // A or C
+   B,    // C or G or T
+   D,    // A or G or T
+   H,    // A or C or T
+   V,    // A or C or G
+   N,    // any base
 };
 
 static constexpr unsigned symbolCount = static_cast<unsigned>(Symbol::N) + 1;
 
-static constexpr char symbol_rep[symbolCount] = {
-   '-', 'A', 'C', 'G', 'T', 'R', 'Y', 'S',
-   'W', 'K', 'M', 'B', 'D', 'H', 'V', 'N'};
+static constexpr char symbol_rep[symbolCount] = {'-', 'A', 'C', 'G', 'T', 'R', 'Y', 'S',
+                                                 'W', 'K', 'M', 'B', 'D', 'H', 'V', 'N'};
 
 static_assert(symbol_rep[static_cast<unsigned>(Symbol::N)] == 'N');
 
@@ -101,7 +100,10 @@ inline Symbol to_symbol(char c) {
    return s;
 }
 
-inline std::string resolve_alias(const std::unordered_map<std::string, std::string>& alias_key, const std::string& pango_lineage) {
+inline std::string resolve_alias(
+   const std::unordered_map<std::string, std::string>& alias_key,
+   const std::string& pango_lineage
+) {
    std::string pango_pref;
    std::stringstream pango_lin_stream(pango_lineage);
    getline(pango_lin_stream, pango_pref, '.');
@@ -122,6 +124,6 @@ static inline std::string chunk_string(unsigned partition, unsigned chunk) {
 
 std::string number_fmt(unsigned long n);
 
-} // namespace silo;
+}  // namespace silo
 
-#endif //SILO_H
+#endif  // SILO_H

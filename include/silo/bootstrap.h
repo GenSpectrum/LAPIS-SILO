@@ -9,4 +9,4 @@
 
 int bootstrap(const silo::Database& db, std::string& out_dir, unsigned seed, unsigned factor);
 
-#endif //SILO_BOOTSTRAP_H
+#endif  // SILO_BOOTSTRAP_H

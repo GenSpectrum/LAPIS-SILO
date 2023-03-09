@@ -5,8 +5,8 @@
 #ifndef SILO_HASHING_H
 #define SILO_HASHING_H
 
-#include <string>
 #include <stdint.h>
+#include <string>
 
 inline constexpr uint64_t murmurHash64(uint64_t k) {
    // MurmurHash64A
@@ -32,4 +32,4 @@ inline uint64_t hash_string(const std::string& x) {
    return murmurHash64(result);
 }
 
-#endif //SILO_HASHING_H
+#endif  // SILO_HASHING_H

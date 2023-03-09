@@ -1,21 +1,28 @@
 
 
 #include "silo/query_engine/query_engine.h"
-#include "tbb/parallel_for.h"
-#include "tbb/parallel_for_each.h"
 #include <silo/common/PerfEvent.hpp>
 #include <syncstream>
 #include <vector>
+#include "tbb/parallel_for.h"
+#include "tbb/parallel_for_each.h"
 
-#define RAPIDJSON_ASSERT(x) \
-   if (!(x)) throw silo::QueryParseException("The query was not a valid JSON: " + std::string(RAPIDJSON_STRINGIFY(x)))
+#define RAPIDJSON_ASSERT(x)                                                    \
+   if (!(x))                                                                   \
+   throw silo::QueryParseException(                                            \
+      "The query was not a valid JSON: " + std::string(RAPIDJSON_STRINGIFY(x)) \
+   )
 #include "rapidjson/document.h"
 
 namespace silo {
 
 using roaring::Roaring;
 
-std::unique_ptr<BoolExpression> parse_expression(const Database& db, const rapidjson::Value& js, int exact) {
+std::unique_ptr<BoolExpression> parse_expression(
+   const Database& db,
+   const rapidjson::Value& js,
+   int exact
+) {
    assert(js.HasMember("type"));
    assert(js["type"].IsString());
    std::string type = js["type"].GetString();
@@ -23,15 +30,21 @@ std::unique_ptr<BoolExpression> parse_expression(const Database& db, const rapid
       auto ret = std::make_unique<AndEx>();
       assert(js.HasMember("children"));
       assert(js["children"].IsArray());
-      std::transform(js["children"].GetArray().begin(), js["children"].GetArray().end(),
-                     std::back_inserter(ret->children), [&](const rapidjson::Value& js) { return parse_expression(db, js, exact); });
+      std::transform(
+         js["children"].GetArray().begin(), js["children"].GetArray().end(),
+         std::back_inserter(ret->children),
+         [&](const rapidjson::Value& js) { return parse_expression(db, js, exact); }
+      );
       return ret;
    } else if (type == "Or") {
       auto ret = std::make_unique<OrEx>();
       assert(js.HasMember("children"));
       assert(js["children"].IsArray());
-      std::transform(js["children"].GetArray().begin(), js["children"].GetArray().end(),
-                     std::back_inserter(ret->children), [&](const rapidjson::Value& js) { return parse_expression(db, js, exact); });
+      std::transform(
+         js["children"].GetArray().begin(), js["children"].GetArray().end(),
+         std::back_inserter(ret->children),
+         [&](const rapidjson::Value& js) { return parse_expression(db, js, exact); }
+      );
       return ret;
    } else if (type == "N-Of") {
       assert(js.HasMember("children"));
@@ -40,8 +53,11 @@ std::unique_ptr<BoolExpression> parse_expression(const Database& db, const rapid
       assert(js["n"].IsUint());
 
       auto ret = std::make_unique<NOfEx>(js["n"].GetUint(), js["exactly"].GetBool());
-      std::transform(js["children"].GetArray().begin(), js["children"].GetArray().end(),
-                     std::back_inserter(ret->children), [&](const rapidjson::Value& js) { return parse_expression(db, js, exact); });
+      std::transform(
+         js["children"].GetArray().begin(), js["children"].GetArray().end(),
+         std::back_inserter(ret->children),
+         [&](const rapidjson::Value& js) { return parse_expression(db, js, exact); }
+      );
       if (js.HasMember("impl") && js["impl"].IsUint()) {
          ret->impl = js["impl"].GetUint();
       }
@@ -86,7 +102,7 @@ std::unique_ptr<BoolExpression> parse_expression(const Database& db, const rapid
       }
       if (exact >= 0) {
          return std::make_unique<NucEqEx>(position, value);
-      } else { // Approximate query!
+      } else {  // Approximate query!
          return std::make_unique<NucMbEx>(position, value);
       }
    } else if (type == "NucMut") {
@@ -94,10 +110,12 @@ std::unique_ptr<BoolExpression> parse_expression(const Database& db, const rapid
       unsigned pos = js["position"].GetUint();
       char ref_symbol = db.global_reference[0].at(pos);
       /// this <= is correct! the negation would flip the exact bit from -1 to +1 and vice versa
-      if (exact <= 0) { /// NucEqEx
-         return std::make_unique<NegEx>(std::make_unique<NucEqEx>(pos, silo::to_symbol(ref_symbol)));
-      } else { /// NucMbEx
-         return std::make_unique<NegEx>(std::make_unique<NucMbEx>(pos, silo::to_symbol(ref_symbol)));
+      if (exact <= 0) {  /// NucEqEx
+         return std::make_unique<NegEx>(std::make_unique<NucEqEx>(pos, silo::to_symbol(ref_symbol))
+         );
+      } else {  /// NucMbEx
+         return std::make_unique<NegEx>(std::make_unique<NucMbEx>(pos, silo::to_symbol(ref_symbol))
+         );
       }
    } else if (type == "PangoLineage") {
       bool includeSubLineages = js["includeSubLineages"].GetBool();
@@ -133,15 +151,20 @@ std::unique_ptr<BoolExpression> parse_expression(const Database& db, const rapid
 filter_t AndEx::evaluate(const Database& db, const DatabasePartition& dbp) {
    std::vector<filter_t> children_bm;
    children_bm.reserve(children.size());
-   std::transform(children.begin(), children.end(), std::back_inserter(children_bm),
-                  [&](const auto& child) { return child->evaluate(db, dbp); });
+   std::transform(
+      children.begin(), children.end(), std::back_inserter(children_bm),
+      [&](const auto& child) { return child->evaluate(db, dbp); }
+   );
    std::vector<filter_t> negated_children_bm;
    negated_children.reserve(negated_children.size());
-   std::transform(negated_children.begin(), negated_children.end(), std::back_inserter(negated_children_bm),
-                  [&](const auto& child) { return child->evaluate(db, dbp); });
+   std::transform(
+      negated_children.begin(), negated_children.end(), std::back_inserter(negated_children_bm),
+      [&](const auto& child) { return child->evaluate(db, dbp); }
+   );
    /// Sort ascending, such that intermediate results are kept small
-   std::sort(children_bm.begin(), children_bm.end(),
-             [](const filter_t& a, const filter_t& b) { return a.getAsConst()->cardinality() < b.getAsConst()->cardinality(); });
+   std::sort(children_bm.begin(), children_bm.end(), [](const filter_t& a, const filter_t& b) {
+      return a.getAsConst()->cardinality() < b.getAsConst()->cardinality();
+   });
 
    Roaring* ret;
    if (children_bm.empty()) {
@@ -165,8 +188,12 @@ filter_t AndEx::evaluate(const Database& db, const DatabasePartition& dbp) {
          ret = new Roaring(tmp);
       }
       /// Sort negated children descending by size
-      std::sort(negated_children_bm.begin(), negated_children_bm.end(),
-                [](const filter_t& a, const filter_t& b) { return a.getAsConst()->cardinality() > b.getAsConst()->cardinality(); });
+      std::sort(
+         negated_children_bm.begin(), negated_children_bm.end(),
+         [](const filter_t& a, const filter_t& b) {
+            return a.getAsConst()->cardinality() > b.getAsConst()->cardinality();
+         }
+      );
       for (auto neg_bm : negated_children_bm) {
          *ret -= *neg_bm.getAsConst();
          neg_bm.free();
@@ -190,8 +217,12 @@ filter_t AndEx::evaluate(const Database& db, const DatabasePartition& dbp) {
          bm.free();
       }
       /// Sort negated children descending by size
-      std::sort(negated_children_bm.begin(), negated_children_bm.end(),
-                [](const filter_t& a, const filter_t& b) { return a.getAsConst()->cardinality() > b.getAsConst()->cardinality(); });
+      std::sort(
+         negated_children_bm.begin(), negated_children_bm.end(),
+         [](const filter_t& a, const filter_t& b) {
+            return a.getAsConst()->cardinality() > b.getAsConst()->cardinality();
+         }
+      );
       for (auto neg_bm : negated_children_bm) {
          *ret -= *neg_bm.getAsConst();
          neg_bm.free();
@@ -216,11 +247,19 @@ filter_t OrEx::evaluate(const Database& db, const DatabasePartition& dbp) {
    return {ret, nullptr};
 }
 
-inline void vec_and_not(std::vector<uint32_t>& dest, const std::vector<uint32_t>& v1, const std::vector<uint32_t>& v2) {
+inline void vec_and_not(
+   std::vector<uint32_t>& dest,
+   const std::vector<uint32_t>& v1,
+   const std::vector<uint32_t>& v2
+) {
    std::set_difference(v1.begin(), v1.end(), v2.begin(), v2.end(), std::back_inserter(dest));
 }
 
-filter_t NOfEx_evaluateImpl0_threshold(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
+filter_t NOfEx_evaluateImpl0_threshold(
+   const NOfEx* self,
+   const Database& db,
+   const DatabasePartition& dbp
+) {
    Roaring* ret = new Roaring();
    std::vector<uint16_t> count(dbp.sequenceCount);
    std::vector<uint32_t> correct;
@@ -240,7 +279,11 @@ filter_t NOfEx_evaluateImpl0_threshold(const NOfEx* self, const Database& db, co
    return {ret, nullptr};
 }
 
-filter_t NOfEx_evaluateImpl0_exact(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
+filter_t NOfEx_evaluateImpl0_exact(
+   const NOfEx* self,
+   const Database& db,
+   const DatabasePartition& dbp
+) {
    std::vector<uint16_t> count;
    std::vector<uint32_t> at_least;
    std::vector<uint32_t> too_much;
@@ -265,7 +308,11 @@ filter_t NOfEx_evaluateImpl0_exact(const NOfEx* self, const Database& db, const 
    return {new Roaring(correct.size(), &correct[0]), nullptr};
 }
 
-filter_t NOfEx_evaluateImpl0b_exact(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
+filter_t NOfEx_evaluateImpl0b_exact(
+   const NOfEx* self,
+   const Database& db,
+   const DatabasePartition& dbp
+) {
    Roaring* ret = new Roaring();
    Roaring* too_much = new Roaring();
    std::vector<uint16_t> count;
@@ -297,7 +344,11 @@ filter_t NOfEx_evaluateImpl0b_exact(const NOfEx* self, const Database& db, const
 }
 
 /// DPLoop
-filter_t NOfEx_evaluateImpl1_threshold(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
+filter_t NOfEx_evaluateImpl1_threshold(
+   const NOfEx* self,
+   const Database& db,
+   const DatabasePartition& dbp
+) {
    std::vector<Roaring*> dp(self->n);
    /// Copy bm of first child if immutable, otherwise use it directly
    auto tmp = self->children[0]->evaluate(db, dbp);
@@ -313,7 +364,8 @@ filter_t NOfEx_evaluateImpl1_threshold(const NOfEx* self, const Database& db, co
 
    for (unsigned i = 1; i < self->children.size(); ++i) {
       auto bm = self->children[i]->evaluate(db, dbp);
-      /// positions higher than (i-1) cannot have been reached yet, are therefore all 0s and the conjunction would return 0
+      /// positions higher than (i-1) cannot have been reached yet, are therefore all 0s and the
+      /// conjunction would return 0
       for (unsigned j = std::min(self->n - 1, i); j >= 1; --j) {
          *dp[j] |= *dp[j - 1] & *bm.getAsConst();
       }
@@ -329,7 +381,11 @@ filter_t NOfEx_evaluateImpl1_threshold(const NOfEx* self, const Database& db, co
 }
 
 /// DPLoop
-filter_t NOfEx_evaluateImpl1_exact(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
+filter_t NOfEx_evaluateImpl1_exact(
+   const NOfEx* self,
+   const Database& db,
+   const DatabasePartition& dbp
+) {
    std::vector<Roaring*> dp(self->n + 1);
    /// Copy bm of first child if immutable, otherwise use it directly
    auto tmp = self->children[0]->evaluate(db, dbp);
@@ -345,7 +401,8 @@ filter_t NOfEx_evaluateImpl1_exact(const NOfEx* self, const Database& db, const 
 
    for (unsigned i = 1; i < self->children.size(); ++i) {
       auto bm = self->children[i]->evaluate(db, dbp);
-      /// positions higher than (i-1) cannot have been reached yet, are therefore all 0s and the conjunction would return 0
+      /// positions higher than (i-1) cannot have been reached yet, are therefore all 0s and the
+      /// conjunction would return 0
       for (unsigned j = std::min(self->n, i); j >= 1; --j) {
          *dp[j] |= *dp[j - 1] & *bm.getAsConst();
       }
@@ -366,7 +423,11 @@ filter_t NOfEx_evaluateImpl1_exact(const NOfEx* self, const Database& db, const 
 }
 
 // N-Way Heap-Merge, for threshold queries
-filter_t NOfEx_evaluateImpl2_threshold(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
+filter_t NOfEx_evaluateImpl2_threshold(
+   const NOfEx* self,
+   const Database& db,
+   const DatabasePartition& dbp
+) {
    std::vector<filter_t> child_maps;
    struct bitmap_iterator {
       roaring::RoaringSetBitForwardIterator cur;
@@ -383,8 +444,7 @@ filter_t NOfEx_evaluateImpl2_threshold(const NOfEx* self, const Database& db, co
 
    /// stl heap is max-heap. We want min, therefore we define a greater-than sorter
    /// as opposed to the standard less-than sorter
-   auto min_heap_sort = [](const bitmap_iterator& a,
-                           const bitmap_iterator& b) {
+   auto min_heap_sort = [](const bitmap_iterator& a, const bitmap_iterator& b) {
       return *a.cur > *b.cur;
    };
 
@@ -438,7 +498,11 @@ filter_t NOfEx_evaluateImpl2_threshold(const NOfEx* self, const Database& db, co
 }
 
 // N-Way Heap-Merge, for exact queries
-filter_t NOfEx_evaluateImpl2_exact(const NOfEx* self, const Database& db, const DatabasePartition& dbp) {
+filter_t NOfEx_evaluateImpl2_exact(
+   const NOfEx* self,
+   const Database& db,
+   const DatabasePartition& dbp
+) {
    std::vector<filter_t> child_maps;
    struct bitmap_iterator {
       roaring::RoaringSetBitForwardIterator cur;
@@ -455,10 +519,7 @@ filter_t NOfEx_evaluateImpl2_exact(const NOfEx* self, const Database& db, const 
 
    /// stl heap is max-heap. We want min, therefore we define a greater-than sorter
    /// as opposed to the standard less-than sorter
-   auto sorter = [](const bitmap_iterator& a,
-                    const bitmap_iterator& b) {
-      return *a.cur > *b.cur;
-   };
+   auto sorter = [](const bitmap_iterator& a, const bitmap_iterator& b) { return *a.cur > *b.cur; };
 
    std::make_heap(iterator_heap.begin(), iterator_heap.end(), sorter);
 
@@ -559,7 +620,11 @@ filter_t DateBetwEx::evaluate(const Database& /*db*/, const DatabasePartition& d
    return {ret, nullptr};
 }
 
-filter_t DateBetwEx::select(const Database& /*db*/, const DatabasePartition& dbp, filter_t in_filter) {
+filter_t DateBetwEx::select(
+   const Database& /*db*/,
+   const DatabasePartition& dbp,
+   filter_t in_filter
+) {
    if (open_from && open_to) {
       return in_filter;
    } else {
@@ -586,7 +651,11 @@ filter_t DateBetwEx::select(const Database& /*db*/, const DatabasePartition& dbp
    }
 }
 
-filter_t DateBetwEx::neg_select(const Database& /*db*/, const DatabasePartition& dbp, filter_t in_filter) {
+filter_t DateBetwEx::neg_select(
+   const Database& /*db*/,
+   const DatabasePartition& dbp,
+   filter_t in_filter
+) {
    if (open_from && open_to) {
       return in_filter;
    } else {
@@ -600,7 +669,8 @@ filter_t DateBetwEx::neg_select(const Database& /*db*/, const DatabasePartition&
       for (const chunk_t& chunk : dbp.get_chunks()) {
          auto begin = &dbp.meta_store.sid_to_date[chunk.offset];
          auto end = &dbp.meta_store.sid_to_date[chunk.offset + chunk.count];
-         uint32_t lower = open_from ? begin - base : std::lower_bound(begin, end, this->from) - base;
+         uint32_t lower =
+            open_from ? begin - base : std::lower_bound(begin, end, this->from) - base;
          uint32_t upper = open_to ? end - base : std::upper_bound(begin, end, this->to) - base;
          ret->removeRange(lower, upper);
       }
@@ -617,13 +687,15 @@ filter_t NucMbEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp)
       /// Normal case
       return {dbp.seq_store.bma(position, value), nullptr};
    } else {
-      /// The bitmap of this->value has been flipped... still have to union it with the other symbols
+      /// The bitmap of this->value has been flipped... still have to union it with the other
+      /// symbols
       return {dbp.seq_store.bma_neg(position, value), nullptr};
    }
 }
 
 filter_t PangoLineageEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
-   if (lineageKey == UINT32_MAX) return {new Roaring(), nullptr};
+   if (lineageKey == UINT32_MAX)
+      return {new Roaring(), nullptr};
    if (includeSubLineages) {
       return {nullptr, &dbp.meta_store.sublineage_bitmaps[lineageKey]};
    } else {
@@ -658,7 +730,11 @@ filter_t PosNEqEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp
    return {ret, nullptr};
 }
 
-filter_t PosNEqEx::select(const Database& /*db*/, const DatabasePartition& dbp, filter_t in_filter) {
+filter_t PosNEqEx::select(
+   const Database& /*db*/,
+   const DatabasePartition& dbp,
+   filter_t in_filter
+) {
    constexpr unsigned BUFFER_SIZE = 1024;
    std::vector<uint32_t> buffer(BUFFER_SIZE);
    Roaring* ret = new Roaring();
@@ -678,7 +754,11 @@ filter_t PosNEqEx::select(const Database& /*db*/, const DatabasePartition& dbp, 
    return {ret, nullptr};
 }
 
-filter_t PosNEqEx::neg_select(const Database& /*db*/, const DatabasePartition& dbp, filter_t in_filter) {
+filter_t PosNEqEx::neg_select(
+   const Database& /*db*/,
+   const DatabasePartition& dbp,
+   filter_t in_filter
+) {
    constexpr unsigned BUFFER_SIZE = 1024;
    std::vector<uint32_t> buffer(BUFFER_SIZE);
    Roaring* ret = new Roaring();
@@ -737,7 +817,11 @@ filter_t StrEqEx::select(const Database& /*db*/, const DatabasePartition& dbp, f
    return {ret, nullptr};
 }
 
-filter_t StrEqEx::neg_select(const Database& /*db*/, const DatabasePartition& dbp, filter_t in_filter) {
+filter_t StrEqEx::neg_select(
+   const Database& /*db*/,
+   const DatabasePartition& dbp,
+   filter_t in_filter
+) {
    constexpr unsigned BUFFER_SIZE = 1024;
    std::vector<uint32_t> buffer(BUFFER_SIZE);
    Roaring* ret = new Roaring();
@@ -766,9 +850,12 @@ filter_t FullEx::evaluate(const Database&, const DatabasePartition& dbp) {
 filter_t EmptyEx::evaluate(const Database&, const DatabasePartition&) {
    return {new Roaring(), nullptr};
 }
-} // namespace silo;
+}  // namespace silo
 
-std::vector<silo::filter_t> silo::execute_predicate(const silo::Database& db, const BoolExpression* filter) {
+std::vector<silo::filter_t> silo::execute_predicate(
+   const silo::Database& db,
+   const BoolExpression* filter
+) {
    std::vector<silo::filter_t> partition_filters(db.partitions.size());
    tbb::blocked_range<size_t> r(0, db.partitions.size(), 1);
    tbb::parallel_for(r.begin(), r.end(), [&](const size_t& i) {
@@ -778,7 +865,12 @@ std::vector<silo::filter_t> silo::execute_predicate(const silo::Database& db, co
    return partition_filters;
 }
 
-silo::QueryResult silo::execute_query(const silo::Database& db, const std::string& query, std::ostream& parse_out, std::ostream& perf_out) {
+silo::QueryResult silo::execute_query(
+   const silo::Database& db,
+   const std::string& query,
+   std::ostream& parse_out,
+   std::ostream& perf_out
+) {
    rapidjson::Document doc;
    doc.Parse(query.c_str());
    if (!doc.HasMember("filter") || !doc["filter"].IsObject() ||
@@ -809,9 +901,11 @@ silo::QueryResult silo::execute_query(const silo::Database& db, const std::strin
       });
    }
    for (unsigned i = 0; i < db.partitions.size(); ++i) {
-      parse_out << "Simplified query for partition " << i << ": " << simplified_queries[i] << std::endl;
+      parse_out << "Simplified query for partition " << i << ": " << simplified_queries[i]
+                << std::endl;
    }
-   perf_out << "Execution (filter): " << std::to_string(query_result.filterTime) << " microseconds\n";
+   perf_out << "Execution (filter): " << std::to_string(query_result.filterTime)
+            << " microseconds\n";
 
    {
       BlockTimer timer(query_result.actionTime);
@@ -830,7 +924,8 @@ silo::QueryResult silo::execute_query(const silo::Database& db, const std::strin
          } else if (strcmp(action_type, "List") == 0) {
          } else if (strcmp(action_type, "Mutations") == 0) {
          } else {
-            query_result.queryResult = response::ErrorResult{"Unknown action", std::string(action_type) + " is not a valid action"};
+            query_result.queryResult = response::ErrorResult{
+               "Unknown action", std::string(action_type) + " is not a valid action"};
          }
       } else {
          if (strcmp(action_type, "Aggregated") == 0) {
@@ -841,32 +936,35 @@ silo::QueryResult silo::execute_query(const silo::Database& db, const std::strin
             double min_proportion = 0.02;
             if (action.HasMember("minProportion") && action["minProportion"].IsDouble()) {
                if (action["minProportion"].GetDouble() <= 0.0) {
-                  query_result.queryResult = response::ErrorResult{"Invalid proportion", "minProportion must be in interval (0.0,1.0]"};
+                  query_result.queryResult = response::ErrorResult{
+                     "Invalid proportion", "minProportion must be in interval (0.0,1.0]"};
                   return query_result;
                }
                min_proportion = action["minProportion"].GetDouble();
             }
-            std::vector<MutationProportion> mutations = execute_mutations(db, partition_filters, min_proportion, perf_out);
+            std::vector<MutationProportion> mutations =
+               execute_mutations(db, partition_filters, min_proportion, perf_out);
 
             std::vector<response::MutationProportion> output_mutation_proportions(mutations.size());
             std::transform(
-               mutations.begin(),
-               mutations.end(),
-               output_mutation_proportions.begin(),
+               mutations.begin(), mutations.end(), output_mutation_proportions.begin(),
                [](MutationProportion mutation_proportion) {
                   return response::MutationProportion{
-                     mutation_proportion.mut_from + std::to_string(mutation_proportion.position) + mutation_proportion.mut_to,
-                     mutation_proportion.proportion,
-                     mutation_proportion.count};
-               });
+                     mutation_proportion.mut_from + std::to_string(mutation_proportion.position) +
+                        mutation_proportion.mut_to,
+                     mutation_proportion.proportion, mutation_proportion.count};
+               }
+            );
             query_result.queryResult = output_mutation_proportions;
          } else {
-            query_result.queryResult = response::ErrorResult{"Unknown action", std::string(action_type) + " is not a valid action"};
+            query_result.queryResult = response::ErrorResult{
+               "Unknown action", std::string(action_type) + " is not a valid action"};
          }
       }
    }
 
-   perf_out << "Execution (action): " << std::to_string(query_result.actionTime) << " microseconds\n";
+   perf_out << "Execution (action): " << std::to_string(query_result.actionTime)
+            << " microseconds\n";
 
    return query_result;
 }

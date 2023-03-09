@@ -64,14 +64,12 @@ class DatabasePartition {
 
    std::vector<silo::chunk_t> chunks;
 
-   public:
+  public:
    MetaStore meta_store;
    SequenceStore seq_store;
    unsigned sequenceCount;
 
-   const std::vector<silo::chunk_t>& get_chunks() const {
-      return chunks;
-   }
+   const std::vector<silo::chunk_t>& get_chunks() const { return chunks; }
 
    void finalizeBuild(const Dictionary& dict);
 };
@@ -79,15 +77,15 @@ class DatabasePartition {
 struct PreprocessingConfig;
 
 class Database {
-   public:
-   const std::string wd; // working directory
+  public:
+   const std::string wd;  // working directory
    std::vector<std::string> global_reference;
    std::vector<DatabasePartition> partitions;
    std::unique_ptr<pango_descriptor_t> pango_descriptor;
    std::unique_ptr<partitioning_descriptor_t> partition_descriptor;
    std::unique_ptr<Dictionary> dict;
 
-   Database() {};
+   Database(){};
 
    Database(const std::string& wd);
 
@@ -97,7 +95,8 @@ class Database {
       const std::string& part_prefix,
       const std::string& meta_suffix,
       const std::string& seq_suffix,
-      std::ostream& out);
+      std::ostream& out
+   );
 
    virtual silo::db_info_t get_db_info();
 
@@ -117,13 +116,18 @@ class Database {
 
    const std::unordered_map<std::string, std::string>& getAliasKey() const;
 
-   private:
+  private:
    std::unordered_map<std::string, std::string> alias_key;
 };
 
 unsigned processSeq(SequenceStore& seq_store, std::istream& in);
 
-unsigned processMeta(MetaStore& meta_store, std::istream& in, const std::unordered_map<std::string, std::string>& alias_key, const Dictionary& dict);
+unsigned processMeta(
+   MetaStore& meta_store,
+   std::istream& in,
+   const std::unordered_map<std::string, std::string>& alias_key,
+   const Dictionary& dict
+);
 
 void save_pango_defs(const pango_descriptor_t& pd, std::ostream& out);
 
@@ -133,6 +137,6 @@ void save_partitioning_descriptor(const partitioning_descriptor_t& pd, std::ostr
 
 partitioning_descriptor_t load_partitioning_descriptor(std::istream& in);
 
-} // namespace silo
+}  // namespace silo
 
-#endif //SILO_DATABASE_H
+#endif  // SILO_DATABASE_H

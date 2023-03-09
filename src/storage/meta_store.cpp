@@ -4,8 +4,15 @@
 
 #include <silo/storage/meta_store.h>
 
-void silo::inputSequenceMeta(MetaStore& mdb, uint64_t epi, time_t date, uint32_t pango_lineage,
-                             uint32_t region, uint32_t country, const std::vector<uint64_t>& vals) {
+void silo::inputSequenceMeta(
+   MetaStore& mdb,
+   uint64_t epi,
+   time_t date,
+   uint32_t pango_lineage,
+   uint32_t region,
+   uint32_t country,
+   const std::vector<uint64_t>& vals
+) {
    mdb.sid_to_epi.push_back(epi);
    mdb.sid_to_lineage.push_back(pango_lineage);
 

@@ -8,14 +8,16 @@
 
 namespace silo_api {
 class InfoHandler : public Poco::Net::HTTPRequestHandler {
-   private:
+  private:
    silo::Database& database;
 
-   public:
-   explicit InfoHandler(silo::Database& database) : database(database) {}
+  public:
+   explicit InfoHandler(silo::Database& database)
+       : database(database) {}
 
-   void handleRequest(Poco::Net::HTTPServerRequest&, Poco::Net::HTTPServerResponse& response) override;
+   void handleRequest(Poco::Net::HTTPServerRequest&, Poco::Net::HTTPServerResponse& response)
+      override;
 };
-}
+}  // namespace silo_api
 
-#endif //SILO_INFOHANDLER_H
+#endif  // SILO_INFOHANDLER_H

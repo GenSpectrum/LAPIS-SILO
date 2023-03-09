@@ -2,14 +2,17 @@
 // Created by Alexander Taepper on 25.11.22.
 //
 
-#include <cassert>
-#include <iostream>
 #include <silo/common/silo_symbols.h>
 #include <silo/storage/Dictionary.h>
+#include <cassert>
+#include <iostream>
 
 using namespace silo;
 
-void Dictionary::update_dict(std::istream& meta_in, const std::unordered_map<std::string, std::string>& alias_key) {
+void Dictionary::update_dict(
+   std::istream& meta_in,
+   const std::unordered_map<std::string, std::string>& alias_key
+) {
    // Parse header. Assert order EPI, PANGO, DATE, REGION, COUNTRY, then fill additional columns
    {
       std::string header;
@@ -48,12 +51,17 @@ void Dictionary::update_dict(std::istream& meta_in, const std::unordered_map<std
 
    while (true) {
       std::string epi_isl, pango_lineage_raw, date, region, country, division;
-      if (!getline(meta_in, epi_isl, '\t')) break;
-      if (!getline(meta_in, pango_lineage_raw, '\t')) break;
+      if (!getline(meta_in, epi_isl, '\t'))
+         break;
+      if (!getline(meta_in, pango_lineage_raw, '\t'))
+         break;
       meta_in.ignore(LONG_MAX, '\t');
-      if (!getline(meta_in, region, '\t')) break;
-      if (!getline(meta_in, country, '\t')) break;
-      if (!getline(meta_in, division, '\n')) break;
+      if (!getline(meta_in, region, '\t'))
+         break;
+      if (!getline(meta_in, country, '\t'))
+         break;
+      if (!getline(meta_in, division, '\n'))
+         break;
 
       /// Deal with pango_lineage alias:
       std::string pango_lineage = resolve_alias(alias_key, pango_lineage_raw);
@@ -169,11 +177,13 @@ Dictionary Dictionary::load_dict(std::istream& dict_file) {
    std::string id_str;
    for (uint32_t i = 0; i < pango_count; ++i) {
       if (!getline(dict_file, str, '\t')) {
-         std::cerr << "Unexpected end of file. Expected pango_count:" << pango_count << " many lineages in the dict file. No str" << std::endl;
+         std::cerr << "Unexpected end of file. Expected pango_count:" << pango_count
+                   << " many lineages in the dict file. No str" << std::endl;
          return ret;
       }
       if (!getline(dict_file, id_str, '\n')) {
-         std::cerr << "Unexpected end of file. Expected pango_count:" << pango_count << " many lineages in the dict file. No id" << std::endl;
+         std::cerr << "Unexpected end of file. Expected pango_count:" << pango_count
+                   << " many lineages in the dict file. No id" << std::endl;
          return ret;
       }
       uint32_t id = atoi(id_str.c_str());
@@ -182,11 +192,13 @@ Dictionary Dictionary::load_dict(std::istream& dict_file) {
    }
    for (uint32_t i = 0; i < region_count; ++i) {
       if (!getline(dict_file, str, '\t')) {
-         std::cerr << "Unexpected end of file. Expected region_count:" << region_count << " many regions in the dict file. No str" << std::endl;
+         std::cerr << "Unexpected end of file. Expected region_count:" << region_count
+                   << " many regions in the dict file. No str" << std::endl;
          return ret;
       }
       if (!getline(dict_file, id_str, '\n')) {
-         std::cerr << "Unexpected end of file. Expected region_count:" << region_count << " many regions in the dict file. No id" << std::endl;
+         std::cerr << "Unexpected end of file. Expected region_count:" << region_count
+                   << " many regions in the dict file. No id" << std::endl;
          return ret;
       }
       uint32_t id = atoi(id_str.c_str());
@@ -195,11 +207,13 @@ Dictionary Dictionary::load_dict(std::istream& dict_file) {
    }
    for (uint32_t i = 0; i < country_count; ++i) {
       if (!getline(dict_file, str, '\t')) {
-         std::cerr << "Unexpected end of file. Expected country_count:" << country_count << " many countries in the dict file. No str" << std::endl;
+         std::cerr << "Unexpected end of file. Expected country_count:" << country_count
+                   << " many countries in the dict file. No str" << std::endl;
          return ret;
       }
       if (!getline(dict_file, id_str, '\n')) {
-         std::cerr << "Unexpected end of file. Expected country_count:" << country_count << " many countries in the dict file. No id" << std::endl;
+         std::cerr << "Unexpected end of file. Expected country_count:" << country_count
+                   << " many countries in the dict file. No id" << std::endl;
          return ret;
       }
       uint32_t id = atoi(id_str.c_str());
@@ -208,11 +222,13 @@ Dictionary Dictionary::load_dict(std::istream& dict_file) {
    }
    for (uint32_t i = 0; i < col_count; ++i) {
       if (!getline(dict_file, str, '\t')) {
-         std::cerr << "Unexpected end of file. Expected col_count:" << col_count << " many columns in the dict file. No str" << std::endl;
+         std::cerr << "Unexpected end of file. Expected col_count:" << col_count
+                   << " many columns in the dict file. No str" << std::endl;
          return ret;
       }
       if (!getline(dict_file, id_str, '\n')) {
-         std::cerr << "Unexpected end of file. Expected col_count:" << col_count << " many columns in the dict file. No id" << std::endl;
+         std::cerr << "Unexpected end of file. Expected col_count:" << col_count
+                   << " many columns in the dict file. No id" << std::endl;
          return ret;
       }
       uint32_t id = atoi(id_str.c_str());
@@ -221,11 +237,13 @@ Dictionary Dictionary::load_dict(std::istream& dict_file) {
    }
    for (uint64_t i = 0; i < dict_count; ++i) {
       if (!getline(dict_file, str, '\t')) {
-         std::cerr << "Unexpected end of file. Expected dict_count:" << dict_count << " many lookups in the dict file. No str" << std::endl;
+         std::cerr << "Unexpected end of file. Expected dict_count:" << dict_count
+                   << " many lookups in the dict file. No str" << std::endl;
          return ret;
       }
       if (!getline(dict_file, id_str, '\n')) {
-         std::cerr << "Unexpected end of file. Expected dict_count:" << dict_count << " many lookups in the dict file. No id" << std::endl;
+         std::cerr << "Unexpected end of file. Expected dict_count:" << dict_count
+                   << " many lookups in the dict file. No id" << std::endl;
          return ret;
       }
       uint64_t id64 = atoi(id_str.c_str());

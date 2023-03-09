@@ -28,10 +28,10 @@ struct Position {
 };
 
 class SequenceStore {
-   private:
+  private:
    unsigned sequence_count;
 
-   public:
+  public:
    friend class CompressedSequenceStore;
    friend class boost::serialization::access;
 
@@ -88,6 +88,6 @@ class SequenceStore {
 
 [[maybe_unused]] unsigned shrinkToFit(SequenceStore& db);
 
-} //namespace silo;
+}  // namespace silo
 
-#endif //SILO_SEQUENCE_STORE_H
+#endif  // SILO_SEQUENCE_STORE_H

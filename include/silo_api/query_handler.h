@@ -8,14 +8,18 @@
 
 namespace silo_api {
 class QueryHandler : public Poco::Net::HTTPRequestHandler {
-   private:
+  private:
    silo::Database& database;
 
-   public:
-   explicit QueryHandler(silo::Database& database) : database(database){};
+  public:
+   explicit QueryHandler(silo::Database& database)
+       : database(database){};
 
-   void handleRequest(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response) override;
+   void handleRequest(
+      Poco::Net::HTTPServerRequest& request,
+      Poco::Net::HTTPServerResponse& response
+   ) override;
 };
-}
+}  // namespace silo_api
 
-#endif //SILO_QUERYREQUESTHANDLER_H
+#endif  // SILO_QUERYREQUESTHANDLER_H

@@ -19,7 +19,7 @@ struct ErrorResult {
    std::string error;
    std::string message;
 };
-}
-}
+}  // namespace response
+}  // namespace silo
 
-#endif //SILO_QUERY_ENGINE_RESULT_H
+#endif  // SILO_QUERY_ENGINE_RESULT_H
