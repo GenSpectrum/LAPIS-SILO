@@ -112,6 +112,9 @@ std::string CountryExpression::toString(const Database& database) {
    std::string res = "Country=" + database.dict->get_country(country_key);
    return res;
 }
+ExpressionType CountryExpression::type() const {
+   return ExpressionType::INDEX_FILTER;
+}
 
 std::unique_ptr<BoolExpression> RegionExpression::simplify(
    const Database& /*db*/,
@@ -291,15 +294,20 @@ std::string NegatedExpression::toString(const Database& database) {
    std::string res = "!" + child->toString(database);
    return res;
 }
+ExpressionType NegatedExpression::type() const {
+   return ExpressionType::NEG;
+}
 
 std::unique_ptr<BoolExpression> NOfExpression::simplify(
-   const Database& db,
-   const DatabasePartition& dbp
+   const Database& database,
+   const DatabasePartition& database_partition
 ) const {
    std::vector<std::unique_ptr<BoolExpression>> new_children;
    std::transform(
       children.begin(), children.end(), std::back_inserter(new_children),
-      [&](const std::unique_ptr<BoolExpression>& c) { return c->simplify(db, dbp); }
+      [&](const std::unique_ptr<BoolExpression>& c) {
+         return c->simplify(database, database_partition);
+      }
    );
    std::unique_ptr<NOfExpression> ret = std::make_unique<NOfExpression>(n, impl, exactly);
    for (unsigned i = 0; i < new_children.size(); i++) {
@@ -327,7 +335,7 @@ std::unique_ptr<BoolExpression> NOfExpression::simplify(
       for (auto& child : ret->children) {
          new_ret->children.emplace_back(std::move(child));
       }
-      return new_ret->simplify(db, dbp);
+      return new_ret->simplify(database, database_partition);
    }
    if (ret->n == 0) {
       if (ret->exactly) {
@@ -335,7 +343,7 @@ std::unique_ptr<BoolExpression> NOfExpression::simplify(
          for (auto& child : ret->children) {
             new_ret->children.emplace_back(std::make_unique<NegatedExpression>(std::move(child)));
          }
-         return new_ret->simplify(db, dbp);
+         return new_ret->simplify(database, database_partition);
       } else {
          return std::make_unique<FullExpression>();
       }

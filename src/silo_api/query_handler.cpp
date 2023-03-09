@@ -31,7 +31,7 @@ void QueryHandler::handleRequest(
    response.setContentType("application/json");
 
    try {
-      const auto query_result = silo::execute_query(database, query, std::cout, std::cout);
+      const auto query_result = silo::executeQuery(database, query, std::cout, std::cout);
 
       std::ostream& out_stream = response.send();
       out_stream << nlohmann::json(query_result);

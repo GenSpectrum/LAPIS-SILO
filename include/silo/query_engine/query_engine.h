@@ -28,7 +28,7 @@ struct BooleanExpressionResult {
 
    [[nodiscard]] const roaring::Roaring* getAsConst() const;
 
-   void free();
+   void free() const;
 };
 
 enum ExpressionType { AND, OR, NOF, NEG, INDEX_FILTER, FILTER, EMPTY, FULL };
@@ -93,8 +93,8 @@ struct AndExpression : public BoolExpression {
    [[nodiscard]] ExpressionType type() const override;
 
    BooleanExpressionResult evaluate(
-      const Database& database,
-      const DatabasePartition& database_partition
+      const Database& expression_result1,
+      const DatabasePartition& expression_result2
    ) override;
 
    std::string toString(const Database& database) override;
@@ -132,7 +132,6 @@ struct NOfExpression : public BoolExpression {
    bool exactly;
 
    [[nodiscard]] ExpressionType type() const override;
-   ;
 
    explicit NOfExpression(unsigned n, bool exactly, unsigned impl = 1);
 
@@ -144,15 +143,15 @@ struct NOfExpression : public BoolExpression {
    std::string toString(const Database& database) override;
 
    [[nodiscard]] std::unique_ptr<BoolExpression> simplify(
-      const Database& db,
-      const DatabasePartition& dbp
+      const Database& database,
+      const DatabasePartition& database_partition
    ) const override;
 };
 
 struct NegatedExpression : public BoolExpression {
    std::unique_ptr<BoolExpression> child;
 
-   ExpressionType type() const override { return ExpressionType::NEG; };
+   [[nodiscard]] ExpressionType type() const override;
 
    explicit NegatedExpression();
 
@@ -165,7 +164,7 @@ struct NegatedExpression : public BoolExpression {
 
    std::string toString(const Database& database) override;
 
-   std::unique_ptr<BoolExpression> simplify(
+   [[nodiscard]] std::unique_ptr<BoolExpression> simplify(
       const Database& database,
       const DatabasePartition& database_partition
    ) const override;
@@ -176,8 +175,7 @@ struct NucleotideSymbolEqualsExpression : public BoolExpression {
    GENOME_SYMBOL value;
    bool individualized = false;
 
-   ExpressionType type() const override;
-   ;
+   [[nodiscard]] ExpressionType type() const override;
 
    explicit NucleotideSymbolEqualsExpression();
 
@@ -190,8 +188,10 @@ struct NucleotideSymbolEqualsExpression : public BoolExpression {
 
    std::string toString(const Database& database) override;
 
-   std::unique_ptr<BoolExpression> simplify(const Database& database, const DatabasePartition& dbp)
-      const override;
+   [[nodiscard]] std::unique_ptr<BoolExpression> simplify(
+      const Database& database,
+      const DatabasePartition& dbp
+   ) const override;
 };
 
 struct NucleotideSymbolMaybeExpression : public BoolExpression {
@@ -199,8 +199,7 @@ struct NucleotideSymbolMaybeExpression : public BoolExpression {
    GENOME_SYMBOL value;
    bool negated = false;
 
-   ExpressionType type() const override;
-   ;
+   [[nodiscard]] ExpressionType type() const override;
 
    explicit NucleotideSymbolMaybeExpression();
 
@@ -213,16 +212,17 @@ struct NucleotideSymbolMaybeExpression : public BoolExpression {
 
    std::string toString(const Database& database) override;
 
-   std::unique_ptr<BoolExpression> simplify(const Database& database, const DatabasePartition& dbp)
-      const override;
+   [[nodiscard]] std::unique_ptr<BoolExpression> simplify(
+      const Database& database,
+      const DatabasePartition& dbp
+   ) const override;
 };
 
 struct PangoLineageExpression : public BoolExpression {
    uint32_t lineageKey;
    bool include_sublineages;
 
-   ExpressionType type() const override;
-   ;
+   [[nodiscard]] ExpressionType type() const override;
 
    explicit PangoLineageExpression(uint32_t lineage_key, bool include_sublineages);
 
@@ -233,14 +233,16 @@ struct PangoLineageExpression : public BoolExpression {
 
    std::string toString(const Database& database) override;
 
-   std::unique_ptr<BoolExpression> simplify(const Database& database, const DatabasePartition& dbp)
-      const override;
+   [[nodiscard]] std::unique_ptr<BoolExpression> simplify(
+      const Database& database,
+      const DatabasePartition& dbp
+   ) const override;
 };
 
 struct CountryExpression : public BoolExpression {
    uint32_t country_key;
 
-   ExpressionType type() const override { return ExpressionType::INDEX_FILTER; };
+   [[nodiscard]] ExpressionType type() const override;
 
    explicit CountryExpression(uint32_t country_key);
 
@@ -251,7 +253,7 @@ struct CountryExpression : public BoolExpression {
 
    std::string toString(const Database& database) override;
 
-   std::unique_ptr<BoolExpression> simplify(
+   [[nodiscard]] std::unique_ptr<BoolExpression> simplify(
       const Database& database,
       const DatabasePartition& database_partition
    ) const override;
@@ -260,8 +262,7 @@ struct CountryExpression : public BoolExpression {
 struct RegionExpression : public BoolExpression {
    uint32_t region_key;
 
-   ExpressionType type() const override;
-   ;
+   [[nodiscard]] ExpressionType type() const override;
 
    explicit RegionExpression(uint32_t regionKey);
 
@@ -272,7 +273,7 @@ struct RegionExpression : public BoolExpression {
 
    std::string toString(const Database& database) override;
 
-   std::unique_ptr<BoolExpression> simplify(
+   [[nodiscard]] std::unique_ptr<BoolExpression> simplify(
       const Database& database,
       const DatabasePartition& database_partition
    ) const override;
@@ -284,7 +285,7 @@ struct SelectExpression : public BoolExpression {
       const DatabasePartition& database_partition,
       BooleanExpressionResult in_filter
    ) = 0;
-   virtual BooleanExpressionResult neg_select(
+   virtual BooleanExpressionResult selectNegated(
       const Database& database,
       const DatabasePartition& database_partition,
       BooleanExpressionResult in_filter
@@ -292,17 +293,16 @@ struct SelectExpression : public BoolExpression {
 };
 
 struct DateBetweenExpression : public SelectExpression {
-   time_t from;
+   time_t date_from;
    bool open_from;
-   time_t to;
+   time_t date_to;
    bool open_to;
 
-   ExpressionType type() const override;
-   ;
+   [[nodiscard]] ExpressionType type() const override;
 
    explicit DateBetweenExpression();
 
-   explicit DateBetweenExpression(time_t from, bool open_from, time_t to, bool open_to);
+   explicit DateBetweenExpression(time_t date_from, bool open_from, time_t date_to, bool open_to);
 
    BooleanExpressionResult evaluate(
       const Database& database,
@@ -315,7 +315,7 @@ struct DateBetweenExpression : public SelectExpression {
       BooleanExpressionResult in_filter
    ) override;
 
-   BooleanExpressionResult neg_select(
+   BooleanExpressionResult selectNegated(
       const Database& database,
       const DatabasePartition& database_partition,
       BooleanExpressionResult in_filter
@@ -323,7 +323,7 @@ struct DateBetweenExpression : public SelectExpression {
 
    std::string toString(const Database& database) override;
 
-   std::unique_ptr<BoolExpression> simplify(
+   [[nodiscard]] std::unique_ptr<BoolExpression> simplify(
       const Database& database,
       const DatabasePartition& database_partition
    ) const override;
@@ -332,8 +332,7 @@ struct DateBetweenExpression : public SelectExpression {
 struct PositionHasNucleotideSymbolNExpression : public SelectExpression {
    unsigned position;
 
-   ExpressionType type() const override;
-   ;
+   [[nodiscard]] ExpressionType type() const override;
 
    explicit PositionHasNucleotideSymbolNExpression(unsigned position);
 
@@ -348,7 +347,7 @@ struct PositionHasNucleotideSymbolNExpression : public SelectExpression {
       BooleanExpressionResult in_filter
    ) override;
 
-   BooleanExpressionResult neg_select(
+   BooleanExpressionResult selectNegated(
       const Database& database,
       const DatabasePartition& database_partition,
       BooleanExpressionResult in_filter
@@ -356,7 +355,7 @@ struct PositionHasNucleotideSymbolNExpression : public SelectExpression {
 
    std::string toString(const Database& database) override;
 
-   std::unique_ptr<BoolExpression> simplify(
+   [[nodiscard]] std::unique_ptr<BoolExpression> simplify(
       const Database& database,
       const DatabasePartition& database_partition
    ) const override;
@@ -366,8 +365,7 @@ struct StringEqualsExpression : public SelectExpression {
    uint32_t column;
    uint64_t value;
 
-   ExpressionType type() const override;
-   ;
+   [[nodiscard]] ExpressionType type() const override;
 
    explicit StringEqualsExpression(uint32_t column, uint64_t value);
 
@@ -382,7 +380,7 @@ struct StringEqualsExpression : public SelectExpression {
       BooleanExpressionResult in_filter
    ) override;
 
-   BooleanExpressionResult neg_select(
+   BooleanExpressionResult selectNegated(
       const Database& database,
       const DatabasePartition& database_partition,
       BooleanExpressionResult in_filter
@@ -390,12 +388,13 @@ struct StringEqualsExpression : public SelectExpression {
 
    std::string toString(const Database& database) override;
 
-   std::unique_ptr<BoolExpression> simplify(
+   [[nodiscard]] std::unique_ptr<BoolExpression> simplify(
       const Database& database,
       const DatabasePartition& database_partition
    ) const override;
 };
 
+static const double FALLBACK_MINIMAL_PROPORTION = 0.02;
 struct MutationProportion {
    char mutation_from;
    unsigned position;
@@ -404,8 +403,8 @@ struct MutationProportion {
    unsigned count;
 };
 
-QueryResult execute_query(
-   const Database& database,
+QueryResult executeQuery(
+   const Database& partition_index,
    const std::string& query,
    std::ostream& parse_out,
    std::ostream& perf_out

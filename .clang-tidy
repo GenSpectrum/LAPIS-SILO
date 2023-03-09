@@ -25,7 +25,7 @@ CheckOptions:
   - { key: readability-identifier-naming.FunctionCase,           value: camelBack  }
   - { key: readability-identifier-naming.VariableCase,           value: lower_case }
   - { key: readability-identifier-naming.ClassMemberCase,        value: lower_case }
-  - { key: readability-identifier-naming.EnumConstantCase,         value: CamelCase }
+  - { key: readability-identifier-naming.EnumConstantCase,         value: UPPER_CASE }
   - { key: readability-identifier-naming.GlobalConstantCase,       value: UPPER_CASE }
   - { key: readability-identifier-naming.ConstexprVariableCase,    value: UPPER_CASE }
   - { key: readability-implicit-bool-conversion.AllowIntegerConditions,  value: 1   }
