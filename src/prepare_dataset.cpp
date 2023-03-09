@@ -1,7 +1,3 @@
-//
-// Created by Alexander Taepper on 16.11.22.
-//
-
 #include "silo/prepare_dataset.h"
 
 #include <silo/common/istream_wrapper.h>

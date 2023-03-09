@@ -1,7 +1,3 @@
-//
-// Created by Alexander Taepper on 16.11.22.
-//
-
 #ifndef SILO_PREPARE_DATASET_H
 #define SILO_PREPARE_DATASET_H
 

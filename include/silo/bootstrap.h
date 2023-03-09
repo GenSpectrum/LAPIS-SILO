@@ -1,7 +1,3 @@
-//
-// Created by Alexander Taepper on 02.02.23.
-//
-
 #ifndef SILO_BOOTSTRAP_H
 #define SILO_BOOTSTRAP_H
 

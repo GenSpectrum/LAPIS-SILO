@@ -1,7 +1,3 @@
-//
-// Created by Alexander Taepper on 08.01.23.
-//
-
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_for_each.h>

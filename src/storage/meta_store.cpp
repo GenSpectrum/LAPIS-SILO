@@ -1,7 +1,3 @@
-//
-// Created by Alexander Taepper on 01.09.22.
-//
-
 #include <silo/storage/meta_store.h>
 
 void silo::inputSequenceMeta(

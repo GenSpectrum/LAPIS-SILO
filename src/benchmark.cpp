@@ -1,7 +1,3 @@
-//
-// Created by Alexander Taepper on 28.09.22.
-//
-
 #include "silo/benchmark.h"
 #include <tbb/parallel_for_each.h>
 #include <random>

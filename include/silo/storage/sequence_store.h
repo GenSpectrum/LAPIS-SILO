@@ -1,6 +1,3 @@
-//
-// Created by Alexander Taepper on 26.09.22.
-//
 
 #ifndef SILO_SEQUENCE_STORE_H
 #define SILO_SEQUENCE_STORE_H

@@ -1,7 +1,3 @@
-//
-// Created by Alexander Taepper on 09.01.23.
-//
-
 #ifndef SILO_ISTREAM_WRAPPER_H
 #define SILO_ISTREAM_WRAPPER_H
 

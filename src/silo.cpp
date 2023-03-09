@@ -1,7 +1,3 @@
-//
-// Created by Alexander Taepper on 27.09.22.
-//
-
 #include <silo/common/istream_wrapper.h>
 #include <silo/common/silo_symbols.h>
 #include <boost/iostreams/filter/lzma.hpp>

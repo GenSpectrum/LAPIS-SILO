@@ -1,7 +1,3 @@
-//
-// Created by Alexander Taepper on 25.11.22.
-//
-
 #ifndef SILO_HASHING_H
 #define SILO_HASHING_H
 

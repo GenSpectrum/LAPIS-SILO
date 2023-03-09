@@ -1,7 +1,3 @@
-//
-// Created by Alexander Taepper on 09.01.23.
-//
-
 #include <silo/query_engine/query_engine.h>
 #include <syncstream>
 

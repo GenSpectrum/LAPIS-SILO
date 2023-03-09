@@ -1,7 +1,3 @@
-//
-// Created by Alexander Taepper on 02.02.23.
-//
-
 #include <silo/bootstrap.h>
 #include <silo/common/lehmer64.h>
 #include <silo/query_engine/query_engine.h>

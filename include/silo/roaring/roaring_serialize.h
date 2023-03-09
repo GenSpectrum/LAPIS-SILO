@@ -1,7 +1,3 @@
-//
-// Created by Alexander Taepper on 09.01.23.
-//
-
 #ifndef SILO_ROARING_SERIALIZE_H
 #define SILO_ROARING_SERIALIZE_H
 

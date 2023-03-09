@@ -1,7 +1,3 @@
-//
-// Created by Alexander Taepper on 26.09.22.
-//
-
 #ifndef SILO_META_STORE_H
 #define SILO_META_STORE_H
 

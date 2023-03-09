@@ -1,7 +1,3 @@
-//
-// Created by Alexander Taepper on 25.11.22.
-//
-
 #include <silo/common/silo_symbols.h>
 #include <silo/storage/Dictionary.h>
 #include <cassert>
