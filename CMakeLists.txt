@@ -55,7 +55,6 @@ set(SRC_CC
         src/database.cpp
         src/prepare_dataset.cpp
         src/benchmark.cpp
-        src/bootstrap.cpp
         src/roaring/roaring.c
         src/preprocessing/preprocessing_config.cpp
         src/preprocessing/preprocessing_exception.cpp)

@@ -1,8 +1,4 @@
-
-#include <readline/history.h>
-#include <readline/readline.h>
 #include <silo/benchmark.h>
-#include <silo/bootstrap.h>
 #include <silo/common/istream_wrapper.h>
 #include <silo/database.h>
 #include <silo/prepare_dataset.h>
@@ -158,15 +154,6 @@ int handle_command(Database& db, std::vector<std::string> args) {
          return 0;
       }
       return benchmark_throughput_mix(db, query_defs, query_dir_str);
-   } else if ("bootstrap" == args[0]) {
-      if (args.size() <= 2) {
-         std::cerr << "Need to specify output directory and seed for bootstrapping." << std::endl;
-         return 0;
-      }
-      auto out_dir = args[1];
-      auto seed = atoi(args[2].c_str());
-      auto factor = args.size() > 3 ? atoi(args[3].c_str()) : 10;
-      return bootstrap(db, out_dir, seed, factor);
    } else if ("benchmark_throughput_mut" == args[0]) {
       auto query_dir_str = args.size() > 1 ? args[1] : default_query_dir;
 

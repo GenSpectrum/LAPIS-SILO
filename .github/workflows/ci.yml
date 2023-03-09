@@ -18,7 +18,7 @@ jobs:
           - check: 'src'
             exclude: 'roaring.c'
           - check: 'include'
-            exclude: '(roaring.h|roaring.hh|splitmix64.h|PerfEvent.hpp)'
+            exclude: '(roaring.h|roaring.hh|PerfEvent.hpp)'
     steps:
       -
         uses: actions/checkout@v3
