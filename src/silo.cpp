@@ -1,21 +1,7 @@
-#include <silo/common/istream_wrapper.h>
+#include <silo/common/InputStreamWrapper.h>
 #include <silo/common/silo_symbols.h>
-#include <boost/iostreams/filter/lzma.hpp>
-#include <boost/iostreams/filtering_stream.hpp>
 #include <syncstream>
 
-silo::istream_wrapper::istream_wrapper(const std::string& file_name) {
-   if (file_name.ends_with(".xz")) {
-      file = std::ifstream(file_name, std::ios::binary);
-      std::unique_ptr<boost::iostreams::filtering_istream> archive =
-         std::make_unique<boost::iostreams::filtering_istream>();
-      archive->push(boost::iostreams::lzma_decompressor());
-      archive->push(file);
-      actual_stream = std::move(archive);
-   } else {
-      actual_stream = make_unique<std::ifstream>(file_name, std::ios::binary);
-   }
-}
 struct separate_thousands : std::numpunct<char> {
    [[nodiscard]] char_type do_thousands_sep() const override { return '\''; }
    [[nodiscard]] string_type do_grouping() const override { return "\3"; }

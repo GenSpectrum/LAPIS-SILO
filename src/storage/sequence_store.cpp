@@ -8,7 +8,7 @@
 
 using namespace silo;
 
-roaring::Roaring* SequenceStore::bma(size_t pos, Symbol r) const {
+roaring::Roaring* SequenceStore::bma(size_t pos, GENOME_SYMBOL r) const {
    switch (r) {
       case A: {
          const roaring::Roaring* tmp[8] = {bm(pos, A), bm(pos, R), bm(pos, W), bm(pos, M),
@@ -40,7 +40,7 @@ roaring::Roaring* SequenceStore::bma(size_t pos, Symbol r) const {
    }
 }
 
-roaring::Roaring* SequenceStore::bma_neg(size_t pos, Symbol r) const {
+roaring::Roaring* SequenceStore::bma_neg(size_t pos, GENOME_SYMBOL r) const {
    auto tmp1 = bm(pos, r);
    roaring::api::roaring_bitmap_flip(&tmp1->roaring, 0, sequence_count);
    switch (r) {
@@ -94,15 +94,15 @@ sequenceCount void SequenceStore::interpret(const std::vector<std::string>& geno
 uint32_t cur_sequence_count = sequence_count; sequence_count += genomes.size();
    N_bitmaps.resize(cur_sequence_count + genomes.size());
    {
-      tbb::blocked_range<unsigned> range(0, genomeLength, genomeLength / 64);
+      tbb::blocked_range<unsigned> range(0, GENOME_LENGTH, GENOME_LENGTH / 64);
       tbb::parallel_for(range, [&](const decltype(range)& local) {
          /// For every symbol, calculate all sequence IDs that have that symbol at that position
          std::vector<std::vector<unsigned>> ids_per_symbol(symbolCount);
          for (unsigned col = local.begin(); col != local.end(); ++col) {
             for (unsigned index2 = 0, limit2 = genomes.size(); index2 != limit2; ++index2) {
                char c = genomes[index2][col];
-               Symbol s = to_symbol(c);
-               if (s != Symbol::N)
+               GENOME_SYMBOL s = to_symbol(c);
+               if (s != GENOME_SYMBOL::N)
                   ids_per_symbol[s].push_back(cur_sequence_count + index2);
             }
             for (unsigned symbol = 0; symbol != symbolCount; ++symbol)
@@ -122,15 +122,15 @@ void SequenceStore::interpret(const std::vector<std::string>& genomes) {
    sequence_count += genomes.size();
    N_bitmaps.resize(cur_sequence_count + genomes.size());
    {
-      tbb::blocked_range<unsigned> range(0, genomeLength, genomeLength / 64);
+      tbb::blocked_range<unsigned> range(0, GENOME_LENGTH, GENOME_LENGTH / 64);
       tbb::parallel_for(range, [&](const decltype(range)& local) {
          /// For every symbol, calculate all sequence IDs that have that symbol at that position
          std::vector<std::vector<unsigned>> ids_per_symbol(symbolCount);
          for (unsigned col = local.begin(); col != local.end(); ++col) {
             for (unsigned index2 = 0, limit2 = genomes.size(); index2 != limit2; ++index2) {
                char c = genomes[index2][col];
-               Symbol s = to_symbol(c);
-               if (s != Symbol::N)
+               GENOME_SYMBOL s = to_symbol(c);
+               if (s != GENOME_SYMBOL::N)
                   ids_per_symbol[s].push_back(cur_sequence_count + index2);
             }
             for (unsigned symbol = 0; symbol != symbolCount; ++symbol)
@@ -149,10 +149,10 @@ void SequenceStore::interpret(const std::vector<std::string>& genomes) {
          /// For every symbol, calculate all sequence IDs that have that symbol at that position
          std::vector<unsigned> N_positions(symbolCount);
          for (unsigned genome = local.begin(); genome != local.end(); ++genome) {
-            for (unsigned pos = 0, limit2 = genomeLength; pos != limit2; ++pos) {
+            for (unsigned pos = 0, limit2 = GENOME_LENGTH; pos != limit2; ++pos) {
                char c = genomes[genome][pos];
-               Symbol s = to_symbol(c);
-               if (s == Symbol::N)
+               GENOME_SYMBOL s = to_symbol(c);
+               if (s == GENOME_SYMBOL::N)
                   N_positions.push_back(pos);
             }
             if (!N_positions.empty()) {
@@ -174,7 +174,7 @@ void SequenceStore::indexAllN() {
    tbb::blocked_range<uint32_t> range(0, (sequence_count >> 16) + 1);
    tbb::parallel_for(range.begin(), range.end(), [&](uint32_t local) {
       auto& ids_per_position = ids_per_position_per_upper[local];
-      ids_per_position.resize(genomeLength);
+      ids_per_position.resize(GENOME_LENGTH);
 
       uint32_t genome_upper = local << 16;
       uint32_t limit =
@@ -187,10 +187,10 @@ void SequenceStore::indexAllN() {
       }
    });
 
-   for (uint32_t pos = 0; pos < genomeLength; ++pos) {
+   for (uint32_t pos = 0; pos < GENOME_LENGTH; ++pos) {
       for (uint32_t upper = 0; upper < (sequence_count >> 16) + 1; ++upper) {
          auto& v = ids_per_position_per_upper[upper][pos];
-         positions[pos].bitmaps[Symbol::N].addMany(v.size(), v.data());
+         positions[pos].bitmaps[GENOME_SYMBOL::N].addMany(v.size(), v.data());
       }
       positions[pos].N_indexed = true;
    }
@@ -200,7 +200,7 @@ void SequenceStore::indexAllN_naive() {
    tbb::enumerable_thread_specific<std::vector<std::vector<uint32_t>>> ids_per_position;
    tbb::blocked_range<uint32_t> range(0, (sequence_count >> 16) + 1);
    tbb::parallel_for(range.begin(), range.end(), [&](uint32_t local) {
-      ids_per_position.local().resize(genomeLength);
+      ids_per_position.local().resize(GENOME_LENGTH);
 
       uint32_t genome_upper = local << 16;
       uint32_t limit =
@@ -214,13 +214,13 @@ void SequenceStore::indexAllN_naive() {
    });
 
    for (auto& v1 : ids_per_position) {
-      for (uint32_t pos = 0; pos < genomeLength; ++pos) {
+      for (uint32_t pos = 0; pos < GENOME_LENGTH; ++pos) {
          auto& v = v1[pos];
-         positions[pos].bitmaps[Symbol::N].addMany(v.size(), v.data());
+         positions[pos].bitmaps[GENOME_SYMBOL::N].addMany(v.size(), v.data());
       }
    }
 
-   for (uint32_t pos = 0; pos < genomeLength; ++pos) {
+   for (uint32_t pos = 0; pos < GENOME_LENGTH; ++pos) {
       positions[pos].N_indexed = true;
    }
 }

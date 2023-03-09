@@ -38,7 +38,7 @@ class SequenceStore {
       ar& positions;
       ar& N_bitmaps;
    }
-   Position positions[genomeLength];
+   Position positions[GENOME_LENGTH];
    std::vector<roaring::Roaring> N_bitmaps;
 
    [[nodiscard]] size_t computeSize() const {
@@ -55,7 +55,7 @@ class SequenceStore {
    SequenceStore() {}
 
    /// pos: 1 indexed position of the genome
-   [[nodiscard]] const roaring::Roaring* bm(size_t pos, Symbol s) const {
+   [[nodiscard]] const roaring::Roaring* bm(size_t pos, GENOME_SYMBOL s) const {
       return &positions[pos - 1].bitmaps[s];
    }
 
@@ -63,10 +63,10 @@ class SequenceStore {
    /// where the residue is interpreted in the _a_pproximate meaning
    /// That means a symbol matches all mixed symbols, which can indicate the residue
    /// pos: 1 indexed position of the genome
-   [[nodiscard]] roaring::Roaring* bma(size_t pos, Symbol r) const;
+   [[nodiscard]] roaring::Roaring* bma(size_t pos, GENOME_SYMBOL r) const;
 
    /// Same as before for flipped bitmaps for r
-   [[nodiscard]] roaring::Roaring* bma_neg(size_t pos, Symbol r) const;
+   [[nodiscard]] roaring::Roaring* bma_neg(size_t pos, GENOME_SYMBOL r) const;
 
    void interpret(const std::vector<std::string>& genomes);
 

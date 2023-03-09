@@ -57,7 +57,8 @@ set(SRC_CC
         src/benchmark.cpp
         src/roaring/roaring.c
         src/preprocessing/preprocessing_config.cpp
-        src/preprocessing/preprocessing_exception.cpp)
+        src/preprocessing/preprocessing_exception.cpp
+        src/common/InputStreamWrapper.cpp)
 
 file(GLOB SRC_API_CC "src/silo_api/*")
 list(REMOVE_ITEM SRC_API_CC ${SRC_TEST})

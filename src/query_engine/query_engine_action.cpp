@@ -25,11 +25,11 @@ std::vector<silo::MutationProportion> silo::execute_mutations(
 ) {
    using roaring::Roaring;
 
-   std::vector<uint32_t> A_per_pos(silo::genomeLength);
-   std::vector<uint32_t> C_per_pos(silo::genomeLength);
-   std::vector<uint32_t> G_per_pos(silo::genomeLength);
-   std::vector<uint32_t> T_per_pos(silo::genomeLength);
-   std::vector<uint32_t> gap_per_pos(silo::genomeLength);
+   std::vector<uint32_t> A_per_pos(silo::GENOME_LENGTH);
+   std::vector<uint32_t> C_per_pos(silo::GENOME_LENGTH);
+   std::vector<uint32_t> G_per_pos(silo::GENOME_LENGTH);
+   std::vector<uint32_t> T_per_pos(silo::GENOME_LENGTH);
+   std::vector<uint32_t> gap_per_pos(silo::GENOME_LENGTH);
 
    std::vector<unsigned> partition_filters_to_evaluate;
    std::vector<unsigned> full_partition_filters_to_evaluate;
@@ -55,101 +55,107 @@ std::vector<silo::MutationProportion> silo::execute_mutations(
    {
       BlockTimer timer(microseconds);
 
-      tbb::blocked_range<uint32_t> range(0, silo::genomeLength, /*grain_size=*/300);
+      tbb::blocked_range<uint32_t> range(0, silo::GENOME_LENGTH, /*grain_size=*/300);
       tbb::parallel_for(range.begin(), range.end(), [&](uint32_t pos) {
          for (unsigned i : partition_filters_to_evaluate) {
             const silo::DatabasePartition& dbp = db.partitions[i];
             silo::filter_t filter = partition_filters[i];
             const Roaring& bm = *filter.getAsConst();
 
-            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::A) {  /// everything
-                                                                                   /// fine
+            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::GENOME_SYMBOL::A) {  /// everything
+                                                                                          /// fine
                A_per_pos[pos] +=
-                  bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A]);
+                  bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::A]);
             } else {  /// Bitmap was flipped
                A_per_pos[pos] +=
-                  bm.andnot_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A]);
+                  bm.andnot_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::A]
+                  );
             }
-            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::C) {  /// everything
-                                                                                   /// fine
+            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::GENOME_SYMBOL::C) {  /// everything
+                                                                                          /// fine
                C_per_pos[pos] +=
-                  bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C]);
+                  bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::C]);
             } else {  /// Bitmap was flipped
                C_per_pos[pos] +=
-                  bm.andnot_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C]);
+                  bm.andnot_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::C]
+                  );
             }
-            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::G) {  /// everything
-                                                                                   /// fine
+            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::GENOME_SYMBOL::G) {  /// everything
+                                                                                          /// fine
                G_per_pos[pos] +=
-                  bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G]);
+                  bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::G]);
             } else {  /// Bitmap was flipped
                G_per_pos[pos] +=
-                  bm.andnot_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G]);
+                  bm.andnot_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::G]
+                  );
             }
-            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::T) {  /// everything
-                                                                                   /// fine
+            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::GENOME_SYMBOL::T) {  /// everything
+                                                                                          /// fine
                T_per_pos[pos] +=
-                  bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T]);
+                  bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::T]);
             } else {  /// Bitmap was flipped
                T_per_pos[pos] +=
-                  bm.andnot_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T]);
+                  bm.andnot_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::T]
+                  );
             }
-            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::gap) {  /// everything
-                                                                                     /// fine
+            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::GENOME_SYMBOL::gap) {  /// everything
+                                                                                            /// fine
                gap_per_pos[pos] +=
-                  bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap]);
+                  bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::gap]
+                  );
             } else {  /// Bitmap was flipped
-               gap_per_pos[pos] +=
-                  bm.andnot_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap]);
+               gap_per_pos[pos] += bm.andnot_cardinality(
+                  dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::gap]
+               );
             }
          }
          /// For these partitions, we have full bitmaps. Do not need to bother with AND cardinality
          for (unsigned i : full_partition_filters_to_evaluate) {
             const silo::DatabasePartition& dbp = db.partitions[i];
-            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::A) {  /// everything
-                                                                                   /// fine
+            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::GENOME_SYMBOL::A) {  /// everything
+                                                                                          /// fine
                A_per_pos[pos] +=
-                  dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A].cardinality();
+                  dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::A].cardinality();
             } else {  /// Bitmap was flipped
                A_per_pos[pos] +=
                   dbp.sequenceCount -
-                  dbp.seq_store.positions[pos].bitmaps[silo::Symbol::A].cardinality();
+                  dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::A].cardinality();
             }
-            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::C) {  /// everything
-                                                                                   /// fine
+            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::GENOME_SYMBOL::C) {  /// everything
+                                                                                          /// fine
                C_per_pos[pos] +=
-                  dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C].cardinality();
+                  dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::C].cardinality();
             } else {  /// Bitmap was flipped
                C_per_pos[pos] +=
                   dbp.sequenceCount -
-                  dbp.seq_store.positions[pos].bitmaps[silo::Symbol::C].cardinality();
+                  dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::C].cardinality();
             }
-            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::G) {  /// everything
-                                                                                   /// fine
+            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::GENOME_SYMBOL::G) {  /// everything
+                                                                                          /// fine
                G_per_pos[pos] +=
-                  dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G].cardinality();
+                  dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::G].cardinality();
             } else {  /// Bitmap was flipped
                G_per_pos[pos] +=
                   dbp.sequenceCount -
-                  dbp.seq_store.positions[pos].bitmaps[silo::Symbol::G].cardinality();
+                  dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::G].cardinality();
             }
-            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::T) {  /// everything
-                                                                                   /// fine
+            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::GENOME_SYMBOL::T) {  /// everything
+                                                                                          /// fine
                T_per_pos[pos] +=
-                  dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T].cardinality();
+                  dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::T].cardinality();
             } else {  /// Bitmap was flipped
                T_per_pos[pos] +=
                   dbp.sequenceCount -
-                  dbp.seq_store.positions[pos].bitmaps[silo::Symbol::T].cardinality();
+                  dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::T].cardinality();
             }
-            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::Symbol::gap) {  /// everything
-                                                                                     /// fine
+            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::GENOME_SYMBOL::gap) {  /// everything
+                                                                                            /// fine
                gap_per_pos[pos] +=
-                  dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap].cardinality();
+                  dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::gap].cardinality();
             } else {  /// Bitmap was flipped
                gap_per_pos[pos] +=
                   dbp.sequenceCount -
-                  dbp.seq_store.positions[pos].bitmaps[silo::Symbol::gap].cardinality();
+                  dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::gap].cardinality();
             }
          }
       });
@@ -164,7 +170,7 @@ std::vector<silo::MutationProportion> silo::execute_mutations(
    microseconds = 0;
    {
       BlockTimer timer(microseconds);
-      for (unsigned pos = 0; pos < silo::genomeLength; ++pos) {
+      for (unsigned pos = 0; pos < silo::GENOME_LENGTH; ++pos) {
          uint32_t total =
             A_per_pos[pos] + C_per_pos[pos] + G_per_pos[pos] + T_per_pos[pos] + gap_per_pos[pos];
          if (total == 0) {

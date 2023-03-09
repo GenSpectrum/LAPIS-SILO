@@ -1,4 +1,4 @@
-#include <silo/common/istream_wrapper.h>
+#include <silo/common/InputStreamWrapper.h>
 #include <silo/database.h>
 #include <silo/prepare_dataset.h>
 #include <silo/preprocessing/preprocessing_config.h>
@@ -92,9 +92,9 @@ void silo::Database::build(
             name = part_prefix + chunk_string(i, j);
             std::string seq_file_str = name + seq_suffix;
             std::ifstream meta_in(name + meta_suffix);
-            if (!istream_wrapper(seq_file_str).get_is()) {
+            if (!InputStreamWrapper(seq_file_str).getInputStream()) {
                seq_file_str += ".xz";
-               if (!istream_wrapper(seq_file_str).get_is()) {
+               if (!InputStreamWrapper(seq_file_str).getInputStream()) {
                   std::osyncstream(std::cerr)
                      << "Sequence_file " << (name + seq_suffix) << " not found" << std::endl;
                   return;
@@ -108,10 +108,10 @@ void silo::Database::build(
                   << "Meta_in file " << (name + meta_suffix) << " not found" << std::endl;
                return;
             }
-            silo::istream_wrapper seq_in(seq_file_str);
+            silo::InputStreamWrapper seq_in(seq_file_str);
             std::osyncstream(std::cerr)
                << "Using meta_in file " << (name + meta_suffix) << std::endl;
-            unsigned count1 = processSeq(partitions[i].seq_store, seq_in.get_is());
+            unsigned count1 = processSeq(partitions[i].seq_store, seq_in.getInputStream());
             unsigned count2 = processMeta(partitions[i].meta_store, meta_in, alias_key, *dict);
             if (count1 != count2) {
                // Fatal error
@@ -223,18 +223,18 @@ void silo::Database::finalizeBuild() {
 
 void silo::Database::flipBitmaps() {
    tbb::parallel_for_each(partitions.begin(), partitions.end(), [&](DatabasePartition& dbp) {
-      tbb::parallel_for((unsigned)0, genomeLength, [&](unsigned p) {
+      tbb::parallel_for((unsigned)0, GENOME_LENGTH, [&](unsigned p) {
          unsigned max_symbol = UINT32_MAX;
          unsigned max_count = 0;
 
-         for (unsigned symbol = 0; symbol <= Symbol::N; ++symbol) {
+         for (unsigned symbol = 0; symbol <= GENOME_SYMBOL::N; ++symbol) {
             unsigned count = dbp.seq_store.positions[p].bitmaps[symbol].cardinality();
             if (count > max_count) {
                max_symbol = symbol;
                max_count = count;
             }
          }
-         if (max_symbol == Symbol::A || max_symbol == Symbol::C || max_symbol == Symbol::G || max_symbol == Symbol::T || max_symbol == Symbol::N) {
+         if (max_symbol == GENOME_SYMBOL::A || max_symbol == GENOME_SYMBOL::C || max_symbol == GENOME_SYMBOL::G || max_symbol == GENOME_SYMBOL::T || max_symbol == GENOME_SYMBOL::N) {
             dbp.seq_store.positions[p].flipped_bitmap = max_symbol;
             dbp.seq_store.positions[p].bitmaps[max_symbol].flip(0, dbp.sequenceCount);
          }
@@ -306,7 +306,7 @@ void silo::Database::print_flipped(std::ostream& io) {
    io << "Flipped genome positions: " << std::endl;
    for (unsigned part_id = 0; part_id < partitions.size(); ++part_id) {
       const DatabasePartition& dbp = partitions[part_id];
-      for (unsigned i = 0; genomeLength; ++i) {
+      for (unsigned i = 0; GENOME_LENGTH; ++i) {
          const Position& pos = dbp.seq_store.positions[i];
          if (pos.flipped_bitmap != silo::to_symbol(global_reference[0].at(i))) {
             io << std::to_string(part_id) << ": " << std::to_string(i)
@@ -341,12 +341,12 @@ int silo::Database::db_info_detailed(std::ostream& io) {
       csv_line_storage += ",";
    }
    csv_line_storage += std::to_string(size_sum) + ",";
-   csv_line_storage += std::to_string(size_sum - size_by_symbols[Symbol::N]) + ",";
+   csv_line_storage += std::to_string(size_sum - size_by_symbols[GENOME_SYMBOL::N]) + ",";
 
    std::mutex lock;
-   std::vector<uint32_t> bitset_containers_by_500pos((genomeLength / 500) + 1);
-   std::vector<uint32_t> gap_bitset_containers_by_500pos((genomeLength / 500) + 1);
-   std::vector<uint32_t> N_bitset_containers_by_500pos((genomeLength / 500) + 1);
+   std::vector<uint32_t> bitset_containers_by_500pos((GENOME_LENGTH / 500) + 1);
+   std::vector<uint32_t> gap_bitset_containers_by_500pos((GENOME_LENGTH / 500) + 1);
+   std::vector<uint32_t> N_bitset_containers_by_500pos((GENOME_LENGTH / 500) + 1);
    r_stat s_total{};
    uint64_t total_size_comp = 0;
    uint64_t total_size_frozen = 0;
@@ -355,7 +355,7 @@ int silo::Database::db_info_detailed(std::ostream& io) {
    uint64_t n_bytes_run_containers = 0;
    uint64_t n_bytes_bitset_containers = 0;
 
-   tbb::parallel_for((unsigned)0, genomeLength, [&](unsigned pos) {
+   tbb::parallel_for((unsigned)0, GENOME_LENGTH, [&](unsigned pos) {
       r_stat s_local{};
       uint64_t total_size_comp_local = 0;
       uint64_t total_size_frozen_local = 0;
@@ -376,9 +376,9 @@ int silo::Database::db_info_detailed(std::ostream& io) {
                n_bytes_run_containers_local += s.n_bytes_run_containers;
                n_bytes_bitset_containers_local += s.n_bytes_bitset_containers;
                if (s.n_bitset_containers > 0) {
-                  if (i == Symbol::N) {
+                  if (i == GENOME_SYMBOL::N) {
                      N_bitset_containers_by_500pos[pos / 500] += s.n_bitset_containers;
-                  } else if (i == Symbol::gap) {
+                  } else if (i == GENOME_SYMBOL::gap) {
                      gap_bitset_containers_by_500pos[pos / 500] += s.n_bitset_containers;
                   } else {
                      bitset_containers_by_500pos[pos / 500] += s.n_bitset_containers;
@@ -430,7 +430,7 @@ int silo::Database::db_info_detailed(std::ostream& io) {
                           std::to_string(s_total.n_bytes_bitset_containers) + ",";
 
    io << "Bitmap distribution by position #NON_GAP (#GAP)" << std::endl;
-   for (unsigned i = 0; i < (genomeLength / 500) + 1; ++i) {
+   for (unsigned i = 0; i < (GENOME_LENGTH / 500) + 1; ++i) {
       uint32_t gap_bitsets_at_pos = gap_bitset_containers_by_500pos[i];
       uint32_t N_bitmaps_at_pos = N_bitset_containers_by_500pos[i];
       uint32_t bitmaps_at_pos = bitset_containers_by_500pos[i];
@@ -466,7 +466,7 @@ unsigned silo::processSeq(silo::SequenceStore& seq_store, std::istream& in) {
       }
       if (!getline(in, genome))
          break;
-      if (genome.length() != genomeLength) {
+      if (genome.length() != GENOME_LENGTH) {
          std::cerr << "length mismatch!" << std::endl;
          throw std::runtime_error("length mismatch.");
       }
@@ -690,9 +690,9 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
 
    std::cout << "partition_sequences" << std::endl;
    std::ifstream metadata_stream2(config.metadata_file.relative_path());
-   istream_wrapper sequence_stream(config.sequence_file.relative_path());
+   InputStreamWrapper sequence_stream(config.sequence_file.relative_path());
    partition_sequences(
-      *partition_descriptor, metadata_stream2, sequence_stream.get_is(),
+      *partition_descriptor, metadata_stream2, sequence_stream.getInputStream(),
       config.partition_folder.relative_path(), alias_key, config.metadata_file.extension(),
       config.sequence_file.extension()
    );

@@ -8,7 +8,7 @@ std::unique_ptr<BoolExpression> NucEqEx::simplify(
    const DatabasePartition& dbp
 ) const {
    std::unique_ptr<NucEqEx> ret = std::make_unique<NucEqEx>(position, value);
-   if (value == Symbol::N && !dbp.seq_store.positions[position].N_indexed) {
+   if (value == GENOME_SYMBOL::N && !dbp.seq_store.positions[position].N_indexed) {
       return std::make_unique<PosNEqEx>(position);
    }
    if (!individualized && dbp.seq_store.positions[position - 1].flipped_bitmap == value) {  /// Bitmap

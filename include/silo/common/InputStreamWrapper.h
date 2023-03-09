@@ -6,15 +6,15 @@
 #include <memory>
 
 namespace silo {
-struct istream_wrapper {
+struct InputStreamWrapper {
   private:
    std::ifstream file;
-   std::unique_ptr<std::istream> actual_stream;
+   std::unique_ptr<std::istream> input_stream;
 
   public:
-   explicit istream_wrapper(const std::string& file_name);
+   explicit InputStreamWrapper(const std::string& filename);
 
-   std::istream& get_is() const { return *actual_stream; }
+   std::istream& getInputStream() const;
 };
 }  // namespace silo
 

@@ -12,10 +12,10 @@
 
 namespace silo {
 
-static constexpr unsigned genomeLength = 29903;
+static constexpr unsigned GENOME_LENGTH = 29903;
 
 // https://www.bioinformatics.org/sms/iupac.html
-enum Symbol {
+enum GENOME_SYMBOL {
    gap,  // -, gap
    A,    // Adenine
    C,    // Cytosine
@@ -34,65 +34,65 @@ enum Symbol {
    N,    // any base
 };
 
-static constexpr unsigned symbolCount = static_cast<unsigned>(Symbol::N) + 1;
+static constexpr unsigned symbolCount = static_cast<unsigned>(GENOME_SYMBOL::N) + 1;
 
 static constexpr char symbol_rep[symbolCount] = {'-', 'A', 'C', 'G', 'T', 'R', 'Y', 'S',
                                                  'W', 'K', 'M', 'B', 'D', 'H', 'V', 'N'};
 
-static_assert(symbol_rep[static_cast<unsigned>(Symbol::N)] == 'N');
+static_assert(symbol_rep[static_cast<unsigned>(GENOME_SYMBOL::N)] == 'N');
 
-inline Symbol to_symbol(char c) {
-   Symbol s = Symbol::gap;
+inline GENOME_SYMBOL to_symbol(char c) {
+   GENOME_SYMBOL s = GENOME_SYMBOL::gap;
    switch (c) {
       case '.':
       case '-':
-         s = Symbol::gap;
+         s = GENOME_SYMBOL::gap;
          break;
       case 'A':
-         s = Symbol::A;
+         s = GENOME_SYMBOL::A;
          break;
       case 'C':
-         s = Symbol::C;
+         s = GENOME_SYMBOL::C;
          break;
       case 'G':
-         s = Symbol::G;
+         s = GENOME_SYMBOL::G;
          break;
       case 'T':
       case 'U':
-         s = Symbol::T;
+         s = GENOME_SYMBOL::T;
          break;
       case 'R':
-         s = Symbol::R;
+         s = GENOME_SYMBOL::R;
          break;
       case 'Y':
-         s = Symbol::Y;
+         s = GENOME_SYMBOL::Y;
          break;
       case 'S':
-         s = Symbol::S;
+         s = GENOME_SYMBOL::S;
          break;
       case 'W':
-         s = Symbol::W;
+         s = GENOME_SYMBOL::W;
          break;
       case 'K':
-         s = Symbol::K;
+         s = GENOME_SYMBOL::K;
          break;
       case 'M':
-         s = Symbol::M;
+         s = GENOME_SYMBOL::M;
          break;
       case 'B':
-         s = Symbol::B;
+         s = GENOME_SYMBOL::B;
          break;
       case 'D':
-         s = Symbol::D;
+         s = GENOME_SYMBOL::D;
          break;
       case 'H':
-         s = Symbol::H;
+         s = GENOME_SYMBOL::H;
          break;
       case 'V':
-         s = Symbol::V;
+         s = GENOME_SYMBOL::V;
          break;
       case 'N':
-         s = Symbol::N;
+         s = GENOME_SYMBOL::N;
          break;
       default:
          std::cerr << "unrecognized symbol " << c << std::endl;

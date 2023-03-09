@@ -216,14 +216,14 @@ struct NegEx : public BoolExpression {
 
 struct NucEqEx : public BoolExpression {
    unsigned position;
-   Symbol value;
+   GENOME_SYMBOL value;
    bool individualized = false;
 
    ExType type() const override { return ExType::INDEX_FILTER; };
 
    explicit NucEqEx() {}
 
-   explicit NucEqEx(unsigned position, Symbol value)
+   explicit NucEqEx(unsigned position, GENOME_SYMBOL value)
        : position(position),
          value(value) {}
 
@@ -240,14 +240,14 @@ struct NucEqEx : public BoolExpression {
 
 struct NucMbEx : public BoolExpression {
    unsigned position;
-   Symbol value;
+   GENOME_SYMBOL value;
    bool negated = false;
 
    ExType type() const override { return ExType::INDEX_FILTER; };
 
    explicit NucMbEx() {}
 
-   explicit NucMbEx(unsigned position, Symbol value)
+   explicit NucMbEx(unsigned position, GENOME_SYMBOL value)
        : position(position),
          value(value) {}
 
@@ -455,7 +455,6 @@ std::vector<MutationProportion> execute_mutations(
    double proportion_threshold,
    std::ostream& performance_file
 );
-
 
 uint64_t execute_count(
    const silo::Database& /*db*/,

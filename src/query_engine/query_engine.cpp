@@ -93,7 +93,7 @@ std::unique_ptr<BoolExpression> parse_expression(
    } else if (type == "NucEq") {
       unsigned position = js["position"].GetUint();
       const std::string& s = js["value"].GetString();
-      Symbol value;
+      GENOME_SYMBOL value;
       if (s.at(0) == '.') {
          char c = db.global_reference[0].at(position);
          value = to_symbol(c);

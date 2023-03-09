@@ -1,5 +1,5 @@
 #include <silo/benchmark.h>
-#include <silo/common/istream_wrapper.h>
+#include <silo/common/InputStreamWrapper.h>
 #include <silo/database.h>
 #include <silo/prepare_dataset.h>
 #include <silo/query_engine/query_engine.h>

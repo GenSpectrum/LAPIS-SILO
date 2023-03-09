@@ -14,8 +14,10 @@ class InfoHandler : public Poco::Net::HTTPRequestHandler {
   public:
    explicit InfoHandler(silo::Database& database);
 
-   void handleRequest(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response)
-      override;
+   void handleRequest(
+      Poco::Net::HTTPServerRequest& request,
+      Poco::Net::HTTPServerResponse& response
+   ) override;
 };
 }  // namespace silo_api
 

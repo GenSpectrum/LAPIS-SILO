@@ -1,6 +1,6 @@
 #include "silo/prepare_dataset.h"
 
-#include <silo/common/istream_wrapper.h>
+#include <silo/common/InputStreamWrapper.h>
 #include <silo/database.h>
 #include <tbb/blocked_range.h>
 #include <tbb/enumerable_thread_specific.h>
@@ -421,7 +421,7 @@ void silo::partition_sequences(
             break;
          if (!getline(sequence_in, genome))
             break;
-         if (genome.length() != genomeLength) {
+         if (genome.length() != GENOME_LENGTH) {
             std::cerr << "length mismatch!" << std::endl;
             return;
          }
@@ -599,10 +599,10 @@ void silo::sort_chunks(
 
    tbb::parallel_for_each(all_chunks.begin(), all_chunks.end(), [&](const part_chunk& x) {
       const std::string& file_name = output_prefix + silo::chunk_string(x.part, x.chunk);
-      silo::istream_wrapper sequence_in(file_name + sequence_file_extension);
-      silo::istream_wrapper meta_in(file_name + metadata_file_extension);
+      silo::InputStreamWrapper sequence_in(file_name + sequence_file_extension);
+      silo::InputStreamWrapper meta_in(file_name + metadata_file_extension);
       std::ofstream sequence_out(file_name + "_sorted" + sequence_file_extension);
       std::ofstream meta_out(file_name + "_sorted" + metadata_file_extension);
-      sort_chunk(meta_in.get_is(), sequence_in.get_is(), meta_out, sequence_out, x);
+      sort_chunk(meta_in.getInputStream(), sequence_in.getInputStream(), meta_out, sequence_out, x);
    });
 }

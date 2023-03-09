@@ -12,7 +12,7 @@ class QueryHandler : public Poco::Net::HTTPRequestHandler {
    silo::Database& database;
 
   public:
-   explicit QueryHandler(silo::Database& database);;
+   explicit QueryHandler(silo::Database& database);
 
    void handleRequest(
       Poco::Net::HTTPServerRequest& request,
