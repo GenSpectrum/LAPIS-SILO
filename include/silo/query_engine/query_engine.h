@@ -15,440 +15,412 @@ struct QueryResult {
       std::vector<response::MutationProportion>,
       response::ErrorResult>
       queryResult;
-   int64_t parseTime;
-   int64_t filterTime;
-   int64_t actionTime;
+   int64_t parse_time;
+   int64_t filter_time;
+   int64_t action_time;
 };
 
 /// The return value of the BoolExpression::evaluate method.
 /// May return either a mutable or immutable bitmap.
-struct filter_t {
+struct BooleanExpressionResult {
    roaring::Roaring* mutable_res;
    const roaring::Roaring* immutable_res;
 
-   inline const roaring::Roaring* getAsConst() const {
-      return mutable_res ? mutable_res : immutable_res;
-   }
+   [[nodiscard]] const roaring::Roaring* getAsConst() const;
 
-   inline void free() {
-      if (mutable_res)
-         delete mutable_res;
-   }
+   void free();
 };
 
-enum ExType { AND, OR, NOF, NEG, INDEX_FILTER, FILTER, EMPTY, FULL };
+enum ExpressionType { AND, OR, NOF, NEG, INDEX_FILTER, FILTER, EMPTY, FULL };
 
 struct BoolExpression {
-   // For future, maybe different (return) types of expressions?
-   // TypeV type;
-
-   BoolExpression() {}
-
-   /// Destructor
+   BoolExpression();
    virtual ~BoolExpression() = default;
 
-   virtual ExType type() const = 0;
+   [[nodiscard]] virtual ExpressionType type() const = 0;
+   virtual BooleanExpressionResult evaluate(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) = 0;
 
-   /// Evaluate the expression by interpreting it.
-   /// If mutable bitmap is returned, caller must free the result
-   virtual filter_t evaluate(const Database& /*db*/, const DatabasePartition& /*dbp*/) = 0;
+   virtual std::string toString(const Database& database) = 0;
 
-   /// Transforms the expression to a human readable string.
-   virtual std::string to_string(const Database& db) = 0;
-
-   virtual std::unique_ptr<BoolExpression>
-   simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const = 0;
-
-   /* Maybe generate code in the future
-      /// Build the expression LLVM IR code.
-      /// @args: all function arguments that can be referenced by an @Argument
-      virtual llvm::Value *build(llvm::IRBuilder<> &builder, llvm::Value *args);*/
+   [[nodiscard]] virtual std::unique_ptr<BoolExpression> simplify(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) const = 0;
 };
 
-struct EmptyEx : public BoolExpression {
-   ExType type() const override { return ExType::EMPTY; };
+struct EmptyExpression : public BoolExpression {
+   [[nodiscard]] ExpressionType type() const override;
 
-   /// EmptyEx should be simplified away.
-   filter_t evaluate(const Database& /*db*/, const DatabasePartition& /*dbp*/) override;
+   /// EmptyExpression should be simplified away.
+   BooleanExpressionResult evaluate(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) override;
 
-   std::string to_string(const Database& /*db*/) override { return "FALSE"; }
+   std::string toString(const Database& database) override;
 
-   std::unique_ptr<BoolExpression>
-   simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
-      return std::make_unique<silo::EmptyEx>();
-   }
+   [[nodiscard]] std::unique_ptr<BoolExpression> simplify(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) const override;
 };
 
-struct FullEx : public BoolExpression {
-   ExType type() const override { return ExType::FULL; };
+struct FullExpression : public BoolExpression {
+   [[nodiscard]] ExpressionType type() const override;
 
-   /// EmptyEx should be simplified away.
-   filter_t evaluate(const Database& /*db*/, const DatabasePartition& dbp) override;
+   BooleanExpressionResult evaluate(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) override;
 
-   std::string to_string(const Database& /*db*/) override { return "TRUE"; }
+   std::string toString(const Database& database) override;
 
-   std::unique_ptr<BoolExpression>
-   simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
-      return std::make_unique<silo::FullEx>();
-   }
+   [[nodiscard]] std::unique_ptr<BoolExpression> simplify(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) const override;
 };
 
-struct AndEx : public BoolExpression {
+struct AndExpression : public BoolExpression {
    std::vector<std::unique_ptr<BoolExpression>> children;
    std::vector<std::unique_ptr<BoolExpression>> negated_children;
 
-   explicit AndEx() {}
+   explicit AndExpression();
 
-   ExType type() const override { return ExType::AND; };
+   [[nodiscard]] ExpressionType type() const override;
 
-   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
+   BooleanExpressionResult evaluate(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) override;
 
-   std::string to_string(const Database& db) override {
-      std::string res = "(";
-      for (auto& child : children) {
-         res += " & ";
-         res += child->to_string(db);
-      }
-      for (auto& child : negated_children) {
-         res += " &! ";
-         res += child->to_string(db);
-      }
-      res += ")";
-      return res;
-   }
+   std::string toString(const Database& database) override;
 
-   std::unique_ptr<BoolExpression> simplify(const Database& db, const DatabasePartition& dbp)
-      const override;
+   [[nodiscard]] std::unique_ptr<BoolExpression> simplify(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) const override;
 };
 
-struct OrEx : public BoolExpression {
+struct OrExpression : public BoolExpression {
    std::vector<std::unique_ptr<BoolExpression>> children;
 
-   explicit OrEx() {}
+   explicit OrExpression();
 
-   ExType type() const override { return ExType::OR; };
+   [[nodiscard]] ExpressionType type() const override;
 
-   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
+   BooleanExpressionResult evaluate(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) override;
 
-   std::string to_string(const Database& db) override {
-      std::string res = "(";
-      for (auto& child : children) {
-         res += child->to_string(db);
-         res += " | ";
-      }
-      res += ")";
-      return res;
-   }
+   std::string toString(const Database& database) override;
 
-   std::unique_ptr<BoolExpression> simplify(const Database& db, const DatabasePartition& dbp)
-      const override;
+   [[nodiscard]] std::unique_ptr<BoolExpression> simplify(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) const override;
 };
 
-struct NOfEx : public BoolExpression {
+struct NOfExpression : public BoolExpression {
    std::vector<std::unique_ptr<BoolExpression>> children;
    unsigned n;
    unsigned impl;
    bool exactly;
 
-   ExType type() const override { return ExType::NOF; };
+   [[nodiscard]] ExpressionType type() const override;
+   ;
 
-   explicit NOfEx(unsigned n, unsigned impl, bool exactly)
-       : n(n),
-         impl(impl),
-         exactly(exactly) {}
+   explicit NOfExpression(unsigned n, bool exactly, unsigned impl = 1);
 
-   explicit NOfEx(unsigned n, bool exactly)
-       : n(n),
-         impl(1),
-         exactly(exactly) {}
+   BooleanExpressionResult evaluate(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) override;
 
-   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
+   std::string toString(const Database& database) override;
 
-   std::string to_string(const Database& db) override {
-      std::string res;
-      if (exactly) {
-         res = "[exactly-" + std::to_string(n) + "-of:";
-      } else {
-         res = "[" + std::to_string(n) + "-of:";
-      }
-      for (auto& child : children) {
-         res += child->to_string(db);
-         res += ", ";
-      }
-      res += "]";
-      return res;
-   }
-
-   std::unique_ptr<BoolExpression> simplify(const Database& db, const DatabasePartition& dbp)
-      const override;
+   [[nodiscard]] std::unique_ptr<BoolExpression> simplify(
+      const Database& db,
+      const DatabasePartition& dbp
+   ) const override;
 };
 
-struct NegEx : public BoolExpression {
+struct NegatedExpression : public BoolExpression {
    std::unique_ptr<BoolExpression> child;
 
-   ExType type() const override { return ExType::NEG; };
+   ExpressionType type() const override { return ExpressionType::NEG; };
 
-   explicit NegEx() {}
+   explicit NegatedExpression();
 
-   explicit NegEx(std::unique_ptr<BoolExpression> child)
-       : child(std::move(child)) {}
+   explicit NegatedExpression(std::unique_ptr<BoolExpression> child);
 
-   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
+   BooleanExpressionResult evaluate(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) override;
 
-   std::string to_string(const Database& db) override {
-      std::string res = "!" + child->to_string(db);
-      return res;
-   }
+   std::string toString(const Database& database) override;
 
-   std::unique_ptr<BoolExpression> simplify(const Database& db, const DatabasePartition& dbp)
-      const override;
+   std::unique_ptr<BoolExpression> simplify(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) const override;
 };
 
-struct NucEqEx : public BoolExpression {
+struct NucleotideSymbolEqualsExpression : public BoolExpression {
    unsigned position;
    GENOME_SYMBOL value;
    bool individualized = false;
 
-   ExType type() const override { return ExType::INDEX_FILTER; };
+   ExpressionType type() const override;
+   ;
 
-   explicit NucEqEx() {}
+   explicit NucleotideSymbolEqualsExpression();
 
-   explicit NucEqEx(unsigned position, GENOME_SYMBOL value)
-       : position(position),
-         value(value) {}
+   explicit NucleotideSymbolEqualsExpression(unsigned position, GENOME_SYMBOL value);
 
-   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
+   BooleanExpressionResult evaluate(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) override;
 
-   std::string to_string(const Database& /*db*/) override {
-      std::string res = std::to_string(position) + SYMBOL_REPRESENTATION[value];
-      return res;
-   }
+   std::string toString(const Database& database) override;
 
-   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& dbp)
+   std::unique_ptr<BoolExpression> simplify(const Database& database, const DatabasePartition& dbp)
       const override;
 };
 
-struct NucMbEx : public BoolExpression {
+struct NucleotideSymbolMaybeExpression : public BoolExpression {
    unsigned position;
    GENOME_SYMBOL value;
    bool negated = false;
 
-   ExType type() const override { return ExType::INDEX_FILTER; };
+   ExpressionType type() const override;
+   ;
 
-   explicit NucMbEx() {}
+   explicit NucleotideSymbolMaybeExpression();
 
-   explicit NucMbEx(unsigned position, GENOME_SYMBOL value)
-       : position(position),
-         value(value) {}
+   explicit NucleotideSymbolMaybeExpression(unsigned position, GENOME_SYMBOL value);
 
-   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
+   BooleanExpressionResult evaluate(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) override;
 
-   std::string to_string(const Database& /*db*/) override {
-      std::string res = "?" + std::to_string(position) + SYMBOL_REPRESENTATION[value];
-      return res;
-   }
+   std::string toString(const Database& database) override;
 
-   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& dbp)
+   std::unique_ptr<BoolExpression> simplify(const Database& database, const DatabasePartition& dbp)
       const override;
 };
 
-struct PangoLineageEx : public BoolExpression {
+struct PangoLineageExpression : public BoolExpression {
    uint32_t lineageKey;
-   bool includeSubLineages;
+   bool include_sublineages;
 
-   ExType type() const override { return ExType::INDEX_FILTER; };
+   ExpressionType type() const override;
+   ;
 
-   explicit PangoLineageEx(uint32_t lineageKey, bool includeSubLineages)
-       : lineageKey(lineageKey),
-         includeSubLineages(includeSubLineages) {}
+   explicit PangoLineageExpression(uint32_t lineage_key, bool include_sublineages);
 
-   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
+   BooleanExpressionResult evaluate(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) override;
 
-   std::string to_string(const Database& db) override {
-      std::string res = db.dict->get_pango(lineageKey);
-      if (includeSubLineages) {
-         res += ".*";
-      }
-      return res;
-   }
+   std::string toString(const Database& database) override;
 
-   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& dbp)
+   std::unique_ptr<BoolExpression> simplify(const Database& database, const DatabasePartition& dbp)
       const override;
 };
 
-struct CountryEx : public BoolExpression {
-   uint32_t countryKey;
+struct CountryExpression : public BoolExpression {
+   uint32_t country_key;
 
-   ExType type() const override { return ExType::INDEX_FILTER; };
+   ExpressionType type() const override { return ExpressionType::INDEX_FILTER; };
 
-   explicit CountryEx(uint32_t countryKey)
-       : countryKey(countryKey) {}
+   explicit CountryExpression(uint32_t country_key);
 
-   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
+   BooleanExpressionResult evaluate(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) override;
 
-   std::string to_string(const Database& db) override {
-      std::string res = "Country=" + db.dict->get_country(countryKey);
-      return res;
-   }
+   std::string toString(const Database& database) override;
 
-   std::unique_ptr<BoolExpression>
-   simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override;
+   std::unique_ptr<BoolExpression> simplify(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) const override;
 };
 
-struct RegionEx : public BoolExpression {
-   uint32_t regionKey;
+struct RegionExpression : public BoolExpression {
+   uint32_t region_key;
 
-   ExType type() const override { return ExType::INDEX_FILTER; };
+   ExpressionType type() const override;
+   ;
 
-   explicit RegionEx(uint32_t regionKey)
-       : regionKey(regionKey) {}
+   explicit RegionExpression(uint32_t regionKey);
 
-   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
+   BooleanExpressionResult evaluate(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) override;
 
-   std::string to_string(const Database& db) override {
-      std::string res = "Region=" + db.dict->get_region(regionKey);
-      return res;
-   }
+   std::string toString(const Database& database) override;
 
-   std::unique_ptr<BoolExpression>
-   simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override;
+   std::unique_ptr<BoolExpression> simplify(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) const override;
 };
 
-struct SelectEx : public BoolExpression {
-   virtual filter_t select(
-      const Database& db,
-      const DatabasePartition& dbp,
-      filter_t in_filter
+struct SelectExpression : public BoolExpression {
+   virtual BooleanExpressionResult select(
+      const Database& database,
+      const DatabasePartition& database_partition,
+      BooleanExpressionResult in_filter
    ) = 0;
-   virtual filter_t neg_select(
-      const Database& db,
-      const DatabasePartition& dbp,
-      filter_t in_filter
+   virtual BooleanExpressionResult neg_select(
+      const Database& database,
+      const DatabasePartition& database_partition,
+      BooleanExpressionResult in_filter
    ) = 0;
 };
 
-struct DateBetwEx : public SelectEx {
+struct DateBetweenExpression : public SelectExpression {
    time_t from;
    bool open_from;
    time_t to;
    bool open_to;
 
-   ExType type() const override { return ExType::INDEX_FILTER; };
+   ExpressionType type() const override;
+   ;
 
-   explicit DateBetwEx() {}
+   explicit DateBetweenExpression();
 
-   explicit DateBetwEx(time_t from, bool open_from, time_t to, bool open_to)
-       : from(from),
-         open_from(open_from),
-         to(to),
-         open_to(open_to) {}
+   explicit DateBetweenExpression(time_t from, bool open_from, time_t to, bool open_to);
 
-   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
+   BooleanExpressionResult evaluate(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) override;
 
-   filter_t select(const Database& db, const DatabasePartition& dbp, filter_t in_filter) override;
+   BooleanExpressionResult select(
+      const Database& database,
+      const DatabasePartition& database_partition,
+      BooleanExpressionResult in_filter
+   ) override;
 
-   filter_t neg_select(const Database& db, const DatabasePartition& dbp, filter_t in_filter)
-      override;
+   BooleanExpressionResult neg_select(
+      const Database& database,
+      const DatabasePartition& database_partition,
+      BooleanExpressionResult in_filter
+   ) override;
 
-   std::string to_string(const Database& /*db*/) override {
-      std::string res = "[Date-between ";
-      res += (open_from ? "unbound" : std::to_string(from));
-      res += " and ";
-      res += (open_to ? "unbound" : std::to_string(to));
-      res += "]";
-      return res;
-   }
+   std::string toString(const Database& database) override;
 
-   std::unique_ptr<BoolExpression>
-   simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
-      return std::make_unique<DateBetwEx>(from, open_from, to, open_to);
-   }
+   std::unique_ptr<BoolExpression> simplify(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) const override;
 };
 
-struct PosNEqEx : public SelectEx {
+struct PositionHasNucleotideSymbolNExpression : public SelectExpression {
    unsigned position;
 
-   ExType type() const override { return ExType::FILTER; };
+   ExpressionType type() const override;
+   ;
 
-   explicit PosNEqEx(unsigned position)
-       : position(position) {}
+   explicit PositionHasNucleotideSymbolNExpression(unsigned position);
 
-   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
+   BooleanExpressionResult evaluate(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) override;
 
-   filter_t select(const Database& db, const DatabasePartition& dbp, filter_t in_filter) override;
+   BooleanExpressionResult select(
+      const Database& database,
+      const DatabasePartition& database_partition,
+      BooleanExpressionResult in_filter
+   ) override;
 
-   filter_t neg_select(const Database& db, const DatabasePartition& dbp, filter_t in_filter)
-      override;
+   BooleanExpressionResult neg_select(
+      const Database& database,
+      const DatabasePartition& database_partition,
+      BooleanExpressionResult in_filter
+   ) override;
 
-   std::string to_string(const Database& /*db*/) override {
-      std::string res = std::to_string(position) + "N";
-      return res;
-   }
+   std::string toString(const Database& database) override;
 
-   std::unique_ptr<BoolExpression>
-   simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
-      return std::make_unique<PosNEqEx>(position);
-   }
+   std::unique_ptr<BoolExpression> simplify(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) const override;
 };
 
-struct StrEqEx : public SelectEx {
+struct StringEqualsExpression : public SelectExpression {
    uint32_t column;
    uint64_t value;
 
-   ExType type() const override { return ExType::FILTER; };
+   ExpressionType type() const override;
+   ;
 
-   explicit StrEqEx(uint32_t column, uint64_t value)
-       : column(column),
-         value(value) {}
+   explicit StringEqualsExpression(uint32_t column, uint64_t value);
 
-   filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
+   BooleanExpressionResult evaluate(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) override;
 
-   filter_t select(const Database& db, const DatabasePartition& dbp, filter_t in_filter) override;
+   BooleanExpressionResult select(
+      const Database& database,
+      const DatabasePartition& database_partition,
+      BooleanExpressionResult in_filter
+   ) override;
 
-   filter_t neg_select(const Database& db, const DatabasePartition& dbp, filter_t in_filter)
-      override;
+   BooleanExpressionResult neg_select(
+      const Database& database,
+      const DatabasePartition& database_partition,
+      BooleanExpressionResult in_filter
+   ) override;
 
-   std::string to_string(const Database& /*db*/) override {
-      std::string res = column + "=" + value;
-      return res;
-   }
+   std::string toString(const Database& database) override;
 
-   std::unique_ptr<BoolExpression>
-   simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
-      if (column == UINT32_MAX || value == UINT64_MAX) {
-         return std::make_unique<EmptyEx>();
-      }
-      return std::make_unique<StrEqEx>(column, value);
-   }
+   std::unique_ptr<BoolExpression> simplify(
+      const Database& database,
+      const DatabasePartition& database_partition
+   ) const override;
 };
 
 struct MutationProportion {
-   char mut_from;
+   char mutation_from;
    unsigned position;
-   char mut_to;
+   char mutation_to;
    double proportion;
    unsigned count;
 };
 
-/// Filter then call action
 QueryResult execute_query(
-   const Database& db,
+   const Database& database,
    const std::string& query,
    std::ostream& parse_out,
    std::ostream& perf_out
 );
 
-/// Action
-std::vector<MutationProportion> execute_mutations(
+std::vector<MutationProportion> executeMutations(
    const silo::Database&,
-   std::vector<silo::filter_t>&,
+   std::vector<silo::BooleanExpressionResult>& partition_filters,
    double proportion_threshold,
    std::ostream& performance_file
 );
 
-uint64_t execute_count(
-   const silo::Database& /*db*/,
-   std::vector<silo::filter_t>& partition_filters
+uint64_t executeCount(
+   const silo::Database& database,
+   std::vector<silo::BooleanExpressionResult>& partition_filters
 );
 
 }  // namespace silo

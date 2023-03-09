@@ -5,9 +5,9 @@
 #include <silo/common/PerfEvent.hpp>
 #include "silo/query_engine/query_engine.h"
 
-uint64_t silo::execute_count(
-   const silo::Database& /*db*/,
-   std::vector<silo::filter_t>& partition_filters
+uint64_t silo::executeCount(
+   const silo::Database& database /*db*/,
+   std::vector<silo::BooleanExpressionResult>& partition_filters
 ) {
    std::atomic<uint32_t> count = 0;
    tbb::parallel_for_each(partition_filters.begin(), partition_filters.end(), [&](auto& filter) {
@@ -17,9 +17,9 @@ uint64_t silo::execute_count(
    return count;
 }
 
-std::vector<silo::MutationProportion> silo::execute_mutations(
-   const silo::Database& db,
-   std::vector<silo::filter_t>& partition_filters,
+std::vector<silo::MutationProportion> silo::executeMutations(
+   const silo::Database& database,
+   std::vector<silo::BooleanExpressionResult>& partition_filters,
    double proportion_threshold,
    std::ostream& performance_file
 ) {
@@ -33,9 +33,9 @@ std::vector<silo::MutationProportion> silo::execute_mutations(
 
    std::vector<unsigned> partition_filters_to_evaluate;
    std::vector<unsigned> full_partition_filters_to_evaluate;
-   for (unsigned i = 0; i < db.partitions.size(); ++i) {
-      const silo::DatabasePartition& dbp = db.partitions[i];
-      silo::filter_t filter = partition_filters[i];
+   for (unsigned i = 0; i < database.partitions.size(); ++i) {
+      const silo::DatabasePartition& dbp = database.partitions[i];
+      silo::BooleanExpressionResult filter = partition_filters[i];
       const Roaring& bm = *filter.getAsConst();
       // TODO check naive run_compression
       const unsigned card = bm.cardinality();
@@ -58,8 +58,8 @@ std::vector<silo::MutationProportion> silo::execute_mutations(
       tbb::blocked_range<uint32_t> range(0, silo::GENOME_LENGTH, /*grain_size=*/300);
       tbb::parallel_for(range.begin(), range.end(), [&](uint32_t pos) {
          for (unsigned i : partition_filters_to_evaluate) {
-            const silo::DatabasePartition& dbp = db.partitions[i];
-            silo::filter_t filter = partition_filters[i];
+            const silo::DatabasePartition& dbp = database.partitions[i];
+            silo::BooleanExpressionResult filter = partition_filters[i];
             const Roaring& bm = *filter.getAsConst();
 
             if (dbp.seq_store.positions[pos].flipped_bitmap != silo::GENOME_SYMBOL::A) {  /// everything
@@ -111,7 +111,7 @@ std::vector<silo::MutationProportion> silo::execute_mutations(
          }
          /// For these partitions, we have full bitmaps. Do not need to bother with AND cardinality
          for (unsigned i : full_partition_filters_to_evaluate) {
-            const silo::DatabasePartition& dbp = db.partitions[i];
+            const silo::DatabasePartition& dbp = database.partitions[i];
             if (dbp.seq_store.positions[pos].flipped_bitmap != silo::GENOME_SYMBOL::A) {  /// everything
                                                                                           /// fine
                A_per_pos[pos] +=
@@ -162,7 +162,7 @@ std::vector<silo::MutationProportion> silo::execute_mutations(
    }
    performance_file << "pos_calculation\t" << std::to_string(microseconds) << std::endl;
 
-   for (unsigned i = 0; i < db.partitions.size(); ++i) {
+   for (unsigned i = 0; i < database.partitions.size(); ++i) {
       partition_filters[i].free();
    }
 
@@ -178,7 +178,7 @@ std::vector<silo::MutationProportion> silo::execute_mutations(
          }
          uint32_t threshold_count = std::ceil((double)total * (double)proportion_threshold) - 1;
 
-         char pos_ref = db.global_reference[0].at(pos);
+         char pos_ref = database.global_reference[0].at(pos);
          if (pos_ref != 'A') {
             const uint32_t tmp = A_per_pos[pos];
             if (tmp > threshold_count) {
