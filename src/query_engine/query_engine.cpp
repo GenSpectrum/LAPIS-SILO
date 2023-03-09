@@ -852,18 +852,6 @@ filter_t EmptyEx::evaluate(const Database&, const DatabasePartition&) {
 }
 }  // namespace silo
 
-std::vector<silo::filter_t> silo::execute_predicate(
-   const silo::Database& db,
-   const BoolExpression* filter
-) {
-   std::vector<silo::filter_t> partition_filters(db.partitions.size());
-   tbb::blocked_range<size_t> r(0, db.partitions.size(), 1);
-   tbb::parallel_for(r.begin(), r.end(), [&](const size_t& i) {
-      std::unique_ptr<BoolExpression> part_filter = filter->simplify(db, db.partitions[i]);
-      partition_filters[i] = part_filter->evaluate(db, db.partitions[i]);
-   });
-   return partition_filters;
-}
 
 silo::QueryResult silo::execute_query(
    const silo::Database& db,

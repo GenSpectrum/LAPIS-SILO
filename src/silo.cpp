@@ -28,17 +28,3 @@ std::string silo::number_fmt(unsigned long n) {
    oss << n;
    return oss.str();
 }
-
-std::string getPangoPrefix(const std::string& pango_lineage) {
-   std::string pangoPref;
-   if (pango_lineage.size() > 2) {
-      std::stringstream ss(pango_lineage);
-      if (!getline(ss, pangoPref, '.')) {
-         std::cerr << "Non-covered case of pango lineage!" << std::endl;
-         return "Not-recognized";
-      }
-   } else {
-      pangoPref = pango_lineage;
-   }
-   return pangoPref;
-}

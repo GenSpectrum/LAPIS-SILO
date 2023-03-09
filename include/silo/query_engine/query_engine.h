@@ -448,11 +448,6 @@ QueryResult execute_query(
    std::ostream& perf_out
 );
 
-std::vector<silo::filter_t> execute_predicate(
-   const silo::Database& db,
-   const BoolExpression* filter
-);
-
 /// Action
 std::vector<MutationProportion> execute_mutations(
    const silo::Database&,
@@ -461,10 +456,6 @@ std::vector<MutationProportion> execute_mutations(
    std::ostream& performance_file
 );
 
-std::vector<std::vector<uint32_t>> execute_all_dist(
-   const silo::Database& db,
-   std::vector<silo::filter_t>& partition_filters
-);
 
 uint64_t execute_count(
    const silo::Database& /*db*/,

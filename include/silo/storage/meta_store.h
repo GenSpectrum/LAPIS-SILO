@@ -58,12 +58,6 @@ void inputSequenceMeta(
    const std::vector<uint64_t>& vals
 );
 
-void chunk_info(const MetaStore& mdb, std::ostream& out);
-
-unsigned save_meta(const MetaStore& db, const std::string& db_filename);
-
-unsigned load_meta(MetaStore& db, const std::string& db_filename);
-
 }  // namespace silo
 
 #endif  // SILO_META_STORE_H
