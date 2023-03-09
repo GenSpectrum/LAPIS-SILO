@@ -152,7 +152,7 @@ silo::pango_descriptor_t silo::build_pango_defs(
       meta_in.ignore(LONG_MAX, '\n');
 
       /// Deal with pango_lineage alias:
-      std::string pango_lineage = resolve_alias(alias_key, pango_lineage_raw);
+      std::string pango_lineage = resolvePangoLineageAlias(alias_key, pango_lineage_raw);
 
       if (pango_to_id.contains(pango_lineage)) {
          auto pid = pango_to_id[pango_lineage];
@@ -359,7 +359,7 @@ void silo::partition_sequences(
       const auto& part = pd.partitions[i];
       for (unsigned j = 0, limit2 = part.chunks.size(); j < limit2; ++j) {
          auto& chunk = part.chunks[j];
-         chunk_strs.push_back(silo::chunk_string(i, j));
+         chunk_strs.push_back(silo::buildChunkName(i, j));
          for (auto& pango : chunk.pangos) {
             pango_to_chunk[pango] = chunk_strs.back();
          }
@@ -394,7 +394,7 @@ void silo::partition_sequences(
             break;
 
          /// Deal with pango_lineage alias:
-         std::string pango_lineage = resolve_alias(alias_key, pango_lineage_raw);
+         std::string pango_lineage = resolvePangoLineageAlias(alias_key, pango_lineage_raw);
 
          std::string tmp = epi_isl.substr(8);
          uint64_t epi = stoi(tmp);
@@ -598,7 +598,7 @@ void silo::sort_chunks(
    }
 
    tbb::parallel_for_each(all_chunks.begin(), all_chunks.end(), [&](const part_chunk& x) {
-      const std::string& file_name = output_prefix + silo::chunk_string(x.part, x.chunk);
+      const std::string& file_name = output_prefix + silo::buildChunkName(x.part, x.chunk);
       silo::InputStreamWrapper sequence_in(file_name + sequence_file_extension);
       silo::InputStreamWrapper meta_in(file_name + metadata_file_extension);
       std::ofstream sequence_out(file_name + "_sorted" + sequence_file_extension);

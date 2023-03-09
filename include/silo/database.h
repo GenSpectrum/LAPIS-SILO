@@ -137,6 +137,15 @@ void save_partitioning_descriptor(const partitioning_descriptor_t& pd, std::ostr
 
 partitioning_descriptor_t load_partitioning_descriptor(std::istream& in);
 
+std::string formatNumber(uint64_t number);
+
+std::string resolvePangoLineageAlias(
+   const std::unordered_map<std::string, std::string>& alias_key,
+   const std::string& pango_lineage
+);
+
+std::string buildChunkName(unsigned partition, unsigned chunk);
+
 }  // namespace silo
 
 #endif  // SILO_DATABASE_H

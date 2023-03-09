@@ -1,4 +1,5 @@
 #include <silo/common/silo_symbols.h>
+#include <silo/database.h>
 #include <silo/storage/Dictionary.h>
 #include <cassert>
 #include <iostream>
@@ -60,7 +61,7 @@ void Dictionary::update_dict(
          break;
 
       /// Deal with pango_lineage alias:
-      std::string pango_lineage = resolve_alias(alias_key, pango_lineage_raw);
+      std::string pango_lineage = resolvePangoLineageAlias(alias_key, pango_lineage_raw);
 
       if (!pango_dict.contains(pango_lineage)) {
          pango_lookup.push_back(pango_lineage);

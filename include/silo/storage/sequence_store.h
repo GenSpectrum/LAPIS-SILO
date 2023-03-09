@@ -18,7 +18,7 @@ struct Position {
       ar& N_indexed;
    }
 
-   roaring::Roaring bitmaps[symbolCount];
+   roaring::Roaring bitmaps[SYMBOL_COUNT];
    // Reference bitmap is flipped
    uint32_t flipped_bitmap = UINT32_MAX;
    bool N_indexed = false;

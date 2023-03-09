@@ -6,7 +6,7 @@
 
 namespace silo {
 struct PreprocessingConfig {
-   PreprocessingConfig(
+   explicit PreprocessingConfig(
       const std::string& input_directory_ = "./",
       const std::string& output_directory_ = "./",
       const std::string& metadata_filename_ = "minimal_metadata_set.tsv",

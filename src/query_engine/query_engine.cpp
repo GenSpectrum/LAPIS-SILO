@@ -96,9 +96,9 @@ std::unique_ptr<BoolExpression> parse_expression(
       GENOME_SYMBOL value;
       if (s.at(0) == '.') {
          char c = db.global_reference[0].at(position);
-         value = to_symbol(c);
+         value = toNucleotideSymbol(c);
       } else {
-         value = to_symbol(s.at(0));
+         value = toNucleotideSymbol(s.at(0));
       }
       if (exact >= 0) {
          return std::make_unique<NucEqEx>(position, value);
@@ -111,17 +111,19 @@ std::unique_ptr<BoolExpression> parse_expression(
       char ref_symbol = db.global_reference[0].at(pos);
       /// this <= is correct! the negation would flip the exact bit from -1 to +1 and vice versa
       if (exact <= 0) {  /// NucEqEx
-         return std::make_unique<NegEx>(std::make_unique<NucEqEx>(pos, silo::to_symbol(ref_symbol))
+         return std::make_unique<NegEx>(
+            std::make_unique<NucEqEx>(pos, silo::toNucleotideSymbol(ref_symbol))
          );
       } else {  /// NucMbEx
-         return std::make_unique<NegEx>(std::make_unique<NucMbEx>(pos, silo::to_symbol(ref_symbol))
+         return std::make_unique<NegEx>(
+            std::make_unique<NucMbEx>(pos, silo::toNucleotideSymbol(ref_symbol))
          );
       }
    } else if (type == "PangoLineage") {
       bool includeSubLineages = js["includeSubLineages"].GetBool();
       std::string lineage = js["value"].GetString();
       std::transform(lineage.begin(), lineage.end(), lineage.begin(), ::toupper);
-      lineage = resolve_alias(db.getAliasKey(), lineage);
+      lineage = resolvePangoLineageAlias(db.getAliasKey(), lineage);
       uint32_t lineageKey = db.dict->get_pangoid(lineage);
       return std::make_unique<PangoLineageEx>(lineageKey, includeSubLineages);
    } else if (type == "StrEq") {
@@ -851,7 +853,6 @@ filter_t EmptyEx::evaluate(const Database&, const DatabasePartition&) {
    return {new Roaring(), nullptr};
 }
 }  // namespace silo
-
 
 silo::QueryResult silo::execute_query(
    const silo::Database& db,

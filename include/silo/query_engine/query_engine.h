@@ -4,6 +4,7 @@
 #include <string>
 #include <variant>
 #include "query_result.h"
+#include "silo/common/silo_symbols.h"
 #include "silo/database.h"
 
 namespace silo {
@@ -230,7 +231,7 @@ struct NucEqEx : public BoolExpression {
    filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
    std::string to_string(const Database& /*db*/) override {
-      std::string res = std::to_string(position) + symbol_rep[value];
+      std::string res = std::to_string(position) + SYMBOL_REPRESENTATION[value];
       return res;
    }
 
@@ -254,7 +255,7 @@ struct NucMbEx : public BoolExpression {
    filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
    std::string to_string(const Database& /*db*/) override {
-      std::string res = "?" + std::to_string(position) + symbol_rep[value];
+      std::string res = "?" + std::to_string(position) + SYMBOL_REPRESENTATION[value];
       return res;
    }
 

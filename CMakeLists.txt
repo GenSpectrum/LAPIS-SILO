@@ -45,7 +45,6 @@ include_directories(SYSTEM
 file(GLOB SRC_TEST "src/*/*.test.cpp", "src/*.test.cpp")
 
 set(SRC_CC
-        src/silo.cpp
         src/storage/Dictionary.cpp
         src/storage/meta_store.cpp
         src/storage/sequence_store.cpp

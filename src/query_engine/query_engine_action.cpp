@@ -98,14 +98,14 @@ std::vector<silo::MutationProportion> silo::execute_mutations(
                   bm.andnot_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::T]
                   );
             }
-            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::GENOME_SYMBOL::gap) {  /// everything
+            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::GENOME_SYMBOL::GAP) {  /// everything
                                                                                             /// fine
                gap_per_pos[pos] +=
-                  bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::gap]
+                  bm.and_cardinality(dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::GAP]
                   );
             } else {  /// Bitmap was flipped
                gap_per_pos[pos] += bm.andnot_cardinality(
-                  dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::gap]
+                  dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::GAP]
                );
             }
          }
@@ -148,14 +148,14 @@ std::vector<silo::MutationProportion> silo::execute_mutations(
                   dbp.sequenceCount -
                   dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::T].cardinality();
             }
-            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::GENOME_SYMBOL::gap) {  /// everything
+            if (dbp.seq_store.positions[pos].flipped_bitmap != silo::GENOME_SYMBOL::GAP) {  /// everything
                                                                                             /// fine
                gap_per_pos[pos] +=
-                  dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::gap].cardinality();
+                  dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::GAP].cardinality();
             } else {  /// Bitmap was flipped
                gap_per_pos[pos] +=
                   dbp.sequenceCount -
-                  dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::gap].cardinality();
+                  dbp.seq_store.positions[pos].bitmaps[silo::GENOME_SYMBOL::GAP].cardinality();
             }
          }
       });
