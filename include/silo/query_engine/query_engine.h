@@ -54,7 +54,6 @@ struct BoolExpression {
 struct EmptyExpression : public BoolExpression {
    [[nodiscard]] ExpressionType type() const override;
 
-   /// EmptyExpression should be simplified away.
    BooleanExpressionResult evaluate(
       const Database& database,
       const DatabasePartition& database_partition

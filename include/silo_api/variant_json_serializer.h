@@ -3,6 +3,7 @@
 
 #include <nlohmann/json.hpp>
 #include <variant>
+// no linting because needed by external library
 // NOLINTBEGIN
 namespace nlohmann {
 template <typename T, typename... Ts>

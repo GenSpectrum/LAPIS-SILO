@@ -11,7 +11,10 @@ namespace silo {
 
 using roaring::Roaring;
 
-std::unique_ptr<BoolExpression> parseExpression(  // NOLINT
+// TODO: reduce cognitive complexity
+// no linting recursion: is inherent to algorithm
+// NOLINTNEXTLINE(readability-function-cognitive-complexity, misc-no-recursion)
+std::unique_ptr<BoolExpression> parseExpression(
    const Database& database,
    const rapidjson::Value& json_value,
    int exact
@@ -26,7 +29,7 @@ std::unique_ptr<BoolExpression> parseExpression(  // NOLINT
       std::transform(
          json_value["children"].GetArray().begin(), json_value["children"].GetArray().end(),
          std::back_inserter(result->children),
-         [&](const rapidjson::Value& value) {  // NOLINT
+         [&](const rapidjson::Value& value) {  // NOLINT(misc-no-recursion)
             return parseExpression(database, value, exact);
          }
       );
@@ -39,7 +42,7 @@ std::unique_ptr<BoolExpression> parseExpression(  // NOLINT
       std::transform(
          json_value["children"].GetArray().begin(), json_value["children"].GetArray().end(),
          std::back_inserter(result->children),
-         [&](const rapidjson::Value& value) {  // NOLINT
+         [&](const rapidjson::Value& value) {  // NOLINT(misc-no-recursion)
             return parseExpression(database, value, exact);
          }
       );
@@ -57,7 +60,7 @@ std::unique_ptr<BoolExpression> parseExpression(  // NOLINT
       std::transform(
          json_value["children"].GetArray().begin(), json_value["children"].GetArray().end(),
          std::back_inserter(result->children),
-         [&](const rapidjson::Value& js) {  // NOLINT
+         [&](const rapidjson::Value& js) {  // NOLINT(misc-no-recursion)
             return parseExpression(database, js, exact);
          }
       );
