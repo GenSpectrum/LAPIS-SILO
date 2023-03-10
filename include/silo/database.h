@@ -111,9 +111,9 @@ class Database {
 
    [[maybe_unused]] void naiveIndexAllNucleotideSymbolsN();
 
-   [[maybe_unused]] void saveDatabaseState(const std::string& save_dir);
+   [[maybe_unused]] void saveDatabaseState(const std::string& save_directory);
 
-   [[maybe_unused]] void loadDatabaseState(const std::string& save_dir);
+   [[maybe_unused]] void loadDatabaseState(const std::string& save_directory);
 
    const std::unordered_map<std::string, std::string>& getAliasKey() const;
 
