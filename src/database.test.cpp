@@ -12,6 +12,6 @@ TEST(database_test, should_build_database_without_errors) {
    auto database = std::make_shared<silo::Database>(input_directory);
 
    EXPECT_NO_THROW(database->preprocessing(config));
-   EXPECT_GT(static_cast<long int>(database->get_db_info().totalSize), 0);
-   EXPECT_GT(static_cast<long int>(database->get_db_info().sequenceCount), 0);
+   EXPECT_GT(static_cast<long int>(database->getDatabaseInfo().totalSize), 0);
+   EXPECT_GT(static_cast<long int>(database->getDatabaseInfo().sequenceCount), 0);
 }

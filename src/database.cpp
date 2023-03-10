@@ -66,19 +66,19 @@ std::unordered_map<std::string, std::string> initAliasKey(const std::string& wor
    return alias_keys;
 }
 
-silo::Database::Database(const std::string& wd)
-    : wd(wd),
-      global_reference(initGlobalReference(wd)),
-      alias_key(initAliasKey(wd)) {}
+silo::Database::Database(const std::string& directory)
+    : working_directory(directory),
+      global_reference(initGlobalReference(directory)),
+      alias_key(initAliasKey(directory)) {}
 
 const std::unordered_map<std::string, std::string>& silo::Database::getAliasKey() const {
    return alias_key;
 }
 
 void silo::Database::build(
-   const std::string& part_prefix,
-   const std::string& meta_suffix,
-   const std::string& seq_suffix,
+   const std::string& partition_index,
+   const std::string& metadata_file_suffix,
+   const std::string& sequence_file_suffix,
    std::ostream& out
 ) {
    int64_t micros = 0;
@@ -90,14 +90,14 @@ void silo::Database::build(
          partitions[i].chunks = part.chunks;
          for (unsigned j = 0; j < part.chunks.size(); ++j) {
             std::string name;
-            name = part_prefix + buildChunkName(i, j);
-            std::string seq_file_str = name + seq_suffix;
-            std::ifstream meta_in(name + meta_suffix);
+            name = partition_index + buildChunkName(i, j);
+            std::string seq_file_str = name + sequence_file_suffix;
+            std::ifstream meta_in(name + metadata_file_suffix);
             if (!InputStreamWrapper(seq_file_str).getInputStream()) {
                seq_file_str += ".xz";
                if (!InputStreamWrapper(seq_file_str).getInputStream()) {
-                  std::osyncstream(std::cerr)
-                     << "Sequence_file " << (name + seq_suffix) << " not found" << std::endl;
+                  std::osyncstream(std::cerr) << "Sequence_file " << (name + sequence_file_suffix)
+                                              << " not found" << std::endl;
                   return;
                }
                std::osyncstream(std::cerr) << "Using sequence_file " << (seq_file_str) << std::endl;
@@ -106,14 +106,15 @@ void silo::Database::build(
             }
             if (!meta_in) {
                std::osyncstream(std::cerr)
-                  << "Meta_in file " << (name + meta_suffix) << " not found" << std::endl;
+                  << "Meta_in file " << (name + metadata_file_suffix) << " not found" << std::endl;
                return;
             }
             silo::InputStreamWrapper seq_in(seq_file_str);
             std::osyncstream(std::cerr)
-               << "Using meta_in file " << (name + meta_suffix) << std::endl;
-            unsigned count1 = processSeq(partitions[i].seq_store, seq_in.getInputStream());
-            unsigned count2 = processMeta(partitions[i].meta_store, meta_in, alias_key, *dict);
+               << "Using meta_in file " << (name + metadata_file_suffix) << std::endl;
+            unsigned count1 = fillSequenceStore(partitions[i].seq_store, seq_in.getInputStream());
+            unsigned count2 =
+               fillMetadataStore(partitions[i].meta_store, meta_in, alias_key, *dict);
             if (count1 != count2) {
                // Fatal error
                std::osyncstream(std::cerr)
@@ -128,12 +129,12 @@ void silo::Database::build(
    }
    out << "Build took " << std::to_string(micros) << "seconds." << std::endl;
    out << "Info directly after build: " << std::endl;
-   const auto info = get_db_info();
+   const auto info = getDatabaseInfo();
    out << "Sequence count: " << info.sequenceCount << std::endl;
    out << "Total size: " << info.totalSize << std::endl;
    out << "nucleotide_symbol_n_bitmaps per sequence, total size: "
        << formatNumber(info.nBitmapsSize) << std::endl;
-   db_info_detailed(out);
+   detailedDatabaseInfo(out);
    {
       BlockTimer timer(micros);
       // Precompute Bitmaps for metadata.
@@ -217,6 +218,9 @@ void silo::DatabasePartition::finalizeBuild(const Dictionary& dict) {
       }
    }
 }
+const std::vector<silo::Chunk>& silo::DatabasePartition::getChunks() const {
+   return chunks;
+}
 
 void silo::Database::finalizeBuild() {
    tbb::parallel_for_each(partitions.begin(), partitions.end(), [&](DatabasePartition& p) {
@@ -224,7 +228,7 @@ void silo::Database::finalizeBuild() {
    });
 }
 
-void silo::Database::flipBitmaps() {
+[[maybe_unused]] void silo::Database::flipBitmaps() {
    tbb::parallel_for_each(partitions.begin(), partitions.end(), [&](DatabasePartition& dbp) {
       tbb::parallel_for((unsigned)0, GENOME_LENGTH, [&](unsigned p) {
          unsigned max_symbol = UINT32_MAX;
@@ -266,7 +270,7 @@ static inline void addStat(r_stat& r1, const r_stat& r2) {
    r1.sum_value += r2.sum_value;
 }
 
-silo::db_info_t silo::Database::get_db_info() {
+silo::DatabaseInfo silo::Database::getDatabaseInfo() {
    std::atomic<uint32_t> sequence_count = 0;
    std::atomic<uint64_t> total_size = 0;
    std::atomic<size_t> N_bitmaps_size = 0;
@@ -279,10 +283,10 @@ silo::db_info_t silo::Database::get_db_info() {
       }
    });
 
-   return silo::db_info_t{sequence_count, total_size, N_bitmaps_size};
+   return silo::DatabaseInfo{sequence_count, total_size, N_bitmaps_size};
 }
 
-void silo::Database::indexAllN() {
+void silo::Database::indexAllNucleotideSymbolsN() {
    int64_t microseconds = 0;
    {
       BlockTimer timer(microseconds);
@@ -293,7 +297,7 @@ void silo::Database::indexAllN() {
    std::cerr << "index all N took " << formatNumber(microseconds) << " microseconds." << std::endl;
 }
 
-void silo::Database::indexAllN_naive() {
+void silo::Database::naiveIndexAllNucleotideSymbolsN() {
    int64_t microseconds = 0;
    {
       BlockTimer timer(microseconds);
@@ -305,22 +309,22 @@ void silo::Database::indexAllN_naive() {
              << std::endl;
 }
 
-void silo::Database::print_flipped(std::ostream& io) {
-   io << "Flipped genome positions: " << std::endl;
+[[maybe_unused]] void silo::Database::printFlippedGenomePositions(std::ostream& output_file) {
+   output_file << "Flipped genome positions: " << std::endl;
    for (unsigned part_id = 0; part_id < partitions.size(); ++part_id) {
       const DatabasePartition& dbp = partitions[part_id];
       for (unsigned i = 0; GENOME_LENGTH; ++i) {
          const Position& pos = dbp.seq_store.positions[i];
          if (pos.flipped_bitmap != silo::toNucleotideSymbol(global_reference[0].at(i))) {
-            io << std::to_string(part_id) << ": " << std::to_string(i)
-               << SYMBOL_REPRESENTATION[pos.flipped_bitmap] << std::endl;
+            output_file << std::to_string(part_id) << ": " << std::to_string(i)
+                        << SYMBOL_REPRESENTATION[pos.flipped_bitmap] << std::endl;
          }
       }
-      io << std::endl;
+      output_file << std::endl;
    }
 }
 
-int silo::Database::db_info_detailed(std::ostream& io) {
+int silo::Database::detailedDatabaseInfo(std::ostream& output_file) {
    std::string csv_line_storage;
    std::string csv_line_containers;
    std::string csv_header_histogram;
@@ -338,8 +342,8 @@ int silo::Database::db_info_detailed(std::ostream& io) {
    uint64_t size_sum = 0;
    for (unsigned symbol = 0; symbol < SYMBOL_COUNT; ++symbol) {
       size_sum += size_by_symbols[symbol];
-      io << "size for symbol '" << SYMBOL_REPRESENTATION[symbol]
-         << "': " << formatNumber(size_by_symbols[symbol]) << std::endl;
+      output_file << "size for symbol '" << SYMBOL_REPRESENTATION[symbol]
+                  << "': " << formatNumber(size_by_symbols[symbol]) << std::endl;
       csv_line_storage += std::to_string(size_by_symbols[symbol]);
       csv_line_storage += ",";
    }
@@ -399,8 +403,8 @@ int silo::Database::db_info_detailed(std::ostream& io) {
       n_bytes_bitset_containers += n_bytes_bitset_containers_local;
       lock.unlock();
    });
-   io << "Total bitmap containers " << formatNumber(s_total.n_containers) << ", of those there are "
-      << std::endl
+   output_file << "Total bitmap containers " << formatNumber(s_total.n_containers)
+               << ", of those there are " << std::endl
       << "array: " << formatNumber(s_total.n_array_containers) << std::endl
       << "run: " << formatNumber(s_total.n_run_containers) << std::endl
       << "bitset: " << formatNumber(s_total.n_bitset_containers) << std::endl;
@@ -408,11 +412,11 @@ int silo::Database::db_info_detailed(std::ostream& io) {
       std::to_string(s_total.n_containers) + "," + std::to_string(s_total.n_array_containers) + ",";
    csv_line_containers += std::to_string(s_total.n_run_containers) + "," +
                           std::to_string(s_total.n_bitset_containers) + ",";
-   io << "Total bitmap values " << formatNumber(s_total.cardinality) << ", of those there are "
-      << std::endl
-      << "array: " << formatNumber(s_total.n_values_array_containers) << std::endl
-      << "run: " << formatNumber(s_total.n_values_run_containers) << std::endl
-      << "bitset: " << formatNumber(s_total.n_values_bitset_containers) << std::endl;
+   output_file << "Total bitmap values " << formatNumber(s_total.cardinality)
+               << ", of those there are " << std::endl
+               << "array: " << formatNumber(s_total.n_values_array_containers) << std::endl
+               << "run: " << formatNumber(s_total.n_values_run_containers) << std::endl
+               << "bitset: " << formatNumber(s_total.n_values_bitset_containers) << std::endl;
    csv_line_containers += std::to_string(s_total.cardinality) + "," +
                           std::to_string(s_total.n_values_array_containers) + ",";
    csv_line_containers += std::to_string(s_total.n_values_run_containers) + "," +
@@ -420,26 +424,27 @@ int silo::Database::db_info_detailed(std::ostream& io) {
 
    uint64_t total_size =
       n_bytes_array_containers + n_bytes_run_containers + n_bytes_bitset_containers;
-   io << "Total bitmap byte size " << formatNumber(total_size_frozen) << " (frozen) " << std::endl;
-   io << "Total bitmap byte size " << formatNumber(total_size_comp) << " (compute_size) "
-      << std::endl;
-   io << "Total bitmap byte size " << formatNumber(total_size) << ", of those there are "
-      << std::endl
-      << "array: " << formatNumber(s_total.n_bytes_array_containers) << std::endl
-      << "run: " << formatNumber(s_total.n_bytes_run_containers) << std::endl
-      << "bitset: " << formatNumber(s_total.n_bytes_bitset_containers) << std::endl;
+   output_file << "Total bitmap byte size " << formatNumber(total_size_frozen) << " (frozen) "
+               << std::endl;
+   output_file << "Total bitmap byte size " << formatNumber(total_size_comp) << " (compute_size) "
+               << std::endl;
+   output_file << "Total bitmap byte size " << formatNumber(total_size) << ", of those there are "
+               << std::endl
+               << "array: " << formatNumber(s_total.n_bytes_array_containers) << std::endl
+               << "run: " << formatNumber(s_total.n_bytes_run_containers) << std::endl
+               << "bitset: " << formatNumber(s_total.n_bytes_bitset_containers) << std::endl;
    csv_line_containers +=
       std::to_string(total_size) + "," + std::to_string(s_total.n_bytes_array_containers) + ",";
    csv_line_containers += std::to_string(s_total.n_bytes_run_containers) + "," +
                           std::to_string(s_total.n_bytes_bitset_containers) + ",";
 
-   io << "Bitmap distribution by position #NON_GAP (#GAP)" << std::endl;
+   output_file << "Bitmap distribution by position #NON_GAP (#GAP)" << std::endl;
    for (unsigned i = 0; i < (GENOME_LENGTH / 500) + 1; ++i) {
       uint32_t gap_bitsets_at_pos = gap_bitset_containers_by_500pos[i];
       uint32_t N_bitmaps_at_pos = N_bitset_containers_by_500pos[i];
       uint32_t bitmaps_at_pos = bitset_containers_by_500pos[i];
-      io << "Pos: [" << i * 500 << "," << ((i + 1) * 500) << "): " << bitmaps_at_pos
-         << " (N: " << N_bitmaps_at_pos << ", -: " << gap_bitsets_at_pos << ")" << '\n';
+      output_file << "Pos: [" << i * 500 << "," << ((i + 1) * 500) << "): " << bitmaps_at_pos
+                  << " (N: " << N_bitmaps_at_pos << ", -: " << gap_bitsets_at_pos << ")" << '\n';
       csv_header_histogram += std::to_string(i * 500) + "-" + std::to_string((i + 1) * 500) + ",";
       csv_header_histogram += std::to_string(i * 500) + "-" + std::to_string((i + 1) * 500) + "N,";
       csv_header_histogram += std::to_string(i * 500) + "-" + std::to_string((i + 1) * 500) + "-,";
@@ -448,16 +453,16 @@ int silo::Database::db_info_detailed(std::ostream& io) {
                             std::to_string(gap_bitsets_at_pos) + ",";
    }
 
-   io << "Storage:" << std::endl;
-   io << csv_line_storage << std::endl;
-   io << "Containers:" << std::endl;
-   io << csv_line_containers << std::endl;
-   io << csv_header_histogram << std::endl;
-   io << csv_line_histogram << std::endl;
+   output_file << "Storage:" << std::endl;
+   output_file << csv_line_storage << std::endl;
+   output_file << "Containers:" << std::endl;
+   output_file << csv_line_containers << std::endl;
+   output_file << csv_header_histogram << std::endl;
+   output_file << csv_line_histogram << std::endl;
    return 0;
 }
 
-unsigned silo::processSeq(silo::SequenceStore& seq_store, std::istream& in) {
+unsigned silo::fillSequenceStore(silo::SequenceStore& seq_store, std::istream& input_file) {
    static constexpr unsigned BUFFER_SIZE = 1024;
 
    unsigned sequence_count = 0;
@@ -465,10 +470,10 @@ unsigned silo::processSeq(silo::SequenceStore& seq_store, std::istream& in) {
    std::vector<std::string> genome_buffer;
    while (true) {
       std::string epi_isl, genome;
-      if (!getline(in, epi_isl)) {
+      if (!getline(input_file, epi_isl)) {
          break;
       }
-      if (!getline(in, genome))
+      if (!getline(input_file, genome))
          break;
       if (genome.length() != GENOME_LENGTH) {
          std::cerr << "length mismatch!" << std::endl;
@@ -489,30 +494,30 @@ unsigned silo::processSeq(silo::SequenceStore& seq_store, std::istream& in) {
    return sequence_count;
 }
 
-unsigned silo::processMeta(
-   MetadataStore& mdb,
-   std::istream& in,
+unsigned silo::fillMetadataStore(
+   MetadataStore& meta_store,
+   std::istream& input_file,
    const std::unordered_map<std::string, std::string>& alias_key,
    const Dictionary& dict
 ) {
    // Ignore header line.
-   in.ignore(LONG_MAX, '\n');
+   input_file.ignore(LONG_MAX, '\n');
 
    unsigned sequence_count = 0;
 
    while (true) {
       std::string epi_isl, pango_lineage_raw, date, region, country, division;
-      if (!getline(in, epi_isl, '\t'))
+      if (!getline(input_file, epi_isl, '\t'))
          break;
-      if (!getline(in, pango_lineage_raw, '\t'))
+      if (!getline(input_file, pango_lineage_raw, '\t'))
          break;
-      if (!getline(in, date, '\t'))
+      if (!getline(input_file, date, '\t'))
          break;
-      if (!getline(in, region, '\t'))
+      if (!getline(input_file, region, '\t'))
          break;
-      if (!getline(in, country, '\t'))
+      if (!getline(input_file, country, '\t'))
          break;
-      if (!getline(in, division, '\n'))
+      if (!getline(input_file, division, '\n'))
          break;
 
       /// Deal with pango_lineage alias:
@@ -530,7 +535,7 @@ unsigned silo::processMeta(
       extra_cols.push_back(dict.getIdInGeneralLookup(division));
 
       silo::inputSequenceMeta(
-         mdb, epi, time, dict.getPangoLineageIdInLookup(pango_lineage),
+         meta_store, epi, time, dict.getPangoLineageIdInLookup(pango_lineage),
          dict.getRegionIdInLookup(region), dict.getCountryIdInLookup(country), extra_cols
       );
       ++sequence_count;
@@ -539,47 +544,47 @@ unsigned silo::processMeta(
    return sequence_count;
 }
 
-void silo::save_pango_defs(const silo::pango_descriptor_t& pd, std::ostream& out) {
-   for (auto& x : pd.pangos) {
-      out << x.pango_lineage << '\t' << x.count << '\n';
+void silo::savePangoLineageCounts(
+   const silo::PangoLineageCounts& pango_lineage_counts,
+   std::ostream& output_file
+) {
+   for (auto& x : pango_lineage_counts.pango_lineage_counts) {
+      output_file << x.pango_lineage << '\t' << x.count << '\n';
    }
-   out.flush();
+   output_file.flush();
 }
 
-silo::pango_descriptor_t silo::load_pango_defs(std::istream& in) {
-   silo::pango_descriptor_t descriptor;
+silo::PangoLineageCounts silo::loadPangoLineageCounts(std::istream& input_stream) {
+   silo::PangoLineageCounts descriptor;
    std::string lineage, count_str;
    uint32_t count;
-   while (in && !in.eof()) {
-      if (!getline(in, lineage, '\t'))
+   while (input_stream && !input_stream.eof()) {
+      if (!getline(input_stream, lineage, '\t'))
          break;
-      if (!getline(in, count_str, '\n'))
+      if (!getline(input_stream, count_str, '\n'))
          break;
       count = atoi(count_str.c_str());
-      descriptor.pangos.emplace_back(silo::pango_t{lineage, count});
+      descriptor.pango_lineage_counts.emplace_back(silo::PangoLineageCount{lineage, count});
    }
    return descriptor;
 }
 
-void silo::save_partitioning_descriptor(
-   const silo::partitioning_descriptor_t& pd,
-   std::ostream& out
-) {
-   for (auto& part : pd.partitions) {
-      out << "P\t" << part.name << '\t' << part.chunks.size() << '\t' << part.count << '\n';
+void silo::savePartitions(const silo::Partitions& partitions, std::ostream& output_file) {
+   for (auto& part : partitions.partitions) {
+      output_file << "P\t" << part.name << '\t' << part.chunks.size() << '\t' << part.count << '\n';
       for (auto& chunk : part.chunks) {
-         out << "C\t" << chunk.prefix << '\t' << chunk.pangos.size() << '\t' << chunk.count << '\t'
-             << chunk.offset << '\n';
-         for (auto& pango : chunk.pangos) {
-            out << "L\t" << pango << '\n';
+         output_file << "C\t" << chunk.prefix << '\t' << chunk.pango_lineages.size() << '\t'
+                     << chunk.count << '\t' << chunk.offset << '\n';
+         for (auto& pango : chunk.pango_lineages) {
+            output_file << "L\t" << pango << '\n';
          }
       }
    }
 }
 
-void silo::Database::save(const std::string& save_dir) {
+[[maybe_unused]] void silo::Database::saveDatabaseState(const std::string& save_dir) {
    if (!partition_descriptor) {
-      std::cerr << "Cannot save db without partition_descriptor." << std::endl;
+      std::cerr << "Cannot saveDatabaseState db without partition_descriptor." << std::endl;
       return;
    }
 
@@ -592,7 +597,7 @@ void silo::Database::save(const std::string& save_dir) {
       }
       std::cout << "Save pango lineage descriptor to output file "
                 << (save_dir + "pango_descriptor.txt") << std::endl;
-      save_pango_defs(*pango_descriptor, pango_def_file);
+      savePangoLineageCounts(*pango_descriptor, pango_def_file);
    }
    {
       std::ofstream part_def_file(save_dir + "partition_descriptor.txt");
@@ -603,7 +608,7 @@ void silo::Database::save(const std::string& save_dir) {
       }
       std::cout << "Save partitioning descriptor to output file "
                 << (save_dir + "partition_descriptor.txt") << std::endl;
-      save_partitioning_descriptor(*partition_descriptor, part_def_file);
+      savePartitions(*partition_descriptor, part_def_file);
    }
    {
       std::ofstream dict_output(save_dir + "dict.txt");
@@ -634,7 +639,7 @@ void silo::Database::save(const std::string& save_dir) {
    });
    std::cout << "Finished saving partitions" << std::endl;
 }
-void silo::Database::load(const std::string& save_dir) {
+void silo::Database::loadDatabaseState(const std::string& save_dir) {
    std::ifstream part_def_file(save_dir + "partition_descriptor.txt");
    if (!part_def_file) {
       std::cerr << "Cannot open partition_descriptor input file for loading: "
@@ -643,14 +648,14 @@ void silo::Database::load(const std::string& save_dir) {
    }
    std::cout << "Load partitioning_def from input file " << (save_dir + "partition_descriptor.txt")
              << std::endl;
-   partition_descriptor =
-      std::make_unique<partitioning_descriptor_t>(load_partitioning_descriptor(part_def_file));
+   partition_descriptor = std::make_unique<Partitions>(loadPartitions(part_def_file));
 
    std::ifstream pango_def_file(save_dir + "pango_descriptor.txt");
    if (pango_def_file) {
       std::cout << "Load pango_descriptor from input file " << (save_dir + "pango_descriptor.txt")
                 << std::endl;
-      pango_descriptor = std::make_unique<pango_descriptor_t>(load_pango_defs(pango_def_file));
+      pango_descriptor =
+         std::make_unique<PangoLineageCounts>(loadPangoLineageCounts(pango_def_file));
    }
 
    {
@@ -685,10 +690,10 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
    std::cout << "build_pango_defs" << std::endl;
    std::ifstream metadata_stream(config.metadata_file.relative_path());
    pango_descriptor =
-      std::make_unique<pango_descriptor_t>(silo::build_pango_defs(alias_key, metadata_stream));
+      std::make_unique<PangoLineageCounts>(silo::build_pango_defs(alias_key, metadata_stream));
 
    std::cout << "build_partitioning_descriptor" << std::endl;
-   partition_descriptor = std::make_unique<partitioning_descriptor_t>(
+   partition_descriptor = std::make_unique<Partitions>(
       silo::build_partitioning_descriptor(*pango_descriptor, architecture_type::max_partitions)
    );
 
@@ -728,6 +733,7 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
       config.sequence_file.extension(), std::cout
    );
 }
+silo::Database::Database() {}
 
 struct ThousandSeparator : std::numpunct<char> {
    [[nodiscard]] char_type do_thousands_sep() const override { return '\''; }

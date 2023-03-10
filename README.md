@@ -15,9 +15,12 @@ The Conan profile (myProfile) on your system might differ: Create a new profile 
 ```shell
 conan profile new myProfile --detect
 ```
-Insert info `os`, `os_build`, `arch` and `arch_build` of myProfile into `conanprofile.example` and rename to `conanprofile`.
+Insert info `os`, `os_build`, `arch` and `arch_build` of myProfile into `conanprofile.example` and rename
+to `conanprofile`.
 
-Build silo in `./build`. This build will load and build the required libraries to `~/.conan/data/` (can not be set by hand). 
+Build silo in `./build`. This build will loadDatabaseState and build the required libraries to `~/.conan/data/` (can not
+be set by hand).
+
 ```shell
 ./build_with_conan
 ```

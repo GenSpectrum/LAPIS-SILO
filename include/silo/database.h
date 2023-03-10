@@ -10,41 +10,41 @@
 
 namespace silo {
 
-struct chunk_t {
+struct Chunk {
    friend class boost::serialization::access;
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& ar, const unsigned int /* version */) {
-      ar& prefix;
-      ar& count;
-      ar& offset;
-      ar& pangos;
+   [[maybe_unused]] void serialize(Archive& archive, [[maybe_unused]] const unsigned int version) {
+      archive& prefix;
+      archive& count;
+      archive& offset;
+      archive& pango_lineages;
    }
    std::string prefix;
    uint32_t count;
    uint32_t offset;
-   std::vector<std::string> pangos;
+   std::vector<std::string> pango_lineages;
 };
 
-struct partition_t {
+struct Partition {
    std::string name;
    uint32_t count;
-   std::vector<chunk_t> chunks;
+   std::vector<Chunk> chunks;
 };
 
-struct partitioning_descriptor_t {
-   std::vector<partition_t> partitions;
+struct Partitions {
+   std::vector<Partition> partitions;
 };
 
-struct pango_t {
+struct PangoLineageCount {
    std::string pango_lineage;
    uint32_t count;
 };
 
-struct pango_descriptor_t {
-   std::vector<pango_t> pangos;
+struct PangoLineageCounts {
+   std::vector<PangoLineageCount> pango_lineage_counts;
 };
 
-struct db_info_t {
+struct DatabaseInfo {
    uint32_t sequenceCount;
    uint64_t totalSize;
    size_t nBitmapsSize;
@@ -55,21 +55,21 @@ class DatabasePartition {
    friend class boost::serialization::access;
 
    template <class Archive>
-   void serialize(Archive& ar, [[maybe_unused]] const unsigned int version) {
-      ar& meta_store;
-      ar& seq_store;
-      ar& sequenceCount;
-      ar& chunks;
+   void serialize(Archive& archive, [[maybe_unused]] const unsigned int version) {
+      archive& meta_store;
+      archive& seq_store;
+      archive& sequenceCount;
+      archive& chunks;
    }
 
-   std::vector<silo::chunk_t> chunks;
+   std::vector<silo::Chunk> chunks;
 
   public:
    MetadataStore meta_store;
    SequenceStore seq_store;
    unsigned sequenceCount;
 
-   const std::vector<silo::chunk_t>& get_chunks() const { return chunks; }
+   [[nodiscard]] const std::vector<silo::Chunk>& getChunks() const;
 
    void finalizeBuild(const Dictionary& dict);
 };
@@ -78,41 +78,42 @@ struct PreprocessingConfig;
 
 class Database {
   public:
-   const std::string wd;  // working directory
+   const std::string working_directory;
    std::vector<std::string> global_reference;
    std::vector<DatabasePartition> partitions;
-   std::unique_ptr<pango_descriptor_t> pango_descriptor;
-   std::unique_ptr<partitioning_descriptor_t> partition_descriptor;
+   std::unique_ptr<PangoLineageCounts> pango_descriptor;
+   std::unique_ptr<Partitions> partition_descriptor;
    std::unique_ptr<Dictionary> dict;
 
-   Database(){};
+   Database();
+   ;
 
-   Database(const std::string& wd);
+   explicit Database(const std::string& directory);
 
    void preprocessing(const PreprocessingConfig& config);
 
    void build(
-      const std::string& part_prefix,
-      const std::string& meta_suffix,
-      const std::string& seq_suffix,
+      const std::string& partition_index,
+      const std::string& metadata_file_suffix,
+      const std::string& sequence_file_suffix,
       std::ostream& out
    );
 
-   virtual silo::db_info_t get_db_info();
+   virtual silo::DatabaseInfo getDatabaseInfo();
 
-   int db_info_detailed(std::ostream& io);
-   void print_flipped(std::ostream& io);
+   int detailedDatabaseInfo(std::ostream& output_file);
+   [[maybe_unused]] void printFlippedGenomePositions(std::ostream& output_file);
    void finalizeBuild();
 
-   void flipBitmaps();
+   [[maybe_unused]] void flipBitmaps();
 
-   void indexAllN();
+   [[maybe_unused]] void indexAllNucleotideSymbolsN();
 
-   void indexAllN_naive();
+   [[maybe_unused]] void naiveIndexAllNucleotideSymbolsN();
 
-   void save(const std::string& save_dir);
+   [[maybe_unused]] void saveDatabaseState(const std::string& save_dir);
 
-   void load(const std::string& save_dir);
+   [[maybe_unused]] void loadDatabaseState(const std::string& save_dir);
 
    const std::unordered_map<std::string, std::string>& getAliasKey() const;
 
@@ -120,22 +121,25 @@ class Database {
    std::unordered_map<std::string, std::string> alias_key;
 };
 
-unsigned processSeq(SequenceStore& seq_store, std::istream& in);
+unsigned fillSequenceStore(SequenceStore& seq_store, std::istream& input_file);
 
-unsigned processMeta(
+unsigned fillMetadataStore(
    MetadataStore& meta_store,
-   std::istream& in,
+   std::istream& input_file,
    const std::unordered_map<std::string, std::string>& alias_key,
    const Dictionary& dict
 );
 
-void save_pango_defs(const pango_descriptor_t& pd, std::ostream& out);
+void savePangoLineageCounts(
+   const PangoLineageCounts& pango_lineage_counts,
+   std::ostream& output_file
+);
 
-pango_descriptor_t load_pango_defs(std::istream& in);
+PangoLineageCounts loadPangoLineageCounts(std::istream& input_stream);
 
-void save_partitioning_descriptor(const partitioning_descriptor_t& pd, std::ostream& out);
+void savePartitions(const Partitions& partitions, std::ostream& output_file);
 
-partitioning_descriptor_t load_partitioning_descriptor(std::istream& in);
+Partitions loadPartitions(std::istream& input_file);
 
 std::string formatNumber(uint64_t number);
 
