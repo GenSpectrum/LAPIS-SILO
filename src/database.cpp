@@ -144,7 +144,7 @@ void silo::Database::build(
 
 void silo::DatabasePartition::finalizeBuild(const Dictionary& dict) {
    {  /// Precompute all bitmaps for pango_lineages and -sublineages
-      const uint32_t pango_count = dict.get_pango_count();
+      const uint32_t pango_count = dict.getPangoLineageCount();
       std::vector<std::vector<uint32_t>> group_by_lineages(pango_count);
       for (uint32_t sid = 0; sid < sequenceCount; ++sid) {
          const auto lineage = meta_store.sid_to_lineage.at(sid);
@@ -165,8 +165,8 @@ void silo::DatabasePartition::finalizeBuild(const Dictionary& dict) {
 
          // Now add all lineages that I am a prefix of
          for (uint32_t pango2 = 0; pango2 < pango_count; ++pango2) {
-            const std::string& str1 = dict.get_pango(pango1);
-            const std::string& str2 = dict.get_pango(pango2);
+            const std::string& str1 = dict.getPangoLineage(pango1);
+            const std::string& str2 = dict.getPangoLineage(pango2);
             if (str1.length() >= str2.length()) {
                continue;
             }
@@ -185,7 +185,7 @@ void silo::DatabasePartition::finalizeBuild(const Dictionary& dict) {
    }
 
    {  /// Precompute all bitmaps for countries
-      const uint32_t country_count = dict.get_country_count();
+      const uint32_t country_count = dict.getCountryCount();
       std::vector<std::vector<uint32_t>> group_by_country(country_count);
       for (uint32_t sid = 0; sid < sequenceCount; ++sid) {
          const auto& country = meta_store.sid_to_country[sid];
@@ -201,7 +201,7 @@ void silo::DatabasePartition::finalizeBuild(const Dictionary& dict) {
    }
 
    {  /// Precompute all bitmaps for regions
-      const uint32_t region_count = dict.get_region_count();
+      const uint32_t region_count = dict.getRegionCount();
       std::vector<std::vector<uint32_t>> group_by_region(region_count);
       for (uint32_t sid = 0; sid < sequenceCount; ++sid) {
          const auto& region = meta_store.sid_to_region[sid];
@@ -526,11 +526,11 @@ unsigned silo::processMeta(
       std::time_t time = mktime(&tm);
 
       std::vector<uint64_t> extra_cols;
-      extra_cols.push_back(dict.get_id(division));
+      extra_cols.push_back(dict.getIdInGeneralLookup(division));
 
       silo::inputSequenceMeta(
-         mdb, epi, time, dict.get_pangoid(pango_lineage), dict.get_regionid(region),
-         dict.get_countryid(country), extra_cols
+         mdb, epi, time, dict.getPangoLineageIdInLookup(pango_lineage),
+         dict.getRegionIdInLookup(region), dict.getCountryIdInLookup(country), extra_cols
       );
       ++sequence_count;
    }
@@ -612,7 +612,7 @@ void silo::Database::save(const std::string& save_dir) {
       }
       std::cout << "Save dictionary to output file " << (save_dir + "dict.txt") << std::endl;
 
-      dict->save_dict(dict_output);
+      dict->saveDictionary(dict_output);
    }
 
    std::vector<std::ofstream> file_vec;
@@ -659,7 +659,7 @@ void silo::Database::load(const std::string& save_dir) {
          return;
       }
       std::cout << "Load dictionary from input file " << (save_dir + "dict.txt") << std::endl;
-      dict = std::make_unique<Dictionary>(Dictionary::load_dict(dict_input));
+      dict = std::make_unique<Dictionary>(Dictionary::loadDictionary(dict_input));
    }
 
    std::cout << "Loading partitions from " << save_dir << std::endl;
@@ -717,7 +717,7 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
          if (!meta_in) {
             throw PreprocessingException("Meta_data file " + name + " not found.");
          }
-         dict->update_dict(meta_in, getAliasKey());
+         dict->updateDictionary(meta_in, getAliasKey());
       }
    }
 

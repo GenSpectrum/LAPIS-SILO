@@ -81,7 +81,7 @@ PangoLineageExpression::PangoLineageExpression(uint32_t lineage_key, bool includ
     : lineageKey(lineage_key),
       include_sublineages(include_sublineages) {}
 std::string PangoLineageExpression::toString(const Database& database) {
-   std::string res = database.dict->get_pango(lineageKey);
+   std::string res = database.dict->getPangoLineage(lineageKey);
    if (include_sublineages) {
       res += ".*";
    }
@@ -100,7 +100,7 @@ std::unique_ptr<BoolExpression> CountryExpression::simplify(
 CountryExpression::CountryExpression(uint32_t country_key)
     : country_key(country_key) {}
 std::string CountryExpression::toString(const Database& database) {
-   std::string res = "Country=" + database.dict->get_country(country_key);
+   std::string res = "Country=" + database.dict->getCountry(country_key);
    return res;
 }
 ExpressionType CountryExpression::type() const {
@@ -122,7 +122,7 @@ ExpressionType RegionExpression::type() const {
 RegionExpression::RegionExpression(uint32_t regionKey)
     : region_key(regionKey) {}
 std::string RegionExpression::toString(const Database& database) {
-   std::string res = "Region=" + database.dict->get_region(region_key);
+   std::string res = "Region=" + database.dict->getRegion(region_key);
    return res;
 }
 

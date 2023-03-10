@@ -5,6 +5,13 @@
 #include "tbb/parallel_for.h"
 #include "tbb/parallel_for_each.h"
 
+// Do not remove the next line. It overwrites the rapidjson abort, so it can throw an exception and
+// does not abort.
+#define RAPIDJSON_ASSERT(x)                                                    \
+   if (!(x))                                                                   \
+   throw silo::QueryParseException(                                            \
+      "The query was not a valid JSON: " + std::string(RAPIDJSON_STRINGIFY(x)) \
+   )
 #include "rapidjson/document.h"
 
 namespace silo {
@@ -135,23 +142,25 @@ std::unique_ptr<BoolExpression> parseExpression(
       std::string lineage = json_value["value"].GetString();
       std::transform(lineage.begin(), lineage.end(), lineage.begin(), ::toupper);
       lineage = resolvePangoLineageAlias(database.getAliasKey(), lineage);
-      const uint32_t lineage_key = database.dict->get_pangoid(lineage);
+      const uint32_t lineage_key = database.dict->getPangoLineageIdInLookup(lineage);
       return std::make_unique<PangoLineageExpression>(lineage_key, include_sublineages);
    }
    if (expression_type == "StrEq") {
       const std::string& column = json_value["column"].GetString();
       if (column == "country") {
          return std::make_unique<CountryExpression>(
-            database.dict->get_countryid(json_value["value"].GetString())
+            database.dict->getCountryIdInLookup(json_value["value"].GetString())
          );
       }
       if (column == "region") {
          return std::make_unique<RegionExpression>(
-            database.dict->get_regionid(json_value["value"].GetString())
+            database.dict->getRegionIdInLookup(json_value["value"].GetString())
          );
       }
-      const uint32_t column_key = database.dict->get_colid(json_value["column"].GetString());
-      const uint32_t value_key = database.dict->get_pangoid(json_value["value"].GetString());
+      const uint32_t column_key =
+         database.dict->getColumnIdInLookup(json_value["column"].GetString());
+      const uint32_t value_key =
+         database.dict->getPangoLineageIdInLookup(json_value["value"].GetString());
       return std::make_unique<StringEqualsExpression>(column_key, value_key);
    }
    if (expression_type == "Maybe") {
