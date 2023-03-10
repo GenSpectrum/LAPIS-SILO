@@ -39,7 +39,7 @@ class SiloRequestHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
 
 class SiloServer : public Poco::Util::ServerApplication {
   protected:
-   void defineOptions(Poco::Util::OptionSet& options) override {
+   [[maybe_unused]] void defineOptions(Poco::Util::OptionSet& options) override {
       ServerApplication::defineOptions(options);
 
       options.addOption(

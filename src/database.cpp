@@ -384,7 +384,7 @@ int silo::Database::detailedDatabaseInfo(std::ostream& output_file) {
    std::vector<uint32_t> nucleotide_symbol_n_bitset_containers_by_500pos(
       (GENOME_LENGTH / GENOME_DIVISION) + 1
    );
-   r_stat total_staticstic{};
+   r_stat total_statistic{};
    uint64_t total_size_comp = 0;
    uint64_t total_size_frozen = 0;
    /// Because the counters in r_stat are 32 bit and overflow..
@@ -428,7 +428,7 @@ int silo::Database::detailedDatabaseInfo(std::ostream& output_file) {
          }
       }
       lock.lock();
-      addStatistic(total_staticstic, s_local);
+      addStatistic(total_statistic, s_local);
       total_size_comp += total_size_comp_local;
       total_size_frozen += total_size_frozen_local;
       n_bytes_array_containers += n_bytes_array_containers_local;
@@ -436,25 +436,25 @@ int silo::Database::detailedDatabaseInfo(std::ostream& output_file) {
       n_bytes_bitset_containers += n_bytes_bitset_containers_local;
       lock.unlock();
    });
-   output_file << "Total bitmap containers " << formatNumber(total_staticstic.n_containers)
+   output_file << "Total bitmap containers " << formatNumber(total_statistic.n_containers)
                << ", of those there are " << std::endl
-               << "array: " << formatNumber(total_staticstic.n_array_containers) << std::endl
-               << "run: " << formatNumber(total_staticstic.n_run_containers) << std::endl
-               << "bitset: " << formatNumber(total_staticstic.n_bitset_containers) << std::endl;
-   csv_line_containers += std::to_string(total_staticstic.n_containers) + "," +
-                          std::to_string(total_staticstic.n_array_containers) + ",";
-   csv_line_containers += std::to_string(total_staticstic.n_run_containers) + "," +
-                          std::to_string(total_staticstic.n_bitset_containers) + ",";
-   output_file << "Total bitmap values " << formatNumber(total_staticstic.cardinality)
+               << "array: " << formatNumber(total_statistic.n_array_containers) << std::endl
+               << "run: " << formatNumber(total_statistic.n_run_containers) << std::endl
+               << "bitset: " << formatNumber(total_statistic.n_bitset_containers) << std::endl;
+   csv_line_containers += std::to_string(total_statistic.n_containers) + "," +
+                          std::to_string(total_statistic.n_array_containers) + ",";
+   csv_line_containers += std::to_string(total_statistic.n_run_containers) + "," +
+                          std::to_string(total_statistic.n_bitset_containers) + ",";
+   output_file << "Total bitmap values " << formatNumber(total_statistic.cardinality)
                << ", of those there are " << std::endl
-               << "array: " << formatNumber(total_staticstic.n_values_array_containers) << std::endl
-               << "run: " << formatNumber(total_staticstic.n_values_run_containers) << std::endl
-               << "bitset: " << formatNumber(total_staticstic.n_values_bitset_containers)
+               << "array: " << formatNumber(total_statistic.n_values_array_containers) << std::endl
+               << "run: " << formatNumber(total_statistic.n_values_run_containers) << std::endl
+               << "bitset: " << formatNumber(total_statistic.n_values_bitset_containers)
                << std::endl;
-   csv_line_containers += std::to_string(total_staticstic.cardinality) + "," +
-                          std::to_string(total_staticstic.n_values_array_containers) + ",";
-   csv_line_containers += std::to_string(total_staticstic.n_values_run_containers) + "," +
-                          std::to_string(total_staticstic.n_values_bitset_containers) + ",";
+   csv_line_containers += std::to_string(total_statistic.cardinality) + "," +
+                          std::to_string(total_statistic.n_values_array_containers) + ",";
+   csv_line_containers += std::to_string(total_statistic.n_values_run_containers) + "," +
+                          std::to_string(total_statistic.n_values_bitset_containers) + ",";
 
    uint64_t const total_size =
       n_bytes_array_containers + n_bytes_run_containers + n_bytes_bitset_containers;
@@ -464,14 +464,14 @@ int silo::Database::detailedDatabaseInfo(std::ostream& output_file) {
                << std::endl;
    output_file << "Total bitmap byte size " << formatNumber(total_size) << ", of those there are "
                << std::endl
-               << "array: " << formatNumber(total_staticstic.n_bytes_array_containers) << std::endl
-               << "run: " << formatNumber(total_staticstic.n_bytes_run_containers) << std::endl
-               << "bitset: " << formatNumber(total_staticstic.n_bytes_bitset_containers)
+               << "array: " << formatNumber(total_statistic.n_bytes_array_containers) << std::endl
+               << "run: " << formatNumber(total_statistic.n_bytes_run_containers) << std::endl
+               << "bitset: " << formatNumber(total_statistic.n_bytes_bitset_containers)
                << std::endl;
    csv_line_containers += std::to_string(total_size) + "," +
-                          std::to_string(total_staticstic.n_bytes_array_containers) + ",";
-   csv_line_containers += std::to_string(total_staticstic.n_bytes_run_containers) + "," +
-                          std::to_string(total_staticstic.n_bytes_bitset_containers) + ",";
+                          std::to_string(total_statistic.n_bytes_array_containers) + ",";
+   csv_line_containers += std::to_string(total_statistic.n_bytes_run_containers) + "," +
+                          std::to_string(total_statistic.n_bytes_bitset_containers) + ",";
 
    output_file << "Bitmap distribution by position #NON_GAP (#GAP)" << std::endl;
    for (unsigned i = 0; i < (GENOME_LENGTH / GENOME_DIVISION) + 1; ++i) {
@@ -700,7 +700,7 @@ void silo::savePartitions(const silo::Partitions& partitions, std::ostream& outp
    );
    std::cout << "Finished saving partitions" << std::endl;
 }
-void silo::Database::loadDatabaseState(const std::string& save_directory) {
+[[maybe_unused]] void silo::Database::loadDatabaseState(const std::string& save_directory) {
    std::ifstream part_def_file(save_directory + "partition_descriptor.txt");
    if (!part_def_file) {
       std::cerr << "Cannot open partition_descriptor input file for loading: "
@@ -752,27 +752,28 @@ void silo::Database::loadDatabaseState(const std::string& save_directory) {
    );
 }
 void silo::Database::preprocessing(const PreprocessingConfig& config) {
-   std::cout << "build_pango_defs" << std::endl;
+   std::cout << "buildPangoLineageCounts" << std::endl;
    std::ifstream metadata_stream(config.metadata_file.relative_path());
    pango_descriptor =
-      std::make_unique<PangoLineageCounts>(silo::build_pango_defs(alias_key, metadata_stream));
+      std::make_unique<PangoLineageCounts>(silo::buildPangoLineageCounts(alias_key, metadata_stream)
+      );
 
-   std::cout << "build_partitioning_descriptor" << std::endl;
+   std::cout << "buildPartitions" << std::endl;
    partition_descriptor = std::make_unique<Partitions>(
-      silo::build_partitioning_descriptor(*pango_descriptor, architecture_type::max_partitions)
+      silo::buildPartitions(*pango_descriptor, Architecture::MAX_PARTITIONS)
    );
 
-   std::cout << "partition_sequences" << std::endl;
+   std::cout << "partitionSequences" << std::endl;
    std::ifstream metadata_stream2(config.metadata_file.relative_path());
    InputStreamWrapper const sequence_stream(config.sequence_file.relative_path());
-   partition_sequences(
+   partitionSequences(
       *partition_descriptor, metadata_stream2, sequence_stream.getInputStream(),
       config.partition_folder.relative_path(), alias_key, config.metadata_file.extension(),
       config.sequence_file.extension()
    );
 
-   std::cout << "sort_chunks" << std::endl;
-   silo::sort_chunks(
+   std::cout << "sortChunks" << std::endl;
+   silo::sortChunks(
       *partition_descriptor, config.partition_folder.relative_path(),
       config.metadata_file.extension(), config.sequence_file.extension()
    );
