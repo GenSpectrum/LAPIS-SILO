@@ -65,7 +65,7 @@ class DatabasePartition {
    std::vector<silo::chunk_t> chunks;
 
   public:
-   MetaStore meta_store;
+   MetadataStore meta_store;
    SequenceStore seq_store;
    unsigned sequenceCount;
 
@@ -123,7 +123,7 @@ class Database {
 unsigned processSeq(SequenceStore& seq_store, std::istream& in);
 
 unsigned processMeta(
-   MetaStore& meta_store,
+   MetadataStore& meta_store,
    std::istream& in,
    const std::unordered_map<std::string, std::string>& alias_key,
    const Dictionary& dict

@@ -636,10 +636,11 @@ BooleanExpressionResult DateBetweenExpression::evaluate(
    }
 
    auto* result = new Roaring;
-   const auto* base = database_partition.meta_store.sid_to_date.data();
+   const auto* base = database_partition.meta_store.sequence_id_to_date.data();
    for (const chunk_t& chunk : database_partition.get_chunks()) {
-      const auto* begin = &database_partition.meta_store.sid_to_date[chunk.offset];
-      const auto* end = &database_partition.meta_store.sid_to_date[chunk.offset + chunk.count];
+      const auto* begin = &database_partition.meta_store.sequence_id_to_date[chunk.offset];
+      const auto* end =
+         &database_partition.meta_store.sequence_id_to_date[chunk.offset + chunk.count];
       uint32_t const lower =
          open_from ? begin - base : std::lower_bound(begin, end, this->date_from) - base;
       uint32_t const upper =
@@ -663,12 +664,13 @@ BooleanExpressionResult DateBetweenExpression::select(
    } else {
       result = new Roaring(*in_filter.getAsConst());
    }
-   const auto* base = database_partition.meta_store.sid_to_date.data();
+   const auto* base = database_partition.meta_store.sequence_id_to_date.data();
    uint32_t lower = 0;
    uint32_t upper = 0;
    for (const chunk_t& chunk : database_partition.get_chunks()) {
-      const auto* begin = &database_partition.meta_store.sid_to_date[chunk.offset];
-      const auto* end = &database_partition.meta_store.sid_to_date[chunk.offset + chunk.count];
+      const auto* begin = &database_partition.meta_store.sequence_id_to_date[chunk.offset];
+      const auto* end =
+         &database_partition.meta_store.sequence_id_to_date[chunk.offset + chunk.count];
       lower = open_from ? begin - base : std::lower_bound(begin, end, this->date_from) - base;
       result->removeRange(upper, lower);
       upper = open_to ? end - base : std::upper_bound(begin, end, this->date_to) - base;
@@ -693,10 +695,11 @@ BooleanExpressionResult DateBetweenExpression::selectNegated(
    } else {
       result = new Roaring(*in_filter.getAsConst());
    }
-   const auto* base = database_partition.meta_store.sid_to_date.data();
+   const auto* base = database_partition.meta_store.sequence_id_to_date.data();
    for (const chunk_t& chunk : database_partition.get_chunks()) {
-      const auto* begin = &database_partition.meta_store.sid_to_date[chunk.offset];
-      const auto* end = &database_partition.meta_store.sid_to_date[chunk.offset + chunk.count];
+      const auto* begin = &database_partition.meta_store.sequence_id_to_date[chunk.offset];
+      const auto* end =
+         &database_partition.meta_store.sequence_id_to_date[chunk.offset + chunk.count];
       uint32_t const lower =
          open_from ? begin - base : std::lower_bound(begin, end, this->date_from) - base;
       uint32_t const upper =
@@ -875,7 +878,7 @@ BooleanExpressionResult StringEqualsExpression::evaluate(
    std::vector<uint32_t> buffer(BUFFER_SIZE);
    auto* result = new Roaring();
    for (uint32_t seq = 0; seq < database_partition.sequenceCount; seq++) {
-      if (database_partition.meta_store.cols[column][seq] == value) {
+      if (database_partition.meta_store.columns[column][seq] == value) {
          buffer.push_back(seq);
          if (buffer.size() == BUFFER_SIZE) {
             result->addMany(BUFFER_SIZE, buffer.data());
@@ -898,7 +901,7 @@ BooleanExpressionResult StringEqualsExpression::select(
    std::vector<uint32_t> buffer(BUFFER_SIZE);
    auto* result = new Roaring();
    for (uint32_t const sequence : *in_filter.getAsConst()) {
-      if (database_partition.meta_store.cols[column][sequence] == value) {
+      if (database_partition.meta_store.columns[column][sequence] == value) {
          buffer.push_back(sequence);
          if (buffer.size() == BUFFER_SIZE) {
             result->addMany(BUFFER_SIZE, buffer.data());
@@ -922,7 +925,7 @@ BooleanExpressionResult StringEqualsExpression::selectNegated(
    std::vector<uint32_t> buffer(BUFFER_SIZE);
    auto* result = new Roaring();
    for (uint32_t const seq : *in_filter.getAsConst()) {
-      if (database_partition.meta_store.cols[column][seq] != value) {
+      if (database_partition.meta_store.columns[column][seq] != value) {
          buffer.push_back(seq);
          if (buffer.size() == BUFFER_SIZE) {
             result->addMany(BUFFER_SIZE, buffer.data());

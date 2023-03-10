@@ -10,52 +10,52 @@
 
 namespace silo {
 
-struct MetaStore {
+struct MetadataStore {
    friend class boost::serialization::access;
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& ar, const unsigned int /* version */) {
-      ar& sid_to_epi;
+   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
+      archive& sequence_id_to_epi;
 
-      ar& sid_to_date;
+      archive& sequence_id_to_date;
 
-      ar& sid_to_lineage;
-      ar& lineage_bitmaps;
-      ar& sublineage_bitmaps;
+      archive& sequence_id_to_lineage;
+      archive& lineage_bitmaps;
+      archive& sublineage_bitmaps;
 
-      ar& sid_to_region;
-      ar& region_bitmaps;
+      archive& sequence_id_to_region;
+      archive& region_bitmaps;
 
-      ar& sid_to_country;
-      ar& country_bitmaps;
+      archive& sequence_id_to_country;
+      archive& country_bitmaps;
 
-      ar& cols;
+      archive& columns;
    }
 
-   std::vector<uint64_t> sid_to_epi;
-   std::vector<time_t> sid_to_date;
+   std::vector<uint64_t> sequence_id_to_epi;
+   std::vector<time_t> sequence_id_to_date;
 
-   // TODO only ints -> Dictionary:
-   std::vector<uint32_t> sid_to_lineage;
+   // TODO(taepper) only ints -> Dictionary:
+   std::vector<uint32_t> sequence_id_to_lineage;
    std::vector<roaring::Roaring> lineage_bitmaps;
    std::vector<roaring::Roaring> sublineage_bitmaps;
 
-   std::vector<uint32_t> sid_to_region;
+   std::vector<uint32_t> sequence_id_to_region;
    std::vector<roaring::Roaring> region_bitmaps;
 
-   std::vector<uint32_t> sid_to_country;
+   std::vector<uint32_t> sequence_id_to_country;
    std::vector<roaring::Roaring> country_bitmaps;
 
-   std::vector<std::vector<uint64_t>> cols;
+   std::vector<std::vector<uint64_t>> columns;
 };
 
 void inputSequenceMeta(
-   MetaStore& mdb,
-   uint64_t epi,
+   MetadataStore& metadata_store,
+   uint64_t epi_isl_number,
    time_t date,
    uint32_t pango_lineage,
    uint32_t region,
    uint32_t country,
-   const std::vector<uint64_t>& vals
+   const std::vector<uint64_t>& values
 );
 
 }  // namespace silo

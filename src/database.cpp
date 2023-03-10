@@ -147,7 +147,7 @@ void silo::DatabasePartition::finalizeBuild(const Dictionary& dict) {
       const uint32_t pango_count = dict.getPangoLineageCount();
       std::vector<std::vector<uint32_t>> group_by_lineages(pango_count);
       for (uint32_t sid = 0; sid < sequenceCount; ++sid) {
-         const auto lineage = meta_store.sid_to_lineage.at(sid);
+         const auto lineage = meta_store.sequence_id_to_lineage.at(sid);
          group_by_lineages.at(lineage).push_back(sid);
       }
 
@@ -188,7 +188,7 @@ void silo::DatabasePartition::finalizeBuild(const Dictionary& dict) {
       const uint32_t country_count = dict.getCountryCount();
       std::vector<std::vector<uint32_t>> group_by_country(country_count);
       for (uint32_t sid = 0; sid < sequenceCount; ++sid) {
-         const auto& country = meta_store.sid_to_country[sid];
+         const auto& country = meta_store.sequence_id_to_country[sid];
          group_by_country[country].push_back(sid);
       }
 
@@ -204,7 +204,7 @@ void silo::DatabasePartition::finalizeBuild(const Dictionary& dict) {
       const uint32_t region_count = dict.getRegionCount();
       std::vector<std::vector<uint32_t>> group_by_region(region_count);
       for (uint32_t sid = 0; sid < sequenceCount; ++sid) {
-         const auto& region = meta_store.sid_to_region[sid];
+         const auto& region = meta_store.sequence_id_to_region[sid];
          group_by_region[region].push_back(sid);
       }
 
@@ -489,7 +489,7 @@ unsigned silo::processSeq(silo::SequenceStore& seq_store, std::istream& in) {
 }
 
 unsigned silo::processMeta(
-   MetaStore& mdb,
+   MetadataStore& mdb,
    std::istream& in,
    const std::unordered_map<std::string, std::string>& alias_key,
    const Dictionary& dict
