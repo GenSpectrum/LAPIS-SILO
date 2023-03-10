@@ -34,31 +34,40 @@ class Dictionary {
 
    static Dictionary loadDictionary(std::istream& dictionary_file);
 
-   [[nodiscard]] uint32_t getPangoLineageIdInLookup(const std::string& pango_lineage) const;
+   [[maybe_unused]] [[nodiscard]] uint32_t getPangoLineageIdInLookup(
+      const std::string& pango_lineage
+   ) const;
 
-   [[nodiscard]] const std::string& getPangoLineage(uint32_t pango_lineage_id_in_lookup) const;
+   [[maybe_unused]] [[nodiscard]] const std::string& getPangoLineage(
+      uint32_t pango_lineage_id_in_lookup
+   ) const;
 
-   [[nodiscard]] uint32_t getPangoLineageCount() const;
+   [[maybe_unused]] [[nodiscard]] uint32_t getPangoLineageCount() const;
 
-   [[nodiscard]] uint32_t getCountryIdInLookup(const std::string& country) const;
+   [[maybe_unused]] [[nodiscard]] uint32_t getCountryIdInLookup(const std::string& country) const;
 
-   [[nodiscard]] const std::string& getCountry(uint32_t country_id_in_lookup) const;
+   [[maybe_unused]] [[nodiscard]] const std::string& getCountry(uint32_t country_id_in_lookup
+   ) const;
 
-   [[nodiscard]] uint32_t getCountryCount() const;
+   [[maybe_unused]] [[nodiscard]] uint32_t getCountryCount() const;
 
-   [[nodiscard]] uint32_t getRegionIdInLookup(const std::string& region) const;
+   [[maybe_unused]] [[nodiscard]] uint32_t getRegionIdInLookup(const std::string& region) const;
 
-   [[nodiscard]] const std::string& getRegion(uint32_t id) const;
+   [[maybe_unused]] [[nodiscard]] const std::string& getRegion(uint32_t region_lookup_id) const;
 
-   [[nodiscard]] uint32_t getRegionCount() const;
+   [[maybe_unused]] [[nodiscard]] uint32_t getRegionCount() const;
 
-   [[nodiscard]] uint64_t getIdInGeneralLookup(const std::string& region_id_in_lookup) const;
+   [[maybe_unused]] [[nodiscard]] uint64_t getIdInGeneralLookup(
+      const std::string& region_id_in_lookup
+   ) const;
 
-   [[nodiscard]] const std::string& getGeneralLookup(uint64_t general_id_in_lookup) const;
+   [[maybe_unused]] [[nodiscard]] const std::string& getGeneralLookup(uint64_t general_id_in_lookup
+   ) const;
 
-   [[nodiscard]] uint32_t getColumnIdInLookup(const std::string& column_name) const;
+   [[maybe_unused]] [[nodiscard]] uint32_t getColumnIdInLookup(const std::string& column_name
+   ) const;
 
-   [[nodiscard]] const std::string& getColumn(uint32_t column_id_in_lookup) const;
+   [[maybe_unused]] [[nodiscard]] const std::string& getColumn(uint32_t column_id_in_lookup) const;
 };
 
 #endif  // SILO_DICTIONARY_H
