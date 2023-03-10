@@ -358,7 +358,7 @@ BooleanExpressionResult NOfEx_evaluateImpl1_threshold(
    const DatabasePartition& database_partition
 ) {
    std::vector<Roaring*> partition_bitmaps(self->n);
-   /// Copy bm of first child if immutable, otherwise use it directly
+   /// Copy getBitmap of first child if immutable, otherwise use it directly
    auto tmp = self->children[0]->evaluate(database, database_partition);
    if (tmp.mutable_res) {
       /// Do not need to delete tmp.mutable_res later, because partition_bitmaps[0] will be deleted
@@ -397,7 +397,7 @@ BooleanExpressionResult NOfEx_evaluateImpl1_exact(
    const DatabasePartition& database_partition
 ) {
    std::vector<Roaring*> partition_bitmaps(self->n + 1);
-   /// Copy bm of first child if immutable, otherwise use it directly
+   /// Copy getBitmap of first child if immutable, otherwise use it directly
    auto tmp = self->children[0]->evaluate(database, database_partition);
    if (tmp.mutable_res) {
       /// Do not need to delete tmp.mutable_res later, because partition_bitmaps[0] will be deleted
@@ -741,7 +741,7 @@ BooleanExpressionResult NucleotideSymbolEqualsExpression::evaluate(
    const Database& /*db*/,
    const DatabasePartition& database_partition
 ) {
-   return {nullptr, database_partition.seq_store.bm(position, value)};
+   return {nullptr, database_partition.seq_store.getBitmap(position, value)};
 }
 
 BooleanExpressionResult NucleotideSymbolMaybeExpression::evaluate(
@@ -750,11 +750,12 @@ BooleanExpressionResult NucleotideSymbolMaybeExpression::evaluate(
 ) {
    if (!negated) {
       /// Normal case
-      return {database_partition.seq_store.bma(position, value), nullptr};
+      return {database_partition.seq_store.getBitmapFromAmbiguousSymbol(position, value), nullptr};
    }
    /// The bitmap of this->value has been flipped... still have to union it with the other
    /// symbols
-   return {database_partition.seq_store.bma_neg(position, value), nullptr};
+   return {
+      database_partition.seq_store.getFlippedBitmapFromAmbiguousSymbol(position, value), nullptr};
 }
 
 BooleanExpressionResult PangoLineageExpression::evaluate(
@@ -792,7 +793,7 @@ BooleanExpressionResult PositionHasNucleotideSymbolNExpression::evaluate(
    std::vector<uint32_t> buffer(BUFFER_SIZE);
    auto* result = new Roaring();
    for (uint32_t seq = 0; seq < database_partition.sequenceCount; seq++) {
-      if (database_partition.seq_store.N_bitmaps[seq].contains(position)) {
+      if (database_partition.seq_store.nucleotide_symbol_n_bitmaps[seq].contains(position)) {
          buffer.push_back(seq);
          if (buffer.size() == BUFFER_SIZE) {
             result->addMany(BUFFER_SIZE, buffer.data());
@@ -815,7 +816,7 @@ BooleanExpressionResult PositionHasNucleotideSymbolNExpression::select(
    std::vector<uint32_t> buffer(BUFFER_SIZE);
    auto* result = new Roaring();
    for (uint32_t const sequence : *in_filter.getAsConst()) {
-      if (database_partition.seq_store.N_bitmaps[sequence].contains(position)) {
+      if (database_partition.seq_store.nucleotide_symbol_n_bitmaps[sequence].contains(position)) {
          buffer.push_back(sequence);
          if (buffer.size() == BUFFER_SIZE) {
             result->addMany(BUFFER_SIZE, buffer.data());
@@ -839,7 +840,7 @@ BooleanExpressionResult PositionHasNucleotideSymbolNExpression::selectNegated(
    std::vector<uint32_t> buffer(BUFFER_SIZE);
    auto* result = new Roaring();
    for (uint32_t const sequence : *in_filter.getAsConst()) {
-      if (!database_partition.seq_store.N_bitmaps[sequence].contains(position)) {
+      if (!database_partition.seq_store.nucleotide_symbol_n_bitmaps[sequence].contains(position)) {
          buffer.push_back(sequence);
          if (buffer.size() == BUFFER_SIZE) {
             result->addMany(BUFFER_SIZE, buffer.data());

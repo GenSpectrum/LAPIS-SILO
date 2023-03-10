@@ -9,83 +9,126 @@
 
 using namespace silo;
 
-roaring::Roaring* SequenceStore::bma(size_t pos, GENOME_SYMBOL r) const {
-   switch (r) {
+/// Returns an Roaring-bitmap which has the given residue ambiguous_symbol at the position position,
+/// where the residue is interpreted in the _a_pproximate meaning
+/// That means a ambiguous_symbol matches all mixed symbols, which can indicate the residue
+/// position: 1 indexed position of the genome
+roaring::Roaring* SequenceStore::getBitmapFromAmbiguousSymbol(
+   size_t position,
+   GENOME_SYMBOL ambiguous_symbol
+) const {
+   switch (ambiguous_symbol) {
       case A: {
-         const roaring::Roaring* tmp[8] = {bm(pos, A), bm(pos, R), bm(pos, W), bm(pos, M),
-                                           bm(pos, D), bm(pos, H), bm(pos, V)};
+         const roaring::Roaring* tmp[8] = {getBitmap(position, A), getBitmap(position, R),
+                                           getBitmap(position, W), getBitmap(position, M),
+                                           getBitmap(position, D), getBitmap(position, H),
+                                           getBitmap(position, V)};
          roaring::Roaring* ret = new roaring::Roaring(roaring::Roaring::fastunion(8, tmp));
          return ret;
       }
       case C: {
-         const roaring::Roaring* tmp[8] = {bm(pos, C), bm(pos, Y), bm(pos, S), bm(pos, M),
-                                           bm(pos, B), bm(pos, H), bm(pos, V)};
+         const roaring::Roaring* tmp[8] = {getBitmap(position, C), getBitmap(position, Y),
+                                           getBitmap(position, S), getBitmap(position, M),
+                                           getBitmap(position, B), getBitmap(position, H),
+                                           getBitmap(position, V)};
          roaring::Roaring* ret = new roaring::Roaring(roaring::Roaring::fastunion(8, tmp));
          return ret;
       }
       case G: {
-         const roaring::Roaring* tmp[8] = {bm(pos, G), bm(pos, R), bm(pos, S), bm(pos, K),
-                                           bm(pos, D), bm(pos, B), bm(pos, V)};
+         const roaring::Roaring* tmp[8] = {getBitmap(position, G), getBitmap(position, R),
+                                           getBitmap(position, S), getBitmap(position, K),
+                                           getBitmap(position, D), getBitmap(position, B),
+                                           getBitmap(position, V)};
          roaring::Roaring* ret = new roaring::Roaring(roaring::Roaring::fastunion(8, tmp));
          return ret;
       }
       case T: {
-         const roaring::Roaring* tmp[8] = {bm(pos, T), bm(pos, Y), bm(pos, W), bm(pos, K),
-                                           bm(pos, D), bm(pos, H), bm(pos, B)};
+         const roaring::Roaring* tmp[8] = {getBitmap(position, T), getBitmap(position, Y),
+                                           getBitmap(position, W), getBitmap(position, K),
+                                           getBitmap(position, D), getBitmap(position, H),
+                                           getBitmap(position, B)};
          roaring::Roaring* ret = new roaring::Roaring(roaring::Roaring::fastunion(8, tmp));
          return ret;
       }
       default: {
-         return new roaring::Roaring(*bm(pos, r));
+         return new roaring::Roaring(*getBitmap(position, ambiguous_symbol));
       }
    }
 }
 
-roaring::Roaring* SequenceStore::bma_neg(size_t pos, GENOME_SYMBOL r) const {
-   auto tmp1 = bm(pos, r);
+roaring::Roaring* SequenceStore::getFlippedBitmapFromAmbiguousSymbol(
+   size_t position,
+   GENOME_SYMBOL ambiguous_symbol
+) const {
+   auto tmp1 = getBitmap(position, ambiguous_symbol);
    roaring::api::roaring_bitmap_flip(&tmp1->roaring, 0, sequence_count);
-   switch (r) {
+   switch (ambiguous_symbol) {
       case A: {
-         const roaring::Roaring* tmp[8] = {tmp1,       bm(pos, R), bm(pos, W), bm(pos, M),
-                                           bm(pos, D), bm(pos, H), bm(pos, V)};
+         const roaring::Roaring* tmp[8] = {
+            tmp1,
+            getBitmap(position, R),
+            getBitmap(position, W),
+            getBitmap(position, M),
+            getBitmap(position, D),
+            getBitmap(position, H),
+            getBitmap(position, V)};
          roaring::Roaring* ret = new roaring::Roaring(roaring::Roaring::fastunion(8, tmp));
          return ret;
       }
       case C: {
-         const roaring::Roaring* tmp[8] = {tmp1,       bm(pos, Y), bm(pos, S), bm(pos, M),
-                                           bm(pos, B), bm(pos, H), bm(pos, V)};
+         const roaring::Roaring* tmp[8] = {
+            tmp1,
+            getBitmap(position, Y),
+            getBitmap(position, S),
+            getBitmap(position, M),
+            getBitmap(position, B),
+            getBitmap(position, H),
+            getBitmap(position, V)};
          roaring::Roaring* ret = new roaring::Roaring(roaring::Roaring::fastunion(8, tmp));
          return ret;
       }
       case G: {
-         const roaring::Roaring* tmp[8] = {tmp1,       bm(pos, R), bm(pos, S), bm(pos, K),
-                                           bm(pos, D), bm(pos, B), bm(pos, V)};
+         const roaring::Roaring* tmp[8] = {
+            tmp1,
+            getBitmap(position, R),
+            getBitmap(position, S),
+            getBitmap(position, K),
+            getBitmap(position, D),
+            getBitmap(position, B),
+            getBitmap(position, V)};
          roaring::Roaring* ret = new roaring::Roaring(roaring::Roaring::fastunion(8, tmp));
          return ret;
       }
       case T: {
-         const roaring::Roaring* tmp[8] = {tmp1,       bm(pos, Y), bm(pos, W), bm(pos, K),
-                                           bm(pos, D), bm(pos, H), bm(pos, B)};
+         const roaring::Roaring* tmp[8] = {
+            tmp1,
+            getBitmap(position, Y),
+            getBitmap(position, W),
+            getBitmap(position, K),
+            getBitmap(position, D),
+            getBitmap(position, H),
+            getBitmap(position, B)};
          roaring::Roaring* ret = new roaring::Roaring(roaring::Roaring::fastunion(8, tmp));
          return ret;
       }
       default: {
-         return new roaring::Roaring(*bm(pos, r));
+         return new roaring::Roaring(*getBitmap(position, ambiguous_symbol));
       }
    }
 }
 
-int SequenceStore::db_info(std::ostream& io) const {
-   std::osyncstream(io) << "partition sequence count: " << formatNumber(this->sequence_count)
-                        << std::endl;
-   std::osyncstream(io) << "partition index size: " << formatNumber(computeSize()) << std::endl;
+int SequenceStore::databaseInfo(std::ostream& output_stream) const {
+   std::osyncstream(output_stream)
+      << "partition sequence count: " << formatNumber(this->sequence_count) << std::endl;
+   std::osyncstream(output_stream)
+      << "partition index size: " << formatNumber(computeSize()) << std::endl;
 
    size_t size = 0;
-   for (auto& r : N_bitmaps) {
+   for (auto& r : nucleotide_symbol_n_bitmaps) {
       size += r.getSizeInBytes(false);
    }
-   std::osyncstream(io) << "partition N_bitmap per sequence, total size: " << formatNumber(size)
-                        << std::endl;
+   std::osyncstream(output_stream)
+      << "partition N_bitmap per sequence, total size: " << formatNumber(size) << std::endl;
    return 0;
 }
 
@@ -94,7 +137,7 @@ int SequenceStore::db_info(std::ostream& io) const {
 void SequenceStore::interpret(const std::vector<std::string>& genomes) {
    const uint32_t cur_sequence_count = sequence_count;
    sequence_count += genomes.size();
-   N_bitmaps.resize(cur_sequence_count + genomes.size());
+   nucleotide_symbol_n_bitmaps.resize(cur_sequence_count + genomes.size());
    {
       tbb::blocked_range<unsigned> range(0, GENOME_LENGTH, GENOME_LENGTH / 64);
       tbb::parallel_for(range, [&](const decltype(range)& local) {
@@ -130,10 +173,10 @@ void SequenceStore::interpret(const std::vector<std::string>& genomes) {
                   N_positions.push_back(pos);
             }
             if (!N_positions.empty()) {
-               this->N_bitmaps[cur_sequence_count + genome].addMany(
+               this->nucleotide_symbol_n_bitmaps[cur_sequence_count + genome].addMany(
                   N_positions.size(), N_positions.data()
                );
-               this->N_bitmaps[cur_sequence_count + genome].runOptimize();
+               this->nucleotide_symbol_n_bitmaps[cur_sequence_count + genome].runOptimize();
                N_positions.clear();
             }
          }
@@ -141,7 +184,7 @@ void SequenceStore::interpret(const std::vector<std::string>& genomes) {
    }
 }
 
-void SequenceStore::indexAllN() {
+void SequenceStore::indexAllNucleotideSymbolsN() {
    std::vector<std::vector<std::vector<uint32_t>>> ids_per_position_per_upper(
       (sequence_count >> 16) + 1
    );
@@ -155,7 +198,7 @@ void SequenceStore::indexAllN() {
          genome_upper == (sequence_count & 0xFFFF0000) ? sequence_count - genome_upper : 1u << 16;
       for (uint32_t genome_lower = 0; genome_lower < limit; ++genome_lower) {
          const uint32_t genome = genome_upper | genome_lower;
-         for (uint32_t pos : N_bitmaps[genome]) {
+         for (uint32_t pos : nucleotide_symbol_n_bitmaps[genome]) {
             ids_per_position[pos].push_back(genome);
          }
       }
@@ -166,11 +209,11 @@ void SequenceStore::indexAllN() {
          auto& v = ids_per_position_per_upper[upper][pos];
          positions[pos].bitmaps[GENOME_SYMBOL::N].addMany(v.size(), v.data());
       }
-      positions[pos].N_indexed = true;
+      positions[pos].nucleotide_symbol_n_indexed = true;
    }
 }
 
-void SequenceStore::indexAllN_naive() {
+void SequenceStore::naiveIndexAllNucleotideSymbolN() {
    tbb::enumerable_thread_specific<std::vector<std::vector<uint32_t>>> ids_per_position;
    tbb::blocked_range<uint32_t> range(0, (sequence_count >> 16) + 1);
    tbb::parallel_for(range.begin(), range.end(), [&](uint32_t local) {
@@ -181,7 +224,7 @@ void SequenceStore::indexAllN_naive() {
          genome_upper == (sequence_count & 0xFFFF0000) ? sequence_count - genome_upper : 1u << 16;
       for (uint32_t genome_lower = 0; genome_lower < limit; ++genome_lower) {
          const uint32_t genome = genome_upper | genome_lower;
-         for (uint32_t pos : N_bitmaps[genome]) {
+         for (uint32_t pos : nucleotide_symbol_n_bitmaps[genome]) {
             ids_per_position.local()[pos].push_back(genome);
          }
       }
@@ -195,13 +238,30 @@ void SequenceStore::indexAllN_naive() {
    }
 
    for (uint32_t pos = 0; pos < GENOME_LENGTH; ++pos) {
-      positions[pos].N_indexed = true;
+      positions[pos].nucleotide_symbol_n_indexed = true;
    }
 }
 
-[[maybe_unused]] unsigned silo::runOptimize(SequenceStore& db) {
+/// position: 1 indexed position of the genome
+const roaring::Roaring* SequenceStore::getBitmap(size_t position, GENOME_SYMBOL symbol) const {
+   return &positions[position - 1].bitmaps[symbol];
+}
+SequenceStore::SequenceStore() {}
+size_t SequenceStore::computeSize() const {
+   size_t result = 0;
+   for (auto& position : positions) {
+      for (auto& bitmap : position.bitmaps) {
+         result += bitmap.getSizeInBytes(false);
+      }
+   }
+   return result;
+}
+
+[[maybe_unused]] unsigned silo::runOptimize(SequenceStore& sequence_store) {
    std::atomic<unsigned> count_true = 0;
-   tbb::blocked_range<Position*> r(std::begin(db.positions), std::end(db.positions));
+   tbb::blocked_range<Position*> r(
+      std::begin(sequence_store.positions), std::end(sequence_store.positions)
+   );
    tbb::parallel_for(r, [&](const decltype(r) local) {
       for (Position& p : local) {
          for (auto& bm : p.bitmaps) {
@@ -213,9 +273,11 @@ void SequenceStore::indexAllN_naive() {
    return count_true;
 }
 
-[[maybe_unused]] unsigned silo::shrinkToFit(SequenceStore& db) {
+[[maybe_unused]] unsigned silo::shrinkToFit(SequenceStore& sequence_store) {
    std::atomic<size_t> saved = 0;
-   tbb::blocked_range<Position*> r(std::begin(db.positions), std::end(db.positions));
+   tbb::blocked_range<Position*> r(
+      std::begin(sequence_store.positions), std::end(sequence_store.positions)
+   );
    tbb::parallel_for(r, [&](const decltype(r) local) {
       size_t local_saved = 0;
       for (Position& p : local) {

@@ -8,7 +8,7 @@ std::unique_ptr<BoolExpression> NucleotideSymbolEqualsExpression::simplify(
 ) const {
    std::unique_ptr<NucleotideSymbolEqualsExpression> result =
       std::make_unique<NucleotideSymbolEqualsExpression>(position, value);
-   if (value == GENOME_SYMBOL::N && !dbp.seq_store.positions[position].N_indexed) {
+   if (value == GENOME_SYMBOL::N && !dbp.seq_store.positions[position].nucleotide_symbol_n_indexed) {
       return std::make_unique<PositionHasNucleotideSymbolNExpression>(position);
    }
    if (!individualized && dbp.seq_store.positions[position - 1].flipped_bitmap == value) {

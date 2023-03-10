@@ -131,7 +131,8 @@ void silo::Database::build(
    const auto info = get_db_info();
    out << "Sequence count: " << info.sequenceCount << std::endl;
    out << "Total size: " << info.totalSize << std::endl;
-   out << "N_bitmaps per sequence, total size: " << formatNumber(info.nBitmapsSize) << std::endl;
+   out << "nucleotide_symbol_n_bitmaps per sequence, total size: "
+       << formatNumber(info.nBitmapsSize) << std::endl;
    db_info_detailed(out);
    {
       BlockTimer timer(micros);
@@ -273,7 +274,7 @@ silo::db_info_t silo::Database::get_db_info() {
    tbb::parallel_for_each(partitions.begin(), partitions.end(), [&](const DatabasePartition& dbp) {
       sequence_count += dbp.sequenceCount;
       total_size += dbp.seq_store.computeSize();
-      for (auto& r : dbp.seq_store.N_bitmaps) {
+      for (auto& r : dbp.seq_store.nucleotide_symbol_n_bitmaps) {
          N_bitmaps_size += r.getSizeInBytes(false);
       }
    });
@@ -286,7 +287,7 @@ void silo::Database::indexAllN() {
    {
       BlockTimer timer(microseconds);
       tbb::parallel_for_each(partitions.begin(), partitions.end(), [&](DatabasePartition& dbp) {
-         dbp.seq_store.indexAllN();
+         dbp.seq_store.indexAllNucleotideSymbolsN();
       });
    }
    std::cerr << "index all N took " << formatNumber(microseconds) << " microseconds." << std::endl;
@@ -297,7 +298,7 @@ void silo::Database::indexAllN_naive() {
    {
       BlockTimer timer(microseconds);
       tbb::parallel_for_each(partitions.begin(), partitions.end(), [&](DatabasePartition& dbp) {
-         dbp.seq_store.indexAllN_naive();
+         dbp.seq_store.naiveIndexAllNucleotideSymbolN();
       });
    }
    std::cerr << "index all N naive took " << formatNumber(microseconds) << " microseconds."
@@ -483,7 +484,7 @@ unsigned silo::processSeq(silo::SequenceStore& seq_store, std::istream& in) {
       ++sequence_count;
    }
    seq_store.interpret(genome_buffer);
-   seq_store.db_info(std::cout);
+   seq_store.databaseInfo(std::cout);
 
    return sequence_count;
 }
