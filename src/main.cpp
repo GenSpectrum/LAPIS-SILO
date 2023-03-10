@@ -133,7 +133,8 @@ int handle_command(Database& db, std::vector<std::string> args) {
                    << std::endl;
          return 0;
       }
-      return benchmark(db, query_defs, query_dir_str);
+      benchmark(db, query_defs, query_dir_str);
+      return 0;
    } else if ("benchmark_throughput" == args[0]) {
       auto query_dir_str = args.size() > 1 ? args[1] : default_query_dir;
 
@@ -143,7 +144,9 @@ int handle_command(Database& db, std::vector<std::string> args) {
                    << std::endl;
          return 0;
       }
-      return benchmark_throughput(db, query_defs, query_dir_str);
+      benchmark_throughput(db, query_defs, query_dir_str);
+      return 0;
+
    } else if ("benchmark_throughput_mix" == args[0]) {
       auto query_dir_str = args.size() > 1 ? args[1] : default_query_dir;
 

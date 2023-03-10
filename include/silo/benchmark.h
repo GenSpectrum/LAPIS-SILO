@@ -4,22 +4,26 @@
 #include "silo/database.h"
 
 namespace silo {
-
-int benchmark(const silo::Database& db, std::istream& query_defs, const std::string& query_dir_str);
-int benchmark_throughput(
-   const silo::Database& db,
-   std::istream& query_defs,
-   const std::string& query_dir_str
+// TODO(someone): remove these benchmark tests
+[[maybe_unused]] void benchmark(
+   const silo::Database& database,
+   std::istream& query_file,
+   const std::string& query_directory
 );
-int benchmark_throughput_mix(
-   const silo::Database& db,
-   std::istream& query_defs,
-   const std::string& query_dir_str
+[[maybe_unused]] void benchmarkThroughput(
+   const silo::Database& database,
+   std::istream& query_file,
+   const std::string& query_directory
 );
-int benchmark_throughput_mut(
-   const silo::Database& db,
-   std::istream& query_defs,
-   const std::string& query_dir_str
+[[maybe_unused]] void benchmarkThroughputMix(
+   const silo::Database& database,
+   std::istream& query_file,
+   const std::string& query_directory
+);
+[[maybe_unused]] void benchmarkThroughputMut(
+   const silo::Database& database,
+   std::istream& query_file,
+   const std::string& query_directory
 );
 
 }  // namespace silo
