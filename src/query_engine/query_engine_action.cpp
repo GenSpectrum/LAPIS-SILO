@@ -195,7 +195,7 @@ std::vector<silo::MutationProportion> silo::executeMutations(
          if (total == 0) {
             continue;
          }
-         uint32_t const threshold_count =
+         auto const threshold_count =
             static_cast<uint32_t>(std::ceil(static_cast<double>(total) * proportion_threshold) - 1);
 
          char const pos_ref = database.global_reference[0].at(pos);

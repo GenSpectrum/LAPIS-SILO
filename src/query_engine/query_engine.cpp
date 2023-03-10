@@ -20,7 +20,7 @@ std::unique_ptr<BoolExpression> parseExpression(
    int exact
 ) {
    assert(json_value.HasMember("type"));
-   assert(json_value["expression_type"].IsString());
+   assert(json_value["type"].IsString());
    const std::string expression_type = json_value["type"].GetString();
    if (expression_type == "And") {
       auto result = std::make_unique<AndExpression>();
@@ -164,7 +164,7 @@ std::unique_ptr<BoolExpression> parseExpression(
       result->child = parseExpression(database, json_value["child"], 1);
       return result;
    }
-   throw QueryParseException("Unknown object expression_type");
+   throw QueryParseException("Unknown object type");
 }
 
 BooleanExpressionResult AndExpression::evaluate(
