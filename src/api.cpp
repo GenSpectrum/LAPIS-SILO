@@ -16,8 +16,6 @@
 #include "Poco/Util/ServerApplication.h"
 #include "silo/database.h"
 
-using namespace silo;
-
 class SiloRequestHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
   private:
    silo::Database& database;
@@ -28,12 +26,13 @@ class SiloRequestHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
 
    Poco::Net::HTTPRequestHandler* createRequestHandler(const Poco::Net::HTTPServerRequest& request
    ) override {
-      if (request.getURI() == "/info")
+      if (request.getURI() == "/info") {
          return new silo_api::InfoHandler(database);
-      if (request.getURI() == "/query")
+      }
+      if (request.getURI() == "/query") {
          return new silo_api::QueryHandler(database);
-      else
-         return new silo_api::NotFoundHandler;
+      }
+      return new silo_api::NotFoundHandler;
    }
 };
 
@@ -84,21 +83,26 @@ class SiloServer : public Poco::Util::ServerApplication {
    }
 
   private:
-   void handleApi(const std::string&, const std::string&) {
-      int port = 8080;
+   void handleApi(
+      [[maybe_unused]] const std::string& name,
+      [[maybe_unused]] const std::string& value
+   ) {
+      int const port = 8080;
 
-      const std::string input_directory("./");
-      const std::string output_directory("./");
+      const silo::InputDirectory input_directory{"./"};
+      const silo::OutputDirectory output_directory{"./"};
+      const silo::MetadataFilename metadata_filename{"minimal_metadata_set.tsv"};
+      const silo::SequenceFilename sequence_filename{"minimal_sequence_set.fasta"};
       auto config = silo::PreprocessingConfig(
-         input_directory, output_directory, "minimal_metadata_set.tsv", "minimal_sequence_set.fasta"
+         input_directory, output_directory, metadata_filename, sequence_filename
       );
 
-      auto database = silo::Database(input_directory);
+      auto database = silo::Database(input_directory.directory);
 
       database.preprocessing(config);
       std::cout << "finished preprocessing " << std::endl;
 
-      Poco::Net::ServerSocket server_socket(port);
+      Poco::Net::ServerSocket const server_socket(port);
       Poco::Net::HTTPServer server(
          new SiloRequestHandlerFactory(database), server_socket, new Poco::Net::HTTPServerParams
       );
@@ -110,16 +114,23 @@ class SiloServer : public Poco::Util::ServerApplication {
       server.stop();
    };
 
-   void handleProcessData(const std::string&, const std::string&) {
+   // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+   void handleProcessData(
+      [[maybe_unused]] const std::string& name,
+      [[maybe_unused]] const std::string& value
+   ) {
       std::cout << "handleProcessData is not implemented" << std::endl;
    };
 
-   void displayHelp(const std::string&, const std::string&) {
-      Poco::Util::HelpFormatter helpFormatter(options());
-      helpFormatter.setCommand(commandName());
-      helpFormatter.setUsage("OPTIONS");
-      helpFormatter.setHeader("SILO - Sequence Indexing engine for Large Order of genomic data");
-      helpFormatter.format(std::cout);
+   void displayHelp(
+      [[maybe_unused]] const std::string& name,
+      [[maybe_unused]] const std::string& value
+   ) {
+      Poco::Util::HelpFormatter help_formatter(options());
+      help_formatter.setCommand(commandName());
+      help_formatter.setUsage("OPTIONS");
+      help_formatter.setHeader("SILO - Sequence Indexing engine for Large Order of genomic data");
+      help_formatter.format(std::cout);
    }
 };
 

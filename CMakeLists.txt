@@ -15,6 +15,8 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -static-libstdc++ -static-libgcc")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/")
 
+set(CMAKE_CXX_CLANG_TIDY "clang-tidy")
+
 # ---------------------------------------------------------------------------
 # Dependencies
 # ---------------------------------------------------------------------------
@@ -54,7 +56,6 @@ set(SRC_CC
         src/query_engine/QueryParseException.cpp
         src/database.cpp
         src/prepare_dataset.cpp
-        src/benchmark.cpp
         src/roaring/roaring.c
         src/preprocessing/preprocessing_config.cpp
         src/preprocessing/preprocessing_exception.cpp

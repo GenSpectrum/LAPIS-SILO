@@ -38,7 +38,7 @@ void partitionSequences(
 );
 
 void sortChunks(
-   const Partitions& chunk,
+   const Partitions& partitions,
    const std::string& output_prefix,
    const std::string& metadata_file_extension,
    const std::string& sequence_file_extension

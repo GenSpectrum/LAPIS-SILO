@@ -18,7 +18,7 @@ namespace silo {
 
 using roaring::Roaring;
 
-// TODO: reduce cognitive complexity
+// TODO(someone): reduce cognitive complexity
 // no linting recursion: is inherent to algorithm
 // NOLINTNEXTLINE(readability-function-cognitive-complexity, misc-no-recursion)
 std::unique_ptr<BoolExpression> parseExpression(
@@ -58,21 +58,32 @@ std::unique_ptr<BoolExpression> parseExpression(
    if (expression_type == "N-Of") {
       assert(json_value.HasMember("children"));
       assert(json_value["children"].IsArray());
-      assert(json_value.HasMember("n"));
-      assert(json_value["n"].IsUint());
+      assert(json_value.HasMember("number_of_matchers"));
+      assert(json_value["number_of_matchers"].IsUint());
 
       auto result = std::make_unique<NOfExpression>(
-         json_value["n"].GetUint(), json_value["exactly"].GetBool()
+         json_value["number_of_matchers"].GetUint(), json_value["match_exactly"].GetBool()
       );
       std::transform(
          json_value["children"].GetArray().begin(), json_value["children"].GetArray().end(),
          std::back_inserter(result->children),
-         [&](const rapidjson::Value& js) {  // NOLINT(misc-no-recursion)
-            return parseExpression(database, js, exact);
+         [&](const rapidjson::Value& json_value) {  // NOLINT(misc-no-recursion)
+            return parseExpression(database, json_value, exact);
          }
       );
-      if (json_value.HasMember("impl") && json_value["impl"].IsUint()) {
-         result->impl = json_value["impl"].GetUint();
+      if (json_value.HasMember("implementation") && json_value["implementation"].IsUint()) {
+         const std::string implementation_name = json_value["implementation"].GetString();
+         if (implementation_name == "generic") {
+            result->implementation = NOfExpressionImplementation::GENERIC;
+         } else if (implementation_name == "LOOP_DATABASE_PARTITION") {
+            result->implementation = NOfExpressionImplementation::LOOP_DATABASE_PARTITION;
+         } else if (implementation_name == "N_WAY_HEAP_MERGE") {
+            result->implementation = NOfExpressionImplementation::N_WAY_HEAP_MERGE;
+         } else {
+            throw QueryParseException(
+               "Unknown implementation for NOfExpression: " + implementation_name
+            );
+         }
       }
       return result;
    }
@@ -288,17 +299,7 @@ BooleanExpressionResult OrExpression::evaluate(
    return {result, nullptr};
 }
 
-inline void vec_and_not(
-   std::vector<uint32_t>& dest,
-   const std::vector<uint32_t>& vector1,
-   const std::vector<uint32_t>& vector2
-) {
-   std::set_difference(
-      vector1.begin(), vector1.end(), vector2.begin(), vector2.end(), std::back_inserter(dest)
-   );
-}
-
-BooleanExpressionResult NOfEx_evaluateImpl0_threshold(
+BooleanExpressionResult nOfExpressionEvaluateGenericImplementationNoExactMatch(
    const NOfExpression* self,
    const Database& database,
    const DatabasePartition& database_partition
@@ -309,7 +310,7 @@ BooleanExpressionResult NOfEx_evaluateImpl0_threshold(
    for (const auto& child : self->children) {
       auto expression_result = child->evaluate(database, database_partition);
       for (uint32_t const expression_id : *expression_result.getAsConst()) {
-         if (++count[expression_id] == self->n) {
+         if (++count[expression_id] == self->number_of_matchers) {
             correct.push_back(expression_id);
          }
       }
@@ -322,7 +323,7 @@ BooleanExpressionResult NOfEx_evaluateImpl0_threshold(
    return {result, nullptr};
 }
 
-BooleanExpressionResult NOfEx_evaluateImpl0_exact(
+BooleanExpressionResult nOfExpressionEvaluateGenericImplementationExactMatch(
    const NOfExpression* self,
    const Database& database,
    const DatabasePartition& database_partition
@@ -335,9 +336,9 @@ BooleanExpressionResult NOfEx_evaluateImpl0_exact(
       auto expression_result = child->evaluate(database, database_partition);
       for (uint32_t const expression_id : *expression_result.getAsConst()) {
          ++count[expression_id];
-         if (count[expression_id] == self->n + 1) {
+         if (count[expression_id] == self->number_of_matchers + 1) {
             too_much.push_back(expression_id);
-         } else if (count[expression_id] == self->n) {
+         } else if (count[expression_id] == self->number_of_matchers) {
             at_least.push_back(expression_id);
          }
       }
@@ -347,17 +348,20 @@ BooleanExpressionResult NOfEx_evaluateImpl0_exact(
    std::sort(at_least.begin(), at_least.end());
    std::sort(too_much.begin(), too_much.end());
    std::vector<uint32_t> correct;
-   vec_and_not(correct, at_least, too_much);
+   std::set_difference(
+      at_least.begin(), at_least.end(), too_much.begin(), too_much.end(),
+      std::back_inserter(correct)
+   );
    return {new Roaring(correct.size(), correct.data()), nullptr};
 }
 
 /// DPLoop
-BooleanExpressionResult NOfEx_evaluateImpl1_threshold(
+BooleanExpressionResult nOfExpressionEvaluateLoopDatabasePartitionImplementationNoExactMatch(
    const NOfExpression* self,
    const Database& database,
    const DatabasePartition& database_partition
 ) {
-   std::vector<Roaring*> partition_bitmaps(self->n);
+   std::vector<Roaring*> partition_bitmaps(self->number_of_matchers);
    /// Copy getBitmap of first child if immutable, otherwise use it directly
    auto tmp = self->children[0]->evaluate(database, database_partition);
    if (tmp.mutable_res) {
@@ -367,7 +371,7 @@ BooleanExpressionResult NOfEx_evaluateImpl1_threshold(
       partition_bitmaps[0] = new Roaring(*tmp.immutable_res);
    }
    /// Initialize all bitmaps. Delete them later.
-   for (unsigned i = 1; i < self->n; ++i) {
+   for (unsigned i = 1; i < self->number_of_matchers; ++i) {
       partition_bitmaps[i] = new Roaring();
    }
 
@@ -375,7 +379,7 @@ BooleanExpressionResult NOfEx_evaluateImpl1_threshold(
       auto bitmap = self->children[i]->evaluate(database, database_partition);
       /// positions higher than (i-1) cannot have been reached yet, are therefore all 0s and the
       /// conjunction would return 0
-      for (unsigned j = std::min(self->n - 1, i); j >= 1; --j) {
+      for (unsigned j = std::min(self->number_of_matchers - 1, i); j >= 1; --j) {
          *partition_bitmaps[j] |= *partition_bitmaps[j - 1] & *bitmap.getAsConst();
       }
       *partition_bitmaps[0] |= *bitmap.getAsConst();
@@ -383,7 +387,7 @@ BooleanExpressionResult NOfEx_evaluateImpl1_threshold(
    }
 
    /// Delete all unneeded bitmaps
-   for (unsigned i = 0; i < self->n - 1; ++i) {
+   for (unsigned i = 0; i < self->number_of_matchers - 1; ++i) {
       delete partition_bitmaps[i];
    }
 
@@ -391,12 +395,12 @@ BooleanExpressionResult NOfEx_evaluateImpl1_threshold(
 }
 
 /// DPLoop
-BooleanExpressionResult NOfEx_evaluateImpl1_exact(
+BooleanExpressionResult nOfExpressionEvaluateLoopDatabasePartitionImplementationExactMatch(
    const NOfExpression* self,
    const Database& database,
    const DatabasePartition& database_partition
 ) {
-   std::vector<Roaring*> partition_bitmaps(self->n + 1);
+   std::vector<Roaring*> partition_bitmaps(self->number_of_matchers + 1);
    /// Copy getBitmap of first child if immutable, otherwise use it directly
    auto tmp = self->children[0]->evaluate(database, database_partition);
    if (tmp.mutable_res) {
@@ -406,7 +410,7 @@ BooleanExpressionResult NOfEx_evaluateImpl1_exact(
       partition_bitmaps[0] = new Roaring(*tmp.immutable_res);
    }
    /// Initialize all bitmaps. Delete them later.
-   for (unsigned i = 1; i < self->n + 1; ++i) {
+   for (unsigned i = 1; i < self->number_of_matchers + 1; ++i) {
       partition_bitmaps[i] = new Roaring();
    }
 
@@ -414,7 +418,7 @@ BooleanExpressionResult NOfEx_evaluateImpl1_exact(
       auto bitmap = self->children[i]->evaluate(database, database_partition);
       /// positions higher than (i-1) cannot have been reached yet, are therefore all 0s and the
       /// conjunction would return 0
-      for (unsigned j = std::min(self->n, i); j >= 1; --j) {
+      for (unsigned j = std::min(self->number_of_matchers, i); j >= 1; --j) {
          *partition_bitmaps[j] |= *partition_bitmaps[j - 1] & *bitmap.getAsConst();
       }
       *partition_bitmaps[0] |= *bitmap.getAsConst();
@@ -422,20 +426,20 @@ BooleanExpressionResult NOfEx_evaluateImpl1_exact(
    }
 
    /// Delete
-   for (unsigned i = 0; i < self->n - 1; ++i) {
+   for (unsigned i = 0; i < self->number_of_matchers - 1; ++i) {
       delete partition_bitmaps[i];
    }
 
    /// Because exact, we remove all that have too many
-   *partition_bitmaps[self->n - 1] -= *partition_bitmaps[self->n];
+   *partition_bitmaps[self->number_of_matchers - 1] -= *partition_bitmaps[self->number_of_matchers];
 
-   delete partition_bitmaps[self->n];
+   delete partition_bitmaps[self->number_of_matchers];
 
-   return {partition_bitmaps[self->n - 1], nullptr};
+   return {partition_bitmaps[self->number_of_matchers - 1], nullptr};
 }
 
 // N-Way Heap-Merge, for threshold queries
-BooleanExpressionResult NOfEx_evaluateImpl2_threshold(
+BooleanExpressionResult nOfExpressionEvaluateNWayHeapMergeImplementationNoExactMatch(
    const NOfExpression* self,
    const Database& database,
    const DatabasePartition& database_partition
@@ -485,7 +489,7 @@ BooleanExpressionResult NOfEx_evaluateImpl2_threshold(
       if (val == last_val) {
          cur_count++;
       } else {
-         if (cur_count >= self->n) {
+         if (cur_count >= self->number_of_matchers) {
             buffer.push_back(last_val);
             if (buffer.size() == BUFFER_SIZE) {
                result->addMany(BUFFER_SIZE, buffer.data());
@@ -496,7 +500,7 @@ BooleanExpressionResult NOfEx_evaluateImpl2_threshold(
          cur_count = 1;
       }
    }
-   if (cur_count >= self->n) {
+   if (cur_count >= self->number_of_matchers) {
       buffer.push_back(last_val);
    }
 
@@ -512,7 +516,7 @@ BooleanExpressionResult NOfEx_evaluateImpl2_threshold(
 }
 
 // N-Way Heap-Merge, for exact queries
-BooleanExpressionResult NOfEx_evaluateImpl2_exact(
+BooleanExpressionResult nOfExpressionEvaluateNWayHeapMergeImplementationExactMatch(
    const NOfExpression* self,
    const Database& database,
    const DatabasePartition& database_partition
@@ -562,7 +566,7 @@ BooleanExpressionResult NOfEx_evaluateImpl2_exact(
       if (val == last_val) {
          cur_count++;
       } else {
-         if (cur_count == self->n) {
+         if (cur_count == self->number_of_matchers) {
             buffer.push_back(last_val);
             if (buffer.size() == BUFFER_SIZE) {
                result->addMany(BUFFER_SIZE, buffer.data());
@@ -573,7 +577,7 @@ BooleanExpressionResult NOfEx_evaluateImpl2_exact(
          cur_count = 1;
       }
    }
-   if (cur_count == self->n) {
+   if (cur_count == self->number_of_matchers) {
       buffer.push_back(last_val);
    }
 
@@ -592,25 +596,37 @@ BooleanExpressionResult NOfExpression::evaluate(
    const Database& database,
    const DatabasePartition& database_partition
 ) {
-   switch (impl) {
-      case 0:
-         if (exactly) {
-            return NOfEx_evaluateImpl0_exact(this, database, database_partition);
+   switch (implementation) {
+      case NOfExpressionImplementation::GENERIC:
+         if (match_exactly) {
+            return nOfExpressionEvaluateGenericImplementationExactMatch(
+               this, database, database_partition
+            );
          } else {
-            return NOfEx_evaluateImpl0_threshold(this, database, database_partition);
+            return nOfExpressionEvaluateGenericImplementationNoExactMatch(
+               this, database, database_partition
+            );
          }
-      case 1:
+      case NOfExpressionImplementation::LOOP_DATABASE_PARTITION:
       default:
-         if (exactly) {
-            return NOfEx_evaluateImpl1_exact(this, database, database_partition);
+         if (match_exactly) {
+            return nOfExpressionEvaluateLoopDatabasePartitionImplementationExactMatch(
+               this, database, database_partition
+            );
          } else {
-            return NOfEx_evaluateImpl1_threshold(this, database, database_partition);
+            return nOfExpressionEvaluateLoopDatabasePartitionImplementationNoExactMatch(
+               this, database, database_partition
+            );
          }
-      case 2:
-         if (exactly) {
-            return NOfEx_evaluateImpl2_exact(this, database, database_partition);
+      case NOfExpressionImplementation::N_WAY_HEAP_MERGE:
+         if (match_exactly) {
+            return nOfExpressionEvaluateNWayHeapMergeImplementationExactMatch(
+               this, database, database_partition
+            );
          } else {
-            return NOfEx_evaluateImpl2_threshold(this, database, database_partition);
+            return nOfExpressionEvaluateNWayHeapMergeImplementationNoExactMatch(
+               this, database, database_partition
+            );
          }
    }
 }
@@ -772,14 +788,14 @@ BooleanExpressionResult PangoLineageExpression::evaluate(
 }
 
 BooleanExpressionResult CountryExpression::evaluate(
-   const Database& /*db*/,
+   const Database& /*database*/,
    const DatabasePartition& database_partition
 ) {
    return {nullptr, &database_partition.meta_store.country_bitmaps[country_key]};
 }
 
 BooleanExpressionResult RegionExpression::evaluate(
-   const Database& /*db*/,
+   const Database& /*database*/,
    const DatabasePartition& database_partition
 ) {
    return {nullptr, &database_partition.meta_store.region_bitmaps[region_key]};

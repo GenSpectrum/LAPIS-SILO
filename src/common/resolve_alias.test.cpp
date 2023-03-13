@@ -20,6 +20,7 @@ TEST_P(ResolveAliasTestFixture, should_return_expected_resolved_alias) {
    ASSERT_EQ(result, test_parameter.expected_result);
 }
 
+// NOLINTNEXTLINE(readability-identifier-length)
 INSTANTIATE_TEST_SUITE_P(
    resolve_alias_test,
    ResolveAliasTestFixture,

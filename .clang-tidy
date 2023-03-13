@@ -14,20 +14,25 @@ Checks: >
   clang-analyzer-cplusplus.NewDeleteLeaks,
   -modernize-use-trailing-return-type,
   -misc-non-private-member-variables-in-classes,
-  -google-readability-avoid-underscore-in-googletest-name
+  -google-readability-avoid-underscore-in-googletest-name,
+  -abseil-string-find-str-contains
 #  TODO: Do we want to keep misc-non-private-member-variables-in-classes?
 # Not using google-readability-avoid-underscore-in-googletest-name because it also fails for test_name
+# Not using abseil-string-find-str-contains because we dont want to include more libraries
 CheckOptions:
   - { key: readability-identifier-naming.NamespaceCase,          value: lower_case }
   - { key: readability-identifier-naming.ClassCase,              value: CamelCase  }
   - { key: readability-identifier-naming.StructCase,             value: CamelCase  }
   - { key: readability-identifier-naming.TemplateParameterCase,  value: CamelCase  }
-  - { key: readability-identifier-naming.FunctionCase,           value: camelBack  }
+  - { key: readability-identifier-naming.FunctionCase,           value: camelBack }
   - { key: readability-identifier-naming.VariableCase,           value: lower_case }
   - { key: readability-identifier-naming.ClassMemberCase,        value: lower_case }
   - { key: readability-identifier-naming.EnumConstantCase,         value: UPPER_CASE }
   - { key: readability-identifier-naming.GlobalConstantCase,       value: UPPER_CASE }
   - { key: readability-identifier-naming.ConstexprVariableCase,    value: UPPER_CASE }
-  - { key: readability-implicit-bool-conversion.AllowIntegerConditions,  value: 1   }
-  - { key: readability-implicit-bool-conversion.AllowPointerConditions,  value: 1   }
+  - { key: readability-identifier-naming.TypeTemplateParameterIgnoredRegexp, value: expr-type }
+  - { key: readability-implicit-bool-conversion.AllowIntegerConditions,  value: 1 }
+  - { key: readability-implicit-bool-conversion.AllowPointerConditions,  value: 1 }
   - { key: bugprone-easily-swappable-parameters.MinimumLength, value: 3 }
+
+# workaround

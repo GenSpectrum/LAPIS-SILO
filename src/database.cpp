@@ -29,14 +29,14 @@ std::vector<std::string> initGlobalReference(const std::string& working_director
    std::ifstream reference_file(reference_genome_path);
    std::vector<std::string> global_reference;
    while (true) {
-      std::string tmp;
-      if (!getline(reference_file, tmp, '\n')) {
+      std::string line;
+      if (!getline(reference_file, line, '\n')) {
          break;
       }
-      if (tmp.find('N') != std::string::npos) {
+      if (line.find('N') != std::string::npos) {
          throw std::runtime_error("No N in reference genome allowed.");
       }
-      global_reference.push_back(tmp);
+      global_reference.push_back(line);
    }
    if (global_reference.empty()) {
       throw std::runtime_error("No genome in " + reference_genome_path.string());

@@ -93,7 +93,7 @@ class Database {
    void preprocessing(const PreprocessingConfig& config);
 
    void build(
-      const std::string& partition_index,
+      const std::string& partition_name_prefix,
       const std::string& metadata_file_suffix,
       const std::string& sequence_file_suffix,
       std::ostream& out

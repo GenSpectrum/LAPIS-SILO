@@ -92,8 +92,8 @@ struct AndExpression : public BoolExpression {
    [[nodiscard]] ExpressionType type() const override;
 
    BooleanExpressionResult evaluate(
-      const Database& expression_result1,
-      const DatabasePartition& expression_result2
+      const Database& database,
+      const DatabasePartition& database_partition
    ) override;
 
    std::string toString(const Database& database) override;
@@ -124,15 +124,21 @@ struct OrExpression : public BoolExpression {
    ) const override;
 };
 
+enum NOfExpressionImplementation { GENERIC, LOOP_DATABASE_PARTITION, N_WAY_HEAP_MERGE };
+
 struct NOfExpression : public BoolExpression {
    std::vector<std::unique_ptr<BoolExpression>> children;
-   unsigned n;
-   unsigned impl;
-   bool exactly;
+   unsigned number_of_matchers;
+   NOfExpressionImplementation implementation;
+   bool match_exactly;
 
    [[nodiscard]] ExpressionType type() const override;
 
-   explicit NOfExpression(unsigned n, bool exactly, unsigned impl = 1);
+   explicit NOfExpression(
+      unsigned number_of_matchers,
+      bool match_exactly,
+      NOfExpressionImplementation implementation = NOfExpressionImplementation::GENERIC
+   );
 
    BooleanExpressionResult evaluate(
       const Database& database,
@@ -189,7 +195,7 @@ struct NucleotideSymbolEqualsExpression : public BoolExpression {
 
    [[nodiscard]] std::unique_ptr<BoolExpression> simplify(
       const Database& database,
-      const DatabasePartition& dbp
+      const DatabasePartition& database_partition
    ) const override;
 };
 
@@ -213,7 +219,7 @@ struct NucleotideSymbolMaybeExpression : public BoolExpression {
 
    [[nodiscard]] std::unique_ptr<BoolExpression> simplify(
       const Database& database,
-      const DatabasePartition& dbp
+      const DatabasePartition& database_partition
    ) const override;
 };
 
@@ -234,7 +240,7 @@ struct PangoLineageExpression : public BoolExpression {
 
    [[nodiscard]] std::unique_ptr<BoolExpression> simplify(
       const Database& database,
-      const DatabasePartition& dbp
+      const DatabasePartition& database_partition
    ) const override;
 };
 
@@ -403,7 +409,7 @@ struct MutationProportion {
 };
 
 QueryResult executeQuery(
-   const Database& partition_index,
+   const Database& database,
    const std::string& query,
    std::ostream& parse_out,
    std::ostream& perf_out

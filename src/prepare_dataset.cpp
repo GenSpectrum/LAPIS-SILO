@@ -634,13 +634,15 @@ void sortChunk(
       std::osyncstream(std::cout) << "Reset file seek, now read second time, sorted: " << chunk_str
                                   << std::endl;
 
-      std::vector<std::string> lines_sorted(2 * count);
+      constexpr uint32_t LINES_PER_SEQUENCE = 2;
+      std::vector<std::string> lines_sorted(static_cast<uint64_t>(LINES_PER_SEQUENCE * count));
       for (auto pos : file_pos_to_sorted_pos) {
-         if (!getline(sequence_in, lines_sorted[2 * pos])) {
+         const uint64_t second_line = static_cast<uint64_t>(LINES_PER_SEQUENCE) * pos;
+         if (!getline(sequence_in, lines_sorted.at(second_line))) {
             std::cerr << "Reached EOF too early." << std::endl;
             return;
          }
-         if (!getline(sequence_in, lines_sorted[2 * pos + 1])) {
+         if (!getline(sequence_in, lines_sorted.at(second_line + 1))) {
             std::cerr << "Reached EOF too early." << std::endl;
             return;
          }
