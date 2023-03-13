@@ -6,8 +6,8 @@
     },
     "filter": {
       "type": "N-Of",
-      "n": 2,
-      "exactly": false,
+      "numberOfMatchers": 2,
+      "matchExactly": false,
       "children": [
         {
           "type": "NucEq",

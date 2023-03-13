@@ -3,6 +3,7 @@
 !build_with_conan.sh
 !conanprofile.docker
 !conanfile.txt
+!.clang-tidy
 !src/
 !include/
 !testBaseData/

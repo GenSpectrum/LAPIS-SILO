@@ -16,7 +16,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(AggregationResult, count);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MutationProportion, mutation, proportion, count);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ErrorResult, error, message);
 }  // namespace response
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(QueryResult, queryResult, parse_time, filter_time, action_time);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(QueryResult, queryResult, parseTime, filterTime, actionTime);
 }  // namespace silo
 
 namespace silo_api {

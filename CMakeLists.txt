@@ -5,17 +5,14 @@ if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug)
 endif ()
 
-
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
-set(CMAKE_CXX_FLAGS "-Wall -Wextra")
+set(CMAKE_CXX_FLAGS "-Wall -march=native")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -static-libstdc++ -static-libgcc")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/")
-
-set(CMAKE_CXX_CLANG_TIDY "clang-tidy")
 
 # ---------------------------------------------------------------------------
 # Dependencies
@@ -44,7 +41,7 @@ include_directories(SYSTEM
 # Sources
 # ---------------------------------------------------------------------------
 
-file(GLOB SRC_TEST "src/*/*.test.cpp", "src/*.test.cpp")
+file(GLOB SRC_TEST "src/*/*.test.cpp" , "src/*.test.cpp")
 
 set(SRC_CC
         src/storage/Dictionary.cpp
@@ -60,6 +57,26 @@ set(SRC_CC
         src/preprocessing/preprocessing_config.cpp
         src/preprocessing/preprocessing_exception.cpp
         src/common/InputStreamWrapper.cpp)
+
+# ---------------------------------------------------------------------------
+# Linter
+# ---------------------------------------------------------------------------
+
+option(BUILD_WITH_CLANG_TIDY "Build process clang-tidy" ON)
+if (NOT CMAKE_BUILD_TYPE STREQUAL Release AND BUILD_WITH_CLANG_TIDY)
+    find_program(CLANG_TIDY_EXE NAMES clang-tidy)
+    if (NOT CLANG_TIDY_EXE)
+        message(STATUS "clang-tidy not found.")
+    else ()
+        message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
+        message(STATUS "run clang tidy with: ${CLANG_TIDY_EXE}")
+        set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
+    endif ()
+endif ()
+
+# ---------------------------------------------------------------------------
+# Targets
+# ---------------------------------------------------------------------------
 
 file(GLOB SRC_API_CC "src/silo_api/*")
 list(REMOVE_ITEM SRC_API_CC ${SRC_TEST})
@@ -80,7 +97,7 @@ include_directories(${GTest_INCLUDE_DIRS})
 
 add_executable(silo_test ${SRC_TEST} ${SRC_API_CC})
 
-if(NOT GTest_LIBRARIES)
+if (NOT GTest_LIBRARIES)
     set(GTest_LIBRARIES gtest gmock)
-endif()
+endif ()
 target_link_libraries(silo_test ${GTest_LIBRARIES} silo Poco::Net Poco::Util Poco::JSON nlohmann_json::nlohmann_json)

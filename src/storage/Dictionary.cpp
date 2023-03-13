@@ -7,13 +7,13 @@
 // TODO(someone): reduce cognitive complexity
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void Dictionary::updateDictionary(
-   std::istream& dictionary_file,
+   std::istream& metadata_file,
    const std::unordered_map<std::string, std::string>& alias_key
 ) {
    // Parse header. Assert order EPI, PANGO, DATE, REGION, COUNTRY, then fill additional columns
    {
       std::string header;
-      if (!getline(dictionary_file, header, '\n')) {
+      if (!getline(metadata_file, header, '\n')) {
          std::cerr << "Failed to read header line. Abort." << std::endl;
          return;
       }
@@ -47,25 +47,25 @@ void Dictionary::updateDictionary(
    }
 
    while (true) {
-      std::string epi_isl;
       std::string pango_lineage_raw;
+      std::string epi_isl;
       std::string region;
       std::string country;
       std::string division;
-      if (!getline(dictionary_file, epi_isl, '\t')) {
+      if (!getline(metadata_file, epi_isl, '\t')) {
          break;
       }
-      if (!getline(dictionary_file, pango_lineage_raw, '\t')) {
+      if (!getline(metadata_file, pango_lineage_raw, '\t')) {
          break;
       }
-      dictionary_file.ignore(LONG_MAX, '\t');
-      if (!getline(dictionary_file, region, '\t')) {
+      metadata_file.ignore(LONG_MAX, '\t');
+      if (!getline(metadata_file, region, '\t')) {
          break;
       }
-      if (!getline(dictionary_file, country, '\t')) {
+      if (!getline(metadata_file, country, '\t')) {
          break;
       }
-      if (!getline(dictionary_file, division, '\n')) {
+      if (!getline(metadata_file, division, '\n')) {
          break;
       }
 

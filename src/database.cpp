@@ -642,7 +642,7 @@ void silo::savePartitions(const silo::Partitions& partitions, std::ostream& outp
 
 [[maybe_unused]] void silo::Database::saveDatabaseState(const std::string& save_directory) {
    if (!partition_descriptor) {
-      std::cerr << "Cannot saveDatabaseState db without partition_descriptor." << std::endl;
+      std::cerr << "Cannot save database without partition_descriptor." << std::endl;
       return;
    }
 

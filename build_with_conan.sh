@@ -25,8 +25,14 @@ then
   echo "triggered RELEASE build"
   cmake -D CMAKE_BUILD_TYPE=Release -B build
 else
-  echo "triggered DEBUG build"
-  cmake -B build
+  if [[ "$*" == *"build_without_clang_tidy"* ]]
+  then
+    echo "triggered DEBUG build"
+    cmake -D BUILD_WITH_CLANG_TIDY=OFF -B build
+  else
+    echo "triggered DEBUG build"
+    cmake -B build
+  fi
 fi
 
 echo "----------------------------------"

@@ -58,11 +58,11 @@ std::unique_ptr<BoolExpression> parseExpression(
    if (expression_type == "N-Of") {
       assert(json_value.HasMember("children"));
       assert(json_value["children"].IsArray());
-      assert(json_value.HasMember("number_of_matchers"));
-      assert(json_value["number_of_matchers"].IsUint());
+      assert(json_value.HasMember("numberOfMatchers"));
+      assert(json_value["numberOfMatchers"].IsUint());
 
       auto result = std::make_unique<NOfExpression>(
-         json_value["number_of_matchers"].GetUint(), json_value["match_exactly"].GetBool()
+         json_value["numberOfMatchers"].GetUint(), json_value["matchExactly"].GetBool()
       );
       std::transform(
          json_value["children"].GetArray().begin(), json_value["children"].GetArray().end(),
@@ -362,7 +362,7 @@ BooleanExpressionResult nOfExpressionEvaluateLoopDatabasePartitionImplementation
    const DatabasePartition& database_partition
 ) {
    std::vector<Roaring*> partition_bitmaps(self->number_of_matchers);
-   /// Copy getBitmap of first child if immutable, otherwise use it directly
+   /// Copy bitmap of first child if immutable, otherwise use it directly
    auto tmp = self->children[0]->evaluate(database, database_partition);
    if (tmp.mutable_res) {
       /// Do not need to delete tmp.mutable_res later, because partition_bitmaps[0] will be deleted
@@ -401,7 +401,7 @@ BooleanExpressionResult nOfExpressionEvaluateLoopDatabasePartitionImplementation
    const DatabasePartition& database_partition
 ) {
    std::vector<Roaring*> partition_bitmaps(self->number_of_matchers + 1);
-   /// Copy getBitmap of first child if immutable, otherwise use it directly
+   /// Copy bitmap of first child if immutable, otherwise use it directly
    auto tmp = self->children[0]->evaluate(database, database_partition);
    if (tmp.mutable_res) {
       /// Do not need to delete tmp.mutable_res later, because partition_bitmaps[0] will be deleted
@@ -1021,8 +1021,150 @@ void BooleanExpressionResult::free() const {
    delete mutable_res;
 }
 BoolExpression::BoolExpression() = default;
+
+ExpressionType NucleotideSymbolEqualsExpression::type() const {
+   return ExpressionType::INDEX_FILTER;
+}
+NucleotideSymbolEqualsExpression::NucleotideSymbolEqualsExpression() = default;
+NucleotideSymbolEqualsExpression::NucleotideSymbolEqualsExpression(
+   unsigned int position,
+   GENOME_SYMBOL value
+)
+    : position(position),
+      value(value) {}
+std::string NucleotideSymbolEqualsExpression::toString(const Database& /*database*/) {
+   std::string res = std::to_string(position) + SYMBOL_REPRESENTATION[value];
+   return res;
+}
+
+ExpressionType NucleotideSymbolMaybeExpression::type() const {
+   return ExpressionType::INDEX_FILTER;
+}
+NucleotideSymbolMaybeExpression::NucleotideSymbolMaybeExpression() = default;
+NucleotideSymbolMaybeExpression::NucleotideSymbolMaybeExpression(
+   unsigned int position,
+   GENOME_SYMBOL value
+)
+    : position(position),
+      value(value) {}
+std::string NucleotideSymbolMaybeExpression::toString(const Database& /*database*/) {
+   std::string res = "?" + std::to_string(position) + SYMBOL_REPRESENTATION[value];
+   return res;
+}
+
+ExpressionType PangoLineageExpression::type() const {
+   return ExpressionType::INDEX_FILTER;
+}
+PangoLineageExpression::PangoLineageExpression(uint32_t lineage_key, bool include_sublineages)
+    : lineageKey(lineage_key),
+      include_sublineages(include_sublineages) {}
+std::string PangoLineageExpression::toString(const Database& database) {
+   std::string res = database.dict->getPangoLineage(lineageKey);
+   if (include_sublineages) {
+      res += ".*";
+   }
+   return res;
+}
+
+CountryExpression::CountryExpression(uint32_t country_key)
+    : country_key(country_key) {}
+std::string CountryExpression::toString(const Database& database) {
+   std::string res = "Country=" + database.dict->getCountry(country_key);
+   return res;
+}
+ExpressionType CountryExpression::type() const {
+   return ExpressionType::INDEX_FILTER;
+}
+
+ExpressionType RegionExpression::type() const {
+   return ExpressionType::INDEX_FILTER;
+}
+RegionExpression::RegionExpression(uint32_t regionKey)
+    : region_key(regionKey) {}
+std::string RegionExpression::toString(const Database& database) {
+   std::string res = "Region=" + database.dict->getRegion(region_key);
+   return res;
+}
+
+AndExpression::AndExpression() = default;
+ExpressionType AndExpression::type() const {
+   return ExpressionType::AND;
+}
+std::string AndExpression::toString(const Database& database) {
+   std::string res = "(";
+   for (auto& child : children) {
+      res += " & ";
+      res += child->toString(database);
+   }
+   for (auto& child : negated_children) {
+      res += " &! ";
+      res += child->toString(database);
+   }
+   res += ")";
+   return res;
+}
+
+OrExpression::OrExpression() = default;
+
+ExpressionType OrExpression::type() const {
+   return ExpressionType::OR;
+}
+
+std::string OrExpression::toString(const Database& database) {
+   std::string res = "(";
+   for (auto& child : children) {
+      res += child->toString(database);
+      res += " | ";
+   }
+   res += ")";
+   return res;
+}
+
+NegatedExpression::NegatedExpression() = default;
+
+NegatedExpression::NegatedExpression(std::unique_ptr<BoolExpression> child)
+    : child(std::move(child)) {}
+
+std::string NegatedExpression::toString(const Database& database) {
+   std::string res = "!" + child->toString(database);
+   return res;
+}
+
+ExpressionType NegatedExpression::type() const {
+   return ExpressionType::NEG;
+}
+
+ExpressionType NOfExpression::type() const {
+   return ExpressionType::NOF;
+}
+NOfExpression::NOfExpression(
+   unsigned int number_of_matchers,
+   bool match_exactly,
+   NOfExpressionImplementation implementation
+)
+    : number_of_matchers(number_of_matchers),
+      implementation(implementation),
+      match_exactly(match_exactly) {}
+
+std::string NOfExpression::toString(const Database& database) {
+   std::string res;
+   if (match_exactly) {
+      res = "[exactly-" + std::to_string(number_of_matchers) + "-of:";
+   } else {
+      res = "[" + std::to_string(number_of_matchers) + "-of:";
+   }
+   for (auto& child : children) {
+      res += child->toString(database);
+      res += ", ";
+   }
+   res += "]";
+   return res;
+}
+
 }  // namespace silo
 
+// TODO(someone): reduce cognitive complexity
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 silo::QueryResult silo::executeQuery(
    const silo::Database& database,
    const std::string& query,
@@ -1041,16 +1183,16 @@ silo::QueryResult silo::executeQuery(
    QueryResult query_result;
    std::unique_ptr<BoolExpression> filter;
    {
-      BlockTimer const timer(query_result.parse_time);
+      BlockTimer const timer(query_result.parseTime);
       filter = parseExpression(database, doc["filter"], 0);
       parse_out << "Parsed query: " << filter->toString(database) << std::endl;
    }
 
-   perf_out << "Parse: " << std::to_string(query_result.parse_time) << " microseconds\n";
+   perf_out << "Parse: " << std::to_string(query_result.parseTime) << " microseconds\n";
 
    std::vector<silo::BooleanExpressionResult> partition_filters(database.partitions.size());
    {
-      BlockTimer const timer(query_result.filter_time);
+      BlockTimer const timer(query_result.filterTime);
       tbb::blocked_range<size_t> const range(0, database.partitions.size(), 1);
       tbb::parallel_for(range.begin(), range.end(), [&](const size_t& partition_index) {
          std::unique_ptr<BoolExpression> part_filter =
@@ -1064,11 +1206,11 @@ silo::QueryResult silo::executeQuery(
       parse_out << "Simplified query for partition " << i << ": " << simplified_queries[i]
                 << std::endl;
    }
-   perf_out << "Execution (filter): " << std::to_string(query_result.filter_time)
+   perf_out << "Execution (filter): " << std::to_string(query_result.filterTime)
             << " microseconds\n";
 
    {
-      BlockTimer const timer(query_result.action_time);
+      BlockTimer const timer(query_result.actionTime);
       const auto& action = doc["action"];
       assert(action.HasMember("type"));
       assert(action["type"].IsString());
@@ -1081,8 +1223,19 @@ silo::QueryResult silo::executeQuery(
             group_by_fields.emplace_back(field.GetString());
          }
 
-         query_result.queryResult = response::ErrorResult{
-            "Unknown action", std::string(action_type) + " is not a valid action"};
+         if (strcmp(action_type, "Aggregated") == 0) {
+            query_result.queryResult =
+               response::ErrorResult{"groupByFields::Aggregated is not properly implemented yet"};
+         } else if (strcmp(action_type, "List") == 0) {
+            query_result.queryResult =
+               response::ErrorResult{"groupByFields::List is not properly implemented yet"};
+         } else if (strcmp(action_type, "Mutations") == 0) {
+            query_result.queryResult =
+               response::ErrorResult{"groupByFields::Mutations is not properly implemented yet"};
+         } else {
+            query_result.queryResult =
+               response::ErrorResult{"groupByFields is not properly implemented yet"};
+         }
 
       } else {
          if (strcmp(action_type, "Aggregated") == 0) {
@@ -1090,7 +1243,7 @@ silo::QueryResult silo::executeQuery(
             query_result.queryResult = response::AggregationResult{count};
          } else if (strcmp(action_type, "List") == 0) {
          } else if (strcmp(action_type, "Mutations") == 0) {
-            double min_proportion = FALLBACK_MINIMAL_PROPORTION;
+            double min_proportion = DEFAULT_MINIMAL_PROPORTION;
             if (action.HasMember("minProportion") && action["minProportion"].IsDouble()) {
                if (action["minProportion"].GetDouble() <= 0.0) {
                   query_result.queryResult = response::ErrorResult{
@@ -1121,7 +1274,7 @@ silo::QueryResult silo::executeQuery(
       }
    }
 
-   perf_out << "Execution (action): " << std::to_string(query_result.action_time)
+   perf_out << "Execution (action): " << std::to_string(query_result.actionTime)
             << " microseconds\n";
 
    return query_result;

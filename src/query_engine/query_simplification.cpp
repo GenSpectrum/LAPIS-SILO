@@ -17,20 +17,6 @@ std::unique_ptr<BoolExpression> NucleotideSymbolEqualsExpression::simplify(
    }
    return result;
 }
-ExpressionType NucleotideSymbolEqualsExpression::type() const {
-   return ExpressionType::INDEX_FILTER;
-}
-NucleotideSymbolEqualsExpression::NucleotideSymbolEqualsExpression() = default;
-NucleotideSymbolEqualsExpression::NucleotideSymbolEqualsExpression(
-   unsigned int position,
-   GENOME_SYMBOL value
-)
-    : position(position),
-      value(value) {}
-std::string NucleotideSymbolEqualsExpression::toString(const Database& /*database*/) {
-   std::string res = std::to_string(position) + SYMBOL_REPRESENTATION[value];
-   return res;
-}
 
 std::unique_ptr<BoolExpression> NucleotideSymbolMaybeExpression::simplify(
    const Database& /*database*/,
@@ -38,28 +24,11 @@ std::unique_ptr<BoolExpression> NucleotideSymbolMaybeExpression::simplify(
 ) const {
    std::unique_ptr<NucleotideSymbolMaybeExpression> ret =
       std::make_unique<NucleotideSymbolMaybeExpression>(position, value);
-   if (database_partition.seq_store.positions[position - 1].flipped_bitmap == value) {  /// Bitmap
-                                                                                        /// of
-                                                                                        /// reference
-                                                                                        /// is
-      /// flipped! Introduce Neg
+   if (database_partition.seq_store.positions[position - 1].flipped_bitmap == value) {
+      /// Bitmap of reference is flipped! Introduce Neg
       ret->negated = true;
    }
    return ret;
-}
-ExpressionType NucleotideSymbolMaybeExpression::type() const {
-   return ExpressionType::INDEX_FILTER;
-}
-NucleotideSymbolMaybeExpression::NucleotideSymbolMaybeExpression() = default;
-NucleotideSymbolMaybeExpression::NucleotideSymbolMaybeExpression(
-   unsigned int position,
-   GENOME_SYMBOL value
-)
-    : position(position),
-      value(value) {}
-std::string NucleotideSymbolMaybeExpression::toString(const Database& /*database*/) {
-   std::string res = "?" + std::to_string(position) + SYMBOL_REPRESENTATION[value];
-   return res;
 }
 
 std::unique_ptr<BoolExpression> PangoLineageExpression::simplify(
@@ -77,19 +46,6 @@ std::unique_ptr<BoolExpression> PangoLineageExpression::simplify(
    }
    return std::make_unique<PangoLineageExpression>(lineageKey, include_sublineages);
 }
-ExpressionType PangoLineageExpression::type() const {
-   return ExpressionType::INDEX_FILTER;
-}
-PangoLineageExpression::PangoLineageExpression(uint32_t lineage_key, bool include_sublineages)
-    : lineageKey(lineage_key),
-      include_sublineages(include_sublineages) {}
-std::string PangoLineageExpression::toString(const Database& database) {
-   std::string res = database.dict->getPangoLineage(lineageKey);
-   if (include_sublineages) {
-      res += ".*";
-   }
-   return res;
-}
 
 std::unique_ptr<BoolExpression> CountryExpression::simplify(
    const Database& /*database*/,
@@ -100,15 +56,6 @@ std::unique_ptr<BoolExpression> CountryExpression::simplify(
    }
    return std::make_unique<CountryExpression>(country_key);
 }
-CountryExpression::CountryExpression(uint32_t country_key)
-    : country_key(country_key) {}
-std::string CountryExpression::toString(const Database& database) {
-   std::string res = "Country=" + database.dict->getCountry(country_key);
-   return res;
-}
-ExpressionType CountryExpression::type() const {
-   return ExpressionType::INDEX_FILTER;
-}
 
 std::unique_ptr<BoolExpression> RegionExpression::simplify(
    const Database& /*database*/,
@@ -118,15 +65,6 @@ std::unique_ptr<BoolExpression> RegionExpression::simplify(
       return std::make_unique<EmptyExpression>();
    }
    return std::make_unique<RegionExpression>(region_key);
-}
-ExpressionType RegionExpression::type() const {
-   return ExpressionType::INDEX_FILTER;
-}
-RegionExpression::RegionExpression(uint32_t regionKey)
-    : region_key(regionKey) {}
-std::string RegionExpression::toString(const Database& database) {
-   std::string res = "Region=" + database.dict->getRegion(region_key);
-   return res;
 }
 
 std::unique_ptr<BoolExpression> AndExpression::simplify(
@@ -186,23 +124,6 @@ std::unique_ptr<BoolExpression> AndExpression::simplify(
    }
    return ret;
 }
-AndExpression::AndExpression() = default;
-ExpressionType AndExpression::type() const {
-   return ExpressionType::AND;
-}
-std::string AndExpression::toString(const Database& database) {
-   std::string res = "(";
-   for (auto& child : children) {
-      res += " & ";
-      res += child->toString(database);
-   }
-   for (auto& child : negated_children) {
-      res += " &! ";
-      res += child->toString(database);
-   }
-   res += ")";
-   return res;
-}
 
 std::unique_ptr<BoolExpression> OrExpression::simplify(
    const Database& database,
@@ -258,22 +179,6 @@ std::unique_ptr<BoolExpression> OrExpression::simplify(
    return ret;
 }
 
-OrExpression::OrExpression() = default;
-
-ExpressionType OrExpression::type() const {
-   return ExpressionType::OR;
-}
-
-std::string OrExpression::toString(const Database& database) {
-   std::string res = "(";
-   for (auto& child : children) {
-      res += child->toString(database);
-      res += " | ";
-   }
-   res += ")";
-   return res;
-}
-
 std::unique_ptr<BoolExpression> NegatedExpression::simplify(
    const Database& database,
    const DatabasePartition& database_partition
@@ -284,20 +189,6 @@ std::unique_ptr<BoolExpression> NegatedExpression::simplify(
       return std::move(dynamic_cast<NegatedExpression*>(ret->child.get())->child);
    }
    return ret;
-}
-
-NegatedExpression::NegatedExpression() = default;
-
-NegatedExpression::NegatedExpression(std::unique_ptr<BoolExpression> child)
-    : child(std::move(child)) {}
-
-std::string NegatedExpression::toString(const Database& database) {
-   std::string res = "!" + child->toString(database);
-   return res;
-}
-
-ExpressionType NegatedExpression::type() const {
-   return ExpressionType::NEG;
 }
 
 // TODO(someone): reduce cognitive complexity
@@ -369,32 +260,6 @@ std::unique_ptr<BoolExpression> NOfExpression::simplify(
       return std::move(result->children[0]);
    }
    return result;
-}
-ExpressionType NOfExpression::type() const {
-   return ExpressionType::NOF;
-}
-NOfExpression::NOfExpression(
-   unsigned int number_of_matchers,
-   bool match_exactly,
-   NOfExpressionImplementation implementation
-)
-    : number_of_matchers(number_of_matchers),
-      implementation(implementation),
-      match_exactly(match_exactly) {}
-
-std::string NOfExpression::toString(const Database& database) {
-   std::string res;
-   if (match_exactly) {
-      res = "[exactly-" + std::to_string(number_of_matchers) + "-of:";
-   } else {
-      res = "[" + std::to_string(number_of_matchers) + "-of:";
-   }
-   for (auto& child : children) {
-      res += child->toString(database);
-      res += ", ";
-   }
-   res += "]";
-   return res;
 }
 
 }  // namespace silo

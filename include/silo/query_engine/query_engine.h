@@ -15,9 +15,9 @@ struct QueryResult {
       std::vector<response::MutationProportion>,
       response::ErrorResult>
       queryResult;
-   int64_t parse_time;
-   int64_t filter_time;
-   int64_t action_time;
+   int64_t parseTime;   // NOLINT
+   int64_t filterTime;  // NOLINT
+   int64_t actionTime;  // NOLINT
 };
 
 /// The return value of the BoolExpression::evaluate method.
@@ -399,7 +399,7 @@ struct StringEqualsExpression : public SelectExpression {
    ) const override;
 };
 
-static const double FALLBACK_MINIMAL_PROPORTION = 0.02;
+static const double DEFAULT_MINIMAL_PROPORTION = 0.02;
 struct MutationProportion {
    char mutation_from;
    unsigned position;

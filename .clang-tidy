@@ -1,4 +1,5 @@
 ---
+WarningsAsErrors: "*"
 Checks: >
   -*,
   abseil-*,
@@ -16,14 +17,14 @@ Checks: >
   -misc-non-private-member-variables-in-classes,
   -google-readability-avoid-underscore-in-googletest-name,
   -abseil-string-find-str-contains
-#  TODO: Do we want to keep misc-non-private-member-variables-in-classes?
+#  TODO(someone): clean up misc-non-private-member-variables-in-classes and add option back in
 # Not using google-readability-avoid-underscore-in-googletest-name because it also fails for test_name
 # Not using abseil-string-find-str-contains because we dont want to include more libraries
 CheckOptions:
   - { key: readability-identifier-naming.NamespaceCase,          value: lower_case }
-  - { key: readability-identifier-naming.ClassCase,              value: CamelCase  }
-  - { key: readability-identifier-naming.StructCase,             value: CamelCase  }
-  - { key: readability-identifier-naming.TemplateParameterCase,  value: CamelCase  }
+  - { key: readability-identifier-naming.ClassCase,              value: CamelCase }
+  - { key: readability-identifier-naming.StructCase,             value: CamelCase }
+  - { key: readability-identifier-naming.TemplateParameterCase,  value: CamelCase }
   - { key: readability-identifier-naming.FunctionCase,           value: camelBack }
   - { key: readability-identifier-naming.VariableCase,           value: lower_case }
   - { key: readability-identifier-naming.ClassMemberCase,        value: lower_case }
@@ -35,4 +36,4 @@ CheckOptions:
   - { key: readability-implicit-bool-conversion.AllowPointerConditions,  value: 1 }
   - { key: bugprone-easily-swappable-parameters.MinimumLength, value: 3 }
 
-# workaround
+# readability-identifier-naming.TypeTemplateParameterIgnoredRegexp is workaround for error of clang-tidy with ubuntu (https://github.com/llvm/llvm-project/issues/46097)

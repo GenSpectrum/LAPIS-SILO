@@ -26,7 +26,7 @@ class Dictionary {
 
   public:
    void updateDictionary(
-      std::istream& dictionary_file,
+      std::istream& metadata_file,
       const std::unordered_map<std::string, std::string>& alias_key
    );
 
