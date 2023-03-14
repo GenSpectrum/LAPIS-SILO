@@ -23,6 +23,6 @@ struct adl_serializer<std::variant<Ts...>> {
       (variant_from_json<Ts>(j, data), ...);
    }
 };
-}
+}  // namespace nlohmann
 
-#endif //SILO_VARIANT_JSON_SERIALIZER_H
+#endif  // SILO_VARIANT_JSON_SERIALIZER_H

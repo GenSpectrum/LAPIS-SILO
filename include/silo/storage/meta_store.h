@@ -8,9 +8,9 @@
 #include "silo/common/silo_symbols.h"
 #include "silo/roaring/roaring.hh"
 
+#include <silo/roaring/roaring_serialize.h>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
-#include <silo/roaring/roaring_serialize.h>
 
 namespace silo {
 
@@ -52,8 +52,15 @@ struct MetaStore {
    std::vector<std::vector<uint64_t>> cols;
 };
 
-void inputSequenceMeta(MetaStore& mdb, uint64_t epi, time_t date, uint32_t pango_lineage,
-                       uint32_t region, uint32_t country, const std::vector<uint64_t>& vals);
+void inputSequenceMeta(
+   MetaStore& mdb,
+   uint64_t epi,
+   time_t date,
+   uint32_t pango_lineage,
+   uint32_t region,
+   uint32_t country,
+   const std::vector<uint64_t>& vals
+);
 
 void chunk_info(const MetaStore& mdb, std::ostream& out);
 
@@ -61,6 +68,6 @@ unsigned save_meta(const MetaStore& db, const std::string& db_filename);
 
 unsigned load_meta(MetaStore& db, const std::string& db_filename);
 
-} // namespace silo;
+}  // namespace silo
 
-#endif //SILO_META_STORE_H
+#endif  // SILO_META_STORE_H

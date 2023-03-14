@@ -1,18 +1,15 @@
+#include <iostream>
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include <iostream>
 
 class ClassToTest {
-   public:
-   virtual void functionToMock() {
-   }
-   virtual void callMockedFunction() {
-      functionToMock();
-   }
+  public:
+   virtual void functionToMock() {}
+   virtual void callMockedFunction() { functionToMock(); }
 };
 
 class MockClassToTest : public ClassToTest {
-   public:
+  public:
    MOCK_METHOD(void, functionToMock, (), (override));
 };
 

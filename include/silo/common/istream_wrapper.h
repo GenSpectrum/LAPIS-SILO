@@ -11,17 +11,15 @@
 
 namespace silo {
 struct istream_wrapper {
-   private:
+  private:
    std::ifstream file;
    std::unique_ptr<std::istream> actual_stream;
 
-   public:
+  public:
    explicit istream_wrapper(const std::string& file_name);
 
-   std::istream& get_is() const {
-      return *actual_stream;
-   }
+   std::istream& get_is() const { return *actual_stream; }
 };
-}
+}  // namespace silo
 
-#endif //SILO_ISTREAM_WRAPPER_H
+#endif  // SILO_ISTREAM_WRAPPER_H

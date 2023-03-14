@@ -2,16 +2,17 @@
 // Created by Alexander Taepper on 27.09.22.
 //
 
+#include <silo/common/istream_wrapper.h>
+#include <silo/common/silo_symbols.h>
 #include <boost/iostreams/filter/lzma.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <syncstream>
-#include <silo/common/istream_wrapper.h>
-#include <silo/common/silo_symbols.h>
 
 silo::istream_wrapper::istream_wrapper(const std::string& file_name) {
    if (file_name.ends_with(".xz")) {
       file = std::ifstream(file_name, std::ios::binary);
-      std::unique_ptr<boost::iostreams::filtering_istream> archive = std::make_unique<boost::iostreams::filtering_istream>();
+      std::unique_ptr<boost::iostreams::filtering_istream> archive =
+         std::make_unique<boost::iostreams::filtering_istream>();
       archive->push(boost::iostreams::lzma_decompressor());
       archive->push(file);
       actual_stream = std::move(archive);

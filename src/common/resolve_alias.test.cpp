@@ -1,5 +1,5 @@
-#include "gtest/gtest.h"
 #include <silo/common/silo_symbols.h>
+#include "gtest/gtest.h"
 
 struct TestParameter {
    std::string input;
@@ -7,11 +7,8 @@ struct TestParameter {
 };
 
 class ResolveAliasTestFixture : public ::testing::TestWithParam<TestParameter> {
-   protected:
-   const std::unordered_map<std::string, std::string> alias_map =
-      {
-         {"X", "A"},
-         {"XY", "A.1"}};
+  protected:
+   const std::unordered_map<std::string, std::string> alias_map = {{"X", "A"}, {"XY", "A.1"}};
 };
 
 TEST_P(ResolveAliasTestFixture, should_return_expected_resolved_alias) {
@@ -32,4 +29,6 @@ INSTANTIATE_TEST_SUITE_P(
       TestParameter{"XY", "A.1"},
       TestParameter{"X.1.1", "A.1.1"},
       TestParameter{"XYX.1.1", "XYX.1.1"},
-      TestParameter{".X", ".X"}));
+      TestParameter{".X", ".X"}
+   )
+);

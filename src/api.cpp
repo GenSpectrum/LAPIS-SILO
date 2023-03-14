@@ -1,3 +1,9 @@
+#include <silo/preprocessing/preprocessing_config.h>
+#include <silo_api/error.h>
+#include <silo_api/info_handler.h>
+#include <silo_api/query_handler.h>
+#include <iostream>
+#include <vector>
 #include "Poco/Net/HTTPRequestHandler.h"
 #include "Poco/Net/HTTPRequestHandlerFactory.h"
 #include "Poco/Net/HTTPServer.h"
@@ -9,24 +15,19 @@
 #include "Poco/Util/OptionSet.h"
 #include "Poco/Util/ServerApplication.h"
 #include "silo/database.h"
-#include <silo_api/info_handler.h>
-#include <silo_api/query_handler.h>
-#include <silo_api/error.h>
-#include <iostream>
-#include <vector>
-#include <silo/preprocessing/preprocessing_config.h>
 
 using namespace silo;
 
 class SiloRequestHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
-   private:
+  private:
    silo::Database& database;
 
-   public:
-   explicit SiloRequestHandlerFactory(silo::Database& database) : database(database) {
-   }
+  public:
+   explicit SiloRequestHandlerFactory(silo::Database& database)
+       : database(database) {}
 
-   Poco::Net::HTTPRequestHandler* createRequestHandler(const Poco::Net::HTTPServerRequest& request) override {
+   Poco::Net::HTTPRequestHandler* createRequestHandler(const Poco::Net::HTTPServerRequest& request
+   ) override {
       if (request.getURI() == "/info")
          return new silo_api::InfoHandler(database);
       if (request.getURI() == "/query")
@@ -37,7 +38,7 @@ class SiloRequestHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
 };
 
 class SiloServer : public Poco::Util::ServerApplication {
-   protected:
+  protected:
    void defineOptions(Poco::Util::OptionSet& options) override {
       ServerApplication::defineOptions(options);
 
@@ -45,22 +46,26 @@ class SiloServer : public Poco::Util::ServerApplication {
          Poco::Util::Option("help", "h", "display help information on command line arguments")
             .required(false)
             .repeatable(false)
-            .callback(Poco::Util::OptionCallback<SiloServer>(this, &SiloServer::displayHelp)));
+            .callback(Poco::Util::OptionCallback<SiloServer>(this, &SiloServer::displayHelp))
+      );
 
       options.addOption(
          Poco::Util::Option("api", "a", "start the SILO web interface")
             .required(false)
             .repeatable(false)
-            .callback(Poco::Util::OptionCallback<SiloServer>(this, &SiloServer::handleApi)));
+            .callback(Poco::Util::OptionCallback<SiloServer>(this, &SiloServer::handleApi))
+      );
 
       options.addOption(
          Poco::Util::Option(
-            "processData",
-            "p",
-            "trigger the preprocessing pipeline to generate a partitioned dataset that can be read by the database")
+            "processData", "p",
+            "trigger the preprocessing pipeline to generate a partitioned dataset that can be read "
+            "by the database"
+         )
             .required(false)
             .repeatable(false)
-            .callback(Poco::Util::OptionCallback<SiloServer>(this, &SiloServer::handleProcessData)));
+            .callback(Poco::Util::OptionCallback<SiloServer>(this, &SiloServer::handleProcessData))
+      );
    }
 
    int main(const std::vector<std::string>& args) override {
@@ -78,13 +83,15 @@ class SiloServer : public Poco::Util::ServerApplication {
       return Application::EXIT_USAGE;
    }
 
-   private:
+  private:
    void handleApi(const std::string&, const std::string&) {
       int port = 8080;
 
       const std::string input_directory("./");
       const std::string output_directory("./");
-      auto config = silo::PreprocessingConfig(input_directory, output_directory, "minimal_metadata_set.tsv", "minimal_sequence_set.fasta");
+      auto config = silo::PreprocessingConfig(
+         input_directory, output_directory, "minimal_metadata_set.tsv", "minimal_sequence_set.fasta"
+      );
 
       auto database = silo::Database(input_directory);
 
@@ -92,7 +99,9 @@ class SiloServer : public Poco::Util::ServerApplication {
       std::cout << "finished preprocessing " << std::endl;
 
       Poco::Net::ServerSocket server_socket(port);
-      Poco::Net::HTTPServer server(new SiloRequestHandlerFactory(database), server_socket, new Poco::Net::HTTPServerParams);
+      Poco::Net::HTTPServer server(
+         new SiloRequestHandlerFactory(database), server_socket, new Poco::Net::HTTPServerParams
+      );
 
       std::cout << "listening on port " << port << std::endl;
 

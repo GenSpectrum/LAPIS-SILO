@@ -5,23 +5,22 @@
 #ifndef SILO_QUERY_ENGINE_H
 #define SILO_QUERY_ENGINE_H
 
-#include "query_result.h"
-#include "silo/database.h"
 #include <string>
 #include <variant>
+#include "query_result.h"
+#include "silo/database.h"
 
 namespace silo {
 
 struct QueryParseException : public std::exception {
-   private:
+  private:
    const char* message;
 
-   public:
-   explicit QueryParseException(const std::string& msg) : message(msg.c_str()) {}
+  public:
+   explicit QueryParseException(const std::string& msg)
+       : message(msg.c_str()) {}
 
-   [[nodiscard]] const char* what() const noexcept override {
-      return message;
-   }
+   [[nodiscard]] const char* what() const noexcept override { return message; }
 };
 
 struct QueryResult {
@@ -46,20 +45,12 @@ struct filter_t {
    }
 
    inline void free() {
-      if (mutable_res) delete mutable_res;
+      if (mutable_res)
+         delete mutable_res;
    }
 };
 
-enum ExType {
-   AND,
-   OR,
-   NOF,
-   NEG,
-   INDEX_FILTER,
-   FILTER,
-   EMPTY,
-   FULL
-};
+enum ExType { AND, OR, NOF, NEG, INDEX_FILTER, FILTER, EMPTY, FULL };
 
 struct BoolExpression {
    // For future, maybe different (return) types of expressions?
@@ -79,7 +70,8 @@ struct BoolExpression {
    /// Transforms the expression to a human readable string.
    virtual std::string to_string(const Database& db) = 0;
 
-   virtual std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const = 0;
+   virtual std::unique_ptr<BoolExpression>
+   simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const = 0;
 
    /* Maybe generate code in the future
       /// Build the expression LLVM IR code.
@@ -88,35 +80,29 @@ struct BoolExpression {
 };
 
 struct EmptyEx : public BoolExpression {
-   ExType type() const override {
-      return ExType::EMPTY;
-   };
+   ExType type() const override { return ExType::EMPTY; };
 
    /// EmptyEx should be simplified away.
    filter_t evaluate(const Database& /*db*/, const DatabasePartition& /*dbp*/) override;
 
-   std::string to_string(const Database& /*db*/) override {
-      return "FALSE";
-   }
+   std::string to_string(const Database& /*db*/) override { return "FALSE"; }
 
-   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
+   std::unique_ptr<BoolExpression>
+   simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
       return std::make_unique<silo::EmptyEx>();
    }
 };
 
 struct FullEx : public BoolExpression {
-   ExType type() const override {
-      return ExType::FULL;
-   };
+   ExType type() const override { return ExType::FULL; };
 
    /// EmptyEx should be simplified away.
    filter_t evaluate(const Database& /*db*/, const DatabasePartition& dbp) override;
 
-   std::string to_string(const Database& /*db*/) override {
-      return "TRUE";
-   }
+   std::string to_string(const Database& /*db*/) override { return "TRUE"; }
 
-   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
+   std::unique_ptr<BoolExpression>
+   simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
       return std::make_unique<silo::FullEx>();
    }
 };
@@ -127,9 +113,7 @@ struct AndEx : public BoolExpression {
 
    explicit AndEx() {}
 
-   ExType type() const override {
-      return ExType::AND;
-   };
+   ExType type() const override { return ExType::AND; };
 
    filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
@@ -147,18 +131,16 @@ struct AndEx : public BoolExpression {
       return res;
    }
 
-   std::unique_ptr<BoolExpression> simplify(const Database& db, const DatabasePartition& dbp) const override;
+   std::unique_ptr<BoolExpression> simplify(const Database& db, const DatabasePartition& dbp)
+      const override;
 };
 
 struct OrEx : public BoolExpression {
    std::vector<std::unique_ptr<BoolExpression>> children;
 
-   explicit OrEx() {
-   }
+   explicit OrEx() {}
 
-   ExType type() const override {
-      return ExType::OR;
-   };
+   ExType type() const override { return ExType::OR; };
 
    filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
@@ -172,7 +154,8 @@ struct OrEx : public BoolExpression {
       return res;
    }
 
-   std::unique_ptr<BoolExpression> simplify(const Database& db, const DatabasePartition& dbp) const override;
+   std::unique_ptr<BoolExpression> simplify(const Database& db, const DatabasePartition& dbp)
+      const override;
 };
 
 struct NOfEx : public BoolExpression {
@@ -181,13 +164,17 @@ struct NOfEx : public BoolExpression {
    unsigned impl;
    bool exactly;
 
-   ExType type() const override {
-      return ExType::NOF;
-   };
+   ExType type() const override { return ExType::NOF; };
 
-   explicit NOfEx(unsigned n, unsigned impl, bool exactly) : n(n), impl(impl), exactly(exactly) {}
+   explicit NOfEx(unsigned n, unsigned impl, bool exactly)
+       : n(n),
+         impl(impl),
+         exactly(exactly) {}
 
-   explicit NOfEx(unsigned n, bool exactly) : n(n), impl(1), exactly(exactly) {}
+   explicit NOfEx(unsigned n, bool exactly)
+       : n(n),
+         impl(1),
+         exactly(exactly) {}
 
    filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
@@ -206,19 +193,19 @@ struct NOfEx : public BoolExpression {
       return res;
    }
 
-   std::unique_ptr<BoolExpression> simplify(const Database& db, const DatabasePartition& dbp) const override;
+   std::unique_ptr<BoolExpression> simplify(const Database& db, const DatabasePartition& dbp)
+      const override;
 };
 
 struct NegEx : public BoolExpression {
    std::unique_ptr<BoolExpression> child;
 
-   ExType type() const override {
-      return ExType::NEG;
-   };
+   ExType type() const override { return ExType::NEG; };
 
    explicit NegEx() {}
 
-   explicit NegEx(std::unique_ptr<BoolExpression> child) : child(std::move(child)) {}
+   explicit NegEx(std::unique_ptr<BoolExpression> child)
+       : child(std::move(child)) {}
 
    filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
@@ -227,7 +214,8 @@ struct NegEx : public BoolExpression {
       return res;
    }
 
-   std::unique_ptr<BoolExpression> simplify(const Database& db, const DatabasePartition& dbp) const override;
+   std::unique_ptr<BoolExpression> simplify(const Database& db, const DatabasePartition& dbp)
+      const override;
 };
 
 struct NucEqEx : public BoolExpression {
@@ -235,13 +223,13 @@ struct NucEqEx : public BoolExpression {
    Symbol value;
    bool individualized = false;
 
-   ExType type() const override {
-      return ExType::INDEX_FILTER;
-   };
+   ExType type() const override { return ExType::INDEX_FILTER; };
 
    explicit NucEqEx() {}
 
-   explicit NucEqEx(unsigned position, Symbol value) : position(position), value(value) {}
+   explicit NucEqEx(unsigned position, Symbol value)
+       : position(position),
+         value(value) {}
 
    filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
@@ -250,7 +238,8 @@ struct NucEqEx : public BoolExpression {
       return res;
    }
 
-   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& dbp) const override;
+   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& dbp)
+      const override;
 };
 
 struct NucMbEx : public BoolExpression {
@@ -258,13 +247,13 @@ struct NucMbEx : public BoolExpression {
    Symbol value;
    bool negated = false;
 
-   ExType type() const override {
-      return ExType::INDEX_FILTER;
-   };
+   ExType type() const override { return ExType::INDEX_FILTER; };
 
    explicit NucMbEx() {}
 
-   explicit NucMbEx(unsigned position, Symbol value) : position(position), value(value) {}
+   explicit NucMbEx(unsigned position, Symbol value)
+       : position(position),
+         value(value) {}
 
    filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
@@ -273,19 +262,19 @@ struct NucMbEx : public BoolExpression {
       return res;
    }
 
-   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& dbp) const override;
+   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& dbp)
+      const override;
 };
 
 struct PangoLineageEx : public BoolExpression {
    uint32_t lineageKey;
    bool includeSubLineages;
 
-   ExType type() const override {
-      return ExType::INDEX_FILTER;
-   };
+   ExType type() const override { return ExType::INDEX_FILTER; };
 
    explicit PangoLineageEx(uint32_t lineageKey, bool includeSubLineages)
-      : lineageKey(lineageKey), includeSubLineages(includeSubLineages) {}
+       : lineageKey(lineageKey),
+         includeSubLineages(includeSubLineages) {}
 
    filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
@@ -297,17 +286,17 @@ struct PangoLineageEx : public BoolExpression {
       return res;
    }
 
-   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& dbp) const override;
+   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& dbp)
+      const override;
 };
 
 struct CountryEx : public BoolExpression {
    uint32_t countryKey;
 
-   ExType type() const override {
-      return ExType::INDEX_FILTER;
-   };
+   ExType type() const override { return ExType::INDEX_FILTER; };
 
-   explicit CountryEx(uint32_t countryKey) : countryKey(countryKey) {}
+   explicit CountryEx(uint32_t countryKey)
+       : countryKey(countryKey) {}
 
    filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
@@ -316,18 +305,17 @@ struct CountryEx : public BoolExpression {
       return res;
    }
 
-   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override;
+   std::unique_ptr<BoolExpression>
+   simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override;
 };
 
 struct RegionEx : public BoolExpression {
    uint32_t regionKey;
 
-   ExType type() const override {
-      return ExType::INDEX_FILTER;
-   };
+   ExType type() const override { return ExType::INDEX_FILTER; };
 
-   explicit RegionEx(uint32_t regionKey) : regionKey(regionKey) {
-   }
+   explicit RegionEx(uint32_t regionKey)
+       : regionKey(regionKey) {}
 
    filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
@@ -336,12 +324,21 @@ struct RegionEx : public BoolExpression {
       return res;
    }
 
-   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override;
+   std::unique_ptr<BoolExpression>
+   simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override;
 };
 
 struct SelectEx : public BoolExpression {
-   virtual filter_t select(const Database& db, const DatabasePartition& dbp, filter_t in_filter) = 0;
-   virtual filter_t neg_select(const Database& db, const DatabasePartition& dbp, filter_t in_filter) = 0;
+   virtual filter_t select(
+      const Database& db,
+      const DatabasePartition& dbp,
+      filter_t in_filter
+   ) = 0;
+   virtual filter_t neg_select(
+      const Database& db,
+      const DatabasePartition& dbp,
+      filter_t in_filter
+   ) = 0;
 };
 
 struct DateBetwEx : public SelectEx {
@@ -350,20 +347,22 @@ struct DateBetwEx : public SelectEx {
    time_t to;
    bool open_to;
 
-   ExType type() const override {
-      return ExType::INDEX_FILTER;
-   };
+   ExType type() const override { return ExType::INDEX_FILTER; };
 
    explicit DateBetwEx() {}
 
    explicit DateBetwEx(time_t from, bool open_from, time_t to, bool open_to)
-      : from(from), open_from(open_from), to(to), open_to(open_to) {}
+       : from(from),
+         open_from(open_from),
+         to(to),
+         open_to(open_to) {}
 
    filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
    filter_t select(const Database& db, const DatabasePartition& dbp, filter_t in_filter) override;
 
-   filter_t neg_select(const Database& db, const DatabasePartition& dbp, filter_t in_filter) override;
+   filter_t neg_select(const Database& db, const DatabasePartition& dbp, filter_t in_filter)
+      override;
 
    std::string to_string(const Database& /*db*/) override {
       std::string res = "[Date-between ";
@@ -374,7 +373,8 @@ struct DateBetwEx : public SelectEx {
       return res;
    }
 
-   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
+   std::unique_ptr<BoolExpression>
+   simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
       return std::make_unique<DateBetwEx>(from, open_from, to, open_to);
    }
 };
@@ -382,24 +382,25 @@ struct DateBetwEx : public SelectEx {
 struct PosNEqEx : public SelectEx {
    unsigned position;
 
-   ExType type() const override {
-      return ExType::FILTER;
-   };
+   ExType type() const override { return ExType::FILTER; };
 
-   explicit PosNEqEx(unsigned position) : position(position) {}
+   explicit PosNEqEx(unsigned position)
+       : position(position) {}
 
    filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
    filter_t select(const Database& db, const DatabasePartition& dbp, filter_t in_filter) override;
 
-   filter_t neg_select(const Database& db, const DatabasePartition& dbp, filter_t in_filter) override;
+   filter_t neg_select(const Database& db, const DatabasePartition& dbp, filter_t in_filter)
+      override;
 
    std::string to_string(const Database& /*db*/) override {
       std::string res = std::to_string(position) + "N";
       return res;
    }
 
-   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
+   std::unique_ptr<BoolExpression>
+   simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
       return std::make_unique<PosNEqEx>(position);
    }
 };
@@ -408,24 +409,26 @@ struct StrEqEx : public SelectEx {
    uint32_t column;
    uint64_t value;
 
-   ExType type() const override {
-      return ExType::FILTER;
-   };
+   ExType type() const override { return ExType::FILTER; };
 
-   explicit StrEqEx(uint32_t column, uint64_t value) : column(column), value(value) {}
+   explicit StrEqEx(uint32_t column, uint64_t value)
+       : column(column),
+         value(value) {}
 
    filter_t evaluate(const Database& db, const DatabasePartition& dbp) override;
 
    filter_t select(const Database& db, const DatabasePartition& dbp, filter_t in_filter) override;
 
-   filter_t neg_select(const Database& db, const DatabasePartition& dbp, filter_t in_filter) override;
+   filter_t neg_select(const Database& db, const DatabasePartition& dbp, filter_t in_filter)
+      override;
 
    std::string to_string(const Database& /*db*/) override {
       std::string res = column + "=" + value;
       return res;
    }
 
-   std::unique_ptr<BoolExpression> simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
+   std::unique_ptr<BoolExpression>
+   simplify(const Database& /*db*/, const DatabasePartition& /*dbp*/) const override {
       if (column == UINT32_MAX || value == UINT64_MAX) {
          return std::make_unique<EmptyEx>();
       }
@@ -442,17 +445,36 @@ struct MutationProportion {
 };
 
 /// Filter then call action
-QueryResult execute_query(const Database& db, const std::string& query, std::ostream& parse_out, std::ostream& perf_out);
+QueryResult execute_query(
+   const Database& db,
+   const std::string& query,
+   std::ostream& parse_out,
+   std::ostream& perf_out
+);
 
-std::vector<silo::filter_t> execute_predicate(const silo::Database& db, const BoolExpression* filter);
+std::vector<silo::filter_t> execute_predicate(
+   const silo::Database& db,
+   const BoolExpression* filter
+);
 
 /// Action
-std::vector<MutationProportion> execute_mutations(const silo::Database&, std::vector<silo::filter_t>&, double proportion_threshold, std::ostream& performance_file);
+std::vector<MutationProportion> execute_mutations(
+   const silo::Database&,
+   std::vector<silo::filter_t>&,
+   double proportion_threshold,
+   std::ostream& performance_file
+);
 
-std::vector<std::vector<uint32_t>> execute_all_dist(const silo::Database& db, std::vector<silo::filter_t>& partition_filters);
+std::vector<std::vector<uint32_t>> execute_all_dist(
+   const silo::Database& db,
+   std::vector<silo::filter_t>& partition_filters
+);
 
-uint64_t execute_count(const silo::Database& /*db*/, std::vector<silo::filter_t>& partition_filters);
+uint64_t execute_count(
+   const silo::Database& /*db*/,
+   std::vector<silo::filter_t>& partition_filters
+);
 
-} // namespace silo;
+}  // namespace silo
 
-#endif //SILO_QUERY_ENGINE_H
+#endif  // SILO_QUERY_ENGINE_H

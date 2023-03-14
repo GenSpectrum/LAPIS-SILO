@@ -1,5 +1,4 @@
 
-#include <silo/common/PerfEvent.hpp>
 #include <readline/history.h>
 #include <readline/readline.h>
 #include <silo/benchmark.h>
@@ -8,6 +7,7 @@
 #include <silo/database.h>
 #include <silo/prepare_dataset.h>
 #include <silo/query_engine/query_engine.h>
+#include <silo/common/PerfEvent.hpp>
 
 using namespace silo;
 
@@ -15,12 +15,10 @@ void info_message() {
    using std::cin;
    using std::cout;
    using std::endl;
-   cout << "SILO - Sequence Indexing engine for Large genOmic data" << endl
-        << endl;
+   cout << "SILO - Sequence Indexing engine for Large genOmic data" << endl << endl;
    cout << "Usage:" << endl;
    cout << "\tsilo" << endl;
-   cout << "\tStart silo in interactive mode" << endl
-        << endl;
+   cout << "\tStart silo in interactive mode" << endl << endl;
    cout << "\tsilo \"<command>\" ..." << endl;
    cout << "\tExecute the commands in the given order, then enter interactive mode." << endl
         << endl;
@@ -28,7 +26,8 @@ void info_message() {
         << "\trepair_meta [metadata_file] [sequence_file] [meta_out]" << endl
         << "\trepair_sequences [metadata_file] [sequence_file] [sequences_out]" << endl
         << "\tbuild_pango_def [metadata_file]" << endl
-        << "\tbuild_part_def [Partition mode: 1=all chunks, 2=all partitions, 3=single single]" << endl
+        << "\tbuild_part_def [Partition mode: 1=all chunks, 2=all partitions, 3=single single]"
+        << endl
         << "\tpartition [metadata_file] [sequence_file] [partition_directory]" << endl
         << "\tsort_chunks [partition_directory]" << endl
         << endl
@@ -80,7 +79,8 @@ int handle_command(Database& db, std::vector<std::string> args) {
          std::cerr << "sequence file " << (sequence_input_str) << " not found." << std::endl;
          return 0;
       }
-      auto meta_out = args.size() > 3 ? std::ofstream(args[3]) : std::ofstream(default_metadata_input + ".repair");
+      auto meta_out = args.size() > 3 ? std::ofstream(args[3])
+                                      : std::ofstream(default_metadata_input + ".repair");
       prune_meta(meta_input, sequence_input.get_is(), meta_out);
    } else if ("repair_sequences" == args[0]) {
       auto meta_input_str = args.size() > 1 ? args[1] : default_metadata_input;
@@ -95,7 +95,8 @@ int handle_command(Database& db, std::vector<std::string> args) {
          std::cerr << "sequence file " << (sequence_input_str) << " not found." << std::endl;
          return 0;
       }
-      auto sequence_out = args.size() > 3 ? std::ofstream(args[3]) : std::ofstream(default_sequence_input + ".repair");
+      auto sequence_out = args.size() > 3 ? std::ofstream(args[3])
+                                          : std::ofstream(default_sequence_input + ".repair");
       prune_sequences(meta_input, sequence_input.get_is(), sequence_out);
    } else if ("info_d" == args[0]) {
       if (args.size() > 1) {
@@ -132,7 +133,8 @@ int handle_command(Database& db, std::vector<std::string> args) {
 
       auto query_defs = std::ifstream(query_dir_str + "queries.txt");
       if (!query_defs) {
-         std::cerr << "query_defs file " << (query_dir_str + "queries.txt") << " not found." << std::endl;
+         std::cerr << "query_defs file " << (query_dir_str + "queries.txt") << " not found."
+                   << std::endl;
          return 0;
       }
       return benchmark(db, query_defs, query_dir_str);
@@ -141,7 +143,8 @@ int handle_command(Database& db, std::vector<std::string> args) {
 
       auto query_defs = std::ifstream(query_dir_str + "queries.txt");
       if (!query_defs) {
-         std::cerr << "query_defs file " << (query_dir_str + "queries.txt") << " not found." << std::endl;
+         std::cerr << "query_defs file " << (query_dir_str + "queries.txt") << " not found."
+                   << std::endl;
          return 0;
       }
       return benchmark_throughput(db, query_defs, query_dir_str);
@@ -150,7 +153,8 @@ int handle_command(Database& db, std::vector<std::string> args) {
 
       auto query_defs = std::ifstream(query_dir_str + "queries.txt");
       if (!query_defs) {
-         std::cerr << "query_defs file " << (query_dir_str + "queries.txt") << " not found." << std::endl;
+         std::cerr << "query_defs file " << (query_dir_str + "queries.txt") << " not found."
+                   << std::endl;
          return 0;
       }
       return benchmark_throughput_mix(db, query_defs, query_dir_str);
@@ -168,13 +172,15 @@ int handle_command(Database& db, std::vector<std::string> args) {
 
       auto query_defs = std::ifstream(query_dir_str + "queries.txt");
       if (!query_defs) {
-         std::cerr << "query_defs file " << (query_dir_str + "queries.txt") << " not found." << std::endl;
+         std::cerr << "query_defs file " << (query_dir_str + "queries.txt") << " not found."
+                   << std::endl;
          return 0;
       }
       return benchmark_throughput_mut(db, query_defs, query_dir_str);
    } else if ("save_pango_def" == args[0]) {
       if (!db.pango_descriptor) {
-         std::cout << "No pango_descriptor initialized. See 'build_pango_def' | 'load_pango_def'" << std::endl;
+         std::cout << "No pango_descriptor initialized. See 'build_pango_def' | 'load_pango_def'"
+                   << std::endl;
          return 0;
       }
       auto pango_def_output_str = args.size() > 1 ? args[1] : default_pango_def_file;
@@ -190,11 +196,13 @@ int handle_command(Database& db, std::vector<std::string> args) {
          return 0;
       }
       std::cout << "Load pango_descriptor from input file " << pango_def_input_str << std::endl;
-      db.pango_descriptor = std::make_unique<pango_descriptor_t>(silo::load_pango_defs(pango_def_input));
+      db.pango_descriptor =
+         std::make_unique<pango_descriptor_t>(silo::load_pango_defs(pango_def_input));
       return 0;
    } else if ("save_part_def" == args[0]) {
       if (!db.partition_descriptor) {
-         std::cerr << "No partition_descriptor initialized. See 'build_part_def' | 'load_part_def'" << std::endl;
+         std::cerr << "No partition_descriptor initialized. See 'build_part_def' | 'load_part_def'"
+                   << std::endl;
          return 0;
       }
       auto part_def_output_str = args.size() > 1 ? args[1] : default_part_def_file;
@@ -245,7 +253,8 @@ int handle_command(Database& db, std::vector<std::string> args) {
          optimised += runOptimize(dbp.seq_store);
       }
       uint32_t total_bitmaps = (genomeLength * Symbol::N * db.partitions.size());
-      std::cout << "Optimised " << std::to_string(optimised) << " out of " << total_bitmaps << " bitmaps." << std::endl;
+      std::cout << "Optimised " << std::to_string(optimised) << " out of " << total_bitmaps
+                << " bitmaps." << std::endl;
    } else if ("remove_run_optimize" == args[0]) {
       for (auto& dbp : db.partitions) {
          for (auto& position : dbp.seq_store.positions) {
@@ -276,8 +285,10 @@ int handle_command(Database& db, std::vector<std::string> args) {
       istream_wrapper in(default_sequence_input);
       std::string epi, genome;
       while (true) {
-         if (!getline(in.get_is(), epi, '\n')) break;
-         if (!getline(in.get_is(), genome, '\n')) break;
+         if (!getline(in.get_is(), epi, '\n'))
+            break;
+         if (!getline(in.get_is(), genome, '\n'))
+            break;
 
          unsigned start_gaps = 0;
          while (start_gaps < genome.length() && genome.at(start_gaps) == 'N') {
@@ -289,7 +300,8 @@ int handle_command(Database& db, std::vector<std::string> args) {
             end_gaps++;
          }
 
-         out << /*epi << "\t" <<*/ std::to_string(start_gaps) << "\t" << std::to_string(end_gaps) << "\n";
+         out << /*epi << "\t" <<*/ std::to_string(start_gaps) << "\t" << std::to_string(end_gaps)
+             << "\n";
       }
       out.flush();
    } else if ("N_analysis" == args[0]) {
@@ -299,22 +311,30 @@ int handle_command(Database& db, std::vector<std::string> args) {
       istream_wrapper in(default_sequence_input);
       std::string epi, genome;
       while (true) {
-         if (!getline(in.get_is(), epi, '\n')) break;
-         if (!getline(in.get_is(), genome, '\n')) break;
+         if (!getline(in.get_is(), epi, '\n'))
+            break;
+         if (!getline(in.get_is(), genome, '\n'))
+            break;
 
          unsigned idx = 0;
          while (idx < genomeLength) {
             while (genome.at(idx) != 'N') {
                idx++;
-               if (idx == genomeLength) break;
+               if (idx == genomeLength)
+                  break;
             }
-            if (idx == genomeLength) break;
+            if (idx == genomeLength)
+               break;
             unsigned N_start = idx;
             while (genome.at(idx) == 'N') {
                idx++;
-               if (idx == genomeLength) break;
+               if (idx == genomeLength)
+                  break;
             }
-            out << /* epi << "\t" << std::to_string(N_start) << "\t" << */ std::to_string(idx - N_start) << "\n";
+            out << /* epi << "\t" << std::to_string(N_start) << "\t" << */ std::to_string(
+                      idx - N_start
+                   )
+                << "\n";
          }
       }
       out.flush();
@@ -325,8 +345,10 @@ int handle_command(Database& db, std::vector<std::string> args) {
       istream_wrapper in(default_sequence_input);
       std::string epi, genome;
       while (true) {
-         if (!getline(in.get_is(), epi, '\n')) break;
-         if (!getline(in.get_is(), genome, '\n')) break;
+         if (!getline(in.get_is(), epi, '\n'))
+            break;
+         if (!getline(in.get_is(), genome, '\n'))
+            break;
 
          unsigned last_seen = 0;
          bool first = true;
@@ -335,16 +357,22 @@ int handle_command(Database& db, std::vector<std::string> args) {
          while (idx < genomeLength) {
             while (genome.at(idx) != 'N') {
                idx++;
-               if (idx == genomeLength) break;
+               if (idx == genomeLength)
+                  break;
             }
-            if (idx == genomeLength) break;
+            if (idx == genomeLength)
+               break;
             unsigned N_start = idx;
             while (genome.at(idx) == 'N') {
                idx++;
-               if (idx == genomeLength) break;
+               if (idx == genomeLength)
+                  break;
             }
             if (last_seen) {
-               out << /* epi << "\t" << std::to_string(N_start) << "\t" << */ std::to_string(last_seen) << "\n";
+               out << /* epi << "\t" << std::to_string(N_start) << "\t" << */ std::to_string(
+                         last_seen
+                      )
+                   << "\n";
             }
             if (first) {
                first = false;
@@ -390,7 +418,8 @@ int main(int argc, char* argv[]) {
             } else if (arg.starts_with("-w=")) {
                wd = arg.substr(2);
             } else {
-               // All parameters are fed to the database as inputs following the parsing of parameters
+               // All parameters are fed to the database as inputs following the parsing of
+               // parameters
                startup_commands.push_back(argv[i]);
             }
          }
