@@ -87,12 +87,12 @@ std::unique_ptr<BoolExpression> parseExpression(
       }
       return result;
    }
-   if (expression_type == "Neg") {
+   if (expression_type == "Not") {
       auto result = std::make_unique<NegatedExpression>();
       result->child = parseExpression(database, json_value["child"], -exact);
       return result;
    }
-   if (expression_type == "DateBetw") {
+   if (expression_type == "DateBetween") {
       auto result = std::make_unique<DateBetweenExpression>();
       if (json_value["from"].IsNull()) {
          result->open_from = true;
@@ -117,9 +117,9 @@ std::unique_ptr<BoolExpression> parseExpression(
       }
       return result;
    }
-   if (expression_type == "NucEq") {
+   if (expression_type == "NucleotideEquals") {
       const unsigned position = json_value["position"].GetUint();
-      const std::string& nucleotide_symbol = json_value["value"].GetString();
+      const std::string& nucleotide_symbol = json_value["symbol"].GetString();
       GENOME_SYMBOL value;
       if (nucleotide_symbol.at(0) == '.') {
          const char character = database.global_reference[0].at(position);
@@ -132,7 +132,7 @@ std::unique_ptr<BoolExpression> parseExpression(
       }
       return std::make_unique<NucleotideSymbolMaybeExpression>(position, value);
    }
-   if (expression_type == "NucMut") {
+   if (expression_type == "HasNucleotideMutation") {
       assert(json_value.HasMember("position"));
       const unsigned position = json_value["position"].GetUint();
       const char ref_symbol = database.global_reference[0].at(position);
@@ -156,7 +156,7 @@ std::unique_ptr<BoolExpression> parseExpression(
       const uint32_t lineage_key = database.dict->getPangoLineageIdInLookup(lineage);
       return std::make_unique<PangoLineageExpression>(lineage_key, include_sublineages);
    }
-   if (expression_type == "StrEq") {
+   if (expression_type == "StringEquals") {
       const std::string& column = json_value["column"].GetString();
       if (column == "country") {
          return std::make_unique<CountryExpression>(
@@ -184,7 +184,7 @@ std::unique_ptr<BoolExpression> parseExpression(
       result->child = parseExpression(database, json_value["child"], 1);
       return result;
    }
-   throw QueryParseException("Unknown object type");
+   throw QueryParseException("Unknown object filter type '" + expression_type + "'");
 }
 
 BooleanExpressionResult AndExpression::evaluate(

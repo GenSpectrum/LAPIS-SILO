@@ -1,0 +1,16 @@
+{
+  "testCaseName": "StringEquals for region",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filter": {
+      "type": "StringEquals",
+      "column": "country",
+      "value": "Switzerland"
+    }
+  },
+  "expectedQueryResult": {
+    "count": 10
+  }
+}

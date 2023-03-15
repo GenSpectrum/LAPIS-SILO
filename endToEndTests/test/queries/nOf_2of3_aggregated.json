@@ -10,19 +10,19 @@
       "matchExactly": false,
       "children": [
         {
-          "type": "NucEq",
+          "type": "NucleotideEquals",
           "position": 241,
-          "value": "T"
+          "symbol": "T"
         },
         {
-          "type": "NucEq",
+          "type": "NucleotideEquals",
           "position": 29734,
-          "value": "T"
+          "symbol": "T"
         },
         {
-          "type": "NucEq",
+          "type": "NucleotideEquals",
           "position": 28330,
-          "value": "G"
+          "symbol": "G"
         }
       ]
     }

@@ -44,4 +44,24 @@ describe('The /query endpoint', () => {
       })
       .end(done);
   });
+
+  it('should return a bad request response when POSTing an invalid filter type', done => {
+    server
+      .post('/query')
+      .send({
+        action: {
+          type: 'invalid action',
+        },
+        filter: {
+          type: 'invalid filter type',
+        },
+      })
+      .expect(400)
+      .expect('Content-Type', 'application/json')
+      .expect({
+        error: 'Bad request',
+        message: "Unknown object filter type 'invalid filter type'",
+      })
+      .end(done);
+  });
 });
