@@ -1,7 +1,3 @@
-//
-// Created by Alexander Taepper on 25.11.22.
-//
-
 #ifndef SILO_DICTIONARY_H
 #define SILO_DICTIONARY_H
 
@@ -9,59 +5,69 @@
 
 class Dictionary {
   private:
-   std::unordered_map<std::string, uint32_t> pango_dict;
-   std::unordered_map<std::string, uint32_t> country_dict;
-   std::unordered_map<std::string, uint32_t> region_dict;
-   std::unordered_map<std::string, uint32_t> col_dict;  // The additional column names
-   std::unordered_map<std::string, uint64_t> general_dict;
+   // TODO(someone) put this into two way map
+   std::unordered_map<std::string, uint32_t> pango_lineage_dictionary;
+   std::unordered_map<std::string, uint32_t> country_dictionary;
+   std::unordered_map<std::string, uint32_t> region_dictionary;
+   std::unordered_map<std::string, uint32_t> additional_columns_dictionary;
+   std::unordered_map<std::string, uint64_t> general_dictionary;  // TODO(someone) clean this up!
 
-   std::vector<std::string> pango_lookup;
+   std::vector<std::string> pango_lineage_lookup;
    std::vector<std::string> country_lookup;
    std::vector<std::string> region_lookup;
-   std::vector<std::string> col_lookup;
+   std::vector<std::string> additional_columns_lookup;
    std::vector<std::string> general_lookup;
 
-   uint32_t pango_count = 0;
+   uint32_t pango_lineage_count = 0;
    uint32_t country_count = 0;
    uint32_t region_count = 0;
-   uint32_t col_count = 0;
+   uint32_t additional_columns_count = 0;
    uint64_t general_count = 0;
 
   public:
-   void update_dict(
-      std::istream& dict_file,
+   void updateDictionary(
+      std::istream& metadata_file,
       const std::unordered_map<std::string, std::string>& alias_key
    );
 
-   void save_dict(std::ostream& dict_file) const;
+   void saveDictionary(std::ostream& dictionary_file) const;
 
-   static Dictionary load_dict(std::istream& dict_file);
+   static Dictionary loadDictionary(std::istream& dictionary_file);
 
-   uint32_t get_pangoid(const std::string& str) const;
+   [[maybe_unused]] [[nodiscard]] uint32_t getPangoLineageIdInLookup(
+      const std::string& pango_lineage
+   ) const;
 
-   const std::string& get_pango(uint32_t id) const;
+   [[maybe_unused]] [[nodiscard]] const std::string& getPangoLineage(
+      uint32_t pango_lineage_id_in_lookup
+   ) const;
 
-   uint32_t get_pango_count() const { return pango_count; }
+   [[maybe_unused]] [[nodiscard]] uint32_t getPangoLineageCount() const;
 
-   uint32_t get_countryid(const std::string& str) const;
+   [[maybe_unused]] [[nodiscard]] uint32_t getCountryIdInLookup(const std::string& country) const;
 
-   const std::string& get_country(uint32_t id) const;
+   [[maybe_unused]] [[nodiscard]] const std::string& getCountry(uint32_t country_id_in_lookup
+   ) const;
 
-   uint32_t get_country_count() const { return country_count; }
+   [[maybe_unused]] [[nodiscard]] uint32_t getCountryCount() const;
 
-   uint32_t get_regionid(const std::string& str) const;
+   [[maybe_unused]] [[nodiscard]] uint32_t getRegionIdInLookup(const std::string& region) const;
 
-   const std::string& get_region(uint32_t id) const;
+   [[maybe_unused]] [[nodiscard]] const std::string& getRegion(uint32_t region_lookup_id) const;
 
-   uint32_t get_region_count() const { return region_count; }
+   [[maybe_unused]] [[nodiscard]] uint32_t getRegionCount() const;
 
-   uint64_t get_id(const std::string& str) const;
+   [[maybe_unused]] [[nodiscard]] uint64_t getIdInGeneralLookup(
+      const std::string& region_id_in_lookup
+   ) const;
 
-   const std::string& get_str(uint64_t id) const;
+   [[maybe_unused]] [[nodiscard]] const std::string& getGeneralLookup(uint64_t general_id_in_lookup
+   ) const;
 
-   uint32_t get_colid(const std::string& str) const;
+   [[maybe_unused]] [[nodiscard]] uint32_t getColumnIdInLookup(const std::string& column_name
+   ) const;
 
-   const std::string& get_col(uint32_t id) const;
+   [[maybe_unused]] [[nodiscard]] const std::string& getColumn(uint32_t column_id_in_lookup) const;
 };
 
 #endif  // SILO_DICTIONARY_H

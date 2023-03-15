@@ -1,7 +1,3 @@
-//
-// Created by Alexander Taepper on 16.11.22.
-//
-
 #ifndef SILO_PREPARE_DATASET_H
 #define SILO_PREPARE_DATASET_H
 
@@ -10,28 +6,29 @@
 
 namespace silo {
 
-void prune_sequences(
+[[maybe_unused]] void pruneSequences(
    std::istream& meta_in,
    std::istream& sequences_in,
    std::ostream& sequences_out
 );
 
-void prune_meta(std::istream& meta_in, std::istream& sequences_in, std::ostream& meta_out);
+[[maybe_unused]] void pruneMetadata(
+   std::istream& meta_in,
+   std::istream& sequences_in,
+   std::ostream& meta_out
+);
 
-pango_descriptor_t build_pango_defs(
+PangoLineageCounts buildPangoLineageCounts(
    const std::unordered_map<std::string, std::string>& alias_key,
    std::istream& meta_in
 );
 
-enum architecture_type { max_partitions, single_partition, hybrid, single_single };
+enum Architecture { MAX_PARTITIONS, SINGLE_PARTITION, HYBRID, SINGLE_SINGLE };
 
-partitioning_descriptor_t build_partitioning_descriptor(
-   pango_descriptor_t pango_defs,
-   architecture_type arch
-);
+Partitions buildPartitions(PangoLineageCounts pango_lineage_counts, Architecture arch);
 
-void partition_sequences(
-   const partitioning_descriptor_t& pd,
+void partitionSequences(
+   const Partitions& partitions,
    std::istream& meta_in,
    std::istream& sequence_in,
    const std::string& output_prefix,
@@ -40,8 +37,8 @@ void partition_sequences(
    const std::string& sequence_file_extension
 );
 
-void sort_chunks(
-   const partitioning_descriptor_t& pd,
+void sortChunks(
+   const Partitions& partitions,
    const std::string& output_prefix,
    const std::string& metadata_file_extension,
    const std::string& sequence_file_extension

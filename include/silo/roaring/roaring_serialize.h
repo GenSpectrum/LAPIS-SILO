@@ -1,7 +1,3 @@
-//
-// Created by Alexander Taepper on 09.01.23.
-//
-
 #ifndef SILO_ROARING_SERIALIZE_H
 #define SILO_ROARING_SERIALIZE_H
 
@@ -13,6 +9,8 @@
 #include <boost/serialization/vector.hpp>
 #include "roaring.hh"
 
+// no linting because needed by external library
+// NOLINTBEGIN
 BOOST_SERIALIZATION_SPLIT_FREE(::roaring::Roaring)
 namespace boost::serialization {
 template <class Archive>
@@ -42,5 +40,6 @@ template <class Archive>
    bitmask = roaring::Roaring::readSafe(buffer.data(), size_in_bytes);
 }
 }  // namespace boost::serialization
+// NOLINTEND
 
 #endif  // SILO_ROARING_SERIALIZE_H

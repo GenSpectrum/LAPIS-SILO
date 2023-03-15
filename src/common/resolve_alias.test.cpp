@@ -1,4 +1,5 @@
 #include <silo/common/silo_symbols.h>
+#include <silo/database.h>
 #include "gtest/gtest.h"
 
 struct TestParameter {
@@ -14,11 +15,12 @@ class ResolveAliasTestFixture : public ::testing::TestWithParam<TestParameter> {
 TEST_P(ResolveAliasTestFixture, should_return_expected_resolved_alias) {
    const auto test_parameter = GetParam();
 
-   const auto result = silo::resolve_alias(alias_map, test_parameter.input);
+   const auto result = silo::resolvePangoLineageAlias(alias_map, test_parameter.input);
 
    ASSERT_EQ(result, test_parameter.expected_result);
 }
 
+// NOLINTNEXTLINE(readability-identifier-length)
 INSTANTIATE_TEST_SUITE_P(
    resolve_alias_test,
    ResolveAliasTestFixture,

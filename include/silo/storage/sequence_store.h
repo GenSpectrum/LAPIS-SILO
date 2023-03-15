@@ -1,10 +1,9 @@
-//
-// Created by Alexander Taepper on 26.09.22.
-//
 
 #ifndef SILO_SEQUENCE_STORE_H
 #define SILO_SEQUENCE_STORE_H
 
+#include <array>
+#include "boost/serialization/array.hpp"
 #include "meta_store.h"
 #include "silo/roaring/roaring.hh"
 #include "silo/roaring/roaring_serialize.h"
@@ -15,16 +14,18 @@ struct Position {
    friend class boost::serialization::access;
 
    template <class Archive>
-   void serialize(Archive& ar, [[maybe_unused]] const unsigned int version) {
-      ar& flipped_bitmap;
-      ar& bitmaps;
-      ar& N_indexed;
+   void serialize(Archive& archive, [[maybe_unused]] const unsigned int version) {
+      archive& flipped_bitmap;
+      archive& bitmaps;
+      archive& nucleotide_symbol_n_indexed;
    }
 
-   roaring::Roaring bitmaps[symbolCount];
-   // Reference bitmap is flipped
-   uint32_t flipped_bitmap = UINT32_MAX;
-   bool N_indexed = false;
+   std::array<roaring::Roaring, SYMBOL_COUNT> bitmaps;
+
+   static constexpr uint32_t REFERENCE_BITMAP_IS_FLIPPED = UINT32_MAX;
+   uint32_t flipped_bitmap = REFERENCE_BITMAP_IS_FLIPPED;
+
+   bool nucleotide_symbol_n_indexed = false;
 };
 
 class SequenceStore {
@@ -32,61 +33,46 @@ class SequenceStore {
    unsigned sequence_count;
 
   public:
-   friend class CompressedSequenceStore;
    friend class boost::serialization::access;
 
    template <class Archive>
-   void serialize(Archive& ar, [[maybe_unused]] const unsigned int version) {
-      ar& sequence_count;
-      ar& positions;
-      ar& N_bitmaps;
-   }
-   Position positions[genomeLength];
-   std::vector<roaring::Roaring> N_bitmaps;
-
-   [[nodiscard]] size_t computeSize() const {
-      size_t result = 0;
-      for (auto& p : positions) {
-         for (auto& b : p.bitmaps) {
-            result += b.getSizeInBytes(false);
-         }
-      }
-      return result;
+   void serialize(Archive& archive, [[maybe_unused]] const unsigned int version) {
+      archive& sequence_count;
+      archive& positions;
+      archive& nucleotide_symbol_n_bitmaps;
    }
 
-   /// default constructor
-   SequenceStore() {}
+   std::array<Position, GENOME_LENGTH> positions;
+   std::vector<roaring::Roaring> nucleotide_symbol_n_bitmaps;
 
-   /// pos: 1 indexed position of the genome
-   [[nodiscard]] const roaring::Roaring* bm(size_t pos, Symbol s) const {
-      return &positions[pos - 1].bitmaps[s];
-   }
+   SequenceStore();
 
-   /// Returns an Roaring-bitmap which has the given residue r at the position pos,
-   /// where the residue is interpreted in the _a_pproximate meaning
-   /// That means a symbol matches all mixed symbols, which can indicate the residue
-   /// pos: 1 indexed position of the genome
-   [[nodiscard]] roaring::Roaring* bma(size_t pos, Symbol r) const;
+   [[nodiscard]] size_t computeSize() const;
 
-   /// Same as before for flipped bitmaps for r
-   [[nodiscard]] roaring::Roaring* bma_neg(size_t pos, Symbol r) const;
+   [[nodiscard]] const roaring::Roaring* getBitmap(size_t position, GENOME_SYMBOL symbol) const;
+
+   [[nodiscard]] roaring::Roaring* getBitmapFromAmbiguousSymbol(
+      size_t position,
+      GENOME_SYMBOL ambiguous_symbol
+   ) const;
+
+   [[nodiscard]] roaring::Roaring* getFlippedBitmapFromAmbiguousSymbol(
+      size_t position,
+      GENOME_SYMBOL ambiguous_symbol
+   ) const;
 
    void interpret(const std::vector<std::string>& genomes);
 
-   void indexAllN();
+   void indexAllNucleotideSymbolsN();
 
-   void indexAllN_naive();
+   void naiveIndexAllNucleotideSymbolN();
 
-   int db_info(std::ostream& io) const;
+   int databaseInfo(std::ostream& output_stream) const;
 };
 
-[[maybe_unused]] unsigned save_db(const SequenceStore& db, const std::string& db_filename);
+[[maybe_unused]] unsigned runOptimize(SequenceStore& sequence_store);
 
-[[maybe_unused]] unsigned load_db(SequenceStore& db, const std::string& db_filename);
-
-[[maybe_unused]] unsigned runOptimize(SequenceStore& db);
-
-[[maybe_unused]] unsigned shrinkToFit(SequenceStore& db);
+[[maybe_unused]] unsigned shrinkToFit(SequenceStore& sequence_store);
 
 }  // namespace silo
 

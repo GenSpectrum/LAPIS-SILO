@@ -5,15 +5,45 @@
 #include <string>
 
 namespace silo {
+
+struct InputDirectory {
+   std::string directory;
+};
+
+struct OutputDirectory {
+   std::string directory;
+};
+
+struct MetadataFilename {
+   std::string filename;
+};
+
+struct SequenceFilename {
+   std::string filename;
+};
+
+struct PangoLineageDefinitionFilename {
+   std::string filename;
+};
+
+struct PartitionFolder {
+   std::string folder;
+};
+
+struct SerializationFolder {
+   std::string folder;
+};
+
 struct PreprocessingConfig {
-   PreprocessingConfig(
-      const std::string& input_directory_ = "./",
-      const std::string& output_directory_ = "./",
-      const std::string& metadata_filename_ = "minimal_metadata_set.tsv",
-      const std::string& sequence_filename_ = "minimal_sequence_set.fasta",
-      const std::string& pango_lineage_definition_filename_ = "pango_alias.txt",
-      const std::string& partition_folder_ = "partitioned/",
-      const std::string& serialization_folder_ = "serialized_state/"
+   explicit PreprocessingConfig(
+      const InputDirectory& input_directory_ = {"./"},
+      const OutputDirectory& output_directory_ = {"./"},
+      const MetadataFilename& metadata_filename_ = {"minimal_metadata_set.tsv"},
+      const SequenceFilename& sequence_filename_ = {"minimal_sequence_set.fasta"},
+      const PangoLineageDefinitionFilename& pango_lineage_definition_filename_ =
+         {"pango_alias.txt"},
+      const PartitionFolder& partition_folder_ = {"partitioned/"},
+      const SerializationFolder& serialization_folder_ = {"serialized_state/"}
    );
 
    std::filesystem::path pango_lineage_definition_file;
@@ -22,6 +52,7 @@ struct PreprocessingConfig {
    std::filesystem::path partition_folder;
    std::filesystem::path serialization_folder;
 };
+
 }  // namespace silo
 
 #endif  // SILO_PREPROCESSING_CONFIG_H

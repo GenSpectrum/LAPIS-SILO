@@ -1,162 +1,161 @@
-//
-// Created by Alexander Taepper on 09.01.23.
-//
-
 #include <silo/query_engine/query_engine.h>
 #include <syncstream>
 
-using namespace silo;
-
-std::unique_ptr<BoolExpression> NucEqEx::simplify(
-   const Database& /*db*/,
-   const DatabasePartition& dbp
+namespace silo {
+std::unique_ptr<BoolExpression> NucleotideSymbolEqualsExpression::simplify(
+   const Database& /*database*/,
+   const DatabasePartition& database_partition
 ) const {
-   std::unique_ptr<NucEqEx> ret = std::make_unique<NucEqEx>(position, value);
-   if (value == Symbol::N && !dbp.seq_store.positions[position].N_indexed) {
-      return std::make_unique<PosNEqEx>(position);
+   std::unique_ptr<NucleotideSymbolEqualsExpression> result =
+      std::make_unique<NucleotideSymbolEqualsExpression>(position, value);
+   if (value == GENOME_SYMBOL::N && !database_partition.seq_store.positions[position].nucleotide_symbol_n_indexed) {
+      return std::make_unique<PositionHasNucleotideSymbolNExpression>(position);
    }
-   if (!individualized && dbp.seq_store.positions[position - 1].flipped_bitmap == value) {  /// Bitmap
-                                                                                            /// of
-                                                                                            /// position
-                                                                                            /// is
-                                                                                            /// flipped!
-                                                                                            /// Introduce
-                                                                                            /// Neg
-      ret->individualized = true;
-      return std::make_unique<NegEx>(std::move(ret));
-   } else {
-      return ret;
+   if (!individualized && database_partition.seq_store.positions[position - 1].flipped_bitmap == value) {
+      result->individualized = true;
+      return std::make_unique<NegatedExpression>(std::move(result));
    }
+   return result;
 }
 
-std::unique_ptr<BoolExpression> NucMbEx::simplify(
-   const Database& /*db*/,
-   const DatabasePartition& dbp
+std::unique_ptr<BoolExpression> NucleotideSymbolMaybeExpression::simplify(
+   const Database& /*database*/,
+   const DatabasePartition& database_partition
 ) const {
-   std::unique_ptr<NucMbEx> ret = std::make_unique<NucMbEx>(position, value);
-   if (dbp.seq_store.positions[position - 1].flipped_bitmap == value) {  /// Bitmap of reference is
-                                                                         /// flipped! Introduce Neg
+   std::unique_ptr<NucleotideSymbolMaybeExpression> ret =
+      std::make_unique<NucleotideSymbolMaybeExpression>(position, value);
+   if (database_partition.seq_store.positions[position - 1].flipped_bitmap == value) {
+      /// Bitmap of reference is flipped! Introduce Neg
       ret->negated = true;
    }
    return ret;
 }
 
-std::unique_ptr<BoolExpression> PangoLineageEx::simplify(
-   const Database& /*db*/,
-   const DatabasePartition& dbp
+std::unique_ptr<BoolExpression> PangoLineageExpression::simplify(
+   const Database& /*database*/,
+   const DatabasePartition& database_partition
 ) const {
    if (lineageKey == UINT32_MAX) {
-      return std::make_unique<EmptyEx>();
+      return std::make_unique<EmptyExpression>();
    }
-   if (includeSubLineages && dbp.meta_store.sublineage_bitmaps[lineageKey].isEmpty()) {
-      return std::make_unique<EmptyEx>();
-   } else if (!includeSubLineages && dbp.meta_store.lineage_bitmaps[lineageKey].isEmpty()) {
-      return std::make_unique<EmptyEx>();
-   } else {
-      return std::make_unique<PangoLineageEx>(lineageKey, includeSubLineages);
+   if (include_sublineages && database_partition.meta_store.sublineage_bitmaps[lineageKey].isEmpty()) {
+      return std::make_unique<EmptyExpression>();
    }
+   if (!include_sublineages && database_partition.meta_store.lineage_bitmaps[lineageKey].isEmpty()) {
+      return std::make_unique<EmptyExpression>();
+   }
+   return std::make_unique<PangoLineageExpression>(lineageKey, include_sublineages);
 }
 
-std::unique_ptr<BoolExpression> CountryEx::simplify(
-   const Database& /*db*/,
-   const DatabasePartition& dbp
+std::unique_ptr<BoolExpression> CountryExpression::simplify(
+   const Database& /*database*/,
+   const DatabasePartition& database_partition
 ) const {
-   if (countryKey == UINT32_MAX || dbp.meta_store.country_bitmaps[countryKey].isEmpty()) {
-      return std::make_unique<EmptyEx>();
-   } else {
-      return std::make_unique<CountryEx>(countryKey);
+   if (country_key == UINT32_MAX || database_partition.meta_store.country_bitmaps[country_key].isEmpty()) {
+      return std::make_unique<EmptyExpression>();
    }
+   return std::make_unique<CountryExpression>(country_key);
 }
 
-std::unique_ptr<BoolExpression> RegionEx::simplify(
-   const Database& /*db*/,
-   const DatabasePartition& dbp
+std::unique_ptr<BoolExpression> RegionExpression::simplify(
+   const Database& /*database*/,
+   const DatabasePartition& database_partition
 ) const {
-   if (regionKey == UINT32_MAX || dbp.meta_store.region_bitmaps[regionKey].isEmpty()) {
-      return std::make_unique<EmptyEx>();
-   } else {
-      return std::make_unique<RegionEx>(regionKey);
+   if (region_key == UINT32_MAX || database_partition.meta_store.region_bitmaps[region_key].isEmpty()) {
+      return std::make_unique<EmptyExpression>();
    }
+   return std::make_unique<RegionExpression>(region_key);
 }
 
-std::unique_ptr<BoolExpression> AndEx::simplify(const Database& db, const DatabasePartition& dbp)
-   const {
+std::unique_ptr<BoolExpression> AndExpression::simplify(
+   const Database& database,
+   const DatabasePartition& database_partition
+) const {
    std::vector<std::unique_ptr<BoolExpression>> new_children;
    std::transform(
       children.begin(), children.end(), std::back_inserter(new_children),
-      [&](const std::unique_ptr<BoolExpression>& c) { return c->simplify(db, dbp); }
+      [&](const std::unique_ptr<BoolExpression>& expression) {
+         return expression->simplify(database, database_partition);
+      }
    );
-   std::unique_ptr<AndEx> ret = std::make_unique<AndEx>();
+   std::unique_ptr<AndExpression> ret = std::make_unique<AndExpression>();
    for (unsigned i = 0; i < new_children.size(); i++) {
       auto& child = new_children[i];
       if (child->type() == FULL) {
          continue;
-      } else if (child->type() == EMPTY) {
-         return std::make_unique<EmptyEx>();
-      } else if (child->type() == AND) {
-         AndEx* and_child = dynamic_cast<AndEx*>(child.get());
+      }
+      if (child->type() == EMPTY) {
+         return std::make_unique<EmptyExpression>();
+      }
+      if (child->type() == AND) {
+         auto* and_child = dynamic_cast<AndExpression*>(child.get());
          std::transform(
             and_child->children.begin(), and_child->children.end(),
             std::back_inserter(new_children),
-            [&](std::unique_ptr<BoolExpression>& c) { return std::move(c); }
+            [&](std::unique_ptr<BoolExpression>& expression) { return std::move(expression); }
          );
          std::transform(
             and_child->negated_children.begin(), and_child->negated_children.end(),
             std::back_inserter(ret->negated_children),
-            [&](std::unique_ptr<BoolExpression>& c) { return std::move(c); }
+            [&](std::unique_ptr<BoolExpression>& expression) { return std::move(expression); }
          );
       } else if (child->type() == NEG) {
-         NegEx* negated_child = dynamic_cast<NegEx*>(child.get());
+         auto* negated_child = dynamic_cast<NegatedExpression*>(child.get());
          ret->negated_children.emplace_back(std::move(negated_child->child));
       } else {
          ret->children.push_back(std::move(child));
       }
    }
    if (ret->children.empty() && ret->negated_children.empty()) {
-      return std::make_unique<FullEx>();
+      return std::make_unique<FullExpression>();
    }
    if (ret->children.size() == 1 && ret->negated_children.empty()) {
       return std::move(ret->children[0]);
    }
    if (ret->negated_children.size() == 1 && ret->children.empty()) {
-      return std::make_unique<NegEx>(std::move(ret->negated_children[0]));
+      return std::make_unique<NegatedExpression>(std::move(ret->negated_children[0]));
    }
    if (ret->children.empty()) {
-      std::unique_ptr<OrEx> or_ret = std::make_unique<OrEx>();
+      std::unique_ptr<OrExpression> or_ret = std::make_unique<OrExpression>();
       for (auto& child : ret->negated_children) {
          or_ret->children.push_back(std::move(child));
       }
-      return std::make_unique<NegEx>(std::move(or_ret));
+      return std::make_unique<NegatedExpression>(std::move(or_ret));
    }
    return ret;
 }
 
-std::unique_ptr<BoolExpression> OrEx::simplify(const Database& db, const DatabasePartition& dbp)
-   const {
+std::unique_ptr<BoolExpression> OrExpression::simplify(
+   const Database& database,
+   const DatabasePartition& database_partition
+) const {
    std::vector<std::unique_ptr<BoolExpression>> new_children;
    std::transform(
       children.begin(), children.end(), std::back_inserter(new_children),
-      [&](const std::unique_ptr<BoolExpression>& c) { return c->simplify(db, dbp); }
+      [&](const std::unique_ptr<BoolExpression>& expression) {
+         return expression->simplify(database, database_partition);
+      }
    );
-   std::unique_ptr<OrEx> ret = std::make_unique<OrEx>();
+   std::unique_ptr<OrExpression> ret = std::make_unique<OrExpression>();
    for (unsigned i = 0; i < new_children.size(); i++) {
       auto& child = new_children[i];
       if (child->type() == EMPTY) {
          continue;
-      } else if (child->type() == FULL) {
-         return std::make_unique<FullEx>();
-      } else if (child->type() == OR) {
-         OrEx* or_child = dynamic_cast<OrEx*>(child.get());
+      }
+      if (child->type() == FULL) {
+         return std::make_unique<FullExpression>();
+      }
+      if (child->type() == OR) {
+         auto* or_child = dynamic_cast<OrExpression*>(child.get());
          std::transform(
             or_child->children.begin(), or_child->children.end(), std::back_inserter(new_children),
-            [&](std::unique_ptr<BoolExpression>& c) { return std::move(c); }
+            [&](std::unique_ptr<BoolExpression>& expression) { return std::move(expression); }
          );
-      } else {
-         ret->children.push_back(std::move(child));
       }
+      ret->children.push_back(std::move(child));
    }
    if (ret->children.empty()) {
-      return std::make_unique<EmptyEx>();
+      return std::make_unique<EmptyExpression>();
    }
    if (ret->children.size() == 1) {
       return std::move(ret->children[0]);
@@ -165,93 +164,102 @@ std::unique_ptr<BoolExpression> OrEx::simplify(const Database& db, const Databas
           new_children.begin(), new_children.end(),
           [](const std::unique_ptr<BoolExpression>& child) { return child->type() == NEG; }
        )) {
-      std::unique_ptr<AndEx> and_ret = std::make_unique<AndEx>();
+      std::unique_ptr<AndExpression> and_ret = std::make_unique<AndExpression>();
       for (auto& child : ret->children) {
          if (child->type() == NEG) {
             and_ret->negated_children.emplace_back(
-               std::move(dynamic_cast<NegEx*>(child.get())->child)
+               std::move(dynamic_cast<NegatedExpression*>(child.get())->child)
             );
          } else {
             and_ret->children.push_back(std::move(child));
          }
       }
       return and_ret;
-   } else {
-      return ret;
-   }
-}
-
-std::unique_ptr<BoolExpression> NegEx::simplify(const Database& db, const DatabasePartition& dbp)
-   const {
-   std::unique_ptr<NegEx> ret = std::make_unique<NegEx>(child->simplify(db, dbp));
-   if (ret->child->type() == ExType::NEG) {
-      return std::move(dynamic_cast<NegEx*>(ret->child.get())->child);
    }
    return ret;
 }
 
-std::unique_ptr<BoolExpression> NOfEx::simplify(const Database& db, const DatabasePartition& dbp)
-   const {
+std::unique_ptr<BoolExpression> NegatedExpression::simplify(
+   const Database& database,
+   const DatabasePartition& database_partition
+) const {
+   std::unique_ptr<NegatedExpression> ret =
+      std::make_unique<NegatedExpression>(child->simplify(database, database_partition));
+   if (ret->child->type() == ExpressionType::NEG) {
+      return std::move(dynamic_cast<NegatedExpression*>(ret->child.get())->child);
+   }
+   return ret;
+}
+
+// TODO(someone): reduce cognitive complexity
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+std::unique_ptr<BoolExpression> NOfExpression::simplify(
+   const Database& database,
+   const DatabasePartition& database_partition
+) const {
    std::vector<std::unique_ptr<BoolExpression>> new_children;
    std::transform(
       children.begin(), children.end(), std::back_inserter(new_children),
-      [&](const std::unique_ptr<BoolExpression>& c) { return c->simplify(db, dbp); }
+      [&](const std::unique_ptr<BoolExpression>& expression) {
+         return expression->simplify(database, database_partition);
+      }
    );
-   std::unique_ptr<NOfEx> ret = std::make_unique<NOfEx>(n, impl, exactly);
-   for (unsigned i = 0; i < new_children.size(); i++) {
-      auto& child = new_children[i];
+   std::unique_ptr<NOfExpression> result =
+      std::make_unique<NOfExpression>(number_of_matchers, match_exactly, implementation);
+   for (auto& child : new_children) {
       if (child->type() == EMPTY) {
          continue;
-      } else if (child->type() == FULL) {
-         if (ret->n == 0) {
-            if (ret->exactly) {
-               return std::make_unique<EmptyEx>();
-            } else {
-               return std::make_unique<FullEx>();
+      }
+      if (child->type() == FULL) {
+         if (result->number_of_matchers == 0) {
+            if (result->match_exactly) {
+               return std::make_unique<EmptyExpression>();
             }
+            return std::make_unique<FullExpression>();
          }
-         ret->n--;
+         result->number_of_matchers--;
       } else {
-         ret->children.push_back(std::move(child));
+         result->children.push_back(std::move(child));
       }
    }
-   if (ret->n > ret->children.size()) {
-      return std::make_unique<EmptyEx>();
+   if (result->number_of_matchers > result->children.size()) {
+      return std::make_unique<EmptyExpression>();
    }
-   if (ret->n == ret->children.size()) {
-      auto new_ret = std::make_unique<AndEx>();
-      for (auto& child : ret->children) {
+   if (result->number_of_matchers == result->children.size()) {
+      auto new_ret = std::make_unique<AndExpression>();
+      for (auto& child : result->children) {
          new_ret->children.emplace_back(std::move(child));
       }
-      return new_ret->simplify(db, dbp);
+      return new_ret->simplify(database, database_partition);
    }
-   if (ret->n == 0) {
-      if (ret->exactly) {
-         auto new_ret = std::make_unique<AndEx>();
-         for (auto& child : ret->children) {
-            new_ret->children.emplace_back(std::make_unique<NegEx>(std::move(child)));
+   if (result->number_of_matchers == 0) {
+      if (result->match_exactly) {
+         auto new_ret = std::make_unique<AndExpression>();
+         for (auto& child : result->children) {
+            new_ret->children.emplace_back(std::make_unique<NegatedExpression>(std::move(child)));
          }
-         return new_ret->simplify(db, dbp);
-      } else {
-         return std::make_unique<FullEx>();
+         return new_ret->simplify(database, database_partition);
       }
+      return std::make_unique<FullExpression>();
    }
-   if (ret->n == 1 && !ret->exactly) {
-      auto new_ret = std::make_unique<OrEx>();
-      for (auto& child : ret->children) {
+   if (result->number_of_matchers == 1 && !result->match_exactly) {
+      auto new_ret = std::make_unique<OrExpression>();
+      for (auto& child : result->children) {
          new_ret->children.emplace_back(std::move(child));
       }
       return new_ret;
    }
-   if (ret->children.empty()) {
+   if (result->children.empty()) {
       std::cerr << "NOf simplification bug: children empty, n>0, but no not children.size() < n?"
                 << std::endl;
-      return std::make_unique<EmptyEx>();
+      return std::make_unique<EmptyExpression>();
    }
-   if (ret->children.size() == 1) {
+   if (result->children.size() == 1) {
       std::cerr << "NOf simplification bug: 0 < n < children.size(), but children.size() == 1?"
                 << std::endl;
-      return std::move(ret->children[0]);
+      return std::move(result->children[0]);
    }
-   return ret;
+   return result;
 }
+
+}  // namespace silo

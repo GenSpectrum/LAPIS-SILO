@@ -1,4 +1,5 @@
 #include "silo_api/query_handler.h"
+#include <silo/query_engine/QueryParseException.h>
 #include <nlohmann/json.hpp>
 #include "Poco/Net/HTTPRequestHandler.h"
 #include "Poco/Net/HTTPServerRequest.h"
@@ -30,7 +31,7 @@ void QueryHandler::handleRequest(
    response.setContentType("application/json");
 
    try {
-      const auto query_result = silo::execute_query(database, query, std::cout, std::cout);
+      const auto query_result = silo::executeQuery(database, query, std::cout, std::cout);
 
       std::ostream& out_stream = response.send();
       out_stream << nlohmann::json(query_result);
@@ -44,4 +45,6 @@ void QueryHandler::handleRequest(
       out_stream << nlohmann::json(ErrorResponse{"Internal server error", ex.what()});
    }
 }
+QueryHandler::QueryHandler(silo::Database& database)
+    : database(database) {}
 }  // namespace silo_api

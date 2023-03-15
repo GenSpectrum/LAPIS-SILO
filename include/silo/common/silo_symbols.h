@@ -1,6 +1,7 @@
 #ifndef SILO_H
 #define SILO_H
 
+#include <array>
 #include <chrono>
 #include <fstream>
 #include <iostream>
@@ -12,11 +13,11 @@
 
 namespace silo {
 
-static constexpr unsigned genomeLength = 29903;
+static constexpr unsigned GENOME_LENGTH = 29903;
 
 // https://www.bioinformatics.org/sms/iupac.html
-enum Symbol {
-   gap,  // -, gap
+enum GENOME_SYMBOL {
+   GAP,  // -, GAP
    A,    // Adenine
    C,    // Cytosine
    G,    // Guanine
@@ -34,96 +35,71 @@ enum Symbol {
    N,    // any base
 };
 
-static constexpr unsigned symbolCount = static_cast<unsigned>(Symbol::N) + 1;
+static constexpr unsigned SYMBOL_COUNT = static_cast<unsigned>(GENOME_SYMBOL::N) + 1;
 
-static constexpr char symbol_rep[symbolCount] = {'-', 'A', 'C', 'G', 'T', 'R', 'Y', 'S',
-                                                 'W', 'K', 'M', 'B', 'D', 'H', 'V', 'N'};
+static constexpr std::array<char, SYMBOL_COUNT> SYMBOL_REPRESENTATION{
+   '-', 'A', 'C', 'G', 'T', 'R', 'Y', 'S', 'W', 'K', 'M', 'B', 'D', 'H', 'V', 'N'};
 
-static_assert(symbol_rep[static_cast<unsigned>(Symbol::N)] == 'N');
+static_assert(SYMBOL_REPRESENTATION[static_cast<unsigned>(GENOME_SYMBOL::N)] == 'N');
 
-inline Symbol to_symbol(char c) {
-   Symbol s = Symbol::gap;
-   switch (c) {
+inline GENOME_SYMBOL toNucleotideSymbol(char character) {
+   GENOME_SYMBOL symbol = GENOME_SYMBOL::GAP;
+   switch (character) {
       case '.':
       case '-':
-         s = Symbol::gap;
+         symbol = GENOME_SYMBOL::GAP;
          break;
       case 'A':
-         s = Symbol::A;
+         symbol = GENOME_SYMBOL::A;
          break;
       case 'C':
-         s = Symbol::C;
+         symbol = GENOME_SYMBOL::C;
          break;
       case 'G':
-         s = Symbol::G;
+         symbol = GENOME_SYMBOL::G;
          break;
       case 'T':
       case 'U':
-         s = Symbol::T;
+         symbol = GENOME_SYMBOL::T;
          break;
       case 'R':
-         s = Symbol::R;
+         symbol = GENOME_SYMBOL::R;
          break;
       case 'Y':
-         s = Symbol::Y;
+         symbol = GENOME_SYMBOL::Y;
          break;
       case 'S':
-         s = Symbol::S;
+         symbol = GENOME_SYMBOL::S;
          break;
       case 'W':
-         s = Symbol::W;
+         symbol = GENOME_SYMBOL::W;
          break;
       case 'K':
-         s = Symbol::K;
+         symbol = GENOME_SYMBOL::K;
          break;
       case 'M':
-         s = Symbol::M;
+         symbol = GENOME_SYMBOL::M;
          break;
       case 'B':
-         s = Symbol::B;
+         symbol = GENOME_SYMBOL::B;
          break;
       case 'D':
-         s = Symbol::D;
+         symbol = GENOME_SYMBOL::D;
          break;
       case 'H':
-         s = Symbol::H;
+         symbol = GENOME_SYMBOL::H;
          break;
       case 'V':
-         s = Symbol::V;
+         symbol = GENOME_SYMBOL::V;
          break;
       case 'N':
-         s = Symbol::N;
+         symbol = GENOME_SYMBOL::N;
          break;
       default:
-         std::cerr << "unrecognized symbol " << c << std::endl;
+         std::cerr << "unrecognized symbol " << character << std::endl;
    }
-   return s;
+   return symbol;
 }
-
-inline std::string resolve_alias(
-   const std::unordered_map<std::string, std::string>& alias_key,
-   const std::string& pango_lineage
-) {
-   std::string pango_pref;
-   std::stringstream pango_lin_stream(pango_lineage);
-   getline(pango_lin_stream, pango_pref, '.');
-   if (alias_key.contains(pango_pref)) {
-      if (pango_lin_stream.eof()) {
-         return alias_key.at(pango_pref);
-      }
-      std::string x((std::istream_iterator<char>(pango_lin_stream)), std::istream_iterator<char>());
-      return alias_key.at(pango_pref) + '.' + x;
-   } else {
-      return pango_lineage;
-   }
-}
-
-static inline std::string chunk_string(unsigned partition, unsigned chunk) {
-   return "P" + std::to_string(partition) + "_C" + std::to_string(chunk);
-}
-
-std::string number_fmt(unsigned long n);
-
 }  // namespace silo
 
 #endif  // SILO_H

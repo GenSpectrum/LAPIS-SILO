@@ -1,12 +1,12 @@
-
-
 #include "silo/query_engine/query_engine.h"
+#include <silo/query_engine/QueryParseException.h>
 #include <silo/common/PerfEvent.hpp>
-#include <syncstream>
 #include <vector>
 #include "tbb/parallel_for.h"
 #include "tbb/parallel_for_each.h"
 
+// Do not remove the next line. It overwrites the rapidjson abort, so it can throw an exception and
+// does not abort.
 #define RAPIDJSON_ASSERT(x)                                                    \
    if (!(x))                                                                   \
    throw silo::QueryParseException(                                            \
@@ -18,439 +18,456 @@ namespace silo {
 
 using roaring::Roaring;
 
-std::unique_ptr<BoolExpression> parse_expression(
-   const Database& db,
-   const rapidjson::Value& js,
+// TODO(someone): reduce cognitive complexity
+// no linting recursion: is inherent to algorithm
+// NOLINTNEXTLINE(readability-function-cognitive-complexity, misc-no-recursion)
+std::unique_ptr<BoolExpression> parseExpression(
+   const Database& database,
+   const rapidjson::Value& json_value,
    int exact
 ) {
-   assert(js.HasMember("type"));
-   assert(js["type"].IsString());
-   std::string type = js["type"].GetString();
-   if (type == "And") {
-      auto ret = std::make_unique<AndEx>();
-      assert(js.HasMember("children"));
-      assert(js["children"].IsArray());
+   assert(json_value.HasMember("type"));
+   assert(json_value["type"].IsString());
+   const std::string expression_type = json_value["type"].GetString();
+   if (expression_type == "And") {
+      auto result = std::make_unique<AndExpression>();
+      assert(json_value.HasMember("children"));
+      assert(json_value["children"].IsArray());
       std::transform(
-         js["children"].GetArray().begin(), js["children"].GetArray().end(),
-         std::back_inserter(ret->children),
-         [&](const rapidjson::Value& js) { return parse_expression(db, js, exact); }
+         json_value["children"].GetArray().begin(), json_value["children"].GetArray().end(),
+         std::back_inserter(result->children),
+         [&](const rapidjson::Value& value) {  // NOLINT(misc-no-recursion)
+            return parseExpression(database, value, exact);
+         }
       );
-      return ret;
-   } else if (type == "Or") {
-      auto ret = std::make_unique<OrEx>();
-      assert(js.HasMember("children"));
-      assert(js["children"].IsArray());
+      return result;
+   }
+   if (expression_type == "Or") {
+      auto result = std::make_unique<OrExpression>();
+      assert(json_value.HasMember("children"));
+      assert(json_value["children"].IsArray());
       std::transform(
-         js["children"].GetArray().begin(), js["children"].GetArray().end(),
-         std::back_inserter(ret->children),
-         [&](const rapidjson::Value& js) { return parse_expression(db, js, exact); }
+         json_value["children"].GetArray().begin(), json_value["children"].GetArray().end(),
+         std::back_inserter(result->children),
+         [&](const rapidjson::Value& value) {  // NOLINT(misc-no-recursion)
+            return parseExpression(database, value, exact);
+         }
       );
-      return ret;
-   } else if (type == "N-Of") {
-      assert(js.HasMember("children"));
-      assert(js["children"].IsArray());
-      assert(js.HasMember("n"));
-      assert(js["n"].IsUint());
+      return result;
+   }
+   if (expression_type == "N-Of") {
+      assert(json_value.HasMember("children"));
+      assert(json_value["children"].IsArray());
+      assert(json_value.HasMember("numberOfMatchers"));
+      assert(json_value["numberOfMatchers"].IsUint());
 
-      auto ret = std::make_unique<NOfEx>(js["n"].GetUint(), js["exactly"].GetBool());
+      auto result = std::make_unique<NOfExpression>(
+         json_value["numberOfMatchers"].GetUint(), json_value["matchExactly"].GetBool()
+      );
       std::transform(
-         js["children"].GetArray().begin(), js["children"].GetArray().end(),
-         std::back_inserter(ret->children),
-         [&](const rapidjson::Value& js) { return parse_expression(db, js, exact); }
+         json_value["children"].GetArray().begin(), json_value["children"].GetArray().end(),
+         std::back_inserter(result->children),
+         [&](const rapidjson::Value& json_value) {  // NOLINT(misc-no-recursion)
+            return parseExpression(database, json_value, exact);
+         }
       );
-      if (js.HasMember("impl") && js["impl"].IsUint()) {
-         ret->impl = js["impl"].GetUint();
+      if (json_value.HasMember("implementation") && json_value["implementation"].IsUint()) {
+         const std::string implementation_name = json_value["implementation"].GetString();
+         if (implementation_name == "generic") {
+            result->implementation = NOfExpressionImplementation::GENERIC;
+         } else if (implementation_name == "LOOP_DATABASE_PARTITION") {
+            result->implementation = NOfExpressionImplementation::LOOP_DATABASE_PARTITION;
+         } else if (implementation_name == "N_WAY_HEAP_MERGE") {
+            result->implementation = NOfExpressionImplementation::N_WAY_HEAP_MERGE;
+         } else {
+            throw QueryParseException(
+               "Unknown implementation for NOfExpression: " + implementation_name
+            );
+         }
       }
-      return ret;
-   } else if (type == "Neg") {
-      auto ret = std::make_unique<NegEx>();
-      ret->child = parse_expression(db, js["child"], -exact);
-      return ret;
-   } else if (type == "DateBetw") {
-      auto ret = std::make_unique<DateBetwEx>();
-      if (js["from"].IsNull()) {
-         ret->open_from = true;
+      return result;
+   }
+   if (expression_type == "Neg") {
+      auto result = std::make_unique<NegatedExpression>();
+      result->child = parseExpression(database, json_value["child"], -exact);
+      return result;
+   }
+   if (expression_type == "DateBetw") {
+      auto result = std::make_unique<DateBetweenExpression>();
+      if (json_value["from"].IsNull()) {
+         result->open_from = true;
       } else {
-         ret->open_from = false;
+         result->open_from = false;
 
-         struct std::tm tm {};
-         std::istringstream ss(js["from"].GetString());
-         ss >> std::get_time(&tm, "%Y-%m-%d");
-         ret->from = mktime(&tm);
+         struct std::tm time_object {};
+         std::istringstream date_from_stream(json_value["from"].GetString());
+         date_from_stream >> std::get_time(&time_object, "%Y-%m-%d");
+         result->date_from = mktime(&time_object);
       }
 
-      if (js["to"].IsNull()) {
-         ret->open_to = true;
+      if (json_value["to"].IsNull()) {
+         result->open_to = true;
       } else {
-         ret->open_to = false;
+         result->open_to = false;
 
-         struct std::tm tm {};
-         std::istringstream ss(js["to"].GetString());
-         ss >> std::get_time(&tm, "%Y-%m-%d");
-         ret->to = mktime(&tm);
+         struct std::tm time_object {};
+         std::istringstream date_to_stream(json_value["to"].GetString());
+         date_to_stream >> std::get_time(&time_object, "%Y-%m-%d");
+         result->date_to = mktime(&time_object);
       }
-      return ret;
-   } else if (type == "NucEq") {
-      unsigned position = js["position"].GetUint();
-      const std::string& s = js["value"].GetString();
-      Symbol value;
-      if (s.at(0) == '.') {
-         char c = db.global_reference[0].at(position);
-         value = to_symbol(c);
+      return result;
+   }
+   if (expression_type == "NucEq") {
+      const unsigned position = json_value["position"].GetUint();
+      const std::string& nucleotide_symbol = json_value["value"].GetString();
+      GENOME_SYMBOL value;
+      if (nucleotide_symbol.at(0) == '.') {
+         const char character = database.global_reference[0].at(position);
+         value = toNucleotideSymbol(character);
       } else {
-         value = to_symbol(s.at(0));
+         value = toNucleotideSymbol(nucleotide_symbol.at(0));
       }
       if (exact >= 0) {
-         return std::make_unique<NucEqEx>(position, value);
-      } else {  // Approximate query!
-         return std::make_unique<NucMbEx>(position, value);
+         return std::make_unique<NucleotideSymbolEqualsExpression>(position, value);
       }
-   } else if (type == "NucMut") {
-      assert(js.HasMember("position"));
-      unsigned pos = js["position"].GetUint();
-      char ref_symbol = db.global_reference[0].at(pos);
-      /// this <= is correct! the negation would flip the exact bit from -1 to +1 and vice versa
-      if (exact <= 0) {  /// NucEqEx
-         return std::make_unique<NegEx>(std::make_unique<NucEqEx>(pos, silo::to_symbol(ref_symbol))
-         );
-      } else {  /// NucMbEx
-         return std::make_unique<NegEx>(std::make_unique<NucMbEx>(pos, silo::to_symbol(ref_symbol))
-         );
-      }
-   } else if (type == "PangoLineage") {
-      bool includeSubLineages = js["includeSubLineages"].GetBool();
-      std::string lineage = js["value"].GetString();
-      std::transform(lineage.begin(), lineage.end(), lineage.begin(), ::toupper);
-      lineage = resolve_alias(db.getAliasKey(), lineage);
-      uint32_t lineageKey = db.dict->get_pangoid(lineage);
-      return std::make_unique<PangoLineageEx>(lineageKey, includeSubLineages);
-   } else if (type == "StrEq") {
-      const std::string& col = js["column"].GetString();
-      if (col == "country") {
-         return std::make_unique<CountryEx>(db.dict->get_countryid(js["value"].GetString()));
-      } else if (col == "region") {
-         return std::make_unique<RegionEx>(db.dict->get_regionid(js["value"].GetString()));
-      } else {
-         uint32_t colKey = db.dict->get_colid(js["column"].GetString());
-         uint32_t valueKey = db.dict->get_pangoid(js["value"].GetString());
-         return std::make_unique<StrEqEx>(colKey, valueKey);
-      }
-   } else if (type == "Maybe") {
-      auto ret = std::make_unique<NegEx>();
-      ret->child = parse_expression(db, js["child"], -1);
-      return ret;
-   } else if (type == "Exact") {
-      auto ret = std::make_unique<NegEx>();
-      ret->child = parse_expression(db, js["child"], 1);
-      return ret;
-   } else {
-      throw QueryParseException("Unknown object type");
+      return std::make_unique<NucleotideSymbolMaybeExpression>(position, value);
    }
+   if (expression_type == "NucMut") {
+      assert(json_value.HasMember("position"));
+      const unsigned position = json_value["position"].GetUint();
+      const char ref_symbol = database.global_reference[0].at(position);
+      /// this <= is correct! the negation would flip the exact bit from -1 to +1 and vice versa
+      if (exact > 0) {  /// NucleotideSymbolMaybeExpression
+         return std::make_unique<NegatedExpression>(
+            std::make_unique<NucleotideSymbolMaybeExpression>(
+               position, silo::toNucleotideSymbol(ref_symbol)
+            )
+         );
+      }
+      return std::make_unique<NegatedExpression>(std::make_unique<NucleotideSymbolEqualsExpression>(
+         position, silo::toNucleotideSymbol(ref_symbol)
+      ));
+   }
+   if (expression_type == "PangoLineage") {
+      const bool include_sublineages = json_value["include_sublineages"].GetBool();
+      std::string lineage = json_value["value"].GetString();
+      std::transform(lineage.begin(), lineage.end(), lineage.begin(), ::toupper);
+      lineage = resolvePangoLineageAlias(database.getAliasKey(), lineage);
+      const uint32_t lineage_key = database.dict->getPangoLineageIdInLookup(lineage);
+      return std::make_unique<PangoLineageExpression>(lineage_key, include_sublineages);
+   }
+   if (expression_type == "StrEq") {
+      const std::string& column = json_value["column"].GetString();
+      if (column == "country") {
+         return std::make_unique<CountryExpression>(
+            database.dict->getCountryIdInLookup(json_value["value"].GetString())
+         );
+      }
+      if (column == "region") {
+         return std::make_unique<RegionExpression>(
+            database.dict->getRegionIdInLookup(json_value["value"].GetString())
+         );
+      }
+      const uint32_t column_key =
+         database.dict->getColumnIdInLookup(json_value["column"].GetString());
+      const uint32_t value_key =
+         database.dict->getPangoLineageIdInLookup(json_value["value"].GetString());
+      return std::make_unique<StringEqualsExpression>(column_key, value_key);
+   }
+   if (expression_type == "Maybe") {
+      auto result = std::make_unique<NegatedExpression>();
+      result->child = parseExpression(database, json_value["child"], -1);
+      return result;
+   }
+   if (expression_type == "Exact") {
+      auto result = std::make_unique<NegatedExpression>();
+      result->child = parseExpression(database, json_value["child"], 1);
+      return result;
+   }
+   throw QueryParseException("Unknown object type");
 }
 
-filter_t AndEx::evaluate(const Database& db, const DatabasePartition& dbp) {
-   std::vector<filter_t> children_bm;
+BooleanExpressionResult AndExpression::evaluate(
+   const Database& database,
+   const DatabasePartition& database_partition
+) {
+   std::vector<BooleanExpressionResult> children_bm;
    children_bm.reserve(children.size());
    std::transform(
       children.begin(), children.end(), std::back_inserter(children_bm),
-      [&](const auto& child) { return child->evaluate(db, dbp); }
+      [&](const auto& child) { return child->evaluate(database, database_partition); }
    );
-   std::vector<filter_t> negated_children_bm;
+   std::vector<BooleanExpressionResult> negated_children_bm;
    negated_children.reserve(negated_children.size());
    std::transform(
       negated_children.begin(), negated_children.end(), std::back_inserter(negated_children_bm),
-      [&](const auto& child) { return child->evaluate(db, dbp); }
+      [&](const auto& child) { return child->evaluate(database, database_partition); }
    );
    /// Sort ascending, such that intermediate results are kept small
-   std::sort(children_bm.begin(), children_bm.end(), [](const filter_t& a, const filter_t& b) {
-      return a.getAsConst()->cardinality() < b.getAsConst()->cardinality();
-   });
+   std::sort(
+      children_bm.begin(), children_bm.end(),
+      [](const BooleanExpressionResult& expression1, const BooleanExpressionResult& expression2) {
+         return expression1.getAsConst()->cardinality() < expression2.getAsConst()->cardinality();
+      }
+   );
 
-   Roaring* ret;
+   Roaring* result;
    if (children_bm.empty()) {
-      const unsigned n = negated_children_bm.size();
-      const Roaring* union_tmp[n];
-      for (unsigned i = 0; i < n; i++) {
+      const unsigned size_of_negated_children_bitmap = negated_children_bm.size();
+      const Roaring* union_tmp[size_of_negated_children_bitmap];  // NOLINT
+      for (unsigned i = 0; i < size_of_negated_children_bitmap; i++) {
          union_tmp[i] = negated_children_bm[i].getAsConst();
       }
-      ret = new Roaring(Roaring::fastunion(n, union_tmp));
-      ret->flip(0, dbp.sequenceCount);
-      for (auto& bm : negated_children_bm) {
-         bm.free();
+      result = new Roaring(Roaring::fastunion(size_of_negated_children_bitmap, union_tmp));
+      result->flip(0, database_partition.sequenceCount);
+      for (auto& bitmap : negated_children_bm) {
+         bitmap.free();
       }
-      return {ret, nullptr};
-   } else if (children_bm.size() == 1) {
-      assert(negated_children_bm.size() >= 1);
+      return {result, nullptr};
+   }
+   if (children_bm.size() == 1) {
+      assert(!negated_children_bm.empty());
       if (children_bm[0].mutable_res) {
-         ret = children_bm[0].mutable_res;
+         result = children_bm[0].mutable_res;
       } else {
          auto tmp = *children_bm[0].immutable_res - *negated_children_bm[0].getAsConst();
-         ret = new Roaring(tmp);
+         result = new Roaring(tmp);
       }
       /// Sort negated children descending by size
       std::sort(
          negated_children_bm.begin(), negated_children_bm.end(),
-         [](const filter_t& a, const filter_t& b) {
-            return a.getAsConst()->cardinality() > b.getAsConst()->cardinality();
+         [](const BooleanExpressionResult& expression_result1,
+            const BooleanExpressionResult& expression_result2) {
+            return expression_result1.getAsConst()->cardinality() >
+                   expression_result2.getAsConst()->cardinality();
          }
       );
       for (auto neg_bm : negated_children_bm) {
-         *ret -= *neg_bm.getAsConst();
+         *result -= *neg_bm.getAsConst();
          neg_bm.free();
       }
-      return {ret, nullptr};
-   } else {
-      if (children_bm[0].mutable_res) {
-         ret = children_bm[0].mutable_res;
-         *ret &= *children_bm[1].getAsConst();
-         children_bm[1].free();
-      } else if (children_bm[1].mutable_res) {
-         ret = children_bm[1].mutable_res;
-         *ret &= *children_bm[0].getAsConst();
-      } else {
-         auto x = *children_bm[0].immutable_res & *children_bm[1].immutable_res;
-         ret = new Roaring(x);
-      }
-      for (unsigned i = 2; i < children.size(); i++) {
-         auto bm = children_bm[i];
-         *ret &= *bm.getAsConst();
-         bm.free();
-      }
-      /// Sort negated children descending by size
-      std::sort(
-         negated_children_bm.begin(), negated_children_bm.end(),
-         [](const filter_t& a, const filter_t& b) {
-            return a.getAsConst()->cardinality() > b.getAsConst()->cardinality();
-         }
-      );
-      for (auto neg_bm : negated_children_bm) {
-         *ret -= *neg_bm.getAsConst();
-         neg_bm.free();
-      }
-      return {ret, nullptr};
+      return {result, nullptr};
    }
+   if (children_bm[0].mutable_res) {
+      result = children_bm[0].mutable_res;
+      *result &= *children_bm[1].getAsConst();
+      children_bm[1].free();
+   } else if (children_bm[1].mutable_res) {
+      result = children_bm[1].mutable_res;
+      *result &= *children_bm[0].getAsConst();
+   } else {
+      auto bitmap = *children_bm[0].immutable_res & *children_bm[1].immutable_res;
+      result = new Roaring(bitmap);
+   }
+   for (unsigned i = 2; i < children.size(); i++) {
+      auto bitmap = children_bm[i];
+      *result &= *bitmap.getAsConst();
+      bitmap.free();
+   }
+   /// Sort negated children descending by size
+   std::sort(
+      negated_children_bm.begin(), negated_children_bm.end(),
+      [](const BooleanExpressionResult& expression_result1,
+         const BooleanExpressionResult& expression_result2) {
+         return expression_result1.getAsConst()->cardinality() >
+                expression_result2.getAsConst()->cardinality();
+      }
+   );
+   for (auto neg_bm : negated_children_bm) {
+      *result -= *neg_bm.getAsConst();
+      neg_bm.free();
+   }
+   return {result, nullptr};
 }
 
-filter_t OrEx::evaluate(const Database& db, const DatabasePartition& dbp) {
-   unsigned n = children.size();
-   const Roaring* union_tmp[n];
-   filter_t child_res[n];
-   for (unsigned i = 0; i < n; i++) {
-      auto tmp = children[i]->evaluate(db, dbp);
+BooleanExpressionResult OrExpression::evaluate(
+   const Database& database,
+   const DatabasePartition& database_partition
+) {
+   const unsigned size_of_children = children.size();
+   const Roaring* union_tmp[size_of_children];           // NOLINT
+   BooleanExpressionResult child_res[size_of_children];  // NOLINT
+   for (unsigned i = 0; i < size_of_children; i++) {
+      auto tmp = children[i]->evaluate(database, database_partition);
       child_res[i] = tmp;
       union_tmp[i] = tmp.getAsConst();
    }
-   Roaring* ret = new Roaring(Roaring::fastunion(children.size(), union_tmp));
-   for (unsigned i = 0; i < n; i++) {
+   auto* result = new Roaring(Roaring::fastunion(children.size(), union_tmp));
+   for (unsigned i = 0; i < size_of_children; i++) {
       child_res[i].free();
    }
-   return {ret, nullptr};
+   return {result, nullptr};
 }
 
-inline void vec_and_not(
-   std::vector<uint32_t>& dest,
-   const std::vector<uint32_t>& v1,
-   const std::vector<uint32_t>& v2
+BooleanExpressionResult nOfExpressionEvaluateGenericImplementationNoExactMatch(
+   const NOfExpression* self,
+   const Database& database,
+   const DatabasePartition& database_partition
 ) {
-   std::set_difference(v1.begin(), v1.end(), v2.begin(), v2.end(), std::back_inserter(dest));
-}
-
-filter_t NOfEx_evaluateImpl0_threshold(
-   const NOfEx* self,
-   const Database& db,
-   const DatabasePartition& dbp
-) {
-   Roaring* ret = new Roaring();
-   std::vector<uint16_t> count(dbp.sequenceCount);
+   auto* result = new Roaring();
+   std::vector<uint16_t> count(database_partition.sequenceCount);
    std::vector<uint32_t> correct;
-   for (auto& child : self->children) {
-      auto bm = child->evaluate(db, dbp);
-      for (uint32_t id : *bm.getAsConst()) {
-         if (++count[id] == self->n) {
-            correct.push_back(id);
+   for (const auto& child : self->children) {
+      auto expression_result = child->evaluate(database, database_partition);
+      for (uint32_t const expression_id : *expression_result.getAsConst()) {
+         if (++count[expression_id] == self->number_of_matchers) {
+            correct.push_back(expression_id);
          }
       }
-      bm.free();
+      expression_result.free();
       if (!correct.empty()) {
-         ret->addMany(correct.size(), &correct[0]);
+         result->addMany(correct.size(), correct.data());
          correct.clear();
       }
    }
-   return {ret, nullptr};
+   return {result, nullptr};
 }
 
-filter_t NOfEx_evaluateImpl0_exact(
-   const NOfEx* self,
-   const Database& db,
-   const DatabasePartition& dbp
+BooleanExpressionResult nOfExpressionEvaluateGenericImplementationExactMatch(
+   const NOfExpression* self,
+   const Database& database,
+   const DatabasePartition& database_partition
 ) {
    std::vector<uint16_t> count;
    std::vector<uint32_t> at_least;
    std::vector<uint32_t> too_much;
-   count.resize(dbp.sequenceCount);
-   for (auto& child : self->children) {
-      auto bm = child->evaluate(db, dbp);
-      for (uint32_t id : *bm.getAsConst()) {
-         ++count[id];
-         if (count[id] == self->n + 1) {
-            too_much.push_back(id);
-         } else if (count[id] == self->n) {
-            at_least.push_back(id);
+   count.resize(database_partition.sequenceCount);
+   for (const auto& child : self->children) {
+      auto expression_result = child->evaluate(database, database_partition);
+      for (uint32_t const expression_id : *expression_result.getAsConst()) {
+         ++count[expression_id];
+         if (count[expression_id] == self->number_of_matchers + 1) {
+            too_much.push_back(expression_id);
+         } else if (count[expression_id] == self->number_of_matchers) {
+            at_least.push_back(expression_id);
          }
       }
-      bm.free();
+      expression_result.free();
    }
    /// Sort because set_difference needs sorted vectors
    std::sort(at_least.begin(), at_least.end());
    std::sort(too_much.begin(), too_much.end());
    std::vector<uint32_t> correct;
-   vec_and_not(correct, at_least, too_much);
-   return {new Roaring(correct.size(), &correct[0]), nullptr};
-}
-
-filter_t NOfEx_evaluateImpl0b_exact(
-   const NOfEx* self,
-   const Database& db,
-   const DatabasePartition& dbp
-) {
-   Roaring* ret = new Roaring();
-   Roaring* too_much = new Roaring();
-   std::vector<uint16_t> count;
-   std::vector<uint32_t> correct_buffer;
-   std::vector<uint32_t> too_much_buffer;
-   for (auto& child : self->children) {
-      auto bm = child->evaluate(db, dbp);
-      for (uint32_t id : *bm.getAsConst()) {
-         ++count[id];
-         if (count[id] == self->n) {
-            correct_buffer.push_back(id);
-         } else if (count[id] == self->n + 1) {
-            too_much_buffer.push_back(id);
-         }
-      }
-      bm.free();
-      if (!correct_buffer.empty()) {
-         ret->addMany(correct_buffer.size(), &correct_buffer[0]);
-         correct_buffer.clear();
-      }
-      if (!too_much_buffer.empty()) {
-         too_much->addMany(too_much_buffer.size(), &too_much_buffer[0]);
-         too_much_buffer.clear();
-      }
-   }
-   *ret -= *too_much;
-   delete too_much;
-   return {ret, nullptr};
+   std::set_difference(
+      at_least.begin(), at_least.end(), too_much.begin(), too_much.end(),
+      std::back_inserter(correct)
+   );
+   return {new Roaring(correct.size(), correct.data()), nullptr};
 }
 
 /// DPLoop
-filter_t NOfEx_evaluateImpl1_threshold(
-   const NOfEx* self,
-   const Database& db,
-   const DatabasePartition& dbp
+BooleanExpressionResult nOfExpressionEvaluateLoopDatabasePartitionImplementationNoExactMatch(
+   const NOfExpression* self,
+   const Database& database,
+   const DatabasePartition& database_partition
 ) {
-   std::vector<Roaring*> dp(self->n);
-   /// Copy bm of first child if immutable, otherwise use it directly
-   auto tmp = self->children[0]->evaluate(db, dbp);
+   std::vector<Roaring*> partition_bitmaps(self->number_of_matchers);
+   /// Copy bitmap of first child if immutable, otherwise use it directly
+   auto tmp = self->children[0]->evaluate(database, database_partition);
    if (tmp.mutable_res) {
-      /// Do not need to delete tmp.mutable_res later, because dp[0] will be deleted
-      dp[0] = tmp.mutable_res;
+      /// Do not need to delete tmp.mutable_res later, because partition_bitmaps[0] will be deleted
+      partition_bitmaps[0] = tmp.mutable_res;
    } else {
-      dp[0] = new Roaring(*tmp.immutable_res);
+      partition_bitmaps[0] = new Roaring(*tmp.immutable_res);
    }
    /// Initialize all bitmaps. Delete them later.
-   for (unsigned i = 1; i < self->n; ++i)
-      dp[i] = new Roaring();
+   for (unsigned i = 1; i < self->number_of_matchers; ++i) {
+      partition_bitmaps[i] = new Roaring();
+   }
 
    for (unsigned i = 1; i < self->children.size(); ++i) {
-      auto bm = self->children[i]->evaluate(db, dbp);
+      auto bitmap = self->children[i]->evaluate(database, database_partition);
       /// positions higher than (i-1) cannot have been reached yet, are therefore all 0s and the
       /// conjunction would return 0
-      for (unsigned j = std::min(self->n - 1, i); j >= 1; --j) {
-         *dp[j] |= *dp[j - 1] & *bm.getAsConst();
+      for (unsigned j = std::min(self->number_of_matchers - 1, i); j >= 1; --j) {
+         *partition_bitmaps[j] |= *partition_bitmaps[j - 1] & *bitmap.getAsConst();
       }
-      *dp[0] |= *bm.getAsConst();
-      bm.free();
+      *partition_bitmaps[0] |= *bitmap.getAsConst();
+      bitmap.free();
    }
 
    /// Delete all unneeded bitmaps
-   for (unsigned i = 0; i < self->n - 1; ++i)
-      delete dp[i];
+   for (unsigned i = 0; i < self->number_of_matchers - 1; ++i) {
+      delete partition_bitmaps[i];
+   }
 
-   return {dp.back(), nullptr};
+   return {partition_bitmaps.back(), nullptr};
 }
 
 /// DPLoop
-filter_t NOfEx_evaluateImpl1_exact(
-   const NOfEx* self,
-   const Database& db,
-   const DatabasePartition& dbp
+BooleanExpressionResult nOfExpressionEvaluateLoopDatabasePartitionImplementationExactMatch(
+   const NOfExpression* self,
+   const Database& database,
+   const DatabasePartition& database_partition
 ) {
-   std::vector<Roaring*> dp(self->n + 1);
-   /// Copy bm of first child if immutable, otherwise use it directly
-   auto tmp = self->children[0]->evaluate(db, dbp);
+   std::vector<Roaring*> partition_bitmaps(self->number_of_matchers + 1);
+   /// Copy bitmap of first child if immutable, otherwise use it directly
+   auto tmp = self->children[0]->evaluate(database, database_partition);
    if (tmp.mutable_res) {
-      /// Do not need to delete tmp.mutable_res later, because dp[0] will be deleted
-      dp[0] = tmp.mutable_res;
+      /// Do not need to delete tmp.mutable_res later, because partition_bitmaps[0] will be deleted
+      partition_bitmaps[0] = tmp.mutable_res;
    } else {
-      dp[0] = new Roaring(*tmp.immutable_res);
+      partition_bitmaps[0] = new Roaring(*tmp.immutable_res);
    }
    /// Initialize all bitmaps. Delete them later.
-   for (unsigned i = 1; i < self->n + 1; ++i)
-      dp[i] = new Roaring();
+   for (unsigned i = 1; i < self->number_of_matchers + 1; ++i) {
+      partition_bitmaps[i] = new Roaring();
+   }
 
    for (unsigned i = 1; i < self->children.size(); ++i) {
-      auto bm = self->children[i]->evaluate(db, dbp);
+      auto bitmap = self->children[i]->evaluate(database, database_partition);
       /// positions higher than (i-1) cannot have been reached yet, are therefore all 0s and the
       /// conjunction would return 0
-      for (unsigned j = std::min(self->n, i); j >= 1; --j) {
-         *dp[j] |= *dp[j - 1] & *bm.getAsConst();
+      for (unsigned j = std::min(self->number_of_matchers, i); j >= 1; --j) {
+         *partition_bitmaps[j] |= *partition_bitmaps[j - 1] & *bitmap.getAsConst();
       }
-      *dp[0] |= *bm.getAsConst();
-      bm.free();
+      *partition_bitmaps[0] |= *bitmap.getAsConst();
+      bitmap.free();
    }
 
    /// Delete
-   for (unsigned i = 0; i < self->n - 1; ++i)
-      delete dp[i];
+   for (unsigned i = 0; i < self->number_of_matchers - 1; ++i) {
+      delete partition_bitmaps[i];
+   }
 
    /// Because exact, we remove all that have too many
-   *dp[self->n - 1] -= *dp[self->n];
+   *partition_bitmaps[self->number_of_matchers - 1] -= *partition_bitmaps[self->number_of_matchers];
 
-   delete dp[self->n];
+   delete partition_bitmaps[self->number_of_matchers];
 
-   return {dp[self->n - 1], nullptr};
+   return {partition_bitmaps[self->number_of_matchers - 1], nullptr};
 }
 
 // N-Way Heap-Merge, for threshold queries
-filter_t NOfEx_evaluateImpl2_threshold(
-   const NOfEx* self,
-   const Database& db,
-   const DatabasePartition& dbp
+BooleanExpressionResult nOfExpressionEvaluateNWayHeapMergeImplementationNoExactMatch(
+   const NOfExpression* self,
+   const Database& database,
+   const DatabasePartition& database_partition
 ) {
-   std::vector<filter_t> child_maps;
-   struct bitmap_iterator {
+   std::vector<BooleanExpressionResult> child_maps;
+   struct BitmapIterator {
       roaring::RoaringSetBitForwardIterator cur;
       roaring::RoaringSetBitForwardIterator end;
    };
-   std::vector<bitmap_iterator> iterator_heap;
+   std::vector<BitmapIterator> iterator_heap;
    for (const auto& child : self->children) {
-      auto tmp = child->evaluate(db, dbp);
+      auto tmp = child->evaluate(database, database_partition);
       child_maps.push_back(tmp);
       /// Invariant: All heap members 'cur' field must contain an element that needs to be processed
-      if (tmp.getAsConst()->begin() != tmp.getAsConst()->end())
+      if (tmp.getAsConst()->begin() != tmp.getAsConst()->end()) {
          iterator_heap.push_back({tmp.getAsConst()->begin(), tmp.getAsConst()->end()});
+      }
    }
 
    /// stl heap is max-heap. We want min, therefore we define a greater-than sorter
    /// as opposed to the standard less-than sorter
-   auto min_heap_sort = [](const bitmap_iterator& a, const bitmap_iterator& b) {
-      return *a.cur > *b.cur;
+   auto min_heap_sort = [](const BitmapIterator& iterator1, const BitmapIterator& iterator2) {
+      return *iterator1.cur > *iterator2.cur;
    };
 
    std::make_heap(iterator_heap.begin(), iterator_heap.end(), min_heap_sort);
 
-   auto ret = new Roaring();
+   auto* result = new Roaring();
 
    constexpr size_t BUFFER_SIZE = 1024;
    std::vector<uint32_t> buffer;
@@ -462,7 +479,7 @@ filter_t NOfEx_evaluateImpl2_threshold(
    while (!iterator_heap.empty()) {
       std::pop_heap(iterator_heap.begin(), iterator_heap.end(), min_heap_sort);
       /// Take element and ensure invariant
-      uint32_t val = *iterator_heap.back().cur;
+      uint32_t const val = *iterator_heap.back().cur;
       iterator_heap.back().cur++;
       if (iterator_heap.back().cur == iterator_heap.back().end) {
          iterator_heap.pop_back();
@@ -472,10 +489,10 @@ filter_t NOfEx_evaluateImpl2_threshold(
       if (val == last_val) {
          cur_count++;
       } else {
-         if (cur_count >= self->n) {
+         if (cur_count >= self->number_of_matchers) {
             buffer.push_back(last_val);
             if (buffer.size() == BUFFER_SIZE) {
-               ret->addMany(BUFFER_SIZE, &buffer[0]);
+               result->addMany(BUFFER_SIZE, buffer.data());
                buffer.clear();
             }
          }
@@ -483,47 +500,51 @@ filter_t NOfEx_evaluateImpl2_threshold(
          cur_count = 1;
       }
    }
-   if (cur_count >= self->n) {
+   if (cur_count >= self->number_of_matchers) {
       buffer.push_back(last_val);
    }
 
-   if (buffer.size() > 0) {
-      ret->addMany(buffer.size(), &buffer[0]);
+   if (!buffer.empty()) {
+      result->addMany(buffer.size(), buffer.data());
    }
 
-   for (auto& child_map : child_maps)
+   for (auto& child_map : child_maps) {
       child_map.free();
+   }
 
-   return {ret, nullptr};
+   return {result, nullptr};
 }
 
 // N-Way Heap-Merge, for exact queries
-filter_t NOfEx_evaluateImpl2_exact(
-   const NOfEx* self,
-   const Database& db,
-   const DatabasePartition& dbp
+BooleanExpressionResult nOfExpressionEvaluateNWayHeapMergeImplementationExactMatch(
+   const NOfExpression* self,
+   const Database& database,
+   const DatabasePartition& database_partition
 ) {
-   std::vector<filter_t> child_maps;
-   struct bitmap_iterator {
+   std::vector<BooleanExpressionResult> child_maps;
+   struct BitmapIterator {
       roaring::RoaringSetBitForwardIterator cur;
       roaring::RoaringSetBitForwardIterator end;
    };
-   std::vector<bitmap_iterator> iterator_heap;
+   std::vector<BitmapIterator> iterator_heap;
    for (const auto& child : self->children) {
-      auto tmp = child->evaluate(db, dbp);
+      auto tmp = child->evaluate(database, database_partition);
       child_maps.push_back(tmp);
       /// Invariant: All heap members 'cur' field must contain an element that needs to be processed
-      if (tmp.getAsConst()->begin() != tmp.getAsConst()->end())
+      if (tmp.getAsConst()->begin() != tmp.getAsConst()->end()) {
          iterator_heap.push_back({tmp.getAsConst()->begin(), tmp.getAsConst()->end()});
+      }
    }
 
    /// stl heap is max-heap. We want min, therefore we define a greater-than sorter
    /// as opposed to the standard less-than sorter
-   auto sorter = [](const bitmap_iterator& a, const bitmap_iterator& b) { return *a.cur > *b.cur; };
+   auto sorter = [](const BitmapIterator& iterator1, const BitmapIterator& iterator2) {
+      return *iterator1.cur > *iterator2.cur;
+   };
 
    std::make_heap(iterator_heap.begin(), iterator_heap.end(), sorter);
 
-   auto ret = new Roaring();
+   auto* result = new Roaring();
 
    constexpr size_t BUFFER_SIZE = 1024;
    std::vector<uint32_t> buffer;
@@ -535,7 +556,7 @@ filter_t NOfEx_evaluateImpl2_exact(
    while (!iterator_heap.empty()) {
       std::pop_heap(iterator_heap.begin(), iterator_heap.end(), sorter);
       /// Take element and ensure invariant
-      uint32_t val = *iterator_heap.back().cur;
+      uint32_t const val = *iterator_heap.back().cur;
       iterator_heap.back().cur++;
       if (iterator_heap.back().cur == iterator_heap.back().end) {
          iterator_heap.pop_back();
@@ -545,10 +566,10 @@ filter_t NOfEx_evaluateImpl2_exact(
       if (val == last_val) {
          cur_count++;
       } else {
-         if (cur_count == self->n) {
+         if (cur_count == self->number_of_matchers) {
             buffer.push_back(last_val);
             if (buffer.size() == BUFFER_SIZE) {
-               ret->addMany(BUFFER_SIZE, &buffer[0]);
+               result->addMany(BUFFER_SIZE, buffer.data());
                buffer.clear();
             }
          }
@@ -556,317 +577,596 @@ filter_t NOfEx_evaluateImpl2_exact(
          cur_count = 1;
       }
    }
-   if (cur_count == self->n) {
+   if (cur_count == self->number_of_matchers) {
       buffer.push_back(last_val);
    }
 
-   if (buffer.size() > 0) {
-      ret->addMany(buffer.size(), &buffer[0]);
+   if (!buffer.empty()) {
+      result->addMany(buffer.size(), buffer.data());
    }
 
-   for (auto& child_map : child_maps)
+   for (auto& child_map : child_maps) {
       child_map.free();
+   }
 
-   return {ret, nullptr};
+   return {result, nullptr};
 }
 
-filter_t NOfEx::evaluate(const Database& db, const DatabasePartition& dbp) {
-   switch (impl) {
-      case 0:
-         if (exactly) {
-            return NOfEx_evaluateImpl0_exact(this, db, dbp);
+BooleanExpressionResult NOfExpression::evaluate(
+   const Database& database,
+   const DatabasePartition& database_partition
+) {
+   switch (implementation) {
+      case NOfExpressionImplementation::GENERIC:
+         if (match_exactly) {
+            return nOfExpressionEvaluateGenericImplementationExactMatch(
+               this, database, database_partition
+            );
          } else {
-            return NOfEx_evaluateImpl0_threshold(this, db, dbp);
+            return nOfExpressionEvaluateGenericImplementationNoExactMatch(
+               this, database, database_partition
+            );
          }
-      case 1:
+      case NOfExpressionImplementation::LOOP_DATABASE_PARTITION:
       default:
-         if (exactly) {
-            return NOfEx_evaluateImpl1_exact(this, db, dbp);
+         if (match_exactly) {
+            return nOfExpressionEvaluateLoopDatabasePartitionImplementationExactMatch(
+               this, database, database_partition
+            );
          } else {
-            return NOfEx_evaluateImpl1_threshold(this, db, dbp);
+            return nOfExpressionEvaluateLoopDatabasePartitionImplementationNoExactMatch(
+               this, database, database_partition
+            );
          }
-      case 2:
-         if (exactly) {
-            return NOfEx_evaluateImpl2_exact(this, db, dbp);
+      case NOfExpressionImplementation::N_WAY_HEAP_MERGE:
+         if (match_exactly) {
+            return nOfExpressionEvaluateNWayHeapMergeImplementationExactMatch(
+               this, database, database_partition
+            );
          } else {
-            return NOfEx_evaluateImpl2_threshold(this, db, dbp);
+            return nOfExpressionEvaluateNWayHeapMergeImplementationNoExactMatch(
+               this, database, database_partition
+            );
          }
    }
 }
 
-filter_t NegEx::evaluate(const Database& db, const DatabasePartition& dbp) {
-   auto tmp = child->evaluate(db, dbp);
-   auto ret = tmp.mutable_res ? tmp.mutable_res : new Roaring(*tmp.immutable_res);
-   ret->flip(0, dbp.sequenceCount);
-   return {ret, nullptr};
+BooleanExpressionResult NegatedExpression::evaluate(
+   const Database& database,
+   const DatabasePartition& database_partition
+) {
+   auto tmp = child->evaluate(database, database_partition);
+   auto* result = tmp.mutable_res ? tmp.mutable_res : new Roaring(*tmp.immutable_res);
+   result->flip(0, database_partition.sequenceCount);
+   return {result, nullptr};
 }
 
-filter_t DateBetwEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
-   if (open_from && open_to) {
-      auto ret = new Roaring();
-      ret->addRange(0, dbp.sequenceCount);
-      return {ret, nullptr};
-   }
-
-   auto ret = new Roaring;
-   auto base = &dbp.meta_store.sid_to_date[0];
-   for (const chunk_t& chunk : dbp.get_chunks()) {
-      auto begin = &dbp.meta_store.sid_to_date[chunk.offset];
-      auto end = &dbp.meta_store.sid_to_date[chunk.offset + chunk.count];
-      uint32_t lower = open_from ? begin - base : std::lower_bound(begin, end, this->from) - base;
-      uint32_t upper = open_to ? end - base : std::upper_bound(begin, end, this->to) - base;
-      ret->addRange(lower, upper);
-   }
-   return {ret, nullptr};
-}
-
-filter_t DateBetwEx::select(
+BooleanExpressionResult DateBetweenExpression::evaluate(
    const Database& /*db*/,
-   const DatabasePartition& dbp,
-   filter_t in_filter
+   const DatabasePartition& database_partition
+) {
+   if (open_from && open_to) {
+      auto* result = new Roaring();
+      result->addRange(0, database_partition.sequenceCount);
+      return {result, nullptr};
+   }
+
+   auto* result = new Roaring;
+   const auto* base = database_partition.meta_store.sequence_id_to_date.data();
+   for (const Chunk& chunk : database_partition.getChunks()) {
+      const auto* begin = &database_partition.meta_store.sequence_id_to_date[chunk.offset];
+      const auto* end =
+         &database_partition.meta_store.sequence_id_to_date[chunk.offset + chunk.count];
+      uint32_t const lower =
+         open_from ? begin - base : std::lower_bound(begin, end, this->date_from) - base;
+      uint32_t const upper =
+         open_to ? end - base : std::upper_bound(begin, end, this->date_to) - base;
+      result->addRange(lower, upper);
+   }
+   return {result, nullptr};
+}
+
+BooleanExpressionResult DateBetweenExpression::select(
+   const Database& /*db*/,
+   const DatabasePartition& database_partition,
+   BooleanExpressionResult in_filter
 ) {
    if (open_from && open_to) {
       return in_filter;
-   } else {
-      Roaring* ret;
-      if (in_filter.mutable_res) {
-         ret = in_filter.mutable_res;
-      } else {
-         ret = new Roaring(*in_filter.getAsConst());
-      }
-      auto base = &dbp.meta_store.sid_to_date[0];
-      uint32_t lower = 0;
-      uint32_t upper = 0;
-      for (const chunk_t& chunk : dbp.get_chunks()) {
-         auto begin = &dbp.meta_store.sid_to_date[chunk.offset];
-         auto end = &dbp.meta_store.sid_to_date[chunk.offset + chunk.count];
-         lower = open_from ? begin - base : std::lower_bound(begin, end, this->from) - base;
-         ret->removeRange(upper, lower);
-         upper = open_to ? end - base : std::upper_bound(begin, end, this->to) - base;
-      }
-      if (!open_to) {
-         ret->removeRange(upper, dbp.sequenceCount);
-      }
-      return {ret, nullptr};
    }
+   Roaring* result;
+   if (in_filter.mutable_res) {
+      result = in_filter.mutable_res;
+   } else {
+      result = new Roaring(*in_filter.getAsConst());
+   }
+   const auto* base = database_partition.meta_store.sequence_id_to_date.data();
+   uint32_t lower = 0;
+   uint32_t upper = 0;
+   for (const Chunk& chunk : database_partition.getChunks()) {
+      const auto* begin = &database_partition.meta_store.sequence_id_to_date[chunk.offset];
+      const auto* end =
+         &database_partition.meta_store.sequence_id_to_date[chunk.offset + chunk.count];
+      lower = open_from ? begin - base : std::lower_bound(begin, end, this->date_from) - base;
+      result->removeRange(upper, lower);
+      upper = open_to ? end - base : std::upper_bound(begin, end, this->date_to) - base;
+   }
+   if (!open_to) {
+      result->removeRange(upper, database_partition.sequenceCount);
+   }
+   return {result, nullptr};
 }
 
-filter_t DateBetwEx::neg_select(
+BooleanExpressionResult DateBetweenExpression::selectNegated(
    const Database& /*db*/,
-   const DatabasePartition& dbp,
-   filter_t in_filter
+   const DatabasePartition& database_partition,
+   BooleanExpressionResult in_filter
 ) {
    if (open_from && open_to) {
       return in_filter;
-   } else {
-      Roaring* ret;
-      if (in_filter.mutable_res) {
-         ret = in_filter.mutable_res;
-      } else {
-         ret = new Roaring(*in_filter.getAsConst());
-      }
-      auto base = &dbp.meta_store.sid_to_date[0];
-      for (const chunk_t& chunk : dbp.get_chunks()) {
-         auto begin = &dbp.meta_store.sid_to_date[chunk.offset];
-         auto end = &dbp.meta_store.sid_to_date[chunk.offset + chunk.count];
-         uint32_t lower =
-            open_from ? begin - base : std::lower_bound(begin, end, this->from) - base;
-         uint32_t upper = open_to ? end - base : std::upper_bound(begin, end, this->to) - base;
-         ret->removeRange(lower, upper);
-      }
-      return {ret, nullptr};
    }
+   Roaring* result;
+   if (in_filter.mutable_res) {
+      result = in_filter.mutable_res;
+   } else {
+      result = new Roaring(*in_filter.getAsConst());
+   }
+   const auto* base = database_partition.meta_store.sequence_id_to_date.data();
+   for (const Chunk& chunk : database_partition.getChunks()) {
+      const auto* begin = &database_partition.meta_store.sequence_id_to_date[chunk.offset];
+      const auto* end =
+         &database_partition.meta_store.sequence_id_to_date[chunk.offset + chunk.count];
+      uint32_t const lower =
+         open_from ? begin - base : std::lower_bound(begin, end, this->date_from) - base;
+      uint32_t const upper =
+         open_to ? end - base : std::upper_bound(begin, end, this->date_to) - base;
+      result->removeRange(lower, upper);
+   }
+   return {result, nullptr};
+}
+ExpressionType DateBetweenExpression::type() const {
+   return ExpressionType::INDEX_FILTER;
+}
+DateBetweenExpression::DateBetweenExpression() = default;
+DateBetweenExpression::DateBetweenExpression(
+   time_t date_from,
+   bool open_from,
+   time_t date_to,
+   bool open_to
+)
+    : date_from(date_from),
+      open_from(open_from),
+      date_to(date_to),
+      open_to(open_to) {}
+std::string DateBetweenExpression::toString(const Database& /*database*/) {
+   std::string res = "[Date-between ";
+   res += (open_from ? "unbound" : std::to_string(date_from));
+   res += " and ";
+   res += (open_to ? "unbound" : std::to_string(date_to));
+   res += "]";
+   return res;
+}
+std::unique_ptr<BoolExpression> DateBetweenExpression::simplify(
+   const Database& /*database*/,
+   const DatabasePartition& /*database_partition*/
+) const {
+   return std::make_unique<DateBetweenExpression>(date_from, open_from, date_to, open_to);
 }
 
-filter_t NucEqEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
-   return {nullptr, dbp.seq_store.bm(position, value)};
+BooleanExpressionResult NucleotideSymbolEqualsExpression::evaluate(
+   const Database& /*db*/,
+   const DatabasePartition& database_partition
+) {
+   return {nullptr, database_partition.seq_store.getBitmap(position, value)};
 }
 
-filter_t NucMbEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
+BooleanExpressionResult NucleotideSymbolMaybeExpression::evaluate(
+   const Database& /*db*/,
+   const DatabasePartition& database_partition
+) {
    if (!negated) {
       /// Normal case
-      return {dbp.seq_store.bma(position, value), nullptr};
-   } else {
-      /// The bitmap of this->value has been flipped... still have to union it with the other
-      /// symbols
-      return {dbp.seq_store.bma_neg(position, value), nullptr};
+      return {database_partition.seq_store.getBitmapFromAmbiguousSymbol(position, value), nullptr};
    }
+   /// The bitmap of this->value has been flipped... still have to union it with the other
+   /// symbols
+   return {
+      database_partition.seq_store.getFlippedBitmapFromAmbiguousSymbol(position, value), nullptr};
 }
 
-filter_t PangoLineageEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
-   if (lineageKey == UINT32_MAX)
+BooleanExpressionResult PangoLineageExpression::evaluate(
+   const Database& /*db*/,
+   const DatabasePartition& database_partition
+) {
+   if (lineageKey == UINT32_MAX) {
       return {new Roaring(), nullptr};
-   if (includeSubLineages) {
-      return {nullptr, &dbp.meta_store.sublineage_bitmaps[lineageKey]};
-   } else {
-      return {nullptr, &dbp.meta_store.lineage_bitmaps[lineageKey]};
    }
-}
-
-filter_t CountryEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
-   return {nullptr, &dbp.meta_store.country_bitmaps[countryKey]};
-}
-
-filter_t RegionEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
-   return {nullptr, &dbp.meta_store.region_bitmaps[regionKey]};
-}
-
-filter_t PosNEqEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
-   constexpr unsigned BUFFER_SIZE = 1024;
-   std::vector<uint32_t> buffer(BUFFER_SIZE);
-   Roaring* ret = new Roaring();
-   for (uint32_t seq = 0; seq < dbp.sequenceCount; seq++) {
-      if (dbp.seq_store.N_bitmaps[seq].contains(position)) {
-         buffer.push_back(seq);
-         if (buffer.size() == BUFFER_SIZE) {
-            ret->addMany(BUFFER_SIZE, buffer.data());
-            buffer.clear();
-         }
-      }
+   if (include_sublineages) {
+      return {nullptr, &database_partition.meta_store.sublineage_bitmaps[lineageKey]};
    }
-   if (buffer.size() > 0) {
-      ret->addMany(buffer.size(), buffer.data());
-   }
-   return {ret, nullptr};
+   return {nullptr, &database_partition.meta_store.lineage_bitmaps[lineageKey]};
 }
 
-filter_t PosNEqEx::select(
+BooleanExpressionResult CountryExpression::evaluate(
+   const Database& /*database*/,
+   const DatabasePartition& database_partition
+) {
+   return {nullptr, &database_partition.meta_store.country_bitmaps[country_key]};
+}
+
+BooleanExpressionResult RegionExpression::evaluate(
+   const Database& /*database*/,
+   const DatabasePartition& database_partition
+) {
+   return {nullptr, &database_partition.meta_store.region_bitmaps[region_key]};
+}
+
+BooleanExpressionResult PositionHasNucleotideSymbolNExpression::evaluate(
    const Database& /*db*/,
-   const DatabasePartition& dbp,
-   filter_t in_filter
+   const DatabasePartition& database_partition
 ) {
    constexpr unsigned BUFFER_SIZE = 1024;
    std::vector<uint32_t> buffer(BUFFER_SIZE);
-   Roaring* ret = new Roaring();
-   for (uint32_t seq : *in_filter.getAsConst()) {
-      if (dbp.seq_store.N_bitmaps[seq].contains(position)) {
+   auto* result = new Roaring();
+   for (uint32_t seq = 0; seq < database_partition.sequenceCount; seq++) {
+      if (database_partition.seq_store.nucleotide_symbol_n_bitmaps[seq].contains(position)) {
          buffer.push_back(seq);
          if (buffer.size() == BUFFER_SIZE) {
-            ret->addMany(BUFFER_SIZE, buffer.data());
+            result->addMany(BUFFER_SIZE, buffer.data());
             buffer.clear();
          }
       }
    }
-   if (buffer.size() > 0) {
-      ret->addMany(buffer.size(), buffer.data());
+   if (!buffer.empty()) {
+      result->addMany(buffer.size(), buffer.data());
    }
-   in_filter.free();
-   return {ret, nullptr};
+   return {result, nullptr};
 }
 
-filter_t PosNEqEx::neg_select(
+BooleanExpressionResult PositionHasNucleotideSymbolNExpression::select(
    const Database& /*db*/,
-   const DatabasePartition& dbp,
-   filter_t in_filter
+   const DatabasePartition& database_partition,
+   BooleanExpressionResult in_filter
 ) {
    constexpr unsigned BUFFER_SIZE = 1024;
    std::vector<uint32_t> buffer(BUFFER_SIZE);
-   Roaring* ret = new Roaring();
-   for (uint32_t seq : *in_filter.getAsConst()) {
-      if (!dbp.seq_store.N_bitmaps[seq].contains(position)) {
-         buffer.push_back(seq);
+   auto* result = new Roaring();
+   for (uint32_t const sequence : *in_filter.getAsConst()) {
+      if (database_partition.seq_store.nucleotide_symbol_n_bitmaps[sequence].contains(position)) {
+         buffer.push_back(sequence);
          if (buffer.size() == BUFFER_SIZE) {
-            ret->addMany(BUFFER_SIZE, buffer.data());
+            result->addMany(BUFFER_SIZE, buffer.data());
             buffer.clear();
          }
       }
    }
-   if (buffer.size() > 0) {
-      ret->addMany(buffer.size(), buffer.data());
+   if (!buffer.empty()) {
+      result->addMany(buffer.size(), buffer.data());
    }
    in_filter.free();
-   return {ret, nullptr};
+   return {result, nullptr};
 }
 
-filter_t StrEqEx::evaluate(const Database& /*db*/, const DatabasePartition& dbp) {
-   constexpr unsigned BUFFER_SIZE = 1024;
-   std::vector<uint32_t> buffer(BUFFER_SIZE);
-   Roaring* ret = new Roaring();
-   for (uint32_t seq = 0; seq < dbp.sequenceCount; seq++) {
-      if (dbp.meta_store.cols[column][seq] == value) {
-         buffer.push_back(seq);
-         if (buffer.size() == BUFFER_SIZE) {
-            ret->addMany(BUFFER_SIZE, buffer.data());
-            buffer.clear();
-         }
-      }
-   }
-   if (buffer.size() > 0) {
-      ret->addMany(buffer.size(), buffer.data());
-   }
-   return {ret, nullptr};
-}
-
-filter_t StrEqEx::select(const Database& /*db*/, const DatabasePartition& dbp, filter_t in_filter) {
-   constexpr unsigned BUFFER_SIZE = 1024;
-   std::vector<uint32_t> buffer(BUFFER_SIZE);
-   Roaring* ret = new Roaring();
-   for (uint32_t seq : *in_filter.getAsConst()) {
-      if (dbp.meta_store.cols[column][seq] == value) {
-         buffer.push_back(seq);
-         if (buffer.size() == BUFFER_SIZE) {
-            ret->addMany(BUFFER_SIZE, buffer.data());
-            buffer.clear();
-         }
-      }
-   }
-   if (buffer.size() > 0) {
-      ret->addMany(buffer.size(), buffer.data());
-   }
-   in_filter.free();
-   return {ret, nullptr};
-}
-
-filter_t StrEqEx::neg_select(
+BooleanExpressionResult PositionHasNucleotideSymbolNExpression::selectNegated(
    const Database& /*db*/,
-   const DatabasePartition& dbp,
-   filter_t in_filter
+   const DatabasePartition& database_partition,
+   BooleanExpressionResult in_filter
 ) {
    constexpr unsigned BUFFER_SIZE = 1024;
    std::vector<uint32_t> buffer(BUFFER_SIZE);
-   Roaring* ret = new Roaring();
-   for (uint32_t seq : *in_filter.getAsConst()) {
-      if (dbp.meta_store.cols[column][seq] != value) {
-         buffer.push_back(seq);
+   auto* result = new Roaring();
+   for (uint32_t const sequence : *in_filter.getAsConst()) {
+      if (!database_partition.seq_store.nucleotide_symbol_n_bitmaps[sequence].contains(position)) {
+         buffer.push_back(sequence);
          if (buffer.size() == BUFFER_SIZE) {
-            ret->addMany(BUFFER_SIZE, buffer.data());
+            result->addMany(BUFFER_SIZE, buffer.data());
             buffer.clear();
          }
       }
    }
-   if (buffer.size() > 0) {
-      ret->addMany(buffer.size(), buffer.data());
+   if (!buffer.empty()) {
+      result->addMany(buffer.size(), buffer.data());
    }
    in_filter.free();
-   return {ret, nullptr};
+   return {result, nullptr};
+}
+ExpressionType PositionHasNucleotideSymbolNExpression::type() const {
+   return ExpressionType::FILTER;
+}
+PositionHasNucleotideSymbolNExpression::PositionHasNucleotideSymbolNExpression(unsigned int position
+)
+    : position(position) {}
+std::string PositionHasNucleotideSymbolNExpression::toString(const Database& /*database*/) {
+   std::string res = std::to_string(position) + "N";
+   return res;
+}
+std::unique_ptr<BoolExpression> PositionHasNucleotideSymbolNExpression::simplify(
+   const Database& /*database*/,
+   const DatabasePartition& /*database_partition*/
+) const {
+   return std::make_unique<PositionHasNucleotideSymbolNExpression>(position);
 }
 
-filter_t FullEx::evaluate(const Database&, const DatabasePartition& dbp) {
-   Roaring* ret = new Roaring();
-   ret->addRange(0, dbp.sequenceCount);
-   return {ret, nullptr};
+BooleanExpressionResult StringEqualsExpression::evaluate(
+   const Database& /*db*/,
+   const DatabasePartition& database_partition
+) {
+   constexpr unsigned BUFFER_SIZE = 1024;
+   std::vector<uint32_t> buffer(BUFFER_SIZE);
+   auto* result = new Roaring();
+   for (uint32_t seq = 0; seq < database_partition.sequenceCount; seq++) {
+      if (database_partition.meta_store.columns[column][seq] == value) {
+         buffer.push_back(seq);
+         if (buffer.size() == BUFFER_SIZE) {
+            result->addMany(BUFFER_SIZE, buffer.data());
+            buffer.clear();
+         }
+      }
+   }
+   if (!buffer.empty()) {
+      result->addMany(buffer.size(), buffer.data());
+   }
+   return {result, nullptr};
 }
 
-filter_t EmptyEx::evaluate(const Database&, const DatabasePartition&) {
+BooleanExpressionResult StringEqualsExpression::select(
+   const Database& /*db*/,
+   const DatabasePartition& database_partition,
+   BooleanExpressionResult in_filter
+) {
+   constexpr unsigned BUFFER_SIZE = 1024;
+   std::vector<uint32_t> buffer(BUFFER_SIZE);
+   auto* result = new Roaring();
+   for (uint32_t const sequence : *in_filter.getAsConst()) {
+      if (database_partition.meta_store.columns[column][sequence] == value) {
+         buffer.push_back(sequence);
+         if (buffer.size() == BUFFER_SIZE) {
+            result->addMany(BUFFER_SIZE, buffer.data());
+            buffer.clear();
+         }
+      }
+   }
+   if (!buffer.empty()) {
+      result->addMany(buffer.size(), buffer.data());
+   }
+   in_filter.free();
+   return {result, nullptr};
+}
+
+BooleanExpressionResult StringEqualsExpression::selectNegated(
+   const Database& /*db*/,
+   const DatabasePartition& database_partition,
+   BooleanExpressionResult in_filter
+) {
+   constexpr unsigned BUFFER_SIZE = 1024;
+   std::vector<uint32_t> buffer(BUFFER_SIZE);
+   auto* result = new Roaring();
+   for (uint32_t const seq : *in_filter.getAsConst()) {
+      if (database_partition.meta_store.columns[column][seq] != value) {
+         buffer.push_back(seq);
+         if (buffer.size() == BUFFER_SIZE) {
+            result->addMany(BUFFER_SIZE, buffer.data());
+            buffer.clear();
+         }
+      }
+   }
+   if (!buffer.empty()) {
+      result->addMany(buffer.size(), buffer.data());
+   }
+   in_filter.free();
+   return {result, nullptr};
+}
+ExpressionType StringEqualsExpression::type() const {
+   return ExpressionType::FILTER;
+}
+StringEqualsExpression::StringEqualsExpression(uint32_t column, uint64_t value)
+    : column(column),
+      value(value) {}
+std::string StringEqualsExpression::toString(const Database& /*database*/) {
+   return std::to_string(column).append("=").append(std::to_string(value));
+}
+std::unique_ptr<BoolExpression> StringEqualsExpression::simplify(
+   const Database& /*database*/,
+   const DatabasePartition& /*database_partition*/
+) const {
+   if (column == UINT32_MAX || value == UINT64_MAX) {
+      return std::make_unique<EmptyExpression>();
+   }
+   return std::make_unique<StringEqualsExpression>(column, value);
+}
+
+BooleanExpressionResult FullExpression::evaluate(
+   const Database& /*database*/,
+   const DatabasePartition& database_partition
+) {
+   auto* result = new Roaring();
+   result->addRange(0, database_partition.sequenceCount);
+   return {result, nullptr};
+}
+ExpressionType FullExpression::type() const {
+   return ExpressionType::FULL;
+}
+std::string FullExpression::toString(const Database& /*database*/) {
+   return "TRUE";
+}
+std::unique_ptr<BoolExpression> FullExpression::simplify(
+   const Database& /*database*/,
+   const DatabasePartition& /*database_partition*/
+) const {
+   return std::make_unique<silo::FullExpression>();
+}
+
+BooleanExpressionResult EmptyExpression::evaluate(
+   const Database& /*database*/,
+   const DatabasePartition& /*database_partition*/
+) {
    return {new Roaring(), nullptr};
 }
-}  // namespace silo
+ExpressionType EmptyExpression::type() const {
+   return ExpressionType::EMPTY;
+}
+std::string EmptyExpression::toString(const Database& /*database*/) {
+   return "FALSE";
+}
+std::unique_ptr<BoolExpression> EmptyExpression::simplify(
+   const Database& /*database*/,
+   const DatabasePartition& /*database_partition*/
+) const {
+   return std::make_unique<silo::EmptyExpression>();
+}
+const roaring::Roaring* BooleanExpressionResult::getAsConst() const {
+   return mutable_res ? mutable_res : immutable_res;
+}
+void BooleanExpressionResult::free() const {
+   delete mutable_res;
+}
+BoolExpression::BoolExpression() = default;
 
-std::vector<silo::filter_t> silo::execute_predicate(
-   const silo::Database& db,
-   const BoolExpression* filter
-) {
-   std::vector<silo::filter_t> partition_filters(db.partitions.size());
-   tbb::blocked_range<size_t> r(0, db.partitions.size(), 1);
-   tbb::parallel_for(r.begin(), r.end(), [&](const size_t& i) {
-      std::unique_ptr<BoolExpression> part_filter = filter->simplify(db, db.partitions[i]);
-      partition_filters[i] = part_filter->evaluate(db, db.partitions[i]);
-   });
-   return partition_filters;
+ExpressionType NucleotideSymbolEqualsExpression::type() const {
+   return ExpressionType::INDEX_FILTER;
+}
+NucleotideSymbolEqualsExpression::NucleotideSymbolEqualsExpression() = default;
+NucleotideSymbolEqualsExpression::NucleotideSymbolEqualsExpression(
+   unsigned int position,
+   GENOME_SYMBOL value
+)
+    : position(position),
+      value(value) {}
+std::string NucleotideSymbolEqualsExpression::toString(const Database& /*database*/) {
+   std::string res = std::to_string(position) + SYMBOL_REPRESENTATION[value];
+   return res;
 }
 
-silo::QueryResult silo::execute_query(
-   const silo::Database& db,
+ExpressionType NucleotideSymbolMaybeExpression::type() const {
+   return ExpressionType::INDEX_FILTER;
+}
+NucleotideSymbolMaybeExpression::NucleotideSymbolMaybeExpression() = default;
+NucleotideSymbolMaybeExpression::NucleotideSymbolMaybeExpression(
+   unsigned int position,
+   GENOME_SYMBOL value
+)
+    : position(position),
+      value(value) {}
+std::string NucleotideSymbolMaybeExpression::toString(const Database& /*database*/) {
+   std::string res = "?" + std::to_string(position) + SYMBOL_REPRESENTATION[value];
+   return res;
+}
+
+ExpressionType PangoLineageExpression::type() const {
+   return ExpressionType::INDEX_FILTER;
+}
+PangoLineageExpression::PangoLineageExpression(uint32_t lineage_key, bool include_sublineages)
+    : lineageKey(lineage_key),
+      include_sublineages(include_sublineages) {}
+std::string PangoLineageExpression::toString(const Database& database) {
+   std::string res = database.dict->getPangoLineage(lineageKey);
+   if (include_sublineages) {
+      res += ".*";
+   }
+   return res;
+}
+
+CountryExpression::CountryExpression(uint32_t country_key)
+    : country_key(country_key) {}
+std::string CountryExpression::toString(const Database& database) {
+   std::string res = "Country=" + database.dict->getCountry(country_key);
+   return res;
+}
+ExpressionType CountryExpression::type() const {
+   return ExpressionType::INDEX_FILTER;
+}
+
+ExpressionType RegionExpression::type() const {
+   return ExpressionType::INDEX_FILTER;
+}
+RegionExpression::RegionExpression(uint32_t regionKey)
+    : region_key(regionKey) {}
+std::string RegionExpression::toString(const Database& database) {
+   std::string res = "Region=" + database.dict->getRegion(region_key);
+   return res;
+}
+
+AndExpression::AndExpression() = default;
+ExpressionType AndExpression::type() const {
+   return ExpressionType::AND;
+}
+std::string AndExpression::toString(const Database& database) {
+   std::string res = "(";
+   for (auto& child : children) {
+      res += " & ";
+      res += child->toString(database);
+   }
+   for (auto& child : negated_children) {
+      res += " &! ";
+      res += child->toString(database);
+   }
+   res += ")";
+   return res;
+}
+
+OrExpression::OrExpression() = default;
+
+ExpressionType OrExpression::type() const {
+   return ExpressionType::OR;
+}
+
+std::string OrExpression::toString(const Database& database) {
+   std::string res = "(";
+   for (auto& child : children) {
+      res += child->toString(database);
+      res += " | ";
+   }
+   res += ")";
+   return res;
+}
+
+NegatedExpression::NegatedExpression() = default;
+
+NegatedExpression::NegatedExpression(std::unique_ptr<BoolExpression> child)
+    : child(std::move(child)) {}
+
+std::string NegatedExpression::toString(const Database& database) {
+   std::string res = "!" + child->toString(database);
+   return res;
+}
+
+ExpressionType NegatedExpression::type() const {
+   return ExpressionType::NEG;
+}
+
+ExpressionType NOfExpression::type() const {
+   return ExpressionType::NOF;
+}
+NOfExpression::NOfExpression(
+   unsigned int number_of_matchers,
+   bool match_exactly,
+   NOfExpressionImplementation implementation
+)
+    : number_of_matchers(number_of_matchers),
+      implementation(implementation),
+      match_exactly(match_exactly) {}
+
+std::string NOfExpression::toString(const Database& database) {
+   std::string res;
+   if (match_exactly) {
+      res = "[exactly-" + std::to_string(number_of_matchers) + "-of:";
+   } else {
+      res = "[" + std::to_string(number_of_matchers) + "-of:";
+   }
+   for (auto& child : children) {
+      res += child->toString(database);
+      res += ", ";
+   }
+   res += "]";
+   return res;
+}
+
+}  // namespace silo
+
+// TODO(someone): reduce cognitive complexity
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+silo::QueryResult silo::executeQuery(
+   const silo::Database& database,
    const std::string& query,
    std::ostream& parse_out,
    std::ostream& perf_out
@@ -878,29 +1178,31 @@ silo::QueryResult silo::execute_query(
       throw QueryParseException("Query json must contain filter and action.");
    }
 
-   std::vector<std::string> simplified_queries(db.partitions.size());
+   std::vector<std::string> simplified_queries(database.partitions.size());
 
    QueryResult query_result;
    std::unique_ptr<BoolExpression> filter;
    {
-      BlockTimer timer(query_result.parseTime);
-      filter = parse_expression(db, doc["filter"], 0);
-      parse_out << "Parsed query: " << filter->to_string(db) << std::endl;
+      BlockTimer const timer(query_result.parseTime);
+      filter = parseExpression(database, doc["filter"], 0);
+      parse_out << "Parsed query: " << filter->toString(database) << std::endl;
    }
 
    perf_out << "Parse: " << std::to_string(query_result.parseTime) << " microseconds\n";
 
-   std::vector<silo::filter_t> partition_filters(db.partitions.size());
+   std::vector<silo::BooleanExpressionResult> partition_filters(database.partitions.size());
    {
-      BlockTimer timer(query_result.filterTime);
-      tbb::blocked_range<size_t> r(0, db.partitions.size(), 1);
-      tbb::parallel_for(r.begin(), r.end(), [&](const size_t& i) {
-         std::unique_ptr<BoolExpression> part_filter = filter->simplify(db, db.partitions[i]);
-         simplified_queries[i] = part_filter->to_string(db);
-         partition_filters[i] = part_filter->evaluate(db, db.partitions[i]);
+      BlockTimer const timer(query_result.filterTime);
+      tbb::blocked_range<size_t> const range(0, database.partitions.size(), 1);
+      tbb::parallel_for(range.begin(), range.end(), [&](const size_t& partition_index) {
+         std::unique_ptr<BoolExpression> part_filter =
+            filter->simplify(database, database.partitions[partition_index]);
+         simplified_queries[partition_index] = part_filter->toString(database);
+         partition_filters[partition_index] =
+            part_filter->evaluate(database, database.partitions[partition_index]);
       });
    }
-   for (unsigned i = 0; i < db.partitions.size(); ++i) {
+   for (unsigned i = 0; i < database.partitions.size(); ++i) {
       parse_out << "Simplified query for partition " << i << ": " << simplified_queries[i]
                 << std::endl;
    }
@@ -908,7 +1210,7 @@ silo::QueryResult silo::execute_query(
             << " microseconds\n";
 
    {
-      BlockTimer timer(query_result.actionTime);
+      BlockTimer const timer(query_result.actionTime);
       const auto& action = doc["action"];
       assert(action.HasMember("type"));
       assert(action["type"].IsString());
@@ -916,24 +1218,32 @@ silo::QueryResult silo::execute_query(
 
       if (action.HasMember("groupByFields")) {
          assert(action["groupByFields"].IsArray());
-         std::vector<std::string> groupByFields;
-         for (const auto& it : action["groupByFields"].GetArray()) {
-            groupByFields.emplace_back(it.GetString());
+         std::vector<std::string> group_by_fields;
+         for (const auto& field : action["groupByFields"].GetArray()) {
+            group_by_fields.emplace_back(field.GetString());
          }
+
          if (strcmp(action_type, "Aggregated") == 0) {
+            query_result.queryResult =
+               response::ErrorResult{"groupByFields::Aggregated is not properly implemented yet"};
          } else if (strcmp(action_type, "List") == 0) {
+            query_result.queryResult =
+               response::ErrorResult{"groupByFields::List is not properly implemented yet"};
          } else if (strcmp(action_type, "Mutations") == 0) {
+            query_result.queryResult =
+               response::ErrorResult{"groupByFields::Mutations is not properly implemented yet"};
          } else {
-            query_result.queryResult = response::ErrorResult{
-               "Unknown action", std::string(action_type) + " is not a valid action"};
+            query_result.queryResult =
+               response::ErrorResult{"groupByFields is not properly implemented yet"};
          }
+
       } else {
          if (strcmp(action_type, "Aggregated") == 0) {
-            unsigned count = execute_count(db, partition_filters);
+            const unsigned count = executeCount(database, partition_filters);
             query_result.queryResult = response::AggregationResult{count};
          } else if (strcmp(action_type, "List") == 0) {
          } else if (strcmp(action_type, "Mutations") == 0) {
-            double min_proportion = 0.02;
+            double min_proportion = DEFAULT_MINIMAL_PROPORTION;
             if (action.HasMember("minProportion") && action["minProportion"].IsDouble()) {
                if (action["minProportion"].GetDouble() <= 0.0) {
                   query_result.queryResult = response::ErrorResult{
@@ -943,15 +1253,16 @@ silo::QueryResult silo::execute_query(
                min_proportion = action["minProportion"].GetDouble();
             }
             std::vector<MutationProportion> mutations =
-               execute_mutations(db, partition_filters, min_proportion, perf_out);
+               executeMutations(database, partition_filters, min_proportion, perf_out);
 
             std::vector<response::MutationProportion> output_mutation_proportions(mutations.size());
             std::transform(
                mutations.begin(), mutations.end(), output_mutation_proportions.begin(),
                [](MutationProportion mutation_proportion) {
                   return response::MutationProportion{
-                     mutation_proportion.mut_from + std::to_string(mutation_proportion.position) +
-                        mutation_proportion.mut_to,
+                     mutation_proportion.mutation_from +
+                        std::to_string(mutation_proportion.position) +
+                        mutation_proportion.mutation_to,
                      mutation_proportion.proportion, mutation_proportion.count};
                }
             );

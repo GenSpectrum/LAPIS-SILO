@@ -1,0 +1,19 @@
+FROM ubuntu:22.04 AS linter
+
+RUN apt update && apt install -y \
+    cmake=3.22.1-1ubuntu1.22.04.1 \
+    python3-pip=22.0.2+dfsg-1ubuntu0.2 \
+    clang-tidy=1:14.0-55~exp2
+
+RUN pip install conan==1.59.0
+
+WORKDIR /src
+COPY . .
+
+RUN mv conanprofile.docker conanprofile
+RUN --mount=type=cache,target=/root/.conan conan install . --build=missing --profile ./conanprofile -if=/build
+
+RUN  \
+    --mount=type=cache,target=/root/.conan \
+    --mount=type=cache,target=build \
+    bash ./build_with_conan.sh

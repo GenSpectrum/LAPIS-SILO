@@ -18,7 +18,6 @@ RUN --mount=type=cache,target=/root/.conan conan install . --build=missing --pro
 RUN  \
     --mount=type=cache,target=/root/.conan \
     --mount=type=cache,target=build \
-    --mount=type=cache,target=build \
     ash ./build_with_conan.sh release \
     && cp build/silo_test . \
     && cp build/siloApi .

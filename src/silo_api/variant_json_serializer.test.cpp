@@ -4,36 +4,38 @@
 #include "gtest/gtest.h"
 #include "nlohmann/json.hpp"
 
-struct test_struct {
+struct TestStruct {
    std::string stringField;
    int64_t intField;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(test_struct, stringField, intField);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(TestStruct, stringField, intField);
 
 TEST(variant_json_serializer, deserialize_struct_variant) {
-   nlohmann::json json = {
-      {"stringField", "this is a string"},
-      {"intField", 42},
+   const int some_number = 42;
+   const std::string some_string;
+   const nlohmann::json json = {
+      {"stringField", some_string},
+      {"intField", some_number},
    };
 
-   auto result = json.get<std::variant<test_struct, std::string>>();
+   auto result = json.get<std::variant<TestStruct, std::string>>();
 
-   EXPECT_TRUE(holds_alternative<test_struct>(result));
-   EXPECT_EQ(std::get<test_struct>(result).stringField, "this is a string");
-   EXPECT_EQ(std::get<test_struct>(result).intField, 42);
+   EXPECT_TRUE(holds_alternative<TestStruct>(result));
+   EXPECT_EQ(std::get<TestStruct>(result).stringField, some_string);
+   EXPECT_EQ(std::get<TestStruct>(result).intField, some_number);
 }
 
 TEST(variant_json_serializer, deserialize_string_variant) {
-   nlohmann::json json = "this is another string";
+   const nlohmann::json json = "this is another string";
 
-   auto result = json.get<std::variant<test_struct, std::string>>();
+   auto result = json.get<std::variant<TestStruct, std::string>>();
 
    EXPECT_TRUE(holds_alternative<std::string>(result));
    EXPECT_EQ(std::get<std::string>(result), "this is another string");
 }
 
 TEST(variant_json_serializer, serialize_string_variant) {
-   std::variant<test_struct, std::string> value = "this is a string";
+   const std::variant<TestStruct, std::string> value = "this is a string";
 
    auto result = nlohmann::json(value).dump();
 
@@ -41,7 +43,7 @@ TEST(variant_json_serializer, serialize_string_variant) {
 }
 
 TEST(variant_json_serializer, serialize_struct_variant) {
-   std::variant<test_struct, std::string> value = test_struct{"this is another string", 42};
+   const std::variant<TestStruct, std::string> value = TestStruct{"this is another string", 42};
 
    auto result = nlohmann::json(value).dump();
 

@@ -3,8 +3,7 @@
 
 #include <string>
 
-namespace silo {
-namespace response {
+namespace silo::response {
 struct AggregationResult {
    int64_t count;
 };
@@ -19,7 +18,6 @@ struct ErrorResult {
    std::string error;
    std::string message;
 };
-}  // namespace response
-}  // namespace silo
+}  // namespace silo::response
 
 #endif  // SILO_QUERY_ENGINE_RESULT_H

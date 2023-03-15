@@ -3,7 +3,8 @@
 
 #include <nlohmann/json.hpp>
 #include <variant>
-
+// no linting because needed by external library
+// NOLINTBEGIN
 namespace nlohmann {
 template <typename T, typename... Ts>
 void variant_from_json(const nlohmann::json& j, std::variant<Ts...>& data) {
@@ -14,15 +15,15 @@ void variant_from_json(const nlohmann::json& j, std::variant<Ts...>& data) {
 }
 
 template <typename... Ts>
-struct adl_serializer<std::variant<Ts...>> {
-   static void to_json(nlohmann::json& j, const std::variant<Ts...>& data) {
+struct [[maybe_unused]] adl_serializer<std::variant<Ts...>> {
+   [[maybe_unused]] static void to_json(nlohmann::json& j, const std::variant<Ts...>& data) {
       std::visit([&j](const auto& v) { j = v; }, data);
    }
 
-   static void from_json(const nlohmann::json& j, std::variant<Ts...>& data) {
+   [[maybe_unused]] static void from_json(const nlohmann::json& j, std::variant<Ts...>& data) {
       (variant_from_json<Ts>(j, data), ...);
    }
 };
 }  // namespace nlohmann
-
+// NOLINTEND
 #endif  // SILO_VARIANT_JSON_SERIALIZER_H
