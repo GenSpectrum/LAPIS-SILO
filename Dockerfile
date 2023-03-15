@@ -7,16 +7,17 @@ RUN apk update && apk add --no-cache py3-pip \
     boost-build=1.79.0-r0 \
     libtbb=2021.7.0-r0
 
-RUN pip install conan==1.59.0
+RUN pip install conan==2.0.2
 
 WORKDIR /src
 COPY . .
 
 RUN mv conanprofile.docker conanprofile
-RUN --mount=type=cache,target=/root/.conan conan install . --build=missing --profile ./conanprofile -if=/build
+RUN --mount=type=cache,target=/root/.conan2 \
+    conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build
 
 RUN  \
-    --mount=type=cache,target=/root/.conan \
+    --mount=type=cache,target=/root/.conan2 \
     --mount=type=cache,target=build \
     ash ./build_with_conan.sh release \
     && cp build/silo_test . \
