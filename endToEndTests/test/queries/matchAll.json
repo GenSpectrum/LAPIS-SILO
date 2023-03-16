@@ -1,13 +1,11 @@
 {
-  "testCaseName": "StringEquals for region",
+  "testCaseName": "MatchAll query requesting all entries",
   "query": {
     "action": {
       "type": "Aggregated"
     },
     "filterExpression": {
-      "type": "StringEquals",
-      "column": "country",
-      "value": "Switzerland"
+      "type": "True"
     }
   },
   "expectedQueryResult": {

@@ -40,7 +40,7 @@ describe('The /query endpoint', () => {
       .expect('Content-Type', 'application/json')
       .expect({
         error: 'Bad request',
-        message: 'Query json must contain filter and action.',
+        message: 'Query json must contain filterExpression and action.',
       })
       .end(done);
   });
@@ -52,7 +52,7 @@ describe('The /query endpoint', () => {
         action: {
           type: 'invalid action',
         },
-        filter: {
+        filterExpression: {
           type: 'invalid filter type',
         },
       })
