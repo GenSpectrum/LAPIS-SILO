@@ -29,10 +29,7 @@ find_package(nlohmann_json REQUIRED)
 # Includes
 # ---------------------------------------------------------------------------
 
-include_directories(SYSTEM
-        ${CMAKE_SOURCE_DIR}/include
-        ${RapidJSON_INCLUDE_DIRS}
-        )
+include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/include ${RapidJSON_INCLUDE_DIRS})
 
 # ---------------------------------------------------------------------------
 # Sources
@@ -40,20 +37,11 @@ include_directories(SYSTEM
 
 file(GLOB SRC_TEST "src/*/*.test.cpp" , "src/*.test.cpp")
 
-set(SRC_CC
-        src/storage/Dictionary.cpp
-        src/storage/meta_store.cpp
-        src/storage/sequence_store.cpp
-        src/query_engine/query_engine.cpp
-        src/query_engine/query_simplification.cpp
-        src/query_engine/query_engine_action.cpp
-        src/query_engine/QueryParseException.cpp
-        src/database.cpp
-        src/prepare_dataset.cpp
-        src/roaring/roaring.c
-        src/preprocessing/preprocessing_config.cpp
-        src/preprocessing/preprocessing_exception.cpp
-        src/common/InputStreamWrapper.cpp)
+file(GLOB_RECURSE SRC_SILO_LIB "src/silo/*.cpp" "src/silo/roaring/roaring.c")
+list(REMOVE_ITEM SRC_SILO_LIB ${SRC_TEST})
+
+file(GLOB_RECURSE SRC_SILO_API "src/silo_api/*" "src/silo_api/**")
+list(REMOVE_ITEM SRC_SILO_API ${SRC_TEST})
 
 # ---------------------------------------------------------------------------
 # Linter
@@ -75,13 +63,10 @@ endif ()
 # Targets
 # ---------------------------------------------------------------------------
 
-file(GLOB SRC_API_CC "src/silo_api/*")
-list(REMOVE_ITEM SRC_API_CC ${SRC_TEST})
-
-add_library(silo ${SRC_CC})
+add_library(silo ${SRC_SILO_LIB})
 target_link_libraries(silo PUBLIC ${Boost_LIBRARIES} TBB::tbb)
 
-add_executable(siloApi src/api.cpp ${SRC_API_CC})
+add_executable(siloApi src/silo_api/api.cpp ${SRC_SILO_API})
 target_link_libraries(siloApi PUBLIC silo Poco::Net Poco::Util Poco::JSON nlohmann_json::nlohmann_json)
 
 # ---------------------------------------------------------------------------

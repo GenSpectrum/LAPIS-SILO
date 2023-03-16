@@ -86,7 +86,6 @@ class Database {
    std::unique_ptr<Dictionary> dict;
 
    Database();
-   ;
 
    explicit Database(const std::string& directory);
 
