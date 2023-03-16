@@ -51,8 +51,8 @@ int handle_command(Database& db, std::vector<std::string> args) {
    using std::endl;
 
    const std::string default_db_savedir = db.wd + "bin_save/";
-   const std::string default_sequence_input = db.wd + "minimal_sequence_set.fasta";
-   const std::string default_metadata_input = db.wd + "minimal_metadata_set.tsv";
+   const std::string default_sequence_input = db.wd + "small_sequence_set.fasta";
+   const std::string default_metadata_input = db.wd + "small_metadata_set.tsv";
    const std::string default_partition_prefix = db.wd + "Partitioned/";
    const std::string default_pango_def_file = db.wd + "pango_descriptor.txt";
    const std::string default_part_def_file = db.wd + "partition_descriptor.txt";

@@ -38,8 +38,8 @@ struct PreprocessingConfig {
    explicit PreprocessingConfig(
       const InputDirectory& input_directory_ = {"./"},
       const OutputDirectory& output_directory_ = {"./"},
-      const MetadataFilename& metadata_filename_ = {"minimal_metadata_set.tsv"},
-      const SequenceFilename& sequence_filename_ = {"minimal_sequence_set.fasta"},
+      const MetadataFilename& metadata_filename_ = {"small_metadata_set.tsv"},
+      const SequenceFilename& sequence_filename_ = {"small_sequence_set.fasta"},
       const PangoLineageDefinitionFilename& pango_lineage_definition_filename_ =
          {"pango_alias.txt"},
       const PartitionFolder& partition_folder_ = {"partitioned/"},
