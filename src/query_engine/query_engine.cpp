@@ -29,6 +29,9 @@ std::unique_ptr<BoolExpression> parseExpression(
    assert(json_value.HasMember("type"));
    assert(json_value["type"].IsString());
    const std::string expression_type = json_value["type"].GetString();
+   if (expression_type == "True") {
+      return std::make_unique<FullExpression>();
+   }
    if (expression_type == "And") {
       auto result = std::make_unique<AndExpression>();
       assert(json_value.HasMember("children"));
@@ -1171,11 +1174,11 @@ silo::QueryResult silo::executeQuery(
    std::ostream& parse_out,
    std::ostream& perf_out
 ) {
-   rapidjson::Document doc;
-   doc.Parse(query.c_str());
-   if (!doc.HasMember("filter") || !doc["filter"].IsObject() ||
-       !doc.HasMember("action") || !doc["action"].IsObject()) {
-      throw QueryParseException("Query json must contain filter and action.");
+   rapidjson::Document json_document;
+   json_document.Parse(query.c_str());
+   if (!json_document.HasMember("filterExpression") || !json_document["filterExpression"].IsObject() ||
+       !json_document.HasMember("action") || !json_document["action"].IsObject()) {
+      throw QueryParseException("Query json must contain filterExpression and action.");
    }
 
    std::vector<std::string> simplified_queries(database.partitions.size());
@@ -1184,7 +1187,7 @@ silo::QueryResult silo::executeQuery(
    std::unique_ptr<BoolExpression> filter;
    {
       BlockTimer const timer(query_result.parseTime);
-      filter = parseExpression(database, doc["filter"], 0);
+      filter = parseExpression(database, json_document["filterExpression"], 0);
       parse_out << "Parsed query: " << filter->toString(database) << std::endl;
    }
 
@@ -1211,7 +1214,7 @@ silo::QueryResult silo::executeQuery(
 
    {
       BlockTimer const timer(query_result.actionTime);
-      const auto& action = doc["action"];
+      const auto& action = json_document["action"];
       assert(action.HasMember("type"));
       assert(action["type"].IsString());
       const auto& action_type = action["type"].GetString();
