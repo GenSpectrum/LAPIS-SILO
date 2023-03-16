@@ -31,10 +31,7 @@ find_package(nlohmann_json REQUIRED)
 
 include_directories(SYSTEM
         ${CMAKE_SOURCE_DIR}/include
-        ${Boost_INCLUDE_DIRS}
-        ${LIBLZMA_INCLUDE_DIRS}
         ${RapidJSON_INCLUDE_DIRS}
-        ${readline_INCLUDE_DIRS}
         )
 
 # ---------------------------------------------------------------------------

@@ -10,12 +10,6 @@ fi
 mkdir -p build
 
 echo "----------------------------------"
-echo "conan install"
-echo "----------------------------------"
-
-conan install . --build=missing --profile ./conanprofile -if=build
-
-echo "----------------------------------"
 echo "cmake -B build"
 echo "----------------------------------"
 
@@ -23,14 +17,17 @@ echo "----------------------------------"
 if [[ "$*" == *"release"* ]]
 then
   echo "triggered RELEASE build"
+  conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build
   cmake -D CMAKE_BUILD_TYPE=Release -B build
 else
+  echo "triggered DEBUG build"
+  conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build -s build_type=Debug
+
   if [[ "$*" == *"build_without_clang_tidy"* ]]
   then
-    echo "triggered DEBUG build"
     cmake -D BUILD_WITH_CLANG_TIDY=OFF -B build
   else
-    echo "triggered DEBUG build"
+    echo "... with clang-tidy"
     cmake -B build
   fi
 fi

@@ -11,14 +11,14 @@ Original genome indexing logic with roaring bitmaps by Prof. Neumann: https://db
 We use Conan to install dependencies for local development. See Dockerfile for how to set up Conan and its requirements.
 This has been tested on Ubuntu 22.04 and is not guaranteed to work on other systems.
 
-The Conan profile (myProfile) on your system might differ: Create a new profile `~/.conan/profiles/myProfile`
+The Conan profile (myProfile) on your system might differ: Create a new profile `~/.conan2/profiles/myProfile`
 ```shell
-conan profile new myProfile --detect
+conan profile detect
 ```
 Insert info `os`, `os_build`, `arch` and `arch_build` of myProfile into `conanprofile.example` and rename
 to `conanprofile`.
 
-Build silo in `./build`. This build will load and build the required libraries to `~/.conan/data/` (can not be set by
+Build silo in `./build`. This build will load and build the required libraries to `~/.conan2/data/` (can not be set by
 hand).
 ```shell
 ./build_with_conan
