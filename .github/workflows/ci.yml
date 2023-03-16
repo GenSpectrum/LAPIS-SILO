@@ -135,7 +135,9 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       -
         name: Start Docker Container
-        run: docker run -p 8080:8080 -d ${{ steps.dockerMetadata.outputs.tags }}
+        run: docker compose -f docker-compose-for-tests.yml up -d --wait
+        env:
+          SILO_IMAGE: ${{ steps.dockerMetadata.outputs.tags }}
       -
         name: Run Tests
         run: cd endToEndTests && SILO_URL=localhost:8080 npm run test
