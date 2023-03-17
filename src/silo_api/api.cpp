@@ -12,12 +12,15 @@
 #include <Poco/Util/Option.h>
 #include <Poco/Util/OptionSet.h>
 #include <Poco/Util/ServerApplication.h>
+#include <spdlog/sinks/daily_file_sink.h>
+#include <spdlog/spdlog.h>
 
 #include "silo/database.h"
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo_api/info_handler.h"
 #include "silo_api/not_found_handler.h"
 #include "silo_api/query_handler.h"
+#include "silo_api/request_handler.h"
 
 class SiloRequestHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
   private:
@@ -29,6 +32,10 @@ class SiloRequestHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
 
    Poco::Net::HTTPRequestHandler* createRequestHandler(const Poco::Net::HTTPServerRequest& request
    ) override {
+      return new silo_api::LoggingRequestHandler(routeRequest(request));
+   }
+
+   Poco::Net::HTTPRequestHandler* routeRequest(const Poco::Net::HTTPServerRequest& request) {
       if (request.getURI() == "/info") {
          return new silo_api::InfoHandler(database);
       }
@@ -71,18 +78,12 @@ class SiloServer : public Poco::Util::ServerApplication {
    }
 
    int main(const std::vector<std::string>& args) override {
-      if (args.empty()) {
-         return Application::EXIT_OK;
+      if (!args.empty()) {
+         displayHelp("", "");
+         return Application::EXIT_USAGE;
       }
 
-      std::cout << "Found unknown arguments:" << std::endl;
-      for (const auto& arg : args) {
-         std::cout << arg << std::endl;
-      }
-
-      displayHelp("", "");
-
-      return Application::EXIT_USAGE;
+      return Application::EXIT_OK;
    }
 
   private:
@@ -103,14 +104,13 @@ class SiloServer : public Poco::Util::ServerApplication {
       auto database = silo::Database(input_directory.directory);
 
       database.preprocessing(config);
-      std::cout << "finished preprocessing " << std::endl;
 
       Poco::Net::ServerSocket const server_socket(port);
       Poco::Net::HTTPServer server(
          new SiloRequestHandlerFactory(database), server_socket, new Poco::Net::HTTPServerParams
       );
 
-      std::cout << "listening on port " << port << std::endl;
+      SPDLOG_INFO("Listening on port {}", port);
 
       server.start();
       waitForTerminationRequest();
@@ -137,7 +137,26 @@ class SiloServer : public Poco::Util::ServerApplication {
    }
 };
 
+static const int MAX_FILES_7 = 7;
+static const int AT_MIDNIGHT = 0;
+static const int AT_0_MINUTES = 0;
+static const std::chrono::duration<int64_t> FIVE_SECONDS = std::chrono::seconds(5);
+
+static const bool DONT_TRUNCATE = false;
+void setupLogger() {
+   auto daily_logger = spdlog::daily_logger_mt(
+      "daily_logger", "logs/silo.log", AT_MIDNIGHT, AT_0_MINUTES, DONT_TRUNCATE, MAX_FILES_7
+   );
+   daily_logger->set_level(spdlog::level::debug);
+   spdlog::flush_every(FIVE_SECONDS);
+   spdlog::set_default_logger(daily_logger);
+}
+
 int main(int argc, char** argv) {
+   setupLogger();
+
+   SPDLOG_INFO("Starting SILO");
+
    SiloServer app;
    return app.run(argc, argv);
 }

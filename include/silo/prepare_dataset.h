@@ -11,15 +11,15 @@ struct Partitions;
 struct PangoLineageCounts;
 
 [[maybe_unused]] void pruneSequences(
-   std::istream& meta_in,
+   std::istream& metadata_in,
    std::istream& sequences_in,
    std::ostream& sequences_out
 );
 
 [[maybe_unused]] void pruneMetadata(
-   std::istream& meta_in,
+   std::istream& metadata_in,
    std::istream& sequences_in,
-   std::ostream& meta_out
+   std::ostream& metadata_out
 );
 
 PangoLineageCounts buildPangoLineageCounts(

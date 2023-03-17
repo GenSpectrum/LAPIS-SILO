@@ -98,8 +98,7 @@ class Database {
    void build(
       const std::string& partition_name_prefix,
       const std::string& metadata_file_suffix,
-      const std::string& sequence_file_suffix,
-      std::ostream& out
+      const std::string& sequence_file_suffix
    );
 
    virtual silo::DatabaseInfo getDatabaseInfo();
@@ -124,7 +123,7 @@ class Database {
    std::unordered_map<std::string, std::string> alias_key;
 };
 
-unsigned fillSequenceStore(SequenceStore& seq_store, std::istream& input_file);
+unsigned fillSequenceStore(SequenceStore& sequence_store, std::istream& input_file);
 
 unsigned fillMetadataStore(
    MetadataStore& meta_store,
@@ -143,8 +142,6 @@ PangoLineageCounts loadPangoLineageCounts(std::istream& input_stream);
 void savePartitions(const Partitions& partitions, std::ostream& output_file);
 
 Partitions loadPartitions(std::istream& input_file);
-
-std::string formatNumber(uint64_t number);
 
 std::string resolvePangoLineageAlias(
    const std::unordered_map<std::string, std::string>& alias_key,

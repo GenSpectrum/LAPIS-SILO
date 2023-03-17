@@ -408,7 +408,6 @@ struct MutationProportion {
 response::QueryResult executeQuery(
    const Database& database,
    const std::string& query,
-   std::ostream& parse_out,
    std::ostream& perf_out
 );
 

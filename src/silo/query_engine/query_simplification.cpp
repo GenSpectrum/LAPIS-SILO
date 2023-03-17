@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <string>
-#include <syncstream>
 #include <vector>
 
 #include "silo/common/silo_symbols.h"
