@@ -7,7 +7,7 @@
 #include <boost/serialization/split_member.hpp>
 #include <boost/serialization/unordered_map.hpp>
 #include <boost/serialization/vector.hpp>
-#include "roaring.hh"
+#include <roaring/roaring.hh>
 
 // no linting because needed by external library
 // NOLINTBEGIN

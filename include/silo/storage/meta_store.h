@@ -1,8 +1,8 @@
 #ifndef SILO_META_STORE_H
 #define SILO_META_STORE_H
 
+#include <roaring/roaring.h>
 #include "silo/common/silo_symbols.h"
-#include "silo/roaring/roaring.hh"
 
 #include <silo/roaring/roaring_serialize.h>
 #include <boost/archive/binary_iarchive.hpp>

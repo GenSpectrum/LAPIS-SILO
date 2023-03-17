@@ -3,9 +3,9 @@
 #define SILO_SEQUENCE_STORE_H
 
 #include <array>
+#include <roaring/roaring.hh>
 #include "boost/serialization/array.hpp"
 #include "meta_store.h"
-#include "silo/roaring/roaring.hh"
 #include "silo/roaring/roaring_serialize.h"
 
 namespace silo {
