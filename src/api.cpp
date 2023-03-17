@@ -91,8 +91,8 @@ class SiloServer : public Poco::Util::ServerApplication {
 
       const silo::InputDirectory input_directory{"./"};
       const silo::OutputDirectory output_directory{"./"};
-      const silo::MetadataFilename metadata_filename{"minimal_metadata_set.tsv"};
-      const silo::SequenceFilename sequence_filename{"minimal_sequence_set.fasta"};
+      const silo::MetadataFilename metadata_filename{"small_metadata_set.tsv"};
+      const silo::SequenceFilename sequence_filename{"small_sequence_set.fasta"};
       auto config = silo::PreprocessingConfig(
          input_directory, output_directory, metadata_filename, sequence_filename
       );
