@@ -24,12 +24,17 @@ find_package(LibLZMA REQUIRED)
 find_package(TBB REQUIRED)
 find_package(RapidJSON REQUIRED INTERFACE)
 find_package(nlohmann_json REQUIRED)
+find_package(roaring REQUIRED)
 
 # ---------------------------------------------------------------------------
 # Includes
 # ---------------------------------------------------------------------------
 
-include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/include ${RapidJSON_INCLUDE_DIRS})
+include_directories(SYSTEM
+        ${CMAKE_SOURCE_DIR}/include
+        ${RapidJSON_INCLUDE_DIRS}
+        ${roaring_INCLUDE_DIRS}
+        )
 
 # ---------------------------------------------------------------------------
 # Sources
@@ -64,7 +69,7 @@ endif ()
 # ---------------------------------------------------------------------------
 
 add_library(silo ${SRC_SILO_LIB})
-target_link_libraries(silo PUBLIC ${Boost_LIBRARIES} TBB::tbb)
+target_link_libraries(silo PUBLIC ${Boost_LIBRARIES} TBB::tbb ${roaring_LIBRARIES})
 
 add_executable(siloApi src/silo_api/api.cpp ${SRC_SILO_API})
 target_link_libraries(siloApi PUBLIC silo Poco::Net Poco::Util Poco::JSON nlohmann_json::nlohmann_json)
