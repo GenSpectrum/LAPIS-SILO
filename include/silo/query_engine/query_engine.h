@@ -1,25 +1,22 @@
 #ifndef SILO_QUERY_ENGINE_H
 #define SILO_QUERY_ENGINE_H
 
+#include <iostream>
+#include <memory>
+#include <roaring/roaring.hh>
 #include <string>
-#include <variant>
-#include "query_result.h"
+#include <vector>
+
 #include "silo/common/silo_symbols.h"
-#include "silo/database.h"
 
 namespace silo {
 
-struct QueryResult {
-   std::variant<
-      response::AggregationResult,
-      std::vector<response::MutationProportion>,
-      response::ErrorResult>
-      queryResult;
-   int64_t parseTime;   // NOLINT
-   int64_t filterTime;  // NOLINT
-   int64_t actionTime;  // NOLINT
-};
+class Database;
+class DatabasePartition;
 
+namespace response {
+struct QueryResult;
+}
 /// The return value of the BoolExpression::evaluate method.
 /// May return either a mutable or immutable bitmap.
 struct BooleanExpressionResult {
@@ -408,7 +405,7 @@ struct MutationProportion {
    unsigned count;
 };
 
-QueryResult executeQuery(
+response::QueryResult executeQuery(
    const Database& database,
    const std::string& query,
    std::ostream& parse_out,

@@ -1,6 +1,8 @@
-#include <silo/common/silo_symbols.h>
-#include <silo/database.h>
-#include "gtest/gtest.h"
+#include "silo/database.h"
+
+#include <gtest/gtest.h>
+#include <string>
+#include <unordered_map>
 
 struct TestParameter {
    std::string input;

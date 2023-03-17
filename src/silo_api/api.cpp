@@ -1,20 +1,23 @@
-#include <silo/preprocessing/preprocessing_config.h>
-#include <silo_api/info_handler.h>
-#include <silo_api/not_found_handler.h>
-#include <silo_api/query_handler.h>
 #include <iostream>
+#include <string>
 #include <vector>
-#include "Poco/Net/HTTPRequestHandler.h"
-#include "Poco/Net/HTTPRequestHandlerFactory.h"
-#include "Poco/Net/HTTPServer.h"
-#include "Poco/Net/HTTPServerParams.h"
-#include "Poco/Net/HTTPServerRequest.h"
-#include "Poco/Net/ServerSocket.h"
-#include "Poco/Util/HelpFormatter.h"
-#include "Poco/Util/Option.h"
-#include "Poco/Util/OptionSet.h"
-#include "Poco/Util/ServerApplication.h"
+
+#include <Poco/Net/HTTPRequestHandler.h>
+#include <Poco/Net/HTTPRequestHandlerFactory.h>
+#include <Poco/Net/HTTPServer.h>
+#include <Poco/Net/HTTPServerParams.h>
+#include <Poco/Net/HTTPServerRequest.h>
+#include <Poco/Net/ServerSocket.h>
+#include <Poco/Util/HelpFormatter.h>
+#include <Poco/Util/Option.h>
+#include <Poco/Util/OptionSet.h>
+#include <Poco/Util/ServerApplication.h>
+
 #include "silo/database.h"
+#include "silo/preprocessing/preprocessing_config.h"
+#include "silo_api/info_handler.h"
+#include "silo_api/not_found_handler.h"
+#include "silo_api/query_handler.h"
 
 class SiloRequestHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
   private:

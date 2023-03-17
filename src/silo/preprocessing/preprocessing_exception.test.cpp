@@ -1,5 +1,6 @@
-#include <silo/preprocessing/preprocessing_exception.h>
-#include "gtest/gtest.h"
+#include "silo/preprocessing/preprocessing_exception.h"
+
+#include <gtest/gtest.h>
 
 void testFunction() {
    throw PreprocessingException("SomeText");

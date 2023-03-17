@@ -1,23 +1,24 @@
 #include "silo_api/query_handler.h"
-#include <silo/query_engine/query_parse_exception.h>
+
+#include <Poco/Net/HTTPServerRequest.h>
+#include <Poco/Net/HTTPServerResponse.h>
+#include <Poco/StreamCopier.h>
 #include <nlohmann/json.hpp>
-#include "Poco/Net/HTTPRequestHandler.h"
-#include "Poco/Net/HTTPServerRequest.h"
-#include "Poco/Net/HTTPServerResponse.h"
-#include "Poco/StreamCopier.h"
+#include <string>
+
 #include "silo/database.h"
 #include "silo/query_engine/query_engine.h"
+#include "silo/query_engine/query_parse_exception.h"
+#include "silo/query_engine/query_result.h"
 #include "silo_api/not_found_handler.h"
 #include "silo_api/variant_json_serializer.h"
 
-namespace silo {
-namespace response {
+namespace silo::response {
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(AggregationResult, count);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MutationProportion, mutation, proportion, count);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ErrorResult, error, message);
-}  // namespace response
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(QueryResult, queryResult, parseTime, filterTime, actionTime);
-}  // namespace silo
+}  // namespace silo::response
 
 namespace silo_api {
 void QueryHandler::handleRequest(

@@ -1,9 +1,13 @@
+#include "silo/query_engine/query_engine.h"
+
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_for_each.h>
 #include <cmath>
 #include <external/PerfEvent.hpp>
-#include "silo/query_engine/query_engine.h"
+
+#include "silo/common/silo_symbols.h"
+#include "silo/database.h"
 
 uint64_t silo::executeCount(
    const silo::Database& /*database*/,

@@ -1,17 +1,19 @@
 #ifndef SILO_DATABASE_H
 #define SILO_DATABASE_H
 
-#include <silo/common/silo_symbols.h>
-#include <silo/storage/dictionary.h>
-#include <silo/storage/metadata_store.h>
-#include <silo/storage/sequence_store.h>
-
+#include <iostream>
+#include <string>
+#include <unordered_map>
 #include <utility>
+#include <vector>
+
+#include "silo/storage/dictionary.h"
+#include "silo/storage/metadata_store.h"
+#include "silo/storage/sequence_store.h"
 
 namespace silo {
 
 struct Chunk {
-   friend class boost::serialization::access;
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, [[maybe_unused]] const unsigned int version) {
       archive& prefix;
@@ -52,7 +54,9 @@ struct DatabaseInfo {
 
 class DatabasePartition {
    friend class Database;
-   friend class boost::serialization::access;
+   friend class boost::serialization::
+      access;  // here because serialize is private member
+               // (https://www.boost.org/doc/libs/1_34_0/libs/serialization/doc/serialization.html)
 
    template <class Archive>
    void serialize(Archive& archive, [[maybe_unused]] const unsigned int version) {
@@ -114,7 +118,7 @@ class Database {
 
    [[maybe_unused]] [[maybe_unused]] void loadDatabaseState(const std::string& save_directory);
 
-   const std::unordered_map<std::string, std::string>& getAliasKey() const;
+   [[nodiscard]] const std::unordered_map<std::string, std::string>& getAliasKey() const;
 
   private:
    std::unordered_map<std::string, std::string> alias_key;

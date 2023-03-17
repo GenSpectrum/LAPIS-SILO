@@ -79,4 +79,15 @@ building with clang-tidy under alpine was not possible yet.)
 
 We mainly follow the styleguide provided by [google](https://google.github.io/styleguide/cppguide.html), with a few
 additions. The naming is enforced by clang-tidy. Please refer to `.clang-tidy` for more details on naming inside the
-code. Clang-tidy can not detect filenames. We decided to use snake_case for filenames. 
+code. Clang-tidy can not detect filenames. We decided to use snake_case for filenames.
+
+## Includes
+
+The includes are sorted in the following order:
+
+1. Corresponding header file (for source files)
+2. System includes
+3. External includes
+4. Internal includes
+
+Internal includes are marked by double quotes. External includes are marked by angle brackets.
