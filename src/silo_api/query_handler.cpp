@@ -1,5 +1,5 @@
 #include "silo_api/query_handler.h"
-#include <silo/query_engine/QueryParseException.h>
+#include <silo/query_engine/query_parse_exception.h>
 #include <nlohmann/json.hpp>
 #include "Poco/Net/HTTPRequestHandler.h"
 #include "Poco/Net/HTTPServerRequest.h"
@@ -7,7 +7,7 @@
 #include "Poco/StreamCopier.h"
 #include "silo/database.h"
 #include "silo/query_engine/query_engine.h"
-#include "silo_api/error.h"
+#include "silo_api/not_found_handler.h"
 #include "silo_api/variant_json_serializer.h"
 
 namespace silo {

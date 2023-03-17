@@ -1,4 +1,4 @@
-#include "silo_api/error.h"
+#include "silo_api/not_found_handler.h"
 #include <nlohmann/json.hpp>
 #include "Poco/Net/HTTPRequestHandler.h"
 #include "Poco/Net/HTTPServerRequest.h"

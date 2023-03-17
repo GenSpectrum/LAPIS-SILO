@@ -4,7 +4,7 @@
 #include <tbb/enumerable_thread_specific.h>
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_for_each.h>
-#include <silo/common/PerfEvent.hpp>
+#include <external/PerfEvent.hpp>
 #include <syncstream>
 
 /// Returns an Roaring-bitmap which has the given residue ambiguous_symbol at the position position,

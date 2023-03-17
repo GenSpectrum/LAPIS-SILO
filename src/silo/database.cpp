@@ -1,4 +1,4 @@
-#include <silo/common/InputStreamWrapper.h>
+#include <silo/common/input_stream_wrapper.h>
 #include <silo/database.h>
 #include <silo/prepare_dataset.h>
 #include <silo/preprocessing/preprocessing_config.h>
@@ -9,8 +9,8 @@
 #include <silo/common/silo_symbols.h>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
+#include <external/PerfEvent.hpp>
 #include <filesystem>
-#include <silo/common/PerfEvent.hpp>
 #include <syncstream>
 
 const std::string REFERENCE_GENOME_FILENAME = "reference_genome.txt";

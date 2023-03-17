@@ -1,4 +1,4 @@
-#include <silo/storage/meta_store.h>
+#include <silo/storage/metadata_store.h>
 
 // TODO(someone): clean up and specify inputs
 void silo::inputSequenceMeta(

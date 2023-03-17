@@ -1,38 +1,48 @@
 # LAPIS-SILO
+
 Sequence Indexing engine for Large Order of genomic data
 
 # License
-Original genome indexing logic with roaring bitmaps by Prof. Neumann: https://db.in.tum.de/~neumann/gi/
 
+Original genome indexing logic with roaring bitmaps by Prof. Neumann: https://db.in.tum.de/~neumann/gi/
 
 # Building
 
 ## With Conan
+
 We use Conan to install dependencies for local development. See Dockerfile for how to set up Conan and its requirements.
 This has been tested on Ubuntu 22.04 and is not guaranteed to work on other systems.
 
 The Conan profile (myProfile) on your system might differ: Create a new profile `~/.conan2/profiles/myProfile`
+
 ```shell
 conan profile detect
 ```
+
 Insert info `os`, `os_build`, `arch` and `arch_build` of myProfile into `conanprofile.example` and rename
 to `conanprofile`.
 
 Build silo in `./build`. This build will load and build the required libraries to `~/.conan2/data/` (can not be set by
 hand).
+
 ```shell
 ./build_with_conan
 ```
+
 Executables are located in `build/` upon a successful build.
 
 ## With Docker:
+
 (for CI and release)
 
 Build docker container
+
 ```shell
 docker build . --tag=silo
 ```
+
 Run docker container
+
 ```shell
 docker run -i silo
 ```
@@ -62,3 +72,11 @@ and will throw errors accordingly. However it is rather slow. If you only want a
 
 When pushing to github, a separate Docker image will be built, which runs the formatter. (This is a workaround, because
 building with clang-tidy under alpine was not possible yet.)
+
+# Code Style Guidelines
+
+## Naming
+
+We mainly follow the styleguide provided by [google](https://google.github.io/styleguide/cppguide.html), with a few
+additions. The naming is enforced by clang-tidy. Please refer to `.clang-tidy` for more details on naming inside the
+code. Clang-tidy can not detect filenames. We decided to use snake_case for filenames. 

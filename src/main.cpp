@@ -1,8 +1,8 @@
-#include <silo/common/InputStreamWrapper.h>
+#include <silo/common/input_stream_wrapper.h>
 #include <silo/database.h>
 #include <silo/prepare_dataset.h>
 #include <silo/query_engine/query_engine.h>
-#include <silo/common/PerfEvent.hpp>
+#include <external/PerfEvent.hpp>
 
 using namespace silo;
 
