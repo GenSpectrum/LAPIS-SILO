@@ -5,7 +5,7 @@
 #include <array>
 #include <roaring/roaring.hh>
 #include "boost/serialization/array.hpp"
-#include "meta_store.h"
+#include "metadata_store.h"
 #include "silo/roaring/roaring_serialize.h"
 
 namespace silo {

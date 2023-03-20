@@ -1,6 +1,6 @@
 #include "silo/prepare_dataset.h"
 
-#include <silo/common/InputStreamWrapper.h>
+#include <silo/common/input_stream_wrapper.h>
 #include <silo/database.h>
 #include <tbb/blocked_range.h>
 #include <tbb/enumerable_thread_specific.h>

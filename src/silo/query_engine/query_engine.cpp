@@ -1,6 +1,6 @@
 #include "silo/query_engine/query_engine.h"
-#include <silo/query_engine/QueryParseException.h>
-#include <silo/common/PerfEvent.hpp>
+#include <silo/query_engine/query_parse_exception.h>
+#include <external/PerfEvent.hpp>
 #include <vector>
 #include "tbb/parallel_for.h"
 #include "tbb/parallel_for_each.h"

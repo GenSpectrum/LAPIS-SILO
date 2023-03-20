@@ -1,6 +1,6 @@
 #include <silo/preprocessing/preprocessing_config.h>
-#include <silo_api/error.h>
 #include <silo_api/info_handler.h>
+#include <silo_api/not_found_handler.h>
 #include <silo_api/query_handler.h>
 #include <iostream>
 #include <vector>

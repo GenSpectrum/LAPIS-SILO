@@ -2,7 +2,7 @@
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_for_each.h>
 #include <cmath>
-#include <silo/common/PerfEvent.hpp>
+#include <external/PerfEvent.hpp>
 #include "silo/query_engine/query_engine.h"
 
 uint64_t silo::executeCount(

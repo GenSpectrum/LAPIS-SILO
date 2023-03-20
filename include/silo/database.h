@@ -2,8 +2,8 @@
 #define SILO_DATABASE_H
 
 #include <silo/common/silo_symbols.h>
-#include <silo/storage/Dictionary.h>
-#include <silo/storage/meta_store.h>
+#include <silo/storage/dictionary.h>
+#include <silo/storage/metadata_store.h>
 #include <silo/storage/sequence_store.h>
 
 #include <utility>

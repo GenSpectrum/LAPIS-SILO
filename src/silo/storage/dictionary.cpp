@@ -1,6 +1,6 @@
 #include <silo/common/silo_symbols.h>
 #include <silo/database.h>
-#include <silo/storage/Dictionary.h>
+#include <silo/storage/dictionary.h>
 #include <cassert>
 #include <iostream>
 
