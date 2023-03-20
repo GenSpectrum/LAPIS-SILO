@@ -1,6 +1,6 @@
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 #include <iostream>
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
 
 class ClassToTest {
   public:

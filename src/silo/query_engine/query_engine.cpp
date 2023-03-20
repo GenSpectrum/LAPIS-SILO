@@ -1,10 +1,15 @@
 #include "silo/query_engine/query_engine.h"
-#include <silo/query_engine/query_parse_exception.h>
-#include <external/PerfEvent.hpp>
-#include <vector>
-#include "tbb/parallel_for.h"
-#include "tbb/parallel_for_each.h"
 
+#include <tbb/parallel_for.h>
+#include <tbb/parallel_for_each.h>
+#include <cassert>
+#include <memory>
+#include <roaring/roaring.hh>
+#include <string>
+#include <vector>
+
+// query_parse_exception.h must be before the RAPIDJSON_ASSERT because it is used there
+#include "silo/query_engine/query_parse_exception.h"
 // Do not remove the next line. It overwrites the rapidjson abort, so it can throw an exception and
 // does not abort.
 #define RAPIDJSON_ASSERT(x)                                                    \
@@ -12,7 +17,12 @@
    throw silo::QueryParseException(                                            \
       "The query was not a valid JSON: " + std::string(RAPIDJSON_STRINGIFY(x)) \
    )
-#include "rapidjson/document.h"
+#include <rapidjson/document.h>
+
+#include "external/PerfEvent.hpp"
+#include "silo/common/silo_symbols.h"
+#include "silo/database.h"
+#include "silo/query_engine/query_result.h"
 
 namespace silo {
 
@@ -1168,7 +1178,7 @@ std::string NOfExpression::toString(const Database& database) {
 
 // TODO(someone): reduce cognitive complexity
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-silo::QueryResult silo::executeQuery(
+silo::response::QueryResult silo::executeQuery(
    const silo::Database& database,
    const std::string& query,
    std::ostream& parse_out,
@@ -1183,7 +1193,7 @@ silo::QueryResult silo::executeQuery(
 
    std::vector<std::string> simplified_queries(database.partitions.size());
 
-   QueryResult query_result;
+   response::QueryResult query_result;
    std::unique_ptr<BoolExpression> filter;
    {
       BlockTimer const timer(query_result.parseTime);

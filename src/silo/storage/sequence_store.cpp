@@ -1,11 +1,19 @@
-#include <silo/database.h>
-#include <silo/storage/sequence_store.h>
+#include "silo/storage/sequence_store.h"
+
 #include <tbb/blocked_range.h>
 #include <tbb/enumerable_thread_specific.h>
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_for_each.h>
-#include <external/PerfEvent.hpp>
+#include <atomic>
+#include <iostream>
+#include <roaring/roaring.hh>
+#include <string>
 #include <syncstream>
+#include <vector>
+
+#include "external/PerfEvent.hpp"
+#include "silo/common/silo_symbols.h"
+#include "silo/database.h"
 
 /// Returns an Roaring-bitmap which has the given residue ambiguous_symbol at the position position,
 /// where the residue is interpreted in the _a_pproximate meaning

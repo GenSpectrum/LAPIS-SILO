@@ -1,4 +1,7 @@
-#include <silo/storage/metadata_store.h>
+#include "silo/storage/metadata_store.h"
+
+#include <ctime>
+#include <vector>
 
 // TODO(someone): clean up and specify inputs
 void silo::inputSequenceMeta(

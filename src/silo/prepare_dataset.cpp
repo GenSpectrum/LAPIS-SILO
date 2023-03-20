@@ -1,12 +1,14 @@
 #include "silo/prepare_dataset.h"
 
-#include <silo/common/input_stream_wrapper.h>
-#include <silo/database.h>
 #include <tbb/blocked_range.h>
 #include <tbb/enumerable_thread_specific.h>
 #include <tbb/parallel_for_each.h>
+#include <cassert>
 #include <syncstream>
 #include <unordered_set>
+
+#include "silo/common/input_stream_wrapper.h"
+#include "silo/database.h"
 
 [[maybe_unused]] void silo::pruneMetadata(
    std::istream& meta_in,

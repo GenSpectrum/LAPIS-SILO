@@ -2,14 +2,7 @@
 #define SILO_H
 
 #include <array>
-#include <chrono>
-#include <fstream>
 #include <iostream>
-#include <iterator>
-#include <memory>
-#include <sstream>
-#include <unordered_map>
-#include <vector>
 
 namespace silo {
 

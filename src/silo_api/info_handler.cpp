@@ -1,9 +1,10 @@
-#include <silo_api/info_handler.h>
-#include <memory>
+#include "silo_api/info_handler.h"
+
+#include <Poco/Net/HTTPRequestHandler.h>
+#include <Poco/Net/HTTPServerRequest.h>
+#include <Poco/Net/HTTPServerResponse.h>
 #include <nlohmann/json.hpp>
-#include "Poco/Net/HTTPRequestHandler.h"
-#include "Poco/Net/HTTPServerRequest.h"
-#include "Poco/Net/HTTPServerResponse.h"
+
 #include "silo/database.h"
 
 namespace silo {

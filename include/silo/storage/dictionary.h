@@ -1,7 +1,10 @@
 #ifndef SILO_DICTIONARY_H
 #define SILO_DICTIONARY_H
 
+#include <iostream>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 class Dictionary {
   private:

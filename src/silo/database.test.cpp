@@ -1,7 +1,9 @@
-#include <silo/database.h>
-#include <silo/preprocessing/preprocessing_config.h>
+#include "silo/database.h"
+
+#include <gtest/gtest.h>
 #include <string>
-#include "gtest/gtest.h"
+
+#include "silo/preprocessing/preprocessing_config.h"
 
 TEST(database_test, should_build_database_without_errors) {
    const silo::InputDirectory input_directory{"./testBaseData/"};

@@ -2,16 +2,17 @@
 #define SILO_META_STORE_H
 
 #include <roaring/roaring.h>
-#include "silo/common/silo_symbols.h"
-
-#include <silo/roaring/roaring_serialize.h>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
+#include <ctime>
+#include <vector>
+
+#include "silo/common/silo_symbols.h"
+#include "silo/roaring/roaring_serialize.h"
 
 namespace silo {
 
 struct MetadataStore {
-   friend class boost::serialization::access;
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
       archive& sequence_id_to_epi;

@@ -1,10 +1,14 @@
 #ifndef SILO_PREPARE_DATASET_H
 #define SILO_PREPARE_DATASET_H
 
-#include <silo/common/silo_symbols.h>
-#include <silo/database.h>
+#include <iostream>
+#include <string>
+#include <unordered_map>
 
 namespace silo {
+
+struct Partitions;
+struct PangoLineageCounts;
 
 [[maybe_unused]] void pruneSequences(
    std::istream& meta_in,

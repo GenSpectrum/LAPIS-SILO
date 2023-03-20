@@ -1,5 +1,12 @@
-#include <silo/query_engine/query_engine.h>
+#include "silo/query_engine/query_engine.h"
+
+#include <memory>
+#include <string>
 #include <syncstream>
+#include <vector>
+
+#include "silo/common/silo_symbols.h"
+#include "silo/database.h"
 
 namespace silo {
 std::unique_ptr<BoolExpression> NucleotideSymbolEqualsExpression::simplify(

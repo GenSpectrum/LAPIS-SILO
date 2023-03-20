@@ -1,8 +1,9 @@
 #include "silo_api/variant_json_serializer.h"
+
+#include <gtest/gtest.h>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <variant>
-#include "gtest/gtest.h"
-#include "nlohmann/json.hpp"
 
 struct TestStruct {
    std::string stringField;

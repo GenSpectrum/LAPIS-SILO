@@ -1,4 +1,5 @@
 #include "silo/preprocessing/preprocessing_config.h"
+
 #include <iostream>
 
 namespace silo {
