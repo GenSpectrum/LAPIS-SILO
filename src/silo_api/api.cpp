@@ -12,12 +12,12 @@
 #include <Poco/Util/Option.h>
 #include <Poco/Util/OptionSet.h>
 #include <Poco/Util/ServerApplication.h>
-#include <spdlog/sinks/daily_file_sink.h>
 #include <spdlog/spdlog.h>
 
 #include "silo/database.h"
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo_api/info_handler.h"
+#include "silo_api/logging.h"
 #include "silo_api/not_found_handler.h"
 #include "silo_api/query_handler.h"
 #include "silo_api/request_handler.h"
@@ -137,26 +137,16 @@ class SiloServer : public Poco::Util::ServerApplication {
    }
 };
 
-static const int MAX_FILES_7 = 7;
-static const int AT_MIDNIGHT = 0;
-static const int AT_0_MINUTES = 0;
-static const std::chrono::duration<int64_t> FIVE_SECONDS = std::chrono::seconds(5);
-
-static const bool DONT_TRUNCATE = false;
-void setupLogger() {
-   auto daily_logger = spdlog::daily_logger_mt(
-      "daily_logger", "logs/silo.log", AT_MIDNIGHT, AT_0_MINUTES, DONT_TRUNCATE, MAX_FILES_7
-   );
-   daily_logger->set_level(spdlog::level::debug);
-   spdlog::flush_every(FIVE_SECONDS);
-   spdlog::set_default_logger(daily_logger);
-}
-
 int main(int argc, char** argv) {
    setupLogger();
 
    SPDLOG_INFO("Starting SILO");
 
    SiloServer app;
-   return app.run(argc, argv);
+   const auto return_code = app.run(argc, argv);
+
+   SPDLOG_INFO("Stopping SILO");
+   spdlog::default_logger()->flush();
+
+   return return_code;
 }
