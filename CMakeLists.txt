@@ -15,6 +15,12 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/")
 
 # ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+
+add_compile_definitions(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
+
+# ---------------------------------------------------------------------------
 # Dependencies
 # ---------------------------------------------------------------------------
 
@@ -25,6 +31,7 @@ find_package(TBB REQUIRED)
 find_package(RapidJSON REQUIRED INTERFACE)
 find_package(nlohmann_json REQUIRED)
 find_package(roaring REQUIRED)
+find_package(spdlog REQUIRED)
 
 # ---------------------------------------------------------------------------
 # Includes
@@ -69,10 +76,10 @@ endif ()
 # ---------------------------------------------------------------------------
 
 add_library(silo ${SRC_SILO_LIB})
-target_link_libraries(silo PUBLIC ${Boost_LIBRARIES} TBB::tbb ${roaring_LIBRARIES})
+target_link_libraries(silo PUBLIC ${Boost_LIBRARIES} TBB::tbb ${roaring_LIBRARIES} ${spdlog_LIBRARIES})
 
 add_executable(siloApi src/silo_api/api.cpp ${SRC_SILO_API})
-target_link_libraries(siloApi PUBLIC silo Poco::Net Poco::Util Poco::JSON nlohmann_json::nlohmann_json)
+target_link_libraries(siloApi PUBLIC silo Poco::Net Poco::Util Poco::JSON nlohmann_json::nlohmann_json ${spdlog_LIBRARIES})
 
 # ---------------------------------------------------------------------------
 # Tests

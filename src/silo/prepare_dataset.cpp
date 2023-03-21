@@ -1,23 +1,25 @@
 #include "silo/prepare_dataset.h"
 
+#include <spdlog/spdlog.h>
 #include <tbb/blocked_range.h>
 #include <tbb/enumerable_thread_specific.h>
 #include <tbb/parallel_for_each.h>
 #include <cassert>
-#include <syncstream>
 #include <unordered_set>
 
 #include "silo/common/input_stream_wrapper.h"
 #include "silo/database.h"
 
 [[maybe_unused]] void silo::pruneMetadata(
-   std::istream& meta_in,
+   std::istream& metadata_in,
    std::istream& sequences_in,
-   std::ostream& meta_out
+   std::ostream& metadata_out
 ) {
-   std::unordered_set<uint64_t> set;
-   uint32_t found_seq = 0;
-   uint32_t found_meta = 0;
+   SPDLOG_INFO("Pruning metadata");
+
+   std::unordered_set<uint64_t> epi_isl_ids;
+   uint32_t found_sequences_count = 0;
+   uint32_t found_metadata_count = 0;
    {
       while (true) {
          std::string epi_isl;
@@ -27,94 +29,96 @@
          sequences_in.ignore(LONG_MAX, '\n');
 
          static constexpr int BEGIN_OF_NUMBER_IN_EPI_ISL_OF_SEQUENCE_FILE = 9;
-         std::string const tmp = epi_isl.substr(BEGIN_OF_NUMBER_IN_EPI_ISL_OF_SEQUENCE_FILE);
+         std::string const epi_isl_id = epi_isl.substr(BEGIN_OF_NUMBER_IN_EPI_ISL_OF_SEQUENCE_FILE);
          try {
-            uint64_t const epi = stoi(tmp);
-            set.insert(epi);
-            found_seq++;
-         } catch (const std::invalid_argument& ia) {
-            std::cerr << "Failed parsing EPI: " << epi_isl << " Found seq: " << found_seq
-                      << std::endl;
-            std::cerr << ia.what() << std::endl;
-            return;
+            epi_isl_ids.insert(stoi(epi_isl_id));
+            found_sequences_count++;
+         } catch (const std::invalid_argument& exception) {
+            throw std::runtime_error(
+               "Failed parsing EPI: " + epi_isl + " (sequence " +
+               std::to_string(found_sequences_count) + "): " + exception.what()
+            );
          }
       }
    }
-   std::cout << "Finished seq_reading (" << found_seq << ")" << std::endl;
+   SPDLOG_INFO("Finished reading sequences, found {} sequences", found_sequences_count);
+
    {
       std::string header;
-      if (!getline(meta_in, header, '\n')) {
-         std::cerr << "Meta-file is emtpy. At least Header is expected." << std::endl;
-         return;
+      if (!getline(metadata_in, header, '\n')) {
+         throw std::runtime_error("Did not find header in metadata file");
       }
-      meta_out << header << "\n";
+      metadata_out << header << "\n";
 
       while (true) {
          std::string epi_isl;
          std::string rest;
-         if (!getline(meta_in, epi_isl, '\t')) {
+         if (!getline(metadata_in, epi_isl, '\t')) {
             break;
          }
 
          std::string const tmp = epi_isl.substr(8);
          try {
             uint64_t const epi = stoi(tmp);
-            if (set.contains(epi)) {
-               if (!getline(meta_in, rest)) {
+            if (epi_isl_ids.contains(epi)) {
+               if (!getline(metadata_in, rest)) {
                   break;
                }
-               found_meta++;
-               meta_out << epi_isl << "\t" << rest << "\n";
+               found_metadata_count++;
+               metadata_out << epi_isl << "\t" << rest << "\n";
             } else {
-               meta_in.ignore(LONG_MAX, '\n');
+               metadata_in.ignore(LONG_MAX, '\n');
             }
-         } catch (const std::invalid_argument& ia) {
-            std::cerr << "Failed parsing EPI: " << epi_isl << " Found meta: " << found_meta
-                      << std::endl;
-            std::cerr << ia.what() << std::endl;
-            return;
+         } catch (const std::invalid_argument& exception) {
+            throw std::runtime_error(
+               "Failed parsing EPI: " + epi_isl + " (metadata row " +
+               std::to_string(found_metadata_count) + "): " + exception.what()
+            );
          }
       }
    }
-   std::cout << "Found Seq: " << found_seq << "\nFound Meta: " << found_meta << std::endl;
+   SPDLOG_INFO("Finished reading metadata, found {} rows", found_metadata_count);
 }
 
 [[maybe_unused]] void silo::pruneSequences(
-   std::istream& meta_in,
+   std::istream& metadata_in,
    std::istream& sequences_in,
    std::ostream& sequences_out
 ) {
+   SPDLOG_INFO("Pruning sequences");
+
    std::unordered_set<uint64_t> set;
-   uint32_t found_meta = 0;
+   uint32_t found_metadata_count = 0;
    {
       std::string header;
-      if (!getline(meta_in, header, '\n')) {
+      if (!getline(metadata_in, header, '\n')) {
          std::cerr << "Meta-file is emtpy. At least Header is expected." << std::endl;
          return;
       }
 
       while (true) {
          std::string epi_isl;
-         if (!getline(meta_in, epi_isl, '\t')) {
+         if (!getline(metadata_in, epi_isl, '\t')) {
             break;
          }
-         meta_in.ignore(LONG_MAX, '\n');
+         metadata_in.ignore(LONG_MAX, '\n');
          static constexpr int BEGIN_OF_NUMBER_IN_EPI_ISL = 8;
          std::string const tmp = epi_isl.substr(BEGIN_OF_NUMBER_IN_EPI_ISL);
          try {
             uint64_t const epi = stoi(tmp);
             set.insert(epi);
-            found_meta++;
-         } catch (const std::invalid_argument& ia) {
-            std::cerr << "Failed parsing EPI: " << epi_isl << " Found meta: " << found_meta
-                      << std::endl;
-            std::cerr << ia.what() << std::endl;
-            return;
+            found_metadata_count++;
+         } catch (const std::invalid_argument& exception) {
+            throw std::runtime_error(
+               "Failed parsing EPI: " + epi_isl + " (metadata row " +
+               std::to_string(found_metadata_count) + "): " + exception.what()
+            );
          }
       }
    }
-   std::cout << "Finished meta_reading (" << found_meta << ")" << std::endl;
-   uint32_t found_seq = 0;
+   SPDLOG_INFO("Finished reading metadata, found {} rows", found_metadata_count);
+
+   uint32_t found_sequences_count = 0;
    {
       while (true) {
          std::string epi_isl;
@@ -130,20 +134,20 @@
                if (!getline(sequences_in, genome)) {
                   break;
                }
-               found_seq++;
+               found_sequences_count++;
                sequences_out << epi_isl << "\n" << genome << "\n";
             } else {
                sequences_in.ignore(LONG_MAX, '\n');
             }
-         } catch (const std::invalid_argument& ia) {
-            std::cerr << "Failed parsing EPI: " << epi_isl << " Found seq: " << found_seq
-                      << std::endl;
-            std::cerr << ia.what() << std::endl;
-            return;
+         } catch (const std::invalid_argument& exception) {
+            throw std::runtime_error(
+               "Failed parsing EPI: " + epi_isl + " (sequence " +
+               std::to_string(found_sequences_count) + "): " + exception.what()
+            );
          }
       }
    }
-   std::cout << "Found Seq: " << found_seq << "\nFound Meta: " << found_meta << std::endl;
+   SPDLOG_INFO("Finished reading sequences, found {} sequences", found_sequences_count);
 }
 
 silo::PangoLineageCounts silo::buildPangoLineageCounts(
@@ -419,12 +423,11 @@ void silo::partitionSequences(
    std::unordered_map<uint64_t, std::string> epi_to_chunk;
 
    {
-      std::cout << "Now partitioning metafile to " << output_prefix << std::endl;
+      SPDLOG_INFO("partitioning metadata file to {}", output_prefix);
 
       std::string header;
       if (!getline(meta_in, header, '\n')) {
-         std::cerr << "No header file in meta input." << std::endl;
-         return;
+         throw std::runtime_error("No header file in meta input.");
       }
 
       std::unordered_map<std::string, std::unique_ptr<std::ostream>> chunk_to_meta_ostream;
@@ -466,7 +469,8 @@ void silo::partitionSequences(
    }
 
    {
-      std::cout << "Now partitioning fasta file to " << output_prefix << std::endl;
+      SPDLOG_INFO("partitioning sequences file to {}", output_prefix);
+
       std::unordered_map<std::string, std::unique_ptr<std::ostream>> chunk_to_seq_ostream;
       for (const std::string& chunk_name : chunk_names) {
          const std::string chunk_sequence_filename =
@@ -474,7 +478,8 @@ void silo::partitionSequences(
          auto out = make_unique<std::ofstream>(chunk_sequence_filename);
          chunk_to_seq_ostream[chunk_name] = std::move(out);
       }
-      std::cout << "Created file streams for  " << output_prefix << std::endl;
+      SPDLOG_DEBUG("Created file streams for {}", output_prefix);
+
       while (true) {
          std::string epi_isl;
          std::string genome;
@@ -485,8 +490,10 @@ void silo::partitionSequences(
             break;
          }
          if (genome.length() != GENOME_LENGTH) {
-            std::cerr << "length mismatch!" << std::endl;
-            return;
+            throw std::runtime_error(
+               "Genome didn't have expected length " + std::to_string(GENOME_LENGTH) + " (was " +
+               std::to_string(genome.length()) + ")."
+            );
          }
          static constexpr int BEGIN_OF_NUMBER_IN_EPI_ISL_OF_SEQUENCE_FILE = 9;
          const uint64_t epi = stoi(epi_isl.substr(BEGIN_OF_NUMBER_IN_EPI_ISL_OF_SEQUENCE_FILE));
@@ -495,7 +502,7 @@ void silo::partitionSequences(
          *chunk_to_seq_ostream[chunk] << epi_isl << '\n' << genome << '\n';
       }
    }
-   std::cout << "Finished partitioning to " << output_prefix << std::endl;
+   SPDLOG_INFO("Finished partitioning to {}", output_prefix);
 }
 
 struct PartitionChunk {
@@ -531,8 +538,7 @@ void sortChunk(
       // Ignore Header
       std::string header;
       if (!getline(meta_in, header, '\n')) {
-         std::cerr << "No header in metadata file. Abort." << std::endl;
-         return;
+         throw std::runtime_error("Did not find header in metadata file.");
       }
       while (true) {
          std::string epi_isl;
@@ -610,14 +616,14 @@ void sortChunk(
          first_run.emplace_back(EPIDate{epi, date, count++});
       }
 
-      std::osyncstream(std::cout) << "Finished first run for chunk: " << chunk_str << std::endl;
+      SPDLOG_TRACE("Finished first run for chunk {}", chunk_str);
 
       auto sorter = [](const EPIDate& date1, const EPIDate& date2) {
          return date1.date < date2.date;
       };
       std::sort(first_run.begin(), first_run.end(), sorter);
 
-      std::osyncstream(std::cout) << "Sorted first run for partition: " << chunk_str << std::endl;
+      SPDLOG_TRACE("Sorted first run for partition {}", chunk_str);
 
       std::vector<uint32_t> file_pos_to_sorted_pos(count);
       unsigned count2 = 0;
@@ -627,25 +633,23 @@ void sortChunk(
 
       assert(count == count2);
 
-      std::osyncstream(std::cout) << "Calculated postitions for every sequence: " << chunk_str
-                                  << std::endl;
+      SPDLOG_TRACE("Calculated postitions for every sequence {}", chunk_str);
 
       sequence_in.clear();                  // clear fail and eof bits
       sequence_in.seekg(0, std::ios::beg);  // back to the start!
 
-      std::osyncstream(std::cout) << "Reset file seek, now read second time, sorted: " << chunk_str
-                                  << std::endl;
+      SPDLOG_TRACE("Reset file seek, now read second time, sorted {}", chunk_str);
 
       constexpr uint32_t LINES_PER_SEQUENCE = 2;
       std::vector<std::string> lines_sorted(static_cast<uint64_t>(LINES_PER_SEQUENCE * count));
       for (auto pos : file_pos_to_sorted_pos) {
          const uint64_t second_line = static_cast<uint64_t>(LINES_PER_SEQUENCE) * pos;
          if (!getline(sequence_in, lines_sorted.at(second_line))) {
-            std::cerr << "Reached EOF too early." << std::endl;
+            SPDLOG_ERROR("Reached EOF too early.");
             return;
          }
          if (!getline(sequence_in, lines_sorted.at(second_line + 1))) {
-            std::cerr << "Reached EOF too early." << std::endl;
+            SPDLOG_ERROR("Reached EOF too early.");
             return;
          }
       }

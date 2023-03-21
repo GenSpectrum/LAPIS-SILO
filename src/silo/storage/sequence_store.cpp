@@ -1,19 +1,27 @@
 #include "silo/storage/sequence_store.h"
 
+#include <spdlog/spdlog.h>
 #include <tbb/blocked_range.h>
 #include <tbb/enumerable_thread_specific.h>
 #include <tbb/parallel_for.h>
-#include <tbb/parallel_for_each.h>
 #include <atomic>
-#include <iostream>
 #include <roaring/roaring.hh>
 #include <string>
-#include <syncstream>
 #include <vector>
 
-#include "external/PerfEvent.hpp"
+#include "silo/common/format_number.h"
 #include "silo/common/silo_symbols.h"
-#include "silo/database.h"
+
+[[maybe_unused]] auto fmt::formatter<silo::SequenceStoreInfo>::format(
+   silo::SequenceStoreInfo sequence_store_info,
+   fmt::format_context& ctx
+) -> decltype(ctx.out()) {
+   return format_to(
+      ctx.out(), "SequenceStoreInfo[sequence count: {}, size: {}, N bitmaps size: {}]",
+      sequence_store_info.sequence_count, sequence_store_info.size,
+      silo::formatNumber(sequence_store_info.n_bitmaps_size)
+   );
+}
 
 /// Returns an Roaring-bitmap which has the given residue ambiguous_symbol at the position position,
 /// where the residue is interpreted in the _a_pproximate meaning
@@ -125,19 +133,12 @@ roaring::Roaring* silo::SequenceStore::getFlippedBitmapFromAmbiguousSymbol(
    }
 }
 
-int silo::SequenceStore::databaseInfo(std::ostream& output_stream) const {
-   std::osyncstream(output_stream)
-      << "partition sequence count: " << formatNumber(this->sequence_count) << std::endl;
-   std::osyncstream(output_stream)
-      << "partition index size: " << formatNumber(computeSize()) << std::endl;
-
-   size_t size = 0;
+silo::SequenceStoreInfo silo::SequenceStore::getInfo() const {
+   size_t n_bitmaps_size = 0;
    for (const auto& bitmap : nucleotide_symbol_n_bitmaps) {
-      size += bitmap.getSizeInBytes(false);
+      n_bitmaps_size += bitmap.getSizeInBytes(false);
    }
-   std::osyncstream(output_stream)
-      << "partition N_bitmap per sequence, total size: " << formatNumber(size) << std::endl;
-   return 0;
+   return SequenceStoreInfo{this->sequence_count, computeSize(), n_bitmaps_size};
 }
 
 // TODO(someone): reduce cognitive complexity

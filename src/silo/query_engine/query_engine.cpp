@@ -18,6 +18,7 @@
       "The query was not a valid JSON: " + std::string(RAPIDJSON_STRINGIFY(x)) \
    )
 #include <rapidjson/document.h>
+#include <spdlog/spdlog.h>
 
 #include "external/PerfEvent.hpp"
 #include "silo/common/silo_symbols.h"
@@ -1181,7 +1182,6 @@ std::string NOfExpression::toString(const Database& database) {
 silo::response::QueryResult silo::executeQuery(
    const silo::Database& database,
    const std::string& query,
-   std::ostream& parse_out,
    std::ostream& perf_out
 ) {
    rapidjson::Document json_document;
@@ -1198,7 +1198,7 @@ silo::response::QueryResult silo::executeQuery(
    {
       BlockTimer const timer(query_result.parseTime);
       filter = parseExpression(database, json_document["filterExpression"], 0);
-      parse_out << "Parsed query: " << filter->toString(database) << std::endl;
+      SPDLOG_DEBUG("Parsed query: {}", filter->toString(database));
    }
 
    perf_out << "Parse: " << std::to_string(query_result.parseTime) << " microseconds\n";
@@ -1216,8 +1216,7 @@ silo::response::QueryResult silo::executeQuery(
       });
    }
    for (unsigned i = 0; i < database.partitions.size(); ++i) {
-      parse_out << "Simplified query for partition " << i << ": " << simplified_queries[i]
-                << std::endl;
+      SPDLOG_DEBUG("Simplified query for partition {}: {}", i, simplified_queries[i]);
    }
    perf_out << "Execution (filter): " << std::to_string(query_result.filterTime)
             << " microseconds\n";

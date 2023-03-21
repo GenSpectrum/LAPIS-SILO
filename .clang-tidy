@@ -19,7 +19,7 @@ Checks: >
   -abseil-string-find-str-contains
 #  TODO(someone): clean up misc-non-private-member-variables-in-classes and add option back in
 # Not using google-readability-avoid-underscore-in-googletest-name because it also fails for test_name
-# Not using abseil-string-find-str-contains because we dont want to include more libraries
+# Not using abseil-string-find-str-contains because we don't want to include more libraries
 CheckOptions:
   - { key: readability-identifier-naming.NamespaceCase,          value: lower_case }
   - { key: readability-identifier-naming.ClassCase,              value: CamelCase }

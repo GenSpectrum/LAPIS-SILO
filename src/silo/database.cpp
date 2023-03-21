@@ -1,18 +1,18 @@
 #include "silo/database.h"
 
+#include <spdlog/spdlog.h>
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for_each.h>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
-#include <filesystem>
 #include <iostream>
 #include <roaring/roaring.hh>
 #include <string>
-#include <syncstream>
 #include <unordered_map>
 #include <vector>
 
 #include "external/PerfEvent.hpp"
+#include "silo/common/format_number.h"
 #include "silo/common/input_stream_wrapper.h"
 #include "silo/common/silo_symbols.h"
 #include "silo/prepare_dataset.h"
@@ -87,11 +87,22 @@ const std::unordered_map<std::string, std::string>& silo::Database::getAliasKey(
    return alias_key;
 }
 
+template <>
+struct [[maybe_unused]] fmt::formatter<silo::DatabaseInfo> : fmt::formatter<std::string> {
+   [[maybe_unused]] static auto format(silo::DatabaseInfo database_info, format_context& ctx)
+      -> decltype(ctx.out()) {
+      return format_to(
+         ctx.out(), "sequence count: {}, total size: {}, N bitmaps size: {}",
+         database_info.sequenceCount, silo::formatNumber(database_info.totalSize),
+         silo::formatNumber(database_info.nBitmapsSize)
+      );
+   }
+};
+
 void silo::Database::build(
    const std::string& partition_name_prefix,
    const std::string& metadata_file_suffix,
-   const std::string& sequence_file_suffix,
-   std::ostream& out
+   const std::string& sequence_file_suffix
 ) {
    int64_t micros = 0;
    {
@@ -110,60 +121,57 @@ void silo::Database::build(
                if (!InputStreamWrapper(sequence_filename).getInputStream()) {
                   sequence_filename += ".xz";
                   if (!InputStreamWrapper(sequence_filename).getInputStream()) {
-                     std::osyncstream(std::cerr)
-                        << "Sequence_file " << (name + sequence_file_suffix) << " not found"
-                        << std::endl;
+                     SPDLOG_ERROR("Sequence file {} not found", name + sequence_file_suffix);
                      return;
                   }
-                  std::osyncstream(std::cerr)
-                     << "Using sequence_file " << (sequence_filename) << std::endl;
+                  SPDLOG_DEBUG("Using sequence file: {}", sequence_filename);
                } else {
-                  std::osyncstream(std::cerr)
-                     << "Using sequence_file " << (sequence_filename) << std::endl;
+                  SPDLOG_DEBUG("Using sequence file: {}", sequence_filename);
                }
                if (!meta_in) {
-                  std::osyncstream(std::cerr) << "Meta_in file " << (name + metadata_file_suffix)
-                                              << " not found" << std::endl;
+                  SPDLOG_ERROR("metadata file {} not found", name + metadata_file_suffix);
                   return;
                }
                silo::InputStreamWrapper const sequence_input(sequence_filename);
-               std::osyncstream(std::cerr)
-                  << "Using meta_in file " << (name + metadata_file_suffix) << std::endl;
-               unsigned const count1 = fillSequenceStore(
+               SPDLOG_DEBUG("Using metadata file: {}", name + metadata_file_suffix);
+               unsigned const sequence_store_sequence_count = fillSequenceStore(
                   partitions[partition_index].seq_store, sequence_input.getInputStream()
                );
-               unsigned const count2 = fillMetadataStore(
+               unsigned const metadata_store_sequence_count = fillMetadataStore(
                   partitions[partition_index].meta_store, meta_in, alias_key, *dict
                );
-               if (count1 != count2) {
-                  // Fatal error
-                  std::osyncstream(std::cerr)
-                     << "Sequences in meta data and sequence data for chunk "
-                     << buildChunkName(partition_index, chunk_index) << " are not equal."
-                     << std::endl;
-                  std::osyncstream(std::cerr) << "Abort build." << std::endl;
-                  throw std::runtime_error("Error");
+               if (sequence_store_sequence_count != metadata_store_sequence_count) {
+                  throw std::runtime_error(
+                     "Sequences in meta data and sequence data for chunk " +
+                     buildChunkName(partition_index, chunk_index) +
+                     " are not equal. The sequence store has " +
+                     std::to_string(sequence_store_sequence_count) +
+                     " rows, the metadata store has " +
+                     std::to_string(metadata_store_sequence_count) + " rows."
+                  );
                }
-               partitions[partition_index].sequenceCount += count1;
+               partitions[partition_index].sequenceCount += sequence_store_sequence_count;
             }
          }
       );
    }
-   out << "Build took " << std::to_string(micros) << "seconds." << std::endl;
-   out << "Info directly after build: " << std::endl;
-   const auto info = getDatabaseInfo();
-   out << "Sequence count: " << info.sequenceCount << std::endl;
-   out << "Total size: " << info.totalSize << std::endl;
-   out << "nucleotide_symbol_n_bitmaps per sequence, total size: "
-       << formatNumber(info.nBitmapsSize) << std::endl;
-   detailedDatabaseInfo(out);
+
+   SPDLOG_INFO("Build took {} ms", micros);
+   SPDLOG_INFO("database info: {}", getDatabaseInfo());
+
+   // TODO(https://github.com/GenSpectrum/LAPIS-SILO/issues/18)
+   // make detailedDatabaseInfo return a struct and log that instead of the stream
+   std::stringstream details_buffer;
+   detailedDatabaseInfo(details_buffer);
+   SPDLOG_DEBUG("Detailed info: {}", details_buffer.str());
+
    {
       BlockTimer const timer(micros);
       // Precompute Bitmaps for metadata.
       finalizeBuild();
    }
-   out << "Index precomputation for metadata took " << std::to_string(micros) << "seconds."
-       << std::endl;
+
+   SPDLOG_INFO("Index precomputation for metadata took {} ms", micros);
 }
 
 void silo::DatabasePartition::finalizeBuild(const Dictionary& dict) {
@@ -329,7 +337,8 @@ silo::DatabaseInfo silo::Database::getDatabaseInfo() {
          }
       );
    }
-   std::cerr << "index all N took " << formatNumber(microseconds) << " microseconds." << std::endl;
+   std::cerr << "index all N took " << silo::formatNumber(microseconds) << " microseconds."
+             << std::endl;
 }
 
 [[maybe_unused]] void silo::Database::naiveIndexAllNucleotideSymbolsN() {
@@ -340,7 +349,7 @@ silo::DatabaseInfo silo::Database::getDatabaseInfo() {
          dbp.seq_store.naiveIndexAllNucleotideSymbolN();
       });
    }
-   std::cerr << "index all N naive took " << formatNumber(microseconds) << " microseconds."
+   std::cerr << "index all N naive took " << silo::formatNumber(microseconds) << " microseconds."
              << std::endl;
 }
 
@@ -378,7 +387,7 @@ int silo::Database::detailedDatabaseInfo(std::ostream& output_file) {
    for (unsigned symbol = 0; symbol < SYMBOL_COUNT; ++symbol) {
       size_sum += size_by_symbols[symbol];
       output_file << "size for symbol '" << SYMBOL_REPRESENTATION[symbol]
-                  << "': " << formatNumber(size_by_symbols[symbol]) << std::endl;
+                  << "': " << silo::formatNumber(size_by_symbols[symbol]) << std::endl;
       csv_line_storage += std::to_string(size_by_symbols[symbol]);
       csv_line_storage += ",";
    }
@@ -444,20 +453,23 @@ int silo::Database::detailedDatabaseInfo(std::ostream& output_file) {
       n_bytes_bitset_containers += n_bytes_bitset_containers_local;
       lock.unlock();
    });
-   output_file << "Total bitmap containers " << formatNumber(total_statistic.n_containers)
+   output_file << "Total bitmap containers " << silo::formatNumber(total_statistic.n_containers)
                << ", of those there are " << std::endl
-               << "array: " << formatNumber(total_statistic.n_array_containers) << std::endl
-               << "run: " << formatNumber(total_statistic.n_run_containers) << std::endl
-               << "bitset: " << formatNumber(total_statistic.n_bitset_containers) << std::endl;
+               << "array: " << silo::formatNumber(total_statistic.n_array_containers) << std::endl
+               << "run: " << silo::formatNumber(total_statistic.n_run_containers) << std::endl
+               << "bitset: " << silo::formatNumber(total_statistic.n_bitset_containers)
+               << std::endl;
    csv_line_containers += std::to_string(total_statistic.n_containers) + "," +
                           std::to_string(total_statistic.n_array_containers) + ",";
    csv_line_containers += std::to_string(total_statistic.n_run_containers) + "," +
                           std::to_string(total_statistic.n_bitset_containers) + ",";
-   output_file << "Total bitmap values " << formatNumber(total_statistic.cardinality)
+   output_file << "Total bitmap values " << silo::formatNumber(total_statistic.cardinality)
                << ", of those there are " << std::endl
-               << "array: " << formatNumber(total_statistic.n_values_array_containers) << std::endl
-               << "run: " << formatNumber(total_statistic.n_values_run_containers) << std::endl
-               << "bitset: " << formatNumber(total_statistic.n_values_bitset_containers)
+               << "array: " << silo::formatNumber(total_statistic.n_values_array_containers)
+               << std::endl
+               << "run: " << silo::formatNumber(total_statistic.n_values_run_containers)
+               << std::endl
+               << "bitset: " << silo::formatNumber(total_statistic.n_values_bitset_containers)
                << std::endl;
    csv_line_containers += std::to_string(total_statistic.cardinality) + "," +
                           std::to_string(total_statistic.n_values_array_containers) + ",";
@@ -466,15 +478,16 @@ int silo::Database::detailedDatabaseInfo(std::ostream& output_file) {
 
    uint64_t const total_size =
       n_bytes_array_containers + n_bytes_run_containers + n_bytes_bitset_containers;
-   output_file << "Total bitmap byte size " << formatNumber(total_size_frozen) << " (frozen) "
+   output_file << "Total bitmap byte size " << silo::formatNumber(total_size_frozen) << " (frozen) "
                << std::endl;
-   output_file << "Total bitmap byte size " << formatNumber(total_size_comp) << " (compute_size) "
-               << std::endl;
-   output_file << "Total bitmap byte size " << formatNumber(total_size) << ", of those there are "
+   output_file << "Total bitmap byte size " << silo::formatNumber(total_size_comp)
+               << " (compute_size) " << std::endl;
+   output_file << "Total bitmap byte size " << silo::formatNumber(total_size)
+               << ", of those there are " << std::endl
+               << "array: " << silo::formatNumber(total_statistic.n_bytes_array_containers)
                << std::endl
-               << "array: " << formatNumber(total_statistic.n_bytes_array_containers) << std::endl
-               << "run: " << formatNumber(total_statistic.n_bytes_run_containers) << std::endl
-               << "bitset: " << formatNumber(total_statistic.n_bytes_bitset_containers)
+               << "run: " << silo::formatNumber(total_statistic.n_bytes_run_containers) << std::endl
+               << "bitset: " << silo::formatNumber(total_statistic.n_bytes_bitset_containers)
                << std::endl;
    csv_line_containers += std::to_string(total_size) + "," +
                           std::to_string(total_statistic.n_bytes_array_containers) + ",";
@@ -510,7 +523,7 @@ int silo::Database::detailedDatabaseInfo(std::ostream& output_file) {
    return 0;
 }
 
-unsigned silo::fillSequenceStore(silo::SequenceStore& seq_store, std::istream& input_file) {
+unsigned silo::fillSequenceStore(silo::SequenceStore& sequence_store, std::istream& input_file) {
    static constexpr unsigned BUFFER_SIZE = 1024;
 
    unsigned sequence_count = 0;
@@ -532,14 +545,14 @@ unsigned silo::fillSequenceStore(silo::SequenceStore& seq_store, std::istream& i
 
       genome_buffer.push_back(std::move(genome));
       if (genome_buffer.size() >= BUFFER_SIZE) {
-         seq_store.interpret(genome_buffer);
+         sequence_store.interpret(genome_buffer);
          genome_buffer.clear();
       }
 
       ++sequence_count;
    }
-   seq_store.interpret(genome_buffer);
-   seq_store.databaseInfo(std::cout);
+   sequence_store.interpret(genome_buffer);
+   SPDLOG_DEBUG("{}", sequence_store.getInfo());
 
    return sequence_count;
 }
@@ -650,54 +663,55 @@ void silo::savePartitions(const silo::Partitions& partitions, std::ostream& outp
 
 [[maybe_unused]] void silo::Database::saveDatabaseState(const std::string& save_directory) {
    if (!partition_descriptor) {
-      std::cerr << "Cannot save database without partition_descriptor." << std::endl;
-      return;
+      throw std::runtime_error("Cannot save database without partition_descriptor.");
    }
 
    if (pango_descriptor) {
       std::ofstream pango_def_file(save_directory + "pango_descriptor.txt");
       if (!pango_def_file) {
-         std::cerr << "Cannot open pango_descriptor output file: "
-                   << (save_directory + "pango_descriptor.txt") << std::endl;
-         return;
+         throw std::runtime_error(
+            "Cannot open pango_descriptor output file " + save_directory + "pango_descriptor.txt"
+         );
       }
-      std::cout << "Save pango lineage descriptor to output file "
-                << (save_directory + "pango_descriptor.txt") << std::endl;
+      SPDLOG_INFO("Saving pango lineage descriptor to {}pango_descriptor.txt", save_directory);
       savePangoLineageCounts(*pango_descriptor, pango_def_file);
    }
    {
       std::ofstream part_def_file(save_directory + "partition_descriptor.txt");
       if (!part_def_file) {
-         std::cerr << "Cannot open partition_descriptor output file: "
-                   << (save_directory + "partition_descriptor.txt") << std::endl;
-         return;
+         throw std::runtime_error(
+            "Cannot open partitioning descriptor output file " + save_directory +
+            "partition_descriptor.txt"
+         );
       }
-      std::cout << "Save partitioning descriptor to output file "
-                << (save_directory + "partition_descriptor.txt") << std::endl;
+      SPDLOG_INFO("Saving partitioning descriptor to {}partition_descriptor.txt", save_directory);
       savePartitions(*partition_descriptor, part_def_file);
    }
    {
       std::ofstream dict_output(save_directory + "dict.txt");
       if (!dict_output) {
-         std::cerr << "Could not open '" << (save_directory + "dict.txt") << "'." << std::endl;
-         return;
+         throw std::runtime_error(
+            "Cannot open dictionary output file " + save_directory + "dict.txt"
+         );
       }
-      std::cout << "Save dictionary to output file " << (save_directory + "dict.txt") << std::endl;
+      SPDLOG_INFO("Saving dictionary to {}dict.txt", save_directory);
 
       dict->saveDictionary(dict_output);
    }
 
    std::vector<std::ofstream> file_vec;
    for (unsigned i = 0; i < partition_descriptor->partitions.size(); ++i) {
-      file_vec.emplace_back(save_directory + 'P' + std::to_string(i) + ".silo");
+      const auto& partition_file = save_directory + 'P' + std::to_string(i) + ".silo";
+      file_vec.emplace_back(partition_file);
 
       if (!file_vec.back()) {
-         std::cerr << "Cannot open partition output file for saving: "
-                   << (save_directory + 'P' + std::to_string(i) + ".silo") << std::endl;
-         return;
+         throw std::runtime_error(
+            "Cannot open partition output file " + partition_file + " for saving"
+         );
       }
    }
-   std::cout << "Save partitions " << partitions.size() << std::endl;
+
+   SPDLOG_INFO("Saving {} partitions...", partitions.size());
 
    tbb::parallel_for(
       static_cast<size_t>(0), partition_descriptor->partitions.size(),
@@ -706,47 +720,51 @@ void silo::savePartitions(const silo::Partitions& partitions, std::ostream& outp
          output_archive << partitions[partition_index];
       }
    );
-   std::cout << "Finished saving partitions" << std::endl;
+   SPDLOG_INFO("Finished saving partitions", partitions.size());
 }
+
 [[maybe_unused]] void silo::Database::loadDatabaseState(const std::string& save_directory) {
-   std::ifstream part_def_file(save_directory + "partition_descriptor.txt");
+   const auto partition_descriptor_file = save_directory + "partition_descriptor.txt";
+   std::ifstream part_def_file(partition_descriptor_file);
    if (!part_def_file) {
-      std::cerr << "Cannot open partition_descriptor input file for loading: "
-                << (save_directory + "partition_descriptor.txt") << std::endl;
-      return;
+      throw std::runtime_error(
+         "Cannot open partition_descriptor input file for loading: " + partition_descriptor_file
+      );
    }
-   std::cout << "Load partitioning_def from input file "
-             << (save_directory + "partition_descriptor.txt") << std::endl;
+   SPDLOG_INFO("Loading partitioning definition from {}", partition_descriptor_file);
+
    partition_descriptor = std::make_unique<Partitions>(loadPartitions(part_def_file));
 
-   std::ifstream pango_def_file(save_directory + "pango_descriptor.txt");
+   const auto pango_definition_file = save_directory + "pango_descriptor.txt";
+   std::ifstream pango_def_file(pango_definition_file);
    if (pango_def_file) {
-      std::cout << "Load pango_descriptor from input file "
-                << (save_directory + "pango_descriptor.txt") << std::endl;
+      SPDLOG_INFO("Loading pango definition from {}", pango_definition_file);
       pango_descriptor =
          std::make_unique<PangoLineageCounts>(loadPangoLineageCounts(pango_def_file));
    }
 
    {
-      auto dict_input = std::ifstream(save_directory + "dict.txt");
+      const auto dictionary_file = save_directory + "dict.txt";
+      auto dict_input = std::ifstream(dictionary_file);
       if (!dict_input) {
-         std::cerr << "dict_input file " << (save_directory + "dict.txt") << " not found."
-                   << std::endl;
-         return;
+         throw std::runtime_error(
+            "Cannot open dictionary input file for loading: " + dictionary_file
+         );
       }
-      std::cout << "Load dictionary from input file " << (save_directory + "dict.txt") << std::endl;
+      SPDLOG_INFO("Loading dictionary from {}", dictionary_file);
       dict = std::make_unique<Dictionary>(Dictionary::loadDictionary(dict_input));
    }
 
-   std::cout << "Loading partitions from " << save_directory << std::endl;
+   SPDLOG_INFO("Loading partitions from {}", save_directory);
    std::vector<std::ifstream> file_vec;
    for (unsigned i = 0; i < partition_descriptor->partitions.size(); ++i) {
-      file_vec.emplace_back(save_directory + 'P' + std::to_string(i) + ".silo");
+      const auto partition_file = save_directory + 'P' + std::to_string(i) + ".silo";
+      file_vec.emplace_back(partition_file);
 
       if (!file_vec.back()) {
-         std::cerr << "Cannot open partition input file for loading: "
-                   << (save_directory + 'P' + std::to_string(i) + ".silo") << std::endl;
-         return;
+         throw std::runtime_error(
+            "Cannot open partition input file for loading: " + partition_file
+         );
       }
    }
 
@@ -760,18 +778,18 @@ void silo::savePartitions(const silo::Partitions& partitions, std::ostream& outp
    );
 }
 void silo::Database::preprocessing(const PreprocessingConfig& config) {
-   std::cout << "buildPangoLineageCounts" << std::endl;
+   SPDLOG_INFO("preprocessing - building pango lineage counts");
    std::ifstream metadata_stream(config.metadata_file.relative_path());
    pango_descriptor =
       std::make_unique<PangoLineageCounts>(silo::buildPangoLineageCounts(alias_key, metadata_stream)
       );
 
-   std::cout << "buildPartitions" << std::endl;
+   SPDLOG_INFO("preprocessing - building partitions");
    partition_descriptor = std::make_unique<Partitions>(
       silo::buildPartitions(*pango_descriptor, Architecture::MAX_PARTITIONS)
    );
 
-   std::cout << "partitionSequences" << std::endl;
+   SPDLOG_INFO("preprocessing - partitioning sequences");
    std::ifstream metadata_stream2(config.metadata_file.relative_path());
    InputStreamWrapper const sequence_stream(config.sequence_file.relative_path());
    partitionSequences(
@@ -780,13 +798,13 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
       config.sequence_file.extension()
    );
 
-   std::cout << "sortChunks" << std::endl;
+   SPDLOG_INFO("preprocessing - sorting chunks");
    silo::sortChunks(
       *partition_descriptor, config.partition_folder.relative_path(),
       config.metadata_file.extension(), config.sequence_file.extension()
    );
 
-   std::cout << "Dictionary" << std::endl;
+   SPDLOG_INFO("preprocessing - building dictionary");
    dict = std::make_unique<Dictionary>();
    for (size_t partition_index = 0; partition_index < partition_descriptor->partitions.size();
         ++partition_index) {
@@ -803,26 +821,14 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
       }
    }
 
-   std::cout << "Build" << std::endl;
+   SPDLOG_INFO("preprocessing - building database");
    build(
       config.partition_folder.relative_path(), config.metadata_file.extension(),
-      config.sequence_file.extension(), std::cout
+      config.sequence_file.extension()
    );
 }
 silo::Database::Database() = default;
 
-struct ThousandSeparator : std::numpunct<char> {
-   [[nodiscard]] char_type do_thousands_sep() const override { return '\''; }
-   [[nodiscard]] string_type do_grouping() const override { return "\3"; }
-};
-
-std::string silo::formatNumber(uint64_t number) {
-   std::ostringstream oss;
-   auto thousands = std::make_unique<ThousandSeparator>();
-   oss.imbue(std::locale(oss.getloc(), thousands.release()));
-   oss << number;
-   return oss.str();
-}
 std::string silo::resolvePangoLineageAlias(
    const std::unordered_map<std::string, std::string>& alias_key,
    const std::string& pango_lineage

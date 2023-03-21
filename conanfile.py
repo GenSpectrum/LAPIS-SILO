@@ -13,7 +13,8 @@ class SiloRecipe(ConanFile):
         "rapidjson/cci.20220822",
         "nlohmann_json/3.11.2",
         "gtest/cci.20210126",
-        "roaring/0.9.9"
+        "roaring/0.9.9",
+        "spdlog/1.11.0",
     ]
 
     default_options = {
@@ -89,4 +90,6 @@ class SiloRecipe(ConanFile):
         deps.set_property("gtest", "cmake_find_mode", "both")
         deps.set_property("pcre2", "cmake_find_mode", "both")
         deps.set_property("roaring", "cmake_find_mode", "both")
+        deps.set_property("spdlog", "cmake_find_mode", "both")
+        deps.set_property("fmt", "cmake_find_mode", "both")
         deps.generate()

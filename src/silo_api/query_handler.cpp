@@ -1,10 +1,12 @@
 #include "silo_api/query_handler.h"
 
+#include <string>
+
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/Net/HTTPServerResponse.h>
 #include <Poco/StreamCopier.h>
+#include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
-#include <string>
 
 #include "silo/database.h"
 #include "silo/query_engine/query_engine.h"
@@ -21,6 +23,10 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(QueryResult, queryResult, parseTime, filterTi
 }  // namespace silo::response
 
 namespace silo_api {
+
+QueryHandler::QueryHandler(silo::Database& database)
+    : database(database) {}
+
 void QueryHandler::handleRequest(
    Poco::Net::HTTPServerRequest& request,
    Poco::Net::HTTPServerResponse& response
@@ -29,10 +35,12 @@ void QueryHandler::handleRequest(
    std::istream& istream = request.stream();
    Poco::StreamCopier::copyToString(istream, query);
 
+   SPDLOG_INFO("received query: {}", query);
+
    response.setContentType("application/json");
 
    try {
-      const auto query_result = silo::executeQuery(database, query, std::cout, std::cout);
+      const auto query_result = silo::executeQuery(database, query, std::cout);
 
       std::ostream& out_stream = response.send();
       out_stream << nlohmann::json(query_result);
@@ -46,6 +54,5 @@ void QueryHandler::handleRequest(
       out_stream << nlohmann::json(ErrorResponse{"Internal server error", ex.what()});
    }
 }
-QueryHandler::QueryHandler(silo::Database& database)
-    : database(database) {}
+
 }  // namespace silo_api
