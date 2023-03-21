@@ -2,6 +2,7 @@
 
 #include <Poco/Net/HTTPRequestHandler.h>
 #include <Poco/Net/HTTPServerRequest.h>
+#include <Poco/URI.h>
 
 #include "silo/database.h"
 #include "silo_api/error_request_handler.h"
@@ -29,10 +30,12 @@ Poco::Net::HTTPRequestHandler* SiloRequestHandlerFactory::createRequestHandler(
 Poco::Net::HTTPRequestHandler* SiloRequestHandlerFactory::routeRequest(
    const Poco::Net::HTTPServerRequest& request
 ) {
-   if (request.getURI() == "/info") {
+   const auto& uri = Poco::URI(request.getURI());
+   const auto path = uri.getPath();
+   if (path == "/info") {
       return new silo_api::InfoHandler(database);
    }
-   if (request.getURI() == "/query") {
+   if (path == "/query") {
       return new silo_api::QueryHandler(query_engine);
    }
    return new silo_api::NotFoundHandler;

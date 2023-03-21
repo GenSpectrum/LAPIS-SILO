@@ -13,9 +13,10 @@
 
 #include "external/PerfEvent.hpp"
 #include "silo/common/format_number.h"
+#include "silo/common/genome_symbols.h"
 #include "silo/common/input_stream_wrapper.h"
 #include "silo/common/log.h"
-#include "silo/common/silo_symbols.h"
+#include "silo/database_info.h"
 #include "silo/persistence/exception.h"
 #include "silo/prepare_dataset.h"
 #include "silo/preprocessing/preprocessing_config.h"
@@ -163,12 +164,6 @@ void silo::Database::build(
    SPDLOG_INFO("Build took {} ms", micros);
    SPDLOG_INFO("database info: {}", getDatabaseInfo());
 
-   // TODO(https://github.com/GenSpectrum/LAPIS-SILO/issues/18)
-   // make detailedDatabaseInfo return a struct and log that instead of the stream
-   std::stringstream details_buffer;
-   detailedDatabaseInfo(details_buffer);
-   SPDLOG_DEBUG("Detailed info: {}", details_buffer.str());
-
    {
       BlockTimer const timer(micros);
       // Precompute Bitmaps for metadata.
@@ -266,50 +261,30 @@ void silo::Database::finalizeBuild() {
 [[maybe_unused]] void silo::Database::flipBitmaps() {
    tbb::parallel_for_each(partitions.begin(), partitions.end(), [&](DatabasePartition& database_partition) {
       tbb::parallel_for(static_cast<unsigned>(0), GENOME_LENGTH, [&](unsigned partition_index) {
-         unsigned max_symbol = UINT32_MAX;
+         GENOME_SYMBOL max_symbol = GENOME_SYMBOL::UNDEFINED;
          unsigned max_count = 0;
 
-         for (unsigned symbol = 0; symbol <= GENOME_SYMBOL::N; ++symbol) {
-            unsigned const count =
-               database_partition.seq_store.positions[partition_index].bitmaps[symbol].cardinality(
-               );
+         for (const auto& symbol : GENOME_SYMBOLS) {
+            unsigned const count = database_partition.seq_store.positions[partition_index]
+                                      .bitmaps[static_cast<unsigned>(symbol)]
+                                      .cardinality();
             if (count > max_count) {
                max_symbol = symbol;
                max_count = count;
             }
          }
          if (max_symbol == GENOME_SYMBOL::A || max_symbol == GENOME_SYMBOL::C || max_symbol == GENOME_SYMBOL::G || max_symbol == GENOME_SYMBOL::T || max_symbol == GENOME_SYMBOL::N) {
-            database_partition.seq_store.positions[partition_index].flipped_bitmap = max_symbol;
-            database_partition.seq_store.positions[partition_index].bitmaps[max_symbol].flip(
-               0, database_partition.sequenceCount
-            );
+            database_partition.seq_store.positions[partition_index].flipped_bitmap_for_symbol =
+               max_symbol;
+            database_partition.seq_store.positions[partition_index]
+               .bitmaps[static_cast<unsigned>(max_symbol)]
+               .flip(0, database_partition.sequenceCount);
          }
       });
    });
 }
 
 using r_stat = roaring::api::roaring_statistics_t;
-
-static inline void addStatistic(r_stat& statistic1, const r_stat& statistic_to_add) {
-   statistic1.cardinality += statistic_to_add.cardinality;
-   if (statistic_to_add.max_value > statistic1.max_value) {
-      statistic1.max_value = statistic_to_add.max_value;
-   }
-   if (statistic_to_add.min_value < statistic1.min_value) {
-      statistic1.min_value = statistic_to_add.min_value;
-   }
-   statistic1.n_array_containers += statistic_to_add.n_array_containers;
-   statistic1.n_run_containers += statistic_to_add.n_run_containers;
-   statistic1.n_bitset_containers += statistic_to_add.n_bitset_containers;
-   statistic1.n_bytes_array_containers += statistic_to_add.n_bytes_array_containers;
-   statistic1.n_bytes_run_containers += statistic_to_add.n_bytes_run_containers;
-   statistic1.n_bytes_bitset_containers += statistic_to_add.n_bytes_bitset_containers;
-   statistic1.n_values_array_containers += statistic_to_add.n_values_array_containers;
-   statistic1.n_values_run_containers += statistic_to_add.n_values_run_containers;
-   statistic1.n_values_bitset_containers += statistic_to_add.n_values_bitset_containers;
-   statistic1.n_containers += statistic_to_add.n_containers;
-   statistic1.sum_value += statistic_to_add.sum_value;
-}
 
 silo::DatabaseInfo silo::Database::getDatabaseInfo() const {
    std::atomic<uint32_t> sequence_count = 0;
@@ -355,174 +330,168 @@ silo::DatabaseInfo silo::Database::getDatabaseInfo() const {
    LOG_PERFORMANCE("index all N naive took {} microseconds", silo::formatNumber(microseconds));
 }
 
-[[maybe_unused]] void silo::Database::printFlippedGenomePositions(std::ostream& output_file) {
-   output_file << "Flipped genome positions: " << std::endl;
-   for (unsigned part_id = 0; part_id < partitions.size(); ++part_id) {
-      const DatabasePartition& dbp = partitions[part_id];
-      for (unsigned i = 0; i < GENOME_LENGTH; ++i) {
-         const Position& pos = dbp.seq_store.positions[i];
-         if (pos.flipped_bitmap != silo::toNucleotideSymbol(global_reference[0].at(i))) {
-            output_file << std::to_string(part_id) << ": " << std::to_string(i)
-                        << SYMBOL_REPRESENTATION[pos.flipped_bitmap] << std::endl;
-         }
+silo::BitmapContainerSize::BitmapContainerSize(uint32_t section_length)
+    : sectionLength(section_length),
+      bitmapContainerSizeStatistic({0, 0, 0, 0, 0, 0, 0, 0, 0}),
+      totalBitmapSizeFrozen(0),
+      totalBitmapSizeComputed(0) {
+   sizePerGenomeSymbolAndSection[GENOME_SYMBOL::NOT_N_NOT_GAP] =
+      std::vector<uint32_t>((GENOME_LENGTH / section_length) + 1, 0);
+   sizePerGenomeSymbolAndSection[GENOME_SYMBOL::GAP] =
+      std::vector<uint32_t>((GENOME_LENGTH / section_length) + 1, 0);
+   sizePerGenomeSymbolAndSection[GENOME_SYMBOL::N] =
+      std::vector<uint32_t>((GENOME_LENGTH / section_length) + 1, 0);
+}
+
+silo::BitmapContainerSize& silo::BitmapContainerSize::operator+=(
+   const silo::BitmapContainerSize& other
+) {
+   if (this->sectionLength != other.sectionLength) {
+      throw std::runtime_error("Cannot add BitmapContainerSize with different section lengths.");
+   }
+   this->totalBitmapSizeFrozen += other.totalBitmapSizeFrozen;
+   this->totalBitmapSizeComputed += other.totalBitmapSizeComputed;
+
+   for (const auto& map_entry : this->sizePerGenomeSymbolAndSection) {
+      const auto symbol = map_entry.first;
+      for (unsigned i = 0; i < this->sizePerGenomeSymbolAndSection.at(symbol).size(); ++i) {
+         this->sizePerGenomeSymbolAndSection.at(symbol).at(i) +=
+            other.sizePerGenomeSymbolAndSection.at(symbol).at(i);
       }
-      output_file << std::endl;
+   }
+
+   this->bitmapContainerSizeStatistic.numberOfBitsetContainers +=
+      other.bitmapContainerSizeStatistic.numberOfBitsetContainers;
+   this->bitmapContainerSizeStatistic.numberOfArrayContainers +=
+      other.bitmapContainerSizeStatistic.numberOfArrayContainers;
+   this->bitmapContainerSizeStatistic.numberOfRunContainers +=
+      other.bitmapContainerSizeStatistic.numberOfRunContainers;
+
+   this->bitmapContainerSizeStatistic.numberOfValuesStoredInArrayContainers +=
+      other.bitmapContainerSizeStatistic.numberOfValuesStoredInArrayContainers;
+   this->bitmapContainerSizeStatistic.numberOfValuesStoredInRunContainers +=
+      other.bitmapContainerSizeStatistic.numberOfValuesStoredInRunContainers;
+   this->bitmapContainerSizeStatistic.numberOfValuesStoredInBitsetContainers +=
+      other.bitmapContainerSizeStatistic.numberOfValuesStoredInBitsetContainers;
+
+   this->bitmapContainerSizeStatistic.totalBitmapSizeArrayContainers +=
+      other.bitmapContainerSizeStatistic.totalBitmapSizeArrayContainers;
+   this->bitmapContainerSizeStatistic.totalBitmapSizeRunContainers +=
+      other.bitmapContainerSizeStatistic.totalBitmapSizeRunContainers;
+   this->bitmapContainerSizeStatistic.totalBitmapSizeBitsetContainers +=
+      other.bitmapContainerSizeStatistic.totalBitmapSizeBitsetContainers;
+
+   return *this;
+}
+
+silo::BitmapSizePerSymbol& silo::BitmapSizePerSymbol::operator+=(
+   const silo::BitmapSizePerSymbol& other
+) {
+   for (const auto& symbol : GENOME_SYMBOLS) {
+      this->sizeInBytes.at(symbol) += other.sizeInBytes.at(symbol);
+   }
+   return *this;
+}
+silo::BitmapSizePerSymbol::BitmapSizePerSymbol() {
+   for (const auto& symbol : GENOME_SYMBOLS) {
+      this->sizeInBytes[symbol] = 0;
    }
 }
 
-int silo::Database::detailedDatabaseInfo(std::ostream& output_file) {
-   std::string csv_line_storage;
-   std::string csv_line_containers;
-   std::string csv_header_histogram;
-   std::string csv_line_histogram;
-
-   std::vector<size_t> size_by_symbols(SYMBOL_COUNT);
-
-   tbb::parallel_for(static_cast<unsigned>(0), SYMBOL_COUNT, [&](unsigned symbol) {
-      for (const DatabasePartition& dbp : partitions) {
-         for (const auto& position : dbp.seq_store.positions) {
-            size_by_symbols[symbol] += position.bitmaps[symbol].getSizeInBytes();
-         }
-      }
-   });
-   uint64_t size_sum = 0;
-   for (unsigned symbol = 0; symbol < SYMBOL_COUNT; ++symbol) {
-      size_sum += size_by_symbols[symbol];
-      output_file << "size for symbol '" << SYMBOL_REPRESENTATION[symbol]
-                  << "': " << silo::formatNumber(size_by_symbols[symbol]) << std::endl;
-      csv_line_storage += std::to_string(size_by_symbols[symbol]);
-      csv_line_storage += ",";
-   }
-   csv_line_storage += std::to_string(size_sum) + ",";
-   csv_line_storage += std::to_string(size_sum - size_by_symbols[GENOME_SYMBOL::N]) + ",";
+silo::BitmapSizePerSymbol silo::Database::calculateBitmapSizePerSymbol() const {
+   BitmapSizePerSymbol global_bitmap_size_per_symbol;
 
    std::mutex lock;
-   constexpr int GENOME_DIVISION = 500;
-   std::vector<uint32_t> bitset_containers_by_500pos((GENOME_LENGTH / GENOME_DIVISION) + 1);
-   std::vector<uint32_t> gap_bitset_containers_by_500pos((GENOME_LENGTH / GENOME_DIVISION) + 1);
-   std::vector<uint32_t> nucleotide_symbol_n_bitset_containers_by_500pos(
-      (GENOME_LENGTH / GENOME_DIVISION) + 1
-   );
-   r_stat total_statistic{};
-   uint64_t total_size_comp = 0;
-   uint64_t total_size_frozen = 0;
-   /// Because the counters in r_stat are 32 bit and overflow..
-   uint64_t n_bytes_array_containers = 0;
-   uint64_t n_bytes_run_containers = 0;
-   uint64_t n_bytes_bitset_containers = 0;
+   tbb::parallel_for_each(GENOME_SYMBOLS, [&](GENOME_SYMBOL symbol) {
+      BitmapSizePerSymbol bitmap_size_per_symbol;
 
+      for (const DatabasePartition& database_partition : partitions) {
+         for (const auto& position : database_partition.seq_store.positions) {
+            bitmap_size_per_symbol.sizeInBytes[symbol] +=
+               position.bitmaps[static_cast<unsigned>(symbol)].getSizeInBytes();
+         }
+      }
+      lock.lock();
+      global_bitmap_size_per_symbol += bitmap_size_per_symbol;
+      lock.unlock();
+   });
+
+   return global_bitmap_size_per_symbol;
+}
+
+void addStatisticToBitmapContainerSize(
+   const r_stat& statistic,
+   silo::BitmapContainerSizeStatistic& size_statistic
+) {
+   size_statistic.numberOfArrayContainers += statistic.n_array_containers;
+   size_statistic.numberOfRunContainers += statistic.n_run_containers;
+   size_statistic.numberOfBitsetContainers += statistic.n_bitset_containers;
+
+   size_statistic.totalBitmapSizeArrayContainers += statistic.n_bytes_array_containers;
+   size_statistic.totalBitmapSizeRunContainers += statistic.n_bytes_run_containers;
+   size_statistic.totalBitmapSizeBitsetContainers += statistic.n_bytes_bitset_containers;
+
+   size_statistic.numberOfValuesStoredInArrayContainers += statistic.n_values_array_containers;
+   size_statistic.numberOfValuesStoredInRunContainers += statistic.n_values_run_containers;
+   size_statistic.numberOfValuesStoredInBitsetContainers += statistic.n_values_bitset_containers;
+}
+
+silo::BitmapContainerSize silo::Database::calculateBitmapContainerSizePerGenomeSection(
+   uint32_t section_length
+) const {
+   BitmapContainerSize global_bitmap_container_size_per_genome_section(section_length);
+
+   std::mutex lock;
    tbb::parallel_for(static_cast<unsigned>(0), GENOME_LENGTH, [&](unsigned position_index) {
-      r_stat s_local{};
-      uint64_t total_size_comp_local = 0;
-      uint64_t total_size_frozen_local = 0;
-      uint64_t n_bytes_array_containers_local = 0;
-      uint64_t n_bytes_run_containers_local = 0;
-      uint64_t n_bytes_bitset_containers_local = 0;
-      {
-         r_stat statistic;
-         for (const auto& partition : partitions) {
-            const Position& position = partition.seq_store.positions[position_index];
-            for (unsigned symbol_index = 0; symbol_index < SYMBOL_COUNT; ++symbol_index) {
-               const roaring::Roaring& bitmap = position.bitmaps[symbol_index];
-               roaring_bitmap_statistics(&bitmap.roaring, &statistic);
-               addStatistic(s_local, statistic);
-               total_size_comp_local += bitmap.getSizeInBytes();
-               total_size_frozen_local += bitmap.getFrozenSizeInBytes();
-               n_bytes_array_containers_local += statistic.n_bytes_array_containers;
-               n_bytes_run_containers_local += statistic.n_bytes_run_containers;
-               n_bytes_bitset_containers_local += statistic.n_bytes_bitset_containers;
-               if (statistic.n_bitset_containers > 0) {
-                  if (symbol_index == GENOME_SYMBOL::N) {
-                     nucleotide_symbol_n_bitset_containers_by_500pos
-                        [position_index / GENOME_DIVISION] += statistic.n_bitset_containers;
-                  } else if (symbol_index == GENOME_SYMBOL::GAP) {
-                     gap_bitset_containers_by_500pos[position_index / GENOME_DIVISION] +=
-                        statistic.n_bitset_containers;
-                  } else {
-                     bitset_containers_by_500pos[position_index / GENOME_DIVISION] +=
-                        statistic.n_bitset_containers;
-                  }
+      BitmapContainerSize bitmap_container_size_per_genome_section(section_length);
+
+      r_stat statistic;
+      for (const auto& partition : partitions) {
+         const auto& position = partition.seq_store.positions[position_index];
+         for (const auto& genome_symbol : GENOME_SYMBOLS) {
+            const auto& bitmap = position.bitmaps[static_cast<unsigned>(genome_symbol)];
+
+            roaring_bitmap_statistics(&bitmap.roaring, &statistic);
+            addStatisticToBitmapContainerSize(
+               statistic, bitmap_container_size_per_genome_section.bitmapContainerSizeStatistic
+            );
+
+            bitmap_container_size_per_genome_section.totalBitmapSizeComputed +=
+               bitmap.getSizeInBytes();
+            bitmap_container_size_per_genome_section.totalBitmapSizeFrozen +=
+               bitmap.getFrozenSizeInBytes();
+
+            if (statistic.n_bitset_containers > 0) {
+               if (genome_symbol == GENOME_SYMBOL::N) {
+                  bitmap_container_size_per_genome_section.sizePerGenomeSymbolAndSection
+                     .at(GENOME_SYMBOL::N)
+                     .at(position_index / section_length) += statistic.n_bitset_containers;
+               } else if (genome_symbol == GENOME_SYMBOL::GAP) {
+                  bitmap_container_size_per_genome_section.sizePerGenomeSymbolAndSection
+                     .at(GENOME_SYMBOL::GAP)
+                     .at(position_index / section_length) += statistic.n_bitset_containers;
+               } else {
+                  bitmap_container_size_per_genome_section.sizePerGenomeSymbolAndSection
+                     .at(GENOME_SYMBOL::NOT_N_NOT_GAP)
+                     .at(position_index / section_length) += statistic.n_bitset_containers;
                }
             }
          }
       }
       lock.lock();
-      addStatistic(total_statistic, s_local);
-      total_size_comp += total_size_comp_local;
-      total_size_frozen += total_size_frozen_local;
-      n_bytes_array_containers += n_bytes_array_containers_local;
-      n_bytes_run_containers += n_bytes_run_containers_local;
-      n_bytes_bitset_containers += n_bytes_bitset_containers_local;
+      global_bitmap_container_size_per_genome_section += bitmap_container_size_per_genome_section;
       lock.unlock();
    });
-   output_file << "Total bitmap containers " << silo::formatNumber(total_statistic.n_containers)
-               << ", of those there are " << std::endl
-               << "array: " << silo::formatNumber(total_statistic.n_array_containers) << std::endl
-               << "run: " << silo::formatNumber(total_statistic.n_run_containers) << std::endl
-               << "bitset: " << silo::formatNumber(total_statistic.n_bitset_containers)
-               << std::endl;
-   csv_line_containers += std::to_string(total_statistic.n_containers) + "," +
-                          std::to_string(total_statistic.n_array_containers) + ",";
-   csv_line_containers += std::to_string(total_statistic.n_run_containers) + "," +
-                          std::to_string(total_statistic.n_bitset_containers) + ",";
-   output_file << "Total bitmap values " << silo::formatNumber(total_statistic.cardinality)
-               << ", of those there are " << std::endl
-               << "array: " << silo::formatNumber(total_statistic.n_values_array_containers)
-               << std::endl
-               << "run: " << silo::formatNumber(total_statistic.n_values_run_containers)
-               << std::endl
-               << "bitset: " << silo::formatNumber(total_statistic.n_values_bitset_containers)
-               << std::endl;
-   csv_line_containers += std::to_string(total_statistic.cardinality) + "," +
-                          std::to_string(total_statistic.n_values_array_containers) + ",";
-   csv_line_containers += std::to_string(total_statistic.n_values_run_containers) + "," +
-                          std::to_string(total_statistic.n_values_bitset_containers) + ",";
 
-   uint64_t const total_size =
-      n_bytes_array_containers + n_bytes_run_containers + n_bytes_bitset_containers;
-   output_file << "Total bitmap byte size " << silo::formatNumber(total_size_frozen) << " (frozen) "
-               << std::endl;
-   output_file << "Total bitmap byte size " << silo::formatNumber(total_size_comp)
-               << " (compute_size) " << std::endl;
-   output_file << "Total bitmap byte size " << silo::formatNumber(total_size)
-               << ", of those there are " << std::endl
-               << "array: " << silo::formatNumber(total_statistic.n_bytes_array_containers)
-               << std::endl
-               << "run: " << silo::formatNumber(total_statistic.n_bytes_run_containers) << std::endl
-               << "bitset: " << silo::formatNumber(total_statistic.n_bytes_bitset_containers)
-               << std::endl;
-   csv_line_containers += std::to_string(total_size) + "," +
-                          std::to_string(total_statistic.n_bytes_array_containers) + ",";
-   csv_line_containers += std::to_string(total_statistic.n_bytes_run_containers) + "," +
-                          std::to_string(total_statistic.n_bytes_bitset_containers) + ",";
+   return global_bitmap_container_size_per_genome_section;
+}
 
-   output_file << "Bitmap distribution by position #NON_GAP (#GAP)" << std::endl;
-   for (unsigned i = 0; i < (GENOME_LENGTH / GENOME_DIVISION) + 1; ++i) {
-      uint32_t const gap_bitsets_at_pos = gap_bitset_containers_by_500pos[i];
-      uint32_t const nucleotide_symbol_n_bitmaps_at_pos =
-         nucleotide_symbol_n_bitset_containers_by_500pos[i];
-      uint32_t const bitmaps_at_pos = bitset_containers_by_500pos[i];
-      output_file << "Pos: [" << i * GENOME_DIVISION << "," << ((i + 1) * GENOME_DIVISION)
-                  << "): " << bitmaps_at_pos << " (N: " << nucleotide_symbol_n_bitmaps_at_pos
-                  << ", -: " << gap_bitsets_at_pos << ")" << '\n';
-      csv_header_histogram += std::to_string(i * GENOME_DIVISION) + "-" +
-                              std::to_string((i + 1) * GENOME_DIVISION) + ",";
-      csv_header_histogram += std::to_string(i * GENOME_DIVISION) + "-" +
-                              std::to_string((i + 1) * GENOME_DIVISION) + "N,";
-      csv_header_histogram += std::to_string(i * GENOME_DIVISION) + "-" +
-                              std::to_string((i + 1) * GENOME_DIVISION) + "-,";
-      csv_line_histogram += std::to_string(bitmaps_at_pos) + "," +
-                            std::to_string(nucleotide_symbol_n_bitmaps_at_pos) + "," +
-                            std::to_string(gap_bitsets_at_pos) + ",";
-   }
+silo::DetailedDatabaseInfo silo::Database::detailedDatabaseInfo(uint32_t section_length) const {
+   BitmapSizePerSymbol const bitmap_size_per_symbol = calculateBitmapSizePerSymbol();
+   BitmapContainerSize const size_per_section =
+      calculateBitmapContainerSizePerGenomeSection(section_length);
 
-   output_file << "Storage:" << std::endl;
-   output_file << csv_line_storage << std::endl;
-   output_file << "Containers:" << std::endl;
-   output_file << csv_line_containers << std::endl;
-   output_file << csv_header_histogram << std::endl;
-   output_file << csv_line_histogram << std::endl;
-   return 0;
+   return DetailedDatabaseInfo{bitmap_size_per_symbol, size_per_section};
 }
 
 unsigned silo::fillSequenceStore(silo::SequenceStore& sequence_store, std::istream& input_file) {

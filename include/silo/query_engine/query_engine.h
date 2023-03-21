@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include "silo/common/silo_symbols.h"
+#include "silo/common/genome_symbols.h"
 
 namespace silo {
 

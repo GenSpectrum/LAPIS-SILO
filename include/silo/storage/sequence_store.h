@@ -2,12 +2,14 @@
 #ifndef SILO_SEQUENCE_STORE_H
 #define SILO_SEQUENCE_STORE_H
 
-#include <spdlog/spdlog.h>
 #include <array>
+
+#include <spdlog/spdlog.h>
 #include <boost/serialization/array.hpp>
 #include <roaring/roaring.hh>
 
 #include "metadata_store.h"
+#include "silo/common/genome_symbols.h"
 #include "silo/roaring/roaring_serialize.h"
 
 namespace silo {
@@ -17,15 +19,14 @@ struct Position {
 
    template <class Archive>
    void serialize(Archive& archive, [[maybe_unused]] const unsigned int version) {
-      archive& flipped_bitmap;
+      archive& flipped_bitmap_for_symbol;
       archive& bitmaps;
       archive& nucleotide_symbol_n_indexed;
    }
 
    std::array<roaring::Roaring, SYMBOL_COUNT> bitmaps;
 
-   static constexpr uint32_t REFERENCE_BITMAP_IS_FLIPPED = UINT32_MAX;
-   uint32_t flipped_bitmap = REFERENCE_BITMAP_IS_FLIPPED;
+   GENOME_SYMBOL flipped_bitmap_for_symbol = GENOME_SYMBOL::UNDEFINED;
 
    bool nucleotide_symbol_n_indexed = false;
 };

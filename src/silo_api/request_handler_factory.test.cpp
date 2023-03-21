@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include "silo/database.h"
+#include "silo/database_info.h"
 #include "silo/query_engine/query_engine.h"
 #include "silo/query_engine/query_result.h"
 #include "silo_api/manual_poco_mocks.test.h"

@@ -36,4 +36,4 @@ echo "----------------------------------"
 echo "cmake --build build"
 echo "----------------------------------"
 
-cmake --build build
+cmake --build build --parallel

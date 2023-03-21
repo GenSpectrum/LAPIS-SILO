@@ -11,7 +11,7 @@ namespace silo {
 static constexpr unsigned GENOME_LENGTH = 29903;
 
 // https://www.bioinformatics.org/sms/iupac.html
-enum GENOME_SYMBOL {
+enum class GENOME_SYMBOL {
    GAP,  // -, GAP
    A,    // Adenine
    C,    // Cytosine
@@ -28,14 +28,27 @@ enum GENOME_SYMBOL {
    H,    // A or C or T
    V,    // A or C or G
    N,    // any base
+   FIRST = GAP,
+   LAST = N,
+   NOT_N_NOT_GAP,
+   UNDEFINED = -1
 };
 
-static constexpr unsigned SYMBOL_COUNT = static_cast<unsigned>(GENOME_SYMBOL::N) + 1;
+static constexpr unsigned SYMBOL_COUNT = static_cast<unsigned>(GENOME_SYMBOL::LAST) + 1;
 
 static constexpr std::array<char, SYMBOL_COUNT> SYMBOL_REPRESENTATION{
    '-', 'A', 'C', 'G', 'T', 'R', 'Y', 'S', 'W', 'K', 'M', 'B', 'D', 'H', 'V', 'N'};
 
-static_assert(SYMBOL_REPRESENTATION[static_cast<unsigned>(GENOME_SYMBOL::N)] == 'N');
+static constexpr std::array<GENOME_SYMBOL, SYMBOL_COUNT> GENOME_SYMBOLS{
+   GENOME_SYMBOL::GAP, GENOME_SYMBOL::A, GENOME_SYMBOL::C, GENOME_SYMBOL::G,
+   GENOME_SYMBOL::T,   GENOME_SYMBOL::R, GENOME_SYMBOL::Y, GENOME_SYMBOL::S,
+   GENOME_SYMBOL::W,   GENOME_SYMBOL::K, GENOME_SYMBOL::M, GENOME_SYMBOL::B,
+   GENOME_SYMBOL::D,   GENOME_SYMBOL::H, GENOME_SYMBOL::V, GENOME_SYMBOL::N,
+};
+
+inline char genomeSymbolRepresentation(GENOME_SYMBOL symbol) {
+   return SYMBOL_REPRESENTATION[static_cast<unsigned>(symbol)];
+}
 
 inline GENOME_SYMBOL toNucleotideSymbol(char character) {
    switch (character) {

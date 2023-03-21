@@ -16,6 +16,9 @@ class InfoHandler : public RestResource {
   private:
    const silo::Database& database;
 
+   void returnDetailedDatabaseInfo(Poco::Net::HTTPServerResponse& response);
+   void returnSimpleDatabaseInfo(Poco::Net::HTTPServerResponse& response);
+
   public:
    explicit InfoHandler(const silo::Database& database);
 

@@ -14,6 +14,8 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -static-libstdc++ -static-libgcc")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/")
 
+set(CMAKE_BUILD_PARALLEL_LEVEL 8)
+
 # ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
