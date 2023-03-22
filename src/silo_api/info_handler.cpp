@@ -10,33 +10,58 @@
 #include "silo/database_info.h"
 
 namespace silo {
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(DatabaseInfo, sequenceCount, totalSize, nBitmapsSize);
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
-   BitmapContainerSizeStatistic,
-   numberOfArrayContainers,
-   numberOfRunContainers,
-   numberOfBitsetContainers,
-   numberOfValuesStoredInArrayContainers,
-   numberOfValuesStoredInRunContainers,
-   numberOfValuesStoredInBitsetContainers,
-   totalBitmapSizeArrayContainers,
-   totalBitmapSizeRunContainers,
-   totalBitmapSizeBitsetContainers
-);
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(BitmapSizePerSymbol, sizeInBytes);
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
-   BitmapContainerSize,
-   sectionLength,
-   sizePerGenomeSymbolAndSection,
-   bitmapContainerSizeStatistic,
-   totalBitmapSizeFrozen,
-   totalBitmapSizeComputed
-);
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
-   DetailedDatabaseInfo,
-   bitmapSizePerSymbol,
-   bitmapContainerSizePerGenomeSection
-);
+
+// NOLINTNEXTLINE(readability-identifier-naming)
+void to_json(nlohmann::json& json, const DatabaseInfo& databaseInfo) {
+   json = nlohmann::json{
+      {"sequenceCount", databaseInfo.sequence_count},
+      {"totalSize", databaseInfo.total_size},
+      {"nBitmapsSize", databaseInfo.n_bitmaps_size}};
+}
+
+// NOLINTNEXTLINE(readability-identifier-naming)
+void to_json(nlohmann::json& json, const BitmapContainerSizeStatistic& statistics) {
+   json = nlohmann::json{
+      {"numberOfArrayContainers", statistics.number_of_array_containers},
+      {"numberOfRunContainers", statistics.number_of_run_containers},
+      {"numberOfBitsetContainers", statistics.number_of_run_containers},
+      {"numberOfValuesStoredInArrayContainers",
+       statistics.number_of_values_stored_in_array_containers},
+      {"numberOfValuesStoredInRunContainers", statistics.number_of_values_stored_in_run_containers},
+      {"numberOfValuesStoredInBitsetContainers",
+       statistics.number_of_values_stored_in_bitset_containers},
+      {"totalBitmapSizeArrayContainers", statistics.total_bitmap_size_array_containers},
+      {"totalBitmapSizeRunContainers", statistics.total_bitmap_size_run_containers},
+      {"totalBitmapSizeBitsetContainers", statistics.total_bitmap_size_bitset_containers}};
+}
+
+// NOLINTNEXTLINE(readability-identifier-naming)
+void to_json(nlohmann::json& json, const BitmapSizePerSymbol& bitmapSizePerSymbol) {
+   std::map<std::string, uint64_t> size_in_bytes_for_nlohmann;
+   for (const auto& [symbol, size] : bitmapSizePerSymbol.size_in_bytes) {
+      size_in_bytes_for_nlohmann[genomeSymbolRepresentation(symbol)] = size;
+   }
+   json = nlohmann::json{size_in_bytes_for_nlohmann};
+}
+
+// NOLINTNEXTLINE(readability-identifier-naming)
+void to_json(nlohmann::json& json, const BitmapContainerSize& bitmapContainerSize) {
+   json = nlohmann::json{
+      {"sectionLength", bitmapContainerSize.section_length},
+      {"sizePerGenomeSymbolAndSection", bitmapContainerSize.size_per_genome_symbol_and_section},
+      {"bitmapContainerSizeStatistic", bitmapContainerSize.bitmap_container_size_statistic},
+      {"totalBitmapSizeFrozen", bitmapContainerSize.total_bitmap_size_frozen},
+      {"totalBitmapSizeComputed", bitmapContainerSize.total_bitmap_size_computed}};
+}
+
+// NOLINTNEXTLINE(readability-identifier-naming)
+void to_json(nlohmann::json& json, const DetailedDatabaseInfo& databaseInfo) {
+   json = nlohmann::json{
+      {"bitmapSizePerSymbol", databaseInfo.bitmap_size_per_symbol},
+      {"bitmapContainerSizePerGenomeSection",
+       databaseInfo.bitmap_container_size_per_genome_section}};
+}
+
 }  // namespace silo
 
 namespace silo_api {

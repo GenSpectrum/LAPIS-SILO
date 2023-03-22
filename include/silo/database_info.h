@@ -10,41 +10,39 @@ namespace silo {
 enum class GENOME_SYMBOL;
 
 struct DatabaseInfo {
-   uint32_t sequenceCount;  // NOLINT(readability-identifier-naming)
-   uint64_t totalSize;      // NOLINT(readability-identifier-naming)
-   size_t nBitmapsSize;     // NOLINT(readability-identifier-naming)
+   uint32_t sequence_count;
+   uint64_t total_size;
+   size_t n_bitmaps_size;
 };
 
 struct BitmapSizePerSymbol {
-   std::map<GENOME_SYMBOL, uint64_t> sizeInBytes;  // NOLINT(readability-identifier-naming)
+   std::map<GENOME_SYMBOL, uint64_t> size_in_bytes;
    BitmapSizePerSymbol& operator+=(const BitmapSizePerSymbol& other);
    BitmapSizePerSymbol();
 };
 
 struct BitmapContainerSizeStatistic {
-   uint32_t numberOfArrayContainers;   // NOLINT(readability-identifier-naming)
-   uint32_t numberOfRunContainers;     // NOLINT(readability-identifier-naming)
-   uint32_t numberOfBitsetContainers;  // NOLINT(readability-identifier-naming)
+   uint32_t number_of_array_containers;
+   uint32_t number_of_run_containers;
+   uint32_t number_of_bitset_containers;
 
-   uint32_t numberOfValuesStoredInArrayContainers;   // NOLINT(readability-identifier-naming)
-   uint32_t numberOfValuesStoredInRunContainers;     // NOLINT(readability-identifier-naming)
-   uint32_t numberOfValuesStoredInBitsetContainers;  // NOLINT(readability-identifier-naming)
+   uint32_t number_of_values_stored_in_array_containers;
+   uint32_t number_of_values_stored_in_run_containers;
+   uint32_t number_of_values_stored_in_bitset_containers;
 
-   uint64_t totalBitmapSizeArrayContainers;   // NOLINT(readability-identifier-naming)
-   uint64_t totalBitmapSizeRunContainers;     // NOLINT(readability-identifier-naming)
-   uint64_t totalBitmapSizeBitsetContainers;  // NOLINT(readability-identifier-naming)
+   uint64_t total_bitmap_size_array_containers;
+   uint64_t total_bitmap_size_run_containers;
+   uint64_t total_bitmap_size_bitset_containers;
 };
 
 struct BitmapContainerSize {
-   uint32_t sectionLength;  // NOLINT(readability-identifier-naming)
-   std::map<GENOME_SYMBOL, std::vector<uint32_t>>
-      sizePerGenomeSymbolAndSection;  // NOLINT(readability-identifier-naming)
+   uint32_t section_length;
+   std::map<std::string, std::vector<uint32_t>> size_per_genome_symbol_and_section;
 
-   BitmapContainerSizeStatistic
-      bitmapContainerSizeStatistic;  // NOLINT(readability-identifier-naming)
+   BitmapContainerSizeStatistic bitmap_container_size_statistic;
 
-   uint64_t totalBitmapSizeFrozen;    // NOLINT(readability-identifier-naming)
-   uint64_t totalBitmapSizeComputed;  // NOLINT(readability-identifier-naming)
+   uint64_t total_bitmap_size_frozen;
+   uint64_t total_bitmap_size_computed;
 
    explicit BitmapContainerSize(uint32_t section_length);
 
@@ -52,9 +50,8 @@ struct BitmapContainerSize {
 };
 
 struct DetailedDatabaseInfo {
-   BitmapSizePerSymbol bitmapSizePerSymbol;  // NOLINT(readability-identifier-naming)
-   BitmapContainerSize
-      bitmapContainerSizePerGenomeSection;  // NOLINT(readability-identifier-naming)
+   BitmapSizePerSymbol bitmap_size_per_symbol;
+   BitmapContainerSize bitmap_container_size_per_genome_section;
 };
 
 }  // namespace silo

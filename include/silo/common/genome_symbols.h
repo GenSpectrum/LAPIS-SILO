@@ -30,7 +30,6 @@ enum class GENOME_SYMBOL {
    N,    // any base
    FIRST = GAP,
    LAST = N,
-   NOT_N_NOT_GAP,
    UNDEFINED = -1
 };
 
@@ -46,8 +45,8 @@ static constexpr std::array<GENOME_SYMBOL, SYMBOL_COUNT> GENOME_SYMBOLS{
    GENOME_SYMBOL::D,   GENOME_SYMBOL::H, GENOME_SYMBOL::V, GENOME_SYMBOL::N,
 };
 
-inline char genomeSymbolRepresentation(GENOME_SYMBOL symbol) {
-   return SYMBOL_REPRESENTATION[static_cast<unsigned>(symbol)];
+inline std::string genomeSymbolRepresentation(GENOME_SYMBOL symbol) {
+   return std::string(1, SYMBOL_REPRESENTATION.at(static_cast<unsigned>(symbol)));
 }
 
 inline GENOME_SYMBOL toNucleotideSymbol(char character) {

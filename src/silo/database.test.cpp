@@ -20,8 +20,8 @@ TEST(database_test, should_build_database_without_errors) {
 
    const auto simple_database_info = database.getDatabaseInfo();
 
-   EXPECT_GT(static_cast<long int>(simple_database_info.totalSize), 0);
-   EXPECT_EQ(static_cast<long int>(simple_database_info.sequenceCount), 100);
+   EXPECT_GT(static_cast<long int>(simple_database_info.total_size), 0);
+   EXPECT_EQ(static_cast<long int>(simple_database_info.sequence_count), 100);
 }
 
 TEST(database_info_test, should_return_correct_database_info) {
@@ -39,7 +39,41 @@ TEST(database_info_test, should_return_correct_database_info) {
    const auto detailed_info = database.detailedDatabaseInfo();
    const auto simple_info = database.getDatabaseInfo();
 
-   EXPECT_EQ(detailed_info.bitmapSizePerSymbol.sizeInBytes.at(silo::GENOME_SYMBOL::A), 100);
-   EXPECT_EQ(simple_info.totalSize, 66458430);
-   EXPECT_EQ(simple_info.nBitmapsSize, 3552);
+   EXPECT_EQ(
+      detailed_info.bitmap_size_per_symbol.size_in_bytes.at(silo::GENOME_SYMBOL::A), 9190510
+   );
+   EXPECT_EQ(
+      detailed_info.bitmap_size_per_symbol.size_in_bytes.at(silo::GENOME_SYMBOL::GAP), 5779958
+   );
+
+   EXPECT_EQ(
+      detailed_info.bitmap_container_size_per_genome_section.bitmap_container_size_statistic
+         .number_of_bitset_containers,
+      0
+   );
+   EXPECT_EQ(
+      detailed_info.bitmap_container_size_per_genome_section.bitmap_container_size_statistic
+         .number_of_values_stored_in_run_containers,
+      0
+   );
+   EXPECT_EQ(
+      detailed_info.bitmap_container_size_per_genome_section.bitmap_container_size_statistic
+         .total_bitmap_size_bitset_containers,
+      0
+   );
+
+   EXPECT_EQ(
+      detailed_info.bitmap_container_size_per_genome_section.total_bitmap_size_computed, 103449226
+   );
+   EXPECT_EQ(
+      detailed_info.bitmap_container_size_per_genome_section.total_bitmap_size_frozen, 55370197
+   );
+   EXPECT_EQ(
+      detailed_info.bitmap_container_size_per_genome_section.bitmap_container_size_statistic
+         .total_bitmap_size_array_containers,
+      5859154
+   );
+
+   EXPECT_EQ(simple_info.total_size, 66458430);
+   EXPECT_EQ(simple_info.n_bitmaps_size, 3552);
 }
