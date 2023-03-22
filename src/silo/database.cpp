@@ -14,6 +14,7 @@
 #include "external/PerfEvent.hpp"
 #include "silo/common/format_number.h"
 #include "silo/common/input_stream_wrapper.h"
+#include "silo/common/log.h"
 #include "silo/common/silo_symbols.h"
 #include "silo/prepare_dataset.h"
 #include "silo/preprocessing/preprocessing_config.h"
@@ -337,8 +338,7 @@ silo::DatabaseInfo silo::Database::getDatabaseInfo() {
          }
       );
    }
-   std::cerr << "index all N took " << silo::formatNumber(microseconds) << " microseconds."
-             << std::endl;
+   LOG_PERFORMANCE("index all N took {} microseconds", silo::formatNumber(microseconds));
 }
 
 [[maybe_unused]] void silo::Database::naiveIndexAllNucleotideSymbolsN() {
@@ -349,8 +349,7 @@ silo::DatabaseInfo silo::Database::getDatabaseInfo() {
          dbp.seq_store.naiveIndexAllNucleotideSymbolN();
       });
    }
-   std::cerr << "index all N naive took " << silo::formatNumber(microseconds) << " microseconds."
-             << std::endl;
+   LOG_PERFORMANCE("index all N naive took {} microseconds", silo::formatNumber(microseconds));
 }
 
 [[maybe_unused]] void silo::Database::printFlippedGenomePositions(std::ostream& output_file) {
@@ -539,8 +538,10 @@ unsigned silo::fillSequenceStore(silo::SequenceStore& sequence_store, std::istre
          break;
       }
       if (genome.length() != GENOME_LENGTH) {
-         std::cerr << "length mismatch!" << std::endl;
-         throw std::runtime_error("length mismatch.");
+         throw silo::PreprocessingException(
+            "Error filling sequence store: Genome length was " + std::to_string(genome.length()) +
+            ", expected " + std::to_string(GENOME_LENGTH)
+         );
       }
 
       genome_buffer.push_back(std::move(genome));

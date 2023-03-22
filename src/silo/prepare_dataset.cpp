@@ -9,6 +9,7 @@
 
 #include "silo/common/input_stream_wrapper.h"
 #include "silo/database.h"
+#include "silo/preprocessing/preprocessing_exception.h"
 
 [[maybe_unused]] void silo::pruneMetadata(
    std::istream& metadata_in,
@@ -92,8 +93,7 @@
    {
       std::string header;
       if (!getline(metadata_in, header, '\n')) {
-         std::cerr << "Meta-file is emtpy. At least Header is expected." << std::endl;
-         return;
+         throw silo::PreprocessingException("Metadata file is emtpy. At least Header is expected.");
       }
 
       while (true) {
