@@ -8,11 +8,13 @@ RUN apt update && apt install -y \
 RUN pip install conan==2.0.2
 
 WORKDIR /src
-COPY . .
-
+COPY conanfile.py conanprofile.docker .
 RUN mv conanprofile.docker conanprofile
+
 RUN --mount=type=cache,target=/root/.conan2 \
     conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build -s build_type=Debug
+
+COPY . .
 
 RUN  \
     --mount=type=cache,target=/root/.conan2 \
