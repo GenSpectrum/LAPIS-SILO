@@ -12,10 +12,10 @@ class Database;
 namespace silo_api {
 class InfoHandler : public Poco::Net::HTTPRequestHandler {
   private:
-   silo::Database& database;
+   const silo::Database& database;
 
   public:
-   explicit InfoHandler(silo::Database& database);
+   explicit InfoHandler(const silo::Database& database);
 
    void handleRequest(
       Poco::Net::HTTPServerRequest& request,

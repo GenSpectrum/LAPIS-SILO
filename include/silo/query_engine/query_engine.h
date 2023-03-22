@@ -17,6 +17,17 @@ class DatabasePartition;
 namespace response {
 struct QueryResult;
 }
+
+class QueryEngine {
+  private:
+   const silo::Database& database;
+
+  public:
+   explicit QueryEngine(const silo::Database& database);
+
+   virtual response::QueryResult executeQuery(const std::string& query) const;
+};
+
 /// The return value of the BoolExpression::evaluate method.
 /// May return either a mutable or immutable bitmap.
 struct BooleanExpressionResult {

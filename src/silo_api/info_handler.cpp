@@ -12,6 +12,10 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(DatabaseInfo, sequenceCount, totalSize, nBitm
 }
 
 namespace silo_api {
+
+InfoHandler::InfoHandler(const silo::Database& database)
+    : database(database) {}
+
 void InfoHandler::handleRequest(
    Poco::Net::HTTPServerRequest& /*request*/,
    Poco::Net::HTTPServerResponse& response
@@ -22,6 +26,5 @@ void InfoHandler::handleRequest(
    std::ostream& out_stream = response.send();
    out_stream << nlohmann::json(db_info);
 }
-InfoHandler::InfoHandler(silo::Database& database)
-    : database(database) {}
+
 }  // namespace silo_api

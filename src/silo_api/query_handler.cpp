@@ -8,7 +8,6 @@
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
-#include "silo/database.h"
 #include "silo/query_engine/query_engine.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
@@ -24,8 +23,8 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(QueryResult, queryResult, parseTime, filterTi
 
 namespace silo_api {
 
-QueryHandler::QueryHandler(silo::Database& database)
-    : database(database) {}
+QueryHandler::QueryHandler(const silo::QueryEngine& query_engine)
+    : query_engine(query_engine) {}
 
 void QueryHandler::handleRequest(
    Poco::Net::HTTPServerRequest& request,
@@ -40,7 +39,7 @@ void QueryHandler::handleRequest(
    response.setContentType("application/json");
 
    try {
-      const auto query_result = silo::executeQuery(database, query);
+      const auto query_result = query_engine.executeQuery(query);
 
       std::ostream& out_stream = response.send();
       out_stream << nlohmann::json(query_result);

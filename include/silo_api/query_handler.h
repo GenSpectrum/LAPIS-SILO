@@ -6,16 +6,16 @@
 #include <Poco/Net/HTTPServerResponse.h>
 
 namespace silo {
-class Database;
+class QueryEngine;
 }
 
 namespace silo_api {
 class QueryHandler : public Poco::Net::HTTPRequestHandler {
   private:
-   silo::Database& database;
+ const  silo::QueryEngine& query_engine;
 
   public:
-   explicit QueryHandler(silo::Database& database);
+   explicit QueryHandler(const silo::QueryEngine& query_engine);
 
    void handleRequest(
       Poco::Net::HTTPServerRequest& request,

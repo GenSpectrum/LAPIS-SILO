@@ -47,12 +47,12 @@ include_directories(SYSTEM
 # Sources
 # ---------------------------------------------------------------------------
 
-file(GLOB SRC_TEST "src/*/*.test.cpp" , "src/*.test.cpp")
+file(GLOB_RECURSE SRC_TEST "src/*.test.cpp")
 
 file(GLOB_RECURSE SRC_SILO_LIB "src/silo/*.cpp")
 list(REMOVE_ITEM SRC_SILO_LIB ${SRC_TEST})
 
-file(GLOB_RECURSE SRC_SILO_API "src/silo_api/*" "src/silo_api/**")
+file(GLOB_RECURSE SRC_SILO_API "src/silo_api/*.cpp")
 list(REMOVE_ITEM SRC_SILO_API ${SRC_TEST})
 
 # ---------------------------------------------------------------------------

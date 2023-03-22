@@ -101,7 +101,7 @@ class Database {
       const std::string& sequence_file_suffix
    );
 
-   virtual silo::DatabaseInfo getDatabaseInfo();
+   virtual silo::DatabaseInfo getDatabaseInfo() const;
 
    int detailedDatabaseInfo(std::ostream& output_file);
    [[maybe_unused]] void printFlippedGenomePositions(std::ostream& output_file);

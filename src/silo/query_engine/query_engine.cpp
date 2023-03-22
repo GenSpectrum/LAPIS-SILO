@@ -30,6 +30,13 @@ namespace silo {
 
 using roaring::Roaring;
 
+QueryEngine::QueryEngine(const silo::Database& database)
+    : database(database) {}
+
+response::QueryResult QueryEngine::executeQuery(const std::string& query) const {
+   return ::silo::executeQuery(database, query);
+}
+
 // TODO(someone): reduce cognitive complexity
 // no linting recursion: is inherent to algorithm
 // NOLINTNEXTLINE(readability-function-cognitive-complexity, misc-no-recursion)
