@@ -21,6 +21,7 @@
 #include <spdlog/spdlog.h>
 
 #include "external/PerfEvent.hpp"
+#include "silo/common/log.h"
 #include "silo/common/silo_symbols.h"
 #include "silo/database.h"
 #include "silo/query_engine/query_result.h"
@@ -1181,8 +1182,7 @@ std::string NOfExpression::toString(const Database& database) {
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 silo::response::QueryResult silo::executeQuery(
    const silo::Database& database,
-   const std::string& query,
-   std::ostream& perf_out
+   const std::string& query
 ) {
    rapidjson::Document json_document;
    json_document.Parse(query.c_str());
@@ -1201,7 +1201,7 @@ silo::response::QueryResult silo::executeQuery(
       SPDLOG_DEBUG("Parsed query: {}", filter->toString(database));
    }
 
-   perf_out << "Parse: " << std::to_string(query_result.parseTime) << " microseconds\n";
+   LOG_PERFORMANCE("Parse: {} microseconds", std::to_string(query_result.parseTime));
 
    std::vector<silo::BooleanExpressionResult> partition_filters(database.partitions.size());
    {
@@ -1218,8 +1218,7 @@ silo::response::QueryResult silo::executeQuery(
    for (unsigned i = 0; i < database.partitions.size(); ++i) {
       SPDLOG_DEBUG("Simplified query for partition {}: {}", i, simplified_queries[i]);
    }
-   perf_out << "Execution (filter): " << std::to_string(query_result.filterTime)
-            << " microseconds\n";
+   LOG_PERFORMANCE("Execution (filter): {} microseconds", std::to_string(query_result.filterTime));
 
    {
       BlockTimer const timer(query_result.actionTime);
@@ -1265,7 +1264,7 @@ silo::response::QueryResult silo::executeQuery(
                min_proportion = action["minProportion"].GetDouble();
             }
             std::vector<MutationProportion> mutations =
-               executeMutations(database, partition_filters, min_proportion, perf_out);
+               executeMutations(database, partition_filters, min_proportion);
 
             std::vector<response::MutationProportion> output_mutation_proportions(mutations.size());
             std::transform(
@@ -1286,8 +1285,7 @@ silo::response::QueryResult silo::executeQuery(
       }
    }
 
-   perf_out << "Execution (action): " << std::to_string(query_result.actionTime)
-            << " microseconds\n";
+   LOG_PERFORMANCE("Execution (action): {} microseconds", std::to_string(query_result.actionTime));
 
    return query_result;
 }
