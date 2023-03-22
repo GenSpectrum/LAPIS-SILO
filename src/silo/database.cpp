@@ -16,6 +16,7 @@
 #include "silo/common/input_stream_wrapper.h"
 #include "silo/common/log.h"
 #include "silo/common/silo_symbols.h"
+#include "silo/persistence/exception.h"
 #include "silo/prepare_dataset.h"
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_exception.h"
@@ -43,12 +44,14 @@ std::vector<std::string> initGlobalReference(const std::string& working_director
          break;
       }
       if (line.find('N') != std::string::npos) {
-         throw std::runtime_error("No N in reference genome allowed.");
+         throw silo::persistence::LoadDatabaseException("No N in reference genome allowed.");
       }
       global_reference.push_back(line);
    }
    if (global_reference.empty()) {
-      throw std::runtime_error("No genome in " + reference_genome_path.string());
+      throw silo::persistence::LoadDatabaseException(
+         "No genome in " + reference_genome_path.string()
+      );
    }
    return global_reference;
 };
@@ -142,7 +145,7 @@ void silo::Database::build(
                   partitions[partition_index].meta_store, meta_in, alias_key, *dict
                );
                if (sequence_store_sequence_count != metadata_store_sequence_count) {
-                  throw std::runtime_error(
+                  throw silo::PreprocessingException(
                      "Sequences in meta data and sequence data for chunk " +
                      buildChunkName(partition_index, chunk_index) +
                      " are not equal. The sequence store has " +
@@ -664,13 +667,15 @@ void silo::savePartitions(const silo::Partitions& partitions, std::ostream& outp
 
 [[maybe_unused]] void silo::Database::saveDatabaseState(const std::string& save_directory) {
    if (!partition_descriptor) {
-      throw std::runtime_error("Cannot save database without partition_descriptor.");
+      throw silo::persistence::SaveDatabaseException(
+         "Cannot save database without partition_descriptor."
+      );
    }
 
    if (pango_descriptor) {
       std::ofstream pango_def_file(save_directory + "pango_descriptor.txt");
       if (!pango_def_file) {
-         throw std::runtime_error(
+         throw silo::persistence::SaveDatabaseException(
             "Cannot open pango_descriptor output file " + save_directory + "pango_descriptor.txt"
          );
       }
@@ -680,7 +685,7 @@ void silo::savePartitions(const silo::Partitions& partitions, std::ostream& outp
    {
       std::ofstream part_def_file(save_directory + "partition_descriptor.txt");
       if (!part_def_file) {
-         throw std::runtime_error(
+         throw silo::persistence::SaveDatabaseException(
             "Cannot open partitioning descriptor output file " + save_directory +
             "partition_descriptor.txt"
          );
@@ -691,7 +696,7 @@ void silo::savePartitions(const silo::Partitions& partitions, std::ostream& outp
    {
       std::ofstream dict_output(save_directory + "dict.txt");
       if (!dict_output) {
-         throw std::runtime_error(
+         throw silo::persistence::SaveDatabaseException(
             "Cannot open dictionary output file " + save_directory + "dict.txt"
          );
       }
@@ -706,7 +711,7 @@ void silo::savePartitions(const silo::Partitions& partitions, std::ostream& outp
       file_vec.emplace_back(partition_file);
 
       if (!file_vec.back()) {
-         throw std::runtime_error(
+         throw silo::persistence::SaveDatabaseException(
             "Cannot open partition output file " + partition_file + " for saving"
          );
       }
@@ -728,7 +733,7 @@ void silo::savePartitions(const silo::Partitions& partitions, std::ostream& outp
    const auto partition_descriptor_file = save_directory + "partition_descriptor.txt";
    std::ifstream part_def_file(partition_descriptor_file);
    if (!part_def_file) {
-      throw std::runtime_error(
+      throw silo::persistence::LoadDatabaseException(
          "Cannot open partition_descriptor input file for loading: " + partition_descriptor_file
       );
    }
@@ -748,7 +753,7 @@ void silo::savePartitions(const silo::Partitions& partitions, std::ostream& outp
       const auto dictionary_file = save_directory + "dict.txt";
       auto dict_input = std::ifstream(dictionary_file);
       if (!dict_input) {
-         throw std::runtime_error(
+         throw silo::persistence::LoadDatabaseException(
             "Cannot open dictionary input file for loading: " + dictionary_file
          );
       }
@@ -763,7 +768,7 @@ void silo::savePartitions(const silo::Partitions& partitions, std::ostream& outp
       file_vec.emplace_back(partition_file);
 
       if (!file_vec.back()) {
-         throw std::runtime_error(
+         throw silo::persistence::LoadDatabaseException(
             "Cannot open partition input file for loading: " + partition_file
          );
       }

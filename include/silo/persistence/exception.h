@@ -12,6 +12,11 @@ class LoadDatabaseException : public std::runtime_error {
    explicit LoadDatabaseException(const std::string& error_message);
 };
 
+class SaveDatabaseException : public std::runtime_error {
+  public:
+   explicit SaveDatabaseException(const std::string& error_message);
+};
+
 }  // namespace persistence
 }  // namespace silo
 

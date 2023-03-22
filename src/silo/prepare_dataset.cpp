@@ -9,6 +9,7 @@
 
 #include "silo/common/input_stream_wrapper.h"
 #include "silo/database.h"
+#include "silo/persistence/exception.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
 [[maybe_unused]] void silo::pruneMetadata(
@@ -35,7 +36,7 @@
             epi_isl_ids.insert(stoi(epi_isl_id));
             found_sequences_count++;
          } catch (const std::invalid_argument& exception) {
-            throw std::runtime_error(
+            throw silo::PreprocessingException(
                "Failed parsing EPI: " + epi_isl + " (sequence " +
                std::to_string(found_sequences_count) + "): " + exception.what()
             );
@@ -47,7 +48,7 @@
    {
       std::string header;
       if (!getline(metadata_in, header, '\n')) {
-         throw std::runtime_error("Did not find header in metadata file");
+         throw silo::PreprocessingException("Did not find header in metadata file");
       }
       metadata_out << header << "\n";
 
@@ -71,7 +72,7 @@
                metadata_in.ignore(LONG_MAX, '\n');
             }
          } catch (const std::invalid_argument& exception) {
-            throw std::runtime_error(
+            throw silo::PreprocessingException(
                "Failed parsing EPI: " + epi_isl + " (metadata row " +
                std::to_string(found_metadata_count) + "): " + exception.what()
             );
@@ -109,7 +110,7 @@
             set.insert(epi);
             found_metadata_count++;
          } catch (const std::invalid_argument& exception) {
-            throw std::runtime_error(
+            throw silo::PreprocessingException(
                "Failed parsing EPI: " + epi_isl + " (metadata row " +
                std::to_string(found_metadata_count) + "): " + exception.what()
             );
@@ -140,7 +141,7 @@
                sequences_in.ignore(LONG_MAX, '\n');
             }
          } catch (const std::invalid_argument& exception) {
-            throw std::runtime_error(
+            throw silo::PreprocessingException(
                "Failed parsing EPI: " + epi_isl + " (sequence " +
                std::to_string(found_sequences_count) + "): " + exception.what()
             );
@@ -351,7 +352,7 @@ silo::Partitions silo::loadPartitions(std::istream& input_file) {
       }
 
       if (type.size() != 1) {
-         throw std::runtime_error("loadPartitions format exception");
+         throw silo::persistence::LoadDatabaseException("loadPartitions format exception");
       }
       if (type.at(0) == 'P') {
          if (!getline(input_file, name, '\t')) {
@@ -392,7 +393,7 @@ silo::Partitions silo::loadPartitions(std::istream& input_file) {
          }
          descriptor.partitions.back().chunks.back().pango_lineages.push_back(name);
       } else {
-         throw std::runtime_error("loadPartitions format exception");
+         throw silo::persistence::LoadDatabaseException("loadPartitions format exception");
       }
    }
    return descriptor;
@@ -427,7 +428,7 @@ void silo::partitionSequences(
 
       std::string header;
       if (!getline(meta_in, header, '\n')) {
-         throw std::runtime_error("No header file in meta input.");
+         throw silo::PreprocessingException("No header file in meta input.");
       }
 
       std::unordered_map<std::string, std::unique_ptr<std::ostream>> chunk_to_meta_ostream;
@@ -490,7 +491,7 @@ void silo::partitionSequences(
             break;
          }
          if (genome.length() != GENOME_LENGTH) {
-            throw std::runtime_error(
+            throw silo::PreprocessingException(
                "Genome didn't have expected length " + std::to_string(GENOME_LENGTH) + " (was " +
                std::to_string(genome.length()) + ")."
             );
@@ -538,7 +539,7 @@ void sortChunk(
       // Ignore Header
       std::string header;
       if (!getline(meta_in, header, '\n')) {
-         throw std::runtime_error("Did not find header in metadata file.");
+         throw silo::PreprocessingException("Did not find header in metadata file.");
       }
       while (true) {
          std::string epi_isl;

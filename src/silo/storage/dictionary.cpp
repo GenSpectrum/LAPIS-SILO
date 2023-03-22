@@ -6,7 +6,7 @@
 #include <unordered_map>
 
 #include "silo/database.h"
-#include "silo/persistence/load_database_exception.h"
+#include "silo/persistence/exception.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
 // TODO(someone): reduce cognitive complexity
@@ -247,7 +247,8 @@ Dictionary Dictionary::loadDictionary(std::istream& dictionary_file) {
       if (!getline(dictionary_file, read_string, '\t')) {
          throw silo::persistence::LoadDatabaseException(
             "Failed loading the dictionary: Unexpected end of file. Expected country_count:" +
-            std::to_string(country_count) + " many countries in the dict file. No read_string found."
+            std::to_string(country_count) +
+            " many countries in the dict file. No read_string found."
          );
       }
       if (!getline(dictionary_file, id_str, '\n')) {
@@ -263,13 +264,15 @@ Dictionary Dictionary::loadDictionary(std::istream& dictionary_file) {
    for (uint32_t i = 0; i < col_count; ++i) {
       if (!getline(dictionary_file, read_string, '\t')) {
          throw silo::persistence::LoadDatabaseException(
-            "Failed loading the dictionary: Unexpected end of file. Expected additional_columns_count:" +
+            "Failed loading the dictionary: Unexpected end of file. Expected "
+            "additional_columns_count:" +
             std::to_string(country_count) + " many columns in the dict file. No read_string found."
          );
       }
       if (!getline(dictionary_file, id_str, '\n')) {
          throw silo::persistence::LoadDatabaseException(
-            "Failed loading the dictionary: Unexpected end of file. Expected additional_columns_count:" +
+            "Failed loading the dictionary: Unexpected end of file. Expected "
+            "additional_columns_count:" +
             std::to_string(country_count) + " many columns in the dict file. No lookup_id found."
          );
       }
