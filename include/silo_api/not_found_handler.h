@@ -7,12 +7,6 @@
 #include <nlohmann/json.hpp>
 
 namespace silo_api {
-struct ErrorResponse {
-   std::string error;
-   std::string message;
-};
-
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ErrorResponse, error, message);
 
 class NotFoundHandler : public Poco::Net::HTTPRequestHandler {
    void handleRequest(
@@ -20,6 +14,7 @@ class NotFoundHandler : public Poco::Net::HTTPRequestHandler {
       Poco::Net::HTTPServerResponse& response
    ) override;
 };
+
 }  // namespace silo_api
 
 #endif  // SILO_ERROR_H

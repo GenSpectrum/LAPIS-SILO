@@ -5,6 +5,8 @@
 #include <Poco/Net/HTTPServerResponse.h>
 #include <nlohmann/json.hpp>
 
+#include "silo_api/request_handler.h"
+
 namespace silo_api {
 void NotFoundHandler::handleRequest(
    Poco::Net::HTTPServerRequest& /*request*/,

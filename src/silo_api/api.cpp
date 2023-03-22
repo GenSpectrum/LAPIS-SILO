@@ -32,7 +32,9 @@ class SiloRequestHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
 
    Poco::Net::HTTPRequestHandler* createRequestHandler(const Poco::Net::HTTPServerRequest& request
    ) override {
-      return new silo_api::LoggingRequestHandler(routeRequest(request));
+      return new silo_api::LoggingRequestHandler(
+         new silo_api::ErrorRequestHandler(routeRequest(request))
+      );
    }
 
    Poco::Net::HTTPRequestHandler* routeRequest(const Poco::Net::HTTPServerRequest& request) {
