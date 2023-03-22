@@ -6,6 +6,7 @@
 #include <cmath>
 #include <external/PerfEvent.hpp>
 
+#include "silo/common/log.h"
 #include "silo/common/silo_symbols.h"
 #include "silo/database.h"
 
@@ -25,8 +26,7 @@ uint64_t silo::executeCount(
 std::vector<silo::MutationProportion> silo::executeMutations(
    const silo::Database& database,
    std::vector<silo::BooleanExpressionResult>& partition_filters,
-   double proportion_threshold,
-   std::ostream& performance_file
+   double proportion_threshold
 ) {
    using roaring::Roaring;
 
@@ -180,7 +180,7 @@ std::vector<silo::MutationProportion> silo::executeMutations(
          }
       });
    }
-   performance_file << "pos_calculation\t" << std::to_string(microseconds) << std::endl;
+   LOG_PERFORMANCE("Position calculation: {} microseconds", std::to_string(microseconds));
 
    for (unsigned i = 0; i < database.partitions.size(); ++i) {
       partition_filters[i].free();
@@ -242,7 +242,7 @@ std::vector<silo::MutationProportion> silo::executeMutations(
          }
       }
    }
-   performance_file << "Proportion_calculation\t" << std::to_string(microseconds) << std::endl;
+   LOG_PERFORMANCE("Proportion calculation: {} microseconds", std::to_string(microseconds));
 
    return mutation_proportions;
 }

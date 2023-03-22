@@ -405,17 +405,12 @@ struct MutationProportion {
    unsigned count;
 };
 
-response::QueryResult executeQuery(
-   const Database& database,
-   const std::string& query,
-   std::ostream& perf_out
-);
+response::QueryResult executeQuery(const Database& database, const std::string& query);
 
 std::vector<MutationProportion> executeMutations(
    const silo::Database&,
    std::vector<silo::BooleanExpressionResult>& partition_filters,
-   double proportion_threshold,
-   std::ostream& performance_file
+   double proportion_threshold
 );
 
 uint64_t executeCount(
