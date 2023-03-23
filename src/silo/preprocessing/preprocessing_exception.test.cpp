@@ -3,9 +3,9 @@
 #include <gtest/gtest.h>
 
 void testFunction() {
-   throw PreprocessingException("SomeText");
+   throw silo::PreprocessingException("SomeText");
 }
 
 TEST(preprocessing_exception, assert_that_it_throws) {
-   EXPECT_THROW(testFunction(), PreprocessingException);
+   EXPECT_THROW(testFunction(), silo::PreprocessingException);
 }

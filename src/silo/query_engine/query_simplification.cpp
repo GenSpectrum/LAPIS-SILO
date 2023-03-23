@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include <spdlog/spdlog.h>
+
 #include "silo/common/silo_symbols.h"
 #include "silo/database.h"
 
@@ -256,13 +258,11 @@ std::unique_ptr<BoolExpression> NOfExpression::simplify(
       return new_ret;
    }
    if (result->children.empty()) {
-      std::cerr << "NOf simplification bug: children empty, n>0, but no not children.size() < n?"
-                << std::endl;
+      SPDLOG_ERROR("NOf simplification bug: children empty, n>0, but children.size() < n?");
       return std::make_unique<EmptyExpression>();
    }
    if (result->children.size() == 1) {
-      std::cerr << "NOf simplification bug: 0 < n < children.size(), but children.size() == 1?"
-                << std::endl;
+      SPDLOG_ERROR("NOf simplification bug: children empty, n>0, but children.size() < n?");
       return std::move(result->children[0]);
    }
    return result;

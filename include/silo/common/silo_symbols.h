@@ -4,6 +4,8 @@
 #include <array>
 #include <iostream>
 
+#include <spdlog/spdlog.h>
+
 namespace silo {
 
 static constexpr unsigned GENOME_LENGTH = 29903;
@@ -36,62 +38,45 @@ static constexpr std::array<char, SYMBOL_COUNT> SYMBOL_REPRESENTATION{
 static_assert(SYMBOL_REPRESENTATION[static_cast<unsigned>(GENOME_SYMBOL::N)] == 'N');
 
 inline GENOME_SYMBOL toNucleotideSymbol(char character) {
-   GENOME_SYMBOL symbol = GENOME_SYMBOL::GAP;
    switch (character) {
       case '.':
       case '-':
-         symbol = GENOME_SYMBOL::GAP;
-         break;
+         return GENOME_SYMBOL::GAP;
       case 'A':
-         symbol = GENOME_SYMBOL::A;
-         break;
+         return GENOME_SYMBOL::A;
       case 'C':
-         symbol = GENOME_SYMBOL::C;
-         break;
+         return GENOME_SYMBOL::C;
       case 'G':
-         symbol = GENOME_SYMBOL::G;
-         break;
+         return GENOME_SYMBOL::G;
       case 'T':
       case 'U':
-         symbol = GENOME_SYMBOL::T;
-         break;
+         return GENOME_SYMBOL::T;
       case 'R':
-         symbol = GENOME_SYMBOL::R;
-         break;
+         return GENOME_SYMBOL::R;
       case 'Y':
-         symbol = GENOME_SYMBOL::Y;
-         break;
+         return GENOME_SYMBOL::Y;
       case 'S':
-         symbol = GENOME_SYMBOL::S;
-         break;
+         return GENOME_SYMBOL::S;
       case 'W':
-         symbol = GENOME_SYMBOL::W;
-         break;
+         return GENOME_SYMBOL::W;
       case 'K':
-         symbol = GENOME_SYMBOL::K;
-         break;
+         return GENOME_SYMBOL::K;
       case 'M':
-         symbol = GENOME_SYMBOL::M;
-         break;
+         return GENOME_SYMBOL::M;
       case 'B':
-         symbol = GENOME_SYMBOL::B;
-         break;
+         return GENOME_SYMBOL::B;
       case 'D':
-         symbol = GENOME_SYMBOL::D;
-         break;
+         return GENOME_SYMBOL::D;
       case 'H':
-         symbol = GENOME_SYMBOL::H;
-         break;
+         return GENOME_SYMBOL::H;
       case 'V':
-         symbol = GENOME_SYMBOL::V;
-         break;
+         return GENOME_SYMBOL::V;
       case 'N':
-         symbol = GENOME_SYMBOL::N;
-         break;
+         return GENOME_SYMBOL::N;
       default:
-         std::cerr << "unrecognized symbol " << character << std::endl;
+         SPDLOG_ERROR("unrecognized symbol {}", character);
+         return GENOME_SYMBOL::GAP;
    }
-   return symbol;
 }
 }  // namespace silo
 

@@ -6,6 +6,8 @@
 #include <unordered_map>
 
 #include "silo/database.h"
+#include "silo/persistence/exception.h"
+#include "silo/preprocessing/preprocessing_exception.h"
 
 // TODO(someone): reduce cognitive complexity
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -17,30 +19,36 @@ void Dictionary::updateDictionary(
    {
       std::string header;
       if (!getline(metadata_file, header, '\n')) {
-         std::cerr << "Failed to read header line. Abort." << std::endl;
-         return;
+         throw silo::PreprocessingException(
+            "Error updating dictionary: Failed to read metadata header line."
+         );
       }
       std::stringstream header_in(header);
       std::string col_name;
       if (!getline(header_in, col_name, '\t') || col_name != "gisaid_epi_isl") {
-         std::cerr << "Expected 'gisaid_epi_isl' as first column in metadata." << std::endl;
-         return;
+         throw silo::PreprocessingException(
+            "Error updating dictionary: Expected 'gisaid_epi_isl' as first column in metadata."
+         );
       }
       if (!getline(header_in, col_name, '\t') || col_name != "pango_lineage") {
-         std::cerr << "Expected 'pango_lineage' as first column in metadata." << std::endl;
-         return;
+         throw silo::PreprocessingException(
+            "Error updating dictionary: Expected 'pango_lineage' as second column in metadata."
+         );
       }
       if (!getline(header_in, col_name, '\t') || col_name != "date") {
-         std::cerr << "Expected 'date' as first column in metadata." << std::endl;
-         return;
+         throw silo::PreprocessingException(
+            "Error updating dictionary: Expected 'date' as third column in metadata."
+         );
       }
       if (!getline(header_in, col_name, '\t') || col_name != "region") {
-         std::cerr << "Expected 'region' as first column in metadata." << std::endl;
-         return;
+         throw silo::PreprocessingException(
+            "Error updating dictionary: Expected 'region' as fourth column in metadata."
+         );
       }
       if (!getline(header_in, col_name, '\t') || col_name != "country") {
-         std::cerr << "Expected 'country' as first column in metadata." << std::endl;
-         return;
+         throw silo::PreprocessingException(
+            "Error updating dictionary: Expected 'country' as fifth column in metadata."
+         );
       }
       while (!header_in.eof()) {
          getline(header_in, col_name, '\t');
@@ -131,52 +139,62 @@ Dictionary Dictionary::loadDictionary(std::istream& dictionary_file) {
    uint32_t dict_count;
 
    if (!getline(dictionary_file, read_string, '\t')) {
-      std::cerr << "Invalid dict-header1a." << std::endl;
-      return dictionary;
+      throw silo::persistence::LoadDatabaseException(
+         "Failed loading the dictionary: Invalid dict-header1a."
+      );
    }
    if (!getline(dictionary_file, read_string, '\n')) {
-      std::cerr << "Invalid dict-header1b." << std::endl;
-      return dictionary;
+      throw silo::persistence::LoadDatabaseException(
+         "Failed loading the dictionary: Invalid dict-header1b."
+      );
    }
    pango_count = atoi(read_string.c_str());
 
    if (!getline(dictionary_file, read_string, '\t')) {
-      std::cerr << "Invalid dict-header2a." << std::endl;
-      return dictionary;
+      throw silo::persistence::LoadDatabaseException(
+         "Failed loading the dictionary: Invalid dict-header2a."
+      );
    }
    if (!getline(dictionary_file, read_string, '\n')) {
-      std::cerr << "Invalid dict-header2b." << std::endl;
-      return dictionary;
+      throw silo::persistence::LoadDatabaseException(
+         "Failed loading the dictionary: Invalid dict-header2b."
+      );
    }
    region_count = atoi(read_string.c_str());
 
    if (!getline(dictionary_file, read_string, '\t')) {
-      std::cerr << "Invalid dict-header3a." << std::endl;
-      return dictionary;
+      throw silo::persistence::LoadDatabaseException(
+         "Failed loading the dictionary: Invalid dict-header3a."
+      );
    }
    if (!getline(dictionary_file, read_string, '\n')) {
-      std::cerr << "Invalid dict-header3b." << std::endl;
-      return dictionary;
+      throw silo::persistence::LoadDatabaseException(
+         "Failed loading the dictionary: Invalid dict-header3b."
+      );
    }
    country_count = atoi(read_string.c_str());
 
    if (!getline(dictionary_file, read_string, '\t')) {
-      std::cerr << "Invalid dict-header4a." << std::endl;
-      return dictionary;
+      throw silo::persistence::LoadDatabaseException(
+         "Failed loading the dictionary: Invalid dict-header4a."
+      );
    }
    if (!getline(dictionary_file, read_string, '\n')) {
-      std::cerr << "Invalid dict-header4b." << std::endl;
-      return dictionary;
+      throw silo::persistence::LoadDatabaseException(
+         "Failed loading the dictionary: Invalid dict-header4b."
+      );
    }
    col_count = atoi(read_string.c_str());
 
    if (!getline(dictionary_file, read_string, '\t')) {
-      std::cerr << "Invalid dict-header5a." << std::endl;
-      return dictionary;
+      throw silo::persistence::LoadDatabaseException(
+         "Failed loading the dictionary: Invalid dict-header5a."
+      );
    }
    if (!getline(dictionary_file, read_string, '\n')) {
-      std::cerr << "Invalid dict-header5b." << std::endl;
-      return dictionary;
+      throw silo::persistence::LoadDatabaseException(
+         "Failed loading the dictionary: Invalid dict-header5b."
+      );
    }
    dict_count = atoi(read_string.c_str());
 
@@ -193,14 +211,16 @@ Dictionary Dictionary::loadDictionary(std::istream& dictionary_file) {
    std::string id_str;
    for (uint32_t i = 0; i < pango_count; ++i) {
       if (!getline(dictionary_file, read_string, '\t')) {
-         std::cerr << "Unexpected end of file. Expected pango_lineage_count:" << pango_count
-                   << " many lineages in the dict file. No read_string" << std::endl;
-         return dictionary;
+         throw silo::persistence::LoadDatabaseException(
+            "Failed loading the dictionary: Unexpected end of file. Expected pango_lineage_count:" +
+            std::to_string(pango_count) + " many lineages in the dict file. No read_string found."
+         );
       }
       if (!getline(dictionary_file, id_str, '\n')) {
-         std::cerr << "Unexpected end of file. Expected pango_lineage_count:" << pango_count
-                   << " many lineages in the dict file. No lookup_id" << std::endl;
-         return dictionary;
+         throw silo::persistence::LoadDatabaseException(
+            "Failed loading the dictionary: Unexpected end of file. Expected pango_lineage_count:" +
+            std::to_string(pango_count) + " many lineages in the dict file. No lookup_id found."
+         );
       }
       uint32_t const lookup_id = atoi(id_str.c_str());
       dictionary.pango_lineage_lookup[lookup_id] = read_string;
@@ -208,14 +228,16 @@ Dictionary Dictionary::loadDictionary(std::istream& dictionary_file) {
    }
    for (uint32_t i = 0; i < region_count; ++i) {
       if (!getline(dictionary_file, read_string, '\t')) {
-         std::cerr << "Unexpected end of file. Expected region_count:" << region_count
-                   << " many regions in the dict file. No read_string" << std::endl;
-         return dictionary;
+         throw silo::persistence::LoadDatabaseException(
+            "Failed loading the dictionary: Unexpected end of file. Expected region_count:" +
+            std::to_string(region_count) + " many regions in the dict file. No read_string found."
+         );
       }
       if (!getline(dictionary_file, id_str, '\n')) {
-         std::cerr << "Unexpected end of file. Expected region_count:" << region_count
-                   << " many regions in the dict file. No lookup_id" << std::endl;
-         return dictionary;
+         throw silo::persistence::LoadDatabaseException(
+            "Failed loading the dictionary: Unexpected end of file. Expected region_count:" +
+            std::to_string(region_count) + " many regions in the dict file. No lookup_id found."
+         );
       }
       uint32_t const lookup_id = atoi(id_str.c_str());
       dictionary.region_lookup[lookup_id] = read_string;
@@ -223,14 +245,17 @@ Dictionary Dictionary::loadDictionary(std::istream& dictionary_file) {
    }
    for (uint32_t i = 0; i < country_count; ++i) {
       if (!getline(dictionary_file, read_string, '\t')) {
-         std::cerr << "Unexpected end of file. Expected country_count:" << country_count
-                   << " many countries in the dict file. No read_string" << std::endl;
-         return dictionary;
+         throw silo::persistence::LoadDatabaseException(
+            "Failed loading the dictionary: Unexpected end of file. Expected country_count:" +
+            std::to_string(country_count) +
+            " many countries in the dict file. No read_string found."
+         );
       }
       if (!getline(dictionary_file, id_str, '\n')) {
-         std::cerr << "Unexpected end of file. Expected country_count:" << country_count
-                   << " many countries in the dict file. No lookup_id" << std::endl;
-         return dictionary;
+         throw silo::persistence::LoadDatabaseException(
+            "Failed loading the dictionary: Unexpected end of file. Expected country_count:" +
+            std::to_string(country_count) + " many countries in the dict file. No lookup_id found."
+         );
       }
       uint32_t const lookup_id = atoi(id_str.c_str());
       dictionary.country_lookup[lookup_id] = read_string;
@@ -238,14 +263,18 @@ Dictionary Dictionary::loadDictionary(std::istream& dictionary_file) {
    }
    for (uint32_t i = 0; i < col_count; ++i) {
       if (!getline(dictionary_file, read_string, '\t')) {
-         std::cerr << "Unexpected end of file. Expected additional_columns_count:" << col_count
-                   << " many columns in the dict file. No read_string" << std::endl;
-         return dictionary;
+         throw silo::persistence::LoadDatabaseException(
+            "Failed loading the dictionary: Unexpected end of file. Expected "
+            "additional_columns_count:" +
+            std::to_string(country_count) + " many columns in the dict file. No read_string found."
+         );
       }
       if (!getline(dictionary_file, id_str, '\n')) {
-         std::cerr << "Unexpected end of file. Expected additional_columns_count:" << col_count
-                   << " many columns in the dict file. No lookup_id" << std::endl;
-         return dictionary;
+         throw silo::persistence::LoadDatabaseException(
+            "Failed loading the dictionary: Unexpected end of file. Expected "
+            "additional_columns_count:" +
+            std::to_string(country_count) + " many columns in the dict file. No lookup_id found."
+         );
       }
       uint32_t const lookup_id = atoi(id_str.c_str());
       dictionary.additional_columns_lookup[lookup_id] = read_string;
@@ -253,14 +282,16 @@ Dictionary Dictionary::loadDictionary(std::istream& dictionary_file) {
    }
    for (uint64_t i = 0; i < dict_count; ++i) {
       if (!getline(dictionary_file, read_string, '\t')) {
-         std::cerr << "Unexpected end of file. Expected dict_count:" << dict_count
-                   << " many lookups in the dict file. No read_string" << std::endl;
-         return dictionary;
+         throw silo::persistence::LoadDatabaseException(
+            "Failed loading the dictionary: Unexpected end of file. Expected dict_count:" +
+            std::to_string(country_count) + " many lookups in the dict file. No read_string found."
+         );
       }
       if (!getline(dictionary_file, id_str, '\n')) {
-         std::cerr << "Unexpected end of file. Expected dict_count:" << dict_count
-                   << " many lookups in the dict file. No id" << std::endl;
-         return dictionary;
+         throw silo::persistence::LoadDatabaseException(
+            "Failed loading the dictionary: Unexpected end of file. Expected dict_count:" +
+            std::to_string(country_count) + " many lookups in the dict file. No id found."
+         );
       }
       uint64_t const id64 = atoi(id_str.c_str());
       dictionary.general_lookup[id64] = read_string;

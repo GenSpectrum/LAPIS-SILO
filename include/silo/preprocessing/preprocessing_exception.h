@@ -3,9 +3,13 @@
 
 #include <iostream>
 
-class [[maybe_unused]] PreprocessingException : public std::runtime_error {
+namespace silo {
+
+class PreprocessingException : public std::runtime_error {
   public:
-   [[maybe_unused]] explicit PreprocessingException(const std::string& error_message);
+   explicit PreprocessingException(const std::string& error_message);
 };
+
+}  // namespace silo
 
 #endif  // SILO_INCLUDE_SILO_PREPROCESSING_PREPROCESSING_EXCEPTION_H_
