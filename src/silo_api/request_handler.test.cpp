@@ -1,8 +1,8 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "silo_api/request_handler.h"
 #include "silo_api/manual_poco_mocks.test.h"
+#include "silo_api/request_handler.h"
 
 class MockRequestHandler : public Poco::Net::HTTPRequestHandler {
   public:

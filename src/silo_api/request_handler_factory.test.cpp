@@ -32,29 +32,50 @@ class RequestHandlerTestFixture : public ::testing::Test {
        : mock_query_engine(MockQueryEngine(mock_database)),
          request(silo_api::test::MockRequest(response)),
          under_test(silo_api::SiloRequestHandlerFactory(mock_database, mock_query_engine)) {}
+
+   void processRequest() {
+      std::unique_ptr<Poco::Net::HTTPRequestHandler> request_handler(
+         under_test.createRequestHandler(request)
+      );
+      request_handler->handleRequest(request, response);
+   }
 };
 
-TEST_F(RequestHandlerTestFixture, handlesInfoRequest) {
+TEST_F(RequestHandlerTestFixture, handlesGetInfoRequest) {
    EXPECT_CALL(mock_database, getDatabaseInfo)
       .WillRepeatedly(testing::Return(silo::DatabaseInfo{1, 2, 3}));
 
    request.setURI("/info");
 
-   under_test.createRequestHandler(request)->handleRequest(request, response);
+   processRequest();
 
    EXPECT_EQ(response.getStatus(), 200);
    EXPECT_EQ(response.out_stream.str(), R"({"nBitmapsSize":3,"sequenceCount":1,"totalSize":2})");
 }
 
+TEST_F(RequestHandlerTestFixture, returnsMethodNotAllowedOnPostInfoRequest) {
+   request.setMethod("POST");
+   request.setURI("/info");
+
+   processRequest();
+
+   EXPECT_EQ(response.getStatus(), 405);
+   EXPECT_EQ(
+      response.out_stream.str(),
+      R"({"error":"Method not allowed","message":"POST is not allowed on resource /info"})"
+   );
+}
+
 static const silo::response::QueryResult QUERY_RESULT =
    silo::response::QueryResult{silo::response::AggregationResult{5}, 1, 2, 3};
 
-TEST_F(RequestHandlerTestFixture, handlesQueryRequest) {
+TEST_F(RequestHandlerTestFixture, handlesPostQueryRequest) {
    EXPECT_CALL(mock_query_engine, executeQuery).WillRepeatedly(testing::Return(QUERY_RESULT));
 
+   request.setMethod("POST");
    request.setURI("/query");
 
-   under_test.createRequestHandler(request)->handleRequest(request, response);
+   processRequest();
 
    EXPECT_EQ(response.getStatus(), 200);
    EXPECT_EQ(
@@ -63,15 +84,29 @@ TEST_F(RequestHandlerTestFixture, handlesQueryRequest) {
    );
 }
 
+TEST_F(RequestHandlerTestFixture, returnsMethodNotAllowedOnGetQuery) {
+   request.setMethod("GET");
+   request.setURI("/query");
+
+   processRequest();
+
+   EXPECT_EQ(response.getStatus(), 405);
+   EXPECT_EQ(
+      response.out_stream.str(),
+      R"({"error":"Method not allowed","message":"GET is not allowed on resource /query"})"
+   );
+}
+
 TEST_F(RequestHandlerTestFixture, givenRequestToUnknownUrl_thenReturnsNotFound) {
    auto under_test = silo_api::SiloRequestHandlerFactory(mock_database, mock_query_engine);
 
    request.setURI("/doesNotExist");
 
-   under_test.createRequestHandler(request)->handleRequest(request, response);
+   processRequest();
 
    EXPECT_EQ(response.getStatus(), 404);
    EXPECT_EQ(
-      response.out_stream.str(), R"({"error":"Not found","message":"Resource does not exist"})"
+      response.out_stream.str(),
+      R"({"error":"Not found","message":"Resource /doesNotExist does not exist"})"
    );
 }

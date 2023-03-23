@@ -43,6 +43,20 @@ class ErrorRequestHandler : public Poco::Net::HTTPRequestHandler {
    ) override;
 };
 
+class RestResource : public Poco::Net::HTTPRequestHandler {
+   void handleRequest(
+      Poco::Net::HTTPServerRequest& request,
+      Poco::Net::HTTPServerResponse& response
+   ) override;
+
+   virtual void get(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response);
+
+   virtual void post(
+      Poco::Net::HTTPServerRequest& request,
+      Poco::Net::HTTPServerResponse& response
+   );
+};
+
 }  // namespace silo_api
 
 #endif  // SILO_REQUEST_HANDLER_H

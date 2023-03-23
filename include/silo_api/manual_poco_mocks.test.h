@@ -22,7 +22,7 @@ class MockResponse : public Poco::Net::HTTPServerResponse {
 
    void sendBuffer(const void* pBuffer, std::size_t length) override;
 
-   void redirect(const std::string& uri, HTTPStatus status = HTTP_FOUND) override;
+   void redirect(const std::string& uri, HTTPStatus status) override;
 
    void requireAuthentication(const std::string& realm) override;
 

@@ -9,4 +9,13 @@ describe('The /info endpoint', () => {
       .expect({ nBitmapsSize: 3552, sequenceCount: 100, totalSize: 66458430 })
       .end(done);
   });
+
+  it('should return a method not allowed response when sending a POST request', done => {
+    server
+      .get('/info')
+      .expect(200)
+      .expect('Content-Type', 'application/json')
+      .expect({ nBitmapsSize: 3552, sequenceCount: 100, totalSize: 66458430 })
+      .end(done);
+  });
 });

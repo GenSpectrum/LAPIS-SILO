@@ -26,7 +26,7 @@ namespace silo_api {
 QueryHandler::QueryHandler(const silo::QueryEngine& query_engine)
     : query_engine(query_engine) {}
 
-void QueryHandler::handleRequest(
+void QueryHandler::post(
    Poco::Net::HTTPServerRequest& request,
    Poco::Net::HTTPServerResponse& response
 ) {

@@ -16,7 +16,7 @@ namespace silo_api {
 InfoHandler::InfoHandler(const silo::Database& database)
     : database(database) {}
 
-void InfoHandler::handleRequest(
+void InfoHandler::get(
    Poco::Net::HTTPServerRequest& /*request*/,
    Poco::Net::HTTPServerResponse& response
 ) {
