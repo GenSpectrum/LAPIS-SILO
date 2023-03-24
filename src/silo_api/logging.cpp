@@ -28,7 +28,11 @@ void setupLogger() {
    );
 
    spdlog::daily_logger_mt(
-      silo::PERFORMANCE_LOGGER_NAME, "logs/performance.log", AT_MIDNIGHT, AT_0_MINUTES,
-      DONT_TRUNCATE, MAX_FILES_7
+      silo::PERFORMANCE_LOGGER_NAME,
+      "logs/performance.log",
+      AT_MIDNIGHT,
+      AT_0_MINUTES,
+      DONT_TRUNCATE,
+      MAX_FILES_7
    );
 }

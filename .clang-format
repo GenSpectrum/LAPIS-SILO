@@ -2,10 +2,13 @@
 BasedOnStyle: Chromium
 IndentWidth: 3
 ---
-Language:        Cpp
+Language: Cpp
 PackConstructorInitializers: Never
 ColumnLimit: 100
 AlignAfterOpenBracket: BlockIndent
+BinPackParameters: false
+BinPackArguments: false
+BreakBeforeTernaryOperators: true
 ContinuationIndentWidth: 3
 AlwaysBreakAfterDefinitionReturnType: None
 AlwaysBreakAfterReturnType: None

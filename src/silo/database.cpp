@@ -97,8 +97,10 @@ struct [[maybe_unused]] fmt::formatter<silo::DatabaseInfo> : fmt::formatter<std:
    [[maybe_unused]] static auto format(silo::DatabaseInfo database_info, format_context& ctx)
       -> decltype(ctx.out()) {
       return format_to(
-         ctx.out(), "sequence count: {}, total size: {}, N bitmaps size: {}",
-         database_info.sequence_count, silo::formatNumber(database_info.total_size),
+         ctx.out(),
+         "sequence count: {}, total size: {}, N bitmaps size: {}",
+         database_info.sequence_count,
+         silo::formatNumber(database_info.total_size),
          silo::formatNumber(database_info.n_bitmaps_size)
       );
    }
@@ -114,7 +116,8 @@ void silo::Database::build(
       BlockTimer const timer(micros);
       partitions.resize(partition_descriptor->partitions.size());
       tbb::parallel_for(
-         static_cast<size_t>(0), partition_descriptor->partitions.size(),
+         static_cast<size_t>(0),
+         partition_descriptor->partitions.size(),
          [&](size_t partition_index) {
             const auto& part = partition_descriptor->partitions[partition_index];
             partitions[partition_index].chunks = part.chunks;
@@ -292,7 +295,8 @@ silo::DatabaseInfo silo::Database::getDatabaseInfo() const {
    std::atomic<size_t> nucleotide_symbol_n_bitmaps_size = 0;
 
    tbb::parallel_for_each(
-      partitions.begin(), partitions.end(),
+      partitions.begin(),
+      partitions.end(),
       [&](const DatabasePartition& database_partition) {
          sequence_count += database_partition.sequenceCount;
          total_size += database_partition.seq_store.computeSize();
@@ -310,7 +314,8 @@ silo::DatabaseInfo silo::Database::getDatabaseInfo() const {
    {
       BlockTimer const timer(microseconds);
       tbb::parallel_for_each(
-         partitions.begin(), partitions.end(),
+         partitions.begin(),
+         partitions.end(),
          [&](DatabasePartition& database_partition) {
             database_partition.seq_store.indexAllNucleotideSymbolsN();
          }
@@ -586,8 +591,13 @@ unsigned silo::fillMetadataStore(
       extra_cols.push_back(dict.getIdInGeneralLookup(division));
 
       silo::inputSequenceMeta(
-         meta_store, epi, time, dict.getPangoLineageIdInLookup(pango_lineage),
-         dict.getRegionIdInLookup(region), dict.getCountryIdInLookup(country), extra_cols
+         meta_store,
+         epi,
+         time,
+         dict.getPangoLineageIdInLookup(pango_lineage),
+         dict.getRegionIdInLookup(region),
+         dict.getCountryIdInLookup(country),
+         extra_cols
       );
       ++sequence_count;
    }
@@ -692,7 +702,8 @@ void silo::savePartitions(const silo::Partitions& partitions, std::ostream& outp
    SPDLOG_INFO("Saving {} partitions...", partitions.size());
 
    tbb::parallel_for(
-      static_cast<size_t>(0), partition_descriptor->partitions.size(),
+      static_cast<size_t>(0),
+      partition_descriptor->partitions.size(),
       [&](size_t partition_index) {
          ::boost::archive::binary_oarchive output_archive(file_vec[partition_index]);
          output_archive << partitions[partition_index];
@@ -748,7 +759,8 @@ void silo::savePartitions(const silo::Partitions& partitions, std::ostream& outp
 
    partitions.resize(partition_descriptor->partitions.size());
    tbb::parallel_for(
-      static_cast<size_t>(0), partition_descriptor->partitions.size(),
+      static_cast<size_t>(0),
+      partition_descriptor->partitions.size(),
       [&](size_t partition_index) {
          ::boost::archive::binary_iarchive input_archive(file_vec[partition_index]);
          input_archive >> partitions[partition_index];
@@ -771,15 +783,21 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
    std::ifstream metadata_stream2(config.metadata_file.relative_path());
    InputStreamWrapper const sequence_stream(config.sequence_file.relative_path());
    partitionSequences(
-      *partition_descriptor, metadata_stream2, sequence_stream.getInputStream(),
-      config.partition_folder.relative_path(), alias_key, config.metadata_file.extension(),
+      *partition_descriptor,
+      metadata_stream2,
+      sequence_stream.getInputStream(),
+      config.partition_folder.relative_path(),
+      alias_key,
+      config.metadata_file.extension(),
       config.sequence_file.extension()
    );
 
    SPDLOG_INFO("preprocessing - sorting chunks");
    silo::sortChunks(
-      *partition_descriptor, config.partition_folder.relative_path(),
-      config.metadata_file.extension(), config.sequence_file.extension()
+      *partition_descriptor,
+      config.partition_folder.relative_path(),
+      config.metadata_file.extension(),
+      config.sequence_file.extension()
    );
 
    SPDLOG_INFO("preprocessing - building dictionary");
@@ -801,7 +819,8 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
 
    SPDLOG_INFO("preprocessing - building database");
    build(
-      config.partition_folder.relative_path(), config.metadata_file.extension(),
+      config.partition_folder.relative_path(),
+      config.metadata_file.extension(),
       config.sequence_file.extension()
    );
 }

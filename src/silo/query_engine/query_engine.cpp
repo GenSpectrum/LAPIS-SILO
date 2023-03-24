@@ -68,7 +68,8 @@ std::unique_ptr<BoolExpression> parseExpression(
          "The field 'children' in an And expression needs to be an array"
       );
       std::transform(
-         json_value["children"].GetArray().begin(), json_value["children"].GetArray().end(),
+         json_value["children"].GetArray().begin(),
+         json_value["children"].GetArray().end(),
          std::back_inserter(result->children),
          [&](const rapidjson::Value& value) {  // NOLINT(misc-no-recursion)
             return parseExpression(database, value, exact);
@@ -86,7 +87,8 @@ std::unique_ptr<BoolExpression> parseExpression(
          "The field 'children' in an Or expression needs to be an array"
       );
       std::transform(
-         json_value["children"].GetArray().begin(), json_value["children"].GetArray().end(),
+         json_value["children"].GetArray().begin(),
+         json_value["children"].GetArray().end(),
          std::back_inserter(result->children),
          [&](const rapidjson::Value& value) {  // NOLINT(misc-no-recursion)
             return parseExpression(database, value, exact);
@@ -115,7 +117,8 @@ std::unique_ptr<BoolExpression> parseExpression(
          json_value["numberOfMatchers"].GetUint(), json_value["matchExactly"].GetBool()
       );
       std::transform(
-         json_value["children"].GetArray().begin(), json_value["children"].GetArray().end(),
+         json_value["children"].GetArray().begin(),
+         json_value["children"].GetArray().end(),
          std::back_inserter(result->children),
          [&](const rapidjson::Value& json_value) {  // NOLINT(misc-no-recursion)
             return parseExpression(database, json_value, exact);
@@ -261,18 +264,23 @@ BooleanExpressionResult AndExpression::evaluate(
    std::vector<BooleanExpressionResult> children_bm;
    children_bm.reserve(children.size());
    std::transform(
-      children.begin(), children.end(), std::back_inserter(children_bm),
+      children.begin(),
+      children.end(),
+      std::back_inserter(children_bm),
       [&](const auto& child) { return child->evaluate(database, database_partition); }
    );
    std::vector<BooleanExpressionResult> negated_children_bm;
    negated_children.reserve(negated_children.size());
    std::transform(
-      negated_children.begin(), negated_children.end(), std::back_inserter(negated_children_bm),
+      negated_children.begin(),
+      negated_children.end(),
+      std::back_inserter(negated_children_bm),
       [&](const auto& child) { return child->evaluate(database, database_partition); }
    );
    /// Sort ascending, such that intermediate results are kept small
    std::sort(
-      children_bm.begin(), children_bm.end(),
+      children_bm.begin(),
+      children_bm.end(),
       [](const BooleanExpressionResult& expression1, const BooleanExpressionResult& expression2) {
          return expression1.getAsConst()->cardinality() < expression2.getAsConst()->cardinality();
       }
@@ -307,7 +315,8 @@ BooleanExpressionResult AndExpression::evaluate(
       }
       /// Sort negated children descending by size
       std::sort(
-         negated_children_bm.begin(), negated_children_bm.end(),
+         negated_children_bm.begin(),
+         negated_children_bm.end(),
          [](const BooleanExpressionResult& expression_result1,
             const BooleanExpressionResult& expression_result2) {
             return expression_result1.getAsConst()->cardinality() >
@@ -338,7 +347,8 @@ BooleanExpressionResult AndExpression::evaluate(
    }
    /// Sort negated children descending by size
    std::sort(
-      negated_children_bm.begin(), negated_children_bm.end(),
+      negated_children_bm.begin(),
+      negated_children_bm.end(),
       [](const BooleanExpressionResult& expression_result1,
          const BooleanExpressionResult& expression_result2) {
          return expression_result1.getAsConst()->cardinality() >
@@ -421,7 +431,10 @@ BooleanExpressionResult nOfExpressionEvaluateGenericImplementationExactMatch(
    std::sort(too_much.begin(), too_much.end());
    std::vector<uint32_t> correct;
    std::set_difference(
-      at_least.begin(), at_least.end(), too_much.begin(), too_much.end(),
+      at_least.begin(),
+      at_least.end(),
+      too_much.begin(),
+      too_much.end(),
       std::back_inserter(correct)
    );
    return {new Roaring(correct.size(), correct.data()), nullptr};
@@ -1332,13 +1345,16 @@ silo::response::QueryResult silo::executeQuery(
 
             std::vector<response::MutationProportion> output_mutation_proportions(mutations.size());
             std::transform(
-               mutations.begin(), mutations.end(), output_mutation_proportions.begin(),
+               mutations.begin(),
+               mutations.end(),
+               output_mutation_proportions.begin(),
                [](MutationProportion mutation_proportion) {
                   return response::MutationProportion{
                      mutation_proportion.mutation_from +
                         std::to_string(mutation_proportion.position) +
                         mutation_proportion.mutation_to,
-                     mutation_proportion.proportion, mutation_proportion.count};
+                     mutation_proportion.proportion,
+                     mutation_proportion.count};
                }
             );
             query_result.query_result = output_mutation_proportions;
