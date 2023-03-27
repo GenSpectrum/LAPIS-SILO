@@ -5,7 +5,7 @@
 #include <Poco/Net/HTTPServerResponse.h>
 #include <nlohmann/json.hpp>
 
-#include "silo_api/request_handler.h"
+#include "silo_api/error_request_handler.h"
 
 namespace silo_api {
 void NotFoundHandler::handleRequest(

@@ -1,3 +1,4 @@
+#include <Poco/Net/HTTPResponse.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -49,7 +50,7 @@ TEST_F(RequestHandlerTestFixture, handlesGetInfoRequest) {
 
    processRequest();
 
-   EXPECT_EQ(response.getStatus(), 200);
+   EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_OK);
    EXPECT_EQ(response.out_stream.str(), R"({"nBitmapsSize":3,"sequenceCount":1,"totalSize":2})");
 }
 
@@ -59,7 +60,7 @@ TEST_F(RequestHandlerTestFixture, returnsMethodNotAllowedOnPostInfoRequest) {
 
    processRequest();
 
-   EXPECT_EQ(response.getStatus(), 405);
+   EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_METHOD_NOT_ALLOWED);
    EXPECT_EQ(
       response.out_stream.str(),
       R"({"error":"Method not allowed","message":"POST is not allowed on resource /info"})"
@@ -77,7 +78,7 @@ TEST_F(RequestHandlerTestFixture, handlesPostQueryRequest) {
 
    processRequest();
 
-   EXPECT_EQ(response.getStatus(), 200);
+   EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_OK);
    EXPECT_EQ(
       response.out_stream.str(),
       R"({"actionTime":3,"filterTime":2,"parseTime":1,"queryResult":{"count":5}})"
@@ -90,7 +91,7 @@ TEST_F(RequestHandlerTestFixture, returnsMethodNotAllowedOnGetQuery) {
 
    processRequest();
 
-   EXPECT_EQ(response.getStatus(), 405);
+   EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_METHOD_NOT_ALLOWED);
    EXPECT_EQ(
       response.out_stream.str(),
       R"({"error":"Method not allowed","message":"GET is not allowed on resource /query"})"
@@ -104,7 +105,7 @@ TEST_F(RequestHandlerTestFixture, givenRequestToUnknownUrl_thenReturnsNotFound) 
 
    processRequest();
 
-   EXPECT_EQ(response.getStatus(), 404);
+   EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_NOT_FOUND);
    EXPECT_EQ(
       response.out_stream.str(),
       R"({"error":"Not found","message":"Resource /doesNotExist does not exist"})"

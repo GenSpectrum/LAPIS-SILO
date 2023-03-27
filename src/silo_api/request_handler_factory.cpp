@@ -4,10 +4,11 @@
 #include <Poco/Net/HTTPServerRequest.h>
 
 #include "silo/database.h"
+#include "silo_api/error_request_handler.h"
 #include "silo_api/info_handler.h"
+#include "silo_api/logging_request_handler.h"
 #include "silo_api/not_found_handler.h"
 #include "silo_api/query_handler.h"
-#include "silo_api/request_handler.h"
 
 namespace silo_api {
 

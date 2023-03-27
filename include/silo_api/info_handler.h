@@ -4,13 +4,14 @@
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/Net/HTTPServerResponse.h>
 
-#include "silo_api/request_handler.h"
+#include "silo_api/rest_resource.h"
 
 namespace silo {
 class Database;
 }
 
 namespace silo_api {
+
 class InfoHandler : public RestResource {
   private:
    const silo::Database& database;

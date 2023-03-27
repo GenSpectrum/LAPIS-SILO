@@ -1,8 +1,9 @@
+#include <Poco/Net/HTTPResponse.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "silo_api/error_request_handler.h"
 #include "silo_api/manual_poco_mocks.test.h"
-#include "silo_api/request_handler.h"
 
 class MockRequestHandler : public Poco::Net::HTTPRequestHandler {
   public:
@@ -26,7 +27,7 @@ TEST(ErrorRequestHandler, handlesRuntimeErrors) {
    silo_api::test::MockRequest request(response);
    under_test.handleRequest(request, response);
 
-   EXPECT_EQ(response.getStatus(), 500);
+   EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
    EXPECT_EQ(
       response.out_stream.str(), R"({"error":"Internal server error","message":"my error message"})"
    );
@@ -46,14 +47,14 @@ TEST(ErrorRequestHandler, handlesOtherErrors) {
    silo_api::test::MockRequest request(response);
    under_test.handleRequest(request, response);
 
-   EXPECT_EQ(response.getStatus(), 500);
+   EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
    EXPECT_EQ(
       response.out_stream.str(),
       R"({"error":"Internal server error","message":"Caught something: PKc"})"
    );
 }
 
-TEST(ErrorRequestHandler, does_nothing_if_not_exception_is_thrown) {
+TEST(ErrorRequestHandler, doesNothingIfNoExceptionIsThrown) {
    const auto* wrapped_request_handler_message = "A message that the actual handler would write";
    auto* wrapped_handler_mock = new MockRequestHandler;
 
@@ -69,6 +70,6 @@ TEST(ErrorRequestHandler, does_nothing_if_not_exception_is_thrown) {
 
    under_test.handleRequest(request, response);
 
-   EXPECT_EQ(response.getStatus(), 200);
+   EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_OK);
    EXPECT_EQ(response.out_stream.str(), wrapped_request_handler_message);
 }
