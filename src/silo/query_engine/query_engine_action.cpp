@@ -6,8 +6,8 @@
 #include <cmath>
 #include <external/PerfEvent.hpp>
 
-#include "silo/common/genome_symbols.h"
 #include "silo/common/log.h"
+#include "silo/common/nucleotide_symbols.h"
 #include "silo/database.h"
 
 uint64_t silo::executeCount(
@@ -73,59 +73,59 @@ std::vector<silo::MutationProportion> silo::executeMutations(
             silo::BooleanExpressionResult const filter = partition_filters[partition_index];
             const Roaring& bitmap = *filter.getAsConst();
 
-            if (database_partition.seq_store.positions[pos].flipped_bitmap_for_symbol != silo::GENOME_SYMBOL::A) {
-               count_of_nucleotide_symbols_a_at_position[pos] +=
-                  bitmap.and_cardinality(database_partition.seq_store.positions[pos]
-                                            .bitmaps[static_cast<unsigned>(silo::GENOME_SYMBOL::A)]
-                  );
+            if (database_partition.seq_store.positions[pos].symbol_whose_bitmap_is_flipped != silo::NUCLEOTIDE_SYMBOL::A) {
+               count_of_nucleotide_symbols_a_at_position[pos] += bitmap.and_cardinality(
+                  database_partition.seq_store.positions[pos]
+                     .bitmaps[static_cast<unsigned>(silo::NUCLEOTIDE_SYMBOL::A)]
+               );
             } else {
                count_of_nucleotide_symbols_a_at_position[pos] += bitmap.andnot_cardinality(
                   database_partition.seq_store.positions[pos]
-                     .bitmaps[static_cast<unsigned>(silo::GENOME_SYMBOL::A)]
+                     .bitmaps[static_cast<unsigned>(silo::NUCLEOTIDE_SYMBOL::A)]
                );
             }
-            if (database_partition.seq_store.positions[pos].flipped_bitmap_for_symbol != silo::GENOME_SYMBOL::C) {
-               count_of_nucleotide_symbols_c_at_position[pos] +=
-                  bitmap.and_cardinality(database_partition.seq_store.positions[pos]
-                                            .bitmaps[static_cast<unsigned>(silo::GENOME_SYMBOL::C)]
-                  );
+            if (database_partition.seq_store.positions[pos].symbol_whose_bitmap_is_flipped != silo::NUCLEOTIDE_SYMBOL::C) {
+               count_of_nucleotide_symbols_c_at_position[pos] += bitmap.and_cardinality(
+                  database_partition.seq_store.positions[pos]
+                     .bitmaps[static_cast<unsigned>(silo::NUCLEOTIDE_SYMBOL::C)]
+               );
             } else {
                count_of_nucleotide_symbols_c_at_position[pos] += bitmap.andnot_cardinality(
                   database_partition.seq_store.positions[pos]
-                     .bitmaps[static_cast<unsigned>(silo::GENOME_SYMBOL::C)]
+                     .bitmaps[static_cast<unsigned>(silo::NUCLEOTIDE_SYMBOL::C)]
                );
             }
-            if (database_partition.seq_store.positions[pos].flipped_bitmap_for_symbol != silo::GENOME_SYMBOL::G) {
-               count_of_nucleotide_symbols_g_at_position[pos] +=
-                  bitmap.and_cardinality(database_partition.seq_store.positions[pos]
-                                            .bitmaps[static_cast<unsigned>(silo::GENOME_SYMBOL::G)]
-                  );
+            if (database_partition.seq_store.positions[pos].symbol_whose_bitmap_is_flipped != silo::NUCLEOTIDE_SYMBOL::G) {
+               count_of_nucleotide_symbols_g_at_position[pos] += bitmap.and_cardinality(
+                  database_partition.seq_store.positions[pos]
+                     .bitmaps[static_cast<unsigned>(silo::NUCLEOTIDE_SYMBOL::G)]
+               );
             } else {
                count_of_nucleotide_symbols_g_at_position[pos] += bitmap.andnot_cardinality(
                   database_partition.seq_store.positions[pos]
-                     .bitmaps[static_cast<unsigned>(silo::GENOME_SYMBOL::G)]
+                     .bitmaps[static_cast<unsigned>(silo::NUCLEOTIDE_SYMBOL::G)]
                );
             }
-            if (database_partition.seq_store.positions[pos].flipped_bitmap_for_symbol != silo::GENOME_SYMBOL::T) {
-               count_of_nucleotide_symbols_t_at_position[pos] +=
-                  bitmap.and_cardinality(database_partition.seq_store.positions[pos]
-                                            .bitmaps[static_cast<unsigned>(silo::GENOME_SYMBOL::T)]
-                  );
+            if (database_partition.seq_store.positions[pos].symbol_whose_bitmap_is_flipped != silo::NUCLEOTIDE_SYMBOL::T) {
+               count_of_nucleotide_symbols_t_at_position[pos] += bitmap.and_cardinality(
+                  database_partition.seq_store.positions[pos]
+                     .bitmaps[static_cast<unsigned>(silo::NUCLEOTIDE_SYMBOL::T)]
+               );
             } else {
                count_of_nucleotide_symbols_t_at_position[pos] += bitmap.andnot_cardinality(
                   database_partition.seq_store.positions[pos]
-                     .bitmaps[static_cast<unsigned>(silo::GENOME_SYMBOL::T)]
+                     .bitmaps[static_cast<unsigned>(silo::NUCLEOTIDE_SYMBOL::T)]
                );
             }
-            if (database_partition.seq_store.positions[pos].flipped_bitmap_for_symbol != silo::GENOME_SYMBOL::GAP) {
+            if (database_partition.seq_store.positions[pos].symbol_whose_bitmap_is_flipped != silo::NUCLEOTIDE_SYMBOL::GAP) {
                count_of_gaps_at_position[pos] += bitmap.and_cardinality(
                   database_partition.seq_store.positions[pos]
-                     .bitmaps[static_cast<unsigned>(silo::GENOME_SYMBOL::GAP)]
+                     .bitmaps[static_cast<unsigned>(silo::NUCLEOTIDE_SYMBOL::GAP)]
                );
             } else {
                count_of_gaps_at_position[pos] += bitmap.andnot_cardinality(
                   database_partition.seq_store.positions[pos]
-                     .bitmaps[static_cast<unsigned>(silo::GENOME_SYMBOL::GAP)]
+                     .bitmaps[static_cast<unsigned>(silo::NUCLEOTIDE_SYMBOL::GAP)]
                );
             }
          }
@@ -133,64 +133,64 @@ std::vector<silo::MutationProportion> silo::executeMutations(
          for (unsigned const partition_index : full_partition_filters_to_evaluate) {
             const silo::DatabasePartition& database_partition =
                database.partitions[partition_index];
-            if (database_partition.seq_store.positions[pos].flipped_bitmap_for_symbol != silo::GENOME_SYMBOL::A) {
+            if (database_partition.seq_store.positions[pos].symbol_whose_bitmap_is_flipped != silo::NUCLEOTIDE_SYMBOL::A) {
                count_of_nucleotide_symbols_a_at_position[pos] +=
                   database_partition.seq_store.positions[pos]
-                     .bitmaps[static_cast<unsigned>(silo::GENOME_SYMBOL::A)]
+                     .bitmaps[static_cast<unsigned>(silo::NUCLEOTIDE_SYMBOL::A)]
                      .cardinality();
             } else {
                count_of_nucleotide_symbols_a_at_position[pos] +=
                   database_partition.sequenceCount -
                   database_partition.seq_store.positions[pos]
-                     .bitmaps[static_cast<unsigned>(silo::GENOME_SYMBOL::A)]
+                     .bitmaps[static_cast<unsigned>(silo::NUCLEOTIDE_SYMBOL::A)]
                      .cardinality();
             }
-            if (database_partition.seq_store.positions[pos].flipped_bitmap_for_symbol != silo::GENOME_SYMBOL::C) {
+            if (database_partition.seq_store.positions[pos].symbol_whose_bitmap_is_flipped != silo::NUCLEOTIDE_SYMBOL::C) {
                count_of_nucleotide_symbols_c_at_position[pos] +=
                   database_partition.seq_store.positions[pos]
-                     .bitmaps[static_cast<unsigned>(silo::GENOME_SYMBOL::C)]
+                     .bitmaps[static_cast<unsigned>(silo::NUCLEOTIDE_SYMBOL::C)]
                      .cardinality();
             } else {
                count_of_nucleotide_symbols_c_at_position[pos] +=
                   database_partition.sequenceCount -
                   database_partition.seq_store.positions[pos]
-                     .bitmaps[static_cast<unsigned>(silo::GENOME_SYMBOL::C)]
+                     .bitmaps[static_cast<unsigned>(silo::NUCLEOTIDE_SYMBOL::C)]
                      .cardinality();
             }
-            if (database_partition.seq_store.positions[pos].flipped_bitmap_for_symbol != silo::GENOME_SYMBOL::G) {
+            if (database_partition.seq_store.positions[pos].symbol_whose_bitmap_is_flipped != silo::NUCLEOTIDE_SYMBOL::G) {
                count_of_nucleotide_symbols_g_at_position[pos] +=
                   database_partition.seq_store.positions[pos]
-                     .bitmaps[static_cast<unsigned>(silo::GENOME_SYMBOL::G)]
+                     .bitmaps[static_cast<unsigned>(silo::NUCLEOTIDE_SYMBOL::G)]
                      .cardinality();
             } else {
                count_of_nucleotide_symbols_g_at_position[pos] +=
                   database_partition.sequenceCount -
                   database_partition.seq_store.positions[pos]
-                     .bitmaps[static_cast<unsigned>(silo::GENOME_SYMBOL::G)]
+                     .bitmaps[static_cast<unsigned>(silo::NUCLEOTIDE_SYMBOL::G)]
                      .cardinality();
             }
-            if (database_partition.seq_store.positions[pos].flipped_bitmap_for_symbol != silo::GENOME_SYMBOL::T) {
+            if (database_partition.seq_store.positions[pos].symbol_whose_bitmap_is_flipped != silo::NUCLEOTIDE_SYMBOL::T) {
                count_of_nucleotide_symbols_t_at_position[pos] +=
                   database_partition.seq_store.positions[pos]
-                     .bitmaps[static_cast<unsigned>(silo::GENOME_SYMBOL::T)]
+                     .bitmaps[static_cast<unsigned>(silo::NUCLEOTIDE_SYMBOL::T)]
                      .cardinality();
             } else {
                count_of_nucleotide_symbols_t_at_position[pos] +=
                   database_partition.sequenceCount -
                   database_partition.seq_store.positions[pos]
-                     .bitmaps[static_cast<unsigned>(silo::GENOME_SYMBOL::T)]
+                     .bitmaps[static_cast<unsigned>(silo::NUCLEOTIDE_SYMBOL::T)]
                      .cardinality();
             }
-            if (database_partition.seq_store.positions[pos].flipped_bitmap_for_symbol != silo::GENOME_SYMBOL::GAP) {
+            if (database_partition.seq_store.positions[pos].symbol_whose_bitmap_is_flipped != silo::NUCLEOTIDE_SYMBOL::GAP) {
                count_of_gaps_at_position[pos] +=
                   database_partition.seq_store.positions[pos]
-                     .bitmaps[static_cast<unsigned>(silo::GENOME_SYMBOL::GAP)]
+                     .bitmaps[static_cast<unsigned>(silo::NUCLEOTIDE_SYMBOL::GAP)]
                      .cardinality();
             } else {
                count_of_gaps_at_position[pos] +=
                   database_partition.sequenceCount -
                   database_partition.seq_store.positions[pos]
-                     .bitmaps[static_cast<unsigned>(silo::GENOME_SYMBOL::GAP)]
+                     .bitmaps[static_cast<unsigned>(silo::NUCLEOTIDE_SYMBOL::GAP)]
                      .cardinality();
             }
          }

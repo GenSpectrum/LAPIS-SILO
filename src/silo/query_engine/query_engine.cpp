@@ -21,8 +21,8 @@
 #include <spdlog/spdlog.h>
 
 #include "external/PerfEvent.hpp"
-#include "silo/common/genome_symbols.h"
 #include "silo/common/log.h"
+#include "silo/common/nucleotide_symbols.h"
 #include "silo/database.h"
 #include "silo/query_engine/query_result.h"
 
@@ -142,7 +142,7 @@ std::unique_ptr<BoolExpression> parseExpression(
    if (expression_type == "NucleotideEquals") {
       const unsigned position = json_value["position"].GetUint();
       const std::string& nucleotide_symbol = json_value["symbol"].GetString();
-      GENOME_SYMBOL value;
+      NUCLEOTIDE_SYMBOL value;
       if (nucleotide_symbol.at(0) == '.') {
          const char character = database.global_reference[0].at(position);
          value = toNucleotideSymbol(character);
@@ -1050,7 +1050,7 @@ ExpressionType NucleotideSymbolEqualsExpression::type() const {
 NucleotideSymbolEqualsExpression::NucleotideSymbolEqualsExpression() = default;
 NucleotideSymbolEqualsExpression::NucleotideSymbolEqualsExpression(
    unsigned int position,
-   GENOME_SYMBOL value
+   NUCLEOTIDE_SYMBOL value
 )
     : position(position),
       value(value) {}
@@ -1065,7 +1065,7 @@ ExpressionType NucleotideSymbolMaybeExpression::type() const {
 NucleotideSymbolMaybeExpression::NucleotideSymbolMaybeExpression() = default;
 NucleotideSymbolMaybeExpression::NucleotideSymbolMaybeExpression(
    unsigned int position,
-   GENOME_SYMBOL value
+   NUCLEOTIDE_SYMBOL value
 )
     : position(position),
       value(value) {}

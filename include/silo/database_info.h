@@ -7,7 +7,7 @@
 
 namespace silo {
 
-enum class GENOME_SYMBOL;
+enum class NUCLEOTIDE_SYMBOL;
 
 struct DatabaseInfo {
    uint32_t sequence_count;
@@ -16,7 +16,7 @@ struct DatabaseInfo {
 };
 
 struct BitmapSizePerSymbol {
-   std::map<GENOME_SYMBOL, uint64_t> size_in_bytes;
+   std::map<NUCLEOTIDE_SYMBOL, uint64_t> size_in_bytes;
    BitmapSizePerSymbol& operator+=(const BitmapSizePerSymbol& other);
    BitmapSizePerSymbol();
 };

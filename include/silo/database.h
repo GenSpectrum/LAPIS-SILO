@@ -2,7 +2,6 @@
 #define SILO_DATABASE_H
 
 #include <iostream>
-#include <map>
 #include <string>
 #include <unordered_map>
 #include <utility>

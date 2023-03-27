@@ -6,7 +6,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include "silo/common/genome_symbols.h"
+#include "silo/common/nucleotide_symbols.h"
 #include "silo/database.h"
 
 namespace silo {
@@ -16,10 +16,10 @@ std::unique_ptr<BoolExpression> NucleotideSymbolEqualsExpression::simplify(
 ) const {
    std::unique_ptr<NucleotideSymbolEqualsExpression> result =
       std::make_unique<NucleotideSymbolEqualsExpression>(position, value);
-   if (value == GENOME_SYMBOL::N && !database_partition.seq_store.positions[position].nucleotide_symbol_n_indexed) {
+   if (value == NUCLEOTIDE_SYMBOL::N && !database_partition.seq_store.positions[position].nucleotide_symbol_n_indexed) {
       return std::make_unique<PositionHasNucleotideSymbolNExpression>(position);
    }
-   if (!individualized && database_partition.seq_store.positions[position - 1].flipped_bitmap_for_symbol == value) {
+   if (!individualized && database_partition.seq_store.positions[position - 1].symbol_whose_bitmap_is_flipped == value) {
       result->individualized = true;
       return std::make_unique<NegatedExpression>(std::move(result));
    }
@@ -32,7 +32,7 @@ std::unique_ptr<BoolExpression> NucleotideSymbolMaybeExpression::simplify(
 ) const {
    std::unique_ptr<NucleotideSymbolMaybeExpression> ret =
       std::make_unique<NucleotideSymbolMaybeExpression>(position, value);
-   if (database_partition.seq_store.positions[position - 1].flipped_bitmap_for_symbol == value) {
+   if (database_partition.seq_store.positions[position - 1].symbol_whose_bitmap_is_flipped == value) {
       /// Bitmap of reference is flipped! Introduce Neg
       ret->negated = true;
    }

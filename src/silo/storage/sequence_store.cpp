@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "silo/common/format_number.h"
-#include "silo/common/genome_symbols.h"
+#include "silo/common/nucleotide_symbols.h"
 
 [[maybe_unused]] auto fmt::formatter<silo::SequenceStoreInfo>::format(
    silo::SequenceStoreInfo sequence_store_info,
@@ -29,50 +29,50 @@
 /// position: 1 indexed position of the genome
 roaring::Roaring* silo::SequenceStore::getBitmapFromAmbiguousSymbol(
    size_t position,
-   GENOME_SYMBOL ambiguous_symbol
+   NUCLEOTIDE_SYMBOL ambiguous_symbol
 ) const {
    static constexpr int COUNT_AMBIGUOUS_SYMBOLS = 8;
    switch (ambiguous_symbol) {
-      case GENOME_SYMBOL::A: {
+      case NUCLEOTIDE_SYMBOL::A: {
          // NOLINTNEXTLINE(modernize-avoid-c-arrays)
          const roaring::Roaring* tmp[COUNT_AMBIGUOUS_SYMBOLS] = {
-            getBitmap(position, GENOME_SYMBOL::A), getBitmap(position, GENOME_SYMBOL::R),
-            getBitmap(position, GENOME_SYMBOL::W), getBitmap(position, GENOME_SYMBOL::M),
-            getBitmap(position, GENOME_SYMBOL::D), getBitmap(position, GENOME_SYMBOL::H),
-            getBitmap(position, GENOME_SYMBOL::V)};
+            getBitmap(position, NUCLEOTIDE_SYMBOL::A), getBitmap(position, NUCLEOTIDE_SYMBOL::R),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::W), getBitmap(position, NUCLEOTIDE_SYMBOL::M),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::D), getBitmap(position, NUCLEOTIDE_SYMBOL::H),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::V)};
          auto* result =
             new roaring::Roaring(roaring::Roaring::fastunion(COUNT_AMBIGUOUS_SYMBOLS, tmp));
          return result;
       }
-      case GENOME_SYMBOL::C: {
+      case NUCLEOTIDE_SYMBOL::C: {
          // NOLINTNEXTLINE(modernize-avoid-c-arrays)
          const roaring::Roaring* tmp[COUNT_AMBIGUOUS_SYMBOLS] = {
-            getBitmap(position, GENOME_SYMBOL::C), getBitmap(position, GENOME_SYMBOL::Y),
-            getBitmap(position, GENOME_SYMBOL::S), getBitmap(position, GENOME_SYMBOL::M),
-            getBitmap(position, GENOME_SYMBOL::B), getBitmap(position, GENOME_SYMBOL::H),
-            getBitmap(position, GENOME_SYMBOL::V)};
+            getBitmap(position, NUCLEOTIDE_SYMBOL::C), getBitmap(position, NUCLEOTIDE_SYMBOL::Y),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::S), getBitmap(position, NUCLEOTIDE_SYMBOL::M),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::B), getBitmap(position, NUCLEOTIDE_SYMBOL::H),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::V)};
          auto* result =
             new roaring::Roaring(roaring::Roaring::fastunion(COUNT_AMBIGUOUS_SYMBOLS, tmp));
          return result;
       }
-      case GENOME_SYMBOL::G: {
+      case NUCLEOTIDE_SYMBOL::G: {
          // NOLINTNEXTLINE(modernize-avoid-c-arrays)
          const roaring::Roaring* tmp[COUNT_AMBIGUOUS_SYMBOLS] = {
-            getBitmap(position, GENOME_SYMBOL::G), getBitmap(position, GENOME_SYMBOL::R),
-            getBitmap(position, GENOME_SYMBOL::S), getBitmap(position, GENOME_SYMBOL::K),
-            getBitmap(position, GENOME_SYMBOL::D), getBitmap(position, GENOME_SYMBOL::B),
-            getBitmap(position, GENOME_SYMBOL::V)};
+            getBitmap(position, NUCLEOTIDE_SYMBOL::G), getBitmap(position, NUCLEOTIDE_SYMBOL::R),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::S), getBitmap(position, NUCLEOTIDE_SYMBOL::K),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::D), getBitmap(position, NUCLEOTIDE_SYMBOL::B),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::V)};
          auto* result =
             new roaring::Roaring(roaring::Roaring::fastunion(COUNT_AMBIGUOUS_SYMBOLS, tmp));
          return result;
       }
-      case GENOME_SYMBOL::T: {
+      case NUCLEOTIDE_SYMBOL::T: {
          // NOLINTNEXTLINE(modernize-avoid-c-arrays)
          const roaring::Roaring* tmp[COUNT_AMBIGUOUS_SYMBOLS] = {
-            getBitmap(position, GENOME_SYMBOL::T), getBitmap(position, GENOME_SYMBOL::Y),
-            getBitmap(position, GENOME_SYMBOL::W), getBitmap(position, GENOME_SYMBOL::K),
-            getBitmap(position, GENOME_SYMBOL::D), getBitmap(position, GENOME_SYMBOL::H),
-            getBitmap(position, GENOME_SYMBOL::B)};
+            getBitmap(position, NUCLEOTIDE_SYMBOL::T), getBitmap(position, NUCLEOTIDE_SYMBOL::Y),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::W), getBitmap(position, NUCLEOTIDE_SYMBOL::K),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::D), getBitmap(position, NUCLEOTIDE_SYMBOL::H),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::B)};
          auto* result =
             new roaring::Roaring(roaring::Roaring::fastunion(COUNT_AMBIGUOUS_SYMBOLS, tmp));
          return result;
@@ -85,64 +85,64 @@ roaring::Roaring* silo::SequenceStore::getBitmapFromAmbiguousSymbol(
 
 roaring::Roaring* silo::SequenceStore::getFlippedBitmapFromAmbiguousSymbol(
    size_t position,
-   GENOME_SYMBOL ambiguous_symbol
+   NUCLEOTIDE_SYMBOL ambiguous_symbol
 ) const {
    const auto* bitmap_to_flip = getBitmap(position, ambiguous_symbol);
    roaring::api::roaring_bitmap_flip(&bitmap_to_flip->roaring, 0, sequence_count);
    static constexpr int COUNT_AMBIGUOUS_SYMBOLS = 8;
    switch (ambiguous_symbol) {
-      case GENOME_SYMBOL::A: {
+      case NUCLEOTIDE_SYMBOL::A: {
          // NOLINTNEXTLINE(modernize-avoid-c-arrays)
          const roaring::Roaring* tmp[COUNT_AMBIGUOUS_SYMBOLS] = {
             bitmap_to_flip,
-            getBitmap(position, GENOME_SYMBOL::R),
-            getBitmap(position, GENOME_SYMBOL::W),
-            getBitmap(position, GENOME_SYMBOL::M),
-            getBitmap(position, GENOME_SYMBOL::D),
-            getBitmap(position, GENOME_SYMBOL::H),
-            getBitmap(position, GENOME_SYMBOL::V)};
+            getBitmap(position, NUCLEOTIDE_SYMBOL::R),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::W),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::M),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::D),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::H),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::V)};
          auto* result =
             new roaring::Roaring(roaring::Roaring::fastunion(COUNT_AMBIGUOUS_SYMBOLS, tmp));
          return result;
       }
-      case GENOME_SYMBOL::C: {
+      case NUCLEOTIDE_SYMBOL::C: {
          // NOLINTNEXTLINE(modernize-avoid-c-arrays)
          const roaring::Roaring* tmp[COUNT_AMBIGUOUS_SYMBOLS] = {
             bitmap_to_flip,
-            getBitmap(position, GENOME_SYMBOL::Y),
-            getBitmap(position, GENOME_SYMBOL::S),
-            getBitmap(position, GENOME_SYMBOL::M),
-            getBitmap(position, GENOME_SYMBOL::B),
-            getBitmap(position, GENOME_SYMBOL::H),
-            getBitmap(position, GENOME_SYMBOL::V)};
+            getBitmap(position, NUCLEOTIDE_SYMBOL::Y),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::S),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::M),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::B),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::H),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::V)};
          auto* result =
             new roaring::Roaring(roaring::Roaring::fastunion(COUNT_AMBIGUOUS_SYMBOLS, tmp));
          return result;
       }
-      case GENOME_SYMBOL::G: {
+      case NUCLEOTIDE_SYMBOL::G: {
          // NOLINTNEXTLINE(modernize-avoid-c-arrays)
          const roaring::Roaring* tmp[COUNT_AMBIGUOUS_SYMBOLS] = {
             bitmap_to_flip,
-            getBitmap(position, GENOME_SYMBOL::R),
-            getBitmap(position, GENOME_SYMBOL::S),
-            getBitmap(position, GENOME_SYMBOL::K),
-            getBitmap(position, GENOME_SYMBOL::D),
-            getBitmap(position, GENOME_SYMBOL::B),
-            getBitmap(position, GENOME_SYMBOL::V)};
+            getBitmap(position, NUCLEOTIDE_SYMBOL::R),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::S),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::K),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::D),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::B),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::V)};
          auto* result =
             new roaring::Roaring(roaring::Roaring::fastunion(COUNT_AMBIGUOUS_SYMBOLS, tmp));
          return result;
       }
-      case GENOME_SYMBOL::T: {
+      case NUCLEOTIDE_SYMBOL::T: {
          // NOLINTNEXTLINE(modernize-avoid-c-arrays)
          const roaring::Roaring* tmp[COUNT_AMBIGUOUS_SYMBOLS] = {
             bitmap_to_flip,
-            getBitmap(position, GENOME_SYMBOL::Y),
-            getBitmap(position, GENOME_SYMBOL::W),
-            getBitmap(position, GENOME_SYMBOL::K),
-            getBitmap(position, GENOME_SYMBOL::D),
-            getBitmap(position, GENOME_SYMBOL::H),
-            getBitmap(position, GENOME_SYMBOL::B)};
+            getBitmap(position, NUCLEOTIDE_SYMBOL::Y),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::W),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::K),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::D),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::H),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::B)};
          auto* result =
             new roaring::Roaring(roaring::Roaring::fastunion(COUNT_AMBIGUOUS_SYMBOLS, tmp));
          return result;
@@ -178,19 +178,20 @@ void silo::SequenceStore::interpret(const std::vector<std::string>& genomes) {
          for (unsigned col = local.begin(); col != local.end(); ++col) {
             for (unsigned index2 = 0, limit2 = genomes.size(); index2 != limit2; ++index2) {
                char const character = genomes[index2][col];
-               GENOME_SYMBOL const symbol = toNucleotideSymbol(character);
-               if (symbol != GENOME_SYMBOL::N) {
+               NUCLEOTIDE_SYMBOL const symbol = toNucleotideSymbol(character);
+               if (symbol != NUCLEOTIDE_SYMBOL::N) {
                   ids_per_symbol[static_cast<unsigned>(symbol)].push_back(
                      cur_sequence_count + index2
                   );
                }
             }
-            for (unsigned symbol = 0; symbol != SYMBOL_COUNT; ++symbol) {
-               if (!ids_per_symbol[symbol].empty()) {
-                  this->positions[col].bitmaps[symbol].addMany(
-                     ids_per_symbol[symbol].size(), ids_per_symbol[symbol].data()
+            for (const auto& symbol : GENOME_SYMBOLS) {
+               const unsigned symbol_index = static_cast<unsigned>(symbol);
+               if (!ids_per_symbol[symbol_index].empty()) {
+                  this->positions[col].bitmaps[symbol_index].addMany(
+                     ids_per_symbol[symbol_index].size(), ids_per_symbol[symbol_index].data()
                   );
-                  ids_per_symbol[symbol].clear();
+                  ids_per_symbol[symbol_index].clear();
                }
             }
          }
@@ -204,8 +205,8 @@ void silo::SequenceStore::interpret(const std::vector<std::string>& genomes) {
          for (unsigned genome = local.begin(); genome != local.end(); ++genome) {
             for (unsigned pos = 0, limit2 = GENOME_LENGTH; pos != limit2; ++pos) {
                char const character = genomes[genome][pos];
-               GENOME_SYMBOL const symbol = toNucleotideSymbol(character);
-               if (symbol == GENOME_SYMBOL::N) {
+               NUCLEOTIDE_SYMBOL const symbol = toNucleotideSymbol(character);
+               if (symbol == NUCLEOTIDE_SYMBOL::N) {
                   positions_with_nucleotide_symbol_n.push_back(pos);
                }
             }
@@ -250,7 +251,7 @@ void silo::SequenceStore::indexAllNucleotideSymbolsN() {
       for (uint32_t upper = 0; upper < (sequence_count >> BINARY_CONTAINER_SIZE_OF_BITMAPS) + 1;
            ++upper) {
          auto& ids = ids_per_position_per_upper[upper][position];
-         positions[position].bitmaps[static_cast<unsigned>(GENOME_SYMBOL::N)].addMany(
+         positions[position].bitmaps[static_cast<unsigned>(NUCLEOTIDE_SYMBOL::N)].addMany(
             ids.size(), ids.data()
          );
       }
@@ -281,7 +282,7 @@ void silo::SequenceStore::naiveIndexAllNucleotideSymbolN() {
    for (auto& ids_at_position : ids_per_position) {
       for (uint32_t position = 0; position < GENOME_LENGTH; ++position) {
          auto& ids = ids_at_position[position];
-         positions[position].bitmaps[static_cast<unsigned>(GENOME_SYMBOL::N)].addMany(
+         positions[position].bitmaps[static_cast<unsigned>(NUCLEOTIDE_SYMBOL::N)].addMany(
             ids.size(), ids.data()
          );
       }
@@ -293,7 +294,7 @@ void silo::SequenceStore::naiveIndexAllNucleotideSymbolN() {
 }
 
 /// position: 1 indexed position of the genome
-const roaring::Roaring* silo::SequenceStore::getBitmap(size_t position, GENOME_SYMBOL symbol)
+const roaring::Roaring* silo::SequenceStore::getBitmap(size_t position, NUCLEOTIDE_SYMBOL symbol)
    const {
    return &positions[position - 1].bitmaps[static_cast<unsigned>(symbol)];
 }
