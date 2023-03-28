@@ -19,6 +19,19 @@ describe('The /query endpoint', () => {
       })
     );
 
+  it('should return a method not allowed response when sending a GET request', done => {
+    server
+      .get('/query')
+      .send()
+      .expect(405)
+      .expect('Content-Type', 'application/json')
+      .expect({
+        error: 'Method not allowed',
+        message: 'GET is not allowed on resource /query',
+      })
+      .end(done);
+  });
+
   it('should return a bad request response when POSTing an invalid JSON', done => {
     server
       .post('/query')

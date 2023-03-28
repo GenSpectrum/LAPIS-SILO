@@ -1,8 +1,5 @@
-#include "silo_api/request_handler.h"
+#include "silo_api/logging_request_handler.h"
 
-#include <Poco/Net/HTTPRequestHandler.h>
-#include <Poco/Net/HTTPServerRequest.h>
-#include <Poco/Net/HTTPServerResponse.h>
 #include <spdlog/spdlog.h>
 
 namespace silo_api {

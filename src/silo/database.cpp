@@ -311,7 +311,7 @@ static inline void addStatistic(r_stat& statistic1, const r_stat& statistic_to_a
    statistic1.sum_value += statistic_to_add.sum_value;
 }
 
-silo::DatabaseInfo silo::Database::getDatabaseInfo() {
+silo::DatabaseInfo silo::Database::getDatabaseInfo() const {
    std::atomic<uint32_t> sequence_count = 0;
    std::atomic<uint64_t> total_size = 0;
    std::atomic<size_t> nucleotide_symbol_n_bitmaps_size = 0;

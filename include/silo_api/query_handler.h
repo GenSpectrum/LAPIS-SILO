@@ -1,26 +1,25 @@
 #ifndef SILO_QUERYREQUESTHANDLER_H
 #define SILO_QUERYREQUESTHANDLER_H
 
-#include <Poco/Net/HTTPRequestHandler.h>
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/Net/HTTPServerResponse.h>
 
+#include "silo_api/rest_resource.h"
+
 namespace silo {
-class Database;
+class QueryEngine;
 }
 
 namespace silo_api {
-class QueryHandler : public Poco::Net::HTTPRequestHandler {
+class QueryHandler : public RestResource {
   private:
-   silo::Database& database;
+   const silo::QueryEngine& query_engine;
 
   public:
-   explicit QueryHandler(silo::Database& database);
+   explicit QueryHandler(const silo::QueryEngine& query_engine);
 
-   void handleRequest(
-      Poco::Net::HTTPServerRequest& request,
-      Poco::Net::HTTPServerResponse& response
-   ) override;
+   void post(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response)
+      override;
 };
 }  // namespace silo_api
 

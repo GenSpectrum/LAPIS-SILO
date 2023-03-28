@@ -1,12 +1,8 @@
 #include <iostream>
 #include <string>
-#include <vector>
 
-#include <Poco/Net/HTTPRequestHandler.h>
-#include <Poco/Net/HTTPRequestHandlerFactory.h>
 #include <Poco/Net/HTTPServer.h>
 #include <Poco/Net/HTTPServerParams.h>
-#include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/Net/ServerSocket.h>
 #include <Poco/Util/HelpFormatter.h>
 #include <Poco/Util/Option.h>
@@ -16,35 +12,10 @@
 
 #include "silo/database.h"
 #include "silo/preprocessing/preprocessing_config.h"
+#include "silo/query_engine/query_engine.h"
 #include "silo_api/info_handler.h"
 #include "silo_api/logging.h"
-#include "silo_api/not_found_handler.h"
-#include "silo_api/query_handler.h"
-#include "silo_api/request_handler.h"
-
-class SiloRequestHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
-  private:
-   silo::Database& database;
-
-  public:
-   explicit SiloRequestHandlerFactory(silo::Database& database)
-       : database(database) {}
-
-   Poco::Net::HTTPRequestHandler* createRequestHandler(const Poco::Net::HTTPServerRequest& request
-   ) override {
-      return new silo_api::LoggingRequestHandler(routeRequest(request));
-   }
-
-   Poco::Net::HTTPRequestHandler* routeRequest(const Poco::Net::HTTPServerRequest& request) {
-      if (request.getURI() == "/info") {
-         return new silo_api::InfoHandler(database);
-      }
-      if (request.getURI() == "/query") {
-         return new silo_api::QueryHandler(database);
-      }
-      return new silo_api::NotFoundHandler;
-   }
-};
+#include "silo_api/request_handler_factory.h"
 
 class SiloServer : public Poco::Util::ServerApplication {
   protected:
@@ -106,8 +77,10 @@ class SiloServer : public Poco::Util::ServerApplication {
       database.preprocessing(config);
 
       Poco::Net::ServerSocket const server_socket(port);
+      const silo::QueryEngine query_engine = silo::QueryEngine(database);
       Poco::Net::HTTPServer server(
-         new SiloRequestHandlerFactory(database), server_socket, new Poco::Net::HTTPServerParams
+         new silo_api::SiloRequestHandlerFactory(database, query_engine), server_socket,
+         new Poco::Net::HTTPServerParams
       );
 
       SPDLOG_INFO("Listening on port {}", port);

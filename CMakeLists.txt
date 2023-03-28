@@ -47,12 +47,12 @@ include_directories(SYSTEM
 # Sources
 # ---------------------------------------------------------------------------
 
-file(GLOB SRC_TEST "src/*/*.test.cpp" , "src/*.test.cpp")
+file(GLOB_RECURSE SRC_TEST "src/*.test.cpp")
 
-file(GLOB_RECURSE SRC_SILO_LIB "src/silo/*.cpp" "src/silo/roaring/roaring.c")
+file(GLOB_RECURSE SRC_SILO_LIB "src/silo/*.cpp")
 list(REMOVE_ITEM SRC_SILO_LIB ${SRC_TEST})
 
-file(GLOB_RECURSE SRC_SILO_API "src/silo_api/*" "src/silo_api/**")
+file(GLOB_RECURSE SRC_SILO_API "src/silo_api/*.cpp")
 list(REMOVE_ITEM SRC_SILO_API ${SRC_TEST})
 
 # ---------------------------------------------------------------------------
@@ -89,7 +89,10 @@ enable_testing()
 find_package(GTest REQUIRED)
 include_directories(${GTest_INCLUDE_DIRS})
 
-add_executable(silo_test ${SRC_TEST} ${SRC_API_CC})
+set(SRC_SILO_API_WITHOUT_MAIN ${SRC_SILO_API})
+list(REMOVE_ITEM SRC_SILO_API_WITHOUT_MAIN "${CMAKE_SOURCE_DIR}/src/silo_api/api.cpp")
+
+add_executable(silo_test ${SRC_TEST} ${SRC_SILO_API_WITHOUT_MAIN})
 
 if (NOT GTest_LIBRARIES)
     set(GTest_LIBRARIES gtest gmock)

@@ -8,6 +8,16 @@ Original genome indexing logic with roaring bitmaps by Prof. Neumann: https://db
 
 # Building
 
+We took the approach to scan directories for .cpp files to include instead of listing them manually in the
+CMakeLists.txt. This has the advantage that we don't need to maintain a list of files in the CMakeLists.txt.
+
+It has the disadvantage that after a successful build on local machines, CMake can't detect whether files were
+added or deleted. This requires a clean build. You can either delete the `build/` directory manually, or you
+execute `./build_with_conan clean`.
+
+Since in any approach, a developer has to remember to either trigger a clean build or to adapt the CMakeLists.txt, we
+decided for the approach with less maintenance effort, since it will automatically work in GitHub Actions.
+
 ## With Conan
 
 We use Conan to install dependencies for local development. See Dockerfile for how to set up Conan and its requirements.
