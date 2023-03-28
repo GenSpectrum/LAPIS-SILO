@@ -1,7 +1,6 @@
 #include "silo/query_engine/query_engine.h"
 
 #include <tbb/parallel_for.h>
-#include <tbb/parallel_for_each.h>
 #include <cassert>
 #include <memory>
 #include <roaring/roaring.hh>

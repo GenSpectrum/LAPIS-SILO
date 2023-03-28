@@ -14,7 +14,7 @@ class ResolveAliasTestFixture : public ::testing::TestWithParam<TestParameter> {
    const std::unordered_map<std::string, std::string> alias_map = {{"X", "A"}, {"XY", "A.1"}};
 };
 
-TEST_P(ResolveAliasTestFixture, should_return_expected_resolved_alias) {
+TEST_P(ResolveAliasTestFixture, shouldReturnExpectedResolvedAlias) {
    const auto test_parameter = GetParam();
 
    const auto result = silo::resolvePangoLineageAlias(alias_map, test_parameter.input);
@@ -24,7 +24,7 @@ TEST_P(ResolveAliasTestFixture, should_return_expected_resolved_alias) {
 
 // NOLINTNEXTLINE(readability-identifier-length)
 INSTANTIATE_TEST_SUITE_P(
-   resolve_alias_test,
+   ResolveAliasTest,
    ResolveAliasTestFixture,
    ::testing::Values(
       TestParameter{"", ""},

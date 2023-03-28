@@ -2,21 +2,21 @@
 
 #include <gtest/gtest.h>
 
-TEST(genome_symbol, enum_should_have_same_length_as_symbol_representation) {
+TEST(NucleotideSymbol, enumShouldHaveSameLengthAsSymbolRepresentation) {
    EXPECT_EQ(silo::SYMBOL_COUNT, silo::SYMBOL_REPRESENTATION.size());
 }
 
-TEST(genome_symbol, enum_should_have_same_length_as_array_of_symbols) {
+TEST(NucleotideSymbol, enumShouldHaveSameLengthAsArrayOfSymbols) {
    EXPECT_EQ(silo::SYMBOL_COUNT, silo::GENOME_SYMBOLS.size());
 }
 
-TEST(genome_symbol, genome_symbol_representation_works_as_intended) {
+TEST(NucleotideSymbol, genomeSymbolRepresentationAsString) {
    EXPECT_EQ(silo::genomeSymbolRepresentation(silo::NUCLEOTIDE_SYMBOL::GAP), "-");
    EXPECT_EQ(silo::genomeSymbolRepresentation(silo::NUCLEOTIDE_SYMBOL::A), "A");
    EXPECT_EQ(silo::genomeSymbolRepresentation(silo::NUCLEOTIDE_SYMBOL::N), "N");
 }
 
-TEST(genome_symbol, to_nucleotide_symbol_works_as_intended) {
+TEST(NucleotideSymbol, conversionFromCharacter) {
    EXPECT_EQ(silo::toNucleotideSymbol('.'), silo::NUCLEOTIDE_SYMBOL::GAP);
    EXPECT_EQ(silo::toNucleotideSymbol('-'), silo::NUCLEOTIDE_SYMBOL::GAP);
    EXPECT_EQ(silo::toNucleotideSymbol('A'), silo::NUCLEOTIDE_SYMBOL::A);
