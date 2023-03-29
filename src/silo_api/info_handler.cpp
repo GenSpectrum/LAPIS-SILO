@@ -41,7 +41,7 @@ void to_json(nlohmann::json& json, const BitmapSizePerSymbol& bitmapSizePerSymbo
    for (const auto& [symbol, size] : bitmapSizePerSymbol.size_in_bytes) {
       size_in_bytes_for_nlohmann[genomeSymbolRepresentation(symbol)] = size;
    }
-   json = nlohmann::json{size_in_bytes_for_nlohmann};
+   json = size_in_bytes_for_nlohmann;
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

@@ -488,10 +488,11 @@ silo::BitmapContainerSize silo::Database::calculateBitmapContainerSizePerGenomeS
    return global_bitmap_container_size_per_genome_section;
 }
 
-silo::DetailedDatabaseInfo silo::Database::detailedDatabaseInfo(uint32_t section_length) const {
+silo::DetailedDatabaseInfo silo::Database::detailedDatabaseInfo() const {
+   constexpr uint32_t DEFAULT_SECTION_LENGTH = 500;
    BitmapSizePerSymbol const bitmap_size_per_symbol = calculateBitmapSizePerSymbol();
    BitmapContainerSize const size_per_section =
-      calculateBitmapContainerSizePerGenomeSection(section_length);
+      calculateBitmapContainerSizePerGenomeSection(DEFAULT_SECTION_LENGTH);
 
    return DetailedDatabaseInfo{bitmap_size_per_symbol, size_per_section};
 }

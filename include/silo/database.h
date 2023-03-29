@@ -102,7 +102,7 @@ class Database {
 
    virtual silo::DatabaseInfo getDatabaseInfo() const;
 
-   DetailedDatabaseInfo detailedDatabaseInfo(uint32_t section_length = 500) const;
+   virtual DetailedDatabaseInfo detailedDatabaseInfo() const;
    void finalizeBuild();
 
    [[maybe_unused]] void flipBitmaps();

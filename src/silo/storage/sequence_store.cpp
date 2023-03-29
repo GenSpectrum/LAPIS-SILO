@@ -186,7 +186,7 @@ void silo::SequenceStore::interpret(const std::vector<std::string>& genomes) {
                }
             }
             for (const auto& symbol : GENOME_SYMBOLS) {
-               const unsigned symbol_index = static_cast<unsigned>(symbol);
+               const auto symbol_index = static_cast<unsigned>(symbol);
                if (!ids_per_symbol[symbol_index].empty()) {
                   this->positions[col].bitmaps[symbol_index].addMany(
                      ids_per_symbol[symbol_index].size(), ids_per_symbol[symbol_index].data()
