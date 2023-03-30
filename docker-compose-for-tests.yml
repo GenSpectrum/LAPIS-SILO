@@ -3,4 +3,4 @@ services:
   silo:
     image: ${SILO_IMAGE}
     ports:
-      - "8080:8080"
+      - "8080:8081"

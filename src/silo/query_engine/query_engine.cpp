@@ -219,7 +219,14 @@ std::unique_ptr<BoolExpression> parseExpression(
       ));
    }
    if (expression_type == "PangoLineage") {
-      const bool include_sublineages = json_value["include_sublineages"].GetBool();
+      CHECK_SILO_QUERY(
+         json_value.HasMember("includeSublineages"),
+         "The field 'includeSublineages' is required in a PangoLineage expression"
+      );
+      const bool include_sublineages = json_value["includeSublineages"].GetBool();
+      CHECK_SILO_QUERY(
+         json_value.HasMember("value"), "The field 'value' is required in a PangoLineage expression"
+      );
       std::string lineage = json_value["value"].GetString();
       std::transform(lineage.begin(), lineage.end(), lineage.begin(), ::toupper);
       lineage = resolvePangoLineageAlias(database.getAliasKey(), lineage);

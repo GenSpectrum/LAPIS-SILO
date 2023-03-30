@@ -63,7 +63,7 @@ class SiloServer : public Poco::Util::ServerApplication {
       [[maybe_unused]] const std::string& name,
       [[maybe_unused]] const std::string& value
    ) {
-      int const port = 8080;
+      int const port = 8081;
 
       const silo::InputDirectory input_directory{"./"};
       const silo::OutputDirectory output_directory{"./"};
