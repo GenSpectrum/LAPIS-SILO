@@ -144,9 +144,8 @@ void silo::Database::build(
                }
                silo::InputStreamWrapper const sequence_input(sequence_filename);
                SPDLOG_DEBUG("Using metadata file: {}", name + metadata_file_suffix);
-               unsigned const sequence_store_sequence_count = fillSequenceStore(
-                  partitions[partition_index].seq_store, sequence_input.getInputStream()
-               );
+               unsigned const sequence_store_sequence_count =
+                  partitions[partition_index].seq_store.fill(sequence_input.getInputStream());
                unsigned const metadata_store_sequence_count =
                   partitions[partition_index].meta_store.fill(meta_in, alias_key, *dict);
                if (sequence_store_sequence_count != metadata_store_sequence_count) {
@@ -424,42 +423,6 @@ silo::DetailedDatabaseInfo silo::Database::detailedDatabaseInfo() const {
    return DetailedDatabaseInfo{bitmap_size_per_symbol, size_per_section};
 }
 
-unsigned silo::fillSequenceStore(silo::SequenceStore& sequence_store, std::istream& input_file) {
-   static constexpr unsigned BUFFER_SIZE = 1024;
-
-   unsigned sequence_count = 0;
-
-   std::vector<std::string> genome_buffer;
-   while (true) {
-      std::string epi_isl;
-      std::string genome;
-      if (!getline(input_file, epi_isl)) {
-         break;
-      }
-      if (!getline(input_file, genome)) {
-         break;
-      }
-      if (genome.length() != GENOME_LENGTH) {
-         throw silo::PreprocessingException(
-            "Error filling sequence store: Genome length was " + std::to_string(genome.length()) +
-            ", expected " + std::to_string(GENOME_LENGTH)
-         );
-      }
-
-      genome_buffer.push_back(std::move(genome));
-      if (genome_buffer.size() >= BUFFER_SIZE) {
-         sequence_store.interpret(genome_buffer);
-         genome_buffer.clear();
-      }
-
-      ++sequence_count;
-   }
-   sequence_store.interpret(genome_buffer);
-   SPDLOG_DEBUG("{}", sequence_store.getInfo());
-
-   return sequence_count;
-}
-
 [[maybe_unused]] void silo::Database::saveDatabaseState(const std::string& save_directory) {
    if (!partition_descriptor) {
       throw silo::persistence::SaveDatabaseException(
@@ -582,6 +545,7 @@ unsigned silo::fillSequenceStore(silo::SequenceStore& sequence_store, std::istre
       }
    );
 }
+
 void silo::Database::preprocessing(const PreprocessingConfig& config) {
    SPDLOG_INFO("preprocessing - building pango lineage counts");
    std::ifstream metadata_stream(config.metadata_file.relative_path());

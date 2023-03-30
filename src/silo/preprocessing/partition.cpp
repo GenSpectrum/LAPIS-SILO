@@ -40,22 +40,20 @@ std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
    for (auto& count : pango_lineage_counts) {
       std::vector<std::string> pango_lineages;
       pango_lineages.push_back(count.pango_lineage);
-      Chunk const tmp = {
-         count.pango_lineage, count.count, running_total, pango_lineages};
+      Chunk const tmp = {count.pango_lineage, count.count, running_total, pango_lineages};
       running_total += count.count;
       chunks.emplace_back(tmp);
    }
    // We want to prioritise merges more closely related chunks.
    // Therefore, we first merge the chunks, with longer matching prefixes.
    // Precalculate the longest a prefix can be (which is the max length of lineages)
-   uint32_t const max_len =
-      std::max_element(
-         pango_lineage_counts.begin(),
-         pango_lineage_counts.end(),
-         [](const PangoLineageCount& lhs, const PangoLineageCount& rhs) {
-            return lhs.pango_lineage.size() < rhs.pango_lineage.size();
-         }
-      )->pango_lineage.size();
+   uint32_t const max_len = std::max_element(
+                               pango_lineage_counts.begin(),
+                               pango_lineage_counts.end(),
+                               [](const PangoLineageCount& lhs, const PangoLineageCount& rhs) {
+                                  return lhs.pango_lineage.size() < rhs.pango_lineage.size();
+                               }
+   )->pango_lineage.size();
    for (uint32_t len = max_len; len > 0; len--) {
       for (auto it = chunks.begin(); it != chunks.end() && std::next(it) != chunks.end();) {
          auto&& [pango1, pango2] = std::tie(*it, *std::next(it));

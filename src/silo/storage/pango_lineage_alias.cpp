@@ -10,8 +10,7 @@ PangoLineageAliasLookup::PangoLineageAliasLookup(
 )
     : alias_key(std::move(alias_key)) {}
 
-PangoLineageAliasLookup::PangoLineageAliasLookup()
-    : alias_key() {}
+PangoLineageAliasLookup::PangoLineageAliasLookup() = default;
 
 std::string PangoLineageAliasLookup::resolvePangoLineageAlias(const std::string& pango_lineage
 ) const {

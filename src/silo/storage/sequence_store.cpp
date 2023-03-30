@@ -11,6 +11,7 @@
 
 #include "silo/common/format_number.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/preprocessing/preprocessing_exception.h"
 
 [[maybe_unused]] auto fmt::formatter<silo::SequenceStoreInfo>::format(
    silo::SequenceStoreInfo sequence_store_info,
@@ -23,6 +24,42 @@
       sequence_store_info.size,
       silo::formatNumber(sequence_store_info.n_bitmaps_size)
    );
+}
+
+unsigned silo::SequenceStore::fill(std::istream& input_file) {
+   static constexpr unsigned BUFFER_SIZE = 1024;
+
+   unsigned read_sequences_count = 0;
+
+   std::vector<std::string> genome_buffer;
+   while (true) {
+      std::string epi_isl;
+      std::string genome;
+      if (!getline(input_file, epi_isl)) {
+         break;
+      }
+      if (!getline(input_file, genome)) {
+         break;
+      }
+      if (genome.length() != GENOME_LENGTH) {
+         throw silo::PreprocessingException(
+            "Error filling sequence store: Genome length was " + std::to_string(genome.length()) +
+            ", expected " + std::to_string(GENOME_LENGTH)
+         );
+      }
+
+      genome_buffer.push_back(std::move(genome));
+      if (genome_buffer.size() >= BUFFER_SIZE) {
+         interpret(genome_buffer);
+         genome_buffer.clear();
+      }
+
+      ++read_sequences_count;
+   }
+   interpret(genome_buffer);
+   SPDLOG_DEBUG("{}", getInfo());
+
+   return read_sequences_count;
 }
 
 /// Returns an Roaring-bitmap which has the given residue ambiguous_symbol at the position position,

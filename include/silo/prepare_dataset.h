@@ -10,7 +10,7 @@ namespace silo {
 namespace preprocessing {
 struct Partitions;
 struct PangoLineageCounts;
-}
+}  // namespace preprocessing
 
 class PangoLineageAliasLookup;
 

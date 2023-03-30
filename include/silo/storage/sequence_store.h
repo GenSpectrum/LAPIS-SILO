@@ -77,6 +77,8 @@ class SequenceStore {
    void naiveIndexAllNucleotideSymbolN();
 
    SequenceStoreInfo getInfo() const;
+
+   unsigned fill(std::istream& input_file);
 };
 
 [[maybe_unused]] unsigned runOptimize(SequenceStore& sequence_store);

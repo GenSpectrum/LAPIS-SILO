@@ -73,8 +73,6 @@ class Database {
    BitmapContainerSize calculateBitmapContainerSizePerGenomeSection(uint32_t section_length) const;
 };
 
-unsigned fillSequenceStore(SequenceStore& sequence_store, std::istream& input_file);
-
 std::string buildChunkName(unsigned partition, unsigned chunk);
 
 }  // namespace silo

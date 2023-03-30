@@ -1,8 +1,9 @@
 #include "silo/preprocessing/pango_lineage_count.h"
 
+#include <algorithm>
+#include <climits>
 #include <iostream>
 #include <unordered_map>
-#include <climits>
 
 #include "silo/storage/pango_lineage_alias.h"
 
