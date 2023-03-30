@@ -20,7 +20,7 @@ silo::Database buildTestDatabase() {
    return database;
 };
 
-TEST(database_test, should_build_database_without_errors) {
+TEST(DatabaseTest, shouldBuildDatabaseWithoutErrors) {
    auto database{buildTestDatabase()};
 
    const auto simple_database_info = database.getDatabaseInfo();
@@ -29,7 +29,7 @@ TEST(database_test, should_build_database_without_errors) {
    EXPECT_EQ(simple_database_info.sequence_count, 100);
 }
 
-TEST(database_info_test, should_return_correct_database_info) {
+TEST(DatabaseTest, shouldReturnCorrectDatabaseInfo) {
    auto database{buildTestDatabase()};
 
    const auto detailed_info = database.detailedDatabaseInfo();

@@ -6,6 +6,6 @@ void testFunction() {
    throw silo::PreprocessingException("SomeText");
 }
 
-TEST(preprocessing_exception, assert_that_it_throws) {
+TEST(PreprocessingException, assertThatItThrows) {
    EXPECT_THROW(testFunction(), silo::PreprocessingException);
 }

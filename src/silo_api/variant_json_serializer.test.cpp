@@ -11,7 +11,7 @@ struct TestStruct {
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(TestStruct, stringField, intField);
 
-TEST(variant_json_serializer, deserialize_struct_variant) {
+TEST(VariantJsonSerializer, deserializeStructVariant) {
    const int some_number = 42;
    const std::string some_string;
    const nlohmann::json json = {
@@ -26,7 +26,7 @@ TEST(variant_json_serializer, deserialize_struct_variant) {
    EXPECT_EQ(std::get<TestStruct>(result).intField, some_number);
 }
 
-TEST(variant_json_serializer, deserialize_string_variant) {
+TEST(VariantJsonSerializer, deserializeStringVariant) {
    const nlohmann::json json = "this is another string";
 
    auto result = json.get<std::variant<TestStruct, std::string>>();
@@ -35,7 +35,7 @@ TEST(variant_json_serializer, deserialize_string_variant) {
    EXPECT_EQ(std::get<std::string>(result), "this is another string");
 }
 
-TEST(variant_json_serializer, serialize_string_variant) {
+TEST(VariantJsonSerializer, serializeStringVariant) {
    const std::variant<TestStruct, std::string> value = "this is a string";
 
    auto result = nlohmann::json(value).dump();
@@ -43,7 +43,7 @@ TEST(variant_json_serializer, serialize_string_variant) {
    EXPECT_EQ(result, R"("this is a string")");
 }
 
-TEST(variant_json_serializer, serialize_struct_variant) {
+TEST(VariantJsonSerializer, serializeStructVariant) {
    const std::variant<TestStruct, std::string> value = TestStruct{"this is another string", 42};
 
    auto result = nlohmann::json(value).dump();
