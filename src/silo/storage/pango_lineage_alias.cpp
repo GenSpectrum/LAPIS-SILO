@@ -8,10 +8,10 @@ namespace silo {
 PangoLineageAliasLookup::PangoLineageAliasLookup(
    std::unordered_map<std::string, std::string> alias_key
 )
-    : alias_key(alias_key) {}
+    : alias_key(std::move(alias_key)) {}
 
 PangoLineageAliasLookup::PangoLineageAliasLookup()
-    : alias_key(std::unordered_map<std::string, std::string>{}) {}
+    : alias_key() {}
 
 std::string PangoLineageAliasLookup::resolvePangoLineageAlias(const std::string& pango_lineage
 ) const {

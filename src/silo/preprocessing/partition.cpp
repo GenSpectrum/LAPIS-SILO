@@ -1,6 +1,7 @@
 #include "silo/preprocessing/partition.h"
 
 #include "silo/database.h"
+#include "silo/persistence/exception.h"
 
 namespace silo::preprocessing {
 
@@ -139,6 +140,85 @@ Partitions buildPartitions(silo::PangoLineageCounts pango_lineage_counts, Archit
          break;
    }
    throw std::runtime_error("Arch not yet implemented.");
+}
+
+// TODO(someone): reduce cognitive complexity
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+Partitions Partitions::load(std::istream& input_file) {
+   silo::preprocessing::Partitions descriptor = {std::vector<silo::preprocessing::Partition>()};
+   std::string type;
+   std::string name;
+   std::string size_str;
+   std::string count_str;
+   std::string offset_str;
+   uint32_t count;
+   uint32_t offset;
+   while (input_file && !input_file.eof()) {
+      if (!getline(input_file, type, '\t')) {
+         break;
+      }
+
+      if (type.size() != 1) {
+         throw silo::persistence::LoadDatabaseException("loadPartitions format exception");
+      }
+      if (type.at(0) == 'P') {
+         if (!getline(input_file, name, '\t')) {
+            break;
+         }
+         if (!getline(input_file, size_str, '\t')) {
+            break;
+         }
+         if (!getline(input_file, count_str, '\n')) {
+            break;
+         }
+         // size = atoi(size_str.c_str()); unused, only meta information
+         count = atoi(count_str.c_str());
+
+         const silo::preprocessing::Partition part{
+            name, count, std::vector<silo::preprocessing::Chunk>()};
+         descriptor.partitions.push_back(part);
+      } else if (type.at(0) == 'C') {
+         if (!getline(input_file, name, '\t')) {
+            break;
+         }
+         if (!getline(input_file, size_str, '\t')) {
+            break;
+         }
+         if (!getline(input_file, count_str, '\t')) {
+            break;
+         }
+         if (!getline(input_file, offset_str, '\n')) {
+            break;
+         }
+         // size = atoi(size_str.c_str()); unused, only meta information
+         count = atoi(count_str.c_str());
+         offset = atoi(offset_str.c_str());
+         const silo::preprocessing::Chunk chunk{name, count, offset, std::vector<std::string>()};
+         descriptor.partitions.back().chunks.push_back(chunk);
+      } else if (type.at(0) == 'L') {
+         if (!getline(input_file, name, '\n')) {
+            break;
+         }
+         descriptor.partitions.back().chunks.back().pango_lineages.push_back(name);
+      } else {
+         throw silo::persistence::LoadDatabaseException("loadPartitions format exception");
+      }
+   }
+   return descriptor;
+}
+
+void Partitions::save(std::ostream& output_file) {
+   for (const auto& partition : partitions) {
+      output_file << "P\t" << partition.name << '\t' << partition.chunks.size() << '\t'
+                  << partition.count << '\n';
+      for (const auto& chunk : partition.chunks) {
+         output_file << "C\t" << chunk.prefix << '\t' << chunk.pango_lineages.size() << '\t'
+                     << chunk.count << '\t' << chunk.offset << '\n';
+         for (const auto& pango_lineage : chunk.pango_lineages) {
+            output_file << "L\t" << pango_lineage << '\n';
+         }
+      }
+   }
 }
 
 }  // namespace silo::preprocessing

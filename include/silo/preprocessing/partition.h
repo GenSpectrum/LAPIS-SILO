@@ -32,6 +32,10 @@ struct Partition {
 
 struct Partitions {
    std::vector<Partition> partitions;
+
+   static silo::preprocessing::Partitions load(std::istream& input_file);
+
+   void save(std::ostream& output_file);
 };
 
 enum Architecture { MAX_PARTITIONS, SINGLE_PARTITION, HYBRID, SINGLE_SINGLE };

@@ -88,10 +88,6 @@ void savePangoLineageCounts(
 
 PangoLineageCounts loadPangoLineageCounts(std::istream& input_stream);
 
-void savePartitions(const preprocessing::Partitions& partitions, std::ostream& output_file);
-
-preprocessing::Partitions loadPartitions(std::istream& input_file);
-
 std::string buildChunkName(unsigned partition, unsigned chunk);
 
 }  // namespace silo
