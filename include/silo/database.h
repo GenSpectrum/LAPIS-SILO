@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include "silo/preprocessing/pango_lineage_count.h"
 #include "silo/storage/database_partition.h"
 #include "silo/storage/dictionary.h"
 #include "silo/storage/metadata_store.h"
@@ -16,17 +17,10 @@
 namespace silo {
 
 namespace preprocessing {
+
 struct Partitions;
-}
 
-struct PangoLineageCount {
-   std::string pango_lineage;
-   uint32_t count;
-};
-
-struct PangoLineageCounts {
-   std::vector<PangoLineageCount> pango_lineage_counts;
-};
+}  // namespace preprocessing
 
 struct DatabaseInfo;
 struct DetailedDatabaseInfo;
@@ -40,7 +34,7 @@ class Database {
    const std::string working_directory;
    std::vector<std::string> global_reference;
    std::vector<DatabasePartition> partitions;
-   std::unique_ptr<PangoLineageCounts> pango_descriptor;
+   std::unique_ptr<preprocessing::PangoLineageCounts> pango_descriptor;
    std::unique_ptr<preprocessing::Partitions> partition_descriptor;
    std::unique_ptr<Dictionary> dict;
 
@@ -80,13 +74,6 @@ class Database {
 };
 
 unsigned fillSequenceStore(SequenceStore& sequence_store, std::istream& input_file);
-
-void savePangoLineageCounts(
-   const PangoLineageCounts& pango_lineage_counts,
-   std::ostream& output_file
-);
-
-PangoLineageCounts loadPangoLineageCounts(std::istream& input_stream);
 
 std::string buildChunkName(unsigned partition, unsigned chunk);
 

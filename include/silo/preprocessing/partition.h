@@ -4,11 +4,9 @@
 #include <string>
 #include <vector>
 
-namespace silo {
+namespace silo::preprocessing {
 
 class PangoLineageCounts;
-
-namespace preprocessing {
 
 struct Chunk {
    template <class Archive>
@@ -42,7 +40,6 @@ enum Architecture { MAX_PARTITIONS, SINGLE_PARTITION, HYBRID, SINGLE_SINGLE };
 
 Partitions buildPartitions(PangoLineageCounts pango_lineage_counts, Architecture arch);
 
-}  // namespace preprocessing
-}  // namespace silo
+}  // namespace silo::preprocessing
 
 #endif  // SILO_PARTITION_H

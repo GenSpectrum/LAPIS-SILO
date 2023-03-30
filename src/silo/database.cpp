@@ -19,6 +19,7 @@
 #include "silo/database_info.h"
 #include "silo/persistence/exception.h"
 #include "silo/prepare_dataset.h"
+#include "silo/preprocessing/pango_lineage_count.h"
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/database_partition.h"
@@ -56,7 +57,7 @@ std::vector<std::string> initGlobalReference(const std::string& working_director
       );
    }
    return global_reference;
-};
+}
 
 std::unordered_map<std::string, std::string> initAliasKey(const std::string& working_directory) {
    std::filesystem::path const alias_key_path(working_directory + PANGO_ALIAS_FILENAME);
@@ -459,34 +460,6 @@ unsigned silo::fillSequenceStore(silo::SequenceStore& sequence_store, std::istre
    return sequence_count;
 }
 
-void silo::savePangoLineageCounts(
-   const silo::PangoLineageCounts& pango_lineage_counts,
-   std::ostream& output_file
-) {
-   for (const auto& pango_lineage_count : pango_lineage_counts.pango_lineage_counts) {
-      output_file << pango_lineage_count.pango_lineage << '\t' << pango_lineage_count.count << '\n';
-   }
-   output_file.flush();
-}
-
-silo::PangoLineageCounts silo::loadPangoLineageCounts(std::istream& input_stream) {
-   silo::PangoLineageCounts descriptor;
-   std::string lineage;
-   std::string count_str;
-   uint32_t count;
-   while (input_stream && !input_stream.eof()) {
-      if (!getline(input_stream, lineage, '\t')) {
-         break;
-      }
-      if (!getline(input_stream, count_str, '\n')) {
-         break;
-      }
-      count = atoi(count_str.c_str());
-      descriptor.pango_lineage_counts.emplace_back(silo::PangoLineageCount{lineage, count});
-   }
-   return descriptor;
-}
-
 [[maybe_unused]] void silo::Database::saveDatabaseState(const std::string& save_directory) {
    if (!partition_descriptor) {
       throw silo::persistence::SaveDatabaseException(
@@ -502,7 +475,7 @@ silo::PangoLineageCounts silo::loadPangoLineageCounts(std::istream& input_stream
          );
       }
       SPDLOG_INFO("Saving pango lineage descriptor to {}pango_descriptor.txt", save_directory);
-      savePangoLineageCounts(*pango_descriptor, pango_def_file);
+      pango_descriptor->save(pango_def_file);
    }
    {
       std::ofstream part_def_file(save_directory + "partition_descriptor.txt");
@@ -569,8 +542,9 @@ silo::PangoLineageCounts silo::loadPangoLineageCounts(std::istream& input_stream
    std::ifstream pango_def_file(pango_definition_file);
    if (pango_def_file) {
       SPDLOG_INFO("Loading pango definition from {}", pango_definition_file);
-      pango_descriptor =
-         std::make_unique<PangoLineageCounts>(loadPangoLineageCounts(pango_def_file));
+      pango_descriptor = std::make_unique<preprocessing::PangoLineageCounts>(
+         preprocessing::PangoLineageCounts::load(pango_def_file)
+      );
    }
 
    {
@@ -611,9 +585,9 @@ silo::PangoLineageCounts silo::loadPangoLineageCounts(std::istream& input_stream
 void silo::Database::preprocessing(const PreprocessingConfig& config) {
    SPDLOG_INFO("preprocessing - building pango lineage counts");
    std::ifstream metadata_stream(config.metadata_file.relative_path());
-   pango_descriptor =
-      std::make_unique<PangoLineageCounts>(silo::buildPangoLineageCounts(alias_key, metadata_stream)
-      );
+   pango_descriptor = std::make_unique<preprocessing::PangoLineageCounts>(
+      preprocessing::buildPangoLineageCounts(alias_key, metadata_stream)
+   );
 
    SPDLOG_INFO("preprocessing - building partitions");
    partition_descriptor =

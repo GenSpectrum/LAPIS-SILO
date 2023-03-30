@@ -2,6 +2,7 @@
 
 #include "silo/database.h"
 #include "silo/persistence/exception.h"
+#include "silo/preprocessing/pango_lineage_count.h"
 
 namespace silo::preprocessing {
 
@@ -29,17 +30,17 @@ static std::string commonPangoPrefix(const std::string& lineage1, const std::str
 /// Updates pango_lineages to contain the chunk each pango_lineage is contained in and returns
 /// vector of chunks
 std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
-   std::vector<silo::PangoLineageCount>& pango_lineage_counts,
+   std::vector<PangoLineageCount>& pango_lineage_counts,
    unsigned target_size,
    unsigned min_size
 ) {
    // Initialize chunks such that every chunk is just a pango_lineage
-   std::list<silo::preprocessing::Chunk> chunks;
+   std::list<Chunk> chunks;
    uint32_t running_total = 0;
    for (auto& count : pango_lineage_counts) {
       std::vector<std::string> pango_lineages;
       pango_lineages.push_back(count.pango_lineage);
-      silo::preprocessing::Chunk const tmp = {
+      Chunk const tmp = {
          count.pango_lineage, count.count, running_total, pango_lineages};
       running_total += count.count;
       chunks.emplace_back(tmp);
@@ -51,7 +52,7 @@ std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
       std::max_element(
          pango_lineage_counts.begin(),
          pango_lineage_counts.end(),
-         [](const silo::PangoLineageCount& lhs, const silo::PangoLineageCount& rhs) {
+         [](const PangoLineageCount& lhs, const PangoLineageCount& rhs) {
             return lhs.pango_lineage.size() < rhs.pango_lineage.size();
          }
       )->pango_lineage.size();
@@ -82,12 +83,12 @@ std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
       }
    }
 
-   std::vector<silo::preprocessing::Chunk> ret;
+   std::vector<Chunk> ret;
    std::copy(std::begin(chunks), std::end(chunks), std::back_inserter(ret));
    return ret;
 }
 
-Partitions buildPartitions(silo::PangoLineageCounts pango_lineage_counts, Architecture arch) {
+Partitions buildPartitions(PangoLineageCounts pango_lineage_counts, Architecture arch) {
    uint32_t total_count = 0;
    for (auto& pango_lineage_count : pango_lineage_counts.pango_lineage_counts) {
       total_count += pango_lineage_count.count;

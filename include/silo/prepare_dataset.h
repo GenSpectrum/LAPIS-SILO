@@ -9,9 +9,9 @@ namespace silo {
 
 namespace preprocessing {
 struct Partitions;
+struct PangoLineageCounts;
 }
 
-struct PangoLineageCounts;
 class PangoLineageAliasLookup;
 
 [[maybe_unused]] void pruneSequences(
@@ -24,11 +24,6 @@ class PangoLineageAliasLookup;
    std::istream& metadata_in,
    std::istream& sequences_in,
    std::ostream& metadata_out
-);
-
-PangoLineageCounts buildPangoLineageCounts(
-   const PangoLineageAliasLookup& alias_key,
-   std::istream& meta_in
 );
 
 void partitionSequences(
