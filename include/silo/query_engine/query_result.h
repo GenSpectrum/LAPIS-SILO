@@ -23,10 +23,10 @@ struct ErrorResult {
 };
 
 struct QueryResult {
-   std::variant<AggregationResult, std::vector<MutationProportion>, ErrorResult> queryResult;
-   int64_t parseTime;   // NOLINT
-   int64_t filterTime;  // NOLINT
-   int64_t actionTime;  // NOLINT
+   std::variant<AggregationResult, std::vector<MutationProportion>, ErrorResult> query_result;
+   int64_t parse_time;
+   int64_t filter_time;
+   int64_t action_time;
 };
 }  // namespace silo::response
 

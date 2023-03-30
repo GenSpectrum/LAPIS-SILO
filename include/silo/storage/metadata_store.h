@@ -7,7 +7,7 @@
 #include <ctime>
 #include <vector>
 
-#include "silo/common/silo_symbols.h"
+#include "silo/common/nucleotide_symbols.h"
 #include "silo/roaring/roaring_serialize.h"
 
 namespace silo {

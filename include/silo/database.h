@@ -46,11 +46,10 @@ struct PangoLineageCounts {
    std::vector<PangoLineageCount> pango_lineage_counts;
 };
 
-struct DatabaseInfo {
-   uint32_t sequenceCount;
-   uint64_t totalSize;
-   size_t nBitmapsSize;
-};
+struct DatabaseInfo;
+struct DetailedDatabaseInfo;
+struct BitmapSizePerSymbol;
+struct BitmapContainerSize;
 
 class DatabasePartition {
    friend class Database;
@@ -103,8 +102,7 @@ class Database {
 
    virtual silo::DatabaseInfo getDatabaseInfo() const;
 
-   int detailedDatabaseInfo(std::ostream& output_file);
-   [[maybe_unused]] void printFlippedGenomePositions(std::ostream& output_file);
+   virtual DetailedDatabaseInfo detailedDatabaseInfo() const;
    void finalizeBuild();
 
    [[maybe_unused]] void flipBitmaps();
@@ -121,6 +119,8 @@ class Database {
 
   private:
    std::unordered_map<std::string, std::string> alias_key;
+   BitmapSizePerSymbol calculateBitmapSizePerSymbol() const;
+   BitmapContainerSize calculateBitmapContainerSizePerGenomeSection(uint32_t section_length) const;
 };
 
 unsigned fillSequenceStore(SequenceStore& sequence_store, std::istream& input_file);

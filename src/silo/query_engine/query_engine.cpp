@@ -22,7 +22,7 @@
 
 #include "external/PerfEvent.hpp"
 #include "silo/common/log.h"
-#include "silo/common/silo_symbols.h"
+#include "silo/common/nucleotide_symbols.h"
 #include "silo/database.h"
 #include "silo/query_engine/query_result.h"
 
@@ -142,7 +142,7 @@ std::unique_ptr<BoolExpression> parseExpression(
    if (expression_type == "NucleotideEquals") {
       const unsigned position = json_value["position"].GetUint();
       const std::string& nucleotide_symbol = json_value["symbol"].GetString();
-      GENOME_SYMBOL value;
+      NUCLEOTIDE_SYMBOL value;
       if (nucleotide_symbol.at(0) == '.') {
          const char character = database.global_reference[0].at(position);
          value = toNucleotideSymbol(character);
@@ -1050,12 +1050,12 @@ ExpressionType NucleotideSymbolEqualsExpression::type() const {
 NucleotideSymbolEqualsExpression::NucleotideSymbolEqualsExpression() = default;
 NucleotideSymbolEqualsExpression::NucleotideSymbolEqualsExpression(
    unsigned int position,
-   GENOME_SYMBOL value
+   NUCLEOTIDE_SYMBOL value
 )
     : position(position),
       value(value) {}
 std::string NucleotideSymbolEqualsExpression::toString(const Database& /*database*/) {
-   std::string res = std::to_string(position) + SYMBOL_REPRESENTATION[value];
+   std::string res = std::to_string(position) + genomeSymbolRepresentation(value);
    return res;
 }
 
@@ -1065,12 +1065,12 @@ ExpressionType NucleotideSymbolMaybeExpression::type() const {
 NucleotideSymbolMaybeExpression::NucleotideSymbolMaybeExpression() = default;
 NucleotideSymbolMaybeExpression::NucleotideSymbolMaybeExpression(
    unsigned int position,
-   GENOME_SYMBOL value
+   NUCLEOTIDE_SYMBOL value
 )
     : position(position),
       value(value) {}
 std::string NucleotideSymbolMaybeExpression::toString(const Database& /*database*/) {
-   std::string res = "?" + std::to_string(position) + SYMBOL_REPRESENTATION[value];
+   std::string res = "?" + std::to_string(position) + genomeSymbolRepresentation(value);
    return res;
 }
 
@@ -1203,16 +1203,16 @@ silo::response::QueryResult silo::executeQuery(
    response::QueryResult query_result;
    std::unique_ptr<BoolExpression> filter;
    {
-      BlockTimer const timer(query_result.parseTime);
+      BlockTimer const timer(query_result.parse_time);
       filter = parseExpression(database, json_document["filterExpression"], 0);
       SPDLOG_DEBUG("Parsed query: {}", filter->toString(database));
    }
 
-   LOG_PERFORMANCE("Parse: {} microseconds", std::to_string(query_result.parseTime));
+   LOG_PERFORMANCE("Parse: {} microseconds", std::to_string(query_result.parse_time));
 
    std::vector<silo::BooleanExpressionResult> partition_filters(database.partitions.size());
    {
-      BlockTimer const timer(query_result.filterTime);
+      BlockTimer const timer(query_result.filter_time);
       tbb::blocked_range<size_t> const range(0, database.partitions.size(), 1);
       tbb::parallel_for(range.begin(), range.end(), [&](const size_t& partition_index) {
          std::unique_ptr<BoolExpression> part_filter =
@@ -1225,10 +1225,10 @@ silo::response::QueryResult silo::executeQuery(
    for (unsigned i = 0; i < database.partitions.size(); ++i) {
       SPDLOG_DEBUG("Simplified query for partition {}: {}", i, simplified_queries[i]);
    }
-   LOG_PERFORMANCE("Execution (filter): {} microseconds", std::to_string(query_result.filterTime));
+   LOG_PERFORMANCE("Execution (filter): {} microseconds", std::to_string(query_result.filter_time));
 
    {
-      BlockTimer const timer(query_result.actionTime);
+      BlockTimer const timer(query_result.action_time);
       const auto& action = json_document["action"];
       assert(action.HasMember("type"));
       assert(action["type"].IsString());
@@ -1242,29 +1242,29 @@ silo::response::QueryResult silo::executeQuery(
          }
 
          if (strcmp(action_type, "Aggregated") == 0) {
-            query_result.queryResult =
+            query_result.query_result =
                response::ErrorResult{"groupByFields::Aggregated is not properly implemented yet"};
          } else if (strcmp(action_type, "List") == 0) {
-            query_result.queryResult =
+            query_result.query_result =
                response::ErrorResult{"groupByFields::List is not properly implemented yet"};
          } else if (strcmp(action_type, "Mutations") == 0) {
-            query_result.queryResult =
+            query_result.query_result =
                response::ErrorResult{"groupByFields::Mutations is not properly implemented yet"};
          } else {
-            query_result.queryResult =
+            query_result.query_result =
                response::ErrorResult{"groupByFields is not properly implemented yet"};
          }
 
       } else {
          if (strcmp(action_type, "Aggregated") == 0) {
             const unsigned count = executeCount(database, partition_filters);
-            query_result.queryResult = response::AggregationResult{count};
+            query_result.query_result = response::AggregationResult{count};
          } else if (strcmp(action_type, "List") == 0) {
          } else if (strcmp(action_type, "Mutations") == 0) {
             double min_proportion = DEFAULT_MINIMAL_PROPORTION;
             if (action.HasMember("minProportion") && action["minProportion"].IsDouble()) {
                if (action["minProportion"].GetDouble() <= 0.0) {
-                  query_result.queryResult = response::ErrorResult{
+                  query_result.query_result = response::ErrorResult{
                      "Invalid proportion", "minProportion must be in interval (0.0,1.0]"};
                   return query_result;
                }
@@ -1284,15 +1284,15 @@ silo::response::QueryResult silo::executeQuery(
                      mutation_proportion.proportion, mutation_proportion.count};
                }
             );
-            query_result.queryResult = output_mutation_proportions;
+            query_result.query_result = output_mutation_proportions;
          } else {
-            query_result.queryResult = response::ErrorResult{
+            query_result.query_result = response::ErrorResult{
                "Unknown action", std::string(action_type) + " is not a valid action"};
          }
       }
    }
 
-   LOG_PERFORMANCE("Execution (action): {} microseconds", std::to_string(query_result.actionTime));
+   LOG_PERFORMANCE("Execution (action): {} microseconds", std::to_string(query_result.action_time));
 
    return query_result;
 }

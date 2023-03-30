@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include "silo/common/silo_symbols.h"
+#include "silo/common/nucleotide_symbols.h"
 
 namespace silo {
 
@@ -185,14 +185,14 @@ struct NegatedExpression : public BoolExpression {
 
 struct NucleotideSymbolEqualsExpression : public BoolExpression {
    unsigned position;
-   GENOME_SYMBOL value;
+   NUCLEOTIDE_SYMBOL value;
    bool individualized = false;
 
    [[nodiscard]] ExpressionType type() const override;
 
    explicit NucleotideSymbolEqualsExpression();
 
-   explicit NucleotideSymbolEqualsExpression(unsigned position, GENOME_SYMBOL value);
+   explicit NucleotideSymbolEqualsExpression(unsigned position, NUCLEOTIDE_SYMBOL value);
 
    BooleanExpressionResult evaluate(
       const Database& database,
@@ -209,14 +209,14 @@ struct NucleotideSymbolEqualsExpression : public BoolExpression {
 
 struct NucleotideSymbolMaybeExpression : public BoolExpression {
    unsigned position;
-   GENOME_SYMBOL value;
+   NUCLEOTIDE_SYMBOL value;
    bool negated = false;
 
    [[nodiscard]] ExpressionType type() const override;
 
    explicit NucleotideSymbolMaybeExpression();
 
-   explicit NucleotideSymbolMaybeExpression(unsigned position, GENOME_SYMBOL value);
+   explicit NucleotideSymbolMaybeExpression(unsigned position, NUCLEOTIDE_SYMBOL value);
 
    BooleanExpressionResult evaluate(
       const Database& database,

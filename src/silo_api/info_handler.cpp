@@ -3,28 +3,108 @@
 #include <Poco/Net/HTTPRequestHandler.h>
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/Net/HTTPServerResponse.h>
+#include <Poco/URI.h>
 #include <nlohmann/json.hpp>
 
 #include "silo/database.h"
+#include "silo/database_info.h"
 
 namespace silo {
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(DatabaseInfo, sequenceCount, totalSize, nBitmapsSize);
+
+// NOLINTNEXTLINE(readability-identifier-naming)
+void to_json(nlohmann::json& json, const DatabaseInfo& databaseInfo) {
+   json = nlohmann::json{
+      {"sequenceCount", databaseInfo.sequence_count},
+      {"totalSize", databaseInfo.total_size},
+      {"nBitmapsSize", databaseInfo.n_bitmaps_size}};
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
+void to_json(nlohmann::json& json, const BitmapContainerSizeStatistic& statistics) {
+   json = nlohmann::json{
+      {"numberOfArrayContainers", statistics.number_of_array_containers},
+      {"numberOfRunContainers", statistics.number_of_run_containers},
+      {"numberOfBitsetContainers", statistics.number_of_run_containers},
+      {"numberOfValuesStoredInArrayContainers",
+       statistics.number_of_values_stored_in_array_containers},
+      {"numberOfValuesStoredInRunContainers", statistics.number_of_values_stored_in_run_containers},
+      {"numberOfValuesStoredInBitsetContainers",
+       statistics.number_of_values_stored_in_bitset_containers},
+      {"totalBitmapSizeArrayContainers", statistics.total_bitmap_size_array_containers},
+      {"totalBitmapSizeRunContainers", statistics.total_bitmap_size_run_containers},
+      {"totalBitmapSizeBitsetContainers", statistics.total_bitmap_size_bitset_containers}};
+}
+
+// NOLINTNEXTLINE(readability-identifier-naming)
+void to_json(nlohmann::json& json, const BitmapSizePerSymbol& bitmapSizePerSymbol) {
+   std::map<std::string, uint64_t> size_in_bytes_for_nlohmann;
+   for (const auto& [symbol, size] : bitmapSizePerSymbol.size_in_bytes) {
+      size_in_bytes_for_nlohmann[genomeSymbolRepresentation(symbol)] = size;
+   }
+   json = size_in_bytes_for_nlohmann;
+}
+
+// NOLINTNEXTLINE(readability-identifier-naming)
+void to_json(nlohmann::json& json, const BitmapContainerSize& bitmapContainerSize) {
+   json = nlohmann::json{
+      {"sectionLength", bitmapContainerSize.section_length},
+      {"sizePerGenomeSymbolAndSection", bitmapContainerSize.size_per_genome_symbol_and_section},
+      {"bitmapContainerSizeStatistic", bitmapContainerSize.bitmap_container_size_statistic},
+      {"totalBitmapSizeFrozen", bitmapContainerSize.total_bitmap_size_frozen},
+      {"totalBitmapSizeComputed", bitmapContainerSize.total_bitmap_size_computed}};
+}
+
+// NOLINTNEXTLINE(readability-identifier-naming)
+void to_json(nlohmann::json& json, const DetailedDatabaseInfo& databaseInfo) {
+   json = nlohmann::json{
+      {"bitmapSizePerSymbol", databaseInfo.bitmap_size_per_symbol},
+      {"bitmapContainerSizePerGenomeSection",
+       databaseInfo.bitmap_container_size_per_genome_section}};
+}
+
+}  // namespace silo
+
 namespace silo_api {
+
+std::map<std::string, std::string> getQueryParameter(const Poco::Net::HTTPServerRequest& request) {
+   std::map<std::string, std::string> map;
+   const Poco::URI uri(request.getURI());
+   const auto query_parameters = uri.getQueryParameters();
+
+   for (const auto& parameter : query_parameters) {
+      map.insert(parameter);
+   }
+   return map;
+}
 
 InfoHandler::InfoHandler(const silo::Database& database)
     : database(database) {}
 
 void InfoHandler::get(
-   Poco::Net::HTTPServerRequest& /*request*/,
+   Poco::Net::HTTPServerRequest& request,
    Poco::Net::HTTPServerResponse& response
 ) {
-   const auto db_info = database.getDatabaseInfo();
+   const auto request_parameter = getQueryParameter(request);
 
+   if(request_parameter.find("details") != request_parameter.end() && request_parameter.at("details") == "true") {
+      returnDetailedDatabaseInfo(response);
+      return;
+   }
+   returnSimpleDatabaseInfo(response);
+}
+
+void InfoHandler::returnSimpleDatabaseInfo(Poco::Net::HTTPServerResponse& response) {
+   const auto database_info = database.getDatabaseInfo();
    response.setContentType("application/json");
    std::ostream& out_stream = response.send();
-   out_stream << nlohmann::json(db_info);
+   out_stream << nlohmann::json(database_info);
+}
+
+void InfoHandler::returnDetailedDatabaseInfo(Poco::Net::HTTPServerResponse& response) {
+   const auto detailed_info = database.detailedDatabaseInfo();
+   response.setContentType("application/json");
+   std::ostream& out_stream = response.send();
+   out_stream << nlohmann::json(detailed_info);
 }
 
 }  // namespace silo_api

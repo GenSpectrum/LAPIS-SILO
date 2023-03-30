@@ -2,13 +2,17 @@
 #ifndef SILO_SEQUENCE_STORE_H
 #define SILO_SEQUENCE_STORE_H
 
-#include <spdlog/spdlog.h>
 #include <array>
+#include <optional>
+
+#include <spdlog/spdlog.h>
 #include <boost/serialization/array.hpp>
 #include <roaring/roaring.hh>
 
 #include "metadata_store.h"
+#include "silo/common/nucleotide_symbols.h"
 #include "silo/roaring/roaring_serialize.h"
+#include "silo/storage/serialize_optional.h"
 
 namespace silo {
 
@@ -17,16 +21,13 @@ struct Position {
 
    template <class Archive>
    void serialize(Archive& archive, [[maybe_unused]] const unsigned int version) {
-      archive& flipped_bitmap;
+      archive& symbol_whose_bitmap_is_flipped;
       archive& bitmaps;
       archive& nucleotide_symbol_n_indexed;
    }
 
    std::array<roaring::Roaring, SYMBOL_COUNT> bitmaps;
-
-   static constexpr uint32_t REFERENCE_BITMAP_IS_FLIPPED = UINT32_MAX;
-   uint32_t flipped_bitmap = REFERENCE_BITMAP_IS_FLIPPED;
-
+   std::optional<NUCLEOTIDE_SYMBOL> symbol_whose_bitmap_is_flipped = std::nullopt;
    bool nucleotide_symbol_n_indexed = false;
 };
 
@@ -57,16 +58,16 @@ class SequenceStore {
 
    [[nodiscard]] size_t computeSize() const;
 
-   [[nodiscard]] const roaring::Roaring* getBitmap(size_t position, GENOME_SYMBOL symbol) const;
+   [[nodiscard]] const roaring::Roaring* getBitmap(size_t position, NUCLEOTIDE_SYMBOL symbol) const;
 
    [[nodiscard]] roaring::Roaring* getBitmapFromAmbiguousSymbol(
       size_t position,
-      GENOME_SYMBOL ambiguous_symbol
+      NUCLEOTIDE_SYMBOL ambiguous_symbol
    ) const;
 
    [[nodiscard]] roaring::Roaring* getFlippedBitmapFromAmbiguousSymbol(
       size_t position,
-      GENOME_SYMBOL ambiguous_symbol
+      NUCLEOTIDE_SYMBOL ambiguous_symbol
    ) const;
 
    void interpret(const std::vector<std::string>& genomes);
