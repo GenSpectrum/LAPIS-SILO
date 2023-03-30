@@ -89,7 +89,7 @@ silo::Database::Database(const std::string& directory)
       global_reference(initGlobalReference(directory)),
       alias_key(initAliasKey(directory)) {}
 
-const std::unordered_map<std::string, std::string>& silo::Database::getAliasKey() const {
+const silo::PangoLineageAliasLookup& silo::Database::getAliasKey() const {
    return alias_key;
 }
 
@@ -146,9 +146,8 @@ void silo::Database::build(
                unsigned const sequence_store_sequence_count = fillSequenceStore(
                   partitions[partition_index].seq_store, sequence_input.getInputStream()
                );
-               unsigned const metadata_store_sequence_count = fillMetadataStore(
-                  partitions[partition_index].meta_store, meta_in, alias_key, *dict
-               );
+               unsigned const metadata_store_sequence_count =
+                  partitions[partition_index].meta_store.fill(meta_in, alias_key, *dict);
                if (sequence_store_sequence_count != metadata_store_sequence_count) {
                   throw silo::PreprocessingException(
                      "Sequences in meta data and sequence data for chunk " +
@@ -460,73 +459,6 @@ unsigned silo::fillSequenceStore(silo::SequenceStore& sequence_store, std::istre
    return sequence_count;
 }
 
-unsigned silo::fillMetadataStore(
-   MetadataStore& meta_store,
-   std::istream& input_file,
-   const std::unordered_map<std::string, std::string>& alias_key,
-   const Dictionary& dict
-) {
-   // Ignore header line.
-   input_file.ignore(LONG_MAX, '\n');
-
-   unsigned sequence_count = 0;
-
-   while (true) {
-      std::string epi_isl;
-      std::string pango_lineage_raw;
-      std::string date;
-      std::string region;
-      std::string country;
-      std::string division;
-      if (!getline(input_file, epi_isl, '\t')) {
-         break;
-      }
-      if (!getline(input_file, pango_lineage_raw, '\t')) {
-         break;
-      }
-      if (!getline(input_file, date, '\t')) {
-         break;
-      }
-      if (!getline(input_file, region, '\t')) {
-         break;
-      }
-      if (!getline(input_file, country, '\t')) {
-         break;
-      }
-      if (!getline(input_file, division, '\n')) {
-         break;
-      }
-
-      /// Deal with pango_lineage alias:
-      std::string const pango_lineage = resolvePangoLineageAlias(alias_key, pango_lineage_raw);
-
-      constexpr int START_POSITION_OF_NUMBER_IN_EPI_ISL = 8;
-      std::string const tmp = epi_isl.substr(START_POSITION_OF_NUMBER_IN_EPI_ISL);
-      uint64_t const epi = stoi(tmp);
-
-      struct std::tm time_struct {};
-      std::istringstream time_stream(date);
-      time_stream >> std::get_time(&time_struct, "%Y-%m-%d");
-      std::time_t const time = mktime(&time_struct);
-
-      std::vector<uint64_t> extra_cols;
-      extra_cols.push_back(dict.getIdInGeneralLookup(division));
-
-      silo::inputSequenceMeta(
-         meta_store,
-         epi,
-         time,
-         dict.getPangoLineageIdInLookup(pango_lineage),
-         dict.getRegionIdInLookup(region),
-         dict.getCountryIdInLookup(country),
-         extra_cols
-      );
-      ++sequence_count;
-   }
-
-   return sequence_count;
-}
-
 void silo::savePangoLineageCounts(
    const silo::PangoLineageCounts& pango_lineage_counts,
    std::ostream& output_file
@@ -748,24 +680,6 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
 }
 silo::Database::Database() = default;
 
-std::string silo::resolvePangoLineageAlias(
-   const std::unordered_map<std::string, std::string>& alias_key,
-   const std::string& pango_lineage
-) {
-   std::string pango_lineage_prefix;
-   std::stringstream pango_lineage_stream(pango_lineage);
-   getline(pango_lineage_stream, pango_lineage_prefix, '.');
-   if (alias_key.contains(pango_lineage_prefix)) {
-      if (pango_lineage_stream.eof()) {
-         return alias_key.at(pango_lineage_prefix);
-      }
-      const std::string suffix(
-         (std::istream_iterator<char>(pango_lineage_stream)), std::istream_iterator<char>()
-      );
-      return alias_key.at(pango_lineage_prefix) + '.' + suffix;
-   }
-   return pango_lineage;
-}
 std::string silo::buildChunkName(unsigned int partition, unsigned int chunk) {
    return "P" + std::to_string(partition) + "_C" + std::to_string(chunk);
 }

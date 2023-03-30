@@ -11,6 +11,7 @@
 #include "silo/storage/metadata_store.h"
 #include "silo/storage/sequence_store.h"
 #include "silo/storage/database_partition.h"
+#include "silo/storage/pango_lineage_alias.h"
 
 namespace silo {
 
@@ -76,22 +77,15 @@ class Database {
 
    [[maybe_unused]] [[maybe_unused]] void loadDatabaseState(const std::string& save_directory);
 
-   [[nodiscard]] const std::unordered_map<std::string, std::string>& getAliasKey() const;
+   [[nodiscard]] const PangoLineageAliasLookup& getAliasKey() const;
 
   private:
-   std::unordered_map<std::string, std::string> alias_key;
+   PangoLineageAliasLookup alias_key;
    BitmapSizePerSymbol calculateBitmapSizePerSymbol() const;
    BitmapContainerSize calculateBitmapContainerSizePerGenomeSection(uint32_t section_length) const;
 };
 
 unsigned fillSequenceStore(SequenceStore& sequence_store, std::istream& input_file);
-
-unsigned fillMetadataStore(
-   MetadataStore& meta_store,
-   std::istream& input_file,
-   const std::unordered_map<std::string, std::string>& alias_key,
-   const Dictionary& dict
-);
 
 void savePangoLineageCounts(
    const PangoLineageCounts& pango_lineage_counts,
@@ -103,11 +97,6 @@ PangoLineageCounts loadPangoLineageCounts(std::istream& input_stream);
 void savePartitions(const Partitions& partitions, std::ostream& output_file);
 
 Partitions loadPartitions(std::istream& input_file);
-
-std::string resolvePangoLineageAlias(
-   const std::unordered_map<std::string, std::string>& alias_key,
-   const std::string& pango_lineage
-);
 
 std::string buildChunkName(unsigned partition, unsigned chunk);
 

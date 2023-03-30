@@ -11,6 +11,7 @@
 #include "silo/persistence/exception.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/database_partition.h"
+#include "silo/storage/pango_lineage_alias.h"
 
 [[maybe_unused]] void silo::pruneMetadata(
    std::istream& metadata_in,
@@ -152,7 +153,7 @@
 }
 
 silo::PangoLineageCounts silo::buildPangoLineageCounts(
-   const std::unordered_map<std::string, std::string>& alias_key,
+   const PangoLineageAliasLookup& alias_key,
    std::istream& meta_in
 ) {
    silo::PangoLineageCounts pango_lineage_counts;
@@ -175,7 +176,7 @@ silo::PangoLineageCounts silo::buildPangoLineageCounts(
       meta_in.ignore(LONG_MAX, '\n');
 
       /// Deal with pango_lineage alias:
-      std::string const pango_lineage = resolvePangoLineageAlias(alias_key, pango_lineage_raw);
+      std::string const pango_lineage = alias_key.resolvePangoLineageAlias(pango_lineage_raw);
 
       if (pango_to_id.contains(pango_lineage)) {
          auto pid = pango_to_id[pango_lineage];
@@ -407,7 +408,7 @@ void silo::partitionSequences(
    std::istream& meta_in,
    std::istream& sequence_in,
    const std::string& output_prefix,
-   const std::unordered_map<std::string, std::string>& alias_key,
+   const PangoLineageAliasLookup& alias_key,
    const std::string& metadata_file_extension,
    const std::string& sequence_file_extension
 ) {
@@ -458,7 +459,7 @@ void silo::partitionSequences(
          }
 
          /// Deal with pango_lineage alias:
-         std::string const pango_lineage = resolvePangoLineageAlias(alias_key, pango_lineage_raw);
+         std::string const pango_lineage = alias_key.resolvePangoLineageAlias(pango_lineage_raw);
 
          static constexpr int BEGIN_OF_NUMBER_IN_EPI_ISL = 8;
          std::string const tmp = epi_isl.substr(BEGIN_OF_NUMBER_IN_EPI_ISL);

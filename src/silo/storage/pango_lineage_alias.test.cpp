@@ -1,8 +1,8 @@
-#include "silo/database.h"
-
 #include <gtest/gtest.h>
 #include <string>
 #include <unordered_map>
+
+#include "silo/storage/pango_lineage_alias.h"
 
 struct TestParameter {
    std::string input;
@@ -11,13 +11,13 @@ struct TestParameter {
 
 class ResolveAliasTestFixture : public ::testing::TestWithParam<TestParameter> {
   protected:
-   const std::unordered_map<std::string, std::string> alias_map = {{"X", "A"}, {"XY", "A.1"}};
+   const silo::PangoLineageAliasLookup alias_map = std::unordered_map<std::string, std::string>{{"X", "A"}, {"XY", "A.1"}};
 };
 
 TEST_P(ResolveAliasTestFixture, shouldReturnExpectedResolvedAlias) {
    const auto test_parameter = GetParam();
 
-   const auto result = silo::resolvePangoLineageAlias(alias_map, test_parameter.input);
+   const auto result = alias_map.resolvePangoLineageAlias(test_parameter.input);
 
    ASSERT_EQ(result, test_parameter.expected_result);
 }

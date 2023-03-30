@@ -223,7 +223,7 @@ std::unique_ptr<BoolExpression> parseExpression(
       const bool include_sublineages = json_value["include_sublineages"].GetBool();
       std::string lineage = json_value["value"].GetString();
       std::transform(lineage.begin(), lineage.end(), lineage.begin(), ::toupper);
-      lineage = resolvePangoLineageAlias(database.getAliasKey(), lineage);
+      lineage = database.getAliasKey().resolvePangoLineageAlias(lineage);
       const uint32_t lineage_key = database.dict->getPangoLineageIdInLookup(lineage);
       return std::make_unique<PangoLineageExpression>(lineage_key, include_sublineages);
    }

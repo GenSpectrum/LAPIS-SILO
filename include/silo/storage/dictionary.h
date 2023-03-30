@@ -6,6 +6,10 @@
 #include <unordered_map>
 #include <vector>
 
+namespace silo {
+class PangoLineageAliasLookup;
+}
+
 class Dictionary {
   private:
    // TODO(someone) put this into two way map
@@ -30,7 +34,7 @@ class Dictionary {
   public:
    void updateDictionary(
       std::istream& metadata_file,
-      const std::unordered_map<std::string, std::string>& alias_key
+      const silo::PangoLineageAliasLookup& alias_key
    );
 
    void saveDictionary(std::ostream& dictionary_file) const;

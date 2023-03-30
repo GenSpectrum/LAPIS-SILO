@@ -10,7 +10,11 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/roaring/roaring_serialize.h"
 
+class Dictionary;
+
 namespace silo {
+
+class PangoLineageAliasLookup;
 
 struct MetadataStore {
    template <class Archive>
@@ -47,17 +51,23 @@ struct MetadataStore {
    std::vector<roaring::Roaring> country_bitmaps;
 
    std::vector<std::vector<uint64_t>> columns;
-};
 
-void inputSequenceMeta(
-   MetadataStore& metadata_store,
-   uint64_t epi_isl_number,
-   time_t date,
-   uint32_t pango_lineage,
-   uint32_t region,
-   uint32_t country,
-   const std::vector<uint64_t>& values
-);
+   unsigned fill(
+      std::istream& input_file,
+      const PangoLineageAliasLookup& alias_key,
+      const Dictionary& dict
+   );
+
+  private:
+   void inputSequenceMeta(
+      uint64_t epi_isl_number,
+      time_t date,
+      uint32_t pango_lineage,
+      uint32_t region,
+      uint32_t country,
+      const std::vector<uint64_t>& values
+   );
+};
 
 }  // namespace silo
 
