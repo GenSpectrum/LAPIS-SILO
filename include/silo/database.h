@@ -7,23 +7,17 @@
 #include <utility>
 #include <vector>
 
+#include "silo/storage/database_partition.h"
 #include "silo/storage/dictionary.h"
 #include "silo/storage/metadata_store.h"
-#include "silo/storage/sequence_store.h"
-#include "silo/storage/database_partition.h"
 #include "silo/storage/pango_lineage_alias.h"
+#include "silo/storage/sequence_store.h"
 
 namespace silo {
 
-struct Partition {
-   std::string name;
-   uint32_t count;
-   std::vector<Chunk> chunks;
-};
-
-struct Partitions {
-   std::vector<Partition> partitions;
-};
+namespace preprocessing {
+struct Partitions;
+}
 
 struct PangoLineageCount {
    std::string pango_lineage;
@@ -47,7 +41,7 @@ class Database {
    std::vector<std::string> global_reference;
    std::vector<DatabasePartition> partitions;
    std::unique_ptr<PangoLineageCounts> pango_descriptor;
-   std::unique_ptr<Partitions> partition_descriptor;
+   std::unique_ptr<preprocessing::Partitions> partition_descriptor;
    std::unique_ptr<Dictionary> dict;
 
    Database();
@@ -94,9 +88,9 @@ void savePangoLineageCounts(
 
 PangoLineageCounts loadPangoLineageCounts(std::istream& input_stream);
 
-void savePartitions(const Partitions& partitions, std::ostream& output_file);
+void savePartitions(const preprocessing::Partitions& partitions, std::ostream& output_file);
 
-Partitions loadPartitions(std::istream& input_file);
+preprocessing::Partitions loadPartitions(std::istream& input_file);
 
 std::string buildChunkName(unsigned partition, unsigned chunk);
 

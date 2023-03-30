@@ -739,7 +739,7 @@ BooleanExpressionResult DateBetweenExpression::evaluate(
 
    auto* result = new Roaring;
    const auto* base = database_partition.meta_store.sequence_id_to_date.data();
-   for (const Chunk& chunk : database_partition.getChunks()) {
+   for (const preprocessing::Chunk& chunk : database_partition.getChunks()) {
       const auto* begin = &database_partition.meta_store.sequence_id_to_date[chunk.offset];
       const auto* end =
          &database_partition.meta_store.sequence_id_to_date[chunk.offset + chunk.count];
@@ -769,7 +769,7 @@ BooleanExpressionResult DateBetweenExpression::select(
    const auto* base = database_partition.meta_store.sequence_id_to_date.data();
    uint32_t lower = 0;
    uint32_t upper = 0;
-   for (const Chunk& chunk : database_partition.getChunks()) {
+   for (const preprocessing::Chunk& chunk : database_partition.getChunks()) {
       const auto* begin = &database_partition.meta_store.sequence_id_to_date[chunk.offset];
       const auto* end =
          &database_partition.meta_store.sequence_id_to_date[chunk.offset + chunk.count];
@@ -798,7 +798,7 @@ BooleanExpressionResult DateBetweenExpression::selectNegated(
       result = new Roaring(*in_filter.getAsConst());
    }
    const auto* base = database_partition.meta_store.sequence_id_to_date.data();
-   for (const Chunk& chunk : database_partition.getChunks()) {
+   for (const preprocessing::Chunk& chunk : database_partition.getChunks()) {
       const auto* begin = &database_partition.meta_store.sequence_id_to_date[chunk.offset];
       const auto* end =
          &database_partition.meta_store.sequence_id_to_date[chunk.offset + chunk.count];

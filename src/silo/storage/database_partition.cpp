@@ -1,12 +1,10 @@
 #include "silo/storage/database_partition.h"
 
 #include "silo/storage/dictionary.h"
-#include "silo/storage/metadata_store.h"
-#include "silo/storage/sequence_store.h"
 
 namespace silo {
 
-const std::vector<silo::Chunk>& silo::DatabasePartition::getChunks() const {
+const std::vector<silo::preprocessing::Chunk>& silo::DatabasePartition::getChunks() const {
    return chunks;
 }
 

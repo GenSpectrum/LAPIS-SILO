@@ -6,26 +6,13 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 
+#include "silo/preprocessing/partition.h"
 #include "silo/storage/metadata_store.h"
 #include "silo/storage/sequence_store.h"
 
 class Dictionary;
 
 namespace silo {
-
-struct Chunk {
-   template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, [[maybe_unused]] const unsigned int version) {
-      archive& prefix;
-      archive& count;
-      archive& offset;
-      archive& pango_lineages;
-   }
-   std::string prefix;
-   uint32_t count;
-   uint32_t offset;
-   std::vector<std::string> pango_lineages;
-};
 
 class DatabasePartition {
    friend class Database;
@@ -41,14 +28,14 @@ class DatabasePartition {
       archive& chunks;
    }
 
-   std::vector<silo::Chunk> chunks;
+   std::vector<silo::preprocessing::Chunk> chunks;
 
   public:
    MetadataStore meta_store;
    SequenceStore seq_store;
    unsigned sequenceCount;
 
-   [[nodiscard]] const std::vector<silo::Chunk>& getChunks() const;
+   [[nodiscard]] const std::vector<silo::preprocessing::Chunk>& getChunks() const;
 
    void finalizeBuild(const Dictionary& dict);
 };

@@ -487,7 +487,7 @@ silo::PangoLineageCounts silo::loadPangoLineageCounts(std::istream& input_stream
    return descriptor;
 }
 
-void silo::savePartitions(const silo::Partitions& partitions, std::ostream& output_file) {
+void silo::savePartitions(const silo::preprocessing::Partitions& partitions, std::ostream& output_file) {
    for (const auto& partition : partitions.partitions) {
       output_file << "P\t" << partition.name << '\t' << partition.chunks.size() << '\t'
                   << partition.count << '\n';
@@ -576,7 +576,7 @@ void silo::savePartitions(const silo::Partitions& partitions, std::ostream& outp
    }
    SPDLOG_INFO("Loading partitioning definition from {}", partition_descriptor_file);
 
-   partition_descriptor = std::make_unique<Partitions>(loadPartitions(part_def_file));
+   partition_descriptor = std::make_unique<preprocessing::Partitions>(loadPartitions(part_def_file));
 
    const auto pango_definition_file = save_directory + "pango_descriptor.txt";
    std::ifstream pango_def_file(pango_definition_file);
@@ -629,8 +629,8 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
       );
 
    SPDLOG_INFO("preprocessing - building partitions");
-   partition_descriptor = std::make_unique<Partitions>(
-      silo::buildPartitions(*pango_descriptor, Architecture::MAX_PARTITIONS)
+   partition_descriptor = std::make_unique<preprocessing::Partitions>(
+      silo::preprocessing::buildPartitions(*pango_descriptor, preprocessing::Architecture::MAX_PARTITIONS)
    );
 
    SPDLOG_INFO("preprocessing - partitioning sequences");
