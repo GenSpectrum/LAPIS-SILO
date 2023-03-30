@@ -10,6 +10,7 @@
 #include "silo/database.h"
 #include "silo/persistence/exception.h"
 #include "silo/preprocessing/preprocessing_exception.h"
+#include "silo/storage/database_partition.h"
 
 [[maybe_unused]] void silo::pruneMetadata(
    std::istream& metadata_in,

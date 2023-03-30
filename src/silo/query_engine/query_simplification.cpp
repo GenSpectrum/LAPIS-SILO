@@ -8,6 +8,7 @@
 
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/database.h"
+#include "silo/storage/database_partition.h"
 
 namespace silo {
 std::unique_ptr<BoolExpression> NucleotideSymbolEqualsExpression::simplify(

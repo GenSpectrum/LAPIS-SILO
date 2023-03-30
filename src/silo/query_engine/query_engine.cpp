@@ -23,6 +23,7 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/database.h"
 #include "silo/query_engine/query_result.h"
+#include "silo/storage/database_partition.h"
 
 #define CHECK_SILO_QUERY(condition, message)    \
    if (!(condition)) {                          \
