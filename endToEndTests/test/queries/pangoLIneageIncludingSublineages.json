@@ -1,0 +1,16 @@
+{
+  "testCaseName": "pango lineage B.1.1.7 including sublineages",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "PangoLineage",
+      "value": "B.1.1.7",
+      "includeSublineages": true
+    }
+  },
+  "expectedQueryResult": {
+    "count": 49
+  }
+}
