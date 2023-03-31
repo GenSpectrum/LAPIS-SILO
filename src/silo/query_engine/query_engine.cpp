@@ -741,8 +741,8 @@ BooleanExpressionResult DateBetweenExpression::evaluate(
    const auto* base = database_partition.meta_store.sequence_id_to_date.data();
    for (const preprocessing::Chunk& chunk : database_partition.getChunks()) {
       const auto* begin = &database_partition.meta_store.sequence_id_to_date[chunk.offset];
-      const auto* end =
-         &database_partition.meta_store.sequence_id_to_date[chunk.offset + chunk.count];
+      const auto* end = &database_partition.meta_store
+                            .sequence_id_to_date[chunk.offset + chunk.count_of_sequences];
       uint32_t const lower =
          open_from ? begin - base : std::lower_bound(begin, end, this->date_from) - base;
       uint32_t const upper =
@@ -771,8 +771,8 @@ BooleanExpressionResult DateBetweenExpression::select(
    uint32_t upper = 0;
    for (const preprocessing::Chunk& chunk : database_partition.getChunks()) {
       const auto* begin = &database_partition.meta_store.sequence_id_to_date[chunk.offset];
-      const auto* end =
-         &database_partition.meta_store.sequence_id_to_date[chunk.offset + chunk.count];
+      const auto* end = &database_partition.meta_store
+                            .sequence_id_to_date[chunk.offset + chunk.count_of_sequences];
       lower = open_from ? begin - base : std::lower_bound(begin, end, this->date_from) - base;
       result->removeRange(upper, lower);
       upper = open_to ? end - base : std::upper_bound(begin, end, this->date_to) - base;
@@ -800,8 +800,8 @@ BooleanExpressionResult DateBetweenExpression::selectNegated(
    const auto* base = database_partition.meta_store.sequence_id_to_date.data();
    for (const preprocessing::Chunk& chunk : database_partition.getChunks()) {
       const auto* begin = &database_partition.meta_store.sequence_id_to_date[chunk.offset];
-      const auto* end =
-         &database_partition.meta_store.sequence_id_to_date[chunk.offset + chunk.count];
+      const auto* end = &database_partition.meta_store
+                            .sequence_id_to_date[chunk.offset + chunk.count_of_sequences];
       uint32_t const lower =
          open_from ? begin - base : std::lower_bound(begin, end, this->date_from) - base;
       uint32_t const upper =

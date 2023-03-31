@@ -424,7 +424,7 @@ void silo::sortChunks(
       const auto& part = partitions.partitions[part_id];
       for (uint32_t chunk_id = 0, limit2 = part.chunks.size(); chunk_id < limit2; ++chunk_id) {
          const auto& chunk = part.chunks[chunk_id];
-         all_chunks.emplace_back(PartitionChunk{part_id, chunk_id, chunk.count});
+         all_chunks.emplace_back(PartitionChunk{part_id, chunk_id, chunk.count_of_sequences});
       }
    }
 

@@ -40,8 +40,9 @@ std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
    for (auto& count : pango_lineage_counts) {
       std::vector<std::string> pango_lineages;
       pango_lineages.push_back(count.pango_lineage);
-      Chunk const tmp = {count.pango_lineage, count.count, running_total, pango_lineages};
-      running_total += count.count;
+      Chunk const tmp = {
+         count.pango_lineage, count.count_of_sequences, running_total, pango_lineages};
+      running_total += count.count_of_sequences;
       chunks.emplace_back(tmp);
    }
    // We want to prioritise merges more closely related chunks.
@@ -59,12 +60,13 @@ std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
          auto&& [pango1, pango2] = std::tie(*it, *std::next(it));
          std::string const common_prefix = commonPangoPrefix(pango1.prefix, pango2.prefix);
          // We only look at possible merges with a common_prefix length of #len
-         bool const one_chunk_is_very_small = pango1.count < min_size || pango2.count < min_size;
+         bool const one_chunk_is_very_small =
+            pango1.count_of_sequences < min_size || pango2.count_of_sequences < min_size;
          bool const both_chunks_still_want_to_grow =
-            pango1.count < target_size && pango2.count < target_size;
+            pango1.count_of_sequences < target_size && pango2.count_of_sequences < target_size;
          if (common_prefix.size() == len && (one_chunk_is_very_small || both_chunks_still_want_to_grow)) {
             pango2.prefix = common_prefix;
-            pango2.count += pango1.count;
+            pango2.count_of_sequences += pango1.count_of_sequences;
             pango2.pango_lineages.insert(
                pango2.pango_lineages.end(),
                pango1.pango_lineages.begin(),
@@ -87,9 +89,9 @@ std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
 }
 
 Partitions buildPartitions(PangoLineageCounts pango_lineage_counts, Architecture arch) {
-   uint32_t total_count = 0;
+   uint32_t total_count_of_sequences = 0;
    for (auto& pango_lineage_count : pango_lineage_counts.pango_lineage_counts) {
-      total_count += pango_lineage_count.count;
+      total_count_of_sequences += pango_lineage_count.count_of_sequences;
    }
 
    Partitions descriptor;
@@ -99,12 +101,14 @@ Partitions buildPartitions(PangoLineageCounts pango_lineage_counts, Architecture
    switch (arch) {
       case Architecture::MAX_PARTITIONS:
          for (auto& chunk : mergePangosToChunks(
-                 pango_lineage_counts.pango_lineage_counts, total_count / 100, total_count / 200
+                 pango_lineage_counts.pango_lineage_counts,
+                 total_count_of_sequences / 100,
+                 total_count_of_sequences / 200
               )) {
             descriptor.partitions.push_back(Partition{});
             descriptor.partitions.back().name = "full";
             descriptor.partitions.back().chunks.push_back(chunk);
-            descriptor.partitions.back().count = chunk.count;
+            descriptor.partitions.back().count_of_sequences = chunk.count_of_sequences;
          }
          return descriptor;
       case Architecture::SINGLE_PARTITION:
@@ -115,11 +119,11 @@ Partitions buildPartitions(PangoLineageCounts pango_lineage_counts, Architecture
          // Merge pango_lineages, such that chunks are not get very small
          descriptor.partitions[0].chunks = mergePangosToChunks(
             pango_lineage_counts.pango_lineage_counts,
-            total_count / TARGET_SIZE_REDUCTION,
-            total_count / MIN_SIZE_REDUCTION
+            total_count_of_sequences / TARGET_SIZE_REDUCTION,
+            total_count_of_sequences / MIN_SIZE_REDUCTION
          );
 
-         descriptor.partitions[0].count = total_count;
+         descriptor.partitions[0].count_of_sequences = total_count_of_sequences;
          return descriptor;
       case Architecture::SINGLE_SINGLE:
 
@@ -128,12 +132,12 @@ Partitions buildPartitions(PangoLineageCounts pango_lineage_counts, Architecture
 
          // Merge pango_lineages, such that chunks are not get very small
          descriptor.partitions[0].chunks.push_back(Chunk{
-            "", total_count, 0, std::vector<std::string>()});
+            "", total_count_of_sequences, 0, std::vector<std::string>()});
          for (auto& pango : pango_lineage_counts.pango_lineage_counts) {
             descriptor.partitions[0].chunks.back().pango_lineages.push_back(pango.pango_lineage);
          }
 
-         descriptor.partitions[0].count = total_count;
+         descriptor.partitions[0].count_of_sequences = total_count_of_sequences;
          return descriptor;
       case HYBRID:
          break;
@@ -209,10 +213,10 @@ Partitions Partitions::load(std::istream& input_file) {
 void Partitions::save(std::ostream& output_file) {
    for (const auto& partition : partitions) {
       output_file << "P\t" << partition.name << '\t' << partition.chunks.size() << '\t'
-                  << partition.count << '\n';
+                  << partition.count_of_sequences << '\n';
       for (const auto& chunk : partition.chunks) {
          output_file << "C\t" << chunk.prefix << '\t' << chunk.pango_lineages.size() << '\t'
-                     << chunk.count << '\t' << chunk.offset << '\n';
+                     << chunk.count_of_sequences << '\t' << chunk.offset << '\n';
          for (const auto& pango_lineage : chunk.pango_lineages) {
             output_file << "L\t" << pango_lineage << '\n';
          }

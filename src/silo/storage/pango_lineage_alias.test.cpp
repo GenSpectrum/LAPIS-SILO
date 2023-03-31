@@ -11,8 +11,9 @@ struct TestParameter {
 
 class ResolveAliasTestFixture : public ::testing::TestWithParam<TestParameter> {
   protected:
-   const silo::PangoLineageAliasLookup alias_map =
-      std::unordered_map<std::string, std::string>{{"X", "A"}, {"XY", "A.1"}};
+   const silo::PangoLineageAliasLookup alias_map = silo::PangoLineageAliasLookup(
+      std::unordered_map<std::string, std::string>{{"X", "A"}, {"XY", "A.1"}}
+   );
 };
 
 TEST_P(ResolveAliasTestFixture, shouldReturnExpectedResolvedAlias) {

@@ -11,8 +11,7 @@ class PangoLineageAliasLookup {
    std::unordered_map<std::string, std::string> alias_key;
 
   public:
-   PangoLineageAliasLookup();
-
+   PangoLineageAliasLookup() = default;
    PangoLineageAliasLookup(std::unordered_map<std::string, std::string> alias_key);
 
    std::string resolvePangoLineageAlias(const std::string& pango_lineage) const;

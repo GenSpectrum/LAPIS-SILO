@@ -11,7 +11,7 @@ namespace preprocessing {
 
 struct PangoLineageCount {
    std::string pango_lineage;
-   uint32_t count;
+   uint32_t count_of_sequences;
 };
 
 struct PangoLineageCounts {

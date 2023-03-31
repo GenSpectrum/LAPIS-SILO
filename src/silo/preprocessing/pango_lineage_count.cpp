@@ -11,7 +11,8 @@ namespace silo::preprocessing {
 
 void PangoLineageCounts::save(std::ostream& output_file) {
    for (const auto& pango_lineage_count : pango_lineage_counts) {
-      output_file << pango_lineage_count.pango_lineage << '\t' << pango_lineage_count.count << '\n';
+      output_file << pango_lineage_count.pango_lineage << '\t'
+                  << pango_lineage_count.count_of_sequences << '\n';
    }
    output_file.flush();
 }
@@ -62,7 +63,7 @@ PangoLineageCounts buildPangoLineageCounts(
 
       if (pango_to_id.contains(pango_lineage)) {
          auto pid = pango_to_id[pango_lineage];
-         ++pango_lineage_counts.pango_lineage_counts[pid].count;
+         ++pango_lineage_counts.pango_lineage_counts[pid].count_of_sequences;
       } else {
          pango_to_id[pango_lineage] = pid_count++;
          pango_lineage_counts.pango_lineage_counts.emplace_back(PangoLineageCount{pango_lineage, 1}
