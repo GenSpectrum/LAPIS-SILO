@@ -7,75 +7,23 @@
 #include <utility>
 #include <vector>
 
+#include "silo/preprocessing/pango_lineage_count.h"
+#include "silo/storage/database_partition.h"
 #include "silo/storage/dictionary.h"
-#include "silo/storage/metadata_store.h"
-#include "silo/storage/sequence_store.h"
+#include "silo/storage/pango_lineage_alias.h"
 
 namespace silo {
 
-struct Chunk {
-   template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, [[maybe_unused]] const unsigned int version) {
-      archive& prefix;
-      archive& count;
-      archive& offset;
-      archive& pango_lineages;
-   }
-   std::string prefix;
-   uint32_t count;
-   uint32_t offset;
-   std::vector<std::string> pango_lineages;
-};
+namespace preprocessing {
 
-struct Partition {
-   std::string name;
-   uint32_t count;
-   std::vector<Chunk> chunks;
-};
+struct Partitions;
 
-struct Partitions {
-   std::vector<Partition> partitions;
-};
-
-struct PangoLineageCount {
-   std::string pango_lineage;
-   uint32_t count;
-};
-
-struct PangoLineageCounts {
-   std::vector<PangoLineageCount> pango_lineage_counts;
-};
+}  // namespace preprocessing
 
 struct DatabaseInfo;
 struct DetailedDatabaseInfo;
 struct BitmapSizePerSymbol;
 struct BitmapContainerSize;
-
-class DatabasePartition {
-   friend class Database;
-   friend class boost::serialization::
-      access;  // here because serialize is private member
-               // (https://www.boost.org/doc/libs/1_34_0/libs/serialization/doc/serialization.html)
-
-   template <class Archive>
-   void serialize(Archive& archive, [[maybe_unused]] const unsigned int version) {
-      archive& meta_store;
-      archive& seq_store;
-      archive& sequenceCount;
-      archive& chunks;
-   }
-
-   std::vector<silo::Chunk> chunks;
-
-  public:
-   MetadataStore meta_store;
-   SequenceStore seq_store;
-   unsigned sequenceCount;
-
-   [[nodiscard]] const std::vector<silo::Chunk>& getChunks() const;
-
-   void finalizeBuild(const Dictionary& dict);
-};
 
 struct PreprocessingConfig;
 
@@ -84,8 +32,8 @@ class Database {
    const std::string working_directory;
    std::vector<std::string> global_reference;
    std::vector<DatabasePartition> partitions;
-   std::unique_ptr<PangoLineageCounts> pango_descriptor;
-   std::unique_ptr<Partitions> partition_descriptor;
+   std::unique_ptr<preprocessing::PangoLineageCounts> pango_descriptor;
+   std::unique_ptr<preprocessing::Partitions> partition_descriptor;
    std::unique_ptr<Dictionary> dict;
 
    Database();
@@ -115,38 +63,13 @@ class Database {
 
    [[maybe_unused]] [[maybe_unused]] void loadDatabaseState(const std::string& save_directory);
 
-   [[nodiscard]] const std::unordered_map<std::string, std::string>& getAliasKey() const;
+   [[nodiscard]] const PangoLineageAliasLookup& getAliasKey() const;
 
   private:
-   std::unordered_map<std::string, std::string> alias_key;
+   PangoLineageAliasLookup alias_key;
    BitmapSizePerSymbol calculateBitmapSizePerSymbol() const;
    BitmapContainerSize calculateBitmapContainerSizePerGenomeSection(uint32_t section_length) const;
 };
-
-unsigned fillSequenceStore(SequenceStore& sequence_store, std::istream& input_file);
-
-unsigned fillMetadataStore(
-   MetadataStore& meta_store,
-   std::istream& input_file,
-   const std::unordered_map<std::string, std::string>& alias_key,
-   const Dictionary& dict
-);
-
-void savePangoLineageCounts(
-   const PangoLineageCounts& pango_lineage_counts,
-   std::ostream& output_file
-);
-
-PangoLineageCounts loadPangoLineageCounts(std::istream& input_stream);
-
-void savePartitions(const Partitions& partitions, std::ostream& output_file);
-
-Partitions loadPartitions(std::istream& input_file);
-
-std::string resolvePangoLineageAlias(
-   const std::unordered_map<std::string, std::string>& alias_key,
-   const std::string& pango_lineage
-);
 
 std::string buildChunkName(unsigned partition, unsigned chunk);
 

@@ -7,8 +7,12 @@
 
 namespace silo {
 
+namespace preprocessing {
 struct Partitions;
 struct PangoLineageCounts;
+}  // namespace preprocessing
+
+class PangoLineageAliasLookup;
 
 [[maybe_unused]] void pruneSequences(
    std::istream& metadata_in,
@@ -22,27 +26,18 @@ struct PangoLineageCounts;
    std::ostream& metadata_out
 );
 
-PangoLineageCounts buildPangoLineageCounts(
-   const std::unordered_map<std::string, std::string>& alias_key,
-   std::istream& meta_in
-);
-
-enum Architecture { MAX_PARTITIONS, SINGLE_PARTITION, HYBRID, SINGLE_SINGLE };
-
-Partitions buildPartitions(PangoLineageCounts pango_lineage_counts, Architecture arch);
-
 void partitionSequences(
-   const Partitions& partitions,
+   const preprocessing::Partitions& partitions,
    std::istream& meta_in,
    std::istream& sequence_in,
    const std::string& output_prefix,
-   const std::unordered_map<std::string, std::string>& alias_key,
+   const PangoLineageAliasLookup& alias_key,
    const std::string& metadata_file_extension,
    const std::string& sequence_file_extension
 );
 
 void sortChunks(
-   const Partitions& partitions,
+   const preprocessing::Partitions& partitions,
    const std::string& output_prefix,
    const std::string& metadata_file_extension,
    const std::string& sequence_file_extension

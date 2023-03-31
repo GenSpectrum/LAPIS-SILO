@@ -23,6 +23,7 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/database.h"
 #include "silo/query_engine/query_result.h"
+#include "silo/storage/database_partition.h"
 
 #define CHECK_SILO_QUERY(condition, message)    \
    if (!(condition)) {                          \
@@ -229,7 +230,7 @@ std::unique_ptr<BoolExpression> parseExpression(
       );
       std::string lineage = json_value["value"].GetString();
       std::transform(lineage.begin(), lineage.end(), lineage.begin(), ::toupper);
-      lineage = resolvePangoLineageAlias(database.getAliasKey(), lineage);
+      lineage = database.getAliasKey().resolvePangoLineageAlias(lineage);
       const uint32_t lineage_key = database.dict->getPangoLineageIdInLookup(lineage);
       return std::make_unique<PangoLineageExpression>(lineage_key, include_sublineages);
    }
@@ -745,10 +746,10 @@ BooleanExpressionResult DateBetweenExpression::evaluate(
 
    auto* result = new Roaring;
    const auto* base = database_partition.meta_store.sequence_id_to_date.data();
-   for (const Chunk& chunk : database_partition.getChunks()) {
+   for (const preprocessing::Chunk& chunk : database_partition.getChunks()) {
       const auto* begin = &database_partition.meta_store.sequence_id_to_date[chunk.offset];
-      const auto* end =
-         &database_partition.meta_store.sequence_id_to_date[chunk.offset + chunk.count];
+      const auto* end = &database_partition.meta_store
+                            .sequence_id_to_date[chunk.offset + chunk.count_of_sequences];
       uint32_t const lower =
          open_from ? begin - base : std::lower_bound(begin, end, this->date_from) - base;
       uint32_t const upper =
@@ -775,10 +776,10 @@ BooleanExpressionResult DateBetweenExpression::select(
    const auto* base = database_partition.meta_store.sequence_id_to_date.data();
    uint32_t lower = 0;
    uint32_t upper = 0;
-   for (const Chunk& chunk : database_partition.getChunks()) {
+   for (const preprocessing::Chunk& chunk : database_partition.getChunks()) {
       const auto* begin = &database_partition.meta_store.sequence_id_to_date[chunk.offset];
-      const auto* end =
-         &database_partition.meta_store.sequence_id_to_date[chunk.offset + chunk.count];
+      const auto* end = &database_partition.meta_store
+                            .sequence_id_to_date[chunk.offset + chunk.count_of_sequences];
       lower = open_from ? begin - base : std::lower_bound(begin, end, this->date_from) - base;
       result->removeRange(upper, lower);
       upper = open_to ? end - base : std::upper_bound(begin, end, this->date_to) - base;
@@ -804,10 +805,10 @@ BooleanExpressionResult DateBetweenExpression::selectNegated(
       result = new Roaring(*in_filter.getAsConst());
    }
    const auto* base = database_partition.meta_store.sequence_id_to_date.data();
-   for (const Chunk& chunk : database_partition.getChunks()) {
+   for (const preprocessing::Chunk& chunk : database_partition.getChunks()) {
       const auto* begin = &database_partition.meta_store.sequence_id_to_date[chunk.offset];
-      const auto* end =
-         &database_partition.meta_store.sequence_id_to_date[chunk.offset + chunk.count];
+      const auto* end = &database_partition.meta_store
+                            .sequence_id_to_date[chunk.offset + chunk.count_of_sequences];
       uint32_t const lower =
          open_from ? begin - base : std::lower_bound(begin, end, this->date_from) - base;
       uint32_t const upper =

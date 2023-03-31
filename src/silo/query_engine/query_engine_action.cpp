@@ -9,6 +9,7 @@
 #include "silo/common/log.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/database.h"
+#include "silo/storage/database_partition.h"
 
 uint64_t silo::executeCount(
    const silo::Database& /*database*/,

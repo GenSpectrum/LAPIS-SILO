@@ -7,12 +7,15 @@
 #include "silo/database.h"
 #include "silo/persistence/exception.h"
 #include "silo/preprocessing/preprocessing_exception.h"
+#include "silo/storage/pango_lineage_alias.h"
+
+namespace silo {
 
 // TODO(someone): reduce cognitive complexity
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void Dictionary::updateDictionary(
    std::istream& metadata_file,
-   const std::unordered_map<std::string, std::string>& alias_key
+   const silo::PangoLineageAliasLookup& alias_key
 ) {
    // Parse header. Assert order EPI, PANGO, DATE, REGION, COUNTRY, then fill additional columns
    {
@@ -79,9 +82,7 @@ void Dictionary::updateDictionary(
          break;
       }
 
-      /// Deal with pango_lineage alias:
-      std::string const pango_lineage =
-         silo::resolvePangoLineageAlias(alias_key, pango_lineage_raw);
+      std::string const pango_lineage = alias_key.resolvePangoLineageAlias(pango_lineage_raw);
 
       if (!pango_lineage_dictionary.contains(pango_lineage)) {
          pango_lineage_lookup.push_back(pango_lineage);
@@ -380,3 +381,5 @@ uint32_t Dictionary::getCountryCount() const {
 uint32_t Dictionary::getRegionCount() const {
    return region_count;
 }
+
+}  // namespace silo
