@@ -1,6 +1,5 @@
 #include "silo/storage/dictionary.h"
 
-#include <cassert>
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -313,8 +312,7 @@ const std::string& Dictionary::getPangoLineage(uint32_t pango_lineage_id_in_look
    if (pango_lineage_id_in_lookup == UINT32_MAX) {
       return error_string;
    }
-   assert(pango_lineage_id_in_lookup < pango_lineage_count);
-   return pango_lineage_lookup[pango_lineage_id_in_lookup];
+   return pango_lineage_lookup.at(pango_lineage_id_in_lookup);
 }
 
 uint32_t Dictionary::getCountryIdInLookup(const std::string& country) const {
@@ -328,8 +326,7 @@ const std::string& Dictionary::getCountry(uint32_t country_id_in_lookup) const {
    if (country_id_in_lookup == UINT32_MAX) {
       return error_string;
    }
-   assert(country_id_in_lookup < country_count);
-   return country_lookup[country_id_in_lookup];
+   return country_lookup.at(country_id_in_lookup);
 }
 
 uint32_t Dictionary::getRegionIdInLookup(const std::string& region) const {
@@ -343,8 +340,7 @@ const std::string& Dictionary::getRegion(uint32_t region_lookup_id) const {
    if (region_lookup_id == UINT32_MAX) {
       return error_string;
    }
-   assert(region_lookup_id < region_count);
-   return region_lookup[region_lookup_id];
+   return region_lookup.at(region_lookup_id);
 }
 
 uint64_t Dictionary::getIdInGeneralLookup(const std::string& region_id_in_lookup) const {
@@ -359,8 +355,7 @@ uint64_t Dictionary::getIdInGeneralLookup(const std::string& region_id_in_lookup
    if (general_id_in_lookup == UINT64_MAX) {
       return error_string;
    }
-   assert(general_id_in_lookup < general_count);
-   return general_lookup[general_id_in_lookup];
+   return general_lookup.at(general_id_in_lookup);
 }
 
 uint32_t Dictionary::getColumnIdInLookup(const std::string& column_name) const {
@@ -374,8 +369,7 @@ uint32_t Dictionary::getColumnIdInLookup(const std::string& column_name) const {
    if (column_id_in_lookup == UINT32_MAX) {
       return error_string;
    }
-   assert(column_id_in_lookup < additional_columns_count);
-   return additional_columns_lookup[column_id_in_lookup];
+   return additional_columns_lookup.at(column_id_in_lookup);
 }
 uint32_t Dictionary::getPangoLineageCount() const {
    return pango_lineage_count;

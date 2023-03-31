@@ -1,7 +1,6 @@
 #include "silo/query_engine/query_engine.h"
 
 #include <tbb/parallel_for.h>
-#include <cassert>
 #include <memory>
 #include <roaring/roaring.hh>
 #include <string>
@@ -25,6 +24,11 @@
 #include "silo/database.h"
 #include "silo/query_engine/query_result.h"
 
+#define CHECK_SILO_QUERY(condition, message)    \
+   if (!(condition)) {                          \
+      throw silo::QueryParseException(message); \
+   }
+
 namespace silo {
 
 using roaring::Roaring;
@@ -44,16 +48,25 @@ std::unique_ptr<BoolExpression> parseExpression(
    const rapidjson::Value& json_value,
    int exact
 ) {
-   assert(json_value.HasMember("type"));
-   assert(json_value["type"].IsString());
+   CHECK_SILO_QUERY(
+      json_value.HasMember("type"), "The field 'type' is required in 'filterExpression'"
+   );
+   CHECK_SILO_QUERY(
+      json_value["type"].IsString(), "The field 'type' in 'filterExpression' needs to be a string"
+   );
    const std::string expression_type = json_value["type"].GetString();
    if (expression_type == "True") {
       return std::make_unique<FullExpression>();
    }
    if (expression_type == "And") {
       auto result = std::make_unique<AndExpression>();
-      assert(json_value.HasMember("children"));
-      assert(json_value["children"].IsArray());
+      CHECK_SILO_QUERY(
+         json_value.HasMember("children"), "The field 'children' is required in an And expression"
+      );
+      CHECK_SILO_QUERY(
+         json_value["children"].IsArray(),
+         "The field 'children' in an And expression needs to be an array"
+      );
       std::transform(
          json_value["children"].GetArray().begin(), json_value["children"].GetArray().end(),
          std::back_inserter(result->children),
@@ -65,8 +78,13 @@ std::unique_ptr<BoolExpression> parseExpression(
    }
    if (expression_type == "Or") {
       auto result = std::make_unique<OrExpression>();
-      assert(json_value.HasMember("children"));
-      assert(json_value["children"].IsArray());
+      CHECK_SILO_QUERY(
+         json_value.HasMember("children"), "The field 'children' is required in an Or expression"
+      );
+      CHECK_SILO_QUERY(
+         json_value["children"].IsArray(),
+         "The field 'children' in an Or expression needs to be an array"
+      );
       std::transform(
          json_value["children"].GetArray().begin(), json_value["children"].GetArray().end(),
          std::back_inserter(result->children),
@@ -77,10 +95,21 @@ std::unique_ptr<BoolExpression> parseExpression(
       return result;
    }
    if (expression_type == "N-Of") {
-      assert(json_value.HasMember("children"));
-      assert(json_value["children"].IsArray());
-      assert(json_value.HasMember("numberOfMatchers"));
-      assert(json_value["numberOfMatchers"].IsUint());
+      CHECK_SILO_QUERY(
+         json_value.HasMember("children"), "The field 'children' is required in an N-Of expression"
+      );
+      CHECK_SILO_QUERY(
+         json_value["children"].IsArray(),
+         "The field 'children' in an N-Of expression needs to be an array"
+      );
+      CHECK_SILO_QUERY(
+         json_value.HasMember("numberOfMatchers"),
+         "The field 'numberOfMatchers' is required in an N-Of expression"
+      );
+      CHECK_SILO_QUERY(
+         json_value["numberOfMatchers"].IsUint(),
+         "The field 'numberOfMatchers' in an N-Of expression needs to be an unsigned integer"
+      );
 
       auto result = std::make_unique<NOfExpression>(
          json_value["numberOfMatchers"].GetUint(), json_value["matchExactly"].GetBool()
@@ -139,6 +168,15 @@ std::unique_ptr<BoolExpression> parseExpression(
       return result;
    }
    if (expression_type == "NucleotideEquals") {
+      CHECK_SILO_QUERY(
+         json_value.HasMember("position"),
+         "The field 'position' is required in a NucleotideEquals expression"
+      )
+      CHECK_SILO_QUERY(
+         json_value["position"].GetUint(),
+         "The field 'position' in a NucleotideEquals expression needs to be an unsigned "
+         "integer"
+      );
       const unsigned position = json_value["position"].GetUint();
       const std::string& nucleotide_symbol = json_value["symbol"].GetString();
       NUCLEOTIDE_SYMBOL value;
@@ -154,7 +192,15 @@ std::unique_ptr<BoolExpression> parseExpression(
       return std::make_unique<NucleotideSymbolMaybeExpression>(position, value);
    }
    if (expression_type == "HasNucleotideMutation") {
-      assert(json_value.HasMember("position"));
+      CHECK_SILO_QUERY(
+         json_value.HasMember("position"),
+         "The field 'position' is required in a HasNucleotideMutation expression"
+      )
+      CHECK_SILO_QUERY(
+         json_value["position"].GetUint(),
+         "The field 'position' in a HasNucleotideMutation expression needs to be an unsigned "
+         "integer"
+      );
       const unsigned position = json_value["position"].GetUint();
       const char ref_symbol = database.global_reference[0].at(position);
       /// this <= is correct! the negation would flip the exact bit from -1 to +1 and vice versa
@@ -247,7 +293,12 @@ BooleanExpressionResult AndExpression::evaluate(
       return {result, nullptr};
    }
    if (children_bm.size() == 1) {
-      assert(!negated_children_bm.empty());
+      if (negated_children_bm.empty()) {
+         throw std::runtime_error(
+            "Error during 'And' evaluation: negated children were empty although their was only "
+            "one non-negated child."
+         );
+      }
       if (children_bm[0].mutable_res) {
          result = children_bm[0].mutable_res;
       } else {
@@ -1229,12 +1280,19 @@ silo::response::QueryResult silo::executeQuery(
    {
       BlockTimer const timer(query_result.action_time);
       const auto& action = json_document["action"];
-      assert(action.HasMember("type"));
-      assert(action["type"].IsString());
+      CHECK_SILO_QUERY(
+         action.HasMember("type"), "The field 'type' is required on a SILO query action"
+      );
+      CHECK_SILO_QUERY(
+         action["type"].IsString(), "The field 'type' in a SILO query action needs to be a string"
+      );
       const auto& action_type = action["type"].GetString();
 
       if (action.HasMember("groupByFields")) {
-         assert(action["groupByFields"].IsArray());
+         CHECK_SILO_QUERY(
+            action["groupByFields"].IsArray(),
+            "The field 'type' in a SILO query action needs to be a string"
+         );
          std::vector<std::string> group_by_fields;
          for (const auto& field : action["groupByFields"].GetArray()) {
             group_by_fields.emplace_back(field.GetString());

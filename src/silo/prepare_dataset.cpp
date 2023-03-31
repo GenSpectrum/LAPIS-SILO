@@ -4,7 +4,6 @@
 #include <tbb/blocked_range.h>
 #include <tbb/enumerable_thread_specific.h>
 #include <tbb/parallel_for_each.h>
-#include <cassert>
 #include <unordered_set>
 
 #include "silo/common/input_stream_wrapper.h"
@@ -597,10 +596,9 @@ void sortChunk(
          time_t date;
          uint32_t file_pos;
       };
-      std::vector<EPIDate> first_run;
-      first_run.reserve(chunk.size);
-
-      uint32_t count = 0;
+      std::vector<EPIDate> epi_dates;
+      epi_dates.reserve(chunk.size);
+      uint32_t number_of_epis = 0;
       while (true) {
          std::string epi_isl;
          if (!getline(sequence_in, epi_isl)) {
@@ -614,7 +612,7 @@ void sortChunk(
          uint64_t const epi = stoi(epi_isl.substr(BEGIN_OF_NUMBER_IN_EPI_ISL_OF_SEQUENCE_FILE));
 
          time_t const date = epi_to_date[epi];
-         first_run.emplace_back(EPIDate{epi, date, count++});
+         epi_dates.emplace_back(EPIDate{epi, date, number_of_epis++});
       }
 
       SPDLOG_TRACE("Finished first run for chunk {}", chunk_str);
@@ -622,17 +620,15 @@ void sortChunk(
       auto sorter = [](const EPIDate& date1, const EPIDate& date2) {
          return date1.date < date2.date;
       };
-      std::sort(first_run.begin(), first_run.end(), sorter);
+      std::sort(epi_dates.begin(), epi_dates.end(), sorter);
 
       SPDLOG_TRACE("Sorted first run for partition {}", chunk_str);
 
-      std::vector<uint32_t> file_pos_to_sorted_pos(count);
-      unsigned count2 = 0;
-      for (auto& date : first_run) {
-         file_pos_to_sorted_pos[date.file_pos] = count2++;
+      std::vector<uint32_t> file_pos_to_sorted_pos(number_of_epis);
+      unsigned number_of_sorted_files = 0;
+      for (auto& epi_date : epi_dates) {
+         file_pos_to_sorted_pos[epi_date.file_pos] = number_of_sorted_files++;
       }
-
-      assert(count == count2);
 
       SPDLOG_TRACE("Calculated postitions for every sequence {}", chunk_str);
 
@@ -642,7 +638,9 @@ void sortChunk(
       SPDLOG_TRACE("Reset file seek, now read second time, sorted {}", chunk_str);
 
       constexpr uint32_t LINES_PER_SEQUENCE = 2;
-      std::vector<std::string> lines_sorted(static_cast<uint64_t>(LINES_PER_SEQUENCE * count));
+      std::vector<std::string> lines_sorted(
+         static_cast<uint64_t>(LINES_PER_SEQUENCE * number_of_epis)
+      );
       for (auto pos : file_pos_to_sorted_pos) {
          const uint64_t second_line = static_cast<uint64_t>(LINES_PER_SEQUENCE) * pos;
          if (!getline(sequence_in, lines_sorted.at(second_line))) {
