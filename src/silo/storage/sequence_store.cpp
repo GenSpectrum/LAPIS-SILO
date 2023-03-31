@@ -17,8 +17,10 @@
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
    return format_to(
-      ctx.out(), "SequenceStoreInfo[sequence count: {}, size: {}, N bitmaps size: {}]",
-      sequence_store_info.sequence_count, sequence_store_info.size,
+      ctx.out(),
+      "SequenceStoreInfo[sequence count: {}, size: {}, N bitmaps size: {}]",
+      sequence_store_info.sequence_count,
+      sequence_store_info.size,
       silo::formatNumber(sequence_store_info.n_bitmaps_size)
    );
 }
@@ -36,9 +38,12 @@ roaring::Roaring* silo::SequenceStore::getBitmapFromAmbiguousSymbol(
       case NUCLEOTIDE_SYMBOL::A: {
          // NOLINTNEXTLINE(modernize-avoid-c-arrays)
          const roaring::Roaring* tmp[COUNT_AMBIGUOUS_SYMBOLS] = {
-            getBitmap(position, NUCLEOTIDE_SYMBOL::A), getBitmap(position, NUCLEOTIDE_SYMBOL::R),
-            getBitmap(position, NUCLEOTIDE_SYMBOL::W), getBitmap(position, NUCLEOTIDE_SYMBOL::M),
-            getBitmap(position, NUCLEOTIDE_SYMBOL::D), getBitmap(position, NUCLEOTIDE_SYMBOL::H),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::A),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::R),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::W),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::M),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::D),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::H),
             getBitmap(position, NUCLEOTIDE_SYMBOL::V)};
          auto* result =
             new roaring::Roaring(roaring::Roaring::fastunion(COUNT_AMBIGUOUS_SYMBOLS, tmp));
@@ -47,9 +52,12 @@ roaring::Roaring* silo::SequenceStore::getBitmapFromAmbiguousSymbol(
       case NUCLEOTIDE_SYMBOL::C: {
          // NOLINTNEXTLINE(modernize-avoid-c-arrays)
          const roaring::Roaring* tmp[COUNT_AMBIGUOUS_SYMBOLS] = {
-            getBitmap(position, NUCLEOTIDE_SYMBOL::C), getBitmap(position, NUCLEOTIDE_SYMBOL::Y),
-            getBitmap(position, NUCLEOTIDE_SYMBOL::S), getBitmap(position, NUCLEOTIDE_SYMBOL::M),
-            getBitmap(position, NUCLEOTIDE_SYMBOL::B), getBitmap(position, NUCLEOTIDE_SYMBOL::H),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::C),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::Y),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::S),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::M),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::B),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::H),
             getBitmap(position, NUCLEOTIDE_SYMBOL::V)};
          auto* result =
             new roaring::Roaring(roaring::Roaring::fastunion(COUNT_AMBIGUOUS_SYMBOLS, tmp));
@@ -58,9 +66,12 @@ roaring::Roaring* silo::SequenceStore::getBitmapFromAmbiguousSymbol(
       case NUCLEOTIDE_SYMBOL::G: {
          // NOLINTNEXTLINE(modernize-avoid-c-arrays)
          const roaring::Roaring* tmp[COUNT_AMBIGUOUS_SYMBOLS] = {
-            getBitmap(position, NUCLEOTIDE_SYMBOL::G), getBitmap(position, NUCLEOTIDE_SYMBOL::R),
-            getBitmap(position, NUCLEOTIDE_SYMBOL::S), getBitmap(position, NUCLEOTIDE_SYMBOL::K),
-            getBitmap(position, NUCLEOTIDE_SYMBOL::D), getBitmap(position, NUCLEOTIDE_SYMBOL::B),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::G),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::R),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::S),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::K),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::D),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::B),
             getBitmap(position, NUCLEOTIDE_SYMBOL::V)};
          auto* result =
             new roaring::Roaring(roaring::Roaring::fastunion(COUNT_AMBIGUOUS_SYMBOLS, tmp));
@@ -69,9 +80,12 @@ roaring::Roaring* silo::SequenceStore::getBitmapFromAmbiguousSymbol(
       case NUCLEOTIDE_SYMBOL::T: {
          // NOLINTNEXTLINE(modernize-avoid-c-arrays)
          const roaring::Roaring* tmp[COUNT_AMBIGUOUS_SYMBOLS] = {
-            getBitmap(position, NUCLEOTIDE_SYMBOL::T), getBitmap(position, NUCLEOTIDE_SYMBOL::Y),
-            getBitmap(position, NUCLEOTIDE_SYMBOL::W), getBitmap(position, NUCLEOTIDE_SYMBOL::K),
-            getBitmap(position, NUCLEOTIDE_SYMBOL::D), getBitmap(position, NUCLEOTIDE_SYMBOL::H),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::T),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::Y),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::W),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::K),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::D),
+            getBitmap(position, NUCLEOTIDE_SYMBOL::H),
             getBitmap(position, NUCLEOTIDE_SYMBOL::B)};
          auto* result =
             new roaring::Roaring(roaring::Roaring::fastunion(COUNT_AMBIGUOUS_SYMBOLS, tmp));

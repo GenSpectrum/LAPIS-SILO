@@ -38,7 +38,8 @@ class SiloServer : public Poco::Util::ServerApplication {
 
       options.addOption(
          Poco::Util::Option(
-            "processData", "p",
+            "processData",
+            "p",
             "trigger the preprocessing pipeline to generate a partitioned dataset that can be read "
             "by the database"
          )
@@ -79,7 +80,8 @@ class SiloServer : public Poco::Util::ServerApplication {
       Poco::Net::ServerSocket const server_socket(port);
       const silo::QueryEngine query_engine = silo::QueryEngine(database);
       Poco::Net::HTTPServer server(
-         new silo_api::SiloRequestHandlerFactory(database, query_engine), server_socket,
+         new silo_api::SiloRequestHandlerFactory(database, query_engine),
+         server_socket,
          new Poco::Net::HTTPServerParams
       );
 

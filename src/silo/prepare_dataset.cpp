@@ -241,7 +241,8 @@ std::vector<silo::Chunk> mergePangosToChunks(
    // Precalculate the longest a prefix can be (which is the max length of lineages)
    uint32_t const max_len =
       std::max_element(
-         pango_lineage_counts.begin(), pango_lineage_counts.end(),
+         pango_lineage_counts.begin(),
+         pango_lineage_counts.end(),
          [](const silo::PangoLineageCount& lhs, const silo::PangoLineageCount& rhs) {
             return lhs.pango_lineage.size() < rhs.pango_lineage.size();
          }
@@ -258,7 +259,8 @@ std::vector<silo::Chunk> mergePangosToChunks(
             pango2.prefix = common_prefix;
             pango2.count += pango1.count;
             pango2.pango_lineages.insert(
-               pango2.pango_lineages.end(), pango1.pango_lineages.begin(),
+               pango2.pango_lineages.end(),
+               pango1.pango_lineages.begin(),
                pango1.pango_lineages.end()
             );
 
@@ -308,7 +310,8 @@ silo::Partitions silo::buildPartitions(
 
          // Merge pango_lineages, such that chunks are not get very small
          descriptor.partitions[0].chunks = mergePangosToChunks(
-            pango_lineage_counts.pango_lineage_counts, total_count / TARGET_SIZE_REDUCTION,
+            pango_lineage_counts.pango_lineage_counts,
+            total_count / TARGET_SIZE_REDUCTION,
             total_count / MIN_SIZE_REDUCTION
          );
 

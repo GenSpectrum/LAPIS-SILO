@@ -81,7 +81,9 @@ std::unique_ptr<BoolExpression> AndExpression::simplify(
 ) const {
    std::vector<std::unique_ptr<BoolExpression>> new_children;
    std::transform(
-      children.begin(), children.end(), std::back_inserter(new_children),
+      children.begin(),
+      children.end(),
+      std::back_inserter(new_children),
       [&](const std::unique_ptr<BoolExpression>& expression) {
          return expression->simplify(database, database_partition);
       }
@@ -98,12 +100,14 @@ std::unique_ptr<BoolExpression> AndExpression::simplify(
       if (child->type() == AND) {
          auto* and_child = dynamic_cast<AndExpression*>(child.get());
          std::transform(
-            and_child->children.begin(), and_child->children.end(),
+            and_child->children.begin(),
+            and_child->children.end(),
             std::back_inserter(new_children),
             [&](std::unique_ptr<BoolExpression>& expression) { return std::move(expression); }
          );
          std::transform(
-            and_child->negated_children.begin(), and_child->negated_children.end(),
+            and_child->negated_children.begin(),
+            and_child->negated_children.end(),
             std::back_inserter(ret->negated_children),
             [&](std::unique_ptr<BoolExpression>& expression) { return std::move(expression); }
          );
@@ -139,7 +143,9 @@ std::unique_ptr<BoolExpression> OrExpression::simplify(
 ) const {
    std::vector<std::unique_ptr<BoolExpression>> new_children;
    std::transform(
-      children.begin(), children.end(), std::back_inserter(new_children),
+      children.begin(),
+      children.end(),
+      std::back_inserter(new_children),
       [&](const std::unique_ptr<BoolExpression>& expression) {
          return expression->simplify(database, database_partition);
       }
@@ -156,7 +162,9 @@ std::unique_ptr<BoolExpression> OrExpression::simplify(
       if (child->type() == OR) {
          auto* or_child = dynamic_cast<OrExpression*>(child.get());
          std::transform(
-            or_child->children.begin(), or_child->children.end(), std::back_inserter(new_children),
+            or_child->children.begin(),
+            or_child->children.end(),
+            std::back_inserter(new_children),
             [&](std::unique_ptr<BoolExpression>& expression) { return std::move(expression); }
          );
       }
@@ -169,7 +177,8 @@ std::unique_ptr<BoolExpression> OrExpression::simplify(
       return std::move(ret->children[0]);
    }
    if (std::any_of(
-          new_children.begin(), new_children.end(),
+          new_children.begin(),
+          new_children.end(),
           [](const std::unique_ptr<BoolExpression>& child) { return child->type() == NEG; }
        )) {
       std::unique_ptr<AndExpression> and_ret = std::make_unique<AndExpression>();
@@ -207,7 +216,9 @@ std::unique_ptr<BoolExpression> NOfExpression::simplify(
 ) const {
    std::vector<std::unique_ptr<BoolExpression>> new_children;
    std::transform(
-      children.begin(), children.end(), std::back_inserter(new_children),
+      children.begin(),
+      children.end(),
+      std::back_inserter(new_children),
       [&](const std::unique_ptr<BoolExpression>& expression) {
          return expression->simplify(database, database_partition);
       }
