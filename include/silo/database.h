@@ -10,9 +10,7 @@
 #include "silo/preprocessing/pango_lineage_count.h"
 #include "silo/storage/database_partition.h"
 #include "silo/storage/dictionary.h"
-#include "silo/storage/metadata_store.h"
 #include "silo/storage/pango_lineage_alias.h"
-#include "silo/storage/sequence_store.h"
 
 namespace silo {
 

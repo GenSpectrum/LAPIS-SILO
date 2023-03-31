@@ -4,11 +4,11 @@
 
 namespace silo {
 
-const std::vector<silo::preprocessing::Chunk>& silo::DatabasePartition::getChunks() const {
+const std::vector<preprocessing::Chunk>& DatabasePartition::getChunks() const {
    return chunks;
 }
 
-void silo::DatabasePartition::finalizeBuild(const Dictionary& dict) {
+void DatabasePartition::finalizeBuild(const Dictionary& dict) {
    {  /// Precompute all bitmaps for pango_lineages and -sublineages
       const uint32_t pango_count = dict.getPangoLineageCount();
       std::vector<std::vector<uint32_t>> group_by_lineages(pango_count);

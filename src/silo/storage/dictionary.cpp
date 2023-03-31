@@ -9,6 +9,8 @@
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/pango_lineage_alias.h"
 
+namespace silo {
+
 // TODO(someone): reduce cognitive complexity
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void Dictionary::updateDictionary(
@@ -379,3 +381,5 @@ uint32_t Dictionary::getCountryCount() const {
 uint32_t Dictionary::getRegionCount() const {
    return region_count;
 }
+
+}  // namespace silo

@@ -10,9 +10,9 @@
 #include "silo/storage/metadata_store.h"
 #include "silo/storage/sequence_store.h"
 
-class Dictionary;
-
 namespace silo {
+
+class Dictionary;
 
 class DatabasePartition {
    friend class Database;

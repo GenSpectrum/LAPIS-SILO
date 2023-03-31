@@ -8,7 +8,6 @@
 
 namespace silo {
 class PangoLineageAliasLookup;
-}
 
 class Dictionary {
   private:
@@ -76,5 +75,7 @@ class Dictionary {
 
    [[maybe_unused]] [[nodiscard]] const std::string& getColumn(uint32_t column_id_in_lookup) const;
 };
+
+};  // namespace silo
 
 #endif  // SILO_DICTIONARY_H

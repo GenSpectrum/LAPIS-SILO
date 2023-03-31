@@ -23,8 +23,6 @@
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/database_partition.h"
-#include "silo/storage/metadata_store.h"
-#include "silo/storage/sequence_store.h"
 
 const std::string REFERENCE_GENOME_FILENAME = "reference_genome.txt";
 const std::string PANGO_ALIAS_FILENAME = "pango_alias.txt";

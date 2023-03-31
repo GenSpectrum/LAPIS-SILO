@@ -10,11 +10,10 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/roaring/roaring_serialize.h"
 
-class Dictionary;
-
 namespace silo {
 
 class PangoLineageAliasLookup;
+class Dictionary;
 
 struct MetadataStore {
    template <class Archive>
