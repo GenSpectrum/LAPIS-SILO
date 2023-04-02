@@ -1,10 +1,13 @@
 #include "silo/database.h"
 
 #include <gtest/gtest.h>
+#include <silo/query_engine/query_result.h>
 
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/database_info.h"
 #include "silo/preprocessing/preprocessing_config.h"
+
+#include "silo/query_engine/query_engine.h"
 
 silo::Database buildTestDatabase() {
    const silo::InputDirectory input_directory{"./testBaseData/"};
@@ -17,6 +20,7 @@ silo::Database buildTestDatabase() {
    auto database = silo::Database(input_directory.directory);
 
    database.preprocessing(config);
+
    return database;
 };
 
@@ -72,4 +76,218 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfo) {
 
    EXPECT_EQ(simple_info.total_size, 66458430);
    EXPECT_EQ(simple_info.n_bitmaps_size, 3552);
+}
+
+TEST(DatabaseTest, shouldExecuteDateBetweenWithCorrectResultsOpenTo) {
+   auto database{buildTestDatabase()};
+
+   {
+      const auto ret = silo::executeQuery(
+         database,
+         "{\n"
+         "  \"action\": {\n"
+         "    \"type\": \"Aggregated\"\n"
+         "  },\n"
+         "  \"filterExpression\": {\n"
+         "    \"type\": \"DateBetween\",\n"
+         "    \"from\": \"2021-03-18\",\n"
+         "    \"to\": null\n"
+         "  }\n"
+         "}"
+      );
+
+      EXPECT_EQ(get<silo::response::AggregationResult>(ret.query_result).count, 48);
+   }
+
+   {
+      const auto ret = silo::executeQuery(
+         database,
+         "{\n"
+         "  \"action\": {\n"
+         "    \"type\": \"Aggregated\"\n"
+         "  },\n"
+         "  \"filterExpression\": {\n"
+         "    \"type\": \"DateBetween\",\n"
+         "    \"from\": \"2021-03-17\",\n"
+         "    \"to\": null\n"
+         "  }\n"
+         "}"
+      );
+
+      EXPECT_EQ(get<silo::response::AggregationResult>(ret.query_result).count, 48);
+   }
+
+   {
+      const auto ret = silo::executeQuery(
+         database,
+         "{\n"
+         "  \"action\": {\n"
+         "    \"type\": \"Aggregated\"\n"
+         "  },\n"
+         "  \"filterExpression\": {\n"
+         "    \"type\": \"DateBetween\",\n"
+         "    \"from\": \"2021-03-19\",\n"
+         "    \"to\": null\n"
+         "  }\n"
+         "}"
+      );
+
+      EXPECT_EQ(get<silo::response::AggregationResult>(ret.query_result).count, 47);
+   }
+}
+
+TEST(DatabaseTest, shouldExecuteDateBetweenWithCorrectResultsOpenFrom) {
+   auto database{buildTestDatabase()};
+
+   {
+      const auto ret = silo::executeQuery(
+         database,
+         "{\n"
+         "  \"action\": {\n"
+         "    \"type\": \"Aggregated\"\n"
+         "  },\n"
+         "  \"filterExpression\": {\n"
+         "    \"type\": \"DateBetween\",\n"
+         "    \"from\": null,\n"
+         "    \"to\": \"2021-03-18\"\n"
+         "  }\n"
+         "}"
+      );
+
+      EXPECT_EQ(get<silo::response::AggregationResult>(ret.query_result).count, 53);
+   }
+
+   {
+      const auto ret = silo::executeQuery(
+         database,
+         "{\n"
+         "  \"action\": {\n"
+         "    \"type\": \"Aggregated\"\n"
+         "  },\n"
+         "  \"filterExpression\": {\n"
+         "    \"type\": \"DateBetween\",\n"
+         "    \"from\": null,\n"
+         "    \"to\": \"2021-03-19\"\n"
+         "  }\n"
+         "}"
+      );
+
+      EXPECT_EQ(get<silo::response::AggregationResult>(ret.query_result).count, 54);
+   }
+
+   {
+      const auto ret = silo::executeQuery(
+         database,
+         "{\n"
+         "  \"action\": {\n"
+         "    \"type\": \"Aggregated\"\n"
+         "  },\n"
+         "  \"filterExpression\": {\n"
+         "    \"type\": \"DateBetween\",\n"
+         "    \"from\": null,\n"
+         "    \"to\": \"2021-03-17\"\n"
+         "  }\n"
+         "}"
+      );
+
+      EXPECT_EQ(get<silo::response::AggregationResult>(ret.query_result).count, 52);
+   }
+}
+
+TEST(DatabaseTest, shouldExecuteDateBetweenWithCorrectResultsBothBounds) {
+   auto database{buildTestDatabase()};
+
+   const auto ret = silo::executeQuery(
+      database,
+      "{\n"
+      "  \"action\": {\n"
+      "    \"type\": \"Aggregated\"\n"
+      "  },\n"
+      "  \"filterExpression\": {\n"
+      "    \"type\": \"DateBetween\",\n"
+      "    \"from\": \"2021-03-18\",\n"
+      "    \"to\": \"2021-03-18\"\n"
+      "  }\n"
+      "}"
+   );
+
+   EXPECT_EQ(get<silo::response::AggregationResult>(ret.query_result).count, 1);
+}
+
+TEST(DatabaseTest, shouldExecuteDateBetweenWithCorrectResultsFullRange) {
+   auto database{buildTestDatabase()};
+
+   const auto ret = silo::executeQuery(
+      database,
+      "{\n"
+      "  \"action\": {\n"
+      "    \"type\": \"Aggregated\"\n"
+      "  },\n"
+      "  \"filterExpression\": {\n"
+      "    \"type\": \"DateBetween\",\n"
+      "    \"from\": null,\n"
+      "    \"to\": null\n"
+      "  }\n"
+      "}"
+   );
+
+   EXPECT_EQ(get<silo::response::AggregationResult>(ret.query_result).count, 100);
+}
+
+TEST(DatabaseTest, shouldExecuteDateBetweenWithCorrectResultsDuplicateDate) {
+   auto database{buildTestDatabase()};
+
+   {
+      const auto ret = silo::executeQuery(
+         database,
+         "{\n"
+         "  \"action\": {\n"
+         "    \"type\": \"Aggregated\"\n"
+         "  },\n"
+         "  \"filterExpression\": {\n"
+         "    \"type\": \"DateBetween\",\n"
+         "    \"from\": \"2021-04-13\",\n"
+         "    \"to\": null\n"
+         "  }\n"
+         "}"
+      );
+
+      EXPECT_EQ(get<silo::response::AggregationResult>(ret.query_result).count, 43);
+   }
+
+   {
+      const auto ret = silo::executeQuery(
+         database,
+         "{\n"
+         "  \"action\": {\n"
+         "    \"type\": \"Aggregated\"\n"
+         "  },\n"
+         "  \"filterExpression\": {\n"
+         "    \"type\": \"DateBetween\",\n"
+         "    \"from\": null,\n"
+         "    \"to\": \"2021-04-13\"\n"
+         "  }\n"
+         "}"
+      );
+
+      EXPECT_EQ(get<silo::response::AggregationResult>(ret.query_result).count, 59);
+   }
+
+   {
+      const auto ret = silo::executeQuery(
+         database,
+         "{\n"
+         "  \"action\": {\n"
+         "    \"type\": \"Aggregated\"\n"
+         "  },\n"
+         "  \"filterExpression\": {\n"
+         "    \"type\": \"DateBetween\",\n"
+         "    \"from\": \"2021-04-13\",\n"
+         "    \"to\": \"2021-04-13\"\n"
+         "  }\n"
+         "}"
+      );
+
+      EXPECT_EQ(get<silo::response::AggregationResult>(ret.query_result).count, 2);
+   }
 }

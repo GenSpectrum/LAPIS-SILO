@@ -86,7 +86,6 @@ std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
 }
 
 void calculateOffsets(Partitions& partitions) {
-   /// Now calculate the offsets for all chunks.
    for (Partition& partition : partitions.partitions) {
       uint32_t running_total = 0;
       for (Chunk& chunk : partition.chunks) {
