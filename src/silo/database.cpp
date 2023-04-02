@@ -598,8 +598,8 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
    SPDLOG_INFO("preprocessing - building database");
    build(
       config.partition_folder.relative_path(),
-      config.metadata_file.extension(),
-      config.sequence_file.extension()
+      config.sorted_file_infix + config.metadata_file.extension().string(),
+      config.sorted_file_infix + config.sequence_file.extension().string()
    );
 }
 silo::Database::Database() = default;
