@@ -675,8 +675,7 @@ BooleanExpressionResult DateBetweenExpression::evaluate(
       const auto* lower = open_from ? begin : std::lower_bound(begin, end, this->date_from);
       uint32_t const lower_index = lower - base;
 
-      const auto* upper =
-         open_to ? end : std::upper_bound(begin, end, this->date_to);
+      const auto* upper = open_to ? end : std::upper_bound(begin, end, this->date_to);
       uint32_t const upper_index = upper - base;
       result->addRange(lower_index, upper_index);
    }
