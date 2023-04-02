@@ -672,11 +672,13 @@ BooleanExpressionResult DateBetweenExpression::evaluate(
       const auto* begin = &database_partition.meta_store.sequence_id_to_date[chunk.offset];
       const auto* end =
          &database_partition.meta_store.sequence_id_to_date[chunk.offset + chunk.count];
-      uint32_t const lower =
-         open_from ? begin - base : std::lower_bound(begin, end, this->date_from) - base;
-      uint32_t const upper =
-         open_to ? end - base : std::upper_bound(begin, end, this->date_to) - base;
-      result->addRange(lower, upper);
+      const auto* lower = open_from ? begin : std::lower_bound(begin, end, this->date_from);
+      uint32_t const lower_index = lower - base;
+
+      const auto* upper =
+         open_to ? end : std::upper_bound(begin, end, this->date_to);
+      uint32_t const upper_index = upper - base;
+      result->addRange(lower_index, upper_index);
    }
    return {result, nullptr};
 }

@@ -31,6 +31,8 @@ enum Architecture { MAX_PARTITIONS, SINGLE_PARTITION, HYBRID, SINGLE_SINGLE };
 
 Partitions buildPartitions(PangoLineageCounts pango_lineage_counts, Architecture arch);
 
+void calculateOffsets(Partitions& partitions);
+
 void partitionSequences(
    const Partitions& partitions,
    std::istream& meta_in,

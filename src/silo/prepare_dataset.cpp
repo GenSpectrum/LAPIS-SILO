@@ -229,12 +229,10 @@ std::vector<silo::Chunk> mergePangosToChunks(
 ) {
    // Initialize chunks such that every chunk is just a pango_lineage
    std::list<silo::Chunk> chunks;
-   uint32_t running_total = 0;
    for (auto& count : pango_lineage_counts) {
       std::vector<std::string> pango_lineages;
       pango_lineages.push_back(count.pango_lineage);
-      silo::Chunk const tmp = {count.pango_lineage, count.count, running_total, pango_lineages};
-      running_total += count.count;
+      silo::Chunk const tmp = {count.pango_lineage, count.count, 0, pango_lineages};
       chunks.emplace_back(tmp);
    }
    // We want to prioritise merges more closely related chunks.
@@ -278,6 +276,17 @@ std::vector<silo::Chunk> mergePangosToChunks(
    return ret;
 }
 
+void silo::calculateOffsets(Partitions& partitions) {
+   /// Now calculate the offsets for all chunks.
+   for (Partition& partition : partitions.partitions) {
+      uint32_t running_total = 0;
+      for (Chunk& chunk : partition.chunks) {
+         chunk.offset = running_total;
+         running_total += chunk.count;
+      }
+   }
+}
+
 silo::Partitions silo::buildPartitions(
    silo::PangoLineageCounts pango_lineage_counts,
    Architecture arch
@@ -314,6 +323,7 @@ silo::Partitions silo::buildPartitions(
          );
 
          descriptor.partitions[0].count = total_count;
+         calculateOffsets(descriptor);
          return descriptor;
       case Architecture::SINGLE_SINGLE:
 
