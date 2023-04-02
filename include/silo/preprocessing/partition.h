@@ -38,6 +38,8 @@ struct Partitions {
 
 enum Architecture { MAX_PARTITIONS, SINGLE_PARTITION, HYBRID, SINGLE_SINGLE };
 
+void calculateOffsets(Partitions& partitions);
+
 Partitions buildPartitions(PangoLineageCounts pango_lineage_counts, Architecture arch);
 
 }  // namespace silo::preprocessing
