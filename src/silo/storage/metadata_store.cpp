@@ -46,10 +46,6 @@ unsigned MetadataStore::fill(
 
       std::string const pango_lineage = alias_key.resolvePangoLineageAlias(pango_lineage_raw);
 
-      constexpr int START_POSITION_OF_NUMBER_IN_EPI_ISL = 8;
-      std::string const tmp = epi_isl.substr(START_POSITION_OF_NUMBER_IN_EPI_ISL);
-      uint64_t const epi = stoi(tmp);
-
       struct std::tm time_struct {};
       std::istringstream time_stream(date);
       time_stream >> std::get_time(&time_struct, "%Y-%m-%d");
@@ -59,7 +55,7 @@ unsigned MetadataStore::fill(
       extra_cols.push_back(dict.getIdInGeneralLookup(division));
 
       inputSequenceMeta(
-         epi,
+         epi_isl,
          time,
          dict.getPangoLineageIdInLookup(pango_lineage),
          dict.getRegionIdInLookup(region),
@@ -74,14 +70,14 @@ unsigned MetadataStore::fill(
 
 // TODO(someone): clean up and specify inputs
 void MetadataStore::inputSequenceMeta(
-   uint64_t epi_isl_number,  // NOLINT
+   std::string primary_key,  // NOLINT
    time_t date,
    uint32_t pango_lineage,
    uint32_t region,
    uint32_t country,
    const std::vector<uint64_t>& values
 ) {
-   sequence_id_to_epi.push_back(epi_isl_number);
+   sequence_id_to_epi.push_back(primary_key);
    sequence_id_to_lineage.push_back(pango_lineage);
 
    sequence_id_to_date.push_back(date);

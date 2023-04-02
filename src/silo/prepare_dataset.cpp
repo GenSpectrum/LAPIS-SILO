@@ -20,28 +20,24 @@
 ) {
    SPDLOG_INFO("Pruning metadata");
 
-   std::unordered_set<uint64_t> epi_isl_ids;
+   std::unordered_set<std::string> epi_isl_set;
    uint32_t found_sequences_count = 0;
    uint32_t found_metadata_count = 0;
    {
       while (true) {
-         std::string epi_isl;
-         if (!getline(sequences_in, epi_isl)) {
+         std::string epi_isl_with_prefix;
+         if (!getline(sequences_in, epi_isl_with_prefix)) {
             break;
          }
          sequences_in.ignore(LONG_MAX, '\n');
 
-         static constexpr int BEGIN_OF_NUMBER_IN_EPI_ISL_OF_SEQUENCE_FILE = 9;
-         std::string const epi_isl_id = epi_isl.substr(BEGIN_OF_NUMBER_IN_EPI_ISL_OF_SEQUENCE_FILE);
-         try {
-            epi_isl_ids.insert(stoi(epi_isl_id));
-            found_sequences_count++;
-         } catch (const std::invalid_argument& exception) {
-            throw silo::PreprocessingException(
-               "Failed parsing EPI: " + epi_isl + " (sequence " +
-               std::to_string(found_sequences_count) + "): " + exception.what()
-            );
+         if (epi_isl_with_prefix.at(0) != '>') {
+            throw silo::PreprocessingException("EPI ISL prefix > is missing.");
          }
+         std::string const epi_isl = epi_isl_with_prefix.substr(1);
+
+         epi_isl_set.insert(epi_isl);
+         found_sequences_count++;
       }
    }
    SPDLOG_INFO("Finished reading sequences, found {} sequences", found_sequences_count);
@@ -60,23 +56,14 @@
             break;
          }
 
-         std::string const tmp = epi_isl.substr(8);
-         try {
-            uint64_t const epi = stoi(tmp);
-            if (epi_isl_ids.contains(epi)) {
-               if (!getline(metadata_in, rest)) {
-                  break;
-               }
-               found_metadata_count++;
-               metadata_out << epi_isl << "\t" << rest << "\n";
-            } else {
-               metadata_in.ignore(LONG_MAX, '\n');
+         if (epi_isl_set.contains(epi_isl)) {
+            if (!getline(metadata_in, rest)) {
+               break;
             }
-         } catch (const std::invalid_argument& exception) {
-            throw silo::PreprocessingException(
-               "Failed parsing EPI: " + epi_isl + " (metadata row " +
-               std::to_string(found_metadata_count) + "): " + exception.what()
-            );
+            found_metadata_count++;
+            metadata_out << epi_isl << "\t" << rest << "\n";
+         } else {
+            metadata_in.ignore(LONG_MAX, '\n');
          }
       }
    }
@@ -90,7 +77,7 @@
 ) {
    SPDLOG_INFO("Pruning sequences");
 
-   std::unordered_set<uint64_t> set;
+   std::unordered_set<std::string> epi_isl_set;
    uint32_t found_metadata_count = 0;
    {
       std::string header;
@@ -104,18 +91,8 @@
             break;
          }
          metadata_in.ignore(LONG_MAX, '\n');
-         static constexpr int BEGIN_OF_NUMBER_IN_EPI_ISL = 8;
-         std::string const tmp = epi_isl.substr(BEGIN_OF_NUMBER_IN_EPI_ISL);
-         try {
-            uint64_t const epi = stoi(tmp);
-            set.insert(epi);
-            found_metadata_count++;
-         } catch (const std::invalid_argument& exception) {
-            throw silo::PreprocessingException(
-               "Failed parsing EPI: " + epi_isl + " (metadata row " +
-               std::to_string(found_metadata_count) + "): " + exception.what()
-            );
-         }
+         epi_isl_set.insert(epi_isl);
+         found_metadata_count++;
       }
    }
    SPDLOG_INFO("Finished reading metadata, found {} rows", found_metadata_count);
@@ -123,35 +100,33 @@
    uint32_t found_sequences_count = 0;
    {
       while (true) {
-         std::string epi_isl;
+         std::string epi_isl_with_prefix;
          std::string genome;
-         if (!getline(sequences_in, epi_isl)) {
+         if (!getline(sequences_in, epi_isl_with_prefix)) {
             break;
          }
-         static constexpr int BEGIN_OF_NUMBER_IN_EPI_ISL_OF_SEQUENCE_FILE = 9;
-         std::string const tmp = epi_isl.substr(BEGIN_OF_NUMBER_IN_EPI_ISL_OF_SEQUENCE_FILE);
-         try {
-            uint64_t const epi = stoi(tmp);
-            if (set.contains(epi)) {
-               if (!getline(sequences_in, genome)) {
-                  break;
-               }
-               found_sequences_count++;
-               sequences_out << epi_isl << "\n" << genome << "\n";
-            } else {
-               sequences_in.ignore(LONG_MAX, '\n');
+
+         if (epi_isl_with_prefix.at(0) != '>') {
+            throw silo::PreprocessingException("EPI ISL prefix > is missing.");
+         }
+         std::string const epi_isl = epi_isl_with_prefix.substr(1);
+
+         if (epi_isl_set.contains(epi_isl)) {
+            if (!getline(sequences_in, genome)) {
+               break;
             }
-         } catch (const std::invalid_argument& exception) {
-            throw silo::PreprocessingException(
-               "Failed parsing EPI: " + epi_isl + " (sequence " +
-               std::to_string(found_sequences_count) + "): " + exception.what()
-            );
+            found_sequences_count++;
+            sequences_out << epi_isl << "\n" << genome << "\n";
+         } else {
+            sequences_in.ignore(LONG_MAX, '\n');
          }
       }
    }
    SPDLOG_INFO("Finished reading sequences, found {} sequences", found_sequences_count);
 }
 
+// TODO(Taepper): reduce cognitive complexity
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void silo::partitionSequences(
    const preprocessing::Partitions& partitions,
    std::istream& meta_in,
@@ -174,7 +149,7 @@ void silo::partitionSequences(
       }
    }
 
-   std::unordered_map<uint64_t, std::string> epi_to_chunk;
+   std::unordered_map<std::string, std::string> epi_to_chunk;
 
    {
       SPDLOG_INFO("partitioning metadata file to {}", output_prefix);
@@ -210,15 +185,11 @@ void silo::partitionSequences(
          /// Deal with pango_lineage alias:
          std::string const pango_lineage = alias_key.resolvePangoLineageAlias(pango_lineage_raw);
 
-         static constexpr int BEGIN_OF_NUMBER_IN_EPI_ISL = 8;
-         std::string const tmp = epi_isl.substr(BEGIN_OF_NUMBER_IN_EPI_ISL);
-         uint64_t const epi = stoi(tmp);
-
          std::string const chunk = pango_to_chunk[pango_lineage];
          *chunk_to_meta_ostream[chunk] << epi_isl << '\t' << pango_lineage << '\t' << rest << '\n';
 
          // Now saveDatabaseState where the epi will go for the sequence partitioning
-         epi_to_chunk[epi] = chunk;
+         epi_to_chunk[epi_isl] = chunk;
       }
    }
 
@@ -235,25 +206,34 @@ void silo::partitionSequences(
       SPDLOG_DEBUG("Created file streams for {}", output_prefix);
 
       while (true) {
-         std::string epi_isl;
+         std::string epi_isl_with_prefix;
          std::string genome;
-         if (!getline(sequence_in, epi_isl)) {
+         if (!getline(sequence_in, epi_isl_with_prefix)) {
             break;
          }
          if (!getline(sequence_in, genome)) {
             break;
          }
+
+         if (epi_isl_with_prefix.at(0) != '>') {
+            throw silo::PreprocessingException("EPI ISL prefix > is missing.");
+         }
+         std::string const epi_isl = epi_isl_with_prefix.substr(1);
+
          if (genome.length() != GENOME_LENGTH) {
             throw silo::PreprocessingException(
                "Genome didn't have expected length " + std::to_string(GENOME_LENGTH) + " (was " +
                std::to_string(genome.length()) + ")."
             );
          }
-         static constexpr int BEGIN_OF_NUMBER_IN_EPI_ISL_OF_SEQUENCE_FILE = 9;
-         const uint64_t epi = stoi(epi_isl.substr(BEGIN_OF_NUMBER_IN_EPI_ISL_OF_SEQUENCE_FILE));
+         if (!epi_to_chunk.contains(epi_isl)) {
+            throw silo::PreprocessingException(
+               "EPI in metadata and sequences did not match " + epi_isl + "."
+            );
+         }
 
-         std::string const chunk = epi_to_chunk.at(epi);
-         *chunk_to_seq_ostream[chunk] << epi_isl << '\n' << genome << '\n';
+         std::string const chunk = epi_to_chunk[epi_isl];
+         *chunk_to_seq_ostream[chunk] << epi_isl_with_prefix << '\n' << genome << '\n';
       }
    }
    SPDLOG_INFO("Finished partitioning to {}", output_prefix);
@@ -275,11 +255,11 @@ void sortChunk(
    const std::string chunk_str =
       'P' + std::to_string(chunk.part) + '_' + 'C' + std::to_string(chunk.chunk);
 
-   std::unordered_map<uint64_t, time_t> epi_to_date;
+   std::unordered_map<std::string, time_t> epi_to_date;
 
    {
       struct MetaLine {
-         uint64_t epi;
+         std::string epi;
          std::string pango;
          time_t date;
          std::string date_str;
@@ -311,18 +291,15 @@ void sortChunk(
          if (!getline(meta_in, rest, '\n')) {
             break;
          }
-         static constexpr int BEGIN_OF_NUMBER_IN_EPI_ISL = 8;
-         std::string const tmp = epi_isl.substr(BEGIN_OF_NUMBER_IN_EPI_ISL);
-         uint64_t const epi = stoi(tmp);
 
          struct std::tm time_struct {};
          std::istringstream time_stream(date_str);
          time_stream >> std::get_time(&time_struct, "%Y-%m-%d");
          std::time_t const date_time = mktime(&time_struct);
 
-         lines.push_back(MetaLine{epi, pango_lineage, date_time, date_str, rest});
+         lines.push_back(MetaLine{epi_isl, pango_lineage, date_time, date_str, rest});
 
-         epi_to_date[epi] = date_time;
+         epi_to_date[epi_isl] = date_time;
       }
 
       auto sorter = [](const MetaLine& line1, const MetaLine& line2) {
@@ -346,7 +323,7 @@ void sortChunk(
       // Write file to ostream
 
       struct EPIDate {
-         uint64_t epi;
+         std::string epi;
          time_t date;
          uint32_t file_pos;
       };
@@ -354,19 +331,19 @@ void sortChunk(
       epi_dates.reserve(chunk.size);
       uint32_t number_of_epis = 0;
       while (true) {
-         std::string epi_isl;
-         if (!getline(sequence_in, epi_isl)) {
+         std::string epi_isl_with_prefix;
+         if (!getline(sequence_in, epi_isl_with_prefix)) {
             break;
          }
          sequence_in.ignore(LONG_MAX, '\n');
 
-         // Add the count to the respective pid
+         if (epi_isl_with_prefix.at(0) != '>') {
+            throw silo::PreprocessingException("EPI ISL prefix > is missing.");
+         }
+         std::string const epi_isl = epi_isl_with_prefix.substr(1);
 
-         static constexpr int BEGIN_OF_NUMBER_IN_EPI_ISL_OF_SEQUENCE_FILE = 9;
-         uint64_t const epi = stoi(epi_isl.substr(BEGIN_OF_NUMBER_IN_EPI_ISL_OF_SEQUENCE_FILE));
-
-         time_t const date = epi_to_date[epi];
-         epi_dates.emplace_back(EPIDate{epi, date, number_of_epis++});
+         time_t const date = epi_to_date[epi_isl];
+         epi_dates.emplace_back(EPIDate{epi_isl, date, number_of_epis++});
       }
 
       SPDLOG_TRACE("Finished first run for chunk {}", chunk_str);

@@ -34,14 +34,20 @@ unsigned silo::SequenceStore::fill(std::istream& input_file) {
 
    std::vector<std::string> genome_buffer;
    while (true) {
-      std::string epi_isl;
+      std::string epi_isl_with_prefix;
       std::string genome;
-      if (!getline(input_file, epi_isl)) {
+      if (!getline(input_file, epi_isl_with_prefix)) {
          break;
       }
       if (!getline(input_file, genome)) {
          break;
       }
+
+      if (epi_isl_with_prefix.at(0) != '>') {
+         throw silo::PreprocessingException("EPI ISL prefix > is missing.");
+      }
+      std::string const epi_isl = epi_isl_with_prefix.substr(1);
+
       if (genome.length() != GENOME_LENGTH) {
          throw silo::PreprocessingException(
             "Error filling sequence store: Genome length was " + std::to_string(genome.length()) +

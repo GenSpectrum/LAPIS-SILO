@@ -35,7 +35,7 @@ struct MetadataStore {
       archive& columns;
    }
 
-   std::vector<uint64_t> sequence_id_to_epi;
+   std::vector<std::string> sequence_id_to_epi;
    std::vector<time_t> sequence_id_to_date;
 
    // TODO(taepper) only ints -> Dictionary:
@@ -59,7 +59,7 @@ struct MetadataStore {
 
   private:
    void inputSequenceMeta(
-      uint64_t epi_isl_number,
+      std::string primary_key,
       time_t date,
       uint32_t pango_lineage,
       uint32_t region,
