@@ -36,7 +36,7 @@ Build silo in `./build`. This build will load and build the required libraries t
 hand).
 
 ```shell
-./build_with_conan
+./build_with_conan.sh
 ```
 
 Executables are located in `build/` upon a successful build.
