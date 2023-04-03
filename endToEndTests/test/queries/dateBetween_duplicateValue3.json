@@ -1,0 +1,16 @@
+{
+  "testCaseName": "DateBetween Query with 'from' and 'to' bound on a duplicate value",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "DateBetween",
+      "from": "2021-04-13",
+      "to": "2021-04-13"
+    }
+  },
+  "expectedQueryResult": {
+    "count": 2
+  }
+}

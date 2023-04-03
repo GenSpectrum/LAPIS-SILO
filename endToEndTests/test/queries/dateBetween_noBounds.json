@@ -1,0 +1,16 @@
+{
+  "testCaseName": "DateBetween Query without bounds",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "DateBetween",
+      "from": null,
+      "to": null
+    }
+  },
+  "expectedQueryResult": {
+    "count": 100
+  }
+}
