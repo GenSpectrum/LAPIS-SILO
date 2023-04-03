@@ -11,7 +11,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "external/PerfEvent.hpp"
+#include "external/block_timer.h"
 #include "silo/common/format_number.h"
 #include "silo/common/input_stream_wrapper.h"
 #include "silo/common/log.h"
