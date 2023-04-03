@@ -30,6 +30,10 @@ struct PartitionFolder {
    std::string folder;
 };
 
+struct SortedPartitionFolder {
+   std::string folder;
+};
+
 struct SerializationFolder {
    std::string folder;
 };
@@ -43,6 +47,7 @@ struct PreprocessingConfig {
       const PangoLineageDefinitionFilename& pango_lineage_definition_filename_ =
          {"pango_alias.txt"},
       const PartitionFolder& partition_folder_ = {"partitioned/"},
+      const SortedPartitionFolder& sorted_partition_folder_ = {"sorted_partitions/"},
       const SerializationFolder& serialization_folder_ = {"serialized_state/"}
    );
 
@@ -50,6 +55,7 @@ struct PreprocessingConfig {
    std::filesystem::path metadata_file;
    std::filesystem::path sequence_file;
    std::filesystem::path partition_folder;
+   std::filesystem::path sorted_partition_folder;
    std::filesystem::path serialization_folder;
 };
 

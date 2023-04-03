@@ -37,6 +37,7 @@ PreprocessingConfig::PreprocessingConfig(
    const SequenceFilename& sequence_filename_,
    const PangoLineageDefinitionFilename& pango_lineage_definition_filename_,
    const PartitionFolder& partition_folder_,
+   const SortedPartitionFolder& sorted_partition_folder_,
    const SerializationFolder& serialization_folder_
 ) {
    const std::filesystem::path input_directory(input_directory_.directory);
@@ -57,6 +58,7 @@ PreprocessingConfig::PreprocessingConfig(
    }
 
    partition_folder = createOutputPath(output_directory, partition_folder_.folder);
+   sorted_partition_folder = createOutputPath(output_directory, sorted_partition_folder_.folder);
    serialization_folder = createOutputPath(output_directory, serialization_folder_.folder);
 }
 }  // namespace silo
