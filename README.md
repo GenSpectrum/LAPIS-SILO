@@ -59,9 +59,11 @@ docker run -i silo
 
 # Testing
 
-For testing we use the framework [gtest](http://google.github.io/googletest/) and for
-mocking [gmock](http://google.github.io/googletest/gmock_cook_book.html). Tests are built using the same script as the
-production code: `./build_with_conan`.
+## Unit Tests
+
+For testing, we use the framework [gtest](http://google.github.io/googletest/)
+and [gmock](http://google.github.io/googletest/gmock_cook_book.html) for mocking. Tests are built using the same script
+as the production code: `./build_with_conan`.
 
 We use the convention, that each tested source file has its own test file, ending with `*.test.cpp`. The test file is
 placed in the same folder as the source file. If the function under test is described in a header file, the test file is
@@ -82,6 +84,16 @@ and will throw errors accordingly. However, it is rather slow. If you only want 
 
 When pushing to GitHub, a separate Docker image will be built, which runs the formatter. (This is a workaround, because
 building with clang-tidy under alpine was not possible yet.)
+
+## Functional End-To-End Tests
+
+End-to-end tests are located in `/endToEndTests`. Those tests are used to verify the overall functionality of the SILO
+queries. To execute the tests:
+
+* have a running SILO instance, e.g. via `docker run -p 8081:8081 ghcr.io/genspectrum/lapis-silo`
+* `cd endToEndTests`
+* `npm install`
+* `SILO_URL=localhost:8081 npm run test`
 
 # Logging
 
