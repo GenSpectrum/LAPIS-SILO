@@ -38,6 +38,7 @@ void partitionSequences(
 
 void sortChunks(
    const preprocessing::Partitions& partitions,
+   const std::string& input_prefix,
    const std::string& output_prefix,
    const std::string& metadata_file_extension,
    const std::string& sequence_file_extension

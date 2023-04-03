@@ -574,6 +574,7 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
    silo::sortChunks(
       *partition_descriptor,
       config.partition_folder.relative_path(),
+      config.sorted_partition_folder.relative_path(),
       config.metadata_file.extension(),
       config.sequence_file.extension()
    );
@@ -584,7 +585,7 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
         ++partition_index) {
       const auto& partition = partition_descriptor->partitions.at(partition_index);
       for (unsigned chunk_index = 0; chunk_index < partition.chunks.size(); ++chunk_index) {
-         std::string const name = config.partition_folder.relative_path().string() +
+         std::string const name = config.sorted_partition_folder.relative_path().string() +
                                   buildChunkName(partition_index, chunk_index) +
                                   config.metadata_file.extension().string();
          std::ifstream meta_in(name);
@@ -597,9 +598,9 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
 
    SPDLOG_INFO("preprocessing - building database");
    build(
-      config.partition_folder.relative_path(),
-      config.sorted_file_infix + config.metadata_file.extension().string(),
-      config.sorted_file_infix + config.sequence_file.extension().string()
+      config.sorted_partition_folder.relative_path(),
+      config.metadata_file.extension(),
+      config.sequence_file.extension()
    );
 }
 silo::Database::Database() = default;

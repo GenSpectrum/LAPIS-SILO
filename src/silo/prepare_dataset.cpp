@@ -415,6 +415,7 @@ void sortChunk(
 
 void silo::sortChunks(
    const preprocessing::Partitions& partitions,
+   const std::string& input_prefix,
    const std::string& output_prefix,
    const std::string& metadata_file_extension,
    const std::string& sequence_file_extension
@@ -429,11 +430,15 @@ void silo::sortChunks(
    }
 
    tbb::parallel_for_each(all_chunks.begin(), all_chunks.end(), [&](const PartitionChunk& chunk) {
-      const auto& file_name = output_prefix + silo::buildChunkName(chunk.part, chunk.chunk);
+      const auto& file_name = input_prefix + silo::buildChunkName(chunk.part, chunk.chunk);
       silo::InputStreamWrapper const sequence_in(file_name + sequence_file_extension);
       silo::InputStreamWrapper const meta_in(file_name + metadata_file_extension);
-      std::ofstream sequence_out(file_name + "_sorted" + sequence_file_extension);
-      std::ofstream meta_out(file_name + "_sorted" + metadata_file_extension);
+      std::ofstream sequence_out(
+         output_prefix + silo::buildChunkName(chunk.part, chunk.chunk) + sequence_file_extension
+      );
+      std::ofstream meta_out(
+         output_prefix + silo::buildChunkName(chunk.part, chunk.chunk) + metadata_file_extension
+      );
       sortChunk(
          meta_in.getInputStream(), sequence_in.getInputStream(), meta_out, sequence_out, chunk
       );
