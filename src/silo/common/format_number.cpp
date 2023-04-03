@@ -1,6 +1,7 @@
 #include "silo/common/format_number.h"
 
-#include <filesystem>
+#include <memory>
+#include <sstream>
 #include <string>
 
 namespace silo {

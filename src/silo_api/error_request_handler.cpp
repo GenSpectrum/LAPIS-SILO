@@ -1,6 +1,7 @@
 #include "silo_api/error_request_handler.h"
 
 #include <Poco/Net/HTTPServerResponse.h>
+#include <cxxabi.h>
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
@@ -22,7 +23,7 @@ void ErrorRequestHandler::handleRequest(
       out_stream << nlohmann::json(ErrorResponse{"Internal server error", exception.what()});
    } catch (...) {
       const auto exception = std::current_exception();
-      const auto* message = exception ? exception.__cxa_exception_type()->name() : "null";
+      const auto* message = exception ? abi::__cxa_current_exception_type()->name() : "null";
       SPDLOG_ERROR("Caught something unexpected: {}", message);
 
       response.setStatus(Poco::Net::HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
