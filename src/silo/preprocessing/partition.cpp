@@ -36,13 +36,10 @@ std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
 ) {
    // Initialize chunks such that every chunk is just a pango_lineage
    std::list<Chunk> chunks;
-   uint32_t running_total = 0;
    for (auto& count : pango_lineage_counts) {
       std::vector<std::string> pango_lineages;
       pango_lineages.push_back(count.pango_lineage);
-      Chunk const tmp = {
-         count.pango_lineage, count.count_of_sequences, running_total, pango_lineages};
-      running_total += count.count_of_sequences;
+      Chunk const tmp = {count.pango_lineage, count.count_of_sequences, 0, pango_lineages};
       chunks.emplace_back(tmp);
    }
    // We want to prioritise merges more closely related chunks.
@@ -88,6 +85,16 @@ std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
    return ret;
 }
 
+void calculateOffsets(Partitions& partitions) {
+   for (Partition& partition : partitions.partitions) {
+      uint32_t running_total = 0;
+      for (Chunk& chunk : partition.chunks) {
+         chunk.offset = running_total;
+         running_total += chunk.count_of_sequences;
+      }
+   }
+}
+
 Partitions buildPartitions(PangoLineageCounts pango_lineage_counts, Architecture arch) {
    uint32_t total_count_of_sequences = 0;
    for (auto& pango_lineage_count : pango_lineage_counts.pango_lineage_counts) {
@@ -124,6 +131,7 @@ Partitions buildPartitions(PangoLineageCounts pango_lineage_counts, Architecture
          );
 
          descriptor.partitions[0].count_of_sequences = total_count_of_sequences;
+         calculateOffsets(descriptor);
          return descriptor;
       case Architecture::SINGLE_SINGLE:
 

@@ -1,0 +1,16 @@
+{
+  "testCaseName": "DateBetween Query with open 'to' range 1",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "DateBetween",
+      "from": "2021-03-17",
+      "to": null
+    }
+  },
+  "expectedQueryResult": {
+    "count": 48
+  }
+}

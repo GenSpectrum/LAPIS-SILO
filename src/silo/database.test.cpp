@@ -1,10 +1,13 @@
 #include "silo/database.h"
 
 #include <gtest/gtest.h>
+#include <silo/query_engine/query_result.h>
 
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/database_info.h"
 #include "silo/preprocessing/preprocessing_config.h"
+
+#include "silo/query_engine/query_engine.h"
 
 silo::Database buildTestDatabase() {
    const silo::InputDirectory input_directory{"./testBaseData/"};
@@ -17,6 +20,7 @@ silo::Database buildTestDatabase() {
    auto database = silo::Database(input_directory.directory);
 
    database.preprocessing(config);
+
    return database;
 };
 
