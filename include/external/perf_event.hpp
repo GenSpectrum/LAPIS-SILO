@@ -4,11 +4,11 @@ Copyright (c) 2018 Viktor Leis
 
    Permission is hereby granted, free of charge, to any person obtaining
    a copy of this software and associated documentation files (the
-                                                              "Software"), to deal in the Software without restriction, including
-   without limitation the rights to use, copy, modify, merge, publish,
+                                                              "Software"), to deal in the Software
+without restriction, including without limitation the rights to use, copy, modify, merge, publish,
    distribute, sublicense, and/or sell copies of the Software, and to
-                                                                 permit persons to whom the Software is furnished to do so, subject to
-   the following conditions:
+                                                                 permit persons to whom the Software
+is furnished to do so, subject to the following conditions:
 
    The above copyright notice and this permission notice shall be
    included in all copies or substantial portions of the Software.
@@ -40,28 +40,6 @@ Copyright (c) 2018 Viktor Leis
 #include <sys/ioctl.h>
 #include <unistd.h>
 
-template <typename Unit = std::chrono::microseconds, typename Clock = std::chrono::steady_clock>
-struct [[nodiscard]] BlockTimer {
-   using time_point_t = typename Clock::time_point;
-   using output_t = typename Clock::rep;
-
-   output_t& output;
-   time_point_t start;
-
-   explicit BlockTimer(output_t& ref)
-      : output(ref)
-        , start(Clock::now()) {}
-
-   ~BlockTimer() {
-      auto end = Clock::now();
-      output = std::chrono::duration_cast<Unit>(end - start).count();
-   }
-
-   output_t until_now() {
-      return std::chrono::duration_cast<Unit>(Clock::now() - start).count();
-   }
-};
-
 struct PerfEvent {
    struct event {
       struct read_format {
@@ -77,15 +55,14 @@ struct PerfEvent {
       read_format data;
 
       double readCounter() {
-         double multiplexingCorrection = static_cast<double>(data.time_enabled - prev.time_enabled) / static_cast<double>(data.time_running - prev.time_running);
+         double multiplexingCorrection =
+            static_cast<double>(data.time_enabled - prev.time_enabled) /
+            static_cast<double>(data.time_running - prev.time_running);
          return static_cast<double>(data.value - prev.value) * multiplexingCorrection;
       }
    };
 
-   enum EventDomain : uint8_t { USER = 0b1,
-                                KERNEL = 0b10,
-                                HYPERVISOR = 0b100,
-                                ALL = 0b111 };
+   enum EventDomain : uint8_t { USER = 0b1, KERNEL = 0b10, HYPERVISOR = 0b100, ALL = 0b111 };
 
    std::vector<event> events;
    std::vector<std::string> names;
@@ -96,7 +73,12 @@ struct PerfEvent {
       registerCounter("cycles", PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES);
       registerCounter("kcycles", PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, KERNEL);
       registerCounter("instructions", PERF_TYPE_HARDWARE, PERF_COUNT_HW_INSTRUCTIONS);
-      registerCounter("L1-misses", PERF_TYPE_HW_CACHE, PERF_COUNT_HW_CACHE_L1D | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16));
+      registerCounter(
+         "L1-misses",
+         PERF_TYPE_HW_CACHE,
+         PERF_COUNT_HW_CACHE_L1D | (PERF_COUNT_HW_CACHE_OP_READ << 8) |
+            (PERF_COUNT_HW_CACHE_RESULT_MISS << 16)
+      );
       registerCounter("LLC-misses", PERF_TYPE_HARDWARE, PERF_COUNT_HW_CACHE_MISSES);
       registerCounter("branch-misses", PERF_TYPE_HARDWARE, PERF_COUNT_HW_BRANCH_MISSES);
       registerCounter("task-clock", PERF_TYPE_SOFTWARE, PERF_COUNT_SW_TASK_CLOCK);
@@ -114,7 +96,12 @@ struct PerfEvent {
       }
    }
 
-   void registerCounter(const std::string& name, uint64_t type, uint64_t eventID, EventDomain domain = ALL) {
+   void registerCounter(
+      const std::string& name,
+      uint64_t type,
+      uint64_t eventID,
+      EventDomain domain = ALL
+   ) {
       names.push_back(name);
       events.push_back(event());
       auto& event = events.back();
@@ -159,21 +146,13 @@ struct PerfEvent {
       }
    }
 
-   double getDuration() {
-      return std::chrono::duration<double>(stopTime - startTime).count();
-   }
+   double getDuration() { return std::chrono::duration<double>(stopTime - startTime).count(); }
 
-   double getIPC() {
-      return getCounter("instructions") / getCounter("cycles");
-   }
+   double getIPC() { return getCounter("instructions") / getCounter("cycles"); }
 
-   double getCPUs() {
-      return getCounter("task-clock") / (getDuration() * 1e9);
-   }
+   double getCPUs() { return getCounter("task-clock") / (getDuration() * 1e9); }
 
-   double getGHz() {
-      return getCounter("cycles") / getCounter("task-clock");
-   }
+   double getGHz() { return getCounter("cycles") / getCounter("task-clock"); }
 
    double getCounter(const std::string& name) {
       for (unsigned i = 0; i < events.size(); i++)
@@ -182,14 +161,26 @@ struct PerfEvent {
       return -1;
    }
 
-   static void printCounter(std::ostream& headerOut, std::ostream& dataOut, std::string name, std::string counterValue, bool addComma = true) {
+   static void printCounter(
+      std::ostream& headerOut,
+      std::ostream& dataOut,
+      std::string name,
+      std::string counterValue,
+      bool addComma = true
+   ) {
       auto width = std::max(name.length(), counterValue.length());
       headerOut << std::setw(static_cast<int>(width)) << name << (addComma ? "," : "") << " ";
       dataOut << std::setw(static_cast<int>(width)) << counterValue << (addComma ? "," : "") << " ";
    }
 
    template <typename T>
-   static void printCounter(std::ostream& headerOut, std::ostream& dataOut, std::string name, T counterValue, bool addComma = true) {
+   static void printCounter(
+      std::ostream& headerOut,
+      std::ostream& dataOut,
+      std::string name,
+      T counterValue,
+      bool addComma = true
+   ) {
       std::stringstream stream;
       stream << std::fixed << std::setprecision(2) << counterValue;
       PerfEvent::printCounter(headerOut, dataOut, name, stream.str(), addComma);
@@ -203,13 +194,22 @@ struct PerfEvent {
       out << data.str() << std::endl;
    }
 
-   void printReport(std::ostream& headerOut, std::ostream& dataOut, uint64_t normalizationConstant) {
+   void printReport(
+      std::ostream& headerOut,
+      std::ostream& dataOut,
+      uint64_t normalizationConstant
+   ) {
       if (!events.size())
          return;
 
       // print all metrics
       for (unsigned i = 0; i < events.size(); i++) {
-         printCounter(headerOut, dataOut, names[i], events[i].readCounter() / static_cast<double>(normalizationConstant));
+         printCounter(
+            headerOut,
+            dataOut,
+            names[i],
+            events[i].readCounter() / static_cast<double>(normalizationConstant)
+         );
       }
 
       printCounter(headerOut, dataOut, "scale", normalizationConstant);
@@ -222,13 +222,9 @@ struct PerfEvent {
 };
 
 struct BenchmarkParameters {
-   void setParam(const std::string& name, const std::string& value) {
-      params[name] = value;
-   }
+   void setParam(const std::string& name, const std::string& value) { params[name] = value; }
 
-   void setParam(const std::string& name, const char* value) {
-      params[name] = value;
-   }
+   void setParam(const std::string& name, const char* value) { params[name] = value; }
 
    template <typename T>
    void setParam(const std::string& name, T value) {
@@ -246,7 +242,7 @@ struct BenchmarkParameters {
          setParam("name", name);
    }
 
-   private:
+  private:
    std::map<std::string, std::string> params;
 };
 
@@ -257,8 +253,12 @@ struct PerfRef {
    };
    bool has_instance;
 
-   PerfRef() : instance(), has_instance(true) {}
-   PerfRef(PerfEvent* ptr) : pointer(ptr), has_instance(false) {}
+   PerfRef()
+       : instance(),
+         has_instance(true) {}
+   PerfRef(PerfEvent* ptr)
+       : pointer(ptr),
+         has_instance(false) {}
    PerfRef(const PerfRef&) = delete;
 
    ~PerfRef() {
@@ -266,9 +266,7 @@ struct PerfRef {
          instance.~PerfEvent();
    }
 
-   PerfEvent* operator->() {
-      return has_instance ? &instance : pointer;
-   }
+   PerfEvent* operator->() { return has_instance ? &instance : pointer; }
 };
 
 struct PerfEventBlock {
@@ -278,17 +276,22 @@ struct PerfEventBlock {
    bool printHeader;
 
    PerfEventBlock(uint64_t scale = 1, BenchmarkParameters params = {}, bool printHeader = true)
-      : scale(scale),
-        parameters(params),
-        printHeader(printHeader) {
+       : scale(scale),
+         parameters(params),
+         printHeader(printHeader) {
       e->startCounters();
    }
 
-   PerfEventBlock(PerfEvent& perf, uint64_t scale = 1, BenchmarkParameters params = {}, bool printHeader = true)
-      : e(&perf),
-        scale(scale),
-        parameters(params),
-        printHeader(printHeader) {
+   PerfEventBlock(
+      PerfEvent& perf,
+      uint64_t scale = 1,
+      BenchmarkParameters params = {},
+      bool printHeader = true
+   )
+       : e(&perf),
+         scale(scale),
+         parameters(params),
+         printHeader(printHeader) {
       e->startCounters();
    }
 
@@ -315,8 +318,7 @@ struct PerfEvent {
    void setParam(const std::string&, const T&){};
 };
 
-struct BenchmarkParameters {
-};
+struct BenchmarkParameters {};
 
 struct PerfEventBlock {
    PerfEventBlock(uint64_t = 1, BenchmarkParameters = {}, bool = true){};
