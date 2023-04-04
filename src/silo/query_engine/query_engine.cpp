@@ -18,7 +18,7 @@
 #include <rapidjson/document.h>
 #include <spdlog/spdlog.h>
 
-#include "external/block_timer.h"
+#include "silo/common/block_timer.h"
 #include "silo/common/log.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/database.h"

@@ -1,6 +1,6 @@
 #include "silo/query_engine/query_engine.h"
 
-#include <external/block_timer.h>
+#include <silo/common/block_timer.h>
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_for_each.h>
