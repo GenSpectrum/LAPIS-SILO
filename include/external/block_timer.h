@@ -1,7 +1,3 @@
-//
-// Created by Alexander Taepper on 02.04.23.
-//
-
 #ifndef SILO_BLOCK_TIMER_H
 #define SILO_BLOCK_TIMER_H
 
@@ -12,19 +8,19 @@ struct [[nodiscard]] BlockTimer {
    using time_point_t = typename Clock::time_point;
    using output_t = typename Clock::rep;
 
-   output_t& output;
+   output_t& output_reference;
    time_point_t start;
 
-   explicit BlockTimer(output_t& ref)
-       : output(ref),
+   explicit BlockTimer(output_t& output_reference)
+       : output_reference(output_reference),
          start(Clock::now()) {}
 
    ~BlockTimer() {
       auto end = Clock::now();
-      output = std::chrono::duration_cast<Unit>(end - start).count();
+      output_reference = std::chrono::duration_cast<Unit>(end - start).count();
    }
 
-   output_t until_now() { return std::chrono::duration_cast<Unit>(Clock::now() - start).count(); }
+   output_t untilNow() { return std::chrono::duration_cast<Unit>(Clock::now() - start).count(); }
 };
 
 #endif  // SILO_BLOCK_TIMER_H
