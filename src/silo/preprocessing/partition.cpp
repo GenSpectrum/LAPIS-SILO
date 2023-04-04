@@ -6,7 +6,7 @@
 
 namespace silo::preprocessing {
 
-static std::string commonPangoPrefix(const std::string& lineage1, const std::string& lineage2) {
+std::string commonPangoPrefix(const std::string& lineage1, const std::string& lineage2) {
    std::string prefix;
    // Buffer until it reaches another .
    std::string buffer;
@@ -112,14 +112,14 @@ Partitions buildPartitions(PangoLineageCounts pango_lineage_counts, Architecture
                  total_count_of_sequences / 100,
                  total_count_of_sequences / 200
               )) {
-            descriptor.partitions.push_back(Partition{});
+            descriptor.partitions.emplace_back();
             descriptor.partitions.back().name = "full";
             descriptor.partitions.back().chunks.push_back(chunk);
             descriptor.partitions.back().count_of_sequences = chunk.count_of_sequences;
          }
          return descriptor;
       case Architecture::SINGLE_PARTITION:
-         descriptor.partitions.push_back(Partition{});
+         descriptor.partitions.emplace_back();
 
          descriptor.partitions[0].name = "full";
 
@@ -135,12 +135,11 @@ Partitions buildPartitions(PangoLineageCounts pango_lineage_counts, Architecture
          return descriptor;
       case Architecture::SINGLE_SINGLE:
 
-         descriptor.partitions.push_back(Partition{});
+         descriptor.partitions.emplace_back();
          descriptor.partitions[0].name = "full_full";
 
          // Merge pango_lineages, such that chunks are not get very small
-         descriptor.partitions[0].chunks.push_back(Chunk{
-            "", total_count_of_sequences, 0, std::vector<std::string>()});
+         descriptor.partitions[0].chunks.emplace_back();
          for (auto& pango : pango_lineage_counts.pango_lineage_counts) {
             descriptor.partitions[0].chunks.back().pango_lineages.push_back(pango.pango_lineage);
          }

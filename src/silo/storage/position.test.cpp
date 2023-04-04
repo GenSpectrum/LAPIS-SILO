@@ -49,6 +49,7 @@ TEST(Position, shouldSerializeAndDeserializePositionWithSetOptional) {
    EXPECT_TRUE(deserialized_position.symbol_whose_bitmap_is_flipped.has_value());
    ASSERT_EQ(
       position_with_set_optional.symbol_whose_bitmap_is_flipped.value(),
+      // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
       deserialized_position.symbol_whose_bitmap_is_flipped.value()
    );
 
