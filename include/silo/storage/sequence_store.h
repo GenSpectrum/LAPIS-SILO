@@ -26,7 +26,7 @@ struct Position {
       archive& nucleotide_symbol_n_indexed;
    }
 
-   std::array<roaring::Roaring, SYMBOL_COUNT> bitmaps;
+   std::array<roaring::Roaring, SYMBOL_COUNT> bitmaps{};
    std::optional<NUCLEOTIDE_SYMBOL> symbol_whose_bitmap_is_flipped = std::nullopt;
    bool nucleotide_symbol_n_indexed = false;
 };
@@ -39,7 +39,7 @@ struct SequenceStoreInfo {
 
 class SequenceStore {
   private:
-   unsigned sequence_count;
+   unsigned sequence_count{};
 
   public:
    friend class boost::serialization::access;
@@ -51,8 +51,8 @@ class SequenceStore {
       archive& nucleotide_symbol_n_bitmaps;
    }
 
-   std::array<Position, GENOME_LENGTH> positions;
-   std::vector<roaring::Roaring> nucleotide_symbol_n_bitmaps;
+   std::array<Position, GENOME_LENGTH> positions{};
+   std::vector<roaring::Roaring> nucleotide_symbol_n_bitmaps{};
 
    SequenceStore();
 
