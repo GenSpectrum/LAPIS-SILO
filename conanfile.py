@@ -14,9 +14,12 @@ class SiloRecipe(ConanFile):
         "gtest/cci.20210126",
         "roaring/0.9.9",
         "spdlog/1.11.0",
+        "yaml-cpp/0.7.0",
     ]
 
     default_options = {
+        "yaml-cpp/*:shared": False,
+
         "roaring/*:shared": False,
 
         "gtest/*:no_main": True,
@@ -90,4 +93,5 @@ class SiloRecipe(ConanFile):
         deps.set_property("roaring", "cmake_find_mode", "both")
         deps.set_property("spdlog", "cmake_find_mode", "both")
         deps.set_property("fmt", "cmake_find_mode", "both")
+        deps.set_property("yaml-cpp", "cmake_find_mode", "both")
         deps.generate()
