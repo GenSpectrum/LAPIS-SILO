@@ -14,13 +14,17 @@ COPY conanfile.py conanprofile.docker .
 RUN mv conanprofile.docker conanprofile
 
 RUN --mount=type=cache,target=/root/.conan2 \
-    conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build
+    conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build \
+    && cp -R /root/.conan2 /root/.conan2_persisted && cp -R build build_persisted
+
+# Restore the cached directories as the cache mount deletes them.
+# We need this because cache mounts are not cached in GitHub Actions
+# (see https://github.com/docker/build-push-action/issues/716)
+RUN cp -R /root/.conan2_persisted /root/.conan2 && cp -R build_persisted build
 
 COPY . .
 
 RUN  \
-    --mount=type=cache,target=/root/.conan2 \
-    --mount=type=cache,target=build \
     ash ./build_with_conan.sh release \
     && cp build/silo_test . \
     && cp build/siloApi .
