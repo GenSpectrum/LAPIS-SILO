@@ -31,8 +31,7 @@ std::unique_ptr<BoolExpression> NucleotideSymbolMaybeExpression::simplify(
    const Database& /*database*/,
    const DatabasePartition& database_partition
 ) const {
-   std::unique_ptr<NucleotideSymbolMaybeExpression> ret =
-      std::make_unique<NucleotideSymbolMaybeExpression>(position, value);
+   auto ret = std::make_unique<NucleotideSymbolMaybeExpression>(position, value);
    if (database_partition.seq_store.positions[position - 1].symbol_whose_bitmap_is_flipped == value) {
       /// Bitmap of reference is flipped! Introduce Neg
       ret->negated = true;
@@ -177,11 +176,10 @@ std::unique_ptr<BoolExpression> OrExpression::simplify(
    if (ret->children.size() == 1) {
       return std::move(ret->children[0]);
    }
-   if (std::any_of(
-          new_children.begin(),
-          new_children.end(),
-          [](const std::unique_ptr<BoolExpression>& child) { return child->type() == NEG; }
-       )) {
+
+   if (std::any_of(ret->children.begin(), ret->children.end(), [](const auto& child) {
+          return child->type() == NEG;
+       })) {
       std::unique_ptr<AndExpression> and_ret = std::make_unique<AndExpression>();
       for (auto& child : ret->children) {
          if (child->type() == NEG) {
