@@ -139,7 +139,8 @@ roaring::Roaring* silo::SequenceStore::getFlippedBitmapFromAmbiguousSymbol(
    size_t position,
    NUCLEOTIDE_SYMBOL ambiguous_symbol
 ) const {
-   auto bitmap_ambiguous_symbol = std::make_unique<roaring::Roaring>(*getBitmap(position, ambiguous_symbol));
+   auto bitmap_ambiguous_symbol =
+      std::make_unique<roaring::Roaring>(*getBitmap(position, ambiguous_symbol));
    static constexpr int COUNT_AMBIGUOUS_SYMBOLS = 7;
    switch (ambiguous_symbol) {
       case NUCLEOTIDE_SYMBOL::A: {
