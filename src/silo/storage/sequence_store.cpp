@@ -5,6 +5,7 @@
 #include <tbb/enumerable_thread_specific.h>
 #include <tbb/parallel_for.h>
 #include <atomic>
+#include <memory>
 #include <roaring/roaring.hh>
 #include <string>
 #include <vector>
@@ -70,7 +71,7 @@ roaring::Roaring* silo::SequenceStore::getBitmapFromAmbiguousSymbol(
    size_t position,
    NUCLEOTIDE_SYMBOL ambiguous_symbol
 ) const {
-   static constexpr int COUNT_AMBIGUOUS_SYMBOLS = 8;
+   static constexpr int COUNT_AMBIGUOUS_SYMBOLS = 7;
    switch (ambiguous_symbol) {
       case NUCLEOTIDE_SYMBOL::A: {
          // NOLINTNEXTLINE(modernize-avoid-c-arrays)
@@ -138,14 +139,15 @@ roaring::Roaring* silo::SequenceStore::getFlippedBitmapFromAmbiguousSymbol(
    size_t position,
    NUCLEOTIDE_SYMBOL ambiguous_symbol
 ) const {
-   const auto* bitmap_to_flip = getBitmap(position, ambiguous_symbol);
-   roaring::api::roaring_bitmap_flip(&bitmap_to_flip->roaring, 0, sequence_count);
-   static constexpr int COUNT_AMBIGUOUS_SYMBOLS = 8;
+   auto bitmap_ambiguous_symbol =
+      std::make_unique<roaring::Roaring>(*getBitmap(position, ambiguous_symbol));
+   static constexpr int COUNT_AMBIGUOUS_SYMBOLS = 7;
    switch (ambiguous_symbol) {
       case NUCLEOTIDE_SYMBOL::A: {
+         bitmap_ambiguous_symbol->flip(0, sequence_count);
          // NOLINTNEXTLINE(modernize-avoid-c-arrays)
          const roaring::Roaring* tmp[COUNT_AMBIGUOUS_SYMBOLS] = {
-            bitmap_to_flip,
+            bitmap_ambiguous_symbol.get(),
             getBitmap(position, NUCLEOTIDE_SYMBOL::R),
             getBitmap(position, NUCLEOTIDE_SYMBOL::W),
             getBitmap(position, NUCLEOTIDE_SYMBOL::M),
@@ -157,9 +159,10 @@ roaring::Roaring* silo::SequenceStore::getFlippedBitmapFromAmbiguousSymbol(
          return result;
       }
       case NUCLEOTIDE_SYMBOL::C: {
+         bitmap_ambiguous_symbol->flip(0, sequence_count);
          // NOLINTNEXTLINE(modernize-avoid-c-arrays)
          const roaring::Roaring* tmp[COUNT_AMBIGUOUS_SYMBOLS] = {
-            bitmap_to_flip,
+            bitmap_ambiguous_symbol.get(),
             getBitmap(position, NUCLEOTIDE_SYMBOL::Y),
             getBitmap(position, NUCLEOTIDE_SYMBOL::S),
             getBitmap(position, NUCLEOTIDE_SYMBOL::M),
@@ -173,7 +176,7 @@ roaring::Roaring* silo::SequenceStore::getFlippedBitmapFromAmbiguousSymbol(
       case NUCLEOTIDE_SYMBOL::G: {
          // NOLINTNEXTLINE(modernize-avoid-c-arrays)
          const roaring::Roaring* tmp[COUNT_AMBIGUOUS_SYMBOLS] = {
-            bitmap_to_flip,
+            bitmap_ambiguous_symbol.get(),
             getBitmap(position, NUCLEOTIDE_SYMBOL::R),
             getBitmap(position, NUCLEOTIDE_SYMBOL::S),
             getBitmap(position, NUCLEOTIDE_SYMBOL::K),
@@ -187,7 +190,7 @@ roaring::Roaring* silo::SequenceStore::getFlippedBitmapFromAmbiguousSymbol(
       case NUCLEOTIDE_SYMBOL::T: {
          // NOLINTNEXTLINE(modernize-avoid-c-arrays)
          const roaring::Roaring* tmp[COUNT_AMBIGUOUS_SYMBOLS] = {
-            bitmap_to_flip,
+            bitmap_ambiguous_symbol.get(),
             getBitmap(position, NUCLEOTIDE_SYMBOL::Y),
             getBitmap(position, NUCLEOTIDE_SYMBOL::W),
             getBitmap(position, NUCLEOTIDE_SYMBOL::K),
@@ -199,7 +202,7 @@ roaring::Roaring* silo::SequenceStore::getFlippedBitmapFromAmbiguousSymbol(
          return result;
       }
       default: {
-         return new roaring::Roaring(*getBitmap(position, ambiguous_symbol));
+         return bitmap_ambiguous_symbol.release();
       }
    }
 }

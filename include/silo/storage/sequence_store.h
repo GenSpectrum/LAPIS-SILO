@@ -39,7 +39,7 @@ struct SequenceStoreInfo {
 
 class SequenceStore {
   private:
-   unsigned sequence_count;
+   unsigned sequence_count{};
 
   public:
    friend class boost::serialization::access;
