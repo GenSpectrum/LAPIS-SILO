@@ -29,13 +29,15 @@ struct convert<silo::DatabaseSchema> {
 silo::DatabaseMetadataType stringToMetadataType(const std::string& type) {
    if (type == "string") {
       return silo::DatabaseMetadataType::STRING;
-   } else if (type == "date") {
-      return silo::DatabaseMetadataType::DATE;
-   } else if (type == "pango_lineage") {
-      return silo::DatabaseMetadataType::PANGOLINEAGE;
-   } else {
-      throw silo::ConfigException("Unknown metadata type: " + type);
    }
+   if (type == "date") {
+      return silo::DatabaseMetadataType::DATE;
+   }
+   if (type == "pango_lineage") {
+      return silo::DatabaseMetadataType::PANGOLINEAGE;
+   }
+
+   throw silo::ConfigException("Unknown metadata type: " + type);
 }
 
 template <>
