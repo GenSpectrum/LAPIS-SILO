@@ -1,0 +1,19 @@
+{
+  "testCaseName": "Not Query",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "Not",
+      "child": {
+        "type": "StringEquals",
+        "column": "country",
+        "value": "Switzerland"
+      }
+    }
+  },
+  "expectedQueryResult": {
+    "count": 0
+  }
+}

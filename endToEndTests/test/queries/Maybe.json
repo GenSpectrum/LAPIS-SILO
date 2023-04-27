@@ -1,0 +1,19 @@
+{
+  "testCaseName": "Maybe Query",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "Maybe",
+      "child": {
+        "type": "NucleotideEquals",
+        "position": 123,
+        "symbol": "A"
+      }
+    }
+  },
+  "expectedQueryResult": {
+    "count": 100
+  }
+}

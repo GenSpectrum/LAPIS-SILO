@@ -1,0 +1,26 @@
+{
+  "testCaseName": "And Query with two children",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "And",
+      "children": [
+        {
+          "type": "StringEquals",
+          "column": "country",
+          "value": "Switzerland"
+        },
+        {
+          "type": "PangoLineage",
+          "value": "B.1.1.7",
+          "includeSublineages": true
+        }
+      ]
+    }
+  },
+  "expectedQueryResult": {
+    "count": 49
+  }
+}
