@@ -1,4 +1,5 @@
 #include "silo/config/database_config_reader.h"
+#include "silo/config/config_exception.h"
 
 #include <iostream>
 
@@ -25,11 +26,23 @@ struct convert<silo::DatabaseSchema> {
    }
 };
 
+silo::DatabaseMetadataType stringToMetadataType(const std::string& type) {
+   if (type == "string") {
+      return silo::DatabaseMetadataType::STRING;
+   } else if (type == "date") {
+      return silo::DatabaseMetadataType::DATE;
+   } else if (type == "pango_lineage") {
+      return silo::DatabaseMetadataType::PANGOLINEAGE;
+   } else {
+      throw silo::ConfigException("Unknown metadata type: " + type);
+   }
+}
+
 template <>
 struct convert<silo::DatabaseMetadata> {
    static bool decode(const Node& node, silo::DatabaseMetadata& metadata) {
       metadata.name = node["name"].as<std::string>();
-      metadata.type = node["type"].as<std::string>();
+      metadata.type = stringToMetadataType(node["type"].as<std::string>());
       return true;
    }
 };
@@ -37,7 +50,7 @@ struct convert<silo::DatabaseMetadata> {
 }  // namespace YAML
 
 namespace silo {
-DatabaseConfig DatabaseConfigReader::readConfig(const std::filesystem::path& config_path) {
+DatabaseConfig DatabaseConfigReader::readConfig(const std::filesystem::path& config_path) const {
    return YAML::LoadFile(config_path.string()).as<DatabaseConfig>();
 }
 }  // namespace silo

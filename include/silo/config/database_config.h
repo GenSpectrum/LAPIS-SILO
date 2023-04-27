@@ -5,9 +5,12 @@
 #include <vector>
 
 namespace silo {
+
+enum class DatabaseMetadataType { STRING, PANGOLINEAGE, DATE };
+
 struct DatabaseMetadata {
    std::string name;
-   std::string type;
+   DatabaseMetadataType type;
 };
 
 struct DatabaseSchema {

@@ -9,7 +9,7 @@ namespace silo {
 
 class DatabaseConfigReader {
   public:
-   static DatabaseConfig readConfig(const std::filesystem::path& config_path);
+   virtual DatabaseConfig readConfig(const std::filesystem::path& config_path) const;
 };
 
 };  // namespace silo

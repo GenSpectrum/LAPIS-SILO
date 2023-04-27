@@ -2,15 +2,19 @@
 
 #include <gtest/gtest.h>
 
-TEST(DatabaseConfig, shouldBuildDatabaseConfigWithoutErrors) {
+TEST(DatabaseConfig, shouldBuildDatabaseConfig) {
    const silo::DatabaseSchema schema{
-      "test",
+      "testInstanceName",
       {
-         {"name", "string"},
-         {"type", "string"},
+         {"metadata1", silo::DatabaseMetadataType::PANGOLINEAGE},
+         {"metadata2", silo::DatabaseMetadataType::STRING},
+         {"metadata3", silo::DatabaseMetadataType::DATE},
       },
-      "name",
+      "testPrimaryKey",
    };
    const silo::DatabaseConfig config{schema};
-   assert(config.schema.instance_name == "test");
+   ASSERT_TRUE(config.schema.instance_name == "testInstanceName");
+   ASSERT_TRUE(config.schema.primary_key == "testPrimaryKey");
+   ASSERT_TRUE(config.schema.metadata[0].name == "metadata1");
+   ASSERT_TRUE(config.schema.metadata.size() == 3);
 }

@@ -1,0 +1,6 @@
+schema:
+  instanceName: sars_cov-2_minimal_test_config
+  metadata:
+    - name: wrongType
+      type: wrong_type
+  primaryKey: gisaid_epi_isl
