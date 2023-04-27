@@ -1,15 +1,15 @@
 #include "silo/storage/pango_lineage_alias.h"
 
 #include <gtest/gtest.h>
-#include <fstream>
+#include <filesystem>
 
 #include "silo/preprocessing/pango_lineage_count.h"
 
 TEST(PangoLineageCounts, buildPangoLineageCounts) {
-   auto metadata_in = std::ifstream("testBaseData/small_metadata_set.tsv");
+   const std::filesystem::path metadata_path = "testBaseData/small_metadata_set.tsv";
 
    auto result = silo::preprocessing::buildPangoLineageCounts(
-      silo::PangoLineageAliasLookup::readFromFile("testBaseData/"), metadata_in
+      silo::PangoLineageAliasLookup::readFromFile("testBaseData/"), metadata_path
    );
 
    ASSERT_EQ(result.pango_lineage_counts.size(), 24);

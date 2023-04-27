@@ -519,9 +519,8 @@ silo::DetailedDatabaseInfo silo::Database::detailedDatabaseInfo() const {
 
 void silo::Database::preprocessing(const PreprocessingConfig& config) {
    SPDLOG_INFO("preprocessing - building pango lineage counts");
-   std::ifstream metadata_stream(config.metadata_file.relative_path());
    pango_descriptor = std::make_unique<preprocessing::PangoLineageCounts>(
-      preprocessing::buildPangoLineageCounts(alias_key, metadata_stream)
+      preprocessing::buildPangoLineageCounts(alias_key, config.metadata_file)
    );
 
    SPDLOG_INFO("preprocessing - building partitions");

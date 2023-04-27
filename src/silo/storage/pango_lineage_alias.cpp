@@ -31,7 +31,9 @@ std::string PangoLineageAliasLookup::resolvePangoLineageAlias(const std::string&
    return pango_lineage;
 }
 
-silo::PangoLineageAliasLookup silo::PangoLineageAliasLookup::readFromFile(const std::string& working_directory) {
+silo::PangoLineageAliasLookup silo::PangoLineageAliasLookup::readFromFile(
+   const std::string& working_directory
+) {
    std::filesystem::path const alias_key_path(working_directory + PANGO_ALIAS_FILENAME);
    if (!std::filesystem::exists(alias_key_path)) {
       throw std::filesystem::filesystem_error(

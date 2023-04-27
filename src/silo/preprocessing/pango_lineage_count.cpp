@@ -1,10 +1,10 @@
 #include "silo/preprocessing/pango_lineage_count.h"
 
 #include <algorithm>
-#include <climits>
 #include <iostream>
 #include <unordered_map>
 
+#include "silo/preprocessing/metadata.h"
 #include "silo/storage/pango_lineage_alias.h"
 
 namespace silo::preprocessing {
@@ -37,35 +37,25 @@ PangoLineageCounts PangoLineageCounts::load(std::istream& input_stream) {
 
 PangoLineageCounts buildPangoLineageCounts(
    const PangoLineageAliasLookup& alias_key,
-   std::istream& meta_in
+   const std::filesystem::path& metadata_path
 ) {
    PangoLineageCounts pango_lineage_counts;
-   // Ignore header line.
-   meta_in.ignore(LONG_MAX, '\n');
 
-   uint32_t pid_count = 0;
+   uint32_t pango_lineage_ids_count = 0;
+   std::unordered_map<std::string, uint32_t> pango_lineage_to_id;
 
-   std::unordered_map<std::string, uint32_t> pango_to_id;
+   auto unresolved_pango_lineages =
+      silo::preprocessing::MetadataReader::getColumn(metadata_path, "pango_lineage");
 
-   while (true) {
-      std::string key;
-      std::string pango_lineage_raw;
-      if (!getline(meta_in, key, '\t')) {
-         break;
-      }
-      if (!getline(meta_in, pango_lineage_raw, '\t')) {
-         break;
-      }
-      meta_in.ignore(LONG_MAX, '\n');
+   for (const auto& unresolved_pango_lineage : unresolved_pango_lineages) {
+      std::string const pango_lineage =
+         alias_key.resolvePangoLineageAlias(unresolved_pango_lineage);
 
-      /// Deal with pango_lineage alias:
-      std::string const pango_lineage = alias_key.resolvePangoLineageAlias(pango_lineage_raw);
-
-      if (pango_to_id.contains(pango_lineage)) {
-         auto pid = pango_to_id[pango_lineage];
+      if (pango_lineage_to_id.contains(pango_lineage)) {
+         auto pid = pango_lineage_to_id[pango_lineage];
          ++pango_lineage_counts.pango_lineage_counts[pid].count_of_sequences;
       } else {
-         pango_to_id[pango_lineage] = pid_count++;
+         pango_lineage_to_id[pango_lineage] = pango_lineage_ids_count++;
          pango_lineage_counts.pango_lineage_counts.emplace_back(PangoLineageCount{pango_lineage, 1}
          );
       }
