@@ -2,7 +2,7 @@
 
 #include "silo/common/fasta_format_exception.h"
 
-silo::FastaReader::FastaReader(std::string in_file_name)
+silo::FastaReader::FastaReader(const std::string& in_file_name)
     : in_file(in_file_name) {}
 
 bool silo::FastaReader::nextKey(std::string& key) {

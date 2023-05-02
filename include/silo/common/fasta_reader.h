@@ -11,7 +11,7 @@ class FastaReader {
    silo::InputStreamWrapper in_file;
 
   public:
-   explicit FastaReader(std::string in_file_name);
+   explicit FastaReader(const std::string& in_file_name);
 
    bool nextKey(std::string& key);
 
