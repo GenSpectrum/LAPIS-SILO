@@ -25,7 +25,6 @@
 #include "silo/storage/database_partition.h"
 
 const std::string REFERENCE_GENOME_FILENAME = "reference_genome.txt";
-const std::string PANGO_ALIAS_FILENAME = "pango_alias.txt";
 
 std::vector<std::string> initGlobalReference(const std::string& working_directory) {
    std::filesystem::path const reference_genome_path(working_directory + REFERENCE_GENOME_FILENAME);
@@ -57,36 +56,10 @@ std::vector<std::string> initGlobalReference(const std::string& working_director
    return global_reference;
 }
 
-std::unordered_map<std::string, std::string> initAliasKey(const std::string& working_directory) {
-   std::filesystem::path const alias_key_path(working_directory + PANGO_ALIAS_FILENAME);
-   if (!std::filesystem::exists(alias_key_path)) {
-      throw std::filesystem::filesystem_error(
-         "Alias key file " + alias_key_path.relative_path().string() + " does not exist",
-         std::error_code()
-      );
-   }
-
-   std::unordered_map<std::string, std::string> alias_keys;
-   std::ifstream alias_key_file(alias_key_path.relative_path());
-   while (true) {
-      std::string alias;
-      std::string val;
-      if (!getline(alias_key_file, alias, '\t')) {
-         break;
-      }
-      if (!getline(alias_key_file, val, '\n')) {
-         break;
-      }
-      alias_keys[alias] = val;
-   }
-
-   return alias_keys;
-}
-
 silo::Database::Database(const std::string& directory)
     : working_directory(directory),
       global_reference(initGlobalReference(directory)),
-      alias_key(initAliasKey(directory)) {}
+      alias_key(silo::PangoLineageAliasLookup::readFromFile(directory)) {}
 
 const silo::PangoLineageAliasLookup& silo::Database::getAliasKey() const {
    return alias_key;

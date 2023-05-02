@@ -38,3 +38,10 @@ INSTANTIATE_TEST_SUITE_P(
       TestParameter{".X", ".X"}
    )
 );
+
+TEST(PangoLineageAliasLookup, readFromFile) {
+   auto under_test = silo::PangoLineageAliasLookup::readFromFile("testBaseData/");
+
+   ASSERT_EQ(under_test.resolvePangoLineageAlias("C"), "B.1.1.1");
+   ASSERT_EQ(under_test.resolvePangoLineageAlias("EP"), "B.1.1.529.2.75.3.1.1.4");
+}
