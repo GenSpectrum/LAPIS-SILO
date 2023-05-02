@@ -5,6 +5,8 @@
 #include <string>
 #include <unordered_map>
 
+#include "silo/common/fasta_reader.h"
+
 namespace silo {
 
 namespace preprocessing {
@@ -16,20 +18,20 @@ class PangoLineageAliasLookup;
 
 [[maybe_unused]] void pruneSequences(
    std::istream& metadata_in,
-   std::istream& sequences_in,
+   silo::FastaReader& sequences_in,
    std::ostream& sequences_out
 );
 
 [[maybe_unused]] void pruneMetadata(
    std::istream& metadata_in,
-   std::istream& sequences_in,
+   silo::FastaReader& sequences_in,
    std::ostream& metadata_out
 );
 
 void partitionSequences(
    const preprocessing::Partitions& partitions,
    std::istream& meta_in,
-   std::istream& sequence_in,
+   silo::FastaReader& sequence_in,
    const std::string& output_prefix,
    const PangoLineageAliasLookup& alias_key,
    const std::string& metadata_file_extension,

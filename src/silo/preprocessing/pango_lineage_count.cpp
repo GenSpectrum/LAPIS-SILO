@@ -48,9 +48,9 @@ PangoLineageCounts buildPangoLineageCounts(
    std::unordered_map<std::string, uint32_t> pango_to_id;
 
    while (true) {
-      std::string epi_isl;
+      std::string key;
       std::string pango_lineage_raw;
-      if (!getline(meta_in, epi_isl, '\t')) {
+      if (!getline(meta_in, key, '\t')) {
          break;
       }
       if (!getline(meta_in, pango_lineage_raw, '\t')) {

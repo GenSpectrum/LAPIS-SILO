@@ -5,11 +5,13 @@
 #include <array>
 #include <optional>
 
+#include <silo/common/fasta_reader.h>
 #include <spdlog/spdlog.h>
 #include <boost/serialization/array.hpp>
 #include <roaring/roaring.hh>
 
 #include "metadata_store.h"
+#include "silo/common/fasta_reader.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/roaring/roaring_serialize.h"
 #include "silo/storage/serialize_optional.h"
@@ -78,7 +80,7 @@ class SequenceStore {
 
    SequenceStoreInfo getInfo() const;
 
-   unsigned fill(std::istream& input_file);
+   unsigned fill(silo::FastaReader& input_file);
 };
 
 [[maybe_unused]] unsigned runOptimize(SequenceStore& sequence_store);

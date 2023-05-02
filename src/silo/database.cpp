@@ -140,10 +140,10 @@ void silo::Database::build(
                   SPDLOG_ERROR("metadata file {} not found", name + metadata_file_suffix);
                   return;
                }
-               silo::InputStreamWrapper const sequence_input(sequence_filename);
+               silo::FastaReader sequence_input(sequence_filename);
                SPDLOG_DEBUG("Using metadata file: {}", name + metadata_file_suffix);
                unsigned const sequence_store_sequence_count =
-                  partitions[partition_index].seq_store.fill(sequence_input.getInputStream());
+                  partitions[partition_index].seq_store.fill(sequence_input);
                unsigned const metadata_store_sequence_count =
                   partitions[partition_index].meta_store.fill(meta_in, alias_key, *dict);
                if (sequence_store_sequence_count != metadata_store_sequence_count) {
@@ -559,11 +559,11 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
 
    SPDLOG_INFO("preprocessing - partitioning sequences");
    std::ifstream metadata_stream2(config.metadata_file.relative_path());
-   InputStreamWrapper const sequence_stream(config.sequence_file.relative_path());
+   FastaReader sequence_stream(config.sequence_file.relative_path());
    partitionSequences(
       *partition_descriptor,
       metadata_stream2,
-      sequence_stream.getInputStream(),
+      sequence_stream,
       config.partition_folder.relative_path(),
       alias_key,
       config.metadata_file.extension(),

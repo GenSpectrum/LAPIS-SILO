@@ -1,5 +1,6 @@
 #include "silo/storage/sequence_store.h"
 
+#include <silo/common/fasta_reader.h>
 #include <spdlog/spdlog.h>
 #include <tbb/blocked_range.h>
 #include <tbb/enumerable_thread_specific.h>
@@ -27,31 +28,20 @@
    );
 }
 
-unsigned silo::SequenceStore::fill(std::istream& input_file) {
+unsigned silo::SequenceStore::fill(silo::FastaReader& input_file) {
    static constexpr unsigned BUFFER_SIZE = 1024;
 
    unsigned read_sequences_count = 0;
 
    std::vector<std::string> genome_buffer;
-   while (true) {
-      std::string epi_isl_with_prefix;
-      std::string genome;
-      if (!getline(input_file, epi_isl_with_prefix)) {
-         break;
-      }
-      if (!getline(input_file, genome)) {
-         break;
-      }
 
-      if (epi_isl_with_prefix.at(0) != '>') {
-         throw silo::PreprocessingException("EPI ISL prefix > is missing.");
-      }
-      std::string const epi_isl = epi_isl_with_prefix.substr(1);
-
+   std::string key;
+   std::string genome;
+   while (input_file.next(key, genome)) {
       if (genome.length() != GENOME_LENGTH) {
          throw silo::PreprocessingException(
-            "Error filling sequence store: Genome length was " + std::to_string(genome.length()) +
-            ", expected " + std::to_string(GENOME_LENGTH)
+            "Error filling sequence store: Genome length for key " + key + "  was " +
+            std::to_string(genome.length()) + ", expected " + std::to_string(GENOME_LENGTH)
          );
       }
 

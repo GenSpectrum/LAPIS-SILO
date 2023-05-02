@@ -19,13 +19,13 @@ unsigned MetadataStore::fill(
    unsigned sequence_count = 0;
 
    while (true) {
-      std::string epi_isl;
+      std::string key;
       std::string pango_lineage_raw;
       std::string date;
       std::string region;
       std::string country;
       std::string division;
-      if (!getline(input_file, epi_isl, '\t')) {
+      if (!getline(input_file, key, '\t')) {
          break;
       }
       if (!getline(input_file, pango_lineage_raw, '\t')) {
@@ -55,7 +55,7 @@ unsigned MetadataStore::fill(
       extra_cols.push_back(dict.getIdInGeneralLookup(division));
 
       inputSequenceMeta(
-         epi_isl,
+         key,
          time,
          dict.getPangoLineageIdInLookup(pango_lineage),
          dict.getRegionIdInLookup(region),
@@ -70,14 +70,14 @@ unsigned MetadataStore::fill(
 
 // TODO(someone): clean up and specify inputs
 void MetadataStore::inputSequenceMeta(
-   std::string primary_key,  // NOLINT
+   const std::string& primary_key,
    time_t date,
    uint32_t pango_lineage,
    uint32_t region,
    uint32_t country,
    const std::vector<uint64_t>& values
 ) {
-   sequence_id_to_epi.push_back(primary_key);
+   sequence_id_to_key.push_back(primary_key);
    sequence_id_to_lineage.push_back(pango_lineage);
 
    sequence_id_to_date.push_back(date);
