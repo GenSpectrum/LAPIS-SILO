@@ -337,8 +337,8 @@ void sortChunk(
       }
 
       for (uint32_t sequence = 0; sequence < number_of_sequences; ++sequence) {
-         const uint64_t first_line = LINES_PER_SEQUENCE * sequence;
-         const uint64_t second_line = LINES_PER_SEQUENCE * sequence + 1;
+         const uint64_t first_line = static_cast<uint64_t>(LINES_PER_SEQUENCE) * sequence;
+         const uint64_t second_line = static_cast<uint64_t>(LINES_PER_SEQUENCE) * sequence + 1;
          sequence_out << '>' << lines_sorted.at(first_line) << '\n'
                       << lines_sorted.at(second_line) << '\n';
       }

@@ -1,5 +1,7 @@
 #include "silo/common/fasta_reader.h"
 
+#include "silo/common/fasta_format_exception.h"
+
 silo::FastaReader::FastaReader(std::string in_file_name)
     : in_file(in_file_name) {}
 
@@ -10,7 +12,7 @@ bool silo::FastaReader::nextKey(std::string& key) {
    }
 
    if (key_with_prefix.at(0) != '>') {
-      return false;
+      throw FastaFormatException("Fasta key prefix '>' missing for key: " + key_with_prefix);
    }
 
    key = key_with_prefix.substr(1);
@@ -26,11 +28,13 @@ bool silo::FastaReader::next(std::string& key, std::string& genome) {
    }
 
    if (key_with_prefix.at(0) != '>') {
-      return false;
+      throw FastaFormatException("Fasta key prefix '>' missing for key: " + key_with_prefix);
    }
 
    if (!getline(in_file.getInputStream(), genome)) {
-      return false;
+      throw FastaFormatException(
+         "Missing genome sequence in line following key: " + key_with_prefix
+      );
    }
 
    key = key_with_prefix.substr(1);
