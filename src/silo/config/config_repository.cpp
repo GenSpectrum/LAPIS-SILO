@@ -6,13 +6,13 @@
 #include "silo/config/config_exception.h"
 #include "silo/config/database_config_reader.h"
 
-namespace silo {
+namespace silo::config {
 
-ConfigRepository::ConfigRepository(const silo::DatabaseConfigReader& reader)
+ConfigRepository::ConfigRepository(const DatabaseConfigReader& reader)
     : reader_(reader) {}
 
 DatabaseConfig ConfigRepository::readConfig(const std::filesystem::path& config_path) const {
-   const auto config = reader_.readConfig(config_path);
+   auto config = reader_.readConfig(config_path);
    validateConfig(config);
    return config;
 }
@@ -21,7 +21,7 @@ void ConfigRepository::validateConfig(const DatabaseConfig& config) const {
    std::map<std::string, DatabaseMetadataType> metadata_map;
    for (const auto& metadata : config.schema.metadata) {
       if (metadata_map.find(metadata.name) != metadata_map.end()) {
-         throw ConfigException("Metadata name is not unique: " + metadata.name);
+         throw ConfigException("Metadata " + metadata.name + " is defined twice in the config");
       }
       metadata_map[metadata.name] = metadata.type;
    }
@@ -48,4 +48,4 @@ DatabaseMetadata ConfigRepository::getMetadata(
    }
    throw ConfigException("Metadata with name " + name + " not found");
 }
-}  // namespace silo
+}  // namespace silo::config

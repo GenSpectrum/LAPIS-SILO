@@ -5,7 +5,7 @@
 
 #include "silo/config/database_config_reader.h"
 
-namespace silo {
+namespace silo::config {
 
 struct DatabaseConfig;
 
@@ -23,6 +23,6 @@ class ConfigRepository {
    virtual void validateConfig(const DatabaseConfig& config) const;
 };
 
-}  // namespace silo
+}  // namespace silo::config
 
 #endif  // SILO_INCLUDE_SILO_CONFIG_CONFIG_REPOSITORY_H_

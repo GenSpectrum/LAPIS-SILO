@@ -4,9 +4,11 @@
 #include <string>
 #include <vector>
 
-namespace silo {
+namespace silo::config {
 
 enum class DatabaseMetadataType { STRING, PANGOLINEAGE, DATE };
+
+DatabaseMetadataType toDatabaseMetadataType(std::string_view type);
 
 struct DatabaseMetadata {
    std::string name;
@@ -22,6 +24,6 @@ struct DatabaseSchema {
 struct DatabaseConfig {
    DatabaseSchema schema;
 };
-}  // namespace silo
+}  // namespace silo::config
 
 #endif  // SILO_INCLUDE_SILO_CONFIG_DATABASECONFIG_H_

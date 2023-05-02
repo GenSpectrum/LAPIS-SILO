@@ -3,9 +3,9 @@
 #include <gtest/gtest.h>
 
 inline void testFunction() {
-   throw silo::ConfigException("SomeText");
+   throw silo::config::ConfigException("SomeText");
 }
 
 TEST(ConfigException, assertThatItThrows) {
-   EXPECT_THROW(testFunction(), silo::ConfigException);
+   EXPECT_THROW(testFunction(), silo::config::ConfigException);
 }
