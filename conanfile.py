@@ -9,7 +9,6 @@ class SiloRecipe(ConanFile):
         "boost/1.81.0",
         "poco/1.12.4",
         "onetbb/2021.7.0",
-        "xz_utils/5.4.2",
         "rapidjson/cci.20220822",
         "nlohmann_json/3.11.2",
         "gtest/cci.20210126",
@@ -83,7 +82,6 @@ class SiloRecipe(ConanFile):
         deps = CMakeDeps(self)
         deps.set_property("boost", "cmake_find_mode", "both")
         deps.set_property("onetbb", "cmake_find_mode", "both")
-        deps.set_property("xz_utils", "cmake_find_mode", "both")
         deps.set_property("rapidjson", "cmake_find_mode", "both")
         deps.set_property("poco", "cmake_find_mode", "both")
         deps.set_property("nlohmann_json", "cmake_find_mode", "both")
