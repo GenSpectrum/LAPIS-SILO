@@ -29,8 +29,8 @@ The Conan profile (myProfile) on your system might differ: Create a new profile 
 conan profile detect
 ```
 
-Insert info `os`, `os_build`, `arch` and `arch_build` of myProfile into `conanprofile.example` and rename
-to `conanprofile`.
+Copy `conanprofile.example` to `conanprofile` and insert the values of `os`, `os_build`, `arch` and `arch_build` from 
+myProfile.
 
 Build silo in `./build`. This build will load and build the required libraries to `~/.conan2/data/` (can not be set by
 hand).
@@ -54,8 +54,14 @@ docker build . --tag=silo
 Run docker container
 
 ```shell
-docker run -i silo
+docker run -p 8081:8081 silo
 ```
+
+Building Docker images locally relies on the local Docker cache.
+Docker will cache layers, and it will cache the dependencies built by Conan via cache mounts. 
+
+However, cache mounts don't work in GitHub Actions (https://github.com/docker/build-push-action/issues/716),
+so there we only rely on Docker's layer cache via Docker's gha cache backend.
 
 # Testing
 

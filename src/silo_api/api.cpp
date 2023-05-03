@@ -97,7 +97,7 @@ class SiloServer : public Poco::Util::ServerApplication {
       [[maybe_unused]] const std::string& name,
       [[maybe_unused]] const std::string& value
    ) {
-      std::cout << "handleProcessData is not implemented" << std::endl;
+      std::cout << "handleProcessData is not implemented\n" << std::flush;
    };
 
    void displayHelp(
