@@ -4,12 +4,13 @@
 #include <tbb/blocked_range.h>
 #include <tbb/enumerable_thread_specific.h>
 #include <tbb/parallel_for_each.h>
+#include <boost/algorithm/string/join.hpp>
 #include <unordered_set>
 
 #include "silo/common/fasta_reader.h"
 #include "silo/common/input_stream_wrapper.h"
 #include "silo/database.h"
-#include "silo/persistence/exception.h"
+#include "silo/preprocessing/metadata.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/database_partition.h"
 #include "silo/storage/pango_lineage_alias.h"
@@ -103,21 +104,20 @@
 }
 
 std::unordered_map<std::string, std::string> partitionMetadataFile(
-   std::istream& meta_in,
+   const std::filesystem::path& meta_in,
    const std::string& output_prefix,
    const silo::PangoLineageAliasLookup& alias_key,
    const std::string& metadata_file_extension,
    std::unordered_map<std::string, std::string>& pango_to_chunk,
    const std::vector<std::string>& chunk_names
 ) {
-   std::unordered_map<std::string, std::string> key_to_chunk;
+   std::unordered_map<std::string, std::string> primary_key_to_sequence_partition_chunk;
 
    SPDLOG_INFO("partitioning metadata file to {}", output_prefix);
 
-   std::string header;
-   if (!getline(meta_in, header, '\n')) {
-      throw silo::PreprocessingException("No header file in meta input.");
-   }
+   auto metadata_reader = silo::preprocessing::MetadataReader::getReader(meta_in);
+
+   const auto header = boost::algorithm::join(metadata_reader.get_col_names(), "\t");
 
    std::unordered_map<std::string, std::unique_ptr<std::ostream>> chunk_to_meta_ostream;
    for (const std::string& chunk_name : chunk_names) {
@@ -128,29 +128,19 @@ std::unordered_map<std::string, std::string> partitionMetadataFile(
       *chunk_to_meta_ostream[chunk_name] << header << '\n';
    }
 
-   while (true) {
-      std::string key;
-      std::string pango_lineage_raw;
-      std::string rest;
-      if (!getline(meta_in, key, '\t')) {
-         break;
-      }
-      if (!getline(meta_in, pango_lineage_raw, '\t')) {
-         break;
-      }
-      if (!getline(meta_in, rest, '\n')) {
-         break;
-      }
-
-      std::string const pango_lineage = alias_key.resolvePangoLineageAlias(pango_lineage_raw);
+   for (auto& row : metadata_reader) {
+      std::string const primary_key = row[silo::preprocessing::PRIMARY_KEY].get();
+      std::string const pango_lineage =
+         alias_key.resolvePangoLineageAlias(row[silo::preprocessing::PANGO_LINEAGE].get());
+      row[silo::preprocessing::PANGO_LINEAGE] = csv::CSVField{pango_lineage};
 
       std::string const chunk = pango_to_chunk[pango_lineage];
-      *chunk_to_meta_ostream[chunk] << key << '\t' << pango_lineage << '\t' << rest << '\n';
+      *chunk_to_meta_ostream[chunk]
+         << boost::algorithm::join(static_cast<std::vector<std::string>>(row), "\t") << '\n';
 
-      // Now save the chunk where the key will go for the sequence partitioning
-      key_to_chunk[key] = chunk;
+      primary_key_to_sequence_partition_chunk[primary_key] = chunk;
    }
-   return key_to_chunk;
+   return primary_key_to_sequence_partition_chunk;
 }
 
 void partitionSequenceFile(
@@ -182,7 +172,7 @@ void partitionSequenceFile(
       }
       if (!key_to_chunk.contains(key)) {
          throw silo::PreprocessingException(
-            "Key in metadata and sequences did not match " + key + "."
+            "Sequence key '" + key + "' was not present in keys in metadata."
          );
       }
 
@@ -193,7 +183,7 @@ void partitionSequenceFile(
 
 void silo::partitionSequences(
    const preprocessing::Partitions& partitions,
-   std::istream& meta_in,
+   const std::filesystem::path& meta_in,
    silo::FastaReader& sequence_in,
    const std::string& output_prefix,
    const PangoLineageAliasLookup& alias_key,

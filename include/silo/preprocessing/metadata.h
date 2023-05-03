@@ -5,7 +5,12 @@
 #include <string>
 #include <vector>
 
+#include <csv.hpp>
+
 namespace silo::preprocessing {
+
+const std::string PRIMARY_KEY = "gisaid_epi_isl";
+const std::string PANGO_LINEAGE = "pango_lineage";
 
 class MetadataReader {
   public:
@@ -13,6 +18,8 @@ class MetadataReader {
       const std::filesystem::path& metadata_path,
       const std::string& column_name
    );
+
+   static csv::CSVReader getReader(const std::filesystem::path& metadata_path);
 };
 
 }  // namespace silo::preprocessing

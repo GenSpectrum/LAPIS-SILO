@@ -2,6 +2,7 @@
 #define SILO_PREPARE_DATASET_H
 
 #include <iostream>
+#include <filesystem>
 #include <string>
 #include <unordered_map>
 
@@ -29,7 +30,7 @@ class PangoLineageAliasLookup;
 
 void partitionSequences(
    const preprocessing::Partitions& partitions,
-   std::istream& meta_in,
+   const std::filesystem::path& meta_in,
    silo::FastaReader& sequence_in,
    const std::string& output_prefix,
    const PangoLineageAliasLookup& alias_key,

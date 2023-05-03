@@ -530,11 +530,10 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
       ));
 
    SPDLOG_INFO("preprocessing - partitioning sequences");
-   std::ifstream metadata_stream2(config.metadata_file.relative_path());
    FastaReader sequence_stream(config.sequence_file.relative_path());
    partitionSequences(
       *partition_descriptor,
-      metadata_stream2,
+      config.metadata_file,
       sequence_stream,
       config.partition_folder.relative_path(),
       alias_key,

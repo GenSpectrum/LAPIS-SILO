@@ -27,13 +27,30 @@ TEST(MetadataReader, shouldThrowExceptionWhenColumnDoesNotExist) {
    );
 }
 
-TEST(MetadataReader, shouldThrowExceptionWhenFileDoesNotExist) {
+TEST(MetadataReader, shouldThrowExceptionWhenGettingColumnOfFileThatDoesNotExist) {
    EXPECT_THAT(
       []() {
          silo::preprocessing::MetadataReader::getColumn("file.does.not.exist", "gisaid_epi_isl");
       },
       ThrowsMessage<silo::PreprocessingException>(
          ::testing::HasSubstr("Failed to read metadata file 'file.does.not.exist'")
+      )
+   );
+}
+
+TEST(MetadataReader, getReader) {
+   auto reader =
+      silo::preprocessing::MetadataReader::getReader("testBaseData/small_metadata_set.tsv");
+
+   auto first_row = *reader.begin();
+   ASSERT_EQ(first_row["gisaid_epi_isl"], "EPI_ISL_1408408");
+}
+
+TEST(MetadataReader, shouldThrowExceptionWhenGettingReaderForFileThatDoesNotExist) {
+   EXPECT_THAT(
+      []() { silo::preprocessing::MetadataReader::getReader("file.does.not.exist"); },
+      ThrowsMessage<silo::PreprocessingException>(
+         ::testing::HasSubstr("Cannot open file file.does.not.exist")
       )
    );
 }
