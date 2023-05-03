@@ -102,8 +102,95 @@
    SPDLOG_INFO("Finished reading sequences, found {} sequences", found_sequences_count);
 }
 
-// TODO(Taepper): reduce cognitive complexity
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+std::unordered_map<std::string, std::string> partitionMetadataFile(
+   std::istream& meta_in,
+   const std::string& output_prefix,
+   const silo::PangoLineageAliasLookup& alias_key,
+   const std::string& metadata_file_extension,
+   std::unordered_map<std::string, std::string>& pango_to_chunk,
+   const std::vector<std::string>& chunk_names
+) {
+   std::unordered_map<std::string, std::string> key_to_chunk;
+
+   SPDLOG_INFO("partitioning metadata file to {}", output_prefix);
+
+   std::string header;
+   if (!getline(meta_in, header, '\n')) {
+      throw silo::PreprocessingException("No header file in meta input.");
+   }
+
+   std::unordered_map<std::string, std::unique_ptr<std::ostream>> chunk_to_meta_ostream;
+   for (const std::string& chunk_name : chunk_names) {
+      const std::string chunk_sequence_filename =
+         std::string(output_prefix).append(chunk_name).append(metadata_file_extension);
+      auto out = make_unique<std::ofstream>(chunk_sequence_filename);
+      chunk_to_meta_ostream[chunk_name] = std::move(out);
+      *chunk_to_meta_ostream[chunk_name] << header << '\n';
+   }
+
+   while (true) {
+      std::string key;
+      std::string pango_lineage_raw;
+      std::string rest;
+      if (!getline(meta_in, key, '\t')) {
+         break;
+      }
+      if (!getline(meta_in, pango_lineage_raw, '\t')) {
+         break;
+      }
+      if (!getline(meta_in, rest, '\n')) {
+         break;
+      }
+
+      std::string const pango_lineage = alias_key.resolvePangoLineageAlias(pango_lineage_raw);
+
+      std::string const chunk = pango_to_chunk[pango_lineage];
+      *chunk_to_meta_ostream[chunk] << key << '\t' << pango_lineage << '\t' << rest << '\n';
+
+      // Now save the chunk where the key will go for the sequence partitioning
+      key_to_chunk[key] = chunk;
+   }
+   return key_to_chunk;
+}
+
+void partitionSequenceFile(
+   silo::FastaReader& sequence_in,
+   const std::string& output_prefix,
+   const std::string& sequence_file_extension,
+   std::vector<std::string>& chunk_names,
+   std::unordered_map<std::string, std::string>& key_to_chunk
+) {
+   SPDLOG_INFO("partitioning sequences file to {}", output_prefix);
+
+   std::unordered_map<std::string, std::unique_ptr<std::ostream>> chunk_to_seq_ostream;
+   for (const std::string& chunk_name : chunk_names) {
+      const std::string chunk_sequence_filename =
+         std::string(output_prefix).append(chunk_name).append(sequence_file_extension);
+      auto out = make_unique<std::ofstream>(chunk_sequence_filename);
+      chunk_to_seq_ostream[chunk_name] = std::move(out);
+   }
+   SPDLOG_DEBUG("Created file streams for {}", output_prefix);
+
+   std::string key;
+   std::string genome;
+   while (sequence_in.next(key, genome)) {
+      if (genome.length() != silo::GENOME_LENGTH) {
+         throw silo::PreprocessingException(
+            "Genome didn't have expected length " + std::to_string(silo::GENOME_LENGTH) + " (was " +
+            std::to_string(genome.length()) + ")."
+         );
+      }
+      if (!key_to_chunk.contains(key)) {
+         throw silo::PreprocessingException(
+            "Key in metadata and sequences did not match " + key + "."
+         );
+      }
+
+      std::string const chunk = key_to_chunk[key];
+      *chunk_to_seq_ostream[chunk] << '>' << key << '\n' << genome << '\n';
+   }
+}
+
 void silo::partitionSequences(
    const preprocessing::Partitions& partitions,
    std::istream& meta_in,
@@ -126,81 +213,14 @@ void silo::partitionSequences(
       }
    }
 
-   std::unordered_map<std::string, std::string> key_to_chunk;
+   auto key_to_chunk = partitionMetadataFile(
+      meta_in, output_prefix, alias_key, metadata_file_extension, pango_to_chunk, chunk_names
+   );
 
-   {
-      SPDLOG_INFO("partitioning metadata file to {}", output_prefix);
+   partitionSequenceFile(
+      sequence_in, output_prefix, sequence_file_extension, chunk_names, key_to_chunk
+   );
 
-      std::string header;
-      if (!getline(meta_in, header, '\n')) {
-         throw silo::PreprocessingException("No header file in meta input.");
-      }
-
-      std::unordered_map<std::string, std::unique_ptr<std::ostream>> chunk_to_meta_ostream;
-      for (const std::string& chunk_name : chunk_names) {
-         const std::string chunk_sequence_filename =
-            std::string(output_prefix).append(chunk_name).append(metadata_file_extension);
-         auto out = make_unique<std::ofstream>(chunk_sequence_filename);
-         chunk_to_meta_ostream[chunk_name] = std::move(out);
-         *chunk_to_meta_ostream[chunk_name] << header << '\n';
-      }
-
-      while (true) {
-         std::string key;
-         std::string pango_lineage_raw;
-         std::string rest;
-         if (!getline(meta_in, key, '\t')) {
-            break;
-         }
-         if (!getline(meta_in, pango_lineage_raw, '\t')) {
-            break;
-         }
-         if (!getline(meta_in, rest, '\n')) {
-            break;
-         }
-
-         /// Deal with pango_lineage alias:
-         std::string const pango_lineage = alias_key.resolvePangoLineageAlias(pango_lineage_raw);
-
-         std::string const chunk = pango_to_chunk[pango_lineage];
-         *chunk_to_meta_ostream[chunk] << key << '\t' << pango_lineage << '\t' << rest << '\n';
-
-         // Now save the chunk where the key will go for the sequence partitioning
-         key_to_chunk[key] = chunk;
-      }
-   }
-
-   {
-      SPDLOG_INFO("partitioning sequences file to {}", output_prefix);
-
-      std::unordered_map<std::string, std::unique_ptr<std::ostream>> chunk_to_seq_ostream;
-      for (const std::string& chunk_name : chunk_names) {
-         const std::string chunk_sequence_filename =
-            std::string(output_prefix).append(chunk_name).append(sequence_file_extension);
-         auto out = make_unique<std::ofstream>(chunk_sequence_filename);
-         chunk_to_seq_ostream[chunk_name] = std::move(out);
-      }
-      SPDLOG_DEBUG("Created file streams for {}", output_prefix);
-
-      std::string key;
-      std::string genome;
-      while (sequence_in.next(key, genome)) {
-         if (genome.length() != GENOME_LENGTH) {
-            throw silo::PreprocessingException(
-               "Genome didn't have expected length " + std::to_string(GENOME_LENGTH) + " (was " +
-               std::to_string(genome.length()) + ")."
-            );
-         }
-         if (!key_to_chunk.contains(key)) {
-            throw silo::PreprocessingException(
-               "Key in metadata and sequences did not match " + key + "."
-            );
-         }
-
-         std::string const chunk = key_to_chunk[key];
-         *chunk_to_seq_ostream[chunk] << '>' << key << '\n' << genome << '\n';
-      }
-   }
    SPDLOG_INFO("Finished partitioning to {}", output_prefix);
 }
 
