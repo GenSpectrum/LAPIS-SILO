@@ -4,8 +4,8 @@
 #include <boost/iostreams/filtering_stream.hpp>
 
 namespace silo {
-InputStreamWrapper::InputStreamWrapper(const std::string& filename) {
-   if (filename.ends_with(".xz")) {
+InputStreamWrapper::InputStreamWrapper(const std::filesystem::path& filename) {
+   if (filename.extension() == ".xz") {
       file = std::ifstream(filename, std::ios::binary);
       std::unique_ptr<boost::iostreams::filtering_istream> archive =
          std::make_unique<boost::iostreams::filtering_istream>();
@@ -13,7 +13,7 @@ InputStreamWrapper::InputStreamWrapper(const std::string& filename) {
       archive->push(file);
       input_stream = std::move(archive);
    } else {
-      input_stream = make_unique<std::ifstream>(filename, std::ios::binary);
+      input_stream = make_unique<std::ifstream>(filename.string(), std::ios::binary);
    }
 }
 

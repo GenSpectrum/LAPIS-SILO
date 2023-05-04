@@ -59,6 +59,11 @@ struct PreprocessingConfig {
    std::filesystem::path serialization_folder;
 };
 
+std::filesystem::path createPath(
+   const std::filesystem::path& directory,
+   const std::string& filename
+);
+
 }  // namespace silo
 
 #endif  // SILO_PREPROCESSING_CONFIG_H
