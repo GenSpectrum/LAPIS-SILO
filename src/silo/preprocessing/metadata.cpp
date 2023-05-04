@@ -1,5 +1,6 @@
 #include "silo/preprocessing/metadata.h"
 
+#include <boost/algorithm/string/join.hpp>
 #include <csv.hpp>
 
 #include "silo/preprocessing/preprocessing_exception.h"
@@ -35,5 +36,18 @@ csv::CSVReader MetadataReader::getReader(const std::filesystem::path& metadata_p
    }
 }
 
+MetadataWriter::MetadataWriter(std::unique_ptr<std::ostream> out_stream)
+    : out_stream(std::move(out_stream)){};
+
+void MetadataWriter::writeHeader(const csv::CSVReader& csv_reader) {
+   const auto header = boost::algorithm::join(csv_reader.get_col_names(), "\t");
+   *out_stream << header << '\n';
+}
+
+void MetadataWriter::writeRow(const csv::CSVRow& row) {
+   const auto& row_string =
+      boost::algorithm::join(static_cast<std::vector<std::string>>(row), "\t");
+   *out_stream << row_string << '\n';
+}
 
 }  // namespace silo::preprocessing

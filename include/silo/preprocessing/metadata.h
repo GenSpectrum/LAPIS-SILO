@@ -9,8 +9,9 @@
 
 namespace silo::preprocessing {
 
-const std::string PRIMARY_KEY = "gisaid_epi_isl";
-const std::string PANGO_LINEAGE = "pango_lineage";
+const std::string COLUMN_NAME_PRIMARY_KEY = "gisaid_epi_isl";
+const std::string COLUMN_NAME_PANGO_LINEAGE = "pango_lineage";
+const std::string COLUMN_NAME_DATE = "date";
 
 class MetadataReader {
   public:
@@ -20,6 +21,18 @@ class MetadataReader {
    );
 
    static csv::CSVReader getReader(const std::filesystem::path& metadata_path);
+};
+
+class MetadataWriter {
+  private:
+   std::unique_ptr<std::ostream> out_stream;
+
+  public:
+   MetadataWriter(std::unique_ptr<std::ostream> out_stream);
+
+   void writeHeader(const csv::CSVReader& csv_reader);
+
+   void writeRow(const csv::CSVRow& row);
 };
 
 }  // namespace silo::preprocessing
