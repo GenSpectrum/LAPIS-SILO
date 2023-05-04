@@ -556,14 +556,12 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
         ++partition_index) {
       const auto& partition = partition_descriptor->partitions.at(partition_index);
       for (unsigned chunk_index = 0; chunk_index < partition.chunks.size(); ++chunk_index) {
-         std::string const name = config.sorted_partition_folder.relative_path().string() +
-                                  buildChunkName(partition_index, chunk_index) +
-                                  config.metadata_file.extension().string();
-         std::ifstream meta_in(name);
-         if (!meta_in) {
-            throw PreprocessingException("Meta_data file " + name + " not found.");
-         }
-         dict->updateDictionary(meta_in, getAliasKey());
+         const auto& filename = buildChunkName(partition_index, chunk_index) +
+                                config.metadata_file.extension().string();
+         const auto metadata_partition_file =
+            silo::createPath(config.sorted_partition_folder, filename);
+
+         dict->updateDictionary(metadata_partition_file, getAliasKey());
       }
    }
 

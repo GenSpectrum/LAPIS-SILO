@@ -1,8 +1,8 @@
 #ifndef SILO_PREPARE_DATASET_H
 #define SILO_PREPARE_DATASET_H
 
-#include <iostream>
 #include <filesystem>
+#include <iostream>
 #include <string>
 #include <unordered_map>
 
