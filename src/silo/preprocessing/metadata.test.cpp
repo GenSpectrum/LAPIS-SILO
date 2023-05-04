@@ -43,7 +43,7 @@ TEST(MetadataReader, getReader) {
       silo::preprocessing::MetadataReader::getReader("testBaseData/small_metadata_set.tsv");
 
    auto first_row = *reader.begin();
-   ASSERT_EQ(first_row["gisaid_epi_isl"], "EPI_ISL_1408408");
+   ASSERT_EQ(first_row["gisaid_epi_isl"].get(), "EPI_ISL_1408408");
 }
 
 TEST(MetadataReader, shouldThrowExceptionWhenGettingReaderForFileThatDoesNotExist) {

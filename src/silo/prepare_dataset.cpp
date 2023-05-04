@@ -79,20 +79,13 @@
    SPDLOG_INFO("Finished reading sequences, found {} sequences", found_sequences_count);
 }
 
-std::unordered_map<std::string, std::string> partitionMetadataFile(
-   const std::filesystem::path& meta_in,
+std::unordered_map<std::string, std::unique_ptr<silo::preprocessing::MetadataWriter>>
+getMetadataWritersForChunks(
    const std::string& output_prefix,
-   const silo::PangoLineageAliasLookup& alias_key,
    const std::string& metadata_file_extension,
-   std::unordered_map<std::string, std::string>& pango_to_chunk,
-   const std::vector<std::string>& chunk_names
+   const std::vector<std::string>& chunk_names,
+   const csv::CSVReader& metadata_reader
 ) {
-   std::unordered_map<std::string, std::string> primary_key_to_sequence_partition_chunk;
-
-   SPDLOG_INFO("partitioning metadata file to {}", output_prefix);
-
-   auto metadata_reader = silo::preprocessing::MetadataReader::getReader(meta_in);
-
    std::unordered_map<std::string, std::unique_ptr<silo::preprocessing::MetadataWriter>>
       chunk_to_metadata_writers;
    for (const std::string& chunk_name : chunk_names) {
@@ -106,7 +99,17 @@ std::unordered_map<std::string, std::string> partitionMetadataFile(
 
       chunk_to_metadata_writers[chunk_name] = std::move(metadata_writer);
    }
+   return chunk_to_metadata_writers;
+}
 
+std::unordered_map<std::string, std::string> writeMetadataChunks(
+   const silo::PangoLineageAliasLookup& alias_key,
+   std::unordered_map<std::string, std::string>& pango_to_chunk,
+   csv::CSVReader& metadata_reader,
+   std::unordered_map<std::string, std::unique_ptr<silo::preprocessing::MetadataWriter>>&
+      chunk_to_metadata_writers
+) {
+   std::unordered_map<std::string, std::string> primary_key_to_sequence_partition_chunk;
    for (auto& row : metadata_reader) {
       std::string const primary_key = row[silo::preprocessing::COLUMN_NAME_PRIMARY_KEY].get();
       std::string const pango_lineage = alias_key.resolvePangoLineageAlias(
@@ -123,15 +126,32 @@ std::unordered_map<std::string, std::string> partitionMetadataFile(
    return primary_key_to_sequence_partition_chunk;
 }
 
-void partitionSequenceFile(
-   silo::FastaReader& sequence_in,
+std::unordered_map<std::string, std::string> partitionMetadataFile(
+   const std::filesystem::path& meta_in,
+   const std::string& output_prefix,
+   const silo::PangoLineageAliasLookup& alias_key,
+   const std::string& metadata_file_extension,
+   std::unordered_map<std::string, std::string>& pango_to_chunk,
+   const std::vector<std::string>& chunk_names
+) {
+   SPDLOG_INFO("partitioning metadata file to {}", output_prefix);
+
+   auto metadata_reader = silo::preprocessing::MetadataReader::getReader(meta_in);
+
+   auto chunk_to_metadata_writers = getMetadataWritersForChunks(
+      output_prefix, metadata_file_extension, chunk_names, metadata_reader
+   );
+
+   return writeMetadataChunks(
+      alias_key, pango_to_chunk, metadata_reader, chunk_to_metadata_writers
+   );
+}
+
+std::unordered_map<std::string, std::unique_ptr<std::ostream>> getSequenceOutStreamsForChunks(
    const std::string& output_prefix,
    const std::string& sequence_file_extension,
-   std::vector<std::string>& chunk_names,
-   std::unordered_map<std::string, std::string>& key_to_chunk
+   const std::vector<std::string>& chunk_names
 ) {
-   SPDLOG_INFO("partitioning sequences file to {}", output_prefix);
-
    std::unordered_map<std::string, std::unique_ptr<std::ostream>> chunk_to_seq_ostream;
    for (const std::string& chunk_name : chunk_names) {
       const std::string chunk_sequence_filename =
@@ -139,8 +159,14 @@ void partitionSequenceFile(
       auto out = make_unique<std::ofstream>(chunk_sequence_filename);
       chunk_to_seq_ostream[chunk_name] = std::move(out);
    }
-   SPDLOG_DEBUG("Created file streams for {}", output_prefix);
+   return chunk_to_seq_ostream;
+}
 
+void writeSequenceChunks(
+   silo::FastaReader& sequence_in,
+   std::unordered_map<std::string, std::string>& key_to_chunk,
+   std::unordered_map<std::string, std::unique_ptr<std::ostream>>& chunk_to_seq_ostream
+) {
    std::string key;
    std::string genome;
    while (sequence_in.next(key, genome)) {
@@ -159,6 +185,22 @@ void partitionSequenceFile(
       std::string const chunk = key_to_chunk[key];
       *chunk_to_seq_ostream[chunk] << '>' << key << '\n' << genome << '\n';
    }
+}
+
+void partitionSequenceFile(
+   silo::FastaReader& sequence_in,
+   const std::string& output_prefix,
+   const std::string& sequence_file_extension,
+   std::vector<std::string>& chunk_names,
+   std::unordered_map<std::string, std::string>& key_to_chunk
+) {
+   SPDLOG_INFO("partitioning sequences file to {}", output_prefix);
+
+   auto chunk_to_seq_ostream =
+      getSequenceOutStreamsForChunks(output_prefix, sequence_file_extension, chunk_names);
+   SPDLOG_DEBUG("Created file streams for {}", output_prefix);
+
+   writeSequenceChunks(sequence_in, key_to_chunk, chunk_to_seq_ostream);
 }
 
 void silo::partitionSequences(
