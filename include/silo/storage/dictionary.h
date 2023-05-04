@@ -3,6 +3,7 @@
 
 #include <filesystem>
 #include <iostream>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -75,6 +76,11 @@ class Dictionary {
    ) const;
 
    [[maybe_unused]] [[nodiscard]] const std::string& getColumn(uint32_t column_id_in_lookup) const;
+
+   [[maybe_unused]] virtual std::optional<uint32_t> lookupValueId(
+      const std::string& column_name,
+      const std::string& value
+   ) const;
 };
 
 };  // namespace silo

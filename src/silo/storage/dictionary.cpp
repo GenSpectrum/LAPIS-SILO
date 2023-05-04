@@ -354,4 +354,11 @@ uint32_t Dictionary::getRegionCount() const {
    return region_count;
 }
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+[[maybe_unused]] std::optional<uint32_t> Dictionary::
+   // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+   lookupValueId(const std::string& /*column_name*/, const std::string& /*value*/) const {
+   throw std::runtime_error("not implemented");
+};
+
 }  // namespace silo
