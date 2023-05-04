@@ -12,7 +12,7 @@ struct InputStreamWrapper {
    std::unique_ptr<std::istream> input_stream;
 
   public:
-   explicit InputStreamWrapper(const std::string& filename);
+   explicit InputStreamWrapper(const std::filesystem::path& filename);
 
    std::istream& getInputStream() const;
 };

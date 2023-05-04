@@ -1,7 +1,3 @@
-//
-// Created by Alexander Taepper on 02.05.23.
-//
-
 #ifndef SILO_FASTA_FORMAT_EXCEPTION_H
 #define SILO_FASTA_FORMAT_EXCEPTION_H
 

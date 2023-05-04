@@ -1,6 +1,5 @@
 #include "silo/storage/sequence_store.h"
 
-#include <silo/common/fasta_reader.h>
 #include <spdlog/spdlog.h>
 #include <tbb/blocked_range.h>
 #include <tbb/enumerable_thread_specific.h>
@@ -11,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include "silo/common/fasta_reader.h"
 #include "silo/common/format_number.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/preprocessing/preprocessing_exception.h"
