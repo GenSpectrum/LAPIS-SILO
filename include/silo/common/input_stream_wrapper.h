@@ -1,6 +1,7 @@
 #ifndef SILO_ISTREAM_WRAPPER_H
 #define SILO_ISTREAM_WRAPPER_H
 
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <memory>

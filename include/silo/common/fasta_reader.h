@@ -1,7 +1,8 @@
 #ifndef SILO_FASTA_READER_H
 #define SILO_FASTA_READER_H
 
-#include "iostream"
+#include <filesystem>
+#include <iostream>
 
 #include "silo/common/input_stream_wrapper.h"
 
