@@ -2,10 +2,10 @@
 
 #include <gtest/gtest.h>
 
-void testFunction() {
+inline void configTestFunction() {
    throw silo::PreprocessingException("SomeText");
 }
 
 TEST(PreprocessingException, assertThatItThrows) {
-   EXPECT_THROW(testFunction(), silo::PreprocessingException);
+   EXPECT_THROW(configTestFunction(), silo::PreprocessingException);
 }

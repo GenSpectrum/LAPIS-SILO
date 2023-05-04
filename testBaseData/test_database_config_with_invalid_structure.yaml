@@ -1,0 +1,3 @@
+schema:
+  instanceName: sars_cov-2_minimal_test_config
+  primaryKey: gisaid_epi_isl

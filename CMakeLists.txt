@@ -34,6 +34,7 @@ find_package(RapidJSON REQUIRED INTERFACE)
 find_package(nlohmann_json REQUIRED)
 find_package(roaring REQUIRED)
 find_package(spdlog REQUIRED)
+find_package(yaml-cpp REQUIRED)
 
 # ---------------------------------------------------------------------------
 # Includes
@@ -78,7 +79,7 @@ endif ()
 # ---------------------------------------------------------------------------
 
 add_library(silo ${SRC_SILO_LIB})
-target_link_libraries(silo PUBLIC ${Boost_LIBRARIES} TBB::tbb ${roaring_LIBRARIES} ${spdlog_LIBRARIES})
+target_link_libraries(silo PUBLIC ${Boost_LIBRARIES} TBB::tbb ${roaring_LIBRARIES} ${spdlog_LIBRARIES} ${yaml-cpp_LIBRARIES})
 
 add_executable(siloApi src/silo_api/api.cpp ${SRC_SILO_API})
 target_link_libraries(siloApi PUBLIC silo Poco::Net Poco::Util Poco::JSON nlohmann_json::nlohmann_json ${spdlog_LIBRARIES})
