@@ -50,31 +50,20 @@
 }
 
 [[maybe_unused]] void silo::pruneSequences(
-   std::istream& metadata_in,
+   const std::filesystem::path& metadata_in,
    silo::FastaReader& sequences_in,
    std::ostream& sequences_out
 ) {
    SPDLOG_INFO("Pruning sequences");
 
-   std::unordered_set<std::string> primary_keys;
-   uint32_t found_metadata_count = 0;
-   {
-      std::string header;
-      if (!getline(metadata_in, header, '\n')) {
-         throw silo::PreprocessingException("Metadata file is emtpy. At least Header is expected.");
-      }
+   const auto primary_key_vector = silo::preprocessing::MetadataReader::getColumn(
+      metadata_in, silo::preprocessing::COLUMN_NAME_PRIMARY_KEY
+   );
+   const std::unordered_set<std::string> primary_keys(
+      primary_key_vector.begin(), primary_key_vector.end()
+   );
 
-      while (true) {
-         std::string key;
-         if (!getline(metadata_in, key, '\t')) {
-            break;
-         }
-         metadata_in.ignore(LONG_MAX, '\n');
-         primary_keys.insert(key);
-         found_metadata_count++;
-      }
-   }
-   SPDLOG_INFO("Finished reading metadata, found {} rows", found_metadata_count);
+   SPDLOG_INFO("Finished reading metadata, found {} rows", primary_keys.size());
 
    uint32_t found_sequences_count = 0;
    {

@@ -18,7 +18,7 @@ class FastaReader;
 class PangoLineageAliasLookup;
 
 [[maybe_unused]] void pruneSequences(
-   std::istream& metadata_in,
+   const std::filesystem::path& metadata_in,
    silo::FastaReader& sequences_in,
    std::ostream& sequences_out
 );
