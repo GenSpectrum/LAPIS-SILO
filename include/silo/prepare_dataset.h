@@ -5,8 +5,6 @@
 #include <string>
 #include <unordered_map>
 
-#include "silo/common/fasta_reader.h"
-
 namespace silo {
 
 namespace preprocessing {
@@ -14,6 +12,7 @@ struct Partitions;
 struct PangoLineageCounts;
 }  // namespace preprocessing
 
+class FastaReader;
 class PangoLineageAliasLookup;
 
 [[maybe_unused]] void pruneSequences(

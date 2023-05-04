@@ -31,33 +31,33 @@
          found_sequences_count++;
       }
    }
+
    SPDLOG_INFO("Finished reading sequences, found {} sequences", found_sequences_count);
 
-   {
-      std::string header;
-      if (!getline(metadata_in, header, '\n')) {
-         throw silo::PreprocessingException("Did not find header in metadata file");
-      }
-      metadata_out << header << "\n";
+   std::string header;
+   if (!getline(metadata_in, header, '\n')) {
+      throw silo::PreprocessingException("Did not find header in metadata file");
+   }
+   metadata_out << header << "\n";
 
-      while (true) {
-         std::string key;
-         std::string rest;
-         if (!getline(metadata_in, key, '\t')) {
+   while (true) {
+      std::string key;
+      std::string rest;
+      if (!getline(metadata_in, key, '\t')) {
+         break;
+      }
+
+      if (found_primary_keys.contains(key)) {
+         if (!getline(metadata_in, rest)) {
             break;
          }
-
-         if (found_primary_keys.contains(key)) {
-            if (!getline(metadata_in, rest)) {
-               break;
-            }
-            found_metadata_count++;
-            metadata_out << key << "\t" << rest << "\n";
-         } else {
-            metadata_in.ignore(LONG_MAX, '\n');
-         }
+         found_metadata_count++;
+         metadata_out << key << "\t" << rest << "\n";
+      } else {
+         metadata_in.ignore(LONG_MAX, '\n');
       }
    }
+
    SPDLOG_INFO("Finished reading metadata, found {} rows", found_metadata_count);
 }
 
