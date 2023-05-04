@@ -15,9 +15,9 @@
 #include "silo/storage/pango_lineage_alias.h"
 
 [[maybe_unused]] void silo::pruneMetadata(
-   std::istream& metadata_in,
+   const std::filesystem::path& metadata_in,
    silo::FastaReader& sequences_in,
-   std::ostream& metadata_out
+   silo::preprocessing::MetadataWriter& metadata_writer
 ) {
    SPDLOG_INFO("Pruning metadata");
 
@@ -34,27 +34,15 @@
 
    SPDLOG_INFO("Finished reading sequences, found {} sequences", found_sequences_count);
 
-   std::string header;
-   if (!getline(metadata_in, header, '\n')) {
-      throw silo::PreprocessingException("Did not find header in metadata file");
-   }
-   metadata_out << header << "\n";
+   auto metadata_reader = silo::preprocessing::MetadataReader::getReader(metadata_in);
 
-   while (true) {
-      std::string key;
-      std::string rest;
-      if (!getline(metadata_in, key, '\t')) {
-         break;
-      }
+   metadata_writer.writeHeader(metadata_reader);
+
+   for (auto& row : metadata_reader) {
+      const auto key = row[silo::preprocessing::COLUMN_NAME_PRIMARY_KEY].get();
 
       if (found_primary_keys.contains(key)) {
-         if (!getline(metadata_in, rest)) {
-            break;
-         }
-         found_metadata_count++;
-         metadata_out << key << "\t" << rest << "\n";
-      } else {
-         metadata_in.ignore(LONG_MAX, '\n');
+         metadata_writer.writeRow(row);
       }
    }
 
@@ -122,7 +110,8 @@ std::unordered_map<std::string, std::string> partitionMetadataFile(
       auto out_stream = std::make_unique<std::ofstream>(
          std::string(output_prefix).append(chunk_name).append(metadata_file_extension)
       );
-      auto metadata_writer = std::make_unique<silo::preprocessing::MetadataWriter>(std::move(out_stream));
+      auto metadata_writer =
+         std::make_unique<silo::preprocessing::MetadataWriter>(std::move(out_stream));
 
       metadata_writer->writeHeader(metadata_reader);
 
@@ -335,6 +324,7 @@ void sortSequenceFile(
                    << lines_sorted.at(second_line) << '\n';
    }
 }
+
 void sortChunk(
    const std::filesystem::path& meta_in,
    silo::FastaReader& sequence_in,

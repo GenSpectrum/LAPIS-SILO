@@ -11,6 +11,7 @@ namespace silo {
 namespace preprocessing {
 struct Partitions;
 struct PangoLineageCounts;
+class MetadataWriter;
 }  // namespace preprocessing
 
 class FastaReader;
@@ -23,9 +24,9 @@ class PangoLineageAliasLookup;
 );
 
 [[maybe_unused]] void pruneMetadata(
-   std::istream& metadata_in,
+   const std::filesystem::path& metadata_in,
    silo::FastaReader& sequences_in,
-   std::ostream& metadata_out
+   silo::preprocessing::MetadataWriter& metadata_writer
 );
 
 void partitionSequences(
