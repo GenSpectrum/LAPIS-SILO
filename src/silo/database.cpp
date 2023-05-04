@@ -95,10 +95,10 @@ void silo::Database::build(
             const auto& part = partition_descriptor->partitions[partition_index];
             partitions[partition_index].chunks = part.chunks;
             for (unsigned chunk_index = 0; chunk_index < part.chunks.size(); ++chunk_index) {
-               std::string name;
-               name = partition_name_prefix + buildChunkName(partition_index, chunk_index);
+               const std::string name =
+                  partition_name_prefix + buildChunkName(partition_index, chunk_index);
                std::string sequence_filename = name + sequence_file_suffix;
-               std::ifstream meta_in(name + metadata_file_suffix);
+               const std::filesystem::path metadata_file(name + metadata_file_suffix);
                if (!InputStreamWrapper(sequence_filename).getInputStream()) {
                   sequence_filename += ".xz";
                   if (!InputStreamWrapper(sequence_filename).getInputStream()) {
@@ -109,7 +109,7 @@ void silo::Database::build(
                } else {
                   SPDLOG_DEBUG("Using sequence file: {}", sequence_filename);
                }
-               if (!meta_in) {
+               if (!std::filesystem::exists(metadata_file)) {
                   SPDLOG_ERROR("metadata file {} not found", name + metadata_file_suffix);
                   return;
                }
@@ -118,7 +118,7 @@ void silo::Database::build(
                unsigned const sequence_store_sequence_count =
                   partitions[partition_index].seq_store.fill(sequence_input);
                unsigned const metadata_store_sequence_count =
-                  partitions[partition_index].meta_store.fill(meta_in, alias_key, *dict);
+                  partitions[partition_index].meta_store.fill(metadata_file, alias_key, *dict);
                if (sequence_store_sequence_count != metadata_store_sequence_count) {
                   throw silo::PreprocessingException(
                      "Sequences in meta data and sequence data for chunk " +

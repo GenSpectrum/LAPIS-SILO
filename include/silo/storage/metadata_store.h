@@ -5,6 +5,7 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <ctime>
+#include <filesystem>
 #include <vector>
 
 #include "silo/common/nucleotide_symbols.h"
@@ -52,7 +53,7 @@ struct MetadataStore {
    std::vector<std::vector<uint64_t>> columns;
 
    unsigned fill(
-      std::istream& input_file,
+      const std::filesystem::path& input_file,
       const PangoLineageAliasLookup& alias_key,
       const Dictionary& dict
    );

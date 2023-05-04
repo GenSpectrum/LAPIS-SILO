@@ -29,7 +29,7 @@ void Dictionary::updateDictionary(
 
    const std::vector<std::string>& vector = metadata_reader.get_col_names();
 
-   // TODO #82 check whether this is necessary
+   // TODO(#82) check whether this is necessary
    for (const auto& header : known_headers) {
       if (std::find(vector.begin(), vector.end(), header) == vector.end()) {
          throw silo::PreprocessingException(
@@ -38,7 +38,7 @@ void Dictionary::updateDictionary(
       }
    }
 
-   // TODO #82 when doing this, it should be a lot easier to bring back this piece of code -
+   // TODO(#82) when doing this, it should be a lot easier to bring back this piece of code -
    //          if it's necessary at all.
    //      while (!header_in.eof()) {
    //         getline(header_in, col_name, '\t');
