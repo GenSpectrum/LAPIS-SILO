@@ -220,139 +220,153 @@ struct PartitionChunk {
    uint32_t size;
 };
 
+std::unordered_map<std::string, time_t> sortMetadataFile(
+   std::istream& meta_in,
+   std::ostream& meta_out,
+   const PartitionChunk& chunk
+) {
+   std::unordered_map<std::string, time_t> key_to_date;
+
+   struct MetaLine {
+      std::string key;
+      std::string pango;
+      time_t date;
+      std::string date_str;
+      std::string rest;
+   };
+
+   std::vector<MetaLine> lines;
+   lines.reserve(chunk.size);
+
+   // Ignore Header
+   std::string header;
+   if (!getline(meta_in, header, '\n')) {
+      throw silo::PreprocessingException("Did not find header in metadata file.");
+   }
+   while (true) {
+      std::string key;
+      std::string pango_lineage;
+      std::string date_str;
+      std::string rest;
+      if (!getline(meta_in, key, '\t')) {
+         break;
+      }
+      if (!getline(meta_in, pango_lineage, '\t')) {
+         break;
+      }
+      if (!getline(meta_in, date_str, '\t')) {
+         break;
+      }
+      if (!getline(meta_in, rest, '\n')) {
+         break;
+      }
+
+      struct tm time_struct {};
+      std::istringstream time_stream(date_str);
+      time_stream >> std::get_time(&time_struct, "%Y-%m-%d");
+      time_t const date_time = mktime(&time_struct);
+
+      lines.push_back(MetaLine{key, pango_lineage, date_time, date_str, rest});
+
+      key_to_date[key] = date_time;
+   }
+
+   auto sorter = [](const MetaLine& line1, const MetaLine& line2) {
+      return line1.date < line2.date;
+   };
+   std::sort(lines.begin(), lines.end(), sorter);
+
+   meta_out << header << '\n';
+
+   for (const MetaLine& line : lines) {
+      meta_out << line.key << '\t' << line.pango << '\t' << line.date_str << '\t' << line.rest
+               << '\n';
+   }
+   return key_to_date;
+}
+
+void sortSequenceFile(
+   silo::FastaReader& sequence_in,
+   std::ostream& sequence_out,
+   const PartitionChunk& chunk,
+   std::unordered_map<std::string, time_t>& key_to_date
+) {
+   const std::string chunk_str =
+      'P' + std::to_string(chunk.part) + '_' + 'C' + std::to_string(chunk.chunk);
+
+   // Now:
+   // Read file once, fill all dates, sort dates,
+   // calculated target position for every genome
+   // Reset gpointer, read file again, putting every genome at the correct position.
+   // Write file to ostream
+
+   struct KeyDatePair {
+      std::string key;
+      time_t date;
+      uint32_t file_pos;
+   };
+   std::vector<KeyDatePair> key_date_pairs;
+   key_date_pairs.reserve(chunk.size);
+   uint32_t number_of_sequences = 0;
+   std::string key;
+   std::string genome;
+   while (sequence_in.next(key, genome)) {
+      time_t const date = key_to_date[key];
+      key_date_pairs.emplace_back(KeyDatePair{key, date, number_of_sequences++});
+   }
+
+   SPDLOG_TRACE("Finished first run for chunk {}", chunk_str);
+
+   auto sorter = [](const KeyDatePair& date1, const KeyDatePair& date2) {
+     return date1.date < date2.date;
+   };
+   std::sort(key_date_pairs.begin(), key_date_pairs.end(), sorter);
+
+   SPDLOG_TRACE("Sorted first run for partition {}", chunk_str);
+
+   std::vector<uint32_t> file_pos_to_sorted_pos(number_of_sequences);
+   unsigned number_of_sorted_files = 0;
+   for (auto& key_date_pair : key_date_pairs) {
+      file_pos_to_sorted_pos[key_date_pair.file_pos] = number_of_sorted_files++;
+   }
+
+   SPDLOG_TRACE("Calculated postitions for every sequence {}", chunk_str);
+
+   sequence_in.reset();
+
+   SPDLOG_TRACE("Reset file seek, now read second time, sorted {}", chunk_str);
+
+   constexpr uint32_t LINES_PER_SEQUENCE = 2;
+   std::vector<std::string> lines_sorted(
+      static_cast<uint64_t>(LINES_PER_SEQUENCE * number_of_sequences)
+   );
+   for (auto pos : file_pos_to_sorted_pos) {
+      const uint64_t first_line = static_cast<uint64_t>(LINES_PER_SEQUENCE) * pos;
+      const uint64_t second_line = static_cast<uint64_t>(LINES_PER_SEQUENCE) * pos + 1;
+      if (!sequence_in.next(lines_sorted.at(first_line), lines_sorted.at(second_line))) {
+         SPDLOG_ERROR("Reached EOF too early.");
+         return;
+      }
+   }
+
+   for (uint32_t sequence = 0; sequence < number_of_sequences; ++sequence) {
+      const uint64_t first_line = static_cast<uint64_t>(LINES_PER_SEQUENCE) * sequence;
+      const uint64_t second_line = static_cast<uint64_t>(LINES_PER_SEQUENCE) * sequence + 1;
+      sequence_out << '>' << lines_sorted.at(first_line) << '\n'
+                   << lines_sorted.at(second_line) << '\n';
+   }
+}
+
 void sortChunk(
    std::istream& meta_in,
    silo::FastaReader& sequence_in,
    std::ostream& meta_out,
    std::ostream& sequence_out,
-   PartitionChunk chunk
+   const PartitionChunk chunk
 ) {
-   const std::string chunk_str =
-      'P' + std::to_string(chunk.part) + '_' + 'C' + std::to_string(chunk.chunk);
+   auto key_to_date = sortMetadataFile(meta_in, meta_out, chunk);
 
-   std::unordered_map<std::string, time_t> key_to_date;
-
-   {
-      struct MetaLine {
-         std::string key;
-         std::string pango;
-         time_t date;
-         std::string date_str;
-         std::string rest;
-      };
-
-      std::vector<MetaLine> lines;
-      lines.reserve(chunk.size);
-
-      // Ignore Header
-      std::string header;
-      if (!getline(meta_in, header, '\n')) {
-         throw silo::PreprocessingException("Did not find header in metadata file.");
-      }
-      while (true) {
-         std::string key;
-         std::string pango_lineage;
-         std::string date_str;
-         std::string rest;
-         if (!getline(meta_in, key, '\t')) {
-            break;
-         }
-         if (!getline(meta_in, pango_lineage, '\t')) {
-            break;
-         }
-         if (!getline(meta_in, date_str, '\t')) {
-            break;
-         }
-         if (!getline(meta_in, rest, '\n')) {
-            break;
-         }
-
-         struct std::tm time_struct {};
-         std::istringstream time_stream(date_str);
-         time_stream >> std::get_time(&time_struct, "%Y-%m-%d");
-         std::time_t const date_time = mktime(&time_struct);
-
-         lines.push_back(MetaLine{key, pango_lineage, date_time, date_str, rest});
-
-         key_to_date[key] = date_time;
-      }
-
-      auto sorter = [](const MetaLine& line1, const MetaLine& line2) {
-         return line1.date < line2.date;
-      };
-      std::sort(lines.begin(), lines.end(), sorter);
-
-      meta_out << header << '\n';
-
-      for (const MetaLine& line : lines) {
-         meta_out << line.key << '\t' << line.pango << '\t' << line.date_str << '\t' << line.rest
-                  << '\n';
-      }
-   }
-
-   {
-      // Now:
-      // Read file once, fill all dates, sort dates,
-      // calculated target position for every genome
-      // Reset gpointer, read file again, putting every genome at the correct position.
-      // Write file to ostream
-
-      struct KeyDatePair {
-         std::string key;
-         time_t date;
-         uint32_t file_pos;
-      };
-      std::vector<KeyDatePair> key_date_pairs;
-      key_date_pairs.reserve(chunk.size);
-      uint32_t number_of_sequences = 0;
-      std::string key;
-      std::string genome;
-      while (sequence_in.next(key, genome)) {
-         time_t const date = key_to_date[key];
-         key_date_pairs.emplace_back(KeyDatePair{key, date, number_of_sequences++});
-      }
-
-      SPDLOG_TRACE("Finished first run for chunk {}", chunk_str);
-
-      auto sorter = [](const KeyDatePair& date1, const KeyDatePair& date2) {
-         return date1.date < date2.date;
-      };
-      std::sort(key_date_pairs.begin(), key_date_pairs.end(), sorter);
-
-      SPDLOG_TRACE("Sorted first run for partition {}", chunk_str);
-
-      std::vector<uint32_t> file_pos_to_sorted_pos(number_of_sequences);
-      unsigned number_of_sorted_files = 0;
-      for (auto& key_date_pair : key_date_pairs) {
-         file_pos_to_sorted_pos[key_date_pair.file_pos] = number_of_sorted_files++;
-      }
-
-      SPDLOG_TRACE("Calculated postitions for every sequence {}", chunk_str);
-
-      sequence_in.reset();
-
-      SPDLOG_TRACE("Reset file seek, now read second time, sorted {}", chunk_str);
-
-      constexpr uint32_t LINES_PER_SEQUENCE = 2;
-      std::vector<std::string> lines_sorted(
-         static_cast<uint64_t>(LINES_PER_SEQUENCE * number_of_sequences)
-      );
-      for (auto pos : file_pos_to_sorted_pos) {
-         const uint64_t first_line = static_cast<uint64_t>(LINES_PER_SEQUENCE) * pos;
-         const uint64_t second_line = static_cast<uint64_t>(LINES_PER_SEQUENCE) * pos + 1;
-         if (!sequence_in.next(lines_sorted.at(first_line), lines_sorted.at(second_line))) {
-            SPDLOG_ERROR("Reached EOF too early.");
-            return;
-         }
-      }
-
-      for (uint32_t sequence = 0; sequence < number_of_sequences; ++sequence) {
-         const uint64_t first_line = static_cast<uint64_t>(LINES_PER_SEQUENCE) * sequence;
-         const uint64_t second_line = static_cast<uint64_t>(LINES_PER_SEQUENCE) * sequence + 1;
-         sequence_out << '>' << lines_sorted.at(first_line) << '\n'
-                      << lines_sorted.at(second_line) << '\n';
-      }
-   }
+   sortSequenceFile(sequence_in, sequence_out, chunk, key_to_date);
 }
 
 void silo::sortChunks(
