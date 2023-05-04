@@ -6,83 +6,55 @@
 
 #include "silo/database.h"
 #include "silo/persistence/exception.h"
+#include "silo/preprocessing/metadata.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/pango_lineage_alias.h"
 
 namespace silo {
 
-// TODO(someone): reduce cognitive complexity
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void Dictionary::updateDictionary(
-   std::istream& metadata_file,
+   const std::filesystem::path& metadata_file,
    const silo::PangoLineageAliasLookup& alias_key
 ) {
-   // Parse header. Assert order EPI, PANGO, DATE, REGION, COUNTRY, then fill additional columns
-   {
-      std::string header;
-      if (!getline(metadata_file, header, '\n')) {
+   auto metadata_reader = silo::preprocessing::MetadataReader::getReader(metadata_file);
+
+   const std::vector<std::string> known_headers{
+      "gisaid_epi_isl",
+      "pango_lineage",
+      "date",
+      "region",
+      "country",
+      "division",
+   };
+
+   const std::vector<std::string>& vector = metadata_reader.get_col_names();
+
+   // TODO(#82) check whether this is necessary
+   for (const auto& header : known_headers) {
+      if (std::find(vector.begin(), vector.end(), header) == vector.end()) {
          throw silo::PreprocessingException(
-            "Error updating dictionary: Failed to read metadata header line."
+            "Metadata file does not contain field '" + header + "'"
          );
-      }
-      std::stringstream header_in(header);
-      std::string col_name;
-      if (!getline(header_in, col_name, '\t') || col_name != "gisaid_epi_isl") {
-         throw silo::PreprocessingException(
-            "Error updating dictionary: Expected 'gisaid_epi_isl' as first column in metadata."
-         );
-      }
-      if (!getline(header_in, col_name, '\t') || col_name != "pango_lineage") {
-         throw silo::PreprocessingException(
-            "Error updating dictionary: Expected 'pango_lineage' as second column in metadata."
-         );
-      }
-      if (!getline(header_in, col_name, '\t') || col_name != "date") {
-         throw silo::PreprocessingException(
-            "Error updating dictionary: Expected 'date' as third column in metadata."
-         );
-      }
-      if (!getline(header_in, col_name, '\t') || col_name != "region") {
-         throw silo::PreprocessingException(
-            "Error updating dictionary: Expected 'region' as fourth column in metadata."
-         );
-      }
-      if (!getline(header_in, col_name, '\t') || col_name != "country") {
-         throw silo::PreprocessingException(
-            "Error updating dictionary: Expected 'country' as fifth column in metadata."
-         );
-      }
-      while (!header_in.eof()) {
-         getline(header_in, col_name, '\t');
-         additional_columns_lookup.push_back(col_name);
-         additional_columns_dictionary[col_name] = additional_columns_count++;
       }
    }
 
-   while (true) {
-      std::string pango_lineage_raw;
-      std::string epi_isl;
-      std::string region;
-      std::string country;
-      std::string division;
-      if (!getline(metadata_file, epi_isl, '\t')) {
-         break;
-      }
-      if (!getline(metadata_file, pango_lineage_raw, '\t')) {
-         break;
-      }
-      metadata_file.ignore(LONG_MAX, '\t');
-      if (!getline(metadata_file, region, '\t')) {
-         break;
-      }
-      if (!getline(metadata_file, country, '\t')) {
-         break;
-      }
-      if (!getline(metadata_file, division, '\n')) {
-         break;
-      }
+   // TODO(#82) when doing this, it should be a lot easier to bring back this piece of code -
+   //          if it's necessary at all.
+   //      while (!header_in.eof()) {
+   //         getline(header_in, col_name, '\t');
+   //         additional_columns_lookup.push_back(col_name);
+   //         additional_columns_dictionary[col_name] = additional_columns_count++;
+   //      }
 
-      std::string const pango_lineage = alias_key.resolvePangoLineageAlias(pango_lineage_raw);
+   for (auto& row : metadata_reader) {
+      const std::string pango_lineage_raw = alias_key.resolvePangoLineageAlias(
+         row[silo::preprocessing::COLUMN_NAME_PANGO_LINEAGE].get()
+      );
+      const std::string region = row["region"].get();
+      const std::string country = row["country"].get();
+      const std::string division = row["division"].get();
+
+      const auto pango_lineage = alias_key.resolvePangoLineageAlias(pango_lineage_raw);
 
       if (!pango_lineage_dictionary.contains(pango_lineage)) {
          pango_lineage_lookup.push_back(pango_lineage);

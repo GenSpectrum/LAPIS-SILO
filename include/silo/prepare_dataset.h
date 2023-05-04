@@ -1,6 +1,7 @@
 #ifndef SILO_PREPARE_DATASET_H
 #define SILO_PREPARE_DATASET_H
 
+#include <filesystem>
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -10,26 +11,27 @@ namespace silo {
 namespace preprocessing {
 struct Partitions;
 struct PangoLineageCounts;
+class MetadataWriter;
 }  // namespace preprocessing
 
 class FastaReader;
 class PangoLineageAliasLookup;
 
 [[maybe_unused]] void pruneSequences(
-   std::istream& metadata_in,
+   const std::filesystem::path& metadata_in,
    silo::FastaReader& sequences_in,
    std::ostream& sequences_out
 );
 
 [[maybe_unused]] void pruneMetadata(
-   std::istream& metadata_in,
+   const std::filesystem::path& metadata_in,
    silo::FastaReader& sequences_in,
-   std::ostream& metadata_out
+   silo::preprocessing::MetadataWriter& metadata_writer
 );
 
 void partitionSequences(
    const preprocessing::Partitions& partitions,
-   std::istream& meta_in,
+   const std::filesystem::path& meta_in,
    silo::FastaReader& sequence_in,
    const std::string& output_prefix,
    const PangoLineageAliasLookup& alias_key,

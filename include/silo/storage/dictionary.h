@@ -1,6 +1,7 @@
 #ifndef SILO_DICTIONARY_H
 #define SILO_DICTIONARY_H
 
+#include <filesystem>
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -32,7 +33,7 @@ class Dictionary {
 
   public:
    void updateDictionary(
-      std::istream& metadata_file,
+      const std::filesystem::path& metadata_file,
       const silo::PangoLineageAliasLookup& alias_key
    );
 

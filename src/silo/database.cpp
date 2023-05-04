@@ -25,7 +25,6 @@
 #include "silo/storage/database_partition.h"
 
 const std::string REFERENCE_GENOME_FILENAME = "reference_genome.txt";
-const std::string PANGO_ALIAS_FILENAME = "pango_alias.txt";
 
 std::vector<std::string> initGlobalReference(const std::string& working_directory) {
    std::filesystem::path const reference_genome_path(working_directory + REFERENCE_GENOME_FILENAME);
@@ -57,36 +56,10 @@ std::vector<std::string> initGlobalReference(const std::string& working_director
    return global_reference;
 }
 
-std::unordered_map<std::string, std::string> initAliasKey(const std::string& working_directory) {
-   std::filesystem::path const alias_key_path(working_directory + PANGO_ALIAS_FILENAME);
-   if (!std::filesystem::exists(alias_key_path)) {
-      throw std::filesystem::filesystem_error(
-         "Alias key file " + alias_key_path.relative_path().string() + " does not exist",
-         std::error_code()
-      );
-   }
-
-   std::unordered_map<std::string, std::string> alias_keys;
-   std::ifstream alias_key_file(alias_key_path.relative_path());
-   while (true) {
-      std::string alias;
-      std::string val;
-      if (!getline(alias_key_file, alias, '\t')) {
-         break;
-      }
-      if (!getline(alias_key_file, val, '\n')) {
-         break;
-      }
-      alias_keys[alias] = val;
-   }
-
-   return alias_keys;
-}
-
 silo::Database::Database(const std::string& directory)
     : working_directory(directory),
       global_reference(initGlobalReference(directory)),
-      alias_key(initAliasKey(directory)) {}
+      alias_key(silo::PangoLineageAliasLookup::readFromFile(directory)) {}
 
 const silo::PangoLineageAliasLookup& silo::Database::getAliasKey() const {
    return alias_key;
@@ -122,10 +95,10 @@ void silo::Database::build(
             const auto& part = partition_descriptor->partitions[partition_index];
             partitions[partition_index].chunks = part.chunks;
             for (unsigned chunk_index = 0; chunk_index < part.chunks.size(); ++chunk_index) {
-               std::string name;
-               name = partition_name_prefix + buildChunkName(partition_index, chunk_index);
+               const std::string name =
+                  partition_name_prefix + buildChunkName(partition_index, chunk_index);
                std::string sequence_filename = name + sequence_file_suffix;
-               std::ifstream meta_in(name + metadata_file_suffix);
+               const std::filesystem::path metadata_file(name + metadata_file_suffix);
                if (!InputStreamWrapper(sequence_filename).getInputStream()) {
                   sequence_filename += ".xz";
                   if (!InputStreamWrapper(sequence_filename).getInputStream()) {
@@ -136,7 +109,7 @@ void silo::Database::build(
                } else {
                   SPDLOG_DEBUG("Using sequence file: {}", sequence_filename);
                }
-               if (!meta_in) {
+               if (!std::filesystem::exists(metadata_file)) {
                   SPDLOG_ERROR("metadata file {} not found", name + metadata_file_suffix);
                   return;
                }
@@ -145,7 +118,7 @@ void silo::Database::build(
                unsigned const sequence_store_sequence_count =
                   partitions[partition_index].seq_store.fill(sequence_input);
                unsigned const metadata_store_sequence_count =
-                  partitions[partition_index].meta_store.fill(meta_in, alias_key, *dict);
+                  partitions[partition_index].meta_store.fill(metadata_file, alias_key, *dict);
                if (sequence_store_sequence_count != metadata_store_sequence_count) {
                   throw silo::PreprocessingException(
                      "Sequences in meta data and sequence data for chunk " +
@@ -546,9 +519,8 @@ silo::DetailedDatabaseInfo silo::Database::detailedDatabaseInfo() const {
 
 void silo::Database::preprocessing(const PreprocessingConfig& config) {
    SPDLOG_INFO("preprocessing - building pango lineage counts");
-   std::ifstream metadata_stream(config.metadata_file.relative_path());
    pango_descriptor = std::make_unique<preprocessing::PangoLineageCounts>(
-      preprocessing::buildPangoLineageCounts(alias_key, metadata_stream)
+      preprocessing::buildPangoLineageCounts(alias_key, config.metadata_file)
    );
 
    SPDLOG_INFO("preprocessing - building partitions");
@@ -558,11 +530,10 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
       ));
 
    SPDLOG_INFO("preprocessing - partitioning sequences");
-   std::ifstream metadata_stream2(config.metadata_file.relative_path());
    FastaReader sequence_stream(config.sequence_file.relative_path());
    partitionSequences(
       *partition_descriptor,
-      metadata_stream2,
+      config.metadata_file,
       sequence_stream,
       config.partition_folder.relative_path(),
       alias_key,
@@ -585,14 +556,12 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
         ++partition_index) {
       const auto& partition = partition_descriptor->partitions.at(partition_index);
       for (unsigned chunk_index = 0; chunk_index < partition.chunks.size(); ++chunk_index) {
-         std::string const name = config.sorted_partition_folder.relative_path().string() +
-                                  buildChunkName(partition_index, chunk_index) +
-                                  config.metadata_file.extension().string();
-         std::ifstream meta_in(name);
-         if (!meta_in) {
-            throw PreprocessingException("Meta_data file " + name + " not found.");
-         }
-         dict->updateDictionary(meta_in, getAliasKey());
+         const auto& filename = buildChunkName(partition_index, chunk_index) +
+                                config.metadata_file.extension().string();
+         const auto metadata_partition_file =
+            silo::createPath(config.sorted_partition_folder, filename);
+
+         dict->updateDictionary(metadata_partition_file, getAliasKey());
       }
    }
 

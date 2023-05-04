@@ -3,48 +3,30 @@
 #include <ctime>
 #include <vector>
 
+#include "silo/preprocessing/metadata.h"
 #include "silo/storage/dictionary.h"
 #include "silo/storage/pango_lineage_alias.h"
 
 namespace silo {
 
 unsigned MetadataStore::fill(
-   std::istream& input_file,
+   const std::filesystem::path& input_file,
    const PangoLineageAliasLookup& alias_key,
    const Dictionary& dict
 ) {
-   // Ignore header line.
-   input_file.ignore(LONG_MAX, '\n');
+   auto metadata_reader = silo::preprocessing::MetadataReader::getReader(input_file);
 
    unsigned sequence_count = 0;
 
-   while (true) {
-      std::string key;
-      std::string pango_lineage_raw;
-      std::string date;
-      std::string region;
-      std::string country;
-      std::string division;
-      if (!getline(input_file, key, '\t')) {
-         break;
-      }
-      if (!getline(input_file, pango_lineage_raw, '\t')) {
-         break;
-      }
-      if (!getline(input_file, date, '\t')) {
-         break;
-      }
-      if (!getline(input_file, region, '\t')) {
-         break;
-      }
-      if (!getline(input_file, country, '\t')) {
-         break;
-      }
-      if (!getline(input_file, division, '\n')) {
-         break;
-      }
-
-      std::string const pango_lineage = alias_key.resolvePangoLineageAlias(pango_lineage_raw);
+   for (auto& row : metadata_reader) {
+      const std::string key = row[silo::preprocessing::COLUMN_NAME_PRIMARY_KEY].get();
+      const std::string pango_lineage = alias_key.resolvePangoLineageAlias(
+         row[silo::preprocessing::COLUMN_NAME_PANGO_LINEAGE].get()
+      );
+      const std::string date = row[silo::preprocessing::COLUMN_NAME_DATE].get();
+      const std::string region = row["region"].get();
+      const std::string country = row["country"].get();
+      const std::string division = row["division"].get();
 
       struct std::tm time_struct {};
       std::istringstream time_stream(date);

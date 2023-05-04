@@ -1,6 +1,7 @@
 #ifndef SILO_PANGO_LINEAGE_COUNT_H
 #define SILO_PANGO_LINEAGE_COUNT_H
 
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -24,7 +25,7 @@ struct PangoLineageCounts {
 
 PangoLineageCounts buildPangoLineageCounts(
    const PangoLineageAliasLookup& alias_key,
-   std::istream& meta_in
+   const std::filesystem::path& metadata_path
 );
 
 }  // namespace preprocessing
