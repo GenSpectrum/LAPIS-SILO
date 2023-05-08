@@ -6,6 +6,8 @@
 
 #include <roaring/roaring.hh>
 
+#include "silo/storage/raw_base_column.h"
+
 namespace silo {
 
 class Dictionary;
@@ -14,18 +16,18 @@ namespace storage {
 
 class StringColumn {
   public:
-   virtual const roaring::Roaring filter(std::string value) const = 0;
+   virtual roaring::Roaring filter(std::string value) const = 0;
 };
 
-class RawStringColumn : public StringColumn {
+class RawStringColumn : public RawBaseColumn<std::string>, public StringColumn {
   private:
-   std::string columnName;
+   std::string column_name;
    std::vector<std::string> values;
 
   public:
-   RawStringColumn(std::string columnName, std::vector<std::string> values);
+   using RawBaseColumn<std::string>::RawBaseColumn;
 
-   virtual const roaring::Roaring filter(std::string value) const override;
+   virtual roaring::Roaring filter(std::string value) const override;
 };
 
 class IndexedStringColumn : public StringColumn {
@@ -41,7 +43,7 @@ class IndexedStringColumn : public StringColumn {
       std::vector<roaring::Roaring> indexed_values
    );
 
-   virtual const roaring::Roaring filter(std::string value) const override;
+   virtual roaring::Roaring filter(std::string value) const override;
 };
 
 }  // namespace storage
