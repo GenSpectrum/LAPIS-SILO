@@ -16,6 +16,11 @@ class DateColumn : public RawBaseColumn<std::chrono::year_month_day> {
 
   public:
    using RawBaseColumn<std::chrono::year_month_day>::RawBaseColumn;
+
+   roaring::Roaring filterRange(
+      const std::chrono::year_month_day& from_date,
+      const std::chrono::year_month_day& to_date
+   ) const;
 };
 
 }  // namespace silo::storage

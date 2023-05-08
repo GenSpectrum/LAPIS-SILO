@@ -5,7 +5,7 @@ namespace silo::storage {
 template <typename T>
 RawBaseColumn<T>::RawBaseColumn(std::string column_name, std::vector<T> values)
     : column_name(std::move(column_name)),
-      values(values) {}
+      values(std::move(values)) {}
 
 template <typename T>
 roaring::Roaring RawBaseColumn<T>::filter(const T& value) const {
