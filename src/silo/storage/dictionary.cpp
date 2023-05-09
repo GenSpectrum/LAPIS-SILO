@@ -12,22 +12,44 @@
 
 namespace silo {
 
-void Dictionary::updateStringLookup(const std::string& column_name, const std::string& value) {
-   if (!stringLookup[column_name].contains(value)) {
-      reverseStringLookup[column_name].push_back(value);
-      stringLookup[column_name][value] = stringLookup[column_name].size();
+void Dictionary::updateStringLookup(const ColumnName& column_name, const std::string& value) {
+   if (!string_lookup[column_name].contains(value)) {
+      reverse_string_lookup.at(column_name).push_back(value);
+      string_lookup.at(column_name)[value] = string_lookup.at(column_name).size();
    }
 }
 
-Dictionary::Dictionary(const std::vector<std::string>& column_names) {
-   for (const auto& column_name : column_names) {
-      stringLookup[column_name] = std::unordered_map<std::string, ValueId>();
-      reverseStringLookup[column_name] = std::vector<std::string>();
+void Dictionary::updatePangoLineageLookup(
+   const ColumnName& column_name,
+   const PangoLineage& pango_lineage
+) {
+   if (!pango_lineage_lookup.at(column_name).contains(pango_lineage)) {
+      reverse_pango_lineage_lookup.at(column_name).push_back(pango_lineage);
+      pango_lineage_lookup.at(column_name)[pango_lineage] =
+         pango_lineage_lookup.at(column_name).size();
+   }
+}
+
+Dictionary::Dictionary(
+   const std::vector<ColumnName>& string_column_names,
+   const std::vector<ColumnName>& pango_lineage_column_names
+) {
+   for (const auto& column_name : string_column_names) {
+      string_lookup[column_name] = std::unordered_map<std::string, ValueId>();
+      reverse_string_lookup[column_name] = std::vector<std::string>();
+   }
+
+   for (const auto& column_name : pango_lineage_column_names) {
+      pango_lineage_lookup[column_name] = std::unordered_map<PangoLineage, ValueId>();
+      reverse_pango_lineage_lookup[column_name] = std::vector<PangoLineage>();
    }
 }
 
 Dictionary::Dictionary()
-    : Dictionary(std::vector<std::string>({"country", "region", "division"})) {}
+    : Dictionary(
+         std::vector<std::string>({"country", "region", "division", "column"}),
+         std::vector<std::string>({"pango_lineage"})
+      ) {}
 
 void Dictionary::updateDictionary(
    const std::filesystem::path& metadata_file,
@@ -73,10 +95,7 @@ void Dictionary::updateDictionary(
 
       const auto pango_lineage = alias_key.resolvePangoLineageAlias(pango_lineage_raw);
 
-      if (!pango_lineage_dictionary.contains(pango_lineage)) {
-         pango_lineage_lookup.push_back(pango_lineage);
-         pango_lineage_dictionary[pango_lineage] = pango_lineage_count++;
-      }
+      updatePangoLineageLookup("pango_lineage", pango_lineage);
       updateStringLookup("region", region);
       updateStringLookup("country", country);
       updateStringLookup("division", division);
@@ -98,60 +117,57 @@ Dictionary Dictionary::loadDictionary(std::istream& dictionary_file) {
 }
 
 uint32_t Dictionary::getPangoLineageIdInLookup(const std::string& pango_lineage) const {
-   if (pango_lineage_dictionary.contains(pango_lineage)) {
-      return pango_lineage_dictionary.at(pango_lineage);
+   if (pango_lineage_lookup.at("pango_lineage").contains(pango_lineage)) {
+      return pango_lineage_lookup.at("pango_lineage").at(pango_lineage);
    }
    return UINT32_MAX;
 }
 
 std::string error_string = "NOID";
 
-const std::string& Dictionary::getPangoLineage(uint32_t pango_lineage_id_in_lookup) const {
-   if (pango_lineage_id_in_lookup == UINT32_MAX) {
-      return error_string;
-   }
-   return pango_lineage_lookup.at(pango_lineage_id_in_lookup);
+std::string Dictionary::getPangoLineage(uint32_t pango_lineage_id_in_lookup) const {
+   return reverse_pango_lineage_lookup.at("pango_lineage").at(pango_lineage_id_in_lookup);
 }
 
 uint32_t Dictionary::getCountryIdInLookup(const std::string& country) const {
-   return lookupValueId("country", country).value();
+   return lookupValueId("country", country).value_or(UINT32_MAX);
 }
 
-const std::string& Dictionary::getCountry(uint32_t country_id_in_lookup) const {
-   return lookupStringValue("country", country_id_in_lookup).value_or("NOID");
+std::string Dictionary::getCountry(uint32_t country_id_in_lookup) const {
+   return lookupStringValue("country", country_id_in_lookup).value();
 }
 
 uint32_t Dictionary::getRegionIdInLookup(const std::string& region) const {
-   return lookupValueId("region", region).value();
+   return lookupValueId("region", region).value_or(UINT32_MAX);
 }
 
-const std::string& Dictionary::getRegion(uint32_t region_lookup_id) const {
-   return lookupStringValue("region", region_lookup_id).value_or("NOID");
+std::string Dictionary::getRegion(uint32_t region_lookup_id) const {
+   return lookupStringValue("region", region_lookup_id).value();
 }
 
 uint32_t Dictionary::getPangoLineageCount() const {
-   return pango_lineage_count;
+   return pango_lineage_lookup.at("pango_lineage").size();
 }
 uint32_t Dictionary::getCountryCount() const {
-   return stringLookup.at("country").size();
+   return string_lookup.at("country").size();
 }
 uint32_t Dictionary::getRegionCount() const {
-   return stringLookup.at("region").size();
+   return string_lookup.at("region").size();
 }
-
-uint64_t Dictionary::getIdInGeneralLookup(const std::string& region_id_in_lookup) const {
-   return 0;
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+uint64_t Dictionary::getIdInGeneralLookup(const std::string& /*region_id_in_lookup*/) const {
+   return UINT32_MAX;
 }
-
-const std::string& Dictionary::getGeneralLookup(uint64_t general_id_in_lookup) const {
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+std::string Dictionary::getGeneralLookup(uint64_t /*general_id_in_lookup*/) const {
    return "";
 }
-
-uint32_t Dictionary::getColumnIdInLookup(const std::string& column_name) const {
-   return 0;
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+uint32_t Dictionary::getColumnIdInLookup(const std::string& /*column_name*/) const {
+   return UINT32_MAX;
 }
-
-const std::string& Dictionary::getColumn(uint32_t column_id_in_lookup) const {
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+std::string Dictionary::getColumn(uint32_t /*column_id_in_lookup*/) const {
    return "";
 }
 
@@ -159,8 +175,8 @@ std::optional<ValueId> Dictionary::lookupValueId(
    const std::string& column_name,
    const std::string& value
 ) const {
-   if (stringLookup.at(column_name).contains(value)) {
-      return stringLookup.at(column_name).at(value);
+   if (string_lookup.at(column_name).contains(value)) {
+      return string_lookup.at(column_name).at(value);
    }
    return std::nullopt;
 };
@@ -169,8 +185,18 @@ std::optional<std::string> Dictionary::lookupStringValue(
    const std::string& column_name,
    ValueId value_id
 ) const {
-   if (reverseStringLookup.at(column_name).size() > value_id) {
-      return reverseStringLookup.at(column_name).at(value_id);
+   if (reverse_string_lookup.at(column_name).size() > value_id) {
+      return reverse_string_lookup.at(column_name).at(value_id);
+   }
+   return std::nullopt;
+}
+
+std::optional<std::string> Dictionary::lookupPangoLineageValue(
+   const std::string& column_name,
+   uint32_t value_id
+) const {
+   if (reverse_pango_lineage_lookup.at(column_name).size() > value_id) {
+      return reverse_pango_lineage_lookup.at(column_name).at(value_id);
    }
    return std::nullopt;
 }

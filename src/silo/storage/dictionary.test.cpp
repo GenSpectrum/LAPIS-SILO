@@ -67,3 +67,16 @@ TEST_F(DictionaryTestFixture, shouldSaveAndLoadDictionary) {
 
    ASSERT_NO_THROW(std::remove(test_file.c_str()));
 }
+
+TEST_F(DictionaryTestFixture, shouldLookupStringValue) {
+   ASSERT_EQ(dictionary.lookupStringValue("country", 0), "Switzerland");
+   ASSERT_EQ(dictionary.lookupStringValue("division", 1), "Bern");
+}
+
+TEST_F(DictionaryTestFixture, shouldLookupPangoLineageValue) {
+   const std::string pango_lineage = "B.1.1.7";
+   ASSERT_EQ(dictionary.lookupPangoLineageValue("pango_lineage", 0), pango_lineage);
+
+   const std::string pango_lineage2 = "B.1.258.17";
+   ASSERT_EQ(dictionary.lookupPangoLineageValue("pango_lineage", 1), pango_lineage2);
+}

@@ -246,6 +246,9 @@ std::unique_ptr<BoolExpression> parseExpression(
             database.dict->getRegionIdInLookup(json_value["value"].GetString())
          );
       }
+      throw QueryParseException(
+         "StringEquals expression currently only supports 'country' and 'region'"
+      );
       const uint32_t column_key =
          database.dict->getColumnIdInLookup(json_value["column"].GetString());
       const uint32_t value_key =
