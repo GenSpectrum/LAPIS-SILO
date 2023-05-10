@@ -16,9 +16,11 @@
 #include "silo/common/input_stream_wrapper.h"
 #include "silo/common/log.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/config/config_repository.h"
 #include "silo/database_info.h"
 #include "silo/persistence/exception.h"
 #include "silo/prepare_dataset.h"
+#include "silo/preprocessing/metadata_validator.h"
 #include "silo/preprocessing/pango_lineage_count.h"
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_exception.h"
@@ -548,6 +550,14 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
       config.sorted_partition_folder.relative_path(),
       config.metadata_file.extension(),
       config.sequence_file.extension()
+   );
+
+   SPDLOG_INFO("preprocessing - validate database config");
+   const auto database_config = config::ConfigRepository().readConfig(config.database_config_file);
+
+   SPDLOG_INFO("preprocessing - validate metadata file agains config");
+   silo::preprocessing::MetadataValidator().validateMedataFile(
+      config.metadata_file, config.database_config_file
    );
 
    SPDLOG_INFO("preprocessing - building dictionary");

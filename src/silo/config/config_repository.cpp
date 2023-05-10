@@ -48,4 +48,5 @@ DatabaseMetadata ConfigRepository::getMetadata(
    }
    throw ConfigException("Metadata with name " + name + " not found");
 }
+
 }  // namespace silo::config

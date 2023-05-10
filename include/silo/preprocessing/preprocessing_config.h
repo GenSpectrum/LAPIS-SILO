@@ -38,6 +38,10 @@ struct SerializationFolder {
    std::string folder;
 };
 
+struct DatabaseConfigFilename {
+   std::string filename;
+};
+
 struct PreprocessingConfig {
    explicit PreprocessingConfig(
       const InputDirectory& input_directory_ = {"./"},
@@ -48,7 +52,8 @@ struct PreprocessingConfig {
          {"pango_alias.txt"},
       const PartitionFolder& partition_folder_ = {"partitioned/"},
       const SortedPartitionFolder& sorted_partition_folder_ = {"sorted_partitions/"},
-      const SerializationFolder& serialization_folder_ = {"serialized_state/"}
+      const SerializationFolder& serialization_folder_ = {"serialized_state/"},
+      const DatabaseConfigFilename& database_config_filename_ = {"database_config.yaml"}
    );
 
    std::filesystem::path pango_lineage_definition_file;
@@ -57,6 +62,7 @@ struct PreprocessingConfig {
    std::filesystem::path partition_folder;
    std::filesystem::path sorted_partition_folder;
    std::filesystem::path serialization_folder;
+   std::filesystem::path database_config_file;
 };
 
 std::filesystem::path createPath(

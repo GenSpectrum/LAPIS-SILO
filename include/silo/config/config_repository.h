@@ -3,11 +3,10 @@
 
 #include <filesystem>
 
+#include "silo/config/database_config.h"
 #include "silo/config/database_config_reader.h"
 
 namespace silo::config {
-
-struct DatabaseConfig;
 
 class ConfigRepository {
   public:
