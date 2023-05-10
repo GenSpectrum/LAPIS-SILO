@@ -4,10 +4,10 @@
 
 using std::chrono::year;
 
-TEST(DateColumn, filterShouldReturnRowsOfTheValue) {
+TEST(RawDateColumn, filterShouldReturnRowsOfTheValue) {
    const std::string name = "test name";
 
-   const silo::storage::DateColumn under_test(
+   const silo::storage::RawDateColumn under_test(
       name,
       {
          {year{2022} / 12 / 1},
@@ -27,10 +27,10 @@ TEST(DateColumn, filterShouldReturnRowsOfTheValue) {
    ASSERT_EQ(result3, roaring::Roaring());
 }
 
-TEST(DateColumn, filterRangeShouldReturnRowsWithValueInRange) {
+TEST(RawDateColumn, filterRangeShouldReturnRowsWithValueInRange) {
    const std::string name = "test name";
 
-   const silo::storage::DateColumn under_test(
+   const silo::storage::RawDateColumn under_test(
       name,
       {
          {year{2022} / 12 / 1},
@@ -63,10 +63,39 @@ TEST(DateColumn, filterRangeShouldReturnRowsWithValueInRange) {
    ASSERT_EQ(result_outside_of_values_range, roaring::Roaring());
 }
 
-TEST(DateColumn, filterRangeShouldReturnRowsWithValueInRangeWhereValuesOverlapMonth) {
+TEST(SortedDateColumn, filterRangeShouldReturnRowsWithDuplicateValues) {
    const std::string name = "test name";
 
-   const silo::storage::DateColumn under_test(
+   const silo::storage::SortedDateColumn under_test(
+      name,
+      {
+         {year{2022} / 12 / 1},
+         {year{2022} / 12 / 1},
+         {year{2022} / 12 / 2},
+         {year{2022} / 12 / 2},
+         {year{2022} / 12 / 3},
+         {year{2022} / 12 / 3},
+         {year{2022} / 12 / 4},
+         {year{2022} / 12 / 4},
+      }
+   );
+
+   const auto result_from_equals_to =
+      under_test.filterRange({year{2022} / 12 / 2}, {year{2022} / 12 / 3});
+   ASSERT_EQ(result_from_equals_to, roaring::Roaring({2, 3, 4, 5}));
+}
+
+using ColumnTypes = ::testing::Types<silo::storage::RawDateColumn, silo::storage::SortedDateColumn>;
+
+template <typename T>
+class DateColumnTest : public ::testing::Test {};
+
+TYPED_TEST_SUITE(DateColumnTest, ColumnTypes);
+
+TYPED_TEST(DateColumnTest, filterRangeShouldReturnRowsWithValueInRangeWhereValuesOverlapMonth) {
+   const std::string name = "test name";
+
+   const TypeParam under_test(
       name,
       {
          {year{2022} / 11 / 28},
@@ -83,10 +112,27 @@ TEST(DateColumn, filterRangeShouldReturnRowsWithValueInRangeWhereValuesOverlapMo
    ASSERT_EQ(result, roaring::Roaring({1, 2, 3, 4}));
 }
 
-TEST(DateColumn, filterRangeShouldReturnRowsWithValueInRangeWhereValuesOverlapYear) {
+TYPED_TEST(DateColumnTest, filterRangeShouldReturnRowsWithValuesAreTrueSubsetOfFilterRange) {
    const std::string name = "test name";
 
-   const silo::storage::DateColumn under_test(
+   const TypeParam under_test(
+      name,
+      {
+         {year{2022} / 11 / 29},
+         {year{2022} / 11 / 30},
+         {year{2022} / 12 / 1},
+         {year{2022} / 12 / 2},
+      }
+   );
+
+   const auto result = under_test.filterRange({year{2022} / 1 / 1}, {year{2022} / 12 / 31});
+   ASSERT_EQ(result, roaring::Roaring({0, 1, 2, 3}));
+}
+
+TYPED_TEST(DateColumnTest, filterRangeShouldReturnRowsWithValueInRangeWhereValuesOverlapYear) {
+   const std::string name = "test name";
+
+   const TypeParam under_test(
       name,
       {
          {year{2022} / 12 / 29},
@@ -102,13 +148,13 @@ TEST(DateColumn, filterRangeShouldReturnRowsWithValueInRangeWhereValuesOverlapYe
    ASSERT_EQ(result, roaring::Roaring({1, 2, 3, 4}));
 }
 
-TEST(DateColumn, filterRangeShouldReturnRowsWithValueInRangeIncludingLeapDay) {
+TYPED_TEST(DateColumnTest, filterRangeShouldReturnRowsWithValueInRangeIncludingLeapDay) {
    const std::string name = "test name";
 
    const std::chrono::year_month_day leap_day = {year{2024} / 2 / 29};
    ASSERT_TRUE(leap_day.ok());
 
-   const silo::storage::DateColumn under_test(
+   const TypeParam under_test(
       name,
       {
          {year{2024} / 2 / 27},
@@ -119,7 +165,6 @@ TEST(DateColumn, filterRangeShouldReturnRowsWithValueInRangeIncludingLeapDay) {
          {year{2024} / 3 / 3},
       }
    );
-
 
    const auto result = under_test.filterRange({year{2024} / 2 / 28}, {year{2024} / 3 / 2});
    ASSERT_EQ(result, roaring::Roaring({1, 2, 3, 4}));

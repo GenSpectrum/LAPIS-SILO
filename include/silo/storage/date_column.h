@@ -9,7 +9,15 @@
 
 namespace silo::storage {
 
-class DateColumn : public RawBaseColumn<std::chrono::year_month_day> {
+class DateColumn {
+  public:
+   virtual roaring::Roaring filterRange(
+      const std::chrono::year_month_day& from_date,
+      const std::chrono::year_month_day& to_date
+   ) const = 0;
+};
+
+class RawDateColumn : public DateColumn, public RawBaseColumn<std::chrono::year_month_day> {
   private:
    const std::string column_name;
    const std::vector<std::chrono::year_month_day> values;
@@ -17,10 +25,24 @@ class DateColumn : public RawBaseColumn<std::chrono::year_month_day> {
   public:
    using RawBaseColumn<std::chrono::year_month_day>::RawBaseColumn;
 
-   roaring::Roaring filterRange(
+   virtual roaring::Roaring filterRange(
       const std::chrono::year_month_day& from_date,
       const std::chrono::year_month_day& to_date
-   ) const;
+   ) const override;
+};
+
+class SortedDateColumn : public DateColumn {
+  private:
+   const std::string column_name;
+   const std::vector<std::chrono::year_month_day> values;
+
+  public:
+   SortedDateColumn(std::string column_name, std::vector<std::chrono::year_month_day> values);
+
+   virtual roaring::Roaring filterRange(
+      const std::chrono::year_month_day& from_date,
+      const std::chrono::year_month_day& to_date
+   ) const override;
 };
 
 }  // namespace silo::storage
