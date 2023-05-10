@@ -4,29 +4,6 @@
 
 using std::chrono::year;
 
-TEST(RawDateColumn, filterShouldReturnRowsOfTheValue) {
-   const std::string name = "test name";
-
-   const silo::storage::RawDateColumn under_test(
-      name,
-      {
-         {year{2022} / 12 / 1},
-         {year{2022} / 12 / 2},
-         {year{2022} / 12 / 3},
-         {year{2022} / 12 / 1},
-      }
-   );
-
-   const auto result1 = under_test.filter({year{2022} / 12 / 1});
-   ASSERT_EQ(result1, roaring::Roaring({0, 3}));
-
-   const auto result2 = under_test.filter({year{2022} / 12 / 2});
-   ASSERT_EQ(result2, roaring::Roaring({1}));
-
-   const auto result3 = under_test.filter({year{9999} / 12 / 31});
-   ASSERT_EQ(result3, roaring::Roaring());
-}
-
 TEST(RawDateColumn, filterRangeShouldReturnRowsWithValueInRange) {
    const std::string name = "test name";
 

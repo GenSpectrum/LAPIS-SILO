@@ -17,13 +17,13 @@ class DateColumn {
    ) const = 0;
 };
 
-class RawDateColumn : public DateColumn, public RawBaseColumn<std::chrono::year_month_day> {
+class RawDateColumn : public DateColumn {
   private:
    const std::string column_name;
    const std::vector<std::chrono::year_month_day> values;
 
   public:
-   using RawBaseColumn<std::chrono::year_month_day>::RawBaseColumn;
+   RawDateColumn(std::string column_name, std::vector<std::chrono::year_month_day> values);
 
    virtual roaring::Roaring filterRange(
       const std::chrono::year_month_day& from_date,

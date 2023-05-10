@@ -4,25 +4,33 @@
 
 namespace silo::storage {
 
-using std::chrono::days;
+RawDateColumn::RawDateColumn(
+   std::string column_name,
+   std::vector<std::chrono::year_month_day> values
+)
+    : column_name(std::move(column_name)),
+      values(std::move(values)) {}
 
 roaring::Roaring RawDateColumn::filterRange(
    const std::chrono::year_month_day& from_date,
    const std::chrono::year_month_day& to_date
 ) const {
-   const std::chrono::sys_days from_sys_days = std::chrono::sys_days{from_date};
-   const std::chrono::sys_days to_sys_days = std::chrono::sys_days{to_date};
-
    roaring::Roaring final_bitmap;
-   for (auto current_date = from_sys_days; current_date <= to_sys_days; current_date += days(1)) {
-      const roaring::Roaring current_bitmap = RawBaseColumn::filter(current_date);
-      final_bitmap |= current_bitmap;
+
+   for (size_t i = 0; i < values.size(); ++i) {
+      const auto current_value_date = values[i];
+      if (current_value_date >= from_date && current_value_date <= to_date) {
+         final_bitmap.add(i);
+      }
    }
 
    return final_bitmap;
 }
 
-SortedDateColumn::SortedDateColumn(std::string column_name, std::vector<std::chrono::year_month_day> values)
+SortedDateColumn::SortedDateColumn(
+   std::string column_name,
+   std::vector<std::chrono::year_month_day> values
+)
     : column_name(std::move(column_name)),
       values(std::move(values)) {}
 
@@ -34,9 +42,8 @@ roaring::Roaring SortedDateColumn::filterRange(
    auto upper = std::upper_bound(values.begin(), values.end(), to_date);
 
    const size_t lower_index = std::distance(values.begin(), lower);
-   const size_t upper_index = std::min(
-      std::distance(values.begin(), upper), static_cast<std::ptrdiff_t>(values.size())
-   );
+   const size_t upper_index =
+      std::min(std::distance(values.begin(), upper), static_cast<std::ptrdiff_t>(values.size()));
 
    roaring::Roaring result;
    result.addRange(lower_index, upper_index);
