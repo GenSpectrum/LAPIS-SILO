@@ -89,13 +89,16 @@ class Dictionary {
       ValueId value_id
    ) const;
 
+   // Workaround until GH-Action jidicula/clang-format-action supports clang-format-17
+   // clang-format off
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
-      archive & string_lookup;
-      archive & reverse_string_lookup;
-      archive & pango_lineage_lookup;
-      archive & reverse_pango_lineage_lookup;
+      archive& string_lookup;
+      archive& reverse_string_lookup;
+      archive& pango_lineage_lookup;
+      archive& reverse_pango_lineage_lookup;
    }
+   // clang-format on
 };
 
 };  // namespace silo
