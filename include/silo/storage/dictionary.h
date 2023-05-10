@@ -18,15 +18,43 @@ using ColumnName = std::string;
 using ValueId = uint32_t;
 using PangoLineage = std::string;
 
+template <typename T>
+class TypedColumnsValueLookup {
+  public:  // TODO(#101) make this private
+   std::unordered_map<ColumnName, std::unordered_map<T, ValueId>> value_id_lookup;
+   std::unordered_map<ColumnName, std::vector<T>> value_lookup;
+
+  private:
+   TypedColumnsValueLookup(
+      std::unordered_map<ColumnName, std::unordered_map<T, ValueId>> value_id_lookup,
+      std::unordered_map<ColumnName, std::vector<T>> value_lookup
+   );
+
+  public:
+   static TypedColumnsValueLookup<T> createFromColumnNames(
+      const std::vector<ColumnName>& column_names
+   );
+
+   void insertValue(const ColumnName& column_name, const T& value);
+
+   std::optional<ValueId> lookupValueId(const ColumnName& column_name, const T& value) const;
+
+   std::optional<std::string> lookupValue(const ColumnName& column_name, ValueId value_id) const;
+
+   // Workaround until GH-Action jidicula/clang-format-action supports clang-format-17
+   // clang-format off
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
+      archive& value_id_lookup;
+      archive& value_lookup;
+   }
+   // clang-format on
+};
+
 class Dictionary {
   private:
-   std::unordered_map<ColumnName, std::unordered_map<std::string, ValueId>> string_lookup;
-   std::unordered_map<ColumnName, std::vector<std::string>> reverse_string_lookup;
-   void updateStringLookup(const ColumnName& column_name, const std::string& value);
-
-   std::unordered_map<ColumnName, std::unordered_map<PangoLineage, ValueId>> pango_lineage_lookup;
-   std::unordered_map<ColumnName, std::vector<PangoLineage>> reverse_pango_lineage_lookup;
-   void updatePangoLineageLookup(const ColumnName& column_name, const PangoLineage& pango_lineage);
+   TypedColumnsValueLookup<std::string> string_columns_lookup;
+   TypedColumnsValueLookup<PangoLineage> pango_lineage_columns_lookup;
 
   public:
    explicit Dictionary();
@@ -77,15 +105,15 @@ class Dictionary {
    [[maybe_unused]] [[nodiscard]] std::string getColumn(uint32_t column_id_in_lookup) const;
 
    [[maybe_unused]] std::optional<ValueId> lookupValueId(
-      const std::string& column_name,
+      const ColumnName& column_name,
       const std::string& value
    ) const;
 
-   std::optional<std::string> lookupStringValue(const std::string& column_name, ValueId value_id)
+   std::optional<std::string> lookupStringValue(const ColumnName& column_name, ValueId value_id)
       const;
 
    std::optional<PangoLineage> lookupPangoLineageValue(
-      const std::string& column_name,
+      const ColumnName& column_name,
       ValueId value_id
    ) const;
 
@@ -93,10 +121,8 @@ class Dictionary {
    // clang-format off
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
-      archive& string_lookup;
-      archive& reverse_string_lookup;
-      archive& pango_lineage_lookup;
-      archive& reverse_pango_lineage_lookup;
+      archive& string_columns_lookup;
+      archive& pango_lineage_columns_lookup;
    }
    // clang-format on
 };
