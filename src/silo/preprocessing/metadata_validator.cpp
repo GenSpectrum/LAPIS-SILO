@@ -1,4 +1,7 @@
 #include "silo/preprocessing/metadata_validator.h"
+
+#include <spdlog/spdlog.h>
+
 #include "silo/preprocessing/preprocessing_exception.h"
 
 namespace silo::preprocessing {
@@ -22,6 +25,17 @@ void MetadataValidator::validateMedataFile(
         ) == metadata_columns.end()) {
          throw PreprocessingException(
             "Metadata file does not contain column: " + config_column.name
+         );
+      }
+   }
+
+   for (const auto& metadata_column : metadata_columns) {
+      if (std::find_if(config.schema.metadata.begin(), config.schema.metadata.end(), [&metadata_column](const auto& config_column) {
+             return config_column.name == metadata_column;
+          }) == config.schema.metadata.end()) {
+         SPDLOG_WARN(
+            "Metadata file contains a column that is not in the config: {}. It will not be used.",
+            metadata_column
          );
       }
    }

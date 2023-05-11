@@ -6,7 +6,6 @@
 #include "silo/database_info.h"
 #include "silo/preprocessing/preprocessing_config.h"
 
-
 silo::Database buildTestDatabase() {
    const silo::InputDirectory input_directory{"./testBaseData/"};
    const silo::OutputDirectory output_directory{"./build/"};
