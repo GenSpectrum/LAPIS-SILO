@@ -25,7 +25,7 @@ RUN cp -R /root/.conan2_persisted /root/.conan2 && cp -R build_persisted build
 COPY . ./
 
 RUN  \
-    ash ./build_with_conan.sh release \
+    python ./build_with_conan.py --release --parallel 4\
     && cp build/silo_test . \
     && cp build/siloApi .
 

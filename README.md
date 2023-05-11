@@ -36,7 +36,7 @@ Build silo in `./build`. This build will load and build the required libraries t
 hand).
 
 ```shell
-./build_with_conan.sh
+./build_with_conan.py
 ```
 
 Executables are located in `build/` upon a successful build.
@@ -85,7 +85,7 @@ For linting we use clang-tidy. The config is stored in `.clang-tidy`. It will ru
 and will throw errors accordingly. However, it is rather slow. If you only want a fast build use
 
 ```shell
-./build_with_conan build_without_clang_tidy
+./build_with_conan.py --build_without_clang_tidy
 ```
 
 When pushing to GitHub, a separate Docker image will be built, which runs the formatter. (This is a workaround, because

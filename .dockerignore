@@ -1,6 +1,6 @@
 *
 !CMakeLists.txt
-!build_with_conan.sh
+!build_with_conan.py
 !conanprofile.docker
 !conanfile.py
 !.clang-tidy

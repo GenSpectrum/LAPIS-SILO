@@ -14,8 +14,6 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -static-libstdc++ -static-libgcc")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/")
 
-set(CMAKE_BUILD_PARALLEL_LEVEL 8)
-
 # ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
@@ -81,14 +79,14 @@ endif ()
 
 add_library(silo ${SRC_SILO_LIB})
 target_link_libraries(
-    silo
-    PUBLIC
-    ${Boost_LIBRARIES}
-    TBB::tbb
-    ${roaring_LIBRARIES}
-    ${spdlog_LIBRARIES}
-    ${vincentlaucsb-csv-parser_LIBRARIES}
-    ${yaml-cpp_LIBRARIES}
+        silo
+        PUBLIC
+        ${Boost_LIBRARIES}
+        TBB::tbb
+        ${roaring_LIBRARIES}
+        ${spdlog_LIBRARIES}
+        ${vincentlaucsb-csv-parser_LIBRARIES}
+        ${yaml-cpp_LIBRARIES}
 )
 
 add_executable(siloApi src/silo_api/api.cpp ${SRC_SILO_API})
