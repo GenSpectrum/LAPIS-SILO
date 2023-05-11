@@ -1,0 +1,33 @@
+{
+  "testCaseName": "2nd N-Of query requesting 2 of 3 mutations with aggregated action",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "N-Of",
+      "numberOfMatchers": 2,
+      "matchExactly": false,
+      "children": [
+        {
+          "type": "NucleotideEquals",
+          "position": 1,
+          "symbol": "-"
+        },
+        {
+          "type": "NucleotideEquals",
+          "position": 2,
+          "symbol": "T"
+        },
+        {
+          "type": "NucleotideEquals",
+          "position": 27542,
+          "symbol": "N"
+        }
+      ]
+    }
+  },
+  "expectedQueryResult": {
+    "count": 4
+  }
+}

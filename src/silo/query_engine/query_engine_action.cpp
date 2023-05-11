@@ -13,7 +13,7 @@
 
 uint64_t silo::executeCount(
    const silo::Database& /*database*/,
-   std::vector<silo::BooleanExpressionResult>& partition_filters
+   std::vector<silo::query_engine::OperatorResult>& partition_filters
 ) {
    std::atomic<uint32_t> count = 0;
    tbb::parallel_for_each(partition_filters.begin(), partition_filters.end(), [&](auto& filter) {
@@ -26,7 +26,7 @@ uint64_t silo::executeCount(
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 std::vector<silo::MutationProportion> silo::executeMutations(
    const silo::Database& database,
-   std::vector<silo::BooleanExpressionResult>& partition_filters,
+   std::vector<silo::query_engine::OperatorResult>& partition_filters,
    double proportion_threshold
 ) {
    using roaring::Roaring;
@@ -41,7 +41,7 @@ std::vector<silo::MutationProportion> silo::executeMutations(
    std::vector<unsigned> full_partition_filters_to_evaluate;
    for (unsigned i = 0; i < database.partitions.size(); ++i) {
       const silo::DatabasePartition& dbp = database.partitions[i];
-      silo::BooleanExpressionResult filter = partition_filters[i];
+      silo::query_engine::OperatorResult filter = partition_filters[i];
       const Roaring& bitmap = *filter.getAsConst();
       // TODO(taepper) check naive run_compression
       const unsigned card = bitmap.cardinality();
@@ -71,7 +71,7 @@ std::vector<silo::MutationProportion> silo::executeMutations(
          for (unsigned const partition_index : partition_filters_to_evaluate) {
             const silo::DatabasePartition& database_partition =
                database.partitions[partition_index];
-            silo::BooleanExpressionResult const filter = partition_filters[partition_index];
+            silo::query_engine::OperatorResult const filter = partition_filters[partition_index];
             const Roaring& bitmap = *filter.getAsConst();
 
             if (database_partition.seq_store.positions[pos].symbol_whose_bitmap_is_flipped != silo::NUCLEOTIDE_SYMBOL::A) {

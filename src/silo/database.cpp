@@ -156,29 +156,34 @@ void silo::Database::finalizeBuild() {
 }
 
 [[maybe_unused]] void silo::Database::flipBitmaps() {
-   tbb::parallel_for_each(partitions.begin(), partitions.end(), [&](DatabasePartition& database_partition) {
-      tbb::parallel_for(static_cast<unsigned>(0), GENOME_LENGTH, [&](unsigned partition_index) {
-         std::optional<NUCLEOTIDE_SYMBOL> max_symbol = std::nullopt;
-         unsigned max_count = 0;
+   tbb::parallel_for_each(
+      partitions.begin(),
+      partitions.end(),
+      [&](DatabasePartition& database_partition) {
+         tbb::blocked_range<unsigned> position_range(0, GENOME_LENGTH);
+         tbb::parallel_for(position_range, [&](const auto& positions) {
+            for (uint32_t position = positions.begin(); position != positions.end(); ++position) {
+               std::optional<NUCLEOTIDE_SYMBOL> max_symbol = std::nullopt;
+               unsigned max_count = 0;
 
-         for (const auto& symbol : GENOME_SYMBOLS) {
-            unsigned const count = database_partition.seq_store.positions[partition_index]
-                                      .bitmaps[static_cast<unsigned>(symbol)]
-                                      .cardinality();
-            if (count > max_count) {
-               max_symbol = symbol;
-               max_count = count;
+               for (const auto& symbol : GENOME_SYMBOLS) {
+                  unsigned const count = database_partition.seq_store.positions[position]
+                                            .bitmaps[static_cast<unsigned>(symbol)]
+                                            .cardinality();
+                  if (count > max_count) {
+                     max_symbol = symbol;
+                     max_count = count;
+                  }
+               }
+               database_partition.seq_store.positions[position].symbol_whose_bitmap_is_flipped =
+                  max_symbol;
+               database_partition.seq_store.positions[position]
+                  .bitmaps[static_cast<unsigned>(max_symbol.value())]
+                  .flip(0, database_partition.sequenceCount);
             }
-         }
-         if (max_symbol == NUCLEOTIDE_SYMBOL::A || max_symbol == NUCLEOTIDE_SYMBOL::C || max_symbol == NUCLEOTIDE_SYMBOL::G || max_symbol == NUCLEOTIDE_SYMBOL::T || max_symbol == NUCLEOTIDE_SYMBOL::N) {
-            database_partition.seq_store.positions[partition_index].symbol_whose_bitmap_is_flipped =
-               max_symbol;
-            database_partition.seq_store.positions[partition_index]
-               .bitmaps[static_cast<unsigned>(max_symbol.value())]
-               .flip(0, database_partition.sequenceCount);
-         }
-      });
-   });
+         });
+      }
+   );
 }
 
 using RoaringStatistics = roaring::api::roaring_statistics_t;

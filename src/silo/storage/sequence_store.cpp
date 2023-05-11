@@ -346,7 +346,7 @@ void silo::SequenceStore::naiveIndexAllNucleotideSymbolN() {
 /// position: 1 indexed position of the genome
 const roaring::Roaring* silo::SequenceStore::getBitmap(size_t position, NUCLEOTIDE_SYMBOL symbol)
    const {
-   return &positions[position - 1].bitmaps[static_cast<unsigned>(symbol)];
+   return &positions[position].bitmaps[static_cast<unsigned>(symbol)];
 }
 silo::SequenceStore::SequenceStore() = default;
 size_t silo::SequenceStore::computeSize() const {

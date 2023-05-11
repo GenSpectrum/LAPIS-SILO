@@ -1,0 +1,16 @@
+{
+  "testCaseName": "Exact Query",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "NucleotideEquals",
+      "position": 122,
+      "symbol": "N"
+    }
+  },
+  "expectedQueryResult": {
+    "count": 3
+  }
+}
