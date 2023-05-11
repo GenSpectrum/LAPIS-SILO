@@ -1,12 +1,13 @@
 #ifndef SILO_META_STORE_H
 #define SILO_META_STORE_H
 
-#include <roaring/roaring.h>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
 #include <ctime>
 #include <filesystem>
 #include <vector>
+
+#include <roaring/roaring.h>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
 
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/roaring/roaring_serialize.h"

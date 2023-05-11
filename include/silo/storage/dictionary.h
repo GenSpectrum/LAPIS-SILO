@@ -104,7 +104,7 @@ class Dictionary {
 
    [[maybe_unused]] [[nodiscard]] std::string getColumn(uint32_t column_id_in_lookup) const;
 
-   [[maybe_unused]] std::optional<ValueId> lookupValueId(
+   virtual std::optional<ValueId> lookupValueId(
       const ColumnName& column_name,
       const std::string& value
    ) const;
