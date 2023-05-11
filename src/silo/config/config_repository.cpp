@@ -11,8 +11,8 @@ namespace silo::config {
 ConfigRepository::ConfigRepository(const DatabaseConfigReader& reader)
     : reader_(reader) {}
 
-DatabaseConfig ConfigRepository::readConfig(const std::filesystem::path& config_path) const {
-   auto config = reader_.readConfig(config_path);
+DatabaseConfig ConfigRepository::getValidatedConfig(const std::filesystem::path& path) const {
+   auto config = reader_.readConfig(path);
    validateConfig(config);
    return config;
 }
@@ -32,7 +32,7 @@ void ConfigRepository::validateConfig(const DatabaseConfig& config) const {
 }
 
 std::string ConfigRepository::getPrimaryKey(const std::filesystem::path& path) const {
-   const auto config = readConfig(path);
+   const auto config = getValidatedConfig(path);
    return config.schema.primary_key;
 }
 
@@ -40,7 +40,7 @@ DatabaseMetadata ConfigRepository::getMetadata(
    const std::filesystem::path& path,
    const std::string& name
 ) const {
-   const auto config = readConfig(path);
+   const auto config = getValidatedConfig(path);
    for (const auto& metadata : config.schema.metadata) {
       if (metadata.name == name) {
          return metadata;

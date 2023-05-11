@@ -9,6 +9,8 @@ schema:
       type: string
     - name: country
       type: string
-    - name: pangoLineage
+    - name: pango_lineage
       type: pango_lineage
+    - name: division
+      type: string
   primaryKey: gisaid_epi_isl

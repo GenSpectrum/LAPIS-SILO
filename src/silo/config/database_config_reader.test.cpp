@@ -18,7 +18,7 @@ TEST(DatabaseConfigReader, shouldReadConfigWithCorrectParameters) {
 
    ASSERT_EQ(config.schema.instance_name, "sars_cov-2_minimal_test_config");
    ASSERT_EQ(config.schema.primary_key, "gisaid_epi_isl");
-   ASSERT_EQ(config.schema.metadata.size(), 5);
+   ASSERT_EQ(config.schema.metadata.size(), 6);
    ASSERT_EQ(config.schema.metadata[0].name, "gisaid_epi_isl");
    ASSERT_EQ(config.schema.metadata[0].type, DatabaseMetadataType::STRING);
    ASSERT_EQ(config.schema.metadata[1].name, "date");
@@ -27,8 +27,10 @@ TEST(DatabaseConfigReader, shouldReadConfigWithCorrectParameters) {
    ASSERT_EQ(config.schema.metadata[2].type, DatabaseMetadataType::STRING);
    ASSERT_EQ(config.schema.metadata[3].name, "country");
    ASSERT_EQ(config.schema.metadata[3].type, DatabaseMetadataType::STRING);
-   ASSERT_EQ(config.schema.metadata[4].name, "pangoLineage");
+   ASSERT_EQ(config.schema.metadata[4].name, "pango_lineage");
    ASSERT_EQ(config.schema.metadata[4].type, DatabaseMetadataType::PANGOLINEAGE);
+   ASSERT_EQ(config.schema.metadata[5].name, "division");
+   ASSERT_EQ(config.schema.metadata[5].type, DatabaseMetadataType::STRING);
 }
 
 TEST(DatabaseConfigReader, shouldThrowExceptionWhenConfigFileDoesNotExist) {

@@ -53,7 +53,7 @@ struct PreprocessingConfig {
       const PartitionFolder& partition_folder_ = {"partitioned/"},
       const SortedPartitionFolder& sorted_partition_folder_ = {"sorted_partitions/"},
       const SerializationFolder& serialization_folder_ = {"serialized_state/"},
-      const DatabaseConfigFilename& database_config_filename_ = {"database_config.yaml"}
+      const DatabaseConfigFilename& database_config_filename_ = {"test_database_config.yaml"}
    );
 
    std::filesystem::path pango_lineage_definition_file;

@@ -553,7 +553,7 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
    );
 
    SPDLOG_INFO("preprocessing - validate database config");
-   const auto database_config = config::ConfigRepository().readConfig(config.database_config_file);
+   config::ConfigRepository().getValidatedConfig(config.database_config_file);
 
    SPDLOG_INFO("preprocessing - validate metadata file agains config");
    silo::preprocessing::MetadataValidator().validateMedataFile(

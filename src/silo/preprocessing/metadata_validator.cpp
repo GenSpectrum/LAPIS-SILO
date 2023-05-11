@@ -11,7 +11,7 @@ void MetadataValidator::validateMedataFile(
    const std::filesystem::path& config_file
 ) const {
    const auto csv_reader = MetadataReader::getReader(metadata_file);
-   const auto config = config_repository_.readConfig(config_file);
+   const auto config = config_repository_.getValidatedConfig(config_file);
    const auto metadata_columns = csv_reader.get_col_names();
 
    for (const auto& config_column : config.schema.metadata) {

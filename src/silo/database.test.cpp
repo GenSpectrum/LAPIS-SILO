@@ -1,19 +1,18 @@
 #include "silo/database.h"
 
 #include <gtest/gtest.h>
-#include <silo/query_engine/query_result.h>
 
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/database_info.h"
 #include "silo/preprocessing/preprocessing_config.h"
 
-#include "silo/query_engine/query_engine.h"
 
 silo::Database buildTestDatabase() {
    const silo::InputDirectory input_directory{"./testBaseData/"};
    const silo::OutputDirectory output_directory{"./build/"};
    const silo::MetadataFilename metadata_filename{"small_metadata_set.tsv"};
    const silo::SequenceFilename sequence_filename{"small_sequence_set.fasta"};
+
    auto config = silo::PreprocessingConfig(
       input_directory, output_directory, metadata_filename, sequence_filename
    );

@@ -9,7 +9,12 @@
 
 class ConfigRepositoryMock : public silo::config::ConfigRepository {
   public:
-   MOCK_METHOD((silo::config::DatabaseConfig), readConfig, (const std::filesystem::path&), (const));
+   MOCK_METHOD(
+      (silo::config::DatabaseConfig),
+      getValidatedConfig,
+      (const std::filesystem::path&),
+      (const)
+   );
 };
 
 TEST(
@@ -28,7 +33,7 @@ TEST(
       "gisaid_epi_isl",
    };
 
-   EXPECT_CALL(config_repository, readConfig(testing::_))
+   EXPECT_CALL(config_repository, getValidatedConfig(testing::_))
       .WillRepeatedly(testing::Return(some_config_with_one_column_not_in_metadata));
 
    const auto under_test = silo::preprocessing::MetadataValidator(config_repository);
@@ -55,7 +60,7 @@ TEST(MetadataValidator, isValidMedataFileShouldReturnTrueWithValidMetadataFile) 
       "gisaid_epi_isl",
    };
 
-   EXPECT_CALL(config_repository, readConfig(testing::_))
+   EXPECT_CALL(config_repository, getValidatedConfig(testing::_))
       .WillRepeatedly(testing::Return(valid_config));
 
    const auto under_test = silo::preprocessing::MetadataValidator(config_repository);
