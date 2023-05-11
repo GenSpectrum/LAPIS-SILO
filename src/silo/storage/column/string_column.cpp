@@ -1,13 +1,15 @@
-#include "silo/storage/string_column.h"
+#include "silo/storage/column/string_column.h"
 
 #include <utility>
 
 #include "silo/storage/dictionary.h"
 
-namespace silo::storage {
+namespace silo::storage::column {
+
+using silo::storage::column::RawBaseColumn;
 
 roaring::Roaring RawStringColumn::filter(std::string value) const {
-   return silo::storage::RawBaseColumn<std::string>::filter(value);
+   return RawBaseColumn<std::string>::filter(value);
 }
 
 IndexedStringColumn::IndexedStringColumn(
@@ -27,4 +29,4 @@ roaring::Roaring IndexedStringColumn::filter(std::string value) const {
    return {};
 }
 
-}  // namespace silo::storage
+}  // namespace silo::storage::column

@@ -5,9 +5,9 @@
 
 #include <roaring/roaring.hh>
 
-#include "silo/storage/raw_base_column.h"
+#include "raw_base_column.h"
 
-namespace silo::storage {
+namespace silo::storage::column {
 
 class DateColumn {
   public:
@@ -45,6 +45,6 @@ class SortedDateColumn : public DateColumn {
    ) const override;
 };
 
-}  // namespace silo::storage
+}  // namespace silo::storage::column
 
 #endif  // SILO_DATE_COLUMN_H

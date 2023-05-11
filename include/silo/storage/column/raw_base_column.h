@@ -7,7 +7,7 @@
 
 #include <roaring/roaring.hh>
 
-namespace silo::storage {
+namespace silo::storage::column {
 
 template <typename T>
 class RawBaseColumn {
@@ -21,6 +21,6 @@ class RawBaseColumn {
    roaring::Roaring filter(const T& value) const;
 };
 
-}  // namespace silo::storage
+}  // namespace silo::storage::column
 
 #endif  // SILO_METADATA_COLUMN_H

@@ -1,13 +1,15 @@
-#include "silo/storage/date_column.h"
+#include "silo/storage/column/date_column.h"
 
 #include <gtest/gtest.h>
 
+using silo::storage::column::RawDateColumn;
+using silo::storage::column::SortedDateColumn;
 using std::chrono::year;
 
 TEST(RawDateColumn, filterRangeShouldReturnRowsWithValueInRange) {
    const std::string name = "test name";
 
-   const silo::storage::RawDateColumn under_test(
+   const RawDateColumn under_test(
       name,
       {
          {year{2022} / 12 / 1},
@@ -43,7 +45,7 @@ TEST(RawDateColumn, filterRangeShouldReturnRowsWithValueInRange) {
 TEST(SortedDateColumn, filterRangeShouldReturnRowsWithDuplicateValues) {
    const std::string name = "test name";
 
-   const silo::storage::SortedDateColumn under_test(
+   const SortedDateColumn under_test(
       name,
       {
          {year{2022} / 12 / 1},
@@ -62,7 +64,7 @@ TEST(SortedDateColumn, filterRangeShouldReturnRowsWithDuplicateValues) {
    ASSERT_EQ(result_from_equals_to, roaring::Roaring({2, 3, 4, 5}));
 }
 
-using ColumnTypes = ::testing::Types<silo::storage::RawDateColumn, silo::storage::SortedDateColumn>;
+using ColumnTypes = ::testing::Types<RawDateColumn, SortedDateColumn>;
 
 template <typename T>
 class DateColumnTest : public ::testing::Test {};

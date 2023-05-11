@@ -1,6 +1,6 @@
-#include "silo/storage/raw_base_column.h"
+#include "silo/storage/column/raw_base_column.h"
 
-namespace silo::storage {
+namespace silo::storage::column {
 
 template <typename T>
 RawBaseColumn<T>::RawBaseColumn(std::string column_name, std::vector<T> values)
@@ -21,4 +21,4 @@ roaring::Roaring RawBaseColumn<T>::filter(const T& value) const {
 template class RawBaseColumn<std::string>;
 template class RawBaseColumn<std::chrono::year_month_day>;
 
-}  // namespace silo::storage
+}  // namespace silo::storage::column

@@ -1,9 +1,12 @@
-#include "silo/storage/string_column.h"
+#include "silo/storage/column/string_column.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <silo/storage/dictionary.h>
+
+using silo::storage::column::IndexedStringColumn;
+using silo::storage::column::RawStringColumn;
 
 class MockDictionary : public silo::Dictionary {
   public:
@@ -18,9 +21,7 @@ class MockDictionary : public silo::Dictionary {
 TEST(RawStringColumn, shouldReturnTheCorrectFilteredValues) {
    const std::string name = "test name";
 
-   const silo::storage::RawStringColumn under_test(
-      name, {"value 1", "value 2", "value 3", "value 1"}
-   );
+   const RawStringColumn under_test(name, {"value 1", "value 2", "value 3", "value 1"});
 
    const auto result1 = under_test.filter("value 1");
    ASSERT_EQ(result1, roaring::Roaring({0, 3}));
@@ -47,9 +48,7 @@ TEST(IndexedStringColumn, shouldReturnTheCorrectFilteredValues) {
    )
       .WillRepeatedly(testing::Return(std::nullopt));
 
-   const silo::storage::IndexedStringColumn under_test(
-      column_name, dictionary_mock, {{0}, {1, 2}, {3}}
-   );
+   const IndexedStringColumn under_test(column_name, dictionary_mock, {{0}, {1, 2}, {3}});
 
    const auto result1 = under_test.filter("value 1");
    ASSERT_EQ(result1, roaring::Roaring({0}));

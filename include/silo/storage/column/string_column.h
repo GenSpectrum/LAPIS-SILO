@@ -6,13 +6,13 @@
 
 #include <roaring/roaring.hh>
 
-#include "silo/storage/raw_base_column.h"
+#include "raw_base_column.h"
 
 namespace silo {
 
 class Dictionary;
 
-namespace storage {
+namespace storage::column {
 
 class StringColumn {
   public:
@@ -46,7 +46,7 @@ class IndexedStringColumn : public StringColumn {
    virtual roaring::Roaring filter(std::string value) const override;
 };
 
-}  // namespace storage
+}  // namespace storage::column
 }  // namespace silo
 
 #endif  // SILO_STRING_COLUMN_H

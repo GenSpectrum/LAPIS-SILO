@@ -1,8 +1,8 @@
-#include "silo/storage/date_column.h"
+#include "silo/storage/column/date_column.h"
 
 #include <algorithm>
 
-namespace silo::storage {
+namespace silo::storage::column {
 
 RawDateColumn::RawDateColumn(
    std::string column_name,
@@ -50,4 +50,4 @@ roaring::Roaring SortedDateColumn::filterRange(
    return result;
 }
 
-}  // namespace silo::storage
+}  // namespace silo::storage::column
