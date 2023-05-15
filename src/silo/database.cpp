@@ -16,9 +16,11 @@
 #include "silo/common/input_stream_wrapper.h"
 #include "silo/common/log.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/config/config_repository.h"
 #include "silo/database_info.h"
 #include "silo/persistence/exception.h"
 #include "silo/prepare_dataset.h"
+#include "silo/preprocessing/metadata_validator.h"
 #include "silo/preprocessing/pango_lineage_count.h"
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_exception.h"
@@ -518,6 +520,14 @@ silo::DetailedDatabaseInfo silo::Database::detailedDatabaseInfo() const {
 }
 
 void silo::Database::preprocessing(const PreprocessingConfig& config) {
+   SPDLOG_INFO("preprocessing - validate database config");
+   config::ConfigRepository().getValidatedConfig(config.database_config_file);
+
+   SPDLOG_INFO("preprocessing - validate metadata file against config");
+   silo::preprocessing::MetadataValidator().validateMedataFile(
+      config.metadata_file, config.database_config_file
+   );
+
    SPDLOG_INFO("preprocessing - building pango lineage counts");
    pango_descriptor = std::make_unique<preprocessing::PangoLineageCounts>(
       preprocessing::buildPangoLineageCounts(alias_key, config.metadata_file)

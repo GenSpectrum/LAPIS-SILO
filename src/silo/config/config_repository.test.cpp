@@ -33,7 +33,7 @@ TEST(ConfigRepository, shouldReadConfigWithoutErrors) {
    EXPECT_CALL(config_reader_mock, readConfig(testing::_))
       .WillRepeatedly(testing::Return(valid_config));
 
-   ASSERT_NO_THROW(ConfigRepository(config_reader_mock).readConfig("test.yaml"));
+   ASSERT_NO_THROW(ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml"));
 }
 
 TEST(ConfigRepository, shouldThrowIfPrimaryKeyIsNotInMetadata) {
@@ -50,7 +50,9 @@ TEST(ConfigRepository, shouldThrowIfPrimaryKeyIsNotInMetadata) {
    EXPECT_CALL(config_reader_mock, readConfig(testing::_))
       .WillRepeatedly(testing::Return(config_without_primary_key));
 
-   ASSERT_THROW(ConfigRepository(config_reader_mock).readConfig("test.yaml"), ConfigException);
+   ASSERT_THROW(
+      ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml"), ConfigException
+   );
 }
 
 TEST(ConfigRepository, shouldThrowIfThereAreTwoMetadataWithTheSameName) {
@@ -69,7 +71,9 @@ TEST(ConfigRepository, shouldThrowIfThereAreTwoMetadataWithTheSameName) {
    EXPECT_CALL(config_reader_mock, readConfig(testing::_))
       .WillRepeatedly(testing::Return(config_without_primary_key));
 
-   ASSERT_THROW(ConfigRepository(config_reader_mock).readConfig("test.yaml"), ConfigException);
+   ASSERT_THROW(
+      ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml"), ConfigException
+   );
 }
 
 TEST(ConfigRepository, shouldReturnPrimaryKey) {
