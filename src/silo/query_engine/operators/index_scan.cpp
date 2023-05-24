@@ -3,14 +3,14 @@
 namespace silo::query_engine::operators {
 
 IndexScan::IndexScan(const roaring::Roaring* bitmap) {
-   this->bitmap = {nullptr, bitmap};
+   this->bitmap = OperatorResult(bitmap);
 }
 
 IndexScan::~IndexScan() noexcept = default;
 
-std::string IndexScan::toString(const silo::Database& /*database*/) const {
+std::string IndexScan::toString() const {
    // TODO think about passing strings for debug printing?
-   return "IndexScan(Cardinality: " + std::to_string(bitmap.getAsConst()->cardinality()) + ")";
+   return "IndexScan(Cardinality: " + std::to_string(bitmap.getConst()->cardinality()) + ")";
 }
 
 Type IndexScan::type() const {

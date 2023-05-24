@@ -15,13 +15,11 @@ struct NOf : public Expression {
    int number_of_matchers;
    bool match_exactly;
 
-   struct map_child_expressions_result {
-      std::vector<std::unique_ptr<operators::Operator>> non_negated_child_operators;
-      std::vector<std::unique_ptr<operators::Operator>> negated_child_operators;
-      int updated_number_of_matchers;
-   };
-
-   map_child_expressions_result map_child_expressions(
+   std::tuple<
+      std::vector<std::unique_ptr<operators::Operator>>,
+      std::vector<std::unique_ptr<operators::Operator>>,
+      int>
+   map_child_expressions(
       const silo::Database& database,
       const silo::DatabasePartition& database_partition
    ) const;

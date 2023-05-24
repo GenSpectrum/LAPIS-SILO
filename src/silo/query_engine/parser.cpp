@@ -194,7 +194,7 @@ std::unique_ptr<filters::Expression> parseExpression(
          "integer"
       )
       const unsigned position = json_value["position"].GetUint() - 1;
-      if (exact_maybe >= 0) {  /// NucleotideSymbolMaybeExpression
+      if (exact_maybe >= 0) {
          std::make_unique<filters::HasMutation>(position);
       }
       const char ref_symbol = database.global_reference[0].at(position);

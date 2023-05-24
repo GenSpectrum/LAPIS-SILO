@@ -38,7 +38,11 @@ std::string NOf::toString(const silo::Database& database) {
    return res;
 }
 
-NOf::map_child_expressions_result NOf::map_child_expressions(
+std::tuple<
+   std::vector<std::unique_ptr<operators::Operator>>,
+   std::vector<std::unique_ptr<operators::Operator>>,
+   int>
+NOf::map_child_expressions(
    const silo::Database& database,
    const silo::DatabasePartition& database_partition
 ) const {
@@ -61,23 +65,26 @@ NOf::map_child_expressions_result NOf::map_child_expressions(
          non_negated_child_operators.push_back(std::move(child_operator));
       }
    }
-   return NOf::map_child_expressions_result{
+   return std::tuple<
+      std::vector<std::unique_ptr<operators::Operator>>,
+      std::vector<std::unique_ptr<operators::Operator>>,
+      int>{
       std::move(non_negated_child_operators),
       std::move(negated_child_operators),
       updated_number_of_matchers};
 }
 
 std::unique_ptr<silo::query_engine::operators::Operator> handleTrivialCases(
+   const silo::Database& /*database*/,
+   const silo::DatabasePartition& database_partition,
    const int updated_number_of_matchers,
    std::vector<std::unique_ptr<operators::Operator>>& non_negated_child_operators,
    std::vector<std::unique_ptr<operators::Operator>>& negated_child_operators,
-   bool match_exactly,
-   unsigned sequence_count
+   bool match_exactly
 ) {
    const int child_operator_count =
       static_cast<int>(non_negated_child_operators.size() + negated_child_operators.size());
 
-   /// Trivial cases
    if (updated_number_of_matchers > child_operator_count) {
       return std::make_unique<operators::Empty>();
    }
@@ -85,22 +92,22 @@ std::unique_ptr<silo::query_engine::operators::Operator> handleTrivialCases(
       if (match_exactly) {
          return std::make_unique<operators::Empty>();
       }
-      return std::make_unique<operators::Full>(sequence_count);
+      return std::make_unique<operators::Full>(database_partition.sequenceCount);
    }
    if (updated_number_of_matchers == 0) {
       if (!match_exactly) {
-         return std::make_unique<operators::Full>(sequence_count);
+         return std::make_unique<operators::Full>(database_partition.sequenceCount);
       }
       /// Now we want to match exactly none
       if (child_operator_count == 0) {
-         return std::make_unique<operators::Full>(sequence_count);
+         return std::make_unique<operators::Full>(database_partition.sequenceCount);
       }
       if (child_operator_count == 1) {
          if (non_negated_child_operators.empty()) {
             return std::move(negated_child_operators[0]);
          }
          return std::make_unique<operators::Complement>(
-            std::move(non_negated_child_operators[0]), sequence_count
+            std::move(non_negated_child_operators[0]), database_partition.sequenceCount
          );
       }
       /// To negate entire result Not(Union) => Intersection(Not(Non-negated),Not(Negated))
@@ -108,7 +115,9 @@ std::unique_ptr<silo::query_engine::operators::Operator> handleTrivialCases(
       if (negated_child_operators.empty()) {
          auto union_ret =
             std::make_unique<operators::Union>(std::move(non_negated_child_operators));
-         return std::make_unique<operators::Complement>(std::move(union_ret), sequence_count);
+         return std::make_unique<operators::Complement>(
+            std::move(union_ret), database_partition.sequenceCount
+         );
       }
       return std::make_unique<operators::Intersection>(
          std::move(negated_child_operators), std::move(non_negated_child_operators)
@@ -119,60 +128,82 @@ std::unique_ptr<silo::query_engine::operators::Operator> handleTrivialCases(
          return std::move(non_negated_child_operators[0]);
       }
       return std::make_unique<operators::Complement>(
-         std::move(negated_child_operators[0]), sequence_count
+         std::move(negated_child_operators[0]), database_partition.sequenceCount
       );
    }
    return nullptr;
 }
 
-std::unique_ptr<silo::query_engine::operators::Operator> NOf::compile(
+std::unique_ptr<operators::Operator> handleAndCase(
+   const silo::Database& /*database*/,
+   const silo::DatabasePartition& database_partition,
+   std::vector<std::unique_ptr<operators::Operator>>& non_negated_child_operators,
+   std::vector<std::unique_ptr<operators::Operator>>& negated_child_operators
+) {
+   if (non_negated_child_operators.empty()) {
+      std::unique_ptr<operators::Union> union_ret =
+         std::make_unique<operators::Union>(std::move(negated_child_operators));
+      return std::make_unique<operators::Complement>(
+         std::move(union_ret), database_partition.sequenceCount
+      );
+   }
+   return std::make_unique<operators::Intersection>(
+      std::move(non_negated_child_operators), std::move(negated_child_operators)
+   );
+}
+
+std::unique_ptr<operators::Operator> handleOrCase(
+   const silo::Database& /*database*/,
+   const silo::DatabasePartition& database_partition,
+   std::vector<std::unique_ptr<operators::Operator>>& non_negated_child_operators,
+   std::vector<std::unique_ptr<operators::Operator>>& negated_child_operators
+) {
+   if (negated_child_operators.empty()) {
+      return std::make_unique<operators::Union>(std::move(non_negated_child_operators));
+   }
+   /// De'Morgan if at least one negated
+   std::unique_ptr<operators::Intersection> intersection_ret =
+      std::make_unique<operators::Intersection>(
+         std::move(negated_child_operators), std::move(non_negated_child_operators)
+      );
+   return std::make_unique<operators::Complement>(
+      std::move(intersection_ret), database_partition.sequenceCount
+   );
+}
+
+std::unique_ptr<operators::Operator> NOf::compile(
    const silo::Database& database,
    const silo::DatabasePartition& database_partition
 ) const {
-   auto map = map_child_expressions(database, database_partition);
-   const int updated_number_of_matchers = map.updated_number_of_matchers;
-   auto& non_negated_child_operators = map.non_negated_child_operators;
-   auto& negated_child_operators = map.negated_child_operators;
-
-   const int child_operator_count =
-      static_cast<int>(non_negated_child_operators.size() + negated_child_operators.size());
+   int updated_number_of_matchers;
+   std::vector<std::unique_ptr<operators::Operator>> non_negated_child_operators;
+   std::vector<std::unique_ptr<operators::Operator>> negated_child_operators;
+   std::tie(non_negated_child_operators, negated_child_operators, updated_number_of_matchers) =
+      map_child_expressions(database, database_partition);
 
    auto tmp = handleTrivialCases(
+      database,
+      database_partition,
       updated_number_of_matchers,
       non_negated_child_operators,
       negated_child_operators,
-      match_exactly,
-      database_partition.sequenceCount
+      match_exactly
    );
    if (tmp) {
       return tmp;
    }
 
-   /// AND case
+   const int child_operator_count =
+      static_cast<int>(non_negated_child_operators.size() + negated_child_operators.size());
+
    if (updated_number_of_matchers == child_operator_count) {
-      if (non_negated_child_operators.empty()) {
-         std::unique_ptr<operators::Union> union_ret =
-            std::make_unique<operators::Union>(std::move(negated_child_operators));
-         return std::make_unique<operators::Complement>(
-            std::move(union_ret), database_partition.sequenceCount
-         );
-      }
-      return std::make_unique<operators::Intersection>(
-         std::move(non_negated_child_operators), std::move(negated_child_operators)
+      return handleAndCase(
+         database, database_partition, non_negated_child_operators, negated_child_operators
       );
    }
-   /// OR case
    if (updated_number_of_matchers == 1 && !match_exactly) {
-      if (negated_child_operators.empty()) {
-         return std::make_unique<operators::Union>(std::move(non_negated_child_operators));
-      }
-      /// De'Morgan if at least one negated
-      std::unique_ptr<operators::Intersection> intersection_ret =
-         std::make_unique<operators::Intersection>(
-            std::move(negated_child_operators), std::move(non_negated_child_operators)
-         );
-      return std::make_unique<operators::Complement>(
-         std::move(intersection_ret), database_partition.sequenceCount
+      return handleOrCase(
+         database, database_partition, non_negated_child_operators, negated_child_operators
       );
    }
    return std::make_unique<operators::Threshold>(

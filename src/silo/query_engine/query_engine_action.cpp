@@ -17,7 +17,7 @@ uint64_t silo::executeCount(
 ) {
    std::atomic<uint32_t> count = 0;
    tbb::parallel_for_each(partition_filters.begin(), partition_filters.end(), [&](auto& filter) {
-      count += filter.getAsConst()->cardinality();
+      count += filter.getConst()->cardinality();
       filter.free();
    });
    return count;
@@ -42,7 +42,7 @@ std::vector<silo::MutationProportion> silo::executeMutations(
    for (unsigned i = 0; i < database.partitions.size(); ++i) {
       const silo::DatabasePartition& dbp = database.partitions[i];
       silo::query_engine::OperatorResult filter = partition_filters[i];
-      const Roaring& bitmap = *filter.getAsConst();
+      const Roaring& bitmap = *filter.getConst();
       // TODO(taepper) check naive run_compression
       const unsigned card = bitmap.cardinality();
       if (card == 0) {
@@ -51,8 +51,8 @@ std::vector<silo::MutationProportion> silo::executeMutations(
       if (card == dbp.sequenceCount) {
          full_partition_filters_to_evaluate.push_back(i);
       } else {
-         if (filter.mutable_res) {
-            filter.mutable_res->runOptimize();
+         if (filter.isMutable()) {
+            filter.getMutable()->runOptimize();
          }
          partition_filters_to_evaluate.push_back(i);
       }
@@ -72,7 +72,7 @@ std::vector<silo::MutationProportion> silo::executeMutations(
             const silo::DatabasePartition& database_partition =
                database.partitions[partition_index];
             silo::query_engine::OperatorResult const filter = partition_filters[partition_index];
-            const Roaring& bitmap = *filter.getAsConst();
+            const Roaring& bitmap = *filter.getConst();
 
             if (database_partition.seq_store.positions[pos].symbol_whose_bitmap_is_flipped != silo::NUCLEOTIDE_SYMBOL::A) {
                count_of_nucleotide_symbols_a_at_position[pos] += bitmap.and_cardinality(
@@ -130,7 +130,7 @@ std::vector<silo::MutationProportion> silo::executeMutations(
                );
             }
          }
-         /// For these partitions, we have full bitmaps. Do not need to bother with AND cardinality
+         // For these partitions, we have full bitmaps. Do not need to bother with AND cardinality
          for (unsigned const partition_index : full_partition_filters_to_evaluate) {
             const silo::DatabasePartition& database_partition =
                database.partitions[partition_index];
@@ -248,8 +248,8 @@ std::vector<silo::MutationProportion> silo::executeMutations(
                mutation_proportions.push_back({pos_ref, pos, 'T', proportion, tmp});
             }
          }
-         /// This should always be the case. For future-proof-ness (gaps in reference), keep this
-         /// check in.
+         // This should always be the case. For future-proof-ness (gaps in reference), keep this
+         // check in.
          if (pos_ref != '-') {
             const uint32_t tmp = count_of_gaps_at_position[pos];
             if (tmp > threshold_count) {

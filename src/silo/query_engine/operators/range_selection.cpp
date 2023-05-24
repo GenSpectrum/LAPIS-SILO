@@ -1,5 +1,6 @@
 #include "silo/query_engine/operators/range_selection.h"
 
+#include <boost/algorithm/string/join.hpp>
 #include <roaring/roaring.hh>
 #include <vector>
 
@@ -13,8 +14,17 @@ RangeSelection::RangeSelection(std::vector<Range>&& ranges, unsigned sequence_co
 
 RangeSelection::~RangeSelection() noexcept = default;
 
-std::string RangeSelection::toString(const Database& /*database*/) const {
-   return "Empty";
+std::string RangeSelection::toString() const {
+   std::vector<std::string> range_strings;
+   std::transform(
+      ranges.begin(),
+      ranges.end(),
+      std::back_inserter(range_strings),
+      [](const RangeSelection::Range& range) {
+         return std::to_string(range.from) + "-" + std::to_string(range.to);
+      }
+   );
+   return "RangeSelection(" + boost::algorithm::join(range_strings, ", ") + ")";
 }
 
 Type RangeSelection::type() const {
@@ -40,7 +50,7 @@ OperatorResult RangeSelection::evaluate() const {
    for (const auto& range : ranges) {
       result->addRange(range.from, range.to);
    }
-   return {result, nullptr};
+   return OperatorResult(result);
 }
 
 }  // namespace silo::query_engine::operators

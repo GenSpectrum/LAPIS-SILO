@@ -10,6 +10,8 @@
 
 namespace silo::query_engine::filter_expressions {
 
+using OperatorVector = std::vector<std::unique_ptr<operators::Operator>>;
+
 Or::Or(std::vector<std::unique_ptr<Expression>>&& children)
     : children(std::move(children)) {}
 
@@ -27,7 +29,7 @@ std::unique_ptr<operators::Operator> Or::compile(
    const Database& database,
    const DatabasePartition& database_partition
 ) const {
-   std::vector<std::unique_ptr<operators::Operator>> all_child_operators;
+   OperatorVector all_child_operators;
    std::transform(
       children.begin(),
       children.end(),
@@ -36,7 +38,7 @@ std::unique_ptr<operators::Operator> Or::compile(
          return expression->compile(database, database_partition);
       }
    );
-   std::vector<std::unique_ptr<operators::Operator>> filtered_child_operators;
+   OperatorVector filtered_child_operators;
    for (auto& child : all_child_operators) {
       if (child->type() == operators::EMPTY) {
          continue;
@@ -67,24 +69,8 @@ std::unique_ptr<operators::Operator> Or::compile(
           filtered_child_operators.end(),
           [](const auto& child) { return child->type() == operators::COMPLEMENT; }
        )) {
-      /// Eliminate negation by using De'Morgan's rule and turning union into intersection
-      std::vector<std::unique_ptr<operators::Operator>> non_negated_child_operators;
-      std::vector<std::unique_ptr<operators::Operator>> negated_child_operators;
-      for (auto& child : filtered_child_operators) {
-         if (child->type() == operators::COMPLEMENT) {
-            negated_child_operators.emplace_back(
-               std::move(dynamic_cast<operators::Complement*>(child.get())->child)
-            );
-         } else {
-            non_negated_child_operators.push_back(std::move(child));
-         }
-      }
-      /// Now swap negated children and non-negated ones
-      auto intersection = std::make_unique<operators::Intersection>(
-         std::move(negated_child_operators), std::move(non_negated_child_operators)
-      );
-      return std::make_unique<operators::Complement>(
-         std::move(intersection), database_partition.sequenceCount
+      return operators::Complement::fromDeMorgan(
+         std::move(filtered_child_operators), database_partition.sequenceCount
       );
    }
    return std::make_unique<operators::Union>(std::move(filtered_child_operators));

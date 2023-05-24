@@ -17,7 +17,7 @@ class Full : public Operator {
 
    OperatorResult evaluate() const override;
 
-   virtual std::string toString(const silo::Database& database) const override;
+   virtual std::string toString() const override;
 };
 
 }  // namespace silo::query_engine::operators

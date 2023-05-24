@@ -22,7 +22,7 @@ Threshold::Threshold(
 
 Threshold::~Threshold() noexcept = default;
 
-std::string Threshold::toString(const Database& database) const {
+std::string Threshold::toString() const {
    std::string res;
    if (match_exactly) {
       res += "=";
@@ -30,10 +30,10 @@ std::string Threshold::toString(const Database& database) const {
       res += ">=";
    }
    for (const auto& child : this->non_negated_children) {
-      res += ", " + child->toString(database);
+      res += ", " + child->toString();
    }
    for (const auto& child : this->non_negated_children) {
-      res += ", ! " + child->toString(database);
+      res += ", ! " + child->toString();
    }
    res += ")";
    return res;
@@ -46,27 +46,19 @@ Type Threshold::type() const {
 OperatorResult Threshold::evaluate() const {
    unsigned dp_table_size;
    if (this->match_exactly) {
-      /// We need to keep track of the ones that matched too many
+      // We need to keep track of the ones that matched too many
       dp_table_size = number_of_matchers + 1;
    } else {
       dp_table_size = number_of_matchers;
    }
    std::vector<roaring::Roaring*> partition_bitmaps(dp_table_size);
-   /// Copy bitmap of first child if immutable, otherwise use it directly
-   OperatorResult tmp;
+   // Copy bitmap of first child if immutable, otherwise use it directly
    if (non_negated_children.empty()) {
-      tmp = negated_children[0]->evaluate();
+      partition_bitmaps[0] = negated_children[0]->evaluate().getMutable();
    } else {
-      tmp = non_negated_children[0]->evaluate();
+      partition_bitmaps[0] = non_negated_children[0]->evaluate().getMutable();
    }
-   if (tmp.mutable_res) {
-      /// Do not need to delete tmp.mutable_res later, because partition_bitmaps[0] will be
-      /// deleted
-      partition_bitmaps[0] = tmp.mutable_res;
-   } else {
-      partition_bitmaps[0] = new roaring::Roaring(*tmp.immutable_res);
-   }
-   /// Initialize all bitmaps. Delete them later.
+   // Initialize all bitmaps. Delete them later.
    for (unsigned i = 1; i < dp_table_size; ++i) {
       partition_bitmaps[i] = new roaring::Roaring();
    }
@@ -79,67 +71,67 @@ OperatorResult Threshold::evaluate() const {
    const int max_table_index = static_cast<int>(dp_table_size - 1);
    const int non_negated_child_count = static_cast<int>(non_negated_children.size());
    const int negated_child_count = static_cast<int>(negated_children.size());
-   const int n = static_cast<int>(number_of_matchers);  /// The threshold
+   const int n = static_cast<int>(number_of_matchers);  // The threshold
    const int k = static_cast<int>(
       non_negated_children.size() + negated_children.size()
-   );  /// Number of loop iterations
+   );  // Number of loop iterations
 
    for (int i = 1; i < non_negated_child_count; ++i) {
       auto bitmap = non_negated_children[i]->evaluate();
-      /// positions higher than (i-1) cannot have been reached yet, are therefore all 0s and the
-      /// conjunction would return 0
-      /// positions lower than n - k + i - 1 are unable to affect the result, because only (k - i)
-      /// iterations are left
+      // positions higher than (i-1) cannot have been reached yet, are therefore all 0s and the
+      // conjunction would return 0
+      // positions lower than n - k + i - 1 are unable to affect the result, because only (k - i)
+      // iterations are left
       for (int j = std::min(max_table_index, i); j > std::max(0, n - k + i - 1); --j) {
-         *partition_bitmaps[j] |= *partition_bitmaps[j - 1] & *bitmap.getAsConst();
+         *partition_bitmaps[j] |= *partition_bitmaps[j - 1] & *bitmap.getConst();
       }
       if (0 >= n - k + i - 1) {
-         *partition_bitmaps[0] |= *bitmap.getAsConst();
+         *partition_bitmaps[0] |= *bitmap.getConst();
       }
       bitmap.free();
    }
 
-   /// Only now iterate over negated children.
-   /// We need to skip the first element, if it is already taken as start-point.
-   /// We change the operator from 'and' to 'and_not' for the propagation and update the 0th bitmap
-   /// with the inverse of the negated bitmap
-   /// We hope the case of flipping does not occur, as 'k - i' might always be '< n - 1'
-   /// (Number of children left is less than the distance we need to cross to reach the result)
+   // Only now iterate over negated children.
+   // We need to skip the first element, if it is already taken as start-point.
+   // We change the operator from 'and' to 'and_not' for the propagation and update the 0th bitmap
+   // with the inverse of the negated bitmap
+   // We hope the case of flipping does not occur, as 'k - i' might always be '< n - 1'
+   // (Number of children left is less than the distance we need to cross to reach the result)
    const int took_first_offset = non_negated_children.empty() ? 1 : 0;
    for (int local_i = took_first_offset; local_i < negated_child_count; ++local_i) {
       auto bitmap = negated_children[local_i]->evaluate();
       const int i = local_i + non_negated_child_count;
-      /// positions higher than (i-1) cannot have been reached yet, are therefore all 0s and the
-      /// conjunction would return 0
-      /// positions lower than n - k + i - 1 are unable to affect the result, because only (k - i)
-      /// iterations are left
+      // positions higher than (i-1) cannot have been reached yet, are therefore all 0s and the
+      // conjunction would return 0
+      // positions lower than n - k + i - 1 are unable to affect the result, because only (k - i)
+      // iterations are left
       for (int j = std::min(max_table_index, i); j > std::max(0, n - k + i - 1); --j) {
-         *partition_bitmaps[j] |= *partition_bitmaps[j - 1] - *bitmap.getAsConst();
+         *partition_bitmaps[j] |= *partition_bitmaps[j - 1] - *bitmap.getConst();
       }
       if (k - i >= n - 1) {
          roaring::api::roaring_bitmap_or_inplace(
             &partition_bitmaps[0]->roaring,
-            roaring::api::roaring_bitmap_flip(&bitmap.getAsConst()->roaring, 0, sequence_count)
+            roaring::api::roaring_bitmap_flip(&bitmap.getConst()->roaring, 0, sequence_count)
          );
       }
       bitmap.free();
    }
    // NOLINTEND(readability-identifier-length)
 
-   /// Delete intermediate results
+   // Delete intermediate results
    for (unsigned i = 0; i < number_of_matchers - 1; ++i) {
       delete partition_bitmaps[i];
    }
 
    if (this->match_exactly) {
-      /// Because exact, we remove all that have too many
+      // Because exact, we remove all that have too many
       *partition_bitmaps[number_of_matchers - 1] -= *partition_bitmaps[number_of_matchers];
 
       delete partition_bitmaps[number_of_matchers];
 
-      return {partition_bitmaps[number_of_matchers - 1], nullptr};
+      return OperatorResult(partition_bitmaps[number_of_matchers - 1]);
    }
-   return {partition_bitmaps.back(), nullptr};
+   return OperatorResult(partition_bitmaps.back());
 }
 
 }  // namespace silo::query_engine::operators

@@ -9,7 +9,7 @@ Empty::Empty() = default;
 
 Empty::~Empty() noexcept = default;
 
-std::string Empty::toString(const Database& /*database*/) const {
+std::string Empty::toString() const {
    return "Empty";
 }
 
@@ -18,7 +18,7 @@ Type Empty::type() const {
 }
 
 OperatorResult Empty::evaluate() const {
-   return OperatorResult{new roaring::Roaring(), nullptr};
+   return OperatorResult();
 }
 
 }  // namespace silo::query_engine::operators

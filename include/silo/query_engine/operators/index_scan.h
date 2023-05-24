@@ -18,7 +18,7 @@ class IndexScan : public Operator {
 
    virtual OperatorResult evaluate() const override;
 
-   virtual std::string toString(const Database& database) const override;
+   virtual std::string toString() const override;
 };
 
 }  // namespace silo::query_engine::operators

@@ -8,10 +8,18 @@ namespace silo::query_engine {
 /// The return value of the Operator::evaluate method.
 /// May return either a mutable or immutable bitmap.
 struct OperatorResult {
-   roaring::Roaring* mutable_res;
-   const roaring::Roaring* immutable_res;
+  private:
+   roaring::Roaring* mutable_bitmap;
+   const roaring::Roaring* immutable_bitmap;
 
-   [[nodiscard]] const roaring::Roaring* getAsConst() const;
+  public:
+   explicit OperatorResult();
+   explicit OperatorResult(const roaring::Roaring* bitmap);
+   explicit OperatorResult(roaring::Roaring* bitmap);
+
+   const roaring::Roaring* getConst() const;
+   roaring::Roaring* getMutable();
+   bool isMutable() const;
 
    void free() const;
 };

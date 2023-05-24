@@ -5,8 +5,6 @@
 
 #include "silo/storage/database_partition.h"
 
-namespace operators = silo::query_engine::operators;
-
 namespace silo::query_engine::filter_expressions {
 
 False::False() = default;

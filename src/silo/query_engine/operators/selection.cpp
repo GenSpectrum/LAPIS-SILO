@@ -20,7 +20,7 @@ Selection::Selection(
 
 Selection::~Selection() noexcept = default;
 
-std::string Selection::toString(const Database& /*database*/) const {
+std::string Selection::toString() const {
    return "Select";
 }
 
@@ -52,52 +52,52 @@ void Selection::negate() {
 }
 
 OperatorResult Selection::evaluate() const {
-   OperatorResult res = {new roaring::Roaring(), nullptr};
+   auto* result = new roaring::Roaring();
    switch (this->comparator) {
       case EQUALS:
          for (unsigned i = 0; i < sequence_count; i++) {
             if (column[i] == value) {
-               res.mutable_res->add(i);
+               result->add(i);
             }
          }
          break;
       case NOT_EQUALS:
          for (unsigned i = 0; i < sequence_count; i++) {
             if (column[i] != value) {
-               res.mutable_res->add(i);
+               result->add(i);
             }
          }
          break;
       case LESS:
          for (unsigned i = 0; i < sequence_count; i++) {
             if (column[i] < value) {
-               res.mutable_res->add(i);
+               result->add(i);
             }
          }
          break;
       case HIGHER_OR_EQUALS:
          for (unsigned i = 0; i < sequence_count; i++) {
             if (column[i] >= value) {
-               res.mutable_res->add(i);
+               result->add(i);
             }
          }
          break;
       case HIGHER:
          for (unsigned i = 0; i < sequence_count; i++) {
             if (column[i] > value) {
-               res.mutable_res->add(i);
+               result->add(i);
             }
          }
          break;
       case LESS_OR_EQUALS:
          for (unsigned i = 0; i < sequence_count; i++) {
             if (column[i] <= value) {
-               res.mutable_res->add(i);
+               result->add(i);
             }
          }
          break;
    }
-   return res;
+   return OperatorResult(result);
 }
 
 }  // namespace silo::query_engine::operators

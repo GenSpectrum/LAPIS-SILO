@@ -1,14 +1,9 @@
 #include "silo/query_engine/filter_expressions/string_equals.h"
 
-#include <utility>
-#include <vector>
-
 #include "silo/database.h"
 #include "silo/query_engine/operators/index_scan.h"
 #include "silo/query_engine/operators/selection.h"
 #include "silo/storage/database_partition.h"
-
-namespace operators = silo::query_engine::operators;
 
 namespace silo::query_engine::filter_expressions {
 
@@ -17,11 +12,7 @@ StringEquals::StringEquals(std::string column, std::string value)
       value(std::move(value)) {}
 
 std::string StringEquals::toString(const silo::Database& /*database*/) {
-   std::string res = column;
-   res += " = '";
-   res += value;
-   res += "'";
-   return res;
+   return column + " = '" + value + "'";
 }
 
 std::unique_ptr<silo::query_engine::operators::Operator> StringEquals::compile(

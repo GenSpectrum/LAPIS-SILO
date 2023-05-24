@@ -18,7 +18,7 @@ BitmapSelection::BitmapSelection(
 
 BitmapSelection::~BitmapSelection() noexcept = default;
 
-std::string BitmapSelection::toString(const Database& /*database*/) const {
+std::string BitmapSelection::toString() const {
    return "BitmapSelection";
 }
 
@@ -38,24 +38,24 @@ void BitmapSelection::negate() {
 }
 
 OperatorResult BitmapSelection::evaluate() const {
-   OperatorResult res = {new roaring::Roaring(), nullptr};
+   auto* bitmap = new roaring::Roaring();
    switch (this->comparator) {
       case CONTAINS:
          for (unsigned i = 0; i < sequence_count; i++) {
             if (bitmaps[i].contains(value)) {
-               res.mutable_res->add(i);
+               bitmap->add(i);
             }
          }
          break;
       case NOT_CONTAINS:
          for (unsigned i = 0; i < sequence_count; i++) {
             if (!bitmaps[i].contains(value)) {
-               res.mutable_res->add(i);
+               bitmap->add(i);
             }
          }
          break;
    }
-   return res;
+   return OperatorResult(bitmap);
 }
 
 }  // namespace silo::query_engine::operators

@@ -12,11 +12,11 @@ Union::Union(std::vector<std::unique_ptr<Operator>>&& children)
 
 Union::~Union() noexcept = default;
 
-std::string Union::toString(const Database& database) const {
-   std::string res = "(" + children[0]->toString(database);
+std::string Union::toString() const {
+   std::string res = "(" + children[0]->toString();
    for (unsigned i = 1; i < children.size(); ++i) {
       const auto& child = children[i];
-      res += " | " + child->toString(database);
+      res += " | " + child->toString();
    }
    res += ")";
    return res;
@@ -28,18 +28,19 @@ Type Union::type() const {
 
 OperatorResult Union::evaluate() const {
    const unsigned size_of_children = children.size();
-   const roaring::Roaring* union_tmp[size_of_children];  // NOLINT
-   OperatorResult child_res[size_of_children];           // NOLINT
+   std::vector<const roaring::Roaring*> union_tmp(size_of_children);
+   std::vector<OperatorResult> child_res(size_of_children);
    for (unsigned i = 0; i < size_of_children; i++) {
       auto tmp = children[i]->evaluate();
       child_res[i] = tmp;
-      union_tmp[i] = tmp.getAsConst();
+      union_tmp[i] = tmp.getConst();
    }
-   auto* result = new roaring::Roaring(roaring::Roaring::fastunion(children.size(), union_tmp));
+   auto* result =
+      new roaring::Roaring(roaring::Roaring::fastunion(union_tmp.size(), union_tmp.data()));
    for (unsigned i = 0; i < size_of_children; i++) {
       child_res[i].free();
    }
-   return OperatorResult{result, nullptr};
+   return OperatorResult(result);
 }
 
 }  // namespace silo::query_engine::operators

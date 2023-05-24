@@ -1,7 +1,5 @@
 #include "silo/query_engine/filter_expressions/nucleotide_symbol_equals.h"
 
-#include <silo/query_engine/operators/union.h>
-
 #include <vector>
 
 #include "silo/query_engine/operators/bitmap_selection.h"

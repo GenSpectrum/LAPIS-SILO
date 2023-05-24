@@ -37,18 +37,9 @@ namespace silo {
 QueryEngine::QueryEngine(const silo::Database& database)
     : database(database) {}
 
-response::QueryResult QueryEngine::executeQuery(const std::string& query) const {
-   return ::silo::executeQuery(database, query);
-}
-
-}  // namespace silo
-
 // TODO(someone): reduce cognitive complexity
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-silo::response::QueryResult silo::executeQuery(
-   const silo::Database& database,
-   const std::string& query
-) {
+response::QueryResult QueryEngine::executeQuery(const std::string& query) const {
    rapidjson::Document json_document;
    json_document.Parse(query.c_str());
    if (!json_document.HasMember("filterExpression") || !json_document["filterExpression"].IsObject() ||
@@ -75,10 +66,7 @@ silo::response::QueryResult silo::executeQuery(
       tbb::parallel_for(range.begin(), range.end(), [&](const size_t& partition_index) {
          std::unique_ptr<operators::Operator> part_filter =
             filter->compile(database, database.partitions[partition_index]);
-         compiled_queries[partition_index] = part_filter->toString(database);
-         SPDLOG_INFO(
-            filter->toString(database) + (std::string("\n") + compiled_queries[partition_index])
-         );
+         compiled_queries[partition_index] = part_filter->toString();
          partition_filters[partition_index] = part_filter->evaluate();
       });
    }
@@ -166,3 +154,5 @@ silo::response::QueryResult silo::executeQuery(
 
    return query_result;
 }
+
+}  // namespace silo

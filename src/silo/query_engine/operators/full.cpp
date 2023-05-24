@@ -11,7 +11,7 @@ Full::Full(uint32_t sequenceCount)
 
 Full::~Full() noexcept = default;
 
-std::string Full::toString(const Database& /*database*/) const {
+std::string Full::toString() const {
    return "Full";
 }
 
@@ -22,7 +22,7 @@ Type Full::type() const {
 OperatorResult Full::evaluate() const {
    auto* result = new roaring::Roaring();
    result->addRange(0, sequenceCount);
-   return {result, nullptr};
+   return OperatorResult(result);
 }
 
 }  // namespace silo::query_engine::operators

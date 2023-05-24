@@ -29,7 +29,7 @@ std::unique_ptr<operators::Operator> HasMutation::compile(
       NUCLEOTIDE_SYMBOL::G,
       NUCLEOTIDE_SYMBOL::T,
    };
-   auto removed = std::remove(symbols.begin(), symbols.end(), silo::toNucleotideSymbol(ref_symbol));
+   std::remove(symbols.begin(), symbols.end(), silo::toNucleotideSymbol(ref_symbol));
    std::vector<std::unique_ptr<filter_expressions::Expression>> symbol_filters;
    std::transform(
       symbols.begin(),
@@ -39,7 +39,7 @@ std::unique_ptr<operators::Operator> HasMutation::compile(
          return std::make_unique<NucleotideSymbolEquals>(position, symbol);
       }
    );
-   return std::make_unique<Or>(std::move(symbol_filters))->compile(database, database_partition);
+   return Or(std::move(symbol_filters)).compile(database, database_partition);
 }
 
 }  // namespace silo::query_engine::filter_expressions

@@ -1,7 +1,5 @@
 #include "silo/query_engine/filter_expressions/pango_lineage.h"
 
-#include <vector>
-
 #include "silo/query_engine/operators/index_scan.h"
 #include "silo/storage/database_partition.h"
 

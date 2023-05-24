@@ -1,5 +1,7 @@
 #include "silo/query_engine/filter_expressions/and.h"
 
+#include <boost/algorithm/string/join.hpp>
+
 #include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/empty.h"
 #include "silo/query_engine/operators/full.h"
@@ -8,38 +10,58 @@
 #include "silo/query_engine/operators/union.h"
 #include "silo/storage/database_partition.h"
 
-namespace operators = silo::query_engine::operators;
-
 namespace silo::query_engine::filter_expressions {
+
+using OperatorVector = std::vector<std::unique_ptr<operators::Operator>>;
 
 And::And(std::vector<std::unique_ptr<Expression>>&& children)
     : children(std::move(children)) {}
 
 std::string And::toString(const silo::Database& database) {
-   std::string res = "(";
-   for (auto& child : children) {
-      res += " & ";
-      res += child->toString(database);
-   }
-   res += ")";
+   std::vector<std::string> child_strings;
+   std::transform(
+      children.begin(),
+      children.end(),
+      std::back_inserter(child_strings),
+      [&](const std::unique_ptr<Expression>& child) { return child->toString(database); }
+   );
+   std::string res = "(" + boost::algorithm::join(child_strings, " & ") + ")";
    return res;
+}
+
+OperatorVector compile_children(
+   const Database& database,
+   const DatabasePartition& database_partition,
+   const std::vector<std::unique_ptr<Expression>>& children
+) {
+   OperatorVector all_child_operators;
+   std::transform(
+      children.begin(),
+      children.end(),
+      std::back_inserter(all_child_operators),
+      [&database, &database_partition](const std::unique_ptr<Expression>& expression) {
+         return expression->compile(database, database_partition);
+      }
+   );
+   return all_child_operators;
+}
+
+void inline appendVectorToVector(OperatorVector& vec_1, OperatorVector& vec_2) {
+   std::transform(
+      vec_1.begin(),
+      vec_1.end(),
+      std::back_inserter(vec_2),
+      [&](std::unique_ptr<operators::Operator>& ele) { return std::move(ele); }
+   );
 }
 
 std::unique_ptr<operators::Operator> And::compile(
    const Database& database,
    const DatabasePartition& database_partition
 ) const {
-   std::vector<std::unique_ptr<operators::Operator>> all_child_operators;
-   std::vector<std::unique_ptr<operators::Operator>> non_negated_child_operators;
-   std::vector<std::unique_ptr<operators::Operator>> negated_child_operators;
-   std::transform(
-      children.begin(),
-      children.end(),
-      std::back_inserter(all_child_operators),
-      [&](const std::unique_ptr<Expression>& expression) {
-         return expression->compile(database, database_partition);
-      }
-   );
+   OperatorVector all_child_operators = compile_children(database, database_partition, children);
+   OperatorVector non_negated_child_operators;
+   OperatorVector negated_child_operators;
    for (auto& child : all_child_operators) {
       if (child->type() == operators::FULL) {
          continue;
@@ -49,18 +71,8 @@ std::unique_ptr<operators::Operator> And::compile(
       }
       if (child->type() == operators::INTERSECTION) {
          auto* intersection_child = dynamic_cast<operators::Intersection*>(child.get());
-         std::transform(
-            intersection_child->children.begin(),
-            intersection_child->children.end(),
-            std::back_inserter(non_negated_child_operators),
-            [&](std::unique_ptr<operators::Operator>& expression) { return std::move(expression); }
-         );
-         std::transform(
-            intersection_child->negated_children.begin(),
-            intersection_child->negated_children.end(),
-            std::back_inserter(negated_child_operators),
-            [&](std::unique_ptr<operators::Operator>& expression) { return std::move(expression); }
-         );
+         appendVectorToVector(intersection_child->children, non_negated_child_operators);
+         appendVectorToVector(intersection_child->negated_children, negated_child_operators);
       } else if (child->type() == operators::COMPLEMENT) {
          auto* negated_child = dynamic_cast<operators::Complement*>(child.get());
          negated_child_operators.emplace_back(std::move(negated_child->child));
