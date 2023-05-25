@@ -37,7 +37,7 @@ std::unique_ptr<operators::Operator> DateBetween::compile(
       uint32_t const lower_index = lower - base;
       const auto* upper = open_to ? end : std::upper_bound(begin, end, this->date_to);
       uint32_t const upper_index = upper - base;
-      ranges.push_back({lower_index, upper_index});
+      ranges.emplace_back(lower_index, upper_index);
    }
    return std::make_unique<operators::RangeSelection>(
       std::move(ranges), database_partition.sequenceCount

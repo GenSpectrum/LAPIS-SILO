@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "silo/query_engine/operators/operator.h"
+#include "silo/query_engine/query_compilation_exception.h"
 
 namespace silo::query_engine::operators {
 
@@ -18,7 +19,19 @@ Threshold::Threshold(
       negated_children(std::move(negated_children)),
       number_of_matchers(number_of_matchers),
       match_exactly(match_exactly),
-      sequence_count(sequence_count) {}
+      sequence_count(sequence_count) {
+   if (number_of_matchers >= this->non_negated_children.size() + this->negated_children.size()) {
+      throw silo::QueryCompilationException(
+         "Compilation Error: number_of_matchers must be less than the number of children of a "
+         "threshold expression"
+      );
+   }
+   if (number_of_matchers == 0) {
+      throw silo::QueryCompilationException(
+         "Compilation Error: number_of_matchers must be greater than zero"
+      );
+   }
+}
 
 Threshold::~Threshold() noexcept = default;
 
@@ -81,7 +94,7 @@ OperatorResult Threshold::evaluate() const {
       for (int j = std::min(max_table_index, i); j > std::max(0, n - k + i - 1); --j) {
          partition_bitmaps[j] |= partition_bitmaps[j - 1] & *bitmap;
       }
-      if (0 >= n - k + i - 1) {
+      if (k - i > n - 1) {
          partition_bitmaps[0] |= *bitmap;
       }
    }
@@ -103,7 +116,7 @@ OperatorResult Threshold::evaluate() const {
       for (int j = std::min(max_table_index, i); j > std::max(0, n - k + i - 1); --j) {
          partition_bitmaps[j] |= partition_bitmaps[j - 1] - *bitmap;
       }
-      if (k - i >= n - 1) {
+      if (k - i > n - 1) {
          roaring::api::roaring_bitmap_or_inplace(
             &partition_bitmaps[0].roaring,
             roaring::api::roaring_bitmap_flip(&bitmap->roaring, 0, sequence_count)

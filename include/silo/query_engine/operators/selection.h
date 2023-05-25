@@ -11,16 +11,16 @@ class Selection : public Operator {
 
   private:
    uint64_t const* column;
+   unsigned sequence_count;
    Comparator comparator;
    uint64_t value;
-   unsigned sequence_count;
 
   public:
    explicit Selection(
       uint64_t const* column,
+      unsigned sequence_count,
       Comparator comparator,
-      uint64_t value,
-      unsigned sequence_count
+      uint64_t value
    );
 
    ~Selection() noexcept override;

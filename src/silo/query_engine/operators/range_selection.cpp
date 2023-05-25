@@ -8,6 +8,10 @@
 
 namespace silo::query_engine::operators {
 
+RangeSelection::Range::Range(uint32_t from, uint32_t to)
+    : from(from),
+      to(to) {}
+
 RangeSelection::RangeSelection(std::vector<Range>&& ranges, unsigned sequence_count)
     : ranges(std::move(ranges)),
       sequence_count(sequence_count) {}
@@ -33,14 +37,15 @@ Type RangeSelection::type() const {
 
 void RangeSelection::negate() {
    std::vector<Range> new_ranges;
-   const unsigned last_to = 0;
+   unsigned last_to = 0;
    for (auto& current : ranges) {
       if (last_to != current.from) {
-         new_ranges.push_back({last_to, current.from});
+         new_ranges.emplace_back(last_to, current.from);
       }
+      last_to = current.to;
    }
    if (last_to != sequence_count) {
-      new_ranges.push_back({last_to, sequence_count});
+      new_ranges.emplace_back(last_to, sequence_count);
    }
    ranges = new_ranges;
 }

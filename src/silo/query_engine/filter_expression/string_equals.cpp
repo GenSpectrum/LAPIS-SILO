@@ -36,9 +36,9 @@ std::unique_ptr<silo::query_engine::operators::Operator> StringEquals::compile(
    const uint64_t value_id = database.dict->getIdInGeneralLookup(value);
    return std::make_unique<operators::Selection>(
       database_partition.meta_store.columns[column_id].data(),
+      database_partition.meta_store.columns[column_id].size(),
       operators::Selection::EQUALS,
-      value_id,
-      database_partition.sequenceCount
+      value_id
    );
 }
 

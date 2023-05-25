@@ -12,6 +12,8 @@ class RangeSelection : public Operator {
    struct Range {
       uint32_t from;
       uint32_t to;
+
+      explicit Range(uint32_t from, uint32_t to);
    };
 
   private:

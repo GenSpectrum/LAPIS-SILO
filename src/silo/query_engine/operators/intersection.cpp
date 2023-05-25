@@ -4,8 +4,8 @@
 #include <roaring/roaring.hh>
 #include <vector>
 
-#include "silo/query_engine/operators/empty.h"
 #include "silo/query_engine/operators/operator.h"
+#include "silo/query_engine/query_compilation_exception.h"
 
 namespace silo::query_engine::operators {
 
@@ -20,11 +20,17 @@ Intersection::Intersection(
          "Compilation bug: Intersection without non-negated children is not allowed. "
          "Should be compiled as a union."
       );
-      this->children.push_back(std::make_unique<operators::Empty>());
+      throw silo::QueryCompilationException(
+         "Compilation bug: Intersection without non-negated children is not allowed. "
+         "Should be compiled as a union."
+      );
    }
    if (this->children.size() + this->negated_children.size() < 2) {
       SPDLOG_ERROR("Compilation bug: Intersection needs at least two children.");
-      this->children.push_back(std::make_unique<operators::Empty>());
+
+      throw silo::QueryCompilationException(
+         "Compilation bug: Intersection needs at least two children."
+      );
    }
 }
 
