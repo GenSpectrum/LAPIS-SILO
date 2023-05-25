@@ -7,14 +7,14 @@ namespace silo::query_engine::operators {
 
 BitmapSelection::BitmapSelection(
    const roaring::Roaring* bitmaps,
+   unsigned sequence_count,
    Predicate comparator,
-   uint32_t value,
-   unsigned sequence_count
+   uint32_t value
 )
     : bitmaps(bitmaps),
+      sequence_count(sequence_count),
       comparator(comparator),
-      value(value),
-      sequence_count(sequence_count) {}
+      value(value) {}
 
 BitmapSelection::~BitmapSelection() noexcept = default;
 

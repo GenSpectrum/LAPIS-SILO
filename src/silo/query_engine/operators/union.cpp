@@ -31,15 +31,12 @@ OperatorResult Union::evaluate() const {
    std::vector<const roaring::Roaring*> union_tmp(size_of_children);
    std::vector<OperatorResult> child_res(size_of_children);
    for (unsigned i = 0; i < size_of_children; i++) {
-      auto tmp = children[i]->evaluate();
-      child_res[i] = tmp;
-      union_tmp[i] = tmp.getConst();
+      child_res[i] = children[i]->evaluate();
+      const roaring::Roaring& const_bitmap = *child_res[i];
+      union_tmp[i] = &const_bitmap;
    }
    auto* result =
       new roaring::Roaring(roaring::Roaring::fastunion(union_tmp.size(), union_tmp.data()));
-   for (unsigned i = 0; i < size_of_children; i++) {
-      child_res[i].free();
-   }
    return OperatorResult(result);
 }
 

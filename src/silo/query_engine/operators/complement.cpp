@@ -46,7 +46,7 @@ Type Complement::type() const {
 
 OperatorResult Complement::evaluate() const {
    auto result = child->evaluate();
-   result.getMutable()->flip(0, sequence_count);
+   result->flip(0, sequence_count);
    return result;
 }
 

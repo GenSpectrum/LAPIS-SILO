@@ -26,9 +26,9 @@ std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals:
    if (value == NUCLEOTIDE_SYMBOL::N && !database_partition.seq_store.positions[position].nucleotide_symbol_n_indexed) {
       return std::make_unique<operators::BitmapSelection>(
          database_partition.seq_store.nucleotide_symbol_n_bitmaps.data(),
+         database_partition.seq_store.nucleotide_symbol_n_bitmaps.size(),
          operators::BitmapSelection::CONTAINS,
-         position,
-         database_partition.sequenceCount
+         position
       );
    }
    if (database_partition.seq_store.positions[position].symbol_whose_bitmap_is_flipped == value) {

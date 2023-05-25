@@ -46,18 +46,16 @@ Type Intersection::type() const {
    return INTERSECTION;
 }
 
-roaring::Roaring* intersectTwo(OperatorResult first, OperatorResult second) {
-   roaring::Roaring* result;
+OperatorResult intersectTwo(OperatorResult first, OperatorResult second) {
+   OperatorResult result;
    if (first.isMutable()) {
-      result = first.getMutable();
-      *result &= *second.getConst();
-      second.free();
+      result = std::move(first);
+      *result &= *second;
    } else if (second.isMutable()) {
-      result = second.getMutable();
-      *result &= *first.getConst();
+      result = std::move(second);
+      *result &= *first;
    } else {
-      const auto bitmap = *first.getConst() & *second.getConst();
-      result = new roaring::Roaring(bitmap);
+      result = OperatorResult(new roaring::Roaring(*first & *second));
    }
    return result;
 }
@@ -84,7 +82,7 @@ OperatorResult Intersection::evaluate() const {
       children_bm.begin(),
       children_bm.end(),
       [](const OperatorResult& expression1, const OperatorResult& expression2) {
-         return expression1.getConst()->cardinality() < expression2.getConst()->cardinality();
+         return expression1->cardinality() < expression2->cardinality();
       }
    );
    // Sort negated children descending by size
@@ -92,32 +90,27 @@ OperatorResult Intersection::evaluate() const {
       negated_children_bm.begin(),
       negated_children_bm.end(),
       [](const OperatorResult& expression_result1, const OperatorResult& expression_result2) {
-         return expression_result1.getConst()->cardinality() >
-                expression_result2.getConst()->cardinality();
+         return expression_result1->cardinality() > expression_result2->cardinality();
       }
    );
 
    // children_bm > 0 as asserted in constructor
    if (children_bm.size() == 1) {
       // negated_children_bm cannot be empty because of size assertion in constructor
-      roaring::Roaring* result = children_bm[0].getMutable();
-      for (auto neg_bm : negated_children_bm) {
-         *result -= *neg_bm.getConst();
-         neg_bm.free();
+      OperatorResult& result = children_bm[0];
+      for (auto& neg_bm : negated_children_bm) {
+         *result -= *neg_bm;
       }
-      return OperatorResult(result);
+      return std::move(result);
    }
-   roaring::Roaring* result = intersectTwo(children_bm[0], children_bm[1]);
+   auto result = intersectTwo(std::move(children_bm[0]), std::move(children_bm[1]));
    for (unsigned i = 2; i < children.size(); i++) {
-      auto bitmap = children_bm[i];
-      *result &= *bitmap.getConst();
-      bitmap.free();
+      *result &= *children_bm[i];
    }
-   for (auto neg_bm : negated_children_bm) {
-      *result -= *neg_bm.getConst();
-      neg_bm.free();
+   for (auto& neg_bm : negated_children_bm) {
+      *result -= *neg_bm;
    }
-   return OperatorResult(result);
+   return result;
 }
 
 }  // namespace silo::query_engine::operators

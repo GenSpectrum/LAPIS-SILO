@@ -7,7 +7,7 @@ namespace silo::query_engine::operators {
 
 class IndexScan : public Operator {
   private:
-   OperatorResult bitmap;
+   const roaring::Roaring* bitmap;
 
   public:
    explicit IndexScan(const roaring::Roaring* bitmap);

@@ -51,20 +51,16 @@ OperatorResult Threshold::evaluate() const {
    } else {
       dp_table_size = number_of_matchers;
    }
-   std::vector<roaring::Roaring*> partition_bitmaps(dp_table_size);
+   std::vector<roaring::Roaring> partition_bitmaps(dp_table_size);
    // Copy bitmap of first child if immutable, otherwise use it directly
    if (non_negated_children.empty()) {
-      partition_bitmaps[0] = negated_children[0]->evaluate().getMutable();
+      partition_bitmaps[0] = *negated_children[0]->evaluate();
    } else {
-      partition_bitmaps[0] = non_negated_children[0]->evaluate().getMutable();
-   }
-   // Initialize all bitmaps. Delete them later.
-   for (unsigned i = 1; i < dp_table_size; ++i) {
-      partition_bitmaps[i] = new roaring::Roaring();
+      partition_bitmaps[0] = *non_negated_children[0]->evaluate();
    }
 
    if (non_negated_children.empty()) {
-      partition_bitmaps[0]->flip(0, sequence_count);
+      partition_bitmaps[0].flip(0, sequence_count);
    }
 
    // NOLINTBEGIN(readability-identifier-length)
@@ -83,12 +79,11 @@ OperatorResult Threshold::evaluate() const {
       // positions lower than n - k + i - 1 are unable to affect the result, because only (k - i)
       // iterations are left
       for (int j = std::min(max_table_index, i); j > std::max(0, n - k + i - 1); --j) {
-         *partition_bitmaps[j] |= *partition_bitmaps[j - 1] & *bitmap.getConst();
+         partition_bitmaps[j] |= partition_bitmaps[j - 1] & *bitmap;
       }
       if (0 >= n - k + i - 1) {
-         *partition_bitmaps[0] |= *bitmap.getConst();
+         partition_bitmaps[0] |= *bitmap;
       }
-      bitmap.free();
    }
 
    // Only now iterate over negated children.
@@ -106,32 +101,25 @@ OperatorResult Threshold::evaluate() const {
       // positions lower than n - k + i - 1 are unable to affect the result, because only (k - i)
       // iterations are left
       for (int j = std::min(max_table_index, i); j > std::max(0, n - k + i - 1); --j) {
-         *partition_bitmaps[j] |= *partition_bitmaps[j - 1] - *bitmap.getConst();
+         partition_bitmaps[j] |= partition_bitmaps[j - 1] - *bitmap;
       }
       if (k - i >= n - 1) {
          roaring::api::roaring_bitmap_or_inplace(
-            &partition_bitmaps[0]->roaring,
-            roaring::api::roaring_bitmap_flip(&bitmap.getConst()->roaring, 0, sequence_count)
+            &partition_bitmaps[0].roaring,
+            roaring::api::roaring_bitmap_flip(&bitmap->roaring, 0, sequence_count)
          );
       }
-      bitmap.free();
    }
    // NOLINTEND(readability-identifier-length)
 
-   // Delete intermediate results
-   for (unsigned i = 0; i < number_of_matchers - 1; ++i) {
-      delete partition_bitmaps[i];
-   }
-
    if (this->match_exactly) {
       // Because exact, we remove all that have too many
-      *partition_bitmaps[number_of_matchers - 1] -= *partition_bitmaps[number_of_matchers];
+      partition_bitmaps[number_of_matchers - 1] -= partition_bitmaps[number_of_matchers];
 
-      delete partition_bitmaps[number_of_matchers];
-
-      return OperatorResult(partition_bitmaps[number_of_matchers - 1]);
+      return OperatorResult(new roaring::Roaring(std::move(partition_bitmaps[number_of_matchers - 1]
+      )));
    }
-   return OperatorResult(partition_bitmaps.back());
+   return OperatorResult(new roaring::Roaring(std::move(partition_bitmaps.back())));
 }
 
 }  // namespace silo::query_engine::operators

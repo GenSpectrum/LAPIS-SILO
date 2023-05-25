@@ -11,16 +11,16 @@ class BitmapSelection : public Operator {
 
   private:
    const roaring::Roaring* bitmaps;
+   unsigned sequence_count;
    Predicate comparator;
    uint32_t value;
-   unsigned sequence_count;
 
   public:
    explicit BitmapSelection(
       const roaring::Roaring* bitmaps,
+      unsigned sequence_count,
       Predicate predicate,
-      uint32_t value,
-      unsigned sequence_count
+      uint32_t value
    );
 
    ~BitmapSelection() noexcept override;
