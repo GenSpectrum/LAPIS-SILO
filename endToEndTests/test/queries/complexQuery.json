@@ -1,5 +1,5 @@
 {
-  "testCaseName": "Query that crashes SILO",
+  "testCaseName": "Some complex filter query",
   "query": {
     "action": {
       "type": "Aggregated"

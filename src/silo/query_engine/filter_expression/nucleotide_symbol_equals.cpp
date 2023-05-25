@@ -15,7 +15,7 @@ NucleotideSymbolEquals::NucleotideSymbolEquals(unsigned int position, silo::NUCL
       value(value) {}
 
 std::string NucleotideSymbolEquals::toString(const silo::Database& /*database*/) {
-   std::string res = std::to_string(position) + genomeSymbolRepresentation(value);
+   std::string res = std::to_string(position + 1) + genomeSymbolRepresentation(value);
    return res;
 }
 

@@ -15,7 +15,7 @@ NucleotideSymbolMaybe::NucleotideSymbolMaybe(unsigned int position, silo::NUCLEO
       value(value) {}
 
 std::string NucleotideSymbolMaybe::toString(const silo::Database& /*database*/) {
-   std::string res = std::to_string(position) + genomeSymbolRepresentation(value) + "?";
+   std::string res = std::to_string(position + 1) + genomeSymbolRepresentation(value) + "?";
    return res;
 }
 
