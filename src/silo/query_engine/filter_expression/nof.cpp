@@ -42,7 +42,7 @@ std::tuple<
    std::vector<std::unique_ptr<operators::Operator>>,
    std::vector<std::unique_ptr<operators::Operator>>,
    int>
-NOf::map_child_expressions(
+NOf::mapChildExpressions(
    const silo::Database& database,
    const silo::DatabasePartition& database_partition
 ) const {
@@ -74,6 +74,7 @@ NOf::map_child_expressions(
       updated_number_of_matchers};
 }
 
+namespace {
 std::unique_ptr<silo::query_engine::operators::Operator> handleTrivialCases(
    const silo::Database& /*database*/,
    const silo::DatabasePartition& database_partition,
@@ -171,6 +172,8 @@ std::unique_ptr<operators::Operator> handleOrCase(
    );
 }
 
+}  // namespace
+
 std::unique_ptr<operators::Operator> NOf::compile(
    const silo::Database& database,
    const silo::DatabasePartition& database_partition
@@ -179,7 +182,7 @@ std::unique_ptr<operators::Operator> NOf::compile(
    std::vector<std::unique_ptr<operators::Operator>> non_negated_child_operators;
    std::vector<std::unique_ptr<operators::Operator>> negated_child_operators;
    std::tie(non_negated_child_operators, negated_child_operators, updated_number_of_matchers) =
-      map_child_expressions(database, database_partition);
+      mapChildExpressions(database, database_partition);
 
    auto tmp = handleTrivialCases(
       database,

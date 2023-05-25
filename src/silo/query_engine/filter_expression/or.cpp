@@ -1,9 +1,10 @@
 #include "silo/query_engine/filter_expressions/or.h"
 
+#include <boost/algorithm/string/join.hpp>
+
 #include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/empty.h"
 #include "silo/query_engine/operators/full.h"
-#include "silo/query_engine/operators/intersection.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/operators/union.h"
 #include "silo/storage/database_partition.h"
@@ -16,13 +17,14 @@ Or::Or(std::vector<std::unique_ptr<Expression>>&& children)
     : children(std::move(children)) {}
 
 std::string Or::toString(const silo::Database& database) {
-   std::string res = "(";
-   for (auto& child : children) {
-      res += " | ";
-      res += child->toString(database);
-   }
-   res += ")";
-   return res;
+   std::vector<std::string> child_strings;
+   std::transform(
+      children.begin(),
+      children.end(),
+      std::back_inserter(child_strings),
+      [&](const std::unique_ptr<Expression>& child) { return child->toString(database); }
+   );
+   return "(" + boost::algorithm::join(child_strings, " | ") + ")";
 }
 
 std::unique_ptr<operators::Operator> Or::compile(

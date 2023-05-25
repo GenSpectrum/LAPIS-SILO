@@ -16,7 +16,7 @@ RUN apt update \
 
 RUN pip install conan==2.0.2
 
-COPY conanfile.py conanprofile.docker .
+COPY conanfile.py conanprofile.docker ./
 RUN mv conanprofile.docker conanprofile
 
 RUN --mount=type=cache,target=/root/.conan2 \

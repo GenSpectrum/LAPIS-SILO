@@ -2,6 +2,7 @@
 #define SILO_DATE_BETWEEN_H
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "silo/query_engine/filter_expressions/expression.h"
@@ -9,12 +10,10 @@
 namespace silo::query_engine::filter_expressions {
 
 struct DateBetween : public Expression {
-   time_t date_from;
-   bool open_from;
-   time_t date_to;
-   bool open_to;
+   std::optional<time_t> date_from;
+   std::optional<time_t> date_to;
 
-   explicit DateBetween(time_t date_from, bool open_from, time_t date_to, bool open_to);
+   explicit DateBetween(std::optional<time_t> date_from, std::optional<time_t> date_to);
 
    std::string toString(const Database& database) override;
 

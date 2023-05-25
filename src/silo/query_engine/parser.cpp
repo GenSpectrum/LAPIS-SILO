@@ -132,32 +132,22 @@ std::unique_ptr<filters::Expression> parseExpression(
       return std::make_unique<filters::Negation>(std::move(child));
    }
    if (expression_type == "DateBetween") {
-      bool open_from;
-      time_t date_from = 0;
-      if (json_value["from"].IsNull()) {
-         open_from = true;
-      } else {
-         open_from = false;
-
+      std::optional<time_t> date_from;
+      if (!json_value["from"].IsNull()) {
          struct std::tm time_object {};
          std::istringstream date_from_stream(json_value["from"].GetString());
          date_from_stream >> std::get_time(&time_object, "%Y-%m-%d");
          date_from = mktime(&time_object);
       }
 
-      bool open_to;
-      time_t date_to;
-      if (json_value["to"].IsNull()) {
-         open_to = true;
-      } else {
-         open_to = false;
-
+      std::optional<time_t> date_to;
+      if (!json_value["to"].IsNull()) {
          struct std::tm time_object {};
          std::istringstream date_to_stream(json_value["to"].GetString());
          date_to_stream >> std::get_time(&time_object, "%Y-%m-%d");
          date_to = mktime(&time_object);
       }
-      return std::make_unique<filters::DateBetween>(date_from, open_from, date_to, open_to);
+      return std::make_unique<filters::DateBetween>(date_from, date_to);
    }
    if (expression_type == "NucleotideEquals") {
       CHECK_SILO_QUERY(
@@ -212,10 +202,7 @@ std::unique_ptr<filters::Expression> parseExpression(
          json_value.HasMember("value"), "The field 'value' is required in a PangoLineage expression"
       )
       std::string lineage = json_value["value"].GetString();
-      std::transform(lineage.begin(), lineage.end(), lineage.begin(), ::toupper);
-      lineage = database.getAliasKey().resolvePangoLineageAlias(lineage);
-      const uint32_t lineage_key = database.dict->getPangoLineageIdInLookup(lineage);
-      return std::make_unique<filters::PangoLineage>(lineage_key, include_sublineages);
+      return std::make_unique<filters::PangoLineage>(lineage, include_sublineages);
    }
    if (expression_type == "StringEquals") {
       const std::string& column = json_value["column"].GetString();

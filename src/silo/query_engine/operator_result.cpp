@@ -17,7 +17,7 @@ OperatorResult::OperatorResult(roaring::Roaring* bitmap)
       immutable_bitmap(nullptr) {}
 
 OperatorResult::~OperatorResult() {
-   delete mutable_bitmap;  // deallocate
+   delete mutable_bitmap;
 }
 
 OperatorResult::OperatorResult(OperatorResult&& other) noexcept  // move constructor

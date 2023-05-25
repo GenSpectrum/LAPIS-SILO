@@ -19,7 +19,7 @@ struct NOf : public Expression {
       std::vector<std::unique_ptr<operators::Operator>>,
       std::vector<std::unique_ptr<operators::Operator>>,
       int>
-   map_child_expressions(
+   mapChildExpressions(
       const silo::Database& database,
       const silo::DatabasePartition& database_partition
    ) const;

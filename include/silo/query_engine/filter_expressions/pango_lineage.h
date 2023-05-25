@@ -9,10 +9,10 @@
 namespace silo::query_engine::filter_expressions {
 
 struct PangoLineage : public Expression {
-   uint32_t lineage_key;
+   std::string lineage;
    bool include_sublineages;
 
-   explicit PangoLineage(uint32_t lineage_key, bool include_sublineages);
+   explicit PangoLineage(std::string lineage_key, bool include_sublineages);
 
    std::string toString(const Database& database) override;
 

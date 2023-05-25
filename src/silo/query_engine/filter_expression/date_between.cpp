@@ -7,17 +7,15 @@
 
 namespace silo::query_engine::filter_expressions {
 
-DateBetween::DateBetween(time_t date_from, bool open_from, time_t date_to, bool open_to)
+DateBetween::DateBetween(std::optional<time_t> date_from, std::optional<time_t> date_to)
     : date_from(date_from),
-      open_from(open_from),
-      date_to(date_to),
-      open_to(open_to) {}
+      date_to(date_to) {}
 
 std::string DateBetween::toString(const silo::Database& /*database*/) {
    std::string res = "[Date-between ";
-   res += (open_from ? "unbounded" : std::to_string(date_from));
+   res += (date_from.has_value() ? std::to_string(date_from.value()) : "unbounded");
    res += " and ";
-   res += (open_to ? "unbounded" : std::to_string(date_to));
+   res += (date_to.has_value() ? std::to_string(date_to.value()) : "unbounded");
    res += "]";
    return res;
 }
@@ -33,9 +31,10 @@ std::unique_ptr<operators::Operator> DateBetween::compile(
       const auto* begin = &database_partition.meta_store.sequence_id_to_date[chunk.offset];
       const auto* end = &database_partition.meta_store
                             .sequence_id_to_date[chunk.offset + chunk.count_of_sequences];
-      const auto* lower = open_from ? begin : std::lower_bound(begin, end, this->date_from);
+      const auto* lower =
+         date_from.has_value() ? std::lower_bound(begin, end, date_from.value()) : begin;
       uint32_t const lower_index = lower - base;
-      const auto* upper = open_to ? end : std::upper_bound(begin, end, this->date_to);
+      const auto* upper = date_to.has_value() ? std::upper_bound(begin, end, date_to.value()) : end;
       uint32_t const upper_index = upper - base;
       ranges.emplace_back(lower_index, upper_index);
    }

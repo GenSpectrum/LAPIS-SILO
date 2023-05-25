@@ -147,11 +147,9 @@ Dictionary Dictionary::loadDictionary(std::istream& dictionary_file) {
    return dictionary;
 }
 
-uint32_t Dictionary::getPangoLineageIdInLookup(const std::string& pango_lineage) const {
-   if (pango_lineage_columns_lookup.value_id_lookup.at("pango_lineage").contains(pango_lineage)) {
-      return pango_lineage_columns_lookup.value_id_lookup.at("pango_lineage").at(pango_lineage);
-   }
-   return UINT32_MAX;
+std::optional<ValueId> Dictionary::getPangoLineageIdInLookup(const std::string& pango_lineage
+) const {
+   return pango_lineage_columns_lookup.lookupValueId("pango_lineage", pango_lineage);
 }
 
 std::string Dictionary::getPangoLineage(uint32_t pango_lineage_id_in_lookup) const {
@@ -159,16 +157,16 @@ std::string Dictionary::getPangoLineage(uint32_t pango_lineage_id_in_lookup) con
       .at(pango_lineage_id_in_lookup);
 }
 
-uint32_t Dictionary::getCountryIdInLookup(const std::string& country) const {
-   return lookupValueId("country", country).value_or(UINT32_MAX);
+std::optional<ValueId> Dictionary::getCountryIdInLookup(const std::string& country) const {
+   return lookupValueId("country", country);
 }
 
 std::string Dictionary::getCountry(uint32_t country_id_in_lookup) const {
    return lookupStringValue("country", country_id_in_lookup).value_or("");
 }
 
-uint32_t Dictionary::getRegionIdInLookup(const std::string& region) const {
-   return lookupValueId("region", region).value_or(UINT32_MAX);
+std::optional<ValueId> Dictionary::getRegionIdInLookup(const std::string& region) const {
+   return lookupValueId("region", region);
 }
 
 std::string Dictionary::getRegion(uint32_t region_lookup_id) const {
@@ -185,7 +183,7 @@ uint32_t Dictionary::getRegionCount() const {
    return string_columns_lookup.value_lookup.at("region").size();
 }
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-uint64_t Dictionary::getIdInGeneralLookup(const std::string& /*region_id_in_lookup*/) const {
+std::optional<uint64_t> Dictionary::getIdInGeneralLookup(const std::string& value) const {
    return UINT32_MAX;
 }
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
@@ -193,7 +191,7 @@ std::string Dictionary::getGeneralLookup(uint64_t /*general_id_in_lookup*/) cons
    return "";
 }
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-uint32_t Dictionary::getColumnIdInLookup(const std::string& /*column_name*/) const {
+std::optional<uint32_t> Dictionary::getColumnIdInLookup(const std::string& /*column_name*/) const {
    return UINT32_MAX;
 }
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)

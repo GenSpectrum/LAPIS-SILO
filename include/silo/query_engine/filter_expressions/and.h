@@ -10,8 +10,15 @@
 namespace silo::query_engine::filter_expressions {
 
 struct And : public Expression {
+  private:
    std::vector<std::unique_ptr<Expression>> children;
 
+   std::tuple<
+      std::vector<std::unique_ptr<operators::Operator>>,
+      std::vector<std::unique_ptr<operators::Operator>>>
+   compileChildren(const Database& database, const DatabasePartition& database_partition) const;
+
+  public:
    explicit And(std::vector<std::unique_ptr<Expression>>&& children);
 
    std::string toString(const silo::Database& database) override;

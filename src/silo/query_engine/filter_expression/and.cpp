@@ -29,22 +29,7 @@ std::string And::toString(const silo::Database& database) {
    return res;
 }
 
-OperatorVector compile_children(
-   const Database& database,
-   const DatabasePartition& database_partition,
-   const std::vector<std::unique_ptr<Expression>>& children
-) {
-   OperatorVector all_child_operators;
-   std::transform(
-      children.begin(),
-      children.end(),
-      std::back_inserter(all_child_operators),
-      [&database, &database_partition](const std::unique_ptr<Expression>& expression) {
-         return expression->compile(database, database_partition);
-      }
-   );
-   return all_child_operators;
-}
+namespace {
 
 void inline appendVectorToVector(OperatorVector& vec_1, OperatorVector& vec_2) {
    std::transform(
@@ -54,12 +39,21 @@ void inline appendVectorToVector(OperatorVector& vec_1, OperatorVector& vec_2) {
       [&](std::unique_ptr<operators::Operator>& ele) { return std::move(ele); }
    );
 }
+}  // namespace
 
-std::unique_ptr<operators::Operator> And::compile(
+std::tuple<OperatorVector, OperatorVector> And::compileChildren(
    const Database& database,
    const DatabasePartition& database_partition
 ) const {
-   OperatorVector all_child_operators = compile_children(database, database_partition, children);
+   OperatorVector all_child_operators;
+   std::transform(
+      children.begin(),
+      children.end(),
+      std::back_inserter(all_child_operators),
+      [&database, &database_partition](const std::unique_ptr<Expression>& expression) {
+         return expression->compile(database, database_partition);
+      }
+   );
    OperatorVector non_negated_child_operators;
    OperatorVector negated_child_operators;
    for (auto& child : all_child_operators) {
@@ -67,7 +61,9 @@ std::unique_ptr<operators::Operator> And::compile(
          continue;
       }
       if (child->type() == operators::EMPTY) {
-         return std::make_unique<operators::Empty>();
+         OperatorVector empty;
+         empty.emplace_back(std::make_unique<operators::Empty>());
+         return {std::move(empty), OperatorVector()};
       }
       if (child->type() == operators::INTERSECTION) {
          auto* intersection_child = dynamic_cast<operators::Intersection*>(child.get());
@@ -80,6 +76,18 @@ std::unique_ptr<operators::Operator> And::compile(
          non_negated_child_operators.push_back(std::move(child));
       }
    }
+   return {std::move(non_negated_child_operators), std::move(negated_child_operators)};
+}
+
+std::unique_ptr<operators::Operator> And::compile(
+   const Database& database,
+   const DatabasePartition& database_partition
+) const {
+   OperatorVector non_negated_child_operators;
+   OperatorVector negated_child_operators;
+   std::tie(non_negated_child_operators, negated_child_operators) =
+      compileChildren(database, database_partition);
+
    if (non_negated_child_operators.empty() && negated_child_operators.empty()) {
       return std::make_unique<operators::Full>(database_partition.sequenceCount);
    }

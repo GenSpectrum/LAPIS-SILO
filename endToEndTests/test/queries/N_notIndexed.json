@@ -1,5 +1,5 @@
 {
-  "testCaseName": "Exact Query",
+  "testCaseName": "Nucleotide equals query for symbol N",
   "query": {
     "action": {
       "type": "Aggregated"

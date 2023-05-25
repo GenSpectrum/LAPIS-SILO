@@ -51,26 +51,6 @@ TEST(OperatorThreshold, evaluatesCorrectOnlyNegated) {
    ASSERT_EQ(*under_test_1_or_more.evaluate(), roaring::Roaring({0, 2}));
 }
 
-/*
-TEST(OperatorThreshold, correctOnOneNonNegated) {
-   const std::vector<roaring::Roaring> test_bitmaps({{roaring::Roaring({1, 2, 3})}});
-
-   const Threshold under_test_1_exact(
-      generateTestInput(test_bitmaps), OperatorVector(), 1, true, 4
-   );
-   ASSERT_EQ(*under_test_1_exact.evaluate(), roaring::Roaring({1, 2, 3}));
-
-   const Threshold under_test_0_or_more(
-      generateTestInput(test_bitmaps), OperatorVector(), 0, false, 4
-   );
-   ASSERT_EQ(*under_test_0_or_more.evaluate(), roaring::Roaring({0, 1, 2, 3}));
-
-   const Threshold under_test_1_or_more(
-      generateTestInput(test_bitmaps), OperatorVector(), 1, false, 4
-   );
-   ASSERT_EQ(*under_test_1_or_more.evaluate(), roaring::Roaring({1, 2, 3}));
-}*/
-
 TEST(OperatorThreshold, evaluateShouldReturnCorrectValuesNoNegated) {
    const std::vector<roaring::Roaring> test_bitmaps(
       {{roaring::Roaring({1, 2}), roaring::Roaring({1, 3}), roaring::Roaring({1, 2, 3})}}
