@@ -156,29 +156,37 @@ void silo::Database::finalizeBuild() {
 }
 
 [[maybe_unused]] void silo::Database::flipBitmaps() {
-   tbb::parallel_for_each(partitions.begin(), partitions.end(), [&](DatabasePartition& database_partition) {
-      tbb::parallel_for(static_cast<unsigned>(0), GENOME_LENGTH, [&](unsigned partition_index) {
-         std::optional<NUCLEOTIDE_SYMBOL> max_symbol = std::nullopt;
-         unsigned max_count = 0;
+   tbb::parallel_for_each(
+      partitions.begin(),
+      partitions.end(),
+      [&](DatabasePartition& database_partition) {
+         tbb::parallel_for(
+            tbb::blocked_range<unsigned>(0, GENOME_LENGTH),
+            [&](const auto& positions) {
+               for (uint32_t position = positions.begin(); position != positions.end();
+                    ++position) {
+                  std::optional<NUCLEOTIDE_SYMBOL> max_symbol = std::nullopt;
+                  unsigned max_count = 0;
 
-         for (const auto& symbol : GENOME_SYMBOLS) {
-            unsigned const count = database_partition.seq_store.positions[partition_index]
-                                      .bitmaps[static_cast<unsigned>(symbol)]
-                                      .cardinality();
-            if (count > max_count) {
-               max_symbol = symbol;
-               max_count = count;
+                  for (const auto& symbol : GENOME_SYMBOLS) {
+                     unsigned const count = database_partition.seq_store.positions[position]
+                                               .bitmaps[static_cast<unsigned>(symbol)]
+                                               .cardinality();
+                     if (count > max_count) {
+                        max_symbol = symbol;
+                        max_count = count;
+                     }
+                  }
+                  database_partition.seq_store.positions[position].symbol_whose_bitmap_is_flipped =
+                     max_symbol;
+                  database_partition.seq_store.positions[position]
+                     .bitmaps[static_cast<unsigned>(max_symbol.value())]
+                     .flip(0, database_partition.sequenceCount);
+               }
             }
-         }
-         if (max_symbol == NUCLEOTIDE_SYMBOL::A || max_symbol == NUCLEOTIDE_SYMBOL::C || max_symbol == NUCLEOTIDE_SYMBOL::G || max_symbol == NUCLEOTIDE_SYMBOL::T || max_symbol == NUCLEOTIDE_SYMBOL::N) {
-            database_partition.seq_store.positions[partition_index].symbol_whose_bitmap_is_flipped =
-               max_symbol;
-            database_partition.seq_store.positions[partition_index]
-               .bitmaps[static_cast<unsigned>(max_symbol.value())]
-               .flip(0, database_partition.sequenceCount);
-         }
-      });
-   });
+         );
+      }
+   );
 }
 
 using RoaringStatistics = roaring::api::roaring_statistics_t;
@@ -343,38 +351,40 @@ silo::BitmapContainerSize silo::Database::calculateBitmapContainerSizePerGenomeS
    BitmapContainerSize global_bitmap_container_size_per_genome_section(section_length);
 
    std::mutex lock;
-   tbb::parallel_for(static_cast<unsigned>(0), GENOME_LENGTH, [&](unsigned position_index) {
+   tbb::parallel_for(tbb::blocked_range<unsigned>(0U, GENOME_LENGTH), [&](const auto& range) {
       BitmapContainerSize bitmap_container_size_per_genome_section(section_length);
+      for (auto position_index = range.begin(); position_index != range.end(); ++position_index) {
+         RoaringStatistics statistic;
+         for (const auto& partition : partitions) {
+            const auto& position = partition.seq_store.positions[position_index];
+            for (const auto& genome_symbol : GENOME_SYMBOLS) {
+               const auto& bitmap = position.bitmaps[static_cast<unsigned>(genome_symbol)];
 
-      RoaringStatistics statistic;
-      for (const auto& partition : partitions) {
-         const auto& position = partition.seq_store.positions[position_index];
-         for (const auto& genome_symbol : GENOME_SYMBOLS) {
-            const auto& bitmap = position.bitmaps[static_cast<unsigned>(genome_symbol)];
+               roaring_bitmap_statistics(&bitmap.roaring, &statistic);
+               addStatisticToBitmapContainerSize(
+                  statistic,
+                  bitmap_container_size_per_genome_section.bitmap_container_size_statistic
+               );
 
-            roaring_bitmap_statistics(&bitmap.roaring, &statistic);
-            addStatisticToBitmapContainerSize(
-               statistic, bitmap_container_size_per_genome_section.bitmap_container_size_statistic
-            );
+               bitmap_container_size_per_genome_section.total_bitmap_size_computed +=
+                  bitmap.getSizeInBytes();
+               bitmap_container_size_per_genome_section.total_bitmap_size_frozen +=
+                  bitmap.getFrozenSizeInBytes();
 
-            bitmap_container_size_per_genome_section.total_bitmap_size_computed +=
-               bitmap.getSizeInBytes();
-            bitmap_container_size_per_genome_section.total_bitmap_size_frozen +=
-               bitmap.getFrozenSizeInBytes();
-
-            if (statistic.n_bitset_containers > 0) {
-               if (genome_symbol == NUCLEOTIDE_SYMBOL::N) {
-                  bitmap_container_size_per_genome_section.size_per_genome_symbol_and_section
-                     .at(genomeSymbolRepresentation(NUCLEOTIDE_SYMBOL::N))
-                     .at(position_index / section_length) += statistic.n_bitset_containers;
-               } else if (genome_symbol == NUCLEOTIDE_SYMBOL::GAP) {
-                  bitmap_container_size_per_genome_section.size_per_genome_symbol_and_section
-                     .at(genomeSymbolRepresentation(NUCLEOTIDE_SYMBOL::GAP))
-                     .at(position_index / section_length) += statistic.n_bitset_containers;
-               } else {
-                  bitmap_container_size_per_genome_section.size_per_genome_symbol_and_section
-                     .at("NOT_N_NOT_GAP")
-                     .at(position_index / section_length) += statistic.n_bitset_containers;
+               if (statistic.n_bitset_containers > 0) {
+                  if (genome_symbol == NUCLEOTIDE_SYMBOL::N) {
+                     bitmap_container_size_per_genome_section.size_per_genome_symbol_and_section
+                        .at(genomeSymbolRepresentation(NUCLEOTIDE_SYMBOL::N))
+                        .at(position_index / section_length) += statistic.n_bitset_containers;
+                  } else if (genome_symbol == NUCLEOTIDE_SYMBOL::GAP) {
+                     bitmap_container_size_per_genome_section.size_per_genome_symbol_and_section
+                        .at(genomeSymbolRepresentation(NUCLEOTIDE_SYMBOL::GAP))
+                        .at(position_index / section_length) += statistic.n_bitset_containers;
+                  } else {
+                     bitmap_container_size_per_genome_section.size_per_genome_symbol_and_section
+                        .at("NOT_N_NOT_GAP")
+                        .at(position_index / section_length) += statistic.n_bitset_containers;
+                  }
                }
             }
          }

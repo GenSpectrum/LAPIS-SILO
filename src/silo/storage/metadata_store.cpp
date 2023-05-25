@@ -34,14 +34,14 @@ unsigned MetadataStore::fill(
       std::time_t const time = mktime(&time_struct);
 
       std::vector<uint64_t> extra_cols;
-      extra_cols.push_back(dict.getIdInGeneralLookup(division));
+      extra_cols.push_back(dict.getIdInGeneralLookup(division).value_or(0));
 
       inputSequenceMeta(
          key,
          time,
-         dict.getPangoLineageIdInLookup(pango_lineage),
-         dict.getRegionIdInLookup(region),
-         dict.getCountryIdInLookup(country),
+         dict.getPangoLineageIdInLookup(pango_lineage).value_or(0),
+         dict.getRegionIdInLookup(region).value_or(0),
+         dict.getCountryIdInLookup(country).value_or(0),
          extra_cols
       );
       ++sequence_count;

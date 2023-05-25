@@ -1,0 +1,115 @@
+{
+  "testCaseName": "Some complex filter query",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "position": 300,
+                              "symbol": "G",
+                              "type": "NucleotideEquals"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "position": 400,
+                                  "symbol": "-",
+                                  "type": "NucleotideEquals"
+                                },
+                                {
+                                  "position": 500,
+                                  "symbol": "B",
+                                  "type": "NucleotideEquals"
+                                }
+                              ],
+                              "type": "Or"
+                            }
+                          ],
+                          "type": "And"
+                        },
+                        {
+                          "child": {
+                            "position": 600,
+                            "symbol": "-",
+                            "type": "NucleotideEquals"
+                          },
+                          "type": "Not"
+                        }
+                      ],
+                      "type": "And"
+                    },
+                    {
+                      "child": {
+                        "children": [
+                          {
+                            "position": 700,
+                            "symbol": "B",
+                            "type": "NucleotideEquals"
+                          },
+                          {
+                            "position": 800,
+                            "symbol": "-",
+                            "type": "NucleotideEquals"
+                          }
+                        ],
+                        "type": "Or"
+                      },
+                      "type": "Maybe"
+                    }
+                  ],
+                  "type": "And"
+                },
+                {
+                  "numberOfMatchers": 3,
+                  "matchExactly": false,
+                  "children": [
+                    {
+                      "position": 123,
+                      "symbol": "A",
+                      "type": "NucleotideEquals"
+                    },
+                    {
+                      "position": 234,
+                      "symbol": "T",
+                      "type": "NucleotideEquals"
+                    },
+                    {
+                      "position": 345,
+                      "symbol": "G",
+                      "type": "NucleotideEquals"
+                    }
+                  ],
+                  "type": "N-Of"
+                }
+              ],
+              "type": "And"
+            },
+            {
+              "column": "pangoLineage",
+              "value": "A.1.2.3",
+              "includeSublineages": true,
+              "type": "PangoLineage"
+            }
+          ],
+          "type": "And"
+        }
+      ],
+      "type": "And"
+    }
+  },
+  "expectedQueryResult": {
+    "count": 0
+  }
+}

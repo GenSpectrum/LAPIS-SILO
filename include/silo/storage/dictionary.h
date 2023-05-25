@@ -72,7 +72,7 @@ class Dictionary {
 
    static Dictionary loadDictionary(std::istream& dictionary_file);
 
-   [[maybe_unused]] [[nodiscard]] uint32_t getPangoLineageIdInLookup(
+   [[maybe_unused]] [[nodiscard]] std::optional<ValueId> getPangoLineageIdInLookup(
       const std::string& pango_lineage
    ) const;
 
@@ -81,25 +81,30 @@ class Dictionary {
 
    [[maybe_unused]] [[nodiscard]] uint32_t getPangoLineageCount() const;
 
-   [[maybe_unused]] [[nodiscard]] uint32_t getCountryIdInLookup(const std::string& country) const;
+   [[maybe_unused]] [[nodiscard]] std::optional<ValueId> getCountryIdInLookup(
+      const std::string& country
+   ) const;
 
    [[maybe_unused]] [[nodiscard]] std::string getCountry(uint32_t country_id_in_lookup) const;
 
    [[maybe_unused]] [[nodiscard]] uint32_t getCountryCount() const;
 
-   [[maybe_unused]] [[nodiscard]] uint32_t getRegionIdInLookup(const std::string& region) const;
+   [[maybe_unused]] [[nodiscard]] std::optional<ValueId> getRegionIdInLookup(
+      const std::string& region
+   ) const;
 
    [[maybe_unused]] [[nodiscard]] std::string getRegion(uint32_t region_lookup_id) const;
 
    [[maybe_unused]] [[nodiscard]] uint32_t getRegionCount() const;
 
-   [[maybe_unused]] [[nodiscard]] uint64_t getIdInGeneralLookup(
-      const std::string& region_id_in_lookup
+   [[maybe_unused]] [[nodiscard]] std::optional<uint64_t> getIdInGeneralLookup(
+      const std::string& value
    ) const;
 
    [[maybe_unused]] [[nodiscard]] std::string getGeneralLookup(uint64_t general_id_in_lookup) const;
 
-   [[maybe_unused]] [[nodiscard]] uint32_t getColumnIdInLookup(const std::string& column_name
+   [[maybe_unused]] [[nodiscard]] std::optional<ValueId> getColumnIdInLookup(
+      const std::string& column_name
    ) const;
 
    [[maybe_unused]] [[nodiscard]] std::string getColumn(uint32_t column_id_in_lookup) const;
