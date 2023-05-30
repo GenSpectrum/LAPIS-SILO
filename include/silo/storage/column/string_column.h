@@ -4,49 +4,52 @@
 #include <string>
 #include <vector>
 
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
 #include <roaring/roaring.hh>
 
-#include "raw_base_column.h"
+namespace silo::storage::column {
 
-namespace silo {
-
-class Dictionary;
-
-namespace storage::column {
-
-class StringColumn {
+class RawStringColumn {
   public:
-   virtual roaring::Roaring filter(std::string value) const = 0;
-};
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
+      archive& values;
+   }
 
-class RawStringColumn : public RawBaseColumn<std::string>, public StringColumn {
   private:
-   std::string column_name;
    std::vector<std::string> values;
 
   public:
-   using RawBaseColumn<std::string>::RawBaseColumn;
+   RawStringColumn();
 
-   virtual roaring::Roaring filter(std::string value) const override;
+   const std::vector<std::string>& getValues() const;
+
+   void insert(const std::string& value);
 };
 
-class IndexedStringColumn : public StringColumn {
+class IndexedStringColumn {
+  public:
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
+      archive& value_id_lookup;
+      archive& indexed_values;
+      archive& sequence_count;
+   }
+
   private:
-   std::string column_name;
-   const silo::Dictionary& dictionary;
+   std::unordered_map<std::string, uint32_t> value_id_lookup;
    std::vector<roaring::Roaring> indexed_values;
+   uint32_t sequence_count = 0;
 
   public:
-   IndexedStringColumn(
-      std::string column_name,
-      const silo::Dictionary& dictionary,
-      std::vector<roaring::Roaring> indexed_values
-   );
+   IndexedStringColumn();
 
-   virtual roaring::Roaring filter(std::string value) const override;
+   roaring::Roaring filter(const std::string& value) const;
+
+   void insert(const std::string& value);
 };
 
-}  // namespace storage::column
-}  // namespace silo
+}  // namespace silo::storage::column
 
 #endif  // SILO_STRING_COLUMN_H

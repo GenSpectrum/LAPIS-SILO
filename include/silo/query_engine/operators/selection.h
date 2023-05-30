@@ -1,27 +1,24 @@
 #ifndef SILO_SELECTION_H
 #define SILO_SELECTION_H
 
+#include <vector>
+
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo::query_engine::operators {
 
+template <typename T>
 class Selection : public Operator {
   public:
    enum Comparator { EQUALS, LESS, HIGHER, LESS_OR_EQUALS, HIGHER_OR_EQUALS, NOT_EQUALS };
 
   private:
-   uint64_t const* column;
-   unsigned sequence_count;
+   const std::vector<T>& column;
    Comparator comparator;
-   uint64_t value;
+   T value;
 
   public:
-   explicit Selection(
-      uint64_t const* column,
-      unsigned sequence_count,
-      Comparator comparator,
-      uint64_t value
-   );
+   explicit Selection(const std::vector<T>& column, Comparator comparator, T value);
 
    ~Selection() noexcept override;
 

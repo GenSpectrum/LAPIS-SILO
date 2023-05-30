@@ -1,8 +1,8 @@
 #include "silo/storage/metadata_store.h"
 
 #include <ctime>
-#include <vector>
 
+#include "silo/config/database_config.h"
 #include "silo/preprocessing/metadata.h"
 #include "silo/storage/dictionary.h"
 #include "silo/storage/pango_lineage_alias.h"
@@ -12,61 +12,64 @@ namespace silo {
 unsigned MetadataStore::fill(
    const std::filesystem::path& input_file,
    const PangoLineageAliasLookup& alias_key,
-   const Dictionary& dict
+   const Dictionary& dict,
+   const silo::config::DatabaseConfig& database_config
 ) {
    auto metadata_reader = silo::preprocessing::MetadataReader::getReader(input_file);
 
+   const auto columns_to_index = std::set<std::string>{"country", "region", "division"};
+   initializeColumns(database_config, columns_to_index);
+
    unsigned sequence_count = 0;
 
+   const auto column_names = metadata_reader.get_col_names();
    for (auto& row : metadata_reader) {
-      const std::string key = row[silo::preprocessing::COLUMN_NAME_PRIMARY_KEY].get();
-      const std::string pango_lineage = alias_key.resolvePangoLineageAlias(
-         row[silo::preprocessing::COLUMN_NAME_PANGO_LINEAGE].get()
-      );
-      const std::string date = row[silo::preprocessing::COLUMN_NAME_DATE].get();
-      const std::string region = row["region"].get();
-      const std::string country = row["country"].get();
-      const std::string division = row["division"].get();
+      for (const auto& item : database_config.schema.metadata) {
+         const std::string value = row[item.name].get();
 
-      struct std::tm time_struct {};
-      std::istringstream time_stream(date);
-      time_stream >> std::get_time(&time_struct, "%Y-%m-%d");
-      std::time_t const time = mktime(&time_struct);
-
-      std::vector<uint64_t> extra_cols;
-      extra_cols.push_back(dict.getIdInGeneralLookup(division).value_or(0));
-
-      inputSequenceMeta(
-         key,
-         time,
-         dict.getPangoLineageIdInLookup(pango_lineage).value_or(0),
-         dict.getRegionIdInLookup(region).value_or(0),
-         dict.getCountryIdInLookup(country).value_or(0),
-         extra_cols
-      );
+         if (item.type == silo::config::DatabaseMetadataType::STRING) {
+            if (columns_to_index.contains(item.name)) {
+               indexed_string_columns.at(item.name).insert(value);
+            } else {
+               raw_string_columns.at(item.name).insert(value);
+            }
+         } else if (item.type == silo::config::DatabaseMetadataType::PANGOLINEAGE) {
+            // TODO extend for pango lineages
+            const std::string pango_lineage = alias_key.resolvePangoLineageAlias(value);
+            sequence_id_to_lineage.push_back(
+               dict.getPangoLineageIdInLookup(pango_lineage).value_or(0)
+            );
+         } else if (item.type == silo::config::DatabaseMetadataType::DATE) {
+            // TODO extend for dates
+            struct std::tm time_struct {};
+            std::istringstream time_stream(value);
+            time_stream >> std::get_time(&time_struct, "%Y-%m-%d");
+            std::time_t const time = mktime(&time_struct);
+            sequence_id_to_date.push_back(time);
+         }
+      }
       ++sequence_count;
    }
 
    return sequence_count;
 }
 
-// TODO(someone): clean up and specify inputs
-void MetadataStore::inputSequenceMeta(
-   const std::string& primary_key,
-   time_t date,
-   uint32_t pango_lineage,
-   uint32_t region,
-   uint32_t country,
-   const std::vector<uint64_t>& values
+void MetadataStore::initializeColumns(
+   const config::DatabaseConfig& database_config,
+   const std::set<std::string>& columns_to_index
 ) {
-   sequence_id_to_key.push_back(primary_key);
-   sequence_id_to_lineage.push_back(pango_lineage);
-
-   sequence_id_to_date.push_back(date);
-   sequence_id_to_country.push_back(country);
-   sequence_id_to_region.push_back(region);
-   for (unsigned i = 0; i < columns.size(); ++i) {
-      columns[i].push_back(values[i]);
+   for (const auto& item : database_config.schema.metadata) {
+      if (item.type == config::DatabaseMetadataType::STRING) {
+         if (columns_to_index.contains(item.name)) {
+            this->indexed_string_columns[item.name] = storage::column::IndexedStringColumn();
+         } else {
+            this->raw_string_columns[item.name] = storage::column::RawStringColumn();
+         }
+      } else if (item.type == config::DatabaseMetadataType::PANGOLINEAGE) {
+         // TODO extend for pango lineages
+      } else if (item.type == config::DatabaseMetadataType::DATE) {
+         // TODO extend for dates
+      }
    }
 }
 

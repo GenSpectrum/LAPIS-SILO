@@ -16,6 +16,7 @@ class RawBaseColumn {
    std::vector<T> values;
 
   public:
+   RawBaseColumn(std::string column_name);
    RawBaseColumn(std::string column_name, std::vector<T> values);
 
    roaring::Roaring filter(const T& value) const;

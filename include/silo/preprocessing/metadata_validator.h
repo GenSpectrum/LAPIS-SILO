@@ -9,17 +9,10 @@ namespace silo::preprocessing {
 
 class MetadataValidator {
   public:
-   explicit MetadataValidator(
-      const config::ConfigRepository& config_repository = config::ConfigRepository()
-   );
-
    virtual void validateMedataFile(
       const std::filesystem::path& metadata_file,
-      const std::filesystem::path& config_file
+      const silo::config::DatabaseConfig& database_config
    ) const;
-
-  private:
-   const config::ConfigRepository& config_repository_;
 };
 
 }  // namespace silo::preprocessing

@@ -31,22 +31,4 @@ void ConfigRepository::validateConfig(const DatabaseConfig& config) const {
    }
 }
 
-std::string ConfigRepository::getPrimaryKey(const std::filesystem::path& path) const {
-   const auto config = getValidatedConfig(path);
-   return config.schema.primary_key;
-}
-
-DatabaseMetadata ConfigRepository::getMetadata(
-   const std::filesystem::path& path,
-   const std::string& name
-) const {
-   const auto config = getValidatedConfig(path);
-   for (const auto& metadata : config.schema.metadata) {
-      if (metadata.name == name) {
-         return metadata;
-      }
-   }
-   throw ConfigException("Metadata with name " + name + " not found");
-}
-
 }  // namespace silo::config

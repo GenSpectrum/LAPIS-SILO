@@ -23,6 +23,8 @@ struct DatabaseSchema {
 
 struct DatabaseConfig {
    DatabaseSchema schema;
+
+   DatabaseMetadata getMetadata(const std::string& name) const;
 };
 }  // namespace silo::config
 
