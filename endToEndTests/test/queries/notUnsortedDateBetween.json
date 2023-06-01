@@ -1,0 +1,20 @@
+{
+  "testCaseName": "Not DateBetween Query for date column that is not sorted",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "Not",
+      "child": {
+        "type": "DateBetween",
+        "column": "unsorted_date",
+        "from": "2021-03-18",
+        "to": "2021-03-20"
+      }
+    }
+  },
+  "expectedQueryResult": {
+    "count": 98
+  }
+}

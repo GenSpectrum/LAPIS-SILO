@@ -37,9 +37,10 @@ Intersection::Intersection(
 Intersection::~Intersection() noexcept = default;
 
 std::string Intersection::toString() const {
-   std::string res = "(" + this->children[0]->toString();
-   for (const auto& child : children) {
-      res += " & " + child->toString();
+   std::string res = "(" + children[0]->toString();
+
+   for (unsigned i = 1; i < children.size(); i++) {
+      res += " & " + children[i]->toString();
    }
    for (const auto& child : negated_children) {
       res += " &! " + child->toString();

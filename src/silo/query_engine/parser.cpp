@@ -132,6 +132,8 @@ std::unique_ptr<filters::Expression> parseExpression(
       return std::make_unique<filters::Negation>(std::move(child));
    }
    if (expression_type == "DateBetween") {
+      const std::string& column = json_value["column"].GetString();
+
       std::optional<time_t> date_from;
       if (!json_value["from"].IsNull()) {
          struct std::tm time_object {};
@@ -147,7 +149,7 @@ std::unique_ptr<filters::Expression> parseExpression(
          date_to_stream >> std::get_time(&time_object, "%Y-%m-%d");
          date_to = mktime(&time_object);
       }
-      return std::make_unique<filters::DateBetween>(date_from, date_to);
+      return std::make_unique<filters::DateBetween>(column, date_from, date_to);
    }
    if (expression_type == "NucleotideEquals") {
       CHECK_SILO_QUERY(
@@ -201,7 +203,7 @@ std::unique_ptr<filters::Expression> parseExpression(
       CHECK_SILO_QUERY(
          json_value.HasMember("value"), "The field 'value' is required in a PangoLineage expression"
       )
-      std::string lineage = json_value["value"].GetString();
+      const std::string& lineage = json_value["value"].GetString();
       return std::make_unique<filters::PangoLineage>(lineage, include_sublineages);
    }
    if (expression_type == "StringEquals") {

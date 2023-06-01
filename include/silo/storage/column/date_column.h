@@ -1,48 +1,34 @@
 #ifndef SILO_DATE_COLUMN_H
 #define SILO_DATE_COLUMN_H
 
-#include <chrono>
+#include <ctime>
+#include <vector>
 
 #include <roaring/roaring.hh>
-
-#include "raw_base_column.h"
 
 namespace silo::storage::column {
 
 class DateColumn {
   public:
-   virtual roaring::Roaring filterRange(
-      const std::chrono::year_month_day& from_date,
-      const std::chrono::year_month_day& to_date
-   ) const = 0;
-};
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
+      archive& values;
+      archive& is_sorted;
+   }
 
-class RawDateColumn : public DateColumn {
   private:
-   const std::string column_name;
-   const std::vector<std::chrono::year_month_day> values;
+   std::vector<std::time_t> values;
+   bool is_sorted;
 
   public:
-   RawDateColumn(std::string column_name, std::vector<std::chrono::year_month_day> values);
+   DateColumn();
+   DateColumn(bool is_sorted);
 
-   virtual roaring::Roaring filterRange(
-      const std::chrono::year_month_day& from_date,
-      const std::chrono::year_month_day& to_date
-   ) const override;
-};
+   bool isSorted() const;
 
-class SortedDateColumn : public DateColumn {
-  private:
-   const std::string column_name;
-   const std::vector<std::chrono::year_month_day> values;
+   void insert(const std::time_t& value);
 
-  public:
-   SortedDateColumn(std::string column_name, std::vector<std::chrono::year_month_day> values);
-
-   virtual roaring::Roaring filterRange(
-      const std::chrono::year_month_day& from_date,
-      const std::chrono::year_month_day& to_date
-   ) const override;
+   const std::vector<std::time_t>& getValues() const;
 };
 
 }  // namespace silo::storage::column

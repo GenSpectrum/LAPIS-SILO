@@ -2,6 +2,7 @@
 #define SILO_STRING_COLUMN_H
 
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <boost/archive/binary_iarchive.hpp>

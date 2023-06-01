@@ -9,6 +9,13 @@
 
 namespace silo {
 
+std::time_t mapToTime(const std::string& value) {
+   struct std::tm time_struct {};
+   std::istringstream time_stream(value);
+   time_stream >> std::get_time(&time_struct, "%Y-%m-%d");
+   return mktime(&time_struct);
+}
+
 unsigned MetadataStore::fill(
    const std::filesystem::path& input_file,
    const PangoLineageAliasLookup& alias_key,
@@ -40,12 +47,7 @@ unsigned MetadataStore::fill(
                dict.getPangoLineageIdInLookup(pango_lineage).value_or(0)
             );
          } else if (item.type == silo::config::DatabaseMetadataType::DATE) {
-            // TODO extend for dates
-            struct std::tm time_struct {};
-            std::istringstream time_stream(value);
-            time_stream >> std::get_time(&time_struct, "%Y-%m-%d");
-            std::time_t const time = mktime(&time_struct);
-            sequence_id_to_date.push_back(time);
+            date_columns.at(item.name).insert(mapToTime(value));
          }
       }
       ++sequence_count;
@@ -68,7 +70,12 @@ void MetadataStore::initializeColumns(
       } else if (item.type == config::DatabaseMetadataType::PANGOLINEAGE) {
          // TODO extend for pango lineages
       } else if (item.type == config::DatabaseMetadataType::DATE) {
-         // TODO extend for dates
+         date_columns.emplace(
+            item.name,
+            // TODO make this configurable
+            item.name == "date" ? storage::column::DateColumn(true)
+                                : storage::column::DateColumn(false)
+         );
       }
    }
 }

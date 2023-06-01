@@ -18,8 +18,27 @@ template <typename T>
 Selection<T>::~Selection() noexcept = default;
 
 template <typename T>
+std::string displayComparator(typename Selection<T>::Comparator comparator) {
+   switch (comparator) {
+      case Selection<T>::EQUALS:
+         return "=";
+      case Selection<T>::NOT_EQUALS:
+         return "!=";
+      case Selection<T>::LESS:
+         return "<";
+      case Selection<T>::HIGHER:
+         return ">";
+      case Selection<T>::LESS_OR_EQUALS:
+         return "<=";
+      case Selection<T>::HIGHER_OR_EQUALS:
+         return ">=";
+   }
+   throw std::runtime_error("found unhandled comparator" + std::to_string(comparator));
+}
+
+template <typename T>
 std::string Selection<T>::toString() const {
-   return "Select";
+   return "Select-" + displayComparator<T>(comparator);
 }
 
 template <typename T>
@@ -105,5 +124,6 @@ OperatorResult Selection<T>::evaluate() const {
 
 template class Selection<std::string>;
 template class Selection<uint64_t>;
+template class Selection<time_t>;
 
 }  // namespace silo::query_engine::operators

@@ -21,7 +21,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> StringEquals::compile(
    const silo::DatabasePartition& database_partition
 ) const {
    if (database_partition.meta_store.indexed_string_columns.contains(column)) {
-      const auto string_column = database_partition.meta_store.indexed_string_columns.at(column);
+      const auto& string_column = database_partition.meta_store.indexed_string_columns.at(column);
       const roaring::Roaring& bitmap = string_column.filter(value);
 
       if (bitmap.isEmpty()) {

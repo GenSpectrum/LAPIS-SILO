@@ -534,12 +534,12 @@ silo::DetailedDatabaseInfo silo::Database::detailedDatabaseInfo() const {
 
 void silo::Database::preprocessing(const PreprocessingConfig& config) {
    SPDLOG_INFO("preprocessing - validate database config");
-   const auto databaseConfig =
+   const auto database_config =
       config::ConfigRepository().getValidatedConfig(config.database_config_file);
 
    SPDLOG_INFO("preprocessing - validate metadata file against config");
    silo::preprocessing::MetadataValidator().validateMedataFile(
-      config.metadata_file, databaseConfig
+      config.metadata_file, database_config
    );
 
    SPDLOG_INFO("preprocessing - building pango lineage counts");
@@ -594,7 +594,7 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
       config.sorted_partition_folder.relative_path(),
       config.metadata_file.extension(),
       config.sequence_file.extension(),
-      databaseConfig
+      database_config
    );
 }
 silo::Database::Database() = default;
