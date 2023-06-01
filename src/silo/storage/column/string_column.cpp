@@ -1,32 +1,38 @@
 #include "silo/storage/column/string_column.h"
 
-#include <utility>
-
 #include "silo/storage/dictionary.h"
 
 namespace silo::storage::column {
 
-using silo::storage::column::RawBaseColumn;
+RawStringColumn::RawStringColumn() = default;
 
-roaring::Roaring RawStringColumn::filter(std::string value) const {
-   return RawBaseColumn<std::string>::filter(value);
+void RawStringColumn::insert(const std::string& value) {
+   values.push_back(value);
 }
 
-IndexedStringColumn::IndexedStringColumn(
-   std::string column_name,
-   const silo::Dictionary& dictionary,
-   std::vector<roaring::Roaring> indexed_values
-)
-    : column_name(std::move(column_name)),
-      dictionary(dictionary),
-      indexed_values(std::move(indexed_values)) {}
+const std::vector<std::string>& RawStringColumn::getValues() const {
+   return values;
+}
 
-roaring::Roaring IndexedStringColumn::filter(std::string value) const {
-   const auto value_id = dictionary.lookupValueId(column_name, value);
-   if (value_id.has_value()) {
-      return indexed_values[*value_id];
+IndexedStringColumn::IndexedStringColumn() = default;
+
+roaring::Roaring IndexedStringColumn::filter(const std::string& value) const {
+   if (!value_id_lookup.contains(value)) {
+      return {};
    }
-   return {};
+
+   return indexed_values[value_id_lookup.at(value)];
+}
+
+void IndexedStringColumn::insert(const std::string& value) {
+   if (!value_id_lookup.contains(value)) {
+      value_id_lookup[value] = value_id_lookup.size();
+      indexed_values.emplace_back();
+   }
+
+   const auto value_id = value_id_lookup[value];
+   indexed_values[value_id].add(sequence_count);
+   sequence_count++;
 }
 
 }  // namespace silo::storage::column

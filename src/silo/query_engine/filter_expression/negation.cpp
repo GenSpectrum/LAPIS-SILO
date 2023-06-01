@@ -15,7 +15,7 @@ Negation::Negation(std::unique_ptr<Expression> child)
     : child(std::move(child)) {}
 
 std::string Negation::toString(const silo::Database& database) {
-   return "!" + child->toString(database);
+   return "!(" + child->toString(database) + ")";
 }
 
 std::unique_ptr<operators::Operator> Negation::compile(
@@ -31,7 +31,7 @@ std::unique_ptr<operators::Operator> Negation::compile(
       return child_operator;
    }
    if (child_operator->type() == operators::SELECTION) {
-      dynamic_cast<operators::Selection*>(child_operator.get())->negate();
+      dynamic_cast<operators::Selection<std::string>*>(child_operator.get())->negate();
       return child_operator;
    }
    if (child_operator->type() == operators::EMPTY) {

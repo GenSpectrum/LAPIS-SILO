@@ -1,34 +1,53 @@
 #include "silo/query_engine/operators/selection.h"
 
 #include <roaring/roaring.hh>
+#include <utility>
 #include <vector>
 
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo::query_engine::operators {
 
-Selection::Selection(
-   uint64_t const* column,
-   unsigned sequence_count,
-   Comparator comparator,
-   uint64_t value
-)
+template <typename T>
+Selection<T>::Selection(const std::vector<T>& column, Comparator comparator, T value)
     : column(column),
-      sequence_count(sequence_count),
       comparator(comparator),
-      value(value) {}
+      value(std::move(value)) {}
 
-Selection::~Selection() noexcept = default;
+template <typename T>
+Selection<T>::~Selection() noexcept = default;
 
-std::string Selection::toString() const {
-   return "Select";
+template <typename T>
+std::string displayComparator(typename Selection<T>::Comparator comparator) {
+   switch (comparator) {
+      case Selection<T>::EQUALS:
+         return "=";
+      case Selection<T>::NOT_EQUALS:
+         return "!=";
+      case Selection<T>::LESS:
+         return "<";
+      case Selection<T>::HIGHER:
+         return ">";
+      case Selection<T>::LESS_OR_EQUALS:
+         return "<=";
+      case Selection<T>::HIGHER_OR_EQUALS:
+         return ">=";
+   }
+   throw std::runtime_error("found unhandled comparator" + std::to_string(comparator));
 }
 
-Type Selection::type() const {
+template <typename T>
+std::string Selection<T>::toString() const {
+   return "Select-" + displayComparator<T>(comparator);
+}
+
+template <typename T>
+Type Selection<T>::type() const {
    return SELECTION;
 }
 
-void Selection::negate() {
+template <typename T>
+void Selection<T>::negate() {
    switch (this->comparator) {
       case EQUALS:
          this->comparator = NOT_EQUALS;
@@ -51,46 +70,49 @@ void Selection::negate() {
    }
 }
 
-OperatorResult Selection::evaluate() const {
+template <typename T>
+OperatorResult Selection<T>::evaluate() const {
+   const auto size = column.size();
+
    auto* result = new roaring::Roaring();
    switch (this->comparator) {
       case EQUALS:
-         for (unsigned i = 0; i < sequence_count; i++) {
+         for (unsigned i = 0; i < size; i++) {
             if (column[i] == value) {
                result->add(i);
             }
          }
          break;
       case NOT_EQUALS:
-         for (unsigned i = 0; i < sequence_count; i++) {
+         for (unsigned i = 0; i < size; i++) {
             if (column[i] != value) {
                result->add(i);
             }
          }
          break;
       case LESS:
-         for (unsigned i = 0; i < sequence_count; i++) {
+         for (unsigned i = 0; i < size; i++) {
             if (column[i] < value) {
                result->add(i);
             }
          }
          break;
       case HIGHER_OR_EQUALS:
-         for (unsigned i = 0; i < sequence_count; i++) {
+         for (unsigned i = 0; i < size; i++) {
             if (column[i] >= value) {
                result->add(i);
             }
          }
          break;
       case HIGHER:
-         for (unsigned i = 0; i < sequence_count; i++) {
+         for (unsigned i = 0; i < size; i++) {
             if (column[i] > value) {
                result->add(i);
             }
          }
          break;
       case LESS_OR_EQUALS:
-         for (unsigned i = 0; i < sequence_count; i++) {
+         for (unsigned i = 0; i < size; i++) {
             if (column[i] <= value) {
                result->add(i);
             }
@@ -99,5 +121,9 @@ OperatorResult Selection::evaluate() const {
    }
    return OperatorResult(result);
 }
+
+template class Selection<std::string>;
+template class Selection<uint64_t>;
+template class Selection<time_t>;
 
 }  // namespace silo::query_engine::operators

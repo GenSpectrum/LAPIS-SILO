@@ -6,6 +6,7 @@
     },
     "filterExpression": {
       "type": "DateBetween",
+      "column": "date",
       "from": "2021-03-17",
       "to": null
     }

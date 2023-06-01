@@ -84,7 +84,8 @@ struct [[maybe_unused]] fmt::formatter<silo::DatabaseInfo> : fmt::formatter<std:
 void silo::Database::build(
    const std::string& partition_name_prefix,
    const std::string& metadata_file_suffix,
-   const std::string& sequence_file_suffix
+   const std::string& sequence_file_suffix,
+   const silo::config::DatabaseConfig& database_config
 ) {
    int64_t micros = 0;
    {
@@ -120,7 +121,9 @@ void silo::Database::build(
                unsigned const sequence_store_sequence_count =
                   partitions[partition_index].seq_store.fill(sequence_input);
                unsigned const metadata_store_sequence_count =
-                  partitions[partition_index].meta_store.fill(metadata_file, alias_key, *dict);
+                  partitions[partition_index].meta_store.fill(
+                     metadata_file, alias_key, *dict, database_config
+                  );
                if (sequence_store_sequence_count != metadata_store_sequence_count) {
                   throw silo::PreprocessingException(
                      "Sequences in meta data and sequence data for chunk " +
@@ -531,11 +534,12 @@ silo::DetailedDatabaseInfo silo::Database::detailedDatabaseInfo() const {
 
 void silo::Database::preprocessing(const PreprocessingConfig& config) {
    SPDLOG_INFO("preprocessing - validate database config");
-   config::ConfigRepository().getValidatedConfig(config.database_config_file);
+   const auto database_config =
+      config::ConfigRepository().getValidatedConfig(config.database_config_file);
 
    SPDLOG_INFO("preprocessing - validate metadata file against config");
    silo::preprocessing::MetadataValidator().validateMedataFile(
-      config.metadata_file, config.database_config_file
+      config.metadata_file, database_config
    );
 
    SPDLOG_INFO("preprocessing - building pango lineage counts");
@@ -589,7 +593,8 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
    build(
       config.sorted_partition_folder.relative_path(),
       config.metadata_file.extension(),
-      config.sequence_file.extension()
+      config.sequence_file.extension(),
+      database_config
    );
 }
 silo::Database::Database() = default;

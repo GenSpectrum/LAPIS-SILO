@@ -5,6 +5,8 @@ schema:
       type: string
     - name: date
       type: date
+    - name: unsorted_date
+      type: date
     - name: region
       type: string
     - name: country

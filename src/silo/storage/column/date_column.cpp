@@ -1,53 +1,23 @@
 #include "silo/storage/column/date_column.h"
 
-#include <algorithm>
-
 namespace silo::storage::column {
 
-RawDateColumn::RawDateColumn(
-   std::string column_name,
-   std::vector<std::chrono::year_month_day> values
-)
-    : column_name(std::move(column_name)),
-      values(std::move(values)) {}
+DateColumn::DateColumn()
+    : is_sorted(false) {}
 
-roaring::Roaring RawDateColumn::filterRange(
-   const std::chrono::year_month_day& from_date,
-   const std::chrono::year_month_day& to_date
-) const {
-   roaring::Roaring final_bitmap;
+DateColumn::DateColumn(bool is_sorted)
+    : is_sorted(is_sorted) {}
 
-   for (size_t i = 0; i < values.size(); ++i) {
-      const auto current_value_date = values[i];
-      if (current_value_date >= from_date && current_value_date <= to_date) {
-         final_bitmap.add(i);
-      }
-   }
-
-   return final_bitmap;
+bool DateColumn::isSorted() const {
+   return is_sorted;
 }
 
-SortedDateColumn::SortedDateColumn(
-   std::string column_name,
-   std::vector<std::chrono::year_month_day> values
-)
-    : column_name(std::move(column_name)),
-      values(std::move(values)) {}
+void DateColumn::insert(const std::time_t& value) {
+   values.push_back(value);
+}
 
-roaring::Roaring SortedDateColumn::filterRange(
-   const std::chrono::year_month_day& from_date,
-   const std::chrono::year_month_day& to_date
-) const {
-   auto lower = std::lower_bound(values.begin(), values.end(), from_date);
-   auto upper = std::upper_bound(values.begin(), values.end(), to_date);
-
-   const size_t lower_index = std::distance(values.begin(), lower);
-   const size_t upper_index =
-      std::min(std::distance(values.begin(), upper), static_cast<std::ptrdiff_t>(values.size()));
-
-   roaring::Roaring result;
-   result.addRange(lower_index, upper_index);
-   return result;
+const std::vector<std::time_t>& DateColumn::getValues() const {
+   return values;
 }
 
 }  // namespace silo::storage::column

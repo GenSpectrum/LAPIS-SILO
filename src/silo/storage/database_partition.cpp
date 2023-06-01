@@ -50,38 +50,6 @@ void DatabasePartition::finalizeBuild(const Dictionary& dict) {
          );
       }
    }
-
-   {  /// Precompute all bitmaps for countries
-      const uint32_t country_count = dict.getCountryCount();
-      std::vector<std::vector<uint32_t>> group_by_country(country_count);
-      for (uint32_t sid = 0; sid < sequenceCount; ++sid) {
-         const auto& country = meta_store.sequence_id_to_country[sid];
-         group_by_country[country].push_back(sid);
-      }
-
-      meta_store.country_bitmaps.resize(country_count);
-      for (uint32_t country = 0; country < country_count; ++country) {
-         meta_store.country_bitmaps[country].addMany(
-            group_by_country[country].size(), group_by_country[country].data()
-         );
-      }
-   }
-
-   {  /// Precompute all bitmaps for regions
-      const uint32_t region_count = dict.getRegionCount();
-      std::vector<std::vector<uint32_t>> group_by_region(region_count);
-      for (uint32_t sid = 0; sid < sequenceCount; ++sid) {
-         const auto& region = meta_store.sequence_id_to_region[sid];
-         group_by_region[region].push_back(sid);
-      }
-
-      meta_store.region_bitmaps.resize(region_count);
-      for (uint32_t region = 0; region < region_count; ++region) {
-         meta_store.region_bitmaps[region].addMany(
-            group_by_region[region].size(), group_by_region[region].data()
-         );
-      }
-   }
 }
 
 }  // namespace silo

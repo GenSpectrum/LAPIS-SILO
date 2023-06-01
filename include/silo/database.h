@@ -20,6 +20,10 @@ struct Partitions;
 
 }  // namespace preprocessing
 
+namespace config {
+class DatabaseConfig;
+}  // namespace config
+
 struct DatabaseInfo;
 struct DetailedDatabaseInfo;
 struct BitmapSizePerSymbol;
@@ -45,7 +49,8 @@ class Database {
    void build(
       const std::string& partition_name_prefix,
       const std::string& metadata_file_suffix,
-      const std::string& sequence_file_suffix
+      const std::string& sequence_file_suffix,
+      const silo::config::DatabaseConfig& database_config
    );
 
    virtual silo::DatabaseInfo getDatabaseInfo() const;

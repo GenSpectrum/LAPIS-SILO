@@ -13,9 +13,6 @@ class ConfigRepository {
    explicit ConfigRepository(const DatabaseConfigReader& reader = DatabaseConfigReader());
 
    virtual DatabaseConfig getValidatedConfig(const std::filesystem::path& path) const;
-   virtual std::string getPrimaryKey(const std::filesystem::path& path) const;
-   virtual DatabaseMetadata getMetadata(const std::filesystem::path& path, const std::string& name)
-      const;
 
   private:
    const DatabaseConfigReader& reader_;
