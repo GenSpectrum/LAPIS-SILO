@@ -9,15 +9,15 @@ namespace silo::query_engine::filter_expressions {
 
 False::False() = default;
 
-std::string False::toString(const silo::Database& database) {
+std::string False::toString(const silo::Database& /*database*/) {
    return "False";
 }
 
 std::unique_ptr<silo::query_engine::operators::Operator> False::compile(
-   const silo::Database& database,
+   const silo::Database& /*database*/,
    const silo::DatabasePartition& database_partition
 ) const {
-   return std::make_unique<operators::Empty>();
+   return std::make_unique<operators::Empty>(database_partition.sequenceCount);
 }
 
 }  // namespace silo::query_engine::filter_expressions

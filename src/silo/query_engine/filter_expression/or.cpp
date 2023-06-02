@@ -60,7 +60,7 @@ std::unique_ptr<operators::Operator> Or::compile(
       filtered_child_operators.push_back(std::move(child));
    }
    if (filtered_child_operators.empty()) {
-      return std::make_unique<operators::Empty>();
+      return std::make_unique<operators::Empty>(database_partition.sequenceCount);
    }
    if (filtered_child_operators.size() == 1) {
       return std::move(filtered_child_operators[0]);
@@ -75,7 +75,9 @@ std::unique_ptr<operators::Operator> Or::compile(
          std::move(filtered_child_operators), database_partition.sequenceCount
       );
    }
-   return std::make_unique<operators::Union>(std::move(filtered_child_operators));
+   return std::make_unique<operators::Union>(
+      std::move(filtered_child_operators), database_partition.sequenceCount
+   );
 }
 
 }  // namespace silo::query_engine::filter_expressions

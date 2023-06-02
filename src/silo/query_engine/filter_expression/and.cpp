@@ -62,7 +62,7 @@ std::tuple<OperatorVector, OperatorVector> And::compileChildren(
       }
       if (child->type() == operators::EMPTY) {
          OperatorVector empty;
-         empty.emplace_back(std::make_unique<operators::Empty>());
+         empty.emplace_back(std::make_unique<operators::Empty>(database_partition.sequenceCount));
          return {std::move(empty), OperatorVector()};
       }
       if (child->type() == operators::INTERSECTION) {
@@ -70,8 +70,7 @@ std::tuple<OperatorVector, OperatorVector> And::compileChildren(
          appendVectorToVector(intersection_child->children, non_negated_child_operators);
          appendVectorToVector(intersection_child->negated_children, negated_child_operators);
       } else if (child->type() == operators::COMPLEMENT) {
-         auto* negated_child = dynamic_cast<operators::Complement*>(child.get());
-         negated_child_operators.emplace_back(std::move(negated_child->child));
+         negated_child_operators.emplace_back(child->negate());
       } else {
          non_negated_child_operators.push_back(std::move(child));
       }
@@ -100,14 +99,17 @@ std::unique_ptr<operators::Operator> And::compile(
       );
    }
    if (non_negated_child_operators.empty()) {
-      std::unique_ptr<operators::Union> union_ret =
-         std::make_unique<operators::Union>(std::move(negated_child_operators));
+      std::unique_ptr<operators::Union> union_ret = std::make_unique<operators::Union>(
+         std::move(negated_child_operators), database_partition.sequenceCount
+      );
       return std::make_unique<operators::Complement>(
          std::move(union_ret), database_partition.sequenceCount
       );
    }
    return std::make_unique<operators::Intersection>(
-      std::move(non_negated_child_operators), std::move(negated_child_operators)
+      std::move(non_negated_child_operators),
+      std::move(negated_child_operators),
+      database_partition.sequenceCount
    );
 }
 

@@ -3,12 +3,14 @@
 #include <roaring/roaring.hh>
 #include <vector>
 
+#include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo::query_engine::operators {
 
-Union::Union(std::vector<std::unique_ptr<Operator>>&& children)
-    : children(std::move(children)) {}
+Union::Union(std::vector<std::unique_ptr<Operator>>&& children, uint32_t row_count)
+    : children(std::move(children)),
+      row_count(row_count) {}
 
 Union::~Union() noexcept = default;
 
@@ -38,6 +40,21 @@ OperatorResult Union::evaluate() const {
    auto* result =
       new roaring::Roaring(roaring::Roaring::fastunion(union_tmp.size(), union_tmp.data()));
    return OperatorResult(result);
+}
+
+std::unique_ptr<Operator> Union::copy() const {
+   std::vector<std::unique_ptr<Operator>> children_copy;
+   std::transform(
+      children.begin(),
+      children.end(),
+      std::back_inserter(children_copy),
+      [](const auto& child) { return child->copy(); }
+   );
+   return std::make_unique<Union>(std::move(children_copy), row_count);
+}
+
+std::unique_ptr<Operator> Union::negate() const {
+   return std::make_unique<Complement>(this->copy(), row_count);
 }
 
 }  // namespace silo::query_engine::operators

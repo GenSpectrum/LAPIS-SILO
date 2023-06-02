@@ -3,6 +3,7 @@
 #include <roaring/roaring.hh>
 #include <vector>
 
+#include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_compilation_exception.h"
 
@@ -13,13 +14,13 @@ Threshold::Threshold(
    std::vector<std::unique_ptr<Operator>>&& negated_children,
    unsigned int number_of_matchers,
    bool match_exactly,
-   unsigned sequence_count
+   uint32_t row_count
 )
     : non_negated_children(std::move(non_negated_children)),
       negated_children(std::move(negated_children)),
       number_of_matchers(number_of_matchers),
       match_exactly(match_exactly),
-      sequence_count(sequence_count) {
+      row_count(row_count) {
    if (number_of_matchers >= this->non_negated_children.size() + this->negated_children.size()) {
       throw silo::QueryCompilationException(
          "Compilation Error: number_of_matchers must be less than the number of children of a "
@@ -73,7 +74,7 @@ OperatorResult Threshold::evaluate() const {
    }
 
    if (non_negated_children.empty()) {
-      partition_bitmaps[0].flip(0, sequence_count);
+      partition_bitmaps[0].flip(0, row_count);
    }
 
    // NOLINTBEGIN(readability-identifier-length)
@@ -119,7 +120,7 @@ OperatorResult Threshold::evaluate() const {
       if (k - i > n - 1) {
          roaring::api::roaring_bitmap_or_inplace(
             &partition_bitmaps[0].roaring,
-            roaring::api::roaring_bitmap_flip(&bitmap->roaring, 0, sequence_count)
+            roaring::api::roaring_bitmap_flip(&bitmap->roaring, 0, row_count)
          );
       }
    }
@@ -133,6 +134,34 @@ OperatorResult Threshold::evaluate() const {
       )));
    }
    return OperatorResult(new roaring::Roaring(std::move(partition_bitmaps.back())));
+}
+
+std::unique_ptr<Operator> Threshold::copy() const {
+   std::vector<std::unique_ptr<Operator>> children_copy;
+   std::transform(
+      non_negated_children.begin(),
+      non_negated_children.end(),
+      std::back_inserter(children_copy),
+      [](const auto& child) { return child->copy(); }
+   );
+   std::vector<std::unique_ptr<Operator>> negated_children_copy;
+   std::transform(
+      negated_children.begin(),
+      negated_children.end(),
+      std::back_inserter(negated_children_copy),
+      [](const auto& child) { return child->copy(); }
+   );
+   return std::make_unique<Threshold>(
+      std::move(children_copy),
+      std::move(negated_children_copy),
+      number_of_matchers,
+      match_exactly,
+      row_count
+   );
+}
+
+std::unique_ptr<Operator> Threshold::negate() const {
+   return std::make_unique<Complement>(this->copy(), row_count);
 }
 
 }  // namespace silo::query_engine::operators

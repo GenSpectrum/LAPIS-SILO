@@ -25,20 +25,25 @@ std::unique_ptr<silo::query_engine::operators::Operator> StringEquals::compile(
       const roaring::Roaring& bitmap = string_column.filter(value);
 
       if (bitmap.isEmpty()) {
-         return std::make_unique<operators::Empty>();
+         return std::make_unique<operators::Empty>(database_partition.sequenceCount);
       }
-      return std::make_unique<operators::IndexScan>(new roaring::Roaring(bitmap));
+      return std::make_unique<operators::IndexScan>(
+         new roaring::Roaring(bitmap), database_partition.sequenceCount
+      );
    }
 
    if (database_partition.meta_store.raw_string_columns.contains(column)) {
       const auto& string_column = database_partition.meta_store.raw_string_columns.at(column);
 
       return std::make_unique<operators::Selection<std::string>>(
-         string_column.getValues(), operators::Selection<std::string>::EQUALS, value
+         string_column.getValues(),
+         operators::Selection<std::string>::EQUALS,
+         value,
+         database_partition.sequenceCount
       );
    }
 
-   return std::make_unique<operators::Empty>();
+   return std::make_unique<operators::Empty>(database_partition.sequenceCount);
 }
 
 }  // namespace silo::query_engine::filter_expressions

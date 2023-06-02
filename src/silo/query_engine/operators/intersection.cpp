@@ -1,9 +1,11 @@
 #include "silo/query_engine/operators/intersection.h"
 
 #include <spdlog/spdlog.h>
+#include <ranges>
 #include <roaring/roaring.hh>
 #include <vector>
 
+#include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_compilation_exception.h"
 
@@ -11,10 +13,12 @@ namespace silo::query_engine::operators {
 
 Intersection::Intersection(
    std::vector<std::unique_ptr<Operator>>&& children,
-   std::vector<std::unique_ptr<Operator>>&& negated_children
+   std::vector<std::unique_ptr<Operator>>&& negated_children,
+   uint32_t row_count
 )
     : children(std::move(children)),
-      negated_children(std::move(negated_children)) {
+      negated_children(std::move(negated_children)),
+      row_count(row_count) {
    if (this->children.empty()) {
       SPDLOG_ERROR(
          "Compilation bug: Intersection without non-negated children is not allowed. "
@@ -118,6 +122,30 @@ OperatorResult Intersection::evaluate() const {
       *result -= *neg_bm;
    }
    return result;
+}
+
+std::unique_ptr<Operator> Intersection::copy() const {
+   std::vector<std::unique_ptr<Operator>> children_copy;
+   std::transform(
+      children.begin(),
+      children.end(),
+      std::back_inserter(children_copy),
+      [](const auto& child) { return child->copy(); }
+   );
+   std::vector<std::unique_ptr<Operator>> negated_children_copy;
+   std::transform(
+      negated_children.begin(),
+      negated_children.end(),
+      std::back_inserter(negated_children_copy),
+      [](const auto& child) { return child->copy(); }
+   );
+   return std::make_unique<Intersection>(
+      std::move(children_copy), std::move(negated_children_copy), row_count
+   );
+}
+
+std::unique_ptr<Operator> Intersection::negate() const {
+   return std::make_unique<Complement>(this->copy(), row_count);
 }
 
 }  // namespace silo::query_engine::operators

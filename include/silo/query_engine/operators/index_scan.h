@@ -8,9 +8,10 @@ namespace silo::query_engine::operators {
 class IndexScan : public Operator {
   private:
    const roaring::Roaring* bitmap;
+   uint32_t row_count;
 
   public:
-   explicit IndexScan(const roaring::Roaring* bitmap);
+   explicit IndexScan(const roaring::Roaring* bitmap, uint32_t row_count);
 
    ~IndexScan() noexcept override;
 
@@ -19,6 +20,10 @@ class IndexScan : public Operator {
    virtual OperatorResult evaluate() const override;
 
    virtual std::string toString() const override;
+
+   virtual std::unique_ptr<Operator> copy() const override;
+
+   virtual std::unique_ptr<Operator> negate() const override;
 };
 
 }  // namespace silo::query_engine::operators

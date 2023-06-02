@@ -39,16 +39,20 @@ std::unique_ptr<operators::Operator> DateBetween::compile(
       children.emplace_back(std::make_unique<operators::Selection<time_t>>(
          date_column.getValues(),
          operators::Selection<time_t>::HIGHER_OR_EQUALS,
-         date_from.value_or(0)
+         date_from.value_or(0),
+         database_partition.sequenceCount
       ));
       children.emplace_back(std::make_unique<operators::Selection<time_t>>(
          date_column.getValues(),
          operators::Selection<time_t>::LESS,
-         date_to.value_or(std::numeric_limits<time_t>::max())
+         date_to.value_or(std::numeric_limits<time_t>::max()),
+         database_partition.sequenceCount
       ));
 
       return std::make_unique<operators::Intersection>(
-         std::move(children), std::vector<std::unique_ptr<operators::Operator>>()
+         std::move(children),
+         std::vector<std::unique_ptr<operators::Operator>>(),
+         database_partition.sequenceCount
       );
    }
 

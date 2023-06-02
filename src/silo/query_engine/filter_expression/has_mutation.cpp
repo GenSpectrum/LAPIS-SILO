@@ -29,7 +29,7 @@ std::unique_ptr<operators::Operator> HasMutation::compile(
       NUCLEOTIDE_SYMBOL::G,
       NUCLEOTIDE_SYMBOL::T,
    };
-   std::remove(symbols.begin(), symbols.end(), silo::toNucleotideSymbol(ref_symbol));
+   (void)std::remove(symbols.begin(), symbols.end(), silo::toNucleotideSymbol(ref_symbol));
    std::vector<std::unique_ptr<filter_expressions::Expression>> symbol_filters;
    std::transform(
       symbols.begin(),

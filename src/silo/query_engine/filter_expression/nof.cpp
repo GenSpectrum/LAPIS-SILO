@@ -58,9 +58,7 @@ NOf::mapChildExpressions(
       if (child_operator->type() == operators::FULL) {
          updated_number_of_matchers--;
       } else if (child_operator->type() == operators::COMPLEMENT) {
-         negated_child_operators.emplace_back(
-            std::move(dynamic_cast<operators::Complement*>(child_operator.get())->child)
-         );
+         negated_child_operators.emplace_back(child_operator->negate());
       } else {
          non_negated_child_operators.push_back(std::move(child_operator));
       }
@@ -87,11 +85,11 @@ std::unique_ptr<silo::query_engine::operators::Operator> handleTrivialCases(
       static_cast<int>(non_negated_child_operators.size() + negated_child_operators.size());
 
    if (updated_number_of_matchers > child_operator_count) {
-      return std::make_unique<operators::Empty>();
+      return std::make_unique<operators::Empty>(database_partition.sequenceCount);
    }
    if (updated_number_of_matchers < 0) {
       if (match_exactly) {
-         return std::make_unique<operators::Empty>();
+         return std::make_unique<operators::Empty>(database_partition.sequenceCount);
       }
       return std::make_unique<operators::Full>(database_partition.sequenceCount);
    }
@@ -114,14 +112,17 @@ std::unique_ptr<silo::query_engine::operators::Operator> handleTrivialCases(
       /// To negate entire result Not(Union) => Intersection(Not(Non-negated),Not(Negated))
       /// equiv: Intersection(Negated, Non-Negated) or Not(Union(Non-negated)), if negated empty
       if (negated_child_operators.empty()) {
-         auto union_ret =
-            std::make_unique<operators::Union>(std::move(non_negated_child_operators));
+         auto union_ret = std::make_unique<operators::Union>(
+            std::move(non_negated_child_operators), database_partition.sequenceCount
+         );
          return std::make_unique<operators::Complement>(
             std::move(union_ret), database_partition.sequenceCount
          );
       }
       return std::make_unique<operators::Intersection>(
-         std::move(negated_child_operators), std::move(non_negated_child_operators)
+         std::move(negated_child_operators),
+         std::move(non_negated_child_operators),
+         database_partition.sequenceCount
       );
    }
    if (updated_number_of_matchers == 1 && child_operator_count == 1) {
@@ -142,14 +143,17 @@ std::unique_ptr<operators::Operator> handleAndCase(
    std::vector<std::unique_ptr<operators::Operator>>& negated_child_operators
 ) {
    if (non_negated_child_operators.empty()) {
-      std::unique_ptr<operators::Union> union_ret =
-         std::make_unique<operators::Union>(std::move(negated_child_operators));
+      std::unique_ptr<operators::Union> union_ret = std::make_unique<operators::Union>(
+         std::move(negated_child_operators), database_partition.sequenceCount
+      );
       return std::make_unique<operators::Complement>(
          std::move(union_ret), database_partition.sequenceCount
       );
    }
    return std::make_unique<operators::Intersection>(
-      std::move(non_negated_child_operators), std::move(negated_child_operators)
+      std::move(non_negated_child_operators),
+      std::move(negated_child_operators),
+      database_partition.sequenceCount
    );
 }
 
@@ -160,12 +164,16 @@ std::unique_ptr<operators::Operator> handleOrCase(
    std::vector<std::unique_ptr<operators::Operator>>& negated_child_operators
 ) {
    if (negated_child_operators.empty()) {
-      return std::make_unique<operators::Union>(std::move(non_negated_child_operators));
+      return std::make_unique<operators::Union>(
+         std::move(non_negated_child_operators), database_partition.sequenceCount
+      );
    }
    /// De'Morgan if at least one negated
    std::unique_ptr<operators::Intersection> intersection_ret =
       std::make_unique<operators::Intersection>(
-         std::move(negated_child_operators), std::move(non_negated_child_operators)
+         std::move(negated_child_operators),
+         std::move(non_negated_child_operators),
+         database_partition.sequenceCount
       );
    return std::make_unique<operators::Complement>(
       std::move(intersection_ret), database_partition.sequenceCount

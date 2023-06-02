@@ -16,9 +16,15 @@ class Selection : public Operator {
    const std::vector<T>& column;
    Comparator comparator;
    T value;
+   uint32_t row_count;
 
   public:
-   explicit Selection(const std::vector<T>& column, Comparator comparator, T value);
+   explicit Selection(
+      const std::vector<T>& column,
+      Comparator comparator,
+      T value,
+      uint32_t row_count
+   );
 
    ~Selection() noexcept override;
 
@@ -28,7 +34,9 @@ class Selection : public Operator {
 
    virtual std::string toString() const override;
 
-   virtual void negate();
+   virtual std::unique_ptr<Operator> copy() const override;
+
+   virtual std::unique_ptr<Operator> negate() const override;
 };
 
 }  // namespace silo::query_engine::operators

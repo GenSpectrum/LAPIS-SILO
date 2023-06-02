@@ -15,20 +15,15 @@ class NOf;
 namespace silo::query_engine::operators {
 
 class Complement : public Operator {
-   friend class silo::query_engine::filter_expressions::And;
-   friend class silo::query_engine::filter_expressions::Or;
-   friend class silo::query_engine::filter_expressions::Negation;
-   friend class silo::query_engine::filter_expressions::NOf;
-
    std::unique_ptr<Operator> child;
-   uint32_t sequence_count;
+   uint32_t row_count;
 
   public:
-   explicit Complement(std::unique_ptr<Operator> child, uint32_t sequence_count);
+   explicit Complement(std::unique_ptr<Operator> child, uint32_t row_count);
 
    static std::unique_ptr<Complement> fromDeMorgan(
       std::vector<std::unique_ptr<Operator>> disjunction,
-      uint32_t sequence_count
+      uint32_t row_count
    );
 
    ~Complement() noexcept override;
@@ -38,6 +33,10 @@ class Complement : public Operator {
    virtual OperatorResult evaluate() const override;
 
    virtual std::string toString() const override;
+
+   virtual std::unique_ptr<Operator> copy() const override;
+
+   virtual std::unique_ptr<Operator> negate() const override;
 };
 
 }  // namespace silo::query_engine::operators

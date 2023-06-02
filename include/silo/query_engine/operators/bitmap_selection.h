@@ -11,15 +11,15 @@ class BitmapSelection : public Operator {
 
   private:
    const roaring::Roaring* bitmaps;
-   unsigned sequence_count;
+   uint32_t row_count;
    Predicate comparator;
    uint32_t value;
 
   public:
    explicit BitmapSelection(
       const roaring::Roaring* bitmaps,
-      unsigned sequence_count,
-      Predicate predicate,
+      uint32_t row_count,
+      Predicate comparator,
       uint32_t value
    );
 
@@ -31,7 +31,9 @@ class BitmapSelection : public Operator {
 
    virtual std::string toString() const override;
 
-   virtual void negate();
+   virtual std::unique_ptr<Operator> copy() const override;
+
+   virtual std::unique_ptr<Operator> negate() const override;
 };
 
 }  // namespace silo::query_engine::operators
