@@ -2,6 +2,7 @@
 #define SILO_AND_H
 
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
 
@@ -16,7 +17,11 @@ struct And : public Expression {
    std::tuple<
       std::vector<std::unique_ptr<operators::Operator>>,
       std::vector<std::unique_ptr<operators::Operator>>>
-   compileChildren(const Database& database, const DatabasePartition& database_partition) const;
+   compileChildren(
+      const Database& database,
+      const DatabasePartition& database_partition,
+      AmbiguityMode mode
+   ) const;
 
   public:
    explicit And(std::vector<std::unique_ptr<Expression>>&& children);
@@ -25,9 +30,13 @@ struct And : public Expression {
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::operators::Operator> compile(
       const Database& database,
-      const DatabasePartition& database_partition
+      const DatabasePartition& database_partition,
+      AmbiguityMode mode
    ) const override;
 };
+
+// NOLINTNEXTLINE(readability-identifier-naming)
+void from_json(const nlohmann::json& json, std::unique_ptr<And>& filter);
 
 }  // namespace silo::query_engine::filter_expressions
 

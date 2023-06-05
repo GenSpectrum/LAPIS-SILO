@@ -1,11 +1,11 @@
 #include "silo/query_engine/filter_expressions/date_between.h"
 
 #include "silo/query_engine/filter_expressions/expression.h"
-#include "silo/query_engine/operators/range_selection.h"
-
 #include "silo/query_engine/operators/intersection.h"
 #include "silo/query_engine/operators/operator.h"
+#include "silo/query_engine/operators/range_selection.h"
 #include "silo/query_engine/operators/selection.h"
+#include "silo/query_engine/query_parse_exception.h"
 #include "silo/storage/database_partition.h"
 
 namespace silo::query_engine::filter_expressions {
@@ -30,7 +30,8 @@ std::string DateBetween::toString(const silo::Database& /*database*/) {
 
 std::unique_ptr<operators::Operator> DateBetween::compile(
    const silo::Database& /*database*/,
-   const silo::DatabasePartition& database_partition
+   const silo::DatabasePartition& database_partition,
+   AmbiguityMode /*mode*/
 ) const {
    const auto& date_column = database_partition.meta_store.date_columns.at(column);
 
@@ -81,6 +82,27 @@ std::vector<silo::query_engine::operators::RangeSelection::Range> DateBetween::
       ranges.emplace_back(lower_index, upper_index);
    }
    return ranges;
+}
+
+void from_json(const nlohmann::json& json, std::unique_ptr<DateBetween>& filter) {
+   const std::string& column = json["column"];
+   std::optional<time_t> date_from;
+   if (json["from"].type() == nlohmann::detail::value_t::string) {
+      struct std::tm time_object {};
+      const std::string date_string = json["from"];
+      std::istringstream date_from_stream(date_string);
+      date_from_stream >> std::get_time(&time_object, "%Y-%m-%d");
+      date_from = mktime(&time_object);
+   }
+   std::optional<time_t> date_to;
+   if (json["to"].type() == nlohmann::detail::value_t::string) {
+      struct std::tm time_object {};
+      const std::string date_string = json["to"];
+      std::istringstream date_to_stream(date_string);
+      date_to_stream >> std::get_time(&time_object, "%Y-%m-%d");
+      date_to = mktime(&time_object);
+   }
+   filter = std::make_unique<DateBetween>(column, date_from, date_to);
 }
 
 }  // namespace silo::query_engine::filter_expressions

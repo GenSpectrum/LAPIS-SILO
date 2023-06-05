@@ -96,7 +96,7 @@ TEST_F(RequestHandlerTestFixture, returnsMethodNotAllowedOnPostInfoRequest) {
 }
 
 static const silo::response::QueryResult QUERY_RESULT =
-   silo::response::QueryResult{silo::response::AggregationResult{5}, 1, 2, 3};
+   silo::response::QueryResult{{silo::response::AggregationResult{5}}, 1, 2, 3};
 
 TEST_F(RequestHandlerTestFixture, handlesPostQueryRequest) {
    EXPECT_CALL(mock_query_engine, executeQuery).WillRepeatedly(testing::Return(QUERY_RESULT));

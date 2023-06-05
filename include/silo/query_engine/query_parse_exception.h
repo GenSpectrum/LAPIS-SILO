@@ -4,6 +4,11 @@
 #include <iostream>
 #include <string>
 
+#define CHECK_SILO_QUERY(condition, message)    \
+   if (!(condition)) {                          \
+      throw silo::QueryParseException(message); \
+   }
+
 namespace silo {
 
 class [[maybe_unused]] QueryParseException : public std::runtime_error {

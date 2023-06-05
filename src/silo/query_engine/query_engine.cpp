@@ -7,21 +7,14 @@
 
 // query_parse_exception.h must be before the RAPIDJSON_ASSERT because it is used there
 #include "silo/query_engine/query_parse_exception.h"
-// Do not remove the next line. It overwrites the rapidjson abort, so it can throw an exception and
-// does not abort.
-#define RAPIDJSON_ASSERT(x)                                                    \
-   if (!(x))                                                                   \
-   throw silo::QueryParseException(                                            \
-      "The query was not a valid JSON: " + std::string(RAPIDJSON_STRINGIFY(x)) \
-   )
-#include <rapidjson/document.h>
+
 #include <spdlog/spdlog.h>
+#include <nlohmann/json.hpp>
 
 #include "silo/common/block_timer.h"
 #include "silo/common/log.h"
 #include "silo/database.h"
 #include "silo/query_engine/filter_expressions/expression.h"
-#include "silo/query_engine/parser.h"
 #include "silo/query_engine/query_result.h"
 
 #define CHECK_SILO_QUERY(condition, message)    \
@@ -40,20 +33,20 @@ QueryEngine::QueryEngine(const silo::Database& database)
 // TODO(someone): reduce cognitive complexity
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 response::QueryResult QueryEngine::executeQuery(const std::string& query) const {
-   rapidjson::Document json_document;
-   json_document.Parse(query.c_str());
-   if (!json_document.HasMember("filterExpression") || !json_document["filterExpression"].IsObject() ||
-       !json_document.HasMember("action") || !json_document["action"].IsObject()) {
+   nlohmann::json json = nlohmann::json::parse(query);
+   if (!json.contains("filterExpression") || !json["filterExpression"].is_object() ||
+       !json.contains("action") || !json["action"].is_object()) {
       throw QueryParseException("Query json must contain filterExpression and action.");
    }
 
    std::vector<std::string> compiled_queries(database.partitions.size());
 
    response::QueryResult query_result;
-   std::unique_ptr<filters::Expression> filter;
+   std::unique_ptr<silo::query_engine::filter_expressions::Expression> filter;
    {
       BlockTimer const timer(query_result.parse_time);
-      filter = query_engine::parseExpression(database, json_document["filterExpression"], 0);
+      filter = json["filterExpression"]
+                  .get<std::unique_ptr<silo::query_engine::filter_expressions::Expression>>();
       SPDLOG_DEBUG("Parsed query: {}", filter->toString(database));
    }
 
@@ -64,8 +57,9 @@ response::QueryResult QueryEngine::executeQuery(const std::string& query) const 
       BlockTimer const timer(query_result.filter_time);
       tbb::blocked_range<size_t> const range(0, database.partitions.size(), 1);
       tbb::parallel_for(range.begin(), range.end(), [&](const size_t& partition_index) {
-         std::unique_ptr<operators::Operator> part_filter =
-            filter->compile(database, database.partitions[partition_index]);
+         std::unique_ptr<operators::Operator> part_filter = filter->compile(
+            database, database.partitions[partition_index], filters::Expression::AmbiguityMode::NONE
+         );
          compiled_queries[partition_index] = part_filter->toString();
          partition_filters[partition_index] = part_filter->evaluate();
       });
@@ -77,32 +71,32 @@ response::QueryResult QueryEngine::executeQuery(const std::string& query) const 
 
    {
       BlockTimer const timer(query_result.action_time);
-      const auto& action = json_document["action"];
+      const auto& action = json["action"];
       CHECK_SILO_QUERY(
-         action.HasMember("type"), "The field 'type' is required on a SILO query action"
+         action.contains("type"), "The field 'type' is required on a SILO query action"
       )
       CHECK_SILO_QUERY(
-         action["type"].IsString(), "The field 'type' in a SILO query action needs to be a string"
+         action["type"].is_string(), "The field 'type' in a SILO query action needs to be a string"
       )
-      const auto& action_type = action["type"].GetString();
+      const std::string& action_type = action["type"];
 
-      if (action.HasMember("groupByFields")) {
+      if (action.contains("groupByFields")) {
          CHECK_SILO_QUERY(
-            action["groupByFields"].IsArray(),
+            action["groupByFields"].is_array(),
             "The field 'type' in a SILO query action needs to be a string"
          )
          std::vector<std::string> group_by_fields;
-         for (const auto& field : action["groupByFields"].GetArray()) {
-            group_by_fields.emplace_back(field.GetString());
+         for (const auto& field : action["groupByFields"]) {
+            group_by_fields.emplace_back(field);
          }
 
-         if (strcmp(action_type, "Aggregated") == 0) {
+         if (action_type == "Aggregated") {
             query_result.query_result =
                response::ErrorResult{"groupByFields::Aggregated is not properly implemented yet"};
-         } else if (strcmp(action_type, "List") == 0) {
+         } else if (action_type == "List") {
             query_result.query_result =
                response::ErrorResult{"groupByFields::List is not properly implemented yet"};
-         } else if (strcmp(action_type, "Mutations") == 0) {
+         } else if (action_type == "Mutations") {
             query_result.query_result =
                response::ErrorResult{"groupByFields::Mutations is not properly implemented yet"};
          } else {
@@ -111,19 +105,19 @@ response::QueryResult QueryEngine::executeQuery(const std::string& query) const 
          }
 
       } else {
-         if (strcmp(action_type, "Aggregated") == 0) {
+         if (action_type == "Aggregated") {
             const unsigned count = executeCount(database, partition_filters);
             query_result.query_result = response::AggregationResult{count};
-         } else if (strcmp(action_type, "List") == 0) {
-         } else if (strcmp(action_type, "Mutations") == 0) {
+         } else if (action_type == "List") {
+         } else if (action_type == "Mutations") {
             double min_proportion = DEFAULT_MINIMAL_PROPORTION;
-            if (action.HasMember("minProportion") && action["minProportion"].IsDouble()) {
-               if (action["minProportion"].GetDouble() <= 0.0) {
+            if (action.contains("minProportion") && action["minProportion"].is_number_float()) {
+               if (action["minProportion"].get<double>() <= 0.0) {
                   query_result.query_result = response::ErrorResult{
                      "Invalid proportion", "minProportion must be in interval (0.0,1.0]"};
                   return query_result;
                }
-               min_proportion = action["minProportion"].GetDouble();
+               min_proportion = action["minProportion"];
             }
             std::vector<MutationProportion> mutations =
                executeMutations(database, partition_filters, min_proportion);

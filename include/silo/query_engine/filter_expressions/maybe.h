@@ -1,5 +1,5 @@
-#ifndef SILO_FALSE_H
-#define SILO_FALSE_H
+#ifndef SILO_MAYBE_H
+#define SILO_MAYBE_H
 
 #include <memory>
 #include <string>
@@ -8,8 +8,10 @@
 
 namespace silo::query_engine::filter_expressions {
 
-struct False : public Expression {
-   explicit False();
+struct Maybe : public Expression {
+   std::unique_ptr<Expression> child;
+
+   explicit Maybe(std::unique_ptr<Expression> child);
 
    std::string toString(const Database& database) override;
 
@@ -21,8 +23,8 @@ struct False : public Expression {
 };
 
 // NOLINTNEXTLINE(invalid-case-style)
-void from_json(const nlohmann::json& json, std::unique_ptr<False>& filter);
+void from_json(const nlohmann::json& json, std::unique_ptr<Maybe>& filter);
 
 }  // namespace silo::query_engine::filter_expressions
 
-#endif  // SILO_FALSE_H
+#endif  // SILO_MAYBE_H

@@ -8,6 +8,7 @@
 #include "silo/query_engine/operators/intersection.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/operators/union.h"
+#include "silo/query_engine/query_parse_exception.h"
 #include "silo/storage/database_partition.h"
 
 namespace silo::query_engine::filter_expressions {
@@ -43,15 +44,16 @@ void inline appendVectorToVector(OperatorVector& vec_1, OperatorVector& vec_2) {
 
 std::tuple<OperatorVector, OperatorVector> And::compileChildren(
    const Database& database,
-   const DatabasePartition& database_partition
+   const DatabasePartition& database_partition,
+   AmbiguityMode mode
 ) const {
    OperatorVector all_child_operators;
    std::transform(
       children.begin(),
       children.end(),
       std::back_inserter(all_child_operators),
-      [&database, &database_partition](const std::unique_ptr<Expression>& expression) {
-         return expression->compile(database, database_partition);
+      [&](const std::unique_ptr<Expression>& expression) {
+         return expression->compile(database, database_partition, mode);
       }
    );
    OperatorVector non_negated_child_operators;
@@ -80,12 +82,13 @@ std::tuple<OperatorVector, OperatorVector> And::compileChildren(
 
 std::unique_ptr<operators::Operator> And::compile(
    const Database& database,
-   const DatabasePartition& database_partition
+   const DatabasePartition& database_partition,
+   AmbiguityMode mode
 ) const {
    OperatorVector non_negated_child_operators;
    OperatorVector negated_child_operators;
    std::tie(non_negated_child_operators, negated_child_operators) =
-      compileChildren(database, database_partition);
+      compileChildren(database, database_partition, mode);
 
    if (non_negated_child_operators.empty() && negated_child_operators.empty()) {
       return std::make_unique<operators::Full>(database_partition.sequenceCount);
@@ -111,6 +114,17 @@ std::unique_ptr<operators::Operator> And::compile(
       std::move(negated_child_operators),
       database_partition.sequenceCount
    );
+}
+
+void from_json(const nlohmann::json& json, std::unique_ptr<And>& filter) {
+   CHECK_SILO_QUERY(
+      json.contains("children"), "The field 'children' is required in an And expression"
+   )
+   CHECK_SILO_QUERY(
+      json["children"].is_array(), "The field 'children' in an And expression needs to be an array"
+   )
+   auto children = json.at("children").get<std::vector<std::unique_ptr<Expression>>>();
+   filter = std::make_unique<And>(std::move(children));
 }
 
 }  // namespace silo::query_engine::filter_expressions
