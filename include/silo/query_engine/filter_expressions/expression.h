@@ -33,8 +33,6 @@ struct Expression {
 // NOLINTNEXTLINE(invalid-case-style)
 void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter);
 
-void from_json(const nlohmann::json& json, std::vector<std::unique_ptr<Expression>>& filter);
-
 std::unique_ptr<Expression> parse(const nlohmann::json& json);
 
 Expression::AmbiguityMode invertMode(Expression::AmbiguityMode mode);

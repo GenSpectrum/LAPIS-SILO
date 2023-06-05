@@ -40,7 +40,7 @@ describe('The /query endpoint', () => {
       .expect('Content-Type', 'application/json')
       .expect({
         error: 'Bad request',
-        message: 'The query was not a valid JSON: IsObject()',
+        message: 'The query was not a valid JSON: parse_error',
       })
       .end(done);
   });

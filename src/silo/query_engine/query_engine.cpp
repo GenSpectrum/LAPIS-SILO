@@ -33,7 +33,16 @@ QueryEngine::QueryEngine(const silo::Database& database)
 // TODO(someone): reduce cognitive complexity
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 response::QueryResult QueryEngine::executeQuery(const std::string& query) const {
-   nlohmann::json json = nlohmann::json::parse(query);
+   nlohmann::json json;
+   try {
+      json = nlohmann::json::parse(query);
+   } catch (QueryParseException qe) {
+      throw qe;
+   } catch (const nlohmann::json::parse_error& ex) {
+      throw QueryParseException("The query was not a valid JSON: parse_error");
+   } catch (const nlohmann::json::exception& ex) {
+      throw QueryParseException("The query was not a valid JSON: " + std::string(ex.what()));
+   }
    if (!json.contains("filterExpression") || !json["filterExpression"].is_object() ||
        !json.contains("action") || !json["action"].is_object()) {
       throw QueryParseException("Query json must contain filterExpression and action.");

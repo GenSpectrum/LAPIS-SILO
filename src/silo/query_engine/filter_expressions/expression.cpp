@@ -62,11 +62,10 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) 
       filter = json.get<std::unique_ptr<Maybe>>();
    } else if (expression_type == "Exact") {
       filter = json.get<std::unique_ptr<Exact>>();
+   } else {
+      throw QueryParseException("Unknown object filter type '" + expression_type + "'");
    }
-   throw QueryParseException("Unknown object filter type '" + expression_type + "'");
 }
-
-void from_json(const nlohmann::json& json, std::vector<std::unique_ptr<Expression>>& filter) {}
 
 std::unique_ptr<Expression> parse(const nlohmann::json& json) {
    return json.get<std::unique_ptr<Expression>>();
