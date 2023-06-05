@@ -1,4 +1,4 @@
-#include "silo/query_engine/filter_expressions/pango_lineage.h"
+#include "silo/query_engine/filter_expressions/pango_lineage_filter.h"
 
 #include "silo/database.h"
 #include "silo/query_engine/operators/empty.h"
@@ -7,11 +7,11 @@
 
 namespace silo::query_engine::filter_expressions {
 
-PangoLineage::PangoLineage(std::string lineage, bool include_sublineages)
+PangoLineageFilter::PangoLineageFilter(std::string lineage, bool include_sublineages)
     : lineage(std::move(lineage)),
       include_sublineages(include_sublineages) {}
 
-std::string PangoLineage::toString(const silo::Database& /*database*/) {
+std::string PangoLineageFilter::toString(const silo::Database& /*database*/) {
    std::string res = lineage;
    if (include_sublineages) {
       res += "*";
@@ -19,15 +19,13 @@ std::string PangoLineage::toString(const silo::Database& /*database*/) {
    return res;
 }
 
-std::unique_ptr<silo::query_engine::operators::Operator> PangoLineage::compile(
+std::unique_ptr<silo::query_engine::operators::Operator> PangoLineageFilter::compile(
    const silo::Database& database,
    const silo::DatabasePartition& database_partition
 ) const {
-   std::string resolved_lineage = lineage;
-   std::transform(
-      resolved_lineage.begin(), resolved_lineage.end(), resolved_lineage.begin(), ::toupper
-   );
-   resolved_lineage = database.getAliasKey().resolvePangoLineageAlias(resolved_lineage);
+   std::string lineage_copy = lineage;
+   std::transform(lineage_copy.begin(), lineage_copy.end(), lineage_copy.begin(), ::toupper);
+   const auto resolved_lineage = database.getAliasKey().resolvePangoLineageAlias(lineage_copy);
    const std::optional<uint32_t> lineage_key =
       database.dict->getPangoLineageIdInLookup(resolved_lineage);
    if (!lineage_key.has_value()) {

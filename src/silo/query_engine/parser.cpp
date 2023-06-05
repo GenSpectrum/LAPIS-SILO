@@ -14,19 +14,19 @@
       "The query was not a valid JSON: " + std::string(RAPIDJSON_STRINGIFY(x)) \
    )
 #include <rapidjson/document.h>
-#include <silo/query_engine/filter_expressions/has_mutation.h>
 
 #include "silo/database.h"
 #include "silo/query_engine/filter_expressions/and.h"
 #include "silo/query_engine/filter_expressions/date_between.h"
 #include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/filter_expressions/false.h"
+#include "silo/query_engine/filter_expressions/has_mutation.h"
 #include "silo/query_engine/filter_expressions/negation.h"
 #include "silo/query_engine/filter_expressions/nof.h"
 #include "silo/query_engine/filter_expressions/nucleotide_symbol_equals.h"
 #include "silo/query_engine/filter_expressions/nucleotide_symbol_maybe.h"
 #include "silo/query_engine/filter_expressions/or.h"
-#include "silo/query_engine/filter_expressions/pango_lineage.h"
+#include "silo/query_engine/filter_expressions/pango_lineage_filter.h"
 #include "silo/query_engine/filter_expressions/string_equals.h"
 #include "silo/query_engine/filter_expressions/true.h"
 
@@ -204,7 +204,7 @@ std::unique_ptr<filters::Expression> parseExpression(
          json_value.HasMember("value"), "The field 'value' is required in a PangoLineage expression"
       )
       const std::string& lineage = json_value["value"].GetString();
-      return std::make_unique<filters::PangoLineage>(lineage, include_sublineages);
+      return std::make_unique<filters::PangoLineageFilter>(lineage, include_sublineages);
    }
    if (expression_type == "StringEquals") {
       const std::string& column = json_value["column"].GetString();

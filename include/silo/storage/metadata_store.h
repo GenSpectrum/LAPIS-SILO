@@ -31,10 +31,6 @@ struct MetadataStore {
       archive& raw_string_columns;
       archive& indexed_string_columns;
       archive& date_columns;
-
-      archive& sequence_id_to_lineage;
-      archive& lineage_bitmaps;
-      archive& sublineage_bitmaps;
    }
 
    std::unordered_map<std::string, storage::column::RawStringColumn> raw_string_columns;
