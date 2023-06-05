@@ -36,8 +36,6 @@ class DatabasePartition {
    unsigned sequenceCount;
 
    [[nodiscard]] const std::vector<silo::preprocessing::Chunk>& getChunks() const;
-
-   void finalizeBuild(const Dictionary& dict);
 };
 
 }  // namespace silo

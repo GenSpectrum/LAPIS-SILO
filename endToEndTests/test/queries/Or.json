@@ -9,11 +9,13 @@
       "children": [
         {
           "type": "PangoLineage",
+          "column": "pango_lineage",
           "value": "B.1.1.7",
           "includeSublineages": false
         },
         {
           "type": "PangoLineage",
+          "column": "pango_lineage",
           "value": "B.1.1.7",
           "includeSublineages": true
         }
@@ -21,6 +23,6 @@
     }
   },
   "expectedQueryResult": {
-    "count": 52
+    "count": 51
   }
 }

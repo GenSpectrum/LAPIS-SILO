@@ -1,3 +1,5 @@
+#include <utility>
+
 #include "silo/query_engine/filter_expressions/pango_lineage_filter.h"
 
 #include "silo/database.h"
@@ -7,8 +9,13 @@
 
 namespace silo::query_engine::filter_expressions {
 
-PangoLineageFilter::PangoLineageFilter(std::string lineage, bool include_sublineages)
-    : lineage(std::move(lineage)),
+PangoLineageFilter::PangoLineageFilter(
+   std::string column,
+   std::string lineage,
+   bool include_sublineages
+)
+    : column(std::move(column)),
+      lineage(std::move(lineage)),
       include_sublineages(include_sublineages) {}
 
 std::string PangoLineageFilter::toString(const silo::Database& /*database*/) {
@@ -23,22 +30,21 @@ std::unique_ptr<silo::query_engine::operators::Operator> PangoLineageFilter::com
    const silo::Database& database,
    const silo::DatabasePartition& database_partition
 ) const {
+   if (!database_partition.meta_store.pango_lineage_columns.contains(column)) {
+      return std::make_unique<operators::Empty>();
+   }
+
    std::string lineage_copy = lineage;
    std::transform(lineage_copy.begin(), lineage_copy.end(), lineage_copy.begin(), ::toupper);
    const auto resolved_lineage = database.getAliasKey().resolvePangoLineageAlias(lineage_copy);
-   const std::optional<uint32_t> lineage_key =
-      database.dict->getPangoLineageIdInLookup(resolved_lineage);
-   if (!lineage_key.has_value()) {
-      return std::make_unique<operators::Empty>();
-   }
-   if (include_sublineages) {
-      return std::make_unique<operators::IndexScan>(
-         &database_partition.meta_store.sublineage_bitmaps[lineage_key.value()]
-      );
-   }
-   return std::make_unique<operators::IndexScan>(
-      &database_partition.meta_store.lineage_bitmaps[lineage_key.value()]
-   );
+
+   const auto& pango_lineage_column =
+      database_partition.meta_store.pango_lineage_columns.at(column);
+   const auto& bitmap = include_sublineages
+                           ? pango_lineage_column.filterIncludingSublineages({resolved_lineage})
+                           : pango_lineage_column.filter({resolved_lineage});
+
+   return std::make_unique<operators::IndexScan>(new roaring::Roaring(bitmap));
 }
 
 }  // namespace silo::query_engine::filter_expressions

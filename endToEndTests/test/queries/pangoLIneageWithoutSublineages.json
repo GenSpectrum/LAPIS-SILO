@@ -6,6 +6,7 @@
     },
     "filterExpression": {
       "type": "PangoLineage",
+      "column": "pango_lineage",
       "value": "B.1.1.7",
       "includeSublineages": false
     }

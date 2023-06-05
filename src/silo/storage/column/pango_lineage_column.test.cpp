@@ -33,3 +33,15 @@ TEST(PangoLineageColumn, addingSublineageAndThenLineageFiltersCorrectly) {
    EXPECT_EQ(under_test.filter({"A.1.2.3"}), roaring::Roaring({0, 1, 4}));
    EXPECT_EQ(under_test.filterIncludingSublineages({"A.1.2.3"}), roaring::Roaring({0, 1, 4}));
 }
+
+TEST(PangoLineageColumn, queryParentLineageThatWasNeverInserted) {
+   silo::storage::column::PangoLineageColumn under_test;
+
+   under_test.insert({"A.1.2.3"});
+   under_test.insert({"A.1.2.3"});
+   under_test.insert({"A.2"});
+   under_test.insert({"A.1.2"});
+
+   EXPECT_EQ(under_test.filter({"A.1"}), roaring::Roaring());
+   EXPECT_EQ(under_test.filterIncludingSublineages({"A.1"}), roaring::Roaring({0, 1, 3}));
+}

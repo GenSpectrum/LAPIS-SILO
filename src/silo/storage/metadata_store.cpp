@@ -4,7 +4,6 @@
 
 #include "silo/config/database_config.h"
 #include "silo/preprocessing/metadata.h"
-#include "silo/storage/dictionary.h"
 #include "silo/storage/pango_lineage_alias.h"
 
 namespace silo {
@@ -19,7 +18,6 @@ std::time_t mapToTime(const std::string& value) {
 unsigned MetadataStore::fill(
    const std::filesystem::path& input_file,
    const PangoLineageAliasLookup& alias_key,
-   const Dictionary& dict,
    const silo::config::DatabaseConfig& database_config
 ) {
    auto metadata_reader = silo::preprocessing::MetadataReader::getReader(input_file);
@@ -41,11 +39,8 @@ unsigned MetadataStore::fill(
                raw_string_columns.at(item.name).insert(value);
             }
          } else if (item.type == silo::config::DatabaseMetadataType::PANGOLINEAGE) {
-            // TODO extend for pango lineages
             const std::string pango_lineage = alias_key.resolvePangoLineageAlias(value);
-            sequence_id_to_lineage.push_back(
-               dict.getPangoLineageIdInLookup(pango_lineage).value_or(0)
-            );
+            pango_lineage_columns.at(item.name).insert({pango_lineage});
          } else if (item.type == silo::config::DatabaseMetadataType::DATE) {
             date_columns.at(item.name).insert(mapToTime(value));
          }
@@ -68,11 +63,11 @@ void MetadataStore::initializeColumns(
             this->raw_string_columns[item.name] = storage::column::RawStringColumn();
          }
       } else if (item.type == config::DatabaseMetadataType::PANGOLINEAGE) {
-         // TODO extend for pango lineages
+         pango_lineage_columns.emplace(item.name, storage::column::PangoLineageColumn());
       } else if (item.type == config::DatabaseMetadataType::DATE) {
          date_columns.emplace(
             item.name,
-            // TODO make this configurable
+            // TODO(#114) make this configurable
             item.name == "date" ? storage::column::DateColumn(true)
                                 : storage::column::DateColumn(false)
          );

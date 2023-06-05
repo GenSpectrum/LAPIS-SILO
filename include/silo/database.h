@@ -56,7 +56,6 @@ class Database {
    virtual silo::DatabaseInfo getDatabaseInfo() const;
 
    virtual DetailedDatabaseInfo detailedDatabaseInfo() const;
-   void finalizeBuild();
 
    [[maybe_unused]] void flipBitmaps();
 

@@ -122,7 +122,7 @@ void silo::Database::build(
                   partitions[partition_index].seq_store.fill(sequence_input);
                unsigned const metadata_store_sequence_count =
                   partitions[partition_index].meta_store.fill(
-                     metadata_file, alias_key, *dict, database_config
+                     metadata_file, alias_key, database_config
                   );
                if (sequence_store_sequence_count != metadata_store_sequence_count) {
                   throw silo::PreprocessingException(
@@ -142,20 +142,6 @@ void silo::Database::build(
 
    SPDLOG_INFO("Build took {} ms", micros);
    SPDLOG_INFO("database info: {}", getDatabaseInfo());
-
-   {
-      BlockTimer const timer(micros);
-      // Precompute Bitmaps for metadata.
-      finalizeBuild();
-   }
-
-   SPDLOG_INFO("Index precomputation for metadata took {} ms", micros);
-}
-
-void silo::Database::finalizeBuild() {
-   tbb::parallel_for_each(partitions.begin(), partitions.end(), [&](DatabasePartition& partition) {
-      partition.finalizeBuild(*dict);
-   });
 }
 
 [[maybe_unused]] void silo::Database::flipBitmaps() {

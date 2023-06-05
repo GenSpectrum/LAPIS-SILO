@@ -203,12 +203,13 @@ std::unique_ptr<filters::Expression> parseExpression(
       CHECK_SILO_QUERY(
          json_value.HasMember("value"), "The field 'value' is required in a PangoLineage expression"
       )
-      const std::string& lineage = json_value["value"].GetString();
-      return std::make_unique<filters::PangoLineageFilter>(lineage, include_sublineages);
+      const auto& column = json_value["column"].GetString();
+      const auto& lineage = json_value["value"].GetString();
+      return std::make_unique<filters::PangoLineageFilter>(column, lineage, include_sublineages);
    }
    if (expression_type == "StringEquals") {
-      const std::string& column = json_value["column"].GetString();
-      const std::string& value = json_value["value"].GetString();
+      const auto& column = json_value["column"].GetString();
+      const auto& value = json_value["value"].GetString();
       return std::make_unique<filters::StringEquals>(column, value);
    }
    if (expression_type == "Maybe") {

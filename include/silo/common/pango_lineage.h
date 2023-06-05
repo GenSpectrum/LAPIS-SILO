@@ -2,6 +2,7 @@
 #define SILO_PANGO_LINEAGE_H
 
 #include <string>
+#include <vector>
 
 namespace silo::common {
 
@@ -14,6 +15,8 @@ struct PangoLineage {
    std::string value;
 
    bool isSublineageOf(const PangoLineage& other) const;
+
+   std::vector<PangoLineage> getParentLineages() const;
 
    bool operator<(const PangoLineage& other) const;
    bool operator==(const PangoLineage& other) const;

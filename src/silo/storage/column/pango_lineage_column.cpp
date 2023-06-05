@@ -6,22 +6,33 @@ PangoLineageColumn::PangoLineageColumn() = default;
 
 void PangoLineageColumn::insert(const common::PangoLineage& value) {
    if (!value_id_lookup.contains(value)) {
-      value_id_lookup[value] = value_id_lookup.size();
-      indexed_values.emplace_back();
-
-      roaring::Roaring sublineage_values;
-      for (const auto& [pango_lineage, value_id] : value_id_lookup) {
-         if (pango_lineage.isSublineageOf(value)) {
-            sublineage_values |= indexed_values[value_id];
-         }
+      for (const auto& parent_lineage : value.getParentLineages()) {
+         initBitmapsForValue(parent_lineage);
       }
-      indexed_sublineage_values.emplace_back(sublineage_values);
    }
 
    const auto value_id = value_id_lookup[value];
    indexed_values[value_id].add(sequence_count);
    insertSublineageValues(value);
    sequence_count++;
+}
+
+void PangoLineageColumn::initBitmapsForValue(const common::PangoLineage& value) {
+   if (value_id_lookup.contains(value)) {
+      return;
+   }
+
+   value_id_lookup[value] = value_id_lookup.size();
+   indexed_values.emplace_back();
+
+   roaring::Roaring sublineage_values;
+   for (const auto& [pango_lineage, value_id] : value_id_lookup) {
+      if (pango_lineage.isSublineageOf(value)) {
+         sublineage_values |= indexed_values[value_id];
+      }
+   }
+
+   indexed_sublineage_values.emplace_back(sublineage_values);
 }
 
 void PangoLineageColumn::insertSublineageValues(const common::PangoLineage& value) {

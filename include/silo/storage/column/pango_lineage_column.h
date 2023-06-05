@@ -26,6 +26,8 @@ class PangoLineageColumn {
 
    void insertSublineageValues(const common::PangoLineage& value);
 
+   void initBitmapsForValue(const common::PangoLineage& value);
+
   public:
    PangoLineageColumn();
 
