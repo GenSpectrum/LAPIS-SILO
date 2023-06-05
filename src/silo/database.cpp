@@ -423,17 +423,6 @@ silo::DetailedDatabaseInfo silo::Database::detailedDatabaseInfo() const {
       SPDLOG_INFO("Saving partitioning descriptor to {}partition_descriptor.txt", save_directory);
       partition_descriptor->save(part_def_file);
    }
-   {
-      std::ofstream dict_output(save_directory + "dict.txt");
-      if (!dict_output) {
-         throw silo::persistence::SaveDatabaseException(
-            "Cannot open dictionary output file " + save_directory + "dict.txt"
-         );
-      }
-      SPDLOG_INFO("Saving dictionary to {}dict.txt", save_directory);
-
-      dict->saveDictionary(dict_output);
-   }
 
    std::vector<std::ofstream> file_vec;
    for (unsigned i = 0; i < partition_descriptor->partitions.size(); ++i) {
@@ -480,18 +469,6 @@ silo::DetailedDatabaseInfo silo::Database::detailedDatabaseInfo() const {
       pango_descriptor = std::make_unique<preprocessing::PangoLineageCounts>(
          preprocessing::PangoLineageCounts::load(pango_def_file)
       );
-   }
-
-   {
-      const auto dictionary_file = save_directory + "dict.txt";
-      auto dict_input = std::ifstream(dictionary_file);
-      if (!dict_input) {
-         throw silo::persistence::LoadDatabaseException(
-            "Cannot open dictionary input file for loading: " + dictionary_file
-         );
-      }
-      SPDLOG_INFO("Loading dictionary from {}", dictionary_file);
-      dict = std::make_unique<Dictionary>(Dictionary::loadDictionary(dict_input));
    }
 
    SPDLOG_INFO("Loading partitions from {}", save_directory);
@@ -559,21 +536,6 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
       config.metadata_file.extension(),
       config.sequence_file.extension()
    );
-
-   SPDLOG_INFO("preprocessing - building dictionary");
-   dict = std::make_unique<Dictionary>();
-   for (size_t partition_index = 0; partition_index < partition_descriptor->partitions.size();
-        ++partition_index) {
-      const auto& partition = partition_descriptor->partitions.at(partition_index);
-      for (unsigned chunk_index = 0; chunk_index < partition.chunks.size(); ++chunk_index) {
-         const auto& filename = buildChunkName(partition_index, chunk_index) +
-                                config.metadata_file.extension().string();
-         const auto metadata_partition_file =
-            silo::createPath(config.sorted_partition_folder, filename);
-
-         dict->updateDictionary(metadata_partition_file, getAliasKey());
-      }
-   }
 
    SPDLOG_INFO("preprocessing - building database");
    build(

@@ -1,7 +1,5 @@
 #include "silo/storage/column/string_column.h"
 
-#include "silo/storage/dictionary.h"
-
 namespace silo::storage::column {
 
 RawStringColumn::RawStringColumn() = default;

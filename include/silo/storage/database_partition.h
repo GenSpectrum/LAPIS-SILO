@@ -12,8 +12,6 @@
 
 namespace silo {
 
-class Dictionary;
-
 class DatabasePartition {
    friend class Database;
    friend class boost::serialization::
