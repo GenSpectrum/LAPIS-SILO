@@ -1,6 +1,6 @@
 #include "silo/query_engine/filter_expressions/expression.h"
 
-#include "silo/query_engine/query_parse_exception.h"
+#include <nlohmann/json.hpp>
 
 #include "silo/query_engine/filter_expressions/and.h"
 #include "silo/query_engine/filter_expressions/date_between.h"
@@ -12,9 +12,10 @@
 #include "silo/query_engine/filter_expressions/nof.h"
 #include "silo/query_engine/filter_expressions/nucleotide_symbol_equals.h"
 #include "silo/query_engine/filter_expressions/or.h"
-#include "silo/query_engine/filter_expressions/pango_lineage.h"
+#include "silo/query_engine/filter_expressions/pango_lineage_filter.h"
 #include "silo/query_engine/filter_expressions/string_equals.h"
 #include "silo/query_engine/filter_expressions/true.h"
+#include "silo/query_engine/query_parse_exception.h"
 
 namespace silo::query_engine::filter_expressions {
 
@@ -31,9 +32,11 @@ Expression::AmbiguityMode invertMode(Expression::AmbiguityMode mode) {
 }
 
 void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) {
-   CHECK_SILO_QUERY(json.contains("type"), "The field 'type' is required in 'filterExpression'")
+   CHECK_SILO_QUERY(json.contains("type"), "The field 'type' is required in any filter expression")
    CHECK_SILO_QUERY(
-      json["type"].is_string(), "The field 'type' in 'filterExpression' needs to be a string"
+      json["type"].is_string(),
+      "The field 'type' in all filter expressions needs to be a string, but is: " +
+         json["type"].dump()
    )
    const std::string expression_type = json["type"];
    if (expression_type == "True") {
@@ -55,7 +58,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) 
    } else if (expression_type == "HasNucleotideMutation") {
       filter = json.get<std::unique_ptr<HasMutation>>();
    } else if (expression_type == "PangoLineage") {
-      filter = json.get<std::unique_ptr<PangoLineage>>();
+      filter = json.get<std::unique_ptr<PangoLineageFilter>>();
    } else if (expression_type == "StringEquals") {
       filter = json.get<std::unique_ptr<StringEquals>>();
    } else if (expression_type == "Maybe") {

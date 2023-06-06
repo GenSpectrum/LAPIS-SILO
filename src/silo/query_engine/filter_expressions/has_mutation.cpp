@@ -1,5 +1,6 @@
 #include "silo/query_engine/filter_expressions/has_mutation.h"
 
+#include <nlohmann/json.hpp>
 #include <vector>
 
 #include "silo/query_engine/filter_expressions/negation.h"

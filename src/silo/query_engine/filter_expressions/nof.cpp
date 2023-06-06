@@ -1,5 +1,6 @@
 #include "silo/query_engine/filter_expressions/nof.h"
 
+#include <nlohmann/json.hpp>
 #include <vector>
 
 #include "silo/query_engine/operators/complement.h"
@@ -10,7 +11,6 @@
 #include "silo/query_engine/operators/threshold.h"
 #include "silo/query_engine/operators/union.h"
 #include "silo/query_engine/query_parse_exception.h"
-
 #include "silo/storage/database_partition.h"
 
 namespace {

@@ -1,5 +1,7 @@
 #include "silo/query_engine/filter_expressions/maybe.h"
 
+#include <nlohmann/json.hpp>
+
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_parse_exception.h"
 

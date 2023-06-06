@@ -29,7 +29,7 @@ struct PangoLineageFilter : public Expression {
 };
 
 // NOLINTNEXTLINE(invalid-case-style)
-void from_json(const nlohmann::json& json, std::unique_ptr<PangoLineage>& filter);
+void from_json(const nlohmann::json& json, std::unique_ptr<PangoLineageFilter>& filter);
 
 }  // namespace silo::query_engine::filter_expressions
 

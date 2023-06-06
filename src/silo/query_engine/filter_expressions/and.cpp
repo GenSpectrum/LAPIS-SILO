@@ -1,6 +1,7 @@
 #include "silo/query_engine/filter_expressions/and.h"
 
 #include <boost/algorithm/string/join.hpp>
+#include <nlohmann/json.hpp>
 
 #include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/empty.h"

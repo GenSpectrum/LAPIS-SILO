@@ -1,5 +1,7 @@
 #include "silo/query_engine/filter_expressions/date_between.h"
 
+#include <nlohmann/json.hpp>
+
 #include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/operators/intersection.h"
 #include "silo/query_engine/operators/operator.h"

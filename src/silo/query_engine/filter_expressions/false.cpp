@@ -1,8 +1,9 @@
 #include "silo/query_engine/filter_expressions/false.h"
 
+#include <nlohmann/json.hpp>
+
 #include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/operators/empty.h"
-
 #include "silo/storage/database_partition.h"
 
 namespace silo::query_engine::filter_expressions {

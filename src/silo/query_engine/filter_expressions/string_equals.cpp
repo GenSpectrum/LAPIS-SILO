@@ -1,5 +1,7 @@
 #include "silo/query_engine/filter_expressions/string_equals.h"
 
+#include <nlohmann/json.hpp>
+
 #include "silo/database.h"
 #include "silo/query_engine/operators/empty.h"
 #include "silo/query_engine/operators/index_scan.h"

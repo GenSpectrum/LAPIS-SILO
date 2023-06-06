@@ -2,8 +2,9 @@
 #define SILO_EXPRESSION_H
 
 #include <memory>
-#include <nlohmann/json.hpp>
 #include <string>
+
+#include <nlohmann/json_fwd.hpp>
 
 namespace silo::query_engine::operators {
 struct Operator;
