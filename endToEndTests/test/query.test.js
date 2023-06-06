@@ -40,7 +40,9 @@ describe('The /query endpoint', () => {
       .expect('Content-Type', 'application/json')
       .expect({
         error: 'Bad request',
-        message: 'The query was not a valid JSON: parse_error',
+        message: "The query was not a valid JSON: [json.exception.parse_error.101] " +
+            "parse error at line 1, column 4: syntax error while parsing object key - invalid literal; " +
+            "last read: \'{ no\'; expected string literal",
       })
       .end(done);
   });

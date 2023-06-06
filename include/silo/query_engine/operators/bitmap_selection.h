@@ -7,19 +7,19 @@ namespace silo::query_engine::operators {
 
 class BitmapSelection : public Operator {
   public:
-   enum Predicate { CONTAINS, NOT_CONTAINS };
+   enum Comparator { CONTAINS, NOT_CONTAINS };
 
   private:
    const roaring::Roaring* bitmaps;
    uint32_t row_count;
-   Predicate comparator;
+   Comparator comparator;
    uint32_t value;
 
   public:
    explicit BitmapSelection(
       const roaring::Roaring* bitmaps,
       uint32_t row_count,
-      Predicate comparator,
+      Comparator comparator,
       uint32_t value
    );
 

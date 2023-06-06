@@ -5,9 +5,6 @@
 #include <string>
 #include <vector>
 
-// query_parse_exception.h must be before the RAPIDJSON_ASSERT because it is used there
-#include "silo/query_engine/query_parse_exception.h"
-
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
@@ -15,6 +12,7 @@
 #include "silo/common/log.h"
 #include "silo/database.h"
 #include "silo/query_engine/filter_expressions/expression.h"
+#include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
 
 #define CHECK_SILO_QUERY(condition, message)    \
@@ -36,10 +34,10 @@ response::QueryResult QueryEngine::executeQuery(const std::string& query) const 
    nlohmann::json json;
    try {
       json = nlohmann::json::parse(query);
-   } catch (QueryParseException qe) {
+   } catch (const QueryParseException& qe) {
       throw qe;
    } catch (const nlohmann::json::parse_error& ex) {
-      throw QueryParseException("The query was not a valid JSON: parse_error");
+      throw QueryParseException("The query was not a valid JSON: " + std::string(ex.what()));
    } catch (const nlohmann::json::exception& ex) {
       throw QueryParseException("The query was not a valid JSON: " + std::string(ex.what()));
    }

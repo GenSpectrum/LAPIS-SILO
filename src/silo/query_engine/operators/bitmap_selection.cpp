@@ -8,7 +8,7 @@ namespace silo::query_engine::operators {
 BitmapSelection::BitmapSelection(
    const roaring::Roaring* bitmaps,
    uint32_t row_count,
-   Predicate comparator,
+   Comparator comparator,
    uint32_t value
 )
     : bitmaps(bitmaps),

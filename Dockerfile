@@ -1,4 +1,4 @@
-FROM alpine:3.17.0 AS builder
+FROM alpine:3.17.0 AS dep_builder
 
 RUN apk update && apk add --no-cache py3-pip \
     build-base=0.5-r3 \

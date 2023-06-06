@@ -1,7 +1,6 @@
 #ifndef SILO_META_STORE_H
 #define SILO_META_STORE_H
 
-#include <ctime>
 #include <filesystem>
 #include <optional>
 #include <set>
@@ -28,9 +27,9 @@ class DatabaseConfig;
 struct MetadataStore {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
-      archive& raw_string_columns;
-      archive& indexed_string_columns;
-      archive& date_columns;
+      archive & raw_string_columns;
+      archive & indexed_string_columns;
+      archive & date_columns;
    }
 
    std::unordered_map<std::string, storage::column::RawStringColumn> raw_string_columns;

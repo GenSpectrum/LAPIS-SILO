@@ -70,8 +70,4 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) 
    }
 }
 
-std::unique_ptr<Expression> parse(const nlohmann::json& json) {
-   return json.get<std::unique_ptr<Expression>>();
-}
-
 }  // namespace silo::query_engine::filter_expressions

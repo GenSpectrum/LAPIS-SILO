@@ -1,19 +1,11 @@
 #include "silo/storage/metadata_store.h"
 
-#include <ctime>
-
+#include "silo/common/time.h"
 #include "silo/config/database_config.h"
 #include "silo/preprocessing/metadata.h"
 #include "silo/storage/pango_lineage_alias.h"
 
 namespace silo {
-
-std::time_t mapToTime(const std::string& value) {
-   struct std::tm time_struct {};
-   std::istringstream time_stream(value);
-   time_stream >> std::get_time(&time_struct, "%Y-%m-%d");
-   return mktime(&time_struct);
-}
 
 unsigned MetadataStore::fill(
    const std::filesystem::path& input_file,
@@ -42,7 +34,7 @@ unsigned MetadataStore::fill(
             const std::string pango_lineage = alias_key.resolvePangoLineageAlias(value);
             pango_lineage_columns.at(item.name).insert({pango_lineage});
          } else if (item.type == silo::config::DatabaseMetadataType::DATE) {
-            date_columns.at(item.name).insert(mapToTime(value));
+            date_columns.at(item.name).insert(common::mapToTime(value));
          }
       }
       ++sequence_count;

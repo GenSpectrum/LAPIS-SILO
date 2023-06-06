@@ -1,10 +1,11 @@
 #ifndef SILO_QUERY_ENGINE_RESULT_H
 #define SILO_QUERY_ENGINE_RESULT_H
 
-#include <nlohmann/json.hpp>
 #include <string>
 #include <variant>
 #include <vector>
+
+#include <nlohmann/json_fwd.hpp>
 
 namespace silo::response {
 
