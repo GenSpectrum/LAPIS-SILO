@@ -10,18 +10,18 @@ namespace silo::query_engine::operators {
 class RangeSelection : public Operator {
   public:
    struct Range {
-      uint32_t from;
-      uint32_t to;
+      uint32_t start;
+      uint32_t end;
 
-      explicit Range(uint32_t from, uint32_t to);
+      explicit Range(uint32_t start, uint32_t end);
    };
 
   private:
    std::vector<Range> ranges;
-   uint32_t sequence_count;
+   uint32_t row_count;
 
   public:
-   explicit RangeSelection(std::vector<Range>&& ranges, uint32_t sequence_count);
+   explicit RangeSelection(std::vector<Range>&& ranges, uint32_t row_count);
 
    ~RangeSelection() noexcept override;
 
@@ -31,7 +31,9 @@ class RangeSelection : public Operator {
 
    virtual std::string toString() const override;
 
-   virtual void negate();
+   virtual std::unique_ptr<Operator> copy() const override;
+
+   virtual std::unique_ptr<Operator> negate() const override;
 };
 
 }  // namespace silo::query_engine::operators

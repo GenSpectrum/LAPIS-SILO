@@ -16,11 +16,13 @@ class Intersection : public Operator {
 
    std::vector<std::unique_ptr<Operator>> children;
    std::vector<std::unique_ptr<Operator>> negated_children;
+   uint32_t row_count;
 
   public:
    explicit Intersection(
       std::vector<std::unique_ptr<Operator>>&& children,
-      std::vector<std::unique_ptr<Operator>>&& negated_children
+      std::vector<std::unique_ptr<Operator>>&& negated_children,
+      uint32_t row_count
    );
 
    ~Intersection() noexcept override;
@@ -30,6 +32,10 @@ class Intersection : public Operator {
    virtual OperatorResult evaluate() const override;
 
    virtual std::string toString() const override;
+
+   virtual std::unique_ptr<Operator> copy() const override;
+
+   virtual std::unique_ptr<Operator> negate() const override;
 };
 
 }  // namespace silo::query_engine::operators

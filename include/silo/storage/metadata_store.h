@@ -1,7 +1,6 @@
 #ifndef SILO_META_STORE_H
 #define SILO_META_STORE_H
 
-#include <ctime>
 #include <filesystem>
 #include <optional>
 #include <set>

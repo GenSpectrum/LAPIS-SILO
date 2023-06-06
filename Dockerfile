@@ -1,4 +1,4 @@
-FROM alpine:3.17.0 AS builder
+FROM alpine:3.17.0 AS dep_builder
 
 RUN apk update && apk add --no-cache py3-pip \
     build-base=0.5-r3 \
@@ -21,6 +21,8 @@ RUN --mount=type=cache,target=/root/.conan2 \
 # We need this because cache mounts are not cached in GitHub Actions
 # (see https://github.com/docker/build-push-action/issues/716)
 RUN cp -R /root/.conan2_persisted /root/.conan2 && cp -R build_persisted build
+
+FROM dep_builder AS builder
 
 COPY . ./
 

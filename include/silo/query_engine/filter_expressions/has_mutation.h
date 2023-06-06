@@ -16,9 +16,13 @@ struct HasMutation : public Expression {
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::operators::Operator> compile(
       const Database& database,
-      const DatabasePartition& database_partition
+      const DatabasePartition& database_partition,
+      AmbiguityMode mode
    ) const override;
 };
+
+// NOLINTNEXTLINE(invalid-case-style)
+void from_json(const nlohmann::json& json, std::unique_ptr<HasMutation>& filter);
 
 }  // namespace silo::query_engine::filter_expressions
 

@@ -32,6 +32,10 @@ class Operator {
    virtual OperatorResult evaluate() const = 0;
 
    virtual std::string toString() const = 0;
+
+   virtual std::unique_ptr<Operator> copy() const = 0;
+
+   virtual std::unique_ptr<Operator> negate() const = 0;
 };
 
 }  // namespace silo::query_engine::operators

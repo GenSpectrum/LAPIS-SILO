@@ -28,7 +28,6 @@ find_package(Boost REQUIRED COMPONENTS system serialization iostreams)
 find_package(Poco REQUIRED COMPONENTS Net Util JSON)
 find_package(LibLZMA REQUIRED)
 find_package(TBB REQUIRED)
-find_package(RapidJSON REQUIRED INTERFACE)
 find_package(nlohmann_json REQUIRED)
 find_package(roaring REQUIRED)
 find_package(spdlog REQUIRED)
@@ -41,7 +40,6 @@ find_package(yaml-cpp REQUIRED)
 
 include_directories(SYSTEM
         ${CMAKE_SOURCE_DIR}/include
-        ${RapidJSON_INCLUDE_DIRS}
         ${roaring_INCLUDE_DIRS}
         )
 
@@ -87,6 +85,7 @@ target_link_libraries(
         ${spdlog_LIBRARIES}
         ${vincentlaucsb-csv-parser_LIBRARIES}
         ${yaml-cpp_LIBRARIES}
+        nlohmann_json::nlohmann_json
 )
 
 add_executable(siloApi src/silo_api/api.cpp ${SRC_SILO_API})

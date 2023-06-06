@@ -7,19 +7,19 @@ namespace silo::query_engine::operators {
 
 class BitmapSelection : public Operator {
   public:
-   enum Predicate { CONTAINS, NOT_CONTAINS };
+   enum Comparator { CONTAINS, NOT_CONTAINS };
 
   private:
    const roaring::Roaring* bitmaps;
-   unsigned sequence_count;
-   Predicate comparator;
+   uint32_t row_count;
+   Comparator comparator;
    uint32_t value;
 
   public:
    explicit BitmapSelection(
       const roaring::Roaring* bitmaps,
-      unsigned sequence_count,
-      Predicate predicate,
+      uint32_t row_count,
+      Comparator comparator,
       uint32_t value
    );
 
@@ -31,7 +31,9 @@ class BitmapSelection : public Operator {
 
    virtual std::string toString() const override;
 
-   virtual void negate();
+   virtual std::unique_ptr<Operator> copy() const override;
+
+   virtual std::unique_ptr<Operator> negate() const override;
 };
 
 }  // namespace silo::query_engine::operators

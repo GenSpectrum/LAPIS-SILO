@@ -1,5 +1,5 @@
-#ifndef SILO_FALSE_H
-#define SILO_FALSE_H
+#ifndef SILO_EXACT_H
+#define SILO_EXACT_H
 
 #include <memory>
 #include <string>
@@ -8,8 +8,11 @@
 
 namespace silo::query_engine::filter_expressions {
 
-struct False : public Expression {
-   explicit False();
+class Exact : public Expression {
+   std::unique_ptr<Expression> child;
+
+  public:
+   explicit Exact(std::unique_ptr<Expression> child);
 
    std::string toString(const Database& database) override;
 
@@ -21,8 +24,8 @@ struct False : public Expression {
 };
 
 // NOLINTNEXTLINE(invalid-case-style)
-void from_json(const nlohmann::json& json, std::unique_ptr<False>& filter);
+void from_json(const nlohmann::json& json, std::unique_ptr<Exact>& filter);
 
 }  // namespace silo::query_engine::filter_expressions
 
-#endif  // SILO_FALSE_H
+#endif  // SILO_EXACT_H

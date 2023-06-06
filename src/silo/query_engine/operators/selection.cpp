@@ -9,10 +9,16 @@
 namespace silo::query_engine::operators {
 
 template <typename T>
-Selection<T>::Selection(const std::vector<T>& column, Comparator comparator, T value)
+Selection<T>::Selection(
+   const std::vector<T>& column,
+   Comparator comparator,
+   T value,
+   uint32_t row_count
+)
     : column(column),
       comparator(comparator),
-      value(std::move(value)) {}
+      value(std::move(value)),
+      row_count(row_count) {}
 
 template <typename T>
 Selection<T>::~Selection() noexcept = default;
@@ -47,30 +53,7 @@ Type Selection<T>::type() const {
 }
 
 template <typename T>
-void Selection<T>::negate() {
-   switch (this->comparator) {
-      case EQUALS:
-         this->comparator = NOT_EQUALS;
-         break;
-      case NOT_EQUALS:
-         this->comparator = EQUALS;
-         break;
-      case LESS:
-         this->comparator = HIGHER_OR_EQUALS;
-         break;
-      case HIGHER_OR_EQUALS:
-         this->comparator = LESS;
-         break;
-      case HIGHER:
-         this->comparator = LESS_OR_EQUALS;
-         break;
-      case LESS_OR_EQUALS:
-         this->comparator = HIGHER;
-         break;
-   }
-}
-
-template <typename T>
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 OperatorResult Selection<T>::evaluate() const {
    const auto size = column.size();
 
@@ -120,6 +103,37 @@ OperatorResult Selection<T>::evaluate() const {
          break;
    }
    return OperatorResult(result);
+}
+
+template <typename T>
+std::unique_ptr<Operator> Selection<T>::copy() const {
+   return std::make_unique<Selection<T>>(column, comparator, value, row_count);
+}
+
+template <typename T>
+std::unique_ptr<Operator> Selection<T>::negate() const {
+   Selection::Comparator new_comparator;
+   switch (this->comparator) {
+      case EQUALS:
+         new_comparator = NOT_EQUALS;
+         break;
+      case NOT_EQUALS:
+         new_comparator = EQUALS;
+         break;
+      case LESS:
+         new_comparator = HIGHER_OR_EQUALS;
+         break;
+      case HIGHER_OR_EQUALS:
+         new_comparator = LESS;
+         break;
+      case HIGHER:
+         new_comparator = LESS_OR_EQUALS;
+         break;
+      case LESS_OR_EQUALS:
+         new_comparator = HIGHER;
+         break;
+   }
+   return std::make_unique<Selection<T>>(column, new_comparator, value, row_count);
 }
 
 template class Selection<std::string>;

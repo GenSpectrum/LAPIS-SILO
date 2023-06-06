@@ -1,12 +1,14 @@
 #include "silo/query_engine/filter_expressions/or.h"
 
 #include <boost/algorithm/string/join.hpp>
+#include <nlohmann/json.hpp>
 
 #include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/empty.h"
 #include "silo/query_engine/operators/full.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/operators/union.h"
+#include "silo/query_engine/query_parse_exception.h"
 #include "silo/storage/database_partition.h"
 
 namespace silo::query_engine::filter_expressions {
@@ -29,7 +31,8 @@ std::string Or::toString(const silo::Database& database) {
 
 std::unique_ptr<operators::Operator> Or::compile(
    const Database& database,
-   const DatabasePartition& database_partition
+   const DatabasePartition& database_partition,
+   Expression::AmbiguityMode mode
 ) const {
    OperatorVector all_child_operators;
    std::transform(
@@ -37,7 +40,7 @@ std::unique_ptr<operators::Operator> Or::compile(
       children.end(),
       std::back_inserter(all_child_operators),
       [&](const std::unique_ptr<Expression>& expression) {
-         return expression->compile(database, database_partition);
+         return expression->compile(database, database_partition, mode);
       }
    );
    OperatorVector filtered_child_operators;
@@ -60,7 +63,7 @@ std::unique_ptr<operators::Operator> Or::compile(
       filtered_child_operators.push_back(std::move(child));
    }
    if (filtered_child_operators.empty()) {
-      return std::make_unique<operators::Empty>();
+      return std::make_unique<operators::Empty>(database_partition.sequenceCount);
    }
    if (filtered_child_operators.size() == 1) {
       return std::move(filtered_child_operators[0]);
@@ -75,7 +78,20 @@ std::unique_ptr<operators::Operator> Or::compile(
          std::move(filtered_child_operators), database_partition.sequenceCount
       );
    }
-   return std::make_unique<operators::Union>(std::move(filtered_child_operators));
+   return std::make_unique<operators::Union>(
+      std::move(filtered_child_operators), database_partition.sequenceCount
+   );
+}
+
+void from_json(const nlohmann::json& json, std::unique_ptr<Or>& filter) {
+   CHECK_SILO_QUERY(
+      json.contains("children"), "The field 'children' is required in an Or expression"
+   )
+   CHECK_SILO_QUERY(
+      json["children"].is_array(), "The field 'children' in an Or expression needs to be an array"
+   )
+   auto children = json["children"].get<std::vector<std::unique_ptr<Expression>>>();
+   filter = std::make_unique<Or>(std::move(children));
 }
 
 }  // namespace silo::query_engine::filter_expressions

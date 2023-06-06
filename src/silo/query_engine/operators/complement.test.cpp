@@ -8,39 +8,50 @@ using silo::query_engine::operators::Complement;
 using silo::query_engine::operators::IndexScan;
 
 TEST(OperatorComplement, evaluateShouldReturnCorrectValues) {
-   roaring::Roaring test_bitmap(roaring::Roaring({1, 2, 3}));
-   Complement under_test(std::make_unique<IndexScan>(&test_bitmap), 5);
+   const roaring::Roaring test_bitmap(roaring::Roaring({1, 2, 3}));
+   const uint32_t row_count = 5;
+
+   const Complement under_test(std::make_unique<IndexScan>(&test_bitmap, row_count), row_count);
    ASSERT_EQ(*under_test.evaluate(), roaring::Roaring({0, 4}));
 }
 
 TEST(OperatorComplement, evaluateShouldReturnCorrectValuesWhenEmptyInput) {
-   roaring::Roaring test_bitmap(roaring::Roaring({}));
-   Complement under_test(std::make_unique<IndexScan>(&test_bitmap), 3);
+   const roaring::Roaring test_bitmap(roaring::Roaring({}));
+   const uint32_t row_count = 3;
+
+   const Complement under_test(std::make_unique<IndexScan>(&test_bitmap, row_count), row_count);
    ASSERT_EQ(*under_test.evaluate(), roaring::Roaring({0, 1, 2}));
 }
 
 TEST(OperatorComplement, evaluateShouldReturnCorrectValuesWhenEmptyDatabase) {
-   roaring::Roaring test_bitmap(roaring::Roaring({}));
-   Complement under_test(std::make_unique<IndexScan>(&test_bitmap), 0);
+   const roaring::Roaring test_bitmap(roaring::Roaring({}));
+   const uint32_t row_count = 0;
+
+   const Complement under_test(std::make_unique<IndexScan>(&test_bitmap, row_count), row_count);
    ASSERT_EQ(*under_test.evaluate(), roaring::Roaring({}));
 }
 
 TEST(OperatorComplement, evaluateShouldReturnCorrectValuesWhenFullInput) {
-   roaring::Roaring test_bitmap(roaring::Roaring({0, 1, 2, 3}));
-   Complement under_test(std::make_unique<IndexScan>(&test_bitmap), 4);
+   const roaring::Roaring test_bitmap(roaring::Roaring({0, 1, 2, 3}));
+   const uint32_t row_count = 4;
+
+   const Complement under_test(std::make_unique<IndexScan>(&test_bitmap, row_count), row_count);
    ASSERT_EQ(*under_test.evaluate(), roaring::Roaring({}));
 }
 
 TEST(OperatorComplement, evaluateShouldReturnCorrectValuesWhenSingleInput) {
-   roaring::Roaring test_bitmap(roaring::Roaring({1}));
-   Complement under_test(std::make_unique<IndexScan>(&test_bitmap), 5);
+   const roaring::Roaring test_bitmap(roaring::Roaring({1}));
+   const uint32_t row_count = 5;
+
+   const Complement under_test(std::make_unique<IndexScan>(&test_bitmap, row_count), row_count);
    ASSERT_EQ(*under_test.evaluate(), roaring::Roaring({0, 2, 3, 4}));
 }
 
 TEST(OperatorComplement, correctTypeInfo) {
-   roaring::Roaring test_bitmap({1, 2, 3});
+   const roaring::Roaring test_bitmap({1, 2, 3});
+   const uint32_t row_count = 5;
 
-   Complement under_test(std::make_unique<IndexScan>(&test_bitmap), 5);
+   const Complement under_test(std::make_unique<IndexScan>(&test_bitmap, row_count), row_count);
 
    ASSERT_EQ(under_test.type(), silo::query_engine::operators::COMPLEMENT);
 }

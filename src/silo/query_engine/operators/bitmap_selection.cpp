@@ -7,12 +7,12 @@ namespace silo::query_engine::operators {
 
 BitmapSelection::BitmapSelection(
    const roaring::Roaring* bitmaps,
-   unsigned sequence_count,
-   Predicate comparator,
+   uint32_t row_count,
+   Comparator comparator,
    uint32_t value
 )
     : bitmaps(bitmaps),
-      sequence_count(sequence_count),
+      row_count(row_count),
       comparator(comparator),
       value(value) {}
 
@@ -26,29 +26,18 @@ Type BitmapSelection::type() const {
    return BITMAP_SELECTION;
 }
 
-void BitmapSelection::negate() {
-   switch (this->comparator) {
-      case CONTAINS:
-         this->comparator = NOT_CONTAINS;
-         break;
-      case NOT_CONTAINS:
-         this->comparator = CONTAINS;
-         break;
-   }
-}
-
 OperatorResult BitmapSelection::evaluate() const {
    auto* bitmap = new roaring::Roaring();
    switch (this->comparator) {
       case CONTAINS:
-         for (unsigned i = 0; i < sequence_count; i++) {
+         for (unsigned i = 0; i < row_count; i++) {
             if (bitmaps[i].contains(value)) {
                bitmap->add(i);
             }
          }
          break;
       case NOT_CONTAINS:
-         for (unsigned i = 0; i < sequence_count; i++) {
+         for (unsigned i = 0; i < row_count; i++) {
             if (!bitmaps[i].contains(value)) {
                bitmap->add(i);
             }
@@ -56,6 +45,23 @@ OperatorResult BitmapSelection::evaluate() const {
          break;
    }
    return OperatorResult(bitmap);
+}
+
+std::unique_ptr<Operator> BitmapSelection::copy() const {
+   return std::make_unique<BitmapSelection>(bitmaps, row_count, comparator, value);
+}
+
+std::unique_ptr<Operator> BitmapSelection::negate() const {
+   auto ret = std::make_unique<BitmapSelection>(*this);
+   switch (this->comparator) {
+      case CONTAINS:
+         ret->comparator = NOT_CONTAINS;
+         break;
+      case NOT_CONTAINS:
+         ret->comparator = CONTAINS;
+         break;
+   }
+   return ret;
 }
 
 }  // namespace silo::query_engine::operators

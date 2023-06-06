@@ -25,7 +25,8 @@ struct DateBetween : public Expression {
    std::optional<time_t> date_from;
    std::optional<time_t> date_to;
 
-   std::vector<silo::query_engine::operators::RangeSelection::Range> computeRangesOfSortedColumn(
+   [[nodiscard]] std::vector<silo::query_engine::operators::RangeSelection::Range>
+   computeRangesOfSortedColumn(
       const silo::storage::column::DateColumn& date_column,
       const std::vector<silo::preprocessing::Chunk>& chunks
    ) const;
@@ -41,9 +42,13 @@ struct DateBetween : public Expression {
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::operators::Operator> compile(
       const Database& database,
-      const DatabasePartition& database_partition
+      const DatabasePartition& database_partition,
+      AmbiguityMode mode
    ) const override;
 };
+
+// NOLINTNEXTLINE(invalid-case-style)
+void from_json(const nlohmann::json& json, std::unique_ptr<DateBetween>& filter);
 
 }  // namespace silo::query_engine::filter_expressions
 

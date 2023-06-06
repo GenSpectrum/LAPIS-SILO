@@ -13,13 +13,16 @@ using silo::query_engine::operators::Threshold;
 using OperatorVector = std::vector<std::unique_ptr<Operator>>;
 
 namespace {
-OperatorVector generateTestInput(const std::vector<roaring::Roaring>& bitmaps) {
+OperatorVector generateTestInput(
+   const std::vector<roaring::Roaring>& bitmaps,
+   const uint32_t row_count
+) {
    OperatorVector result;
    std::transform(
       bitmaps.begin(),
       bitmaps.end(),
       std::back_inserter(result),
-      [&](const auto& bitmap) { return std::make_unique<IndexScan>(&bitmap); }
+      [&](const auto& bitmap) { return std::make_unique<IndexScan>(&bitmap, row_count); }
    );
    return result;
 }
@@ -39,14 +42,15 @@ TEST(OperatorThreshold, evaluatesCorrectOnlyNegated) {
    const std::vector<roaring::Roaring> test_negated_bitmaps(
       {{roaring::Roaring({1, 2, 3}), roaring::Roaring({1, 3})}}
    );
+   const uint32_t row_count = 4;
 
    const Threshold under_test_1_exact(
-      OperatorVector(), generateTestInput(test_negated_bitmaps), 1, true, 4
+      OperatorVector(), generateTestInput(test_negated_bitmaps, row_count), 1, true, row_count
    );
    ASSERT_EQ(*under_test_1_exact.evaluate(), roaring::Roaring({2}));
 
    const Threshold under_test_1_or_more(
-      OperatorVector(), generateTestInput(test_negated_bitmaps), 1, false, 4
+      OperatorVector(), generateTestInput(test_negated_bitmaps, row_count), 1, false, row_count
    );
    ASSERT_EQ(*under_test_1_or_more.evaluate(), roaring::Roaring({0, 2}));
 }
@@ -55,24 +59,25 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValuesNoNegated) {
    const std::vector<roaring::Roaring> test_bitmaps(
       {{roaring::Roaring({1, 2}), roaring::Roaring({1, 3}), roaring::Roaring({1, 2, 3})}}
    );
+   const uint32_t row_count = 4;
 
    const Threshold under_test_1_exact(
-      generateTestInput(test_bitmaps), OperatorVector(), 1, true, 4
+      generateTestInput(test_bitmaps, row_count), OperatorVector(), 1, true, row_count
    );
    ASSERT_EQ(*under_test_1_exact.evaluate(), roaring::Roaring({}));
 
    const Threshold under_test_2_exact(
-      generateTestInput(test_bitmaps), OperatorVector(), 2, true, 4
+      generateTestInput(test_bitmaps, row_count), OperatorVector(), 2, true, row_count
    );
    ASSERT_EQ(*under_test_2_exact.evaluate(), roaring::Roaring({2, 3}));
 
    const Threshold under_test_1_or_more(
-      generateTestInput(test_bitmaps), OperatorVector(), 1, false, 4
+      generateTestInput(test_bitmaps, row_count), OperatorVector(), 1, false, row_count
    );
    ASSERT_EQ(*under_test_1_or_more.evaluate(), roaring::Roaring({1, 2, 3}));
 
    const Threshold under_test_2_or_more(
-      generateTestInput(test_bitmaps), OperatorVector(), 2, false, 4
+      generateTestInput(test_bitmaps, row_count), OperatorVector(), 2, false, row_count
    );
    ASSERT_EQ(*under_test_2_or_more.evaluate(), roaring::Roaring({1, 2, 3}));
 }
@@ -84,44 +89,77 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValues) {
    const std::vector<roaring::Roaring> test_negated_bitmaps(
       {{roaring::Roaring(), roaring::Roaring({3})}}
    );
+   const uint32_t row_count = 4;
 
    const Threshold under_test_1_exact(
-      generateTestInput(test_bitmaps), generateTestInput(test_negated_bitmaps), 1, true, 4
+      generateTestInput(test_bitmaps, row_count),
+      generateTestInput(test_negated_bitmaps, row_count),
+      1,
+      true,
+      row_count
    );
    ASSERT_EQ(*under_test_1_exact.evaluate(), roaring::Roaring({}));
 
    const Threshold under_test_2_exact(
-      generateTestInput(test_bitmaps), generateTestInput(test_negated_bitmaps), 2, true, 4
+      generateTestInput(test_bitmaps, row_count),
+      generateTestInput(test_negated_bitmaps, row_count),
+      2,
+      true,
+      row_count
    );
    ASSERT_EQ(*under_test_2_exact.evaluate(), roaring::Roaring({0}));
 
    const Threshold under_test_3_exact(
-      generateTestInput(test_bitmaps), generateTestInput(test_negated_bitmaps), 3, true, 4
+      generateTestInput(test_bitmaps, row_count),
+      generateTestInput(test_negated_bitmaps, row_count),
+      3,
+      true,
+      row_count
    );
    ASSERT_EQ(*under_test_3_exact.evaluate(), roaring::Roaring({}));
 
    const Threshold under_test_4_exact(
-      generateTestInput(test_bitmaps), generateTestInput(test_negated_bitmaps), 4, true, 4
+      generateTestInput(test_bitmaps, row_count),
+      generateTestInput(test_negated_bitmaps, row_count),
+      4,
+      true,
+      row_count
    );
    ASSERT_EQ(*under_test_4_exact.evaluate(), roaring::Roaring({2, 3}));
 
    const Threshold under_test_1_or_more(
-      generateTestInput(test_bitmaps), generateTestInput(test_negated_bitmaps), 1, false, 4
+      generateTestInput(test_bitmaps, row_count),
+      generateTestInput(test_negated_bitmaps, row_count),
+      1,
+      false,
+      row_count
    );
    ASSERT_EQ(*under_test_1_or_more.evaluate(), roaring::Roaring({0, 1, 2, 3}));
 
    const Threshold under_test_2_or_more(
-      generateTestInput(test_bitmaps), generateTestInput(test_negated_bitmaps), 2, false, 4
+      generateTestInput(test_bitmaps, row_count),
+      generateTestInput(test_negated_bitmaps, row_count),
+      2,
+      false,
+      row_count
    );
    ASSERT_EQ(*under_test_2_or_more.evaluate(), roaring::Roaring({0, 1, 2, 3}));
 
    const Threshold under_test_3_or_more(
-      generateTestInput(test_bitmaps), generateTestInput(test_negated_bitmaps), 3, false, 4
+      generateTestInput(test_bitmaps, row_count),
+      generateTestInput(test_negated_bitmaps, row_count),
+      3,
+      false,
+      row_count
    );
    ASSERT_EQ(*under_test_3_or_more.evaluate(), roaring::Roaring({1, 2, 3}));
 
    const Threshold under_test_4_or_more(
-      generateTestInput(test_bitmaps), generateTestInput(test_negated_bitmaps), 4, false, 4
+      generateTestInput(test_bitmaps, row_count),
+      generateTestInput(test_negated_bitmaps, row_count),
+      4,
+      false,
+      row_count
    );
    ASSERT_EQ(*under_test_4_or_more.evaluate(), roaring::Roaring({1, 2, 3}));
 }
@@ -134,44 +172,77 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValuesManyNegated) {
       roaring::Roaring({4}),
       roaring::Roaring({2, 4}),
    }});
+   const uint32_t row_count = 5;
 
    const Threshold under_test_1_exact(
-      generateTestInput(test_bitmaps), generateTestInput(test_negated_bitmaps), 1, true, 5
+      generateTestInput(test_bitmaps, row_count),
+      generateTestInput(test_negated_bitmaps, row_count),
+      1,
+      true,
+      row_count
    );
    ASSERT_EQ(*under_test_1_exact.evaluate(), roaring::Roaring({}));
 
    const Threshold under_test_2_exact(
-      generateTestInput(test_bitmaps), generateTestInput(test_negated_bitmaps), 2, true, 5
+      generateTestInput(test_bitmaps, row_count),
+      generateTestInput(test_negated_bitmaps, row_count),
+      2,
+      true,
+      row_count
    );
    ASSERT_EQ(*under_test_2_exact.evaluate(), roaring::Roaring({4}));
 
    const Threshold under_test_3_exact(
-      generateTestInput(test_bitmaps), generateTestInput(test_negated_bitmaps), 3, true, 5
+      generateTestInput(test_bitmaps, row_count),
+      generateTestInput(test_negated_bitmaps, row_count),
+      3,
+      true,
+      row_count
    );
    ASSERT_EQ(*under_test_3_exact.evaluate(), roaring::Roaring({}));
 
    const Threshold under_test_4_exact(
-      generateTestInput(test_bitmaps), generateTestInput(test_negated_bitmaps), 4, true, 5
+      generateTestInput(test_bitmaps, row_count),
+      generateTestInput(test_negated_bitmaps, row_count),
+      4,
+      true,
+      row_count
    );
    ASSERT_EQ(*under_test_4_exact.evaluate(), roaring::Roaring({0, 2, 3}));
 
    const Threshold under_test_1_or_more(
-      generateTestInput(test_bitmaps), generateTestInput(test_negated_bitmaps), 1, false, 5
+      generateTestInput(test_bitmaps, row_count),
+      generateTestInput(test_negated_bitmaps, row_count),
+      1,
+      false,
+      row_count
    );
    ASSERT_EQ(*under_test_1_or_more.evaluate(), roaring::Roaring({0, 1, 2, 3, 4}));
 
    const Threshold under_test_2_or_more(
-      generateTestInput(test_bitmaps), generateTestInput(test_negated_bitmaps), 2, false, 5
+      generateTestInput(test_bitmaps, row_count),
+      generateTestInput(test_negated_bitmaps, row_count),
+      2,
+      false,
+      row_count
    );
    ASSERT_EQ(*under_test_2_or_more.evaluate(), roaring::Roaring({0, 1, 2, 3, 4}));
 
    const Threshold under_test_3_or_more(
-      generateTestInput(test_bitmaps), generateTestInput(test_negated_bitmaps), 3, false, 5
+      generateTestInput(test_bitmaps, row_count),
+      generateTestInput(test_negated_bitmaps, row_count),
+      3,
+      false,
+      row_count
    );
    ASSERT_EQ(*under_test_3_or_more.evaluate(), roaring::Roaring({0, 1, 2, 3}));
 
    const Threshold under_test_4_or_more(
-      generateTestInput(test_bitmaps), generateTestInput(test_negated_bitmaps), 4, false, 5
+      generateTestInput(test_bitmaps, row_count),
+      generateTestInput(test_negated_bitmaps, row_count),
+      4,
+      false,
+      row_count
    );
    ASSERT_EQ(*under_test_4_or_more.evaluate(), roaring::Roaring({0, 1, 2, 3}));
 }
@@ -183,34 +254,59 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValuesEmptyInput) {
       roaring::Roaring({4}),
       roaring::Roaring({2, 4}),
    }});
+   const uint32_t row_count = 4;
 
    const Threshold under_test_1_exact(
-      generateTestInput(test_bitmaps), generateTestInput(test_negated_bitmaps), 1, true, 4
+      generateTestInput(test_bitmaps, row_count),
+      generateTestInput(test_negated_bitmaps, row_count),
+      1,
+      true,
+      row_count
    );
    ASSERT_EQ(*under_test_1_exact.evaluate(), roaring::Roaring({4}));
 
    const Threshold under_test_2_exact(
-      generateTestInput(test_bitmaps), generateTestInput(test_negated_bitmaps), 2, true, 4
+      generateTestInput(test_bitmaps, row_count),
+      generateTestInput(test_negated_bitmaps, row_count),
+      2,
+      true,
+      row_count
    );
    ASSERT_EQ(*under_test_2_exact.evaluate(), roaring::Roaring({2, 3}));
 
    const Threshold under_test_3_exact(
-      generateTestInput(test_bitmaps), generateTestInput(test_negated_bitmaps), 3, true, 4
+      generateTestInput(test_bitmaps, row_count),
+      generateTestInput(test_negated_bitmaps, row_count),
+      3,
+      true,
+      row_count
    );
    ASSERT_EQ(*under_test_3_exact.evaluate(), roaring::Roaring({0, 1}));
 
    const Threshold under_test_1_or_more(
-      generateTestInput(test_bitmaps), generateTestInput(test_negated_bitmaps), 1, false, 4
+      generateTestInput(test_bitmaps, row_count),
+      generateTestInput(test_negated_bitmaps, row_count),
+      1,
+      false,
+      row_count
    );
    ASSERT_EQ(*under_test_1_or_more.evaluate(), roaring::Roaring({0, 1, 2, 3, 4}));
 
    const Threshold under_test_2_or_more(
-      generateTestInput(test_bitmaps), generateTestInput(test_negated_bitmaps), 2, false, 4
+      generateTestInput(test_bitmaps, row_count),
+      generateTestInput(test_negated_bitmaps, row_count),
+      2,
+      false,
+      row_count
    );
    ASSERT_EQ(*under_test_2_or_more.evaluate(), roaring::Roaring({0, 1, 2, 3}));
 
    const Threshold under_test_3_or_more(
-      generateTestInput(test_bitmaps), generateTestInput(test_negated_bitmaps), 3, false, 4
+      generateTestInput(test_bitmaps, row_count),
+      generateTestInput(test_negated_bitmaps, row_count),
+      3,
+      false,
+      row_count
    );
    ASSERT_EQ(*under_test_3_or_more.evaluate(), roaring::Roaring({0, 1}));
 }
@@ -219,8 +315,11 @@ TEST(OperatorThreshold, correctTypeInfo) {
    const std::vector<roaring::Roaring> test_bitmaps(
       {{roaring::Roaring({1, 2, 3}), roaring::Roaring({1, 2, 3})}}
    );
+   const uint32_t row_count = 4;
 
-   const Threshold under_test(generateTestInput(test_bitmaps), OperatorVector(), 1, true, 4);
+   const Threshold under_test(
+      generateTestInput(test_bitmaps, row_count), OperatorVector(), 1, true, row_count
+   );
 
    ASSERT_EQ(under_test.type(), silo::query_engine::operators::THRESHOLD);
 }

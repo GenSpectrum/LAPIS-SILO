@@ -6,10 +6,10 @@
 namespace silo::query_engine::operators {
 
 class Full : public Operator {
-   uint32_t sequenceCount;
+   uint32_t row_count;
 
   public:
-   explicit Full(uint32_t sequenceCount);
+   explicit Full(uint32_t row_count);
 
    ~Full() noexcept override;
 
@@ -18,6 +18,10 @@ class Full : public Operator {
    OperatorResult evaluate() const override;
 
    virtual std::string toString() const override;
+
+   virtual std::unique_ptr<Operator> copy() const override;
+
+   virtual std::unique_ptr<Operator> negate() const override;
 };
 
 }  // namespace silo::query_engine::operators
