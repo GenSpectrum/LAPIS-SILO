@@ -22,6 +22,8 @@ RUN --mount=type=cache,target=/root/.conan2 \
 # (see https://github.com/docker/build-push-action/issues/716)
 RUN cp -R /root/.conan2_persisted /root/.conan2 && cp -R build_persisted build
 
+FROM dep_builder AS builder
+
 COPY . ./
 
 RUN  \
