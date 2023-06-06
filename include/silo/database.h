@@ -9,7 +9,6 @@
 
 #include "silo/preprocessing/pango_lineage_count.h"
 #include "silo/storage/database_partition.h"
-#include "silo/storage/dictionary.h"
 #include "silo/storage/pango_lineage_alias.h"
 
 namespace silo {
@@ -38,7 +37,6 @@ class Database {
    std::vector<DatabasePartition> partitions;
    std::unique_ptr<preprocessing::PangoLineageCounts> pango_descriptor;
    std::unique_ptr<preprocessing::Partitions> partition_descriptor;
-   std::unique_ptr<Dictionary> dict;
 
    Database();
 
@@ -56,7 +54,6 @@ class Database {
    virtual silo::DatabaseInfo getDatabaseInfo() const;
 
    virtual DetailedDatabaseInfo detailedDatabaseInfo() const;
-   void finalizeBuild();
 
    [[maybe_unused]] void flipBitmaps();
 

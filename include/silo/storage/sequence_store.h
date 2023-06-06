@@ -10,7 +10,6 @@
 #include <boost/serialization/array.hpp>
 #include <roaring/roaring.hh>
 
-#include "metadata_store.h"
 #include "silo/common/fasta_reader.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/roaring/roaring_serialize.h"

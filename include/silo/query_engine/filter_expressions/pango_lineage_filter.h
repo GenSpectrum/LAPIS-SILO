@@ -1,5 +1,5 @@
-#ifndef SILO_PANGO_LINEAGE_H
-#define SILO_PANGO_LINEAGE_H
+#ifndef SILO_PANGO_LINEAGE_FILTER_H
+#define SILO_PANGO_LINEAGE_FILTER_H
 
 #include <memory>
 #include <string>
@@ -8,11 +8,16 @@
 
 namespace silo::query_engine::filter_expressions {
 
-struct PangoLineage : public Expression {
+struct PangoLineageFilter : public Expression {
+   std::string column;
    std::string lineage;
    bool include_sublineages;
 
-   explicit PangoLineage(std::string lineage_key, bool include_sublineages);
+   explicit PangoLineageFilter(
+      std::string column,
+      std::string lineage_key,
+      bool include_sublineages
+   );
 
    std::string toString(const Database& database) override;
 
@@ -24,4 +29,4 @@ struct PangoLineage : public Expression {
 
 }  // namespace silo::query_engine::filter_expressions
 
-#endif  // SILO_PANGO_LINEAGE_H
+#endif  // SILO_PANGO_LINEAGE_FILTER_H

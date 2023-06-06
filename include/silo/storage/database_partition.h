@@ -12,8 +12,6 @@
 
 namespace silo {
 
-class Dictionary;
-
 class DatabasePartition {
    friend class Database;
    friend class boost::serialization::
@@ -36,8 +34,6 @@ class DatabasePartition {
    unsigned sequenceCount;
 
    [[nodiscard]] const std::vector<silo::preprocessing::Chunk>& getChunks() const;
-
-   void finalizeBuild(const Dictionary& dict);
 };
 
 }  // namespace silo

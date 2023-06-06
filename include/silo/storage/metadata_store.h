@@ -14,12 +14,12 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/roaring/roaring_serialize.h"
 #include "silo/storage/column/date_column.h"
+#include "silo/storage/column/pango_lineage_column.h"
 #include "silo/storage/column/string_column.h"
 
 namespace silo {
 
 class PangoLineageAliasLookup;
-class Dictionary;
 
 namespace config {
 class DatabaseConfig;
@@ -31,25 +31,16 @@ struct MetadataStore {
       archive& raw_string_columns;
       archive& indexed_string_columns;
       archive& date_columns;
-
-      archive& sequence_id_to_lineage;
-      archive& lineage_bitmaps;
-      archive& sublineage_bitmaps;
    }
 
    std::unordered_map<std::string, storage::column::RawStringColumn> raw_string_columns;
    std::unordered_map<std::string, storage::column::IndexedStringColumn> indexed_string_columns;
    std::unordered_map<std::string, storage::column::DateColumn> date_columns;
-
-   // TODO(taepper) only ints -> Dictionary:
-   std::vector<uint32_t> sequence_id_to_lineage;
-   std::vector<roaring::Roaring> lineage_bitmaps;
-   std::vector<roaring::Roaring> sublineage_bitmaps;
+   std::unordered_map<std::string, storage::column::PangoLineageColumn> pango_lineage_columns;
 
    unsigned fill(
       const std::filesystem::path& input_file,
       const PangoLineageAliasLookup& alias_key,
-      const Dictionary& dict,
       const silo::config::DatabaseConfig& database_config
    );
 
