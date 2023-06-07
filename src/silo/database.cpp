@@ -85,7 +85,8 @@ void silo::Database::build(
    const std::string& partition_name_prefix,
    const std::string& metadata_file_suffix,
    const std::string& sequence_file_suffix,
-   const silo::preprocessing::Partitions& partition_descriptor
+   const silo::preprocessing::Partitions& partition_descriptor,
+   const silo::config::DatabaseConfig& database_config
 ) {
    int64_t micros = 0;
    {
@@ -469,19 +470,21 @@ silo::DetailedDatabaseInfo silo::Database::detailedDatabaseInfo() const {
    );
 }
 
-void silo::Database::preprocessing(const PreprocessingConfig& config) {
-   SPDLOG_INFO("preprocessing - validate database config");
-   database_config = config::ConfigRepository().getValidatedConfig(config.database_config_file);
+void silo::Database::preprocessing(
+   const preprocessing::PreprocessingConfig& preprocessing_config,
+   const config::DatabaseConfig& database_config_
+) {
+   database_config = database_config_;
 
    SPDLOG_INFO("preprocessing - validate metadata file against config");
    silo::preprocessing::MetadataValidator().validateMedataFile(
-      config.metadata_file, database_config
+      preprocessing_config.metadata_file, database_config_
    );
 
    SPDLOG_INFO("preprocessing - building pango lineage counts");
-   const preprocessing::PangoLineageCounts pango_descriptor(
-      preprocessing::buildPangoLineageCounts(alias_key, config.metadata_file, database_config)
-   );
+   const preprocessing::PangoLineageCounts pango_descriptor(preprocessing::buildPangoLineageCounts(
+      alias_key, preprocessing_config.metadata_file, database_config_
+   ));
 
    SPDLOG_INFO("preprocessing - building partitions");
    const preprocessing::Partitions partition_descriptor(silo::preprocessing::buildPartitions(
@@ -489,27 +492,27 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
    ));
 
    SPDLOG_INFO("preprocessing - partitioning sequences");
-   FastaReader sequence_stream(config.sequence_file.relative_path());
+   FastaReader sequence_stream(preprocessing_config.sequence_file.relative_path());
    partitionSequences(
       partition_descriptor,
-      config.metadata_file,
+      preprocessing_config.metadata_file,
       sequence_stream,
-      config.partition_folder.relative_path(),
+      preprocessing_config.partition_folder.relative_path(),
       alias_key,
-      config.metadata_file.extension(),
-      config.sequence_file.extension(),
-      database_config
+      preprocessing_config.metadata_file.extension(),
+      preprocessing_config.sequence_file.extension(),
+      database_config_
    );
 
-   if (database_config.schema.date_to_sort_by.has_value()) {
+   if (database_config_.schema.date_to_sort_by.has_value()) {
       SPDLOG_INFO("preprocessing - sorting chunks");
       silo::sortChunks(
          partition_descriptor,
-         config.partition_folder.relative_path(),
-         config.sorted_partition_folder.relative_path(),
-         config.metadata_file.extension(),
-         config.sequence_file.extension(),
-         {database_config.schema.primary_key, database_config.schema.date_to_sort_by.value()}
+         preprocessing_config.partition_folder.relative_path(),
+         preprocessing_config.sorted_partition_folder.relative_path(),
+         preprocessing_config.metadata_file.extension(),
+         preprocessing_config.sequence_file.extension(),
+         {database_config_.schema.primary_key, database_config_.schema.date_to_sort_by.value()}
       );
    } else {
       SPDLOG_INFO("preprocessing - skipping sorting chunks because no date to sort by was specified"
@@ -518,10 +521,11 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
 
    SPDLOG_INFO("preprocessing - building database");
    build(
-      config.sorted_partition_folder.relative_path(),
-      config.metadata_file.extension(),
-      config.sequence_file.extension(),
-      partition_descriptor
+      preprocessing_config.sorted_partition_folder.relative_path(),
+      preprocessing_config.metadata_file.extension(),
+      preprocessing_config.sequence_file.extension(),
+      partition_descriptor,
+      database_config_
    );
 }
 silo::Database::Database() = default;

@@ -15,7 +15,7 @@
 namespace silo {
 
 namespace preprocessing {
-
+struct PreprocessingConfig;
 struct Partitions;
 
 }  // namespace preprocessing
@@ -29,8 +29,6 @@ struct DetailedDatabaseInfo;
 struct BitmapSizePerSymbol;
 struct BitmapContainerSize;
 
-struct PreprocessingConfig;
-
 class Database {
   public:
    silo::config::DatabaseConfig database_config;
@@ -41,13 +39,17 @@ class Database {
 
    explicit Database(const std::string& directory);
 
-   void preprocessing(const PreprocessingConfig& config);
+   void preprocessing(
+      const preprocessing::PreprocessingConfig& preprocessing_config,
+      const config::DatabaseConfig& database_config_
+   );
 
    void build(
       const std::string& partition_name_prefix,
       const std::string& metadata_file_suffix,
       const std::string& sequence_file_suffix,
-      const silo::preprocessing::Partitions& partition_descriptor
+      const silo::preprocessing::Partitions& partition_descriptor,
+      const silo::config::DatabaseConfig& database_config
    );
 
    virtual silo::DatabaseInfo getDatabaseInfo() const;

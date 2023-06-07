@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-namespace silo {
+namespace silo::preprocessing {
 
 std::filesystem::path createPath(
    const std::filesystem::path& directory,
@@ -30,6 +30,8 @@ std::filesystem::path createOutputPath(
    return return_path;
 }
 
+PreprocessingConfig::PreprocessingConfig() = default;
+
 PreprocessingConfig::PreprocessingConfig(
    const InputDirectory& input_directory_,
    const OutputDirectory& output_directory_,
@@ -38,10 +40,9 @@ PreprocessingConfig::PreprocessingConfig(
    const PangoLineageDefinitionFilename& pango_lineage_definition_filename_,
    const PartitionFolder& partition_folder_,
    const SortedPartitionFolder& sorted_partition_folder_,
-   const SerializationFolder& serialization_folder_,
-   const DatabaseConfigFilename& database_config_filename_
+   const SerializationFolder& serialization_folder_
 ) {
-   const std::filesystem::path input_directory(input_directory_.directory);
+   input_directory = input_directory_.directory;
    if (!std::filesystem::exists(input_directory)) {
       throw std::filesystem::filesystem_error(
          input_directory.string() + " does not exist", std::error_code()
@@ -52,7 +53,6 @@ PreprocessingConfig::PreprocessingConfig(
    pango_lineage_definition_file =
       createPath(input_directory, pango_lineage_definition_filename_.filename);
    sequence_file = createPath(input_directory, sequence_filename_.filename);
-   database_config_file = createPath(input_directory, database_config_filename_.filename);
 
    const std::filesystem::path output_directory(output_directory_.directory);
    if (!std::filesystem::exists(output_directory_.directory)) {
@@ -63,4 +63,4 @@ PreprocessingConfig::PreprocessingConfig(
    sorted_partition_folder = createOutputPath(output_directory, sorted_partition_folder_.folder);
    serialization_folder = createOutputPath(output_directory, serialization_folder_.folder);
 }
-}  // namespace silo
+}  // namespace silo::preprocessing

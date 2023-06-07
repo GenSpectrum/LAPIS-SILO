@@ -10,8 +10,10 @@
 #include <Poco/Util/ServerApplication.h>
 #include <spdlog/spdlog.h>
 
+#include "silo/config/config_repository.h"
 #include "silo/database.h"
 #include "silo/preprocessing/preprocessing_config.h"
+#include "silo/preprocessing/preprocessing_config_reader.h"
 #include "silo/query_engine/query_engine.h"
 #include "silo_api/info_handler.h"
 #include "silo_api/logging.h"
@@ -27,6 +29,22 @@ class SiloServer : public Poco::Util::ServerApplication {
             .required(false)
             .repeatable(false)
             .callback(Poco::Util::OptionCallback<SiloServer>(this, &SiloServer::displayHelp))
+      );
+
+      options.addOption(
+         Poco::Util::Option("preprocessingConfig", "pc", "path to the preprocessing config file")
+            .required(false)
+            .repeatable(false)
+            .argument("PATH")
+            .binding("preprocessingConfig")
+      );
+
+      options.addOption(
+         Poco::Util::Option("databaseConfig", "dc", "path to the database config file")
+            .required(false)
+            .repeatable(false)
+            .argument("PATH")
+            .binding("databaseConfig")
       );
 
       options.addOption(
@@ -65,17 +83,17 @@ class SiloServer : public Poco::Util::ServerApplication {
    ) {
       int const port = 8081;
 
-      const silo::InputDirectory input_directory{"./"};
-      const silo::OutputDirectory output_directory{"./"};
-      const silo::MetadataFilename metadata_filename{"small_metadata_set.tsv"};
-      const silo::SequenceFilename sequence_filename{"small_sequence_set.fasta"};
-      auto config = silo::PreprocessingConfig(
-         input_directory, output_directory, metadata_filename, sequence_filename
-      );
+      const std::string preprocessing_config_path = config().getString("preprocessingConfig");
+      const std::string database_config_path = config().getString("databaseConfig");
 
-      auto database = silo::Database(input_directory.directory);
+      auto preprocessing_config =
+         silo::preprocessing::PreprocessingConfigReader().readConfig(preprocessing_config_path);
+      auto database_config =
+         silo::config::ConfigRepository().getValidatedConfig(database_config_path);
 
-      database.preprocessing(config);
+      auto database = silo::Database(preprocessing_config.input_directory);
+
+      database.preprocessing(preprocessing_config, database_config);
 
       Poco::Net::ServerSocket const server_socket(port);
       const silo::QueryEngine query_engine = silo::QueryEngine(database);

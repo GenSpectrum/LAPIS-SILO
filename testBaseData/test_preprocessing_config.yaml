@@ -1,0 +1,8 @@
+inputDirectory: "./testBaseData/"
+outputDirectory: "./build/data"
+metadataFilename: "small_metadata_set.tsv"
+sequenceFilename: "small_sequence_set.fasta"
+pangoLineageDefinitionFilename: "pango_alias.txt"
+partitionFolder: "partitioned/"
+sortedPartitionFolder: "sorted_partitions/"
+serializationFolder: "serialized_state/"
