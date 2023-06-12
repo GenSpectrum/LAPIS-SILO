@@ -30,13 +30,13 @@ std::string commonPangoPrefix(const std::string& lineage1, const std::string& li
 /// Updates pango_lineages to contain the chunk each pango_lineage is contained in and returns
 /// vector of chunks
 std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
-   std::vector<PangoLineageCount>& pango_lineage_counts,
+   const std::vector<PangoLineageCount>& pango_lineage_counts,
    unsigned target_size,
    unsigned min_size
 ) {
    // Initialize chunks such that every chunk is just a pango_lineage
    std::list<Chunk> chunks;
-   for (auto& count : pango_lineage_counts) {
+   for (const auto& count : pango_lineage_counts) {
       std::vector<std::string> pango_lineages;
       pango_lineages.push_back(count.pango_lineage);
       Chunk const tmp = {count.pango_lineage, count.count_of_sequences, 0, pango_lineages};
@@ -95,9 +95,9 @@ void calculateOffsets(Partitions& partitions) {
    }
 }
 
-Partitions buildPartitions(PangoLineageCounts pango_lineage_counts, Architecture arch) {
+Partitions buildPartitions(const PangoLineageCounts& pango_lineage_counts, Architecture arch) {
    uint32_t total_count_of_sequences = 0;
-   for (auto& pango_lineage_count : pango_lineage_counts.pango_lineage_counts) {
+   for (const auto& pango_lineage_count : pango_lineage_counts.pango_lineage_counts) {
       total_count_of_sequences += pango_lineage_count.count_of_sequences;
    }
 
@@ -140,7 +140,7 @@ Partitions buildPartitions(PangoLineageCounts pango_lineage_counts, Architecture
 
          // Merge pango_lineages, such that chunks are not get very small
          descriptor.partitions[0].chunks.emplace_back();
-         for (auto& pango : pango_lineage_counts.pango_lineage_counts) {
+         for (const auto& pango : pango_lineage_counts.pango_lineage_counts) {
             descriptor.partitions[0].chunks.back().pango_lineages.push_back(pango.pango_lineage);
          }
 
@@ -217,7 +217,7 @@ Partitions Partitions::load(std::istream& input_file) {
    return descriptor;
 }
 
-void Partitions::save(std::ostream& output_file) {
+void Partitions::save(std::ostream& output_file) const {
    for (const auto& partition : partitions) {
       output_file << "P\t" << partition.name << '\t' << partition.chunks.size() << '\t'
                   << partition.count_of_sequences << '\n';

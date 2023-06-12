@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include "silo/config/database_config.h"
 #include "silo/preprocessing/pango_lineage_count.h"
 #include "silo/storage/database_partition.h"
 #include "silo/storage/pango_lineage_alias.h"
@@ -32,11 +33,9 @@ struct PreprocessingConfig;
 
 class Database {
   public:
-   const std::string working_directory;
+   silo::config::DatabaseConfig database_config;
    std::vector<std::string> global_reference;
    std::vector<DatabasePartition> partitions;
-   std::unique_ptr<preprocessing::PangoLineageCounts> pango_descriptor;
-   std::unique_ptr<preprocessing::Partitions> partition_descriptor;
 
    Database();
 
@@ -48,7 +47,7 @@ class Database {
       const std::string& partition_name_prefix,
       const std::string& metadata_file_suffix,
       const std::string& sequence_file_suffix,
-      const silo::config::DatabaseConfig& database_config
+      const silo::preprocessing::Partitions& partition_descriptor
    );
 
    virtual silo::DatabaseInfo getDatabaseInfo() const;
@@ -61,7 +60,10 @@ class Database {
 
    [[maybe_unused]] void naiveIndexAllNucleotideSymbolsN();
 
-   [[maybe_unused]] void saveDatabaseState(const std::string& save_directory);
+   [[maybe_unused]] void saveDatabaseState(
+      const std::string& save_directory,
+      const silo::preprocessing::Partitions& partition_descriptor
+   );
 
    [[maybe_unused]] [[maybe_unused]] void loadDatabaseState(const std::string& save_directory);
 

@@ -1,5 +1,6 @@
 #include "silo/query_engine/operators/selection.h"
 
+#include <silo/common/date.h>
 #include <roaring/roaring.hh>
 #include <utility>
 #include <vector>
@@ -138,6 +139,6 @@ std::unique_ptr<Operator> Selection<T>::negate() const {
 
 template class Selection<std::string>;
 template class Selection<uint64_t>;
-template class Selection<time_t>;
+template class Selection<silo::common::Date>;
 
 }  // namespace silo::query_engine::operators

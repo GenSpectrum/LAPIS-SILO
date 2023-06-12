@@ -22,6 +22,7 @@
 #include "silo/prepare_dataset.h"
 #include "silo/preprocessing/metadata_validator.h"
 #include "silo/preprocessing/pango_lineage_count.h"
+#include "silo/preprocessing/partition.h"
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/database_partition.h"
@@ -59,8 +60,7 @@ std::vector<std::string> initGlobalReference(const std::string& working_director
 }
 
 silo::Database::Database(const std::string& directory)
-    : working_directory(directory),
-      global_reference(initGlobalReference(directory)),
+    : global_reference(initGlobalReference(directory)),
       alias_key(silo::PangoLineageAliasLookup::readFromFile(directory)) {}
 
 const silo::PangoLineageAliasLookup& silo::Database::getAliasKey() const {
@@ -85,17 +85,17 @@ void silo::Database::build(
    const std::string& partition_name_prefix,
    const std::string& metadata_file_suffix,
    const std::string& sequence_file_suffix,
-   const silo::config::DatabaseConfig& database_config
+   const silo::preprocessing::Partitions& partition_descriptor
 ) {
    int64_t micros = 0;
    {
       BlockTimer const timer(micros);
-      partitions.resize(partition_descriptor->partitions.size());
+      partitions.resize(partition_descriptor.partitions.size());
       tbb::parallel_for(
          static_cast<size_t>(0),
-         partition_descriptor->partitions.size(),
+         partition_descriptor.partitions.size(),
          [&](size_t partition_index) {
-            const auto& part = partition_descriptor->partitions[partition_index];
+            const auto& part = partition_descriptor.partitions[partition_index];
             partitions[partition_index].chunks = part.chunks;
             for (unsigned chunk_index = 0; chunk_index < part.chunks.size(); ++chunk_index) {
                const std::string name =
@@ -395,23 +395,10 @@ silo::DetailedDatabaseInfo silo::Database::detailedDatabaseInfo() const {
    return DetailedDatabaseInfo{bitmap_size_per_symbol, size_per_section};
 }
 
-[[maybe_unused]] void silo::Database::saveDatabaseState(const std::string& save_directory) {
-   if (!partition_descriptor) {
-      throw silo::persistence::SaveDatabaseException(
-         "Cannot save database without partition_descriptor."
-      );
-   }
-
-   if (pango_descriptor) {
-      std::ofstream pango_def_file(save_directory + "pango_descriptor.txt");
-      if (!pango_def_file) {
-         throw silo::persistence::SaveDatabaseException(
-            "Cannot open pango_descriptor output file " + save_directory + "pango_descriptor.txt"
-         );
-      }
-      SPDLOG_INFO("Saving pango lineage descriptor to {}pango_descriptor.txt", save_directory);
-      pango_descriptor->save(pango_def_file);
-   }
+[[maybe_unused]] void silo::Database::saveDatabaseState(
+   const std::string& save_directory,
+   const silo::preprocessing::Partitions& partition_descriptor
+) {
    {
       std::ofstream part_def_file(save_directory + "partition_descriptor.txt");
       if (!part_def_file) {
@@ -421,11 +408,11 @@ silo::DetailedDatabaseInfo silo::Database::detailedDatabaseInfo() const {
          );
       }
       SPDLOG_INFO("Saving partitioning descriptor to {}partition_descriptor.txt", save_directory);
-      partition_descriptor->save(part_def_file);
+      partition_descriptor.save(part_def_file);
    }
 
    std::vector<std::ofstream> file_vec;
-   for (unsigned i = 0; i < partition_descriptor->partitions.size(); ++i) {
+   for (unsigned i = 0; i < partitions.size(); ++i) {
       const auto& partition_file = save_directory + 'P' + std::to_string(i) + ".silo";
       file_vec.emplace_back(partition_file);
 
@@ -438,14 +425,10 @@ silo::DetailedDatabaseInfo silo::Database::detailedDatabaseInfo() const {
 
    SPDLOG_INFO("Saving {} partitions...", partitions.size());
 
-   tbb::parallel_for(
-      static_cast<size_t>(0),
-      partition_descriptor->partitions.size(),
-      [&](size_t partition_index) {
-         ::boost::archive::binary_oarchive output_archive(file_vec[partition_index]);
-         output_archive << partitions[partition_index];
-      }
-   );
+   tbb::parallel_for(static_cast<size_t>(0), partitions.size(), [&](size_t partition_index) {
+      ::boost::archive::binary_oarchive output_archive(file_vec[partition_index]);
+      output_archive << partitions[partition_index];
+   });
    SPDLOG_INFO("Finished saving partitions", partitions.size());
 }
 
@@ -459,17 +442,8 @@ silo::DetailedDatabaseInfo silo::Database::detailedDatabaseInfo() const {
    }
    SPDLOG_INFO("Loading partitioning definition from {}", partition_descriptor_file);
 
-   partition_descriptor =
+   auto partition_descriptor =
       std::make_unique<preprocessing::Partitions>(preprocessing::Partitions::load(part_def_file));
-
-   const auto pango_definition_file = save_directory + "pango_descriptor.txt";
-   std::ifstream pango_def_file(pango_definition_file);
-   if (pango_def_file) {
-      SPDLOG_INFO("Loading pango definition from {}", pango_definition_file);
-      pango_descriptor = std::make_unique<preprocessing::PangoLineageCounts>(
-         preprocessing::PangoLineageCounts::load(pango_def_file)
-      );
-   }
 
    SPDLOG_INFO("Loading partitions from {}", save_directory);
    std::vector<std::ifstream> file_vec;
@@ -497,8 +471,7 @@ silo::DetailedDatabaseInfo silo::Database::detailedDatabaseInfo() const {
 
 void silo::Database::preprocessing(const PreprocessingConfig& config) {
    SPDLOG_INFO("preprocessing - validate database config");
-   const auto database_config =
-      config::ConfigRepository().getValidatedConfig(config.database_config_file);
+   database_config = config::ConfigRepository().getValidatedConfig(config.database_config_file);
 
    SPDLOG_INFO("preprocessing - validate metadata file against config");
    silo::preprocessing::MetadataValidator().validateMedataFile(
@@ -506,20 +479,19 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
    );
 
    SPDLOG_INFO("preprocessing - building pango lineage counts");
-   pango_descriptor = std::make_unique<preprocessing::PangoLineageCounts>(
+   const preprocessing::PangoLineageCounts pango_descriptor(
       preprocessing::buildPangoLineageCounts(alias_key, config.metadata_file, database_config)
    );
 
    SPDLOG_INFO("preprocessing - building partitions");
-   partition_descriptor =
-      std::make_unique<preprocessing::Partitions>(silo::preprocessing::buildPartitions(
-         *pango_descriptor, preprocessing::Architecture::MAX_PARTITIONS
-      ));
+   const preprocessing::Partitions partition_descriptor(silo::preprocessing::buildPartitions(
+      pango_descriptor, preprocessing::Architecture::MAX_PARTITIONS
+   ));
 
    SPDLOG_INFO("preprocessing - partitioning sequences");
    FastaReader sequence_stream(config.sequence_file.relative_path());
    partitionSequences(
-      *partition_descriptor,
+      partition_descriptor,
       config.metadata_file,
       sequence_stream,
       config.partition_folder.relative_path(),
@@ -532,7 +504,7 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
    if (database_config.schema.date_to_sort_by.has_value()) {
       SPDLOG_INFO("preprocessing - sorting chunks");
       silo::sortChunks(
-         *partition_descriptor,
+         partition_descriptor,
          config.partition_folder.relative_path(),
          config.sorted_partition_folder.relative_path(),
          config.metadata_file.extension(),
@@ -549,7 +521,7 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
       config.sorted_partition_folder.relative_path(),
       config.metadata_file.extension(),
       config.sequence_file.extension(),
-      database_config
+      partition_descriptor
    );
 }
 silo::Database::Database() = default;

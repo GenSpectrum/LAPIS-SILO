@@ -23,7 +23,7 @@ class Exact : public Expression {
    ) const override;
 };
 
-// NOLINTNEXTLINE(invalid-case-style)
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Exact>& filter);
 
 }  // namespace silo::query_engine::filter_expressions

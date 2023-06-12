@@ -6,9 +6,9 @@
 #include <tbb/parallel_for_each.h>
 #include <unordered_set>
 
+#include "silo/common/date.h"
 #include "silo/common/fasta_reader.h"
 #include "silo/common/input_stream_wrapper.h"
-#include "silo/common/time.h"
 #include "silo/config/database_config.h"
 #include "silo/database.h"
 #include "silo/preprocessing/metadata.h"
@@ -254,19 +254,19 @@ struct PartitionChunk {
    uint32_t size;
 };
 
-std::unordered_map<std::string, time_t> sortMetadataFile(
+std::unordered_map<std::string, silo::common::Date> sortMetadataFile(
    const std::filesystem::path& meta_in,
    silo::preprocessing::MetadataWriter& metadata_writer,
    const PartitionChunk& chunk,
    const silo::SortChunkConfig& sort_chunk_config
 ) {
-   std::unordered_map<std::string, time_t> primary_key_to_date;
+   std::unordered_map<std::string, silo::common::Date> primary_key_to_date;
 
    auto metadata_reader = silo::preprocessing::MetadataReader::getReader(meta_in);
 
    struct RowWithDate {
       csv::CSVRow row;
-      time_t date;
+      silo::common::Date date;
    };
    std::vector<RowWithDate> rows;
    rows.reserve(chunk.size);
@@ -275,11 +275,11 @@ std::unordered_map<std::string, time_t> sortMetadataFile(
       const auto primary_key = row[sort_chunk_config.primary_key_name].get();
       const auto date_str = row[sort_chunk_config.date_column_to_sort_by].get();
 
-      const auto date_time = silo::common::mapToTime(date_str);
+      silo::common::Date date = silo::common::stringToDate(date_str);
 
-      rows.push_back({row, date_time});
+      rows.push_back({row, date});
 
-      primary_key_to_date[primary_key] = date_time;
+      primary_key_to_date[primary_key] = date;
    }
 
    std::sort(rows.begin(), rows.end(), [](const RowWithDate& line1, const RowWithDate& line2) {
@@ -298,7 +298,7 @@ void sortSequenceFile(
    silo::FastaReader& sequence_in,
    std::ostream& sequence_out,
    const PartitionChunk& chunk,
-   std::unordered_map<std::string, time_t>& primary_key_to_date
+   std::unordered_map<std::string, silo::common::Date>& primary_key_to_date
 ) {
    const std::string chunk_str =
       'P' + std::to_string(chunk.part) + '_' + 'C' + std::to_string(chunk.chunk);
@@ -311,7 +311,7 @@ void sortSequenceFile(
 
    struct KeyDatePair {
       std::string key;
-      time_t date;
+      silo::common::Date date;
       uint32_t file_pos;
    };
    std::vector<KeyDatePair> key_date_pairs;
@@ -320,7 +320,7 @@ void sortSequenceFile(
    std::string key;
    std::string genome;
    while (sequence_in.next(key, genome)) {
-      time_t const date = primary_key_to_date[key];
+      silo::common::Date const date = primary_key_to_date[key];
       key_date_pairs.emplace_back(KeyDatePair{key, date, number_of_sequences++});
    }
 

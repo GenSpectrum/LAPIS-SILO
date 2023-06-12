@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "silo/common/date.h"
 #include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/operators/range_selection.h"
 
@@ -22,8 +23,8 @@ namespace silo::query_engine::filter_expressions {
 struct DateBetween : public Expression {
   private:
    std::string column;
-   std::optional<time_t> date_from;
-   std::optional<time_t> date_to;
+   std::optional<silo::common::Date> date_from;
+   std::optional<silo::common::Date> date_to;
 
    [[nodiscard]] std::vector<silo::query_engine::operators::RangeSelection::Range>
    computeRangesOfSortedColumn(
@@ -34,8 +35,8 @@ struct DateBetween : public Expression {
   public:
    explicit DateBetween(
       std::string column,
-      std::optional<time_t> date_from,
-      std::optional<time_t> date_to
+      std::optional<silo::common::Date> date_from,
+      std::optional<silo::common::Date> date_to
    );
 
    std::string toString(const Database& database) override;
@@ -47,7 +48,7 @@ struct DateBetween : public Expression {
    ) const override;
 };
 
-// NOLINTNEXTLINE(invalid-case-style)
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<DateBetween>& filter);
 
 }  // namespace silo::query_engine::filter_expressions

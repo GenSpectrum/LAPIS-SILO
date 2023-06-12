@@ -2,7 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "silo/common/time.h"
+#include "silo/common/date.h"
 #include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/operators/intersection.h"
 #include "silo/query_engine/operators/operator.h"
@@ -15,8 +15,8 @@ namespace silo::query_engine::filter_expressions {
 
 DateBetween::DateBetween(
    std::string column,
-   std::optional<time_t> date_from,
-   std::optional<time_t> date_to
+   std::optional<silo::common::Date> date_from,
+   std::optional<silo::common::Date> date_to
 )
     : column(std::move(column)),
       date_from(date_from),
@@ -24,9 +24,9 @@ DateBetween::DateBetween(
 
 std::string DateBetween::toString(const silo::Database& /*database*/) {
    std::string res = "[Date-between ";
-   res += (date_from.has_value() ? std::to_string(date_from.value()) : "unbounded");
+   res += (date_from.has_value() ? silo::common::dateToString(date_from.value()) : "unbounded");
    res += " and ";
-   res += (date_to.has_value() ? std::to_string(date_to.value()) : "unbounded");
+   res += (date_to.has_value() ? silo::common::dateToString(date_to.value()) : "unbounded");
    res += "]";
    return res;
 }
@@ -40,16 +40,16 @@ std::unique_ptr<operators::Operator> DateBetween::compile(
 
    if (!date_column.isSorted()) {
       std::vector<std::unique_ptr<operators::Operator>> children;
-      children.emplace_back(std::make_unique<operators::Selection<time_t>>(
+      children.emplace_back(std::make_unique<operators::Selection<silo::common::Date>>(
          date_column.getValues(),
-         operators::Selection<time_t>::HIGHER_OR_EQUALS,
-         date_from.value_or(0),
+         operators::Selection<silo::common::Date>::HIGHER_OR_EQUALS,
+         date_from.value_or(silo::common::Date{0}),
          database_partition.sequenceCount
       ));
-      children.emplace_back(std::make_unique<operators::Selection<time_t>>(
+      children.emplace_back(std::make_unique<operators::Selection<silo::common::Date>>(
          date_column.getValues(),
-         operators::Selection<time_t>::LESS,
-         date_to.value_or(std::numeric_limits<time_t>::max()),
+         operators::Selection<silo::common::Date>::LESS,
+         date_to.value_or(silo::common::Date{UINT32_MAX}),
          database_partition.sequenceCount
       ));
 
@@ -106,13 +106,13 @@ void from_json(const nlohmann::json& json, std::unique_ptr<DateBetween>& filter)
       "The field 'to' in a DateBetween expression needs to be a string or null"
    )
    const std::string& column = json["column"];
-   std::optional<time_t> date_from;
+   std::optional<silo::common::Date> date_from;
    if (json["from"].type() == nlohmann::detail::value_t::string) {
-      date_from = common::mapToTime(json["from"].get<std::string>());
+      date_from = common::stringToDate(json["from"].get<std::string>());
    }
-   std::optional<time_t> date_to;
+   std::optional<silo::common::Date> date_to;
    if (json["to"].type() == nlohmann::detail::value_t::string) {
-      date_to = common::mapToTime(json["to"].get<std::string>());
+      date_to = common::stringToDate(json["to"].get<std::string>());
    }
    filter = std::make_unique<DateBetween>(column, date_from, date_to);
 }

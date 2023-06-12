@@ -1,5 +1,7 @@
 #include "silo/storage/column/date_column.h"
 
+#include "silo/common/date.h"
+
 namespace silo::storage::column {
 
 DateColumn::DateColumn()
@@ -12,12 +14,16 @@ bool DateColumn::isSorted() const {
    return is_sorted;
 }
 
-void DateColumn::insert(const std::time_t& value) {
+void DateColumn::insert(const silo::common::Date& value) {
    values.push_back(value);
 }
 
-const std::vector<std::time_t>& DateColumn::getValues() const {
+const std::vector<silo::common::Date>& DateColumn::getValues() const {
    return values;
 }
+
+std::string DateColumn::getAsString(std::size_t idx) const {
+   return silo::common::dateToString(values[idx]);
+};
 
 }  // namespace silo::storage::column
