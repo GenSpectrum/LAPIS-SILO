@@ -39,12 +39,18 @@ void partitionSequences(
    const std::string& sequence_file_extension
 );
 
+struct SortChunkConfig {
+   std::string primary_key_name;
+   std::string date_column_to_sort_by;
+};
+
 void sortChunks(
    const preprocessing::Partitions& partitions,
    const std::string& input_prefix,
    const std::string& output_prefix,
    const std::string& metadata_file_extension,
-   const std::string& sequence_file_extension
+   const std::string& sequence_file_extension,
+   const SortChunkConfig& sort_chunk_config
 );
 
 }  // namespace silo

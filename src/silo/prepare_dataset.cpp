@@ -8,6 +8,7 @@
 
 #include "silo/common/fasta_reader.h"
 #include "silo/common/input_stream_wrapper.h"
+#include "silo/common/time.h"
 #include "silo/database.h"
 #include "silo/preprocessing/metadata.h"
 #include "silo/preprocessing/preprocessing_exception.h"
@@ -245,9 +246,10 @@ struct PartitionChunk {
 std::unordered_map<std::string, time_t> sortMetadataFile(
    const std::filesystem::path& meta_in,
    silo::preprocessing::MetadataWriter& metadata_writer,
-   const PartitionChunk& chunk
+   const PartitionChunk& chunk,
+   const silo::SortChunkConfig& sort_chunk_config
 ) {
-   std::unordered_map<std::string, time_t> key_to_date;
+   std::unordered_map<std::string, time_t> primary_key_to_date;
 
    auto metadata_reader = silo::preprocessing::MetadataReader::getReader(meta_in);
 
@@ -259,17 +261,14 @@ std::unordered_map<std::string, time_t> sortMetadataFile(
    rows.reserve(chunk.size);
 
    for (auto& row : metadata_reader) {
-      const auto key = row[silo::preprocessing::COLUMN_NAME_PRIMARY_KEY].get();
-      const auto date_str = row[silo::preprocessing::COLUMN_NAME_DATE].get();
+      const auto primary_key = row[sort_chunk_config.primary_key_name].get();
+      const auto date_str = row[sort_chunk_config.date_column_to_sort_by].get();
 
-      struct tm time_struct {};
-      std::istringstream time_stream(date_str);
-      time_stream >> std::get_time(&time_struct, "%Y-%m-%d");
-      time_t const date_time = mktime(&time_struct);
+      const auto date_time = silo::common::mapToTime(date_str);
 
       rows.push_back({row, date_time});
 
-      key_to_date[key] = date_time;
+      primary_key_to_date[primary_key] = date_time;
    }
 
    std::sort(rows.begin(), rows.end(), [](const RowWithDate& line1, const RowWithDate& line2) {
@@ -281,14 +280,14 @@ std::unordered_map<std::string, time_t> sortMetadataFile(
    for (const auto& row_with_date : rows) {
       metadata_writer.writeRow(row_with_date.row);
    }
-   return key_to_date;
+   return primary_key_to_date;
 }
 
 void sortSequenceFile(
    silo::FastaReader& sequence_in,
    std::ostream& sequence_out,
    const PartitionChunk& chunk,
-   std::unordered_map<std::string, time_t>& key_to_date
+   std::unordered_map<std::string, time_t>& primary_key_to_date
 ) {
    const std::string chunk_str =
       'P' + std::to_string(chunk.part) + '_' + 'C' + std::to_string(chunk.chunk);
@@ -310,7 +309,7 @@ void sortSequenceFile(
    std::string key;
    std::string genome;
    while (sequence_in.next(key, genome)) {
-      time_t const date = key_to_date[key];
+      time_t const date = primary_key_to_date[key];
       key_date_pairs.emplace_back(KeyDatePair{key, date, number_of_sequences++});
    }
 
@@ -361,11 +360,12 @@ void sortChunk(
    silo::FastaReader& sequence_in,
    silo::preprocessing::MetadataWriter& metadata_writer,
    std::ostream& sequence_out,
-   const PartitionChunk chunk
+   const PartitionChunk chunk,
+   const silo::SortChunkConfig& sort_chunk_config
 ) {
-   auto key_to_date = sortMetadataFile(meta_in, metadata_writer, chunk);
+   auto primary_key_to_date = sortMetadataFile(meta_in, metadata_writer, chunk, sort_chunk_config);
 
-   sortSequenceFile(sequence_in, sequence_out, chunk, key_to_date);
+   sortSequenceFile(sequence_in, sequence_out, chunk, primary_key_to_date);
 }
 
 void silo::sortChunks(
@@ -373,7 +373,8 @@ void silo::sortChunks(
    const std::string& input_prefix,
    const std::string& output_prefix,
    const std::string& metadata_file_extension,
-   const std::string& sequence_file_extension
+   const std::string& sequence_file_extension,
+   const SortChunkConfig& sort_chunk_config
 ) {
    std::vector<PartitionChunk> all_chunks;
    for (uint32_t part_id = 0, limit = partitions.partitions.size(); part_id < limit; ++part_id) {
@@ -393,6 +394,13 @@ void silo::sortChunks(
       silo::preprocessing::MetadataWriter meta_out(std::make_unique<std::ofstream>(
          output_prefix + silo::buildChunkName(chunk.part, chunk.chunk) + metadata_file_extension
       ));
-      sortChunk(file_name + metadata_file_extension, sequence_in, meta_out, sequence_out, chunk);
+      sortChunk(
+         file_name + metadata_file_extension,
+         sequence_in,
+         meta_out,
+         sequence_out,
+         chunk,
+         sort_chunk_config
+      );
    });
 }

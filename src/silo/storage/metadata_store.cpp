@@ -14,7 +14,13 @@ unsigned MetadataStore::fill(
 ) {
    auto metadata_reader = silo::preprocessing::MetadataReader::getReader(input_file);
 
-   const auto columns_to_index = std::set<std::string>{"country", "region", "division"};
+   std::set<std::string> columns_to_index;
+   for (const auto& element : database_config.schema.metadata) {
+      if (element.generate_index) {
+         columns_to_index.insert(element.name);
+      }
+   }
+
    initializeColumns(database_config, columns_to_index);
 
    unsigned sequence_count = 0;
@@ -57,12 +63,11 @@ void MetadataStore::initializeColumns(
       } else if (item.type == config::DatabaseMetadataType::PANGOLINEAGE) {
          pango_lineage_columns.emplace(item.name, storage::column::PangoLineageColumn());
       } else if (item.type == config::DatabaseMetadataType::DATE) {
-         date_columns.emplace(
-            item.name,
-            // TODO(#114) make this configurable
-            item.name == "date" ? storage::column::DateColumn(true)
-                                : storage::column::DateColumn(false)
-         );
+         const auto column =
+            item.name == database_config.schema.date_to_sort_by
+               ? storage::column::DateColumn(true)
+               : storage::column::DateColumn(false);
+         date_columns.emplace(item.name, column);
       }
    }
 }

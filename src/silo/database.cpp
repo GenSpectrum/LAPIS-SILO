@@ -528,14 +528,20 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
       config.sequence_file.extension()
    );
 
-   SPDLOG_INFO("preprocessing - sorting chunks");
-   silo::sortChunks(
-      *partition_descriptor,
-      config.partition_folder.relative_path(),
-      config.sorted_partition_folder.relative_path(),
-      config.metadata_file.extension(),
-      config.sequence_file.extension()
-   );
+   if (database_config.schema.date_to_sort_by.has_value()) {
+      SPDLOG_INFO("preprocessing - sorting chunks");
+      silo::sortChunks(
+         *partition_descriptor,
+         config.partition_folder.relative_path(),
+         config.sorted_partition_folder.relative_path(),
+         config.metadata_file.extension(),
+         config.sequence_file.extension(),
+         {database_config.schema.primary_key, database_config.schema.date_to_sort_by.value()}
+      );
+   } else {
+      SPDLOG_INFO("preprocessing - skipping sorting chunks because no date to sort by was specified"
+      );
+   }
 
    SPDLOG_INFO("preprocessing - building database");
    build(
