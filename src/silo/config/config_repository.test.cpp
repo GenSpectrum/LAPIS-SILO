@@ -14,13 +14,22 @@ using silo::config::DatabaseMetadataType;
 
 class ConfigReaderMock : public silo::config::DatabaseConfigReader {
   public:
+   ConfigReaderMock() = default;
+   ConfigReaderMock(const ConfigReaderMock& /*other*/){};
+
    MOCK_METHOD((DatabaseConfig), readConfig, (const std::filesystem::path&), (const override));
 };
 
-TEST(ConfigRepository, shouldReadConfigWithoutErrors) {
+ConfigReaderMock mockConfigReader(const DatabaseConfig& config) {
    const ConfigReaderMock config_reader_mock;
 
-   const DatabaseConfig valid_config{
+   EXPECT_CALL(config_reader_mock, readConfig(testing::_)).WillRepeatedly(testing::Return(config));
+
+   return config_reader_mock;
+}
+
+TEST(ConfigRepository, shouldReadConfigWithoutErrors) {
+   const auto config_reader_mock = mockConfigReader({
       "testInstanceName",
       {
          {"testPrimaryKey", DatabaseMetadataType::STRING},
@@ -28,27 +37,21 @@ TEST(ConfigRepository, shouldReadConfigWithoutErrors) {
          {"metadata2", DatabaseMetadataType::DATE},
       },
       "testPrimaryKey",
-   };
-
-   EXPECT_CALL(config_reader_mock, readConfig(testing::_))
-      .WillRepeatedly(testing::Return(valid_config));
+      std::nullopt,
+      "metadata1",
+   });
 
    ASSERT_NO_THROW(ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml"));
 }
 
 TEST(ConfigRepository, shouldThrowIfPrimaryKeyIsNotInMetadata) {
-   const ConfigReaderMock config_reader_mock;
-
-   const DatabaseConfig config_without_primary_key{
+   const auto config_reader_mock = mockConfigReader({
       "testInstanceName",
       {
          {"notPrimaryKey", DatabaseMetadataType::STRING},
       },
       "testPrimaryKey",
-   };
-
-   EXPECT_CALL(config_reader_mock, readConfig(testing::_))
-      .WillRepeatedly(testing::Return(config_without_primary_key));
+   });
 
    ASSERT_THROW(
       ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml"), ConfigException
@@ -56,9 +59,7 @@ TEST(ConfigRepository, shouldThrowIfPrimaryKeyIsNotInMetadata) {
 }
 
 TEST(ConfigRepository, shouldThrowIfThereAreTwoMetadataWithTheSameName) {
-   const ConfigReaderMock config_reader_mock;
-
-   const DatabaseConfig config_without_primary_key{
+   const auto config_reader_mock = mockConfigReader({
       "testInstanceName",
       {
          {"testPrimaryKey", DatabaseMetadataType::STRING},
@@ -66,12 +67,118 @@ TEST(ConfigRepository, shouldThrowIfThereAreTwoMetadataWithTheSameName) {
          {"sameName", DatabaseMetadataType::DATE},
       },
       "testPrimaryKey",
-   };
-
-   EXPECT_CALL(config_reader_mock, readConfig(testing::_))
-      .WillRepeatedly(testing::Return(config_without_primary_key));
+   });
 
    ASSERT_THROW(
       ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml"), ConfigException
+   );
+}
+
+TEST(ConfigRepository, givenConfigWithDateToSortByThatIsNotConfiguredThenThrows) {
+   const auto config_reader_mock = mockConfigReader(
+      {"testInstanceName",
+       {
+          {"testPrimaryKey", DatabaseMetadataType::STRING},
+       },
+       "testPrimaryKey",
+       "notConfiguredDateToSortBy"}
+   );
+
+   EXPECT_THAT(
+      [&config_reader_mock]() {
+         ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml");
+      },
+      ThrowsMessage<ConfigException>(
+         ::testing::HasSubstr("date_to_sort_by 'notConfiguredDateToSortBy' is not in metadata")
+      )
+   );
+}
+
+TEST(ConfigRepository, givenDateToSortByThatIsNotADateThenThrows) {
+   const auto config_reader_mock = mockConfigReader(
+      {"testInstanceName",
+       {
+          {"testPrimaryKey", DatabaseMetadataType::STRING},
+          {"not a date", DatabaseMetadataType::STRING},
+       },
+       "testPrimaryKey",
+       "not a date"}
+   );
+
+   EXPECT_THAT(
+      [&config_reader_mock]() {
+         ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml");
+      },
+      ThrowsMessage<ConfigException>(
+         ::testing::HasSubstr("date_to_sort_by 'not a date' must be of type DATE")
+      )
+   );
+}
+
+TEST(ConfigRepository, givenConfigPartitionByThatIsNotConfiguredThenThrows) {
+   const auto config_reader_mock = mockConfigReader(
+      {"testInstanceName",
+       {
+          {"testPrimaryKey", DatabaseMetadataType::STRING},
+          {"date_to_sort_by", DatabaseMetadataType::DATE},
+       },
+       "testPrimaryKey",
+       "date_to_sort_by",
+       "notConfiguredPartitionBy"}
+   );
+
+   EXPECT_THAT(
+      [&config_reader_mock]() {
+         ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml");
+      },
+      ThrowsMessage<ConfigException>(
+         ::testing::HasSubstr("partition_by 'notConfiguredPartitionBy' is not in metadata")
+      )
+   );
+}
+
+TEST(ConfigRepository, givenConfigPartitionByThatIsNotStringOrPangoLineageThenThrows) {
+   const auto config_reader_mock = mockConfigReader(
+      {"testInstanceName",
+       {
+          {"testPrimaryKey", DatabaseMetadataType::STRING},
+          {"date_to_sort_by", DatabaseMetadataType::DATE},
+          {"not a string or pango lineage", DatabaseMetadataType::DATE},
+       },
+       "testPrimaryKey",
+       "date_to_sort_by",
+       "not a string or pango lineage"}
+   );
+
+   EXPECT_THAT(
+      [&config_reader_mock]() {
+         ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml");
+      },
+      ThrowsMessage<ConfigException>(::testing::HasSubstr(
+         "partition_by 'not a string or pango lineage' must be of type STRING or PANGOLINEAGE"
+      ))
+   );
+}
+
+TEST(ConfigRepository, givenMetadataToGenerateIndexForThatIsNotStringOrPangoLineageThenThrows) {
+   const auto config_reader_mock = mockConfigReader(
+      {"testInstanceName",
+       {
+          {"testPrimaryKey", DatabaseMetadataType::STRING},
+          {"indexed date", DatabaseMetadataType::DATE, true},
+       },
+       "testPrimaryKey",
+       std::nullopt,
+       "testPrimaryKey"}
+   );
+
+   EXPECT_THAT(
+      [&config_reader_mock]() {
+         ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml");
+      },
+      ThrowsMessage<ConfigException>(
+         ::testing::HasSubstr("Metadata 'indexed date' generate_index is set, but generating an "
+                              "index is only allowed for types STRING and PANGOLINEAGE")
+      )
    );
 }

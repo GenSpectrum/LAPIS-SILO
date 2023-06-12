@@ -1,6 +1,7 @@
 #ifndef SILO_INCLUDE_SILO_CONFIG_DATABASECONFIG_H_
 #define SILO_INCLUDE_SILO_CONFIG_DATABASECONFIG_H_
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -13,12 +14,15 @@ DatabaseMetadataType toDatabaseMetadataType(std::string_view type);
 struct DatabaseMetadata {
    std::string name;
    DatabaseMetadataType type;
+   bool generate_index;
 };
 
 struct DatabaseSchema {
    std::string instance_name;
    std::vector<DatabaseMetadata> metadata;
    std::string primary_key;
+   std::optional<std::string> date_to_sort_by;
+   std::string partition_by;
 };
 
 struct DatabaseConfig {

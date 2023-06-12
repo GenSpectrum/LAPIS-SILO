@@ -19,6 +19,12 @@ struct convert<silo::config::DatabaseSchema> {
    static bool decode(const Node& node, silo::config::DatabaseSchema& schema) {
       schema.instance_name = node["instanceName"].as<std::string>();
       schema.primary_key = node["primaryKey"].as<std::string>();
+      if (node["dateToSortBy"].IsDefined()) {
+         schema.date_to_sort_by = node["dateToSortBy"].as<std::string>();
+      } else {
+         schema.date_to_sort_by = std::nullopt;
+      }
+      schema.partition_by = node["partitionBy"].as<std::string>();
 
       if (!node["metadata"].IsSequence()) {
          return false;
@@ -36,6 +42,12 @@ struct convert<silo::config::DatabaseMetadata> {
    static bool decode(const Node& node, silo::config::DatabaseMetadata& metadata) {
       metadata.name = node["name"].as<std::string>();
       metadata.type = silo::config::toDatabaseMetadataType(node["type"].as<std::string>());
+      if (node["generateIndex"].IsDefined()) {
+         metadata.generate_index = node["generateIndex"].as<bool>();
+      } else {
+         metadata.generate_index =
+            metadata.type == silo::config::DatabaseMetadataType::PANGOLINEAGE;
+      }
       return true;
    }
 };

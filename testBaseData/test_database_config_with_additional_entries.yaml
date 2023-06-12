@@ -12,5 +12,7 @@ schema:
     - name: pangoLineage
       type: pango_lineage
   primaryKey: gisaid_epi_isl
+  dateToSortBy: date
+  partitionBy: pango_lineage
   features:
     - name: sarsCoV2VariantQuery
