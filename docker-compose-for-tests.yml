@@ -2,5 +2,12 @@ version: "3.9"
 services:
   silo:
     image: ${SILO_IMAGE}
+    volumes:
+      - ./testBaseData:/app/testBaseData
     ports:
       - "8080:8081"
+    command:
+      - "./siloApi"
+      - "--preprocessingConfig=./testBaseData/test_preprocessing_config.yaml"
+      - "--databaseConfig=./testBaseData/test_database_config.yaml"
+      - "--api"

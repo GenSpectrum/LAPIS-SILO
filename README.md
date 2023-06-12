@@ -29,7 +29,7 @@ The Conan profile (myProfile) on your system might differ: Create a new profile 
 conan profile detect
 ```
 
-Copy `conanprofile.example` to `conanprofile` and insert the values of `os`, `os_build`, `arch` and `arch_build` from 
+Copy `conanprofile.example` to `conanprofile` and insert the values of `os`, `os_build`, `arch` and `arch_build` from
 myProfile.
 
 Build silo in `./build`. This build will load and build the required libraries to `~/.conan2/data/` (can not be set by
@@ -54,11 +54,16 @@ docker build . --tag=silo
 Run docker container
 
 ```shell
-docker run -p 8081:8081 silo
+docker run -p 8081:8081 -v your/data/directory:the/directory/in/docker/image silo /siloApi --preprocessingConfig=the/directory/in/docker/image/test_preprocessing_config.yaml --databaseConfig=the/directory/in/docker/image/test_database_config.yaml -a
 ```
 
+The mounted directory `your/data/directory` is the place on your machine, where the data for SILO is located. The data
+will be mounted to the directory `the/directory/in/docker/image` in the docker image. Both the preprocessingConfig and
+the databaseConfig must be provided and must be located in the mounted directory. In the preprocessingConfig, the paths
+to the data must be relative to the mounted directory.
+
 Building Docker images locally relies on the local Docker cache.
-Docker will cache layers, and it will cache the dependencies built by Conan via cache mounts. 
+Docker will cache layers, and it will cache the dependencies built by Conan via cache mounts.
 
 However, cache mounts don't work in GitHub Actions (https://github.com/docker/build-push-action/issues/716),
 so there we only rely on Docker's layer cache via Docker's gha cache backend.
