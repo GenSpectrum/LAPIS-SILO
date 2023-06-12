@@ -8,6 +8,10 @@
 
 namespace silo {
 
+namespace config {
+struct DatabaseConfig;
+}  // namespace config
+
 namespace preprocessing {
 struct Partitions;
 struct PangoLineageCounts;
@@ -36,7 +40,8 @@ void partitionSequences(
    const std::string& output_prefix,
    const PangoLineageAliasLookup& alias_key,
    const std::string& metadata_file_extension,
-   const std::string& sequence_file_extension
+   const std::string& sequence_file_extension,
+   const silo::config::DatabaseConfig& database_config
 );
 
 struct SortChunkConfig {

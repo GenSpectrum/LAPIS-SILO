@@ -9,6 +9,7 @@
 #include "silo/common/fasta_reader.h"
 #include "silo/common/input_stream_wrapper.h"
 #include "silo/common/time.h"
+#include "silo/config/database_config.h"
 #include "silo/database.h"
 #include "silo/preprocessing/metadata.h"
 #include "silo/preprocessing/preprocessing_exception.h"
@@ -108,15 +109,16 @@ std::unordered_map<std::string, std::string> writeMetadataChunks(
    std::unordered_map<std::string, std::string>& pango_to_chunk,
    csv::CSVReader& metadata_reader,
    std::unordered_map<std::string, std::unique_ptr<silo::preprocessing::MetadataWriter>>&
-      chunk_to_metadata_writers
+      chunk_to_metadata_writers,
+   const silo::config::DatabaseConfig& database_config
 ) {
    std::unordered_map<std::string, std::string> primary_key_to_sequence_partition_chunk;
    for (auto& row : metadata_reader) {
-      std::string const primary_key = row[silo::preprocessing::COLUMN_NAME_PRIMARY_KEY].get();
+      std::string const primary_key = row[database_config.schema.primary_key].get();
       std::string const pango_lineage = alias_key.resolvePangoLineageAlias(
-         row[silo::preprocessing::COLUMN_NAME_PANGO_LINEAGE].get()
+         row[database_config.schema.partition_by].get()
       );
-      row[silo::preprocessing::COLUMN_NAME_PANGO_LINEAGE] = csv::CSVField{pango_lineage};
+      row[database_config.schema.partition_by] = csv::CSVField{pango_lineage};
 
       std::string const chunk = pango_to_chunk[pango_lineage];
       chunk_to_metadata_writers[chunk]->writeRow(row);
@@ -133,7 +135,8 @@ std::unordered_map<std::string, std::string> partitionMetadataFile(
    const silo::PangoLineageAliasLookup& alias_key,
    const std::string& metadata_file_extension,
    std::unordered_map<std::string, std::string>& pango_to_chunk,
-   const std::vector<std::string>& chunk_names
+   const std::vector<std::string>& chunk_names,
+   const silo::config::DatabaseConfig& database_config
 ) {
    SPDLOG_INFO("partitioning metadata file to {}", output_prefix);
 
@@ -144,7 +147,7 @@ std::unordered_map<std::string, std::string> partitionMetadataFile(
    );
 
    return writeMetadataChunks(
-      alias_key, pango_to_chunk, metadata_reader, chunk_to_metadata_writers
+      alias_key, pango_to_chunk, metadata_reader, chunk_to_metadata_writers, database_config
    );
 }
 
@@ -211,7 +214,8 @@ void silo::partitionSequences(
    const std::string& output_prefix,
    const PangoLineageAliasLookup& alias_key,
    const std::string& metadata_file_extension,
-   const std::string& sequence_file_extension
+   const std::string& sequence_file_extension,
+   const silo::config::DatabaseConfig& database_config
 ) {
    std::unordered_map<std::string, std::string> pango_to_chunk;
    std::vector<std::string> chunk_names;
@@ -227,7 +231,13 @@ void silo::partitionSequences(
    }
 
    auto key_to_chunk = partitionMetadataFile(
-      meta_in, output_prefix, alias_key, metadata_file_extension, pango_to_chunk, chunk_names
+      meta_in,
+      output_prefix,
+      alias_key,
+      metadata_file_extension,
+      pango_to_chunk,
+      chunk_names,
+      database_config
    );
 
    partitionSequenceFile(

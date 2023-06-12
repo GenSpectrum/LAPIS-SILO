@@ -8,6 +8,10 @@
 namespace silo {
 struct PangoLineageAliasLookup;
 
+namespace config {
+struct DatabaseConfig;
+}  // namespace config
+
 namespace preprocessing {
 
 struct PangoLineageCount {
@@ -25,7 +29,8 @@ struct PangoLineageCounts {
 
 PangoLineageCounts buildPangoLineageCounts(
    const PangoLineageAliasLookup& alias_key,
-   const std::filesystem::path& metadata_path
+   const std::filesystem::path& metadata_path,
+   const silo::config::DatabaseConfig& database_config
 );
 
 }  // namespace preprocessing

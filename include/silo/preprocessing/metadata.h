@@ -10,7 +10,6 @@
 namespace silo::preprocessing {
 
 const std::string COLUMN_NAME_PRIMARY_KEY = "gisaid_epi_isl";
-const std::string COLUMN_NAME_PANGO_LINEAGE = "pango_lineage";
 
 class MetadataReader {
   public:

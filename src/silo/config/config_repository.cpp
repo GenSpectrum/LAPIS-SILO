@@ -67,9 +67,9 @@ void validatePartitionBy(
    }
 
    const auto& partition_by_type = metadata_map[config.schema.partition_by];
-   if (partition_by_type != DatabaseMetadataType::STRING && partition_by_type != DatabaseMetadataType::PANGOLINEAGE) {
+   if (partition_by_type != DatabaseMetadataType::PANGOLINEAGE) {
       throw ConfigException(
-         "partition_by '" + config.schema.partition_by + "' must be of type STRING or PANGOLINEAGE"
+         "partition_by '" + config.schema.partition_by + "' must be of type PANGOLINEAGE"
       );
    }
 }

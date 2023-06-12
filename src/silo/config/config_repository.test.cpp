@@ -137,17 +137,17 @@ TEST(ConfigRepository, givenConfigPartitionByThatIsNotConfiguredThenThrows) {
    );
 }
 
-TEST(ConfigRepository, givenConfigPartitionByThatIsNotStringOrPangoLineageThenThrows) {
+TEST(ConfigRepository, givenConfigPartitionByThatIsNotPangoLineageThenThrows) {
    const auto config_reader_mock = mockConfigReader(
       {"testInstanceName",
        {
           {"testPrimaryKey", DatabaseMetadataType::STRING},
           {"date_to_sort_by", DatabaseMetadataType::DATE},
-          {"not a string or pango lineage", DatabaseMetadataType::DATE},
+          {"not a pango lineage", DatabaseMetadataType::STRING},
        },
        "testPrimaryKey",
        "date_to_sort_by",
-       "not a string or pango lineage"}
+       "not a pango lineage"}
    );
 
    EXPECT_THAT(
@@ -155,7 +155,7 @@ TEST(ConfigRepository, givenConfigPartitionByThatIsNotStringOrPangoLineageThenTh
          ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml");
       },
       ThrowsMessage<ConfigException>(::testing::HasSubstr(
-         "partition_by 'not a string or pango lineage' must be of type STRING or PANGOLINEAGE"
+         "partition_by 'not a pango lineage' must be of type PANGOLINEAGE"
       ))
    );
 }

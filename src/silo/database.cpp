@@ -507,7 +507,7 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
 
    SPDLOG_INFO("preprocessing - building pango lineage counts");
    pango_descriptor = std::make_unique<preprocessing::PangoLineageCounts>(
-      preprocessing::buildPangoLineageCounts(alias_key, config.metadata_file)
+      preprocessing::buildPangoLineageCounts(alias_key, config.metadata_file, database_config)
    );
 
    SPDLOG_INFO("preprocessing - building partitions");
@@ -525,7 +525,8 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
       config.partition_folder.relative_path(),
       alias_key,
       config.metadata_file.extension(),
-      config.sequence_file.extension()
+      config.sequence_file.extension(),
+      database_config
    );
 
    if (database_config.schema.date_to_sort_by.has_value()) {
