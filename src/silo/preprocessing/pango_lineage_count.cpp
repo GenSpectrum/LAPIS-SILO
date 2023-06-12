@@ -3,9 +3,9 @@
 #include <iostream>
 #include <unordered_map>
 
+#include "silo/config/database_config.h"
 #include "silo/preprocessing/metadata.h"
 #include "silo/storage/pango_lineage_alias.h"
-#include "silo/config/database_config.h"
 
 namespace silo::preprocessing {
 

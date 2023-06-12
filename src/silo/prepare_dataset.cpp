@@ -19,7 +19,8 @@
 [[maybe_unused]] void silo::pruneMetadata(
    const std::filesystem::path& metadata_in,
    silo::FastaReader& sequences_in,
-   silo::preprocessing::MetadataWriter& metadata_writer
+   silo::preprocessing::MetadataWriter& metadata_writer,
+   const silo::config::DatabaseConfig& database_config
 ) {
    SPDLOG_INFO("Pruning metadata");
 
@@ -41,7 +42,7 @@
    metadata_writer.writeHeader(metadata_reader);
 
    for (auto& row : metadata_reader) {
-      const auto key = row[silo::preprocessing::COLUMN_NAME_PRIMARY_KEY].get();
+      const auto key = row[database_config.schema.primary_key].get();
 
       if (found_primary_keys.contains(key)) {
          metadata_writer.writeRow(row);
@@ -54,12 +55,13 @@
 [[maybe_unused]] void silo::pruneSequences(
    const std::filesystem::path& metadata_in,
    silo::FastaReader& sequences_in,
-   std::ostream& sequences_out
+   std::ostream& sequences_out,
+   const silo::config::DatabaseConfig& database_config
 ) {
    SPDLOG_INFO("Pruning sequences");
 
    const auto primary_key_vector = silo::preprocessing::MetadataReader::getColumn(
-      metadata_in, silo::preprocessing::COLUMN_NAME_PRIMARY_KEY
+      metadata_in, database_config.schema.primary_key
    );
    const std::unordered_set<std::string> primary_keys(
       primary_key_vector.begin(), primary_key_vector.end()
@@ -115,9 +117,8 @@ std::unordered_map<std::string, std::string> writeMetadataChunks(
    std::unordered_map<std::string, std::string> primary_key_to_sequence_partition_chunk;
    for (auto& row : metadata_reader) {
       std::string const primary_key = row[database_config.schema.primary_key].get();
-      std::string const pango_lineage = alias_key.resolvePangoLineageAlias(
-         row[database_config.schema.partition_by].get()
-      );
+      std::string const pango_lineage =
+         alias_key.resolvePangoLineageAlias(row[database_config.schema.partition_by].get());
       row[database_config.schema.partition_by] = csv::CSVField{pango_lineage};
 
       std::string const chunk = pango_to_chunk[pango_lineage];

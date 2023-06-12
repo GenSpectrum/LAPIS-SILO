@@ -24,13 +24,15 @@ class PangoLineageAliasLookup;
 [[maybe_unused]] void pruneSequences(
    const std::filesystem::path& metadata_in,
    silo::FastaReader& sequences_in,
-   std::ostream& sequences_out
+   std::ostream& sequences_out,
+   const silo::config::DatabaseConfig& database_config
 );
 
 [[maybe_unused]] void pruneMetadata(
    const std::filesystem::path& metadata_in,
    silo::FastaReader& sequences_in,
-   silo::preprocessing::MetadataWriter& metadata_writer
+   silo::preprocessing::MetadataWriter& metadata_writer,
+   const silo::config::DatabaseConfig& database_config
 );
 
 void partitionSequences(

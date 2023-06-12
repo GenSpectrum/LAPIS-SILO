@@ -9,8 +9,6 @@
 
 namespace silo::preprocessing {
 
-const std::string COLUMN_NAME_PRIMARY_KEY = "gisaid_epi_isl";
-
 class MetadataReader {
   public:
    static std::vector<std::string> getColumn(

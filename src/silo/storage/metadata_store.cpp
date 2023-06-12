@@ -63,10 +63,9 @@ void MetadataStore::initializeColumns(
       } else if (item.type == config::DatabaseMetadataType::PANGOLINEAGE) {
          pango_lineage_columns.emplace(item.name, storage::column::PangoLineageColumn());
       } else if (item.type == config::DatabaseMetadataType::DATE) {
-         const auto column =
-            item.name == database_config.schema.date_to_sort_by
-               ? storage::column::DateColumn(true)
-               : storage::column::DateColumn(false);
+         const auto column = item.name == database_config.schema.date_to_sort_by
+                                ? storage::column::DateColumn(true)
+                                : storage::column::DateColumn(false);
          date_columns.emplace(item.name, column);
       }
    }

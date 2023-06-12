@@ -154,9 +154,9 @@ TEST(ConfigRepository, givenConfigPartitionByThatIsNotPangoLineageThenThrows) {
       [&config_reader_mock]() {
          ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml");
       },
-      ThrowsMessage<ConfigException>(::testing::HasSubstr(
-         "partition_by 'not a pango lineage' must be of type PANGOLINEAGE"
-      ))
+      ThrowsMessage<ConfigException>(
+         ::testing::HasSubstr("partition_by 'not a pango lineage' must be of type PANGOLINEAGE")
+      )
    );
 }
 
