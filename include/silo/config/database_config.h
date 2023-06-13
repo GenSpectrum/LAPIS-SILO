@@ -1,24 +1,31 @@
 #ifndef SILO_INCLUDE_SILO_CONFIG_DATABASECONFIG_H_
 #define SILO_INCLUDE_SILO_CONFIG_DATABASECONFIG_H_
 
+#include <optional>
 #include <string>
 #include <vector>
 
 namespace silo::config {
 
-enum class DatabaseMetadataType { STRING, PANGOLINEAGE, DATE };
+enum class ValueType { STRING, PANGOLINEAGE, DATE };
+enum class ColumnType { STRING, INDEXED_STRING, INDEXED_PANGOLINEAGE, DATE };
 
-DatabaseMetadataType toDatabaseMetadataType(std::string_view type);
+ValueType toDatabaseValueType(std::string_view type);
 
 struct DatabaseMetadata {
    std::string name;
-   DatabaseMetadataType type;
+   ValueType type;
+   bool generate_index;
+
+   ColumnType getColumnType() const;
 };
 
 struct DatabaseSchema {
    std::string instance_name;
    std::vector<DatabaseMetadata> metadata;
    std::string primary_key;
+   std::optional<std::string> date_to_sort_by;
+   std::string partition_by;
 };
 
 struct DatabaseConfig {

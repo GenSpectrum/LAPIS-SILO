@@ -507,7 +507,7 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
 
    SPDLOG_INFO("preprocessing - building pango lineage counts");
    pango_descriptor = std::make_unique<preprocessing::PangoLineageCounts>(
-      preprocessing::buildPangoLineageCounts(alias_key, config.metadata_file)
+      preprocessing::buildPangoLineageCounts(alias_key, config.metadata_file, database_config)
    );
 
    SPDLOG_INFO("preprocessing - building partitions");
@@ -525,17 +525,24 @@ void silo::Database::preprocessing(const PreprocessingConfig& config) {
       config.partition_folder.relative_path(),
       alias_key,
       config.metadata_file.extension(),
-      config.sequence_file.extension()
+      config.sequence_file.extension(),
+      database_config
    );
 
-   SPDLOG_INFO("preprocessing - sorting chunks");
-   silo::sortChunks(
-      *partition_descriptor,
-      config.partition_folder.relative_path(),
-      config.sorted_partition_folder.relative_path(),
-      config.metadata_file.extension(),
-      config.sequence_file.extension()
-   );
+   if (database_config.schema.date_to_sort_by.has_value()) {
+      SPDLOG_INFO("preprocessing - sorting chunks");
+      silo::sortChunks(
+         *partition_descriptor,
+         config.partition_folder.relative_path(),
+         config.sorted_partition_folder.relative_path(),
+         config.metadata_file.extension(),
+         config.sequence_file.extension(),
+         {database_config.schema.primary_key, database_config.schema.date_to_sort_by.value()}
+      );
+   } else {
+      SPDLOG_INFO("preprocessing - skipping sorting chunks because no date to sort by was specified"
+      );
+   }
 
    SPDLOG_INFO("preprocessing - building database");
    build(

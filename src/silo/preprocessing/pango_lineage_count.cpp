@@ -3,6 +3,7 @@
 #include <iostream>
 #include <unordered_map>
 
+#include "silo/config/database_config.h"
 #include "silo/preprocessing/metadata.h"
 #include "silo/storage/pango_lineage_alias.h"
 
@@ -36,7 +37,8 @@ PangoLineageCounts PangoLineageCounts::load(std::istream& input_stream) {
 
 PangoLineageCounts buildPangoLineageCounts(
    const PangoLineageAliasLookup& alias_key,
-   const std::filesystem::path& metadata_path
+   const std::filesystem::path& metadata_path,
+   const silo::config::DatabaseConfig& database_config
 ) {
    PangoLineageCounts pango_lineage_counts;
 
@@ -44,7 +46,7 @@ PangoLineageCounts buildPangoLineageCounts(
    std::unordered_map<std::string, uint32_t> pango_lineage_to_id;
 
    auto unresolved_pango_lineages = silo::preprocessing::MetadataReader::getColumn(
-      metadata_path, silo::preprocessing::COLUMN_NAME_PANGO_LINEAGE
+      metadata_path, database_config.schema.partition_by
    );
 
    for (const auto& unresolved_pango_lineage : unresolved_pango_lineages) {

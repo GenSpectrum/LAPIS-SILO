@@ -4,3 +4,5 @@ schema:
     - name: wrongType
       type: wrong_type
   primaryKey: gisaid_epi_isl
+  dateToSortBy: date
+  partitionBy: pango_lineage

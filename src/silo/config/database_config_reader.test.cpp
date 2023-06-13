@@ -8,7 +8,7 @@
 using silo::config::ConfigException;
 using silo::config::DatabaseConfig;
 using silo::config::DatabaseConfigReader;
-using silo::config::DatabaseMetadataType;
+using silo::config::ValueType;
 
 TEST(DatabaseConfigReader, shouldReadConfigWithCorrectParameters) {
    DatabaseConfig config;
@@ -18,21 +18,30 @@ TEST(DatabaseConfigReader, shouldReadConfigWithCorrectParameters) {
 
    ASSERT_EQ(config.schema.instance_name, "sars_cov-2_minimal_test_config");
    ASSERT_EQ(config.schema.primary_key, "gisaid_epi_isl");
+   ASSERT_EQ(config.schema.date_to_sort_by, "date");
+   ASSERT_EQ(config.schema.partition_by, "pango_lineage");
    ASSERT_EQ(config.schema.metadata.size(), 7);
    ASSERT_EQ(config.schema.metadata[0].name, "gisaid_epi_isl");
-   ASSERT_EQ(config.schema.metadata[0].type, DatabaseMetadataType::STRING);
+   ASSERT_EQ(config.schema.metadata[0].type, ValueType::STRING);
+   ASSERT_EQ(config.schema.metadata[0].generate_index, false);
    ASSERT_EQ(config.schema.metadata[1].name, "date");
-   ASSERT_EQ(config.schema.metadata[1].type, DatabaseMetadataType::DATE);
+   ASSERT_EQ(config.schema.metadata[1].type, ValueType::DATE);
+   ASSERT_EQ(config.schema.metadata[1].generate_index, false);
    ASSERT_EQ(config.schema.metadata[2].name, "unsorted_date");
-   ASSERT_EQ(config.schema.metadata[2].type, DatabaseMetadataType::DATE);
+   ASSERT_EQ(config.schema.metadata[2].type, ValueType::DATE);
+   ASSERT_EQ(config.schema.metadata[2].generate_index, false);
    ASSERT_EQ(config.schema.metadata[3].name, "region");
-   ASSERT_EQ(config.schema.metadata[3].type, DatabaseMetadataType::STRING);
+   ASSERT_EQ(config.schema.metadata[3].type, ValueType::STRING);
+   ASSERT_EQ(config.schema.metadata[3].generate_index, true);
    ASSERT_EQ(config.schema.metadata[4].name, "country");
-   ASSERT_EQ(config.schema.metadata[4].type, DatabaseMetadataType::STRING);
+   ASSERT_EQ(config.schema.metadata[4].type, ValueType::STRING);
+   ASSERT_EQ(config.schema.metadata[4].generate_index, true);
    ASSERT_EQ(config.schema.metadata[5].name, "pango_lineage");
-   ASSERT_EQ(config.schema.metadata[5].type, DatabaseMetadataType::PANGOLINEAGE);
+   ASSERT_EQ(config.schema.metadata[5].type, ValueType::PANGOLINEAGE);
+   ASSERT_EQ(config.schema.metadata[5].generate_index, true);
    ASSERT_EQ(config.schema.metadata[6].name, "division");
-   ASSERT_EQ(config.schema.metadata[6].type, DatabaseMetadataType::STRING);
+   ASSERT_EQ(config.schema.metadata[6].type, ValueType::STRING);
+   ASSERT_EQ(config.schema.metadata[6].generate_index, true);
 }
 
 TEST(DatabaseConfigReader, shouldThrowExceptionWhenConfigFileDoesNotExist) {
@@ -63,4 +72,12 @@ TEST(DatabaseConfigReader, shouldThrowIfTheConfigHasAnInvalidStructure) {
       ),
       YAML::InvalidNode
    );
+}
+
+TEST(DatabaseConfigReader, shouldReadConfigWithoutDateToSortBy) {
+   const DatabaseConfig& config = DatabaseConfigReader().readConfig(
+      "testBaseData/test_database_config_without_date_to_sort_by.yaml"
+   );
+
+   ASSERT_EQ(config.schema.date_to_sort_by, std::nullopt);
 }

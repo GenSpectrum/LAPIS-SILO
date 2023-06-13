@@ -3,13 +3,16 @@
 #include <gtest/gtest.h>
 #include <filesystem>
 
+#include <silo/config/database_config.h>
 #include "silo/preprocessing/pango_lineage_count.h"
 
 TEST(PangoLineageCounts, buildPangoLineageCounts) {
    const std::filesystem::path metadata_path = "testBaseData/small_metadata_set.tsv";
+   const silo::config::DatabaseConfig database_config = {
+      .schema = {.partition_by = "pango_lineage"}};
 
    auto result = silo::preprocessing::buildPangoLineageCounts(
-      silo::PangoLineageAliasLookup::readFromFile("testBaseData/"), metadata_path
+      silo::PangoLineageAliasLookup::readFromFile("testBaseData/"), metadata_path, database_config
    );
 
    ASSERT_EQ(result.pango_lineage_counts.size(), 24);

@@ -44,10 +44,7 @@ struct MetadataStore {
    );
 
   private:
-   void initializeColumns(
-      const config::DatabaseConfig& database_config,
-      const std::set<std::string>& columns_to_index
-   );
+   void initializeColumns(const config::DatabaseConfig& database_config);
 };
 
 }  // namespace silo

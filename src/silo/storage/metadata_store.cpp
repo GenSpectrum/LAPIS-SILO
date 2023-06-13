@@ -14,8 +14,7 @@ unsigned MetadataStore::fill(
 ) {
    auto metadata_reader = silo::preprocessing::MetadataReader::getReader(input_file);
 
-   const auto columns_to_index = std::set<std::string>{"country", "region", "division"};
-   initializeColumns(database_config, columns_to_index);
+   initializeColumns(database_config);
 
    unsigned sequence_count = 0;
 
@@ -24,16 +23,15 @@ unsigned MetadataStore::fill(
       for (const auto& item : database_config.schema.metadata) {
          const std::string value = row[item.name].get();
 
-         if (item.type == silo::config::DatabaseMetadataType::STRING) {
-            if (columns_to_index.contains(item.name)) {
-               indexed_string_columns.at(item.name).insert(value);
-            } else {
-               raw_string_columns.at(item.name).insert(value);
-            }
-         } else if (item.type == silo::config::DatabaseMetadataType::PANGOLINEAGE) {
+         const auto column_type = item.getColumnType();
+         if (column_type == silo::config::ColumnType::INDEXED_STRING) {
+            indexed_string_columns.at(item.name).insert(value);
+         } else if (column_type == silo::config::ColumnType::STRING) {
+            raw_string_columns.at(item.name).insert(value);
+         } else if (column_type == silo::config::ColumnType::INDEXED_PANGOLINEAGE) {
             const std::string pango_lineage = alias_key.resolvePangoLineageAlias(value);
             pango_lineage_columns.at(item.name).insert({pango_lineage});
-         } else if (item.type == silo::config::DatabaseMetadataType::DATE) {
+         } else if (column_type == silo::config::ColumnType::DATE) {
             date_columns.at(item.name).insert(common::mapToTime(value));
          }
       }
@@ -43,26 +41,21 @@ unsigned MetadataStore::fill(
    return sequence_count;
 }
 
-void MetadataStore::initializeColumns(
-   const config::DatabaseConfig& database_config,
-   const std::set<std::string>& columns_to_index
-) {
+void MetadataStore::initializeColumns(const config::DatabaseConfig& database_config) {
    for (const auto& item : database_config.schema.metadata) {
-      if (item.type == config::DatabaseMetadataType::STRING) {
-         if (columns_to_index.contains(item.name)) {
-            this->indexed_string_columns[item.name] = storage::column::IndexedStringColumn();
-         } else {
-            this->raw_string_columns[item.name] = storage::column::RawStringColumn();
-         }
-      } else if (item.type == config::DatabaseMetadataType::PANGOLINEAGE) {
+      const auto column_type = item.getColumnType();
+
+      if (column_type == config::ColumnType::INDEXED_STRING) {
+         this->indexed_string_columns.emplace(item.name, storage::column::IndexedStringColumn());
+      } else if (column_type == config::ColumnType::STRING) {
+         this->raw_string_columns.emplace(item.name, storage::column::RawStringColumn());
+      } else if (column_type == config::ColumnType::INDEXED_PANGOLINEAGE) {
          pango_lineage_columns.emplace(item.name, storage::column::PangoLineageColumn());
-      } else if (item.type == config::DatabaseMetadataType::DATE) {
-         date_columns.emplace(
-            item.name,
-            // TODO(#114) make this configurable
-            item.name == "date" ? storage::column::DateColumn(true)
-                                : storage::column::DateColumn(false)
-         );
+      } else if (column_type == config::ColumnType::DATE) {
+         const auto column = item.name == database_config.schema.date_to_sort_by
+                                ? storage::column::DateColumn(true)
+                                : storage::column::DateColumn(false);
+         date_columns.emplace(item.name, column);
       }
    }
 }
