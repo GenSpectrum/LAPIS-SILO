@@ -4,18 +4,38 @@
 
 namespace silo::config {
 
-DatabaseMetadataType toDatabaseMetadataType(std::string_view type) {
+ValueType toDatabaseValueType(std::string_view type) {
    if (type == "string") {
-      return DatabaseMetadataType::STRING;
+      return ValueType::STRING;
    }
    if (type == "date") {
-      return DatabaseMetadataType::DATE;
+      return ValueType::DATE;
    }
    if (type == "pango_lineage") {
-      return DatabaseMetadataType::PANGOLINEAGE;
+      return ValueType::PANGOLINEAGE;
    }
 
    throw ConfigException("Unknown metadata type: " + std::string(type));
+}
+
+ColumnType DatabaseMetadata::getColumnType() const {
+   if (type == ValueType::STRING) {
+      if (generate_index) {
+         return ColumnType::INDEXED_STRING;
+      }
+      return ColumnType::STRING;
+   }
+   if (type == ValueType::DATE) {
+      return ColumnType::DATE;
+   }
+   if (type == ValueType::PANGOLINEAGE) {
+      if (generate_index) {
+         return ColumnType::INDEXED_PANGOLINEAGE;
+      }
+      throw std::runtime_error("Found pango lineage column without index: " + std::string(name));
+   }
+
+   throw std::runtime_error("Unknown metadata type: " + std::string(name));
 }
 
 }  // namespace silo::config

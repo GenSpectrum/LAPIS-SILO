@@ -7,14 +7,17 @@
 
 namespace silo::config {
 
-enum class DatabaseMetadataType { STRING, PANGOLINEAGE, DATE };
+enum class ValueType { STRING, PANGOLINEAGE, DATE };
+enum class ColumnType { STRING, INDEXED_STRING, INDEXED_PANGOLINEAGE, DATE };
 
-DatabaseMetadataType toDatabaseMetadataType(std::string_view type);
+ValueType toDatabaseValueType(std::string_view type);
 
 struct DatabaseMetadata {
    std::string name;
-   DatabaseMetadataType type;
+   ValueType type;
    bool generate_index;
+
+   ColumnType getColumnType() const;
 };
 
 struct DatabaseSchema {

@@ -41,12 +41,11 @@ template <>
 struct convert<silo::config::DatabaseMetadata> {
    static bool decode(const Node& node, silo::config::DatabaseMetadata& metadata) {
       metadata.name = node["name"].as<std::string>();
-      metadata.type = silo::config::toDatabaseMetadataType(node["type"].as<std::string>());
+      metadata.type = silo::config::toDatabaseValueType(node["type"].as<std::string>());
       if (node["generateIndex"].IsDefined()) {
          metadata.generate_index = node["generateIndex"].as<bool>();
       } else {
-         metadata.generate_index =
-            metadata.type == silo::config::DatabaseMetadataType::PANGOLINEAGE;
+         metadata.generate_index = metadata.type == silo::config::ValueType::PANGOLINEAGE;
       }
       return true;
    }

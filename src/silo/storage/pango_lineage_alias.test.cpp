@@ -4,6 +4,8 @@
 
 #include "silo/storage/pango_lineage_alias.h"
 
+namespace {
+
 struct TestParameter {
    std::string input;
    std::string expected_result;
@@ -45,3 +47,5 @@ TEST(PangoLineageAliasLookup, readFromFile) {
    ASSERT_EQ(under_test.resolvePangoLineageAlias("C"), "B.1.1.1");
    ASSERT_EQ(under_test.resolvePangoLineageAlias("EP"), "B.1.1.529.2.75.3.1.1.4");
 }
+
+}  // namespace

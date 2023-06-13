@@ -1,28 +1,30 @@
 #include "silo/config/database_config.h"
-#include "silo/config/config_exception.h"
 
 #include <gtest/gtest.h>
 
+#include "silo/config/config_exception.h"
+
+using silo::config::ColumnType;
 using silo::config::ConfigException;
 using silo::config::DatabaseConfig;
-using silo::config::DatabaseMetadataType;
 using silo::config::DatabaseSchema;
-using silo::config::toDatabaseMetadataType;
+using silo::config::toDatabaseValueType;
+using silo::config::ValueType;
 
 TEST(DatabaseMetadataType, shouldBeConvertableFromString) {
-   ASSERT_TRUE(toDatabaseMetadataType("string") == DatabaseMetadataType::STRING);
-   ASSERT_TRUE(toDatabaseMetadataType("date") == DatabaseMetadataType::DATE);
-   ASSERT_TRUE(toDatabaseMetadataType("pango_lineage") == DatabaseMetadataType::PANGOLINEAGE);
-   ASSERT_THROW(toDatabaseMetadataType("unknown"), ConfigException);
+   ASSERT_TRUE(toDatabaseValueType("string") == ValueType::STRING);
+   ASSERT_TRUE(toDatabaseValueType("date") == ValueType::DATE);
+   ASSERT_TRUE(toDatabaseValueType("pango_lineage") == ValueType::PANGOLINEAGE);
+   ASSERT_THROW(toDatabaseValueType("unknown"), ConfigException);
 }
 
 TEST(DatabaseConfig, shouldBuildDatabaseConfig) {
    const DatabaseSchema schema{
       "testInstanceName",
       {
-         {"metadata1", DatabaseMetadataType::PANGOLINEAGE},
-         {"metadata2", DatabaseMetadataType::STRING},
-         {"metadata3", DatabaseMetadataType::DATE},
+         {"metadata1", ValueType::PANGOLINEAGE},
+         {"metadata2", ValueType::STRING},
+         {"metadata3", ValueType::DATE},
       },
       "testPrimaryKey",
    };
@@ -32,3 +34,41 @@ TEST(DatabaseConfig, shouldBuildDatabaseConfig) {
    ASSERT_TRUE(config.schema.metadata[0].name == "metadata1");
    ASSERT_TRUE(config.schema.metadata.size() == 3);
 }
+
+namespace {
+
+struct TestParameter {
+   ValueType value_type;
+   bool generate_index;
+   ColumnType expected_column_type;
+};
+
+class DatabaseMetadataFixture : public ::testing::TestWithParam<TestParameter> {
+  protected:
+   std::string something;
+};
+
+TEST_P(DatabaseMetadataFixture, getColumnTypeShouldReturnCorrectColumnType) {
+   const auto test_parameter = GetParam();
+
+   const silo::config::DatabaseMetadata under_test = {
+      "testName",
+      test_parameter.value_type,
+      test_parameter.generate_index,
+   };
+
+   ASSERT_EQ(under_test.getColumnType(), test_parameter.expected_column_type);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+   DatabaseMetadata,
+   DatabaseMetadataFixture,
+   ::testing::Values(
+      TestParameter{ValueType::STRING, false, ColumnType::STRING},
+      TestParameter{ValueType::STRING, true, ColumnType::INDEXED_STRING},
+      TestParameter{ValueType::DATE, false, ColumnType::DATE},
+      TestParameter{ValueType::PANGOLINEAGE, true, ColumnType::INDEXED_PANGOLINEAGE}
+   )
+);
+
+}  // namespace

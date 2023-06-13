@@ -14,9 +14,9 @@ TEST(
    const silo::config::DatabaseConfig some_config_with_one_column_not_in_metadata{
       "testInstanceName",
       {
-         {"gisaid_epi_isl", silo::config::DatabaseMetadataType::STRING},
-         {"notInMetadata", silo::config::DatabaseMetadataType::PANGOLINEAGE},
-         {"country", silo::config::DatabaseMetadataType::STRING},
+         {"gisaid_epi_isl", silo::config::ValueType::STRING},
+         {"notInMetadata", silo::config::ValueType::PANGOLINEAGE},
+         {"country", silo::config::ValueType::STRING},
       },
       "gisaid_epi_isl",
    };
@@ -39,10 +39,10 @@ TEST(MetadataValidator, isValidMedataFileShouldReturnTrueWithValidMetadataFile) 
    const silo::config::DatabaseConfig valid_config{
       "testInstanceName",
       {
-         {"gisaid_epi_isl", silo::config::DatabaseMetadataType::STRING},
-         {"pango_lineage", silo::config::DatabaseMetadataType::PANGOLINEAGE},
-         {"date", silo::config::DatabaseMetadataType::DATE},
-         {"country", silo::config::DatabaseMetadataType::STRING},
+         {"gisaid_epi_isl", silo::config::ValueType::STRING},
+         {"pango_lineage", silo::config::ValueType::PANGOLINEAGE},
+         {"date", silo::config::ValueType::DATE},
+         {"country", silo::config::ValueType::STRING},
       },
       "gisaid_epi_isl",
    };
