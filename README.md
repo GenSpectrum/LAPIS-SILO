@@ -54,7 +54,7 @@ docker build . --tag=silo
 Run docker container
 
 ```shell
-docker run -p 8081:8081 -v your/data/directory:the/directory/in/docker/image silo /siloApi --preprocessingConfig=the/directory/in/docker/image/test_preprocessing_config.yaml --databaseConfig=the/directory/in/docker/image/test_database_config.yaml -a
+docker run -p 8081:8081 -v your/data/directory:the/directory/in/docker/image silo --api --preprocessingConfig=the/directory/in/docker/image/test_preprocessing_config.yaml --databaseConfig=the/directory/in/docker/image/test_database_config.yaml
 ```
 
 The mounted directory `your/data/directory` is the place on your machine, where the data for SILO is located. The data

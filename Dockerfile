@@ -45,4 +45,4 @@ HEALTHCHECK --start-period=20s CMD curl --fail --silent localhost:8081/info | jq
 EXPOSE 8081
 ENV SPDLOG_LEVEL="off,file_logger=debug"
 
-CMD ["./siloApi", "--help"]
+ENTRYPOINT ["./siloApi"]

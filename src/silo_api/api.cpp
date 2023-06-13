@@ -47,12 +47,11 @@ class SiloServer : public Poco::Util::ServerApplication {
             .binding("databaseConfig")
       );
 
-      options.addOption(
-         Poco::Util::Option("api", "a", "start the SILO web interface")
-            .required(false)
-            .repeatable(false)
-            .callback(Poco::Util::OptionCallback<SiloServer>(this, &SiloServer::handleApi))
-      );
+      options.addOption(Poco::Util::Option("api", "a", "start the SILO web interface")
+                           .required(false)
+                           .repeatable(false)
+                           .binding("api")
+                           .group("executionMode"));
 
       options.addOption(
          Poco::Util::Option(
@@ -63,7 +62,7 @@ class SiloServer : public Poco::Util::ServerApplication {
          )
             .required(false)
             .repeatable(false)
-            .callback(Poco::Util::OptionCallback<SiloServer>(this, &SiloServer::handleProcessData))
+            .group("executionMode")
       );
    }
 
@@ -73,14 +72,27 @@ class SiloServer : public Poco::Util::ServerApplication {
          return Application::EXIT_USAGE;
       }
 
+      if (config().hasProperty("api")) {
+         if (!config().hasProperty("preprocessingConfig")) {
+            spdlog::error("Missing preprocessing config file path");
+            return Application::EXIT_USAGE;
+         }
+         if (!config().hasProperty("databaseConfig")) {
+            spdlog::error("Missing database config file path");
+            return Application::EXIT_USAGE;
+         }
+         handleApi();
+      }
+
+      if (config().hasProperty("processData")) {
+         handleProcessData();
+      }
+
       return Application::EXIT_OK;
    }
 
   private:
-   void handleApi(
-      [[maybe_unused]] const std::string& name,
-      [[maybe_unused]] const std::string& value
-   ) {
+   void handleApi() {
       int const port = 8081;
 
       const std::string preprocessing_config_path = config().getString("preprocessingConfig");
@@ -111,10 +123,7 @@ class SiloServer : public Poco::Util::ServerApplication {
    };
 
    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-   void handleProcessData(
-      [[maybe_unused]] const std::string& name,
-      [[maybe_unused]] const std::string& value
-   ) {
+   void handleProcessData() {
       std::cout << "handleProcessData is not implemented\n" << std::flush;
    };
 
