@@ -31,6 +31,7 @@ void IndexedStringColumn::insert(const std::string& value) {
    if (!value_to_id_lookup.contains(value)) {
       value_id = value_to_id_lookup.size();
       value_to_id_lookup[value] = value_id;
+      id_to_value_lookup.push_back(value);
       indexed_values.emplace_back();
    } else {
       value_id = value_to_id_lookup[value];

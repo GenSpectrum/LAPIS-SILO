@@ -52,7 +52,7 @@ roaring::Roaring PangoLineageColumn::filterIncludingSublineages(const common::Pa
 }
 
 std::string PangoLineageColumn::getAsString(std::size_t idx) const {
-   return id_to_value_lookup[value_ids[idx]].value;
+   return id_to_value_lookup.at(value_ids.at(idx)).value;
 };
 
 }  // namespace silo::storage::column
