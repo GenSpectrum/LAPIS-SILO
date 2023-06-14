@@ -27,6 +27,7 @@ silo::common::Date silo::common::stringToDate(const std::string& value) {
       if (day > 31 || day == 0) {
          throw DateFormatException("Day is not in [1,31] " + value);
       }
+      // Date is stored with the year in the upper 16 bits, month in bits [12,16), and day [0,12)
       const uint32_t date_value = (year << 16) + (month << 12) + day;
       return Date{date_value};
    } catch (const std::invalid_argument& ex) {
@@ -37,6 +38,7 @@ silo::common::Date silo::common::stringToDate(const std::string& value) {
 }
 
 std::string silo::common::dateToString(silo::common::Date date) {
+   // Date is stored with the year in the upper 16 bits, month in bits [12,16), and day [0,12)
    const uint32_t year = date >> 16;
    const uint32_t month = (date >> 12) & 0xF;
    const uint32_t day = date & 0xFFF;
