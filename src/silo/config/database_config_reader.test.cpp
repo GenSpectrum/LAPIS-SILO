@@ -20,7 +20,7 @@ TEST(DatabaseConfigReader, shouldReadConfigWithCorrectParameters) {
    ASSERT_EQ(config.schema.primary_key, "gisaid_epi_isl");
    ASSERT_EQ(config.schema.date_to_sort_by, "date");
    ASSERT_EQ(config.schema.partition_by, "pango_lineage");
-   ASSERT_EQ(config.schema.metadata.size(), 7);
+   ASSERT_EQ(config.schema.metadata.size(), 8);
    ASSERT_EQ(config.schema.metadata[0].name, "gisaid_epi_isl");
    ASSERT_EQ(config.schema.metadata[0].type, ValueType::STRING);
    ASSERT_EQ(config.schema.metadata[0].generate_index, false);
@@ -42,6 +42,9 @@ TEST(DatabaseConfigReader, shouldReadConfigWithCorrectParameters) {
    ASSERT_EQ(config.schema.metadata[6].name, "division");
    ASSERT_EQ(config.schema.metadata[6].type, ValueType::STRING);
    ASSERT_EQ(config.schema.metadata[6].generate_index, true);
+   ASSERT_EQ(config.schema.metadata[7].name, "age");
+   ASSERT_EQ(config.schema.metadata[7].type, ValueType::INT);
+   ASSERT_EQ(config.schema.metadata[7].generate_index, false);
 }
 
 TEST(DatabaseConfigReader, shouldThrowExceptionWhenConfigFileDoesNotExist) {

@@ -1,0 +1,16 @@
+{
+  "testCaseName": "IntEquals for column",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "IntEquals",
+      "column": "age",
+      "value": 55
+    }
+  },
+  "expectedQueryResult": {
+    "count": 9
+  }
+}

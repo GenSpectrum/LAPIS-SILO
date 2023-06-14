@@ -1,0 +1,17 @@
+{
+  "testCaseName": "IntBetween Query without bounds",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "IntBetween",
+      "column": "age",
+      "from": null,
+      "to": null
+    }
+  },
+  "expectedQueryResult": {
+    "count": 100
+  }
+}

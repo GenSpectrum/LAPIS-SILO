@@ -1,0 +1,17 @@
+{
+  "testCaseName": "IntBetween Query with 'from' and 'to' value",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "IntBetween",
+      "column": "age",
+      "from": 52,
+      "to": 55
+    }
+  },
+  "expectedQueryResult": {
+    "count": 25
+  }
+}

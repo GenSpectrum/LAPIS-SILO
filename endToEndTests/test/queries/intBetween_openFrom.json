@@ -1,0 +1,17 @@
+{
+  "testCaseName": "IntBetween Query with open 'from'",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "IntBetween",
+      "column": "age",
+      "from": null,
+      "to": 52
+    }
+  },
+  "expectedQueryResult": {
+    "count": 29
+  }
+}

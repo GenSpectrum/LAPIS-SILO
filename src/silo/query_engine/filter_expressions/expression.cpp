@@ -7,6 +7,8 @@
 #include "silo/query_engine/filter_expressions/exact.h"
 #include "silo/query_engine/filter_expressions/false.h"
 #include "silo/query_engine/filter_expressions/has_mutation.h"
+#include "silo/query_engine/filter_expressions/int_between.h"
+#include "silo/query_engine/filter_expressions/int_equals.h"
 #include "silo/query_engine/filter_expressions/maybe.h"
 #include "silo/query_engine/filter_expressions/negation.h"
 #include "silo/query_engine/filter_expressions/nof.h"
@@ -61,6 +63,10 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) 
       filter = json.get<std::unique_ptr<PangoLineageFilter>>();
    } else if (expression_type == "StringEquals") {
       filter = json.get<std::unique_ptr<StringEquals>>();
+   } else if (expression_type == "IntEquals") {
+      filter = json.get<std::unique_ptr<IntEquals>>();
+   } else if (expression_type == "IntBetween") {
+      filter = json.get<std::unique_ptr<IntBetween>>();
    } else if (expression_type == "Maybe") {
       filter = json.get<std::unique_ptr<Maybe>>();
    } else if (expression_type == "Exact") {

@@ -14,6 +14,9 @@ ValueType toDatabaseValueType(std::string_view type) {
    if (type == "pango_lineage") {
       return ValueType::PANGOLINEAGE;
    }
+   if (type == "int") {
+      return ValueType::INT;
+   }
 
    throw ConfigException("Unknown metadata type: " + std::string(type));
 }
@@ -33,6 +36,9 @@ ColumnType DatabaseMetadata::getColumnType() const {
          return ColumnType::INDEXED_PANGOLINEAGE;
       }
       throw std::runtime_error("Found pango lineage column without index: " + std::string(name));
+   }
+   if (type == ValueType::INT) {
+      return ColumnType::INT;
    }
 
    throw std::runtime_error("Unknown metadata type: " + std::string(name));
