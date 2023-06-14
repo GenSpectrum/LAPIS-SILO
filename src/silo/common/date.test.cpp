@@ -24,8 +24,8 @@ TEST(Date, throwsExceptionOnWrongDates) {
 }
 
 TEST(Date, correctlyReprintsStrings) {
-   EXPECT_EQ(silo::common::dateToString(silo::common::stringToDate("2020-01-01")), "2020-1-1");
-   EXPECT_EQ(silo::common::dateToString(silo::common::stringToDate("2023-01-1")), "2023-1-1");
-   EXPECT_EQ(silo::common::dateToString(silo::common::stringToDate("2010-12-3")), "2010-12-3");
-   EXPECT_EQ(silo::common::dateToString(silo::common::stringToDate("12-12-12")), "12-12-12");
+   EXPECT_EQ(silo::common::dateToString(silo::common::stringToDate("12-12-12")), "0012-12-12");
+   EXPECT_EQ(silo::common::dateToString(silo::common::stringToDate("2020-01-01")), "2020-01-01");
+   EXPECT_EQ(silo::common::dateToString(silo::common::stringToDate("2023-01-1")), "2023-01-01");
+   EXPECT_EQ(silo::common::dateToString(silo::common::stringToDate("2010-12-3")), "2010-12-03");
 }

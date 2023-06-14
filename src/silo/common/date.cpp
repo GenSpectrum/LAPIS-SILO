@@ -1,5 +1,8 @@
 #include "silo/common/date.h"
 
+#include <iomanip>
+#include <sstream>
+
 #include "silo/common/date_format_exception.h"
 
 silo::common::Date silo::common::stringToDate(const std::string& value) {
@@ -37,5 +40,10 @@ std::string silo::common::dateToString(silo::common::Date date) {
    const uint32_t year = date >> 16;
    const uint32_t month = (date >> 12) & 0xF;
    const uint32_t day = date & 0xFFF;
-   return std::to_string(year) + "-" + std::to_string(month) + "-" + std::to_string(day);
+
+   std::ostringstream result_string;
+   result_string << std::setfill('0') << std::setw(4) << year << "-" << std::setw(2) << month << "-"
+                 << std::setw(2) << day;
+
+   return result_string.str();
 }
