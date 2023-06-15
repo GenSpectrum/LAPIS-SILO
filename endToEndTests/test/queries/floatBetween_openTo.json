@@ -1,0 +1,17 @@
+{
+  "testCaseName": "FloatBetween for column with open upper bound",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "FloatBetween",
+      "column": "qc_value",
+      "from": 0.905,
+      "to": null
+    }
+  },
+  "expectedQueryResult": {
+    "count": 80
+  }
+}

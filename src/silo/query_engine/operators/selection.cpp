@@ -140,5 +140,6 @@ std::unique_ptr<Operator> Selection<T>::negate() const {
 template class Selection<std::string>;
 template class Selection<uint64_t>;
 template class Selection<silo::common::Date>;
+template class Selection<double>;
 
 }  // namespace silo::query_engine::operators
