@@ -20,7 +20,7 @@ PangoLineageFilter::PangoLineageFilter(
       lineage(std::move(lineage)),
       include_sublineages(include_sublineages) {}
 
-std::string PangoLineageFilter::toString(const silo::Database& /*database*/) {
+std::string PangoLineageFilter::toString(const silo::Database& /*database*/) const {
    std::string res = lineage;
    if (include_sublineages) {
       res += "*";

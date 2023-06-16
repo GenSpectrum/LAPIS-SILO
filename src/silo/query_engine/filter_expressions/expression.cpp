@@ -68,7 +68,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) 
       filter = json.get<std::unique_ptr<IntEquals>>();
    } else if (expression_type == "IntBetween") {
       filter = json.get<std::unique_ptr<IntBetween>>();
-   } else if (expression_type == "FloatBetween") {
+   } else if (expression_type == "FloatEquals") {
       filter = json.get<std::unique_ptr<FloatBetween>>();
    } else if (expression_type == "Maybe") {
       filter = json.get<std::unique_ptr<Maybe>>();

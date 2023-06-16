@@ -13,7 +13,7 @@ struct IntEquals : public Expression {
   public:
    explicit IntEquals(std::string column, uint64_t value);
 
-   std::string toString(const Database& database) override;
+   std::string toString(const Database& database) const override;
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::operators::Operator> compile(
       const Database& database,

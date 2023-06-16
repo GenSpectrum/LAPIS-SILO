@@ -10,7 +10,7 @@ namespace silo::query_engine::filter_expressions {
 Exact::Exact(std::unique_ptr<Expression> child)
     : child(std::move(child)) {}
 
-std::string Exact::toString(const silo::Database& database) {
+std::string Exact::toString(const silo::Database& database) const {
    return "Exact ( " + child->toString(database) + ")";
 }
 std::unique_ptr<silo::query_engine::operators::Operator> Exact::compile(

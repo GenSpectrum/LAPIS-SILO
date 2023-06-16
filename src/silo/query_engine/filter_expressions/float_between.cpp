@@ -15,7 +15,7 @@ FloatBetween::FloatBetween(std::string column, std::optional<double> from, std::
       from(from),
       to(to) {}
 
-std::string FloatBetween::toString(const silo::Database& /*database*/) {
+std::string FloatBetween::toString(const silo::Database& /*database*/) const {
    const auto from_string = from.has_value() ? std::to_string(from.value()) : "unbounded";
    const auto to_string = to.has_value() ? std::to_string(to.value()) : "unbounded";
 

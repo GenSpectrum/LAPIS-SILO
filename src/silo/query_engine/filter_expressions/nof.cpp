@@ -157,7 +157,7 @@ NOf::NOf(
       number_of_matchers(number_of_matchers),
       match_exactly(match_exactly) {}
 
-std::string NOf::toString(const silo::Database& database) {
+std::string NOf::toString(const silo::Database& database) const {
    std::string res;
    if (match_exactly) {
       res = "[exactly-" + std::to_string(number_of_matchers) + "-of:";

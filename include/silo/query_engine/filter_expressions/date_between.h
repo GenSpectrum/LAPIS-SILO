@@ -39,7 +39,7 @@ struct DateBetween : public Expression {
       std::optional<silo::common::Date> date_to
    );
 
-   std::string toString(const Database& database) override;
+   std::string toString(const Database& database) const override;
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::operators::Operator> compile(
       const Database& database,

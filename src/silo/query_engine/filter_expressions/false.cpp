@@ -10,7 +10,7 @@ namespace silo::query_engine::filter_expressions {
 
 False::False() = default;
 
-std::string False::toString(const silo::Database& /*database*/) {
+std::string False::toString(const silo::Database& /*database*/) const {
    return "False";
 }
 

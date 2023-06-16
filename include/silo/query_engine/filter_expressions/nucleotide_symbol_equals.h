@@ -12,7 +12,7 @@ struct NucleotideSymbolEquals : public Expression {
 
    explicit NucleotideSymbolEquals(unsigned position, char value);
 
-   std::string toString(const Database& database) override;
+   std::string toString(const Database& database) const override;
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::operators::Operator> compile(
       const Database& database,

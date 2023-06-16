@@ -22,7 +22,7 @@ DateBetween::DateBetween(
       date_from(date_from),
       date_to(date_to) {}
 
-std::string DateBetween::toString(const silo::Database& /*database*/) {
+std::string DateBetween::toString(const silo::Database& /*database*/) const {
    std::string res = "[Date-between ";
    res += (date_from.has_value() ? silo::common::dateToString(date_from.value()) : "unbounded");
    res += " and ";

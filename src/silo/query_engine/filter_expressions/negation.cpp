@@ -12,7 +12,7 @@ namespace silo::query_engine::filter_expressions {
 Negation::Negation(std::unique_ptr<Expression> child)
     : child(std::move(child)) {}
 
-std::string Negation::toString(const silo::Database& database) {
+std::string Negation::toString(const silo::Database& database) const {
    return "!(" + child->toString(database) + ")";
 }
 

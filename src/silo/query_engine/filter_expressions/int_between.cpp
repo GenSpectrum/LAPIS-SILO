@@ -14,7 +14,7 @@ IntBetween::IntBetween(std::string column, std::optional<uint64_t> from, std::op
       from(from),
       to(to) {}
 
-std::string IntBetween::toString(const silo::Database& /*database*/) {
+std::string IntBetween::toString(const silo::Database& /*database*/) const {
    const auto from_string = from.has_value() ? std::to_string(from.value()) : "unbounded";
    const auto to_string = to.has_value() ? std::to_string(to.value()) : "unbounded";
 
