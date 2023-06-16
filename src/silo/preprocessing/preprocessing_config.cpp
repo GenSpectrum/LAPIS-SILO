@@ -38,9 +38,9 @@ PreprocessingConfig::PreprocessingConfig(
    const MetadataFilename& metadata_filename_,
    const SequenceFilename& sequence_filename_,
    const PangoLineageDefinitionFilename& pango_lineage_definition_filename_,
-   const PartitionFolder& partition_folder_,
-   const SortedPartitionFolder& sorted_partition_folder_,
-   const SerializationFolder& serialization_folder_
+   const PartitionsFolder& partition_folder_,
+   const SortedPartitionsFolder& sorted_partition_folder_,
+   const SerializedStateFolder& serialization_folder_
 ) {
    input_directory = input_directory_.directory;
    if (!std::filesystem::exists(input_directory)) {

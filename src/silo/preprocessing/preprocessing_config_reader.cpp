@@ -9,13 +9,42 @@ using silo::preprocessing::InputDirectory;
 using silo::preprocessing::MetadataFilename;
 using silo::preprocessing::OutputDirectory;
 using silo::preprocessing::PangoLineageDefinitionFilename;
-using silo::preprocessing::PartitionFolder;
+using silo::preprocessing::PartitionsFolder;
 using silo::preprocessing::PreprocessingConfig;
 using silo::preprocessing::SequenceFilename;
-using silo::preprocessing::SerializationFolder;
-using silo::preprocessing::SortedPartitionFolder;
+using silo::preprocessing::SerializedStateFolder;
+using silo::preprocessing::SortedPartitionsFolder;
 
 namespace YAML {
+
+std::string partitionsFolderName(const Node& node) {
+   if (node["partitionsFolder"]) {
+      return node["partitionsFolder"].as<std::string>();
+   }
+   SPDLOG_DEBUG("partitionFolder not found in config file. Using default value: partitions/");
+   return "partitions/";
+}
+
+std::string sortedPartitionsFolderName(const Node& node) {
+   if (node["sortedPartitionsFolder"]) {
+      return node["sortedPartitionsFolder"].as<std::string>();
+   }
+   SPDLOG_DEBUG(
+      "sortedPartitionFolder not found in config file. Using default value: partitions_sorted/"
+   );
+   return "partitions_sorted/";
+}
+
+std::string serializedStateFolderName(const Node& node) {
+   if (node["serializedStateFolder"]) {
+      return node["serializedStateFolder"].as<std::string>();
+   }
+   SPDLOG_DEBUG(
+      "serializationFolder not found in config file. Using default value: serialized_state/"
+   );
+   return "serialized_state/";
+}
+
 template <>
 struct convert<PreprocessingConfig> {
    static bool decode(const Node& node, PreprocessingConfig& config) {
@@ -26,10 +55,10 @@ struct convert<PreprocessingConfig> {
       const PangoLineageDefinitionFilename pango_lineage_definition_filename{
          node["pangoLineageDefinitionFilename"].as<std::string>()};
 
-      const PartitionFolder partition_folder{node["partitionFolder"].as<std::string>()};
-      const SortedPartitionFolder sorted_partition_folder{
-         node["sortedPartitionFolder"].as<std::string>()};
-      const SerializationFolder serialization_folder{node["serializationFolder"].as<std::string>()};
+      const PartitionsFolder partitions_folder{partitionsFolderName(node)};
+      const SortedPartitionsFolder sorted_partitions_folder{sortedPartitionsFolderName(node)};
+
+      const SerializedStateFolder serialized_state_folder{serializedStateFolderName(node)};
 
       config = PreprocessingConfig(
          input_directory,
@@ -37,9 +66,9 @@ struct convert<PreprocessingConfig> {
          metadata_filename,
          sequence_filename,
          pango_lineage_definition_filename,
-         partition_folder,
-         sorted_partition_folder,
-         serialization_folder
+         partitions_folder,
+         sorted_partitions_folder,
+         serialized_state_folder
       );
 
       return true;

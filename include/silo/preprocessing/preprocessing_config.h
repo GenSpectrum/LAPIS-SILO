@@ -26,15 +26,15 @@ struct PangoLineageDefinitionFilename {
    std::string filename;
 };
 
-struct PartitionFolder {
+struct PartitionsFolder {
    std::string folder;
 };
 
-struct SortedPartitionFolder {
+struct SortedPartitionsFolder {
    std::string folder;
 };
 
-struct SerializationFolder {
+struct SerializedStateFolder {
    std::string folder;
 };
 
@@ -49,9 +49,9 @@ struct PreprocessingConfig {
       const MetadataFilename& metadata_filename_,
       const SequenceFilename& sequence_filename_,
       const PangoLineageDefinitionFilename& pango_lineage_definition_filename_,
-      const PartitionFolder& partition_folder_,
-      const SortedPartitionFolder& sorted_partition_folder_,
-      const SerializationFolder& serialization_folder_
+      const PartitionsFolder& partition_folder_,
+      const SortedPartitionsFolder& sorted_partition_folder_,
+      const SerializedStateFolder& serialization_folder_
    );
 
    explicit PreprocessingConfig();
