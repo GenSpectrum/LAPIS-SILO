@@ -9,9 +9,11 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <roaring/roaring.hh>
 
+#include "silo/storage/column/column.h"
+
 namespace silo::storage::column {
 
-class RawStringColumn {
+class RawStringColumn : public Column {
   public:
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
@@ -24,31 +26,37 @@ class RawStringColumn {
   public:
    RawStringColumn();
 
-   const std::vector<std::string>& getValues() const;
+   [[nodiscard]] const std::vector<std::string>& getValues() const;
 
    void insert(const std::string& value);
+
+   [[nodiscard]] std::string getAsString(std::size_t idx) const override;
 };
 
-class IndexedStringColumn {
+class IndexedStringColumn : public Column {
   public:
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
-      archive& value_id_lookup;
+      archive& value_ids;
+      archive& value_to_id_lookup;
+      archive& id_to_value_lookup;
       archive& indexed_values;
-      archive& sequence_count;
    }
 
   private:
-   std::unordered_map<std::string, uint32_t> value_id_lookup;
+   std::vector<uint32_t> value_ids;
+   std::unordered_map<std::string, uint32_t> value_to_id_lookup;
+   std::vector<std::string> id_to_value_lookup;
    std::vector<roaring::Roaring> indexed_values;
-   uint32_t sequence_count = 0;
 
   public:
    IndexedStringColumn();
 
-   roaring::Roaring filter(const std::string& value) const;
+   [[nodiscard]] roaring::Roaring filter(const std::string& value) const;
 
    void insert(const std::string& value);
+
+   [[nodiscard]] std::string getAsString(std::size_t idx) const override;
 };
 
 }  // namespace silo::storage::column

@@ -7,22 +7,27 @@
 #include <roaring/roaring.hh>
 
 #include "silo/common/pango_lineage.h"
+#include "silo/storage/column/column.h"
 
 namespace silo::storage::column {
 
-class PangoLineageColumn {
+class PangoLineageColumn : public Column {
   public:
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
-      archive& value_id_lookup;
+      archive& value_ids;
+      archive& value_to_id_lookup;
+      archive& id_to_value_lookup;
       archive& indexed_values;
+      archive& indexed_sublineage_values;
    }
 
   private:
-   std::unordered_map<common::PangoLineage, uint32_t> value_id_lookup;
+   std::vector<uint32_t> value_ids;
+   std::unordered_map<common::PangoLineage, uint32_t> value_to_id_lookup;
+   std::vector<common::PangoLineage> id_to_value_lookup;
    std::vector<roaring::Roaring> indexed_values;
    std::vector<roaring::Roaring> indexed_sublineage_values;
-   uint32_t sequence_count = 0;
 
    void insertSublineageValues(const common::PangoLineage& value);
 
@@ -36,6 +41,8 @@ class PangoLineageColumn {
    roaring::Roaring filter(const common::PangoLineage& value) const;
 
    roaring::Roaring filterIncludingSublineages(const common::PangoLineage& value) const;
+
+   std::string getAsString(std::size_t idx) const override;
 };
 
 }  // namespace silo::storage::column

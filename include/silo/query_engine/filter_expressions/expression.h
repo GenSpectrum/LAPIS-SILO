@@ -31,7 +31,7 @@ struct Expression {
    ) const = 0;
 };
 
-// NOLINTNEXTLINE(invalid-case-style)
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter);
 
 Expression::AmbiguityMode invertMode(Expression::AmbiguityMode mode);

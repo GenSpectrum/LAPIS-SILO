@@ -1,6 +1,6 @@
 #include "silo/storage/metadata_store.h"
 
-#include "silo/common/time.h"
+#include "silo/common/date.h"
 #include "silo/config/database_config.h"
 #include "silo/preprocessing/metadata.h"
 #include "silo/storage/pango_lineage_alias.h"
@@ -32,7 +32,7 @@ unsigned MetadataStore::fill(
             const std::string pango_lineage = alias_key.resolvePangoLineageAlias(value);
             pango_lineage_columns.at(item.name).insert({pango_lineage});
          } else if (column_type == silo::config::ColumnType::DATE) {
-            date_columns.at(item.name).insert(common::mapToTime(value));
+            date_columns.at(item.name).insert(common::stringToDate(value));
          }
       }
       ++sequence_count;

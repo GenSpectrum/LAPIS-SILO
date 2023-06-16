@@ -11,6 +11,7 @@
 #include <boost/archive/binary_oarchive.hpp>
 
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/config/database_config.h"
 #include "silo/roaring/roaring_serialize.h"
 #include "silo/storage/column/date_column.h"
 #include "silo/storage/column/pango_lineage_column.h"
@@ -42,6 +43,9 @@ struct MetadataStore {
       const PangoLineageAliasLookup& alias_key,
       const silo::config::DatabaseConfig& database_config
    );
+
+   [[nodiscard]] const storage::column::Column& getColumn(const config::DatabaseMetadata& metadata
+   ) const;
 
   private:
    void initializeColumns(const config::DatabaseConfig& database_config);

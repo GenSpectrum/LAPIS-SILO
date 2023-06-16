@@ -33,14 +33,14 @@ struct Partitions {
 
    static silo::preprocessing::Partitions load(std::istream& input_file);
 
-   void save(std::ostream& output_file);
+   void save(std::ostream& output_file) const;
 };
 
 enum Architecture { MAX_PARTITIONS, SINGLE_PARTITION, HYBRID, SINGLE_SINGLE };
 
 void calculateOffsets(Partitions& partitions);
 
-Partitions buildPartitions(PangoLineageCounts pango_lineage_counts, Architecture arch);
+Partitions buildPartitions(const PangoLineageCounts& pango_lineage_counts, Architecture arch);
 
 }  // namespace silo::preprocessing
 
