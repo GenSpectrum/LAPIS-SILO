@@ -1,0 +1,16 @@
+{
+  "testCaseName": "FloatBetween for column",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "FloatEquals",
+      "column": "qc_value",
+      "value": 0.9
+    }
+  },
+  "expectedQueryResult": {
+    "count": 1
+  }
+}

@@ -7,6 +7,7 @@
 #include "silo/query_engine/filter_expressions/exact.h"
 #include "silo/query_engine/filter_expressions/false.h"
 #include "silo/query_engine/filter_expressions/float_between.h"
+#include "silo/query_engine/filter_expressions/float_equals.h"
 #include "silo/query_engine/filter_expressions/has_mutation.h"
 #include "silo/query_engine/filter_expressions/int_between.h"
 #include "silo/query_engine/filter_expressions/int_equals.h"
@@ -69,6 +70,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) 
    } else if (expression_type == "IntBetween") {
       filter = json.get<std::unique_ptr<IntBetween>>();
    } else if (expression_type == "FloatEquals") {
+      filter = json.get<std::unique_ptr<FloatEquals>>();
+   } else if (expression_type == "FloatBetween") {
       filter = json.get<std::unique_ptr<FloatBetween>>();
    } else if (expression_type == "Maybe") {
       filter = json.get<std::unique_ptr<Maybe>>();
