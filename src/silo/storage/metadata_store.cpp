@@ -33,6 +33,8 @@ unsigned MetadataStore::fill(
             pango_lineage_columns.at(item.name).insert({pango_lineage});
          } else if (column_type == silo::config::ColumnType::DATE) {
             date_columns.at(item.name).insert(common::stringToDate(value));
+         } else if (column_type == silo::config::ColumnType::INT) {
+            int_columns.at(item.name).insert(stoi(value));
          }
       }
       ++sequence_count;
@@ -56,6 +58,8 @@ void MetadataStore::initializeColumns(const config::DatabaseConfig& database_con
                                 ? storage::column::DateColumn(true)
                                 : storage::column::DateColumn(false);
          date_columns.emplace(item.name, column);
+      } else if (column_type == config::ColumnType::INT) {
+         int_columns.emplace(item.name, storage::column::IntColumn());
       }
    }
 }

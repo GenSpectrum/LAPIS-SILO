@@ -42,7 +42,7 @@ void IndexedStringColumn::insert(const std::string& value) {
 }
 
 std::string IndexedStringColumn::getAsString(std::size_t idx) const {
-   return id_to_value_lookup[value_ids[idx]];
+   return id_to_value_lookup.at(value_ids.at(idx));
 };
 
 }  // namespace silo::storage::column

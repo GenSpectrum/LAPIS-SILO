@@ -18,6 +18,8 @@ schema:
     - name: division
       type: string
       generateIndex: true
+    - name: age
+      type: int
   primaryKey: gisaid_epi_isl
   dateToSortBy: date
   partitionBy: pango_lineage
