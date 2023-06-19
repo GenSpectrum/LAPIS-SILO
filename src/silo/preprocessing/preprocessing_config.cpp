@@ -40,7 +40,8 @@ PreprocessingConfig::PreprocessingConfig(
    const PangoLineageDefinitionFilename& pango_lineage_definition_filename_,
    const PartitionsFolder& partition_folder_,
    const SortedPartitionsFolder& sorted_partition_folder_,
-   const SerializedStateFolder& serialization_folder_
+   const SerializedStateFolder& serialization_folder_,
+   const ReferenceGenomeFilename& reference_genome_filename_
 ) {
    input_directory = input_directory_.directory;
    if (!std::filesystem::exists(input_directory)) {
@@ -53,6 +54,7 @@ PreprocessingConfig::PreprocessingConfig(
    pango_lineage_definition_file =
       createPath(input_directory, pango_lineage_definition_filename_.filename);
    sequence_file = createPath(input_directory, sequence_filename_.filename);
+   reference_genome_file = createPath(input_directory, reference_genome_filename_.filename);
 
    const std::filesystem::path output_directory(output_directory_.directory);
    if (!std::filesystem::exists(output_directory_.directory)) {

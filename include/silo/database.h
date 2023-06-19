@@ -11,6 +11,7 @@
 #include "silo/preprocessing/pango_lineage_count.h"
 #include "silo/storage/database_partition.h"
 #include "silo/storage/pango_lineage_alias.h"
+#include "silo/storage/reference_genome.h"
 
 namespace silo {
 
@@ -32,12 +33,10 @@ struct BitmapContainerSize;
 class Database {
   public:
    silo::config::DatabaseConfig database_config;
-   std::vector<std::string> global_reference;
+   std::unique_ptr<ReferenceGenome> reference_genome;
    std::vector<DatabasePartition> partitions;
 
    Database();
-
-   explicit Database(const std::string& directory);
 
    void preprocessing(
       const preprocessing::PreprocessingConfig& preprocessing_config,

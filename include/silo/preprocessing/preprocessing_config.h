@@ -38,7 +38,7 @@ struct SerializedStateFolder {
    std::string folder;
 };
 
-struct DatabaseConfigFilename {
+struct ReferenceGenomeFilename {
    std::string filename;
 };
 
@@ -51,7 +51,8 @@ struct PreprocessingConfig {
       const PangoLineageDefinitionFilename& pango_lineage_definition_filename_,
       const PartitionsFolder& partition_folder_,
       const SortedPartitionsFolder& sorted_partition_folder_,
-      const SerializedStateFolder& serialization_folder_
+      const SerializedStateFolder& serialization_folder_,
+      const ReferenceGenomeFilename& reference_genome_filename_
    );
 
    explicit PreprocessingConfig();
@@ -63,6 +64,7 @@ struct PreprocessingConfig {
    std::filesystem::path partition_folder;
    std::filesystem::path sorted_partition_folder;
    std::filesystem::path serialization_folder;
+   std::filesystem::path reference_genome_file;
 };
 
 std::filesystem::path createPath(

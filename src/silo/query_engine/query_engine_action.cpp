@@ -10,6 +10,7 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/database.h"
 #include "silo/storage/database_partition.h"
+#include "silo/storage/reference_genome.h"
 
 uint64_t silo::executeCount(
    const silo::Database& /*database*/,
@@ -212,7 +213,7 @@ std::vector<silo::MutationProportion> silo::executeMutations(
          auto const threshold_count =
             static_cast<uint32_t>(std::ceil(static_cast<double>(total) * proportion_threshold) - 1);
 
-         char const pos_ref = database.global_reference[0].at(pos);
+         char const pos_ref = database.reference_genome->genome[0].at(pos);
          if (pos_ref != 'A') {
             const uint32_t tmp = count_of_nucleotide_symbols_a_at_position[pos];
             if (tmp > threshold_count) {

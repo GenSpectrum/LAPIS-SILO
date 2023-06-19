@@ -103,7 +103,7 @@ class SiloServer : public Poco::Util::ServerApplication {
       auto database_config =
          silo::config::ConfigRepository().getValidatedConfig(database_config_path);
 
-      auto database = silo::Database(preprocessing_config.input_directory);
+      auto database = silo::Database();
 
       database.preprocessing(preprocessing_config, database_config);
 

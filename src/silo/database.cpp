@@ -26,42 +26,8 @@
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/database_partition.h"
-
-const std::string REFERENCE_GENOME_FILENAME = "reference_genome.txt";
-
-std::vector<std::string> initGlobalReference(const std::string& working_directory) {
-   std::filesystem::path const reference_genome_path(working_directory + REFERENCE_GENOME_FILENAME);
-   if (!std::filesystem::exists(reference_genome_path)) {
-      throw std::filesystem::filesystem_error(
-         "Global reference genome file " + reference_genome_path.relative_path().string() +
-            " does not exist",
-         std::error_code()
-      );
-   }
-
-   std::ifstream reference_file(reference_genome_path);
-   std::vector<std::string> global_reference;
-   while (true) {
-      std::string line;
-      if (!getline(reference_file, line, '\n')) {
-         break;
-      }
-      if (line.find('N') != std::string::npos) {
-         throw silo::persistence::LoadDatabaseException("No N in reference genome allowed.");
-      }
-      global_reference.push_back(line);
-   }
-   if (global_reference.empty()) {
-      throw silo::persistence::LoadDatabaseException(
-         "No genome in " + reference_genome_path.string()
-      );
-   }
-   return global_reference;
-}
-
-silo::Database::Database(const std::string& directory)
-    : global_reference(initGlobalReference(directory)),
-      alias_key(silo::PangoLineageAliasLookup::readFromFile(directory)) {}
+#include "silo/storage/pango_lineage_alias.h"
+#include "silo/storage/reference_genome.h"
 
 const silo::PangoLineageAliasLookup& silo::Database::getAliasKey() const {
    return alias_key;
@@ -479,6 +445,16 @@ void silo::Database::preprocessing(
    SPDLOG_INFO("preprocessing - validate metadata file against config");
    silo::preprocessing::MetadataValidator().validateMedataFile(
       preprocessing_config.metadata_file, database_config_
+   );
+
+   SPDLOG_INFO("preprocessing - building alias key");
+   alias_key =
+      silo::PangoLineageAliasLookup::readFromFile(preprocessing_config.pango_lineage_definition_file
+      );
+
+   SPDLOG_INFO("preprocessing - building reference genome");
+   reference_genome = std::make_unique<ReferenceGenome>(
+      silo::ReferenceGenome::readFromFile(preprocessing_config.reference_genome_file)
    );
 
    SPDLOG_INFO("preprocessing - building pango lineage counts");

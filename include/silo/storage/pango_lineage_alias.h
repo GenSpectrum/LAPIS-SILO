@@ -1,6 +1,7 @@
 #ifndef SILO_PANGO_LINEAGE_ALIAS_H
 #define SILO_PANGO_LINEAGE_ALIAS_H
 
+#include <filesystem>
 #include <string>
 #include <unordered_map>
 
@@ -12,11 +13,13 @@ class PangoLineageAliasLookup {
 
   public:
    PangoLineageAliasLookup() = default;
-   PangoLineageAliasLookup(std::unordered_map<std::string, std::string> alias_key);
+   explicit PangoLineageAliasLookup(std::unordered_map<std::string, std::string> alias_key);
 
    std::string resolvePangoLineageAlias(const std::string& pango_lineage) const;
 
-   static silo::PangoLineageAliasLookup readFromFile(const std::string& working_directory);
+   static silo::PangoLineageAliasLookup readFromFile(
+      const std::filesystem::path& pango_lineage_alias_file
+   );
 };
 
 }  // namespace silo

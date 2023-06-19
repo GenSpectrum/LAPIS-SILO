@@ -4,8 +4,7 @@
 #include <iostream>
 #include <string>
 
-namespace silo {
-namespace persistence {
+namespace silo::persistence {
 
 class LoadDatabaseException : public std::runtime_error {
   public:
@@ -17,7 +16,6 @@ class SaveDatabaseException : public std::runtime_error {
    explicit SaveDatabaseException(const std::string& error_message);
 };
 
-}  // namespace persistence
-}  // namespace silo
+}  // namespace silo::persistence
 
 #endif  // SILO_LOADDATABASEEXCEPTION_H

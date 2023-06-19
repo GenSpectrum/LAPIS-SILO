@@ -14,7 +14,7 @@ silo::Database buildTestDatabase() {
    auto config = silo::preprocessing::PreprocessingConfigReader().readConfig(
       input_directory.directory + "test_preprocessing_config.yaml"
    );
-   auto database = silo::Database(input_directory.directory);
+   auto database = silo::Database();
 
    const auto database_config = silo::config::ConfigRepository().getValidatedConfig(
       input_directory.directory + "test_database_config.yaml"
