@@ -8,9 +8,9 @@
 namespace silo {
 
 struct ReferenceGenome {
-   std::vector<std::string> genome;
+   std::vector<std::string> genome_segments;
 
-   explicit ReferenceGenome(std::vector<std::string> reference_genome);
+   explicit ReferenceGenome(std::vector<std::string> genome_segments);
 
    static ReferenceGenome readFromFile(const std::filesystem::path& reference_genome_file);
 };

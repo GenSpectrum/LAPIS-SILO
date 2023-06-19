@@ -7,8 +7,8 @@
 
 namespace silo {
 
-ReferenceGenome::ReferenceGenome(std::vector<std::string> reference_genome)
-    : genome(std::move(reference_genome)) {}
+ReferenceGenome::ReferenceGenome(std::vector<std::string> genome_segments)
+    : genome_segments(std::move(genome_segments)) {}
 
 ReferenceGenome ReferenceGenome::readFromFile(const std::filesystem::path& reference_genome_path) {
    if (!std::filesystem::exists(reference_genome_path)) {
@@ -23,7 +23,7 @@ ReferenceGenome ReferenceGenome::readFromFile(const std::filesystem::path& refer
       "Read reference genome from file: {}", reference_genome_path.relative_path().string()
    );
    std::ifstream reference_file(reference_genome_path.string());
-   std::vector<std::string> global_reference;
+   std::vector<std::string> reference_genome_segments;
    while (true) {
       std::string line;
       if (!getline(reference_file, line, '\n')) {
@@ -32,12 +32,12 @@ ReferenceGenome ReferenceGenome::readFromFile(const std::filesystem::path& refer
       if (line.find('N') != std::string::npos) {
          throw persistence::LoadDatabaseException("No N in reference genome allowed.");
       }
-      global_reference.push_back(line);
+      reference_genome_segments.push_back(line);
    }
-   if (global_reference.empty()) {
+   if (reference_genome_segments.empty()) {
       throw persistence::LoadDatabaseException("No genome in " + reference_genome_path.string());
    }
-   return ReferenceGenome(global_reference);
+   return ReferenceGenome(reference_genome_segments);
 }
 
 }  // namespace silo

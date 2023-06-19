@@ -5,6 +5,6 @@
 TEST(ReferenceGenome, readFromFile) {
    auto under_test = silo::ReferenceGenome::readFromFile("testBaseData/reference_genome.txt");
 
-   ASSERT_EQ(under_test.genome[0].size(), 29903);
-   ASSERT_EQ(under_test.genome[0].at(0), 'A');
+   ASSERT_EQ(under_test.genome_segments[0].size(), 29903);
+   ASSERT_EQ(under_test.genome_segments[0].at(0), 'A');
 }

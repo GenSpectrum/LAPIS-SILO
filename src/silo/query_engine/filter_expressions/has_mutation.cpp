@@ -27,7 +27,7 @@ std::unique_ptr<operators::Operator> HasMutation::compile(
    const silo::DatabasePartition& database_partition,
    AmbiguityMode mode
 ) const {
-   const char ref_symbol = database.reference_genome->genome[0].at(position);
+   const char ref_symbol = database.reference_genome->genome_segments[0].at(position);
 
    if (mode == UPPER_BOUND) {
       auto expression =

@@ -30,7 +30,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals:
 ) const {
    NUCLEOTIDE_SYMBOL nucleotide_symbol;
    if (value == '.') {
-      const char character = database.reference_genome->genome[0].at(position);
+      const char character = database.reference_genome->genome_segments[0].at(position);
       nucleotide_symbol = toNucleotideSymbol(character);
    } else {
       nucleotide_symbol = toNucleotideSymbol(value);
