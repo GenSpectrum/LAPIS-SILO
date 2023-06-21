@@ -1,5 +1,4 @@
 #include "silo/config/database_config_reader.h"
-#include "silo/config/config_exception.h"
 
 #include <iostream>
 

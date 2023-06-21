@@ -3,21 +3,24 @@
 #include <gtest/gtest.h>
 
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/config/config_repository.h"
 #include "silo/database_info.h"
 #include "silo/preprocessing/preprocessing_config.h"
+#include "silo/preprocessing/preprocessing_config_reader.h"
 
 silo::Database buildTestDatabase() {
-   const silo::InputDirectory input_directory{"./testBaseData/"};
-   const silo::OutputDirectory output_directory{"./build/"};
-   const silo::MetadataFilename metadata_filename{"small_metadata_set.tsv"};
-   const silo::SequenceFilename sequence_filename{"small_sequence_set.fasta"};
+   const silo::preprocessing::InputDirectory input_directory{"./testBaseData/"};
 
-   auto config = silo::PreprocessingConfig(
-      input_directory, output_directory, metadata_filename, sequence_filename
+   auto config = silo::preprocessing::PreprocessingConfigReader().readConfig(
+      input_directory.directory + "test_preprocessing_config.yaml"
    );
-   auto database = silo::Database(input_directory.directory);
+   auto database = silo::Database();
 
-   database.preprocessing(config);
+   const auto database_config = silo::config::ConfigRepository().getValidatedConfig(
+      input_directory.directory + "test_database_config.yaml"
+   );
+
+   database.preprocessing(config, database_config);
 
    return database;
 };

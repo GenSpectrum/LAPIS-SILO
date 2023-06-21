@@ -10,6 +10,7 @@
 #include "silo/query_engine/operators/index_scan.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/storage/database_partition.h"
+#include "silo/storage/reference_genome.h"
 
 namespace silo::query_engine::filter_expressions {
 
@@ -29,7 +30,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals:
 ) const {
    NUCLEOTIDE_SYMBOL nucleotide_symbol;
    if (value == '.') {
-      const char character = database.global_reference[0].at(position);
+      const char character = database.reference_genome->genome_segments[0].at(position);
       nucleotide_symbol = toNucleotideSymbol(character);
    } else {
       nucleotide_symbol = toNucleotideSymbol(value);

@@ -11,11 +11,12 @@
 #include "silo/preprocessing/pango_lineage_count.h"
 #include "silo/storage/database_partition.h"
 #include "silo/storage/pango_lineage_alias.h"
+#include "silo/storage/reference_genome.h"
 
 namespace silo {
 
 namespace preprocessing {
-
+struct PreprocessingConfig;
 struct Partitions;
 
 }  // namespace preprocessing
@@ -29,25 +30,25 @@ struct DetailedDatabaseInfo;
 struct BitmapSizePerSymbol;
 struct BitmapContainerSize;
 
-struct PreprocessingConfig;
-
 class Database {
   public:
    silo::config::DatabaseConfig database_config;
-   std::vector<std::string> global_reference;
+   std::unique_ptr<ReferenceGenome> reference_genome;
    std::vector<DatabasePartition> partitions;
 
    Database();
 
-   explicit Database(const std::string& directory);
-
-   void preprocessing(const PreprocessingConfig& config);
+   void preprocessing(
+      const preprocessing::PreprocessingConfig& preprocessing_config,
+      const config::DatabaseConfig& database_config_
+   );
 
    void build(
       const std::string& partition_name_prefix,
       const std::string& metadata_file_suffix,
       const std::string& sequence_file_suffix,
-      const silo::preprocessing::Partitions& partition_descriptor
+      const silo::preprocessing::Partitions& partition_descriptor,
+      const silo::config::DatabaseConfig& database_config
    );
 
    virtual silo::DatabaseInfo getDatabaseInfo() const;

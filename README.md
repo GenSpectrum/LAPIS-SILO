@@ -29,7 +29,7 @@ The Conan profile (myProfile) on your system might differ: Create a new profile 
 conan profile detect
 ```
 
-Copy `conanprofile.example` to `conanprofile` and insert the values of `os`, `os_build`, `arch` and `arch_build` from 
+Copy `conanprofile.example` to `conanprofile` and insert the values of `os`, `os_build`, `arch` and `arch_build` from
 myProfile.
 
 Build silo in `./build`. This build will load and build the required libraries to `~/.conan2/data/` (can not be set by
@@ -54,11 +54,40 @@ docker build . --tag=silo
 Run docker container
 
 ```shell
-docker run -p 8081:8081 silo
+docker run 
+  -p 8081:8081
+  -v your/data/directory:/data
+  silo --api --preprocessingConfig=./yourRelativePathTo/preprocessing_config.yaml --databaseConfig=./yourRelativePathTo/database_config.yaml
+```
+
+The mounted directory `your/data/directory` is the place on your machine, where the data for SILO is located.
+The path to the preprocessingConfig and the databaseConfig are relative to your mounted directory. This means if you
+mount a folder with a folder for each for the databaseConfig (dc) and the preprocessingConfig (pc), then you need to
+specify:
+
+```shell
+silo --api --preprocessingConfig=./pc/preprocessing_config.yaml --databaseConfig=./dc/database_config.yaml
+```
+
+The preprocessing config contains the following fields:
+
+```yaml
+# The directory where the input files are located, relative to the mounted folder
+inputDirectory: "./"
+# The directory where the output files are located, relative to the mounted folder
+outputDirectory: "./output/"
+# The filename of the metadata file, relative to the inputDirectory
+metadataFilename: "small_metadata_set.tsv"
+# The filename of the sequence file, relative to the inputDirectory
+sequenceFilename: "small_sequence_set.fasta"
+# The filename of the pango lineage definition file, relative to the inputDirectory
+pangoLineageDefinitionFilename: "pango_alias.txt"
+# The filename of the reference genome file, relative to the inputDirectory
+referenceGenomeFilename: "reference_genome.txt"
 ```
 
 Building Docker images locally relies on the local Docker cache.
-Docker will cache layers, and it will cache the dependencies built by Conan via cache mounts. 
+Docker will cache layers, and it will cache the dependencies built by Conan via cache mounts.
 
 However, cache mounts don't work in GitHub Actions (https://github.com/docker/build-push-action/issues/716),
 so there we only rely on Docker's layer cache via Docker's gha cache backend.

@@ -1,13 +1,12 @@
 #include "silo/storage/pango_lineage_alias.h"
 
+#include <spdlog/spdlog.h>
 #include <csv.hpp>
 #include <filesystem>
 #include <iterator>
 #include <sstream>
 
 namespace silo {
-
-const std::string PANGO_ALIAS_FILENAME = "pango_alias.txt";
 
 PangoLineageAliasLookup::PangoLineageAliasLookup(
    std::unordered_map<std::string, std::string> alias_key
@@ -32,29 +31,31 @@ std::string PangoLineageAliasLookup::resolvePangoLineageAlias(const std::string&
 }
 
 silo::PangoLineageAliasLookup silo::PangoLineageAliasLookup::readFromFile(
-   const std::string& working_directory
+   const std::filesystem::path& pango_lineage_alias_file
 ) {
-   std::filesystem::path const alias_key_path(working_directory + PANGO_ALIAS_FILENAME);
-   if (!std::filesystem::exists(alias_key_path)) {
+   if (!std::filesystem::exists(pango_lineage_alias_file)) {
       throw std::filesystem::filesystem_error(
-         "Alias key file " + alias_key_path.relative_path().string() + " does not exist",
+         "Alias key file " + pango_lineage_alias_file.relative_path().string() + " does not exist",
          std::error_code()
       );
    }
 
+   SPDLOG_INFO(
+      "Read pango lineage alias from file: {}", pango_lineage_alias_file.relative_path().string()
+   );
    std::unordered_map<std::string, std::string> alias_keys;
 
    csv::CSVFormat format;
    format.no_header().delimiter('\t');
 
-   csv::CSVReader csv_reader{alias_key_path.string(), format};
+   csv::CSVReader csv_reader{pango_lineage_alias_file.string(), format};
    for (const auto& row : csv_reader) {
       const std::string alias = row[0].get();
       const std::string val = row[1].get();
       alias_keys[alias] = val;
    }
 
-   return alias_keys;
+   return PangoLineageAliasLookup(alias_keys);
 }
 
 }  // namespace silo
