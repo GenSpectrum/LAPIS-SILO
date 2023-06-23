@@ -1,5 +1,5 @@
 {
-  "testCaseName": "FloatBetween for column",
+  "testCaseName": "FloatEquals for column",
   "query": {
     "action": {
       "type": "Aggregated"
@@ -11,6 +11,6 @@
     }
   },
   "expectedQueryResult": {
-    "count": 1
+    "count": 10
   }
 }

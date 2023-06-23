@@ -36,7 +36,7 @@ unsigned MetadataStore::fill(
          } else if (column_type == silo::config::ColumnType::INT) {
             int_columns.at(item.name).insert(stoi(value));
          } else if (column_type == silo::config::ColumnType::FLOAT) {
-            float_columns.at(item.name).insert(std::stof(value));
+            float_columns.at(item.name).insert(std::stod(value));
          }
       }
       ++sequence_count;
