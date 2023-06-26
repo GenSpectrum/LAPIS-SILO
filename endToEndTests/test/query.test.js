@@ -4,6 +4,8 @@ const { expect } = require('chai');
 
 const queriesPath = __dirname + '/queries';
 const queryTestFiles = fs.readdirSync(queriesPath);
+const invalidQueriesPath = __dirname + '/invalidQueries';
+const invalidQueryTestFiles = fs.readdirSync(invalidQueriesPath);
 
 describe('The /query endpoint', () => {
   queryTestFiles
@@ -16,6 +18,19 @@ describe('The /query endpoint', () => {
           .expect(200)
           .expect('Content-Type', 'application/json');
         return expect(response.body.queryResult).to.deep.equal(testCase.expectedQueryResult);
+      })
+    );
+
+  invalidQueryTestFiles
+    .map(file => JSON.parse(fs.readFileSync(`${invalidQueriesPath}/${file}`)))
+    .forEach(testCase =>
+      it('should return data for the test case ' + testCase.testCaseName, async () => {
+        const response = await server
+          .post('/query')
+          .send(testCase.query)
+          .expect(400)
+          .expect('Content-Type', 'application/json');
+        return expect(response.body).to.deep.equal(testCase.expectedError);
       })
     );
 

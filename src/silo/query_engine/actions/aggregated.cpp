@@ -240,9 +240,19 @@ QueryResult Aggregated::execute(
    for (const std::string& order_by_field : order_by_fields) {
       if (order_by_field == "random()") {
          randomize_order = true;
-         continue;
+         break;
       }
       order_by_definition.push_back(parseOrderByField(order_by_field));
+   }
+   for (const OrderByField& field : order_by_definition) {
+      if (field.name != "count" && !std::any_of(group_by_metadata.begin(), group_by_metadata.end(), [&field](const config::DatabaseMetadata& group_by_field) {
+             return group_by_field.name == field.name;
+          })) {
+         throw QueryParseException(
+            "The orderByField '" + field.name +
+            "' cannot be ordered by, as it does not appear in the groupByFields."
+         );
+      }
    }
 
    const size_t tuple_size = getTupleSize(group_by_metadata);
