@@ -7,7 +7,9 @@
 
 namespace silo {
 class Database;
+namespace query_engine {
 class QueryEngine;
+}
 }  // namespace silo
 
 namespace silo_api {
@@ -15,10 +17,13 @@ namespace silo_api {
 class SiloRequestHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
   private:
    const silo::Database& database;
-   const silo::QueryEngine& query_engine;
+   const silo::query_engine::QueryEngine& query_engine;
 
   public:
-   SiloRequestHandlerFactory(const silo::Database& database, const silo::QueryEngine& query_engine);
+   SiloRequestHandlerFactory(
+      const silo::Database& database,
+      const silo::query_engine::QueryEngine& query_engine
+   );
 
    Poco::Net::HTTPRequestHandler* createRequestHandler(const Poco::Net::HTTPServerRequest& request);
 

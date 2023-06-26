@@ -6,26 +6,51 @@
 
 #include "silo/storage/column/column.h"
 
+namespace boost::serialization {
+struct access;
+}
+
+namespace silo {
+struct Database;
+}
+
 namespace silo::storage::column {
 
-class IntColumn : public Column {
-  public:
-   template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
-      archive& values;
-   }
+class IntColumnPartition : public Column {
+   friend class boost::serialization::access;
 
   private:
-   std::vector<uint64_t> values;
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
+      // clang-format off
+      archive& values;
+      // clang-format on
+   }
+
+   std::vector<int64_t> values;
+
+  public:
+   IntColumnPartition();
+
+   [[nodiscard]] const std::vector<int64_t>& getValues() const;
+
+   void insert(int64_t value);
+};
+
+class IntColumn : public Column {
+   friend class boost::serialization::access;
+
+  private:
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
+      // clang-format off
+      // clang-format on
+   }
 
   public:
    IntColumn();
 
-   [[nodiscard]] const std::vector<uint64_t>& getValues() const;
-
-   void insert(uint64_t value);
-
-   [[nodiscard]] std::string getAsString(std::size_t idx) const override;
+   IntColumnPartition createPartition();
 };
 
 }  // namespace silo::storage::column

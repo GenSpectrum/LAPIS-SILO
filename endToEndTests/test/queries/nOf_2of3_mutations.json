@@ -27,5 +27,8 @@
       ]
     }
   },
-  "expectedQueryResult": []
+  "expectedQueryResult": {
+    "error": "Not implemented",
+    "message": "The NucMutations action has not been implemented"
+  }
 }

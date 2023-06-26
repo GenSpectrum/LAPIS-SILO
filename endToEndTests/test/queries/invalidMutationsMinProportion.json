@@ -14,6 +14,6 @@
   },
   "expectedQueryResult": {
     "error": "Invalid proportion",
-    "message": "minProportion must be in interval (0.0,1.0]"
+    "message": "minProportion must be in interval (0.0, 1.0]"
   }
 }

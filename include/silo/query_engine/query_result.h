@@ -7,10 +7,10 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-namespace silo::response {
+namespace silo::query_engine {
 
 struct AggregationResult {
-   int64_t count;
+   std::map<std::string, std::variant<std::string, int32_t>> fields;
 };
 
 struct MutationProportion {
@@ -25,10 +25,8 @@ struct ErrorResult {
 };
 
 struct QueryResult {
-   std::variant<AggregationResult, std::vector<MutationProportion>, ErrorResult> query_result;
-   int64_t parse_time;
-   int64_t filter_time;
-   int64_t action_time;
+   std::variant<std::vector<AggregationResult>, std::vector<MutationProportion>, ErrorResult>
+      query_result;
 };
 
 // NOLINTBEGIN(readability-identifier-naming)
@@ -38,6 +36,6 @@ void to_json(nlohmann::json& json, const ErrorResult& error_result);
 void to_json(nlohmann::json& json, const QueryResult& query_result);
 // NOLINTEND(readability-identifier-naming)
 
-}  // namespace silo::response
+}  // namespace silo::query_engine
 
 #endif  // SILO_QUERY_ENGINE_RESULT_H

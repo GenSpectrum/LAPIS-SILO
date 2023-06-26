@@ -5,6 +5,7 @@
 #include "silo/query_engine/operators/intersection.h"
 #include "silo/query_engine/operators/selection.h"
 #include "silo/query_engine/query_parse_exception.h"
+#include "silo/storage/column/int_column.h"
 #include "silo/storage/database_partition.h"
 
 namespace silo::query_engine::filter_expressions {
@@ -29,16 +30,16 @@ std::unique_ptr<silo::query_engine::operators::Operator> IntBetween::compile(
    const auto& int_column = database_partition.meta_store.int_columns.at(column);
 
    std::vector<std::unique_ptr<operators::Operator>> children;
-   children.emplace_back(std::make_unique<operators::Selection<uint64_t>>(
+   children.emplace_back(std::make_unique<operators::Selection<int64_t>>(
       int_column.getValues(),
-      operators::Selection<uint64_t>::HIGHER_OR_EQUALS,
+      operators::Selection<int64_t>::HIGHER_OR_EQUALS,
       from.value_or(0),
       database_partition.sequenceCount
    ));
-   children.emplace_back(std::make_unique<operators::Selection<uint64_t>>(
+   children.emplace_back(std::make_unique<operators::Selection<int64_t>>(
       int_column.getValues(),
-      operators::Selection<uint64_t>::LESS,
-      to.value_or(UINT64_MAX),
+      operators::Selection<int64_t>::LESS,
+      to.value_or(INT64_MAX),
       database_partition.sequenceCount
    ));
 

@@ -15,7 +15,7 @@ namespace silo_api {
 
 SiloRequestHandlerFactory::SiloRequestHandlerFactory(
    const silo::Database& database,
-   const silo::QueryEngine& query_engine
+   const silo::query_engine::QueryEngine& query_engine
 )
     : database(database),
       query_engine(query_engine) {}

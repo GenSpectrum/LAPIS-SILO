@@ -1,0 +1,111 @@
+{
+  "testCaseName": "Group all sequences by lineage",
+  "query": {
+    "action": {
+      "type": "Aggregated",
+      "groupByFields": ["pango_lineage"],
+      "orderByFields": ["pango_lineage"]
+    },
+    "filterExpression": {
+      "type": "True"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 3,
+      "pango_lineage": "B.1"
+    },
+    {
+      "count": 3,
+      "pango_lineage": "B.1.1"
+    },
+    {
+      "count": 1,
+      "pango_lineage": "B.1.1.1.36.3"
+    },
+    {
+      "count": 2,
+      "pango_lineage": "B.1.1.189"
+    },
+    {
+      "count": 1,
+      "pango_lineage": "B.1.1.28.1"
+    },
+    {
+      "count": 2,
+      "pango_lineage": "B.1.1.39"
+    },
+    {
+      "count": 48,
+      "pango_lineage": "B.1.1.7"
+    },
+    {
+      "count": 3,
+      "pango_lineage": "B.1.1.7.7"
+    },
+    {
+      "count": 1,
+      "pango_lineage": "B.1.1.70"
+    },
+    {
+      "count": 7,
+      "pango_lineage": "B.1.160"
+    },
+    {
+      "count": 1,
+      "pango_lineage": "B.1.160.16"
+    },
+    {
+      "count": 9,
+      "pango_lineage": "B.1.177"
+    },
+    {
+      "count": 2,
+      "pango_lineage": "B.1.177.44"
+    },
+    {
+      "count": 3,
+      "pango_lineage": "B.1.221"
+    },
+    {
+      "count": 1,
+      "pango_lineage": "B.1.236"
+    },
+    {
+      "count": 1,
+      "pango_lineage": "B.1.258"
+    },
+    {
+      "count": 1,
+      "pango_lineage": "B.1.258.17"
+    },
+    {
+      "count": 1,
+      "pango_lineage": "B.1.36.35"
+    },
+    {
+      "count": 1,
+      "pango_lineage": "B.1.525"
+    },
+    {
+      "count": 2,
+      "pango_lineage": "B.1.617.2"
+    },
+    {
+      "count": 1,
+      "pango_lineage": "B.1.617.2.122"
+    },
+    {
+      "count": 1,
+      "pango_lineage": "B.1.617.2.42"
+    },
+    {
+      "count": 4,
+      "pango_lineage": "B.1.617.2.43"
+    },
+    {
+      "count": 1,
+      "pango_lineage": "B.1.617.2.9.2"
+    }
+  ]
+}

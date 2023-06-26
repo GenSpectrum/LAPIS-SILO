@@ -1,48 +1,39 @@
 #include "silo/storage/column/string_column.h"
 
+#include <string>
+
+#include "silo/common/bidirectional_map.h"
+
+using silo::common::String;
+using silo::common::STRING_SIZE;
+
 namespace silo::storage::column {
 
-RawStringColumn::RawStringColumn() = default;
+StringColumnPartition::StringColumnPartition(silo::common::BidirectionalMap<std::string>& lookup)
+    : lookup(lookup) {}
 
-void RawStringColumn::insert(const std::string& value) {
-   values.push_back(value);
+void StringColumnPartition::insert(const std::string& value) {
+   values.push_back(String<STRING_SIZE>(value, lookup));
 }
 
-const std::vector<std::string>& RawStringColumn::getValues() const {
+const std::vector<String<STRING_SIZE>>& StringColumnPartition::getValues() const {
    return values;
 }
 
-std::string RawStringColumn::getAsString(std::size_t idx) const {
-   return values[idx];
-};
-
-IndexedStringColumn::IndexedStringColumn() = default;
-
-roaring::Roaring IndexedStringColumn::filter(const std::string& value) const {
-   if (!value_to_id_lookup.contains(value)) {
-      return {};
-   }
-
-   return indexed_values[value_to_id_lookup.at(value)];
+std::optional<String<STRING_SIZE>> StringColumnPartition::embedString(std::string string) const {
+   return String<STRING_SIZE>::embedString(string, lookup);
 }
 
-void IndexedStringColumn::insert(const std::string& value) {
-   uint32_t value_id;
-   if (!value_to_id_lookup.contains(value)) {
-      value_id = value_to_id_lookup.size();
-      value_to_id_lookup[value] = value_id;
-      id_to_value_lookup.push_back(value);
-      indexed_values.emplace_back();
-   } else {
-      value_id = value_to_id_lookup[value];
-   }
+StringColumn::StringColumn() {
+   lookup = std::make_unique<common::BidirectionalMap<std::string>>();
+};
 
-   indexed_values[value_id].add(value_ids.size());
-   value_ids.push_back(value_id);
+StringColumnPartition StringColumn::createPartition() {
+   return StringColumnPartition(*lookup);
 }
 
-std::string IndexedStringColumn::getAsString(std::size_t idx) const {
-   return id_to_value_lookup.at(value_ids.at(idx));
-};
+std::optional<String<STRING_SIZE>> StringColumn::embedString(std::string string) const {
+   return String<STRING_SIZE>::embedString(string, *lookup);
+}
 
 }  // namespace silo::storage::column

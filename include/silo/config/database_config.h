@@ -17,7 +17,7 @@ struct DatabaseMetadata {
    ValueType type;
    bool generate_index;
 
-   ColumnType getColumnType() const;
+   [[nodiscard]] ColumnType getColumnType() const;
 };
 
 struct DatabaseSchema {

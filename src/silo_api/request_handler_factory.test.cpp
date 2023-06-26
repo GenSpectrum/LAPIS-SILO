@@ -7,6 +7,12 @@
 #include "silo/database_info.h"
 #include "silo/query_engine/query_engine.h"
 #include "silo/query_engine/query_result.h"
+#include "silo/storage/column/date_column.h"
+#include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/int_column.h"
+#include "silo/storage/column/pango_lineage_column.h"
+#include "silo/storage/column/string_column.h"
+#include "silo/storage/database_partition.h"
 #include "silo_api/manual_poco_mocks.test.h"
 #include "silo_api/request_handler_factory.h"
 
@@ -16,12 +22,12 @@ class MockDatabase : public silo::Database {
    MOCK_METHOD(silo::DetailedDatabaseInfo, detailedDatabaseInfo, (), (const));
 };
 
-class MockQueryEngine : public silo::QueryEngine {
+class MockQueryEngine : public silo::query_engine::QueryEngine {
   public:
    explicit MockQueryEngine(const silo::Database& database)
        : QueryEngine(database) {}
 
-   MOCK_METHOD(silo::response::QueryResult, executeQuery, (const std::string&), (const));
+   MOCK_METHOD(silo::query_engine::QueryResult, executeQuery, (const std::string&), (const));
 };
 
 class RequestHandlerTestFixture : public ::testing::Test {
@@ -95,11 +101,11 @@ TEST_F(RequestHandlerTestFixture, returnsMethodNotAllowedOnPostInfoRequest) {
    );
 }
 
-static const silo::response::QueryResult QUERY_RESULT =
-   silo::response::QueryResult{{silo::response::AggregationResult{5}}, 1, 2, 3};
-
 TEST_F(RequestHandlerTestFixture, handlesPostQueryRequest) {
-   EXPECT_CALL(mock_query_engine, executeQuery).WillRepeatedly(testing::Return(QUERY_RESULT));
+   std::map<std::string, std::variant<std::string, int32_t>> fields{{"count", 5}};
+   std::vector<silo::query_engine::AggregationResult> tmp{{fields}};
+   const silo::query_engine::QueryResult query_result{tmp};
+   EXPECT_CALL(mock_query_engine, executeQuery).WillRepeatedly(testing::Return(query_result));
 
    request.setMethod("POST");
    request.setURI("/query");
@@ -107,10 +113,7 @@ TEST_F(RequestHandlerTestFixture, handlesPostQueryRequest) {
    processRequest();
 
    EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_OK);
-   EXPECT_EQ(
-      response.out_stream.str(),
-      R"({"actionTime":3,"filterTime":2,"parseTime":1,"queryResult":{"count":5}})"
-   );
+   EXPECT_EQ(response.out_stream.str(), R"({"queryResult":[{"count":5}]})");
 }
 
 TEST_F(RequestHandlerTestFixture, returnsMethodNotAllowedOnGetQuery) {

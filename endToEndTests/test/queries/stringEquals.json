@@ -10,7 +10,9 @@
       "value": "Switzerland"
     }
   },
-  "expectedQueryResult": {
-    "count": 100
-  }
+  "expectedQueryResult": [
+    {
+      "count": 100
+    }
+  ]
 }

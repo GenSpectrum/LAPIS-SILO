@@ -11,6 +11,10 @@
 #include "silo/storage/sequence_store.h"
 
 namespace silo {
+struct Database;
+}
+
+namespace silo {
 
 class DatabasePartition {
    friend class Database;
@@ -20,12 +24,13 @@ class DatabasePartition {
 
    template <class Archive>
    void serialize(Archive& archive, [[maybe_unused]] const unsigned int version) {
+      // clang-format off
       archive& meta_store;
       archive& seq_store;
       archive& sequenceCount;
       archive& chunks;
+      // clang-format on
    }
-
    std::vector<silo::preprocessing::Chunk> chunks;
 
   public:
@@ -33,7 +38,13 @@ class DatabasePartition {
    SequenceStore seq_store;
    unsigned sequenceCount;
 
-   [[nodiscard]] const std::vector<silo::preprocessing::Chunk>& getChunks() const;
+   [[nodiscard]] const std::vector<preprocessing::Chunk>& getChunks() const;
+
+   void insertColumn(const std::string& name, storage::column::StringColumnPartition column);
+   void insertColumn(const std::string& name, storage::column::IndexedStringColumnPartition column);
+   void insertColumn(const std::string& name, storage::column::IntColumnPartition column);
+   void insertColumn(const std::string& name, storage::column::DateColumnPartition column);
+   void insertColumn(const std::string& name, storage::column::PangoLineageColumnPartition column);
 };
 
 }  // namespace silo

@@ -11,7 +11,9 @@
       "to": "2021-03-17"
     }
   },
-  "expectedQueryResult": {
-    "count": 52
-  }
+  "expectedQueryResult": [
+    {
+      "count": 52
+    }
+  ]
 }

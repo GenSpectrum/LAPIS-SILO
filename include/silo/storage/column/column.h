@@ -7,10 +7,7 @@
 
 namespace silo::storage::column {
 
-class Column {
-  public:
-   virtual std::string getAsString(std::size_t idx) const = 0;
-};
+class Column {};
 
 }  // namespace silo::storage::column
 

@@ -20,7 +20,6 @@
 #include "silo/storage/column/string_column.h"
 
 namespace silo {
-
 class PangoLineageAliasLookup;
 
 namespace config {
@@ -30,32 +29,30 @@ class DatabaseConfig;
 struct MetadataStore {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
+      // clang-format off
       archive& raw_string_columns;
       archive& indexed_string_columns;
       archive& int_columns;
       archive& float_columns;
       archive& date_columns;
       archive& pango_lineage_columns;
+      // clang-format on
    }
 
-   std::unordered_map<std::string, storage::column::RawStringColumn> raw_string_columns;
-   std::unordered_map<std::string, storage::column::IndexedStringColumn> indexed_string_columns;
-   std::unordered_map<std::string, storage::column::IntColumn> int_columns;
-   std::unordered_map<std::string, storage::column::FloatColumn> float_columns;
-   std::unordered_map<std::string, storage::column::DateColumn> date_columns;
-   std::unordered_map<std::string, storage::column::PangoLineageColumn> pango_lineage_columns;
+   std::unordered_map<std::string, storage::column::StringColumnPartition> string_columns;
+   std::unordered_map<std::string, storage::column::IndexedStringColumnPartition>
+      indexed_string_columns;
+   std::unordered_map<std::string, storage::column::IntColumnPartition> int_columns;
+   std::unordered_map<std::string, storage::column::DateColumnPartition> date_columns;
+   std::unordered_map<std::string, storage::column::PangoLineageColumnPartition>
+      pango_lineage_columns;
+   std::unordered_map<std::string, storage::column::FloatColumnPartition> float_columns;
 
    unsigned fill(
       const std::filesystem::path& input_file,
       const PangoLineageAliasLookup& alias_key,
       const silo::config::DatabaseConfig& database_config
    );
-
-   [[nodiscard]] const storage::column::Column& getColumn(const config::DatabaseMetadata& metadata
-   ) const;
-
-  private:
-   void initializeColumns(const config::DatabaseConfig& database_config);
 };
 
 }  // namespace silo

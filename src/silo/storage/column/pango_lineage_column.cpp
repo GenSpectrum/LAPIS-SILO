@@ -1,58 +1,63 @@
 #include "silo/storage/column/pango_lineage_column.h"
 
+#include "silo/common/bidirectional_map.h"
+
 namespace silo::storage::column {
 
-PangoLineageColumn::PangoLineageColumn() = default;
+PangoLineageColumnPartition::PangoLineageColumnPartition(
+   common::BidirectionalMap<common::PangoLineage>& lookup
+)
+    : lookup(lookup){};
 
-void PangoLineageColumn::insert(const common::PangoLineage& value) {
-   if (!value_to_id_lookup.contains(value)) {
-      for (const auto& parent_lineage : value.getParentLineages()) {
-         initBitmapsForValue(parent_lineage);
-      }
+void PangoLineageColumnPartition::insert(const common::PangoLineage& value) {
+   for (const auto& parent_lineage : value.getParentLineages()) {
+      (void)lookup.getOrCreateId(parent_lineage);
    }
-   const uint32_t value_id = value_to_id_lookup[value];
-   indexed_values[value_id].add(value_ids.size());
-   insertSublineageValues(value);
+   const Idx value_id = lookup.getOrCreateId(value);
+   const TID row_number = value_ids.size();
+   indexed_values[value_id].add(row_number);
+   insertSublineageValues(value, row_number);
    value_ids.push_back(value_id);
 }
 
-void PangoLineageColumn::initBitmapsForValue(const common::PangoLineage& value) {
-   if (value_to_id_lookup.contains(value)) {
-      return;
-   }
-
-   value_to_id_lookup[value] = value_to_id_lookup.size();
-   id_to_value_lookup.push_back(value);
-   indexed_values.emplace_back();
-   indexed_sublineage_values.emplace_back();
-}
-
-void PangoLineageColumn::insertSublineageValues(const common::PangoLineage& value) {
+void PangoLineageColumnPartition::insertSublineageValues(
+   const common::PangoLineage& value,
+   TID row_number
+) {
    for (const auto& pango_lineage : value.getParentLineages()) {
-      const uint32_t value_id = value_to_id_lookup[pango_lineage];
-      indexed_sublineage_values[value_id].add(value_ids.size());
+      Idx value_id = lookup.getOrCreateId(pango_lineage);
+      indexed_sublineage_values[value_id].add(row_number);
    }
 }
 
-roaring::Roaring PangoLineageColumn::filter(const common::PangoLineage& value) const {
-   if (!value_to_id_lookup.contains(value)) {
-      return {};
+roaring::Roaring PangoLineageColumnPartition::filter(const common::PangoLineage& value) const {
+   auto value_id = lookup.getId(value);
+   if (value_id.has_value() && indexed_values.contains(value_id.value())) {
+      return indexed_values.at(value_id.value());
    }
-
-   return indexed_values[value_to_id_lookup.at(value)];
+   return {};
 }
 
-roaring::Roaring PangoLineageColumn::filterIncludingSublineages(const common::PangoLineage& value
+roaring::Roaring PangoLineageColumnPartition::filterIncludingSublineages(
+   const common::PangoLineage& value
 ) const {
-   if (!value_to_id_lookup.contains(value)) {
-      return {};
+   auto value_id = lookup.getId(value);
+   if (value_id.has_value() && indexed_sublineage_values.contains(value_id.value())) {
+      return indexed_sublineage_values.at(value_id.value());
    }
-
-   return indexed_sublineage_values[value_to_id_lookup.at(value)];
+   return {};
 }
 
-std::string PangoLineageColumn::getAsString(std::size_t idx) const {
-   return id_to_value_lookup.at(value_ids.at(idx)).value;
+const std::vector<silo::Idx>& PangoLineageColumnPartition::getValues() const {
+   return this->value_ids;
+}
+
+PangoLineageColumn::PangoLineageColumn() {
+   lookup = std::make_unique<common::BidirectionalMap<common::PangoLineage>>();
 };
+
+PangoLineageColumnPartition PangoLineageColumn::createPartition() {
+   return PangoLineageColumnPartition(*lookup);
+}
 
 }  // namespace silo::storage::column

@@ -1,10 +1,12 @@
 #include "silo/query_engine/operators/selection.h"
 
-#include <silo/common/date.h>
-#include <roaring/roaring.hh>
 #include <utility>
 #include <vector>
 
+#include <roaring/roaring.hh>
+
+#include "silo/common/date.h"
+#include "silo/common/string.h"
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo::query_engine::operators {
@@ -133,12 +135,16 @@ std::unique_ptr<Operator> Selection<T>::negate() const {
       case LESS_OR_EQUALS:
          new_comparator = HIGHER;
          break;
+      default:
+         throw std::runtime_error(
+            "Unknown Selection comparator in negate method: " + std::to_string(comparator)
+         );
    }
    return std::make_unique<Selection<T>>(column, new_comparator, value, row_count);
 }
 
-template class Selection<std::string>;
-template class Selection<uint64_t>;
+template class Selection<int64_t>;
+template class Selection<silo::common::String<silo::common::STRING_SIZE>>;
 template class Selection<silo::common::Date>;
 template class Selection<double>;
 

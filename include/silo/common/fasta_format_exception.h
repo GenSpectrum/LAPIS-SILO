@@ -1,7 +1,8 @@
 #ifndef SILO_FASTA_FORMAT_EXCEPTION_H
 #define SILO_FASTA_FORMAT_EXCEPTION_H
 
-#include <iostream>
+#include <stdexcept>
+#include <string>
 
 namespace silo {
 

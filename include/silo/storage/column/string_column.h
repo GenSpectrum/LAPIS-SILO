@@ -1,62 +1,70 @@
 #ifndef SILO_STRING_COLUMN_H
 #define SILO_STRING_COLUMN_H
 
-#include <string>
+#include <memory>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
 #include <roaring/roaring.hh>
 
+#include "silo/common/bidirectional_map.h"
+#include "silo/common/string.h"
 #include "silo/storage/column/column.h"
+
+namespace boost::serialization {
+struct access;
+}
 
 namespace silo::storage::column {
 
-class RawStringColumn : public Column {
-  public:
+class StringColumnPartition : public Column {
+   friend class boost::serialization::access;
+
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
+      // clang-format off
       archive& values;
+      // clang-format on
    }
 
-  private:
-   std::vector<std::string> values;
+   std::vector<common::String<silo::common::STRING_SIZE>> values;
+   silo::common::BidirectionalMap<std::string>& lookup;
 
   public:
-   RawStringColumn();
+   StringColumnPartition(silo::common::BidirectionalMap<std::string>& lookup);
 
-   [[nodiscard]] const std::vector<std::string>& getValues() const;
+   [[nodiscard]] const std::vector<common::String<silo::common::STRING_SIZE>>& getValues() const;
 
    void insert(const std::string& value);
 
-   [[nodiscard]] std::string getAsString(std::size_t idx) const override;
+   std::optional<common::String<silo::common::STRING_SIZE>> embedString(std::string) const;
 };
 
-class IndexedStringColumn : public Column {
-  public:
-   template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
-      archive& value_ids;
-      archive& value_to_id_lookup;
-      archive& id_to_value_lookup;
-      archive& indexed_values;
-   }
+class StringColumn {
+   friend class boost::serialization::access;
 
   private:
-   std::vector<uint32_t> value_ids;
-   std::unordered_map<std::string, uint32_t> value_to_id_lookup;
-   std::vector<std::string> id_to_value_lookup;
-   std::vector<roaring::Roaring> indexed_values;
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
+      // clang-format off
+      archive& lookup;
+      // clang-format on
+      // TODO sync lookups
+   }
+
+   std::unique_ptr<silo::common::BidirectionalMap<std::string>> lookup;
 
   public:
-   IndexedStringColumn();
+   StringColumn();
 
-   [[nodiscard]] roaring::Roaring filter(const std::string& value) const;
+   StringColumnPartition createPartition();
 
-   void insert(const std::string& value);
+   std::optional<common::String<silo::common::STRING_SIZE>> embedString(std::string) const;
 
-   [[nodiscard]] std::string getAsString(std::size_t idx) const override;
+   inline std::string lookupValue(common::String<silo::common::STRING_SIZE> string) const {
+      return string.toString(*lookup);
+   }
 };
 
 }  // namespace silo::storage::column

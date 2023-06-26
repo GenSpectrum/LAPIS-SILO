@@ -22,9 +22,11 @@ struct Position {
 
    template <class Archive>
    void serialize(Archive& archive, [[maybe_unused]] const unsigned int version) {
+      // clang-format off
       archive& symbol_whose_bitmap_is_flipped;
       archive& bitmaps;
       archive& nucleotide_symbol_n_indexed;
+      // clang-format on
    }
 
    std::array<roaring::Roaring, SYMBOL_COUNT> bitmaps;
@@ -47,9 +49,11 @@ class SequenceStore {
 
    template <class Archive>
    void serialize(Archive& archive, [[maybe_unused]] const unsigned int version) {
+      // clang-format off
       archive& sequence_count;
       archive& positions;
       archive& nucleotide_symbol_n_bitmaps;
+      // clang-format on
    }
 
    std::array<Position, GENOME_LENGTH> positions;

@@ -265,7 +265,7 @@ std::unique_ptr<operators::Operator> NOf::compile(
       mapChildExpressions(database, database_partition, mode);
 
    // We cannot easily map ambiguity modes through an exact NOf expression -> rewrite without exact
-   if (mode != NONE && match_exactly && number_of_matchers < children.size()) {
+   if (mode != NONE && match_exactly && number_of_matchers < static_cast<uint32_t>(children.size())) {
       return rewriteNonExact(database, database_partition, mode);
    }
 

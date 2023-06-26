@@ -1,15 +1,15 @@
 #include "silo/database.h"
 
+#include <string>
+#include <unordered_map>
+#include <vector>
+
 #include <spdlog/spdlog.h>
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for_each.h>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
-#include <iostream>
 #include <roaring/roaring.hh>
-#include <string>
-#include <unordered_map>
-#include <vector>
 
 #include "silo/common/block_timer.h"
 #include "silo/common/format_number.h"
@@ -25,13 +25,14 @@
 #include "silo/preprocessing/partition.h"
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_exception.h"
+#include "silo/storage/column/date_column.h"
+#include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/int_column.h"
+#include "silo/storage/column/pango_lineage_column.h"
+#include "silo/storage/column/string_column.h"
 #include "silo/storage/database_partition.h"
 #include "silo/storage/pango_lineage_alias.h"
 #include "silo/storage/reference_genome.h"
-
-const silo::PangoLineageAliasLookup& silo::Database::getAliasKey() const {
-   return alias_key;
-}
 
 template <>
 struct [[maybe_unused]] fmt::formatter<silo::DatabaseInfo> : fmt::formatter<std::string> {
@@ -47,77 +48,79 @@ struct [[maybe_unused]] fmt::formatter<silo::DatabaseInfo> : fmt::formatter<std:
    }
 };
 
-void silo::Database::build(
+namespace silo {
+
+const PangoLineageAliasLookup& Database::getAliasKey() const {
+   return alias_key;
+}
+
+void Database::build(
    const std::string& partition_name_prefix,
    const std::string& metadata_file_suffix,
    const std::string& sequence_file_suffix,
-   const silo::preprocessing::Partitions& partition_descriptor,
-   const silo::config::DatabaseConfig& database_config
+   const preprocessing::Partitions& partition_descriptor
 ) {
    int64_t micros = 0;
    {
       BlockTimer const timer(micros);
       partitions.resize(partition_descriptor.partitions.size());
-      tbb::parallel_for(
-         static_cast<size_t>(0),
-         partition_descriptor.partitions.size(),
-         [&](size_t partition_index) {
-            const auto& part = partition_descriptor.partitions[partition_index];
-            partitions[partition_index].chunks = part.chunks;
-            for (unsigned chunk_index = 0; chunk_index < part.chunks.size(); ++chunk_index) {
-               const std::string name =
-                  partition_name_prefix + buildChunkName(partition_index, chunk_index);
-               std::string sequence_filename = name + sequence_file_suffix;
-               const std::filesystem::path metadata_file(name + metadata_file_suffix);
+      initializeColumns();
+      for (size_t partition_index = 0; partition_index < partition_descriptor.partitions.size();
+           ++partition_index) {
+         const auto& part = partition_descriptor.partitions[partition_index];
+         partitions[partition_index].chunks = part.chunks;
+         for (size_t chunk_index = 0; chunk_index < part.chunks.size(); ++chunk_index) {
+            const std::string name =
+               partition_name_prefix + buildChunkName(partition_index, chunk_index);
+            std::string sequence_filename = name + sequence_file_suffix;
+            const std::filesystem::path metadata_file(name + metadata_file_suffix);
+            if (!InputStreamWrapper(sequence_filename).getInputStream()) {
+               sequence_filename += ".xz";
                if (!InputStreamWrapper(sequence_filename).getInputStream()) {
-                  sequence_filename += ".xz";
-                  if (!InputStreamWrapper(sequence_filename).getInputStream()) {
-                     SPDLOG_ERROR("Sequence file {} not found", name + sequence_file_suffix);
-                     return;
-                  }
-                  SPDLOG_DEBUG("Using sequence file: {}", sequence_filename);
-               } else {
-                  SPDLOG_DEBUG("Using sequence file: {}", sequence_filename);
-               }
-               if (!std::filesystem::exists(metadata_file)) {
-                  SPDLOG_ERROR("metadata file {} not found", name + metadata_file_suffix);
+                  SPDLOG_ERROR("Sequence file {} not found", name + sequence_file_suffix);
                   return;
                }
-               silo::FastaReader sequence_input(sequence_filename);
-               SPDLOG_DEBUG("Using metadata file: {}", name + metadata_file_suffix);
-               unsigned const sequence_store_sequence_count =
-                  partitions[partition_index].seq_store.fill(sequence_input);
-               unsigned const metadata_store_sequence_count =
-                  partitions[partition_index].meta_store.fill(
-                     metadata_file, alias_key, database_config
-                  );
-               if (sequence_store_sequence_count != metadata_store_sequence_count) {
-                  throw silo::PreprocessingException(
-                     "Sequences in meta data and sequence data for chunk " +
-                     buildChunkName(partition_index, chunk_index) +
-                     " are not equal. The sequence store has " +
-                     std::to_string(sequence_store_sequence_count) +
-                     " rows, the metadata store has " +
-                     std::to_string(metadata_store_sequence_count) + " rows."
-                  );
-               }
-               partitions[partition_index].sequenceCount += sequence_store_sequence_count;
+               SPDLOG_DEBUG("Using sequence file: {}", sequence_filename);
+            } else {
+               SPDLOG_DEBUG("Using sequence file: {}", sequence_filename);
             }
+            if (!std::filesystem::exists(metadata_file)) {
+               SPDLOG_ERROR("metadata file {} not found", name + metadata_file_suffix);
+               return;
+            }
+            FastaReader sequence_input(sequence_filename);
+            SPDLOG_DEBUG("Using metadata file: {}", name + metadata_file_suffix);
+            const size_t sequence_store_sequence_count =
+               partitions[partition_index].seq_store.fill(sequence_input);
+            const size_t metadata_store_sequence_count =
+               partitions[partition_index].meta_store.fill(
+                  metadata_file, alias_key, database_config
+               );
+            if (sequence_store_sequence_count != metadata_store_sequence_count) {
+               throw PreprocessingException(
+                  "Sequences in meta data and sequence data for chunk " +
+                  buildChunkName(partition_index, chunk_index) +
+                  " are not equal. The sequence store has " +
+                  std::to_string(sequence_store_sequence_count) + " rows, the metadata store has " +
+                  std::to_string(metadata_store_sequence_count) + " rows."
+               );
+            }
+            partitions[partition_index].sequenceCount += sequence_store_sequence_count;
          }
-      );
+      }
    }
 
    SPDLOG_INFO("Build took {} ms", micros);
    SPDLOG_INFO("database info: {}", getDatabaseInfo());
 }
 
-[[maybe_unused]] void silo::Database::flipBitmaps() {
+[[maybe_unused]] void Database::flipBitmaps() {
    tbb::parallel_for_each(
       partitions.begin(),
       partitions.end(),
       [&](DatabasePartition& database_partition) {
          tbb::parallel_for(
-            tbb::blocked_range<unsigned>(0, GENOME_LENGTH),
+            tbb::blocked_range<uint32_t>(0, GENOME_LENGTH),
             [&](const auto& positions) {
                for (uint32_t position = positions.begin(); position != positions.end();
                     ++position) {
@@ -125,7 +128,7 @@ void silo::Database::build(
                   unsigned max_count = 0;
 
                   for (const auto& symbol : GENOME_SYMBOLS) {
-                     unsigned const count = database_partition.seq_store.positions[position]
+                     const unsigned count = database_partition.seq_store.positions[position]
                                                .bitmaps[static_cast<unsigned>(symbol)]
                                                .cardinality();
                      if (count > max_count) {
@@ -147,7 +150,7 @@ void silo::Database::build(
 
 using RoaringStatistics = roaring::api::roaring_statistics_t;
 
-silo::DatabaseInfo silo::Database::getDatabaseInfo() const {
+DatabaseInfo Database::getDatabaseInfo() const {
    std::atomic<uint32_t> sequence_count = 0;
    std::atomic<uint64_t> total_size = 0;
    std::atomic<size_t> nucleotide_symbol_n_bitmaps_size = 0;
@@ -164,10 +167,10 @@ silo::DatabaseInfo silo::Database::getDatabaseInfo() const {
       }
    );
 
-   return silo::DatabaseInfo{sequence_count, total_size, nucleotide_symbol_n_bitmaps_size};
+   return DatabaseInfo{sequence_count, total_size, nucleotide_symbol_n_bitmaps_size};
 }
 
-[[maybe_unused]] void silo::Database::indexAllNucleotideSymbolsN() {
+[[maybe_unused]] void Database::indexAllNucleotideSymbolsN() {
    int64_t microseconds = 0;
    {
       BlockTimer const timer(microseconds);
@@ -179,10 +182,10 @@ silo::DatabaseInfo silo::Database::getDatabaseInfo() const {
          }
       );
    }
-   LOG_PERFORMANCE("index all N took {} microseconds", silo::formatNumber(microseconds));
+   LOG_PERFORMANCE("index all N took {} microseconds", formatNumber(microseconds));
 }
 
-[[maybe_unused]] void silo::Database::naiveIndexAllNucleotideSymbolsN() {
+[[maybe_unused]] void Database::naiveIndexAllNucleotideSymbolsN() {
    int64_t microseconds = 0;
    {
       BlockTimer const timer(microseconds);
@@ -190,10 +193,10 @@ silo::DatabaseInfo silo::Database::getDatabaseInfo() const {
          dbp.seq_store.naiveIndexAllNucleotideSymbolN();
       });
    }
-   LOG_PERFORMANCE("index all N naive took {} microseconds", silo::formatNumber(microseconds));
+   LOG_PERFORMANCE("index all N naive took {} microseconds", formatNumber(microseconds));
 }
 
-silo::BitmapContainerSize::BitmapContainerSize(uint32_t section_length)
+BitmapContainerSize::BitmapContainerSize(uint32_t section_length)
     : section_length(section_length),
       bitmap_container_size_statistic({0, 0, 0, 0, 0, 0, 0, 0, 0}),
       total_bitmap_size_frozen(0),
@@ -206,9 +209,7 @@ silo::BitmapContainerSize::BitmapContainerSize(uint32_t section_length)
       std::vector<uint32_t>((GENOME_LENGTH / section_length) + 1, 0);
 }
 
-silo::BitmapContainerSize& silo::BitmapContainerSize::operator+=(
-   const silo::BitmapContainerSize& other
-) {
+BitmapContainerSize& BitmapContainerSize::operator+=(const BitmapContainerSize& other) {
    if (this->section_length != other.section_length) {
       throw std::runtime_error("Cannot add BitmapContainerSize with different section lengths.");
    }
@@ -217,7 +218,7 @@ silo::BitmapContainerSize& silo::BitmapContainerSize::operator+=(
 
    for (const auto& map_entry : this->size_per_genome_symbol_and_section) {
       const auto symbol = map_entry.first;
-      for (unsigned i = 0; i < this->size_per_genome_symbol_and_section.at(symbol).size(); ++i) {
+      for (size_t i = 0; i < this->size_per_genome_symbol_and_section.at(symbol).size(); ++i) {
          this->size_per_genome_symbol_and_section.at(symbol).at(i) +=
             other.size_per_genome_symbol_and_section.at(symbol).at(i);
       }
@@ -247,21 +248,19 @@ silo::BitmapContainerSize& silo::BitmapContainerSize::operator+=(
    return *this;
 }
 
-silo::BitmapSizePerSymbol& silo::BitmapSizePerSymbol::operator+=(
-   const silo::BitmapSizePerSymbol& other
-) {
+BitmapSizePerSymbol& BitmapSizePerSymbol::operator+=(const BitmapSizePerSymbol& other) {
    for (const auto& symbol : GENOME_SYMBOLS) {
       this->size_in_bytes.at(symbol) += other.size_in_bytes.at(symbol);
    }
    return *this;
 }
-silo::BitmapSizePerSymbol::BitmapSizePerSymbol() {
+BitmapSizePerSymbol::BitmapSizePerSymbol() {
    for (const auto& symbol : GENOME_SYMBOLS) {
       this->size_in_bytes[symbol] = 0;
    }
 }
 
-silo::BitmapSizePerSymbol silo::Database::calculateBitmapSizePerSymbol() const {
+BitmapSizePerSymbol Database::calculateBitmapSizePerSymbol() const {
    BitmapSizePerSymbol global_bitmap_size_per_symbol;
 
    std::mutex lock;
@@ -284,7 +283,7 @@ silo::BitmapSizePerSymbol silo::Database::calculateBitmapSizePerSymbol() const {
 
 void addStatisticToBitmapContainerSize(
    const RoaringStatistics& statistic,
-   silo::BitmapContainerSizeStatistic& size_statistic
+   BitmapContainerSizeStatistic& size_statistic
 ) {
    size_statistic.number_of_array_containers += statistic.n_array_containers;
    size_statistic.number_of_run_containers += statistic.n_run_containers;
@@ -301,8 +300,7 @@ void addStatisticToBitmapContainerSize(
       statistic.n_values_bitset_containers;
 }
 
-silo::BitmapContainerSize silo::Database::calculateBitmapContainerSizePerGenomeSection(
-   uint32_t section_length
+BitmapContainerSize Database::calculateBitmapContainerSizePerGenomeSection(uint32_t section_length
 ) const {
    BitmapContainerSize global_bitmap_container_size_per_genome_section(section_length);
 
@@ -353,7 +351,7 @@ silo::BitmapContainerSize silo::Database::calculateBitmapContainerSizePerGenomeS
    return global_bitmap_container_size_per_genome_section;
 }
 
-silo::DetailedDatabaseInfo silo::Database::detailedDatabaseInfo() const {
+DetailedDatabaseInfo Database::detailedDatabaseInfo() const {
    constexpr uint32_t DEFAULT_SECTION_LENGTH = 500;
    BitmapSizePerSymbol const bitmap_size_per_symbol = calculateBitmapSizePerSymbol();
    BitmapContainerSize const size_per_section =
@@ -362,14 +360,14 @@ silo::DetailedDatabaseInfo silo::Database::detailedDatabaseInfo() const {
    return DetailedDatabaseInfo{bitmap_size_per_symbol, size_per_section};
 }
 
-[[maybe_unused]] void silo::Database::saveDatabaseState(
+[[maybe_unused]] void Database::saveDatabaseState(
    const std::string& save_directory,
-   const silo::preprocessing::Partitions& partition_descriptor
+   const preprocessing::Partitions& partition_descriptor
 ) {
    {
       std::ofstream part_def_file(save_directory + "partition_descriptor.txt");
       if (!part_def_file) {
-         throw silo::persistence::SaveDatabaseException(
+         throw persistence::SaveDatabaseException(
             "Cannot open partitioning descriptor output file " + save_directory +
             "partition_descriptor.txt"
          );
@@ -384,7 +382,7 @@ silo::DetailedDatabaseInfo silo::Database::detailedDatabaseInfo() const {
       file_vec.emplace_back(partition_file);
 
       if (!file_vec.back()) {
-         throw silo::persistence::SaveDatabaseException(
+         throw persistence::SaveDatabaseException(
             "Cannot open partition output file " + partition_file + " for saving"
          );
       }
@@ -399,11 +397,11 @@ silo::DetailedDatabaseInfo silo::Database::detailedDatabaseInfo() const {
    SPDLOG_INFO("Finished saving partitions", partitions.size());
 }
 
-[[maybe_unused]] void silo::Database::loadDatabaseState(const std::string& save_directory) {
+[[maybe_unused]] void Database::loadDatabaseState(const std::string& save_directory) {
    const auto partition_descriptor_file = save_directory + "partition_descriptor.txt";
    std::ifstream part_def_file(partition_descriptor_file);
    if (!part_def_file) {
-      throw silo::persistence::LoadDatabaseException(
+      throw persistence::LoadDatabaseException(
          "Cannot open partition_descriptor input file for loading: " + partition_descriptor_file
       );
    }
@@ -419,7 +417,7 @@ silo::DetailedDatabaseInfo silo::Database::detailedDatabaseInfo() const {
       file_vec.emplace_back(partition_file);
 
       if (!file_vec.back()) {
-         throw silo::persistence::LoadDatabaseException(
+         throw persistence::LoadDatabaseException(
             "Cannot open partition input file for loading: " + partition_file
          );
       }
@@ -436,25 +434,24 @@ silo::DetailedDatabaseInfo silo::Database::detailedDatabaseInfo() const {
    );
 }
 
-void silo::Database::preprocessing(
+void Database::preprocessing(
    const preprocessing::PreprocessingConfig& preprocessing_config,
    const config::DatabaseConfig& database_config_
 ) {
    database_config = database_config_;
 
    SPDLOG_INFO("preprocessing - validate metadata file against config");
-   silo::preprocessing::MetadataValidator().validateMedataFile(
+   preprocessing::MetadataValidator().validateMedataFile(
       preprocessing_config.metadata_file, database_config_
    );
 
    SPDLOG_INFO("preprocessing - building alias key");
    alias_key =
-      silo::PangoLineageAliasLookup::readFromFile(preprocessing_config.pango_lineage_definition_file
-      );
+      PangoLineageAliasLookup::readFromFile(preprocessing_config.pango_lineage_definition_file);
 
    SPDLOG_INFO("preprocessing - building reference genome");
    reference_genome = std::make_unique<ReferenceGenome>(
-      silo::ReferenceGenome::readFromFile(preprocessing_config.reference_genome_file)
+      ReferenceGenome::readFromFile(preprocessing_config.reference_genome_file)
    );
 
    SPDLOG_INFO("preprocessing - building pango lineage counts");
@@ -463,9 +460,9 @@ void silo::Database::preprocessing(
    ));
 
    SPDLOG_INFO("preprocessing - building partitions");
-   const preprocessing::Partitions partition_descriptor(silo::preprocessing::buildPartitions(
-      pango_descriptor, preprocessing::Architecture::MAX_PARTITIONS
-   ));
+   const preprocessing::Partitions partition_descriptor(
+      preprocessing::buildPartitions(pango_descriptor, preprocessing::Architecture::MAX_PARTITIONS)
+   );
 
    SPDLOG_INFO("preprocessing - partitioning sequences");
    FastaReader sequence_stream(preprocessing_config.sequence_file.relative_path());
@@ -482,7 +479,7 @@ void silo::Database::preprocessing(
 
    if (database_config_.schema.date_to_sort_by.has_value()) {
       SPDLOG_INFO("preprocessing - sorting chunks");
-      silo::sortChunks(
+      sortChunks(
          partition_descriptor,
          preprocessing_config.partition_folder.relative_path(),
          preprocessing_config.sorted_partition_folder.relative_path(),
@@ -496,16 +493,79 @@ void silo::Database::preprocessing(
    }
 
    SPDLOG_INFO("preprocessing - building database");
+
    build(
       preprocessing_config.sorted_partition_folder.relative_path(),
       preprocessing_config.metadata_file.extension(),
       preprocessing_config.sequence_file.extension(),
-      partition_descriptor,
-      database_config_
+      partition_descriptor
    );
 }
-silo::Database::Database() = default;
 
-std::string silo::buildChunkName(unsigned int partition, unsigned int chunk) {
+void Database::initializeColumns() {
+   for (const auto& item : database_config.schema.metadata) {
+      const auto column_type = item.getColumnType();
+      if (column_type == config::ColumnType::INDEXED_STRING) {
+         storage::column::IndexedStringColumn column;
+         for (size_t i = 0; i < partitions.size(); ++i) {
+            partitions[i].insertColumn(item.name, column.createPartition());
+         }
+         indexed_string_columns.emplace(item.name, std::move(column));
+      } else if (column_type == config::ColumnType::STRING) {
+         storage::column::StringColumn column;
+         for (size_t i = 0; i < partitions.size(); ++i) {
+            partitions[i].insertColumn(item.name, column.createPartition());
+         }
+         string_columns.emplace(item.name, std::move(column));
+      } else if (column_type == config::ColumnType::INDEXED_PANGOLINEAGE) {
+         storage::column::PangoLineageColumn column;
+         for (size_t i = 0; i < partitions.size(); ++i) {
+            partitions[i].insertColumn(item.name, column.createPartition());
+         }
+         pango_lineage_columns.emplace(item.name, std::move(column));
+      } else if (column_type == config::ColumnType::DATE) {
+         auto column = item.name == database_config.schema.date_to_sort_by
+                          ? storage::column::DateColumn(true)
+                          : storage::column::DateColumn(false);
+         for (size_t i = 0; i < partitions.size(); ++i) {
+            partitions[i].insertColumn(item.name, column.createPartition());
+         }
+         date_columns.emplace(item.name, column);
+      } else if (column_type == config::ColumnType::INT) {
+         storage::column::IntColumn column;
+         for (size_t i = 0; i < partitions.size(); ++i) {
+            partitions[i].insertColumn(item.name, column.createPartition());
+         }
+         int_columns.emplace(item.name, column);
+      }
+   }
+}
+
+const storage::column::DateColumn& Database::getDateColumn(std::string name) const {
+   return date_columns.at(name);
+}
+
+const storage::column::IndexedStringColumn& Database::getIndexedStringColumn(std::string name
+) const {
+   return indexed_string_columns.at(name);
+}
+
+const storage::column::StringColumn& Database::getStringColumn(std::string name) const {
+   return string_columns.at(name);
+}
+
+const storage::column::PangoLineageColumn& Database::getPangoLineageColumn(std::string name) const {
+   return pango_lineage_columns.at(name);
+}
+
+const storage::column::IntColumn& Database::getIntColumn(std::string name) const {
+   return int_columns.at(name);
+}
+
+Database::Database() = default;
+
+std::string buildChunkName(unsigned int partition, unsigned int chunk) {
    return "P" + std::to_string(partition) + "_C" + std::to_string(chunk);
 }
+
+}  // namespace silo

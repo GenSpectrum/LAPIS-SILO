@@ -13,7 +13,9 @@
       }
     }
   },
-  "expectedQueryResult": {
-    "count": 0
-  }
+  "expectedQueryResult": [
+    {
+      "count": 0
+    }
+  ]
 }

@@ -7,6 +7,12 @@
 #include "silo/database_info.h"
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_config_reader.h"
+#include "silo/storage/column/date_column.h"
+#include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/int_column.h"
+#include "silo/storage/column/pango_lineage_column.h"
+#include "silo/storage/column/string_column.h"
+#include "silo/storage/database_partition.h"
 
 silo::Database buildTestDatabase() {
    const silo::preprocessing::InputDirectory input_directory{"./testBaseData/"};

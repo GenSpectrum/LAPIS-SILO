@@ -1,5 +1,7 @@
 #include "silo/config/database_config.h"
 
+#include <algorithm>
+
 #include "silo/config/config_exception.h"
 
 namespace silo::config {
@@ -48,6 +50,18 @@ ColumnType DatabaseMetadata::getColumnType() const {
    }
 
    throw std::runtime_error("Unknown metadata type: " + std::string(name));
+}
+
+DatabaseMetadata DatabaseConfig::getMetadata(const std::string& name) const {
+   auto element = std::find_if(
+      std::begin(schema.metadata),
+      std::end(schema.metadata),
+      [&name](const auto& metadata) { return metadata.name == name; }
+   );
+   if (element == std::end(schema.metadata)) {
+      throw std::runtime_error("Unknown metadata type: " + std::string(name));
+   }
+   return *element;
 }
 
 }  // namespace silo::config

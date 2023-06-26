@@ -1,7 +1,9 @@
 #include "silo/common/date.h"
 
+#include <cstdint>
 #include <iomanip>
 #include <sstream>
+#include <string>
 
 #include "silo/common/date_format_exception.h"
 

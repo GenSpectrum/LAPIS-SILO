@@ -3,28 +3,18 @@
 #include <silo/common/block_timer.h>
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
-#include <tbb/parallel_for_each.h>
 #include <cmath>
 
 #include "silo/common/log.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/database.h"
+#include "silo/query_engine/query_result.h"
 #include "silo/storage/database_partition.h"
 #include "silo/storage/reference_genome.h"
 
-uint64_t silo::executeCount(
-   const silo::Database& /*database*/,
-   std::vector<silo::query_engine::OperatorResult>& partition_filters
-) {
-   std::atomic<uint32_t> count = 0;
-   tbb::parallel_for_each(partition_filters.begin(), partition_filters.end(), [&](auto& filter) {
-      count += filter->cardinality();
-   });
-   return count;
-}
 // TODO(someone): reduce cognitive complexity
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-std::vector<silo::MutationProportion> silo::executeMutations(
+std::vector<silo::query_engine::MutationProportion> silo::query_engine::executeMutations(
    const silo::Database& database,
    std::vector<silo::query_engine::OperatorResult>& partition_filters,
    double proportion_threshold
@@ -197,7 +187,7 @@ std::vector<silo::MutationProportion> silo::executeMutations(
    }
    LOG_PERFORMANCE("Position calculation: {} microseconds", std::to_string(microseconds));
 
-   std::vector<silo::MutationProportion> mutation_proportions;
+   std::vector<silo::query_engine::MutationProportion> mutation_proportions;
    microseconds = 0;
    {
       BlockTimer const timer(microseconds);
@@ -215,40 +205,50 @@ std::vector<silo::MutationProportion> silo::executeMutations(
 
          char const pos_ref = database.reference_genome->genome_segments[0].at(pos);
          if (pos_ref != 'A') {
-            const uint32_t tmp = count_of_nucleotide_symbols_a_at_position[pos];
-            if (tmp > threshold_count) {
-               double const proportion = static_cast<double>(tmp) / static_cast<double>(total);
-               mutation_proportions.push_back({pos_ref, pos, 'A', proportion, tmp});
+            const uint32_t count = count_of_nucleotide_symbols_a_at_position[pos];
+            if (count > threshold_count) {
+               double const proportion = static_cast<double>(count) / static_cast<double>(total);
+               mutation_proportions.push_back(
+                  {pos_ref + std::to_string(pos) + 'A', proportion, count}
+               );
             }
          }
          if (pos_ref != 'C') {
-            const uint32_t tmp = count_of_nucleotide_symbols_c_at_position[pos];
-            if (tmp > threshold_count) {
-               double const proportion = static_cast<double>(tmp) / static_cast<double>(total);
-               mutation_proportions.push_back({pos_ref, pos, 'C', proportion, tmp});
+            const uint32_t count = count_of_nucleotide_symbols_c_at_position[pos];
+            if (count > threshold_count) {
+               double const proportion = static_cast<double>(count) / static_cast<double>(total);
+               mutation_proportions.push_back(
+                  {pos_ref + std::to_string(pos) + 'C', proportion, count}
+               );
             }
          }
          if (pos_ref != 'G') {
-            const uint32_t tmp = count_of_nucleotide_symbols_g_at_position[pos];
-            if (tmp > threshold_count) {
-               double const proportion = static_cast<double>(tmp) / static_cast<double>(total);
-               mutation_proportions.push_back({pos_ref, pos, 'G', proportion, tmp});
+            const uint32_t count = count_of_nucleotide_symbols_g_at_position[pos];
+            if (count > threshold_count) {
+               double const proportion = static_cast<double>(count) / static_cast<double>(total);
+               mutation_proportions.push_back(
+                  {pos_ref + std::to_string(pos) + 'G', proportion, count}
+               );
             }
          }
          if (pos_ref != 'T') {
-            const uint32_t tmp = count_of_nucleotide_symbols_t_at_position[pos];
-            if (tmp > threshold_count) {
-               double const proportion = static_cast<double>(tmp) / static_cast<double>(total);
-               mutation_proportions.push_back({pos_ref, pos, 'T', proportion, tmp});
+            const uint32_t count = count_of_nucleotide_symbols_t_at_position[pos];
+            if (count > threshold_count) {
+               double const proportion = static_cast<double>(count) / static_cast<double>(total);
+               mutation_proportions.push_back(
+                  {pos_ref + std::to_string(pos) + 'T', proportion, count}
+               );
             }
          }
          // This should always be the case. For future-proof-ness (gaps in reference), keep this
          // check in.
          if (pos_ref != '-') {
-            const uint32_t tmp = count_of_gaps_at_position[pos];
-            if (tmp > threshold_count) {
-               double const proportion = static_cast<double>(tmp) / static_cast<double>(total);
-               mutation_proportions.push_back({pos_ref, pos, '-', proportion, tmp});
+            const uint32_t count = count_of_gaps_at_position[pos];
+            if (count > threshold_count) {
+               double const proportion = static_cast<double>(count) / static_cast<double>(total);
+               mutation_proportions.push_back(
+                  {pos_ref + std::to_string(pos) + '-', proportion, count}
+               );
             }
          }
       }
