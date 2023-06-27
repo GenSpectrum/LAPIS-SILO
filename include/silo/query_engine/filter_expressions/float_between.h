@@ -1,23 +1,22 @@
-#ifndef SILO_PANGO_LINEAGE_FILTER_H
-#define SILO_PANGO_LINEAGE_FILTER_H
+#ifndef SILO_FLOAT_BETWEEN_H
+#define SILO_FLOAT_BETWEEN_H
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "silo/query_engine/filter_expressions/expression.h"
 
 namespace silo::query_engine::filter_expressions {
 
-struct PangoLineageFilter : public Expression {
+class FloatBetween : public Expression {
+  private:
    std::string column;
-   std::string lineage;
-   bool include_sublineages;
+   std::optional<double> from;
+   std::optional<double> to;
 
-   explicit PangoLineageFilter(
-      std::string column,
-      std::string lineage_key,
-      bool include_sublineages
-   );
+  public:
+   explicit FloatBetween(std::string column, std::optional<double> from, std::optional<double> to);
 
    std::string toString(const Database& database) const override;
 
@@ -29,8 +28,8 @@ struct PangoLineageFilter : public Expression {
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<PangoLineageFilter>& filter);
+void from_json(const nlohmann::json& json, std::unique_ptr<FloatBetween>& filter);
 
 }  // namespace silo::query_engine::filter_expressions
 
-#endif  // SILO_PANGO_LINEAGE_FILTER_H
+#endif  // SILO_FLOAT_BETWEEN_H

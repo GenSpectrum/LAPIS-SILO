@@ -2,7 +2,11 @@ name: LAPIS-SILO
 
 on:
   push:
-  pull_request:
+
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   DOCKER_IMAGE_NAME: ghcr.io/GenSpectrum/LAPIS-SILO

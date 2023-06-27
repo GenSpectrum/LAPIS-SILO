@@ -35,6 +35,8 @@ unsigned MetadataStore::fill(
             date_columns.at(item.name).insert(common::stringToDate(value));
          } else if (column_type == silo::config::ColumnType::INT) {
             int_columns.at(item.name).insert(stoi(value));
+         } else if (column_type == silo::config::ColumnType::FLOAT) {
+            float_columns.at(item.name).insert(std::stod(value));
          }
       }
       ++sequence_count;
@@ -60,6 +62,8 @@ void MetadataStore::initializeColumns(const config::DatabaseConfig& database_con
          date_columns.emplace(item.name, column);
       } else if (column_type == config::ColumnType::INT) {
          int_columns.emplace(item.name, storage::column::IntColumn());
+      } else if (column_type == config::ColumnType::FLOAT) {
+         float_columns.emplace(item.name, storage::column::FloatColumn());
       }
    }
 }

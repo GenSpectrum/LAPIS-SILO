@@ -18,7 +18,7 @@ using OperatorVector = std::vector<std::unique_ptr<operators::Operator>>;
 Or::Or(std::vector<std::unique_ptr<Expression>>&& children)
     : children(std::move(children)) {}
 
-std::string Or::toString(const silo::Database& database) {
+std::string Or::toString(const silo::Database& database) const {
    std::vector<std::string> child_strings;
    std::transform(
       children.begin(),

@@ -20,6 +20,8 @@ schema:
       generateIndex: true
     - name: age
       type: int
+    - name: qc_value
+      type: float
   primaryKey: gisaid_epi_isl
   dateToSortBy: date
   partitionBy: pango_lineage

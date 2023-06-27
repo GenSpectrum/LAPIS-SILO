@@ -19,7 +19,7 @@ using OperatorVector = std::vector<std::unique_ptr<operators::Operator>>;
 And::And(std::vector<std::unique_ptr<Expression>>&& children)
     : children(std::move(children)) {}
 
-std::string And::toString(const silo::Database& database) {
+std::string And::toString(const silo::Database& database) const {
    std::vector<std::string> child_strings;
    std::transform(
       children.begin(),

@@ -18,7 +18,7 @@ NucleotideSymbolEquals::NucleotideSymbolEquals(uint32_t position, char value)
     : position(position),
       value(value) {}
 
-std::string NucleotideSymbolEquals::toString(const silo::Database& /*database*/) {
+std::string NucleotideSymbolEquals::toString(const silo::Database& /*database*/) const {
    std::string res = std::to_string(position + 1) + std::to_string(value);
    return res;
 }

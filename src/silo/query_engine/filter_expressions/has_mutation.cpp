@@ -17,7 +17,7 @@ namespace silo::query_engine::filter_expressions {
 HasMutation::HasMutation(uint32_t position)
     : position(position) {}
 
-std::string HasMutation::toString(const silo::Database& /*database*/) {
+std::string HasMutation::toString(const silo::Database& /*database*/) const {
    std::string res = std::to_string(position);
    return res;
 }

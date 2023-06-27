@@ -1,25 +1,23 @@
-#ifndef SILO_PANGO_LINEAGE_FILTER_H
-#define SILO_PANGO_LINEAGE_FILTER_H
+#ifndef SILO_FLOAT_EQUALS_H
+#define SILO_FLOAT_EQUALS_H
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "silo/query_engine/filter_expressions/expression.h"
 
 namespace silo::query_engine::filter_expressions {
 
-struct PangoLineageFilter : public Expression {
+class FloatEquals : public Expression {
+  private:
    std::string column;
-   std::string lineage;
-   bool include_sublineages;
+   double value;
 
-   explicit PangoLineageFilter(
-      std::string column,
-      std::string lineage_key,
-      bool include_sublineages
-   );
+  public:
+   FloatEquals(std::string column, double value);
 
-   std::string toString(const Database& database) const override;
+   std::string toString(const silo::Database& database) const override;
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::operators::Operator> compile(
       const Database& database,
@@ -29,8 +27,8 @@ struct PangoLineageFilter : public Expression {
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<PangoLineageFilter>& filter);
+void from_json(const nlohmann::json& json, std::unique_ptr<FloatEquals>& filter);
 
 }  // namespace silo::query_engine::filter_expressions
 
-#endif  // SILO_PANGO_LINEAGE_FILTER_H
+#endif  // SILO_FLOAT_EQUALS_H

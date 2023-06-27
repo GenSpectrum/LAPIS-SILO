@@ -4,7 +4,6 @@
 
 #include "silo/database.h"
 #include "silo/query_engine/operators/empty.h"
-#include "silo/query_engine/operators/index_scan.h"
 #include "silo/query_engine/operators/selection.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/storage/database_partition.h"
@@ -15,7 +14,7 @@ IntEquals::IntEquals(std::string column, uint64_t value)
     : column(std::move(column)),
       value(value) {}
 
-std::string IntEquals::toString(const silo::Database& /*database*/) {
+std::string IntEquals::toString(const silo::Database& /*database*/) const {
    return column + " = '" + std::to_string(value) + "'";
 }
 
