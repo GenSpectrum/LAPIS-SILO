@@ -10,7 +10,7 @@
 namespace silo::query_engine {
 
 struct AggregationResult {
-   std::map<std::string, std::variant<std::string, int32_t>> fields;
+   std::map<std::string, std::variant<std::string, int32_t, double>> fields;
 };
 
 struct MutationProportion {

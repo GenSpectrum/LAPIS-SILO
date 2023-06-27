@@ -1,6 +1,5 @@
 #include "silo/query_engine/actions/aggregated.h"
 
-#include <algorithm>
 #include <chrono>
 #include <functional>
 #include <random>
@@ -39,13 +38,15 @@ size_t getTupleSize(std::vector<config::DatabaseMetadata>& group_by_metadata) {
 
 struct Tuple {
    std::vector<char> data;
+   const std::vector<config::DatabaseMetadata>& field_descriptor;
 
    Tuple(
       uint32_t sequence_id,
       const silo::MetadataStore& meta_store,
-      std::vector<config::DatabaseMetadata>& group_by_metadata,
+      const std::vector<config::DatabaseMetadata>& group_by_metadata,
       size_t tuple_size
-   ) {
+   )
+       : field_descriptor(group_by_metadata) {
       data.resize(tuple_size);
       char* data_pointer = data.data();
       for (const auto& metadata : group_by_metadata) {
@@ -77,6 +78,42 @@ struct Tuple {
             throw std::runtime_error("Unchecked column type of column " + metadata.name);
          }
       }
+   }
+
+   std::map<std::string, std::variant<std::string, int32_t, double>> getFields(
+      const Database& database
+   ) const {
+      std::map<std::string, std::variant<std::string, int32_t, double>> fields;
+      const char* data_pointer = data.data();
+      for (const auto& metadata : field_descriptor) {
+         if (metadata.getColumnType() == config::ColumnType::DATE) {
+            const common::Date value = *reinterpret_cast<const common::Date*>(data_pointer);
+            fields[metadata.name] = common::dateToString(value);
+            data_pointer += sizeof(decltype(value));
+         } else if (metadata.getColumnType() == config::ColumnType::INT) {
+            const int32_t value = *reinterpret_cast<const int32_t*>(data_pointer);
+            fields[metadata.name] = value;
+            data_pointer += sizeof(decltype(value));
+         } else if (metadata.getColumnType() == config::ColumnType::STRING) {
+            const common::String<common::STRING_SIZE> value =
+               *reinterpret_cast<const common::String<common::STRING_SIZE>*>(data_pointer);
+            fields[metadata.name] = database.getStringColumn(metadata.name).lookupValue(value);
+            data_pointer += sizeof(decltype(value));
+         } else if (metadata.getColumnType() == config::ColumnType::INDEXED_PANGOLINEAGE) {
+            const silo::Idx value = *reinterpret_cast<const silo::Idx*>(data_pointer);
+            fields[metadata.name] =
+               database.getPangoLineageColumn(metadata.name).lookupValue(value).value;
+            data_pointer += sizeof(decltype(value));
+         } else if (metadata.getColumnType() == config::ColumnType::INDEXED_STRING) {
+            const silo::Idx value = *reinterpret_cast<const silo::Idx*>(data_pointer);
+            fields[metadata.name] =
+               database.getIndexedStringColumn(metadata.name).lookupValue(value);
+            data_pointer += sizeof(decltype(value));
+         } else {
+            throw std::runtime_error("Unchecked column type of column " + metadata.name);
+         }
+      }
+      return fields;
    }
 
    bool operator==(const Tuple& other) const { return this->data == other.data; }
@@ -151,43 +188,14 @@ void applyOrderByAndLimit(
 }
 
 std::vector<AggregationResult> generateResult(
-   std::unordered_map<Tuple, uint32_t>& tuples,
-   const std::vector<config::DatabaseMetadata>& field_defs,
+   std::unordered_map<Tuple, uint32_t>& tuple_counts,
    const Database& database
 ) {
    std::vector<AggregationResult> result;
-   result.reserve(tuples.size());
-   for (auto& [key, count] : tuples) {
-      std::map<std::string, std::variant<std::string, int32_t>> fields;
-      const char* data_pointer = key.data.data();
-      for (const auto& metadata : field_defs) {
-         if (metadata.getColumnType() == config::ColumnType::DATE) {
-            const common::Date value = *reinterpret_cast<const common::Date*>(data_pointer);
-            fields[metadata.name] = common::dateToString(value);
-            data_pointer += sizeof(decltype(value));
-         } else if (metadata.getColumnType() == config::ColumnType::INT) {
-            const int32_t value = *reinterpret_cast<const int32_t*>(data_pointer);
-            fields[metadata.name] = value;
-            data_pointer += sizeof(decltype(value));
-         } else if (metadata.getColumnType() == config::ColumnType::STRING) {
-            const common::String<common::STRING_SIZE> value =
-               *reinterpret_cast<const common::String<common::STRING_SIZE>*>(data_pointer);
-            fields[metadata.name] = database.getStringColumn(metadata.name).lookupValue(value);
-            data_pointer += sizeof(decltype(value));
-         } else if (metadata.getColumnType() == config::ColumnType::INDEXED_PANGOLINEAGE) {
-            const silo::Idx value = *reinterpret_cast<const silo::Idx*>(data_pointer);
-            fields[metadata.name] =
-               database.getPangoLineageColumn(metadata.name).lookupValue(value).value;
-            data_pointer += sizeof(decltype(value));
-         } else if (metadata.getColumnType() == config::ColumnType::INDEXED_STRING) {
-            const silo::Idx value = *reinterpret_cast<const silo::Idx*>(data_pointer);
-            fields[metadata.name] =
-               database.getIndexedStringColumn(metadata.name).lookupValue(value);
-            data_pointer += sizeof(decltype(value));
-         } else {
-            throw std::runtime_error("Unchecked column type of column " + metadata.name);
-         }
-      }
+   result.reserve(tuple_counts.size());
+   for (auto& [tuple, count] : tuple_counts) {
+      std::map<std::string, std::variant<std::string, int32_t, double>> fields =
+         tuple.getFields(database);
       fields["count"] = static_cast<int32_t>(count);
       result.push_back({fields});
    }
@@ -199,7 +207,7 @@ QueryResult aggregateWithoutGrouping(const std::vector<OperatorResult>& bitmap_f
    for (const auto& filter : bitmap_filters) {
       count += filter->cardinality();
    };
-   std::map<std::string, std::variant<std::string, int32_t>> tuple_fields;
+   std::map<std::string, std::variant<std::string, int32_t, double>> tuple_fields;
    tuple_fields["count"] = static_cast<int32_t>(count);
    return QueryResult{std::vector<AggregationResult>{{tuple_fields}}};
 }
@@ -277,7 +285,7 @@ QueryResult Aggregated::execute(
          final_map[key] += value;
       }
    }
-   std::vector<AggregationResult> result = generateResult(final_map, group_by_metadata, database);
+   std::vector<AggregationResult> result = generateResult(final_map, database);
    if (randomize_order) {
       const uint32_t time_based_seed = std::chrono::system_clock::now().time_since_epoch().count();
       std::default_random_engine rng(time_based_seed);
