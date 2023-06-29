@@ -30,8 +30,8 @@ IndexedStringColumn::IndexedStringColumn() {
    lookup = std::make_unique<common::BidirectionalMap<std::string>>();
 }
 
-IndexedStringColumnPartition IndexedStringColumn::createPartition() {
-   return IndexedStringColumnPartition(*lookup);
+IndexedStringColumnPartition& IndexedStringColumn::createPartition() {
+   return partitions.emplace_back(*lookup);
 }
 
 }  // namespace silo::storage::column

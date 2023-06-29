@@ -9,19 +9,16 @@
 
 #include "silo/config/database_config.h"
 #include "silo/preprocessing/pango_lineage_count.h"
+#include "silo/storage/column/date_column.h"
+#include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/int_column.h"
+#include "silo/storage/column/pango_lineage_column.h"
+#include "silo/storage/column/string_column.h"
 #include "silo/storage/pango_lineage_alias.h"
 #include "silo/storage/reference_genome.h"
 
 namespace silo {
 struct DatabasePartition;
-
-namespace storage::column {
-struct DateColumn;
-struct IndexedStringColumn;
-struct StringColumn;
-struct PangoLineageColumn;
-struct IntColumn;
-}  // namespace storage::column
 
 namespace preprocessing {
 struct PreprocessingConfig;
@@ -83,15 +80,17 @@ class Database {
 
    [[nodiscard]] const PangoLineageAliasLookup& getAliasKey() const;
 
-   const silo::storage::column::DateColumn& getDateColumn(std::string name) const;
+   const silo::storage::column::DateColumn& getDateColumn(const std::string& name) const;
 
-   const silo::storage::column::IndexedStringColumn& getIndexedStringColumn(std::string name) const;
+   const silo::storage::column::IndexedStringColumn& getIndexedStringColumn(const std::string& name
+   ) const;
 
-   const silo::storage::column::StringColumn& getStringColumn(std::string name) const;
+   const silo::storage::column::StringColumn& getStringColumn(const std::string& name) const;
 
-   const silo::storage::column::PangoLineageColumn& getPangoLineageColumn(std::string name) const;
+   const silo::storage::column::PangoLineageColumn& getPangoLineageColumn(const std::string& name
+   ) const;
 
-   const silo::storage::column::IntColumn& getIntColumn(std::string name) const;
+   const silo::storage::column::IntColumn& getIntColumn(const std::string& name) const;
 
   private:
    PangoLineageAliasLookup alias_key;

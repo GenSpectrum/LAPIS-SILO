@@ -25,8 +25,8 @@ DateColumn::DateColumn()
 DateColumn::DateColumn(bool is_sorted)
     : is_sorted(is_sorted) {}
 
-DateColumnPartition DateColumn::createPartition() {
-   return DateColumnPartition(is_sorted);
+DateColumnPartition& DateColumn::createPartition() {
+   return partitions.emplace_back(is_sorted);
 }
 
 }  // namespace silo::storage::column

@@ -27,7 +27,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> IntBetween::compile(
    const silo::DatabasePartition& database_partition,
    silo::query_engine::filter_expressions::Expression::AmbiguityMode /*mode*/
 ) const {
-   const auto& int_column = database_partition.meta_store.int_columns.at(column);
+   const auto& int_column = database_partition.columns.int_columns.at(column);
 
    std::vector<std::unique_ptr<operators::Operator>> children;
    children.emplace_back(std::make_unique<operators::Selection<int64_t>>(

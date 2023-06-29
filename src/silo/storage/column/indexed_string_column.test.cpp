@@ -24,7 +24,7 @@ TEST(IndexedStringColumn, shouldReturnTheCorrectFilteredValues) {
    ASSERT_EQ(result3, roaring::Roaring());
 }
 
-TEST(IndexedStringColumnPartition, insertedValuesRequeried) {
+TEST(IndexedStringColumnPartition, insertValuesToPartition) {
    silo::common::BidirectionalMap<std::string> lookup;
    IndexedStringColumnPartition under_test(lookup);
 
@@ -34,9 +34,13 @@ TEST(IndexedStringColumnPartition, insertedValuesRequeried) {
    under_test.insert("value 3");
    under_test.insert("value 1");
 
-   // EXPECT_EQ(under_test.getAsString(0U), "value 1");
-   // EXPECT_EQ(under_test.getAsString(1U), "value 2");
-   // EXPECT_EQ(under_test.getAsString(2U), "value 2");
-   // EXPECT_EQ(under_test.getAsString(3U), "value 3");
-   // EXPECT_EQ(under_test.getAsString(4U), "value 1");
+   EXPECT_EQ(under_test.getValues()[0], 0U);
+   EXPECT_EQ(under_test.getValues()[1], 1U);
+   EXPECT_EQ(under_test.getValues()[2], 1U);
+   EXPECT_EQ(under_test.getValues()[3], 2U);
+   EXPECT_EQ(under_test.getValues()[4], 0U);
+
+   EXPECT_EQ(under_test.lookupValue(0U), "value 1");
+   EXPECT_EQ(under_test.lookupValue(1U), "value 2");
+   EXPECT_EQ(under_test.lookupValue(2U), "value 3");
 }

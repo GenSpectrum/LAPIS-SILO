@@ -93,9 +93,7 @@ void Database::build(
             const size_t sequence_store_sequence_count =
                partitions[partition_index].seq_store.fill(sequence_input);
             const size_t metadata_store_sequence_count =
-               partitions[partition_index].meta_store.fill(
-                  metadata_file, alias_key, database_config
-               );
+               partitions[partition_index].columns.fill(metadata_file, alias_key, database_config);
             if (sequence_store_sequence_count != metadata_store_sequence_count) {
                throw PreprocessingException(
                   "Sequences in meta data and sequence data for chunk " +
@@ -506,60 +504,40 @@ void Database::initializeColumns() {
    for (const auto& item : database_config.schema.metadata) {
       const auto column_type = item.getColumnType();
       if (column_type == config::ColumnType::INDEXED_STRING) {
-         storage::column::IndexedStringColumn column;
-         for (size_t i = 0; i < partitions.size(); ++i) {
-            partitions[i].insertColumn(item.name, column.createPartition());
-         }
+         auto column = storage::column::IndexedStringColumn();
          indexed_string_columns.emplace(item.name, std::move(column));
+         for (auto& partition : partitions) {
+            partition.insertColumn(
+               item.name, indexed_string_columns.at(item.name).createPartition()
+            );
+         }
       } else if (column_type == config::ColumnType::STRING) {
-         storage::column::StringColumn column;
-         for (size_t i = 0; i < partitions.size(); ++i) {
-            partitions[i].insertColumn(item.name, column.createPartition());
+         string_columns.emplace(item.name, storage::column::StringColumn());
+         for (auto& partition : partitions) {
+            partition.insertColumn(item.name, string_columns.at(item.name).createPartition());
          }
-         string_columns.emplace(item.name, std::move(column));
       } else if (column_type == config::ColumnType::INDEXED_PANGOLINEAGE) {
-         storage::column::PangoLineageColumn column;
-         for (size_t i = 0; i < partitions.size(); ++i) {
-            partitions[i].insertColumn(item.name, column.createPartition());
+         pango_lineage_columns.emplace(item.name, storage::column::PangoLineageColumn());
+         for (auto& partition : partitions) {
+            partition.insertColumn(
+               item.name, pango_lineage_columns.at(item.name).createPartition()
+            );
          }
-         pango_lineage_columns.emplace(item.name, std::move(column));
       } else if (column_type == config::ColumnType::DATE) {
          auto column = item.name == database_config.schema.date_to_sort_by
                           ? storage::column::DateColumn(true)
                           : storage::column::DateColumn(false);
-         for (size_t i = 0; i < partitions.size(); ++i) {
-            partitions[i].insertColumn(item.name, column.createPartition());
+         date_columns.emplace(item.name, std::move(column));
+         for (auto& partition : partitions) {
+            partition.insertColumn(item.name, date_columns.at(item.name).createPartition());
          }
-         date_columns.emplace(item.name, column);
       } else if (column_type == config::ColumnType::INT) {
-         storage::column::IntColumn column;
-         for (size_t i = 0; i < partitions.size(); ++i) {
-            partitions[i].insertColumn(item.name, column.createPartition());
+         int_columns.emplace(item.name, storage::column::IntColumn());
+         for (auto& partition : partitions) {
+            partition.insertColumn(item.name, int_columns.at(item.name).createPartition());
          }
-         int_columns.emplace(item.name, column);
       }
    }
-}
-
-const storage::column::DateColumn& Database::getDateColumn(std::string name) const {
-   return date_columns.at(name);
-}
-
-const storage::column::IndexedStringColumn& Database::getIndexedStringColumn(std::string name
-) const {
-   return indexed_string_columns.at(name);
-}
-
-const storage::column::StringColumn& Database::getStringColumn(std::string name) const {
-   return string_columns.at(name);
-}
-
-const storage::column::PangoLineageColumn& Database::getPangoLineageColumn(std::string name) const {
-   return pango_lineage_columns.at(name);
-}
-
-const storage::column::IntColumn& Database::getIntColumn(std::string name) const {
-   return int_columns.at(name);
 }
 
 Database::Database() = default;

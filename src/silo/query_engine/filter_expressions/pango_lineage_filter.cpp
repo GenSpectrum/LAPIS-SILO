@@ -35,7 +35,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> PangoLineageFilter::com
    const silo::DatabasePartition& database_partition,
    AmbiguityMode /*mode*/
 ) const {
-   if (!database_partition.meta_store.pango_lineage_columns.contains(column)) {
+   if (!database_partition.columns.pango_lineage_columns.contains(column)) {
       return std::make_unique<operators::Empty>(database_partition.sequenceCount);
    }
 
@@ -43,8 +43,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> PangoLineageFilter::com
    std::transform(lineage_copy.begin(), lineage_copy.end(), lineage_copy.begin(), ::toupper);
    const auto resolved_lineage = database.getAliasKey().resolvePangoLineageAlias(lineage_copy);
 
-   const auto& pango_lineage_column =
-      database_partition.meta_store.pango_lineage_columns.at(column);
+   const auto& pango_lineage_column = database_partition.columns.pango_lineage_columns.at(column);
    const auto& bitmap = include_sublineages
                            ? pango_lineage_column.filterIncludingSublineages({resolved_lineage})
                            : pango_lineage_column.filter({resolved_lineage});

@@ -1,10 +1,9 @@
 #ifndef SILO_INT_COLUMN_H
 #define SILO_INT_COLUMN_H
 
+#include <deque>
 #include <string>
 #include <vector>
-
-#include "silo/storage/column/column.h"
 
 namespace boost::serialization {
 struct access;
@@ -16,7 +15,7 @@ struct Database;
 
 namespace silo::storage::column {
 
-class IntColumnPartition : public Column {
+class IntColumnPartition {
    friend class boost::serialization::access;
 
   private:
@@ -37,7 +36,7 @@ class IntColumnPartition : public Column {
    void insert(int64_t value);
 };
 
-class IntColumn : public Column {
+class IntColumn {
    friend class boost::serialization::access;
 
   private:
@@ -47,10 +46,12 @@ class IntColumn : public Column {
       // clang-format on
    }
 
+   std::deque<IntColumnPartition> partitions;
+
   public:
    IntColumn();
 
-   IntColumnPartition createPartition();
+   IntColumnPartition& createPartition();
 };
 
 }  // namespace silo::storage::column

@@ -1,5 +1,5 @@
 {
-  "testCaseName": "Group all sequences by lineage",
+  "testCaseName": "An invalid orderByField for the Aggregated Action",
   "query": {
     "action": {
       "type": "Aggregated",

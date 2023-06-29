@@ -49,7 +49,7 @@ ColumnType DatabaseMetadata::getColumnType() const {
       return ColumnType::FLOAT;
    }
 
-   throw std::runtime_error("Unknown metadata type: " + std::string(name));
+   throw std::runtime_error("Did not find metadata with name: " + std::string(name));
 }
 
 DatabaseMetadata DatabaseConfig::getMetadata(const std::string& name) const {

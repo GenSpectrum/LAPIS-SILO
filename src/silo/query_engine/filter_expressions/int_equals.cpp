@@ -24,11 +24,11 @@ std::unique_ptr<silo::query_engine::operators::Operator> IntEquals::compile(
    const silo::DatabasePartition& database_partition,
    Expression::AmbiguityMode /*mode*/
 ) const {
-   if (!database_partition.meta_store.int_columns.contains(column)) {
+   if (!database_partition.columns.int_columns.contains(column)) {
       return std::make_unique<operators::Empty>(database_partition.sequenceCount);
    }
 
-   const auto& int_column = database_partition.meta_store.int_columns.at(column);
+   const auto& int_column = database_partition.columns.int_columns.at(column);
 
    return std::make_unique<operators::Selection<int64_t>>(
       int_column.getValues(),

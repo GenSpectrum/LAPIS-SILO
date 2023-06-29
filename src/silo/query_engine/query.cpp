@@ -18,8 +18,6 @@ Query::Query(const std::string& query_string) {
       filter = json["filterExpression"]
                   .get<std::unique_ptr<silo::query_engine::filter_expressions::Expression>>();
       action = json["action"].get<std::unique_ptr<silo::query_engine::actions::Action>>();
-   } catch (const QueryParseException& qe) {
-      throw qe;
    } catch (const nlohmann::json::parse_error& ex) {
       throw QueryParseException("The query was not a valid JSON: " + std::string(ex.what()));
    } catch (const nlohmann::json::exception& ex) {

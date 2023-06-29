@@ -34,7 +34,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
    } else if (expression_type == "FastaAligned") {
       action = json.get<std::unique_ptr<FastaAligned>>();
    } else {
-      throw QueryParseException("Unknown action type : '" + expression_type + "'");
+      throw QueryParseException(expression_type + " is not a valid action");
    }
 }
 

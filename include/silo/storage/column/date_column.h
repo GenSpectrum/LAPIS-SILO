@@ -1,12 +1,12 @@
 #ifndef SILO_DATE_COLUMN_H
 #define SILO_DATE_COLUMN_H
 
+#include <deque>
 #include <vector>
 
 #include <roaring/roaring.hh>
 
 #include "silo/common/date.h"
-#include "silo/storage/column/column.h"
 
 namespace boost::serialization {
 struct access;
@@ -39,7 +39,7 @@ class DateColumnPartition {
    [[nodiscard]] const std::vector<silo::common::Date>& getValues() const;
 };
 
-class DateColumn : public Column {
+class DateColumn {
   public:
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
@@ -50,12 +50,14 @@ class DateColumn : public Column {
 
   private:
    bool is_sorted;
+   std::deque<DateColumnPartition> partitions;
+
    DateColumn();
 
   public:
    explicit DateColumn(bool is_sorted);
 
-   DateColumnPartition createPartition();
+   DateColumnPartition& createPartition();
 };
 
 }  // namespace silo::storage::column

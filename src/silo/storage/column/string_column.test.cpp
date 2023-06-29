@@ -6,7 +6,7 @@ using silo::storage::column::StringColumn;
 using silo::storage::column::StringColumnPartition;
 
 TEST(StringColumnPartition, rawInsertedValuesRequeried) {
-   silo::common::BidirectionalMap<std::string> lookup;
+   auto lookup = std::make_shared<silo::common::BidirectionalMap<std::string>>();
    StringColumnPartition under_test(lookup);
 
    under_test.insert("value 1");
@@ -16,12 +16,12 @@ TEST(StringColumnPartition, rawInsertedValuesRequeried) {
    under_test.insert("some string that is a little longer 1");
    under_test.insert("value 1");
 
-   EXPECT_EQ(under_test.getValues()[0].toString(lookup), "value 1");
-   EXPECT_EQ(under_test.getValues()[1].toString(lookup), "value 2");
-   EXPECT_EQ(under_test.getValues()[2].toString(lookup), "value 2");
-   EXPECT_EQ(under_test.getValues()[3].toString(lookup), "value 3");
-   EXPECT_EQ(under_test.getValues()[4].toString(lookup), "some string that is a little longer 1");
-   EXPECT_EQ(under_test.getValues()[5].toString(lookup), "value 1");
+   EXPECT_EQ(under_test.getValues()[0].toString(*lookup), "value 1");
+   EXPECT_EQ(under_test.getValues()[1].toString(*lookup), "value 2");
+   EXPECT_EQ(under_test.getValues()[2].toString(*lookup), "value 2");
+   EXPECT_EQ(under_test.getValues()[3].toString(*lookup), "value 3");
+   EXPECT_EQ(under_test.getValues()[4].toString(*lookup), "some string that is a little longer 1");
+   EXPECT_EQ(under_test.getValues()[5].toString(*lookup), "value 1");
 }
 
 TEST(StringColumn, rawInsertedValuesRequeried) {
@@ -38,7 +38,7 @@ TEST(StringColumn, rawInsertedValuesRequeried) {
    silo::common::String somehow_acquited_element_representation = under_test.getValues()[4];
 
    EXPECT_EQ(
-      column.lookupValue(somehow_acquited_element_representation),
+      under_test.lookupValue(somehow_acquited_element_representation),
       "some string that is a little longer 1"
    );
 }

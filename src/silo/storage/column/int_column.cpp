@@ -14,8 +14,8 @@ void IntColumnPartition::insert(int64_t value) {
 
 IntColumn::IntColumn() = default;
 
-IntColumnPartition IntColumn::createPartition() {
-   return IntColumnPartition();
+IntColumnPartition& IntColumn::createPartition() {
+   return partitions.emplace_back();
 }
 
 }  // namespace silo::storage::column

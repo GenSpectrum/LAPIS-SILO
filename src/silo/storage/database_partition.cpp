@@ -14,51 +14,35 @@ const std::vector<preprocessing::Chunk>& DatabasePartition::getChunks() const {
 
 void DatabasePartition::insertColumn(
    const std::string& name,
-   storage::column::StringColumnPartition column
+   storage::column::StringColumnPartition& column
 ) {
-   meta_store.string_columns.insert(
-      std::make_pair<std::string, storage::column::StringColumnPartition>(
-         std::string(name), std::move(column)
-      )
-   );
+   columns.string_columns.insert({std::string(name), column});
 }
 
 void DatabasePartition::insertColumn(
    const std::string& name,
-   storage::column::IndexedStringColumnPartition column
+   storage::column::IndexedStringColumnPartition& column
 ) {
-   meta_store.indexed_string_columns.insert(
-      std::make_pair<std::string, storage::column::IndexedStringColumnPartition>(
-         std::string(name), std::move(column)
-      )
-   );
+   columns.indexed_string_columns.insert({std::string(name), column});
 }
 void DatabasePartition::insertColumn(
    const std::string& name,
-   storage::column::IntColumnPartition column
+   storage::column::IntColumnPartition& column
 ) {
-   meta_store.int_columns.insert(std::make_pair<std::string, storage::column::IntColumnPartition>(
-      std::string(name), std::move(column)
-   ));
+   columns.int_columns.insert({std::string(name), column});
 }
 void DatabasePartition::insertColumn(
    const std::string& name,
-   storage::column::DateColumnPartition column
+   storage::column::DateColumnPartition& column
 ) {
-   meta_store.date_columns.insert(std::make_pair<std::string, storage::column::DateColumnPartition>(
-      std::string(name), std::move(column)
-   ));
+   columns.date_columns.insert({std::string(name), column});
 }
 
 void DatabasePartition::insertColumn(
    const std::string& name,
-   storage::column::PangoLineageColumnPartition column
+   storage::column::PangoLineageColumnPartition& column
 ) {
-   meta_store.pango_lineage_columns.insert(
-      std::make_pair<std::string, storage::column::PangoLineageColumnPartition>(
-         std::string(name), std::move(column)
-      )
-   );
+   columns.pango_lineage_columns.insert({std::string(name), column});
 }
 
 }  // namespace silo

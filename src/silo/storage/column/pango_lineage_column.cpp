@@ -14,7 +14,7 @@ void PangoLineageColumnPartition::insert(const common::PangoLineage& value) {
       (void)lookup.getOrCreateId(parent_lineage);
    }
    const Idx value_id = lookup.getOrCreateId(value);
-   const TID row_number = value_ids.size();
+   const size_t row_number = value_ids.size();
    indexed_values[value_id].add(row_number);
    insertSublineageValues(value, row_number);
    value_ids.push_back(value_id);
@@ -22,7 +22,7 @@ void PangoLineageColumnPartition::insert(const common::PangoLineage& value) {
 
 void PangoLineageColumnPartition::insertSublineageValues(
    const common::PangoLineage& value,
-   TID row_number
+   size_t row_number
 ) {
    for (const auto& pango_lineage : value.getParentLineages()) {
       Idx value_id = lookup.getOrCreateId(pango_lineage);
@@ -56,8 +56,8 @@ PangoLineageColumn::PangoLineageColumn() {
    lookup = std::make_unique<common::BidirectionalMap<common::PangoLineage>>();
 };
 
-PangoLineageColumnPartition PangoLineageColumn::createPartition() {
-   return PangoLineageColumnPartition(*lookup);
+PangoLineageColumnPartition& PangoLineageColumn::createPartition() {
+   return partitions.emplace_back(*lookup);
 }
 
 }  // namespace silo::storage::column

@@ -1,6 +1,7 @@
 #ifndef SILO_PANGO_LINEAGE_COLUMN_H
 #define SILO_PANGO_LINEAGE_COLUMN_H
 
+#include <deque>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -10,7 +11,6 @@
 #include "silo/common/bidirectional_map.h"
 #include "silo/common/pango_lineage.h"
 #include "silo/common/types.h"
-#include "silo/storage/column/column.h"
 
 namespace boost::serialization {
 struct access;
@@ -37,7 +37,7 @@ class PangoLineageColumnPartition {
 
    silo::common::BidirectionalMap<common::PangoLineage>& lookup;
 
-   void insertSublineageValues(const common::PangoLineage& value, TID row_number);
+   void insertSublineageValues(const common::PangoLineage& value, size_t row_number);
 
   public:
    explicit PangoLineageColumnPartition(common::BidirectionalMap<common::PangoLineage>& lookup);
@@ -49,9 +49,11 @@ class PangoLineageColumnPartition {
    roaring::Roaring filterIncludingSublineages(const common::PangoLineage& value) const;
 
    const std::vector<silo::Idx>& getValues() const;
+
+   inline common::PangoLineage lookupValue(Idx id) const { return lookup.getValue(id); }
 };
 
-class PangoLineageColumn : public Column {
+class PangoLineageColumn {
    friend class boost::serialization::access;
 
   private:
@@ -64,13 +66,12 @@ class PangoLineageColumn : public Column {
    }
 
    std::unique_ptr<silo::common::BidirectionalMap<common::PangoLineage>> lookup;
+   std::deque<PangoLineageColumnPartition> partitions;
 
   public:
    explicit PangoLineageColumn();
 
-   PangoLineageColumnPartition createPartition();
-
-   inline common::PangoLineage lookupValue(Idx id) const { return lookup->getValue(id); }
+   PangoLineageColumnPartition& createPartition();
 };
 
 }  // namespace silo::storage::column

@@ -1,6 +1,7 @@
 #ifndef SILO_INDEXED_STRING_COLUMN_H
 #define SILO_INDEXED_STRING_COLUMN_H
 
+#include <deque>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -11,7 +12,6 @@
 #include <roaring/roaring.hh>
 
 #include "silo/common/bidirectional_map.h"
-#include "silo/storage/column/column.h"
 
 namespace boost::serialization {
 struct access;
@@ -19,15 +19,15 @@ struct access;
 
 namespace silo::storage::column {
 
-class IndexedStringColumnPartition : public Column {
+class IndexedStringColumnPartition {
    friend class boost::serialization::access;
 
   private:
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
       // clang-format off
-      archive & value_ids;
-      archive & indexed_values;
+      archive& value_ids;
+      archive& indexed_values;
       // clang-format on
    }
 
@@ -43,9 +43,11 @@ class IndexedStringColumnPartition : public Column {
    void insert(const std::string& value);
 
    const std::vector<silo::Idx>& getValues() const;
+
+   inline std::string lookupValue(Idx id) const { return lookup.getValue(id); }
 };
 
-class IndexedStringColumn : public Column {
+class IndexedStringColumn {
    friend class boost::serialization::access;
 
   private:
@@ -58,13 +60,12 @@ class IndexedStringColumn : public Column {
    }
 
    std::unique_ptr<common::BidirectionalMap<std::string>> lookup;
+   std::deque<IndexedStringColumnPartition> partitions;
 
   public:
    IndexedStringColumn();
 
-   IndexedStringColumnPartition createPartition();
-
-   inline std::string lookupValue(Idx id) const { return lookup->getValue(id); }
+   IndexedStringColumnPartition& createPartition();
 };
 
 }  // namespace silo::storage::column

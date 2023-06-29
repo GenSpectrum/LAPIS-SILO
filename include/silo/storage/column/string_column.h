@@ -1,6 +1,7 @@
 #ifndef SILO_STRING_COLUMN_H
 #define SILO_STRING_COLUMN_H
 
+#include <deque>
 #include <memory>
 #include <optional>
 #include <unordered_map>
@@ -10,7 +11,6 @@
 
 #include "silo/common/bidirectional_map.h"
 #include "silo/common/string.h"
-#include "silo/storage/column/column.h"
 
 namespace boost::serialization {
 struct access;
@@ -18,7 +18,7 @@ struct access;
 
 namespace silo::storage::column {
 
-class StringColumnPartition : public Column {
+class StringColumnPartition {
    friend class boost::serialization::access;
 
    template <class Archive>
@@ -29,16 +29,25 @@ class StringColumnPartition : public Column {
    }
 
    std::vector<common::String<silo::common::STRING_SIZE>> values;
-   silo::common::BidirectionalMap<std::string>& lookup;
+   std::shared_ptr<silo::common::BidirectionalMap<std::string>> lookup;
 
   public:
-   StringColumnPartition(silo::common::BidirectionalMap<std::string>& lookup);
+   explicit StringColumnPartition(
+      const std::shared_ptr<silo::common::BidirectionalMap<std::string>>& lookup
+   );
 
    [[nodiscard]] const std::vector<common::String<silo::common::STRING_SIZE>>& getValues() const;
 
    void insert(const std::string& value);
 
-   std::optional<common::String<silo::common::STRING_SIZE>> embedString(std::string) const;
+   [[nodiscard]] std::optional<common::String<silo::common::STRING_SIZE>> embedString(
+      const std::string& string
+   ) const;
+
+   [[nodiscard]] inline std::string lookupValue(common::String<silo::common::STRING_SIZE> string
+   ) const {
+      return string.toString(*lookup);
+   }
 };
 
 class StringColumn {
@@ -49,22 +58,23 @@ class StringColumn {
    [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
       // clang-format off
       archive& lookup;
+      archive& partitions;
       // clang-format on
       // TODO sync lookups
    }
 
-   std::unique_ptr<silo::common::BidirectionalMap<std::string>> lookup;
+   std::shared_ptr<silo::common::BidirectionalMap<std::string>> lookup;
+   // Need container with pointer stability, because database partitions point into this
+   std::deque<StringColumnPartition> partitions;
 
   public:
    StringColumn();
 
-   StringColumnPartition createPartition();
+   StringColumnPartition& createPartition();
 
-   std::optional<common::String<silo::common::STRING_SIZE>> embedString(std::string) const;
-
-   inline std::string lookupValue(common::String<silo::common::STRING_SIZE> string) const {
-      return string.toString(*lookup);
-   }
+   [[nodiscard]] std::optional<common::String<silo::common::STRING_SIZE>> embedString(
+      const std::string& string
+   ) const;
 };
 
 }  // namespace silo::storage::column

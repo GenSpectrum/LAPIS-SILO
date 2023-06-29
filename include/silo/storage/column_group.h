@@ -1,0 +1,68 @@
+#ifndef SILO_COLUMN_GROUP_H
+#define SILO_COLUMN_GROUP_H
+
+#include <filesystem>
+#include <vector>
+
+#include "silo/storage/column/date_column.h"
+#include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/int_column.h"
+#include "silo/storage/column/pango_lineage_column.h"
+#include "silo/storage/column/string_column.h"
+
+namespace silo::config {
+struct DatabaseMetadata;
+}
+
+namespace silo {
+class PangoLineageAliasLookup;
+
+namespace config {
+class DatabaseConfig;
+}  // namespace config
+}  // namespace silo
+
+namespace silo::storage {
+
+struct ColumnGroup {
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
+      // clang-format off
+      // clang-format on
+   }
+
+   std::vector<config::DatabaseMetadata> metadata;
+
+   std::unordered_map<std::string, storage::column::StringColumnPartition&> string_columns;
+   std::unordered_map<std::string, storage::column::IndexedStringColumnPartition&>
+      indexed_string_columns;
+   std::unordered_map<std::string, storage::column::IntColumnPartition&> int_columns;
+   std::unordered_map<std::string, storage::column::DateColumnPartition&> date_columns;
+   std::unordered_map<std::string, storage::column::PangoLineageColumnPartition&>
+      pango_lineage_columns;
+
+   unsigned fill(
+      const std::filesystem::path& input_file,
+      const PangoLineageAliasLookup& alias_key,
+      const silo::config::DatabaseConfig& database_config
+   );
+
+   const storage::column::DateColumnPartition& getDateColumn(const std::string& name) const;
+
+   const storage::column::IndexedStringColumnPartition& getIndexedStringColumn(
+      const std::string& name
+   ) const;
+
+   const storage::column::StringColumnPartition& getStringColumn(const std::string& name) const;
+
+   const storage::column::PangoLineageColumnPartition& getPangoLineageColumn(const std::string& name
+   ) const;
+
+   const storage::column::IntColumnPartition& getIntColumn(const std::string& name) const;
+
+   ColumnGroup getSubgroup(const std::vector<config::DatabaseMetadata>& fields) const;
+};
+
+}  // namespace silo::storage
+
+#endif  // SILO_COLUMN_GROUP_H

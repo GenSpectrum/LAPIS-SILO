@@ -26,8 +26,8 @@ std::unique_ptr<silo::query_engine::operators::Operator> StringEquals::compile(
    const silo::DatabasePartition& database_partition,
    Expression::AmbiguityMode /*mode*/
 ) const {
-   if (database_partition.meta_store.indexed_string_columns.contains(column)) {
-      const auto& string_column = database_partition.meta_store.indexed_string_columns.at(column);
+   if (database_partition.columns.indexed_string_columns.contains(column)) {
+      const auto& string_column = database_partition.columns.indexed_string_columns.at(column);
       const roaring::Roaring& bitmap = string_column.filter(value);
 
       if (bitmap.isEmpty()) {
@@ -38,8 +38,8 @@ std::unique_ptr<silo::query_engine::operators::Operator> StringEquals::compile(
       );
    }
 
-   if (database_partition.meta_store.string_columns.contains(column)) {
-      const auto& string_column = database_partition.meta_store.string_columns.at(column);
+   if (database_partition.columns.string_columns.contains(column)) {
+      const auto& string_column = database_partition.columns.string_columns.at(column);
       const auto& embedded_string = string_column.embedString(value);
       if (embedded_string.has_value()) {
          return std::make_unique<operators::Selection<common::String<silo::common::STRING_SIZE>>>(
