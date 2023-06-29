@@ -3,41 +3,9 @@
 #include "silo/common/date.h"
 #include "silo/config/database_config.h"
 #include "silo/preprocessing/metadata.h"
-#include "silo/storage/column/date_column.h"
-#include "silo/storage/column/indexed_string_column.h"
-#include "silo/storage/column/int_column.h"
-#include "silo/storage/column/pango_lineage_column.h"
-#include "silo/storage/column/string_column.h"
 #include "silo/storage/pango_lineage_alias.h"
 
 namespace silo::storage {
-
-const storage::column::DateColumnPartition& ColumnGroup::getDateColumn(const std::string& name
-) const {
-   return date_columns.at(name);
-}
-
-const storage::column::IndexedStringColumnPartition& ColumnGroup::getIndexedStringColumn(
-   const std::string& name
-) const {
-   return indexed_string_columns.at(name);
-}
-
-const storage::column::StringColumnPartition& ColumnGroup::getStringColumn(const std::string& name
-) const {
-   return string_columns.at(name);
-}
-
-const storage::column::PangoLineageColumnPartition& ColumnGroup::getPangoLineageColumn(
-   const std::string& name
-) const {
-   return pango_lineage_columns.at(name);
-}
-
-const storage::column::IntColumnPartition& ColumnGroup::getIntColumn(const std::string& name
-) const {
-   return int_columns.at(name);
-}
 
 unsigned ColumnGroup::fill(
    const std::filesystem::path& input_file,
@@ -64,7 +32,9 @@ unsigned ColumnGroup::fill(
          } else if (column_type == silo::config::ColumnType::DATE) {
             date_columns.at(item.name).insert(common::stringToDate(value));
          } else if (column_type == silo::config::ColumnType::INT) {
-            int_columns.at(item.name).insert(stoi(value));
+            int_columns.at(item.name).insert(std::stoi(value));
+         } else if (column_type == silo::config::ColumnType::FLOAT) {
+            float_columns.at(item.name).insert(std::stod(value));
          }
       }
       ++sequence_count;
@@ -89,6 +59,8 @@ ColumnGroup ColumnGroup::getSubgroup(const std::vector<config::DatabaseMetadata>
          result.date_columns.insert({item.name, date_columns.at(item.name)});
       } else if (column_type == silo::config::ColumnType::INT) {
          result.int_columns.insert({item.name, int_columns.at(item.name)});
+      } else if (column_type == silo::config::ColumnType::FLOAT) {
+         result.float_columns.insert({item.name, float_columns.at(item.name)});
       }
    }
    return result;

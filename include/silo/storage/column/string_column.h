@@ -29,12 +29,10 @@ class StringColumnPartition {
    }
 
    std::vector<common::String<silo::common::STRING_SIZE>> values;
-   std::shared_ptr<silo::common::BidirectionalMap<std::string>> lookup;
+   silo::common::BidirectionalMap<std::string>& lookup;
 
   public:
-   explicit StringColumnPartition(
-      const std::shared_ptr<silo::common::BidirectionalMap<std::string>>& lookup
-   );
+   explicit StringColumnPartition(silo::common::BidirectionalMap<std::string>& lookup);
 
    [[nodiscard]] const std::vector<common::String<silo::common::STRING_SIZE>>& getValues() const;
 
@@ -46,7 +44,7 @@ class StringColumnPartition {
 
    [[nodiscard]] inline std::string lookupValue(common::String<silo::common::STRING_SIZE> string
    ) const {
-      return string.toString(*lookup);
+      return string.toString(lookup);
    }
 };
 
@@ -63,7 +61,7 @@ class StringColumn {
       // TODO sync lookups
    }
 
-   std::shared_ptr<silo::common::BidirectionalMap<std::string>> lookup;
+   std::unique_ptr<silo::common::BidirectionalMap<std::string>> lookup;
    // Need container with pointer stability, because database partitions point into this
    std::deque<StringColumnPartition> partitions;
 

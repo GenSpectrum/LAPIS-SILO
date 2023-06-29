@@ -2,18 +2,20 @@
 
 namespace silo::storage::column {
 
-FloatColumn::FloatColumn() = default;
+FloatColumnPartition::FloatColumnPartition() = default;
 
-const std::vector<double>& FloatColumn::getValues() const {
+const std::vector<double>& FloatColumnPartition::getValues() const {
    return values;
 }
 
-void FloatColumn::insert(double value) {
+void FloatColumnPartition::insert(double value) {
    values.push_back(value);
 }
 
-std::string FloatColumn::getAsString(std::size_t idx) const {
-   return std::to_string(values[idx]);
+FloatColumn::FloatColumn() = default;
+
+FloatColumnPartition& FloatColumn::createPartition() {
+   return partitions.emplace_back();
 }
 
 }  // namespace silo::storage::column

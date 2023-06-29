@@ -11,7 +11,9 @@
       "to": 0.935
     }
   },
-  "expectedQueryResult": {
-    "count": 50
-  }
+  "expectedQueryResult": [
+    {
+      "count": 50
+    }
+  ]
 }

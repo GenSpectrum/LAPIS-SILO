@@ -43,6 +43,7 @@ class DatabasePartition {
    void insertColumn(const std::string& name, storage::column::IntColumnPartition& column);
    void insertColumn(const std::string& name, storage::column::DateColumnPartition& column);
    void insertColumn(const std::string& name, storage::column::PangoLineageColumnPartition& column);
+   void insertColumn(const std::string& name, storage::column::FloatColumnPartition& column);
 };
 
 }  // namespace silo

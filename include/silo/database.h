@@ -10,6 +10,7 @@
 #include "silo/config/database_config.h"
 #include "silo/preprocessing/pango_lineage_count.h"
 #include "silo/storage/column/date_column.h"
+#include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/column/pango_lineage_column.h"
@@ -44,6 +45,7 @@ class Database {
    std::unordered_map<std::string, storage::column::StringColumn> string_columns;
    std::unordered_map<std::string, storage::column::IndexedStringColumn> indexed_string_columns;
    std::unordered_map<std::string, storage::column::IntColumn> int_columns;
+   std::unordered_map<std::string, storage::column::FloatColumn> float_columns;
    std::unordered_map<std::string, storage::column::DateColumn> date_columns;
    std::unordered_map<std::string, storage::column::PangoLineageColumn> pango_lineage_columns;
 

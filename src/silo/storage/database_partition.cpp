@@ -1,6 +1,7 @@
 #include "silo/storage/database_partition.h"
 
 #include "silo/storage/column/date_column.h"
+#include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/column/pango_lineage_column.h"
@@ -43,6 +44,12 @@ void DatabasePartition::insertColumn(
    storage::column::PangoLineageColumnPartition& column
 ) {
    columns.pango_lineage_columns.insert({std::string(name), column});
+}
+void DatabasePartition::insertColumn(
+   const std::string& name,
+   storage::column::FloatColumnPartition& column
+) {
+   columns.float_columns.insert({std::string(name), column});
 }
 
 }  // namespace silo

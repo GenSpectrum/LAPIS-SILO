@@ -1,31 +1,53 @@
 #ifndef SILO_FLOAT_COLUMN_H
 #define SILO_FLOAT_COLUMN_H
 
+#include <deque>
 #include <string>
 #include <vector>
 
-#include "silo/storage/column/column.h"
+namespace boost::serialization {
+struct access;
+}
 
 namespace silo::storage::column {
 
-class FloatColumn : public Column {
-  public:
-   template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
-      archive& values;
-   }
+class FloatColumnPartition {
+   friend class boost::serialization::access;
 
   private:
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
+      // clang-format off
+      archive& values;
+      // clang-format on
+   }
+
    std::vector<double> values;
 
   public:
-   FloatColumn();
+   FloatColumnPartition();
 
    [[nodiscard]] const std::vector<double>& getValues() const;
 
    void insert(double value);
+};
 
-   [[nodiscard]] std::string getAsString(std::size_t idx) const override;
+class FloatColumn {
+   friend class boost::serialization::access;
+
+  private:
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
+      // clang-format off
+      // clang-format on
+   }
+
+   std::deque<FloatColumnPartition> partitions;
+
+  public:
+   FloatColumn();
+
+   FloatColumnPartition& createPartition();
 };
 
 }  // namespace silo::storage::column

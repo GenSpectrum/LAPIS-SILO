@@ -24,7 +24,7 @@ describe('The /query endpoint', () => {
   invalidQueryTestFiles
     .map(file => JSON.parse(fs.readFileSync(`${invalidQueriesPath}/${file}`)))
     .forEach(testCase =>
-      it('should return data for the test case ' + testCase.testCaseName, async () => {
+      it('should return the expected error for the test case ' + testCase.testCaseName, async () => {
         const response = await server
           .post('/query')
           .send(testCase.query)

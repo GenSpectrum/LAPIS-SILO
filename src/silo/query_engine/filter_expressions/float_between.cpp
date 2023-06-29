@@ -27,7 +27,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> FloatBetween::compile(
    const silo::DatabasePartition& database_partition,
    silo::query_engine::filter_expressions::Expression::AmbiguityMode mode
 ) const {
-   const auto& int_column = database_partition.meta_store.float_columns.at(column);
+   const auto& int_column = database_partition.columns.float_columns.at(column);
 
    std::vector<std::unique_ptr<operators::Operator>> children;
    if (from.has_value()) {

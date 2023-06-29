@@ -536,6 +536,11 @@ void Database::initializeColumns() {
          for (auto& partition : partitions) {
             partition.insertColumn(item.name, int_columns.at(item.name).createPartition());
          }
+      } else if (column_type == config::ColumnType::FLOAT) {
+         float_columns.emplace(item.name, storage::column::FloatColumn());
+         for (auto& partition : partitions) {
+            partition.insertColumn(item.name, float_columns.at(item.name).createPartition());
+         }
       }
    }
 }

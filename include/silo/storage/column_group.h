@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "silo/storage/column/date_column.h"
+#include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/column/pango_lineage_column.h"
@@ -37,6 +38,7 @@ struct ColumnGroup {
    std::unordered_map<std::string, storage::column::IndexedStringColumnPartition&>
       indexed_string_columns;
    std::unordered_map<std::string, storage::column::IntColumnPartition&> int_columns;
+   std::unordered_map<std::string, storage::column::FloatColumnPartition&> float_columns;
    std::unordered_map<std::string, storage::column::DateColumnPartition&> date_columns;
    std::unordered_map<std::string, storage::column::PangoLineageColumnPartition&>
       pango_lineage_columns;
@@ -46,19 +48,6 @@ struct ColumnGroup {
       const PangoLineageAliasLookup& alias_key,
       const silo::config::DatabaseConfig& database_config
    );
-
-   const storage::column::DateColumnPartition& getDateColumn(const std::string& name) const;
-
-   const storage::column::IndexedStringColumnPartition& getIndexedStringColumn(
-      const std::string& name
-   ) const;
-
-   const storage::column::StringColumnPartition& getStringColumn(const std::string& name) const;
-
-   const storage::column::PangoLineageColumnPartition& getPangoLineageColumn(const std::string& name
-   ) const;
-
-   const storage::column::IntColumnPartition& getIntColumn(const std::string& name) const;
 
    ColumnGroup getSubgroup(const std::vector<config::DatabaseMetadata>& fields) const;
 };
