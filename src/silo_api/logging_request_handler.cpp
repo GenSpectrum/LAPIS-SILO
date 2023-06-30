@@ -15,7 +15,7 @@ void LoggingRequestHandler::handleRequest(
 
    wrapped_handler->handleRequest(request, response);
 
-   SPDLOG_INFO("Responding with status code {}", response.getStatus());
+   SPDLOG_INFO("Responding with status code {}", static_cast<uint32_t>(response.getStatus()));
 }
 
 }  // namespace silo_api
