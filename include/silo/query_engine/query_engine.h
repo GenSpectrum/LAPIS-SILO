@@ -17,8 +17,6 @@ class DatabasePartition;
 
 namespace silo::query_engine {
 
-struct MutationProportion;
-struct AggregationResult;
 struct QueryResult;
 
 class QueryEngine {
@@ -34,17 +32,6 @@ class QueryEngine {
 static const double DEFAULT_MINIMAL_PROPORTION = 0.02;
 
 QueryResult executeQuery(const Database& database, const std::string& query);
-
-std::vector<MutationProportion> executeMutations(
-   const Database&,
-   std::vector<silo::query_engine::OperatorResult>& partition_filters,
-   double proportion_threshold
-);
-
-std::vector<AggregationResult> executeCount(
-   const Database& database,
-   std::vector<silo::query_engine::OperatorResult>& partition_filters
-);
 
 }  // namespace silo::query_engine
 

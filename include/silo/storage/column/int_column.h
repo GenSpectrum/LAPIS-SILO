@@ -26,14 +26,14 @@ class IntColumnPartition {
       // clang-format on
    }
 
-   std::vector<int64_t> values;
+   std::vector<int32_t> values;
 
   public:
    IntColumnPartition();
 
-   [[nodiscard]] const std::vector<int64_t>& getValues() const;
+   [[nodiscard]] const std::vector<int32_t>& getValues() const;
 
-   void insert(int64_t value);
+   void insert(int32_t value);
 };
 
 class IntColumn {
