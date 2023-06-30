@@ -42,10 +42,28 @@ INSTANTIATE_TEST_SUITE_P(
 );
 
 TEST(PangoLineageAliasLookup, readFromFile) {
-   auto under_test = silo::PangoLineageAliasLookup::readFromFile("testBaseData/pango_alias.txt");
+   auto under_test =
+      silo::PangoLineageAliasLookup::readFromFile("testBaseData/pangolineage_alias.json");
 
+   ASSERT_EQ(under_test.resolvePangoLineageAlias("B"), "B");
+   ASSERT_EQ(under_test.resolvePangoLineageAlias("B.1"), "B.1");
+   ASSERT_EQ(under_test.resolvePangoLineageAlias("B.1.2"), "B.1.2");
    ASSERT_EQ(under_test.resolvePangoLineageAlias("C"), "B.1.1.1");
    ASSERT_EQ(under_test.resolvePangoLineageAlias("EP"), "B.1.1.529.2.75.3.1.1.4");
+}
+
+TEST(PangoLineageAliasLookup, readFromFileShouldThrowIfFileDoesNotExist) {
+   ASSERT_THROW(
+      silo::PangoLineageAliasLookup::readFromFile("testBaseData/does_not_exist.json"),
+      std::filesystem::filesystem_error
+   );
+}
+
+TEST(PangoLineageAliasLookup, readFromFileShouldThrowIfFileIsNotJson) {
+   ASSERT_THROW(
+      silo::PangoLineageAliasLookup::readFromFile("testBaseData/pango_alias.txt"),
+      std::filesystem::filesystem_error
+   );
 }
 
 }  // namespace
