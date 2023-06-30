@@ -81,7 +81,7 @@ metadataFilename: "small_metadata_set.tsv"
 # The filename of the sequence file, relative to the inputDirectory
 sequenceFilename: "small_sequence_set.fasta"
 # The filename of the pango lineage definition file, relative to the inputDirectory
-pangoLineageDefinitionFilename: "pango_alias.txt"
+pangoLineageDefinitionFilename: "pangolineage_alias.json"
 # The filename of the reference genome file, relative to the inputDirectory
 referenceGenomeFilename: "reference_genome.txt"
 ```

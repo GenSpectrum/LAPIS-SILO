@@ -12,7 +12,7 @@ TEST(PangoLineageCounts, buildPangoLineageCounts) {
       .schema = {.partition_by = "pango_lineage"}};
 
    auto result = silo::preprocessing::buildPangoLineageCounts(
-      silo::PangoLineageAliasLookup::readFromFile("testBaseData/pango_alias.txt"),
+      silo::PangoLineageAliasLookup::readFromFile("testBaseData/pangolineage_alias.json"),
       metadata_path,
       database_config
    );
