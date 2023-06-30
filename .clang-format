@@ -13,3 +13,6 @@ ContinuationIndentWidth: 3
 AlwaysBreakAfterDefinitionReturnType: None
 AlwaysBreakAfterReturnType: None
 PenaltyReturnTypeOnItsOwnLine: 1000
+ReferenceAlignment: Left
+PointerAlignment: Left
+DerivePointerAlignment: false

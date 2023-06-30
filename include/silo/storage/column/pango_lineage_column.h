@@ -1,40 +1,46 @@
 #ifndef SILO_PANGO_LINEAGE_COLUMN_H
 #define SILO_PANGO_LINEAGE_COLUMN_H
 
+#include <deque>
+#include <memory>
 #include <unordered_map>
 #include <vector>
 
 #include <roaring/roaring.hh>
 
+#include "silo/common/bidirectional_map.h"
 #include "silo/common/pango_lineage.h"
-#include "silo/storage/column/column.h"
+#include "silo/common/types.h"
+
+namespace boost::serialization {
+struct access;
+}
 
 namespace silo::storage::column {
 
-class PangoLineageColumn : public Column {
-  public:
-   template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
-      archive& value_ids;
-      archive& value_to_id_lookup;
-      archive& id_to_value_lookup;
-      archive& indexed_values;
-      archive& indexed_sublineage_values;
-   }
+class PangoLineageColumnPartition {
+   friend class boost::serialization::access;
 
   private:
-   std::vector<uint32_t> value_ids;
-   std::unordered_map<common::PangoLineage, uint32_t> value_to_id_lookup;
-   std::vector<common::PangoLineage> id_to_value_lookup;
-   std::vector<roaring::Roaring> indexed_values;
-   std::vector<roaring::Roaring> indexed_sublineage_values;
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
+      // clang-format off
+      archive& value_ids;
+      archive& indexed_values;
+      archive& indexed_sublineage_values;
+      // clang-format on
+   }
 
-   void insertSublineageValues(const common::PangoLineage& value);
+   std::vector<Idx> value_ids;
+   std::unordered_map<Idx, roaring::Roaring> indexed_values;
+   std::unordered_map<Idx, roaring::Roaring> indexed_sublineage_values;
 
-   void initBitmapsForValue(const common::PangoLineage& value);
+   silo::common::BidirectionalMap<common::PangoLineage>& lookup;
+
+   void insertSublineageValues(const common::PangoLineage& value, size_t row_number);
 
   public:
-   PangoLineageColumn();
+   explicit PangoLineageColumnPartition(common::BidirectionalMap<common::PangoLineage>& lookup);
 
    void insert(const common::PangoLineage& value);
 
@@ -42,7 +48,30 @@ class PangoLineageColumn : public Column {
 
    roaring::Roaring filterIncludingSublineages(const common::PangoLineage& value) const;
 
-   std::string getAsString(std::size_t idx) const override;
+   const std::vector<silo::Idx>& getValues() const;
+
+   inline common::PangoLineage lookupValue(Idx id) const { return lookup.getValue(id); }
+};
+
+class PangoLineageColumn {
+   friend class boost::serialization::access;
+
+  private:
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
+      // clang-format off
+      archive& lookup;
+      // clang-format on
+      // TODO sync lookups in children
+   }
+
+   std::unique_ptr<silo::common::BidirectionalMap<common::PangoLineage>> lookup;
+   std::deque<PangoLineageColumnPartition> partitions;
+
+  public:
+   explicit PangoLineageColumn();
+
+   PangoLineageColumnPartition& createPartition();
 };
 
 }  // namespace silo::storage::column

@@ -2,18 +2,20 @@
 
 namespace silo::storage::column {
 
-IntColumn::IntColumn() = default;
+IntColumnPartition::IntColumnPartition() = default;
 
-const std::vector<uint64_t>& IntColumn::getValues() const {
+const std::vector<int64_t>& IntColumnPartition::getValues() const {
    return values;
 }
 
-void IntColumn::insert(uint64_t value) {
+void IntColumnPartition::insert(int64_t value) {
    values.push_back(value);
 }
 
-std::string IntColumn::getAsString(std::size_t idx) const {
-   return std::to_string(values[idx]);
+IntColumn::IntColumn() = default;
+
+IntColumnPartition& IntColumn::createPartition() {
+   return partitions.emplace_back();
 }
 
 }  // namespace silo::storage::column

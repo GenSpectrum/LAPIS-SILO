@@ -9,6 +9,7 @@
 #include "silo/query_engine/operators/range_selection.h"
 #include "silo/query_engine/operators/selection.h"
 #include "silo/query_engine/query_parse_exception.h"
+#include "silo/storage/column/date_column.h"
 #include "silo/storage/database_partition.h"
 
 namespace silo::query_engine::filter_expressions {
@@ -36,7 +37,7 @@ std::unique_ptr<operators::Operator> DateBetween::compile(
    const silo::DatabasePartition& database_partition,
    AmbiguityMode /*mode*/
 ) const {
-   const auto& date_column = database_partition.meta_store.date_columns.at(column);
+   const auto& date_column = database_partition.columns.date_columns.at(column);
 
    if (!date_column.isSorted()) {
       std::vector<std::unique_ptr<operators::Operator>> children;
@@ -68,7 +69,7 @@ std::unique_ptr<operators::Operator> DateBetween::compile(
 
 std::vector<silo::query_engine::operators::RangeSelection::Range> DateBetween::
    computeRangesOfSortedColumn(
-      const silo::storage::column::DateColumn& date_column,
+      const silo::storage::column::DateColumnPartition& date_column,
       const std::vector<silo::preprocessing::Chunk>& chunks
    ) const {
    std::vector<operators::RangeSelection::Range> ranges;

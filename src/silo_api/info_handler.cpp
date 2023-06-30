@@ -6,6 +6,7 @@
 #include <Poco/URI.h>
 #include <nlohmann/json.hpp>
 
+#include "silo/common/nucleotide_symbols.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
 

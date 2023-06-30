@@ -1,6 +1,8 @@
 #include "silo/preprocessing/partition.h"
 
-#include "silo/database.h"
+#include <algorithm>
+#include <list>
+
 #include "silo/persistence/exception.h"
 #include "silo/preprocessing/pango_lineage_count.h"
 
@@ -45,7 +47,7 @@ std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
    // We want to prioritise merges more closely related chunks.
    // Therefore, we first merge the chunks, with longer matching prefixes.
    // Precalculate the longest a prefix can be (which is the max length of lineages)
-   uint32_t const max_len = std::max_element(
+   const uint32_t max_len = std::max_element(
                                pango_lineage_counts.begin(),
                                pango_lineage_counts.end(),
                                [](const PangoLineageCount& lhs, const PangoLineageCount& rhs) {

@@ -17,7 +17,7 @@ struct DatabaseMetadata {
    ValueType type;
    bool generate_index;
 
-   ColumnType getColumnType() const;
+   [[nodiscard]] ColumnType getColumnType() const;
 };
 
 struct DatabaseSchema {
@@ -31,7 +31,7 @@ struct DatabaseSchema {
 struct DatabaseConfig {
    DatabaseSchema schema;
 
-   DatabaseMetadata getMetadata(const std::string& name) const;
+   [[nodiscard]] DatabaseMetadata getMetadata(const std::string& name) const;
 };
 }  // namespace silo::config
 

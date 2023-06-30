@@ -10,7 +10,9 @@
       "value": "EPI_ISL_1749899"
     }
   },
-  "expectedQueryResult": {
-    "count": 1
-  }
+  "expectedQueryResult": [
+    {
+      "count": 1
+    }
+  ]
 }

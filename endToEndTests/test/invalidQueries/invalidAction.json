@@ -11,8 +11,8 @@
       "children": []
     }
   },
-  "expectedQueryResult": {
-    "error": "Unknown action",
+  "expectedError": {
+    "error": "Bad request",
     "message": "invalid action is not a valid action"
   }
 }

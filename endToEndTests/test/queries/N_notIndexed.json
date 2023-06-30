@@ -10,7 +10,9 @@
       "symbol": "N"
     }
   },
-  "expectedQueryResult": {
-    "count": 3
-  }
+  "expectedQueryResult": [
+    {
+      "count": 3
+    }
+  ]
 }

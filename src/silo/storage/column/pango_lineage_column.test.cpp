@@ -3,7 +3,8 @@
 #include <gtest/gtest.h>
 
 TEST(PangoLineageColumn, addingLineageAndThenSublineageFiltersCorrectly) {
-   silo::storage::column::PangoLineageColumn under_test;
+   silo::common::BidirectionalMap<silo::common::PangoLineage> lookup;
+   silo::storage::column::PangoLineageColumnPartition under_test(lookup);
 
    under_test.insert({"A.1.2"});
    under_test.insert({"A.1.2"});
@@ -19,7 +20,8 @@ TEST(PangoLineageColumn, addingLineageAndThenSublineageFiltersCorrectly) {
 }
 
 TEST(PangoLineageColumn, addingSublineageAndThenLineageFiltersCorrectly) {
-   silo::storage::column::PangoLineageColumn under_test;
+   silo::common::BidirectionalMap<silo::common::PangoLineage> lookup;
+   silo::storage::column::PangoLineageColumnPartition under_test(lookup);
 
    under_test.insert({"A.1.2.3"});
    under_test.insert({"A.1.2.3"});
@@ -35,7 +37,8 @@ TEST(PangoLineageColumn, addingSublineageAndThenLineageFiltersCorrectly) {
 }
 
 TEST(PangoLineageColumn, queryParentLineageThatWasNeverInserted) {
-   silo::storage::column::PangoLineageColumn under_test;
+   silo::common::BidirectionalMap<silo::common::PangoLineage> lookup;
+   silo::storage::column::PangoLineageColumnPartition under_test(lookup);
 
    under_test.insert({"A.1.2.3"});
    under_test.insert({"A.1.2.3"});
@@ -44,18 +47,4 @@ TEST(PangoLineageColumn, queryParentLineageThatWasNeverInserted) {
 
    EXPECT_EQ(under_test.filter({"A.1"}), roaring::Roaring());
    EXPECT_EQ(under_test.filterIncludingSublineages({"A.1"}), roaring::Roaring({0, 1, 3}));
-}
-
-TEST(PangoLineageColumn, insertedValuesRequeried) {
-   silo::storage::column::PangoLineageColumn under_test;
-
-   under_test.insert({"A.1.2.3"});
-   under_test.insert({"A.1.2.3"});
-   under_test.insert({"A.2"});
-   under_test.insert({"A.1.2"});
-
-   EXPECT_EQ(under_test.getAsString(0U), "A.1.2.3");
-   EXPECT_EQ(under_test.getAsString(1U), "A.1.2.3");
-   EXPECT_EQ(under_test.getAsString(2U), "A.2");
-   EXPECT_EQ(under_test.getAsString(3U), "A.1.2");
 }

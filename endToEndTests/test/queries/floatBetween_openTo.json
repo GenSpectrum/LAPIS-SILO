@@ -11,7 +11,9 @@
       "to": null
     }
   },
-  "expectedQueryResult": {
-    "count": 80
-  }
+  "expectedQueryResult": [
+    {
+      "count": 80
+    }
+  ]
 }

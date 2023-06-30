@@ -6,17 +6,17 @@
 
 #include "silo_api/rest_resource.h"
 
-namespace silo {
+namespace silo::query_engine {
 class QueryEngine;
 }
 
 namespace silo_api {
 class QueryHandler : public RestResource {
   private:
-   const silo::QueryEngine& query_engine;
+   const silo::query_engine::QueryEngine& query_engine;
 
   public:
-   explicit QueryHandler(const silo::QueryEngine& query_engine);
+   explicit QueryHandler(const silo::query_engine::QueryEngine& query_engine);
 
    void post(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response)
       override;

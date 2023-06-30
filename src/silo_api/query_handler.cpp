@@ -15,7 +15,7 @@
 
 namespace silo_api {
 
-QueryHandler::QueryHandler(const silo::QueryEngine& query_engine)
+QueryHandler::QueryHandler(const silo::query_engine::QueryEngine& query_engine)
     : query_engine(query_engine) {}
 
 void QueryHandler::post(

@@ -11,13 +11,15 @@
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo {
-
 class Database;
 class DatabasePartition;
+}  // namespace silo
 
-namespace response {
+namespace silo::query_engine {
+
+struct MutationProportion;
+struct AggregationResult;
 struct QueryResult;
-}
 
 class QueryEngine {
   private:
@@ -26,31 +28,24 @@ class QueryEngine {
   public:
    explicit QueryEngine(const silo::Database& database);
 
-   virtual response::QueryResult executeQuery(const std::string& query) const;
+   virtual QueryResult executeQuery(const std::string& query) const;
 };
 
 static const double DEFAULT_MINIMAL_PROPORTION = 0.02;
-struct MutationProportion {
-   char mutation_from;
-   unsigned position;
-   char mutation_to;
-   double proportion;
-   unsigned count;
-};
 
-response::QueryResult executeQuery(const Database& database, const std::string& query);
+QueryResult executeQuery(const Database& database, const std::string& query);
 
 std::vector<MutationProportion> executeMutations(
-   const silo::Database&,
+   const Database&,
    std::vector<silo::query_engine::OperatorResult>& partition_filters,
    double proportion_threshold
 );
 
-uint64_t executeCount(
-   const silo::Database& database,
+std::vector<AggregationResult> executeCount(
+   const Database& database,
    std::vector<silo::query_engine::OperatorResult>& partition_filters
 );
 
-}  // namespace silo
+}  // namespace silo::query_engine
 
 #endif  // SILO_QUERY_ENGINE_H

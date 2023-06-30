@@ -11,10 +11,12 @@ class PangoLineageCounts;
 struct Chunk {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, [[maybe_unused]] const unsigned int version) {
+      // clang-format off
       archive& prefix;
       archive& count_of_sequences;
       archive& offset;
       archive& pango_lineages;
+      // clang-format on
    }
    std::string prefix;
    uint32_t count_of_sequences;

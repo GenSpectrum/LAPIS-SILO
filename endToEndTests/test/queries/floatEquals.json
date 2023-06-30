@@ -10,7 +10,9 @@
       "value": 0.9
     }
   },
-  "expectedQueryResult": {
-    "count": 10
-  }
+  "expectedQueryResult": [
+    {
+      "count": 10
+    }
+  ]
 }

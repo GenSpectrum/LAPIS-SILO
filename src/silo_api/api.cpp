@@ -15,6 +15,12 @@
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_config_reader.h"
 #include "silo/query_engine/query_engine.h"
+#include "silo/storage/column/date_column.h"
+#include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/int_column.h"
+#include "silo/storage/column/pango_lineage_column.h"
+#include "silo/storage/column/string_column.h"
+#include "silo/storage/database_partition.h"
 #include "silo_api/info_handler.h"
 #include "silo_api/logging.h"
 #include "silo_api/request_handler_factory.h"
@@ -108,7 +114,7 @@ class SiloServer : public Poco::Util::ServerApplication {
       database.preprocessing(preprocessing_config, database_config);
 
       Poco::Net::ServerSocket const server_socket(port);
-      const silo::QueryEngine query_engine = silo::QueryEngine(database);
+      const silo::query_engine::QueryEngine query_engine(database);
       Poco::Net::HTTPServer server(
          new silo_api::SiloRequestHandlerFactory(database, query_engine),
          server_socket,

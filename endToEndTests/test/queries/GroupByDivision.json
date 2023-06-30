@@ -1,0 +1,87 @@
+{
+  "testCaseName": "Group all sequences by division",
+  "query": {
+    "action": {
+      "type": "Aggregated",
+      "groupByFields": ["division"],
+      "orderByFields": ["division", "count"]
+    },
+    "filterExpression": {
+      "type": "True"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 6,
+      "division": "Aargau"
+    },
+    {
+      "count": 8,
+      "division": "Basel-Land"
+    },
+    {
+      "count": 12,
+      "division": "Basel-Stadt"
+    },
+    {
+      "count": 10,
+      "division": "Bern"
+    },
+    {
+      "count": 4,
+      "division": "Geneva"
+    },
+    {
+      "count": 1,
+      "division": "Graubünden"
+    },
+    {
+      "count": 1,
+      "division": "Jura"
+    },
+    {
+      "count": 1,
+      "division": "Neuchâtel"
+    },
+    {
+      "count": 1,
+      "division": "Obwalden"
+    },
+    {
+      "count": 3,
+      "division": "Sankt Gallen"
+    },
+    {
+      "count": 3,
+      "division": "Schwyz"
+    },
+    {
+      "count": 16,
+      "division": "Solothurn"
+    },
+    {
+      "count": 1,
+      "division": "Thurgau"
+    },
+    {
+      "count": 6,
+      "division": "Ticino"
+    },
+    {
+      "count": 1,
+      "division": "Uri"
+    },
+    {
+      "count": 6,
+      "division": "Valais"
+    },
+    {
+      "count": 7,
+      "division": "Vaud"
+    },
+    {
+      "count": 13,
+      "division": "Zürich"
+    }
+  ]
+}

@@ -13,7 +13,9 @@
       }
     }
   },
-  "expectedQueryResult": {
-    "count": 93
-  }
+  "expectedQueryResult": [
+    {
+      "count": 93
+    }
+  ]
 }
