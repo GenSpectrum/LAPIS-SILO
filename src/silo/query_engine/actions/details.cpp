@@ -8,12 +8,6 @@
 #include "silo/database.h"
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/query_result.h"
-#include "silo/storage/column/date_column.h"
-#include "silo/storage/column/float_column.h"
-#include "silo/storage/column/indexed_string_column.h"
-#include "silo/storage/column/int_column.h"
-#include "silo/storage/column/pango_lineage_column.h"
-#include "silo/storage/column/string_column.h"
 #include "silo/storage/database_partition.h"
 
 namespace silo::query_engine::actions {
@@ -24,7 +18,7 @@ std::vector<config::DatabaseMetadata> parseFields(
    const silo::Database& database,
    const std::vector<std::string>& fields
 ) {
-   if (fields.size() == 0) {
+   if (fields.empty()) {
       return database.database_config.schema.metadata;
    }
    std::vector<config::DatabaseMetadata> field_metadata;

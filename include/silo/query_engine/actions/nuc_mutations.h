@@ -19,13 +19,17 @@ class NucMutations : public Action {
       NUCLEOTIDE_SYMBOL::T,
    };
 
-   std::array<std::vector<uint32_t>, VALID_MUTATION_SYMBOLS.size()> calculateMutationsPerPosition(
+  public:
+   static constexpr size_t MUTATION_SYMBOL_COUNT = NucMutations::VALID_MUTATION_SYMBOLS.size();
+   static constexpr double DEFAULT_MIN_PROPORTION = 0.02;
+
+  private:
+   static std::array<std::vector<uint32_t>, MUTATION_SYMBOL_COUNT> calculateMutationsPerPosition(
       const Database& database,
       std::vector<OperatorResult>& bitmap_filter
-   ) const;
+   );
 
   public:
-   static constexpr double DEFAULT_MIN_PROPORTION = 0.02;
    explicit NucMutations(double min_proportion);
 
    [[nodiscard]] QueryResult execute(

@@ -29,8 +29,6 @@ class QueryEngine {
    virtual QueryResult executeQuery(const std::string& query) const;
 };
 
-static const double DEFAULT_MINIMAL_PROPORTION = 0.02;
-
 QueryResult executeQuery(const Database& database, const std::string& query);
 
 }  // namespace silo::query_engine

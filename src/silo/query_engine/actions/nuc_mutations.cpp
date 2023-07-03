@@ -7,30 +7,26 @@
 #include <tbb/parallel_for.h>
 #include <nlohmann/json.hpp>
 
-#include "silo/common/block_timer.h"
-#include "silo/common/log.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/database.h"
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/database_partition.h"
-#include "silo/storage/reference_genome.h"
 
-namespace silo::query_engine::actions {
+using silo::query_engine::OperatorResult;
 
-NucMutations::NucMutations(double min_proportion)
-    : min_proportion(min_proportion) {}
+namespace {
 
-std::array<std::vector<uint32_t>, 5> NucMutations::calculateMutationsPerPosition(
-   const Database& database,
+std::pair<std::vector<size_t>, std::vector<size_t>> splitBitmaps(
+   const silo::Database& database,
    std::vector<OperatorResult>& bitmap_filter
-) const {
+) {
    std::vector<size_t> bitmap_filters_to_evaluate;
    std::vector<size_t> full_bitmap_filters_to_evaluate;
    for (size_t i = 0; i < database.partitions.size(); ++i) {
       const silo::DatabasePartition& dbp = database.partitions[i];
-      silo::query_engine::OperatorResult& filter = bitmap_filter[i];
+      OperatorResult& filter = bitmap_filter[i];
       const size_t cardinality = filter->cardinality();
       if (cardinality == 0) {
          continue;
@@ -44,8 +40,27 @@ std::array<std::vector<uint32_t>, 5> NucMutations::calculateMutationsPerPosition
          bitmap_filters_to_evaluate.push_back(i);
       }
    }
+   return {bitmap_filters_to_evaluate, full_bitmap_filters_to_evaluate};
+}
 
-   std::array<std::vector<uint32_t>, 5> count_of_mutations_per_position{
+}  // namespace
+
+namespace silo::query_engine::actions {
+
+NucMutations::NucMutations(double min_proportion)
+    : min_proportion(min_proportion) {}
+
+std::array<std::vector<uint32_t>, NucMutations::MUTATION_SYMBOL_COUNT> NucMutations::
+   calculateMutationsPerPosition(
+      const Database& database,
+      std::vector<OperatorResult>& bitmap_filter
+   ) {
+   std::vector<size_t> bitmap_filters_to_evaluate;
+   std::vector<size_t> full_bitmap_filters_to_evaluate;
+   std::tie(bitmap_filters_to_evaluate, full_bitmap_filters_to_evaluate) =
+      splitBitmaps(database, bitmap_filter);
+
+   std::array<std::vector<uint32_t>, MUTATION_SYMBOL_COUNT> count_of_mutations_per_position{
       std::vector<uint32_t>(GENOME_LENGTH),
       std::vector<uint32_t>(GENOME_LENGTH),
       std::vector<uint32_t>(GENOME_LENGTH),
@@ -56,11 +71,11 @@ std::array<std::vector<uint32_t>, 5> NucMutations::calculateMutationsPerPosition
       0, silo::GENOME_LENGTH, /*grain_size=*/POSITIONS_PER_PROCESS
    );
    tbb::parallel_for(range.begin(), range.end(), [&](uint32_t pos) {
-      for (const unsigned partition_index : bitmap_filters_to_evaluate) {
+      for (const size_t partition_index : bitmap_filters_to_evaluate) {
+         const OperatorResult& filter = bitmap_filter[partition_index];
          const silo::DatabasePartition& database_partition = database.partitions[partition_index];
-         const silo::query_engine::OperatorResult& filter = bitmap_filter[partition_index];
 
-         for (silo::NUCLEOTIDE_SYMBOL symbol : VALID_MUTATION_SYMBOLS) {
+         for (const auto symbol : VALID_MUTATION_SYMBOLS) {
             if (database_partition.seq_store.positions[pos].symbol_whose_bitmap_is_flipped != symbol) {
                count_of_mutations_per_position[static_cast<unsigned>(symbol)][pos] +=
                   filter->and_cardinality(database_partition.seq_store.positions[pos]
@@ -73,10 +88,10 @@ std::array<std::vector<uint32_t>, 5> NucMutations::calculateMutationsPerPosition
          }
       }
       // For these partitions, we have full bitmaps. Do not need to bother with AND cardinality
-      for (unsigned const partition_index : full_bitmap_filters_to_evaluate) {
+      for (const size_t partition_index : full_bitmap_filters_to_evaluate) {
          const silo::DatabasePartition& database_partition = database.partitions[partition_index];
 
-         for (silo::NUCLEOTIDE_SYMBOL symbol : VALID_MUTATION_SYMBOLS) {
+         for (const auto symbol : VALID_MUTATION_SYMBOLS) {
             if (database_partition.seq_store.positions[pos].symbol_whose_bitmap_is_flipped != symbol) {
                count_of_mutations_per_position[static_cast<unsigned>(symbol)][pos] +=
                   database_partition.seq_store.positions[pos]
@@ -100,10 +115,10 @@ QueryResult NucMutations::execute(
 ) const {
    using roaring::Roaring;
 
-   std::array<std::vector<uint32_t>, 5> count_of_mutations_per_position =
+   std::array<std::vector<uint32_t>, MUTATION_SYMBOL_COUNT> count_of_mutations_per_position =
       calculateMutationsPerPosition(database, bitmap_filter);
 
-   std::vector<silo::query_engine::QueryResultEntry> mutation_proportions;
+   std::vector<QueryResultEntry> mutation_proportions;
    {
       for (unsigned pos = 0; pos < silo::GENOME_LENGTH; ++pos) {
          const uint32_t total =
@@ -116,18 +131,18 @@ QueryResult NucMutations::execute(
          const auto threshold_count =
             static_cast<uint32_t>(std::ceil(static_cast<double>(total) * min_proportion) - 1);
 
-         const auto pos_ref =
+         const auto symbol_in_reference_genome =
             toNucleotideSymbol(database.reference_genome->genome_segments[0].at(pos));
 
-         for (silo::NUCLEOTIDE_SYMBOL symbol : VALID_MUTATION_SYMBOLS) {
-            if (pos_ref != symbol) {
+         for (const auto symbol : VALID_MUTATION_SYMBOLS) {
+            if (symbol_in_reference_genome != symbol) {
                const uint32_t count =
                   count_of_mutations_per_position[static_cast<size_t>(symbol)][pos];
                if (count > threshold_count) {
                   const double proportion = static_cast<double>(count) / static_cast<double>(total);
-                  std::map<std::string, std::variant<std::string, int32_t, double>> fields{
+                  const std::map<std::string, std::variant<std::string, int32_t, double>> fields{
                      {"position",
-                      SYMBOL_REPRESENTATION[static_cast<size_t>(pos_ref)] +
+                      SYMBOL_REPRESENTATION[static_cast<size_t>(symbol_in_reference_genome)] +
                          std::to_string(pos + 1) +
                          SYMBOL_REPRESENTATION[static_cast<size_t>(symbol)]},
                      {"proportion", proportion},
