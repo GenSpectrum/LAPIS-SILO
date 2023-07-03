@@ -12,14 +12,14 @@ namespace silo::query_engine::filter_expressions {
 struct IntBetween : public Expression {
   private:
    std::string column;
-   std::optional<uint64_t> from;
-   std::optional<uint64_t> to;
+   std::optional<uint32_t> from;
+   std::optional<uint32_t> to;
 
   public:
    explicit IntBetween(
       std::string column,
-      std::optional<uint64_t> from,
-      std::optional<uint64_t> to
+      std::optional<uint32_t> from,
+      std::optional<uint32_t> to
    );
 
    std::string toString(const Database& database) const override;

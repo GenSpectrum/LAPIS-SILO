@@ -4,11 +4,11 @@ namespace silo::storage::column {
 
 IntColumnPartition::IntColumnPartition() = default;
 
-const std::vector<int64_t>& IntColumnPartition::getValues() const {
+const std::vector<int32_t>& IntColumnPartition::getValues() const {
    return values;
 }
 
-void IntColumnPartition::insert(int64_t value) {
+void IntColumnPartition::insert(int32_t value) {
    values.push_back(value);
 }
 

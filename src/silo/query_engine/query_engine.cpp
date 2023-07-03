@@ -36,8 +36,8 @@ QueryResult QueryEngine::executeQuery(const std::string& query_string) const {
    std::vector<silo::query_engine::OperatorResult> partition_filters(database.partitions.size());
    int64_t filter_time;
    {
-      BlockTimer const timer(filter_time);
-      tbb::blocked_range<size_t> const range(0, database.partitions.size(), 1);
+      const BlockTimer timer(filter_time);
+      const tbb::blocked_range<size_t> range(0, database.partitions.size(), 1);
       tbb::parallel_for(range.begin(), range.end(), [&](const size_t& partition_index) {
          std::unique_ptr<operators::Operator> part_filter = query.filter->compile(
             database,
@@ -57,7 +57,7 @@ QueryResult QueryEngine::executeQuery(const std::string& query_string) const {
    QueryResult query_result;
    int64_t action_time;
    {
-      BlockTimer const timer(action_time);
+      const BlockTimer timer(action_time);
       query_result = query.action->execute(database, std::move(partition_filters));
    }
 

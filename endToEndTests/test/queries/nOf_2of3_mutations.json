@@ -2,7 +2,8 @@
   "testCaseName": "N-Of query requesting 2 of 3 mutations with mutations action",
   "query": {
     "action": {
-      "type": "Mutations"
+      "type": "Mutations",
+      "minProportion": 0.7
     },
     "filterExpression": {
       "type": "N-Of",
@@ -11,24 +12,62 @@
       "children": [
         {
           "type": "NucleotideEquals",
-          "position": 241,
-          "symbol": "T"
+          "position": 2,
+          "symbol": "N"
         },
         {
           "type": "NucleotideEquals",
-          "position": 29734,
-          "symbol": "T"
-        },
-        {
-          "type": "NucleotideEquals",
-          "position": 28330,
+          "position": 86,
           "symbol": "G"
+        },
+        {
+          "type": "NucleotideEquals",
+          "position": 27342,
+          "symbol": "N"
         }
       ]
     }
   },
-  "expectedQueryResult": {
-    "error": "Not implemented",
-    "message": "The NucMutations action has not been implemented"
-  }
+  "expectedQueryResult": [
+    {
+      "count": 1,
+      "position": "A1-",
+      "proportion": 1
+    },
+    {
+      "count": 1,
+      "position": "T2-",
+      "proportion": 1
+    },
+    {
+      "count": 53,
+      "position": "C241T",
+      "proportion": 1
+    },
+    {
+      "count": 51,
+      "position": "C3037T",
+      "proportion": 1
+    },
+    {
+      "count": 52,
+      "position": "C14408T",
+      "proportion": 1
+    },
+    {
+      "count": 53,
+      "position": "A23403G",
+      "proportion": 1
+    },
+    {
+      "count": 4,
+      "position": "G29868-",
+      "proportion": 1
+    },
+    {
+      "count": 4,
+      "position": "A29869-",
+      "proportion": 0.8
+    }
+  ]
 }

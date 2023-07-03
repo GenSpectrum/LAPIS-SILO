@@ -169,11 +169,11 @@ OrderByField parseOrderByField(const std::string& order_by_field) {
 }
 
 void applyOrderByAndLimit(
-   std::vector<AggregationResult>& result,
+   std::vector<QueryResultEntry>& result,
    const std::vector<OrderByField>& order_by_fields,
    std::optional<uint32_t> limit
 ) {
-   auto cmp = [&order_by_fields](const AggregationResult& value1, const AggregationResult& value2) {
+   auto cmp = [&order_by_fields](const QueryResultEntry& value1, const QueryResultEntry& value2) {
       for (const OrderByField& field : order_by_fields) {
          if (value1.fields.at(field.name) < value2.fields.at(field.name)) {
             return field.ascending;
@@ -193,8 +193,8 @@ void applyOrderByAndLimit(
 }
 const std::string COUNT_FIELD = "count";
 
-std::vector<AggregationResult> generateResult(std::unordered_map<Tuple, uint32_t>& tuple_counts) {
-   std::vector<AggregationResult> result;
+std::vector<QueryResultEntry> generateResult(std::unordered_map<Tuple, uint32_t>& tuple_counts) {
+   std::vector<QueryResultEntry> result;
    result.reserve(tuple_counts.size());
    for (auto& [tuple, count] : tuple_counts) {
       std::map<std::string, std::variant<std::string, int32_t, double>> fields = tuple.getFields();
@@ -211,7 +211,7 @@ QueryResult aggregateWithoutGrouping(const std::vector<OperatorResult>& bitmap_f
    };
    std::map<std::string, std::variant<std::string, int32_t, double>> tuple_fields;
    tuple_fields[COUNT_FIELD] = static_cast<int32_t>(count);
-   return QueryResult{std::vector<AggregationResult>{{tuple_fields}}};
+   return QueryResult{std::vector<QueryResultEntry>{{tuple_fields}}};
 }
 
 Aggregated::Aggregated(
@@ -291,7 +291,7 @@ QueryResult Aggregated::execute(
          final_map[key] += value;
       }
    }
-   std::vector<AggregationResult> result = generateResult(final_map);
+   std::vector<QueryResultEntry> result = generateResult(final_map);
    if (randomize_order) {
       const uint32_t time_based_seed = std::chrono::system_clock::now().time_since_epoch().count();
       std::default_random_engine rng(time_based_seed);

@@ -9,30 +9,16 @@
 
 namespace silo::query_engine {
 
-struct AggregationResult {
+struct QueryResultEntry {
    std::map<std::string, std::variant<std::string, int32_t, double>> fields;
 };
 
-struct MutationProportion {
-   std::string mutation;
-   double proportion;
-   int64_t count;
-};
-
-struct ErrorResult {
-   std::string error;
-   std::string message;
-};
-
 struct QueryResult {
-   std::variant<std::vector<AggregationResult>, std::vector<MutationProportion>, ErrorResult>
-      query_result;
+   std::vector<QueryResultEntry> query_result;
 };
 
 // NOLINTBEGIN(readability-identifier-naming)
-void to_json(nlohmann::json& json, const AggregationResult& aggregation_result);
-void to_json(nlohmann::json& json, const MutationProportion& mutation_proportion);
-void to_json(nlohmann::json& json, const ErrorResult& error_result);
+void to_json(nlohmann::json& json, const QueryResultEntry& result_entry);
 void to_json(nlohmann::json& json, const QueryResult& query_result);
 // NOLINTEND(readability-identifier-naming)
 

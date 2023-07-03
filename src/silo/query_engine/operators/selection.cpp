@@ -143,7 +143,7 @@ std::unique_ptr<Operator> Selection<T>::negate() const {
    return std::make_unique<Selection<T>>(column, new_comparator, value, row_count);
 }
 
-template class Selection<int64_t>;
+template class Selection<int32_t>;
 template class Selection<silo::common::String<silo::common::STRING_SIZE>>;
 template class Selection<silo::common::Date>;
 template class Selection<double>;

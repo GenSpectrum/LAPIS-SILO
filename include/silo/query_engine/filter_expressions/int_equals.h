@@ -8,10 +8,10 @@ namespace silo::query_engine::filter_expressions {
 struct IntEquals : public Expression {
   private:
    std::string column;
-   uint64_t value;
+   uint32_t value;
 
   public:
-   explicit IntEquals(std::string column, uint64_t value);
+   explicit IntEquals(std::string column, uint32_t value);
 
    std::string toString(const Database& database) const override;
 

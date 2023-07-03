@@ -10,7 +10,7 @@
 
 namespace silo::query_engine::filter_expressions {
 
-IntBetween::IntBetween(std::string column, std::optional<uint64_t> from, std::optional<uint64_t> to)
+IntBetween::IntBetween(std::string column, std::optional<uint32_t> from, std::optional<uint32_t> to)
     : column(std::move(column)),
       from(from),
       to(to) {}
@@ -30,16 +30,16 @@ std::unique_ptr<silo::query_engine::operators::Operator> IntBetween::compile(
    const auto& int_column = database_partition.columns.int_columns.at(column);
 
    std::vector<std::unique_ptr<operators::Operator>> children;
-   children.emplace_back(std::make_unique<operators::Selection<int64_t>>(
+   children.emplace_back(std::make_unique<operators::Selection<int32_t>>(
       int_column.getValues(),
-      operators::Selection<int64_t>::HIGHER_OR_EQUALS,
+      operators::Selection<int32_t>::HIGHER_OR_EQUALS,
       from.value_or(0),
       database_partition.sequenceCount
    ));
-   children.emplace_back(std::make_unique<operators::Selection<int64_t>>(
+   children.emplace_back(std::make_unique<operators::Selection<int32_t>>(
       int_column.getValues(),
-      operators::Selection<int64_t>::LESS,
-      to.value_or(INT64_MAX),
+      operators::Selection<int32_t>::LESS,
+      to.value_or(INT32_MAX),
       database_partition.sequenceCount
    ));
 
@@ -68,13 +68,13 @@ void from_json(const nlohmann::json& json, std::unique_ptr<IntBetween>& filter) 
       "The field 'to' in a IntBetween expression must be an int or null"
    )
    const std::string& column = json["column"];
-   std::optional<uint64_t> value_from;
+   std::optional<int32_t> value_from;
    if (json["from"].is_number_integer()) {
-      value_from = json["from"].get<uint64_t>();
+      value_from = json["from"].get<int32_t>();
    }
-   std::optional<uint64_t> value_to;
+   std::optional<int32_t> value_to;
    if (json["to"].is_number_integer()) {
-      value_to = json["to"].get<uint64_t>();
+      value_to = json["to"].get<int32_t>();
    }
    filter = std::make_unique<IntBetween>(column, value_from, value_to);
 }

@@ -11,7 +11,7 @@
 
 namespace silo::query_engine::filter_expressions {
 
-IntEquals::IntEquals(std::string column, uint64_t value)
+IntEquals::IntEquals(std::string column, uint32_t value)
     : column(std::move(column)),
       value(value) {}
 
@@ -30,9 +30,9 @@ std::unique_ptr<silo::query_engine::operators::Operator> IntEquals::compile(
 
    const auto& int_column = database_partition.columns.int_columns.at(column);
 
-   return std::make_unique<operators::Selection<int64_t>>(
+   return std::make_unique<operators::Selection<int32_t>>(
       int_column.getValues(),
-      operators::Selection<int64_t>::EQUALS,
+      operators::Selection<int32_t>::EQUALS,
       value,
       database_partition.sequenceCount
    );
@@ -53,7 +53,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<IntEquals>& filter) {
       "The field 'value' in an IntEquals expression must be an integer"
    )
    const std::string& column = json["column"];
-   const int64_t& value = json["value"];
+   const int32_t& value = json["value"];
    filter = std::make_unique<IntEquals>(column, value);
 }
 
