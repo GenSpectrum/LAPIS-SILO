@@ -7,47 +7,38 @@
 
 namespace silo::preprocessing {
 
-std::vector<std::string> MetadataReader::getColumn(
-   const std::filesystem::path& metadata_path,
-   const std::string& column_name
-) {
-   auto reader = MetadataReader::getReader(metadata_path);
-
-   try {
-      std::vector<std::string> column;
-      for (const auto& row : reader) {
-         column.push_back(row[column_name].get());
-      }
-      return column;
-   } catch (const std::exception& exception) {
-      const std::basic_string<char, std::char_traits<char>, std::allocator<char>>& message =
-         "Failed to read metadata file '" + metadata_path.string() + "': " + exception.what();
-      throw PreprocessingException(message);
-   }
+MetadataReader::MetadataReader(const std::filesystem::path& metadata_path) try
+    : reader(metadata_path.string()) {
+} catch (const std::exception& exception) {
+   const std::string message =
+      "Failed to read metadata file '" + metadata_path.string() + "': " + exception.what();
+   throw PreprocessingException(message);
 }
 
-csv::CSVReader MetadataReader::getReader(const std::filesystem::path& metadata_path) {
-   try {
-      return {metadata_path.string()};
-   } catch (const std::exception& exception) {
-      const std::basic_string<char, std::char_traits<char>, std::allocator<char>>& message =
-         "Failed to read metadata file '" + metadata_path.string() + "': " + exception.what();
+std::vector<std::string> MetadataReader::getColumn(const std::string& column_name) {
+   if (reader.index_of(column_name) == csv::CSV_NOT_FOUND) {
+      const std::string message = "Failed to read metadata column '" + column_name + "'";
       throw PreprocessingException(message);
    }
+   std::vector<std::string> column;
+   for (const auto& row : reader) {
+      column.push_back(row[column_name].get());
+   }
+   return column;
 }
 
-MetadataWriter::MetadataWriter(std::unique_ptr<std::ostream> out_stream)
-    : out_stream(std::move(out_stream)){};
+MetadataWriter::MetadataWriter(const std::filesystem::path& metadata_path)
+    : out_stream(metadata_path){};
 
 void MetadataWriter::writeHeader(const csv::CSVReader& csv_reader) {
    const auto header = boost::algorithm::join(csv_reader.get_col_names(), "\t");
-   *out_stream << header << '\n';
+   out_stream << header << '\n';
 }
 
 void MetadataWriter::writeRow(const csv::CSVRow& row) {
    const auto& row_string =
       boost::algorithm::join(static_cast<std::vector<std::string>>(row), "\t");
-   *out_stream << row_string << '\n';
+   out_stream << row_string << '\n';
 }
 
 }  // namespace silo::preprocessing

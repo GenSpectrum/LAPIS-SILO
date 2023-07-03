@@ -12,7 +12,6 @@ using silo::preprocessing::PangoLineageDefinitionFilename;
 using silo::preprocessing::PartitionsFolder;
 using silo::preprocessing::PreprocessingConfig;
 using silo::preprocessing::ReferenceGenomeFilename;
-using silo::preprocessing::SequenceFilename;
 using silo::preprocessing::SerializedStateFolder;
 using silo::preprocessing::SortedPartitionsFolder;
 
@@ -52,7 +51,6 @@ struct convert<PreprocessingConfig> {
       const InputDirectory input_directory{node["inputDirectory"].as<std::string>()};
       const OutputDirectory output_directory{node["outputDirectory"].as<std::string>()};
       const MetadataFilename metadata_filename{node["metadataFilename"].as<std::string>()};
-      const SequenceFilename sequence_filename{node["sequenceFilename"].as<std::string>()};
       const PangoLineageDefinitionFilename pango_lineage_definition_filename{
          node["pangoLineageDefinitionFilename"].as<std::string>()};
       const ReferenceGenomeFilename reference_genome_filename{
@@ -66,7 +64,6 @@ struct convert<PreprocessingConfig> {
          input_directory,
          output_directory,
          metadata_filename,
-         sequence_filename,
          pango_lineage_definition_filename,
          partitions_folder,
          sorted_partitions_folder,

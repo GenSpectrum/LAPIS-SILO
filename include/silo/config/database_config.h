@@ -29,6 +29,7 @@ struct DatabaseSchema {
 };
 
 struct DatabaseConfig {
+   std::string default_nucleotide_sequence;
    DatabaseSchema schema;
 
    [[nodiscard]] DatabaseMetadata getMetadata(const std::string& name) const;

@@ -10,7 +10,6 @@
 #include "silo/query_engine/operators/index_scan.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/storage/database_partition.h"
-#include "silo/storage/reference_genome.h"
 
 namespace silo::query_engine::filter_expressions {
 
@@ -28,18 +27,20 @@ std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals:
    const silo::DatabasePartition& database_partition,
    Expression::AmbiguityMode mode
 ) const {
-   if (position >= database.reference_genome->genome_segments[0].size()) {
+   const auto& seq_store_partition =
+      database_partition.nuc_sequences.at(database.database_config.default_nucleotide_sequence);
+   if (position >= seq_store_partition.reference_genome.length()) {
       throw QueryParseException(
          "NucleotideEquals position is out of bounds '" + std::to_string(position + 1) + "' > '" +
-         std::to_string(database.reference_genome->genome_segments[0].size()) + "'"
+         std::to_string(seq_store_partition.reference_genome.length()) + "'"
       );
    }
    NUCLEOTIDE_SYMBOL nucleotide_symbol;
    if (value == '.') {
-      const char character = database.reference_genome->genome_segments[0].at(position);
-      nucleotide_symbol = toNucleotideSymbol(character);
+      const char character = seq_store_partition.reference_genome.at(position);
+      nucleotide_symbol = toNucleotideSymbol(character).value_or(NUCLEOTIDE_SYMBOL::N);
    } else {
-      nucleotide_symbol = toNucleotideSymbol(value);
+      nucleotide_symbol = toNucleotideSymbol(value).value_or(NUCLEOTIDE_SYMBOL::N);
    }
    if (mode == UPPER_BOUND) {
       auto symbols_to_match = AMBIGUITY_SYMBOLS.at(static_cast<uint32_t>(nucleotide_symbol));
@@ -57,26 +58,25 @@ std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals:
       return std::make_unique<Or>(std::move(symbol_filters))
          ->compile(database, database_partition, NONE);
    }
-   if (nucleotide_symbol == NUCLEOTIDE_SYMBOL::N && !database_partition.seq_store.positions[position].nucleotide_symbol_n_indexed) {
+   if (nucleotide_symbol == NUCLEOTIDE_SYMBOL::N && !seq_store_partition.positions[position].nucleotide_symbol_n_indexed) {
       return std::make_unique<operators::BitmapSelection>(
-         database_partition.seq_store.nucleotide_symbol_n_bitmaps.data(),
-         database_partition.seq_store.nucleotide_symbol_n_bitmaps.size(),
+         seq_store_partition.nucleotide_symbol_n_bitmaps.data(),
+         seq_store_partition.nucleotide_symbol_n_bitmaps.size(),
          operators::BitmapSelection::CONTAINS,
          position
       );
    }
-   if (database_partition.seq_store.positions[position].symbol_whose_bitmap_is_flipped == nucleotide_symbol) {
+   if (seq_store_partition.positions[position].symbol_whose_bitmap_is_flipped == nucleotide_symbol) {
       return std::make_unique<operators::Complement>(
          std::make_unique<operators::IndexScan>(
-            database_partition.seq_store.getBitmap(position, nucleotide_symbol),
+            seq_store_partition.getBitmap(position, nucleotide_symbol),
             database_partition.sequenceCount
          ),
          database_partition.sequenceCount
       );
    }
    return std::make_unique<operators::IndexScan>(
-      database_partition.seq_store.getBitmap(position, nucleotide_symbol),
-      database_partition.sequenceCount
+      seq_store_partition.getBitmap(position, nucleotide_symbol), database_partition.sequenceCount
    );
 }
 

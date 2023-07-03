@@ -15,6 +15,7 @@ class SiloRecipe(ConanFile):
         "spdlog/1.11.0",
         "vincentlaucsb-csv-parser/2.1.3",
         "yaml-cpp/0.7.0",
+        "zstd/1.5.5",
     ]
 
     default_options = {

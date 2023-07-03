@@ -45,9 +45,8 @@ PangoLineageCounts buildPangoLineageCounts(
    uint32_t pango_lineage_ids_count = 0;
    std::unordered_map<std::string, uint32_t> pango_lineage_to_id;
 
-   auto unresolved_pango_lineages = silo::preprocessing::MetadataReader::getColumn(
-      metadata_path, database_config.schema.partition_by
-   );
+   auto unresolved_pango_lineages = silo::preprocessing::MetadataReader(metadata_path)
+                                       .getColumn(database_config.schema.partition_by);
 
    for (const auto& unresolved_pango_lineage : unresolved_pango_lineages) {
       std::string const pango_lineage =

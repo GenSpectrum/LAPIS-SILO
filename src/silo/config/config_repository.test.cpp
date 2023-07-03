@@ -29,29 +29,35 @@ ConfigReaderMock mockConfigReader(const DatabaseConfig& config) {
 }
 
 TEST(ConfigRepository, shouldReadConfigWithoutErrors) {
-   const auto config_reader_mock = mockConfigReader({
-      "testInstanceName",
-      {
-         {"testPrimaryKey", ValueType::STRING},
-         {"metadata1", ValueType::PANGOLINEAGE, true},
-         {"metadata2", ValueType::DATE},
-      },
-      "testPrimaryKey",
-      std::nullopt,
-      "metadata1",
-   });
+   const auto config_reader_mock = mockConfigReader(
+      {"main",
+       {
+          "testInstanceName",
+          {
+             {"testPrimaryKey", ValueType::STRING},
+             {"metadata1", ValueType::PANGOLINEAGE, true},
+             {"metadata2", ValueType::DATE},
+          },
+          "testPrimaryKey",
+          std::nullopt,
+          "metadata1",
+       }}
+   );
 
    ASSERT_NO_THROW(ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml"));
 }
 
 TEST(ConfigRepository, shouldThrowIfPrimaryKeyIsNotInMetadata) {
-   const auto config_reader_mock = mockConfigReader({
-      "testInstanceName",
-      {
-         {"notPrimaryKey", ValueType::STRING},
-      },
-      "testPrimaryKey",
-   });
+   const auto config_reader_mock = mockConfigReader(
+      {"main",
+       {
+          "testInstanceName",
+          {
+             {"notPrimaryKey", ValueType::STRING},
+          },
+          "testPrimaryKey",
+       }}
+   );
 
    ASSERT_THROW(
       ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml"), ConfigException
@@ -59,15 +65,18 @@ TEST(ConfigRepository, shouldThrowIfPrimaryKeyIsNotInMetadata) {
 }
 
 TEST(ConfigRepository, shouldThrowIfThereAreTwoMetadataWithTheSameName) {
-   const auto config_reader_mock = mockConfigReader({
-      "testInstanceName",
-      {
-         {"testPrimaryKey", ValueType::STRING},
-         {"sameName", ValueType::PANGOLINEAGE},
-         {"sameName", ValueType::DATE},
-      },
-      "testPrimaryKey",
-   });
+   const auto config_reader_mock = mockConfigReader(
+      {"main",
+       {
+          "testInstanceName",
+          {
+             {"testPrimaryKey", ValueType::STRING},
+             {"sameName", ValueType::PANGOLINEAGE},
+             {"sameName", ValueType::DATE},
+          },
+          "testPrimaryKey",
+       }}
+   );
 
    ASSERT_THROW(
       ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml"), ConfigException
@@ -76,12 +85,13 @@ TEST(ConfigRepository, shouldThrowIfThereAreTwoMetadataWithTheSameName) {
 
 TEST(ConfigRepository, givenConfigWithDateToSortByThatIsNotConfiguredThenThrows) {
    const auto config_reader_mock = mockConfigReader(
-      {"testInstanceName",
-       {
-          {"testPrimaryKey", ValueType::STRING},
-       },
-       "testPrimaryKey",
-       "notConfiguredDateToSortBy"}
+      {"main",
+       {"testInstanceName",
+        {
+           {"testPrimaryKey", ValueType::STRING},
+        },
+        "testPrimaryKey",
+        "notConfiguredDateToSortBy"}}
    );
 
    EXPECT_THAT(
@@ -96,13 +106,14 @@ TEST(ConfigRepository, givenConfigWithDateToSortByThatIsNotConfiguredThenThrows)
 
 TEST(ConfigRepository, givenDateToSortByThatIsNotADateThenThrows) {
    const auto config_reader_mock = mockConfigReader(
-      {"testInstanceName",
-       {
-          {"testPrimaryKey", ValueType::STRING},
-          {"not a date", ValueType::STRING},
-       },
-       "testPrimaryKey",
-       "not a date"}
+      {"main",
+       {"testInstanceName",
+        {
+           {"testPrimaryKey", ValueType::STRING},
+           {"not a date", ValueType::STRING},
+        },
+        "testPrimaryKey",
+        "not a date"}}
    );
 
    EXPECT_THAT(
@@ -117,14 +128,15 @@ TEST(ConfigRepository, givenDateToSortByThatIsNotADateThenThrows) {
 
 TEST(ConfigRepository, givenConfigPartitionByThatIsNotConfiguredThenThrows) {
    const auto config_reader_mock = mockConfigReader(
-      {"testInstanceName",
-       {
-          {"testPrimaryKey", ValueType::STRING},
-          {"date_to_sort_by", ValueType::DATE},
-       },
-       "testPrimaryKey",
-       "date_to_sort_by",
-       "notConfiguredPartitionBy"}
+      {"main",
+       {"testInstanceName",
+        {
+           {"testPrimaryKey", ValueType::STRING},
+           {"date_to_sort_by", ValueType::DATE},
+        },
+        "testPrimaryKey",
+        "date_to_sort_by",
+        "notConfiguredPartitionBy"}}
    );
 
    EXPECT_THAT(
@@ -139,15 +151,16 @@ TEST(ConfigRepository, givenConfigPartitionByThatIsNotConfiguredThenThrows) {
 
 TEST(ConfigRepository, givenConfigPartitionByThatIsNotPangoLineageThenThrows) {
    const auto config_reader_mock = mockConfigReader(
-      {"testInstanceName",
-       {
-          {"testPrimaryKey", ValueType::STRING},
-          {"date_to_sort_by", ValueType::DATE},
-          {"not a pango lineage", ValueType::STRING},
-       },
-       "testPrimaryKey",
-       "date_to_sort_by",
-       "not a pango lineage"}
+      {"main",
+       {"testInstanceName",
+        {
+           {"testPrimaryKey", ValueType::STRING},
+           {"date_to_sort_by", ValueType::DATE},
+           {"not a pango lineage", ValueType::STRING},
+        },
+        "testPrimaryKey",
+        "date_to_sort_by",
+        "not a pango lineage"}}
    );
 
    EXPECT_THAT(
@@ -162,14 +175,15 @@ TEST(ConfigRepository, givenConfigPartitionByThatIsNotPangoLineageThenThrows) {
 
 TEST(ConfigRepository, givenMetadataToGenerateIndexForThatIsNotStringOrPangoLineageThenThrows) {
    const auto config_reader_mock = mockConfigReader(
-      {"testInstanceName",
-       {
-          {"testPrimaryKey", ValueType::STRING},
-          {"indexed date", ValueType::DATE, true},
-       },
-       "testPrimaryKey",
-       std::nullopt,
-       "testPrimaryKey"}
+      {"main",
+       {"testInstanceName",
+        {
+           {"testPrimaryKey", ValueType::STRING},
+           {"indexed date", ValueType::DATE, true},
+        },
+        "testPrimaryKey",
+        std::nullopt,
+        "testPrimaryKey"}}
    );
 
    EXPECT_THAT(
@@ -185,14 +199,15 @@ TEST(ConfigRepository, givenMetadataToGenerateIndexForThatIsNotStringOrPangoLine
 
 TEST(ConfigRepository, givenNotGenerateIndexOnPangoLineageThenThrows) {
    const auto config_reader_mock = mockConfigReader(
-      {"testInstanceName",
-       {
-          {"testPrimaryKey", ValueType::STRING},
-          {"pango lineage without index", ValueType::PANGOLINEAGE, false},
-       },
-       "testPrimaryKey",
-       std::nullopt,
-       "testPrimaryKey"}
+      {"main",
+       {"testInstanceName",
+        {
+           {"testPrimaryKey", ValueType::STRING},
+           {"pango lineage without index", ValueType::PANGOLINEAGE, false},
+        },
+        "testPrimaryKey",
+        std::nullopt,
+        "testPrimaryKey"}}
    );
 
    EXPECT_THAT(

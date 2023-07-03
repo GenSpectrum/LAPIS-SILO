@@ -6,15 +6,13 @@
 #include "silo/common/fasta_reader.h"
 #include "silo/preprocessing/preprocessing_config.h"
 
-using silo::preprocessing::createPath;
-using silo::preprocessing::InputDirectory;
-using silo::preprocessing::SequenceFilename;
-
 TEST(FastaReader, shouldReadFastaFile) {
-   const InputDirectory input_directory{"./testBaseData/fastaFiles/"};
-   const SequenceFilename sequence_filename{"test.fasta"};
-   const std::filesystem::path file_path =
-      createPath(input_directory.directory, sequence_filename.filename);
+   const std::filesystem::path input_directory{"./testBaseData/fastaFiles/"};
+   const std::string sequence_filename{"test.fasta"};
+
+   std::filesystem::path file_path = input_directory;
+   file_path += sequence_filename;
+
    silo::FastaReader under_test(file_path);
 
    std::string key;
@@ -31,10 +29,12 @@ TEST(FastaReader, shouldReadFastaFile) {
 }
 
 TEST(FastaReader, shouldReadFastaFileWithoutNewLineAtEnd) {
-   const InputDirectory input_directory{"./testBaseData/fastaFiles/"};
-   const SequenceFilename sequence_filename{"no_end_new_line.fasta"};
-   const std::filesystem::path file_path =
-      createPath(input_directory.directory, sequence_filename.filename);
+   const std::filesystem::path input_directory{"./testBaseData/fastaFiles/"};
+   const std::string sequence_filename{"no_end_new_line.fasta"};
+
+   std::filesystem::path file_path = input_directory;
+   file_path += sequence_filename;
+
    silo::FastaReader under_test(file_path);
 
    std::string key;
@@ -47,10 +47,12 @@ TEST(FastaReader, shouldReadFastaFileWithoutNewLineAtEnd) {
 }
 
 TEST(FastaReader, givenDataInWrongFormatThenShouldThrowAnException) {
-   const InputDirectory input_directory{"./testBaseData/fastaFiles/"};
-   const SequenceFilename sequence_filename{"wrong_format.fasta"};
-   const std::filesystem::path file_path =
-      createPath(input_directory.directory, sequence_filename.filename);
+   const std::filesystem::path input_directory{"./testBaseData/fastaFiles/"};
+   const std::string sequence_filename{"wrong_format.fasta"};
+
+   std::filesystem::path file_path = input_directory;
+   file_path += sequence_filename;
+
    silo::FastaReader under_test(file_path);
 
    std::string key;
@@ -59,10 +61,12 @@ TEST(FastaReader, givenDataInWrongFormatThenShouldThrowAnException) {
 }
 
 TEST(FastaReader, givenDataInWithMissingGenomeThenShouldThrowAnException) {
-   const InputDirectory input_directory{"./testBaseData/fastaFiles/"};
-   const SequenceFilename sequence_filename{"missing_genome.fasta"};
-   const std::filesystem::path file_path =
-      createPath(input_directory.directory, sequence_filename.filename);
+   const std::filesystem::path input_directory{"./testBaseData/fastaFiles/"};
+   const std::string sequence_filename{"missing_genome.fasta"};
+
+   std::filesystem::path file_path = input_directory;
+   file_path += sequence_filename;
+
    silo::FastaReader under_test(file_path);
 
    std::string key;

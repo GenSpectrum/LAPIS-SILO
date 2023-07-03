@@ -21,5 +21,5 @@ TEST(NucleotideSymbol, conversionFromCharacter) {
    EXPECT_EQ(silo::toNucleotideSymbol('-'), silo::NUCLEOTIDE_SYMBOL::GAP);
    EXPECT_EQ(silo::toNucleotideSymbol('A'), silo::NUCLEOTIDE_SYMBOL::A);
    EXPECT_EQ(silo::toNucleotideSymbol('N'), silo::NUCLEOTIDE_SYMBOL::N);
-   EXPECT_EQ(silo::toNucleotideSymbol('X'), silo::NUCLEOTIDE_SYMBOL::GAP);
+   EXPECT_EQ(silo::toNucleotideSymbol('X'), std::nullopt);
 }

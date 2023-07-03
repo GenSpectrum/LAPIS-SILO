@@ -35,6 +35,8 @@ std::string PangoLineageAliasLookup::resolvePangoLineageAlias(const std::string&
    return pango_lineage;
 }
 
+namespace {
+
 std::unordered_map<std::string, std::string> readFromJson(
    const std::filesystem::path& pango_lineage_alias_file
 ) {
@@ -53,6 +55,7 @@ std::unordered_map<std::string, std::string> readFromJson(
    }
    return alias_keys;
 }
+}  // namespace
 
 silo::PangoLineageAliasLookup silo::PangoLineageAliasLookup::readFromFile(
    const std::filesystem::path& pango_lineage_alias_file

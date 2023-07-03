@@ -20,17 +20,16 @@ class DatabasePartition {
    template <class Archive>
    void serialize(Archive& archive, [[maybe_unused]] const unsigned int version) {
       // clang-format off
-      archive& columns;
-      archive& seq_store;
-      archive& sequenceCount;
       archive& chunks;
+      archive& columns;
+      archive& sequenceCount;
       // clang-format on
    }
 
   public:
    std::vector<silo::preprocessing::Chunk> chunks;
    storage::ColumnGroup columns;
-   SequenceStore seq_store;
+   std::unordered_map<std::string, SequenceStorePartition&> nuc_sequences;
    unsigned sequenceCount;
 
    [[nodiscard]] const std::vector<preprocessing::Chunk>& getChunks() const;

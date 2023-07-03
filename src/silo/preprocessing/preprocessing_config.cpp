@@ -36,7 +36,6 @@ PreprocessingConfig::PreprocessingConfig(
    const InputDirectory& input_directory_,
    const OutputDirectory& output_directory_,
    const MetadataFilename& metadata_filename_,
-   const SequenceFilename& sequence_filename_,
    const PangoLineageDefinitionFilename& pango_lineage_definition_filename_,
    const PartitionsFolder& partition_folder_,
    const SortedPartitionsFolder& sorted_partition_folder_,
@@ -53,7 +52,6 @@ PreprocessingConfig::PreprocessingConfig(
    metadata_file = createPath(input_directory, metadata_filename_.filename);
    pango_lineage_definition_file =
       createPath(input_directory, pango_lineage_definition_filename_.filename);
-   sequence_file = createPath(input_directory, sequence_filename_.filename);
    reference_genome_file = createPath(input_directory, reference_genome_filename_.filename);
 
    const std::filesystem::path output_directory(output_directory_.directory);

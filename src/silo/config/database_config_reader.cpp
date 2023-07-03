@@ -9,6 +9,12 @@ template <>
 struct convert<silo::config::DatabaseConfig> {
    static bool decode(const Node& node, silo::config::DatabaseConfig& config) {
       config.schema = node["schema"].as<silo::config::DatabaseSchema>();
+
+      if (node["defaultNucleotideSequence"].IsDefined()) {
+         config.default_nucleotide_sequence = node["defaultNucleotideSequence"].as<std::string>();
+      } else {
+         config.default_nucleotide_sequence = "main";
+      }
       return true;
    }
 };

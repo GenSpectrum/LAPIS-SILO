@@ -10,6 +10,7 @@
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/column/pango_lineage_column.h"
 #include "silo/storage/column/string_column.h"
+#include "silo/storage/sequence_store.h"
 
 namespace silo::config {
 struct DatabaseMetadata;

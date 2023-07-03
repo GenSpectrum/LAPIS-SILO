@@ -12,12 +12,12 @@ unsigned ColumnGroup::fill(
    const PangoLineageAliasLookup& alias_key,
    const silo::config::DatabaseConfig& database_config
 ) {
-   auto metadata_reader = silo::preprocessing::MetadataReader::getReader(input_file);
+   auto metadata_reader = silo::preprocessing::MetadataReader(input_file);
 
    unsigned sequence_count = 0;
 
-   const auto column_names = metadata_reader.get_col_names();
-   for (auto& row : metadata_reader) {
+   const auto column_names = metadata_reader.reader.get_col_names();
+   for (auto& row : metadata_reader.reader) {
       for (const auto& item : database_config.schema.metadata) {
          const std::string value = row[item.name].get();
 

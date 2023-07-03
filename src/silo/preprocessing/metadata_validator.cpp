@@ -10,8 +10,8 @@ void MetadataValidator::validateMedataFile(
    const std::filesystem::path& metadata_file,
    const silo::config::DatabaseConfig& database_config
 ) const {
-   const auto csv_reader = MetadataReader::getReader(metadata_file);
-   const auto metadata_columns = csv_reader.get_col_names();
+   const auto metadata_reader = MetadataReader(metadata_file);
+   const auto metadata_columns = metadata_reader.reader.get_col_names();
 
    for (const auto& config_column : database_config.schema.metadata) {
       if (std::find(

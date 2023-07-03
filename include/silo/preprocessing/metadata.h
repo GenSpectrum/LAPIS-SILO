@@ -11,20 +11,19 @@ namespace silo::preprocessing {
 
 class MetadataReader {
   public:
-   static std::vector<std::string> getColumn(
-      const std::filesystem::path& metadata_path,
-      const std::string& column_name
-   );
+   csv::CSVReader reader;
 
-   static csv::CSVReader getReader(const std::filesystem::path& metadata_path);
+   explicit MetadataReader(const std::filesystem::path& metadata_path);
+
+   std::vector<std::string> getColumn(const std::string& column_name);
 };
 
 class MetadataWriter {
   private:
-   std::unique_ptr<std::ostream> out_stream;
+   std::ofstream out_stream;
 
   public:
-   MetadataWriter(std::unique_ptr<std::ostream> out_stream);
+   explicit MetadataWriter(const std::filesystem::path& metadata_path);
 
    void writeHeader(const csv::CSVReader& csv_reader);
 

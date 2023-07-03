@@ -36,15 +36,15 @@ struct BitmapContainerSizeStatistic {
 };
 
 struct BitmapContainerSize {
-   uint32_t section_length;
-   std::map<std::string, std::vector<uint32_t>> size_per_genome_symbol_and_section;
+   size_t section_length;
+   std::map<std::string, std::vector<size_t>> size_per_genome_symbol_and_section;
 
    BitmapContainerSizeStatistic bitmap_container_size_statistic;
 
    uint64_t total_bitmap_size_frozen;
    uint64_t total_bitmap_size_computed;
 
-   explicit BitmapContainerSize(uint32_t section_length);
+   explicit BitmapContainerSize(size_t genome_length, size_t section_length);
 
    BitmapContainerSize& operator+=(const BitmapContainerSize& other);
 };
