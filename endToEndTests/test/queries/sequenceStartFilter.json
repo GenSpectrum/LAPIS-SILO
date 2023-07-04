@@ -1,0 +1,18 @@
+{
+  "testCaseName": "Filtering for the first genome position",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "position": 1,
+      "symbol": "-",
+      "type": "NucleotideEquals"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 45
+    }
+  ]
+}

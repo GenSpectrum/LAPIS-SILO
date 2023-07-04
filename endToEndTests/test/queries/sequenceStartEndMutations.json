@@ -1,0 +1,216 @@
+{
+  "testCaseName": "Getting a mutation distribution that contains the first and last genome position",
+  "query": {
+    "action": {
+      "type": "Mutations",
+      "minProportion": 1
+    },
+    "filterExpression": {
+      "children": [
+        {
+          "position": 1,
+          "symbol": "-",
+          "type": "NucleotideEquals"
+        },
+        {
+          "position": 29903,
+          "symbol": "-",
+          "type": "NucleotideEquals"
+        }
+      ],
+      "type": "And"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 42,
+      "position": "A1-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "C3037T",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "C14408T",
+      "proportion": 1
+    },
+    {
+      "count": 40,
+      "position": "A23403G",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "C29870-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29871-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29872-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29873-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29874-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29875-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29876-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29877-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29878-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29879-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29880-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29881-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29882-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29883-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29884-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29885-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29886-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29887-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29888-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29889-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29890-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29891-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29892-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29893-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29894-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29895-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29896-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29897-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29898-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29899-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29900-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29901-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29902-",
+      "proportion": 1
+    },
+    {
+      "count": 42,
+      "position": "A29903-",
+      "proportion": 1
+    }
+  ]
+}

@@ -28,6 +28,12 @@ std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals:
    const silo::DatabasePartition& database_partition,
    Expression::AmbiguityMode mode
 ) const {
+   if (position >= database.reference_genome->genome_segments[0].size()) {
+      throw QueryParseException(
+         "NucleotideEquals position is out of bounds '" + std::to_string(position + 1) + "' > '" +
+         std::to_string(database.reference_genome->genome_segments[0].size()) + "'"
+      );
+   }
    NUCLEOTIDE_SYMBOL nucleotide_symbol;
    if (value == '.') {
       const char character = database.reference_genome->genome_segments[0].at(position);
