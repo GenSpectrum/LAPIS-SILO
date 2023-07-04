@@ -49,11 +49,11 @@ void from_json(const nlohmann::json& json, std::unique_ptr<IntEquals>& filter) {
       json.contains("value"), "The field 'value' is required in an IntEquals expression"
    )
    CHECK_SILO_QUERY(
-      json["value"].is_number_integer(),
-      "The field 'value' in an IntEquals expression must be an integer"
+      json["value"].is_number_integer() || json["value"].is_null(),
+      "The field 'value' in an IntEquals expression must be an integer or null"
    )
    const std::string& column = json["column"];
-   const int32_t& value = json["value"];
+   const int32_t& value = json["value"].is_null() ? INT32_MIN : json["value"].get<int32_t>();
    filter = std::make_unique<IntEquals>(column, value);
 }
 

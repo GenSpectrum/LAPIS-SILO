@@ -1,5 +1,5 @@
 {
-  "testCaseName": "Order By QC float column ascending",
+  "testCaseName": "Order By QC float column ascending after filtering",
   "query": {
     "action": {
       "type": "Aggregated",
@@ -7,14 +7,13 @@
       "orderByFields": ["qc_value asc"]
     },
     "filterExpression": {
-      "type": "True"
+      "from": 0.1,
+      "to": 2121.1,
+      "column": "qc_value",
+      "type": "FloatBetween"
     }
   },
   "expectedQueryResult": [
-    {
-      "count": 2,
-      "qc_value": null
-    },
     {
       "count": 10,
       "qc_value": 0.89

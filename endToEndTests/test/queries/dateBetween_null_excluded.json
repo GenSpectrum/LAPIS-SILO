@@ -1,5 +1,5 @@
 {
-  "testCaseName": "DateBetween Query with 'to' bound on a duplicate value",
+  "testCaseName": "DateBetween Query from an early date with unbounded 'to'",
   "query": {
     "action": {
       "type": "Aggregated"
@@ -7,13 +7,13 @@
     "filterExpression": {
       "type": "DateBetween",
       "column": "date",
-      "from": null,
-      "to": "2021-04-13"
+      "from": "2012-03-18",
+      "to": null
     }
   },
   "expectedQueryResult": [
     {
-      "count": 58
+      "count": 99
     }
   ]
 }

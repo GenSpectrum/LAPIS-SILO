@@ -1,16 +1,19 @@
 #ifndef SILO_QUERY_ENGINE_RESULT_H
 #define SILO_QUERY_ENGINE_RESULT_H
 
+#include <optional>
 #include <string>
 #include <variant>
 #include <vector>
 
 #include <nlohmann/json_fwd.hpp>
 
+#include "silo/common/nulltype.h"
+
 namespace silo::query_engine {
 
 struct QueryResultEntry {
-   std::map<std::string, std::variant<std::string, int32_t, double>> fields;
+   std::map<std::string, std::optional<std::variant<std::string, int32_t, double>>> fields;
 };
 
 struct QueryResult {

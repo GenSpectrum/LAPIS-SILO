@@ -40,7 +40,8 @@ QueryResult Details::execute(
       const auto& bitmap = bitmap_filter[partition_id];
       const auto& columns = database.partitions[partition_id].columns;
       for (const Idx sequence_id : *bitmap) {
-         std::map<std::string, std::variant<std::string, int32_t, double>> row_fields;
+         std::map<std::string, std::optional<std::variant<std::string, int32_t, double>>>
+            row_fields;
          for (const auto& metadata : field_metadata) {
             if (metadata.getColumnType() == config::ColumnType::DATE) {
                const common::Date value =
@@ -48,23 +49,46 @@ QueryResult Details::execute(
                row_fields[metadata.name] = common::dateToString(value);
             } else if (metadata.getColumnType() == config::ColumnType::INT) {
                const int32_t value = columns.int_columns.at(metadata.name).getValues()[sequence_id];
-               row_fields[metadata.name] = value;
+               if (value == INT32_MIN) {
+                  row_fields[metadata.name] = std::nullopt;
+               } else {
+                  row_fields[metadata.name] = value;
+               }
             } else if (metadata.getColumnType() == config::ColumnType::FLOAT) {
                const double value =
                   columns.float_columns.at(metadata.name).getValues()[sequence_id];
-               row_fields[metadata.name] = value;
+               if (value == std::nan("")) {
+                  row_fields[metadata.name] = std::nullopt;
+               } else {
+                  row_fields[metadata.name] = value;
+               }
             } else if (metadata.getColumnType() == config::ColumnType::STRING) {
                const auto& column = columns.string_columns.at(metadata.name);
                const common::String<common::STRING_SIZE> value = column.getValues()[sequence_id];
-               row_fields[metadata.name] = column.lookupValue(value);
+               std::string string_value = column.lookupValue(value);
+               if (string_value.empty()) {
+                  row_fields[metadata.name] = std::nullopt;
+               } else {
+                  row_fields[metadata.name] = string_value;
+               }
             } else if (metadata.getColumnType() == config::ColumnType::INDEXED_PANGOLINEAGE) {
                const auto& column = columns.pango_lineage_columns.at(metadata.name);
                const silo::Idx value = column.getValues()[sequence_id];
-               row_fields[metadata.name] = column.lookupValue(value).value;
+               std::string string_value = column.lookupValue(value).value;
+               if (string_value.empty()) {
+                  row_fields[metadata.name] = std::nullopt;
+               } else {
+                  row_fields[metadata.name] = string_value;
+               }
             } else if (metadata.getColumnType() == config::ColumnType::INDEXED_STRING) {
                const auto& column = columns.indexed_string_columns.at(metadata.name);
                const silo::Idx value = column.getValues()[sequence_id];
-               row_fields[metadata.name] = column.lookupValue(value);
+               std::string string_value = column.lookupValue(value);
+               if (string_value.empty()) {
+                  row_fields[metadata.name] = std::nullopt;
+               } else {
+                  row_fields[metadata.name] = string_value;
+               }
             } else {
                throw std::runtime_error("Unchecked column type of column " + metadata.name);
             }

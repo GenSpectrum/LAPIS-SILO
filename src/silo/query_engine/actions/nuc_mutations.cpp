@@ -161,15 +161,17 @@ QueryResult NucMutations::execute(
                   count_of_mutations_per_position[static_cast<size_t>(symbol)][pos];
                if (count > threshold_count) {
                   const double proportion = static_cast<double>(count) / static_cast<double>(total);
-                  const std::map<std::string, std::variant<std::string, int32_t, double>> fields{
-                     {"position",
-                      SYMBOL_REPRESENTATION[static_cast<size_t>(
-                         symbol_in_reference_genome.value_or(NUCLEOTIDE_SYMBOL::N)
-                      )] +
-                         std::to_string(pos + 1) +
-                         SYMBOL_REPRESENTATION[static_cast<size_t>(symbol)]},
-                     {"proportion", proportion},
-                     {"count", static_cast<int32_t>(count)}};
+                  const std::
+                     map<std::string, std::optional<std::variant<std::string, int32_t, double>>>
+                        fields{
+                           {"position",
+                            SYMBOL_REPRESENTATION[static_cast<size_t>(
+                               symbol_in_reference_genome.value_or(NUCLEOTIDE_SYMBOL::N)
+                            )] +
+                               std::to_string(pos + 1) +
+                               SYMBOL_REPRESENTATION[static_cast<size_t>(symbol)]},
+                           {"proportion", proportion},
+                           {"count", static_cast<int32_t>(count)}};
                   mutation_proportions.push_back({fields});
                }
             }

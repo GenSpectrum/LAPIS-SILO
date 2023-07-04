@@ -1,0 +1,71 @@
+{
+  "testCaseName": "Order By age column ascending",
+  "query": {
+    "action": {
+      "type": "Aggregated",
+      "groupByFields": ["age"],
+      "orderByFields": ["age asc"]
+    },
+    "filterExpression": {
+      "type": "True"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "age": null,
+      "count": 2
+    },
+    {
+      "age": 4,
+      "count": 2
+    },
+    {
+      "age": 5,
+      "count": 1
+    },
+    {
+      "age": 6,
+      "count": 1
+    },
+    {
+      "age": 50,
+      "count": 17
+    },
+    {
+      "age": 51,
+      "count": 7
+    },
+    {
+      "age": 52,
+      "count": 8
+    },
+    {
+      "age": 53,
+      "count": 8
+    },
+    {
+      "age": 54,
+      "count": 9
+    },
+    {
+      "age": 55,
+      "count": 8
+    },
+    {
+      "age": 56,
+      "count": 9
+    },
+    {
+      "age": 57,
+      "count": 10
+    },
+    {
+      "age": 58,
+      "count": 9
+    },
+    {
+      "age": 59,
+      "count": 9
+    }
+  ]
+}

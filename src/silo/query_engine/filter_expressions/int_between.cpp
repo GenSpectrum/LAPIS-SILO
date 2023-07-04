@@ -33,12 +33,12 @@ std::unique_ptr<silo::query_engine::operators::Operator> IntBetween::compile(
    children.emplace_back(std::make_unique<operators::Selection<int32_t>>(
       int_column.getValues(),
       operators::Selection<int32_t>::HIGHER_OR_EQUALS,
-      from.value_or(0),
+      from.value_or(INT32_MIN + 1),
       database_partition.sequenceCount
    ));
    children.emplace_back(std::make_unique<operators::Selection<int32_t>>(
       int_column.getValues(),
-      operators::Selection<int32_t>::LESS,
+      operators::Selection<int32_t>::LESS_OR_EQUALS,
       to.value_or(INT32_MAX),
       database_partition.sequenceCount
    ));

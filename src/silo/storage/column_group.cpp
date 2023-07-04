@@ -32,9 +32,11 @@ unsigned ColumnGroup::fill(
          } else if (column_type == silo::config::ColumnType::DATE) {
             date_columns.at(item.name).insert(common::stringToDate(value));
          } else if (column_type == silo::config::ColumnType::INT) {
-            int_columns.at(item.name).insert(std::stoi(value));
+            const int32_t int_value = value.empty() ? INT32_MIN : std::stoi(value);
+            int_columns.at(item.name).insert(int_value);
          } else if (column_type == silo::config::ColumnType::FLOAT) {
-            float_columns.at(item.name).insert(std::stod(value));
+            const double double_value = value.empty() ? std::nan("") : std::stod(value);
+            float_columns.at(item.name).insert(double_value);
          }
       }
       ++sequence_count;

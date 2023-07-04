@@ -14,6 +14,13 @@ TEST(String, correctToString) {
    EXPECT_EQ(underTest.toString(dict), "value 1");
 }
 
+TEST(String, correctWithEmptyString) {
+   BidirectionalMap<std::string> dict;
+   String<STRING_SIZE> underTest("", dict);
+
+   EXPECT_EQ(underTest.toString(dict), "");
+}
+
 TEST(String, correctToStringLong) {
    BidirectionalMap<std::string> dict;
    String<STRING_SIZE> underTest("some longer value 1", dict);
