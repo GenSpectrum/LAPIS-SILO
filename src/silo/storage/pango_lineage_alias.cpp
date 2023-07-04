@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <sstream>
 
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>

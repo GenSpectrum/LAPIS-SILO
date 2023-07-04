@@ -1,0 +1,17 @@
+{
+  "testCaseName": "Filtering for the position 0",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "position": 0,
+      "symbol": "-",
+      "type": "NucleotideEquals"
+    }
+  },
+  "expectedError": {
+    "error": "Bad request",
+    "message": "The field 'position' in a NucleotideEquals expression needs to be an unsigned integer greater than 0"
+  }
+}
