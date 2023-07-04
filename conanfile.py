@@ -21,6 +21,8 @@ class SiloRecipe(ConanFile):
     default_options = {
         "yaml-cpp/*:shared": False,
 
+        "zstd/*:shared": False,
+
         "roaring/*:shared": False,
 
         "gtest/*:no_main": True,
@@ -95,4 +97,5 @@ class SiloRecipe(ConanFile):
         deps.set_property("fmt", "cmake_find_mode", "both")
         deps.set_property("vincentlaucsb-csv-parser", "cmake_find_mode", "both")
         deps.set_property("yaml-cpp", "cmake_find_mode", "both")
+        deps.set_property("zstd", "cmake_find_mode", "both")
         deps.generate()

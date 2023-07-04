@@ -3,6 +3,8 @@
 
 #include <array>
 #include <iostream>
+#include <optional>
+#include <vector>
 
 namespace silo {
 
