@@ -1,5 +1,5 @@
-#ifndef SILO_H
-#define SILO_H
+#ifndef SILO_NUCLEOTIDE_SYMBOLS_H
+#define SILO_NUCLEOTIDE_SYMBOLS_H
 
 #include <array>
 #include <iostream>
@@ -28,9 +28,9 @@ enum class NUCLEOTIDE_SYMBOL {
    N,    // any base
 };
 
-static constexpr unsigned SYMBOL_COUNT = static_cast<unsigned>(NUCLEOTIDE_SYMBOL::N) + 1;
+static constexpr unsigned NUC_SYMBOL_COUNT = static_cast<unsigned>(NUCLEOTIDE_SYMBOL::N) + 1;
 
-static constexpr std::array<char, SYMBOL_COUNT> SYMBOL_REPRESENTATION{
+static constexpr std::array<char, NUC_SYMBOL_COUNT> NUC_SYMBOL_REPRESENTATION{
    '-',
    'A',
    'C',
@@ -49,7 +49,7 @@ static constexpr std::array<char, SYMBOL_COUNT> SYMBOL_REPRESENTATION{
    'N',
 };
 
-static constexpr std::array<NUCLEOTIDE_SYMBOL, SYMBOL_COUNT> GENOME_SYMBOLS{
+static constexpr std::array<NUCLEOTIDE_SYMBOL, NUC_SYMBOL_COUNT> NUC_SYMBOLS{
    NUCLEOTIDE_SYMBOL::GAP,
    NUCLEOTIDE_SYMBOL::A,
    NUCLEOTIDE_SYMBOL::C,
@@ -68,7 +68,7 @@ static constexpr std::array<NUCLEOTIDE_SYMBOL, SYMBOL_COUNT> GENOME_SYMBOLS{
    NUCLEOTIDE_SYMBOL::N,
 };
 
-static const std::array<std::vector<NUCLEOTIDE_SYMBOL>, SYMBOL_COUNT> AMBIGUITY_SYMBOLS{{
+static const std::array<std::vector<NUCLEOTIDE_SYMBOL>, NUC_SYMBOL_COUNT> AMBIGUITY_NUC_SYMBOLS{{
    {NUCLEOTIDE_SYMBOL::GAP},
    {NUCLEOTIDE_SYMBOL::A,
     NUCLEOTIDE_SYMBOL::R,
@@ -116,7 +116,7 @@ static const std::array<std::vector<NUCLEOTIDE_SYMBOL>, SYMBOL_COUNT> AMBIGUITY_
 }};
 
 inline std::string genomeSymbolRepresentation(NUCLEOTIDE_SYMBOL symbol) {
-   return std::string(1, SYMBOL_REPRESENTATION.at(static_cast<unsigned>(symbol)));
+   return std::string(1, NUC_SYMBOL_REPRESENTATION.at(static_cast<unsigned>(symbol)));
 }
 
 inline std::optional<NUCLEOTIDE_SYMBOL> toNucleotideSymbol(char character) {
@@ -161,4 +161,4 @@ inline std::optional<NUCLEOTIDE_SYMBOL> toNucleotideSymbol(char character) {
 }
 }  // namespace silo
 
-#endif  // SILO_H
+#endif  // SILO_NUCLEOTIDE_SYMBOLS_H

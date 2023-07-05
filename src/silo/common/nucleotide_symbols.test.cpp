@@ -3,11 +3,11 @@
 #include <gtest/gtest.h>
 
 TEST(NucleotideSymbol, enumShouldHaveSameLengthAsSymbolRepresentation) {
-   EXPECT_EQ(silo::SYMBOL_COUNT, silo::SYMBOL_REPRESENTATION.size());
+   EXPECT_EQ(silo::NUC_SYMBOL_COUNT, silo::NUC_SYMBOL_REPRESENTATION.size());
 }
 
 TEST(NucleotideSymbol, enumShouldHaveSameLengthAsArrayOfSymbols) {
-   EXPECT_EQ(silo::SYMBOL_COUNT, silo::GENOME_SYMBOLS.size());
+   EXPECT_EQ(silo::NUC_SYMBOL_COUNT, silo::NUC_SYMBOLS.size());
 }
 
 TEST(NucleotideSymbol, genomeSymbolRepresentationAsString) {

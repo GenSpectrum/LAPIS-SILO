@@ -80,9 +80,19 @@ void Database::build(
                sequence_filename += buildChunkString(partition_index, chunk_index) + ".zstdfasta";
 
                silo::ZstdFastaReader sequence_input(sequence_filename, reference_sequence);
-               SPDLOG_DEBUG("Using metadata file: {}", metadata_file.string());
+               SPDLOG_DEBUG("Using nucleotide sequence file: {}", sequence_filename.string());
                partitions[partition_index].nuc_sequences.at(nuc_name).fill(sequence_input);
             }
+            for (auto& [aa_name, reference_sequence] : reference_genomes.aa_sequences) {
+               std::filesystem::path sequence_filename = input_folder;
+               sequence_filename += "gene_" + aa_name + std::filesystem::path::preferred_separator;
+               sequence_filename += buildChunkString(partition_index, chunk_index) + ".zstdfasta";
+
+               silo::ZstdFastaReader sequence_input(sequence_filename, reference_sequence);
+               SPDLOG_DEBUG("Using amino acid sequence file: {}", sequence_filename.string());
+               partitions[partition_index].aa_sequences.at(aa_name).fill(sequence_input);
+            }
+            SPDLOG_DEBUG("Using metadata file: {}", metadata_file.string());
             partitions[partition_index].sequenceCount =
                partitions[partition_index].columns.fill(metadata_file, alias_key, database_config);
          }
@@ -107,7 +117,7 @@ void Database::build(
                      std::optional<NUCLEOTIDE_SYMBOL> max_symbol = std::nullopt;
                      unsigned max_count = 0;
 
-                     for (const auto& symbol : GENOME_SYMBOLS) {
+                     for (const auto& symbol : NUC_SYMBOLS) {
                         const unsigned count =
                            positions[position].bitmaps[static_cast<unsigned>(symbol)].cardinality();
                         if (count > max_count) {
@@ -204,13 +214,13 @@ BitmapContainerSize& BitmapContainerSize::operator+=(const BitmapContainerSize& 
 }
 
 BitmapSizePerSymbol& BitmapSizePerSymbol::operator+=(const BitmapSizePerSymbol& other) {
-   for (const auto& symbol : GENOME_SYMBOLS) {
+   for (const auto& symbol : NUC_SYMBOLS) {
       this->size_in_bytes.at(symbol) += other.size_in_bytes.at(symbol);
    }
    return *this;
 }
 BitmapSizePerSymbol::BitmapSizePerSymbol() {
-   for (const auto& symbol : GENOME_SYMBOLS) {
+   for (const auto& symbol : NUC_SYMBOLS) {
       this->size_in_bytes[symbol] = 0;
    }
 }
@@ -219,7 +229,7 @@ BitmapSizePerSymbol Database::calculateBitmapSizePerSymbol() const {
    BitmapSizePerSymbol global_bitmap_size_per_symbol;
 
    std::mutex lock;
-   tbb::parallel_for_each(GENOME_SYMBOLS, [&](NUCLEOTIDE_SYMBOL symbol) {
+   tbb::parallel_for_each(NUC_SYMBOLS, [&](NUCLEOTIDE_SYMBOL symbol) {
       BitmapSizePerSymbol bitmap_size_per_symbol;
 
       for (const DatabasePartition& database_partition : partitions) {
@@ -273,7 +283,7 @@ BitmapContainerSize Database::calculateBitmapContainerSizePerGenomeSection(
          for (const auto& database_partition : partitions) {
             for (const auto& [_, seq_store] : database_partition.nuc_sequences) {
                const auto& position = seq_store.positions[position_index];
-               for (const auto& genome_symbol : GENOME_SYMBOLS) {
+               for (const auto& genome_symbol : NUC_SYMBOLS) {
                   const auto& bitmap = position.bitmaps[static_cast<unsigned>(genome_symbol)];
 
                   roaring_bitmap_statistics(&bitmap.roaring, &statistic);
@@ -512,6 +522,13 @@ void Database::initializeSequences() {
       nuc_sequences.emplace(nuc_name, std::move(seq_store));
       for (auto& partition : partitions) {
          partition.nuc_sequences.insert({nuc_name, nuc_sequences.at(nuc_name).createPartition()});
+      }
+   }
+   for (const auto& [aa_name, reference_genome] : reference_genomes.aa_sequences) {
+      auto aa_store = AAStore(reference_genome);
+      aa_sequences.emplace(aa_name, std::move(aa_store));
+      for (auto& partition : partitions) {
+         partition.aa_sequences.insert({aa_name, aa_sequences.at(aa_name).createPartition()});
       }
    }
 }

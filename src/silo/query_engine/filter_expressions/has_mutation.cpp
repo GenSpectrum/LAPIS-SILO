@@ -51,7 +51,7 @@ std::unique_ptr<operators::Operator> HasMutation::compile(
       std::back_inserter(symbol_filters),
       [&](NUCLEOTIDE_SYMBOL symbol) {
          return std::make_unique<NucleotideSymbolEquals>(
-            position, SYMBOL_REPRESENTATION[static_cast<uint32_t>(symbol)]
+            position, NUC_SYMBOL_REPRESENTATION[static_cast<uint32_t>(symbol)]
          );
       }
    );
