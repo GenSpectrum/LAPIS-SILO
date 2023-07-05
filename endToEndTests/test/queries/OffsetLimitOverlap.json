@@ -1,0 +1,126 @@
+{
+  "testCaseName": "Offset overlaps with results to show",
+  "query": {
+    "action": {
+      "type": "Details",
+      "orderByFields": ["gisaid_epi_isl"],
+      "offset": 90,
+      "limit": 90
+    },
+    "filterExpression": {
+      "type": "True"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "age": 53,
+      "country": "Switzerland",
+      "date": "2020-11-24",
+      "division": "Zürich",
+      "gisaid_epi_isl": "EPI_ISL_721941",
+      "pango_lineage": "B.1.1.70",
+      "qc_value": 0.9,
+      "region": "Europe",
+      "unsorted_date": "2021-03-15"
+    },
+    {
+      "age": 53,
+      "country": "Switzerland",
+      "date": "2020-12-14",
+      "division": "Bern",
+      "gisaid_epi_isl": "EPI_ISL_737604",
+      "pango_lineage": "B.1.1",
+      "qc_value": 0.92,
+      "region": "Europe",
+      "unsorted_date": "2021-05-14"
+    },
+    {
+      "age": 56,
+      "country": "Switzerland",
+      "date": "2020-12-13",
+      "division": "Bern",
+      "gisaid_epi_isl": "EPI_ISL_737715",
+      "pango_lineage": "B.1.177",
+      "qc_value": 0.89,
+      "region": "Europe",
+      "unsorted_date": "2021-05-16"
+    },
+    {
+      "age": 56,
+      "country": "Switzerland",
+      "date": "2020-12-09",
+      "division": "Valais",
+      "gisaid_epi_isl": "EPI_ISL_737860",
+      "pango_lineage": "B.1.160",
+      "qc_value": 0.97,
+      "region": "Europe",
+      "unsorted_date": "2021-04-28"
+    },
+    {
+      "age": 56,
+      "country": "Switzerland",
+      "date": "2020-12-24",
+      "division": "Sankt Gallen",
+      "gisaid_epi_isl": "EPI_ISL_768148",
+      "pango_lineage": "B.1.160",
+      "qc_value": 0.98,
+      "region": "Europe",
+      "unsorted_date": "2020-03-16"
+    },
+    {
+      "age": 50,
+      "country": "Switzerland",
+      "date": "2020-10-08",
+      "division": "Basel-Stadt",
+      "gisaid_epi_isl": "EPI_ISL_830864",
+      "pango_lineage": "B.1.177",
+      "qc_value": 0.97,
+      "region": "Europe",
+      "unsorted_date": "2021-03-03"
+    },
+    {
+      "age": 59,
+      "country": "Switzerland",
+      "date": "2021-01-12",
+      "division": "Solothurn",
+      "gisaid_epi_isl": "EPI_ISL_899725",
+      "pango_lineage": "B.1.177",
+      "qc_value": 0.96,
+      "region": "Europe",
+      "unsorted_date": "2021-07-14"
+    },
+    {
+      "age": 58,
+      "country": "Switzerland",
+      "date": "2020-12-25",
+      "division": "Schwyz",
+      "gisaid_epi_isl": "EPI_ISL_899762",
+      "pango_lineage": "B.1.177",
+      "qc_value": 0.97,
+      "region": "Europe",
+      "unsorted_date": "2021-07-19"
+    },
+    {
+      "age": 50,
+      "country": "Switzerland",
+      "date": "2020-10-22",
+      "division": "Basel-Stadt",
+      "gisaid_epi_isl": "EPI_ISL_931031",
+      "pango_lineage": "B.1.177",
+      "qc_value": 0.95,
+      "region": "Europe",
+      "unsorted_date": "2021-05-10"
+    },
+    {
+      "age": 50,
+      "country": "Switzerland",
+      "date": "2020-10-28",
+      "division": "Basel-Stadt",
+      "gisaid_epi_isl": "EPI_ISL_931279",
+      "pango_lineage": "B.1.1",
+      "qc_value": 0.96,
+      "region": "Europe",
+      "unsorted_date": "2021-05-11"
+    }
+  ]
+}

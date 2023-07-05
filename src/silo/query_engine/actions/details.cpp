@@ -7,6 +7,7 @@
 #include "silo/config/database_config.h"
 #include "silo/database.h"
 #include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/database_partition.h"
 
@@ -24,9 +25,26 @@ std::vector<config::DatabaseMetadata> parseFields(
    std::vector<config::DatabaseMetadata> field_metadata;
    for (const std::string& field : fields) {
       const auto& metadata = database.database_config.getMetadata(field);
-      field_metadata.push_back(metadata);
+      CHECK_SILO_QUERY(metadata.has_value(), "Metadata field " + field + " not found.")
+      field_metadata.push_back(metadata.value());
    }
    return field_metadata;
+}
+
+void validateOrderByFields(
+   const std::vector<Action::OrderByField>& order_by_fields,
+   const std::vector<config::DatabaseMetadata>& field_metadata
+) {
+   for (const Action::OrderByField& field : order_by_fields) {
+      CHECK_SILO_QUERY(
+         std::any_of(
+            field_metadata.begin(),
+            field_metadata.end(),
+            [&](const config::DatabaseMetadata& metadata) { return metadata.name == field.name; }
+         ),
+         "OrderByField " + field.name + " is not contained in the result of this operation."
+      )
+   }
 }
 
 QueryResult Details::execute(
@@ -35,7 +53,9 @@ QueryResult Details::execute(
 ) const {
    const std::vector<config::DatabaseMetadata> field_metadata = parseFields(database, fields);
 
-   std::vector<QueryResultEntry> results;
+   validateOrderByFields(order_by_fields, field_metadata);
+
+   QueryResult results;
    for (size_t partition_id = 0; partition_id < database.partitions.size(); partition_id++) {
       const auto& bitmap = bitmap_filter[partition_id];
       const auto& columns = database.partitions[partition_id].columns;
@@ -93,10 +113,11 @@ QueryResult Details::execute(
                throw std::runtime_error("Unchecked column type of column " + metadata.name);
             }
          }
-         results.push_back(QueryResultEntry{row_fields});
+         results.query_result.push_back(QueryResultEntry{row_fields});
       }
    }
-   return {results};
+   applyOrderByAndLimit(results);
+   return results;
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

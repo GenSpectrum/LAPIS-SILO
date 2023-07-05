@@ -4,7 +4,12 @@
     "action": {
       "type": "Aggregated",
       "groupByFields": ["pango_lineage"],
-      "orderByFields": ["count desc"],
+      "orderByFields": [
+        {
+          "field": "count",
+          "ascending": false
+        }
+      ],
       "limit": 4
     },
     "filterExpression": {

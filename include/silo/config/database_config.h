@@ -32,7 +32,7 @@ struct DatabaseConfig {
    std::string default_nucleotide_sequence;
    DatabaseSchema schema;
 
-   [[nodiscard]] DatabaseMetadata getMetadata(const std::string& name) const;
+   [[nodiscard]] std::optional<DatabaseMetadata> getMetadata(const std::string& name) const;
 };
 }  // namespace silo::config
 

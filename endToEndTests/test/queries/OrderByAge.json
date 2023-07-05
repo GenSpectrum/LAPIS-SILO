@@ -4,7 +4,12 @@
     "action": {
       "type": "Aggregated",
       "groupByFields": ["age"],
-      "orderByFields": ["age asc"]
+      "orderByFields": [
+        {
+          "field": "age",
+          "ascending": true
+        }
+      ]
     },
     "filterExpression": {
       "type": "True"

@@ -1,0 +1,30 @@
+{
+  "testCaseName": "Details action with order by field EPI_ISL",
+  "query": {
+    "action": {
+      "type": "Details",
+      "orderByFields": ["gisaid_epi_isl"],
+      "offset": -1231
+    },
+    "filterExpression": {
+      "type": "And",
+      "children": [
+        {
+          "type": "StringEquals",
+          "column": "country",
+          "value": "Switzerland"
+        },
+        {
+          "type": "PangoLineage",
+          "column": "pango_lineage",
+          "value": "B.1.1.7",
+          "includeSublineages": true
+        }
+      ]
+    }
+  },
+  "expectedError": {
+    "error": "Bad request",
+    "message": "If the action contains an offset, it must be a non-negative number"
+  }
+}

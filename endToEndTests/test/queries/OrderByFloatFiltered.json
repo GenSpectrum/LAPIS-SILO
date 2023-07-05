@@ -4,7 +4,7 @@
     "action": {
       "type": "Aggregated",
       "groupByFields": ["qc_value"],
-      "orderByFields": ["qc_value asc"]
+      "orderByFields": ["qc_value"]
     },
     "filterExpression": {
       "from": 0.1,
