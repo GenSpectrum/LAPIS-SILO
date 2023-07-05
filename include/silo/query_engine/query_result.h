@@ -8,8 +8,6 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-#include "silo/common/nulltype.h"
-
 namespace silo::query_engine {
 
 struct QueryResultEntry {
