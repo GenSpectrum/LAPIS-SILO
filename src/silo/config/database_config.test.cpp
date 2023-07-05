@@ -19,6 +19,7 @@ TEST(DatabaseMetadataType, shouldBeConvertableFromString) {
 }
 
 TEST(DatabaseConfig, shouldBuildDatabaseConfig) {
+   const std::string default_nuc_sequence = "main";
    const DatabaseSchema schema{
       "testInstanceName",
       {
@@ -28,7 +29,7 @@ TEST(DatabaseConfig, shouldBuildDatabaseConfig) {
       },
       "testPrimaryKey",
    };
-   const DatabaseConfig config{schema};
+   const DatabaseConfig config{default_nuc_sequence, schema};
    ASSERT_TRUE(config.schema.instance_name == "testInstanceName");
    ASSERT_TRUE(config.schema.primary_key == "testPrimaryKey");
    ASSERT_TRUE(config.schema.metadata[0].name == "metadata1");

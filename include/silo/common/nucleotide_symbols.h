@@ -3,12 +3,10 @@
 
 #include <array>
 #include <iostream>
-
-#include <spdlog/spdlog.h>
+#include <optional>
+#include <vector>
 
 namespace silo {
-
-static constexpr unsigned GENOME_LENGTH = 29903;
 
 // https://www.bioinformatics.org/sms/iupac.html
 enum class NUCLEOTIDE_SYMBOL {
@@ -121,7 +119,7 @@ inline std::string genomeSymbolRepresentation(NUCLEOTIDE_SYMBOL symbol) {
    return std::string(1, SYMBOL_REPRESENTATION.at(static_cast<unsigned>(symbol)));
 }
 
-inline NUCLEOTIDE_SYMBOL toNucleotideSymbol(char character) {
+inline std::optional<NUCLEOTIDE_SYMBOL> toNucleotideSymbol(char character) {
    switch (character) {
       case '.':
       case '-':
@@ -158,8 +156,7 @@ inline NUCLEOTIDE_SYMBOL toNucleotideSymbol(char character) {
       case 'N':
          return NUCLEOTIDE_SYMBOL::N;
       default:
-         SPDLOG_ERROR("unrecognized symbol {}", character);
-         return NUCLEOTIDE_SYMBOL::GAP;
+         return std::nullopt;
    }
 }
 }  // namespace silo

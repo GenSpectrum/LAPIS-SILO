@@ -68,7 +68,8 @@ TEST_F(RequestHandlerTestFixture, handlesGetInfoRequestDetails) {
    bitmap_size_per_symbol.size_in_bytes[silo::NUCLEOTIDE_SYMBOL::A] =
       1234;  // NOLINT(readability-magic-numbers)
 
-   const silo::BitmapContainerSize bitmap_container_size(4567
+   const silo::BitmapContainerSize bitmap_container_size(
+      29903, 4567
    );  // NOLINT(readability-magic-numbers)
 
    const silo::DetailedDatabaseInfo detailed_database_info = {

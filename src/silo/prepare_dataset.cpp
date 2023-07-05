@@ -1,14 +1,16 @@
 #include "silo/prepare_dataset.h"
 
+#include <unordered_set>
+
 #include <spdlog/spdlog.h>
 #include <tbb/blocked_range.h>
 #include <tbb/enumerable_thread_specific.h>
 #include <tbb/parallel_for_each.h>
-#include <unordered_set>
 
 #include "silo/common/date.h"
 #include "silo/common/fasta_reader.h"
-#include "silo/common/input_stream_wrapper.h"
+#include "silo/common/zstdfasta_reader.h"
+#include "silo/common/zstdfasta_writer.h"
 #include "silo/config/database_config.h"
 #include "silo/database.h"
 #include "silo/preprocessing/metadata.h"
@@ -16,8 +18,11 @@
 #include "silo/storage/database_partition.h"
 #include "silo/storage/pango_lineage_alias.h"
 
+const std::string ZSTDFASTA_EXTENSION(".zstdfasta");
+const std::string TSV_EXTENSION(".tsv");
+
 [[maybe_unused]] void silo::pruneMetadata(
-   const std::filesystem::path& metadata_in,
+   silo::preprocessing::MetadataReader& metadata_reader,
    silo::FastaReader& sequences_in,
    silo::preprocessing::MetadataWriter& metadata_writer,
    const silo::config::DatabaseConfig& database_config
@@ -37,11 +42,9 @@
 
    SPDLOG_INFO("Finished reading sequences, found {} sequences", found_sequences_count);
 
-   auto metadata_reader = silo::preprocessing::MetadataReader::getReader(metadata_in);
+   metadata_writer.writeHeader(metadata_reader.reader);
 
-   metadata_writer.writeHeader(metadata_reader);
-
-   for (auto& row : metadata_reader) {
+   for (auto& row : metadata_reader.reader) {
       const auto key = row[database_config.schema.primary_key].get();
 
       if (found_primary_keys.contains(key)) {
@@ -53,16 +56,14 @@
 }
 
 [[maybe_unused]] void silo::pruneSequences(
-   const std::filesystem::path& metadata_in,
+   silo::preprocessing::MetadataReader& metadata_reader,
    silo::FastaReader& sequences_in,
    std::ostream& sequences_out,
    const silo::config::DatabaseConfig& database_config
 ) {
    SPDLOG_INFO("Pruning sequences");
 
-   const auto primary_key_vector = silo::preprocessing::MetadataReader::getColumn(
-      metadata_in, database_config.schema.primary_key
-   );
+   const auto primary_key_vector = metadata_reader.getColumn(database_config.schema.primary_key);
    const std::unordered_set<std::string> primary_keys(
       primary_key_vector.begin(), primary_key_vector.end()
    );
@@ -85,19 +86,17 @@
 
 std::unordered_map<std::string, std::unique_ptr<silo::preprocessing::MetadataWriter>>
 getMetadataWritersForChunks(
-   const std::string& output_prefix,
-   const std::string& metadata_file_extension,
+   const std::filesystem::path& output_folder,
    const std::vector<std::string>& chunk_names,
    const csv::CSVReader& metadata_reader
 ) {
    std::unordered_map<std::string, std::unique_ptr<silo::preprocessing::MetadataWriter>>
       chunk_to_metadata_writers;
    for (const std::string& chunk_name : chunk_names) {
-      auto out_stream = std::make_unique<std::ofstream>(
-         std::string(output_prefix).append(chunk_name).append(metadata_file_extension)
-      );
+      std::filesystem::path metadata_filename = output_folder;
+      metadata_filename += chunk_name + TSV_EXTENSION;
       auto metadata_writer =
-         std::make_unique<silo::preprocessing::MetadataWriter>(std::move(out_stream));
+         std::make_unique<silo::preprocessing::MetadataWriter>(metadata_filename);
 
       metadata_writer->writeHeader(metadata_reader);
 
@@ -131,38 +130,35 @@ std::unordered_map<std::string, std::string> writeMetadataChunks(
 }
 
 std::unordered_map<std::string, std::string> partitionMetadataFile(
-   const std::filesystem::path& meta_in,
-   const std::string& output_prefix,
+   silo::preprocessing::MetadataReader& metadata_reader,
+   const std::filesystem::path& output_folder,
    const silo::PangoLineageAliasLookup& alias_key,
-   const std::string& metadata_file_extension,
    std::unordered_map<std::string, std::string>& pango_to_chunk,
    const std::vector<std::string>& chunk_names,
    const silo::config::DatabaseConfig& database_config
 ) {
-   SPDLOG_INFO("partitioning metadata file to {}", output_prefix);
+   SPDLOG_INFO("partitioning metadata file to {}", output_folder.string());
 
-   auto metadata_reader = silo::preprocessing::MetadataReader::getReader(meta_in);
-
-   auto chunk_to_metadata_writers = getMetadataWritersForChunks(
-      output_prefix, metadata_file_extension, chunk_names, metadata_reader
-   );
+   auto chunk_to_metadata_writers =
+      getMetadataWritersForChunks(output_folder, chunk_names, metadata_reader.reader);
 
    return writeMetadataChunks(
-      alias_key, pango_to_chunk, metadata_reader, chunk_to_metadata_writers, database_config
+      alias_key, pango_to_chunk, metadata_reader.reader, chunk_to_metadata_writers, database_config
    );
 }
 
-std::unordered_map<std::string, std::unique_ptr<std::ostream>> getSequenceOutStreamsForChunks(
-   const std::string& output_prefix,
-   const std::string& sequence_file_extension,
-   const std::vector<std::string>& chunk_names
+std::unordered_map<std::string, silo::ZstdFastaWriter> getSequenceWritersForChunks(
+   const std::filesystem::path& output_folder,
+   const std::vector<std::string>& chunk_names,
+   const std::string& reference_genome
 ) {
-   std::unordered_map<std::string, std::unique_ptr<std::ostream>> chunk_to_seq_ostream;
+   std::unordered_map<std::string, silo::ZstdFastaWriter> chunk_to_seq_ostream;
    for (const std::string& chunk_name : chunk_names) {
-      const std::string chunk_sequence_filename =
-         std::string(output_prefix).append(chunk_name).append(sequence_file_extension);
-      auto out = make_unique<std::ofstream>(chunk_sequence_filename);
-      chunk_to_seq_ostream[chunk_name] = std::move(out);
+      std::filesystem::path sequence_filename = output_folder;
+      sequence_filename += chunk_name + ZSTDFASTA_EXTENSION;
+      chunk_to_seq_ostream.insert(
+         {chunk_name, silo::ZstdFastaWriter(sequence_filename, reference_genome)}
+      );
    }
    return chunk_to_seq_ostream;
 }
@@ -170,17 +166,11 @@ std::unordered_map<std::string, std::unique_ptr<std::ostream>> getSequenceOutStr
 void writeSequenceChunks(
    silo::FastaReader& sequence_in,
    std::unordered_map<std::string, std::string>& key_to_chunk,
-   std::unordered_map<std::string, std::unique_ptr<std::ostream>>& chunk_to_seq_ostream
+   std::unordered_map<std::string, silo::ZstdFastaWriter>& chunk_to_seq_ostream
 ) {
    std::string key;
    std::string genome;
    while (sequence_in.next(key, genome)) {
-      if (genome.length() != silo::GENOME_LENGTH) {
-         throw silo::PreprocessingException(
-            "Genome didn't have expected length " + std::to_string(silo::GENOME_LENGTH) + " (was " +
-            std::to_string(genome.length()) + ")."
-         );
-      }
       if (!key_to_chunk.contains(key)) {
          throw silo::PreprocessingException(
             "Sequence key '" + key + "' was not present in keys in metadata."
@@ -188,35 +178,34 @@ void writeSequenceChunks(
       }
 
       std::string const chunk = key_to_chunk[key];
-      *chunk_to_seq_ostream[chunk] << '>' << key << '\n' << genome << '\n';
+      chunk_to_seq_ostream.at(chunk).write(key, genome);
    }
 }
 
 void partitionSequenceFile(
    silo::FastaReader& sequence_in,
-   const std::string& output_prefix,
-   const std::string& sequence_file_extension,
+   const std::filesystem::path& output_folder,
    std::vector<std::string>& chunk_names,
-   std::unordered_map<std::string, std::string>& key_to_chunk
+   std::unordered_map<std::string, std::string>& key_to_chunk,
+   const std::string& reference_sequence
 ) {
-   SPDLOG_INFO("partitioning sequences file to {}", output_prefix);
+   SPDLOG_INFO("partitioning sequences file to {}", output_folder.string());
 
-   auto chunk_to_seq_ostream =
-      getSequenceOutStreamsForChunks(output_prefix, sequence_file_extension, chunk_names);
-   SPDLOG_DEBUG("Created file streams for {}", output_prefix);
+   auto chunk_to_seq_writer =
+      getSequenceWritersForChunks(output_folder, chunk_names, reference_sequence);
+   SPDLOG_DEBUG("Created file streams in folder {}", output_folder.string());
 
-   writeSequenceChunks(sequence_in, key_to_chunk, chunk_to_seq_ostream);
+   writeSequenceChunks(sequence_in, key_to_chunk, chunk_to_seq_writer);
 }
 
-void silo::partitionSequences(
+void silo::partitionData(
    const preprocessing::Partitions& partitions,
-   const std::filesystem::path& meta_in,
-   silo::FastaReader& sequence_in,
-   const std::string& output_prefix,
+   const std::filesystem::path& input_folder,
+   silo::preprocessing::MetadataReader& metadata_reader,
+   const std::filesystem::path& output_folder,
    const PangoLineageAliasLookup& alias_key,
-   const std::string& metadata_file_extension,
-   const std::string& sequence_file_extension,
-   const silo::config::DatabaseConfig& database_config
+   const silo::config::DatabaseConfig& database_config,
+   const ReferenceGenomes& reference_genomes
 ) {
    std::unordered_map<std::string, std::string> pango_to_chunk;
    std::vector<std::string> chunk_names;
@@ -224,7 +213,7 @@ void silo::partitionSequences(
       const auto& part = partitions.partitions[i];
       for (unsigned j = 0, limit2 = part.chunks.size(); j < limit2; ++j) {
          const auto& chunk = part.chunks[j];
-         chunk_names.push_back(silo::buildChunkName(i, j));
+         chunk_names.push_back(silo::buildChunkString(i, j));
          for (const auto& pango : chunk.pango_lineages) {
             pango_to_chunk[pango] = chunk_names.back();
          }
@@ -232,20 +221,25 @@ void silo::partitionSequences(
    }
 
    auto key_to_chunk = partitionMetadataFile(
-      meta_in,
-      output_prefix,
-      alias_key,
-      metadata_file_extension,
-      pango_to_chunk,
-      chunk_names,
-      database_config
+      metadata_reader, output_folder, alias_key, pango_to_chunk, chunk_names, database_config
    );
 
-   partitionSequenceFile(
-      sequence_in, output_prefix, sequence_file_extension, chunk_names, key_to_chunk
-   );
+   for (const auto& [nuc_name, reference_genome] : reference_genomes.nucleotide_sequences) {
+      std::filesystem::path sequence_filename = input_folder;
+      sequence_filename += "nuc_" + nuc_name + ".fasta";
+      FastaReader sequence_input(sequence_filename);
 
-   SPDLOG_INFO("Finished partitioning to {}", output_prefix);
+      std::filesystem::path nuc_folder = output_folder;
+      nuc_folder += "nuc_" + nuc_name + std::filesystem::path::preferred_separator;
+
+      create_directory(nuc_folder);
+
+      partitionSequenceFile(
+         sequence_input, nuc_folder, chunk_names, key_to_chunk, reference_genome
+      );
+   }
+
+   SPDLOG_INFO("Finished partitioning to {}", output_folder.string());
 }
 
 struct PartitionChunk {
@@ -255,14 +249,12 @@ struct PartitionChunk {
 };
 
 std::unordered_map<std::string, silo::common::Date> sortMetadataFile(
-   const std::filesystem::path& meta_in,
+   silo::preprocessing::MetadataReader& metadata_reader,
    silo::preprocessing::MetadataWriter& metadata_writer,
    const PartitionChunk& chunk,
    const silo::SortChunkConfig& sort_chunk_config
 ) {
    std::unordered_map<std::string, silo::common::Date> primary_key_to_date;
-
-   auto metadata_reader = silo::preprocessing::MetadataReader::getReader(meta_in);
 
    struct RowWithDate {
       csv::CSVRow row;
@@ -271,11 +263,11 @@ std::unordered_map<std::string, silo::common::Date> sortMetadataFile(
    std::vector<RowWithDate> rows;
    rows.reserve(chunk.size);
 
-   for (auto& row : metadata_reader) {
+   for (auto& row : metadata_reader.reader) {
       const auto primary_key = row[sort_chunk_config.primary_key_name].get();
       const auto date_str = row[sort_chunk_config.date_column_to_sort_by].get();
 
-      silo::common::Date date = silo::common::stringToDate(date_str);
+      const silo::common::Date date = silo::common::stringToDate(date_str);
 
       rows.push_back({row, date});
 
@@ -286,7 +278,7 @@ std::unordered_map<std::string, silo::common::Date> sortMetadataFile(
       return line1.date < line2.date;
    });
 
-   metadata_writer.writeHeader(metadata_reader);
+   metadata_writer.writeHeader(metadata_reader.reader);
 
    for (const auto& row_with_date : rows) {
       metadata_writer.writeRow(row_with_date.row);
@@ -295,15 +287,10 @@ std::unordered_map<std::string, silo::common::Date> sortMetadataFile(
 }
 
 void sortSequenceFile(
-   silo::FastaReader& sequence_in,
-   std::ostream& sequence_out,
-   const PartitionChunk& chunk,
+   silo::ZstdFastaReader& sequence_in,
+   silo::ZstdFastaWriter& sequence_out,
    std::unordered_map<std::string, silo::common::Date>& primary_key_to_date
 ) {
-   const std::string chunk_str =
-      'P' + std::to_string(chunk.part) + '_' + 'C' + std::to_string(chunk.chunk);
-
-   // Now:
    // Read file once, fill all dates, sort dates,
    // calculated target position for every genome
    // Reset gpointer, read file again, putting every genome at the correct position.
@@ -315,23 +302,18 @@ void sortSequenceFile(
       uint32_t file_pos;
    };
    std::vector<KeyDatePair> key_date_pairs;
-   key_date_pairs.reserve(chunk.size);
    uint32_t number_of_sequences = 0;
    std::string key;
-   std::string genome;
-   while (sequence_in.next(key, genome)) {
+   std::string compressed_genome;
+   while (sequence_in.nextCompressed(key, compressed_genome)) {
       silo::common::Date const date = primary_key_to_date[key];
       key_date_pairs.emplace_back(KeyDatePair{key, date, number_of_sequences++});
    }
-
-   SPDLOG_TRACE("Finished first run for chunk {}", chunk_str);
 
    auto sorter = [](const KeyDatePair& date1, const KeyDatePair& date2) {
       return date1.date < date2.date;
    };
    std::sort(key_date_pairs.begin(), key_date_pairs.end(), sorter);
-
-   SPDLOG_TRACE("Sorted first run for partition {}", chunk_str);
 
    std::vector<uint32_t> file_pos_to_sorted_pos(number_of_sequences);
    unsigned number_of_sorted_files = 0;
@@ -339,11 +321,7 @@ void sortSequenceFile(
       file_pos_to_sorted_pos[key_date_pair.file_pos] = number_of_sorted_files++;
    }
 
-   SPDLOG_TRACE("Calculated positions for every sequence {}", chunk_str);
-
    sequence_in.reset();
-
-   SPDLOG_TRACE("Reset file seek, now read second time, sorted {}", chunk_str);
 
    constexpr uint32_t LINES_PER_SEQUENCE = 2;
    std::vector<std::string> lines_sorted(
@@ -352,7 +330,7 @@ void sortSequenceFile(
    for (auto pos : file_pos_to_sorted_pos) {
       const uint64_t first_line = static_cast<uint64_t>(LINES_PER_SEQUENCE) * pos;
       const uint64_t second_line = static_cast<uint64_t>(LINES_PER_SEQUENCE) * pos + 1;
-      if (!sequence_in.next(lines_sorted.at(first_line), lines_sorted.at(second_line))) {
+      if (!sequence_in.nextCompressed(lines_sorted.at(first_line), lines_sorted.at(second_line))) {
          SPDLOG_ERROR("Reached EOF too early.");
          return;
       }
@@ -361,31 +339,40 @@ void sortSequenceFile(
    for (uint32_t sequence = 0; sequence < number_of_sequences; ++sequence) {
       const uint64_t first_line = static_cast<uint64_t>(LINES_PER_SEQUENCE) * sequence;
       const uint64_t second_line = static_cast<uint64_t>(LINES_PER_SEQUENCE) * sequence + 1;
-      sequence_out << '>' << lines_sorted.at(first_line) << '\n'
-                   << lines_sorted.at(second_line) << '\n';
+      sequence_out.writeRaw(lines_sorted.at(first_line), lines_sorted.at(second_line));
    }
 }
 
 void sortChunk(
-   const std::filesystem::path& meta_in,
-   silo::FastaReader& sequence_in,
+   silo::preprocessing::MetadataReader& metadata_reader,
+   std::vector<silo::ZstdFastaReader>& sequence_inputs,
    silo::preprocessing::MetadataWriter& metadata_writer,
-   std::ostream& sequence_out,
+   std::vector<silo::ZstdFastaWriter>& sequence_outputs,
    const PartitionChunk chunk,
    const silo::SortChunkConfig& sort_chunk_config
 ) {
-   auto primary_key_to_date = sortMetadataFile(meta_in, metadata_writer, chunk, sort_chunk_config);
+   SPDLOG_TRACE("Sorting metadata for chunk " + silo::buildChunkString(chunk.part, chunk.chunk));
 
-   sortSequenceFile(sequence_in, sequence_out, chunk, primary_key_to_date);
+   auto primary_key_to_date =
+      sortMetadataFile(metadata_reader, metadata_writer, chunk, sort_chunk_config);
+
+   SPDLOG_TRACE("Sorting sequences for chunk " + silo::buildChunkString(chunk.part, chunk.chunk));
+
+   for (size_t nuc_idx = 0; nuc_idx < sequence_inputs.size(); ++nuc_idx) {
+      sortSequenceFile(sequence_inputs[nuc_idx], sequence_outputs[nuc_idx], primary_key_to_date);
+   }
+
+   SPDLOG_TRACE(
+      "Finished all sorting for chunk " + silo::buildChunkString(chunk.part, chunk.chunk)
+   );
 }
 
 void silo::sortChunks(
    const preprocessing::Partitions& partitions,
-   const std::string& input_prefix,
-   const std::string& output_prefix,
-   const std::string& metadata_file_extension,
-   const std::string& sequence_file_extension,
-   const SortChunkConfig& sort_chunk_config
+   const std::filesystem::path& input_folder,
+   const std::filesystem::path& output_folder,
+   const SortChunkConfig& sort_chunk_config,
+   const ReferenceGenomes& reference_genomes
 ) {
    std::vector<PartitionChunk> all_chunks;
    for (uint32_t part_id = 0, limit = partitions.partitions.size(); part_id < limit; ++part_id) {
@@ -397,19 +384,31 @@ void silo::sortChunks(
    }
 
    tbb::parallel_for_each(all_chunks.begin(), all_chunks.end(), [&](const PartitionChunk& chunk) {
-      const auto& file_name = input_prefix + silo::buildChunkName(chunk.part, chunk.chunk);
-      silo::FastaReader sequence_in(file_name + sequence_file_extension);
-      std::ofstream sequence_out(
-         output_prefix + silo::buildChunkName(chunk.part, chunk.chunk) + sequence_file_extension
-      );
-      silo::preprocessing::MetadataWriter meta_out(std::make_unique<std::ofstream>(
-         output_prefix + silo::buildChunkName(chunk.part, chunk.chunk) + metadata_file_extension
-      ));
+      std::vector<silo::ZstdFastaReader> sequence_inputs;
+      std::vector<silo::ZstdFastaWriter> sequence_outputs;
+      for (const auto& [nuc_name, reference_sequence] : reference_genomes.nucleotide_sequences) {
+         std::filesystem::path input_filename = input_folder;
+         input_filename += "nuc_" + nuc_name + std::filesystem::path::preferred_separator;
+         input_filename += silo::buildChunkString(chunk.part, chunk.chunk) + ZSTDFASTA_EXTENSION;
+         sequence_inputs.emplace_back(input_filename, reference_sequence);
+
+         std::filesystem::path output_filename = output_folder;
+         output_filename += "nuc_" + nuc_name + std::filesystem::path::preferred_separator;
+         create_directory(output_filename);
+         output_filename += silo::buildChunkString(chunk.part, chunk.chunk) + ZSTDFASTA_EXTENSION;
+         sequence_outputs.emplace_back(output_filename, reference_sequence);
+      }
+      std::filesystem::path metadata_input = input_folder;
+      metadata_input += silo::buildChunkString(chunk.part, chunk.chunk) + TSV_EXTENSION;
+      silo::preprocessing::MetadataReader metadata_reader(metadata_input);
+      std::filesystem::path metadata_output = output_folder;
+      metadata_output += silo::buildChunkString(chunk.part, chunk.chunk) + TSV_EXTENSION;
+      silo::preprocessing::MetadataWriter metadata_writer(metadata_output);
       sortChunk(
-         file_name + metadata_file_extension,
-         sequence_in,
-         meta_out,
-         sequence_out,
+         metadata_reader,
+         sequence_inputs,
+         metadata_writer,
+         sequence_outputs,
          chunk,
          sort_chunk_config
       );

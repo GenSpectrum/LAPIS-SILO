@@ -5,10 +5,12 @@
 
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/actions/action.h"
+#include "silo/storage/sequence_store.h"
 
 namespace silo::query_engine::actions {
 
 class NucMutations : public Action {
+   std::optional<std::string> nuc_sequence_name;
    double min_proportion;
 
    static constexpr std::array<NUCLEOTIDE_SYMBOL, 5> VALID_MUTATION_SYMBOLS{
@@ -25,12 +27,12 @@ class NucMutations : public Action {
 
   private:
    static std::array<std::vector<uint32_t>, MUTATION_SYMBOL_COUNT> calculateMutationsPerPosition(
-      const Database& database,
+      const SequenceStore& seq_store,
       std::vector<OperatorResult>& bitmap_filter
    );
 
   public:
-   explicit NucMutations(double min_proportion);
+   explicit NucMutations(std::optional<std::string> nuc_sequence_name, double min_proportion);
 
    [[nodiscard]] QueryResult execute(
       const Database& database,

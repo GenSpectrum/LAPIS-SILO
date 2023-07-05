@@ -1,6 +1,7 @@
 #ifndef SILO_DATABASE_H
 #define SILO_DATABASE_H
 
+#include <filesystem>
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -16,7 +17,8 @@
 #include "silo/storage/column/pango_lineage_column.h"
 #include "silo/storage/column/string_column.h"
 #include "silo/storage/pango_lineage_alias.h"
-#include "silo/storage/reference_genome.h"
+#include "silo/storage/reference_genomes.h"
+#include "silo/storage/sequence_store.h"
 
 namespace silo {
 struct DatabasePartition;
@@ -39,7 +41,7 @@ struct BitmapContainerSize;
 class Database {
   public:
    silo::config::DatabaseConfig database_config;
-   std::unique_ptr<ReferenceGenome> reference_genome;
+   ReferenceGenomes reference_genomes;
    std::vector<DatabasePartition> partitions;
 
    std::unordered_map<std::string, storage::column::StringColumn> string_columns;
@@ -48,6 +50,7 @@ class Database {
    std::unordered_map<std::string, storage::column::FloatColumn> float_columns;
    std::unordered_map<std::string, storage::column::DateColumn> date_columns;
    std::unordered_map<std::string, storage::column::PangoLineageColumn> pango_lineage_columns;
+   std::unordered_map<std::string, SequenceStore> nuc_sequences;
 
    Database();
 
@@ -57,10 +60,8 @@ class Database {
    );
 
    void build(
-      const std::string& partition_name_prefix,
-      const std::string& metadata_file_suffix,
-      const std::string& sequence_file_suffix,
-      const silo::preprocessing::Partitions& partition_descriptor
+      const std::filesystem::path& input_folder,
+      const preprocessing::Partitions& partition_descriptor
    );
 
    virtual silo::DatabaseInfo getDatabaseInfo() const;
@@ -68,10 +69,6 @@ class Database {
    virtual DetailedDatabaseInfo detailedDatabaseInfo() const;
 
    [[maybe_unused]] void flipBitmaps();
-
-   [[maybe_unused]] void indexAllNucleotideSymbolsN();
-
-   [[maybe_unused]] void naiveIndexAllNucleotideSymbolsN();
 
    [[maybe_unused]] void saveDatabaseState(
       const std::string& save_directory,
@@ -98,13 +95,17 @@ class Database {
    PangoLineageAliasLookup alias_key;
 
    void initializeColumns();
+   void initializeSequences();
 
    BitmapSizePerSymbol calculateBitmapSizePerSymbol() const;
 
-   BitmapContainerSize calculateBitmapContainerSizePerGenomeSection(uint32_t section_length) const;
+   BitmapContainerSize calculateBitmapContainerSizePerGenomeSection(
+      size_t genome_length,
+      size_t section_length
+   ) const;
 };
 
-std::string buildChunkName(unsigned partition, unsigned chunk);
+std::string buildChunkString(unsigned partition, unsigned chunk);
 
 }  // namespace silo
 

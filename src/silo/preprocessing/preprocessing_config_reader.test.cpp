@@ -22,7 +22,6 @@ TEST(PreprocessingConfigReader, shouldReadConfigWithCorrectParametersAndDefaults
    ASSERT_EQ(config.metadata_file, input_directory + "small_metadata_set.tsv");
    ASSERT_EQ(config.pango_lineage_definition_file, input_directory + "pangolineage_alias.json");
    ASSERT_EQ(config.partition_folder, output_directory + "partitions/");
-   ASSERT_EQ(config.sequence_file, input_directory + "small_sequence_set.fasta");
    ASSERT_EQ(config.serialization_folder, output_directory + "serialized_state/");
    ASSERT_EQ(config.sorted_partition_folder, output_directory + "partitions_sorted/");
 }
@@ -47,7 +46,6 @@ TEST(PreprocessingConfigReader, shouldReadConfigWithOverriddenDefaults) {
    ASSERT_EQ(config.input_directory, input_directory);
    ASSERT_EQ(config.metadata_file, input_directory + "small_metadata_set.tsv");
    ASSERT_EQ(config.pango_lineage_definition_file, input_directory + "pangolineage_alias.json");
-   ASSERT_EQ(config.sequence_file, input_directory + "small_sequence_set.fasta");
 
    ASSERT_EQ(config.partition_folder, output_directory + "folder1/");
    ASSERT_EQ(config.sorted_partition_folder, output_directory + "folder2/");

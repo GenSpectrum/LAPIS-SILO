@@ -8,7 +8,7 @@
 #include "silo/query_engine/filter_expressions/or.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_parse_exception.h"
-#include "silo/storage/reference_genome.h"
+#include "silo/storage/reference_genomes.h"
 
 #include "silo/database.h"
 
@@ -27,7 +27,9 @@ std::unique_ptr<operators::Operator> HasMutation::compile(
    const silo::DatabasePartition& database_partition,
    AmbiguityMode mode
 ) const {
-   const char ref_symbol = database.reference_genome->genome_segments[0].at(position);
+   const char ref_symbol = database.reference_genomes.nucleotide_sequences
+                              .at(database.database_config.default_nucleotide_sequence)
+                              .at(position);
 
    if (mode == UPPER_BOUND) {
       auto expression =

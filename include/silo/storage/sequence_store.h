@@ -3,6 +3,7 @@
 #define SILO_SEQUENCE_STORE_H
 
 #include <array>
+#include <deque>
 #include <optional>
 
 #include <silo/common/fasta_reader.h>
@@ -10,8 +11,8 @@
 #include <boost/serialization/array.hpp>
 #include <roaring/roaring.hh>
 
-#include "silo/common/fasta_reader.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/common/zstdfasta_reader.h"
 #include "silo/roaring/roaring_serialize.h"
 #include "silo/storage/serialize_optional.h"
 
@@ -40,13 +41,10 @@ struct SequenceStoreInfo {
    size_t n_bitmaps_size;
 };
 
-class SequenceStore {
-  private:
-   unsigned sequence_count{};
-
-  public:
+class SequenceStorePartition {
    friend class boost::serialization::access;
 
+  private:
    template <class Archive>
    void serialize(Archive& archive, [[maybe_unused]] const unsigned int version) {
       // clang-format off
@@ -56,39 +54,42 @@ class SequenceStore {
       // clang-format on
    }
 
-   std::array<Position, GENOME_LENGTH> positions;
-   std::vector<roaring::Roaring> nucleotide_symbol_n_bitmaps;
+   void fillIndexes(const std::vector<std::string>& genomes);
 
-   SequenceStore();
+   void fillNBitmaps(const std::vector<std::string>& genomes);
+
+  public:
+   explicit SequenceStorePartition(const std::string& reference_genome);
+
+   const std::string& reference_genome;
+   std::vector<Position> positions;
+   std::vector<roaring::Roaring> nucleotide_symbol_n_bitmaps;
+   unsigned sequence_count{};
 
    [[nodiscard]] size_t computeSize() const;
 
    [[nodiscard]] const roaring::Roaring* getBitmap(size_t position, NUCLEOTIDE_SYMBOL symbol) const;
 
-   [[nodiscard]] roaring::Roaring* getBitmapFromAmbiguousSymbol(
-      size_t position,
-      NUCLEOTIDE_SYMBOL ambiguous_symbol
-   ) const;
+   SequenceStoreInfo getInfo() const;
 
-   [[nodiscard]] roaring::Roaring* getFlippedBitmapFromAmbiguousSymbol(
-      size_t position,
-      NUCLEOTIDE_SYMBOL ambiguous_symbol
-   ) const;
+   unsigned fill(silo::ZstdFastaReader& input_file);
 
    void interpret(const std::vector<std::string>& genomes);
 
-   void indexAllNucleotideSymbolsN();
+   unsigned runOptimize();
 
-   void naiveIndexAllNucleotideSymbolN();
-
-   SequenceStoreInfo getInfo() const;
-
-   unsigned fill(silo::FastaReader& input_file);
+   unsigned shrinkToFit();
 };
 
-[[maybe_unused]] unsigned runOptimize(SequenceStore& sequence_store);
+class SequenceStore {
+  public:
+   std::string reference_genome;
+   std::deque<SequenceStorePartition> partitions;
 
-[[maybe_unused]] unsigned shrinkToFit(SequenceStore& sequence_store);
+   explicit SequenceStore(std::string reference_genome);
+
+   SequenceStorePartition& createPartition();
+};
 
 }  // namespace silo
 
