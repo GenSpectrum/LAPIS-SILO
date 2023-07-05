@@ -16,7 +16,11 @@ void to_json(nlohmann::json& json, const QueryResult& query_result) {
 // NOLINTNEXTLINE(readability-identifier-naming)
 void to_json(nlohmann::json& json, const QueryResultEntry& result_entry) {
    for (const auto& [field, value] : result_entry.fields) {
-      json[field] = value;
+      if (value.has_value()) {
+         json[field] = value.value();
+      } else {
+         json[field] = nlohmann::json();
+      }
    }
 }
 

@@ -10,4 +10,5 @@ TEST(DateColumn, insertValues) {
    under_test.insert(silo::common::stringToDate("2021-12-03"));
    under_test.insert(silo::common::stringToDate("2025-01-01"));
    under_test.insert(silo::common::stringToDate("2021-03-21"));
+   under_test.insert(silo::common::stringToDate(""));
 }

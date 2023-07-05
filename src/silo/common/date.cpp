@@ -1,6 +1,5 @@
 #include "silo/common/date.h"
 
-#include <cstdint>
 #include <iomanip>
 #include <sstream>
 #include <string>
@@ -8,6 +7,9 @@
 #include "silo/common/date_format_exception.h"
 
 silo::common::Date silo::common::stringToDate(const std::string& value) {
+   if (value.empty()) {
+      return 0;
+   }
    auto split_position = value.find('-', 0);
    if (split_position == value.size()) {
       throw DateFormatException("Expect dates to be delimited by '-': " + value);
@@ -39,7 +41,10 @@ silo::common::Date silo::common::stringToDate(const std::string& value) {
    }
 }
 
-std::string silo::common::dateToString(silo::common::Date date) {
+std::optional<std::string> silo::common::dateToString(silo::common::Date date) {
+   if (date == 0) {
+      return std::nullopt;
+   }
    // Date is stored with the year in the upper 16 bits, month in bits [12,16), and day [0,12)
    const uint32_t year = date >> 16;
    const uint32_t month = (date >> 12) & 0xF;

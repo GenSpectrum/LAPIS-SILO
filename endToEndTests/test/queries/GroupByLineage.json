@@ -12,6 +12,10 @@
   },
   "expectedQueryResult": [
     {
+      "count": 1,
+      "pango_lineage": null
+    },
+    {
       "count": 3,
       "pango_lineage": "B.1"
     },
@@ -94,10 +98,6 @@
     {
       "count": 1,
       "pango_lineage": "B.1.617.2.122"
-    },
-    {
-      "count": 1,
-      "pango_lineage": "B.1.617.2.42"
     },
     {
       "count": 4,

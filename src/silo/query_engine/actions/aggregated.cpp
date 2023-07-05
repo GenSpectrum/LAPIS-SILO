@@ -1,6 +1,7 @@
 #include "silo/query_engine/actions/aggregated.h"
 
 #include <chrono>
+#include <cmath>
 #include <functional>
 #include <random>
 #include <utility>
@@ -21,6 +22,8 @@
 #include "silo/storage/database_partition.h"
 
 namespace silo::query_engine::actions {
+
+using json_value_type = std::optional<std::variant<std::string, int32_t, double>>;
 
 size_t getTupleSize(std::vector<config::DatabaseMetadata>& group_by_metadata) {
    size_t size = 0;
@@ -83,8 +86,8 @@ struct Tuple {
       }
    }
 
-   std::map<std::string, std::variant<std::string, int32_t, double>> getFields() const {
-      std::map<std::string, std::variant<std::string, int32_t, double>> fields;
+   [[nodiscard]] std::map<std::string, json_value_type> getFields() const {
+      std::map<std::string, json_value_type> fields;
       const char* data_pointer = data.data();
       for (const auto& metadata : columns.metadata) {
          if (metadata.getColumnType() == config::ColumnType::DATE) {
@@ -93,26 +96,49 @@ struct Tuple {
             data_pointer += sizeof(decltype(value));
          } else if (metadata.getColumnType() == config::ColumnType::INT) {
             const int32_t value = *reinterpret_cast<const int32_t*>(data_pointer);
-            fields[metadata.name] = value;
+            if (value == INT32_MIN) {
+               fields[metadata.name] = std::nullopt;
+            } else {
+               fields[metadata.name] = value;
+            }
             data_pointer += sizeof(decltype(value));
          } else if (metadata.getColumnType() == config::ColumnType::FLOAT) {
             const double value = *reinterpret_cast<const double*>(data_pointer);
-            fields[metadata.name] = value;
+            if (std::isnan(value)) {
+               fields[metadata.name] = std::nullopt;
+            } else {
+               fields[metadata.name] = value;
+            }
             data_pointer += sizeof(decltype(value));
          } else if (metadata.getColumnType() == config::ColumnType::STRING) {
             const common::String<common::STRING_SIZE> value =
                *reinterpret_cast<const common::String<common::STRING_SIZE>*>(data_pointer);
-            fields[metadata.name] = columns.string_columns.at(metadata.name).lookupValue(value);
+            std::string string_value = columns.string_columns.at(metadata.name).lookupValue(value);
+            if (string_value.empty()) {
+               fields[metadata.name] = std::nullopt;
+            } else {
+               fields[metadata.name] = string_value;
+            }
             data_pointer += sizeof(decltype(value));
          } else if (metadata.getColumnType() == config::ColumnType::INDEXED_PANGOLINEAGE) {
             const silo::Idx value = *reinterpret_cast<const silo::Idx*>(data_pointer);
-            fields[metadata.name] =
+            std::string string_value =
                columns.pango_lineage_columns.at(metadata.name).lookupValue(value).value;
+            if (string_value.empty()) {
+               fields[metadata.name] = std::nullopt;
+            } else {
+               fields[metadata.name] = string_value;
+            }
             data_pointer += sizeof(decltype(value));
          } else if (metadata.getColumnType() == config::ColumnType::INDEXED_STRING) {
             const silo::Idx value = *reinterpret_cast<const silo::Idx*>(data_pointer);
-            fields[metadata.name] =
+            std::string string_value =
                columns.indexed_string_columns.at(metadata.name).lookupValue(value);
+            if (string_value.empty()) {
+               fields[metadata.name] = std::nullopt;
+            } else {
+               fields[metadata.name] = string_value;
+            }
             data_pointer += sizeof(decltype(value));
          } else {
             throw std::runtime_error("Unchecked column type of column " + metadata.name);
@@ -173,14 +199,13 @@ void applyOrderByAndLimit(
    const std::vector<OrderByField>& order_by_fields,
    std::optional<uint32_t> limit
 ) {
-   auto cmp = [&order_by_fields](const QueryResultEntry& value1, const QueryResultEntry& value2) {
+   auto cmp = [&order_by_fields](const QueryResultEntry& entry1, const QueryResultEntry& entry2) {
       for (const OrderByField& field : order_by_fields) {
-         if (value1.fields.at(field.name) < value2.fields.at(field.name)) {
-            return field.ascending;
+         if (entry1.fields.at(field.name) == entry2.fields.at(field.name)) {
+            continue;
          }
-         if (value2.fields.at(field.name) < value1.fields.at(field.name)) {
-            return !field.ascending;
-         }
+         return entry1.fields.at(field.name) < entry2.fields.at(field.name) ? field.ascending
+                                                                            : !field.ascending;
       }
       return false;
    };
@@ -197,7 +222,7 @@ std::vector<QueryResultEntry> generateResult(std::unordered_map<Tuple, uint32_t>
    std::vector<QueryResultEntry> result;
    result.reserve(tuple_counts.size());
    for (auto& [tuple, count] : tuple_counts) {
-      std::map<std::string, std::variant<std::string, int32_t, double>> fields = tuple.getFields();
+      std::map<std::string, json_value_type> fields = tuple.getFields();
       fields[COUNT_FIELD] = static_cast<int32_t>(count);
       result.push_back({fields});
    }
@@ -209,7 +234,7 @@ QueryResult aggregateWithoutGrouping(const std::vector<OperatorResult>& bitmap_f
    for (const auto& filter : bitmap_filters) {
       count += filter->cardinality();
    };
-   std::map<std::string, std::variant<std::string, int32_t, double>> tuple_fields;
+   std::map<std::string, json_value_type> tuple_fields;
    tuple_fields[COUNT_FIELD] = static_cast<int32_t>(count);
    return QueryResult{std::vector<QueryResultEntry>{{tuple_fields}}};
 }

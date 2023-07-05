@@ -1,5 +1,7 @@
 #include "silo/query_engine/filter_expressions/float_equals.h"
 
+#include <cmath>
+
 #include <nlohmann/json.hpp>
 
 #include "silo/database.h"
@@ -19,9 +21,9 @@ std::string FloatEquals::toString(const silo::Database& /*database*/) const {
 }
 
 std::unique_ptr<silo::query_engine::operators::Operator> FloatEquals::compile(
-   const silo::Database& database,
+   const silo::Database& /*database*/,
    const silo::DatabasePartition& database_partition,
-   silo::query_engine::filter_expressions::Expression::AmbiguityMode mode
+   silo::query_engine::filter_expressions::Expression::AmbiguityMode /*mode*/
 ) const {
    if (!database_partition.columns.float_columns.contains(column)) {
       return std::make_unique<operators::Empty>(database_partition.sequenceCount);
@@ -48,11 +50,11 @@ void from_json(const nlohmann::json& json, std::unique_ptr<FloatEquals>& filter)
       json.contains("value"), "The field 'value' is required in an FloatEquals expression"
    )
    CHECK_SILO_QUERY(
-      json["value"].is_number_float(),
+      json["value"].is_number_float() || json["value"].is_null(),
       "The field 'value' in an FloatEquals expression must be a float"
    )
    const std::string& column = json["column"];
-   const double& value = json["value"];
+   const double& value = json["value"].is_null() ? std::nan("") : json["value"].get<double>();
    filter = std::make_unique<FloatEquals>(column, value);
 }
 

@@ -1,10 +1,10 @@
 {
-  "testCaseName": "Order By QC float column ascending",
+  "testCaseName": "Order By QC float column descending",
   "query": {
     "action": {
       "type": "Aggregated",
       "groupByFields": ["qc_value"],
-      "orderByFields": ["qc_value asc"]
+      "orderByFields": ["qc_value desc"]
     },
     "filterExpression": {
       "type": "True"
@@ -12,40 +12,8 @@
   },
   "expectedQueryResult": [
     {
-      "count": 2,
-      "qc_value": null
-    },
-    {
       "count": 10,
-      "qc_value": 0.89
-    },
-    {
-      "count": 10,
-      "qc_value": 0.9
-    },
-    {
-      "count": 10,
-      "qc_value": 0.91
-    },
-    {
-      "count": 10,
-      "qc_value": 0.92
-    },
-    {
-      "count": 10,
-      "qc_value": 0.93
-    },
-    {
-      "count": 10,
-      "qc_value": 0.94
-    },
-    {
-      "count": 8,
-      "qc_value": 0.95
-    },
-    {
-      "count": 10,
-      "qc_value": 0.96
+      "qc_value": 0.98
     },
     {
       "count": 10,
@@ -53,7 +21,39 @@
     },
     {
       "count": 10,
-      "qc_value": 0.98
+      "qc_value": 0.96
+    },
+    {
+      "count": 8,
+      "qc_value": 0.95
+    },
+    {
+      "count": 10,
+      "qc_value": 0.94
+    },
+    {
+      "count": 10,
+      "qc_value": 0.93
+    },
+    {
+      "count": 10,
+      "qc_value": 0.92
+    },
+    {
+      "count": 10,
+      "qc_value": 0.91
+    },
+    {
+      "count": 10,
+      "qc_value": 0.9
+    },
+    {
+      "count": 10,
+      "qc_value": 0.89
+    },
+    {
+      "count": 2,
+      "qc_value": null
     }
   ]
 }

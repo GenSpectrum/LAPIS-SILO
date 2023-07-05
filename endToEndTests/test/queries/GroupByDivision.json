@@ -12,6 +12,10 @@
   },
   "expectedQueryResult": [
     {
+      "count": 2,
+      "division": null
+    },
+    {
       "count": 6,
       "division": "Aargau"
     },
@@ -24,7 +28,7 @@
       "division": "Basel-Stadt"
     },
     {
-      "count": 10,
+      "count": 9,
       "division": "Bern"
     },
     {
@@ -56,7 +60,7 @@
       "division": "Schwyz"
     },
     {
-      "count": 16,
+      "count": 15,
       "division": "Solothurn"
     },
     {

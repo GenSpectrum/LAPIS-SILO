@@ -25,9 +25,13 @@ DateBetween::DateBetween(
 
 std::string DateBetween::toString(const silo::Database& /*database*/) const {
    std::string res = "[Date-between ";
-   res += (date_from.has_value() ? silo::common::dateToString(date_from.value()) : "unbounded");
+   res +=
+      (date_from.has_value() ? silo::common::dateToString(date_from.value()).value_or("")
+                             : "unbounded");
    res += " and ";
-   res += (date_to.has_value() ? silo::common::dateToString(date_to.value()) : "unbounded");
+   res +=
+      (date_to.has_value() ? silo::common::dateToString(date_to.value()).value_or("") : "unbounded"
+      );
    res += "]";
    return res;
 }
@@ -44,7 +48,7 @@ std::unique_ptr<operators::Operator> DateBetween::compile(
       children.emplace_back(std::make_unique<operators::Selection<silo::common::Date>>(
          date_column.getValues(),
          operators::Selection<silo::common::Date>::HIGHER_OR_EQUALS,
-         date_from.value_or(silo::common::Date{0}),
+         date_from.value_or(silo::common::Date{1}),
          database_partition.sequenceCount
       ));
       children.emplace_back(std::make_unique<operators::Selection<silo::common::Date>>(
@@ -78,8 +82,8 @@ std::vector<silo::query_engine::operators::RangeSelection::Range> DateBetween::
    for (const auto& chunk : chunks) {
       const auto* begin = &date_column.getValues()[chunk.offset];
       const auto* end = &date_column.getValues()[chunk.offset + chunk.count_of_sequences];
-      const auto* lower =
-         date_from.has_value() ? std::lower_bound(begin, end, date_from.value()) : begin;
+      // If lower bound is empty we use 1 as the lower-bound, as 0 represents NULL values
+      const auto* lower = std::lower_bound(begin, end, date_from.value_or(2));
       uint32_t const lower_index = lower - base;
       const auto* upper = date_to.has_value() ? std::upper_bound(begin, end, date_to.value()) : end;
       uint32_t const upper_index = upper - base;
@@ -98,13 +102,13 @@ void from_json(const nlohmann::json& json, std::unique_ptr<DateBetween>& filter)
    )
    CHECK_SILO_QUERY(json.contains("from"), "The field 'from' is required in DateBetween expression")
    CHECK_SILO_QUERY(
-      json["from"].is_null() || json["from"].is_string(),
+      json["from"].is_null() || (json["from"].is_string() && !json["from"].empty()),
       "The field 'from' in a DateBetween expression needs to be a string or null"
    )
    CHECK_SILO_QUERY(json.contains("to"), "The field 'to' is required in a DateBetween expression")
    CHECK_SILO_QUERY(
-      json["to"].is_null() || json["to"].is_string(),
-      "The field 'to' in a DateBetween expression needs to be a string or null"
+      json["to"].is_null() || (json["to"].is_string() && !json["to"].empty()),
+      "The field 'to' in a DateBetween expression needs to be a non-empty string or null"
    )
    const std::string& column = json["column"];
    std::optional<silo::common::Date> date_from;
