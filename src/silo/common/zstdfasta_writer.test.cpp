@@ -6,7 +6,7 @@
 #include "silo/common/zstdfasta_writer.h"
 #include "silo/preprocessing/preprocessing_config.h"
 
-TEST(ZstdFastaReader, writesCorrectFiles) {
+TEST(ZstdFastaWriter, writesCorrectFiles) {
    const std::filesystem::path file_path("./testBaseData/tmp/test.fasta");
 
    const std::string reference_genome = "ACGTACGTACGTACGT";

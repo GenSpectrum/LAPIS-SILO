@@ -7,13 +7,13 @@
 #include <zstd.h>
 
 #include "silo/common/input_stream_wrapper.h"
+#include "silo/common/zstd_compressor.h"
 
 namespace silo {
 class ZstdFastaWriter {
   private:
    std::ofstream outStream;
-   ZSTD_CDict* zstd_dictionary;
-   ZSTD_CCtx* zstd_context;
+   std::unique_ptr<ZstdCompressor> compressor;
    std::string buffer;
 
   public:

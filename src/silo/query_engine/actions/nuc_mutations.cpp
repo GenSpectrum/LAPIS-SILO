@@ -23,13 +23,13 @@ using silo::query_engine::OperatorResult;
 namespace {
 
 std::pair<std::vector<size_t>, std::vector<size_t>> preFilterBitmaps(
-   const silo::SequenceStore& sequence_stores,
+   const silo::SequenceStore& sequence_store,
    std::vector<OperatorResult>& bitmap_filter
 ) {
    std::vector<size_t> bitmap_filters_to_evaluate;
    std::vector<size_t> full_bitmap_filters_to_evaluate;
-   for (size_t i = 0; i < sequence_stores.partitions.size(); ++i) {
-      const silo::SequenceStorePartition& seq_store = sequence_stores.partitions.at(i);
+   for (size_t i = 0; i < sequence_store.partitions.size(); ++i) {
+      const silo::SequenceStorePartition& seq_store = sequence_store.partitions.at(i);
       OperatorResult& filter = bitmap_filter[i];
       const size_t cardinality = filter->cardinality();
       if (cardinality == 0) {

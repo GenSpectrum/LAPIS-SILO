@@ -289,7 +289,6 @@ std::unordered_map<std::string, silo::common::Date> sortMetadataFile(
 void sortSequenceFile(
    silo::ZstdFastaReader& sequence_in,
    silo::ZstdFastaWriter& sequence_out,
-   const PartitionChunk& chunk,
    std::unordered_map<std::string, silo::common::Date>& primary_key_to_date
 ) {
    // Read file once, fill all dates, sort dates,
@@ -311,14 +310,10 @@ void sortSequenceFile(
       key_date_pairs.emplace_back(KeyDatePair{key, date, number_of_sequences++});
    }
 
-   // SPDLOG_TRACE("Finished first run for chunk {}", chunk_str);
-
    auto sorter = [](const KeyDatePair& date1, const KeyDatePair& date2) {
       return date1.date < date2.date;
    };
    std::sort(key_date_pairs.begin(), key_date_pairs.end(), sorter);
-
-   // SPDLOG_TRACE("Sorted first run for partition {}", chunk_str);
 
    std::vector<uint32_t> file_pos_to_sorted_pos(number_of_sequences);
    unsigned number_of_sorted_files = 0;
@@ -326,11 +321,7 @@ void sortSequenceFile(
       file_pos_to_sorted_pos[key_date_pair.file_pos] = number_of_sorted_files++;
    }
 
-   // SPDLOG_TRACE("Calculated positions for every sequence {}", chunk_str);
-
    sequence_in.reset();
-
-   // SPDLOG_TRACE("Reset file seek, now read second time, sorted {}", chunk_str);
 
    constexpr uint32_t LINES_PER_SEQUENCE = 2;
    std::vector<std::string> lines_sorted(
@@ -360,14 +351,20 @@ void sortChunk(
    const PartitionChunk chunk,
    const silo::SortChunkConfig& sort_chunk_config
 ) {
+   SPDLOG_TRACE("Sorting metadata for chunk " + silo::buildChunkString(chunk.part, chunk.chunk));
+
    auto primary_key_to_date =
       sortMetadataFile(metadata_reader, metadata_writer, chunk, sort_chunk_config);
 
+   SPDLOG_TRACE("Sorting sequences for chunk " + silo::buildChunkString(chunk.part, chunk.chunk));
+
    for (size_t nuc_idx = 0; nuc_idx < sequence_inputs.size(); ++nuc_idx) {
-      sortSequenceFile(
-         sequence_inputs[nuc_idx], sequence_outputs[nuc_idx], chunk, primary_key_to_date
-      );
+      sortSequenceFile(sequence_inputs[nuc_idx], sequence_outputs[nuc_idx], primary_key_to_date);
    }
+
+   SPDLOG_TRACE(
+      "Finished all sorting for chunk " + silo::buildChunkString(chunk.part, chunk.chunk)
+   );
 }
 
 void silo::sortChunks(

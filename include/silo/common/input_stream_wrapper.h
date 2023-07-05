@@ -15,7 +15,7 @@ struct InputStreamWrapper {
   public:
    explicit InputStreamWrapper(const std::filesystem::path& filename);
 
-   std::istream& getInputStream() const;
+   [[nodiscard]] std::istream& getInputStream() const;
 };
 }  // namespace silo
 

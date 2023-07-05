@@ -139,7 +139,7 @@ DatabaseInfo Database::getDatabaseInfo() const {
       partitions.end(),
       [&](const DatabasePartition& database_partition) {
          sequence_count += database_partition.sequenceCount;
-         for (auto& [_, seq_store] : database_partition.nuc_sequences) {
+         for (const auto& [_, seq_store] : database_partition.nuc_sequences) {
             total_size += seq_store.computeSize();
             for (const auto& bitmap : seq_store.nucleotide_symbol_n_bitmaps) {
                nucleotide_symbol_n_bitmaps_size += bitmap.getSizeInBytes(false);
@@ -223,7 +223,7 @@ BitmapSizePerSymbol Database::calculateBitmapSizePerSymbol() const {
       BitmapSizePerSymbol bitmap_size_per_symbol;
 
       for (const DatabasePartition& database_partition : partitions) {
-         for (auto& [_, seq_store] : database_partition.nuc_sequences) {
+         for (const auto& [_, seq_store] : database_partition.nuc_sequences) {
             for (const auto& position : seq_store.positions) {
                bitmap_size_per_symbol.size_in_bytes[symbol] +=
                   position.bitmaps[static_cast<unsigned>(symbol)].getSizeInBytes();
@@ -271,7 +271,7 @@ BitmapContainerSize Database::calculateBitmapContainerSizePerGenomeSection(
       for (auto position_index = range.begin(); position_index != range.end(); ++position_index) {
          RoaringStatistics statistic;
          for (const auto& database_partition : partitions) {
-            for (auto& [_, seq_store] : database_partition.nuc_sequences) {
+            for (const auto& [_, seq_store] : database_partition.nuc_sequences) {
                const auto& position = seq_store.positions[position_index];
                for (const auto& genome_symbol : GENOME_SYMBOLS) {
                   const auto& bitmap = position.bitmaps[static_cast<unsigned>(genome_symbol)];

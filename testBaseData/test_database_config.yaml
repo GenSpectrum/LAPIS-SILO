@@ -1,20 +1,5 @@
 schema:
   instanceName: sars_cov-2_minimal_test_config
-  nucleotideSequences:
-    - name: main
-  aminoAcidSequences:
-    - name: E
-    - name: M
-    - name: N
-    - name: S
-    - name: ORF1A
-    - name: ORF1B
-    - name: ORF3A
-    - name: ORF6
-    - name: ORF7A
-    - name: ORF7B
-    - name: ORF8
-    - name: ORF9B
   metadata:
     - name: gisaid_epi_isl
       type: string

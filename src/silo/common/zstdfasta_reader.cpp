@@ -6,9 +6,8 @@ silo::ZstdFastaReader::ZstdFastaReader(
    const std::filesystem::path& in_file_name,
    const std::string& compression_dict
 )
-    : in_file(in_file_name) {
-   zstd_dictionary = ZSTD_createDDict(compression_dict.data(), compression_dict.length());
-   zstd_context = ZSTD_createDCtx();
+    : in_file(in_file_name),
+      decompressor(std::make_unique<ZstdDecompressor>(compression_dict)) {
    genome_buffer = std::string(compression_dict.length(), '\0');
 }
 
@@ -64,14 +63,7 @@ bool silo::ZstdFastaReader::next(std::string& key, std::string& genome) {
    if (!nextCompressed(key, compressed_buffer)) {
       return false;
    }
-   ZSTD_decompress_usingDDict(
-      zstd_context,
-      genome_buffer.data(),
-      genome_buffer.length(),
-      compressed_buffer.data(),
-      compressed_buffer.size(),
-      zstd_dictionary
-   );
+   decompressor->decompress(compressed_buffer, genome_buffer);
    genome = genome_buffer;
    return true;
 }
