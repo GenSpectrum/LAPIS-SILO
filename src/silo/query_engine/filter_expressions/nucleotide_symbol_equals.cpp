@@ -43,7 +43,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals:
       nucleotide_symbol = toNucleotideSymbol(value).value_or(NUCLEOTIDE_SYMBOL::N);
    }
    if (mode == UPPER_BOUND) {
-      auto symbols_to_match = AMBIGUITY_SYMBOLS.at(static_cast<uint32_t>(nucleotide_symbol));
+      auto symbols_to_match = AMBIGUITY_NUC_SYMBOLS.at(static_cast<uint32_t>(nucleotide_symbol));
       std::vector<std::unique_ptr<Expression>> symbol_filters;
       std::transform(
          symbols_to_match.begin(),
@@ -51,14 +51,14 @@ std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals:
          std::back_inserter(symbol_filters),
          [&](silo::NUCLEOTIDE_SYMBOL symbol) {
             return std::make_unique<NucleotideSymbolEquals>(
-               position, SYMBOL_REPRESENTATION[static_cast<uint32_t>(symbol)]
+               position, NUC_SYMBOL_REPRESENTATION[static_cast<uint32_t>(symbol)]
             );
          }
       );
       return std::make_unique<Or>(std::move(symbol_filters))
          ->compile(database, database_partition, NONE);
    }
-   if (nucleotide_symbol == NUCLEOTIDE_SYMBOL::N && !seq_store_partition.positions[position].nucleotide_symbol_n_indexed) {
+   if (nucleotide_symbol == NUCLEOTIDE_SYMBOL::N) {
       return std::make_unique<operators::BitmapSelection>(
          seq_store_partition.nucleotide_symbol_n_bitmaps.data(),
          seq_store_partition.nucleotide_symbol_n_bitmaps.size(),

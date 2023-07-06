@@ -239,6 +239,19 @@ void silo::partitionData(
       );
    }
 
+   for (const auto& [aa_name, reference_genome] : reference_genomes.aa_sequences) {
+      std::filesystem::path sequence_filename = input_folder;
+      sequence_filename += "gene_" + aa_name + ".fasta";
+      FastaReader sequence_input(sequence_filename);
+
+      std::filesystem::path aa_folder = output_folder;
+      aa_folder += "gene_" + aa_name + std::filesystem::path::preferred_separator;
+
+      create_directory(aa_folder);
+
+      partitionSequenceFile(sequence_input, aa_folder, chunk_names, key_to_chunk, reference_genome);
+   }
+
    SPDLOG_INFO("Finished partitioning to {}", output_folder.string());
 }
 
@@ -394,6 +407,18 @@ void silo::sortChunks(
 
          std::filesystem::path output_filename = output_folder;
          output_filename += "nuc_" + nuc_name + std::filesystem::path::preferred_separator;
+         create_directory(output_filename);
+         output_filename += silo::buildChunkString(chunk.part, chunk.chunk) + ZSTDFASTA_EXTENSION;
+         sequence_outputs.emplace_back(output_filename, reference_sequence);
+      }
+      for (const auto& [aa_name, reference_sequence] : reference_genomes.aa_sequences) {
+         std::filesystem::path input_filename = input_folder;
+         input_filename += "gene_" + aa_name + std::filesystem::path::preferred_separator;
+         input_filename += silo::buildChunkString(chunk.part, chunk.chunk) + ZSTDFASTA_EXTENSION;
+         sequence_inputs.emplace_back(input_filename, reference_sequence);
+
+         std::filesystem::path output_filename = output_folder;
+         output_filename += "gene_" + aa_name + std::filesystem::path::preferred_separator;
          create_directory(output_filename);
          output_filename += silo::buildChunkString(chunk.part, chunk.chunk) + ZSTDFASTA_EXTENSION;
          sequence_outputs.emplace_back(output_filename, reference_sequence);

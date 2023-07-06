@@ -18,7 +18,7 @@
 
 namespace silo {
 
-struct Position {
+struct NucPosition {
    friend class boost::serialization::access;
 
    template <class Archive>
@@ -26,13 +26,11 @@ struct Position {
       // clang-format off
       archive& symbol_whose_bitmap_is_flipped;
       archive& bitmaps;
-      archive& nucleotide_symbol_n_indexed;
       // clang-format on
    }
 
-   std::array<roaring::Roaring, SYMBOL_COUNT> bitmaps;
+   std::array<roaring::Roaring, NUC_SYMBOL_COUNT> bitmaps;
    std::optional<NUCLEOTIDE_SYMBOL> symbol_whose_bitmap_is_flipped = std::nullopt;
-   bool nucleotide_symbol_n_indexed = false;
 };
 
 struct SequenceStoreInfo {
@@ -62,9 +60,9 @@ class SequenceStorePartition {
    explicit SequenceStorePartition(const std::string& reference_genome);
 
    const std::string& reference_genome;
-   std::vector<Position> positions;
+   std::vector<NucPosition> positions;
    std::vector<roaring::Roaring> nucleotide_symbol_n_bitmaps;
-   unsigned sequence_count{};
+   uint32_t sequence_count = 0;
 
    [[nodiscard]] size_t computeSize() const;
 
@@ -72,13 +70,13 @@ class SequenceStorePartition {
 
    SequenceStoreInfo getInfo() const;
 
-   unsigned fill(silo::ZstdFastaReader& input_file);
+   size_t fill(silo::ZstdFastaReader& input_file);
 
    void interpret(const std::vector<std::string>& genomes);
 
-   unsigned runOptimize();
+   size_t runOptimize();
 
-   unsigned shrinkToFit();
+   size_t shrinkToFit();
 };
 
 class SequenceStore {

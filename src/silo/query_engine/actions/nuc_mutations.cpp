@@ -165,11 +165,11 @@ QueryResult NucMutations::execute(
                      map<std::string, std::optional<std::variant<std::string, int32_t, double>>>
                         fields{
                            {"position",
-                            SYMBOL_REPRESENTATION[static_cast<size_t>(
+                            NUC_SYMBOL_REPRESENTATION[static_cast<size_t>(
                                symbol_in_reference_genome.value_or(NUCLEOTIDE_SYMBOL::N)
                             )] +
                                std::to_string(pos + 1) +
-                               SYMBOL_REPRESENTATION[static_cast<size_t>(symbol)]},
+                               NUC_SYMBOL_REPRESENTATION[static_cast<size_t>(symbol)]},
                            {"proportion", proportion},
                            {"count", static_cast<int32_t>(count)}};
                   mutation_proportions.push_back({fields});

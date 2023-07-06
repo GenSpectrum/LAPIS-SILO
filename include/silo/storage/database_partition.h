@@ -7,6 +7,7 @@
 #include <boost/archive/binary_oarchive.hpp>
 
 #include "silo/preprocessing/partition.h"
+#include "silo/storage/aa_store.h"
 #include "silo/storage/column_group.h"
 #include "silo/storage/sequence_store.h"
 
@@ -30,6 +31,7 @@ class DatabasePartition {
    std::vector<silo::preprocessing::Chunk> chunks;
    storage::ColumnGroup columns;
    std::unordered_map<std::string, SequenceStorePartition&> nuc_sequences;
+   std::unordered_map<std::string, AAStorePartition&> aa_sequences;
    unsigned sequenceCount;
 
    [[nodiscard]] const std::vector<preprocessing::Chunk>& getChunks() const;
