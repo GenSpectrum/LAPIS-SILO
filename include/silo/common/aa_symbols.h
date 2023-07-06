@@ -8,7 +8,7 @@
 
 namespace silo {
 
-// https://www.bioinformatics.org/sms/iupac.html
+/// https://www.bioinformatics.org/sms2/iupac.html
 enum class AA_SYMBOL {
    A,  // Alanine
    B,  // Aspartic acid or Asparagine

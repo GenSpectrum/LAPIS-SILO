@@ -26,10 +26,10 @@
    );
 }
 
-unsigned silo::SequenceStorePartition::fill(silo::ZstdFastaReader& input_file) {
-   static constexpr unsigned BUFFER_SIZE = 1024;
+size_t silo::SequenceStorePartition::fill(silo::ZstdFastaReader& input_file) {
+   static constexpr size_t BUFFER_SIZE = 1024;
 
-   unsigned read_sequences_count = 0;
+   size_t read_sequences_count = 0;
 
    std::vector<std::string> genome_buffer;
 
@@ -62,34 +62,37 @@ const roaring::Roaring* silo::SequenceStorePartition::getBitmap(
    size_t position,
    NUCLEOTIDE_SYMBOL symbol
 ) const {
-   return &positions[position].bitmaps[static_cast<unsigned>(symbol)];
+   return &positions[position].bitmaps[static_cast<uint32_t>(symbol)];
 }
 
 void silo::SequenceStorePartition::fillIndexes(const std::vector<std::string>& genomes) {
    const size_t genome_length = positions.size();
    static constexpr int COUNT_SYMBOLS_PER_PROCESSOR = 64;
-   tbb::blocked_range<unsigned> const range(
+   tbb::blocked_range<size_t> const range(
       0, genome_length, genome_length / COUNT_SYMBOLS_PER_PROCESSOR
    );
    tbb::parallel_for(range, [&](const decltype(range)& local) {
-      /// For every symbol, calculate all sequence IDs that have that symbol at that position
-      std::vector<std::vector<unsigned>> ids_per_symbol(NUC_SYMBOL_COUNT);
-      for (unsigned col = local.begin(); col != local.end(); ++col) {
-         for (unsigned index2 = 0, limit2 = genomes.size(); index2 != limit2; ++index2) {
-            char const character = genomes[index2][col];
+      std::vector<std::vector<uint32_t>> ids_per_symbol_for_current_position(NUC_SYMBOL_COUNT);
+      for (size_t position = local.begin(); position != local.end(); ++position) {
+         const size_t number_of_genomes = genomes.size();
+         for (size_t sequence_id = 0; sequence_id < number_of_genomes; ++sequence_id) {
+            char const character = genomes[sequence_id][position];
             const NUCLEOTIDE_SYMBOL symbol =
                toNucleotideSymbol(character).value_or(NUCLEOTIDE_SYMBOL::N);
             if (symbol != NUCLEOTIDE_SYMBOL::N) {
-               ids_per_symbol[static_cast<unsigned>(symbol)].push_back(sequence_count + index2);
+               ids_per_symbol_for_current_position[static_cast<uint32_t>(symbol)].push_back(
+                  sequence_count + sequence_id
+               );
             }
          }
          for (const auto& symbol : NUC_SYMBOLS) {
-            const auto symbol_index = static_cast<unsigned>(symbol);
-            if (!ids_per_symbol[symbol_index].empty()) {
-               this->positions[col].bitmaps[symbol_index].addMany(
-                  ids_per_symbol[symbol_index].size(), ids_per_symbol[symbol_index].data()
+            const auto symbol_index = static_cast<uint32_t>(symbol);
+            if (!ids_per_symbol_for_current_position[symbol_index].empty()) {
+               this->positions[position].bitmaps[symbol_index].addMany(
+                  ids_per_symbol_for_current_position[symbol_index].size(),
+                  ids_per_symbol_for_current_position[symbol_index].data()
                );
-               ids_per_symbol[symbol_index].clear();
+               ids_per_symbol_for_current_position[symbol_index].clear();
             }
          }
       }
@@ -101,17 +104,17 @@ void silo::SequenceStorePartition::fillNBitmaps(const std::vector<std::string>& 
 
    nucleotide_symbol_n_bitmaps.resize(sequence_count + genomes.size());
 
-   tbb::blocked_range<unsigned> const range(0, genomes.size());
+   tbb::blocked_range<size_t> const range(0, genomes.size());
    tbb::parallel_for(range, [&](const decltype(range)& local) {
-      /// For every symbol, calculate all sequence IDs that have that symbol at that position
-      std::vector<unsigned> positions_with_nucleotide_symbol_n;
-      for (unsigned genome = local.begin(); genome != local.end(); ++genome) {
-         for (unsigned pos = 0, limit2 = genome_length; pos != limit2; ++pos) {
-            char const character = genomes[genome][pos];
+      // For every symbol, calculate all sequence IDs that have that symbol at that position
+      std::vector<uint32_t> positions_with_nucleotide_symbol_n;
+      for (size_t genome = local.begin(); genome != local.end(); ++genome) {
+         for (size_t position = 0; position < genome_length; ++position) {
+            char const character = genomes[genome][position];
             const NUCLEOTIDE_SYMBOL symbol =
                toNucleotideSymbol(character).value_or(NUCLEOTIDE_SYMBOL::N);
             if (symbol == NUCLEOTIDE_SYMBOL::N) {
-               positions_with_nucleotide_symbol_n.push_back(pos);
+               positions_with_nucleotide_symbol_n.push_back(position);
             }
          }
          if (!positions_with_nucleotide_symbol_n.empty()) {
@@ -133,7 +136,7 @@ void silo::SequenceStorePartition::interpret(const std::vector<std::string>& gen
 
 silo::SequenceStorePartition::SequenceStorePartition(const std::string& reference_genome)
     : reference_genome(reference_genome),
-      positions(reference_genome.length()){};
+      positions(reference_genome.length()) {}
 
 size_t silo::SequenceStorePartition::computeSize() const {
    size_t result = 0;
@@ -145,8 +148,8 @@ size_t silo::SequenceStorePartition::computeSize() const {
    return result;
 }
 
-unsigned silo::SequenceStorePartition::runOptimize() {
-   std::atomic<unsigned> count_true = 0;
+size_t silo::SequenceStorePartition::runOptimize() {
+   std::atomic<size_t> count_true = 0;
    const tbb::blocked_range<size_t> range(0U, positions.size());
    tbb::parallel_for(range, [&](const decltype(range) local) {
       for (auto position = local.begin(); position != local.end(); ++position) {
@@ -160,7 +163,7 @@ unsigned silo::SequenceStorePartition::runOptimize() {
    return count_true;
 }
 
-unsigned silo::SequenceStorePartition::shrinkToFit() {
+size_t silo::SequenceStorePartition::shrinkToFit() {
    std::atomic<size_t> saved = 0;
    const tbb::blocked_range<size_t> range(0U, positions.size());
    tbb::parallel_for(range, [&](const decltype(range) local) {

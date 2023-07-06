@@ -62,7 +62,7 @@ class SequenceStorePartition {
    const std::string& reference_genome;
    std::vector<NucPosition> positions;
    std::vector<roaring::Roaring> nucleotide_symbol_n_bitmaps;
-   unsigned sequence_count{};
+   uint32_t sequence_count = 0;
 
    [[nodiscard]] size_t computeSize() const;
 
@@ -70,13 +70,13 @@ class SequenceStorePartition {
 
    SequenceStoreInfo getInfo() const;
 
-   unsigned fill(silo::ZstdFastaReader& input_file);
+   size_t fill(silo::ZstdFastaReader& input_file);
 
    void interpret(const std::vector<std::string>& genomes);
 
-   unsigned runOptimize();
+   size_t runOptimize();
 
-   unsigned shrinkToFit();
+   size_t shrinkToFit();
 };
 
 class SequenceStore {
