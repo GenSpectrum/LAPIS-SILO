@@ -1,0 +1,18 @@
+{
+  "testCaseName": "Access on second sequence",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "HasNucleotideMutation",
+      "position": 2,
+      "sequenceName": "testSecondSequence"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 3
+    }
+  ]
+}

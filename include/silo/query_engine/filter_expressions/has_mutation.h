@@ -1,16 +1,19 @@
 #ifndef SILO_HAS_MUTATION_H
 #define SILO_HAS_MUTATION_H
 
+#include <optional>
+
 #include "silo/query_engine/filter_expressions/expression.h"
 
 namespace silo::query_engine::filter_expressions {
 
 struct HasMutation : public Expression {
   private:
+   std::optional<std::string> nuc_sequence_name;
    unsigned position;
 
   public:
-   explicit HasMutation(unsigned position);
+   explicit HasMutation(std::optional<std::string> nuc_sequence_name, unsigned position);
 
    std::string toString(const Database& database) const override;
 

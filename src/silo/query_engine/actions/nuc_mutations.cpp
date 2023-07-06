@@ -125,12 +125,11 @@ QueryResult NucMutations::execute(
    using roaring::Roaring;
    const std::string nuc_sequence_name_or_default =
       nuc_sequence_name.value_or(database.database_config.default_nucleotide_sequence);
-   if (!database.nuc_sequences.contains(nuc_sequence_name_or_default)) {
-      throw QueryParseException(
-         "Database does not contain the nucleotide sequence with name: '" +
+   CHECK_SILO_QUERY(
+      database.nuc_sequences.contains(nuc_sequence_name_or_default),
+      "Database does not contain the nucleotide sequence with name: '" +
          nuc_sequence_name_or_default + "'"
-      );
-   }
+   )
 
    const SequenceStore& seq_store = database.nuc_sequences.at(nuc_sequence_name_or_default);
 

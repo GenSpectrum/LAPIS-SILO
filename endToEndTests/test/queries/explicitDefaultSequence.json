@@ -1,0 +1,19 @@
+{
+  "testCaseName": "Explicit default sequence",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "NucleotideEquals",
+      "position": 13,
+      "symbol": "T",
+      "sequenceName": "main"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 12
+    }
+  ]
+}

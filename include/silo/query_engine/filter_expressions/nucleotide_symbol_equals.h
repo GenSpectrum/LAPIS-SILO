@@ -1,16 +1,23 @@
 #ifndef SILO_NUCLEOTIDE_SYMBOL_EQUALS_H
 #define SILO_NUCLEOTIDE_SYMBOL_EQUALS_H
 
+#include <optional>
+
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/filter_expressions/expression.h"
 
 namespace silo::query_engine::filter_expressions {
 
 struct NucleotideSymbolEquals : public Expression {
+   std::optional<std::string> nuc_sequence_name;
    unsigned position;
    char value;
 
-   explicit NucleotideSymbolEquals(unsigned position, char value);
+   explicit NucleotideSymbolEquals(
+      std::optional<std::string> nuc_sequence_name,
+      unsigned position,
+      char value
+   );
 
    std::string toString(const Database& database) const override;
 
