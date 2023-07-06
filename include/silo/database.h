@@ -85,7 +85,7 @@ class Database {
    PangoLineageAliasLookup alias_key;
 
    void initializeColumns();
-   void initializeColumn(config::ColumnType column_type, std::string name);
+   void initializeColumn(config::ColumnType column_type, const std::string& name);
    void initializeSequences();
 
    static BitmapSizePerSymbol calculateBitmapSizePerSymbol(const SequenceStore& seq_store);

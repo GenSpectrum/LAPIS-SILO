@@ -480,7 +480,7 @@ void Database::preprocessing(
    build(preprocessing_config.sorted_partition_folder.relative_path(), partition_descriptor);
 }
 
-void Database::initializeColumn(config::ColumnType column_type, std::string name) {
+void Database::initializeColumn(config::ColumnType column_type, const std::string& name) {
    switch (column_type) {
       case config::ColumnType::STRING:
          string_columns.emplace(name, storage::column::StringColumn());

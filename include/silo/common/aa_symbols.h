@@ -49,10 +49,6 @@ static constexpr std::array<AA_SYMBOL, AA_SYMBOL_COUNT> AA_SYMBOLS{
    AA_SYMBOL::W, AA_SYMBOL::Y, AA_SYMBOL::B, AA_SYMBOL::Z, AA_SYMBOL::X,
 };
 
-inline std::string genomeSymbolRepresentation(AA_SYMBOL symbol) {
-   return std::string(1, AA_SYMBOL_REPRESENTATION.at(static_cast<unsigned>(symbol)));
-}
-
 inline std::optional<AA_SYMBOL> toAASymbol(char character) {
    switch (character) {
       case 'A':
