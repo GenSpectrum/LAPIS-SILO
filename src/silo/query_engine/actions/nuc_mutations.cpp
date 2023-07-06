@@ -1,3 +1,4 @@
+#include "silo/query_engine/actions/nuc_mutations.h"
 
 #include <cmath>
 #include <map>
@@ -7,8 +8,6 @@
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
 #include <nlohmann/json.hpp>
-
-#include "silo/query_engine/actions/nuc_mutations.h"
 
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/database.h"
@@ -83,14 +82,14 @@ std::array<std::vector<uint32_t>, NucMutations::MUTATION_SYMBOL_COUNT> NucMutati
 
          for (const auto symbol : VALID_MUTATION_SYMBOLS) {
             if (seq_store_partition.positions[pos].symbol_whose_bitmap_is_flipped != symbol) {
-               count_of_mutations_per_position[static_cast<unsigned>(symbol)][pos] +=
+               count_of_mutations_per_position[static_cast<uint32_t>(symbol)][pos] +=
                   filter->and_cardinality(
-                     seq_store_partition.positions[pos].bitmaps[static_cast<unsigned>(symbol)]
+                     seq_store_partition.positions[pos].bitmaps[static_cast<uint32_t>(symbol)]
                   );
             } else {
-               count_of_mutations_per_position[static_cast<unsigned>(symbol)][pos] +=
+               count_of_mutations_per_position[static_cast<uint32_t>(symbol)][pos] +=
                   filter->andnot_cardinality(
-                     seq_store_partition.positions[pos].bitmaps[static_cast<unsigned>(symbol)]
+                     seq_store_partition.positions[pos].bitmaps[static_cast<uint32_t>(symbol)]
                   );
             }
          }
@@ -102,14 +101,14 @@ std::array<std::vector<uint32_t>, NucMutations::MUTATION_SYMBOL_COUNT> NucMutati
 
          for (const auto symbol : VALID_MUTATION_SYMBOLS) {
             if (seq_store_partition.positions[pos].symbol_whose_bitmap_is_flipped != symbol) {
-               count_of_mutations_per_position[static_cast<unsigned>(symbol)][pos] +=
+               count_of_mutations_per_position[static_cast<uint32_t>(symbol)][pos] +=
                   seq_store_partition.positions[pos]
-                     .bitmaps[static_cast<unsigned>(symbol)]
+                     .bitmaps[static_cast<uint32_t>(symbol)]
                      .cardinality();
             } else {
-               count_of_mutations_per_position[static_cast<unsigned>(symbol)][pos] +=
+               count_of_mutations_per_position[static_cast<uint32_t>(symbol)][pos] +=
                   seq_store_partition.sequence_count - seq_store_partition.positions[pos]
-                                                          .bitmaps[static_cast<unsigned>(symbol)]
+                                                          .bitmaps[static_cast<uint32_t>(symbol)]
                                                           .cardinality();
             }
          }
@@ -140,7 +139,7 @@ QueryResult NucMutations::execute(
 
    std::vector<QueryResultEntry> mutation_proportions;
    {
-      for (unsigned pos = 0; pos < genome_length; ++pos) {
+      for (size_t pos = 0; pos < genome_length; ++pos) {
          const uint32_t total =
             count_of_mutations_per_position[0][pos] + count_of_mutations_per_position[1][pos] +
             count_of_mutations_per_position[2][pos] + count_of_mutations_per_position[3][pos] +
@@ -152,7 +151,7 @@ QueryResult NucMutations::execute(
             static_cast<uint32_t>(std::ceil(static_cast<double>(total) * min_proportion) - 1);
 
          const auto symbol_in_reference_genome =
-            toNucleotideSymbol(seq_store.reference_genome.at(pos));
+            toNucleotideSymbol(seq_store.reference_genome.at(pos)).value();
 
          for (const auto symbol : VALID_MUTATION_SYMBOLS) {
             if (symbol_in_reference_genome != symbol) {
@@ -164,8 +163,7 @@ QueryResult NucMutations::execute(
                      map<std::string, std::optional<std::variant<std::string, int32_t, double>>>
                         fields{
                            {"position",
-                            NUC_SYMBOL_REPRESENTATION[static_cast<size_t>(
-                               symbol_in_reference_genome.value_or(NUCLEOTIDE_SYMBOL::N)
+                            NUC_SYMBOL_REPRESENTATION[static_cast<size_t>(symbol_in_reference_genome
                             )] +
                                std::to_string(pos + 1) +
                                NUC_SYMBOL_REPRESENTATION[static_cast<size_t>(symbol)]},
@@ -183,6 +181,10 @@ QueryResult NucMutations::execute(
 
 void from_json(const nlohmann::json& json, std::unique_ptr<NucMutations>& action) {
    double min_proportion = NucMutations::DEFAULT_MIN_PROPORTION;
+   std::optional<std::string> nuc_sequence_name;
+   if (json.contains("sequenceName")) {
+      nuc_sequence_name = json["sequenceName"].get<std::string>();
+   }
    if (json.contains("minProportion")) {
       min_proportion = json["minProportion"].get<double>();
       if (min_proportion <= 0 || min_proportion > 1) {
@@ -190,10 +192,6 @@ void from_json(const nlohmann::json& json, std::unique_ptr<NucMutations>& action
             "Invalid proportion: minProportion must be in interval (0.0, 1.0]"
          );
       }
-   }
-   std::optional<std::string> nuc_sequence_name;
-   if (json.contains("sequenceName")) {
-      nuc_sequence_name = json["sequenceName"].get<std::string>();
    }
    action = std::make_unique<NucMutations>(nuc_sequence_name, min_proportion);
 }

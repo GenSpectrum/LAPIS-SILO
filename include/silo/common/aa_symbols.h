@@ -11,7 +11,6 @@ namespace silo {
 /// https://www.bioinformatics.org/sms2/iupac.html
 enum class AA_SYMBOL {
    A,  // Alanine
-   B,  // Aspartic acid or Asparagine
    C,  // Cysteine
    D,  // Aspartic Acid
    E,  // Glutamic Acid
@@ -31,6 +30,7 @@ enum class AA_SYMBOL {
    V,  // Valine
    W,  // Tryptophan
    Y,  // Tyrosine
+   B,  // Aspartic acid or Asparagine
    Z,  // Glutamine or Glutamic acid
    X,  // Any amino acid
 };
@@ -38,15 +38,15 @@ enum class AA_SYMBOL {
 static constexpr unsigned AA_SYMBOL_COUNT = static_cast<unsigned>(AA_SYMBOL::X) + 1;
 
 static constexpr std::array<char, AA_SYMBOL_COUNT> AA_SYMBOL_REPRESENTATION{
-   'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M',
-   'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y', 'Z', 'X',
+   'A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N',
+   'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y', 'B', 'Z', 'X',
 };
 
 static constexpr std::array<AA_SYMBOL, AA_SYMBOL_COUNT> AA_SYMBOLS{
-   AA_SYMBOL::A, AA_SYMBOL::B, AA_SYMBOL::C, AA_SYMBOL::D, AA_SYMBOL::E, AA_SYMBOL::F,
-   AA_SYMBOL::G, AA_SYMBOL::H, AA_SYMBOL::I, AA_SYMBOL::K, AA_SYMBOL::L, AA_SYMBOL::M,
-   AA_SYMBOL::N, AA_SYMBOL::P, AA_SYMBOL::Q, AA_SYMBOL::R, AA_SYMBOL::S, AA_SYMBOL::T,
-   AA_SYMBOL::V, AA_SYMBOL::W, AA_SYMBOL::Y, AA_SYMBOL::Z, AA_SYMBOL::X,
+   AA_SYMBOL::A, AA_SYMBOL::C, AA_SYMBOL::D, AA_SYMBOL::E, AA_SYMBOL::F, AA_SYMBOL::G,
+   AA_SYMBOL::H, AA_SYMBOL::I, AA_SYMBOL::K, AA_SYMBOL::L, AA_SYMBOL::M, AA_SYMBOL::N,
+   AA_SYMBOL::P, AA_SYMBOL::Q, AA_SYMBOL::R, AA_SYMBOL::S, AA_SYMBOL::T, AA_SYMBOL::V,
+   AA_SYMBOL::W, AA_SYMBOL::Y, AA_SYMBOL::B, AA_SYMBOL::Z, AA_SYMBOL::X,
 };
 
 inline std::string genomeSymbolRepresentation(AA_SYMBOL symbol) {
@@ -57,8 +57,6 @@ inline std::optional<AA_SYMBOL> toAASymbol(char character) {
    switch (character) {
       case 'A':
          return AA_SYMBOL::A;
-      case 'B':
-         return AA_SYMBOL::B;
       case 'C':
          return AA_SYMBOL::C;
       case 'D':
@@ -97,6 +95,8 @@ inline std::optional<AA_SYMBOL> toAASymbol(char character) {
          return AA_SYMBOL::W;
       case 'Y':
          return AA_SYMBOL::Y;
+      case 'B':
+         return AA_SYMBOL::B;
       case 'Z':
          return AA_SYMBOL::Z;
       case 'X':
