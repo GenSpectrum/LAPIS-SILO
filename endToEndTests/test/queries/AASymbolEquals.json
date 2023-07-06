@@ -1,0 +1,19 @@
+{
+  "testCaseName": "Amino acid equals gene E",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "AminoAcidEquals",
+      "position": 2,
+      "symbol": "Y",
+      "sequenceName": "E"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 99
+    }
+  ]
+}

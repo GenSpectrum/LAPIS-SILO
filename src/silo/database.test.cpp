@@ -29,7 +29,7 @@ silo::Database buildTestDatabase() {
    database.preprocessing(config, database_config);
 
    return database;
-};
+}
 
 TEST(DatabaseTest, shouldBuildDatabaseWithoutErrors) {
    auto database{buildTestDatabase()};
@@ -47,40 +47,55 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfo) {
    const auto simple_info = database.getDatabaseInfo();
 
    EXPECT_EQ(
-      detailed_info.bitmap_size_per_symbol.size_in_bytes.at(silo::NUCLEOTIDE_SYMBOL::A), 9190510
+      detailed_info.sequences.at("main").bitmap_size_per_symbol.size_in_bytes.at(
+         silo::NUCLEOTIDE_SYMBOL::A
+      ),
+      9190510
    );
    EXPECT_EQ(
-      detailed_info.bitmap_size_per_symbol.size_in_bytes.at(silo::NUCLEOTIDE_SYMBOL::GAP), 5779958
+      detailed_info.sequences.at("main").bitmap_size_per_symbol.size_in_bytes.at(
+         silo::NUCLEOTIDE_SYMBOL::GAP
+      ),
+      5779958
    );
 
    EXPECT_EQ(
-      detailed_info.bitmap_container_size_per_genome_section.bitmap_container_size_statistic
+      detailed_info.sequences.at("main")
+         .bitmap_container_size_per_genome_section.bitmap_container_size_statistic
          .number_of_bitset_containers,
       0
    );
    EXPECT_EQ(
-      detailed_info.bitmap_container_size_per_genome_section.bitmap_container_size_statistic
+      detailed_info.sequences.at("main")
+         .bitmap_container_size_per_genome_section.bitmap_container_size_statistic
          .number_of_values_stored_in_run_containers,
       0
    );
    EXPECT_EQ(
-      detailed_info.bitmap_container_size_per_genome_section.bitmap_container_size_statistic
+      detailed_info.sequences.at("main")
+         .bitmap_container_size_per_genome_section.bitmap_container_size_statistic
          .total_bitmap_size_bitset_containers,
       0
    );
 
    EXPECT_EQ(
-      detailed_info.bitmap_container_size_per_genome_section.total_bitmap_size_computed, 103449226
+      detailed_info.sequences.at("main")
+         .bitmap_container_size_per_genome_section.total_bitmap_size_computed,
+      103449226
    );
    EXPECT_EQ(
-      detailed_info.bitmap_container_size_per_genome_section.total_bitmap_size_frozen, 55370197
+      detailed_info.sequences.at("main")
+         .bitmap_container_size_per_genome_section.total_bitmap_size_frozen,
+      55370197
    );
    EXPECT_EQ(
-      detailed_info.bitmap_container_size_per_genome_section.bitmap_container_size_statistic
+      detailed_info.sequences.at("main")
+         .bitmap_container_size_per_genome_section.bitmap_container_size_statistic
          .total_bitmap_size_array_containers,
       5859154
    );
 
-   EXPECT_EQ(simple_info.total_size, 66458430);
-   EXPECT_EQ(simple_info.n_bitmaps_size, 3370);
+   EXPECT_EQ(simple_info.total_size, 66467326);
+   EXPECT_EQ(simple_info.sequence_count, 100);
+   EXPECT_EQ(simple_info.n_bitmaps_size, 3898);
 }
