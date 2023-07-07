@@ -68,7 +68,7 @@ const roaring::Roaring* silo::SequenceStorePartition::getBitmap(
 void silo::SequenceStorePartition::fillIndexes(const std::vector<std::string>& genomes) {
    const size_t genome_length = positions.size();
    static constexpr int COUNT_SYMBOLS_PER_PROCESSOR = 64;
-   tbb::blocked_range<size_t> const range(
+   const tbb::blocked_range<size_t> range(
       0, genome_length, genome_length / COUNT_SYMBOLS_PER_PROCESSOR
    );
    tbb::parallel_for(range, [&](const decltype(range)& local) {
@@ -104,7 +104,7 @@ void silo::SequenceStorePartition::fillNBitmaps(const std::vector<std::string>& 
 
    nucleotide_symbol_n_bitmaps.resize(sequence_count + genomes.size());
 
-   tbb::blocked_range<size_t> const range(0, genomes.size());
+   const tbb::blocked_range<size_t> range(0, genomes.size());
    tbb::parallel_for(range, [&](const decltype(range)& local) {
       // For every symbol, calculate all sequence IDs that have that symbol at that position
       std::vector<uint32_t> positions_with_nucleotide_symbol_n;

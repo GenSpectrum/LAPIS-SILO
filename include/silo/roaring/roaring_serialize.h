@@ -23,8 +23,9 @@ template <class Archive>
    std::size_t expected_size_in_bytes = bitmask.getSizeInBytes();
    std::vector<char> buffer(expected_size_in_bytes);
    std::size_t size_in_bytes = bitmask.write(buffer.data());
-
+   // clang-format off
    ar& size_in_bytes;
+   // clang-format on
    ar& ::boost::serialization::make_binary_object(buffer.data(), size_in_bytes);
 }
 
@@ -35,7 +36,9 @@ template <class Archive>
    [[maybe_unused]] const unsigned int version
 ) {
    std::size_t size_in_bytes = 0;
+   // clang-format off
    ar& size_in_bytes;
+   // clang-format on
    std::vector<char> buffer(size_in_bytes);
    ar& ::boost::serialization::make_binary_object(buffer.data(), size_in_bytes);
    bitmask = roaring::Roaring::readSafe(buffer.data(), size_in_bytes);

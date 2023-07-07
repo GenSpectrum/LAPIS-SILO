@@ -15,11 +15,6 @@
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_config_reader.h"
 #include "silo/query_engine/query_engine.h"
-#include "silo/storage/column/date_column.h"
-#include "silo/storage/column/indexed_string_column.h"
-#include "silo/storage/column/int_column.h"
-#include "silo/storage/column/pango_lineage_column.h"
-#include "silo/storage/column/string_column.h"
 #include "silo/storage/database_partition.h"
 #include "silo_api/info_handler.h"
 #include "silo_api/logging.h"
@@ -99,7 +94,7 @@ class SiloServer : public Poco::Util::ServerApplication {
 
   private:
    void handleApi() {
-      int const port = 8081;
+      const int port = 8081;
 
       const std::string preprocessing_config_path = config().getString("preprocessingConfig");
       const std::string database_config_path = config().getString("databaseConfig");

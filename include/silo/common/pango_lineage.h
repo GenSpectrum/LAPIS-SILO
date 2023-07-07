@@ -9,7 +9,9 @@ namespace silo::common {
 struct PangoLineage {
    template <class Archive>
    void serialize(Archive& archive, const unsigned int /* version*/) {
+      // clang-format off
       archive& value;
+      // clang-format on
    }
 
    std::string value;

@@ -59,7 +59,7 @@ void Database::build(
 ) {
    int64_t micros = 0;
    {
-      BlockTimer const timer(micros);
+      const BlockTimer timer(micros);
       partitions.resize(partition_descriptor.partitions.size());
       initializeColumns();
       initializeSequences();
