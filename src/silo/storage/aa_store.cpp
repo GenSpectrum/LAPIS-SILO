@@ -1,16 +1,16 @@
 #include "silo/storage/aa_store.h"
 
 #include <atomic>
-#include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
-#include <tbb/blocked_range.h>
-#include <tbb/enumerable_thread_specific.h>
-#include <tbb/parallel_for.h>
+#include <oneapi/tbb/blocked_range.h>
+#include <oneapi/tbb/parallel_for.h>
 #include <roaring/roaring.hh>
 
 #include "silo/common/aa_symbols.h"
+#include "silo/common/zstdfasta_reader.h"
 
 size_t silo::AAStorePartition::fill(silo::ZstdFastaReader& input_file) {
    static constexpr size_t BUFFER_SIZE = 1024;

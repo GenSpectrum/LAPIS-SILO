@@ -1,6 +1,8 @@
 #ifndef SILO_PANGO_LINEAGE_COLUMN_H
 #define SILO_PANGO_LINEAGE_COLUMN_H
 
+#include <cstddef>
+#include <cstdint>
 #include <deque>
 #include <memory>
 #include <unordered_map>

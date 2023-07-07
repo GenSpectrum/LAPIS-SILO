@@ -1,7 +1,16 @@
 #ifndef SILO_SEQUENCE_SELECTION_H
 #define SILO_SEQUENCE_SELECTION_H
 
+#include <cstdint>
+#include <memory>
+#include <string>
+
+#include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/operator.h"
+
+namespace roaring {
+class Roaring;
+}  // namespace roaring
 
 namespace silo::query_engine::operators {
 

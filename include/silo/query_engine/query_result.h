@@ -1,6 +1,8 @@
 #ifndef SILO_QUERY_ENGINE_RESULT_H
 #define SILO_QUERY_ENGINE_RESULT_H
 
+#include <cstdint>
+#include <map>
 #include <optional>
 #include <string>
 #include <variant>

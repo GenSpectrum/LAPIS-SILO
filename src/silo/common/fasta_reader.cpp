@@ -1,6 +1,11 @@
 #include "silo/common/fasta_reader.h"
 
+#include <climits>
+#include <iostream>
+#include <string>
+
 #include "silo/common/fasta_format_exception.h"
+#include "silo/common/input_stream_wrapper.h"
 
 silo::FastaReader::FastaReader(const std::filesystem::path& in_file_name)
     : in_file(in_file_name) {}

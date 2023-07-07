@@ -1,5 +1,12 @@
 #include "silo/query_engine/actions/action.h"
 
+#include <algorithm>
+#include <cctype>
+#include <cstddef>
+#include <map>
+#include <memory>
+#include <variant>
+
 #include <nlohmann/json.hpp>
 
 #include "silo/query_engine/actions/aa_mutations.h"
@@ -34,13 +41,16 @@ void Action::applyOrderByAndLimit(QueryResult& result) const {
       }
       return false;
    };
-   int64_t end_of_sort = static_cast<int64_t>(std::min(
+   size_t end_of_sort = std::min(
       static_cast<size_t>(limit.value_or(result_vector.size()) + offset.value_or(0UL)),
       result_vector.size()
-   ));
+   );
    if (end_of_sort < result_vector.size()) {
       std::partial_sort(
-         result_vector.begin(), result_vector.begin() + end_of_sort, result_vector.end(), cmp
+         result_vector.begin(),
+         result_vector.begin() + static_cast<int64_t>(end_of_sort),
+         result_vector.end(),
+         cmp
       );
    } else {
       std::sort(result_vector.begin(), result_vector.end(), cmp);

@@ -1,7 +1,9 @@
 #ifndef SILO_PANGO_LINEAGE_COUNT_H
 #define SILO_PANGO_LINEAGE_COUNT_H
 
+#include <cstdint>
 #include <filesystem>
+#include <iosfwd>
 #include <string>
 #include <vector>
 

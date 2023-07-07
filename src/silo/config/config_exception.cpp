@@ -1,5 +1,7 @@
 #include "silo/config/config_exception.h"
 
+#include <string>
+
 namespace silo::config {
 
 ConfigException::ConfigException(const std::string& error_message)

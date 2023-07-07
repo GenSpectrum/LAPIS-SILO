@@ -1,8 +1,11 @@
 #ifndef SILO_ACTION_H
 #define SILO_ACTION_H
 
+#include <cstdint>
 #include <memory>
 #include <optional>
+#include <string>
+#include <vector>
 
 #include <nlohmann/json_fwd.hpp>
 

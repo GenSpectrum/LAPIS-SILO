@@ -1,16 +1,27 @@
 #include "silo/query_engine/filter_expressions/aa_symbol_equals.h"
 
-#include <nlohmann/json.hpp>
+#include <map>
+#include <optional>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+#include <roaring/roaring.hh>
+
 #include "silo/common/aa_symbols.h"
-#include "silo/database.h"
-#include "silo/query_engine/filter_expressions/or.h"
+#include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/operators/bitmap_selection.h"
 #include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/index_scan.h"
+#include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_parse_exception.h"
+#include "silo/storage/aa_store.h"
 #include "silo/storage/database_partition.h"
+
+namespace silo {
+class Database;
+}  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
 

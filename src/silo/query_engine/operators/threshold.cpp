@@ -1,7 +1,12 @@
 #include "silo/query_engine/operators/threshold.h"
 
-#include <roaring/roaring.hh>
+#include <algorithm>
+#include <iterator>
+#include <string>
+#include <utility>
 #include <vector>
+
+#include <roaring/roaring.hh>
 
 #include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/operator.h"

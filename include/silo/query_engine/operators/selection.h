@@ -1,8 +1,13 @@
 #ifndef SILO_SELECTION_H
 #define SILO_SELECTION_H
 
+#include <cstdint>
+#include <memory>
+#include <string>
 #include <vector>
 
+#include "silo/common/string.h"
+#include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo::query_engine::operators {

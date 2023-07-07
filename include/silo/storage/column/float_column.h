@@ -1,6 +1,7 @@
 #ifndef SILO_FLOAT_COLUMN_H
 #define SILO_FLOAT_COLUMN_H
 
+#include <cstdint>
 #include <deque>
 #include <string>
 #include <vector>

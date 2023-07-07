@@ -1,16 +1,27 @@
 #include "silo/query_engine/filter_expressions/date_between.h"
 
+#include <algorithm>
+#include <cstdint>
+#include <map>
+#include <unordered_map>
+#include <utility>
+
 #include <nlohmann/json.hpp>
 
 #include "silo/common/date.h"
-#include "silo/query_engine/filter_expressions/expression.h"
+#include "silo/preprocessing/partition.h"
 #include "silo/query_engine/operators/intersection.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/operators/range_selection.h"
 #include "silo/query_engine/operators/selection.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/storage/column/date_column.h"
+#include "silo/storage/column_group.h"
 #include "silo/storage/database_partition.h"
+
+namespace silo {
+struct Database;
+}  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
 

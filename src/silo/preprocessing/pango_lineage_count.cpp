@@ -1,5 +1,7 @@
 #include "silo/preprocessing/pango_lineage_count.h"
 
+#include <algorithm>
+#include <cstdlib>
 #include <iostream>
 #include <unordered_map>
 

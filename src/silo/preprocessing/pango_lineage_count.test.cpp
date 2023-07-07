@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 #include <filesystem>
 
-#include <silo/config/database_config.h>
+#include "silo/config/database_config.h"
 #include "silo/preprocessing/pango_lineage_count.h"
 
 TEST(PangoLineageCounts, buildPangoLineageCounts) {

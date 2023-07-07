@@ -1,6 +1,7 @@
 #ifndef SILO_INDEXED_STRING_COLUMN_H
 #define SILO_INDEXED_STRING_COLUMN_H
 
+#include <cstdint>
 #include <deque>
 #include <memory>
 #include <string>
@@ -12,6 +13,7 @@
 #include <roaring/roaring.hh>
 
 #include "silo/common/bidirectional_map.h"
+#include "silo/common/types.h"
 
 namespace boost::serialization {
 struct access;

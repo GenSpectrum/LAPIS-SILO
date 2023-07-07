@@ -1,6 +1,6 @@
 #include "silo/query_engine/operators/full.h"
 
-#include <roaring/roaring.hh>
+#include <string>
 
 #include "silo/query_engine/operators/empty.h"
 #include "silo/query_engine/operators/operator.h"

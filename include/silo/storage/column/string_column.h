@@ -1,9 +1,11 @@
 #ifndef SILO_STRING_COLUMN_H
 #define SILO_STRING_COLUMN_H
 
+#include <cstdint>
 #include <deque>
 #include <memory>
 #include <optional>
+#include <string>
 #include <unordered_map>
 #include <vector>
 

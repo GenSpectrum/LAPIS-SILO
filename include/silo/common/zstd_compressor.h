@@ -1,6 +1,7 @@
 #ifndef SILO_ZSTD_COMPRESSOR_H
 #define SILO_ZSTD_COMPRESSOR_H
 
+#include <cstddef>
 #include <string>
 
 #include <zstd.h>

@@ -3,6 +3,7 @@
 
 #include <filesystem>
 #include <iostream>
+#include <string>
 
 #include "silo/common/input_stream_wrapper.h"
 

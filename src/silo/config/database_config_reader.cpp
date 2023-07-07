@@ -1,8 +1,12 @@
 #include "silo/config/database_config_reader.h"
 
-#include <iostream>
+#include <optional>
+#include <string>
+#include <vector>
 
 #include <yaml-cpp/yaml.h>
+
+#include "silo/config/database_config.h"
 
 namespace YAML {
 template <>

@@ -1,15 +1,81 @@
 #include "silo/query_engine/filter_expressions/nucleotide_symbol_equals.h"
 
-#include <nlohmann/json.hpp>
+#include <algorithm>
+#include <array>
+#include <iterator>
+#include <map>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+#include <roaring/roaring.hh>
+
+#include "silo/common/nucleotide_symbols.h"
+#include "silo/config/database_config.h"
 #include "silo/database.h"
+#include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/filter_expressions/or.h"
 #include "silo/query_engine/operators/bitmap_selection.h"
 #include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/index_scan.h"
+#include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/storage/database_partition.h"
+#include "silo/storage/sequence_store.h"
+
+using silo::NUCLEOTIDE_SYMBOL;
+
+namespace {
+
+static const std::array<std::vector<NUCLEOTIDE_SYMBOL>, silo::NUC_SYMBOL_COUNT>
+   AMBIGUITY_NUC_SYMBOLS{{
+      {NUCLEOTIDE_SYMBOL::GAP},
+      {NUCLEOTIDE_SYMBOL::A,
+       NUCLEOTIDE_SYMBOL::R,
+       NUCLEOTIDE_SYMBOL::M,
+       NUCLEOTIDE_SYMBOL::W,
+       NUCLEOTIDE_SYMBOL::D,
+       NUCLEOTIDE_SYMBOL::H,
+       NUCLEOTIDE_SYMBOL::V,
+       NUCLEOTIDE_SYMBOL::N},
+      {NUCLEOTIDE_SYMBOL::C,
+       NUCLEOTIDE_SYMBOL::Y,
+       NUCLEOTIDE_SYMBOL::M,
+       NUCLEOTIDE_SYMBOL::S,
+       NUCLEOTIDE_SYMBOL::B,
+       NUCLEOTIDE_SYMBOL::H,
+       NUCLEOTIDE_SYMBOL::V,
+       NUCLEOTIDE_SYMBOL::N},
+      {NUCLEOTIDE_SYMBOL::G,
+       NUCLEOTIDE_SYMBOL::R,
+       NUCLEOTIDE_SYMBOL::K,
+       NUCLEOTIDE_SYMBOL::S,
+       NUCLEOTIDE_SYMBOL::B,
+       NUCLEOTIDE_SYMBOL::D,
+       NUCLEOTIDE_SYMBOL::V,
+       NUCLEOTIDE_SYMBOL::N},
+      {NUCLEOTIDE_SYMBOL::T,
+       NUCLEOTIDE_SYMBOL::Y,
+       NUCLEOTIDE_SYMBOL::K,
+       NUCLEOTIDE_SYMBOL::W,
+       NUCLEOTIDE_SYMBOL::B,
+       NUCLEOTIDE_SYMBOL::D,
+       NUCLEOTIDE_SYMBOL::H,
+       NUCLEOTIDE_SYMBOL::N},
+      {NUCLEOTIDE_SYMBOL::R},
+      {NUCLEOTIDE_SYMBOL::Y},
+      {NUCLEOTIDE_SYMBOL::S},
+      {NUCLEOTIDE_SYMBOL::W},
+      {NUCLEOTIDE_SYMBOL::K},
+      {NUCLEOTIDE_SYMBOL::M},
+      {NUCLEOTIDE_SYMBOL::B},
+      {NUCLEOTIDE_SYMBOL::D},
+      {NUCLEOTIDE_SYMBOL::H},
+      {NUCLEOTIDE_SYMBOL::V},
+      {NUCLEOTIDE_SYMBOL::N},
+   }};
+};
 
 namespace silo::query_engine::filter_expressions {
 

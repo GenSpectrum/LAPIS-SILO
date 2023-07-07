@@ -3,20 +3,32 @@
 #define SILO_SEQUENCE_STORE_H
 
 #include <array>
+#include <cstddef>
+#include <cstdint>
 #include <deque>
 #include <optional>
+#include <string>
+#include <vector>
 
-#include <silo/common/fasta_reader.h>
+#include <fmt/core.h>
 #include <spdlog/spdlog.h>
 #include <boost/serialization/array.hpp>
 #include <roaring/roaring.hh>
 
+#include "silo/common/fasta_reader.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/zstdfasta_reader.h"
 #include "silo/roaring/roaring_serialize.h"
 #include "silo/storage/serialize_optional.h"
 
+namespace boost {
+namespace serialization {
+class access;
+}  // namespace serialization
+}  // namespace boost
+
 namespace silo {
+class ZstdFastaReader;
 
 struct NucPosition {
    friend class boost::serialization::access;

@@ -1,6 +1,7 @@
 #ifndef SILO_DATE_COLUMN_H
 #define SILO_DATE_COLUMN_H
 
+#include <cstdint>
 #include <deque>
 #include <vector>
 

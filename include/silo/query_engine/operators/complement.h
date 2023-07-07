@@ -1,8 +1,12 @@
 #ifndef SILO_COMPLEMENT_H
 #define SILO_COMPLEMENT_H
 
+#include <cstdint>
+#include <memory>
+#include <string>
 #include <vector>
 
+#include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo::query_engine::filter_expressions {

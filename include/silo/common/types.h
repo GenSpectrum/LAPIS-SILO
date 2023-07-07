@@ -1,7 +1,7 @@
 #ifndef SILO_TYPES_H
 #define SILO_TYPES_H
 
-#include <stddef.h>
+#include <cstddef>
 #include <cstdint>
 
 namespace silo {

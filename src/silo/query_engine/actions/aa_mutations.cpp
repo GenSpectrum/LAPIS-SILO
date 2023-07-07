@@ -1,13 +1,19 @@
 #include "silo/query_engine/actions/aa_mutations.h"
 
 #include <cmath>
+#include <deque>
 #include <map>
+#include <optional>
+#include <tuple>
+#include <unordered_map>
 #include <utility>
+#include <variant>
 #include <vector>
 
-#include <tbb/blocked_range.h>
-#include <tbb/parallel_for.h>
+#include <oneapi/tbb/blocked_range.h>
+#include <oneapi/tbb/parallel_for.h>
 #include <nlohmann/json.hpp>
+#include <roaring/roaring.hh>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/database.h"
@@ -15,7 +21,6 @@
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/aa_store.h"
-#include "silo/storage/database_partition.h"
 
 using silo::query_engine::OperatorResult;
 

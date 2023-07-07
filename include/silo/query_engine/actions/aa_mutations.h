@@ -1,12 +1,30 @@
 #ifndef SILO_AA_MUTATIONS_H
 #define SILO_AA_MUTATIONS_H
 
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
+#include <nlohmann/json_fwd.hpp>
+
 #include "silo/common/aa_symbols.h"
 #include "silo/query_engine/actions/action.h"
-#include "silo/storage/aa_store.h"
+#include "silo/query_engine/query_result.h"
+
+namespace silo {
+class AAStore;
+}
+namespace silo {
+class Database;
+}
+namespace silo {
+namespace query_engine {
+struct OperatorResult;
+}
+}  // namespace silo
 
 namespace silo::query_engine::actions {
 

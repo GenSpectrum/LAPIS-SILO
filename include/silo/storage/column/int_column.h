@@ -1,6 +1,7 @@
 #ifndef SILO_INT_COLUMN_H
 #define SILO_INT_COLUMN_H
 
+#include <cstdint>
 #include <deque>
 #include <string>
 #include <vector>

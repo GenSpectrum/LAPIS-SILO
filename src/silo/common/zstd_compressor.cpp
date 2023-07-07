@@ -1,5 +1,7 @@
 #include "silo/common/zstd_compressor.h"
 
+#include <string>
+
 namespace silo {
 
 ZstdCompressor::~ZstdCompressor() {

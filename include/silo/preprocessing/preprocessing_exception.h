@@ -2,6 +2,7 @@
 #define SILO_INCLUDE_SILO_PREPROCESSING_PREPROCESSING_EXCEPTION_H_
 
 #include <iostream>
+#include <stdexcept>
 
 namespace silo {
 

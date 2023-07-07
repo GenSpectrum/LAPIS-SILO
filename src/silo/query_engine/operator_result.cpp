@@ -2,6 +2,8 @@
 
 #include <utility>
 
+#include <roaring/roaring.hh>
+
 namespace silo::query_engine {
 
 OperatorResult::OperatorResult()

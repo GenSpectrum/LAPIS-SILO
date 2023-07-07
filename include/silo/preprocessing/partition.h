@@ -1,6 +1,8 @@
 #ifndef SILO_PARTITION_H
 #define SILO_PARTITION_H
 
+#include <cstdint>
+#include <iosfwd>
 #include <string>
 #include <vector>
 

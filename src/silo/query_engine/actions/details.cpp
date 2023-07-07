@@ -1,14 +1,36 @@
 #include "silo/query_engine/actions/details.h"
 
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <map>
+#include <optional>
+#include <stdexcept>
+#include <unordered_map>
+#include <utility>
+#include <variant>
+
 #include <nlohmann/json.hpp>
+#include <roaring/roaring.hh>
 
 #include "silo/common/date.h"
+#include "silo/common/pango_lineage.h"
 #include "silo/common/string.h"
+#include "silo/common/types.h"
 #include "silo/config/database_config.h"
 #include "silo/database.h"
+#include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
+#include "silo/storage/column/date_column.h"
+#include "silo/storage/column/float_column.h"
+#include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/int_column.h"
+#include "silo/storage/column/pango_lineage_column.h"
+#include "silo/storage/column/string_column.h"
+#include "silo/storage/column_group.h"
 #include "silo/storage/database_partition.h"
 
 namespace silo::query_engine::actions {

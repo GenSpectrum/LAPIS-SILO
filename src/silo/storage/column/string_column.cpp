@@ -3,6 +3,7 @@
 #include <string>
 
 #include "silo/common/bidirectional_map.h"
+#include "silo/common/string.h"
 
 using silo::common::String;
 using silo::common::STRING_SIZE;

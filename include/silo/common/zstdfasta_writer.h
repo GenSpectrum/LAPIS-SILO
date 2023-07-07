@@ -3,8 +3,8 @@
 
 #include <filesystem>
 #include <iostream>
-
-#include <zstd.h>
+#include <memory>
+#include <string>
 
 #include "silo/common/input_stream_wrapper.h"
 #include "silo/common/zstd_compressor.h"

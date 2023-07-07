@@ -1,7 +1,12 @@
 #include "silo/preprocessing/partition.h"
 
 #include <algorithm>
+#include <cstdlib>
+#include <istream>
+#include <iterator>
 #include <list>
+#include <stdexcept>
+#include <tuple>
 
 #include "silo/persistence/exception.h"
 #include "silo/preprocessing/pango_lineage_count.h"

@@ -1,11 +1,29 @@
 #ifndef SILO_NUC_MUTATIONS_H
 #define SILO_NUC_MUTATIONS_H
 
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <optional>
+#include <string>
 #include <vector>
+
+#include <nlohmann/json_fwd.hpp>
 
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/actions/action.h"
+#include "silo/query_engine/query_result.h"
 #include "silo/storage/sequence_store.h"
+
+namespace silo {
+class Database;
+class SequenceStore;
+
+namespace query_engine {
+struct OperatorResult;
+}  // namespace query_engine
+}  // namespace silo
 
 namespace silo::query_engine::actions {
 

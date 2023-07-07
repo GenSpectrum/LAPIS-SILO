@@ -3,9 +3,10 @@
 
 #include <iostream>
 #include <memory>
-#include <roaring/roaring.hh>
 #include <string>
 #include <vector>
+
+#include <roaring/roaring.hh>
 
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/operators/operator.h"

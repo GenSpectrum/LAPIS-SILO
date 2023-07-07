@@ -1,6 +1,11 @@
 #ifndef SILO_STRING_H
 #define SILO_STRING_H
 
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 
@@ -9,6 +14,14 @@
 
 #include "silo/common/bidirectional_map.h"
 #include "silo/common/types.h"
+
+namespace boost::serialization {
+class access;
+}  // namespace boost::serialization
+namespace silo::common {
+template <typename V>
+class BidirectionalMap;
+}  // namespace silo::common
 
 namespace silo::common {
 
@@ -40,7 +53,7 @@ struct String {
       const BidirectionalMap<std::string>& dictionary
    );
 
-   std::string toString(const BidirectionalMap<std::string>& dictionary) const;
+   [[nodiscard]] std::string toString(const BidirectionalMap<std::string>& dictionary) const;
 
    bool operator==(const String& other) const;
 

@@ -1,8 +1,10 @@
 #include "silo/common/bidirectional_map.h"
 
 #include <optional>
+#include <string>
 
 #include "silo/common/pango_lineage.h"
+#include "silo/common/types.h"
 
 namespace silo::common {
 

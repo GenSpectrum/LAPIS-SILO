@@ -1,17 +1,18 @@
 #include "silo/storage/sequence_store.h"
 
-#include <spdlog/spdlog.h>
-#include <tbb/blocked_range.h>
-#include <tbb/enumerable_thread_specific.h>
-#include <tbb/parallel_for.h>
 #include <atomic>
-#include <memory>
-#include <roaring/roaring.hh>
 #include <string>
+#include <utility>
 #include <vector>
+
+#include <oneapi/tbb/blocked_range.h>
+#include <oneapi/tbb/parallel_for.h>
+#include <spdlog/spdlog.h>
+#include <roaring/roaring.hh>
 
 #include "silo/common/format_number.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/common/zstdfasta_reader.h"
 
 [[maybe_unused]] auto fmt::formatter<silo::SequenceStoreInfo>::format(
    silo::SequenceStoreInfo sequence_store_info,

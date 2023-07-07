@@ -2,20 +2,31 @@
 #define SILO_AA_STORE_H
 
 #include <array>
+#include <cstddef>
+#include <cstdint>
 #include <deque>
 #include <optional>
+#include <string>
+#include <vector>
 
-#include <silo/common/fasta_reader.h>
 #include <spdlog/spdlog.h>
 #include <boost/serialization/array.hpp>
 #include <roaring/roaring.hh>
 
 #include "silo/common/aa_symbols.h"
+#include "silo/common/fasta_reader.h"
 #include "silo/common/zstdfasta_reader.h"
 #include "silo/roaring/roaring_serialize.h"
 #include "silo/storage/serialize_optional.h"
 
+namespace boost {
+namespace serialization {
+class access;
+}  // namespace serialization
+}  // namespace boost
+
 namespace silo {
+class ZstdFastaReader;
 
 struct AAPosition {
    friend class boost::serialization::access;

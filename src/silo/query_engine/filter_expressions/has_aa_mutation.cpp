@@ -1,17 +1,30 @@
 #include "silo/query_engine/filter_expressions/has_aa_mutation.h"
 
-#include <nlohmann/json.hpp>
+#include <algorithm>
+#include <array>
+#include <iterator>
+#include <map>
+#include <optional>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+
 #include "silo/common/aa_symbols.h"
+#include "silo/database.h"
 #include "silo/query_engine/filter_expressions/aa_symbol_equals.h"
+#include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/filter_expressions/negation.h"
 #include "silo/query_engine/filter_expressions/or.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_parse_exception.h"
+#include "silo/storage/aa_store.h"
 
-#include "silo/database.h"
+namespace silo {
+class DatabasePartition;
+namespace query_engine {}  // namespace query_engine
+}  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
 

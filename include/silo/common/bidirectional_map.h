@@ -1,7 +1,7 @@
 #ifndef SILO_BIDIRECTIONAL_MAP_H
 #define SILO_BIDIRECTIONAL_MAP_H
 
-#include <mutex>
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -9,7 +9,14 @@
 
 #include <boost/serialization/access.hpp>
 
+#include "silo/common/pango_lineage.h"
 #include "silo/common/types.h"
+
+namespace boost {
+namespace serialization {
+class access;
+}  // namespace serialization
+}  // namespace boost
 
 namespace silo::common {
 
@@ -35,7 +42,7 @@ class BidirectionalMap {
 
    [[nodiscard]] V getValue(Idx idx) const;
 
-   [[nodiscard]] std::optional<Idx> getId(V value) const;
+   [[maybe_unused]] [[nodiscard]] std::optional<Idx> getId(V value) const;
 
    [[nodiscard]] Idx getOrCreateId(V value);
 };

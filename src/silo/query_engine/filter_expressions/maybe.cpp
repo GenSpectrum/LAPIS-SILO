@@ -1,9 +1,20 @@
 #include "silo/query_engine/filter_expressions/maybe.h"
 
+#include <map>
+#include <memory>
+#include <string>
+#include <utility>
+
 #include <nlohmann/json.hpp>
 
+#include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_parse_exception.h"
+
+namespace silo {
+struct Database;
+struct DatabasePartition;
+}  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
 

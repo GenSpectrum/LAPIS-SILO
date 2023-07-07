@@ -1,10 +1,12 @@
 #include "silo/query_engine/actions/fasta.h"
 
-#include <nlohmann/json.hpp>
-
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
+
+namespace silo {
+struct Database;
+}  // namespace silo
 
 namespace silo::query_engine::actions {
 

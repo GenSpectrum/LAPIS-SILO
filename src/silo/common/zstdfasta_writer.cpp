@@ -1,6 +1,10 @@
 #include "silo/common/zstdfasta_writer.h"
 
-#include "silo/common/fasta_format_exception.h"
+#include <cstddef>
+#include <filesystem>
+#include <stdexcept>
+
+#include "silo/common/zstd_compressor.h"
 
 silo::ZstdFastaWriter::ZstdFastaWriter(
    const std::filesystem::path& out_file,

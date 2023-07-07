@@ -1,8 +1,11 @@
 #ifndef SILO_RANGE_SELECTION_H
 #define SILO_RANGE_SELECTION_H
 
+#include <cstdint>
+#include <memory>
 #include <vector>
 
+#include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo::query_engine::operators {

@@ -1,6 +1,8 @@
 #ifndef SILO_OPERATOR_RESULT_H
 #define SILO_OPERATOR_RESULT_H
 
+#include <type_traits>
+
 #include <roaring/roaring.hh>
 
 namespace silo::query_engine {

@@ -1,6 +1,9 @@
 #include "silo/config/database_config.h"
 
 #include <algorithm>
+#include <iterator>
+#include <stdexcept>
+#include <string_view>
 
 #include "silo/config/config_exception.h"
 

@@ -1,10 +1,18 @@
 #include "silo/query_engine/filter_expressions/false.h"
 
-#include <nlohmann/json.hpp>
+#include <string>
 
-#include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/operators/empty.h"
 #include "silo/storage/database_partition.h"
+
+namespace silo {
+namespace query_engine {
+namespace operators {
+class Operator;
+}  // namespace operators
+}  // namespace query_engine
+struct Database;
+}  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
 

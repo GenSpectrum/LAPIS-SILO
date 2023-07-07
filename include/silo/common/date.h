@@ -1,6 +1,7 @@
 #ifndef SILO_DATE_H
 #define SILO_DATE_H
 
+#include <cstdint>
 #include <optional>
 #include <string>
 

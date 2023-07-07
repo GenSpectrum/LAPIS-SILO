@@ -1,37 +1,56 @@
 #include "silo/database.h"
 
+#include <array>
+#include <atomic>
+#include <deque>
 #include <filesystem>
+#include <fstream>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
+#include <fmt/core.h>
+#include <oneapi/tbb/blocked_range.h>
+#include <oneapi/tbb/parallel_for.h>
+#include <oneapi/tbb/parallel_for_each.h>
 #include <spdlog/spdlog.h>
-#include <tbb/blocked_range.h>
-#include <tbb/parallel_for_each.h>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/detail/interface_iarchive.hpp>
+#include <boost/archive/detail/interface_oarchive.hpp>
 #include <roaring/roaring.hh>
 
 #include "silo/common/block_timer.h"
 #include "silo/common/format_number.h"
-#include "silo/common/input_stream_wrapper.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/config/config_repository.h"
+#include "silo/common/zstdfasta_reader.h"
+#include "silo/config/database_config.h"
 #include "silo/database_info.h"
 #include "silo/persistence/exception.h"
 #include "silo/prepare_dataset.h"
+#include "silo/preprocessing/metadata.h"
 #include "silo/preprocessing/metadata_validator.h"
 #include "silo/preprocessing/pango_lineage_count.h"
 #include "silo/preprocessing/partition.h"
 #include "silo/preprocessing/preprocessing_config.h"
+#include "silo/storage/aa_store.h"
 #include "silo/storage/column/date_column.h"
+#include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/column/pango_lineage_column.h"
 #include "silo/storage/column/string_column.h"
+#include "silo/storage/column_group.h"
 #include "silo/storage/database_partition.h"
 #include "silo/storage/pango_lineage_alias.h"
 #include "silo/storage/reference_genomes.h"
+#include "silo/storage/sequence_store.h"
 
 template <>
 struct [[maybe_unused]] fmt::formatter<silo::DatabaseInfo> : fmt::formatter<std::string> {
@@ -172,9 +191,9 @@ BitmapContainerSize::BitmapContainerSize(size_t genome_length, size_t section_le
       total_bitmap_size_computed(0) {
    size_per_genome_symbol_and_section["NOT_N_NOT_GAP"] =
       std::vector<size_t>((genome_length / section_length) + 1, 0);
-   size_per_genome_symbol_and_section[genomeSymbolRepresentation(NUCLEOTIDE_SYMBOL::GAP)] =
+   size_per_genome_symbol_and_section["-"] =
       std::vector<size_t>((genome_length / section_length) + 1, 0);
-   size_per_genome_symbol_and_section[genomeSymbolRepresentation(NUCLEOTIDE_SYMBOL::N)] =
+   size_per_genome_symbol_and_section["N"] =
       std::vector<size_t>((genome_length / section_length) + 1, 0);
 }
 
@@ -303,11 +322,11 @@ BitmapContainerSize Database::calculateBitmapContainerSizePerGenomeSection(
                if (statistic.n_bitset_containers > 0) {
                   if (genome_symbol == NUCLEOTIDE_SYMBOL::N) {
                      bitmap_container_size_per_genome_section.size_per_genome_symbol_and_section
-                        .at(genomeSymbolRepresentation(NUCLEOTIDE_SYMBOL::N))
+                        .at("N")
                         .at(position_index / section_length) += statistic.n_bitset_containers;
                   } else if (genome_symbol == NUCLEOTIDE_SYMBOL::GAP) {
                      bitmap_container_size_per_genome_section.size_per_genome_symbol_and_section
-                        .at(genomeSymbolRepresentation(NUCLEOTIDE_SYMBOL::GAP))
+                        .at("GAP")
                         .at(position_index / section_length) += statistic.n_bitset_containers;
                   } else {
                      bitmap_container_size_per_genome_section.size_per_genome_symbol_and_section

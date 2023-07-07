@@ -4,7 +4,19 @@
 #include <memory>
 #include <string>
 
+#include <nlohmann/json_fwd.hpp>
+
 #include "silo/query_engine/filter_expressions/expression.h"
+
+namespace silo {
+namespace query_engine {
+namespace operators {
+class Operator;
+}  // namespace operators
+}  // namespace query_engine
+struct Database;
+struct DatabasePartition;
+}  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
 

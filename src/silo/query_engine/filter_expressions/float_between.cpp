@@ -1,12 +1,26 @@
 #include "silo/query_engine/filter_expressions/float_between.h"
 
+#include <map>
+#include <memory>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
 #include <nlohmann/json.hpp>
 
+#include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/operators/full.h"
 #include "silo/query_engine/operators/intersection.h"
+#include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/operators/selection.h"
 #include "silo/query_engine/query_parse_exception.h"
+#include "silo/storage/column/float_column.h"
+#include "silo/storage/column_group.h"
 #include "silo/storage/database_partition.h"
+
+namespace silo {
+struct Database;
+}  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
 

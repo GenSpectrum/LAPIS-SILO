@@ -1,6 +1,11 @@
 #include "silo/query_engine/operators/index_scan.h"
 
+#include <string>
+
+#include <roaring/roaring.hh>
+
 #include "silo/query_engine/operators/complement.h"
+#include "silo/query_engine/operators/operator.h"
 
 namespace silo::query_engine::operators {
 

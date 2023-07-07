@@ -1,5 +1,6 @@
 #include "silo/query_engine/operators/selection.h"
 
+#include <stdexcept>
 #include <utility>
 #include <vector>
 

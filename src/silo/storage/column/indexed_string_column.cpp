@@ -1,5 +1,9 @@
 #include "silo/storage/column/indexed_string_column.h"
 
+#include <optional>
+
+#include "silo/common/bidirectional_map.h"
+
 namespace silo::storage::column {
 
 IndexedStringColumnPartition::IndexedStringColumnPartition(

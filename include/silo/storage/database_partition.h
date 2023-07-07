@@ -1,6 +1,9 @@
 #ifndef SILO_DATABASE_PARTITION_H
 #define SILO_DATABASE_PARTITION_H
 
+#include <cstdint>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <boost/archive/binary_iarchive.hpp>
@@ -11,7 +14,25 @@
 #include "silo/storage/column_group.h"
 #include "silo/storage/sequence_store.h"
 
+namespace boost {
+namespace serialization {
+class access;
+}  // namespace serialization
+}  // namespace boost
+
 namespace silo {
+class AAStorePartition;
+class SequenceStorePartition;
+namespace storage {
+namespace column {
+class DateColumnPartition;
+class FloatColumnPartition;
+class IndexedStringColumnPartition;
+class IntColumnPartition;
+class PangoLineageColumnPartition;
+class StringColumnPartition;
+}  // namespace column
+}  // namespace storage
 
 class DatabasePartition {
    friend class boost::serialization::

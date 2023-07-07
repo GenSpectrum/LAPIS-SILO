@@ -1,5 +1,8 @@
 #include "silo/query_engine/filter_expressions/expression.h"
 
+#include <map>
+#include <string>
+
 #include <nlohmann/json.hpp>
 
 #include "silo/query_engine/filter_expressions/aa_symbol_equals.h"

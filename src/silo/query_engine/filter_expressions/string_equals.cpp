@@ -1,15 +1,31 @@
 #include "silo/query_engine/filter_expressions/string_equals.h"
 
-#include <nlohmann/json.hpp>
+#include <map>
+#include <unordered_map>
+#include <utility>
 
-#include "silo/database.h"
+#include <nlohmann/json.hpp>
+#include <roaring/roaring.hh>
+
+#include "silo/common/string.h"
+#include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/operators/empty.h"
 #include "silo/query_engine/operators/index_scan.h"
 #include "silo/query_engine/operators/selection.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/storage/column/indexed_string_column.h"
 #include "silo/storage/column/string_column.h"
+#include "silo/storage/column_group.h"
 #include "silo/storage/database_partition.h"
+
+namespace silo {
+class Database;
+namespace query_engine {
+namespace operators {
+class Operator;
+}  // namespace operators
+}  // namespace query_engine
+}  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
 
