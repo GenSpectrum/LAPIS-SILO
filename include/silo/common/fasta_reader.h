@@ -3,6 +3,7 @@
 
 #include <filesystem>
 #include <iostream>
+#include <optional>
 #include <string>
 
 #include "silo/common/input_stream_wrapper.h"
@@ -12,14 +13,14 @@ class FastaReader {
   private:
    silo::InputStreamWrapper in_file;
 
-   bool populateKey(std::string& key);
+   std::optional<std::string> nextKey();
 
   public:
    explicit FastaReader(const std::filesystem::path& in_file_name);
 
-   bool nextKey(std::string& key);
+   std::optional<std::string> nextSkipGenome();
 
-   bool next(std::string& key, std::string& genome);
+   std::optional<std::string> next(std::string& genome_buffer);
 
    void reset();
 };
