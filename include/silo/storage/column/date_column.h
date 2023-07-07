@@ -19,7 +19,7 @@ class DateColumnPartition {
 
   private:
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
       archive& values;
       archive& is_sorted;
@@ -42,7 +42,7 @@ class DateColumnPartition {
 class DateColumn {
   public:
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
       archive& is_sorted;
       // clang-format on

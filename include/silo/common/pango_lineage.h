@@ -7,14 +7,14 @@
 namespace silo::common {
 
 struct PangoLineage {
+   std::string value;
+
    template <class Archive>
-   void serialize(Archive& archive, const unsigned int /* version*/) {
+   void serialize(Archive& archive, const uint32_t /* version*/) {
       // clang-format off
       archive& value;
       // clang-format on
    }
-
-   std::string value;
 
    bool isSublineageOf(const PangoLineage& other) const;
 

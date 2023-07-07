@@ -21,7 +21,11 @@ Selection<T>::Selection(
     : column(column),
       comparator(comparator),
       value(std::move(value)),
-      row_count(row_count) {}
+      row_count(row_count) {
+   if (row_count > this->column.size()) {
+      throw std::runtime_error("Rows do not match vector size for Selection operator");
+   }
+}
 
 template <typename T>
 Selection<T>::~Selection() noexcept = default;
@@ -58,47 +62,45 @@ Type Selection<T>::type() const {
 template <typename T>
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 OperatorResult Selection<T>::evaluate() const {
-   const auto size = column.size();
-
    auto* result = new roaring::Roaring();
    switch (this->comparator) {
       case EQUALS:
-         for (unsigned i = 0; i < size; i++) {
+         for (uint32_t i = 0; i < row_count; i++) {
             if (column[i] == value) {
                result->add(i);
             }
          }
          break;
       case NOT_EQUALS:
-         for (unsigned i = 0; i < size; i++) {
+         for (uint32_t i = 0; i < row_count; i++) {
             if (column[i] != value) {
                result->add(i);
             }
          }
          break;
       case LESS:
-         for (unsigned i = 0; i < size; i++) {
+         for (uint32_t i = 0; i < row_count; i++) {
             if (column[i] < value) {
                result->add(i);
             }
          }
          break;
       case HIGHER_OR_EQUALS:
-         for (unsigned i = 0; i < size; i++) {
+         for (uint32_t i = 0; i < row_count; i++) {
             if (column[i] >= value) {
                result->add(i);
             }
          }
          break;
       case HIGHER:
-         for (unsigned i = 0; i < size; i++) {
+         for (uint32_t i = 0; i < row_count; i++) {
             if (column[i] > value) {
                result->add(i);
             }
          }
          break;
       case LESS_OR_EQUALS:
-         for (unsigned i = 0; i < size; i++) {
+         for (uint32_t i = 0; i < row_count; i++) {
             if (column[i] <= value) {
                result->add(i);
             }

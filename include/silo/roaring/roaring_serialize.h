@@ -18,7 +18,7 @@ template <class Archive>
 [[maybe_unused]] void save(
    Archive& ar,
    const roaring::Roaring& bitmask,
-   [[maybe_unused]] const unsigned int version
+   [[maybe_unused]] const uint32_t version
 ) {
    std::size_t expected_size_in_bytes = bitmask.getSizeInBytes();
    std::vector<char> buffer(expected_size_in_bytes);
@@ -33,7 +33,7 @@ template <class Archive>
 [[maybe_unused]] void load(
    Archive& ar,
    roaring::Roaring& bitmask,
-   [[maybe_unused]] const unsigned int version
+   [[maybe_unused]] const uint32_t version
 ) {
    std::size_t size_in_bytes = 0;
    // clang-format off

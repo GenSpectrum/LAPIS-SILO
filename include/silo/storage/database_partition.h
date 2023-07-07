@@ -19,7 +19,7 @@ class DatabasePartition {
                // (https://www.boost.org/doc/libs/1_34_0/libs/serialization/doc/serialization.html)
 
    template <class Archive>
-   void serialize(Archive& archive, [[maybe_unused]] const unsigned int version) {
+   void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
       archive& chunks;
       archive& columns;
@@ -32,7 +32,7 @@ class DatabasePartition {
    storage::ColumnGroup columns;
    std::unordered_map<std::string, SequenceStorePartition&> nuc_sequences;
    std::unordered_map<std::string, AAStorePartition&> aa_sequences;
-   unsigned sequenceCount;
+   uint32_t sequenceCount;
 
    [[nodiscard]] const std::vector<preprocessing::Chunk>& getChunks() const;
 

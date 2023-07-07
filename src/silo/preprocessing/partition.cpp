@@ -12,8 +12,8 @@ std::string commonPangoPrefix(const std::string& lineage1, const std::string& li
    std::string prefix;
    // Buffer until it reaches another .
    std::string buffer;
-   const unsigned min_len = std::min(lineage1.length(), lineage2.length());
-   for (unsigned i = 0; i < min_len; i++) {
+   const uint32_t min_len = std::min(lineage1.length(), lineage2.length());
+   for (uint32_t i = 0; i < min_len; i++) {
       if (lineage1[i] != lineage2[i]) {
          return prefix;
       }
@@ -33,8 +33,8 @@ std::string commonPangoPrefix(const std::string& lineage1, const std::string& li
 /// vector of chunks
 std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
    const std::vector<PangoLineageCount>& pango_lineage_counts,
-   unsigned target_size,
-   unsigned min_size
+   uint32_t target_size,
+   uint32_t min_size
 ) {
    // Initialize chunks such that every chunk is just a pango_lineage
    std::list<Chunk> chunks;

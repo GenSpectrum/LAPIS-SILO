@@ -301,7 +301,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<NOf>& filter) {
       "The field 'matchExactly' in an N-Of expression needs to be a boolean"
    )
 
-   const unsigned number_of_matchers = json["numberOfMatchers"];
+   const uint32_t number_of_matchers = json["numberOfMatchers"];
    const bool match_exactly = json["matchExactly"];
    auto children = json["children"].get<std::vector<std::unique_ptr<Expression>>>();
    filter = std::make_unique<NOf>(std::move(children), number_of_matchers, match_exactly);

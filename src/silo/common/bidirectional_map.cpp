@@ -3,7 +3,6 @@
 #include <optional>
 
 #include "silo/common/pango_lineage.h"
-#include "silo/common/string.h"
 
 namespace silo::common {
 

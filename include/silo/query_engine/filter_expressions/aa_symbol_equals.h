@@ -9,10 +9,10 @@ namespace silo::query_engine::filter_expressions {
 
 struct AASymbolEquals : public Expression {
    std::string aa_sequence_name;
-   unsigned position;
+   uint32_t position;
    char value;
 
-   explicit AASymbolEquals(std::string aa_sequence_name, unsigned position, char value);
+   explicit AASymbolEquals(std::string aa_sequence_name, uint32_t position, char value);
 
    std::string toString(const Database& database) const override;
 

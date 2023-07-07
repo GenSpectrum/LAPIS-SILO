@@ -12,7 +12,7 @@ namespace silo::query_engine::operators {
 Threshold::Threshold(
    std::vector<std::unique_ptr<Operator>>&& non_negated_children,
    std::vector<std::unique_ptr<Operator>>&& negated_children,
-   unsigned int number_of_matchers,
+   uint32_t number_of_matchers,
    bool match_exactly,
    uint32_t row_count
 )
@@ -58,7 +58,7 @@ Type Threshold::type() const {
 }
 
 OperatorResult Threshold::evaluate() const {
-   unsigned dp_table_size;
+   uint32_t dp_table_size;
    if (this->match_exactly) {
       // We need to keep track of the ones that matched too many
       dp_table_size = number_of_matchers + 1;

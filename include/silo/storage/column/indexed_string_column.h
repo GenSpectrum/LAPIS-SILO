@@ -24,7 +24,7 @@ class IndexedStringColumnPartition {
 
   private:
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
       archive& value_ids;
       archive& indexed_values;
@@ -52,7 +52,7 @@ class IndexedStringColumn {
 
   private:
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
       archive& lookup;
       // clang-format on

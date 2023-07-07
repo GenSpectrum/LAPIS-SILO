@@ -19,7 +19,7 @@ class Threshold : public Operator {
    Threshold(
       std::vector<std::unique_ptr<Operator>>&& non_negated_children,
       std::vector<std::unique_ptr<Operator>>&& negated_children,
-      unsigned int number_of_matchers,
+      uint32_t number_of_matchers,
       bool match_exactly,
       uint32_t row_count
    );

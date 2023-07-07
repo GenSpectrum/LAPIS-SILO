@@ -49,7 +49,7 @@ std::unique_ptr<Operator> RangeSelection::copy() const {
 
 std::unique_ptr<Operator> RangeSelection::negate() const {
    std::vector<Range> new_ranges;
-   unsigned last_to = 0;
+   uint32_t last_to = 0;
    for (const auto& current : ranges) {
       if (last_to != current.start) {
          new_ranges.emplace_back(last_to, current.start);

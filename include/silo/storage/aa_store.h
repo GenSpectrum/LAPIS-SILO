@@ -21,7 +21,7 @@ struct AAPosition {
    friend class boost::serialization::access;
 
    template <class Archive>
-   void serialize(Archive& archive, [[maybe_unused]] const unsigned int version) {
+   void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
       archive& symbol_whose_bitmap_is_flipped;
       archive& bitmaps;
@@ -37,7 +37,7 @@ class AAStorePartition {
 
   private:
    template <class Archive>
-   void serialize(Archive& archive, [[maybe_unused]] const unsigned int version) {
+   void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
       archive& sequence_count;
       archive& positions;

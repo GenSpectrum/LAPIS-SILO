@@ -10,12 +10,12 @@ namespace silo::query_engine::filter_expressions {
 
 struct NucleotideSymbolEquals : public Expression {
    std::optional<std::string> nuc_sequence_name;
-   unsigned position;
+   uint32_t position;
    char value;
 
    explicit NucleotideSymbolEquals(
       std::optional<std::string> nuc_sequence_name,
-      unsigned position,
+      uint32_t position,
       char value
    );
 

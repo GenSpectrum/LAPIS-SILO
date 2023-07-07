@@ -30,14 +30,14 @@ OperatorResult BitmapSelection::evaluate() const {
    auto* bitmap = new roaring::Roaring();
    switch (this->comparator) {
       case CONTAINS:
-         for (unsigned i = 0; i < row_count; i++) {
+         for (uint32_t i = 0; i < row_count; i++) {
             if (bitmaps[i].contains(value)) {
                bitmap->add(i);
             }
          }
          break;
       case NOT_CONTAINS:
-         for (unsigned i = 0; i < row_count; i++) {
+         for (uint32_t i = 0; i < row_count; i++) {
             if (!bitmaps[i].contains(value)) {
                bitmap->add(i);
             }

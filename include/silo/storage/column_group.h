@@ -28,7 +28,7 @@ namespace silo::storage {
 
 struct ColumnGroup {
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
       // clang-format on
    }
@@ -44,7 +44,7 @@ struct ColumnGroup {
    std::unordered_map<std::string, storage::column::PangoLineageColumnPartition&>
       pango_lineage_columns;
 
-   unsigned fill(
+   uint32_t fill(
       const std::filesystem::path& input_file,
       const PangoLineageAliasLookup& alias_key,
       const silo::config::DatabaseConfig& database_config

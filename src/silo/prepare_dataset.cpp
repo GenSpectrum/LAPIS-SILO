@@ -209,9 +209,9 @@ void silo::partitionData(
 ) {
    std::unordered_map<std::string, std::string> pango_to_chunk;
    std::vector<std::string> chunk_names;
-   for (unsigned i = 0, limit = partitions.partitions.size(); i < limit; ++i) {
+   for (uint32_t i = 0, limit = partitions.partitions.size(); i < limit; ++i) {
       const auto& part = partitions.partitions[i];
-      for (unsigned j = 0, limit2 = part.chunks.size(); j < limit2; ++j) {
+      for (uint32_t j = 0, limit2 = part.chunks.size(); j < limit2; ++j) {
          const auto& chunk = part.chunks[j];
          chunk_names.push_back(silo::buildChunkString(i, j));
          for (const auto& pango : chunk.pango_lineages) {
@@ -329,7 +329,7 @@ void sortSequenceFile(
    std::sort(key_date_pairs.begin(), key_date_pairs.end(), sorter);
 
    std::vector<uint32_t> file_pos_to_sorted_pos(number_of_sequences);
-   unsigned number_of_sorted_files = 0;
+   uint32_t number_of_sorted_files = 0;
    for (auto& key_date_pair : key_date_pairs) {
       file_pos_to_sorted_pos[key_date_pair.file_pos] = number_of_sorted_files++;
    }

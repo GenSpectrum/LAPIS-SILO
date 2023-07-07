@@ -28,7 +28,7 @@ enum class NUCLEOTIDE_SYMBOL {
    N,    // any base
 };
 
-static constexpr unsigned NUC_SYMBOL_COUNT = static_cast<unsigned>(NUCLEOTIDE_SYMBOL::N) + 1;
+static constexpr uint32_t NUC_SYMBOL_COUNT = static_cast<uint32_t>(NUCLEOTIDE_SYMBOL::N) + 1;
 
 static constexpr std::array<char, NUC_SYMBOL_COUNT> NUC_SYMBOL_REPRESENTATION{
    '-',
@@ -116,7 +116,7 @@ static const std::array<std::vector<NUCLEOTIDE_SYMBOL>, NUC_SYMBOL_COUNT> AMBIGU
 }};
 
 inline std::string genomeSymbolRepresentation(NUCLEOTIDE_SYMBOL symbol) {
-   return std::string(1, NUC_SYMBOL_REPRESENTATION.at(static_cast<unsigned>(symbol)));
+   return std::string(1, NUC_SYMBOL_REPRESENTATION.at(static_cast<uint32_t>(symbol)));
 }
 
 inline std::optional<NUCLEOTIDE_SYMBOL> toNucleotideSymbol(char character) {

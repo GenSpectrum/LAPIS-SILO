@@ -115,18 +115,18 @@ void Database::build(
                [&](const auto& range) {
                   for (auto position = range.begin(); position != range.end(); ++position) {
                      std::optional<NUCLEOTIDE_SYMBOL> max_symbol = std::nullopt;
-                     unsigned max_count = 0;
+                     uint32_t max_count = 0;
 
                      for (const auto& symbol : NUC_SYMBOLS) {
-                        const unsigned count =
-                           positions[position].bitmaps[static_cast<unsigned>(symbol)].cardinality();
+                        const uint32_t count =
+                           positions[position].bitmaps[static_cast<uint32_t>(symbol)].cardinality();
                         if (count > max_count) {
                            max_symbol = symbol;
                            max_count = count;
                         }
                      }
                      positions[position].symbol_whose_bitmap_is_flipped = max_symbol;
-                     positions[position].bitmaps[static_cast<unsigned>(max_symbol.value())].flip(
+                     positions[position].bitmaps[static_cast<uint32_t>(max_symbol.value())].flip(
                         0, database_partition.sequenceCount
                      );
                   }
@@ -239,7 +239,7 @@ BitmapSizePerSymbol Database::calculateBitmapSizePerSymbol(const SequenceStore& 
       for (const SequenceStorePartition& seq_store_partition : seq_store.partitions) {
          for (const auto& position : seq_store_partition.positions) {
             bitmap_size_per_symbol.size_in_bytes[symbol] +=
-               position.bitmaps[static_cast<unsigned>(symbol)].getSizeInBytes();
+               position.bitmaps[static_cast<uint32_t>(symbol)].getSizeInBytes();
          }
       }
       lock.lock();
@@ -273,21 +273,21 @@ BitmapContainerSize Database::calculateBitmapContainerSizePerGenomeSection(
    const SequenceStore& seq_store,
    size_t section_length
 ) {
-   const size_t genome_length = seq_store.reference_genome.length();
+   const uint32_t genome_length = seq_store.reference_genome.length();
 
    BitmapContainerSize global_bitmap_container_size_per_genome_section(
       genome_length, section_length
    );
 
    std::mutex lock;
-   tbb::parallel_for(tbb::blocked_range<unsigned>(0U, genome_length), [&](const auto& range) {
+   tbb::parallel_for(tbb::blocked_range<uint32_t>(0U, genome_length), [&](const auto& range) {
       BitmapContainerSize bitmap_container_size_per_genome_section(genome_length, section_length);
       for (auto position_index = range.begin(); position_index != range.end(); ++position_index) {
          RoaringStatistics statistic;
          for (const auto& seq_store_partition : seq_store.partitions) {
             const auto& position = seq_store_partition.positions[position_index];
             for (const auto& genome_symbol : NUC_SYMBOLS) {
-               const auto& bitmap = position.bitmaps[static_cast<unsigned>(genome_symbol)];
+               const auto& bitmap = position.bitmaps[static_cast<uint32_t>(genome_symbol)];
 
                roaring_bitmap_statistics(&bitmap.roaring, &statistic);
                addStatisticToBitmapContainerSize(
@@ -360,7 +360,7 @@ DetailedDatabaseInfo Database::detailedDatabaseInfo() const {
    }
 
    std::vector<std::ofstream> file_vec;
-   for (unsigned i = 0; i < partitions.size(); ++i) {
+   for (uint32_t i = 0; i < partitions.size(); ++i) {
       const auto& partition_file = save_directory + 'P' + std::to_string(i) + ".silo";
       file_vec.emplace_back(partition_file);
 
@@ -395,7 +395,7 @@ DetailedDatabaseInfo Database::detailedDatabaseInfo() const {
 
    SPDLOG_INFO("Loading partitions from {}", save_directory);
    std::vector<std::ifstream> file_vec;
-   for (unsigned i = 0; i < partition_descriptor->partitions.size(); ++i) {
+   for (uint32_t i = 0; i < partition_descriptor->partitions.size(); ++i) {
       const auto partition_file = save_directory + 'P' + std::to_string(i) + ".silo";
       file_vec.emplace_back(partition_file);
 
@@ -550,7 +550,7 @@ void Database::initializeSequences() {
 
 Database::Database() = default;
 
-std::string buildChunkString(unsigned int partition, unsigned int chunk) {
+std::string buildChunkString(uint32_t partition, uint32_t chunk) {
    return "P" + std::to_string(partition) + "_C" + std::to_string(chunk);
 }
 

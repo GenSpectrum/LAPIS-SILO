@@ -1,5 +1,6 @@
 #include "silo/query_engine/query_parse_exception.h"
 
+#include <stdexcept>
 #include <string>
 
 namespace silo {

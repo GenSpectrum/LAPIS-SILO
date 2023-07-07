@@ -7,7 +7,7 @@ using silo::query_engine::operators::Selection;
 
 TEST(OperatorSelection, equalsShouldReturnCorrectValues) {
    const std::vector<int32_t> test_column({{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}});
-   const uint32_t row_count = 13;
+   const uint32_t row_count = test_column.size();
 
    const Selection<int32_t> under_test(
       test_column, Selection<int32_t>::Comparator::EQUALS, 1, row_count
@@ -20,7 +20,7 @@ TEST(OperatorSelection, equalsShouldReturnCorrectValues) {
 
 TEST(OperatorSelection, notEqualsShouldReturnCorrectValues) {
    const std::vector<int32_t> test_column({{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}});
-   const uint32_t row_count = 12;
+   const uint32_t row_count = test_column.size();
 
    const Selection<int32_t> under_test(
       test_column, Selection<int32_t>::Comparator::NOT_EQUALS, 1, row_count
@@ -33,7 +33,7 @@ TEST(OperatorSelection, notEqualsShouldReturnCorrectValues) {
 
 TEST(OperatorSelection, lessShouldReturnCorrectValues) {
    const std::vector<int32_t> test_column({{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}});
-   const uint32_t row_count = 15;
+   const uint32_t row_count = test_column.size();
 
    const Selection<int32_t> under_test(
       test_column, Selection<int32_t>::Comparator::LESS, 1, row_count
@@ -46,7 +46,7 @@ TEST(OperatorSelection, lessShouldReturnCorrectValues) {
 
 TEST(OperatorSelection, lessOrEqualsShouldReturnCorrectValues) {
    const std::vector<int32_t> test_column({{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}});
-   const uint32_t row_count = 13;
+   const uint32_t row_count = test_column.size();
 
    const Selection<int32_t> under_test(
       test_column, Selection<int32_t>::Comparator::LESS_OR_EQUALS, 1, row_count
@@ -59,7 +59,7 @@ TEST(OperatorSelection, lessOrEqualsShouldReturnCorrectValues) {
 
 TEST(OperatorSelection, higherOrEqualsShouldReturnCorrectValues) {
    const std::vector<int32_t> test_column({{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}});
-   const uint32_t row_count = 13;
+   const uint32_t row_count = test_column.size();
 
    const Selection<int32_t> under_test(
       test_column, Selection<int32_t>::Comparator::HIGHER_OR_EQUALS, 1, row_count
@@ -72,7 +72,7 @@ TEST(OperatorSelection, higherOrEqualsShouldReturnCorrectValues) {
 
 TEST(OperatorSelection, higherShouldReturnCorrectValues) {
    const std::vector<int32_t> test_column({{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}});
-   const uint32_t row_count = 13;
+   const uint32_t row_count = test_column.size();
 
    const Selection<int32_t> under_test(
       test_column, Selection<int32_t>::Comparator::HIGHER, 1, row_count
@@ -85,7 +85,7 @@ TEST(OperatorSelection, higherShouldReturnCorrectValues) {
 
 TEST(OperatorSelection, correctWithNegativeNumbers) {
    const std::vector<int32_t> test_column({{0, -1, 4, 4, 4, -1, -1, -1, -1, -1}});
-   const uint32_t row_count = 13;
+   const uint32_t row_count = test_column.size();
 
    const Selection<int32_t> under_test(
       test_column, Selection<int32_t>::Comparator::EQUALS, -1, row_count
@@ -96,7 +96,7 @@ TEST(OperatorSelection, correctWithNegativeNumbers) {
 
 TEST(OperatorSelection, returnsCorrectTypeInfo) {
    const std::vector<int32_t> test_column({{0, -1, 4, 4, 4, -1, -1, -1, -1, -1}});
-   const uint32_t row_count = 13;
+   const uint32_t row_count = test_column.size();
 
    const Selection<int32_t> under_test(
       test_column, Selection<int32_t>::Comparator::EQUALS, -1, row_count

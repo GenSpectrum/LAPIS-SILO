@@ -35,7 +35,7 @@ enum class AA_SYMBOL {
    X,  // Any amino acid
 };
 
-static constexpr unsigned AA_SYMBOL_COUNT = static_cast<unsigned>(AA_SYMBOL::X) + 1;
+static constexpr uint32_t AA_SYMBOL_COUNT = static_cast<uint32_t>(AA_SYMBOL::X) + 1;
 
 static constexpr std::array<char, AA_SYMBOL_COUNT> AA_SYMBOL_REPRESENTATION{
    'A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N',

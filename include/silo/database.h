@@ -96,7 +96,7 @@ class Database {
    );
 };
 
-std::string buildChunkString(unsigned partition, unsigned chunk);
+std::string buildChunkString(uint32_t partition, uint32_t chunk);
 
 }  // namespace silo
 
