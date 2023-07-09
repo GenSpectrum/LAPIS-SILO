@@ -16,11 +16,9 @@
 
 namespace silo {
 class Database;
-namespace query_engine {
-namespace operators {
+namespace query_engine::operators {
 class Operator;
-}  // namespace operators
-}  // namespace query_engine
+}  // namespace query_engine::operators
 }  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
@@ -52,6 +50,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> IntEquals::compile(
    );
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<IntEquals>& filter) {
    CHECK_SILO_QUERY(
       json.contains("column"), "The field 'column' is required in an IntEquals expression"

@@ -8,7 +8,6 @@
 
 #include <roaring/roaring.hh>
 
-#include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo {

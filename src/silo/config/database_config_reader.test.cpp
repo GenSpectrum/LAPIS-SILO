@@ -2,7 +2,6 @@
 #include "silo/config/config_exception.h"
 
 #include <gtest/gtest.h>
-
 #include <yaml-cpp/yaml.h>
 
 using silo::config::ConfigException;

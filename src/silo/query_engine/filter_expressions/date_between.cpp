@@ -27,6 +27,7 @@ namespace silo::query_engine::filter_expressions {
 
 DateBetween::DateBetween(
    std::string column,
+   // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
    std::optional<silo::common::Date> date_from,
    std::optional<silo::common::Date> date_to
 )
@@ -103,6 +104,7 @@ std::vector<silo::query_engine::operators::RangeSelection::Range> DateBetween::
    return ranges;
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<DateBetween>& filter) {
    CHECK_SILO_QUERY(
       json.contains("column"), "The field 'column' is required in a DateBetween expression"

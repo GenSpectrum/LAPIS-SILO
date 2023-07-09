@@ -13,6 +13,7 @@
 
 namespace silo::query_engine::operators {
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 RangeSelection::Range::Range(uint32_t start, uint32_t end)
     : start(start),
       end(end) {}

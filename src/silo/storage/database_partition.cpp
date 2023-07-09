@@ -6,16 +6,14 @@ namespace silo {
 namespace preprocessing {
 struct Chunk;
 }  // namespace preprocessing
-namespace storage {
-namespace column {
+namespace storage::column {
 class DateColumnPartition;
 class FloatColumnPartition;
 class IndexedStringColumnPartition;
 class IntColumnPartition;
 class PangoLineageColumnPartition;
 class StringColumnPartition;
-}  // namespace column
-}  // namespace storage
+}  // namespace storage::column
 
 const std::vector<preprocessing::Chunk>& DatabasePartition::getChunks() const {
    return chunks;

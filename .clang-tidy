@@ -18,6 +18,7 @@ Checks: >
   -misc-include-cleaner,
   -google-readability-avoid-underscore-in-googletest-name,
   -abseil-string-find-str-contains
+  -bugprone-easily-swappable-parameters
 #  TODO(someone): clean up misc-non-private-member-variables-in-classes and add option back in
 # Not using google-readability-avoid-underscore-in-googletest-name because it also fails for test_name
 # Not using abseil-string-find-str-contains because we don't want to include more libraries

@@ -12,11 +12,12 @@ namespace silo::query_engine::actions {
 
 Fasta::Fasta() = default;
 
-QueryResult Fasta::execute(const Database& database, std::vector<OperatorResult> bitmap_filter)
-   const {
+QueryResult Fasta::
+   execute(const Database& /*database*/, std::vector<OperatorResult> /*bitmap_filter*/) const {
    return {};
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& /*json*/, std::unique_ptr<Fasta>& action) {
    action = std::make_unique<Fasta>();
    throw QueryParseException("Not implemented: The Fasta action has not been implemented");

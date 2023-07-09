@@ -22,7 +22,7 @@ class FastaAligned : public Action {
   public:
    explicit FastaAligned();
 
-   QueryResult execute(const Database& database, std::vector<OperatorResult> bitmap_filter)
+   QueryResult execute(const Database& /*database*/, std::vector<OperatorResult> /*bitmap_filter*/)
       const override;
 };
 

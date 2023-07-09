@@ -64,6 +64,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> PangoLineageFilter::com
    );
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<PangoLineageFilter>& filter) {
    CHECK_SILO_QUERY(
       json.contains("column"), "The field 'column' is required in a PangoLineage expression"

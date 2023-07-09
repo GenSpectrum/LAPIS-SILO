@@ -4,9 +4,9 @@
 #include <roaring/roaring.hh>
 
 using silo::query_engine::operators::RangeSelection;
-
 TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValues) {
    std::vector<RangeSelection::Range> test_ranges(
+      // NOLINTNEXTLINE(readability-magic-numbers)
       {{RangeSelection::Range{0, 2}, RangeSelection::Range{3, 5}}}
    );
    const uint32_t row_count = 8;
@@ -40,6 +40,7 @@ TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValuesEmptyRanges) {
 }
 
 TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValuesFullRange) {
+   // NOLINTNEXTLINE(readability-magic-numbers)
    std::vector<RangeSelection::Range> test_ranges({{RangeSelection::Range{0, 8}}});
    const uint32_t row_count = 8;
 

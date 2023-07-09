@@ -129,6 +129,7 @@ class SiloServer : public Poco::Util::ServerApplication {
    };
 
    void displayHelp(
+      // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
       [[maybe_unused]] const std::string& name,
       [[maybe_unused]] const std::string& value
    ) {

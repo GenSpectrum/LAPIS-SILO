@@ -94,6 +94,7 @@ std::unique_ptr<operators::Operator> Or::compile(
    );
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Or>& filter) {
    CHECK_SILO_QUERY(
       json.contains("children"), "The field 'children' is required in an Or expression"

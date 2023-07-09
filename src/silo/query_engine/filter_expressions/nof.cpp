@@ -175,7 +175,7 @@ std::string NOf::toString(const silo::Database& database) const {
    } else {
       res = "[" + std::to_string(number_of_matchers) + "-of:";
    }
-   for (auto& child : children) {
+   for (const auto& child : children) {
       res += child->toString(database);
       res += ", ";
    }
@@ -289,6 +289,7 @@ std::unique_ptr<operators::Operator> NOf::compile(
    );
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<NOf>& filter) {
    CHECK_SILO_QUERY(
       json.contains("children"), "The field 'children' is required in an N-Of expression"

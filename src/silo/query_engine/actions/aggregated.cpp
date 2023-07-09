@@ -105,6 +105,7 @@ struct Tuple {
       }
    }
 
+   // NOLINTNEXTLINE(readability-function-cognitive-complexity)
    [[nodiscard]] std::map<std::string, json_value_type> getFields() const {
       std::map<std::string, json_value_type> fields;
       const char* data_pointer = data.data();
@@ -239,6 +240,7 @@ QueryResult Aggregated::execute(
    }
 
    std::vector<storage::ColumnGroup> group_by_column_groups;
+   group_by_column_groups.reserve(database.partitions.size());
    for (const auto& partition : database.partitions) {
       group_by_column_groups.emplace_back(partition.columns.getSubgroup(group_by_metadata));
    }
@@ -269,6 +271,7 @@ QueryResult Aggregated::execute(
    return result;
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Aggregated>& action) {
    const std::vector<std::string> group_by_fields =
       json.value("groupByFields", std::vector<std::string>());

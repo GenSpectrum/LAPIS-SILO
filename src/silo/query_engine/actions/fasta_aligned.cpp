@@ -13,12 +13,13 @@ namespace silo::query_engine::actions {
 FastaAligned::FastaAligned() = default;
 
 QueryResult FastaAligned::execute(
-   const Database& database,
-   std::vector<OperatorResult> bitmap_filter
+   const Database& /*database*/,
+   std::vector<OperatorResult> /*bitmap_filter*/
 ) const {
    return {};
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& /*json*/, std::unique_ptr<FastaAligned>& action) {
    action = std::make_unique<FastaAligned>();
    throw QueryParseException("Not implemented: The FastAligned action has not been implemented");

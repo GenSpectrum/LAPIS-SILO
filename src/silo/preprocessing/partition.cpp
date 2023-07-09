@@ -38,6 +38,7 @@ std::string commonPangoPrefix(const std::string& lineage1, const std::string& li
 /// vector of chunks
 std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
    const std::vector<PangoLineageCount>& pango_lineage_counts,
+   // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
    uint32_t target_size,
    uint32_t min_size
 ) {

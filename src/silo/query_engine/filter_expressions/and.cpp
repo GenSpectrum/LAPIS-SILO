@@ -129,6 +129,7 @@ std::unique_ptr<operators::Operator> And::compile(
    );
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<And>& filter) {
    CHECK_SILO_QUERY(
       json.contains("children"), "The field 'children' is required in an And expression"

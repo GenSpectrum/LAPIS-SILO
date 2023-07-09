@@ -20,11 +20,9 @@
 
 namespace silo {
 class Database;
-namespace query_engine {
-namespace operators {
+namespace query_engine::operators {
 class Operator;
-}  // namespace operators
-}  // namespace query_engine
+}  // namespace query_engine::operators
 }  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
@@ -71,6 +69,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> StringEquals::compile(
    return std::make_unique<operators::Empty>(database_partition.sequenceCount);
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<StringEquals>& filter) {
    CHECK_SILO_QUERY(
       json.contains("column"), "The field 'column' is required in an StringEquals expression"

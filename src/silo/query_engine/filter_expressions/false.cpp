@@ -6,11 +6,9 @@
 #include "silo/storage/database_partition.h"
 
 namespace silo {
-namespace query_engine {
-namespace operators {
+namespace query_engine::operators {
 class Operator;
-}  // namespace operators
-}  // namespace query_engine
+}  // namespace query_engine::operators
 struct Database;
 }  // namespace silo
 
@@ -30,6 +28,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> False::compile(
    return std::make_unique<operators::Empty>(database_partition.sequenceCount);
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& /*json*/, std::unique_ptr<False>& filter) {
    filter = std::make_unique<False>();
 }

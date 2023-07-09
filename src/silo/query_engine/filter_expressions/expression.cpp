@@ -40,6 +40,7 @@ Expression::AmbiguityMode invertMode(Expression::AmbiguityMode mode) {
    return mode;
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) {
    CHECK_SILO_QUERY(json.contains("type"), "The field 'type' is required in any filter expression")
    CHECK_SILO_QUERY(

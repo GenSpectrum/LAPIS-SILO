@@ -16,9 +16,9 @@ String<I>::String(const std::string& string, BidirectionalMap<std::string>& dict
       memcpy(data.data() + 4, string.data(), length);
       memset(data.data() + 4 + length, '\0', I - length);
    } else {
-      const Idx id = dictionary.getOrCreateId(string.substr(I - 4));
+      const Idx idx = dictionary.getOrCreateId(string.substr(I - 4));
       memcpy(data.data() + 4, string.data(), I - 4);
-      *reinterpret_cast<uint32_t*>(data.data() + I) = id;
+      *reinterpret_cast<uint32_t*>(data.data() + I) = idx;
    }
 }
 
@@ -30,9 +30,9 @@ std::string String<I>::toString(const BidirectionalMap<std::string>& dictionary)
       return {payload, length};
    }
    const char* prefix = reinterpret_cast<const char*>(data.data() + 4);
-   const uint32_t id = *reinterpret_cast<const uint32_t*>(data.data() + I);
+   const Idx idx = *reinterpret_cast<const uint32_t*>(data.data() + I);
    std::string result(prefix, I - 4);
-   result += dictionary.getValue(id);
+   result += dictionary.getValue(idx);
    return result;
 }
 
@@ -49,10 +49,10 @@ std::optional<common::String<I>> String<I>::embedString(
       memset(result.data.data() + 4 + length, '\0', I - length);
       return result;
    }
-   auto id = dictionary.getId(string.substr(I - 4));
-   if (id.has_value()) {
+   auto idx = dictionary.getId(string.substr(I - 4));
+   if (idx.has_value()) {
       memcpy(result.data.data() + 4, string.data(), I - 4);
-      *reinterpret_cast<uint32_t*>(result.data.data() + I) = id.value();
+      *reinterpret_cast<uint32_t*>(result.data.data() + I) = idx.value();
       return result;
    }
    return std::nullopt;

@@ -69,6 +69,7 @@ void validateOrderByFields(
    }
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 QueryResult Details::execute(
    const silo::Database& database,
    std::vector<silo::query_engine::OperatorResult> bitmap_filter

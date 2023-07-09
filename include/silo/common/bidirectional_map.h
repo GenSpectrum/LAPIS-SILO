@@ -12,11 +12,9 @@
 #include "silo/common/pango_lineage.h"
 #include "silo/common/types.h"
 
-namespace boost {
-namespace serialization {
+namespace boost::serialization {
 class access;
-}  // namespace serialization
-}  // namespace boost
+}  // namespace boost::serialization
 
 namespace silo::common {
 

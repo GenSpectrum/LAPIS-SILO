@@ -23,6 +23,7 @@ struct Database;
 
 namespace silo::query_engine::filter_expressions {
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters,readability-identifier-length)
 IntBetween::IntBetween(std::string column, std::optional<uint32_t> from, std::optional<uint32_t> to)
     : column(std::move(column)),
       from(from),
@@ -63,6 +64,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> IntBetween::compile(
    );
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<IntBetween>& filter) {
    CHECK_SILO_QUERY(
       json.contains("column"), "The field 'column' is required in a IntBetween expression"

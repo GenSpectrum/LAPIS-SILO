@@ -12,7 +12,7 @@ IndexedStringColumnPartition::IndexedStringColumnPartition(
     : lookup(lookup) {}
 
 roaring::Roaring IndexedStringColumnPartition::filter(const std::string& value) const {
-   auto value_id = lookup.getId(value);
+   const auto value_id = lookup.getId(value);
    if (value_id.has_value()) {
       return indexed_values.at(value_id.value());
    }

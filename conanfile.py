@@ -6,12 +6,12 @@ class SiloRecipe(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
 
     requires = [
-        "boost/1.81.0",
+        "boost/1.82.0",
         "poco/1.12.4",
-        "onetbb/2021.7.0",
+        "onetbb/2021.9.0",
         "nlohmann_json/3.11.2",
         "gtest/cci.20210126",
-        "roaring/0.9.9",
+        "roaring/1.3.0",
         "spdlog/1.11.0",
         "vincentlaucsb-csv-parser/2.1.3",
         "yaml-cpp/0.7.0",

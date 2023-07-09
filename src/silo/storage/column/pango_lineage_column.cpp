@@ -29,7 +29,7 @@ void PangoLineageColumnPartition::insertSublineageValues(
    size_t row_number
 ) {
    for (const auto& pango_lineage : value.getParentLineages()) {
-      Idx value_id = lookup.getOrCreateId(pango_lineage);
+      const Idx value_id = lookup.getOrCreateId(pango_lineage);
       indexed_sublineage_values[value_id].add(row_number);
    }
 }

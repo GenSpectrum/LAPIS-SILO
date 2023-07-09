@@ -32,6 +32,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> Exact::compile(
    return child->compile(database, database_partition, AmbiguityMode::LOWER_BOUND);
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Exact>& filter) {
    CHECK_SILO_QUERY(json.contains("child"), "The field 'child' is required in a Exact expression")
    auto child = json["child"].get<std::unique_ptr<Expression>>();
