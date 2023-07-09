@@ -42,7 +42,7 @@ std::unique_ptr<operators::Operator> HasAAMutation::compile(
    const silo::DatabasePartition& database_partition,
    AmbiguityMode mode
 ) const {
-   const char ref_symbol =
+   const AA_SYMBOL ref_symbol =
       database.aa_sequences.at(aa_sequence_name).reference_sequence.at(position);
 
    if (mode == UPPER_BOUND) {
@@ -54,21 +54,20 @@ std::unique_ptr<operators::Operator> HasAAMutation::compile(
 
    std::vector<AA_SYMBOL> symbols(AA_SYMBOLS.begin(), AA_SYMBOLS.end());
    (void)std::remove(symbols.begin(), symbols.end(), AA_SYMBOL::X);
-   (void)std::remove(symbols.begin(), symbols.end(), silo::toAASymbol(ref_symbol));
+   (void)std::remove(symbols.begin(), symbols.end(), ref_symbol);
    std::vector<std::unique_ptr<filter_expressions::Expression>> symbol_filters;
    std::transform(
       symbols.begin(),
       symbols.end(),
       std::back_inserter(symbol_filters),
       [&](AA_SYMBOL symbol) {
-         return std::make_unique<AASymbolEquals>(
-            aa_sequence_name, position, AA_SYMBOL_REPRESENTATION[static_cast<uint32_t>(symbol)]
-         );
+         return std::make_unique<AASymbolEquals>(aa_sequence_name, position, symbol);
       }
    );
    return Or(std::move(symbol_filters)).compile(database, database_partition, NONE);
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<HasAAMutation>& filter) {
    CHECK_SILO_QUERY(
       json.contains("position"),

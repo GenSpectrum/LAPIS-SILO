@@ -19,11 +19,13 @@ class ZstdFastaWriter {
   public:
    explicit ZstdFastaWriter(
       const std::filesystem::path& out_file_name,
-      const std::string& compression_dict
+      std::string_view compression_dict
    );
 
+   // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
    void write(const std::string& key, const std::string& genome);
 
+   // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
    void writeRaw(const std::string& key, const std::string& compressed_genome);
 };
 }  // namespace silo

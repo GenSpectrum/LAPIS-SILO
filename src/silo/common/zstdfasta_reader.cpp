@@ -9,7 +9,7 @@
 
 silo::ZstdFastaReader::ZstdFastaReader(
    const std::filesystem::path& in_file_name,
-   const std::string& compression_dict
+   std::string_view compression_dict
 )
     : in_file(in_file_name),
       decompressor(std::make_unique<ZstdDecompressor>(compression_dict)) {

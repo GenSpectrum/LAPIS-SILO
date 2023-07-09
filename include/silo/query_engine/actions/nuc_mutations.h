@@ -45,7 +45,6 @@ class NucMutations : public Action {
    };
 
   public:
-   static constexpr size_t MUTATION_SYMBOL_COUNT = NucMutations::VALID_MUTATION_SYMBOLS.size();
    static constexpr double DEFAULT_MIN_PROPORTION = 0.02;
 
   private:
@@ -60,7 +59,7 @@ class NucMutations : public Action {
       std::array<std::vector<uint32_t>, MUTATION_SYMBOL_COUNT>& count_of_mutations_per_position
    );
 
-   static std::array<std::vector<uint32_t>, MUTATION_SYMBOL_COUNT> calculateMutationsPerPosition(
+   static NucleotideSymbolMap<std::vector<uint32_t>> calculateMutationsPerPosition(
       const SequenceStore& seq_store,
       std::vector<OperatorResult>& bitmap_filter
    );

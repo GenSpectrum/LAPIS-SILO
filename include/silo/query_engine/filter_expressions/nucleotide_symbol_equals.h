@@ -8,12 +8,12 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-#include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/filter_expressions/expression.h"
 
 namespace silo {
 class Database;
 class DatabasePartition;
+enum class NUCLEOTIDE_SYMBOL : char;
 
 namespace query_engine {
 namespace operators {
@@ -27,12 +27,12 @@ namespace silo::query_engine::filter_expressions {
 struct NucleotideSymbolEquals : public Expression {
    std::optional<std::string> nuc_sequence_name;
    uint32_t position;
-   char value;
+   std::optional<NUCLEOTIDE_SYMBOL> value;
 
    explicit NucleotideSymbolEquals(
       std::optional<std::string> nuc_sequence_name,
       uint32_t position,
-      char value
+      std::optional<NUCLEOTIDE_SYMBOL> value
    );
 
    std::string toString(const Database& database) const override;

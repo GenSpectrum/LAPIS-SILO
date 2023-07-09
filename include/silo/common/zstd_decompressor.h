@@ -18,7 +18,7 @@ class ZstdDecompressor {
    ZstdDecompressor operator=(ZstdDecompressor&& other) = delete;
    virtual ~ZstdDecompressor();
 
-   explicit ZstdDecompressor(std::string dictionary_string);
+   explicit ZstdDecompressor(std::string_view dictionary_string);
 
    void decompress(const std::string& input, std::string& output);
 };

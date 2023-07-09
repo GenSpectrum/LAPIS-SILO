@@ -25,34 +25,33 @@ class Database;
 
 namespace silo::query_engine::filter_expressions {
 
-AASymbolEquals::AASymbolEquals(std::string aa_sequence_name, uint32_t position, char value)
+AASymbolEquals::AASymbolEquals(
+   std::string aa_sequence_name,
+   uint32_t position,
+   std::optional<AA_SYMBOL> value
+)
     : aa_sequence_name(std::move(aa_sequence_name)),
       position(position),
       value(value) {}
 
 std::string AASymbolEquals::toString(const silo::Database& /*database*/) const {
-   return aa_sequence_name + ":" + std::to_string(position + 1) + std::to_string(value);
+   const char symbol_char = value.has_value() ? aaSymbolToChar(*value) : '.';
+   return aa_sequence_name + ":" + std::to_string(position + 1) + std::to_string(symbol_char);
 }
 
 std::unique_ptr<silo::query_engine::operators::Operator> AASymbolEquals::compile(
-   const silo::Database& database,
+   const silo::Database& /*database*/,
    const silo::DatabasePartition& database_partition,
    Expression::AmbiguityMode /*mode*/
 ) const {
    const auto& aa_store_partition = database_partition.aa_sequences.at(aa_sequence_name);
-   if (position >= aa_store_partition.reference_sequence.length()) {
+   if (position >= aa_store_partition.reference_sequence.size()) {
       throw QueryParseException(
          "AminoAcidEquals position is out of bounds '" + std::to_string(position + 1) + "' > '" +
-         std::to_string(aa_store_partition.reference_sequence.length()) + "'"
+         std::to_string(aa_store_partition.reference_sequence.size()) + "'"
       );
    }
-   AA_SYMBOL aa_symbol;
-   if (value == '.') {
-      const char character = aa_store_partition.reference_sequence.at(position);
-      aa_symbol = toAASymbol(character).value_or(AA_SYMBOL::X);
-   } else {
-      aa_symbol = toAASymbol(value).value_or(AA_SYMBOL::X);
-   }
+   const AA_SYMBOL aa_symbol = value.value_or(aa_store_partition.reference_sequence.at(position));
    if (aa_symbol == AA_SYMBOL::X) {
       return std::make_unique<operators::BitmapSelection>(
          aa_store_partition.aa_symbol_x_bitmaps.data(),
@@ -74,6 +73,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> AASymbolEquals::compile
    );
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<AASymbolEquals>& filter) {
    CHECK_SILO_QUERY(
       json.contains("sequenceName") && json["sequenceName"].is_string(),
@@ -95,8 +95,17 @@ void from_json(const nlohmann::json& json, std::unique_ptr<AASymbolEquals>& filt
    )
    const std::string aa_sequence_name = json["sequenceName"].get<std::string>();
    const uint32_t position = json["position"].get<uint32_t>() - 1;
-   const std::string nucleotide_symbol = json["symbol"].get<std::string>();
-   filter = std::make_unique<AASymbolEquals>(aa_sequence_name, position, nucleotide_symbol.at(0));
+   const std::string aa_char = json["symbol"].get<std::string>();
+
+   CHECK_SILO_QUERY(
+      aa_char.size() == 1, "The string field 'symbol' must be exactly one character long"
+   )
+   const std::optional<AA_SYMBOL> aa_value = charToAASymbol(aa_char.at(0));
+   CHECK_SILO_QUERY(
+      aa_value.has_value() || aa_char.at(0) == '.',
+      "The string field 'symbol' must be either a valid amino acid or the '.' symbol."
+   )
+   filter = std::make_unique<AASymbolEquals>(aa_sequence_name, position, aa_value);
 }
 
 }  // namespace silo::query_engine::filter_expressions

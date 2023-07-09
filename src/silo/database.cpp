@@ -93,7 +93,8 @@ void Database::build(
                SPDLOG_ERROR("metadata file {} not found", metadata_file.string());
                return;
             }
-            for (auto& [nuc_name, reference_sequence] : reference_genomes.nucleotide_sequences) {
+            for (auto& [nuc_name, reference_sequence] :
+                 reference_genomes.raw_nucleotide_sequences) {
                std::filesystem::path sequence_filename = input_folder;
                sequence_filename += "nuc_" + nuc_name + std::filesystem::path::preferred_separator;
                sequence_filename += buildChunkString(partition_index, chunk_index) + ".zstdfasta";
@@ -102,7 +103,7 @@ void Database::build(
                SPDLOG_DEBUG("Using nucleotide sequence file: {}", sequence_filename.string());
                partitions[partition_index].nuc_sequences.at(nuc_name).fill(sequence_input);
             }
-            for (auto& [aa_name, reference_sequence] : reference_genomes.aa_sequences) {
+            for (auto& [aa_name, reference_sequence] : reference_genomes.raw_aa_sequences) {
                std::filesystem::path sequence_filename = input_folder;
                sequence_filename += "gene_" + aa_name + std::filesystem::path::preferred_separator;
                sequence_filename += buildChunkString(partition_index, chunk_index) + ".zstdfasta";
@@ -137,17 +138,18 @@ void Database::build(
                      uint32_t max_count = 0;
 
                      for (const auto& symbol : NUC_SYMBOLS) {
-                        const uint32_t count =
-                           positions[position].bitmaps[static_cast<uint32_t>(symbol)].cardinality();
+                        const uint32_t count = positions[position].bitmaps.at(symbol).cardinality();
                         if (count > max_count) {
                            max_symbol = symbol;
                            max_count = count;
                         }
                      }
-                     positions[position].symbol_whose_bitmap_is_flipped = max_symbol;
-                     positions[position].bitmaps[static_cast<uint32_t>(max_symbol.value())].flip(
-                        0, database_partition.sequenceCount
-                     );
+                     if (max_symbol.has_value()) {
+                        positions[position].symbol_whose_bitmap_is_flipped = max_symbol;
+                        positions[position].bitmaps[*max_symbol].flip(
+                           0, database_partition.sequenceCount
+                        );
+                     }
                   }
                }
             );
@@ -258,7 +260,7 @@ BitmapSizePerSymbol Database::calculateBitmapSizePerSymbol(const SequenceStore& 
       for (const SequenceStorePartition& seq_store_partition : seq_store.partitions) {
          for (const auto& position : seq_store_partition.positions) {
             bitmap_size_per_symbol.size_in_bytes[symbol] +=
-               position.bitmaps[static_cast<uint32_t>(symbol)].getSizeInBytes();
+               position.bitmaps.at(symbol).getSizeInBytes();
          }
       }
       lock.lock();
@@ -292,7 +294,7 @@ BitmapContainerSize Database::calculateBitmapContainerSizePerGenomeSection(
    const SequenceStore& seq_store,
    size_t section_length
 ) {
-   const uint32_t genome_length = seq_store.reference_genome.length();
+   const uint32_t genome_length = seq_store.reference_genome.size();
 
    BitmapContainerSize global_bitmap_container_size_per_genome_section(
       genome_length, section_length
@@ -306,7 +308,7 @@ BitmapContainerSize Database::calculateBitmapContainerSizePerGenomeSection(
          for (const auto& seq_store_partition : seq_store.partitions) {
             const auto& position = seq_store_partition.positions[position_index];
             for (const auto& genome_symbol : NUC_SYMBOLS) {
-               const auto& bitmap = position.bitmaps[static_cast<uint32_t>(genome_symbol)];
+               const auto& bitmap = position.bitmaps.at(genome_symbol);
 
                roaring_bitmap_statistics(&bitmap.roaring, &statistic);
                addStatisticToBitmapContainerSize(
@@ -352,7 +354,7 @@ DetailedDatabaseInfo Database::detailedDatabaseInfo() const {
       result.sequences.insert(
          {seq_name,
           {BitmapSizePerSymbol{},
-           BitmapContainerSize{seq_store.reference_genome.length(), DEFAULT_SECTION_LENGTH}}}
+           BitmapContainerSize{seq_store.reference_genome.size(), DEFAULT_SECTION_LENGTH}}}
       );
       result.sequences.at(seq_name).bitmap_size_per_symbol =
          calculateBitmapSizePerSymbol(seq_store);
@@ -392,9 +394,12 @@ DetailedDatabaseInfo Database::detailedDatabaseInfo() const {
 
    SPDLOG_INFO("Saving {} partitions...", partitions.size());
 
-   tbb::parallel_for(static_cast<size_t>(0), partitions.size(), [&](size_t partition_index) {
-      ::boost::archive::binary_oarchive output_archive(file_vec[partition_index]);
-      output_archive << partitions[partition_index];
+   tbb::parallel_for(tbb::blocked_range<size_t>(0, partitions.size()), [&](const auto& local) {
+      for (size_t partition_index = local.begin(); partition_index != local.end();
+           partition_index++) {
+         ::boost::archive::binary_oarchive output_archive(file_vec[partition_index]);
+         output_archive << partitions[partition_index];
+      }
    });
    SPDLOG_INFO("Finished saving partitions", partitions.size());
 }
@@ -429,14 +434,13 @@ DetailedDatabaseInfo Database::detailedDatabaseInfo() const {
         ++partition_id) {
       partitions.emplace_back();
    }
-   tbb::parallel_for(
-      static_cast<size_t>(0),
-      partition_descriptor->partitions.size(),
-      [&](size_t partition_index) {
+   tbb::parallel_for(tbb::blocked_range<size_t>(0, partitions.size()), [&](const auto& local) {
+      for (size_t partition_index = local.begin(); partition_index != local.end();
+           ++partition_index) {
          ::boost::archive::binary_iarchive input_archive(file_vec[partition_index]);
          input_archive >> partitions[partition_index];
       }
-   );
+   });
 }
 
 void Database::preprocessing(

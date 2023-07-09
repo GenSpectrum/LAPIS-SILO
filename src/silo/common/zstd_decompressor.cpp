@@ -9,7 +9,7 @@ ZstdDecompressor::~ZstdDecompressor() {
    ZSTD_freeDCtx(zstd_context);
 }
 
-ZstdDecompressor::ZstdDecompressor(std::string dictionary_string) {
+ZstdDecompressor::ZstdDecompressor(std::string_view dictionary_string) {
    zstd_dictionary = ZSTD_createDDict(dictionary_string.data(), dictionary_string.length());
    zstd_context = ZSTD_createDCtx();
 }

@@ -13,20 +13,19 @@
 #include <boost/serialization/array.hpp>
 #include <roaring/roaring.hh>
 
-#include "silo/common/aa_symbols.h"
+#include "silo/common/aa_symbol_map.h"
 #include "silo/common/fasta_reader.h"
 #include "silo/common/zstdfasta_reader.h"
 #include "silo/roaring/roaring_serialize.h"
 #include "silo/storage/serialize_optional.h"
 
-namespace boost {
-namespace serialization {
+namespace boost::serialization {
 class access;
-}  // namespace serialization
-}  // namespace boost
+}  // namespace boost::serialization
 
 namespace silo {
 class ZstdFastaReader;
+enum class AA_SYMBOL : char;
 
 struct AAPosition {
    friend class boost::serialization::access;
@@ -39,7 +38,7 @@ struct AAPosition {
       // clang-format on
    }
 
-   std::array<roaring::Roaring, AA_SYMBOL_COUNT> bitmaps;
+   AASymbolMap<roaring::Roaring> bitmaps;
    std::optional<AA_SYMBOL> symbol_whose_bitmap_is_flipped = std::nullopt;
 };
 
@@ -61,9 +60,9 @@ class AAStorePartition {
    void fillXBitmaps(const std::vector<std::string>& sequences);
 
   public:
-   explicit AAStorePartition(const std::string& reference_sequence);
+   explicit AAStorePartition(const std::vector<AA_SYMBOL>& reference_sequence);
 
-   const std::string& reference_sequence;
+   const std::vector<AA_SYMBOL>& reference_sequence;
    std::vector<AAPosition> positions;
    std::vector<roaring::Roaring> aa_symbol_x_bitmaps;
    uint32_t sequence_count = 0;
@@ -83,10 +82,10 @@ class AAStorePartition {
 
 class AAStore {
   public:
-   std::string reference_sequence;
+   std::vector<AA_SYMBOL> reference_sequence;
    std::deque<AAStorePartition> partitions;
 
-   explicit AAStore(std::string reference_sequence);
+   explicit AAStore(std::vector<AA_SYMBOL> reference_sequence);
 
    AAStorePartition& createPartition();
 };

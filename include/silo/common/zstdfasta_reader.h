@@ -22,7 +22,7 @@ class ZstdFastaReader {
   public:
    explicit ZstdFastaReader(
       const std::filesystem::path& in_file_name,
-      const std::string& compression_dict
+      std::string_view compression_dict
    );
 
    std::optional<std::string> nextSkipGenome();

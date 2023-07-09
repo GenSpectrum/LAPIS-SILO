@@ -57,17 +57,17 @@ AAMutations::PrefilteredBitmaps AAMutations::preFilterBitmaps(
 void AAMutations::addMutationsCountsForPosition(
    uint32_t position,
    PrefilteredBitmaps& bitmaps_to_evaluate,
-   std::array<std::vector<uint32_t>, MUTATION_SYMBOL_COUNT>& count_of_mutations_per_position
+   NucleotideSymbolMap<std::vector<uint32_t>>& count_of_mutations_per_position
 ) {
    for (auto& [filter, aa_store_partition] : bitmaps_to_evaluate.bitmaps) {
       for (const auto symbol : VALID_MUTATION_SYMBOLS) {
          if (aa_store_partition.positions[position].symbol_whose_bitmap_is_flipped != symbol) {
-            count_of_mutations_per_position[static_cast<uint32_t>(symbol)][position] +=
+            count_of_mutations_per_position.at(symbol)[position] +=
                filter->and_cardinality(
                   aa_store_partition.positions[position].bitmaps[static_cast<uint32_t>(symbol)]
                );
          } else {
-            count_of_mutations_per_position[static_cast<uint32_t>(symbol)][position] +=
+            count_of_mutations_per_position.at(symbol)[position] +=
                filter->andnot_cardinality(
                   aa_store_partition.positions[position].bitmaps[static_cast<uint32_t>(symbol)]
                );
@@ -79,32 +79,32 @@ void AAMutations::addMutationsCountsForPosition(
    for (auto& [filter, aa_store_partition] : bitmaps_to_evaluate.full_bitmaps) {
       for (const auto symbol : VALID_MUTATION_SYMBOLS) {
          if (aa_store_partition.positions[position].symbol_whose_bitmap_is_flipped != symbol) {
-            count_of_mutations_per_position[static_cast<uint32_t>(symbol)][position] +=
+            count_of_mutations_per_position.at(symbol)[position] +=
                aa_store_partition.positions[position]
                   .bitmaps[static_cast<uint32_t>(symbol)]
                   .cardinality();
          } else {
-            count_of_mutations_per_position[static_cast<uint32_t>(symbol)][position] +=
+            count_of_mutations_per_position.at(symbol)[position] +=
                aa_store_partition.sequence_count - aa_store_partition.positions[position]
-                                                      .bitmaps[static_cast<uint32_t>(symbol)]
+                                                      .bitmaps.at(symbol)
                                                       .cardinality();
          }
       }
    }
 }
 
-std::array<std::vector<uint32_t>, AAMutations::MUTATION_SYMBOL_COUNT> AAMutations::
+NucleotideSymbolMap<std::vector<uint32_t>> AAMutations::
    calculateMutationsPerPosition(
       const AAStore& aa_store,
       std::vector<OperatorResult>& bitmap_filter
    ) {
-   const size_t sequence_length = aa_store.reference_sequence.length();
+   const size_t sequence_length = aa_store.reference_sequence.size();
 
    PrefilteredBitmaps bitmaps_to_evaluate = preFilterBitmaps(aa_store, bitmap_filter);
 
-   std::array<std::vector<uint32_t>, MUTATION_SYMBOL_COUNT> count_of_mutations_per_position;
-   for (auto& vec : count_of_mutations_per_position) {
-      vec.resize(sequence_length);
+   NucleotideSymbolMap<std::vector<uint32_t>> count_of_mutations_per_position;
+   for (const auto symbol : VALID_MUTATION_SYMBOLS) {
+         count_of_mutations_per_position[symbol].resize(sequence_length);
    }
    static constexpr int POSITIONS_PER_PROCESS = 300;
    tbb::parallel_for(
@@ -132,16 +132,16 @@ QueryResult AAMutations::execute(
 
    const AAStore& aa_store = database.aa_sequences.at(aa_sequence_name);
 
-   const size_t sequence_length = aa_store.reference_sequence.length();
+   const size_t sequence_length = aa_store.reference_sequence.size();
 
-   std::array<std::vector<uint32_t>, MUTATION_SYMBOL_COUNT> count_of_mutations_per_position =
+   const AASymbolMap<std::vector<uint32_t>> count_of_mutations_per_position =
       calculateMutationsPerPosition(aa_store, bitmap_filter);
 
    std::vector<QueryResultEntry> mutation_proportions;
    for (size_t pos = 0; pos < sequence_length; ++pos) {
       uint32_t total = 0;
-      for (auto& count_per_position : count_of_mutations_per_position) {
-         total += count_per_position[pos];
+      for (const AA_SYMBOL symbol : VALID_MUTATION_SYMBOLS) {
+         total += count_of_mutations_per_position.at(symbol)[pos];
       }
       if (total == 0) {
          continue;
@@ -149,22 +149,19 @@ QueryResult AAMutations::execute(
       const auto threshold_count =
          static_cast<uint32_t>(std::ceil(static_cast<double>(total) * min_proportion) - 1);
 
-      const auto symbol_in_reference_genome =
-         toAASymbol(aa_store.reference_sequence.at(pos)).value();
+      const AA_SYMBOL symbol_in_reference_genome = aa_store.reference_sequence.at(pos);
 
       for (const auto symbol : VALID_MUTATION_SYMBOLS) {
          if (symbol_in_reference_genome != symbol) {
-            const uint32_t count =
-               count_of_mutations_per_position[static_cast<size_t>(symbol)][pos];
+            const uint32_t count = count_of_mutations_per_position.at(symbol)[pos];
             if (count > threshold_count) {
                const double proportion = static_cast<double>(count) / static_cast<double>(total);
                const std::
                   map<std::string, std::optional<std::variant<std::string, int32_t, double>>>
                      fields{
                         {"position",
-                         AA_SYMBOL_REPRESENTATION[static_cast<size_t>(symbol_in_reference_genome)] +
-                            std::to_string(pos + 1) +
-                            AA_SYMBOL_REPRESENTATION[static_cast<size_t>(symbol)]},
+                         aaSymbolToChar(symbol_in_reference_genome) + std::to_string(pos + 1) +
+                            aaSymbolToChar(symbol)},
                         {"proportion", proportion},
                         {"count", static_cast<int32_t>(count)}};
                mutation_proportions.push_back({fields});
@@ -176,6 +173,7 @@ QueryResult AAMutations::execute(
    return {mutation_proportions};
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<AAMutations>& action) {
    CHECK_SILO_QUERY(
       json.contains("sequenceName") && json["sequenceName"].is_string(),

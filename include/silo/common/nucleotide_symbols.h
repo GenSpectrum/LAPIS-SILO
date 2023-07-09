@@ -8,7 +8,7 @@
 namespace silo {
 
 /// https://www.bioinformatics.org/sms2/iupac.html
-enum class NUCLEOTIDE_SYMBOL {
+enum class NUCLEOTIDE_SYMBOL : char {
    GAP,  // -, GAP
    A,    // Adenine
    C,    // Cytosine
@@ -29,25 +29,6 @@ enum class NUCLEOTIDE_SYMBOL {
 
 static constexpr uint32_t NUC_SYMBOL_COUNT = static_cast<uint32_t>(NUCLEOTIDE_SYMBOL::N) + 1;
 
-static constexpr std::array<char, NUC_SYMBOL_COUNT> NUC_SYMBOL_REPRESENTATION{
-   '-',
-   'A',
-   'C',
-   'G',
-   'T',
-   'R',
-   'Y',
-   'S',
-   'W',
-   'K',
-   'M',
-   'B',
-   'D',
-   'H',
-   'V',
-   'N',
-};
-
 static constexpr std::array<NUCLEOTIDE_SYMBOL, NUC_SYMBOL_COUNT> NUC_SYMBOLS{
    NUCLEOTIDE_SYMBOL::GAP,
    NUCLEOTIDE_SYMBOL::A,
@@ -67,7 +48,44 @@ static constexpr std::array<NUCLEOTIDE_SYMBOL, NUC_SYMBOL_COUNT> NUC_SYMBOLS{
    NUCLEOTIDE_SYMBOL::N,
 };
 
-inline std::optional<NUCLEOTIDE_SYMBOL> toNucleotideSymbol(char character) {
+inline char nucleotideSymbolToChar(NUCLEOTIDE_SYMBOL symbol) {
+   switch (symbol) {
+      case NUCLEOTIDE_SYMBOL::GAP:
+         return '-';
+      case NUCLEOTIDE_SYMBOL::A:
+         return 'A';
+      case NUCLEOTIDE_SYMBOL::C:
+         return 'C';
+      case NUCLEOTIDE_SYMBOL::G:
+         return 'G';
+      case NUCLEOTIDE_SYMBOL::T:
+         return 'T';
+      case NUCLEOTIDE_SYMBOL::R:
+         return 'R';
+      case NUCLEOTIDE_SYMBOL::Y:
+         return 'Y';
+      case NUCLEOTIDE_SYMBOL::S:
+         return 'S';
+      case NUCLEOTIDE_SYMBOL::W:
+         return 'W';
+      case NUCLEOTIDE_SYMBOL::K:
+         return 'K';
+      case NUCLEOTIDE_SYMBOL::M:
+         return 'M';
+      case NUCLEOTIDE_SYMBOL::B:
+         return 'B';
+      case NUCLEOTIDE_SYMBOL::D:
+         return 'D';
+      case NUCLEOTIDE_SYMBOL::H:
+         return 'H';
+      case NUCLEOTIDE_SYMBOL::V:
+         return 'V';
+      case NUCLEOTIDE_SYMBOL::N:
+         return 'N';
+   }
+}
+
+inline std::optional<NUCLEOTIDE_SYMBOL> charToNucleotideSymbol(char character) {
    switch (character) {
       case '.':
       case '-':
