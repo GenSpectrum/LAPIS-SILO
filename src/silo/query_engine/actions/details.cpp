@@ -132,6 +132,15 @@ QueryResult Details::execute(
                } else {
                   row_fields[metadata.name] = string_value;
                }
+            } else if (metadata.getColumnType() == config::ColumnType::INSERTION) {
+               const auto& column = columns.insertion_columns.at(metadata.name);
+               const silo::Idx value = column.getValues()[sequence_id];
+               std::string string_value = column.lookupValue(value);
+               if (string_value.empty()) {
+                  row_fields[metadata.name] = std::nullopt;
+               } else {
+                  row_fields[metadata.name] = string_value;
+               }
             } else {
                throw std::runtime_error("Unchecked column type of column " + metadata.name);
             }

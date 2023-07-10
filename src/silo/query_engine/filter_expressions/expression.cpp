@@ -14,6 +14,7 @@
 #include "silo/query_engine/filter_expressions/float_equals.h"
 #include "silo/query_engine/filter_expressions/has_aa_mutation.h"
 #include "silo/query_engine/filter_expressions/has_mutation.h"
+#include "silo/query_engine/filter_expressions/insertion_contains.h"
 #include "silo/query_engine/filter_expressions/int_between.h"
 #include "silo/query_engine/filter_expressions/int_equals.h"
 #include "silo/query_engine/filter_expressions/maybe.h"
@@ -87,6 +88,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) 
       filter = json.get<std::unique_ptr<Maybe>>();
    } else if (expression_type == "Exact") {
       filter = json.get<std::unique_ptr<Exact>>();
+   } else if (expression_type == "InsertionContains") {
+      filter = json.get<std::unique_ptr<InsertionContains>>();
    } else {
       throw QueryParseException("Unknown object filter type '" + expression_type + "'");
    }

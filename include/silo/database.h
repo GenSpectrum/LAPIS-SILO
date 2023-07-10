@@ -21,22 +21,14 @@
 #include "silo/storage/reference_genomes.h"
 #include "silo/storage/sequence_store.h"
 
-namespace silo::preprocessing {
+namespace silo {
+namespace preprocessing {
 struct Partitions;
-}  // namespace silo::preprocessing
-namespace silo::preprocessing {
 struct PreprocessingConfig;
-}  // namespace silo::preprocessing
-namespace silo {
+}  // namespace preprocessing
 struct BitmapContainerSize;
-}  // namespace silo
-namespace silo {
 struct BitmapSizePerSymbol;
-}  // namespace silo
-namespace silo {
 struct DatabaseInfo;
-}  // namespace silo
-namespace silo {
 struct DetailedDatabaseInfo;
 }  // namespace silo
 
@@ -53,6 +45,8 @@ class Database {
    std::unordered_map<std::string, storage::column::FloatColumn> float_columns;
    std::unordered_map<std::string, storage::column::DateColumn> date_columns;
    std::unordered_map<std::string, storage::column::PangoLineageColumn> pango_lineage_columns;
+   std::unordered_map<std::string, storage::column::InsertionColumn> insertion_columns;
+
    std::unordered_map<std::string, SequenceStore> nuc_sequences;
    std::unordered_map<std::string, AAStore> aa_sequences;
 

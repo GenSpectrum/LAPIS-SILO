@@ -25,6 +25,9 @@ ValueType toDatabaseValueType(std::string_view type) {
    if (type == "float") {
       return ValueType::FLOAT;
    }
+   if (type == "insertion") {
+      return ValueType::INSERTION;
+   }
 
    throw ConfigException("Unknown metadata type: " + std::string(type));
 }
@@ -50,6 +53,9 @@ ColumnType DatabaseMetadata::getColumnType() const {
    }
    if (type == ValueType::FLOAT) {
       return ColumnType::FLOAT;
+   }
+   if (type == ValueType::INSERTION) {
+      return ColumnType::INSERTION;
    }
 
    throw std::runtime_error("Did not find metadata with name: " + std::string(name));

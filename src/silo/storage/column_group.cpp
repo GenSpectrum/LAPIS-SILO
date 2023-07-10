@@ -47,6 +47,8 @@ uint32_t ColumnGroup::fill(
          } else if (column_type == silo::config::ColumnType::FLOAT) {
             const double double_value = value.empty() ? std::nan("") : std::stod(value);
             float_columns.at(item.name).insert(double_value);
+         } else if (column_type == silo::config::ColumnType::INSERTION) {
+            insertion_columns.at(item.name).insert(value);
          }
       }
       if (++sequence_count == UINT32_MAX) {
@@ -77,6 +79,8 @@ ColumnGroup ColumnGroup::getSubgroup(const std::vector<config::DatabaseMetadata>
          result.int_columns.insert({item.name, int_columns.at(item.name)});
       } else if (column_type == silo::config::ColumnType::FLOAT) {
          result.float_columns.insert({item.name, float_columns.at(item.name)});
+      } else if (column_type == silo::config::ColumnType::INSERTION) {
+         result.insertion_columns.insert({item.name, insertion_columns.at(item.name)});
       }
    }
    return result;

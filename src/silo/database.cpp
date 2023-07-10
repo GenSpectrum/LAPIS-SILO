@@ -545,6 +545,12 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
             partition.insertColumn(name, float_columns.at(name).createPartition());
          }
          break;
+      case config::ColumnType::INSERTION:
+         insertion_columns.emplace(name, storage::column::InsertionColumn());
+         for (auto& partition : partitions) {
+            partition.insertColumn(name, insertion_columns.at(name).createPartition());
+         }
+         break;
    }
 }
 
