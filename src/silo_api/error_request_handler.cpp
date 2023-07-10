@@ -1,7 +1,8 @@
 #include "silo_api/error_request_handler.h"
 
-#include <Poco/Net/HTTPServerResponse.h>
 #include <cxxabi.h>
+
+#include <Poco/Net/HTTPServerResponse.h>
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 

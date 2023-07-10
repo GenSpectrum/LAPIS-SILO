@@ -3,33 +3,45 @@
 #define SILO_SEQUENCE_STORE_H
 
 #include <array>
+#include <cstddef>
+#include <cstdint>
 #include <deque>
 #include <optional>
+#include <string>
+#include <vector>
 
-#include <silo/common/fasta_reader.h>
+#include <fmt/core.h>
 #include <spdlog/spdlog.h>
 #include <boost/serialization/array.hpp>
 #include <roaring/roaring.hh>
 
-#include "silo/common/nucleotide_symbols.h"
+#include "silo/common/fasta_reader.h"
+#include "silo/common/nucleotide_symbol_map.h"
 #include "silo/common/zstdfasta_reader.h"
 #include "silo/roaring/roaring_serialize.h"
 #include "silo/storage/serialize_optional.h"
 
+namespace boost {
+namespace serialization {
+class access;
+}  // namespace serialization
+}  // namespace boost
+
 namespace silo {
+class ZstdFastaReader;
 
 struct NucPosition {
    friend class boost::serialization::access;
 
    template <class Archive>
-   void serialize(Archive& archive, [[maybe_unused]] const unsigned int version) {
+   void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
       archive& symbol_whose_bitmap_is_flipped;
       archive& bitmaps;
       // clang-format on
    }
 
-   std::array<roaring::Roaring, NUC_SYMBOL_COUNT> bitmaps;
+   NucleotideSymbolMap<roaring::Roaring> bitmaps;
    std::optional<NUCLEOTIDE_SYMBOL> symbol_whose_bitmap_is_flipped = std::nullopt;
 };
 
@@ -44,7 +56,7 @@ class SequenceStorePartition {
 
   private:
    template <class Archive>
-   void serialize(Archive& archive, [[maybe_unused]] const unsigned int version) {
+   void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
       archive& sequence_count;
       archive& positions;
@@ -57,9 +69,9 @@ class SequenceStorePartition {
    void fillNBitmaps(const std::vector<std::string>& genomes);
 
   public:
-   explicit SequenceStorePartition(const std::string& reference_genome);
+   explicit SequenceStorePartition(const std::vector<NUCLEOTIDE_SYMBOL>& reference_genome);
 
-   const std::string& reference_genome;
+   const std::vector<NUCLEOTIDE_SYMBOL>& reference_genome;
    std::vector<NucPosition> positions;
    std::vector<roaring::Roaring> nucleotide_symbol_n_bitmaps;
    uint32_t sequence_count = 0;
@@ -81,10 +93,10 @@ class SequenceStorePartition {
 
 class SequenceStore {
   public:
-   std::string reference_genome;
+   std::vector<NUCLEOTIDE_SYMBOL> reference_genome;
    std::deque<SequenceStorePartition> partitions;
 
-   explicit SequenceStore(std::string reference_genome);
+   explicit SequenceStore(std::vector<NUCLEOTIDE_SYMBOL> reference_genome);
 
    SequenceStorePartition& createPartition();
 };

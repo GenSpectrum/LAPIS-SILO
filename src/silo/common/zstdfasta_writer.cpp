@@ -1,10 +1,14 @@
 #include "silo/common/zstdfasta_writer.h"
 
-#include "silo/common/fasta_format_exception.h"
+#include <cstddef>
+#include <filesystem>
+#include <stdexcept>
+
+#include "silo/common/zstd_compressor.h"
 
 silo::ZstdFastaWriter::ZstdFastaWriter(
    const std::filesystem::path& out_file,
-   const std::string& compression_dict
+   std::string_view compression_dict
 )
     : compressor(std::make_unique<ZstdCompressor>(compression_dict)) {
    if (!exists(out_file)) {
@@ -18,10 +22,10 @@ silo::ZstdFastaWriter::ZstdFastaWriter(
    }
    outStream = std::ofstream(out_file.relative_path());
 
-   const size_t size_bound = ZSTD_compressBound(compression_dict.size());
-   buffer = std::string(size_bound, '\0');
+   buffer = std::string(compressor->getSizeBound(), '\0');
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void silo::ZstdFastaWriter::write(const std::string& key, const std::string& genome) {
    const size_t compressed_length = compressor->compress(genome, buffer);
 

@@ -1,7 +1,11 @@
 #include "silo/common/input_stream_wrapper.h"
 
+#include <utility>
+
+#include <boost/iostreams/detail/error.hpp>
 #include <boost/iostreams/filter/lzma.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/read.hpp>
 
 namespace silo {
 InputStreamWrapper::InputStreamWrapper(const std::filesystem::path& filename) {

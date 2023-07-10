@@ -1,19 +1,34 @@
 #ifndef SILO_HAS_AA_MUTATION_H
 #define SILO_HAS_AA_MUTATION_H
 
+#include <cstdint>
+#include <memory>
 #include <optional>
+#include <string>
+
+#include <nlohmann/json_fwd.hpp>
 
 #include "silo/query_engine/filter_expressions/expression.h"
+
+namespace silo {
+class Database;
+class DatabasePartition;
+namespace query_engine {
+namespace operators {
+class Operator;
+}  // namespace operators
+}  // namespace query_engine
+}  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
 
 struct HasAAMutation : public Expression {
   private:
    std::string aa_sequence_name;
-   unsigned position;
+   uint32_t position;
 
   public:
-   explicit HasAAMutation(std::string aa_sequence_name, unsigned position);
+   explicit HasAAMutation(std::string aa_sequence_name, uint32_t position);
 
    std::string toString(const Database& database) const override;
 

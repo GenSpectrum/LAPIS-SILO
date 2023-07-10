@@ -3,10 +3,16 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <map>
 #include <sstream>
+#include <system_error>
+#include <utility>
 
 #include <spdlog/spdlog.h>
+#include <nlohmann/detail/iterators/iter_impl.hpp>
+#include <nlohmann/detail/iterators/iteration_proxy.hpp>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace silo {
 

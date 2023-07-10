@@ -35,10 +35,10 @@ TEST(StringColumn, rawInsertedValuesRequeried) {
    under_test.insert("some string that is a little longer 1");
    under_test.insert("value 1");
 
-   silo::common::String somehow_acquited_element_representation = under_test.getValues()[4];
+   const silo::common::String somehow_acquired_element_representation = under_test.getValues()[4];
 
    EXPECT_EQ(
-      under_test.lookupValue(somehow_acquited_element_representation),
+      under_test.lookupValue(somehow_acquired_element_representation),
       "some string that is a little longer 1"
    );
 }

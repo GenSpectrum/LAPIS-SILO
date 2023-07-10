@@ -6,9 +6,22 @@
 #include <string>
 #include <vector>
 
+#include <nlohmann/json_fwd.hpp>
+
 #include "silo/common/date.h"
 #include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/operators/range_selection.h"
+
+namespace silo {
+class DatabasePartition;
+
+namespace query_engine {
+namespace operators {
+class Operator;
+}  // namespace operators
+}  // namespace query_engine
+struct Database;
+}  // namespace silo
 
 namespace silo::storage::column {
 class DateColumnPartition;

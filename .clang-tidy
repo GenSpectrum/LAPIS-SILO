@@ -15,8 +15,10 @@ Checks: >
   clang-analyzer-cplusplus.NewDeleteLeaks,
   -modernize-use-trailing-return-type,
   -misc-non-private-member-variables-in-classes,
+  -misc-include-cleaner,
   -google-readability-avoid-underscore-in-googletest-name,
   -abseil-string-find-str-contains
+  -bugprone-easily-swappable-parameters
 #  TODO(someone): clean up misc-non-private-member-variables-in-classes and add option back in
 # Not using google-readability-avoid-underscore-in-googletest-name because it also fails for test_name
 # Not using abseil-string-find-str-contains because we don't want to include more libraries
@@ -34,6 +36,6 @@ CheckOptions:
   - { key: readability-identifier-naming.TypeTemplateParameterIgnoredRegexp, value: expr-type }
   - { key: readability-implicit-bool-conversion.AllowIntegerConditions,  value: 1 }
   - { key: readability-implicit-bool-conversion.AllowPointerConditions,  value: 1 }
-  - { key: bugprone-easily-swappable-parameters.MinimumLength, value: 3 }
+  - { key: bugprone-easily-swappable-parameters.MinimumLength, value: 2 }
 
 # readability-identifier-naming.TypeTemplateParameterIgnoredRegexp is workaround for error of clang-tidy with ubuntu (https://github.com/llvm/llvm-project/issues/46097)

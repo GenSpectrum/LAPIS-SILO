@@ -1,7 +1,14 @@
 #include "silo/preprocessing/metadata_validator.h"
 
 #include <spdlog/spdlog.h>
+#include <algorithm>
+#include <string>
+#include <vector>
 
+#include <csv.hpp>
+
+#include "silo/config/database_config.h"
+#include "silo/preprocessing/metadata.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
 namespace silo::preprocessing {

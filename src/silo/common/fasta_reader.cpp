@@ -1,42 +1,46 @@
 #include "silo/common/fasta_reader.h"
 
+#include <climits>
+#include <iostream>
+#include <string>
+
 #include "silo/common/fasta_format_exception.h"
+#include "silo/common/input_stream_wrapper.h"
 
 silo::FastaReader::FastaReader(const std::filesystem::path& in_file_name)
     : in_file(in_file_name) {}
 
-bool silo::FastaReader::populateKey(std::string& key) {
+std::optional<std::string> silo::FastaReader::nextKey() {
    std::string key_with_prefix;
    if (!getline(in_file.getInputStream(), key_with_prefix)) {
-      return false;
+      return std::nullopt;
    }
 
-   if (key_with_prefix.at(0) != '>') {
+   if (key_with_prefix.empty() || key_with_prefix.at(0) != '>') {
       throw FastaFormatException("Fasta key prefix '>' missing for key: " + key_with_prefix);
    }
 
-   key = key_with_prefix.substr(1);
-   return true;
+   return key_with_prefix.substr(1);
 }
 
-bool silo::FastaReader::nextKey(std::string& key) {
-   auto key_was_read = populateKey(key);
+std::optional<std::string> silo::FastaReader::nextSkipGenome() {
+   auto key = nextKey();
 
    in_file.getInputStream().ignore(LONG_MAX, '\n');
-   return key_was_read;
+   return key;
 }
 
-bool silo::FastaReader::next(std::string& key, std::string& genome) {
-   auto key_was_read = populateKey(key);
-   if (!key_was_read) {
-      return false;
+std::optional<std::string> silo::FastaReader::next(std::string& genome_buffer) {
+   auto key = nextKey();
+   if (!key) {
+      return key;
    }
 
-   if (!getline(in_file.getInputStream(), genome)) {
-      throw FastaFormatException("Missing genome sequence in line following key: " + key);
+   if (!getline(in_file.getInputStream(), genome_buffer)) {
+      throw FastaFormatException("Missing genome sequence in line following key: " + *key);
    }
 
-   return true;
+   return key;
 }
 
 void silo::FastaReader::reset() {

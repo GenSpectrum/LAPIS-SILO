@@ -2,6 +2,7 @@
 #define SILO_INCLUDE_SILO_QUERY_ENGINE_QUERY_COMPILATION_EXCEPTION_H_
 
 #include <iostream>
+#include <stdexcept>
 #include <string>
 
 namespace silo {

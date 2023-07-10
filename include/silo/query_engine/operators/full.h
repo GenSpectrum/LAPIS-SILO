@@ -1,6 +1,10 @@
 #ifndef SILO_FULL_H
 #define SILO_FULL_H
 
+#include <cstdint>
+#include <memory>
+
+#include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo::query_engine::operators {

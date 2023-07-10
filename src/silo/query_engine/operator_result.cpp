@@ -2,6 +2,8 @@
 
 #include <utility>
 
+#include <roaring/roaring.hh>
+
 namespace silo::query_engine {
 
 OperatorResult::OperatorResult()
@@ -31,11 +33,11 @@ OperatorResult& OperatorResult::operator=(OperatorResult&& other) noexcept  // m
    return *this;
 }
 
-std::add_lvalue_reference<const roaring::Roaring>::type OperatorResult::operator*() const {
+const roaring::Roaring& OperatorResult::operator*() const {
    return mutable_bitmap ? *mutable_bitmap : *immutable_bitmap;
 }
 
-std::add_lvalue_reference<roaring::Roaring>::type OperatorResult::operator*() {
+roaring::Roaring& OperatorResult::operator*() {
    if (!mutable_bitmap) {
       mutable_bitmap = new roaring::Roaring(*immutable_bitmap);
       immutable_bitmap = nullptr;

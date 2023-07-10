@@ -1,15 +1,14 @@
 #ifndef SILO_DATABASE_H
 #define SILO_DATABASE_H
 
+#include <cstddef>
+#include <cstdint>
 #include <filesystem>
-#include <iostream>
 #include <string>
 #include <unordered_map>
-#include <utility>
 #include <vector>
 
 #include "silo/config/database_config.h"
-#include "silo/preprocessing/pango_lineage_count.h"
 #include "silo/storage/aa_store.h"
 #include "silo/storage/column/date_column.h"
 #include "silo/storage/column/float_column.h"
@@ -17,28 +16,31 @@
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/column/pango_lineage_column.h"
 #include "silo/storage/column/string_column.h"
+#include "silo/storage/database_partition.h"
 #include "silo/storage/pango_lineage_alias.h"
 #include "silo/storage/reference_genomes.h"
 #include "silo/storage/sequence_store.h"
 
-namespace silo {
-struct DatabasePartition;
-
-namespace preprocessing {
-struct PreprocessingConfig;
+namespace silo::preprocessing {
 struct Partitions;
-
-}  // namespace preprocessing
-
-namespace config {
-class DatabaseConfig;
-}  // namespace config
-
-struct DatabaseInfo;
-struct DetailedDatabaseInfo;
-struct BitmapSizePerSymbol;
+}  // namespace silo::preprocessing
+namespace silo::preprocessing {
+struct PreprocessingConfig;
+}  // namespace silo::preprocessing
+namespace silo {
 struct BitmapContainerSize;
+}  // namespace silo
+namespace silo {
+struct BitmapSizePerSymbol;
+}  // namespace silo
+namespace silo {
+struct DatabaseInfo;
+}  // namespace silo
+namespace silo {
+struct DetailedDatabaseInfo;
+}  // namespace silo
 
+namespace silo {
 class Database {
   public:
    silo::config::DatabaseConfig database_config;
@@ -96,7 +98,7 @@ class Database {
    );
 };
 
-std::string buildChunkString(unsigned partition, unsigned chunk);
+std::string buildChunkString(uint32_t partition, uint32_t chunk);
 
 }  // namespace silo
 

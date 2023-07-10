@@ -1,8 +1,16 @@
 #include "silo/query_engine/filter_expressions/and.h"
 
+#include <algorithm>
+#include <iterator>
+#include <map>
+#include <memory>
+#include <string>
+#include <utility>
+
 #include <boost/algorithm/string/join.hpp>
 #include <nlohmann/json.hpp>
 
+#include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/empty.h"
 #include "silo/query_engine/operators/full.h"
@@ -11,6 +19,10 @@
 #include "silo/query_engine/operators/union.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/storage/database_partition.h"
+
+namespace silo {
+struct Database;
+}  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
 
@@ -117,6 +129,7 @@ std::unique_ptr<operators::Operator> And::compile(
    );
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<And>& filter) {
    CHECK_SILO_QUERY(
       json.contains("children"), "The field 'children' is required in an And expression"

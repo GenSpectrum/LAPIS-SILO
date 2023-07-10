@@ -1,9 +1,13 @@
 #include "silo/query_engine/operators/intersection.h"
 
-#include <spdlog/spdlog.h>
-#include <ranges>
-#include <roaring/roaring.hh>
+#include <algorithm>
+#include <iterator>
+#include <string>
+#include <utility>
 #include <vector>
+
+#include <spdlog/spdlog.h>
+#include <roaring/roaring.hh>
 
 #include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/operator.h"
@@ -43,7 +47,7 @@ Intersection::~Intersection() noexcept = default;
 std::string Intersection::toString() const {
    std::string res = "(" + children[0]->toString();
 
-   for (unsigned i = 1; i < children.size(); i++) {
+   for (uint32_t i = 1; i < children.size(); i++) {
       res += " & " + children[i]->toString();
    }
    for (const auto& child : negated_children) {
@@ -115,7 +119,7 @@ OperatorResult Intersection::evaluate() const {
       return std::move(result);
    }
    auto result = intersectTwo(std::move(children_bm[0]), std::move(children_bm[1]));
-   for (unsigned i = 2; i < children.size(); i++) {
+   for (uint32_t i = 2; i < children.size(); i++) {
       *result &= *children_bm[i];
    }
    for (auto& neg_bm : negated_children_bm) {

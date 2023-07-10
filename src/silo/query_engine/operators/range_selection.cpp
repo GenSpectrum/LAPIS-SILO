@@ -1,13 +1,19 @@
 #include "silo/query_engine/operators/range_selection.h"
 
+#include <algorithm>
+#include <iterator>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include <boost/algorithm/string/join.hpp>
 #include <roaring/roaring.hh>
-#include <vector>
 
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo::query_engine::operators {
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 RangeSelection::Range::Range(uint32_t start, uint32_t end)
     : start(start),
       end(end) {}
@@ -49,7 +55,7 @@ std::unique_ptr<Operator> RangeSelection::copy() const {
 
 std::unique_ptr<Operator> RangeSelection::negate() const {
    std::vector<Range> new_ranges;
-   unsigned last_to = 0;
+   uint32_t last_to = 0;
    for (const auto& current : ranges) {
       if (last_to != current.start) {
          new_ranges.emplace_back(last_to, current.start);

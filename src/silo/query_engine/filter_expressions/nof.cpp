@@ -1,8 +1,15 @@
 #include "silo/query_engine/filter_expressions/nof.h"
 
-#include <nlohmann/json.hpp>
+#include <cstdint>
+#include <map>
+#include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+
+#include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/empty.h"
 #include "silo/query_engine/operators/full.h"
@@ -12,6 +19,10 @@
 #include "silo/query_engine/operators/union.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/storage/database_partition.h"
+
+namespace silo {
+struct Database;
+}  // namespace silo
 
 namespace {
 
@@ -164,7 +175,7 @@ std::string NOf::toString(const silo::Database& database) const {
    } else {
       res = "[" + std::to_string(number_of_matchers) + "-of:";
    }
-   for (auto& child : children) {
+   for (const auto& child : children) {
       res += child->toString(database);
       res += ", ";
    }
@@ -278,6 +289,7 @@ std::unique_ptr<operators::Operator> NOf::compile(
    );
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<NOf>& filter) {
    CHECK_SILO_QUERY(
       json.contains("children"), "The field 'children' is required in an N-Of expression"
@@ -301,7 +313,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<NOf>& filter) {
       "The field 'matchExactly' in an N-Of expression needs to be a boolean"
    )
 
-   const unsigned number_of_matchers = json["numberOfMatchers"];
+   const uint32_t number_of_matchers = json["numberOfMatchers"];
    const bool match_exactly = json["matchExactly"];
    auto children = json["children"].get<std::vector<std::unique_ptr<Expression>>>();
    filter = std::make_unique<NOf>(std::move(children), number_of_matchers, match_exactly);

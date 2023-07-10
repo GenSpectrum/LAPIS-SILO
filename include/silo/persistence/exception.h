@@ -2,6 +2,7 @@
 #define SILO_LOADDATABASEEXCEPTION_H
 
 #include <iostream>
+#include <stdexcept>
 #include <string>
 
 namespace silo::persistence {

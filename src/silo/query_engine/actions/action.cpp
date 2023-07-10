@@ -1,5 +1,12 @@
 #include "silo/query_engine/actions/action.h"
 
+#include <algorithm>
+#include <cctype>
+#include <cstddef>
+#include <map>
+#include <memory>
+#include <variant>
+
 #include <nlohmann/json.hpp>
 
 #include "silo/query_engine/actions/aa_mutations.h"
@@ -34,26 +41,30 @@ void Action::applyOrderByAndLimit(QueryResult& result) const {
       }
       return false;
    };
-   int64_t end_of_sort = static_cast<int64_t>(std::min(
+   size_t end_of_sort = std::min(
       static_cast<size_t>(limit.value_or(result_vector.size()) + offset.value_or(0UL)),
       result_vector.size()
-   ));
+   );
    if (end_of_sort < result_vector.size()) {
       std::partial_sort(
-         result_vector.begin(), result_vector.begin() + end_of_sort, result_vector.end(), cmp
+         result_vector.begin(),
+         result_vector.begin() + static_cast<int64_t>(end_of_sort),
+         result_vector.end(),
+         cmp
       );
    } else {
       std::sort(result_vector.begin(), result_vector.end(), cmp);
    }
 
-   if (offset.value_or(0) > 0) {
+   if (offset.has_value() && offset.value() > 0) {
       if (offset.value() >= result_vector.size()) {
          result_vector = {};
          return;
       }
       auto begin = result_vector.begin() + offset.value();
-      auto end = end_of_sort < result_vector.size() ? result_vector.begin() + end_of_sort
-                                                    : result_vector.end();
+      auto end = end_of_sort < result_vector.size()
+                    ? result_vector.begin() + static_cast<int64_t>(end_of_sort)
+                    : result_vector.end();
       std::copy(begin, end, result_vector.begin());
       end_of_sort -= offset.value();
    }
@@ -72,6 +83,7 @@ void Action::setOrdering(
    offset = offset_;
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, Action::OrderByField& field) {
    if (json.is_string()) {
       field = {json.get<std::string>(), true};
@@ -87,6 +99,7 @@ void from_json(const nlohmann::json& json, Action::OrderByField& field) {
    field = {json["field"].get<std::string>(), json["order"].get<std::string>() == "ascending"};
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
    CHECK_SILO_QUERY(json.contains("type"), "The field 'type' is required in any action")
    CHECK_SILO_QUERY(

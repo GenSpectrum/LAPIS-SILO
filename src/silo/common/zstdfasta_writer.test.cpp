@@ -28,14 +28,16 @@ TEST(ZstdFastaWriter, writesCorrectFiles) {
    {
       silo::ZstdFastaReader reader(file_path, reference_genome);
 
-      std::string key;
+      std::optional<std::string> key;
       std::string genome;
 
       for (const auto& value : values) {
-         EXPECT_TRUE(reader.next(key, genome));
+         key = reader.next(genome);
+         EXPECT_TRUE(key != std::nullopt);
          EXPECT_EQ(key, value.first);
          EXPECT_EQ(genome, value.second);
       }
-      EXPECT_FALSE(reader.next(key, genome));
+      key = reader.next(genome);
+      EXPECT_FALSE(key != std::nullopt);
    }
 }

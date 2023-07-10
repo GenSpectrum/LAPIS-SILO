@@ -2,8 +2,13 @@
 #define SILO_INCLUDE_SILO_PREPROCESSING_METADATA_VALIDATOR_H_
 
 #include <filesystem>
+
 #include "silo/config/config_repository.h"
 #include "silo/preprocessing/metadata.h"
+
+namespace silo::config {
+struct DatabaseConfig;
+}  // namespace silo::config
 
 namespace silo::preprocessing {
 

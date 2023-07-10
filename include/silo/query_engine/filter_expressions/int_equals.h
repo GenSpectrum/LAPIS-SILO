@@ -1,7 +1,23 @@
 #ifndef SILO_INT_EQUALS_H
 #define SILO_INT_EQUALS_H
 
+#include <cstdint>
+#include <memory>
+#include <string>
+
+#include <nlohmann/json_fwd.hpp>
+
 #include "silo/query_engine/filter_expressions/expression.h"
+
+namespace silo {
+class Database;
+class DatabasePartition;
+namespace query_engine {
+namespace operators {
+class Operator;
+}  // namespace operators
+}  // namespace query_engine
+}  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
 

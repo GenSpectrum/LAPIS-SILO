@@ -1,7 +1,15 @@
 #ifndef SILO_INDEX_SCAN_H
 #define SILO_INDEX_SCAN_H
 
+#include <cstdint>
+#include <memory>
+
+#include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/operator.h"
+
+namespace roaring {
+class Roaring;
+}  // namespace roaring
 
 namespace silo::query_engine::operators {
 

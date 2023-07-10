@@ -1,5 +1,7 @@
 #include "silo/preprocessing/preprocessing_config_reader.h"
 
+#include <string>
+
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/yaml.h>
 

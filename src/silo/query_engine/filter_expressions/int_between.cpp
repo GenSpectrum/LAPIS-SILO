@@ -1,15 +1,29 @@
 #include "silo/query_engine/filter_expressions/int_between.h"
 
+#include <map>
+#include <memory>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
 #include <nlohmann/json.hpp>
 
+#include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/operators/intersection.h"
+#include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/operators/selection.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/storage/column/int_column.h"
+#include "silo/storage/column_group.h"
 #include "silo/storage/database_partition.h"
+
+namespace silo {
+struct Database;
+}  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters,readability-identifier-length)
 IntBetween::IntBetween(std::string column, std::optional<uint32_t> from, std::optional<uint32_t> to)
     : column(std::move(column)),
       from(from),
@@ -50,6 +64,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> IntBetween::compile(
    );
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<IntBetween>& filter) {
    CHECK_SILO_QUERY(
       json.contains("column"), "The field 'column' is required in a IntBetween expression"

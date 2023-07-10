@@ -1,6 +1,10 @@
 #include "silo/query_engine/operators/bitmap_selection.h"
 
-#include "roaring/roaring.hh"
+#include <string>
+
+#include <roaring/roaring.hh>
+
+#include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo::query_engine::operators {
@@ -30,14 +34,14 @@ OperatorResult BitmapSelection::evaluate() const {
    auto* bitmap = new roaring::Roaring();
    switch (this->comparator) {
       case CONTAINS:
-         for (unsigned i = 0; i < row_count; i++) {
+         for (uint32_t i = 0; i < row_count; i++) {
             if (bitmaps[i].contains(value)) {
                bitmap->add(i);
             }
          }
          break;
       case NOT_CONTAINS:
-         for (unsigned i = 0; i < row_count; i++) {
+         for (uint32_t i = 0; i < row_count; i++) {
             if (!bitmaps[i].contains(value)) {
                bitmap->add(i);
             }

@@ -1,10 +1,20 @@
-#include "silo/common/date.h"
-
 #include <iomanip>
+#include <optional>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 
+#include "silo/common/date.h"
 #include "silo/common/date_format_exception.h"
+
+namespace {
+
+constexpr uint32_t NUMBER_OF_MONTHS = 12;
+constexpr uint32_t NUMBER_OF_DAYS = 31;
+constexpr uint32_t BYTES_FOR_MONTHS = 4;
+constexpr uint32_t BYTES_FOR_DAYS = 12;
+
+}  // namespace
 
 silo::common::Date silo::common::stringToDate(const std::string& value) {
    if (value.empty()) {
@@ -25,14 +35,15 @@ silo::common::Date silo::common::stringToDate(const std::string& value) {
       const uint32_t year = stoi(year_string);
       const uint32_t month = stoi(month_string);
       const uint32_t day = stoi(day_string);
-      if (month > 12 || month == 0) {
+      if (month > NUMBER_OF_MONTHS || month == 0) {
          throw DateFormatException("Month is not in [1,12] " + value);
       }
-      if (day > 31 || day == 0) {
+      if (day > NUMBER_OF_DAYS || day == 0) {
          throw DateFormatException("Day is not in [1,31] " + value);
       }
       // Date is stored with the year in the upper 16 bits, month in bits [12,16), and day [0,12)
-      const uint32_t date_value = (year << 16) + (month << 12) + day;
+      const uint32_t date_value =
+         (year << (BYTES_FOR_MONTHS + BYTES_FOR_DAYS)) + (month << BYTES_FOR_DAYS) + day;
       return Date{date_value};
    } catch (const std::invalid_argument& ex) {
       throw DateFormatException(std::string("Parsing of date failed: ") + ex.what());
@@ -46,8 +57,8 @@ std::optional<std::string> silo::common::dateToString(silo::common::Date date) {
       return std::nullopt;
    }
    // Date is stored with the year in the upper 16 bits, month in bits [12,16), and day [0,12)
-   const uint32_t year = date >> 16;
-   const uint32_t month = (date >> 12) & 0xF;
+   const uint32_t year = date >> (BYTES_FOR_MONTHS + BYTES_FOR_DAYS);
+   const uint32_t month = (date >> BYTES_FOR_DAYS) & 0xF;
    const uint32_t day = date & 0xFFF;
 
    std::ostringstream result_string;

@@ -1,8 +1,9 @@
 #include "silo/config/config_repository.h"
 
+#include <filesystem>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <filesystem>
 
 #include "silo/config/config_exception.h"
 #include "silo/config/database_config_reader.h"

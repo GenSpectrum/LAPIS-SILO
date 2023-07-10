@@ -1,15 +1,26 @@
 #include "silo/query_engine/filter_expressions/pango_lineage_filter.h"
 
+#include <algorithm>
+#include <cctype>
+#include <map>
+#include <unordered_map>
 #include <utility>
 
 #include <nlohmann/json.hpp>
+#include <roaring/roaring.hh>
 
 #include "silo/database.h"
 #include "silo/query_engine/operators/empty.h"
 #include "silo/query_engine/operators/index_scan.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/storage/column/pango_lineage_column.h"
+#include "silo/storage/column_group.h"
 #include "silo/storage/database_partition.h"
+#include "silo/storage/pango_lineage_alias.h"
+
+namespace silo::query_engine::operators {
+class Operator;
+}  // namespace silo::query_engine::operators
 
 namespace silo::query_engine::filter_expressions {
 
@@ -53,6 +64,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> PangoLineageFilter::com
    );
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<PangoLineageFilter>& filter) {
    CHECK_SILO_QUERY(
       json.contains("column"), "The field 'column' is required in a PangoLineage expression"

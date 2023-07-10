@@ -12,7 +12,7 @@ template <class Archive, class T>
 void save(
    Archive& archive,
    const std::optional<T>& optional,
-   const unsigned int /*version*/
+   const uint32_t /*version*/
 ) {
    const auto has_value = optional.has_value();
    archive << BOOST_SERIALIZATION_NVP(has_value);
@@ -24,7 +24,7 @@ void save(
 }
 
 template <class Archive, class T>
-void load(Archive& archive, std::optional<T>& optional, const unsigned int /*version*/) {
+void load(Archive& archive, std::optional<T>& optional, const uint32_t /*version*/) {
    auto has_value = bool{};
    archive >> BOOST_SERIALIZATION_NVP(has_value);
 
@@ -38,7 +38,7 @@ void load(Archive& archive, std::optional<T>& optional, const unsigned int /*ver
 }
 
 template <class Archive, class T>
-void serialize(Archive& archive, std::optional<T>& optional, const unsigned int version) {
+void serialize(Archive& archive, std::optional<T>& optional, const uint32_t version) {
    boost::serialization::split_free(archive, optional, version);
 }
 

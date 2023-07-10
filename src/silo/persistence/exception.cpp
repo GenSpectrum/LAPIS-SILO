@@ -1,6 +1,5 @@
 #include "silo/persistence/exception.h"
 
-#include <iostream>
 #include <string>
 
 namespace silo::persistence {

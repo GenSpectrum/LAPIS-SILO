@@ -1,6 +1,7 @@
 #include "silo/preprocessing/preprocessing_config.h"
 
-#include <iostream>
+#include <filesystem>
+#include <system_error>
 
 namespace silo::preprocessing {
 

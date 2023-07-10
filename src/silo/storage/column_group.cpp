@@ -1,20 +1,30 @@
 #include "silo/storage/column_group.h"
 
+#include <cmath>
+#include <csv.hpp>
+#include <stdexcept>
+
 #include "silo/common/date.h"
 #include "silo/config/database_config.h"
 #include "silo/preprocessing/metadata.h"
+#include "silo/storage/column/date_column.h"
+#include "silo/storage/column/float_column.h"
+#include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/int_column.h"
+#include "silo/storage/column/pango_lineage_column.h"
+#include "silo/storage/column/string_column.h"
 #include "silo/storage/pango_lineage_alias.h"
 
 namespace silo::storage {
 
-unsigned ColumnGroup::fill(
+uint32_t ColumnGroup::fill(
    const std::filesystem::path& input_file,
    const PangoLineageAliasLookup& alias_key,
    const silo::config::DatabaseConfig& database_config
 ) {
    auto metadata_reader = silo::preprocessing::MetadataReader(input_file);
 
-   unsigned sequence_count = 0;
+   uint32_t sequence_count = 0;
 
    const auto column_names = metadata_reader.reader.get_col_names();
    for (auto& row : metadata_reader.reader) {
@@ -39,7 +49,11 @@ unsigned ColumnGroup::fill(
             float_columns.at(item.name).insert(double_value);
          }
       }
-      ++sequence_count;
+      if (++sequence_count == UINT32_MAX) {
+         throw std::runtime_error(
+            "SILO is currently limited to UINT32_MAX=" + std::to_string(UINT32_MAX) + " sequences."
+         );
+      }
    }
 
    return sequence_count;

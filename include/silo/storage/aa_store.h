@@ -2,33 +2,43 @@
 #define SILO_AA_STORE_H
 
 #include <array>
+#include <cstddef>
+#include <cstdint>
 #include <deque>
 #include <optional>
+#include <string>
+#include <vector>
 
-#include <silo/common/fasta_reader.h>
 #include <spdlog/spdlog.h>
 #include <boost/serialization/array.hpp>
 #include <roaring/roaring.hh>
 
-#include "silo/common/aa_symbols.h"
+#include "silo/common/aa_symbol_map.h"
+#include "silo/common/fasta_reader.h"
 #include "silo/common/zstdfasta_reader.h"
 #include "silo/roaring/roaring_serialize.h"
 #include "silo/storage/serialize_optional.h"
 
+namespace boost::serialization {
+class access;
+}  // namespace boost::serialization
+
 namespace silo {
+class ZstdFastaReader;
+enum class AA_SYMBOL : char;
 
 struct AAPosition {
    friend class boost::serialization::access;
 
    template <class Archive>
-   void serialize(Archive& archive, [[maybe_unused]] const unsigned int version) {
+   void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
       archive& symbol_whose_bitmap_is_flipped;
       archive& bitmaps;
       // clang-format on
    }
 
-   std::array<roaring::Roaring, AA_SYMBOL_COUNT> bitmaps;
+   AASymbolMap<roaring::Roaring> bitmaps;
    std::optional<AA_SYMBOL> symbol_whose_bitmap_is_flipped = std::nullopt;
 };
 
@@ -37,7 +47,7 @@ class AAStorePartition {
 
   private:
    template <class Archive>
-   void serialize(Archive& archive, [[maybe_unused]] const unsigned int version) {
+   void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
       archive& sequence_count;
       archive& positions;
@@ -50,9 +60,9 @@ class AAStorePartition {
    void fillXBitmaps(const std::vector<std::string>& sequences);
 
   public:
-   explicit AAStorePartition(const std::string& reference_sequence);
+   explicit AAStorePartition(const std::vector<AA_SYMBOL>& reference_sequence);
 
-   const std::string& reference_sequence;
+   const std::vector<AA_SYMBOL>& reference_sequence;
    std::vector<AAPosition> positions;
    std::vector<roaring::Roaring> aa_symbol_x_bitmaps;
    uint32_t sequence_count = 0;
@@ -72,10 +82,10 @@ class AAStorePartition {
 
 class AAStore {
   public:
-   std::string reference_sequence;
+   std::vector<AA_SYMBOL> reference_sequence;
    std::deque<AAStorePartition> partitions;
 
-   explicit AAStore(std::string reference_sequence);
+   explicit AAStore(std::vector<AA_SYMBOL> reference_sequence);
 
    AAStorePartition& createPartition();
 };

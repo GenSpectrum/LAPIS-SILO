@@ -1,12 +1,30 @@
 #ifndef SILO_AA_MUTATIONS_H
 #define SILO_AA_MUTATIONS_H
 
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
+#include <nlohmann/json_fwd.hpp>
+
+#include "silo/common/aa_symbol_map.h"
 #include "silo/common/aa_symbols.h"
 #include "silo/query_engine/actions/action.h"
-#include "silo/storage/aa_store.h"
+#include "silo/query_engine/query_result.h"
+
+namespace silo {
+class AAStore;
+}
+namespace silo {
+class Database;
+class AAStorePartition;
+}  // namespace silo
+namespace silo::query_engine {
+struct OperatorResult;
+}  // namespace silo::query_engine
 
 namespace silo::query_engine::actions {
 
@@ -43,7 +61,6 @@ class AAMutations : public Action {
    };
 
   public:
-   static constexpr size_t MUTATION_SYMBOL_COUNT = AAMutations::VALID_MUTATION_SYMBOLS.size();
    static constexpr double DEFAULT_MIN_PROPORTION = 0.02;
 
   private:
@@ -55,11 +72,10 @@ class AAMutations : public Action {
    static void addMutationsCountsForPosition(
       uint32_t position,
       PrefilteredBitmaps& bitmaps_to_evaluate,
-      std::array<std::vector<uint32_t>, MUTATION_SYMBOL_COUNT>& count_of_mutations_per_position
+      AASymbolMap<std::vector<uint32_t>>& count_of_mutations_per_position
    );
 
-   static std::array<std::vector<uint32_t>, AAMutations::MUTATION_SYMBOL_COUNT>
-   calculateMutationsPerPosition(
+   static AASymbolMap<std::vector<uint32_t>> calculateMutationsPerPosition(
       const AAStore& aa_store,
       std::vector<OperatorResult>& bitmap_filter
    );
@@ -67,8 +83,10 @@ class AAMutations : public Action {
   public:
    explicit AAMutations(std::string aa_sequence_name, double min_proportion);
 
-   QueryResult execute(const Database& database, std::vector<OperatorResult> bitmap_filter)
-      const override;
+   [[nodiscard]] QueryResult execute(
+      const Database& database,
+      std::vector<OperatorResult> bitmap_filter
+   ) const override;
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)

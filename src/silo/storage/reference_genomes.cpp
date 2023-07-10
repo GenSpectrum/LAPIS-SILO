@@ -1,20 +1,61 @@
 #include "silo/storage/reference_genomes.h"
 
+#include <filesystem>
 #include <fstream>
+#include <map>
+#include <system_error>
+#include <utility>
 
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
-#include "silo/persistence/exception.h"
+#include "silo/common/aa_symbols.h"
+#include "silo/common/nucleotide_symbols.h"
+#include "silo/preprocessing/preprocessing_exception.h"
 
 namespace silo {
 
 ReferenceGenomes::ReferenceGenomes(
-   std::unordered_map<std::string, std::string> nucleotide_sequences,
-   std::unordered_map<std::string, std::string> aa_sequences
+   std::unordered_map<std::string, std::string> raw_nucleotide_sequences_,
+   std::unordered_map<std::string, std::string> raw_aa_sequences_
 )
-    : nucleotide_sequences(std::move(nucleotide_sequences)),
-      aa_sequences(std::move(aa_sequences)) {}
+    : raw_nucleotide_sequences(std::move(raw_nucleotide_sequences_)),
+      raw_aa_sequences(std::move(raw_aa_sequences_)) {
+   for (const auto& [sequence_name, raw_nucleotide_sequence] : raw_nucleotide_sequences) {
+      std::vector<NUCLEOTIDE_SYMBOL> nucleotide_sequence;
+      for (const char character : raw_nucleotide_sequence) {
+         auto symbol = charToNucleotideSymbol(character);
+
+         if (!symbol.has_value()) {
+            throw PreprocessingException(
+               "Nucleotide sequence with name " + sequence_name +
+               " contains illegal amino acid code: " + std::to_string(character)
+            );
+         }
+
+         nucleotide_sequence.push_back(*symbol);
+      }
+      nucleotide_sequences[sequence_name] = nucleotide_sequence;
+   }
+
+   for (const auto& [sequence_name, raw_aa_sequence] : raw_aa_sequences) {
+      std::vector<AA_SYMBOL> aa_sequence;
+
+      for (const char character : raw_aa_sequence) {
+         auto symbol = charToAASymbol(character);
+
+         if (!symbol.has_value()) {
+            throw PreprocessingException(
+               "Amino Acid sequence with name " + sequence_name +
+               " contains illegal amino acid code: " + std::to_string(character)
+            );
+         }
+
+         aa_sequence.push_back(*symbol);
+      }
+      aa_sequences[sequence_name] = aa_sequence;
+   }
+}
 
 namespace {
 
@@ -39,9 +80,12 @@ ReferenceGenomes readFromJson(const std::filesystem::path& reference_genomes_pat
          continue;
       }
       if (!value.contains("sequence") || !value["sequence"].is_string()) {
-         "Expected object to contain the key 'sequence' with string value, got: " + value.dump();
+         SPDLOG_INFO(
+            "Expected object to contain the key 'sequence' with string value, got: " + value.dump()
+         );
          continue;
       }
+
       nucleotide_sequences[value["name"]] = value["sequence"];
    }
 
@@ -51,13 +95,18 @@ ReferenceGenomes readFromJson(const std::filesystem::path& reference_genomes_pat
          continue;
       }
       if (!value.contains("name") || !value["name"].is_string()) {
-         "Expected object to contain the key 'name' with string value, got: " + value.dump();
+         SPDLOG_INFO(
+            "Expected object to contain the key 'name' with string value, got: " + value.dump()
+         );
          continue;
       }
       if (!value.contains("sequence") || !value["sequence"].is_string()) {
-         "Expected object to contain the key 'sequence' with string value, got: " + value.dump();
+         SPDLOG_INFO(
+            "Expected object to contain the key 'sequence' with string value, got: " + value.dump()
+         );
          continue;
       }
+
       aa_sequences[value["name"]] = value["sequence"];
    }
    return ReferenceGenomes{nucleotide_sequences, aa_sequences};

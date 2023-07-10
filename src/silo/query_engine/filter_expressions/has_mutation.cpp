@@ -1,16 +1,29 @@
 #include "silo/query_engine/filter_expressions/has_mutation.h"
 
-#include <nlohmann/json.hpp>
+#include <algorithm>
+#include <array>
+#include <iterator>
+#include <map>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+
+#include "silo/common/nucleotide_symbols.h"
+#include "silo/config/database_config.h"
+#include "silo/database.h"
+#include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/filter_expressions/negation.h"
 #include "silo/query_engine/filter_expressions/nucleotide_symbol_equals.h"
 #include "silo/query_engine/filter_expressions/or.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_parse_exception.h"
+#include "silo/storage/sequence_store.h"
 
-#include "silo/database.h"
+namespace silo {
+class DatabasePartition;
+}  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
 
@@ -19,7 +32,8 @@ HasMutation::HasMutation(std::optional<std::string> nuc_sequence_name, uint32_t 
       position(position) {}
 
 std::string HasMutation::toString(const silo::Database& /*database*/) const {
-   std::string nuc_sequence_name_prefix = nuc_sequence_name ? nuc_sequence_name.value() + ":" : "";
+   const std::string nuc_sequence_name_prefix =
+      nuc_sequence_name ? nuc_sequence_name.value() + ":" : "";
    return nuc_sequence_name_prefix + std::to_string(position);
 }
 
@@ -36,7 +50,7 @@ std::unique_ptr<operators::Operator> HasMutation::compile(
          nuc_sequence_name_or_default + "'"
    )
 
-   const char ref_symbol =
+   const NUCLEOTIDE_SYMBOL ref_symbol =
       database.nuc_sequences.at(nuc_sequence_name_or_default).reference_genome.at(position);
 
    if (mode == UPPER_BOUND) {
@@ -52,7 +66,7 @@ std::unique_ptr<operators::Operator> HasMutation::compile(
       NUCLEOTIDE_SYMBOL::G,
       NUCLEOTIDE_SYMBOL::T,
    };
-   (void)std::remove(symbols.begin(), symbols.end(), silo::toNucleotideSymbol(ref_symbol));
+   (void)std::remove(symbols.begin(), symbols.end(), ref_symbol);
    std::vector<std::unique_ptr<filter_expressions::Expression>> symbol_filters;
    std::transform(
       symbols.begin(),
@@ -60,15 +74,14 @@ std::unique_ptr<operators::Operator> HasMutation::compile(
       std::back_inserter(symbol_filters),
       [&](NUCLEOTIDE_SYMBOL symbol) {
          return std::make_unique<NucleotideSymbolEquals>(
-            nuc_sequence_name_or_default,
-            position,
-            NUC_SYMBOL_REPRESENTATION[static_cast<uint32_t>(symbol)]
+            nuc_sequence_name_or_default, position, symbol
          );
       }
    );
    return Or(std::move(symbol_filters)).compile(database, database_partition, NONE);
 }
 
+// NOLINTNEXTLINE(readabi)
 void from_json(const nlohmann::json& json, std::unique_ptr<HasMutation>& filter) {
    CHECK_SILO_QUERY(
       json.contains("position"),

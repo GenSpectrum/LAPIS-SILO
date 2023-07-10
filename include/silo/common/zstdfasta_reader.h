@@ -3,6 +3,9 @@
 
 #include <filesystem>
 #include <iostream>
+#include <memory>
+#include <optional>
+#include <string>
 
 #include "silo/common/input_stream_wrapper.h"
 #include "silo/common/zstd_decompressor.h"
@@ -14,19 +17,19 @@ class ZstdFastaReader {
    std::unique_ptr<silo::ZstdDecompressor> decompressor;
    std::string genome_buffer;
 
-   bool populateKey(std::string& key);
+   std::optional<std::string> nextKey();
 
   public:
    explicit ZstdFastaReader(
       const std::filesystem::path& in_file_name,
-      const std::string& compression_dict
+      std::string_view compression_dict
    );
 
-   bool nextKey(std::string& key);
+   std::optional<std::string> nextSkipGenome();
 
-   bool next(std::string& key, std::string& genome);
+   std::optional<std::string> next(std::string& genome);
 
-   bool nextCompressed(std::string& key, std::string& compressed_genome);
+   std::optional<std::string> nextCompressed(std::string& compressed_genome);
 
    void reset();
 };

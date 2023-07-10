@@ -1,6 +1,8 @@
 #ifndef SILO_PARTITION_H
 #define SILO_PARTITION_H
 
+#include <cstdint>
+#include <iosfwd>
 #include <string>
 #include <vector>
 
@@ -10,7 +12,7 @@ class PangoLineageCounts;
 
 struct Chunk {
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, [[maybe_unused]] const unsigned int version) {
+   [[maybe_unused]] void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
       archive& prefix;
       archive& count_of_sequences;

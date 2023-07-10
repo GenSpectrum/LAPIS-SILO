@@ -1,8 +1,11 @@
 #ifndef SILO_THRESHOLD_H
 #define SILO_THRESHOLD_H
 
+#include <cstdint>
+#include <memory>
 #include <vector>
 
+#include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo::query_engine::operators {
@@ -19,7 +22,7 @@ class Threshold : public Operator {
    Threshold(
       std::vector<std::unique_ptr<Operator>>&& non_negated_children,
       std::vector<std::unique_ptr<Operator>>&& negated_children,
-      unsigned int number_of_matchers,
+      uint32_t number_of_matchers,
       bool match_exactly,
       uint32_t row_count
    );

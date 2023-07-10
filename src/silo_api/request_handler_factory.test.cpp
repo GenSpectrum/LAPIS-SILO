@@ -105,8 +105,9 @@ TEST_F(RequestHandlerTestFixture, returnsMethodNotAllowedOnPostInfoRequest) {
 
 TEST_F(RequestHandlerTestFixture, handlesPostQueryRequest) {
    std::map<std::string, std::optional<std::variant<std::string, int32_t, double>>> fields{
+      // NOLINTNEXTLINE(readability-magic-numbers)
       {"count", 5}};
-   std::vector<silo::query_engine::QueryResultEntry> tmp{{fields}};
+   const std::vector<silo::query_engine::QueryResultEntry> tmp{{fields}};
    const silo::query_engine::QueryResult query_result{tmp};
    EXPECT_CALL(mock_query_engine, executeQuery).WillRepeatedly(testing::Return(query_result));
 

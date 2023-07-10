@@ -15,17 +15,20 @@ TEST(FastaReader, shouldReadFastaFile) {
 
    silo::FastaReader under_test(file_path);
 
-   std::string key;
+   std::optional<std::string> key;
    std::string genome;
-   EXPECT_TRUE(under_test.next(key, genome));
+   key = under_test.next(genome);
+   EXPECT_TRUE(key != std::nullopt);
    EXPECT_EQ(key, "Key1");
    EXPECT_EQ(genome, "ACGT");
 
-   EXPECT_TRUE(under_test.next(key, genome));
+   key = under_test.next(genome);
+   EXPECT_TRUE(key != std::nullopt);
    EXPECT_EQ(key, "Key2");
    EXPECT_EQ(genome, "CGTA");
 
-   EXPECT_FALSE(under_test.next(key, genome));
+   key = under_test.next(genome);
+   EXPECT_FALSE(key != std::nullopt);
 }
 
 TEST(FastaReader, shouldReadFastaFileWithoutNewLineAtEnd) {
@@ -37,13 +40,16 @@ TEST(FastaReader, shouldReadFastaFileWithoutNewLineAtEnd) {
 
    silo::FastaReader under_test(file_path);
 
-   std::string key;
+   std::optional<std::string> key;
    std::string genome;
-   EXPECT_TRUE(under_test.next(key, genome));
+
+   key = under_test.next(genome);
+   EXPECT_TRUE(key != std::nullopt);
    EXPECT_EQ(key, "Key");
    EXPECT_EQ(genome, "ACGT");
 
-   EXPECT_FALSE(under_test.next(key, genome));
+   key = under_test.next(genome);
+   EXPECT_FALSE(key != std::nullopt);
 }
 
 TEST(FastaReader, givenDataInWrongFormatThenShouldThrowAnException) {
@@ -55,9 +61,8 @@ TEST(FastaReader, givenDataInWrongFormatThenShouldThrowAnException) {
 
    silo::FastaReader under_test(file_path);
 
-   std::string key;
    std::string genome;
-   EXPECT_THROW(under_test.next(key, genome), silo::FastaFormatException);
+   EXPECT_THROW(under_test.next(genome), silo::FastaFormatException);
 }
 
 TEST(FastaReader, givenDataInWithMissingGenomeThenShouldThrowAnException) {
@@ -69,11 +74,13 @@ TEST(FastaReader, givenDataInWithMissingGenomeThenShouldThrowAnException) {
 
    silo::FastaReader under_test(file_path);
 
-   std::string key;
+   std::optional<std::string> key;
    std::string genome;
-   EXPECT_TRUE(under_test.next(key, genome));
+
+   key = under_test.next(genome);
+   EXPECT_TRUE(key != std::nullopt);
    EXPECT_EQ(key, "Key");
    EXPECT_EQ(genome, "ACGT");
 
-   EXPECT_THROW(under_test.next(key, genome), silo::FastaFormatException);
+   EXPECT_THROW(under_test.next(genome), silo::FastaFormatException);
 }

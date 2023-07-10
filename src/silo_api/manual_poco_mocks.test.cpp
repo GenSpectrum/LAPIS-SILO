@@ -12,6 +12,7 @@ std::ostream& MockResponse::send() {
    return out_stream;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void MockResponse::sendFile(const std::string& path, const std::string& mediaType) {}
 
 void MockResponse::sendBuffer(const void* pBuffer, std::size_t length) {}

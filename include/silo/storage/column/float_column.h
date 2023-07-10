@@ -1,6 +1,7 @@
 #ifndef SILO_FLOAT_COLUMN_H
 #define SILO_FLOAT_COLUMN_H
 
+#include <cstdint>
 #include <deque>
 #include <string>
 #include <vector>
@@ -16,7 +17,7 @@ class FloatColumnPartition {
 
   private:
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
       archive& values;
       // clang-format on
@@ -37,7 +38,7 @@ class FloatColumn {
 
   private:
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
       // clang-format on
    }

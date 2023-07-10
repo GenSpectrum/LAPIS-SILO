@@ -1,21 +1,33 @@
 #include "silo/query_engine/filter_expressions/date_between.h"
 
+#include <algorithm>
+#include <cstdint>
+#include <map>
+#include <unordered_map>
+#include <utility>
+
 #include <nlohmann/json.hpp>
 
 #include "silo/common/date.h"
-#include "silo/query_engine/filter_expressions/expression.h"
+#include "silo/preprocessing/partition.h"
 #include "silo/query_engine/operators/intersection.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/operators/range_selection.h"
 #include "silo/query_engine/operators/selection.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/storage/column/date_column.h"
+#include "silo/storage/column_group.h"
 #include "silo/storage/database_partition.h"
+
+namespace silo {
+struct Database;
+}  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
 
 DateBetween::DateBetween(
    std::string column,
+   // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
    std::optional<silo::common::Date> date_from,
    std::optional<silo::common::Date> date_to
 )
@@ -84,14 +96,15 @@ std::vector<silo::query_engine::operators::RangeSelection::Range> DateBetween::
       const auto* end = &date_column.getValues()[chunk.offset + chunk.count_of_sequences];
       // If lower bound is empty we use 1 as the lower-bound, as 0 represents NULL values
       const auto* lower = std::lower_bound(begin, end, date_from.value_or(2));
-      uint32_t const lower_index = lower - base;
+      const uint32_t lower_index = lower - base;
       const auto* upper = date_to.has_value() ? std::upper_bound(begin, end, date_to.value()) : end;
-      uint32_t const upper_index = upper - base;
+      const uint32_t upper_index = upper - base;
       ranges.emplace_back(lower_index, upper_index);
    }
    return ranges;
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<DateBetween>& filter) {
    CHECK_SILO_QUERY(
       json.contains("column"), "The field 'column' is required in a DateBetween expression"

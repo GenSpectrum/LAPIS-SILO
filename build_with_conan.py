@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
+import argparse
 import os
 import shutil
-import argparse
+import subprocess
 
 
 def clean_build_folder(build_folder: str):
@@ -37,21 +38,26 @@ def main(args):
         + " ".join(conan_options))
     print("----------------------------------")
 
-    os.system(
-        "conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build "
-        + " ".join(conan_options))
+    conan_install_cmd = "conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build " + " ".join(
+        conan_options)
+    if subprocess.call(conan_install_cmd, shell=True) != 0:
+        raise Exception("Conan install command failed.")
 
     print("----------------------------------")
     print("cmake " + " ".join(cmake_options) + " -B build")
     print("----------------------------------")
 
-    os.system("cmake " + " ".join(cmake_options) + " -B build")
+    cmake_cmd = "cmake " + " ".join(cmake_options) + " -B build"
+    if subprocess.call(cmake_cmd, shell=True) != 0:
+        raise Exception("CMake command failed.")
 
     print("----------------------------------")
     print(f"cmake --build build --parallel {args.parallel}")
     print("----------------------------------")
 
-    os.system(f"cmake --build build --parallel {args.parallel}")
+    cmake_build_cmd = f"cmake --build build --parallel {args.parallel}"
+    if subprocess.call(cmake_build_cmd, shell=True) != 0:
+        raise Exception("CMake build command failed.")
 
 
 if __name__ == "__main__":

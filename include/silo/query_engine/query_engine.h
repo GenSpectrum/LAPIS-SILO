@@ -3,11 +3,11 @@
 
 #include <iostream>
 #include <memory>
-#include <roaring/roaring.hh>
 #include <string>
 #include <vector>
 
-#include "silo/common/nucleotide_symbols.h"
+#include <roaring/roaring.hh>
+
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo {

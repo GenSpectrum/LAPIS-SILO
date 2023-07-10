@@ -7,7 +7,7 @@
 
 namespace silo {
 
-enum class NUCLEOTIDE_SYMBOL;
+enum class NUCLEOTIDE_SYMBOL : char;
 
 struct DatabaseInfo {
    uint32_t sequence_count;

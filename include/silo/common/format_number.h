@@ -1,6 +1,7 @@
 #ifndef SILO_FORMAT_NUMBER_H
 #define SILO_FORMAT_NUMBER_H
 
+#include <cstdint>
 #include <string>
 
 namespace silo {

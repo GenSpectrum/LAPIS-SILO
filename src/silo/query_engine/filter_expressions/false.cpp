@@ -1,10 +1,16 @@
 #include "silo/query_engine/filter_expressions/false.h"
 
-#include <nlohmann/json.hpp>
+#include <string>
 
-#include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/operators/empty.h"
 #include "silo/storage/database_partition.h"
+
+namespace silo {
+namespace query_engine::operators {
+class Operator;
+}  // namespace query_engine::operators
+struct Database;
+}  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
 
@@ -22,6 +28,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> False::compile(
    return std::make_unique<operators::Empty>(database_partition.sequenceCount);
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& /*json*/, std::unique_ptr<False>& filter) {
    filter = std::make_unique<False>();
 }

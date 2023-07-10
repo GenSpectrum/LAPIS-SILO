@@ -1,18 +1,23 @@
 #ifndef SILO_PANGO_LINEAGE_H
 #define SILO_PANGO_LINEAGE_H
 
+#include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
 namespace silo::common {
 
 struct PangoLineage {
-   template <class Archive>
-   void serialize(Archive& archive, const unsigned int /* version*/) {
-      archive& value;
-   }
-
    std::string value;
+
+   template <class Archive>
+   void serialize(Archive& archive, const uint32_t /* version*/) {
+      // clang-format off
+      archive& value;
+      // clang-format on
+   }
 
    bool isSublineageOf(const PangoLineage& other) const;
 

@@ -2,6 +2,7 @@
 #define SILO_SRC_SILO_STORAGE_CSV_READER_H_
 
 #include <filesystem>
+#include <iosfwd>
 #include <string>
 #include <vector>
 

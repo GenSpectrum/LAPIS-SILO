@@ -1,17 +1,32 @@
 #include "silo/query_engine/filter_expressions/float_between.h"
 
+#include <map>
+#include <memory>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
 #include <nlohmann/json.hpp>
 
+#include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/operators/full.h"
 #include "silo/query_engine/operators/intersection.h"
+#include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/operators/selection.h"
 #include "silo/query_engine/query_parse_exception.h"
+#include "silo/storage/column/float_column.h"
+#include "silo/storage/column_group.h"
 #include "silo/storage/database_partition.h"
+
+namespace silo {
+struct Database;
+}  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters,readability-identifier-length)
 FloatBetween::FloatBetween(std::string column, std::optional<double> from, std::optional<double> to)
-    : column(column),
+    : column(std::move(column)),
       from(from),
       to(to) {}
 
@@ -23,9 +38,9 @@ std::string FloatBetween::toString(const silo::Database& /*database*/) const {
 }
 
 std::unique_ptr<silo::query_engine::operators::Operator> FloatBetween::compile(
-   const silo::Database& database,
+   const silo::Database& /*database*/,
    const silo::DatabasePartition& database_partition,
-   silo::query_engine::filter_expressions::Expression::AmbiguityMode mode
+   silo::query_engine::filter_expressions::Expression::AmbiguityMode /*mode*/
 ) const {
    const auto& int_column = database_partition.columns.float_columns.at(column);
 
@@ -63,6 +78,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> FloatBetween::compile(
    );
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<FloatBetween>& filter) {
    CHECK_SILO_QUERY(
       json.contains("column"), "The field 'column' is required in a FloatBetween expression"

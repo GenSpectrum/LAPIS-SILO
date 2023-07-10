@@ -1,9 +1,13 @@
 #ifndef SILO_COLUMN_GROUP_H
 #define SILO_COLUMN_GROUP_H
 
+#include <cstdint>
 #include <filesystem>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
+#include "silo/config/database_config.h"
 #include "silo/storage/column/date_column.h"
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
@@ -19,6 +23,17 @@ struct DatabaseMetadata;
 namespace silo {
 class PangoLineageAliasLookup;
 
+namespace storage {
+namespace column {
+class DateColumnPartition;
+class FloatColumnPartition;
+class IndexedStringColumnPartition;
+class IntColumnPartition;
+class PangoLineageColumnPartition;
+class StringColumnPartition;
+}  // namespace column
+}  // namespace storage
+
 namespace config {
 class DatabaseConfig;
 }  // namespace config
@@ -28,7 +43,7 @@ namespace silo::storage {
 
 struct ColumnGroup {
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
       // clang-format on
    }
@@ -44,7 +59,7 @@ struct ColumnGroup {
    std::unordered_map<std::string, storage::column::PangoLineageColumnPartition&>
       pango_lineage_columns;
 
-   unsigned fill(
+   uint32_t fill(
       const std::filesystem::path& input_file,
       const PangoLineageAliasLookup& alias_key,
       const silo::config::DatabaseConfig& database_config

@@ -1,5 +1,8 @@
 #include "silo/query_engine/query.h"
 
+#include <map>
+#include <string>
+
 #include <nlohmann/json.hpp>
 
 #include "silo/query_engine/actions/action.h"

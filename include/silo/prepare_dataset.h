@@ -4,26 +4,23 @@
 #include <filesystem>
 #include <iostream>
 #include <string>
-#include <unordered_map>
-
-#include "silo/storage/reference_genomes.h"
 
 namespace silo {
+class FastaReader;
+class PangoLineageAliasLookup;
+struct ReferenceGenomes;
 
 namespace config {
 struct DatabaseConfig;
-}  // namespace config
-
+}
 namespace preprocessing {
-struct Partitions;
-struct PangoLineageCounts;
-class MetadataWriter;
 class MetadataReader;
+class MetadataWriter;
+struct Partitions;
 }  // namespace preprocessing
+}  // namespace silo
 
-class FastaReader;
-class PangoLineageAliasLookup;
-
+namespace silo {
 [[maybe_unused]] void pruneSequences(
    silo::preprocessing::MetadataReader& metadata_reader,
    silo::FastaReader& sequences_in,

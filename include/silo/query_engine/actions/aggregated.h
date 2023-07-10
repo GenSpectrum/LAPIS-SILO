@@ -1,9 +1,23 @@
 #ifndef SILO_AGGREGATED_H
 #define SILO_AGGREGATED_H
 
-#include "silo/query_engine/actions/action.h"
-
+#include <memory>
 #include <optional>
+#include <string>
+#include <vector>
+
+#include <nlohmann/json_fwd.hpp>
+
+#include "silo/query_engine/actions/action.h"
+#include "silo/query_engine/query_result.h"
+
+namespace silo {
+class Database;
+
+namespace query_engine {
+struct OperatorResult;
+}  // namespace query_engine
+}  // namespace silo
 
 namespace silo::query_engine::actions {
 

@@ -1,7 +1,12 @@
 #include "silo/preprocessing/partition.h"
 
 #include <algorithm>
+#include <cstdlib>
+#include <istream>
+#include <iterator>
 #include <list>
+#include <stdexcept>
+#include <tuple>
 
 #include "silo/persistence/exception.h"
 #include "silo/preprocessing/pango_lineage_count.h"
@@ -12,8 +17,8 @@ std::string commonPangoPrefix(const std::string& lineage1, const std::string& li
    std::string prefix;
    // Buffer until it reaches another .
    std::string buffer;
-   unsigned const min_len = std::min(lineage1.length(), lineage2.length());
-   for (unsigned i = 0; i < min_len; i++) {
+   const uint32_t min_len = std::min(lineage1.length(), lineage2.length());
+   for (uint32_t i = 0; i < min_len; i++) {
       if (lineage1[i] != lineage2[i]) {
          return prefix;
       }
@@ -33,15 +38,16 @@ std::string commonPangoPrefix(const std::string& lineage1, const std::string& li
 /// vector of chunks
 std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
    const std::vector<PangoLineageCount>& pango_lineage_counts,
-   unsigned target_size,
-   unsigned min_size
+   // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+   uint32_t target_size,
+   uint32_t min_size
 ) {
    // Initialize chunks such that every chunk is just a pango_lineage
    std::list<Chunk> chunks;
    for (const auto& count : pango_lineage_counts) {
       std::vector<std::string> pango_lineages;
       pango_lineages.push_back(count.pango_lineage);
-      Chunk const tmp = {count.pango_lineage, count.count_of_sequences, 0, pango_lineages};
+      const Chunk tmp = {count.pango_lineage, count.count_of_sequences, 0, pango_lineages};
       chunks.emplace_back(tmp);
    }
    // We want to prioritise merges more closely related chunks.
@@ -59,9 +65,9 @@ std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
          auto&& [pango1, pango2] = std::tie(*it, *std::next(it));
          std::string const common_prefix = commonPangoPrefix(pango1.prefix, pango2.prefix);
          // We only look at possible merges with a common_prefix length of #len
-         bool const one_chunk_is_very_small =
+         const bool one_chunk_is_very_small =
             pango1.count_of_sequences < min_size || pango2.count_of_sequences < min_size;
-         bool const both_chunks_still_want_to_grow =
+         const bool both_chunks_still_want_to_grow =
             pango1.count_of_sequences < target_size && pango2.count_of_sequences < target_size;
          if (common_prefix.size() == len && (one_chunk_is_very_small || both_chunks_still_want_to_grow)) {
             pango2.prefix = common_prefix;

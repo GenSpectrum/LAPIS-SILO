@@ -1,9 +1,11 @@
 #ifndef SILO_STRING_COLUMN_H
 #define SILO_STRING_COLUMN_H
 
+#include <cstdint>
 #include <deque>
 #include <memory>
 #include <optional>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -22,7 +24,7 @@ class StringColumnPartition {
    friend class boost::serialization::access;
 
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
       archive& values;
       // clang-format on
@@ -53,7 +55,7 @@ class StringColumn {
 
   private:
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const unsigned int /* version */) {
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
       archive& lookup;
       archive& partitions;

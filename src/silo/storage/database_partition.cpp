@@ -1,13 +1,19 @@
 #include "silo/storage/database_partition.h"
 
-#include "silo/storage/column/date_column.h"
-#include "silo/storage/column/float_column.h"
-#include "silo/storage/column/indexed_string_column.h"
-#include "silo/storage/column/int_column.h"
-#include "silo/storage/column/pango_lineage_column.h"
-#include "silo/storage/column/string_column.h"
+#include "silo/storage/column_group.h"
 
 namespace silo {
+namespace preprocessing {
+struct Chunk;
+}  // namespace preprocessing
+namespace storage::column {
+class DateColumnPartition;
+class FloatColumnPartition;
+class IndexedStringColumnPartition;
+class IntColumnPartition;
+class PangoLineageColumnPartition;
+class StringColumnPartition;
+}  // namespace storage::column
 
 const std::vector<preprocessing::Chunk>& DatabasePartition::getChunks() const {
    return chunks;

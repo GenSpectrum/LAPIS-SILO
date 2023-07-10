@@ -1,6 +1,10 @@
 #include "silo/storage/column/pango_lineage_column.h"
 
+#include <optional>
+
 #include "silo/common/bidirectional_map.h"
+#include "silo/common/pango_lineage.h"
+#include "silo/common/types.h"
 
 namespace silo::storage::column {
 
@@ -25,7 +29,7 @@ void PangoLineageColumnPartition::insertSublineageValues(
    size_t row_number
 ) {
    for (const auto& pango_lineage : value.getParentLineages()) {
-      Idx value_id = lookup.getOrCreateId(pango_lineage);
+      const Idx value_id = lookup.getOrCreateId(pango_lineage);
       indexed_sublineage_values[value_id].add(row_number);
    }
 }

@@ -8,18 +8,23 @@
 
 namespace silo {
 
+enum class NUCLEOTIDE_SYMBOL : char;
+enum class AA_SYMBOL : char;
+
 struct ReferenceGenomes {
-   std::unordered_map<std::string, std::string> nucleotide_sequences;
-   std::unordered_map<std::string, std::string> aa_sequences;
+   std::unordered_map<std::string, std::vector<NUCLEOTIDE_SYMBOL>> nucleotide_sequences;
+   std::unordered_map<std::string, std::vector<AA_SYMBOL>> aa_sequences;
+   std::unordered_map<std::string, std::string> raw_nucleotide_sequences;
+   std::unordered_map<std::string, std::string> raw_aa_sequences;
 
    ReferenceGenomes() = default;
 
    explicit ReferenceGenomes(
-      std::unordered_map<std::string, std::string> nucleotide_sequences,
-      std::unordered_map<std::string, std::string> aa_sequences
+      std::unordered_map<std::string, std::string> raw_nucleotide_sequences_,
+      std::unordered_map<std::string, std::string> raw_aa_sequences_
    );
 
-   static ReferenceGenomes readFromFile(const std::filesystem::path& reference_genome_file);
+   static ReferenceGenomes readFromFile(const std::filesystem::path& reference_genomes_path);
 };
 
 }  // namespace silo

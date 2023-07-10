@@ -1,11 +1,20 @@
 #include "silo/query_engine/filter_expressions/negation.h"
 
+#include <map>
+#include <memory>
+#include <string>
+#include <utility>
+
 #include <nlohmann/json.hpp>
 
 #include "silo/query_engine/filter_expressions/expression.h"
-#include "silo/query_engine/operators/complement.h"
+#include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_parse_exception.h"
-#include "silo/storage/database_partition.h"
+
+namespace silo {
+class DatabasePartition;
+struct Database;
+}  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
 
@@ -25,6 +34,7 @@ std::unique_ptr<operators::Operator> Negation::compile(
    return child_operator->negate();
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Negation>& filter) {
    CHECK_SILO_QUERY(json.contains("child"), "The field 'child' is required in a Not expression")
    auto child = json["child"].get<std::unique_ptr<Expression>>();
