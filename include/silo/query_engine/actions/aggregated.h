@@ -25,13 +25,13 @@ class Aggregated : public Action {
   private:
    std::vector<std::string> group_by_fields;
 
-  public:
-   Aggregated(std::vector<std::string> group_by_fields);
-
    [[nodiscard]] QueryResult execute(
       const Database& database,
       std::vector<OperatorResult> bitmap_filter
    ) const override;
+
+  public:
+   Aggregated(std::vector<std::string> group_by_fields);
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)

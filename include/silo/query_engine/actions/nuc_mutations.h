@@ -64,13 +64,13 @@ class NucMutations : public Action {
       std::vector<OperatorResult>& bitmap_filter
    );
 
-  public:
-   explicit NucMutations(std::optional<std::string> nuc_sequence_name, double min_proportion);
-
    [[nodiscard]] QueryResult execute(
       const Database& database,
       std::vector<OperatorResult> bitmap_filter
    ) const override;
+
+  public:
+   explicit NucMutations(std::optional<std::string> nuc_sequence_name, double min_proportion);
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)

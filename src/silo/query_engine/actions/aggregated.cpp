@@ -267,7 +267,6 @@ QueryResult Aggregated::execute(
       }
    }
    QueryResult result = {generateResult(final_map)};
-   applyOrderByAndLimit(result);
    return result;
 }
 

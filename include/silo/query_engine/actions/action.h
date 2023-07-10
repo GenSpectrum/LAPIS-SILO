@@ -34,22 +34,27 @@ class Action {
    std::optional<uint32_t> limit;
    std::optional<uint32_t> offset;
 
-  public:
-   Action();
-   virtual ~Action() = default;
+   void applyOrderByAndLimit(QueryResult& result) const;
 
    [[nodiscard]] virtual QueryResult execute(
       const Database& database,
       std::vector<OperatorResult> bitmap_filter
    ) const = 0;
 
-   void applyOrderByAndLimit(QueryResult& result) const;
+  public:
+   Action();
+   virtual ~Action() = default;
 
    void setOrdering(
       const std::vector<OrderByField>& order_by_fields,
       std::optional<uint32_t> limit,
       std::optional<uint32_t> offset
    );
+
+   [[nodiscard]] QueryResult executeAndOrder(
+      const Database& database,
+      std::vector<OperatorResult> bitmap_filter
+   ) const;
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)

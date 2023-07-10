@@ -139,7 +139,6 @@ QueryResult Details::execute(
          results.query_result.push_back(QueryResultEntry{row_fields});
       }
    }
-   applyOrderByAndLimit(results);
    return results;
 }
 

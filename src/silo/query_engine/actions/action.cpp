@@ -15,6 +15,7 @@
 #include "silo/query_engine/actions/fasta.h"
 #include "silo/query_engine/actions/fasta_aligned.h"
 #include "silo/query_engine/actions/nuc_mutations.h"
+#include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
 
@@ -81,6 +82,15 @@ void Action::setOrdering(
    order_by_fields = order_by_fields_;
    limit = limit_;
    offset = offset_;
+}
+
+QueryResult Action::executeAndOrder(
+   const Database& database,
+   std::vector<OperatorResult> bitmap_filter
+) const {
+   QueryResult result = execute(database, std::move(bitmap_filter));
+   applyOrderByAndLimit(result);
+   return result;
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

@@ -19,11 +19,11 @@ struct Database;
 namespace silo::query_engine::actions {
 
 class Fasta : public Action {
-  public:
-   explicit Fasta();
-
    QueryResult execute(const Database& database, std::vector<OperatorResult> bitmap_filter)
       const override;
+
+  public:
+   explicit Fasta();
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)
