@@ -1,0 +1,135 @@
+{
+  "testCaseName": "The distribution of Amino Acid Mutations action",
+  "query": {
+    "action": {
+      "type": "AminoAcidMutations",
+      "sequenceName": "S",
+      "minProportion": 0.3
+    },
+    "filterExpression": {
+      "type": "True"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 37,
+      "position": "T19R",
+      "proportion": 0.3854166666666667
+    },
+    {
+      "count": 37,
+      "position": "G142D",
+      "proportion": 0.49333333333333335
+    },
+    {
+      "count": 34,
+      "position": "R158G",
+      "proportion": 0.3655913978494624
+    },
+    {
+      "count": 34,
+      "position": "G339D",
+      "proportion": 0.3469387755102041
+    },
+    {
+      "count": 33,
+      "position": "S373P",
+      "proportion": 0.3402061855670103
+    },
+    {
+      "count": 33,
+      "position": "S375F",
+      "proportion": 0.336734693877551
+    },
+    {
+      "count": 38,
+      "position": "L452R",
+      "proportion": 0.4318181818181818
+    },
+    {
+      "count": 32,
+      "position": "S477N",
+      "proportion": 0.34408602150537637
+    },
+    {
+      "count": 69,
+      "position": "T478K",
+      "proportion": 0.7340425531914894
+    },
+    {
+      "count": 31,
+      "position": "E484A",
+      "proportion": 0.3333333333333333
+    },
+    {
+      "count": 31,
+      "position": "Q493R",
+      "proportion": 0.3333333333333333
+    },
+    {
+      "count": 30,
+      "position": "Q498R",
+      "proportion": 0.3225806451612903
+    },
+    {
+      "count": 41,
+      "position": "N501Y",
+      "proportion": 0.44086021505376344
+    },
+    {
+      "count": 30,
+      "position": "Y505H",
+      "proportion": 0.3225806451612903
+    },
+    {
+      "count": 98,
+      "position": "D614G",
+      "proportion": 0.98989898989899
+    },
+    {
+      "count": 37,
+      "position": "H655Y",
+      "proportion": 0.37373737373737376
+    },
+    {
+      "count": 34,
+      "position": "N679K",
+      "proportion": 0.34
+    },
+    {
+      "count": 42,
+      "position": "P681H",
+      "proportion": 0.42
+    },
+    {
+      "count": 38,
+      "position": "P681R",
+      "proportion": 0.38
+    },
+    {
+      "count": 31,
+      "position": "N764K",
+      "proportion": 0.32978723404255317
+    },
+    {
+      "count": 34,
+      "position": "D796Y",
+      "proportion": 0.3469387755102041
+    },
+    {
+      "count": 34,
+      "position": "D950N",
+      "proportion": 0.35789473684210527
+    },
+    {
+      "count": 33,
+      "position": "Q954H",
+      "proportion": 0.34375
+    },
+    {
+      "count": 34,
+      "position": "N969K",
+      "proportion": 0.35051546391752575
+    }
+  ]
+}

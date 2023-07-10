@@ -1,0 +1,19 @@
+{
+  "testCaseName": "Access on second sequence",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "NucleotideEquals",
+      "position": 1,
+      "symbol": "A",
+      "sequenceName": "testSecondSequence"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 99
+    }
+  ]
+}

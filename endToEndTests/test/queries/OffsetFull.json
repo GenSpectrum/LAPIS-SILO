@@ -1,0 +1,15 @@
+{
+  "testCaseName": "Offset by exactly table size",
+  "query": {
+    "action": {
+      "type": "Details",
+      "orderByFields": ["gisaid_epi_isl"],
+      "offset": 100,
+      "limit": 90
+    },
+    "filterExpression": {
+      "type": "True"
+    }
+  },
+  "expectedQueryResult": []
+}

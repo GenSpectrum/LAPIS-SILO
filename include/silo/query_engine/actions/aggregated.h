@@ -10,15 +10,9 @@ namespace silo::query_engine::actions {
 class Aggregated : public Action {
   private:
    std::vector<std::string> group_by_fields;
-   std::vector<std::string> order_by_fields;
-   std::optional<uint32_t> limit;
 
   public:
-   Aggregated(
-      std::vector<std::string> group_by_fields,
-      std::vector<std::string> order_by_fields,
-      std::optional<uint32_t> limit
-   );
+   Aggregated(std::vector<std::string> group_by_fields);
 
    [[nodiscard]] QueryResult execute(
       const Database& database,

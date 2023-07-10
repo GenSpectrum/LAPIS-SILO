@@ -1,0 +1,18 @@
+{
+  "testCaseName": "Amino acid mutation gene S",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "HasAminoAcidMutation",
+      "position": 28,
+      "sequenceName": "S"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 3
+    }
+  ]
+}

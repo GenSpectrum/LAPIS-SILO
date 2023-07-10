@@ -81,30 +81,19 @@ class Database {
 
    [[nodiscard]] const PangoLineageAliasLookup& getAliasKey() const;
 
-   const silo::storage::column::DateColumn& getDateColumn(const std::string& name) const;
-
-   const silo::storage::column::IndexedStringColumn& getIndexedStringColumn(const std::string& name
-   ) const;
-
-   const silo::storage::column::StringColumn& getStringColumn(const std::string& name) const;
-
-   const silo::storage::column::PangoLineageColumn& getPangoLineageColumn(const std::string& name
-   ) const;
-
-   const silo::storage::column::IntColumn& getIntColumn(const std::string& name) const;
-
   private:
    PangoLineageAliasLookup alias_key;
 
    void initializeColumns();
+   void initializeColumn(config::ColumnType column_type, const std::string& name);
    void initializeSequences();
 
-   BitmapSizePerSymbol calculateBitmapSizePerSymbol() const;
+   static BitmapSizePerSymbol calculateBitmapSizePerSymbol(const SequenceStore& seq_store);
 
-   BitmapContainerSize calculateBitmapContainerSizePerGenomeSection(
-      size_t genome_length,
+   static BitmapContainerSize calculateBitmapContainerSizePerGenomeSection(
+      const SequenceStore& seq_store,
       size_t section_length
-   ) const;
+   );
 };
 
 std::string buildChunkString(unsigned partition, unsigned chunk);

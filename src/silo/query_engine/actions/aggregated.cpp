@@ -162,60 +162,6 @@ struct std::hash<silo::query_engine::actions::Tuple> {
 
 namespace silo::query_engine::actions {
 
-struct OrderByField {
-   std::string name;
-   bool ascending;
-};
-
-std::string stringToLowerCase(std::string str) {
-   std::transform(str.begin(), str.end(), str.begin(), [](unsigned char character) {
-      return std::tolower(character);
-   });
-   return str;
-}
-
-OrderByField parseOrderByField(const std::string& order_by_field) {
-   bool ascending = true;
-
-   std::string accessed_column = order_by_field;
-
-   auto space_position = order_by_field.find(' ');
-   if (space_position != order_by_field.size()) {
-      accessed_column = order_by_field.substr(0, space_position);
-      const std::string additional_instruction =
-         stringToLowerCase(order_by_field.substr(space_position + 1));
-      if (additional_instruction == "asc" || additional_instruction == "ascending") {
-         ascending = true;
-      } else if (additional_instruction == "desc" || additional_instruction == "descending") {
-         ascending = false;
-      }
-   }
-
-   return OrderByField{accessed_column, ascending};
-}
-
-void applyOrderByAndLimit(
-   std::vector<QueryResultEntry>& result,
-   const std::vector<OrderByField>& order_by_fields,
-   std::optional<uint32_t> limit
-) {
-   auto cmp = [&order_by_fields](const QueryResultEntry& entry1, const QueryResultEntry& entry2) {
-      for (const OrderByField& field : order_by_fields) {
-         if (entry1.fields.at(field.name) == entry2.fields.at(field.name)) {
-            continue;
-         }
-         return entry1.fields.at(field.name) < entry2.fields.at(field.name) ? field.ascending
-                                                                            : !field.ascending;
-      }
-      return false;
-   };
-   if (limit.has_value() && limit.value() < result.size()) {
-      std::partial_sort(result.begin(), result.begin() + limit.value(), result.end(), cmp);
-      result.resize(limit.value());
-   } else {
-      std::sort(result.begin(), result.end(), cmp);
-   }
-}
 const std::string COUNT_FIELD = "count";
 
 std::vector<QueryResultEntry> generateResult(std::unordered_map<Tuple, uint32_t>& tuple_counts) {
@@ -239,14 +185,8 @@ QueryResult aggregateWithoutGrouping(const std::vector<OperatorResult>& bitmap_f
    return QueryResult{std::vector<QueryResultEntry>{{tuple_fields}}};
 }
 
-Aggregated::Aggregated(
-   std::vector<std::string> group_by_fields,
-   std::vector<std::string> order_by_fields,
-   std::optional<uint32_t> limit
-)
-    : group_by_fields(std::move(group_by_fields)),
-      order_by_fields(std::move(order_by_fields)),
-      limit(limit) {}
+Aggregated::Aggregated(std::vector<std::string> group_by_fields)
+    : group_by_fields(std::move(group_by_fields)) {}
 
 QueryResult Aggregated::execute(
    const Database& database,
@@ -255,31 +195,20 @@ QueryResult Aggregated::execute(
    if (group_by_fields.empty()) {
       return aggregateWithoutGrouping(bitmap_filters);
    }
-   if (group_by_fields.size() == 1) {
-      const std::string group_by_field = group_by_fields[0];
-      const auto& metadata = database.database_config.getMetadata(group_by_field);
-      if (metadata.name == database.database_config.schema.primary_key) {
-         throw QueryParseException("Cannot group by primary key field: '" + group_by_field + "'");
-      }
-      // TODO(#133) optimize when equal to partition_by field
-      // TODO(#133) optimize single field groupby
-   }
+   // TODO(#133) optimize when equal to partition_by field
+   // TODO(#133) optimize single field groupby
+   /*if (group_by_fields.size() == 1) {
+   }*/
    std::vector<config::DatabaseMetadata> group_by_metadata;
    for (const std::string& group_by_field : group_by_fields) {
       const auto& metadata = database.database_config.getMetadata(group_by_field);
-      group_by_metadata.push_back(metadata);
+      CHECK_SILO_QUERY(
+         metadata.has_value(), "Metadata field '" + group_by_field + "' to group by not found"
+      )
+      group_by_metadata.push_back(*metadata);
    }
 
-   std::vector<OrderByField> order_by_definition;
-   bool randomize_order = false;
-   for (const std::string& order_by_field : order_by_fields) {
-      if (order_by_field == "random()") {
-         randomize_order = true;
-         break;
-      }
-      order_by_definition.push_back(parseOrderByField(order_by_field));
-   }
-   for (const OrderByField& field : order_by_definition) {
+   for (const Action::OrderByField& field : order_by_fields) {
       if (field.name != COUNT_FIELD && !std::any_of(group_by_metadata.begin(), group_by_metadata.end(), [&field](const config::DatabaseMetadata& group_by_field) {
              return group_by_field.name == field.name;
           })) {
@@ -316,26 +245,15 @@ QueryResult Aggregated::execute(
          final_map[key] += value;
       }
    }
-   std::vector<QueryResultEntry> result = generateResult(final_map);
-   if (randomize_order) {
-      const uint32_t time_based_seed = std::chrono::system_clock::now().time_since_epoch().count();
-      std::default_random_engine rng(time_based_seed);
-      std::shuffle(result.begin(), result.end(), rng);
-   }
-   if (!order_by_definition.empty()) {
-      applyOrderByAndLimit(result, order_by_definition, limit);
-   }
-   return {result};
+   QueryResult result = {generateResult(final_map)};
+   applyOrderByAndLimit(result);
+   return result;
 }
 
 void from_json(const nlohmann::json& json, std::unique_ptr<Aggregated>& action) {
    const std::vector<std::string> group_by_fields =
       json.value("groupByFields", std::vector<std::string>());
-   const std::vector<std::string> order_by_fields =
-      json.value("orderByFields", std::vector<std::string>());
-   const std::optional<uint32_t> limit =
-      json.contains("limit") ? std::optional<uint32_t>(json["limit"]) : std::nullopt;
-   action = std::make_unique<Aggregated>(group_by_fields, order_by_fields, limit);
+   action = std::make_unique<Aggregated>(group_by_fields);
 }
 
 }  // namespace silo::query_engine::actions

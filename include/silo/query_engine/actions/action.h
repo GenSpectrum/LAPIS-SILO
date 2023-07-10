@@ -2,6 +2,7 @@
 #define SILO_ACTION_H
 
 #include <memory>
+#include <optional>
 
 #include <nlohmann/json_fwd.hpp>
 
@@ -20,6 +21,17 @@ namespace silo::query_engine::actions {
 
 class Action {
   public:
+   struct OrderByField {
+      std::string name;
+      bool ascending;
+   };
+
+  protected:
+   std::vector<OrderByField> order_by_fields;
+   std::optional<uint32_t> limit;
+   std::optional<uint32_t> offset;
+
+  public:
    Action();
    virtual ~Action() = default;
 
@@ -27,6 +39,14 @@ class Action {
       const Database& database,
       std::vector<OperatorResult> bitmap_filter
    ) const = 0;
+
+   void applyOrderByAndLimit(QueryResult& result) const;
+
+   void setOrdering(
+      const std::vector<OrderByField>& order_by_fields,
+      std::optional<uint32_t> limit,
+      std::optional<uint32_t> offset
+   );
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)

@@ -72,8 +72,9 @@ TEST_F(RequestHandlerTestFixture, handlesGetInfoRequestDetails) {
       29903, 4567
    );  // NOLINT(readability-magic-numbers)
 
-   const silo::DetailedDatabaseInfo detailed_database_info = {
-      bitmap_size_per_symbol, bitmap_container_size};
+   silo::SequenceStoreStatistics stats = {bitmap_size_per_symbol, bitmap_container_size};
+
+   const silo::DetailedDatabaseInfo detailed_database_info = {{{"main", stats}}};
 
    EXPECT_CALL(mock_database, detailedDatabaseInfo)
       .WillRepeatedly(testing::Return(detailed_database_info));

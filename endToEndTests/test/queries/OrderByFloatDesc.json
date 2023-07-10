@@ -4,7 +4,12 @@
     "action": {
       "type": "Aggregated",
       "groupByFields": ["qc_value"],
-      "orderByFields": ["qc_value desc"]
+      "orderByFields": [
+        {
+          "field": "qc_value",
+          "order": "descending"
+        }
+      ]
     },
     "filterExpression": {
       "type": "True"

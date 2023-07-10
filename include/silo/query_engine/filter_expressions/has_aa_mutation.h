@@ -1,5 +1,5 @@
-#ifndef SILO_HAS_MUTATION_H
-#define SILO_HAS_MUTATION_H
+#ifndef SILO_HAS_AA_MUTATION_H
+#define SILO_HAS_AA_MUTATION_H
 
 #include <optional>
 
@@ -7,13 +7,13 @@
 
 namespace silo::query_engine::filter_expressions {
 
-struct HasMutation : public Expression {
+struct HasAAMutation : public Expression {
   private:
-   std::optional<std::string> nuc_sequence_name;
+   std::string aa_sequence_name;
    unsigned position;
 
   public:
-   explicit HasMutation(std::optional<std::string> nuc_sequence_name, unsigned position);
+   explicit HasAAMutation(std::string aa_sequence_name, unsigned position);
 
    std::string toString(const Database& database) const override;
 
@@ -25,8 +25,8 @@ struct HasMutation : public Expression {
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<HasMutation>& filter);
+void from_json(const nlohmann::json& json, std::unique_ptr<HasAAMutation>& filter);
 
 }  // namespace silo::query_engine::filter_expressions
 
-#endif  // SILO_HAS_MUTATION_H
+#endif  // SILO_HAS_AA_MUTATION_H

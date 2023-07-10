@@ -58,9 +58,9 @@ void to_json(nlohmann::json& json, const BitmapContainerSize& bitmapContainerSiz
 // NOLINTNEXTLINE(readability-identifier-naming)
 void to_json(nlohmann::json& json, const DetailedDatabaseInfo& databaseInfo) {
    json = nlohmann::json{
-      {"bitmapSizePerSymbol", databaseInfo.bitmap_size_per_symbol},
+      {"bitmapSizePerSymbol", databaseInfo.sequences.at("main").bitmap_size_per_symbol},
       {"bitmapContainerSizePerGenomeSection",
-       databaseInfo.bitmap_container_size_per_genome_section}};
+       databaseInfo.sequences.at("main").bitmap_container_size_per_genome_section}};
 }
 
 }  // namespace silo

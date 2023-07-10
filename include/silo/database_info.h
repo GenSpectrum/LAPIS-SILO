@@ -49,9 +49,13 @@ struct BitmapContainerSize {
    BitmapContainerSize& operator+=(const BitmapContainerSize& other);
 };
 
-struct DetailedDatabaseInfo {
+struct SequenceStoreStatistics {
    BitmapSizePerSymbol bitmap_size_per_symbol;
    BitmapContainerSize bitmap_container_size_per_genome_section;
+};
+
+struct DetailedDatabaseInfo {
+   std::unordered_map<std::string, SequenceStoreStatistics> sequences;
 };
 
 }  // namespace silo

@@ -1,0 +1,27 @@
+{
+  "testCaseName": "Offset is larger than the table",
+  "query": {
+    "action": {
+      "type": "Details",
+      "orderByFields": ["gisaid_epi_isl"],
+      "offset": 1231241
+    },
+    "filterExpression": {
+      "type": "And",
+      "children": [
+        {
+          "type": "StringEquals",
+          "column": "country",
+          "value": "Switzerland"
+        },
+        {
+          "type": "PangoLineage",
+          "column": "pango_lineage",
+          "value": "B.1.1.7",
+          "includeSublineages": true
+        }
+      ]
+    }
+  },
+  "expectedQueryResult": []
+}

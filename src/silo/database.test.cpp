@@ -7,11 +7,6 @@
 #include "silo/database_info.h"
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_config_reader.h"
-#include "silo/storage/column/date_column.h"
-#include "silo/storage/column/indexed_string_column.h"
-#include "silo/storage/column/int_column.h"
-#include "silo/storage/column/pango_lineage_column.h"
-#include "silo/storage/column/string_column.h"
 #include "silo/storage/database_partition.h"
 
 silo::Database buildTestDatabase() {
@@ -29,7 +24,7 @@ silo::Database buildTestDatabase() {
    database.preprocessing(config, database_config);
 
    return database;
-};
+}
 
 TEST(DatabaseTest, shouldBuildDatabaseWithoutErrors) {
    auto database{buildTestDatabase()};
@@ -40,10 +35,11 @@ TEST(DatabaseTest, shouldBuildDatabaseWithoutErrors) {
    EXPECT_EQ(simple_database_info.sequence_count, 100);
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(DatabaseTest, shouldReturnCorrectDatabaseInfo) {
    auto database{buildTestDatabase()};
 
-   const auto detailed_info = database.detailedDatabaseInfo();
+   const auto detailed_info = database.detailedDatabaseInfo().sequences.at("main");
    const auto simple_info = database.getDatabaseInfo();
 
    EXPECT_EQ(
@@ -81,6 +77,7 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfo) {
       5859154
    );
 
-   EXPECT_EQ(simple_info.total_size, 66458430);
-   EXPECT_EQ(simple_info.n_bitmaps_size, 3370);
+   EXPECT_EQ(simple_info.total_size, 66467326);
+   EXPECT_EQ(simple_info.sequence_count, 100);
+   EXPECT_EQ(simple_info.n_bitmaps_size, 3898);
 }

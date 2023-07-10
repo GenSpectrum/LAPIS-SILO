@@ -13,13 +13,18 @@
 
 namespace silo::query_engine::filter_expressions {
 
-NucleotideSymbolEquals::NucleotideSymbolEquals(uint32_t position, char value)
-    : position(position),
+NucleotideSymbolEquals::NucleotideSymbolEquals(
+   std::optional<std::string> nuc_sequence_name,
+   uint32_t position,
+   char value
+)
+    : nuc_sequence_name(std::move(nuc_sequence_name)),
+      position(position),
       value(value) {}
 
 std::string NucleotideSymbolEquals::toString(const silo::Database& /*database*/) const {
-   std::string res = std::to_string(position + 1) + std::to_string(value);
-   return res;
+   std::string nuc_sequence_name_prefix = nuc_sequence_name ? nuc_sequence_name.value() + ":" : "";
+   return nuc_sequence_name_prefix + std::to_string(position + 1) + std::to_string(value);
 }
 
 std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals::compile(
@@ -27,8 +32,15 @@ std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals:
    const silo::DatabasePartition& database_partition,
    Expression::AmbiguityMode mode
 ) const {
+   const std::string nuc_sequence_name_or_default =
+      nuc_sequence_name.value_or(database.database_config.default_nucleotide_sequence);
+   CHECK_SILO_QUERY(
+      database.nuc_sequences.contains(nuc_sequence_name_or_default),
+      "Database does not contain the nucleotide sequence with name: '" +
+         nuc_sequence_name_or_default + "'"
+   )
    const auto& seq_store_partition =
-      database_partition.nuc_sequences.at(database.database_config.default_nucleotide_sequence);
+      database_partition.nuc_sequences.at(nuc_sequence_name_or_default);
    if (position >= seq_store_partition.reference_genome.length()) {
       throw QueryParseException(
          "NucleotideEquals position is out of bounds '" + std::to_string(position + 1) + "' > '" +
@@ -51,7 +63,9 @@ std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals:
          std::back_inserter(symbol_filters),
          [&](silo::NUCLEOTIDE_SYMBOL symbol) {
             return std::make_unique<NucleotideSymbolEquals>(
-               position, NUC_SYMBOL_REPRESENTATION[static_cast<uint32_t>(symbol)]
+               nuc_sequence_name_or_default,
+               position,
+               NUC_SYMBOL_REPRESENTATION[static_cast<uint32_t>(symbol)]
             );
          }
       );
@@ -97,9 +111,15 @@ void from_json(const nlohmann::json& json, std::unique_ptr<NucleotideSymbolEqual
       json["symbol"].is_string(),
       "The field 'symbol' in a NucleotideEquals expression needs to be a string"
    )
+   std::optional<std::string> nuc_sequence_name;
+   if (json.contains("sequenceName")) {
+      nuc_sequence_name = json["sequenceName"].get<std::string>();
+   }
    const uint32_t position = json["position"].get<uint32_t>() - 1;
    const std::string& nucleotide_symbol = json["symbol"];
-   filter = std::make_unique<NucleotideSymbolEquals>(position, nucleotide_symbol.at(0));
+   filter = std::make_unique<NucleotideSymbolEquals>(
+      nuc_sequence_name, position, nucleotide_symbol.at(0)
+   );
 }
 
 }  // namespace silo::query_engine::filter_expressions
