@@ -20,8 +20,7 @@ AASymbolEquals::AASymbolEquals(std::string aa_sequence_name, uint32_t position, 
       value(value) {}
 
 std::string AASymbolEquals::toString(const silo::Database& /*database*/) const {
-   std::string res = std::to_string(position + 1) + std::to_string(value);
-   return res;
+   return aa_sequence_name + ":" + std::to_string(position + 1) + std::to_string(value);
 }
 
 std::unique_ptr<silo::query_engine::operators::Operator> AASymbolEquals::compile(

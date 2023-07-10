@@ -7,7 +7,7 @@
       "orderByFields": [
         {
           "field": "count",
-          "ascending": false
+          "order": "descending"
         }
       ],
       "limit": 4

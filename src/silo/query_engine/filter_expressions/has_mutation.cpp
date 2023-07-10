@@ -19,8 +19,8 @@ HasMutation::HasMutation(std::optional<std::string> nuc_sequence_name, uint32_t 
       position(position) {}
 
 std::string HasMutation::toString(const silo::Database& /*database*/) const {
-   std::string res = std::to_string(position);
-   return res;
+   std::string nuc_sequence_name_prefix = nuc_sequence_name ? nuc_sequence_name.value() + ":" : "";
+   return nuc_sequence_name_prefix + std::to_string(position);
 }
 
 std::unique_ptr<operators::Operator> HasMutation::compile(

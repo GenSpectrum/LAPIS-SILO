@@ -7,7 +7,7 @@
       "orderByFields": [
         {
           "field": "qc_value",
-          "ascending": false
+          "order": "descending"
         }
       ]
     },

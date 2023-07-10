@@ -17,6 +17,10 @@ struct DatabasePartition;
 namespace silo::query_engine::filter_expressions {
 
 struct Expression {
+   /// UPPER_BOUND returns the upper bound of sequences matching this expression (i.e. ambiguous
+   /// codes count as matches), LOWER_BOUND returns the lower bound of sequences matching this
+   /// expression (i.e. ambiguous codes in negations count as matches)
+   /// NONE does not specially consider ambiguous symbols
    enum AmbiguityMode { UPPER_BOUND, LOWER_BOUND, NONE };
 
    Expression();

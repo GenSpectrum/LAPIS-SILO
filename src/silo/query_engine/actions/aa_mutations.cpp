@@ -19,14 +19,17 @@
 
 using silo::query_engine::OperatorResult;
 
-namespace {
+namespace silo::query_engine::actions {
 
-std::pair<std::vector<size_t>, std::vector<size_t>> preFilterBitmaps(
+AAMutations::AAMutations(std::string aa_sequence_name, double min_proportion)
+    : aa_sequence_name(std::move(aa_sequence_name)),
+      min_proportion(min_proportion) {}
+
+AAMutations::PrefilteredBitmaps AAMutations::preFilterBitmaps(
    const silo::AAStore& aa_store,
    std::vector<OperatorResult>& bitmap_filter
 ) {
-   std::vector<size_t> bitmap_filters_to_evaluate;
-   std::vector<size_t> full_bitmap_filters_to_evaluate;
+   PrefilteredBitmaps bitmaps_to_evaluate;
    for (size_t i = 0; i < aa_store.partitions.size(); ++i) {
       const silo::AAStorePartition& aa_store_partition = aa_store.partitions.at(i);
       OperatorResult& filter = bitmap_filter[i];
@@ -35,24 +38,55 @@ std::pair<std::vector<size_t>, std::vector<size_t>> preFilterBitmaps(
          continue;
       }
       if (cardinality == aa_store_partition.sequence_count) {
-         full_bitmap_filters_to_evaluate.push_back(i);
+         bitmaps_to_evaluate.full_bitmaps.emplace_back(std::move(filter), aa_store_partition);
       } else {
          if (filter.isMutable()) {
             filter->runOptimize();
          }
-         bitmap_filters_to_evaluate.push_back(i);
+         bitmaps_to_evaluate.bitmaps.emplace_back(std::move(filter), aa_store_partition);
       }
    }
-   return {bitmap_filters_to_evaluate, full_bitmap_filters_to_evaluate};
+   return bitmaps_to_evaluate;
 }
 
-}  // namespace
-
-namespace silo::query_engine::actions {
-
-AAMutations::AAMutations(std::string aa_sequence_name, double min_proportion)
-    : aa_sequence_name(std::move(aa_sequence_name)),
-      min_proportion(min_proportion) {}
+void AAMutations::addMutationsCountsForPosition(
+   uint32_t position,
+   PrefilteredBitmaps& bitmaps_to_evaluate,
+   std::array<std::vector<uint32_t>, MUTATION_SYMBOL_COUNT>& count_of_mutations_per_position
+) {
+   for (auto& [filter, aa_store_partition] : bitmaps_to_evaluate.bitmaps) {
+      for (const auto symbol : VALID_MUTATION_SYMBOLS) {
+         if (aa_store_partition.positions[position].symbol_whose_bitmap_is_flipped != symbol) {
+            count_of_mutations_per_position[static_cast<uint32_t>(symbol)][position] +=
+               filter->and_cardinality(
+                  aa_store_partition.positions[position].bitmaps[static_cast<uint32_t>(symbol)]
+               );
+         } else {
+            count_of_mutations_per_position[static_cast<uint32_t>(symbol)][position] +=
+               filter->andnot_cardinality(
+                  aa_store_partition.positions[position].bitmaps[static_cast<uint32_t>(symbol)]
+               );
+         }
+      }
+   }
+   // For these partitions, we have full bitmaps. Do not need to bother with AND
+   // cardinality
+   for (auto& [filter, aa_store_partition] : bitmaps_to_evaluate.full_bitmaps) {
+      for (const auto symbol : VALID_MUTATION_SYMBOLS) {
+         if (aa_store_partition.positions[position].symbol_whose_bitmap_is_flipped != symbol) {
+            count_of_mutations_per_position[static_cast<uint32_t>(symbol)][position] +=
+               aa_store_partition.positions[position]
+                  .bitmaps[static_cast<uint32_t>(symbol)]
+                  .cardinality();
+         } else {
+            count_of_mutations_per_position[static_cast<uint32_t>(symbol)][position] +=
+               aa_store_partition.sequence_count - aa_store_partition.positions[position]
+                                                      .bitmaps[static_cast<uint32_t>(symbol)]
+                                                      .cardinality();
+         }
+      }
+   }
+}
 
 std::array<std::vector<uint32_t>, AAMutations::MUTATION_SYMBOL_COUNT> AAMutations::
    calculateMutationsPerPosition(
@@ -61,57 +95,23 @@ std::array<std::vector<uint32_t>, AAMutations::MUTATION_SYMBOL_COUNT> AAMutation
    ) {
    const size_t sequence_length = aa_store.reference_sequence.length();
 
-   std::vector<size_t> bitmap_filters_to_evaluate;
-   std::vector<size_t> full_bitmap_filters_to_evaluate;
-   std::tie(bitmap_filters_to_evaluate, full_bitmap_filters_to_evaluate) =
-      preFilterBitmaps(aa_store, bitmap_filter);
+   PrefilteredBitmaps bitmaps_to_evaluate = preFilterBitmaps(aa_store, bitmap_filter);
 
    std::array<std::vector<uint32_t>, MUTATION_SYMBOL_COUNT> count_of_mutations_per_position;
    for (auto& vec : count_of_mutations_per_position) {
       vec.resize(sequence_length);
    }
    static constexpr int POSITIONS_PER_PROCESS = 300;
-   const tbb::blocked_range<uint32_t> range(
-      0, sequence_length, /*grain_size=*/POSITIONS_PER_PROCESS
+   tbb::parallel_for(
+      tbb::blocked_range<uint32_t>(0, sequence_length, /*grain_size=*/POSITIONS_PER_PROCESS),
+      [&](const auto& local) {
+         for (uint32_t pos = local.begin(); pos != local.end(); ++pos) {
+            addMutationsCountsForPosition(
+               pos, bitmaps_to_evaluate, count_of_mutations_per_position
+            );
+         }
+      }
    );
-   tbb::parallel_for(range.begin(), range.end(), [&](uint32_t pos) {
-      for (const size_t partition_index : bitmap_filters_to_evaluate) {
-         const OperatorResult& filter = bitmap_filter[partition_index];
-         const silo::AAStorePartition& aa_store_partition = aa_store.partitions[partition_index];
-
-         for (const auto symbol : VALID_MUTATION_SYMBOLS) {
-            if (aa_store_partition.positions[pos].symbol_whose_bitmap_is_flipped != symbol) {
-               count_of_mutations_per_position[static_cast<uint32_t>(symbol)][pos] +=
-                  filter->and_cardinality(
-                     aa_store_partition.positions[pos].bitmaps[static_cast<uint32_t>(symbol)]
-                  );
-            } else {
-               count_of_mutations_per_position[static_cast<uint32_t>(symbol)][pos] +=
-                  filter->andnot_cardinality(
-                     aa_store_partition.positions[pos].bitmaps[static_cast<uint32_t>(symbol)]
-                  );
-            }
-         }
-      }
-      // For these partitions, we have full bitmaps. Do not need to bother with AND cardinality
-      for (const size_t partition_index : full_bitmap_filters_to_evaluate) {
-         const silo::AAStorePartition& aa_store_partition = aa_store.partitions[partition_index];
-
-         for (const auto symbol : VALID_MUTATION_SYMBOLS) {
-            if (aa_store_partition.positions[pos].symbol_whose_bitmap_is_flipped != symbol) {
-               count_of_mutations_per_position[static_cast<uint32_t>(symbol)][pos] +=
-                  aa_store_partition.positions[pos]
-                     .bitmaps[static_cast<uint32_t>(symbol)]
-                     .cardinality();
-            } else {
-               count_of_mutations_per_position[static_cast<uint32_t>(symbol)][pos] +=
-                  aa_store_partition.sequence_count - aa_store_partition.positions[pos]
-                                                         .bitmaps[static_cast<uint32_t>(symbol)]
-                                                         .cardinality();
-            }
-         }
-      }
-   });
    return count_of_mutations_per_position;
 }
 
@@ -133,30 +133,28 @@ QueryResult AAMutations::execute(
       calculateMutationsPerPosition(aa_store, bitmap_filter);
 
    std::vector<QueryResultEntry> mutation_proportions;
-   {
-      for (size_t pos = 0; pos < sequence_length; ++pos) {
-         uint32_t total = 0;
-         for (auto& count_per_position : count_of_mutations_per_position) {
-            total += count_per_position[pos];
-         }
-         if (total == 0) {
-            continue;
-         }
-         const auto threshold_count =
-            static_cast<uint32_t>(std::ceil(static_cast<double>(total) * min_proportion) - 1);
+   for (size_t pos = 0; pos < sequence_length; ++pos) {
+      uint32_t total = 0;
+      for (auto& count_per_position : count_of_mutations_per_position) {
+         total += count_per_position[pos];
+      }
+      if (total == 0) {
+         continue;
+      }
+      const auto threshold_count =
+         static_cast<uint32_t>(std::ceil(static_cast<double>(total) * min_proportion) - 1);
 
-         const auto symbol_in_reference_genome =
-            toAASymbol(aa_store.reference_sequence.at(pos)).value();
+      const auto symbol_in_reference_genome =
+         toAASymbol(aa_store.reference_sequence.at(pos)).value();
 
-         for (const auto symbol : VALID_MUTATION_SYMBOLS) {
-            if (symbol_in_reference_genome != symbol) {
-               const uint32_t count =
-                  count_of_mutations_per_position[static_cast<size_t>(symbol)][pos];
-               if (count > threshold_count) {
-                  const double proportion = static_cast<double>(count) / static_cast<double>(total);
-                  const std::map<
-                     std::string,
-                     std::optional<std::variant<std::string, int32_t, double>>>
+      for (const auto symbol : VALID_MUTATION_SYMBOLS) {
+         if (symbol_in_reference_genome != symbol) {
+            const uint32_t count =
+               count_of_mutations_per_position[static_cast<size_t>(symbol)][pos];
+            if (count > threshold_count) {
+               const double proportion = static_cast<double>(count) / static_cast<double>(total);
+               const std::
+                  map<std::string, std::optional<std::variant<std::string, int32_t, double>>>
                      fields{
                         {"position",
                          AA_SYMBOL_REPRESENTATION[static_cast<size_t>(symbol_in_reference_genome)] +
@@ -164,8 +162,7 @@ QueryResult AAMutations::execute(
                             AA_SYMBOL_REPRESENTATION[static_cast<size_t>(symbol)]},
                         {"proportion", proportion},
                         {"count", static_cast<int32_t>(count)}};
-                  mutation_proportions.push_back({fields});
-               }
+               mutation_proportions.push_back({fields});
             }
          }
       }

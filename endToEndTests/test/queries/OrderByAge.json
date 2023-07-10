@@ -7,7 +7,7 @@
       "orderByFields": [
         {
           "field": "age",
-          "ascending": true
+          "order": "ascending"
         }
       ]
     },

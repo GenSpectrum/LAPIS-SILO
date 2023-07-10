@@ -1,6 +1,9 @@
 #ifndef SILO_AA_MUTATIONS_H
 #define SILO_AA_MUTATIONS_H
 
+#include <string>
+#include <vector>
+
 #include "silo/common/aa_symbols.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/storage/aa_store.h"
@@ -34,11 +37,27 @@ class AAMutations : public Action {
       AA_SYMBOL::Y,  // Tyrosine
    };
 
+   struct PrefilteredBitmaps {
+      std::vector<std::pair<OperatorResult, const silo::AAStorePartition&>> bitmaps;
+      std::vector<std::pair<OperatorResult, const silo::AAStorePartition&>> full_bitmaps;
+   };
+
   public:
    static constexpr size_t MUTATION_SYMBOL_COUNT = AAMutations::VALID_MUTATION_SYMBOLS.size();
    static constexpr double DEFAULT_MIN_PROPORTION = 0.02;
 
   private:
+   static PrefilteredBitmaps preFilterBitmaps(
+      const silo::AAStore& aa_store,
+      std::vector<OperatorResult>& bitmap_filter
+   );
+
+   static void addMutationsCountsForPosition(
+      uint32_t position,
+      PrefilteredBitmaps& bitmaps_to_evaluate,
+      std::array<std::vector<uint32_t>, MUTATION_SYMBOL_COUNT>& count_of_mutations_per_position
+   );
+
    static std::array<std::vector<uint32_t>, AAMutations::MUTATION_SYMBOL_COUNT>
    calculateMutationsPerPosition(
       const AAStore& aa_store,

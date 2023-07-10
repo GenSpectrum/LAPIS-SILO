@@ -21,11 +21,27 @@ class NucMutations : public Action {
       NUCLEOTIDE_SYMBOL::T,
    };
 
+   struct PrefilteredBitmaps {
+      std::vector<std::pair<OperatorResult, const silo::SequenceStorePartition&>> bitmaps;
+      std::vector<std::pair<OperatorResult, const silo::SequenceStorePartition&>> full_bitmaps;
+   };
+
   public:
    static constexpr size_t MUTATION_SYMBOL_COUNT = NucMutations::VALID_MUTATION_SYMBOLS.size();
    static constexpr double DEFAULT_MIN_PROPORTION = 0.02;
 
   private:
+   static PrefilteredBitmaps preFilterBitmaps(
+      const silo::SequenceStore& seq_store,
+      std::vector<OperatorResult>& bitmap_filter
+   );
+
+   static void addMutationsCountsForPosition(
+      uint32_t position,
+      PrefilteredBitmaps& bitmaps_to_evaluate,
+      std::array<std::vector<uint32_t>, MUTATION_SYMBOL_COUNT>& count_of_mutations_per_position
+   );
+
    static std::array<std::vector<uint32_t>, MUTATION_SYMBOL_COUNT> calculateMutationsPerPosition(
       const SequenceStore& seq_store,
       std::vector<OperatorResult>& bitmap_filter

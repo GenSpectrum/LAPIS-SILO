@@ -52,10 +52,8 @@ void Action::applyOrderByAndLimit(QueryResult& result) const {
          return;
       }
       auto begin = result_vector.begin() + offset.value();
-      auto end = result_vector.end();
-      if (end_of_sort < result_vector.size()) {
-         end = result_vector.begin() + (end_of_sort);
-      }
+      auto end = end_of_sort < result_vector.size() ? result_vector.begin() + end_of_sort
+                                                    : result_vector.end();
       std::copy(begin, end, result_vector.begin());
       end_of_sort -= offset.value();
    }
@@ -80,13 +78,13 @@ void from_json(const nlohmann::json& json, Action::OrderByField& field) {
       return;
    }
    CHECK_SILO_QUERY(
-      json.is_object() && json.contains("field") && json.contains("ascending") &&
-         json["field"].is_string() && json["ascending"].is_boolean(),
+      json.is_object() && json.contains("field") && json.contains("order") &&
+         json["field"].is_string() && json["order"].is_string(),
       "The orderByField '" + json.dump() +
          "' must be either a string or an object containing the fields 'field':string and "
-         "'ascending':boolean"
+         "'order':string, where the value of order is 'ascending' or 'descending'"
    )
-   field = {json["field"].get<std::string>(), json["ascending"].get<bool>()};
+   field = {json["field"].get<std::string>(), json["order"].get<std::string>() == "ascending"};
 }
 
 void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {

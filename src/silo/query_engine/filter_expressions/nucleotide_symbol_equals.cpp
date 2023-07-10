@@ -23,8 +23,8 @@ NucleotideSymbolEquals::NucleotideSymbolEquals(
       value(value) {}
 
 std::string NucleotideSymbolEquals::toString(const silo::Database& /*database*/) const {
-   std::string res = std::to_string(position + 1) + std::to_string(value);
-   return res;
+   std::string nuc_sequence_name_prefix = nuc_sequence_name ? nuc_sequence_name.value() + ":" : "";
+   return nuc_sequence_name_prefix + std::to_string(position + 1) + std::to_string(value);
 }
 
 std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals::compile(

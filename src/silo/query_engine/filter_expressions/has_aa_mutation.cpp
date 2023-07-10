@@ -20,7 +20,7 @@ HasAAMutation::HasAAMutation(std::string aa_sequence_name, uint32_t position)
       position(position) {}
 
 std::string HasAAMutation::toString(const silo::Database& /*database*/) const {
-   std::string res = std::to_string(position);
+   std::string res = aa_sequence_name + ":" + std::to_string(position);
    return res;
 }
 
