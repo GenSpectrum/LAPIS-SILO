@@ -21,16 +21,12 @@
 #include "silo/storage/reference_genomes.h"
 #include "silo/storage/sequence_store.h"
 
-namespace silo {
-namespace preprocessing {
+namespace silo::preprocessing {
 struct Partitions;
-}
-}  // namespace silo
-namespace silo {
-namespace preprocessing {
+}  // namespace silo::preprocessing
+namespace silo::preprocessing {
 struct PreprocessingConfig;
-}
-}  // namespace silo
+}  // namespace silo::preprocessing
 namespace silo {
 struct BitmapContainerSize;
 }  // namespace silo

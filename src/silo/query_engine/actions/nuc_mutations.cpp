@@ -57,19 +57,16 @@ NucMutations::PrefilteredBitmaps NucMutations::preFilterBitmaps(
 void NucMutations::addMutationsCountsForPosition(
    uint32_t position,
    PrefilteredBitmaps& bitmaps_to_evaluate,
-   std::array<std::vector<uint32_t>, MUTATION_SYMBOL_COUNT>& count_of_mutations_per_position
+   NucleotideSymbolMap<std::vector<uint32_t>>& count_of_mutations_per_position
 ) {
    for (auto& [filter, seq_store_partition] : bitmaps_to_evaluate.bitmaps) {
       for (const auto symbol : VALID_MUTATION_SYMBOLS) {
          if (seq_store_partition.positions[position].symbol_whose_bitmap_is_flipped != symbol) {
-            count_of_mutations_per_position[static_cast<uint32_t>(symbol)][position] +=
-               filter->and_cardinality(
-                  seq_store_partition.positions[position].bitmaps[static_cast<uint32_t>(symbol)]
-               );
+            count_of_mutations_per_position[symbol][position] +=
+               filter->and_cardinality(seq_store_partition.positions[position].bitmaps.at(symbol));
          } else {
-            count_of_mutations_per_position[static_cast<uint32_t>(symbol)][position] +=
-               filter->andnot_cardinality(
-                  seq_store_partition.positions[position].bitmaps[static_cast<uint32_t>(symbol)]
+            count_of_mutations_per_position[symbol][position] +=
+               filter->andnot_cardinality(seq_store_partition.positions[position].bitmaps.at(symbol)
                );
          }
       }
@@ -79,25 +76,21 @@ void NucMutations::addMutationsCountsForPosition(
    for (auto& [filter, seq_store_partition] : bitmaps_to_evaluate.full_bitmaps) {
       for (const auto symbol : VALID_MUTATION_SYMBOLS) {
          if (seq_store_partition.positions[position].symbol_whose_bitmap_is_flipped != symbol) {
-            count_of_mutations_per_position[static_cast<uint32_t>(symbol)][position] +=
-               seq_store_partition.positions[position]
-                  .bitmaps[static_cast<uint32_t>(symbol)]
-                  .cardinality();
+            count_of_mutations_per_position[symbol][position] +=
+               seq_store_partition.positions[position].bitmaps.at(symbol).cardinality();
          } else {
-            count_of_mutations_per_position[static_cast<uint32_t>(symbol)][position] +=
-               seq_store_partition.sequence_count - seq_store_partition.positions[position]
-                                                       .bitmaps[static_cast<uint32_t>(symbol)]
-                                                       .cardinality();
+            count_of_mutations_per_position[symbol][position] +=
+               seq_store_partition.sequence_count -
+               seq_store_partition.positions[position].bitmaps.at(symbol).cardinality();
          }
       }
    }
 }
 
-NucleotideSymbolMap<std::vector<uint32_t>> NucMutations::
-   calculateMutationsPerPosition(
-      const SequenceStore& seq_store,
-      std::vector<OperatorResult>& bitmap_filter
-   ) {
+NucleotideSymbolMap<std::vector<uint32_t>> NucMutations::calculateMutationsPerPosition(
+   const SequenceStore& seq_store,
+   std::vector<OperatorResult>& bitmap_filter
+) {
    const size_t genome_length = seq_store.reference_genome.size();
 
    PrefilteredBitmaps bitmaps_to_evaluate = preFilterBitmaps(seq_store, bitmap_filter);
@@ -168,10 +161,9 @@ QueryResult NucMutations::execute(
                         {"count", static_cast<int32_t>(count)}};
                mutation_proportions.push_back({fields});
             }
-      }
+         }
       }
    }
-
 
    return {mutation_proportions};
 }

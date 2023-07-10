@@ -88,7 +88,8 @@ NucleotideSymbolEquals::NucleotideSymbolEquals(
       value(value) {}
 
 std::string NucleotideSymbolEquals::toString(const silo::Database& /*database*/) const {
-   const std::string nuc_sequence_name_prefix = nuc_sequence_name ? nuc_sequence_name.value() + ":" : "";
+   const std::string nuc_sequence_name_prefix =
+      nuc_sequence_name ? nuc_sequence_name.value() + ":" : "";
    const char symbol_char = value.has_value() ? nucleotideSymbolToChar(*value) : '.';
    return nuc_sequence_name_prefix + std::to_string(position + 1) + std::to_string(symbol_char);
 }

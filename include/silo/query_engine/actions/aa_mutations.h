@@ -20,7 +20,8 @@ class AAStore;
 }
 namespace silo {
 class Database;
-}
+class AAStorePartition;
+}  // namespace silo
 namespace silo::query_engine {
 struct OperatorResult;
 }  // namespace silo::query_engine
@@ -71,11 +72,10 @@ class AAMutations : public Action {
    static void addMutationsCountsForPosition(
       uint32_t position,
       PrefilteredBitmaps& bitmaps_to_evaluate,
-      std::array<std::vector<uint32_t>, MUTATION_SYMBOL_COUNT>& count_of_mutations_per_position
+      AASymbolMap<std::vector<uint32_t>>& count_of_mutations_per_position
    );
 
-   static AASymbolMap<std::vector<uint32_t>>
-   calculateMutationsPerPosition(
+   static AASymbolMap<std::vector<uint32_t>> calculateMutationsPerPosition(
       const AAStore& aa_store,
       std::vector<OperatorResult>& bitmap_filter
    );

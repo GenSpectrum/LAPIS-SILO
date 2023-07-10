@@ -9,11 +9,9 @@
 #include "silo/query_engine/filter_expressions/expression.h"
 
 namespace silo {
-namespace query_engine {
-namespace operators {
+namespace query_engine::operators {
 class Operator;
-}  // namespace operators
-}  // namespace query_engine
+}  // namespace query_engine::operators
 struct Database;
 struct DatabasePartition;
 }  // namespace silo

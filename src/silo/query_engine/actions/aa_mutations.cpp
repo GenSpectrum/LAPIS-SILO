@@ -57,19 +57,16 @@ AAMutations::PrefilteredBitmaps AAMutations::preFilterBitmaps(
 void AAMutations::addMutationsCountsForPosition(
    uint32_t position,
    PrefilteredBitmaps& bitmaps_to_evaluate,
-   NucleotideSymbolMap<std::vector<uint32_t>>& count_of_mutations_per_position
+   AASymbolMap<std::vector<uint32_t>>& count_of_mutations_per_position
 ) {
    for (auto& [filter, aa_store_partition] : bitmaps_to_evaluate.bitmaps) {
       for (const auto symbol : VALID_MUTATION_SYMBOLS) {
          if (aa_store_partition.positions[position].symbol_whose_bitmap_is_flipped != symbol) {
-            count_of_mutations_per_position.at(symbol)[position] +=
-               filter->and_cardinality(
-                  aa_store_partition.positions[position].bitmaps[static_cast<uint32_t>(symbol)]
-               );
+            count_of_mutations_per_position[symbol][position] +=
+               filter->and_cardinality(aa_store_partition.positions[position].bitmaps.at(symbol));
          } else {
-            count_of_mutations_per_position.at(symbol)[position] +=
-               filter->andnot_cardinality(
-                  aa_store_partition.positions[position].bitmaps[static_cast<uint32_t>(symbol)]
+            count_of_mutations_per_position[symbol][position] +=
+               filter->andnot_cardinality(aa_store_partition.positions[position].bitmaps.at(symbol)
                );
          }
       }
@@ -79,32 +76,28 @@ void AAMutations::addMutationsCountsForPosition(
    for (auto& [filter, aa_store_partition] : bitmaps_to_evaluate.full_bitmaps) {
       for (const auto symbol : VALID_MUTATION_SYMBOLS) {
          if (aa_store_partition.positions[position].symbol_whose_bitmap_is_flipped != symbol) {
-            count_of_mutations_per_position.at(symbol)[position] +=
-               aa_store_partition.positions[position]
-                  .bitmaps[static_cast<uint32_t>(symbol)]
-                  .cardinality();
+            count_of_mutations_per_position[symbol][position] +=
+               aa_store_partition.positions[position].bitmaps.at(symbol).cardinality();
          } else {
-            count_of_mutations_per_position.at(symbol)[position] +=
-               aa_store_partition.sequence_count - aa_store_partition.positions[position]
-                                                      .bitmaps.at(symbol)
-                                                      .cardinality();
+            count_of_mutations_per_position[symbol][position] +=
+               aa_store_partition.sequence_count -
+               aa_store_partition.positions[position].bitmaps.at(symbol).cardinality();
          }
       }
    }
 }
 
-NucleotideSymbolMap<std::vector<uint32_t>> AAMutations::
-   calculateMutationsPerPosition(
-      const AAStore& aa_store,
-      std::vector<OperatorResult>& bitmap_filter
-   ) {
+AASymbolMap<std::vector<uint32_t>> AAMutations::calculateMutationsPerPosition(
+   const AAStore& aa_store,
+   std::vector<OperatorResult>& bitmap_filter
+) {
    const size_t sequence_length = aa_store.reference_sequence.size();
 
    PrefilteredBitmaps bitmaps_to_evaluate = preFilterBitmaps(aa_store, bitmap_filter);
 
-   NucleotideSymbolMap<std::vector<uint32_t>> count_of_mutations_per_position;
+   AASymbolMap<std::vector<uint32_t>> count_of_mutations_per_position;
    for (const auto symbol : VALID_MUTATION_SYMBOLS) {
-         count_of_mutations_per_position[symbol].resize(sequence_length);
+      count_of_mutations_per_position[symbol].resize(sequence_length);
    }
    static constexpr int POSITIONS_PER_PROCESS = 300;
    tbb::parallel_for(

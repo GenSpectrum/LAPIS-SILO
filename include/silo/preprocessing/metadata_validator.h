@@ -6,11 +6,9 @@
 #include "silo/config/config_repository.h"
 #include "silo/preprocessing/metadata.h"
 
-namespace silo {
-namespace config {
+namespace silo::config {
 struct DatabaseConfig;
-}  // namespace config
-}  // namespace silo
+}  // namespace silo::config
 
 namespace silo::preprocessing {
 

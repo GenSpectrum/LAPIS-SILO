@@ -62,8 +62,9 @@ void Action::applyOrderByAndLimit(QueryResult& result) const {
          return;
       }
       auto begin = result_vector.begin() + offset.value();
-      auto end = end_of_sort < result_vector.size() ? result_vector.begin() + static_cast<int64_t>(end_of_sort)
-                                                    : result_vector.end();
+      auto end = end_of_sort < result_vector.size()
+                    ? result_vector.begin() + static_cast<int64_t>(end_of_sort)
+                    : result_vector.end();
       std::copy(begin, end, result_vector.begin());
       end_of_sort -= offset.value();
    }
