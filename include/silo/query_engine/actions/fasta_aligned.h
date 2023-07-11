@@ -19,8 +19,9 @@ struct Database;
 namespace silo::query_engine::actions {
 
 class FastaAligned : public Action {
-   [[nodiscard]] QueryResult
-   execute(const Database& /*database*/, std::vector<OperatorResult> /*bitmap_filter*/)
+   void validateOrderByFields(const Database& database) const override;
+
+   QueryResult execute(const Database& database, std::vector<OperatorResult> bitmap_filter)
       const override;
 
   public:

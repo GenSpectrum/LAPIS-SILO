@@ -39,6 +39,10 @@ class NucMutations : public Action {
       NUCLEOTIDE_SYMBOL::T,
    };
 
+   const std::string POSITION_FIELD_NAME = "position";
+   const std::string PROPORTION_FIELD_NAME = "proportion";
+   const std::string COUNT_FIELD_NAME = "count";
+
    struct PrefilteredBitmaps {
       std::vector<std::pair<OperatorResult, const silo::SequenceStorePartition&>> bitmaps;
       std::vector<std::pair<OperatorResult, const silo::SequenceStorePartition&>> full_bitmaps;
@@ -63,6 +67,8 @@ class NucMutations : public Action {
       const SequenceStore& seq_store,
       std::vector<OperatorResult>& bitmap_filter
    );
+
+   [[nodiscard]] void validateOrderByFields(const Database& database) const override;
 
    [[nodiscard]] QueryResult execute(
       const Database& database,

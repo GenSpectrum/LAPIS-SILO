@@ -19,6 +19,8 @@ struct Database;
 namespace silo::query_engine::actions {
 
 class Fasta : public Action {
+   [[nodiscard]] void validateOrderByFields(const Database& database) const override;
+
    QueryResult execute(const Database& database, std::vector<OperatorResult> bitmap_filter)
       const override;
 

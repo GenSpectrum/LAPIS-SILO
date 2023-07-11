@@ -36,6 +36,8 @@ class Action {
 
    void applyOrderByAndLimit(QueryResult& result) const;
 
+   [[nodiscard]] virtual void validateOrderByFields(const Database& database) const = 0;
+
    [[nodiscard]] virtual QueryResult execute(
       const Database& database,
       std::vector<OperatorResult> bitmap_filter
