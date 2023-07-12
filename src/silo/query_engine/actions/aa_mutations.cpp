@@ -170,7 +170,7 @@ QueryResult AAMutations::execute(
 void from_json(const nlohmann::json& json, std::unique_ptr<AAMutations>& action) {
    CHECK_SILO_QUERY(
       json.contains("sequenceName") && json["sequenceName"].is_string(),
-      "AminoAcideMutations action must have the field sequenceName:string"
+      "AminoAcidMutations action must have the string field sequenceName"
    )
    const std::string aa_sequence_name = json["sequenceName"].get<std::string>();
    double min_proportion = AAMutations::DEFAULT_MIN_PROPORTION;
