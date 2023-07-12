@@ -11,13 +11,22 @@
 
 namespace silo::preprocessing {
 
-MetadataReader::MetadataReader(const std::filesystem::path& metadata_path) try
-    : reader(metadata_path.string()) {
-} catch (const std::exception& exception) {
-   const std::string message =
-      "Failed to read metadata file '" + metadata_path.string() + "': " + exception.what();
-   throw PreprocessingException(message);
+csv::CSVReader buildReader(const std::filesystem::path& metadata_path) {
+   try {
+      csv::CSVFormat format;
+      format.delimiter('\t');
+      format.variable_columns(csv::VariableColumnPolicy::THROW);
+      format.header_row(0);
+      return {metadata_path.string(), format};
+   } catch (const std::exception& exception) {
+      const std::string message =
+         "Failed to read metadata file '" + metadata_path.string() + "': " + exception.what();
+      throw PreprocessingException(message);
+   }
 }
+
+MetadataReader::MetadataReader(const std::filesystem::path& metadata_path)
+    : reader(buildReader(metadata_path)) {}
 
 std::vector<std::string> MetadataReader::getColumn(const std::string& column_name) {
    if (reader.index_of(column_name) == csv::CSV_NOT_FOUND) {
@@ -26,7 +35,8 @@ std::vector<std::string> MetadataReader::getColumn(const std::string& column_nam
    }
    std::vector<std::string> column;
    for (const auto& row : reader) {
-      column.push_back(row[column_name].get());
+      std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+      column.emplace_back(row[column_name].get<std::string>());
    }
    return column;
 }
