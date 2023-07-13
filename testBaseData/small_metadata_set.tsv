@@ -12,7 +12,7 @@ EPI_ISL_1749960	B.1.1.7	2021-04-15	Europe	Switzerland	Basel-Land	2021-02-03	59	0
 EPI_ISL_1361468	B.1.1.7	2021-03-06	Europe	Switzerland	Zürich	2021-01-20	50	0.98
 EPI_ISL_1408062	B.1.1.7	2021-03-03	Europe	Switzerland	Valais	2020-11-24	50	0.97
 EPI_ISL_1597890	B.1.1.7	2021-03-21	""	Switzerland	Vaud	2021-01-25	51	0.96
-EPI_ISL_1682849	B.1.236	2020-12-17	Europe	Switzerland	Thurgau	2021-01-21	52	0.95
+EPI_ISL_1682849	XA.1	2020-12-17	Europe	Switzerland	Thurgau	2021-01-21	52	0.95
 EPI_ISL_1408805	B.1.221	2020-11-24	Europe	Switzerland	Schwyz	2020-12-09	53	0.94
 EPI_ISL_1750868	B.1.1.189	2020-12-15	Europe	Switzerland	Solothurn	2021-01-20	54	0.93
 EPI_ISL_2019350	B.1.1.7	2021-04-27	Europe	Switzerland	Valais	2020-12-21	55	0.92
@@ -49,7 +49,7 @@ EPI_ISL_1119584	B.1.1	2020-11-04	Europe	Switzerland	Solothurn	2021-07-05	52	0.92
 EPI_ISL_1002052	B.1	2021-01-15	Europe	Switzerland	Solothurn	2021-07-15	53	0.91
 EPI_ISL_466942	B.1	2020-03-08	Europe	Switzerland	Basel-Stadt	2021-05-12	54	0.90
 EPI_ISL_1003849	B.1.160	2021-01-29	Europe	Switzerland	Neuchâtel	2021-08-05	55	0.89
-EPI_ISL_768148	B.1.160	2020-12-24	Europe	Switzerland	Sankt Gallen	2020-03-16	56	0.98
+EPI_ISL_768148	GD.1	2020-12-24	Europe	Switzerland	Sankt Gallen	2020-03-16	56	0.98
 EPI_ISL_1080536	B.1.1.7	2021-02-10	Europe	Switzerland	Basel-Land	2021-08-04	57	0.97
 EPI_ISL_1002156	B.1.221	2021-01-16	Europe	Switzerland	Basel-Land	2021-02-03	58	0.96
 EPI_ISL_1119315	B.1.1.7	2021-02-14	Europe	Switzerland	Graubünden	2021-03-18	59	0.95

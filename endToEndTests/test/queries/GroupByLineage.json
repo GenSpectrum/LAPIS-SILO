@@ -3,8 +3,12 @@
   "query": {
     "action": {
       "type": "Aggregated",
-      "groupByFields": ["pango_lineage"],
-      "orderByFields": ["pango_lineage"]
+      "groupByFields": [
+        "pango_lineage"
+      ],
+      "orderByFields": [
+        "pango_lineage"
+      ]
     },
     "filterExpression": {
       "type": "True"
@@ -52,7 +56,7 @@
       "pango_lineage": "B.1.1.70"
     },
     {
-      "count": 7,
+      "count": 6,
       "pango_lineage": "B.1.160"
     },
     {
@@ -70,10 +74,6 @@
     {
       "count": 3,
       "pango_lineage": "B.1.221"
-    },
-    {
-      "count": 1,
-      "pango_lineage": "B.1.236"
     },
     {
       "count": 1,
@@ -106,6 +106,14 @@
     {
       "count": 1,
       "pango_lineage": "B.1.617.2.9.2"
+    },
+    {
+      "count": 1,
+      "pango_lineage": "XA.1"
+    },
+    {
+      "count": 1,
+      "pango_lineage": "XBB.1.9.3.1"
     }
   ]
 }

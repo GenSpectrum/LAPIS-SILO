@@ -9,23 +9,26 @@
 namespace silo::storage::column {
 
 PangoLineageColumnPartition::PangoLineageColumnPartition(
-   common::BidirectionalMap<common::PangoLineage>& lookup
+   silo::PangoLineageAliasLookup& alias_key,
+   common::BidirectionalMap<common::UnaliasedPangoLineage>& lookup
 )
-    : lookup(lookup){};
+    : alias_key(alias_key),
+      lookup(lookup){};
 
-void PangoLineageColumnPartition::insert(const common::PangoLineage& value) {
-   for (const auto& parent_lineage : value.getParentLineages()) {
+void PangoLineageColumnPartition::insert(const common::RawPangoLineage& value) {
+   const common::UnaliasedPangoLineage resolved_lineage = alias_key.unaliasPangoLineage(value);
+   for (const auto& parent_lineage : resolved_lineage.getParentLineages()) {
       (void)lookup.getOrCreateId(parent_lineage);
    }
-   const Idx value_id = lookup.getOrCreateId(value);
+   const Idx value_id = lookup.getOrCreateId(resolved_lineage);
    const size_t row_number = value_ids.size();
-   indexed_values[value_id].add(row_number);
-   insertSublineageValues(value, row_number);
    value_ids.push_back(value_id);
+   indexed_values[value_id].add(row_number);
+   insertSublineageValues(resolved_lineage, row_number);
 }
 
 void PangoLineageColumnPartition::insertSublineageValues(
-   const common::PangoLineage& value,
+   const common::UnaliasedPangoLineage& value,
    size_t row_number
 ) {
    for (const auto& pango_lineage : value.getParentLineages()) {
@@ -34,8 +37,9 @@ void PangoLineageColumnPartition::insertSublineageValues(
    }
 }
 
-roaring::Roaring PangoLineageColumnPartition::filter(const common::PangoLineage& value) const {
-   auto value_id = lookup.getId(value);
+roaring::Roaring PangoLineageColumnPartition::filter(const common::RawPangoLineage& value) const {
+   const common::UnaliasedPangoLineage resolved_lineage = alias_key.unaliasPangoLineage(value);
+   auto value_id = lookup.getId(resolved_lineage);
    if (value_id.has_value() && indexed_values.contains(value_id.value())) {
       return indexed_values.at(value_id.value());
    }
@@ -43,9 +47,10 @@ roaring::Roaring PangoLineageColumnPartition::filter(const common::PangoLineage&
 }
 
 roaring::Roaring PangoLineageColumnPartition::filterIncludingSublineages(
-   const common::PangoLineage& value
+   const common::RawPangoLineage& value
 ) const {
-   auto value_id = lookup.getId(value);
+   const common::UnaliasedPangoLineage resolved_lineage = alias_key.unaliasPangoLineage(value);
+   auto value_id = lookup.getId(resolved_lineage);
    if (value_id.has_value() && indexed_sublineage_values.contains(value_id.value())) {
       return indexed_sublineage_values.at(value_id.value());
    }
@@ -56,12 +61,13 @@ const std::vector<silo::Idx>& PangoLineageColumnPartition::getValues() const {
    return this->value_ids;
 }
 
-PangoLineageColumn::PangoLineageColumn() {
-   lookup = std::make_unique<common::BidirectionalMap<common::PangoLineage>>();
+PangoLineageColumn::PangoLineageColumn(silo::PangoLineageAliasLookup alias_key) {
+   lookup = std::make_unique<common::BidirectionalMap<common::UnaliasedPangoLineage>>();
+   this->alias_key = std::make_unique<PangoLineageAliasLookup>(std::move(alias_key));
 };
 
 PangoLineageColumnPartition& PangoLineageColumn::createPartition() {
-   return partitions.emplace_back(*lookup);
+   return partitions.emplace_back(*alias_key, *lookup);
 }
 
 }  // namespace silo::storage::column

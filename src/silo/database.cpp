@@ -122,7 +122,7 @@ void Database::build(
             }
             SPDLOG_DEBUG("Using metadata file: {}", metadata_file.string());
             partitions[partition_index].sequenceCount =
-               partitions[partition_index].columns.fill(metadata_file, alias_key, database_config);
+               partitions[partition_index].columns.fill(metadata_file, database_config);
          }
       }
    }
@@ -565,7 +565,9 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
          }
       } break;
       case config::ColumnType::INDEXED_PANGOLINEAGE:
-         columns.pango_lineage_columns.emplace(name, storage::column::PangoLineageColumn());
+         columns.pango_lineage_columns.emplace(
+            name, storage::column::PangoLineageColumn(alias_key)
+         );
          for (auto& partition : partitions) {
             partition.insertColumn(name, columns.pango_lineage_columns.at(name).createPartition());
          }

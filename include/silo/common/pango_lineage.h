@@ -10,7 +10,11 @@
 
 namespace silo::common {
 
-struct PangoLineage {
+struct RawPangoLineage {
+   std::string value;
+};
+
+struct UnaliasedPangoLineage {
    std::string value;
 
    template <class Archive>
@@ -20,19 +24,19 @@ struct PangoLineage {
       // clang-format on
    }
 
-   bool isSublineageOf(const PangoLineage& other) const;
+   bool isSublineageOf(const UnaliasedPangoLineage& other) const;
 
-   std::vector<PangoLineage> getParentLineages() const;
+   std::vector<UnaliasedPangoLineage> getParentLineages() const;
 
-   bool operator<(const PangoLineage& other) const;
-   bool operator==(const PangoLineage& other) const;
+   bool operator<(const UnaliasedPangoLineage& other) const;
+   bool operator==(const UnaliasedPangoLineage& other) const;
 };
 
 }  // namespace silo::common
 
 template <>
-struct std::hash<silo::common::PangoLineage> {
-   std::size_t operator()(const silo::common::PangoLineage& pango_lineage) const;
+struct std::hash<silo::common::UnaliasedPangoLineage> {
+   std::size_t operator()(const silo::common::UnaliasedPangoLineage& pango_lineage) const;
 };
 
 #endif  // SILO_PANGO_LINEAGE_H

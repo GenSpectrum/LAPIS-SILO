@@ -1,5 +1,6 @@
 #include "silo/preprocessing/pango_lineage_count.h"
 
+#include <silo/common/pango_lineage.h>
 #include <algorithm>
 #include <cstdlib>
 #include <iostream>
@@ -13,7 +14,7 @@ namespace silo::preprocessing {
 
 void PangoLineageCounts::save(std::ostream& output_file) {
    for (const auto& pango_lineage_count : pango_lineage_counts) {
-      output_file << pango_lineage_count.pango_lineage << '\t'
+      output_file << pango_lineage_count.pango_lineage.value << '\t'
                   << pango_lineage_count.count_of_sequences << '\n';
    }
    output_file.flush();
@@ -32,7 +33,7 @@ PangoLineageCounts PangoLineageCounts::load(std::istream& input_stream) {
          break;
       }
       count = atoi(count_str.c_str());
-      descriptor.pango_lineage_counts.emplace_back(PangoLineageCount{lineage, count});
+      descriptor.pango_lineage_counts.emplace_back(PangoLineageCount{{lineage}, count});
    }
    return descriptor;
 }
@@ -45,14 +46,15 @@ PangoLineageCounts buildPangoLineageCounts(
    PangoLineageCounts pango_lineage_counts;
 
    uint32_t pango_lineage_ids_count = 0;
-   std::unordered_map<std::string, uint32_t> pango_lineage_to_id;
+   std::unordered_map<common::UnaliasedPangoLineage, uint32_t> pango_lineage_to_id;
 
-   auto unresolved_pango_lineages = silo::preprocessing::MetadataReader(metadata_path)
-                                       .getColumn(database_config.schema.partition_by);
+   const std::vector<std::string> unresolved_pango_lineages =
+      silo::preprocessing::MetadataReader(metadata_path)
+         .getColumn(database_config.schema.partition_by);
 
    for (const auto& unresolved_pango_lineage : unresolved_pango_lineages) {
-      std::string const pango_lineage =
-         alias_key.resolvePangoLineageAlias(unresolved_pango_lineage);
+      const common::UnaliasedPangoLineage pango_lineage =
+         alias_key.unaliasPangoLineage({unresolved_pango_lineage});
 
       if (pango_lineage_to_id.contains(pango_lineage)) {
          auto pid = pango_lineage_to_id[pango_lineage];

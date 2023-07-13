@@ -77,7 +77,6 @@ struct ColumnPartitionGroup {
 
    uint32_t fill(
       const std::filesystem::path& input_file,
-      const PangoLineageAliasLookup& alias_key,
       const silo::config::DatabaseConfig& database_config
    );
 

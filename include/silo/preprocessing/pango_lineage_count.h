@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include "silo/common/pango_lineage.h"
+
 namespace silo {
 struct PangoLineageAliasLookup;
 
@@ -17,7 +19,7 @@ struct DatabaseConfig;
 namespace preprocessing {
 
 struct PangoLineageCount {
-   std::string pango_lineage;
+   common::UnaliasedPangoLineage pango_lineage;
    uint32_t count_of_sequences;
 };
 

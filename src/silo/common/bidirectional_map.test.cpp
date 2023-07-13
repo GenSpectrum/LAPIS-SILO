@@ -23,19 +23,19 @@ TEST(BidirectionalMap, correctStdStringDict) {
 }
 
 TEST(BidirectionalMap, correctPangoLineageDict) {
-   BidirectionalMap<PangoLineage> under_test;
-   EXPECT_EQ(under_test.getId(PangoLineage{"Not in dict"}), std::nullopt);
+   BidirectionalMap<UnaliasedPangoLineage> under_test;
+   EXPECT_EQ(under_test.getId(UnaliasedPangoLineage{"Not in dict"}), std::nullopt);
 
-   EXPECT_EQ(under_test.getOrCreateId(PangoLineage{"Now in dict"}), 0);
-   EXPECT_EQ(under_test.getOrCreateId(PangoLineage{"Now in dict"}), 0);
-   EXPECT_EQ(under_test.getOrCreateId(PangoLineage{"Second in dict"}), 1);
+   EXPECT_EQ(under_test.getOrCreateId(UnaliasedPangoLineage{"Now in dict"}), 0);
+   EXPECT_EQ(under_test.getOrCreateId(UnaliasedPangoLineage{"Now in dict"}), 0);
+   EXPECT_EQ(under_test.getOrCreateId(UnaliasedPangoLineage{"Second in dict"}), 1);
 
-   EXPECT_EQ(under_test.getId(PangoLineage{"Now in dict"}), 0);
-   EXPECT_EQ(under_test.getId(PangoLineage{"Still not in dict"}), std::nullopt);
-   EXPECT_EQ(under_test.getId(PangoLineage{"Second in dict"}), 1);
+   EXPECT_EQ(under_test.getId(UnaliasedPangoLineage{"Now in dict"}), 0);
+   EXPECT_EQ(under_test.getId(UnaliasedPangoLineage{"Still not in dict"}), std::nullopt);
+   EXPECT_EQ(under_test.getId(UnaliasedPangoLineage{"Second in dict"}), 1);
 
-   EXPECT_EQ(under_test.getValue(0), PangoLineage{"Now in dict"});
-   EXPECT_EQ(under_test.getValue(1), PangoLineage{"Second in dict"});
+   EXPECT_EQ(under_test.getValue(0), UnaliasedPangoLineage{"Now in dict"});
+   EXPECT_EQ(under_test.getValue(1), UnaliasedPangoLineage{"Second in dict"});
 }
 
 }  // namespace silo::common

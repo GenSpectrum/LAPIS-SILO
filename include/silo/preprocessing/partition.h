@@ -13,6 +13,9 @@
 namespace boost::serialization {
 class access;
 }
+namespace silo::common {
+class UnaliasedPangoLineage;
+}
 
 namespace silo::preprocessing {
 
@@ -26,30 +29,30 @@ class Chunk {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
-      archive& prefix;
-      archive& count_of_sequences;
-      archive& offset;
-      archive& pango_lineages;
+      archive & prefix;
+      archive & count_of_sequences;
+      archive & offset;
+      archive & pango_lineages;
       // clang-format on
    }
 
    std::string prefix;
    uint32_t count_of_sequences;
    uint32_t offset;
-   std::vector<std::string> pango_lineages;
+   std::vector<common::UnaliasedPangoLineage> pango_lineages;
 
    Chunk() = default;
 
   public:
-   Chunk(std::string_view lineage, uint32_t count);
-   Chunk(std::vector<std::string>&& lineages, uint32_t count);
+   Chunk(silo::common::UnaliasedPangoLineage lineage, uint32_t count);
+   Chunk(std::vector<silo::common::UnaliasedPangoLineage>&& lineages, uint32_t count);
 
    void addChunk(Chunk&& other);
 
    std::string_view getPrefix() const;
    uint32_t getCountOfSequences() const;
    uint32_t getOffset() const;
-   const std::vector<std::string>& getPangoLineages() const;
+   const std::vector<silo::common::UnaliasedPangoLineage>& getPangoLineages() const;
 };
 
 class Partition {
