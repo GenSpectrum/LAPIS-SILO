@@ -13,7 +13,7 @@
 namespace silo {
 class ZstdFastaReader {
   private:
-   silo::InputStreamWrapper in_file;
+   std::ifstream in_file;
    std::unique_ptr<silo::ZstdDecompressor> decompressor;
    std::string genome_buffer;
 
