@@ -8,8 +8,21 @@ InsertionColumnPartition::InsertionColumnPartition(common::BidirectionalMap<std:
     : lookup(lookup) {}
 
 void InsertionColumnPartition::insert(const std::string& value) {
+   const auto sequence_id = values.size();
+
    const Idx value_id = lookup.getOrCreateId(value);
    values.push_back(value_id);
+
+   insertion_index.addLazily(value, sequence_id);
+}
+
+void InsertionColumnPartition::buildInsertionIndex() {
+   insertion_index.buildIndex();
+}
+
+std::unique_ptr<roaring::Roaring> InsertionColumnPartition::search(const std::string& search_pattern
+) const {
+   return insertion_index.search(search_pattern);
 }
 
 const std::vector<silo::Idx>& InsertionColumnPartition::getValues() const {

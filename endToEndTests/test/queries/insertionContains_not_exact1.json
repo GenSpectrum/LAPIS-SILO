@@ -1,0 +1,18 @@
+{
+  "testCaseName": "Insertion Contains with non-exact match .*GCT.*GGT.*",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "InsertionContains",
+      "column": "insertions",
+      "value": ".*GCT.*GGT.*"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 1
+    }
+  ]
+}

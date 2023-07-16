@@ -1,0 +1,240 @@
+#include "silo/storage/column/insertion_index.h"
+
+#include <algorithm>
+#include <cassert>
+#include <iterator>
+#include <string_view>
+#include <unordered_set>
+#include <utility>
+
+#include <boost/functional/hash.hpp>
+
+#include "silo/common/numeric_conversion.h"
+#include "silo/common/string_utils.h"
+#include "silo/preprocessing/preprocessing_exception.h"
+
+namespace silo::storage::column::insertion {
+
+namespace {
+
+constexpr std::string_view DELIMITER_INSERTIONS = ",";
+constexpr std::string_view DELIMITER_INSERTION = ":";
+constexpr std::string_view REGEX_ANY = ".*";
+
+std::pair<uint32_t, std::string> parseInsertion(const std::string& value) {
+   const auto position_and_insertion = splitBy(value, DELIMITER_INSERTION);
+   if (position_and_insertion.size() != 2) {
+      const std::string message = "Failed to parse insertion due to invalid format: " + value;
+      throw PreprocessingException(message);
+   }
+   const auto position = tryConvertStringToU32(position_and_insertion[0]);
+   const auto& insertion = position_and_insertion[1];
+   return std::make_pair(position, insertion);
+}
+
+struct ThreeMerHash {
+   size_t operator()(const InsertionIndex::three_mer_t& three_mer) const {
+      size_t seed = 0;
+      for (const auto one_mer : three_mer) {
+         boost::hash_combine(seed, std::hash<size_t>{}(one_mer));
+      }
+      return seed;
+   }
+};
+
+std::vector<InsertionIndex::three_mer_t> extractThreeMers(const std::string& search_pattern) {
+   std::unordered_set<InsertionIndex::three_mer_t, ThreeMerHash> result;
+   for (const auto& continuous_string : splitBy(search_pattern, REGEX_ANY)) {
+      for (size_t i = 0; (i + 2) < continuous_string.size(); i += 3) {
+         InsertionIndex::three_mer_t const three_mer{
+            toNucleotideSymbolId(continuous_string[i]),
+            toNucleotideSymbolId(continuous_string[i + 1]),
+            toNucleotideSymbolId(continuous_string[i + 2])};
+         result.insert(three_mer);
+      }
+   }
+   return {result.begin(), result.end()};
+}
+
+}  // namespace
+
+void InsertionIndex::InsertionPosition::buildThreeMerIndex() {
+   using bitset_one_mers_t = std::bitset<NUC_SYMBOL_COUNT>;
+   using bitset_two_mers_t = std::array<bitset_one_mers_t, NUC_SYMBOL_COUNT>;
+   using bitset_three_mers_t = std::array<bitset_two_mers_t, NUC_SYMBOL_COUNT>;
+
+   for (size_t insertion_id = 0; insertion_id < insertions.size(); ++insertion_id) {
+      const auto& insertion = insertions[insertion_id];
+      const auto& insertion_value = insertion.value;
+
+      if (insertion_value.size() < 3) {
+         continue;
+      }
+
+      const auto nuc_symbol_ids = toNucleotideSymbolIds(insertion_value);
+
+      bitset_three_mers_t unique_three_mers{};
+      for (size_t i = 0; i < (nuc_symbol_ids.size() - 2); ++i) {
+         unique_three_mers[nuc_symbol_ids[i]][nuc_symbol_ids[i + 1]][nuc_symbol_ids[i + 2]] = true;
+      }
+
+      for (size_t i = 0; i < NUC_SYMBOL_COUNT; ++i) {
+         for (size_t j = 0; j < NUC_SYMBOL_COUNT; ++j) {
+            for (size_t k = 0; k < NUC_SYMBOL_COUNT; ++k) {
+               if (unique_three_mers[i][j][k]) {
+                  three_mer_index[i][j][k].push_back(insertion_id);
+               }
+            }
+         }
+      }
+   }
+}
+
+InsertionIndex::sequence_ids_t InsertionIndex::InsertionPosition::searchWithThreeMerIndex(
+   const std::vector<three_mer_t>& search_three_mers,
+   const std::regex& search_pattern
+) const {
+   assert(!search_three_mers.empty());
+
+   // We perform a k-way intersection between the candidate sets of insertion ids.
+   // The candidate insertions are selected based on the 3-mers within the search pattern.
+   // If an insertion id is in all candidate sets, then we have a viable candidate which
+   // might match the search pattern. If this does not hold, there exists a continuous
+   // 3-mer which is in the search pattern but not in the candidate insertion. Therefore, the
+   // regex will never match and we can ignore this sequence.
+
+   using it = sequence_ids_t::const_iterator;
+   std::vector<std::pair<it, it>> min_heap;
+   for (const auto& three_mer : search_three_mers) {
+      const auto& candidate_insertions = three_mer_index[three_mer[0]][three_mer[1]][three_mer[2]];
+      if (candidate_insertions.empty()) {
+         continue;
+      }
+      min_heap.emplace_back(candidate_insertions.cbegin(), candidate_insertions.cend());
+   }
+
+   if (min_heap.size() < search_three_mers.size()) {
+      return sequence_ids_t{};
+   }
+
+   const auto cmp = [](const std::pair<it, it>& lhs_it_pair, const std::pair<it, it>& rhs_it_pair) {
+      return *lhs_it_pair.first > *rhs_it_pair.first;
+   };
+   std::make_heap(min_heap.begin(), min_heap.end(), cmp);
+
+   sequence_ids_t result;
+
+   size_t count = 0;
+   uint32_t current_insertion_id = *min_heap.front().first;
+   while (!min_heap.empty()) {
+      const auto next_insertion_id = *min_heap.front().first;
+
+      std::pop_heap(min_heap.begin(), min_heap.end(), cmp);
+      ++min_heap.back().first;
+
+      if (min_heap.back().first == min_heap.back().second) {
+         min_heap.pop_back();
+      } else {
+         std::push_heap(min_heap.begin(), min_heap.end(), cmp);
+      }
+
+      if (next_insertion_id != current_insertion_id) {
+         if (count == search_three_mers.size()) {
+            const auto& insertion = insertions[current_insertion_id];
+            if (std::regex_search(insertion.value, search_pattern)) {
+               result.insert(
+                  result.end(), insertion.sequence_ids.begin(), insertion.sequence_ids.end()
+               );
+            }
+         }
+         count = 1;
+         current_insertion_id = next_insertion_id;
+      } else {
+         ++count;
+      }
+   }
+
+   if (count == search_three_mers.size()) {
+      const auto& insertion = insertions[current_insertion_id];
+      if (std::regex_search(insertion.value, search_pattern)) {
+         result.insert(result.end(), insertion.sequence_ids.begin(), insertion.sequence_ids.end());
+      }
+   }
+
+   return result;
+}
+
+void InsertionIndex::addLazily(const std::string& insertions_string, uint32_t sequence_id) {
+   if (insertions_string.empty()) {
+      return;
+   }
+   for (auto& position_and_insertion : splitBy(insertions_string, DELIMITER_INSERTIONS)) {
+      auto [position, insertion] = parseInsertion(position_and_insertion);
+
+      auto it1 =
+         collected_insertions.emplace(position, std::unordered_map<std::string, sequence_ids_t>{});
+      auto it2 = it1.first->second.emplace(insertion, sequence_ids_t{});
+      it2.first->second.push_back(sequence_id);
+   }
+}
+
+void InsertionIndex::buildIndex() {
+   auto build_insertion_position = [](auto& position_and_insertion_info) {
+      auto& [pos, insertion_info] = position_and_insertion_info;
+      InsertionPosition insertion_position{pos};
+      insertion_position.insertions.reserve(insertion_info.size());
+      std::transform(
+         insertion_info.begin(),
+         insertion_info.end(),
+         std::back_inserter(insertion_position.insertions),
+         [](auto& insertion) {
+            return Insertion{std::move(insertion.first), std::move(insertion.second)};
+         }
+      );
+      insertion_position.buildThreeMerIndex();
+      return insertion_position;
+   };
+
+   insertion_positions.reserve(collected_insertions.size());
+   std::transform(
+      collected_insertions.begin(),
+      collected_insertions.end(),
+      std::back_inserter(insertion_positions),
+      build_insertion_position
+   );
+
+   // free up the memory
+   collected_insertions.clear();
+}
+
+std::unique_ptr<roaring::Roaring> InsertionIndex::search(const std::string& search_pattern) const {
+   const auto three_mers = extractThreeMers(search_pattern);
+   const std::regex regex_search_pattern(search_pattern);
+
+   std::unordered_set<uint32_t> matches;
+
+   if (!three_mers.empty()) {
+      for (const auto& insertion_position : insertion_positions) {
+         const auto result =
+            insertion_position.searchWithThreeMerIndex(three_mers, regex_search_pattern);
+         matches.insert(result.begin(), result.end());
+      }
+   } else {
+      for (const auto& insertion_position : insertion_positions) {
+         for (const auto& insertion : insertion_position.insertions) {
+            if (std::regex_search(insertion.value, regex_search_pattern)) {
+               matches.insert(insertion.sequence_ids.begin(), insertion.sequence_ids.end());
+            }
+         }
+      }
+   }
+
+   auto bitmap = std::make_unique<roaring::Roaring>();
+   if (!matches.empty()) {
+      std::vector<uint32_t> matches_compact(matches.begin(), matches.end());
+      bitmap->addMany(matches_compact.size(), matches_compact.data());
+   }
+   return bitmap;
+}
+
+}  // namespace silo::storage::column::insertion

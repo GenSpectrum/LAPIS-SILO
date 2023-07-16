@@ -1,0 +1,17 @@
+{
+  "testCaseName": "Insertion Contains with invalid pattern",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "InsertionContains",
+      "column": "insertions",
+      "value": "CC+++"
+    }
+  },
+  "expectedError": {
+    "error": "Bad request",
+    "message": "The field 'value' in the InsertionContains expression does not contain a valid regex pattern: \"CC+++\""
+  }
+}

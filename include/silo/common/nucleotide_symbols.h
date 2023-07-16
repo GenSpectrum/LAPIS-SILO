@@ -1,9 +1,13 @@
 #ifndef SILO_NUCLEOTIDE_SYMBOLS_H
 #define SILO_NUCLEOTIDE_SYMBOLS_H
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <optional>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 namespace silo {
 
@@ -125,6 +129,24 @@ inline std::optional<NUCLEOTIDE_SYMBOL> charToNucleotideSymbol(char character) {
          return std::nullopt;
    }
 }
+
+inline size_t toNucleotideSymbolId(char c) {
+   const auto nuc_opt = charToNucleotideSymbol(c);
+   if (nuc_opt.has_value()) {
+      return static_cast<size_t>(*nuc_opt);
+   }
+   throw std::invalid_argument("Invalid nucleotide symbol: " + c);
+}
+
+inline std::vector<size_t> toNucleotideSymbolIds(const std::string& nucleotides) {
+   std::vector<size_t> result;
+   result.reserve(nucleotides.size());
+   std::transform(
+      nucleotides.begin(), nucleotides.end(), std::back_inserter(result), toNucleotideSymbolId
+   );
+   return result;
+}
+
 }  // namespace silo
 
 #endif  // SILO_NUCLEOTIDE_SYMBOLS_H

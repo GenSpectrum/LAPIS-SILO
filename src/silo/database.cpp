@@ -117,6 +117,7 @@ void Database::build(
                partitions[partition_index].columns.fill(metadata_file, alias_key, database_config);
          }
       }
+      initializeInsertionIndexes();
    }
 
    SPDLOG_INFO("Build took {} ms", micros);
@@ -575,6 +576,14 @@ void Database::initializeSequences() {
          partition.aa_sequences.insert({aa_name, aa_sequences.at(aa_name).createPartition()});
       }
    }
+}
+
+void Database::initializeInsertionIndexes() {
+   tbb::parallel_for_each(partitions.begin(), partitions.end(), [](auto& partition) {
+      for (auto& insertion_column : partition.columns.insertion_columns) {
+         insertion_column.second.buildInsertionIndex();
+      }
+   });
 }
 
 Database::Database() = default;

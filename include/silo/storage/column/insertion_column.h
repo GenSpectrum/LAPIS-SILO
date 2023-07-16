@@ -13,10 +13,11 @@
 
 #include "silo/common/bidirectional_map.h"
 #include "silo/common/types.h"
+#include "silo/storage/column/insertion_index.h"
 
 namespace boost::serialization {
 struct access;
-}
+}  // namespace boost::serialization
 
 namespace silo::storage::column {
 
@@ -27,27 +28,25 @@ class InsertionColumnPartition {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      // TODO(#164) serialize data-structures
+      archive& values;
       // clang-format on
    }
 
-   // TODO(#164) remove this and add special datastructures here
    std::vector<silo::Idx> values;
    common::BidirectionalMap<std::string>& lookup;
+   insertion::InsertionIndex insertion_index;
 
   public:
-   explicit InsertionColumnPartition(
-      common::BidirectionalMap<std::string>& lookup
-      // TODO(#164) add datastructures that need to be synchronized across partitions here
-   );
+   explicit InsertionColumnPartition(common::BidirectionalMap<std::string>& lookup);
 
    void insert(const std::string& value);
 
-   // TODO(#164) Return a type that is byte-wise comparable
+   void buildInsertionIndex();
+
+   [[nodiscard]] std::unique_ptr<roaring::Roaring> search(const std::string& search_pattern) const;
+
    [[nodiscard]] const std::vector<silo::Idx>& getValues() const;
 
-   // TODO(#164) Maybe require helper function to return the original string value from the
-   //  internal representation type used for querying
    [[nodiscard]] std::string lookupValue(silo::Idx value_id) const;
 };
 
@@ -58,14 +57,11 @@ class InsertionColumn {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      // TODO(#164) serialize data-structures
       // clang-format on
    }
 
    std::deque<InsertionColumnPartition> partitions;
    std::unique_ptr<common::BidirectionalMap<std::string>> lookup;
-
-   // TODO(#164) synchronized data-structures
 
   public:
    InsertionColumn();

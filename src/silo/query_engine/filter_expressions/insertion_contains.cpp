@@ -1,17 +1,14 @@
 #include "silo/query_engine/filter_expressions/insertion_contains.h"
 
 #include <map>
-#include <unordered_map>
 #include <utility>
 
 #include <nlohmann/json.hpp>
 
-#include "silo/common/string.h"
 #include "silo/query_engine/filter_expressions/expression.h"
-#include "silo/query_engine/operators/empty.h"
+#include "silo/query_engine/operators/bitmap_producer.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/storage/column/insertion_column.h"
-#include "silo/storage/column_group.h"
 #include "silo/storage/database_partition.h"
 
 namespace silo {
@@ -41,14 +38,33 @@ std::unique_ptr<silo::query_engine::operators::Operator> InsertionContains::comp
       "The insertion column '" + column_name + "' does not exist."
    )
 
-   // NOLINTNEXTLINE(clang-diagnostic-unused-variable)
-   const storage::column::InsertionColumnPartition& column =
+   const storage::column::InsertionColumnPartition& insertion_column =
       database_partition.columns.insertion_columns.at(column_name);
 
-   // TODO(#164) correctly return an operator tree that filters the given partition to contain
-   // the given insertion pattern
-   return std::make_unique<operators::Empty>(database_partition.sequenceCount);
+   return std::make_unique<operators::BitmapProducer>(
+      [&]() {
+         auto search_result = insertion_column.search(value);
+         return OperatorResult(search_result.release());
+      },
+      database_partition.sequenceCount
+   );
 }
+
+namespace {
+
+bool validateRegexPattern(const std::string& value) {
+   // Build the following regex pattern: ^([nuc-symbols]|\.\*)*$
+   std::stringstream regex_pattern_string;
+   regex_pattern_string << "^([";
+   for (const auto nuc : NUC_SYMBOLS) {
+      regex_pattern_string << nucleotideSymbolToChar(nuc);
+   }
+   regex_pattern_string << "]|\\.\\*)*$";
+   const std::regex regex_pattern(regex_pattern_string.str());
+   return std::regex_search(value, regex_pattern);
+}
+
+}  // namespace
 
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains>& filter) {
@@ -66,9 +82,14 @@ void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains>& f
       json["value"].is_string() || json["value"].is_null(),
       "The field 'value' in an InsertionContains expression needs to be a string or null"
    )
-   // TODO(#164) maybe validate the value field
    const std::string& column_name = json["column"];
    const std::string& value = json["value"].is_null() ? "" : json["value"].get<std::string>();
+   CHECK_SILO_QUERY(
+      validateRegexPattern(value),
+      "The field 'value' in the InsertionContains expression does not contain a valid regex "
+      "pattern: \"" +
+         value + "\""
+   )
    filter = std::make_unique<InsertionContains>(column_name, value);
 }
 
