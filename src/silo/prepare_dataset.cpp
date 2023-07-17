@@ -59,40 +59,6 @@ const std::string TSV_EXTENSION(".tsv");
    }
 }
 
-[[maybe_unused]] void silo::pruneSequences(
-   silo::preprocessing::MetadataReader& metadata_reader,
-   silo::FastaReader& sequences_in,
-   std::ostream& sequences_out,
-   const silo::config::DatabaseConfig& database_config
-) {
-   SPDLOG_INFO("Pruning sequences");
-
-   const auto primary_key_vector = metadata_reader.getColumn(database_config.schema.primary_key);
-   const std::unordered_set<std::string> primary_keys(
-      primary_key_vector.begin(), primary_key_vector.end()
-   );
-
-   SPDLOG_INFO("Finished reading metadata, found {} rows", primary_keys.size());
-
-   uint32_t found_sequences_count = 0;
-   {
-      std::optional<std::string> key;
-      std::string genome;
-      while (true) {
-         key = sequences_in.next(genome);
-         if (!key.has_value()) {
-            break;
-         }
-         if (primary_keys.contains(*key)) {
-            found_sequences_count++;
-            sequences_out << *key << "\n" << genome << "\n";
-            sequences_out << *key << "\n" << genome << "\n";
-         }
-      }
-   }
-   SPDLOG_INFO("Finished reading sequences, found {} sequences", found_sequences_count);
-}
-
 std::unordered_map<std::string, std::unique_ptr<silo::preprocessing::MetadataWriter>>
 getMetadataWritersForChunks(
    const std::filesystem::path& output_folder,
