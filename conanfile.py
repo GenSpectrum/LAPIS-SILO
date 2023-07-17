@@ -28,6 +28,7 @@ class SiloRecipe(ConanFile):
         "gtest/*:no_main": True,
 
         "boost/*:lzma": True,
+        "boost/*:zstd": True,
         "boost/*:shared": False,
 
         "boost/*:without_iostreams": False,
