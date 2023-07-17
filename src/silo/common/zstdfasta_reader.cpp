@@ -18,7 +18,7 @@ silo::ZstdFastaReader::ZstdFastaReader(
 
 std::optional<std::string> silo::ZstdFastaReader::nextKey() {
    std::string key_with_prefix;
-   if (!getline(in_file.getInputStream(), key_with_prefix)) {
+   if (!getline(in_file, key_with_prefix)) {
       return std::nullopt;
    }
 
@@ -37,12 +37,12 @@ std::optional<std::string> silo::ZstdFastaReader::nextSkipGenome() {
    }
 
    std::string bytestream_length_str;
-   if (!getline(in_file.getInputStream(), bytestream_length_str)) {
+   if (!getline(in_file, bytestream_length_str)) {
       throw FastaFormatException("Missing bytestream length in line following key: " + *key);
    }
    const size_t bytestream_length = std::stoul(bytestream_length_str);
 
-   in_file.getInputStream().ignore(static_cast<std::streamsize>(bytestream_length));
+   in_file.ignore(static_cast<std::streamsize>(bytestream_length));
    return key;
 }
 
@@ -53,16 +53,14 @@ std::optional<std::string> silo::ZstdFastaReader::nextCompressed(std::string& co
    }
 
    std::string bytestream_length_str;
-   if (!getline(in_file.getInputStream(), bytestream_length_str)) {
+   if (!getline(in_file, bytestream_length_str)) {
       throw FastaFormatException("Missing bytestream length in line following key: " + *key);
    }
    const size_t bytestream_length = std::stoul(bytestream_length_str);
 
    compressed_genome.resize(bytestream_length);
-   in_file.getInputStream().read(
-      compressed_genome.data(), static_cast<std::streamsize>(compressed_genome.size())
-   );
-   in_file.getInputStream().ignore(1);
+   in_file.read(compressed_genome.data(), static_cast<std::streamsize>(compressed_genome.size()));
+   in_file.ignore(1);
    return key;
 }
 
@@ -79,6 +77,6 @@ std::optional<std::string> silo::ZstdFastaReader::next(std::string& genome) {
 }
 
 void silo::ZstdFastaReader::reset() {
-   in_file.getInputStream().clear();                  // clear fail and eof bits
-   in_file.getInputStream().seekg(0, std::ios::beg);  // g pointer back to the start
+   in_file.clear();                  // clear fail and eof bits
+   in_file.seekg(0, std::ios::beg);  // g pointer back to the start
 }
