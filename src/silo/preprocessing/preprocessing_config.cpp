@@ -65,3 +65,22 @@ PreprocessingConfig::PreprocessingConfig(
    serialization_folder = createOutputPath(output_directory, serialization_folder_.folder);
 }
 }  // namespace silo::preprocessing
+
+[[maybe_unused]] auto fmt::formatter<silo::preprocessing::PreprocessingConfig>::format(
+   const silo::preprocessing::PreprocessingConfig& preprocessing_config,
+   fmt::format_context& ctx
+) -> decltype(ctx.out()) {
+   return format_to(
+      ctx.out(),
+      "PreprocessingConfig[input directory: {}, pango_lineage_definition_file: {}, "
+      "metadata_file: {}, partition_folder: {}, sorted_partition_folder: {}, "
+      "serialization_folder: {}, reference_genome_file: {}]",
+      preprocessing_config.input_directory.string(),
+      preprocessing_config.pango_lineage_definition_file.string(),
+      preprocessing_config.metadata_file.string(),
+      preprocessing_config.partition_folder.string(),
+      preprocessing_config.sorted_partition_folder.string(),
+      preprocessing_config.serialization_folder.string(),
+      preprocessing_config.reference_genome_file.string()
+   );
+}
