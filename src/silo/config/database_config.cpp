@@ -68,3 +68,28 @@ std::optional<DatabaseMetadata> DatabaseConfig::getMetadata(const std::string& n
 }
 
 }  // namespace silo::config
+
+[[maybe_unused]] auto fmt::formatter<silo::config::DatabaseConfig>::format(
+   const silo::config::DatabaseConfig& database_config,
+   fmt::format_context& ctx
+) -> decltype(ctx.out()) {
+   return format_to(
+      ctx.out(),
+      "DatabaseConfig[default_nucleotide_sequence: {}, schema: {}",
+      database_config.default_nucleotide_sequence,
+      database_config.schema
+   );
+}
+
+[[maybe_unused]] auto fmt::formatter<silo::config::DatabaseSchema>::format(
+   const silo::config::DatabaseSchema& database_schema,
+   fmt::format_context& ctx
+) -> decltype(ctx.out()) {
+   return format_to(
+      ctx.out(),
+      "DatabaseSchema[instance_name: {}, primary_key: {}, partition_by: {}]",
+      database_schema.instance_name,
+      database_schema.primary_key,
+      database_schema.partition_by
+   );
+}

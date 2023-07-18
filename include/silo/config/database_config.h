@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include <fmt/core.h>
+
 namespace silo::config {
 
 enum class ValueType { STRING, PANGOLINEAGE, DATE, INT, FLOAT };
@@ -35,5 +37,21 @@ struct DatabaseConfig {
    [[nodiscard]] std::optional<DatabaseMetadata> getMetadata(const std::string& name) const;
 };
 }  // namespace silo::config
+
+template <>
+struct [[maybe_unused]] fmt::formatter<silo::config::DatabaseConfig> : fmt::formatter<std::string> {
+   [[maybe_unused]] static auto format(
+      const silo::config::DatabaseConfig& database_config,
+      format_context& ctx
+   ) -> decltype(ctx.out());
+};
+
+template <>
+struct [[maybe_unused]] fmt::formatter<silo::config::DatabaseSchema> : fmt::formatter<std::string> {
+   [[maybe_unused]] static auto format(
+      const silo::config::DatabaseSchema& database_schema,
+      format_context& ctx
+   ) -> decltype(ctx.out());
+};
 
 #endif  // SILO_INCLUDE_SILO_CONFIG_DATABASECONFIG_H_
