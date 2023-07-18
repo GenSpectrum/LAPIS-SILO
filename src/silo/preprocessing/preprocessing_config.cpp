@@ -72,9 +72,9 @@ PreprocessingConfig::PreprocessingConfig(
 ) -> decltype(ctx.out()) {
    return format_to(
       ctx.out(),
-      "PreprocessingConfig[input directory: {}, pango_lineage_definition_file: {}, "
-      "metadata_file: {}, partition_folder: {}, sorted_partition_folder: {}, "
-      "serialization_folder: {}, reference_genome_file: {}]",
+      "{{ input directory: '{}', pango_lineage_definition_file: '{}', "
+      "metadata_file: '{}', partition_folder: '{}', sorted_partition_folder: '{}', "
+      "serialization_folder: '{}', reference_genome_file: '{}' }}",
       preprocessing_config.input_directory.string(),
       preprocessing_config.pango_lineage_definition_file.string(),
       preprocessing_config.metadata_file.string(),
