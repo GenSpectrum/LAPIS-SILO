@@ -1,5 +1,6 @@
 #include "silo/config/database_config.h"
 
+#include <fmt/format.h>
 #include <algorithm>
 #include <iterator>
 #include <stdexcept>
@@ -75,7 +76,7 @@ std::optional<DatabaseMetadata> DatabaseConfig::getMetadata(const std::string& n
 ) -> decltype(ctx.out()) {
    return format_to(
       ctx.out(),
-      "DatabaseConfig[default_nucleotide_sequence: {}, schema: {}",
+      "{{ default_nucleotide_sequence: '{}', schema: {} }}",
       database_config.default_nucleotide_sequence,
       database_config.schema
    );
@@ -87,9 +88,42 @@ std::optional<DatabaseMetadata> DatabaseConfig::getMetadata(const std::string& n
 ) -> decltype(ctx.out()) {
    return format_to(
       ctx.out(),
-      "DatabaseSchema[instance_name: {}, primary_key: {}, partition_by: {}]",
+      "{{ instance_name: '{}', primary_key: '{}', partition_by: '{}', metadata: [{}] }}",
       database_schema.instance_name,
       database_schema.primary_key,
-      database_schema.partition_by
+      database_schema.partition_by,
+      fmt::join(database_schema.metadata, ",")
    );
+}
+
+[[maybe_unused]] auto fmt::formatter<silo::config::DatabaseMetadata>::format(
+   const silo::config::DatabaseMetadata& database_metadata,
+   fmt::format_context& ctx
+) -> decltype(ctx.out()) {
+   return format_to(
+      ctx.out(),
+      "{{ name: '{}', type: '{}', generate_index: {} }}",
+      database_metadata.name,
+      database_metadata.type,
+      database_metadata.generate_index
+   );
+}
+
+[[maybe_unused]] auto fmt::formatter<silo::config::ValueType>::format(
+   const silo::config::ValueType& value_type,
+   fmt::format_context& ctx
+) -> decltype(ctx.out()) {
+   switch (value_type) {
+      case silo::config::ValueType::STRING:
+         return format_to(ctx.out(), "string");
+      case silo::config::ValueType::DATE:
+         return format_to(ctx.out(), "date");
+      case silo::config::ValueType::PANGOLINEAGE:
+         return format_to(ctx.out(), "pango_lineage");
+      case silo::config::ValueType::INT:
+         return format_to(ctx.out(), "int");
+      case silo::config::ValueType::FLOAT:
+         return format_to(ctx.out(), "float");
+   }
+   return format_to(ctx.out(), "unknown");
 }

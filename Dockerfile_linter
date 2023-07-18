@@ -14,7 +14,7 @@ RUN apt update \
     && add-apt-repository 'deb http://apt.llvm.org/jammy/  llvm-toolchain-jammy main' \
     && apt install -y clang-tidy-17
 
-RUN pip install conan==2.0.2
+RUN pip install conan==2.0.8
 
 COPY conanfile.py conanprofile.docker ./
 RUN mv conanprofile.docker conanprofile

@@ -448,8 +448,6 @@ void Database::preprocessing(
    const config::DatabaseConfig& database_config_
 ) {
    database_config = database_config_;
-   SPDLOG_DEBUG("preprocessing - using database config: {}", database_config);
-   SPDLOG_DEBUG("preprocessing - using preprocessing config: {}", preprocessing_config);
 
    SPDLOG_INFO("preprocessing - validate metadata file against config");
    preprocessing::MetadataValidator().validateMedataFile(
