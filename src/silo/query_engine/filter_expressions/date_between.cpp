@@ -95,7 +95,7 @@ std::vector<silo::query_engine::operators::RangeSelection::Range> DateBetween::
       const auto* begin = &date_column.getValues()[chunk.offset];
       const auto* end = &date_column.getValues()[chunk.offset + chunk.count_of_sequences];
       // If lower bound is empty we use 1 as the lower-bound, as 0 represents NULL values
-      const auto* lower = std::lower_bound(begin, end, date_from.value_or(2));
+      const auto* lower = std::lower_bound(begin, end, date_from.value_or(1));
       const uint32_t lower_index = lower - base;
       const auto* upper = date_to.has_value() ? std::upper_bound(begin, end, date_to.value()) : end;
       const uint32_t upper_index = upper - base;

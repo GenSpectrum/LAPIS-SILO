@@ -73,7 +73,7 @@ const PangoLineageAliasLookup& Database::getAliasKey() const {
 }
 
 void Database::build(
-   const std::filesystem::path& input_folder,
+   const preprocessing::PreprocessingConfig& preprocessing_config,
    const preprocessing::Partitions& partition_descriptor
 ) {
    int64_t micros = 0;
@@ -87,26 +87,30 @@ void Database::build(
          const auto& part = partition_descriptor.partitions[partition_index];
          partitions[partition_index].chunks = part.chunks;
          for (size_t chunk_index = 0; chunk_index < part.chunks.size(); ++chunk_index) {
-            std::filesystem::path metadata_file = input_folder;
-            metadata_file += buildChunkString(partition_index, chunk_index) + ".tsv";
+            const std::filesystem::path metadata_file =
+               preprocessing_config.getMetadataSortedPartitionFilename(
+                  partition_index, chunk_index
+               );
             if (!std::filesystem::exists(metadata_file)) {
                SPDLOG_ERROR("metadata file {} not found", metadata_file.string());
                return;
             }
             for (auto& [nuc_name, reference_sequence] :
                  reference_genomes.raw_nucleotide_sequences) {
-               std::filesystem::path sequence_filename = input_folder;
-               sequence_filename += "nuc_" + nuc_name + std::filesystem::path::preferred_separator;
-               sequence_filename += buildChunkString(partition_index, chunk_index) + ".zstdfasta";
+               const std::filesystem::path sequence_filename =
+                  preprocessing_config.getNucSortedPartitionFilename(
+                     nuc_name, partition_index, chunk_index
+                  );
 
                silo::ZstdFastaReader sequence_input(sequence_filename, reference_sequence);
                SPDLOG_DEBUG("Using nucleotide sequence file: {}", sequence_filename.string());
                partitions[partition_index].nuc_sequences.at(nuc_name).fill(sequence_input);
             }
             for (auto& [aa_name, reference_sequence] : reference_genomes.raw_aa_sequences) {
-               std::filesystem::path sequence_filename = input_folder;
-               sequence_filename += "gene_" + aa_name + std::filesystem::path::preferred_separator;
-               sequence_filename += buildChunkString(partition_index, chunk_index) + ".zstdfasta";
+               const std::filesystem::path sequence_filename =
+                  preprocessing_config.getGeneSortedPartitionFilename(
+                     aa_name, partition_index, chunk_index
+                  );
 
                silo::ZstdFastaReader sequence_input(sequence_filename, reference_sequence);
                SPDLOG_DEBUG("Using amino acid sequence file: {}", sequence_filename.string());
@@ -451,19 +455,21 @@ void Database::preprocessing(
 
    SPDLOG_INFO("preprocessing - validate metadata file against config");
    preprocessing::MetadataValidator().validateMedataFile(
-      preprocessing_config.metadata_file, database_config_
+      preprocessing_config.getMetadataInputFilename(), database_config_
    );
 
    SPDLOG_INFO("preprocessing - building alias key");
    alias_key =
-      PangoLineageAliasLookup::readFromFile(preprocessing_config.pango_lineage_definition_file);
+      PangoLineageAliasLookup::readFromFile(preprocessing_config.getPangoLineageDefinitionFilename()
+      );
 
    SPDLOG_INFO("preprocessing - reading reference genome");
-   reference_genomes = ReferenceGenomes::readFromFile(preprocessing_config.reference_genome_file);
+   reference_genomes =
+      ReferenceGenomes::readFromFile(preprocessing_config.getReferenceGenomeFilename());
 
    SPDLOG_INFO("preprocessing - counting pango lineages");
    const preprocessing::PangoLineageCounts pango_descriptor(preprocessing::buildPangoLineageCounts(
-      alias_key, preprocessing_config.metadata_file, database_config_
+      alias_key, preprocessing_config.getMetadataInputFilename(), database_config_
    ));
 
    SPDLOG_INFO("preprocessing - calculating partitions");
@@ -472,24 +478,15 @@ void Database::preprocessing(
    );
 
    SPDLOG_INFO("preprocessing - partitioning data");
-   preprocessing::MetadataReader metadata_reader(preprocessing_config.metadata_file.relative_path()
-   );
    partitionData(
-      partition_descriptor,
-      preprocessing_config.input_directory.relative_path(),
-      metadata_reader,
-      preprocessing_config.partition_folder.relative_path(),
-      alias_key,
-      database_config_,
-      reference_genomes
+      preprocessing_config, partition_descriptor, alias_key, database_config_, reference_genomes
    );
 
    if (database_config_.schema.date_to_sort_by.has_value()) {
       SPDLOG_INFO("preprocessing - sorting chunks");
       sortChunks(
+         preprocessing_config,
          partition_descriptor,
-         preprocessing_config.partition_folder.relative_path(),
-         preprocessing_config.sorted_partition_folder.relative_path(),
          {database_config_.schema.primary_key, database_config_.schema.date_to_sort_by.value()},
          reference_genomes
       );
@@ -500,7 +497,7 @@ void Database::preprocessing(
 
    SPDLOG_INFO("preprocessing - building database");
 
-   build(preprocessing_config.sorted_partition_folder.relative_path(), partition_descriptor);
+   build(preprocessing_config, partition_descriptor);
 }
 
 void Database::initializeColumn(config::ColumnType column_type, const std::string& name) {

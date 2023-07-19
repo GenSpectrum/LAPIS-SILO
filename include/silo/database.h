@@ -64,7 +64,7 @@ class Database {
    );
 
    void build(
-      const std::filesystem::path& input_folder,
+      const preprocessing::PreprocessingConfig& preprocessing_config,
       const preprocessing::Partitions& partition_descriptor
    );
 

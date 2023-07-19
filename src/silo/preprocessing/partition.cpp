@@ -121,15 +121,12 @@ Partitions buildPartitions(const PangoLineageCounts& pango_lineage_counts, Archi
                  total_count_of_sequences / 200
               )) {
             descriptor.partitions.emplace_back();
-            descriptor.partitions.back().name = "full";
             descriptor.partitions.back().chunks.push_back(chunk);
             descriptor.partitions.back().count_of_sequences = chunk.count_of_sequences;
          }
-         return descriptor;
+         break;
       case Architecture::SINGLE_PARTITION:
          descriptor.partitions.emplace_back();
-
-         descriptor.partitions[0].name = "full";
 
          // Merge pango_lineages, such that chunks are not get very small
          descriptor.partitions[0].chunks = mergePangosToChunks(
@@ -140,11 +137,10 @@ Partitions buildPartitions(const PangoLineageCounts& pango_lineage_counts, Archi
 
          descriptor.partitions[0].count_of_sequences = total_count_of_sequences;
          calculateOffsets(descriptor);
-         return descriptor;
+         break;
       case Architecture::SINGLE_SINGLE:
 
          descriptor.partitions.emplace_back();
-         descriptor.partitions[0].name = "full_full";
 
          // Merge pango_lineages, such that chunks are not get very small
          descriptor.partitions[0].chunks.emplace_back();
@@ -153,11 +149,19 @@ Partitions buildPartitions(const PangoLineageCounts& pango_lineage_counts, Archi
          }
 
          descriptor.partitions[0].count_of_sequences = total_count_of_sequences;
-         return descriptor;
-      case HYBRID:
          break;
    }
-   throw std::runtime_error("Arch not yet implemented.");
+
+   for (uint32_t part_id = 0, limit = descriptor.partitions.size(); part_id < limit; ++part_id) {
+      const auto& part = descriptor.partitions[part_id];
+      for (uint32_t chunk_id = 0, limit2 = part.chunks.size(); chunk_id < limit2; ++chunk_id) {
+         const auto& chunk = part.chunks[chunk_id];
+         descriptor.partition_chunks.emplace_back(preprocessing::PartitionChunk{
+            part_id, chunk_id, chunk.count_of_sequences});
+      }
+   }
+
+   return descriptor;
 }
 
 // TODO(someone): reduce cognitive complexity
@@ -165,7 +169,7 @@ Partitions buildPartitions(const PangoLineageCounts& pango_lineage_counts, Archi
 Partitions Partitions::load(std::istream& input_file) {
    silo::preprocessing::Partitions descriptor = {std::vector<silo::preprocessing::Partition>()};
    std::string type;
-   std::string name;
+   std::string prefix;
    std::string size_str;
    std::string count_str;
    std::string offset_str;
@@ -180,9 +184,6 @@ Partitions Partitions::load(std::istream& input_file) {
          throw silo::persistence::LoadDatabaseException("loadPartitions format exception");
       }
       if (type.at(0) == 'P') {
-         if (!getline(input_file, name, '\t')) {
-            break;
-         }
          if (!getline(input_file, size_str, '\t')) {
             break;
          }
@@ -193,10 +194,10 @@ Partitions Partitions::load(std::istream& input_file) {
          count = atoi(count_str.c_str());
 
          const silo::preprocessing::Partition part{
-            name, count, std::vector<silo::preprocessing::Chunk>()};
+            count, std::vector<silo::preprocessing::Chunk>()};
          descriptor.partitions.push_back(part);
       } else if (type.at(0) == 'C') {
-         if (!getline(input_file, name, '\t')) {
+         if (!getline(input_file, prefix, '\t')) {
             break;
          }
          if (!getline(input_file, size_str, '\t')) {
@@ -211,13 +212,13 @@ Partitions Partitions::load(std::istream& input_file) {
          // size = atoi(size_str.c_str()); unused, only meta information
          count = atoi(count_str.c_str());
          offset = atoi(offset_str.c_str());
-         const silo::preprocessing::Chunk chunk{name, count, offset, std::vector<std::string>()};
+         const silo::preprocessing::Chunk chunk{prefix, count, offset, std::vector<std::string>()};
          descriptor.partitions.back().chunks.push_back(chunk);
       } else if (type.at(0) == 'L') {
-         if (!getline(input_file, name, '\n')) {
+         if (!getline(input_file, prefix, '\n')) {
             break;
          }
-         descriptor.partitions.back().chunks.back().pango_lineages.push_back(name);
+         descriptor.partitions.back().chunks.back().pango_lineages.push_back(prefix);
       } else {
          throw silo::persistence::LoadDatabaseException("loadPartitions format exception");
       }
@@ -227,8 +228,8 @@ Partitions Partitions::load(std::istream& input_file) {
 
 void Partitions::save(std::ostream& output_file) const {
    for (const auto& partition : partitions) {
-      output_file << "P\t" << partition.name << '\t' << partition.chunks.size() << '\t'
-                  << partition.count_of_sequences << '\n';
+      output_file << "P\t" << partition.chunks.size() << '\t' << partition.count_of_sequences
+                  << '\n';
       for (const auto& chunk : partition.chunks) {
          output_file << "C\t" << chunk.prefix << '\t' << chunk.pango_lineages.size() << '\t'
                      << chunk.count_of_sequences << '\t' << chunk.offset << '\n';
@@ -239,4 +240,16 @@ void Partitions::save(std::ostream& output_file) const {
    }
 }
 
+bool PartitionChunk::operator==(const PartitionChunk& other) const {
+   return partition == other.partition && chunk == other.chunk && size == other.size;
+}
+
 }  // namespace silo::preprocessing
+
+std::size_t std::hash<silo::preprocessing::PartitionChunk>::operator()(
+   const silo::preprocessing::PartitionChunk& partition_chunk
+) const {
+   return hash<uint32_t>()(partition_chunk.partition) +
+          (hash<uint32_t>()(partition_chunk.chunk) << 3) +
+          (hash<uint32_t>()(partition_chunk.chunk) >> 2);
+}
