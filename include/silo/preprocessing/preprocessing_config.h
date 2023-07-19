@@ -89,6 +89,9 @@ class PreprocessingConfig {
 
    [[nodiscard]] std::filesystem::path getMetadataInputFilename() const;
 
+   [[nodiscard]] std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path>
+   getMetadataPartitionFilenames(const silo::preprocessing::Partitions& partitions) const;
+
    [[nodiscard]] std::filesystem::path getMetadataPartitionFilename(
       uint32_t partition,
       uint32_t chunk
@@ -100,6 +103,12 @@ class PreprocessingConfig {
    ) const;
 
    [[nodiscard]] std::filesystem::path getNucFilename(std::string_view nuc_name) const;
+
+   [[nodiscard]] std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path>
+   getNucPartitionFilenames(
+      std::string_view nuc_name,
+      const silo::preprocessing::Partitions& partitions
+   ) const;
 
    [[nodiscard]] std::filesystem::path getNucPartitionFilename(
       std::string_view nuc_name,
@@ -115,6 +124,12 @@ class PreprocessingConfig {
 
    [[nodiscard]] std::filesystem::path getGeneFilename(std::string_view gene_name) const;
 
+   [[nodiscard]] std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path>
+   getGenePartitionFilenames(
+      std::string_view gene_name,
+      const silo::preprocessing::Partitions& partitions
+   ) const;
+
    [[nodiscard]] std::filesystem::path getGenePartitionFilename(
       std::string_view gene_name,
       uint32_t partition,
@@ -125,18 +140,6 @@ class PreprocessingConfig {
       std::string_view gene_name,
       uint32_t partition,
       uint32_t chunk
-   ) const;
-
-   [[nodiscard]] std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path>
-   getNucPartitionFilenames(
-      std::string_view nuc_name,
-      const silo::preprocessing::Partitions& partitions
-   ) const;
-
-   [[nodiscard]] std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path>
-   getGenePartitionFilenames(
-      std::string_view gene_name,
-      const silo::preprocessing::Partitions& partitions
    ) const;
 };
 

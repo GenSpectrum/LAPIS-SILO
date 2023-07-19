@@ -79,14 +79,15 @@ void Database::build(
    int64_t micros = 0;
    {
       const BlockTimer timer(micros);
-      partitions.resize(partition_descriptor.partitions.size());
+      partitions.resize(partition_descriptor.getPartitions().size());
       initializeColumns();
       initializeSequences();
-      for (size_t partition_index = 0; partition_index < partition_descriptor.partitions.size();
+      for (size_t partition_index = 0;
+           partition_index < partition_descriptor.getPartitions().size();
            ++partition_index) {
-         const auto& part = partition_descriptor.partitions[partition_index];
-         partitions[partition_index].chunks = part.chunks;
-         for (size_t chunk_index = 0; chunk_index < part.chunks.size(); ++chunk_index) {
+         const auto& part = partition_descriptor.getPartitions()[partition_index];
+         partitions[partition_index].chunks = part.getChunks();
+         for (size_t chunk_index = 0; chunk_index < part.getChunks().size(); ++chunk_index) {
             const std::filesystem::path metadata_file =
                preprocessing_config.getMetadataSortedPartitionFilename(
                   partition_index, chunk_index
@@ -418,12 +419,11 @@ DetailedDatabaseInfo Database::detailedDatabaseInfo() const {
    }
    SPDLOG_INFO("Loading partitioning definition from {}", partition_descriptor_file);
 
-   auto partition_descriptor =
-      std::make_unique<preprocessing::Partitions>(preprocessing::Partitions::load(part_def_file));
+   auto partition_descriptor = preprocessing::Partitions::load(part_def_file);
 
    SPDLOG_INFO("Loading partitions from {}", save_directory);
    std::vector<std::ifstream> file_vec;
-   for (uint32_t i = 0; i < partition_descriptor->partitions.size(); ++i) {
+   for (uint32_t i = 0; i < partition_descriptor.getPartitions().size(); ++i) {
       const auto partition_file = save_directory + 'P' + std::to_string(i) + ".silo";
       file_vec.emplace_back(partition_file);
 
@@ -434,7 +434,7 @@ DetailedDatabaseInfo Database::detailedDatabaseInfo() const {
       }
    }
 
-   for (size_t partition_id = 0; partition_id < partition_descriptor->partitions.size();
+   for (size_t partition_id = 0; partition_id < partition_descriptor.getPartitions().size();
         ++partition_id) {
       partitions.emplace_back();
    }

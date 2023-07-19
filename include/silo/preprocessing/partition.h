@@ -27,9 +27,16 @@ struct Chunk {
    std::vector<std::string> pango_lineages;
 };
 
-struct Partition {
-   uint32_t count_of_sequences;
+class Partition {
+   uint32_t sequence_count;
    std::vector<Chunk> chunks;
+
+  public:
+   Partition(std::vector<Chunk>&& chunks);
+
+   const std::vector<Chunk>& getChunks() const;
+
+   uint32_t getSequenceCount() const;
 };
 
 struct PartitionChunk {
@@ -40,20 +47,31 @@ struct PartitionChunk {
    bool operator==(const PartitionChunk& other) const;
 };
 
-struct Partitions {
+enum Architecture { MAX_PARTITIONS, SINGLE_PARTITION, SINGLE_SINGLE };
+
+class Partitions {
    std::vector<Partition> partitions;
 
    // Flat map of the counts and sizes of the partitions and containing chunks
    std::vector<PartitionChunk> partition_chunks;
 
+   // Mapping all pango lineages to the chunk they are contained in
+   std::unordered_map<std::string, silo::preprocessing::PartitionChunk> pango_to_chunk;
+
+  public:
+   Partitions(std::vector<Partition> partitions);
+
    static silo::preprocessing::Partitions load(std::istream& input_file);
 
    void save(std::ostream& output_file) const;
+
+   const std::vector<Partition>& getPartitions() const;
+
+   const std::vector<PartitionChunk>& getPartitionChunks() const;
+
+   const std::unordered_map<std::string, silo::preprocessing::PartitionChunk>& getPangoToChunk(
+   ) const;
 };
-
-enum Architecture { MAX_PARTITIONS, SINGLE_PARTITION, SINGLE_SINGLE };
-
-void calculateOffsets(Partitions& partitions);
 
 Partitions buildPartitions(const PangoLineageCounts& pango_lineage_counts, Architecture arch);
 

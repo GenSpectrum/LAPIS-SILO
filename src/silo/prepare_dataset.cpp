@@ -11,6 +11,7 @@
 
 #include <oneapi/tbb/parallel_for_each.h>
 #include <spdlog/spdlog.h>
+#include <boost/algorithm/string/join.hpp>
 #include <csv.hpp>
 
 #include "silo/common/date.h"
@@ -51,31 +52,27 @@ std::unordered_map<
    silo::preprocessing::PartitionChunk,
    std::unique_ptr<silo::preprocessing::MetadataWriter>>
 getMetadataWritersForChunks(
-   const silo::preprocessing::PreprocessingConfig& preprocessing_config,
-   const silo::preprocessing::Partitions& partitions,
+   const std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path>&
+      metadata_partition_filenames,
    const csv::CSVReader& metadata_reader
 ) {
    std::unordered_map<
       silo::preprocessing::PartitionChunk,
       std::unique_ptr<silo::preprocessing::MetadataWriter>>
       chunk_to_metadata_writers;
-   for (const auto& [partition, chunk, size] : partitions.partition_chunks) {
-      const std::filesystem::path metadata_filename =
-         preprocessing_config.getMetadataPartitionFilename(partition, chunk);
-
-      auto metadata_writer =
-         std::make_unique<silo::preprocessing::MetadataWriter>(metadata_filename);
+   for (const auto& [partition_chunk, filename] : metadata_partition_filenames) {
+      auto metadata_writer = std::make_unique<silo::preprocessing::MetadataWriter>(filename);
 
       metadata_writer->writeHeader(metadata_reader);
 
-      chunk_to_metadata_writers[{partition, chunk, size}] = std::move(metadata_writer);
+      chunk_to_metadata_writers[partition_chunk] = std::move(metadata_writer);
    }
    return chunk_to_metadata_writers;
 }
 
 std::unordered_map<std::string, silo::preprocessing::PartitionChunk> writeMetadataChunks(
    const silo::PangoLineageAliasLookup& alias_key,
-   std::unordered_map<std::string, silo::preprocessing::PartitionChunk>& pango_to_chunk,
+   const std::unordered_map<std::string, silo::preprocessing::PartitionChunk>& pango_to_chunk,
    csv::CSVReader& metadata_reader,
    std::unordered_map<
       silo::preprocessing::PartitionChunk,
@@ -90,7 +87,7 @@ std::unordered_map<std::string, silo::preprocessing::PartitionChunk> writeMetada
          alias_key.resolvePangoLineageAlias(row[database_config.schema.partition_by].get());
       row[database_config.schema.partition_by] = csv::CSVField{pango_lineage};
 
-      const auto partition_chunk = pango_to_chunk[pango_lineage];
+      const auto partition_chunk = pango_to_chunk.at(pango_lineage);
 
       chunk_to_metadata_writers[partition_chunk]->writeRow(row);
 
@@ -101,30 +98,19 @@ std::unordered_map<std::string, silo::preprocessing::PartitionChunk> writeMetada
 }
 
 std::unordered_map<std::string, silo::preprocessing::PartitionChunk> partitionMetadataFile(
-   const silo::preprocessing::PreprocessingConfig& preprocessing_config,
-   const silo::preprocessing::Partitions& partitions,
+   const std::filesystem::path& metadata_filename,
+   const std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path>&
+      metadata_partition_filenames,
+   const std::unordered_map<std::string, silo::preprocessing::PartitionChunk>& pango_to_chunk,
    const silo::PangoLineageAliasLookup& alias_key,
    const silo::config::DatabaseConfig& database_config
 ) {
    SPDLOG_INFO("partitioning metadata file {}", metadata_filename.string());
 
-   std::unordered_map<std::string, silo::preprocessing::PartitionChunk> pango_to_chunk;
-   for (uint32_t i = 0, limit = partitions.partitions.size(); i < limit; ++i) {
-      const auto& part = partitions.partitions[i];
-      for (uint32_t j = 0, limit2 = part.chunks.size(); j < limit2; ++j) {
-         const auto& chunk = part.chunks[j];
-         for (const auto& pango : chunk.pango_lineages) {
-            pango_to_chunk[pango] = {i, j, chunk.count_of_sequences};
-         }
-      }
-   }
-
-   silo::preprocessing::MetadataReader metadata_reader(
-      preprocessing_config.getMetadataInputFilename()
-   );
+   silo::preprocessing::MetadataReader metadata_reader(metadata_filename);
 
    auto chunk_to_metadata_writers =
-      getMetadataWritersForChunks(preprocessing_config, partitions, metadata_reader.reader);
+      getMetadataWritersForChunks(metadata_partition_filenames, metadata_reader.reader);
 
    return writeMetadataChunks(
       alias_key, pango_to_chunk, metadata_reader.reader, chunk_to_metadata_writers, database_config
@@ -192,8 +178,18 @@ void silo::partitionData(
    const silo::config::DatabaseConfig& database_config,
    const ReferenceGenomes& reference_genomes
 ) {
-   auto key_to_chunk =
-      partitionMetadataFile(preprocessing_config, partitions, alias_key, database_config);
+   const std::filesystem::path metadata_filename = preprocessing_config.getMetadataInputFilename();
+
+   auto metadata_partition_filenames =
+      preprocessing_config.getMetadataPartitionFilenames(partitions);
+
+   auto key_to_chunk = partitionMetadataFile(
+      metadata_filename,
+      metadata_partition_filenames,
+      partitions.getPangoToChunk(),
+      alias_key,
+      database_config
+   );
 
    for (const auto& [nuc_name, reference_genome] : reference_genomes.raw_nucleotide_sequences) {
       const std::filesystem::path sequence_filename = preprocessing_config.getNucFilename(nuc_name);
@@ -365,8 +361,8 @@ void silo::sortChunks(
    const ReferenceGenomes& reference_genomes
 ) {
    tbb::parallel_for_each(
-      partitions.partition_chunks.begin(),
-      partitions.partition_chunks.end(),
+      partitions.getPartitionChunks().begin(),
+      partitions.getPartitionChunks().end(),
       [&](const preprocessing::PartitionChunk& partition_chunk) {
          const uint32_t partition = partition_chunk.partition;
          const uint32_t chunk = partition_chunk.chunk;

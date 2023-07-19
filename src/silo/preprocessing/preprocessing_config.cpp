@@ -86,6 +86,16 @@ std::filesystem::path PreprocessingConfig::getMetadataInputFilename() const {
    return metadata_file.string();
 }
 
+std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path> PreprocessingConfig::
+   getMetadataPartitionFilenames(const silo::preprocessing::Partitions& partitions) const {
+   std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path> result;
+   for (auto [partition, chunk, size] : partitions.getPartitionChunks()) {
+      const std::filesystem::path filename = getMetadataPartitionFilename(partition, chunk);
+      result.insert({{partition, chunk, size}, filename});
+   }
+   return result;
+}
+
 std::filesystem::path PreprocessingConfig::getMetadataPartitionFilename(
    uint32_t partition,
    uint32_t chunk
@@ -114,6 +124,19 @@ std::filesystem::path PreprocessingConfig::getNucFilename(std::string_view nuc_n
    return filename;
 }
 
+std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path> PreprocessingConfig::
+   getNucPartitionFilenames(
+      std::string_view nuc_name,
+      const silo::preprocessing::Partitions& partitions
+   ) const {
+   std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path> result;
+   for (auto [partition, chunk, size] : partitions.getPartitionChunks()) {
+      const std::filesystem::path filename = getNucPartitionFilename(nuc_name, partition, chunk);
+      result.insert({{partition, chunk, size}, filename});
+   }
+   return result;
+}
+
 std::filesystem::path PreprocessingConfig::getNucPartitionFilename(
    std::string_view nuc_name,
    uint32_t partition,
@@ -126,19 +149,6 @@ std::filesystem::path PreprocessingConfig::getNucPartitionFilename(
    filename += silo::buildChunkString(partition, chunk);
    filename += ZSTDFASTA_EXTENSION;
    return filename;
-}
-
-std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path> PreprocessingConfig::
-   getNucPartitionFilenames(
-      std::string_view nuc_name,
-      const silo::preprocessing::Partitions& partitions
-   ) const {
-   std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path> result;
-   for (auto [partition, chunk, size] : partitions.partition_chunks) {
-      const std::filesystem::path filename = getNucPartitionFilename(nuc_name, partition, chunk);
-      result.insert({{partition, chunk, size}, filename});
-   }
-   return result;
 }
 
 std::filesystem::path PreprocessingConfig::getNucSortedPartitionFilename(
@@ -169,7 +179,7 @@ std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path> P
       const silo::preprocessing::Partitions& partitions
    ) const {
    std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path> result;
-   for (auto [partition, chunk, size] : partitions.partition_chunks) {
+   for (auto [partition, chunk, size] : partitions.getPartitionChunks()) {
       const std::filesystem::path filename = getGenePartitionFilename(gene_name, partition, chunk);
       result.insert({{partition, chunk, size}, filename});
    }
