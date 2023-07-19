@@ -7,6 +7,7 @@
 #include <list>
 #include <stdexcept>
 #include <tuple>
+#include <utility>
 
 #include "silo/persistence/exception.h"
 #include "silo/preprocessing/pango_lineage_count.h"
@@ -110,7 +111,8 @@ uint32_t Partition::getSequenceCount() const {
    return sequence_count;
 }
 
-silo::preprocessing::Partitions::Partitions(std::vector<Partition> partitions) {
+silo::preprocessing::Partitions::Partitions(std::vector<Partition> partitions_)
+    : partitions(std::move(partitions_)) {
    for (uint32_t part_id = 0, limit = partitions.size(); part_id < limit; ++part_id) {
       const auto& part = partitions[part_id];
       for (uint32_t chunk_id = 0, limit2 = part.getChunks().size(); chunk_id < limit2; ++chunk_id) {
@@ -199,61 +201,6 @@ std::size_t std::hash<silo::preprocessing::PartitionChunk>::operator()(
 }
 
 namespace silo::preprocessing {
-
-Partitions Partitions::load(std::istream& input_file) {
-   std::vector<silo::preprocessing::Partition> partitions;
-   std::vector<Chunk> current_chunks;
-   std::string buffer;
-   std::string prefix;
-   uint32_t count;
-   uint32_t offset;
-   while (input_file && !input_file.eof()) {
-      if (!getline(input_file, buffer, '\t')) {
-         break;
-      }
-
-      if (buffer.size() != 1) {
-         throw silo::persistence::LoadDatabaseException("loadPartitions format exception");
-      }
-      if (buffer.at(0) == 'P') {
-         if (!current_chunks.empty()) {
-            partitions.emplace_back(std::move(current_chunks));
-            current_chunks = std::vector<Chunk>{};
-         }
-         input_file.ignore(LONG_MAX, '\n');
-      } else if (buffer.at(0) == 'C') {
-         if (!getline(input_file, prefix, '\t')) {
-            break;
-         }
-         if (!getline(input_file, buffer, '\t')) {
-            break;
-         }
-         if (!getline(input_file, buffer, '\t')) {
-            break;
-         }
-         count = atoi(buffer.c_str());
-         if (!getline(input_file, buffer, '\n')) {
-            break;
-         }
-         offset = atoi(buffer.c_str());
-         current_chunks.push_back({prefix, count, offset, std::vector<std::string>()});
-      } else if (buffer.at(0) == 'L') {
-         if (!getline(input_file, prefix, '\n')) {
-            break;
-         }
-         if (current_chunks.empty()) {
-            throw silo::persistence::LoadDatabaseException("loadPartitions format exception");
-         }
-         current_chunks.back().pango_lineages.push_back(prefix);
-      } else {
-         throw silo::persistence::LoadDatabaseException("loadPartitions format exception");
-      }
-   }
-   if (!current_chunks.empty()) {
-      partitions.emplace_back(std::move(current_chunks));
-   }
-   return Partitions{partitions};
-}
 
 void Partitions::save(std::ostream& output_file) const {
    for (const auto& partition : partitions) {

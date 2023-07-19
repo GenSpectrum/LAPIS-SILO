@@ -32,11 +32,11 @@ class Partition {
    std::vector<Chunk> chunks;
 
   public:
-   Partition(std::vector<Chunk>&& chunks);
+   explicit Partition(std::vector<Chunk>&& chunks);
 
-   const std::vector<Chunk>& getChunks() const;
+   [[nodiscard]] const std::vector<Chunk>& getChunks() const;
 
-   uint32_t getSequenceCount() const;
+   [[nodiscard]] uint32_t getSequenceCount() const;
 };
 
 struct PartitionChunk {
@@ -59,18 +59,16 @@ class Partitions {
    std::unordered_map<std::string, silo::preprocessing::PartitionChunk> pango_to_chunk;
 
   public:
-   Partitions(std::vector<Partition> partitions);
-
-   static silo::preprocessing::Partitions load(std::istream& input_file);
+   explicit Partitions(std::vector<Partition> partitions_);
 
    void save(std::ostream& output_file) const;
 
-   const std::vector<Partition>& getPartitions() const;
+   [[nodiscard]] const std::vector<Partition>& getPartitions() const;
 
-   const std::vector<PartitionChunk>& getPartitionChunks() const;
+   [[nodiscard]] const std::vector<PartitionChunk>& getPartitionChunks() const;
 
-   const std::unordered_map<std::string, silo::preprocessing::PartitionChunk>& getPangoToChunk(
-   ) const;
+   [[nodiscard]] const std::unordered_map<std::string, silo::preprocessing::PartitionChunk>&
+   getPangoToChunk() const;
 };
 
 Partitions buildPartitions(const PangoLineageCounts& pango_lineage_counts, Architecture arch);

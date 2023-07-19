@@ -409,44 +409,6 @@ DetailedDatabaseInfo Database::detailedDatabaseInfo() const {
    SPDLOG_INFO("Finished saving partitions", partitions.size());
 }
 
-[[maybe_unused]] void Database::loadDatabaseState(const std::string& save_directory) {
-   const auto partition_descriptor_file = save_directory + "partition_descriptor.txt";
-   std::ifstream part_def_file(partition_descriptor_file);
-   if (!part_def_file) {
-      throw persistence::LoadDatabaseException(
-         "Cannot open partition_descriptor input file for loading: " + partition_descriptor_file
-      );
-   }
-   SPDLOG_INFO("Loading partitioning definition from {}", partition_descriptor_file);
-
-   auto partition_descriptor = preprocessing::Partitions::load(part_def_file);
-
-   SPDLOG_INFO("Loading partitions from {}", save_directory);
-   std::vector<std::ifstream> file_vec;
-   for (uint32_t i = 0; i < partition_descriptor.getPartitions().size(); ++i) {
-      const auto partition_file = save_directory + 'P' + std::to_string(i) + ".silo";
-      file_vec.emplace_back(partition_file);
-
-      if (!file_vec.back()) {
-         throw persistence::LoadDatabaseException(
-            "Cannot open partition input file for loading: " + partition_file
-         );
-      }
-   }
-
-   for (size_t partition_id = 0; partition_id < partition_descriptor.getPartitions().size();
-        ++partition_id) {
-      partitions.emplace_back();
-   }
-   tbb::parallel_for(tbb::blocked_range<size_t>(0, partitions.size()), [&](const auto& local) {
-      for (size_t partition_index = local.begin(); partition_index != local.end();
-           ++partition_index) {
-         ::boost::archive::binary_iarchive input_archive(file_vec[partition_index]);
-         input_archive >> partitions[partition_index];
-      }
-   });
-}
-
 void Database::preprocessing(
    const preprocessing::PreprocessingConfig& preprocessing_config,
    const config::DatabaseConfig& database_config_
