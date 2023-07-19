@@ -334,24 +334,18 @@ void sortChunk(
    const silo::preprocessing::PartitionChunk chunk,
    const silo::SortChunkConfig& sort_chunk_config
 ) {
-   SPDLOG_TRACE(
-      "Sorting metadata for chunk " + silo::buildChunkString(chunk.partition, chunk.chunk)
-   );
+   SPDLOG_TRACE("Sorting metadata for partition {} chunk {}", chunk.partition, chunk.chunk);
 
    auto primary_key_to_date =
       sortMetadataFile(metadata_reader, metadata_writer, chunk, sort_chunk_config);
 
-   SPDLOG_TRACE(
-      "Sorting sequences for chunk " + silo::buildChunkString(chunk.partition, chunk.chunk)
-   );
+   SPDLOG_TRACE("Sorting sequences for partition {} chunk {}", chunk.partition, chunk.chunk);
 
    for (size_t nuc_idx = 0; nuc_idx < sequence_inputs.size(); ++nuc_idx) {
       sortSequenceFile(sequence_inputs[nuc_idx], sequence_outputs[nuc_idx], primary_key_to_date);
    }
 
-   SPDLOG_TRACE(
-      "Finished all sorting for chunk " + silo::buildChunkString(chunk.partition, chunk.chunk)
-   );
+   SPDLOG_TRACE("Finished all sorting for partition {} chunk {}", chunk.partition, chunk.chunk);
 }
 
 void silo::sortChunks(

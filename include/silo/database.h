@@ -98,8 +98,6 @@ class Database {
    );
 };
 
-std::string buildChunkString(uint32_t partition, uint32_t chunk);
-
 }  // namespace silo
 
 #endif  // SILO_DATABASE_H

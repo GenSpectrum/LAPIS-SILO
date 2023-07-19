@@ -8,6 +8,14 @@ constexpr std::string_view ZSTDFASTA_EXTENSION(".zstdfasta");
 constexpr std::string_view TSV_EXTENSION(".tsv");
 constexpr std::string_view FASTA_EXTENSION(".fasta");
 
+namespace {
+
+std::string buildChunkString(uint32_t partition, uint32_t chunk) {
+   return "P" + std::to_string(partition) + "_C" + std::to_string(chunk);
+}
+
+}  // namespace
+
 namespace silo::preprocessing {
 
 std::filesystem::path createPath(
@@ -101,7 +109,7 @@ std::filesystem::path PreprocessingConfig::getMetadataPartitionFilename(
    uint32_t chunk
 ) const {
    std::filesystem::path filename = partition_folder;
-   filename += silo::buildChunkString(partition, chunk);
+   filename += buildChunkString(partition, chunk);
    filename += TSV_EXTENSION;
    return filename;
 }
@@ -111,7 +119,7 @@ std::filesystem::path PreprocessingConfig::getMetadataSortedPartitionFilename(
    uint32_t chunk
 ) const {
    std::filesystem::path filename = sorted_partition_folder;
-   filename += silo::buildChunkString(partition, chunk);
+   filename += buildChunkString(partition, chunk);
    filename += TSV_EXTENSION;
    return filename;
 }
@@ -146,7 +154,7 @@ std::filesystem::path PreprocessingConfig::getNucPartitionFilename(
    folder += nuc_name;
    folder += std::filesystem::path::preferred_separator;
    std::filesystem::path filename = createOutputPath(partition_folder, folder);
-   filename += silo::buildChunkString(partition, chunk);
+   filename += buildChunkString(partition, chunk);
    filename += ZSTDFASTA_EXTENSION;
    return filename;
 }
@@ -160,7 +168,7 @@ std::filesystem::path PreprocessingConfig::getNucSortedPartitionFilename(
    folder += nuc_name;
    folder += std::filesystem::path::preferred_separator;
    std::filesystem::path filename = createOutputPath(sorted_partition_folder, folder);
-   filename += silo::buildChunkString(partition, chunk);
+   filename += buildChunkString(partition, chunk);
    filename += ZSTDFASTA_EXTENSION;
    return filename;
 }
@@ -195,7 +203,7 @@ std::filesystem::path PreprocessingConfig::getGenePartitionFilename(
    folder += gene_name;
    folder += std::filesystem::path::preferred_separator;
    std::filesystem::path filename = createOutputPath(partition_folder, folder);
-   filename += silo::buildChunkString(partition, chunk);
+   filename += buildChunkString(partition, chunk);
    filename += ZSTDFASTA_EXTENSION;
    return filename;
 }
@@ -209,7 +217,7 @@ std::filesystem::path PreprocessingConfig::getGeneSortedPartitionFilename(
    folder += gene_name;
    folder += std::filesystem::path::preferred_separator;
    std::filesystem::path filename = createOutputPath(sorted_partition_folder, folder);
-   filename += silo::buildChunkString(partition, chunk);
+   filename += buildChunkString(partition, chunk);
    filename += ZSTDFASTA_EXTENSION;
    return filename;
 }
