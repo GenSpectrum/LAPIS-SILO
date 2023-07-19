@@ -7,24 +7,35 @@
 #include <string>
 #include <vector>
 
+#include <nlohmann/json_fwd.hpp>
+
+namespace boost::serialization {
+class access;
+}
+
 namespace silo::preprocessing {
 
 class PangoLineageCounts;
+class Partition;
 
-struct Chunk {
-   template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
-      // clang-format off
-      archive& prefix;
-      archive& count_of_sequences;
-      archive& offset;
-      archive& pango_lineages;
-      // clang-format on
-   }
+class Chunk {
+   friend class Partition;
+
    std::string prefix;
    uint32_t count_of_sequences;
    uint32_t offset;
    std::vector<std::string> pango_lineages;
+
+  public:
+   Chunk(std::string_view lineage, uint32_t count);
+   Chunk(std::vector<std::string>&& lineages, uint32_t count);
+
+   void addChunk(Chunk&& other);
+
+   std::string_view getPrefix() const;
+   uint32_t getCountOfSequences() const;
+   uint32_t getOffset() const;
+   const std::vector<std::string>& getPangoLineages() const;
 };
 
 class Partition {
@@ -62,6 +73,8 @@ class Partitions {
    explicit Partitions(std::vector<Partition> partitions_);
 
    void save(std::ostream& output_file) const;
+
+   static Partitions load(std::istream& input_file);
 
    [[nodiscard]] const std::vector<Partition>& getPartitions() const;
 
