@@ -4,6 +4,8 @@
 #include <filesystem>
 #include <string>
 
+#include <fmt/core.h>
+
 namespace silo::preprocessing {
 
 struct InputDirectory {
@@ -67,5 +69,14 @@ std::filesystem::path createPath(
 );
 
 }  // namespace silo::preprocessing
+
+template <>
+struct [[maybe_unused]] fmt::formatter<silo::preprocessing::PreprocessingConfig>
+    : fmt::formatter<std::string> {
+   [[maybe_unused]] static auto format(
+      const silo::preprocessing::PreprocessingConfig& preprocessing_config,
+      format_context& ctx
+   ) -> decltype(ctx.out());
+};
 
 #endif  // SILO_PREPROCESSING_CONFIG_H

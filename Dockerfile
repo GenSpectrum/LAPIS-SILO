@@ -7,7 +7,7 @@ RUN apk update && apk add --no-cache py3-pip \
     boost-build=1.79.0-r0 \
     libtbb=2021.7.0-r0
 
-RUN pip install conan==2.0.2
+RUN pip install conan==2.0.8
 
 WORKDIR /src
 COPY conanfile.py conanprofile.docker ./

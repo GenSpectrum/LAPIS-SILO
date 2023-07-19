@@ -168,11 +168,8 @@ void partitionSequenceFile(
    std::unordered_map<std::string, std::string>& key_to_chunk,
    std::string_view reference_sequence
 ) {
-   SPDLOG_INFO("partitioning sequences file to {}", output_folder.string());
-
    auto chunk_to_seq_writer =
       getSequenceWritersForChunks(output_folder, chunk_names, reference_sequence);
-   SPDLOG_DEBUG("Created file streams in folder {}", output_folder.string());
 
    writeSequenceChunks(sequence_in, key_to_chunk, chunk_to_seq_writer);
 }
@@ -214,6 +211,12 @@ void silo::partitionData(
 
       create_directory(nuc_folder);
 
+      SPDLOG_INFO(
+         "partitioning nucleotide sequences from {} to {}",
+         sequence_filename.string(),
+         nuc_folder.string()
+      );
+
       partitionSequenceFile(
          sequence_input, nuc_folder, chunk_names, key_to_chunk, reference_genome
       );
@@ -228,6 +231,12 @@ void silo::partitionData(
       aa_folder += "gene_" + aa_name + std::filesystem::path::preferred_separator;
 
       create_directory(aa_folder);
+
+      SPDLOG_INFO(
+         "partitioning amino acid sequences from {} to {}",
+         sequence_filename.string(),
+         aa_folder.string()
+      );
 
       partitionSequenceFile(sequence_input, aa_folder, chunk_names, key_to_chunk, reference_genome);
    }

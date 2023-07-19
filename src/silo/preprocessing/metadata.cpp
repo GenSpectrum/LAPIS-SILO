@@ -5,6 +5,7 @@
 #include <ostream>
 #include <string>
 
+#include <spdlog/spdlog.h>
 #include <boost/algorithm/string/join.hpp>
 
 #include "silo/preprocessing/preprocessing_exception.h"
@@ -12,6 +13,7 @@
 namespace silo::preprocessing {
 
 csv::CSVReader buildReader(const std::filesystem::path& metadata_path) {
+   SPDLOG_INFO("Reading metadata file: {}", metadata_path.string());
    try {
       csv::CSVFormat format;
       format.delimiter('\t');

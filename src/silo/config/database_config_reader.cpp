@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include <spdlog/spdlog.h>
 #include <yaml-cpp/yaml.h>
 
 #include "silo/config/database_config.h"
@@ -19,6 +20,9 @@ struct convert<silo::config::DatabaseConfig> {
       } else {
          config.default_nucleotide_sequence = "main";
       }
+
+      SPDLOG_TRACE("Resulting database config: {}", config);
+
       return true;
    }
 };
@@ -64,6 +68,7 @@ struct convert<silo::config::DatabaseMetadata> {
 
 namespace silo::config {
 DatabaseConfig DatabaseConfigReader::readConfig(const std::filesystem::path& config_path) const {
+   SPDLOG_INFO("Reading database config from {}", config_path.string());
    return YAML::LoadFile(config_path.string()).as<DatabaseConfig>();
 }
 }  // namespace silo::config

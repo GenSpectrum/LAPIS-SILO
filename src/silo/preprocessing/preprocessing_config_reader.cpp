@@ -73,6 +73,8 @@ struct convert<PreprocessingConfig> {
          reference_genome_filename
       );
 
+      SPDLOG_TRACE("Resulting preprocessing config: {}", config);
+
       return true;
    }
 };
