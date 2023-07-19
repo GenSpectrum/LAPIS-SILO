@@ -12,6 +12,10 @@ namespace silo::query_engine::actions {
 
 Fasta::Fasta() = default;
 
+void Fasta::validateOrderByFields(const Database& /*database*/) const {
+   throw QueryParseException("Not implemented: The Ordering of Fasta actions is not yet supported");
+}
+
 QueryResult Fasta::
    execute(const Database& /*database*/, std::vector<OperatorResult> /*bitmap_filter*/) const {
    return {};

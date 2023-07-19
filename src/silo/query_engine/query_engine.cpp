@@ -63,7 +63,7 @@ QueryResult QueryEngine::executeQuery(const std::string& query_string) const {
    int64_t action_time;
    {
       const BlockTimer timer(action_time);
-      query_result = query.action->execute(database, std::move(partition_filters));
+      query_result = query.action->executeAndOrder(database, std::move(partition_filters));
    }
 
    LOG_PERFORMANCE("Execution (action): {} microseconds", std::to_string(action_time));

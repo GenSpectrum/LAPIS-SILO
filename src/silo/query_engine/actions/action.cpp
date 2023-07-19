@@ -15,6 +15,7 @@
 #include "silo/query_engine/actions/fasta.h"
 #include "silo/query_engine/actions/fasta_aligned.h"
 #include "silo/query_engine/actions/nuc_mutations.h"
+#include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
 
@@ -31,6 +32,12 @@ std::string stringToLowerCase(std::string str) {
 
 void Action::applyOrderByAndLimit(QueryResult& result) const {
    auto& result_vector = result.query_result;
+
+   if (offset.has_value() && offset.value() >= result_vector.size()) {
+      result_vector = {};
+      return;
+   }
+
    auto cmp = [&](const QueryResultEntry& entry1, const QueryResultEntry& entry2) {
       for (const OrderByField& field : order_by_fields) {
          if (entry1.fields.at(field.name) == entry2.fields.at(field.name)) {
@@ -45,22 +52,20 @@ void Action::applyOrderByAndLimit(QueryResult& result) const {
       static_cast<size_t>(limit.value_or(result_vector.size()) + offset.value_or(0UL)),
       result_vector.size()
    );
-   if (end_of_sort < result_vector.size()) {
-      std::partial_sort(
-         result_vector.begin(),
-         result_vector.begin() + static_cast<int64_t>(end_of_sort),
-         result_vector.end(),
-         cmp
-      );
-   } else {
-      std::sort(result_vector.begin(), result_vector.end(), cmp);
+   if (!order_by_fields.empty()) {
+      if (end_of_sort < result_vector.size()) {
+         std::partial_sort(
+            result_vector.begin(),
+            result_vector.begin() + static_cast<int64_t>(end_of_sort),
+            result_vector.end(),
+            cmp
+         );
+      } else {
+         std::sort(result_vector.begin(), result_vector.end(), cmp);
+      }
    }
 
    if (offset.has_value() && offset.value() > 0) {
-      if (offset.value() >= result_vector.size()) {
-         result_vector = {};
-         return;
-      }
       auto begin = result_vector.begin() + offset.value();
       auto end = end_of_sort < result_vector.size()
                     ? result_vector.begin() + static_cast<int64_t>(end_of_sort)
@@ -81,6 +86,17 @@ void Action::setOrdering(
    order_by_fields = order_by_fields_;
    limit = limit_;
    offset = offset_;
+}
+
+QueryResult Action::executeAndOrder(
+   const Database& database,
+   std::vector<OperatorResult> bitmap_filter
+) const {
+   validateOrderByFields(database);
+
+   QueryResult result = execute(database, std::move(bitmap_filter));
+   applyOrderByAndLimit(result);
+   return result;
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

@@ -33,18 +33,16 @@
 #include "silo/storage/column_group.h"
 #include "silo/storage/database_partition.h"
 
-namespace silo::query_engine::actions {
-Details::Details(std::vector<std::string> fields)
-    : fields(std::move(fields)) {}
+namespace {
 
-std::vector<config::DatabaseMetadata> parseFields(
+std::vector<silo::config::DatabaseMetadata> parseFields(
    const silo::Database& database,
    const std::vector<std::string>& fields
 ) {
    if (fields.empty()) {
       return database.database_config.schema.metadata;
    }
-   std::vector<config::DatabaseMetadata> field_metadata;
+   std::vector<silo::config::DatabaseMetadata> field_metadata;
    for (const std::string& field : fields) {
       const auto& metadata = database.database_config.getMetadata(field);
       CHECK_SILO_QUERY(metadata.has_value(), "Metadata field " + field + " not found.")
@@ -53,10 +51,15 @@ std::vector<config::DatabaseMetadata> parseFields(
    return field_metadata;
 }
 
-void validateOrderByFields(
-   const std::vector<Action::OrderByField>& order_by_fields,
-   const std::vector<config::DatabaseMetadata>& field_metadata
-) {
+}  // namespace
+
+namespace silo::query_engine::actions {
+Details::Details(std::vector<std::string> fields)
+    : fields(std::move(fields)) {}
+
+void Details::validateOrderByFields(const Database& database) const {
+   const std::vector<config::DatabaseMetadata> field_metadata = parseFields(database, fields);
+
    for (const Action::OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
          std::any_of(
@@ -75,8 +78,6 @@ QueryResult Details::execute(
    std::vector<silo::query_engine::OperatorResult> bitmap_filter
 ) const {
    const std::vector<config::DatabaseMetadata> field_metadata = parseFields(database, fields);
-
-   validateOrderByFields(order_by_fields, field_metadata);
 
    QueryResult results;
    for (size_t partition_id = 0; partition_id < database.partitions.size(); partition_id++) {
@@ -139,7 +140,6 @@ QueryResult Details::execute(
          results.query_result.push_back(QueryResultEntry{row_fields});
       }
    }
-   applyOrderByAndLimit(results);
    return results;
 }
 

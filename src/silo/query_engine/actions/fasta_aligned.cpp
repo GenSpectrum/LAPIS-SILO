@@ -12,6 +12,12 @@ namespace silo::query_engine::actions {
 
 FastaAligned::FastaAligned() = default;
 
+void FastaAligned::validateOrderByFields(const Database& /*database*/) const {
+   throw QueryParseException(
+      "Not implemented: The Ordering of FastaAligned actions is not yet supported"
+   );
+}
+
 QueryResult FastaAligned::execute(
    const Database& /*database*/,
    std::vector<OperatorResult> /*bitmap_filter*/
