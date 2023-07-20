@@ -11,7 +11,7 @@ class SiloRecipe(ConanFile):
         "onetbb/2021.9.0",
         "nlohmann_json/3.11.2",
         "gtest/cci.20210126",
-        "roaring/1.3.0",
+        "roaring/1.0.0",
         "spdlog/1.11.0",
         "vincentlaucsb-csv-parser/2.1.3",
         "yaml-cpp/0.7.0",

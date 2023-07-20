@@ -18,12 +18,26 @@ TEST(PreprocessingConfigReader, shouldReadConfigWithCorrectParametersAndDefaults
 
    const std::string input_directory = "./testBaseData/";
    const std::string output_directory = "./output/";
-   ASSERT_EQ(config.input_directory, input_directory);
-   ASSERT_EQ(config.metadata_file, input_directory + "small_metadata_set.tsv");
-   ASSERT_EQ(config.pango_lineage_definition_file, input_directory + "pangolineage_alias.json");
-   ASSERT_EQ(config.partition_folder, output_directory + "partitions/");
-   ASSERT_EQ(config.serialization_folder, output_directory + "serialized_state/");
-   ASSERT_EQ(config.sorted_partition_folder, output_directory + "partitions_sorted/");
+   ASSERT_EQ(config.getMetadataInputFilename(), input_directory + "small_metadata_set.tsv");
+   ASSERT_EQ(
+      config.getPangoLineageDefinitionFilename(), input_directory + "pangolineage_alias.json"
+   );
+   ASSERT_EQ(
+      config.getNucPartitionFilename("dummy", 0, 0),
+      output_directory + "partitions/nuc_dummy/P0_C0.zstdfasta"
+   );
+   ASSERT_EQ(
+      config.getGenePartitionFilename("dummy2", 0, 0),
+      output_directory + "partitions/gene_dummy2/P0_C0.zstdfasta"
+   );
+   ASSERT_EQ(
+      config.getNucSortedPartitionFilename("dummy", 2, 1),
+      output_directory + "partitions_sorted/nuc_dummy/P2_C1.zstdfasta"
+   );
+   ASSERT_EQ(
+      config.getGeneSortedPartitionFilename("dummy", 2, 1),
+      output_directory + "partitions_sorted/gene_dummy/P2_C1.zstdfasta"
+   );
 }
 
 TEST(PreprocessingConfigReader, shouldThrowExceptionWhenConfigFileDoesNotExist) {
@@ -43,11 +57,18 @@ TEST(PreprocessingConfigReader, shouldReadConfigWithOverriddenDefaults) {
 
    const std::string input_directory = "./testBaseData/";
    const std::string output_directory = "./output/";
-   ASSERT_EQ(config.input_directory, input_directory);
-   ASSERT_EQ(config.metadata_file, input_directory + "small_metadata_set.tsv");
-   ASSERT_EQ(config.pango_lineage_definition_file, input_directory + "pangolineage_alias.json");
+   ASSERT_EQ(config.getMetadataInputFilename(), input_directory + "small_metadata_set.tsv");
+   ASSERT_EQ(
+      config.getPangoLineageDefinitionFilename(), input_directory + "pangolineage_alias.json"
+   );
 
-   ASSERT_EQ(config.partition_folder, output_directory + "folder1/");
-   ASSERT_EQ(config.sorted_partition_folder, output_directory + "folder2/");
-   ASSERT_EQ(config.serialization_folder, output_directory + "folder3/");
+   ASSERT_EQ(config.getNucFilename("aligned"), input_directory + "aligned.fasta");
+   ASSERT_EQ(
+      config.getNucPartitionFilename("aligned", 0, 1),
+      output_directory + "folder1/aligned/P0_C1.zstdfasta"
+   );
+   ASSERT_EQ(
+      config.getNucSortedPartitionFilename("aligned", 2, 3),
+      output_directory + "folder2/aligned/P2_C3.zstdfasta"
+   );
 }

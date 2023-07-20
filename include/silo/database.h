@@ -64,7 +64,7 @@ class Database {
    );
 
    void build(
-      const std::filesystem::path& input_folder,
+      const preprocessing::PreprocessingConfig& preprocessing_config,
       const preprocessing::Partitions& partition_descriptor
    );
 
@@ -97,8 +97,6 @@ class Database {
       size_t section_length
    );
 };
-
-std::string buildChunkString(uint32_t partition, uint32_t chunk);
 
 }  // namespace silo
 

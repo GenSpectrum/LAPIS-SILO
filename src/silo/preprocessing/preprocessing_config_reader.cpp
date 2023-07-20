@@ -7,8 +7,10 @@
 
 #include "silo/preprocessing/preprocessing_config.h"
 
+using silo::preprocessing::GenePrefix;
 using silo::preprocessing::InputDirectory;
 using silo::preprocessing::MetadataFilename;
+using silo::preprocessing::NucleotideSequencePrefix;
 using silo::preprocessing::OutputDirectory;
 using silo::preprocessing::PangoLineageDefinitionFilename;
 using silo::preprocessing::PartitionsFolder;
@@ -18,6 +20,21 @@ using silo::preprocessing::SerializedStateFolder;
 using silo::preprocessing::SortedPartitionsFolder;
 
 namespace YAML {
+
+std::string nucleotideSequencePrefix(const Node& node) {
+   if (node["nucleotideSequencePrefix"]) {
+      return node["nucleotideSequencePrefix"].as<std::string>();
+   }
+   SPDLOG_DEBUG("nucleotideSequencePrefix not found in config file. Using default value: nuc_");
+   return "nuc_";
+}
+std::string genePrefix(const Node& node) {
+   if (node["genePrefix"]) {
+      return node["genePrefix"].as<std::string>();
+   }
+   SPDLOG_DEBUG("genePrefix not found in config file. Using default value: gene_");
+   return "gene_";
+}
 
 std::string partitionsFolderName(const Node& node) {
    if (node["partitionsFolder"]) {
@@ -61,6 +78,8 @@ struct convert<PreprocessingConfig> {
       const PartitionsFolder partitions_folder{partitionsFolderName(node)};
       const SortedPartitionsFolder sorted_partitions_folder{sortedPartitionsFolderName(node)};
       const SerializedStateFolder serialized_state_folder{serializedStateFolderName(node)};
+      const NucleotideSequencePrefix nucleotide_sequence_prefix{nucleotideSequencePrefix(node)};
+      const GenePrefix gene_prefix{genePrefix(node)};
 
       config = PreprocessingConfig(
          input_directory,
@@ -70,7 +89,9 @@ struct convert<PreprocessingConfig> {
          partitions_folder,
          sorted_partitions_folder,
          serialized_state_folder,
-         reference_genome_filename
+         reference_genome_filename,
+         nucleotide_sequence_prefix,
+         gene_prefix
       );
 
       SPDLOG_TRACE("Resulting preprocessing config: {}", config);
