@@ -16,7 +16,7 @@ struct PangoLineage {
    template <class Archive>
    void serialize(Archive& archive, const uint32_t /* version*/) {
       // clang-format off
-      archive& value;
+      archive & value;
       // clang-format on
    }
 

@@ -74,19 +74,21 @@ const PangoLineageAliasLookup& Database::getAliasKey() const {
 
 void Database::build(
    const preprocessing::PreprocessingConfig& preprocessing_config,
-   const preprocessing::Partitions& partition_descriptor
+   const preprocessing::Partitions& partition_descriptor,
+   const ReferenceGenomes& reference_genomes
 ) {
    int64_t micros = 0;
    {
       const BlockTimer timer(micros);
-      partitions.resize(partition_descriptor.getPartitions().size());
+      for (const auto& partition : partition_descriptor.getPartitions()) {
+         partitions.emplace_back(partition.getChunks());
+      }
       initializeColumns();
-      initializeSequences();
+      initializeSequences(reference_genomes);
       for (size_t partition_index = 0;
            partition_index < partition_descriptor.getPartitions().size();
            ++partition_index) {
          const auto& part = partition_descriptor.getPartitions()[partition_index];
-         partitions[partition_index].chunks = part.getChunks();
          for (size_t chunk_index = 0; chunk_index < part.getChunks().size(); ++chunk_index) {
             const std::filesystem::path metadata_file =
                preprocessing_config.getMetadataSortedPartitionFilename(
@@ -96,7 +98,7 @@ void Database::build(
                SPDLOG_ERROR("metadata file {} not found", metadata_file.string());
                return;
             }
-            for (auto& [nuc_name, reference_sequence] :
+            for (const auto& [nuc_name, reference_sequence] :
                  reference_genomes.raw_nucleotide_sequences) {
                const std::filesystem::path sequence_filename =
                   preprocessing_config.getNucSortedPartitionFilename(
@@ -107,7 +109,7 @@ void Database::build(
                SPDLOG_DEBUG("Using nucleotide sequence file: {}", sequence_filename.string());
                partitions[partition_index].nuc_sequences.at(nuc_name).fill(sequence_input);
             }
-            for (auto& [aa_name, reference_sequence] : reference_genomes.raw_aa_sequences) {
+            for (const auto& [aa_name, reference_sequence] : reference_genomes.raw_aa_sequences) {
                const std::filesystem::path sequence_filename =
                   preprocessing_config.getGeneSortedPartitionFilename(
                      aa_name, partition_index, chunk_index
@@ -128,7 +130,7 @@ void Database::build(
    SPDLOG_INFO("database info: {}", getDatabaseInfo());
 }
 
-[[maybe_unused]] void Database::flipBitmaps() {
+void Database::flipBitmaps() {
    tbb::parallel_for_each(
       partitions.begin(),
       partitions.end(),
@@ -369,21 +371,26 @@ DetailedDatabaseInfo Database::detailedDatabaseInfo() const {
    return result;
 }
 
-[[maybe_unused]] void Database::saveDatabaseState(
+void Database::saveDatabaseState(
    const std::string& save_directory,
-   const preprocessing::Partitions& partition_descriptor
+   const preprocessing::Partitions& partition_descriptor,
+   const ReferenceGenomes& reference_genomes
 ) {
    {
-      std::ofstream part_def_file(save_directory + "partition_descriptor.txt");
-      if (!part_def_file) {
+      std::ofstream partition_descriptor_file(save_directory + "partition_descriptor.json");
+      if (!partition_descriptor_file) {
          throw persistence::SaveDatabaseException(
             "Cannot open partitioning descriptor output file " + save_directory +
-            "partition_descriptor.txt"
+            "partition_descriptor.json"
          );
       }
-      SPDLOG_INFO("Saving partitioning descriptor to {}partition_descriptor.txt", save_directory);
-      partition_descriptor.save(part_def_file);
+      SPDLOG_INFO("Saving partitioning descriptor to {}partition_descriptor.json", save_directory);
+      partition_descriptor.save(partition_descriptor_file);
    }
+   const std::string reference_genomes_filename = save_directory + "reference-genomes.json";
+   reference_genomes.writeToFile(reference_genomes_filename);
+   const std::string database_config_filename = save_directory + "database_config.yaml";
+   database_config.writeConfig(database_config_filename);
 
    std::vector<std::ofstream> file_vec;
    for (uint32_t i = 0; i < partitions.size(); ++i) {
@@ -397,8 +404,11 @@ DetailedDatabaseInfo Database::detailedDatabaseInfo() const {
       }
    }
 
-   SPDLOG_INFO("Saving {} partitions...", partitions.size());
+   std::ofstream column_file(save_directory + "columns.silo");
+   ::boost::archive::binary_oarchive column_archive(column_file);
+   column_archive << columns;
 
+   SPDLOG_INFO("Saving {} partitions...", partitions.size());
    tbb::parallel_for(tbb::blocked_range<size_t>(0, partitions.size()), [&](const auto& local) {
       for (size_t partition_index = local.begin(); partition_index != local.end();
            partition_index++) {
@@ -409,11 +419,71 @@ DetailedDatabaseInfo Database::detailedDatabaseInfo() const {
    SPDLOG_INFO("Finished saving partitions", partitions.size());
 }
 
-void Database::preprocessing(
+Database Database::loadDatabaseState(const std::string& save_directory) {
+   Database database;
+   const auto partition_descriptor_filename = save_directory + "partition_descriptor.json";
+   std::ifstream partition_descriptor_file(partition_descriptor_filename);
+   if (!partition_descriptor_file) {
+      throw persistence::LoadDatabaseException(
+         "Cannot open partition_descriptor input file for loading: " + partition_descriptor_filename
+      );
+   }
+   SPDLOG_INFO("Loading partitioning definition from {}", partition_descriptor_filename);
+
+   auto partition_descriptor = preprocessing::Partitions::load(partition_descriptor_file);
+
+   const auto database_config_filename = save_directory + "database_config.yaml";
+   database.database_config =
+      silo::config::DatabaseConfigReader().readConfig(database_config_filename);
+
+   SPDLOG_INFO("Loading partitions from {}", save_directory);
+   std::vector<std::ifstream> file_vec;
+   for (uint32_t i = 0; i < partition_descriptor.getPartitions().size(); ++i) {
+      const auto partition_file = save_directory + 'P' + std::to_string(i) + ".silo";
+      file_vec.emplace_back(partition_file);
+
+      if (!file_vec.back()) {
+         throw persistence::LoadDatabaseException(
+            "Cannot open partition input file for loading: " + partition_file
+         );
+      }
+   }
+
+   for (const auto& partition : partition_descriptor.getPartitions()) {
+      database.partitions.emplace_back(partition.getChunks());
+   }
+
+   database.initializeColumns();
+
+   std::ifstream column_file(save_directory + "columns.silo");
+   ::boost::archive::binary_iarchive column_archive(column_file);
+   column_archive >> database.columns;
+
+   SPDLOG_INFO("preprocessing - reading reference genome");
+   const ReferenceGenomes& reference_genomes =
+      ReferenceGenomes::readFromFile(save_directory + "reference-genomes.json");
+
+   database.initializeSequences(reference_genomes);
+
+   tbb::parallel_for(
+      tbb::blocked_range<size_t>(0, database.partitions.size()),
+      [&](const auto& local) {
+         for (size_t partition_index = local.begin(); partition_index != local.end();
+              ++partition_index) {
+            ::boost::archive::binary_iarchive input_archive(file_vec[partition_index]);
+            input_archive >> database.partitions[partition_index];
+         }
+      }
+   );
+   return database;
+}
+
+Database Database::preprocessing(
    const preprocessing::PreprocessingConfig& preprocessing_config,
    const config::DatabaseConfig& database_config_
 ) {
-   database_config = database_config_;
+   Database database;
+   database.database_config = database_config_;
 
    SPDLOG_INFO("preprocessing - validate metadata file against config");
    preprocessing::MetadataValidator().validateMedataFile(
@@ -421,17 +491,17 @@ void Database::preprocessing(
    );
 
    SPDLOG_INFO("preprocessing - building alias key");
-   alias_key =
+   database.alias_key =
       PangoLineageAliasLookup::readFromFile(preprocessing_config.getPangoLineageDefinitionFilename()
       );
 
    SPDLOG_INFO("preprocessing - reading reference genome");
-   reference_genomes =
+   const ReferenceGenomes& reference_genomes =
       ReferenceGenomes::readFromFile(preprocessing_config.getReferenceGenomeFilename());
 
    SPDLOG_INFO("preprocessing - counting pango lineages");
    const preprocessing::PangoLineageCounts pango_descriptor(preprocessing::buildPangoLineageCounts(
-      alias_key, preprocessing_config.getMetadataInputFilename(), database_config_
+      database.alias_key, preprocessing_config.getMetadataInputFilename(), database_config_
    ));
 
    SPDLOG_INFO("preprocessing - calculating partitions");
@@ -441,7 +511,11 @@ void Database::preprocessing(
 
    SPDLOG_INFO("preprocessing - partitioning data");
    partitionData(
-      preprocessing_config, partition_descriptor, alias_key, database_config_, reference_genomes
+      preprocessing_config,
+      partition_descriptor,
+      database.alias_key,
+      database_config_,
+      reference_genomes
    );
 
    if (database_config_.schema.date_to_sort_by.has_value()) {
@@ -459,49 +533,53 @@ void Database::preprocessing(
 
    SPDLOG_INFO("preprocessing - building database");
 
-   build(preprocessing_config, partition_descriptor);
+   database.build(preprocessing_config, partition_descriptor, reference_genomes);
+
+   database.saveDatabaseState("output/serialized_state/", partition_descriptor, reference_genomes);
+
+   return database;
 }
 
 void Database::initializeColumn(config::ColumnType column_type, const std::string& name) {
    switch (column_type) {
       case config::ColumnType::STRING:
-         string_columns.emplace(name, storage::column::StringColumn());
+         columns.string_columns.emplace(name, storage::column::StringColumn());
          for (auto& partition : partitions) {
-            partition.insertColumn(name, string_columns.at(name).createPartition());
+            partition.insertColumn(name, columns.string_columns.at(name).createPartition());
          }
          break;
       case config::ColumnType::INDEXED_STRING: {
          auto column = storage::column::IndexedStringColumn();
-         indexed_string_columns.emplace(name, std::move(column));
+         columns.indexed_string_columns.emplace(name, std::move(column));
          for (auto& partition : partitions) {
-            partition.insertColumn(name, indexed_string_columns.at(name).createPartition());
+            partition.insertColumn(name, columns.indexed_string_columns.at(name).createPartition());
          }
       } break;
       case config::ColumnType::INDEXED_PANGOLINEAGE:
-         pango_lineage_columns.emplace(name, storage::column::PangoLineageColumn());
+         columns.pango_lineage_columns.emplace(name, storage::column::PangoLineageColumn());
          for (auto& partition : partitions) {
-            partition.insertColumn(name, pango_lineage_columns.at(name).createPartition());
+            partition.insertColumn(name, columns.pango_lineage_columns.at(name).createPartition());
          }
          break;
       case config::ColumnType::DATE: {
          auto column = name == database_config.schema.date_to_sort_by
                           ? storage::column::DateColumn(true)
                           : storage::column::DateColumn(false);
-         date_columns.emplace(name, std::move(column));
+         columns.date_columns.emplace(name, std::move(column));
          for (auto& partition : partitions) {
-            partition.insertColumn(name, date_columns.at(name).createPartition());
+            partition.insertColumn(name, columns.date_columns.at(name).createPartition());
          }
       } break;
       case config::ColumnType::INT:
-         int_columns.emplace(name, storage::column::IntColumn());
+         columns.int_columns.emplace(name, storage::column::IntColumn());
          for (auto& partition : partitions) {
-            partition.insertColumn(name, int_columns.at(name).createPartition());
+            partition.insertColumn(name, columns.int_columns.at(name).createPartition());
          }
          break;
       case config::ColumnType::FLOAT:
-         float_columns.emplace(name, storage::column::FloatColumn());
+         columns.float_columns.emplace(name, storage::column::FloatColumn());
          for (auto& partition : partitions) {
-            partition.insertColumn(name, float_columns.at(name).createPartition());
+            partition.insertColumn(name, columns.float_columns.at(name).createPartition());
          }
          break;
    }
@@ -513,7 +591,7 @@ void Database::initializeColumns() {
    }
 }
 
-void Database::initializeSequences() {
+void Database::initializeSequences(const ReferenceGenomes& reference_genomes) {
    for (const auto& [nuc_name, reference_genome] : reference_genomes.nucleotide_sequences) {
       auto seq_store = SequenceStore(reference_genome);
       nuc_sequences.emplace(nuc_name, std::move(seq_store));

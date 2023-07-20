@@ -1,6 +1,7 @@
 #ifndef SILO_INCLUDE_SILO_CONFIG_DATABASECONFIG_H_
 #define SILO_INCLUDE_SILO_CONFIG_DATABASECONFIG_H_
 
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <vector>
@@ -35,7 +36,15 @@ struct DatabaseConfig {
    DatabaseSchema schema;
 
    [[nodiscard]] std::optional<DatabaseMetadata> getMetadata(const std::string& name) const;
+
+   void writeConfig(const std::filesystem::path& config_path) const;
 };
+
+class DatabaseConfigReader {
+  public:
+   [[nodiscard]] virtual DatabaseConfig readConfig(const std::filesystem::path& config_path) const;
+};
+
 }  // namespace silo::config
 
 template <>

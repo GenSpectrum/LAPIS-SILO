@@ -52,7 +52,7 @@ std::string displayComparator(typename Selection<T>::Comparator comparator) {
 
 template <typename T>
 std::string Selection<T>::toString() const {
-   return "Select-" + displayComparator<T>(comparator);
+   return "Select" + displayComparator<T>(comparator);
 }
 
 template <typename T>

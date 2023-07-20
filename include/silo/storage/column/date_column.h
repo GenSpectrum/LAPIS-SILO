@@ -20,10 +20,10 @@ class DateColumnPartition {
 
   private:
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+   void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      archive& values;
-      archive& is_sorted;
+      archive & values;
+      archive & is_sorted;
       // clang-format on
    }
 
@@ -41,15 +41,15 @@ class DateColumnPartition {
 };
 
 class DateColumn {
-  public:
+   friend class boost::serialization::access;
+
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      archive& is_sorted;
+      archive & is_sorted;
       // clang-format on
    }
 
-  private:
    bool is_sorted;
    std::deque<DateColumnPartition> partitions;
 

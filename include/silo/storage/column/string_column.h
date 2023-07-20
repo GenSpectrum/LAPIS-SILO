@@ -26,7 +26,7 @@ class StringColumnPartition {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      archive& values;
+      archive & values;
       // clang-format on
    }
 
@@ -53,14 +53,11 @@ class StringColumnPartition {
 class StringColumn {
    friend class boost::serialization::access;
 
-  private:
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      archive& lookup;
-      archive& partitions;
+      archive & *lookup;
       // clang-format on
-      // TODO sync lookups
    }
 
    std::unique_ptr<silo::common::BidirectionalMap<std::string>> lookup;

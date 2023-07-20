@@ -1,16 +1,21 @@
 #include "silo/config/database_config.h"
 
-#include <fmt/format.h>
 #include <algorithm>
+#include <filesystem>
 #include <iterator>
 #include <stdexcept>
 #include <string_view>
 
+#include <fmt/format.h>
+#include <spdlog/spdlog.h>
+#include <yaml-cpp/yaml.h>
+#include <fstream>
+
 #include "silo/config/config_exception.h"
 
-namespace silo::config {
+using silo::config::ValueType;
 
-ValueType toDatabaseValueType(std::string_view type) {
+ValueType silo::config::toDatabaseValueType(std::string_view type) {
    if (type == "string") {
       return ValueType::STRING;
    }
@@ -27,8 +32,113 @@ ValueType toDatabaseValueType(std::string_view type) {
       return ValueType::FLOAT;
    }
 
-   throw ConfigException("Unknown metadata type: " + std::string(type));
+   throw silo::config::ConfigException("Unknown metadata type: " + std::string(type));
 }
+
+namespace {
+
+std::string fromDatabaseValueType(ValueType type) {
+   switch (type) {
+      case ValueType::STRING:
+         return "string";
+      case ValueType::DATE:
+         return "date";
+      case ValueType::PANGOLINEAGE:
+         return "pango_lineage";
+      case ValueType::INT:
+         return "int";
+      case ValueType::FLOAT:
+         return "float";
+   }
+}
+}  // namespace
+
+namespace YAML {
+template <>
+struct convert<silo::config::DatabaseConfig> {
+   static bool decode(const Node& node, silo::config::DatabaseConfig& config) {
+      config.schema = node["schema"].as<silo::config::DatabaseSchema>();
+
+      if (node["defaultNucleotideSequence"].IsDefined()) {
+         config.default_nucleotide_sequence = node["defaultNucleotideSequence"].as<std::string>();
+      } else {
+         config.default_nucleotide_sequence = "main";
+      }
+
+      SPDLOG_TRACE("Resulting database config: {}", config);
+
+      return true;
+   }
+   static Node encode(const silo::config::DatabaseConfig& config) {
+      Node node;
+      node["schema"] = config.schema;
+
+      if (config.default_nucleotide_sequence != "main") {
+         node["defaultNucleotideSequence"] = config.default_nucleotide_sequence;
+      }
+      return node;
+   }
+};
+
+template <>
+struct convert<silo::config::DatabaseSchema> {
+   static bool decode(const Node& node, silo::config::DatabaseSchema& schema) {
+      schema.instance_name = node["instanceName"].as<std::string>();
+      schema.primary_key = node["primaryKey"].as<std::string>();
+      if (node["dateToSortBy"].IsDefined()) {
+         schema.date_to_sort_by = node["dateToSortBy"].as<std::string>();
+      } else {
+         schema.date_to_sort_by = std::nullopt;
+      }
+      schema.partition_by = node["partitionBy"].as<std::string>();
+
+      if (!node["metadata"].IsSequence()) {
+         return false;
+      }
+
+      for (const auto& metadata : node["metadata"]) {
+         schema.metadata.push_back(metadata.as<silo::config::DatabaseMetadata>());
+      }
+      return true;
+   }
+
+   static Node encode(const silo::config::DatabaseSchema& schema) {
+      Node node;
+      node["instanceName"] = schema.instance_name;
+      node["primaryKey"] = schema.primary_key;
+      node["partitionBy"] = schema.partition_by;
+      if (schema.date_to_sort_by.has_value()) {
+         node["dateToSortBy"] = *schema.date_to_sort_by;
+      }
+      node["metadata"] = schema.metadata;
+      return node;
+   }
+};
+
+template <>
+struct convert<silo::config::DatabaseMetadata> {
+   static bool decode(const Node& node, silo::config::DatabaseMetadata& metadata) {
+      metadata.name = node["name"].as<std::string>();
+      metadata.type = silo::config::toDatabaseValueType(node["type"].as<std::string>());
+      if (node["generateIndex"].IsDefined()) {
+         metadata.generate_index = node["generateIndex"].as<bool>();
+      } else {
+         metadata.generate_index = metadata.type == silo::config::ValueType::PANGOLINEAGE;
+      }
+      return true;
+   }
+   static Node encode(const silo::config::DatabaseMetadata& metadata) {
+      Node node;
+      node["name"] = metadata.name;
+      node["type"] = fromDatabaseValueType(metadata.type);
+      node["generateIndex"] = metadata.generate_index;
+      return node;
+   }
+};
+
+}  // namespace YAML
+
+namespace silo::config {
 
 ColumnType DatabaseMetadata::getColumnType() const {
    if (type == ValueType::STRING) {
@@ -66,6 +176,18 @@ std::optional<DatabaseMetadata> DatabaseConfig::getMetadata(const std::string& n
       return std::nullopt;
    }
    return *element;
+}
+
+void DatabaseConfig::writeConfig(const std::filesystem::path& config_path) const {
+   YAML::Node node = YAML::convert<DatabaseConfig>::encode(*this);
+   SPDLOG_INFO("Writing database config to {}", config_path.string());
+   std::ofstream out_file(config_path);
+   out_file << YAML::Dump(node);
+}
+
+DatabaseConfig DatabaseConfigReader::readConfig(const std::filesystem::path& config_path) const {
+   SPDLOG_INFO("Reading database config from {}", config_path.string());
+   return YAML::LoadFile(config_path.string()).as<DatabaseConfig>();
 }
 
 }  // namespace silo::config

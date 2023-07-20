@@ -24,6 +24,8 @@ struct ReferenceGenomes {
       std::unordered_map<std::string, std::string> raw_aa_sequences_
    );
 
+   void writeToFile(const std::filesystem::path& reference_genomes_path) const;
+
    static ReferenceGenomes readFromFile(const std::filesystem::path& reference_genomes_path);
 };
 

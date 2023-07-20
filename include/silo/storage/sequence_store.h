@@ -21,11 +21,9 @@
 #include "silo/roaring/roaring_serialize.h"
 #include "silo/storage/serialize_optional.h"
 
-namespace boost {
-namespace serialization {
+namespace boost::serialization {
 class access;
-}  // namespace serialization
-}  // namespace boost
+}  // namespace boost::serialization
 
 namespace silo {
 class ZstdFastaReader;
@@ -58,9 +56,9 @@ class SequenceStorePartition {
    template <class Archive>
    void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
-      archive& sequence_count;
       archive& positions;
       archive& nucleotide_symbol_n_bitmaps;
+      archive& sequence_count;
       // clang-format on
    }
 
@@ -80,7 +78,7 @@ class SequenceStorePartition {
 
    [[nodiscard]] const roaring::Roaring* getBitmap(size_t position, NUCLEOTIDE_SYMBOL symbol) const;
 
-   SequenceStoreInfo getInfo() const;
+   [[nodiscard]] SequenceStoreInfo getInfo() const;
 
    size_t fill(silo::ZstdFastaReader& input_file);
 

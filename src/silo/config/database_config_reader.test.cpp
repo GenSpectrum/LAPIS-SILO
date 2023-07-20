@@ -1,5 +1,5 @@
-#include "silo/config/database_config_reader.h"
 #include "silo/config/config_exception.h"
+#include "silo/config/database_config.h"
 
 #include <gtest/gtest.h>
 #include <yaml-cpp/yaml.h>

@@ -82,9 +82,13 @@ using json_value_type = std::optional<std::variant<std::string, int32_t, double>
 
 struct Tuple {
    std::vector<char> data;
-   const silo::storage::ColumnGroup& columns;
+   const silo::storage::ColumnPartitionGroup& columns;
 
-   Tuple(uint32_t sequence_id, const silo::storage::ColumnGroup& columns, size_t tuple_size)
+   Tuple(
+      uint32_t sequence_id,
+      const silo::storage::ColumnPartitionGroup& columns,
+      size_t tuple_size
+   )
        : columns(columns) {
       data.resize(tuple_size);
       char* data_pointer = data.data();
@@ -257,7 +261,7 @@ QueryResult Aggregated::execute(
    const std::vector<config::DatabaseMetadata> group_by_metadata =
       parseGroupByFields(database, group_by_fields);
 
-   std::vector<storage::ColumnGroup> group_by_column_groups;
+   std::vector<storage::ColumnPartitionGroup> group_by_column_groups;
    group_by_column_groups.reserve(database.partitions.size());
    for (const auto& partition : database.partitions) {
       group_by_column_groups.emplace_back(partition.columns.getSubgroup(group_by_metadata));

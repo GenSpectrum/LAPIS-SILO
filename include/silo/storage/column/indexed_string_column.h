@@ -28,8 +28,8 @@ class IndexedStringColumnPartition {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      archive& value_ids;
-      archive& indexed_values;
+      archive & value_ids;
+      archive & indexed_values;
       // clang-format on
    }
 
@@ -44,21 +44,19 @@ class IndexedStringColumnPartition {
 
    void insert(const std::string& value);
 
-   const std::vector<silo::Idx>& getValues() const;
+   [[nodiscard]] const std::vector<silo::Idx>& getValues() const;
 
-   inline std::string lookupValue(Idx id) const { return lookup.getValue(id); }
+   [[nodiscard]] inline std::string lookupValue(Idx id) const { return lookup.getValue(id); }
 };
 
 class IndexedStringColumn {
    friend class boost::serialization::access;
 
-  private:
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      archive& lookup;
+      archive & *lookup;
       // clang-format on
-      // TODO lookup sync
    }
 
    std::unique_ptr<common::BidirectionalMap<std::string>> lookup;

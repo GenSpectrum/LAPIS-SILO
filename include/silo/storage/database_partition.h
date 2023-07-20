@@ -8,6 +8,7 @@
 
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
+#include <boost/serialization/unordered_map.hpp>
 
 #include "silo/preprocessing/partition.h"
 #include "silo/storage/aa_store.h"
@@ -42,17 +43,25 @@ class DatabasePartition {
    template <class Archive>
    void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
-      archive& chunks;
-      archive& columns;
-      archive& sequenceCount;
+      archive & columns;
+      for(auto& [name, store] : nuc_sequences){
+         archive & store;
+      }
+      for(auto& [name, store] : aa_sequences){
+         archive & store;
+      }
+      archive & sequenceCount;
       // clang-format on
    }
 
-  public:
    std::vector<silo::preprocessing::Chunk> chunks;
-   storage::ColumnGroup columns;
-   std::unordered_map<std::string, SequenceStorePartition&> nuc_sequences;
-   std::unordered_map<std::string, AAStorePartition&> aa_sequences;
+
+  public:
+   explicit DatabasePartition(std::vector<silo::preprocessing::Chunk> chunks);
+
+   storage::ColumnPartitionGroup columns;
+   std::map<std::string, SequenceStorePartition&> nuc_sequences;
+   std::map<std::string, AAStorePartition&> aa_sequences;
    uint32_t sequenceCount;
 
    [[nodiscard]] const std::vector<preprocessing::Chunk>& getChunks() const;
