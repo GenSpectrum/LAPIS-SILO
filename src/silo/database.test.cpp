@@ -20,9 +20,7 @@ silo::Database buildTestDatabase() {
       input_directory.directory + "test_database_config.yaml"
    );
 
-   auto database = silo::Database::preprocessing(config, database_config);
-
-   return database;
+   return silo::Database::preprocessing(config, database_config);
 }
 
 TEST(DatabaseTest, shouldBuildDatabaseWithoutErrors) {

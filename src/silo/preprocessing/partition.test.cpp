@@ -64,7 +64,7 @@ std::string getExpectedSimplePartitionsDump() {
           "            ]\n"
           "        }\n"
           "    ]\n"
-          "]\n";
+          "]";
 }
 
 TEST(Partitions, shouldSaveSimpleConfig) {

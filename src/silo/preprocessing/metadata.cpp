@@ -10,7 +10,7 @@
 
 #include "silo/preprocessing/preprocessing_exception.h"
 
-namespace silo::preprocessing {
+namespace {
 
 csv::CSVReader buildReader(const std::filesystem::path& metadata_path) {
    SPDLOG_INFO("Reading metadata file: {}", metadata_path.string());
@@ -23,9 +23,12 @@ csv::CSVReader buildReader(const std::filesystem::path& metadata_path) {
    } catch (const std::exception& exception) {
       const std::string message =
          "Failed to read metadata file '" + metadata_path.string() + "': " + exception.what();
-      throw PreprocessingException(message);
+      throw silo::PreprocessingException(message);
    }
 }
+}  // namespace
+
+namespace silo::preprocessing {
 
 MetadataReader::MetadataReader(const std::filesystem::path& metadata_path)
     : reader(buildReader(metadata_path)) {}

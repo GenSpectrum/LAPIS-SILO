@@ -50,6 +50,7 @@ std::string fromDatabaseValueType(ValueType type) {
       case ValueType::FLOAT:
          return "float";
    }
+   throw std::runtime_error("Non-exhausting switch should be covered by linter");
 }
 }  // namespace
 
@@ -179,7 +180,7 @@ std::optional<DatabaseMetadata> DatabaseConfig::getMetadata(const std::string& n
 }
 
 void DatabaseConfig::writeConfig(const std::filesystem::path& config_path) const {
-   YAML::Node node = YAML::convert<DatabaseConfig>::encode(*this);
+   const YAML::Node node = YAML::convert<DatabaseConfig>::encode(*this);
    SPDLOG_INFO("Writing database config to {}", config_path.string());
    std::ofstream out_file(config_path);
    out_file << YAML::Dump(node);
