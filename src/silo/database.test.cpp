@@ -78,3 +78,16 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfo) {
    EXPECT_EQ(simple_info.sequence_count, 100);
    EXPECT_EQ(simple_info.n_bitmaps_size, 3898);
 }
+
+TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
+   auto first_database = buildTestDatabase();
+
+   first_database.saveDatabaseState("output/serialized_state/");
+
+   auto database = silo::Database::loadDatabaseState("output/serialized_state/");
+
+   const auto simple_database_info = database.getDatabaseInfo();
+
+   EXPECT_GT(simple_database_info.total_size, 0);
+   EXPECT_EQ(simple_database_info.sequence_count, 100);
+}

@@ -3,7 +3,6 @@
 #include "silo/preprocessing/preprocessing_config.h"
 
 #include <gtest/gtest.h>
-#include <yaml-cpp/yaml.h>
 #include <fstream>
 
 using silo::preprocessing::Chunk;
@@ -23,48 +22,48 @@ Partitions createSimplePartitionsObject() {
 }
 
 std::string getExpectedSimplePartitionsDump() {
-   return "[\n"
-          "    [\n"
-          "        {\n"
-          "            \"count\": 8,\n"
-          "            \"lineages\": [\n"
-          "                \"A.1\",\n"
-          "                \"A.2\",\n"
-          "                \"A.3\",\n"
-          "                \"B.1\"\n"
-          "            ]\n"
-          "        },\n"
-          "        {\n"
-          "            \"count\": 11123,\n"
-          "            \"lineages\": [\n"
-          "                \"B.2\",\n"
-          "                \"C.1\",\n"
-          "                \"C.2\",\n"
-          "                \"C.3\"\n"
-          "            ]\n"
-          "        }\n"
-          "    ],\n"
-          "    [\n"
-          "        {\n"
-          "            \"count\": 123,\n"
-          "            \"lineages\": [\n"
-          "                \"XY.1\",\n"
-          "                \"XY.2312\",\n"
-          "                \"XY.3\",\n"
-          "                \"XY.A.A.A.3\"\n"
-          "            ]\n"
-          "        },\n"
-          "        {\n"
-          "            \"count\": 512,\n"
-          "            \"lineages\": [\n"
-          "                \"XT.1\",\n"
-          "                \"XT.2312\",\n"
-          "                \"XT.3\",\n"
-          "                \"XTA.A.3\"\n"
-          "            ]\n"
-          "        }\n"
-          "    ]\n"
-          "]";
+   return R"([
+    [
+        {
+            "count": 8,
+            "lineages": [
+                "A.1",
+                "A.2",
+                "A.3",
+                "B.1"
+            ]
+        },
+        {
+            "count": 11123,
+            "lineages": [
+                "B.2",
+                "C.1",
+                "C.2",
+                "C.3"
+            ]
+        }
+    ],
+    [
+        {
+            "count": 123,
+            "lineages": [
+                "XY.1",
+                "XY.2312",
+                "XY.3",
+                "XY.A.A.A.3"
+            ]
+        },
+        {
+            "count": 512,
+            "lineages": [
+                "XT.1",
+                "XT.2312",
+                "XT.3",
+                "XTA.A.3"
+            ]
+        }
+    ]
+])";
 }
 
 TEST(Partitions, shouldSaveSimpleConfig) {

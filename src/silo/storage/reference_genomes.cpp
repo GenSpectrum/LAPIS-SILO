@@ -34,8 +34,8 @@ struct nlohmann::adl_serializer<silo::ReferenceGenomes> {
 namespace silo {
 
 ReferenceGenomes::ReferenceGenomes(
-   std::unordered_map<std::string, std::string> raw_nucleotide_sequences_,
-   std::unordered_map<std::string, std::string> raw_aa_sequences_
+   std::map<std::string, std::string>&& raw_nucleotide_sequences_,
+   std::map<std::string, std::string>&& raw_aa_sequences_
 )
     : raw_nucleotide_sequences(std::move(raw_nucleotide_sequences_)),
       raw_aa_sequences(std::move(raw_aa_sequences_)) {
@@ -78,8 +78,8 @@ ReferenceGenomes::ReferenceGenomes(
 namespace {
 
 ReferenceGenomes readFromJson(const std::filesystem::path& reference_genomes_path) {
-   std::unordered_map<std::string, std::string> nucleotide_sequences;
-   std::unordered_map<std::string, std::string> aa_sequences;
+   std::map<std::string, std::string> nucleotide_sequences;
+   std::map<std::string, std::string> aa_sequences;
    nlohmann::json reference_genomes_json;
    std::ifstream(reference_genomes_path) >> reference_genomes_json;
 
@@ -127,7 +127,7 @@ ReferenceGenomes readFromJson(const std::filesystem::path& reference_genomes_pat
 
       aa_sequences[value["name"]] = value["sequence"];
    }
-   return ReferenceGenomes{nucleotide_sequences, aa_sequences};
+   return ReferenceGenomes{std::move(nucleotide_sequences), std::move(aa_sequences)};
 }
 
 }  // namespace

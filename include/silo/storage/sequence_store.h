@@ -52,13 +52,12 @@ struct SequenceStoreInfo {
 class SequenceStorePartition {
    friend class boost::serialization::access;
 
-  private:
    template <class Archive>
    void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
-      archive& positions;
-      archive& nucleotide_symbol_n_bitmaps;
-      archive& sequence_count;
+      archive & positions;
+      archive & nucleotide_symbol_n_bitmaps;
+      archive & sequence_count;
       // clang-format on
    }
 

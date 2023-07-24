@@ -52,6 +52,8 @@ class Database {
       const config::DatabaseConfig& database_config_
    );
 
+   void saveDatabaseState(const std::string& save_directory);
+
    static Database loadDatabaseState(const std::string& save_directory);
 
    [[nodiscard]] virtual DatabaseInfo getDatabaseInfo() const;
@@ -67,15 +69,18 @@ class Database {
       const ReferenceGenomes& reference_genomes
    );
 
-   void saveDatabaseState(
-      const std::string& save_directory,
-      const silo::preprocessing::Partitions& partition_descriptor,
-      const ReferenceGenomes& reference_genomes
-   );
+   std::map<std::string, std::vector<NUCLEOTIDE_SYMBOL>> getNucSequences() const;
+
+   std::map<std::string, std::vector<AA_SYMBOL>> getAASequences() const;
 
    void initializeColumns();
    void initializeColumn(config::ColumnType column_type, const std::string& name);
-   void initializeSequences(const ReferenceGenomes& reference_genomes);
+   void initializeNucSequences(
+      const std::map<std::string, std::vector<NUCLEOTIDE_SYMBOL>>& reference_sequences
+   );
+   void initializeAASequences(
+      const std::map<std::string, std::vector<AA_SYMBOL>>& reference_sequences
+   );
 
    void flipBitmaps();
 

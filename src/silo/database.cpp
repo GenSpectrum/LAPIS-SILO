@@ -84,7 +84,8 @@ void Database::build(
          partitions.emplace_back(partition.getChunks());
       }
       initializeColumns();
-      initializeSequences(reference_genomes);
+      initializeNucSequences(reference_genomes.nucleotide_sequences);
+      initializeAASequences(reference_genomes.aa_sequences);
       for (size_t partition_index = 0;
            partition_index < partition_descriptor.getPartitions().size();
            ++partition_index) {
@@ -371,30 +372,47 @@ DetailedDatabaseInfo Database::detailedDatabaseInfo() const {
    return result;
 }
 
-void Database::saveDatabaseState(
-   const std::string& save_directory,
-   const preprocessing::Partitions& partition_descriptor,
-   const ReferenceGenomes& reference_genomes
-) {
-   {
-      std::ofstream partition_descriptor_file(save_directory + "partition_descriptor.json");
-      if (!partition_descriptor_file) {
-         throw persistence::SaveDatabaseException(
-            "Cannot open partitioning descriptor output file " + save_directory +
-            "partition_descriptor.json"
-         );
-      }
-      SPDLOG_INFO("Saving partitioning descriptor to {}partition_descriptor.json", save_directory);
-      partition_descriptor.save(partition_descriptor_file);
+std::map<std::string, std::vector<NUCLEOTIDE_SYMBOL>> Database::getNucSequences() const {
+   std::map<std::string, std::vector<NUCLEOTIDE_SYMBOL>> nucleotide_sequences_map;
+   for (const auto& [name, store] : nuc_sequences) {
+      nucleotide_sequences_map.emplace(name, store.reference_genome);
    }
-   const std::string reference_genomes_filename = save_directory + "reference-genomes.json";
-   reference_genomes.writeToFile(reference_genomes_filename);
+   return nucleotide_sequences_map;
+}
+
+std::map<std::string, std::vector<AA_SYMBOL>> Database::getAASequences() const {
+   std::map<std::string, std::vector<AA_SYMBOL>> aa_sequences_map;
+   for (const auto& [name, store] : aa_sequences) {
+      aa_sequences_map.emplace(name, store.reference_sequence);
+   }
+   return aa_sequences_map;
+}
+
+void Database::saveDatabaseState(const std::string& save_directory) {
    const std::string database_config_filename = save_directory + "database_config.yaml";
    database_config.writeConfig(database_config_filename);
 
+   std::ofstream partitions_file(save_directory + "partitions.silo");
+   ::boost::archive::binary_oarchive partitions_archive(partitions_file);
+   partitions_archive << partitions;
+
+   std::ofstream column_file(save_directory + "column_info.silo");
+   ::boost::archive::binary_oarchive column_archive(column_file);
+   column_archive << columns;
+
+   auto nuc_sequences_map = getNucSequences();
+   std::ofstream nuc_sequences_file(save_directory + "nuc_sequences.silo");
+   ::boost::archive::binary_oarchive nuc_sequences_archive(nuc_sequences_file);
+   nuc_sequences_archive << nuc_sequences_map;
+
+   auto aa_sequences_map = getAASequences();
+   std::ofstream aa_sequences_file(save_directory + "aa_sequences.silo");
+   ::boost::archive::binary_oarchive aa_sequences_archive(aa_sequences_file);
+   aa_sequences_archive << aa_sequences_map;
+
    std::vector<std::ofstream> file_vec;
    for (uint32_t i = 0; i < partitions.size(); ++i) {
-      const auto& partition_file = save_directory + 'P' + std::to_string(i) + ".silo";
+      const auto& partition_file = save_directory + "P" + std::to_string(i) + ".silo";
       file_vec.emplace_back(partition_file);
 
       if (!file_vec.back()) {
@@ -404,16 +422,12 @@ void Database::saveDatabaseState(
       }
    }
 
-   std::ofstream column_file(save_directory + "columns.silo");
-   ::boost::archive::binary_oarchive column_archive(column_file);
-   column_archive << columns;
-
    SPDLOG_INFO("Saving {} partitions...", partitions.size());
    tbb::parallel_for(tbb::blocked_range<size_t>(0, partitions.size()), [&](const auto& local) {
       for (size_t partition_index = local.begin(); partition_index != local.end();
            partition_index++) {
          ::boost::archive::binary_oarchive output_archive(file_vec[partition_index]);
-         output_archive << partitions[partition_index];
+         partitions[partition_index].serializeData(output_archive, 0);
       }
    });
    SPDLOG_INFO("Finished saving partitions", partitions.size());
@@ -421,49 +435,46 @@ void Database::saveDatabaseState(
 
 Database Database::loadDatabaseState(const std::string& save_directory) {
    Database database;
-   const auto partition_descriptor_filename = save_directory + "partition_descriptor.json";
-   std::ifstream partition_descriptor_file(partition_descriptor_filename);
-   if (!partition_descriptor_file) {
-      throw persistence::LoadDatabaseException(
-         "Cannot open partition_descriptor input file for loading: " + partition_descriptor_filename
-      );
-   }
-   SPDLOG_INFO("Loading partitioning definition from {}", partition_descriptor_filename);
-
-   auto partition_descriptor = preprocessing::Partitions::load(partition_descriptor_file);
-
    const auto database_config_filename = save_directory + "database_config.yaml";
    database.database_config =
       silo::config::DatabaseConfigReader().readConfig(database_config_filename);
 
    SPDLOG_INFO("Loading partitions from {}", save_directory);
-   std::vector<std::ifstream> file_vec;
-   for (uint32_t i = 0; i < partition_descriptor.getPartitions().size(); ++i) {
-      const auto partition_file = save_directory + 'P' + std::to_string(i) + ".silo";
-      file_vec.emplace_back(partition_file);
 
-      if (!file_vec.back()) {
-         throw persistence::LoadDatabaseException(
-            "Cannot open partition input file for loading: " + partition_file
-         );
-      }
-   }
-
-   for (const auto& partition : partition_descriptor.getPartitions()) {
-      database.partitions.emplace_back(partition.getChunks());
-   }
+   std::ifstream partitions_file(save_directory + "partitions.silo");
+   ::boost::archive::binary_iarchive partitions_archive(partitions_file);
+   partitions_archive >> database.partitions;
 
    database.initializeColumns();
 
-   std::ifstream column_file(save_directory + "columns.silo");
+   std::ifstream column_file(save_directory + "column_info.silo");
    ::boost::archive::binary_iarchive column_archive(column_file);
    column_archive >> database.columns;
 
-   SPDLOG_INFO("preprocessing - reading reference genome");
-   const ReferenceGenomes& reference_genomes =
-      ReferenceGenomes::readFromFile(save_directory + "reference-genomes.json");
+   std::map<std::string, std::vector<NUCLEOTIDE_SYMBOL>> nuc_sequences_map;
+   std::ifstream nuc_sequences_file(save_directory + "nuc_sequences.silo");
+   ::boost::archive::binary_iarchive nuc_sequences_archive(nuc_sequences_file);
+   nuc_sequences_archive >> nuc_sequences_map;
 
-   database.initializeSequences(reference_genomes);
+   std::map<std::string, std::vector<AA_SYMBOL>> aa_sequences_map;
+   std::ifstream aa_sequences_file(save_directory + "aa_sequences.silo");
+   ::boost::archive::binary_iarchive aa_sequences_archive(aa_sequences_file);
+   aa_sequences_archive >> aa_sequences_map;
+
+   database.initializeNucSequences(nuc_sequences_map);
+   database.initializeAASequences(aa_sequences_map);
+
+   std::vector<std::ifstream> file_vec;
+   for (uint32_t i = 0; i < database.partitions.size(); ++i) {
+      const auto& partition_file = save_directory + "P" + std::to_string(i) + ".silo";
+      file_vec.emplace_back(partition_file);
+
+      if (!file_vec.back()) {
+         throw persistence::SaveDatabaseException(
+            "Cannot open partition input file " + partition_file + " for loading"
+         );
+      }
+   }
 
    tbb::parallel_for(
       tbb::blocked_range<size_t>(0, database.partitions.size()),
@@ -471,7 +482,7 @@ Database Database::loadDatabaseState(const std::string& save_directory) {
          for (size_t partition_index = local.begin(); partition_index != local.end();
               ++partition_index) {
             ::boost::archive::binary_iarchive input_archive(file_vec[partition_index]);
-            input_archive >> database.partitions[partition_index];
+            database.partitions[partition_index].serializeData(input_archive, 0);
          }
       }
    );
@@ -535,8 +546,6 @@ Database Database::preprocessing(
 
    database.build(preprocessing_config, partition_descriptor, reference_genomes);
 
-   database.saveDatabaseState("output/serialized_state/", partition_descriptor, reference_genomes);
-
    return database;
 }
 
@@ -591,15 +600,22 @@ void Database::initializeColumns() {
    }
 }
 
-void Database::initializeSequences(const ReferenceGenomes& reference_genomes) {
-   for (const auto& [nuc_name, reference_genome] : reference_genomes.nucleotide_sequences) {
+void Database::initializeNucSequences(
+   const std::map<std::string, std::vector<NUCLEOTIDE_SYMBOL>>& reference_sequences
+) {
+   for (const auto& [nuc_name, reference_genome] : reference_sequences) {
       auto seq_store = SequenceStore(reference_genome);
       nuc_sequences.emplace(nuc_name, std::move(seq_store));
       for (auto& partition : partitions) {
          partition.nuc_sequences.insert({nuc_name, nuc_sequences.at(nuc_name).createPartition()});
       }
    }
-   for (const auto& [aa_name, reference_genome] : reference_genomes.aa_sequences) {
+}
+
+void Database::initializeAASequences(
+   const std::map<std::string, std::vector<AA_SYMBOL>>& reference_sequences
+) {
+   for (const auto& [aa_name, reference_genome] : reference_sequences) {
       auto aa_store = AAStore(reference_genome);
       aa_sequences.emplace(aa_name, std::move(aa_store));
       for (auto& partition : partitions) {

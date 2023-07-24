@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include <boost/serialization/access.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 namespace boost::serialization {
@@ -20,11 +21,24 @@ class Partition;
 
 class Chunk {
    friend class Partition;
+   friend class boost::serialization::access;
+
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
+      // clang-format off
+      archive& prefix;
+      archive& count_of_sequences;
+      archive& offset;
+      archive& pango_lineages;
+      // clang-format on
+   }
 
    std::string prefix;
    uint32_t count_of_sequences;
    uint32_t offset;
    std::vector<std::string> pango_lineages;
+
+   Chunk() = default;
 
   public:
    Chunk(std::string_view lineage, uint32_t count);

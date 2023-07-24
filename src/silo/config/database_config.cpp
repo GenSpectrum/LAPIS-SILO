@@ -37,7 +37,7 @@ ValueType silo::config::toDatabaseValueType(std::string_view type) {
 
 namespace {
 
-std::string fromDatabaseValueType(ValueType type) {
+std::string toString(ValueType type) {
    switch (type) {
       case ValueType::STRING:
          return "string";
@@ -131,7 +131,7 @@ struct convert<silo::config::DatabaseMetadata> {
    static Node encode(const silo::config::DatabaseMetadata& metadata) {
       Node node;
       node["name"] = metadata.name;
-      node["type"] = fromDatabaseValueType(metadata.type);
+      node["type"] = toString(metadata.type);
       node["generateIndex"] = metadata.generate_index;
       return node;
    }
