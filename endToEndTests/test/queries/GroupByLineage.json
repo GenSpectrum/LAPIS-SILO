@@ -3,12 +3,8 @@
   "query": {
     "action": {
       "type": "Aggregated",
-      "groupByFields": [
-        "pango_lineage"
-      ],
-      "orderByFields": [
-        "pango_lineage"
-      ]
+      "groupByFields": ["pango_lineage"],
+      "orderByFields": ["pango_lineage"]
     },
     "filterExpression": {
       "type": "True"

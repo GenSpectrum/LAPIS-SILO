@@ -259,3 +259,64 @@ std::size_t std::hash<silo::preprocessing::PartitionChunk>::operator()(
           (hash<uint32_t>()(partition_chunk.chunk) << 3) +
           (hash<uint32_t>()(partition_chunk.chunk) >> 2);
 }
+
+namespace silo::common {
+
+// NOLINTNEXTLINE(readability-identifier-naming)
+void from_json(
+   const nlohmann::json& js_object,
+   silo::common::UnaliasedPangoLineage& pango_lineage
+) {
+   pango_lineage.value = js_object;
+}
+
+// NOLINTNEXTLINE(readability-identifier-naming)
+void to_json(nlohmann::json& js_object, const silo::common::UnaliasedPangoLineage& pango_lineage) {
+   js_object = pango_lineage.value;
+}
+}  // namespace silo::common
+
+template <>
+struct nlohmann::adl_serializer<silo::preprocessing::Chunk> {
+   // NOLINTNEXTLINE(readability-identifier-naming)
+   static silo::preprocessing::Chunk from_json(const nlohmann::json& js_object) {
+      return silo::preprocessing::Chunk{
+         js_object["lineages"].template get<std::vector<silo::common::UnaliasedPangoLineage>>(),
+         js_object["count"].template get<uint32_t>()};
+   }
+
+   // NOLINTNEXTLINE(readability-identifier-naming)
+   static void to_json(nlohmann::json& js_object, const silo::preprocessing::Chunk& chunk) {
+      js_object["lineages"] = chunk.getPangoLineages();
+      js_object["count"] = chunk.getCountOfSequences();
+   }
+};
+
+template <>
+struct nlohmann::adl_serializer<silo::preprocessing::Partition> {
+   // NOLINTNEXTLINE(readability-identifier-naming)
+   static silo::preprocessing::Partition from_json(const nlohmann::json& js_object) {
+      return silo::preprocessing::Partition{
+         js_object.template get<std::vector<silo::preprocessing::Chunk>>()};
+   }
+
+   // NOLINTNEXTLINE(readability-identifier-naming)
+   static void to_json(nlohmann::json& js_object, const silo::preprocessing::Partition& partition) {
+      js_object = partition.getChunks();
+   }
+};
+
+namespace silo::preprocessing {
+
+void Partitions::save(std::ostream& output_file) const {
+   const nlohmann::json json(partitions);
+   output_file << json.dump(4);
+}
+
+Partitions Partitions::load(std::istream& input_file) {
+   nlohmann::json json;
+   json = nlohmann::json::parse(input_file);
+   const std::vector<Partition> partitions = json.get<std::vector<Partition>>();
+   return Partitions{partitions};
+}
+}  // namespace silo::preprocessing

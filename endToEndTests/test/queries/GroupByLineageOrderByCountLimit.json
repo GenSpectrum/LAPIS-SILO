@@ -3,9 +3,7 @@
   "query": {
     "action": {
       "type": "Aggregated",
-      "groupByFields": [
-        "pango_lineage"
-      ],
+      "groupByFields": ["pango_lineage"],
       "orderByFields": [
         {
           "field": "count",

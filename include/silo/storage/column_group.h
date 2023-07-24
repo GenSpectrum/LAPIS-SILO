@@ -41,7 +41,9 @@ class DatabaseConfig;
 
 namespace silo::storage {
 
-struct ColumnPartitionGroup {
+class ColumnPartitionGroup {
+   friend class boost::serialization::access;
+
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
@@ -66,6 +68,7 @@ struct ColumnPartitionGroup {
       // clang-format on
    }
 
+  public:
    std::vector<config::DatabaseMetadata> metadata;
 
    std::map<std::string, storage::column::StringColumnPartition&> string_columns;
@@ -85,7 +88,9 @@ struct ColumnPartitionGroup {
    ) const;
 };
 
-struct ColumnGroup {
+class ColumnGroup {
+   friend class boost::serialization::access;
+
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
@@ -110,6 +115,7 @@ struct ColumnGroup {
       // clang-format on
    }
 
+  public:
    std::vector<config::DatabaseMetadata> metadata;
 
    std::map<std::string, storage::column::StringColumn> string_columns;
