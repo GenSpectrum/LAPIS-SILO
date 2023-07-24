@@ -16,6 +16,7 @@ class DatabasePartition;
 namespace query_engine {
 namespace operators {
 class Operator;
+class Predicate;
 }  // namespace operators
 }  // namespace query_engine
 struct Database;
@@ -29,7 +30,8 @@ struct And : public Expression {
 
    std::tuple<
       std::vector<std::unique_ptr<operators::Operator>>,
-      std::vector<std::unique_ptr<operators::Operator>>>
+      std::vector<std::unique_ptr<operators::Operator>>,
+      std::vector<std::unique_ptr<operators::Predicate>>>
    compileChildren(
       const Database& database,
       const DatabasePartition& database_partition,

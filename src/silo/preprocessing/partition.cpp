@@ -90,7 +90,7 @@ std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
 }
 
 silo::preprocessing::Partition::Partition(std::vector<Chunk>&& chunks_)
-    : chunks(chunks_) {
+    : chunks(std::move(chunks_)) {
    uint32_t running_total = 0;
    for (Chunk& chunk : chunks) {
       chunk.offset = running_total;

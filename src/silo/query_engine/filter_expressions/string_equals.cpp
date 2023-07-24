@@ -56,10 +56,10 @@ std::unique_ptr<silo::query_engine::operators::Operator> StringEquals::compile(
       const auto& string_column = database_partition.columns.string_columns.at(column);
       const auto& embedded_string = string_column.embedString(value);
       if (embedded_string.has_value()) {
-         return std::make_unique<operators::Selection<common::String<silo::common::STRING_SIZE>>>(
-            string_column.getValues(),
-            operators::Selection<common::String<silo::common::STRING_SIZE>>::EQUALS,
-            embedded_string.value(),
+         return std::make_unique<operators::Selection>(
+            std::make_unique<operators::CompareToValueSelection<common::SiloString>>(
+               string_column.getValues(), operators::Comparator::EQUALS, embedded_string.value()
+            ),
             database_partition.sequenceCount
          );
       }

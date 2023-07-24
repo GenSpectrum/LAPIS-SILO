@@ -43,24 +43,18 @@ std::unique_ptr<silo::query_engine::operators::Operator> IntBetween::compile(
 ) const {
    const auto& int_column = database_partition.columns.int_columns.at(column);
 
-   std::vector<std::unique_ptr<operators::Operator>> children;
-   children.emplace_back(std::make_unique<operators::Selection<int32_t>>(
-      int_column.getValues(),
-      operators::Selection<int32_t>::HIGHER_OR_EQUALS,
-      from.value_or(INT32_MIN + 1),
-      database_partition.sequenceCount
+   std::vector<std::unique_ptr<operators::Predicate>> predicates;
+   predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<int32_t>>(
+      int_column.getValues(), operators::Comparator::HIGHER_OR_EQUALS, from.value_or(INT32_MIN + 1)
    ));
-   children.emplace_back(std::make_unique<operators::Selection<int32_t>>(
-      int_column.getValues(),
-      operators::Selection<int32_t>::LESS_OR_EQUALS,
-      to.value_or(INT32_MAX),
-      database_partition.sequenceCount
-   ));
+   if (to.has_value()) {
+      predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<int32_t>>(
+         int_column.getValues(), operators::Comparator::LESS_OR_EQUALS, to.value()
+      ));
+   };
 
-   return std::make_unique<operators::Intersection>(
-      std::move(children),
-      std::vector<std::unique_ptr<operators::Operator>>(),
-      database_partition.sequenceCount
+   return std::make_unique<operators::Selection>(
+      std::move(predicates), database_partition.sequenceCount
    );
 }
 
