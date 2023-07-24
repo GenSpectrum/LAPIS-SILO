@@ -215,13 +215,18 @@ std::unique_ptr<roaring::Roaring> InsertionIndex::search(
    const auto three_mers = extractThreeMers(search_pattern);
    const std::regex regex_search_pattern(search_pattern);
 
+   const auto insertion_pos_it = insertion_positions.find(position);
+   if (insertion_pos_it == insertion_positions.end()) {
+      return std::make_unique<roaring::Roaring>();
+   }
+
    if (!three_mers.empty()) {
-      return insertion_positions.at(position).searchWithThreeMerIndex(
+      return insertion_pos_it->second.searchWithThreeMerIndex(
          three_mers, regex_search_pattern
       );
    }
    auto result = std::make_unique<roaring::Roaring>();
-   for (const auto& insertion : insertion_positions.at(position).insertions) {
+   for (const auto& insertion : insertion_pos_it->second.insertions) {
       if (std::regex_search(insertion.value, regex_search_pattern)) {
          *result |= insertion.sequence_ids;
       }

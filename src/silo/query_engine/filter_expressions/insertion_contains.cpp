@@ -88,12 +88,16 @@ void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains>& f
       json.contains("value"), "The field 'value' is required in an InsertionContains expression"
    )
    CHECK_SILO_QUERY(
-      json["value"].is_string() || json["value"].is_null(),
-      "The field 'value' in an InsertionContains expression needs to be a string or null"
+      json["value"].is_string() && !json["value"].is_null(),
+      "The field 'value' in an InsertionContains expression needs to be a string"
    )
    const std::string& column_name = json["column"];
-   uint32_t position = json["position"];
-   const std::string& value = json["value"].is_null() ? "" : json["value"].get<std::string>();
+   const uint32_t position = json["position"];
+   const std::string& value = json["value"].get<std::string>();
+   CHECK_SILO_QUERY(
+      !value.empty(),
+      "The field 'value' in an InsertionContains expression must not be an empty string"
+   )
    CHECK_SILO_QUERY(
       validateRegexPattern(value),
       "The field 'value' in the InsertionContains expression does not contain a valid regex "

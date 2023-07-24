@@ -32,26 +32,29 @@ TEST(InsertionColumn, shouldReturnTheCorrectSearchedValues) {
    InsertionColumnPartition under_test(lookup);
 
    under_test.insert("25701:ACCA");
-   under_test.insert("2301:CCG");
-   under_test.insert("2301:CCG");
-   under_test.insert("19832:TTACAT,25701:ACCA");
+   under_test.insert("25701:CCG");
+   under_test.insert("25701:CCG");
+   under_test.insert("25701:TTACAT,25701:ACCA");
    under_test.insert("25701:ACCA");
-   under_test.insert("19832:TTACAT,25701:ACCA,29903:AGCTGTTCAG");
+   under_test.insert("25701:TTACAT,25701:ACCA,25701:AGCTGTTCAG");
 
    under_test.buildInsertionIndex();
 
-   const auto result1 = under_test.search(".*CC.*");
+   const auto result1 = under_test.search(25701, ".*CC.*");
    ASSERT_EQ(*result1, roaring::Roaring({0, 1, 2, 3, 4, 5}));
 
-   const auto result2 = under_test.search(".*TTA.*CAT.*");
+   const auto result2 = under_test.search(25701, ".*TTA.*CAT.*");
    ASSERT_EQ(*result2, roaring::Roaring({3, 5}));
 
-   const auto result3 = under_test.search(".*AGC.*TGT.*TCA.*G.*");
+   const auto result3 = under_test.search(25701, ".*AGC.*TGT.*TCA.*G.*");
    ASSERT_EQ(*result3, roaring::Roaring({5}));
 
-   const auto result4 = under_test.search(".*AGC.*TG.*T.*T.*C.*AG.*");
+   const auto result4 = under_test.search(25701, ".*AGC.*TG.*T.*T.*C.*AG.*");
    ASSERT_EQ(*result4, roaring::Roaring({5}));
 
-   const auto result5 = under_test.search(".*TTT.*AAA.*");
+   const auto result5 = under_test.search(25701, ".*TTT.*AAA.*");
+   ASSERT_EQ(*result5, roaring::Roaring());
+
+   const auto result6 = under_test.search(100, ".*TTT.*AAA.*");
    ASSERT_EQ(*result5, roaring::Roaring());
 }

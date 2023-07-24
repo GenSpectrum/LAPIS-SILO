@@ -7,7 +7,7 @@
     "filterExpression": {
       "type": "InsertionContains",
       "column": "insertions",
-      "position": 25701,
+      "position": 22339,
       "value": ".*GCT.*GGT.*"
     }
   },
