@@ -9,6 +9,7 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/query_engine/filter_expressions/expression.h"
+#include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/full.h"
 #include "silo/query_engine/operators/intersection.h"
 #include "silo/query_engine/operators/operator.h"
@@ -42,39 +43,29 @@ std::unique_ptr<silo::query_engine::operators::Operator> FloatBetween::compile(
    const silo::DatabasePartition& database_partition,
    silo::query_engine::filter_expressions::Expression::AmbiguityMode /*mode*/
 ) const {
-   const auto& int_column = database_partition.columns.float_columns.at(column);
+   const auto& float_column = database_partition.columns.float_columns.at(column);
 
-   std::vector<std::unique_ptr<operators::Operator>> children;
+   std::vector<std::unique_ptr<operators::Predicate>> predicates;
    if (from.has_value()) {
-      children.emplace_back(std::make_unique<operators::Selection<double>>(
-         int_column.getValues(),
-         operators::Selection<double>::HIGHER_OR_EQUALS,
-         from.value(),
-         database_partition.sequenceCount
+      predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<double>>(
+         float_column.getValues(), operators::Comparator::HIGHER_OR_EQUALS, from.value()
       ));
    }
 
    if (to.has_value()) {
-      children.emplace_back(std::make_unique<operators::Selection<double>>(
-         int_column.getValues(),
-         operators::Selection<double>::LESS,
-         to.value(),
-         database_partition.sequenceCount
+      predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<double>>(
+         float_column.getValues(), operators::Comparator::LESS, to.value()
       ));
    }
 
-   if (children.empty()) {
-      return std::make_unique<operators::Full>(database_partition.sequenceCount);
+   if (predicates.empty()) {
+      predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<double>>(
+         float_column.getValues(), operators::Comparator::NOT_EQUALS, NAN
+      ));
    }
 
-   if (children.size() == 1) {
-      return std::move(children[0]);
-   }
-
-   return std::make_unique<operators::Intersection>(
-      std::move(children),
-      std::vector<std::unique_ptr<operators::Operator>>(),
-      database_partition.sequenceCount
+   return std::make_unique<operators::Selection>(
+      std::move(predicates), database_partition.sequenceCount
    );
 }
 

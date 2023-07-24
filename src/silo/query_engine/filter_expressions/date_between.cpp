@@ -56,24 +56,23 @@ std::unique_ptr<operators::Operator> DateBetween::compile(
    const auto& date_column = database_partition.columns.date_columns.at(column);
 
    if (!date_column.isSorted()) {
-      std::vector<std::unique_ptr<operators::Operator>> children;
-      children.emplace_back(std::make_unique<operators::Selection<silo::common::Date>>(
-         date_column.getValues(),
-         operators::Selection<silo::common::Date>::HIGHER_OR_EQUALS,
-         date_from.value_or(silo::common::Date{1}),
-         database_partition.sequenceCount
-      ));
-      children.emplace_back(std::make_unique<operators::Selection<silo::common::Date>>(
-         date_column.getValues(),
-         operators::Selection<silo::common::Date>::LESS,
-         date_to.value_or(silo::common::Date{UINT32_MAX}),
-         database_partition.sequenceCount
-      ));
-
-      return std::make_unique<operators::Intersection>(
-         std::move(children),
-         std::vector<std::unique_ptr<operators::Operator>>(),
-         database_partition.sequenceCount
+      std::vector<std::unique_ptr<operators::Predicate>> predicates;
+      predicates.emplace_back(
+         std::make_unique<operators::CompareToValueSelection<silo::common::Date>>(
+            date_column.getValues(),
+            operators::Comparator::HIGHER_OR_EQUALS,
+            date_from.value_or(silo::common::Date{1})
+         )
+      );
+      predicates.emplace_back(
+         std::make_unique<operators::CompareToValueSelection<silo::common::Date>>(
+            date_column.getValues(),
+            operators::Comparator::LESS,
+            date_to.value_or(silo::common::Date{UINT32_MAX})
+         )
+      );
+      return std::make_unique<operators::Selection>(
+         std::move(predicates), database_partition.sequenceCount
       );
    }
 

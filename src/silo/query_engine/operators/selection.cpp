@@ -1,154 +1,221 @@
 #include "silo/query_engine/operators/selection.h"
 
+#include <iomanip>
+#include <sstream>
 #include <stdexcept>
 #include <utility>
 #include <vector>
 
+#include <boost/algorithm/string/join.hpp>
 #include <roaring/roaring.hh>
 
 #include "silo/common/date.h"
 #include "silo/common/string.h"
+#include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo::query_engine::operators {
 
-template <typename T>
-Selection<T>::Selection(
-   const std::vector<T>& column,
-   Comparator comparator,
-   T value,
+Selection::Selection(
+   std::unique_ptr<Operator>&& child_operator,
+   std::vector<std::unique_ptr<Predicate>>&& predicates,
    uint32_t row_count
 )
-    : column(column),
-      comparator(comparator),
-      value(std::move(value)),
+    : child_operator(std::move(child_operator)),
+      predicates(std::move(predicates)),
+      row_count(row_count) {}
+
+Selection::Selection(
+   std::unique_ptr<Operator>&& child_operator,
+   std::unique_ptr<Predicate> predicate,
+   uint32_t row_count
+)
+    : child_operator(std::move(child_operator)),
       row_count(row_count) {
-   if (row_count > this->column.size()) {
-      throw std::runtime_error("Rows do not match vector size for Selection operator");
-   }
+   predicates.emplace_back(std::move(predicate));
 }
 
-template <typename T>
-Selection<T>::~Selection() noexcept = default;
+Selection::Selection(std::vector<std::unique_ptr<Predicate>>&& predicates, uint32_t row_count)
+    : predicates(std::move(predicates)),
+      row_count(row_count) {}
 
-template <typename T>
-std::string displayComparator(typename Selection<T>::Comparator comparator) {
+Selection::Selection(std::unique_ptr<Predicate> predicate, uint32_t row_count)
+    : row_count(row_count) {
+   predicates.emplace_back(std::move(predicate));
+}
+
+Selection::~Selection() noexcept = default;
+
+std::string displayComparator(Comparator comparator) {
    switch (comparator) {
-      case Selection<T>::EQUALS:
+      case Comparator::EQUALS:
          return "=";
-      case Selection<T>::NOT_EQUALS:
+      case Comparator::NOT_EQUALS:
          return "!=";
-      case Selection<T>::LESS:
+      case Comparator::LESS:
          return "<";
-      case Selection<T>::HIGHER:
+      case Comparator::HIGHER:
          return ">";
-      case Selection<T>::LESS_OR_EQUALS:
+      case Comparator::LESS_OR_EQUALS:
          return "<=";
-      case Selection<T>::HIGHER_OR_EQUALS:
+      case Comparator::HIGHER_OR_EQUALS:
          return ">=";
    }
-   throw std::runtime_error("found unhandled comparator" + std::to_string(comparator));
+   throw std::runtime_error("found unhandled comparator");
 }
 
-template <typename T>
-std::string Selection<T>::toString() const {
-   return "Select" + displayComparator<T>(comparator);
+std::string Selection::toString() const {
+   std::vector<std::string> predicate_strings;
+   std::transform(
+      predicates.begin(),
+      predicates.end(),
+      std::back_inserter(predicate_strings),
+      [](const auto& predicate) { return predicate->toString(); }
+   );
+   return "Select[" + boost::algorithm::join(predicate_strings, ",") + "](" + ")";
 }
 
-template <typename T>
-Type Selection<T>::type() const {
+Type Selection::type() const {
    return SELECTION;
 }
 
-template <typename T>
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
-OperatorResult Selection<T>::evaluate() const {
+bool Selection::matchesPredicates(uint32_t row) const {
+   return std::all_of(predicates.begin(), predicates.end(), [&](const auto& predicate) {
+      return predicate->match(row);
+   });
+}
+
+OperatorResult Selection::evaluate() const {
    auto* result = new roaring::Roaring();
-   switch (this->comparator) {
-      case EQUALS:
-         for (uint32_t i = 0; i < row_count; i++) {
-            if (column[i] == value) {
-               result->add(i);
-            }
+   if (child_operator.has_value()) {
+      for (const uint32_t row : *(*child_operator)->evaluate()) {
+         if (matchesPredicates(row)) {
+            result->add(row);
          }
-         break;
-      case NOT_EQUALS:
-         for (uint32_t i = 0; i < row_count; i++) {
-            if (column[i] != value) {
-               result->add(i);
-            }
+      }
+   } else {
+      for (uint32_t row = 0; row < row_count; ++row) {
+         if (matchesPredicates(row)) {
+            result->add(row);
          }
-         break;
-      case LESS:
-         for (uint32_t i = 0; i < row_count; i++) {
-            if (column[i] < value) {
-               result->add(i);
-            }
-         }
-         break;
-      case HIGHER_OR_EQUALS:
-         for (uint32_t i = 0; i < row_count; i++) {
-            if (column[i] >= value) {
-               result->add(i);
-            }
-         }
-         break;
-      case HIGHER:
-         for (uint32_t i = 0; i < row_count; i++) {
-            if (column[i] > value) {
-               result->add(i);
-            }
-         }
-         break;
-      case LESS_OR_EQUALS:
-         for (uint32_t i = 0; i < row_count; i++) {
-            if (column[i] <= value) {
-               result->add(i);
-            }
-         }
-         break;
+      }
    }
    return OperatorResult(result);
 }
 
-template <typename T>
-std::unique_ptr<Operator> Selection<T>::copy() const {
-   return std::make_unique<Selection<T>>(column, comparator, value, row_count);
-}
-
-template <typename T>
-std::unique_ptr<Operator> Selection<T>::negate() const {
-   Selection::Comparator new_comparator;
-   switch (this->comparator) {
-      case EQUALS:
-         new_comparator = NOT_EQUALS;
-         break;
-      case NOT_EQUALS:
-         new_comparator = EQUALS;
-         break;
-      case LESS:
-         new_comparator = HIGHER_OR_EQUALS;
-         break;
-      case HIGHER_OR_EQUALS:
-         new_comparator = LESS;
-         break;
-      case HIGHER:
-         new_comparator = LESS_OR_EQUALS;
-         break;
-      case LESS_OR_EQUALS:
-         new_comparator = HIGHER;
-         break;
-      default:
-         throw std::runtime_error(
-            "Unknown Selection comparator in negate method: " + std::to_string(comparator)
-         );
+std::unique_ptr<Operator> Selection::copy() const {
+   std::vector<std::unique_ptr<Predicate>> copied_predicates;
+   std::transform(
+      predicates.begin(),
+      predicates.end(),
+      std::back_inserter(copied_predicates),
+      [](const auto& predicate) { return predicate->copy(); }
+   );
+   if (child_operator.has_value()) {
+      return std::make_unique<Selection>(
+         (*child_operator)->copy(), std::move(copied_predicates), row_count
+      );
    }
-   return std::make_unique<Selection<T>>(column, new_comparator, value, row_count);
+   return std::make_unique<Selection>(std::move(copied_predicates), row_count);
 }
 
-template class Selection<int32_t>;
-template class Selection<silo::common::String<silo::common::STRING_SIZE>>;
-template class Selection<silo::common::Date>;
-template class Selection<double>;
+std::unique_ptr<Operator> Selection::negate() const {
+   if (child_operator == std::nullopt && predicates.size() == 1) {
+      return std::make_unique<Selection>(predicates.at(0)->negate(), row_count);
+   }
+   return std::make_unique<Complement>(this->copy(), row_count);
+}
+
+template <typename T>
+CompareToValueSelection<T>::CompareToValueSelection(
+   const std::vector<T>& column,
+   Comparator comparator,
+   T value
+)
+    : column(column),
+      comparator(comparator),
+      value(value) {}
+
+template <typename T>
+bool CompareToValueSelection<T>::match(uint32_t row_id) const {
+   switch (comparator) {
+      case Comparator::EQUALS:
+         return column[row_id] == value;
+      case Comparator::NOT_EQUALS:
+         return column[row_id] != value;
+      case Comparator::LESS:
+         return column[row_id] < value;
+      case Comparator::HIGHER_OR_EQUALS:
+         return column[row_id] >= value;
+      case Comparator::HIGHER:
+         return column[row_id] > value;
+      case Comparator::LESS_OR_EQUALS:
+         return column[row_id] <= value;
+   }
+}
+
+template <typename T>
+std::unique_ptr<Predicate> CompareToValueSelection<T>::copy() const {
+   return std::make_unique<CompareToValueSelection<T>>(column, comparator, value);
+}
+
+template <typename T>
+[[nodiscard]] std::unique_ptr<Predicate> CompareToValueSelection<T>::negate() const {
+   Comparator negated_comparator;
+   switch (comparator) {
+      case Comparator::EQUALS:
+         negated_comparator = Comparator::NOT_EQUALS;
+         break;
+      case Comparator::NOT_EQUALS:
+         negated_comparator = Comparator::EQUALS;
+         break;
+      case Comparator::LESS:
+         negated_comparator = Comparator::HIGHER_OR_EQUALS;
+         break;
+      case Comparator::HIGHER_OR_EQUALS:
+         negated_comparator = Comparator::LESS;
+         break;
+      case Comparator::HIGHER:
+         negated_comparator = Comparator::LESS_OR_EQUALS;
+         break;
+      case Comparator::LESS_OR_EQUALS:
+         negated_comparator = Comparator::HIGHER;
+         break;
+   }
+   return std::make_unique<CompareToValueSelection<T>>(column, negated_comparator, value);
+}
+
+template <>
+[[nodiscard]] std::string CompareToValueSelection<int32_t>::toString() const {
+   return "$string " + displayComparator(comparator) + " " + std::to_string(value);
+}
+
+template <>
+[[nodiscard]] std::string CompareToValueSelection<common::SiloString>::toString() const {
+   std::stringstream stream;
+   stream << "$string " << displayComparator(comparator) << "0x" << std::setfill('0')
+          << std::setw(static_cast<int>(value.data.size() * 2)) << std::hex << value.data.data();
+   return stream.str();
+}
+
+template <>
+[[nodiscard]] std::string CompareToValueSelection<std::string>::toString() const {
+   return "$string " + displayComparator(comparator) + " " + value;
+}
+
+template <>
+[[nodiscard]] std::string CompareToValueSelection<silo::common::Date>::toString() const {
+   return "$string " + displayComparator(comparator) + " " + std::to_string(value);
+}
+
+template <>
+[[nodiscard]] std::string CompareToValueSelection<double>::toString() const {
+   return "$string " + displayComparator(comparator) + " " + std::to_string(value);
+}
+
+template class CompareToValueSelection<int32_t>;
+template class CompareToValueSelection<common::SiloString>;
+template class CompareToValueSelection<silo::common::Date>;
+template class CompareToValueSelection<double>;
 
 }  // namespace silo::query_engine::operators
