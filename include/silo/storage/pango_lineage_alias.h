@@ -7,6 +7,9 @@
 #include <unordered_set>
 #include <vector>
 
+#include <boost/serialization/unordered_map.hpp>
+#include <boost/serialization/vector.hpp>
+
 namespace silo {
 
 namespace common {
@@ -16,7 +19,16 @@ struct RawPangoLineage;
 }  // namespace common
 
 class PangoLineageAliasLookup {
+   friend class boost::serialization::access;
+
   private:
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+      // clang-format off
+      archive & alias_key;
+      // clang-format on
+   }
+
    std::unordered_map<std::string, std::vector<std::string>> alias_key;
 
   public:
