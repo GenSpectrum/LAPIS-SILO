@@ -70,7 +70,8 @@ INSTANTIATE_TEST_SUITE_P(
       TestParameter{ValueType::DATE, false, ColumnType::DATE},
       TestParameter{ValueType::PANGOLINEAGE, true, ColumnType::INDEXED_PANGOLINEAGE},
       TestParameter{ValueType::INT, false, ColumnType::INT},
-      TestParameter{ValueType::FLOAT, false, ColumnType::FLOAT}
+      TestParameter{ValueType::FLOAT, false, ColumnType::FLOAT},
+      TestParameter{ValueType::INSERTION, false, ColumnType::INSERTION}
    )
 );
 
