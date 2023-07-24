@@ -130,20 +130,18 @@ inline std::optional<NUCLEOTIDE_SYMBOL> charToNucleotideSymbol(char character) {
    }
 }
 
-inline size_t toNucleotideSymbolId(char c) {
-   const auto nuc_opt = charToNucleotideSymbol(c);
-   if (nuc_opt.has_value()) {
-      return static_cast<size_t>(*nuc_opt);
+inline std::optional<std::vector<NUCLEOTIDE_SYMBOL>> stringToNucleotideSymbolVector(
+   const std::string& nucleotides
+) {
+   const size_t size = nucleotides.size();
+   std::vector<NUCLEOTIDE_SYMBOL> result(size);
+   for (size_t i = 0; i < size; ++i) {
+      auto symbol = charToNucleotideSymbol(nucleotides[i]);
+      if (symbol == std::nullopt) {
+         return std::nullopt;
+      }
+      result[i] = *symbol;
    }
-   throw std::invalid_argument("Invalid nucleotide symbol: " + c);
-}
-
-inline std::vector<size_t> toNucleotideSymbolIds(const std::string& nucleotides) {
-   std::vector<size_t> result;
-   result.reserve(nucleotides.size());
-   std::transform(
-      nucleotides.begin(), nucleotides.end(), std::back_inserter(result), toNucleotideSymbolId
-   );
    return result;
 }
 

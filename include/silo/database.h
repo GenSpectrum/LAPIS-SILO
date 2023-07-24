@@ -83,7 +83,7 @@ class Database {
    void initializeColumns();
    void initializeColumn(config::ColumnType column_type, const std::string& name);
    void initializeSequences();
-   void initializeInsertionIndexes();
+   void finalizeInsertionIndexes();
 
    static BitmapSizePerSymbol calculateBitmapSizePerSymbol(const SequenceStore& seq_store);
 

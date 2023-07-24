@@ -43,7 +43,10 @@ class InsertionColumnPartition {
 
    void buildInsertionIndex();
 
-   [[nodiscard]] std::unique_ptr<roaring::Roaring> search(const std::string& search_pattern) const;
+   [[nodiscard]] std::unique_ptr<roaring::Roaring> search(
+      uint32_t position,
+      const std::string& search_pattern
+   ) const;
 
    [[nodiscard]] const std::vector<silo::Idx>& getValues() const;
 

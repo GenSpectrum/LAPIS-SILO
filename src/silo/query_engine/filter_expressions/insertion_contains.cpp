@@ -20,8 +20,9 @@ class Operator;
 
 namespace silo::query_engine::filter_expressions {
 
-InsertionContains::InsertionContains(std::string column, std::string value)
+InsertionContains::InsertionContains(std::string column, uint32_t position, std::string value)
     : column_name(std::move(column)),
+      position(position),
       value(std::move(value)) {}
 
 std::string InsertionContains::toString(const silo::Database& /*database*/) const {
@@ -43,7 +44,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> InsertionContains::comp
 
    return std::make_unique<operators::BitmapProducer>(
       [&]() {
-         auto search_result = insertion_column.search(value);
+         auto search_result = insertion_column.search(position, value);
          return OperatorResult(search_result.release());
       },
       database_partition.sequenceCount
@@ -76,6 +77,14 @@ void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains>& f
       "The field 'column' in an InsertionContains expression needs to be a string"
    )
    CHECK_SILO_QUERY(
+      json.contains("position"),
+      "The field 'position' is required in an InsertionContains expression"
+   )
+   CHECK_SILO_QUERY(
+      json["position"].is_number_unsigned() && (json["position"].get<uint32_t>() > 0),
+      "The field 'position' in an InsertionContains expression needs to be a positive number (> 0)"
+   )
+   CHECK_SILO_QUERY(
       json.contains("value"), "The field 'value' is required in an InsertionContains expression"
    )
    CHECK_SILO_QUERY(
@@ -83,6 +92,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains>& f
       "The field 'value' in an InsertionContains expression needs to be a string or null"
    )
    const std::string& column_name = json["column"];
+   uint32_t position = json["position"];
    const std::string& value = json["value"].is_null() ? "" : json["value"].get<std::string>();
    CHECK_SILO_QUERY(
       validateRegexPattern(value),
@@ -90,7 +100,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains>& f
       "pattern: \"" +
          value + "\""
    )
-   filter = std::make_unique<InsertionContains>(column_name, value);
+   filter = std::make_unique<InsertionContains>(column_name, position, value);
 }
 
 }  // namespace silo::query_engine::filter_expressions

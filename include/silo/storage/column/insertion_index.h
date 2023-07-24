@@ -12,6 +12,7 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <roaring/roaring.hh>
 
+#include "silo/common/nucleotide_symbol_map.h"
 #include "silo/common/nucleotide_symbols.h"
 
 namespace boost::serialization {
@@ -24,14 +25,15 @@ class InsertionIndex {
    friend class boost::serialization::access;
 
   public:
-   using three_mer_t = std::array<size_t, 3>;
-   using sequence_ids_t = std::vector<uint32_t>;
+   using three_mer_t = std::array<NUCLEOTIDE_SYMBOL, 3>;
+   using sequence_ids_t = roaring::Roaring;
+   using insertion_ids_t = std::vector<uint32_t>;
 
   private:
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      archive& insertion_positions;
+      archive & insertion_positions;
       // clang-format on
    }
 
@@ -40,24 +42,23 @@ class InsertionIndex {
       sequence_ids_t sequence_ids;
    };
 
-   using one_mer_index_t = std::array<sequence_ids_t, NUC_SYMBOL_COUNT>;
-   using two_mer_index_t = std::array<one_mer_index_t, NUC_SYMBOL_COUNT>;
-   using three_mer_index_t = std::array<two_mer_index_t, NUC_SYMBOL_COUNT>;
+   using one_mer_index_t = silo::NucleotideSymbolMap<insertion_ids_t>;
+   using two_mer_index_t = silo::NucleotideSymbolMap<one_mer_index_t>;
+   using three_mer_index_t = silo::NucleotideSymbolMap<two_mer_index_t>;
 
    struct InsertionPosition {
-      uint32_t position;
       std::vector<Insertion> insertions;
       three_mer_index_t three_mer_index;
 
       void buildThreeMerIndex();
 
-      sequence_ids_t searchWithThreeMerIndex(
+      std::unique_ptr<sequence_ids_t> searchWithThreeMerIndex(
          const std::vector<three_mer_t>& search_three_mers,
          const std::regex& search_pattern
       ) const;
    };
 
-   std::vector<InsertionPosition> insertion_positions;
+   std::unordered_map<uint32_t, InsertionPosition> insertion_positions;
    std::unordered_map<uint32_t, std::unordered_map<std::string, sequence_ids_t>>
       collected_insertions;
 
@@ -66,7 +67,8 @@ class InsertionIndex {
 
    void buildIndex();
 
-   std::unique_ptr<roaring::Roaring> search(const std::string& search_pattern) const;
+   std::unique_ptr<roaring::Roaring> search(uint32_t position, const std::string& search_pattern)
+      const;
 };
 
 }  // namespace silo::storage::column::insertion

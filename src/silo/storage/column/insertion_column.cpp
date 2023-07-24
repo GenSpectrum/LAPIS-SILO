@@ -20,9 +20,11 @@ void InsertionColumnPartition::buildInsertionIndex() {
    insertion_index.buildIndex();
 }
 
-std::unique_ptr<roaring::Roaring> InsertionColumnPartition::search(const std::string& search_pattern
+std::unique_ptr<roaring::Roaring> InsertionColumnPartition::search(
+   uint32_t position,
+   const std::string& search_pattern
 ) const {
-   return insertion_index.search(search_pattern);
+   return insertion_index.search(position, search_pattern);
 }
 
 const std::vector<silo::Idx>& InsertionColumnPartition::getValues() const {

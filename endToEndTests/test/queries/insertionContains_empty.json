@@ -1,5 +1,5 @@
 {
-  "testCaseName": "Insertion Contains with non-exact match TCAG.*AA",
+  "testCaseName": "Insertion Contains empty",
   "query": {
     "action": {
       "type": "Aggregated"
@@ -8,12 +8,12 @@
       "type": "InsertionContains",
       "column": "insertions",
       "position": 25701,
-      "value": "TCAG.*AA"
+      "value": ""
     }
   },
   "expectedQueryResult": [
     {
-      "count": 0
+      "count": 17
     }
   ]
 }
