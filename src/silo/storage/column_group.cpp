@@ -17,7 +17,7 @@
 
 namespace silo::storage {
 
-uint32_t ColumnGroup::fill(
+uint32_t ColumnPartitionGroup::fill(
    const std::filesystem::path& input_file,
    const PangoLineageAliasLookup& alias_key,
    const silo::config::DatabaseConfig& database_config
@@ -59,8 +59,10 @@ uint32_t ColumnGroup::fill(
    return sequence_count;
 }
 
-ColumnGroup ColumnGroup::getSubgroup(const std::vector<config::DatabaseMetadata>& fields) const {
-   ColumnGroup result;
+ColumnPartitionGroup ColumnPartitionGroup::getSubgroup(
+   const std::vector<config::DatabaseMetadata>& fields
+) const {
+   ColumnPartitionGroup result;
    result.metadata = fields;
 
    for (const auto& item : fields) {

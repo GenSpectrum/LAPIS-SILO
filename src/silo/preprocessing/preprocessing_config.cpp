@@ -91,7 +91,7 @@ std::filesystem::path PreprocessingConfig::getReferenceGenomeFilename() const {
 }
 
 std::filesystem::path PreprocessingConfig::getMetadataInputFilename() const {
-   return metadata_file.string();
+   return metadata_file;
 }
 
 std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path> PreprocessingConfig::

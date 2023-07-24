@@ -41,23 +41,39 @@ class DatabaseConfig;
 
 namespace silo::storage {
 
-struct ColumnGroup {
+struct ColumnPartitionGroup {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
+      for(auto& [name, store] : string_columns){
+         archive & store;
+      }
+      for(auto& [name, store] : indexed_string_columns){
+         archive & store;
+      }
+      for(auto& [name, store] : int_columns){
+         archive & store;
+      }
+      for(auto& [name, store] : float_columns){
+         archive & store;
+      }
+      for(auto& [name, store] : date_columns){
+         archive & store;
+      }
+      for(auto& [name, store] : pango_lineage_columns){
+         archive & store;
+      }
       // clang-format on
    }
 
    std::vector<config::DatabaseMetadata> metadata;
 
-   std::unordered_map<std::string, storage::column::StringColumnPartition&> string_columns;
-   std::unordered_map<std::string, storage::column::IndexedStringColumnPartition&>
-      indexed_string_columns;
-   std::unordered_map<std::string, storage::column::IntColumnPartition&> int_columns;
-   std::unordered_map<std::string, storage::column::FloatColumnPartition&> float_columns;
-   std::unordered_map<std::string, storage::column::DateColumnPartition&> date_columns;
-   std::unordered_map<std::string, storage::column::PangoLineageColumnPartition&>
-      pango_lineage_columns;
+   std::map<std::string, storage::column::StringColumnPartition&> string_columns;
+   std::map<std::string, storage::column::IndexedStringColumnPartition&> indexed_string_columns;
+   std::map<std::string, storage::column::IntColumnPartition&> int_columns;
+   std::map<std::string, storage::column::FloatColumnPartition&> float_columns;
+   std::map<std::string, storage::column::DateColumnPartition&> date_columns;
+   std::map<std::string, storage::column::PangoLineageColumnPartition&> pango_lineage_columns;
 
    uint32_t fill(
       const std::filesystem::path& input_file,
@@ -65,7 +81,44 @@ struct ColumnGroup {
       const silo::config::DatabaseConfig& database_config
    );
 
-   ColumnGroup getSubgroup(const std::vector<config::DatabaseMetadata>& fields) const;
+   [[nodiscard]] ColumnPartitionGroup getSubgroup(
+      const std::vector<config::DatabaseMetadata>& fields
+   ) const;
+};
+
+struct ColumnGroup {
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+      // clang-format off
+      for(auto& [name, store] : string_columns){
+         archive & store;
+      }
+      for(auto& [name, store] : indexed_string_columns){
+         archive & store;
+      }
+      for(auto& [name, store] : int_columns){
+         archive & store;
+      }
+      for(auto& [name, store] : float_columns){
+         archive & store;
+      }
+      for(auto& [name, store] : date_columns){
+         archive & store;
+      }
+      for(auto& [name, store] : pango_lineage_columns){
+         archive & store;
+      }
+      // clang-format on
+   }
+
+   std::vector<config::DatabaseMetadata> metadata;
+
+   std::map<std::string, storage::column::StringColumn> string_columns;
+   std::map<std::string, storage::column::IndexedStringColumn> indexed_string_columns;
+   std::map<std::string, storage::column::IntColumn> int_columns;
+   std::map<std::string, storage::column::FloatColumn> float_columns;
+   std::map<std::string, storage::column::DateColumn> date_columns;
+   std::map<std::string, storage::column::PangoLineageColumn> pango_lineage_columns;
 };
 
 }  // namespace silo::storage

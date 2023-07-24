@@ -13,11 +13,29 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
+template <>
+struct nlohmann::adl_serializer<silo::ReferenceGenomes> {
+   // NOLINTNEXTLINE(readability-identifier-naming)
+   static void to_json(nlohmann::json& js_object, const silo::ReferenceGenomes& reference_genomes) {
+      nlohmann::json nucleotide_sequences_json;
+      for (const auto& [name, sequence] : reference_genomes.raw_nucleotide_sequences) {
+         nucleotide_sequences_json.push_back({{"name", name}, {"sequence", sequence}});
+      }
+      js_object["nucleotide_sequences"] = std::move(nucleotide_sequences_json);
+
+      nlohmann::json aa_sequences_json;
+      for (const auto& [name, sequence] : reference_genomes.raw_aa_sequences) {
+         aa_sequences_json.push_back({{"name", name}, {"sequence", sequence}});
+      }
+      js_object["genes"] = std::move(aa_sequences_json);
+   }
+};
+
 namespace silo {
 
 ReferenceGenomes::ReferenceGenomes(
-   std::unordered_map<std::string, std::string> raw_nucleotide_sequences_,
-   std::unordered_map<std::string, std::string> raw_aa_sequences_
+   std::map<std::string, std::string>&& raw_nucleotide_sequences_,
+   std::map<std::string, std::string>&& raw_aa_sequences_
 )
     : raw_nucleotide_sequences(std::move(raw_nucleotide_sequences_)),
       raw_aa_sequences(std::move(raw_aa_sequences_)) {
@@ -60,8 +78,8 @@ ReferenceGenomes::ReferenceGenomes(
 namespace {
 
 ReferenceGenomes readFromJson(const std::filesystem::path& reference_genomes_path) {
-   std::unordered_map<std::string, std::string> nucleotide_sequences;
-   std::unordered_map<std::string, std::string> aa_sequences;
+   std::map<std::string, std::string> nucleotide_sequences;
+   std::map<std::string, std::string> aa_sequences;
    nlohmann::json reference_genomes_json;
    std::ifstream(reference_genomes_path) >> reference_genomes_json;
 
@@ -109,7 +127,7 @@ ReferenceGenomes readFromJson(const std::filesystem::path& reference_genomes_pat
 
       aa_sequences[value["name"]] = value["sequence"];
    }
-   return ReferenceGenomes{nucleotide_sequences, aa_sequences};
+   return ReferenceGenomes{std::move(nucleotide_sequences), std::move(aa_sequences)};
 }
 
 }  // namespace
@@ -133,10 +151,26 @@ ReferenceGenomes ReferenceGenomes::readFromFile(const std::filesystem::path& ref
    }
 
    SPDLOG_INFO(
-      "Read pango lineage alias from file: {}", reference_genomes_path.relative_path().string()
+      "Read reference genomes from file: {}", reference_genomes_path.relative_path().string()
    );
 
    return readFromJson(reference_genomes_path);
+}
+
+void ReferenceGenomes::writeToFile(const std::filesystem::path& reference_genomes_path) const {
+   if (reference_genomes_path.extension() != ".json") {
+      throw std::filesystem::filesystem_error(
+         "Reference genomes file " + reference_genomes_path.relative_path().string() +
+            " is not a json file",
+         std::error_code()
+      );
+   }
+
+   SPDLOG_INFO(
+      "Write reference genomes to file: {}", reference_genomes_path.relative_path().string()
+   );
+   const nlohmann::json reference_genomes_json = *this;
+   std::ofstream(reference_genomes_path) << reference_genomes_json.dump(4);
 }
 
 }  // namespace silo

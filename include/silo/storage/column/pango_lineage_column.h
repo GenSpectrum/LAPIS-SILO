@@ -27,9 +27,9 @@ class PangoLineageColumnPartition {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      archive& value_ids;
-      archive& indexed_values;
-      archive& indexed_sublineage_values;
+      archive & value_ids;
+      archive & indexed_values;
+      archive & indexed_sublineage_values;
       // clang-format on
    }
 
@@ -62,9 +62,8 @@ class PangoLineageColumn {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      archive& lookup;
+      archive & *lookup;
       // clang-format on
-      // TODO sync lookups in children
    }
 
    std::unique_ptr<silo::common::BidirectionalMap<common::PangoLineage>> lookup;

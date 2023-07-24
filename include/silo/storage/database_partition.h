@@ -8,6 +8,7 @@
 
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
+#include <boost/serialization/map.hpp>
 
 #include "silo/preprocessing/partition.h"
 #include "silo/storage/aa_store.h"
@@ -23,16 +24,14 @@ class access;
 namespace silo {
 class AAStorePartition;
 class SequenceStorePartition;
-namespace storage {
-namespace column {
+namespace storage::column {
 class DateColumnPartition;
 class FloatColumnPartition;
 class IndexedStringColumnPartition;
 class IntColumnPartition;
 class PangoLineageColumnPartition;
 class StringColumnPartition;
-}  // namespace column
-}  // namespace storage
+}  // namespace storage::column
 
 class DatabasePartition {
    friend class boost::serialization::
@@ -42,17 +41,38 @@ class DatabasePartition {
    template <class Archive>
    void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
-      archive& chunks;
-      archive& columns;
-      archive& sequenceCount;
+      archive & chunks;
       // clang-format on
    }
 
   public:
+   template <class Archive>
+   /// The data of partitions is serialized in parallel. Therefore it is not part of the default
+   /// serialization method
+   void serializeData(Archive& archive, [[maybe_unused]] const uint32_t version) {
+      // clang-format off
+      archive & columns;
+      for(auto& [name, store] : nuc_sequences){
+         archive & store;
+      }
+      for(auto& [name, store] : aa_sequences){
+         archive & store;
+      }
+      archive & sequenceCount;
+      // clang-format on
+   }
+
+  private:
    std::vector<silo::preprocessing::Chunk> chunks;
-   storage::ColumnGroup columns;
-   std::unordered_map<std::string, SequenceStorePartition&> nuc_sequences;
-   std::unordered_map<std::string, AAStorePartition&> aa_sequences;
+
+   DatabasePartition() = default;
+
+  public:
+   explicit DatabasePartition(std::vector<silo::preprocessing::Chunk> chunks);
+
+   storage::ColumnPartitionGroup columns;
+   std::map<std::string, SequenceStorePartition&> nuc_sequences;
+   std::map<std::string, AAStorePartition&> aa_sequences;
    uint32_t sequenceCount;
 
    [[nodiscard]] const std::vector<preprocessing::Chunk>& getChunks() const;
