@@ -121,12 +121,17 @@ std::unique_ptr<Operator> And::compile(
    auto [non_negated_child_operators, negated_child_operators, predicates] =
       compileChildren(database, database_partition, mode);
 
-   std::optional<std::unique_ptr<Operator>> index_arithmetic_operator;
    if (non_negated_child_operators.empty() && negated_child_operators.empty()) {
       if (predicates.empty()) {
          return std::make_unique<operators::Full>(database_partition.sequenceCount);
       }
-   } else if (non_negated_child_operators.size() == 1 && negated_child_operators.empty()) {
+      return std::make_unique<operators::Selection>(
+         std::move(predicates), database_partition.sequenceCount
+      );
+   }
+
+   std::unique_ptr<Operator> index_arithmetic_operator;
+   if (non_negated_child_operators.size() == 1 && negated_child_operators.empty()) {
       index_arithmetic_operator = std::move(non_negated_child_operators[0]);
    } else if (negated_child_operators.size() == 1 && non_negated_child_operators.empty()) {
       index_arithmetic_operator = std::make_unique<operators::Complement>(
@@ -146,16 +151,11 @@ std::unique_ptr<Operator> And::compile(
          database_partition.sequenceCount
       );
    }
-   if (predicates.empty() && index_arithmetic_operator.has_value()) {
-      return std::move(*index_arithmetic_operator);
-   }
-   if (index_arithmetic_operator == std::nullopt) {
-      return std::make_unique<operators::Selection>(
-         std::move(predicates), database_partition.sequenceCount
-      );
+   if (predicates.empty()) {
+      return index_arithmetic_operator;
    }
    return std::make_unique<operators::Selection>(
-      std::move(*index_arithmetic_operator), std::move(predicates), database_partition.sequenceCount
+      std::move(index_arithmetic_operator), std::move(predicates), database_partition.sequenceCount
    );
 }
 
