@@ -196,6 +196,9 @@ void silo::SequenceStorePartition::fillNBitmaps(const std::vector<std::string>& 
 void silo::SequenceStorePartition::interpret(const std::vector<std::string>& genomes) {
    fillIndexes(genomes);
    fillNBitmaps(genomes);
+
+   // TODO(#165) Fill additional data structures
+
    sequence_count += genomes.size();
 }
 

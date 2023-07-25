@@ -23,6 +23,7 @@
 #include "silo/query_engine/filter_expressions/nucleotide_symbol_equals.h"
 #include "silo/query_engine/filter_expressions/or.h"
 #include "silo/query_engine/filter_expressions/pango_lineage_filter.h"
+#include "silo/query_engine/filter_expressions/pattern_search.h"
 #include "silo/query_engine/filter_expressions/string_equals.h"
 #include "silo/query_engine/filter_expressions/true.h"
 #include "silo/query_engine/query_parse_exception.h"
@@ -90,6 +91,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) 
       filter = json.get<std::unique_ptr<Exact>>();
    } else if (expression_type == "InsertionContains") {
       filter = json.get<std::unique_ptr<InsertionContains>>();
+   } else if (expression_type == "PatternSearch") {
+      filter = json.get<std::unique_ptr<PatternSearch>>();
    } else {
       throw QueryParseException("Unknown object filter type '" + expression_type + "'");
    }
