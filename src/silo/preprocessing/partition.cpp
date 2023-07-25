@@ -231,13 +231,12 @@ void Chunk::addChunk(Chunk&& other) {
    count_of_sequences += other.count_of_sequences;
 
    auto copy_of_my_lineages = std::move(pango_lineages);
-   pango_lineages.clear();
    std::merge(
       copy_of_my_lineages.begin(),
       copy_of_my_lineages.end(),
       other.pango_lineages.begin(),
       other.pango_lineages.end(),
-      pango_lineages.begin()
+      std::back_inserter(pango_lineages)
    );
 }
 

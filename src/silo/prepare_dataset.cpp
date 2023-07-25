@@ -240,15 +240,15 @@ std::unordered_map<std::string, silo::common::Date> sortMetadataFile(
       silo::common::Date date;
    };
    std::vector<RowWithDate> rows;
-   rows.reserve(chunk.size);
 
    for (auto& row : metadata_reader.reader) {
+      std::this_thread::sleep_for(std::chrono::nanoseconds(1));
       const auto primary_key = row[sort_chunk_config.primary_key_name].get();
       const auto date_str = row[sort_chunk_config.date_column_to_sort_by].get();
 
       const silo::common::Date date = silo::common::stringToDate(date_str);
 
-      rows.push_back({row, date});
+      rows.emplace_back(row, date);
 
       primary_key_to_date[primary_key] = date;
    }
