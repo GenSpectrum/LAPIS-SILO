@@ -34,10 +34,21 @@ class InsertionIndex {
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
       archive & insertion_positions;
+      archive & collected_insertions;
       // clang-format on
    }
 
    struct Insertion {
+      friend class boost::serialization::access;
+
+      template <class Archive>
+      [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+         // clang-format off
+         archive & value;
+         archive & sequence_ids;
+         // clang-format on
+      }
+
       std::string value;
       sequence_ids_t sequence_ids;
    };
@@ -47,6 +58,16 @@ class InsertionIndex {
    using three_mer_index_t = silo::NucleotideSymbolMap<two_mer_index_t>;
 
    struct InsertionPosition {
+      friend class boost::serialization::access;
+
+      template <class Archive>
+      [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+         // clang-format off
+         archive & insertions;
+         archive & three_mer_index;
+         // clang-format on
+      }
+
       std::vector<Insertion> insertions;
       three_mer_index_t three_mer_index;
 

@@ -28,7 +28,8 @@ class InsertionColumnPartition {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      archive& values;
+      archive & values;
+      archive & insertion_index;
       // clang-format on
    }
 
@@ -60,6 +61,7 @@ class InsertionColumn {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
+      archive & *lookup;
       // clang-format on
    }
 
