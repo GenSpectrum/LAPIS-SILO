@@ -22,12 +22,11 @@ template <typename V>
 class BidirectionalMap {
    friend class boost::serialization::access;
 
-  private:
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      archive& value_to_id;
-      archive& id_to_value;
+      archive & value_to_id;
+      archive & id_to_value;
       // clang-format on
    }
 

@@ -37,7 +37,7 @@ Idx BidirectionalMap<V>::getOrCreateId(V value) {
    return identifier;
 }
 
-template class BidirectionalMap<PangoLineage>;
+template class BidirectionalMap<UnaliasedPangoLineage>;
 template class BidirectionalMap<std::string>;
 
 }  // namespace silo::common

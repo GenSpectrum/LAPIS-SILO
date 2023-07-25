@@ -23,7 +23,7 @@ class IntColumnPartition {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      archive& values;
+      archive & values;
       // clang-format on
    }
 
@@ -40,7 +40,6 @@ class IntColumnPartition {
 class IntColumn {
    friend class boost::serialization::access;
 
-  private:
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off

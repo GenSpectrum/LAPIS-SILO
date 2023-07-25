@@ -15,9 +15,9 @@ class AASymbolMap {
 
   private:
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+   void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      archive& data;
+      archive & data;
       // clang-format on
    }
 

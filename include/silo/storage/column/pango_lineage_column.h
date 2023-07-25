@@ -13,6 +13,7 @@
 #include "silo/common/bidirectional_map.h"
 #include "silo/common/pango_lineage.h"
 #include "silo/common/types.h"
+#include "silo/storage/pango_lineage_alias.h"
 
 namespace boost::serialization {
 struct access;
@@ -27,9 +28,9 @@ class PangoLineageColumnPartition {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      archive& value_ids;
-      archive& indexed_values;
-      archive& indexed_sublineage_values;
+      archive & value_ids;
+      archive & indexed_values;
+      archive & indexed_sublineage_values;
       // clang-format on
    }
 
@@ -37,22 +38,26 @@ class PangoLineageColumnPartition {
    std::unordered_map<Idx, roaring::Roaring> indexed_values;
    std::unordered_map<Idx, roaring::Roaring> indexed_sublineage_values;
 
-   silo::common::BidirectionalMap<common::PangoLineage>& lookup;
+   silo::PangoLineageAliasLookup& alias_key;
+   silo::common::BidirectionalMap<common::UnaliasedPangoLineage>& lookup;
 
-   void insertSublineageValues(const common::PangoLineage& value, size_t row_number);
+   void insertSublineageValues(const common::UnaliasedPangoLineage& value, size_t row_number);
 
   public:
-   explicit PangoLineageColumnPartition(common::BidirectionalMap<common::PangoLineage>& lookup);
+   explicit PangoLineageColumnPartition(
+      silo::PangoLineageAliasLookup& alias_key,
+      common::BidirectionalMap<common::UnaliasedPangoLineage>& lookup
+   );
 
-   void insert(const common::PangoLineage& value);
+   void insert(const common::RawPangoLineage& value);
 
-   roaring::Roaring filter(const common::PangoLineage& value) const;
+   roaring::Roaring filter(const common::RawPangoLineage& value) const;
 
-   roaring::Roaring filterIncludingSublineages(const common::PangoLineage& value) const;
+   roaring::Roaring filterIncludingSublineages(const common::RawPangoLineage& value) const;
 
    const std::vector<silo::Idx>& getValues() const;
 
-   inline common::PangoLineage lookupValue(Idx id) const { return lookup.getValue(id); }
+   inline common::UnaliasedPangoLineage lookupValue(Idx id) const { return lookup.getValue(id); }
 };
 
 class PangoLineageColumn {
@@ -62,16 +67,16 @@ class PangoLineageColumn {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      archive& lookup;
+      archive & *lookup;
       // clang-format on
-      // TODO sync lookups in children
    }
 
-   std::unique_ptr<silo::common::BidirectionalMap<common::PangoLineage>> lookup;
+   std::unique_ptr<silo::common::BidirectionalMap<common::UnaliasedPangoLineage>> lookup;
+   std::unique_ptr<silo::PangoLineageAliasLookup> alias_key;
    std::deque<PangoLineageColumnPartition> partitions;
 
   public:
-   explicit PangoLineageColumn();
+   explicit PangoLineageColumn(silo::PangoLineageAliasLookup alias_key);
 
    PangoLineageColumnPartition& createPartition();
 };

@@ -221,9 +221,7 @@ std::unique_ptr<roaring::Roaring> InsertionIndex::search(
    }
 
    if (!three_mers.empty()) {
-      return insertion_pos_it->second.searchWithThreeMerIndex(
-         three_mers, regex_search_pattern
-      );
+      return insertion_pos_it->second.searchWithThreeMerIndex(three_mers, regex_search_pattern);
    }
    auto result = std::make_unique<roaring::Roaring>();
    for (const auto& insertion : insertion_pos_it->second.insertions) {

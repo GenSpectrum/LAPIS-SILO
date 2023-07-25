@@ -56,24 +56,23 @@ std::unique_ptr<operators::Operator> DateBetween::compile(
    const auto& date_column = database_partition.columns.date_columns.at(column);
 
    if (!date_column.isSorted()) {
-      std::vector<std::unique_ptr<operators::Operator>> children;
-      children.emplace_back(std::make_unique<operators::Selection<silo::common::Date>>(
-         date_column.getValues(),
-         operators::Selection<silo::common::Date>::HIGHER_OR_EQUALS,
-         date_from.value_or(silo::common::Date{1}),
-         database_partition.sequenceCount
-      ));
-      children.emplace_back(std::make_unique<operators::Selection<silo::common::Date>>(
-         date_column.getValues(),
-         operators::Selection<silo::common::Date>::LESS,
-         date_to.value_or(silo::common::Date{UINT32_MAX}),
-         database_partition.sequenceCount
-      ));
-
-      return std::make_unique<operators::Intersection>(
-         std::move(children),
-         std::vector<std::unique_ptr<operators::Operator>>(),
-         database_partition.sequenceCount
+      std::vector<std::unique_ptr<operators::Predicate>> predicates;
+      predicates.emplace_back(
+         std::make_unique<operators::CompareToValueSelection<silo::common::Date>>(
+            date_column.getValues(),
+            operators::Comparator::HIGHER_OR_EQUALS,
+            date_from.value_or(silo::common::Date{1})
+         )
+      );
+      predicates.emplace_back(
+         std::make_unique<operators::CompareToValueSelection<silo::common::Date>>(
+            date_column.getValues(),
+            operators::Comparator::LESS,
+            date_to.value_or(silo::common::Date{UINT32_MAX})
+         )
+      );
+      return std::make_unique<operators::Selection>(
+         std::move(predicates), database_partition.sequenceCount
       );
    }
 
@@ -92,10 +91,10 @@ std::vector<silo::query_engine::operators::RangeSelection::Range> DateBetween::
 
    const auto* base = date_column.getValues().data();
    for (const auto& chunk : chunks) {
-      const auto* begin = &date_column.getValues()[chunk.offset];
-      const auto* end = &date_column.getValues()[chunk.offset + chunk.count_of_sequences];
+      const auto* begin = &date_column.getValues()[chunk.getOffset()];
+      const auto* end = &date_column.getValues()[chunk.getOffset() + chunk.getCountOfSequences()];
       // If lower bound is empty we use 1 as the lower-bound, as 0 represents NULL values
-      const auto* lower = std::lower_bound(begin, end, date_from.value_or(2));
+      const auto* lower = std::lower_bound(begin, end, date_from.value_or(1));
       const uint32_t lower_index = lower - base;
       const auto* upper = date_to.has_value() ? std::upper_bound(begin, end, date_to.value()) : end;
       const uint32_t upper_index = upper - base;

@@ -68,6 +68,8 @@ struct String {
    bool operator!=(const String& other) const;
 };
 
+typedef common::String<STRING_SIZE> SiloString;
+
 }  // namespace silo::common
 
 template <size_t I>

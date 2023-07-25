@@ -44,10 +44,10 @@ std::unique_ptr<silo::query_engine::operators::Operator> FloatEquals::compile(
 
    const auto& float_column = database_partition.columns.float_columns.at(column);
 
-   return std::make_unique<operators::Selection<double>>(
-      float_column.getValues(),
-      operators::Selection<double>::EQUALS,
-      value,
+   return std::make_unique<operators::Selection>(
+      std::make_unique<operators::CompareToValueSelection<double>>(
+         float_column.getValues(), operators::Comparator::EQUALS, value
+      ),
       database_partition.sequenceCount
    );
 }

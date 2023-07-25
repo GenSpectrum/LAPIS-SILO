@@ -11,10 +11,10 @@ RUN apt update \
     gnupg=2.2.27-3ubuntu2.1 \
     lsb-release=11.1.0ubuntu4 \
     && wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc \
-    && add-apt-repository 'deb http://apt.llvm.org/jammy/  llvm-toolchain-jammy main' \
-    && apt install -y clang-tidy-17
+    && add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/dists/jammy/  llvm-toolchain-jammy main' \
+    && apt install -y clang-tidy
 
-RUN pip install conan==2.0.2
+RUN pip install conan==2.0.8
 
 COPY conanfile.py conanprofile.docker ./
 RUN mv conanprofile.docker conanprofile

@@ -55,6 +55,10 @@ class AAMutations : public Action {
       AA_SYMBOL::Y,  // Tyrosine
    };
 
+   const std::string POSITION_FIELD_NAME = "position";
+   const std::string PROPORTION_FIELD_NAME = "proportion";
+   const std::string COUNT_FIELD_NAME = "count";
+
    struct PrefilteredBitmaps {
       std::vector<std::pair<OperatorResult, const silo::AAStorePartition&>> bitmaps;
       std::vector<std::pair<OperatorResult, const silo::AAStorePartition&>> full_bitmaps;
@@ -80,13 +84,15 @@ class AAMutations : public Action {
       std::vector<OperatorResult>& bitmap_filter
    );
 
-  public:
-   explicit AAMutations(std::string aa_sequence_name, double min_proportion);
+   [[nodiscard]] void validateOrderByFields(const Database& database) const override;
 
    [[nodiscard]] QueryResult execute(
       const Database& database,
       std::vector<OperatorResult> bitmap_filter
    ) const override;
+
+  public:
+   explicit AAMutations(std::string aa_sequence_name, double min_proportion);
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)

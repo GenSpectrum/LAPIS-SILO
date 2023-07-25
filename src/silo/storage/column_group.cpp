@@ -17,9 +17,8 @@
 
 namespace silo::storage {
 
-uint32_t ColumnGroup::fill(
+uint32_t ColumnPartitionGroup::fill(
    const std::filesystem::path& input_file,
-   const PangoLineageAliasLookup& alias_key,
    const silo::config::DatabaseConfig& database_config
 ) {
    auto metadata_reader = silo::preprocessing::MetadataReader(input_file);
@@ -30,15 +29,13 @@ uint32_t ColumnGroup::fill(
    for (auto& row : metadata_reader.reader) {
       for (const auto& item : database_config.schema.metadata) {
          const std::string value = row[item.name].get();
-
          const auto column_type = item.getColumnType();
          if (column_type == silo::config::ColumnType::INDEXED_STRING) {
             indexed_string_columns.at(item.name).insert(value);
          } else if (column_type == silo::config::ColumnType::STRING) {
             string_columns.at(item.name).insert(value);
          } else if (column_type == silo::config::ColumnType::INDEXED_PANGOLINEAGE) {
-            const std::string pango_lineage = alias_key.resolvePangoLineageAlias(value);
-            pango_lineage_columns.at(item.name).insert({pango_lineage});
+            pango_lineage_columns.at(item.name).insert({value});
          } else if (column_type == silo::config::ColumnType::DATE) {
             date_columns.at(item.name).insert(common::stringToDate(value));
          } else if (column_type == silo::config::ColumnType::INT) {
@@ -61,8 +58,10 @@ uint32_t ColumnGroup::fill(
    return sequence_count;
 }
 
-ColumnGroup ColumnGroup::getSubgroup(const std::vector<config::DatabaseMetadata>& fields) const {
-   ColumnGroup result;
+ColumnPartitionGroup ColumnPartitionGroup::getSubgroup(
+   const std::vector<config::DatabaseMetadata>& fields
+) const {
+   ColumnPartitionGroup result;
    result.metadata = fields;
 
    for (const auto& item : fields) {

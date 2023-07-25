@@ -1,9 +1,12 @@
 #ifndef SILO_INCLUDE_SILO_CONFIG_DATABASECONFIG_H_
 #define SILO_INCLUDE_SILO_CONFIG_DATABASECONFIG_H_
 
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <vector>
+
+#include <fmt/core.h>
 
 namespace silo::config {
 
@@ -33,7 +36,48 @@ struct DatabaseConfig {
    DatabaseSchema schema;
 
    [[nodiscard]] std::optional<DatabaseMetadata> getMetadata(const std::string& name) const;
+
+   void writeConfig(const std::filesystem::path& config_path) const;
 };
+
+class DatabaseConfigReader {
+  public:
+   [[nodiscard]] virtual DatabaseConfig readConfig(const std::filesystem::path& config_path) const;
+};
+
 }  // namespace silo::config
+
+template <>
+struct [[maybe_unused]] fmt::formatter<silo::config::DatabaseConfig> : fmt::formatter<std::string> {
+   [[maybe_unused]] static auto format(
+      const silo::config::DatabaseConfig& database_config,
+      format_context& ctx
+   ) -> decltype(ctx.out());
+};
+
+template <>
+struct [[maybe_unused]] fmt::formatter<silo::config::DatabaseSchema> : fmt::formatter<std::string> {
+   [[maybe_unused]] static auto format(
+      const silo::config::DatabaseSchema& database_schema,
+      format_context& ctx
+   ) -> decltype(ctx.out());
+};
+
+template <>
+struct [[maybe_unused]] fmt::formatter<silo::config::DatabaseMetadata>
+    : fmt::formatter<std::string> {
+   [[maybe_unused]] static auto format(
+      const silo::config::DatabaseMetadata& database_metadata,
+      format_context& ctx
+   ) -> decltype(ctx.out());
+};
+
+template <>
+struct [[maybe_unused]] fmt::formatter<silo::config::ValueType> : fmt::formatter<std::string> {
+   [[maybe_unused]] static auto format(
+      const silo::config::ValueType& value_type,
+      format_context& ctx
+   ) -> decltype(ctx.out());
+};
 
 #endif  // SILO_INCLUDE_SILO_CONFIG_DATABASECONFIG_H_

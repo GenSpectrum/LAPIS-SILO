@@ -22,11 +22,13 @@ namespace silo::query_engine::actions {
 class Details : public Action {
    std::vector<std::string> fields;
 
-  public:
-   explicit Details(std::vector<std::string> fields);
+   [[nodiscard]] void validateOrderByFields(const Database& database) const override;
 
    QueryResult execute(const Database& database, std::vector<OperatorResult> bitmap_filter)
       const override;
+
+  public:
+   explicit Details(std::vector<std::string> fields);
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)

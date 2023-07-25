@@ -19,11 +19,13 @@ struct Database;
 namespace silo::query_engine::actions {
 
 class FastaAligned : public Action {
+   void validateOrderByFields(const Database& database) const override;
+
+   QueryResult execute(const Database& database, std::vector<OperatorResult> bitmap_filter)
+      const override;
+
   public:
    explicit FastaAligned();
-
-   QueryResult execute(const Database& /*database*/, std::vector<OperatorResult> /*bitmap_filter*/)
-      const override;
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)

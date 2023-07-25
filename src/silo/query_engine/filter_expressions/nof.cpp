@@ -225,10 +225,7 @@ std::unique_ptr<operators::Operator> NOf::rewriteNonExact(
 ) const {
    std::vector<std::unique_ptr<operators::Operator>> at_least_k;
    {
-      int updated_number_of_matchers;
-      std::vector<std::unique_ptr<operators::Operator>> non_negated_child_operators;
-      std::vector<std::unique_ptr<operators::Operator>> negated_child_operators;
-      std::tie(non_negated_child_operators, negated_child_operators, updated_number_of_matchers) =
+      auto [non_negated_child_operators, negated_child_operators, updated_number_of_matchers] =
          mapChildExpressions(database, database_partition, mode);
       at_least_k.emplace_back(toOperator(
          updated_number_of_matchers,
@@ -241,10 +238,7 @@ std::unique_ptr<operators::Operator> NOf::rewriteNonExact(
 
    std::vector<std::unique_ptr<operators::Operator>> at_least_k_plus_one;
    {
-      int updated_number_of_matchers;
-      std::vector<std::unique_ptr<operators::Operator>> non_negated_child_operators;
-      std::vector<std::unique_ptr<operators::Operator>> negated_child_operators;
-      std::tie(non_negated_child_operators, negated_child_operators, updated_number_of_matchers) =
+      auto [non_negated_child_operators, negated_child_operators, updated_number_of_matchers] =
          mapChildExpressions(database, database_partition, mode);
       at_least_k_plus_one.emplace_back(toOperator(
          updated_number_of_matchers + 1,
@@ -269,10 +263,7 @@ std::unique_ptr<operators::Operator> NOf::compile(
    const silo::DatabasePartition& database_partition,
    Expression::AmbiguityMode mode
 ) const {
-   int updated_number_of_matchers;
-   std::vector<std::unique_ptr<operators::Operator>> non_negated_child_operators;
-   std::vector<std::unique_ptr<operators::Operator>> negated_child_operators;
-   std::tie(non_negated_child_operators, negated_child_operators, updated_number_of_matchers) =
+   auto [non_negated_child_operators, negated_child_operators, updated_number_of_matchers] =
       mapChildExpressions(database, database_partition, mode);
 
    // We cannot easily map ambiguity modes through an exact NOf expression -> rewrite without exact

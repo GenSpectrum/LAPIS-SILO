@@ -78,7 +78,6 @@ void from_json(const nlohmann::json& json, std::unique_ptr<AASymbolEquals>& filt
    CHECK_SILO_QUERY(
       json.contains("sequenceName") && json["sequenceName"].is_string(),
       "AminoAcidEquals expression requires the string field sequenceName"
-      "integer"
    )
    CHECK_SILO_QUERY(
       json.is_object() && json.contains("position"),

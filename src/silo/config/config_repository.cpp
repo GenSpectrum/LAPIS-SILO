@@ -7,7 +7,6 @@
 
 #include "silo/config/config_exception.h"
 #include "silo/config/database_config.h"
-#include "silo/config/database_config_reader.h"
 
 namespace silo::config {
 

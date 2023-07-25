@@ -40,33 +40,55 @@
 #include "silo/storage/column_group.h"
 #include "silo/storage/database_partition.h"
 
-namespace silo::query_engine::actions {
+namespace {
 
-using json_value_type = std::optional<std::variant<std::string, int32_t, double>>;
+std::vector<silo::config::DatabaseMetadata> parseGroupByFields(
+   const silo::Database& database,
+   const std::vector<std::string>& group_by_fields
+) {
+   std::vector<silo::config::DatabaseMetadata> group_by_metadata;
+   for (const std::string& group_by_field : group_by_fields) {
+      const auto& metadata = database.database_config.getMetadata(group_by_field);
+      CHECK_SILO_QUERY(
+         metadata.has_value(), "Metadata field '" + group_by_field + "' to group by not found"
+      )
+      group_by_metadata.push_back(*metadata);
+   }
+   return group_by_metadata;
+}
 
-size_t getTupleSize(std::vector<config::DatabaseMetadata>& group_by_metadata) {
+size_t getTupleSize(const std::vector<silo::config::DatabaseMetadata>& group_by_metadata) {
    size_t size = 0;
    for (const auto& metadata : group_by_metadata) {
-      if (metadata.getColumnType() == config::ColumnType::STRING) {
-         size += sizeof(common::String<common::STRING_SIZE>);
-      } else if (metadata.getColumnType() == config::ColumnType::FLOAT) {
+      if (metadata.getColumnType() == silo::config::ColumnType::STRING) {
+         size += sizeof(silo::common::String<silo::common::STRING_SIZE>);
+      } else if (metadata.getColumnType() == silo::config::ColumnType::FLOAT) {
          size += sizeof(double);
-      } else if (metadata.getColumnType() == config::ColumnType::INT) {
+      } else if (metadata.getColumnType() == silo::config::ColumnType::INT) {
          size += sizeof(int32_t);
-      } else if (metadata.getColumnType() == config::ColumnType::DATE) {
-         size += sizeof(common::Date);
+      } else if (metadata.getColumnType() == silo::config::ColumnType::DATE) {
+         size += sizeof(silo::common::Date);
       } else {
          size += sizeof(silo::Idx);
       }
    }
    return size;
 }
+}  // namespace
+
+namespace silo::query_engine::actions {
+
+using json_value_type = std::optional<std::variant<std::string, int32_t, double>>;
 
 struct Tuple {
    std::vector<char> data;
-   const silo::storage::ColumnGroup& columns;
+   const silo::storage::ColumnPartitionGroup& columns;
 
-   Tuple(uint32_t sequence_id, const silo::storage::ColumnGroup& columns, size_t tuple_size)
+   Tuple(
+      uint32_t sequence_id,
+      const silo::storage::ColumnPartitionGroup& columns,
+      size_t tuple_size
+   )
        : columns(columns) {
       data.resize(tuple_size);
       char* data_pointer = data.data();
@@ -223,6 +245,24 @@ QueryResult aggregateWithoutGrouping(const std::vector<OperatorResult>& bitmap_f
 Aggregated::Aggregated(std::vector<std::string> group_by_fields)
     : group_by_fields(std::move(group_by_fields)) {}
 
+void Aggregated::validateOrderByFields(const Database& database) const {
+   const std::vector<config::DatabaseMetadata> field_metadata =
+      parseGroupByFields(database, group_by_fields);
+
+   for (const Action::OrderByField& field : order_by_fields) {
+      CHECK_SILO_QUERY(
+         field.name == "count" ||
+            std::any_of(
+               field_metadata.begin(),
+               field_metadata.end(),
+               [&](const config::DatabaseMetadata& metadata) { return metadata.name == field.name; }
+            ),
+         "The orderByField '" + field.name +
+            "' cannot be ordered by, as it does not appear in the groupByFields."
+      )
+   }
+}
+
 QueryResult Aggregated::execute(
    const Database& database,
    std::vector<OperatorResult> bitmap_filters
@@ -232,29 +272,11 @@ QueryResult Aggregated::execute(
    }
    // TODO(#133) optimize when equal to partition_by field
    // TODO(#133) optimize single field groupby
-   /*if (group_by_fields.size() == 1) {
-   }*/
-   std::vector<config::DatabaseMetadata> group_by_metadata;
-   for (const std::string& group_by_field : group_by_fields) {
-      const auto& metadata = database.database_config.getMetadata(group_by_field);
-      CHECK_SILO_QUERY(
-         metadata.has_value(), "Metadata field '" + group_by_field + "' to group by not found"
-      )
-      group_by_metadata.push_back(*metadata);
-   }
 
-   for (const Action::OrderByField& field : order_by_fields) {
-      if (field.name != COUNT_FIELD && !std::any_of(group_by_metadata.begin(), group_by_metadata.end(), [&field](const config::DatabaseMetadata& group_by_field) {
-             return group_by_field.name == field.name;
-          })) {
-         throw QueryParseException(
-            "The orderByField '" + field.name +
-            "' cannot be ordered by, as it does not appear in the groupByFields."
-         );
-      }
-   }
+   const std::vector<config::DatabaseMetadata> group_by_metadata =
+      parseGroupByFields(database, group_by_fields);
 
-   std::vector<storage::ColumnGroup> group_by_column_groups;
+   std::vector<storage::ColumnPartitionGroup> group_by_column_groups;
    group_by_column_groups.reserve(database.partitions.size());
    for (const auto& partition : database.partitions) {
       group_by_column_groups.emplace_back(partition.columns.getSubgroup(group_by_metadata));
@@ -282,7 +304,6 @@ QueryResult Aggregated::execute(
       }
    }
    QueryResult result = {generateResult(final_map)};
-   applyOrderByAndLimit(result);
    return result;
 }
 

@@ -6,7 +6,6 @@
 #include <gtest/gtest.h>
 
 #include "silo/config/config_exception.h"
-#include "silo/config/database_config_reader.h"
 
 using silo::config::ConfigException;
 using silo::config::ConfigRepository;

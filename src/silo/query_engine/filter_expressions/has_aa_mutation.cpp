@@ -75,13 +75,11 @@ void from_json(const nlohmann::json& json, std::unique_ptr<HasAAMutation>& filte
    )
    CHECK_SILO_QUERY(
       json["position"].is_number_unsigned(),
-      "The field 'position' in a HasAminoAcidMutation expression needs to be an unsigned "
-      "integer"
+      "The field 'position' in a HasAminoAcidMutation expression needs to be an unsigned integer"
    )
    CHECK_SILO_QUERY(
       json.contains("sequenceName") && json["sequenceName"].is_string(),
       "HasAminoAcidMutation expression requires the string field sequenceName"
-      "integer"
    )
    const std::string aa_sequence_name = json["sequenceName"].get<std::string>();
    const uint32_t position = json["position"].get<uint32_t>() - 1;

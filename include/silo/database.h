@@ -16,74 +16,74 @@
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/column/pango_lineage_column.h"
 #include "silo/storage/column/string_column.h"
+#include "silo/storage/column_group.h"
 #include "silo/storage/database_partition.h"
 #include "silo/storage/pango_lineage_alias.h"
 #include "silo/storage/reference_genomes.h"
 #include "silo/storage/sequence_store.h"
 
 namespace silo {
-namespace preprocessing {
-struct Partitions;
-struct PreprocessingConfig;
-}  // namespace preprocessing
 struct BitmapContainerSize;
 struct BitmapSizePerSymbol;
 struct DatabaseInfo;
 struct DetailedDatabaseInfo;
 }  // namespace silo
+namespace silo::preprocessing {
+struct Partitions;
+struct PreprocessingConfig;
+}  // namespace silo::preprocessing
 
 namespace silo {
+
 class Database {
+  private:
+   PangoLineageAliasLookup alias_key;
+
   public:
    silo::config::DatabaseConfig database_config;
-   ReferenceGenomes reference_genomes;
    std::vector<DatabasePartition> partitions;
 
-   std::unordered_map<std::string, storage::column::StringColumn> string_columns;
-   std::unordered_map<std::string, storage::column::IndexedStringColumn> indexed_string_columns;
-   std::unordered_map<std::string, storage::column::IntColumn> int_columns;
-   std::unordered_map<std::string, storage::column::FloatColumn> float_columns;
-   std::unordered_map<std::string, storage::column::DateColumn> date_columns;
-   std::unordered_map<std::string, storage::column::PangoLineageColumn> pango_lineage_columns;
-   std::unordered_map<std::string, storage::column::InsertionColumn> insertion_columns;
+   silo::storage::ColumnGroup columns;
+   std::map<std::string, SequenceStore> nuc_sequences;
+   std::map<std::string, AAStore> aa_sequences;
 
-   std::unordered_map<std::string, SequenceStore> nuc_sequences;
-   std::unordered_map<std::string, AAStore> aa_sequences;
-
-   Database();
-
-   void preprocessing(
+   static Database preprocessing(
       const preprocessing::PreprocessingConfig& preprocessing_config,
       const config::DatabaseConfig& database_config_
    );
 
-   void build(
-      const std::filesystem::path& input_folder,
-      const preprocessing::Partitions& partition_descriptor
-   );
+   void saveDatabaseState(const std::string& save_directory);
 
-   virtual silo::DatabaseInfo getDatabaseInfo() const;
+   static Database loadDatabaseState(const std::string& save_directory);
 
-   virtual DetailedDatabaseInfo detailedDatabaseInfo() const;
+   [[nodiscard]] virtual DatabaseInfo getDatabaseInfo() const;
 
-   [[maybe_unused]] void flipBitmaps();
-
-   [[maybe_unused]] void saveDatabaseState(
-      const std::string& save_directory,
-      const silo::preprocessing::Partitions& partition_descriptor
-   );
-
-   [[maybe_unused]] [[maybe_unused]] void loadDatabaseState(const std::string& save_directory);
+   [[nodiscard]] virtual DetailedDatabaseInfo detailedDatabaseInfo() const;
 
    [[nodiscard]] const PangoLineageAliasLookup& getAliasKey() const;
 
   private:
-   PangoLineageAliasLookup alias_key;
+   void build(
+      const preprocessing::PreprocessingConfig& preprocessing_config,
+      const preprocessing::Partitions& partition_descriptor,
+      const ReferenceGenomes& reference_genomes
+   );
+
+   std::map<std::string, std::vector<NUCLEOTIDE_SYMBOL>> getNucSequences() const;
+
+   std::map<std::string, std::vector<AA_SYMBOL>> getAASequences() const;
 
    void initializeColumns();
    void initializeColumn(config::ColumnType column_type, const std::string& name);
-   void initializeSequences();
+   void initializeNucSequences(
+      const std::map<std::string, std::vector<NUCLEOTIDE_SYMBOL>>& reference_sequences
+   );
+   void initializeAASequences(
+      const std::map<std::string, std::vector<AA_SYMBOL>>& reference_sequences
+   );
    void finalizeInsertionIndexes();
+
+   void flipBitmaps();
 
    static BitmapSizePerSymbol calculateBitmapSizePerSymbol(const SequenceStore& seq_store);
 
@@ -91,9 +91,10 @@ class Database {
       const SequenceStore& seq_store,
       size_t section_length
    );
-};
 
-std::string buildChunkString(uint32_t partition, uint32_t chunk);
+  protected:
+   Database();
+};
 
 }  // namespace silo
 

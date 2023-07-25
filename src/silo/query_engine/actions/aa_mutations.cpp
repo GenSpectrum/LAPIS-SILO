@@ -113,6 +113,22 @@ AASymbolMap<std::vector<uint32_t>> AAMutations::calculateMutationsPerPosition(
    return count_of_mutations_per_position;
 }
 
+void AAMutations::validateOrderByFields(const Database& /*database*/) const {
+   const std::vector<std::string> result_field_names{
+      {POSITION_FIELD_NAME, PROPORTION_FIELD_NAME, COUNT_FIELD_NAME}};
+
+   for (const Action::OrderByField& field : order_by_fields) {
+      CHECK_SILO_QUERY(
+         std::any_of(
+            result_field_names.begin(),
+            result_field_names.end(),
+            [&](const std::string& result_field) { return result_field == field.name; }
+         ),
+         "OrderByField " + field.name + " is not contained in the result of this operation."
+      )
+   }
+}
+
 QueryResult AAMutations::execute(
    const Database& database,
    std::vector<OperatorResult> bitmap_filter
@@ -152,11 +168,11 @@ QueryResult AAMutations::execute(
                const std::
                   map<std::string, std::optional<std::variant<std::string, int32_t, double>>>
                      fields{
-                        {"position",
+                        {POSITION_FIELD_NAME,
                          aaSymbolToChar(symbol_in_reference_genome) + std::to_string(pos + 1) +
                             aaSymbolToChar(symbol)},
-                        {"proportion", proportion},
-                        {"count", static_cast<int32_t>(count)}};
+                        {PROPORTION_FIELD_NAME, proportion},
+                        {COUNT_FIELD_NAME, static_cast<int32_t>(count)}};
                mutation_proportions.push_back({fields});
             }
          }
@@ -170,7 +186,7 @@ QueryResult AAMutations::execute(
 void from_json(const nlohmann::json& json, std::unique_ptr<AAMutations>& action) {
    CHECK_SILO_QUERY(
       json.contains("sequenceName") && json["sequenceName"].is_string(),
-      "AminoAcideMutations action must have the field sequenceName:string"
+      "AminoAcidMutations action must have the string field sequenceName"
    )
    const std::string aa_sequence_name = json["sequenceName"].get<std::string>();
    double min_proportion = AAMutations::DEFAULT_MIN_PROPORTION;
