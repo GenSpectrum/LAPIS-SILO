@@ -47,39 +47,6 @@ common::UnaliasedPangoLineage PangoLineageAliasLookup::unaliasPangoLineage(
    return {pango_lineage.value};
 }
 
-/*std::vector<common::UnaliasedPangoLineage> PangoLineageAliasLookup::allUnaliasedPangoLineages(
-   const common::UnaliasedPangoLineage& pango_lineage
-) const {
-   std::vector<common::UnaliasedPangoLineage> result;
-   std::vector<common::UnaliasedPangoLineage> queue;
-   queue.emplace_back(pango_lineage.value);
-   while (!queue.empty()) {
-      common::UnaliasedPangoLineage current_lineage = std::move(queue.back());
-      queue.pop_back();
-
-      std::string pango_lineage_prefix;
-      std::stringstream pango_lineage_stream(current_lineage.value);
-      getline(pango_lineage_stream, pango_lineage_prefix, '.');
-      if (alias_key.contains(pango_lineage_prefix)) {
-         if (alias_key.at(pango_lineage_prefix).empty()) {
-            result.emplace_back(std::move(current_lineage));
-         }
-         std::string suffix;
-         if (!pango_lineage_stream.eof()) {
-            suffix = std::string(
-               (std::istream_iterator<char>(pango_lineage_stream)), std::istream_iterator<char>()
-            );
-         }
-         for (const std::string& prefix : alias_key.at(pango_lineage_prefix)) {
-            queue.push_back({prefix + "." + suffix});
-         }
-      } else {
-         result.emplace_back(current_lineage);
-      }
-   }
-   return result;
-}*/
-
 namespace {
 
 std::unordered_map<std::string, std::vector<std::string>> readFromJson(

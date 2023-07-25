@@ -1,11 +1,11 @@
 #include "silo/preprocessing/pango_lineage_count.h"
 
-#include <silo/common/pango_lineage.h>
 #include <algorithm>
 #include <cstdlib>
 #include <iostream>
 #include <unordered_map>
 
+#include "silo/common/pango_lineage.h"
 #include "silo/config/database_config.h"
 #include "silo/preprocessing/metadata.h"
 #include "silo/storage/pango_lineage_alias.h"
