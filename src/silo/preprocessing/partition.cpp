@@ -9,6 +9,7 @@
 #include <tuple>
 #include <utility>
 
+#include <spdlog/spdlog.h>
 #include <boost/range/difference_type.hpp>
 #include <nlohmann/json.hpp>
 
@@ -47,6 +48,10 @@ std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
    uint32_t min_size
 ) {
    // Initialize chunks such that every chunk is just a pango_lineage
+   SPDLOG_TRACE(
+      "Initialize {} chunks such that every chunk is just a pango_lineage",
+      pango_lineage_counts.size()
+   );
    std::list<Chunk> chunks;
    for (const auto& [lineage, count] : pango_lineage_counts) {
       chunks.emplace_back(lineage, count);
@@ -62,7 +67,11 @@ std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
             return lhs.pango_lineage.value.size() < rhs.pango_lineage.value.size();
          }
       )->pango_lineage.value.size();
+   SPDLOG_TRACE("Precalculated longest prefix: {}", max_len);
    for (uint32_t len = max_len; len > 0; len--) {
+      SPDLOG_TRACE(
+         "Merging chunks with prefix length: {}. Leftover chunks: {}", len, chunks.size()
+      );
       for (auto it = chunks.begin(); it != chunks.end() && std::next(it) != chunks.end();) {
          auto&& [pango1, pango2] = std::tie(*it, *std::next(it));
          const std::string common_prefix =
@@ -73,16 +82,22 @@ std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
          const bool both_chunks_still_want_to_grow = pango1.getCountOfSequences() < target_size &&
                                                      pango2.getCountOfSequences() < target_size;
          if (common_prefix.size() == len && (one_chunk_is_very_small || both_chunks_still_want_to_grow)) {
+            SPDLOG_TRACE(
+               "Merging chunks {} and {} with common prefix {}",
+               pango1.getPrefix(),
+               pango2.getPrefix(),
+               common_prefix
+            );
             pango2.addChunk(std::move(pango1));
 
-            // We merged pango1 into pango2 -> Now delete pango1
-            // Do not need to increment, because erase will make it automatically point to next
-            // element
             it = chunks.erase(it);
          } else {
             ++it;
          }
       }
+      SPDLOG_TRACE(
+         "Finished merging chunks with prefix length: {}. Leftover chunks: {}", len, chunks.size()
+      );
    }
 
    std::vector<Chunk> ret;
@@ -138,10 +153,12 @@ Partitions buildPartitions(
    for (const auto& pango_lineage_count : pango_lineage_counts.pango_lineage_counts) {
       total_count_of_sequences += pango_lineage_count.count_of_sequences;
    }
+   SPDLOG_TRACE("Total count of sequences: {}", total_count_of_sequences);
    constexpr int TARGET_SIZE_REDUCTION = 100;
    constexpr int MIN_SIZE_REDUCTION = 200;
 
    if (arch == Architecture::MAX_PARTITIONS) {
+      SPDLOG_INFO("Building partitions with architecture MAX_PARTITIONS");
       for (auto& chunk : mergePangosToChunks(
               pango_lineage_counts.pango_lineage_counts,
               total_count_of_sequences / 100,
@@ -151,6 +168,7 @@ Partitions buildPartitions(
       }
    } else if (arch == Architecture::SINGLE_PARTITION) {
       // Merge pango_lineages, such that chunks are not get very small
+      SPDLOG_INFO("Building partitions with architecture SINGLE_PARTITION");
       std::vector<Chunk> chunks = mergePangosToChunks(
          pango_lineage_counts.pango_lineage_counts,
          total_count_of_sequences / TARGET_SIZE_REDUCTION,
@@ -160,6 +178,7 @@ Partitions buildPartitions(
       partitions.emplace_back(std::move(chunks));
    } else if (arch == Architecture::SINGLE_SINGLE) {
       // Merge pango_lineages, such that all lineages are in one chunk
+      SPDLOG_INFO("Building partitions with architecture SINGLE_SINGLE");
       if (!pango_lineage_counts.pango_lineage_counts.empty()) {
          auto current = pango_lineage_counts.pango_lineage_counts.begin();
          Chunk chunk{current->pango_lineage, current->count_of_sequences};
@@ -210,18 +229,7 @@ Chunk::Chunk(std::vector<silo::common::UnaliasedPangoLineage>&& lineages, uint32
 void Chunk::addChunk(Chunk&& other) {
    prefix = commonPangoPrefix(prefix, other.getPrefix());
    count_of_sequences += other.count_of_sequences;
-// #define variant1
-#ifdef variant1
-   // Add all pango lineages but keep invariant of pango lineages being sorted
-   const std::ptrdiff_t previous_number_of_pango_lineages =
-      static_cast<std::ptrdiff_t>(pango_lineages.size());
-   pango_lineages.insert(
-      pango_lineages.end(), other.pango_lineages.begin(), other.pango_lineages.end()
-   );
-   const auto middle = pango_lineages.begin() + previous_number_of_pango_lineages;
-   std::inplace_merge(pango_lineages.begin(), middle, pango_lineages.end());
-#else
-   // Add all pango lineages but keep invariant of pango lineages being sorted
+
    auto copy_of_my_lineages = std::move(pango_lineages);
    pango_lineages.clear();
    std::merge(
@@ -231,7 +239,6 @@ void Chunk::addChunk(Chunk&& other) {
       other.pango_lineages.end(),
       pango_lineages.begin()
    );
-#endif
 }
 
 std::string_view Chunk::getPrefix() const {
