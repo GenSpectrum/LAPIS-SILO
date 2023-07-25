@@ -83,11 +83,13 @@ std::unordered_map<std::string, silo::preprocessing::PartitionChunk> writeMetada
       primary_key_to_sequence_partition_chunk;
    for (auto& row : metadata_reader) {
       const std::string primary_key = row[database_config.schema.primary_key].get();
-      const std::string pango_lineage =
-         alias_key.resolvePangoLineageAlias(row[database_config.schema.partition_by].get());
-      row[database_config.schema.partition_by] = csv::CSVField{pango_lineage};
+      const silo::common::RawPangoLineage raw_pango_lineage{
+         row[database_config.schema.partition_by].get()};
+      const silo::common::UnaliasedPangoLineage pango_lineage =
+         alias_key.unaliasPangoLineage(raw_pango_lineage);
+      row[database_config.schema.partition_by] = csv::CSVField{pango_lineage.value};
 
-      const auto partition_chunk = pango_to_chunk.at(pango_lineage);
+      const auto partition_chunk = pango_to_chunk.at(pango_lineage.value);
 
       chunk_to_metadata_writers[partition_chunk]->writeRow(row);
 

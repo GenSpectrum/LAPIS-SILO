@@ -17,13 +17,13 @@ TEST(PangoLineageCounts, buildPangoLineageCounts) {
       database_config
    );
 
-   ASSERT_EQ(result.pango_lineage_counts.size(), 24);
-   ASSERT_EQ(result.pango_lineage_counts[0].pango_lineage, "");
+   ASSERT_EQ(result.pango_lineage_counts.size(), 25);
+   ASSERT_EQ(result.pango_lineage_counts[0].pango_lineage.value, "");
    ASSERT_EQ(result.pango_lineage_counts[0].count_of_sequences, 1);
-   ASSERT_EQ(result.pango_lineage_counts[1].pango_lineage, "B.1");
+   ASSERT_EQ(result.pango_lineage_counts[1].pango_lineage.value, "B.1");
    ASSERT_EQ(result.pango_lineage_counts[1].count_of_sequences, 3);
-   ASSERT_EQ(result.pango_lineage_counts[7].pango_lineage, "B.1.1.7");
+   ASSERT_EQ(result.pango_lineage_counts[7].pango_lineage.value, "B.1.1.7");
    ASSERT_EQ(result.pango_lineage_counts[7].count_of_sequences, 48);
-   ASSERT_EQ(result.pango_lineage_counts[23].pango_lineage, "B.1.617.2.9.2");
+   ASSERT_EQ(result.pango_lineage_counts[23].pango_lineage.value, "XA.1");
    ASSERT_EQ(result.pango_lineage_counts[23].count_of_sequences, 1);
 }

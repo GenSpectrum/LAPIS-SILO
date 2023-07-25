@@ -152,6 +152,9 @@ bool CompareToValueSelection<T>::match(uint32_t row_id) const {
       case Comparator::LESS_OR_EQUALS:
          return column[row_id] <= value;
    }
+   throw std::runtime_error(
+      "Uncovered enum switch case in CompareToValueSelection<T>::match should be covered by linter."
+   );
 }
 
 template <typename T>

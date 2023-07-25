@@ -1,0 +1,19 @@
+{
+  "testCaseName": "Recombinant lineage XBB including sublineages",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "PangoLineage",
+      "column": "pango_lineage",
+      "value": "XBB",
+      "includeSublineages": true
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 1
+    }
+  ]
+}

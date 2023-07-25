@@ -2,6 +2,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "silo/common/pango_lineage.h"
 #include "silo/storage/pango_lineage_alias.h"
 
 namespace {
@@ -13,17 +14,16 @@ struct TestParameter {
 
 class ResolveAliasTestFixture : public ::testing::TestWithParam<TestParameter> {
   protected:
-   const silo::PangoLineageAliasLookup alias_map = silo::PangoLineageAliasLookup(
-      std::unordered_map<std::string, std::string>{{"X", "A"}, {"XY", "A.1"}}
-   );
+   const silo::PangoLineageAliasLookup alias_map =
+      silo::PangoLineageAliasLookup{{{"X", {"A"}}, {"XY", {"A.1"}}}};
 };
 
 TEST_P(ResolveAliasTestFixture, shouldReturnExpectedResolvedAlias) {
    const auto test_parameter = GetParam();
 
-   const auto result = alias_map.resolvePangoLineageAlias(test_parameter.input);
+   const auto result = alias_map.unaliasPangoLineage({test_parameter.input});
 
-   ASSERT_EQ(result, test_parameter.expected_result);
+   ASSERT_EQ(result.value, test_parameter.expected_result);
 }
 
 // NOLINTNEXTLINE(readability-identifier-length)
@@ -45,11 +45,11 @@ TEST(PangoLineageAliasLookup, readFromFile) {
    auto under_test =
       silo::PangoLineageAliasLookup::readFromFile("testBaseData/pangolineage_alias.json");
 
-   ASSERT_EQ(under_test.resolvePangoLineageAlias("B"), "B");
-   ASSERT_EQ(under_test.resolvePangoLineageAlias("B.1"), "B.1");
-   ASSERT_EQ(under_test.resolvePangoLineageAlias("B.1.2"), "B.1.2");
-   ASSERT_EQ(under_test.resolvePangoLineageAlias("C"), "B.1.1.1");
-   ASSERT_EQ(under_test.resolvePangoLineageAlias("EP"), "B.1.1.529.2.75.3.1.1.4");
+   ASSERT_EQ(under_test.unaliasPangoLineage({"B"}).value, "B");
+   ASSERT_EQ(under_test.unaliasPangoLineage({"B.1"}).value, "B.1");
+   ASSERT_EQ(under_test.unaliasPangoLineage({"B.1.2"}).value, "B.1.2");
+   ASSERT_EQ(under_test.unaliasPangoLineage({"C"}).value, "B.1.1.1");
+   ASSERT_EQ(under_test.unaliasPangoLineage({"EP"}).value, "B.1.1.529.2.75.3.1.1.4");
 }
 
 TEST(PangoLineageAliasLookup, readFromFileShouldThrowIfFileDoesNotExist) {

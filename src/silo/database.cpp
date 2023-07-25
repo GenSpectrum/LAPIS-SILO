@@ -122,7 +122,7 @@ void Database::build(
             }
             SPDLOG_DEBUG("Using metadata file: {}", metadata_file.string());
             partitions[partition_index].sequenceCount =
-               partitions[partition_index].columns.fill(metadata_file, alias_key, database_config);
+               partitions[partition_index].columns.fill(metadata_file, database_config);
          }
       }
    }
@@ -392,6 +392,10 @@ void Database::saveDatabaseState(const std::string& save_directory) {
    const std::string database_config_filename = save_directory + "database_config.yaml";
    database_config.writeConfig(database_config_filename);
 
+   std::ofstream alias_key_file(save_directory + "alias_key.silo");
+   ::boost::archive::binary_oarchive alias_key_archive(alias_key_file);
+   alias_key_archive << alias_key;
+
    std::ofstream partitions_file(save_directory + "partitions.silo");
    ::boost::archive::binary_oarchive partitions_archive(partitions_file);
    partitions_archive << partitions;
@@ -438,6 +442,10 @@ Database Database::loadDatabaseState(const std::string& save_directory) {
    const auto database_config_filename = save_directory + "database_config.yaml";
    database.database_config =
       silo::config::DatabaseConfigReader().readConfig(database_config_filename);
+
+   std::ifstream alias_key_file(save_directory + "alias_key.silo");
+   ::boost::archive::binary_iarchive alias_key_archive(alias_key_file);
+   alias_key_archive >> database.alias_key;
 
    SPDLOG_INFO("Loading partitions from {}", save_directory);
 
@@ -565,7 +573,9 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
          }
       } break;
       case config::ColumnType::INDEXED_PANGOLINEAGE:
-         columns.pango_lineage_columns.emplace(name, storage::column::PangoLineageColumn());
+         columns.pango_lineage_columns.emplace(
+            name, storage::column::PangoLineageColumn(alias_key)
+         );
          for (auto& partition : partitions) {
             partition.insertColumn(name, columns.pango_lineage_columns.at(name).createPartition());
          }

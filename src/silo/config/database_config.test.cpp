@@ -118,13 +118,14 @@ TEST(DatabaseConfigReader, shouldReadConfigWithCorrectParameters) {
 
 TEST(DatabaseConfigReader, shouldThrowExceptionWhenConfigFileDoesNotExist) {
    ASSERT_THROW(
-      DatabaseConfigReader().readConfig("testBaseData/does_not_exist.yaml"), std::runtime_error
+      (void)DatabaseConfigReader().readConfig("testBaseData/does_not_exist.yaml"),
+      std::runtime_error
    );
 }
 
 TEST(DatabaseConfigReader, shouldThrowErrorForInvalidMetadataType) {
    ASSERT_THROW(
-      DatabaseConfigReader().readConfig(
+      (void)DatabaseConfigReader().readConfig(
          "testBaseData/test_database_config_with_invalid_metadata_type.yaml"
       ),
       ConfigException
@@ -132,14 +133,14 @@ TEST(DatabaseConfigReader, shouldThrowErrorForInvalidMetadataType) {
 }
 
 TEST(DatabaseConfigReader, shouldNotThrowIfThereAreAdditionalEntries) {
-   ASSERT_NO_THROW(DatabaseConfigReader().readConfig(
+   ASSERT_NO_THROW((void)DatabaseConfigReader().readConfig(
       "testBaseData/test_database_config_with_additional_entries.yaml"
    ));
 }
 
 TEST(DatabaseConfigReader, shouldThrowIfTheConfigHasAnInvalidStructure) {
    ASSERT_THROW(
-      DatabaseConfigReader().readConfig(
+      (void)DatabaseConfigReader().readConfig(
          "testBaseData/test_database_config_with_invalid_structure.yaml"
       ),
       YAML::InvalidNode

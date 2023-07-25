@@ -3,8 +3,10 @@
 #include <gtest/gtest.h>
 
 TEST(PangoLineageColumn, addingLineageAndThenSublineageFiltersCorrectly) {
-   silo::common::BidirectionalMap<silo::common::PangoLineage> lookup;
-   silo::storage::column::PangoLineageColumnPartition under_test(lookup);
+   silo::common::BidirectionalMap<silo::common::UnaliasedPangoLineage> lookup;
+   silo::PangoLineageAliasLookup alias_key =
+      silo::PangoLineageAliasLookup::readFromFile("testBaseData/pangolineage_alias.json");
+   silo::storage::column::PangoLineageColumnPartition under_test(alias_key, lookup);
 
    under_test.insert({"A.1.2"});
    under_test.insert({"A.1.2"});
@@ -20,8 +22,10 @@ TEST(PangoLineageColumn, addingLineageAndThenSublineageFiltersCorrectly) {
 }
 
 TEST(PangoLineageColumn, addingSublineageAndThenLineageFiltersCorrectly) {
-   silo::common::BidirectionalMap<silo::common::PangoLineage> lookup;
-   silo::storage::column::PangoLineageColumnPartition under_test(lookup);
+   silo::common::BidirectionalMap<silo::common::UnaliasedPangoLineage> lookup;
+   silo::PangoLineageAliasLookup alias_key =
+      silo::PangoLineageAliasLookup::readFromFile("testBaseData/pangolineage_alias.json");
+   silo::storage::column::PangoLineageColumnPartition under_test(alias_key, lookup);
 
    under_test.insert({"A.1.2.3"});
    under_test.insert({"A.1.2.3"});
@@ -37,8 +41,10 @@ TEST(PangoLineageColumn, addingSublineageAndThenLineageFiltersCorrectly) {
 }
 
 TEST(PangoLineageColumn, queryParentLineageThatWasNeverInserted) {
-   silo::common::BidirectionalMap<silo::common::PangoLineage> lookup;
-   silo::storage::column::PangoLineageColumnPartition under_test(lookup);
+   silo::common::BidirectionalMap<silo::common::UnaliasedPangoLineage> lookup;
+   silo::PangoLineageAliasLookup alias_key =
+      silo::PangoLineageAliasLookup::readFromFile("testBaseData/pangolineage_alias.json");
+   silo::storage::column::PangoLineageColumnPartition under_test(alias_key, lookup);
 
    under_test.insert({"A.1.2.3"});
    under_test.insert({"A.1.2.3"});

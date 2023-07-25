@@ -7,7 +7,7 @@ describe('The /info endpoint', () => {
       .get('/info')
       .expect(200)
       .expect('Content-Type', 'application/json')
-      .expect({ nBitmapsSize: 3898, sequenceCount: 100, totalSize: 66467326 })
+      .expect({ nBitmapsSize: 3898, sequenceCount: 100, totalSize: 68915226 })
       .end(done);
   });
 
@@ -26,7 +26,7 @@ describe('The /info endpoint', () => {
           'bitmapContainerSizeStatistic'
         );
         expect(returnedInfo.bitmapContainerSizePerGenomeSection.bitmapContainerSizeStatistic).to.deep.equal({
-          numberOfArrayContainers: 716007,
+          numberOfArrayContainers: 745081,
           numberOfBitsetContainers: 0,
           numberOfRunContainers: 0,
           numberOfValuesStoredInArrayContainers: 2929577,
@@ -61,22 +61,22 @@ describe('The /info endpoint', () => {
 
         expect(returnedInfo).to.have.property('bitmapSizePerSymbol');
         expect(returnedInfo.bitmapSizePerSymbol).to.deep.equal({
-          '-': 5779958,
-          'A': 9190510,
-          'B': 5741376,
-          'C': 7859992,
-          'D': 5741376,
-          'G': 8006876,
-          'H': 5741376,
-          'K': 5741498,
-          'M': 5741466,
-          'N': 5741376,
-          'R': 5741426,
-          'S': 5741376,
-          'T': 9456412,
-          'V': 5741376,
-          'W': 5741426,
-          'Y': 5741406,
+          '-': 6019718,
+          'A': 9498982,
+          'B': 5980600,
+          'C': 8141784,
+          'D': 5980600,
+          'G': 8291636,
+          'H': 5980600,
+          'K': 5980730,
+          'M': 5980690,
+          'N': 5980600,
+          'R': 5980650,
+          'S': 5980600,
+          'T': 9770332,
+          'V': 5980600,
+          'W': 5980650,
+          'Y': 5980630,
         });
       })
       .end(done);

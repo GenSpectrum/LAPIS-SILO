@@ -16,7 +16,7 @@ class StringColumnPartition;
 }  // namespace storage::column
 
 DatabasePartition::DatabasePartition(std::vector<silo::preprocessing::Chunk> chunks)
-    : chunks(chunks) {}
+    : chunks(std::move(chunks)) {}
 
 const std::vector<preprocessing::Chunk>& DatabasePartition::getChunks() const {
    return chunks;

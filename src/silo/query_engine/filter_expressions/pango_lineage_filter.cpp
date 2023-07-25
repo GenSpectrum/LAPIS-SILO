@@ -42,7 +42,7 @@ std::string PangoLineageFilter::toString(const silo::Database& /*database*/) con
 }
 
 std::unique_ptr<silo::query_engine::operators::Operator> PangoLineageFilter::compile(
-   const silo::Database& database,
+   const silo::Database& /*database*/,
    const silo::DatabasePartition& database_partition,
    AmbiguityMode /*mode*/
 ) const {
@@ -50,14 +50,15 @@ std::unique_ptr<silo::query_engine::operators::Operator> PangoLineageFilter::com
       return std::make_unique<operators::Empty>(database_partition.sequenceCount);
    }
 
-   std::string lineage_copy = lineage;
-   std::transform(lineage_copy.begin(), lineage_copy.end(), lineage_copy.begin(), ::toupper);
-   const auto resolved_lineage = database.getAliasKey().resolvePangoLineageAlias(lineage_copy);
+   std::string lineage_all_upper = lineage;
+   std::transform(
+      lineage_all_upper.begin(), lineage_all_upper.end(), lineage_all_upper.begin(), ::toupper
+   );
 
    const auto& pango_lineage_column = database_partition.columns.pango_lineage_columns.at(column);
    const auto& bitmap = include_sublineages
-                           ? pango_lineage_column.filterIncludingSublineages({resolved_lineage})
-                           : pango_lineage_column.filter({resolved_lineage});
+                           ? pango_lineage_column.filterIncludingSublineages({lineage_all_upper})
+                           : pango_lineage_column.filter({lineage_all_upper});
 
    return std::make_unique<operators::IndexScan>(
       new roaring::Roaring(bitmap), database_partition.sequenceCount

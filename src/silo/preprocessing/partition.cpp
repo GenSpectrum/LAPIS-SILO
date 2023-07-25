@@ -54,13 +54,14 @@ std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
    // We want to prioritise merges more closely related chunks.
    // Therefore, we first merge the chunks, with longer matching prefixes.
    // Precalculate the longest a prefix can be (which is the max length of lineages)
-   const uint32_t max_len = std::max_element(
-                               pango_lineage_counts.begin(),
-                               pango_lineage_counts.end(),
-                               [](const PangoLineageCount& lhs, const PangoLineageCount& rhs) {
-                                  return lhs.pango_lineage.size() < rhs.pango_lineage.size();
-                               }
-   )->pango_lineage.size();
+   const uint32_t max_len =
+      std::max_element(
+         pango_lineage_counts.begin(),
+         pango_lineage_counts.end(),
+         [](const PangoLineageCount& lhs, const PangoLineageCount& rhs) {
+            return lhs.pango_lineage.value.size() < rhs.pango_lineage.value.size();
+         }
+      )->pango_lineage.value.size();
    for (uint32_t len = max_len; len > 0; len--) {
       for (auto it = chunks.begin(); it != chunks.end() && std::next(it) != chunks.end();) {
          auto&& [pango1, pango2] = std::tie(*it, *std::next(it));
@@ -122,7 +123,7 @@ silo::preprocessing::Partitions::Partitions(std::vector<Partition> partitions_)
       for (uint32_t j = 0, limit2 = part.getChunks().size(); j < limit2; ++j) {
          const auto& chunk = part.getChunks()[j];
          for (const auto& pango : chunk.getPangoLineages()) {
-            pango_to_chunk[pango] = {i, j, chunk.getCountOfSequences()};
+            pango_to_chunk[pango.value] = {i, j, chunk.getCountOfSequences()};
          }
       }
    }
@@ -189,13 +190,13 @@ bool PartitionChunk::operator==(const PartitionChunk& other) const {
    return partition == other.partition && chunk == other.chunk && size == other.size;
 }
 
-Chunk::Chunk(std::string_view lineage, uint32_t count)
-    : prefix(lineage),
+Chunk::Chunk(silo::common::UnaliasedPangoLineage lineage, uint32_t count)
+    : prefix(lineage.value),
       count_of_sequences(count),
       offset(0),
-      pango_lineages({{std::string{lineage}}}) {}
+      pango_lineages({{std::move(lineage)}}) {}
 
-Chunk::Chunk(std::vector<std::string>&& lineages, uint32_t count)
+Chunk::Chunk(std::vector<silo::common::UnaliasedPangoLineage>&& lineages, uint32_t count)
     : count_of_sequences(count),
       offset(0),
       pango_lineages(lineages) {
@@ -203,7 +204,7 @@ Chunk::Chunk(std::vector<std::string>&& lineages, uint32_t count)
       throw std::runtime_error("Empty chunks should be impossible to create by design.");
    }
    std::sort(pango_lineages.begin(), pango_lineages.end());
-   prefix = commonPangoPrefix(pango_lineages.front(), pango_lineages.back());
+   prefix = commonPangoPrefix(pango_lineages.front().value, pango_lineages.back().value);
 }
 
 void Chunk::addChunk(Chunk&& other) {
@@ -245,7 +246,7 @@ uint32_t Chunk::getOffset() const {
    return offset;
 }
 
-const std::vector<std::string>& Chunk::getPangoLineages() const {
+const std::vector<silo::common::UnaliasedPangoLineage>& Chunk::getPangoLineages() const {
    return pango_lineages;
 }
 
@@ -259,12 +260,28 @@ std::size_t std::hash<silo::preprocessing::PartitionChunk>::operator()(
           (hash<uint32_t>()(partition_chunk.chunk) >> 2);
 }
 
+namespace silo::common {
+
+// NOLINTNEXTLINE(readability-identifier-naming)
+void from_json(
+   const nlohmann::json& js_object,
+   silo::common::UnaliasedPangoLineage& pango_lineage
+) {
+   pango_lineage.value = js_object;
+}
+
+// NOLINTNEXTLINE(readability-identifier-naming)
+void to_json(nlohmann::json& js_object, const silo::common::UnaliasedPangoLineage& pango_lineage) {
+   js_object = pango_lineage.value;
+}
+}  // namespace silo::common
+
 template <>
 struct nlohmann::adl_serializer<silo::preprocessing::Chunk> {
    // NOLINTNEXTLINE(readability-identifier-naming)
    static silo::preprocessing::Chunk from_json(const nlohmann::json& js_object) {
       return silo::preprocessing::Chunk{
-         js_object["lineages"].template get<std::vector<std::string>>(),
+         js_object["lineages"].template get<std::vector<silo::common::UnaliasedPangoLineage>>(),
          js_object["count"].template get<uint32_t>()};
    }
 
