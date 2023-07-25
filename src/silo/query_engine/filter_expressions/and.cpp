@@ -7,6 +7,7 @@
 #include <string>
 #include <utility>
 
+#include <spdlog/spdlog.h>
 #include <boost/algorithm/string/join.hpp>
 #include <nlohmann/json.hpp>
 
@@ -41,8 +42,7 @@ std::string And::toString(const silo::Database& database) const {
       std::back_inserter(child_strings),
       [&](const std::unique_ptr<Expression>& child) { return child->toString(database); }
    );
-   std::string res = "(" + boost::algorithm::join(child_strings, " & ") + ")";
-   return res;
+   return "And(" + boost::algorithm::join(child_strings, " & ") + ")";
 }
 
 namespace {
@@ -60,6 +60,44 @@ void inline appendVectorToVector(
    );
 }
 }  // namespace
+
+void logCompiledChildren(
+   OperatorVector& non_negated_child_operators,
+   OperatorVector& negated_child_operators,
+   std::vector<std::unique_ptr<operators::Predicate>>& predicates
+) {
+   std::vector<std::string> child_operator_strings;
+   std::transform(
+      non_negated_child_operators.begin(),
+      non_negated_child_operators.end(),
+      std::back_inserter(child_operator_strings),
+      [&](const std::unique_ptr<operators::Operator>& operator_) { return operator_->toString(); }
+   );
+   std::transform(
+      negated_child_operators.begin(),
+      negated_child_operators.end(),
+      std::back_inserter(child_operator_strings),
+      [&](const std::unique_ptr<operators::Operator>& operator_) {
+         return "!" + operator_->toString();
+      }
+   );
+   std::vector<std::string> predicate_strings;
+   std::transform(
+      predicates.begin(),
+      predicates.end(),
+      std::back_inserter(predicate_strings),
+      [&](const std::unique_ptr<operators::Predicate>& predicate) { return predicate->toString(); }
+   );
+   SPDLOG_TRACE(
+      "Compiled and processed child operators: {}, predicates {}, children: {}, negated children: "
+      "{}, predicates: {}",
+      fmt::join(child_operator_strings, ","),
+      fmt::join(predicate_strings, ","),
+      non_negated_child_operators.size(),
+      negated_child_operators.size(),
+      predicates.size()
+   );
+}
 
 std::tuple<OperatorVector, OperatorVector, std::vector<std::unique_ptr<operators::Predicate>>> And::
    compileChildren(
@@ -81,9 +119,11 @@ std::tuple<OperatorVector, OperatorVector, std::vector<std::unique_ptr<operators
    std::vector<std::unique_ptr<operators::Predicate>> predicates;
    for (auto& child : all_child_operators) {
       if (child->type() == operators::FULL) {
+         SPDLOG_TRACE("Skipping full child");
          continue;
       }
       if (child->type() == operators::EMPTY) {
+         SPDLOG_TRACE("Shortcutting because found empty child");
          OperatorVector empty;
          empty.emplace_back(std::make_unique<operators::Empty>(database_partition.sequenceCount));
          return {
@@ -99,14 +139,25 @@ std::tuple<OperatorVector, OperatorVector, std::vector<std::unique_ptr<operators
          negated_child_operators.emplace_back(child->negate());
       } else if (child->type() == operators::SELECTION) {
          auto* selection_child = dynamic_cast<operators::Selection*>(child.get());
-         appendVectorToVector<operators::Predicate>(predicates, selection_child->predicates);
+         appendVectorToVector<operators::Predicate>(selection_child->predicates, predicates);
+         SPDLOG_TRACE(
+            "Found selection, appended {} predicates", selection_child->predicates.size()
+         );
          if (selection_child->child_operator.has_value()) {
+            SPDLOG_TRACE(
+               "Appending child of selection {}", selection_child->child_operator->get()->toString()
+            );
             all_child_operators.emplace_back(std::move(*selection_child->child_operator));
          }
       } else {
          non_negated_child_operators.push_back(std::move(child));
       }
    }
+
+#if SPDLOG_ACTIVE_LEVEL <= SPDLOG_LEVEL_TRACE
+   logCompiledChildren(non_negated_child_operators, negated_child_operators, predicates);
+#endif
+
    return {
       std::move(non_negated_child_operators),
       std::move(negated_child_operators),
@@ -123,11 +174,19 @@ std::unique_ptr<Operator> And::compile(
 
    if (non_negated_child_operators.empty() && negated_child_operators.empty()) {
       if (predicates.empty()) {
+         SPDLOG_TRACE(
+            "Compiled And filter expression to Full, since no predicates and no child operators"
+         );
          return std::make_unique<operators::Full>(database_partition.sequenceCount);
       }
-      return std::make_unique<operators::Selection>(
+      auto result = std::make_unique<operators::Selection>(
          std::move(predicates), database_partition.sequenceCount
       );
+      SPDLOG_TRACE(
+         "Compiled And filter expression to {} - found only predicates", result->toString()
+      );
+
+      return result;
    }
 
    std::unique_ptr<Operator> index_arithmetic_operator;
@@ -152,11 +211,20 @@ std::unique_ptr<Operator> And::compile(
       );
    }
    if (predicates.empty()) {
+      SPDLOG_TRACE(
+         "Compiled And filter expression to {} - found no predicates",
+         index_arithmetic_operator->toString()
+      );
+
       return index_arithmetic_operator;
    }
-   return std::make_unique<operators::Selection>(
+   auto result = std::make_unique<operators::Selection>(
       std::move(index_arithmetic_operator), std::move(predicates), database_partition.sequenceCount
    );
+
+   SPDLOG_TRACE("Compiled And filter expression to {}", result->toString());
+
+   return result;
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

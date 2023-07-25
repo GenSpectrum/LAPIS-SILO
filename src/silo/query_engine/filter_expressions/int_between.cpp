@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
 #include "silo/query_engine/filter_expressions/expression.h"
@@ -51,11 +52,15 @@ std::unique_ptr<silo::query_engine::operators::Operator> IntBetween::compile(
       predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<int32_t>>(
          int_column.getValues(), operators::Comparator::LESS_OR_EQUALS, to.value()
       ));
-   };
+   }
 
-   return std::make_unique<operators::Selection>(
+   auto result = std::make_unique<operators::Selection>(
       std::move(predicates), database_partition.sequenceCount
    );
+
+   SPDLOG_TRACE("Compiled IntBetween filter expression to {}", result->toString());
+
+   return std::move(result);
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

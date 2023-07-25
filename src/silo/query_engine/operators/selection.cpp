@@ -190,7 +190,7 @@ template <typename T>
 
 template <>
 [[nodiscard]] std::string CompareToValueSelection<int32_t>::toString() const {
-   return "$string " + displayComparator(comparator) + " " + std::to_string(value);
+   return "$int " + displayComparator(comparator) + " " + std::to_string(value);
 }
 
 template <>
@@ -208,12 +208,12 @@ template <>
 
 template <>
 [[nodiscard]] std::string CompareToValueSelection<silo::common::Date>::toString() const {
-   return "$string " + displayComparator(comparator) + " " + std::to_string(value);
+   return "$date " + displayComparator(comparator) + " " + std::to_string(value);
 }
 
 template <>
 [[nodiscard]] std::string CompareToValueSelection<double>::toString() const {
-   return "$string " + displayComparator(comparator) + " " + std::to_string(value);
+   return "$double " + displayComparator(comparator) + " " + std::to_string(value);
 }
 
 template class CompareToValueSelection<int32_t>;
