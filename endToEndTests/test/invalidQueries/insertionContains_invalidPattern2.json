@@ -8,11 +8,11 @@
       "type": "InsertionContains",
       "column": "insertions",
       "position": 25701,
-      "value": "CC+++"
+      "value": "CC..*"
     }
   },
   "expectedError": {
     "error": "Bad request",
-    "message": "The field 'value' in the InsertionContains expression does not contain a valid regex pattern: \"CC+++\". It must only consist of nucleotide symbols and the regex symbol '?'."
+    "message": "The field 'value' in the InsertionContains expression does not contain a valid regex pattern: \"CC..*\". It must only consist of nucleotide symbols and the regex symbol '?'."
   }
 }

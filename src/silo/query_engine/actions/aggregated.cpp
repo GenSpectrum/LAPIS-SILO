@@ -164,7 +164,7 @@ struct Tuple {
             if (string_value.empty()) {
                fields[metadata.name] = std::nullopt;
             } else {
-               fields[metadata.name] = string_value;
+               fields[metadata.name] = std::move(string_value);
             }
             data_pointer += sizeof(decltype(value));
          } else if (metadata.getColumnType() == config::ColumnType::INDEXED_PANGOLINEAGE) {
@@ -174,7 +174,7 @@ struct Tuple {
             if (string_value.empty()) {
                fields[metadata.name] = std::nullopt;
             } else {
-               fields[metadata.name] = string_value;
+               fields[metadata.name] = std::move(string_value);
             }
             data_pointer += sizeof(decltype(value));
          } else if (metadata.getColumnType() == config::ColumnType::INDEXED_STRING) {
@@ -184,7 +184,7 @@ struct Tuple {
             if (string_value.empty()) {
                fields[metadata.name] = std::nullopt;
             } else {
-               fields[metadata.name] = string_value;
+               fields[metadata.name] = std::move(string_value);
             }
             data_pointer += sizeof(decltype(value));
          } else if (metadata.getColumnType() == config::ColumnType::INSERTION) {
@@ -194,7 +194,7 @@ struct Tuple {
             if (string_value.empty()) {
                fields[metadata.name] = std::nullopt;
             } else {
-               fields[metadata.name] = string_value;
+               fields[metadata.name] = std::move(string_value);
             }
             data_pointer += sizeof(decltype(value));
          } else {

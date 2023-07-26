@@ -53,7 +53,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> InsertionContains::comp
 
 namespace {
 
-bool validateRegexPattern(const std::string& value) {
+std::regex buildValidInsertionSearchRegex() {
    // Build the following regex pattern: ^([nuc-symbols]|\.\*)*$
    std::stringstream regex_pattern_string;
    regex_pattern_string << "^([";
@@ -61,8 +61,13 @@ bool validateRegexPattern(const std::string& value) {
       regex_pattern_string << nucleotideSymbolToChar(nuc);
    }
    regex_pattern_string << "]|\\.\\*)*$";
-   const std::regex regex_pattern(regex_pattern_string.str());
-   return std::regex_search(value, regex_pattern);
+   return std::regex(regex_pattern_string.str());
+}
+
+const std::regex VALID_INSERTION_SEARCH_VALUE_REGEX = buildValidInsertionSearchRegex();
+
+bool validateInsertionSearchValue(const std::string& value) {
+   return std::regex_search(value, VALID_INSERTION_SEARCH_VALUE_REGEX);
 }
 
 }  // namespace
@@ -99,10 +104,10 @@ void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains>& f
       "The field 'value' in an InsertionContains expression must not be an empty string"
    )
    CHECK_SILO_QUERY(
-      validateRegexPattern(value),
+      validateInsertionSearchValue(value),
       "The field 'value' in the InsertionContains expression does not contain a valid regex "
       "pattern: \"" +
-         value + "\""
+         value + "\". It must only consist of nucleotide symbols and the regex symbol '?'."
    )
    filter = std::make_unique<InsertionContains>(column_name, position, value);
 }

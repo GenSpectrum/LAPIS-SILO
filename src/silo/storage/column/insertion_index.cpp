@@ -8,8 +8,8 @@
 #include <utility>
 
 #include <boost/functional/hash.hpp>
+#include <boost/lexical_cast.hpp>
 
-#include "silo/common/numeric_conversion.h"
 #include "silo/common/string_utils.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
@@ -27,13 +27,13 @@ std::pair<uint32_t, std::string> parseInsertion(const std::string& value) {
       const std::string message = "Failed to parse insertion due to invalid format: " + value;
       throw PreprocessingException(message);
    }
-   const auto position = tryConvertStringToU32(position_and_insertion[0]);
+   const auto position = boost::lexical_cast<uint32_t>(position_and_insertion[0]);
    const auto& insertion = position_and_insertion[1];
    return std::make_pair(position, insertion);
 }
 
 struct ThreeMerHash {
-   size_t operator()(const InsertionIndex::three_mer_t& three_mer) const {
+   size_t operator()(const ThreeMer& three_mer) const {
       size_t seed = 0;
       for (const auto one_mer : three_mer) {
          boost::hash_combine(seed, std::hash<NUCLEOTIDE_SYMBOL>{}(one_mer));
@@ -42,15 +42,18 @@ struct ThreeMerHash {
    }
 };
 
-std::vector<InsertionIndex::three_mer_t> extractThreeMers(const std::string& search_pattern) {
-   std::unordered_set<InsertionIndex::three_mer_t, ThreeMerHash> result;
+std::vector<ThreeMer> extractThreeMers(const std::string& search_pattern) {
+   std::unordered_set<ThreeMer, ThreeMerHash> result;
    for (const auto& continuous_string : splitBy(search_pattern, REGEX_ANY)) {
       auto continuous_symbols = stringToNucleotideSymbolVector(continuous_string);
       if (continuous_symbols == std::nullopt) {
-         throw std::runtime_error("Wrong symbol in pattern: " + continuous_string);
+         const auto illegal_nuc_char = *findIllegalNucleotideChar(continuous_string);
+         throw std::runtime_error(
+            "Wrong symbol '" + std::to_string(illegal_nuc_char) + "' in pattern: " + search_pattern
+         );
       }
       for (size_t i = 0; (i + 2) < continuous_string.size(); i += 3) {
-         InsertionIndex::three_mer_t const three_mer{
+         const ThreeMer three_mer{
             continuous_symbols->at(i),
             continuous_symbols->at(i + 1),
             continuous_symbols->at(i + 2)};
@@ -62,47 +65,10 @@ std::vector<InsertionIndex::three_mer_t> extractThreeMers(const std::string& sea
 
 }  // namespace
 
-void InsertionIndex::InsertionPosition::buildThreeMerIndex() {
-   using bitset_one_mers_t = NucleotideSymbolMap<bool>;
-   using bitset_two_mers_t = NucleotideSymbolMap<bitset_one_mers_t>;
-   using bitset_three_mers_t = NucleotideSymbolMap<bitset_two_mers_t>;
-
-   for (size_t insertion_id = 0; insertion_id < insertions.size(); ++insertion_id) {
-      const auto& insertion = insertions[insertion_id];
-      const auto& insertion_value = insertion.value;
-
-      if (insertion_value.size() < 3) {
-         continue;
-      }
-
-      const auto opt_nuc_symbol_ids = stringToNucleotideSymbolVector(insertion_value);
-      if (opt_nuc_symbol_ids == std::nullopt) {
-         throw silo::PreprocessingException("Illegal character in insertion: " + insertion_value);
-      }
-      const auto& nuc_symbol_ids = *opt_nuc_symbol_ids;
-
-      bitset_three_mers_t unique_three_mers{};
-      for (size_t i = 0; i < (nuc_symbol_ids.size() - 2); ++i) {
-         unique_three_mers[nuc_symbol_ids[i]][nuc_symbol_ids[i + 1]][nuc_symbol_ids[i + 2]] = true;
-      }
-
-      for (const NUCLEOTIDE_SYMBOL symbol1 : NUC_SYMBOLS) {
-         for (const NUCLEOTIDE_SYMBOL symbol2 : NUC_SYMBOLS) {
-            for (const NUCLEOTIDE_SYMBOL symbol3 : NUC_SYMBOLS) {
-               if (unique_three_mers[symbol1][symbol2][symbol3]) {
-                  three_mer_index[symbol1][symbol2][symbol3].push_back(insertion_id);
-               }
-            }
-         }
-      }
-   }
-}
-
-std::unique_ptr<InsertionIndex::sequence_ids_t> InsertionIndex::InsertionPosition::
-   searchWithThreeMerIndex(
-      const std::vector<three_mer_t>& search_three_mers,
-      const std::regex& search_pattern
-   ) const {
+std::unique_ptr<roaring::Roaring> InsertionPosition::searchWithThreeMerIndex(
+   const std::vector<ThreeMer>& search_three_mers,
+   const std::regex& search_pattern
+) const {
    assert(!search_three_mers.empty());
 
    // We perform a k-way intersection between the candidate sets of insertion ids.
@@ -112,7 +78,7 @@ std::unique_ptr<InsertionIndex::sequence_ids_t> InsertionIndex::InsertionPositio
    // 3-mer which is in the search pattern but not in the candidate insertion. Therefore, the
    // regex will never match and we can ignore this sequence.
 
-   using it = insertion_ids_t::const_iterator;
+   using it = InsertionIds::const_iterator;
    std::vector<std::pair<it, it>> min_heap;
    for (const auto& three_mer : search_three_mers) {
       const auto& candidate_insertions =
@@ -124,7 +90,7 @@ std::unique_ptr<InsertionIndex::sequence_ids_t> InsertionIndex::InsertionPositio
    }
 
    if (min_heap.size() < search_three_mers.size()) {
-      return std::make_unique<sequence_ids_t>();
+      return std::make_unique<roaring::Roaring>();
    }
 
    const auto cmp = [](const std::pair<it, it>& lhs_it_pair, const std::pair<it, it>& rhs_it_pair) {
@@ -132,7 +98,7 @@ std::unique_ptr<InsertionIndex::sequence_ids_t> InsertionIndex::InsertionPositio
    };
    std::make_heap(min_heap.begin(), min_heap.end(), cmp);
 
-   auto result = std::make_unique<sequence_ids_t>();
+   auto result = std::make_unique<roaring::Roaring>();
 
    size_t count = 0;
    uint32_t current_insertion_id = *min_heap.front().first;
@@ -172,6 +138,67 @@ std::unique_ptr<InsertionIndex::sequence_ids_t> InsertionIndex::InsertionPositio
    return result;
 }
 
+std::unique_ptr<roaring::Roaring> InsertionPosition::searchWithRegex(
+   const std::regex& regex_search_pattern
+) const {
+   auto result = std::make_unique<roaring::Roaring>();
+   for (const auto& insertion : insertions) {
+      if (std::regex_search(insertion.value, regex_search_pattern)) {
+         *result |= insertion.sequence_ids;
+      }
+   }
+   return result;
+}
+
+void InsertionPosition::buildThreeMerIndex() {
+   using ThreeMersBitset = NestedContainer<THREE_DIMENSIONS, NucleotideSymbolMap, bool>::type;
+
+   for (size_t insertion_id = 0; insertion_id < insertions.size(); ++insertion_id) {
+      const auto& insertion_value = insertions[insertion_id].value;
+
+      if (insertion_value.size() < 3) {
+         continue;
+      }
+
+      const auto opt_nuc_symbol_ids = stringToNucleotideSymbolVector(insertion_value);
+      if (opt_nuc_symbol_ids == std::nullopt) {
+         const auto illegal_nuc_char = *findIllegalNucleotideChar(insertion_value);
+         throw silo::PreprocessingException(
+            "Illegal nucleotide character '" + std::to_string(illegal_nuc_char) +
+            "' in insertion: " + insertion_value
+         );
+      }
+      const auto& nuc_symbol_ids = *opt_nuc_symbol_ids;
+
+      ThreeMersBitset unique_three_mers{};
+      for (size_t i = 0; i < (nuc_symbol_ids.size() - 2); ++i) {
+         unique_three_mers[nuc_symbol_ids[i]][nuc_symbol_ids[i + 1]][nuc_symbol_ids[i + 2]] = true;
+      }
+
+      for (const NUCLEOTIDE_SYMBOL symbol1 : NUC_SYMBOLS) {
+         for (const NUCLEOTIDE_SYMBOL symbol2 : NUC_SYMBOLS) {
+            for (const NUCLEOTIDE_SYMBOL symbol3 : NUC_SYMBOLS) {
+               if (unique_three_mers[symbol1][symbol2][symbol3]) {
+                  three_mer_index[symbol1][symbol2][symbol3].push_back(insertion_id);
+               }
+            }
+         }
+      }
+   }
+}
+
+std::unique_ptr<roaring::Roaring> InsertionPosition::search(const std::string& search_pattern
+) const {
+   const auto search_three_mers = extractThreeMers(search_pattern);
+   const std::regex regex_search_pattern(search_pattern);
+
+   if (!search_three_mers.empty()) {
+      // We can only use the ThreeMerIndex if there is at least one 3-mer in the search pattern
+      return searchWithThreeMerIndex(search_three_mers, regex_search_pattern);
+   }
+   return searchWithRegex(regex_search_pattern);
+}
+
 void InsertionIndex::addLazily(const std::string& insertions_string, uint32_t sequence_id) {
    if (insertions_string.empty()) {
       return;
@@ -179,10 +206,12 @@ void InsertionIndex::addLazily(const std::string& insertions_string, uint32_t se
    for (auto& position_and_insertion : splitBy(insertions_string, DELIMITER_INSERTIONS)) {
       auto [position, insertion] = parseInsertion(position_and_insertion);
 
-      auto it1 =
-         collected_insertions.emplace(position, std::unordered_map<std::string, sequence_ids_t>{});
-      auto it2 = it1.first->second.emplace(insertion, sequence_ids_t{});
-      it2.first->second.add(sequence_id);
+      auto& insertions_at_position =
+         collected_insertions.emplace(position, std::unordered_map<std::string, roaring::Roaring>{})
+            .first->second;
+      auto& sequence_ids_at_position =
+         insertions_at_position.emplace(insertion, roaring::Roaring{}).first->second;
+      sequence_ids_at_position.add(sequence_id);
    }
 }
 
@@ -212,24 +241,11 @@ std::unique_ptr<roaring::Roaring> InsertionIndex::search(
    uint32_t position,
    const std::string& search_pattern
 ) const {
-   const auto three_mers = extractThreeMers(search_pattern);
-   const std::regex regex_search_pattern(search_pattern);
-
    const auto insertion_pos_it = insertion_positions.find(position);
    if (insertion_pos_it == insertion_positions.end()) {
       return std::make_unique<roaring::Roaring>();
    }
-
-   if (!three_mers.empty()) {
-      return insertion_pos_it->second.searchWithThreeMerIndex(three_mers, regex_search_pattern);
-   }
-   auto result = std::make_unique<roaring::Roaring>();
-   for (const auto& insertion : insertion_pos_it->second.insertions) {
-      if (std::regex_search(insertion.value, regex_search_pattern)) {
-         *result |= insertion.sequence_ids;
-      }
-   }
-   return result;
+   return insertion_pos_it->second.search(search_pattern);
 }
 
 }  // namespace silo::storage::column::insertion
