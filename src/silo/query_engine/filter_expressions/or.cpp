@@ -37,7 +37,7 @@ std::string Or::toString(const silo::Database& database) const {
       std::back_inserter(child_strings),
       [&](const std::unique_ptr<Expression>& child) { return child->toString(database); }
    );
-   return "(" + boost::algorithm::join(child_strings, " | ") + ")";
+   return "Or(" + boost::algorithm::join(child_strings, " | ") + ")";
 }
 
 std::unique_ptr<operators::Operator> Or::compile(
