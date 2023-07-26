@@ -39,11 +39,9 @@ uint32_t ColumnPartitionGroup::fill(
          } else if (column_type == silo::config::ColumnType::DATE) {
             date_columns.at(item.name).insert(common::stringToDate(value));
          } else if (column_type == silo::config::ColumnType::INT) {
-            const int32_t int_value = value.empty() ? INT32_MIN : std::stoi(value);
-            int_columns.at(item.name).insert(int_value);
+            int_columns.at(item.name).insert(value);
          } else if (column_type == silo::config::ColumnType::FLOAT) {
-            const double double_value = value.empty() ? std::nan("") : std::stod(value);
-            float_columns.at(item.name).insert(double_value);
+            float_columns.at(item.name).insert(value);
          }
       }
       if (++sequence_count == UINT32_MAX) {

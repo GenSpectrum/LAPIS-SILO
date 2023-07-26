@@ -99,32 +99,44 @@ void Database::build(
                SPDLOG_ERROR("metadata file {} not found", metadata_file.string());
                return;
             }
-            for (const auto& [nuc_name, reference_sequence] :
-                 reference_genomes.raw_nucleotide_sequences) {
-               const std::filesystem::path sequence_filename =
-                  preprocessing_config.getNucSortedPartitionFilename(
-                     nuc_name, partition_index, chunk_index
-                  );
-
-               silo::ZstdFastaReader sequence_input(sequence_filename, reference_sequence);
-               SPDLOG_DEBUG("Using nucleotide sequence file: {}", sequence_filename.string());
-               partitions[partition_index].nuc_sequences.at(nuc_name).fill(sequence_input);
-            }
-            for (const auto& [aa_name, reference_sequence] : reference_genomes.raw_aa_sequences) {
-               const std::filesystem::path sequence_filename =
-                  preprocessing_config.getGeneSortedPartitionFilename(
-                     aa_name, partition_index, chunk_index
-                  );
-
-               silo::ZstdFastaReader sequence_input(sequence_filename, reference_sequence);
-               SPDLOG_DEBUG("Using amino acid sequence file: {}", sequence_filename.string());
-               partitions[partition_index].aa_sequences.at(aa_name).fill(sequence_input);
-            }
             SPDLOG_DEBUG("Using metadata file: {}", metadata_file.string());
             partitions[partition_index].sequenceCount =
                partitions[partition_index].columns.fill(metadata_file, database_config);
          }
       }
+      tbb::parallel_for(
+         tbb::blocked_range<size_t>(0, partition_descriptor.getPartitions().size()),
+         [&](const auto& local) {
+            for (auto partition_index = local.begin(); partition_index != local.end();
+                 ++partition_index) {
+               const auto& part = partition_descriptor.getPartitions()[partition_index];
+               for (size_t chunk_index = 0; chunk_index < part.getChunks().size(); ++chunk_index) {
+                  for (const auto& [nuc_name, reference_sequence] :
+                       reference_genomes.raw_nucleotide_sequences) {
+                     const std::filesystem::path sequence_filename =
+                        preprocessing_config.getNucSortedPartitionFilename(
+                           nuc_name, partition_index, chunk_index
+                        );
+
+                     silo::ZstdFastaReader sequence_input(sequence_filename, reference_sequence);
+                     SPDLOG_DEBUG("Using nucleotide sequence file: {}", sequence_filename.string());
+                     partitions[partition_index].nuc_sequences.at(nuc_name).fill(sequence_input);
+                  }
+                  for (const auto& [aa_name, reference_sequence] :
+                       reference_genomes.raw_aa_sequences) {
+                     const std::filesystem::path sequence_filename =
+                        preprocessing_config.getGeneSortedPartitionFilename(
+                           aa_name, partition_index, chunk_index
+                        );
+
+                     silo::ZstdFastaReader sequence_input(sequence_filename, reference_sequence);
+                     SPDLOG_DEBUG("Using amino acid sequence file: {}", sequence_filename.string());
+                     partitions[partition_index].aa_sequences.at(aa_name).fill(sequence_input);
+                  }
+               }
+            }
+         }
+      );
    }
 
    SPDLOG_INFO("Build took {} ms", micros);

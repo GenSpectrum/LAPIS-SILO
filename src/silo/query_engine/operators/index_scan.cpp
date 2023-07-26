@@ -25,7 +25,7 @@ Type IndexScan::type() const {
 }
 
 OperatorResult IndexScan::evaluate() const {
-   return OperatorResult(bitmap);
+   return OperatorResult(*bitmap);
 }
 
 std::unique_ptr<Operator> IndexScan::copy() const {

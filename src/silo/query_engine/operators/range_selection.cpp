@@ -42,11 +42,11 @@ Type RangeSelection::type() const {
 }
 
 OperatorResult RangeSelection::evaluate() const {
-   auto* result = new roaring::Roaring();
+   OperatorResult result;
    for (const auto& range : ranges) {
       result->addRange(range.start, range.end);
    }
-   return OperatorResult(result);
+   return result;
 }
 
 std::unique_ptr<Operator> RangeSelection::copy() const {

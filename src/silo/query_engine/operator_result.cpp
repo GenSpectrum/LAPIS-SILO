@@ -10,12 +10,12 @@ OperatorResult::OperatorResult()
     : mutable_bitmap(new roaring::Roaring()),
       immutable_bitmap(nullptr) {}
 
-OperatorResult::OperatorResult(const roaring::Roaring* bitmap)
+OperatorResult::OperatorResult(const roaring::Roaring& bitmap)
     : mutable_bitmap(nullptr),
-      immutable_bitmap(bitmap) {}
+      immutable_bitmap(&bitmap) {}
 
-OperatorResult::OperatorResult(roaring::Roaring* bitmap)
-    : mutable_bitmap(bitmap),
+OperatorResult::OperatorResult(roaring::Roaring&& bitmap)
+    : mutable_bitmap(new roaring::Roaring(std::move(bitmap))),
       immutable_bitmap(nullptr) {}
 
 OperatorResult::~OperatorResult() {

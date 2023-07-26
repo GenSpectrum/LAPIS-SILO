@@ -16,8 +16,8 @@ struct OperatorResult {
 
   public:
    explicit OperatorResult();
-   explicit OperatorResult(const roaring::Roaring* bitmap);
-   explicit OperatorResult(roaring::Roaring* bitmap);
+   explicit OperatorResult(const roaring::Roaring& bitmap);
+   explicit OperatorResult(roaring::Roaring&& bitmap);
 
    // rule of five for manual memory management
    ~OperatorResult();

@@ -1,6 +1,5 @@
 #include "silo/preprocessing/metadata.h"
 
-#include <csv.hpp>
 #include <exception>
 #include <ostream>
 #include <string>
@@ -19,7 +18,7 @@ csv::CSVReader buildReader(const std::filesystem::path& metadata_path) {
       format.delimiter('\t');
       format.variable_columns(csv::VariableColumnPolicy::THROW);
       format.header_row(0);
-      return {metadata_path.string(), format};
+      return csv::CSVReader{metadata_path.string(), format};
    } catch (const std::exception& exception) {
       const std::string message =
          "Failed to read metadata file '" + metadata_path.string() + "': " + exception.what();
@@ -39,9 +38,11 @@ std::vector<std::string> MetadataReader::getColumn(const std::string& column_nam
       throw PreprocessingException(message);
    }
    std::vector<std::string> column;
-   for (const auto& row : reader) {
-      std::this_thread::sleep_for(std::chrono::nanoseconds(1));
-      column.emplace_back(row[column_name].get<std::string>());
+   column.reserve(10000000);
+   csv::CSVRow row;
+   while (reader.read_row(row)) {
+      std::this_thread::sleep_for(std::chrono::nanoseconds(2));
+      column.emplace_back(row[column_name].get_sv());
    }
    return column;
 }

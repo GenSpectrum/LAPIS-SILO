@@ -74,14 +74,6 @@ class SiloServer : public Poco::Util::ServerApplication {
       }
 
       if (config().hasProperty("api")) {
-         if (!config().hasProperty("preprocessingConfig")) {
-            spdlog::error("Missing preprocessing config file path");
-            return Application::EXIT_USAGE;
-         }
-         if (!config().hasProperty("databaseConfig")) {
-            spdlog::error("Missing database config file path");
-            return Application::EXIT_USAGE;
-         }
          handleApi();
       }
 
@@ -96,8 +88,12 @@ class SiloServer : public Poco::Util::ServerApplication {
    void handleApi() {
       const int port = 8081;
 
-      const std::string preprocessing_config_path = config().getString("preprocessingConfig");
-      const std::string database_config_path = config().getString("databaseConfig");
+      const std::string preprocessing_config_path = config().hasProperty("preprocessingConfig")
+                                                       ? config().getString("preprocessingConfig")
+                                                       : "./preprocessingConfig.yaml";
+      const std::string database_config_path = config().hasProperty("databaseConfig")
+                                                  ? config().getString("databaseConfig")
+                                                  : "./databaseConfig.yaml";
 
       auto preprocessing_config =
          silo::preprocessing::PreprocessingConfigReader().readConfig(preprocessing_config_path);

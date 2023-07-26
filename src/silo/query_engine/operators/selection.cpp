@@ -86,9 +86,10 @@ bool Selection::matchesPredicates(uint32_t row) const {
 }
 
 OperatorResult Selection::evaluate() const {
-   auto* result = new roaring::Roaring();
+   OperatorResult result;
    if (child_operator.has_value()) {
-      for (const uint32_t row : *(*child_operator)->evaluate()) {
+      OperatorResult child_result = (*child_operator)->evaluate();
+      for (const uint32_t row : *child_result) {
          if (matchesPredicates(row)) {
             result->add(row);
          }
@@ -100,7 +101,7 @@ OperatorResult Selection::evaluate() const {
          }
       }
    }
-   return OperatorResult(result);
+   return result;
 }
 
 std::unique_ptr<Operator> Selection::copy() const {

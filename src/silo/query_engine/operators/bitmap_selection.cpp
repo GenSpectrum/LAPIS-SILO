@@ -31,7 +31,7 @@ Type BitmapSelection::type() const {
 }
 
 OperatorResult BitmapSelection::evaluate() const {
-   auto* bitmap = new roaring::Roaring();
+   OperatorResult bitmap;
    switch (this->comparator) {
       case CONTAINS:
          for (uint32_t i = 0; i < row_count; i++) {
@@ -48,7 +48,7 @@ OperatorResult BitmapSelection::evaluate() const {
          }
          break;
    }
-   return OperatorResult(bitmap);
+   return bitmap;
 }
 
 std::unique_ptr<Operator> BitmapSelection::copy() const {

@@ -14,11 +14,13 @@ TEST(PangoLineageColumn, addingLineageAndThenSublineageFiltersCorrectly) {
    under_test.insert({"A.1.2.3.4"});
    under_test.insert({"A.1.2"});
 
-   EXPECT_EQ(under_test.filter({"A.1.2"}), roaring::Roaring({0, 1, 4}));
-   EXPECT_EQ(under_test.filterIncludingSublineages({"A.1.2"}), roaring::Roaring({0, 1, 2, 3, 4}));
+   EXPECT_EQ(*under_test.filter({"A.1.2"}).value(), roaring::Roaring({0, 1, 4}));
+   EXPECT_EQ(
+      *under_test.filterIncludingSublineages({"A.1.2"}).value(), roaring::Roaring({0, 1, 2, 3, 4})
+   );
 
-   EXPECT_EQ(under_test.filter({"A.1.2.3"}), roaring::Roaring({2}));
-   EXPECT_EQ(under_test.filterIncludingSublineages({"A.1.2.3"}), roaring::Roaring({2, 3}));
+   EXPECT_EQ(*under_test.filter({"A.1.2.3"}).value(), roaring::Roaring({2}));
+   EXPECT_EQ(*under_test.filterIncludingSublineages({"A.1.2.3"}).value(), roaring::Roaring({2, 3}));
 }
 
 TEST(PangoLineageColumn, addingSublineageAndThenLineageFiltersCorrectly) {
@@ -33,11 +35,15 @@ TEST(PangoLineageColumn, addingSublineageAndThenLineageFiltersCorrectly) {
    under_test.insert({"A.1.2"});
    under_test.insert({"A.1.2.3"});
 
-   EXPECT_EQ(under_test.filter({"A.1.2"}), roaring::Roaring({3}));
-   EXPECT_EQ(under_test.filterIncludingSublineages({"A.1.2"}), roaring::Roaring({0, 1, 3, 4}));
+   EXPECT_EQ(*under_test.filter({"A.1.2"}).value(), roaring::Roaring({3}));
+   EXPECT_EQ(
+      *under_test.filterIncludingSublineages({"A.1.2"}).value(), roaring::Roaring({0, 1, 3, 4})
+   );
 
-   EXPECT_EQ(under_test.filter({"A.1.2.3"}), roaring::Roaring({0, 1, 4}));
-   EXPECT_EQ(under_test.filterIncludingSublineages({"A.1.2.3"}), roaring::Roaring({0, 1, 4}));
+   EXPECT_EQ(*under_test.filter({"A.1.2.3"}).value(), roaring::Roaring({0, 1, 4}));
+   EXPECT_EQ(
+      *under_test.filterIncludingSublineages({"A.1.2.3"}).value(), roaring::Roaring({0, 1, 4})
+   );
 }
 
 TEST(PangoLineageColumn, queryParentLineageThatWasNeverInserted) {
@@ -51,6 +57,6 @@ TEST(PangoLineageColumn, queryParentLineageThatWasNeverInserted) {
    under_test.insert({"A.2"});
    under_test.insert({"A.1.2"});
 
-   EXPECT_EQ(under_test.filter({"A.1"}), roaring::Roaring());
-   EXPECT_EQ(under_test.filterIncludingSublineages({"A.1"}), roaring::Roaring({0, 1, 3}));
+   EXPECT_EQ(under_test.filter({"A.1"}), std::nullopt);
+   EXPECT_EQ(*under_test.filterIncludingSublineages({"A.1"}).value(), roaring::Roaring({0, 1, 3}));
 }

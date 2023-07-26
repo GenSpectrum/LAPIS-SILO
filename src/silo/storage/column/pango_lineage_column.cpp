@@ -37,24 +37,26 @@ void PangoLineageColumnPartition::insertSublineageValues(
    }
 }
 
-roaring::Roaring PangoLineageColumnPartition::filter(const common::RawPangoLineage& value) const {
+std::optional<const roaring::Roaring*> PangoLineageColumnPartition::filter(
+   const common::RawPangoLineage& value
+) const {
    const common::UnaliasedPangoLineage resolved_lineage = alias_key.unaliasPangoLineage(value);
    auto value_id = lookup.getId(resolved_lineage);
    if (value_id.has_value() && indexed_values.contains(value_id.value())) {
-      return indexed_values.at(value_id.value());
+      return &indexed_values.at(value_id.value());
    }
-   return {};
+   return std::nullopt;
 }
 
-roaring::Roaring PangoLineageColumnPartition::filterIncludingSublineages(
+std::optional<const roaring::Roaring*> PangoLineageColumnPartition::filterIncludingSublineages(
    const common::RawPangoLineage& value
 ) const {
    const common::UnaliasedPangoLineage resolved_lineage = alias_key.unaliasPangoLineage(value);
    auto value_id = lookup.getId(resolved_lineage);
    if (value_id.has_value() && indexed_sublineage_values.contains(value_id.value())) {
-      return indexed_sublineage_values.at(value_id.value());
+      return &indexed_sublineage_values.at(value_id.value());
    }
-   return {};
+   return std::nullopt;
 }
 
 const std::vector<silo::Idx>& PangoLineageColumnPartition::getValues() const {

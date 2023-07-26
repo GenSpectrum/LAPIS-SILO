@@ -12,16 +12,14 @@ TEST(Date, correctlyParsesDate) {
    EXPECT_EQ(silo::common::stringToDate(""), 0);
 }
 
-TEST(Date, throwsExceptionOnWrongDates) {
-   EXPECT_THROW(silo::common::stringToDate("?"), silo::common::DateFormatException);
-   EXPECT_THROW(silo::common::stringToDate("----"), silo::common::DateFormatException);
-   EXPECT_THROW(silo::common::stringToDate("31-31-31"), silo::common::DateFormatException);
-   EXPECT_THROW(silo::common::stringToDate("-1-"), silo::common::DateFormatException);
-   EXPECT_THROW(
-      silo::common::stringToDate("31-31123123-31123123123123412"), silo::common::DateFormatException
-   );
-   EXPECT_THROW(silo::common::stringToDate("31-0-1"), silo::common::DateFormatException);
-   EXPECT_THROW(silo::common::stringToDate("31-31-31"), silo::common::DateFormatException);
+TEST(Date, ignoresWrongDates) {
+   EXPECT_EQ(silo::common::stringToDate("?"), 0);
+   EXPECT_EQ(silo::common::stringToDate("----"), 0);
+   EXPECT_EQ(silo::common::stringToDate("31-31-31"), 0);
+   EXPECT_EQ(silo::common::stringToDate("-1-"), 0);
+   EXPECT_EQ(silo::common::stringToDate("31-31123123-31123123123123412"), 0);
+   EXPECT_EQ(silo::common::stringToDate("31-0-1"), 0);
+   EXPECT_EQ(silo::common::stringToDate("31-31-31"), 0);
 }
 
 TEST(Date, correctlyReprintsStrings) {

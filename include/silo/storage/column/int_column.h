@@ -34,7 +34,7 @@ class IntColumnPartition {
 
    [[nodiscard]] const std::vector<int32_t>& getValues() const;
 
-   void insert(int32_t value);
+   void insert(const std::string& value);
 };
 
 class IntColumn {

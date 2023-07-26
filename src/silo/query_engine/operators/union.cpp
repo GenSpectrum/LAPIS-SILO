@@ -43,9 +43,7 @@ OperatorResult Union::evaluate() const {
       const roaring::Roaring& const_bitmap = *child_res[i];
       union_tmp[i] = &const_bitmap;
    }
-   auto* result =
-      new roaring::Roaring(roaring::Roaring::fastunion(union_tmp.size(), union_tmp.data()));
-   return OperatorResult(result);
+   return OperatorResult(roaring::Roaring::fastunion(union_tmp.size(), union_tmp.data()));
 }
 
 std::unique_ptr<Operator> Union::copy() const {

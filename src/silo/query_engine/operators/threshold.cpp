@@ -135,10 +135,9 @@ OperatorResult Threshold::evaluate() const {
       // Because exact, we remove all that have too many
       partition_bitmaps[number_of_matchers - 1] -= partition_bitmaps[number_of_matchers];
 
-      return OperatorResult(new roaring::Roaring(std::move(partition_bitmaps[number_of_matchers - 1]
-      )));
+      return OperatorResult(std::move(partition_bitmaps[number_of_matchers - 1]));
    }
-   return OperatorResult(new roaring::Roaring(std::move(partition_bitmaps.back())));
+   return OperatorResult(std::move(partition_bitmaps.back()));
 }
 
 std::unique_ptr<Operator> Threshold::copy() const {
