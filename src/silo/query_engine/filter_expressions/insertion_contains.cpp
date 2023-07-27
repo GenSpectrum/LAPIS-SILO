@@ -107,7 +107,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains>& f
       validateInsertionSearchValue(value),
       "The field 'value' in the InsertionContains expression does not contain a valid regex "
       "pattern: \"" +
-         value + "\". It must only consist of nucleotide symbols and the regex symbol '?'."
+         value + "\". It must only consist of nucleotide symbols and the regex symbol '.*'."
    )
    filter = std::make_unique<InsertionContains>(column_name, position, value);
 }

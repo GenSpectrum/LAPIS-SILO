@@ -1,7 +1,6 @@
 #include "silo/storage/column/insertion_index.h"
 
 #include <algorithm>
-#include <cassert>
 #include <iterator>
 #include <string_view>
 #include <unordered_set>
@@ -69,8 +68,6 @@ std::unique_ptr<roaring::Roaring> InsertionPosition::searchWithThreeMerIndex(
    const std::vector<ThreeMer>& search_three_mers,
    const std::regex& search_pattern
 ) const {
-   assert(!search_three_mers.empty());
-
    // We perform a k-way intersection between the candidate sets of insertion ids.
    // The candidate insertions are selected based on the 3-mers within the search pattern.
    // If an insertion id is in all candidate sets, then we have a viable candidate which
