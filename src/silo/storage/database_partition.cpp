@@ -1,5 +1,7 @@
 #include "silo/storage/database_partition.h"
 
+#include <tbb/parallel_for.h>
+
 #include "silo/storage/column_group.h"
 
 namespace silo {
@@ -17,6 +19,55 @@ class StringColumnPartition;
 
 DatabasePartition::DatabasePartition(std::vector<silo::preprocessing::Chunk> chunks)
     : chunks(std::move(chunks)) {}
+
+void DatabasePartition::flipBitmaps() {
+   for (auto& [_, seq_store] : nuc_sequences) {
+      auto& positions = seq_store.positions;
+      tbb::parallel_for(tbb::blocked_range<uint32_t>(0, positions.size()), [&](const auto& local) {
+         for (auto position = local.begin(); position != local.end(); ++position) {
+            std::optional<NUCLEOTIDE_SYMBOL> max_symbol = std::nullopt;
+            uint32_t max_count = 0;
+
+            for (const auto& symbol : NUC_SYMBOLS) {
+               roaring::Roaring bitmap = positions[position].bitmaps.at(symbol);
+               bitmap.runOptimize();
+               const uint32_t count = bitmap.cardinality();
+               if (count > max_count) {
+                  max_symbol = symbol;
+                  max_count = count;
+               }
+            }
+            if (max_symbol.has_value()) {
+               positions[position].symbol_whose_bitmap_is_flipped = max_symbol;
+               positions[position].bitmaps[*max_symbol].flip(0, sequenceCount);
+            }
+         }
+      });
+   }
+   for (auto& [_, seq_store] : aa_sequences) {
+      auto& positions = seq_store.positions;
+      tbb::parallel_for(tbb::blocked_range<uint32_t>(0, positions.size()), [&](const auto& local) {
+         for (auto position = local.begin(); position != local.end(); ++position) {
+            std::optional<AA_SYMBOL> max_symbol = std::nullopt;
+            uint32_t max_count = 0;
+
+            for (const auto& symbol : AA_SYMBOLS) {
+               roaring::Roaring bitmap = positions[position].bitmaps.at(symbol);
+               bitmap.runOptimize();
+               const uint32_t count = bitmap.cardinality();
+               if (count > max_count) {
+                  max_symbol = symbol;
+                  max_count = count;
+               }
+            }
+            if (max_symbol.has_value()) {
+               positions[position].symbol_whose_bitmap_is_flipped = max_symbol;
+               positions[position].bitmaps[*max_symbol].flip(0, sequenceCount);
+            }
+         }
+      });
+   }
+}
 
 const std::vector<preprocessing::Chunk>& DatabasePartition::getChunks() const {
    return chunks;

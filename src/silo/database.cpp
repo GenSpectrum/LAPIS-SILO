@@ -134,6 +134,7 @@ void Database::build(
                      partitions[partition_index].aa_sequences.at(aa_name).fill(sequence_input);
                   }
                }
+               partitions.at(partition_index).flipBitmaps();
             }
          }
       );
@@ -141,41 +142,6 @@ void Database::build(
 
    SPDLOG_INFO("Build took {} ms", micros);
    SPDLOG_INFO("database info: {}", getDatabaseInfo());
-}
-
-void Database::flipBitmaps() {
-   tbb::parallel_for_each(
-      partitions.begin(),
-      partitions.end(),
-      [&](DatabasePartition& database_partition) {
-         for (auto& [_, seq_store] : database_partition.nuc_sequences) {
-            auto& positions = seq_store.positions;
-            tbb::parallel_for(
-               tbb::blocked_range<uint32_t>(0, positions.size()),
-               [&](const auto& range) {
-                  for (auto position = range.begin(); position != range.end(); ++position) {
-                     std::optional<NUCLEOTIDE_SYMBOL> max_symbol = std::nullopt;
-                     uint32_t max_count = 0;
-
-                     for (const auto& symbol : NUC_SYMBOLS) {
-                        const uint32_t count = positions[position].bitmaps.at(symbol).cardinality();
-                        if (count > max_count) {
-                           max_symbol = symbol;
-                           max_count = count;
-                        }
-                     }
-                     if (max_symbol.has_value()) {
-                        positions[position].symbol_whose_bitmap_is_flipped = max_symbol;
-                        positions[position].bitmaps[*max_symbol].flip(
-                           0, database_partition.sequenceCount
-                        );
-                     }
-                  }
-               }
-            );
-         }
-      }
-   );
 }
 
 using RoaringStatistics = roaring::api::roaring_statistics_t;
@@ -455,35 +421,44 @@ Database Database::loadDatabaseState(const std::string& save_directory) {
    database.database_config =
       silo::config::DatabaseConfigReader().readConfig(database_config_filename);
 
+   SPDLOG_TRACE("Loading alias key from {}", save_directory + "alias_key.silo");
    std::ifstream alias_key_file(save_directory + "alias_key.silo");
    ::boost::archive::binary_iarchive alias_key_archive(alias_key_file);
    alias_key_archive >> database.alias_key;
 
    SPDLOG_INFO("Loading partitions from {}", save_directory);
 
+   SPDLOG_TRACE("Loading partitions from {}", save_directory + "partitions.silo");
    std::ifstream partitions_file(save_directory + "partitions.silo");
    ::boost::archive::binary_iarchive partitions_archive(partitions_file);
    partitions_archive >> database.partitions;
 
+   SPDLOG_TRACE("Initializing columns");
    database.initializeColumns();
 
+   SPDLOG_TRACE("Loading column info from {}", save_directory + "column_info.silo");
    std::ifstream column_file(save_directory + "column_info.silo");
    ::boost::archive::binary_iarchive column_archive(column_file);
    column_archive >> database.columns;
 
+   SPDLOG_TRACE("Loading nucleotide sequences from {}", save_directory + "nuc_sequences.silo");
    std::map<std::string, std::vector<NUCLEOTIDE_SYMBOL>> nuc_sequences_map;
    std::ifstream nuc_sequences_file(save_directory + "nuc_sequences.silo");
    ::boost::archive::binary_iarchive nuc_sequences_archive(nuc_sequences_file);
    nuc_sequences_archive >> nuc_sequences_map;
 
+   SPDLOG_TRACE("Loading amino acid sequences from {}", save_directory + "aa_sequences.silo");
    std::map<std::string, std::vector<AA_SYMBOL>> aa_sequences_map;
    std::ifstream aa_sequences_file(save_directory + "aa_sequences.silo");
    ::boost::archive::binary_iarchive aa_sequences_archive(aa_sequences_file);
    aa_sequences_archive >> aa_sequences_map;
 
+   SPDLOG_INFO("Finished loading partitions from {}", save_directory);
+
    database.initializeNucSequences(nuc_sequences_map);
    database.initializeAASequences(aa_sequences_map);
 
+   SPDLOG_DEBUG("Loading partition data");
    std::vector<std::ifstream> file_vec;
    for (uint32_t i = 0; i < database.partitions.size(); ++i) {
       const auto& partition_file = save_directory + "P" + std::to_string(i) + ".silo";
@@ -570,6 +545,7 @@ Database Database::preprocessing(
 }
 
 void Database::initializeColumn(config::ColumnType column_type, const std::string& name) {
+   SPDLOG_TRACE("Initializing column {}", name);
    switch (column_type) {
       case config::ColumnType::STRING:
          columns.string_columns.emplace(name, storage::column::StringColumn());
@@ -625,6 +601,7 @@ void Database::initializeColumns() {
 void Database::initializeNucSequences(
    const std::map<std::string, std::vector<NUCLEOTIDE_SYMBOL>>& reference_sequences
 ) {
+   SPDLOG_DEBUG("preprocessing - initializing nucleotide sequences");
    for (const auto& [nuc_name, reference_genome] : reference_sequences) {
       auto seq_store = SequenceStore(reference_genome);
       nuc_sequences.emplace(nuc_name, std::move(seq_store));
@@ -637,6 +614,7 @@ void Database::initializeNucSequences(
 void Database::initializeAASequences(
    const std::map<std::string, std::vector<AA_SYMBOL>>& reference_sequences
 ) {
+   SPDLOG_DEBUG("preprocessing - initializing amino acid sequences");
    for (const auto& [aa_name, reference_genome] : reference_sequences) {
       auto aa_store = AAStore(reference_genome);
       aa_sequences.emplace(aa_name, std::move(aa_store));
