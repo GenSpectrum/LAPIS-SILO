@@ -15,17 +15,21 @@
 #include "silo/common/zstdfasta_reader.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
-[[maybe_unused]] auto fmt::formatter<silo::SequenceStoreInfo>::format(
-   silo::SequenceStoreInfo sequence_store_info,
-   fmt::format_context& ctx
-) -> decltype(ctx.out()) {
-   return format_to(
-      ctx.out(),
-      "SequenceStoreInfo[sequence count: {}, size: {}, N bitmaps size: {}]",
-      sequence_store_info.sequence_count,
-      sequence_store_info.size,
-      silo::formatNumber(sequence_store_info.n_bitmaps_size)
-   );
+silo::NucPosition::NucPosition(NUCLEOTIDE_SYMBOL symbol) {
+   symbol_whose_bitmap_is_flipped = symbol;
+}
+
+silo::NucPosition::NucPosition(std::optional<NUCLEOTIDE_SYMBOL> symbol) {
+   symbol_whose_bitmap_is_flipped = symbol;
+}
+
+silo::SequenceStorePartition::SequenceStorePartition(
+   const std::vector<NUCLEOTIDE_SYMBOL>& reference_genome
+)
+    : reference_genome(reference_genome) {
+   for (NUCLEOTIDE_SYMBOL symbol : reference_genome) {
+      positions.emplace_back(symbol);
+   }
 }
 
 size_t silo::SequenceStorePartition::fill(silo::ZstdFastaReader& input_file) {
@@ -56,6 +60,19 @@ size_t silo::SequenceStorePartition::fill(silo::ZstdFastaReader& input_file) {
    return read_sequences_count;
 }
 
+[[maybe_unused]] auto fmt::formatter<silo::SequenceStoreInfo>::format(
+   silo::SequenceStoreInfo sequence_store_info,
+   fmt::format_context& ctx
+) -> decltype(ctx.out()) {
+   return format_to(
+      ctx.out(),
+      "SequenceStoreInfo[sequence count: {}, size: {}, N bitmaps size: {}]",
+      sequence_store_info.sequence_count,
+      sequence_store_info.size,
+      silo::formatNumber(sequence_store_info.n_bitmaps_size)
+   );
+}
+
 silo::SequenceStoreInfo silo::SequenceStorePartition::getInfo() const {
    size_t n_bitmaps_size = 0;
    for (const auto& bitmap : nucleotide_symbol_n_bitmaps) {
@@ -74,36 +91,43 @@ const roaring::Roaring* silo::SequenceStorePartition::getBitmap(
 void silo::SequenceStorePartition::fillIndexes(const std::vector<std::string>& genomes) {
    const size_t genome_length = positions.size();
    static constexpr int COUNT_SYMBOLS_PER_PROCESSOR = 64;
-   const tbb::blocked_range<size_t> range(
-      0, genome_length, genome_length / COUNT_SYMBOLS_PER_PROCESSOR
-   );
-   tbb::parallel_for(range, [&](const decltype(range)& local) {
-      NucleotideSymbolMap<std::vector<uint32_t>> ids_per_symbol_for_current_position;
-      for (size_t position = local.begin(); position != local.end(); ++position) {
-         const size_t number_of_genomes = genomes.size();
-         for (size_t sequence_id = 0; sequence_id < number_of_genomes; ++sequence_id) {
-            char const character = genomes[sequence_id][position];
-            const auto symbol = charToNucleotideSymbol(character);
-            if (!symbol.has_value()) {
-               throw PreprocessingException(
-                  "Illegal character " + std::to_string(character) + " contained in sequence."
-               );
+   tbb::parallel_for(
+      tbb::blocked_range<size_t>(0, genome_length, genome_length / COUNT_SYMBOLS_PER_PROCESSOR),
+      [&](const auto& local) {
+         NucleotideSymbolMap<std::vector<uint32_t>> ids_per_symbol_for_current_position;
+         for (size_t position = local.begin(); position != local.end(); ++position) {
+            const size_t number_of_sequences = genomes.size();
+            for (size_t sequence_id = 0; sequence_id < number_of_sequences; ++sequence_id) {
+               char const character = genomes[sequence_id][position];
+               const auto symbol = charToNucleotideSymbol(character);
+               if (!symbol.has_value()) {
+                  throw PreprocessingException(
+                     "Illegal character " + std::to_string(character) + " contained in sequence."
+                  );
+               }
+               if (symbol != NUCLEOTIDE_SYMBOL::N) {
+                  ids_per_symbol_for_current_position[*symbol].push_back(
+                     sequence_count + sequence_id
+                  );
+               }
             }
-            if (symbol != NUCLEOTIDE_SYMBOL::N) {
-               ids_per_symbol_for_current_position[*symbol].push_back(sequence_count + sequence_id);
-            }
-         }
-         for (const auto& symbol : NUC_SYMBOLS) {
-            if (!ids_per_symbol_for_current_position.at(symbol).empty()) {
-               this->positions[position].bitmaps[symbol].addMany(
-                  ids_per_symbol_for_current_position.at(symbol).size(),
-                  ids_per_symbol_for_current_position.at(symbol).data()
-               );
-               ids_per_symbol_for_current_position[symbol].clear();
+            for (const auto& symbol : NUC_SYMBOLS) {
+               if (!ids_per_symbol_for_current_position.at(symbol).empty()) {
+                  positions[position].bitmaps[symbol].addMany(
+                     ids_per_symbol_for_current_position.at(symbol).size(),
+                     ids_per_symbol_for_current_position.at(symbol).data()
+                  );
+                  ids_per_symbol_for_current_position[symbol].clear();
+               }
+               if (symbol == positions[position].symbol_whose_bitmap_is_flipped) {
+                  positions[position].bitmaps[symbol].flip(
+                     sequence_count, sequence_count + number_of_sequences
+                  );
+               }
             }
          }
       }
-   });
+   );
 }
 
 void silo::SequenceStorePartition::fillNBitmaps(const std::vector<std::string>& genomes) {
@@ -118,8 +142,7 @@ void silo::SequenceStorePartition::fillNBitmaps(const std::vector<std::string>& 
       for (size_t genome = local.begin(); genome != local.end(); ++genome) {
          for (size_t position = 0; position < genome_length; ++position) {
             char const character = genomes[genome][position];
-            const NUCLEOTIDE_SYMBOL symbol =
-               charToNucleotideSymbol(character).value_or(NUCLEOTIDE_SYMBOL::N);
+            const auto symbol = charToNucleotideSymbol(character);
             if (symbol == NUCLEOTIDE_SYMBOL::N) {
                positions_with_nucleotide_symbol_n.push_back(position);
             }
@@ -140,12 +163,6 @@ void silo::SequenceStorePartition::interpret(const std::vector<std::string>& gen
    fillNBitmaps(genomes);
    sequence_count += genomes.size();
 }
-
-silo::SequenceStorePartition::SequenceStorePartition(
-   const std::vector<NUCLEOTIDE_SYMBOL>& reference_genome
-)
-    : reference_genome(reference_genome),
-      positions(reference_genome.size()) {}
 
 size_t silo::SequenceStorePartition::computeSize() const {
    size_t result = 0;

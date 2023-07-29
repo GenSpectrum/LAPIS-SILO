@@ -25,19 +25,26 @@ void DatabasePartition::flipBitmaps() {
       auto& positions = seq_store.positions;
       tbb::parallel_for(tbb::blocked_range<uint32_t>(0, positions.size()), [&](const auto& local) {
          for (auto position = local.begin(); position != local.end(); ++position) {
+            std::optional<NUCLEOTIDE_SYMBOL> flipped_bitmap_before =
+               positions[position].symbol_whose_bitmap_is_flipped;
             std::optional<NUCLEOTIDE_SYMBOL> max_symbol = std::nullopt;
             uint32_t max_count = 0;
 
             for (const auto& symbol : NUC_SYMBOLS) {
                roaring::Roaring bitmap = positions[position].bitmaps.at(symbol);
                bitmap.runOptimize();
-               const uint32_t count = bitmap.cardinality();
+               const uint32_t count = flipped_bitmap_before == symbol
+                                         ? sequenceCount - bitmap.cardinality()
+                                         : bitmap.cardinality();
                if (count > max_count) {
                   max_symbol = symbol;
                   max_count = count;
                }
             }
-            if (max_symbol.has_value()) {
+            if (max_symbol.has_value() && max_symbol != flipped_bitmap_before) {
+               if (flipped_bitmap_before.has_value()) {
+                  positions[position].bitmaps[*flipped_bitmap_before].flip(0, sequenceCount);
+               }
                positions[position].symbol_whose_bitmap_is_flipped = max_symbol;
                positions[position].bitmaps[*max_symbol].flip(0, sequenceCount);
             }
@@ -48,19 +55,26 @@ void DatabasePartition::flipBitmaps() {
       auto& positions = seq_store.positions;
       tbb::parallel_for(tbb::blocked_range<uint32_t>(0, positions.size()), [&](const auto& local) {
          for (auto position = local.begin(); position != local.end(); ++position) {
+            std::optional<AA_SYMBOL> flipped_bitmap_before =
+               positions[position].symbol_whose_bitmap_is_flipped;
             std::optional<AA_SYMBOL> max_symbol = std::nullopt;
             uint32_t max_count = 0;
 
             for (const auto& symbol : AA_SYMBOLS) {
                roaring::Roaring bitmap = positions[position].bitmaps.at(symbol);
                bitmap.runOptimize();
-               const uint32_t count = bitmap.cardinality();
+               const uint32_t count = flipped_bitmap_before == symbol
+                                         ? sequenceCount - bitmap.cardinality()
+                                         : bitmap.cardinality();
                if (count > max_count) {
                   max_symbol = symbol;
                   max_count = count;
                }
             }
-            if (max_symbol.has_value()) {
+            if (max_symbol.has_value() && max_symbol != flipped_bitmap_before) {
+               if (flipped_bitmap_before.has_value()) {
+                  positions[position].bitmaps[*flipped_bitmap_before].flip(0, sequenceCount);
+               }
                positions[position].symbol_whose_bitmap_is_flipped = max_symbol;
                positions[position].bitmaps[*max_symbol].flip(0, sequenceCount);
             }
