@@ -47,6 +47,7 @@ void DatabasePartition::flipBitmaps() {
                }
                positions[position].symbol_whose_bitmap_is_flipped = max_symbol;
                positions[position].bitmaps[*max_symbol].flip(0, sequence_count);
+               positions[position].bitmaps[*max_symbol].runOptimize();
             }
          }
       });
@@ -77,6 +78,7 @@ void DatabasePartition::flipBitmaps() {
                }
                positions[position].symbol_whose_bitmap_is_flipped = max_symbol;
                positions[position].bitmaps[*max_symbol].flip(0, sequence_count);
+               positions[position].bitmaps[*max_symbol].runOptimize();
             }
          }
       });
