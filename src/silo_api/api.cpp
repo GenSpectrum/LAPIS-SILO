@@ -104,10 +104,12 @@ class SiloServer : public Poco::Util::ServerApplication {
       auto database_config =
          silo::config::ConfigRepository().getValidatedConfig(database_config_path);
 
-      auto database_preprocessing =
-         silo::Database::preprocessing(preprocessing_config, database_config);
+      {
+         auto database_preprocessing =
+            silo::Database::preprocessing(preprocessing_config, database_config);
 
-      database_preprocessing.saveDatabaseState("output/serialized_state/");
+         database_preprocessing.saveDatabaseState("output/serialized_state/");
+      }
 
       auto database = silo::Database::loadDatabaseState("output/serialized_state/");
 

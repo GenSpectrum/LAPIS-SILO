@@ -21,11 +21,13 @@ void setupLogger() {
    auto file_logger = spdlog::daily_logger_mt(
       "file_logger", "logs/silo.log", AT_MIDNIGHT, AT_0_MINUTES, DONT_TRUNCATE, MAX_FILES_7
    );
-   auto console_logger = spdlog::stdout_color_mt("console_logger");
 
-   spdlog::set_default_logger(
-      file_logger->level() < console_logger->level() ? file_logger : console_logger
-   );
+   auto console_logger = spdlog::stdout_color_mt("console_logger");
+   console_logger->flush_on(spdlog::level::trace);
+
+   auto default_logger =
+      file_logger->level() < console_logger->level() ? file_logger : console_logger;
+   spdlog::set_default_logger(default_logger);
 
    spdlog::daily_logger_mt(
       silo::PERFORMANCE_LOGGER_NAME,

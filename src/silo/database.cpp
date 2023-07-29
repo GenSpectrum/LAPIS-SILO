@@ -443,35 +443,44 @@ Database Database::loadDatabaseState(const std::string& save_directory) {
    database.database_config =
       silo::config::DatabaseConfigReader().readConfig(database_config_filename);
 
+   SPDLOG_TRACE("Loading alias key from {}", save_directory + "alias_key.silo");
    std::ifstream alias_key_file(save_directory + "alias_key.silo");
    ::boost::archive::binary_iarchive alias_key_archive(alias_key_file);
    alias_key_archive >> database.alias_key;
 
    SPDLOG_INFO("Loading partitions from {}", save_directory);
 
+   SPDLOG_TRACE("Loading partitions from {}", save_directory + "partitions.silo");
    std::ifstream partitions_file(save_directory + "partitions.silo");
    ::boost::archive::binary_iarchive partitions_archive(partitions_file);
    partitions_archive >> database.partitions;
 
+   SPDLOG_TRACE("Initializing columns");
    database.initializeColumns();
 
+   SPDLOG_TRACE("Loading column info from {}", save_directory + "column_info.silo");
    std::ifstream column_file(save_directory + "column_info.silo");
    ::boost::archive::binary_iarchive column_archive(column_file);
    column_archive >> database.columns;
 
+   SPDLOG_TRACE("Loading nucleotide sequences from {}", save_directory + "nuc_sequences.silo");
    std::map<std::string, std::vector<NUCLEOTIDE_SYMBOL>> nuc_sequences_map;
    std::ifstream nuc_sequences_file(save_directory + "nuc_sequences.silo");
    ::boost::archive::binary_iarchive nuc_sequences_archive(nuc_sequences_file);
    nuc_sequences_archive >> nuc_sequences_map;
 
+   SPDLOG_TRACE("Loading amino acid sequences from {}", save_directory + "aa_sequences.silo");
    std::map<std::string, std::vector<AA_SYMBOL>> aa_sequences_map;
    std::ifstream aa_sequences_file(save_directory + "aa_sequences.silo");
    ::boost::archive::binary_iarchive aa_sequences_archive(aa_sequences_file);
    aa_sequences_archive >> aa_sequences_map;
 
+   SPDLOG_INFO("Finished loading partitions from {}", save_directory);
+
    database.initializeNucSequences(nuc_sequences_map);
    database.initializeAASequences(aa_sequences_map);
 
+   SPDLOG_DEBUG("Loading partition data");
    std::vector<std::ifstream> file_vec;
    for (uint32_t i = 0; i < database.partitions.size(); ++i) {
       const auto& partition_file = save_directory + "P" + std::to_string(i) + ".silo";
@@ -558,6 +567,7 @@ Database Database::preprocessing(
 }
 
 void Database::initializeColumn(config::ColumnType column_type, const std::string& name) {
+   SPDLOG_TRACE("Initializing column {}", name);
    switch (column_type) {
       case config::ColumnType::STRING:
          columns.string_columns.emplace(name, storage::column::StringColumn());
@@ -613,6 +623,7 @@ void Database::initializeColumns() {
 void Database::initializeNucSequences(
    const std::map<std::string, std::vector<NUCLEOTIDE_SYMBOL>>& reference_sequences
 ) {
+   SPDLOG_DEBUG("preprocessing - initializing nucleotide sequences");
    for (const auto& [nuc_name, reference_genome] : reference_sequences) {
       auto seq_store = SequenceStore(reference_genome);
       nuc_sequences.emplace(nuc_name, std::move(seq_store));
@@ -625,6 +636,7 @@ void Database::initializeNucSequences(
 void Database::initializeAASequences(
    const std::map<std::string, std::vector<AA_SYMBOL>>& reference_sequences
 ) {
+   SPDLOG_DEBUG("preprocessing - initializing amino acid sequences");
    for (const auto& [aa_name, reference_genome] : reference_sequences) {
       auto aa_store = AAStore(reference_genome);
       aa_sequences.emplace(aa_name, std::move(aa_store));
