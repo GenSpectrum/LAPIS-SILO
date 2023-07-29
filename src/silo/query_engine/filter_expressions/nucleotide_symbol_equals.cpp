@@ -144,13 +144,13 @@ std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals:
       return std::make_unique<operators::Complement>(
          std::make_unique<operators::IndexScan>(
             seq_store_partition.getBitmap(position, nucleotide_symbol),
-            database_partition.sequenceCount
+            database_partition.sequence_count
          ),
-         database_partition.sequenceCount
+         database_partition.sequence_count
       );
    }
    return std::make_unique<operators::IndexScan>(
-      seq_store_partition.getBitmap(position, nucleotide_symbol), database_partition.sequenceCount
+      seq_store_partition.getBitmap(position, nucleotide_symbol), database_partition.sequence_count
    );
 }
 

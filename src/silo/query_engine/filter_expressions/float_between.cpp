@@ -65,7 +65,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> FloatBetween::compile(
    }
 
    return std::make_unique<operators::Selection>(
-      std::move(predicates), database_partition.sequenceCount
+      std::move(predicates), database_partition.sequence_count
    );
 }
 

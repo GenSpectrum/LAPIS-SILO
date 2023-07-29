@@ -100,7 +100,7 @@ void Database::build(
                return;
             }
             SPDLOG_DEBUG("Using metadata file: {}", metadata_file.string());
-            partitions[partition_index].sequenceCount =
+            partitions[partition_index].sequence_count =
                partitions[partition_index].columns.fill(metadata_file, database_config);
          }
       }
@@ -163,7 +163,7 @@ DatabaseInfo Database::getDatabaseInfo() const {
                local_nucleotide_symbol_n_bitmaps_size += bitmap.getSizeInBytes(false);
             }
          }
-         sequence_count += database_partition.sequenceCount;
+         sequence_count += database_partition.sequence_count;
          total_size += local_total_size;
          nucleotide_symbol_n_bitmaps_size += local_nucleotide_symbol_n_bitmaps_size;
       }

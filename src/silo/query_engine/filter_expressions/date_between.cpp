@@ -72,13 +72,13 @@ std::unique_ptr<operators::Operator> DateBetween::compile(
          )
       );
       return std::make_unique<operators::Selection>(
-         std::move(predicates), database_partition.sequenceCount
+         std::move(predicates), database_partition.sequence_count
       );
    }
 
    return std::make_unique<operators::RangeSelection>(
       computeRangesOfSortedColumn(date_column, database_partition.getChunks()),
-      database_partition.sequenceCount
+      database_partition.sequence_count
    );
 }
 

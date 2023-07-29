@@ -47,7 +47,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> PangoLineageFilter::com
    AmbiguityMode /*mode*/
 ) const {
    if (!database_partition.columns.pango_lineage_columns.contains(column)) {
-      return std::make_unique<operators::Empty>(database_partition.sequenceCount);
+      return std::make_unique<operators::Empty>(database_partition.sequence_count);
    }
 
    std::string lineage_all_upper = lineage;
@@ -60,9 +60,9 @@ std::unique_ptr<silo::query_engine::operators::Operator> PangoLineageFilter::com
                            ? pango_lineage_column.filterIncludingSublineages({lineage_all_upper})
                            : pango_lineage_column.filter({lineage_all_upper});
    if (bitmap == std::nullopt) {
-      return std::make_unique<operators::Empty>(database_partition.sequenceCount);
+      return std::make_unique<operators::Empty>(database_partition.sequence_count);
    }
-   return std::make_unique<operators::IndexScan>(bitmap.value(), database_partition.sequenceCount);
+   return std::make_unique<operators::IndexScan>(bitmap.value(), database_partition.sequence_count);
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

@@ -34,7 +34,7 @@ void DatabasePartition::flipBitmaps() {
                roaring::Roaring bitmap = positions[position].bitmaps.at(symbol);
                bitmap.runOptimize();
                const uint32_t count = flipped_bitmap_before == symbol
-                                         ? sequenceCount - bitmap.cardinality()
+                                         ? sequence_count - bitmap.cardinality()
                                          : bitmap.cardinality();
                if (count > max_count) {
                   max_symbol = symbol;
@@ -43,10 +43,10 @@ void DatabasePartition::flipBitmaps() {
             }
             if (max_symbol.has_value() && max_symbol != flipped_bitmap_before) {
                if (flipped_bitmap_before.has_value()) {
-                  positions[position].bitmaps[*flipped_bitmap_before].flip(0, sequenceCount);
+                  positions[position].bitmaps[*flipped_bitmap_before].flip(0, sequence_count);
                }
                positions[position].symbol_whose_bitmap_is_flipped = max_symbol;
-               positions[position].bitmaps[*max_symbol].flip(0, sequenceCount);
+               positions[position].bitmaps[*max_symbol].flip(0, sequence_count);
             }
          }
       });
@@ -64,7 +64,7 @@ void DatabasePartition::flipBitmaps() {
                roaring::Roaring bitmap = positions[position].bitmaps.at(symbol);
                bitmap.runOptimize();
                const uint32_t count = flipped_bitmap_before == symbol
-                                         ? sequenceCount - bitmap.cardinality()
+                                         ? sequence_count - bitmap.cardinality()
                                          : bitmap.cardinality();
                if (count > max_count) {
                   max_symbol = symbol;
@@ -73,10 +73,10 @@ void DatabasePartition::flipBitmaps() {
             }
             if (max_symbol.has_value() && max_symbol != flipped_bitmap_before) {
                if (flipped_bitmap_before.has_value()) {
-                  positions[position].bitmaps[*flipped_bitmap_before].flip(0, sequenceCount);
+                  positions[position].bitmaps[*flipped_bitmap_before].flip(0, sequence_count);
                }
                positions[position].symbol_whose_bitmap_is_flipped = max_symbol;
-               positions[position].bitmaps[*max_symbol].flip(0, sequenceCount);
+               positions[position].bitmaps[*max_symbol].flip(0, sequence_count);
             }
          }
       });

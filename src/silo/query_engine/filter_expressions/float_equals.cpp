@@ -39,7 +39,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> FloatEquals::compile(
    silo::query_engine::filter_expressions::Expression::AmbiguityMode /*mode*/
 ) const {
    if (!database_partition.columns.float_columns.contains(column)) {
-      return std::make_unique<operators::Empty>(database_partition.sequenceCount);
+      return std::make_unique<operators::Empty>(database_partition.sequence_count);
    }
 
    const auto& float_column = database_partition.columns.float_columns.at(column);
@@ -48,7 +48,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> FloatEquals::compile(
       std::make_unique<operators::CompareToValueSelection<double>>(
          float_column.getValues(), operators::Comparator::EQUALS, value
       ),
-      database_partition.sequenceCount
+      database_partition.sequence_count
    );
 }
 

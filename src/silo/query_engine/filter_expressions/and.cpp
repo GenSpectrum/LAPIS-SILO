@@ -125,7 +125,7 @@ std::tuple<OperatorVector, OperatorVector, std::vector<std::unique_ptr<operators
       if (child->type() == operators::EMPTY) {
          SPDLOG_TRACE("Shortcutting because found empty child");
          OperatorVector empty;
-         empty.emplace_back(std::make_unique<operators::Empty>(database_partition.sequenceCount));
+         empty.emplace_back(std::make_unique<operators::Empty>(database_partition.sequence_count));
          return {
             std::move(empty),
             OperatorVector(),
@@ -177,10 +177,10 @@ std::unique_ptr<Operator> And::compile(
          SPDLOG_TRACE(
             "Compiled And filter expression to Full, since no predicates and no child operators"
          );
-         return std::make_unique<operators::Full>(database_partition.sequenceCount);
+         return std::make_unique<operators::Full>(database_partition.sequence_count);
       }
       auto result = std::make_unique<operators::Selection>(
-         std::move(predicates), database_partition.sequenceCount
+         std::move(predicates), database_partition.sequence_count
       );
       SPDLOG_TRACE(
          "Compiled And filter expression to {} - found only predicates", result->toString()
@@ -194,20 +194,20 @@ std::unique_ptr<Operator> And::compile(
       index_arithmetic_operator = std::move(non_negated_child_operators[0]);
    } else if (negated_child_operators.size() == 1 && non_negated_child_operators.empty()) {
       index_arithmetic_operator = std::make_unique<operators::Complement>(
-         std::move(negated_child_operators[0]), database_partition.sequenceCount
+         std::move(negated_child_operators[0]), database_partition.sequence_count
       );
    } else if (non_negated_child_operators.empty()) {
       std::unique_ptr<operators::Union> union_ret = std::make_unique<operators::Union>(
-         std::move(negated_child_operators), database_partition.sequenceCount
+         std::move(negated_child_operators), database_partition.sequence_count
       );
       index_arithmetic_operator = std::make_unique<operators::Complement>(
-         std::move(union_ret), database_partition.sequenceCount
+         std::move(union_ret), database_partition.sequence_count
       );
    } else {
       index_arithmetic_operator = std::make_unique<operators::Intersection>(
          std::move(non_negated_child_operators),
          std::move(negated_child_operators),
-         database_partition.sequenceCount
+         database_partition.sequence_count
       );
    }
    if (predicates.empty()) {
@@ -219,7 +219,7 @@ std::unique_ptr<Operator> And::compile(
       return index_arithmetic_operator;
    }
    auto result = std::make_unique<operators::Selection>(
-      std::move(index_arithmetic_operator), std::move(predicates), database_partition.sequenceCount
+      std::move(index_arithmetic_operator), std::move(predicates), database_partition.sequence_count
    );
 
    SPDLOG_TRACE("Compiled And filter expression to {}", result->toString());
