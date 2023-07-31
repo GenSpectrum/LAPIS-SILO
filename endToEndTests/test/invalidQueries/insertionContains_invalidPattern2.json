@@ -1,5 +1,5 @@
 {
-  "testCaseName": "Insertion Contains with invalid pattern",
+  "testCaseName": "Insertion Contains with invalid pattern CC..*",
   "query": {
     "action": {
       "type": "Aggregated"
