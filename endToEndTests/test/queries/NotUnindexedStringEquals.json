@@ -1,5 +1,5 @@
 {
-  "testCaseName": "Not Query",
+  "testCaseName": "Not Query on unindexed string column",
   "query": {
     "action": {
       "type": "Aggregated"
