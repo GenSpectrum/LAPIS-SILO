@@ -8,31 +8,48 @@ const invalidQueriesPath = __dirname + '/invalidQueries';
 const invalidQueryTestFiles = fs.readdirSync(invalidQueriesPath);
 
 describe('The /query endpoint', () => {
-  queryTestFiles
-    .map(file => JSON.parse(fs.readFileSync(`${queriesPath}/${file}`)))
-    .forEach(testCase =>
-      it('should return data for the test case ' + testCase.testCaseName, async () => {
-        const response = await server
-          .post('/query')
-          .send(testCase.query)
-          .expect(200)
-          .expect('Content-Type', 'application/json');
-        return expect(response.body.queryResult).to.deep.equal(testCase.expectedQueryResult);
-      })
-    );
+  const testCases = queryTestFiles.map(file => JSON.parse(fs.readFileSync(`${queriesPath}/${file}`)));
 
-  invalidQueryTestFiles
-    .map(file => JSON.parse(fs.readFileSync(`${invalidQueriesPath}/${file}`)))
-    .forEach(testCase =>
-      it('should return the expected error for the test case ' + testCase.testCaseName, async () => {
-        const response = await server
-          .post('/query')
-          .send(testCase.query)
-          .expect(400)
-          .expect('Content-Type', 'application/json');
-        return expect(response.body).to.deep.equal(testCase.expectedError);
-      })
+  testCases.forEach(testCase =>
+    it('should return data for the test case ' + testCase.testCaseName, async () => {
+      const response = await server
+        .post('/query')
+        .send(testCase.query)
+        .expect(200)
+        .expect('Content-Type', 'application/json');
+      return expect(response.body.queryResult).to.deep.equal(testCase.expectedQueryResult);
+    })
+  );
+
+  it(' - the query test cases should have unique names', () => {
+    const testCaseNames = testCases.map(testCase => testCase.testCaseName);
+    const uniqueTestCaseNames = [...new Set(testCaseNames)];
+
+    expect(testCaseNames, 'Found non-unique test case names').to.deep.equal(uniqueTestCaseNames);
+  });
+
+  const invalidQueryTestCases = invalidQueryTestFiles.map(file =>
+    JSON.parse(fs.readFileSync(`${invalidQueriesPath}/${file}`))
+  );
+  invalidQueryTestCases.forEach(testCase =>
+    it('should return the expected error for the test case ' + testCase.testCaseName, async () => {
+      const response = await server
+        .post('/query')
+        .send(testCase.query)
+        .expect(400)
+        .expect('Content-Type', 'application/json');
+      return expect(response.body).to.deep.equal(testCase.expectedError);
+    })
+  );
+
+  it(' - the invalid query test cases should have unique names', () => {
+    const testCaseNames = invalidQueryTestCases.map(testCase => testCase.testCaseName);
+    const uniqueTestCaseNames = [...new Set(testCaseNames)];
+
+    expect(testCaseNames, 'Found non-unique invalid query test case names').to.deep.equal(
+      uniqueTestCaseNames
     );
+  });
 
   it('should return a method not allowed response when sending a GET request', done => {
     server
