@@ -24,12 +24,12 @@ silo::common::Date silo::common::stringToDate(const std::string& value) {
    }
    auto split_position = value.find('-', 0);
    if (split_position == std::string::npos) {
-      SPDLOG_INFO("Expect dates to be delimited by '-': " + value + "\nIgnoring date");
+      SPDLOG_WARN("Expect dates to be delimited by '-': " + value + "\nIgnoring date");
       return 0;
    }
    auto split_position2 = value.find('-', split_position + 1);
    if (split_position2 == std::string::npos) {
-      SPDLOG_INFO("Expect dates to be delimited twice by '-': " + value + "\nIgnoring date");
+      SPDLOG_WARN("Expect dates to be delimited twice by '-': " + value + "\nIgnoring date");
       return 0;
    }
    const std::string year_string = value.substr(0, split_position);
@@ -40,11 +40,11 @@ silo::common::Date silo::common::stringToDate(const std::string& value) {
       const uint32_t month = stoi(month_string);
       const uint32_t day = stoi(day_string);
       if (month > NUMBER_OF_MONTHS || month == 0) {
-         SPDLOG_INFO("Month is not in [1,12] " + value + "\nIgnoring date");
+         SPDLOG_WARN("Month is not in [1,{}]: {} \nIgnoring date", NUMBER_OF_MONTHS, value);
          return 0;
       }
       if (day > NUMBER_OF_DAYS || day == 0) {
-         SPDLOG_INFO("Day is not in [1,31] " + value + "\nIgnoring date");
+         SPDLOG_WARN("Month is not in [1,{}]: {} \nIgnoring date", NUMBER_OF_DAYS, value);
          return 0;
       }
       // Date is stored with the year in the upper 16 bits, month in bits [12,16), and day [0,12)
@@ -52,12 +52,12 @@ silo::common::Date silo::common::stringToDate(const std::string& value) {
          (year << (BYTES_FOR_MONTHS + BYTES_FOR_DAYS)) + (month << BYTES_FOR_DAYS) + day;
       return Date{date_value};
    } catch (const std::invalid_argument& ex) {
-      SPDLOG_INFO(
+      SPDLOG_WARN(
          "Parsing of date failed: " + value + "\nWith exception: " + ex.what() + "\nIgnoring date"
       );
       return 0;
    } catch (const std::out_of_range& ex) {
-      SPDLOG_INFO(
+      SPDLOG_WARN(
          "Parsing of date failed: " + value + "\nWith exception: " + ex.what() + "\nIgnoring date"
       );
       return 0;

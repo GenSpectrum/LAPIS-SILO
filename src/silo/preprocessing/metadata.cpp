@@ -38,7 +38,6 @@ std::vector<std::string> MetadataReader::getColumn(const std::string& column_nam
       throw PreprocessingException(message);
    }
    std::vector<std::string> column;
-   column.reserve(10000000);
    csv::CSVRow row;
    while (reader.read_row(row)) {
       std::this_thread::sleep_for(std::chrono::nanoseconds(2));
