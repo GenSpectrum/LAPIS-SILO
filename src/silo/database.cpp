@@ -125,6 +125,7 @@ void Database::build(
                partitions[partition_index].columns.fill(metadata_file, database_config);
          }
       }
+      finalizeInsertionIndexes();
    }
 
    SPDLOG_INFO("Build took {} ms", micros);
@@ -611,6 +612,12 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
             partition.insertColumn(name, columns.float_columns.at(name).createPartition());
          }
          break;
+      case config::ColumnType::INSERTION:
+         columns.insertion_columns.emplace(name, storage::column::InsertionColumn());
+         for (auto& partition : partitions) {
+            partition.insertColumn(name, columns.insertion_columns.at(name).createPartition());
+         }
+         break;
    }
 }
 
@@ -644,6 +651,14 @@ void Database::initializeAASequences(
          partition.aa_sequences.insert({aa_name, aa_sequences.at(aa_name).createPartition()});
       }
    }
+}
+
+void Database::finalizeInsertionIndexes() {
+   tbb::parallel_for_each(partitions.begin(), partitions.end(), [](auto& partition) {
+      for (auto& insertion_column : partition.columns.insertion_columns) {
+         insertion_column.second.buildInsertionIndex();
+      }
+   });
 }
 
 Database::Database() = default;

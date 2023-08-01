@@ -10,8 +10,8 @@
 
 namespace silo::config {
 
-enum class ValueType { STRING, PANGOLINEAGE, DATE, INT, FLOAT };
-enum class ColumnType { STRING, INDEXED_STRING, INDEXED_PANGOLINEAGE, DATE, INT, FLOAT };
+enum class ValueType { STRING, PANGOLINEAGE, DATE, INT, FLOAT, INSERTION };
+enum class ColumnType { STRING, INDEXED_STRING, INDEXED_PANGOLINEAGE, DATE, INT, FLOAT, INSERTION };
 
 ValueType toDatabaseValueType(std::string_view type);
 

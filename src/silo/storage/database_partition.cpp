@@ -47,6 +47,12 @@ void DatabasePartition::insertColumn(
 ) {
    columns.date_columns.insert({std::string(name), column});
 }
+void DatabasePartition::insertColumn(
+   const std::string& name,
+   storage::column::InsertionColumnPartition& column
+) {
+   columns.insertion_columns.insert({std::string(name), column});
+}
 
 void DatabasePartition::insertColumn(
    const std::string& name,

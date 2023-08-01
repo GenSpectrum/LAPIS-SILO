@@ -81,6 +81,7 @@ class Database {
    void initializeAASequences(
       const std::map<std::string, std::vector<AA_SYMBOL>>& reference_sequences
    );
+   void finalizeInsertionIndexes();
 
    void flipBitmaps();
 

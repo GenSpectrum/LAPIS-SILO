@@ -29,6 +29,7 @@ class DateColumnPartition;
 class FloatColumnPartition;
 class IndexedStringColumnPartition;
 class IntColumnPartition;
+class InsertionColumnPartition;
 class PangoLineageColumnPartition;
 class StringColumnPartition;
 }  // namespace storage::column
@@ -86,6 +87,7 @@ class DatabasePartition {
    void insertColumn(const std::string& name, storage::column::DateColumnPartition& column);
    void insertColumn(const std::string& name, storage::column::PangoLineageColumnPartition& column);
    void insertColumn(const std::string& name, storage::column::FloatColumnPartition& column);
+   void insertColumn(const std::string& name, storage::column::InsertionColumnPartition& column);
 };
 
 }  // namespace silo

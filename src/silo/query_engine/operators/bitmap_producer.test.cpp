@@ -1,0 +1,67 @@
+#include "silo/query_engine/operators/bitmap_producer.h"
+
+#include "silo/query_engine/operator_result.h"
+
+#include <gtest/gtest.h>
+#include <roaring/roaring.hh>
+
+using silo::query_engine::OperatorResult;
+using silo::query_engine::operators::BitmapProducer;
+
+TEST(OperatorBitmapProducer, evaluateShouldReturnCorrectValues) {
+   const roaring::Roaring test_bitmap({1, 2, 3});
+   const uint32_t row_count = 5;
+
+   const BitmapProducer under_test(
+      [&]() {
+         const auto* bitmap = &test_bitmap;
+         return OperatorResult(bitmap);
+      },
+      row_count
+   );
+   ASSERT_EQ(*under_test.evaluate(), roaring::Roaring({1, 2, 3}));
+}
+
+TEST(OperatorBitmapProducer, evaluateShouldReturnCorrectValuesWhenNegated) {
+   const roaring::Roaring test_bitmap({1, 2, 3});
+   const uint32_t row_count = 5;
+
+   const auto under_test = BitmapProducer(
+                              [&]() {
+                                 const auto* bitmap = &test_bitmap;
+                                 return OperatorResult(bitmap);
+                              },
+                              row_count
+   )
+                              .negate();
+
+   ASSERT_EQ(*under_test->evaluate(), roaring::Roaring({0, 4}));
+}
+
+TEST(OperatorBitmapProducer, correctTypeInfo) {
+   const roaring::Roaring test_bitmap({1, 2, 3});
+   const uint32_t row_count = 5;
+
+   const BitmapProducer under_test(
+      [&]() {
+         const auto* bitmap = &test_bitmap;
+         return OperatorResult(bitmap);
+      },
+      row_count
+   );
+   ASSERT_EQ(under_test.type(), silo::query_engine::operators::BITMAP_PRODUCER);
+}
+
+TEST(OperatorBitmapProducer, correctToString) {
+   const roaring::Roaring test_bitmap({1, 2, 3});
+   const uint32_t row_count = 5;
+
+   const BitmapProducer under_test(
+      [&]() {
+         const auto* bitmap = &test_bitmap;
+         return OperatorResult(bitmap);
+      },
+      row_count
+   );
+   ASSERT_EQ(under_test.toString(), "BitmapProducer");
+}

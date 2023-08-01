@@ -5,6 +5,7 @@
 #include <functional>
 #include <iosfwd>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <boost/serialization/access.hpp>
