@@ -28,10 +28,8 @@ struct SliceIdxBitmapParameters {
    };
 };
 
-using SliceIdxBitmapStorage = std::unordered_map<
-   SliceIdxBitmapParameters,
-   const roaring::Roaring*,
-   SliceIdxBitmapParameters::Hasher>;
+using SliceIdxBitmapStorage =
+   std::unordered_map<SliceIdxBitmapParameters, roaring::Roaring, SliceIdxBitmapParameters::Hasher>;
 
 static std::pair<MutationFilter, SliceIdxBitmapStorage> setupTest() {
    const auto start_length = 8;
@@ -42,11 +40,11 @@ static std::pair<MutationFilter, SliceIdxBitmapStorage> setupTest() {
       for (uint32_t div = start_length; div >= 1; div /= 2) {
          const auto mutation_count = slice_length / div;
          const auto overlap_shift = slice_length / 2;
-         std::vector<std::unique_ptr<roaring::Roaring>> genome_ids_per_slice;
+         std::vector<roaring::Roaring> genome_ids_per_slice;
          for (uint32_t start_pos = 0; start_pos < GENOME_LENGTH; start_pos += overlap_shift) {
             const SliceIdxBitmapParameters bitmap_params{slice_length, mutation_count, start_pos};
-            auto bitmap = std::make_unique<roaring::Roaring>(roaring::Roaring{1, 2, 3});
-            truth.emplace(bitmap_params, bitmap.get());
+            auto bitmap = roaring::Roaring{slice_length, mutation_count, start_pos};
+            truth.emplace(bitmap_params, bitmap);
             genome_ids_per_slice.push_back(std::move(bitmap));
          }
          mutation_filter.addSliceIdx(
@@ -71,7 +69,7 @@ TEST(MutationFilter, findCorrectSliceIdx) {
       auto res = mutationFilter.filter(range, query_mutation_count);
 
       ASSERT_TRUE(res.has_value());
-      ASSERT_EQ(res.value(), truth.find(bitmap_params)->second);
+      ASSERT_EQ(*res.value(), truth.find(bitmap_params)->second);
    }
    {
       const uint32_t query_mutation_count = 7;
@@ -84,7 +82,7 @@ TEST(MutationFilter, findCorrectSliceIdx) {
       auto res = mutationFilter.filter(range, query_mutation_count);
 
       ASSERT_TRUE(res.has_value());
-      ASSERT_EQ(res.value(), truth.find(bitmap_params)->second);
+      ASSERT_EQ(*res.value(), truth.find(bitmap_params)->second);
    }
    {
       const uint32_t query_mutation_count = 8;
@@ -97,7 +95,7 @@ TEST(MutationFilter, findCorrectSliceIdx) {
       auto res = mutationFilter.filter(range, query_mutation_count);
 
       ASSERT_TRUE(res.has_value());
-      ASSERT_EQ(res.value(), truth.find(bitmap_params)->second);
+      ASSERT_EQ(*res.value(), truth.find(bitmap_params)->second);
    }
    {
       const uint32_t query_mutation_count = GENOME_LENGTH / 8;
@@ -110,7 +108,7 @@ TEST(MutationFilter, findCorrectSliceIdx) {
       auto res = mutationFilter.filter(range, query_mutation_count);
 
       ASSERT_TRUE(res.has_value());
-      ASSERT_EQ(res.value(), truth.find(bitmap_params)->second);
+      ASSERT_EQ(*res.value(), truth.find(bitmap_params)->second);
    }
    {
       const uint32_t query_mutation_count = GENOME_LENGTH;
@@ -123,7 +121,7 @@ TEST(MutationFilter, findCorrectSliceIdx) {
       auto res = mutationFilter.filter(range, query_mutation_count);
 
       ASSERT_TRUE(res.has_value());
-      ASSERT_EQ(res.value(), truth.find(bitmap_params)->second);
+      ASSERT_EQ(*res.value(), truth.find(bitmap_params)->second);
    }
 }
 
@@ -147,7 +145,7 @@ TEST(MutationFilter, endIdxIsOutOfBounds) {
       auto res = mutationFilter.filter(range, query_mutation_count);
 
       ASSERT_TRUE(res.has_value());
-      ASSERT_EQ(res.value(), truth.find(bitmap_params)->second);
+      ASSERT_EQ(*res.value(), truth.find(bitmap_params)->second);
    }
 }
 
@@ -176,7 +174,7 @@ TEST(MutationFilter, queryMutationCountIsTooLow) {
       auto res = mutationFilter.filter(range, query_mutation_count);
 
       ASSERT_TRUE(res.has_value());
-      ASSERT_EQ(res.value(), truth.find(bitmap_params)->second);
+      ASSERT_EQ(*res.value(), truth.find(bitmap_params)->second);
    }
    {
       const std::pair<uint32_t, uint32_t> range{0, GENOME_LENGTH};

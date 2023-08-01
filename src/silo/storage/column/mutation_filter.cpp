@@ -57,7 +57,7 @@ std::optional<const roaring::Roaring*> MutationFilter::filter(
       );
       assert(slice_idx_it != slice_idx_vec.begin());
       --slice_idx_it;
-      result = slice_idx_it->get_bucket_genome_ids(bucket_idx);
+      result = slice_idx_it->getBucketGenomeIds(bucket_idx);
    }
    return result;
 }
@@ -67,7 +67,7 @@ size_t MutationFilter::computeSize() const {
    for (const auto& slice_idx_bucket : slice_indexes) {
       for (const auto& slice_idx : slice_idx_bucket.second) {
          for (const auto& genome_ids : slice_idx.genome_ids_per_slice) {
-            result += genome_ids->getSizeInBytes(false);
+            result += genome_ids.getSizeInBytes(false);
          }
       }
    }
@@ -76,49 +76,41 @@ size_t MutationFilter::computeSize() const {
 
 size_t MutationFilter::runOptimize() {
    std::atomic<size_t> count_true = 0;
-   tbb::parallel_for_each(
-      slice_indexes.begin(),
-      slice_indexes.end(),
-      [&](const auto& slice_idx_bucket) {
-         tbb::parallel_for_each(
-            slice_idx_bucket.second.begin(),
-            slice_idx_bucket.second.end(),
-            [&](const auto& slice_idx) {
-               tbb::parallel_for_each(
-                  slice_idx.genome_ids_per_slice.begin(),
-                  slice_idx.genome_ids_per_slice.end(),
-                  [&](const auto& genome_ids) {
-                     if (genome_ids->runOptimize()) {
-                        ++count_true;
-                     }
+   tbb::parallel_for_each(slice_indexes.begin(), slice_indexes.end(), [&](auto& slice_idx_bucket) {
+      tbb::parallel_for_each(
+         slice_idx_bucket.second.begin(),
+         slice_idx_bucket.second.end(),
+         [&](auto& slice_idx) {
+            tbb::parallel_for_each(
+               slice_idx.genome_ids_per_slice.begin(),
+               slice_idx.genome_ids_per_slice.end(),
+               [&](auto& genome_ids) {
+                  if (genome_ids.runOptimize()) {
+                     ++count_true;
                   }
-               );
-            }
-         );
-      }
-   );
+               }
+            );
+         }
+      );
+   });
    return count_true;
 }
 
 size_t MutationFilter::shrinkToFit() {
    std::atomic<size_t> saved = 0;
-   tbb::parallel_for_each(
-      slice_indexes.begin(),
-      slice_indexes.end(),
-      [&](const auto& slice_idx_bucket) {
-         tbb::parallel_for_each(
-            slice_idx_bucket.second.begin(),
-            slice_idx_bucket.second.end(),
-            [&](const auto& slice_idx) {
-               tbb::parallel_for_each(
-                  slice_idx.genome_ids_per_slice.begin(),
-                  slice_idx.genome_ids_per_slice.end(),
-                  [&](const auto& genome_ids) { saved += genome_ids->shrinkToFit(); }
-               );
-            }
-         );
-      }
-   );
+   tbb::parallel_for_each(slice_indexes.begin(), slice_indexes.end(), [&](auto& slice_idx_bucket) {
+      tbb::parallel_for_each(
+         slice_idx_bucket.second.begin(),
+         slice_idx_bucket.second.end(),
+         [&](auto& slice_idx) {
+            tbb::parallel_for_each(
+               slice_idx.genome_ids_per_slice.begin(),
+               slice_idx.genome_ids_per_slice.end(),
+               [&](auto& genome_ids) { saved += genome_ids.shrinkToFit(); }
+            );
+         }
+      );
+   });
    return saved;
 }
 

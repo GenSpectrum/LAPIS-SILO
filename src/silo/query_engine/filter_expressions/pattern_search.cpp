@@ -51,30 +51,47 @@ std::unique_ptr<silo::query_engine::operators::Operator> PatternSearch::compile(
    const auto& seq_store_partition =
       database_partition.nuc_sequences.at(nuc_sequence_name_or_default);
    const auto genome_length = seq_store_partition.reference_genome.size();
-   std::vector<std::unique_ptr<operators::Operator>> result;
-   const bool pattern_contains_unfiltered_symbol =
-      std::any_of(pattern.begin(), pattern.end(), [](auto pos) {
-         return pos == NUCLEOTIDE_SYMBOL::N || pos == NUCLEOTIDE_SYMBOL::GAP;
-      });
+   std::vector<std::unique_ptr<operators::Operator>> pattern_search_result_per_genome_position;
 
-   for (uint32_t genome_start_pos = position; genome_start_pos <= genome_length - pattern.size();
-        ++genome_start_pos) {
-      uint32_t mutation_count = 0;
+   auto compute_pattern_search_matches_without_filter = [&](uint32_t genome_start_pos) {
+      std::vector<std::unique_ptr<operators::Operator>> negated_matches;
+      std::vector<std::unique_ptr<operators::Operator>> matches;
       for (uint32_t pattern_pos = 0; pattern_pos < pattern.size(); ++pattern_pos) {
-         mutation_count += static_cast<uint32_t>(
-            seq_store_partition.reference_genome[genome_start_pos + pattern_pos] !=
-            pattern[pattern_pos]
+         auto genome_pos = genome_start_pos + pattern_pos;
+         auto& pattern_symbol = pattern[pattern_pos];
+         if (pattern_symbol == seq_store_partition.reference_genome[genome_pos]) {
+            negated_matches.push_back(std::make_unique<operators::IndexScan>(
+               seq_store_partition.getBitmap(genome_pos, pattern_symbol),
+               seq_store_partition.sequence_count
+            ));
+         } else {
+            matches.push_back(std::make_unique<operators::IndexScan>(
+               seq_store_partition.getBitmap(genome_pos, pattern_symbol),
+               seq_store_partition.sequence_count
+            ));
+         }
+      }
+      if (matches.empty()) {
+         const operators::Union union_operator{
+            std::move(negated_matches), seq_store_partition.sequence_count};
+         pattern_search_result_per_genome_position.push_back(union_operator.negate());
+      } else {
+         pattern_search_result_per_genome_position.push_back(
+            std::make_unique<operators::Intersection>(
+               std::move(matches), std::move(negated_matches), seq_store_partition.sequence_count
+            )
          );
       }
-      const auto genome_range = std::make_pair(genome_start_pos, genome_start_pos + pattern.size());
-      auto filter = seq_store_partition.mutation_filter.filter(genome_range, mutation_count);
-      if (filter.has_value() && !pattern_contains_unfiltered_symbol) {
+   };
+
+   auto compute_pattern_search_matches_with_mutation_filter =
+      [&](uint32_t genome_start_pos, const roaring::Roaring* filter) {
          std::vector<uint32_t> matching_genome_ids;
-         for (auto genome_id : *filter.value()) {
+         for (auto genome_id : *filter) {
             bool match = true;
             for (uint32_t pattern_pos = 0; match && pattern_pos < pattern.size(); ++pattern_pos) {
                auto genome_pos = genome_start_pos + pattern_pos;
-               auto& pattern_symbol = pattern[pattern_pos];
+               const auto& pattern_symbol = pattern[pattern_pos];
                const auto* bitmap = seq_store_partition.getBitmap(genome_pos, pattern_symbol);
                if (pattern_symbol == seq_store_partition.reference_genome[genome_pos]) {
                   match &= !bitmap->contains(genome_id);
@@ -87,53 +104,57 @@ std::unique_ptr<silo::query_engine::operators::Operator> PatternSearch::compile(
             }
          }
          if (!matching_genome_ids.empty()) {
-            result.push_back(std::make_unique<operators::BitmapProducer>(
-               [&]() {
-                  auto matching_bitmap = std::make_unique<roaring::Roaring>(
-                     matching_genome_ids.size(), matching_genome_ids.data()
-                  );
-                  return OperatorResult(matching_bitmap.release());
-               },
-               database_partition.sequenceCount
-            ));
+            pattern_search_result_per_genome_position.push_back(
+               std::make_unique<operators::BitmapProducer>(
+                  [&]() {
+                     auto matching_bitmap = std::make_unique<roaring::Roaring>(
+                        matching_genome_ids.size(), matching_genome_ids.data()
+                     );
+                     return OperatorResult(matching_bitmap.release());
+                  },
+                  database_partition.sequenceCount
+               )
+            );
          }
+      };
 
-      } else {
-         std::vector<std::unique_ptr<operators::Operator>> negated_matches;
-         std::vector<std::unique_ptr<operators::Operator>> matches;
+   const bool pattern_contains_unfiltered_symbol =
+      std::any_of(pattern.begin(), pattern.end(), [](auto pos) {
+         return pos == NUCLEOTIDE_SYMBOL::N || pos == NUCLEOTIDE_SYMBOL::GAP;
+      });
+
+   if (pattern_contains_unfiltered_symbol) {
+      for (uint32_t genome_start_pos = position; genome_start_pos <= genome_length - pattern.size();
+           ++genome_start_pos) {
+         compute_pattern_search_matches_without_filter(genome_start_pos);
+      }
+   } else {
+      for (uint32_t genome_start_pos = position; genome_start_pos <= genome_length - pattern.size();
+           ++genome_start_pos) {
+         uint32_t mutation_count = 0;
          for (uint32_t pattern_pos = 0; pattern_pos < pattern.size(); ++pattern_pos) {
-            auto genome_pos = genome_start_pos + pattern_pos;
-            auto& pattern_symbol = pattern[pattern_pos];
-            if (pattern_symbol == seq_store_partition.reference_genome[genome_pos]) {
-               negated_matches.push_back(std::make_unique<operators::IndexScan>(
-                  seq_store_partition.getBitmap(genome_pos, pattern_symbol),
-                  seq_store_partition.sequence_count
-               ));
-            } else {
-               matches.push_back(std::make_unique<operators::IndexScan>(
-                  seq_store_partition.getBitmap(genome_pos, pattern_symbol),
-                  seq_store_partition.sequence_count
-               ));
-            }
+            mutation_count += static_cast<uint32_t>(
+               seq_store_partition.reference_genome[genome_start_pos + pattern_pos] !=
+               pattern[pattern_pos]
+            );
          }
-         if (matches.empty()) {
-            const operators::Union union_operator{
-               std::move(negated_matches), seq_store_partition.sequence_count};
-            result.push_back(union_operator.negate());
+         const auto genome_range =
+            std::make_pair(genome_start_pos, genome_start_pos + pattern.size());
+         auto filter = seq_store_partition.mutation_filter.filter(genome_range, mutation_count);
+         if (!filter.has_value()) {
+            compute_pattern_search_matches_without_filter(genome_start_pos);
          } else {
-            result.push_back(std::make_unique<operators::Intersection>(
-               std::move(matches), std::move(negated_matches), seq_store_partition.sequence_count
-            ));
+            compute_pattern_search_matches_with_mutation_filter(genome_start_pos, filter.value());
          }
       }
    }
-   if (!result.empty()) {
-      return std::make_unique<operators::Union>(
-         std::move(result), seq_store_partition.sequence_count
-      );
-   }
 
-   return std::make_unique<operators::Empty>(database_partition.sequenceCount);
+   if (pattern_search_result_per_genome_position.empty()) {
+      return std::make_unique<operators::Empty>(database_partition.sequenceCount);
+   }
+   return std::make_unique<operators::Union>(
+      std::move(pattern_search_result_per_genome_position), seq_store_partition.sequence_count
+   );
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

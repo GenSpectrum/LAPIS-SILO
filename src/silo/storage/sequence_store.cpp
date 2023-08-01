@@ -215,8 +215,8 @@ void silo::SequenceStorePartition::fillMutationFilter() {
             filtered_symbols_bitmap.push_back(getBitmap(genome_pos, nuc_symbol));
          }
       }
-      return std::make_unique<roaring::Roaring>(
-         roaring::Roaring::fastunion(filtered_symbols_bitmap.size(), filtered_symbols_bitmap.data())
+      return roaring::Roaring::fastunion(
+         filtered_symbols_bitmap.size(), filtered_symbols_bitmap.data()
       );
    };
 
@@ -228,14 +228,12 @@ void silo::SequenceStorePartition::fillMutationFilter() {
       ) {
          const auto [genome_start_pos, genome_end_pos] = genome_range;
          if (genome_start_pos > 0) {
-            auto mutated_ids = get_mutated_ids_for_genome_pos(genome_start_pos);
-            for (auto genome_id : *mutated_ids) {
+            for (auto genome_id : get_mutated_ids_for_genome_pos(genome_start_pos)) {
                --counts[genome_id];
             }
          }
          if (genome_end_pos < reference_genome.size()) {
-            auto mutated_ids = get_mutated_ids_for_genome_pos(genome_start_pos);
-            for (auto genome_id : *mutated_ids) {
+            for (auto genome_id : get_mutated_ids_for_genome_pos(genome_start_pos)) {
                ++counts[genome_id];
             }
          }
@@ -245,7 +243,7 @@ void silo::SequenceStorePartition::fillMutationFilter() {
                genome_ids.push_back(id);
             }
          }
-         return std::make_unique<roaring::Roaring>(genome_ids.size(), genome_ids.data());
+         return roaring::Roaring(genome_ids.size(), genome_ids.data());
       };
 
    std::mutex mutex;
@@ -256,12 +254,12 @@ void silo::SequenceStorePartition::fillMutationFilter() {
          const auto slice_length = slice_length_mutation_count.first;
          const auto overlap_shift = slice_length / 2;
          const auto mutation_count = slice_length_mutation_count.second;
-         std::vector<std::unique_ptr<roaring::Roaring>> mutation_filter_bitmaps;
+         std::vector<roaring::Roaring> mutation_filter_bitmaps;
          std::vector<uint32_t> counts(sequence_count, 0);
 
          for (uint32_t genome_pos = 0; genome_pos < slice_length; ++genome_pos) {
             auto mutated_ids = get_mutated_ids_for_genome_pos(genome_pos);
-            for (auto genome_id : *mutated_ids) {
+            for (auto genome_id : mutated_ids) {
                ++counts[genome_id];
             }
          }

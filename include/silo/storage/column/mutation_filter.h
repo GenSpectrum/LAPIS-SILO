@@ -14,20 +14,15 @@ namespace boost::serialization {
 struct access;
 }  // namespace boost::serialization
 
-namespace silo::storage {
-struct SequenceStorePartition;
-}
-
 namespace silo::storage::column {
 
 class MutationFilter {
-   friend class boost::serialization::access;
-
   public:
-   using genome_ids_t = std::unique_ptr<roaring::Roaring>;
-   using Iterator = roaring::Roaring::const_iterator;
+   using genome_ids_t = roaring::Roaring;
 
   private:
+   friend class boost::serialization::access;
+
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
@@ -37,6 +32,18 @@ class MutationFilter {
    }
 
    struct SliceIdxParameters {
+     private:
+      friend class boost::serialization::access;
+
+      template <class Archive>
+      [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+         // clang-format off
+         archive& slice_length;
+         archive& overlap_shift;
+         // clang-format on
+      }
+
+     public:
       uint32_t slice_length;
       uint32_t overlap_shift;
       auto operator<=>(const SliceIdxParameters& other) const = default;
@@ -52,15 +59,29 @@ class MutationFilter {
    };
 
    struct SliceIdx {
+     private:
+      friend class boost::serialization::access;
+
+      template <class Archive>
+      [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+         // clang-format off
+         archive& genome_ids_per_slice;
+         archive& mutation_count;
+         // clang-format on
+      }
+
+     public:
       std::vector<genome_ids_t> genome_ids_per_slice;
       size_t mutation_count;
+
+      SliceIdx() = default;
 
       SliceIdx(std::vector<genome_ids_t> genome_ids_per_slice, size_t mutation_count)
           : genome_ids_per_slice(std::move(genome_ids_per_slice)),
             mutation_count(mutation_count) {}
 
-      const roaring::Roaring* get_bucket_genome_ids(uint32_t bucket_idx) const {
-         return genome_ids_per_slice[bucket_idx].get();
+      const roaring::Roaring* getBucketGenomeIds(uint32_t bucket_idx) const {
+         return &genome_ids_per_slice[bucket_idx];
       }
 
       auto operator<=>(const SliceIdx& other) const {

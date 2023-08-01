@@ -67,6 +67,7 @@ class SequenceStorePartition {
       archive & positions;
       archive & indexing_differences_to_reference_genome;
       archive & nucleotide_symbol_n_bitmaps;
+      archive & mutation_filter;
       archive & sequence_count;
       // clang-format on
    }
