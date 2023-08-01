@@ -56,6 +56,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> PatternSearch::compile(
       std::any_of(pattern.begin(), pattern.end(), [](auto pos) {
          return pos == NUCLEOTIDE_SYMBOL::N || pos == NUCLEOTIDE_SYMBOL::GAP;
       });
+
    for (uint32_t genome_start_pos = position; genome_start_pos <= genome_length - pattern.size();
         ++genome_start_pos) {
       uint32_t mutation_count = 0;
@@ -65,8 +66,8 @@ std::unique_ptr<silo::query_engine::operators::Operator> PatternSearch::compile(
             pattern[pattern_pos]
          );
       }
-      const auto range = std::make_pair(genome_start_pos, genome_start_pos + pattern.size());
-      auto filter = seq_store_partition.mutation_filter.filter(range, mutation_count);
+      const auto genome_range = std::make_pair(genome_start_pos, genome_start_pos + pattern.size());
+      auto filter = seq_store_partition.mutation_filter.filter(genome_range, mutation_count);
       if (filter.has_value() && !pattern_contains_unfiltered_symbol) {
          std::vector<uint32_t> matching_genome_ids;
          for (auto genome_id : *filter.value()) {

@@ -93,6 +93,7 @@ size_t silo::SequenceStorePartition::fill(silo::ZstdFastaReader& input_file) {
       ++read_sequences_count;
    }
    interpret(genome_buffer);
+   fillMutationFilter();
    SPDLOG_DEBUG("{}", getInfo());
 
    return read_sequences_count;
@@ -219,6 +220,34 @@ void silo::SequenceStorePartition::fillMutationFilter() {
       );
    };
 
+   auto get_mutated_ids_for_range_and_mut_count =
+      [&](
+         std::vector<uint32_t>& counts,
+         const std::pair<uint32_t, uint32_t> genome_range,
+         const uint32_t mutation_count
+      ) {
+         const auto [genome_start_pos, genome_end_pos] = genome_range;
+         if (genome_start_pos > 0) {
+            auto mutated_ids = get_mutated_ids_for_genome_pos(genome_start_pos);
+            for (auto genome_id : *mutated_ids) {
+               --counts[genome_id];
+            }
+         }
+         if (genome_end_pos < reference_genome.size()) {
+            auto mutated_ids = get_mutated_ids_for_genome_pos(genome_start_pos);
+            for (auto genome_id : *mutated_ids) {
+               ++counts[genome_id];
+            }
+         }
+         std::vector<uint32_t> genome_ids;
+         for (size_t id = 0; id < sequence_count; ++id) {
+            if (counts[id] >= mutation_count) {
+               genome_ids.push_back(id);
+            }
+         }
+         return std::make_unique<roaring::Roaring>(genome_ids.size(), genome_ids.data());
+      };
+
    std::mutex mutex;
    tbb::parallel_for_each(
       slice_lengths_mutation_counts.begin(),
@@ -239,29 +268,11 @@ void silo::SequenceStorePartition::fillMutationFilter() {
 
          for (uint32_t genome_start_pos = 0; genome_start_pos < reference_genome.size();
               genome_start_pos += overlap_shift) {
-            if (genome_start_pos > 0) {
-               auto mutated_ids = get_mutated_ids_for_genome_pos(genome_start_pos);
-               for (auto genome_id : *mutated_ids) {
-                  --counts[genome_id];
-               }
-            }
-            const uint32_t genome_end_pos = genome_start_pos + slice_length;
-            if (genome_end_pos < reference_genome.size()) {
-               auto mutated_ids = get_mutated_ids_for_genome_pos(genome_start_pos);
-               for (auto genome_id : *mutated_ids) {
-                  ++counts[genome_id];
-               }
-            }
-
-            std::vector<uint32_t> genome_ids;
-            for (size_t id = 0; id < sequence_count; ++id) {
-               if (counts[id] >= mutation_count) {
-                  genome_ids.push_back(id);
-               }
-            }
-            mutation_filter_bitmaps.push_back(
-               std::make_unique<roaring::Roaring>(genome_ids.size(), genome_ids.data())
-            );
+            mutation_filter_bitmaps.push_back(get_mutated_ids_for_range_and_mut_count(
+               counts,
+               std::make_pair(genome_start_pos, genome_start_pos + slice_length),
+               mutation_count
+            ));
          }
          const std::unique_lock<std::mutex> lock{mutex};
          mutation_filter.addSliceIdx(
@@ -277,7 +288,6 @@ void silo::SequenceStorePartition::interpret(const std::vector<std::string>& gen
    fillIndexes(genomes);
    fillNBitmaps(genomes);
    sequence_count += genomes.size();
-   fillMutationFilter();
 }
 
 size_t silo::SequenceStorePartition::computeSize() const {
