@@ -83,4 +83,48 @@ ColumnPartitionGroup ColumnPartitionGroup::getSubgroup(
    return result;
 }
 
+std::optional<std::variant<std::string, int32_t, double>> ColumnPartitionGroup::getValue(
+   const std::string& column,
+   uint32_t sequence_id
+) const {
+   if (string_columns.contains(column)) {
+      return string_columns.at(column).lookupValue(
+         string_columns.at(column).getValues().at(sequence_id)
+      );
+   }
+   if (indexed_string_columns.contains(column)) {
+      return indexed_string_columns.at(column).lookupValue(
+         indexed_string_columns.at(column).getValues().at(sequence_id)
+      );
+   }
+   if (pango_lineage_columns.contains(column)) {
+      return pango_lineage_columns.at(column)
+         .lookupValue(pango_lineage_columns.at(column).getValues().at(sequence_id))
+         .value;
+   }
+   if (date_columns.contains(column)) {
+      return common::dateToString(date_columns.at(column).getValues().at(sequence_id));
+   }
+   if (int_columns.contains(column)) {
+      int32_t value = int_columns.at(column).getValues().at(sequence_id);
+      if (value == INT32_MIN) {
+         return std::nullopt;
+      }
+      return value;
+   }
+   if (float_columns.contains(column)) {
+      int32_t value = float_columns.at(column).getValues().at(sequence_id);
+      if (value == std::nan("")) {
+         return std::nullopt;
+      }
+      return value;
+   }
+   if (insertion_columns.contains(column)) {
+      return insertion_columns.at(column).lookupValue(
+         insertion_columns.at(column).getValues().at(sequence_id)
+      );
+   }
+   return std::nullopt;
+}
+
 }  // namespace silo::storage

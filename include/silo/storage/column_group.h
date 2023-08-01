@@ -3,8 +3,10 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 #include "silo/config/database_config.h"
@@ -89,6 +91,11 @@ class ColumnPartitionGroup {
 
    [[nodiscard]] ColumnPartitionGroup getSubgroup(
       const std::vector<config::DatabaseMetadata>& fields
+   ) const;
+
+   std::optional<std::variant<std::string, int32_t, double>> getValue(
+      const std::string& column,
+      uint32_t sequence_id
    ) const;
 };
 
