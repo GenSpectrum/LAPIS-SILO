@@ -207,6 +207,18 @@ void silo::SequenceStorePartition::fillMutationFilter() {
          slice_lengths_mutation_counts.emplace_back(slice_length, mutation_count);
       }
    }
+   auto get_mutated_ids_for_genome_pos = [&](uint32_t genome_pos) {
+      std::vector<const roaring::Roaring*> filtered_symbols_bitmap;
+      for (const auto nuc_symbol : NUC_SYMBOLS) {
+         if (nuc_symbol != reference_genome[genome_pos] && nuc_symbol != NUCLEOTIDE_SYMBOL::N && nuc_symbol != NUCLEOTIDE_SYMBOL::GAP) {
+            filtered_symbols_bitmap.push_back(getBitmap(genome_pos, nuc_symbol));
+         }
+      }
+      return std::make_unique<roaring::Roaring>(
+         roaring::Roaring::fastunion(filtered_symbols_bitmap.size(), filtered_symbols_bitmap.data())
+      );
+   };
+
    std::mutex mutex;
    tbb::parallel_for_each(
       slice_lengths_mutation_counts.begin(),
@@ -216,25 +228,31 @@ void silo::SequenceStorePartition::fillMutationFilter() {
          const auto overlap_shift = slice_length / 2;
          const auto mutation_count = slice_length_mutation_count.second;
          std::vector<std::unique_ptr<roaring::Roaring>> mutation_filter_bitmaps;
-         for (uint32_t idx = 0; idx < reference_genome.size(); idx += overlap_shift) {
-            std::vector<uint32_t> counts(sequence_count, 0);
-            const auto end =
-               std::min(static_cast<size_t>(idx + slice_length), reference_genome.size());
-            for (uint16_t genome_pos = idx; genome_pos < end; ++genome_pos) {
-               std::vector<const roaring::Roaring*> filtered_symbols_bitmap;
-               for (const auto nuc_symbol : NUC_SYMBOLS) {
-                  if (nuc_symbol != reference_genome[genome_pos] && nuc_symbol != NUCLEOTIDE_SYMBOL::N && nuc_symbol != NUCLEOTIDE_SYMBOL::GAP) {
-                     filtered_symbols_bitmap.push_back(getBitmap(genome_pos, nuc_symbol));
-                  }
-               }
-               const std::unique_ptr<roaring::Roaring> mutated_ids =
-                  std::make_unique<roaring::Roaring>(roaring::Roaring::fastunion(
-                     filtered_symbols_bitmap.size(), filtered_symbols_bitmap.data()
-                  ));
-               for (auto pos : *mutated_ids) {
-                  counts[pos]++;
+         std::vector<uint32_t> counts(sequence_count, 0);
+
+         for (uint32_t genome_pos = 0; genome_pos < slice_length; ++genome_pos) {
+            auto mutated_ids = get_mutated_ids_for_genome_pos(genome_pos);
+            for (auto genome_id : *mutated_ids) {
+               ++counts[genome_id];
+            }
+         }
+
+         for (uint32_t genome_start_pos = 0; genome_start_pos < reference_genome.size();
+              genome_start_pos += overlap_shift) {
+            if (genome_start_pos > 0) {
+               auto mutated_ids = get_mutated_ids_for_genome_pos(genome_start_pos);
+               for (auto genome_id : *mutated_ids) {
+                  --counts[genome_id];
                }
             }
+            const uint32_t genome_end_pos = genome_start_pos + slice_length;
+            if (genome_end_pos < reference_genome.size()) {
+               auto mutated_ids = get_mutated_ids_for_genome_pos(genome_start_pos);
+               for (auto genome_id : *mutated_ids) {
+                  ++counts[genome_id];
+               }
+            }
+
             std::vector<uint32_t> genome_ids;
             for (size_t id = 0; id < sequence_count; ++id) {
                if (counts[id] >= mutation_count) {

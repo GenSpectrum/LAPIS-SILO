@@ -64,57 +64,61 @@ std::optional<const roaring::Roaring*> MutationFilter::filter(
 
 size_t MutationFilter::computeSize() const {
    size_t result = 0;
-   /*
-   for (const auto& position : positions) {
-      for (const NUCLEOTIDE_SYMBOL symbol : NUC_SYMBOLS) {
-         result += position.bitmaps.at(symbol).getSizeInBytes(false);
+   for (const auto& slice_idx_bucket : slice_indexes) {
+      for (const auto& slice_idx : slice_idx_bucket.second) {
+         for (const auto& genome_ids : slice_idx.genome_ids_per_slice) {
+            result += genome_ids->getSizeInBytes(false);
+         }
       }
    }
-   */
    return result;
 }
 
 size_t MutationFilter::runOptimize() {
    std::atomic<size_t> count_true = 0;
-   /*
-   const tbb::blocked_range<size_t> range(0U, positions.size());
-   tbb::parallel_for(range, [&](const decltype(range) local) {
-      tbb::parallel_for(0, 100, [](int j){
-         tbb::parallel_for(0, 100, [](int k){
-            printf("Hello World %d/%d/%d\n", i, j, k);
-         });
-      });
-   });
-   const tbb::blocked_range<size_t> range(0U, positions.size());
-   tbb::parallel_for(range, [&](const decltype(range) local) {
-      for (auto position = local.begin(); position != local.end(); ++position) {
-         for (const NUCLEOTIDE_SYMBOL symbol : NUC_SYMBOLS) {
-            if (positions[position].bitmaps[symbol].runOptimize()) {
-               ++count_true;
+   tbb::parallel_for_each(
+      slice_indexes.begin(),
+      slice_indexes.end(),
+      [&](const auto& slice_idx_bucket) {
+         tbb::parallel_for_each(
+            slice_idx_bucket.second.begin(),
+            slice_idx_bucket.second.end(),
+            [&](const auto& slice_idx) {
+               tbb::parallel_for_each(
+                  slice_idx.genome_ids_per_slice.begin(),
+                  slice_idx.genome_ids_per_slice.end(),
+                  [&](const auto& genome_ids) {
+                     if (genome_ids->runOptimize()) {
+                        ++count_true;
+                     }
+                  }
+               );
             }
-         }
+         );
       }
-   });
-   count_true += mutation_filter.runOptimize();
-    */
+   );
    return count_true;
 }
 
 size_t MutationFilter::shrinkToFit() {
    std::atomic<size_t> saved = 0;
-   /*
-   const tbb::blocked_range<size_t> range(0U, positions.size());
-   tbb::parallel_for(range, [&](const decltype(range) local) {
-      size_t local_saved = 0;
-      for (auto position = local.begin(); position != local.end(); ++position) {
-         for (const NUCLEOTIDE_SYMBOL symbol : NUC_SYMBOLS) {
-            local_saved += positions[position].bitmaps[symbol].shrinkToFit();
-         }
+   tbb::parallel_for_each(
+      slice_indexes.begin(),
+      slice_indexes.end(),
+      [&](const auto& slice_idx_bucket) {
+         tbb::parallel_for_each(
+            slice_idx_bucket.second.begin(),
+            slice_idx_bucket.second.end(),
+            [&](const auto& slice_idx) {
+               tbb::parallel_for_each(
+                  slice_idx.genome_ids_per_slice.begin(),
+                  slice_idx.genome_ids_per_slice.end(),
+                  [&](const auto& genome_ids) { saved += genome_ids->shrinkToFit(); }
+               );
+            }
+         );
       }
-      saved += local_saved;
-   });
-   saved += mutation_filter.shrinkToFit();
-    */
+   );
    return saved;
 }
 
