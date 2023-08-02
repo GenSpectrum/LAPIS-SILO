@@ -2,6 +2,7 @@
 
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <deque>
 #include <filesystem>
 #include <fstream>
@@ -143,6 +144,8 @@ void Database::build(
 
    SPDLOG_INFO("Build took {} ms", micros);
    SPDLOG_INFO("database info: {}", getDatabaseInfo());
+
+   setDataVersion(DataVersion(DataVersion::mineDataVersion()));
 }
 
 using RoaringStatistics = roaring::api::roaring_statistics_t;
@@ -367,6 +370,12 @@ std::map<std::string, std::vector<AA_SYMBOL>> Database::getAASequences() const {
    return aa_sequences_map;
 }
 
+void saveDataVersion(const Database& database, const std::string& save_directory) {
+   std::ofstream data_version_file(save_directory + "data_version.silo");
+   const auto data_version = database.getDataVersion().toString();
+   data_version_file << data_version;
+}
+
 void Database::saveDatabaseState(const std::string& save_directory) {
    const std::string database_config_filename = save_directory + "database_config.yaml";
    database_config.writeConfig(database_config_filename);
@@ -414,6 +423,15 @@ void Database::saveDatabaseState(const std::string& save_directory) {
       }
    });
    SPDLOG_INFO("Finished saving partitions", partitions.size());
+
+   saveDataVersion(*this, save_directory);
+}
+
+DataVersion loadDataVersion(const std::string& save_directory) {
+   std::ifstream data_version_file(save_directory + "data_version.silo");
+   std::string data_version;
+   data_version_file >> data_version;
+   return DataVersion(data_version);
 }
 
 Database Database::loadDatabaseState(const std::string& save_directory) {
@@ -482,6 +500,10 @@ Database Database::loadDatabaseState(const std::string& save_directory) {
          }
       }
    );
+
+   SPDLOG_INFO("Loading data_version from {}", save_directory + "data_version.silo");
+   database.setDataVersion(loadDataVersion(save_directory));
+
    return database;
 }
 
@@ -640,5 +662,14 @@ void Database::finalizeInsertionIndexes() {
 }
 
 Database::Database() = default;
+
+void Database::setDataVersion(const DataVersion& data_version) {
+   SPDLOG_DEBUG("Set data version to {}", data_version.toString());
+   data_version_ = data_version;
+}
+
+DataVersion Database::getDataVersion() const {
+   return data_version_;
+}
 
 }  // namespace silo

@@ -15,8 +15,12 @@
 
 namespace silo_api {
 
-QueryHandler::QueryHandler(const silo::query_engine::QueryEngine& query_engine)
-    : query_engine(query_engine) {}
+QueryHandler::QueryHandler(
+   const silo::query_engine::QueryEngine& query_engine,
+   std::string data_version
+)
+    : query_engine(query_engine),
+      data_version(std::move(data_version)) {}
 
 void QueryHandler::post(
    Poco::Net::HTTPServerRequest& request,
@@ -29,9 +33,10 @@ void QueryHandler::post(
    SPDLOG_INFO("received query: {}", query);
 
    response.setContentType("application/json");
-
    try {
       const auto query_result = query_engine.executeQuery(query);
+
+      response.set("Data-Version", data_version);
 
       std::ostream& out_stream = response.send();
       out_stream << nlohmann::json(query_result);

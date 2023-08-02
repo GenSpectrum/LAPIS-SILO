@@ -1,6 +1,7 @@
 #ifndef SILO_DATABASE_H
 #define SILO_DATABASE_H
 
+#include <silo/common/data_version.h>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -36,9 +37,6 @@ struct PreprocessingConfig;
 namespace silo {
 
 class Database {
-  private:
-   PangoLineageAliasLookup alias_key;
-
   public:
    silo::config::DatabaseConfig database_config;
    std::vector<DatabasePartition> partitions;
@@ -62,7 +60,13 @@ class Database {
 
    [[nodiscard]] const PangoLineageAliasLookup& getAliasKey() const;
 
+   void setDataVersion(const DataVersion& data_version);
+   DataVersion getDataVersion() const;
+
   private:
+   PangoLineageAliasLookup alias_key;
+   DataVersion data_version_;
+
    void build(
       const preprocessing::PreprocessingConfig& preprocessing_config,
       const preprocessing::Partitions& partition_descriptor,

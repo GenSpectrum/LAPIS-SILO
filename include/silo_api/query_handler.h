@@ -14,9 +14,13 @@ namespace silo_api {
 class QueryHandler : public RestResource {
   private:
    const silo::query_engine::QueryEngine& query_engine;
+   const std::string data_version;
 
   public:
-   explicit QueryHandler(const silo::query_engine::QueryEngine& query_engine);
+   explicit QueryHandler(
+      const silo::query_engine::QueryEngine& query_engine,
+      std::string data_version
+   );
 
    void post(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response)
       override;
