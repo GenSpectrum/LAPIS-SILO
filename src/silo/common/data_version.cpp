@@ -2,6 +2,8 @@
 
 #include <chrono>
 
+namespace silo {
+
 std::string DataVersion::mineDataVersion() {
    const auto now = std::chrono::system_clock::now();
    const auto now_as_time_t = std::chrono::system_clock::to_time_t(now);
@@ -14,3 +16,5 @@ DataVersion::DataVersion(const std::string& data_version)
 std::string DataVersion::toString() const {
    return data_version;
 }
+
+}  // namespace silo

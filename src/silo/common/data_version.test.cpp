@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+using silo::DataVersion;
+
 TEST(DataVersion, shouldMineDataVersionFromUnixTime) {
    const auto mined_version = DataVersion::mineDataVersion();
    EXPECT_EQ(mined_version.size(), 10);

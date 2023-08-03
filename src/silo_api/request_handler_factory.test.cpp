@@ -21,7 +21,7 @@ class MockDatabase : public silo::Database {
   public:
    MOCK_METHOD(silo::DatabaseInfo, getDatabaseInfo, (), (const));
    MOCK_METHOD(silo::DetailedDatabaseInfo, detailedDatabaseInfo, (), (const));
-   MOCK_METHOD(DataVersion, getDataVersion, (), (const));
+   MOCK_METHOD(silo::DataVersion, getDataVersion, (), (const));
 };
 
 class MockQueryEngine : public silo::query_engine::QueryEngine {
@@ -56,7 +56,8 @@ class RequestHandlerTestFixture : public ::testing::Test {
 TEST_F(RequestHandlerTestFixture, handlesGetInfoRequest) {
    EXPECT_CALL(mock_database, getDatabaseInfo)
       .WillRepeatedly(testing::Return(silo::DatabaseInfo{1, 2, 3}));
-   EXPECT_CALL(mock_database, getDataVersion).WillRepeatedly(testing::Return(DataVersion("1234")));
+   EXPECT_CALL(mock_database, getDataVersion)
+      .WillRepeatedly(testing::Return(silo::DataVersion("1234")));
 
    request.setURI("/info");
 
@@ -82,7 +83,8 @@ TEST_F(RequestHandlerTestFixture, handlesGetInfoRequestDetails) {
 
    EXPECT_CALL(mock_database, detailedDatabaseInfo)
       .WillRepeatedly(testing::Return(detailed_database_info));
-   EXPECT_CALL(mock_database, getDataVersion).WillRepeatedly(testing::Return(DataVersion("1234")));
+   EXPECT_CALL(mock_database, getDataVersion)
+      .WillRepeatedly(testing::Return(silo::DataVersion("1234")));
 
    request.setURI("/info?details=true");
 
@@ -116,7 +118,8 @@ TEST_F(RequestHandlerTestFixture, handlesPostQueryRequest) {
    const std::vector<silo::query_engine::QueryResultEntry> tmp{{fields}};
    const silo::query_engine::QueryResult query_result{tmp};
    EXPECT_CALL(mock_query_engine, executeQuery).WillRepeatedly(testing::Return(query_result));
-   EXPECT_CALL(mock_database, getDataVersion).WillRepeatedly(testing::Return(DataVersion("1234")));
+   EXPECT_CALL(mock_database, getDataVersion)
+      .WillRepeatedly(testing::Return(silo::DataVersion("1234")));
 
    request.setMethod("POST");
    request.setURI("/query");
