@@ -90,6 +90,9 @@ std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
             );
             pango2.addChunk(std::move(pango1));
 
+            // We merged pango1 into pango2 -> Now delete pango1
+            // Do not need to increment, because erase will make it automatically point to next
+            // element
             it = chunks.erase(it);
          } else {
             ++it;
@@ -229,14 +232,16 @@ Chunk::Chunk(std::vector<silo::common::UnaliasedPangoLineage>&& lineages, uint32
 void Chunk::addChunk(Chunk&& other) {
    prefix = commonPangoPrefix(prefix, other.getPrefix());
    count_of_sequences += other.count_of_sequences;
-
+   // Add all pango lineages but keep invariant of pango lineages being sorted
    auto copy_of_my_lineages = std::move(pango_lineages);
+   pango_lineages.clear();
+   pango_lineages.resize(copy_of_my_lineages.size() + other.pango_lineages.size());
    std::merge(
       copy_of_my_lineages.begin(),
       copy_of_my_lineages.end(),
       other.pango_lineages.begin(),
       other.pango_lineages.end(),
-      std::back_inserter(pango_lineages)
+      pango_lineages.begin()
    );
 }
 

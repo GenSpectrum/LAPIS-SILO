@@ -1,5 +1,7 @@
 #include "silo/storage/database_partition.h"
 
+#include <tbb/parallel_for.h>
+
 #include "silo/storage/column_group.h"
 
 namespace silo {
@@ -17,6 +19,25 @@ class StringColumnPartition;
 
 DatabasePartition::DatabasePartition(std::vector<silo::preprocessing::Chunk> chunks)
     : chunks(std::move(chunks)) {}
+
+void DatabasePartition::flipBitmaps() {
+   for (auto& [_, seq_store] : nuc_sequences) {
+      auto& positions = seq_store.positions;
+      tbb::parallel_for(tbb::blocked_range<uint32_t>(0, positions.size()), [&](const auto& local) {
+         for (auto position = local.begin(); position != local.end(); ++position) {
+            positions[position].flipMostNumerousBitmap(sequenceCount);
+         }
+      });
+   }
+   for (auto& [_, seq_store] : aa_sequences) {
+      auto& positions = seq_store.positions;
+      tbb::parallel_for(tbb::blocked_range<uint32_t>(0, positions.size()), [&](const auto& local) {
+         for (auto position = local.begin(); position != local.end(); ++position) {
+            positions[position].flipMostNumerousBitmap(sequenceCount);
+         }
+      });
+   }
+}
 
 const std::vector<preprocessing::Chunk>& DatabasePartition::getChunks() const {
    return chunks;

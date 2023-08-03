@@ -28,19 +28,22 @@ class access;
 namespace silo {
 class ZstdFastaReader;
 
-struct NucPosition {
+class NucPosition {
    friend class boost::serialization::access;
 
    template <class Archive>
    void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
-      archive& symbol_whose_bitmap_is_flipped;
-      archive& bitmaps;
+      archive & symbol_whose_bitmap_is_flipped;
+      archive & bitmaps;
       // clang-format on
    }
 
+  public:
    NucleotideSymbolMap<roaring::Roaring> bitmaps;
    std::optional<NUCLEOTIDE_SYMBOL> symbol_whose_bitmap_is_flipped = std::nullopt;
+
+   void flipMostNumerousBitmap(uint32_t sequence_count);
 };
 
 struct SequenceStoreInfo {

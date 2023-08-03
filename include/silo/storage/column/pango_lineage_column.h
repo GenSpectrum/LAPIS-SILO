@@ -51,9 +51,11 @@ class PangoLineageColumnPartition {
 
    void insert(const common::RawPangoLineage& value);
 
-   roaring::Roaring filter(const common::RawPangoLineage& value) const;
+   std::optional<const roaring::Roaring*> filter(const common::RawPangoLineage& value) const;
 
-   roaring::Roaring filterIncludingSublineages(const common::RawPangoLineage& value) const;
+   std::optional<const roaring::Roaring*> filterIncludingSublineages(
+      const common::RawPangoLineage& value
+   ) const;
 
    const std::vector<silo::Idx>& getValues() const;
 

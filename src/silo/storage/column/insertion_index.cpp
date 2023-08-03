@@ -46,9 +46,11 @@ std::vector<ThreeMer> extractThreeMers(const std::string& search_pattern) {
    for (const auto& continuous_string : splitBy(search_pattern, REGEX_ANY)) {
       auto continuous_symbols = stringToNucleotideSymbolVector(continuous_string);
       if (continuous_symbols == std::nullopt) {
-         const auto illegal_nuc_char = *findIllegalNucleotideChar(continuous_string);
+         const auto illegal_nuc_char = findIllegalNucleotideChar(continuous_string);
          throw std::runtime_error(
-            "Wrong symbol '" + std::to_string(illegal_nuc_char) + "' in pattern: " + search_pattern
+            "Wrong symbol '" +
+            (illegal_nuc_char.has_value() ? std::to_string(*illegal_nuc_char) : "Internal Error") +
+            "' in pattern: " + search_pattern
          );
       }
       for (size_t i = 0; (i + 2) < continuous_string.size(); i += 3) {
@@ -159,9 +161,10 @@ void InsertionPosition::buildThreeMerIndex() {
 
       const auto opt_nuc_symbol_ids = stringToNucleotideSymbolVector(insertion_value);
       if (opt_nuc_symbol_ids == std::nullopt) {
-         const auto illegal_nuc_char = *findIllegalNucleotideChar(insertion_value);
+         const auto illegal_nuc_char = findIllegalNucleotideChar(insertion_value);
          throw silo::PreprocessingException(
-            "Illegal nucleotide character '" + std::to_string(illegal_nuc_char) +
+            "Illegal nucleotide character '" +
+            (illegal_nuc_char.has_value() ? std::to_string(*illegal_nuc_char) : "Internal Error") +
             "' in insertion: " + insertion_value
          );
       }

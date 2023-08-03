@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <string>
 
+#include <spdlog/spdlog.h>
+
 #include "silo/common/date.h"
 #include "silo/common/date_format_exception.h"
 
@@ -21,12 +23,14 @@ silo::common::Date silo::common::stringToDate(const std::string& value) {
       return 0;
    }
    auto split_position = value.find('-', 0);
-   if (split_position == value.size()) {
-      throw DateFormatException("Expect dates to be delimited by '-': " + value);
+   if (split_position == std::string::npos) {
+      SPDLOG_WARN("Expect dates to be delimited by '-': " + value + "\nIgnoring date");
+      return 0;
    }
    auto split_position2 = value.find('-', split_position + 1);
-   if (split_position2 == value.size()) {
-      throw DateFormatException("Expect dates to be delimited by '-': " + value);
+   if (split_position2 == std::string::npos) {
+      SPDLOG_WARN("Expect dates to be delimited twice by '-': " + value + "\nIgnoring date");
+      return 0;
    }
    const std::string year_string = value.substr(0, split_position);
    const std::string month_string = value.substr(split_position + 1, split_position2);
@@ -36,19 +40,27 @@ silo::common::Date silo::common::stringToDate(const std::string& value) {
       const uint32_t month = stoi(month_string);
       const uint32_t day = stoi(day_string);
       if (month > NUMBER_OF_MONTHS || month == 0) {
-         throw DateFormatException("Month is not in [1,12] " + value);
+         SPDLOG_WARN("Month is not in [1,{}]: {} \nIgnoring date", NUMBER_OF_MONTHS, value);
+         return 0;
       }
       if (day > NUMBER_OF_DAYS || day == 0) {
-         throw DateFormatException("Day is not in [1,31] " + value);
+         SPDLOG_WARN("Month is not in [1,{}]: {} \nIgnoring date", NUMBER_OF_DAYS, value);
+         return 0;
       }
       // Date is stored with the year in the upper 16 bits, month in bits [12,16), and day [0,12)
       const uint32_t date_value =
          (year << (BYTES_FOR_MONTHS + BYTES_FOR_DAYS)) + (month << BYTES_FOR_DAYS) + day;
       return Date{date_value};
    } catch (const std::invalid_argument& ex) {
-      throw DateFormatException(std::string("Parsing of date failed: ") + ex.what());
+      SPDLOG_WARN(
+         "Parsing of date failed: " + value + "\nWith exception: " + ex.what() + "\nIgnoring date"
+      );
+      return 0;
    } catch (const std::out_of_range& ex) {
-      throw DateFormatException(std::string("Parsing of date failed: ") + ex.what());
+      SPDLOG_WARN(
+         "Parsing of date failed: " + value + "\nWith exception: " + ex.what() + "\nIgnoring date"
+      );
+      return 0;
    }
 }
 

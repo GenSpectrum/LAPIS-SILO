@@ -70,7 +70,7 @@ OperatorResult intersectTwo(OperatorResult first, OperatorResult second) {
       result = std::move(second);
       *result &= *first;
    } else {
-      result = OperatorResult(new roaring::Roaring(*first & *second));
+      result = OperatorResult(*first & *second);
    }
    return result;
 }

@@ -21,9 +21,9 @@ Type Full::type() const {
 }
 
 OperatorResult Full::evaluate() const {
-   auto* result = new roaring::Roaring();
+   OperatorResult result;
    result->addRange(0, row_count);
-   return OperatorResult(result);
+   return result;
 }
 
 std::unique_ptr<Operator> Full::copy() const {

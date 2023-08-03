@@ -99,72 +99,50 @@ void Database::build(
                SPDLOG_ERROR("metadata file {} not found", metadata_file.string());
                return;
             }
-            for (const auto& [nuc_name, reference_sequence] :
-                 reference_genomes.raw_nucleotide_sequences) {
-               const std::filesystem::path sequence_filename =
-                  preprocessing_config.getNucSortedPartitionFilename(
-                     nuc_name, partition_index, chunk_index
-                  );
-
-               silo::ZstdFastaReader sequence_input(sequence_filename, reference_sequence);
-               SPDLOG_DEBUG("Using nucleotide sequence file: {}", sequence_filename.string());
-               partitions[partition_index].nuc_sequences.at(nuc_name).fill(sequence_input);
-            }
-            for (const auto& [aa_name, reference_sequence] : reference_genomes.raw_aa_sequences) {
-               const std::filesystem::path sequence_filename =
-                  preprocessing_config.getGeneSortedPartitionFilename(
-                     aa_name, partition_index, chunk_index
-                  );
-
-               silo::ZstdFastaReader sequence_input(sequence_filename, reference_sequence);
-               SPDLOG_DEBUG("Using amino acid sequence file: {}", sequence_filename.string());
-               partitions[partition_index].aa_sequences.at(aa_name).fill(sequence_input);
-            }
             SPDLOG_DEBUG("Using metadata file: {}", metadata_file.string());
             partitions[partition_index].sequenceCount =
                partitions[partition_index].columns.fill(metadata_file, database_config);
          }
       }
+      tbb::parallel_for(
+         tbb::blocked_range<size_t>(0, partition_descriptor.getPartitions().size()),
+         [&](const auto& local) {
+            for (auto partition_index = local.begin(); partition_index != local.end();
+                 ++partition_index) {
+               const auto& part = partition_descriptor.getPartitions()[partition_index];
+               for (size_t chunk_index = 0; chunk_index < part.getChunks().size(); ++chunk_index) {
+                  for (const auto& [nuc_name, reference_sequence] :
+                       reference_genomes.raw_nucleotide_sequences) {
+                     const std::filesystem::path sequence_filename =
+                        preprocessing_config.getNucSortedPartitionFilename(
+                           nuc_name, partition_index, chunk_index
+                        );
+
+                     silo::ZstdFastaReader sequence_input(sequence_filename, reference_sequence);
+                     SPDLOG_DEBUG("Using nucleotide sequence file: {}", sequence_filename.string());
+                     partitions[partition_index].nuc_sequences.at(nuc_name).fill(sequence_input);
+                  }
+                  for (const auto& [aa_name, reference_sequence] :
+                       reference_genomes.raw_aa_sequences) {
+                     const std::filesystem::path sequence_filename =
+                        preprocessing_config.getGeneSortedPartitionFilename(
+                           aa_name, partition_index, chunk_index
+                        );
+
+                     silo::ZstdFastaReader sequence_input(sequence_filename, reference_sequence);
+                     SPDLOG_DEBUG("Using amino acid sequence file: {}", sequence_filename.string());
+                     partitions[partition_index].aa_sequences.at(aa_name).fill(sequence_input);
+                  }
+               }
+               partitions.at(partition_index).flipBitmaps();
+            }
+         }
+      );
       finalizeInsertionIndexes();
    }
 
    SPDLOG_INFO("Build took {} ms", micros);
    SPDLOG_INFO("database info: {}", getDatabaseInfo());
-}
-
-void Database::flipBitmaps() {
-   tbb::parallel_for_each(
-      partitions.begin(),
-      partitions.end(),
-      [&](DatabasePartition& database_partition) {
-         for (auto& [_, seq_store] : database_partition.nuc_sequences) {
-            auto& positions = seq_store.positions;
-            tbb::parallel_for(
-               tbb::blocked_range<uint32_t>(0, positions.size()),
-               [&](const auto& range) {
-                  for (auto position = range.begin(); position != range.end(); ++position) {
-                     std::optional<NUCLEOTIDE_SYMBOL> max_symbol = std::nullopt;
-                     uint32_t max_count = 0;
-
-                     for (const auto& symbol : NUC_SYMBOLS) {
-                        const uint32_t count = positions[position].bitmaps.at(symbol).cardinality();
-                        if (count > max_count) {
-                           max_symbol = symbol;
-                           max_count = count;
-                        }
-                     }
-                     if (max_symbol.has_value()) {
-                        positions[position].symbol_whose_bitmap_is_flipped = max_symbol;
-                        positions[position].bitmaps[*max_symbol].flip(
-                           0, database_partition.sequenceCount
-                        );
-                     }
-                  }
-               }
-            );
-         }
-      }
-   );
 }
 
 using RoaringStatistics = roaring::api::roaring_statistics_t;

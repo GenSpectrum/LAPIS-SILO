@@ -76,6 +76,8 @@ class DatabasePartition {
    std::map<std::string, AAStorePartition&> aa_sequences;
    uint32_t sequenceCount;
 
+   void flipBitmaps();
+
    [[nodiscard]] const std::vector<preprocessing::Chunk>& getChunks() const;
 
    void insertColumn(const std::string& name, storage::column::StringColumnPartition& column);

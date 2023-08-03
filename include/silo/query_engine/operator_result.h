@@ -16,8 +16,8 @@ struct OperatorResult {
 
   public:
    explicit OperatorResult();
-   explicit OperatorResult(const roaring::Roaring* bitmap);
-   explicit OperatorResult(roaring::Roaring* bitmap);
+   explicit OperatorResult(const roaring::Roaring& bitmap);
+   explicit OperatorResult(roaring::Roaring&& bitmap);
 
    // rule of five for manual memory management
    ~OperatorResult();
@@ -26,8 +26,8 @@ struct OperatorResult {
    OperatorResult& operator=(const OperatorResult& other) = delete;
    OperatorResult& operator=(OperatorResult&& other) noexcept;
 
-   std::add_lvalue_reference<roaring::Roaring>::type operator*();
-   std::add_lvalue_reference<const roaring::Roaring>::type operator*() const;
+   roaring::Roaring& operator*();
+   const roaring::Roaring& operator*() const;
    roaring::Roaring* operator->();
    const roaring::Roaring* operator->() const;
 

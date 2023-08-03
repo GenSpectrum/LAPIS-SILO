@@ -45,7 +45,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> InsertionContains::comp
    return std::make_unique<operators::BitmapProducer>(
       [&]() {
          auto search_result = insertion_column.search(position, value);
-         return OperatorResult(search_result.release());
+         return OperatorResult(std::move(*search_result.release()));
       },
       database_partition.sequenceCount
    );

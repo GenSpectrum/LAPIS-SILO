@@ -40,10 +40,10 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfo) {
    const auto simple_info = database.getDatabaseInfo();
 
    EXPECT_EQ(
-      detailed_info.bitmap_size_per_symbol.size_in_bytes.at(silo::NUCLEOTIDE_SYMBOL::A), 9498982
+      detailed_info.bitmap_size_per_symbol.size_in_bytes.at(silo::NUCLEOTIDE_SYMBOL::A), 6112762
    );
    EXPECT_EQ(
-      detailed_info.bitmap_size_per_symbol.size_in_bytes.at(silo::NUCLEOTIDE_SYMBOL::GAP), 6019718
+      detailed_info.bitmap_size_per_symbol.size_in_bytes.at(silo::NUCLEOTIDE_SYMBOL::GAP), 6005380
    );
 
    EXPECT_EQ(
@@ -63,18 +63,18 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfo) {
    );
 
    EXPECT_EQ(
-      detailed_info.bitmap_container_size_per_genome_section.total_bitmap_size_computed, 107509402
+      detailed_info.bitmap_container_size_per_genome_section.total_bitmap_size_computed, 96162446
    );
    EXPECT_EQ(
-      detailed_info.bitmap_container_size_per_genome_section.total_bitmap_size_frozen, 57429359
+      detailed_info.bitmap_container_size_per_genome_section.total_bitmap_size_frozen, 48186777
    );
    EXPECT_EQ(
       detailed_info.bitmap_container_size_per_genome_section.bitmap_container_size_statistic
          .total_bitmap_size_array_containers,
-      5859154
+      123862
    );
 
-   EXPECT_EQ(simple_info.total_size, 68915226);
+   EXPECT_EQ(simple_info.total_size, 60057070);
    EXPECT_EQ(simple_info.sequence_count, 100);
    EXPECT_EQ(simple_info.n_bitmaps_size, 3898);
 }

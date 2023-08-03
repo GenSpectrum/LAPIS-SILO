@@ -82,18 +82,18 @@ std::unordered_map<std::string, silo::preprocessing::PartitionChunk> writeMetada
    std::unordered_map<std::string, silo::preprocessing::PartitionChunk>
       primary_key_to_sequence_partition_chunk;
    for (auto& row : metadata_reader) {
-      const std::string primary_key = row[database_config.schema.primary_key].get();
+      std::this_thread::sleep_for(std::chrono::nanoseconds(2));
+      const std::string_view primary_key = row[database_config.schema.primary_key].get_sv();
       const silo::common::RawPangoLineage raw_pango_lineage{
-         row[database_config.schema.partition_by].get()};
+         row[database_config.schema.partition_by].get<std::string>()};
       const silo::common::UnaliasedPangoLineage pango_lineage =
          alias_key.unaliasPangoLineage(raw_pango_lineage);
-      row[database_config.schema.partition_by] = csv::CSVField{pango_lineage.value};
 
       const auto partition_chunk = pango_to_chunk.at(pango_lineage.value);
 
       chunk_to_metadata_writers[partition_chunk]->writeRow(row);
 
-      primary_key_to_sequence_partition_chunk[primary_key] = partition_chunk;
+      primary_key_to_sequence_partition_chunk.emplace(primary_key, partition_chunk);
    }
 
    return primary_key_to_sequence_partition_chunk;
@@ -149,13 +149,13 @@ void writeSequenceChunks(
          break;
       }
       if (!key_to_chunk.contains(*key)) {
-         throw silo::PreprocessingException(
-            "Sequence key '" + *key + "' was not present in keys in metadata."
+         SPDLOG_INFO(
+            "Fasta key '" + *key + "' was not present in keys in metadata. Ignoring sequence."
          );
+      } else {
+         const auto& chunk = key_to_chunk.at(*key);
+         chunk_to_seq_ostream.at(chunk).write(*key, genome);
       }
-
-      const auto& chunk = key_to_chunk.at(*key);
-      chunk_to_seq_ostream.at(chunk).write(*key, genome);
    }
 }
 
@@ -227,104 +227,79 @@ void silo::partitionData(
    SPDLOG_INFO("Finished partitioning");
 }
 
-std::unordered_map<std::string, silo::common::Date> sortMetadataFile(
+std::unordered_map<std::string, size_t> sortMetadataFile(
    silo::preprocessing::MetadataReader& metadata_reader,
    silo::preprocessing::MetadataWriter& metadata_writer,
    const silo::preprocessing::PartitionChunk& chunk,
    const silo::SortChunkConfig& sort_chunk_config
 ) {
-   std::unordered_map<std::string, silo::common::Date> primary_key_to_date;
-
-   struct RowWithDate {
+   struct RowWithKeyDate {
       csv::CSVRow row;
+      std::string primary_key;
       silo::common::Date date;
+
+      RowWithKeyDate(csv::CSVRow& row, std::string&& primary_key, silo::common::Date date)
+          : row(row),
+            primary_key(primary_key),
+            date(date) {}
    };
-   std::vector<RowWithDate> rows;
+   std::vector<RowWithKeyDate> rows;
+   rows.reserve(chunk.size);
 
    for (auto& row : metadata_reader.reader) {
       std::this_thread::sleep_for(std::chrono::nanoseconds(1));
-      const auto primary_key = row[sort_chunk_config.primary_key_name].get();
-      const auto date_str = row[sort_chunk_config.date_column_to_sort_by].get();
+
+      std::string primary_key(row[sort_chunk_config.primary_key_name].get_sv());
+      const std::string date_str(row[sort_chunk_config.date_column_to_sort_by].get_sv());
 
       const silo::common::Date date = silo::common::stringToDate(date_str);
 
-      rows.emplace_back(row, date);
-
-      primary_key_to_date[primary_key] = date;
+      rows.emplace_back(row, std::move(primary_key), date);
    }
 
-   std::sort(rows.begin(), rows.end(), [](const RowWithDate& line1, const RowWithDate& line2) {
-      return line1.date < line2.date;
-   });
+   std::sort(
+      rows.begin(),
+      rows.end(),
+      [](const RowWithKeyDate& line1, const RowWithKeyDate& line2) {
+         return line1.date < line2.date;
+      }
+   );
 
    metadata_writer.writeHeader(metadata_reader.reader);
 
+   std::unordered_map<std::string, size_t> primary_key_to_position;
+
+   size_t position = 0;
    for (const auto& row_with_date : rows) {
+      primary_key_to_position[row_with_date.primary_key] = position++;
       metadata_writer.writeRow(row_with_date.row);
    }
-   return primary_key_to_date;
+   return primary_key_to_position;
 }
 
 void sortSequenceFile(
    silo::ZstdFastaReader& sequence_in,
    silo::ZstdFastaWriter& sequence_out,
-   std::unordered_map<std::string, silo::common::Date>& primary_key_to_date
+   const std::unordered_map<std::string, size_t>& primary_key_to_position
 ) {
-   // Read file once, fill all dates, sort dates,
-   // calculated target position for every genome
-   // Reset gpointer, read file again, putting every genome at the correct position.
-   // Write file to ostream
-
-   struct KeyDatePair {
-      std::string key;
-      silo::common::Date date;
-      uint32_t file_pos;
-   };
-   std::vector<KeyDatePair> key_date_pairs;
-   uint32_t number_of_sequences = 0;
-   std::optional<std::string> key;
+   std::vector<std::pair<std::string, std::string>> lines_sorted(primary_key_to_position.size());
    std::string compressed_genome;
    while (true) {
-      key = sequence_in.nextCompressed(compressed_genome);
-      if (!key.has_value()) {
+      auto sorted_key = sequence_in.nextCompressed(compressed_genome);
+      if (sorted_key == std::nullopt) {
          break;
       }
-      silo::common::Date const date = primary_key_to_date[*key];
-      key_date_pairs.emplace_back(KeyDatePair{*key, date, number_of_sequences++});
+      const size_t position = primary_key_to_position.at(*sorted_key);
+      lines_sorted[position] = std::make_pair(*sorted_key, compressed_genome);
    }
 
-   auto sorter = [](const KeyDatePair& date1, const KeyDatePair& date2) {
-      return date1.date < date2.date;
-   };
-   std::sort(key_date_pairs.begin(), key_date_pairs.end(), sorter);
-
-   std::vector<uint32_t> file_pos_to_sorted_pos(number_of_sequences);
-   uint32_t number_of_sorted_files = 0;
-   for (auto& key_date_pair : key_date_pairs) {
-      file_pos_to_sorted_pos[key_date_pair.file_pos] = number_of_sorted_files++;
-   }
-
-   sequence_in.reset();
-
-   constexpr uint32_t LINES_PER_SEQUENCE = 2;
-   std::vector<std::string> lines_sorted(
-      static_cast<uint64_t>(LINES_PER_SEQUENCE * number_of_sequences)
-   );
-   for (auto pos : file_pos_to_sorted_pos) {
-      const uint64_t first_line = static_cast<uint64_t>(LINES_PER_SEQUENCE) * pos;
-      const uint64_t second_line = static_cast<uint64_t>(LINES_PER_SEQUENCE) * pos + 1;
-      auto sorted_key = sequence_in.nextCompressed(lines_sorted.at(second_line));
-      if (!sorted_key) {
-         SPDLOG_ERROR("Reached EOF too early.");
-         return;
-      }
-      lines_sorted.at(first_line) = *sorted_key;
-   }
-
-   for (uint32_t sequence = 0; sequence < number_of_sequences; ++sequence) {
-      const uint64_t first_line = static_cast<uint64_t>(LINES_PER_SEQUENCE) * sequence;
-      const uint64_t second_line = static_cast<uint64_t>(LINES_PER_SEQUENCE) * sequence + 1;
-      sequence_out.writeRaw(lines_sorted.at(first_line), lines_sorted.at(second_line));
+   for (const auto& [key, compressed_sequence] : lines_sorted) {
+      if (compressed_sequence.empty()) {
+         SPDLOG_WARN("Do not have sequence for key: '" + key + "' falling back to default");
+         sequence_out.writeDefault(key);
+      } else {
+         sequence_out.writeRaw(key, compressed_sequence);
+      };
    }
 }
 
@@ -338,13 +313,15 @@ void sortChunk(
 ) {
    SPDLOG_TRACE("Sorting metadata for partition {} chunk {}", chunk.partition, chunk.chunk);
 
-   auto primary_key_to_date =
+   auto primary_key_to_position =
       sortMetadataFile(metadata_reader, metadata_writer, chunk, sort_chunk_config);
 
    SPDLOG_TRACE("Sorting sequences for partition {} chunk {}", chunk.partition, chunk.chunk);
 
    for (size_t nuc_idx = 0; nuc_idx < sequence_inputs.size(); ++nuc_idx) {
-      sortSequenceFile(sequence_inputs[nuc_idx], sequence_outputs[nuc_idx], primary_key_to_date);
+      sortSequenceFile(
+         sequence_inputs[nuc_idx], sequence_outputs[nuc_idx], primary_key_to_position
+      );
    }
 
    SPDLOG_TRACE("Finished all sorting for partition {} chunk {}", chunk.partition, chunk.chunk);
@@ -372,7 +349,13 @@ void silo::sortChunks(
 
             const std::filesystem::path output_filename =
                preprocessing_config.getNucSortedPartitionFilename(nuc_name, partition, chunk);
-            sequence_outputs.emplace_back(output_filename, reference_sequence);
+            sequence_outputs.emplace_back(
+               output_filename,
+               reference_sequence,
+               std::string(
+                  reference_sequence.length(), silo::nucleotideSymbolToChar(NUCLEOTIDE_SYMBOL::N)
+               )
+            );
          }
          for (const auto& [aa_name, reference_sequence] : reference_genomes.raw_aa_sequences) {
             const std::filesystem::path input_filename =
@@ -381,7 +364,11 @@ void silo::sortChunks(
 
             const std::filesystem::path output_filename =
                preprocessing_config.getGeneSortedPartitionFilename(aa_name, partition, chunk);
-            sequence_outputs.emplace_back(output_filename, reference_sequence);
+            sequence_outputs.emplace_back(
+               output_filename,
+               reference_sequence,
+               std::string(reference_sequence.length(), silo::aaSymbolToChar(AA_SYMBOL::X))
+            );
          }
          const std::filesystem::path metadata_input =
             preprocessing_config.getMetadataPartitionFilename(partition, chunk);

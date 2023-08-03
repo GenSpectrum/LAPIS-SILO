@@ -59,10 +59,10 @@ std::unique_ptr<silo::query_engine::operators::Operator> PangoLineageFilter::com
    const auto& bitmap = include_sublineages
                            ? pango_lineage_column.filterIncludingSublineages({lineage_all_upper})
                            : pango_lineage_column.filter({lineage_all_upper});
-
-   return std::make_unique<operators::IndexScan>(
-      new roaring::Roaring(bitmap), database_partition.sequenceCount
-   );
+   if (bitmap == std::nullopt) {
+      return std::make_unique<operators::Empty>(database_partition.sequenceCount);
+   }
+   return std::make_unique<operators::IndexScan>(bitmap.value(), database_partition.sequenceCount);
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
