@@ -25,7 +25,7 @@ void DatabasePartition::flipBitmaps() {
       auto& positions = seq_store.positions;
       tbb::parallel_for(tbb::blocked_range<uint32_t>(0, positions.size()), [&](const auto& local) {
          for (auto position = local.begin(); position != local.end(); ++position) {
-            positions[position].flipMostNumerousBitmap(sequenceCount);
+            positions[position].flipMostNumerousBitmap(sequence_count);
          }
       });
    }
@@ -33,7 +33,7 @@ void DatabasePartition::flipBitmaps() {
       auto& positions = seq_store.positions;
       tbb::parallel_for(tbb::blocked_range<uint32_t>(0, positions.size()), [&](const auto& local) {
          for (auto position = local.begin(); position != local.end(); ++position) {
-            positions[position].flipMostNumerousBitmap(sequenceCount);
+            positions[position].flipMostNumerousBitmap(sequence_count);
          }
       });
    }

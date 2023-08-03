@@ -47,7 +47,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> InsertionContains::comp
          auto search_result = insertion_column.search(position, value);
          return OperatorResult(std::move(*search_result.release()));
       },
-      database_partition.sequenceCount
+      database_partition.sequence_count
    );
 }
 
