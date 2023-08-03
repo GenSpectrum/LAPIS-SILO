@@ -7,7 +7,7 @@ describe('The /info endpoint', () => {
       .get('/info')
       .expect(200)
       .expect('Content-Type', 'application/json')
-      .expect({ nBitmapsSize: 3898, sequenceCount: 100, totalSize: 60055044 })
+      .expect({ nBitmapsSize: 3898, sequenceCount: 100, totalSize: 60054981 })
       .end(done);
   });
 
@@ -26,15 +26,15 @@ describe('The /info endpoint', () => {
           'bitmapContainerSizeStatistic'
         );
         expect(returnedInfo.bitmapContainerSizePerGenomeSection.bitmapContainerSizeStatistic).to.deep.equal({
-          numberOfArrayContainers: 43545,
+          numberOfArrayContainers: 43540,
           numberOfBitsetContainers: 0,
-          numberOfRunContainers: 78,
-          numberOfValuesStoredInArrayContainers: 59694,
+          numberOfRunContainers: 83,
+          numberOfValuesStoredInArrayContainers: 59577,
           numberOfValuesStoredInBitsetContainers: 0,
-          numberOfValuesStoredInRunContainers: 2237,
-          totalBitmapSizeArrayContainers: 119388,
+          numberOfValuesStoredInRunContainers: 2354,
+          totalBitmapSizeArrayContainers: 119154,
           totalBitmapSizeBitsetContainers: 0,
-          totalBitmapSizeRunContainers: 2964,
+          totalBitmapSizeRunContainers: 3170,
         });
 
         expect(returnedInfo.bitmapContainerSizePerGenomeSection).to.have.property(
@@ -62,11 +62,11 @@ describe('The /info endpoint', () => {
         expect(returnedInfo).to.have.property('bitmapSizePerSymbol');
         expect(returnedInfo.bitmapSizePerSymbol).to.deep.equal({
           '-': 6003470,
-          'A': 6112681,
+          'A': 6112653,
           'B': 5980600,
-          'C': 6064603,
+          'C': 6064589,
           'D': 5980600,
-          'G': 6067693,
+          'G': 6067672,
           'H': 5980600,
           'K': 5980630,
           'M': 5980620,

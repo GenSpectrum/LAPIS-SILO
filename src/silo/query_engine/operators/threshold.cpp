@@ -123,10 +123,8 @@ OperatorResult Threshold::evaluate() const {
          partition_bitmaps[j] |= partition_bitmaps[j - 1] - *bitmap;
       }
       if (k - i > n - 1) {
-         roaring::api::roaring_bitmap_or_inplace(
-            &partition_bitmaps[0].roaring,
-            roaring::api::roaring_bitmap_flip(&bitmap->roaring, 0, row_count)
-         );
+         bitmap->flip(0, row_count);
+         partition_bitmaps[0] |= *bitmap;
       }
    }
    // NOLINTEND(readability-identifier-length)
