@@ -1,4 +1,4 @@
-const { server } = require('./common');
+const { server, headerToHaveDataVersion } = require('./common');
 const fs = require('fs');
 const { expect } = require('chai');
 
@@ -16,7 +16,8 @@ describe('The /query endpoint', () => {
         .post('/query')
         .send(testCase.query)
         .expect(200)
-        .expect('Content-Type', 'application/json');
+        .expect('Content-Type', 'application/json')
+        .expect(headerToHaveDataVersion);
       return expect(response.body.queryResult).to.deep.equal(testCase.expectedQueryResult);
     })
   );

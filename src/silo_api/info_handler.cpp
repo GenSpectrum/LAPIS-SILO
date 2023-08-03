@@ -88,6 +88,8 @@ void InfoHandler::get(
 ) {
    const auto request_parameter = getQueryParameter(request);
 
+   response.set("data-version", database.getDataVersion().toString());
+
    if(request_parameter.find("details") != request_parameter.end() && request_parameter.at("details") == "true") {
       returnDetailedDatabaseInfo(response);
       return;

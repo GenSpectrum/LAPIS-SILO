@@ -36,7 +36,7 @@ void QueryHandler::post(
    try {
       const auto query_result = query_engine.executeQuery(query);
 
-      response.set("Data-Version", data_version);
+      response.set("data-version", data_version);
 
       std::ostream& out_stream = response.send();
       out_stream << nlohmann::json(query_result);
