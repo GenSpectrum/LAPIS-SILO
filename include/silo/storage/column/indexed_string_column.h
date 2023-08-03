@@ -40,7 +40,7 @@ class IndexedStringColumnPartition {
   public:
    explicit IndexedStringColumnPartition(common::BidirectionalMap<std::string>& lookup);
 
-   [[nodiscard]] roaring::Roaring filter(const std::string& value) const;
+   [[nodiscard]] std::optional<const roaring::Roaring*> filter(const std::string& value) const;
 
    void insert(const std::string& value);
 

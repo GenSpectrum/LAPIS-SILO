@@ -15,13 +15,13 @@ TEST(IndexedStringColumn, shouldReturnTheCorrectFilteredValues) {
    under_test.insert("value 1");
 
    const auto result1 = under_test.filter("value 1");
-   ASSERT_EQ(result1, roaring::Roaring({0, 4}));
+   ASSERT_EQ(*result1.value(), roaring::Roaring({0, 4}));
 
    const auto result2 = under_test.filter("value 2");
-   ASSERT_EQ(result2, roaring::Roaring({1, 2}));
+   ASSERT_EQ(*result2.value(), roaring::Roaring({1, 2}));
 
    const auto result3 = under_test.filter("value that does not exist");
-   ASSERT_EQ(result3, roaring::Roaring());
+   ASSERT_EQ(result3, std::nullopt);
 }
 
 TEST(IndexedStringColumnPartition, insertValuesToPartition) {
