@@ -27,19 +27,22 @@ namespace silo {
 class ZstdFastaReader;
 enum class AA_SYMBOL : char;
 
-struct AAPosition {
+class AAPosition {
    friend class boost::serialization::access;
 
    template <class Archive>
    void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
-      archive& symbol_whose_bitmap_is_flipped;
-      archive& bitmaps;
+      archive & symbol_whose_bitmap_is_flipped;
+      archive & bitmaps;
       // clang-format on
    }
 
+  public:
    AASymbolMap<roaring::Roaring> bitmaps;
    std::optional<AA_SYMBOL> symbol_whose_bitmap_is_flipped = std::nullopt;
+
+   void flipMostNumerousBitmap(uint32_t sequence_count);
 };
 
 class AAStorePartition {
