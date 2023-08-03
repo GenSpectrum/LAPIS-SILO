@@ -61,7 +61,7 @@ class Database {
    [[nodiscard]] const PangoLineageAliasLookup& getAliasKey() const;
 
    void setDataVersion(const DataVersion& data_version);
-   DataVersion getDataVersion() const;
+   virtual DataVersion getDataVersion() const;
 
   private:
    PangoLineageAliasLookup alias_key;

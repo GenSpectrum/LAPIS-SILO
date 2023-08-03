@@ -8,6 +8,7 @@
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
+#include "silo/database.h"
 #include "silo/query_engine/query_engine.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
@@ -17,10 +18,10 @@ namespace silo_api {
 
 QueryHandler::QueryHandler(
    const silo::query_engine::QueryEngine& query_engine,
-   std::string data_version
+   const silo::Database& database
 )
     : query_engine(query_engine),
-      data_version(std::move(data_version)) {}
+      database(database) {}
 
 void QueryHandler::post(
    Poco::Net::HTTPServerRequest& request,
@@ -36,7 +37,7 @@ void QueryHandler::post(
    try {
       const auto query_result = query_engine.executeQuery(query);
 
-      response.set("data-version", data_version);
+      response.set("data-version", database.getDataVersion().toString());
 
       std::ostream& out_stream = response.send();
       out_stream << nlohmann::json(query_result);
