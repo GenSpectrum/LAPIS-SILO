@@ -12,15 +12,15 @@ describe('The /query endpoint', () => {
 
   testCases.forEach(testCase =>
     it('should return data for the test case ' + testCase.testCaseName, async () => {
-        let response = await server.post('/query').send(testCase.query);
-        try {
-            expect(response.status).to.equal(200);
-            expect(response.header['content-type']).to.equal('application/json');
-        } catch (error) {
-            console.error('Error in response header! Error body:', response.body);
-            throw error;
-        }
-        expect(response.body.queryResult).to.deep.equal(testCase.expectedQueryResult);
+      let response = await server.post('/query').send(testCase.query);
+      try {
+        expect(response.status).to.equal(200);
+        expect(response.header['content-type']).to.equal('application/json');
+      } catch (error) {
+        console.error('Error in response header! Error body:', response.body);
+        throw error;
+      }
+      expect(response.body.queryResult).to.deep.equal(testCase.expectedQueryResult);
     })
   );
 

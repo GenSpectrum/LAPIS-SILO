@@ -48,7 +48,7 @@ void silo::AAPosition::flipMostNumerousBitmap(uint32_t sequence_count) {
 
 silo::AAStorePartition::AAStorePartition(const std::vector<AA_SYMBOL>& reference_sequence)
     : reference_sequence(reference_sequence) {
-   for (AA_SYMBOL symbol : reference_sequence) {
+   for (const AA_SYMBOL symbol : reference_sequence) {
       positions.emplace_back(symbol);
    }
 }

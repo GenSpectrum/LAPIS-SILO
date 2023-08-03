@@ -52,7 +52,7 @@ silo::SequenceStorePartition::SequenceStorePartition(
    const std::vector<NUCLEOTIDE_SYMBOL>& reference_genome
 )
     : reference_genome(reference_genome) {
-   for (NUCLEOTIDE_SYMBOL symbol : reference_genome) {
+   for (const NUCLEOTIDE_SYMBOL symbol : reference_genome) {
       positions.emplace_back(symbol);
    }
 }
