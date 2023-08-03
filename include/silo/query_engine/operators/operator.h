@@ -18,7 +18,8 @@ enum Type {
    SELECTION,
    BITMAP_SELECTION,
    THRESHOLD,
-   UNION
+   UNION,
+   BITMAP_PRODUCER
 };
 
 class Operator {

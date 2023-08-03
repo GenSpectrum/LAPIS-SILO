@@ -11,6 +11,7 @@
 #include "silo/storage/column/date_column.h"
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/insertion_column.h"
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/column/pango_lineage_column.h"
 #include "silo/storage/column/string_column.h"
@@ -23,16 +24,15 @@ struct DatabaseMetadata;
 namespace silo {
 class PangoLineageAliasLookup;
 
-namespace storage {
-namespace column {
+namespace storage::column {
 class DateColumnPartition;
 class FloatColumnPartition;
 class IndexedStringColumnPartition;
 class IntColumnPartition;
 class PangoLineageColumnPartition;
 class StringColumnPartition;
-}  // namespace column
-}  // namespace storage
+class InsertionColumnPartition;
+}  // namespace storage::column
 
 namespace config {
 class DatabaseConfig;
@@ -65,6 +65,9 @@ class ColumnPartitionGroup {
       for(auto& [name, store] : pango_lineage_columns){
          archive & store;
       }
+      for(auto& [name, store] : insertion_columns){
+         archive & store;
+      }
       // clang-format on
    }
 
@@ -77,6 +80,7 @@ class ColumnPartitionGroup {
    std::map<std::string, storage::column::FloatColumnPartition&> float_columns;
    std::map<std::string, storage::column::DateColumnPartition&> date_columns;
    std::map<std::string, storage::column::PangoLineageColumnPartition&> pango_lineage_columns;
+   std::map<std::string, storage::column::InsertionColumnPartition&> insertion_columns;
 
    uint32_t fill(
       const std::filesystem::path& input_file,
@@ -112,6 +116,9 @@ class ColumnGroup {
       for(auto& [name, store] : pango_lineage_columns){
          archive & store;
       }
+      for(auto& [name, store] : insertion_columns){
+         archive & store;
+      }
       // clang-format on
    }
 
@@ -124,6 +131,7 @@ class ColumnGroup {
    std::map<std::string, storage::column::FloatColumn> float_columns;
    std::map<std::string, storage::column::DateColumn> date_columns;
    std::map<std::string, storage::column::PangoLineageColumn> pango_lineage_columns;
+   std::map<std::string, storage::column::InsertionColumn> insertion_columns;
 };
 
 }  // namespace silo::storage

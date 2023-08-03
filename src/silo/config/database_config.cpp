@@ -31,6 +31,9 @@ ValueType silo::config::toDatabaseValueType(std::string_view type) {
    if (type == "float") {
       return ValueType::FLOAT;
    }
+   if (type == "insertion") {
+      return ValueType::INSERTION;
+   }
 
    throw silo::config::ConfigException("Unknown metadata type: " + std::string(type));
 }
@@ -49,6 +52,8 @@ std::string toString(ValueType type) {
          return "int";
       case ValueType::FLOAT:
          return "float";
+      case ValueType::INSERTION:
+         return "insertion";
    }
    throw std::runtime_error("Non-exhausting switch should be covered by linter");
 }
@@ -163,6 +168,9 @@ ColumnType DatabaseMetadata::getColumnType() const {
    if (type == ValueType::FLOAT) {
       return ColumnType::FLOAT;
    }
+   if (type == ValueType::INSERTION) {
+      return ColumnType::INSERTION;
+   }
 
    throw std::runtime_error("Did not find metadata with name: " + std::string(name));
 }
@@ -247,6 +255,8 @@ DatabaseConfig DatabaseConfigReader::readConfig(const std::filesystem::path& con
          return format_to(ctx.out(), "int");
       case silo::config::ValueType::FLOAT:
          return format_to(ctx.out(), "float");
+      case silo::config::ValueType::INSERTION:
+         return format_to(ctx.out(), "insertion");
    }
    return format_to(ctx.out(), "unknown");
 }
