@@ -61,12 +61,18 @@ docker run
 ```
 
 The mounted directory `your/data/directory` is the place on your machine, where the data for SILO is located.
-The path to the preprocessingConfig and the databaseConfig are relative to your mounted directory. This means if you
-mount a folder with a folder for each for the databaseConfig (dc) and the preprocessingConfig (pc), then you need to
-specify:
+The path to the preprocessingConfig and the databaseConfig are relative to your mounted directory. If no paths are
+provided the files
+preprocessing_config.yaml and database_config.yaml are expected directly in the working directory. Thus:
 
 ```shell
-silo --api --preprocessingConfig=./pc/preprocessing_config.yaml --databaseConfig=./dc/database_config.yaml
+silo --api --preprocessingConfig=./preprocessing_config.yaml --databaseConfig=./database_config.yaml
+```
+
+is equivalent to
+
+```shell
+silo --api
 ```
 
 The preprocessing config contains the following fields:

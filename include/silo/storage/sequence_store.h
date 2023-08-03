@@ -47,6 +47,8 @@ class NucPosition {
 
    NucleotideSymbolMap<roaring::Roaring> bitmaps;
    std::optional<NUCLEOTIDE_SYMBOL> symbol_whose_bitmap_is_flipped = std::nullopt;
+
+   void flipMostNumerousBitmap(uint32_t sequence_count);
 };
 
 struct SequenceStoreInfo {

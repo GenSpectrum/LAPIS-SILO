@@ -65,7 +65,7 @@ class AAMutations : public Action {
    };
 
   public:
-   static constexpr double DEFAULT_MIN_PROPORTION = 0.02;
+   static constexpr double DEFAULT_MIN_PROPORTION = 0.05;
 
   private:
    static PrefilteredBitmaps preFilterBitmaps(

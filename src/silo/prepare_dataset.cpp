@@ -247,7 +247,8 @@ std::unordered_map<std::string, size_t> sortMetadataFile(
    rows.reserve(chunk.size);
 
    for (auto& row : metadata_reader.reader) {
-      std::this_thread::sleep_for(std::chrono::nanoseconds(2));
+      std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+
       std::string primary_key(row[sort_chunk_config.primary_key_name].get_sv());
       const std::string date_str(row[sort_chunk_config.date_column_to_sort_by].get_sv());
 

@@ -61,3 +61,7 @@ conanprofile
 *.exe
 *.out
 *.app
+
+
+**/output/
+**/logs/

@@ -26,8 +26,8 @@ struct OperatorResult {
    OperatorResult& operator=(const OperatorResult& other) = delete;
    OperatorResult& operator=(OperatorResult&& other) noexcept;
 
-   std::add_lvalue_reference<roaring::Roaring>::type operator*();
-   std::add_lvalue_reference<const roaring::Roaring>::type operator*() const;
+   roaring::Roaring& operator*();
+   const roaring::Roaring& operator*() const;
    roaring::Roaring* operator->();
    const roaring::Roaring* operator->() const;
 

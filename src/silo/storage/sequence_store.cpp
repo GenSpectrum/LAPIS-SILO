@@ -23,6 +23,25 @@ silo::NucPosition::NucPosition(std::optional<NUCLEOTIDE_SYMBOL> symbol) {
    symbol_whose_bitmap_is_flipped = symbol;
 }
 
+void silo::NucPosition::flipMostNumerousBitmap(uint32_t sequence_count) {
+   std::optional<NUCLEOTIDE_SYMBOL> max_symbol = std::nullopt;
+   uint32_t max_count = 0;
+
+   for (const auto& symbol : NUC_SYMBOLS) {
+      roaring::Roaring bitmap = bitmaps.at(symbol);
+      bitmap.runOptimize();
+      const uint32_t count = bitmap.cardinality();
+      if (count > max_count) {
+         max_symbol = symbol;
+         max_count = count;
+      }
+   }
+   if (max_symbol.has_value()) {
+      symbol_whose_bitmap_is_flipped = max_symbol;
+      bitmaps[*max_symbol].flip(0, sequence_count);
+   }
+}
+
 silo::SequenceStorePartition::SequenceStorePartition(
    const std::vector<NUCLEOTIDE_SYMBOL>& reference_genome
 )

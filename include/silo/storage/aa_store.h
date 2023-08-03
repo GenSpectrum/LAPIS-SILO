@@ -46,6 +46,8 @@ class AAPosition {
 
    AASymbolMap<roaring::Roaring> bitmaps;
    std::optional<AA_SYMBOL> symbol_whose_bitmap_is_flipped = std::nullopt;
+
+   void flipMostNumerousBitmap(uint32_t sequence_count);
 };
 
 class AAStorePartition {

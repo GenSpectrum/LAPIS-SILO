@@ -121,6 +121,11 @@ struct Tuple {
                columns.indexed_string_columns.at(metadata.name).getValues()[sequence_id];
             *reinterpret_cast<silo::Idx*>(data_pointer) = value;
             data_pointer += sizeof(decltype(value));
+         } else if (metadata.getColumnType() == config::ColumnType::INSERTION) {
+            const silo::Idx value =
+               columns.insertion_columns.at(metadata.name).getValues()[sequence_id];
+            *reinterpret_cast<silo::Idx*>(data_pointer) = value;
+            data_pointer += sizeof(decltype(value));
          } else {
             throw std::runtime_error("Unchecked column type of column " + metadata.name);
          }
@@ -159,7 +164,7 @@ struct Tuple {
             if (string_value.empty()) {
                fields[metadata.name] = std::nullopt;
             } else {
-               fields[metadata.name] = string_value;
+               fields[metadata.name] = std::move(string_value);
             }
             data_pointer += sizeof(decltype(value));
          } else if (metadata.getColumnType() == config::ColumnType::INDEXED_PANGOLINEAGE) {
@@ -169,7 +174,7 @@ struct Tuple {
             if (string_value.empty()) {
                fields[metadata.name] = std::nullopt;
             } else {
-               fields[metadata.name] = string_value;
+               fields[metadata.name] = std::move(string_value);
             }
             data_pointer += sizeof(decltype(value));
          } else if (metadata.getColumnType() == config::ColumnType::INDEXED_STRING) {
@@ -179,7 +184,17 @@ struct Tuple {
             if (string_value.empty()) {
                fields[metadata.name] = std::nullopt;
             } else {
-               fields[metadata.name] = string_value;
+               fields[metadata.name] = std::move(string_value);
+            }
+            data_pointer += sizeof(decltype(value));
+         } else if (metadata.getColumnType() == config::ColumnType::INSERTION) {
+            const silo::Idx value = *reinterpret_cast<const silo::Idx*>(data_pointer);
+            std::string string_value =
+               columns.insertion_columns.at(metadata.name).lookupValue(value);
+            if (string_value.empty()) {
+               fields[metadata.name] = std::nullopt;
+            } else {
+               fields[metadata.name] = std::move(string_value);
             }
             data_pointer += sizeof(decltype(value));
          } else {
