@@ -29,8 +29,9 @@ void silo::NucPosition::flipMostNumerousBitmap(uint32_t sequence_count) {
    uint32_t max_count = 0;
 
    for (const auto& symbol : NUC_SYMBOLS) {
-      roaring::Roaring bitmap = bitmaps.at(symbol);
+      roaring::Roaring& bitmap = bitmaps[symbol];
       bitmap.runOptimize();
+      bitmap.shrinkToFit();
       const uint32_t count = flipped_bitmap_before == symbol ? sequence_count - bitmap.cardinality()
                                                              : bitmap.cardinality();
       if (count > max_count) {
@@ -38,13 +39,18 @@ void silo::NucPosition::flipMostNumerousBitmap(uint32_t sequence_count) {
          max_count = count;
       }
    }
-   if (max_symbol.has_value() && max_symbol != flipped_bitmap_before) {
+   if (max_symbol != flipped_bitmap_before) {
       if (flipped_bitmap_before.has_value()) {
          bitmaps[*flipped_bitmap_before].flip(0, sequence_count);
+         bitmaps[*flipped_bitmap_before].runOptimize();
+         bitmaps[*flipped_bitmap_before].shrinkToFit();
+      }
+      if (max_symbol.has_value()) {
+         bitmaps[*max_symbol].flip(0, sequence_count);
+         bitmaps[*max_symbol].runOptimize();
+         bitmaps[*max_symbol].shrinkToFit();
       }
       symbol_whose_bitmap_is_flipped = max_symbol;
-      bitmaps[*max_symbol].flip(0, sequence_count);
-      bitmaps[*max_symbol].runOptimize();
    }
 }
 
@@ -197,36 +203,6 @@ size_t silo::SequenceStorePartition::computeSize() const {
       }
    }
    return result;
-}
-
-size_t silo::SequenceStorePartition::runOptimize() {
-   std::atomic<size_t> count_true = 0;
-   const tbb::blocked_range<size_t> range(0U, positions.size());
-   tbb::parallel_for(range, [&](const decltype(range) local) {
-      for (auto position = local.begin(); position != local.end(); ++position) {
-         for (const NUCLEOTIDE_SYMBOL symbol : NUC_SYMBOLS) {
-            if (positions[position].bitmaps[symbol].runOptimize()) {
-               ++count_true;
-            }
-         }
-      }
-   });
-   return count_true;
-}
-
-size_t silo::SequenceStorePartition::shrinkToFit() {
-   std::atomic<size_t> saved = 0;
-   const tbb::blocked_range<size_t> range(0U, positions.size());
-   tbb::parallel_for(range, [&](const decltype(range) local) {
-      size_t local_saved = 0;
-      for (auto position = local.begin(); position != local.end(); ++position) {
-         for (const NUCLEOTIDE_SYMBOL symbol : NUC_SYMBOLS) {
-            local_saved += positions[position].bitmaps[symbol].shrinkToFit();
-         }
-      }
-      saved += local_saved;
-   });
-   return saved;
 }
 
 silo::SequenceStore::SequenceStore(std::vector<NUCLEOTIDE_SYMBOL> reference_genome)
