@@ -152,7 +152,7 @@ class SiloServer : public Poco::Util::ServerApplication {
       }
 
       if (config().hasProperty("preprocessing")) {
-         return handleProcessData();
+         return handlePreprocessing();
       }
 
       std::cout << "No execution mode specified."
@@ -192,13 +192,12 @@ class SiloServer : public Poco::Util::ServerApplication {
       return Application::EXIT_OK;
    };
 
-   int handleProcessData() {
+   int handlePreprocessing() {
       SPDLOG_INFO("Starting SILO preprocessing");
       const auto preprocessing_config = preprocessingConfig(config());
       auto database_config = databaseConfig(config());
 
-      auto database =
-         silo::Database::preprocessing(preprocessing_config, database_config);
+      auto database = silo::Database::preprocessing(preprocessing_config, database_config);
 
       database.saveDatabaseState(preprocessing_config.getOutputDirectory());
 

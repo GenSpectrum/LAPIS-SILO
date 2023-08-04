@@ -38,7 +38,6 @@ struct convert<OptionalPreprocessingConfig> {
          extractStringIfPresent(node, "pangoLineageDefinitionFilename"),
          extractStringIfPresent(node, "partitionsFolder"),
          extractStringIfPresent(node, "sortedPartitionsFolder"),
-         extractStringIfPresent(node, "serializedStateFolder"),
          extractStringIfPresent(node, "referenceGenomeFilename"),
          extractStringIfPresent(node, "nucleotideSequencePrefix"),
          extractStringIfPresent(node, "genePrefix")
