@@ -1,4 +1,4 @@
-const { server } = require('./common');
+const { server, headerToHaveDataVersion } = require('./common');
 const { expect } = require('chai');
 
 describe('The /info endpoint', () => {
@@ -7,6 +7,7 @@ describe('The /info endpoint', () => {
       .get('/info')
       .expect(200)
       .expect('Content-Type', 'application/json')
+      .expect(headerToHaveDataVersion)
       .expect({ nBitmapsSize: 3898, sequenceCount: 100, totalSize: 60054981 })
       .end(done);
   });
@@ -79,6 +80,7 @@ describe('The /info endpoint', () => {
           'Y': 5980620,
         });
       })
+      .expect(headerToHaveDataVersion)
       .end(done);
   });
 });
