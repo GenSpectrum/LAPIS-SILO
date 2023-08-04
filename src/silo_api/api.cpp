@@ -20,6 +20,23 @@
 #include "silo_api/logging.h"
 #include "silo_api/request_handler_factory.h"
 
+std::string preprocessingConfigPath(const Poco::Util::AbstractConfiguration& config) {
+   if (config.hasProperty("preprocessingConfig")) {
+      return config.getString("preprocessingConfig");
+   }
+   SPDLOG_DEBUG("preprocessingConfig not found in config file. Using default value: config.yaml");
+   return "preprocessingConfig.yaml";
+}
+
+std::string databaseConfigPath(const Poco::Util::AbstractConfiguration& config) {
+   if (config.hasProperty("databaseConfig")) {
+      return config.getString("databaseConfig");
+   }
+   SPDLOG_DEBUG("databaseConfig not found in config file. Using default value: databaseConfig.yaml"
+   );
+   return "databaseConfig.yaml";
+}
+
 class SiloServer : public Poco::Util::ServerApplication {
   protected:
    [[maybe_unused]] void defineOptions(Poco::Util::OptionSet& options) override {
@@ -56,13 +73,14 @@ class SiloServer : public Poco::Util::ServerApplication {
 
       options.addOption(
          Poco::Util::Option(
-            "processData",
+            "preprocessing",
             "p",
             "trigger the preprocessing pipeline to generate a partitioned dataset that can be read "
             "by the database"
          )
             .required(false)
             .repeatable(false)
+            .binding("preprocessing")
             .group("executionMode")
       );
    }
@@ -77,7 +95,7 @@ class SiloServer : public Poco::Util::ServerApplication {
          handleApi();
       }
 
-      if (config().hasProperty("processData")) {
+      if (config().hasProperty("preprocessing")) {
          handleProcessData();
       }
 
@@ -86,30 +104,18 @@ class SiloServer : public Poco::Util::ServerApplication {
 
   private:
    void handleApi() {
+      SPDLOG_INFO("Starting SILO API");
       const int port = 8081;
 
-      const std::string preprocessing_config_path = config().hasProperty("preprocessingConfig")
-                                                       ? config().getString("preprocessingConfig")
-                                                       : "./preprocessingConfig.yaml";
-      const std::string database_config_path = config().hasProperty("databaseConfig")
-                                                  ? config().getString("databaseConfig")
-                                                  : "./databaseConfig.yaml";
+      const std::string preprocessing_config_path = preprocessingConfigPath(config());
 
       auto preprocessing_config =
          silo::preprocessing::PreprocessingConfigReader().readConfig(preprocessing_config_path);
-      auto database_config =
-         silo::config::ConfigRepository().getValidatedConfig(database_config_path);
 
-      {
-         auto database_preprocessing =
-            silo::Database::preprocessing(preprocessing_config, database_config);
+      auto database =
+         silo::Database::loadDatabaseState(preprocessing_config.getSerializedStateFolder());
 
-         database_preprocessing.saveDatabaseState("output/serialized_state/");
-      }
-
-      auto database = silo::Database::loadDatabaseState("output/serialized_state/");
-
-      Poco::Net::ServerSocket const server_socket(port);
+      const Poco::Net::ServerSocket server_socket(port);
       const silo::query_engine::QueryEngine query_engine(database);
       Poco::Net::HTTPServer server(
          new silo_api::SiloRequestHandlerFactory(database, query_engine),
@@ -124,9 +130,20 @@ class SiloServer : public Poco::Util::ServerApplication {
       server.stop();
    };
 
-   // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
    void handleProcessData() {
-      std::cout << "handleProcessData is not implemented\n" << std::flush;
+      SPDLOG_INFO("Starting SILO preprocessing");
+      const std::string preprocessing_config_path = preprocessingConfigPath(config());
+      const std::string database_config_path = databaseConfigPath(config());
+
+      auto preprocessing_config =
+         silo::preprocessing::PreprocessingConfigReader().readConfig(preprocessing_config_path);
+      auto database_config =
+         silo::config::ConfigRepository().getValidatedConfig(database_config_path);
+
+      auto database_preprocessing =
+         silo::Database::preprocessing(preprocessing_config, database_config);
+
+      database_preprocessing.saveDatabaseState(preprocessing_config.getSerializedStateFolder());
    };
 
    void displayHelp(
