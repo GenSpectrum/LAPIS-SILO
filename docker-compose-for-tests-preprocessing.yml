@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  silo:
+    image: ${SILO_IMAGE}
+    volumes:
+      - ./testBaseData:/data
+    command:
+      - "--preprocessing"
+      - "--preprocessingConfig=./preprocessing_config_for_ci.yaml"
+      - "--databaseConfig=./test_database_config.yaml"

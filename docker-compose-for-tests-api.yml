@@ -9,4 +9,3 @@ services:
     command:
       - "--api"
       - "--preprocessingConfig=./preprocessing_config.yaml"
-      - "--databaseConfig=./test_database_config.yaml"

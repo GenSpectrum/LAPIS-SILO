@@ -139,9 +139,13 @@ jobs:
           ref: ${{ github.ref }}
           check-name: Build And Run Unit Tests
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      -
-        name: Start Docker Container
-        run: docker compose -f docker-compose-for-tests.yml up -d --wait
+      - name: Start Docker Container and preprocess data
+        run: docker compose -f docker-compose-for-tests-preprocessing.yml up
+        env:
+          SILO_IMAGE: ${{ steps.dockerMetadata.outputs.tags }}
+
+      - name: Start Docker Container and run api
+        run: docker compose -f docker-compose-for-tests-api.yml up -d --wait
         env:
           SILO_IMAGE: ${{ steps.dockerMetadata.outputs.tags }}
       -
