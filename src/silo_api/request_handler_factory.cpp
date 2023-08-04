@@ -36,7 +36,7 @@ Poco::Net::HTTPRequestHandler* SiloRequestHandlerFactory::routeRequest(
       return new silo_api::InfoHandler(database);
    }
    if (path == "/query") {
-      return new silo_api::QueryHandler(query_engine);
+      return new silo_api::QueryHandler(query_engine, database);
    }
    return new silo_api::NotFoundHandler;
 }

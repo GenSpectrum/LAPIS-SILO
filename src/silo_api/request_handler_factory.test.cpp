@@ -2,6 +2,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "silo/common/data_version.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
@@ -20,6 +21,7 @@ class MockDatabase : public silo::Database {
   public:
    MOCK_METHOD(silo::DatabaseInfo, getDatabaseInfo, (), (const));
    MOCK_METHOD(silo::DetailedDatabaseInfo, detailedDatabaseInfo, (), (const));
+   MOCK_METHOD(silo::DataVersion, getDataVersion, (), (const));
 };
 
 class MockQueryEngine : public silo::query_engine::QueryEngine {
@@ -54,6 +56,8 @@ class RequestHandlerTestFixture : public ::testing::Test {
 TEST_F(RequestHandlerTestFixture, handlesGetInfoRequest) {
    EXPECT_CALL(mock_database, getDatabaseInfo)
       .WillRepeatedly(testing::Return(silo::DatabaseInfo{1, 2, 3}));
+   EXPECT_CALL(mock_database, getDataVersion)
+      .WillRepeatedly(testing::Return(silo::DataVersion("1234")));
 
    request.setURI("/info");
 
@@ -61,6 +65,7 @@ TEST_F(RequestHandlerTestFixture, handlesGetInfoRequest) {
 
    EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_OK);
    EXPECT_EQ(response.out_stream.str(), R"({"nBitmapsSize":3,"sequenceCount":1,"totalSize":2})");
+   EXPECT_EQ(response.get("data-version"), "1234");
 }
 
 TEST_F(RequestHandlerTestFixture, handlesGetInfoRequestDetails) {
@@ -78,6 +83,8 @@ TEST_F(RequestHandlerTestFixture, handlesGetInfoRequestDetails) {
 
    EXPECT_CALL(mock_database, detailedDatabaseInfo)
       .WillRepeatedly(testing::Return(detailed_database_info));
+   EXPECT_CALL(mock_database, getDataVersion)
+      .WillRepeatedly(testing::Return(silo::DataVersion("1234")));
 
    request.setURI("/info?details=true");
 
@@ -88,6 +95,7 @@ TEST_F(RequestHandlerTestFixture, handlesGetInfoRequestDetails) {
       response.out_stream.str(),
       R"({"bitmapContainerSizePerGenomeSection":{"bitmapContainerSizeStatistic":{"numberOfArrayContainers":0,"numberOfBitsetContainers":0,"numberOfRunContainers":0,"numberOfValuesStoredInArrayContainers":0,"numberOfValuesStoredInBitsetContainers":0,"numberOfValuesStoredInRunContainers":0,"totalBitmapSizeArrayContainers":0,"totalBitmapSizeBitsetContainers":0,"totalBitmapSizeRunContainers":0},"sectionLength":4567,"sizePerGenomeSymbolAndSection":{"-":[0,0,0,0,0,0,0],"N":[0,0,0,0,0,0,0],"NOT_N_NOT_GAP":[0,0,0,0,0,0,0]},"totalBitmapSizeComputed":0,"totalBitmapSizeFrozen":0},"bitmapSizePerSymbol":{"-":0,"A":1234,"B":0,"C":0,"D":0,"G":0,"H":0,"K":0,"M":0,"N":0,"R":0,"S":0,"T":0,"V":0,"W":0,"Y":0}})"
    );  // NOLINT
+   EXPECT_EQ(response.get("data-version"), "1234");
 }
 
 TEST_F(RequestHandlerTestFixture, returnsMethodNotAllowedOnPostInfoRequest) {
@@ -110,6 +118,8 @@ TEST_F(RequestHandlerTestFixture, handlesPostQueryRequest) {
    const std::vector<silo::query_engine::QueryResultEntry> tmp{{fields}};
    const silo::query_engine::QueryResult query_result{tmp};
    EXPECT_CALL(mock_query_engine, executeQuery).WillRepeatedly(testing::Return(query_result));
+   EXPECT_CALL(mock_database, getDataVersion)
+      .WillRepeatedly(testing::Return(silo::DataVersion("1234")));
 
    request.setMethod("POST");
    request.setURI("/query");
@@ -118,6 +128,7 @@ TEST_F(RequestHandlerTestFixture, handlesPostQueryRequest) {
 
    EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_OK);
    EXPECT_EQ(response.out_stream.str(), R"({"queryResult":[{"count":5}]})");
+   EXPECT_EQ(response.get("data-version"), "1234");
 }
 
 TEST_F(RequestHandlerTestFixture, returnsMethodNotAllowedOnGetQuery) {

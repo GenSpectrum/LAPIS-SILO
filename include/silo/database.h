@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "silo/common/data_version.h"
 #include "silo/config/database_config.h"
 #include "silo/storage/aa_store.h"
 #include "silo/storage/column/date_column.h"
@@ -36,9 +37,6 @@ struct PreprocessingConfig;
 namespace silo {
 
 class Database {
-  private:
-   PangoLineageAliasLookup alias_key;
-
   public:
    silo::config::DatabaseConfig database_config;
    std::vector<DatabasePartition> partitions;
@@ -62,7 +60,13 @@ class Database {
 
    [[nodiscard]] const PangoLineageAliasLookup& getAliasKey() const;
 
+   void setDataVersion(const DataVersion& data_version);
+   virtual DataVersion getDataVersion() const;
+
   private:
+   PangoLineageAliasLookup alias_key;
+   DataVersion data_version_;
+
    void build(
       const preprocessing::PreprocessingConfig& preprocessing_config,
       const preprocessing::Partitions& partition_descriptor,
