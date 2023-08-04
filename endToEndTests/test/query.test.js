@@ -12,13 +12,11 @@ describe('The /query endpoint', () => {
 
   testCases.forEach(testCase =>
     it('should return data for the test case ' + testCase.testCaseName, async () => {
-      const response = await server
-        .post('/query')
-        .send(testCase.query)
-        .expect(200)
-        .expect('Content-Type', 'application/json')
-        .expect(headerToHaveDataVersion);
-      return expect(response.body.queryResult).to.deep.equal(testCase.expectedQueryResult);
+      const response = await server.post('/query').send(testCase.query);
+      expect(response.body.queryResult).to.deep.equal(testCase.expectedQueryResult);
+      expect(200);
+      expect('Content-Type', 'application/json');
+      expect(headerToHaveDataVersion);
     })
   );
 

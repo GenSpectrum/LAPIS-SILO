@@ -38,7 +38,12 @@ class AAPosition {
       // clang-format on
    }
 
+   AAPosition() = default;
+
   public:
+   explicit AAPosition(AA_SYMBOL symbol);
+   explicit AAPosition(std::optional<AA_SYMBOL> symbol);
+
    AASymbolMap<roaring::Roaring> bitmaps;
    std::optional<AA_SYMBOL> symbol_whose_bitmap_is_flipped = std::nullopt;
 
@@ -52,9 +57,9 @@ class AAStorePartition {
    template <class Archive>
    void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
-      archive& sequence_count;
-      archive& positions;
-      archive& aa_symbol_x_bitmaps;
+      archive & sequence_count;
+      archive & positions;
+      archive & aa_symbol_x_bitmaps;
       // clang-format on
    }
 

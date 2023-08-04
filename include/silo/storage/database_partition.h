@@ -59,7 +59,7 @@ class DatabasePartition {
       for(auto& [name, store] : aa_sequences){
          archive & store;
       }
-      archive & sequenceCount;
+      archive & sequence_count;
       // clang-format on
    }
 
@@ -69,12 +69,12 @@ class DatabasePartition {
    DatabasePartition() = default;
 
   public:
-   explicit DatabasePartition(std::vector<silo::preprocessing::Chunk> chunks);
-
    storage::ColumnPartitionGroup columns;
    std::map<std::string, SequenceStorePartition&> nuc_sequences;
    std::map<std::string, AAStorePartition&> aa_sequences;
-   uint32_t sequenceCount;
+   uint32_t sequence_count;
+
+   explicit DatabasePartition(std::vector<silo::preprocessing::Chunk> chunks);
 
    void flipBitmaps();
 

@@ -25,7 +25,7 @@ void to_json(nlohmann::json& json, const BitmapContainerSizeStatistic& statistic
    json = nlohmann::json{
       {"numberOfArrayContainers", statistics.number_of_array_containers},
       {"numberOfRunContainers", statistics.number_of_run_containers},
-      {"numberOfBitsetContainers", statistics.number_of_run_containers},
+      {"numberOfBitsetContainers", statistics.number_of_bitset_containers},
       {"numberOfValuesStoredInArrayContainers",
        statistics.number_of_values_stored_in_array_containers},
       {"numberOfValuesStoredInRunContainers", statistics.number_of_values_stored_in_run_containers},

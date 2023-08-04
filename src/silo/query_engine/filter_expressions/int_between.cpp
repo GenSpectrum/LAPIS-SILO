@@ -55,7 +55,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> IntBetween::compile(
    }
 
    auto result = std::make_unique<operators::Selection>(
-      std::move(predicates), database_partition.sequenceCount
+      std::move(predicates), database_partition.sequence_count
    );
 
    SPDLOG_TRACE("Compiled IntBetween filter expression to {}", result->toString());

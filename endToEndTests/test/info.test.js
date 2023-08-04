@@ -8,7 +8,7 @@ describe('The /info endpoint', () => {
       .expect(200)
       .expect('Content-Type', 'application/json')
       .expect(headerToHaveDataVersion)
-      .expect({ nBitmapsSize: 3898, sequenceCount: 100, totalSize: 60057070 })
+      .expect({ nBitmapsSize: 3898, sequenceCount: 100, totalSize: 60054981 })
       .end(done);
   });
 
@@ -27,15 +27,15 @@ describe('The /info endpoint', () => {
           'bitmapContainerSizeStatistic'
         );
         expect(returnedInfo.bitmapContainerSizePerGenomeSection.bitmapContainerSizeStatistic).to.deep.equal({
-          numberOfArrayContainers: 43623,
+          numberOfArrayContainers: 43540,
           numberOfBitsetContainers: 0,
-          numberOfRunContainers: 0,
-          numberOfValuesStoredInArrayContainers: 61931,
+          numberOfRunContainers: 83,
+          numberOfValuesStoredInArrayContainers: 59577,
           numberOfValuesStoredInBitsetContainers: 0,
-          numberOfValuesStoredInRunContainers: 0,
-          totalBitmapSizeArrayContainers: 123862,
+          numberOfValuesStoredInRunContainers: 2354,
+          totalBitmapSizeArrayContainers: 119154,
           totalBitmapSizeBitsetContainers: 0,
-          totalBitmapSizeRunContainers: 0,
+          totalBitmapSizeRunContainers: 3170,
         });
 
         expect(returnedInfo.bitmapContainerSizePerGenomeSection).to.have.property(
@@ -62,19 +62,19 @@ describe('The /info endpoint', () => {
 
         expect(returnedInfo).to.have.property('bitmapSizePerSymbol');
         expect(returnedInfo.bitmapSizePerSymbol).to.deep.equal({
-          '-': 6005380,
-          'A': 6112762,
+          '-': 6003470,
+          'A': 6112653,
           'B': 5980600,
-          'C': 6064610,
+          'C': 6064589,
           'D': 5980600,
-          'G': 6067732,
+          'G': 6067672,
           'H': 5980600,
           'K': 5980630,
           'M': 5980620,
           'N': 5980600,
           'R': 5980620,
           'S': 5980600,
-          'T': 6125272,
+          'T': 6125253,
           'V': 5980600,
           'W': 5980600,
           'Y': 5980620,

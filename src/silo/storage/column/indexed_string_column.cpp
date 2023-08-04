@@ -11,12 +11,13 @@ IndexedStringColumnPartition::IndexedStringColumnPartition(
 )
     : lookup(lookup) {}
 
-roaring::Roaring IndexedStringColumnPartition::filter(const std::string& value) const {
+std::optional<const roaring::Roaring*> IndexedStringColumnPartition::filter(const std::string& value
+) const {
    const auto value_id = lookup.getId(value);
    if (value_id.has_value()) {
-      return indexed_values.at(value_id.value());
+      return &indexed_values.at(value_id.value());
    }
-   return {};
+   return std::nullopt;
 }
 
 void IndexedStringColumnPartition::insert(const std::string& value) {

@@ -25,7 +25,7 @@ void DatabasePartition::flipBitmaps() {
       auto& positions = seq_store.positions;
       tbb::parallel_for(tbb::blocked_range<uint32_t>(0, positions.size()), [&](const auto& local) {
          for (auto position = local.begin(); position != local.end(); ++position) {
-            positions[position].flipMostNumerousBitmap(sequenceCount);
+            positions[position].flipMostNumerousBitmap(sequence_count);
          }
       });
    }
@@ -33,7 +33,7 @@ void DatabasePartition::flipBitmaps() {
       auto& positions = seq_store.positions;
       tbb::parallel_for(tbb::blocked_range<uint32_t>(0, positions.size()), [&](const auto& local) {
          for (auto position = local.begin(); position != local.end(); ++position) {
-            positions[position].flipMostNumerousBitmap(sequenceCount);
+            positions[position].flipMostNumerousBitmap(sequence_count);
          }
       });
    }
@@ -56,18 +56,21 @@ void DatabasePartition::insertColumn(
 ) {
    columns.indexed_string_columns.insert({std::string(name), column});
 }
+
 void DatabasePartition::insertColumn(
    const std::string& name,
    storage::column::IntColumnPartition& column
 ) {
    columns.int_columns.insert({std::string(name), column});
 }
+
 void DatabasePartition::insertColumn(
    const std::string& name,
    storage::column::DateColumnPartition& column
 ) {
    columns.date_columns.insert({std::string(name), column});
 }
+
 void DatabasePartition::insertColumn(
    const std::string& name,
    storage::column::InsertionColumnPartition& column
@@ -81,6 +84,7 @@ void DatabasePartition::insertColumn(
 ) {
    columns.pango_lineage_columns.insert({std::string(name), column});
 }
+
 void DatabasePartition::insertColumn(
    const std::string& name,
    storage::column::FloatColumnPartition& column

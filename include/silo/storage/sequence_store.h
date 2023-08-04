@@ -39,7 +39,12 @@ class NucPosition {
       // clang-format on
    }
 
+   NucPosition() = default;
+
   public:
+   explicit NucPosition(NUCLEOTIDE_SYMBOL symbol);
+   explicit NucPosition(std::optional<NUCLEOTIDE_SYMBOL> symbol);
+
    NucleotideSymbolMap<roaring::Roaring> bitmaps;
    std::optional<NUCLEOTIDE_SYMBOL> symbol_whose_bitmap_is_flipped = std::nullopt;
 

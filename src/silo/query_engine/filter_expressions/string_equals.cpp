@@ -42,13 +42,13 @@ std::unique_ptr<silo::query_engine::operators::Operator> StringEquals::compile(
 ) const {
    if (database_partition.columns.indexed_string_columns.contains(column)) {
       const auto& string_column = database_partition.columns.indexed_string_columns.at(column);
-      const roaring::Roaring& bitmap = string_column.filter(value);
+      const auto bitmap = string_column.filter(value);
 
-      if (bitmap.isEmpty()) {
-         return std::make_unique<operators::Empty>(database_partition.sequenceCount);
+      if (bitmap == std::nullopt || bitmap.value()->isEmpty()) {
+         return std::make_unique<operators::Empty>(database_partition.sequence_count);
       }
       return std::make_unique<operators::IndexScan>(
-         new roaring::Roaring(bitmap), database_partition.sequenceCount
+         bitmap.value(), database_partition.sequence_count
       );
    }
 
@@ -60,13 +60,13 @@ std::unique_ptr<silo::query_engine::operators::Operator> StringEquals::compile(
             std::make_unique<operators::CompareToValueSelection<common::SiloString>>(
                string_column.getValues(), operators::Comparator::EQUALS, embedded_string.value()
             ),
-            database_partition.sequenceCount
+            database_partition.sequence_count
          );
       }
-      return std::make_unique<operators::Empty>(database_partition.sequenceCount);
+      return std::make_unique<operators::Empty>(database_partition.sequence_count);
    }
 
-   return std::make_unique<operators::Empty>(database_partition.sequenceCount);
+   return std::make_unique<operators::Empty>(database_partition.sequence_count);
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

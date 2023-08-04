@@ -26,7 +26,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> True::compile(
    const silo::DatabasePartition& database_partition,
    Expression::AmbiguityMode /*mode*/
 ) const {
-   return std::make_unique<operators::Full>(database_partition.sequenceCount);
+   return std::make_unique<operators::Full>(database_partition.sequence_count);
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

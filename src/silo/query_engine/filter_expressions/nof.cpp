@@ -232,7 +232,7 @@ std::unique_ptr<operators::Operator> NOf::rewriteNonExact(
          std::move(non_negated_child_operators),
          std::move(negated_child_operators),
          false,
-         database_partition.sequenceCount
+         database_partition.sequence_count
       ));
    }
 
@@ -245,7 +245,7 @@ std::unique_ptr<operators::Operator> NOf::rewriteNonExact(
          std::move(non_negated_child_operators),
          std::move(negated_child_operators),
          false,
-         database_partition.sequenceCount
+         database_partition.sequence_count
       ));
    }
 
@@ -254,7 +254,7 @@ std::unique_ptr<operators::Operator> NOf::rewriteNonExact(
       std::move(at_least_k),
       std::move(at_least_k_plus_one),
       false,
-      database_partition.sequenceCount
+      database_partition.sequence_count
    );
 }
 
@@ -276,7 +276,7 @@ std::unique_ptr<operators::Operator> NOf::compile(
       std::move(non_negated_child_operators),
       std::move(negated_child_operators),
       match_exactly,
-      database_partition.sequenceCount
+      database_partition.sequence_count
    );
 }
 

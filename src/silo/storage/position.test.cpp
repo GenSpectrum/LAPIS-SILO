@@ -24,10 +24,10 @@ void deserializeFromFile(const std::string& filename, silo::NucPosition& positio
 TEST(Position, shouldSerializeAndDeserializePositionsWithEmptyOptional) {
    const std::string test_file = "test.bin";
 
-   const silo::NucPosition position_with_unset_optional;
+   const silo::NucPosition position_with_unset_optional(std::nullopt);
    serializeToFile(test_file, position_with_unset_optional);
 
-   silo::NucPosition deserialized_position;
+   silo::NucPosition deserialized_position(std::nullopt);
    deserializeFromFile(test_file, deserialized_position);
 
    EXPECT_FALSE(position_with_unset_optional.symbol_whose_bitmap_is_flipped.has_value());
@@ -39,11 +39,11 @@ TEST(Position, shouldSerializeAndDeserializePositionsWithEmptyOptional) {
 TEST(Position, shouldSerializeAndDeserializePositionWithSetOptional) {
    const std::string test_file = "test.bin";
 
-   silo::NucPosition position_with_set_optional;
+   silo::NucPosition position_with_set_optional(std::nullopt);
    position_with_set_optional.symbol_whose_bitmap_is_flipped = silo::NUCLEOTIDE_SYMBOL::A;
    serializeToFile(test_file, position_with_set_optional);
 
-   silo::NucPosition deserialized_position;
+   silo::NucPosition deserialized_position(std::nullopt);
    deserializeFromFile(test_file, deserialized_position);
 
    EXPECT_TRUE(deserialized_position.symbol_whose_bitmap_is_flipped.has_value());

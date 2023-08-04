@@ -60,7 +60,7 @@ std::unique_ptr<operators::Operator> Or::compile(
          continue;
       }
       if (child->type() == operators::FULL) {
-         return std::make_unique<operators::Full>(database_partition.sequenceCount);
+         return std::make_unique<operators::Full>(database_partition.sequence_count);
       }
       if (child->type() == operators::UNION) {
          auto* or_child = dynamic_cast<operators::Union*>(child.get());
@@ -74,7 +74,7 @@ std::unique_ptr<operators::Operator> Or::compile(
       filtered_child_operators.push_back(std::move(child));
    }
    if (filtered_child_operators.empty()) {
-      return std::make_unique<operators::Empty>(database_partition.sequenceCount);
+      return std::make_unique<operators::Empty>(database_partition.sequence_count);
    }
    if (filtered_child_operators.size() == 1) {
       return std::move(filtered_child_operators[0]);
@@ -86,11 +86,11 @@ std::unique_ptr<operators::Operator> Or::compile(
           [](const auto& child) { return child->type() == operators::COMPLEMENT; }
        )) {
       return operators::Complement::fromDeMorgan(
-         std::move(filtered_child_operators), database_partition.sequenceCount
+         std::move(filtered_child_operators), database_partition.sequence_count
       );
    }
    return std::make_unique<operators::Union>(
-      std::move(filtered_child_operators), database_partition.sequenceCount
+      std::move(filtered_child_operators), database_partition.sequence_count
    );
 }
 

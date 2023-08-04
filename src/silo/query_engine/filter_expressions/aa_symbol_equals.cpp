@@ -63,13 +63,13 @@ std::unique_ptr<silo::query_engine::operators::Operator> AASymbolEquals::compile
    if (aa_store_partition.positions[position].symbol_whose_bitmap_is_flipped == aa_symbol) {
       return std::make_unique<operators::Complement>(
          std::make_unique<operators::IndexScan>(
-            aa_store_partition.getBitmap(position, aa_symbol), database_partition.sequenceCount
+            aa_store_partition.getBitmap(position, aa_symbol), database_partition.sequence_count
          ),
-         database_partition.sequenceCount
+         database_partition.sequence_count
       );
    }
    return std::make_unique<operators::IndexScan>(
-      aa_store_partition.getBitmap(position, aa_symbol), database_partition.sequenceCount
+      aa_store_partition.getBitmap(position, aa_symbol), database_partition.sequence_count
    );
 }
 
