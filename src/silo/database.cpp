@@ -375,34 +375,42 @@ void saveDataVersion(const Database& database, const std::string& save_directory
 }
 
 void Database::saveDatabaseState(const std::string& save_directory) {
-   const std::string database_config_filename = save_directory + "database_config.yaml";
+   if (getDataVersion().toString().empty()) {
+      throw std::runtime_error(
+         "Data version is empty. Please set a data version before saving the database."
+      );
+   }
+   const std::string versioned_save_directory =
+      save_directory + "/" + getDataVersion().toString() + "/";
+
+   const std::string database_config_filename = versioned_save_directory + "database_config.yaml";
    database_config.writeConfig(database_config_filename);
 
-   std::ofstream alias_key_file(save_directory + "alias_key.silo");
+   std::ofstream alias_key_file(versioned_save_directory + "alias_key.silo");
    ::boost::archive::binary_oarchive alias_key_archive(alias_key_file);
    alias_key_archive << alias_key;
 
-   std::ofstream partitions_file(save_directory + "partitions.silo");
+   std::ofstream partitions_file(versioned_save_directory + "partitions.silo");
    ::boost::archive::binary_oarchive partitions_archive(partitions_file);
    partitions_archive << partitions;
 
-   std::ofstream column_file(save_directory + "column_info.silo");
+   std::ofstream column_file(versioned_save_directory + "column_info.silo");
    ::boost::archive::binary_oarchive column_archive(column_file);
    column_archive << columns;
 
    auto nuc_sequences_map = getNucSequences();
-   std::ofstream nuc_sequences_file(save_directory + "nuc_sequences.silo");
+   std::ofstream nuc_sequences_file(versioned_save_directory + "nuc_sequences.silo");
    ::boost::archive::binary_oarchive nuc_sequences_archive(nuc_sequences_file);
    nuc_sequences_archive << nuc_sequences_map;
 
    auto aa_sequences_map = getAASequences();
-   std::ofstream aa_sequences_file(save_directory + "aa_sequences.silo");
+   std::ofstream aa_sequences_file(versioned_save_directory + "aa_sequences.silo");
    ::boost::archive::binary_oarchive aa_sequences_archive(aa_sequences_file);
    aa_sequences_archive << aa_sequences_map;
 
    std::vector<std::ofstream> file_vec;
    for (uint32_t i = 0; i < partitions.size(); ++i) {
-      const auto& partition_file = save_directory + "P" + std::to_string(i) + ".silo";
+      const auto& partition_file = versioned_save_directory + "P" + std::to_string(i) + ".silo";
       file_vec.emplace_back(partition_file);
 
       if (!file_vec.back()) {
@@ -422,7 +430,7 @@ void Database::saveDatabaseState(const std::string& save_directory) {
    });
    SPDLOG_INFO("Finished saving partitions", partitions.size());
 
-   saveDataVersion(*this, save_directory);
+   saveDataVersion(*this, versioned_save_directory);
 }
 
 DataVersion loadDataVersion(const std::string& save_directory) {
