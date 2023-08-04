@@ -22,33 +22,34 @@ silo::AAPosition::AAPosition(std::optional<AA_SYMBOL> symbol) {
 }
 
 void silo::AAPosition::flipMostNumerousBitmap(uint32_t sequence_count) {
-   std::optional<AA_SYMBOL> flipped_bitmap_before = symbol_whose_bitmap_is_flipped;
-   std::optional<AA_SYMBOL> max_symbol = std::nullopt;
+   std::optional<AA_SYMBOL> previous_flipped_bitmap_symbol = symbol_whose_bitmap_is_flipped;
+   std::optional<AA_SYMBOL> new_flipped_bitmap_symbol = std::nullopt;
    uint32_t max_count = 0;
 
    for (const auto& symbol : AA_SYMBOLS) {
       roaring::Roaring bitmap = bitmaps.at(symbol);
       bitmap.runOptimize();
       bitmap.shrinkToFit();
-      const uint32_t count = flipped_bitmap_before == symbol ? sequence_count - bitmap.cardinality()
-                                                             : bitmap.cardinality();
+      const uint32_t count = previous_flipped_bitmap_symbol == symbol
+                                ? sequence_count - bitmap.cardinality()
+                                : bitmap.cardinality();
       if (count > max_count) {
-         max_symbol = symbol;
+         new_flipped_bitmap_symbol = symbol;
          max_count = count;
       }
    }
-   if (max_symbol != flipped_bitmap_before) {
-      if (flipped_bitmap_before.has_value()) {
-         bitmaps[*flipped_bitmap_before].flip(0, sequence_count);
-         bitmaps[*flipped_bitmap_before].runOptimize();
-         bitmaps[*flipped_bitmap_before].shrinkToFit();
+   if (new_flipped_bitmap_symbol != previous_flipped_bitmap_symbol) {
+      if (previous_flipped_bitmap_symbol.has_value()) {
+         bitmaps[*previous_flipped_bitmap_symbol].flip(0, sequence_count);
+         bitmaps[*previous_flipped_bitmap_symbol].runOptimize();
+         bitmaps[*previous_flipped_bitmap_symbol].shrinkToFit();
       }
-      if (max_symbol.has_value()) {
-         bitmaps[*max_symbol].flip(0, sequence_count);
-         bitmaps[*max_symbol].runOptimize();
-         bitmaps[*max_symbol].shrinkToFit();
+      if (new_flipped_bitmap_symbol.has_value()) {
+         bitmaps[*new_flipped_bitmap_symbol].flip(0, sequence_count);
+         bitmaps[*new_flipped_bitmap_symbol].runOptimize();
+         bitmaps[*new_flipped_bitmap_symbol].shrinkToFit();
       }
-      symbol_whose_bitmap_is_flipped = max_symbol;
+      symbol_whose_bitmap_is_flipped = new_flipped_bitmap_symbol;
    }
 }
 
