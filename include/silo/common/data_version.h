@@ -10,7 +10,7 @@ class DataVersion {
    explicit DataVersion(std::string data_version = "");
    [[nodiscard]] std::string toString() const;
 
-   static std::string mineDataVersion();
+   static DataVersion mineDataVersion();
 
   private:
    std::string data_version;

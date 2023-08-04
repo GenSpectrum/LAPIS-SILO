@@ -6,8 +6,8 @@ using silo::DataVersion;
 
 TEST(DataVersion, shouldMineDataVersionFromUnixTime) {
    const auto mined_version = DataVersion::mineDataVersion();
-   EXPECT_EQ(mined_version.size(), 10);
-   EXPECT_EQ(mined_version[0], '1');
+   EXPECT_EQ(mined_version.toString().size(), 10);
+   EXPECT_EQ(mined_version.toString()[0], '1');
 }
 
 TEST(DataVersion, shouldConstructFromVersionString) {
