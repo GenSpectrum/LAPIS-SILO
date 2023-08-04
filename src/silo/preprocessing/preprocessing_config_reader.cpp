@@ -11,92 +11,38 @@ using silo::preprocessing::GenePrefix;
 using silo::preprocessing::InputDirectory;
 using silo::preprocessing::MetadataFilename;
 using silo::preprocessing::NucleotideSequencePrefix;
+using silo::preprocessing::OptionalPreprocessingConfig;
 using silo::preprocessing::OutputDirectory;
 using silo::preprocessing::PangoLineageDefinitionFilename;
 using silo::preprocessing::PartitionsFolder;
-using silo::preprocessing::PreprocessingConfig;
 using silo::preprocessing::ReferenceGenomeFilename;
 using silo::preprocessing::SerializedStateFolder;
 using silo::preprocessing::SortedPartitionsFolder;
 
 namespace YAML {
 
-std::string nucleotideSequencePrefix(const Node& node) {
-   if (node["nucleotideSequencePrefix"]) {
-      return node["nucleotideSequencePrefix"].as<std::string>();
+std::optional<std::string> extractStringIfPresent(const Node& node, const std::string& key) {
+   if (node[key]) {
+      return node[key].as<std::string>();
    }
-   SPDLOG_DEBUG("nucleotideSequencePrefix not found in config file. Using default value: nuc_");
-   return "nuc_";
-}
-std::string genePrefix(const Node& node) {
-   if (node["genePrefix"]) {
-      return node["genePrefix"].as<std::string>();
-   }
-   SPDLOG_DEBUG("genePrefix not found in config file. Using default value: gene_");
-   return "gene_";
-}
-
-std::string partitionsFolderName(const Node& node) {
-   if (node["partitionsFolder"]) {
-      return node["partitionsFolder"].as<std::string>();
-   }
-   SPDLOG_DEBUG("partitionFolder not found in config file. Using default value: partitions/");
-   return "partitions/";
-}
-
-std::string sortedPartitionsFolderName(const Node& node) {
-   if (node["sortedPartitionsFolder"]) {
-      return node["sortedPartitionsFolder"].as<std::string>();
-   }
-   SPDLOG_DEBUG(
-      "sortedPartitionFolder not found in config file. Using default value: partitions_sorted/"
-   );
-   return "partitions_sorted/";
-}
-
-std::string serializedStateFolderName(const Node& node) {
-   if (node["serializedStateFolder"]) {
-      return node["serializedStateFolder"].as<std::string>();
-   }
-   SPDLOG_DEBUG(
-      "serializationFolder not found in config file. Using default value: serialized_state/"
-   );
-   return "serialized_state/";
+   return std::nullopt;
 }
 
 template <>
-struct convert<PreprocessingConfig> {
-   static bool decode(const Node& node, PreprocessingConfig& config) {
-      const InputDirectory input_directory{node["inputDirectory"].as<std::string>()};
-      const OutputDirectory output_directory{node["outputDirectory"].as<std::string>()};
-      const MetadataFilename metadata_filename{node["metadataFilename"].as<std::string>()};
-      const PangoLineageDefinitionFilename pango_lineage_definition_filename{
-         node["pangoLineageDefinitionFilename"].IsDefined()
-            ? std::optional<std::string>{node["pangoLineageDefinitionFilename"].as<std::string>()}
-            : std::nullopt};
-      const ReferenceGenomeFilename reference_genome_filename{
-         node["referenceGenomeFilename"].as<std::string>()};
-
-      const PartitionsFolder partitions_folder{partitionsFolderName(node)};
-      const SortedPartitionsFolder sorted_partitions_folder{sortedPartitionsFolderName(node)};
-      const SerializedStateFolder serialized_state_folder{serializedStateFolderName(node)};
-      const NucleotideSequencePrefix nucleotide_sequence_prefix{nucleotideSequencePrefix(node)};
-      const GenePrefix gene_prefix{genePrefix(node)};
-
-      config = PreprocessingConfig(
-         input_directory,
-         output_directory,
-         metadata_filename,
-         pango_lineage_definition_filename,
-         partitions_folder,
-         sorted_partitions_folder,
-         serialized_state_folder,
-         reference_genome_filename,
-         nucleotide_sequence_prefix,
-         gene_prefix
+struct convert<OptionalPreprocessingConfig> {
+   static bool decode(const Node& node, OptionalPreprocessingConfig& config) {
+      config = OptionalPreprocessingConfig(
+         extractStringIfPresent(node, "inputDirectory"),
+         extractStringIfPresent(node, "outputDirectory"),
+         extractStringIfPresent(node, "metadataFilename"),
+         extractStringIfPresent(node, "pangoLineageDefinitionFilename"),
+         extractStringIfPresent(node, "partitionsFolder"),
+         extractStringIfPresent(node, "sortedPartitionsFolder"),
+         extractStringIfPresent(node, "serializedStateFolder"),
+         extractStringIfPresent(node, "referenceGenomeFilename"),
+         extractStringIfPresent(node, "nucleotideSequencePrefix"),
+         extractStringIfPresent(node, "genePrefix")
       );
-
-      SPDLOG_TRACE("Resulting preprocessing config: {}", config);
 
       return true;
    }
@@ -104,9 +50,51 @@ struct convert<PreprocessingConfig> {
 }  // namespace YAML
 
 namespace silo::preprocessing {
-PreprocessingConfig PreprocessingConfigReader::readConfig(const std::filesystem::path& config_path
+
+OptionalPreprocessingConfig PreprocessingConfigReader::readConfig(
+   const std::filesystem::path& config_path
 ) const {
    SPDLOG_INFO("Reading preprocessing config from {}", config_path.string());
-   return YAML::LoadFile(config_path.string()).as<PreprocessingConfig>();
+   return YAML::LoadFile(config_path.string()).as<OptionalPreprocessingConfig>();
 }
+
+PreprocessingConfig OptionalPreprocessingConfig::mergeValuesFromOrDefault(
+   const silo::preprocessing::OptionalPreprocessingConfig& other
+) const {
+   return PreprocessingConfig(
+      InputDirectory{input_directory.value_or(
+         other.input_directory.value_or(silo::preprocessing::DEFAULT_INPUT_DIRECTORY.directory)
+      )},
+      OutputDirectory{output_directory.value_or(
+         other.output_directory.value_or(silo::preprocessing::DEFAULT_OUTPUT_DIRECTORY.directory)
+      )},
+      MetadataFilename{metadata_file.value_or(
+         other.metadata_file.value_or(silo::preprocessing::DEFAULT_METADATA_FILENAME.filename)
+      )},
+      PangoLineageDefinitionFilename{
+         pango_lineage_definition_file.has_value() ? pango_lineage_definition_file
+                                                   : other.pango_lineage_definition_file},
+      PartitionsFolder{partition_folder.value_or(
+         other.partition_folder.value_or(silo::preprocessing::DEFAULT_PARTITIONS_FOLDER.folder)
+      )},
+      SortedPartitionsFolder{
+         sorted_partition_folder.value_or(other.sorted_partition_folder.value_or(
+            silo::preprocessing::DEFAULT_SORTED_PARTITIONS_FOLDER.folder
+         ))},
+      SerializedStateFolder{serialization_folder.value_or(other.serialization_folder.value_or(
+         silo::preprocessing::DEFAULT_SERIALIZED_STATE_FOLDER.folder
+      ))},
+      ReferenceGenomeFilename{reference_genome_file.value_or(other.reference_genome_file.value_or(
+         silo::preprocessing::DEFAULT_REFERENCE_GENOME_FILENAME.filename
+      ))},
+      NucleotideSequencePrefix{
+         nucleotide_sequence_prefix.value_or(other.nucleotide_sequence_prefix.value_or(
+            silo::preprocessing::DEFAULT_NUCLEOTIDE_SEQUENCE_PREFIX.prefix
+         ))},
+      GenePrefix{gene_prefix.value_or(
+         other.gene_prefix.value_or(silo::preprocessing::DEFAULT_GENE_PREFIX.prefix)
+      )}
+   );
+}
+
 }  // namespace silo::preprocessing

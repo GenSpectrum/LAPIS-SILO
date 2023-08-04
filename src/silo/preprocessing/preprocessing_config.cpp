@@ -225,10 +225,6 @@ std::filesystem::path PreprocessingConfig::getGeneSortedPartitionFilename(
    return filename;
 }
 
-std::filesystem::path PreprocessingConfig::getSerializedStateFolder() const {
-   return serialization_folder;
-}
-
 }  // namespace silo::preprocessing
 
 [[maybe_unused]] auto fmt::formatter<silo::preprocessing::PreprocessingConfig>::format(

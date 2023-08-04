@@ -1,4 +1,5 @@
 *
+!docker_default_preprocessing_config.yaml
 !CMakeLists.txt
 !build_with_conan.py
 !conanprofile.docker

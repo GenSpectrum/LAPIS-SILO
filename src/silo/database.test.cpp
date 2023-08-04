@@ -11,9 +11,9 @@
 silo::Database buildTestDatabase() {
    const silo::preprocessing::InputDirectory input_directory{"./testBaseData/exampleDataset/"};
 
-   auto config = silo::preprocessing::PreprocessingConfigReader().readConfig(
-      "./testBaseData/test_preprocessing_config.yaml"
-   );
+   auto config = silo::preprocessing::PreprocessingConfigReader()
+                    .readConfig("./testBaseData/test_preprocessing_config.yaml")
+                    .mergeValuesFromOrDefault(silo::preprocessing::OptionalPreprocessingConfig());
 
    const auto database_config = silo::config::ConfigRepository().getValidatedConfig(
       input_directory.directory + "test_database_config.yaml"
@@ -34,9 +34,9 @@ TEST(DatabaseTest, shouldBuildDatabaseWithoutErrors) {
 TEST(DatabaseTest, shouldSuccessfullyBuildDatabaseWithoutPartitionBy) {
    const silo::preprocessing::InputDirectory input_directory{"./testBaseData/"};
 
-   auto config = silo::preprocessing::PreprocessingConfigReader().readConfig(
-      input_directory.directory + "test_preprocessing_config.yaml"
-   );
+   auto config = silo::preprocessing::PreprocessingConfigReader()
+                    .readConfig(input_directory.directory + "test_preprocessing_config.yaml")
+                    .mergeValuesFromOrDefault(silo::preprocessing::OptionalPreprocessingConfig());
 
    const auto database_config = silo::config::ConfigRepository().getValidatedConfig(
       input_directory.directory + "test_database_config_without_partition_by.yaml"

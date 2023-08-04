@@ -34,10 +34,11 @@ RUN  \
 
 FROM alpine:3.17.0 AS server
 
-RUN apk update && apk add libtbb=2021.7.0-r0 curl jq
-
 WORKDIR /app
+COPY docker_default_preprocessing_config.yaml ./default_preprocessing_config.yaml
 COPY --from=builder /src/siloApi ./
+
+RUN apk update && apk add libtbb=2021.7.0-r0 curl jq
 
 # call /info, extract "seqeunceCount" from the JSON and assert that the value is not 0. If any of those fails, "exit 1".
 HEALTHCHECK --start-period=20s CMD curl --fail --silent localhost:8081/info | jq .sequenceCount | xargs test 0 -ne || exit 1
@@ -45,5 +46,4 @@ HEALTHCHECK --start-period=20s CMD curl --fail --silent localhost:8081/info | jq
 EXPOSE 8081
 ENV SPDLOG_LEVEL="off,file_logger=debug"
 
-WORKDIR /data
-ENTRYPOINT ["../app/siloApi"]
+ENTRYPOINT ["./siloApi"]

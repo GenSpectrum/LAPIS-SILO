@@ -15,14 +15,17 @@ struct Partitions;
 struct InputDirectory {
    std::string directory;
 };
+const InputDirectory DEFAULT_INPUT_DIRECTORY = {"./"};
 
 struct OutputDirectory {
    std::string directory;
 };
+const OutputDirectory DEFAULT_OUTPUT_DIRECTORY = {"./output/"};
 
 struct MetadataFilename {
    std::string filename;
 };
+const MetadataFilename DEFAULT_METADATA_FILENAME = {"metadata.tsv"};
 
 struct PangoLineageDefinitionFilename {
    std::optional<std::string> filename;
@@ -31,26 +34,32 @@ struct PangoLineageDefinitionFilename {
 struct NucleotideSequencePrefix {
    std::string prefix;
 };
+const NucleotideSequencePrefix DEFAULT_NUCLEOTIDE_SEQUENCE_PREFIX = {"nuc_"};
 
 struct GenePrefix {
    std::string prefix;
 };
+const GenePrefix DEFAULT_GENE_PREFIX = {"gene_"};
 
 struct PartitionsFolder {
    std::string folder;
 };
+const PartitionsFolder DEFAULT_PARTITIONS_FOLDER = {"partitions/"};
 
 struct SortedPartitionsFolder {
    std::string folder;
 };
+const SortedPartitionsFolder DEFAULT_SORTED_PARTITIONS_FOLDER = {"partitions_sorted/"};
 
 struct SerializedStateFolder {
    std::string folder;
 };
+const SerializedStateFolder DEFAULT_SERIALIZED_STATE_FOLDER = {"serialized_state/"};
 
 struct ReferenceGenomeFilename {
    std::string filename;
 };
+const ReferenceGenomeFilename DEFAULT_REFERENCE_GENOME_FILENAME = {"reference-genomes.json"};
 
 class PreprocessingConfig {
    friend class fmt::formatter<silo::preprocessing::PreprocessingConfig>;

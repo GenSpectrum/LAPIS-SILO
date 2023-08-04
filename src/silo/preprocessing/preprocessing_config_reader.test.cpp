@@ -1,10 +1,11 @@
 #include "silo/preprocessing/preprocessing_config_reader.h"
 
-#include "silo/preprocessing/preprocessing_config.h"
-
 #include <gtest/gtest.h>
 #include <yaml-cpp/yaml.h>
 
+#include "silo/preprocessing/preprocessing_config.h"
+
+using silo::preprocessing::OptionalPreprocessingConfig;
 using silo::preprocessing::PreprocessingConfig;
 using silo::preprocessing::PreprocessingConfigReader;
 
@@ -12,8 +13,9 @@ TEST(PreprocessingConfigReader, shouldReadConfigWithCorrectParametersAndDefaults
    PreprocessingConfig config;
 
    ASSERT_NO_THROW(
-      config =
-         PreprocessingConfigReader().readConfig("./testBaseData/test_preprocessing_config.yaml")
+      config = PreprocessingConfigReader()
+                  .readConfig("./testBaseData/test_preprocessing_config.yaml")
+                  .mergeValuesFromOrDefault(OptionalPreprocessingConfig())
    );
 
    const std::string input_directory = "./testBaseData/exampleDataset/";
@@ -50,9 +52,10 @@ TEST(PreprocessingConfigReader, shouldReadConfigWithOverriddenDefaults) {
    PreprocessingConfig config;
 
    ASSERT_NO_THROW(
-      config = PreprocessingConfigReader().readConfig(
-         "./testBaseData/test_preprocessing_config_with_overridden_defaults.yaml"
-      )
+      config =
+         PreprocessingConfigReader()
+            .readConfig("./testBaseData/test_preprocessing_config_with_overridden_defaults.yaml")
+            .mergeValuesFromOrDefault(OptionalPreprocessingConfig())
    );
 
    const std::string input_directory = "./testBaseData/exampleDataset/";
@@ -70,5 +73,46 @@ TEST(PreprocessingConfigReader, shouldReadConfigWithOverriddenDefaults) {
    ASSERT_EQ(
       config.getNucSortedPartitionFilename("aligned", 2, 3),
       output_directory + "folder2/aligned/P2_C3.zstdfasta"
+   );
+}
+
+TEST(OptionalPreprocessingConfig, givenLeftHandSideHasValueThenMergeTakesLeftHandSideValue) {
+   silo::preprocessing::OptionalPreprocessingConfig left;
+   left.gene_prefix = "leftTestPrefix_";
+   auto right =
+      PreprocessingConfigReader().readConfig("./testBaseData/test_preprocessing_config.yaml");
+   right.gene_prefix = "rightTestPrefix_";
+
+   const auto result = left.mergeValuesFromOrDefault(right);
+
+   ASSERT_EQ(
+      result.getGeneFilename("dummy"),
+      std::filesystem::path("./testBaseData/leftTestPrefix_dummy.fasta")
+   );
+}
+
+TEST(OptionalPreprocessingConfig, givenLeftHandSideHasNotValueThenMergeTakesRightHandSideValue) {
+   const silo::preprocessing::OptionalPreprocessingConfig left;
+   auto right =
+      PreprocessingConfigReader().readConfig("./testBaseData/test_preprocessing_config.yaml");
+   right.gene_prefix = "rightTestPrefix_";
+
+   const auto result = left.mergeValuesFromOrDefault(right);
+
+   ASSERT_EQ(
+      result.getGeneFilename("dummy"),
+      std::filesystem::path("./testBaseData/rightTestPrefix_dummy.fasta")
+   );
+}
+
+TEST(OptionalPreprocessingConfig, givenNeitherSideHasValueThenMergeTakesDefaultValue) {
+   const silo::preprocessing::OptionalPreprocessingConfig left;
+   const auto right =
+      PreprocessingConfigReader().readConfig("./testBaseData/test_preprocessing_config.yaml");
+
+   const auto result = left.mergeValuesFromOrDefault(right);
+
+   ASSERT_EQ(
+      result.getGeneFilename("dummy"), std::filesystem::path("./testBaseData/gene_dummy.fasta")
    );
 }
