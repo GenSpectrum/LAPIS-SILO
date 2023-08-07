@@ -1,5 +1,5 @@
-inputDirectory: "./testBaseData/"
+inputDirectory: "./testBaseData/exampleDataset/"
 outputDirectory: "./output/"
 metadataFilename: "small_metadata_set.tsv"
 pangoLineageDefinitionFilename: "pangolineage_alias.json"
-referenceGenomeFilename: "reference-genomes.json"
+referenceGenomeFilename: "reference_genomes.json"

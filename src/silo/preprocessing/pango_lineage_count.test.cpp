@@ -7,12 +7,14 @@
 #include "silo/preprocessing/pango_lineage_count.h"
 
 TEST(PangoLineageCounts, buildPangoLineageCounts) {
-   const std::filesystem::path metadata_path = "testBaseData/small_metadata_set.tsv";
+   const std::filesystem::path metadata_path = "testBaseData/exampleDataset/small_metadata_set.tsv";
    const silo::config::DatabaseConfig database_config = {
       .schema = {.partition_by = "pango_lineage"}};
 
    auto result = silo::preprocessing::buildPangoLineageCounts(
-      silo::PangoLineageAliasLookup::readFromFile("testBaseData/pangolineage_alias.json"),
+      silo::PangoLineageAliasLookup::readFromFile(
+         "testBaseData/exampleDataset/pangolineage_alias.json"
+      ),
       metadata_path,
       database_config
    );

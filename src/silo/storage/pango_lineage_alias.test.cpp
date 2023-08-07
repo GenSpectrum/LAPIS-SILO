@@ -42,8 +42,9 @@ INSTANTIATE_TEST_SUITE_P(
 );
 
 TEST(PangoLineageAliasLookup, readFromFile) {
-   auto under_test =
-      silo::PangoLineageAliasLookup::readFromFile("testBaseData/pangolineage_alias.json");
+   auto under_test = silo::PangoLineageAliasLookup::readFromFile(
+      "testBaseData/exampleDataset/pangolineage_alias.json"
+   );
 
    ASSERT_EQ(under_test.unaliasPangoLineage({"B"}).value, "B");
    ASSERT_EQ(under_test.unaliasPangoLineage({"B.1"}).value, "B.1");

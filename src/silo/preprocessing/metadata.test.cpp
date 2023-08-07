@@ -7,7 +7,7 @@
 
 TEST(MetadataReader, readColumnOfMetadataFile) {
    const auto test_column =
-      silo::preprocessing::MetadataReader("testBaseData/small_metadata_set.tsv")
+      silo::preprocessing::MetadataReader("testBaseData/exampleDataset/small_metadata_set.tsv")
          .getColumn("gisaid_epi_isl");
 
    ASSERT_EQ(test_column.size(), 100);
@@ -17,7 +17,7 @@ TEST(MetadataReader, readColumnOfMetadataFile) {
 TEST(MetadataReader, shouldThrowExceptionWhenColumnDoesNotExist) {
    EXPECT_THAT(
       []() {
-         silo::preprocessing::MetadataReader("testBaseData/small_metadata_set.tsv")
+         silo::preprocessing::MetadataReader("testBaseData/exampleDataset/small_metadata_set.tsv")
             .getColumn("columnThatDoesNotExist");
       },
       ThrowsMessage<silo::PreprocessingException>(
@@ -47,7 +47,8 @@ TEST(MetadataReader, shouldThrowExceptionWhenGettingColumnOfFileThatDoesNotExist
 }
 
 TEST(MetadataReader, getReader) {
-   auto reader = silo::preprocessing::MetadataReader("testBaseData/small_metadata_set.tsv");
+   auto reader =
+      silo::preprocessing::MetadataReader("testBaseData/exampleDataset/small_metadata_set.tsv");
 
    auto first_row = *reader.reader.begin();
    ASSERT_EQ(first_row["gisaid_epi_isl"].get(), "EPI_ISL_1408408");

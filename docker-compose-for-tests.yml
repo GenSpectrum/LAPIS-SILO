@@ -3,11 +3,10 @@ services:
   silo:
     image: ${SILO_IMAGE}
     volumes:
-      - ./testBaseData:/data
+      - ./testBaseData/exampleDataset:/data
     ports:
       - "8080:8081"
     command:
       - "--api"
-      - "--preprocessingConfig=./preprocessing_config_for_ci.yaml"
+      - "--preprocessingConfig=./preprocessing_config.yaml"
       - "--databaseConfig=./test_database_config.yaml"
-

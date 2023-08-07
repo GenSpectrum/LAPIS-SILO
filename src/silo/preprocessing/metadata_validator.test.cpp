@@ -28,7 +28,8 @@ TEST(
    EXPECT_THAT(
       [=]() {
          under_test.validateMedataFile(
-            "testBaseData/small_metadata_set.tsv", some_config_with_one_column_not_in_metadata
+            "testBaseData/exampleDataset/small_metadata_set.tsv",
+            some_config_with_one_column_not_in_metadata
          );
       },
       ThrowsMessage<silo::PreprocessingException>(
@@ -53,7 +54,7 @@ TEST(MetadataValidator, isValidMedataFileShouldReturnTrueWithValidMetadataFile) 
 
    const auto under_test = silo::preprocessing::MetadataValidator();
 
-   EXPECT_NO_THROW(
-      under_test.validateMedataFile("testBaseData/small_metadata_set.tsv", valid_config)
-   );
+   EXPECT_NO_THROW(under_test.validateMedataFile(
+      "testBaseData/exampleDataset/small_metadata_set.tsv", valid_config
+   ));
 }
