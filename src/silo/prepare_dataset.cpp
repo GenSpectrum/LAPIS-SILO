@@ -128,8 +128,7 @@ std::unordered_map<std::string, silo::preprocessing::PartitionChunk> partitionMe
 
 void copyMetadataFile(
    csv::CSVReader& metadata_reader,
-   silo::preprocessing::MetadataWriter& metadata_writer,
-   const std::string& primary_key_field
+   silo::preprocessing::MetadataWriter& metadata_writer
 ) {
    metadata_writer.writeHeader(metadata_reader);
    for (auto& row : metadata_reader) {
@@ -262,7 +261,6 @@ void silo::partitionData(
 
 void silo::copyDataToPartitionDirectory(
    const preprocessing::PreprocessingConfig& preprocessing_config,
-   const std::string& primary_key_field,
    const ReferenceGenomes& reference_genomes
 ) {
    const std::filesystem::path metadata_filename = preprocessing_config.getMetadataInputFilename();
@@ -271,7 +269,7 @@ void silo::copyDataToPartitionDirectory(
    auto metadata_partition_filename = preprocessing_config.getMetadataPartitionFilename(0, 0);
    auto metadata_writer = preprocessing::MetadataWriter(metadata_partition_filename);
 
-   copyMetadataFile(metadata_reader.reader, metadata_writer, primary_key_field);
+   copyMetadataFile(metadata_reader.reader, metadata_writer);
 
    for (const auto& [nuc_name, reference_genome] : reference_genomes.raw_nucleotide_sequences) {
       const std::filesystem::path sequence_in_filename =

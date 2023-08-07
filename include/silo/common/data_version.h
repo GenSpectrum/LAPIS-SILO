@@ -7,7 +7,7 @@ namespace silo {
 
 class DataVersion {
   public:
-   explicit DataVersion(const std::string& data_version = "");
+   explicit DataVersion(std::string data_version = "");
    [[nodiscard]] std::string toString() const;
 
    static std::string mineDataVersion();

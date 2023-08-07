@@ -27,7 +27,7 @@ struct MetadataFilename {
 };
 
 struct PangoLineageDefinitionFilename {
-   std::string filename;
+   std::optional<std::string> filename;
 };
 
 struct NucleotideSequencePrefix {
@@ -58,7 +58,7 @@ class PreprocessingConfig {
    friend class fmt::formatter<silo::preprocessing::PreprocessingConfig>;
 
    std::filesystem::path input_directory;
-   std::filesystem::path pango_lineage_definition_file;
+   std::optional<std::filesystem::path> pango_lineage_definition_file;
    std::filesystem::path metadata_file;
    std::filesystem::path partition_folder;
    std::filesystem::path sorted_partition_folder;
@@ -83,7 +83,7 @@ class PreprocessingConfig {
       const GenePrefix& gene_prefix_
    );
 
-   [[nodiscard]] std::filesystem::path getPangoLineageDefinitionFilename() const;
+   [[nodiscard]] std::optional<std::filesystem::path> getPangoLineageDefinitionFilename() const;
 
    [[nodiscard]] std::filesystem::path getReferenceGenomeFilename() const;
 

@@ -520,9 +520,11 @@ Database Database::preprocessing(
    );
 
    SPDLOG_INFO("preprocessing - building alias key");
-   database.alias_key =
-      PangoLineageAliasLookup::readFromFile(preprocessing_config.getPangoLineageDefinitionFilename()
+   if (preprocessing_config.getPangoLineageDefinitionFilename().has_value()) {
+      database.alias_key = PangoLineageAliasLookup::readFromFile(
+         preprocessing_config.getPangoLineageDefinitionFilename().value()
       );
+   }
 
    SPDLOG_INFO("preprocessing - reading reference genome");
    const ReferenceGenomes& reference_genomes =
@@ -540,9 +542,9 @@ Database Database::preprocessing(
       );
 
       SPDLOG_INFO("preprocessing - calculating partitions");
-      partition_descriptor = preprocessing::Partitions(preprocessing::buildPartitions(
+      partition_descriptor = preprocessing::buildPartitions(
          pango_descriptor, preprocessing::Architecture::MAX_PARTITIONS
-      ));
+      );
 
       SPDLOG_INFO("preprocessing - partitioning data");
       partitionData(
@@ -564,9 +566,7 @@ Database Database::preprocessing(
          preprocessing_config.getMetadataInputFilename(), database_config_
       );
 
-      copyDataToPartitionDirectory(
-         preprocessing_config, database_config_.schema.primary_key, reference_genomes
-      );
+      copyDataToPartitionDirectory(preprocessing_config, reference_genomes);
    }
 
    if (database_config_.schema.date_to_sort_by.has_value()) {

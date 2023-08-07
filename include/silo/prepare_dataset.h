@@ -34,7 +34,6 @@ void partitionData(
 
 void copyDataToPartitionDirectory(
    const preprocessing::PreprocessingConfig& preprocessing_config,
-   const std::string& primary_key_field,
    const ReferenceGenomes& reference_genomes
 );
 

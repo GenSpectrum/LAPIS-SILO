@@ -10,8 +10,8 @@ std::string DataVersion::mineDataVersion() {
    return std::to_string(now_as_time_t);
 }
 
-DataVersion::DataVersion(const std::string& data_version)
-    : data_version(data_version) {}
+DataVersion::DataVersion(std::string data_version)
+    : data_version(std::move(data_version)) {}
 
 std::string DataVersion::toString() const {
    return data_version;
