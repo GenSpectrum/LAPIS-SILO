@@ -2,6 +2,7 @@
 #define SILO_PARTITION_H
 
 #include <cstdint>
+#include <filesystem>
 #include <functional>
 #include <iosfwd>
 #include <string>
@@ -16,6 +17,9 @@ class access;
 }
 namespace silo::common {
 class UnaliasedPangoLineage;
+}
+namespace silo::config {
+class DatabaseConfig;
 }
 
 namespace silo::preprocessing {
@@ -88,6 +92,8 @@ class Partitions {
    std::unordered_map<std::string, silo::preprocessing::PartitionChunk> pango_to_chunk;
 
   public:
+   Partitions();
+
    explicit Partitions(std::vector<Partition> partitions_);
 
    void save(std::ostream& output_file) const;
@@ -103,6 +109,11 @@ class Partitions {
 };
 
 Partitions buildPartitions(const PangoLineageCounts& pango_lineage_counts, Architecture arch);
+
+Partitions createSingletonPartitions(
+   const std::filesystem::path& metadata_path,
+   const silo::config::DatabaseConfig& database_config
+);
 
 }  // namespace silo::preprocessing
 

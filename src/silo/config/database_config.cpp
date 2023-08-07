@@ -96,7 +96,11 @@ struct convert<silo::config::DatabaseSchema> {
       } else {
          schema.date_to_sort_by = std::nullopt;
       }
-      schema.partition_by = node["partitionBy"].as<std::string>();
+      if (node["partitionBy"].IsDefined()) {
+         schema.partition_by = node["partitionBy"].as<std::string>();
+      } else {
+         schema.partition_by = std::nullopt;
+      }
 
       if (!node["metadata"].IsSequence()) {
          return false;
@@ -112,7 +116,9 @@ struct convert<silo::config::DatabaseSchema> {
       Node node;
       node["instanceName"] = schema.instance_name;
       node["primaryKey"] = schema.primary_key;
-      node["partitionBy"] = schema.partition_by;
+      if (schema.partition_by.has_value()) {
+         node["partitionBy"] = *schema.partition_by;
+      }
       if (schema.date_to_sort_by.has_value()) {
          node["dateToSortBy"] = *schema.date_to_sort_by;
       }
@@ -219,10 +225,13 @@ DatabaseConfig DatabaseConfigReader::readConfig(const std::filesystem::path& con
 ) -> decltype(ctx.out()) {
    return format_to(
       ctx.out(),
-      "{{ instance_name: '{}', primary_key: '{}', partition_by: '{}', metadata: [{}] }}",
+      "{{ instance_name: '{}', primary_key: '{}', partition_by: {}, date_to_sort_by: {}, metadata: "
+      "[{}] }}",
       database_schema.instance_name,
       database_schema.primary_key,
-      database_schema.partition_by,
+      database_schema.partition_by.has_value() ? "'" + *database_schema.partition_by + "'" : "none",
+      database_schema.date_to_sort_by.has_value() ? "'" + *database_schema.date_to_sort_by + "'"
+                                                  : "none",
       fmt::join(database_schema.metadata, ",")
    );
 }

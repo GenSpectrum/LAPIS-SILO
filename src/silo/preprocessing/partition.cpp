@@ -13,7 +13,9 @@
 #include <boost/range/difference_type.hpp>
 #include <nlohmann/json.hpp>
 
+#include "silo/config/database_config.h"
 #include "silo/persistence/exception.h"
+#include "silo/preprocessing/metadata.h"
 #include "silo/preprocessing/pango_lineage_count.h"
 
 namespace silo::preprocessing {
@@ -125,6 +127,8 @@ uint32_t Partition::getSequenceCount() const {
    return sequence_count;
 }
 
+silo::preprocessing::Partitions::Partitions() = default;
+
 silo::preprocessing::Partitions::Partitions(std::vector<Partition> partitions_)
     : partitions(std::move(partitions_)) {
    for (uint32_t part_id = 0, limit = partitions.size(); part_id < limit; ++part_id) {
@@ -193,6 +197,20 @@ Partitions buildPartitions(
       }
    }
    return Partitions{partitions};
+}
+
+Partitions createSingletonPartitions(
+   const std::filesystem::path& metadata_path,
+   const silo::config::DatabaseConfig& database_config
+) {
+   const uint32_t count_of_sequences = silo::preprocessing::MetadataReader(metadata_path)
+                                          .getColumn(database_config.schema.primary_key)
+                                          .size();
+
+   const preprocessing::Chunk singleton_chunk({""}, count_of_sequences);
+   const preprocessing::Partition singleton_partition({singleton_chunk});
+
+   return preprocessing::Partitions({singleton_partition});
 }
 
 const std::vector<Partition>& Partitions::getPartitions() const {

@@ -34,7 +34,7 @@ struct PangoLineageCounts {
 PangoLineageCounts buildPangoLineageCounts(
    const PangoLineageAliasLookup& alias_key,
    const std::filesystem::path& metadata_path,
-   const silo::config::DatabaseConfig& database_config
+   const std::string& partition_by
 );
 
 }  // namespace preprocessing

@@ -41,7 +41,7 @@ PangoLineageCounts PangoLineageCounts::load(std::istream& input_stream) {
 PangoLineageCounts buildPangoLineageCounts(
    const PangoLineageAliasLookup& alias_key,
    const std::filesystem::path& metadata_path,
-   const silo::config::DatabaseConfig& database_config
+   const std::string& partition_by
 ) {
    PangoLineageCounts pango_lineage_counts;
 
@@ -49,8 +49,7 @@ PangoLineageCounts buildPangoLineageCounts(
    std::unordered_map<common::UnaliasedPangoLineage, uint32_t> pango_lineage_to_id;
 
    const std::vector<std::string> unresolved_pango_lineages =
-      silo::preprocessing::MetadataReader(metadata_path)
-         .getColumn(database_config.schema.partition_by);
+      silo::preprocessing::MetadataReader(metadata_path).getColumn(partition_by);
 
    for (const auto& unresolved_pango_lineage : unresolved_pango_lineages) {
       const common::UnaliasedPangoLineage pango_lineage =

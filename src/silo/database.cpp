@@ -528,24 +528,46 @@ Database Database::preprocessing(
    const ReferenceGenomes& reference_genomes =
       ReferenceGenomes::readFromFile(preprocessing_config.getReferenceGenomeFilename());
 
-   SPDLOG_INFO("preprocessing - counting pango lineages");
-   const preprocessing::PangoLineageCounts pango_descriptor(preprocessing::buildPangoLineageCounts(
-      database.alias_key, preprocessing_config.getMetadataInputFilename(), database_config_
-   ));
+   preprocessing::Partitions partition_descriptor;
+   if (database_config_.schema.partition_by.has_value()) {
+      SPDLOG_INFO("preprocessing - counting pango lineages");
+      const preprocessing::PangoLineageCounts pango_descriptor(
+         preprocessing::buildPangoLineageCounts(
+            database.alias_key,
+            preprocessing_config.getMetadataInputFilename(),
+            database_config_.schema.partition_by.value()
+         )
+      );
 
-   SPDLOG_INFO("preprocessing - calculating partitions");
-   const preprocessing::Partitions partition_descriptor(
-      preprocessing::buildPartitions(pango_descriptor, preprocessing::Architecture::MAX_PARTITIONS)
-   );
+      SPDLOG_INFO("preprocessing - calculating partitions");
+      partition_descriptor = preprocessing::Partitions(preprocessing::buildPartitions(
+         pango_descriptor, preprocessing::Architecture::MAX_PARTITIONS
+      ));
 
-   SPDLOG_INFO("preprocessing - partitioning data");
-   partitionData(
-      preprocessing_config,
-      partition_descriptor,
-      database.alias_key,
-      database_config_,
-      reference_genomes
-   );
+      SPDLOG_INFO("preprocessing - partitioning data");
+      partitionData(
+         preprocessing_config,
+         partition_descriptor,
+         database.alias_key,
+         database_config_.schema.primary_key,
+         database_config_.schema.partition_by.value(),
+         reference_genomes
+      );
+
+   } else {
+      SPDLOG_INFO(
+         "preprocessing - skip partition merging because no partition_by key was provided, instead "
+         "putting all sequences into the same partition"
+      );
+
+      partition_descriptor = preprocessing::createSingletonPartitions(
+         preprocessing_config.getMetadataInputFilename(), database_config_
+      );
+
+      copyDataToPartitionDirectory(
+         preprocessing_config, database_config_.schema.primary_key, reference_genomes
+      );
+   }
 
    if (database_config_.schema.date_to_sort_by.has_value()) {
       SPDLOG_INFO("preprocessing - sorting chunks");

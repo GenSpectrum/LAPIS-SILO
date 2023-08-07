@@ -160,4 +160,12 @@ TEST(DatabaseConfigReader, shouldReadConfigWithoutDateToSortBy) {
    ASSERT_EQ(config.schema.date_to_sort_by, std::nullopt);
 }
 
+TEST(DatabaseConfigReader, shouldReadConfigWithoutPartitionBy) {
+   const DatabaseConfig& config = DatabaseConfigReader().readConfig(
+      "testBaseData/test_database_config_without_partition_by.yaml"
+   );
+
+   ASSERT_EQ(config.schema.partition_by, std::nullopt);
+}
+
 }  // namespace
