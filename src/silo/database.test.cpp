@@ -7,13 +7,12 @@
 #include "silo/database_info.h"
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_config_reader.h"
-#include "silo/storage/database_partition.h"
 
 silo::Database buildTestDatabase() {
-   const silo::preprocessing::InputDirectory input_directory{"./testBaseData/"};
+   const silo::preprocessing::InputDirectory input_directory{"./testBaseData/exampleDataset/"};
 
    auto config = silo::preprocessing::PreprocessingConfigReader().readConfig(
-      input_directory.directory + "test_preprocessing_config.yaml"
+      "./testBaseData/test_preprocessing_config.yaml"
    );
 
    const auto database_config = silo::config::ConfigRepository().getValidatedConfig(

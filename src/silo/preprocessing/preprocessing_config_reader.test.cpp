@@ -16,7 +16,7 @@ TEST(PreprocessingConfigReader, shouldReadConfigWithCorrectParametersAndDefaults
          PreprocessingConfigReader().readConfig("./testBaseData/test_preprocessing_config.yaml")
    );
 
-   const std::string input_directory = "./testBaseData/";
+   const std::string input_directory = "./testBaseData/exampleDataset/";
    const std::string output_directory = "./output/";
    ASSERT_EQ(config.getMetadataInputFilename(), input_directory + "small_metadata_set.tsv");
    ASSERT_EQ(
@@ -55,7 +55,7 @@ TEST(PreprocessingConfigReader, shouldReadConfigWithOverriddenDefaults) {
       )
    );
 
-   const std::string input_directory = "./testBaseData/";
+   const std::string input_directory = "./testBaseData/exampleDataset/";
    const std::string output_directory = "./output/";
    ASSERT_EQ(config.getMetadataInputFilename(), input_directory + "small_metadata_set.tsv");
    ASSERT_EQ(
