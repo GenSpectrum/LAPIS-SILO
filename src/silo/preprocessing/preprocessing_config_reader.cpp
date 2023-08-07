@@ -16,7 +16,6 @@ using silo::preprocessing::OutputDirectory;
 using silo::preprocessing::PangoLineageDefinitionFilename;
 using silo::preprocessing::PartitionsFolder;
 using silo::preprocessing::ReferenceGenomeFilename;
-using silo::preprocessing::SerializedStateFolder;
 using silo::preprocessing::SortedPartitionsFolder;
 
 namespace YAML {
@@ -34,6 +33,7 @@ struct convert<OptionalPreprocessingConfig> {
       config = OptionalPreprocessingConfig(
          extractStringIfPresent(node, "inputDirectory"),
          extractStringIfPresent(node, "outputDirectory"),
+         extractStringIfPresent(node, "intermediateResultsDirectory"),
          extractStringIfPresent(node, "metadataFilename"),
          extractStringIfPresent(node, "pangoLineageDefinitionFilename"),
          extractStringIfPresent(node, "partitionsFolder"),
@@ -65,6 +65,10 @@ PreprocessingConfig OptionalPreprocessingConfig::mergeValuesFromOrDefault(
       InputDirectory{input_directory.value_or(
          other.input_directory.value_or(silo::preprocessing::DEFAULT_INPUT_DIRECTORY.directory)
       )},
+      IntermediateResultsDirectory{
+         intermediate_results_directory.value_or(other.intermediate_results_directory.value_or(
+            silo::preprocessing::DEFAULT_INTERMEDIATE_RESULTS_DIRECTORY.directory
+         ))},
       OutputDirectory{output_directory.value_or(
          other.output_directory.value_or(silo::preprocessing::DEFAULT_OUTPUT_DIRECTORY.directory)
       )},
@@ -81,9 +85,6 @@ PreprocessingConfig OptionalPreprocessingConfig::mergeValuesFromOrDefault(
          sorted_partition_folder.value_or(other.sorted_partition_folder.value_or(
             silo::preprocessing::DEFAULT_SORTED_PARTITIONS_FOLDER.folder
          ))},
-      SerializedStateFolder{serialization_folder.value_or(other.serialization_folder.value_or(
-         silo::preprocessing::DEFAULT_SERIALIZED_STATE_FOLDER.folder
-      ))},
       ReferenceGenomeFilename{reference_genome_file.value_or(other.reference_genome_file.value_or(
          silo::preprocessing::DEFAULT_REFERENCE_GENOME_FILENAME.filename
       ))},

@@ -3,8 +3,10 @@ services:
   silo:
     image: ${SILO_IMAGE}
     volumes:
-      - ./testBaseData:/data
+      - ./testBaseData/exampleDataset:/preprocessing/input
+      - ./testBaseData/output:/preprocessing/output
+      - ./testBaseData/exampleDataset/preprocessing_config.yaml:/app/preprocessing_config.yaml
+      - ./testBaseData/exampleDataset/test_database_config.yaml:/app/database_config.yaml
+      - ./logs:/app/logs
     command:
       - "--preprocessing"
-      - "--preprocessingConfig=./preprocessing_config_for_ci.yaml"
-      - "--databaseConfig=./test_database_config.yaml"

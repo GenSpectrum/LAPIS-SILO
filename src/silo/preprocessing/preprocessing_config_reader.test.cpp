@@ -19,26 +19,26 @@ TEST(PreprocessingConfigReader, shouldReadConfigWithCorrectParametersAndDefaults
    );
 
    const std::string input_directory = "./testBaseData/exampleDataset/";
-   const std::string output_directory = "./output/";
+   const std::string intermediate_directory = "./temp/";
    ASSERT_EQ(config.getMetadataInputFilename(), input_directory + "small_metadata_set.tsv");
    ASSERT_EQ(
       config.getPangoLineageDefinitionFilename(), input_directory + "pangolineage_alias.json"
    );
    ASSERT_EQ(
       config.getNucPartitionFilename("dummy", 0, 0),
-      output_directory + "partitions/nuc_dummy/P0_C0.zstdfasta"
+      intermediate_directory + "partitions/nuc_dummy/P0_C0.zstdfasta"
    );
    ASSERT_EQ(
       config.getGenePartitionFilename("dummy2", 0, 0),
-      output_directory + "partitions/gene_dummy2/P0_C0.zstdfasta"
+      intermediate_directory + "partitions/gene_dummy2/P0_C0.zstdfasta"
    );
    ASSERT_EQ(
       config.getNucSortedPartitionFilename("dummy", 2, 1),
-      output_directory + "partitions_sorted/nuc_dummy/P2_C1.zstdfasta"
+      intermediate_directory + "partitions_sorted/nuc_dummy/P2_C1.zstdfasta"
    );
    ASSERT_EQ(
       config.getGeneSortedPartitionFilename("dummy", 2, 1),
-      output_directory + "partitions_sorted/gene_dummy/P2_C1.zstdfasta"
+      intermediate_directory + "partitions_sorted/gene_dummy/P2_C1.zstdfasta"
    );
 }
 
@@ -59,7 +59,7 @@ TEST(PreprocessingConfigReader, shouldReadConfigWithOverriddenDefaults) {
    );
 
    const std::string input_directory = "./testBaseData/exampleDataset/";
-   const std::string output_directory = "./output/";
+   const std::string intermediate_directory = "./output/overriddenTemp/";
    ASSERT_EQ(config.getMetadataInputFilename(), input_directory + "small_metadata_set.tsv");
    ASSERT_EQ(
       config.getPangoLineageDefinitionFilename(), input_directory + "pangolineage_alias.json"
@@ -68,12 +68,13 @@ TEST(PreprocessingConfigReader, shouldReadConfigWithOverriddenDefaults) {
    ASSERT_EQ(config.getNucFilename("aligned"), input_directory + "aligned.fasta");
    ASSERT_EQ(
       config.getNucPartitionFilename("aligned", 0, 1),
-      output_directory + "folder1/aligned/P0_C1.zstdfasta"
+      intermediate_directory + "folder1/aligned/P0_C1.zstdfasta"
    );
    ASSERT_EQ(
       config.getNucSortedPartitionFilename("aligned", 2, 3),
-      output_directory + "folder2/aligned/P2_C3.zstdfasta"
+      intermediate_directory + "folder2/aligned/P2_C3.zstdfasta"
    );
+   ASSERT_EQ(config.getOutputDirectory(), "./output/custom/");
 }
 
 TEST(OptionalPreprocessingConfig, givenLeftHandSideHasValueThenMergeTakesLeftHandSideValue) {
@@ -87,7 +88,7 @@ TEST(OptionalPreprocessingConfig, givenLeftHandSideHasValueThenMergeTakesLeftHan
 
    ASSERT_EQ(
       result.getGeneFilename("dummy"),
-      std::filesystem::path("./testBaseData/leftTestPrefix_dummy.fasta")
+      std::filesystem::path("./testBaseData/exampleDataset/leftTestPrefix_dummy.fasta")
    );
 }
 
@@ -101,7 +102,7 @@ TEST(OptionalPreprocessingConfig, givenLeftHandSideHasNotValueThenMergeTakesRigh
 
    ASSERT_EQ(
       result.getGeneFilename("dummy"),
-      std::filesystem::path("./testBaseData/rightTestPrefix_dummy.fasta")
+      std::filesystem::path("./testBaseData/exampleDataset/rightTestPrefix_dummy.fasta")
    );
 }
 
@@ -113,6 +114,7 @@ TEST(OptionalPreprocessingConfig, givenNeitherSideHasValueThenMergeTakesDefaultV
    const auto result = left.mergeValuesFromOrDefault(right);
 
    ASSERT_EQ(
-      result.getGeneFilename("dummy"), std::filesystem::path("./testBaseData/gene_dummy.fasta")
+      result.getGeneFilename("dummy"),
+      std::filesystem::path("./testBaseData/exampleDataset/gene_dummy.fasta")
    );
 }

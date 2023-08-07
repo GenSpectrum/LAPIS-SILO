@@ -1,5 +1,7 @@
 #include "silo/database.h"
 
+#include "filesystem"
+
 #include <gtest/gtest.h>
 
 #include "silo/common/nucleotide_symbols.h"
@@ -100,9 +102,15 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfo) {
 TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
    auto first_database = buildTestDatabase();
 
-   first_database.saveDatabaseState("output/serialized_state/");
+   const std::string directory = "output/test_serialized_state/";
+   if (std::filesystem::exists(directory)) {
+      std::filesystem::remove_all(directory);
+   }
+   std::filesystem::create_directories(directory);
 
-   auto database = silo::Database::loadDatabaseState("output/serialized_state/");
+   first_database.saveDatabaseState(directory);
+
+   auto database = silo::Database::loadDatabaseState(directory);
 
    const auto simple_database_info = database.getDatabaseInfo();
 

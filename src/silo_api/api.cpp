@@ -180,7 +180,7 @@ class SiloServer : public Poco::Util::ServerApplication {
       auto database_preprocessing =
          silo::Database::preprocessing(preprocessing_config, database_config);
 
-      database_preprocessing.saveDatabaseState(preprocessing_config.getSerializedStateFolder());
+      database_preprocessing.saveDatabaseState(preprocessing_config.getOutputDirectory());
 
       return Application::EXIT_OK;
    };

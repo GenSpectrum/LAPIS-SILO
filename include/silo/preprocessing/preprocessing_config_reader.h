@@ -10,6 +10,7 @@ struct PreprocessingConfig;
 struct OptionalPreprocessingConfig {
    std::optional<std::filesystem::path> input_directory;
    std::optional<std::filesystem::path> output_directory;
+   std::optional<std::filesystem::path> intermediate_results_directory;
    std::optional<std::filesystem::path> metadata_file;
    std::optional<std::filesystem::path> pango_lineage_definition_file;
    std::optional<std::filesystem::path> partition_folder;

@@ -1,2 +1,3 @@
 inputDirectory: "/preprocessing/input/"
+intermediateResultsDirectory: "/preprocessing/temp/"
 outputDirectory: "/preprocessing/output/"

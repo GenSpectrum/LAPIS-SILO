@@ -48,12 +48,12 @@ PreprocessingConfig::PreprocessingConfig() = default;
 
 PreprocessingConfig::PreprocessingConfig(
    const InputDirectory& input_directory_,
+   const IntermediateResultsDirectory& intermediate_results_directory_,
    const OutputDirectory& output_directory_,
    const MetadataFilename& metadata_filename_,
    const PangoLineageDefinitionFilename& pango_lineage_definition_filename_,
    const PartitionsFolder& partition_folder_,
    const SortedPartitionsFolder& sorted_partition_folder_,
-   const SerializedStateFolder& serialization_folder_,
    const ReferenceGenomeFilename& reference_genome_filename_,
    const NucleotideSequencePrefix& nucleotide_sequence_prefix_,
    const GenePrefix& gene_prefix_
@@ -72,16 +72,27 @@ PreprocessingConfig::PreprocessingConfig(
    }
    reference_genome_file = createPath(input_directory, reference_genome_filename_.filename);
 
-   const std::filesystem::path output_directory(output_directory_.directory);
    if (!std::filesystem::exists(output_directory_.directory)) {
       std::filesystem::create_directory(output_directory_.directory);
    }
+   this->output_directory = output_directory_.directory;
 
-   partition_folder = createOutputPath(output_directory, partition_folder_.folder);
-   sorted_partition_folder = createOutputPath(output_directory, sorted_partition_folder_.folder);
-   serialization_folder = createOutputPath(output_directory, serialization_folder_.folder);
+   const std::filesystem::path intermediate_results_directory(
+      intermediate_results_directory_.directory
+   );
+   if (!std::filesystem::exists(intermediate_results_directory_.directory)) {
+      std::filesystem::create_directory(intermediate_results_directory_.directory);
+   }
+
+   partition_folder = createOutputPath(intermediate_results_directory, partition_folder_.folder);
+   sorted_partition_folder =
+      createOutputPath(intermediate_results_directory, sorted_partition_folder_.folder);
    nucleotide_sequence_prefix = nucleotide_sequence_prefix_.prefix;
    gene_prefix = gene_prefix_.prefix;
+}
+
+std::filesystem::path PreprocessingConfig::getOutputDirectory() const {
+   return output_directory;
 }
 
 std::optional<std::filesystem::path> PreprocessingConfig::getPangoLineageDefinitionFilename(
@@ -233,18 +244,18 @@ std::filesystem::path PreprocessingConfig::getGeneSortedPartitionFilename(
 ) -> decltype(ctx.out()) {
    return format_to(
       ctx.out(),
-      "{{ input directory: '{}', pango_lineage_definition_file: {}, "
+      "{{ input directory: '{}', pango_lineage_definition_file: {}, output_directory: '{}', "
       "metadata_file: '{}', partition_folder: '{}', sorted_partition_folder: '{}', "
-      "serialization_folder: '{}', reference_genome_file: '{}',  gene_file_prefix: '{}',  "
+      "reference_genome_file: '{}',  gene_file_prefix: '{}',  "
       "nucleotide_sequence_file_prefix: '{}' }}",
       preprocessing_config.input_directory.string(),
+      preprocessing_config.output_directory.string(),
       preprocessing_config.pango_lineage_definition_file.has_value()
          ? "'" + preprocessing_config.pango_lineage_definition_file->string() + "'"
          : "none",
       preprocessing_config.metadata_file.string(),
       preprocessing_config.partition_folder.string(),
       preprocessing_config.sorted_partition_folder.string(),
-      preprocessing_config.serialization_folder.string(),
       preprocessing_config.reference_genome_file.string(),
       preprocessing_config.nucleotide_sequence_prefix,
       preprocessing_config.gene_prefix
