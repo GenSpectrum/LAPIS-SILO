@@ -2,17 +2,15 @@
 #define SILO_PREPROCESSING_CONFIG_H
 
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <unordered_map>
-
-namespace silo::preprocessing {
-struct PartitionChunk;
-struct Partitions;
-}  // namespace silo::preprocessing
 
 #include <fmt/core.h>
 
 namespace silo::preprocessing {
+struct PartitionChunk;
+struct Partitions;
 
 struct InputDirectory {
    std::string directory;

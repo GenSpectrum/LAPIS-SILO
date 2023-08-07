@@ -520,10 +520,11 @@ Database Database::preprocessing(
    );
 
    SPDLOG_INFO("preprocessing - building alias key");
-   if (preprocessing_config.getPangoLineageDefinitionFilename().has_value()) {
-      database.alias_key = PangoLineageAliasLookup::readFromFile(
-         preprocessing_config.getPangoLineageDefinitionFilename().value()
-      );
+   const auto pango_lineage_definition_filename =
+      preprocessing_config.getPangoLineageDefinitionFilename();
+   if (pango_lineage_definition_filename.has_value()) {
+      database.alias_key =
+         PangoLineageAliasLookup::readFromFile(pango_lineage_definition_filename.value());
    }
 
    SPDLOG_INFO("preprocessing - reading reference genome");
