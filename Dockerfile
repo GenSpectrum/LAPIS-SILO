@@ -36,6 +36,7 @@ FROM alpine:3.17.0 AS server
 
 WORKDIR /app
 COPY docker_default_preprocessing_config.yaml ./default_preprocessing_config.yaml
+COPY docker_runtime_config.yaml ./runtime_config.yaml
 COPY --from=builder /src/siloApi ./
 
 RUN apk update && apk add libtbb=2021.7.0-r0 curl jq

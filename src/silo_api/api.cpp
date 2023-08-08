@@ -21,6 +21,7 @@
 #include "silo_api/info_handler.h"
 #include "silo_api/logging.h"
 #include "silo_api/request_handler_factory.h"
+#include "silo_api/runtime_config.h"
 
 silo::preprocessing::PreprocessingConfig preprocessingConfig(
    const Poco::Util::AbstractConfiguration& config
@@ -38,9 +39,8 @@ silo::preprocessing::PreprocessingConfig preprocessingConfig(
          config.getString("preprocessingConfig")
       );
    } else if (std::filesystem::exists("./preprocessing_config.yaml")) {
-      user_preprocessing_config = silo::preprocessing::PreprocessingConfigReader().readConfig(
-         "./preprocessing_config.yaml"
-      );
+      user_preprocessing_config =
+         silo::preprocessing::PreprocessingConfigReader().readConfig("./preprocessing_config.yaml");
    }
 
    const auto preprocessing_config =
@@ -59,12 +59,27 @@ silo::config::DatabaseConfig databaseConfig(const Poco::Util::AbstractConfigurat
    return silo::config::ConfigRepository().getValidatedConfig("database_config.yaml");
 }
 
-std::filesystem::path dataFolder(const Poco::Util::AbstractConfiguration& config) {
-   if (config.hasProperty("data_folder")) {
-      return config.getString("data_folder");
+std::filesystem::path dataDirectory(
+   const Poco::Util::AbstractConfiguration& config,
+   const silo_api::RuntimeConfig& runtime_config
+) {
+   if (config.hasProperty("dataDirectory")) {
+      SPDLOG_DEBUG(
+         "Using dataDirectory passed via command line argument: {}",
+         config.getString("dataDirectory")
+      );
+      return config.getString("dataDirectory");
    }
+   if (runtime_config.data_directory.has_value()) {
+      SPDLOG_DEBUG(
+         "Using dataDirectory from runtime config file: {}",
+         runtime_config.data_directory.value().string()
+      );
+      return runtime_config.data_directory.value();
+   }
+
    SPDLOG_DEBUG(
-      "data_folder not found in config file. Using default value: {}",
+      "dataDirectory not found in specified. Using default value: {}",
       silo::preprocessing::DEFAULT_OUTPUT_DIRECTORY.directory
    );
    return silo::preprocessing::DEFAULT_OUTPUT_DIRECTORY.directory;
@@ -98,11 +113,11 @@ class SiloServer : public Poco::Util::ServerApplication {
             .binding("databaseConfig")
       );
 
-      options.addOption(Poco::Util::Option("data_folder", "df", "path to the preprocessed data")
+      options.addOption(Poco::Util::Option("dataDirectory", "d", "path to the preprocessed data")
                            .required(false)
                            .repeatable(false)
                            .argument("PATH")
-                           .binding("data_folder"));
+                           .binding("dataDirectory"));
 
       options.addOption(
          Poco::Util::Option("api", "a", "Execution mode: start the SILO web interface")
@@ -151,9 +166,14 @@ class SiloServer : public Poco::Util::ServerApplication {
       SPDLOG_INFO("Starting SILO API");
       const int port = 8081;
 
-      const auto data_folder = dataFolder(config());
+      silo_api::RuntimeConfig runtime_config;
+      if (std::filesystem::exists("./runtime_config.yaml")) {
+         runtime_config = silo_api::RuntimeConfig::readFromFile("./runtime_config.yaml");
+      }
 
-      auto database = silo::Database::loadDatabaseState(data_folder);
+      const auto data_directory = dataDirectory(config(), runtime_config);
+
+      auto database = silo::Database::loadDatabaseState(data_directory);
 
       const Poco::Net::ServerSocket server_socket(port);
       const silo::query_engine::QueryEngine query_engine(database);
@@ -177,10 +197,10 @@ class SiloServer : public Poco::Util::ServerApplication {
       const auto preprocessing_config = preprocessingConfig(config());
       auto database_config = databaseConfig(config());
 
-      auto database_preprocessing =
+      auto database =
          silo::Database::preprocessing(preprocessing_config, database_config);
 
-      database_preprocessing.saveDatabaseState(preprocessing_config.getOutputDirectory());
+      database.saveDatabaseState(preprocessing_config.getOutputDirectory());
 
       return Application::EXIT_OK;
    };
