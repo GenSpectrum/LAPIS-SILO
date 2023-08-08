@@ -66,8 +66,10 @@ PreprocessingConfig::PreprocessingConfig(
    }
 
    metadata_file = createPath(input_directory, metadata_filename_.filename);
-   pango_lineage_definition_file =
-      createPath(input_directory, pango_lineage_definition_filename_.filename);
+   if (pango_lineage_definition_filename_.filename.has_value()) {
+      pango_lineage_definition_file =
+         createPath(input_directory, pango_lineage_definition_filename_.filename.value());
+   }
    reference_genome_file = createPath(input_directory, reference_genome_filename_.filename);
 
    const std::filesystem::path output_directory(output_directory_.directory);
@@ -82,7 +84,8 @@ PreprocessingConfig::PreprocessingConfig(
    gene_prefix = gene_prefix_.prefix;
 }
 
-std::filesystem::path PreprocessingConfig::getPangoLineageDefinitionFilename() const {
+std::optional<std::filesystem::path> PreprocessingConfig::getPangoLineageDefinitionFilename(
+) const {
    return pango_lineage_definition_file;
 }
 
@@ -230,12 +233,14 @@ std::filesystem::path PreprocessingConfig::getGeneSortedPartitionFilename(
 ) -> decltype(ctx.out()) {
    return format_to(
       ctx.out(),
-      "{{ input directory: '{}', pango_lineage_definition_file: '{}', "
+      "{{ input directory: '{}', pango_lineage_definition_file: {}, "
       "metadata_file: '{}', partition_folder: '{}', sorted_partition_folder: '{}', "
       "serialization_folder: '{}', reference_genome_file: '{}',  gene_file_prefix: '{}',  "
       "nucleotide_sequence_file_prefix: '{}' }}",
       preprocessing_config.input_directory.string(),
-      preprocessing_config.pango_lineage_definition_file.string(),
+      preprocessing_config.pango_lineage_definition_file.has_value()
+         ? "'" + preprocessing_config.pango_lineage_definition_file->string() + "'"
+         : "none",
       preprocessing_config.metadata_file.string(),
       preprocessing_config.partition_folder.string(),
       preprocessing_config.sorted_partition_folder.string(),

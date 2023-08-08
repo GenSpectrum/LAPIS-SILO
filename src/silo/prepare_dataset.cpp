@@ -77,15 +77,16 @@ std::unordered_map<std::string, silo::preprocessing::PartitionChunk> writeMetada
    std::unordered_map<
       silo::preprocessing::PartitionChunk,
       std::unique_ptr<silo::preprocessing::MetadataWriter>>& chunk_to_metadata_writers,
-   const silo::config::DatabaseConfig& database_config
+   const std::string& primary_key_field,
+   const std::string& partition_by_field
 ) {
    std::unordered_map<std::string, silo::preprocessing::PartitionChunk>
       primary_key_to_sequence_partition_chunk;
    for (auto& row : metadata_reader) {
       std::this_thread::sleep_for(std::chrono::nanoseconds(2));
-      const std::string_view primary_key = row[database_config.schema.primary_key].get_sv();
+      const std::string_view primary_key = row[primary_key_field].get_sv();
       const silo::common::RawPangoLineage raw_pango_lineage{
-         row[database_config.schema.partition_by].get<std::string>()};
+         row[partition_by_field].get<std::string>()};
       const silo::common::UnaliasedPangoLineage pango_lineage =
          alias_key.unaliasPangoLineage(raw_pango_lineage);
 
@@ -105,7 +106,8 @@ std::unordered_map<std::string, silo::preprocessing::PartitionChunk> partitionMe
       metadata_partition_filenames,
    const std::unordered_map<std::string, silo::preprocessing::PartitionChunk>& pango_to_chunk,
    const silo::PangoLineageAliasLookup& alias_key,
-   const silo::config::DatabaseConfig& database_config
+   const std::string& primary_key_field,
+   const std::string& partition_by_field
 ) {
    SPDLOG_INFO("partitioning metadata file {}", metadata_filename.string());
 
@@ -115,7 +117,12 @@ std::unordered_map<std::string, silo::preprocessing::PartitionChunk> partitionMe
       getMetadataWritersForChunks(metadata_partition_filenames, metadata_reader.reader);
 
    return writeMetadataChunks(
-      alias_key, pango_to_chunk, metadata_reader.reader, chunk_to_metadata_writers, database_config
+      alias_key,
+      pango_to_chunk,
+      metadata_reader.reader,
+      chunk_to_metadata_writers,
+      primary_key_field,
+      partition_by_field
    );
 }
 
@@ -173,11 +180,24 @@ void partitionSequenceFile(
    writeSequenceChunks(sequence_in, key_to_chunk, chunk_to_seq_writer);
 }
 
+void copySequenceFile(silo::FastaReader& sequence_in, silo::ZstdFastaWriter& sequence_out) {
+   std::optional<std::string> key;
+   std::string genome;
+   while (true) {
+      key = sequence_in.next(genome);
+      if (!key.has_value()) {
+         break;
+      }
+      sequence_out.write(*key, genome);
+   }
+}
+
 void silo::partitionData(
    const preprocessing::PreprocessingConfig& preprocessing_config,
    const preprocessing::Partitions& partitions,
    const PangoLineageAliasLookup& alias_key,
-   const silo::config::DatabaseConfig& database_config,
+   const std::string& primary_key_field,
+   const std::string& partition_by_field,
    const ReferenceGenomes& reference_genomes
 ) {
    const std::filesystem::path metadata_filename = preprocessing_config.getMetadataInputFilename();
@@ -190,7 +210,8 @@ void silo::partitionData(
       metadata_partition_filenames,
       partitions.getPangoToChunk(),
       alias_key,
-      database_config
+      primary_key_field,
+      partition_by_field
    );
 
    for (const auto& [nuc_name, reference_genome] : reference_genomes.raw_nucleotide_sequences) {
@@ -225,6 +246,56 @@ void silo::partitionData(
       );
    }
    SPDLOG_INFO("Finished partitioning");
+}
+
+void silo::copyDataToPartitionDirectory(
+   const preprocessing::PreprocessingConfig& preprocessing_config,
+   const ReferenceGenomes& reference_genomes
+) {
+   const std::filesystem::path metadata_filename = preprocessing_config.getMetadataInputFilename();
+
+   auto metadata_partition_filename = preprocessing_config.getMetadataPartitionFilename(0, 0);
+
+   std::filesystem::copy(
+      metadata_filename,
+      metadata_partition_filename,
+      std::filesystem::copy_options::overwrite_existing
+   );
+
+   for (const auto& [nuc_name, reference_genome] : reference_genomes.raw_nucleotide_sequences) {
+      const std::filesystem::path sequence_in_filename =
+         preprocessing_config.getNucFilename(nuc_name);
+      FastaReader sequence_in(sequence_in_filename);
+
+      auto sequence_out_filename = preprocessing_config.getNucPartitionFilename(nuc_name, 0, 0);
+      ZstdFastaWriter sequence_out(sequence_out_filename, reference_genome);
+
+      SPDLOG_INFO(
+         "copying and compressing nucleotide sequences from {} to {}",
+         sequence_in_filename.string(),
+         sequence_out_filename.string()
+      );
+
+      copySequenceFile(sequence_in, sequence_out);
+   }
+
+   for (const auto& [aa_name, reference_sequence] : reference_genomes.raw_aa_sequences) {
+      const std::filesystem::path sequence_in_filename =
+         preprocessing_config.getGeneFilename(aa_name);
+      FastaReader sequence_in(sequence_in_filename);
+
+      auto sequence_out_filename = preprocessing_config.getGenePartitionFilename(aa_name, 0, 0);
+      ZstdFastaWriter sequence_out(sequence_out_filename, reference_sequence);
+
+      SPDLOG_INFO(
+         "copying and compressing amino acid sequences from {} to {}",
+         sequence_in_filename.string(),
+         sequence_out_filename.string()
+      );
+
+      copySequenceFile(sequence_in, sequence_out);
+   }
+   SPDLOG_INFO("Finished copying to partition directory");
 }
 
 std::unordered_map<std::string, size_t> sortMetadataFile(

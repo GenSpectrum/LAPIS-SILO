@@ -27,7 +27,13 @@ void partitionData(
    const silo::preprocessing::PreprocessingConfig& preprocessing_config,
    const preprocessing::Partitions& partitions,
    const PangoLineageAliasLookup& alias_key,
-   const silo::config::DatabaseConfig& database_config,
+   const std::string& primary_key_field,
+   const std::string& partition_by_field,
+   const ReferenceGenomes& reference_genomes
+);
+
+void copyDataToPartitionDirectory(
+   const preprocessing::PreprocessingConfig& preprocessing_config,
    const ReferenceGenomes& reference_genomes
 );
 

@@ -28,7 +28,7 @@ struct DatabaseSchema {
    std::vector<DatabaseMetadata> metadata;
    std::string primary_key;
    std::optional<std::string> date_to_sort_by;
-   std::string partition_by;
+   std::optional<std::string> partition_by;
 };
 
 struct DatabaseConfig {

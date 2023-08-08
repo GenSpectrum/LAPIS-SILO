@@ -31,6 +31,25 @@ TEST(DatabaseTest, shouldBuildDatabaseWithoutErrors) {
    EXPECT_EQ(simple_database_info.sequence_count, 100);
 }
 
+TEST(DatabaseTest, shouldSuccessfullyBuildDatabaseWithoutPartitionBy) {
+   const silo::preprocessing::InputDirectory input_directory{"./testBaseData/"};
+
+   auto config = silo::preprocessing::PreprocessingConfigReader().readConfig(
+      input_directory.directory + "test_preprocessing_config.yaml"
+   );
+
+   const auto database_config = silo::config::ConfigRepository().getValidatedConfig(
+      input_directory.directory + "test_database_config_without_partition_by.yaml"
+   );
+
+   auto database = silo::Database::preprocessing(config, database_config);
+
+   const auto simple_database_info = database.getDatabaseInfo();
+
+   EXPECT_GT(simple_database_info.total_size, 0);
+   EXPECT_EQ(simple_database_info.sequence_count, 100);
+}
+
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(DatabaseTest, shouldReturnCorrectDatabaseInfo) {
    auto database{buildTestDatabase()};

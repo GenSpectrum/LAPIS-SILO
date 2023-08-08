@@ -72,15 +72,19 @@ void validatePartitionBy(
    const DatabaseConfig& config,
    std::map<std::string, ValueType>& metadata_map
 ) {
-   if (metadata_map.find(config.schema.partition_by) == metadata_map.end()) {
-      throw ConfigException("partition_by '" + config.schema.partition_by + "' is not in metadata");
+   if (config.schema.partition_by == std::nullopt) {
+      return;
    }
 
-   const auto& partition_by_type = metadata_map[config.schema.partition_by];
+   const std::string partition_by = config.schema.partition_by.value();
+
+   if (metadata_map.find(partition_by) == metadata_map.end()) {
+      throw ConfigException("partition_by '" + partition_by + "' is not in metadata");
+   }
+
+   const auto& partition_by_type = metadata_map[partition_by];
    if (partition_by_type != ValueType::PANGOLINEAGE) {
-      throw ConfigException(
-         "partition_by '" + config.schema.partition_by + "' must be of type PANGOLINEAGE"
-      );
+      throw ConfigException("partition_by '" + partition_by + "' must be of type PANGOLINEAGE");
    }
 }
 

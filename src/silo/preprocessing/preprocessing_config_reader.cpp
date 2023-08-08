@@ -71,7 +71,9 @@ struct convert<PreprocessingConfig> {
       const OutputDirectory output_directory{node["outputDirectory"].as<std::string>()};
       const MetadataFilename metadata_filename{node["metadataFilename"].as<std::string>()};
       const PangoLineageDefinitionFilename pango_lineage_definition_filename{
-         node["pangoLineageDefinitionFilename"].as<std::string>()};
+         node["pangoLineageDefinitionFilename"].IsDefined()
+            ? std::optional<std::string>{node["pangoLineageDefinitionFilename"].as<std::string>()}
+            : std::nullopt};
       const ReferenceGenomeFilename reference_genome_filename{
          node["referenceGenomeFilename"].as<std::string>()};
 
