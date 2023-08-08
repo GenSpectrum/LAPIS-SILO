@@ -31,7 +31,7 @@ TEST(DatabaseTest, shouldBuildDatabaseWithoutErrors) {
    EXPECT_EQ(simple_database_info.sequence_count, 100);
 }
 
-TEST(DatabaseTest, shouldBuildPartitionLessDatabaseWithoutErrors) {
+TEST(DatabaseTest, shouldSuccessfullyBuildDatabaseWithoutPartitionBy) {
    const silo::preprocessing::InputDirectory input_directory{"./testBaseData/"};
 
    auto config = silo::preprocessing::PreprocessingConfigReader().readConfig(

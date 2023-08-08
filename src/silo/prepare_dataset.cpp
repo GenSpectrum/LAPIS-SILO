@@ -126,17 +126,6 @@ std::unordered_map<std::string, silo::preprocessing::PartitionChunk> partitionMe
    );
 }
 
-void copyMetadataFile(
-   csv::CSVReader& metadata_reader,
-   silo::preprocessing::MetadataWriter& metadata_writer
-) {
-   metadata_writer.writeHeader(metadata_reader);
-   for (auto& row : metadata_reader) {
-      std::this_thread::sleep_for(std::chrono::nanoseconds(2));
-      metadata_writer.writeRow(row);
-   }
-}
-
 std::unordered_map<silo::preprocessing::PartitionChunk, silo::ZstdFastaWriter>
 getSequenceWritersForChunks(
    const std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path>&
@@ -264,12 +253,14 @@ void silo::copyDataToPartitionDirectory(
    const ReferenceGenomes& reference_genomes
 ) {
    const std::filesystem::path metadata_filename = preprocessing_config.getMetadataInputFilename();
-   auto metadata_reader = preprocessing::MetadataReader(metadata_filename);
 
    auto metadata_partition_filename = preprocessing_config.getMetadataPartitionFilename(0, 0);
-   auto metadata_writer = preprocessing::MetadataWriter(metadata_partition_filename);
 
-   copyMetadataFile(metadata_reader.reader, metadata_writer);
+   std::filesystem::copy(
+      metadata_filename,
+      metadata_partition_filename,
+      std::filesystem::copy_options::overwrite_existing
+   );
 
    for (const auto& [nuc_name, reference_genome] : reference_genomes.raw_nucleotide_sequences) {
       const std::filesystem::path sequence_in_filename =
