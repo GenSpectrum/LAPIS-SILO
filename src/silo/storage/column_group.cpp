@@ -113,7 +113,7 @@ std::optional<std::variant<std::string, int32_t, double>> ColumnPartitionGroup::
       return value;
    }
    if (float_columns.contains(column)) {
-      int32_t value = float_columns.at(column).getValues().at(sequence_id);
+      double value = float_columns.at(column).getValues().at(sequence_id);
       if (value == std::nan("")) {
          return std::nullopt;
       }

@@ -59,7 +59,7 @@ void NucMutations::addMutationsCountsForPosition(
    PrefilteredBitmaps& bitmaps_to_evaluate,
    NucleotideSymbolMap<std::vector<uint32_t>>& count_of_mutations_per_position
 ) {
-   for (auto& [filter, seq_store_partition] : bitmaps_to_evaluate.bitmaps) {
+   for (const auto& [filter, seq_store_partition] : bitmaps_to_evaluate.bitmaps) {
       for (const auto symbol : VALID_MUTATION_SYMBOLS) {
          if (seq_store_partition.positions[position].symbol_whose_bitmap_is_flipped != symbol) {
             count_of_mutations_per_position[symbol][position] +=
@@ -73,7 +73,7 @@ void NucMutations::addMutationsCountsForPosition(
    }
    // For these partitions, we have full bitmaps. Do not need to bother with AND
    // cardinality
-   for (auto& [filter, seq_store_partition] : bitmaps_to_evaluate.full_bitmaps) {
+   for (const auto& [filter, seq_store_partition] : bitmaps_to_evaluate.full_bitmaps) {
       for (const auto symbol : VALID_MUTATION_SYMBOLS) {
          if (seq_store_partition.positions[position].symbol_whose_bitmap_is_flipped != symbol) {
             count_of_mutations_per_position[symbol][position] +=

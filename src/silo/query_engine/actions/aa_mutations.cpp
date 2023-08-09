@@ -63,7 +63,7 @@ void AAMutations::addMutationsCountsForPosition(
    const PrefilteredBitmaps& bitmaps_to_evaluate,
    AASymbolMap<std::vector<uint32_t>>& count_of_mutations_per_position
 ) {
-   for (auto& [filter, aa_store_partition] : bitmaps_to_evaluate.bitmaps) {
+   for (const auto& [filter, aa_store_partition] : bitmaps_to_evaluate.bitmaps) {
       for (const auto symbol : VALID_MUTATION_SYMBOLS) {
          if (aa_store_partition.positions[position].symbol_whose_bitmap_is_flipped != symbol) {
             count_of_mutations_per_position[symbol][position] +=
@@ -77,7 +77,7 @@ void AAMutations::addMutationsCountsForPosition(
    }
    // For these partitions, we have full bitmaps. Do not need to bother with AND
    // cardinality
-   for (auto& [filter, aa_store_partition] : bitmaps_to_evaluate.full_bitmaps) {
+   for (const auto& [filter, aa_store_partition] : bitmaps_to_evaluate.full_bitmaps) {
       for (const auto symbol : VALID_MUTATION_SYMBOLS) {
          if (aa_store_partition.positions[position].symbol_whose_bitmap_is_flipped != symbol) {
             count_of_mutations_per_position[symbol][position] +=
