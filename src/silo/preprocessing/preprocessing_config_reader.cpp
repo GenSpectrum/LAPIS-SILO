@@ -7,16 +7,7 @@
 
 #include "silo/preprocessing/preprocessing_config.h"
 
-using silo::preprocessing::GenePrefix;
-using silo::preprocessing::InputDirectory;
-using silo::preprocessing::MetadataFilename;
-using silo::preprocessing::NucleotideSequencePrefix;
 using silo::preprocessing::OptionalPreprocessingConfig;
-using silo::preprocessing::OutputDirectory;
-using silo::preprocessing::PangoLineageDefinitionFilename;
-using silo::preprocessing::PartitionsFolder;
-using silo::preprocessing::ReferenceGenomeFilename;
-using silo::preprocessing::SortedPartitionsFolder;
 
 namespace YAML {
 
