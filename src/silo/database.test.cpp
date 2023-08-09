@@ -18,7 +18,7 @@ silo::Database buildTestDatabase() {
                     .mergeValuesFromOrDefault(silo::preprocessing::OptionalPreprocessingConfig());
 
    const auto database_config = silo::config::ConfigRepository().getValidatedConfig(
-      input_directory.directory + "test_database_config.yaml"
+      input_directory.directory + "database_config.yaml"
    );
 
    return silo::Database::preprocessing(config, database_config);
