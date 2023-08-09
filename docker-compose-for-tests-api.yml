@@ -1,0 +1,11 @@
+version: "3.9"
+services:
+  silo:
+    image: ${SILO_IMAGE}
+    volumes:
+      - ./testBaseData/output:/data
+      - ./logs:/app/logs
+    ports:
+      - "8080:8081"
+    command:
+      - "--api"

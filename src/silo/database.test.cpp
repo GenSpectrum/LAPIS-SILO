@@ -1,5 +1,7 @@
 #include "silo/database.h"
 
+#include "filesystem"
+
 #include <gtest/gtest.h>
 
 #include "silo/common/nucleotide_symbols.h"
@@ -11,12 +13,12 @@
 silo::Database buildTestDatabase() {
    const silo::preprocessing::InputDirectory input_directory{"./testBaseData/exampleDataset/"};
 
-   auto config = silo::preprocessing::PreprocessingConfigReader().readConfig(
-      "./testBaseData/test_preprocessing_config.yaml"
-   );
+   auto config = silo::preprocessing::PreprocessingConfigReader()
+                    .readConfig("./testBaseData/test_preprocessing_config.yaml")
+                    .mergeValuesFromOrDefault(silo::preprocessing::OptionalPreprocessingConfig());
 
    const auto database_config = silo::config::ConfigRepository().getValidatedConfig(
-      input_directory.directory + "test_database_config.yaml"
+      input_directory.directory + "database_config.yaml"
    );
 
    return silo::Database::preprocessing(config, database_config);
@@ -34,9 +36,9 @@ TEST(DatabaseTest, shouldBuildDatabaseWithoutErrors) {
 TEST(DatabaseTest, shouldSuccessfullyBuildDatabaseWithoutPartitionBy) {
    const silo::preprocessing::InputDirectory input_directory{"./testBaseData/"};
 
-   auto config = silo::preprocessing::PreprocessingConfigReader().readConfig(
-      input_directory.directory + "test_preprocessing_config.yaml"
-   );
+   auto config = silo::preprocessing::PreprocessingConfigReader()
+                    .readConfig(input_directory.directory + "test_preprocessing_config.yaml")
+                    .mergeValuesFromOrDefault(silo::preprocessing::OptionalPreprocessingConfig());
 
    const auto database_config = silo::config::ConfigRepository().getValidatedConfig(
       input_directory.directory + "test_database_config_without_partition_by.yaml"
@@ -100,9 +102,15 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfo) {
 TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
    auto first_database = buildTestDatabase();
 
-   first_database.saveDatabaseState("output/serialized_state/");
+   const std::string directory = "output/test_serialized_state/";
+   if (std::filesystem::exists(directory)) {
+      std::filesystem::remove_all(directory);
+   }
+   std::filesystem::create_directories(directory);
 
-   auto database = silo::Database::loadDatabaseState("output/serialized_state/");
+   first_database.saveDatabaseState(directory);
+
+   auto database = silo::Database::loadDatabaseState(directory);
 
    const auto simple_database_info = database.getDatabaseInfo();
 

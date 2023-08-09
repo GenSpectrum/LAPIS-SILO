@@ -144,8 +144,6 @@ void Database::build(
 
    SPDLOG_INFO("Build took {} ms", micros);
    SPDLOG_INFO("database info: {}", getDatabaseInfo());
-
-   setDataVersion(DataVersion(DataVersion::mineDataVersion()));
 }
 
 using RoaringStatistics = roaring::api::roaring_statistics_t;
@@ -513,6 +511,10 @@ Database Database::preprocessing(
 ) {
    Database database;
    database.database_config = database_config_;
+
+   const DataVersion& data_version = DataVersion::mineDataVersion();
+   SPDLOG_INFO("preprocessing - mining data data_version: {}", data_version.toString());
+   database.setDataVersion(data_version);
 
    SPDLOG_INFO("preprocessing - validate metadata file against config");
    preprocessing::MetadataValidator().validateMedataFile(

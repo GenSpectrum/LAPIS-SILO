@@ -80,8 +80,7 @@ INSTANTIATE_TEST_SUITE_P(
 TEST(DatabaseConfigReader, shouldReadConfigWithCorrectParameters) {
    DatabaseConfig config;
    ASSERT_NO_THROW(
-      config =
-         DatabaseConfigReader().readConfig("testBaseData/exampleDataset/test_database_config.yaml")
+      config = DatabaseConfigReader().readConfig("testBaseData/test_database_config.yaml")
    );
 
    ASSERT_EQ(config.schema.instance_name, "sars_cov-2_minimal_test_config");

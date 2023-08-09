@@ -1,4 +1,6 @@
+#include <filesystem>
 #include <iostream>
+#include <optional>
 #include <string>
 
 #include <Poco/Net/HTTPServer.h>
@@ -9,16 +11,79 @@
 #include <Poco/Util/OptionSet.h>
 #include <Poco/Util/ServerApplication.h>
 #include <spdlog/spdlog.h>
+#include <boost/algorithm/string/join.hpp>
 
 #include "silo/config/config_repository.h"
 #include "silo/database.h"
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_config_reader.h"
 #include "silo/query_engine/query_engine.h"
-#include "silo/storage/database_partition.h"
 #include "silo_api/info_handler.h"
 #include "silo_api/logging.h"
 #include "silo_api/request_handler_factory.h"
+#include "silo_api/runtime_config.h"
+
+silo::preprocessing::PreprocessingConfig preprocessingConfig(
+   const Poco::Util::AbstractConfiguration& config
+) {
+   silo::preprocessing::OptionalPreprocessingConfig default_preprocessing_config;
+   if (std::filesystem::exists("./default_preprocessing_config.yaml")) {
+      default_preprocessing_config = silo::preprocessing::PreprocessingConfigReader().readConfig(
+         "./default_preprocessing_config.yaml"
+      );
+   }
+
+   silo::preprocessing::OptionalPreprocessingConfig user_preprocessing_config;
+   if (config.hasProperty("preprocessingConfig")) {
+      user_preprocessing_config = silo::preprocessing::PreprocessingConfigReader().readConfig(
+         config.getString("preprocessingConfig")
+      );
+   } else if (std::filesystem::exists("./preprocessing_config.yaml")) {
+      user_preprocessing_config =
+         silo::preprocessing::PreprocessingConfigReader().readConfig("./preprocessing_config.yaml");
+   }
+
+   const auto preprocessing_config =
+      user_preprocessing_config.mergeValuesFromOrDefault(default_preprocessing_config);
+   SPDLOG_INFO("Resulting preprocessing config: {}", preprocessing_config);
+   return preprocessing_config;
+}
+
+silo::config::DatabaseConfig databaseConfig(const Poco::Util::AbstractConfiguration& config) {
+   if (config.hasProperty("databaseConfig")) {
+      return silo::config::ConfigRepository().getValidatedConfig(config.getString("databaseConfig")
+      );
+   }
+   SPDLOG_DEBUG("databaseConfig not found in config file. Using default value: databaseConfig.yaml"
+   );
+   return silo::config::ConfigRepository().getValidatedConfig("database_config.yaml");
+}
+
+std::filesystem::path dataDirectory(
+   const Poco::Util::AbstractConfiguration& config,
+   const silo_api::RuntimeConfig& runtime_config
+) {
+   if (config.hasProperty("dataDirectory")) {
+      SPDLOG_DEBUG(
+         "Using dataDirectory passed via command line argument: {}",
+         config.getString("dataDirectory")
+      );
+      return config.getString("dataDirectory");
+   }
+   if (runtime_config.data_directory.has_value()) {
+      SPDLOG_DEBUG(
+         "Using dataDirectory from runtime config file: {}",
+         runtime_config.data_directory.value().string()
+      );
+      return runtime_config.data_directory.value();
+   }
+
+   SPDLOG_DEBUG(
+      "dataDirectory not found in specified. Using default value: {}",
+      silo::preprocessing::DEFAULT_OUTPUT_DIRECTORY.directory
+   );
+   return silo::preprocessing::DEFAULT_OUTPUT_DIRECTORY.directory;
+}
 
 class SiloServer : public Poco::Util::ServerApplication {
   protected:
@@ -48,68 +113,69 @@ class SiloServer : public Poco::Util::ServerApplication {
             .binding("databaseConfig")
       );
 
-      options.addOption(Poco::Util::Option("api", "a", "start the SILO web interface")
+      options.addOption(Poco::Util::Option("dataDirectory", "d", "path to the preprocessed data")
                            .required(false)
                            .repeatable(false)
-                           .binding("api")
-                           .group("executionMode"));
+                           .argument("PATH")
+                           .binding("dataDirectory"));
 
       options.addOption(
-         Poco::Util::Option(
-            "processData",
-            "p",
-            "trigger the preprocessing pipeline to generate a partitioned dataset that can be read "
-            "by the database"
-         )
+         Poco::Util::Option("api", "a", "Execution mode: start the SILO web interface")
             .required(false)
             .repeatable(false)
+            .binding("api")
             .group("executionMode")
       );
+
+      options.addOption(Poco::Util::Option(
+                           "preprocessing",
+                           "p",
+                           "Execution mode: trigger the preprocessing pipeline to generate a "
+                           "partitioned dataset that can be read by the database"
+      )
+                           .required(false)
+                           .repeatable(false)
+                           .binding("preprocessing")
+                           .group("executionMode"));
    }
 
    int main(const std::vector<std::string>& args) override {
       if (!args.empty()) {
+         std::cout << "Unknown arguments provided: " << boost::algorithm::join(args, ", ")
+                   << "\n\n";
          displayHelp("", "");
          return Application::EXIT_USAGE;
       }
 
       if (config().hasProperty("api")) {
-         handleApi();
+         return handleApi();
       }
 
-      if (config().hasProperty("processData")) {
-         handleProcessData();
+      if (config().hasProperty("preprocessing")) {
+         return handlePreprocessing();
       }
 
-      return Application::EXIT_OK;
+      std::cout << "No execution mode specified."
+                << "\n\n";
+      displayHelp("", "");
+      return Application::EXIT_USAGE;
    }
 
   private:
-   void handleApi() {
+   int handleApi() {
+      SPDLOG_INFO("Starting SILO API");
       const int port = 8081;
 
-      const std::string preprocessing_config_path = config().hasProperty("preprocessingConfig")
-                                                       ? config().getString("preprocessingConfig")
-                                                       : "./preprocessingConfig.yaml";
-      const std::string database_config_path = config().hasProperty("databaseConfig")
-                                                  ? config().getString("databaseConfig")
-                                                  : "./databaseConfig.yaml";
-
-      auto preprocessing_config =
-         silo::preprocessing::PreprocessingConfigReader().readConfig(preprocessing_config_path);
-      auto database_config =
-         silo::config::ConfigRepository().getValidatedConfig(database_config_path);
-
-      {
-         auto database_preprocessing =
-            silo::Database::preprocessing(preprocessing_config, database_config);
-
-         database_preprocessing.saveDatabaseState("output/serialized_state/");
+      silo_api::RuntimeConfig runtime_config;
+      if (std::filesystem::exists("./runtime_config.yaml")) {
+         runtime_config = silo_api::RuntimeConfig::readFromFile("./runtime_config.yaml");
       }
 
-      auto database = silo::Database::loadDatabaseState("output/serialized_state/");
+      const auto data_directory = dataDirectory(config(), runtime_config);
 
-      Poco::Net::ServerSocket const server_socket(port);
+      auto database = silo::Database::loadDatabaseState(data_directory);
+
+      const Poco::Net::ServerSocket server_socket(port);
       const silo::query_engine::QueryEngine query_engine(database);
       Poco::Net::HTTPServer server(
          new silo_api::SiloRequestHandlerFactory(database, query_engine),
@@ -122,17 +188,25 @@ class SiloServer : public Poco::Util::ServerApplication {
       server.start();
       waitForTerminationRequest();
       server.stop();
+
+      return Application::EXIT_OK;
    };
 
-   // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-   void handleProcessData() {
-      std::cout << "handleProcessData is not implemented\n" << std::flush;
+   int handlePreprocessing() {
+      SPDLOG_INFO("Starting SILO preprocessing");
+      const auto preprocessing_config = preprocessingConfig(config());
+      auto database_config = databaseConfig(config());
+
+      auto database = silo::Database::preprocessing(preprocessing_config, database_config);
+
+      database.saveDatabaseState(preprocessing_config.getOutputDirectory());
+
+      return Application::EXIT_OK;
    };
 
    void displayHelp(
-      // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-      [[maybe_unused]] const std::string& name,
-      [[maybe_unused]] const std::string& value
+      const std::string& /*name*/,
+      const std::string& /*value*/
    ) {
       Poco::Util::HelpFormatter help_formatter(options());
       help_formatter.setCommand(commandName());

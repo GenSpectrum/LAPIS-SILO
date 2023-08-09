@@ -72,22 +72,19 @@ silo::PangoLineageAliasLookup silo::PangoLineageAliasLookup::readFromFile(
 ) {
    if (!std::filesystem::exists(pango_lineage_alias_file)) {
       throw std::filesystem::filesystem_error(
-         "Alias key file " + pango_lineage_alias_file.relative_path().string() + " does not exist",
+         "Alias key file " + pango_lineage_alias_file.string() + " does not exist",
          std::error_code()
       );
    }
 
    if (pango_lineage_alias_file.extension() != ".json") {
       throw std::filesystem::filesystem_error(
-         "Alias key file " + pango_lineage_alias_file.relative_path().string() +
-            " is not a json file",
+         "Alias key file " + pango_lineage_alias_file.string() + " is not a json file",
          std::error_code()
       );
    }
 
-   SPDLOG_INFO(
-      "Read pango lineage alias from file: {}", pango_lineage_alias_file.relative_path().string()
-   );
+   SPDLOG_INFO("Read pango lineage alias from file: {}", pango_lineage_alias_file.string());
 
    return PangoLineageAliasLookup(readFromJson(pango_lineage_alias_file));
 }

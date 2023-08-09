@@ -136,23 +136,19 @@ ReferenceGenomes ReferenceGenomes::readFromFile(const std::filesystem::path& ref
 ) {
    if (!std::filesystem::exists(reference_genomes_path)) {
       throw std::filesystem::filesystem_error(
-         "Reference genomes file " + reference_genomes_path.relative_path().string() +
-            " does not exist",
+         "Reference genomes file " + reference_genomes_path.string() + " does not exist",
          std::error_code()
       );
    }
 
    if (reference_genomes_path.extension() != ".json") {
       throw std::filesystem::filesystem_error(
-         "Reference genomes file " + reference_genomes_path.relative_path().string() +
-            " is not a json file",
+         "Reference genomes file " + reference_genomes_path.string() + " is not a json file",
          std::error_code()
       );
    }
 
-   SPDLOG_INFO(
-      "Read reference genomes from file: {}", reference_genomes_path.relative_path().string()
-   );
+   SPDLOG_INFO("Read reference genomes from file: {}", reference_genomes_path.string());
 
    return readFromJson(reference_genomes_path);
 }
@@ -160,15 +156,12 @@ ReferenceGenomes ReferenceGenomes::readFromFile(const std::filesystem::path& ref
 void ReferenceGenomes::writeToFile(const std::filesystem::path& reference_genomes_path) const {
    if (reference_genomes_path.extension() != ".json") {
       throw std::filesystem::filesystem_error(
-         "Reference genomes file " + reference_genomes_path.relative_path().string() +
-            " is not a json file",
+         "Reference genomes file " + reference_genomes_path.string() + " is not a json file",
          std::error_code()
       );
    }
 
-   SPDLOG_INFO(
-      "Write reference genomes to file: {}", reference_genomes_path.relative_path().string()
-   );
+   SPDLOG_INFO("Write reference genomes to file: {}", reference_genomes_path.string());
    const nlohmann::json reference_genomes_json = *this;
    std::ofstream(reference_genomes_path) << reference_genomes_json.dump(4);
 }

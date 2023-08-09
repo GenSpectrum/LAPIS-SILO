@@ -1,0 +1,12 @@
+version: "3.9"
+services:
+  silo:
+    image: ${SILO_IMAGE}
+    volumes:
+      - ./testBaseData/exampleDataset:/preprocessing/input
+      - ./testBaseData/output:/preprocessing/output
+      - ./testBaseData/exampleDataset/preprocessing_config.yaml:/app/preprocessing_config.yaml
+      - ./testBaseData/exampleDataset/database_config.yaml:/app/database_config.yaml
+      - ./logs:/app/logs
+    command:
+      - "--preprocessing"

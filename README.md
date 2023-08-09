@@ -51,46 +51,53 @@ Build docker container
 docker build . --tag=silo
 ```
 
-Run docker container
+The Docker images are built in such a way that they can be used for both,
+preprocessing and running the api, with minimal configuration.
+The images contain default configuration so that a user only needs to mount data to the correct locations.
+
+### Run The Preprocessing
+
+The preprocessing acts as a program that takes an input directory that contains the to-be-processed data
+and an output directory where the processed data will be stored.
+Both need to be mounted to the container. 
+SILO also expects a database config and a preprocessing config that need to be mounted to the default locations.
+
+```shell
+docker run \
+  -v your/input/directory:/preprocessing/input \
+  -v your/preprocessing/output:/preprocessing/output \
+  -v your/preprocessing_config.yaml:/app/preprocessing_config.yaml \
+  -v your/database_config.yaml:/app/database_config.yaml \
+  silo --preprocessing
+```
+
+Both config files can also be provided in custom locations:
+
+```shell
+silo --preprocessing --preprocessingConfig=./custom/preprocessing_config.yaml --databaseConfig=./custom/database_config.yaml
+```
+
+The Docker image contains a default preprocessing config that sets defaults specific for running SILO in Docker.
+Apart from that, there are default values if neither user-provided nor default config specify fields.
+The user-provided preprocessing config can be used to overwrite the default values. For a full reference, see
+* [testBaseData/test_preprocessing_config_with_overridden_defaults.yaml](https://github.com/GenSpectrum/LAPIS-SILO/blob/main/testBaseData/test_preprocessing_config_with_overridden_defaults.yaml)
+* or [include/silo/preprocessing/preprocessing_config_reader.h](https://github.com/GenSpectrum/LAPIS-SILO/blob/main/include/silo/preprocessing/preprocessing_config_reader.h)
+
+### Run docker container (api)
+
+After preprocessing the data, the api can be started with the following command:
 
 ```shell
 docker run 
   -p 8081:8081
-  -v your/data/directory:/data
-  silo --api --preprocessingConfig=./yourRelativePathTo/preprocessing_config.yaml --databaseConfig=./yourRelativePathTo/database_config.yaml
+  -v your/preprocessing/output:/data
+  silo --api
 ```
 
-The mounted directory `your/data/directory` is the place on your machine, where the data for SILO is located.
-The path to the preprocessingConfig and the databaseConfig are relative to your mounted directory. If no paths are
-provided the files
-preprocessing_config.yaml and database_config.yaml are expected directly in the working directory. Thus:
+The directory where SILO expects the preprocessing output can be overwritten via
+`silo --api --dataDirectory=/custom/data/directory`.
 
-```shell
-silo --api --preprocessingConfig=./preprocessing_config.yaml --databaseConfig=./database_config.yaml
-```
-
-is equivalent to
-
-```shell
-silo --api
-```
-
-The preprocessing config contains the following fields:
-
-```yaml
-# The directory where the input files are located, relative to the mounted folder
-inputDirectory: "./"
-# The directory where the output files are located, relative to the mounted folder
-outputDirectory: "./output/"
-# The filename of the metadata file, relative to the inputDirectory
-metadataFilename: "small_metadata_set.tsv"
-# The filename of the sequence file, relative to the inputDirectory
-sequenceFilename: "small_sequence_set.fasta"
-# The filename of the pango lineage definition file, relative to the inputDirectory
-pangoLineageDefinitionFilename: "pangolineage_alias.json"
-# The filename of the reference genome file, relative to the inputDirectory
-referenceGenomeFilename: "reference_genome.txt"
-```
+### Notes On Building The Image
 
 Building Docker images locally relies on the local Docker cache.
 Docker will cache layers, and it will cache the dependencies built by Conan via cache mounts.
@@ -131,7 +138,9 @@ building with clang-tidy under alpine was not possible yet.)
 End-to-end tests are located in `/endToEndTests`. Those tests are used to verify the overall functionality of the SILO
 queries. To execute the tests:
 
-* have a running SILO instance, e.g. via `docker run -p 8081:8081 ghcr.io/genspectrum/lapis-silo`
+* have a running SILO instance with preprocessd data e.g. via
+  * `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-preprocessing.yml up`
+  * `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-api.yml up -d wait`
 * `cd endToEndTests`
 * `npm install`
 * `SILO_URL=localhost:8081 npm run test`
