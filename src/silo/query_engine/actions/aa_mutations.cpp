@@ -26,29 +26,33 @@ using silo::query_engine::OperatorResult;
 
 namespace silo::query_engine::actions {
 
-AAMutations::AAMutations(std::string aa_sequence_name, double min_proportion)
-    : aa_sequence_name(std::move(aa_sequence_name)),
+AAMutations::AAMutations(std::vector<std::string>&& aa_sequence_names, double min_proportion)
+    : aa_sequence_names(std::move(aa_sequence_names)),
       min_proportion(min_proportion) {}
 
-AAMutations::PrefilteredBitmaps AAMutations::preFilterBitmaps(
-   const silo::AAStore& aa_store,
+std::unordered_map<std::string, AAMutations::PrefilteredBitmaps> AAMutations::preFilterBitmaps(
+   const silo::Database& database,
    std::vector<OperatorResult>& bitmap_filter
 ) {
-   PrefilteredBitmaps bitmaps_to_evaluate;
-   for (size_t i = 0; i < aa_store.partitions.size(); ++i) {
-      const silo::AAStorePartition& aa_store_partition = aa_store.partitions.at(i);
+   std::unordered_map<std::string, PrefilteredBitmaps> bitmaps_to_evaluate;
+   for (size_t i = 0; i < database.partitions.size(); ++i) {
+      const DatabasePartition& database_partition = database.partitions.at(i);
       OperatorResult& filter = bitmap_filter[i];
       const size_t cardinality = filter->cardinality();
       if (cardinality == 0) {
          continue;
       }
-      if (cardinality == aa_store_partition.sequence_count) {
-         bitmaps_to_evaluate.full_bitmaps.emplace_back(std::move(filter), aa_store_partition);
+      if (cardinality == database_partition.sequence_count) {
+         for (const auto& [aa_name, aa_store] : database_partition.aa_sequences) {
+            bitmaps_to_evaluate[aa_name].full_bitmaps.emplace_back(filter, aa_store);
+         }
       } else {
          if (filter.isMutable()) {
             filter->runOptimize();
          }
-         bitmaps_to_evaluate.bitmaps.emplace_back(std::move(filter), aa_store_partition);
+         for (const auto& [aa_name, aa_store] : database_partition.aa_sequences) {
+            bitmaps_to_evaluate[aa_name].bitmaps.emplace_back(filter, aa_store);
+         }
       }
    }
    return bitmaps_to_evaluate;
@@ -56,7 +60,7 @@ AAMutations::PrefilteredBitmaps AAMutations::preFilterBitmaps(
 
 void AAMutations::addMutationsCountsForPosition(
    uint32_t position,
-   PrefilteredBitmaps& bitmaps_to_evaluate,
+   const PrefilteredBitmaps& bitmaps_to_evaluate,
    AASymbolMap<std::vector<uint32_t>>& count_of_mutations_per_position
 ) {
    for (auto& [filter, aa_store_partition] : bitmaps_to_evaluate.bitmaps) {
@@ -89,11 +93,9 @@ void AAMutations::addMutationsCountsForPosition(
 
 AASymbolMap<std::vector<uint32_t>> AAMutations::calculateMutationsPerPosition(
    const AAStore& aa_store,
-   std::vector<OperatorResult>& bitmap_filter
+   const PrefilteredBitmaps& bitmap_filter
 ) {
    const size_t sequence_length = aa_store.reference_sequence.size();
-
-   PrefilteredBitmaps bitmaps_to_evaluate = preFilterBitmaps(aa_store, bitmap_filter);
 
    AASymbolMap<std::vector<uint32_t>> count_of_mutations_per_position;
    for (const auto symbol : VALID_MUTATION_SYMBOLS) {
@@ -104,9 +106,7 @@ AASymbolMap<std::vector<uint32_t>> AAMutations::calculateMutationsPerPosition(
       tbb::blocked_range<uint32_t>(0, sequence_length, /*grain_size=*/POSITIONS_PER_PROCESS),
       [&](const auto& local) {
          for (uint32_t pos = local.begin(); pos != local.end(); ++pos) {
-            addMutationsCountsForPosition(
-               pos, bitmaps_to_evaluate, count_of_mutations_per_position
-            );
+            addMutationsCountsForPosition(pos, bitmap_filter, count_of_mutations_per_position);
          }
       }
    );
@@ -129,24 +129,17 @@ void AAMutations::validateOrderByFields(const Database& /*database*/) const {
    }
 }
 
-QueryResult AAMutations::execute(
-   const Database& database,
-   std::vector<OperatorResult> bitmap_filter
+void AAMutations::addMutationsToOutput(
+   const std::string& sequence_name,
+   const AAStore& aa_store,
+   const PrefilteredBitmaps& bitmap_filter,
+   std::vector<QueryResultEntry>& output
 ) const {
-   using roaring::Roaring;
-   CHECK_SILO_QUERY(
-      database.aa_sequences.contains(aa_sequence_name),
-      "Database does not contain the amino acid sequence with name: '" + aa_sequence_name + "'"
-   )
-
-   const AAStore& aa_store = database.aa_sequences.at(aa_sequence_name);
-
    const size_t sequence_length = aa_store.reference_sequence.size();
 
    const AASymbolMap<std::vector<uint32_t>> count_of_mutations_per_position =
       calculateMutationsPerPosition(aa_store, bitmap_filter);
 
-   std::vector<QueryResultEntry> mutation_proportions;
    for (size_t pos = 0; pos < sequence_length; ++pos) {
       uint32_t total = 0;
       for (const AA_SYMBOL symbol : VALID_MUTATION_SYMBOLS) {
@@ -169,26 +162,75 @@ QueryResult AAMutations::execute(
                   map<std::string, std::optional<std::variant<std::string, int32_t, double>>>
                      fields{
                         {POSITION_FIELD_NAME,
-                         aaSymbolToChar(symbol_in_reference_genome) + std::to_string(pos + 1) +
-                            aaSymbolToChar(symbol)},
+                         sequence_name + ":" + aaSymbolToChar(symbol_in_reference_genome) +
+                            std::to_string(pos + 1) + aaSymbolToChar(symbol)},
                         {PROPORTION_FIELD_NAME, proportion},
                         {COUNT_FIELD_NAME, static_cast<int32_t>(count)}};
-               mutation_proportions.push_back({fields});
+               output.push_back({fields});
             }
          }
       }
    }
+}
 
+QueryResult AAMutations::execute(
+   const Database& database,
+   std::vector<OperatorResult> bitmap_filter
+) const {
+   using roaring::Roaring;
+
+   std::vector<std::string> aa_sequence_names_to_evaluate;
+   for (const auto& aa_sequence_name : aa_sequence_names) {
+      CHECK_SILO_QUERY(
+         database.aa_sequences.contains(aa_sequence_name),
+         "Database does not contain the amino acid sequence with name: '" + aa_sequence_name + "'"
+      )
+      aa_sequence_names_to_evaluate.emplace_back(aa_sequence_name);
+   }
+   if (aa_sequence_names.empty()) {
+      for (const auto& [aa_sequence_name, _] : database.aa_sequences) {
+         aa_sequence_names_to_evaluate.emplace_back(aa_sequence_name);
+      }
+   }
+
+   std::unordered_map<std::string, AAMutations::PrefilteredBitmaps> bitmaps_to_evaluate =
+      preFilterBitmaps(database, bitmap_filter);
+
+   std::vector<QueryResultEntry> mutation_proportions;
+   for (const auto& aa_sequence_name : aa_sequence_names_to_evaluate) {
+      const AAStore& aa_store = database.aa_sequences.at(aa_sequence_name);
+
+      addMutationsToOutput(
+         aa_sequence_name, aa_store, bitmaps_to_evaluate.at(aa_sequence_name), mutation_proportions
+      );
+   }
    return {mutation_proportions};
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<AAMutations>& action) {
    CHECK_SILO_QUERY(
-      json.contains("sequenceName") && json["sequenceName"].is_string(),
-      "AminoAcidMutations action must have the string field sequenceName"
+      !json.contains("sequenceName") ||
+         (json["sequenceName"].is_string() || json["sequenceName"].is_array()),
+      "AminoAcidMutations action can have the field sequenceName of type string or an array of "
+      "strings, but no other type"
    )
-   const std::string aa_sequence_name = json["sequenceName"].get<std::string>();
+   std::vector<std::string> sequence_names;
+   if (json.contains("sequenceName") && json["sequenceName"].is_array()) {
+      for (const auto& child : json["sequenceName"]) {
+         CHECK_SILO_QUERY(
+            child.is_string(),
+            "AminoAcidMutations action can have the field sequenceName of type string or an array "
+            "of "
+            "strings, but no other type; while parsing array encountered the element " +
+               child.dump() + " which is not of type string"
+         )
+         sequence_names.emplace_back(child.get<std::string>());
+      }
+   } else if (json.contains("sequenceName") && json["sequenceName"].is_string()) {
+      sequence_names.emplace_back(json["sequenceName"].get<std::string>());
+   }
+
    double min_proportion = AAMutations::DEFAULT_MIN_PROPORTION;
    if (json.contains("minProportion")) {
       min_proportion = json["minProportion"].get<double>();
@@ -198,7 +240,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<AAMutations>& action)
          );
       }
    }
-   action = std::make_unique<AAMutations>(aa_sequence_name, min_proportion);
+   action = std::make_unique<AAMutations>(std::move(sequence_names), min_proportion);
 }
 
 }  // namespace silo::query_engine::actions

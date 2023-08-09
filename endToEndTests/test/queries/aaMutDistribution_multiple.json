@@ -1,9 +1,9 @@
 {
-  "testCaseName": "The distribution of Amino Acid Mutations action",
+  "testCaseName": "The distribution of Amino Acid Mutations action for multiple sequences",
   "query": {
     "action": {
       "type": "AminoAcidMutations",
-      "sequenceName": "S",
+      "sequenceName": ["S", "N"],
       "minProportion": 0.3
     },
     "filterExpression": {
@@ -130,6 +130,41 @@
       "count": 34,
       "position": "S:N969K",
       "proportion": 0.35051546391752575
+    },
+    {
+      "count": 34,
+      "position": "N:P13L",
+      "proportion": 0.3469387755102041
+    },
+    {
+      "count": 36,
+      "position": "N:D63G",
+      "proportion": 0.3673469387755102
+    },
+    {
+      "count": 46,
+      "position": "N:R203K",
+      "proportion": 0.46
+    },
+    {
+      "count": 38,
+      "position": "N:R203M",
+      "proportion": 0.38
+    },
+    {
+      "count": 46,
+      "position": "N:G204R",
+      "proportion": 0.46
+    },
+    {
+      "count": 30,
+      "position": "N:G215C",
+      "proportion": 0.3
+    },
+    {
+      "count": 37,
+      "position": "N:D377Y",
+      "proportion": 0.38144329896907214
     }
   ]
 }

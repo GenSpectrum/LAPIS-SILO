@@ -1,0 +1,64 @@
+{
+  "testCaseName": "The distribution of Amino Acid Mutations action for all sequences",
+  "query": {
+    "action": {
+      "type": "AminoAcidMutations",
+      "minProportion": 0.4
+    },
+    "filterExpression": {
+      "type": "True"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 46,
+      "position": "N:R203K",
+      "proportion": 0.46
+    },
+    {
+      "count": 46,
+      "position": "N:G204R",
+      "proportion": 0.46
+    },
+    {
+      "count": 64,
+      "position": "ORF1a:T3255I",
+      "proportion": 0.6464646464646465
+    },
+    {
+      "count": 98,
+      "position": "ORF1b:P314L",
+      "proportion": 0.98989898989899
+    },
+    {
+      "count": 37,
+      "position": "S:G142D",
+      "proportion": 0.49333333333333335
+    },
+    {
+      "count": 38,
+      "position": "S:L452R",
+      "proportion": 0.4318181818181818
+    },
+    {
+      "count": 69,
+      "position": "S:T478K",
+      "proportion": 0.7340425531914894
+    },
+    {
+      "count": 41,
+      "position": "S:N501Y",
+      "proportion": 0.44086021505376344
+    },
+    {
+      "count": 98,
+      "position": "S:D614G",
+      "proportion": 0.98989898989899
+    },
+    {
+      "count": 42,
+      "position": "S:P681H",
+      "proportion": 0.42
+    }
+  ]
+}
