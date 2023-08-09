@@ -8,11 +8,10 @@ namespace YAML {
 template <>
 struct convert<silo_api::RuntimeConfig> {
    static bool decode(const Node& node, silo_api::RuntimeConfig& config) {
-      config = silo_api::RuntimeConfig(
+      config = silo_api::RuntimeConfig{
          node["dataDirectory"]
             ? std::optional<std::filesystem::path>(node["dataDirectory"].as<std::string>())
-            : std::nullopt
-      );
+            : std::nullopt};
 
       return true;
    }

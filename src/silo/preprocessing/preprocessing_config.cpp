@@ -26,7 +26,7 @@ std::filesystem::path createPath(
    return_path += filename;
    if (!std::filesystem::exists(return_path)) {
       throw std::filesystem::filesystem_error(
-         return_path.relative_path().string() + " does not exist", std::error_code()
+         return_path.string() + " does not exist", std::error_code()
       );
    }
    return return_path;

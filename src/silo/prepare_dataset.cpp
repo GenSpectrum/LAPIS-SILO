@@ -135,6 +135,7 @@ getSequenceWritersForChunks(
    std::unordered_map<silo::preprocessing::PartitionChunk, silo::ZstdFastaWriter>
       chunk_to_seq_ostream;
    for (const auto& [partition_chunk, filename] : partition_filenames) {
+      SPDLOG_TRACE("Sequence Writer is now inserted with filename {}", filename.string());
       chunk_to_seq_ostream.insert(
          {partition_chunk, silo::ZstdFastaWriter(filename, reference_genome)}
       );

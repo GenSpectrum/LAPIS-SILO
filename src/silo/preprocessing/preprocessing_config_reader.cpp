@@ -30,7 +30,7 @@ std::optional<std::string> extractStringIfPresent(const Node& node, const std::s
 template <>
 struct convert<OptionalPreprocessingConfig> {
    static bool decode(const Node& node, OptionalPreprocessingConfig& config) {
-      config = OptionalPreprocessingConfig(
+      config = OptionalPreprocessingConfig{
          extractStringIfPresent(node, "inputDirectory"),
          extractStringIfPresent(node, "outputDirectory"),
          extractStringIfPresent(node, "intermediateResultsDirectory"),
@@ -40,8 +40,7 @@ struct convert<OptionalPreprocessingConfig> {
          extractStringIfPresent(node, "sortedPartitionsFolder"),
          extractStringIfPresent(node, "referenceGenomeFilename"),
          extractStringIfPresent(node, "nucleotideSequencePrefix"),
-         extractStringIfPresent(node, "genePrefix")
-      );
+         extractStringIfPresent(node, "genePrefix")};
 
       return true;
    }
