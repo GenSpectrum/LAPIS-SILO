@@ -162,8 +162,9 @@ void AAMutations::addMutationsToOutput(
                   map<std::string, std::optional<std::variant<std::string, int32_t, double>>>
                      fields{
                         {POSITION_FIELD_NAME,
-                         sequence_name + ":" + aaSymbolToChar(symbol_in_reference_genome) +
-                            std::to_string(pos + 1) + aaSymbolToChar(symbol)},
+                         aaSymbolToChar(symbol_in_reference_genome) + std::to_string(pos + 1) +
+                            aaSymbolToChar(symbol)},
+                        {SEQUENCE_FIELD_NAME, sequence_name},
                         {PROPORTION_FIELD_NAME, proportion},
                         {COUNT_FIELD_NAME, static_cast<int32_t>(count)}};
                output.push_back({fields});

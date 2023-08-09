@@ -13,123 +13,147 @@
   "expectedQueryResult": [
     {
       "count": 37,
-      "position": "S:T19R",
-      "proportion": 0.3854166666666667
+      "position": "T19R",
+      "proportion": 0.3854166666666667,
+      "sequenceName": "S"
     },
     {
       "count": 37,
-      "position": "S:G142D",
-      "proportion": 0.49333333333333335
+      "position": "G142D",
+      "proportion": 0.49333333333333335,
+      "sequenceName": "S"
     },
     {
       "count": 34,
-      "position": "S:R158G",
-      "proportion": 0.3655913978494624
+      "position": "R158G",
+      "proportion": 0.3655913978494624,
+      "sequenceName": "S"
     },
     {
       "count": 34,
-      "position": "S:G339D",
-      "proportion": 0.3469387755102041
+      "position": "G339D",
+      "proportion": 0.3469387755102041,
+      "sequenceName": "S"
     },
     {
       "count": 33,
-      "position": "S:S373P",
-      "proportion": 0.3402061855670103
+      "position": "S373P",
+      "proportion": 0.3402061855670103,
+      "sequenceName": "S"
     },
     {
       "count": 33,
-      "position": "S:S375F",
-      "proportion": 0.336734693877551
+      "position": "S375F",
+      "proportion": 0.336734693877551,
+      "sequenceName": "S"
     },
     {
       "count": 38,
-      "position": "S:L452R",
-      "proportion": 0.4318181818181818
+      "position": "L452R",
+      "proportion": 0.4318181818181818,
+      "sequenceName": "S"
     },
     {
       "count": 32,
-      "position": "S:S477N",
-      "proportion": 0.34408602150537637
+      "position": "S477N",
+      "proportion": 0.34408602150537637,
+      "sequenceName": "S"
     },
     {
       "count": 69,
-      "position": "S:T478K",
-      "proportion": 0.7340425531914894
+      "position": "T478K",
+      "proportion": 0.7340425531914894,
+      "sequenceName": "S"
     },
     {
       "count": 31,
-      "position": "S:E484A",
-      "proportion": 0.3333333333333333
+      "position": "E484A",
+      "proportion": 0.3333333333333333,
+      "sequenceName": "S"
     },
     {
       "count": 31,
-      "position": "S:Q493R",
-      "proportion": 0.3333333333333333
+      "position": "Q493R",
+      "proportion": 0.3333333333333333,
+      "sequenceName": "S"
     },
     {
       "count": 30,
-      "position": "S:Q498R",
-      "proportion": 0.3225806451612903
+      "position": "Q498R",
+      "proportion": 0.3225806451612903,
+      "sequenceName": "S"
     },
     {
       "count": 41,
-      "position": "S:N501Y",
-      "proportion": 0.44086021505376344
+      "position": "N501Y",
+      "proportion": 0.44086021505376344,
+      "sequenceName": "S"
     },
     {
       "count": 30,
-      "position": "S:Y505H",
-      "proportion": 0.3225806451612903
+      "position": "Y505H",
+      "proportion": 0.3225806451612903,
+      "sequenceName": "S"
     },
     {
       "count": 98,
-      "position": "S:D614G",
-      "proportion": 0.98989898989899
+      "position": "D614G",
+      "proportion": 0.98989898989899,
+      "sequenceName": "S"
     },
     {
       "count": 37,
-      "position": "S:H655Y",
-      "proportion": 0.37373737373737376
+      "position": "H655Y",
+      "proportion": 0.37373737373737376,
+      "sequenceName": "S"
     },
     {
       "count": 34,
-      "position": "S:N679K",
-      "proportion": 0.34
+      "position": "N679K",
+      "proportion": 0.34,
+      "sequenceName": "S"
     },
     {
       "count": 42,
-      "position": "S:P681H",
-      "proportion": 0.42
+      "position": "P681H",
+      "proportion": 0.42,
+      "sequenceName": "S"
     },
     {
       "count": 38,
-      "position": "S:P681R",
-      "proportion": 0.38
+      "position": "P681R",
+      "proportion": 0.38,
+      "sequenceName": "S"
     },
     {
       "count": 31,
-      "position": "S:N764K",
-      "proportion": 0.32978723404255317
+      "position": "N764K",
+      "proportion": 0.32978723404255317,
+      "sequenceName": "S"
     },
     {
       "count": 34,
-      "position": "S:D796Y",
-      "proportion": 0.3469387755102041
+      "position": "D796Y",
+      "proportion": 0.3469387755102041,
+      "sequenceName": "S"
     },
     {
       "count": 34,
-      "position": "S:D950N",
-      "proportion": 0.35789473684210527
+      "position": "D950N",
+      "proportion": 0.35789473684210527,
+      "sequenceName": "S"
     },
     {
       "count": 33,
-      "position": "S:Q954H",
-      "proportion": 0.34375
+      "position": "Q954H",
+      "proportion": 0.34375,
+      "sequenceName": "S"
     },
     {
       "count": 34,
-      "position": "S:N969K",
-      "proportion": 0.35051546391752575
+      "position": "N969K",
+      "proportion": 0.35051546391752575,
+      "sequenceName": "S"
     }
   ]
 }
