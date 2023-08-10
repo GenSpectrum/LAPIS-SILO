@@ -3,10 +3,7 @@
   "query": {
     "action": {
       "type": "FastaAligned",
-      "sequenceName": [
-        "testSecondSequence",
-        "S"
-      ]
+      "sequenceName": ["testSecondSequence", "S"]
     },
     "filterExpression": {
       "type": "IntBetween",
