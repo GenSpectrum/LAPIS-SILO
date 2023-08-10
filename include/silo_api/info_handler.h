@@ -6,21 +6,15 @@
 
 #include "silo_api/rest_resource.h"
 
-namespace silo {
-class Database;
-}
-
 namespace silo_api {
+class DatabaseMutex;
 
 class InfoHandler : public RestResource {
   private:
-   const silo::Database& database;
-
-   void returnDetailedDatabaseInfo(Poco::Net::HTTPServerResponse& response);
-   void returnSimpleDatabaseInfo(Poco::Net::HTTPServerResponse& response);
+   DatabaseMutex& database;
 
   public:
-   explicit InfoHandler(const silo::Database& database);
+   explicit InfoHandler(DatabaseMutex& database);
 
    void get(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response)
       override;

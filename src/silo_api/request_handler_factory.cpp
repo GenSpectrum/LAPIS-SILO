@@ -4,7 +4,7 @@
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/URI.h>
 
-#include "silo/database.h"
+#include "silo_api/database_mutex.h"
 #include "silo_api/error_request_handler.h"
 #include "silo_api/info_handler.h"
 #include "silo_api/logging_request_handler.h"
@@ -13,12 +13,8 @@
 
 namespace silo_api {
 
-SiloRequestHandlerFactory::SiloRequestHandlerFactory(
-   const silo::Database& database,
-   const silo::query_engine::QueryEngine& query_engine
-)
-    : database(database),
-      query_engine(query_engine) {}
+SiloRequestHandlerFactory::SiloRequestHandlerFactory(silo_api::DatabaseMutex& database)
+    : database(database) {}
 
 Poco::Net::HTTPRequestHandler* SiloRequestHandlerFactory::createRequestHandler(
    const Poco::Net::HTTPServerRequest& request
@@ -36,7 +32,7 @@ Poco::Net::HTTPRequestHandler* SiloRequestHandlerFactory::routeRequest(
       return new silo_api::InfoHandler(database);
    }
    if (path == "/query") {
-      return new silo_api::QueryHandler(query_engine, database);
+      return new silo_api::QueryHandler(database);
    }
    return new silo_api::NotFoundHandler;
 }

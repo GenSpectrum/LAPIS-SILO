@@ -50,9 +50,9 @@ class Database {
       const config::DatabaseConfig& database_config_
    );
 
-   void saveDatabaseState(const std::string& save_directory);
+   void saveDatabaseState(const std::filesystem::path& save_directory);
 
-   static Database loadDatabaseState(const std::string& save_directory);
+   static Database loadDatabaseState(const std::filesystem::path& save_directory);
 
    [[nodiscard]] virtual DatabaseInfo getDatabaseInfo() const;
 
@@ -65,7 +65,7 @@ class Database {
 
   private:
    PangoLineageAliasLookup alias_key;
-   DataVersion data_version_;
+   DataVersion data_version_ = {""};
 
    void build(
       const preprocessing::PreprocessingConfig& preprocessing_config,
@@ -87,17 +87,12 @@ class Database {
    );
    void finalizeInsertionIndexes();
 
-   void flipBitmaps();
-
    static BitmapSizePerSymbol calculateBitmapSizePerSymbol(const SequenceStore& seq_store);
 
    static BitmapContainerSize calculateBitmapContainerSizePerGenomeSection(
       const SequenceStore& seq_store,
       size_t section_length
    );
-
-  protected:
-   Database();
 };
 
 }  // namespace silo

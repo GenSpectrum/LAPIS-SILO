@@ -18,4 +18,16 @@ std::string DataVersion::toString() const {
    return data_version;
 }
 
+// Lexicographical ordering with the empty string as the lowest order
+bool DataVersion::operator<(const DataVersion& other) const {
+   return this->data_version < other.data_version;
+}
+
+std::optional<DataVersion> DataVersion::fromString(const std::string& string) {
+   if (std::all_of(string.begin(), string.end(), [](char c) { return c >= '0' && c <= '9'; })) {
+      return DataVersion{string};
+   }
+   return std::nullopt;
+}
+
 }  // namespace silo

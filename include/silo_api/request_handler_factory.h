@@ -5,25 +5,18 @@
 #include <Poco/Net/HTTPRequestHandlerFactory.h>
 #include <Poco/Net/HTTPServerRequest.h>
 
-namespace silo {
-class Database;
-namespace query_engine {
-class QueryEngine;
-}
-}  // namespace silo
+namespace silo_api {
+class DatabaseMutex;
+}  // namespace silo_api
 
 namespace silo_api {
 
 class SiloRequestHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
   private:
-   const silo::Database& database;
-   const silo::query_engine::QueryEngine& query_engine;
+   silo_api::DatabaseMutex& database;
 
   public:
-   SiloRequestHandlerFactory(
-      const silo::Database& database,
-      const silo::query_engine::QueryEngine& query_engine
-   );
+   SiloRequestHandlerFactory(silo_api::DatabaseMutex& database);
 
    Poco::Net::HTTPRequestHandler* createRequestHandler(const Poco::Net::HTTPServerRequest& request);
 

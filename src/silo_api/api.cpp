@@ -1,11 +1,15 @@
 #include <filesystem>
 #include <iostream>
 #include <optional>
+#include <shared_mutex>
 #include <string>
 
+#include <Poco/Delegate.h>
+#include <Poco/DirectoryWatcher.h>
 #include <Poco/Net/HTTPServer.h>
 #include <Poco/Net/HTTPServerParams.h>
 #include <Poco/Net/ServerSocket.h>
+#include <Poco/Path.h>
 #include <Poco/Util/HelpFormatter.h>
 #include <Poco/Util/Option.h>
 #include <Poco/Util/OptionSet.h>
@@ -18,6 +22,8 @@
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_config_reader.h"
 #include "silo/query_engine/query_engine.h"
+#include "silo_api/database_mutex.h"
+#include "silo_api/database_watcher.h"
 #include "silo_api/info_handler.h"
 #include "silo_api/logging.h"
 #include "silo_api/request_handler_factory.h"
@@ -173,12 +179,14 @@ class SiloServer : public Poco::Util::ServerApplication {
 
       const auto data_directory = dataDirectory(config(), runtime_config);
 
-      auto database = silo::Database::loadDatabaseState(data_directory);
+      silo_api::DatabaseMutex database_mutex;
 
       const Poco::Net::ServerSocket server_socket(port);
-      const silo::query_engine::QueryEngine query_engine(database);
+
+      silo_api::DatabaseWatcher watcher(data_directory, database_mutex);
+
       Poco::Net::HTTPServer server(
-         new silo_api::SiloRequestHandlerFactory(database, query_engine),
+         new silo_api::SiloRequestHandlerFactory(database_mutex),
          server_socket,
          new Poco::Net::HTTPServerParams
       );
