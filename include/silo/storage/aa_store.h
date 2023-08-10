@@ -47,7 +47,7 @@ class AAPosition {
    AASymbolMap<roaring::Roaring> bitmaps;
    std::optional<AA_SYMBOL> symbol_whose_bitmap_is_flipped = std::nullopt;
 
-   void flipMostNumerousBitmap(uint32_t sequence_count);
+   std::optional<silo::AA_SYMBOL> flipMostNumerousBitmap(uint32_t sequence_count);
 };
 
 class AAStorePartition {
@@ -58,6 +58,7 @@ class AAStorePartition {
    void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
       archive & sequence_count;
+      archive & indexing_differences_to_reference_sequence;
       archive & positions;
       archive & aa_symbol_x_bitmaps;
       // clang-format on
@@ -71,6 +72,7 @@ class AAStorePartition {
    explicit AAStorePartition(const std::vector<AA_SYMBOL>& reference_sequence);
 
    const std::vector<AA_SYMBOL>& reference_sequence;
+   std::vector<std::pair<size_t, AA_SYMBOL>> indexing_differences_to_reference_sequence;
    std::vector<AAPosition> positions;
    std::vector<roaring::Roaring> aa_symbol_x_bitmaps;
    uint32_t sequence_count = 0;

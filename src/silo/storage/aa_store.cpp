@@ -21,7 +21,7 @@ silo::AAPosition::AAPosition(std::optional<AA_SYMBOL> symbol) {
    symbol_whose_bitmap_is_flipped = symbol;
 }
 
-void silo::AAPosition::flipMostNumerousBitmap(uint32_t sequence_count) {
+std::optional<silo::AA_SYMBOL> silo::AAPosition::flipMostNumerousBitmap(uint32_t sequence_count) {
    std::optional<AA_SYMBOL> previous_flipped_bitmap_symbol = symbol_whose_bitmap_is_flipped;
    std::optional<AA_SYMBOL> new_flipped_bitmap_symbol = std::nullopt;
    uint32_t max_count = 0;
@@ -50,7 +50,9 @@ void silo::AAPosition::flipMostNumerousBitmap(uint32_t sequence_count) {
          bitmaps[*new_flipped_bitmap_symbol].shrinkToFit();
       }
       symbol_whose_bitmap_is_flipped = new_flipped_bitmap_symbol;
+      return symbol_whose_bitmap_is_flipped;
    }
+   return std::nullopt;
 }
 
 silo::AAStorePartition::AAStorePartition(const std::vector<AA_SYMBOL>& reference_sequence)

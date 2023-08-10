@@ -1,5 +1,6 @@
 #include "silo/storage/database_partition.h"
 
+#include <tbb/enumerable_thread_specific.h>
 #include <tbb/parallel_for.h>
 
 #include "silo/storage/column_group.h"
@@ -22,20 +23,44 @@ DatabasePartition::DatabasePartition(std::vector<silo::preprocessing::Chunk> chu
 
 void DatabasePartition::flipBitmaps() {
    for (auto& [_, seq_store] : nuc_sequences) {
+      tbb::enumerable_thread_specific<decltype(seq_store.indexing_differences_to_reference_genome)>
+         flipped_bitmaps;
+
       auto& positions = seq_store.positions;
       tbb::parallel_for(tbb::blocked_range<uint32_t>(0, positions.size()), [&](const auto& local) {
+         auto& local_flipped_bitmaps = flipped_bitmaps.local();
          for (auto position = local.begin(); position != local.end(); ++position) {
-            positions[position].flipMostNumerousBitmap(sequence_count);
+            auto flipped_symbol = positions[position].flipMostNumerousBitmap(sequence_count);
+            if (flipped_symbol.has_value()) {
+               local_flipped_bitmaps.emplace_back(position, *flipped_symbol);
+            }
          }
       });
+      for (const auto& local : flipped_bitmaps) {
+         for (auto& element : local) {
+            seq_store.indexing_differences_to_reference_genome.emplace_back(element);
+         }
+      }
    }
-   for (auto& [_, seq_store] : aa_sequences) {
-      auto& positions = seq_store.positions;
+   for (auto& [_, aa_store] : aa_sequences) {
+      tbb::enumerable_thread_specific<decltype(aa_store.indexing_differences_to_reference_sequence)>
+         flipped_bitmaps;
+
+      auto& positions = aa_store.positions;
       tbb::parallel_for(tbb::blocked_range<uint32_t>(0, positions.size()), [&](const auto& local) {
+         auto& local_flipped_bitmaps = flipped_bitmaps.local();
          for (auto position = local.begin(); position != local.end(); ++position) {
-            positions[position].flipMostNumerousBitmap(sequence_count);
+            auto flipped_symbol = positions[position].flipMostNumerousBitmap(sequence_count);
+            if (flipped_symbol.has_value()) {
+               local_flipped_bitmaps.emplace_back(position, *flipped_symbol);
+            }
          }
       });
+      for (const auto& local : flipped_bitmaps) {
+         for (auto& element : local) {
+            aa_store.indexing_differences_to_reference_sequence.emplace_back(element);
+         }
+      }
    }
 }
 
