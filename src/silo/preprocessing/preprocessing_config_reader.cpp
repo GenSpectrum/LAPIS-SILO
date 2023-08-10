@@ -44,7 +44,15 @@ OptionalPreprocessingConfig PreprocessingConfigReader::readConfig(
    const std::filesystem::path& config_path
 ) const {
    SPDLOG_INFO("Reading preprocessing config from {}", config_path.string());
-   return YAML::LoadFile(config_path.string()).as<OptionalPreprocessingConfig>();
+
+   try {
+      return YAML::LoadFile(config_path.string()).as<OptionalPreprocessingConfig>();
+   } catch (const YAML::Exception& e) {
+      throw std::runtime_error(
+         "Failed to read preprocessing config from " + config_path.string() + ": " +
+         std::string(e.what())
+      );
+   }
 }
 
 PreprocessingConfig OptionalPreprocessingConfig::mergeValuesFromOrDefault(

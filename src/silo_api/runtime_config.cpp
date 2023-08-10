@@ -23,7 +23,14 @@ namespace silo_api {
 
 RuntimeConfig RuntimeConfig::readFromFile(const std::filesystem::path& config_path) {
    SPDLOG_INFO("Reading runtime config from {}", config_path.string());
-   return YAML::LoadFile(config_path.string()).as<RuntimeConfig>();
+
+   try {
+      return YAML::LoadFile(config_path.string()).as<RuntimeConfig>();
+   } catch (const YAML::Exception& e) {
+      throw std::runtime_error(
+         "Failed to read runtime config from " + config_path.string() + ": " + std::string(e.what())
+      );
+   }
 }
 
 }  // namespace silo_api
