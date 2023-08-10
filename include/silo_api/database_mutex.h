@@ -12,9 +12,9 @@ class FixedDatabase {
    std::shared_lock<std::shared_mutex> lock;
 
   public:
-   FixedDatabase(silo::Database& database, std::shared_mutex& mutex);
+   FixedDatabase(const silo::Database& database, std::shared_lock<std::shared_mutex>&& mutex);
 
-   silo::Database& database;
+   const silo::Database& database;
 };
 
 class DatabaseMutex {
@@ -26,9 +26,9 @@ class DatabaseMutex {
 
    explicit DatabaseMutex(silo::Database&& database);
 
-   void setDatabase(silo::Database&& db);
+   void setDatabase(silo::Database&& new_database);
 
-   const FixedDatabase getDatabase();
+   virtual FixedDatabase getDatabase();
 };
 }  // namespace silo_api
 

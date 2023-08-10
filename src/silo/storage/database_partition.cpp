@@ -21,6 +21,7 @@ class StringColumnPartition;
 DatabasePartition::DatabasePartition(std::vector<silo::preprocessing::Chunk> chunks)
     : chunks(std::move(chunks)) {}
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void DatabasePartition::flipBitmaps() {
    for (auto& [_, seq_store] : nuc_sequences) {
       tbb::enumerable_thread_specific<decltype(seq_store.indexing_differences_to_reference_genome)>
@@ -37,7 +38,7 @@ void DatabasePartition::flipBitmaps() {
          }
       });
       for (const auto& local : flipped_bitmaps) {
-         for (auto& element : local) {
+         for (const auto& element : local) {
             seq_store.indexing_differences_to_reference_genome.emplace_back(element);
          }
       }
@@ -57,7 +58,7 @@ void DatabasePartition::flipBitmaps() {
          }
       });
       for (const auto& local : flipped_bitmaps) {
-         for (auto& element : local) {
+         for (const auto& element : local) {
             aa_store.indexing_differences_to_reference_sequence.emplace_back(element);
          }
       }

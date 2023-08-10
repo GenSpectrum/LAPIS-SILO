@@ -40,6 +40,7 @@
 #include "silo/preprocessing/pango_lineage_count.h"
 #include "silo/preprocessing/partition.h"
 #include "silo/preprocessing/preprocessing_config.h"
+#include "silo/query_engine/query_engine.h"
 #include "silo/storage/aa_store.h"
 #include "silo/storage/column/date_column.h"
 #include "silo/storage/column/float_column.h"
@@ -756,6 +757,12 @@ void Database::setDataVersion(const DataVersion& data_version) {
 
 DataVersion Database::getDataVersion() const {
    return data_version_;
+}
+
+query_engine::QueryResult Database::executeQuery(const std::string& query) const {
+   const silo::query_engine::QueryEngine query_engine(*this);
+
+   return query_engine.executeQuery(query);
 }
 
 }  // namespace silo

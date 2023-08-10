@@ -34,9 +34,7 @@ void QueryHandler::post(
    try {
       auto fixed_database = database.getDatabase();
 
-      silo::query_engine::QueryEngine query_engine(fixed_database.database);
-
-      const auto query_result = query_engine.executeQuery(query);
+      const auto query_result = fixed_database.database.executeQuery(query);
 
       response.set("data-version", fixed_database.database.getDataVersion().toString());
 

@@ -89,7 +89,7 @@ void InfoHandler::get(
 ) {
    const auto request_parameter = getQueryParameter(request);
 
-   auto& fixed_database = database.getDatabase();
+   const auto fixed_database = database.getDatabase();
 
    response.set("data-version", fixed_database.database.getDataVersion().toString());
 

@@ -20,7 +20,7 @@ class DataVersion {
    static std::optional<DataVersion> fromString(const std::string& string);
 
   private:
-   DataVersion(std::string data_version);
+   explicit DataVersion(std::string data_version);
    std::string data_version;
 };
 
