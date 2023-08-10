@@ -1,7 +1,7 @@
 #include "silo/preprocessing/preprocessing_config_reader.h"
 
+#include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
-#include <yaml-cpp/yaml.h>
 
 #include "silo/preprocessing/preprocessing_config.h"
 
@@ -43,8 +43,9 @@ TEST(PreprocessingConfigReader, shouldReadConfigWithCorrectParametersAndDefaults
 }
 
 TEST(PreprocessingConfigReader, shouldThrowExceptionWhenConfigFileDoesNotExist) {
-   ASSERT_THROW(
-      PreprocessingConfigReader().readConfig("testBaseData/does_not_exist.yaml"), YAML::BadFile
+   EXPECT_THAT(
+      []() { PreprocessingConfigReader().readConfig("testBaseData/does_not_exist.yaml"); },
+      ThrowsMessage<std::runtime_error>(::testing::HasSubstr("Failed to read preprocessing config"))
    );
 }
 
