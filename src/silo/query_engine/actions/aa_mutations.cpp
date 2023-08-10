@@ -221,10 +221,9 @@ void from_json(const nlohmann::json& json, std::unique_ptr<AAMutations>& action)
       for (const auto& child : json["sequenceName"]) {
          CHECK_SILO_QUERY(
             child.is_string(),
-            "AminoAcidMutations action can have the field sequenceName of type string or an array "
-            "of "
-            "strings, but no other type; while parsing array encountered the element " +
-               child.dump() + " which is not of type string"
+            "The field sequenceName of AminoAcidMutations action must have type string or an "
+            "array, if present. Found:" +
+               child.dump()
          )
          sequence_names.emplace_back(child.get<std::string>());
       }

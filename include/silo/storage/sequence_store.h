@@ -48,7 +48,7 @@ class NucPosition {
    NucleotideSymbolMap<roaring::Roaring> bitmaps;
    std::optional<NUCLEOTIDE_SYMBOL> symbol_whose_bitmap_is_flipped = std::nullopt;
 
-   void flipMostNumerousBitmap(uint32_t sequence_count);
+   std::optional<silo::NUCLEOTIDE_SYMBOL> flipMostNumerousBitmap(uint32_t sequence_count);
 };
 
 struct SequenceStoreInfo {
@@ -64,6 +64,7 @@ class SequenceStorePartition {
    void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
       archive & positions;
+      archive & indexing_differences_to_reference_genome;
       archive & nucleotide_symbol_n_bitmaps;
       archive & sequence_count;
       // clang-format on
@@ -77,6 +78,7 @@ class SequenceStorePartition {
    explicit SequenceStorePartition(const std::vector<NUCLEOTIDE_SYMBOL>& reference_genome);
 
    const std::vector<NUCLEOTIDE_SYMBOL>& reference_genome;
+   std::vector<std::pair<size_t, NUCLEOTIDE_SYMBOL>> indexing_differences_to_reference_genome;
    std::vector<NucPosition> positions;
    std::vector<roaring::Roaring> nucleotide_symbol_n_bitmaps;
    uint32_t sequence_count = 0;

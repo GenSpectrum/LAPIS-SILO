@@ -23,7 +23,9 @@ silo::NucPosition::NucPosition(std::optional<NUCLEOTIDE_SYMBOL> symbol) {
    symbol_whose_bitmap_is_flipped = symbol;
 }
 
-void silo::NucPosition::flipMostNumerousBitmap(uint32_t sequence_count) {
+std::optional<silo::NUCLEOTIDE_SYMBOL> silo::NucPosition::flipMostNumerousBitmap(
+   uint32_t sequence_count
+) {
    std::optional<NUCLEOTIDE_SYMBOL> flipped_bitmap_before = symbol_whose_bitmap_is_flipped;
    std::optional<NUCLEOTIDE_SYMBOL> max_symbol = std::nullopt;
    uint32_t max_count = 0;
@@ -51,7 +53,9 @@ void silo::NucPosition::flipMostNumerousBitmap(uint32_t sequence_count) {
          bitmaps[*max_symbol].shrinkToFit();
       }
       symbol_whose_bitmap_is_flipped = max_symbol;
+      return symbol_whose_bitmap_is_flipped;
    }
+   return std::nullopt;
 }
 
 silo::SequenceStorePartition::SequenceStorePartition(

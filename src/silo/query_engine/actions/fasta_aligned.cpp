@@ -43,6 +43,11 @@ std::string reconstructNucSequence(
       silo::nucleotideSymbolToChar
    );
 
+   for (const auto& [position_id, symbol] :
+        sequence_store.indexing_differences_to_reference_genome) {
+      reconstructed_sequence[position_id] = nucleotideSymbolToChar(symbol);
+   }
+
    tbb::
       parallel_for(
          tbb::blocked_range<size_t>(0, sequence_store.positions.size()),
@@ -73,6 +78,10 @@ std::string reconstructAASequence(const AAStorePartition& aa_store, uint32_t seq
       std::back_inserter(reconstructed_sequence),
       silo::aaSymbolToChar
    );
+
+   for (const auto& [position_id, symbol] : aa_store.indexing_differences_to_reference_sequence) {
+      reconstructed_sequence[position_id] = aaSymbolToChar(symbol);
+   }
 
    tbb::
       parallel_for(
