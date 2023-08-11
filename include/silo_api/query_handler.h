@@ -13,7 +13,7 @@ class DatabaseMutex;
 namespace silo_api {
 class QueryHandler : public RestResource {
   private:
-   silo_api::DatabaseMutex& database;
+   silo_api::DatabaseMutex& database_mutex;
 
   public:
    explicit QueryHandler(silo_api::DatabaseMutex& database);

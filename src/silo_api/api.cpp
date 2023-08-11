@@ -183,7 +183,7 @@ class SiloServer : public Poco::Util::ServerApplication {
 
       const Poco::Net::ServerSocket server_socket(port);
 
-      const silo_api::DatabaseWatcher watcher(data_directory, database_mutex);
+      const silo_api::DatabaseDirectoryWatcher watcher(data_directory, database_mutex);
 
       Poco::Net::HTTPServer server(
          new silo_api::SiloRequestHandlerFactory(database_mutex),

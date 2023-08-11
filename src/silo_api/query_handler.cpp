@@ -17,8 +17,8 @@
 
 namespace silo_api {
 
-QueryHandler::QueryHandler(silo_api::DatabaseMutex& database)
-    : database(database) {}
+QueryHandler::QueryHandler(silo_api::DatabaseMutex& database_mutex)
+    : database_mutex(database_mutex) {}
 
 void QueryHandler::post(
    Poco::Net::HTTPServerRequest& request,
@@ -32,7 +32,7 @@ void QueryHandler::post(
 
    response.setContentType("application/json");
    try {
-      auto fixed_database = database.getDatabase();
+      const auto fixed_database = database_mutex.getDatabase();
 
       const auto query_result = fixed_database.database.executeQuery(query);
 

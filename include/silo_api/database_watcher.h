@@ -4,21 +4,22 @@
 #include <string>
 
 #include <Poco/Delegate.h>
-#include <Poco/DirectoryWatcher.h>
 #include <Poco/Path.h>
+#include <Poco/Timer.h>
 
 #include "silo_api/database_mutex.h"
 
 namespace silo_api {
 
-class DatabaseWatcher {
-   Poco::DirectoryWatcher watcher;
+class DatabaseDirectoryWatcher {
+   std::filesystem::path path;
    DatabaseMutex& database_mutex;
+   Poco::Timer timer;
 
   public:
-   DatabaseWatcher(const std::string& path, DatabaseMutex& database_mutex);
+   DatabaseDirectoryWatcher(const std::filesystem::path& path, DatabaseMutex& database_mutex);
 
-   void onItemAdded(const Poco::DirectoryWatcher::DirectoryEvent& ev);
+   void checkDirectoryForData(Poco::Timer& the_timer);
 };
 }  // namespace silo_api
 

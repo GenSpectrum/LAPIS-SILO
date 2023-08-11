@@ -13,7 +13,12 @@ class DataVersion {
   public:
    [[nodiscard]] std::string toString() const;
 
+   bool operator==(const DataVersion& other) const;
+   bool operator!=(const DataVersion& other) const;
    bool operator<(const DataVersion& other) const;
+   bool operator>(const DataVersion& other) const;
+   bool operator<=(const DataVersion& other) const;
+   bool operator>=(const DataVersion& other) const;
 
    static DataVersion mineDataVersion();
 

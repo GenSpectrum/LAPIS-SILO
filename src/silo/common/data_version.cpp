@@ -19,9 +19,25 @@ std::string DataVersion::toString() const {
    return data_version;
 }
 
+bool DataVersion::operator==(const DataVersion& other) const {
+   return this->data_version == other.data_version;
+}
+bool DataVersion::operator!=(const DataVersion& other) const {
+   return !(*this == other);
+}
+
 // Lexicographical ordering with the empty string as the lowest order
 bool DataVersion::operator<(const DataVersion& other) const {
    return this->data_version < other.data_version;
+}
+bool DataVersion::operator>(const DataVersion& other) const {
+   return other < *this;
+}
+bool DataVersion::operator<=(const DataVersion& other) const {
+   return !(other < *this);
+}
+bool DataVersion::operator>=(const DataVersion& other) const {
+   return !(*this < other);
 }
 
 std::optional<DataVersion> DataVersion::fromString(const std::string& string) {
