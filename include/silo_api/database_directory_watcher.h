@@ -1,5 +1,5 @@
-#ifndef SILO_DATABASE_WATCHER_H
-#define SILO_DATABASE_WATCHER_H
+#ifndef SILO_DATABASE_DIRECTORY_WATCHER_H
+#define SILO_DATABASE_DIRECTORY_WATCHER_H
 
 #include <string>
 
@@ -23,4 +23,4 @@ class DatabaseDirectoryWatcher {
 };
 }  // namespace silo_api
 
-#endif  // SILO_DATABASE_WATCHER_H
+#endif  // SILO_DATABASE_DIRECTORY_WATCHER_H
