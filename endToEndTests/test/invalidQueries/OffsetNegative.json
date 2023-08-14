@@ -1,5 +1,5 @@
 {
-  "testCaseName": "Details action with order by field EPI_ISL",
+  "testCaseName": "Details action with negative offset",
   "query": {
     "action": {
       "type": "Details",

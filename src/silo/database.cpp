@@ -658,10 +658,12 @@ Database Database::preprocessing(
 
 void Database::initializeColumn(config::ColumnType column_type, const std::string& name) {
    SPDLOG_TRACE("Initializing column {}", name);
+   columns.metadata.push_back({name, column_type});
    switch (column_type) {
       case config::ColumnType::STRING:
          columns.string_columns.emplace(name, storage::column::StringColumn());
          for (auto& partition : partitions) {
+            partition.columns.metadata.push_back({name, column_type});
             partition.insertColumn(name, columns.string_columns.at(name).createPartition());
          }
          break;
@@ -669,6 +671,7 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
          auto column = storage::column::IndexedStringColumn();
          columns.indexed_string_columns.emplace(name, std::move(column));
          for (auto& partition : partitions) {
+            partition.columns.metadata.push_back({name, column_type});
             partition.insertColumn(name, columns.indexed_string_columns.at(name).createPartition());
          }
       } break;
@@ -677,6 +680,7 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
             name, storage::column::PangoLineageColumn(alias_key)
          );
          for (auto& partition : partitions) {
+            partition.columns.metadata.push_back({name, column_type});
             partition.insertColumn(name, columns.pango_lineage_columns.at(name).createPartition());
          }
          break;
@@ -686,24 +690,28 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
                           : storage::column::DateColumn(false);
          columns.date_columns.emplace(name, std::move(column));
          for (auto& partition : partitions) {
+            partition.columns.metadata.push_back({name, column_type});
             partition.insertColumn(name, columns.date_columns.at(name).createPartition());
          }
       } break;
       case config::ColumnType::INT:
          columns.int_columns.emplace(name, storage::column::IntColumn());
          for (auto& partition : partitions) {
+            partition.columns.metadata.push_back({name, column_type});
             partition.insertColumn(name, columns.int_columns.at(name).createPartition());
          }
          break;
       case config::ColumnType::FLOAT:
          columns.float_columns.emplace(name, storage::column::FloatColumn());
          for (auto& partition : partitions) {
+            partition.columns.metadata.push_back({name, column_type});
             partition.insertColumn(name, columns.float_columns.at(name).createPartition());
          }
          break;
       case config::ColumnType::INSERTION:
          columns.insertion_columns.emplace(name, storage::column::InsertionColumn());
          for (auto& partition : partitions) {
+            partition.columns.metadata.push_back({name, column_type});
             partition.insertColumn(name, columns.insertion_columns.at(name).createPartition());
          }
          break;

@@ -2,6 +2,7 @@
 #define SILO_STRING_H
 
 #include <array>
+#include <compare>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -41,7 +42,7 @@ struct String {
 
    std::array<char, I + 4> data;
 
-   int compare(const String& other) const;
+   std::optional<std::strong_ordering> fastCompare(const String& other) const;
 
    String() = default;
 
@@ -56,14 +57,6 @@ struct String {
    [[nodiscard]] std::string toString(const BidirectionalMap<std::string>& dictionary) const;
 
    bool operator==(const String& other) const;
-
-   bool operator<(const String& other) const;
-
-   bool operator<=(const String& other) const;
-
-   bool operator>(const String& other) const;
-
-   bool operator>=(const String& other) const;
 
    bool operator!=(const String& other) const;
 };

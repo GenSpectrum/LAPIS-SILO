@@ -29,6 +29,9 @@ class Details : public Action {
 
   public:
    explicit Details(std::vector<std::string> fields);
+
+   QueryResult executeAndOrder(const Database& database, std::vector<OperatorResult> bitmap_filter)
+      const override;
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)

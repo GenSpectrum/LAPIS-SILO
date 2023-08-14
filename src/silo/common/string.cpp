@@ -59,49 +59,24 @@ std::optional<common::String<I>> String<I>::embedString(
 }
 
 template <size_t I>
-int String<I>::compare(const String<I>& other) const {
-   return memcmp(this->data.data(), other.data.data(), I + 4);
+std::optional<std::strong_ordering> String<I>::fastCompare(const String<I>& other) const {
+   if (memcmp(this->data.data(), other.data.data(), I + 4) == 0) {
+      return std::strong_ordering::equal;
+   }
+
+   const int prefix_compare = memcmp(this->data.data() + 4, other.data.data() + 4, I - 4);
+   if (prefix_compare < 0) {
+      return std::strong_ordering::less;
+   }
+   if (prefix_compare > 0) {
+      return std::strong_ordering::greater;
+   }
+   return std::nullopt;
 }
 
 template <size_t I>
 bool String<I>::operator==(const String<I>& other) const {
-   return this->compare(other) == 0;
-}
-
-template <size_t I>
-bool String<I>::operator<(const String<I>& other) const {
-   const int prefix_compare = memcmp(this->data.data() + 4, other.data.data() + 4, 8);
-   if (prefix_compare < 0) {
-      return true;
-   }
-   if (prefix_compare > 0) {
-      return false;
-   }
-   // TODO(#137) implement more than just prefix matching
-   return false;
-}
-
-template <size_t I>
-bool String<I>::operator<=(const String<I>& other) const {
-   const int prefix_compare = memcmp(this->data.data() + 4, other.data.data() + 4, 8);
-   if (prefix_compare < 0) {
-      return true;
-   }
-   if (prefix_compare > 0) {
-      return false;
-   }
-   // TODO(#137) implement more than just prefix matching
-   return true;
-}
-
-template <size_t I>
-bool String<I>::operator>(const String<I>& other) const {
-   return other < *this;
-}
-
-template <size_t I>
-bool String<I>::operator>=(const String<I>& other) const {
-   return other <= *this;
+   return memcmp(this->data.data(), other.data.data(), I + 4) == 0;
 }
 
 template <size_t I>

@@ -57,26 +57,27 @@ uint32_t ColumnPartitionGroup::fill(
 }
 
 ColumnPartitionGroup ColumnPartitionGroup::getSubgroup(
-   const std::vector<config::DatabaseMetadata>& fields
+   const std::vector<silo::storage::ColumnMetadata>& fields
 ) const {
    ColumnPartitionGroup result;
-   result.metadata = fields;
+   for (auto& field : fields) {
+      result.metadata.push_back({field.name, field.type});
+   }
 
    for (const auto& item : fields) {
-      const auto column_type = item.getColumnType();
-      if (column_type == silo::config::ColumnType::INDEXED_STRING) {
+      if (item.type == silo::config::ColumnType::INDEXED_STRING) {
          result.indexed_string_columns.insert({item.name, indexed_string_columns.at(item.name)});
-      } else if (column_type == silo::config::ColumnType::STRING) {
+      } else if (item.type == silo::config::ColumnType::STRING) {
          result.string_columns.insert({item.name, string_columns.at(item.name)});
-      } else if (column_type == silo::config::ColumnType::INDEXED_PANGOLINEAGE) {
+      } else if (item.type == silo::config::ColumnType::INDEXED_PANGOLINEAGE) {
          result.pango_lineage_columns.insert({item.name, pango_lineage_columns.at(item.name)});
-      } else if (column_type == silo::config::ColumnType::DATE) {
+      } else if (item.type == silo::config::ColumnType::DATE) {
          result.date_columns.insert({item.name, date_columns.at(item.name)});
-      } else if (column_type == silo::config::ColumnType::INT) {
+      } else if (item.type == silo::config::ColumnType::INT) {
          result.int_columns.insert({item.name, int_columns.at(item.name)});
-      } else if (column_type == silo::config::ColumnType::FLOAT) {
+      } else if (item.type == silo::config::ColumnType::FLOAT) {
          result.float_columns.insert({item.name, float_columns.at(item.name)});
-      } else if (column_type == silo::config::ColumnType::INSERTION) {
+      } else if (item.type == silo::config::ColumnType::INSERTION) {
          result.insertion_columns.insert({item.name, insertion_columns.at(item.name)});
       }
    }

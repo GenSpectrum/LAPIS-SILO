@@ -30,13 +30,8 @@ std::string stringToLowerCase(std::string str) {
    return str;
 }
 
-void Action::applyOrderByAndLimit(QueryResult& result) const {
+void Action::applySort(QueryResult& result) const {
    auto& result_vector = result.query_result;
-
-   if (offset.has_value() && offset.value() >= result_vector.size()) {
-      result_vector = {};
-      return;
-   }
 
    auto cmp = [&](const QueryResultEntry& entry1, const QueryResultEntry& entry2) {
       for (const OrderByField& field : order_by_fields) {
@@ -63,6 +58,20 @@ void Action::applyOrderByAndLimit(QueryResult& result) const {
       } else {
          std::sort(result_vector.begin(), result_vector.end(), cmp);
       }
+   }
+}
+
+void Action::applyOffsetAndLimit(QueryResult& result) const {
+   auto& result_vector = result.query_result;
+
+   size_t end_of_sort = std::min(
+      static_cast<size_t>(limit.value_or(result_vector.size()) + offset.value_or(0UL)),
+      result_vector.size()
+   );
+
+   if (offset.has_value() && offset.value() >= end_of_sort) {
+      result = {};
+      return;
    }
 
    if (offset.has_value() && offset.value() > 0) {
@@ -95,12 +104,16 @@ QueryResult Action::executeAndOrder(
    validateOrderByFields(database);
 
    QueryResult result = execute(database, std::move(bitmap_filter));
-   applyOrderByAndLimit(result);
+   if (offset.has_value() && offset.value() >= result.query_result.size()) {
+      return {};
+   }
+   applySort(result);
+   applyOffsetAndLimit(result);
    return result;
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, Action::OrderByField& field) {
+void from_json(const nlohmann::json& json, OrderByField& field) {
    if (json.is_string()) {
       field = {json.get<std::string>(), true};
       return;
@@ -140,8 +153,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
    }
 
    auto order_by_fields = json.contains("orderByFields")
-                             ? json["orderByFields"].get<std::vector<Action::OrderByField>>()
-                             : std::vector<Action::OrderByField>();
+                             ? json["orderByFields"].get<std::vector<OrderByField>>()
+                             : std::vector<OrderByField>();
    CHECK_SILO_QUERY(
       !json.contains("limit") || json["limit"].is_number_unsigned(),
       "If the action contains a limit, it must be a non-negative number"
