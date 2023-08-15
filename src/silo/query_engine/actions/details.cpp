@@ -78,18 +78,18 @@ void Details::validateOrderByFields(const Database& database) const {
 }
 
 QueryResult Details::execute(
-   const silo::Database& database,
-   std::vector<OperatorResult> bitmap_filter
+   const silo::Database& /*database*/,
+   std::vector<OperatorResult> /*bitmap_filter*/
 ) const {
    return QueryResult{};
 }
 
 std::vector<actions::Tuple> mergeSortedTuples(
-   const Tuple::Comparator tuple_comparator,
+   const Tuple::Comparator& tuple_comparator,
    std::vector<std::vector<actions::Tuple>>& tuples,
    const uint32_t to_produce
 ) {
-   using iterator = std::vector<actions::Tuple>::const_iterator;
+   using iterator = std::vector<actions::Tuple>::iterator;
    std::vector<std::pair<iterator, iterator>> min_heap;
    for (auto& tuple_vector : tuples) {
       if (tuple_vector.begin() != tuple_vector.end()) {
@@ -108,8 +108,7 @@ std::vector<actions::Tuple> mergeSortedTuples(
    for (uint32_t counter = 0; counter < to_produce && !min_heap.empty(); counter++) {
       std::pop_heap(min_heap.begin(), min_heap.end(), heap_cmp);
       auto& current = min_heap.back();
-      result.emplace_back(*current.first);
-      current.first++;
+      result.emplace_back(std::move(*current.first++));
       if (current.first == current.second) {
          min_heap.pop_back();
       } else {
@@ -121,65 +120,79 @@ std::vector<actions::Tuple> mergeSortedTuples(
 }
 
 std::vector<actions::Tuple> produceSortedTuplesWithLimit(
-   const std::vector<storage::ColumnPartitionGroup>& column_groups,
+   std::vector<TupleFactory>& tuple_factories,
    std::vector<OperatorResult>& bitmap_filter,
-   const std::vector<silo::storage::ColumnMetadata>& field_metadata,
-   const std::vector<OrderByField>& order_by_fields,
+   const Tuple::Comparator tuple_comparator,
    const uint32_t to_produce
 ) {
-   auto cmp = Tuple::getComparator(field_metadata, order_by_fields);
    std::vector<std::vector<actions::Tuple>> tuples_per_partition(bitmap_filter.size());
-   tbb::parallel_for(tbb::blocked_range<size_t>(0u, bitmap_filter.size()), [&](auto local) {
+   tbb::parallel_for(tbb::blocked_range<size_t>(0U, bitmap_filter.size()), [&](auto local) {
       for (size_t partition_id = local.begin(); partition_id != local.end(); partition_id++) {
-         const auto& columns = column_groups.at(partition_id);
-
-         size_t tuple_size = getTupleSize(field_metadata);
          const auto& bitmap = bitmap_filter.at(partition_id);
+         TupleFactory& tuple_factory = tuple_factories.at(partition_id);
          std::vector<actions::Tuple>& my_tuples = tuples_per_partition.at(partition_id);
-         auto it = bitmap->begin();
+         const size_t result_size =
+            std::min(bitmap->cardinality(), static_cast<uint64_t>(to_produce));
+         my_tuples = tuple_factory.allocateMany(result_size);
+         auto iterator = bitmap->begin();
          auto end = bitmap->end();
          uint32_t counter = 0;
-         for (; it != end && counter < to_produce; it++) {
-            my_tuples.emplace_back(*it, &columns, tuple_size);
+         for (; iterator != end && counter < to_produce; iterator++) {
+            tuple_factory.overwrite(my_tuples.at(counter), *iterator);
             counter++;
          }
-         std::make_heap(my_tuples.begin(), my_tuples.end(), cmp);
-         for (; it != end; it++) {
-            Tuple tuple(*it, &columns, tuple_size);
-            if (cmp(tuple, my_tuples.front())) {
-               std::pop_heap(my_tuples.begin(), my_tuples.end(), cmp);
-               my_tuples.back() = tuple;
-               std::push_heap(my_tuples.begin(), my_tuples.end(), cmp);
+
+         if (iterator != end) {
+            std::make_heap(my_tuples.begin(), my_tuples.end(), tuple_comparator);
+            Tuple current_tuple = tuple_factory.allocateOne(*iterator);
+            if (tuple_comparator(current_tuple, my_tuples.front())) {
+               std::pop_heap(my_tuples.begin(), my_tuples.end(), tuple_comparator);
+               my_tuples.back() = current_tuple;
+               std::push_heap(my_tuples.begin(), my_tuples.end(), tuple_comparator);
             }
+            for (; iterator != end; iterator++) {
+               tuple_factory.overwrite(current_tuple, *iterator);
+               if (tuple_comparator(current_tuple, my_tuples.front())) {
+                  std::pop_heap(my_tuples.begin(), my_tuples.end(), tuple_comparator);
+                  my_tuples.back() = current_tuple;
+                  std::push_heap(my_tuples.begin(), my_tuples.end(), tuple_comparator);
+               }
+            }
+            std::sort_heap(my_tuples.begin(), my_tuples.end());
+         } else {
+            std::sort(my_tuples.begin(), my_tuples.end());
          }
-         std::sort_heap(my_tuples.begin(), my_tuples.end());
       }
    });
-   return mergeSortedTuples(cmp, tuples_per_partition, to_produce);
+   return mergeSortedTuples(tuple_comparator, tuples_per_partition, to_produce);
 }
 
 std::vector<Tuple> produceAllTuples(
-   const std::vector<storage::ColumnPartitionGroup>& column_groups,
-   std::vector<OperatorResult>& bitmap_filter,
-   const std::vector<silo::storage::ColumnMetadata>& field_metadata
+   std::vector<TupleFactory>& tuple_factories,
+   std::vector<OperatorResult>& bitmap_filter
 ) {
-   size_t tuple_size = getTupleSize(field_metadata);
+   if (tuple_factories.empty()) {
+      return {};
+   }
 
-   std::vector<size_t> offsets(bitmap_filter.size() + 1);
+   std::vector<uint64_t> offsets(bitmap_filter.size() + 1);
    for (size_t partition_id = 0; partition_id != bitmap_filter.size(); partition_id++) {
       offsets[partition_id + 1] =
          offsets[partition_id] + bitmap_filter.at(partition_id)->cardinality();
    }
 
-   std::vector<Tuple> all_tuples;
-   all_tuples.resize(offsets.back());
-   tbb::parallel_for(tbb::blocked_range<size_t>(0u, bitmap_filter.size()), [&](auto local) {
+   std::vector<Tuple> all_tuples = tuple_factories.front().allocateMany(offsets.back());
+
+   tbb::parallel_for(tbb::blocked_range<size_t>(0U, bitmap_filter.size()), [&](auto local) {
       for (size_t partition_id = local.begin(); partition_id != local.end(); partition_id++) {
-         const auto& columns = column_groups.at(partition_id);
+         auto& tuple_factory = tuple_factories.at(partition_id);
          const auto& bitmap = bitmap_filter.at(partition_id);
-         auto cursor = all_tuples.begin() + offsets.at(partition_id);
-         for (auto it : *bitmap) {
-            *(cursor++) = Tuple(it, &columns, tuple_size);
+
+         auto cursor = all_tuples.begin() +
+                       static_cast<decltype(all_tuples)::difference_type>(offsets.at(partition_id));
+         for (const uint32_t sequence_id : *bitmap) {
+            tuple_factory.overwrite(*cursor, sequence_id);
+            cursor++;
          }
       }
    });
@@ -193,23 +206,22 @@ QueryResult Details::executeAndOrder(
    validateOrderByFields(database);
    const std::vector<storage::ColumnMetadata> field_metadata = parseFields(database, fields);
 
-   std::vector<storage::ColumnPartitionGroup> column_groups;
-   column_groups.reserve(database.partitions.size());
+   std::vector<TupleFactory> tuple_factories;
+   tuple_factories.reserve(database.partitions.size());
    for (const auto& partition : database.partitions) {
-      column_groups.emplace_back(partition.columns.getSubgroup(field_metadata));
+      tuple_factories.emplace_back(partition.columns, field_metadata);
    }
 
    std::vector<actions::Tuple> tuples;
    if (limit.has_value()) {
       tuples = produceSortedTuplesWithLimit(
-         column_groups,
+         tuple_factories,
          bitmap_filter,
-         field_metadata,
-         order_by_fields,
-         this->limit.value() + offset.value_or(0)
+         Tuple::getComparator(field_metadata, order_by_fields),
+         limit.value() + offset.value_or(0)
       );
    } else {
-      tuples = produceAllTuples(column_groups, bitmap_filter, field_metadata);
+      tuples = produceAllTuples(tuple_factories, bitmap_filter);
       if (!order_by_fields.empty()) {
          auto cmp = Tuple::getComparator(field_metadata, order_by_fields);
          std::sort(tuples.begin(), tuples.end(), cmp);

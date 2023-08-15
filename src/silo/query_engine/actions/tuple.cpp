@@ -2,9 +2,11 @@
 
 #include "silo/query_engine/actions/action.h"
 
-using namespace silo::query_engine::actions;
-
 using json_value_type = std::optional<std::variant<std::string, int32_t, double>>;
+
+using silo::query_engine::actions::Tuple;
+using silo::query_engine::actions::TupleFactory;
+using silo::query_engine::actions::TupleFieldComparator;
 
 namespace {
 using silo::common::Date;
@@ -13,7 +15,7 @@ using silo::common::STRING_SIZE;
 using silo::config::ColumnType;
 
 void assignTupleField(
-   char** data_pointer,
+   std::byte** data_pointer,
    uint32_t sequence_id,
    const silo::storage::ColumnMetadata& metadata,
    const silo::storage::ColumnPartitionGroup& columns
@@ -55,7 +57,7 @@ void assignTupleField(
 }
 
 json_value_type tupleFieldToValueType(
-   const char** data_pointer,
+   const std::byte** data_pointer,
    const silo::storage::ColumnMetadata& metadata,
    const silo::storage::ColumnPartitionGroup& columns
 ) {
@@ -63,68 +65,67 @@ json_value_type tupleFieldToValueType(
       const Date value = *reinterpret_cast<const Date*>(*data_pointer);
       *data_pointer += sizeof(decltype(value));
       return silo::common::dateToString(value);
-   } else if (metadata.type == ColumnType::INT) {
+   }
+   if (metadata.type == ColumnType::INT) {
       const int32_t value = *reinterpret_cast<const int32_t*>(*data_pointer);
       *data_pointer += sizeof(decltype(value));
       if (value == INT32_MIN) {
          return std::nullopt;
-      } else {
-         return value;
       }
-   } else if (metadata.type == ColumnType::FLOAT) {
+      return value;
+   }
+   if (metadata.type == ColumnType::FLOAT) {
       const double value = *reinterpret_cast<const double*>(*data_pointer);
       *data_pointer += sizeof(decltype(value));
       if (std::isnan(value)) {
          return std::nullopt;
-      } else {
-         return value;
       }
-   } else if (metadata.type == ColumnType::STRING) {
+      return value;
+   }
+   if (metadata.type == ColumnType::STRING) {
       const String<STRING_SIZE> value =
          *reinterpret_cast<const String<STRING_SIZE>*>(*data_pointer);
       *data_pointer += sizeof(decltype(value));
       std::string string_value = columns.string_columns.at(metadata.name).lookupValue(value);
       if (string_value.empty()) {
          return std::nullopt;
-      } else {
-         return std::move(string_value);
       }
-   } else if (metadata.type == ColumnType::INDEXED_PANGOLINEAGE) {
+      return std::move(string_value);
+   }
+   if (metadata.type == ColumnType::INDEXED_PANGOLINEAGE) {
       const silo::Idx value = *reinterpret_cast<const silo::Idx*>(*data_pointer);
       *data_pointer += sizeof(decltype(value));
       std::string string_value =
          columns.pango_lineage_columns.at(metadata.name).lookupValue(value).value;
       if (string_value.empty()) {
          return std::nullopt;
-      } else {
-         return std::move(string_value);
       }
-   } else if (metadata.type == ColumnType::INDEXED_STRING) {
+      return std::move(string_value);
+   }
+   if (metadata.type == ColumnType::INDEXED_STRING) {
       const silo::Idx value = *reinterpret_cast<const silo::Idx*>(*data_pointer);
       *data_pointer += sizeof(decltype(value));
       std::string string_value =
          columns.indexed_string_columns.at(metadata.name).lookupValue(value);
       if (string_value.empty()) {
          return std::nullopt;
-      } else {
-         return std::move(string_value);
       }
-   } else if (metadata.type == ColumnType::INSERTION) {
+      return std::move(string_value);
+   }
+   if (metadata.type == ColumnType::INSERTION) {
       const silo::Idx value = *reinterpret_cast<const silo::Idx*>(*data_pointer);
       *data_pointer += sizeof(decltype(value));
       std::string string_value = columns.insertion_columns.at(metadata.name).lookupValue(value);
       if (string_value.empty()) {
          return std::nullopt;
-      } else {
-         return std::move(string_value);
       }
-   } else {
-      throw std::runtime_error("Unchecked column type of column " + metadata.name);
+      return std::move(string_value);
    }
+   throw std::runtime_error("Unchecked column type of column " + metadata.name);
 }
 
 std::strong_ordering compareDouble(double value1, double value2) {
-   std::partial_ordering compare = value1 <=> value2;
+   const std::partial_ordering compare = value1 <=> value2;
    if (compare == std::partial_ordering::less) {
       return std::strong_ordering::less;
    }
@@ -137,28 +138,26 @@ std::strong_ordering compareDouble(double value1, double value2) {
    if (std::isnan(value2)) {
       if (std::isnan(value1)) {
          return std::strong_ordering::equal;
-      } else {
-         return std::strong_ordering::less;
       }
-   } else {
-      return std::strong_ordering::greater;
+      return std::strong_ordering::less;
    }
+   return std::strong_ordering::greater;
 }
 
 std::strong_ordering compareString(const std::string& value1, const std::string& value2) {
-   int cmp = value1.compare(value2);
-   if (cmp < 0) {
+   const int compare_value = value1.compare(value2);
+   if (compare_value < 0) {
       return std::strong_ordering::less;
    }
-   if (cmp > 0) {
+   if (compare_value > 0) {
       return std::strong_ordering::greater;
    }
    return std::strong_ordering::equal;
 }
 
 std::strong_ordering compareTupleFields(
-   const char** data_pointer1,
-   const char** data_pointer2,
+   const std::byte** data_pointer1,
+   const std::byte** data_pointer2,
    const silo::storage::ColumnMetadata& metadata,
    const silo::storage::ColumnPartitionGroup& columns
 ) {
@@ -168,19 +167,22 @@ std::strong_ordering compareTupleFields(
       const Date value2 = *reinterpret_cast<const Date*>(*data_pointer2);
       *data_pointer2 += sizeof(decltype(value2));
       return value1 <=> value2;
-   } else if (metadata.type == ColumnType::INT) {
+   }
+   if (metadata.type == ColumnType::INT) {
       const int32_t value1 = *reinterpret_cast<const int32_t*>(*data_pointer1);
       *data_pointer1 += sizeof(decltype(value1));
       const int32_t value2 = *reinterpret_cast<const int32_t*>(*data_pointer2);
       *data_pointer2 += sizeof(decltype(value2));
       return value1 <=> value2;
-   } else if (metadata.type == ColumnType::FLOAT) {
+   }
+   if (metadata.type == ColumnType::FLOAT) {
       const double value1 = *reinterpret_cast<const double*>(*data_pointer1);
       *data_pointer1 += sizeof(decltype(value1));
       const double value2 = *reinterpret_cast<const double*>(*data_pointer2);
       *data_pointer2 += sizeof(decltype(value2));
       return compareDouble(value1, value2);
-   } else if (metadata.type == ColumnType::STRING) {
+   }
+   if (metadata.type == ColumnType::STRING) {
       const String<STRING_SIZE> value1 =
          *reinterpret_cast<const String<STRING_SIZE>*>(*data_pointer1);
       *data_pointer1 += sizeof(decltype(value1));
@@ -192,40 +194,46 @@ std::strong_ordering compareTupleFields(
       if (fast_compare) {
          return fast_compare.value();
       }
-      std::string string_value1 = columns.string_columns.at(metadata.name).lookupValue(value1);
-      std::string string_value2 = columns.string_columns.at(metadata.name).lookupValue(value2);
+      const std::string string_value1 =
+         columns.string_columns.at(metadata.name).lookupValue(value1);
+      const std::string string_value2 =
+         columns.string_columns.at(metadata.name).lookupValue(value2);
       return compareString(string_value1, string_value2);
-   } else if (metadata.type == ColumnType::INDEXED_PANGOLINEAGE) {
+   }
+   if (metadata.type == ColumnType::INDEXED_PANGOLINEAGE) {
       const silo::Idx value1 = *reinterpret_cast<const silo::Idx*>(*data_pointer1);
       *data_pointer1 += sizeof(decltype(value1));
-      std::string string_value1 =
+      const std::string string_value1 =
          columns.pango_lineage_columns.at(metadata.name).lookupValue(value1).value;
       const silo::Idx value2 = *reinterpret_cast<const silo::Idx*>(*data_pointer2);
       *data_pointer2 += sizeof(decltype(value2));
-      std::string string_value2 =
+      const std::string string_value2 =
          columns.pango_lineage_columns.at(metadata.name).lookupValue(value2).value;
       return compareString(string_value1, string_value2);
-   } else if (metadata.type == ColumnType::INDEXED_STRING) {
+   }
+   if (metadata.type == ColumnType::INDEXED_STRING) {
       const silo::Idx value1 = *reinterpret_cast<const silo::Idx*>(*data_pointer1);
       *data_pointer1 += sizeof(decltype(value1));
-      std::string string_value1 =
+      const std::string string_value1 =
          columns.indexed_string_columns.at(metadata.name).lookupValue(value1);
       const silo::Idx value2 = *reinterpret_cast<const silo::Idx*>(*data_pointer2);
       *data_pointer2 += sizeof(decltype(value2));
-      std::string string_value2 =
+      const std::string string_value2 =
          columns.indexed_string_columns.at(metadata.name).lookupValue(value2);
       return compareString(string_value1, string_value2);
-   } else if (metadata.type == ColumnType::INSERTION) {
+   }
+   if (metadata.type == ColumnType::INSERTION) {
       const silo::Idx value1 = *reinterpret_cast<const silo::Idx*>(*data_pointer1);
       *data_pointer1 += sizeof(decltype(value1));
-      std::string string_value1 = columns.insertion_columns.at(metadata.name).lookupValue(value1);
+      const std::string string_value1 =
+         columns.insertion_columns.at(metadata.name).lookupValue(value1);
       const silo::Idx value2 = *reinterpret_cast<const silo::Idx*>(*data_pointer2);
       *data_pointer2 += sizeof(decltype(value2));
-      std::string string_value2 = columns.insertion_columns.at(metadata.name).lookupValue(value2);
+      const std::string string_value2 =
+         columns.insertion_columns.at(metadata.name).lookupValue(value2);
       return compareString(string_value1, string_value2);
-   } else {
-      throw std::runtime_error("Unchecked column type of column " + metadata.name);
    }
+   throw std::runtime_error("Unchecked column type of column " + metadata.name);
 }
 
 size_t getColumnSize(const silo::storage::ColumnMetadata& metadata) {
@@ -254,42 +262,36 @@ size_t silo::query_engine::actions::getTupleSize(
    return size;
 }
 
-Tuple::Tuple(
-   uint32_t sequence_id,
-   const silo::storage::ColumnPartitionGroup* columns,
-   size_t tuple_size
-)
-    : columns(columns) {
-   data.resize(tuple_size);
-   char* data_pointer = data.data();
-   for (const auto& metadata : columns->metadata) {
-      assignTupleField(&data_pointer, sequence_id, metadata, *columns);
-   }
-}
+Tuple::Tuple(const silo::storage::ColumnPartitionGroup* columns, std::byte* data, size_t data_size)
+    : columns(columns),
+      data(data),
+      data_size(data_size) {}
 
-Tuple::Tuple(const Tuple& other)
+Tuple::Tuple(Tuple&& other) noexcept
     : columns(other.columns),
-      data(other.data) {}
-
-Tuple::Tuple(Tuple&& other)
-    : columns(other.columns),
-      data(std::move(other.data)) {}
+      data(std::exchange(other.data, nullptr)),
+      data_size(other.data_size) {}
 
 Tuple& Tuple::operator=(const Tuple& other) {
-   this->columns = other.columns;
-   this->data = other.data;
+   if (this == &other) {
+      return *this;
+   }
+   assert(this->data_size == other.data_size);
+   columns = other.columns;
+   std::memcpy(this->data, other.data, data_size);
    return *this;
 };
 
-Tuple& Tuple::operator=(Tuple&& other) {
+Tuple& Tuple::operator=(Tuple&& other) noexcept {
    this->columns = other.columns;
-   this->data = std::move(other.data);
+   this->data_size = other.data_size;
+   std::swap(this->data, other.data);
    return *this;
 };
 
 std::map<std::string, json_value_type> Tuple::getFields() const {
    std::map<std::string, json_value_type> fields;
-   const char* data_pointer = data.data();
+   const std::byte* data_pointer = data;
    for (const auto& metadata : columns->metadata) {
       fields[metadata.name] = tupleFieldToValueType(&data_pointer, metadata, *columns);
    }
@@ -304,14 +306,15 @@ std::vector<TupleFieldComparator> Tuple::getCompareFields(
    tuple_field_comparators.resize(order_by_fields.size());
    size_t offset = 0;
    for (const auto& metadata : columns_metadata) {
-      auto it = std::find_if(
+      auto element = std::find_if(
          order_by_fields.begin(),
          order_by_fields.end(),
          [&](const auto& order_by_field) { return metadata.name == order_by_field.name; }
       );
-      if (it != order_by_fields.end()) {
-         const size_t index = std::distance(order_by_fields.begin(), it);
-         tuple_field_comparators[index] = TupleFieldComparator{offset, metadata, it->ascending};
+      if (element != order_by_fields.end()) {
+         const size_t index = std::distance(order_by_fields.begin(), element);
+         tuple_field_comparators[index] =
+            TupleFieldComparator{offset, metadata, element->ascending};
       }
       offset += getColumnSize(metadata);
    }
@@ -331,33 +334,32 @@ Tuple::Comparator Tuple::getComparator(
 
 bool Tuple::compareLess(const Tuple& other, const std::vector<TupleFieldComparator>& fields) const {
    for (const auto& field : fields) {
-      auto data_pointer1 = (this->data.data() + field.offset);
-      auto data_pointer2 = (other.data.data() + field.offset);
-      std::strong_ordering compare =
+      const std::byte* data_pointer1 = (this->data + field.offset);
+      const std::byte* data_pointer2 = (other.data + field.offset);
+      const std::strong_ordering compare =
          compareTupleFields(&data_pointer1, &data_pointer2, field.type, *columns);
-      if (compare != std::strong_ordering::equal) {
-         if (compare == std::strong_ordering::less) {
-            return field.ascending;
-         } else {
-            return !field.ascending;
-         }
+      if (compare == std::strong_ordering::less) {
+         return field.ascending;
+      }
+      if (compare == std::strong_ordering::greater) {
+         return !field.ascending;
       }
    }
    return false;
 }
 
 bool Tuple::operator==(const Tuple& other) const {
-   return this->data == other.data;
+   return std::memcmp(data, other.data, data_size) == 0;
 }
 bool Tuple::operator!=(const Tuple& other) const {
    return !(*this == other);
 }
 
 bool Tuple::operator<(const Tuple& other) const {
-   const char* data_pointer1 = data.data();
-   const char* data_pointer2 = other.data.data();
+   const std::byte* data_pointer1 = data;
+   const std::byte* data_pointer2 = other.data;
    for (const auto& metadata : columns->metadata) {
-      std::strong_ordering compare =
+      const std::strong_ordering compare =
          compareTupleFields(&data_pointer1, &data_pointer2, metadata, *columns);
       if (compare != std::strong_ordering::equal) {
          return compare == std::strong_ordering::less;
@@ -374,4 +376,53 @@ bool Tuple::operator<=(const Tuple& other) const {
 }
 bool Tuple::operator>=(const Tuple& other) const {
    return !(*this < other);
+}
+
+std::size_t std::hash<Tuple>::operator()(const silo::query_engine::actions::Tuple& tuple) const {
+   const std::string_view str_view(reinterpret_cast<char*>(tuple.data), tuple.data_size);
+   return std::hash<std::string_view>{}(str_view);
+}
+
+TupleFactory::TupleFactory(
+   const silo::storage::ColumnPartitionGroup& all_columns,
+   const std::vector<silo::storage::ColumnMetadata>& fields
+) {
+   columns = all_columns.getSubgroup(fields);
+   tuple_size = getTupleSize(columns.metadata);
+}
+
+Tuple& TupleFactory::overwrite(Tuple& tuple, uint32_t sequence_id) {
+   std::byte* data_pointer = tuple.data;
+   for (const auto& metadata : columns.metadata) {
+      assignTupleField(&data_pointer, sequence_id, metadata, columns);
+   }
+   return tuple;
+}
+
+Tuple TupleFactory::allocateOne(uint32_t sequence_id) {
+   all_tuple_data.emplace_back(tuple_size);
+   auto& data = all_tuple_data.back();
+   std::byte* data_pointer = data.data();
+   for (const auto& metadata : columns.metadata) {
+      assignTupleField(&data_pointer, sequence_id, metadata, columns);
+   }
+   return {&columns, data.data(), data.size()};
+}
+
+Tuple TupleFactory::copyTuple(const Tuple& tuple) {
+   all_tuple_data.emplace_back(tuple_size);
+   auto& data = all_tuple_data.back();
+   std::memcpy(data.data(), tuple.data, tuple_size);
+   return {tuple.columns, data.data(), data.size()};
+}
+
+std::vector<Tuple> TupleFactory::allocateMany(size_t count) {
+   std::vector<Tuple> tuples;
+   tuples.reserve(count);
+   const size_t allocation_size = tuple_size * count;
+   std::vector<std::byte>& data = all_tuple_data.emplace_back(allocation_size);
+   for (unsigned i = 0; i < count; i++) {
+      tuples.emplace_back(&columns, data.data() + i * tuple_size, tuple_size);
+   }
+   return tuples;
 }

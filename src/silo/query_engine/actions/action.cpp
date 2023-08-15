@@ -43,7 +43,7 @@ void Action::applySort(QueryResult& result) const {
       }
       return false;
    };
-   size_t end_of_sort = std::min(
+   const size_t end_of_sort = std::min(
       static_cast<size_t>(limit.value_or(result_vector.size()) + offset.value_or(0UL)),
       result_vector.size()
    );

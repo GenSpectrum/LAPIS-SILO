@@ -121,35 +121,53 @@ QueryResult Aggregated::execute(
    const std::vector<silo::storage::ColumnMetadata> group_by_metadata =
       parseGroupByFields(database, group_by_fields);
 
-   std::vector<storage::ColumnPartitionGroup> group_by_column_groups;
-   group_by_column_groups.reserve(database.partitions.size());
+   std::vector<std::unordered_map<Tuple, uint32_t>> tuple_maps;
+   std::vector<TupleFactory> tuple_factories;
+
    for (const auto& partition : database.partitions) {
-      group_by_column_groups.emplace_back(partition.columns.getSubgroup(group_by_metadata));
+      tuple_maps.emplace_back();
+      tuple_factories.emplace_back(partition.columns, group_by_metadata);
    }
-
-   const size_t tuple_size = getTupleSize(group_by_metadata);
-
-   tbb::enumerable_thread_specific<std::unordered_map<Tuple, uint32_t>> maps;
 
    tbb::parallel_for(
       tbb::blocked_range<uint32_t>(0, database.partitions.size()),
       [&](tbb::blocked_range<uint32_t> range) {
-         std::unordered_map<Tuple, uint32_t>& map = maps.local();
          for (uint32_t partition_id = range.begin(); partition_id != range.end(); ++partition_id) {
-            for (const uint32_t sequence_id : *bitmap_filters[partition_id]) {
-               ++map[Tuple(sequence_id, &group_by_column_groups[partition_id], tuple_size)];
+            TupleFactory& tuple_factory = tuple_factories.at(partition_id);
+            std::unordered_map<Tuple, uint32_t>& map = tuple_maps.at(partition_id);
+            OperatorResult& bitmap = bitmap_filters[partition_id];
+
+            auto iterator = bitmap->begin();
+            auto end = bitmap->end();
+            if (iterator != end) {
+               Tuple current_tuple = tuple_factory.allocateOne(*iterator);
+               map.emplace(tuple_factory.copyTuple(current_tuple), 1);
+               iterator++;
+               for (; iterator != end; iterator++) {
+                  tuple_factory.overwrite(current_tuple, *iterator);
+                  if (map.contains(current_tuple)) {
+                     ++map.at(current_tuple);
+                  } else {
+                     map.emplace(tuple_factory.copyTuple(current_tuple), 1);
+                  }
+               }
             }
          }
       }
    );
    std::unordered_map<Tuple, uint32_t> final_map;
-   for (auto& map : maps) {
-      for (auto& [key, value] : map) {
-         final_map[key] += value;
+   for (uint32_t partition_id = 0; partition_id != database.partitions.size(); ++partition_id) {
+      auto& tuple_factory = tuple_factories.at(partition_id);
+      auto& map = tuple_maps.at(partition_id);
+      for (auto& [tuple, value] : map) {
+         if (final_map.contains(tuple)) {
+            final_map.at(tuple) += value;
+         } else {
+            final_map.emplace(tuple_factory.copyTuple(tuple), value);
+         }
       }
    }
-   QueryResult result = {generateResult(final_map)};
-   return result;
+   return QueryResult{generateResult(final_map)};
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
