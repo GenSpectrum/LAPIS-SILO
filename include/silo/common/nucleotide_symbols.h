@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 
+#include "silo/common/symbols.h"
+
 namespace silo {
 
 /// https://www.bioinformatics.org/sms2/iupac.html
@@ -31,37 +33,41 @@ enum class NUCLEOTIDE_SYMBOL : char {
    N,    // any base
 };
 
-static constexpr uint32_t NUC_SYMBOL_COUNT = static_cast<uint32_t>(NUCLEOTIDE_SYMBOL::N) + 1;
+template <>
+class Util<NUCLEOTIDE_SYMBOL> {
+  public:
+   static constexpr uint32_t count = static_cast<uint32_t>(NUCLEOTIDE_SYMBOL::N) + 1;
 
-static constexpr std::array<NUCLEOTIDE_SYMBOL, NUC_SYMBOL_COUNT> NUC_SYMBOLS{
-   NUCLEOTIDE_SYMBOL::GAP,
-   NUCLEOTIDE_SYMBOL::A,
-   NUCLEOTIDE_SYMBOL::C,
-   NUCLEOTIDE_SYMBOL::G,
-   NUCLEOTIDE_SYMBOL::T,
-   NUCLEOTIDE_SYMBOL::R,
-   NUCLEOTIDE_SYMBOL::Y,
-   NUCLEOTIDE_SYMBOL::S,
-   NUCLEOTIDE_SYMBOL::W,
-   NUCLEOTIDE_SYMBOL::K,
-   NUCLEOTIDE_SYMBOL::M,
-   NUCLEOTIDE_SYMBOL::B,
-   NUCLEOTIDE_SYMBOL::D,
-   NUCLEOTIDE_SYMBOL::H,
-   NUCLEOTIDE_SYMBOL::V,
-   NUCLEOTIDE_SYMBOL::N,
+   static constexpr std::array<NUCLEOTIDE_SYMBOL, count> symbols{
+      NUCLEOTIDE_SYMBOL::GAP,
+      NUCLEOTIDE_SYMBOL::A,
+      NUCLEOTIDE_SYMBOL::C,
+      NUCLEOTIDE_SYMBOL::G,
+      NUCLEOTIDE_SYMBOL::T,
+      NUCLEOTIDE_SYMBOL::R,
+      NUCLEOTIDE_SYMBOL::Y,
+      NUCLEOTIDE_SYMBOL::S,
+      NUCLEOTIDE_SYMBOL::W,
+      NUCLEOTIDE_SYMBOL::K,
+      NUCLEOTIDE_SYMBOL::M,
+      NUCLEOTIDE_SYMBOL::B,
+      NUCLEOTIDE_SYMBOL::D,
+      NUCLEOTIDE_SYMBOL::H,
+      NUCLEOTIDE_SYMBOL::V,
+      NUCLEOTIDE_SYMBOL::N,
+   };
+
+   static char symbolToChar(silo::NUCLEOTIDE_SYMBOL symbol);
+
+   static std::optional<NUCLEOTIDE_SYMBOL> charToSymbol(char character);
+
+   static std::optional<std::vector<NUCLEOTIDE_SYMBOL>> stringToSymbolVector(
+      const std::string& sequence
+   );
+
+   static std::optional<char> findIllegalChar(const std::string& sequence);
 };
-
-char nucleotideSymbolToChar(NUCLEOTIDE_SYMBOL symbol);
-
-std::optional<NUCLEOTIDE_SYMBOL> charToNucleotideSymbol(char character);
-
-std::optional<std::vector<NUCLEOTIDE_SYMBOL>> stringToNucleotideSymbolVector(
-   const std::string& nucleotides
-);
-
-std::optional<char> findIllegalNucleotideChar(const std::string& nucleotides);
-
 }  // namespace silo
+// namespace silo
 
 #endif  // SILO_NUCLEOTIDE_SYMBOLS_H

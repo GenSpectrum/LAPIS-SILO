@@ -30,7 +30,7 @@ std::optional<silo::NUCLEOTIDE_SYMBOL> silo::NucPosition::flipMostNumerousBitmap
    std::optional<NUCLEOTIDE_SYMBOL> max_symbol = std::nullopt;
    uint32_t max_count = 0;
 
-   for (const auto& symbol : NUC_SYMBOLS) {
+   for (const auto& symbol : Util<NUCLEOTIDE_SYMBOL>::symbols) {
       roaring::Roaring& bitmap = bitmaps[symbol];
       bitmap.runOptimize();
       bitmap.shrinkToFit();
@@ -134,7 +134,7 @@ void silo::SequenceStorePartition::fillIndexes(const std::vector<std::string>& g
             const size_t number_of_sequences = genomes.size();
             for (size_t sequence_id = 0; sequence_id < number_of_sequences; ++sequence_id) {
                char const character = genomes[sequence_id][position];
-               const auto symbol = charToNucleotideSymbol(character);
+               const auto symbol = Util<NUCLEOTIDE_SYMBOL>::charToSymbol(character);
                if (!symbol.has_value()) {
                   throw PreprocessingException(
                      "Illegal character " + std::to_string(character) + " contained in sequence."
@@ -146,7 +146,7 @@ void silo::SequenceStorePartition::fillIndexes(const std::vector<std::string>& g
                   );
                }
             }
-            for (const auto& symbol : NUC_SYMBOLS) {
+            for (const auto& symbol : Util<NUCLEOTIDE_SYMBOL>::symbols) {
                if (!ids_per_symbol_for_current_position.at(symbol).empty()) {
                   positions[position].bitmaps[symbol].addMany(
                      ids_per_symbol_for_current_position.at(symbol).size(),
@@ -177,7 +177,7 @@ void silo::SequenceStorePartition::fillNBitmaps(const std::vector<std::string>& 
       for (size_t genome = local.begin(); genome != local.end(); ++genome) {
          for (size_t position = 0; position < genome_length; ++position) {
             char const character = genomes[genome][position];
-            const auto symbol = charToNucleotideSymbol(character);
+            const auto symbol = Util<NUCLEOTIDE_SYMBOL>::charToSymbol(character);
             if (symbol == NUCLEOTIDE_SYMBOL::N) {
                positions_with_nucleotide_symbol_n.push_back(position);
             }
@@ -202,7 +202,7 @@ void silo::SequenceStorePartition::interpret(const std::vector<std::string>& gen
 size_t silo::SequenceStorePartition::computeSize() const {
    size_t result = 0;
    for (const auto& position : positions) {
-      for (const NUCLEOTIDE_SYMBOL symbol : NUC_SYMBOLS) {
+      for (const NUCLEOTIDE_SYMBOL symbol : Util<NUCLEOTIDE_SYMBOL>::symbols) {
          result += position.bitmaps.at(symbol).getSizeInBytes(false);
       }
    }

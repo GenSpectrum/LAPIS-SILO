@@ -21,7 +21,7 @@ class AASymbolMap {
       // clang-format on
    }
 
-   std::array<T, AA_SYMBOL_COUNT> data;
+   std::array<T, Util<AA_SYMBOL>::count> data;
 
   public:
    inline T& operator[](AA_SYMBOL symbol) { return data.at(static_cast<uint8_t>(symbol)); }

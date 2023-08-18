@@ -52,7 +52,7 @@ std::unique_ptr<operators::Operator> HasAAMutation::compile(
       return expression->compile(database, database_partition, NONE);
    }
 
-   std::vector<AA_SYMBOL> symbols(AA_SYMBOLS.begin(), AA_SYMBOLS.end());
+   std::vector<AA_SYMBOL> symbols(Util<AA_SYMBOL>::symbols.begin(), Util<AA_SYMBOL>::symbols.end());
    (void)std::remove(symbols.begin(), symbols.end(), AA_SYMBOL::X);
    (void)std::remove(symbols.begin(), symbols.end(), ref_symbol);
    std::vector<std::unique_ptr<filter_expressions::Expression>> symbol_filters;

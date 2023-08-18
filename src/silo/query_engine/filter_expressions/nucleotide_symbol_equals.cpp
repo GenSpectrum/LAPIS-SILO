@@ -28,52 +28,53 @@ using silo::NUCLEOTIDE_SYMBOL;
 
 namespace {
 
-const std::array<std::vector<NUCLEOTIDE_SYMBOL>, silo::NUC_SYMBOL_COUNT> AMBIGUITY_NUC_SYMBOLS{{
-   {NUCLEOTIDE_SYMBOL::GAP},
-   {NUCLEOTIDE_SYMBOL::A,
-    NUCLEOTIDE_SYMBOL::R,
-    NUCLEOTIDE_SYMBOL::M,
-    NUCLEOTIDE_SYMBOL::W,
-    NUCLEOTIDE_SYMBOL::D,
-    NUCLEOTIDE_SYMBOL::H,
-    NUCLEOTIDE_SYMBOL::V,
-    NUCLEOTIDE_SYMBOL::N},
-   {NUCLEOTIDE_SYMBOL::C,
-    NUCLEOTIDE_SYMBOL::Y,
-    NUCLEOTIDE_SYMBOL::M,
-    NUCLEOTIDE_SYMBOL::S,
-    NUCLEOTIDE_SYMBOL::B,
-    NUCLEOTIDE_SYMBOL::H,
-    NUCLEOTIDE_SYMBOL::V,
-    NUCLEOTIDE_SYMBOL::N},
-   {NUCLEOTIDE_SYMBOL::G,
-    NUCLEOTIDE_SYMBOL::R,
-    NUCLEOTIDE_SYMBOL::K,
-    NUCLEOTIDE_SYMBOL::S,
-    NUCLEOTIDE_SYMBOL::B,
-    NUCLEOTIDE_SYMBOL::D,
-    NUCLEOTIDE_SYMBOL::V,
-    NUCLEOTIDE_SYMBOL::N},
-   {NUCLEOTIDE_SYMBOL::T,
-    NUCLEOTIDE_SYMBOL::Y,
-    NUCLEOTIDE_SYMBOL::K,
-    NUCLEOTIDE_SYMBOL::W,
-    NUCLEOTIDE_SYMBOL::B,
-    NUCLEOTIDE_SYMBOL::D,
-    NUCLEOTIDE_SYMBOL::H,
-    NUCLEOTIDE_SYMBOL::N},
-   {NUCLEOTIDE_SYMBOL::R},
-   {NUCLEOTIDE_SYMBOL::Y},
-   {NUCLEOTIDE_SYMBOL::S},
-   {NUCLEOTIDE_SYMBOL::W},
-   {NUCLEOTIDE_SYMBOL::K},
-   {NUCLEOTIDE_SYMBOL::M},
-   {NUCLEOTIDE_SYMBOL::B},
-   {NUCLEOTIDE_SYMBOL::D},
-   {NUCLEOTIDE_SYMBOL::H},
-   {NUCLEOTIDE_SYMBOL::V},
-   {NUCLEOTIDE_SYMBOL::N},
-}};
+const std::array<std::vector<NUCLEOTIDE_SYMBOL>, silo::Util<NUCLEOTIDE_SYMBOL>::count>
+   AMBIGUITY_NUC_SYMBOLS{{
+      {NUCLEOTIDE_SYMBOL::GAP},
+      {NUCLEOTIDE_SYMBOL::A,
+       NUCLEOTIDE_SYMBOL::R,
+       NUCLEOTIDE_SYMBOL::M,
+       NUCLEOTIDE_SYMBOL::W,
+       NUCLEOTIDE_SYMBOL::D,
+       NUCLEOTIDE_SYMBOL::H,
+       NUCLEOTIDE_SYMBOL::V,
+       NUCLEOTIDE_SYMBOL::N},
+      {NUCLEOTIDE_SYMBOL::C,
+       NUCLEOTIDE_SYMBOL::Y,
+       NUCLEOTIDE_SYMBOL::M,
+       NUCLEOTIDE_SYMBOL::S,
+       NUCLEOTIDE_SYMBOL::B,
+       NUCLEOTIDE_SYMBOL::H,
+       NUCLEOTIDE_SYMBOL::V,
+       NUCLEOTIDE_SYMBOL::N},
+      {NUCLEOTIDE_SYMBOL::G,
+       NUCLEOTIDE_SYMBOL::R,
+       NUCLEOTIDE_SYMBOL::K,
+       NUCLEOTIDE_SYMBOL::S,
+       NUCLEOTIDE_SYMBOL::B,
+       NUCLEOTIDE_SYMBOL::D,
+       NUCLEOTIDE_SYMBOL::V,
+       NUCLEOTIDE_SYMBOL::N},
+      {NUCLEOTIDE_SYMBOL::T,
+       NUCLEOTIDE_SYMBOL::Y,
+       NUCLEOTIDE_SYMBOL::K,
+       NUCLEOTIDE_SYMBOL::W,
+       NUCLEOTIDE_SYMBOL::B,
+       NUCLEOTIDE_SYMBOL::D,
+       NUCLEOTIDE_SYMBOL::H,
+       NUCLEOTIDE_SYMBOL::N},
+      {NUCLEOTIDE_SYMBOL::R},
+      {NUCLEOTIDE_SYMBOL::Y},
+      {NUCLEOTIDE_SYMBOL::S},
+      {NUCLEOTIDE_SYMBOL::W},
+      {NUCLEOTIDE_SYMBOL::K},
+      {NUCLEOTIDE_SYMBOL::M},
+      {NUCLEOTIDE_SYMBOL::B},
+      {NUCLEOTIDE_SYMBOL::D},
+      {NUCLEOTIDE_SYMBOL::H},
+      {NUCLEOTIDE_SYMBOL::V},
+      {NUCLEOTIDE_SYMBOL::N},
+   }};
 };  // namespace
 
 namespace silo::query_engine::filter_expressions {
@@ -90,7 +91,7 @@ NucleotideSymbolEquals::NucleotideSymbolEquals(
 std::string NucleotideSymbolEquals::toString(const silo::Database& /*database*/) const {
    const std::string nuc_sequence_name_prefix =
       nuc_sequence_name ? nuc_sequence_name.value() + ":" : "";
-   const char symbol_char = value.has_value() ? nucleotideSymbolToChar(*value) : '.';
+   const char symbol_char = value.has_value() ? Util<NUCLEOTIDE_SYMBOL>::symbolToChar(*value) : '.';
    return nuc_sequence_name_prefix + std::to_string(position + 1) + std::to_string(symbol_char);
 }
 
@@ -183,7 +184,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<NucleotideSymbolEqual
       nucleotide_symbol.size() == 1, "The string field 'symbol' must be exactly one character long"
    )
    const std::optional<NUCLEOTIDE_SYMBOL> nuc_value =
-      charToNucleotideSymbol(nucleotide_symbol.at(0));
+      Util<NUCLEOTIDE_SYMBOL>::charToSymbol(nucleotide_symbol.at(0));
    CHECK_SILO_QUERY(
       nuc_value.has_value() || nucleotide_symbol.at(0) == '.',
       "The string field 'symbol' must be either a valid nucleotide symbol or the '.' symbol."

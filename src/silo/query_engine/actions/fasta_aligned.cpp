@@ -40,12 +40,12 @@ std::string reconstructNucSequence(
       sequence_store.reference_genome.begin(),
       sequence_store.reference_genome.end(),
       std::back_inserter(reconstructed_sequence),
-      silo::nucleotideSymbolToChar
+      silo::Util<NUCLEOTIDE_SYMBOL>::symbolToChar
    );
 
    for (const auto& [position_id, symbol] :
         sequence_store.indexing_differences_to_reference_genome) {
-      reconstructed_sequence[position_id] = nucleotideSymbolToChar(symbol);
+      reconstructed_sequence[position_id] = silo::Util<NUCLEOTIDE_SYMBOL>::symbolToChar(symbol);
    }
 
    tbb::
@@ -54,10 +54,11 @@ std::string reconstructNucSequence(
          [&](const auto local) {
             for (auto position_id = local.begin(); position_id != local.end(); position_id++) {
                const NucPosition& position = sequence_store.positions.at(position_id);
-               for (const NUCLEOTIDE_SYMBOL symbol : NUC_SYMBOLS) {
+               for (const NUCLEOTIDE_SYMBOL symbol : silo::Util<NUCLEOTIDE_SYMBOL>::symbols) {
                   if (symbol != position.symbol_whose_bitmap_is_flipped &&
                       position.bitmaps.at(symbol).contains(sequence_id)) {
-                     reconstructed_sequence[position_id] = nucleotideSymbolToChar(symbol);
+                     reconstructed_sequence[position_id] =
+                        silo::Util<NUCLEOTIDE_SYMBOL>::symbolToChar(symbol);
                   }
                }
             }
@@ -65,7 +66,8 @@ std::string reconstructNucSequence(
       );
 
    for (const size_t position : sequence_store.nucleotide_symbol_n_bitmaps.at(sequence_id)) {
-      reconstructed_sequence[position] = nucleotideSymbolToChar(NUCLEOTIDE_SYMBOL::N);
+      reconstructed_sequence[position] =
+         silo::Util<NUCLEOTIDE_SYMBOL>::symbolToChar(NUCLEOTIDE_SYMBOL::N);
    }
    return reconstructed_sequence;
 }
@@ -76,11 +78,11 @@ std::string reconstructAASequence(const AAStorePartition& aa_store, uint32_t seq
       aa_store.reference_sequence.begin(),
       aa_store.reference_sequence.end(),
       std::back_inserter(reconstructed_sequence),
-      silo::aaSymbolToChar
+      silo::Util<AA_SYMBOL>::symbolToChar
    );
 
    for (const auto& [position_id, symbol] : aa_store.indexing_differences_to_reference_sequence) {
-      reconstructed_sequence[position_id] = aaSymbolToChar(symbol);
+      reconstructed_sequence[position_id] = Util<AA_SYMBOL>::symbolToChar(symbol);
    }
 
    tbb::
@@ -89,10 +91,10 @@ std::string reconstructAASequence(const AAStorePartition& aa_store, uint32_t seq
          [&](const auto local) {
             for (auto position_id = local.begin(); position_id != local.end(); position_id++) {
                const AAPosition& position = aa_store.positions.at(position_id);
-               for (const AA_SYMBOL symbol : AA_SYMBOLS) {
+               for (const AA_SYMBOL symbol : Util<AA_SYMBOL>::symbols) {
                   if (symbol != position.symbol_whose_bitmap_is_flipped &&
                       position.bitmaps.at(symbol).contains(sequence_id)) {
-                     reconstructed_sequence[position_id] = aaSymbolToChar(symbol);
+                     reconstructed_sequence[position_id] = Util<AA_SYMBOL>::symbolToChar(symbol);
                   }
                }
             }
@@ -100,7 +102,7 @@ std::string reconstructAASequence(const AAStorePartition& aa_store, uint32_t seq
       );
 
    for (const size_t position : aa_store.aa_symbol_x_bitmaps.at(sequence_id)) {
-      reconstructed_sequence[position] = aaSymbolToChar(AA_SYMBOL::X);
+      reconstructed_sequence[position] = Util<AA_SYMBOL>::symbolToChar(AA_SYMBOL::X);
    }
    return reconstructed_sequence;
 }

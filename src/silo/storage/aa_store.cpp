@@ -26,7 +26,7 @@ std::optional<silo::AA_SYMBOL> silo::AAPosition::flipMostNumerousBitmap(uint32_t
    std::optional<AA_SYMBOL> new_flipped_bitmap_symbol = std::nullopt;
    uint32_t max_count = 0;
 
-   for (const auto& symbol : AA_SYMBOLS) {
+   for (const auto& symbol : Util<AA_SYMBOL>::symbols) {
       roaring::Roaring bitmap = bitmaps.at(symbol);
       bitmap.runOptimize();
       bitmap.shrinkToFit();
@@ -104,7 +104,7 @@ void silo::AAStorePartition::fillIndexes(const std::vector<std::string>& sequenc
             const size_t number_of_sequences = sequences.size();
             for (size_t sequence_id = 0; sequence_id < number_of_sequences; ++sequence_id) {
                const char character = sequences[sequence_id][position];
-               const auto symbol = charToAASymbol(character);
+               const auto symbol = Util<AA_SYMBOL>::charToSymbol(character);
                if (!symbol.has_value()) {
                   throw PreprocessingException(
                      "Found invalid symbol in Amino Acid sequence: " + std::to_string(character) +
@@ -117,7 +117,7 @@ void silo::AAStorePartition::fillIndexes(const std::vector<std::string>& sequenc
                   );
                }
             }
-            for (const AA_SYMBOL symbol : AA_SYMBOLS) {
+            for (const AA_SYMBOL symbol : Util<AA_SYMBOL>::symbols) {
                if (!ids_per_symbol_for_current_position.at(symbol).empty()) {
                   positions[position].bitmaps[symbol].addMany(
                      ids_per_symbol_for_current_position.at(symbol).size(),
@@ -147,7 +147,7 @@ void silo::AAStorePartition::fillXBitmaps(const std::vector<std::string>& sequen
          for (size_t position = 0; position < genome_length; ++position) {
             const char character = sequences[sequence_id][position];
             // No need to check the cast because we call fillIndexes first
-            const auto symbol = charToAASymbol(character);
+            const auto symbol = Util<AA_SYMBOL>::charToSymbol(character);
             if (symbol == AA_SYMBOL::X) {
                positions_with_aa_symbol_x.push_back(position);
             }

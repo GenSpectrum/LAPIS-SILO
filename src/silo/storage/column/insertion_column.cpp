@@ -4,10 +4,14 @@
 
 namespace silo::storage::column {
 
-InsertionColumnPartition::InsertionColumnPartition(common::BidirectionalMap<std::string>& lookup)
+template <>
+InsertionColumnPartition<NUCLEOTIDE_SYMBOL>::InsertionColumnPartition(
+   common::BidirectionalMap<std::string>& lookup
+)
     : lookup(lookup) {}
 
-void InsertionColumnPartition::insert(const std::string& value) {
+template <>
+void InsertionColumnPartition<NUCLEOTIDE_SYMBOL>::insert(const std::string& value) {
    const auto sequence_id = values.size();
 
    const Idx value_id = lookup.getOrCreateId(value);
@@ -16,30 +20,36 @@ void InsertionColumnPartition::insert(const std::string& value) {
    insertion_index.addLazily(value, sequence_id);
 }
 
-void InsertionColumnPartition::buildInsertionIndex() {
+template <>
+void InsertionColumnPartition<NUCLEOTIDE_SYMBOL>::buildInsertionIndex() {
    insertion_index.buildIndex();
 }
 
-std::unique_ptr<roaring::Roaring> InsertionColumnPartition::search(
+template <>
+std::unique_ptr<roaring::Roaring> InsertionColumnPartition<NUCLEOTIDE_SYMBOL>::search(
    uint32_t position,
    const std::string& search_pattern
 ) const {
    return insertion_index.search(position, search_pattern);
 }
 
-const std::vector<silo::Idx>& InsertionColumnPartition::getValues() const {
+template <>
+const std::vector<silo::Idx>& InsertionColumnPartition<NUCLEOTIDE_SYMBOL>::getValues() const {
    return values;
 }
 
-std::string InsertionColumnPartition::lookupValue(silo::Idx value_id) const {
+template <>
+std::string InsertionColumnPartition<NUCLEOTIDE_SYMBOL>::lookupValue(silo::Idx value_id) const {
    return lookup.getValue(value_id);
 }
 
-InsertionColumn::InsertionColumn() {
+template <>
+InsertionColumn<NUCLEOTIDE_SYMBOL>::InsertionColumn() {
    lookup = std::make_unique<silo::common::BidirectionalMap<std::string>>();
 }
 
-InsertionColumnPartition& InsertionColumn::createPartition() {
+template <>
+InsertionColumnPartition<NUCLEOTIDE_SYMBOL>& InsertionColumn<NUCLEOTIDE_SYMBOL>::createPartition() {
    return partitions.emplace_back(*lookup);
 }
 

@@ -425,7 +425,8 @@ void silo::sortChunks(
                output_filename,
                reference_sequence,
                std::string(
-                  reference_sequence.length(), silo::nucleotideSymbolToChar(NUCLEOTIDE_SYMBOL::N)
+                  reference_sequence.length(),
+                  Util<NUCLEOTIDE_SYMBOL>::symbolToChar(NUCLEOTIDE_SYMBOL::N)
                )
             );
          }
@@ -439,7 +440,7 @@ void silo::sortChunks(
             sequence_outputs.emplace_back(
                output_filename,
                reference_sequence,
-               std::string(reference_sequence.length(), silo::aaSymbolToChar(AA_SYMBOL::X))
+               std::string(reference_sequence.length(), Util<AA_SYMBOL>::symbolToChar(AA_SYMBOL::X))
             );
          }
          const std::filesystem::path metadata_input =

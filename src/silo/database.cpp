@@ -228,13 +228,13 @@ BitmapContainerSize& BitmapContainerSize::operator+=(const BitmapContainerSize& 
 }
 
 BitmapSizePerSymbol& BitmapSizePerSymbol::operator+=(const BitmapSizePerSymbol& other) {
-   for (const auto& symbol : NUC_SYMBOLS) {
+   for (const auto& symbol : Util<NUCLEOTIDE_SYMBOL>::symbols) {
       this->size_in_bytes.at(symbol) += other.size_in_bytes.at(symbol);
    }
    return *this;
 }
 BitmapSizePerSymbol::BitmapSizePerSymbol() {
-   for (const auto& symbol : NUC_SYMBOLS) {
+   for (const auto& symbol : Util<NUCLEOTIDE_SYMBOL>::symbols) {
       this->size_in_bytes[symbol] = 0;
    }
 }
@@ -243,7 +243,7 @@ BitmapSizePerSymbol Database::calculateBitmapSizePerSymbol(const SequenceStore& 
    BitmapSizePerSymbol global_bitmap_size_per_symbol;
 
    std::mutex lock;
-   tbb::parallel_for_each(NUC_SYMBOLS, [&](NUCLEOTIDE_SYMBOL symbol) {
+   tbb::parallel_for_each(Util<NUCLEOTIDE_SYMBOL>::symbols, [&](NUCLEOTIDE_SYMBOL symbol) {
       BitmapSizePerSymbol bitmap_size_per_symbol;
 
       for (const SequenceStorePartition& seq_store_partition : seq_store.partitions) {
@@ -296,7 +296,7 @@ BitmapContainerSize Database::calculateBitmapContainerSizePerGenomeSection(
          RoaringStatistics statistic;
          for (const auto& seq_store_partition : seq_store.partitions) {
             const auto& position = seq_store_partition.positions[position_index];
-            for (const auto& genome_symbol : NUC_SYMBOLS) {
+            for (const auto& genome_symbol : Util<NUCLEOTIDE_SYMBOL>::symbols) {
                const auto& bitmap = position.bitmaps.at(genome_symbol);
 
                roaring_bitmap_statistics(&bitmap.roaring, &statistic);
@@ -709,10 +709,12 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
          }
          break;
       case config::ColumnType::INSERTION:
-         columns.insertion_columns.emplace(name, storage::column::InsertionColumn());
+         columns.nuc_insertion_columns.emplace(
+            name, storage::column::InsertionColumn<NUCLEOTIDE_SYMBOL>()
+         );
          for (auto& partition : partitions) {
             partition.columns.metadata.push_back({name, column_type});
-            partition.insertColumn(name, columns.insertion_columns.at(name).createPartition());
+            partition.insertColumn(name, columns.nuc_insertion_columns.at(name).createPartition());
          }
          break;
    }
@@ -752,7 +754,7 @@ void Database::initializeAASequences(
 
 void Database::finalizeInsertionIndexes() {
    tbb::parallel_for_each(partitions.begin(), partitions.end(), [](auto& partition) {
-      for (auto& insertion_column : partition.columns.insertion_columns) {
+      for (auto& insertion_column : partition.columns.nuc_insertion_columns) {
          insertion_column.second.buildInsertionIndex();
       }
    });

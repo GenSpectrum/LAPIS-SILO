@@ -48,7 +48,8 @@ void assignTupleField(
       *reinterpret_cast<silo::Idx*>(*data_pointer) = value;
       *data_pointer += sizeof(decltype(value));
    } else if (metadata.type == ColumnType::INSERTION) {
-      const silo::Idx value = columns.insertion_columns.at(metadata.name).getValues()[sequence_id];
+      const silo::Idx value =
+         columns.nuc_insertion_columns.at(metadata.name).getValues()[sequence_id];
       *reinterpret_cast<silo::Idx*>(*data_pointer) = value;
       *data_pointer += sizeof(decltype(value));
    } else {
@@ -115,7 +116,7 @@ json_value_type tupleFieldToValueType(
    if (metadata.type == ColumnType::INSERTION) {
       const silo::Idx value = *reinterpret_cast<const silo::Idx*>(*data_pointer);
       *data_pointer += sizeof(decltype(value));
-      std::string string_value = columns.insertion_columns.at(metadata.name).lookupValue(value);
+      std::string string_value = columns.nuc_insertion_columns.at(metadata.name).lookupValue(value);
       if (string_value.empty()) {
          return std::nullopt;
       }
@@ -226,11 +227,11 @@ std::strong_ordering compareTupleFields(
       const silo::Idx value1 = *reinterpret_cast<const silo::Idx*>(*data_pointer1);
       *data_pointer1 += sizeof(decltype(value1));
       const std::string string_value1 =
-         columns.insertion_columns.at(metadata.name).lookupValue(value1);
+         columns.nuc_insertion_columns.at(metadata.name).lookupValue(value1);
       const silo::Idx value2 = *reinterpret_cast<const silo::Idx*>(*data_pointer2);
       *data_pointer2 += sizeof(decltype(value2));
       const std::string string_value2 =
-         columns.insertion_columns.at(metadata.name).lookupValue(value2);
+         columns.nuc_insertion_columns.at(metadata.name).lookupValue(value2);
       return compareString(string_value1, string_value2);
    }
    throw std::runtime_error("Unchecked column type of column " + metadata.name);

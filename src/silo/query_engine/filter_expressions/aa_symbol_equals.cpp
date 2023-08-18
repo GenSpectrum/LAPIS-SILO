@@ -35,7 +35,7 @@ AASymbolEquals::AASymbolEquals(
       value(value) {}
 
 std::string AASymbolEquals::toString(const silo::Database& /*database*/) const {
-   const char symbol_char = value.has_value() ? aaSymbolToChar(*value) : '.';
+   const char symbol_char = value.has_value() ? Util<AA_SYMBOL>::symbolToChar(*value) : '.';
    return aa_sequence_name + ":" + std::to_string(position + 1) + std::to_string(symbol_char);
 }
 
@@ -99,7 +99,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<AASymbolEquals>& filt
    CHECK_SILO_QUERY(
       aa_char.size() == 1, "The string field 'symbol' must be exactly one character long"
    )
-   const std::optional<AA_SYMBOL> aa_value = charToAASymbol(aa_char.at(0));
+   const std::optional<AA_SYMBOL> aa_value = Util<AA_SYMBOL>::charToSymbol(aa_char.at(0));
    CHECK_SILO_QUERY(
       aa_value.has_value() || aa_char.at(0) == '.',
       "The string field 'symbol' must be either a valid amino acid or the '.' symbol."

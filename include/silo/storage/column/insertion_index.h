@@ -42,6 +42,7 @@ class Insertion {
    roaring::Roaring sequence_ids;
 };
 
+template <typename Symbol>
 class InsertionPosition {
   private:
    friend class boost::serialization::access;
@@ -75,6 +76,7 @@ class InsertionPosition {
    std::unique_ptr<roaring::Roaring> search(const std::string& search_pattern) const;
 };
 
+template <typename Symbol>
 class InsertionIndex {
   private:
    friend class boost::serialization::access;
@@ -87,7 +89,7 @@ class InsertionIndex {
       // clang-format on
    }
 
-   std::unordered_map<uint32_t, InsertionPosition> insertion_positions;
+   std::unordered_map<uint32_t, InsertionPosition<Symbol>> insertion_positions;
    std::unordered_map<uint32_t, std::unordered_map<std::string, roaring::Roaring>>
       collected_insertions;
 

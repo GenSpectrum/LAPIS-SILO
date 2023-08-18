@@ -99,9 +99,9 @@ void DatabasePartition::insertColumn(
 
 void DatabasePartition::insertColumn(
    const std::string& name,
-   storage::column::InsertionColumnPartition& column
+   storage::column::InsertionColumnPartition<NUCLEOTIDE_SYMBOL>& column
 ) {
-   columns.insertion_columns.insert({std::string(name), column});
+   columns.nuc_insertion_columns.insert({std::string(name), column});
 }
 
 void DatabasePartition::insertColumn(

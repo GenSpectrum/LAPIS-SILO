@@ -21,7 +21,7 @@ class NucleotideSymbolMap {
       // clang-format on
    }
 
-   std::array<T, NUC_SYMBOL_COUNT> data;
+   std::array<T, Util<NUCLEOTIDE_SYMBOL>::count> data;
 
   public:
    inline T& operator[](NUCLEOTIDE_SYMBOL symbol) { return data.at(static_cast<uint8_t>(symbol)); }

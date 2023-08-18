@@ -42,7 +42,7 @@ ReferenceGenomes::ReferenceGenomes(
    for (const auto& [sequence_name, raw_nucleotide_sequence] : raw_nucleotide_sequences) {
       std::vector<NUCLEOTIDE_SYMBOL> nucleotide_sequence;
       for (const char character : raw_nucleotide_sequence) {
-         auto symbol = charToNucleotideSymbol(character);
+         auto symbol = Util<NUCLEOTIDE_SYMBOL>::charToSymbol(character);
 
          if (!symbol.has_value()) {
             throw PreprocessingException(
@@ -60,7 +60,7 @@ ReferenceGenomes::ReferenceGenomes(
       std::vector<AA_SYMBOL> aa_sequence;
 
       for (const char character : raw_aa_sequence) {
-         auto symbol = charToAASymbol(character);
+         auto symbol = Util<AA_SYMBOL>::charToSymbol(character);
 
          if (!symbol.has_value()) {
             throw PreprocessingException(

@@ -26,16 +26,6 @@ struct DatabaseMetadata;
 namespace silo {
 class PangoLineageAliasLookup;
 
-namespace storage::column {
-class DateColumnPartition;
-class FloatColumnPartition;
-class IndexedStringColumnPartition;
-class IntColumnPartition;
-class PangoLineageColumnPartition;
-class StringColumnPartition;
-class InsertionColumnPartition;
-}  // namespace storage::column
-
 namespace config {
 class DatabaseConfig;
 }  // namespace config
@@ -72,7 +62,7 @@ class ColumnPartitionGroup {
       for(auto& [name, store] : pango_lineage_columns){
          archive & store;
       }
-      for(auto& [name, store] : insertion_columns){
+      for(auto& [name, store] : nuc_insertion_columns){
          archive & store;
       }
       // clang-format on
@@ -87,7 +77,8 @@ class ColumnPartitionGroup {
    std::map<std::string, storage::column::FloatColumnPartition&> float_columns;
    std::map<std::string, storage::column::DateColumnPartition&> date_columns;
    std::map<std::string, storage::column::PangoLineageColumnPartition&> pango_lineage_columns;
-   std::map<std::string, storage::column::InsertionColumnPartition&> insertion_columns;
+   std::map<std::string, storage::column::InsertionColumnPartition<NUCLEOTIDE_SYMBOL>&>
+      nuc_insertion_columns;
 
    uint32_t fill(
       const std::filesystem::path& input_file,
@@ -128,7 +119,7 @@ class ColumnGroup {
       for(auto& [name, store] : pango_lineage_columns){
          archive & store;
       }
-      for(auto& [name, store] : insertion_columns){
+      for(auto& [name, store] : nuc_insertion_columns){
          archive & store;
       }
       // clang-format on
@@ -143,7 +134,7 @@ class ColumnGroup {
    std::map<std::string, storage::column::FloatColumn> float_columns;
    std::map<std::string, storage::column::DateColumn> date_columns;
    std::map<std::string, storage::column::PangoLineageColumn> pango_lineage_columns;
-   std::map<std::string, storage::column::InsertionColumn> insertion_columns;
+   std::map<std::string, storage::column::InsertionColumn<NUCLEOTIDE_SYMBOL>> nuc_insertion_columns;
 };
 
 }  // namespace silo::storage

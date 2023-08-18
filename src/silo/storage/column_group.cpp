@@ -43,7 +43,7 @@ uint32_t ColumnPartitionGroup::fill(
          } else if (column_type == silo::config::ColumnType::FLOAT) {
             float_columns.at(item.name).insert(value);
          } else if (column_type == silo::config::ColumnType::INSERTION) {
-            insertion_columns.at(item.name).insert(value);
+            nuc_insertion_columns.at(item.name).insert(value);
          }
       }
       if (++sequence_count == UINT32_MAX) {
@@ -78,7 +78,7 @@ ColumnPartitionGroup ColumnPartitionGroup::getSubgroup(
       } else if (item.type == silo::config::ColumnType::FLOAT) {
          result.float_columns.insert({item.name, float_columns.at(item.name)});
       } else if (item.type == silo::config::ColumnType::INSERTION) {
-         result.insertion_columns.insert({item.name, insertion_columns.at(item.name)});
+         result.nuc_insertion_columns.insert({item.name, nuc_insertion_columns.at(item.name)});
       }
    }
    return result;
@@ -120,9 +120,9 @@ std::optional<std::variant<std::string, int32_t, double>> ColumnPartitionGroup::
       }
       return value;
    }
-   if (insertion_columns.contains(column)) {
-      return insertion_columns.at(column).lookupValue(
-         insertion_columns.at(column).getValues().at(sequence_id)
+   if (nuc_insertion_columns.contains(column)) {
+      return nuc_insertion_columns.at(column).lookupValue(
+         nuc_insertion_columns.at(column).getValues().at(sequence_id)
       );
    }
    return std::nullopt;

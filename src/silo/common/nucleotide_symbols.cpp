@@ -2,7 +2,7 @@
 
 namespace silo {
 
-char nucleotideSymbolToChar(NUCLEOTIDE_SYMBOL symbol) {
+char Util<NUCLEOTIDE_SYMBOL>::symbolToChar(NUCLEOTIDE_SYMBOL symbol) {
    switch (symbol) {
       case NUCLEOTIDE_SYMBOL::GAP:
          return '-';
@@ -39,7 +39,7 @@ char nucleotideSymbolToChar(NUCLEOTIDE_SYMBOL symbol) {
    }
 }
 
-std::optional<NUCLEOTIDE_SYMBOL> charToNucleotideSymbol(char character) {
+std::optional<NUCLEOTIDE_SYMBOL> Util<NUCLEOTIDE_SYMBOL>::charToSymbol(char character) {
    switch (character) {
       case '.':
       case '-':
@@ -80,13 +80,13 @@ std::optional<NUCLEOTIDE_SYMBOL> charToNucleotideSymbol(char character) {
    }
 }
 
-std::optional<std::vector<NUCLEOTIDE_SYMBOL>> stringToNucleotideSymbolVector(
-   const std::string& nucleotides
+std::optional<std::vector<NUCLEOTIDE_SYMBOL>> Util<NUCLEOTIDE_SYMBOL>::stringToSymbolVector(
+   const std::string& sequence
 ) {
-   const size_t size = nucleotides.size();
+   const size_t size = sequence.size();
    std::vector<NUCLEOTIDE_SYMBOL> result(size);
    for (size_t i = 0; i < size; ++i) {
-      auto symbol = charToNucleotideSymbol(nucleotides[i]);
+      auto symbol = Util<NUCLEOTIDE_SYMBOL>::charToSymbol(sequence[i]);
       if (symbol == std::nullopt) {
          return std::nullopt;
       }
@@ -95,9 +95,9 @@ std::optional<std::vector<NUCLEOTIDE_SYMBOL>> stringToNucleotideSymbolVector(
    return result;
 }
 
-std::optional<char> findIllegalNucleotideChar(const std::string& nucleotides) {
-   for (const auto nuc_char : nucleotides) {
-      auto symbol = charToNucleotideSymbol(nuc_char);
+std::optional<char> Util<NUCLEOTIDE_SYMBOL>::findIllegalChar(const std::string& sequence) {
+   for (const auto nuc_char : sequence) {
+      auto symbol = Util<NUCLEOTIDE_SYMBOL>::charToSymbol(nuc_char);
       if (symbol == std::nullopt) {
          return nuc_char;
       }

@@ -35,12 +35,12 @@ std::unique_ptr<silo::query_engine::operators::Operator> InsertionContains::comp
    Expression::AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
-      database_partition.columns.insertion_columns.contains(column_name),
+      database_partition.columns.nuc_insertion_columns.contains(column_name),
       "The insertion column '" + column_name + "' does not exist."
    )
 
-   const storage::column::InsertionColumnPartition& insertion_column =
-      database_partition.columns.insertion_columns.at(column_name);
+   const storage::column::InsertionColumnPartition<NUCLEOTIDE_SYMBOL>& insertion_column =
+      database_partition.columns.nuc_insertion_columns.at(column_name);
 
    return std::make_unique<operators::BitmapProducer>(
       [&]() {
@@ -57,8 +57,8 @@ std::regex buildValidInsertionSearchRegex() {
    // Build the following regex pattern: ^([nuc-symbols]|\.\*)*$
    std::stringstream regex_pattern_string;
    regex_pattern_string << "^([";
-   for (const auto nuc : NUC_SYMBOLS) {
-      regex_pattern_string << nucleotideSymbolToChar(nuc);
+   for (const auto nuc : Util<NUCLEOTIDE_SYMBOL>::symbols) {
+      regex_pattern_string << Util<NUCLEOTIDE_SYMBOL>::symbolToChar(nuc);
    }
    regex_pattern_string << "]|\\.\\*)*$";
    return std::regex(regex_pattern_string.str());
