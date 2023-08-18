@@ -65,6 +65,9 @@ class ColumnPartitionGroup {
       for(auto& [name, store] : nuc_insertion_columns){
          archive & store;
       }
+      for(auto& [name, store] : aa_insertion_columns){
+         archive & store;
+      }
       // clang-format on
    }
 
@@ -79,6 +82,8 @@ class ColumnPartitionGroup {
    std::map<std::string, storage::column::PangoLineageColumnPartition&> pango_lineage_columns;
    std::map<std::string, storage::column::InsertionColumnPartition<NUCLEOTIDE_SYMBOL>&>
       nuc_insertion_columns;
+   std::map<std::string, storage::column::InsertionColumnPartition<AA_SYMBOL>&>
+      aa_insertion_columns;
 
    uint32_t fill(
       const std::filesystem::path& input_file,
@@ -122,6 +127,9 @@ class ColumnGroup {
       for(auto& [name, store] : nuc_insertion_columns){
          archive & store;
       }
+      for(auto& [name, store] : aa_insertion_columns){
+         archive & store;
+      }
       // clang-format on
    }
 
@@ -135,6 +143,7 @@ class ColumnGroup {
    std::map<std::string, storage::column::DateColumn> date_columns;
    std::map<std::string, storage::column::PangoLineageColumn> pango_lineage_columns;
    std::map<std::string, storage::column::InsertionColumn<NUCLEOTIDE_SYMBOL>> nuc_insertion_columns;
+   std::map<std::string, storage::column::InsertionColumn<AA_SYMBOL>> aa_insertion_columns;
 };
 
 }  // namespace silo::storage

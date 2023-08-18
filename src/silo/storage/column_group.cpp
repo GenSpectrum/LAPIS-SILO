@@ -125,6 +125,11 @@ std::optional<std::variant<std::string, int32_t, double>> ColumnPartitionGroup::
          nuc_insertion_columns.at(column).getValues().at(sequence_id)
       );
    }
+   if (aa_insertion_columns.contains(column)) {
+      return aa_insertion_columns.at(column).lookupValue(
+         aa_insertion_columns.at(column).getValues().at(sequence_id)
+      );
+   }
    return std::nullopt;
 }
 

@@ -106,6 +106,13 @@ void DatabasePartition::insertColumn(
 
 void DatabasePartition::insertColumn(
    const std::string& name,
+   storage::column::InsertionColumnPartition<AA_SYMBOL>& column
+) {
+   columns.aa_insertion_columns.insert({std::string(name), column});
+}
+
+void DatabasePartition::insertColumn(
+   const std::string& name,
    storage::column::PangoLineageColumnPartition& column
 ) {
    columns.pango_lineage_columns.insert({std::string(name), column});

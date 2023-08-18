@@ -5,14 +5,20 @@
 
 namespace silo {
 
-template <size_t N, template <typename> typename Container, typename Base>
+template <
+   size_t N,
+   template <typename, typename>
+   typename Container,
+   typename ContainerArg,
+   typename Base>
 struct NestedContainer {
-   using type = Container<typename NestedContainer<N - 1, Container, Base>::type>;
+   using type =
+      Container<ContainerArg, typename NestedContainer<N - 1, Container, ContainerArg, Base>::type>;
 };
 
-template <template <typename> typename Container, typename Base>
-struct NestedContainer<1, Container, Base> {
-   using type = Container<Base>;
+template <template <typename, typename> typename Container, typename ContainerArg, typename Base>
+struct NestedContainer<1, Container, ContainerArg, Base> {
+   using type = Container<ContainerArg, Base>;
 };
 
 }  // namespace silo

@@ -20,8 +20,14 @@ class Operator;
 
 namespace silo::query_engine::filter_expressions {
 
-InsertionContains::InsertionContains(std::string column, uint32_t position, std::string value)
+InsertionContains::InsertionContains(
+   std::string column,
+   std::string sequence_name,
+   uint32_t position,
+   std::string value
+)
     : column_name(std::move(column)),
+      sequence_name(std::move(sequence_name)),
       position(position),
       value(std::move(value)) {}
 
@@ -44,7 +50,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> InsertionContains::comp
 
    return std::make_unique<operators::BitmapProducer>(
       [&]() {
-         auto search_result = insertion_column.search(position, value);
+         auto search_result = insertion_column.search(sequence_name, position, value);
          return OperatorResult(std::move(*search_result));
       },
       database_partition.sequence_count
@@ -90,6 +96,11 @@ void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains>& f
       "The field 'position' in an InsertionContains expression needs to be a positive number (> 0)"
    )
    CHECK_SILO_QUERY(
+      !json.contains("sequence_name") || (json["sequence_name"].is_number_unsigned() &&
+                                          (json["sequence_name"].get<uint32_t>() > 0)),
+      "The optional field 'sequence_name' in an InsertionContains expression needs to be a string"
+   )
+   CHECK_SILO_QUERY(
       json.contains("value"), "The field 'value' is required in an InsertionContains expression"
    )
    CHECK_SILO_QUERY(
@@ -97,6 +108,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains>& f
       "The field 'value' in an InsertionContains expression needs to be a string"
    )
    const std::string& column_name = json["column"];
+   std::string sequence_name =
+      json.contains("sequence_name") ? json["sequence_name"].get<std::string>() : "";
    const uint32_t position = json["position"];
    const std::string& value = json["value"].get<std::string>();
    CHECK_SILO_QUERY(
@@ -109,7 +122,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains>& f
       "pattern: \"" +
          value + "\". It must only consist of nucleotide symbols and the regex symbol '.*'."
    )
-   filter = std::make_unique<InsertionContains>(column_name, position, value);
+   filter = std::make_unique<InsertionContains>(column_name, sequence_name, position, value);
 }
 
 }  // namespace silo::query_engine::filter_expressions

@@ -57,7 +57,7 @@ NucMutations::PrefilteredBitmaps NucMutations::preFilterBitmaps(
 void NucMutations::addMutationsCountsForPosition(
    uint32_t position,
    PrefilteredBitmaps& bitmaps_to_evaluate,
-   NucleotideSymbolMap<std::vector<uint32_t>>& count_of_mutations_per_position
+   SymbolMap<NUCLEOTIDE_SYMBOL, std::vector<uint32_t>>& count_of_mutations_per_position
 ) {
    for (const auto& [filter, seq_store_partition] : bitmaps_to_evaluate.bitmaps) {
       for (const auto symbol : VALID_MUTATION_SYMBOLS) {
@@ -87,7 +87,7 @@ void NucMutations::addMutationsCountsForPosition(
    }
 }
 
-NucleotideSymbolMap<std::vector<uint32_t>> NucMutations::calculateMutationsPerPosition(
+SymbolMap<NUCLEOTIDE_SYMBOL, std::vector<uint32_t>> NucMutations::calculateMutationsPerPosition(
    const SequenceStore& seq_store,
    std::vector<OperatorResult>& bitmap_filter
 ) {
@@ -95,7 +95,7 @@ NucleotideSymbolMap<std::vector<uint32_t>> NucMutations::calculateMutationsPerPo
 
    PrefilteredBitmaps bitmaps_to_evaluate = preFilterBitmaps(seq_store, bitmap_filter);
 
-   NucleotideSymbolMap<std::vector<uint32_t>> count_of_mutations_per_position;
+   SymbolMap<NUCLEOTIDE_SYMBOL, std::vector<uint32_t>> count_of_mutations_per_position;
    for (const NUCLEOTIDE_SYMBOL symbol : VALID_MUTATION_SYMBOLS) {
       count_of_mutations_per_position[symbol].resize(genome_length);
    }
@@ -145,7 +145,7 @@ QueryResult NucMutations::execute(
 
    const size_t genome_length = seq_store.reference_genome.size();
 
-   const NucleotideSymbolMap<std::vector<uint32_t>> count_of_mutations_per_position =
+   const SymbolMap<NUCLEOTIDE_SYMBOL, std::vector<uint32_t>> count_of_mutations_per_position =
       calculateMutationsPerPosition(seq_store, bitmap_filter);
 
    std::vector<QueryResultEntry> mutation_proportions;

@@ -61,7 +61,7 @@ std::unordered_map<std::string, AAMutations::PrefilteredBitmaps> AAMutations::pr
 void AAMutations::addMutationsCountsForPosition(
    uint32_t position,
    const PrefilteredBitmaps& bitmaps_to_evaluate,
-   AASymbolMap<std::vector<uint32_t>>& count_of_mutations_per_position
+   SymbolMap<AA_SYMBOL, std::vector<uint32_t>>& count_of_mutations_per_position
 ) {
    for (const auto& [filter, aa_store_partition] : bitmaps_to_evaluate.bitmaps) {
       for (const auto symbol : VALID_MUTATION_SYMBOLS) {
@@ -91,13 +91,13 @@ void AAMutations::addMutationsCountsForPosition(
    }
 }
 
-AASymbolMap<std::vector<uint32_t>> AAMutations::calculateMutationsPerPosition(
+SymbolMap<AA_SYMBOL, std::vector<uint32_t>> AAMutations::calculateMutationsPerPosition(
    const AAStore& aa_store,
    const PrefilteredBitmaps& bitmap_filter
 ) {
    const size_t sequence_length = aa_store.reference_sequence.size();
 
-   AASymbolMap<std::vector<uint32_t>> count_of_mutations_per_position;
+   SymbolMap<AA_SYMBOL, std::vector<uint32_t>> count_of_mutations_per_position;
    for (const auto symbol : VALID_MUTATION_SYMBOLS) {
       count_of_mutations_per_position[symbol].resize(sequence_length);
    }
@@ -137,7 +137,7 @@ void AAMutations::addMutationsToOutput(
 ) const {
    const size_t sequence_length = aa_store.reference_sequence.size();
 
-   const AASymbolMap<std::vector<uint32_t>> count_of_mutations_per_position =
+   const SymbolMap<AA_SYMBOL, std::vector<uint32_t>> count_of_mutations_per_position =
       calculateMutationsPerPosition(aa_store, bitmap_filter);
 
    for (size_t pos = 0; pos < sequence_length; ++pos) {

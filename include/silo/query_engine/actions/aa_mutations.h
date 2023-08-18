@@ -11,8 +11,8 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-#include "silo/common/aa_symbol_map.h"
 #include "silo/common/aa_symbols.h"
+#include "silo/common/symbol_map.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/query_result.h"
 
@@ -78,10 +78,10 @@ class AAMutations : public Action {
    static void addMutationsCountsForPosition(
       uint32_t position,
       const PrefilteredBitmaps& bitmaps_to_evaluate,
-      AASymbolMap<std::vector<uint32_t>>& count_of_mutations_per_position
+      SymbolMap<AA_SYMBOL, std::vector<uint32_t>>& count_of_mutations_per_position
    );
 
-   static AASymbolMap<std::vector<uint32_t>> calculateMutationsPerPosition(
+   static SymbolMap<AA_SYMBOL, std::vector<uint32_t>> calculateMutationsPerPosition(
       const AAStore& aa_store,
       const PrefilteredBitmaps& bitmap_filter
    );

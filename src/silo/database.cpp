@@ -717,6 +717,13 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
             partition.insertColumn(name, columns.nuc_insertion_columns.at(name).createPartition());
          }
          break;
+      case config::ColumnType::AA_INSERTION:
+         columns.aa_insertion_columns.emplace(name, storage::column::InsertionColumn<AA_SYMBOL>());
+         for (auto& partition : partitions) {
+            partition.columns.metadata.push_back({name, column_type});
+            partition.insertColumn(name, columns.aa_insertion_columns.at(name).createPartition());
+         }
+         break;
    }
 }
 
@@ -755,6 +762,9 @@ void Database::initializeAASequences(
 void Database::finalizeInsertionIndexes() {
    tbb::parallel_for_each(partitions.begin(), partitions.end(), [](auto& partition) {
       for (auto& insertion_column : partition.columns.nuc_insertion_columns) {
+         insertion_column.second.buildInsertionIndex();
+      }
+      for (auto& insertion_column : partition.columns.aa_insertion_columns) {
          insertion_column.second.buildInsertionIndex();
       }
    });

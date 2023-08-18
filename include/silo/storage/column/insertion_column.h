@@ -30,13 +30,13 @@ class InsertionColumnPartition {
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
       archive & values;
-      archive & insertion_index;
+      archive & insertion_indexes;
       // clang-format on
    }
 
    std::vector<silo::Idx> values;
    common::BidirectionalMap<std::string>& lookup;
-   insertion::InsertionIndex<Symbol> insertion_index;
+   std::unordered_map<std::string, insertion::InsertionIndex<Symbol>> insertion_indexes;
 
   public:
    explicit InsertionColumnPartition(common::BidirectionalMap<std::string>& lookup);
@@ -46,6 +46,7 @@ class InsertionColumnPartition {
    void buildInsertionIndex();
 
    [[nodiscard]] std::unique_ptr<roaring::Roaring> search(
+      const std::string& sequence_name,
       uint32_t position,
       const std::string& search_pattern
    ) const;

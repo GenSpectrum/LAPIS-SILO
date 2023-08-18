@@ -16,7 +16,7 @@
 #include <roaring/roaring.hh>
 
 #include "silo/common/fasta_reader.h"
-#include "silo/common/nucleotide_symbol_map.h"
+#include "silo/common/symbol_map.h"
 #include "silo/common/zstdfasta_reader.h"
 #include "silo/roaring/roaring_serialize.h"
 #include "silo/storage/serialize_optional.h"
@@ -45,7 +45,7 @@ class NucPosition {
    explicit NucPosition(NUCLEOTIDE_SYMBOL symbol);
    explicit NucPosition(std::optional<NUCLEOTIDE_SYMBOL> symbol);
 
-   NucleotideSymbolMap<roaring::Roaring> bitmaps;
+   SymbolMap<NUCLEOTIDE_SYMBOL, roaring::Roaring> bitmaps;
    std::optional<NUCLEOTIDE_SYMBOL> symbol_whose_bitmap_is_flipped = std::nullopt;
 
    std::optional<silo::NUCLEOTIDE_SYMBOL> flipMostNumerousBitmap(uint32_t sequence_count);

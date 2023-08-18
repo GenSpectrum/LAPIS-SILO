@@ -99,7 +99,7 @@ void silo::AAStorePartition::fillIndexes(const std::vector<std::string>& sequenc
    tbb::parallel_for(
       tbb::blocked_range<size_t>(0, genome_length, genome_length / COUNT_SYMBOLS_PER_PROCESSOR),
       [&](const auto& local) {
-         AASymbolMap<std::vector<uint32_t>> ids_per_symbol_for_current_position;
+         SymbolMap<AA_SYMBOL, std::vector<uint32_t>> ids_per_symbol_for_current_position;
          for (size_t position = local.begin(); position != local.end(); ++position) {
             const size_t number_of_sequences = sequences.size();
             for (size_t sequence_id = 0; sequence_id < number_of_sequences; ++sequence_id) {

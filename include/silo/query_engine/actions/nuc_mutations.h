@@ -60,10 +60,10 @@ class NucMutations : public Action {
    static void addMutationsCountsForPosition(
       uint32_t position,
       PrefilteredBitmaps& bitmaps_to_evaluate,
-      NucleotideSymbolMap<std::vector<uint32_t>>& count_of_mutations_per_position
+      SymbolMap<NUCLEOTIDE_SYMBOL, std::vector<uint32_t>>& count_of_mutations_per_position
    );
 
-   static NucleotideSymbolMap<std::vector<uint32_t>> calculateMutationsPerPosition(
+   static SymbolMap<NUCLEOTIDE_SYMBOL, std::vector<uint32_t>> calculateMutationsPerPosition(
       const SequenceStore& seq_store,
       std::vector<OperatorResult>& bitmap_filter
    );

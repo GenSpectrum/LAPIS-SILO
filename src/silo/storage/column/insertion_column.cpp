@@ -2,55 +2,110 @@
 
 #include <optional>
 
+#include <boost/lexical_cast.hpp>
+
+#include "silo/common/string_utils.h"
+#include "silo/preprocessing/preprocessing_exception.h"
+
 namespace silo::storage::column {
 
-template <>
-InsertionColumnPartition<NUCLEOTIDE_SYMBOL>::InsertionColumnPartition(
+namespace {
+
+constexpr std::string_view DELIMITER_INSERTIONS = ",";
+constexpr std::string_view DELIMITER_INSERTION = ":";
+
+struct InsertionEntry {
+   std::string sequence_name;
+   uint32_t position;
+   std::string insertion;
+};
+
+InsertionEntry parseInsertion(const std::string& value) {
+   const auto position_and_insertion = splitBy(value, DELIMITER_INSERTION);
+   if (position_and_insertion.size() == 2) {
+      const auto position = boost::lexical_cast<uint32_t>(position_and_insertion[0]);
+      const auto& insertion = position_and_insertion[1];
+      return {"", position, insertion};
+   }
+   if (position_and_insertion.size() == 3) {
+      const auto& sequence_name = position_and_insertion[0];
+      const auto position = boost::lexical_cast<uint32_t>(position_and_insertion[1]);
+      const auto& insertion = position_and_insertion[2];
+      return {sequence_name, position, insertion};
+   }
+   const std::string message = "Failed to parse insertion due to invalid format: " + value;
+   throw PreprocessingException(message);
+}
+}  // namespace
+
+template <typename Symbol>
+InsertionColumnPartition<Symbol>::InsertionColumnPartition(
    common::BidirectionalMap<std::string>& lookup
 )
     : lookup(lookup) {}
 
-template <>
-void InsertionColumnPartition<NUCLEOTIDE_SYMBOL>::insert(const std::string& value) {
+template <typename Symbol>
+void InsertionColumnPartition<Symbol>::insert(const std::string& value) {
    const auto sequence_id = values.size();
 
    const Idx value_id = lookup.getOrCreateId(value);
    values.push_back(value_id);
 
-   insertion_index.addLazily(value, sequence_id);
+   if (value == "") {
+      return;
+   }
+
+   for (auto& insertion_entry : splitBy(value, DELIMITER_INSERTIONS)) {
+      auto [sequence_name, position, insertion] = parseInsertion(insertion_entry);
+      auto& insertion_index =
+         insertion_indexes.emplace(sequence_name, insertion::InsertionIndex<Symbol>{})
+            .first->second;
+      insertion_index.addLazily(position, insertion, sequence_id);
+   }
 }
 
-template <>
-void InsertionColumnPartition<NUCLEOTIDE_SYMBOL>::buildInsertionIndex() {
-   insertion_index.buildIndex();
+template <typename Symbol>
+void InsertionColumnPartition<Symbol>::buildInsertionIndex() {
+   for (auto& [_, insertion_index] : insertion_indexes) {
+      insertion_index.buildIndex();
+   }
 }
 
-template <>
-std::unique_ptr<roaring::Roaring> InsertionColumnPartition<NUCLEOTIDE_SYMBOL>::search(
+template <typename Symbol>
+std::unique_ptr<roaring::Roaring> InsertionColumnPartition<Symbol>::search(
+   const std::string& sequence_name,
    uint32_t position,
    const std::string& search_pattern
 ) const {
-   return insertion_index.search(position, search_pattern);
+   if (!insertion_indexes.contains(sequence_name)) {
+      return std::make_unique<roaring::Roaring>();
+   }
+   return insertion_indexes.at(sequence_name).search(position, search_pattern);
 }
 
-template <>
-const std::vector<silo::Idx>& InsertionColumnPartition<NUCLEOTIDE_SYMBOL>::getValues() const {
+template <typename Symbol>
+const std::vector<silo::Idx>& InsertionColumnPartition<Symbol>::getValues() const {
    return values;
 }
 
-template <>
-std::string InsertionColumnPartition<NUCLEOTIDE_SYMBOL>::lookupValue(silo::Idx value_id) const {
+template <typename Symbol>
+std::string InsertionColumnPartition<Symbol>::lookupValue(silo::Idx value_id) const {
    return lookup.getValue(value_id);
 }
 
-template <>
-InsertionColumn<NUCLEOTIDE_SYMBOL>::InsertionColumn() {
+template <typename Symbol>
+InsertionColumn<Symbol>::InsertionColumn() {
    lookup = std::make_unique<silo::common::BidirectionalMap<std::string>>();
 }
 
-template <>
-InsertionColumnPartition<NUCLEOTIDE_SYMBOL>& InsertionColumn<NUCLEOTIDE_SYMBOL>::createPartition() {
+template <typename Symbol>
+InsertionColumnPartition<Symbol>& InsertionColumn<Symbol>::createPartition() {
    return partitions.emplace_back(*lookup);
 }
+
+template class InsertionColumnPartition<AA_SYMBOL>;
+template class InsertionColumnPartition<NUCLEOTIDE_SYMBOL>;
+template class InsertionColumn<AA_SYMBOL>;
+template class InsertionColumn<NUCLEOTIDE_SYMBOL>;
 
 }  // namespace silo::storage::column

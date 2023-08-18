@@ -1,0 +1,4 @@
+#ifndef SILO_INSERTIONS_H
+#define SILO_INSERTIONS_H
+
+#endif  // SILO_INSERTIONS_H

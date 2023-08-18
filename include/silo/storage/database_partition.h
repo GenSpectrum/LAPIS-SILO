@@ -84,6 +84,10 @@ class DatabasePartition {
       const std::string& name,
       storage::column::InsertionColumnPartition<NUCLEOTIDE_SYMBOL>& column
    );
+   void insertColumn(
+      const std::string& name,
+      storage::column::InsertionColumnPartition<AA_SYMBOL>& column
+   );
 };
 
 }  // namespace silo

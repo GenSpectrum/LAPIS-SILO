@@ -21,11 +21,17 @@ namespace silo::query_engine::filter_expressions {
 struct InsertionContains : public Expression {
   private:
    std::string column_name;
+   std::string sequence_name;
    uint32_t position;
    std::string value;
 
   public:
-   explicit InsertionContains(std::string column, uint32_t position, std::string value);
+   explicit InsertionContains(
+      std::string column,
+      std::string sequence_name,
+      uint32_t position,
+      std::string value
+   );
 
    std::string toString(const Database& database) const override;
 

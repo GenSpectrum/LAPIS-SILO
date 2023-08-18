@@ -13,8 +13,8 @@
 #include <boost/serialization/array.hpp>
 #include <roaring/roaring.hh>
 
-#include "silo/common/aa_symbol_map.h"
 #include "silo/common/fasta_reader.h"
+#include "silo/common/symbol_map.h"
 #include "silo/common/zstdfasta_reader.h"
 #include "silo/roaring/roaring_serialize.h"
 #include "silo/storage/serialize_optional.h"
@@ -44,7 +44,7 @@ class AAPosition {
    explicit AAPosition(AA_SYMBOL symbol);
    explicit AAPosition(std::optional<AA_SYMBOL> symbol);
 
-   AASymbolMap<roaring::Roaring> bitmaps;
+   SymbolMap<AA_SYMBOL, roaring::Roaring> bitmaps;
    std::optional<AA_SYMBOL> symbol_whose_bitmap_is_flipped = std::nullopt;
 
    std::optional<silo::AA_SYMBOL> flipMostNumerousBitmap(uint32_t sequence_count);
