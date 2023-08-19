@@ -107,12 +107,12 @@ std::unique_ptr<silo::query_engine::operators::Operator> PatternSearch::compile(
             pattern_search_result_per_genome_position.push_back(
                std::make_unique<operators::BitmapProducer>(
                   [&]() {
-                     auto matching_bitmap = std::make_unique<roaring::Roaring>(
+                     auto matching_bitmap = roaring::Roaring(
                         matching_genome_ids.size(), matching_genome_ids.data()
                      );
-                     return OperatorResult(matching_bitmap.release());
+                     return OperatorResult(std::move(matching_bitmap));
                   },
-                  database_partition.sequenceCount
+                  database_partition.sequence_count
                )
             );
          }
@@ -150,7 +150,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> PatternSearch::compile(
    }
 
    if (pattern_search_result_per_genome_position.empty()) {
-      return std::make_unique<operators::Empty>(database_partition.sequenceCount);
+      return std::make_unique<operators::Empty>(database_partition.sequence_count);
    }
    return std::make_unique<operators::Union>(
       std::move(pattern_search_result_per_genome_position), seq_store_partition.sequence_count
