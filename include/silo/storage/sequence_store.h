@@ -19,6 +19,7 @@
 #include "silo/common/nucleotide_symbol_map.h"
 #include "silo/common/zstdfasta_reader.h"
 #include "silo/roaring/roaring_serialize.h"
+#include "silo/storage/column/mutation_filter.h"
 #include "silo/storage/serialize_optional.h"
 
 namespace boost::serialization {
@@ -74,6 +75,8 @@ class SequenceStorePartition {
 
    void fillNBitmaps(const std::vector<std::string>& genomes);
 
+   void fillMutationFilter();
+
   public:
    explicit SequenceStorePartition(const std::vector<NUCLEOTIDE_SYMBOL>& reference_genome);
 
@@ -81,6 +84,7 @@ class SequenceStorePartition {
    std::vector<std::pair<size_t, NUCLEOTIDE_SYMBOL>> indexing_differences_to_reference_genome;
    std::vector<NucPosition> positions;
    std::vector<roaring::Roaring> nucleotide_symbol_n_bitmaps;
+   storage::column::MutationFilter mutation_filter;
    uint32_t sequence_count = 0;
 
    [[nodiscard]] size_t computeSize() const;
