@@ -1,5 +1,5 @@
 {
-  "testCaseName": "Pattern Search Full Match",
+  "testCaseName": "Pattern Search Full Match 1",
   "query": {
     "action": {
       "type": "Aggregated"
