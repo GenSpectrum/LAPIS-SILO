@@ -1,0 +1,19 @@
+{
+    "testCaseName": "Pattern Search No Match 2",
+    "query": 
+    {
+      "action": {
+        "type": "Aggregated"
+      },
+      "filterExpression": {
+        "type": "PatternSearch",
+        "pattern": "TCATAAGG",
+        "position": 1
+      }
+    },
+    "expectedQueryResult": [
+      {
+        "count": 0
+      }
+    ]
+  }

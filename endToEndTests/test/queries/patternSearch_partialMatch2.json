@@ -1,0 +1,18 @@
+{
+    "testCaseName": "Pattern Search Partial Match 2",
+    "query": {
+      "action": {
+        "type": "Aggregated"
+      },
+      "filterExpression": {
+        "type": "PatternSearch",
+        "pattern": "GGCTTTATGGGTAGAATTCGATCTGTCTATCCAGTTGCGTCACCAAATGAATGCAACCAAATGTGCCTTTCAACTCTCA",
+        "position": 1
+      }
+    },
+    "expectedQueryResult": [
+      {
+        "count": 94
+      }
+    ]
+  }

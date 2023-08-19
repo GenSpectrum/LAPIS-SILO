@@ -1,0 +1,18 @@
+{
+    "testCaseName": "Pattern Search No Match 1",
+    "query": {
+      "action": {
+        "type": "Aggregated"
+      },
+      "filterExpression": {
+        "type": "PatternSearch",
+        "pattern": "AGGGCAACCTTACAAGCA",
+        "position": 1
+      }
+    },
+    "expectedQueryResult": [
+      {
+        "count": 0
+      }
+    ]
+  }
