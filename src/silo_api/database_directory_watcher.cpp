@@ -5,10 +5,10 @@
 #include <boost/algorithm/string/join.hpp>
 
 silo_api::DatabaseDirectoryWatcher::DatabaseDirectoryWatcher(
-   const std::filesystem::path& path,
+   std::filesystem::path path,
    DatabaseMutex& database_mutex
 )
-    : path(path),
+    : path(std::move(path)),
       database_mutex(database_mutex),
       timer(0, 2000) {
    timer.start(Poco::TimerCallback<DatabaseDirectoryWatcher>(
@@ -59,11 +59,11 @@ std::optional<silo::DataVersion> checkValidDataSource(const std::filesystem::pat
       );
       return std::nullopt;
    }
-   return data_version.value();
+   return data_version;
 }
 
 std::optional<std::pair<std::filesystem::path, silo::DataVersion>> getMostRecentDataDirectory(
-   std::filesystem::path path
+   const std::filesystem::path& path
 ) {
    SPDLOG_TRACE("Scanning path {} for valid data", path.string());
    std::vector<std::pair<std::filesystem::path, silo::DataVersion>> all_found_data;
@@ -107,7 +107,7 @@ void silo_api::DatabaseDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*ti
    auto most_recent_database_state = getMostRecentDataDirectory(path);
 
    if (most_recent_database_state == std::nullopt) {
-      SPDLOG_INFO("No data found, place data in {} for ingestion", path.string());
+      SPDLOG_INFO("No data found in {} for ingestion", path.string());
       return;
    }
 
@@ -120,12 +120,10 @@ void silo_api::DatabaseDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*ti
             most_recent_database_state->second.toString(),
             most_recent_database_state->first.string()
          );
-         timer.restart();
          return;
       }
    }
 
    SPDLOG_INFO("New data version detected: {}", most_recent_database_state->first.string());
    database_mutex.setDatabase(silo::Database::loadDatabaseState(most_recent_database_state->first));
-   timer.restart();
 }

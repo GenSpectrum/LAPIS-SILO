@@ -4,12 +4,9 @@
 #include <shared_mutex>
 #include <string>
 
-#include <Poco/Delegate.h>
-#include <Poco/DirectoryWatcher.h>
 #include <Poco/Net/HTTPServer.h>
 #include <Poco/Net/HTTPServerParams.h>
 #include <Poco/Net/ServerSocket.h>
-#include <Poco/Path.h>
 #include <Poco/Util/HelpFormatter.h>
 #include <Poco/Util/Option.h>
 #include <Poco/Util/OptionSet.h>
@@ -18,13 +15,10 @@
 #include <boost/algorithm/string/join.hpp>
 
 #include "silo/config/config_repository.h"
-#include "silo/database.h"
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_config_reader.h"
-#include "silo/query_engine/query_engine.h"
 #include "silo_api/database_directory_watcher.h"
 #include "silo_api/database_mutex.h"
-#include "silo_api/info_handler.h"
 #include "silo_api/logging.h"
 #include "silo_api/request_handler_factory.h"
 #include "silo_api/runtime_config.h"

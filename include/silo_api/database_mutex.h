@@ -24,8 +24,6 @@ class DatabaseMutex {
   public:
    DatabaseMutex() = default;
 
-   explicit DatabaseMutex(silo::Database&& database);
-
    void setDatabase(silo::Database&& new_database);
 
    virtual FixedDatabase getDatabase();
