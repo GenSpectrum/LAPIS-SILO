@@ -36,8 +36,7 @@ std::filesystem::path createOutputPath(
    const std::filesystem::path& output_directory,
    const std::string& folder
 ) {
-   auto return_path = output_directory;
-   return_path += folder;
+   auto return_path = output_directory / folder;
    if (!std::filesystem::exists(return_path)) {
       std::filesystem::create_directory(return_path);
    }
@@ -123,7 +122,7 @@ std::filesystem::path PreprocessingConfig::getMetadataPartitionFilename(
    uint32_t chunk
 ) const {
    std::filesystem::path filename = partition_folder;
-   filename += buildChunkString(partition, chunk);
+   filename /= buildChunkString(partition, chunk);
    filename += TSV_EXTENSION;
    return filename;
 }
@@ -133,14 +132,14 @@ std::filesystem::path PreprocessingConfig::getMetadataSortedPartitionFilename(
    uint32_t chunk
 ) const {
    std::filesystem::path filename = sorted_partition_folder;
-   filename += buildChunkString(partition, chunk);
+   filename /= buildChunkString(partition, chunk);
    filename += TSV_EXTENSION;
    return filename;
 }
 
 std::filesystem::path PreprocessingConfig::getNucFilename(std::string_view nuc_name) const {
    std::filesystem::path filename = input_directory;
-   filename += nucleotide_sequence_prefix;
+   filename /= nucleotide_sequence_prefix;
    filename += nuc_name;
    filename += FASTA_EXTENSION;
    return filename;
@@ -166,9 +165,8 @@ std::filesystem::path PreprocessingConfig::getNucPartitionFilename(
 ) const {
    std::filesystem::path folder = nucleotide_sequence_prefix;
    folder += nuc_name;
-   folder += std::filesystem::path::preferred_separator;
    std::filesystem::path filename = createOutputPath(partition_folder, folder);
-   filename += buildChunkString(partition, chunk);
+   filename /= buildChunkString(partition, chunk);
    filename += ZSTDFASTA_EXTENSION;
    return filename;
 }
@@ -180,16 +178,15 @@ std::filesystem::path PreprocessingConfig::getNucSortedPartitionFilename(
 ) const {
    std::filesystem::path folder = nucleotide_sequence_prefix;
    folder += nuc_name;
-   folder += std::filesystem::path::preferred_separator;
    std::filesystem::path filename = createOutputPath(sorted_partition_folder, folder);
-   filename += buildChunkString(partition, chunk);
+   filename /= buildChunkString(partition, chunk);
    filename += ZSTDFASTA_EXTENSION;
    return filename;
 }
 
 std::filesystem::path PreprocessingConfig::getGeneFilename(std::string_view gene_name) const {
    std::filesystem::path filename = input_directory;
-   filename += gene_prefix;
+   filename /= gene_prefix;
    filename += gene_name;
    filename += FASTA_EXTENSION;
    return filename;
@@ -215,9 +212,8 @@ std::filesystem::path PreprocessingConfig::getGenePartitionFilename(
 ) const {
    std::filesystem::path folder = gene_prefix;
    folder += gene_name;
-   folder += std::filesystem::path::preferred_separator;
    std::filesystem::path filename = createOutputPath(partition_folder, folder);
-   filename += buildChunkString(partition, chunk);
+   filename /= buildChunkString(partition, chunk);
    filename += ZSTDFASTA_EXTENSION;
    return filename;
 }
@@ -229,9 +225,8 @@ std::filesystem::path PreprocessingConfig::getGeneSortedPartitionFilename(
 ) const {
    std::filesystem::path folder = gene_prefix;
    folder += gene_name;
-   folder += std::filesystem::path::preferred_separator;
    std::filesystem::path filename = createOutputPath(sorted_partition_folder, folder);
-   filename += buildChunkString(partition, chunk);
+   filename /= buildChunkString(partition, chunk);
    filename += ZSTDFASTA_EXTENSION;
    return filename;
 }

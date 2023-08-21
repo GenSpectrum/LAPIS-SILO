@@ -102,18 +102,21 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfo) {
 TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
    auto first_database = buildTestDatabase();
 
-   const std::string directory = "output/test_serialized_state/";
+   const std::filesystem::path directory = "output/test_serialized_state/";
    if (std::filesystem::exists(directory)) {
       std::filesystem::remove_all(directory);
    }
    std::filesystem::create_directories(directory);
 
+   const silo::DataVersion data_version = first_database.getDataVersion();
+
    first_database.saveDatabaseState(directory);
 
-   auto database = silo::Database::loadDatabaseState(directory);
+   auto database = silo::Database::loadDatabaseState(directory / data_version.toString());
 
    const auto simple_database_info = database.getDatabaseInfo();
 
    EXPECT_GT(simple_database_info.total_size, 0);
    EXPECT_EQ(simple_database_info.sequence_count, 100);
+   EXPECT_GT(simple_database_info.n_bitmaps_size, 0);
 }

@@ -11,11 +11,22 @@ TEST(DataVersion, shouldMineDataVersionFromUnixTime) {
 }
 
 TEST(DataVersion, shouldConstructFromVersionString) {
-   const auto version = DataVersion("1234567890");
-   EXPECT_EQ(version.toString(), "1234567890");
+   const auto version = DataVersion::fromString("1234567890");
+   EXPECT_TRUE(version.has_value());
+   if (version.has_value()) {
+      EXPECT_EQ(version->toString(), "1234567890");
+   }
+}
+
+TEST(DataVersion, shouldRejectFalseVersionFromString) {
+   const auto version = DataVersion::fromString("3X123");
+   EXPECT_FALSE(version.has_value());
 }
 
 TEST(DataVersion, shouldConstructWithDefaultVersion) {
-   const auto version = DataVersion();
-   EXPECT_EQ(version.toString(), "");
+   const auto version = DataVersion::fromString("");
+   EXPECT_TRUE(version.has_value());
+   if (version.has_value()) {
+      EXPECT_EQ(version->toString(), "");
+   }
 }

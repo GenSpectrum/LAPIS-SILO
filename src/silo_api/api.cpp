@@ -1,6 +1,7 @@
 #include <filesystem>
 #include <iostream>
 #include <optional>
+#include <shared_mutex>
 #include <string>
 
 #include <Poco/Net/HTTPServer.h>
@@ -14,11 +15,10 @@
 #include <boost/algorithm/string/join.hpp>
 
 #include "silo/config/config_repository.h"
-#include "silo/database.h"
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_config_reader.h"
-#include "silo/query_engine/query_engine.h"
-#include "silo_api/info_handler.h"
+#include "silo_api/database_directory_watcher.h"
+#include "silo_api/database_mutex.h"
 #include "silo_api/logging.h"
 #include "silo_api/request_handler_factory.h"
 #include "silo_api/runtime_config.h"
@@ -173,12 +173,14 @@ class SiloServer : public Poco::Util::ServerApplication {
 
       const auto data_directory = dataDirectory(config(), runtime_config);
 
-      auto database = silo::Database::loadDatabaseState(data_directory);
+      silo_api::DatabaseMutex database_mutex;
 
       const Poco::Net::ServerSocket server_socket(port);
-      const silo::query_engine::QueryEngine query_engine(database);
+
+      const silo_api::DatabaseDirectoryWatcher watcher(data_directory, database_mutex);
+
       Poco::Net::HTTPServer server(
-         new silo_api::SiloRequestHandlerFactory(database, query_engine),
+         new silo_api::SiloRequestHandlerFactory(database_mutex),
          server_socket,
          new Poco::Net::HTTPServerParams
       );

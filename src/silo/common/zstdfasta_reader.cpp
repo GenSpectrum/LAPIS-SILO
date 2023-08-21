@@ -11,8 +11,11 @@ silo::ZstdFastaReader::ZstdFastaReader(
    const std::filesystem::path& in_file_name,
    std::string_view compression_dict
 )
-    : in_file(in_file_name),
-      decompressor(std::make_unique<ZstdDecompressor>(compression_dict)) {
+    : decompressor(std::make_unique<ZstdDecompressor>(compression_dict)) {
+   in_file = std::ifstream(in_file_name);
+   if (!in_file) {
+      throw std::runtime_error("Could not open file reader for file: " + in_file_name.string());
+   }
    genome_buffer = std::string(compression_dict.length(), '\0');
 }
 

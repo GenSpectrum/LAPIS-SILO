@@ -3,17 +3,10 @@
 #include <gtest/gtest.h>
 
 #include "silo/common/data_version.h"
-#include "silo/common/nucleotide_symbols.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
-#include "silo/query_engine/query_engine.h"
 #include "silo/query_engine/query_result.h"
-#include "silo/storage/column/date_column.h"
-#include "silo/storage/column/indexed_string_column.h"
-#include "silo/storage/column/int_column.h"
-#include "silo/storage/column/pango_lineage_column.h"
-#include "silo/storage/column/string_column.h"
-#include "silo/storage/database_partition.h"
+#include "silo_api/database_mutex.h"
 #include "silo_api/manual_poco_mocks.test.h"
 #include "silo_api/request_handler_factory.h"
 
@@ -22,28 +15,32 @@ class MockDatabase : public silo::Database {
    MOCK_METHOD(silo::DatabaseInfo, getDatabaseInfo, (), (const));
    MOCK_METHOD(silo::DetailedDatabaseInfo, detailedDatabaseInfo, (), (const));
    MOCK_METHOD(silo::DataVersion, getDataVersion, (), (const));
-};
-
-class MockQueryEngine : public silo::query_engine::QueryEngine {
-  public:
-   explicit MockQueryEngine(const silo::Database& database)
-       : QueryEngine(database) {}
 
    MOCK_METHOD(silo::query_engine::QueryResult, executeQuery, (const std::string&), (const));
 };
 
+class MockDatabaseMutex : public silo_api::DatabaseMutex {
+  public:
+   std::shared_mutex mutex;
+   MockDatabase mock_database;
+
+   silo_api::FixedDatabase getDatabase() override {
+      std::shared_lock<std::shared_mutex> lock(mutex);
+      return {mock_database, std::move(lock)};
+   }
+};
+
 class RequestHandlerTestFixture : public ::testing::Test {
   protected:
-   MockDatabase mock_database;
-   MockQueryEngine mock_query_engine;
+   MockDatabaseMutex database_mutex;
    silo_api::test::MockResponse response;
    silo_api::test::MockRequest request;
    silo_api::SiloRequestHandlerFactory under_test;
 
    RequestHandlerTestFixture()
-       : mock_query_engine(MockQueryEngine(mock_database)),
+       : database_mutex(),
          request(silo_api::test::MockRequest(response)),
-         under_test(silo_api::SiloRequestHandlerFactory(mock_database, mock_query_engine)) {}
+         under_test(database_mutex) {}
 
    void processRequest() {
       std::unique_ptr<Poco::Net::HTTPRequestHandler> request_handler(
@@ -54,10 +51,10 @@ class RequestHandlerTestFixture : public ::testing::Test {
 };
 
 TEST_F(RequestHandlerTestFixture, handlesGetInfoRequest) {
-   EXPECT_CALL(mock_database, getDatabaseInfo)
+   EXPECT_CALL(database_mutex.mock_database, getDatabaseInfo)
       .WillRepeatedly(testing::Return(silo::DatabaseInfo{1, 2, 3}));
-   EXPECT_CALL(mock_database, getDataVersion)
-      .WillRepeatedly(testing::Return(silo::DataVersion("1234")));
+   EXPECT_CALL(database_mutex.mock_database, getDataVersion)
+      .WillRepeatedly(testing::Return(silo::DataVersion::fromString("1234").value()));
 
    request.setURI("/info");
 
@@ -81,10 +78,10 @@ TEST_F(RequestHandlerTestFixture, handlesGetInfoRequestDetails) {
 
    const silo::DetailedDatabaseInfo detailed_database_info = {{{"main", stats}}};
 
-   EXPECT_CALL(mock_database, detailedDatabaseInfo)
+   EXPECT_CALL(database_mutex.mock_database, detailedDatabaseInfo)
       .WillRepeatedly(testing::Return(detailed_database_info));
-   EXPECT_CALL(mock_database, getDataVersion)
-      .WillRepeatedly(testing::Return(silo::DataVersion("1234")));
+   EXPECT_CALL(database_mutex.mock_database, getDataVersion)
+      .WillRepeatedly(testing::Return(silo::DataVersion::fromString("1234").value()));
 
    request.setURI("/info?details=true");
 
@@ -117,9 +114,10 @@ TEST_F(RequestHandlerTestFixture, handlesPostQueryRequest) {
       {"count", 5}};
    const std::vector<silo::query_engine::QueryResultEntry> tmp{{fields}};
    const silo::query_engine::QueryResult query_result{tmp};
-   EXPECT_CALL(mock_query_engine, executeQuery).WillRepeatedly(testing::Return(query_result));
-   EXPECT_CALL(mock_database, getDataVersion)
-      .WillRepeatedly(testing::Return(silo::DataVersion("1234")));
+   EXPECT_CALL(database_mutex.mock_database, executeQuery)
+      .WillRepeatedly(testing::Return(query_result));
+   EXPECT_CALL(database_mutex.mock_database, getDataVersion)
+      .WillRepeatedly(testing::Return(silo::DataVersion::fromString("1234").value()));
 
    request.setMethod("POST");
    request.setURI("/query");
@@ -145,7 +143,7 @@ TEST_F(RequestHandlerTestFixture, returnsMethodNotAllowedOnGetQuery) {
 }
 
 TEST_F(RequestHandlerTestFixture, givenRequestToUnknownUrl_thenReturnsNotFound) {
-   auto under_test = silo_api::SiloRequestHandlerFactory(mock_database, mock_query_engine);
+   auto under_test = silo_api::SiloRequestHandlerFactory(database_mutex);
 
    request.setURI("/doesNotExist");
 

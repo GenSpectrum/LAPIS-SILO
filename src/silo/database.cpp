@@ -40,6 +40,7 @@
 #include "silo/preprocessing/pango_lineage_count.h"
 #include "silo/preprocessing/partition.h"
 #include "silo/preprocessing/preprocessing_config.h"
+#include "silo/query_engine/query_engine.h"
 #include "silo/storage/aa_store.h"
 #include "silo/storage/column/date_column.h"
 #include "silo/storage/column/float_column.h"
@@ -368,46 +369,94 @@ std::map<std::string, std::vector<AA_SYMBOL>> Database::getAASequences() const {
    return aa_sequences_map;
 }
 
-void saveDataVersion(const Database& database, const std::string& save_directory) {
-   std::ofstream data_version_file(save_directory + "data_version.silo");
+namespace {
+
+std::ifstream openInputFileOrThrow(const std::string& path) {
+   std::ifstream file(path);
+   if (!file) {
+      auto error = fmt::format("Input file {} could not be opened.", path);
+      throw persistence::LoadDatabaseException(error);
+   }
+   return file;
+}
+
+std::ofstream openOutputFileOrThrow(const std::string& path) {
+   std::ofstream file(path);
+   if (!file) {
+      auto error = fmt::format("Output file {} could not be opened.", path);
+      throw persistence::SaveDatabaseException(error);
+   }
+   return file;
+}
+
+}  // namespace
+
+void saveDataVersion(const Database& database, const std::filesystem::path& save_directory) {
+   std::ofstream data_version_file = openOutputFileOrThrow(save_directory / "data_version.silo");
    const auto data_version = database.getDataVersion().toString();
    data_version_file << data_version;
 }
 
-void Database::saveDatabaseState(const std::string& save_directory) {
-   const std::string database_config_filename = save_directory + "database_config.yaml";
+void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
+   if (getDataVersion().toString().empty()) {
+      throw std::runtime_error(
+         "Data version is empty. Please set a data version before saving the database."
+      );
+   }
+
+   const std::filesystem::path versioned_save_directory =
+      save_directory / getDataVersion().toString();
+
+   if (std::filesystem::exists(versioned_save_directory)) {
+      auto error = fmt::format(
+         "In the output directory {} there already exists a file/folder with the name equal to "
+         "the current data-version: {}",
+         save_directory.string(),
+         getDataVersion().toString()
+      );
+      throw persistence::LoadDatabaseException(error);
+   }
+
+   std::filesystem::create_directory(versioned_save_directory);
+
+   const std::filesystem::path database_config_filename =
+      versioned_save_directory / "database_config.yaml";
    database_config.writeConfig(database_config_filename);
 
-   std::ofstream alias_key_file(save_directory + "alias_key.silo");
+   std::ofstream alias_key_file =
+      openOutputFileOrThrow(versioned_save_directory / "alias_key.silo");
    ::boost::archive::binary_oarchive alias_key_archive(alias_key_file);
    alias_key_archive << alias_key;
 
-   std::ofstream partitions_file(save_directory + "partitions.silo");
+   std::ofstream partitions_file =
+      openOutputFileOrThrow(versioned_save_directory / "partitions.silo");
    ::boost::archive::binary_oarchive partitions_archive(partitions_file);
    partitions_archive << partitions;
 
-   std::ofstream column_file(save_directory + "column_info.silo");
+   std::ofstream column_file = openOutputFileOrThrow(versioned_save_directory / "column_info.silo");
    ::boost::archive::binary_oarchive column_archive(column_file);
    column_archive << columns;
 
    auto nuc_sequences_map = getNucSequences();
-   std::ofstream nuc_sequences_file(save_directory + "nuc_sequences.silo");
+   std::ofstream nuc_sequences_file =
+      openOutputFileOrThrow(versioned_save_directory / "nuc_sequences.silo");
    ::boost::archive::binary_oarchive nuc_sequences_archive(nuc_sequences_file);
    nuc_sequences_archive << nuc_sequences_map;
 
    auto aa_sequences_map = getAASequences();
-   std::ofstream aa_sequences_file(save_directory + "aa_sequences.silo");
+   std::ofstream aa_sequences_file =
+      openOutputFileOrThrow(versioned_save_directory / "aa_sequences.silo");
    ::boost::archive::binary_oarchive aa_sequences_archive(aa_sequences_file);
    aa_sequences_archive << aa_sequences_map;
 
    std::vector<std::ofstream> file_vec;
    for (uint32_t i = 0; i < partitions.size(); ++i) {
-      const auto& partition_file = save_directory + "P" + std::to_string(i) + ".silo";
-      file_vec.emplace_back(partition_file);
+      const auto& partition_file = versioned_save_directory / ("P" + std::to_string(i) + ".silo");
+      file_vec.emplace_back(openOutputFileOrThrow(partition_file));
 
       if (!file_vec.back()) {
          throw persistence::SaveDatabaseException(
-            "Cannot open partition output file " + partition_file + " for saving"
+            "Cannot open partition output file " + partition_file.string() + " for saving"
          );
       }
    }
@@ -422,55 +471,67 @@ void Database::saveDatabaseState(const std::string& save_directory) {
    });
    SPDLOG_INFO("Finished saving partitions", partitions.size());
 
-   saveDataVersion(*this, save_directory);
+   saveDataVersion(*this, versioned_save_directory);
 }
 
-DataVersion loadDataVersion(const std::string& save_directory) {
-   std::ifstream data_version_file(save_directory + "data_version.silo");
-   std::string data_version;
-   data_version_file >> data_version;
-   return DataVersion(data_version);
+DataVersion loadDataVersion(const std::filesystem::path& filename) {
+   std::ifstream data_version_file = openInputFileOrThrow(filename);
+   std::string data_version_string;
+   data_version_file >> data_version_string;
+   auto data_version = DataVersion::fromString(data_version_string);
+   if (data_version == std::nullopt) {
+      auto error = fmt::format(
+         "Data version file {} did not contain a valid data version: {}",
+         filename.string(),
+         data_version_string
+      );
+      SPDLOG_ERROR(error);
+      throw persistence::LoadDatabaseException(error);
+   }
+   return data_version.value();
 }
 
-Database Database::loadDatabaseState(const std::string& save_directory) {
+Database Database::loadDatabaseState(const std::filesystem::path& save_directory) {
    Database database;
-   const auto database_config_filename = save_directory + "database_config.yaml";
+   const auto database_config_filename = save_directory / "database_config.yaml";
    database.database_config =
       silo::config::DatabaseConfigReader().readConfig(database_config_filename);
 
-   SPDLOG_TRACE("Loading alias key from {}", save_directory + "alias_key.silo");
-   std::ifstream alias_key_file(save_directory + "alias_key.silo");
+   SPDLOG_TRACE("Loading alias key from {}", (save_directory / "alias_key.silo").string());
+   std::ifstream alias_key_file = openInputFileOrThrow(save_directory / "alias_key.silo");
    ::boost::archive::binary_iarchive alias_key_archive(alias_key_file);
    alias_key_archive >> database.alias_key;
 
-   SPDLOG_INFO("Loading partitions from {}", save_directory);
-
-   SPDLOG_TRACE("Loading partitions from {}", save_directory + "partitions.silo");
-   std::ifstream partitions_file(save_directory + "partitions.silo");
+   SPDLOG_TRACE("Loading partitions from {}", (save_directory / "partitions.silo").string());
+   std::ifstream partitions_file = openInputFileOrThrow(save_directory / "partitions.silo");
    ::boost::archive::binary_iarchive partitions_archive(partitions_file);
    partitions_archive >> database.partitions;
 
    SPDLOG_TRACE("Initializing columns");
    database.initializeColumns();
 
-   SPDLOG_TRACE("Loading column info from {}", save_directory + "column_info.silo");
-   std::ifstream column_file(save_directory + "column_info.silo");
+   SPDLOG_TRACE("Loading column info from {}", (save_directory / "column_info.silo").string());
+   std::ifstream column_file = openInputFileOrThrow(save_directory / "column_info.silo");
    ::boost::archive::binary_iarchive column_archive(column_file);
    column_archive >> database.columns;
 
-   SPDLOG_TRACE("Loading nucleotide sequences from {}", save_directory + "nuc_sequences.silo");
+   SPDLOG_TRACE(
+      "Loading nucleotide sequences from {}", (save_directory / "nuc_sequences.silo").string()
+   );
    std::map<std::string, std::vector<NUCLEOTIDE_SYMBOL>> nuc_sequences_map;
-   std::ifstream nuc_sequences_file(save_directory + "nuc_sequences.silo");
+   std::ifstream nuc_sequences_file = openInputFileOrThrow(save_directory / "nuc_sequences.silo");
    ::boost::archive::binary_iarchive nuc_sequences_archive(nuc_sequences_file);
    nuc_sequences_archive >> nuc_sequences_map;
 
-   SPDLOG_TRACE("Loading amino acid sequences from {}", save_directory + "aa_sequences.silo");
+   SPDLOG_TRACE(
+      "Loading amino acid sequences from {}", (save_directory / "aa_sequences.silo").string()
+   );
    std::map<std::string, std::vector<AA_SYMBOL>> aa_sequences_map;
-   std::ifstream aa_sequences_file(save_directory + "aa_sequences.silo");
+   std::ifstream aa_sequences_file = openInputFileOrThrow(save_directory / "aa_sequences.silo");
    ::boost::archive::binary_iarchive aa_sequences_archive(aa_sequences_file);
    aa_sequences_archive >> aa_sequences_map;
 
-   SPDLOG_INFO("Finished loading partitions from {}", save_directory);
+   SPDLOG_INFO("Finished loading partitions from {}", save_directory.string());
 
    database.initializeNucSequences(nuc_sequences_map);
    database.initializeAASequences(aa_sequences_map);
@@ -478,12 +539,12 @@ Database Database::loadDatabaseState(const std::string& save_directory) {
    SPDLOG_DEBUG("Loading partition data");
    std::vector<std::ifstream> file_vec;
    for (uint32_t i = 0; i < database.partitions.size(); ++i) {
-      const auto& partition_file = save_directory + "P" + std::to_string(i) + ".silo";
-      file_vec.emplace_back(partition_file);
+      const auto& partition_file = save_directory / ("P" + std::to_string(i) + ".silo");
+      file_vec.emplace_back(openInputFileOrThrow(partition_file));
 
       if (!file_vec.back()) {
          throw persistence::SaveDatabaseException(
-            "Cannot open partition input file " + partition_file + " for loading"
+            "Cannot open partition input file " + partition_file.string() + " for loading"
          );
       }
    }
@@ -499,8 +560,8 @@ Database Database::loadDatabaseState(const std::string& save_directory) {
       }
    );
 
-   SPDLOG_INFO("Loading data_version from {}", save_directory + "data_version.silo");
-   database.setDataVersion(loadDataVersion(save_directory));
+   SPDLOG_INFO("Loading data_version from {}", (save_directory / "data_version.silo").string());
+   database.setDataVersion(loadDataVersion(save_directory / "data_version.silo"));
 
    return database;
 }
@@ -686,8 +747,6 @@ void Database::finalizeInsertionIndexes() {
    });
 }
 
-Database::Database() = default;
-
 void Database::setDataVersion(const DataVersion& data_version) {
    SPDLOG_DEBUG("Set data version to {}", data_version.toString());
    data_version_ = data_version;
@@ -695,6 +754,12 @@ void Database::setDataVersion(const DataVersion& data_version) {
 
 DataVersion Database::getDataVersion() const {
    return data_version_;
+}
+
+query_engine::QueryResult Database::executeQuery(const std::string& query) const {
+   const silo::query_engine::QueryEngine query_engine(*this);
+
+   return query_engine.executeQuery(query);
 }
 
 }  // namespace silo

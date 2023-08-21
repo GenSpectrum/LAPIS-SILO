@@ -12,16 +12,13 @@
 #include "silo/query_engine/query_engine.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
+#include "silo_api/database_mutex.h"
 #include "silo_api/error_request_handler.h"
 
 namespace silo_api {
 
-QueryHandler::QueryHandler(
-   const silo::query_engine::QueryEngine& query_engine,
-   const silo::Database& database
-)
-    : query_engine(query_engine),
-      database(database) {}
+QueryHandler::QueryHandler(silo_api::DatabaseMutex& database_mutex)
+    : database_mutex(database_mutex) {}
 
 void QueryHandler::post(
    Poco::Net::HTTPServerRequest& request,
@@ -35,9 +32,11 @@ void QueryHandler::post(
 
    response.setContentType("application/json");
    try {
-      const auto query_result = query_engine.executeQuery(query);
+      const auto fixed_database = database_mutex.getDatabase();
 
-      response.set("data-version", database.getDataVersion().toString());
+      const auto query_result = fixed_database.database.executeQuery(query);
+
+      response.set("data-version", fixed_database.database.getDataVersion().toString());
 
       std::ostream& out_stream = response.send();
       out_stream << nlohmann::json(query_result);

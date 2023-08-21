@@ -92,10 +92,6 @@ class SequenceStorePartition {
    size_t fill(silo::ZstdFastaReader& input_file);
 
    void interpret(const std::vector<std::string>& genomes);
-
-   size_t runOptimize();
-
-   size_t shrinkToFit();
 };
 
 class SequenceStore {

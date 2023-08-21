@@ -9,6 +9,7 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
+#include "silo_api/database_mutex.h"
 
 namespace silo {
 
@@ -79,7 +80,7 @@ std::map<std::string, std::string> getQueryParameter(const Poco::Net::HTTPServer
    return map;
 }
 
-InfoHandler::InfoHandler(const silo::Database& database)
+InfoHandler::InfoHandler(DatabaseMutex& database)
     : database(database) {}
 
 void InfoHandler::get(
@@ -88,27 +89,17 @@ void InfoHandler::get(
 ) {
    const auto request_parameter = getQueryParameter(request);
 
-   response.set("data-version", database.getDataVersion().toString());
+   const auto fixed_database = database.getDatabase();
 
-   if(request_parameter.find("details") != request_parameter.end() && request_parameter.at("details") == "true") {
-      returnDetailedDatabaseInfo(response);
-      return;
-   }
-   returnSimpleDatabaseInfo(response);
-}
+   response.set("data-version", fixed_database.database.getDataVersion().toString());
 
-void InfoHandler::returnSimpleDatabaseInfo(Poco::Net::HTTPServerResponse& response) {
-   const auto database_info = database.getDatabaseInfo();
+   bool return_detailed_info = request_parameter.find("details") != request_parameter.end() &&
+                               request_parameter.at("details") == "true";
+   nlohmann::json database_info =
+      return_detailed_info ? nlohmann::json(database.getDatabase().database.detailedDatabaseInfo())
+                           : nlohmann::json(database.getDatabase().database.getDatabaseInfo());
    response.setContentType("application/json");
    std::ostream& out_stream = response.send();
-   out_stream << nlohmann::json(database_info);
+   out_stream << database_info;
 }
-
-void InfoHandler::returnDetailedDatabaseInfo(Poco::Net::HTTPServerResponse& response) {
-   const auto detailed_info = database.detailedDatabaseInfo();
-   response.setContentType("application/json");
-   std::ostream& out_stream = response.send();
-   out_stream << nlohmann::json(detailed_info);
-}
-
 }  // namespace silo_api
