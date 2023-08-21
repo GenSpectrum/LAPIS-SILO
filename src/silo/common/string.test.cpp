@@ -71,3 +71,26 @@ TEST(String, comparesCorrectlyIfPrefixesMatchUpTo32Positions) {
       EXPECT_EQ(under_test2, under_test3);
    }
 }
+
+TEST(String, fastComparesCorrectlyIfPrefixesMatchUpTo32Positions) {
+   BidirectionalMap<std::string> dict;
+   const std::string value = "1234567890abcdefghijklmnopqrstuv";
+   for (size_t i = 0; i < 16; ++i) {
+      const String<STRING_SIZE> under_test1(value.substr(0, i) + "x", dict);
+      const String<STRING_SIZE> under_test2(value.substr(0, i) + "y", dict);
+      EXPECT_EQ(under_test1.fastCompare(under_test2), std::strong_ordering::less);
+      EXPECT_EQ(under_test2.fastCompare(under_test1), std::strong_ordering::greater);
+      const String<STRING_SIZE> under_test3(value.substr(0, i) + "y", dict);
+      EXPECT_EQ(under_test2.fastCompare(under_test3), std::strong_ordering::equal);
+      EXPECT_EQ(under_test3.fastCompare(under_test2), std::strong_ordering::equal);
+   }
+   for (size_t i = 16; i < value.size(); ++i) {
+      const String<STRING_SIZE> under_test1(value.substr(0, i) + "x", dict);
+      const String<STRING_SIZE> under_test2(value.substr(0, i) + "y", dict);
+      EXPECT_EQ(under_test1.fastCompare(under_test2), std::nullopt);
+      EXPECT_EQ(under_test2.fastCompare(under_test1), std::nullopt);
+      const String<STRING_SIZE> under_test3(value.substr(0, i) + "y", dict);
+      EXPECT_EQ(under_test2.fastCompare(under_test3), std::strong_ordering::equal);
+      EXPECT_EQ(under_test3.fastCompare(under_test2), std::strong_ordering::equal);
+   }
+}

@@ -6,7 +6,6 @@ using json_value_type = std::optional<std::variant<std::string, int32_t, double>
 
 using silo::query_engine::actions::Tuple;
 using silo::query_engine::actions::TupleFactory;
-using silo::query_engine::actions::TupleFieldComparator;
 
 namespace {
 using silo::common::Date;
@@ -239,15 +238,17 @@ std::strong_ordering compareTupleFields(
 size_t getColumnSize(const silo::storage::ColumnMetadata& metadata) {
    if (metadata.type == silo::config::ColumnType::STRING) {
       return sizeof(silo::common::String<silo::common::STRING_SIZE>);
-   } else if (metadata.type == silo::config::ColumnType::FLOAT) {
-      return sizeof(double);
-   } else if (metadata.type == silo::config::ColumnType::INT) {
-      return sizeof(int32_t);
-   } else if (metadata.type == silo::config::ColumnType::DATE) {
-      return sizeof(silo::common::Date);
-   } else {
-      return sizeof(silo::Idx);
    }
+   if (metadata.type == silo::config::ColumnType::FLOAT) {
+      return sizeof(double);
+   }
+   if (metadata.type == silo::config::ColumnType::INT) {
+      return sizeof(int32_t);
+   }
+   if (metadata.type == silo::config::ColumnType::DATE) {
+      return sizeof(silo::common::Date);
+   }
+   return sizeof(silo::Idx);
 }
 
 }  // namespace
@@ -298,11 +299,11 @@ std::map<std::string, json_value_type> Tuple::getFields() const {
    return fields;
 }
 
-std::vector<TupleFieldComparator> Tuple::getCompareFields(
+std::vector<Tuple::ComparatorField> Tuple::getCompareFields(
    const std::vector<silo::storage::ColumnMetadata>& columns_metadata,
    const std::vector<OrderByField>& order_by_fields
 ) {
-   std::vector<TupleFieldComparator> tuple_field_comparators;
+   std::vector<ComparatorField> tuple_field_comparators;
    tuple_field_comparators.resize(order_by_fields.size());
    size_t offset = 0;
    for (const auto& metadata : columns_metadata) {
@@ -313,8 +314,7 @@ std::vector<TupleFieldComparator> Tuple::getCompareFields(
       );
       if (element != order_by_fields.end()) {
          const size_t index = std::distance(order_by_fields.begin(), element);
-         tuple_field_comparators[index] =
-            TupleFieldComparator{offset, metadata, element->ascending};
+         tuple_field_comparators[index] = ComparatorField{offset, metadata, element->ascending};
       }
       offset += getColumnSize(metadata);
    }
@@ -332,7 +332,7 @@ Tuple::Comparator Tuple::getComparator(
    };
 }
 
-bool Tuple::compareLess(const Tuple& other, const std::vector<TupleFieldComparator>& fields) const {
+bool Tuple::compareLess(const Tuple& other, const std::vector<ComparatorField>& fields) const {
    for (const auto& field : fields) {
       const std::byte* data_pointer1 = (this->data + field.offset);
       const std::byte* data_pointer2 = (other.data + field.offset);

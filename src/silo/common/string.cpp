@@ -1,3 +1,4 @@
+
 #include "silo/common/string.h"
 
 #include <cstring>
@@ -64,7 +65,11 @@ std::optional<std::strong_ordering> String<I>::fastCompare(const String<I>& othe
       return std::strong_ordering::equal;
    }
 
-   const int prefix_compare = memcmp(this->data.data() + 4, other.data.data() + 4, I - 4);
+   const size_t to_compare = *reinterpret_cast<const uint32_t*>(data.data()) <= I &&
+                                   *reinterpret_cast<const uint32_t*>(other.data.data())
+                                ? I
+                                : I - 4;
+   const int prefix_compare = memcmp(this->data.data() + 4, other.data.data() + 4, to_compare);
    if (prefix_compare < 0) {
       return std::strong_ordering::less;
    }
