@@ -375,7 +375,6 @@ std::ifstream openInputFileOrThrow(const std::string& path) {
    std::ifstream file(path);
    if (!file) {
       auto error = fmt::format("Input file {} could not be opened.", path);
-      SPDLOG_ERROR(error);
       throw persistence::LoadDatabaseException(error);
    }
    return file;
@@ -385,7 +384,6 @@ std::ofstream openOutputFileOrThrow(const std::string& path) {
    std::ofstream file(path);
    if (!file) {
       auto error = fmt::format("Output file {} could not be opened.", path);
-      SPDLOG_ERROR(error);
       throw persistence::SaveDatabaseException(error);
    }
    return file;
@@ -411,12 +409,11 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
 
    if (std::filesystem::exists(versioned_save_directory)) {
       auto error = fmt::format(
-         "In the output directory {} there already exists a file/folder with the name equals to "
+         "In the output directory {} there already exists a file/folder with the name equal to "
          "the current data-version: {}",
          save_directory.string(),
          getDataVersion().toString()
       );
-      SPDLOG_ERROR(error);
       throw persistence::LoadDatabaseException(error);
    }
 
