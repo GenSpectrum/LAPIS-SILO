@@ -178,8 +178,6 @@ QueryResult AAMutations::execute(
    const Database& database,
    std::vector<OperatorResult> bitmap_filter
 ) const {
-   using roaring::Roaring;
-
    std::vector<std::string> aa_sequence_names_to_evaluate;
    for (const auto& aa_sequence_name : aa_sequence_names) {
       CHECK_SILO_QUERY(

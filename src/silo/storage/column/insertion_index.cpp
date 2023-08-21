@@ -274,6 +274,12 @@ void InsertionIndex<Symbol>::buildIndex() {
 }
 
 template <typename Symbol>
+const std::unordered_map<uint32_t, InsertionPosition<Symbol>>& InsertionIndex<
+   Symbol>::getInsertionPositions() const {
+   return insertion_positions;
+}
+
+template <typename Symbol>
 std::unique_ptr<roaring::Roaring> InsertionIndex<Symbol>::search(
    uint32_t position,
    const std::string& search_pattern

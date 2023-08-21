@@ -36,7 +36,7 @@ class Action {
    void applySort(QueryResult& result) const;
    void applyOffsetAndLimit(QueryResult& result) const;
 
-   [[nodiscard]] virtual void validateOrderByFields(const Database& database) const = 0;
+   virtual void validateOrderByFields(const Database& database) const = 0;
 
    [[nodiscard]] virtual QueryResult execute(
       const Database& database,

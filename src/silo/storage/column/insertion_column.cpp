@@ -65,10 +65,16 @@ void InsertionColumnPartition<Symbol>::insert(const std::string& value) {
 }
 
 template <typename Symbol>
-void InsertionColumnPartition<Symbol>::buildInsertionIndex() {
+void InsertionColumnPartition<Symbol>::buildInsertionIndexes() {
    for (auto& [_, insertion_index] : insertion_indexes) {
       insertion_index.buildIndex();
    }
+}
+
+template <typename Symbol>
+const std::unordered_map<std::string, insertion::InsertionIndex<Symbol>>& InsertionColumnPartition<
+   Symbol>::getInsertionIndexes() const {
+   return insertion_indexes;
 }
 
 template <typename Symbol>

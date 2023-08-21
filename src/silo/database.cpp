@@ -762,10 +762,10 @@ void Database::initializeAASequences(
 void Database::finalizeInsertionIndexes() {
    tbb::parallel_for_each(partitions.begin(), partitions.end(), [](auto& partition) {
       for (auto& insertion_column : partition.columns.nuc_insertion_columns) {
-         insertion_column.second.buildInsertionIndex();
+         insertion_column.second.buildInsertionIndexes();
       }
       for (auto& insertion_column : partition.columns.aa_insertion_columns) {
-         insertion_column.second.buildInsertionIndex();
+         insertion_column.second.buildInsertionIndexes();
       }
    });
 }

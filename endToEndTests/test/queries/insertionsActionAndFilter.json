@@ -1,0 +1,23 @@
+{
+  "testCaseName": "The insertions action and insertions contains filter",
+  "query": {
+    "action": {
+      "type": "Insertions",
+      "column": "insertions"
+    },
+    "filterExpression": {
+      "type": "InsertionContains",
+      "column": "insertions",
+      "position": 22339,
+      "value": ".*C.*G.*"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 1,
+      "insertions": "GCTGGT",
+      "position": "22340",
+      "sequenceName": ""
+    }
+  ]
+}

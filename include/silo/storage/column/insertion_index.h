@@ -96,6 +96,8 @@ class InsertionIndex {
 
    void buildIndex();
 
+   const std::unordered_map<uint32_t, InsertionPosition<Symbol>>& getInsertionPositions() const;
+
    std::unique_ptr<roaring::Roaring> search(uint32_t position, const std::string& search_pattern)
       const;
 };

@@ -14,7 +14,7 @@ TEST(InsertionColumn, insertValuesToPartition) {
    under_test.insert("19832:TTACA");
    under_test.insert("25701:ACCA");
 
-   under_test.buildInsertionIndex();
+   under_test.buildInsertionIndexes();
 
    EXPECT_EQ(under_test.getValues()[0], 0U);
    EXPECT_EQ(under_test.getValues()[1], 1U);
@@ -38,7 +38,7 @@ TEST(InsertionColumn, shouldReturnTheCorrectSearchedValues) {
    under_test.insert("25701:ACCA");
    under_test.insert("25701:TTACAT,25701:ACCA,25701:AGCTGTTCAG");
 
-   under_test.buildInsertionIndex();
+   under_test.buildInsertionIndexes();
 
    const auto result1 = under_test.search("", 25701, ".*CC.*");
    ASSERT_EQ(*result1, roaring::Roaring({0, 1, 2, 3, 4, 5}));

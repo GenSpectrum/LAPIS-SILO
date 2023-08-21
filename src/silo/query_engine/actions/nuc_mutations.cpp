@@ -132,7 +132,6 @@ QueryResult NucMutations::execute(
    const Database& database,
    std::vector<OperatorResult> bitmap_filter
 ) const {
-   using roaring::Roaring;
    const std::string nuc_sequence_name_or_default =
       nuc_sequence_name.value_or(database.database_config.default_nucleotide_sequence);
    CHECK_SILO_QUERY(

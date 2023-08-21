@@ -43,7 +43,10 @@ class InsertionColumnPartition {
 
    void insert(const std::string& value);
 
-   void buildInsertionIndex();
+   void buildInsertionIndexes();
+
+   const std::unordered_map<std::string, insertion::InsertionIndex<Symbol>>& getInsertionIndexes(
+   ) const;
 
    [[nodiscard]] std::unique_ptr<roaring::Roaring> search(
       const std::string& sequence_name,
