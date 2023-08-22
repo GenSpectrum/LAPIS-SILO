@@ -43,6 +43,11 @@ class DatabaseConfig;
 
 namespace silo::storage {
 
+struct ColumnMetadata {
+   std::string name;
+   silo::config::ColumnType type;
+};
+
 class ColumnPartitionGroup {
    friend class boost::serialization::access;
 
@@ -74,7 +79,7 @@ class ColumnPartitionGroup {
    }
 
   public:
-   std::vector<config::DatabaseMetadata> metadata;
+   std::vector<ColumnMetadata> metadata;
 
    std::map<std::string, storage::column::StringColumnPartition&> string_columns;
    std::map<std::string, storage::column::IndexedStringColumnPartition&> indexed_string_columns;
@@ -90,7 +95,7 @@ class ColumnPartitionGroup {
    );
 
    [[nodiscard]] ColumnPartitionGroup getSubgroup(
-      const std::vector<config::DatabaseMetadata>& fields
+      const std::vector<silo::storage::ColumnMetadata>& fields
    ) const;
 
    std::optional<std::variant<std::string, int32_t, double>> getValue(
@@ -130,7 +135,7 @@ class ColumnGroup {
    }
 
   public:
-   std::vector<config::DatabaseMetadata> metadata;
+   std::vector<ColumnMetadata> metadata;
 
    std::map<std::string, storage::column::StringColumn> string_columns;
    std::map<std::string, storage::column::IndexedStringColumn> indexed_string_columns;

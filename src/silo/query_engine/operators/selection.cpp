@@ -158,6 +158,34 @@ bool CompareToValueSelection<T>::match(uint32_t row_id) const {
    );
 }
 
+template <>
+bool CompareToValueSelection<silo::common::SiloString>::match(uint32_t row_id) const {
+   if (comparator == Comparator::EQUALS) {
+      return column[row_id] == value;
+   }
+   if (comparator == Comparator::NOT_EQUALS) {
+      return column[row_id] != value;
+   }
+
+   const silo::common::SiloString& row_value = column.at(row_id);
+
+   auto fast_compare = row_value.fastCompare(value);
+   if (fast_compare) {
+      if (*fast_compare == std::strong_ordering::equal) {
+         return comparator == Comparator::HIGHER_OR_EQUALS ||
+                comparator == Comparator::LESS_OR_EQUALS;
+      }
+      if (*fast_compare == std::strong_ordering::less) {
+         return comparator == Comparator::LESS || comparator == Comparator::LESS_OR_EQUALS;
+      }
+      if (*fast_compare == std::strong_ordering::greater) {
+         return comparator == Comparator::HIGHER || comparator == Comparator::HIGHER_OR_EQUALS;
+      }
+   }
+   // TODO(#137)
+   return true;
+}
+
 template <typename T>
 std::unique_ptr<Predicate> CompareToValueSelection<T>::copy() const {
    return std::make_unique<CompareToValueSelection<T>>(column, comparator, value);

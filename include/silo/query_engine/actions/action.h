@@ -22,19 +22,19 @@ struct DatabasePartition;
 
 namespace silo::query_engine::actions {
 
-class Action {
-  public:
-   struct OrderByField {
-      std::string name;
-      bool ascending;
-   };
+struct OrderByField {
+   std::string name;
+   bool ascending;
+};
 
+class Action {
   protected:
    std::vector<OrderByField> order_by_fields;
    std::optional<uint32_t> limit;
    std::optional<uint32_t> offset;
 
-   void applyOrderByAndLimit(QueryResult& result) const;
+   void applySort(QueryResult& result) const;
+   void applyOffsetAndLimit(QueryResult& result) const;
 
    [[nodiscard]] virtual void validateOrderByFields(const Database& database) const = 0;
 
@@ -53,7 +53,7 @@ class Action {
       std::optional<uint32_t> offset
    );
 
-   [[nodiscard]] QueryResult executeAndOrder(
+   [[nodiscard]] virtual QueryResult executeAndOrder(
       const Database& database,
       std::vector<OperatorResult> bitmap_filter
    ) const;

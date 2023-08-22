@@ -116,7 +116,7 @@ void NucMutations::validateOrderByFields(const Database& /*database*/) const {
    const std::vector<std::string> result_field_names{
       {POSITION_FIELD_NAME, PROPORTION_FIELD_NAME, COUNT_FIELD_NAME}};
 
-   for (const Action::OrderByField& field : order_by_fields) {
+   for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
          std::any_of(
             result_field_names.begin(),

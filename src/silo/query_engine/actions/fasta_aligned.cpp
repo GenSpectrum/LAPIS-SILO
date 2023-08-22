@@ -17,7 +17,7 @@ FastaAligned::FastaAligned(std::vector<std::string>&& sequence_names)
 
 void FastaAligned::validateOrderByFields(const Database& database) const {
    const std::string& primary_key_field = database.database_config.schema.primary_key;
-   for (const Action::OrderByField& field : order_by_fields) {
+   for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
          field.name == primary_key_field ||
             std::find(sequence_names.begin(), sequence_names.end(), field.name) !=

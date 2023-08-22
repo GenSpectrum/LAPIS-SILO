@@ -26,6 +26,18 @@
   },
   "expectedQueryResult": [
     {
+      "age": 50,
+      "country": "Switzerland",
+      "date": "2021-03-03",
+      "division": "Valais",
+      "gisaid_epi_isl": "EPI_ISL_1408062",
+      "insertions": "22204:CAGAA",
+      "pango_lineage": "B.1.1.7",
+      "qc_value": 0.97,
+      "region": "Europe",
+      "unsorted_date": "2020-11-24"
+    },
+    {
       "age": 4,
       "country": "Switzerland",
       "date": "2021-03-18",
@@ -36,18 +48,6 @@
       "qc_value": 0.98,
       "region": "Europe",
       "unsorted_date": null
-    },
-    {
-      "age": 51,
-      "country": "Switzerland",
-      "date": "2021-03-21",
-      "division": "Vaud",
-      "gisaid_epi_isl": "EPI_ISL_1597890",
-      "insertions": "22339:GCTGGT",
-      "pango_lineage": "B.1.1.7",
-      "qc_value": 0.96,
-      "region": null,
-      "unsorted_date": "2021-01-25"
     }
   ]
 }
