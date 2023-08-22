@@ -56,14 +56,14 @@ std::optional<silo::AA_SYMBOL> silo::AAPosition::flipMostNumerousBitmap(uint32_t
 }
 
 silo::AAStorePartition::AAStorePartition(const std::vector<AA_SYMBOL>& reference_sequence)
-    : reference_sequence(reference_sequence) {
-   for (const AA_SYMBOL symbol : reference_sequence) {
-      positions.emplace_back(symbol);
-   }
-}
+    : reference_sequence(reference_sequence) {}
 
 size_t silo::AAStorePartition::fill(silo::ZstdFastaReader& input_file) {
    static constexpr size_t BUFFER_SIZE = 1024;
+
+   for (const AA_SYMBOL symbol : reference_sequence) {
+      positions.emplace_back(symbol);
+   }
 
    size_t read_sequences_count = 0;
 

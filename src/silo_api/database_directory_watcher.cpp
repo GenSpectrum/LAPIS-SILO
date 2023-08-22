@@ -126,4 +126,8 @@ void silo_api::DatabaseDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*ti
 
    SPDLOG_INFO("New data version detected: {}", most_recent_database_state->first.string());
    database_mutex.setDatabase(silo::Database::loadDatabaseState(most_recent_database_state->first));
+   SPDLOG_INFO(
+      "New database with version {} successfully loaded.",
+      most_recent_database_state->first.string()
+   );
 }

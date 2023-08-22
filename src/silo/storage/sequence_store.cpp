@@ -61,14 +61,14 @@ std::optional<silo::NUCLEOTIDE_SYMBOL> silo::NucPosition::flipMostNumerousBitmap
 silo::SequenceStorePartition::SequenceStorePartition(
    const std::vector<NUCLEOTIDE_SYMBOL>& reference_genome
 )
-    : reference_genome(reference_genome) {
-   for (const NUCLEOTIDE_SYMBOL symbol : reference_genome) {
-      positions.emplace_back(symbol);
-   }
-}
+    : reference_genome(reference_genome) {}
 
 size_t silo::SequenceStorePartition::fill(silo::ZstdFastaReader& input_file) {
    static constexpr size_t BUFFER_SIZE = 1024;
+
+   for (const NUCLEOTIDE_SYMBOL symbol : reference_genome) {
+      positions.emplace_back(symbol);
+   }
 
    size_t read_sequences_count = 0;
 
