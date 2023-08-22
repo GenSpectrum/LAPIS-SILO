@@ -3,7 +3,11 @@
   "query": {
     "action": {
       "type": "Insertions",
-      "column": "insertions"
+      "column": "insertions",
+      "orderByFields": [
+        "insertions",
+        "position"
+      ]
     },
     "filterExpression": {
       "type": "True"
@@ -12,26 +16,26 @@
   "expectedQueryResult": [
     {
       "count": 1,
-      "insertions": "TAT",
-      "position": "5960",
-      "sequenceName": ""
-    },
-    {
-      "count": 1,
       "insertions": "CAGAA",
-      "position": "22205",
-      "sequenceName": ""
-    },
-    {
-      "count": 1,
-      "insertions": "GCTGGT",
-      "position": "22340",
+      "position": 22205,
       "sequenceName": ""
     },
     {
       "count": 17,
       "insertions": "CCC",
-      "position": "25702",
+      "position": 25702,
+      "sequenceName": ""
+    },
+    {
+      "count": 1,
+      "insertions": "GCTGGT",
+      "position": 22340,
+      "sequenceName": ""
+    },
+    {
+      "count": 1,
+      "insertions": "TAT",
+      "position": 5960,
       "sequenceName": ""
     }
   ]

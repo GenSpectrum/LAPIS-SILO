@@ -44,6 +44,8 @@ uint32_t ColumnPartitionGroup::fill(
             float_columns.at(item.name).insert(value);
          } else if (column_type == silo::config::ColumnType::INSERTION) {
             nuc_insertion_columns.at(item.name).insert(value);
+         } else if (column_type == silo::config::ColumnType::AA_INSERTION) {
+            aa_insertion_columns.at(item.name).insert(value);
          }
       }
       if (++sequence_count == UINT32_MAX) {
@@ -79,6 +81,8 @@ ColumnPartitionGroup ColumnPartitionGroup::getSubgroup(
          result.float_columns.insert({item.name, float_columns.at(item.name)});
       } else if (item.type == silo::config::ColumnType::INSERTION) {
          result.nuc_insertion_columns.insert({item.name, nuc_insertion_columns.at(item.name)});
+      } else if (item.type == silo::config::ColumnType::AA_INSERTION) {
+         result.aa_insertion_columns.insert({item.name, aa_insertion_columns.at(item.name)});
       }
    }
    return result;

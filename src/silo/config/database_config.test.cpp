@@ -73,7 +73,8 @@ INSTANTIATE_TEST_SUITE_P(
       TestParameter{ValueType::PANGOLINEAGE, true, ColumnType::INDEXED_PANGOLINEAGE},
       TestParameter{ValueType::INT, false, ColumnType::INT},
       TestParameter{ValueType::FLOAT, false, ColumnType::FLOAT},
-      TestParameter{ValueType::INSERTION, false, ColumnType::INSERTION}
+      TestParameter{ValueType::INSERTION, false, ColumnType::INSERTION},
+      TestParameter{ValueType::AA_INSERTION, false, ColumnType::AA_INSERTION}
    )
 );
 
@@ -118,6 +119,9 @@ TEST(DatabaseConfigReader, shouldReadConfigWithCorrectParameters) {
    ASSERT_EQ(config.schema.metadata[9].name, "insertions");
    ASSERT_EQ(config.schema.metadata[9].type, ValueType::INSERTION);
    ASSERT_EQ(config.schema.metadata[9].generate_index, false);
+   ASSERT_EQ(config.schema.metadata[10].name, "aaInsertions");
+   ASSERT_EQ(config.schema.metadata[10].type, ValueType::AA_INSERTION);
+   ASSERT_EQ(config.schema.metadata[10].generate_index, false);
 }
 
 TEST(DatabaseConfigReader, shouldThrowExceptionWhenConfigFileDoesNotExist) {

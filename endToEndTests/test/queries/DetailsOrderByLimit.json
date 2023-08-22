@@ -3,7 +3,9 @@
   "query": {
     "action": {
       "type": "Details",
-      "orderByFields": ["gisaid_epi_isl"],
+      "orderByFields": [
+        "gisaid_epi_isl"
+      ],
       "offset": 9,
       "limit": 2
     },
@@ -26,6 +28,7 @@
   },
   "expectedQueryResult": [
     {
+      "aaInsertions": null,
       "age": 50,
       "country": "Switzerland",
       "date": "2021-03-03",
@@ -38,6 +41,7 @@
       "unsorted_date": "2020-11-24"
     },
     {
+      "aaInsertions": "S:214:EPE",
       "age": 4,
       "country": "Switzerland",
       "date": "2021-03-18",

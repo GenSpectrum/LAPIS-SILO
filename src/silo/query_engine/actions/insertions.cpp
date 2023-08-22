@@ -209,7 +209,8 @@ void InsertionAggregation<Symbol>::addAggregatedInsertionsToInsertionCounts(
    }
    for (const auto& [position_and_insertion, count] : all_insertions) {
       const std::map<std::string, std::optional<std::variant<std::string, int32_t, double>>> fields{
-         {std::string(POSITION_FIELD_NAME), std::to_string(position_and_insertion.position + 1)},
+         {std::string(POSITION_FIELD_NAME),
+          static_cast<int32_t>(position_and_insertion.position) + 1},
          {std::string(SEQUENCE_FIELD_NAME), sequence_name},
          {std::string(INSERTION_FIELD_NAME), std::string(position_and_insertion.insertion_value)},
          {std::string(COUNT_FIELD_NAME), static_cast<int32_t>(count)}};
