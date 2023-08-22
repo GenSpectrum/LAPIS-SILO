@@ -1,19 +1,18 @@
 {
-    "testCaseName": "Pattern Search No Match 2",
-    "query": 
-    {
-      "action": {
-        "type": "Aggregated"
-      },
-      "filterExpression": {
-        "type": "PatternSearch",
-        "pattern": "TCATAAGG",
-        "position": 1
-      }
+  "testCaseName": "Pattern Search No Match 2",
+  "query": {
+    "action": {
+      "type": "Aggregated"
     },
-    "expectedQueryResult": [
-      {
-        "count": 0
-      }
-    ]
-  }
+    "filterExpression": {
+      "type": "PatternSearch",
+      "pattern": "TCATAAGG",
+      "position": 1
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 0
+    }
+  ]
+}
