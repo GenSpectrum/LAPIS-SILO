@@ -7,9 +7,6 @@ silo_api::FixedDatabase::FixedDatabase(
     : lock(std::move(mutex)),
       database(database) {}
 
-silo_api::DatabaseMutex::DatabaseMutex(silo::Database&& database)
-    : database(std::move(database)) {}
-
 void silo_api::DatabaseMutex::setDatabase(silo::Database&& new_database) {
    const std::unique_lock lock(mutex);
    database = std::move(new_database);

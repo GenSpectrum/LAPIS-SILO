@@ -93,12 +93,11 @@ void InfoHandler::get(
 
    response.set("data-version", fixed_database.database.getDataVersion().toString());
 
-   nlohmann::json database_info;
-   if(request_parameter.find("details") != request_parameter.end() && request_parameter.at("details") == "true") {
-      database_info = nlohmann::json(database.getDatabase().database.detailedDatabaseInfo());
-   } else {
-      database_info = nlohmann::json(database.getDatabase().database.getDatabaseInfo());
-   }
+   bool return_detailed_info = request_parameter.find("details") != request_parameter.end() &&
+                               request_parameter.at("details") == "true";
+   nlohmann::json database_info =
+      return_detailed_info ? nlohmann::json(database.getDatabase().database.detailedDatabaseInfo())
+                           : nlohmann::json(database.getDatabase().database.getDatabaseInfo());
    response.setContentType("application/json");
    std::ostream& out_stream = response.send();
    out_stream << database_info;

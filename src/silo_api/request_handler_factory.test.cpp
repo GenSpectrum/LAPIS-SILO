@@ -3,16 +3,9 @@
 #include <gtest/gtest.h>
 
 #include "silo/common/data_version.h"
-#include "silo/common/nucleotide_symbols.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
 #include "silo/query_engine/query_result.h"
-#include "silo/storage/column/date_column.h"
-#include "silo/storage/column/indexed_string_column.h"
-#include "silo/storage/column/int_column.h"
-#include "silo/storage/column/pango_lineage_column.h"
-#include "silo/storage/column/string_column.h"
-#include "silo/storage/database_partition.h"
 #include "silo_api/database_mutex.h"
 #include "silo_api/manual_poco_mocks.test.h"
 #include "silo_api/request_handler_factory.h"
@@ -33,7 +26,7 @@ class MockDatabaseMutex : public silo_api::DatabaseMutex {
 
    silo_api::FixedDatabase getDatabase() override {
       std::shared_lock<std::shared_mutex> lock(mutex);
-      return silo_api::FixedDatabase(mock_database, std::move(lock));
+      return {mock_database, std::move(lock)};
    }
 };
 

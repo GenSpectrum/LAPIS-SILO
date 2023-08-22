@@ -1,7 +1,7 @@
 #include "silo/config/database_config.h"
 
+#include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
-#include <yaml-cpp/yaml.h>
 
 #include "silo/config/config_exception.h"
 
@@ -125,9 +125,9 @@ TEST(DatabaseConfigReader, shouldReadConfigWithCorrectParameters) {
 }
 
 TEST(DatabaseConfigReader, shouldThrowExceptionWhenConfigFileDoesNotExist) {
-   ASSERT_THROW(
-      (void)DatabaseConfigReader().readConfig("testBaseData/does_not_exist.yaml"),
-      std::runtime_error
+   EXPECT_THAT(
+      []() { (void)DatabaseConfigReader().readConfig("testBaseData/does_not_exist.yaml"); },
+      ThrowsMessage<std::runtime_error>(::testing::HasSubstr("Failed to read database config"))
    );
 }
 
@@ -147,11 +147,15 @@ TEST(DatabaseConfigReader, shouldNotThrowIfThereAreAdditionalEntries) {
 }
 
 TEST(DatabaseConfigReader, shouldThrowIfTheConfigHasAnInvalidStructure) {
-   ASSERT_THROW(
-      (void)DatabaseConfigReader().readConfig(
-         "testBaseData/test_database_config_with_invalid_structure.yaml"
-      ),
-      YAML::InvalidNode
+   EXPECT_THAT(
+      []() {
+         (void)DatabaseConfigReader().readConfig(
+            "testBaseData/test_database_config_with_invalid_structure.yaml"
+         );
+      },
+      ThrowsMessage<std::runtime_error>(
+         ::testing::HasSubstr("invalid node; first invalid key: \"metadata\"")
+      )
    );
 }
 

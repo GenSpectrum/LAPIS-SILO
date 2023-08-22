@@ -17,9 +17,9 @@ class DatabaseDirectoryWatcher {
    Poco::Timer timer;
 
   public:
-   DatabaseDirectoryWatcher(const std::filesystem::path& path, DatabaseMutex& database_mutex);
+   DatabaseDirectoryWatcher(std::filesystem::path path, DatabaseMutex& database_mutex);
 
-   void checkDirectoryForData(Poco::Timer& the_timer);
+   void checkDirectoryForData(Poco::Timer& timer);
 };
 }  // namespace silo_api
 

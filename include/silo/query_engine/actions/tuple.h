@@ -14,23 +14,26 @@ struct OrderByField;
 
 size_t getTupleSize(const std::vector<silo::storage::ColumnMetadata>& metadata_list);
 
-struct TupleFieldComparator {
-   size_t offset;
-   silo::storage::ColumnMetadata type;
-   bool ascending;
-};
-
 class Tuple {
    friend class TupleFactory;
+
+   struct ComparatorField {
+      size_t offset;
+      silo::storage::ColumnMetadata type;
+      bool ascending;
+   };
 
    const silo::storage::ColumnPartitionGroup* columns;
    std::byte* data;
    size_t data_size;
 
-   static std::vector<TupleFieldComparator> getCompareFields(
+   static std::vector<ComparatorField> getCompareFields(
       const std::vector<silo::storage::ColumnMetadata>& columns_metadata,
       const std::vector<OrderByField>& order_by_fields
    );
+
+   [[nodiscard]] bool compareLess(const Tuple& other, const std::vector<ComparatorField>& fields)
+      const;
 
   public:
    typedef std::function<bool(const Tuple&, const Tuple&)> Comparator;
@@ -47,8 +50,6 @@ class Tuple {
       const std::vector<silo::storage::ColumnMetadata>& columns_metadata,
       const std::vector<OrderByField>& order_by_fields
    );
-
-   bool compareLess(const Tuple& other, const std::vector<TupleFieldComparator>& fields) const;
 
    bool operator==(const Tuple& other) const;
    bool operator!=(const Tuple& other) const;

@@ -210,7 +210,14 @@ void DatabaseConfig::writeConfig(const std::filesystem::path& config_path) const
 
 DatabaseConfig DatabaseConfigReader::readConfig(const std::filesystem::path& config_path) const {
    SPDLOG_INFO("Reading database config from {}", config_path.string());
-   return YAML::LoadFile(config_path.string()).as<DatabaseConfig>();
+   try {
+      return YAML::LoadFile(config_path.string()).as<DatabaseConfig>();
+   } catch (const YAML::Exception& e) {
+      throw std::runtime_error(
+         "Failed to read database config from " + config_path.string() + ": " +
+         std::string(e.what())
+      );
+   }
 }
 
 }  // namespace silo::config

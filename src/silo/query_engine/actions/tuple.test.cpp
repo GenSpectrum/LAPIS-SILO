@@ -7,17 +7,17 @@ std::pair<silo::storage::ColumnGroup, silo::storage::ColumnPartitionGroup>
 createSinglePartitionColumns() {
    std::pair<silo::storage::ColumnGroup, silo::storage::ColumnPartitionGroup> return_value;
    auto& group = return_value.first;
-   auto& partitionGroup = return_value.second;
+   auto& partition_group = return_value.second;
 
    {
       const std::string string_column_name = "dummy_string_column";
       group.string_columns.emplace(string_column_name, silo::storage::column::StringColumn());
-      partitionGroup.metadata.push_back({string_column_name, silo::config::ColumnType::STRING});
-      partitionGroup.string_columns.emplace(
+      partition_group.metadata.push_back({string_column_name, silo::config::ColumnType::STRING});
+      partition_group.string_columns.emplace(
          string_column_name, group.string_columns.at(string_column_name).createPartition()
       );
-      partitionGroup.string_columns.at(string_column_name).insert("ABCD");
-      partitionGroup.string_columns.at(string_column_name)
+      partition_group.string_columns.at(string_column_name).insert("ABCD");
+      partition_group.string_columns.at(string_column_name)
          .insert(
             "some very long string some very long string some very long string some very long "
             "string "
@@ -25,22 +25,22 @@ createSinglePartitionColumns() {
             "string "
             "some very long string "
          );
-      partitionGroup.string_columns.at(string_column_name).insert("ABCD");
+      partition_group.string_columns.at(string_column_name).insert("ABCD");
    }
    {
       const std::string indexed_string_column_name = "dummy_indexed_string_column";
       group.indexed_string_columns.emplace(
          indexed_string_column_name, silo::storage::column::IndexedStringColumn()
       );
-      partitionGroup.metadata.push_back(
+      partition_group.metadata.push_back(
          {indexed_string_column_name, silo::config::ColumnType::INDEXED_STRING}
       );
-      partitionGroup.indexed_string_columns.emplace(
+      partition_group.indexed_string_columns.emplace(
          indexed_string_column_name,
          group.indexed_string_columns.at(indexed_string_column_name).createPartition()
       );
-      partitionGroup.indexed_string_columns.at(indexed_string_column_name).insert("ABCD");
-      partitionGroup.indexed_string_columns.at(indexed_string_column_name)
+      partition_group.indexed_string_columns.at(indexed_string_column_name).insert("ABCD");
+      partition_group.indexed_string_columns.at(indexed_string_column_name)
          .insert(
             "some very long string some very long string some very long string some very long "
             "string "
@@ -48,42 +48,42 @@ createSinglePartitionColumns() {
             "string "
             "some very long string "
          );
-      partitionGroup.indexed_string_columns.at(indexed_string_column_name).insert("ABCD");
+      partition_group.indexed_string_columns.at(indexed_string_column_name).insert("ABCD");
    }
    {
       const std::string int_column_name = "dummy_int_column";
-      partitionGroup.metadata.push_back({int_column_name, silo::config::ColumnType::INT});
+      partition_group.metadata.push_back({int_column_name, silo::config::ColumnType::INT});
       group.int_columns.emplace(int_column_name, silo::storage::column::IntColumn());
-      partitionGroup.int_columns.emplace(
+      partition_group.int_columns.emplace(
          int_column_name, group.int_columns.at(int_column_name).createPartition()
       );
-      partitionGroup.int_columns.at(int_column_name).insert("42");
-      partitionGroup.int_columns.at(int_column_name).insert("-12389172");
-      partitionGroup.int_columns.at(int_column_name).insert("42");
+      partition_group.int_columns.at(int_column_name).insert("42");
+      partition_group.int_columns.at(int_column_name).insert("-12389172");
+      partition_group.int_columns.at(int_column_name).insert("42");
    }
    {
       const std::string float_column_name = "dummy_float_column";
-      partitionGroup.metadata.push_back({float_column_name, silo::config::ColumnType::FLOAT});
+      partition_group.metadata.push_back({float_column_name, silo::config::ColumnType::FLOAT});
       group.float_columns.emplace(float_column_name, silo::storage::column::FloatColumn());
-      partitionGroup.float_columns.emplace(
+      partition_group.float_columns.emplace(
          float_column_name, group.float_columns.at(float_column_name).createPartition()
       );
-      partitionGroup.float_columns.at(float_column_name).insert("42.1");
-      partitionGroup.float_columns.at(float_column_name).insert("-12389172.24222");
-      partitionGroup.float_columns.at(float_column_name).insert("42.1");
+      partition_group.float_columns.at(float_column_name).insert("42.1");
+      partition_group.float_columns.at(float_column_name).insert("-12389172.24222");
+      partition_group.float_columns.at(float_column_name).insert("42.1");
    }
    {
       const std::string date_column_name = "dummy_date_column";
-      partitionGroup.metadata.push_back({date_column_name, silo::config::ColumnType::DATE});
+      partition_group.metadata.push_back({date_column_name, silo::config::ColumnType::DATE});
       group.date_columns.emplace(date_column_name, silo::storage::column::DateColumn(false));
-      partitionGroup.date_columns.emplace(
+      partition_group.date_columns.emplace(
          date_column_name, group.date_columns.at(date_column_name).createPartition()
       );
-      partitionGroup.date_columns.at(date_column_name)
+      partition_group.date_columns.at(date_column_name)
          .insert(silo::common::stringToDate("2023-01-01"));
-      partitionGroup.date_columns.at(date_column_name)
+      partition_group.date_columns.at(date_column_name)
          .insert(silo::common::stringToDate("2023-01-01"));
-      partitionGroup.date_columns.at(date_column_name)
+      partition_group.date_columns.at(date_column_name)
          .insert(silo::common::stringToDate("2023-01-01"));
    }
 
@@ -95,9 +95,8 @@ using silo::query_engine::actions::TupleFactory;
 
 TEST(Tuple, getsCreatedAndReturnsItsFieldsSuccessfully1) {
    auto columns = createSinglePartitionColumns();
-   std::vector<std::byte> data(silo::query_engine::actions::getTupleSize(columns.second.metadata));
    TupleFactory factory(columns.second, columns.second.metadata);
-   Tuple under_test = factory.allocateOne(0);
+   const Tuple under_test = factory.allocateOne(0);
 
    auto fields = under_test.getFields();
    ASSERT_TRUE(fields.contains("dummy_date_column"));
@@ -128,9 +127,8 @@ TEST(Tuple, getsCreatedAndReturnsItsFieldsSuccessfully1) {
 
 TEST(Tuple, getsCreatedAndReturnsItsFieldsSuccessfully2) {
    auto columns = createSinglePartitionColumns();
-   std::vector<std::byte> data(silo::query_engine::actions::getTupleSize(columns.second.metadata));
    TupleFactory factory(columns.second, columns.second.metadata);
-   Tuple under_test = factory.allocateOne(1);
+   const Tuple under_test = factory.allocateOne(1);
 
    auto fields = under_test.getFields();
    ASSERT_TRUE(fields.contains("dummy_date_column"));
@@ -175,7 +173,6 @@ TEST(Tuple, getsCreatedAndReturnsItsFieldsSuccessfully2) {
 
 TEST(TupleFactory, allocatesOneAllocatesManyEqual) {
    auto columns = createSinglePartitionColumns();
-   std::vector<std::byte> data(silo::query_engine::actions::getTupleSize(columns.second.metadata));
    TupleFactory factory(columns.second, columns.second.metadata);
    Tuple under_test1 = factory.allocateOne(0);
    auto under_test_vector = factory.allocateMany(1);
@@ -186,7 +183,6 @@ TEST(TupleFactory, allocatesOneAllocatesManyEqual) {
 
 TEST(Tuple, equalityOperatorEquatesCorrectly) {
    auto columns = createSinglePartitionColumns();
-   std::vector<std::byte> data(silo::query_engine::actions::getTupleSize(columns.second.metadata));
    TupleFactory factory(columns.second, columns.second.metadata);
    Tuple under_test0a = factory.allocateOne(0);
    Tuple under_test0b = factory.allocateOne(0);
@@ -200,9 +196,8 @@ TEST(Tuple, equalityOperatorEquatesCorrectly) {
    ASSERT_NE(under_test1, under_test2);
 }
 
-TEST(Tuple, comparesFieldsCorrect) {
+TEST(Tuple, comparesFieldsCorrectly) {
    auto columns = createSinglePartitionColumns();
-   std::vector<std::byte> data(silo::query_engine::actions::getTupleSize(columns.second.metadata));
    TupleFactory factory(columns.second, columns.second.metadata);
    Tuple tuple0a = factory.allocateOne(0);
    Tuple tuple0b = factory.allocateOne(0);
@@ -211,7 +206,8 @@ TEST(Tuple, comparesFieldsCorrect) {
 
    std::vector<silo::query_engine::actions::OrderByField> order_by_fields;
    order_by_fields.push_back({"dummy_indexed_string_column", true});
-   Tuple::Comparator under_test = Tuple::getComparator(columns.second.metadata, order_by_fields);
+   const Tuple::Comparator under_test =
+      Tuple::getComparator(columns.second.metadata, order_by_fields);
 
    ASSERT_FALSE(under_test(tuple0a, tuple0b));
    ASSERT_FALSE(under_test(tuple0b, tuple0a));
@@ -253,7 +249,8 @@ TEST(Tuple, comparesFieldsCorrect) {
    ASSERT_FALSE(under_test2(tuple2, tuple1));
 
    order_by_fields.push_back({"dummy_date_column", true});
-   Tuple::Comparator under_test3 = Tuple::getComparator(columns.second.metadata, order_by_fields);
+   const Tuple::Comparator under_test3 =
+      Tuple::getComparator(columns.second.metadata, order_by_fields);
 
    ASSERT_FALSE(under_test3(tuple0a, tuple0b));
    ASSERT_FALSE(under_test3(tuple0b, tuple0a));
@@ -274,7 +271,8 @@ TEST(Tuple, comparesFieldsCorrect) {
    ASSERT_FALSE(under_test3(tuple2, tuple1));
 
    order_by_fields.push_back({"dummy_string_column", false});
-   Tuple::Comparator under_test4 = Tuple::getComparator(columns.second.metadata, order_by_fields);
+   const Tuple::Comparator under_test4 =
+      Tuple::getComparator(columns.second.metadata, order_by_fields);
 
    ASSERT_FALSE(under_test4(tuple0a, tuple0b));
    ASSERT_FALSE(under_test4(tuple0b, tuple0a));

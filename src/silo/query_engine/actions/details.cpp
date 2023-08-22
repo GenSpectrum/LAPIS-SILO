@@ -223,8 +223,9 @@ QueryResult Details::executeAndOrder(
    } else {
       tuples = produceAllTuples(tuple_factories, bitmap_filter);
       if (!order_by_fields.empty()) {
-         auto cmp = Tuple::getComparator(field_metadata, order_by_fields);
-         std::sort(tuples.begin(), tuples.end(), cmp);
+         std::sort(
+            tuples.begin(), tuples.end(), Tuple::getComparator(field_metadata, order_by_fields)
+         );
       }
    }
 
