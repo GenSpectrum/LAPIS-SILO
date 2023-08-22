@@ -64,6 +64,9 @@ class Database {
    void setDataVersion(const DataVersion& data_version);
    virtual DataVersion getDataVersion() const;
 
+   template <typename Symbol>
+   std::optional<std::string> getDefaultSequenceName() const;
+
    virtual query_engine::QueryResult executeQuery(const std::string& query) const;
 
   private:

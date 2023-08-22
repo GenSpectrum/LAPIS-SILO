@@ -89,7 +89,9 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) 
    } else if (expression_type == "Exact") {
       filter = json.get<std::unique_ptr<Exact>>();
    } else if (expression_type == "InsertionContains") {
-      filter = json.get<std::unique_ptr<InsertionContains>>();
+      filter = json.get<std::unique_ptr<InsertionContains<NUCLEOTIDE_SYMBOL>>>();
+   } else if (expression_type == "AminoAcidInsertionContains") {
+      filter = json.get<std::unique_ptr<InsertionContains<AA_SYMBOL>>>();
    } else {
       throw QueryParseException("Unknown object filter type '" + expression_type + "'");
    }

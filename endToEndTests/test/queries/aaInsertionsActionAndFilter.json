@@ -4,47 +4,21 @@
     "action": {
       "type": "AminoAcidInsertions",
       "column": "aaInsertions",
-      "orderByFields": [
-        "insertions",
-        "position"
-      ]
+      "orderByFields": ["insertions", "position"]
     },
     "filterExpression": {
-      "type": "InsertionContains",
+      "type": "AminoAcidInsertionContains",
+      "sequenceName": "S",
       "value": "E.*",
-      "column": "aaInsertion",
-      "position": 215
+      "column": "aaInsertions",
+      "position": 214
     }
   },
   "expectedQueryResult": [
     {
       "count": 5,
       "insertions": "EPE",
-      "position": 215,
-      "sequenceName": "S"
-    },
-    {
-      "count": 1,
-      "insertions": "F",
-      "position": 3603,
-      "sequenceName": "ORF1a"
-    },
-    {
-      "count": 1,
-      "insertions": "IV",
-      "position": 211,
-      "sequenceName": "S"
-    },
-    {
-      "count": 1,
-      "insertions": "SGE",
-      "position": 248,
-      "sequenceName": "S"
-    },
-    {
-      "count": 1,
-      "insertions": "T",
-      "position": 144,
+      "position": 214,
       "sequenceName": "S"
     }
   ]

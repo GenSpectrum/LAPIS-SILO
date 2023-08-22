@@ -58,6 +58,18 @@ uint32_t ColumnPartitionGroup::fill(
    return sequence_count;
 }
 
+template <>
+const std::map<std::string, storage::column::InsertionColumnPartition<NUCLEOTIDE_SYMBOL>&>&
+ColumnPartitionGroup::getInsertionColumns<NUCLEOTIDE_SYMBOL>() const {
+   return this->nuc_insertion_columns;
+}
+
+template <>
+const std::map<std::string, storage::column::InsertionColumnPartition<AA_SYMBOL>&>&
+ColumnPartitionGroup::getInsertionColumns<AA_SYMBOL>() const {
+   return this->aa_insertion_columns;
+}
+
 ColumnPartitionGroup ColumnPartitionGroup::getSubgroup(
    const std::vector<silo::storage::ColumnMetadata>& fields
 ) const {

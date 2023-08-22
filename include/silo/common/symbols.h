@@ -6,12 +6,7 @@
 namespace silo {
 
 template <typename T>
-class Util {
-  public:
-   static constexpr uint32_t count = 0;
-
-   static constexpr std::array<T, count> symbols{};
-};
+class Util {};
 
 }  // namespace silo
 

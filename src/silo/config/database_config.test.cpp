@@ -88,7 +88,7 @@ TEST(DatabaseConfigReader, shouldReadConfigWithCorrectParameters) {
    ASSERT_EQ(config.schema.primary_key, "gisaid_epi_isl");
    ASSERT_EQ(config.schema.date_to_sort_by, "date");
    ASSERT_EQ(config.schema.partition_by, "pango_lineage");
-   ASSERT_EQ(config.schema.metadata.size(), 10);
+   ASSERT_EQ(config.schema.metadata.size(), 11);
    ASSERT_EQ(config.schema.metadata[0].name, "gisaid_epi_isl");
    ASSERT_EQ(config.schema.metadata[0].type, ValueType::STRING);
    ASSERT_EQ(config.schema.metadata[0].generate_index, false);

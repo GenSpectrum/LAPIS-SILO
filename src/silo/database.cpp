@@ -70,6 +70,16 @@ struct [[maybe_unused]] fmt::formatter<silo::DatabaseInfo> : fmt::formatter<std:
 
 namespace silo {
 
+template <>
+std::optional<std::string> Database::getDefaultSequenceName<NUCLEOTIDE_SYMBOL>() const {
+   return database_config.default_nucleotide_sequence;
+}
+
+template <>
+std::optional<std::string> Database::getDefaultSequenceName<AA_SYMBOL>() const {
+   return std::nullopt;
+}
+
 const PangoLineageAliasLookup& Database::getAliasKey() const {
    return alias_key;
 }
@@ -707,7 +717,10 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
          break;
       case config::ColumnType::INSERTION:
          columns.nuc_insertion_columns.emplace(
-            name, storage::column::InsertionColumn<NUCLEOTIDE_SYMBOL>()
+            name,
+            storage::column::InsertionColumn<NUCLEOTIDE_SYMBOL>(
+               getDefaultSequenceName<NUCLEOTIDE_SYMBOL>()
+            )
          );
          for (auto& partition : partitions) {
             partition.columns.metadata.push_back({name, column_type});
@@ -715,7 +728,9 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
          }
          break;
       case config::ColumnType::AA_INSERTION:
-         columns.aa_insertion_columns.emplace(name, storage::column::InsertionColumn<AA_SYMBOL>());
+         columns.aa_insertion_columns.emplace(
+            name, storage::column::InsertionColumn<AA_SYMBOL>(getDefaultSequenceName<AA_SYMBOL>())
+         );
          for (auto& partition : partitions) {
             partition.columns.metadata.push_back({name, column_type});
             partition.insertColumn(name, columns.aa_insertion_columns.at(name).createPartition());

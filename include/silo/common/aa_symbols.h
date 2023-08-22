@@ -44,6 +44,11 @@ class Util<AA_SYMBOL> {
   public:
    static constexpr uint32_t count = static_cast<uint32_t>(AA_SYMBOL::X) + 1;
 
+   static constexpr std::string_view symbol_name = "Amino Acid";
+   static constexpr std::string_view symbol_name_lower_case = "amino acid";
+   static constexpr std::string_view symbol_name_upper_case = "AMINO ACID";
+   static constexpr std::string_view symbol_name_short = "AA";
+
    static constexpr std::array<AA_SYMBOL, count> symbols{
       AA_SYMBOL::GAP, AA_SYMBOL::A, AA_SYMBOL::C, AA_SYMBOL::D, AA_SYMBOL::E,
       AA_SYMBOL::F,   AA_SYMBOL::G, AA_SYMBOL::H, AA_SYMBOL::I, AA_SYMBOL::K,

@@ -72,13 +72,6 @@ InsertionAggregation<AA_SYMBOL>::validateFieldsAndPreFilterBitmaps(
          database_partition.columns.aa_insertion_columns.at(column_name).getInsertionIndexes();
       OperatorResult& filter = bitmap_filter[i];
 
-      for (const auto& sequence_name : sequence_names) {
-         CHECK_SILO_QUERY(
-            insertion_indexes.contains(sequence_name),
-            "The column '" + column_name + "' does not contain the sequence '" + sequence_name + "'"
-         )
-      }
-
       const size_t cardinality = filter->cardinality();
       if (cardinality == 0) {
          continue;
@@ -209,8 +202,7 @@ void InsertionAggregation<Symbol>::addAggregatedInsertionsToInsertionCounts(
    }
    for (const auto& [position_and_insertion, count] : all_insertions) {
       const std::map<std::string, std::optional<std::variant<std::string, int32_t, double>>> fields{
-         {std::string(POSITION_FIELD_NAME),
-          static_cast<int32_t>(position_and_insertion.position) + 1},
+         {std::string(POSITION_FIELD_NAME), static_cast<int32_t>(position_and_insertion.position)},
          {std::string(SEQUENCE_FIELD_NAME), sequence_name},
          {std::string(INSERTION_FIELD_NAME), std::string(position_and_insertion.insertion_value)},
          {std::string(COUNT_FIELD_NAME), static_cast<int32_t>(count)}};

@@ -194,20 +194,20 @@ void InsertionPosition<AA_SYMBOL>::buildThreeMerIndex() {
          continue;
       }
 
-      const auto opt_nuc_symbol_ids = Util<AA_SYMBOL>::stringToSymbolVector(insertion_value);
-      if (opt_nuc_symbol_ids == std::nullopt) {
-         const auto illegal_nuc_char = Util<AA_SYMBOL>::findIllegalChar(insertion_value);
+      const auto opt_aa_symbol_ids = Util<AA_SYMBOL>::stringToSymbolVector(insertion_value);
+      if (opt_aa_symbol_ids == std::nullopt) {
+         const auto illegal_aa_char = Util<AA_SYMBOL>::findIllegalChar(insertion_value);
          throw silo::PreprocessingException(
-            "Illegal nucleotide character '" +
-            (illegal_nuc_char.has_value() ? std::to_string(*illegal_nuc_char) : "Internal Error") +
+            "Illegal amino acid character '" +
+            (illegal_aa_char.has_value() ? std::to_string(*illegal_aa_char) : "Internal Error") +
             "' in insertion: " + insertion_value
          );
       }
-      const auto& nuc_symbol_ids = *opt_nuc_symbol_ids;
+      const auto& aa_symbol_ids = *opt_aa_symbol_ids;
 
       ThreeMersBitset unique_three_mers{};
-      for (size_t i = 0; i < (nuc_symbol_ids.size() - 2); ++i) {
-         unique_three_mers[nuc_symbol_ids[i]][nuc_symbol_ids[i + 1]][nuc_symbol_ids[i + 2]] = true;
+      for (size_t i = 0; i < (aa_symbol_ids.size() - 2); ++i) {
+         unique_three_mers[aa_symbol_ids[i]][aa_symbol_ids[i + 1]][aa_symbol_ids[i + 2]] = true;
       }
 
       for (const AA_SYMBOL symbol1 : Util<AA_SYMBOL>::symbols) {

@@ -3,9 +3,7 @@
   "query": {
     "action": {
       "type": "Details",
-      "orderByFields": [
-        "gisaid_epi_isl"
-      ],
+      "orderByFields": ["gisaid_epi_isl"],
       "offset": 0
     },
     "filterExpression": {

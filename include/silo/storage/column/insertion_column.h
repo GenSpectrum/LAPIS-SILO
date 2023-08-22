@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <deque>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -35,11 +36,16 @@ class InsertionColumnPartition {
    }
 
    std::vector<silo::Idx> values;
-   common::BidirectionalMap<std::string>& lookup;
    std::unordered_map<std::string, insertion::InsertionIndex<Symbol>> insertion_indexes;
+   common::BidirectionalMap<std::string>& lookup;
 
   public:
-   explicit InsertionColumnPartition(common::BidirectionalMap<std::string>& lookup);
+   const std::optional<std::string>& default_sequence_name;
+
+   explicit InsertionColumnPartition(
+      common::BidirectionalMap<std::string>& lookup,
+      const std::optional<std::string>& default_sequence_name
+   );
 
    void insert(const std::string& value);
 
@@ -68,14 +74,16 @@ class InsertionColumn {
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
       archive & *lookup;
+      archive & default_sequence_name;
       // clang-format on
    }
 
    std::deque<InsertionColumnPartition<Symbol>> partitions;
    std::unique_ptr<common::BidirectionalMap<std::string>> lookup;
+   std::optional<std::string> default_sequence_name;
 
   public:
-   InsertionColumn();
+   InsertionColumn(std::optional<std::string> default_sequence_name);
 
    InsertionColumnPartition<Symbol>& createPartition();
 };

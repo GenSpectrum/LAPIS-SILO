@@ -1,10 +1,11 @@
 {
-  "testCaseName": "amino acid insertions action",
+  "testCaseName": "amino acid insertions action only one sequence",
   "query": {
     "action": {
       "type": "AminoAcidInsertions",
       "column": "aaInsertions",
-      "orderByFields": ["insertions", "position"]
+      "orderByFields": ["insertions", "position"],
+      "sequenceName": "S"
     },
     "filterExpression": {
       "type": "True"
@@ -16,12 +17,6 @@
       "insertions": "EPE",
       "position": 214,
       "sequenceName": "S"
-    },
-    {
-      "count": 1,
-      "insertions": "F",
-      "position": 3602,
-      "sequenceName": "ORF1a"
     },
     {
       "count": 1,

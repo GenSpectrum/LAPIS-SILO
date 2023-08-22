@@ -20,12 +20,19 @@ struct InsertionEntry {
    std::string insertion;
 };
 
-InsertionEntry parseInsertion(const std::string& value) {
+InsertionEntry parseInsertion(
+   const std::string& value,
+   const std::optional<std::string>& default_sequence_name
+) {
    const auto position_and_insertion = splitBy(value, DELIMITER_INSERTION);
    if (position_and_insertion.size() == 2) {
+      if (default_sequence_name == std::nullopt) {
+         const std::string message = "Failed to parse insertion due to invalid format: " + value;
+         throw PreprocessingException(message);
+      }
       const auto position = boost::lexical_cast<uint32_t>(position_and_insertion[0]);
       const auto& insertion = position_and_insertion[1];
-      return {"", position, insertion};
+      return {*default_sequence_name, position, insertion};
    }
    if (position_and_insertion.size() == 3) {
       const auto& sequence_name = position_and_insertion[0];
@@ -40,9 +47,12 @@ InsertionEntry parseInsertion(const std::string& value) {
 
 template <typename Symbol>
 InsertionColumnPartition<Symbol>::InsertionColumnPartition(
-   common::BidirectionalMap<std::string>& lookup
+   common::BidirectionalMap<std::string>& lookup,
+   const std::optional<std::string>& default_sequence_name
+
 )
-    : lookup(lookup) {}
+    : lookup(lookup),
+      default_sequence_name(default_sequence_name) {}
 
 template <typename Symbol>
 void InsertionColumnPartition<Symbol>::insert(const std::string& value) {
@@ -56,7 +66,8 @@ void InsertionColumnPartition<Symbol>::insert(const std::string& value) {
    }
 
    for (auto& insertion_entry : splitBy(value, DELIMITER_INSERTIONS)) {
-      auto [sequence_name, position, insertion] = parseInsertion(insertion_entry);
+      auto [sequence_name, position, insertion] =
+         parseInsertion(insertion_entry, default_sequence_name);
       auto& insertion_index =
          insertion_indexes.emplace(sequence_name, insertion::InsertionIndex<Symbol>{})
             .first->second;
@@ -100,13 +111,14 @@ std::string InsertionColumnPartition<Symbol>::lookupValue(silo::Idx value_id) co
 }
 
 template <typename Symbol>
-InsertionColumn<Symbol>::InsertionColumn() {
+InsertionColumn<Symbol>::InsertionColumn(std::optional<std::string> default_sequence_name)
+    : default_sequence_name(default_sequence_name) {
    lookup = std::make_unique<silo::common::BidirectionalMap<std::string>>();
 }
 
 template <typename Symbol>
 InsertionColumnPartition<Symbol>& InsertionColumn<Symbol>::createPartition() {
-   return partitions.emplace_back(*lookup);
+   return partitions.emplace_back(*lookup, default_sequence_name);
 }
 
 template class InsertionColumnPartition<AA_SYMBOL>;

@@ -134,7 +134,7 @@ void from_json(const nlohmann::json& json, OrderByField& field) {
          "' must be either a string or an object containing the fields 'field':string and "
          "'order':string, where the value of order is 'ascending' or 'descending'"
    )
-   field = {field_name, json["order"].get<std::string>() == "ascending"};
+   field = {field_name, order_string == "ascending"};
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
