@@ -541,7 +541,9 @@ Database Database::loadDatabaseState(const std::filesystem::path& save_directory
    ::boost::archive::binary_iarchive aa_sequences_archive(aa_sequences_file);
    aa_sequences_archive >> aa_sequences_map;
 
-   SPDLOG_INFO("Finished loading partitions from {}", save_directory.string());
+   SPDLOG_INFO(
+      "Finished loading partitions from {}", (save_directory / "aa_sequences.silo").string()
+   );
 
    database.initializeNucSequences(nuc_sequences_map);
    database.initializeAASequences(aa_sequences_map);
@@ -569,9 +571,12 @@ Database Database::loadDatabaseState(const std::filesystem::path& save_directory
          }
       }
    );
+   SPDLOG_INFO("Finished loading partition data");
 
-   SPDLOG_INFO("Loading data_version from {}", (save_directory / "data_version.silo").string());
    database.setDataVersion(loadDataVersion(save_directory / "data_version.silo"));
+   SPDLOG_INFO(
+      "Finished loading data_version from {}", (save_directory / "data_version.silo").string()
+   );
 
    return database;
 }

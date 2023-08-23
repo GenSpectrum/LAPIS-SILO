@@ -57,7 +57,6 @@ QueryResult QueryEngine::executeQuery(const std::string& query_string) const {
    for (uint32_t i = 0; i < database.partitions.size(); ++i) {
       SPDLOG_DEBUG("Simplified query for partition {}: {}", i, compiled_queries[i]);
    }
-   LOG_PERFORMANCE("Execution (filter): {} microseconds", std::to_string(filter_time));
 
    QueryResult query_result;
    int64_t action_time;
@@ -66,6 +65,8 @@ QueryResult QueryEngine::executeQuery(const std::string& query_string) const {
       query_result = query.action->executeAndOrder(database, std::move(partition_filters));
    }
 
+   LOG_PERFORMANCE("Query: {}", query_string);
+   LOG_PERFORMANCE("Execution (filter): {} microseconds", std::to_string(filter_time));
    LOG_PERFORMANCE("Execution (action): {} microseconds", std::to_string(action_time));
 
    return query_result;
