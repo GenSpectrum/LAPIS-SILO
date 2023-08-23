@@ -115,7 +115,7 @@ SymbolMap<AminoAcid, std::vector<uint32_t>> AAMutations::calculateMutationsPerPo
 
 void AAMutations::validateOrderByFields(const Database& /*database*/) const {
    const std::vector<std::string> result_field_names{
-      {POSITION_FIELD_NAME, PROPORTION_FIELD_NAME, COUNT_FIELD_NAME}};
+      {MUTATION_FIELD_NAME, PROPORTION_FIELD_NAME, COUNT_FIELD_NAME}};
 
    for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
@@ -161,7 +161,7 @@ void AAMutations::addMutationsToOutput(
                const std::
                   map<std::string, std::optional<std::variant<std::string, int32_t, double>>>
                      fields{
-                        {POSITION_FIELD_NAME,
+                        {MUTATION_FIELD_NAME,
                          AminoAcid::symbolToChar(symbol_in_reference_genome) +
                             std::to_string(pos + 1) + AminoAcid::symbolToChar(symbol)},
                         {SEQUENCE_FIELD_NAME, sequence_name},

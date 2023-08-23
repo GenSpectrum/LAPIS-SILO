@@ -53,7 +53,7 @@ class AAMutations : public Action {
       AminoAcid::Symbol::Y,  // Tyrosine
    };
 
-   const std::string POSITION_FIELD_NAME = "position";
+   const std::string MUTATION_FIELD_NAME = "mutation";
    const std::string SEQUENCE_FIELD_NAME = "sequenceName";
    const std::string PROPORTION_FIELD_NAME = "proportion";
    const std::string COUNT_FIELD_NAME = "count";

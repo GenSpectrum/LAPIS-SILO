@@ -38,7 +38,7 @@ class NucMutations : public Action {
       Nucleotide::Symbol::T,
    };
 
-   const std::string POSITION_FIELD_NAME = "position";
+   const std::string MUTATION_FIELD_NAME = "mutation";
    const std::string PROPORTION_FIELD_NAME = "proportion";
    const std::string COUNT_FIELD_NAME = "count";
 
