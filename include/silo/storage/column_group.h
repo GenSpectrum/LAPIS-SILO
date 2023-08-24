@@ -110,28 +110,28 @@ class ColumnGroup {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      for(auto& [name, store] : string_columns){
+      for(auto& [_, store] : string_columns){
          archive & store;
       }
-      for(auto& [name, store] : indexed_string_columns){
+      for(auto& [_, store] : indexed_string_columns){
          archive & store;
       }
-      for(auto& [name, store] : int_columns){
+      for(auto& [_, store] : int_columns){
          archive & store;
       }
-      for(auto& [name, store] : float_columns){
+      for(auto& [_, store] : float_columns){
          archive & store;
       }
-      for(auto& [name, store] : date_columns){
+      for(auto& [_, store] : date_columns){
          archive & store;
       }
-      for(auto& [name, store] : pango_lineage_columns){
+      for(auto& [_, store] : pango_lineage_columns){
          archive & store;
       }
-      for(auto& [name, store] : nuc_insertion_columns){
+      for(auto& [_, store] : nuc_insertion_columns){
          archive & store;
       }
-      for(auto& [name, store] : aa_insertion_columns){
+      for(auto& [_, store] : aa_insertion_columns){
          archive & store;
       }
       // clang-format on

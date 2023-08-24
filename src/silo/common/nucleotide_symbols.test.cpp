@@ -2,14 +2,14 @@
 
 #include <gtest/gtest.h>
 
-TEST(NucleotideSymbol, enumShouldHaveSameLengthAsArrayOfSymbols) {
+TEST(NUCLEOTIDE_SYMBOL, enumShouldHaveSameLengthAsArrayOfSymbols) {
    EXPECT_EQ(
       silo::Util<silo::NUCLEOTIDE_SYMBOL>::count,
       silo::Util<silo::NUCLEOTIDE_SYMBOL>::symbols.size()
    );
 }
 
-TEST(NucleotideSymbol, conversionFromCharacter) {
+TEST(NUCLEOTIDE_SYMBOL, conversionFromCharacter) {
    EXPECT_EQ(silo::Util<silo::NUCLEOTIDE_SYMBOL>::charToSymbol('.'), silo::NUCLEOTIDE_SYMBOL::GAP);
    EXPECT_EQ(silo::Util<silo::NUCLEOTIDE_SYMBOL>::charToSymbol('-'), silo::NUCLEOTIDE_SYMBOL::GAP);
    EXPECT_EQ(silo::Util<silo::NUCLEOTIDE_SYMBOL>::charToSymbol('A'), silo::NUCLEOTIDE_SYMBOL::A);
@@ -17,7 +17,7 @@ TEST(NucleotideSymbol, conversionFromCharacter) {
    EXPECT_EQ(silo::Util<silo::NUCLEOTIDE_SYMBOL>::charToSymbol('X'), std::nullopt);
 }
 
-TEST(NucleotideSymbol, findIllegalNucleotideChar) {
+TEST(NUCLEOTIDE_SYMBOL, findIllegalNucleotideChar) {
    EXPECT_EQ(silo::Util<silo::NUCLEOTIDE_SYMBOL>::findIllegalChar("ACGT"), std::nullopt);
    EXPECT_EQ(silo::Util<silo::NUCLEOTIDE_SYMBOL>::findIllegalChar("ACGTZ"), 'Z');
 }

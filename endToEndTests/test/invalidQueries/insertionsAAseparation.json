@@ -1,10 +1,10 @@
 {
-  "testCaseName": "The insertions action with an invalid sequence",
+  "testCaseName": "The insertions action with an amino acid sequence name",
   "query": {
     "action": {
       "type": "Insertions",
       "column": "insertions",
-      "sequenceName": "notAValidSequence"
+      "sequenceName": "S"
     },
     "filterExpression": {
       "type": "True"

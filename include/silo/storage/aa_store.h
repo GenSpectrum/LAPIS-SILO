@@ -77,17 +77,11 @@ class AAStorePartition {
    std::vector<roaring::Roaring> aa_symbol_x_bitmaps;
    uint32_t sequence_count = 0;
 
-   [[nodiscard]] size_t computeSize() const;
-
    [[nodiscard]] const roaring::Roaring* getBitmap(size_t position, AA_SYMBOL symbol) const;
 
    size_t fill(silo::ZstdFastaReader& input_file);
 
    void interpret(const std::vector<std::string>& aa_sequences);
-
-   size_t runOptimize();
-
-   size_t shrinkToFit();
 };
 
 class AAStore {

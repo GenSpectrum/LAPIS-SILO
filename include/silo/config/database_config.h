@@ -10,7 +10,7 @@
 
 namespace silo::config {
 
-enum class ValueType { STRING, PANGOLINEAGE, DATE, INT, FLOAT, INSERTION, AA_INSERTION };
+enum class ValueType { STRING, PANGOLINEAGE, DATE, INT, FLOAT, NUC_INSERTION, AA_INSERTION };
 enum class ColumnType {
    STRING,
    INDEXED_STRING,
@@ -18,7 +18,7 @@ enum class ColumnType {
    DATE,
    INT,
    FLOAT,
-   INSERTION,
+   NUC_INSERTION,
    AA_INSERTION
 };
 

@@ -720,7 +720,7 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
             partition.insertColumn(name, columns.float_columns.at(name).createPartition());
          }
          break;
-      case config::ColumnType::INSERTION:
+      case config::ColumnType::NUC_INSERTION:
          columns.nuc_insertion_columns.emplace(
             name,
             storage::column::InsertionColumn<NUCLEOTIDE_SYMBOL>(

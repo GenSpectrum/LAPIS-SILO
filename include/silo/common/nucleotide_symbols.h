@@ -38,10 +38,10 @@ class Util<NUCLEOTIDE_SYMBOL> {
   public:
    static constexpr uint32_t count = static_cast<uint32_t>(NUCLEOTIDE_SYMBOL::N) + 1;
 
-   static constexpr std::string_view symbol_name = "Nucleotide";
-   static constexpr std::string_view symbol_name_lower_case = "nucleotide";
-   static constexpr std::string_view symbol_name_upper_case = "NUCLEOTIDE";
-   static constexpr std::string_view symbol_name_short = "NUC";
+   static constexpr std::string_view SYMBOL_NAME = "Nucleotide";
+   static constexpr std::string_view SYMBOL_NAME_LOWER_CASE = "nucleotide";
+   static constexpr std::string_view SYMBOL_NAME_UPPER_CASE = "NUCLEOTIDE";
+   static constexpr std::string_view SYMBOL_NAME_SHORT = "NUC";
 
    static constexpr std::array<NUCLEOTIDE_SYMBOL, count> symbols{
       NUCLEOTIDE_SYMBOL::GAP,

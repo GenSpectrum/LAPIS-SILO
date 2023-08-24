@@ -56,7 +56,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> InsertionContains<Symbo
    } else {
       CHECK_SILO_QUERY(
          database.getDefaultSequenceName<Symbol>().has_value(),
-         "The database has no default " + std::string(Util<Symbol>::symbol_name_lower_case) +
+         "The database has no default " + std::string(Util<Symbol>::SYMBOL_NAME_LOWER_CASE) +
             " sequence name"
       );
       validated_sequence_name = *database.getDefaultSequenceName<Symbol>();
@@ -143,7 +143,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains<Sym
       "The field 'value' in the InsertionContains expression does not contain a valid regex "
       "pattern: \"" +
          value + "\". It must only consist of " +
-         std::string(Util<Symbol>::symbol_name_lower_case) + " symbols and the regex symbol '.*'."
+         std::string(Util<Symbol>::SYMBOL_NAME_LOWER_CASE) + " symbols and the regex symbol '.*'."
    )
    filter =
       std::make_unique<InsertionContains<Symbol>>(column_name, sequence_name, position, value);
