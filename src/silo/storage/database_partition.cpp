@@ -99,14 +99,14 @@ void DatabasePartition::insertColumn(
 
 void DatabasePartition::insertColumn(
    const std::string& name,
-   storage::column::InsertionColumnPartition<NUCLEOTIDE_SYMBOL>& column
+   storage::column::InsertionColumnPartition<Nucleotide>& column
 ) {
    columns.nuc_insertion_columns.insert({std::string(name), column});
 }
 
 void DatabasePartition::insertColumn(
    const std::string& name,
-   storage::column::InsertionColumnPartition<AA_SYMBOL>& column
+   storage::column::InsertionColumnPartition<AminoAcid>& column
 ) {
    columns.aa_insertion_columns.insert({std::string(name), column});
 }

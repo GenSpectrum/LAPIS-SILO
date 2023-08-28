@@ -158,9 +158,9 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
    } else if (expression_type == "FastaAligned") {
       action = json.get<std::unique_ptr<FastaAligned>>();
    } else if (expression_type == "Insertions") {
-      action = json.get<std::unique_ptr<InsertionAggregation<NUCLEOTIDE_SYMBOL>>>();
+      action = json.get<std::unique_ptr<InsertionAggregation<Nucleotide>>>();
    } else if (expression_type == "AminoAcidInsertions") {
-      action = json.get<std::unique_ptr<InsertionAggregation<AA_SYMBOL>>>();
+      action = json.get<std::unique_ptr<InsertionAggregation<AminoAcid>>>();
    } else {
       throw QueryParseException(expression_type + " is not a valid action");
    }

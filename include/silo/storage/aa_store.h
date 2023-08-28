@@ -13,6 +13,7 @@
 #include <boost/serialization/array.hpp>
 #include <roaring/roaring.hh>
 
+#include "silo/common/aa_symbols.h"
 #include "silo/common/fasta_reader.h"
 #include "silo/common/symbol_map.h"
 #include "silo/common/zstdfasta_reader.h"
@@ -25,7 +26,6 @@ class access;
 
 namespace silo {
 class ZstdFastaReader;
-enum class AA_SYMBOL : char;
 
 class AAPosition {
    friend class boost::serialization::access;
@@ -41,13 +41,13 @@ class AAPosition {
    AAPosition() = default;
 
   public:
-   explicit AAPosition(AA_SYMBOL symbol);
-   explicit AAPosition(std::optional<AA_SYMBOL> symbol);
+   explicit AAPosition(AminoAcid::Symbol symbol);
+   explicit AAPosition(std::optional<AminoAcid::Symbol> symbol);
 
-   SymbolMap<AA_SYMBOL, roaring::Roaring> bitmaps;
-   std::optional<AA_SYMBOL> symbol_whose_bitmap_is_flipped = std::nullopt;
+   SymbolMap<AminoAcid, roaring::Roaring> bitmaps;
+   std::optional<AminoAcid::Symbol> symbol_whose_bitmap_is_flipped = std::nullopt;
 
-   std::optional<silo::AA_SYMBOL> flipMostNumerousBitmap(uint32_t sequence_count);
+   std::optional<AminoAcid::Symbol> flipMostNumerousBitmap(uint32_t sequence_count);
 };
 
 class AAStorePartition {
@@ -69,15 +69,15 @@ class AAStorePartition {
    void fillXBitmaps(const std::vector<std::string>& sequences);
 
   public:
-   explicit AAStorePartition(const std::vector<AA_SYMBOL>& reference_sequence);
+   explicit AAStorePartition(const std::vector<AminoAcid::Symbol>& reference_sequence);
 
-   const std::vector<AA_SYMBOL>& reference_sequence;
-   std::vector<std::pair<size_t, AA_SYMBOL>> indexing_differences_to_reference_sequence;
+   const std::vector<AminoAcid::Symbol>& reference_sequence;
+   std::vector<std::pair<size_t, AminoAcid::Symbol>> indexing_differences_to_reference_sequence;
    std::vector<AAPosition> positions;
    std::vector<roaring::Roaring> aa_symbol_x_bitmaps;
    uint32_t sequence_count = 0;
 
-   [[nodiscard]] const roaring::Roaring* getBitmap(size_t position, AA_SYMBOL symbol) const;
+   [[nodiscard]] const roaring::Roaring* getBitmap(size_t position, AminoAcid::Symbol symbol) const;
 
    size_t fill(silo::ZstdFastaReader& input_file);
 
@@ -86,10 +86,10 @@ class AAStorePartition {
 
 class AAStore {
   public:
-   std::vector<AA_SYMBOL> reference_sequence;
+   std::vector<AminoAcid::Symbol> reference_sequence;
    std::deque<AAStorePartition> partitions;
 
-   explicit AAStore(std::vector<AA_SYMBOL> reference_sequence);
+   explicit AAStore(std::vector<AminoAcid::Symbol> reference_sequence);
 
    AAStorePartition& createPartition();
 };

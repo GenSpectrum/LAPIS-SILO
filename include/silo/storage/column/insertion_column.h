@@ -22,7 +22,7 @@ struct access;
 
 namespace silo::storage::column {
 
-template <typename Symbol>
+template <typename SymbolType>
 class InsertionColumnPartition {
    friend class boost::serialization::access;
 
@@ -36,7 +36,7 @@ class InsertionColumnPartition {
    }
 
    std::vector<silo::Idx> values;
-   std::unordered_map<std::string, insertion::InsertionIndex<Symbol>> insertion_indexes;
+   std::unordered_map<std::string, insertion::InsertionIndex<SymbolType>> insertion_indexes;
    common::BidirectionalMap<std::string>& lookup;
 
   public:
@@ -51,8 +51,8 @@ class InsertionColumnPartition {
 
    void buildInsertionIndexes();
 
-   const std::unordered_map<std::string, insertion::InsertionIndex<Symbol>>& getInsertionIndexes(
-   ) const;
+   const std::unordered_map<std::string, insertion::InsertionIndex<SymbolType>>&
+   getInsertionIndexes() const;
 
    [[nodiscard]] std::unique_ptr<roaring::Roaring> search(
       const std::string& sequence_name,
@@ -65,7 +65,7 @@ class InsertionColumnPartition {
    [[nodiscard]] std::string lookupValue(silo::Idx value_id) const;
 };
 
-template <typename Symbol>
+template <typename SymbolType>
 class InsertionColumn {
    friend class boost::serialization::access;
 
@@ -78,14 +78,14 @@ class InsertionColumn {
       // clang-format on
    }
 
-   std::deque<InsertionColumnPartition<Symbol>> partitions;
+   std::deque<InsertionColumnPartition<SymbolType>> partitions;
    std::unique_ptr<common::BidirectionalMap<std::string>> lookup;
    std::optional<std::string> default_sequence_name;
 
   public:
    InsertionColumn(std::optional<std::string> default_sequence_name);
 
-   InsertionColumnPartition<Symbol>& createPartition();
+   InsertionColumnPartition<SymbolType>& createPartition();
 };
 
 }  // namespace silo::storage::column

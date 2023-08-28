@@ -23,8 +23,8 @@ class Operator;
 
 namespace silo::query_engine::filter_expressions {
 
-template <typename Symbol>
-InsertionContains<Symbol>::InsertionContains(
+template <typename SymbolType>
+InsertionContains<SymbolType>::InsertionContains(
    std::string column,
    std::optional<std::string> sequence_name,
    uint32_t position,
@@ -35,19 +35,19 @@ InsertionContains<Symbol>::InsertionContains(
       position(position),
       value(std::move(value)) {}
 
-template <typename Symbol>
-std::string InsertionContains<Symbol>::toString(const silo::Database& /*database*/) const {
+template <typename SymbolType>
+std::string InsertionContains<SymbolType>::toString(const silo::Database& /*database*/) const {
    return column_name + " has insertion '" + value + "'";
 }
 
-template <typename Symbol>
-std::unique_ptr<silo::query_engine::operators::Operator> InsertionContains<Symbol>::compile(
+template <typename SymbolType>
+std::unique_ptr<silo::query_engine::operators::Operator> InsertionContains<SymbolType>::compile(
    const silo::Database& database,
    const silo::DatabasePartition& database_partition,
    Expression::AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
-      database_partition.columns.getInsertionColumns<Symbol>().contains(column_name),
+      database_partition.columns.getInsertionColumns<SymbolType>().contains(column_name),
       "The insertion column '" + column_name + "' does not exist."
    )
    std::string validated_sequence_name;
@@ -55,15 +55,15 @@ std::unique_ptr<silo::query_engine::operators::Operator> InsertionContains<Symbo
       validated_sequence_name = sequence_name.value();
    } else {
       CHECK_SILO_QUERY(
-         database.getDefaultSequenceName<Symbol>().has_value(),
-         "The database has no default " + std::string(Util<Symbol>::SYMBOL_NAME_LOWER_CASE) +
+         database.getDefaultSequenceName<SymbolType>().has_value(),
+         "The database has no default " + std::string(SymbolType::SYMBOL_NAME_LOWER_CASE) +
             " sequence name"
       );
-      validated_sequence_name = *database.getDefaultSequenceName<Symbol>();
+      validated_sequence_name = *database.getDefaultSequenceName<SymbolType>();
    }
 
-   const storage::column::InsertionColumnPartition<Symbol>& insertion_column =
-      database_partition.columns.getInsertionColumns<Symbol>().at(column_name);
+   const storage::column::InsertionColumnPartition<SymbolType>& insertion_column =
+      database_partition.columns.getInsertionColumns<SymbolType>().at(column_name);
 
    return std::make_unique<operators::BitmapProducer>(
       [&, validated_sequence_name]() {
@@ -76,31 +76,31 @@ std::unique_ptr<silo::query_engine::operators::Operator> InsertionContains<Symbo
 
 namespace {
 
-template <typename Symbol>
+template <typename SymbolType>
 std::regex buildValidInsertionSearchRegex() {
    // Build the following regex pattern: ^([symbols]|\.\*)*$
    std::stringstream regex_pattern_string;
    regex_pattern_string << "^([";
-   for (const auto symbol : Util<Symbol>::symbols) {
-      regex_pattern_string << Util<Symbol>::symbolToChar(symbol);
+   for (const auto symbol : SymbolType::SYMBOLS) {
+      regex_pattern_string << SymbolType::symbolToChar(symbol);
    }
    regex_pattern_string << "]|\\.\\*)*$";
    return std::regex(regex_pattern_string.str());
 }
 
-template <typename Symbol>
-const std::regex VALID_INSERTION_SEARCH_VALUE_REGEX = buildValidInsertionSearchRegex<Symbol>();
+template <typename SymbolType>
+const std::regex VALID_INSERTION_SEARCH_VALUE_REGEX = buildValidInsertionSearchRegex<SymbolType>();
 
-template <typename Symbol>
+template <typename SymbolType>
 bool validateInsertionSearchValue(const std::string& value) {
-   return std::regex_search(value, VALID_INSERTION_SEARCH_VALUE_REGEX<Symbol>);
+   return std::regex_search(value, VALID_INSERTION_SEARCH_VALUE_REGEX<SymbolType>);
 }
 
 }  // namespace
 
-template <typename Symbol>
+template <typename SymbolType>
 // NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains<Symbol>>& filter) {
+void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains<SymbolType>>& filter) {
    CHECK_SILO_QUERY(
       json.contains("column"), "The field 'column' is required in an InsertionContains expression"
    )
@@ -139,27 +139,27 @@ void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains<Sym
       "The field 'value' in an InsertionContains expression must not be an empty string"
    )
    CHECK_SILO_QUERY(
-      validateInsertionSearchValue<Symbol>(value),
+      validateInsertionSearchValue<SymbolType>(value),
       "The field 'value' in the InsertionContains expression does not contain a valid regex "
       "pattern: \"" +
-         value + "\". It must only consist of " +
-         std::string(Util<Symbol>::SYMBOL_NAME_LOWER_CASE) + " symbols and the regex symbol '.*'."
+         value + "\". It must only consist of " + std::string(SymbolType::SYMBOL_NAME_LOWER_CASE) +
+         " symbols and the regex symbol '.*'."
    )
    filter =
-      std::make_unique<InsertionContains<Symbol>>(column_name, sequence_name, position, value);
+      std::make_unique<InsertionContains<SymbolType>>(column_name, sequence_name, position, value);
 }
 
-template void from_json<NUCLEOTIDE_SYMBOL>(
+template void from_json<Nucleotide>(
    const nlohmann::json& json,
-   std::unique_ptr<InsertionContains<NUCLEOTIDE_SYMBOL>>& filter
+   std::unique_ptr<InsertionContains<Nucleotide>>& filter
 );
 
-template void from_json<AA_SYMBOL>(
+template void from_json<AminoAcid>(
    const nlohmann::json& json,
-   std::unique_ptr<InsertionContains<AA_SYMBOL>>& filter
+   std::unique_ptr<InsertionContains<AminoAcid>>& filter
 );
 
-template class InsertionContains<NUCLEOTIDE_SYMBOL>;
-template class InsertionContains<AA_SYMBOL>;
+template class InsertionContains<Nucleotide>;
+template class InsertionContains<AminoAcid>;
 
 }  // namespace silo::query_engine::filter_expressions

@@ -40,7 +40,7 @@ TEST(Position, shouldSerializeAndDeserializePositionWithSetOptional) {
    const std::string test_file = "test.bin";
 
    silo::NucPosition position_with_set_optional(std::nullopt);
-   position_with_set_optional.symbol_whose_bitmap_is_flipped = silo::NUCLEOTIDE_SYMBOL::A;
+   position_with_set_optional.symbol_whose_bitmap_is_flipped = silo::Nucleotide::Symbol::A;
    serializeToFile(test_file, position_with_set_optional);
 
    silo::NucPosition deserialized_position(std::nullopt);

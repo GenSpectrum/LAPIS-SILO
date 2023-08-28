@@ -8,12 +8,12 @@
 
 #include <nlohmann/json_fwd.hpp>
 
+#include "silo/common/aa_symbols.h"
 #include "silo/query_engine/filter_expressions/expression.h"
 
 namespace silo {
 class Database;
 class DatabasePartition;
-enum class AA_SYMBOL : char;
 
 namespace query_engine::operators {
 class Operator;
@@ -25,12 +25,12 @@ namespace silo::query_engine::filter_expressions {
 struct AASymbolEquals : public Expression {
    std::string aa_sequence_name;
    uint32_t position;
-   std::optional<AA_SYMBOL> value;
+   std::optional<AminoAcid::Symbol> value;
 
    explicit AASymbolEquals(
       std::string aa_sequence_name,
       uint32_t position,
-      std::optional<AA_SYMBOL> value
+      std::optional<AminoAcid::Symbol> value
    );
 
    [[nodiscard]] std::string toString(const Database& database) const override;

@@ -82,11 +82,11 @@ class DatabasePartition {
    void insertColumn(const std::string& name, storage::column::FloatColumnPartition& column);
    void insertColumn(
       const std::string& name,
-      storage::column::InsertionColumnPartition<NUCLEOTIDE_SYMBOL>& column
+      storage::column::InsertionColumnPartition<Nucleotide>& column
    );
    void insertColumn(
       const std::string& name,
-      storage::column::InsertionColumnPartition<AA_SYMBOL>& column
+      storage::column::InsertionColumnPartition<AminoAcid>& column
    );
 };
 

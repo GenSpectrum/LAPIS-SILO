@@ -1,124 +1,128 @@
 #include "silo/common/aa_symbols.h"
 
-char silo::Util<silo::AA_SYMBOL>::symbolToChar(silo::AA_SYMBOL symbol) {
+#include <cassert>
+
+char silo::AminoAcid::symbolToChar(silo::AminoAcid::Symbol symbol) {
    switch (symbol) {
-      case AA_SYMBOL::GAP:
+      case AminoAcid::Symbol::GAP:
          return '-';
-      case AA_SYMBOL::A:
+      case AminoAcid::Symbol::A:
          return 'A';
-      case AA_SYMBOL::C:
+      case AminoAcid::Symbol::C:
          return 'C';
-      case AA_SYMBOL::D:
+      case AminoAcid::Symbol::D:
          return 'D';
-      case AA_SYMBOL::E:
+      case AminoAcid::Symbol::E:
          return 'E';
-      case AA_SYMBOL::F:
+      case AminoAcid::Symbol::F:
          return 'F';
-      case AA_SYMBOL::G:
+      case AminoAcid::Symbol::G:
          return 'G';
-      case AA_SYMBOL::H:
+      case AminoAcid::Symbol::H:
          return 'H';
-      case AA_SYMBOL::I:
+      case AminoAcid::Symbol::I:
          return 'I';
-      case AA_SYMBOL::K:
+      case AminoAcid::Symbol::K:
          return 'K';
-      case AA_SYMBOL::L:
+      case AminoAcid::Symbol::L:
          return 'L';
-      case AA_SYMBOL::N:
+      case AminoAcid::Symbol::N:
          return 'N';
-      case AA_SYMBOL::M:
+      case AminoAcid::Symbol::M:
          return 'M';
-      case AA_SYMBOL::P:
+      case AminoAcid::Symbol::P:
          return 'P';
-      case AA_SYMBOL::Q:
+      case AminoAcid::Symbol::Q:
          return 'Q';
-      case AA_SYMBOL::R:
+      case AminoAcid::Symbol::R:
          return 'R';
-      case AA_SYMBOL::S:
+      case AminoAcid::Symbol::S:
          return 'S';
-      case AA_SYMBOL::T:
+      case AminoAcid::Symbol::T:
          return 'T';
-      case AA_SYMBOL::V:
+      case AminoAcid::Symbol::V:
          return 'V';
-      case AA_SYMBOL::W:
+      case AminoAcid::Symbol::W:
          return 'W';
-      case AA_SYMBOL::Y:
+      case AminoAcid::Symbol::Y:
          return 'Y';
-      case AA_SYMBOL::B:
+      case AminoAcid::Symbol::B:
          return 'B';
-      case AA_SYMBOL::Z:
+      case AminoAcid::Symbol::Z:
          return 'Z';
-      case AA_SYMBOL::X:
+      case AminoAcid::Symbol::X:
          return 'X';
-      case AA_SYMBOL::STOP:
+      case AminoAcid::Symbol::STOP:
          return '*';
    }
+   assert(false);
+   return 'X';
 }
 
-std::optional<silo::AA_SYMBOL> silo::Util<silo::AA_SYMBOL>::charToSymbol(char character) {
+std::optional<silo::AminoAcid::Symbol> silo::AminoAcid::charToSymbol(char character) {
    switch (character) {
       case '-':
-         return AA_SYMBOL::GAP;
+         return AminoAcid::Symbol::GAP;
       case 'A':
-         return AA_SYMBOL::A;
+         return AminoAcid::Symbol::A;
       case 'C':
-         return AA_SYMBOL::C;
+         return AminoAcid::Symbol::C;
       case 'D':
-         return AA_SYMBOL::D;
+         return AminoAcid::Symbol::D;
       case 'E':
-         return AA_SYMBOL::E;
+         return AminoAcid::Symbol::E;
       case 'F':
-         return AA_SYMBOL::F;
+         return AminoAcid::Symbol::F;
       case 'G':
-         return AA_SYMBOL::G;
+         return AminoAcid::Symbol::G;
       case 'H':
-         return AA_SYMBOL::H;
+         return AminoAcid::Symbol::H;
       case 'I':
-         return AA_SYMBOL::I;
+         return AminoAcid::Symbol::I;
       case 'K':
-         return AA_SYMBOL::K;
+         return AminoAcid::Symbol::K;
       case 'L':
-         return AA_SYMBOL::L;
+         return AminoAcid::Symbol::L;
       case 'N':
-         return AA_SYMBOL::N;
+         return AminoAcid::Symbol::N;
       case 'M':
-         return AA_SYMBOL::M;
+         return AminoAcid::Symbol::M;
       case 'P':
-         return AA_SYMBOL::P;
+         return AminoAcid::Symbol::P;
       case 'Q':
-         return AA_SYMBOL::Q;
+         return AminoAcid::Symbol::Q;
       case 'R':
-         return AA_SYMBOL::R;
+         return AminoAcid::Symbol::R;
       case 'S':
-         return AA_SYMBOL::S;
+         return AminoAcid::Symbol::S;
       case 'T':
-         return AA_SYMBOL::T;
+         return AminoAcid::Symbol::T;
       case 'V':
-         return AA_SYMBOL::V;
+         return AminoAcid::Symbol::V;
       case 'W':
-         return AA_SYMBOL::W;
+         return AminoAcid::Symbol::W;
       case 'Y':
-         return AA_SYMBOL::Y;
+         return AminoAcid::Symbol::Y;
       case 'B':
-         return AA_SYMBOL::B;
+         return AminoAcid::Symbol::B;
       case 'Z':
-         return AA_SYMBOL::Z;
+         return AminoAcid::Symbol::Z;
       case 'X':
-         return AA_SYMBOL::X;
+         return AminoAcid::Symbol::X;
       case '*':
-         return AA_SYMBOL::STOP;
+         return AminoAcid::Symbol::STOP;
       default:
          return std::nullopt;
    }
 }
 
-std::optional<std::vector<silo::AA_SYMBOL>> silo::Util<silo::AA_SYMBOL>::stringToSymbolVector(
+std::optional<std::vector<silo::AminoAcid::Symbol>> silo::AminoAcid::stringToSymbolVector(
    const std::string& nucleotides
 ) {
    const size_t size = nucleotides.size();
-   std::vector<silo::AA_SYMBOL> result(size);
+   std::vector<silo::AminoAcid::Symbol> result(size);
    for (size_t i = 0; i < size; ++i) {
-      auto symbol = Util<silo::AA_SYMBOL>::charToSymbol(nucleotides[i]);
+      auto symbol = silo::AminoAcid::charToSymbol(nucleotides[i]);
       if (symbol == std::nullopt) {
          return std::nullopt;
       }
@@ -127,9 +131,9 @@ std::optional<std::vector<silo::AA_SYMBOL>> silo::Util<silo::AA_SYMBOL>::stringT
    return result;
 }
 
-std::optional<char> silo::Util<silo::AA_SYMBOL>::findIllegalChar(const std::string& sequence) {
+std::optional<char> silo::AminoAcid::findIllegalChar(const std::string& sequence) {
    for (const auto aa_char : sequence) {
-      auto symbol = Util<silo::AA_SYMBOL>::charToSymbol(aa_char);
+      auto symbol = silo::AminoAcid::charToSymbol(aa_char);
       if (symbol == std::nullopt) {
          return aa_char;
       }

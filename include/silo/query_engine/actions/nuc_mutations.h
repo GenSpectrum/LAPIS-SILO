@@ -31,12 +31,12 @@ class NucMutations : public Action {
    std::optional<std::string> nuc_sequence_name;
    double min_proportion;
 
-   static constexpr std::array<NUCLEOTIDE_SYMBOL, 5> VALID_MUTATION_SYMBOLS{
-      NUCLEOTIDE_SYMBOL::GAP,
-      NUCLEOTIDE_SYMBOL::A,
-      NUCLEOTIDE_SYMBOL::C,
-      NUCLEOTIDE_SYMBOL::G,
-      NUCLEOTIDE_SYMBOL::T,
+   static constexpr std::array<Nucleotide::Symbol, 5> VALID_MUTATION_SYMBOLS{
+      Nucleotide::Symbol::GAP,
+      Nucleotide::Symbol::A,
+      Nucleotide::Symbol::C,
+      Nucleotide::Symbol::G,
+      Nucleotide::Symbol::T,
    };
 
    const std::string POSITION_FIELD_NAME = "position";
@@ -60,10 +60,10 @@ class NucMutations : public Action {
    static void addMutationsCountsForPosition(
       uint32_t position,
       PrefilteredBitmaps& bitmaps_to_evaluate,
-      SymbolMap<NUCLEOTIDE_SYMBOL, std::vector<uint32_t>>& count_of_mutations_per_position
+      SymbolMap<Nucleotide, std::vector<uint32_t>>& count_of_mutations_per_position
    );
 
-   static SymbolMap<NUCLEOTIDE_SYMBOL, std::vector<uint32_t>> calculateMutationsPerPosition(
+   static SymbolMap<Nucleotide, std::vector<uint32_t>> calculateMutationsPerPosition(
       const SequenceStore& seq_store,
       std::vector<OperatorResult>& bitmap_filter
    );

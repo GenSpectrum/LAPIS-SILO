@@ -42,13 +42,13 @@ class NucPosition {
    NucPosition() = default;
 
   public:
-   explicit NucPosition(NUCLEOTIDE_SYMBOL symbol);
-   explicit NucPosition(std::optional<NUCLEOTIDE_SYMBOL> symbol);
+   explicit NucPosition(Nucleotide::Symbol symbol);
+   explicit NucPosition(std::optional<Nucleotide::Symbol> symbol);
 
-   SymbolMap<NUCLEOTIDE_SYMBOL, roaring::Roaring> bitmaps;
-   std::optional<NUCLEOTIDE_SYMBOL> symbol_whose_bitmap_is_flipped;
+   SymbolMap<Nucleotide, roaring::Roaring> bitmaps;
+   std::optional<Nucleotide::Symbol> symbol_whose_bitmap_is_flipped;
 
-   std::optional<silo::NUCLEOTIDE_SYMBOL> flipMostNumerousBitmap(uint32_t sequence_count);
+   std::optional<Nucleotide::Symbol> flipMostNumerousBitmap(uint32_t sequence_count);
 };
 
 struct SequenceStoreInfo {
@@ -75,17 +75,18 @@ class SequenceStorePartition {
    void fillNBitmaps(const std::vector<std::string>& genomes);
 
   public:
-   explicit SequenceStorePartition(const std::vector<NUCLEOTIDE_SYMBOL>& reference_genome);
+   explicit SequenceStorePartition(const std::vector<Nucleotide::Symbol>& reference_genome);
 
-   const std::vector<NUCLEOTIDE_SYMBOL>& reference_genome;
-   std::vector<std::pair<size_t, NUCLEOTIDE_SYMBOL>> indexing_differences_to_reference_genome;
+   const std::vector<Nucleotide::Symbol>& reference_genome;
+   std::vector<std::pair<size_t, Nucleotide::Symbol>> indexing_differences_to_reference_genome;
    std::vector<NucPosition> positions;
    std::vector<roaring::Roaring> nucleotide_symbol_n_bitmaps;
    uint32_t sequence_count = 0;
 
    [[nodiscard]] size_t computeSize() const;
 
-   [[nodiscard]] const roaring::Roaring* getBitmap(size_t position, NUCLEOTIDE_SYMBOL symbol) const;
+   [[nodiscard]] const roaring::Roaring* getBitmap(size_t position, Nucleotide::Symbol symbol)
+      const;
 
    [[nodiscard]] SequenceStoreInfo getInfo() const;
 
@@ -96,10 +97,10 @@ class SequenceStorePartition {
 
 class SequenceStore {
   public:
-   std::vector<NUCLEOTIDE_SYMBOL> reference_genome;
+   std::vector<Nucleotide::Symbol> reference_genome;
    std::deque<SequenceStorePartition> partitions;
 
-   explicit SequenceStore(std::vector<NUCLEOTIDE_SYMBOL> reference_genome);
+   explicit SequenceStore(std::vector<Nucleotide::Symbol> reference_genome);
 
    SequenceStorePartition& createPartition();
 };

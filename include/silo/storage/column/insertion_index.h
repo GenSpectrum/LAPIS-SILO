@@ -42,7 +42,7 @@ class Insertion {
    roaring::Roaring sequence_ids;
 };
 
-template <typename Symbol>
+template <typename SymbolType>
 class InsertionPosition {
   private:
    friend class boost::serialization::access;
@@ -59,11 +59,11 @@ class InsertionPosition {
 
   public:
    std::vector<Insertion> insertions;
-   typename NestedContainer<THREE_DIMENSIONS, silo::SymbolMap, Symbol, InsertionIds>::type
+   typename NestedContainer<THREE_DIMENSIONS, silo::SymbolMap, SymbolType, InsertionIds>::type
       three_mer_index;
 
    std::unique_ptr<roaring::Roaring> searchWithThreeMerIndex(
-      const std::vector<std::array<Symbol, 3>>& search_three_mers,
+      const std::vector<std::array<typename SymbolType::Symbol, 3>>& search_three_mers,
       const std::regex& search_pattern
    ) const;
 
@@ -74,7 +74,7 @@ class InsertionPosition {
    std::unique_ptr<roaring::Roaring> search(const std::string& search_pattern) const;
 };
 
-template <typename Symbol>
+template <typename SymbolType>
 class InsertionIndex {
   private:
    friend class boost::serialization::access;
@@ -87,7 +87,7 @@ class InsertionIndex {
       // clang-format on
    }
 
-   std::unordered_map<uint32_t, InsertionPosition<Symbol>> insertion_positions;
+   std::unordered_map<uint32_t, InsertionPosition<SymbolType>> insertion_positions;
    std::unordered_map<uint32_t, std::unordered_map<std::string, roaring::Roaring>>
       collected_insertions;
 
@@ -96,7 +96,7 @@ class InsertionIndex {
 
    void buildIndex();
 
-   const std::unordered_map<uint32_t, InsertionPosition<Symbol>>& getInsertionPositions() const;
+   const std::unordered_map<uint32_t, InsertionPosition<SymbolType>>& getInsertionPositions() const;
 
    std::unique_ptr<roaring::Roaring> search(uint32_t position, const std::string& search_pattern)
       const;

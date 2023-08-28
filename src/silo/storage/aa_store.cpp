@@ -13,20 +13,22 @@
 #include "silo/common/zstdfasta_reader.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
-silo::AAPosition::AAPosition(AA_SYMBOL symbol) {
+silo::AAPosition::AAPosition(silo::AminoAcid::Symbol symbol) {
    symbol_whose_bitmap_is_flipped = symbol;
 }
 
-silo::AAPosition::AAPosition(std::optional<AA_SYMBOL> symbol) {
+silo::AAPosition::AAPosition(std::optional<silo::AminoAcid::Symbol> symbol) {
    symbol_whose_bitmap_is_flipped = symbol;
 }
 
-std::optional<silo::AA_SYMBOL> silo::AAPosition::flipMostNumerousBitmap(uint32_t sequence_count) {
-   std::optional<AA_SYMBOL> previous_flipped_bitmap_symbol = symbol_whose_bitmap_is_flipped;
-   std::optional<AA_SYMBOL> new_flipped_bitmap_symbol = std::nullopt;
+std::optional<silo::AminoAcid::Symbol> silo::AAPosition::flipMostNumerousBitmap(
+   uint32_t sequence_count
+) {
+   std::optional<AminoAcid::Symbol> previous_flipped_bitmap_symbol = symbol_whose_bitmap_is_flipped;
+   std::optional<AminoAcid::Symbol> new_flipped_bitmap_symbol = std::nullopt;
    uint32_t max_count = 0;
 
-   for (const auto& symbol : Util<AA_SYMBOL>::symbols) {
+   for (const auto& symbol : AminoAcid::SYMBOLS) {
       roaring::Roaring bitmap = bitmaps.at(symbol);
       bitmap.runOptimize();
       bitmap.shrinkToFit();
@@ -55,13 +57,13 @@ std::optional<silo::AA_SYMBOL> silo::AAPosition::flipMostNumerousBitmap(uint32_t
    return std::nullopt;
 }
 
-silo::AAStorePartition::AAStorePartition(const std::vector<AA_SYMBOL>& reference_sequence)
+silo::AAStorePartition::AAStorePartition(const std::vector<AminoAcid::Symbol>& reference_sequence)
     : reference_sequence(reference_sequence) {}
 
 size_t silo::AAStorePartition::fill(silo::ZstdFastaReader& input_file) {
    static constexpr size_t BUFFER_SIZE = 1024;
 
-   for (const AA_SYMBOL symbol : reference_sequence) {
+   for (const AminoAcid::Symbol symbol : reference_sequence) {
       positions.emplace_back(symbol);
    }
 
@@ -89,7 +91,8 @@ size_t silo::AAStorePartition::fill(silo::ZstdFastaReader& input_file) {
    return read_sequences_count;
 }
 
-const roaring::Roaring* silo::AAStorePartition::getBitmap(size_t position, AA_SYMBOL symbol) const {
+const roaring::Roaring* silo::AAStorePartition::getBitmap(size_t position, AminoAcid::Symbol symbol)
+   const {
    return &positions[position].bitmaps.at(symbol);
 }
 
@@ -99,25 +102,25 @@ void silo::AAStorePartition::fillIndexes(const std::vector<std::string>& sequenc
    tbb::parallel_for(
       tbb::blocked_range<size_t>(0, genome_length, genome_length / COUNT_SYMBOLS_PER_PROCESSOR),
       [&](const auto& local) {
-         SymbolMap<AA_SYMBOL, std::vector<uint32_t>> ids_per_symbol_for_current_position;
+         SymbolMap<AminoAcid, std::vector<uint32_t>> ids_per_symbol_for_current_position;
          for (size_t position = local.begin(); position != local.end(); ++position) {
             const size_t number_of_sequences = sequences.size();
             for (size_t sequence_id = 0; sequence_id < number_of_sequences; ++sequence_id) {
                const char character = sequences[sequence_id][position];
-               const auto symbol = Util<AA_SYMBOL>::charToSymbol(character);
+               const auto symbol = AminoAcid::charToSymbol(character);
                if (!symbol.has_value()) {
                   throw PreprocessingException(
                      "Found invalid symbol in Amino Acid sequence: " + std::to_string(character) +
                      "\nFull sequence: " + sequences[sequence_id]
                   );
                }
-               if (symbol != AA_SYMBOL::X) {
+               if (symbol != AminoAcid::Symbol::X) {
                   ids_per_symbol_for_current_position[*symbol].push_back(
                      sequence_count + sequence_id
                   );
                }
             }
-            for (const AA_SYMBOL symbol : Util<AA_SYMBOL>::symbols) {
+            for (const AminoAcid::Symbol symbol : AminoAcid::SYMBOLS) {
                if (!ids_per_symbol_for_current_position.at(symbol).empty()) {
                   positions[position].bitmaps[symbol].addMany(
                      ids_per_symbol_for_current_position.at(symbol).size(),
@@ -147,8 +150,8 @@ void silo::AAStorePartition::fillXBitmaps(const std::vector<std::string>& sequen
          for (size_t position = 0; position < genome_length; ++position) {
             const char character = sequences[sequence_id][position];
             // No need to check the cast because we call fillIndexes first
-            const auto symbol = Util<AA_SYMBOL>::charToSymbol(character);
-            if (symbol == AA_SYMBOL::X) {
+            const auto symbol = AminoAcid::charToSymbol(character);
+            if (symbol == AminoAcid::Symbol::X) {
                positions_with_aa_symbol_x.push_back(position);
             }
          }
@@ -170,7 +173,7 @@ void silo::AAStorePartition::interpret(const std::vector<std::string>& sequences
    sequence_count += sequences.size();
 }
 
-silo::AAStore::AAStore(std::vector<AA_SYMBOL> reference_sequence)
+silo::AAStore::AAStore(std::vector<AminoAcid::Symbol> reference_sequence)
     : reference_sequence(std::move(reference_sequence)) {}
 
 silo::AAStorePartition& silo::AAStore::createPartition() {

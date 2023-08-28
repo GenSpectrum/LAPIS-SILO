@@ -27,16 +27,16 @@ using silo::query_engine::OperatorResult;
 
 namespace silo::query_engine::actions {
 
-template <typename Symbol>
-InsertionAggregation<Symbol>::InsertionAggregation(
+template <typename SymbolType>
+InsertionAggregation<SymbolType>::InsertionAggregation(
    std::string column,
    std::vector<std::string>&& sequence_names
 )
     : column_name(std::move(column)),
       sequence_names(std::move(sequence_names)) {}
 
-template <typename Symbol>
-void InsertionAggregation<Symbol>::validateOrderByFields(const Database& /*database*/) const {
+template <typename SymbolType>
+void InsertionAggregation<SymbolType>::validateOrderByFields(const Database& /*database*/) const {
    const std::vector<std::string> result_field_names{
       {std::string{POSITION_FIELD_NAME},
        std::string{INSERTION_FIELD_NAME},
@@ -56,8 +56,8 @@ void InsertionAggregation<Symbol>::validateOrderByFields(const Database& /*datab
 }
 
 template <>
-std::unordered_map<std::string, InsertionAggregation<AA_SYMBOL>::PrefilteredBitmaps>
-InsertionAggregation<AA_SYMBOL>::validateFieldsAndPreFilterBitmaps(
+std::unordered_map<std::string, InsertionAggregation<AminoAcid>::PrefilteredBitmaps>
+InsertionAggregation<AminoAcid>::validateFieldsAndPreFilterBitmaps(
    const Database& database,
    std::vector<OperatorResult>& bitmap_filter
 ) const {
@@ -99,8 +99,8 @@ InsertionAggregation<AA_SYMBOL>::validateFieldsAndPreFilterBitmaps(
 }
 
 template <>
-std::unordered_map<std::string, InsertionAggregation<NUCLEOTIDE_SYMBOL>::PrefilteredBitmaps>
-InsertionAggregation<NUCLEOTIDE_SYMBOL>::validateFieldsAndPreFilterBitmaps(
+std::unordered_map<std::string, InsertionAggregation<Nucleotide>::PrefilteredBitmaps>
+InsertionAggregation<Nucleotide>::validateFieldsAndPreFilterBitmaps(
    const Database& database,
    std::vector<OperatorResult>& bitmap_filter
 ) const {
@@ -173,8 +173,8 @@ struct std::hash<PositionAndInsertion> {
 
 namespace silo::query_engine::actions {
 
-template <typename Symbol>
-void InsertionAggregation<Symbol>::addAggregatedInsertionsToInsertionCounts(
+template <typename SymbolType>
+void InsertionAggregation<SymbolType>::addAggregatedInsertionsToInsertionCounts(
    std::vector<QueryResultEntry>& output,
    const std::string& sequence_name,
    const PrefilteredBitmaps& prefiltered_bitmaps
@@ -210,14 +210,14 @@ void InsertionAggregation<Symbol>::addAggregatedInsertionsToInsertionCounts(
    }
 }
 
-template <typename Symbol>
-QueryResult InsertionAggregation<Symbol>::execute(
+template <typename SymbolType>
+QueryResult InsertionAggregation<SymbolType>::execute(
    const Database& database,
    std::vector<OperatorResult> bitmap_filter
 ) const {
    using storage::column::insertion::InsertionIndex;
 
-   std::unordered_map<std::string, InsertionAggregation<Symbol>::PrefilteredBitmaps>
+   std::unordered_map<std::string, InsertionAggregation<SymbolType>::PrefilteredBitmaps>
       bitmaps_to_evaluate = validateFieldsAndPreFilterBitmaps(database, bitmap_filter);
 
    std::vector<QueryResultEntry> insertion_counts;
@@ -229,9 +229,12 @@ QueryResult InsertionAggregation<Symbol>::execute(
    return {insertion_counts};
 }
 
-template <typename Symbol>
+template <typename SymbolType>
 // NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<InsertionAggregation<Symbol>>& action) {
+void from_json(
+   const nlohmann::json& json,
+   std::unique_ptr<InsertionAggregation<SymbolType>>& action
+) {
    CHECK_SILO_QUERY(
       !json.contains("sequenceName") ||
          (json["sequenceName"].is_string() || json["sequenceName"].is_array()),
@@ -259,20 +262,20 @@ void from_json(const nlohmann::json& json, std::unique_ptr<InsertionAggregation<
    )
    const std::string column = json["column"].get<std::string>();
 
-   action = std::make_unique<InsertionAggregation<Symbol>>(column, std::move(sequence_names));
+   action = std::make_unique<InsertionAggregation<SymbolType>>(column, std::move(sequence_names));
 }
 
-template void from_json<AA_SYMBOL>(
+template void from_json<AminoAcid>(
    const nlohmann::json& json,
-   std::unique_ptr<InsertionAggregation<AA_SYMBOL>>& action
+   std::unique_ptr<InsertionAggregation<AminoAcid>>& action
 );
 
-template void from_json<NUCLEOTIDE_SYMBOL>(
+template void from_json<Nucleotide>(
    const nlohmann::json& json,
-   std::unique_ptr<InsertionAggregation<NUCLEOTIDE_SYMBOL>>& action
+   std::unique_ptr<InsertionAggregation<Nucleotide>>& action
 );
 
-template class InsertionAggregation<NUCLEOTIDE_SYMBOL>;
-template class InsertionAggregation<AA_SYMBOL>;
+template class InsertionAggregation<Nucleotide>;
+template class InsertionAggregation<AminoAcid>;
 
 }  // namespace silo::query_engine::actions

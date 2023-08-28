@@ -80,9 +80,9 @@ class ColumnPartitionGroup {
    std::map<std::string, storage::column::FloatColumnPartition&> float_columns;
    std::map<std::string, storage::column::DateColumnPartition&> date_columns;
    std::map<std::string, storage::column::PangoLineageColumnPartition&> pango_lineage_columns;
-   std::map<std::string, storage::column::InsertionColumnPartition<NUCLEOTIDE_SYMBOL>&>
+   std::map<std::string, storage::column::InsertionColumnPartition<Nucleotide>&>
       nuc_insertion_columns;
-   std::map<std::string, storage::column::InsertionColumnPartition<AA_SYMBOL>&>
+   std::map<std::string, storage::column::InsertionColumnPartition<AminoAcid>&>
       aa_insertion_columns;
 
    uint32_t fill(
@@ -99,8 +99,8 @@ class ColumnPartitionGroup {
       uint32_t sequence_id
    ) const;
 
-   template <typename Symbol>
-   const std::map<std::string, storage::column::InsertionColumnPartition<Symbol>&>&
+   template <typename SymbolType>
+   const std::map<std::string, storage::column::InsertionColumnPartition<SymbolType>&>&
    getInsertionColumns() const;
 };
 
@@ -146,8 +146,8 @@ class ColumnGroup {
    std::map<std::string, storage::column::FloatColumn> float_columns;
    std::map<std::string, storage::column::DateColumn> date_columns;
    std::map<std::string, storage::column::PangoLineageColumn> pango_lineage_columns;
-   std::map<std::string, storage::column::InsertionColumn<NUCLEOTIDE_SYMBOL>> nuc_insertion_columns;
-   std::map<std::string, storage::column::InsertionColumn<AA_SYMBOL>> aa_insertion_columns;
+   std::map<std::string, storage::column::InsertionColumn<Nucleotide>> nuc_insertion_columns;
+   std::map<std::string, storage::column::InsertionColumn<AminoAcid>> aa_insertion_columns;
 };
 
 }  // namespace silo::storage

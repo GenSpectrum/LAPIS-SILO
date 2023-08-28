@@ -59,14 +59,14 @@ uint32_t ColumnPartitionGroup::fill(
 }
 
 template <>
-const std::map<std::string, storage::column::InsertionColumnPartition<NUCLEOTIDE_SYMBOL>&>&
-ColumnPartitionGroup::getInsertionColumns<NUCLEOTIDE_SYMBOL>() const {
+const std::map<std::string, storage::column::InsertionColumnPartition<Nucleotide>&>&
+ColumnPartitionGroup::getInsertionColumns<Nucleotide>() const {
    return this->nuc_insertion_columns;
 }
 
 template <>
-const std::map<std::string, storage::column::InsertionColumnPartition<AA_SYMBOL>&>&
-ColumnPartitionGroup::getInsertionColumns<AA_SYMBOL>() const {
+const std::map<std::string, storage::column::InsertionColumnPartition<AminoAcid>&>&
+ColumnPartitionGroup::getInsertionColumns<AminoAcid>() const {
    return this->aa_insertion_columns;
 }
 

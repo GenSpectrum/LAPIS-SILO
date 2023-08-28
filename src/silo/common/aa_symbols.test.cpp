@@ -2,19 +2,19 @@
 
 #include <gtest/gtest.h>
 
-TEST(AA_SYMBOL, enumShouldHaveSameLengthAsArrayOfSymbols) {
-   EXPECT_EQ(silo::Util<silo::AA_SYMBOL>::count, silo::Util<silo::AA_SYMBOL>::symbols.size());
+TEST(AminoAcidSymbol, enumShouldHaveSameLengthAsArrayOfSymbols) {
+   EXPECT_EQ(silo::AminoAcid::COUNT, silo::AminoAcid::SYMBOLS.size());
 }
 
-TEST(AA_SYMBOL, conversionFromCharacter) {
-   EXPECT_EQ(silo::Util<silo::AA_SYMBOL>::charToSymbol('-'), silo::AA_SYMBOL::GAP);
-   EXPECT_EQ(silo::Util<silo::AA_SYMBOL>::charToSymbol('A'), silo::AA_SYMBOL::A);
-   EXPECT_EQ(silo::Util<silo::AA_SYMBOL>::charToSymbol('N'), silo::AA_SYMBOL::N);
-   EXPECT_EQ(silo::Util<silo::AA_SYMBOL>::charToSymbol('J'), std::nullopt);
-   EXPECT_EQ(silo::Util<silo::AA_SYMBOL>::charToSymbol(')'), std::nullopt);
+TEST(AminoAcidSymbol, conversionFromCharacter) {
+   EXPECT_EQ(silo::AminoAcid::charToSymbol('-'), silo::AminoAcid::Symbol::GAP);
+   EXPECT_EQ(silo::AminoAcid::charToSymbol('A'), silo::AminoAcid::Symbol::A);
+   EXPECT_EQ(silo::AminoAcid::charToSymbol('N'), silo::AminoAcid::Symbol::N);
+   EXPECT_EQ(silo::AminoAcid::charToSymbol('J'), std::nullopt);
+   EXPECT_EQ(silo::AminoAcid::charToSymbol(')'), std::nullopt);
 }
 
-TEST(AA_SYMBOL, findIllegalAminoAcidChar) {
-   EXPECT_EQ(silo::Util<silo::AA_SYMBOL>::findIllegalChar("ACGT"), std::nullopt);
-   EXPECT_EQ(silo::Util<silo::AA_SYMBOL>::findIllegalChar("ACGTJ"), 'J');
+TEST(AminoAcidSymbol, findIllegalAminoAcidChar) {
+   EXPECT_EQ(silo::AminoAcid::findIllegalChar("ACGT"), std::nullopt);
+   EXPECT_EQ(silo::AminoAcid::findIllegalChar("ACGTJ"), 'J');
 }

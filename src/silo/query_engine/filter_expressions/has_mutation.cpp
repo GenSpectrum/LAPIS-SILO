@@ -50,7 +50,7 @@ std::unique_ptr<operators::Operator> HasMutation::compile(
          nuc_sequence_name_or_default + "'"
    )
 
-   const NUCLEOTIDE_SYMBOL ref_symbol =
+   const Nucleotide::Symbol ref_symbol =
       database.nuc_sequences.at(nuc_sequence_name_or_default).reference_genome.at(position);
 
    if (mode == UPPER_BOUND) {
@@ -60,11 +60,11 @@ std::unique_ptr<operators::Operator> HasMutation::compile(
       return expression->compile(database, database_partition, NONE);
    }
 
-   std::vector<NUCLEOTIDE_SYMBOL> symbols = {
-      NUCLEOTIDE_SYMBOL::A,
-      NUCLEOTIDE_SYMBOL::C,
-      NUCLEOTIDE_SYMBOL::G,
-      NUCLEOTIDE_SYMBOL::T,
+   std::vector<Nucleotide::Symbol> symbols = {
+      Nucleotide::Symbol::A,
+      Nucleotide::Symbol::C,
+      Nucleotide::Symbol::G,
+      Nucleotide::Symbol::T,
    };
    (void)std::remove(symbols.begin(), symbols.end(), ref_symbol);
    std::vector<std::unique_ptr<filter_expressions::Expression>> symbol_filters;
@@ -72,7 +72,7 @@ std::unique_ptr<operators::Operator> HasMutation::compile(
       symbols.begin(),
       symbols.end(),
       std::back_inserter(symbol_filters),
-      [&](NUCLEOTIDE_SYMBOL symbol) {
+      [&](Nucleotide::Symbol symbol) {
          return std::make_unique<NucleotideSymbolEquals>(
             nuc_sequence_name_or_default, position, symbol
          );

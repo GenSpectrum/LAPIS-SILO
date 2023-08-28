@@ -19,7 +19,7 @@ class Operator;
 
 namespace silo::query_engine::filter_expressions {
 
-template <typename Symbol>
+template <typename SymbolType>
 struct InsertionContains : public Expression {
   private:
    std::string column_name;
@@ -44,9 +44,9 @@ struct InsertionContains : public Expression {
    ) const override;
 };
 
-template <typename Symbol>
+template <typename SymbolType>
 // NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains<Symbol>>& filter);
+void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains<SymbolType>>& filter);
 
 }  // namespace silo::query_engine::filter_expressions
 

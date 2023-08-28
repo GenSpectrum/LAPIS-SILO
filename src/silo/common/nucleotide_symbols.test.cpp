@@ -2,22 +2,19 @@
 
 #include <gtest/gtest.h>
 
-TEST(NUCLEOTIDE_SYMBOL, enumShouldHaveSameLengthAsArrayOfSymbols) {
-   EXPECT_EQ(
-      silo::Util<silo::NUCLEOTIDE_SYMBOL>::count,
-      silo::Util<silo::NUCLEOTIDE_SYMBOL>::symbols.size()
-   );
+TEST(NucleotideSymbol, enumShouldHaveSameLengthAsArrayOfSymbols) {
+   EXPECT_EQ(silo::Nucleotide::COUNT, silo::Nucleotide::SYMBOLS.size());
 }
 
-TEST(NUCLEOTIDE_SYMBOL, conversionFromCharacter) {
-   EXPECT_EQ(silo::Util<silo::NUCLEOTIDE_SYMBOL>::charToSymbol('.'), silo::NUCLEOTIDE_SYMBOL::GAP);
-   EXPECT_EQ(silo::Util<silo::NUCLEOTIDE_SYMBOL>::charToSymbol('-'), silo::NUCLEOTIDE_SYMBOL::GAP);
-   EXPECT_EQ(silo::Util<silo::NUCLEOTIDE_SYMBOL>::charToSymbol('A'), silo::NUCLEOTIDE_SYMBOL::A);
-   EXPECT_EQ(silo::Util<silo::NUCLEOTIDE_SYMBOL>::charToSymbol('N'), silo::NUCLEOTIDE_SYMBOL::N);
-   EXPECT_EQ(silo::Util<silo::NUCLEOTIDE_SYMBOL>::charToSymbol('X'), std::nullopt);
+TEST(NucleotideSymbol, conversionFromCharacter) {
+   EXPECT_EQ(silo::Nucleotide::charToSymbol('.'), silo::Nucleotide::Symbol::GAP);
+   EXPECT_EQ(silo::Nucleotide::charToSymbol('-'), silo::Nucleotide::Symbol::GAP);
+   EXPECT_EQ(silo::Nucleotide::charToSymbol('A'), silo::Nucleotide::Symbol::A);
+   EXPECT_EQ(silo::Nucleotide::charToSymbol('N'), silo::Nucleotide::Symbol::N);
+   EXPECT_EQ(silo::Nucleotide::charToSymbol('X'), std::nullopt);
 }
 
-TEST(NUCLEOTIDE_SYMBOL, findIllegalNucleotideChar) {
-   EXPECT_EQ(silo::Util<silo::NUCLEOTIDE_SYMBOL>::findIllegalChar("ACGT"), std::nullopt);
-   EXPECT_EQ(silo::Util<silo::NUCLEOTIDE_SYMBOL>::findIllegalChar("ACGTZ"), 'Z');
+TEST(NucleotideSymbol, findIllegalNucleotideChar) {
+   EXPECT_EQ(silo::Nucleotide::findIllegalChar("ACGT"), std::nullopt);
+   EXPECT_EQ(silo::Nucleotide::findIllegalChar("ACGTZ"), 'Z');
 }

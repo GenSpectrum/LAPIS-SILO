@@ -1,92 +1,96 @@
 #include "silo/common/nucleotide_symbols.h"
 
+#include <cassert>
+
 namespace silo {
 
-char Util<NUCLEOTIDE_SYMBOL>::symbolToChar(NUCLEOTIDE_SYMBOL symbol) {
+char Nucleotide::symbolToChar(Nucleotide::Symbol symbol) {
    switch (symbol) {
-      case NUCLEOTIDE_SYMBOL::GAP:
+      case Symbol::GAP:
          return '-';
-      case NUCLEOTIDE_SYMBOL::A:
+      case Symbol::A:
          return 'A';
-      case NUCLEOTIDE_SYMBOL::C:
+      case Symbol::C:
          return 'C';
-      case NUCLEOTIDE_SYMBOL::G:
+      case Symbol::G:
          return 'G';
-      case NUCLEOTIDE_SYMBOL::T:
+      case Symbol::T:
          return 'T';
-      case NUCLEOTIDE_SYMBOL::R:
+      case Symbol::R:
          return 'R';
-      case NUCLEOTIDE_SYMBOL::Y:
+      case Symbol::Y:
          return 'Y';
-      case NUCLEOTIDE_SYMBOL::S:
+      case Symbol::S:
          return 'S';
-      case NUCLEOTIDE_SYMBOL::W:
+      case Symbol::W:
          return 'W';
-      case NUCLEOTIDE_SYMBOL::K:
+      case Symbol::K:
          return 'K';
-      case NUCLEOTIDE_SYMBOL::M:
+      case Symbol::M:
          return 'M';
-      case NUCLEOTIDE_SYMBOL::B:
+      case Symbol::B:
          return 'B';
-      case NUCLEOTIDE_SYMBOL::D:
+      case Symbol::D:
          return 'D';
-      case NUCLEOTIDE_SYMBOL::H:
+      case Symbol::H:
          return 'H';
-      case NUCLEOTIDE_SYMBOL::V:
+      case Symbol::V:
          return 'V';
-      case NUCLEOTIDE_SYMBOL::N:
+      case Symbol::N:
          return 'N';
    }
+   assert(false);
+   return 'N';
 }
 
-std::optional<NUCLEOTIDE_SYMBOL> Util<NUCLEOTIDE_SYMBOL>::charToSymbol(char character) {
+std::optional<Nucleotide::Symbol> Nucleotide::charToSymbol(char character) {
    switch (character) {
       case '.':
       case '-':
-         return NUCLEOTIDE_SYMBOL::GAP;
+         return Symbol::GAP;
       case 'A':
-         return NUCLEOTIDE_SYMBOL::A;
+         return Symbol::A;
       case 'C':
-         return NUCLEOTIDE_SYMBOL::C;
+         return Symbol::C;
       case 'G':
-         return NUCLEOTIDE_SYMBOL::G;
+         return Symbol::G;
       case 'T':
       case 'U':
-         return NUCLEOTIDE_SYMBOL::T;
+         return Symbol::T;
       case 'R':
-         return NUCLEOTIDE_SYMBOL::R;
+         return Symbol::R;
       case 'Y':
-         return NUCLEOTIDE_SYMBOL::Y;
+         return Symbol::Y;
       case 'S':
-         return NUCLEOTIDE_SYMBOL::S;
+         return Symbol::S;
       case 'W':
-         return NUCLEOTIDE_SYMBOL::W;
+         return Symbol::W;
       case 'K':
-         return NUCLEOTIDE_SYMBOL::K;
+         return Symbol::K;
       case 'M':
-         return NUCLEOTIDE_SYMBOL::M;
+         return Symbol::M;
       case 'B':
-         return NUCLEOTIDE_SYMBOL::B;
+         return Symbol::B;
       case 'D':
-         return NUCLEOTIDE_SYMBOL::D;
+         return Symbol::D;
       case 'H':
-         return NUCLEOTIDE_SYMBOL::H;
+         return Symbol::H;
       case 'V':
-         return NUCLEOTIDE_SYMBOL::V;
+         return Symbol::V;
       case 'N':
-         return NUCLEOTIDE_SYMBOL::N;
+         return Symbol::N;
       default:
          return std::nullopt;
    }
 }
 
-std::optional<std::vector<NUCLEOTIDE_SYMBOL>> Util<NUCLEOTIDE_SYMBOL>::stringToSymbolVector(
+std::optional<std::vector<Nucleotide::Symbol>> Nucleotide::stringToSymbolVector(
    const std::string& sequence
 ) {
    const size_t size = sequence.size();
-   std::vector<NUCLEOTIDE_SYMBOL> result(size);
+   std::vector<Symbol> result(size);
    for (size_t i = 0; i < size; ++i) {
-      auto symbol = Util<NUCLEOTIDE_SYMBOL>::charToSymbol(sequence[i]);
+      auto symbol = Nucleotide::charToSymbol(sequence[i]);
       if (symbol == std::nullopt) {
          return std::nullopt;
       }
@@ -95,9 +99,9 @@ std::optional<std::vector<NUCLEOTIDE_SYMBOL>> Util<NUCLEOTIDE_SYMBOL>::stringToS
    return result;
 }
 
-std::optional<char> Util<NUCLEOTIDE_SYMBOL>::findIllegalChar(const std::string& sequence) {
+std::optional<char> Nucleotide::findIllegalChar(const std::string& sequence) {
    for (const auto nuc_char : sequence) {
-      auto symbol = Util<NUCLEOTIDE_SYMBOL>::charToSymbol(nuc_char);
+      auto symbol = Nucleotide::charToSymbol(nuc_char);
       if (symbol == std::nullopt) {
          return nuc_char;
       }

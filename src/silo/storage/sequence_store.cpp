@@ -15,22 +15,22 @@
 #include "silo/common/zstdfasta_reader.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
-silo::NucPosition::NucPosition(NUCLEOTIDE_SYMBOL symbol) {
+silo::NucPosition::NucPosition(Nucleotide::Symbol symbol) {
    symbol_whose_bitmap_is_flipped = symbol;
 }
 
-silo::NucPosition::NucPosition(std::optional<NUCLEOTIDE_SYMBOL> symbol) {
+silo::NucPosition::NucPosition(std::optional<Nucleotide::Symbol> symbol) {
    symbol_whose_bitmap_is_flipped = symbol;
 }
 
-std::optional<silo::NUCLEOTIDE_SYMBOL> silo::NucPosition::flipMostNumerousBitmap(
+std::optional<silo::Nucleotide::Symbol> silo::NucPosition::flipMostNumerousBitmap(
    uint32_t sequence_count
 ) {
-   std::optional<NUCLEOTIDE_SYMBOL> flipped_bitmap_before = symbol_whose_bitmap_is_flipped;
-   std::optional<NUCLEOTIDE_SYMBOL> max_symbol = std::nullopt;
+   std::optional<Nucleotide::Symbol> flipped_bitmap_before = symbol_whose_bitmap_is_flipped;
+   std::optional<Nucleotide::Symbol> max_symbol = std::nullopt;
    uint32_t max_count = 0;
 
-   for (const auto& symbol : Util<NUCLEOTIDE_SYMBOL>::symbols) {
+   for (const auto& symbol : Nucleotide::SYMBOLS) {
       roaring::Roaring& bitmap = bitmaps[symbol];
       bitmap.runOptimize();
       bitmap.shrinkToFit();
@@ -59,14 +59,14 @@ std::optional<silo::NUCLEOTIDE_SYMBOL> silo::NucPosition::flipMostNumerousBitmap
 }
 
 silo::SequenceStorePartition::SequenceStorePartition(
-   const std::vector<NUCLEOTIDE_SYMBOL>& reference_genome
+   const std::vector<Nucleotide::Symbol>& reference_genome
 )
     : reference_genome(reference_genome) {}
 
 size_t silo::SequenceStorePartition::fill(silo::ZstdFastaReader& input_file) {
    static constexpr size_t BUFFER_SIZE = 1024;
 
-   for (const NUCLEOTIDE_SYMBOL symbol : reference_genome) {
+   for (const Nucleotide::Symbol symbol : reference_genome) {
       positions.emplace_back(symbol);
    }
 
@@ -118,7 +118,7 @@ silo::SequenceStoreInfo silo::SequenceStorePartition::getInfo() const {
 
 const roaring::Roaring* silo::SequenceStorePartition::getBitmap(
    size_t position,
-   NUCLEOTIDE_SYMBOL symbol
+   Nucleotide::Symbol symbol
 ) const {
    return &positions[position].bitmaps.at(symbol);
 }
@@ -129,24 +129,24 @@ void silo::SequenceStorePartition::fillIndexes(const std::vector<std::string>& g
    tbb::parallel_for(
       tbb::blocked_range<size_t>(0, genome_length, genome_length / COUNT_SYMBOLS_PER_PROCESSOR),
       [&](const auto& local) {
-         SymbolMap<NUCLEOTIDE_SYMBOL, std::vector<uint32_t>> ids_per_symbol_for_current_position;
+         SymbolMap<Nucleotide, std::vector<uint32_t>> ids_per_symbol_for_current_position;
          for (size_t position = local.begin(); position != local.end(); ++position) {
             const size_t number_of_sequences = genomes.size();
             for (size_t sequence_id = 0; sequence_id < number_of_sequences; ++sequence_id) {
                char const character = genomes[sequence_id][position];
-               const auto symbol = Util<NUCLEOTIDE_SYMBOL>::charToSymbol(character);
+               const auto symbol = Nucleotide::charToSymbol(character);
                if (!symbol.has_value()) {
                   throw PreprocessingException(
                      "Illegal character " + std::to_string(character) + " contained in sequence."
                   );
                }
-               if (symbol != NUCLEOTIDE_SYMBOL::N) {
+               if (symbol != Nucleotide::Symbol::N) {
                   ids_per_symbol_for_current_position[*symbol].push_back(
                      sequence_count + sequence_id
                   );
                }
             }
-            for (const auto& symbol : Util<NUCLEOTIDE_SYMBOL>::symbols) {
+            for (const auto& symbol : Nucleotide::SYMBOLS) {
                if (!ids_per_symbol_for_current_position.at(symbol).empty()) {
                   positions[position].bitmaps[symbol].addMany(
                      ids_per_symbol_for_current_position.at(symbol).size(),
@@ -177,8 +177,8 @@ void silo::SequenceStorePartition::fillNBitmaps(const std::vector<std::string>& 
       for (size_t genome = local.begin(); genome != local.end(); ++genome) {
          for (size_t position = 0; position < genome_length; ++position) {
             char const character = genomes[genome][position];
-            const auto symbol = Util<NUCLEOTIDE_SYMBOL>::charToSymbol(character);
-            if (symbol == NUCLEOTIDE_SYMBOL::N) {
+            const auto symbol = Nucleotide::charToSymbol(character);
+            if (symbol == Nucleotide::Symbol::N) {
                positions_with_nucleotide_symbol_n.push_back(position);
             }
          }
@@ -202,14 +202,14 @@ void silo::SequenceStorePartition::interpret(const std::vector<std::string>& gen
 size_t silo::SequenceStorePartition::computeSize() const {
    size_t result = 0;
    for (const auto& position : positions) {
-      for (const NUCLEOTIDE_SYMBOL symbol : Util<NUCLEOTIDE_SYMBOL>::symbols) {
+      for (const Nucleotide::Symbol symbol : Nucleotide::SYMBOLS) {
          result += position.bitmaps.at(symbol).getSizeInBytes(false);
       }
    }
    return result;
 }
 
-silo::SequenceStore::SequenceStore(std::vector<NUCLEOTIDE_SYMBOL> reference_genome)
+silo::SequenceStore::SequenceStore(std::vector<Nucleotide::Symbol> reference_genome)
     : reference_genome(std::move(reference_genome)) {}
 
 silo::SequenceStorePartition& silo::SequenceStore::createPartition() {

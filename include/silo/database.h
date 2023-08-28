@@ -64,7 +64,7 @@ class Database {
    void setDataVersion(const DataVersion& data_version);
    virtual DataVersion getDataVersion() const;
 
-   template <typename Symbol>
+   template <typename SymbolType>
    std::optional<std::string> getDefaultSequenceName() const;
 
    virtual query_engine::QueryResult executeQuery(const std::string& query) const;
@@ -79,17 +79,17 @@ class Database {
       const ReferenceGenomes& reference_genomes
    );
 
-   std::map<std::string, std::vector<NUCLEOTIDE_SYMBOL>> getNucSequences() const;
+   std::map<std::string, std::vector<Nucleotide::Symbol>> getNucSequences() const;
 
-   std::map<std::string, std::vector<AA_SYMBOL>> getAASequences() const;
+   std::map<std::string, std::vector<AminoAcid::Symbol>> getAASequences() const;
 
    void initializeColumns();
    void initializeColumn(config::ColumnType column_type, const std::string& name);
    void initializeNucSequences(
-      const std::map<std::string, std::vector<NUCLEOTIDE_SYMBOL>>& reference_sequences
+      const std::map<std::string, std::vector<Nucleotide::Symbol>>& reference_sequences
    );
    void initializeAASequences(
-      const std::map<std::string, std::vector<AA_SYMBOL>>& reference_sequences
+      const std::map<std::string, std::vector<AminoAcid::Symbol>>& reference_sequences
    );
    void finalizeInsertionIndexes();
 

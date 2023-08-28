@@ -33,27 +33,27 @@ class AAMutations : public Action {
    std::vector<std::string> aa_sequence_names;
    double min_proportion;
 
-   static constexpr std::array<AA_SYMBOL, 20> VALID_MUTATION_SYMBOLS{
-      AA_SYMBOL::A,  // Alanine
-      AA_SYMBOL::C,  // Cysteine
-      AA_SYMBOL::D,  // Aspartic Acid
-      AA_SYMBOL::E,  // Glutamic Acid
-      AA_SYMBOL::F,  // Phenylalanine
-      AA_SYMBOL::G,  // Glycine
-      AA_SYMBOL::H,  // Histidine
-      AA_SYMBOL::I,  // Isoleucine
-      AA_SYMBOL::K,  // Lysine
-      AA_SYMBOL::L,  // Leucine
-      AA_SYMBOL::M,  // Methionine
-      AA_SYMBOL::N,  // Asparagine
-      AA_SYMBOL::P,  // Proline
-      AA_SYMBOL::Q,  // Glutamine
-      AA_SYMBOL::R,  // Arginine
-      AA_SYMBOL::S,  // Serine
-      AA_SYMBOL::T,  // Threonine
-      AA_SYMBOL::V,  // Valine
-      AA_SYMBOL::W,  // Tryptophan
-      AA_SYMBOL::Y,  // Tyrosine
+   static constexpr std::array<AminoAcid::Symbol, 20> VALID_MUTATION_SYMBOLS{
+      AminoAcid::Symbol::A,  // Alanine
+      AminoAcid::Symbol::C,  // Cysteine
+      AminoAcid::Symbol::D,  // Aspartic Acid
+      AminoAcid::Symbol::E,  // Glutamic Acid
+      AminoAcid::Symbol::F,  // Phenylalanine
+      AminoAcid::Symbol::G,  // Glycine
+      AminoAcid::Symbol::H,  // Histidine
+      AminoAcid::Symbol::I,  // Isoleucine
+      AminoAcid::Symbol::K,  // Lysine
+      AminoAcid::Symbol::L,  // Leucine
+      AminoAcid::Symbol::M,  // Methionine
+      AminoAcid::Symbol::N,  // Asparagine
+      AminoAcid::Symbol::P,  // Proline
+      AminoAcid::Symbol::Q,  // Glutamine
+      AminoAcid::Symbol::R,  // Arginine
+      AminoAcid::Symbol::S,  // Serine
+      AminoAcid::Symbol::T,  // Threonine
+      AminoAcid::Symbol::V,  // Valine
+      AminoAcid::Symbol::W,  // Tryptophan
+      AminoAcid::Symbol::Y,  // Tyrosine
    };
 
    const std::string POSITION_FIELD_NAME = "position";
@@ -78,10 +78,10 @@ class AAMutations : public Action {
    static void addMutationsCountsForPosition(
       uint32_t position,
       const PrefilteredBitmaps& bitmaps_to_evaluate,
-      SymbolMap<AA_SYMBOL, std::vector<uint32_t>>& count_of_mutations_per_position
+      SymbolMap<AminoAcid, std::vector<uint32_t>>& count_of_mutations_per_position
    );
 
-   static SymbolMap<AA_SYMBOL, std::vector<uint32_t>> calculateMutationsPerPosition(
+   static SymbolMap<AminoAcid, std::vector<uint32_t>> calculateMutationsPerPosition(
       const AAStore& aa_store,
       const PrefilteredBitmaps& bitmap_filter
    );

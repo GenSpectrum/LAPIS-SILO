@@ -10,7 +10,7 @@
 
 namespace silo {
 
-template <typename Symbol, typename T>
+template <typename SymbolType, typename T>
 class SymbolMap {
    friend class boost::serialization::access;
 
@@ -22,12 +22,16 @@ class SymbolMap {
       // clang-format on
    }
 
-   std::array<T, Util<Symbol>::count> data;
+   std::array<T, SymbolType::COUNT> data;
 
   public:
-   T& operator[](Symbol symbol) { return data.at(static_cast<uint8_t>(symbol)); }
+   T& operator[](typename SymbolType::Symbol symbol) {
+      return data.at(static_cast<uint8_t>(symbol));
+   }
 
-   const T& at(Symbol symbol) const { return data.at(static_cast<uint8_t>(symbol)); }
+   const T& at(typename SymbolType::Symbol symbol) const {
+      return data.at(static_cast<uint8_t>(symbol));
+   }
 };
 
 }  // namespace silo

@@ -10,7 +10,7 @@ struct QueryResultEntry;
 
 namespace actions {
 
-template <typename Symbol>
+template <typename SymbolType>
 class InsertionAggregation : public Action {
    static constexpr std::string_view POSITION_FIELD_NAME = "position";
    static constexpr std::string_view INSERTION_FIELD_NAME = "insertions";
@@ -23,11 +23,11 @@ class InsertionAggregation : public Action {
    struct PrefilteredBitmaps {
       std::vector<std::pair<
          const OperatorResult&,
-         const silo::storage::column::insertion::InsertionIndex<Symbol>&>>
+         const silo::storage::column::insertion::InsertionIndex<SymbolType>&>>
          bitmaps;
       std::vector<std::pair<
          const OperatorResult&,
-         const silo::storage::column::insertion::InsertionIndex<Symbol>&>>
+         const silo::storage::column::insertion::InsertionIndex<SymbolType>&>>
          full_bitmaps;
    };
 
@@ -37,7 +37,7 @@ class InsertionAggregation : public Action {
       const PrefilteredBitmaps& prefiltered_bitmaps
    ) const;
 
-   std::unordered_map<std::string, InsertionAggregation<Symbol>::PrefilteredBitmaps>
+   std::unordered_map<std::string, InsertionAggregation<SymbolType>::PrefilteredBitmaps>
    validateFieldsAndPreFilterBitmaps(
       const Database& database,
       std::vector<OperatorResult>& bitmap_filter
@@ -54,9 +54,12 @@ class InsertionAggregation : public Action {
    ) const override;
 };
 
-template <typename Symbol>
+template <typename SymbolType>
 // NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<InsertionAggregation<Symbol>>& action);
+void from_json(
+   const nlohmann::json& json,
+   std::unique_ptr<InsertionAggregation<SymbolType>>& action
+);
 
 }  // namespace actions
 }  // namespace silo::query_engine

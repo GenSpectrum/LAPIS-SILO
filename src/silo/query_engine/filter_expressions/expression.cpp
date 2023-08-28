@@ -5,6 +5,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include "silo/common/aa_symbols.h"
+#include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/filter_expressions/aa_symbol_equals.h"
 #include "silo/query_engine/filter_expressions/and.h"
 #include "silo/query_engine/filter_expressions/date_between.h"
@@ -89,9 +91,9 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) 
    } else if (expression_type == "Exact") {
       filter = json.get<std::unique_ptr<Exact>>();
    } else if (expression_type == "InsertionContains") {
-      filter = json.get<std::unique_ptr<InsertionContains<NUCLEOTIDE_SYMBOL>>>();
+      filter = json.get<std::unique_ptr<InsertionContains<Nucleotide>>>();
    } else if (expression_type == "AminoAcidInsertionContains") {
-      filter = json.get<std::unique_ptr<InsertionContains<AA_SYMBOL>>>();
+      filter = json.get<std::unique_ptr<InsertionContains<AminoAcid>>>();
    } else {
       throw QueryParseException("Unknown object filter type '" + expression_type + "'");
    }

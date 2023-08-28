@@ -40,9 +40,9 @@ ReferenceGenomes::ReferenceGenomes(
     : raw_nucleotide_sequences(std::move(raw_nucleotide_sequences_)),
       raw_aa_sequences(std::move(raw_aa_sequences_)) {
    for (const auto& [sequence_name, raw_nucleotide_sequence] : raw_nucleotide_sequences) {
-      std::vector<NUCLEOTIDE_SYMBOL> nucleotide_sequence;
+      std::vector<Nucleotide::Symbol> nucleotide_sequence;
       for (const char character : raw_nucleotide_sequence) {
-         auto symbol = Util<NUCLEOTIDE_SYMBOL>::charToSymbol(character);
+         auto symbol = Nucleotide::charToSymbol(character);
 
          if (!symbol.has_value()) {
             throw PreprocessingException(
@@ -57,10 +57,10 @@ ReferenceGenomes::ReferenceGenomes(
    }
 
    for (const auto& [sequence_name, raw_aa_sequence] : raw_aa_sequences) {
-      std::vector<AA_SYMBOL> aa_sequence;
+      std::vector<AminoAcid::Symbol> aa_sequence;
 
       for (const char character : raw_aa_sequence) {
-         auto symbol = Util<AA_SYMBOL>::charToSymbol(character);
+         auto symbol = AminoAcid::charToSymbol(character);
 
          if (!symbol.has_value()) {
             throw PreprocessingException(

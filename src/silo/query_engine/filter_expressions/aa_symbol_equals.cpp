@@ -28,14 +28,14 @@ namespace silo::query_engine::filter_expressions {
 AASymbolEquals::AASymbolEquals(
    std::string aa_sequence_name,
    uint32_t position,
-   std::optional<AA_SYMBOL> value
+   std::optional<AminoAcid::Symbol> value
 )
     : aa_sequence_name(std::move(aa_sequence_name)),
       position(position),
       value(value) {}
 
 std::string AASymbolEquals::toString(const silo::Database& /*database*/) const {
-   const char symbol_char = value.has_value() ? Util<AA_SYMBOL>::symbolToChar(*value) : '.';
+   const char symbol_char = value.has_value() ? AminoAcid::symbolToChar(*value) : '.';
    return aa_sequence_name + ":" + std::to_string(position + 1) + std::to_string(symbol_char);
 }
 
@@ -51,8 +51,9 @@ std::unique_ptr<silo::query_engine::operators::Operator> AASymbolEquals::compile
          std::to_string(aa_store_partition.reference_sequence.size()) + "'"
       );
    }
-   const AA_SYMBOL aa_symbol = value.value_or(aa_store_partition.reference_sequence.at(position));
-   if (aa_symbol == AA_SYMBOL::X) {
+   const AminoAcid::Symbol aa_symbol =
+      value.value_or(aa_store_partition.reference_sequence.at(position));
+   if (aa_symbol == AminoAcid::Symbol::X) {
       return std::make_unique<operators::BitmapSelection>(
          aa_store_partition.aa_symbol_x_bitmaps.data(),
          aa_store_partition.aa_symbol_x_bitmaps.size(),
@@ -99,7 +100,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<AASymbolEquals>& filt
    CHECK_SILO_QUERY(
       aa_char.size() == 1, "The string field 'symbol' must be exactly one character long"
    )
-   const std::optional<AA_SYMBOL> aa_value = Util<AA_SYMBOL>::charToSymbol(aa_char.at(0));
+   const std::optional<AminoAcid::Symbol> aa_value = AminoAcid::charToSymbol(aa_char.at(0));
    CHECK_SILO_QUERY(
       aa_value.has_value() || aa_char.at(0) == '.',
       "The string field 'symbol' must be either a valid amino acid or the '.' symbol."

@@ -45,8 +45,8 @@ InsertionEntry parseInsertion(
 }
 }  // namespace
 
-template <typename Symbol>
-InsertionColumnPartition<Symbol>::InsertionColumnPartition(
+template <typename SymbolType>
+InsertionColumnPartition<SymbolType>::InsertionColumnPartition(
    common::BidirectionalMap<std::string>& lookup,
    const std::optional<std::string>& default_sequence_name
 
@@ -54,8 +54,8 @@ InsertionColumnPartition<Symbol>::InsertionColumnPartition(
     : lookup(lookup),
       default_sequence_name(default_sequence_name) {}
 
-template <typename Symbol>
-void InsertionColumnPartition<Symbol>::insert(const std::string& value) {
+template <typename SymbolType>
+void InsertionColumnPartition<SymbolType>::insert(const std::string& value) {
    const auto sequence_id = values.size();
 
    const Idx value_id = lookup.getOrCreateId(value);
@@ -69,27 +69,27 @@ void InsertionColumnPartition<Symbol>::insert(const std::string& value) {
       auto [sequence_name, position, insertion] =
          parseInsertion(insertion_entry, default_sequence_name);
       auto& insertion_index =
-         insertion_indexes.emplace(sequence_name, insertion::InsertionIndex<Symbol>{})
+         insertion_indexes.emplace(sequence_name, insertion::InsertionIndex<SymbolType>{})
             .first->second;
       insertion_index.addLazily(position, insertion, sequence_id);
    }
 }
 
-template <typename Symbol>
-void InsertionColumnPartition<Symbol>::buildInsertionIndexes() {
+template <typename SymbolType>
+void InsertionColumnPartition<SymbolType>::buildInsertionIndexes() {
    for (auto& [_, insertion_index] : insertion_indexes) {
       insertion_index.buildIndex();
    }
 }
 
-template <typename Symbol>
-const std::unordered_map<std::string, insertion::InsertionIndex<Symbol>>& InsertionColumnPartition<
-   Symbol>::getInsertionIndexes() const {
+template <typename SymbolType>
+const std::unordered_map<std::string, insertion::InsertionIndex<SymbolType>>&
+InsertionColumnPartition<SymbolType>::getInsertionIndexes() const {
    return insertion_indexes;
 }
 
-template <typename Symbol>
-std::unique_ptr<roaring::Roaring> InsertionColumnPartition<Symbol>::search(
+template <typename SymbolType>
+std::unique_ptr<roaring::Roaring> InsertionColumnPartition<SymbolType>::search(
    const std::string& sequence_name,
    uint32_t position,
    const std::string& search_pattern
@@ -100,30 +100,30 @@ std::unique_ptr<roaring::Roaring> InsertionColumnPartition<Symbol>::search(
    return insertion_indexes.at(sequence_name).search(position, search_pattern);
 }
 
-template <typename Symbol>
-const std::vector<silo::Idx>& InsertionColumnPartition<Symbol>::getValues() const {
+template <typename SymbolType>
+const std::vector<silo::Idx>& InsertionColumnPartition<SymbolType>::getValues() const {
    return values;
 }
 
-template <typename Symbol>
-std::string InsertionColumnPartition<Symbol>::lookupValue(silo::Idx value_id) const {
+template <typename SymbolType>
+std::string InsertionColumnPartition<SymbolType>::lookupValue(silo::Idx value_id) const {
    return lookup.getValue(value_id);
 }
 
-template <typename Symbol>
-InsertionColumn<Symbol>::InsertionColumn(std::optional<std::string> default_sequence_name)
+template <typename SymbolType>
+InsertionColumn<SymbolType>::InsertionColumn(std::optional<std::string> default_sequence_name)
     : default_sequence_name(default_sequence_name) {
    lookup = std::make_unique<silo::common::BidirectionalMap<std::string>>();
 }
 
-template <typename Symbol>
-InsertionColumnPartition<Symbol>& InsertionColumn<Symbol>::createPartition() {
+template <typename SymbolType>
+InsertionColumnPartition<SymbolType>& InsertionColumn<SymbolType>::createPartition() {
    return partitions.emplace_back(*lookup, default_sequence_name);
 }
 
-template class InsertionColumnPartition<AA_SYMBOL>;
-template class InsertionColumnPartition<NUCLEOTIDE_SYMBOL>;
-template class InsertionColumn<AA_SYMBOL>;
-template class InsertionColumn<NUCLEOTIDE_SYMBOL>;
+template class InsertionColumnPartition<AminoAcid>;
+template class InsertionColumnPartition<Nucleotide>;
+template class InsertionColumn<AminoAcid>;
+template class InsertionColumn<Nucleotide>;
 
 }  // namespace silo::storage::column
