@@ -11,7 +11,6 @@
 #include <boost/serialization/map.hpp>
 
 #include "silo/preprocessing/partition.h"
-#include "silo/storage/aa_store.h"
 #include "silo/storage/column_group.h"
 #include "silo/storage/sequence_store.h"
 
@@ -22,8 +21,6 @@ class access;
 }  // namespace boost
 
 namespace silo {
-class AAStorePartition;
-class SequenceStorePartition;
 
 class DatabasePartition {
    friend class boost::serialization::
@@ -61,8 +58,8 @@ class DatabasePartition {
 
   public:
    storage::ColumnPartitionGroup columns;
-   std::map<std::string, SequenceStorePartition&> nuc_sequences;
-   std::map<std::string, AAStorePartition&> aa_sequences;
+   std::map<std::string, SequenceStorePartition<Nucleotide>&> nuc_sequences;
+   std::map<std::string, SequenceStorePartition<AminoAcid>&> aa_sequences;
    uint32_t sequence_count = 0;
 
    explicit DatabasePartition(std::vector<silo::preprocessing::Chunk> chunks);

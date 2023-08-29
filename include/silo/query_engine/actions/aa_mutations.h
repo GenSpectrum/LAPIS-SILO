@@ -15,11 +15,8 @@
 #include "silo/common/symbol_map.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/query_result.h"
+#include "silo/storage/sequence_store.h"
 
-namespace silo {
-class AAStore;
-class AAStorePartition;
-}  // namespace silo
 namespace silo {
 class Database;
 }  // namespace silo
@@ -62,8 +59,10 @@ class AAMutations : public Action {
    const std::string COUNT_FIELD_NAME = "count";
 
    struct PrefilteredBitmaps {
-      std::vector<std::pair<const OperatorResult&, const silo::AAStorePartition&>> bitmaps;
-      std::vector<std::pair<const OperatorResult&, const silo::AAStorePartition&>> full_bitmaps;
+      std::vector<std::pair<const OperatorResult&, const silo::SequenceStorePartition<AminoAcid>&>>
+         bitmaps;
+      std::vector<std::pair<const OperatorResult&, const silo::SequenceStorePartition<AminoAcid>&>>
+         full_bitmaps;
    };
 
   public:
@@ -82,13 +81,13 @@ class AAMutations : public Action {
    );
 
    static SymbolMap<AminoAcid, std::vector<uint32_t>> calculateMutationsPerPosition(
-      const AAStore& aa_store,
+      const SequenceStore<AminoAcid>& aa_store,
       const PrefilteredBitmaps& bitmap_filter
    );
 
    void addMutationsToOutput(
       const std::string& sequence_name,
-      const AAStore& aa_store,
+      const SequenceStore<AminoAcid>& aa_store,
       const PrefilteredBitmaps& bitmap_filter,
       std::vector<QueryResultEntry>& output
    ) const;

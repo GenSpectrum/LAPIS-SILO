@@ -19,7 +19,7 @@
 #include "silo/query_engine/filter_expressions/or.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_parse_exception.h"
-#include "silo/storage/aa_store.h"
+#include "silo/storage/sequence_store.h"
 
 namespace silo {
 class DatabasePartition;

@@ -51,7 +51,7 @@ std::unique_ptr<operators::Operator> HasMutation::compile(
    )
 
    const Nucleotide::Symbol ref_symbol =
-      database.nuc_sequences.at(nuc_sequence_name_or_default).reference_genome.at(position);
+      database.nuc_sequences.at(nuc_sequence_name_or_default).reference_sequence.at(position);
 
    if (mode == UPPER_BOUND) {
       auto expression = std::make_unique<Negation>(std::make_unique<NucleotideSymbolEquals>(

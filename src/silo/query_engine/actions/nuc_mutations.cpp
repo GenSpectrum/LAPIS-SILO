@@ -31,12 +31,13 @@ NucMutations::NucMutations(std::optional<std::string> nuc_sequence_name, double 
       min_proportion(min_proportion) {}
 
 NucMutations::PrefilteredBitmaps NucMutations::preFilterBitmaps(
-   const silo::SequenceStore& seq_store,
+   const silo::SequenceStore<Nucleotide>& seq_store,
    std::vector<OperatorResult>& bitmap_filter
 ) {
    PrefilteredBitmaps bitmaps_to_evaluate;
    for (size_t i = 0; i < seq_store.partitions.size(); ++i) {
-      const silo::SequenceStorePartition& seq_store_partition = seq_store.partitions.at(i);
+      const silo::SequenceStorePartition<Nucleotide>& seq_store_partition =
+         seq_store.partitions.at(i);
       OperatorResult& filter = bitmap_filter[i];
       const size_t cardinality = filter->cardinality();
       if (cardinality == 0) {
@@ -88,10 +89,10 @@ void NucMutations::addMutationsCountsForPosition(
 }
 
 SymbolMap<Nucleotide, std::vector<uint32_t>> NucMutations::calculateMutationsPerPosition(
-   const SequenceStore& seq_store,
+   const SequenceStore<Nucleotide>& seq_store,
    std::vector<OperatorResult>& bitmap_filter
 ) {
-   const size_t genome_length = seq_store.reference_genome.size();
+   const size_t genome_length = seq_store.reference_sequence.size();
 
    PrefilteredBitmaps bitmaps_to_evaluate = preFilterBitmaps(seq_store, bitmap_filter);
 
@@ -140,9 +141,10 @@ QueryResult NucMutations::execute(
          nuc_sequence_name_or_default + "'"
    )
 
-   const SequenceStore& seq_store = database.nuc_sequences.at(nuc_sequence_name_or_default);
+   const SequenceStore<Nucleotide>& seq_store =
+      database.nuc_sequences.at(nuc_sequence_name_or_default);
 
-   const size_t genome_length = seq_store.reference_genome.size();
+   const size_t genome_length = seq_store.reference_sequence.size();
 
    const SymbolMap<Nucleotide, std::vector<uint32_t>> count_of_mutations_per_position =
       calculateMutationsPerPosition(seq_store, bitmap_filter);
@@ -159,7 +161,7 @@ QueryResult NucMutations::execute(
       const auto threshold_count =
          static_cast<uint32_t>(std::ceil(static_cast<double>(total) * min_proportion) - 1);
 
-      const Nucleotide::Symbol symbol_in_reference_genome = seq_store.reference_genome.at(pos);
+      const Nucleotide::Symbol symbol_in_reference_genome = seq_store.reference_sequence.at(pos);
 
       for (const auto symbol : VALID_MUTATION_SYMBOLS) {
          if (symbol_in_reference_genome != symbol) {

@@ -16,8 +16,8 @@
 #include "silo/query_engine/operators/index_scan.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_parse_exception.h"
-#include "silo/storage/aa_store.h"
 #include "silo/storage/database_partition.h"
+#include "silo/storage/sequence_store.h"
 
 namespace silo {
 class Database;
@@ -53,10 +53,10 @@ std::unique_ptr<silo::query_engine::operators::Operator> AASymbolEquals::compile
    }
    const AminoAcid::Symbol aa_symbol =
       value.value_or(aa_store_partition.reference_sequence.at(position));
-   if (aa_symbol == AminoAcid::Symbol::X) {
+   if (aa_symbol == AminoAcid::SYMBOL_MISSING) {
       return std::make_unique<operators::BitmapSelection>(
-         aa_store_partition.aa_symbol_x_bitmaps.data(),
-         aa_store_partition.aa_symbol_x_bitmaps.size(),
+         aa_store_partition.missing_symbol_bitmaps.data(),
+         aa_store_partition.missing_symbol_bitmaps.size(),
          operators::BitmapSelection::CONTAINS,
          position
       );

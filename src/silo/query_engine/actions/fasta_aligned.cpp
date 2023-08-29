@@ -31,21 +31,22 @@ void FastaAligned::validateOrderByFields(const Database& database) const {
    }
 }
 
-std::string reconstructNucSequence(
-   const SequenceStorePartition& sequence_store,
+template <typename SymbolType>
+std::string reconstructSequence(
+   const SequenceStorePartition<SymbolType>& sequence_store,
    uint32_t sequence_id
 ) {
    std::string reconstructed_sequence;
    std::transform(
-      sequence_store.reference_genome.begin(),
-      sequence_store.reference_genome.end(),
+      sequence_store.reference_sequence.begin(),
+      sequence_store.reference_sequence.end(),
       std::back_inserter(reconstructed_sequence),
-      silo::Nucleotide::symbolToChar
+      SymbolType::symbolToChar
    );
 
    for (const auto& [position_id, symbol] :
-        sequence_store.indexing_differences_to_reference_genome) {
-      reconstructed_sequence[position_id] = Nucleotide::symbolToChar(symbol);
+        sequence_store.indexing_differences_to_reference_sequence) {
+      reconstructed_sequence[position_id] = SymbolType::symbolToChar(symbol);
    }
 
    tbb::
@@ -53,54 +54,19 @@ std::string reconstructNucSequence(
          tbb::blocked_range<size_t>(0, sequence_store.positions.size()),
          [&](const auto local) {
             for (auto position_id = local.begin(); position_id != local.end(); position_id++) {
-               const NucPosition& position = sequence_store.positions.at(position_id);
-               for (const Nucleotide::Symbol symbol : Nucleotide::SYMBOLS) {
+               const Position<SymbolType>& position = sequence_store.positions.at(position_id);
+               for (const auto symbol : SymbolType::SYMBOLS) {
                   if (symbol != position.symbol_whose_bitmap_is_flipped &&
                       position.bitmaps.at(symbol).contains(sequence_id)) {
-                     reconstructed_sequence[position_id] = Nucleotide::symbolToChar(symbol);
+                     reconstructed_sequence[position_id] = SymbolType::symbolToChar(symbol);
                   }
                }
             }
          }
       );
 
-   for (const size_t position : sequence_store.nucleotide_symbol_n_bitmaps.at(sequence_id)) {
-      reconstructed_sequence[position] = Nucleotide::symbolToChar(Nucleotide::Symbol::N);
-   }
-   return reconstructed_sequence;
-}
-
-std::string reconstructAASequence(const AAStorePartition& aa_store, uint32_t sequence_id) {
-   std::string reconstructed_sequence;
-   std::transform(
-      aa_store.reference_sequence.begin(),
-      aa_store.reference_sequence.end(),
-      std::back_inserter(reconstructed_sequence),
-      silo::AminoAcid::symbolToChar
-   );
-
-   for (const auto& [position_id, symbol] : aa_store.indexing_differences_to_reference_sequence) {
-      reconstructed_sequence[position_id] = AminoAcid::symbolToChar(symbol);
-   }
-
-   tbb::
-      parallel_for(
-         tbb::blocked_range<size_t>(0, aa_store.positions.size()),
-         [&](const auto local) {
-            for (auto position_id = local.begin(); position_id != local.end(); position_id++) {
-               const AAPosition& position = aa_store.positions.at(position_id);
-               for (const AminoAcid::Symbol symbol : AminoAcid::SYMBOLS) {
-                  if (symbol != position.symbol_whose_bitmap_is_flipped &&
-                      position.bitmaps.at(symbol).contains(sequence_id)) {
-                     reconstructed_sequence[position_id] = AminoAcid::symbolToChar(symbol);
-                  }
-               }
-            }
-         }
-      );
-
-   for (const size_t position : aa_store.aa_symbol_x_bitmaps.at(sequence_id)) {
-      reconstructed_sequence[position] = AminoAcid::symbolToChar(AminoAcid::Symbol::X);
+   for (const size_t position : sequence_store.missing_symbol_bitmaps.at(sequence_id)) {
+      reconstructed_sequence[position] = SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING);
    }
    return reconstructed_sequence;
 }
@@ -139,12 +105,14 @@ QueryResult FastaAligned::execute(
          for (const auto& nuc_sequence_name : nuc_sequence_names) {
             const auto& sequence_store = database_partition.nuc_sequences.at(nuc_sequence_name);
             entry.fields.emplace(
-               nuc_sequence_name, reconstructNucSequence(sequence_store, sequence_id)
+               nuc_sequence_name, reconstructSequence<Nucleotide>(sequence_store, sequence_id)
             );
          }
          for (const auto& aa_sequence_name : aa_sequence_names) {
             const auto& aa_store = database_partition.aa_sequences.at(aa_sequence_name);
-            entry.fields.emplace(aa_sequence_name, reconstructAASequence(aa_store, sequence_id));
+            entry.fields.emplace(
+               aa_sequence_name, reconstructSequence<AminoAcid>(aa_store, sequence_id)
+            );
          }
          results.query_result.emplace_back(entry);
       }

@@ -41,7 +41,6 @@
 #include "silo/preprocessing/partition.h"
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/query_engine/query_engine.h"
-#include "silo/storage/aa_store.h"
 #include "silo/storage/column/date_column.h"
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
@@ -190,7 +189,7 @@ DatabaseInfo Database::getDatabaseInfo() const {
          size_t local_nucleotide_symbol_n_bitmaps_size = 0;
          for (const auto& [_, seq_store] : database_partition.nuc_sequences) {
             local_total_size += seq_store.computeSize();
-            for (const auto& bitmap : seq_store.nucleotide_symbol_n_bitmaps) {
+            for (const auto& bitmap : seq_store.missing_symbol_bitmaps) {
                local_nucleotide_symbol_n_bitmaps_size += bitmap.getSizeInBytes(false);
             }
          }
@@ -267,14 +266,17 @@ BitmapSizePerSymbol::BitmapSizePerSymbol() {
    }
 }
 
-BitmapSizePerSymbol Database::calculateBitmapSizePerSymbol(const SequenceStore& seq_store) {
+template <typename SymbolType>
+BitmapSizePerSymbol Database::calculateBitmapSizePerSymbol(
+   const SequenceStore<SymbolType>& seq_store
+) {
    BitmapSizePerSymbol global_bitmap_size_per_symbol;
 
    std::mutex lock;
    tbb::parallel_for_each(Nucleotide::SYMBOLS, [&](Nucleotide::Symbol symbol) {
       BitmapSizePerSymbol bitmap_size_per_symbol;
 
-      for (const SequenceStorePartition& seq_store_partition : seq_store.partitions) {
+      for (const SequenceStorePartition<SymbolType>& seq_store_partition : seq_store.partitions) {
          for (const auto& position : seq_store_partition.positions) {
             bitmap_size_per_symbol.size_in_bytes[symbol] +=
                position.bitmaps.at(symbol).getSizeInBytes();
@@ -307,11 +309,12 @@ void addStatisticToBitmapContainerSize(
       statistic.n_values_bitset_containers;
 }
 
+template <typename SymbolType>
 BitmapContainerSize Database::calculateBitmapContainerSizePerGenomeSection(
-   const SequenceStore& seq_store,
+   const SequenceStore<SymbolType>& seq_store,
    size_t section_length
 ) {
-   const uint32_t genome_length = seq_store.reference_genome.size();
+   const uint32_t genome_length = seq_store.reference_sequence.size();
 
    BitmapContainerSize global_bitmap_container_size_per_genome_section(
       genome_length, section_length
@@ -339,7 +342,7 @@ BitmapContainerSize Database::calculateBitmapContainerSizePerGenomeSection(
                   bitmap.getFrozenSizeInBytes();
 
                if (statistic.n_bitset_containers > 0) {
-                  if (genome_symbol == Nucleotide::Symbol::N) {
+                  if (genome_symbol == Nucleotide::SYMBOL_MISSING) {
                      bitmap_container_size_per_genome_section.size_per_genome_symbol_and_section
                         .at("N")
                         .at(position_index / section_length) += statistic.n_bitset_containers;
@@ -371,7 +374,7 @@ DetailedDatabaseInfo Database::detailedDatabaseInfo() const {
       result.sequences.insert(
          {seq_name,
           {BitmapSizePerSymbol{},
-           BitmapContainerSize{seq_store.reference_genome.size(), DEFAULT_SECTION_LENGTH}}}
+           BitmapContainerSize{seq_store.reference_sequence.size(), DEFAULT_SECTION_LENGTH}}}
       );
       result.sequences.at(seq_name).bitmap_size_per_symbol =
          calculateBitmapSizePerSymbol(seq_store);
@@ -384,7 +387,7 @@ DetailedDatabaseInfo Database::detailedDatabaseInfo() const {
 std::map<std::string, std::vector<Nucleotide::Symbol>> Database::getNucSequences() const {
    std::map<std::string, std::vector<Nucleotide::Symbol>> nucleotide_sequences_map;
    for (const auto& [name, store] : nuc_sequences) {
-      nucleotide_sequences_map.emplace(name, store.reference_genome);
+      nucleotide_sequences_map.emplace(name, store.reference_sequence);
    }
    return nucleotide_sequences_map;
 }
@@ -769,8 +772,8 @@ void Database::initializeNucSequences(
    const std::map<std::string, std::vector<Nucleotide::Symbol>>& reference_sequences
 ) {
    SPDLOG_DEBUG("preprocessing - initializing nucleotide sequences");
-   for (const auto& [nuc_name, reference_genome] : reference_sequences) {
-      auto seq_store = SequenceStore(reference_genome);
+   for (const auto& [nuc_name, reference_sequence] : reference_sequences) {
+      auto seq_store = SequenceStore<Nucleotide>(reference_sequence);
       nuc_sequences.emplace(nuc_name, std::move(seq_store));
       for (auto& partition : partitions) {
          partition.nuc_sequences.insert({nuc_name, nuc_sequences.at(nuc_name).createPartition()});
@@ -782,8 +785,8 @@ void Database::initializeAASequences(
    const std::map<std::string, std::vector<AminoAcid::Symbol>>& reference_sequences
 ) {
    SPDLOG_DEBUG("preprocessing - initializing amino acid sequences");
-   for (const auto& [aa_name, reference_genome] : reference_sequences) {
-      auto aa_store = AAStore(reference_genome);
+   for (const auto& [aa_name, reference_sequence] : reference_sequences) {
+      auto aa_store = SequenceStore<AminoAcid>(reference_sequence);
       aa_sequences.emplace(aa_name, std::move(aa_store));
       for (auto& partition : partitions) {
          partition.aa_sequences.insert({aa_name, aa_sequences.at(aa_name).createPartition()});

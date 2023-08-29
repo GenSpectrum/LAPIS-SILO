@@ -52,6 +52,8 @@ class AminoAcid {
       Symbol::B,   Symbol::Z, Symbol::X, Symbol::STOP,
    };
 
+   static constexpr Symbol SYMBOL_MISSING = Symbol::X;
+
    static char symbolToChar(Symbol symbol);
 
    static std::optional<Symbol> charToSymbol(char character);

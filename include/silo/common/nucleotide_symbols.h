@@ -35,6 +35,11 @@ class Nucleotide {
 
    static constexpr uint32_t COUNT = static_cast<uint32_t>(Symbol::N) + 1;
 
+   static constexpr std::string_view SYMBOL_NAME = "Nucleotide";
+   static constexpr std::string_view SYMBOL_NAME_LOWER_CASE = "nucleotide";
+   static constexpr std::string_view SYMBOL_NAME_UPPER_CASE = "NUCLEOTIDE";
+   static constexpr std::string_view SYMBOL_NAME_SHORT = "NUC";
+
    static constexpr std::array<Symbol, COUNT> SYMBOLS{
       Symbol::GAP,
       Symbol::A,
@@ -54,10 +59,7 @@ class Nucleotide {
       Symbol::N,
    };
 
-   static constexpr std::string_view SYMBOL_NAME = "Nucleotide";
-   static constexpr std::string_view SYMBOL_NAME_LOWER_CASE = "nucleotide";
-   static constexpr std::string_view SYMBOL_NAME_UPPER_CASE = "NUCLEOTIDE";
-   static constexpr std::string_view SYMBOL_NAME_SHORT = "NUC";
+   static constexpr Symbol SYMBOL_MISSING = Symbol::N;
 
    static char symbolToChar(Symbol symbol);
 

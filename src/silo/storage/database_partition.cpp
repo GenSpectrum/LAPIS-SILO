@@ -24,7 +24,8 @@ DatabasePartition::DatabasePartition(std::vector<silo::preprocessing::Chunk> chu
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void DatabasePartition::flipBitmaps() {
    for (auto& [_, seq_store] : nuc_sequences) {
-      tbb::enumerable_thread_specific<decltype(seq_store.indexing_differences_to_reference_genome)>
+      tbb::enumerable_thread_specific<decltype(seq_store.indexing_differences_to_reference_sequence
+      )>
          flipped_bitmaps;
 
       auto& positions = seq_store.positions;
@@ -39,7 +40,7 @@ void DatabasePartition::flipBitmaps() {
       });
       for (const auto& local : flipped_bitmaps) {
          for (const auto& element : local) {
-            seq_store.indexing_differences_to_reference_genome.emplace_back(element);
+            seq_store.indexing_differences_to_reference_sequence.emplace_back(element);
          }
       }
    }

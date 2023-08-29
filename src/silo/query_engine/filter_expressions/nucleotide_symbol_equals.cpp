@@ -108,14 +108,14 @@ std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals:
    )
    const auto& seq_store_partition =
       database_partition.nuc_sequences.at(nuc_sequence_name_or_default);
-   if (position >= seq_store_partition.reference_genome.size()) {
+   if (position >= seq_store_partition.reference_sequence.size()) {
       throw QueryParseException(
          "NucleotideEquals position is out of bounds '" + std::to_string(position + 1) + "' > '" +
-         std::to_string(seq_store_partition.reference_genome.size()) + "'"
+         std::to_string(seq_store_partition.reference_sequence.size()) + "'"
       );
    }
    const Nucleotide::Symbol nucleotide_symbol =
-      value.value_or(seq_store_partition.reference_genome.at(position));
+      value.value_or(seq_store_partition.reference_sequence.at(position));
    if (mode == UPPER_BOUND) {
       auto symbols_to_match = AMBIGUITY_NUC_SYMBOLS.at(static_cast<uint32_t>(nucleotide_symbol));
       std::vector<std::unique_ptr<Expression>> symbol_filters;
@@ -132,10 +132,10 @@ std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals:
       return std::make_unique<Or>(std::move(symbol_filters))
          ->compile(database, database_partition, NONE);
    }
-   if (nucleotide_symbol == Nucleotide::Symbol::N) {
+   if (nucleotide_symbol == Nucleotide::SYMBOL_MISSING) {
       return std::make_unique<operators::BitmapSelection>(
-         seq_store_partition.nucleotide_symbol_n_bitmaps.data(),
-         seq_store_partition.nucleotide_symbol_n_bitmaps.size(),
+         seq_store_partition.missing_symbol_bitmaps.data(),
+         seq_store_partition.missing_symbol_bitmaps.size(),
          operators::BitmapSelection::CONTAINS,
          position
       );

@@ -18,7 +18,6 @@
 
 namespace silo {
 class Database;
-class SequenceStore;
 
 namespace query_engine {
 struct OperatorResult;
@@ -44,8 +43,10 @@ class NucMutations : public Action {
    const std::string COUNT_FIELD_NAME = "count";
 
    struct PrefilteredBitmaps {
-      std::vector<std::pair<OperatorResult, const silo::SequenceStorePartition&>> bitmaps;
-      std::vector<std::pair<OperatorResult, const silo::SequenceStorePartition&>> full_bitmaps;
+      std::vector<std::pair<OperatorResult, const silo::SequenceStorePartition<Nucleotide>&>>
+         bitmaps;
+      std::vector<std::pair<OperatorResult, const silo::SequenceStorePartition<Nucleotide>&>>
+         full_bitmaps;
    };
 
   public:
@@ -53,7 +54,7 @@ class NucMutations : public Action {
 
   private:
    static PrefilteredBitmaps preFilterBitmaps(
-      const silo::SequenceStore& seq_store,
+      const silo::SequenceStore<Nucleotide>& seq_store,
       std::vector<OperatorResult>& bitmap_filter
    );
 
@@ -64,7 +65,7 @@ class NucMutations : public Action {
    );
 
    static SymbolMap<Nucleotide, std::vector<uint32_t>> calculateMutationsPerPosition(
-      const SequenceStore& seq_store,
+      const SequenceStore<Nucleotide>& seq_store,
       std::vector<OperatorResult>& bitmap_filter
    );
 
