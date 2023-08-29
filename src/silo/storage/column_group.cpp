@@ -149,4 +149,15 @@ std::optional<std::variant<std::string, int32_t, double>> ColumnPartitionGroup::
    return std::nullopt;
 }
 
+template <>
+const std::map<std::string, storage::column::InsertionColumn<Nucleotide>>& ColumnGroup::
+   getInsertionColumns<Nucleotide>() const {
+   return nuc_insertion_columns;
+}
+template <>
+const std::map<std::string, storage::column::InsertionColumn<AminoAcid>>& ColumnGroup::
+   getInsertionColumns<AminoAcid>() const {
+   return aa_insertion_columns;
+}
+
 }  // namespace silo::storage

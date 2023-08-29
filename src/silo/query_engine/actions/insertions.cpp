@@ -29,10 +29,10 @@ namespace silo::query_engine::actions {
 
 template <typename SymbolType>
 InsertionAggregation<SymbolType>::InsertionAggregation(
-   std::string column,
+   std::vector<std::string>&& column_names,
    std::vector<std::string>&& sequence_names
 )
-    : column_name(std::move(column)),
+    : column_names(std::move(column_names)),
       sequence_names(std::move(sequence_names)) {}
 
 template <typename SymbolType>
@@ -55,98 +55,88 @@ void InsertionAggregation<SymbolType>::validateOrderByFields(const Database& /*d
    }
 }
 
-template <>
-std::unordered_map<std::string, InsertionAggregation<AminoAcid>::PrefilteredBitmaps>
-InsertionAggregation<AminoAcid>::validateFieldsAndPreFilterBitmaps(
-   const Database& database,
-   std::vector<OperatorResult>& bitmap_filter
-) const {
-   CHECK_SILO_QUERY(
-      database.columns.aa_insertion_columns.contains(column_name),
-      "The column " + column_name + " does not exist."
-   )
-   std::unordered_map<std::string, PrefilteredBitmaps> bitmaps_to_evaluate;
-   for (size_t i = 0; i < database.partitions.size(); ++i) {
-      const DatabasePartition& database_partition = database.partitions.at(i);
-      const auto& insertion_indexes =
-         database_partition.columns.aa_insertion_columns.at(column_name).getInsertionIndexes();
-      OperatorResult& filter = bitmap_filter[i];
-
-      const size_t cardinality = filter->cardinality();
-      if (cardinality == 0) {
-         continue;
-      }
-      if (cardinality == database_partition.sequence_count) {
-         for (const auto& [sequence_name, sequence_index] : insertion_indexes) {
-            if(sequence_names.empty() ||
-                std::find(sequence_names.begin(), sequence_names.end(), sequence_name) != sequence_names.end()){
-               bitmaps_to_evaluate[sequence_name].full_bitmaps.emplace_back(filter, sequence_index);
-            }
-         }
-      } else {
-         if (filter.isMutable()) {
-            filter->runOptimize();
-         }
-         for (const auto& [sequence_name, sequence_index] : insertion_indexes) {
-            if(sequence_names.empty() ||
-                std::find(sequence_names.begin(), sequence_names.end(), sequence_name) != sequence_names.end()){
-               bitmaps_to_evaluate[sequence_name].bitmaps.emplace_back(filter, sequence_index);
-            }
-         }
-      }
+template <typename SymbolType>
+void validateColumnNames(
+   const storage::ColumnPartitionGroup& column_group,
+   const std::vector<std::string>& column_names
+) {
+   for (std::string column_name : column_names) {
+      CHECK_SILO_QUERY(
+         column_group.getInsertionColumns<SymbolType>().contains(column_name),
+         "The column '" + column_name + "' does not exist."
+      )
    }
-   return bitmaps_to_evaluate;
 }
 
-template <>
-std::unordered_map<std::string, InsertionAggregation<Nucleotide>::PrefilteredBitmaps>
-InsertionAggregation<Nucleotide>::validateFieldsAndPreFilterBitmaps(
+template <typename SymbolType>
+void InsertionAggregation<SymbolType>::addAllColumnIndexesToPreFilteredBitmaps(
+   const storage::column::InsertionColumnPartition<SymbolType>& column,
+   const OperatorResult& filter,
+   std::unordered_map<std::string, InsertionAggregation<SymbolType>::PrefilteredBitmaps>&
+      bitmaps_to_evaluate
+) const {
+   for (const auto& [sequence_name, sequence_index] : column.getInsertionIndexes()) {
+      if(sequence_names.empty() ||
+          std::find(sequence_names.begin(), sequence_names.end(), sequence_name) != sequence_names.end()){
+         bitmaps_to_evaluate[sequence_name].bitmaps.emplace_back(filter, sequence_index);
+      }
+   }
+}
+
+template <typename SymbolType>
+std::unordered_map<std::string, typename InsertionAggregation<SymbolType>::PrefilteredBitmaps>
+InsertionAggregation<SymbolType>::validateFieldsAndPreFilterBitmaps(
    const Database& database,
    std::vector<OperatorResult>& bitmap_filter
 ) const {
-   CHECK_SILO_QUERY(
-      database.columns.nuc_insertion_columns.contains(column_name),
-      "The column '" + column_name + "' does not exist."
-   )
+   for (const std::string& column_name : column_names) {
+      CHECK_SILO_QUERY(
+         database.columns.getInsertionColumns<SymbolType>().contains(column_name),
+         "The database does not contain the " + std::string(SymbolType::SYMBOL_NAME) + " column '" +
+            column_name + "'"
+      );
+   }
+   std::vector<std::string> all_sequence_names = database.getSequenceNames<SymbolType>();
+   for (const std::string& sequence_name : sequence_names) {
+      CHECK_SILO_QUERY(
+         std::find(all_sequence_names.begin(), all_sequence_names.end(), sequence_name) !=
+            all_sequence_names.end(),
+         "The database does not contain the " + std::string(SymbolType::SYMBOL_NAME) +
+            " sequence '" + sequence_name + "'"
+      );
+   }
 
-   std::unordered_map<std::string, PrefilteredBitmaps> bitmaps_to_evaluate;
+   std::unordered_map<std::string, PrefilteredBitmaps> pre_filtered_bitmaps;
    for (size_t i = 0; i < database.partitions.size(); ++i) {
       const DatabasePartition& database_partition = database.partitions.at(i);
-      const auto& insertion_indexes =
-         database_partition.columns.nuc_insertion_columns.at(column_name).getInsertionIndexes();
-      OperatorResult& filter = bitmap_filter[i];
 
-      for (const auto& sequence_name : sequence_names) {
-         CHECK_SILO_QUERY(
-            insertion_indexes.contains(sequence_name),
-            "The column '" + column_name + "' does not contain the sequence '" + sequence_name + "'"
-         )
-      }
+      validateColumnNames<SymbolType>(database_partition.columns, column_names);
 
-      const size_t cardinality = filter->cardinality();
-      if (cardinality == 0) {
-         continue;
-      }
-      if (cardinality == database_partition.sequence_count) {
-         for (const auto& [sequence_name, sequence_index] : insertion_indexes) {
-            if(sequence_names.empty() ||
-                std::find(sequence_names.begin(), sequence_names.end(), sequence_name) != sequence_names.end()){
-               bitmaps_to_evaluate[sequence_name].full_bitmaps.emplace_back(filter, sequence_index);
+      for (auto& [column_name, insertion_column] :
+           database_partition.columns.getInsertionColumns<SymbolType>()) {
+         if(column_names.empty() ||
+             std::find(column_names.begin(), column_names.end(), column_name) != column_names.end()){
+            OperatorResult& filter = bitmap_filter[i];
+            const size_t cardinality = filter->cardinality();
+            if (cardinality == 0) {
+               continue;
             }
-         }
-      } else {
-         if (filter.isMutable()) {
-            filter->runOptimize();
-         }
-         for (const auto& [sequence_name, sequence_index] : insertion_indexes) {
-            if(sequence_names.empty() ||
-                std::find(sequence_names.begin(), sequence_names.end(), sequence_name) != sequence_names.end()){
-               bitmaps_to_evaluate[sequence_name].bitmaps.emplace_back(filter, sequence_index);
+            if (cardinality == database_partition.sequence_count) {
+               addAllColumnIndexesToPreFilteredBitmaps(
+                  insertion_column, filter, pre_filtered_bitmaps
+               );
+            } else {
+               if (filter.isMutable()) {
+                  filter->runOptimize();
+               }
+               addAllColumnIndexesToPreFilteredBitmaps(
+                  insertion_column, filter, pre_filtered_bitmaps
+               );
             }
          }
       }
    }
-   return bitmaps_to_evaluate;
+   return pre_filtered_bitmaps;
 }
 
 struct PositionAndInsertion {
@@ -257,12 +247,28 @@ void from_json(
    }
 
    CHECK_SILO_QUERY(
-      json.contains("column") && json["column"].is_string(),
-      "Insertions must have the field 'column' of type string"
+      !json.contains("column") || (json["column"].is_string() || json["column"].is_array()),
+      "Insertions action can have the field column of type string or an array of "
+      "strings, but no other type"
    )
-   const std::string column = json["column"].get<std::string>();
+   std::vector<std::string> column_names;
+   if (json.contains("column") && json.at("column").is_array()) {
+      for (const auto& child : json["column"]) {
+         CHECK_SILO_QUERY(
+            child.is_string(),
+            "The field column of the Insertions action must have type string or an "
+            "array, if present. Found:" +
+               child.dump()
+         )
+         column_names.emplace_back(child.get<std::string>());
+      }
+   } else if (json.contains("column") && json["column"].is_string()) {
+      column_names.emplace_back(json["column"].get<std::string>());
+   }
 
-   action = std::make_unique<InsertionAggregation<SymbolType>>(column, std::move(sequence_names));
+   action = std::make_unique<InsertionAggregation<SymbolType>>(
+      std::move(column_names), std::move(sequence_names)
+   );
 }
 
 template void from_json<AminoAcid>(

@@ -2,6 +2,7 @@
 #define SILO_INSERTIONS_H
 
 #include "silo/query_engine/actions/action.h"
+#include "silo/storage/column/insertion_column.h"
 #include "silo/storage/column/insertion_index.h"
 
 namespace silo::query_engine {
@@ -17,7 +18,7 @@ class InsertionAggregation : public Action {
    static constexpr std::string_view SEQUENCE_FIELD_NAME = "sequenceName";
    static constexpr std::string_view COUNT_FIELD_NAME = "count";
 
-   std::string column_name;
+   std::vector<std::string> column_names;
    std::vector<std::string> sequence_names;
 
    struct PrefilteredBitmaps {
@@ -30,6 +31,13 @@ class InsertionAggregation : public Action {
          const silo::storage::column::insertion::InsertionIndex<SymbolType>&>>
          full_bitmaps;
    };
+
+   void addAllColumnIndexesToPreFilteredBitmaps(
+      const silo::storage::column::InsertionColumnPartition<SymbolType>& column,
+      const OperatorResult& filter,
+      std::unordered_map<std::string, InsertionAggregation<SymbolType>::PrefilteredBitmaps>&
+         bitmaps_to_evaluate
+   ) const;
 
    void addAggregatedInsertionsToInsertionCounts(
       std::vector<QueryResultEntry>& output,
@@ -44,7 +52,10 @@ class InsertionAggregation : public Action {
    ) const;
 
   public:
-   InsertionAggregation(std::string column, std::vector<std::string>&& sequence_names);
+   InsertionAggregation(
+      std::vector<std::string>&& column,
+      std::vector<std::string>&& sequence_names
+   );
 
    void validateOrderByFields(const Database& database) const override;
 

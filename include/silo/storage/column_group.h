@@ -99,8 +99,8 @@ class ColumnPartitionGroup {
       uint32_t sequence_id
    ) const;
 
-   template <typename SymbolType>
-   const std::map<std::string, storage::column::InsertionColumnPartition<SymbolType>&>&
+   template <typename Symbol>
+   const std::map<std::string, storage::column::InsertionColumnPartition<Symbol>&>&
    getInsertionColumns() const;
 };
 
@@ -148,6 +148,10 @@ class ColumnGroup {
    std::map<std::string, storage::column::PangoLineageColumn> pango_lineage_columns;
    std::map<std::string, storage::column::InsertionColumn<Nucleotide>> nuc_insertion_columns;
    std::map<std::string, storage::column::InsertionColumn<AminoAcid>> aa_insertion_columns;
+
+   template <typename SymbolType>
+   const std::map<std::string, storage::column::InsertionColumn<SymbolType>>& getInsertionColumns(
+   ) const;
 };
 
 }  // namespace silo::storage

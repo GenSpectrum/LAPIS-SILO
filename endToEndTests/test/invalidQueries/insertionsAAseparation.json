@@ -12,6 +12,6 @@
   },
   "expectedError": {
     "error": "Bad request",
-    "message": "The column 'insertions' does not contain the sequence 'S'"
+    "message": "The database does not contain the Nucleotide sequence 'S'"
   }
 }

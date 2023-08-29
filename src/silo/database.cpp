@@ -80,6 +80,24 @@ std::optional<std::string> Database::getDefaultSequenceName<AminoAcid>() const {
    return std::nullopt;
 }
 
+template <>
+std::vector<std::string> Database::getSequenceNames<Nucleotide>() const {
+   std::vector<std::string> sequence_names;
+   for (const auto& [name, _] : nuc_sequences) {
+      sequence_names.emplace_back(name);
+   }
+   return sequence_names;
+}
+
+template <>
+std::vector<std::string> Database::getSequenceNames<AminoAcid>() const {
+   std::vector<std::string> sequence_names;
+   for (const auto& [name, _] : aa_sequences) {
+      sequence_names.emplace_back(name);
+   }
+   return sequence_names;
+}
+
 const PangoLineageAliasLookup& Database::getAliasKey() const {
    return alias_key;
 }

@@ -12,6 +12,6 @@
   },
   "expectedError": {
     "error": "Bad request",
-    "message": "The column 'insertionsThatAreNotThere' does not exist."
+    "message": "The database does not contain the Nucleotide column 'insertionsThatAreNotThere'"
   }
 }
