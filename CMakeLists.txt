@@ -34,6 +34,7 @@ find_package(spdlog REQUIRED)
 find_package(vincentlaucsb-csv-parser REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(zstd REQUIRED)
+find_package(duckdb REQUIRED)
 
 # ---------------------------------------------------------------------------
 # Includes
@@ -88,6 +89,7 @@ target_link_libraries(
         ${yaml-cpp_LIBRARIES}
         nlohmann_json::nlohmann_json
         zstd::libzstd_static
+        ${duckdb_LIBRARIES}
 )
 
 add_executable(siloApi src/silo_api/api.cpp ${SRC_SILO_API})

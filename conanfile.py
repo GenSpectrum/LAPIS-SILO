@@ -16,6 +16,7 @@ class SiloRecipe(ConanFile):
         "vincentlaucsb-csv-parser/2.1.3",
         "yaml-cpp/0.7.0",
         "zstd/1.5.5",
+        "duckdb/0.8.1",
     ]
 
     default_options = {
@@ -99,4 +100,5 @@ class SiloRecipe(ConanFile):
         deps.set_property("vincentlaucsb-csv-parser", "cmake_find_mode", "both")
         deps.set_property("yaml-cpp", "cmake_find_mode", "both")
         deps.set_property("zstd", "cmake_find_mode", "both")
+        deps.set_property("duckdb", "cmake_find_mode", "both")
         deps.generate()
