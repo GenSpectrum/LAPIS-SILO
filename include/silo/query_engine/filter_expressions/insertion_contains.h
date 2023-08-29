@@ -22,14 +22,14 @@ namespace silo::query_engine::filter_expressions {
 template <typename SymbolType>
 struct InsertionContains : public Expression {
   private:
-   std::string column_name;
+   std::vector<std::string> column_names;
    std::optional<std::string> sequence_name;
    uint32_t position;
    std::string value;
 
   public:
    explicit InsertionContains(
-      std::string column,
+      std::vector<std::string>&& column_names,
       std::optional<std::string> sequence_name,
       uint32_t position,
       std::string value
