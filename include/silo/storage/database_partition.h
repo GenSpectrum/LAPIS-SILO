@@ -63,7 +63,7 @@ class DatabasePartition {
    storage::ColumnPartitionGroup columns;
    std::map<std::string, SequenceStorePartition&> nuc_sequences;
    std::map<std::string, AAStorePartition&> aa_sequences;
-   uint32_t sequence_count;
+   uint32_t sequence_count = 0;
 
    explicit DatabasePartition(std::vector<silo::preprocessing::Chunk> chunks);
 

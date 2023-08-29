@@ -130,7 +130,7 @@ void Database::build(
                return;
             }
             SPDLOG_DEBUG("Using metadata file: {}", metadata_file.string());
-            partitions[partition_index].sequence_count =
+            partitions[partition_index].sequence_count +=
                partitions[partition_index].columns.fill(metadata_file, database_config);
          }
       }
