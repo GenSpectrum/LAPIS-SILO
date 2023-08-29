@@ -1,12 +1,15 @@
 #include "silo/storage/sequence_store.h"
 
+#include <algorithm>
 #include <atomic>
+#include <mutex>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/parallel_for.h>
+#include <oneapi/tbb/parallel_for_each.h>
 #include <spdlog/spdlog.h>
 #include <roaring/roaring.hh>
 
@@ -90,6 +93,7 @@ size_t silo::SequenceStorePartition::fill(silo::ZstdFastaReader& input_file) {
       ++read_sequences_count;
    }
    interpret(genome_buffer);
+   fillMutationFilter();
    SPDLOG_DEBUG("{}", getInfo());
 
    return read_sequences_count;
@@ -193,6 +197,91 @@ void silo::SequenceStorePartition::fillNBitmaps(const std::vector<std::string>& 
    });
 }
 
+void silo::SequenceStorePartition::fillMutationFilter() {
+   const auto start_length = 8;
+   std::vector<std::pair<uint32_t, uint32_t>> slice_lengths_mutation_counts;
+
+   for (uint32_t slice_length = start_length; slice_length <= reference_genome.size();
+        slice_length *= 2) {
+      for (uint32_t div = start_length; div >= 1; div /= 2) {
+         const auto mutation_count = slice_length / div;
+         slice_lengths_mutation_counts.emplace_back(slice_length, mutation_count);
+      }
+   }
+   auto get_mutated_ids_for_genome_pos = [&](uint32_t genome_pos) {
+      std::vector<const roaring::Roaring*> filtered_symbols_bitmap;
+      for (const auto nuc_symbol : NUC_SYMBOLS) {
+         if (nuc_symbol != reference_genome[genome_pos] && nuc_symbol != NUCLEOTIDE_SYMBOL::N && nuc_symbol != NUCLEOTIDE_SYMBOL::GAP) {
+            filtered_symbols_bitmap.push_back(getBitmap(genome_pos, nuc_symbol));
+         }
+      }
+      return roaring::Roaring::fastunion(
+         filtered_symbols_bitmap.size(), filtered_symbols_bitmap.data()
+      );
+   };
+
+   auto get_mutated_ids_for_range_and_mut_count =
+      [&](
+         std::vector<uint32_t>& counts,
+         const std::pair<uint32_t, uint32_t> genome_range,
+         const uint32_t mutation_count
+      ) {
+         const auto [genome_start_pos, genome_end_pos] = genome_range;
+         if (genome_start_pos > 0) {
+            for (auto genome_id : get_mutated_ids_for_genome_pos(genome_start_pos)) {
+               --counts[genome_id];
+            }
+         }
+         if (genome_end_pos < reference_genome.size()) {
+            for (auto genome_id : get_mutated_ids_for_genome_pos(genome_start_pos)) {
+               ++counts[genome_id];
+            }
+         }
+         std::vector<uint32_t> genome_ids;
+         for (size_t id = 0; id < sequence_count; ++id) {
+            if (counts[id] >= mutation_count) {
+               genome_ids.push_back(id);
+            }
+         }
+         return roaring::Roaring(genome_ids.size(), genome_ids.data());
+      };
+
+   std::mutex mutex;
+   tbb::parallel_for_each(
+      slice_lengths_mutation_counts.begin(),
+      slice_lengths_mutation_counts.end(),
+      [&](const auto slice_length_mutation_count) {
+         const auto slice_length = slice_length_mutation_count.first;
+         const auto overlap_shift = slice_length / 2;
+         const auto mutation_count = slice_length_mutation_count.second;
+         std::vector<roaring::Roaring> mutation_filter_bitmaps;
+         std::vector<uint32_t> counts(sequence_count, 0);
+
+         for (uint32_t genome_pos = 0; genome_pos < slice_length; ++genome_pos) {
+            auto mutated_ids = get_mutated_ids_for_genome_pos(genome_pos);
+            for (auto genome_id : mutated_ids) {
+               ++counts[genome_id];
+            }
+         }
+
+         for (uint32_t genome_start_pos = 0; genome_start_pos < reference_genome.size();
+              genome_start_pos += overlap_shift) {
+            mutation_filter_bitmaps.push_back(get_mutated_ids_for_range_and_mut_count(
+               counts,
+               std::make_pair(genome_start_pos, genome_start_pos + slice_length),
+               mutation_count
+            ));
+         }
+         const std::unique_lock<std::mutex> lock{mutex};
+         mutation_filter.addSliceIdx(
+            slice_length, overlap_shift, mutation_count, std::move(mutation_filter_bitmaps)
+         );
+      }
+   );
+
+   mutation_filter.finalize();
+}
+
 void silo::SequenceStorePartition::interpret(const std::vector<std::string>& genomes) {
    fillIndexes(genomes);
    fillNBitmaps(genomes);
@@ -206,7 +295,40 @@ size_t silo::SequenceStorePartition::computeSize() const {
          result += position.bitmaps.at(symbol).getSizeInBytes(false);
       }
    }
+   result += mutation_filter.computeSize();
    return result;
+}
+
+size_t silo::SequenceStorePartition::runOptimize() {
+   std::atomic<size_t> count_true = 0;
+   const tbb::blocked_range<size_t> range(0U, positions.size());
+   tbb::parallel_for(range, [&](const decltype(range) local) {
+      for (auto position = local.begin(); position != local.end(); ++position) {
+         for (const NUCLEOTIDE_SYMBOL symbol : NUC_SYMBOLS) {
+            if (positions[position].bitmaps[symbol].runOptimize()) {
+               ++count_true;
+            }
+         }
+      }
+   });
+   count_true += mutation_filter.runOptimize();
+   return count_true;
+}
+
+size_t silo::SequenceStorePartition::shrinkToFit() {
+   std::atomic<size_t> saved = 0;
+   const tbb::blocked_range<size_t> range(0U, positions.size());
+   tbb::parallel_for(range, [&](const decltype(range) local) {
+      size_t local_saved = 0;
+      for (auto position = local.begin(); position != local.end(); ++position) {
+         for (const NUCLEOTIDE_SYMBOL symbol : NUC_SYMBOLS) {
+            local_saved += positions[position].bitmaps[symbol].shrinkToFit();
+         }
+      }
+      saved += local_saved;
+   });
+   saved += mutation_filter.shrinkToFit();
+   return saved;
 }
 
 silo::SequenceStore::SequenceStore(std::vector<NUCLEOTIDE_SYMBOL> reference_genome)

@@ -1,0 +1,18 @@
+{
+  "testCaseName": "Pattern Search Full Match 2",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "PatternSearch",
+      "pattern": "AGGTCT",
+      "position": 1
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 100
+    }
+  ]
+}

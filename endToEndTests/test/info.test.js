@@ -8,7 +8,7 @@ describe('The /info endpoint', () => {
       .expect(200)
       .expect('Content-Type', 'application/json')
       .expect(headerToHaveDataVersion)
-      .expect({ nBitmapsSize: 3898, sequenceCount: 100, totalSize: 60054981 })
+      .expect({ nBitmapsSize: 3898, sequenceCount: 100, totalSize: 67531481 })
       .end(done);
   });
 
