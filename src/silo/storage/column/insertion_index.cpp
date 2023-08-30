@@ -7,46 +7,37 @@
 #include <utility>
 
 #include <boost/functional/hash.hpp>
-#include <boost/lexical_cast.hpp>
 
+#include "silo/common/aa_symbols.h"
+#include "silo/common/nucleotide_symbols.h"
 #include "silo/common/string_utils.h"
+#include "silo/common/symbol_map.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
 namespace silo::storage::column::insertion {
 
-namespace {
-
-constexpr std::string_view DELIMITER_INSERTIONS = ",";
-constexpr std::string_view DELIMITER_INSERTION = ":";
 constexpr std::string_view REGEX_ANY = ".*";
 
-std::pair<uint32_t, std::string> parseInsertion(const std::string& value) {
-   const auto position_and_insertion = splitBy(value, DELIMITER_INSERTION);
-   if (position_and_insertion.size() != 2) {
-      const std::string message = "Failed to parse insertion due to invalid format: " + value;
-      throw PreprocessingException(message);
+template <typename SymbolType>
+size_t ThreeMerHash<SymbolType>::operator()(
+   const std::array<typename SymbolType::Symbol, 3>& three_mer
+) const {
+   size_t seed = 0;
+   for (const auto one_mer : three_mer) {
+      boost::hash_combine(seed, std::hash<typename SymbolType::Symbol>{}(one_mer));
    }
-   const auto position = boost::lexical_cast<uint32_t>(position_and_insertion[0]);
-   const auto& insertion = position_and_insertion[1];
-   return std::make_pair(position, insertion);
+   return seed;
 }
 
-struct ThreeMerHash {
-   size_t operator()(const ThreeMer& three_mer) const {
-      size_t seed = 0;
-      for (const auto one_mer : three_mer) {
-         boost::hash_combine(seed, std::hash<NUCLEOTIDE_SYMBOL>{}(one_mer));
-      }
-      return seed;
-   }
-};
-
-std::vector<ThreeMer> extractThreeMers(const std::string& search_pattern) {
-   std::unordered_set<ThreeMer, ThreeMerHash> result;
+template <typename SymbolType>
+std::vector<std::array<typename SymbolType::Symbol, 3>> extractThreeMers(
+   const std::string& search_pattern
+) {
+   std::unordered_set<std::array<typename SymbolType::Symbol, 3>, ThreeMerHash<SymbolType>> result;
    for (const auto& continuous_string : splitBy(search_pattern, REGEX_ANY)) {
-      auto continuous_symbols = stringToNucleotideSymbolVector(continuous_string);
+      auto continuous_symbols = SymbolType::stringToSymbolVector(continuous_string);
       if (continuous_symbols == std::nullopt) {
-         const auto illegal_nuc_char = findIllegalNucleotideChar(continuous_string);
+         const auto illegal_nuc_char = SymbolType::findIllegalChar(continuous_string);
          throw std::runtime_error(
             "Wrong symbol '" +
             (illegal_nuc_char.has_value() ? std::to_string(*illegal_nuc_char) : "Internal Error") +
@@ -54,7 +45,7 @@ std::vector<ThreeMer> extractThreeMers(const std::string& search_pattern) {
          );
       }
       for (size_t i = 0; (i + 2) < continuous_string.size(); i += 3) {
-         const ThreeMer three_mer{
+         const std::array<typename SymbolType::Symbol, 3> three_mer{
             continuous_symbols->at(i),
             continuous_symbols->at(i + 1),
             continuous_symbols->at(i + 2)};
@@ -64,10 +55,9 @@ std::vector<ThreeMer> extractThreeMers(const std::string& search_pattern) {
    return {result.begin(), result.end()};
 }
 
-}  // namespace
-
-std::unique_ptr<roaring::Roaring> InsertionPosition::searchWithThreeMerIndex(
-   const std::vector<ThreeMer>& search_three_mers,
+template <typename SymbolType>
+std::unique_ptr<roaring::Roaring> InsertionPosition<SymbolType>::searchWithThreeMerIndex(
+   const std::vector<std::array<typename SymbolType::Symbol, 3>>& search_three_mers,
    const std::regex& search_pattern
 ) const {
    // We perform a k-way intersection between the candidate sets of insertion ids.
@@ -80,12 +70,10 @@ std::unique_ptr<roaring::Roaring> InsertionPosition::searchWithThreeMerIndex(
    using it = InsertionIds::const_iterator;
    std::vector<std::pair<it, it>> min_heap;
    for (const auto& three_mer : search_three_mers) {
-      const auto& candidate_insertions =
-         three_mer_index.at(three_mer[0]).at(three_mer[1]).at(three_mer[2]);
-      if (candidate_insertions.empty()) {
-         continue;
+      if (three_mer_index.contains(three_mer)) {
+         const auto& candidate_insertions = three_mer_index.at(three_mer);
+         min_heap.emplace_back(candidate_insertions.cbegin(), candidate_insertions.cend());
       }
-      min_heap.emplace_back(candidate_insertions.cbegin(), candidate_insertions.cend());
    }
 
    if (min_heap.size() < search_three_mers.size()) {
@@ -137,7 +125,8 @@ std::unique_ptr<roaring::Roaring> InsertionPosition::searchWithThreeMerIndex(
    return result;
 }
 
-std::unique_ptr<roaring::Roaring> InsertionPosition::searchWithRegex(
+template <typename SymbolType>
+std::unique_ptr<roaring::Roaring> InsertionPosition<SymbolType>::searchWithRegex(
    const std::regex& regex_search_pattern
 ) const {
    auto result = std::make_unique<roaring::Roaring>();
@@ -149,8 +138,10 @@ std::unique_ptr<roaring::Roaring> InsertionPosition::searchWithRegex(
    return result;
 }
 
-void InsertionPosition::buildThreeMerIndex() {
-   using ThreeMersBitset = NestedContainer<THREE_DIMENSIONS, NucleotideSymbolMap, bool>::type;
+template <>
+void InsertionPosition<Nucleotide>::buildThreeMerIndex() {
+   using ThreeMersBitset =
+      SymbolMap<Nucleotide, SymbolMap<Nucleotide, SymbolMap<Nucleotide, bool>>>;
 
    for (size_t insertion_id = 0; insertion_id < insertions.size(); ++insertion_id) {
       const auto& insertion_value = insertions[insertion_id].value;
@@ -159,9 +150,9 @@ void InsertionPosition::buildThreeMerIndex() {
          continue;
       }
 
-      const auto opt_nuc_symbol_ids = stringToNucleotideSymbolVector(insertion_value);
+      const auto opt_nuc_symbol_ids = Nucleotide::stringToSymbolVector(insertion_value);
       if (opt_nuc_symbol_ids == std::nullopt) {
-         const auto illegal_nuc_char = findIllegalNucleotideChar(insertion_value);
+         const auto illegal_nuc_char = Nucleotide::findIllegalChar(insertion_value);
          throw silo::PreprocessingException(
             "Illegal nucleotide character '" +
             (illegal_nuc_char.has_value() ? std::to_string(*illegal_nuc_char) : "Internal Error") +
@@ -175,11 +166,13 @@ void InsertionPosition::buildThreeMerIndex() {
          unique_three_mers[nuc_symbol_ids[i]][nuc_symbol_ids[i + 1]][nuc_symbol_ids[i + 2]] = true;
       }
 
-      for (const NUCLEOTIDE_SYMBOL symbol1 : NUC_SYMBOLS) {
-         for (const NUCLEOTIDE_SYMBOL symbol2 : NUC_SYMBOLS) {
-            for (const NUCLEOTIDE_SYMBOL symbol3 : NUC_SYMBOLS) {
+      for (const Nucleotide::Symbol symbol1 : Nucleotide::SYMBOLS) {
+         for (const Nucleotide::Symbol symbol2 : Nucleotide::SYMBOLS) {
+            for (const Nucleotide::Symbol symbol3 : Nucleotide::SYMBOLS) {
                if (unique_three_mers[symbol1][symbol2][symbol3]) {
-                  three_mer_index[symbol1][symbol2][symbol3].push_back(insertion_id);
+                  std::array<Nucleotide::Symbol, 3> tuple{symbol1, symbol2, symbol3};
+                  three_mer_index.emplace(tuple, InsertionIds{})
+                     .first->second.push_back(insertion_id);
                }
             }
          }
@@ -187,9 +180,52 @@ void InsertionPosition::buildThreeMerIndex() {
    }
 }
 
-std::unique_ptr<roaring::Roaring> InsertionPosition::search(const std::string& search_pattern
+template <>
+void InsertionPosition<AminoAcid>::buildThreeMerIndex() {
+   using ThreeMersBitset = SymbolMap<AminoAcid, SymbolMap<AminoAcid, SymbolMap<AminoAcid, bool>>>;
+
+   for (size_t insertion_id = 0; insertion_id < insertions.size(); ++insertion_id) {
+      const auto& insertion_value = insertions[insertion_id].value;
+
+      if (insertion_value.size() < 3) {
+         continue;
+      }
+
+      const auto opt_aa_symbol_ids = AminoAcid::stringToSymbolVector(insertion_value);
+      if (opt_aa_symbol_ids == std::nullopt) {
+         const auto illegal_aa_char = AminoAcid::findIllegalChar(insertion_value);
+         throw silo::PreprocessingException(
+            "Illegal amino acid character '" +
+            (illegal_aa_char.has_value() ? std::to_string(*illegal_aa_char) : "Internal Error") +
+            "' in insertion: " + insertion_value
+         );
+      }
+      const auto& aa_symbol_ids = *opt_aa_symbol_ids;
+
+      ThreeMersBitset unique_three_mers{};
+      for (size_t i = 0; i < (aa_symbol_ids.size() - 2); ++i) {
+         unique_three_mers[aa_symbol_ids[i]][aa_symbol_ids[i + 1]][aa_symbol_ids[i + 2]] = true;
+      }
+
+      for (const AminoAcid::Symbol symbol1 : AminoAcid::SYMBOLS) {
+         for (const AminoAcid::Symbol symbol2 : AminoAcid::SYMBOLS) {
+            for (const AminoAcid::Symbol symbol3 : AminoAcid::SYMBOLS) {
+               if (unique_three_mers[symbol1][symbol2][symbol3]) {
+                  std::array<AminoAcid::Symbol, 3> tuple{symbol1, symbol2, symbol3};
+                  three_mer_index.emplace(tuple, InsertionIds{})
+                     .first->second.push_back(insertion_id);
+               }
+            }
+         }
+      }
+   }
+}
+
+template <typename SymbolType>
+std::unique_ptr<roaring::Roaring> InsertionPosition<SymbolType>::search(
+   const std::string& search_pattern
 ) const {
-   const auto search_three_mers = extractThreeMers(search_pattern);
+   const auto search_three_mers = extractThreeMers<SymbolType>(search_pattern);
    const std::regex regex_search_pattern(search_pattern);
 
    if (!search_three_mers.empty()) {
@@ -199,27 +235,26 @@ std::unique_ptr<roaring::Roaring> InsertionPosition::search(const std::string& s
    return searchWithRegex(regex_search_pattern);
 }
 
-void InsertionIndex::addLazily(const std::string& insertions_string, uint32_t sequence_id) {
-   if (insertions_string.empty()) {
-      return;
-   }
-   for (auto& position_and_insertion : splitBy(insertions_string, DELIMITER_INSERTIONS)) {
-      auto [position, insertion] = parseInsertion(position_and_insertion);
-
-      auto& insertions_at_position =
-         collected_insertions.emplace(position, std::unordered_map<std::string, roaring::Roaring>{})
-            .first->second;
-      auto& sequence_ids_at_position =
-         insertions_at_position.emplace(insertion, roaring::Roaring{}).first->second;
-      sequence_ids_at_position.add(sequence_id);
-   }
+template <typename SymbolType>
+void InsertionIndex<SymbolType>::addLazily(
+   uint32_t position,
+   const std::string& insertion,
+   uint32_t sequence_id
+) {
+   auto& insertions_at_position =
+      collected_insertions.emplace(position, std::unordered_map<std::string, roaring::Roaring>{})
+         .first->second;
+   auto& sequence_ids_at_position =
+      insertions_at_position.emplace(insertion, roaring::Roaring{}).first->second;
+   sequence_ids_at_position.add(sequence_id);
 }
 
-void InsertionIndex::buildIndex() {
+template <typename SymbolType>
+void InsertionIndex<SymbolType>::buildIndex() {
    insertion_positions.reserve(collected_insertions.size());
 
    for (auto [pos, insertion_info] : collected_insertions) {
-      InsertionPosition insertion_position;
+      InsertionPosition<SymbolType> insertion_position;
       insertion_position.insertions.reserve(insertion_info.size());
       std::transform(
          insertion_info.begin(),
@@ -237,7 +272,14 @@ void InsertionIndex::buildIndex() {
    collected_insertions.clear();
 }
 
-std::unique_ptr<roaring::Roaring> InsertionIndex::search(
+template <typename SymbolType>
+const std::unordered_map<uint32_t, InsertionPosition<SymbolType>>& InsertionIndex<
+   SymbolType>::getInsertionPositions() const {
+   return insertion_positions;
+}
+
+template <typename SymbolType>
+std::unique_ptr<roaring::Roaring> InsertionIndex<SymbolType>::search(
    uint32_t position,
    const std::string& search_pattern
 ) const {
@@ -247,5 +289,11 @@ std::unique_ptr<roaring::Roaring> InsertionIndex::search(
    }
    return insertion_pos_it->second.search(search_pattern);
 }
+
+template class ThreeMerHash<Nucleotide>;
+template class ThreeMerHash<AminoAcid>;
+
+template class InsertionIndex<Nucleotide>;
+template class InsertionIndex<AminoAcid>;
 
 }  // namespace silo::storage::column::insertion

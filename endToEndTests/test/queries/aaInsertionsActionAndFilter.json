@@ -1,0 +1,25 @@
+{
+  "testCaseName": "amino acid insertions action and insertion contains filter",
+  "query": {
+    "action": {
+      "type": "AminoAcidInsertions",
+      "column": "aaInsertions",
+      "orderByFields": ["insertions", "position"]
+    },
+    "filterExpression": {
+      "type": "AminoAcidInsertionContains",
+      "sequenceName": "S",
+      "value": "E.*",
+      "column": "aaInsertions",
+      "position": 214
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 5,
+      "insertions": "EPE",
+      "position": 214,
+      "sequenceName": "S"
+    }
+  ]
+}

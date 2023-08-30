@@ -6,14 +6,14 @@
 #include <string>
 #include <vector>
 
+#include "silo/common/aa_symbols.h"
+#include "silo/common/nucleotide_symbols.h"
+
 namespace silo {
 
-enum class NUCLEOTIDE_SYMBOL : char;
-enum class AA_SYMBOL : char;
-
 struct ReferenceGenomes {
-   std::map<std::string, std::vector<NUCLEOTIDE_SYMBOL>> nucleotide_sequences;
-   std::map<std::string, std::vector<AA_SYMBOL>> aa_sequences;
+   std::map<std::string, std::vector<Nucleotide::Symbol>> nucleotide_sequences;
+   std::map<std::string, std::vector<AminoAcid::Symbol>> aa_sequences;
    std::map<std::string, std::string> raw_nucleotide_sequences;
    std::map<std::string, std::string> raw_aa_sequences;
 

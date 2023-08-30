@@ -1,0 +1,39 @@
+{
+  "testCaseName": "The insertions action",
+  "query": {
+    "action": {
+      "type": "Insertions",
+      "column": "insertions",
+      "orderByFields": ["insertions", "position"]
+    },
+    "filterExpression": {
+      "type": "True"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 1,
+      "insertions": "CAGAA",
+      "position": 22204,
+      "sequenceName": "main"
+    },
+    {
+      "count": 17,
+      "insertions": "CCC",
+      "position": 25701,
+      "sequenceName": "main"
+    },
+    {
+      "count": 1,
+      "insertions": "GCTGGT",
+      "position": 22339,
+      "sequenceName": "main"
+    },
+    {
+      "count": 1,
+      "insertions": "TAT",
+      "position": 5959,
+      "sequenceName": "main"
+    }
+  ]
+}

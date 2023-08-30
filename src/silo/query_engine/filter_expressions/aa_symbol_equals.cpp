@@ -16,8 +16,8 @@
 #include "silo/query_engine/operators/index_scan.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_parse_exception.h"
-#include "silo/storage/aa_store.h"
 #include "silo/storage/database_partition.h"
+#include "silo/storage/sequence_store.h"
 
 namespace silo {
 class Database;
@@ -28,14 +28,14 @@ namespace silo::query_engine::filter_expressions {
 AASymbolEquals::AASymbolEquals(
    std::string aa_sequence_name,
    uint32_t position,
-   std::optional<AA_SYMBOL> value
+   std::optional<AminoAcid::Symbol> value
 )
     : aa_sequence_name(std::move(aa_sequence_name)),
       position(position),
       value(value) {}
 
 std::string AASymbolEquals::toString(const silo::Database& /*database*/) const {
-   const char symbol_char = value.has_value() ? aaSymbolToChar(*value) : '.';
+   const char symbol_char = value.has_value() ? AminoAcid::symbolToChar(*value) : '.';
    return aa_sequence_name + ":" + std::to_string(position + 1) + std::to_string(symbol_char);
 }
 
@@ -51,11 +51,12 @@ std::unique_ptr<silo::query_engine::operators::Operator> AASymbolEquals::compile
          std::to_string(aa_store_partition.reference_sequence.size()) + "'"
       );
    }
-   const AA_SYMBOL aa_symbol = value.value_or(aa_store_partition.reference_sequence.at(position));
-   if (aa_symbol == AA_SYMBOL::X) {
+   const AminoAcid::Symbol aa_symbol =
+      value.value_or(aa_store_partition.reference_sequence.at(position));
+   if (aa_symbol == AminoAcid::SYMBOL_MISSING) {
       return std::make_unique<operators::BitmapSelection>(
-         aa_store_partition.aa_symbol_x_bitmaps.data(),
-         aa_store_partition.aa_symbol_x_bitmaps.size(),
+         aa_store_partition.missing_symbol_bitmaps.data(),
+         aa_store_partition.missing_symbol_bitmaps.size(),
          operators::BitmapSelection::CONTAINS,
          position
       );
@@ -99,7 +100,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<AASymbolEquals>& filt
    CHECK_SILO_QUERY(
       aa_char.size() == 1, "The string field 'symbol' must be exactly one character long"
    )
-   const std::optional<AA_SYMBOL> aa_value = charToAASymbol(aa_char.at(0));
+   const std::optional<AminoAcid::Symbol> aa_value = AminoAcid::charToSymbol(aa_char.at(0));
    CHECK_SILO_QUERY(
       aa_value.has_value() || aa_char.at(0) == '.',
       "The string field 'symbol' must be either a valid amino acid or the '.' symbol."

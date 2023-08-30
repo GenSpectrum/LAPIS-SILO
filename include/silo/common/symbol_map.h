@@ -1,16 +1,17 @@
-#ifndef SILO_NUCLEOTIDE_SYMBOL_MAP_H
-#define SILO_NUCLEOTIDE_SYMBOL_MAP_H
+#ifndef SILO_SYMBOL_MAP_H
+#define SILO_SYMBOL_MAP_H
 
 #include <vector>
 
 #include <boost/serialization/access.hpp>
 
+#include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 
 namespace silo {
 
-template <typename T>
-class NucleotideSymbolMap {
+template <typename SymbolType, typename T>
+class SymbolMap {
    friend class boost::serialization::access;
 
   private:
@@ -21,16 +22,18 @@ class NucleotideSymbolMap {
       // clang-format on
    }
 
-   std::array<T, NUC_SYMBOL_COUNT> data;
+   std::array<T, SymbolType::COUNT> data;
 
   public:
-   inline T& operator[](NUCLEOTIDE_SYMBOL symbol) { return data.at(static_cast<uint8_t>(symbol)); }
+   T& operator[](typename SymbolType::Symbol symbol) {
+      return data.at(static_cast<uint8_t>(symbol));
+   }
 
-   inline const T& at(NUCLEOTIDE_SYMBOL symbol) const {
+   const T& at(typename SymbolType::Symbol symbol) const {
       return data.at(static_cast<uint8_t>(symbol));
    }
 };
 
 }  // namespace silo
 
-#endif  // SILO_NUCLEOTIDE_SYMBOL_MAP_H
+#endif  // SILO_SYMBOL_MAP_H

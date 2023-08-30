@@ -14,11 +14,11 @@ silo::ZstdFastaWriter::ZstdFastaWriter(
 )
     : compressor(std::make_unique<ZstdCompressor>(compression_dict)) {
    if (!exists(out_file)) {
-      SPDLOG_INFO("ZSTD Sequence Writer at {} does not yet exist", out_file.string());
+      SPDLOG_DEBUG("ZSTD Sequence Writer at {} does not yet exist", out_file.string());
       if (!exists(out_file.parent_path())) {
-         SPDLOG_INFO("Parent path {} does not yet exist as well", out_file.string());
+         SPDLOG_DEBUG("Parent path {} does not yet exist as well", out_file.string());
          if (!create_directories(out_file.parent_path())) {
-            SPDLOG_INFO("Parent path {} could not be created", out_file.string());
+            SPDLOG_DEBUG("Parent path {} could not be created", out_file.string());
             throw std::runtime_error(
                "Could not create zstdwriter for file " + std::string{out_file.string()}
             );
@@ -32,6 +32,7 @@ silo::ZstdFastaWriter::ZstdFastaWriter(
          "Could not create ofstream for file " + std::string{out_file.string()}
       );
    }
+   SPDLOG_DEBUG("ZSTD Sequence Writer at {} successfully created", out_file.string());
 
    buffer = std::string(compressor->getSizeBound(), '\0');
 }

@@ -24,6 +24,8 @@ schema:
       type: float
     - name: insertions
       type: insertion
+    - name: aaInsertions
+      type: aaInsertion
   primaryKey: gisaid_epi_isl
   dateToSortBy: date
   partitionBy: pango_lineage

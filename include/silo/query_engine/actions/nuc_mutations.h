@@ -18,7 +18,6 @@
 
 namespace silo {
 class Database;
-class SequenceStore;
 
 namespace query_engine {
 struct OperatorResult;
@@ -31,12 +30,12 @@ class NucMutations : public Action {
    std::optional<std::string> nuc_sequence_name;
    double min_proportion;
 
-   static constexpr std::array<NUCLEOTIDE_SYMBOL, 5> VALID_MUTATION_SYMBOLS{
-      NUCLEOTIDE_SYMBOL::GAP,
-      NUCLEOTIDE_SYMBOL::A,
-      NUCLEOTIDE_SYMBOL::C,
-      NUCLEOTIDE_SYMBOL::G,
-      NUCLEOTIDE_SYMBOL::T,
+   static constexpr std::array<Nucleotide::Symbol, 5> VALID_MUTATION_SYMBOLS{
+      Nucleotide::Symbol::GAP,
+      Nucleotide::Symbol::A,
+      Nucleotide::Symbol::C,
+      Nucleotide::Symbol::G,
+      Nucleotide::Symbol::T,
    };
 
    const std::string POSITION_FIELD_NAME = "position";
@@ -44,8 +43,10 @@ class NucMutations : public Action {
    const std::string COUNT_FIELD_NAME = "count";
 
    struct PrefilteredBitmaps {
-      std::vector<std::pair<OperatorResult, const silo::SequenceStorePartition&>> bitmaps;
-      std::vector<std::pair<OperatorResult, const silo::SequenceStorePartition&>> full_bitmaps;
+      std::vector<std::pair<OperatorResult, const silo::SequenceStorePartition<Nucleotide>&>>
+         bitmaps;
+      std::vector<std::pair<OperatorResult, const silo::SequenceStorePartition<Nucleotide>&>>
+         full_bitmaps;
    };
 
   public:
@@ -53,18 +54,18 @@ class NucMutations : public Action {
 
   private:
    static PrefilteredBitmaps preFilterBitmaps(
-      const silo::SequenceStore& seq_store,
+      const silo::SequenceStore<Nucleotide>& seq_store,
       std::vector<OperatorResult>& bitmap_filter
    );
 
    static void addMutationsCountsForPosition(
       uint32_t position,
       PrefilteredBitmaps& bitmaps_to_evaluate,
-      NucleotideSymbolMap<std::vector<uint32_t>>& count_of_mutations_per_position
+      SymbolMap<Nucleotide, std::vector<uint32_t>>& count_of_mutations_per_position
    );
 
-   static NucleotideSymbolMap<std::vector<uint32_t>> calculateMutationsPerPosition(
-      const SequenceStore& seq_store,
+   static SymbolMap<Nucleotide, std::vector<uint32_t>> calculateMutationsPerPosition(
+      const SequenceStore<Nucleotide>& seq_store,
       std::vector<OperatorResult>& bitmap_filter
    );
 

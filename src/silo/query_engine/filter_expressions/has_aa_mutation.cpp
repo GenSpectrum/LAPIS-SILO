@@ -19,7 +19,7 @@
 #include "silo/query_engine/filter_expressions/or.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_parse_exception.h"
-#include "silo/storage/aa_store.h"
+#include "silo/storage/sequence_store.h"
 
 namespace silo {
 class DatabasePartition;
@@ -42,7 +42,7 @@ std::unique_ptr<operators::Operator> HasAAMutation::compile(
    const silo::DatabasePartition& database_partition,
    AmbiguityMode mode
 ) const {
-   const AA_SYMBOL ref_symbol =
+   const AminoAcid::Symbol ref_symbol =
       database.aa_sequences.at(aa_sequence_name).reference_sequence.at(position);
 
    if (mode == UPPER_BOUND) {
@@ -52,15 +52,15 @@ std::unique_ptr<operators::Operator> HasAAMutation::compile(
       return expression->compile(database, database_partition, NONE);
    }
 
-   std::vector<AA_SYMBOL> symbols(AA_SYMBOLS.begin(), AA_SYMBOLS.end());
-   (void)std::remove(symbols.begin(), symbols.end(), AA_SYMBOL::X);
+   std::vector<AminoAcid::Symbol> symbols(AminoAcid::SYMBOLS.begin(), AminoAcid::SYMBOLS.end());
+   (void)std::remove(symbols.begin(), symbols.end(), AminoAcid::Symbol::X);
    (void)std::remove(symbols.begin(), symbols.end(), ref_symbol);
    std::vector<std::unique_ptr<filter_expressions::Expression>> symbol_filters;
    std::transform(
       symbols.begin(),
       symbols.end(),
       std::back_inserter(symbol_filters),
-      [&](AA_SYMBOL symbol) {
+      [&](AminoAcid::Symbol symbol) {
          return std::make_unique<AASymbolEquals>(aa_sequence_name, position, symbol);
       }
    );

@@ -16,7 +16,7 @@
 #include <roaring/roaring.hh>
 
 #include "silo/common/fasta_reader.h"
-#include "silo/common/nucleotide_symbol_map.h"
+#include "silo/common/symbol_map.h"
 #include "silo/common/zstdfasta_reader.h"
 #include "silo/roaring/roaring_serialize.h"
 #include "silo/storage/serialize_optional.h"
@@ -28,27 +28,28 @@ class access;
 namespace silo {
 class ZstdFastaReader;
 
-class NucPosition {
+template <typename SymbolType>
+class Position {
    friend class boost::serialization::access;
 
    template <class Archive>
    void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
-      archive & symbol_whose_bitmap_is_flipped;
       archive & bitmaps;
+      archive & symbol_whose_bitmap_is_flipped;
       // clang-format on
    }
 
-   NucPosition() = default;
+   Position() = default;
 
   public:
-   explicit NucPosition(NUCLEOTIDE_SYMBOL symbol);
-   explicit NucPosition(std::optional<NUCLEOTIDE_SYMBOL> symbol);
+   explicit Position(typename SymbolType::Symbol symbol);
+   explicit Position(std::optional<typename SymbolType::Symbol> symbol);
 
-   NucleotideSymbolMap<roaring::Roaring> bitmaps;
-   std::optional<NUCLEOTIDE_SYMBOL> symbol_whose_bitmap_is_flipped = std::nullopt;
+   SymbolMap<SymbolType, roaring::Roaring> bitmaps;
+   std::optional<typename SymbolType::Symbol> symbol_whose_bitmap_is_flipped;
 
-   std::optional<silo::NUCLEOTIDE_SYMBOL> flipMostNumerousBitmap(uint32_t sequence_count);
+   std::optional<typename SymbolType::Symbol> flipMostNumerousBitmap(uint32_t sequence_count);
 };
 
 struct SequenceStoreInfo {
@@ -57,15 +58,18 @@ struct SequenceStoreInfo {
    size_t n_bitmaps_size;
 };
 
+template <typename SymbolType>
 class SequenceStorePartition {
    friend class boost::serialization::access;
 
    template <class Archive>
    void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
-      archive & positions;
-      archive & indexing_differences_to_reference_genome;
-      archive & nucleotide_symbol_n_bitmaps;
+      archive & indexing_differences_to_reference_sequence;
+      for(auto& position : positions){
+            archive & position;
+      }
+      archive & missing_symbol_bitmaps;
       archive & sequence_count;
       // clang-format on
    }
@@ -75,17 +79,22 @@ class SequenceStorePartition {
    void fillNBitmaps(const std::vector<std::string>& genomes);
 
   public:
-   explicit SequenceStorePartition(const std::vector<NUCLEOTIDE_SYMBOL>& reference_genome);
+   explicit SequenceStorePartition(const std::vector<typename SymbolType::Symbol>& reference_genome
+   );
 
-   const std::vector<NUCLEOTIDE_SYMBOL>& reference_genome;
-   std::vector<std::pair<size_t, NUCLEOTIDE_SYMBOL>> indexing_differences_to_reference_genome;
-   std::vector<NucPosition> positions;
-   std::vector<roaring::Roaring> nucleotide_symbol_n_bitmaps;
+   const std::vector<typename SymbolType::Symbol>& reference_sequence;
+   std::vector<std::pair<size_t, typename SymbolType::Symbol>>
+      indexing_differences_to_reference_sequence;
+   std::vector<Position<SymbolType>> positions;
+   std::vector<roaring::Roaring> missing_symbol_bitmaps;
    uint32_t sequence_count = 0;
 
    [[nodiscard]] size_t computeSize() const;
 
-   [[nodiscard]] const roaring::Roaring* getBitmap(size_t position, NUCLEOTIDE_SYMBOL symbol) const;
+   [[nodiscard]] const roaring::Roaring* getBitmap(
+      size_t position,
+      typename SymbolType::Symbol symbol
+   ) const;
 
    [[nodiscard]] SequenceStoreInfo getInfo() const;
 
@@ -94,14 +103,15 @@ class SequenceStorePartition {
    void interpret(const std::vector<std::string>& genomes);
 };
 
+template <typename SymbolType>
 class SequenceStore {
   public:
-   std::vector<NUCLEOTIDE_SYMBOL> reference_genome;
-   std::deque<SequenceStorePartition> partitions;
+   std::vector<typename SymbolType::Symbol> reference_sequence;
+   std::deque<SequenceStorePartition<SymbolType>> partitions;
 
-   explicit SequenceStore(std::vector<NUCLEOTIDE_SYMBOL> reference_genome);
+   explicit SequenceStore(std::vector<typename SymbolType::Symbol> reference_sequence);
 
-   SequenceStorePartition& createPartition();
+   SequenceStorePartition<SymbolType>& createPartition();
 };
 
 }  // namespace silo

@@ -13,19 +13,19 @@ TEST(ReferenceGenome, readFromFile) {
    ASSERT_EQ(under_test.aa_sequences.size(), 12);
 
    ASSERT_EQ(under_test.nucleotide_sequences.at("main").size(), 29903);
-   ASSERT_EQ(under_test.nucleotide_sequences.at("main").at(0), silo::NUCLEOTIDE_SYMBOL::A);
+   ASSERT_EQ(under_test.nucleotide_sequences.at("main").at(0), silo::Nucleotide::Symbol::A);
 
    ASSERT_EQ(under_test.nucleotide_sequences.at("testSecondSequence").size(), 4);
    ASSERT_EQ(
-      under_test.nucleotide_sequences.at("testSecondSequence").at(1), silo::NUCLEOTIDE_SYMBOL::C
+      under_test.nucleotide_sequences.at("testSecondSequence").at(1), silo::Nucleotide::Symbol::C
    );
 
    ASSERT_EQ(under_test.aa_sequences.at("S").size(), 1274);
-   ASSERT_EQ(under_test.aa_sequences.at("S").at(3), silo::AA_SYMBOL::F);
+   ASSERT_EQ(under_test.aa_sequences.at("S").at(3), silo::AminoAcid::Symbol::F);
 
    ASSERT_EQ(under_test.aa_sequences.at("ORF1a").size(), 4401);
-   ASSERT_EQ(under_test.aa_sequences.at("ORF1a").at(10), silo::AA_SYMBOL::K);
+   ASSERT_EQ(under_test.aa_sequences.at("ORF1a").at(10), silo::AminoAcid::Symbol::K);
 
    ASSERT_EQ(under_test.aa_sequences.at("ORF9b").size(), 98);
-   ASSERT_EQ(under_test.aa_sequences.at("ORF9b").at(10), silo::AA_SYMBOL::A);
+   ASSERT_EQ(under_test.aa_sequences.at("ORF9b").at(10), silo::AminoAcid::Symbol::A);
 }

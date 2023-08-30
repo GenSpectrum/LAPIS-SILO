@@ -41,7 +41,7 @@ void to_json(nlohmann::json& json, const BitmapContainerSizeStatistic& statistic
 void to_json(nlohmann::json& json, const BitmapSizePerSymbol& bitmapSizePerSymbol) {
    std::map<std::string, uint64_t> size_in_bytes_for_nlohmann;
    for (const auto& [symbol, size] : bitmapSizePerSymbol.size_in_bytes) {
-      const std::string symbol_string(1, nucleotideSymbolToChar(symbol));
+      const std::string symbol_string(1, Nucleotide::symbolToChar(symbol));
       size_in_bytes_for_nlohmann[symbol_string] = size;
    }
    json = size_in_bytes_for_nlohmann;

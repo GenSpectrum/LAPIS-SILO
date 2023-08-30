@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <deque>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -21,6 +22,7 @@ struct access;
 
 namespace silo::storage::column {
 
+template <typename SymbolType>
 class InsertionColumnPartition {
    friend class boost::serialization::access;
 
@@ -29,22 +31,31 @@ class InsertionColumnPartition {
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
       archive & values;
-      archive & insertion_index;
+      archive & insertion_indexes;
       // clang-format on
    }
 
    std::vector<silo::Idx> values;
+   std::unordered_map<std::string, insertion::InsertionIndex<SymbolType>> insertion_indexes;
    common::BidirectionalMap<std::string>& lookup;
-   insertion::InsertionIndex insertion_index;
 
   public:
-   explicit InsertionColumnPartition(common::BidirectionalMap<std::string>& lookup);
+   const std::optional<std::string> default_sequence_name;
+
+   explicit InsertionColumnPartition(
+      common::BidirectionalMap<std::string>& lookup,
+      const std::optional<std::string> default_sequence_name
+   );
 
    void insert(const std::string& value);
 
-   void buildInsertionIndex();
+   void buildInsertionIndexes();
+
+   const std::unordered_map<std::string, insertion::InsertionIndex<SymbolType>>&
+   getInsertionIndexes() const;
 
    [[nodiscard]] std::unique_ptr<roaring::Roaring> search(
+      const std::string& sequence_name,
       uint32_t position,
       const std::string& search_pattern
    ) const;
@@ -54,6 +65,7 @@ class InsertionColumnPartition {
    [[nodiscard]] std::string lookupValue(silo::Idx value_id) const;
 };
 
+template <typename SymbolType>
 class InsertionColumn {
    friend class boost::serialization::access;
 
@@ -62,16 +74,18 @@ class InsertionColumn {
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
       archive & *lookup;
+      archive & default_sequence_name;
       // clang-format on
    }
 
-   std::deque<InsertionColumnPartition> partitions;
+   std::deque<InsertionColumnPartition<SymbolType>> partitions;
    std::unique_ptr<common::BidirectionalMap<std::string>> lookup;
+   std::optional<std::string> default_sequence_name;
 
   public:
-   InsertionColumn();
+   InsertionColumn(std::optional<std::string> default_sequence_name);
 
-   InsertionColumnPartition& createPartition();
+   InsertionColumnPartition<SymbolType>& createPartition();
 };
 
 }  // namespace silo::storage::column

@@ -20,7 +20,7 @@
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
-#include "silo/storage/aa_store.h"
+#include "silo/storage/sequence_store.h"
 
 using silo::query_engine::OperatorResult;
 
@@ -61,7 +61,7 @@ std::unordered_map<std::string, AAMutations::PrefilteredBitmaps> AAMutations::pr
 void AAMutations::addMutationsCountsForPosition(
    uint32_t position,
    const PrefilteredBitmaps& bitmaps_to_evaluate,
-   AASymbolMap<std::vector<uint32_t>>& count_of_mutations_per_position
+   SymbolMap<AminoAcid, std::vector<uint32_t>>& count_of_mutations_per_position
 ) {
    for (const auto& [filter, aa_store_partition] : bitmaps_to_evaluate.bitmaps) {
       for (const auto symbol : VALID_MUTATION_SYMBOLS) {
@@ -91,13 +91,13 @@ void AAMutations::addMutationsCountsForPosition(
    }
 }
 
-AASymbolMap<std::vector<uint32_t>> AAMutations::calculateMutationsPerPosition(
-   const AAStore& aa_store,
+SymbolMap<AminoAcid, std::vector<uint32_t>> AAMutations::calculateMutationsPerPosition(
+   const SequenceStore<AminoAcid>& aa_store,
    const PrefilteredBitmaps& bitmap_filter
 ) {
    const size_t sequence_length = aa_store.reference_sequence.size();
 
-   AASymbolMap<std::vector<uint32_t>> count_of_mutations_per_position;
+   SymbolMap<AminoAcid, std::vector<uint32_t>> count_of_mutations_per_position;
    for (const auto symbol : VALID_MUTATION_SYMBOLS) {
       count_of_mutations_per_position[symbol].resize(sequence_length);
    }
@@ -131,18 +131,18 @@ void AAMutations::validateOrderByFields(const Database& /*database*/) const {
 
 void AAMutations::addMutationsToOutput(
    const std::string& sequence_name,
-   const AAStore& aa_store,
+   const SequenceStore<AminoAcid>& aa_store,
    const PrefilteredBitmaps& bitmap_filter,
    std::vector<QueryResultEntry>& output
 ) const {
    const size_t sequence_length = aa_store.reference_sequence.size();
 
-   const AASymbolMap<std::vector<uint32_t>> count_of_mutations_per_position =
+   const SymbolMap<AminoAcid, std::vector<uint32_t>> count_of_mutations_per_position =
       calculateMutationsPerPosition(aa_store, bitmap_filter);
 
    for (size_t pos = 0; pos < sequence_length; ++pos) {
       uint32_t total = 0;
-      for (const AA_SYMBOL symbol : VALID_MUTATION_SYMBOLS) {
+      for (const AminoAcid::Symbol symbol : VALID_MUTATION_SYMBOLS) {
          total += count_of_mutations_per_position.at(symbol)[pos];
       }
       if (total == 0) {
@@ -151,7 +151,7 @@ void AAMutations::addMutationsToOutput(
       const auto threshold_count =
          static_cast<uint32_t>(std::ceil(static_cast<double>(total) * min_proportion) - 1);
 
-      const AA_SYMBOL symbol_in_reference_genome = aa_store.reference_sequence.at(pos);
+      const AminoAcid::Symbol symbol_in_reference_genome = aa_store.reference_sequence.at(pos);
 
       for (const auto symbol : VALID_MUTATION_SYMBOLS) {
          if (symbol_in_reference_genome != symbol) {
@@ -162,8 +162,8 @@ void AAMutations::addMutationsToOutput(
                   map<std::string, std::optional<std::variant<std::string, int32_t, double>>>
                      fields{
                         {POSITION_FIELD_NAME,
-                         aaSymbolToChar(symbol_in_reference_genome) + std::to_string(pos + 1) +
-                            aaSymbolToChar(symbol)},
+                         AminoAcid::symbolToChar(symbol_in_reference_genome) +
+                            std::to_string(pos + 1) + AminoAcid::symbolToChar(symbol)},
                         {SEQUENCE_FIELD_NAME, sequence_name},
                         {PROPORTION_FIELD_NAME, proportion},
                         {COUNT_FIELD_NAME, static_cast<int32_t>(count)}};
@@ -178,8 +178,6 @@ QueryResult AAMutations::execute(
    const Database& database,
    std::vector<OperatorResult> bitmap_filter
 ) const {
-   using roaring::Roaring;
-
    std::vector<std::string> aa_sequence_names_to_evaluate;
    for (const auto& aa_sequence_name : aa_sequence_names) {
       CHECK_SILO_QUERY(
@@ -199,7 +197,7 @@ QueryResult AAMutations::execute(
 
    std::vector<QueryResultEntry> mutation_proportions;
    for (const auto& aa_sequence_name : aa_sequence_names_to_evaluate) {
-      const AAStore& aa_store = database.aa_sequences.at(aa_sequence_name);
+      const SequenceStore<AminoAcid>& aa_store = database.aa_sequences.at(aa_sequence_name);
 
       addMutationsToOutput(
          aa_sequence_name, aa_store, bitmaps_to_evaluate.at(aa_sequence_name), mutation_proportions

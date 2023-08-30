@@ -42,8 +42,10 @@ uint32_t ColumnPartitionGroup::fill(
             int_columns.at(item.name).insert(value);
          } else if (column_type == silo::config::ColumnType::FLOAT) {
             float_columns.at(item.name).insert(value);
-         } else if (column_type == silo::config::ColumnType::INSERTION) {
-            insertion_columns.at(item.name).insert(value);
+         } else if (column_type == silo::config::ColumnType::NUC_INSERTION) {
+            nuc_insertion_columns.at(item.name).insert(value);
+         } else if (column_type == silo::config::ColumnType::AA_INSERTION) {
+            aa_insertion_columns.at(item.name).insert(value);
          }
       }
       if (++sequence_count == UINT32_MAX) {
@@ -54,6 +56,18 @@ uint32_t ColumnPartitionGroup::fill(
    }
 
    return sequence_count;
+}
+
+template <>
+const std::map<std::string, storage::column::InsertionColumnPartition<Nucleotide>&>&
+ColumnPartitionGroup::getInsertionColumns<Nucleotide>() const {
+   return this->nuc_insertion_columns;
+}
+
+template <>
+const std::map<std::string, storage::column::InsertionColumnPartition<AminoAcid>&>&
+ColumnPartitionGroup::getInsertionColumns<AminoAcid>() const {
+   return this->aa_insertion_columns;
 }
 
 ColumnPartitionGroup ColumnPartitionGroup::getSubgroup(
@@ -77,8 +91,10 @@ ColumnPartitionGroup ColumnPartitionGroup::getSubgroup(
          result.int_columns.insert({item.name, int_columns.at(item.name)});
       } else if (item.type == silo::config::ColumnType::FLOAT) {
          result.float_columns.insert({item.name, float_columns.at(item.name)});
-      } else if (item.type == silo::config::ColumnType::INSERTION) {
-         result.insertion_columns.insert({item.name, insertion_columns.at(item.name)});
+      } else if (item.type == silo::config::ColumnType::NUC_INSERTION) {
+         result.nuc_insertion_columns.insert({item.name, nuc_insertion_columns.at(item.name)});
+      } else if (item.type == silo::config::ColumnType::AA_INSERTION) {
+         result.aa_insertion_columns.insert({item.name, aa_insertion_columns.at(item.name)});
       }
    }
    return result;
@@ -120,12 +136,28 @@ std::optional<std::variant<std::string, int32_t, double>> ColumnPartitionGroup::
       }
       return value;
    }
-   if (insertion_columns.contains(column)) {
-      return insertion_columns.at(column).lookupValue(
-         insertion_columns.at(column).getValues().at(sequence_id)
+   if (nuc_insertion_columns.contains(column)) {
+      return nuc_insertion_columns.at(column).lookupValue(
+         nuc_insertion_columns.at(column).getValues().at(sequence_id)
+      );
+   }
+   if (aa_insertion_columns.contains(column)) {
+      return aa_insertion_columns.at(column).lookupValue(
+         aa_insertion_columns.at(column).getValues().at(sequence_id)
       );
    }
    return std::nullopt;
+}
+
+template <>
+const std::map<std::string, storage::column::InsertionColumn<Nucleotide>>& ColumnGroup::
+   getInsertionColumns<Nucleotide>() const {
+   return nuc_insertion_columns;
+}
+template <>
+const std::map<std::string, storage::column::InsertionColumn<AminoAcid>>& ColumnGroup::
+   getInsertionColumns<AminoAcid>() const {
+   return aa_insertion_columns;
 }
 
 }  // namespace silo::storage

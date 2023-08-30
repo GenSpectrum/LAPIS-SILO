@@ -2,6 +2,7 @@
 #define SILO_INSERTION_CONTAINS_H
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include <nlohmann/json_fwd.hpp>
@@ -18,14 +19,21 @@ class Operator;
 
 namespace silo::query_engine::filter_expressions {
 
+template <typename SymbolType>
 struct InsertionContains : public Expression {
   private:
-   std::string column_name;
+   std::vector<std::string> column_names;
+   std::optional<std::string> sequence_name;
    uint32_t position;
    std::string value;
 
   public:
-   explicit InsertionContains(std::string column, uint32_t position, std::string value);
+   explicit InsertionContains(
+      std::vector<std::string>&& column_names,
+      std::optional<std::string> sequence_name,
+      uint32_t position,
+      std::string value
+   );
 
    std::string toString(const Database& database) const override;
 
@@ -36,8 +44,9 @@ struct InsertionContains : public Expression {
    ) const override;
 };
 
+template <typename SymbolType>
 // NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains>& filter);
+void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains<SymbolType>>& filter);
 
 }  // namespace silo::query_engine::filter_expressions
 

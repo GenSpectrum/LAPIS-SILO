@@ -12,8 +12,9 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <roaring/roaring.hh>
 
-#include "silo/common/nucleotide_symbol_map.h"
+#include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/common/symbol_map.h"
 #include "silo/common/template_utils.h"
 
 namespace boost::serialization {
@@ -22,7 +23,11 @@ struct access;
 
 namespace silo::storage::column::insertion {
 
-using ThreeMer = std::array<NUCLEOTIDE_SYMBOL, 3>;
+template <typename SymbolType>
+struct ThreeMerHash {
+   size_t operator()(const std::array<typename SymbolType::Symbol, 3>& three_mer) const;
+};
+
 using InsertionIds = std::vector<uint32_t>;
 
 class Insertion {
@@ -42,6 +47,7 @@ class Insertion {
    roaring::Roaring sequence_ids;
 };
 
+template <typename SymbolType>
 class InsertionPosition {
   private:
    friend class boost::serialization::access;
@@ -54,17 +60,18 @@ class InsertionPosition {
       // clang-format on
    }
 
-   static constexpr size_t THREE_DIMENSIONS = 3;
-
   public:
-   using ThreeMerIndex =
-      NestedContainer<THREE_DIMENSIONS, silo::NucleotideSymbolMap, InsertionIds>::type;
-
    std::vector<Insertion> insertions;
-   ThreeMerIndex three_mer_index;
+
+   using ThreeMerType = std::unordered_map<
+      std::array<typename SymbolType::Symbol, 3>,
+      InsertionIds,
+      ThreeMerHash<SymbolType>>;
+
+   ThreeMerType three_mer_index;
 
    std::unique_ptr<roaring::Roaring> searchWithThreeMerIndex(
-      const std::vector<ThreeMer>& search_three_mers,
+      const std::vector<std::array<typename SymbolType::Symbol, 3>>& search_three_mers,
       const std::regex& search_pattern
    ) const;
 
@@ -75,6 +82,7 @@ class InsertionPosition {
    std::unique_ptr<roaring::Roaring> search(const std::string& search_pattern) const;
 };
 
+template <typename SymbolType>
 class InsertionIndex {
   private:
    friend class boost::serialization::access;
@@ -87,14 +95,16 @@ class InsertionIndex {
       // clang-format on
    }
 
-   std::unordered_map<uint32_t, InsertionPosition> insertion_positions;
+   std::unordered_map<uint32_t, InsertionPosition<SymbolType>> insertion_positions;
    std::unordered_map<uint32_t, std::unordered_map<std::string, roaring::Roaring>>
       collected_insertions;
 
   public:
-   void addLazily(const std::string& insertions_string, uint32_t sequence_id);
+   void addLazily(uint32_t position, const std::string& insertion, uint32_t sequence_id);
 
    void buildIndex();
+
+   const std::unordered_map<uint32_t, InsertionPosition<SymbolType>>& getInsertionPositions() const;
 
    std::unique_ptr<roaring::Roaring> search(uint32_t position, const std::string& search_pattern)
       const;

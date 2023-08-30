@@ -13,6 +13,7 @@
   },
   "expectedQueryResult": [
     {
+      "aaInsertions": null,
       "age": 53,
       "country": "Switzerland",
       "date": "2020-11-24",
@@ -25,6 +26,7 @@
       "unsorted_date": "2021-03-15"
     },
     {
+      "aaInsertions": null,
       "age": 53,
       "country": "Switzerland",
       "date": "2020-12-14",
@@ -37,6 +39,7 @@
       "unsorted_date": "2021-05-14"
     },
     {
+      "aaInsertions": "S:247:SGE",
       "age": 56,
       "country": "Switzerland",
       "date": "2020-12-13",
@@ -49,6 +52,7 @@
       "unsorted_date": "2021-05-16"
     },
     {
+      "aaInsertions": null,
       "age": 56,
       "country": "Switzerland",
       "date": "2020-12-09",
@@ -61,6 +65,7 @@
       "unsorted_date": "2021-04-28"
     },
     {
+      "aaInsertions": null,
       "age": 56,
       "country": "Switzerland",
       "date": "2020-12-24",
@@ -73,6 +78,7 @@
       "unsorted_date": "2020-03-16"
     },
     {
+      "aaInsertions": null,
       "age": 50,
       "country": "Switzerland",
       "date": "2020-10-08",
@@ -85,6 +91,7 @@
       "unsorted_date": "2021-03-03"
     },
     {
+      "aaInsertions": "S:210:IV",
       "age": 59,
       "country": "Switzerland",
       "date": "2021-01-12",
@@ -97,6 +104,7 @@
       "unsorted_date": "2021-07-14"
     },
     {
+      "aaInsertions": null,
       "age": 58,
       "country": "Switzerland",
       "date": "2020-12-25",
@@ -109,6 +117,7 @@
       "unsorted_date": "2021-07-19"
     },
     {
+      "aaInsertions": null,
       "age": 50,
       "country": "Switzerland",
       "date": "2020-10-22",
@@ -121,6 +130,7 @@
       "unsorted_date": "2021-05-10"
     },
     {
+      "aaInsertions": null,
       "age": 50,
       "country": "Switzerland",
       "date": "2020-10-28",

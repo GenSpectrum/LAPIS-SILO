@@ -41,7 +41,6 @@
 #include "silo/preprocessing/partition.h"
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/query_engine/query_engine.h"
-#include "silo/storage/aa_store.h"
 #include "silo/storage/column/date_column.h"
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
@@ -69,6 +68,34 @@ struct [[maybe_unused]] fmt::formatter<silo::DatabaseInfo> : fmt::formatter<std:
 };
 
 namespace silo {
+
+template <>
+std::optional<std::string> Database::getDefaultSequenceName<Nucleotide>() const {
+   return database_config.default_nucleotide_sequence;
+}
+
+template <>
+std::optional<std::string> Database::getDefaultSequenceName<AminoAcid>() const {
+   return std::nullopt;
+}
+
+template <>
+std::vector<std::string> Database::getSequenceNames<Nucleotide>() const {
+   std::vector<std::string> sequence_names;
+   for (const auto& [name, _] : nuc_sequences) {
+      sequence_names.emplace_back(name);
+   }
+   return sequence_names;
+}
+
+template <>
+std::vector<std::string> Database::getSequenceNames<AminoAcid>() const {
+   std::vector<std::string> sequence_names;
+   for (const auto& [name, _] : aa_sequences) {
+      sequence_names.emplace_back(name);
+   }
+   return sequence_names;
+}
 
 const PangoLineageAliasLookup& Database::getAliasKey() const {
    return alias_key;
@@ -102,7 +129,7 @@ void Database::build(
                return;
             }
             SPDLOG_DEBUG("Using metadata file: {}", metadata_file.string());
-            partitions[partition_index].sequence_count =
+            partitions[partition_index].sequence_count +=
                partitions[partition_index].columns.fill(metadata_file, database_config);
          }
       }
@@ -162,7 +189,7 @@ DatabaseInfo Database::getDatabaseInfo() const {
          size_t local_nucleotide_symbol_n_bitmaps_size = 0;
          for (const auto& [_, seq_store] : database_partition.nuc_sequences) {
             local_total_size += seq_store.computeSize();
-            for (const auto& bitmap : seq_store.nucleotide_symbol_n_bitmaps) {
+            for (const auto& bitmap : seq_store.missing_symbol_bitmaps) {
                local_nucleotide_symbol_n_bitmaps_size += bitmap.getSizeInBytes(false);
             }
          }
@@ -228,25 +255,28 @@ BitmapContainerSize& BitmapContainerSize::operator+=(const BitmapContainerSize& 
 }
 
 BitmapSizePerSymbol& BitmapSizePerSymbol::operator+=(const BitmapSizePerSymbol& other) {
-   for (const auto& symbol : NUC_SYMBOLS) {
+   for (const auto& symbol : Nucleotide::SYMBOLS) {
       this->size_in_bytes.at(symbol) += other.size_in_bytes.at(symbol);
    }
    return *this;
 }
 BitmapSizePerSymbol::BitmapSizePerSymbol() {
-   for (const auto& symbol : NUC_SYMBOLS) {
+   for (const auto& symbol : Nucleotide::SYMBOLS) {
       this->size_in_bytes[symbol] = 0;
    }
 }
 
-BitmapSizePerSymbol Database::calculateBitmapSizePerSymbol(const SequenceStore& seq_store) {
+template <typename SymbolType>
+BitmapSizePerSymbol Database::calculateBitmapSizePerSymbol(
+   const SequenceStore<SymbolType>& seq_store
+) {
    BitmapSizePerSymbol global_bitmap_size_per_symbol;
 
    std::mutex lock;
-   tbb::parallel_for_each(NUC_SYMBOLS, [&](NUCLEOTIDE_SYMBOL symbol) {
+   tbb::parallel_for_each(Nucleotide::SYMBOLS, [&](Nucleotide::Symbol symbol) {
       BitmapSizePerSymbol bitmap_size_per_symbol;
 
-      for (const SequenceStorePartition& seq_store_partition : seq_store.partitions) {
+      for (const SequenceStorePartition<SymbolType>& seq_store_partition : seq_store.partitions) {
          for (const auto& position : seq_store_partition.positions) {
             bitmap_size_per_symbol.size_in_bytes[symbol] +=
                position.bitmaps.at(symbol).getSizeInBytes();
@@ -279,11 +309,12 @@ void addStatisticToBitmapContainerSize(
       statistic.n_values_bitset_containers;
 }
 
+template <typename SymbolType>
 BitmapContainerSize Database::calculateBitmapContainerSizePerGenomeSection(
-   const SequenceStore& seq_store,
+   const SequenceStore<SymbolType>& seq_store,
    size_t section_length
 ) {
-   const uint32_t genome_length = seq_store.reference_genome.size();
+   const uint32_t genome_length = seq_store.reference_sequence.size();
 
    BitmapContainerSize global_bitmap_container_size_per_genome_section(
       genome_length, section_length
@@ -296,7 +327,7 @@ BitmapContainerSize Database::calculateBitmapContainerSizePerGenomeSection(
          RoaringStatistics statistic;
          for (const auto& seq_store_partition : seq_store.partitions) {
             const auto& position = seq_store_partition.positions[position_index];
-            for (const auto& genome_symbol : NUC_SYMBOLS) {
+            for (const auto& genome_symbol : Nucleotide::SYMBOLS) {
                const auto& bitmap = position.bitmaps.at(genome_symbol);
 
                roaring_bitmap_statistics(&bitmap.roaring, &statistic);
@@ -311,11 +342,11 @@ BitmapContainerSize Database::calculateBitmapContainerSizePerGenomeSection(
                   bitmap.getFrozenSizeInBytes();
 
                if (statistic.n_bitset_containers > 0) {
-                  if (genome_symbol == NUCLEOTIDE_SYMBOL::N) {
+                  if (genome_symbol == Nucleotide::SYMBOL_MISSING) {
                      bitmap_container_size_per_genome_section.size_per_genome_symbol_and_section
                         .at("N")
                         .at(position_index / section_length) += statistic.n_bitset_containers;
-                  } else if (genome_symbol == NUCLEOTIDE_SYMBOL::GAP) {
+                  } else if (genome_symbol == Nucleotide::Symbol::GAP) {
                      bitmap_container_size_per_genome_section.size_per_genome_symbol_and_section
                         .at("GAP")
                         .at(position_index / section_length) += statistic.n_bitset_containers;
@@ -343,7 +374,7 @@ DetailedDatabaseInfo Database::detailedDatabaseInfo() const {
       result.sequences.insert(
          {seq_name,
           {BitmapSizePerSymbol{},
-           BitmapContainerSize{seq_store.reference_genome.size(), DEFAULT_SECTION_LENGTH}}}
+           BitmapContainerSize{seq_store.reference_sequence.size(), DEFAULT_SECTION_LENGTH}}}
       );
       result.sequences.at(seq_name).bitmap_size_per_symbol =
          calculateBitmapSizePerSymbol(seq_store);
@@ -353,16 +384,16 @@ DetailedDatabaseInfo Database::detailedDatabaseInfo() const {
    return result;
 }
 
-std::map<std::string, std::vector<NUCLEOTIDE_SYMBOL>> Database::getNucSequences() const {
-   std::map<std::string, std::vector<NUCLEOTIDE_SYMBOL>> nucleotide_sequences_map;
+std::map<std::string, std::vector<Nucleotide::Symbol>> Database::getNucSequences() const {
+   std::map<std::string, std::vector<Nucleotide::Symbol>> nucleotide_sequences_map;
    for (const auto& [name, store] : nuc_sequences) {
-      nucleotide_sequences_map.emplace(name, store.reference_genome);
+      nucleotide_sequences_map.emplace(name, store.reference_sequence);
    }
    return nucleotide_sequences_map;
 }
 
-std::map<std::string, std::vector<AA_SYMBOL>> Database::getAASequences() const {
-   std::map<std::string, std::vector<AA_SYMBOL>> aa_sequences_map;
+std::map<std::string, std::vector<AminoAcid::Symbol>> Database::getAASequences() const {
+   std::map<std::string, std::vector<AminoAcid::Symbol>> aa_sequences_map;
    for (const auto& [name, store] : aa_sequences) {
       aa_sequences_map.emplace(name, store.reference_sequence);
    }
@@ -518,7 +549,7 @@ Database Database::loadDatabaseState(const std::filesystem::path& save_directory
    SPDLOG_TRACE(
       "Loading nucleotide sequences from {}", (save_directory / "nuc_sequences.silo").string()
    );
-   std::map<std::string, std::vector<NUCLEOTIDE_SYMBOL>> nuc_sequences_map;
+   std::map<std::string, std::vector<Nucleotide::Symbol>> nuc_sequences_map;
    std::ifstream nuc_sequences_file = openInputFileOrThrow(save_directory / "nuc_sequences.silo");
    ::boost::archive::binary_iarchive nuc_sequences_archive(nuc_sequences_file);
    nuc_sequences_archive >> nuc_sequences_map;
@@ -526,12 +557,14 @@ Database Database::loadDatabaseState(const std::filesystem::path& save_directory
    SPDLOG_TRACE(
       "Loading amino acid sequences from {}", (save_directory / "aa_sequences.silo").string()
    );
-   std::map<std::string, std::vector<AA_SYMBOL>> aa_sequences_map;
+   std::map<std::string, std::vector<AminoAcid::Symbol>> aa_sequences_map;
    std::ifstream aa_sequences_file = openInputFileOrThrow(save_directory / "aa_sequences.silo");
    ::boost::archive::binary_iarchive aa_sequences_archive(aa_sequences_file);
    aa_sequences_archive >> aa_sequences_map;
 
-   SPDLOG_INFO("Finished loading partitions from {}", save_directory.string());
+   SPDLOG_INFO(
+      "Finished loading partitions from {}", (save_directory / "aa_sequences.silo").string()
+   );
 
    database.initializeNucSequences(nuc_sequences_map);
    database.initializeAASequences(aa_sequences_map);
@@ -559,9 +592,12 @@ Database Database::loadDatabaseState(const std::filesystem::path& save_directory
          }
       }
    );
+   SPDLOG_INFO("Finished loading partition data");
 
-   SPDLOG_INFO("Loading data_version from {}", (save_directory / "data_version.silo").string());
    database.setDataVersion(loadDataVersion(save_directory / "data_version.silo"));
+   SPDLOG_INFO(
+      "Finished loading data_version from {}", (save_directory / "data_version.silo").string()
+   );
 
    return database;
 }
@@ -705,11 +741,22 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
             partition.insertColumn(name, columns.float_columns.at(name).createPartition());
          }
          break;
-      case config::ColumnType::INSERTION:
-         columns.insertion_columns.emplace(name, storage::column::InsertionColumn());
+      case config::ColumnType::NUC_INSERTION:
+         columns.nuc_insertion_columns.emplace(
+            name, storage::column::InsertionColumn<Nucleotide>(getDefaultSequenceName<Nucleotide>())
+         );
          for (auto& partition : partitions) {
             partition.columns.metadata.push_back({name, column_type});
-            partition.insertColumn(name, columns.insertion_columns.at(name).createPartition());
+            partition.insertColumn(name, columns.nuc_insertion_columns.at(name).createPartition());
+         }
+         break;
+      case config::ColumnType::AA_INSERTION:
+         columns.aa_insertion_columns.emplace(
+            name, storage::column::InsertionColumn<AminoAcid>(getDefaultSequenceName<AminoAcid>())
+         );
+         for (auto& partition : partitions) {
+            partition.columns.metadata.push_back({name, column_type});
+            partition.insertColumn(name, columns.aa_insertion_columns.at(name).createPartition());
          }
          break;
    }
@@ -722,11 +769,11 @@ void Database::initializeColumns() {
 }
 
 void Database::initializeNucSequences(
-   const std::map<std::string, std::vector<NUCLEOTIDE_SYMBOL>>& reference_sequences
+   const std::map<std::string, std::vector<Nucleotide::Symbol>>& reference_sequences
 ) {
    SPDLOG_DEBUG("preprocessing - initializing nucleotide sequences");
-   for (const auto& [nuc_name, reference_genome] : reference_sequences) {
-      auto seq_store = SequenceStore(reference_genome);
+   for (const auto& [nuc_name, reference_sequence] : reference_sequences) {
+      auto seq_store = SequenceStore<Nucleotide>(reference_sequence);
       nuc_sequences.emplace(nuc_name, std::move(seq_store));
       for (auto& partition : partitions) {
          partition.nuc_sequences.insert({nuc_name, nuc_sequences.at(nuc_name).createPartition()});
@@ -735,11 +782,11 @@ void Database::initializeNucSequences(
 }
 
 void Database::initializeAASequences(
-   const std::map<std::string, std::vector<AA_SYMBOL>>& reference_sequences
+   const std::map<std::string, std::vector<AminoAcid::Symbol>>& reference_sequences
 ) {
    SPDLOG_DEBUG("preprocessing - initializing amino acid sequences");
-   for (const auto& [aa_name, reference_genome] : reference_sequences) {
-      auto aa_store = AAStore(reference_genome);
+   for (const auto& [aa_name, reference_sequence] : reference_sequences) {
+      auto aa_store = SequenceStore<AminoAcid>(reference_sequence);
       aa_sequences.emplace(aa_name, std::move(aa_store));
       for (auto& partition : partitions) {
          partition.aa_sequences.insert({aa_name, aa_sequences.at(aa_name).createPartition()});
@@ -749,8 +796,11 @@ void Database::initializeAASequences(
 
 void Database::finalizeInsertionIndexes() {
    tbb::parallel_for_each(partitions.begin(), partitions.end(), [](auto& partition) {
-      for (auto& insertion_column : partition.columns.insertion_columns) {
-         insertion_column.second.buildInsertionIndex();
+      for (auto& insertion_column : partition.columns.nuc_insertion_columns) {
+         insertion_column.second.buildInsertionIndexes();
+      }
+      for (auto& insertion_column : partition.columns.aa_insertion_columns) {
+         insertion_column.second.buildInsertionIndexes();
       }
    });
 }

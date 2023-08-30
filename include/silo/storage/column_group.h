@@ -26,16 +26,6 @@ struct DatabaseMetadata;
 namespace silo {
 class PangoLineageAliasLookup;
 
-namespace storage::column {
-class DateColumnPartition;
-class FloatColumnPartition;
-class IndexedStringColumnPartition;
-class IntColumnPartition;
-class PangoLineageColumnPartition;
-class StringColumnPartition;
-class InsertionColumnPartition;
-}  // namespace storage::column
-
 namespace config {
 class DatabaseConfig;
 }  // namespace config
@@ -72,7 +62,10 @@ class ColumnPartitionGroup {
       for(auto& [name, store] : pango_lineage_columns){
          archive & store;
       }
-      for(auto& [name, store] : insertion_columns){
+      for(auto& [name, store] : nuc_insertion_columns){
+         archive & store;
+      }
+      for(auto& [name, store] : aa_insertion_columns){
          archive & store;
       }
       // clang-format on
@@ -87,7 +80,10 @@ class ColumnPartitionGroup {
    std::map<std::string, storage::column::FloatColumnPartition&> float_columns;
    std::map<std::string, storage::column::DateColumnPartition&> date_columns;
    std::map<std::string, storage::column::PangoLineageColumnPartition&> pango_lineage_columns;
-   std::map<std::string, storage::column::InsertionColumnPartition&> insertion_columns;
+   std::map<std::string, storage::column::InsertionColumnPartition<Nucleotide>&>
+      nuc_insertion_columns;
+   std::map<std::string, storage::column::InsertionColumnPartition<AminoAcid>&>
+      aa_insertion_columns;
 
    uint32_t fill(
       const std::filesystem::path& input_file,
@@ -102,6 +98,10 @@ class ColumnPartitionGroup {
       const std::string& column,
       uint32_t sequence_id
    ) const;
+
+   template <typename Symbol>
+   const std::map<std::string, storage::column::InsertionColumnPartition<Symbol>&>&
+   getInsertionColumns() const;
 };
 
 class ColumnGroup {
@@ -110,25 +110,28 @@ class ColumnGroup {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      for(auto& [name, store] : string_columns){
+      for(auto& [_, store] : string_columns){
          archive & store;
       }
-      for(auto& [name, store] : indexed_string_columns){
+      for(auto& [_, store] : indexed_string_columns){
          archive & store;
       }
-      for(auto& [name, store] : int_columns){
+      for(auto& [_, store] : int_columns){
          archive & store;
       }
-      for(auto& [name, store] : float_columns){
+      for(auto& [_, store] : float_columns){
          archive & store;
       }
-      for(auto& [name, store] : date_columns){
+      for(auto& [_, store] : date_columns){
          archive & store;
       }
-      for(auto& [name, store] : pango_lineage_columns){
+      for(auto& [_, store] : pango_lineage_columns){
          archive & store;
       }
-      for(auto& [name, store] : insertion_columns){
+      for(auto& [_, store] : nuc_insertion_columns){
+         archive & store;
+      }
+      for(auto& [_, store] : aa_insertion_columns){
          archive & store;
       }
       // clang-format on
@@ -143,7 +146,12 @@ class ColumnGroup {
    std::map<std::string, storage::column::FloatColumn> float_columns;
    std::map<std::string, storage::column::DateColumn> date_columns;
    std::map<std::string, storage::column::PangoLineageColumn> pango_lineage_columns;
-   std::map<std::string, storage::column::InsertionColumn> insertion_columns;
+   std::map<std::string, storage::column::InsertionColumn<Nucleotide>> nuc_insertion_columns;
+   std::map<std::string, storage::column::InsertionColumn<AminoAcid>> aa_insertion_columns;
+
+   template <typename SymbolType>
+   const std::map<std::string, storage::column::InsertionColumn<SymbolType>>& getInsertionColumns(
+   ) const;
 };
 
 }  // namespace silo::storage

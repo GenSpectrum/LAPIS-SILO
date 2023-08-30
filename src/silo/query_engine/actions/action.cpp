@@ -14,6 +14,7 @@
 #include "silo/query_engine/actions/details.h"
 #include "silo/query_engine/actions/fasta.h"
 #include "silo/query_engine/actions/fasta_aligned.h"
+#include "silo/query_engine/actions/insertions.h"
 #include "silo/query_engine/actions/nuc_mutations.h"
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/query_parse_exception.h"
@@ -125,7 +126,15 @@ void from_json(const nlohmann::json& json, OrderByField& field) {
          "' must be either a string or an object containing the fields 'field':string and "
          "'order':string, where the value of order is 'ascending' or 'descending'"
    )
-   field = {json["field"].get<std::string>(), json["order"].get<std::string>() == "ascending"};
+   const std::string field_name = json["field"].get<std::string>();
+   const std::string order_string = json["order"].get<std::string>();
+   CHECK_SILO_QUERY(
+      order_string == "ascending" || order_string == "descending",
+      "The orderByField '" + json.dump() +
+         "' must be either a string or an object containing the fields 'field':string and "
+         "'order':string, where the value of order is 'ascending' or 'descending'"
+   )
+   field = {field_name, order_string == "ascending"};
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
@@ -148,6 +157,10 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
       action = json.get<std::unique_ptr<Fasta>>();
    } else if (expression_type == "FastaAligned") {
       action = json.get<std::unique_ptr<FastaAligned>>();
+   } else if (expression_type == "Insertions") {
+      action = json.get<std::unique_ptr<InsertionAggregation<Nucleotide>>>();
+   } else if (expression_type == "AminoAcidInsertions") {
+      action = json.get<std::unique_ptr<InsertionAggregation<AminoAcid>>>();
    } else {
       throw QueryParseException(expression_type + " is not a valid action");
    }

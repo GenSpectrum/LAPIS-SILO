@@ -11,7 +11,6 @@
 #include "silo/common/data_version.h"
 #include "silo/config/database_config.h"
 #include "silo/query_engine/query_result.h"
-#include "silo/storage/aa_store.h"
 #include "silo/storage/column/date_column.h"
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
@@ -43,8 +42,8 @@ class Database {
    std::vector<DatabasePartition> partitions;
 
    silo::storage::ColumnGroup columns;
-   std::map<std::string, SequenceStore> nuc_sequences;
-   std::map<std::string, AAStore> aa_sequences;
+   std::map<std::string, SequenceStore<Nucleotide>> nuc_sequences;
+   std::map<std::string, SequenceStore<AminoAcid>> aa_sequences;
 
    static Database preprocessing(
       const preprocessing::PreprocessingConfig& preprocessing_config,
@@ -64,6 +63,12 @@ class Database {
    void setDataVersion(const DataVersion& data_version);
    virtual DataVersion getDataVersion() const;
 
+   template <typename SymbolType>
+   std::optional<std::string> getDefaultSequenceName() const;
+
+   template <typename SymbolType>
+   std::vector<std::string> getSequenceNames() const;
+
    virtual query_engine::QueryResult executeQuery(const std::string& query) const;
 
   private:
@@ -76,24 +81,28 @@ class Database {
       const ReferenceGenomes& reference_genomes
    );
 
-   std::map<std::string, std::vector<NUCLEOTIDE_SYMBOL>> getNucSequences() const;
+   std::map<std::string, std::vector<Nucleotide::Symbol>> getNucSequences() const;
 
-   std::map<std::string, std::vector<AA_SYMBOL>> getAASequences() const;
+   std::map<std::string, std::vector<AminoAcid::Symbol>> getAASequences() const;
 
    void initializeColumns();
    void initializeColumn(config::ColumnType column_type, const std::string& name);
    void initializeNucSequences(
-      const std::map<std::string, std::vector<NUCLEOTIDE_SYMBOL>>& reference_sequences
+      const std::map<std::string, std::vector<Nucleotide::Symbol>>& reference_sequences
    );
    void initializeAASequences(
-      const std::map<std::string, std::vector<AA_SYMBOL>>& reference_sequences
+      const std::map<std::string, std::vector<AminoAcid::Symbol>>& reference_sequences
    );
    void finalizeInsertionIndexes();
 
-   static BitmapSizePerSymbol calculateBitmapSizePerSymbol(const SequenceStore& seq_store);
+   template <typename SymbolType>
+   static BitmapSizePerSymbol calculateBitmapSizePerSymbol(
+      const SequenceStore<SymbolType>& seq_store
+   );
 
+   template <typename SymbolType>
    static BitmapContainerSize calculateBitmapContainerSizePerGenomeSection(
-      const SequenceStore& seq_store,
+      const SequenceStore<SymbolType>& seq_store,
       size_t section_length
    );
 };

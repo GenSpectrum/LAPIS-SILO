@@ -1,0 +1,39 @@
+{
+  "testCaseName": "amino acid insertions contains filter",
+  "query": {
+    "action": {
+      "type": "Details",
+      "fields": ["aaInsertions", "gisaid_epi_isl"],
+      "orderByFields": ["gisaid_epi_isl"]
+    },
+    "filterExpression": {
+      "type": "AminoAcidInsertionContains",
+      "sequenceName": "S",
+      "value": "E.*E",
+      "column": "aaInsertions",
+      "position": 214
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "aaInsertions": "S:214:EPE",
+      "gisaid_epi_isl": "EPI_ISL_1003629"
+    },
+    {
+      "aaInsertions": "S:214:EPE",
+      "gisaid_epi_isl": "EPI_ISL_1408408"
+    },
+    {
+      "aaInsertions": "S:214:EPE",
+      "gisaid_epi_isl": "EPI_ISL_1597932"
+    },
+    {
+      "aaInsertions": "S:214:EPE",
+      "gisaid_epi_isl": "EPI_ISL_1750868"
+    },
+    {
+      "aaInsertions": "S:214:EPE",
+      "gisaid_epi_isl": "EPI_ISL_581968"
+    }
+  ]
+}

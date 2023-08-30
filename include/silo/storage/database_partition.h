@@ -11,7 +11,6 @@
 #include <boost/serialization/map.hpp>
 
 #include "silo/preprocessing/partition.h"
-#include "silo/storage/aa_store.h"
 #include "silo/storage/column_group.h"
 #include "silo/storage/sequence_store.h"
 
@@ -22,17 +21,6 @@ class access;
 }  // namespace boost
 
 namespace silo {
-class AAStorePartition;
-class SequenceStorePartition;
-namespace storage::column {
-class DateColumnPartition;
-class FloatColumnPartition;
-class IndexedStringColumnPartition;
-class IntColumnPartition;
-class InsertionColumnPartition;
-class PangoLineageColumnPartition;
-class StringColumnPartition;
-}  // namespace storage::column
 
 class DatabasePartition {
    friend class boost::serialization::
@@ -70,9 +58,9 @@ class DatabasePartition {
 
   public:
    storage::ColumnPartitionGroup columns;
-   std::map<std::string, SequenceStorePartition&> nuc_sequences;
-   std::map<std::string, AAStorePartition&> aa_sequences;
-   uint32_t sequence_count;
+   std::map<std::string, SequenceStorePartition<Nucleotide>&> nuc_sequences;
+   std::map<std::string, SequenceStorePartition<AminoAcid>&> aa_sequences;
+   uint32_t sequence_count = 0;
 
    explicit DatabasePartition(std::vector<silo::preprocessing::Chunk> chunks);
 
@@ -89,7 +77,14 @@ class DatabasePartition {
    void insertColumn(const std::string& name, storage::column::DateColumnPartition& column);
    void insertColumn(const std::string& name, storage::column::PangoLineageColumnPartition& column);
    void insertColumn(const std::string& name, storage::column::FloatColumnPartition& column);
-   void insertColumn(const std::string& name, storage::column::InsertionColumnPartition& column);
+   void insertColumn(
+      const std::string& name,
+      storage::column::InsertionColumnPartition<Nucleotide>& column
+   );
+   void insertColumn(
+      const std::string& name,
+      storage::column::InsertionColumnPartition<AminoAcid>& column
+   );
 };
 
 }  // namespace silo
