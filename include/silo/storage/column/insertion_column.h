@@ -40,11 +40,11 @@ class InsertionColumnPartition {
    common::BidirectionalMap<std::string>& lookup;
 
   public:
-   const std::optional<std::string>& default_sequence_name;
+   const std::optional<std::string> default_sequence_name;
 
    explicit InsertionColumnPartition(
       common::BidirectionalMap<std::string>& lookup,
-      const std::optional<std::string>& default_sequence_name
+      const std::optional<std::string> default_sequence_name
    );
 
    void insert(const std::string& value);

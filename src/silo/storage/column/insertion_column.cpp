@@ -48,11 +48,11 @@ InsertionEntry parseInsertion(
 template <typename SymbolType>
 InsertionColumnPartition<SymbolType>::InsertionColumnPartition(
    common::BidirectionalMap<std::string>& lookup,
-   const std::optional<std::string>& default_sequence_name
+   const std::optional<std::string> default_sequence_name
 
 )
     : lookup(lookup),
-      default_sequence_name(default_sequence_name) {}
+      default_sequence_name(std::move(default_sequence_name)) {}
 
 template <typename SymbolType>
 void InsertionColumnPartition<SymbolType>::insert(const std::string& value) {
