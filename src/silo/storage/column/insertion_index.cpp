@@ -16,20 +16,18 @@
 
 namespace silo::storage::column::insertion {
 
-namespace {
-
 constexpr std::string_view REGEX_ANY = ".*";
 
 template <typename SymbolType>
-struct ThreeMerHash {
-   size_t operator()(const std::array<typename SymbolType::Symbol, 3>& three_mer) const {
-      size_t seed = 0;
-      for (const auto one_mer : three_mer) {
-         boost::hash_combine(seed, std::hash<typename SymbolType::Symbol>{}(one_mer));
-      }
-      return seed;
+size_t ThreeMerHash<SymbolType>::operator()(
+   const std::array<typename SymbolType::Symbol, 3>& three_mer
+) const {
+   size_t seed = 0;
+   for (const auto one_mer : three_mer) {
+      boost::hash_combine(seed, std::hash<typename SymbolType::Symbol>{}(one_mer));
    }
-};
+   return seed;
+}
 
 template <typename SymbolType>
 std::vector<std::array<typename SymbolType::Symbol, 3>> extractThreeMers(
@@ -57,8 +55,6 @@ std::vector<std::array<typename SymbolType::Symbol, 3>> extractThreeMers(
    return {result.begin(), result.end()};
 }
 
-}  // namespace
-
 template <typename SymbolType>
 std::unique_ptr<roaring::Roaring> InsertionPosition<SymbolType>::searchWithThreeMerIndex(
    const std::vector<std::array<typename SymbolType::Symbol, 3>>& search_three_mers,
@@ -74,12 +70,10 @@ std::unique_ptr<roaring::Roaring> InsertionPosition<SymbolType>::searchWithThree
    using it = InsertionIds::const_iterator;
    std::vector<std::pair<it, it>> min_heap;
    for (const auto& three_mer : search_three_mers) {
-      const auto& candidate_insertions =
-         three_mer_index.at(three_mer[0]).at(three_mer[1]).at(three_mer[2]);
-      if (candidate_insertions.empty()) {
-         continue;
+      if (three_mer_index.contains(three_mer)) {
+         const auto& candidate_insertions = three_mer_index.at(three_mer);
+         min_heap.emplace_back(candidate_insertions.cbegin(), candidate_insertions.cend());
       }
-      min_heap.emplace_back(candidate_insertions.cbegin(), candidate_insertions.cend());
    }
 
    if (min_heap.size() < search_three_mers.size()) {
@@ -146,7 +140,8 @@ std::unique_ptr<roaring::Roaring> InsertionPosition<SymbolType>::searchWithRegex
 
 template <>
 void InsertionPosition<Nucleotide>::buildThreeMerIndex() {
-   using ThreeMersBitset = NestedContainer<THREE_DIMENSIONS, SymbolMap, Nucleotide, bool>::type;
+   using ThreeMersBitset =
+      SymbolMap<Nucleotide, SymbolMap<Nucleotide, SymbolMap<Nucleotide, bool>>>;
 
    for (size_t insertion_id = 0; insertion_id < insertions.size(); ++insertion_id) {
       const auto& insertion_value = insertions[insertion_id].value;
@@ -175,7 +170,9 @@ void InsertionPosition<Nucleotide>::buildThreeMerIndex() {
          for (const Nucleotide::Symbol symbol2 : Nucleotide::SYMBOLS) {
             for (const Nucleotide::Symbol symbol3 : Nucleotide::SYMBOLS) {
                if (unique_three_mers[symbol1][symbol2][symbol3]) {
-                  three_mer_index[symbol1][symbol2][symbol3].push_back(insertion_id);
+                  std::array<Nucleotide::Symbol, 3> tuple{symbol1, symbol2, symbol3};
+                  three_mer_index.emplace(tuple, InsertionIds{})
+                     .first->second.push_back(insertion_id);
                }
             }
          }
@@ -185,7 +182,7 @@ void InsertionPosition<Nucleotide>::buildThreeMerIndex() {
 
 template <>
 void InsertionPosition<AminoAcid>::buildThreeMerIndex() {
-   using ThreeMersBitset = NestedContainer<THREE_DIMENSIONS, SymbolMap, AminoAcid, bool>::type;
+   using ThreeMersBitset = SymbolMap<AminoAcid, SymbolMap<AminoAcid, SymbolMap<AminoAcid, bool>>>;
 
    for (size_t insertion_id = 0; insertion_id < insertions.size(); ++insertion_id) {
       const auto& insertion_value = insertions[insertion_id].value;
@@ -214,7 +211,9 @@ void InsertionPosition<AminoAcid>::buildThreeMerIndex() {
          for (const AminoAcid::Symbol symbol2 : AminoAcid::SYMBOLS) {
             for (const AminoAcid::Symbol symbol3 : AminoAcid::SYMBOLS) {
                if (unique_three_mers[symbol1][symbol2][symbol3]) {
-                  three_mer_index[symbol1][symbol2][symbol3].push_back(insertion_id);
+                  std::array<AminoAcid::Symbol, 3> tuple{symbol1, symbol2, symbol3};
+                  three_mer_index.emplace(tuple, InsertionIds{})
+                     .first->second.push_back(insertion_id);
                }
             }
          }
@@ -290,6 +289,9 @@ std::unique_ptr<roaring::Roaring> InsertionIndex<SymbolType>::search(
    }
    return insertion_pos_it->second.search(search_pattern);
 }
+
+template class ThreeMerHash<Nucleotide>;
+template class ThreeMerHash<AminoAcid>;
 
 template class InsertionIndex<Nucleotide>;
 template class InsertionIndex<AminoAcid>;

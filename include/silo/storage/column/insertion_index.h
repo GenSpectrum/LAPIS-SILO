@@ -23,6 +23,11 @@ struct access;
 
 namespace silo::storage::column::insertion {
 
+template <typename SymbolType>
+struct ThreeMerHash {
+   size_t operator()(const std::array<typename SymbolType::Symbol, 3>& three_mer) const;
+};
+
 using InsertionIds = std::vector<uint32_t>;
 
 class Insertion {
@@ -55,12 +60,15 @@ class InsertionPosition {
       // clang-format on
    }
 
-   static constexpr size_t THREE_DIMENSIONS = 3;
-
   public:
    std::vector<Insertion> insertions;
-   typename NestedContainer<THREE_DIMENSIONS, silo::SymbolMap, SymbolType, InsertionIds>::type
-      three_mer_index;
+
+   using ThreeMerType = std::unordered_map<
+      std::array<typename SymbolType::Symbol, 3>,
+      InsertionIds,
+      ThreeMerHash<SymbolType>>;
+
+   ThreeMerType three_mer_index;
 
    std::unique_ptr<roaring::Roaring> searchWithThreeMerIndex(
       const std::vector<std::array<typename SymbolType::Symbol, 3>>& search_three_mers,
