@@ -31,42 +31,42 @@
   "expectedQueryResult": [
     {
       "count": 1,
-      "position": "A1-",
+      "mutation": "A1-",
       "proportion": 1
     },
     {
       "count": 1,
-      "position": "T2-",
+      "mutation": "T2-",
       "proportion": 1
     },
     {
       "count": 53,
-      "position": "C241T",
+      "mutation": "C241T",
       "proportion": 1
     },
     {
       "count": 51,
-      "position": "C3037T",
+      "mutation": "C3037T",
       "proportion": 1
     },
     {
       "count": 52,
-      "position": "C14408T",
+      "mutation": "C14408T",
       "proportion": 1
     },
     {
       "count": 53,
-      "position": "A23403G",
+      "mutation": "A23403G",
       "proportion": 1
     },
     {
       "count": 4,
-      "position": "G29868-",
+      "mutation": "G29868-",
       "proportion": 1
     },
     {
       "count": 4,
-      "position": "A29869-",
+      "mutation": "A29869-",
       "proportion": 0.8
     }
   ]

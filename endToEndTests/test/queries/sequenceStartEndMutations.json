@@ -24,192 +24,192 @@
   "expectedQueryResult": [
     {
       "count": 42,
-      "position": "A1-",
+      "mutation": "A1-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "C3037T",
+      "mutation": "C3037T",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "C14408T",
+      "mutation": "C14408T",
       "proportion": 1
     },
     {
       "count": 40,
-      "position": "A23403G",
+      "mutation": "A23403G",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "C29870-",
+      "mutation": "C29870-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29871-",
+      "mutation": "A29871-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29872-",
+      "mutation": "A29872-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29873-",
+      "mutation": "A29873-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29874-",
+      "mutation": "A29874-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29875-",
+      "mutation": "A29875-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29876-",
+      "mutation": "A29876-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29877-",
+      "mutation": "A29877-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29878-",
+      "mutation": "A29878-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29879-",
+      "mutation": "A29879-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29880-",
+      "mutation": "A29880-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29881-",
+      "mutation": "A29881-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29882-",
+      "mutation": "A29882-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29883-",
+      "mutation": "A29883-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29884-",
+      "mutation": "A29884-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29885-",
+      "mutation": "A29885-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29886-",
+      "mutation": "A29886-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29887-",
+      "mutation": "A29887-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29888-",
+      "mutation": "A29888-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29889-",
+      "mutation": "A29889-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29890-",
+      "mutation": "A29890-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29891-",
+      "mutation": "A29891-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29892-",
+      "mutation": "A29892-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29893-",
+      "mutation": "A29893-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29894-",
+      "mutation": "A29894-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29895-",
+      "mutation": "A29895-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29896-",
+      "mutation": "A29896-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29897-",
+      "mutation": "A29897-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29898-",
+      "mutation": "A29898-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29899-",
+      "mutation": "A29899-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29900-",
+      "mutation": "A29900-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29901-",
+      "mutation": "A29901-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29902-",
+      "mutation": "A29902-",
       "proportion": 1
     },
     {
       "count": 42,
-      "position": "A29903-",
+      "mutation": "A29903-",
       "proportion": 1
     }
   ]

@@ -13,145 +13,145 @@
   "expectedQueryResult": [
     {
       "count": 37,
-      "position": "T19R",
+      "mutation": "T19R",
       "proportion": 0.3854166666666667,
       "sequenceName": "S"
     },
     {
       "count": 37,
-      "position": "G142D",
+      "mutation": "G142D",
       "proportion": 0.49333333333333335,
       "sequenceName": "S"
     },
     {
       "count": 34,
-      "position": "R158G",
+      "mutation": "R158G",
       "proportion": 0.3655913978494624,
       "sequenceName": "S"
     },
     {
       "count": 34,
-      "position": "G339D",
+      "mutation": "G339D",
       "proportion": 0.3469387755102041,
       "sequenceName": "S"
     },
     {
       "count": 33,
-      "position": "S373P",
+      "mutation": "S373P",
       "proportion": 0.3402061855670103,
       "sequenceName": "S"
     },
     {
       "count": 33,
-      "position": "S375F",
+      "mutation": "S375F",
       "proportion": 0.336734693877551,
       "sequenceName": "S"
     },
     {
       "count": 38,
-      "position": "L452R",
+      "mutation": "L452R",
       "proportion": 0.4318181818181818,
       "sequenceName": "S"
     },
     {
       "count": 32,
-      "position": "S477N",
+      "mutation": "S477N",
       "proportion": 0.34408602150537637,
       "sequenceName": "S"
     },
     {
       "count": 69,
-      "position": "T478K",
+      "mutation": "T478K",
       "proportion": 0.7340425531914894,
       "sequenceName": "S"
     },
     {
       "count": 31,
-      "position": "E484A",
+      "mutation": "E484A",
       "proportion": 0.3333333333333333,
       "sequenceName": "S"
     },
     {
       "count": 31,
-      "position": "Q493R",
+      "mutation": "Q493R",
       "proportion": 0.3333333333333333,
       "sequenceName": "S"
     },
     {
       "count": 30,
-      "position": "Q498R",
+      "mutation": "Q498R",
       "proportion": 0.3225806451612903,
       "sequenceName": "S"
     },
     {
       "count": 41,
-      "position": "N501Y",
+      "mutation": "N501Y",
       "proportion": 0.44086021505376344,
       "sequenceName": "S"
     },
     {
       "count": 30,
-      "position": "Y505H",
+      "mutation": "Y505H",
       "proportion": 0.3225806451612903,
       "sequenceName": "S"
     },
     {
       "count": 98,
-      "position": "D614G",
+      "mutation": "D614G",
       "proportion": 0.98989898989899,
       "sequenceName": "S"
     },
     {
       "count": 37,
-      "position": "H655Y",
+      "mutation": "H655Y",
       "proportion": 0.37373737373737376,
       "sequenceName": "S"
     },
     {
       "count": 34,
-      "position": "N679K",
+      "mutation": "N679K",
       "proportion": 0.34,
       "sequenceName": "S"
     },
     {
       "count": 42,
-      "position": "P681H",
+      "mutation": "P681H",
       "proportion": 0.42,
       "sequenceName": "S"
     },
     {
       "count": 38,
-      "position": "P681R",
+      "mutation": "P681R",
       "proportion": 0.38,
       "sequenceName": "S"
     },
     {
       "count": 31,
-      "position": "N764K",
+      "mutation": "N764K",
       "proportion": 0.32978723404255317,
       "sequenceName": "S"
     },
     {
       "count": 34,
-      "position": "D796Y",
+      "mutation": "D796Y",
       "proportion": 0.3469387755102041,
       "sequenceName": "S"
     },
     {
       "count": 34,
-      "position": "D950N",
+      "mutation": "D950N",
       "proportion": 0.35789473684210527,
       "sequenceName": "S"
     },
     {
       "count": 33,
-      "position": "Q954H",
+      "mutation": "Q954H",
       "proportion": 0.34375,
       "sequenceName": "S"
     },
     {
       "count": 34,
-      "position": "N969K",
+      "mutation": "N969K",
       "proportion": 0.35051546391752575,
       "sequenceName": "S"
     }

@@ -115,7 +115,7 @@ SymbolMap<Nucleotide, std::vector<uint32_t>> NucMutations::calculateMutationsPer
 
 void NucMutations::validateOrderByFields(const Database& /*database*/) const {
    const std::vector<std::string> result_field_names{
-      {POSITION_FIELD_NAME, PROPORTION_FIELD_NAME, COUNT_FIELD_NAME}};
+      {MUTATION_FIELD_NAME, PROPORTION_FIELD_NAME, COUNT_FIELD_NAME}};
 
    for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
@@ -171,7 +171,7 @@ QueryResult NucMutations::execute(
                const std::
                   map<std::string, std::optional<std::variant<std::string, int32_t, double>>>
                      fields{
-                        {POSITION_FIELD_NAME,
+                        {MUTATION_FIELD_NAME,
                          Nucleotide::symbolToChar(symbol_in_reference_genome) +
                             std::to_string(pos + 1) + Nucleotide::symbolToChar(symbol)},
                         {PROPORTION_FIELD_NAME, proportion},
