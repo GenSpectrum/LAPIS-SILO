@@ -9,6 +9,7 @@
 
 #include <roaring/roaring.hh>
 
+#include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/operator.h"
 

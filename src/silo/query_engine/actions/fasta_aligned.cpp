@@ -1,14 +1,32 @@
 #include "silo/query_engine/actions/fasta_aligned.h"
 
-#include "nlohmann/json.hpp"
-#include "tbb/blocked_range.h"
-#include "tbb/parallel_for.h"
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <iterator>
+#include <map>
+#include <optional>
+#include <utility>
+#include <variant>
 
-#include "silo/common/date.h"
+#include <fmt/core.h>
+#include <fmt/format.h>
+#include <oneapi/tbb/blocked_range.h>
+#include <oneapi/tbb/parallel_for.h>
+#include <nlohmann/json.hpp>
+#include <roaring/roaring.hh>
+
+#include "silo/common/aa_symbols.h"
+#include "silo/common/nucleotide_symbols.h"
+#include "silo/config/database_config.h"
 #include "silo/database.h"
+#include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
+#include "silo/storage/column_group.h"
+#include "silo/storage/database_partition.h"
+#include "silo/storage/sequence_store.h"
 
 namespace silo::query_engine::actions {
 

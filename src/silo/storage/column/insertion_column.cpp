@@ -1,11 +1,19 @@
 #include "silo/storage/column/insertion_column.h"
 
 #include <optional>
+#include <roaring/roaring.hh>
+#include <string_view>
+#include <utility>
 
 #include <boost/lexical_cast.hpp>
 
+#include "silo/common/aa_symbols.h"
+#include "silo/common/bidirectional_map.h"
+#include "silo/common/nucleotide_symbols.h"
 #include "silo/common/string_utils.h"
+#include "silo/common/types.h"
 #include "silo/preprocessing/preprocessing_exception.h"
+#include "silo/storage/column/insertion_index.h"
 
 namespace silo::storage::column {
 

@@ -1,17 +1,18 @@
 #include "silo_api/query_handler.h"
 
+#include <iosfwd>
 #include <string>
 
+#include <Poco/Net/HTTPResponse.h>
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/Net/HTTPServerResponse.h>
 #include <Poco/StreamCopier.h>
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
+#include "silo/common/data_version.h"
 #include "silo/database.h"
-#include "silo/query_engine/query_engine.h"
 #include "silo/query_engine/query_parse_exception.h"
-#include "silo/query_engine/query_result.h"
 #include "silo_api/database_mutex.h"
 #include "silo_api/error_request_handler.h"
 

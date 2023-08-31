@@ -1,6 +1,7 @@
 #include "silo/common/nucleotide_symbols.h"
 
 #include <cassert>
+#include <cstddef>
 
 namespace silo {
 

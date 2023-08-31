@@ -1,12 +1,12 @@
 #pragma once
 
 #include <filesystem>
-#include <iostream>
+#include <fstream>
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 
-#include "silo/common/input_stream_wrapper.h"
 #include "silo/common/zstd_decompressor.h"
 
 namespace silo {

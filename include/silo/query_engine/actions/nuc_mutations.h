@@ -1,26 +1,27 @@
 #pragma once
 
 #include <array>
-#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <nlohmann/json_fwd.hpp>
 
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/common/symbol_map.h"
 #include "silo/query_engine/actions/action.h"
+#include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/query_result.h"
-#include "silo/storage/sequence_store.h"
 
 namespace silo {
+template <typename SymbolType>
+class SequenceStore;
+template <typename SymbolType>
+class SequenceStorePartition;
 class Database;
-
-namespace query_engine {
-struct OperatorResult;
-}  // namespace query_engine
 }  // namespace silo
 
 namespace silo::query_engine::actions {

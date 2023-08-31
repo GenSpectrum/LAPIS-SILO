@@ -1,6 +1,7 @@
 #include "silo/common/aa_symbols.h"
 
 #include <cassert>
+#include <cstddef>
 
 char silo::AminoAcid::symbolToChar(silo::AminoAcid::Symbol symbol) {
    switch (symbol) {

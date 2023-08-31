@@ -1,17 +1,9 @@
 #pragma once
 
-#include <iostream>
-#include <memory>
 #include <string>
-#include <vector>
-
-#include <roaring/roaring.hh>
-
-#include "silo/query_engine/operators/operator.h"
 
 namespace silo {
 class Database;
-class DatabasePartition;
 }  // namespace silo
 
 namespace silo::query_engine {

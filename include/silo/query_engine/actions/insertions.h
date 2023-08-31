@@ -1,12 +1,37 @@
 #pragma once
 
+#include <algorithm>
+#include <map>
+#include <memory>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
+#include <nlohmann/json_fwd.hpp>
+
+#include "silo/common/aa_symbols.h"
+#include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/actions/action.h"
-#include "silo/storage/column/insertion_column.h"
-#include "silo/storage/column/insertion_index.h"
+#include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/query_result.h"
+
+namespace silo {
+class Database;
+namespace storage {
+namespace column {
+template <typename SymbolType>
+class InsertionColumnPartition;
+namespace insertion {
+template <typename SymbolType>
+class InsertionIndex;
+}  // namespace insertion
+}  // namespace column
+}  // namespace storage
+}  // namespace silo
 
 namespace silo::query_engine {
-
-struct QueryResultEntry;
 
 namespace actions {
 

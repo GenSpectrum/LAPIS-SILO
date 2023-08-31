@@ -2,9 +2,6 @@
 
 #include <filesystem>
 
-#include "silo/config/config_repository.h"
-#include "silo/preprocessing/metadata.h"
-
 namespace silo::config {
 struct DatabaseConfig;
 }  // namespace silo::config

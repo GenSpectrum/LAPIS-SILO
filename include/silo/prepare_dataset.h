@@ -1,20 +1,12 @@
 #pragma once
 
-#include <filesystem>
-#include <iostream>
 #include <string>
 
 namespace silo {
-class FastaReader;
 class PangoLineageAliasLookup;
 struct ReferenceGenomes;
 
-namespace config {
-struct DatabaseConfig;
-}
 namespace preprocessing {
-class MetadataReader;
-class MetadataWriter;
 struct Partitions;
 class PreprocessingConfig;
 }  // namespace preprocessing

@@ -1,10 +1,8 @@
 #include "silo/query_engine/filter_expressions/has_mutation.h"
 
 #include <algorithm>
-#include <array>
 #include <iterator>
 #include <map>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 

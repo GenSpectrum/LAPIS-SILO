@@ -1,27 +1,31 @@
 #include "silo/query_engine/actions/insertions.h"
 
-#include <cmath>
-#include <deque>
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
 #include <map>
-#include <tuple>
+#include <optional>
 #include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
 
-#include <oneapi/tbb/blocked_range.h>
-#include <oneapi/tbb/parallel_for.h>
-#include <boost/functional/hash.hpp>
+#include <boost/container_hash/hash.hpp>
 #include <nlohmann/json.hpp>
 #include <roaring/roaring.hh>
 
-#include "silo/config/database_config.h"
+#include "silo/common/aa_symbols.h"
+#include "silo/common/nucleotide_symbols.h"
 #include "silo/database.h"
+#include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/column/insertion_column.h"
 #include "silo/storage/column/insertion_index.h"
+#include "silo/storage/column_group.h"
+#include "silo/storage/database_partition.h"
 
 using silo::query_engine::OperatorResult;
 

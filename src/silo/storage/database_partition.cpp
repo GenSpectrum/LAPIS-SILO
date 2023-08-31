@@ -1,14 +1,19 @@
 #include "silo/storage/database_partition.h"
 
-#include <tbb/enumerable_thread_specific.h>
-#include <tbb/parallel_for.h>
+#include <utility>
 
+#include <oneapi/tbb/blocked_range.h>
+#include <oneapi/tbb/concurrent_vector.h>
+#include <oneapi/tbb/enumerable_thread_specific.h>
+#include <oneapi/tbb/parallel_for.h>
+
+#include "silo/common/aa_symbols.h"
+#include "silo/common/nucleotide_symbols.h"
+#include "silo/preprocessing/partition.h"
 #include "silo/storage/column_group.h"
+#include "silo/storage/sequence_store.h"
 
 namespace silo {
-namespace preprocessing {
-struct Chunk;
-}  // namespace preprocessing
 namespace storage::column {
 class DateColumnPartition;
 class FloatColumnPartition;
@@ -16,6 +21,8 @@ class IndexedStringColumnPartition;
 class IntColumnPartition;
 class PangoLineageColumnPartition;
 class StringColumnPartition;
+template <typename SymbolType>
+class InsertionColumnPartition;
 }  // namespace storage::column
 
 DatabasePartition::DatabasePartition(std::vector<silo::preprocessing::Chunk> chunks)

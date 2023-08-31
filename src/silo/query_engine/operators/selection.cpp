@@ -1,6 +1,10 @@
 #include "silo/query_engine/operators/selection.h"
 
+#include <algorithm>
+#include <array>
+#include <compare>
 #include <iomanip>
+#include <iterator>
 #include <sstream>
 #include <stdexcept>
 #include <utility>
@@ -11,6 +15,7 @@
 
 #include "silo/common/date.h"
 #include "silo/common/string.h"
+#include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/operator.h"
 

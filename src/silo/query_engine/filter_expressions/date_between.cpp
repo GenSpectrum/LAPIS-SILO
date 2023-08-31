@@ -3,15 +3,12 @@
 #include <algorithm>
 #include <cstdint>
 #include <map>
-#include <unordered_map>
 #include <utility>
 
 #include <nlohmann/json.hpp>
 
 #include "silo/common/date.h"
 #include "silo/preprocessing/partition.h"
-#include "silo/query_engine/operators/intersection.h"
-#include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/operators/range_selection.h"
 #include "silo/query_engine/operators/selection.h"
 #include "silo/query_engine/query_parse_exception.h"

@@ -1,5 +1,10 @@
 #include "silo_api/database_mutex.h"
 
+#include <mutex>
+#include <utility>
+
+#include "silo/database.h"
+
 silo_api::FixedDatabase::FixedDatabase(
    const silo::Database& database,
    std::shared_lock<std::shared_mutex>&& mutex

@@ -8,10 +8,6 @@
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/operator.h"
 
-namespace roaring {
-class Roaring;
-}  // namespace roaring
-
 namespace silo::query_engine::operators {
 
 class BitmapProducer : public Operator {

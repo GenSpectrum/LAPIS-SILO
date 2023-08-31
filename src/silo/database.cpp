@@ -2,12 +2,12 @@
 
 #include <array>
 #include <atomic>
-#include <chrono>
+#include <cstdint>
 #include <deque>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <map>
-#include <memory>
 #include <mutex>
 #include <optional>
 #include <stdexcept>
@@ -25,9 +25,17 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/detail/interface_iarchive.hpp>
 #include <boost/archive/detail/interface_oarchive.hpp>
+#include <boost/serialization/array.hpp>
+#include <boost/serialization/level_enum.hpp>
+#include <boost/serialization/map.hpp>
+#include <boost/serialization/optional.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/serialization/tracking_enum.hpp>
+#include <boost/serialization/vector.hpp>
 #include <roaring/roaring.hh>
 
 #include "silo/common/block_timer.h"
+#include "silo/common/data_version.h"
 #include "silo/common/format_number.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/zstdfasta_reader.h"
@@ -35,15 +43,17 @@
 #include "silo/database_info.h"
 #include "silo/persistence/exception.h"
 #include "silo/prepare_dataset.h"
-#include "silo/preprocessing/metadata.h"
 #include "silo/preprocessing/metadata_validator.h"
 #include "silo/preprocessing/pango_lineage_count.h"
 #include "silo/preprocessing/partition.h"
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/query_engine/query_engine.h"
+#include "silo/query_engine/query_result.h"
+#include "silo/roaring/roaring_serialize.h"
 #include "silo/storage/column/date_column.h"
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/insertion_column.h"
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/column/pango_lineage_column.h"
 #include "silo/storage/column/string_column.h"
@@ -52,6 +62,7 @@
 #include "silo/storage/pango_lineage_alias.h"
 #include "silo/storage/reference_genomes.h"
 #include "silo/storage/sequence_store.h"
+#include "silo/storage/serialize_optional.h"
 
 template <>
 struct [[maybe_unused]] fmt::formatter<silo::DatabaseInfo> : fmt::formatter<std::string> {

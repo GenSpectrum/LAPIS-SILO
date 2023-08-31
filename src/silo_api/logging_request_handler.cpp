@@ -1,5 +1,8 @@
 #include "silo_api/logging_request_handler.h"
 
+#include <cstdint>
+#include <string>
+
 #include <spdlog/spdlog.h>
 
 namespace silo_api {

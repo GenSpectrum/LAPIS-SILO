@@ -1,6 +1,5 @@
 #pragma once
 
-#include <mutex>
 #include <shared_mutex>
 
 #include "silo/database.h"

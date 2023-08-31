@@ -7,7 +7,6 @@
 #include <spdlog/spdlog.h>
 
 #include "silo/common/date.h"
-#include "silo/common/date_format_exception.h"
 
 namespace {
 

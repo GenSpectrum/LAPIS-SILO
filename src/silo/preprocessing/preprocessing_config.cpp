@@ -1,8 +1,11 @@
 #include "silo/preprocessing/preprocessing_config.h"
 
-#include <silo/database.h>
 #include <filesystem>
+#include <functional>
 #include <system_error>
+#include <vector>
+
+#include "silo/preprocessing/partition.h"
 
 constexpr std::string_view ZSTDFASTA_EXTENSION(".zstdfasta");
 constexpr std::string_view TSV_EXTENSION(".tsv");

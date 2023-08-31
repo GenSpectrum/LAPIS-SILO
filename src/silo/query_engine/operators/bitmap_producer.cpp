@@ -1,6 +1,10 @@
 #include "silo/query_engine/operators/bitmap_producer.h"
 
+#include <utility>
+
+#include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/complement.h"
+#include "silo/query_engine/operators/operator.h"
 
 namespace silo::query_engine::operators {
 

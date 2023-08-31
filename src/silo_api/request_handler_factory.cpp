@@ -1,10 +1,11 @@
 #include "silo_api/request_handler_factory.h"
 
+#include <string>
+
 #include <Poco/Net/HTTPRequestHandler.h>
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/URI.h>
 
-#include "silo_api/database_mutex.h"
 #include "silo_api/error_request_handler.h"
 #include "silo_api/info_handler.h"
 #include "silo_api/logging_request_handler.h"

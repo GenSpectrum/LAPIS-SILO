@@ -2,13 +2,14 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <map>
 #include <optional>
 #include <string>
-#include <unordered_map>
 #include <variant>
 #include <vector>
 
-#include "silo/config/database_config.h"
+#include "silo/common/aa_symbols.h"
+#include "silo/common/nucleotide_symbols.h"
 #include "silo/storage/column/date_column.h"
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
@@ -16,17 +17,17 @@
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/column/pango_lineage_column.h"
 #include "silo/storage/column/string_column.h"
-#include "silo/storage/sequence_store.h"
 
-namespace silo::config {
-struct DatabaseMetadata;
+namespace boost {
+namespace serialization {
+class access;
 }
-
+}  // namespace boost
 namespace silo {
-class PangoLineageAliasLookup;
 
 namespace config {
 class DatabaseConfig;
+enum class ColumnType;
 }  // namespace config
 }  // namespace silo
 

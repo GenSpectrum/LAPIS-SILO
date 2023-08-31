@@ -5,15 +5,22 @@
 #include <stdexcept>
 
 #include "silo/common/date.h"
+#include "silo/common/pango_lineage.h"
+#include "silo/common/string.h"
 #include "silo/config/database_config.h"
 #include "silo/preprocessing/metadata.h"
 #include "silo/storage/column/date_column.h"
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/insertion_column.h"
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/column/pango_lineage_column.h"
 #include "silo/storage/column/string_column.h"
-#include "silo/storage/pango_lineage_alias.h"
+
+namespace silo {
+class AminoAcid;
+class Nucleotide;
+}  // namespace silo
 
 namespace silo::storage {
 

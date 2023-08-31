@@ -1,23 +1,19 @@
 #pragma once
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <deque>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <fmt/core.h>
-#include <spdlog/spdlog.h>
-#include <boost/serialization/array.hpp>
 #include <roaring/roaring.hh>
 
-#include "silo/common/fasta_reader.h"
+#include "silo/common/aa_symbols.h"
+#include "silo/common/nucleotide_symbols.h"
 #include "silo/common/symbol_map.h"
-#include "silo/common/zstdfasta_reader.h"
-#include "silo/roaring/roaring_serialize.h"
-#include "silo/storage/serialize_optional.h"
 
 namespace boost::serialization {
 class access;

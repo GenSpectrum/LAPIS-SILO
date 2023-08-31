@@ -1,11 +1,18 @@
 #include "silo_api/info_handler.h"
 
-#include <Poco/Net/HTTPRequestHandler.h>
+#include <cstdint>
+#include <functional>
+#include <iosfwd>
+#include <map>
+#include <string>
+#include <unordered_map>
+
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/Net/HTTPServerResponse.h>
 #include <Poco/URI.h>
 #include <nlohmann/json.hpp>
 
+#include "silo/common/data_version.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/database.h"
 #include "silo/database_info.h"

@@ -1,21 +1,19 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <iosfwd>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
-#include <boost/serialization/access.hpp>
-#include <nlohmann/json_fwd.hpp>
+#include "silo/common/pango_lineage.h"
 
 namespace boost::serialization {
 class access;
-}
-namespace silo::common {
-class UnaliasedPangoLineage;
 }
 namespace silo::config {
 class DatabaseConfig;
@@ -24,7 +22,6 @@ class DatabaseConfig;
 namespace silo::preprocessing {
 
 class PangoLineageCounts;
-class Partition;
 
 class Chunk {
    friend class Partition;

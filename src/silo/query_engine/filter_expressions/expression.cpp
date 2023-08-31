@@ -1,12 +1,9 @@
 #include "silo/query_engine/filter_expressions/expression.h"
 
-#include <map>
 #include <string>
 
 #include <nlohmann/json.hpp>
 
-#include "silo/common/aa_symbols.h"
-#include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/filter_expressions/aa_symbol_equals.h"
 #include "silo/query_engine/filter_expressions/and.h"
 #include "silo/query_engine/filter_expressions/date_between.h"
@@ -28,6 +25,11 @@
 #include "silo/query_engine/filter_expressions/string_equals.h"
 #include "silo/query_engine/filter_expressions/true.h"
 #include "silo/query_engine/query_parse_exception.h"
+
+namespace silo {
+class AminoAcid;
+class Nucleotide;
+}  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
 

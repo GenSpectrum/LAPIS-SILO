@@ -1,6 +1,5 @@
 #include "silo/query_engine/filter_expressions/exact.h"
 
-#include <map>
 #include <memory>
 #include <string>
 #include <utility>

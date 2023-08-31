@@ -11,10 +11,6 @@
 namespace silo {
 struct PangoLineageAliasLookup;
 
-namespace config {
-struct DatabaseConfig;
-}  // namespace config
-
 namespace preprocessing {
 
 struct PangoLineageCount {

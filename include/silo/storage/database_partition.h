@@ -1,23 +1,37 @@
 #pragma once
 
 #include <cstdint>
+#include <map>
 #include <string>
-#include <unordered_map>
 #include <vector>
-
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/serialization/map.hpp>
 
 #include "silo/preprocessing/partition.h"
 #include "silo/storage/column_group.h"
-#include "silo/storage/sequence_store.h"
 
 namespace boost {
 namespace serialization {
 class access;
 }  // namespace serialization
 }  // namespace boost
+
+namespace silo {
+class AminoAcid;
+class Nucleotide;
+namespace storage {
+namespace column {
+class DateColumnPartition;
+class FloatColumnPartition;
+class IndexedStringColumnPartition;
+class IntColumnPartition;
+class PangoLineageColumnPartition;
+class StringColumnPartition;
+template <typename SymbolType>
+class InsertionColumnPartition;
+}  // namespace column
+}  // namespace storage
+template <typename SymbolType>
+class SequenceStorePartition;
+}  // namespace silo
 
 namespace silo {
 

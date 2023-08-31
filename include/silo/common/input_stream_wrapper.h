@@ -2,7 +2,6 @@
 
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <memory>
 
 #include <boost/iostreams/filtering_stream.hpp>

@@ -4,7 +4,6 @@
 #include <string>
 
 namespace silo {
-class Database;
 
 class DataVersion {
    friend class Database;

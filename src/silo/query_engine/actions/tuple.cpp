@@ -1,6 +1,29 @@
 #include "silo/query_engine/actions/tuple.h"
 
+#include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <compare>
+#include <cstring>
+#include <iterator>
+#include <stdexcept>
+#include <string_view>
+#include <utility>
+
+#include "silo/common/date.h"
+#include "silo/common/pango_lineage.h"
+#include "silo/common/string.h"
+#include "silo/common/types.h"
+#include "silo/config/database_config.h"
 #include "silo/query_engine/actions/action.h"
+#include "silo/storage/column/date_column.h"
+#include "silo/storage/column/float_column.h"
+#include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/insertion_column.h"
+#include "silo/storage/column/int_column.h"
+#include "silo/storage/column/pango_lineage_column.h"
+#include "silo/storage/column/string_column.h"
+#include "silo/storage/column_group.h"
 
 using json_value_type = std::optional<std::variant<std::string, int32_t, double>>;
 

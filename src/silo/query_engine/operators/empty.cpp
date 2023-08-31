@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/full.h"
 #include "silo/query_engine/operators/operator.h"
 

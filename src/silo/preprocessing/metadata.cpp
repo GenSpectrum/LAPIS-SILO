@@ -1,8 +1,10 @@
 #include "silo/preprocessing/metadata.h"
 
+#include <chrono>
 #include <exception>
 #include <ostream>
 #include <string>
+#include <thread>
 
 #include <spdlog/spdlog.h>
 #include <boost/algorithm/string/join.hpp>

@@ -1,10 +1,10 @@
 #include "silo/common/zstdfasta_reader.h"
 
 #include <cstddef>
-#include <iostream>
+#include <fstream>
+#include <stdexcept>
 
 #include "silo/common/fasta_format_exception.h"
-#include "silo/common/input_stream_wrapper.h"
 #include "silo/common/zstd_decompressor.h"
 
 silo::ZstdFastaReader::ZstdFastaReader(
