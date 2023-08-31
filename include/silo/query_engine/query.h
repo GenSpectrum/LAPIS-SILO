@@ -1,18 +1,12 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/filter_expressions/expression.h"
 
 namespace silo::query_engine {
-
-namespace filter_expressions {
-struct Expression;
-}
-namespace actions {
-struct Action;
-}
 
 struct Query {
    std::unique_ptr<filter_expressions::Expression> filter;

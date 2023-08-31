@@ -1,10 +1,11 @@
 #include "silo/query_engine/actions/aa_mutations.h"
 
+#include <algorithm>
 #include <cmath>
-#include <deque>
+#include <cstddef>
+#include <functional>
 #include <map>
 #include <optional>
-#include <tuple>
 #include <unordered_map>
 #include <utility>
 #include <variant>
@@ -16,10 +17,13 @@
 #include <roaring/roaring.hh>
 
 #include "silo/common/aa_symbols.h"
+#include "silo/common/symbol_map.h"
 #include "silo/database.h"
+#include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
+#include "silo/storage/database_partition.h"
 #include "silo/storage/sequence_store.h"
 
 using silo::query_engine::OperatorResult;

@@ -1,5 +1,6 @@
 #include "silo/preprocessing/preprocessing_config_reader.h"
 
+#include <stdexcept>
 #include <string>
 
 #include <spdlog/spdlog.h>

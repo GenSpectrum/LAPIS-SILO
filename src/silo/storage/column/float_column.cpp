@@ -1,5 +1,8 @@
 #include "silo/storage/column/float_column.h"
 
+#include <cmath>
+#include <stdexcept>
+
 #include <spdlog/spdlog.h>
 
 namespace silo::storage::column {

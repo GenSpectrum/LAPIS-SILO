@@ -1,5 +1,8 @@
 #include "silo_api/rest_resource.h"
 
+#include <string>
+
+#include <Poco/Net/HTTPResponse.h>
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/Net/HTTPServerResponse.h>
 #include <nlohmann/json.hpp>

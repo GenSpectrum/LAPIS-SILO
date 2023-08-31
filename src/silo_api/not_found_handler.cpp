@@ -1,6 +1,9 @@
 #include "silo_api/not_found_handler.h"
 
-#include <Poco/Net/HTTPRequestHandler.h>
+#include <iosfwd>
+#include <string>
+
+#include <Poco/Net/HTTPResponse.h>
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/Net/HTTPServerResponse.h>
 #include <nlohmann/json.hpp>

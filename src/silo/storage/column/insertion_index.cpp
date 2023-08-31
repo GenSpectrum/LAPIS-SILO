@@ -1,12 +1,15 @@
 #include "silo/storage/column/insertion_index.h"
 
 #include <algorithm>
+#include <functional>
 #include <iterator>
+#include <optional>
+#include <stdexcept>
 #include <string_view>
 #include <unordered_set>
 #include <utility>
 
-#include <boost/functional/hash.hpp>
+#include <boost/container_hash/hash.hpp>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"

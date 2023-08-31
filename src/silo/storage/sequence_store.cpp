@@ -1,6 +1,6 @@
 #include "silo/storage/sequence_store.h"
 
-#include <atomic>
+#include <array>
 #include <string>
 #include <utility>
 #include <vector>
@@ -13,6 +13,7 @@
 #include "silo/common/aa_symbols.h"
 #include "silo/common/format_number.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/common/symbol_map.h"
 #include "silo/common/zstdfasta_reader.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 

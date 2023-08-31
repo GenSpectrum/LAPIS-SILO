@@ -1,7 +1,5 @@
 #pragma once
 
-#include <type_traits>
-
 #include <roaring/roaring.hh>
 
 namespace silo::query_engine {

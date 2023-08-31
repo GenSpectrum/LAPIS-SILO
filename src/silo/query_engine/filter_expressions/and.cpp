@@ -2,11 +2,12 @@
 
 #include <algorithm>
 #include <iterator>
-#include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <boost/algorithm/string/join.hpp>
 #include <nlohmann/json.hpp>

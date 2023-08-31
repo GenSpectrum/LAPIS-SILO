@@ -15,9 +15,6 @@ struct QueryResult;
 namespace silo {
 struct Database;
 }
-namespace silo::storage {
-struct DatabasePartition;
-}
 
 namespace silo::query_engine::actions {
 

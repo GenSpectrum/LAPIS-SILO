@@ -1,5 +1,6 @@
 #include "silo/common/format_number.h"
 
+#include <locale>
 #include <memory>
 #include <sstream>
 #include <string>

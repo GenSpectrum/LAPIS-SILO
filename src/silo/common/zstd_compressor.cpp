@@ -1,6 +1,6 @@
 #include "silo/common/zstd_compressor.h"
 
-#include <string>
+#include <string_view>
 
 namespace silo {
 

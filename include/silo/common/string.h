@@ -5,15 +5,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <memory>
 #include <optional>
 #include <string>
-
-#include <boost/serialization/access.hpp>
-#include <boost/serialization/array.hpp>
-
-#include "silo/common/bidirectional_map.h"
-#include "silo/common/types.h"
 
 namespace boost::serialization {
 class access;

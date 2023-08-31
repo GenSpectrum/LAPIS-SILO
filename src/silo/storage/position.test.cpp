@@ -6,6 +6,10 @@
 #include <gtest/gtest.h>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
+#include <boost/serialization/array.hpp>
+
+#include "silo/roaring/roaring_serialize.h"
+#include "silo/storage/serialize_optional.h"
 
 void serializeToFile(
    const std::string& filename,

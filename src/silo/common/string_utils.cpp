@@ -1,7 +1,5 @@
 #include "silo/common/string_utils.h"
 
-#include <algorithm>
-
 namespace silo {
 
 std::vector<std::string> splitBy(const std::string& value, const std::string_view delimiter) {

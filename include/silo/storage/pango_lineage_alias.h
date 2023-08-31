@@ -1,13 +1,15 @@
 #pragma once
 
+#include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
-#include <boost/serialization/unordered_map.hpp>
-#include <boost/serialization/vector.hpp>
+namespace boost::serialization {
+class access;
+}  // namespace boost::serialization
 
 namespace silo {
 

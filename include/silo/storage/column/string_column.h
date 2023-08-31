@@ -5,10 +5,7 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <unordered_map>
 #include <vector>
-
-#include <roaring/roaring.hh>
 
 #include "silo/common/bidirectional_map.h"
 #include "silo/common/string.h"

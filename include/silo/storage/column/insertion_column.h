@@ -2,22 +2,26 @@
 
 #include <cstdint>
 #include <deque>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-
+#include "silo/common/aa_symbols.h"
 #include "silo/common/bidirectional_map.h"
+#include "silo/common/nucleotide_symbols.h"
 #include "silo/common/types.h"
 #include "silo/storage/column/insertion_index.h"
 
 namespace boost::serialization {
 struct access;
 }  // namespace boost::serialization
+
+namespace roaring {
+class Roaring;
+}
 
 namespace silo::storage::column {
 

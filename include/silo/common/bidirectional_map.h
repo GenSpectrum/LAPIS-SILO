@@ -1,12 +1,11 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
-
-#include <boost/serialization/access.hpp>
 
 #include "silo/common/pango_lineage.h"
 #include "silo/common/types.h"

@@ -4,8 +4,6 @@
 #include <array>
 #include <iterator>
 #include <map>
-#include <optional>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -23,7 +21,6 @@
 
 namespace silo {
 class DatabasePartition;
-namespace query_engine {}  // namespace query_engine
 }  // namespace silo
 
 namespace silo::query_engine::filter_expressions {

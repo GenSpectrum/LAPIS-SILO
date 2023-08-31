@@ -1,10 +1,10 @@
 #include "silo/query_engine/actions/nuc_mutations.h"
 
+#include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <deque>
 #include <map>
-#include <tuple>
-#include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -15,8 +15,10 @@
 #include <roaring/roaring.hh>
 
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/common/symbol_map.h"
 #include "silo/config/database_config.h"
 #include "silo/database.h"
+#include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"

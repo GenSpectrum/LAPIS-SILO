@@ -1,11 +1,11 @@
 #pragma once
 
 #include <array>
-#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include <nlohmann/json_fwd.hpp>
@@ -14,10 +14,13 @@
 #include "silo/common/symbol_map.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/query_result.h"
-#include "silo/storage/sequence_store.h"
 
 namespace silo {
 class Database;
+template <typename SymbolType>
+class SequenceStore;
+template <typename SymbolType>
+class SequenceStorePartition;
 }  // namespace silo
 namespace silo::query_engine {
 struct OperatorResult;

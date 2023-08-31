@@ -42,7 +42,7 @@ find_package(zstd REQUIRED)
 include_directories(SYSTEM
         ${CMAKE_SOURCE_DIR}/include
         ${roaring_INCLUDE_DIRS}
-        )
+)
 
 # ---------------------------------------------------------------------------
 # Sources

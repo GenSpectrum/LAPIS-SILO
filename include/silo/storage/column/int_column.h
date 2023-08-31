@@ -9,10 +9,6 @@ namespace boost::serialization {
 struct access;
 }
 
-namespace silo {
-struct Database;
-}
-
 namespace silo::storage::column {
 
 class IntColumnPartition {

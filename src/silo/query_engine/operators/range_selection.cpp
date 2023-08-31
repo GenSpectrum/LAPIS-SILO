@@ -9,6 +9,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <roaring/roaring.hh>
 
+#include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo::query_engine::operators {

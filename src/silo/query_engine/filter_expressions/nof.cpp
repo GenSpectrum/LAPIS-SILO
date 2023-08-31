@@ -1,7 +1,6 @@
 #include "silo/query_engine/filter_expressions/nof.h"
 
 #include <cstdint>
-#include <map>
 #include <memory>
 #include <string>
 #include <utility>

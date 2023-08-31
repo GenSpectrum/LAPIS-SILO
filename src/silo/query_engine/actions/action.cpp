@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <map>
 #include <memory>
+#include <utility>
 #include <variant>
 
 #include <nlohmann/json.hpp>
@@ -19,6 +20,11 @@
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
+
+namespace silo {
+class AminoAcid;
+class Nucleotide;
+}  // namespace silo
 
 namespace silo::query_engine::actions {
 

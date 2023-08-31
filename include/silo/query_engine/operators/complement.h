@@ -8,13 +8,6 @@
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/operator.h"
 
-namespace silo::query_engine::filter_expressions {
-class And;
-class Or;
-class Negation;
-class NOf;
-}  // namespace silo::query_engine::filter_expressions
-
 namespace silo::query_engine::operators {
 
 class Complement : public Operator {

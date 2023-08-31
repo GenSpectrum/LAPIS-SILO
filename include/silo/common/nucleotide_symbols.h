@@ -1,11 +1,10 @@
 #pragma once
 
-#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <optional>
-#include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace silo {

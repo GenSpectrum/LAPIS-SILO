@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <memory>
-#include <optional>
 #include <string>
 
 #include <nlohmann/json_fwd.hpp>

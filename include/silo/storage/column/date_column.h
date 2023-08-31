@@ -4,8 +4,6 @@
 #include <deque>
 #include <vector>
 
-#include <roaring/roaring.hh>
-
 #include "silo/common/date.h"
 
 namespace boost::serialization {

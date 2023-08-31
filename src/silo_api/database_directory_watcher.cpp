@@ -1,8 +1,18 @@
 #include "silo_api/database_directory_watcher.h"
 
-#include <ranges>
+#include <algorithm>
+#include <fstream>
+#include <istream>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 
-#include <boost/algorithm/string/join.hpp>
+#include <spdlog/spdlog.h>
+
+#include "silo/common/data_version.h"
+#include "silo/database.h"
+#include "silo_api/database_mutex.h"
 
 silo_api::DatabaseDirectoryWatcher::DatabaseDirectoryWatcher(
    std::filesystem::path path,

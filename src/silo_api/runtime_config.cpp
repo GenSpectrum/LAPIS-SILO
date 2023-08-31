@@ -1,5 +1,8 @@
 #include "silo_api/runtime_config.h"
 
+#include <stdexcept>
+#include <string>
+
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/yaml.h>
 

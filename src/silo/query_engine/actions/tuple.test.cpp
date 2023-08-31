@@ -1,7 +1,9 @@
 #include "silo/query_engine/actions/tuple.h"
-#include "silo/query_engine/actions/action.h"
 
 #include <gtest/gtest.h>
+
+#include "silo/config/database_config.h"
+#include "silo/query_engine/actions/action.h"
 
 std::pair<silo::storage::ColumnGroup, silo::storage::ColumnPartitionGroup>
 createSinglePartitionColumns() {

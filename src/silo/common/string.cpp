@@ -1,4 +1,3 @@
-
 #include "silo/common/string.h"
 
 #include <cstring>

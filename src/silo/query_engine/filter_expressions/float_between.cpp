@@ -1,18 +1,14 @@
 #include "silo/query_engine/filter_expressions/float_between.h"
 
+#include <cmath>
 #include <map>
 #include <memory>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
 #include <nlohmann/json.hpp>
 
 #include "silo/query_engine/filter_expressions/expression.h"
-#include "silo/query_engine/operators/complement.h"
-#include "silo/query_engine/operators/full.h"
-#include "silo/query_engine/operators/intersection.h"
-#include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/operators/selection.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/storage/column/float_column.h"
@@ -60,7 +56,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> FloatBetween::compile(
 
    if (predicates.empty()) {
       predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<double>>(
-         float_column.getValues(), operators::Comparator::NOT_EQUALS, NAN
+         float_column.getValues(), operators::Comparator::NOT_EQUALS, std::nan("")
       ));
    }
 

@@ -1,10 +1,12 @@
 #include "silo/storage/column/pango_lineage_column.h"
 
 #include <optional>
+#include <utility>
 
 #include "silo/common/bidirectional_map.h"
 #include "silo/common/pango_lineage.h"
 #include "silo/common/types.h"
+#include "silo/storage/pango_lineage_alias.h"
 
 namespace silo::storage::column {
 

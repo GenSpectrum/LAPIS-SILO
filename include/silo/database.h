@@ -1,25 +1,20 @@
 #pragma once
 
 #include <cstddef>
-#include <cstdint>
 #include <filesystem>
+#include <map>
+#include <optional>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
+#include "silo/common/aa_symbols.h"
 #include "silo/common/data_version.h"
+#include "silo/common/nucleotide_symbols.h"
 #include "silo/config/database_config.h"
 #include "silo/query_engine/query_result.h"
-#include "silo/storage/column/date_column.h"
-#include "silo/storage/column/float_column.h"
-#include "silo/storage/column/indexed_string_column.h"
-#include "silo/storage/column/int_column.h"
-#include "silo/storage/column/pango_lineage_column.h"
-#include "silo/storage/column/string_column.h"
 #include "silo/storage/column_group.h"
 #include "silo/storage/database_partition.h"
 #include "silo/storage/pango_lineage_alias.h"
-#include "silo/storage/reference_genomes.h"
 #include "silo/storage/sequence_store.h"
 
 namespace silo {
@@ -27,6 +22,7 @@ struct BitmapContainerSize;
 struct BitmapSizePerSymbol;
 struct DatabaseInfo;
 struct DetailedDatabaseInfo;
+struct ReferenceGenomes;
 }  // namespace silo
 namespace silo::preprocessing {
 struct Partitions;

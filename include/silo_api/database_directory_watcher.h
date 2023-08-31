@@ -1,12 +1,12 @@
 #pragma once
 
-#include <string>
+#include <filesystem>
 
-#include <Poco/Delegate.h>
-#include <Poco/Path.h>
 #include <Poco/Timer.h>
 
-#include "silo_api/database_mutex.h"
+namespace silo_api {
+class DatabaseMutex;
+}
 
 namespace silo_api {
 

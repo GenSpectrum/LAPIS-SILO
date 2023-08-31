@@ -2,7 +2,6 @@
 
 #include <map>
 #include <memory>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -10,8 +9,6 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/query_engine/filter_expressions/expression.h"
-#include "silo/query_engine/operators/intersection.h"
-#include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/operators/selection.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/storage/column/int_column.h"

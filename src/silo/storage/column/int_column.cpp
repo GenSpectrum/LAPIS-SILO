@@ -1,5 +1,7 @@
 #include "silo/storage/column/int_column.h"
 
+#include <stdexcept>
+
 #include <spdlog/spdlog.h>
 
 namespace silo::storage::column {

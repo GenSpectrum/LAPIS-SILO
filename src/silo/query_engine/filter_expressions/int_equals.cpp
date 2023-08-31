@@ -1,7 +1,6 @@
 #include "silo/query_engine/filter_expressions/int_equals.h"
 
 #include <map>
-#include <unordered_map>
 #include <utility>
 
 #include <nlohmann/json.hpp>
