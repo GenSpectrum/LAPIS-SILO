@@ -1,5 +1,4 @@
-#ifndef SILO_RANGE_SELECTION_H
-#define SILO_RANGE_SELECTION_H
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -40,5 +39,3 @@ class RangeSelection : public Operator {
 };
 
 }  // namespace silo::query_engine::operators
-
-#endif  // SILO_RANGE_SELECTION_H

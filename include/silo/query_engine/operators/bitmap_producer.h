@@ -1,5 +1,4 @@
-#ifndef SILO_BITMAP_PRODUCER_H
-#define SILO_BITMAP_PRODUCER_H
+#pragma once
 
 #include <cstdint>
 #include <functional>
@@ -37,5 +36,3 @@ class BitmapProducer : public Operator {
 };
 
 }  // namespace silo::query_engine::operators
-
-#endif  // SILO_BITMAP_PRODUCER_H

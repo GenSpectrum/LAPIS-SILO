@@ -1,5 +1,4 @@
-#ifndef SILO_DATABASE_MUTEX_H
-#define SILO_DATABASE_MUTEX_H
+#pragma once
 
 #include <mutex>
 #include <shared_mutex>
@@ -29,5 +28,3 @@ class DatabaseMutex {
    virtual FixedDatabase getDatabase();
 };
 }  // namespace silo_api
-
-#endif  // SILO_DATABASE_MUTEX_H

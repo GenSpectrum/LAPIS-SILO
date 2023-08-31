@@ -1,5 +1,4 @@
-#ifndef SILO_STRING_H
-#define SILO_STRING_H
+#pragma once
 
 #include <array>
 #include <compare>
@@ -69,5 +68,3 @@ template <size_t I>
 struct std::hash<silo::common::String<I>> {
    std::size_t operator()(const silo::common::String<I>& str) const;
 };
-
-#endif  // SILO_STRING_H

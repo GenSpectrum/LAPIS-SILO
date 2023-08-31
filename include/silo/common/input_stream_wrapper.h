@@ -1,5 +1,4 @@
-#ifndef SILO_ISTREAM_WRAPPER_H
-#define SILO_ISTREAM_WRAPPER_H
+#pragma once
 
 #include <filesystem>
 #include <fstream>
@@ -20,5 +19,3 @@ struct InputStreamWrapper {
    [[nodiscard]] std::istream& getInputStream() const;
 };
 }  // namespace silo
-
-#endif  // SILO_ISTREAM_WRAPPER_H

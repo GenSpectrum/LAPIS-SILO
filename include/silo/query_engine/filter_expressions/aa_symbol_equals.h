@@ -1,5 +1,4 @@
-#ifndef SILO_AA_SYMBOL_EQUALS_H
-#define SILO_AA_SYMBOL_EQUALS_H
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -46,5 +45,3 @@ struct AASymbolEquals : public Expression {
 void from_json(const nlohmann::json& json, std::unique_ptr<AASymbolEquals>& filter);
 
 }  // namespace silo::query_engine::filter_expressions
-
-#endif  // SILO_AA_SYMBOL_EQUALS_H

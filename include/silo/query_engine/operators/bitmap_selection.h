@@ -1,5 +1,4 @@
-#ifndef SILO_SEQUENCE_SELECTION_H
-#define SILO_SEQUENCE_SELECTION_H
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -46,5 +45,3 @@ class BitmapSelection : public Operator {
 };
 
 }  // namespace silo::query_engine::operators
-
-#endif  // SILO_SEQUENCE_SELECTION_H

@@ -1,5 +1,4 @@
-#ifndef SILO_DATE_COLUMN_H
-#define SILO_DATE_COLUMN_H
+#pragma once
 
 #include <cstdint>
 #include <deque>
@@ -62,5 +61,3 @@ class DateColumn {
 };
 
 }  // namespace silo::storage::column
-
-#endif  // SILO_DATE_COLUMN_H

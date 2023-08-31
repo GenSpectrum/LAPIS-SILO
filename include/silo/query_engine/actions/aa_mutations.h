@@ -1,5 +1,4 @@
-#ifndef SILO_AA_MUTATIONS_H
-#define SILO_AA_MUTATIONS_H
+#pragma once
 
 #include <array>
 #include <cstddef>
@@ -107,5 +106,3 @@ class AAMutations : public Action {
 void from_json(const nlohmann::json& json, std::unique_ptr<AAMutations>& action);
 
 }  // namespace silo::query_engine::actions
-
-#endif  // SILO_AA_MUTATIONS_H

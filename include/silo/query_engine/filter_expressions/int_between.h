@@ -1,5 +1,4 @@
-#ifndef SILO_INT_BETWEEN_H
-#define SILO_INT_BETWEEN_H
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -49,5 +48,3 @@ struct IntBetween : public Expression {
 void from_json(const nlohmann::json& json, std::unique_ptr<IntBetween>& filter);
 
 }  // namespace silo::query_engine::filter_expressions
-
-#endif  // SILO_INT_BETWEEN_H

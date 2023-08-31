@@ -1,5 +1,4 @@
-#ifndef SILO_OR_H
-#define SILO_OR_H
+#pragma once
 
 #include <memory>
 #include <vector>
@@ -39,5 +38,3 @@ struct Or : public Expression {
 void from_json(const nlohmann::json& json, std::unique_ptr<Or>& filter);
 
 }  // namespace silo::query_engine::filter_expressions
-
-#endif  // SILO_OR_H

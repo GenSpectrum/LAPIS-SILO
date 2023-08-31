@@ -1,5 +1,4 @@
-#ifndef SILO_PANGO_LINEAGE_COUNT_H
-#define SILO_PANGO_LINEAGE_COUNT_H
+#pragma once
 
 #include <cstdint>
 #include <filesystem>
@@ -39,4 +38,3 @@ PangoLineageCounts buildPangoLineageCounts(
 
 }  // namespace preprocessing
 }  // namespace silo
-#endif  // SILO_PANGO_LINEAGE_COUNT_H

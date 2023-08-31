@@ -1,5 +1,4 @@
-#ifndef SILO_INCLUDE_SILO_API_REST_RESOURCE_H_
-#define SILO_INCLUDE_SILO_API_REST_RESOURCE_H_
+#pragma once
 
 #include <Poco/Net/HTTPRequestHandler.h>
 #include <Poco/Net/HTTPServerRequest.h>
@@ -25,5 +24,3 @@ class RestResource : public Poco::Net::HTTPRequestHandler {
 };
 
 };  // namespace silo_api
-
-#endif  // SILO_INCLUDE_SILO_API_REST_RESOURCE_H_

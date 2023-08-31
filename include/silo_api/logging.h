@@ -1,6 +1,3 @@
-#ifndef SILO_LOGGING_H
-#define SILO_LOGGING_H
+#pragma once
 
 void setupLogger();
-
-#endif  // SILO_LOGGING_H

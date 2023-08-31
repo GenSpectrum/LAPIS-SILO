@@ -1,5 +1,4 @@
-#ifndef SILO_REQUEST_HANDLER_FACTORY_H
-#define SILO_REQUEST_HANDLER_FACTORY_H
+#pragma once
 
 #include <Poco/Net/HTTPRequestHandler.h>
 #include <Poco/Net/HTTPRequestHandlerFactory.h>
@@ -25,5 +24,3 @@ class SiloRequestHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
 };
 
 }  // namespace silo_api
-
-#endif  // SILO_REQUEST_HANDLER_FACTORY_H

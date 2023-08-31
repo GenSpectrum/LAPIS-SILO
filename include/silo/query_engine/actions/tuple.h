@@ -1,5 +1,4 @@
-#ifndef SILO_TUPLE_H
-#define SILO_TUPLE_H
+#pragma once
 
 #include <optional>
 #include <string>
@@ -96,5 +95,3 @@ class TupleFactory {
 };
 
 }  // namespace silo::query_engine::actions
-
-#endif  // SILO_TUPLE_H

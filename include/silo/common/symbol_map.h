@@ -1,5 +1,4 @@
-#ifndef SILO_SYMBOL_MAP_H
-#define SILO_SYMBOL_MAP_H
+#pragma once
 
 #include <vector>
 
@@ -35,5 +34,3 @@ class SymbolMap {
 };
 
 }  // namespace silo
-
-#endif  // SILO_SYMBOL_MAP_H

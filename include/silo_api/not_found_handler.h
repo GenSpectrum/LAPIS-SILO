@@ -1,5 +1,4 @@
-#ifndef SILO_ERROR_H
-#define SILO_ERROR_H
+#pragma once
 
 #include <Poco/Net/HTTPRequestHandler.h>
 #include <Poco/Net/HTTPServerRequest.h>
@@ -16,5 +15,3 @@ class NotFoundHandler : public Poco::Net::HTTPRequestHandler {
 };
 
 }  // namespace silo_api
-
-#endif  // SILO_ERROR_H

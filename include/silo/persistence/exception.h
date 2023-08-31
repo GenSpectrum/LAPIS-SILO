@@ -1,5 +1,4 @@
-#ifndef SILO_LOADDATABASEEXCEPTION_H
-#define SILO_LOADDATABASEEXCEPTION_H
+#pragma once
 
 #include <iostream>
 #include <stdexcept>
@@ -18,5 +17,3 @@ class SaveDatabaseException : public std::runtime_error {
 };
 
 }  // namespace silo::persistence
-
-#endif  // SILO_LOADDATABASEEXCEPTION_H

@@ -1,5 +1,4 @@
-#ifndef SILO_INCLUDE_SILO_API_DATABASE_INFO_H_
-#define SILO_INCLUDE_SILO_API_DATABASE_INFO_H_
+#pragma once
 
 #include <cinttypes>
 #include <map>
@@ -59,5 +58,3 @@ struct DetailedDatabaseInfo {
 };
 
 }  // namespace silo
-
-#endif  // SILO_INCLUDE_SILO_API_DATABASE_INFO_H_

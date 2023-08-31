@@ -1,5 +1,4 @@
-#ifndef SILO_FLOAT_COLUMN_H
-#define SILO_FLOAT_COLUMN_H
+#pragma once
 
 #include <cstdint>
 #include <deque>
@@ -51,5 +50,3 @@ class FloatColumn {
 };
 
 }  // namespace silo::storage::column
-
-#endif  // SILO_FLOAT_COLUMN_H

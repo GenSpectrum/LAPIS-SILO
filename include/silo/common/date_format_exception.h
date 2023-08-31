@@ -1,5 +1,4 @@
-#ifndef SILO_DATE_FORMAT_EXCEPTION_H
-#define SILO_DATE_FORMAT_EXCEPTION_H
+#pragma once
 
 #include <stdexcept>
 #include <string>
@@ -12,5 +11,3 @@ class DateFormatException : public std::runtime_error {
 };
 
 }  // namespace silo::common
-
-#endif  // SILO_DATE_FORMAT_EXCEPTION_H

@@ -1,5 +1,4 @@
-#ifndef SILO_INCLUDE_SILO_QUERY_ENGINE_QUERY_PARSE_EXCEPTION_H_
-#define SILO_INCLUDE_SILO_QUERY_ENGINE_QUERY_PARSE_EXCEPTION_H_
+#pragma once
 
 #include <iostream>
 #include <stdexcept>
@@ -17,5 +16,3 @@ class [[maybe_unused]] QueryParseException : public std::runtime_error {
    [[maybe_unused]] QueryParseException(const std::string& error_message);
 };
 }  // namespace silo
-
-#endif  // SILO_INCLUDE_SILO_QUERY_ENGINE_QUERY_PARSE_EXCEPTION_H_

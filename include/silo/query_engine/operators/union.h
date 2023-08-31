@@ -1,5 +1,4 @@
-#ifndef SILO_UNION_H
-#define SILO_UNION_H
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -36,5 +35,3 @@ class Union : public Operator {
 };
 
 }  // namespace silo::query_engine::operators
-
-#endif  // SILO_UNION_H

@@ -1,5 +1,4 @@
-#ifndef SILO_INCLUDE_SILO_PREPROCESSING_METADATA_VALIDATOR_H_
-#define SILO_INCLUDE_SILO_PREPROCESSING_METADATA_VALIDATOR_H_
+#pragma once
 
 #include <filesystem>
 
@@ -21,5 +20,3 @@ class MetadataValidator {
 };
 
 }  // namespace silo::preprocessing
-
-#endif  // SILO_INCLUDE_SILO_PREPROCESSING_METADATA_VALIDATOR_H_

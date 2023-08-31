@@ -1,5 +1,4 @@
-#ifndef SILO_INT_COLUMN_H
-#define SILO_INT_COLUMN_H
+#pragma once
 
 #include <cstdint>
 #include <deque>
@@ -55,5 +54,3 @@ class IntColumn {
 };
 
 }  // namespace silo::storage::column
-
-#endif  // SILO_INT_COLUMN_H

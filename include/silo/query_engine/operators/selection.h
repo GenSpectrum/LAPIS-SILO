@@ -1,5 +1,4 @@
-#ifndef SILO_SELECTION_H
-#define SILO_SELECTION_H
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -85,5 +84,3 @@ class Selection : public Operator {
 };
 
 }  // namespace silo::query_engine::operators
-
-#endif  // SILO_SELECTION_H

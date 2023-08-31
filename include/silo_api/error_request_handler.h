@@ -1,5 +1,4 @@
-#ifndef SILO_INCLUDE_SILO_API_ERRORREQUESTHANDLER_H_
-#define SILO_INCLUDE_SILO_API_ERRORREQUESTHANDLER_H_
+#pragma once
 
 #include <memory>
 #include <string>
@@ -30,5 +29,3 @@ class ErrorRequestHandler : public Poco::Net::HTTPRequestHandler {
 };
 
 };  // namespace silo_api
-
-#endif  // SILO_INCLUDE_SILO_API_ERRORREQUESTHANDLER_H_

@@ -1,5 +1,4 @@
-#ifndef SILO_INT_EQUALS_H
-#define SILO_INT_EQUALS_H
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -42,5 +41,3 @@ struct IntEquals : public Expression {
 void from_json(const nlohmann::json& json, std::unique_ptr<IntEquals>& filter);
 
 }  // namespace silo::query_engine::filter_expressions
-
-#endif  // SILO_INT_EQUALS_H

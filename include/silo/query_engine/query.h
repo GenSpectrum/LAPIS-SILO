@@ -1,5 +1,4 @@
-#ifndef SILO_QUERY_H
-#define SILO_QUERY_H
+#pragma once
 
 #include <memory>
 
@@ -23,5 +22,3 @@ struct Query {
 };
 
 }  // namespace silo::query_engine
-
-#endif  // SILO_QUERY_H

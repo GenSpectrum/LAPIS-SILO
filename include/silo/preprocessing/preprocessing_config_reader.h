@@ -1,5 +1,4 @@
-#ifndef SILO_INCLUDE_SILO_API_PREPROCESSING_CONFIG_READER_H_
-#define SILO_INCLUDE_SILO_API_PREPROCESSING_CONFIG_READER_H_
+#pragma once
 
 #include <filesystem>
 #include <optional>
@@ -58,5 +57,3 @@ class PreprocessingConfigReader {
    virtual OptionalPreprocessingConfig readConfig(const std::filesystem::path& config_path) const;
 };
 }  // namespace silo::preprocessing
-
-#endif  // SILO_INCLUDE_SILO_API_PREPROCESSING_CONFIG_READER_H_

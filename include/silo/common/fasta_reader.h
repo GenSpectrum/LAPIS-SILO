@@ -1,5 +1,4 @@
-#ifndef SILO_FASTA_READER_H
-#define SILO_FASTA_READER_H
+#pragma once
 
 #include <filesystem>
 #include <iostream>
@@ -25,5 +24,3 @@ class FastaReader {
    void reset();
 };
 }  // namespace silo
-
-#endif  // SILO_FASTA_READER_H

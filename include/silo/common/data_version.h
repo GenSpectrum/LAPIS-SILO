@@ -1,5 +1,4 @@
-#ifndef SILO_INCLUDE_SILO_COMMON_DATAVERSION_H_
-#define SILO_INCLUDE_SILO_COMMON_DATAVERSION_H_
+#pragma once
 
 #include <optional>
 #include <string>
@@ -30,5 +29,3 @@ class DataVersion {
 };
 
 }  // namespace silo
-
-#endif  // SILO_INCLUDE_SILO_COMMON_DATAVERSION_H_

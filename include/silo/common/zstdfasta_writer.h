@@ -1,5 +1,4 @@
-#ifndef SILO_ZSTDFASTA_WRITER_H
-#define SILO_ZSTDFASTA_WRITER_H
+#pragma once
 
 #include <filesystem>
 #include <iostream>
@@ -39,5 +38,3 @@ class ZstdFastaWriter {
    void writeDefault(const std::string& key);
 };
 }  // namespace silo
-
-#endif  // SILO_ZSTDFASTA_WRITER_H

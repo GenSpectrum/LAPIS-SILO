@@ -1,5 +1,4 @@
-#ifndef SILO_FASTA_FORMAT_EXCEPTION_H
-#define SILO_FASTA_FORMAT_EXCEPTION_H
+#pragma once
 
 #include <stdexcept>
 #include <string>
@@ -12,5 +11,3 @@ class FastaFormatException : public std::runtime_error {
 };
 
 }  // namespace silo
-
-#endif  // SILO_FASTA_FORMAT_EXCEPTION_H

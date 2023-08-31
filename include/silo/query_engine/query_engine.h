@@ -1,5 +1,4 @@
-#ifndef SILO_QUERY_ENGINE_H
-#define SILO_QUERY_ENGINE_H
+#pragma once
 
 #include <iostream>
 #include <memory>
@@ -32,5 +31,3 @@ class QueryEngine {
 QueryResult executeQuery(const Database& database, const std::string& query);
 
 }  // namespace silo::query_engine
-
-#endif  // SILO_QUERY_ENGINE_H

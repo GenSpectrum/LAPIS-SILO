@@ -1,5 +1,4 @@
-#ifndef SILO_ZSTDFASTA_READER_H
-#define SILO_ZSTDFASTA_READER_H
+#pragma once
 
 #include <filesystem>
 #include <iostream>
@@ -34,5 +33,3 @@ class ZstdFastaReader {
    void reset();
 };
 }  // namespace silo
-
-#endif  // SILO_ZSTDFASTA_READER_H

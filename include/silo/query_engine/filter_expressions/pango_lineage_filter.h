@@ -1,5 +1,4 @@
-#ifndef SILO_PANGO_LINEAGE_FILTER_H
-#define SILO_PANGO_LINEAGE_FILTER_H
+#pragma once
 
 #include <memory>
 #include <string>
@@ -45,5 +44,3 @@ struct PangoLineageFilter : public Expression {
 void from_json(const nlohmann::json& json, std::unique_ptr<PangoLineageFilter>& filter);
 
 }  // namespace silo::query_engine::filter_expressions
-
-#endif  // SILO_PANGO_LINEAGE_FILTER_H

@@ -1,5 +1,4 @@
-#ifndef SILO_FASTA_ALIGNED_H
-#define SILO_FASTA_ALIGNED_H
+#pragma once
 
 #include <memory>
 #include <vector>
@@ -34,5 +33,3 @@ class FastaAligned : public Action {
 void from_json(const nlohmann::json& json, std::unique_ptr<FastaAligned>& action);
 
 }  // namespace silo::query_engine::actions
-
-#endif  // SILO_FASTA_ALIGNED_H

@@ -1,5 +1,4 @@
-#ifndef SILO_ROARING_SERIALIZE_H
-#define SILO_ROARING_SERIALIZE_H
+#pragma once
 
 #include <boost/exception/diagnostic_information.hpp>
 #include <boost/iostreams/copy.hpp>
@@ -45,5 +44,3 @@ template <class Archive>
 }
 }  // namespace boost::serialization
 // NOLINTEND
-
-#endif  // SILO_ROARING_SERIALIZE_H

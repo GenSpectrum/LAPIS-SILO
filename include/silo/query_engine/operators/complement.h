@@ -1,5 +1,4 @@
-#ifndef SILO_COMPLEMENT_H
-#define SILO_COMPLEMENT_H
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -44,5 +43,3 @@ class Complement : public Operator {
 };
 
 }  // namespace silo::query_engine::operators
-
-#endif  // SILO_COMPLEMENT_H

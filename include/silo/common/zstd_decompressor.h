@@ -1,5 +1,4 @@
-#ifndef SILO_ZSTD_DECOMPRESSOR_H
-#define SILO_ZSTD_DECOMPRESSOR_H
+#pragma once
 
 #include <string>
 
@@ -24,5 +23,3 @@ class ZstdDecompressor {
 };
 
 }  // namespace silo
-
-#endif  // SILO_ZSTD_DECOMPRESSOR_H

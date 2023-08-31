@@ -1,5 +1,4 @@
-#ifndef SILO_INCLUDE_SILO_PREPROCESSING_PREPROCESSING_EXCEPTION_H_
-#define SILO_INCLUDE_SILO_PREPROCESSING_PREPROCESSING_EXCEPTION_H_
+#pragma once
 
 #include <iostream>
 #include <stdexcept>
@@ -12,5 +11,3 @@ class PreprocessingException : public std::runtime_error {
 };
 
 }  // namespace silo
-
-#endif  // SILO_INCLUDE_SILO_PREPROCESSING_PREPROCESSING_EXCEPTION_H_

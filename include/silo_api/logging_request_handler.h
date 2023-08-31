@@ -1,5 +1,4 @@
-#ifndef SILO_INCLUDE_SILO_API_LOGGING_REQUEST_HANDLER_H_
-#define SILO_INCLUDE_SILO_API_LOGGING_REQUEST_HANDLER_H_
+#pragma once
 
 #include <memory>
 
@@ -22,5 +21,3 @@ class LoggingRequestHandler : public Poco::Net::HTTPRequestHandler {
    ) override;
 };
 }  // namespace silo_api
-
-#endif  // SILO_INCLUDE_SILO_API_LOGGING_REQUEST_HANDLER_H_

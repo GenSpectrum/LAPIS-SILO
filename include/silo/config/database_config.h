@@ -1,5 +1,4 @@
-#ifndef SILO_INCLUDE_SILO_CONFIG_DATABASECONFIG_H_
-#define SILO_INCLUDE_SILO_CONFIG_DATABASECONFIG_H_
+#pragma once
 
 #include <filesystem>
 #include <optional>
@@ -88,5 +87,3 @@ struct [[maybe_unused]] fmt::formatter<silo::config::ValueType> : fmt::formatter
       format_context& ctx
    ) -> decltype(ctx.out());
 };
-
-#endif  // SILO_INCLUDE_SILO_CONFIG_DATABASECONFIG_H_

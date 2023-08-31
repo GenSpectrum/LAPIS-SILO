@@ -1,5 +1,4 @@
-#ifndef SILO_PANGO_LINEAGE_COLUMN_H
-#define SILO_PANGO_LINEAGE_COLUMN_H
+#pragma once
 
 #include <cstddef>
 #include <cstdint>
@@ -84,5 +83,3 @@ class PangoLineageColumn {
 };
 
 }  // namespace silo::storage::column
-
-#endif  // SILO_PANGO_LINEAGE_COLUMN_H
