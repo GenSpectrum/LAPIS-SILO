@@ -1,5 +1,4 @@
-#ifndef SILO_MANUAL_POCO_MOCKS_TEST_H
-#define SILO_MANUAL_POCO_MOCKS_TEST_H
+#pragma once
 
 #include <sstream>
 
@@ -54,5 +53,3 @@ class MockRequest : public Poco::Net::HTTPServerRequest {
 };
 
 }  // namespace silo_api::test
-
-#endif  // SILO_MANUAL_POCO_MOCKS_TEST_H

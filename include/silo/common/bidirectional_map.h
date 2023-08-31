@@ -1,5 +1,4 @@
-#ifndef SILO_BIDIRECTIONAL_MAP_H
-#define SILO_BIDIRECTIONAL_MAP_H
+#pragma once
 
 #include <cstdint>
 #include <optional>
@@ -45,5 +44,3 @@ class BidirectionalMap {
 };
 
 }  // namespace silo::common
-
-#endif  // SILO_BIDIRECTIONAL_MAP_H

@@ -1,5 +1,4 @@
-#ifndef SILO_OPERATOR_H
-#define SILO_OPERATOR_H
+#pragma once
 
 #include <memory>
 #include <string>
@@ -40,5 +39,3 @@ class Operator {
 };
 
 }  // namespace silo::query_engine::operators
-
-#endif  // SILO_OPERATOR_H

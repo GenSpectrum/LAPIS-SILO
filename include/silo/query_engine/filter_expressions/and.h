@@ -1,5 +1,4 @@
-#ifndef SILO_AND_H
-#define SILO_AND_H
+#pragma once
 
 #include <memory>
 #include <string>
@@ -54,5 +53,3 @@ struct And : public Expression {
 void from_json(const nlohmann::json& json, std::unique_ptr<And>& filter);
 
 }  // namespace silo::query_engine::filter_expressions
-
-#endif  // SILO_AND_H

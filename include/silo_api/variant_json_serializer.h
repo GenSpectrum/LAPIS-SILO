@@ -1,5 +1,4 @@
-#ifndef SILO_VARIANT_JSON_SERIALIZER_H
-#define SILO_VARIANT_JSON_SERIALIZER_H
+#pragma once
 
 #include <nlohmann/json.hpp>
 #include <variant>
@@ -26,4 +25,3 @@ struct [[maybe_unused]] adl_serializer<std::variant<Ts...>> {
 };
 }  // namespace nlohmann
 // NOLINTEND
-#endif  // SILO_VARIANT_JSON_SERIALIZER_H

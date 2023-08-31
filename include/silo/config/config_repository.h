@@ -1,5 +1,4 @@
-#ifndef SILO_INCLUDE_SILO_CONFIG_CONFIG_REPOSITORY_H_
-#define SILO_INCLUDE_SILO_CONFIG_CONFIG_REPOSITORY_H_
+#pragma once
 
 #include <filesystem>
 
@@ -19,5 +18,3 @@ class ConfigRepository {
 };
 
 }  // namespace silo::config
-
-#endif  // SILO_INCLUDE_SILO_CONFIG_CONFIG_REPOSITORY_H_

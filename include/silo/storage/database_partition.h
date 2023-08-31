@@ -1,5 +1,4 @@
-#ifndef SILO_DATABASE_PARTITION_H
-#define SILO_DATABASE_PARTITION_H
+#pragma once
 
 #include <cstdint>
 #include <string>
@@ -88,5 +87,3 @@ class DatabasePartition {
 };
 
 }  // namespace silo
-
-#endif  // SILO_DATABASE_PARTITION_H

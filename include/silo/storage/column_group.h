@@ -1,5 +1,4 @@
-#ifndef SILO_COLUMN_GROUP_H
-#define SILO_COLUMN_GROUP_H
+#pragma once
 
 #include <cstdint>
 #include <filesystem>
@@ -155,5 +154,3 @@ class ColumnGroup {
 };
 
 }  // namespace silo::storage
-
-#endif  // SILO_COLUMN_GROUP_H

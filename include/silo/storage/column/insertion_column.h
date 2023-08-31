@@ -1,5 +1,4 @@
-#ifndef SILO_INSERTION_COLUMN_H
-#define SILO_INSERTION_COLUMN_H
+#pragma once
 
 #include <cstdint>
 #include <deque>
@@ -89,5 +88,3 @@ class InsertionColumn {
 };
 
 }  // namespace silo::storage::column
-
-#endif  // SILO_INSERTION_COLUMN_H

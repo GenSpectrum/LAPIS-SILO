@@ -1,5 +1,4 @@
-#ifndef SILO_ACTION_H
-#define SILO_ACTION_H
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -63,5 +62,3 @@ class Action {
 void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action);
 
 }  // namespace silo::query_engine::actions
-
-#endif  // SILO_ACTION_H

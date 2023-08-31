@@ -1,6 +1,4 @@
-
-#ifndef SILO_SEQUENCE_STORE_H
-#define SILO_SEQUENCE_STORE_H
+#pragma once
 
 #include <array>
 #include <cstddef>
@@ -123,5 +121,3 @@ struct [[maybe_unused]] fmt::formatter<silo::SequenceStoreInfo> : fmt::formatter
       format_context& ctx
    ) -> decltype(ctx.out());
 };
-
-#endif  // SILO_SEQUENCE_STORE_H

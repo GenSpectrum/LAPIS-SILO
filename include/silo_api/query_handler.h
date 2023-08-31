@@ -1,5 +1,4 @@
-#ifndef SILO_QUERYREQUESTHANDLER_H
-#define SILO_QUERYREQUESTHANDLER_H
+#pragma once
 
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/Net/HTTPServerResponse.h>
@@ -22,5 +21,3 @@ class QueryHandler : public RestResource {
       override;
 };
 }  // namespace silo_api
-
-#endif  // SILO_QUERYREQUESTHANDLER_H

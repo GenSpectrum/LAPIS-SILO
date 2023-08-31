@@ -1,5 +1,4 @@
-#ifndef SILO_FULL_H
-#define SILO_FULL_H
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -29,5 +28,3 @@ class Full : public Operator {
 };
 
 }  // namespace silo::query_engine::operators
-
-#endif  // SILO_FULL_H

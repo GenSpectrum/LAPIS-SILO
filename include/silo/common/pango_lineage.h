@@ -1,5 +1,4 @@
-#ifndef SILO_PANGO_LINEAGE_H
-#define SILO_PANGO_LINEAGE_H
+#pragma once
 
 #include <cstddef>
 #include <cstdint>
@@ -38,5 +37,3 @@ template <>
 struct std::hash<silo::common::UnaliasedPangoLineage> {
    std::size_t operator()(const silo::common::UnaliasedPangoLineage& pango_lineage) const;
 };
-
-#endif  // SILO_PANGO_LINEAGE_H

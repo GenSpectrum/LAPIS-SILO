@@ -1,5 +1,4 @@
-#ifndef SILO_DETAILS_H
-#define SILO_DETAILS_H
+#pragma once
 
 #include <memory>
 #include <string>
@@ -38,5 +37,3 @@ class Details : public Action {
 void from_json(const nlohmann::json& json, std::unique_ptr<Details>& action);
 
 }  // namespace silo::query_engine::actions
-
-#endif  // SILO_DETAILS_H

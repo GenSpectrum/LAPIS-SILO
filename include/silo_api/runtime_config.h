@@ -1,5 +1,4 @@
-#ifndef SILO_RUNTIME_CONFIG_H
-#define SILO_RUNTIME_CONFIG_H
+#pragma once
 
 #include <filesystem>
 #include <optional>
@@ -13,5 +12,3 @@ struct RuntimeConfig {
 };
 
 }  // namespace silo_api
-
-#endif  // SILO_RUNTIME_CONFIG_H

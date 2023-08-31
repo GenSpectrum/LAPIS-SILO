@@ -1,5 +1,4 @@
-#ifndef SILO_INCLUDE_SILO_STORAGE_SERIALIZE_OPTIONAL_H_
-#define SILO_INCLUDE_SILO_STORAGE_SERIALIZE_OPTIONAL_H_
+#pragma once
 
 #include <boost/serialization/item_version_type.hpp>
 #include <boost/serialization/library_version_type.hpp>
@@ -43,5 +42,3 @@ void serialize(Archive& archive, std::optional<T>& optional, const uint32_t vers
 }
 
 }  // namespace boost::serialization
-
-#endif  // SILO_INCLUDE_SILO_STORAGE_SERIALIZE_OPTIONAL_H_

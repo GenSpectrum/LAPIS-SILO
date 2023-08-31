@@ -1,5 +1,4 @@
-#ifndef SILO_NEGATION_H
-#define SILO_NEGATION_H
+#pragma once
 
 #include <memory>
 #include <string>
@@ -41,5 +40,3 @@ class Negation : public Expression {
 void from_json(const nlohmann::json& json, std::unique_ptr<Negation>& filter);
 
 }  // namespace silo::query_engine::filter_expressions
-
-#endif  // SILO_NEGATION_H

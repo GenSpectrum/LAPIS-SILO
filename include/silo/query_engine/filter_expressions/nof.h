@@ -1,5 +1,4 @@
-#ifndef SILO_NOF_H
-#define SILO_NOF_H
+#pragma once
 
 #include <memory>
 #include <string>
@@ -65,5 +64,3 @@ struct NOf : public Expression {
 void from_json(const nlohmann::json& json, std::unique_ptr<NOf>& filter);
 
 }  // namespace silo::query_engine::filter_expressions
-
-#endif  // SILO_NOF_H

@@ -1,5 +1,4 @@
-#ifndef SILO_THRESHOLD_H
-#define SILO_THRESHOLD_H
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -41,5 +40,3 @@ class Threshold : public Operator {
 };
 
 }  // namespace silo::query_engine::operators
-
-#endif  // SILO_THRESHOLD_H

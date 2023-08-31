@@ -1,5 +1,4 @@
-#ifndef SILO_PANGO_LINEAGE_ALIAS_H
-#define SILO_PANGO_LINEAGE_ALIAS_H
+#pragma once
 
 #include <filesystem>
 #include <string>
@@ -48,5 +47,3 @@ class PangoLineageAliasLookup {
 };
 
 }  // namespace silo
-
-#endif  // SILO_PANGO_LINEAGE_ALIAS_H

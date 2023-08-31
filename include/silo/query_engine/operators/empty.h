@@ -1,5 +1,4 @@
-#ifndef SILO_EMPTY_H
-#define SILO_EMPTY_H
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -30,5 +29,3 @@ class Empty : public Operator {
 };
 
 }  // namespace silo::query_engine::operators
-
-#endif  // SILO_EMPTY_H

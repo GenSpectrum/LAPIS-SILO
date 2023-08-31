@@ -1,5 +1,4 @@
-#ifndef SILO_DATABASE_H
-#define SILO_DATABASE_H
+#pragma once
 
 #include <cstddef>
 #include <cstdint>
@@ -108,5 +107,3 @@ class Database {
 };
 
 }  // namespace silo
-
-#endif  // SILO_DATABASE_H

@@ -1,5 +1,4 @@
-#ifndef SILO_OPERATOR_RESULT_H
-#define SILO_OPERATOR_RESULT_H
+#pragma once
 
 #include <type_traits>
 
@@ -35,5 +34,3 @@ struct OperatorResult {
 };
 
 }  // namespace silo::query_engine
-
-#endif  // SILO_OPERATOR_RESULT_H

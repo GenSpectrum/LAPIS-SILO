@@ -1,5 +1,4 @@
-#ifndef SILO_DATABASE_DIRECTORY_WATCHER_H
-#define SILO_DATABASE_DIRECTORY_WATCHER_H
+#pragma once
 
 #include <string>
 
@@ -22,5 +21,3 @@ class DatabaseDirectoryWatcher {
    void checkDirectoryForData(Poco::Timer& timer);
 };
 }  // namespace silo_api
-
-#endif  // SILO_DATABASE_DIRECTORY_WATCHER_H

@@ -1,5 +1,4 @@
-#ifndef SILO_DATE_H
-#define SILO_DATE_H
+#pragma once
 
 #include <cstdint>
 #include <optional>
@@ -14,5 +13,3 @@ silo::common::Date stringToDate(const std::string& value);
 std::optional<std::string> dateToString(silo::common::Date date);
 
 }  // namespace silo::common
-
-#endif  // SILO_DATE_H

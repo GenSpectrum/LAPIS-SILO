@@ -1,5 +1,4 @@
-#ifndef SILO_PARTITION_H
-#define SILO_PARTITION_H
+#pragma once
 
 #include <cstdint>
 #include <filesystem>
@@ -121,5 +120,3 @@ template <>
 struct std::hash<silo::preprocessing::PartitionChunk> {
    std::size_t operator()(const silo::preprocessing::PartitionChunk& partition_chunk) const;
 };
-
-#endif  // SILO_PARTITION_H

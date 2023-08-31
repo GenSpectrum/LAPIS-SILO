@@ -1,5 +1,4 @@
-#ifndef SILO_TEMPLATE_UTILS_H
-#define SILO_TEMPLATE_UTILS_H
+#pragma once
 
 #include <cstddef>
 
@@ -22,5 +21,3 @@ struct NestedContainer<1, Container, ContainerArg, Base> {
 };
 
 }  // namespace silo
-
-#endif  // SILO_TEMPLATE_UTILS_H

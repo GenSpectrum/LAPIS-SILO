@@ -1,5 +1,4 @@
-#ifndef SILO_INTERSECTION_H
-#define SILO_INTERSECTION_H
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -42,5 +41,3 @@ class Intersection : public Operator {
 };
 
 }  // namespace silo::query_engine::operators
-
-#endif  // SILO_INTERSECTION_H

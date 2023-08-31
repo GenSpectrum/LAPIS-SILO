@@ -1,5 +1,4 @@
-#ifndef SILO_INSERTIONS_H
-#define SILO_INSERTIONS_H
+#pragma once
 
 #include "silo/query_engine/actions/action.h"
 #include "silo/storage/column/insertion_column.h"
@@ -74,5 +73,3 @@ void from_json(
 
 }  // namespace actions
 }  // namespace silo::query_engine
-
-#endif  // SILO_INSERTIONS_H

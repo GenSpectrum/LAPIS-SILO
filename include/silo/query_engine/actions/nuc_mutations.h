@@ -1,5 +1,4 @@
-#ifndef SILO_NUC_MUTATIONS_H
-#define SILO_NUC_MUTATIONS_H
+#pragma once
 
 #include <array>
 #include <cstddef>
@@ -84,5 +83,3 @@ class NucMutations : public Action {
 void from_json(const nlohmann::json& json, std::unique_ptr<NucMutations>& action);
 
 }  // namespace silo::query_engine::actions
-
-#endif  // SILO_NUC_MUTATIONS_H

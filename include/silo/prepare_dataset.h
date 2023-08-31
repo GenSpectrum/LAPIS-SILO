@@ -1,5 +1,4 @@
-#ifndef SILO_PREPARE_DATASET_H
-#define SILO_PREPARE_DATASET_H
+#pragma once
 
 #include <filesystem>
 #include <iostream>
@@ -50,5 +49,3 @@ void sortChunks(
 );
 
 }  // namespace silo
-
-#endif  // SILO_PREPARE_DATASET_H

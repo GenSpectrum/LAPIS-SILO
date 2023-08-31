@@ -1,5 +1,4 @@
-#ifndef SILO_INSERTION_INDEX_H
-#define SILO_INSERTION_INDEX_H
+#pragma once
 
 #include <array>
 #include <memory>
@@ -111,5 +110,3 @@ class InsertionIndex {
 };
 
 }  // namespace silo::storage::column::insertion
-
-#endif  // SILO_INSERTION_INDEX_H

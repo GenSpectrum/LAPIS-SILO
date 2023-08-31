@@ -1,5 +1,4 @@
-#ifndef SILO_INCLUDE_SILO_STORAGE_REFERENCE_GENOME_H_
-#define SILO_INCLUDE_SILO_STORAGE_REFERENCE_GENOME_H_
+#pragma once
 
 #include <filesystem>
 #include <map>
@@ -30,5 +29,3 @@ struct ReferenceGenomes {
 };
 
 }  // namespace silo
-
-#endif  // SILO_INCLUDE_SILO_STORAGE_REFERENCE_GENOME_H_

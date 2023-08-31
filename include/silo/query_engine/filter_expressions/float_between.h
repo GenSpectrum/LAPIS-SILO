@@ -1,5 +1,4 @@
-#ifndef SILO_FLOAT_BETWEEN_H
-#define SILO_FLOAT_BETWEEN_H
+#pragma once
 
 #include <memory>
 #include <optional>
@@ -44,5 +43,3 @@ class FloatBetween : public Expression {
 void from_json(const nlohmann::json& json, std::unique_ptr<FloatBetween>& filter);
 
 }  // namespace silo::query_engine::filter_expressions
-
-#endif  // SILO_FLOAT_BETWEEN_H

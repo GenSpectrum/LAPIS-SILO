@@ -1,5 +1,4 @@
-#ifndef SILO_INDEX_SCAN_H
-#define SILO_INDEX_SCAN_H
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -35,5 +34,3 @@ class IndexScan : public Operator {
 };
 
 }  // namespace silo::query_engine::operators
-
-#endif  // SILO_INDEX_SCAN_H

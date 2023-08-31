@@ -1,5 +1,4 @@
-#ifndef SILO_STRING_COLUMN_H
-#define SILO_STRING_COLUMN_H
+#pragma once
 
 #include <cstdint>
 #include <deque>
@@ -75,5 +74,3 @@ class StringColumn {
 };
 
 }  // namespace silo::storage::column
-
-#endif  // SILO_STRING_COLUMN_H

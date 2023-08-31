@@ -1,5 +1,4 @@
-#ifndef SILO_INFOHANDLER_H
-#define SILO_INFOHANDLER_H
+#pragma once
 
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/Net/HTTPServerResponse.h>
@@ -20,5 +19,3 @@ class InfoHandler : public RestResource {
       override;
 };
 }  // namespace silo_api
-
-#endif  // SILO_INFOHANDLER_H

@@ -1,5 +1,4 @@
-#ifndef SILO_DATE_BETWEEN_H
-#define SILO_DATE_BETWEEN_H
+#pragma once
 
 #include <memory>
 #include <optional>
@@ -65,5 +64,3 @@ struct DateBetween : public Expression {
 void from_json(const nlohmann::json& json, std::unique_ptr<DateBetween>& filter);
 
 }  // namespace silo::query_engine::filter_expressions
-
-#endif  // SILO_DATE_BETWEEN_H

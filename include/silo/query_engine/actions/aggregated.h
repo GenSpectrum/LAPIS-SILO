@@ -1,5 +1,4 @@
-#ifndef SILO_AGGREGATED_H
-#define SILO_AGGREGATED_H
+#pragma once
 
 #include <memory>
 #include <optional>
@@ -40,5 +39,3 @@ class Aggregated : public Action {
 void from_json(const nlohmann::json& json, std::unique_ptr<Aggregated>& action);
 
 }  // namespace silo::query_engine::actions
-
-#endif  // SILO_AGGREGATED_H

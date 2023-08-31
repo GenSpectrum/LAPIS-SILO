@@ -1,5 +1,4 @@
-#ifndef SILO_SRC_SILO_STORAGE_CSV_READER_H_
-#define SILO_SRC_SILO_STORAGE_CSV_READER_H_
+#pragma once
 
 #include <filesystem>
 #include <iosfwd>
@@ -32,5 +31,3 @@ class MetadataWriter {
 };
 
 }  // namespace silo::preprocessing
-
-#endif  // SILO_SRC_SILO_STORAGE_CSV_READER_H_

@@ -1,5 +1,4 @@
-#ifndef SILO_TRUE_H
-#define SILO_TRUE_H
+#pragma once
 
 #include <memory>
 #include <string>
@@ -36,5 +35,3 @@ struct True : public Expression {
 void from_json(const nlohmann::json& json, std::unique_ptr<True>& filter);
 
 }  // namespace silo::query_engine::filter_expressions
-
-#endif  // SILO_TRUE_H

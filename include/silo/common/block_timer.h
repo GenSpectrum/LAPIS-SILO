@@ -1,5 +1,4 @@
-#ifndef SILO_BLOCK_TIMER_H
-#define SILO_BLOCK_TIMER_H
+#pragma once
 
 #include <chrono>
 
@@ -22,5 +21,3 @@ struct [[nodiscard]] BlockTimer {
 
    output_t untilNow() { return std::chrono::duration_cast<Unit>(Clock::now() - start).count(); }
 };
-
-#endif  // SILO_BLOCK_TIMER_H

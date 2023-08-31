@@ -1,5 +1,4 @@
-#ifndef SILO_NUCLEOTIDE_SYMBOLS_H
-#define SILO_NUCLEOTIDE_SYMBOLS_H
+#pragma once
 
 #include <algorithm>
 #include <array>
@@ -71,5 +70,3 @@ class Nucleotide {
 };
 
 }  // namespace silo
-
-#endif  // SILO_NUCLEOTIDE_SYMBOLS_H

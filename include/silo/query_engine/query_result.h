@@ -1,5 +1,4 @@
-#ifndef SILO_QUERY_ENGINE_RESULT_H
-#define SILO_QUERY_ENGINE_RESULT_H
+#pragma once
 
 #include <cstdint>
 #include <map>
@@ -26,5 +25,3 @@ void to_json(nlohmann::json& json, const QueryResult& query_result);
 // NOLINTEND(readability-identifier-naming)
 
 }  // namespace silo::query_engine
-
-#endif  // SILO_QUERY_ENGINE_RESULT_H

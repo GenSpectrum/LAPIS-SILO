@@ -1,5 +1,4 @@
-#ifndef SILO_SymbolS_H
-#define SILO_SymbolS_H
+#pragma once
 
 #include <array>
 #include <iostream>
@@ -64,5 +63,3 @@ class AminoAcid {
 };
 }  // namespace silo
 // namespace silo
-
-#endif  // SILO_SymbolS_H

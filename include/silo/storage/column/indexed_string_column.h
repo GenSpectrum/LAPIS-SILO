@@ -1,5 +1,4 @@
-#ifndef SILO_INDEXED_STRING_COLUMN_H
-#define SILO_INDEXED_STRING_COLUMN_H
+#pragma once
 
 #include <cstdint>
 #include <deque>
@@ -69,5 +68,3 @@ class IndexedStringColumn {
 };
 
 }  // namespace silo::storage::column
-
-#endif  // SILO_INDEXED_STRING_COLUMN_H

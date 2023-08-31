@@ -1,5 +1,4 @@
-#ifndef SILO_EXACT_H
-#define SILO_EXACT_H
+#pragma once
 
 #include <memory>
 #include <string>
@@ -37,5 +36,3 @@ class Exact : public Expression {
 void from_json(const nlohmann::json& json, std::unique_ptr<Exact>& filter);
 
 }  // namespace silo::query_engine::filter_expressions
-
-#endif  // SILO_EXACT_H

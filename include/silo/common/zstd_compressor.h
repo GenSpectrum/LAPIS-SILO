@@ -1,5 +1,4 @@
-#ifndef SILO_ZSTD_COMPRESSOR_H
-#define SILO_ZSTD_COMPRESSOR_H
+#pragma once
 
 #include <cstddef>
 #include <string>
@@ -28,5 +27,3 @@ class ZstdCompressor {
 };
 
 }  // namespace silo
-
-#endif  // SILO_ZSTD_COMPRESSOR_H

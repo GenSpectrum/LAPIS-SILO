@@ -1,5 +1,4 @@
-#ifndef SILO_FASTA_H
-#define SILO_FASTA_H
+#pragma once
 
 #include <memory>
 #include <vector>
@@ -32,5 +31,3 @@ class Fasta : public Action {
 void from_json(const nlohmann::json& json, std::unique_ptr<Fasta>& action);
 
 }  // namespace silo::query_engine::actions
-
-#endif  // SILO_FASTA_H

@@ -1,5 +1,4 @@
-#ifndef SILO_PREPROCESSING_CONFIG_H
-#define SILO_PREPROCESSING_CONFIG_H
+#pragma once
 
 #include <filesystem>
 #include <optional>
@@ -167,5 +166,3 @@ struct [[maybe_unused]] fmt::formatter<silo::preprocessing::PreprocessingConfig>
       format_context& ctx
    ) -> decltype(ctx.out());
 };
-
-#endif  // SILO_PREPROCESSING_CONFIG_H
