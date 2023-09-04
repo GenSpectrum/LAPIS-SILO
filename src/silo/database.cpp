@@ -47,6 +47,7 @@
 #include "silo/preprocessing/pango_lineage_count.h"
 #include "silo/preprocessing/partition.h"
 #include "silo/preprocessing/preprocessing_config.h"
+#include "silo/preprocessing/someDuckDBRoutine.h"
 #include "silo/query_engine/query_engine.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/roaring/roaring_serialize.h"
@@ -138,14 +139,6 @@ void Database::build(
       initializeColumns();
       initializeNucSequences(reference_genomes.nucleotide_sequences);
       initializeAASequences(reference_genomes.aa_sequences);
-      duckdb::Connection duckdb_connection(duckdb_metadata);
-      if (partition_descriptor.getPartitions().size() > 0) {
-         const std::string query = fmt::format(
-            "CREATE TABLE metadata_table AS FROM read_csv_auto('{}');",
-            preprocessing_config.getMetadataSortedPartitionFilename(0, 0).string()
-         );
-         duckdb_connection.Query(query);
-      }
       for (size_t partition_index = 0;
            partition_index < partition_descriptor.getPartitions().size();
            ++partition_index) {
@@ -162,14 +155,8 @@ void Database::build(
             SPDLOG_DEBUG("Using metadata file: {}", metadata_file.string());
             partitions[partition_index].sequence_count +=
                partitions[partition_index].columns.fill(metadata_file, database_config);
-            const std::string query = fmt::format(
-               "INSERT INTO metadata_table AS FROM read_csv_auto('{}') LIMIT 0;",
-               metadata_file.string()
-            );
-            duckdb_connection.Query(query);
          }
       }
-      duckdb_connection.Query("COPY metadata_table TO 'output.csv' (HEADER, DELIMITER ',');");
 
       tbb::parallel_for(
          tbb::blocked_range<size_t>(0, partition_descriptor.getPartitions().size()),
@@ -650,6 +637,9 @@ Database Database::preprocessing(
    const DataVersion& data_version = DataVersion::mineDataVersion();
    SPDLOG_INFO("preprocessing - mining data data_version: {}", data_version.toString());
    database.setDataVersion(data_version);
+
+   const std::string metadata_filename = preprocessing_config.getMetadataInputFilename().string();
+   silo::executeDuckDBRoutine(metadata_filename);
 
    SPDLOG_INFO("preprocessing - validate metadata file against config");
    preprocessing::MetadataValidator().validateMedataFile(
