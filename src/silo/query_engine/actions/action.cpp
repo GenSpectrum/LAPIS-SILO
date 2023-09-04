@@ -16,7 +16,6 @@
 #include "silo/query_engine/actions/fasta.h"
 #include "silo/query_engine/actions/fasta_aligned.h"
 #include "silo/query_engine/actions/insertions.h"
-#include "silo/query_engine/actions/nuc_mutations.h"
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
@@ -154,11 +153,11 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
    if (expression_type == "Aggregated") {
       action = json.get<std::unique_ptr<Aggregated>>();
    } else if (expression_type == "Mutations") {
-      action = json.get<std::unique_ptr<NucMutations>>();
+      action = json.get<std::unique_ptr<Mutations<Nucleotide>>>();
    } else if (expression_type == "Details") {
       action = json.get<std::unique_ptr<Details>>();
    } else if (expression_type == "AminoAcidMutations") {
-      action = json.get<std::unique_ptr<AAMutations>>();
+      action = json.get<std::unique_ptr<Mutations<AminoAcid>>>();
    } else if (expression_type == "Fasta") {
       action = json.get<std::unique_ptr<Fasta>>();
    } else if (expression_type == "FastaAligned") {

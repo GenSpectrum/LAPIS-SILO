@@ -64,6 +64,9 @@ class Database {
    template <typename SymbolType>
    std::vector<std::string> getSequenceNames() const;
 
+   template <typename SymbolType>
+   const std::map<std::string, SequenceStore<SymbolType>>& getSequenceStores() const;
+
    virtual query_engine::QueryResult executeQuery(const std::string& query) const;
 
   private:

@@ -57,6 +57,14 @@ class Nucleotide {
       Symbol::N,
    };
 
+   static constexpr std::array<Symbol, 5> VALID_MUTATION_SYMBOLS{
+      Nucleotide::Symbol::GAP,
+      Nucleotide::Symbol::A,
+      Nucleotide::Symbol::C,
+      Nucleotide::Symbol::G,
+      Nucleotide::Symbol::T,
+   };
+
    static constexpr Symbol SYMBOL_MISSING = Symbol::N;
 
    static char symbolToChar(Symbol symbol);
