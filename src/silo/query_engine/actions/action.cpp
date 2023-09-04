@@ -10,12 +10,12 @@
 
 #include <nlohmann/json.hpp>
 
-#include "silo/query_engine/actions/aa_mutations.h"
 #include "silo/query_engine/actions/aggregated.h"
 #include "silo/query_engine/actions/details.h"
 #include "silo/query_engine/actions/fasta.h"
 #include "silo/query_engine/actions/fasta_aligned.h"
 #include "silo/query_engine/actions/insertions.h"
+#include "silo/query_engine/actions/mutations.h"
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
