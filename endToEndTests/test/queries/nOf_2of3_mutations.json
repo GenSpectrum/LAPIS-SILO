@@ -32,42 +32,50 @@
     {
       "count": 1,
       "mutation": "A1-",
-      "proportion": 1
+      "proportion": 1,
+      "sequenceName": "main"
     },
     {
       "count": 1,
       "mutation": "T2-",
-      "proportion": 1
+      "proportion": 1,
+      "sequenceName": "main"
     },
     {
       "count": 53,
       "mutation": "C241T",
-      "proportion": 1
+      "proportion": 1,
+      "sequenceName": "main"
     },
     {
       "count": 51,
       "mutation": "C3037T",
-      "proportion": 1
+      "proportion": 1,
+      "sequenceName": "main"
     },
     {
       "count": 52,
       "mutation": "C14408T",
-      "proportion": 1
+      "proportion": 1,
+      "sequenceName": "main"
     },
     {
       "count": 53,
       "mutation": "A23403G",
-      "proportion": 1
+      "proportion": 1,
+      "sequenceName": "main"
     },
     {
       "count": 4,
       "mutation": "G29868-",
-      "proportion": 1
+      "proportion": 1,
+      "sequenceName": "main"
     },
     {
       "count": 4,
       "mutation": "A29869-",
-      "proportion": 0.8
+      "proportion": 0.8,
+      "sequenceName": "main"
     }
   ]
 }

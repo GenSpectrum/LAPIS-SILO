@@ -98,6 +98,9 @@ class DatabasePartition {
       const std::string& name,
       storage::column::InsertionColumnPartition<AminoAcid>& column
    );
+
+   template <typename SymbolType>
+   const std::map<std::string, SequenceStorePartition<SymbolType>&>& getSequenceStores() const;
 };
 
 }  // namespace silo

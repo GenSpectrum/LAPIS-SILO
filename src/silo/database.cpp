@@ -108,6 +108,18 @@ std::vector<std::string> Database::getSequenceNames<AminoAcid>() const {
    return sequence_names;
 }
 
+template <>
+const std::map<std::string, SequenceStore<Nucleotide>>& Database::getSequenceStores<Nucleotide>(
+) const {
+   return nuc_sequences;
+}
+
+template <>
+const std::map<std::string, SequenceStore<AminoAcid>>& Database::getSequenceStores<AminoAcid>(
+) const {
+   return aa_sequences;
+}
+
 const PangoLineageAliasLookup& Database::getAliasKey() const {
    return alias_key;
 }

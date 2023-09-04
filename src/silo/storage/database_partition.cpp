@@ -133,4 +133,16 @@ void DatabasePartition::insertColumn(
    columns.float_columns.insert({std::string(name), column});
 }
 
+template <>
+const std::map<std::string, SequenceStorePartition<Nucleotide>&>& DatabasePartition::
+   getSequenceStores<Nucleotide>() const {
+   return nuc_sequences;
+}
+
+template <>
+const std::map<std::string, SequenceStorePartition<AminoAcid>&>& DatabasePartition::
+   getSequenceStores<AminoAcid>() const {
+   return aa_sequences;
+}
+
 }  // namespace silo
