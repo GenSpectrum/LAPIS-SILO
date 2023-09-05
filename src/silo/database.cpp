@@ -640,7 +640,7 @@ Database Database::preprocessing(
 
    const std::string metadata_filename = preprocessing_config.getMetadataInputFilename().string();
    silo::executeDuckDBRoutine(metadata_filename);
-
+   return database;
    SPDLOG_INFO("preprocessing - validate metadata file against config");
    preprocessing::MetadataValidator().validateMedataFile(
       preprocessing_config.getMetadataInputFilename(), database_config_
