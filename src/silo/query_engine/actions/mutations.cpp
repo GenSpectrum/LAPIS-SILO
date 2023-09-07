@@ -216,9 +216,14 @@ QueryResult Mutations<SymbolType>::execute(
       const SequenceStore<SymbolType>& sequence_store =
          database.getSequenceStores<SymbolType>().at(sequence_name);
 
-      addMutationsToOutput(
-         sequence_name, sequence_store, bitmaps_to_evaluate.at(sequence_name), mutation_proportions
-      );
+      if (bitmaps_to_evaluate.contains(sequence_name)) {
+         addMutationsToOutput(
+            sequence_name,
+            sequence_store,
+            bitmaps_to_evaluate.at(sequence_name),
+            mutation_proportions
+         );
+      }
    }
    return {mutation_proportions};
 }
