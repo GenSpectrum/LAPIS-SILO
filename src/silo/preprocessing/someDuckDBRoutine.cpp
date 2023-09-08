@@ -1,21 +1,44 @@
 #include "silo/preprocessing/someDuckDBRoutine.h"
 
-#include <duckdb.hpp>
-
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
+#include <duckdb.hpp>
+
+#include "silo/common/zstd_compressor.h"
+
+silo::ZstdCompressor compressor("ABC");
+duckdb::string_t buffer(compressor.getSizeBound());
+duckdb::string_t zstdCompressOneGenome(const duckdb::string_t uncompressed) {
+   compressor.compress(
+      uncompressed.GetData(), uncompressed.GetSize(), buffer.GetDataWriteable(), buffer.GetSize()
+   );
+   return buffer;
+}
+
+void executeQuery(duckdb::Connection& db, std::string sql_query) {
+   SPDLOG_INFO("executing duckdb query: {}", sql_query);
+   auto res = db.Query(sql_query);
+   SPDLOG_INFO("duckdb Result: {}", res->ToString());
+}
 
 void silo::executeDuckDBRoutine(std::string_view file_name) {
    duckdb::DuckDB duckDb;
    duckdb::Connection duckdb_connection(duckDb);
-   std::string query = ::fmt::format(
-      "SELECT * FROM read_csv_auto('somefile.tsv', HEADER=TRUE, all_varchar=TRUE);", file_name
+
+   duckdb_connection.CreateScalarFunction<duckdb::string_t, duckdb::string_t>(
+      "compressGene", &zstdCompressOneGenome
    );
-   SPDLOG_INFO("executing duckdb query: {}", query);
-   auto res = duckdb_connection.Query(query);
-   SPDLOG_INFO("duckdb Result: {}", res->ToString());
-   query = "COPY metadata_table TO 'FILEoutputFILE.csv' (HEADER, DELIMITER ',');";
-   SPDLOG_INFO("executing duckdb query: {}", query);
-   res = duckdb_connection.Query(query);
-   SPDLOG_INFO("duckdb Result: {}", res->ToString());
+
+   executeQuery(duckdb_connection, "INSTALL json;");
+   executeQuery(duckdb_connection, "LOAD json;");
+
+   executeQuery(
+      duckdb_connection,
+      ::fmt::format(
+         "CREATE TABLE ndjson AS SELECT * FROM read_json_auto('{}', format=newline_delimited);",
+         file_name
+      )
+   );
+
+   executeQuery(duckdb_connection, ::fmt::format("SELECT * FROM ndjson;", file_name));
 }

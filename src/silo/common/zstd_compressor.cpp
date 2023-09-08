@@ -21,6 +21,17 @@ size_t ZstdCompressor::compress(const std::string& input, std::string& output) {
    );
 }
 
+size_t ZstdCompressor::compress(
+   const char* input_data,
+   size_t input_size,
+   char* output_data,
+   size_t output_size
+) {
+   return ZSTD_compress_usingCDict(
+      zstd_context, output_data, output_size, input_data, input_size, zstd_dictionary
+   );
+}
+
 size_t ZstdCompressor::getSizeBound() const {
    return size_bound;
 }

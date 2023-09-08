@@ -52,8 +52,6 @@ std::string joinFilenames(
    return boost::algorithm::join(quoted, join);
 }
 
-}  // namespace
-
 std::unordered_map<
    silo::preprocessing::PartitionChunk,
    std::unique_ptr<silo::preprocessing::MetadataWriter>>
@@ -198,6 +196,7 @@ void copySequenceFile(silo::FastaReader& sequence_in, silo::ZstdFastaWriter& seq
       sequence_out.write(*key, genome);
    }
 }
+}  // namespace
 
 void silo::partitionData(
    const preprocessing::PreprocessingConfig& preprocessing_config,
@@ -305,6 +304,8 @@ void silo::copyDataToPartitionDirectory(
    SPDLOG_INFO("Finished copying to partition directory");
 }
 
+namespace {
+
 std::unordered_map<std::string, size_t> sortMetadataFile(
    silo::preprocessing::MetadataReader& metadata_reader,
    silo::preprocessing::MetadataWriter& metadata_writer,
@@ -404,6 +405,8 @@ void sortChunk(
 
    SPDLOG_TRACE("Finished all sorting for partition {} chunk {}", chunk.partition, chunk.chunk);
 }
+
+}  // namespace
 
 void silo::sortChunks(
    const silo::preprocessing::PreprocessingConfig& preprocessing_config,

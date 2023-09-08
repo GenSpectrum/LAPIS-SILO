@@ -23,6 +23,12 @@ class ZstdCompressor {
    explicit ZstdCompressor(std::string_view dictionary_string);
 
    size_t compress(const std::string& input, std::string& output);
+   size_t compress(
+      const char* input_data,
+      size_t input_size,
+      char* output_data,
+      size_t output_size
+   );
 
    size_t getSizeBound() const;
 };
