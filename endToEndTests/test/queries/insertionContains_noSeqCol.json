@@ -1,0 +1,25 @@
+{
+  "testCaseName": "Insertion Contains without sequence or column specified",
+  "query": {
+    "action": {
+      "type": "Mutations",
+      "minProportion": 1
+    },
+    "filterExpression": {
+      "type": "And",
+      "children": [
+        {
+          "type": "InsertionContains",
+          "position": 25701,
+          "value": "CC.*"
+        },
+        {
+          "type": "InsertionContains",
+          "position": 22339,
+          "value": ".*C.*G.*"
+        }
+      ]
+    }
+  },
+  "expectedQueryResult": []
+}

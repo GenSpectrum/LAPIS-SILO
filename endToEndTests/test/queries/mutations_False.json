@@ -1,0 +1,13 @@
+{
+  "testCaseName": "Mutations action without sequence and empty result",
+  "query": {
+    "action": {
+      "type": "Mutations",
+      "minProportion": 1
+    },
+    "filterExpression": {
+      "type": "False"
+    }
+  },
+  "expectedQueryResult": []
+}
