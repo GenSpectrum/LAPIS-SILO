@@ -9,9 +9,5 @@
       "type": "False"
     }
   },
-  "expectedQueryResult": [
-    {
-      "count": 1
-    }
-  ]
+  "expectedQueryResult": []
 }
