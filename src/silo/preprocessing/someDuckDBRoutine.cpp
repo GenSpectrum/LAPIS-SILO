@@ -6,9 +6,12 @@
 
 #include "silo/common/zstd_compressor.h"
 
-silo::ZstdCompressor compressor("ABC");
+silo::ZstdCompressor compressors("ABC");
 duckdb::string_t buffer(compressor.getSizeBound());
-duckdb::string_t zstdCompressOneGenome(const duckdb::string_t uncompressed) {
+duckdb::string_t zstdCompressOneGenome(
+   const duckdb::string_t uncompressed,
+   duckdb::string_t genome_name
+) {
    compressor.compress(
       uncompressed.GetData(), uncompressed.GetSize(), buffer.GetDataWriteable(), buffer.GetSize()
    );
@@ -25,7 +28,7 @@ void silo::executeDuckDBRoutine(std::string_view file_name) {
    duckdb::DuckDB duckDb;
    duckdb::Connection duckdb_connection(duckDb);
 
-   duckdb_connection.CreateScalarFunction<duckdb::string_t, duckdb::string_t>(
+   duckdb_connection.CreateScalarFunction<duckdb::string_t, duckdb::string_t, duckdb::string_t>(
       "compressGene", &zstdCompressOneGenome
    );
 
@@ -35,7 +38,7 @@ void silo::executeDuckDBRoutine(std::string_view file_name) {
    executeQuery(
       duckdb_connection,
       ::fmt::format(
-         "CREATE TABLE ndjson AS SELECT * FROM read_json_auto('{}', format=newline_delimited);",
+         "CREATE TABLE ndjson AS SELECT * FROM read_json_auto('{}', format=unstructured);",
          file_name
       )
    );

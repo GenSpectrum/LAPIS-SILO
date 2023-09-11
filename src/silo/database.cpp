@@ -638,7 +638,15 @@ Database Database::preprocessing(
    SPDLOG_INFO("preprocessing - mining data data_version: {}", data_version.toString());
    database.setDataVersion(data_version);
 
+   SPDLOG_INFO("preprocessing - reading reference genome");
+   const ReferenceGenomes& reference_genomes =
+      ReferenceGenomes::readFromFile(preprocessing_config.getReferenceGenomeFilename());
+
    const std::string metadata_filename = preprocessing_config.getMetadataInputFilename().string();
+   if (metadata_filename.ends_with("json")) {
+      executeDuckDBRoutine(database, metadata_filename, reference_genomes);
+      return database;
+   }
    silo::executeDuckDBRoutine(metadata_filename);
    return database;
    SPDLOG_INFO("preprocessing - validate metadata file against config");
@@ -653,10 +661,6 @@ Database Database::preprocessing(
       database.alias_key =
          PangoLineageAliasLookup::readFromFile(pango_lineage_definition_filename.value());
    }
-
-   SPDLOG_INFO("preprocessing - reading reference genome");
-   const ReferenceGenomes& reference_genomes =
-      ReferenceGenomes::readFromFile(preprocessing_config.getReferenceGenomeFilename());
 
    preprocessing::Partitions partition_descriptor;
    if (database_config_.schema.partition_by.has_value()) {
