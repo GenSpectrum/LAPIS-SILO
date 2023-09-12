@@ -15,9 +15,11 @@ class ZstdCompressor {
 
   public:
    ZstdCompressor(const ZstdCompressor& other) = delete;
-   ZstdCompressor(ZstdCompressor&& other) = delete;
-   ZstdCompressor operator=(const ZstdCompressor& other) = delete;
-   ZstdCompressor operator=(ZstdCompressor&& other) = delete;
+   ZstdCompressor& operator=(const ZstdCompressor& other) = delete;
+
+   ZstdCompressor(ZstdCompressor&& other);
+   ZstdCompressor& operator=(ZstdCompressor&& other);
+
    virtual ~ZstdCompressor();
 
    explicit ZstdCompressor(std::string_view dictionary_string);

@@ -24,8 +24,9 @@ class SiloRecipe(ConanFile):
 
         "zstd/*:shared": False,
 
-        "duckdb/*:shared": False,
+        "duckdb/*:shared": True,
         "duckdb/*:with_json": True,
+        "duckdb/*:with_parquet": True,
 
         "roaring/*:shared": False,
 

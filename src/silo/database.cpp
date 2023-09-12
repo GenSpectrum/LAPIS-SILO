@@ -643,11 +643,10 @@ Database Database::preprocessing(
       ReferenceGenomes::readFromFile(preprocessing_config.getReferenceGenomeFilename());
 
    const std::string metadata_filename = preprocessing_config.getMetadataInputFilename().string();
+   executeDuckDBRoutine(database, reference_genomes, metadata_filename);
    if (metadata_filename.ends_with("json")) {
-      executeDuckDBRoutine(database, metadata_filename, reference_genomes);
       return database;
    }
-   silo::executeDuckDBRoutine(metadata_filename);
    return database;
    SPDLOG_INFO("preprocessing - validate metadata file against config");
    preprocessing::MetadataValidator().validateMedataFile(
