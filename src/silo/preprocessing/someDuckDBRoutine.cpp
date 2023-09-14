@@ -19,23 +19,23 @@ void silo::executeDuckDBRoutine(
    std::string_view file_name
 ) {
    std::unordered_map<std::string_view, silo::ZstdCompressor> nuc_compressors;
-   std::unordered_map<std::string_view, duckdb::string_t> nuc_buffers;
+   std::unordered_map<std::string_view, std::string> nuc_buffers;
    for (const auto& [name, sequence] : reference_genomes.raw_nucleotide_sequences) {
       nuc_compressors.emplace(name, silo::ZstdCompressor(sequence));
-      nuc_buffers.emplace(name, duckdb::string_t(nuc_compressors.at(name).getSizeBound()));
+      nuc_buffers.emplace(name, std::string(nuc_compressors.at(name).getSizeBound(), '\0'));
    }
 
    std::function<duckdb::string_t(duckdb::string_t, duckdb::string_t)> zstdCompressOneGenome =
       [&](const duckdb::string_t uncompressed, duckdb::string_t genome_name) {
-         duckdb::string_t& buffer = nuc_buffers.at(genome_name.GetString());
-         nuc_compressors.at(genome_name.GetString())
-            .compress(
-               uncompressed.GetData(),
-               uncompressed.GetSize(),
-               buffer.GetDataWriteable(),
-               buffer.GetSize()
-            );
-         return buffer;
+         std::string& buffer = nuc_buffers.at(genome_name.GetString());
+         size_t size_or_error_code =
+            nuc_compressors.at(genome_name.GetString())
+               .compress(
+                  uncompressed.GetData(), uncompressed.GetSize(), buffer.data(), buffer.size()
+               );
+         // TODO check size_or_error_code
+         duckdb_value varchar = duckdb_create_varchar_length(buffer.data(), size_or_error_code);
+         return duckdb::string_t{duckdb_get_varchar(varchar)};
       };
 
    duckdb::DuckDB duckDb;
@@ -47,13 +47,14 @@ void silo::executeDuckDBRoutine(
    );
 
    executeQuery(
-      duckdb_connection, ::fmt::format("SELECT metadata.* FROM 'sample.ndjson.zst';", file_name)
-   );
-
-   executeQuery(
       duckdb_connection,
       ::fmt::format(
-         "SELECT alignedNucleotideSequences.* FROM 'sample.ndjson.zst' LIMIT 1;", file_name
+         "CREATE TABLE ndjson AS SELECT * FROM 'sample.ndjson.zst' "
+         "LIMIT 1;",
+         file_name
       )
+   );
+   executeQuery(
+      duckdb_connection, "SELECT compressGene(alignedNucleotideSequences.main, 'main') FROM ndjson;"
    );
 }
