@@ -8,14 +8,24 @@
 
 namespace silo {
 
+struct ZstdCompressDict {
+   ZSTD_CDict* value;
+
+   ZstdCompressDict(std::string_view data, uint32_t compression_level) {
+      value = ZSTD_createCDict(data.data(), data.size(), compression_level);
+   }
+
+   ~ZstdCompressDict() { ZSTD_freeCDict(value); }
+};
+
 class ZstdCompressor {
    size_t size_bound;
-   ZSTD_CDict* zstd_dictionary;
+   std::shared_ptr<ZstdCompressDict> dictionary;
    ZSTD_CCtx* zstd_context;
 
   public:
-   ZstdCompressor(const ZstdCompressor& other) = delete;
-   ZstdCompressor& operator=(const ZstdCompressor& other) = delete;
+   ZstdCompressor(const ZstdCompressor& other);
+   ZstdCompressor& operator=(const ZstdCompressor& other);
 
    ZstdCompressor(ZstdCompressor&& other);
    ZstdCompressor& operator=(ZstdCompressor&& other);

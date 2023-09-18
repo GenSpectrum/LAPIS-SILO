@@ -1,0 +1,25 @@
+schema:
+  instanceName: sars_cov-2_minimal_test_config
+  metadata:
+    - name: genbankAccession
+      type: string
+    - name: date
+      type: date
+    - name: region
+      type: string
+      generateIndex: true
+    - name: country
+      type: string
+      generateIndex: true
+    - name: pangoLineage
+      type: pango_lineage
+    - name: division
+      type: string
+      generateIndex: true
+    - name: age
+      type: int
+    - name: nextcladeQcOverallScore
+      type: float
+  primaryKey: genbankAccession
+  dateToSortBy: date
+  partitionBy: pangoLineage

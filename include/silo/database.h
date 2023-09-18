@@ -45,6 +45,11 @@ class Database {
       const config::DatabaseConfig& database_config_
    );
 
+   static Database preprocessingNdjson(
+      const preprocessing::PreprocessingConfig& preprocessing_config,
+      const config::DatabaseConfig& database_config_
+   );
+
    void saveDatabaseState(const std::filesystem::path& save_directory);
 
    static Database loadDatabaseState(const std::filesystem::path& save_directory);

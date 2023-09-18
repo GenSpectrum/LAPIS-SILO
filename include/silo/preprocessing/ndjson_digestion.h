@@ -6,7 +6,7 @@
 
 namespace silo {
 
-void executeDuckDBRoutine(
+void executeDuckDBRoutineForNdjsonDigestion(
    const silo::Database& database,
    const silo::ReferenceGenomes& reference_genomes,
    std::string_view file_name

@@ -171,6 +171,66 @@ void writeSequenceChunks(
    }
 }
 
+void writeSequenceChunks(
+   silo::ZstdFastaReader& sequence_in,
+   const std::unordered_map<std::string, silo::preprocessing::PartitionChunk>& key_to_chunk,
+   std::unordered_map<silo::preprocessing::PartitionChunk, silo::ZstdFastaWriter>&
+      chunk_to_seq_ostream
+) {
+   std::optional<std::string> key;
+   std::string genome;
+   while (true) {
+      key = sequence_in.nextCompressed(genome);
+      if (!key.has_value()) {
+         break;
+      }
+      if (!key_to_chunk.contains(*key)) {
+         SPDLOG_INFO(
+            "Fasta key '" + *key + "' was not present in keys in metadata. Ignoring sequence."
+         );
+      } else {
+         const auto& chunk = key_to_chunk.at(*key);
+         chunk_to_seq_ostream.at(chunk).writeRaw(*key, genome);
+      }
+   }
+}
+
+constexpr std::string_view ZSTDFASTA_EXTENSION(".zstdfasta");
+
+bool partitionZstdFastaIfPresent(
+   const std::filesystem::path& sequence_filename,
+   const std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path>&
+      partition_filenames,
+   const std::unordered_map<std::string, silo::preprocessing::PartitionChunk>& key_to_chunk,
+   std::string_view reference_sequence
+) {
+   std::filesystem::path sequence_filename_without_extension = sequence_filename;
+   if (sequence_filename.has_extension()) {
+      size_t length_without_extension =
+         sequence_filename.string().size() - sequence_filename.extension().string().size();
+      sequence_filename_without_extension =
+         sequence_filename.string().substr(0, length_without_extension);
+   }
+   std::filesystem::path zstd_fasta_sequence_file;
+   if (std::filesystem::exists(sequence_filename.string() + std::string(ZSTDFASTA_EXTENSION))) {
+      zstd_fasta_sequence_file = sequence_filename.string() + std::string(ZSTDFASTA_EXTENSION);
+   } else if (std::filesystem::exists(
+                 sequence_filename_without_extension.string() + std::string(ZSTDFASTA_EXTENSION)
+              )) {
+      zstd_fasta_sequence_file =
+         sequence_filename_without_extension.string() + std::string(ZSTDFASTA_EXTENSION);
+   } else {
+      return false;
+   }
+   silo::ZstdFastaReader sequence_in(zstd_fasta_sequence_file, reference_sequence);
+
+   auto chunk_to_seq_writer = getSequenceWritersForChunks(partition_filenames, reference_sequence);
+
+   writeSequenceChunks(sequence_in, key_to_chunk, chunk_to_seq_writer);
+
+   return true;
+}
+
 void partitionSequenceFile(
    const std::filesystem::path& sequence_filename,
    const std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path>&
@@ -178,6 +238,11 @@ void partitionSequenceFile(
    const std::unordered_map<std::string, silo::preprocessing::PartitionChunk>& key_to_chunk,
    std::string_view reference_sequence
 ) {
+   if (partitionZstdFastaIfPresent(
+          sequence_filename, partition_filenames, key_to_chunk, reference_sequence
+       )) {
+      return;
+   }
    silo::FastaReader sequence_in(sequence_filename);
 
    auto chunk_to_seq_writer = getSequenceWritersForChunks(partition_filenames, reference_sequence);

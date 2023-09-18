@@ -5,32 +5,45 @@
 namespace silo {
 
 ZstdCompressor::~ZstdCompressor() {
-   ZSTD_freeCDict(zstd_dictionary);
    ZSTD_freeCCtx(zstd_context);
 }
 
 ZstdCompressor::ZstdCompressor(std::string_view dictionary_string) {
    size_bound = ZSTD_compressBound(dictionary_string.size());
-   zstd_dictionary = ZSTD_createCDict(dictionary_string.data(), dictionary_string.length(), 2);
+   dictionary = std::make_shared<ZstdCompressDict>(dictionary_string, 2);
    zstd_context = ZSTD_createCCtx();
 }
 
 ZstdCompressor::ZstdCompressor(ZstdCompressor&& other) {
    this->zstd_context = std::exchange(other.zstd_context, nullptr);
-   this->zstd_dictionary = std::exchange(other.zstd_dictionary, nullptr);
+   this->dictionary = std::exchange(other.dictionary, nullptr);
    this->size_bound = other.size_bound;
 }
 
 ZstdCompressor& ZstdCompressor::operator=(ZstdCompressor&& other) {
    std::swap(this->zstd_context, other.zstd_context);
-   std::swap(this->zstd_dictionary, other.zstd_dictionary);
+   std::swap(this->dictionary, other.dictionary);
    std::swap(this->size_bound, other.size_bound);
+   return *this;
+}
+
+ZstdCompressor::ZstdCompressor(const ZstdCompressor& other) {
+   this->dictionary = other.dictionary;
+   this->zstd_context = ZSTD_createCCtx();
+   this->size_bound = other.size_bound;
+}
+
+ZstdCompressor& ZstdCompressor::operator=(const ZstdCompressor& other) {
+   this->dictionary = other.dictionary;
+   ZSTD_freeCCtx(zstd_context);
+   this->zstd_context = ZSTD_createCCtx();
+   this->size_bound = other.size_bound;
    return *this;
 }
 
 size_t ZstdCompressor::compress(const std::string& input, std::string& output) {
    return ZSTD_compress_usingCDict(
-      zstd_context, output.data(), output.size(), input.data(), input.size(), zstd_dictionary
+      zstd_context, output.data(), output.size(), input.data(), input.size(), dictionary->value
    );
 }
 
@@ -41,7 +54,7 @@ size_t ZstdCompressor::compress(
    size_t output_size
 ) {
    return ZSTD_compress_usingCDict(
-      zstd_context, output_data, output_size, input_data, input_size, zstd_dictionary
+      zstd_context, output_data, output_size, input_data, input_size, dictionary->value
    );
 }
 

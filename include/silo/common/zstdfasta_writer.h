@@ -35,6 +35,9 @@ class ZstdFastaWriter {
    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
    void writeRaw(const std::string& key, const std::string& compressed_genome);
 
+   // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+   void writeRaw(const std::string& key, std::string_view compressed_genome);
+
    void writeDefault(const std::string& key);
 };
 }  // namespace silo

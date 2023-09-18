@@ -44,10 +44,10 @@
 #include "silo/persistence/exception.h"
 #include "silo/prepare_dataset.h"
 #include "silo/preprocessing/metadata_validator.h"
+#include "silo/preprocessing/ndjson_digestion.h"
 #include "silo/preprocessing/pango_lineage_count.h"
 #include "silo/preprocessing/partition.h"
 #include "silo/preprocessing/preprocessing_config.h"
-#include "silo/preprocessing/someDuckDBRoutine.h"
 #include "silo/query_engine/query_engine.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/roaring/roaring_serialize.h"
@@ -643,11 +643,9 @@ Database Database::preprocessing(
       ReferenceGenomes::readFromFile(preprocessing_config.getReferenceGenomeFilename());
 
    const std::string metadata_filename = preprocessing_config.getMetadataInputFilename().string();
+
    executeDuckDBRoutine(database, reference_genomes, metadata_filename);
-   if (metadata_filename.ends_with("json")) {
-      return database;
-   }
-   return database;
+
    SPDLOG_INFO("preprocessing - validate metadata file against config");
    preprocessing::MetadataValidator().validateMedataFile(
       preprocessing_config.getMetadataInputFilename(), database_config_

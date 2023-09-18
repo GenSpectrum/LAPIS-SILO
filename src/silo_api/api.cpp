@@ -213,6 +213,18 @@ class SiloServer : public Poco::Util::ServerApplication {
       return Application::EXIT_OK;
    };
 
+   int handleNDJson() {
+      SPDLOG_INFO("Starting SILO preprocessing");
+      const auto preprocessing_config = preprocessingConfig(config());
+      auto database_config = databaseConfig(config());
+
+      auto database = silo::Database::preprocessingNdjson(preprocessing_config, database_config);
+
+      database.saveDatabaseState(preprocessing_config.getOutputDirectory());
+
+      return Application::EXIT_OK;
+   };
+
    void displayHelp(
       const std::string& /*name*/,
       const std::string& /*value*/

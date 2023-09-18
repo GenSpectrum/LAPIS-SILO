@@ -63,6 +63,12 @@ void silo::ZstdFastaWriter::writeRaw(const std::string& key, const std::string& 
              << compressed_genome << '\n';
 }
 
+void silo::ZstdFastaWriter::writeRaw(const std::string& key, std::string_view compressed_genome) {
+   outStream << '>' << key << '\n'
+             << std::to_string(compressed_genome.size()) << '\n'
+             << compressed_genome << '\n';
+}
+
 void silo::ZstdFastaWriter::writeDefault(const std::string& key) {
    if (default_sequence == std::nullopt) {
       throw std::runtime_error(

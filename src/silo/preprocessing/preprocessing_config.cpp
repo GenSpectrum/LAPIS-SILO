@@ -21,20 +21,6 @@ std::string buildChunkString(uint32_t partition, uint32_t chunk) {
 
 namespace silo::preprocessing {
 
-std::filesystem::path createPath(
-   const std::filesystem::path& directory,
-   const std::string& filename
-) {
-   auto return_path = directory;
-   return_path += filename;
-   if (!std::filesystem::exists(return_path)) {
-      throw std::filesystem::filesystem_error(
-         return_path.string() + " does not exist", std::error_code()
-      );
-   }
-   return return_path;
-}
-
 std::filesystem::path createOutputPath(
    const std::filesystem::path& output_directory,
    const std::string& folder
@@ -67,12 +53,12 @@ PreprocessingConfig::PreprocessingConfig(
       );
    }
 
-   metadata_file = createPath(input_directory, metadata_filename_.filename);
+   metadata_file = input_directory / metadata_filename_.filename;
    if (pango_lineage_definition_filename_.filename.has_value()) {
       pango_lineage_definition_file =
-         createPath(input_directory, pango_lineage_definition_filename_.filename.value());
+         input_directory / pango_lineage_definition_filename_.filename.value();
    }
-   reference_genome_file = createPath(input_directory, reference_genome_filename_.filename);
+   reference_genome_file = input_directory / reference_genome_filename_.filename;
 
    if (!std::filesystem::exists(output_directory_.directory)) {
       std::filesystem::create_directory(output_directory_.directory);
