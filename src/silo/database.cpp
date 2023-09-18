@@ -644,7 +644,7 @@ Database Database::preprocessing(
 
    const std::string metadata_filename = preprocessing_config.getMetadataInputFilename().string();
 
-   executeDuckDBRoutine(database, reference_genomes, metadata_filename);
+   executeDuckDBRoutineForNdjsonDigestion(database, reference_genomes, metadata_filename);
 
    SPDLOG_INFO("preprocessing - validate metadata file against config");
    preprocessing::MetadataValidator().validateMedataFile(
