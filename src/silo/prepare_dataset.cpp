@@ -180,8 +180,7 @@ void writeSequenceChunks(
    std::optional<std::string> key;
    std::string genome;
    while (true) {
-      key = sequence_in.next(genome);
-      SPDLOG_INFO(genome);
+      key = sequence_in.nextCompressed(genome);
       if (!key.has_value()) {
          break;
       }
@@ -191,7 +190,7 @@ void writeSequenceChunks(
          );
       } else {
          const auto& chunk = key_to_chunk.at(*key);
-         chunk_to_seq_ostream.at(chunk).write(*key, genome);
+         chunk_to_seq_ostream.at(chunk).writeRaw(*key, genome);
       }
    }
 }
