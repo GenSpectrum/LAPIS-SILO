@@ -232,7 +232,6 @@ void silo::executeDuckDBRoutineForNdjsonDigestion(
       )
    );
 
-   executeQuery(duckdb_connection, "SELECT * FROM preprocessing_table;");
    executeQuery(
       duckdb_connection,
       "COPY (SELECT metadata.* FROM preprocessing_table) TO 'metadata.tsv' WITH "
