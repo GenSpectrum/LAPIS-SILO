@@ -22,11 +22,13 @@ class Compressors {
    static std::
       unordered_map<std::string_view, tbb::enumerable_thread_specific<silo::ZstdCompressor>>
          nuc_compressors;
-   static std::unordered_map<std::string_view, std::string> nuc_buffers;
+   static std::unordered_map<std::string_view, tbb::enumerable_thread_specific<std::string>>
+      nuc_buffers;
    static std::
       unordered_map<std::string_view, tbb::enumerable_thread_specific<silo::ZstdCompressor>>
          aa_compressors;
-   static std::unordered_map<std::string_view, std::string> aa_buffers;
+   static std::unordered_map<std::string_view, tbb::enumerable_thread_specific<std::string>>
+      aa_buffers;
 
    static void initialize(const silo::ReferenceGenomes& reference_genomes) {
       for (const auto& [name, sequence] : reference_genomes.raw_nucleotide_sequences) {
@@ -45,7 +47,7 @@ class Compressors {
       const duckdb::string_t uncompressed,
       duckdb::string_t genome_name
    ) {
-      std::string& buffer = nuc_buffers.at(genome_name.GetString());
+      std::string& buffer = nuc_buffers.at(genome_name.GetString()).local();
       size_t size_or_error_code =
          nuc_compressors.at(genome_name.GetString())
             .local()
@@ -59,7 +61,7 @@ class Compressors {
       const duckdb::string_t uncompressed,
       duckdb::string_t gene_name
    ) {
-      std::string& buffer = aa_buffers.at(gene_name.GetString());
+      std::string& buffer = aa_buffers.at(gene_name.GetString()).local();
       size_t size_or_error_code =
          aa_compressors.at(gene_name.GetString())
             .local()
@@ -72,10 +74,12 @@ class Compressors {
 
 std::unordered_map<std::string_view, tbb::enumerable_thread_specific<silo::ZstdCompressor>>
    Compressors::nuc_compressors{};
-std::unordered_map<std::string_view, std::string> Compressors::nuc_buffers{};
+std::unordered_map<std::string_view, tbb::enumerable_thread_specific<std::string>>
+   Compressors::nuc_buffers{};
 std::unordered_map<std::string_view, tbb::enumerable_thread_specific<silo::ZstdCompressor>>
    Compressors::aa_compressors{};
-std::unordered_map<std::string_view, std::string> Compressors::aa_buffers{};
+std::unordered_map<std::string_view, tbb::enumerable_thread_specific<std::string>>
+   Compressors::aa_buffers{};
 
 class Decompressors {
   private:
@@ -231,37 +235,40 @@ void silo::executeDuckDBRoutineForNdjsonDigestion(
    executeQuery(duckdb_connection, "SELECT * FROM preprocessing_table;");
    executeQuery(
       duckdb_connection,
-      "COPY (SELECT metadata.* FROM preprocessing_table) TO 'metadata.tsv' WITH (HEADER 1, "
+      "COPY (SELECT metadata.* FROM preprocessing_table) TO 'metadata.tsv' WITH "
+      "(HEADER 1, "
       "DELIMITER '\t');"
    );
    for (const std::string& nuc_sequence_name : nuc_sequence_names) {
-      res = duckdb_connection.Query(
-         fmt::format("SELECT nuc_{} FROM preprocessing_table", nuc_sequence_name)
-      );
+      res = duckdb_connection.Query(fmt::format(
+         "SELECT metadata.genbankAccession, nuc_{} FROM preprocessing_table", nuc_sequence_name
+      ));
       ZstdFastaWriter writer(
          "./nuc_" + nuc_sequence_name + ".zstdfasta",
          reference_genomes.raw_nucleotide_sequences.at(nuc_sequence_name)
       );
-      size_t current_row = 0;
       for (auto it = res->begin(); it != res->end(); ++it) {
-         const duckdb::Value& current_sequence_blob = it.current_row.GetValue<duckdb::Value>(0);
-         const std::string& as_string = duckdb::StringValue::Get(current_sequence_blob);
-         writer.writeRaw(std::to_string(current_row++), as_string);
+         const duckdb::Value& primary_key = it.current_row.GetValue<duckdb::Value>(0);
+         const duckdb::Value& sequence_blob = it.current_row.GetValue<duckdb::Value>(1);
+         writer.writeRaw(
+            duckdb::StringValue::Get(primary_key), duckdb::StringValue::Get(sequence_blob)
+         );
       }
    }
    for (const std::string& aa_sequence_name : aa_sequence_names) {
-      res = duckdb_connection.Query(
-         fmt::format("SELECT gene_{} FROM preprocessing_table", aa_sequence_name)
-      );
+      res = duckdb_connection.Query(fmt::format(
+         "SELECT metadata.genbankAccession, gene_{} FROM preprocessing_table", aa_sequence_name
+      ));
       ZstdFastaWriter writer(
          "./gene_" + aa_sequence_name + ".zstdfasta",
          reference_genomes.raw_aa_sequences.at(aa_sequence_name)
       );
-      size_t current_row = 0;
       for (auto it = res->begin(); it != res->end(); ++it) {
-         const duckdb::Value& current_sequence_blob = it.current_row.GetValue<duckdb::Value>(0);
-         const std::string& as_string = duckdb::StringValue::Get(current_sequence_blob);
-         writer.writeRaw(std::to_string(current_row++), as_string);
+         const duckdb::Value& primary_key = it.current_row.GetValue<duckdb::Value>(0);
+         const duckdb::Value& sequence_blob = it.current_row.GetValue<duckdb::Value>(1);
+         writer.writeRaw(
+            duckdb::StringValue::Get(primary_key), duckdb::StringValue::Get(sequence_blob)
+         );
       }
    }
 }
