@@ -1,7 +1,7 @@
 schema:
   instanceName: sars_cov-2_minimal_test_config
   metadata:
-    - name: genbankAccession
+    - name: strain
       type: string
     - name: date
       type: date
@@ -20,6 +20,6 @@ schema:
       type: int
     - name: nextcladeQcOverallScore
       type: float
-  primaryKey: genbankAccession
+  primaryKey: strain
   dateToSortBy: date
   partitionBy: pangoLineage

@@ -42,9 +42,7 @@ ZstdCompressor& ZstdCompressor::operator=(const ZstdCompressor& other) {
 }
 
 size_t ZstdCompressor::compress(const std::string& input, std::string& output) {
-   return ZSTD_compress_usingCDict(
-      zstd_context, output.data(), output.size(), input.data(), input.size(), dictionary->value
-   );
+   return compress(input.data(), input.size(), output.data(), output.size());
 }
 
 size_t ZstdCompressor::compress(
@@ -53,9 +51,13 @@ size_t ZstdCompressor::compress(
    char* output_data,
    size_t output_size
 ) {
-   return ZSTD_compress_usingCDict(
+   size_t size_or_error_code = ZSTD_compress_usingCDict(
       zstd_context, output_data, output_size, input_data, input_size, dictionary->value
    );
+   if (ZSTD_isError(size_or_error_code)) {
+      throw std::runtime_error("Zstd compression failed.");
+   }
+   return size_or_error_code;
 }
 
 size_t ZstdCompressor::getSizeBound() const {
