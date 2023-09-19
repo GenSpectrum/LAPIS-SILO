@@ -642,12 +642,19 @@ Database Database::preprocessing(
    const ReferenceGenomes& reference_genomes =
       ReferenceGenomes::readFromFile(preprocessing_config.getReferenceGenomeFilename());
 
+   const std::optional<std::string> ndjson_input_filename =
+      preprocessing_config.getNdjsonInputFilename();
+
+   if (ndjson_input_filename.has_value()) {
+      executeDuckDBRoutineForNdjsonDigestion(
+         preprocessing_config,
+         reference_genomes,
+         ndjson_input_filename.value(),
+         database.database_config.schema.primary_key
+      );
+   }
+
    const std::string metadata_filename = preprocessing_config.getMetadataInputFilename().string();
-
-   executeDuckDBRoutineForNdjsonDigestion(
-      database, reference_genomes, metadata_filename, database.database_config.schema.primary_key
-   );
-
    SPDLOG_INFO("preprocessing - validate metadata file against config");
    preprocessing::MetadataValidator().validateMedataFile(
       preprocessing_config.getMetadataInputFilename(), database_config_

@@ -7,6 +7,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include "silo/preprocessing/preprocessing_config.h"
+#include "silo/preprocessing/preprocessing_exception.h"
 
 using silo::preprocessing::OptionalPreprocessingConfig;
 
@@ -26,6 +27,7 @@ struct convert<OptionalPreprocessingConfig> {
          extractStringIfPresent(node, "inputDirectory"),
          extractStringIfPresent(node, "outputDirectory"),
          extractStringIfPresent(node, "intermediateResultsDirectory"),
+         extractStringIfPresent(node, "ndjsonInputFilename"),
          extractStringIfPresent(node, "metadataFilename"),
          extractStringIfPresent(node, "pangoLineageDefinitionFilename"),
          extractStringIfPresent(node, "partitionsFolder"),
@@ -47,7 +49,15 @@ OptionalPreprocessingConfig PreprocessingConfigReader::readConfig(
    SPDLOG_INFO("Reading preprocessing config from {}", config_path.string());
 
    try {
-      return YAML::LoadFile(config_path.string()).as<OptionalPreprocessingConfig>();
+      auto config = YAML::LoadFile(config_path.string()).as<OptionalPreprocessingConfig>();
+      if (config.ndjson_input_filename.has_value() && config.metadata_file) {
+         throw silo::PreprocessingException(fmt::format(
+            "Cannot specify both a ndjsonInputFilename ('{}') and metadataFilename('{}').",
+            config.ndjson_input_filename.value().string(),
+            config.metadata_file.value().string()
+         ));
+      }
+      return config;
    } catch (const YAML::Exception& e) {
       throw std::runtime_error(
          "Failed to read preprocessing config from " + config_path.string() + ": " +
@@ -70,6 +80,8 @@ PreprocessingConfig OptionalPreprocessingConfig::mergeValuesFromOrDefault(
       OutputDirectory{output_directory.value_or(
          other.output_directory.value_or(silo::preprocessing::DEFAULT_OUTPUT_DIRECTORY.directory)
       )},
+      NdjsonInputFilename{
+         ndjson_input_filename.has_value() ? ndjson_input_filename : other.ndjson_input_filename},
       MetadataFilename{metadata_file.value_or(
          other.metadata_file.value_or(silo::preprocessing::DEFAULT_METADATA_FILENAME.filename)
       )},

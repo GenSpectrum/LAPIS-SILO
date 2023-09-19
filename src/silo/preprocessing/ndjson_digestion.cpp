@@ -9,6 +9,7 @@
 #include "silo/common/zstd_compressor.h"
 #include "silo/common/zstd_decompressor.h"
 #include "silo/common/zstdfasta_writer.h"
+#include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/reference_genomes.h"
 
@@ -202,12 +203,17 @@ std::unordered_map<std::string_view, tbb::enumerable_thread_specific<std::string
    Compressors::aa_buffers{};
 tbb::enumerable_thread_specific<std::deque<std::string>> Compressors::sequence_heaps{};
 
-void exportMetadataFile(duckdb::Connection& duckdb_connection) {
+void exportMetadataFile(
+   duckdb::Connection& duckdb_connection,
+   const std::filesystem::path& metadata_filename
+) {
    executeQuery(
       duckdb_connection,
-      "COPY (SELECT metadata.* FROM preprocessing_table) TO 'metadata.tsv' WITH "
-      "(HEADER 1, "
-      "DELIMITER '\t');"
+      fmt::format(
+         "COPY (SELECT metadata.* FROM preprocessing_table) TO '{}' WITH (HEADER 1, DELIMITER "
+         "'\t');",
+         metadata_filename.string()
+      )
    );
 }
 
@@ -215,7 +221,8 @@ void exportSequenceFiles(
    duckdb::Connection& duckdb_connection,
    SequenceNames sequence_names,
    const silo::ReferenceGenomes& reference_genomes,
-   std::string_view primary_key_metadata_column
+   std::string_view primary_key_metadata_column,
+   const silo::preprocessing::PreprocessingConfig& preprocessing_config
 ) {
    for (const std::string& nuc_sequence_name : sequence_names.getNucSequenceNames()) {
       SPDLOG_INFO("Writing zstdfasta file for nucleotide sequence: {}", nuc_sequence_name);
@@ -233,7 +240,7 @@ void exportSequenceFiles(
       SPDLOG_DEBUG("Result size: {}", result->RowCount());
 
       silo::ZstdFastaWriter writer(
-         "./nuc_" + nuc_sequence_name + ".zstdfasta",
+         preprocessing_config.getNucFilename(nuc_sequence_name),
          reference_genomes.raw_nucleotide_sequences.at(nuc_sequence_name)
       );
 
@@ -273,7 +280,7 @@ void exportSequenceFiles(
       SPDLOG_DEBUG("Result size: {}", result->RowCount());
 
       silo::ZstdFastaWriter writer(
-         "./gene_" + aa_sequence_name + ".zstdfasta",
+         preprocessing_config.getGeneFilename(aa_sequence_name),
          reference_genomes.raw_aa_sequences.at(aa_sequence_name)
       );
       for (auto it = result->begin(); it != result->end(); ++it) {
@@ -296,7 +303,7 @@ void exportSequenceFiles(
 }
 
 void silo::executeDuckDBRoutineForNdjsonDigestion(
-   const silo::Database& database,
+   const silo::preprocessing::PreprocessingConfig& preprocessing_config,
    const silo::ReferenceGenomes& reference_genomes,
    std::string_view file_name,
    std::string_view primary_key_metadata_column
@@ -340,10 +347,14 @@ void silo::executeDuckDBRoutineForNdjsonDigestion(
       )
    );
 
-   exportMetadataFile(duckdb_connection);
+   exportMetadataFile(duckdb_connection, preprocessing_config.getMetadataInputFilename());
 
    exportSequenceFiles(
-      duckdb_connection, sequence_names, reference_genomes, primary_key_metadata_column
+      duckdb_connection,
+      sequence_names,
+      reference_genomes,
+      primary_key_metadata_column,
+      preprocessing_config
    );
 
    for (auto& sequence_heap : Compressors::sequence_heaps) {

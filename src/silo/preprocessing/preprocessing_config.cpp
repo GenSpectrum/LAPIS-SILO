@@ -38,6 +38,7 @@ PreprocessingConfig::PreprocessingConfig(
    const InputDirectory& input_directory_,
    const IntermediateResultsDirectory& intermediate_results_directory_,
    const OutputDirectory& output_directory_,
+   const NdjsonInputFilename& ndjson_input_filename_,
    const MetadataFilename& metadata_filename_,
    const PangoLineageDefinitionFilename& pango_lineage_definition_filename_,
    const PartitionsFolder& partition_folder_,
@@ -53,7 +54,22 @@ PreprocessingConfig::PreprocessingConfig(
       );
    }
 
-   metadata_file = input_directory / metadata_filename_.filename;
+   const std::filesystem::path intermediate_results_directory(
+      intermediate_results_directory_.directory
+   );
+   if (!std::filesystem::exists(intermediate_results_directory_.directory)) {
+      std::filesystem::create_directory(intermediate_results_directory_.directory);
+   }
+
+   if (ndjson_input_filename_.filename.has_value()) {
+      ndjson_input_filename = input_directory / ndjson_input_filename_.filename.value();
+      metadata_file = intermediate_results_directory / metadata_filename_.filename;
+      sequences_folder = intermediate_results_directory;
+   } else {
+      metadata_file = input_directory / metadata_filename_.filename;
+      sequences_folder = input_directory;
+   }
+
    if (pango_lineage_definition_filename_.filename.has_value()) {
       pango_lineage_definition_file =
          input_directory / pango_lineage_definition_filename_.filename.value();
@@ -64,13 +80,6 @@ PreprocessingConfig::PreprocessingConfig(
       std::filesystem::create_directory(output_directory_.directory);
    }
    this->output_directory = output_directory_.directory;
-
-   const std::filesystem::path intermediate_results_directory(
-      intermediate_results_directory_.directory
-   );
-   if (!std::filesystem::exists(intermediate_results_directory_.directory)) {
-      std::filesystem::create_directory(intermediate_results_directory_.directory);
-   }
 
    partition_folder = createOutputPath(intermediate_results_directory, partition_folder_.folder);
    sorted_partition_folder =
@@ -94,6 +103,10 @@ std::filesystem::path PreprocessingConfig::getReferenceGenomeFilename() const {
 
 std::filesystem::path PreprocessingConfig::getMetadataInputFilename() const {
    return metadata_file;
+}
+
+std::optional<std::filesystem::path> PreprocessingConfig::getNdjsonInputFilename() const {
+   return ndjson_input_filename;
 }
 
 std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path> PreprocessingConfig::
@@ -127,7 +140,7 @@ std::filesystem::path PreprocessingConfig::getMetadataSortedPartitionFilename(
 }
 
 std::filesystem::path PreprocessingConfig::getNucFilename(std::string_view nuc_name) const {
-   std::filesystem::path filename = input_directory;
+   std::filesystem::path filename = sequences_folder;
    filename /= nucleotide_sequence_prefix;
    filename += nuc_name;
    filename += FASTA_EXTENSION;
@@ -174,7 +187,7 @@ std::filesystem::path PreprocessingConfig::getNucSortedPartitionFilename(
 }
 
 std::filesystem::path PreprocessingConfig::getGeneFilename(std::string_view gene_name) const {
-   std::filesystem::path filename = input_directory;
+   std::filesystem::path filename = sequences_folder;
    filename /= gene_prefix;
    filename += gene_name;
    filename += FASTA_EXTENSION;
