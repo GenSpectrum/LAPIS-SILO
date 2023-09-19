@@ -9,6 +9,7 @@
 #include "silo/common/zstd_compressor.h"
 #include "silo/common/zstd_decompressor.h"
 #include "silo/common/zstdfasta_writer.h"
+#include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/reference_genomes.h"
 
 void executeQuery(duckdb::Connection& db, std::string sql_query) {
@@ -53,7 +54,6 @@ class Compressors {
          nuc_compressors.at(genome_name.GetString())
             .local()
             .compress(uncompressed.GetData(), uncompressed.GetSize(), buffer.data(), buffer.size());
-      // TODO check size_or_error_code
       auto& result = sequence_heaps.local().emplace_back(buffer.data(), size_or_error_code);
       return duckdb::string_t{result.data(), static_cast<uint32_t>(size_or_error_code)};
    };
@@ -67,7 +67,6 @@ class Compressors {
          aa_compressors.at(gene_name.GetString())
             .local()
             .compress(uncompressed.GetData(), uncompressed.GetSize(), buffer.data(), buffer.size());
-      // TODO check size_or_error_code
       auto& result = sequence_heaps.local().emplace_back(buffer.data(), size_or_error_code);
       return duckdb::string_t{result.data(), static_cast<uint32_t>(size_or_error_code)};
    };
@@ -81,7 +80,7 @@ std::unordered_map<std::string_view, tbb::enumerable_thread_specific<silo::ZstdC
    Compressors::aa_compressors{};
 std::unordered_map<std::string_view, tbb::enumerable_thread_specific<std::string>>
    Compressors::aa_buffers{};
-tbb::enumerable_thread_specific<std::deque<std::string>> Compressors::sequence_heaps;
+tbb::enumerable_thread_specific<std::deque<std::string>> Compressors::sequence_heaps{};
 
 std::vector<std::string> extractStringListValue(
    duckdb::MaterializedQueryResult& result,
@@ -100,13 +99,83 @@ std::vector<std::string> extractStringListValue(
    return return_value;
 }
 
+void exportMetadataFile(duckdb::Connection& duckdb_connection) {
+   executeQuery(
+      duckdb_connection,
+      "COPY (SELECT metadata.* FROM preprocessing_table) TO 'metadata.tsv' WITH "
+      "(HEADER 1, "
+      "DELIMITER '\t');"
+   );
+}
+
+void exportSequenceFiles(
+   duckdb::Connection& duckdb_connection,
+   const std::vector<std::string>& nuc_sequence_names,
+   const std::vector<std::string>& aa_sequence_names,
+   const silo::ReferenceGenomes& reference_genomes
+) {
+   for (const std::string& nuc_sequence_name : nuc_sequence_names) {
+      SPDLOG_INFO("Writing zstdfasta file for nucleotide sequence: {}", nuc_sequence_name);
+
+      const std::string query = fmt::format(
+         "SELECT metadata.strain, nuc_{} FROM preprocessing_table", nuc_sequence_name
+      );  // TODO format with primary key
+
+      SPDLOG_DEBUG("Executing query: {}", query);
+
+      auto result = duckdb_connection.Query(query);
+
+      SPDLOG_DEBUG("Result size: {}", result->RowCount());
+
+      silo::ZstdFastaWriter writer(
+         "./nuc_" + nuc_sequence_name + ".zstdfasta",
+         reference_genomes.raw_nucleotide_sequences.at(nuc_sequence_name)
+      );
+
+      for (auto it = result->begin(); it != result->end(); ++it) {
+         const duckdb::Value& primary_key = it.current_row.GetValue<duckdb::Value>(0);
+         if (!primary_key.IsNull()) {  // TODO remove with cleaned dataset. Warn about it instead
+            const duckdb::Value& sequence_blob = it.current_row.GetValue<duckdb::Value>(1);
+            writer.writeRaw(
+               duckdb::StringValue::Get(primary_key), duckdb::StringValue::Get(sequence_blob)
+            );
+         }
+      }
+   }
+   for (const std::string& aa_sequence_name : aa_sequence_names) {
+      SPDLOG_INFO("Writing zstdfasta file for amino acid sequence: {}", aa_sequence_name);
+
+      const std::string query = fmt::format(
+         "SELECT metadata.strain, gene_{} FROM preprocessing_table", aa_sequence_name
+      );  // TODO format with primary key
+
+      SPDLOG_DEBUG("Executing query: {}", query);
+
+      auto result = duckdb_connection.Query(query);
+
+      SPDLOG_DEBUG("Result size: {}", result->RowCount());
+
+      silo::ZstdFastaWriter writer(
+         "./gene_" + aa_sequence_name + ".zstdfasta",
+         reference_genomes.raw_aa_sequences.at(aa_sequence_name)
+      );
+      for (auto it = result->begin(); it != result->end(); ++it) {
+         const duckdb::Value& primary_key = it.current_row.GetValue<duckdb::Value>(0);
+         if (!primary_key.IsNull()) {  // TODO remove with cleaned dataset. Warn about it instead
+            const duckdb::Value& sequence_blob = it.current_row.GetValue<duckdb::Value>(1);
+            writer.writeRaw(
+               duckdb::StringValue::Get(primary_key), duckdb::StringValue::Get(sequence_blob)
+            );
+         }
+      }
+   }
+}
+
 void silo::executeDuckDBRoutineForNdjsonDigestion(
    const silo::Database& database,
    const silo::ReferenceGenomes& reference_genomes,
    std::string_view file_name
 ) {
-   file_name = "sample.ndjson.zst";  // TODO remove
-
    Compressors::initialize(reference_genomes);
 
    duckdb::DuckDB duckDb;
@@ -132,7 +201,9 @@ void silo::executeDuckDBRoutineForNdjsonDigestion(
       file_name
    ));
    if (res->HasError() || res->RowCount() != 1) {
-      throw std::runtime_error("Preprocessing exception " + std::to_string(res->RowCount()));
+      throw silo::PreprocessingException(
+         "Preprocessing exception " + std::to_string(res->RowCount())
+      );
    }
 
    std::vector<std::string> nuc_sequence_names = extractStringListValue(*res, 0, 0);
@@ -141,7 +212,12 @@ void silo::executeDuckDBRoutineForNdjsonDigestion(
    std::vector<std::string> sequence_selects;
    for (const std::string& name : nuc_sequence_names) {
       if (!reference_genomes.raw_nucleotide_sequences.contains(name)) {
-         throw std::runtime_error("TMP");  // TODO throw appropriate error
+         throw silo::PreprocessingException(fmt::format(
+            "The aligned nucleotide sequence {} which is contained in the input file {} is not "
+            "contained in the reference sequences.",
+            name,
+            file_name
+         ));
       }
       sequence_selects.emplace_back(fmt::format(
          "compressNuc(alignedNucleotideSequences.{0}, "
@@ -151,7 +227,12 @@ void silo::executeDuckDBRoutineForNdjsonDigestion(
    }
    for (const std::string& name : aa_sequence_names) {
       if (!reference_genomes.raw_aa_sequences.contains(name)) {
-         throw std::runtime_error("TMP");  // TODO throw appropriate error
+         throw silo::PreprocessingException(fmt::format(
+            "The aligned amino acid sequence {} which is contained in the input file {} is not "
+            "contained in the reference sequences.",
+            name,
+            file_name
+         ));
       }
       sequence_selects.emplace_back(fmt::format(
          "compressAA(alignedAminoAcidSequences.{0}, "
@@ -169,70 +250,11 @@ void silo::executeDuckDBRoutineForNdjsonDigestion(
       )
    );
 
-   executeQuery(
-      duckdb_connection,
-      "COPY (SELECT metadata.* FROM preprocessing_table) TO 'metadata.tsv' WITH "
-      "(HEADER 1, "
-      "DELIMITER '\t');"
-   );
-   for (const std::string& nuc_sequence_name : nuc_sequence_names) {
-      SPDLOG_INFO("Writing zstdfasta file for nucleotide sequence: {}", nuc_sequence_name);
+   exportMetadataFile(duckdb_connection);
 
-      const std::string query = fmt::format(
-         "SELECT metadata.strain, nuc_{} FROM preprocessing_table", nuc_sequence_name
-      );  // TODO format with primary key
+   exportSequenceFiles(duckdb_connection, nuc_sequence_names, aa_sequence_names, reference_genomes);
 
-      SPDLOG_DEBUG("Executing query: {}", query);
-
-      res = duckdb_connection.Query(query);
-
-      SPDLOG_DEBUG("Result size: {}", res->RowCount());
-
-      ZstdFastaWriter writer(
-         "./nuc_" + nuc_sequence_name + ".zstdfasta",
-         reference_genomes.raw_nucleotide_sequences.at(nuc_sequence_name)
-      );
-
-      for (auto it = res->begin(); it != res->end(); ++it) {
-         const duckdb::Value& primary_key = it.current_row.GetValue<duckdb::Value>(0);
-         if (!primary_key.IsNull()) {  // TODO remove with cleaned dataset. Warn about it instead
-            const duckdb::Value& sequence_blob = it.current_row.GetValue<duckdb::Value>(1);
-            writer.writeRaw(
-               duckdb::StringValue::Get(primary_key), duckdb::StringValue::Get(sequence_blob)
-            );
-         }
-      }
-   }
-   for (const std::string& aa_sequence_name : aa_sequence_names) {
-      SPDLOG_INFO("Writing zstdfasta file for amino acid sequence: {}", aa_sequence_name);
-
-      const std::string query = fmt::format(
-         "SELECT metadata.strain, gene_{} FROM preprocessing_table", aa_sequence_name
-      );  // TODO format with primary key
-
-      SPDLOG_DEBUG("Executing query: {}", query);
-
-      res = duckdb_connection.Query(query);
-
-      SPDLOG_DEBUG("Result size: {}", res->RowCount());
-
-      ZstdFastaWriter writer(
-         "./gene_" + aa_sequence_name + ".zstdfasta",
-         reference_genomes.raw_aa_sequences.at(aa_sequence_name)
-      );
-      for (auto it = res->begin(); it != res->end(); ++it) {
-         const duckdb::Value& primary_key = it.current_row.GetValue<duckdb::Value>(0);
-         if (!primary_key.IsNull()) {  // TODO remove with cleaned dataset. Warn about it instead
-            const duckdb::Value& sequence_blob = it.current_row.GetValue<duckdb::Value>(1);
-            writer.writeRaw(
-               duckdb::StringValue::Get(primary_key), duckdb::StringValue::Get(sequence_blob)
-            );
-         }
-      }
-      // TODO deallocate heaps
-
-      for (auto& sequence_heap : Compressors::sequence_heaps) {
-         sequence_heap.clear();
-      }
+   for (auto& sequence_heap : Compressors::sequence_heaps) {
+      sequence_heap.clear();
    }
 }
