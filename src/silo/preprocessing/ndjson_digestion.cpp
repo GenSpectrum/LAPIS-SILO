@@ -13,6 +13,10 @@
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/reference_genomes.h"
 
+namespace {
+
+constexpr std::string_view ZSTDFASTA_EXTENSION(".zstdfasta");
+
 std::unique_ptr<duckdb::MaterializedQueryResult> executeQuery(
    duckdb::Connection& db,
    std::string sql_query
@@ -240,7 +244,8 @@ void exportSequenceFiles(
       SPDLOG_DEBUG("Result size: {}", result->RowCount());
 
       silo::ZstdFastaWriter writer(
-         preprocessing_config.getNucFilename(nuc_sequence_name),
+         preprocessing_config.getNucFilenameNoExtension(nuc_sequence_name).string() +
+            std::string(ZSTDFASTA_EXTENSION),
          reference_genomes.raw_nucleotide_sequences.at(nuc_sequence_name)
       );
 
@@ -250,11 +255,11 @@ void exportSequenceFiles(
          if (primary_key.IsNull()) {
             if (primary_key.IsNull()) {
                SPDLOG_WARN(
-                  "There is a primary key that is null. Using the empty string for the file "
+                  "There is a primary key that is null. Using the literal 'null' for the file "
                   "containing its {} sequence.",
                   nuc_sequence_name
                );
-               writer.writeRaw("", duckdb::StringValue::Get(sequence_blob));
+               writer.writeRaw("null", duckdb::StringValue::Get(sequence_blob));
                continue;
             }
             continue;
@@ -280,7 +285,8 @@ void exportSequenceFiles(
       SPDLOG_DEBUG("Result size: {}", result->RowCount());
 
       silo::ZstdFastaWriter writer(
-         preprocessing_config.getGeneFilename(aa_sequence_name),
+         preprocessing_config.getGeneFilenameNoExtension(aa_sequence_name).string() +
+            std::string(ZSTDFASTA_EXTENSION),
          reference_genomes.raw_aa_sequences.at(aa_sequence_name)
       );
       for (auto it = result->begin(); it != result->end(); ++it) {
@@ -302,6 +308,8 @@ void exportSequenceFiles(
    }
 }
 
+}  // namespace
+
 void silo::executeDuckDBRoutineForNdjsonDigestion(
    const silo::preprocessing::PreprocessingConfig& preprocessing_config,
    const silo::ReferenceGenomes& reference_genomes,
@@ -314,8 +322,6 @@ void silo::executeDuckDBRoutineForNdjsonDigestion(
       );
    }
    // TODO validate primary key
-
-   file_name = "sample.ndjson.zst";  // TODO remove
 
    Compressors::initialize(reference_genomes);
 

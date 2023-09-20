@@ -9,7 +9,6 @@
 
 constexpr std::string_view ZSTDFASTA_EXTENSION(".zstdfasta");
 constexpr std::string_view TSV_EXTENSION(".tsv");
-constexpr std::string_view FASTA_EXTENSION(".fasta");
 
 namespace {
 
@@ -139,11 +138,11 @@ std::filesystem::path PreprocessingConfig::getMetadataSortedPartitionFilename(
    return filename;
 }
 
-std::filesystem::path PreprocessingConfig::getNucFilename(std::string_view nuc_name) const {
+std::filesystem::path PreprocessingConfig::getNucFilenameNoExtension(std::string_view nuc_name
+) const {
    std::filesystem::path filename = sequences_folder;
    filename /= nucleotide_sequence_prefix;
    filename += nuc_name;
-   filename += FASTA_EXTENSION;
    return filename;
 }
 
@@ -186,11 +185,11 @@ std::filesystem::path PreprocessingConfig::getNucSortedPartitionFilename(
    return filename;
 }
 
-std::filesystem::path PreprocessingConfig::getGeneFilename(std::string_view gene_name) const {
+std::filesystem::path PreprocessingConfig::getGeneFilenameNoExtension(std::string_view gene_name
+) const {
    std::filesystem::path filename = sequences_folder;
    filename /= gene_prefix;
    filename += gene_name;
-   filename += FASTA_EXTENSION;
    return filename;
 }
 

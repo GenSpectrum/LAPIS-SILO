@@ -66,7 +66,7 @@ TEST(PreprocessingConfigReader, shouldReadConfigWithOverriddenDefaults) {
       config.getPangoLineageDefinitionFilename(), input_directory + "pangolineage_alias.json"
    );
 
-   ASSERT_EQ(config.getNucFilename("aligned"), input_directory + "aligned.fasta");
+   ASSERT_EQ(config.getNucFilenameNoExtension("aligned"), input_directory + "aligned");
    ASSERT_EQ(
       config.getNucPartitionFilename("aligned", 0, 1),
       intermediate_directory + "folder1/aligned/P0_C1.zstdfasta"
@@ -88,7 +88,7 @@ TEST(OptionalPreprocessingConfig, givenLeftHandSideHasValueThenMergeTakesLeftHan
    const auto result = left.mergeValuesFromOrDefault(right);
 
    ASSERT_EQ(
-      result.getGeneFilename("dummy"),
+      result.getGeneFilenameNoExtension("dummy"),
       std::filesystem::path("./testBaseData/exampleDataset/leftTestPrefix_dummy.fasta")
    );
 }
@@ -102,8 +102,8 @@ TEST(OptionalPreprocessingConfig, givenLeftHandSideHasNotValueThenMergeTakesRigh
    const auto result = left.mergeValuesFromOrDefault(right);
 
    ASSERT_EQ(
-      result.getGeneFilename("dummy"),
-      std::filesystem::path("./testBaseData/exampleDataset/rightTestPrefix_dummy.fasta")
+      result.getGeneFilenameNoExtension("dummy"),
+      std::filesystem::path("./testBaseData/exampleDataset/rightTestPrefix_dummy")
    );
 }
 
@@ -115,7 +115,7 @@ TEST(OptionalPreprocessingConfig, givenNeitherSideHasValueThenMergeTakesDefaultV
    const auto result = left.mergeValuesFromOrDefault(right);
 
    ASSERT_EQ(
-      result.getGeneFilename("dummy"),
-      std::filesystem::path("./testBaseData/exampleDataset/gene_dummy.fasta")
+      result.getGeneFilenameNoExtension("dummy"),
+      std::filesystem::path("./testBaseData/exampleDataset/gene_dummy")
    );
 }

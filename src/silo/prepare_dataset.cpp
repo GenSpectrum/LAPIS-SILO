@@ -30,10 +30,14 @@
 #include "silo/preprocessing/metadata.h"
 #include "silo/preprocessing/partition.h"
 #include "silo/preprocessing/preprocessing_config.h"
+#include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/pango_lineage_alias.h"
 #include "silo/storage/reference_genomes.h"
 
 namespace {
+
+constexpr std::string_view ZSTDFASTA_EXTENSION(".zstdfasta");
+constexpr std::string_view FASTA_EXTENSION(".fasta");
 
 std::string joinFilenames(
    const std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path>& tuples,
@@ -195,59 +199,34 @@ void writeSequenceChunks(
    }
 }
 
-constexpr std::string_view ZSTDFASTA_EXTENSION(".zstdfasta");
-
-bool partitionZstdFastaIfPresent(
-   const std::filesystem::path& sequence_filename,
-   const std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path>&
-      partition_filenames,
-   const std::unordered_map<std::string, silo::preprocessing::PartitionChunk>& key_to_chunk,
-   std::string_view reference_sequence
-) {
-   std::filesystem::path sequence_filename_without_extension = sequence_filename;
-   if (sequence_filename.has_extension()) {
-      size_t length_without_extension =
-         sequence_filename.string().size() - sequence_filename.extension().string().size();
-      sequence_filename_without_extension =
-         sequence_filename.string().substr(0, length_without_extension);
-   }
-   std::filesystem::path zstd_fasta_sequence_file;
-   if (std::filesystem::exists(sequence_filename.string() + std::string(ZSTDFASTA_EXTENSION))) {
-      zstd_fasta_sequence_file = sequence_filename.string() + std::string(ZSTDFASTA_EXTENSION);
-   } else if (std::filesystem::exists(
-                 sequence_filename_without_extension.string() + std::string(ZSTDFASTA_EXTENSION)
-              )) {
-      zstd_fasta_sequence_file =
-         sequence_filename_without_extension.string() + std::string(ZSTDFASTA_EXTENSION);
-   } else {
-      return false;
-   }
-   silo::ZstdFastaReader sequence_in(zstd_fasta_sequence_file, reference_sequence);
-
-   auto chunk_to_seq_writer = getSequenceWritersForChunks(partition_filenames, reference_sequence);
-
-   writeSequenceChunks(sequence_in, key_to_chunk, chunk_to_seq_writer);
-
-   return true;
-}
-
 void partitionSequenceFile(
-   const std::filesystem::path& sequence_filename,
+   const std::filesystem::path& sequence_filename_without_extension,
    const std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path>&
       partition_filenames,
    const std::unordered_map<std::string, silo::preprocessing::PartitionChunk>& key_to_chunk,
    std::string_view reference_sequence
 ) {
-   if (partitionZstdFastaIfPresent(
-          sequence_filename, partition_filenames, key_to_chunk, reference_sequence
-       )) {
-      return;
-   }
-   silo::FastaReader sequence_in(sequence_filename);
-
    auto chunk_to_seq_writer = getSequenceWritersForChunks(partition_filenames, reference_sequence);
 
-   writeSequenceChunks(sequence_in, key_to_chunk, chunk_to_seq_writer);
+   const std::filesystem::path sequence_file_zstdfasta =
+      sequence_filename_without_extension.string() + std::string(ZSTDFASTA_EXTENSION);
+   const std::filesystem::path sequence_file_fasta =
+      sequence_filename_without_extension.string() + std::string(ZSTDFASTA_EXTENSION);
+
+   if (std::filesystem::exists(sequence_file_zstdfasta)) {
+      silo::ZstdFastaReader sequence_in(sequence_file_zstdfasta, reference_sequence);
+
+      writeSequenceChunks(sequence_in, key_to_chunk, chunk_to_seq_writer);
+   } else if (std::filesystem::exists(sequence_file_fasta)) {
+      silo::FastaReader sequence_in(sequence_file_fasta);
+
+      writeSequenceChunks(sequence_in, key_to_chunk, chunk_to_seq_writer);
+   } else {
+      throw silo::PreprocessingException(
+         "Did not find the input file with filename " + sequence_file_zstdfasta.string() + " or " +
+         sequence_file_fasta.string()
+      );
+   }
 }
 
 void copySequenceFile(silo::FastaReader& sequence_in, silo::ZstdFastaWriter& sequence_out) {
@@ -286,34 +265,42 @@ void silo::partitionData(
    );
 
    for (const auto& [nuc_name, reference_genome] : reference_genomes.raw_nucleotide_sequences) {
-      const std::filesystem::path sequence_filename = preprocessing_config.getNucFilename(nuc_name);
+      const std::filesystem::path sequence_filename_without_extension =
+         preprocessing_config.getNucFilenameNoExtension(nuc_name).string();
 
       auto partition_filenames =
          preprocessing_config.getNucPartitionFilenames(nuc_name, partitions);
 
       SPDLOG_INFO(
-         "partitioning nucleotide sequences from {} to [{}]",
-         sequence_filename.string(),
+         "partitioning nucleotide sequences from {}[{}, {}] to [{}]",
+         sequence_filename_without_extension.string(),
+         FASTA_EXTENSION,
+         ZSTDFASTA_EXTENSION,
          joinFilenames(partition_filenames, ",")
       );
 
-      partitionSequenceFile(sequence_filename, partition_filenames, key_to_chunk, reference_genome);
+      partitionSequenceFile(
+         sequence_filename_without_extension, partition_filenames, key_to_chunk, reference_genome
+      );
    }
 
    for (const auto& [aa_name, reference_sequence] : reference_genomes.raw_aa_sequences) {
-      const std::filesystem::path sequence_filename = preprocessing_config.getGeneFilename(aa_name);
+      const std::filesystem::path sequence_filename_without_extension =
+         preprocessing_config.getGeneFilenameNoExtension(aa_name);
 
       auto partition_filenames =
          preprocessing_config.getGenePartitionFilenames(aa_name, partitions);
 
       SPDLOG_INFO(
-         "partitioning amino acid sequences from {} to [{}]",
-         sequence_filename.string(),
+         "partitioning amino acid sequences from {}[{}, {}] to [{}]",
+         sequence_filename_without_extension.string(),
+         FASTA_EXTENSION,
+         ZSTDFASTA_EXTENSION,
          joinFilenames(partition_filenames, ",")
       );
 
       partitionSequenceFile(
-         sequence_filename, partition_filenames, key_to_chunk, reference_sequence
+         sequence_filename_without_extension, partition_filenames, key_to_chunk, reference_sequence
       );
    }
    SPDLOG_INFO("Finished partitioning");
@@ -334,37 +321,88 @@ void silo::copyDataToPartitionDirectory(
    );
 
    for (const auto& [nuc_name, reference_genome] : reference_genomes.raw_nucleotide_sequences) {
-      const std::filesystem::path sequence_in_filename =
-         preprocessing_config.getNucFilename(nuc_name);
-      FastaReader sequence_in(sequence_in_filename);
+      const std::filesystem::path sequence_out_filename =
+         preprocessing_config.getNucPartitionFilename(nuc_name, 0, 0);
 
-      auto sequence_out_filename = preprocessing_config.getNucPartitionFilename(nuc_name, 0, 0);
-      ZstdFastaWriter sequence_out(sequence_out_filename, reference_genome);
+      const std::filesystem::path sequence_in_filename_no_extension =
+         preprocessing_config.getNucFilenameNoExtension(nuc_name);
+      const std::filesystem::path sequence_in_filename_zstdfasta =
+         sequence_in_filename_no_extension.string() + std::string(ZSTDFASTA_EXTENSION);
+      const std::filesystem::path sequence_in_filename_fasta =
+         sequence_in_filename_no_extension.string() + std::string(FASTA_EXTENSION);
 
-      SPDLOG_INFO(
-         "copying and compressing nucleotide sequences from {} to {}",
-         sequence_in_filename.string(),
-         sequence_out_filename.string()
-      );
+      if (std::filesystem::exists(sequence_in_filename_zstdfasta)) {
+         SPDLOG_INFO(
+            "copying nucleotide sequences from {} to {}",
+            sequence_in_filename_zstdfasta.string(),
+            sequence_out_filename.string()
+         );
+         std::filesystem::copy(
+            sequence_in_filename_zstdfasta,
+            sequence_out_filename,
+            std::filesystem::copy_options::overwrite_existing
+         );
+      } else if (std::filesystem::exists(sequence_in_filename_fasta)) {
+         FastaReader sequence_in(sequence_in_filename_fasta);
 
-      copySequenceFile(sequence_in, sequence_out);
+         ZstdFastaWriter sequence_out(sequence_out_filename, reference_genome);
+
+         SPDLOG_INFO(
+            "copying and compressing nucleotide sequences from {} to {}",
+            sequence_in_filename_fasta.string(),
+            sequence_out_filename.string()
+         );
+
+         copySequenceFile(sequence_in, sequence_out);
+      } else {
+         throw silo::PreprocessingException(
+            "Did not find the input file with filename " + sequence_in_filename_zstdfasta.string() +
+            " or " + sequence_in_filename_fasta.string()
+         );
+      }
    }
 
    for (const auto& [aa_name, reference_sequence] : reference_genomes.raw_aa_sequences) {
-      const std::filesystem::path sequence_in_filename =
-         preprocessing_config.getGeneFilename(aa_name);
-      FastaReader sequence_in(sequence_in_filename);
+      const std::filesystem::path sequence_out_filename =
+         preprocessing_config.getGenePartitionFilename(aa_name, 0, 0);
 
-      auto sequence_out_filename = preprocessing_config.getGenePartitionFilename(aa_name, 0, 0);
-      ZstdFastaWriter sequence_out(sequence_out_filename, reference_sequence);
+      const std::filesystem::path sequence_in_filename_no_extension =
+         preprocessing_config.getGeneFilenameNoExtension(aa_name);
+      const std::filesystem::path sequence_in_filename_zstdfasta =
+         sequence_in_filename_no_extension.string() + std::string(ZSTDFASTA_EXTENSION);
+      const std::filesystem::path sequence_in_filename_fasta =
+         sequence_in_filename_no_extension.string() + std::string(FASTA_EXTENSION);
 
-      SPDLOG_INFO(
-         "copying and compressing amino acid sequences from {} to {}",
-         sequence_in_filename.string(),
-         sequence_out_filename.string()
-      );
+      if (std::filesystem::exists(sequence_in_filename_zstdfasta)) {
+         SPDLOG_INFO(
+            "copying amino acid sequences from {} to {}",
+            sequence_in_filename_zstdfasta.string(),
+            sequence_out_filename.string()
+         );
 
-      copySequenceFile(sequence_in, sequence_out);
+         std::filesystem::copy(
+            sequence_in_filename_zstdfasta,
+            sequence_out_filename,
+            std::filesystem::copy_options::overwrite_existing
+         );
+      } else if (std::filesystem::exists(sequence_in_filename_fasta)) {
+         FastaReader sequence_in(sequence_in_filename_fasta);
+
+         ZstdFastaWriter sequence_out(sequence_out_filename, reference_sequence);
+
+         SPDLOG_INFO(
+            "copying and compressing amino acid sequences from {} to {}",
+            sequence_in_filename_fasta.string(),
+            sequence_out_filename.string()
+         );
+
+         copySequenceFile(sequence_in, sequence_out);
+      } else {
+         throw silo::PreprocessingException(
+            "Did not find the input file with filename " + sequence_in_filename_zstdfasta.string() +
+            " or " + sequence_in_filename_fasta.string()
+         );
+      }
    }
    SPDLOG_INFO("Finished copying to partition directory");
 }

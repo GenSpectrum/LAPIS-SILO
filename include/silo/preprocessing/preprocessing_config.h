@@ -122,7 +122,7 @@ class PreprocessingConfig {
       uint32_t chunk
    ) const;
 
-   [[nodiscard]] std::filesystem::path getNucFilename(std::string_view nuc_name) const;
+   [[nodiscard]] std::filesystem::path getNucFilenameNoExtension(std::string_view nuc_name) const;
 
    [[nodiscard]] std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path>
    getNucPartitionFilenames(
@@ -142,7 +142,7 @@ class PreprocessingConfig {
       uint32_t chunk
    ) const;
 
-   [[nodiscard]] std::filesystem::path getGeneFilename(std::string_view gene_name) const;
+   [[nodiscard]] std::filesystem::path getGeneFilenameNoExtension(std::string_view gene_name) const;
 
    [[nodiscard]] std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path>
    getGenePartitionFilenames(
