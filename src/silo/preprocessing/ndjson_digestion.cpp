@@ -311,6 +311,7 @@ void exportSequenceFiles(
 }  // namespace
 
 void silo::executeDuckDBRoutineForNdjsonDigestion(
+   duckdb::Connection& connection,
    const silo::preprocessing::PreprocessingConfig& preprocessing_config,
    const silo::ReferenceGenomes& reference_genomes,
    std::string_view file_name,
@@ -325,17 +326,14 @@ void silo::executeDuckDBRoutineForNdjsonDigestion(
 
    Compressors::initialize(reference_genomes);
 
-   duckdb::DuckDB duckDb;
-   duckdb::Connection duckdb_connection(duckDb);
-
-   duckdb_connection.CreateVectorizedFunction(
+   connection.CreateVectorizedFunction(
       "compressNuc",
       {duckdb::LogicalType::VARCHAR, duckdb::LogicalType::VARCHAR},
       duckdb::LogicalType::BLOB,
       Compressors::compressNuc
    );
 
-   duckdb_connection.CreateVectorizedFunction(
+   connection.CreateVectorizedFunction(
       "compressAA",
       {duckdb::LogicalType::VARCHAR, duckdb::LogicalType::VARCHAR},
       duckdb::LogicalType::BLOB,
@@ -345,7 +343,7 @@ void silo::executeDuckDBRoutineForNdjsonDigestion(
    SequenceNames sequence_names(duckdb_connection, file_name);
 
    executeQuery(
-      duckdb_connection,
+      connection,
       ::fmt::format(
          "CREATE TABLE preprocessing_table AS SELECT metadata, {} FROM '{}'; ",
          boost::join(sequence_names.getSequenceSelects(), ","),
@@ -353,10 +351,10 @@ void silo::executeDuckDBRoutineForNdjsonDigestion(
       )
    );
 
-   exportMetadataFile(duckdb_connection, preprocessing_config.getMetadataInputFilename());
+   exportMetadataFile(connection, preprocessing_config.getMetadataInputFilename());
 
    exportSequenceFiles(
-      duckdb_connection,
+      connection,
       sequence_names,
       reference_genomes,
       primary_key_metadata_column,

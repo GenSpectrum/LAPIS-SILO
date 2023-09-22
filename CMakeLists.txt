@@ -32,7 +32,6 @@ find_package(TBB REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(roaring REQUIRED)
 find_package(spdlog REQUIRED)
-find_package(vincentlaucsb-csv-parser REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(zstd REQUIRED)
 find_package(duckdb REQUIRED)
@@ -86,7 +85,6 @@ target_link_libraries(
         TBB::tbb
         ${roaring_LIBRARIES}
         ${spdlog_LIBRARIES}
-        ${vincentlaucsb-csv-parser_LIBRARIES}
         ${yaml-cpp_LIBRARIES}
         nlohmann_json::nlohmann_json
         zstd::libzstd_static

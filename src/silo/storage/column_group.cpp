@@ -1,7 +1,6 @@
 #include "silo/storage/column_group.h"
 
 #include <cmath>
-#include <csv.hpp>
 #include <stdexcept>
 
 #include "silo/common/date.h"
@@ -33,7 +32,7 @@ uint32_t ColumnPartitionGroup::fill(
    uint32_t sequence_count = 0;
 
    const auto column_names = metadata_reader.reader.get_col_names();
-   for (auto& row : metadata_reader.reader) {
+   for (auto& row : metadata_reader) {
       for (const auto& item : database_config.schema.metadata) {
          const std::string value = row[item.name].get();
          const auto column_type = item.getColumnType();

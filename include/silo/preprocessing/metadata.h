@@ -5,29 +5,25 @@
 #include <string>
 #include <vector>
 
-#include <csv.hpp>
+#include <duckdb.hpp>
 
 namespace silo::preprocessing {
 
 class MetadataReader {
   public:
-   csv::CSVReader reader;
+   struct Iterator {
+      using iterator_category = std::forward_iterator_tag;
+      using difference_type = std::ptrdiff_t;
+      using value_type = int;
+      using pointer = value_type*;
+      using reference = value_type&;
+   };
+
+   std::unique_ptr<duckdb::MaterializedQueryResult> file_content;
 
    explicit MetadataReader(const std::filesystem::path& metadata_path);
 
    std::vector<std::string> getColumn(const std::string& column_name);
-};
-
-class MetadataWriter {
-  private:
-   std::ofstream out_stream;
-
-  public:
-   explicit MetadataWriter(const std::filesystem::path& metadata_path);
-
-   void writeHeader(const csv::CSVReader& csv_reader);
-
-   void writeRow(const csv::CSVRow& row);
 };
 
 }  // namespace silo::preprocessing

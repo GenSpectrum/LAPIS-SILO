@@ -32,6 +32,7 @@
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/tracking_enum.hpp>
 #include <boost/serialization/vector.hpp>
+#include <duckdb.hpp>
 #include <roaring/roaring.hh>
 
 #include "silo/common/block_timer.h"
@@ -645,17 +646,33 @@ Database Database::preprocessing(
    const std::optional<std::string> ndjson_input_filename =
       preprocessing_config.getNdjsonInputFilename();
 
+   duckdb::DuckDB preprocessing_memory;
+   duckdb::Connection connection(preprocessing_memory);
+
    if (ndjson_input_filename.has_value()) {
       executeDuckDBRoutineForNdjsonDigestion(
+         connection,
          preprocessing_config,
          reference_genomes,
          ndjson_input_filename.value(),
          database.database_config.schema.primary_key
       );
+   } else {
+      // TODO Read metadata, then add the sequences to it (Maybe Appender API? -> first just join)
    }
 
+   SPDLOG_INFO("preprocessing - finished building the in-memory table for preprocessing");
+   const std::string peek_query = "SELECT * FROM preprocessing_table LIMIT 5;";
+   SPDLOG_TRACE(
+      "preprocessing - peek into the table: {} \n {}",
+      peek_query,
+      connection.Query(peek_query)->ToString()
+   );
+
+   // TODO SPDLOG_INFO("preprocessing - validate metadata file (-> preprocessing_table) against
+   // config");
+   // TODO also validate types
    const std::string metadata_filename = preprocessing_config.getMetadataInputFilename().string();
-   SPDLOG_INFO("preprocessing - validate metadata file against config");
    preprocessing::MetadataValidator().validateMedataFile(
       preprocessing_config.getMetadataInputFilename(), database_config_
    );
@@ -671,6 +688,17 @@ Database Database::preprocessing(
    preprocessing::Partitions partition_descriptor;
    if (database_config_.schema.partition_by.has_value()) {
       SPDLOG_INFO("preprocessing - counting pango lineages");
+      const std::string aggregate_lineages_query = fmt::format(
+         "SELECT COUNT(*) FROM preprocessing_table GROUP BY metadata.{};",
+         database_config_.schema.partition_by.value()
+      );
+      SPDLOG_TRACE(
+         "preprocessing - peek into the table: {} \n {}",
+         aggregate_lineages_query,
+         connection.Query(aggregate_lineages_query)->ToString()
+      );
+      connection.Query(fmt::format("CREATE TABLE lineages AS {}", aggregate_lineages_query));
+
       const preprocessing::PangoLineageCounts pango_descriptor(
          preprocessing::buildPangoLineageCounts(
             database.alias_key,
@@ -683,6 +711,19 @@ Database Database::preprocessing(
       partition_descriptor = preprocessing::buildPartitions(
          pango_descriptor, preprocessing::Architecture::MAX_PARTITIONS
       );
+
+      // TODO grouping SQL:
+      // with recursive allowed_count(allowed_count) as (select count(*) / 10 from lineages),
+      // grouped_lineages(from_id, to_id, count) as (
+      //    select id, id, count from lineages where id = 1
+      //    union all
+      //    select
+      //       case when l1.count <= allowed_count then l1.from_id else l2.id end,
+      //       l2.id,
+      //       case when l1.count <= allowed_count then l1.count + l2.count else l2.count end
+      //    from grouped_lineages l1, lineages l2, allowed_count
+      //    where l1.to_id + 1 = l2.id)
+      // select from_id, max(to_id), max(count) from grouped_lineages group by from_id;
 
       SPDLOG_INFO("preprocessing - partitioning data");
       partitionData(
