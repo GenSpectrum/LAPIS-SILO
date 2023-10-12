@@ -22,7 +22,7 @@ struct nlohmann::adl_serializer<silo::ReferenceGenomes> {
       for (const auto& [name, sequence] : reference_genomes.raw_nucleotide_sequences) {
          nucleotide_sequences_json.push_back({{"name", name}, {"sequence", sequence}});
       }
-      js_object["nucleotide_sequences"] = std::move(nucleotide_sequences_json);
+      js_object["nucleotideSequences"] = std::move(nucleotide_sequences_json);
 
       nlohmann::json aa_sequences_json;
       for (const auto& [name, sequence] : reference_genomes.raw_aa_sequences) {
@@ -84,7 +84,7 @@ ReferenceGenomes readFromJson(const std::filesystem::path& reference_genomes_pat
    nlohmann::json reference_genomes_json;
    std::ifstream(reference_genomes_path) >> reference_genomes_json;
 
-   const nlohmann::json nuc_seq_json = reference_genomes_json["nucleotide_sequences"];
+   const nlohmann::json nuc_seq_json = reference_genomes_json["nucleotideSequences"];
    const nlohmann::json aa_seq_json = reference_genomes_json["genes"];
 
    for (const auto& [key, value] : nuc_seq_json.items()) {
