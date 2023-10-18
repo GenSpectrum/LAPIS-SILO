@@ -6,12 +6,12 @@
 #include <boost/algorithm/string/join.hpp>
 #include <duckdb.hpp>
 
-#include "silo/common/zstd_compressor.h"
-#include "silo/common/zstd_decompressor.h"
-#include "silo/common/zstdfasta_writer.h"
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/reference_genomes.h"
+#include "silo/zstdfasta/zstd_compressor.h"
+#include "silo/zstdfasta/zstd_decompressor.h"
+#include "silo/zstdfasta/zstdfasta_writer.h"
 
 namespace {
 
@@ -50,9 +50,9 @@ class SequenceNames {
    std::vector<std::string> aa_sequence_names;
 
   public:
-   SequenceNames(duckdb::Connection& duckdb_connection, std::string_view input_filename)
+   SequenceNames(duckdb::Connection& connection, std::string_view input_filename)
        : input_filename(input_filename) {
-      auto result = duckdb_connection.Query(fmt::format(
+      auto result = connection.Query(fmt::format(
          "SELECT json_keys(alignedNucleotideSequences), json_keys(alignedAminoAcidSequences) "
          "FROM "
          "'{}' LIMIT 1; ",
@@ -340,26 +340,28 @@ void silo::executeDuckDBRoutineForNdjsonDigestion(
       Compressors::compressAA
    );
 
-   SequenceNames sequence_names(duckdb_connection, file_name);
+   SequenceNames sequence_names = SequenceNames(connection, file_name);
 
    executeQuery(
       connection,
       ::fmt::format(
-         "CREATE TABLE preprocessing_table AS SELECT metadata, {} FROM '{}'; ",
+         "CREATE OR REPLACE TABLE preprocessing_table AS SELECT metadata, {} \n FROM '{}';",
          boost::join(sequence_names.getSequenceSelects(), ","),
          file_name
       )
    );
 
-   exportMetadataFile(connection, preprocessing_config.getMetadataInputFilename());
+   // TODO this should be unneeded
+   //  --> Different functionality
+   //  exportMetadataFile(connection, preprocessing_config.getMetadataInputFilename());
 
-   exportSequenceFiles(
-      connection,
-      sequence_names,
-      reference_genomes,
-      primary_key_metadata_column,
-      preprocessing_config
-   );
+   // exportSequenceFiles(
+   //    connection,
+   //    sequence_names,
+   //    reference_genomes,
+   //    primary_key_metadata_column,
+   //    preprocessing_config
+   // );
 
    for (auto& sequence_heap : Compressors::sequence_heaps) {
       sequence_heap.clear();

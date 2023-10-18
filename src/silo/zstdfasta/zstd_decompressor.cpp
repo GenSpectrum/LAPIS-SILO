@@ -1,4 +1,4 @@
-#include "silo/common/zstd_decompressor.h"
+#include "silo/zstdfasta/zstd_decompressor.h"
 
 #include <memory>
 #include <string>

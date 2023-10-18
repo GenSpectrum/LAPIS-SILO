@@ -42,7 +42,7 @@ std::string commonPangoPrefix(std::string_view lineage1, std::string_view lineag
 /// first Will merge 2 chunks if on is smaller than min_size or both are smaller than target_size
 /// Updates pango_lineages to contain the chunk each pango_lineage is contained in and returns
 /// vector of chunks
-std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
+std::vector<silo::preprocessing::LineageGroup> mergePangosToLineageGroups(
    const std::vector<PangoLineageCount>& pango_lineage_counts,
    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
    uint32_t target_size,
@@ -53,9 +53,9 @@ std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
       "Initialize {} chunks such that every chunk is just a pango_lineage",
       pango_lineage_counts.size()
    );
-   std::list<Chunk> chunks;
+   std::list<LineageGroup> lineage_groups;
    for (const auto& [lineage, count] : pango_lineage_counts) {
-      chunks.emplace_back(lineage, count);
+      lineage_groups.emplace_back(lineage, count);
    }
    // We want to prioritise merges more closely related chunks.
    // Therefore, we first merge the chunks, with longer matching prefixes.
@@ -71,9 +71,10 @@ std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
    SPDLOG_TRACE("Precalculated longest prefix: {}", max_len);
    for (uint32_t len = max_len; len > 0; len--) {
       SPDLOG_TRACE(
-         "Merging chunks with prefix length: {}. Leftover chunks: {}", len, chunks.size()
+         "Merging chunks with prefix length: {}. Leftover chunks: {}", len, lineage_groups.size()
       );
-      for (auto it = chunks.begin(); it != chunks.end() && std::next(it) != chunks.end();) {
+      for (auto it = lineage_groups.begin();
+           it != lineage_groups.end() && std::next(it) != lineage_groups.end();) {
          auto&& [pango1, pango2] = std::tie(*it, *std::next(it));
          const std::string common_prefix =
             commonPangoPrefix(pango1.getPrefix(), pango2.getPrefix());
@@ -89,39 +90,58 @@ std::vector<silo::preprocessing::Chunk> mergePangosToChunks(
                pango2.getPrefix(),
                common_prefix
             );
-            pango2.addChunk(std::move(pango1));
+            pango2.addLineageGroup(std::move(pango1));
 
             // We merged pango1 into pango2 -> Now delete pango1
             // Do not need to increment, because erase will make it automatically point to next
             // element
-            it = chunks.erase(it);
+            it = lineage_groups.erase(it);
          } else {
             ++it;
          }
       }
       SPDLOG_TRACE(
-         "Finished merging chunks with prefix length: {}. Leftover chunks: {}", len, chunks.size()
+         "Finished merging chunks with prefix length: {}. Leftover chunks: {}",
+         len,
+         lineage_groups.size()
       );
    }
 
-   std::vector<Chunk> ret;
-   std::copy(std::begin(chunks), std::end(chunks), std::back_inserter(ret));
-   return ret;
+   std::vector<LineageGroup> return_vector;
+   std::copy(
+      std::begin(lineage_groups), std::end(lineage_groups), std::back_inserter(return_vector)
+   );
+   return return_vector;
 }
 
-silo::preprocessing::Partition::Partition(std::vector<Chunk>&& chunks_)
+silo::preprocessing::Partition::Partition(std::vector<PartitionChunk>&& chunks_)
     : chunks(std::move(chunks_)) {
    uint32_t running_total = 0;
-   for (Chunk& chunk : chunks) {
-      chunk.offset = running_total;
-      running_total += chunk.getCountOfSequences();
+   for (PartitionChunk& chunk : chunks) {
+      running_total += chunk.size;
    }
    sequence_count = running_total;
 }
 
-const std::vector<Chunk>& silo::preprocessing::Partition::getChunks() const {
+silo::preprocessing::Partition::Partition(
+   uint32_t partition_id,
+   std::vector<LineageGroup>&& lineage_groups
+) {
+   uint32_t running_total = 0;
+   uint32_t chunk_id = 0;
+   for (LineageGroup& group : lineage_groups) {
+      chunks.push_back(PartitionChunk{
+         partition_id, chunk_id, group.getCountOfSequences(), running_total});
+      chunk_id++;
+      running_total += group.getCountOfSequences();
+   }
+   sequence_count = running_total;
+}
+
+const std::vector<PartitionChunk>& silo::preprocessing::Partition::getPartitionChunks() const {
    return chunks;
 }
+
 uint32_t Partition::getSequenceCount() const {
    return sequence_count;
 }
@@ -132,20 +152,9 @@ silo::preprocessing::Partitions::Partitions(std::vector<Partition> partitions_)
     : partitions(std::move(partitions_)) {
    for (uint32_t part_id = 0, limit = partitions.size(); part_id < limit; ++part_id) {
       const auto& part = partitions[part_id];
-      for (uint32_t chunk_id = 0, limit2 = part.getChunks().size(); chunk_id < limit2; ++chunk_id) {
-         const auto& chunk = part.getChunks()[chunk_id];
-         partition_chunks.emplace_back(preprocessing::PartitionChunk{
-            part_id, chunk_id, chunk.getCountOfSequences()});
-      }
-   }
-
-   for (uint32_t i = 0, limit = partitions.size(); i < limit; ++i) {
-      const auto& part = partitions[i];
-      for (uint32_t j = 0, limit2 = part.getChunks().size(); j < limit2; ++j) {
-         const auto& chunk = part.getChunks()[j];
-         for (const auto& pango : chunk.getPangoLineages()) {
-            pango_to_chunk[pango.value] = {i, j, chunk.getCountOfSequences()};
-         }
+      for (uint32_t chunk_id = 0, limit2 = part.getPartitionChunks().size(); chunk_id < limit2;
+           ++chunk_id) {
+         all_partition_chunks.emplace_back(part.getPartitionChunks()[chunk_id]);
       }
    }
 }
@@ -165,34 +174,36 @@ Partitions buildPartitions(
 
    if (arch == Architecture::MAX_PARTITIONS) {
       SPDLOG_INFO("Building partitions with architecture MAX_PARTITIONS");
-      for (auto& chunk : mergePangosToChunks(
+      uint32_t partition_id = 0;
+      for (auto& lineage_group : mergePangosToLineageGroups(
               pango_lineage_counts.pango_lineage_counts,
               total_count_of_sequences / 100,
               total_count_of_sequences / 200
            )) {
-         partitions.emplace_back(std::vector<Chunk>{{chunk}});
+         partitions.emplace_back(partition_id, std::vector<LineageGroup>{{lineage_group}});
+         partition_id++;
       }
    } else if (arch == Architecture::SINGLE_PARTITION) {
       // Merge pango_lineages, such that chunks are not get very small
       SPDLOG_INFO("Building partitions with architecture SINGLE_PARTITION");
-      std::vector<Chunk> chunks = mergePangosToChunks(
+      std::vector<LineageGroup> lineage_groups = mergePangosToLineageGroups(
          pango_lineage_counts.pango_lineage_counts,
          total_count_of_sequences / TARGET_SIZE_REDUCTION,
          total_count_of_sequences / MIN_SIZE_REDUCTION
       );
 
-      partitions.emplace_back(std::move(chunks));
+      partitions.emplace_back(0, std::move(lineage_groups));
    } else if (arch == Architecture::SINGLE_SINGLE) {
       // Merge pango_lineages, such that all lineages are in one chunk
       SPDLOG_INFO("Building partitions with architecture SINGLE_SINGLE");
       if (!pango_lineage_counts.pango_lineage_counts.empty()) {
          auto current = pango_lineage_counts.pango_lineage_counts.begin();
-         Chunk chunk{current->pango_lineage, current->count_of_sequences};
+         LineageGroup lineage_group{current->pango_lineage, current->count_of_sequences};
          current++;
          for (; current != pango_lineage_counts.pango_lineage_counts.end(); ++current) {
-            chunk.addChunk({current->pango_lineage, current->count_of_sequences});
+            lineage_group.addLineageGroup({current->pango_lineage, current->count_of_sequences});
          }
-         partitions.emplace_back(std::vector<Chunk>{{chunk}});
+         partitions.emplace_back(0, std::vector<LineageGroup>{{lineage_group}});
       }
    }
    return Partitions{partitions};
@@ -206,7 +217,7 @@ Partitions createSingletonPartitions(
                                           .getColumn(database_config.schema.primary_key)
                                           .size();
 
-   const preprocessing::Chunk singleton_chunk({""}, count_of_sequences);
+   const preprocessing::PartitionChunk singleton_chunk{0, 0, count_of_sequences, 0};
    const preprocessing::Partition singleton_partition({singleton_chunk});
 
    return preprocessing::Partitions({singleton_partition});
@@ -216,28 +227,24 @@ const std::vector<Partition>& Partitions::getPartitions() const {
    return partitions;
 }
 
-const std::vector<PartitionChunk>& Partitions::getPartitionChunks() const {
-   return partition_chunks;
-}
-
-const std::unordered_map<std::string, silo::preprocessing::PartitionChunk>& Partitions::
-   getPangoToChunk() const {
-   return pango_to_chunk;
+const std::vector<PartitionChunk>& Partitions::getAllPartitionChunks() const {
+   return all_partition_chunks;
 }
 
 bool PartitionChunk::operator==(const PartitionChunk& other) const {
    return partition == other.partition && chunk == other.chunk && size == other.size;
 }
 
-Chunk::Chunk(silo::common::UnaliasedPangoLineage lineage, uint32_t count)
+LineageGroup::LineageGroup(silo::common::UnaliasedPangoLineage lineage, uint32_t count)
     : prefix(lineage.value),
       count_of_sequences(count),
-      offset(0),
       pango_lineages({{std::move(lineage)}}) {}
 
-Chunk::Chunk(std::vector<silo::common::UnaliasedPangoLineage>&& lineages, uint32_t count)
+LineageGroup::LineageGroup(
+   std::vector<silo::common::UnaliasedPangoLineage>&& lineages,
+   uint32_t count
+)
     : count_of_sequences(count),
-      offset(0),
       pango_lineages(lineages) {
    if (lineages.empty()) {
       throw std::runtime_error("Empty chunks should be impossible to create by design.");
@@ -246,7 +253,7 @@ Chunk::Chunk(std::vector<silo::common::UnaliasedPangoLineage>&& lineages, uint32
    prefix = commonPangoPrefix(pango_lineages.front().value, pango_lineages.back().value);
 }
 
-void Chunk::addChunk(Chunk&& other) {
+void LineageGroup::addLineageGroup(LineageGroup&& other) {
    prefix = commonPangoPrefix(prefix, other.getPrefix());
    count_of_sequences += other.count_of_sequences;
    // Add all pango lineages but keep invariant of pango lineages being sorted
@@ -262,19 +269,15 @@ void Chunk::addChunk(Chunk&& other) {
    );
 }
 
-std::string_view Chunk::getPrefix() const {
+std::string_view LineageGroup::getPrefix() const {
    return prefix;
 }
 
-uint32_t Chunk::getCountOfSequences() const {
+uint32_t LineageGroup::getCountOfSequences() const {
    return count_of_sequences;
 }
 
-uint32_t Chunk::getOffset() const {
-   return offset;
-}
-
-const std::vector<silo::common::UnaliasedPangoLineage>& Chunk::getPangoLineages() const {
+const std::vector<silo::common::UnaliasedPangoLineage>& LineageGroup::getPangoLineages() const {
    return pango_lineages;
 }
 
@@ -288,35 +291,26 @@ std::size_t std::hash<silo::preprocessing::PartitionChunk>::operator()(
           (hash<uint32_t>()(partition_chunk.chunk) >> 2);
 }
 
-namespace silo::common {
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(
-   const nlohmann::json& js_object,
-   silo::common::UnaliasedPangoLineage& pango_lineage
-) {
-   pango_lineage.value = js_object;
-}
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void to_json(nlohmann::json& js_object, const silo::common::UnaliasedPangoLineage& pango_lineage) {
-   js_object = pango_lineage.value;
-}
-}  // namespace silo::common
-
 template <>
-struct nlohmann::adl_serializer<silo::preprocessing::Chunk> {
+struct nlohmann::adl_serializer<silo::preprocessing::PartitionChunk> {
    // NOLINTNEXTLINE(readability-identifier-naming)
-   static silo::preprocessing::Chunk from_json(const nlohmann::json& js_object) {
-      return silo::preprocessing::Chunk{
-         js_object["lineages"].template get<std::vector<silo::common::UnaliasedPangoLineage>>(),
-         js_object["count"].template get<uint32_t>()};
+   static silo::preprocessing::PartitionChunk from_json(const nlohmann::json& js_object) {
+      return silo::preprocessing::PartitionChunk{
+         js_object["partition"].template get<uint32_t>(),
+         js_object["chunk"].template get<uint32_t>(),
+         js_object["size"].template get<uint32_t>(),
+         js_object["offset"].template get<uint32_t>()};
    }
 
    // NOLINTNEXTLINE(readability-identifier-naming)
-   static void to_json(nlohmann::json& js_object, const silo::preprocessing::Chunk& chunk) {
-      js_object["lineages"] = chunk.getPangoLineages();
-      js_object["count"] = chunk.getCountOfSequences();
+   static void to_json(
+      nlohmann::json& js_object,
+      const silo::preprocessing::PartitionChunk& chunk
+   ) {
+      js_object["partition"] = chunk.partition;
+      js_object["chunk"] = chunk.chunk;
+      js_object["size"] = chunk.size;
+      js_object["offset"] = chunk.offset;
    }
 };
 
@@ -325,12 +319,12 @@ struct nlohmann::adl_serializer<silo::preprocessing::Partition> {
    // NOLINTNEXTLINE(readability-identifier-naming)
    static silo::preprocessing::Partition from_json(const nlohmann::json& js_object) {
       return silo::preprocessing::Partition{
-         js_object.template get<std::vector<silo::preprocessing::Chunk>>()};
+         js_object.template get<std::vector<silo::preprocessing::PartitionChunk>>()};
    }
 
    // NOLINTNEXTLINE(readability-identifier-naming)
    static void to_json(nlohmann::json& js_object, const silo::preprocessing::Partition& partition) {
-      js_object = partition.getChunks();
+      js_object = partition.getPartitionChunks();
    }
 };
 

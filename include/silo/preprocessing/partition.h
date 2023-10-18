@@ -23,57 +23,59 @@ namespace silo::preprocessing {
 
 class PangoLineageCounts;
 
-class Chunk {
+class LineageGroup {
    friend class Partition;
+
+   std::string prefix;
+   uint32_t count_of_sequences;
+   std::vector<common::UnaliasedPangoLineage> pango_lineages;
+
+   LineageGroup() = default;
+
+  public:
+   LineageGroup(silo::common::UnaliasedPangoLineage lineage, uint32_t count);
+   LineageGroup(std::vector<silo::common::UnaliasedPangoLineage>&& lineages, uint32_t count);
+
+   void addLineageGroup(LineageGroup&& other);
+
+   std::string_view getPrefix() const;
+   uint32_t getCountOfSequences() const;
+   const std::vector<silo::common::UnaliasedPangoLineage>& getPangoLineages() const;
+};
+
+struct PartitionChunk {
    friend class boost::serialization::access;
 
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
-      archive & prefix;
-      archive & count_of_sequences;
+      archive & partition;
+      archive & chunk;
+      archive & size;
       archive & offset;
-      archive & pango_lineages;
       // clang-format on
    }
 
-   std::string prefix;
-   uint32_t count_of_sequences;
+   uint32_t partition;
+   uint32_t chunk;
+   uint32_t size;
    uint32_t offset;
-   std::vector<common::UnaliasedPangoLineage> pango_lineages;
 
-   Chunk() = default;
-
-  public:
-   Chunk(silo::common::UnaliasedPangoLineage lineage, uint32_t count);
-   Chunk(std::vector<silo::common::UnaliasedPangoLineage>&& lineages, uint32_t count);
-
-   void addChunk(Chunk&& other);
-
-   std::string_view getPrefix() const;
-   uint32_t getCountOfSequences() const;
-   uint32_t getOffset() const;
-   const std::vector<silo::common::UnaliasedPangoLineage>& getPangoLineages() const;
+   bool operator==(const PartitionChunk& other) const;
 };
 
 class Partition {
    uint32_t sequence_count;
-   std::vector<Chunk> chunks;
+   std::vector<PartitionChunk> chunks;
 
   public:
-   explicit Partition(std::vector<Chunk>&& chunks);
+   explicit Partition(std::vector<PartitionChunk>&& chunks);
 
-   [[nodiscard]] const std::vector<Chunk>& getChunks() const;
+   explicit Partition(uint32_t partition_id, std::vector<LineageGroup>&& lineage_groups);
+
+   [[nodiscard]] const std::vector<PartitionChunk>& getPartitionChunks() const;
 
    [[nodiscard]] uint32_t getSequenceCount() const;
-};
-
-struct PartitionChunk {
-   uint32_t partition;
-   uint32_t chunk;
-   uint32_t size;
-
-   bool operator==(const PartitionChunk& other) const;
 };
 
 enum Architecture { MAX_PARTITIONS, SINGLE_PARTITION, SINGLE_SINGLE };
@@ -82,10 +84,7 @@ class Partitions {
    std::vector<Partition> partitions;
 
    // Flat map of the counts and sizes of the partitions and containing chunks
-   std::vector<PartitionChunk> partition_chunks;
-
-   // Mapping all pango lineages to the chunk they are contained in
-   std::unordered_map<std::string, silo::preprocessing::PartitionChunk> pango_to_chunk;
+   std::vector<PartitionChunk> all_partition_chunks;
 
   public:
    Partitions();
@@ -98,10 +97,7 @@ class Partitions {
 
    [[nodiscard]] const std::vector<Partition>& getPartitions() const;
 
-   [[nodiscard]] const std::vector<PartitionChunk>& getPartitionChunks() const;
-
-   [[nodiscard]] const std::unordered_map<std::string, silo::preprocessing::PartitionChunk>&
-   getPangoToChunk() const;
+   [[nodiscard]] const std::vector<PartitionChunk>& getAllPartitionChunks() const;
 };
 
 Partitions buildPartitions(const PangoLineageCounts& pango_lineage_counts, Architecture arch);

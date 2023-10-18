@@ -29,6 +29,18 @@ void PangoLineageColumnPartition::insert(const common::RawPangoLineage& value) {
    insertSublineageValues(resolved_lineage, row_number);
 }
 
+void PangoLineageColumnPartition::insertNull() {
+   const common::UnaliasedPangoLineage resolved_lineage = alias_key.unaliasPangoLineage({""});
+   for (const auto& parent_lineage : resolved_lineage.getParentLineages()) {
+      (void)lookup.getOrCreateId(parent_lineage);
+   }
+   const Idx value_id = lookup.getOrCreateId(resolved_lineage);
+   const size_t row_number = value_ids.size();
+   value_ids.push_back(value_id);
+   indexed_values[value_id].add(row_number);
+   insertSublineageValues(resolved_lineage, row_number);
+}
+
 void PangoLineageColumnPartition::insertSublineageValues(
    const common::UnaliasedPangoLineage& value,
    size_t row_number

@@ -7,7 +7,7 @@
 #include <string>
 #include <string_view>
 
-#include "silo/common/zstd_compressor.h"
+#include "zstd_compressor.h"
 
 namespace silo {
 class ZstdFastaWriter {

@@ -20,7 +20,7 @@ class access;
 }  // namespace boost::serialization
 
 namespace silo {
-class ZstdFastaReader;
+class ZstdFastaTableReader;
 
 template <typename SymbolType>
 class Position {
@@ -92,7 +92,7 @@ class SequenceStorePartition {
 
    [[nodiscard]] SequenceStoreInfo getInfo() const;
 
-   size_t fill(silo::ZstdFastaReader& input_file);
+   size_t fill(silo::ZstdFastaTableReader& input);
 
    void interpret(const std::vector<std::string>& genomes);
 };

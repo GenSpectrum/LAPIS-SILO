@@ -1,11 +1,11 @@
-#include "silo/common/zstdfasta_reader.h"
+#include "silo/zstdfasta/zstdfasta_reader.h"
 
 #include <cstddef>
 #include <fstream>
 #include <stdexcept>
 
 #include "silo/common/fasta_format_exception.h"
-#include "silo/common/zstd_decompressor.h"
+#include "silo/zstdfasta/zstd_decompressor.h"
 
 silo::ZstdFastaReader::ZstdFastaReader(
    const std::filesystem::path& in_file_name,
@@ -36,7 +36,7 @@ std::optional<std::string> silo::ZstdFastaReader::nextSkipGenome() {
    auto key = nextKey();
 
    if (!key) {
-      return key;
+      return std::nullopt;
    }
 
    std::string bytestream_length_str;
@@ -52,7 +52,7 @@ std::optional<std::string> silo::ZstdFastaReader::nextSkipGenome() {
 std::optional<std::string> silo::ZstdFastaReader::nextCompressed(std::string& compressed_genome) {
    auto key = nextKey();
    if (!key) {
-      return key;
+      return std::nullopt;
    }
 
    std::string bytestream_length_str;
@@ -72,10 +72,10 @@ std::optional<std::string> silo::ZstdFastaReader::next(std::string& genome) {
    auto key = nextCompressed(compressed_buffer);
 
    if (!key) {
-      return key;
+      return std::nullopt;
    }
    decompressor->decompress(compressed_buffer, genome_buffer);
-   genome = genome_buffer;
+   genome = genome_buffer;  // TODO is the copy necessary?
    return key;
 }
 

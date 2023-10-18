@@ -18,10 +18,13 @@ void FloatColumnPartition::insert(const std::string& value) {
    try {
       double_value = value.empty() ? std::nan("") : std::stod(value);
    } catch (std::logic_error& err) {
-      SPDLOG_INFO("Double wrongly formatted: '" + value + "'\nInterpreting value as null");
-      double_value = std::nan("");
+      throw std::runtime_error("Bad format for double value: '" + value + "'");
    }
    values.push_back(double_value);
+}
+
+void FloatColumnPartition::insertNull() {
+   values.push_back(std::nan(""));
 }
 
 FloatColumn::FloatColumn() = default;

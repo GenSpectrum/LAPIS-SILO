@@ -25,7 +25,7 @@ template <typename SymbolType>
 class InsertionColumnPartition;
 }  // namespace storage::column
 
-DatabasePartition::DatabasePartition(std::vector<silo::preprocessing::Chunk> chunks)
+DatabasePartition::DatabasePartition(std::vector<silo::preprocessing::PartitionChunk> chunks)
     : chunks(std::move(chunks)) {}
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -73,7 +73,7 @@ void DatabasePartition::flipBitmaps() {
    }
 }
 
-const std::vector<preprocessing::Chunk>& DatabasePartition::getChunks() const {
+const std::vector<preprocessing::PartitionChunk>& DatabasePartition::getChunks() const {
    return chunks;
 }
 

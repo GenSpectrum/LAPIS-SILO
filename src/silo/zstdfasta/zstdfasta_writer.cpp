@@ -1,4 +1,4 @@
-#include "silo/common/zstdfasta_writer.h"
+#include "silo/zstdfasta/zstdfasta_writer.h"
 
 #include <cstddef>
 #include <filesystem>
@@ -6,7 +6,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include "silo/common/zstd_compressor.h"
+#include "silo/zstdfasta/zstd_compressor.h"
 
 silo::ZstdFastaWriter::ZstdFastaWriter(
    const std::filesystem::path& out_file,

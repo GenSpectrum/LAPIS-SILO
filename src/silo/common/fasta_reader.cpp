@@ -33,7 +33,7 @@ std::optional<std::string> silo::FastaReader::nextSkipGenome() {
 std::optional<std::string> silo::FastaReader::next(std::string& genome_buffer) {
    auto key = nextKey();
    if (!key) {
-      return key;
+      return std::nullopt;
    }
 
    if (!getline(in_file.getInputStream(), genome_buffer)) {

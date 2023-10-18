@@ -84,6 +84,12 @@ void InsertionColumnPartition<SymbolType>::insert(const std::string& value) {
 }
 
 template <typename SymbolType>
+void InsertionColumnPartition<SymbolType>::insertNull() {
+   const Idx value_id = lookup.getOrCreateId("");
+   values.push_back(value_id);
+}
+
+template <typename SymbolType>
 void InsertionColumnPartition<SymbolType>::buildInsertionIndexes() {
    for (auto& [_, insertion_index] : insertion_indexes) {
       insertion_index.buildIndex();

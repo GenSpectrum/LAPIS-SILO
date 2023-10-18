@@ -7,20 +7,32 @@
 #include <string>
 #include <string_view>
 
-#include "silo/common/zstd_decompressor.h"
+namespace duckdb {
+struct Connection;
+struct MaterializedQueryResult;
+struct DataChunk;
+}  // namespace duckdb
 
 namespace silo {
-class ZstdFastaReader {
+struct ZstdDecompressor;
+
+class ZstdFastaTableReader {
   private:
-   std::ifstream in_file;
+   duckdb::Connection& connection;
+   std::string_view table_name;
+   std::unique_ptr<duckdb::MaterializedQueryResult> query_result;
+   std::unique_ptr<duckdb::DataChunk> current_chunk;
    std::unique_ptr<silo::ZstdDecompressor> decompressor;
+   size_t current_row;
+
    std::string genome_buffer;
 
    std::optional<std::string> nextKey();
 
   public:
-   explicit ZstdFastaReader(
-      const std::filesystem::path& in_file_name,
+   explicit ZstdFastaTableReader(
+      duckdb::Connection& connection,
+      std::string_view table_name,
       std::string_view compression_dict
    );
 

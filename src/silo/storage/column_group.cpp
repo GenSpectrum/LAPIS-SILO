@@ -3,6 +3,8 @@
 #include <cmath>
 #include <stdexcept>
 
+#include <boost/algorithm/string.hpp>
+
 #include "silo/common/date.h"
 #include "silo/common/pango_lineage.h"
 #include "silo/common/string.h"
@@ -24,34 +26,43 @@ class Nucleotide;
 namespace silo::storage {
 
 uint32_t ColumnPartitionGroup::fill(
-   const std::filesystem::path& input_file,
+   duckdb::Connection& connection,
+   uint32_t partition_id,
+   const std::string& order_by_string,
    const silo::config::DatabaseConfig& database_config
 ) {
-   auto metadata_reader = silo::preprocessing::MetadataReader(input_file);
-
    uint32_t sequence_count = 0;
 
-   const auto column_names = metadata_reader.reader.get_col_names();
-   for (auto& row : metadata_reader) {
+   std::vector<std::string> column_names;
+   for (const auto& item : database_config.schema.metadata) {
+      column_names.push_back(item.name);  // TODO validate
+   }
+   std::string column_name_sql = boost::algorithm::join(column_names, ", ");
+
+   auto result = connection.Query(fmt::format(
+      "SELECT {} FROM partitioned_metadata WHERE partition_id = {} {}",
+      column_name_sql,
+      partition_id,
+      order_by_string
+   ));
+
+   for (auto it = result->begin(); it != result->end(); ++it) {
+      size_t column_index = 0;
       for (const auto& item : database_config.schema.metadata) {
-         const std::string value = row[item.name].get();
          const auto column_type = item.getColumnType();
+         const duckdb::Value value = it.current_row.GetValue<duckdb::Value>(column_index++);
          if (column_type == silo::config::ColumnType::INDEXED_STRING) {
-            indexed_string_columns.at(item.name).insert(value);
+            if (value.IsNull()) {
+               indexed_string_columns.at(item.name).insertNull();
+            } else {
+               indexed_string_columns.at(item.name).insert(duckdb::StringValue::Get(value));
+            }
          } else if (column_type == silo::config::ColumnType::STRING) {
-            string_columns.at(item.name).insert(value);
-         } else if (column_type == silo::config::ColumnType::INDEXED_PANGOLINEAGE) {
-            pango_lineage_columns.at(item.name).insert({value});
-         } else if (column_type == silo::config::ColumnType::DATE) {
-            date_columns.at(item.name).insert(common::stringToDate(value));
-         } else if (column_type == silo::config::ColumnType::INT) {
-            int_columns.at(item.name).insert(value);
-         } else if (column_type == silo::config::ColumnType::FLOAT) {
-            float_columns.at(item.name).insert(value);
-         } else if (column_type == silo::config::ColumnType::NUC_INSERTION) {
-            nuc_insertion_columns.at(item.name).insert(value);
-         } else if (column_type == silo::config::ColumnType::AA_INSERTION) {
-            aa_insertion_columns.at(item.name).insert(value);
+            if (value.IsNull()) {
+               string_columns.at(item.name).insertNull();
+            } else {
+               string_columns.at(item.name).insert(duckdb::StringValue::Get(value));
+            }
          }
       }
       if (++sequence_count == UINT32_MAX) {

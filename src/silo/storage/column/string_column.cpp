@@ -18,6 +18,11 @@ void StringColumnPartition::insert(const std::string& value) {
    values.push_back(tmp);
 }
 
+void StringColumnPartition::insertNull() {
+   const String<STRING_SIZE> tmp("", lookup);
+   values.push_back(tmp);
+}
+
 const std::vector<String<STRING_SIZE>>& StringColumnPartition::getValues() const {
    return values;
 }

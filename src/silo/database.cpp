@@ -37,9 +37,9 @@
 
 #include "silo/common/block_timer.h"
 #include "silo/common/data_version.h"
+#include "silo/common/fasta_reader.h"
 #include "silo/common/format_number.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/common/zstdfasta_reader.h"
 #include "silo/config/database_config.h"
 #include "silo/database_info.h"
 #include "silo/persistence/exception.h"
@@ -49,6 +49,7 @@
 #include "silo/preprocessing/pango_lineage_count.h"
 #include "silo/preprocessing/partition.h"
 #include "silo/preprocessing/preprocessing_config.h"
+#include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/query_engine/query_engine.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/roaring/roaring_serialize.h"
@@ -65,6 +66,9 @@
 #include "silo/storage/reference_genomes.h"
 #include "silo/storage/sequence_store.h"
 #include "silo/storage/serialize_optional.h"
+#include "silo/zstdfasta/zstd_decompressor.h"
+#include "silo/zstdfasta/zstdfasta_table.h"
+#include "silo/zstdfasta/zstdfasta_table_reader.h"
 
 template <>
 struct [[maybe_unused]] fmt::formatter<silo::DatabaseInfo> : fmt::formatter<std::string> {
@@ -127,7 +131,7 @@ const PangoLineageAliasLookup& Database::getAliasKey() const {
 }
 
 void Database::build(
-   const preprocessing::PreprocessingConfig& preprocessing_config,
+   duckdb::Connection& connection,
    const preprocessing::Partitions& partition_descriptor,
    const ReferenceGenomes& reference_genomes
 ) {
@@ -135,27 +139,18 @@ void Database::build(
    {
       const BlockTimer timer(micros);
       for (const auto& partition : partition_descriptor.getPartitions()) {
-         partitions.emplace_back(partition.getChunks());
+         partitions.emplace_back(partition.getPartitionChunks());
       }
       initializeColumns();
       initializeNucSequences(reference_genomes.nucleotide_sequences);
       initializeAASequences(reference_genomes.aa_sequences);
-      for (size_t partition_index = 0;
-           partition_index < partition_descriptor.getPartitions().size();
-           ++partition_index) {
-         const auto& part = partition_descriptor.getPartitions()[partition_index];
-         for (size_t chunk_index = 0; chunk_index < part.getChunks().size(); ++chunk_index) {
-            const std::filesystem::path metadata_file =
-               preprocessing_config.getMetadataSortedPartitionFilename(
-                  partition_index, chunk_index
-               );
-            if (!std::filesystem::exists(metadata_file)) {
-               SPDLOG_ERROR("metadata file {} not found", metadata_file.string());
-               return;
-            }
-            SPDLOG_DEBUG("Using metadata file: {}", metadata_file.string());
-            partitions[partition_index].sequence_count +=
-               partitions[partition_index].columns.fill(metadata_file, database_config);
+      for (size_t partition_id = 0; partition_id < partition_descriptor.getPartitions().size();
+           ++partition_id) {
+         const auto& part = partition_descriptor.getPartitions()[partition_id];
+         for (size_t chunk_index = 0; chunk_index < part.getPartitionChunks().size();
+              ++chunk_index) {
+            partitions[partition_id].sequence_count +=
+               partitions[partition_id].columns.fill(connection, partition_id, "", database_config);
          }
       }
 
@@ -165,27 +160,20 @@ void Database::build(
             for (auto partition_index = local.begin(); partition_index != local.end();
                  ++partition_index) {
                const auto& part = partition_descriptor.getPartitions()[partition_index];
-               for (size_t chunk_index = 0; chunk_index < part.getChunks().size(); ++chunk_index) {
+               for (size_t chunk_index = 0; chunk_index < part.getPartitionChunks().size();
+                    ++chunk_index) {
                   for (const auto& [nuc_name, reference_sequence] :
                        reference_genomes.raw_nucleotide_sequences) {
-                     const std::filesystem::path sequence_filename =
-                        preprocessing_config.getNucSortedPartitionFilename(
-                           nuc_name, partition_index, chunk_index
-                        );
-
-                     silo::ZstdFastaReader sequence_input(sequence_filename, reference_sequence);
-                     SPDLOG_DEBUG("Using nucleotide sequence file: {}", sequence_filename.string());
+                     silo::ZstdFastaTableReader sequence_input(
+                        connection, "nuc_" + nuc_name, reference_sequence
+                     );
                      partitions[partition_index].nuc_sequences.at(nuc_name).fill(sequence_input);
                   }
                   for (const auto& [aa_name, reference_sequence] :
                        reference_genomes.raw_aa_sequences) {
-                     const std::filesystem::path sequence_filename =
-                        preprocessing_config.getGeneSortedPartitionFilename(
-                           aa_name, partition_index, chunk_index
-                        );
-
-                     silo::ZstdFastaReader sequence_input(sequence_filename, reference_sequence);
-                     SPDLOG_DEBUG("Using amino acid sequence file: {}", sequence_filename.string());
+                     silo::ZstdFastaTableReader sequence_input(
+                        connection, "gene_" + aa_name, reference_sequence
+                     );
                      partitions[partition_index].aa_sequences.at(aa_name).fill(sequence_input);
                   }
                }
@@ -628,6 +616,52 @@ Database Database::loadDatabaseState(const std::filesystem::path& save_directory
    return database;
 }
 
+namespace {
+
+preprocessing::Partitions buildPartitionDescriptorFromSQL(duckdb::Connection& connection) {
+   auto partition_descriptor_from_sql =
+      connection.Query("SELECT partition_id, count FROM partitioning ORDER BY partition_id");
+
+   std::vector<preprocessing::Partition> partitions;
+
+   uint32_t check_partition_id_sorted_and_contiguous = 0;
+
+   for (auto it = partition_descriptor_from_sql->begin();
+        it != partition_descriptor_from_sql->end();
+        ++it) {
+      const duckdb::Value db_partition_id = it.current_row.GetValue<duckdb::Value>(0);
+      int64_t partition_id_int = duckdb::BigIntValue::Get(db_partition_id);
+      if (partition_id_int != check_partition_id_sorted_and_contiguous) {
+         throw silo::PreprocessingException(
+            "The partition IDs produced by the preprocessing are not sorted, not starting from 0 "
+            "or not contiguous."
+         );
+      }
+      check_partition_id_sorted_and_contiguous++;
+      uint32_t partition_id = partition_id_int;
+
+      const duckdb::Value db_partition_size = it.current_row.GetValue<duckdb::Value>(1);
+      int64_t partition_size_bigint = duckdb::BigIntValue::Get(db_partition_size);
+      if (partition_size_bigint <= 0) {
+         throw silo::PreprocessingException("Non-positive partition size encountered.");
+      }
+      if (partition_size_bigint > UINT32_MAX) {
+         throw silo::PreprocessingException(
+            fmt::format("Overflow of limit UINT32_MAX ({}) for number of sequences.", UINT32_MAX)
+         );
+      }
+
+      uint32_t partition_size = static_cast<uint32_t>(partition_size_bigint);
+
+      partitions.emplace_back(std::vector<preprocessing::PartitionChunk>{
+         {partition_id, 0, partition_size, 0}});
+   }
+
+   return preprocessing::Partitions(partitions);
+}
+
+}  // namespace
+
 Database Database::preprocessing(
    const preprocessing::PreprocessingConfig& preprocessing_config,
    const config::DatabaseConfig& database_config_
@@ -646,7 +680,7 @@ Database Database::preprocessing(
    const std::optional<std::string> ndjson_input_filename =
       preprocessing_config.getNdjsonInputFilename();
 
-   duckdb::DuckDB preprocessing_memory;
+   duckdb::DuckDB preprocessing_memory("test.duckdb");  // TODO change location
    duckdb::Connection connection(preprocessing_memory);
 
    if (ndjson_input_filename.has_value()) {
@@ -657,8 +691,56 @@ Database Database::preprocessing(
          ndjson_input_filename.value(),
          database.database_config.schema.primary_key
       );
+
+      auto duckdb_return = connection.Query(  // TODO check error
+         "create or replace view metadata_table as\n"
+         "select metadata.*\n"
+         "from preprocessing_table;"
+      );
+      if (duckdb_return->HasError()) {
+         SPDLOG_ERROR(duckdb_return->GetError());
+         throw silo::PreprocessingException(duckdb_return->GetError());
+      }
+
+      for (const auto& [seq_name, _] : reference_genomes.raw_nucleotide_sequences) {
+         duckdb_return = connection.Query(  // TODO check error
+            fmt::format(
+               "create or replace view nuc_{0} as\n"
+               "select metadata.{1} as key, nuc_{0} as sequence\n"
+               "from preprocessing_table;",
+               seq_name,
+               database_config_.schema.primary_key
+            )
+         );
+
+         if (duckdb_return->HasError()) {
+            SPDLOG_ERROR(duckdb_return->GetError());
+            throw silo::PreprocessingException(duckdb_return->GetError());
+         }
+      }
+
+      for (const auto& [seq_name, _] : reference_genomes.raw_aa_sequences) {
+         duckdb_return = connection.Query(  // TODO check error
+            fmt::format(
+               "create or replace view gene_{0} as\n"
+               "select metadata.{1} as key, gene_{0} as sequence\n"
+               "from preprocessing_table;",
+               seq_name,
+               database_config_.schema.primary_key
+            )
+         );
+
+         if (duckdb_return->HasError()) {
+            SPDLOG_ERROR(duckdb_return->GetError());
+            throw silo::PreprocessingException(duckdb_return->GetError());
+         }
+      }
    } else {
       // TODO Read metadata, then add the sequences to it (Maybe Appender API? -> first just join)
+      FastaReader fasta_reader("output/nuc_main.fasta.zst");
+      ZstdFastaTable::generate(
+         connection, "test", fasta_reader, reference_genomes.raw_nucleotide_sequences.at("main")
+      );
    }
 
    SPDLOG_INFO("preprocessing - finished building the in-memory table for preprocessing");
@@ -672,6 +754,7 @@ Database Database::preprocessing(
    // TODO SPDLOG_INFO("preprocessing - validate metadata file (-> preprocessing_table) against
    // config");
    // TODO also validate types
+
    const std::string metadata_filename = preprocessing_config.getMetadataInputFilename().string();
    preprocessing::MetadataValidator().validateMedataFile(
       preprocessing_config.getMetadataInputFilename(), database_config_
@@ -685,85 +768,110 @@ Database Database::preprocessing(
          PangoLineageAliasLookup::readFromFile(pango_lineage_definition_filename.value());
    }
 
-   preprocessing::Partitions partition_descriptor;
    if (database_config_.schema.partition_by.has_value()) {
-      SPDLOG_INFO("preprocessing - counting pango lineages");
-      const std::string aggregate_lineages_query = fmt::format(
-         "SELECT COUNT(*) FROM preprocessing_table GROUP BY metadata.{};",
-         database_config_.schema.partition_by.value()
-      );
-      SPDLOG_TRACE(
-         "preprocessing - peek into the table: {} \n {}",
-         aggregate_lineages_query,
-         connection.Query(aggregate_lineages_query)->ToString()
-      );
-      connection.Query(fmt::format("CREATE TABLE lineages AS {}", aggregate_lineages_query));
-
-      const preprocessing::PangoLineageCounts pango_descriptor(
-         preprocessing::buildPangoLineageCounts(
-            database.alias_key,
-            preprocessing_config.getMetadataInputFilename(),
-            database_config_.schema.partition_by.value()
-         )
-      );
-
       SPDLOG_INFO("preprocessing - calculating partitions");
-      partition_descriptor = preprocessing::buildPartitions(
-         pango_descriptor, preprocessing::Architecture::MAX_PARTITIONS
+
+      auto result = connection.Query(fmt::format(
+         "create\n"
+         "or replace table partition_keys as\n"
+         "select row_number() over () - 1 as id, *\n"
+         "from (SELECT metadata.{} as partition_key, COUNT(*) as count "
+         "      FROM preprocessing_table "  // TODO maybe metadata_table instead
+         "      GROUP BY partition_key "
+         "      ORDER BY partition_key);",
+         database_config_.schema.partition_by.value()
+      ));
+
+      if (result->HasError()) {
+         throw silo::PreprocessingException(
+            "Error in the execution of the duckdb statement for partition key table "
+            "generation: " +
+            result->GetError()
+         );
+      } else {
+         SPDLOG_TRACE("Executed statement for partition key table generation.");
+         SPDLOG_TRACE(result->ToString());
+      }
+
+      connection.Query(
+         "create or replace table partitioning as\n"
+         "with recursive "
+         "          allowed_count(allowed_count) as (select count(*) / 10 from partition_keys),\n"
+         "          grouped_partition_keys(from_id, to_id, count) as\n"
+         "              (select id, id, count\n"
+         "               from partition_keys\n"
+         "               where id = 1\n"
+         "               union all\n"
+         "               select case when l1.count <= allowed_count then l1.from_id else l2.id end,"
+         "                      l2.id,\n"
+         "                      case when l1.count <= allowed_count\n"
+         "                           then l1.count + l2.count\n"
+         "                           else l2.count end\n"
+         "               from grouped_partition_keys l1,\n"
+         "                    partition_keys l2,\n"
+         "                    allowed_count\n"
+         "               where l1.to_id + 1 = l2.id)\n"
+         "select row_number() over () - 1 as partition_id, *\n"
+         "from (select from_id, max(to_id) as to_id, max(count) as count\n"
+         "      from grouped_partition_keys\n"
+         "      group by from_id)"
       );
 
-      // TODO grouping SQL:
-      // with recursive allowed_count(allowed_count) as (select count(*) / 10 from lineages),
-      // grouped_lineages(from_id, to_id, count) as (
-      //    select id, id, count from lineages where id = 1
-      //    union all
-      //    select
-      //       case when l1.count <= allowed_count then l1.from_id else l2.id end,
-      //       l2.id,
-      //       case when l1.count <= allowed_count then l1.count + l2.count else l2.count end
-      //    from grouped_lineages l1, lineages l2, allowed_count
-      //    where l1.to_id + 1 = l2.id)
-      // select from_id, max(to_id), max(count) from grouped_lineages group by from_id;
-
-      SPDLOG_INFO("preprocessing - partitioning data");
-      partitionData(
-         preprocessing_config,
-         partition_descriptor,
-         database.alias_key,
-         database_config_.schema.primary_key,
-         database_config_.schema.partition_by.value(),
-         reference_genomes
-      );
-
+      result = connection.Query(fmt::format(
+         "create\n"
+         "or replace view partitioned_metadata as\n"
+         "select partitioning.partition_id as partition_id, metadata_table.*\n"
+         "from partition_keys,\n"
+         "     partitioning,\n"
+         "     metadata_table\n"
+         "where metadata_table.{} = partition_keys.partition_key\n"
+         "  AND partition_keys.id >= partitioning.from_id\n"
+         "  AND partition_keys.id <= partitioning.to_id;",
+         database_config_.schema.partition_by.value()
+      ));
+      if (result->HasError()) {
+         SPDLOG_ERROR("Error when executing duckdb statement");
+         throw PreprocessingException(result->GetError());
+      }
    } else {
       SPDLOG_INFO(
          "preprocessing - skip partition merging because no partition_by key was provided, instead "
          "putting all sequences into the same partition"
       );
 
-      partition_descriptor = preprocessing::createSingletonPartitions(
-         preprocessing_config.getMetadataInputFilename(), database_config_
+      connection.Query(  // TODO check error
+         "create\n"
+         "or replace view partitioning as\n"
+         "select 0 as partition_id, 0 as from_id, 0 as to_id, count(*) as count\n"
+         "from metadata_table;"
       );
 
-      copyDataToPartitionDirectory(preprocessing_config, reference_genomes);
+      connection.Query(  // TODO check error
+         "create\n"
+         "or replace view partitioned_metadata as\n"
+         "select 0 as partition_id, metadata_table.*\n"
+         "from metadata_table;"
+      );
    }
 
+   preprocessing::Partitions partition_descriptor = buildPartitionDescriptorFromSQL(connection);
+
+   std::string order_by_clause;  // TODO turn into struct
    if (database_config_.schema.date_to_sort_by.has_value()) {
-      SPDLOG_INFO("preprocessing - sorting chunks");
-      sortChunks(
-         preprocessing_config,
-         partition_descriptor,
-         {database_config_.schema.primary_key, database_config_.schema.date_to_sort_by.value()},
-         reference_genomes
-      );
+      SPDLOG_INFO("preprocessing - sorting chunks");  // TODO change logging
+
+      order_by_clause = fmt::format("ORDER BY {}", database_config_.schema.date_to_sort_by.value());
+
    } else {
       SPDLOG_INFO("preprocessing - skipping sorting chunks because no date to sort by was specified"
       );
+
+      order_by_clause = "";
    }
 
    SPDLOG_INFO("preprocessing - building database");
 
-   database.build(preprocessing_config, partition_descriptor, reference_genomes);
+   database.build(connection, partition_descriptor, reference_genomes);
 
    return database;
 }

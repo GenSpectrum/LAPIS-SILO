@@ -79,7 +79,7 @@ class Database {
    DataVersion data_version_ = DataVersion{""};
 
    void build(
-      const preprocessing::PreprocessingConfig& preprocessing_config,
+      duckdb::Connection& connection,
       const preprocessing::Partitions& partition_descriptor,
       const ReferenceGenomes& reference_genomes
    );

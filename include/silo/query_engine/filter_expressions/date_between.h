@@ -27,7 +27,7 @@ class DateColumnPartition;
 }
 
 namespace silo::preprocessing {
-struct Chunk;
+struct PartitionChunk;
 }
 
 namespace silo::query_engine::filter_expressions {
@@ -41,7 +41,7 @@ struct DateBetween : public Expression {
    [[nodiscard]] std::vector<silo::query_engine::operators::RangeSelection::Range>
    computeRangesOfSortedColumn(
       const silo::storage::column::DateColumnPartition& date_column,
-      const std::vector<silo::preprocessing::Chunk>& chunks
+      const std::vector<silo::preprocessing::PartitionChunk>& chunks
    ) const;
 
   public:

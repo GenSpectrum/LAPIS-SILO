@@ -1,4 +1,4 @@
-#include "silo/common/zstd_compressor.h"
+#include "silo/zstdfasta/zstd_compressor.h"
 
 #include <string_view>
 

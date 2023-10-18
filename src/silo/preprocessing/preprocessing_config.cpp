@@ -111,9 +111,9 @@ std::optional<std::filesystem::path> PreprocessingConfig::getNdjsonInputFilename
 std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path> PreprocessingConfig::
    getMetadataPartitionFilenames(const silo::preprocessing::Partitions& partitions) const {
    std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path> result;
-   for (auto [partition, chunk, size] : partitions.getPartitionChunks()) {
+   for (auto [partition, chunk, size, offset] : partitions.getAllPartitionChunks()) {
       const std::filesystem::path filename = getMetadataPartitionFilename(partition, chunk);
-      result.insert({{partition, chunk, size}, filename});
+      result.insert({{partition, chunk, size, offset}, filename});
    }
    return result;
 }
@@ -152,9 +152,9 @@ std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path> P
       const silo::preprocessing::Partitions& partitions
    ) const {
    std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path> result;
-   for (auto [partition, chunk, size] : partitions.getPartitionChunks()) {
+   for (auto [partition, chunk, size, offset] : partitions.getAllPartitionChunks()) {
       const std::filesystem::path filename = getNucPartitionFilename(nuc_name, partition, chunk);
-      result.insert({{partition, chunk, size}, filename});
+      result.insert({{partition, chunk, size, offset}, filename});
    }
    return result;
 }
@@ -199,9 +199,9 @@ std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path> P
       const silo::preprocessing::Partitions& partitions
    ) const {
    std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path> result;
-   for (auto [partition, chunk, size] : partitions.getPartitionChunks()) {
+   for (auto [partition, chunk, size, offset] : partitions.getAllPartitionChunks()) {
       const std::filesystem::path filename = getGenePartitionFilename(gene_name, partition, chunk);
-      result.insert({{partition, chunk, size}, filename});
+      result.insert({{partition, chunk, size, offset}, filename});
    }
    return result;
 }

@@ -28,6 +28,13 @@ void IndexedStringColumnPartition::insert(const std::string& value) {
    value_ids.push_back(value_id);
 }
 
+void IndexedStringColumnPartition::insertNull() {
+   const Idx value_id = lookup.getOrCreateId("");
+
+   indexed_values[value_id].add(value_ids.size());
+   value_ids.push_back(value_id);
+}
+
 const std::vector<silo::Idx>& IndexedStringColumnPartition::getValues() const {
    return this->value_ids;
 }
