@@ -82,11 +82,23 @@ uint32_t ColumnPartitionGroup::fill(
                int_columns.at(item.name).insert(value.ToString());
             }
          } else if (column_type == silo::config::ColumnType::FLOAT) {
-            float_columns.at(item.name).insert(value.ToString());
+            if (value.IsNull()) {
+               float_columns.at(item.name).insert("");
+            } else {
+               float_columns.at(item.name).insert(value.ToString());
+            }
          } else if (column_type == silo::config::ColumnType::NUC_INSERTION) {
-            nuc_insertion_columns.at(item.name).insert(value.ToString());
+            if (value.IsNull()) {
+               nuc_insertion_columns.at(item.name).insert("");
+            } else {
+               nuc_insertion_columns.at(item.name).insert(value.ToString());
+            }
          } else if (column_type == silo::config::ColumnType::AA_INSERTION) {
-            aa_insertion_columns.at(item.name).insert(value.ToString());
+            if (value.IsNull()) {
+               aa_insertion_columns.at(item.name).insert("");
+            } else {
+               aa_insertion_columns.at(item.name).insert(value.ToString());
+            }
          }
       }
       if (++sequence_count == UINT32_MAX) {
