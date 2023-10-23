@@ -7,6 +7,7 @@
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <duckdb.hpp>
+#include <duckdb/common/types/blob.hpp>
 
 #include "silo/common/fasta_format_exception.h"
 #include "silo/zstdfasta/zstd_decompressor.h"
@@ -18,7 +19,8 @@ silo::ZstdFastaTableReader::ZstdFastaTableReader(
 )
     : connection(connection),
       table_name(table_name),
-      decompressor(std::make_unique<ZstdDecompressor>(compression_dict)) {
+      decompressor(std::make_unique<ZstdDecompressor>(compression_dict)),
+      DEBUG_dictionary(compression_dict) {
    genome_buffer.resize(compression_dict.size());
    reset();
 }
@@ -53,7 +55,7 @@ std::optional<std::string> silo::ZstdFastaTableReader::nextCompressed(std::strin
       return std::nullopt;
    }
 
-   compressed_genome = current_chunk->GetValue(1, current_row).GetValue<std::string>();
+   compressed_genome = current_chunk->GetValue(1, current_row).GetValueUnsafe<std::string>();
 
    current_row++;
    while (current_chunk && current_row == current_chunk->size()) {
