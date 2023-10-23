@@ -723,7 +723,7 @@ Database Database::preprocessing(
 
       auto return_code = connection.Query(
          "create or replace view metadata_table as\n"
-         "select metadata.*\n"
+         "select metadata.*, insertions, aaInsertions\n"
          "from preprocessing_table;"
       );
       if (return_code->HasError()) {

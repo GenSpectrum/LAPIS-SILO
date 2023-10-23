@@ -90,6 +90,45 @@ class SequenceNames {
       return sequence_selects;
    }
 
+   std::string getNucInsertionSelect() {
+      if (nuc_sequence_names.empty()) {
+         return "''";
+      }
+      if (nuc_sequence_names.size() == 1) {
+         return "list_string_agg(nucleotideInsertions." + nuc_sequence_names.at(0) + ")";
+      }
+
+      std::vector<std::string> list_transforms;
+      for (const std::string& sequence_name : nuc_sequence_names) {
+         list_transforms.push_back(
+            fmt::format("list_transform(nucleotideInsertions.{0}, x ->'{0}:' || x)", sequence_name)
+         );
+      }
+
+      return "list_string_agg(flatten([" + boost::join(list_transforms, ",") + "]))";
+   }
+
+   std::string getAAInsertionSelect() {
+      if (aa_sequence_names.empty()) {
+         return "''";
+      }
+      if (aa_sequence_names.size() == 1) {
+         return fmt::format(
+            "list_string_agg(list_transform(aminoAcidInsertions.{0}, x ->'{0}:' || x))",
+            aa_sequence_names.at(0)
+         );
+      }
+
+      std::vector<std::string> list_transforms;
+      for (const std::string& sequence_name : aa_sequence_names) {
+         list_transforms.push_back(
+            fmt::format("list_transform(aminoAcidInsertions.{0}, x ->'{0}:' || x)", sequence_name)
+         );
+      }
+
+      return "list_string_agg(flatten([" + boost::join(list_transforms, ",") + "]))";
+   }
+
    void validate(const silo::ReferenceGenomes& reference_genomes) {
       for (const std::string& name : nuc_sequence_names) {
          if (!reference_genomes.raw_nucleotide_sequences.contains(name)) {
@@ -342,7 +381,10 @@ void silo::executeDuckDBRoutineForNdjsonDigestion(
    auto return_value = executeQuery(
       connection,
       ::fmt::format(
-         "CREATE OR REPLACE TABLE preprocessing_table AS SELECT metadata, {} \n FROM '{}';",
+         "CREATE OR REPLACE TABLE preprocessing_table AS SELECT metadata, "
+         "{} as insertions, {} as aaInsertions, {} \n FROM '{}';",
+         sequence_names.getNucInsertionSelect(),
+         sequence_names.getAAInsertionSelect(),
          boost::join(sequence_names.getSequenceSelects(), ","),
          file_name
       )
