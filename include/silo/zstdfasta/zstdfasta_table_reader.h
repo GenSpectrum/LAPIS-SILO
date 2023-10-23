@@ -19,7 +19,8 @@ struct ZstdDecompressor;
 class ZstdFastaTableReader {
   private:
    duckdb::Connection& connection;
-   std::string_view table_name;
+   std::string table_name;
+   std::string where_clause;
    std::unique_ptr<duckdb::MaterializedQueryResult> query_result;
    std::unique_ptr<duckdb::DataChunk> current_chunk;
    std::unique_ptr<silo::ZstdDecompressor> decompressor;
@@ -35,7 +36,8 @@ class ZstdFastaTableReader {
    explicit ZstdFastaTableReader(
       duckdb::Connection& connection,
       std::string_view table_name,
-      std::string_view compression_dict
+      std::string_view compression_dict,
+      std::string_view where_clause
    );
 
    std::optional<std::string> nextSkipGenome();

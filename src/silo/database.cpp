@@ -165,14 +165,20 @@ void Database::build(
                   for (const auto& [nuc_name, reference_sequence] :
                        reference_genomes.raw_nucleotide_sequences) {
                      silo::ZstdFastaTableReader sequence_input(
-                        connection, "nuc_" + nuc_name, reference_sequence
+                        connection,
+                        "nuc_" + nuc_name,
+                        reference_sequence,
+                        fmt::format("partition_id = {}", partition_index)
                      );
                      partitions[partition_index].nuc_sequences.at(nuc_name).fill(sequence_input);
                   }
                   for (const auto& [aa_name, reference_sequence] :
                        reference_genomes.raw_aa_sequences) {
                      silo::ZstdFastaTableReader sequence_input(
-                        connection, "gene_" + aa_name, reference_sequence
+                        connection,
+                        "gene_" + aa_name,
+                        reference_sequence,
+                        fmt::format("partition_id = {}", partition_index)
                      );
                      partitions[partition_index].aa_sequences.at(aa_name).fill(sequence_input);
                   }
@@ -702,39 +708,6 @@ Database Database::preprocessing(
          throw silo::PreprocessingException(duckdb_return->GetError());
       }
 
-      for (const auto& [seq_name, _] : reference_genomes.raw_nucleotide_sequences) {
-         duckdb_return = connection.Query(  // TODO check error
-            fmt::format(
-               "create or replace view nuc_{0} as\n"
-               "select metadata.{1} as key, nuc_{0} as sequence\n"
-               "from preprocessing_table;",
-               seq_name,
-               database_config_.schema.primary_key
-            )
-         );
-
-         if (duckdb_return->HasError()) {
-            SPDLOG_ERROR(duckdb_return->GetError());
-            throw silo::PreprocessingException(duckdb_return->GetError());
-         }
-      }
-
-      for (const auto& [seq_name, _] : reference_genomes.raw_aa_sequences) {
-         duckdb_return = connection.Query(  // TODO check error
-            fmt::format(
-               "create or replace view gene_{0} as\n"
-               "select metadata.{1} as key, gene_{0} as sequence\n"
-               "from preprocessing_table;",
-               seq_name,
-               database_config_.schema.primary_key
-            )
-         );
-
-         if (duckdb_return->HasError()) {
-            SPDLOG_ERROR(duckdb_return->GetError());
-            throw silo::PreprocessingException(duckdb_return->GetError());
-         }
-      }
    } else {
       // TODO Read metadata, then add the sequences to it (Maybe Appender API? -> first just join)
       FastaReader fasta_reader("nuc_main.fasta.zst");
@@ -742,7 +715,7 @@ Database Database::preprocessing(
          connection, "test", fasta_reader, reference_genomes.raw_nucleotide_sequences.at("main")
       );
       ZstdFastaTableReader reader(
-         connection, "test", reference_genomes.raw_nucleotide_sequences.at("main")
+         connection, "test", reference_genomes.raw_nucleotide_sequences.at("main"), "partition = 0"
       );
       std::string genome;
       std::optional<std::string> key = reader.next(genome);
@@ -825,6 +798,17 @@ Database Database::preprocessing(
          "      group by from_id)"
       );
 
+      connection.Query(  // TODO check error
+         "create\n"
+         "or replace view partition_key_to_partition as\n"
+         "select partition_keys.partition_key as partition_key, "
+         "  partitioning.partition_id as partition_id\n"
+         "from partition_keys,\n"
+         "     partitioning\n"
+         "where partition_keys.id >= partitioning.from_id\n"
+         "  AND partition_keys.id <= partitioning.to_id;"
+      );
+
       result = connection.Query(fmt::format(
          "create\n"
          "or replace view partitioned_metadata as\n"
@@ -854,12 +838,65 @@ Database Database::preprocessing(
          "from metadata_table;"
       );
 
+      connection.Query(  // TODO adapt table with missing partitioning
+         "create\n"
+         "or replace view partition_key_to_partition as\n"
+         "select 0 as partition_key, "
+         "  0 as partition_id\n"
+         "from partition_keys,\n"
+         "     partitioning\n"
+         "where partition_keys.id >= partitioning.from_id\n"
+         "  AND partition_keys.id <= partitioning.to_id;"
+      );
+
       connection.Query(  // TODO check error
          "create\n"
          "or replace view partitioned_metadata as\n"
          "select 0 as partition_id, metadata_table.*\n"
          "from metadata_table;"
       );
+   }
+
+   if (preprocessing_config.getNdjsonInputFilename().has_value()) {
+      for (const auto& [seq_name, _] : reference_genomes.raw_nucleotide_sequences) {
+         auto duckdb_return = connection.Query(  // TODO check error
+            fmt::format(
+               "create or replace view nuc_{0} as\n"
+               "select metadata.{1} as key, nuc_{0} as sequence,"
+               "partition_key_to_partition.partition_id as partition_id\n"
+               "from preprocessing_table, partition_key_to_partition "
+               "where preprocessing_table.metadata.{2} = partition_key_to_partition.partition_key;",
+               seq_name,
+               database_config_.schema.primary_key,
+               database_config_.schema.partition_by.value()
+            )
+         );
+
+         if (duckdb_return->HasError()) {
+            SPDLOG_ERROR(duckdb_return->GetError());
+            throw silo::PreprocessingException(duckdb_return->GetError());
+         }
+      }
+
+      for (const auto& [seq_name, _] : reference_genomes.raw_aa_sequences) {
+         auto duckdb_return = connection.Query(  // TODO check error
+            fmt::format(
+               "create or replace view gene_{0} as\n"
+               "select metadata.{1} as key, gene_{0} as sequence, "
+               "partition_key_to_partition.partition_id as partition_id\n"
+               "from preprocessing_table, partition_key_to_partition "
+               "where preprocessing_table.metadata.{2} = partition_key_to_partition.partition_key;",
+               seq_name,
+               database_config_.schema.primary_key,
+               database_config_.schema.partition_by.value()
+            )
+         );
+
+         if (duckdb_return->HasError()) {
+            SPDLOG_ERROR(duckdb_return->GetError());
+            throw silo::PreprocessingException(duckdb_return->GetError());
+         }
+      }
    }
 
    preprocessing::Partitions partition_descriptor = buildPartitionDescriptorFromSQL(connection);

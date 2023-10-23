@@ -15,10 +15,12 @@
 silo::ZstdFastaTableReader::ZstdFastaTableReader(
    duckdb::Connection& connection,
    std::string_view table_name,
-   std::string_view compression_dict
+   std::string_view compression_dict,
+   std::string_view where_clause
 )
     : connection(connection),
       table_name(table_name),
+      where_clause(where_clause),
       decompressor(std::make_unique<ZstdDecompressor>(compression_dict)),
       DEBUG_dictionary(compression_dict) {
    genome_buffer.resize(compression_dict.size());
@@ -81,7 +83,9 @@ std::optional<std::string> silo::ZstdFastaTableReader::next(std::string& genome)
 
 void silo::ZstdFastaTableReader::reset() {
    // TODO assert that it is and define what is a 'zstdfastatable'
-   query_result = connection.Query(fmt::format("SELECT key, sequence FROM {}", table_name));
+   query_result = connection.Query(
+      fmt::format("SELECT key, sequence FROM {} WHERE {}", table_name, where_clause)
+   );
    if (query_result->HasError()) {
       SPDLOG_ERROR("Error when executing SQL " + query_result->GetError());
       // TODO throw
