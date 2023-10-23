@@ -23,7 +23,9 @@ TEST(ZstdFastaTableReader, correctlyReadsZstdFastaTableFromFastaFile) {
 
    silo::ZstdFastaTable::generate(connection, "test", file_reader, "ACGT");
 
-   silo::ZstdFastaTableReader under_test(connection, "test", "ACGT");
+   silo::ZstdFastaTableReader under_test(
+      connection, "test", "ACGT", "true"
+   );  // TODO change WHERE clause
 
    std::optional<std::string> key;
    std::string genome;
@@ -52,7 +54,9 @@ TEST(ZstdFastaTableReader, correctlyReadsZstdFastaTableFromZstdFastaFile) {
 
    silo::ZstdFastaTable::generate(connection, "test", file_reader);
 
-   silo::ZstdFastaTableReader under_test(connection, "test", "ACGT");
+   silo::ZstdFastaTableReader under_test(
+      connection, "test", "ACGT", "true"
+   );  // TODO change WHERE clause
 
    std::optional<std::string> key;
    std::string genome;
