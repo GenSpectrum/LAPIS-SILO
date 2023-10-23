@@ -21,8 +21,6 @@ class DatabaseConfig;
 
 namespace silo::preprocessing {
 
-class PangoLineageCounts;
-
 class LineageGroup {
    friend class Partition;
 
@@ -99,8 +97,6 @@ class Partitions {
 
    [[nodiscard]] const std::vector<PartitionChunk>& getAllPartitionChunks() const;
 };
-
-Partitions buildPartitions(const PangoLineageCounts& pango_lineage_counts, Architecture arch);
 
 Partitions createSingletonPartitions(
    const std::filesystem::path& metadata_path,
