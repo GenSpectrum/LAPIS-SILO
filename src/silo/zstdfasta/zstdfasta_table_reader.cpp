@@ -60,9 +60,7 @@ std::optional<std::string> silo::ZstdFastaTableReader::nextCompressed(std::strin
       return std::nullopt;
    }
 
-   SPDLOG_TRACE("Evaluating GetValueUnsafe command");
    compressed_genome = current_chunk->GetValue(1, current_row).GetValueUnsafe<std::string>();
-   SPDLOG_TRACE("Successfully evaluated GetValueUnsafe command");
 
    current_row++;
    while (current_chunk && current_row == current_chunk->size()) {

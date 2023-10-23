@@ -794,7 +794,7 @@ Database Database::preprocessing(
          SPDLOG_TRACE(result->ToString());
       }
 
-      connection.Query(
+      auto return_code = connection.Query(
          "create or replace table partitioning as\n"
          "with recursive "
          "          allowed_count(allowed_count) as (select count(*) / 10 from partition_keys),\n"
@@ -817,8 +817,12 @@ Database Database::preprocessing(
          "      from grouped_partition_keys\n"
          "      group by from_id)"
       );
+      if (return_code->HasError()) {
+         SPDLOG_ERROR("Error when executing duckdb statement: {}", return_code->GetError());
+         throw silo::PreprocessingException(return_code->GetError());
+      }
 
-      connection.Query(  // TODO check error
+      return_code = connection.Query(  // TODO check error
          "create\n"
          "or replace view partition_key_to_partition as\n"
          "select partition_keys.partition_key as partition_key, "
@@ -828,8 +832,12 @@ Database Database::preprocessing(
          "where partition_keys.id >= partitioning.from_id\n"
          "  AND partition_keys.id <= partitioning.to_id;"
       );
+      if (return_code->HasError()) {
+         SPDLOG_ERROR("Error when executing duckdb statement: {}", return_code->GetError());
+         throw PreprocessingException(return_code->GetError());
+      }
 
-      result = connection.Query(fmt::format(
+      return_code = connection.Query(fmt::format(
          "create\n"
          "or replace view partitioned_metadata as\n"
          "select partitioning.partition_id as partition_id, metadata_table.*\n"
@@ -841,9 +849,9 @@ Database Database::preprocessing(
          "  AND partition_keys.id <= partitioning.to_id;",
          database_config_.schema.partition_by.value()
       ));
-      if (result->HasError()) {
-         SPDLOG_ERROR("Error when executing duckdb statement");
-         throw PreprocessingException(result->GetError());
+      if (return_code->HasError()) {
+         SPDLOG_ERROR("Error when executing duckdb statement: {}", return_code->GetError());
+         throw PreprocessingException(return_code->GetError());
       }
    } else {
       SPDLOG_INFO(

@@ -10,6 +10,7 @@
 #include "silo/common/string.h"
 #include "silo/config/database_config.h"
 #include "silo/preprocessing/metadata.h"
+#include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/column/date_column.h"
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
@@ -45,6 +46,13 @@ uint32_t ColumnPartitionGroup::fill(
       partition_id,
       order_by_string
    ));
+   if (result->HasError()) {
+      throw silo::PreprocessingException(
+         "Error in the execution of the duckdb statement for partition key table "
+         "generation: " +
+         result->GetError()
+      );
+   }
 
    for (auto it = result->begin(); it != result->end(); ++it) {
       size_t column_index = 0;
@@ -55,19 +63,19 @@ uint32_t ColumnPartitionGroup::fill(
             if (value.IsNull()) {
                indexed_string_columns.at(item.name).insertNull();
             } else {
-               indexed_string_columns.at(item.name).insert(duckdb::StringValue::Get(value));
+               indexed_string_columns.at(item.name).insert(value.ToString());
             }
          } else if (column_type == silo::config::ColumnType::STRING) {
             if (value.IsNull()) {
                string_columns.at(item.name).insertNull();
             } else {
-               string_columns.at(item.name).insert(duckdb::StringValue::Get(value));
+               string_columns.at(item.name).insert(value.ToString());
             }
          } else if (column_type == silo::config::ColumnType::INDEXED_PANGOLINEAGE) {
             if (value.IsNull()) {
                pango_lineage_columns.at(item.name).insertNull();
             } else {
-               pango_lineage_columns.at(item.name).insert({duckdb::StringValue::Get(value)});
+               pango_lineage_columns.at(item.name).insert({value.ToString()});
             }
          } else if (column_type == silo::config::ColumnType::DATE) {
             if (value.IsNull()) {
