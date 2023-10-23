@@ -89,7 +89,7 @@ TEST(OptionalPreprocessingConfig, givenLeftHandSideHasValueThenMergeTakesLeftHan
 
    ASSERT_EQ(
       result.getGeneFilenameNoExtension("dummy"),
-      std::filesystem::path("./testBaseData/exampleDataset/leftTestPrefix_dummy.fasta")
+      std::filesystem::path("./testBaseData/exampleDataset/leftTestPrefix_dummy")
    );
 }
 
