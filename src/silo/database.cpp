@@ -145,7 +145,7 @@ void Database::build(
       initializeNucSequences(reference_genomes.nucleotide_sequences);
       initializeAASequences(reference_genomes.aa_sequences);
 
-      SPDLOG_DEBUG("build - building metadata store");
+      SPDLOG_INFO("build - building metadata store");
 
       for (size_t partition_id = 0; partition_id < partition_descriptor.getPartitions().size();
            ++partition_id) {
@@ -155,9 +155,10 @@ void Database::build(
             partitions[partition_id].sequence_count +=
                partitions[partition_id].columns.fill(connection, partition_id, "", database_config);
          }
+         SPDLOG_INFO("build - finished columns for partition {}", partition_id);
       }
 
-      SPDLOG_DEBUG("build - building sequence stores");
+      SPDLOG_INFO("build - building sequence stores");
 
       tbb::parallel_for(
          tbb::blocked_range<size_t>(0, partition_descriptor.getPartitions().size()),
@@ -203,6 +204,7 @@ void Database::build(
                   }
                }
                partitions.at(partition_index).flipBitmaps();
+               SPDLOG_INFO("build - finished sequences for partition {}", partition_index);
             }
          }
       );
@@ -705,7 +707,7 @@ Database Database::preprocessing(
    const std::optional<std::string> ndjson_input_filename =
       preprocessing_config.getNdjsonInputFilename();
 
-   duckdb::DuckDB preprocessing_memory(nullptr);  // TODO change location
+   duckdb::DuckDB preprocessing_memory(nullptr);  // TODO make configurable via preprocessing config
    duckdb::Connection connection(preprocessing_memory);
 
    if (ndjson_input_filename.has_value()) {
@@ -719,28 +721,28 @@ Database Database::preprocessing(
          database.database_config.schema.primary_key
       );
 
-      auto duckdb_return = connection.Query(  // TODO check error
+      auto return_code = connection.Query(
          "create or replace view metadata_table as\n"
          "select metadata.*\n"
          "from preprocessing_table;"
       );
-      if (duckdb_return->HasError()) {
-         SPDLOG_ERROR(duckdb_return->GetError());
-         throw silo::PreprocessingException(duckdb_return->GetError());
+      if (return_code->HasError()) {
+         SPDLOG_ERROR(return_code->GetError());
+         throw silo::PreprocessingException(return_code->GetError());
       }
 
    } else {
       SPDLOG_INFO("preprocessing - classic pipeline chosen");
 
-      auto duckdb_return = connection.Query(fmt::format(
+      auto return_code = connection.Query(fmt::format(
          "create or replace table metadata_table as\n"
          "select *\n"
          "from '{}';",
          preprocessing_config.getMetadataInputFilename().string()
       ));
-      if (duckdb_return->HasError()) {
-         SPDLOG_ERROR(duckdb_return->GetError());
-         throw silo::PreprocessingException(duckdb_return->GetError());
+      if (return_code->HasError()) {
+         SPDLOG_ERROR(return_code->GetError());
+         throw silo::PreprocessingException(return_code->GetError());
       }
    }
 
@@ -772,7 +774,7 @@ Database Database::preprocessing(
    if (database_config_.schema.partition_by.has_value()) {
       SPDLOG_INFO("preprocessing - calculating partitions");
 
-      auto result = connection.Query(fmt::format(
+      auto return_code = connection.Query(fmt::format(
          "create\n"
          "or replace table partition_keys as\n"
          "select row_number() over () - 1 as id, *\n"
@@ -783,18 +785,18 @@ Database Database::preprocessing(
          database_config_.schema.partition_by.value()
       ));
 
-      if (result->HasError()) {
+      if (return_code->HasError()) {
          throw silo::PreprocessingException(
             "Error in the execution of the duckdb statement for partition key table "
             "generation: " +
-            result->GetError()
+            return_code->GetError()
          );
       } else {
          SPDLOG_TRACE("Executed statement for partition key table generation.");
-         SPDLOG_TRACE(result->ToString());
+         SPDLOG_TRACE(return_code->ToString());
       }
 
-      auto return_code = connection.Query(
+      return_code = connection.Query(
          "create or replace table partitioning as\n"
          "with recursive "
          "          allowed_count(allowed_count) as (select count(*) / 10 from partition_keys),\n"
@@ -822,7 +824,7 @@ Database Database::preprocessing(
          throw silo::PreprocessingException(return_code->GetError());
       }
 
-      return_code = connection.Query(  // TODO check error
+      return_code = connection.Query(
          "create\n"
          "or replace view partition_key_to_partition as\n"
          "select partition_keys.partition_key as partition_key, "
@@ -859,105 +861,111 @@ Database Database::preprocessing(
          "putting all sequences into the same partition"
       );
 
-      connection.Query(  // TODO check error
-         "create\n"
-         "or replace view partitioning as\n"
+      auto return_code = connection.Query(
+         "create or replace view partitioning as\n"
          "select 0 as partition_id, 0 as from_id, 0 as to_id, count(*) as count\n"
          "from metadata_table;"
       );
 
-      connection.Query(  // TODO adapt table with missing partitioning
+      if (return_code->HasError()) {
+         SPDLOG_ERROR(return_code->GetError());
+         throw silo::PreprocessingException(return_code->GetError());
+      }
+
+      return_code = connection.Query(
          "create\n"
          "or replace view partition_key_to_partition as\n"
          "as values (0, 0);"
       );
 
-      connection.Query(  // TODO check error
+      if (return_code->HasError()) {
+         SPDLOG_ERROR(return_code->GetError());
+         throw silo::PreprocessingException(return_code->GetError());
+      }
+
+      return_code = connection.Query(
          "create\n"
          "or replace view partitioned_metadata as\n"
          "select 0 as partition_id, metadata_table.*\n"
          "from metadata_table;"
       );
+
+      if (return_code->HasError()) {
+         SPDLOG_ERROR(return_code->GetError());
+         throw silo::PreprocessingException(return_code->GetError());
+      }
    }
 
    if (preprocessing_config.getNdjsonInputFilename().has_value()) {
       for (const auto& [seq_name, _] : reference_genomes.raw_nucleotide_sequences) {
-         auto duckdb_return = connection.Query(  // TODO check error
-            fmt::format(
-               "create or replace view nuc_{0} as\n"
-               "select metadata.{1} as key, nuc_{0} as sequence,"
-               "partition_key_to_partition.partition_id as partition_id\n"
-               "from preprocessing_table, partition_key_to_partition "
-               "where preprocessing_table.metadata.{2} = partition_key_to_partition.partition_key;",
-               seq_name,
-               database_config_.schema.primary_key,
-               database_config_.schema.partition_by.value()
-            )
-         );
+         auto return_code = connection.Query(fmt::format(
+            "create or replace view nuc_{0} as\n"
+            "select metadata.{1} as key, nuc_{0} as sequence,"
+            "partition_key_to_partition.partition_id as partition_id\n"
+            "from preprocessing_table, partition_key_to_partition "
+            "where preprocessing_table.metadata.{2} = partition_key_to_partition.partition_key;",
+            seq_name,
+            database_config_.schema.primary_key,
+            database_config_.schema.partition_by.value()
+         ));
 
-         if (duckdb_return->HasError()) {
-            SPDLOG_ERROR(duckdb_return->GetError());
-            throw silo::PreprocessingException(duckdb_return->GetError());
+         if (return_code->HasError()) {
+            SPDLOG_ERROR(return_code->GetError());
+            throw silo::PreprocessingException(return_code->GetError());
          }
       }
 
       for (const auto& [seq_name, _] : reference_genomes.raw_aa_sequences) {
-         auto duckdb_return = connection.Query(  // TODO check error
-            fmt::format(
-               "create or replace view gene_{0} as\n"
-               "select metadata.{1} as key, gene_{0} as sequence, "
-               "partition_key_to_partition.partition_id as partition_id\n"
-               "from preprocessing_table, partition_key_to_partition "
-               "where preprocessing_table.metadata.{2} = partition_key_to_partition.partition_key;",
-               seq_name,
-               database_config_.schema.primary_key,
-               database_config_.schema.partition_by.value()
-            )
-         );
+         auto return_code = connection.Query(fmt::format(
+            "create or replace view gene_{0} as\n"
+            "select metadata.{1} as key, gene_{0} as sequence, "
+            "partition_key_to_partition.partition_id as partition_id\n"
+            "from preprocessing_table, partition_key_to_partition "
+            "where preprocessing_table.metadata.{2} = partition_key_to_partition.partition_key;",
+            seq_name,
+            database_config_.schema.primary_key,
+            database_config_.schema.partition_by.value()
+         ));
 
-         if (duckdb_return->HasError()) {
-            SPDLOG_ERROR(duckdb_return->GetError());
-            throw silo::PreprocessingException(duckdb_return->GetError());
+         if (return_code->HasError()) {
+            SPDLOG_ERROR(return_code->GetError());
+            throw silo::PreprocessingException(return_code->GetError());
          }
       }
    } else {
       for (const auto& [seq_name, _] : reference_genomes.raw_nucleotide_sequences) {
-         auto duckdb_return = connection.Query(  // TODO check error
-            fmt::format(
-               "create or replace view nuc_{0} as\n"
-               "select metadata.{1} as key, nuc_{0} as sequence,"
-               "partition_key_to_partition.partition_id as partition_id\n"
-               "from preprocessing_table, partition_key_to_partition "
-               "where preprocessing_table.metadata.{2} = partition_key_to_partition.partition_key;",
-               seq_name,
-               database_config_.schema.primary_key,
-               database_config_.schema.partition_by.value()
-            )
-         );
+         auto return_code = connection.Query(fmt::format(
+            "create or replace view nuc_{0} as\n"
+            "select metadata.{1} as key, nuc_{0} as sequence,"
+            "partition_key_to_partition.partition_id as partition_id\n"
+            "from preprocessing_table, partition_key_to_partition "
+            "where preprocessing_table.metadata.{2} = partition_key_to_partition.partition_key;",
+            seq_name,
+            database_config_.schema.primary_key,
+            database_config_.schema.partition_by.value()
+         ));
 
-         if (duckdb_return->HasError()) {
-            SPDLOG_ERROR(duckdb_return->GetError());
-            throw silo::PreprocessingException(duckdb_return->GetError());
+         if (return_code->HasError()) {
+            SPDLOG_ERROR(return_code->GetError());
+            throw silo::PreprocessingException(return_code->GetError());
          }
       }
 
       for (const auto& [seq_name, _] : reference_genomes.raw_aa_sequences) {
-         auto duckdb_return = connection.Query(  // TODO check error
-            fmt::format(
-               "create or replace view gene_{0} as\n"
-               "select metadata.{1} as key, gene_{0} as sequence, "
-               "partition_key_to_partition.partition_id as partition_id\n"
-               "from preprocessing_table, partition_key_to_partition "
-               "where preprocessing_table.metadata.{2} = partition_key_to_partition.partition_key;",
-               seq_name,
-               database_config_.schema.primary_key,
-               database_config_.schema.partition_by.value()
-            )
-         );
+         auto return_code = connection.Query(fmt::format(
+            "create or replace view gene_{0} as\n"
+            "select metadata.{1} as key, gene_{0} as sequence, "
+            "partition_key_to_partition.partition_id as partition_id\n"
+            "from preprocessing_table, partition_key_to_partition "
+            "where preprocessing_table.metadata.{2} = partition_key_to_partition.partition_key;",
+            seq_name,
+            database_config_.schema.primary_key,
+            database_config_.schema.partition_by.value()
+         ));
 
-         if (duckdb_return->HasError()) {
-            SPDLOG_ERROR(duckdb_return->GetError());
-            throw silo::PreprocessingException(duckdb_return->GetError());
+         if (return_code->HasError()) {
+            SPDLOG_ERROR(return_code->GetError());
+            throw silo::PreprocessingException(return_code->GetError());
          }
       }
    }
