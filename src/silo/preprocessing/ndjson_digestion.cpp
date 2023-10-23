@@ -339,7 +339,7 @@ void silo::executeDuckDBRoutineForNdjsonDigestion(
 
    SequenceNames sequence_names = SequenceNames(connection, file_name);
 
-   executeQuery(
+   auto return_value = executeQuery(
       connection,
       ::fmt::format(
          "CREATE OR REPLACE TABLE preprocessing_table AS SELECT metadata, {} \n FROM '{}';",
@@ -347,6 +347,10 @@ void silo::executeDuckDBRoutineForNdjsonDigestion(
          file_name
       )
    );
+   if (return_value->HasError()) {
+      SPDLOG_ERROR(return_value->GetError());
+      throw silo::PreprocessingException(return_value->GetError());
+   }
 
    // TODO this should be unneeded
    //  --> Different functionality

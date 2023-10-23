@@ -144,6 +144,9 @@ void Database::build(
       initializeColumns();
       initializeNucSequences(reference_genomes.nucleotide_sequences);
       initializeAASequences(reference_genomes.aa_sequences);
+
+      SPDLOG_DEBUG("build - building metadata store");
+
       for (size_t partition_id = 0; partition_id < partition_descriptor.getPartitions().size();
            ++partition_id) {
          const auto& part = partition_descriptor.getPartitions()[partition_id];
@@ -153,6 +156,8 @@ void Database::build(
                partitions[partition_id].columns.fill(connection, partition_id, "", database_config);
          }
       }
+
+      SPDLOG_DEBUG("build - building sequence stores");
 
       tbb::parallel_for(
          tbb::blocked_range<size_t>(0, partition_descriptor.getPartitions().size()),
@@ -164,6 +169,13 @@ void Database::build(
                     ++chunk_index) {
                   for (const auto& [nuc_name, reference_sequence] :
                        reference_genomes.raw_nucleotide_sequences) {
+                     SPDLOG_DEBUG(
+                        "build - building sequence store for nucleotide sequence {} and partition "
+                        "{}",
+                        nuc_name,
+                        partition_index
+                     );
+
                      silo::ZstdFastaTableReader sequence_input(
                         connection,
                         "nuc_" + nuc_name,
@@ -174,6 +186,13 @@ void Database::build(
                   }
                   for (const auto& [aa_name, reference_sequence] :
                        reference_genomes.raw_aa_sequences) {
+                     SPDLOG_DEBUG(
+                        "build - building sequence store for amino acid sequence {} and partition "
+                        "{}",
+                        aa_name,
+                        partition_index
+                     );
+
                      silo::ZstdFastaTableReader sequence_input(
                         connection,
                         "gene_" + aa_name,
@@ -690,6 +709,8 @@ Database Database::preprocessing(
    duckdb::Connection connection(preprocessing_memory);
 
    if (ndjson_input_filename.has_value()) {
+      SPDLOG_INFO("preprocessing - ndjson pipeline chosen");
+
       executeDuckDBRoutineForNdjsonDigestion(
          connection,
          preprocessing_config,
@@ -709,6 +730,8 @@ Database Database::preprocessing(
       }
 
    } else {
+      SPDLOG_INFO("preprocessing - classic pipeline chosen");
+
       auto duckdb_return = connection.Query(fmt::format(
          "create or replace table metadata_table as\n"
          "select *\n"
@@ -1035,7 +1058,7 @@ void Database::initializeColumns() {
 void Database::initializeNucSequences(
    const std::map<std::string, std::vector<Nucleotide::Symbol>>& reference_sequences
 ) {
-   SPDLOG_DEBUG("preprocessing - initializing nucleotide sequences");
+   SPDLOG_DEBUG("build - initializing nucleotide sequences");
    for (const auto& [nuc_name, reference_sequence] : reference_sequences) {
       auto seq_store = SequenceStore<Nucleotide>(reference_sequence);
       nuc_sequences.emplace(nuc_name, std::move(seq_store));
@@ -1048,7 +1071,7 @@ void Database::initializeNucSequences(
 void Database::initializeAASequences(
    const std::map<std::string, std::vector<AminoAcid::Symbol>>& reference_sequences
 ) {
-   SPDLOG_DEBUG("preprocessing - initializing amino acid sequences");
+   SPDLOG_DEBUG("build - initializing amino acid sequences");
    for (const auto& [aa_name, reference_sequence] : reference_sequences) {
       auto aa_store = SequenceStore<AminoAcid>(reference_sequence);
       aa_sequences.emplace(aa_name, std::move(aa_store));

@@ -10,6 +10,7 @@
 #include <duckdb/common/types/blob.hpp>
 
 #include "silo/common/fasta_format_exception.h"
+#include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/zstdfasta/zstd_decompressor.h"
 
 silo::ZstdFastaTableReader::ZstdFastaTableReader(
@@ -23,8 +24,10 @@ silo::ZstdFastaTableReader::ZstdFastaTableReader(
       where_clause(where_clause),
       decompressor(std::make_unique<ZstdDecompressor>(compression_dict)),
       DEBUG_dictionary(compression_dict) {
+   SPDLOG_TRACE("Initializing ZstdFastaTableReader for table {}", table_name);
    genome_buffer.resize(compression_dict.size());
    reset();
+   SPDLOG_TRACE("Successfully initialized ZstdFastaTableReader for table {}", table_name);
 }
 
 std::optional<std::string> silo::ZstdFastaTableReader::nextKey() {
@@ -57,7 +60,9 @@ std::optional<std::string> silo::ZstdFastaTableReader::nextCompressed(std::strin
       return std::nullopt;
    }
 
+   SPDLOG_TRACE("Evaluating GetValueUnsafe command");
    compressed_genome = current_chunk->GetValue(1, current_row).GetValueUnsafe<std::string>();
+   SPDLOG_TRACE("Successfully evaluated GetValueUnsafe command");
 
    current_row++;
    while (current_chunk && current_row == current_chunk->size()) {
@@ -88,7 +93,7 @@ void silo::ZstdFastaTableReader::reset() {
    );
    if (query_result->HasError()) {
       SPDLOG_ERROR("Error when executing SQL " + query_result->GetError());
-      // TODO throw
+      throw silo::PreprocessingException("Error when SQL " + query_result->GetError());
    }
    current_chunk = query_result->Fetch();
    current_row = 0;

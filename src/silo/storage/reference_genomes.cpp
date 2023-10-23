@@ -84,6 +84,15 @@ ReferenceGenomes readFromJson(const std::filesystem::path& reference_genomes_pat
    nlohmann::json reference_genomes_json;
    std::ifstream(reference_genomes_path) >> reference_genomes_json;
 
+   if (!reference_genomes_json.contains("nucleotideSequences")) {
+      throw silo::PreprocessingException(
+         "Reference genomes file does not contain key 'nucleotideSequences'"
+      );
+   }
+   if (!reference_genomes_json.contains("genes")) {
+      throw silo::PreprocessingException("Reference genomes file does not contain key 'genes'");
+   }
+
    const nlohmann::json nuc_seq_json = reference_genomes_json["nucleotideSequences"];
    const nlohmann::json aa_seq_json = reference_genomes_json["genes"];
 
