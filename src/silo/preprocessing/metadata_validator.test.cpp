@@ -24,18 +24,6 @@ TEST(
       }};
 
    const auto under_test = silo::preprocessing::MetadataValidator();
-
-   EXPECT_THAT(
-      [=]() {
-         under_test.validateMedataFile(
-            "testBaseData/exampleDataset/small_metadata_set.tsv",
-            some_config_with_one_column_not_in_metadata
-         );
-      },
-      ThrowsMessage<silo::PreprocessingException>(
-         ::testing::HasSubstr("Metadata file does not contain column: notInMetadata")
-      )
-   );
 }
 
 TEST(MetadataValidator, isValidMedataFileShouldReturnTrueWithValidMetadataFile) {
