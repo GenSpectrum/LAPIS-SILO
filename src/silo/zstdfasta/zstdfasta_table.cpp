@@ -10,13 +10,13 @@
 
 namespace {
 void initializeTable(duckdb::Connection& connection, std::string table_name) {
-   auto prepared_statement = connection.Prepare(
-      "CREATE TABLE ? ("
+   auto return_value = connection.Query(fmt::format(
+      "CREATE TABLE {} ("
       "    key STRING,"
-      "    compressedGenome BLOB"
-      ");"
-   );
-   auto return_value = prepared_statement->Execute(table_name);
+      "    sequence BLOB"
+      ");",
+      table_name
+   ));
    if (return_value->HasError()) {
       throw silo::PreprocessingException(return_value->ToString());
    }
@@ -37,7 +37,13 @@ void silo::ZstdFastaTable::generate(
       if (key == std::nullopt) {
          break;
       }
-      appender.AppendRow(key.value(), duckdb::Value::BLOB(compressed_genome));
+      size_t compressed_size = compressed_genome.size();
+      auto compressed_data = reinterpret_cast<const unsigned char*>(compressed_genome.data());
+      duckdb::string_t key_value = key.value();
+      appender.BeginRow();
+      appender.Append(key_value);
+      appender.Append(duckdb::Value::BLOB(compressed_data, compressed_size));
+      appender.EndRow();
    }
    appender.Close();
 }
@@ -62,7 +68,11 @@ void silo::ZstdFastaTable::generate(
       }
       size_t compressed_size = compressor.compress(uncompressed_genome, compressed_genome);
       auto compressed_data = reinterpret_cast<const unsigned char*>(compressed_genome.data());
-      appender.AppendRow(key.value(), duckdb::Value::BLOB(compressed_data, compressed_size));
+      duckdb::string_t key_value = key.value();
+      appender.BeginRow();
+      appender.Append(key_value);
+      appender.Append(duckdb::Value::BLOB(compressed_data, compressed_size));
+      appender.EndRow();
    }
    appender.Close();
 }

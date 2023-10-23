@@ -76,11 +76,6 @@ std::optional<std::string> silo::ZstdFastaTableReader::next(std::string& genome)
    decompressor->decompress(compressed_buffer, genome_buffer);
    genome = genome_buffer;  // TODO is the copy necessary?
 
-   current_row++;
-   while (current_chunk && current_row == current_chunk->size()) {
-      current_chunk = query_result->Fetch();
-   }
-
    return key;
 }
 

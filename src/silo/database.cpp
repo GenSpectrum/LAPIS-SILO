@@ -680,7 +680,7 @@ Database Database::preprocessing(
    const std::optional<std::string> ndjson_input_filename =
       preprocessing_config.getNdjsonInputFilename();
 
-   duckdb::DuckDB preprocessing_memory("test.duckdb");  // TODO change location
+   duckdb::DuckDB preprocessing_memory(nullptr);  // TODO change location
    duckdb::Connection connection(preprocessing_memory);
 
    if (ndjson_input_filename.has_value()) {
@@ -737,10 +737,18 @@ Database Database::preprocessing(
       }
    } else {
       // TODO Read metadata, then add the sequences to it (Maybe Appender API? -> first just join)
-      FastaReader fasta_reader("output/nuc_main.fasta.zst");
+      FastaReader fasta_reader("nuc_main.fasta.zst");
       ZstdFastaTable::generate(
          connection, "test", fasta_reader, reference_genomes.raw_nucleotide_sequences.at("main")
       );
+      ZstdFastaTableReader reader(
+         connection, "test", reference_genomes.raw_nucleotide_sequences.at("main")
+      );
+      std::string genome;
+      std::optional<std::string> key = reader.next(genome);
+      while (key) {
+         key = reader.next(genome);
+      }
    }
 
    SPDLOG_INFO("preprocessing - finished building the in-memory table for preprocessing");

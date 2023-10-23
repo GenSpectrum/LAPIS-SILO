@@ -10,7 +10,6 @@
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/reference_genomes.h"
 #include "silo/zstdfasta/zstd_compressor.h"
-#include "silo/zstdfasta/zstd_decompressor.h"
 #include "silo/zstdfasta/zstdfasta_writer.h"
 
 namespace {
@@ -129,7 +128,6 @@ class Compressors {
          aa_compressors;
    static std::unordered_map<std::string_view, tbb::enumerable_thread_specific<std::string>>
       aa_buffers;
-   static tbb::enumerable_thread_specific<std::deque<std::string>> sequence_heaps;
 
    static void initialize(const silo::ReferenceGenomes& reference_genomes) {
       for (const auto& [name, sequence] : reference_genomes.raw_nucleotide_sequences) {
@@ -205,7 +203,6 @@ std::unordered_map<std::string_view, tbb::enumerable_thread_specific<silo::ZstdC
    Compressors::aa_compressors{};
 std::unordered_map<std::string_view, tbb::enumerable_thread_specific<std::string>>
    Compressors::aa_buffers{};
-tbb::enumerable_thread_specific<std::deque<std::string>> Compressors::sequence_heaps{};
 
 void exportMetadataFile(
    duckdb::Connection& duckdb_connection,
@@ -362,8 +359,4 @@ void silo::executeDuckDBRoutineForNdjsonDigestion(
    //    primary_key_metadata_column,
    //    preprocessing_config
    // );
-
-   for (auto& sequence_heap : Compressors::sequence_heaps) {
-      sequence_heap.clear();
-   }
 }
