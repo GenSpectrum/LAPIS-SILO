@@ -10,7 +10,11 @@
 
 namespace {
 void initializeTable(duckdb::Connection& connection, std::string table_name) {
-   auto return_value = connection.Query(fmt::format(
+   auto return_value = connection.Query(fmt::format("DROP TABLE {};", table_name));
+   if (return_value->HasError()) {
+      throw silo::PreprocessingException(return_value->ToString());
+   }
+   return_value = connection.Query(fmt::format(
       "CREATE TABLE {} ("
       "    key STRING,"
       "    sequence BLOB"

@@ -184,7 +184,7 @@ void Database::build(
                         "nuc_" + nuc_name,
                         reference_sequence,
                         fmt::format("partition_id = {}", partition_index),
-                        ""  // TODO order
+                        order_by_clause
                      );
                      partitions[partition_index].nuc_sequences.at(nuc_name).fill(sequence_input);
                   }
@@ -202,7 +202,7 @@ void Database::build(
                         "gene_" + aa_name,
                         reference_sequence,
                         fmt::format("partition_id = {}", partition_index),
-                        ""  // TODO order
+                        order_by_clause
                      );
                      partitions[partition_index].aa_sequences.at(aa_name).fill(sequence_input);
                   }
@@ -714,6 +714,12 @@ Database Database::preprocessing(
    duckdb::DuckDB preprocessing_memory("test2.duckdb"
    );  // TODO make configurable via preprocessing config
    duckdb::Connection connection(preprocessing_memory);
+   {
+      auto return_code = connection.Query("PRAGMA default_null_order='NULLS FIRST';");
+      if (return_code->HasError()) {
+         throw silo::PreprocessingException(return_code->GetError());
+      }
+   }
 
    std::string order_by_clause;  // TODO turn into struct
    if (database_config_.schema.date_to_sort_by.has_value()) {
@@ -919,16 +925,25 @@ Database Database::preprocessing(
    }
 
    if (preprocessing_config.getNdjsonInputFilename().has_value()) {
+      std::string order_by_select = ", metadata." + database_config_.schema.primary_key + " as " +
+                                    database_config_.schema.primary_key;
+      if (database_config_.schema.date_to_sort_by.has_value()) {
+         order_by_select += ", metadata." + database_config_.schema.date_to_sort_by.value() +
+                            " as " + database_config_.schema.date_to_sort_by.value();
+      }
+
       for (const auto& [seq_name, _] : reference_genomes.raw_nucleotide_sequences) {
          auto return_code = connection.Query(fmt::format(
             "create or replace view nuc_{0} as\n"
             "select metadata.{1} as key, nuc_{0} as sequence,"
-            "partition_key_to_partition.partition_id as partition_id\n"
+            "partition_key_to_partition.partition_id as partition_id"
+            "{3} \n"
             "from preprocessing_table, partition_key_to_partition "
             "where preprocessing_table.metadata.{2} = partition_key_to_partition.partition_key;",
             seq_name,
             database_config_.schema.primary_key,
-            database_config_.schema.partition_by.value()
+            database_config_.schema.partition_by.value(),
+            order_by_select
          ));
 
          if (return_code->HasError()) {
@@ -942,11 +957,13 @@ Database Database::preprocessing(
             "create or replace view gene_{0} as\n"
             "select metadata.{1} as key, gene_{0} as sequence, "
             "partition_key_to_partition.partition_id as partition_id\n"
+            "{3} \n"
             "from preprocessing_table, partition_key_to_partition "
             "where preprocessing_table.metadata.{2} = partition_key_to_partition.partition_key;",
             seq_name,
             database_config_.schema.primary_key,
-            database_config_.schema.partition_by.value()
+            database_config_.schema.partition_by.value(),
+            order_by_select
          ));
 
          if (return_code->HasError()) {
@@ -955,6 +972,15 @@ Database Database::preprocessing(
          }
       }
    } else {
+      std::string order_by_select = ", partitioned_metadata." +
+                                    database_config_.schema.primary_key + " as " +
+                                    database_config_.schema.primary_key;
+      if (database_config_.schema.date_to_sort_by.has_value()) {
+         order_by_select += ", partitioned_metadata." +
+                            database_config_.schema.date_to_sort_by.value() + " as " +
+                            database_config_.schema.date_to_sort_by.value();
+      }
+
       for (const auto& [seq_name, reference_sequence] :
            reference_genomes.raw_nucleotide_sequences) {
          silo::FastaReader fasta_reader(preprocessing_config.getNucFilenameNoExtension(seq_name)
@@ -965,13 +991,15 @@ Database Database::preprocessing(
          );
 
          auto return_code = connection.Query(fmt::format(
-            "create or replace view nuc_{0} as\n"
+            "create or replace view nuc_{0} as "
             "select key, sequence,"
-            "partitioned_metadata.partition_id as partition_id\n"
+            "partitioned_metadata.partition_id as partition_id "
+            "{2} \n"
             "from raw_nuc_{0} raw, partitioned_metadata "
             "where raw.key = partitioned_metadata.{1};",
             seq_name,
-            database_config_.schema.primary_key
+            database_config_.schema.primary_key,
+            order_by_select
          ));
 
          if (return_code->HasError()) {
@@ -989,13 +1017,15 @@ Database Database::preprocessing(
          );
 
          auto return_code = connection.Query(fmt::format(
-            "create or replace view gene_{0} as\n"
+            "create or replace view gene_{0} as "
             "select key, sequence,"
-            "partitioned_metadata.partition_id as partition_id\n"
+            "partitioned_metadata.partition_id as partition_id"
+            "{2}\n"
             "from raw_gene_{0} raw, partitioned_metadata "
             "where raw.key = partitioned_metadata.{1};",
             seq_name,
-            database_config_.schema.primary_key
+            database_config_.schema.primary_key,
+            order_by_select
          ));
       }
    }
