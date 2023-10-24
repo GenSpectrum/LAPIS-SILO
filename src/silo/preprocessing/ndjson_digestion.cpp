@@ -55,9 +55,21 @@ class SequenceNames {
          "'{}' LIMIT 1; ",
          input_filename
       ));
-      if (result->HasError() || result->RowCount() != 1) {
+      if (result->HasError()) {
          throw silo::PreprocessingException(
-            "Preprocessing exception " + std::to_string(result->RowCount())
+            "Preprocessing exception when retrieving the fields 'alignedNucleotideSequences' and "
+            "'alignedAminoAcidSequences', duckdb threw with error: " +
+            result->GetError()
+         );
+      }
+      if (result->RowCount() == 0) {
+         throw silo::PreprocessingException(
+            fmt::format("File {} is empty, which must not be empty at this point", input_filename)
+         );
+      }
+      if (result->RowCount() > 1) {
+         throw silo::PreprocessingException(
+            "Internal exception, expected Row Count=1, actual " + std::to_string(result->RowCount())
          );
       }
 
@@ -354,6 +366,11 @@ void silo::executeDuckDBRoutineForNdjsonDigestion(
    if (!std::filesystem::exists(file_name)) {
       throw silo::PreprocessingException(
          fmt::format("The specified input file {} does not exist.", file_name)
+      );
+   }
+   if (std::filesystem::is_empty(file_name)) {
+      throw silo::PreprocessingException(
+         fmt::format("The specified input file {} is empty.", file_name)
       );
    }
    // TODO validate primary key
