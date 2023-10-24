@@ -48,8 +48,12 @@ std::optional<std::string> silo::ZstdFastaTableReader::nextSkipGenome() {
    }
 
    current_row++;
-   while (current_chunk && current_row == current_chunk->size()) {
+   if (current_row == current_chunk->size()) {
+      current_row = 0;
       current_chunk = query_result->Fetch();
+      while (current_chunk && current_chunk->size() == 0) {
+         current_chunk = query_result->Fetch();
+      }
    }
 
    return key;
@@ -65,8 +69,12 @@ std::optional<std::string> silo::ZstdFastaTableReader::nextCompressed(std::strin
    compressed_genome = current_chunk->GetValue(1, current_row).GetValueUnsafe<std::string>();
 
    current_row++;
-   while (current_chunk && current_row == current_chunk->size()) {
+   if (current_row == current_chunk->size()) {
+      current_row = 0;
       current_chunk = query_result->Fetch();
+      while (current_chunk && current_chunk->size() == 0) {
+         current_chunk = query_result->Fetch();
+      }
    }
 
    return key;
@@ -98,7 +106,7 @@ void silo::ZstdFastaTableReader::reset() {
    current_chunk = query_result->Fetch();
    current_row = 0;
 
-   while (current_chunk && current_row == current_chunk->size()) {
+   while (current_chunk && current_chunk->size() == 0) {
       current_chunk = query_result->Fetch();
    }
 }
