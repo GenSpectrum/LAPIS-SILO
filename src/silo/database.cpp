@@ -315,6 +315,7 @@ template <typename SymbolType>
 BitmapSizePerSymbol Database::calculateBitmapSizePerSymbol(
    const SequenceStore<SymbolType>& seq_store
 ) {
+   SPDLOG_TRACE("calculateBitmapSizePerSymbol");
    BitmapSizePerSymbol global_bitmap_size_per_symbol;
 
    std::mutex lock;
@@ -339,6 +340,7 @@ void addStatisticToBitmapContainerSize(
    const RoaringStatistics& statistic,
    BitmapContainerSizeStatistic& size_statistic
 ) {
+   SPDLOG_TRACE("addStatisticToBitmapContainerSize");
    size_statistic.number_of_array_containers += statistic.n_array_containers;
    size_statistic.number_of_run_containers += statistic.n_run_containers;
    size_statistic.number_of_bitset_containers += statistic.n_bitset_containers;
@@ -359,6 +361,7 @@ BitmapContainerSize Database::calculateBitmapContainerSizePerGenomeSection(
    const SequenceStore<SymbolType>& seq_store,
    size_t section_length
 ) {
+   SPDLOG_TRACE("calculateBitmapContainerSizePerGenomeSection");
    const uint32_t genome_length = seq_store.reference_sequence.size();
 
    BitmapContainerSize global_bitmap_container_size_per_genome_section(
@@ -413,6 +416,7 @@ BitmapContainerSize Database::calculateBitmapContainerSizePerGenomeSection(
 }
 
 DetailedDatabaseInfo Database::detailedDatabaseInfo() const {
+   SPDLOG_TRACE("detailedDatabaseInfo");
    constexpr uint32_t DEFAULT_SECTION_LENGTH = 500;
    DetailedDatabaseInfo result;
    for (const auto& [seq_name, seq_store] : nuc_sequences) {
