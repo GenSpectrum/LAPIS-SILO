@@ -3,10 +3,8 @@
   "query": {
     "action": {
       "type": "FastaAligned",
-      "sequenceName": [
-        "testSecondSequence",
-        "S"
-      ]
+      "sequenceName": ["testSecondSequence", "S"],
+      "orderByFields": ["gisaid_epi_isl"]
     },
     "filterExpression": {
       "type": "IntBetween",

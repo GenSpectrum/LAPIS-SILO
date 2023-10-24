@@ -3,7 +3,8 @@
   "query": {
     "action": {
       "type": "Details",
-      "fields": ["age", "pango_lineage"]
+      "fields": ["age", "pango_lineage"],
+      "orderByFields": ["age", "pango_lineage"]
     },
     "filterExpression": {
       "type": "N-Of",
@@ -34,16 +35,16 @@
       "pango_lineage": "B.1.1.7"
     },
     {
+      "age": 50,
+      "pango_lineage": "B.1.221"
+    },
+    {
       "age": 54,
       "pango_lineage": "B.1.1.7"
     },
     {
       "age": 58,
       "pango_lineage": "B.1.1.7"
-    },
-    {
-      "age": 50,
-      "pango_lineage": "B.1.221"
     }
   ]
 }

@@ -853,7 +853,7 @@ Database Database::preprocessing(
 
       return_code = connection.Query(
          "create\n"
-         "or replace view partition_key_to_partition as\n"
+         "or replace table partition_key_to_partition as\n"
          "select partition_keys.partition_key as partition_key, "
          "  partitioning.partition_id as partition_id\n"
          "from partition_keys,\n"
@@ -890,8 +890,9 @@ Database Database::preprocessing(
       );
 
       auto return_code = connection.Query(
-         "create or replace view partitioning as\n"
-         "select 0 as partition_id, 0 as from_id, 0 as to_id, count(*) as count\n"
+         "create or replace table partitioning as\n"
+         "select 0::bigint as partition_id, 0::bigint as from_id, 0::bigint as to_id, count(*) as "
+         "count\n"
          "from metadata_table;"
       );
 
@@ -902,8 +903,8 @@ Database Database::preprocessing(
 
       return_code = connection.Query(
          "create\n"
-         "or replace view partition_key_to_partition as\n"
-         "as values (0, 0);"
+         "or replace table partition_key_to_partition as\n"
+         "select 0::bigint as partition_key, 0::bigint as partition_id;"
       );
 
       if (return_code->HasError()) {
@@ -914,7 +915,7 @@ Database Database::preprocessing(
       return_code = connection.Query(
          "create\n"
          "or replace view partitioned_metadata as\n"
-         "select 0 as partition_id, metadata_table.*\n"
+         "select 0::bigint as partition_id, metadata_table.*\n"
          "from metadata_table;"
       );
 
