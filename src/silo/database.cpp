@@ -711,7 +711,8 @@ Database Database::preprocessing(
    const std::optional<std::string> ndjson_input_filename =
       preprocessing_config.getNdjsonInputFilename();
 
-   duckdb::DuckDB preprocessing_memory("test2.duckdb"
+   duckdb::DuckDB preprocessing_memory(
+      preprocessing_config.getOutputDirectory() / "preprocessing.duckdb"
    );  // TODO make configurable via preprocessing config
    duckdb::Connection connection(preprocessing_memory);
    {
