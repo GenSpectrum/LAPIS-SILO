@@ -69,6 +69,7 @@ silo::SequenceStorePartition<SymbolType>::SequenceStorePartition(
    const std::vector<typename SymbolType::Symbol>& reference_sequence
 )
     : reference_sequence(reference_sequence) {
+   positions.reserve(reference_sequence.size());
    for (const auto symbol : reference_sequence) {
       positions.emplace_back(symbol);
    }

@@ -29,7 +29,7 @@ namespace silo::storage {
 uint32_t ColumnPartitionGroup::fill(
    duckdb::Connection& connection,
    uint32_t partition_id,
-   const std::string& order_by_string,
+   const std::string& order_by_clause,
    const silo::config::DatabaseConfig& database_config
 ) {
    uint32_t sequence_count = 0;
@@ -44,7 +44,7 @@ uint32_t ColumnPartitionGroup::fill(
       "SELECT {} FROM partitioned_metadata WHERE partition_id = {} {}",
       column_name_sql,
       partition_id,
-      order_by_string
+      order_by_clause
    ));
    if (result->HasError()) {
       throw silo::PreprocessingException(

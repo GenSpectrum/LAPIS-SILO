@@ -7,9 +7,6 @@
 
 #include "silo/preprocessing/partition.h"
 
-constexpr std::string_view ZSTDFASTA_EXTENSION(".zstdfasta");
-constexpr std::string_view TSV_EXTENSION(".tsv");
-
 namespace {
 
 std::string buildChunkString(uint32_t partition, uint32_t chunk) {

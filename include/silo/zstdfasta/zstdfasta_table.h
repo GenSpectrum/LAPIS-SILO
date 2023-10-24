@@ -22,7 +22,7 @@ class ZstdFastaTable {
       duckdb::Connection& connection,
       std::string table_name,
       FastaReader& file_reader,
-      std::string_view reference_genome
+      std::string_view reference_sequence
    );
 };
 

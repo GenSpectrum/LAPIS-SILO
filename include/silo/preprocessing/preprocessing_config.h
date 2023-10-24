@@ -10,6 +10,11 @@
 #include <fmt/core.h>
 
 namespace silo::preprocessing {
+
+constexpr std::string_view ZSTDFASTA_EXTENSION(".zstdfasta");
+constexpr std::string_view FASTA_EXTENSION(".fasta");
+constexpr std::string_view TSV_EXTENSION(".tsv");
+
 struct PartitionChunk;
 struct Partitions;
 

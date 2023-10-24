@@ -52,12 +52,12 @@ void silo::ZstdFastaTable::generate(
    duckdb::Connection& connection,
    std::string table_name,
    silo::FastaReader& file_reader,
-   std::string_view reference_genome
+   std::string_view reference_sequence
 ) {
    initializeTable(connection, table_name);
    std::optional<std::string> key;
    std::string uncompressed_genome;
-   silo::ZstdCompressor compressor(reference_genome);
+   silo::ZstdCompressor compressor(reference_sequence);
    std::string compressed_genome;
    compressed_genome.resize(compressor.getSizeBound());
    duckdb::Appender appender(connection, table_name);

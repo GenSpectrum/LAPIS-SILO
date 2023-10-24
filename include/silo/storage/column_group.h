@@ -91,7 +91,7 @@ class ColumnPartitionGroup {
    uint32_t fill(
       duckdb::Connection& connection,
       uint32_t partition_id,
-      const std::string& order_by_string,
+      const std::string& order_by_clause,
       const silo::config::DatabaseConfig& database_config
    );
 

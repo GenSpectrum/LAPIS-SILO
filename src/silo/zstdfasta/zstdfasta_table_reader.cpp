@@ -17,11 +17,13 @@ silo::ZstdFastaTableReader::ZstdFastaTableReader(
    duckdb::Connection& connection,
    std::string_view table_name,
    std::string_view compression_dict,
-   std::string_view where_clause
+   std::string_view where_clause,
+   std::string_view order_by_clause
 )
     : connection(connection),
       table_name(table_name),
       where_clause(where_clause),
+      order_by_clause(order_by_clause),
       decompressor(std::make_unique<ZstdDecompressor>(compression_dict)),
       DEBUG_dictionary(compression_dict) {
    SPDLOG_TRACE("Initializing ZstdFastaTableReader for table {}", table_name);
@@ -86,9 +88,9 @@ std::optional<std::string> silo::ZstdFastaTableReader::next(std::string& genome)
 
 void silo::ZstdFastaTableReader::reset() {
    // TODO assert that it is and define what is a 'zstdfastatable'
-   query_result = connection.Query(
-      fmt::format("SELECT key, sequence FROM {} WHERE {}", table_name, where_clause)
-   );
+   query_result = connection.Query(fmt::format(
+      "SELECT key, sequence FROM {} WHERE {} {}", table_name, where_clause, order_by_clause
+   ));
    if (query_result->HasError()) {
       SPDLOG_ERROR("Error when executing SQL " + query_result->GetError());
       throw silo::PreprocessingException("Error when SQL " + query_result->GetError());

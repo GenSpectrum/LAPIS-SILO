@@ -14,8 +14,6 @@
 
 namespace {
 
-constexpr std::string_view ZSTDFASTA_EXTENSION(".zstdfasta");
-
 std::unique_ptr<duckdb::MaterializedQueryResult> executeQuery(
    duckdb::Connection& db,
    std::string sql_query
@@ -281,7 +279,7 @@ void exportSequenceFiles(
 
       silo::ZstdFastaWriter writer(
          preprocessing_config.getNucFilenameNoExtension(nuc_sequence_name).string() +
-            std::string(ZSTDFASTA_EXTENSION),
+            std::string(silo::preprocessing::ZSTDFASTA_EXTENSION),
          reference_genomes.raw_nucleotide_sequences.at(nuc_sequence_name)
       );
 
@@ -322,7 +320,7 @@ void exportSequenceFiles(
 
       silo::ZstdFastaWriter writer(
          preprocessing_config.getGeneFilenameNoExtension(aa_sequence_name).string() +
-            std::string(ZSTDFASTA_EXTENSION),
+            std::string(silo::preprocessing::ZSTDFASTA_EXTENSION),
          reference_genomes.raw_aa_sequences.at(aa_sequence_name)
       );
       for (auto it = result->begin(); it != result->end(); ++it) {

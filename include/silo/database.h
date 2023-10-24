@@ -45,11 +45,6 @@ class Database {
       const config::DatabaseConfig& database_config_
    );
 
-   static Database preprocessingNdjson(
-      const preprocessing::PreprocessingConfig& preprocessing_config,
-      const config::DatabaseConfig& database_config_
-   );
-
    void saveDatabaseState(const std::filesystem::path& save_directory);
 
    static Database loadDatabaseState(const std::filesystem::path& save_directory);
@@ -81,7 +76,8 @@ class Database {
    void build(
       duckdb::Connection& connection,
       const preprocessing::Partitions& partition_descriptor,
-      const ReferenceGenomes& reference_genomes
+      const ReferenceGenomes& reference_genomes,
+      const std::string& order_by_clause
    );
 
    std::map<std::string, std::vector<Nucleotide::Symbol>> getNucSequences() const;
