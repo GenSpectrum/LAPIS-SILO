@@ -1,5 +1,6 @@
 #include "silo_api/database_directory_watcher.h"
 
+#include <cxxabi.h>
 #include <algorithm>
 #include <fstream>
 #include <istream>
@@ -12,6 +13,7 @@
 
 #include "silo/common/data_version.h"
 #include "silo/database.h"
+#include "silo/persistence/exception.h"
 #include "silo_api/database_mutex.h"
 
 silo_api::DatabaseDirectoryWatcher::DatabaseDirectoryWatcher(
@@ -135,7 +137,23 @@ void silo_api::DatabaseDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*ti
    }
 
    SPDLOG_INFO("New data version detected: {}", most_recent_database_state->first.string());
-   database_mutex.setDatabase(silo::Database::loadDatabaseState(most_recent_database_state->first));
+   try {
+      database_mutex.setDatabase(silo::Database::loadDatabaseState(most_recent_database_state->first
+      ));
+   } catch (const silo::persistence::SaveDatabaseException& save_exception) {
+      SPDLOG_ERROR(save_exception.what());
+   } catch (const std::exception& ex) {
+      SPDLOG_ERROR(ex.what());
+   } catch (const std::string& ex) {
+      SPDLOG_ERROR(ex);
+   } catch (...) {
+      SPDLOG_ERROR("Loading cancelled with uncatchable (...) exception");
+      const auto exception = std::current_exception();
+      if (exception) {
+         const auto* message = abi::__cxa_current_exception_type()->name();
+         SPDLOG_ERROR("current_exception: {}", message);
+      }
+   }
    SPDLOG_INFO(
       "New database with version {} successfully loaded.",
       most_recent_database_state->first.string()
