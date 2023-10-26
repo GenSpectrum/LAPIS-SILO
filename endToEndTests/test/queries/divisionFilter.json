@@ -1,0 +1,24 @@
+{
+  "testCaseName": "Filter by division then aggregate",
+  "query": {
+    "action": {
+      "limit": 100,
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "children": [
+        {
+          "column": "division",
+          "value": "Aargau",
+          "type": "StringEquals"
+        }
+      ],
+      "type": "And"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 6
+    }
+  ]
+}
