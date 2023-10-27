@@ -15,7 +15,7 @@ IndexedStringColumnPartition::IndexedStringColumnPartition(
 std::optional<const roaring::Roaring*> IndexedStringColumnPartition::filter(const std::string& value
 ) const {
    const auto value_id = lookup.getId(value);
-   if (value_id.has_value()) {
+   if (value_id.has_value() && indexed_values.contains(value_id.value())) {
       return &indexed_values.at(value_id.value());
    }
    return std::nullopt;
