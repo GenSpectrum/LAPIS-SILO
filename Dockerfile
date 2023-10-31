@@ -45,6 +45,5 @@ RUN apk update && apk add libtbb=2021.7.0-r0 curl jq
 HEALTHCHECK --start-period=20s CMD curl --fail --silent localhost:8081/info | jq .sequenceCount | xargs test 0 -ne || exit 1
 
 EXPOSE 8081
-ENV SPDLOG_LEVEL="off,file_logger=debug"
 
 ENTRYPOINT ["./siloApi"]

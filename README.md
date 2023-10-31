@@ -155,14 +155,13 @@ queries. To execute the tests:
 
 # Logging
 
-We use [spdlog](https://github.com/gabime/spdlog) for logging. The log level and log target can be controlled via
-environment variables:
+We use [spdlog](https://github.com/gabime/spdlog) for logging.
+The log level can be controlled via the environment variable `SPDLOG_LEVEL`:
 
-* Start SILO with `SPDLOG_LEVEL=off,console_logger=debug` to log to stdout at debug level.
-* Start SILO with `SPDLOG_LEVEL=off,file_logger=trace` to log to daily rotating files in `log/` (relative from the
-  location where SILO is executed) at trace level.
+* Start SILO with `SPDLOG_LEVEL=off` to turn off logging.
+* Start SILO with `SPDLOG_LEVEL=debug` to log at debug level.
 
-If `SPDLOG_LEVEL` is not set, SILO will log to the console at info level.
+SILO will log to `./logs/silo_<date>.log` and to stdout.
 
 We decided to use the macros provided by spdlog rather than the functions, because this lets us disable log statements
 at compile time by adjusting `add_compile_definitions(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)` to the desired log level
