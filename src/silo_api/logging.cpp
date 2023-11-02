@@ -23,16 +23,12 @@ void setupLogger() {
    spdlog::cfg::load_env_levels();
    spdlog::flush_every(FIVE_SECONDS);
 
-   auto file_logger = spdlog::daily_logger_mt(
-      "file_logger", "logs/silo.log", AT_MIDNIGHT, AT_0_MINUTES, DONT_TRUNCATE, MAX_FILES_7
+   auto logger = spdlog::daily_logger_mt(
+      "logger", "logs/silo.log", AT_MIDNIGHT, AT_0_MINUTES, DONT_TRUNCATE, MAX_FILES_7
    );
+   logger->sinks().push_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
 
-   auto console_logger = spdlog::stdout_color_mt("console_logger");
-   console_logger->flush_on(spdlog::level::trace);
-
-   auto default_logger =
-      file_logger->level() < console_logger->level() ? file_logger : console_logger;
-   spdlog::set_default_logger(default_logger);
+   spdlog::set_default_logger(logger);
 
    spdlog::daily_logger_mt(
       silo::PERFORMANCE_LOGGER_NAME,
