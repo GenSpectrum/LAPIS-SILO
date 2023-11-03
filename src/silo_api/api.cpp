@@ -215,10 +215,13 @@ class SiloServer : public Poco::Util::ServerApplication {
          database.saveDatabaseState(preprocessing_config.getOutputDirectory());
       } catch (const silo::PreprocessingException& preprocessing_exception) {
          SPDLOG_ERROR(preprocessing_exception.what());
+         throw preprocessing_exception;
       } catch (const std::exception& ex) {
          SPDLOG_ERROR(ex.what());
+         throw ex;
       } catch (const std::string& ex) {
          SPDLOG_ERROR(ex);
+         return 1;
       } catch (...) {
          SPDLOG_ERROR("Preprocessing cancelled with uncatchable (...) exception");
          const auto exception = std::current_exception();
@@ -226,6 +229,7 @@ class SiloServer : public Poco::Util::ServerApplication {
             const auto* message = abi::__cxa_current_exception_type()->name();
             SPDLOG_ERROR("current_exception: {}", message);
          }
+         return 1;
       }
       return Application::EXIT_OK;
    };
