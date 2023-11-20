@@ -1,8 +1,9 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <silo/common/log.h>
 #include <spdlog/sinks/null_sink.h>
 #include <spdlog/spdlog.h>
+
+#include "silo/common/log.h"
 
 int main(int argc, char* argv[]) {
    spdlog::set_level(spdlog::level::off);

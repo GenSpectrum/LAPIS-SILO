@@ -149,7 +149,7 @@ void silo::SequenceStorePartition<SymbolType>::fillIndexes(const std::vector<std
                char const character = genomes[sequence_id][position];
                const auto symbol = SymbolType::charToSymbol(character);
                if (!symbol.has_value()) {
-                  throw PreprocessingException(
+                  throw preprocessing::PreprocessingException(
                      "Illegal character " + std::to_string(character) + " contained in sequence."
                   );
                }

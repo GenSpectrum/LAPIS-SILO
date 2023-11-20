@@ -27,6 +27,7 @@ struct convert<OptionalPreprocessingConfig> {
          extractStringIfPresent(node, "inputDirectory"),
          extractStringIfPresent(node, "outputDirectory"),
          extractStringIfPresent(node, "intermediateResultsDirectory"),
+         extractStringIfPresent(node, "preprocessingDatabaseLocation"),
          extractStringIfPresent(node, "ndjsonInputFilename"),
          extractStringIfPresent(node, "metadataFilename"),
          extractStringIfPresent(node, "pangoLineageDefinitionFilename"),
@@ -51,7 +52,7 @@ OptionalPreprocessingConfig PreprocessingConfigReader::readConfig(
    try {
       auto config = YAML::LoadFile(config_path.string()).as<OptionalPreprocessingConfig>();
       if (config.ndjson_input_filename.has_value() && config.metadata_file) {
-         throw silo::PreprocessingException(fmt::format(
+         throw preprocessing::PreprocessingException(fmt::format(
             "Cannot specify both a ndjsonInputFilename ('{}') and metadataFilename('{}').",
             config.ndjson_input_filename.value().string(),
             config.metadata_file.value().string()
@@ -69,7 +70,7 @@ OptionalPreprocessingConfig PreprocessingConfigReader::readConfig(
 PreprocessingConfig OptionalPreprocessingConfig::mergeValuesFromOrDefault(
    const silo::preprocessing::OptionalPreprocessingConfig& other
 ) const {
-   return PreprocessingConfig(
+   return silo::preprocessing::PreprocessingConfig(
       InputDirectory{input_directory.value_or(
          other.input_directory.value_or(silo::preprocessing::DEFAULT_INPUT_DIRECTORY.directory)
       )},
@@ -80,6 +81,9 @@ PreprocessingConfig OptionalPreprocessingConfig::mergeValuesFromOrDefault(
       OutputDirectory{output_directory.value_or(
          other.output_directory.value_or(silo::preprocessing::DEFAULT_OUTPUT_DIRECTORY.directory)
       )},
+      PreprocessingDatabaseLocation{
+         preprocessing_database_location.has_value() ? preprocessing_database_location
+                                                     : other.preprocessing_database_location},
       NdjsonInputFilename{
          ndjson_input_filename.has_value() ? ndjson_input_filename : other.ndjson_input_filename},
       MetadataFilename{metadata_file.value_or(

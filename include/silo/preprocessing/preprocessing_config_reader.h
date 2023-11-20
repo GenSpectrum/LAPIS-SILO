@@ -22,6 +22,11 @@ struct OptionalPreprocessingConfig {
     */
    std::optional<std::filesystem::path> intermediate_results_directory;
    /**
+    * The filename where the intermediate results will be stored
+    * that are not relevant for an end user.
+    */
+   std::optional<std::filesystem::path> preprocessing_database_location;
+   /**
     * The filename of the ndjson input file, relative to the inputDirectory
     * Must not be specified together with metadata input file
     */

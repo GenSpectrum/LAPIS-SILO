@@ -12,7 +12,7 @@ namespace {
 void initializeTable(duckdb::Connection& connection, std::string table_name) {
    auto return_value = connection.Query(fmt::format("DROP TABLE IF EXISTS {};", table_name));
    if (return_value->HasError()) {
-      throw silo::PreprocessingException(return_value->ToString());
+      throw silo::preprocessing::PreprocessingException(return_value->ToString());
    }
    return_value = connection.Query(fmt::format(
       "CREATE TABLE {} ("
@@ -22,7 +22,7 @@ void initializeTable(duckdb::Connection& connection, std::string table_name) {
       table_name
    ));
    if (return_value->HasError()) {
-      throw silo::PreprocessingException(return_value->ToString());
+      throw silo::preprocessing::PreprocessingException(return_value->ToString());
    }
 }
 }  // namespace

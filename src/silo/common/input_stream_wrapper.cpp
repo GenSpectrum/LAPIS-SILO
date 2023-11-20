@@ -39,7 +39,7 @@ InputStreamWrapper::InputStreamWrapper(const std::filesystem::path& filename)
       SPDLOG_INFO("Detected file without specialized ending, processing raw: " + filename.string());
       file = std::ifstream(filename, std::ios::binary);
    } else {
-      throw silo::PreprocessingException(
+      throw silo::preprocessing::PreprocessingException(
          "Cannot find file with name or associated endings (.xz, .zst): " + filename.string()
       );
    }

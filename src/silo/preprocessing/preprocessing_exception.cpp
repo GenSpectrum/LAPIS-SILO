@@ -2,9 +2,9 @@
 
 #include <string>
 
-namespace silo {
+namespace silo::preprocessing {
 
 PreprocessingException::PreprocessingException(const std::string& error_message)
     : std::runtime_error(error_message.c_str()) {}
 
-}  // namespace silo
+}  // namespace silo::preprocessing

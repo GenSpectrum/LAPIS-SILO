@@ -1,0 +1,61 @@
+#include "silo/preprocessing/sequence_info.h"
+
+#include <gtest/gtest.h>
+#include <duckdb.hpp>
+
+#include "silo/preprocessing/preprocessing_exception.h"
+#include "silo/storage/reference_genomes.h"
+
+using silo::ReferenceGenomes;
+using silo::preprocessing::SequenceInfo;
+
+TEST(SequenceInfo, validatesSuccessfulOnCorrectFile) {
+   ReferenceGenomes reference_genomes =
+      ReferenceGenomes::readFromFile("testBaseData/exampleDataset2/reference_genomes.json");
+   SequenceInfo sequence_info(reference_genomes);
+
+   duckdb::DuckDB duckdb;
+   duckdb::Connection connection(duckdb);
+   ASSERT_NO_THROW(
+      sequence_info.validate(connection, "testBaseData/exampleDataset2/sample.ndjson.zst")
+   );
+}
+
+TEST(SequenceInfo, failWhenTooManyGenomesInReferences) {
+   ReferenceGenomes reference_genomes =
+      ReferenceGenomes::readFromFile("testBaseData/exampleDataset/reference_genomes.json");
+   SequenceInfo sequence_info(reference_genomes);
+
+   duckdb::DuckDB duckdb;
+   duckdb::Connection connection(duckdb);
+   ASSERT_THROW(
+      sequence_info.validate(connection, "testBaseData/exampleDataset2/sample.ndjson.zst"),
+      silo::preprocessing::PreprocessingException
+   );
+}
+
+TEST(SequenceInfo, failWhenTooManyGenomesInJson) {
+   ReferenceGenomes reference_genomes =
+      ReferenceGenomes::readFromFile("testBaseData/exampleDataset2/reference_genomes.json");
+   SequenceInfo sequence_info(reference_genomes);
+
+   duckdb::DuckDB duckdb;
+   duckdb::Connection connection(duckdb);
+   ASSERT_THROW(
+      sequence_info.validate(connection, "testBaseData/ndjsonFiles/oneline_second_nuc.json.zst"),
+      silo::preprocessing::PreprocessingException
+   );
+}
+
+TEST(SequenceInfo, failWhenTooFewAASequencesInJson) {
+   ReferenceGenomes reference_genomes =
+      ReferenceGenomes::readFromFile("testBaseData/exampleDataset2/reference_genomes.json");
+   SequenceInfo sequence_info(reference_genomes);
+
+   duckdb::DuckDB duckdb;
+   duckdb::Connection connection(duckdb);
+   ASSERT_THROW(
+      sequence_info.validate(connection, "testBaseData/ndjsonFiles/oneline_without_ORF.json.zst"),
+      silo::preprocessing::PreprocessingException
+   );
+}

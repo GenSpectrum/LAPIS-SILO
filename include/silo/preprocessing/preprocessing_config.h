@@ -43,6 +43,11 @@ struct NdjsonInputFilename {
 };
 const NdjsonInputFilename DEFAULT_NDJSON_INPUT_FILENAME = {std::nullopt};
 
+struct PreprocessingDatabaseLocation {
+   std::optional<std::string> filename;
+};
+const PreprocessingDatabaseLocation DEFAULT_PREPROCESSING_DATABASE_LOCATION = {std::nullopt};
+
 struct PangoLineageDefinitionFilename {
    std::optional<std::string> filename;
 };
@@ -77,6 +82,7 @@ class PreprocessingConfig {
 
    std::filesystem::path input_directory;
    std::filesystem::path output_directory;
+   std::optional<std::filesystem::path> preprocessing_database_location;
    std::optional<std::filesystem::path> pango_lineage_definition_file;
    std::optional<std::filesystem::path> ndjson_input_filename;
    std::filesystem::path metadata_file;
@@ -94,6 +100,7 @@ class PreprocessingConfig {
       const InputDirectory& input_directory_,
       const IntermediateResultsDirectory& intermediate_results_directory_,
       const OutputDirectory& output_directory_,
+      const PreprocessingDatabaseLocation& preprocessing_database_location_,
       const NdjsonInputFilename& ndjson_input_filename_,
       const MetadataFilename& metadata_filename_,
       const PangoLineageDefinitionFilename& pango_lineage_definition_filename_,
@@ -109,6 +116,8 @@ class PreprocessingConfig {
    [[nodiscard]] std::optional<std::filesystem::path> getPangoLineageDefinitionFilename() const;
 
    [[nodiscard]] std::filesystem::path getReferenceGenomeFilename() const;
+
+   [[nodiscard]] std::optional<std::filesystem::path> getPreprocessingDatabaseLocation() const;
 
    [[nodiscard]] std::optional<std::filesystem::path> getNdjsonInputFilename() const;
 

@@ -27,6 +27,7 @@
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_config_reader.h"
 #include "silo/preprocessing/preprocessing_exception.h"
+#include "silo/preprocessing/preprocessor.h"
 #include "silo_api/database_directory_watcher.h"
 #include "silo_api/database_mutex.h"
 #include "silo_api/logging.h"
@@ -210,10 +211,13 @@ class SiloServer : public Poco::Util::ServerApplication {
          const auto preprocessing_config = preprocessingConfig(config());
          auto database_config = databaseConfig(config());
 
-         auto database = silo::Database::preprocessing(preprocessing_config, database_config);
+         auto preprocessor =
+            silo::preprocessing::Preprocessor(preprocessing_config, database_config);
+
+         auto database = preprocessor.preprocess();
 
          database.saveDatabaseState(preprocessing_config.getOutputDirectory());
-      } catch (const silo::PreprocessingException& preprocessing_exception) {
+      } catch (const silo::preprocessing::PreprocessingException& preprocessing_exception) {
          SPDLOG_ERROR(preprocessing_exception.what());
          throw preprocessing_exception;
       } catch (const std::exception& ex) {

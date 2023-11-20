@@ -18,20 +18,23 @@
 #include "silo/storage/sequence_store.h"
 
 namespace silo {
-struct BitmapContainerSize;
-struct BitmapSizePerSymbol;
-struct DatabaseInfo;
-struct DetailedDatabaseInfo;
-struct ReferenceGenomes;
+class BitmapContainerSize;
+class BitmapSizePerSymbol;
+class DatabaseInfo;
+class DetailedDatabaseInfo;
+class ReferenceGenomes;
 }  // namespace silo
 namespace silo::preprocessing {
-struct Partitions;
-struct PreprocessingConfig;
+class Preprocessor;
+class Partitions;
+class PreprocessingConfig;
 }  // namespace silo::preprocessing
 
 namespace silo {
 
 class Database {
+   friend class preprocessing::Preprocessor;
+
   public:
    silo::config::DatabaseConfig database_config;
    std::vector<DatabasePartition> partitions;
@@ -39,11 +42,6 @@ class Database {
    silo::storage::ColumnGroup columns;
    std::map<std::string, SequenceStore<Nucleotide>> nuc_sequences;
    std::map<std::string, SequenceStore<AminoAcid>> aa_sequences;
-
-   static Database preprocessing(
-      const preprocessing::PreprocessingConfig& preprocessing_config,
-      const config::DatabaseConfig& database_config_
-   );
 
    void saveDatabaseState(const std::filesystem::path& save_directory);
 
@@ -72,13 +70,6 @@ class Database {
   private:
    PangoLineageAliasLookup alias_key;
    DataVersion data_version_ = DataVersion{""};
-
-   void build(
-      duckdb::Connection& connection,
-      const preprocessing::Partitions& partition_descriptor,
-      const ReferenceGenomes& reference_genomes,
-      const std::string& order_by_clause
-   );
 
    std::map<std::string, std::vector<Nucleotide::Symbol>> getNucSequences() const;
 

@@ -101,7 +101,7 @@ void silo::ZstdFastaTableReader::reset() {
    ));
    if (query_result->HasError()) {
       SPDLOG_ERROR("Error when executing SQL " + query_result->GetError());
-      throw silo::PreprocessingException("Error when SQL " + query_result->GetError());
+      throw preprocessing::PreprocessingException("Error when SQL " + query_result->GetError());
    }
    current_chunk = query_result->Fetch();
    current_row = 0;

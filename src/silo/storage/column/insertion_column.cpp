@@ -36,7 +36,7 @@ InsertionEntry parseInsertion(
    if (position_and_insertion.size() == 2) {
       if (default_sequence_name == std::nullopt) {
          const std::string message = "Failed to parse insertion due to invalid format: " + value;
-         throw PreprocessingException(message);
+         throw preprocessing::PreprocessingException(message);
       }
       const auto position = boost::lexical_cast<uint32_t>(position_and_insertion[0]);
       const auto& insertion = position_and_insertion[1];
@@ -49,7 +49,7 @@ InsertionEntry parseInsertion(
       return {sequence_name, position, insertion};
    }
    const std::string message = "Failed to parse insertion due to invalid format: " + value;
-   throw PreprocessingException(message);
+   throw preprocessing::PreprocessingException(message);
 }
 }  // namespace
 

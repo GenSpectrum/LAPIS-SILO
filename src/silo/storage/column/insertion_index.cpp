@@ -156,7 +156,7 @@ void InsertionPosition<Nucleotide>::buildThreeMerIndex() {
       const auto opt_nuc_symbol_ids = Nucleotide::stringToSymbolVector(insertion_value);
       if (opt_nuc_symbol_ids == std::nullopt) {
          const auto illegal_nuc_char = Nucleotide::findIllegalChar(insertion_value);
-         throw silo::PreprocessingException(
+         throw preprocessing::PreprocessingException(
             "Illegal nucleotide character '" +
             (illegal_nuc_char.has_value() ? std::to_string(*illegal_nuc_char) : "Internal Error") +
             "' in insertion: " + insertion_value
@@ -197,7 +197,7 @@ void InsertionPosition<AminoAcid>::buildThreeMerIndex() {
       const auto opt_aa_symbol_ids = AminoAcid::stringToSymbolVector(insertion_value);
       if (opt_aa_symbol_ids == std::nullopt) {
          const auto illegal_aa_char = AminoAcid::findIllegalChar(insertion_value);
-         throw silo::PreprocessingException(
+         throw preprocessing::PreprocessingException(
             "Illegal amino acid character '" +
             (illegal_aa_char.has_value() ? std::to_string(*illegal_aa_char) : "Internal Error") +
             "' in insertion: " + insertion_value

@@ -34,6 +34,7 @@ PreprocessingConfig::PreprocessingConfig(
    const InputDirectory& input_directory_,
    const IntermediateResultsDirectory& intermediate_results_directory_,
    const OutputDirectory& output_directory_,
+   const PreprocessingDatabaseLocation& preprocessing_database_location_,
    const NdjsonInputFilename& ndjson_input_filename_,
    const MetadataFilename& metadata_filename_,
    const PangoLineageDefinitionFilename& pango_lineage_definition_filename_,
@@ -43,6 +44,7 @@ PreprocessingConfig::PreprocessingConfig(
    const NucleotideSequencePrefix& nucleotide_sequence_prefix_,
    const GenePrefix& gene_prefix_
 ) {
+   preprocessing_database_location = preprocessing_database_location_.filename;
    input_directory = input_directory_.directory;
    if (!std::filesystem::exists(input_directory)) {
       throw std::filesystem::filesystem_error(
@@ -86,6 +88,10 @@ PreprocessingConfig::PreprocessingConfig(
 
 std::filesystem::path PreprocessingConfig::getOutputDirectory() const {
    return output_directory;
+}
+
+std::optional<std::filesystem::path> PreprocessingConfig::getPreprocessingDatabaseLocation() const {
+   return preprocessing_database_location;
 }
 
 std::optional<std::filesystem::path> PreprocessingConfig::getPangoLineageDefinitionFilename(
@@ -240,7 +246,8 @@ std::filesystem::path PreprocessingConfig::getGeneSortedPartitionFilename(
       "{{ input directory: '{}', pango_lineage_definition_file: {}, output_directory: '{}', "
       "metadata_file: '{}', partition_folder: '{}', sorted_partition_folder: '{}', "
       "reference_genome_file: '{}',  gene_file_prefix: '{}',  "
-      "nucleotide_sequence_file_prefix: '{}' }}",
+      "nucleotide_sequence_file_prefix: '{}', ndjson_filename: {}, "
+      "preprocessing_database_location: {} }}",
       preprocessing_config.input_directory.string(),
       preprocessing_config.output_directory.string(),
       preprocessing_config.pango_lineage_definition_file.has_value()
@@ -251,6 +258,12 @@ std::filesystem::path PreprocessingConfig::getGeneSortedPartitionFilename(
       preprocessing_config.sorted_partition_folder.string(),
       preprocessing_config.reference_genome_file.string(),
       preprocessing_config.nucleotide_sequence_prefix,
-      preprocessing_config.gene_prefix
+      preprocessing_config.gene_prefix,
+      preprocessing_config.ndjson_input_filename.has_value()
+         ? "'" + preprocessing_config.ndjson_input_filename->string() + "'"
+         : "none",
+      preprocessing_config.preprocessing_database_location.has_value()
+         ? "'" + preprocessing_config.preprocessing_database_location->string() + "'"
+         : "none"
    );
 }

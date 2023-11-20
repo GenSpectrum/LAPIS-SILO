@@ -47,7 +47,7 @@ uint32_t ColumnPartitionGroup::fill(
       order_by_clause
    ));
    if (result->HasError()) {
-      throw silo::PreprocessingException(
+      throw preprocessing::PreprocessingException(
          "Error in the execution of the duckdb statement for partition key table "
          "generation: " +
          result->GetError()
