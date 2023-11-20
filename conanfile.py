@@ -8,6 +8,7 @@ class SiloRecipe(ConanFile):
     requires = [
         "boost/1.82.0",
         "poco/1.12.4",
+        "hwloc/2.9.3",
         "onetbb/2021.9.0",
         "nlohmann_json/3.11.2",
         "gtest/cci.20210126",
@@ -34,6 +35,8 @@ class SiloRecipe(ConanFile):
         "boost/*:lzma": True,
         "boost/*:zstd": True,
         "boost/*:shared": False,
+
+        "hwloc/*:shared": False,
 
         "boost/*:without_iostreams": False,
         "boost/*:without_serialization": False,
@@ -93,6 +96,7 @@ class SiloRecipe(ConanFile):
         deps = CMakeDeps(self)
         deps.set_property("boost", "cmake_find_mode", "both")
         deps.set_property("onetbb", "cmake_find_mode", "both")
+        deps.set_property("hwloc", "cmake_find_mode", "both")
         deps.set_property("poco", "cmake_find_mode", "both")
         deps.set_property("nlohmann_json", "cmake_find_mode", "both")
         deps.set_property("gtest", "cmake_find_mode", "both")
