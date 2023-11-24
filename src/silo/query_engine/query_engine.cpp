@@ -42,8 +42,8 @@ QueryResult QueryEngine::executeQuery(const std::string& query_string) const {
    int64_t filter_time;
    {
       const BlockTimer timer(filter_time);
-      const tbb::blocked_range<size_t> range(0, database.partitions.size(), 1);
-      tbb::parallel_for(range.begin(), range.end(), [&](const size_t& partition_index) {
+      for (size_t partition_index = 0; partition_index != database.partitions.size();
+           partition_index++) {
          std::unique_ptr<operators::Operator> part_filter = query.filter->compile(
             database,
             database.partitions[partition_index],
@@ -51,7 +51,7 @@ QueryResult QueryEngine::executeQuery(const std::string& query_string) const {
          );
          compiled_queries[partition_index] = part_filter->toString();
          partition_filters[partition_index] = part_filter->evaluate();
-      });
+      }
    }
 
    for (uint32_t i = 0; i < database.partitions.size(); ++i) {

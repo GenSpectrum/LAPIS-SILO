@@ -19,23 +19,6 @@
 
 namespace {
 
-std::vector<std::string> extractStringListValue(
-   duckdb::MaterializedQueryResult& result,
-   size_t row,
-   size_t column
-) {
-   std::vector<std::string> return_value;
-   duckdb::Value tmp_value = result.GetValue(column, row);
-   std::vector<duckdb::Value> child_values = duckdb::ListValue::GetChildren(tmp_value);
-   std::transform(
-      child_values.begin(),
-      child_values.end(),
-      std::back_inserter(return_value),
-      [](const duckdb::Value& value) { return value.GetValue<std::string>(); }
-   );
-   return return_value;
-}
-
 class Compressors {
   public:
    static std::

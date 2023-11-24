@@ -1,4 +1,4 @@
-#include "silo/preprocessing/metadata_validator.h"
+#include "silo/preprocessing/metadata_info.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -8,7 +8,7 @@
 #include "silo/preprocessing/preprocessing_exception.h"
 
 TEST(
-   MetadataValidator,
+   MetadataInfo,
    isValidMedataFileShouldReturnFalseWhenOneConfigCoulmnIsNotPresentInMetadataFile
 ) {
    const silo::config::DatabaseConfig some_config_with_one_column_not_in_metadata{
@@ -23,10 +23,16 @@ TEST(
          "gisaid_epi_isl",
       }};
 
-   const auto under_test = silo::preprocessing::MetadataValidator();
+   EXPECT_THROW(
+      silo::preprocessing::MetadataInfo::validateFromMetadataFile(
+         "testBaseData/exampleDataset/small_metadata_set.tsv",
+         some_config_with_one_column_not_in_metadata
+      ),
+      silo::preprocessing::PreprocessingException
+   );
 }
 
-TEST(MetadataValidator, isValidMedataFileShouldReturnTrueWithValidMetadataFile) {
+TEST(MetadataInfo, isValidMedataFileShouldReturnTrueWithValidMetadataFile) {
    const silo::config::DatabaseConfig valid_config{
       "main",
       {
@@ -40,9 +46,7 @@ TEST(MetadataValidator, isValidMedataFileShouldReturnTrueWithValidMetadataFile) 
          "gisaid_epi_isl",
       }};
 
-   const auto under_test = silo::preprocessing::MetadataValidator();
-
-   EXPECT_NO_THROW(under_test.validateMedataFile(
+   EXPECT_NO_THROW(silo::preprocessing::MetadataInfo::validateFromMetadataFile(
       "testBaseData/exampleDataset/small_metadata_set.tsv", valid_config
    ));
 }

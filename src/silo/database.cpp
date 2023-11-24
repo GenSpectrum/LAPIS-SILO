@@ -43,7 +43,7 @@
 #include "silo/config/database_config.h"
 #include "silo/database_info.h"
 #include "silo/persistence/exception.h"
-#include "silo/preprocessing/metadata_validator.h"
+#include "silo/preprocessing/metadata_info.h"
 #include "silo/preprocessing/ndjson_digestion.h"
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_exception.h"
@@ -107,6 +107,119 @@ template <>
 const std::map<std::string, SequenceStore<AminoAcid>>& Database::getSequenceStores<AminoAcid>(
 ) const {
    return aa_sequences;
+}
+
+void Database::validate() const {
+   std::vector<size_t> partition_sizes;
+   for (auto& partition : partitions) {
+      size_t partition_size = partition.sequence_count;
+      partition_sizes.push_back(partition_size);
+
+      for (const auto& [name, nuc_store] : partition.nuc_sequences) {
+         if (nuc_store.sequence_count != partition_size) {
+            throw preprocessing::PreprocessingException(fmt::format(
+               "nuc_store {} ({}) has invalid size (expected {}).",
+               name,
+               nuc_store.sequence_count,
+               partition_size
+            ));
+         }
+         if (nuc_store.positions.size() != nuc_store.reference_sequence.size()) {
+            throw preprocessing::PreprocessingException(fmt::format(
+               "nuc_store positions {} ({}) has size unequal to reference (expected {}).",
+               name,
+               nuc_store.positions.size(),
+               nuc_store.reference_sequence.size()
+            ));
+         }
+         if (nuc_store.reference_sequence.size() == 0) {
+            throw preprocessing::PreprocessingException(
+               "reference_sequence " + name + " is empty."
+            );
+         }
+         if (nuc_store.missing_symbol_bitmaps.size() != partition_size) {
+            throw preprocessing::PreprocessingException(
+               "nuc_store.missing_symbol_bitmaps " + name + " has invalid size."
+            );
+         }
+      }
+
+      for (const auto& [name, aa_store] : partition.aa_sequences) {
+         if (aa_store.sequence_count != partition_size) {
+            throw preprocessing::PreprocessingException(fmt::format(
+               "aa_store {} ({}) has invalid size (expected {}).",
+               name,
+               aa_store.sequence_count,
+               partition_size
+            ));
+         }
+         if (aa_store.positions.size() != aa_store.reference_sequence.size()) {
+            throw preprocessing::PreprocessingException(
+               "aa_store " + name + " has invalid position size."
+            );
+         }
+         if (aa_store.reference_sequence.size() == 0) {
+            throw preprocessing::PreprocessingException(
+               "reference_sequence " + name + " is empty."
+            );
+         }
+         if (aa_store.missing_symbol_bitmaps.size() != partition_size) {
+            throw preprocessing::PreprocessingException(
+               "aa_store.missing_symbol_bitmaps " + name + " has invalid size."
+            );
+         }
+      }
+
+      for (const auto& col : partition.columns.aa_insertion_columns) {
+         if (col.second.getValues().size() != partition_size) {
+            throw preprocessing::PreprocessingException(
+               "aa_insertion_columns " + col.first + " has invalid size."
+            );
+         }
+      }
+      for (const auto& col : partition.columns.nuc_insertion_columns) {
+         if (col.second.getValues().size() != partition_size) {
+            throw preprocessing::PreprocessingException(
+               "nuc_insertion_columns " + col.first + " has invalid size."
+            );
+         }
+      }
+      for (const auto& col : partition.columns.date_columns) {
+         if (col.second.getValues().size() != partition_size) {
+            throw preprocessing::PreprocessingException(
+               "date_columns " + col.first + " has invalid size."
+            );
+         }
+      }
+      for (const auto& col : partition.columns.int_columns) {
+         if (col.second.getValues().size() != partition_size) {
+            throw preprocessing::PreprocessingException(
+               "int_columns " + col.first + " has invalid size."
+            );
+         }
+      }
+      for (const auto& col : partition.columns.indexed_string_columns) {
+         if (col.second.getValues().size() != partition_size) {
+            throw preprocessing::PreprocessingException(
+               "indexed_string_columns " + col.first + " has invalid size."
+            );
+         }
+      }
+      for (const auto& col : partition.columns.string_columns) {
+         if (col.second.getValues().size() != partition_size) {
+            throw preprocessing::PreprocessingException(
+               "string_columns " + col.first + " has invalid size."
+            );
+         }
+      }
+      for (const auto& col : partition.columns.float_columns) {
+         if (col.second.getValues().size() != partition_size) {
+            throw preprocessing::PreprocessingException(
+               "float_columns " + col.first + " has invalid size."
+            );
+         }
+      }
+   }
 }
 
 using RoaringStatistics = roaring::api::roaring_statistics_t;
@@ -191,13 +304,14 @@ BitmapContainerSize& BitmapContainerSize::operator+=(const BitmapContainerSize& 
 
 BitmapSizePerSymbol& BitmapSizePerSymbol::operator+=(const BitmapSizePerSymbol& other) {
    for (const auto& symbol : Nucleotide::SYMBOLS) {
-      this->size_in_bytes.at(symbol) += other.size_in_bytes.at(symbol);
+      assert(size_in_bytes.contains(symbol));
+      size_in_bytes.at(symbol) += other.size_in_bytes.at(symbol);
    }
    return *this;
 }
 BitmapSizePerSymbol::BitmapSizePerSymbol() {
    for (const auto& symbol : Nucleotide::SYMBOLS) {
-      this->size_in_bytes[symbol] = 0;
+      size_in_bytes[symbol] = 0;
    }
 }
 
@@ -214,6 +328,7 @@ BitmapSizePerSymbol Database::calculateBitmapSizePerSymbol(
 
       for (const SequenceStorePartition<SymbolType>& seq_store_partition : seq_store.partitions) {
          for (const auto& position : seq_store_partition.positions) {
+            assert(bitmap_size_per_symbol.size_in_bytes.contains(symbol));
             bitmap_size_per_symbol.size_in_bytes[symbol] +=
                position.bitmaps.at(symbol).getSizeInBytes();
          }
@@ -253,55 +368,45 @@ BitmapContainerSize Database::calculateBitmapContainerSizePerGenomeSection(
    SPDLOG_TRACE("calculateBitmapContainerSizePerGenomeSection");
    const uint32_t genome_length = seq_store.reference_sequence.size();
 
-   BitmapContainerSize global_bitmap_container_size_per_genome_section(
-      genome_length, section_length
-   );
+   BitmapContainerSize bitmap_container_size_per_genome_section(genome_length, section_length);
 
-   std::mutex lock;
-   tbb::parallel_for(tbb::blocked_range<uint32_t>(0U, genome_length), [&](const auto& range) {
-      BitmapContainerSize bitmap_container_size_per_genome_section(genome_length, section_length);
-      for (auto position_index = range.begin(); position_index != range.end(); ++position_index) {
-         RoaringStatistics statistic;
-         for (const auto& seq_store_partition : seq_store.partitions) {
-            const auto& position = seq_store_partition.positions[position_index];
-            for (const auto& genome_symbol : Nucleotide::SYMBOLS) {
-               const auto& bitmap = position.bitmaps.at(genome_symbol);
+   for (size_t position_index = 0; position_index < genome_length; position_index++) {
+      RoaringStatistics statistic;
+      for (const auto& seq_store_partition : seq_store.partitions) {
+         const auto& position = seq_store_partition.positions[position_index];
+         for (const auto& genome_symbol : Nucleotide::SYMBOLS) {
+            const auto& bitmap = position.bitmaps.at(genome_symbol);
 
-               roaring_bitmap_statistics(&bitmap.roaring, &statistic);
-               addStatisticToBitmapContainerSize(
-                  statistic,
-                  bitmap_container_size_per_genome_section.bitmap_container_size_statistic
-               );
+            roaring_bitmap_statistics(&bitmap.roaring, &statistic);
+            addStatisticToBitmapContainerSize(
+               statistic, bitmap_container_size_per_genome_section.bitmap_container_size_statistic
+            );
 
-               bitmap_container_size_per_genome_section.total_bitmap_size_computed +=
-                  bitmap.getSizeInBytes();
-               bitmap_container_size_per_genome_section.total_bitmap_size_frozen +=
-                  bitmap.getFrozenSizeInBytes();
+            bitmap_container_size_per_genome_section.total_bitmap_size_computed +=
+               bitmap.getSizeInBytes();
+            bitmap_container_size_per_genome_section.total_bitmap_size_frozen +=
+               bitmap.getFrozenSizeInBytes();
 
-               if (statistic.n_bitset_containers > 0) {
-                  if (genome_symbol == Nucleotide::SYMBOL_MISSING) {
-                     bitmap_container_size_per_genome_section.size_per_genome_symbol_and_section
-                        .at("N")
-                        .at(position_index / section_length) += statistic.n_bitset_containers;
-                  } else if (genome_symbol == Nucleotide::Symbol::GAP) {
-                     bitmap_container_size_per_genome_section.size_per_genome_symbol_and_section
-                        .at("GAP")
-                        .at(position_index / section_length) += statistic.n_bitset_containers;
-                  } else {
-                     bitmap_container_size_per_genome_section.size_per_genome_symbol_and_section
-                        .at("NOT_N_NOT_GAP")
-                        .at(position_index / section_length) += statistic.n_bitset_containers;
-                  }
+            if (statistic.n_bitset_containers > 0) {
+               if (genome_symbol == Nucleotide::SYMBOL_MISSING) {
+                  bitmap_container_size_per_genome_section.size_per_genome_symbol_and_section
+                     .at("N")
+                     .at(position_index / section_length) += statistic.n_bitset_containers;
+               } else if (genome_symbol == Nucleotide::Symbol::GAP) {
+                  bitmap_container_size_per_genome_section.size_per_genome_symbol_and_section
+                     .at("GAP")
+                     .at(position_index / section_length) += statistic.n_bitset_containers;
+               } else {
+                  bitmap_container_size_per_genome_section.size_per_genome_symbol_and_section
+                     .at("NOT_N_NOT_GAP")
+                     .at(position_index / section_length) += statistic.n_bitset_containers;
                }
             }
          }
       }
-      lock.lock();
-      global_bitmap_container_size_per_genome_section += bitmap_container_size_per_genome_section;
-      lock.unlock();
-   });
+   }
 
-   return global_bitmap_container_size_per_genome_section;
+   return bitmap_container_size_per_genome_section;
 }
 
 DetailedDatabaseInfo Database::detailedDatabaseInfo() const {

@@ -43,6 +43,8 @@ class Database {
    std::map<std::string, SequenceStore<Nucleotide>> nuc_sequences;
    std::map<std::string, SequenceStore<AminoAcid>> aa_sequences;
 
+   void validate() const;
+
    void saveDatabaseState(const std::filesystem::path& save_directory);
 
    static Database loadDatabaseState(const std::filesystem::path& save_directory);

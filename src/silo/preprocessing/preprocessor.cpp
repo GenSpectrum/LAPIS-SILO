@@ -11,7 +11,7 @@
 #include "silo/database.h"
 #include "silo/database_info.h"
 #include "silo/preprocessing/metadata.h"
-#include "silo/preprocessing/metadata_validator.h"
+#include "silo/preprocessing/metadata_info.h"
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_database.h"
 #include "silo/preprocessing/preprocessing_exception.h"
@@ -19,7 +19,6 @@
 #include "silo/storage/reference_genomes.h"
 #include "silo/zstdfasta/zstd_decompressor.h"
 #include "silo/zstdfasta/zstdfasta_table.h"
-#include "silo/zstdfasta/zstdfasta_table_reader.h"
 
 namespace silo::preprocessing {
 
@@ -42,14 +41,7 @@ Database Preprocessor::preprocess() {
 
    buildTablesFromInput(reference_genomes);
 
-   // TODO SPDLOG_INFO("preprocessing - validate metadata file (-> preprocessing_table) against
-   // config");
-   // TODO also validate types
-
    const std::string metadata_filename = preprocessing_config.getMetadataInputFilename().string();
-   preprocessing::MetadataValidator().validateMedataFile(
-      preprocessing_config.getMetadataInputFilename(), database_config
-   );
 
    SPDLOG_INFO("preprocessing - building alias key");
    const auto pango_lineage_definition_filename =
@@ -65,7 +57,7 @@ Database Preprocessor::preprocess() {
       auto return_code = preprocessing_db.query(fmt::format(
          "create\n"
          "or replace table partition_keys as\n"
-         "select row_number() over () - 1 as id, *\n"
+         "select row_number() over () - 1 as id, partition_key, count\n"
          "from (SELECT {} as partition_key, COUNT(*) as count "
          "      FROM metadata_table "
          "      GROUP BY partition_key "
@@ -103,7 +95,7 @@ Database Preprocessor::preprocess() {
          "                    partition_keys l2,\n"
          "                    allowed_count\n"
          "               where l1.to_id + 1 = l2.id)\n"
-         "select row_number() over () - 1 as partition_id, *\n"
+         "select row_number() over () - 1 as partition_id, from_id, to_id, count\n"
          "from (select from_id, max(to_id) as to_id, max(count) as count\n"
          "      from grouped_partition_keys\n"
          "      group by from_id)"
@@ -164,8 +156,7 @@ Database Preprocessor::preprocess() {
       }
 
       return_code = preprocessing_db.query(
-         "create\n"
-         "or replace table partition_key_to_partition as\n"
+         "create or replace table partition_key_to_partition as\n"
          "select 0::bigint as partition_key, 0::bigint as partition_id;"
       );
 
@@ -188,25 +179,39 @@ Database Preprocessor::preprocess() {
    }
 
    if (preprocessing_config.getNdjsonInputFilename().has_value()) {
-      std::string order_by_select = ", metadata." + database_config.schema.primary_key + " as " +
-                                    database_config.schema.primary_key;
+      std::string order_by_select =
+         ", " + database_config.schema.primary_key + " as " + database_config.schema.primary_key;
       if (database_config.schema.date_to_sort_by.has_value()) {
-         order_by_select += ", metadata." + database_config.schema.date_to_sort_by.value() +
-                            " as " + database_config.schema.date_to_sort_by.value();
+         order_by_select += ", " + database_config.schema.date_to_sort_by.value() + " as " +
+                            database_config.schema.date_to_sort_by.value();
+      }
+      std::string partition_by_where, partition_by_select;
+      if (database_config.schema.partition_by.has_value()) {
+         partition_by_select = "partition_key_to_partition.partition_id as partition_id";
+         partition_by_where = fmt::format(
+            "where (preprocessing_table.{0} = partition_key_to_partition.partition_key) or "
+            "(preprocessing_table.{0} is null and "
+            "partition_key_to_partition.partition_key is null)",
+            database_config.schema.partition_by.value()
+         );
+      } else {
+         partition_by_select = "0 as partition_id";
+         partition_by_where = "";
       }
 
       for (const auto& [seq_name, _] : reference_genomes.raw_nucleotide_sequences) {
          auto return_code = preprocessing_db.query(fmt::format(
             "create or replace view nuc_{0} as\n"
-            "select metadata.{1} as key, nuc_{0} as sequence,"
-            "partition_key_to_partition.partition_id as partition_id"
-            "{3} \n"
+            "select {1} as key, nuc_{0} as sequence,"
+            "{3}"
+            "{2} \n"
             "from preprocessing_table, partition_key_to_partition "
-            "where preprocessing_table.metadata.{2} = partition_key_to_partition.partition_key;",
+            "{4};",
             seq_name,
             database_config.schema.primary_key,
-            database_config.schema.partition_by.value(),
-            order_by_select
+            order_by_select,
+            partition_by_select,
+            partition_by_where
          ));
 
          if (return_code->HasError()) {
@@ -218,15 +223,16 @@ Database Preprocessor::preprocess() {
       for (const auto& [seq_name, _] : reference_genomes.raw_aa_sequences) {
          auto return_code = preprocessing_db.query(fmt::format(
             "create or replace view gene_{0} as\n"
-            "select metadata.{1} as key, gene_{0} as sequence, "
-            "partition_key_to_partition.partition_id as partition_id\n"
-            "{3} \n"
+            "select {1} as key, gene_{0} as sequence, "
+            "{3}\n"
+            "{2} \n"
             "from preprocessing_table, partition_key_to_partition "
-            "where preprocessing_table.metadata.{2} = partition_key_to_partition.partition_key;",
+            "{4};",
             seq_name,
             database_config.schema.primary_key,
-            database_config.schema.partition_by.value(),
-            order_by_select
+            order_by_select,
+            partition_by_select,
+            partition_by_where
          ));
 
          if (return_code->HasError()) {
@@ -316,6 +322,8 @@ void Preprocessor::buildTablesFromInput(const ReferenceGenomes& reference_genome
       SequenceInfo sequence_info(reference_genomes);
       sequence_info.validate(preprocessing_db.getConnection(), file_name);
 
+      MetadataInfo metadata_info = MetadataInfo::validateFromNdjsonFile(file_name, database_config);
+
       if (!std::filesystem::exists(file_name)) {
          throw silo::preprocessing::PreprocessingException(
             fmt::format("The specified input file {} does not exist.", file_name)
@@ -329,26 +337,25 @@ void Preprocessor::buildTablesFromInput(const ReferenceGenomes& reference_genome
 
       preprocessing_db.registerSequences(reference_genomes);
 
-      // TODO validate primary key
-
       auto return_value = preprocessing_db.query(fmt::format(
-         "CREATE OR REPLACE TABLE preprocessing_table AS SELECT metadata, "
-         "{} as insertions, {} as aaInsertions, {} \n FROM '{}';",
-         sequence_info.getNucInsertionSelect(),
-         sequence_info.getAAInsertionSelect(),
+         "CREATE OR REPLACE TABLE preprocessing_table AS SELECT {}, "
+         "{} \n FROM '{}' WHERE metadata.{} is not null;",
+         boost::join(metadata_info.getMetadataSelects(), ","),
          boost::join(sequence_info.getSequenceSelects(), ","),
-         file_name
+         file_name,
+         database_config.schema.primary_key
       ));
       if (return_value->HasError()) {
          SPDLOG_ERROR(return_value->GetError());
          throw PreprocessingException(return_value->GetError());
       }
 
-      auto return_code = preprocessing_db.query(
+      auto return_code = preprocessing_db.query(fmt::format(
          "create or replace view metadata_table as\n"
-         "select metadata.*, insertions, aaInsertions\n"
-         "from preprocessing_table;"
-      );
+         "select {}\n"
+         "from preprocessing_table;",
+         boost::join(metadata_info.getMetadataFields(), ",")
+      ));
       if (return_code->HasError()) {
          SPDLOG_ERROR(return_code->GetError());
          throw PreprocessingException(return_code->GetError());
@@ -363,12 +370,18 @@ void Preprocessor::buildTablesFromInput(const ReferenceGenomes& reference_genome
       );
    } else {
       SPDLOG_DEBUG("preprocessing - classic pipeline chosen");
+      const std::filesystem::path metadata_filename =
+         preprocessing_config.getMetadataInputFilename();
+
+      MetadataInfo metadata_info =
+         MetadataInfo::validateFromMetadataFile(metadata_filename, database_config);
 
       auto return_code = preprocessing_db.query(fmt::format(
          "create or replace table metadata_table as\n"
-         "select *\n"
+         "select {}\n"
          "from '{}';",
-         preprocessing_config.getMetadataInputFilename().string()
+         boost::join(metadata_info.getMetadataSelects(), ","),
+         metadata_filename.string()
       ));
       if (return_code->HasError()) {
          SPDLOG_ERROR(return_code->GetError());
@@ -476,6 +489,9 @@ Database Preprocessor::buildDatabase(
 
    SPDLOG_INFO("Build took {} ms", micros);
    SPDLOG_INFO("database info: {}", database.getDatabaseInfo());
+
+   database.validate();
+
    return database;
 }
 
