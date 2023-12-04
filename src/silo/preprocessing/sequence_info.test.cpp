@@ -10,9 +10,9 @@ using silo::ReferenceGenomes;
 using silo::preprocessing::SequenceInfo;
 
 TEST(SequenceInfo, validatesSuccessfulOnCorrectFile) {
-   ReferenceGenomes reference_genomes =
+   const auto reference_genomes =
       ReferenceGenomes::readFromFile("testBaseData/exampleDataset2/reference_genomes.json");
-   SequenceInfo sequence_info(reference_genomes);
+   const SequenceInfo sequence_info(reference_genomes);
 
    duckdb::DuckDB duckdb;
    duckdb::Connection connection(duckdb);
@@ -22,9 +22,9 @@ TEST(SequenceInfo, validatesSuccessfulOnCorrectFile) {
 }
 
 TEST(SequenceInfo, failWhenTooManyGenomesInReferences) {
-   ReferenceGenomes reference_genomes =
+   const auto reference_genomes =
       ReferenceGenomes::readFromFile("testBaseData/exampleDataset/reference_genomes.json");
-   SequenceInfo sequence_info(reference_genomes);
+   const SequenceInfo sequence_info(reference_genomes);
 
    duckdb::DuckDB duckdb;
    duckdb::Connection connection(duckdb);
@@ -35,9 +35,9 @@ TEST(SequenceInfo, failWhenTooManyGenomesInReferences) {
 }
 
 TEST(SequenceInfo, failWhenTooManyGenomesInJson) {
-   ReferenceGenomes reference_genomes =
+   const auto reference_genomes =
       ReferenceGenomes::readFromFile("testBaseData/exampleDataset2/reference_genomes.json");
-   SequenceInfo sequence_info(reference_genomes);
+   const SequenceInfo sequence_info(reference_genomes);
 
    duckdb::DuckDB duckdb;
    duckdb::Connection connection(duckdb);
@@ -48,9 +48,9 @@ TEST(SequenceInfo, failWhenTooManyGenomesInJson) {
 }
 
 TEST(SequenceInfo, failWhenTooFewAASequencesInJson) {
-   ReferenceGenomes reference_genomes =
+   const auto reference_genomes =
       ReferenceGenomes::readFromFile("testBaseData/exampleDataset2/reference_genomes.json");
-   SequenceInfo sequence_info(reference_genomes);
+   const SequenceInfo sequence_info(reference_genomes);
 
    duckdb::DuckDB duckdb;
    duckdb::Connection connection(duckdb);

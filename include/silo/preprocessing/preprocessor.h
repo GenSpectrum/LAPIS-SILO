@@ -24,6 +24,8 @@ class Preprocessor {
    Database preprocess();
 
   private:
+   void buildPartitioningTable();
+
    void buildTablesFromInput(const ReferenceGenomes& reference_genomes);
 
    Database buildDatabase(

@@ -44,7 +44,6 @@
 #include "silo/database_info.h"
 #include "silo/persistence/exception.h"
 #include "silo/preprocessing/metadata_info.h"
-#include "silo/preprocessing/ndjson_digestion.h"
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/query_engine/query_engine.h"
@@ -111,7 +110,7 @@ const std::map<std::string, SequenceStore<AminoAcid>>& Database::getSequenceStor
 
 void Database::validate() const {
    std::vector<size_t> partition_sizes;
-   for (auto& partition : partitions) {
+   for (const auto& partition : partitions) {
       size_t partition_size = partition.sequence_count;
       partition_sizes.push_back(partition_size);
 

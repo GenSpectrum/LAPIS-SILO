@@ -14,7 +14,7 @@ std::vector<std::string> extractStringListValue(
    size_t column
 ) {
    std::vector<std::string> return_value;
-   duckdb::Value tmp_value = result.GetValue(column, row);
+   const duckdb::Value tmp_value = result.GetValue(column, row);
    std::vector<duckdb::Value> child_values = duckdb::ListValue::GetChildren(tmp_value);
    std::transform(
       child_values.begin(),
@@ -29,10 +29,10 @@ std::vector<std::string> extractStringListValue(
 namespace silo::preprocessing {
 
 SequenceInfo::SequenceInfo(const silo::ReferenceGenomes& reference_genomes) {
-   for (auto& [name, sequence] : reference_genomes.raw_nucleotide_sequences) {
+   for (const auto& [name, sequence] : reference_genomes.raw_nucleotide_sequences) {
       nuc_sequence_names.push_back(name);
    }
-   for (auto& [name, sequence] : reference_genomes.raw_aa_sequences) {
+   for (const auto& [name, sequence] : reference_genomes.raw_aa_sequences) {
       aa_sequence_names.push_back(name);
    }
 }

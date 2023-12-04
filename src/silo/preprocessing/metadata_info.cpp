@@ -16,7 +16,7 @@ std::vector<std::string> extractStringListValue(
    size_t column
 ) {
    std::vector<std::string> return_value;
-   duckdb::Value tmp_value = result.GetValue(column, row);
+   const duckdb::Value tmp_value = result.GetValue(column, row);
    std::vector<duckdb::Value> child_values = duckdb::ListValue::GetChildren(tmp_value);
    std::transform(
       child_values.begin(),
@@ -61,11 +61,6 @@ std::unordered_map<std::string, std::string> validateFieldsAgainstConfig(
       metadata_field_string += "'" + field + "' with selection '" + select + "',";
    }
    SPDLOG_TRACE("Found metadata fields: " + metadata_field_string);
-   if (!validated_metadata_fields.contains(database_config.schema.primary_key)) {
-      throw silo::preprocessing::PreprocessingException(
-         "Primary key not present in both database config and metadata file."
-      );
-   }
    return validated_metadata_fields;
 }
 
