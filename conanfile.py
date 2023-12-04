@@ -7,6 +7,7 @@ class SiloRecipe(ConanFile):
 
     requires = [
         "boost/1.82.0",
+        "duckdb/0.8.1",
         "poco/1.12.4",
         "hwloc/2.9.3",
         "onetbb/2021.9.0",
@@ -16,7 +17,6 @@ class SiloRecipe(ConanFile):
         "spdlog/1.11.0",
         "yaml-cpp/0.7.0",
         "zstd/1.5.5",
-        "duckdb/0.8.1",
     ]
 
     default_options = {
@@ -95,16 +95,16 @@ class SiloRecipe(ConanFile):
     def generate(self):
         deps = CMakeDeps(self)
         deps.set_property("boost", "cmake_find_mode", "both")
-        deps.set_property("onetbb", "cmake_find_mode", "both")
-        deps.set_property("hwloc", "cmake_find_mode", "both")
-        deps.set_property("poco", "cmake_find_mode", "both")
-        deps.set_property("nlohmann_json", "cmake_find_mode", "both")
+        deps.set_property("duckdb", "cmake_find_mode", "both")
+        deps.set_property("fmt", "cmake_find_mode", "both")
         deps.set_property("gtest", "cmake_find_mode", "both")
+        deps.set_property("hwloc", "cmake_find_mode", "both")
+        deps.set_property("nlohmann_json", "cmake_find_mode", "both")
+        deps.set_property("onetbb", "cmake_find_mode", "both")
         deps.set_property("pcre2", "cmake_find_mode", "both")
+        deps.set_property("poco", "cmake_find_mode", "both")
         deps.set_property("roaring", "cmake_find_mode", "both")
         deps.set_property("spdlog", "cmake_find_mode", "both")
-        deps.set_property("fmt", "cmake_find_mode", "both")
         deps.set_property("yaml-cpp", "cmake_find_mode", "both")
         deps.set_property("zstd", "cmake_find_mode", "both")
-        deps.set_property("duckdb", "cmake_find_mode", "both")
         deps.generate()

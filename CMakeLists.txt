@@ -13,7 +13,6 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -static-libstdc++ -static-libgcc")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/")
-message(STATUS "CMAKE_MODULE_PATH " ${CMAKE_MODULE_PATH})
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -26,15 +25,15 @@ add_compile_definitions(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 # ---------------------------------------------------------------------------
 
 find_package(Boost REQUIRED COMPONENTS system serialization iostreams)
-find_package(Poco REQUIRED COMPONENTS Net Util JSON)
+find_package(duckdb REQUIRED)
 find_package(LibLZMA REQUIRED)
-find_package(TBB REQUIRED)
 find_package(nlohmann_json REQUIRED)
+find_package(Poco REQUIRED COMPONENTS Net Util JSON)
 find_package(roaring REQUIRED)
 find_package(spdlog REQUIRED)
+find_package(TBB REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(zstd REQUIRED)
-find_package(duckdb REQUIRED)
 
 # ---------------------------------------------------------------------------
 # Includes
