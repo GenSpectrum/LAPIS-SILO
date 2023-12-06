@@ -50,8 +50,7 @@ class Compressors {
       duckdb::ExpressionState& /*state*/,
       duckdb::Vector& result
    ) {
-      using namespace duckdb;
-      BinaryExecutor::Execute<string_t, string_t, string_t>(
+      duckdb::BinaryExecutor::Execute<duckdb::string_t, duckdb::string_t, duckdb::string_t>(
          args.data[0],
          args.data[1],
          result,
@@ -64,7 +63,7 @@ class Compressors {
                   .compress(
                      uncompressed.GetData(), uncompressed.GetSize(), buffer.data(), buffer.size()
                   );
-            return StringVector::AddStringOrBlob(
+            return duckdb::StringVector::AddStringOrBlob(
                result, buffer.data(), static_cast<uint32_t>(size_or_error_code)
             );
          }
