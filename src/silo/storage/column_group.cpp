@@ -36,7 +36,7 @@ uint32_t ColumnPartitionGroup::fill(
 
    std::vector<std::string> column_names;
    for (const auto& item : database_config.schema.metadata) {
-      column_names.push_back(item.name);  // TODO validate
+      column_names.push_back(item.name);
    }
    std::string column_name_sql = boost::algorithm::join(column_names, ", ");
 
