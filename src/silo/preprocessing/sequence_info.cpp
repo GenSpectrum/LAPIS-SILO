@@ -7,25 +7,6 @@
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/reference_genomes.h"
 
-namespace {
-std::vector<std::string> extractStringListValue(
-   duckdb::MaterializedQueryResult& result,
-   size_t row,
-   size_t column
-) {
-   std::vector<std::string> return_value;
-   const duckdb::Value tmp_value = result.GetValue(column, row);
-   std::vector<duckdb::Value> child_values = duckdb::ListValue::GetChildren(tmp_value);
-   std::transform(
-      child_values.begin(),
-      child_values.end(),
-      std::back_inserter(return_value),
-      [](const duckdb::Value& value) { return value.GetValue<std::string>(); }
-   );
-   return return_value;
-}
-}  // namespace
-
 namespace silo::preprocessing {
 
 SequenceInfo::SequenceInfo(const silo::ReferenceGenomes& reference_genomes) {
@@ -49,15 +30,17 @@ std::vector<std::string> SequenceInfo::getSequenceSelects() {
    std::vector<std::string> sequence_selects;
    for (const std::string& name : nuc_sequence_names) {
       sequence_selects.emplace_back(fmt::format(
-         "compressNuc(alignedNucleotideSequences.{0}, "
-         "'{0}') as nuc_{0}",
+         "{0}(alignedNucleotideSequences.{1}, "
+         "'{1}') as nuc_{1}",
+         preprocessing::PreprocessingDatabase::COMPRESS_NUC,
          name
       ));
    }
    for (const std::string& name : aa_sequence_names) {
       sequence_selects.emplace_back(fmt::format(
-         "compressAA(alignedAminoAcidSequences.{0}, "
-         "'{0}') as gene_{0}",
+         "{0}(alignedAminoAcidSequences.{1}, "
+         "'{1}') as gene_{1}",
+         preprocessing::PreprocessingDatabase::COMPRESS_AA,
          name
       ));
    }

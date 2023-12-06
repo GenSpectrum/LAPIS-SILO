@@ -119,14 +119,14 @@ PreprocessingDatabase::PreprocessingDatabase(const std::string& backing_file)
    }
 
    connection.CreateVectorizedFunction(
-      "compressNuc",
+      std::string(COMPRESS_NUC),
       {duckdb::LogicalType::VARCHAR, duckdb::LogicalType::VARCHAR},
       duckdb::LogicalType::BLOB,
       Compressors::compressNuc
    );
 
    connection.CreateVectorizedFunction(
-      "compressAA",
+      std::string(COMPRESS_AA),
       {duckdb::LogicalType::VARCHAR, duckdb::LogicalType::VARCHAR},
       duckdb::LogicalType::BLOB,
       Compressors::compressAA
@@ -161,7 +161,7 @@ preprocessing::Partitions PreprocessingDatabase::getPartitionDescriptor() {
         it != partition_descriptor_from_sql->end();
         ++it) {
       const duckdb::Value db_partition_id = it.current_row.GetValue<duckdb::Value>(0);
-      int64_t partition_id_int = duckdb::BigIntValue::Get(db_partition_id);
+      const int64_t partition_id_int = duckdb::BigIntValue::Get(db_partition_id);
       if (partition_id_int != check_partition_id_sorted_and_contiguous) {
          throw PreprocessingException(
             "The partition IDs produced by the preprocessing are not sorted, not starting from 0 "
@@ -172,7 +172,7 @@ preprocessing::Partitions PreprocessingDatabase::getPartitionDescriptor() {
       uint32_t partition_id = partition_id_int;
 
       const duckdb::Value db_partition_size = it.current_row.GetValue<duckdb::Value>(1);
-      int64_t partition_size_bigint = duckdb::BigIntValue::Get(db_partition_size);
+      const int64_t partition_size_bigint = duckdb::BigIntValue::Get(db_partition_size);
       if (partition_size_bigint <= 0) {
          throw PreprocessingException("Non-positive partition size encountered.");
       }
@@ -182,7 +182,7 @@ preprocessing::Partitions PreprocessingDatabase::getPartitionDescriptor() {
          );
       }
 
-      uint32_t partition_size = static_cast<uint32_t>(partition_size_bigint);
+      const auto partition_size = static_cast<uint32_t>(partition_size_bigint);
 
       partitions.emplace_back(std::vector<preprocessing::PartitionChunk>{
          {partition_id, 0, partition_size, 0}});
@@ -198,6 +198,23 @@ void PreprocessingDatabase::generateNucSequenceTable(
 ) {
    silo::FastaReader fasta_reader(filename);
    ZstdFastaTable::generate(connection, table_name, fasta_reader, reference_sequence);
+}
+
+std::vector<std::string> extractStringListValue(
+   duckdb::MaterializedQueryResult& result,
+   size_t row,
+   size_t column
+) {
+   std::vector<std::string> return_value;
+   const duckdb::Value tmp_value = result.GetValue(column, row);
+   std::vector<duckdb::Value> child_values = duckdb::ListValue::GetChildren(tmp_value);
+   std::transform(
+      child_values.begin(),
+      child_values.end(),
+      std::back_inserter(return_value),
+      [](const duckdb::Value& value) { return value.GetValue<std::string>(); }
+   );
+   return return_value;
 }
 
 }  // namespace silo::preprocessing

@@ -6,29 +6,13 @@
 #include <duckdb.hpp>
 
 #include "silo/config/database_config.h"
+#include "silo/preprocessing/preprocessing_database.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
 namespace {
 
-std::vector<std::string> extractStringListValue(
-   duckdb::MaterializedQueryResult& result,
-   size_t row,
-   size_t column
-) {
-   std::vector<std::string> return_value;
-   const duckdb::Value tmp_value = result.GetValue(column, row);
-   std::vector<duckdb::Value> child_values = duckdb::ListValue::GetChildren(tmp_value);
-   std::transform(
-      child_values.begin(),
-      child_values.end(),
-      std::back_inserter(return_value),
-      [](const duckdb::Value& value) { return value.GetValue<std::string>(); }
-   );
-   return return_value;
-}
-
 std::unordered_map<std::string, std::string> validateFieldsAgainstConfig(
-   const std::unordered_map<std::string, std::string> found_metadata_fields,
+   const std::unordered_map<std::string, std::string>& found_metadata_fields,
    const silo::config::DatabaseConfig& database_config
 ) {
    std::vector<std::string> config_metadata_fields;
@@ -40,10 +24,10 @@ std::unordered_map<std::string, std::string> validateFieldsAgainstConfig(
    );
 
    std::unordered_map<std::string, std::string> validated_metadata_fields;
-   for (const auto& pair : found_metadata_fields) {
-      if (std::find(config_metadata_fields.begin(), config_metadata_fields.end(), pair.first)
+   for (const auto& [field_name, access_path] : found_metadata_fields) {
+      if (std::find(config_metadata_fields.begin(), config_metadata_fields.end(), field_name)
        != config_metadata_fields.end()) {
-         validated_metadata_fields.emplace(pair);
+         validated_metadata_fields.emplace(field_name, access_path);
       }
    }
    for (const std::string& name : config_metadata_fields) {
@@ -57,8 +41,8 @@ std::unordered_map<std::string, std::string> validateFieldsAgainstConfig(
    }
 
    std::string metadata_field_string;
-   for (const auto& [field, select] : validated_metadata_fields) {
-      metadata_field_string += "'" + field + "' with selection '" + select + "',";
+   for (const auto& [field_name, select] : validated_metadata_fields) {
+      metadata_field_string += "'" + field_name + "' with selection '" + select + "',";
    }
    SPDLOG_TRACE("Found metadata fields: " + metadata_field_string);
    return validated_metadata_fields;
@@ -167,7 +151,7 @@ MetadataInfo MetadataInfo::validateFromNdjsonFile(
    }
 
    std::unordered_map<std::string, std::string> metadata_fields_to_validate;
-   for (const std::string& metadata_field : extractStringListValue(*result, 0, 0)) {
+   for (const std::string& metadata_field : preprocessing::extractStringListValue(*result, 0, 0)) {
       metadata_fields_to_validate[metadata_field] = "metadata." + metadata_field;
    }
    detectInsertionLists(ndjson_file, metadata_fields_to_validate);

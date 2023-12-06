@@ -14,6 +14,11 @@ namespace preprocessing {
 class Partitions;
 
 class PreprocessingDatabase {
+  public:
+   static constexpr std::string_view COMPRESS_NUC = "compressNuc";
+   static constexpr std::string_view COMPRESS_AA = "compressAA";
+
+  private:
    duckdb::DuckDB duck_db;
    duckdb::Connection connection;
 
@@ -24,7 +29,7 @@ class PreprocessingDatabase {
 
    Partitions getPartitionDescriptor();
 
-   void registerSequences(const silo::ReferenceGenomes& reference_genomes);
+   static void registerSequences(const silo::ReferenceGenomes& reference_genomes);
 
    std::unique_ptr<duckdb::MaterializedQueryResult> query(std::string sql_query);
 
@@ -34,6 +39,12 @@ class PreprocessingDatabase {
       const std::string& filename
    );
 };
+
+std::vector<std::string> extractStringListValue(
+   duckdb::MaterializedQueryResult& result,
+   size_t row,
+   size_t column
+);
 
 }  // namespace preprocessing
 }  // namespace silo
