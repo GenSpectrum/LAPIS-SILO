@@ -30,10 +30,6 @@ class SequenceInfo {
 
    std::vector<std::string> getSequenceSelects();
 
-   std::string getNucInsertionSelect();
-
-   std::string getAAInsertionSelect();
-
    void validate(duckdb::Connection& connection, std::string_view input_filename) const;
 };
 }  // namespace preprocessing

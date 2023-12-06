@@ -64,45 +64,6 @@ std::vector<std::string> SequenceInfo::getSequenceSelects() {
    return sequence_selects;
 }
 
-std::string SequenceInfo::getNucInsertionSelect() {
-   if (nuc_sequence_names.empty()) {
-      return "''";
-   }
-   if (nuc_sequence_names.size() == 1) {
-      return "list_string_agg(nucleotideInsertions." + nuc_sequence_names.at(0) + ")";
-   }
-
-   std::vector<std::string> list_transforms;
-   for (const std::string& sequence_name : nuc_sequence_names) {
-      list_transforms.push_back(
-         fmt::format("list_transform(nucleotideInsertions.{0}, x ->'{0}:' || x)", sequence_name)
-      );
-   }
-
-   return "list_string_agg(flatten([" + boost::join(list_transforms, ",") + "]))";
-}
-
-std::string SequenceInfo::getAAInsertionSelect() {
-   if (aa_sequence_names.empty()) {
-      return "''";
-   }
-   if (aa_sequence_names.size() == 1) {
-      return fmt::format(
-         "list_string_agg(list_transform(aminoAcidInsertions.{0}, x ->'{0}:' || x))",
-         aa_sequence_names.at(0)
-      );
-   }
-
-   std::vector<std::string> list_transforms;
-   for (const std::string& sequence_name : aa_sequence_names) {
-      list_transforms.push_back(
-         fmt::format("list_transform(aminoAcidInsertions.{0}, x ->'{0}:' || x)", sequence_name)
-      );
-   }
-
-   return "list_string_agg(flatten([" + boost::join(list_transforms, ",") + "]))";
-}
-
 void SequenceInfo::validate(duckdb::Connection& connection, std::string_view input_filename) const {
    auto result = connection.Query(fmt::format(
       "SELECT json_keys(alignedNucleotideSequences), json_keys(alignedAminoAcidSequences) "
@@ -144,6 +105,7 @@ void SequenceInfo::validate(duckdb::Connection& connection, std::string_view inp
    for (const std::string& name : nuc_sequence_names) {
       if (std::find(nuc_sequence_names_to_validate.begin(), nuc_sequence_names_to_validate.end(), name)
           == nuc_sequence_names_to_validate.end()) {
+         // TODO(#220) handle the cases when segments are left out appropriately
          throw silo::preprocessing::PreprocessingException(fmt::format(
             "The aligned nucleotide sequence {} which is contained in the reference sequences is "
             "not contained in the input file {}.",
