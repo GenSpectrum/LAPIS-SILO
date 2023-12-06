@@ -55,10 +55,10 @@ class Compressors {
          args.data[1],
          result,
          args.size(),
-         [&](const duckdb::string_t uncompressed, const duckdb::string_t genome_name) {
-            std::string& buffer = nuc_buffers.at(genome_name.GetString()).local();
+         [&](const duckdb::string_t uncompressed, const duckdb::string_t segment_name) {
+            std::string& buffer = nuc_buffers.at(segment_name.GetString()).local();
             size_t size_or_error_code =
-               nuc_compressors.at(genome_name.GetString())
+               nuc_compressors.at(segment_name.GetString())
                   .local()
                   .compress(
                      uncompressed.GetData(), uncompressed.GetSize(), buffer.data(), buffer.size()

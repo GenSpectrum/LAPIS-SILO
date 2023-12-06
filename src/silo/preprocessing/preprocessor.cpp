@@ -336,11 +336,6 @@ void Preprocessor::buildTablesFromInput(const ReferenceGenomes& reference_genome
 
       std::string file_name = ndjson_input_filename.value();
 
-      SequenceInfo sequence_info(reference_genomes);
-      sequence_info.validate(preprocessing_db.getConnection(), file_name);
-
-      MetadataInfo metadata_info = MetadataInfo::validateFromNdjsonFile(file_name, database_config);
-
       if (!std::filesystem::exists(file_name)) {
          throw silo::preprocessing::PreprocessingException(
             fmt::format("The specified input file {} does not exist.", file_name)
@@ -351,6 +346,11 @@ void Preprocessor::buildTablesFromInput(const ReferenceGenomes& reference_genome
             fmt::format("The specified input file {} is empty.", file_name)
          );
       }
+
+      SequenceInfo sequence_info(reference_genomes);
+      sequence_info.validate(preprocessing_db.getConnection(), file_name);
+
+      const auto metadata_info = MetadataInfo::validateFromNdjsonFile(file_name, database_config);
 
       preprocessing_db.registerSequences(reference_genomes);
 

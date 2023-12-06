@@ -18,14 +18,6 @@ SequenceInfo::SequenceInfo(const silo::ReferenceGenomes& reference_genomes) {
    }
 }
 
-std::vector<std::string>& SequenceInfo::getNucSequenceNames() {
-   return nuc_sequence_names;
-}
-
-std::vector<std::string>& SequenceInfo::getAASequenceNames() {
-   return aa_sequence_names;
-}
-
 std::vector<std::string> SequenceInfo::getSequenceSelects() {
    std::vector<std::string> sequence_selects;
    for (const std::string& name : nuc_sequence_names) {

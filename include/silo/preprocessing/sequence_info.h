@@ -24,10 +24,6 @@ class SequenceInfo {
   public:
    SequenceInfo(const silo::ReferenceGenomes& reference_genomes);
 
-   std::vector<std::string>& getNucSequenceNames();
-
-   std::vector<std::string>& getAASequenceNames();
-
    std::vector<std::string> getSequenceSelects();
 
    void validate(duckdb::Connection& connection, std::string_view input_filename) const;
