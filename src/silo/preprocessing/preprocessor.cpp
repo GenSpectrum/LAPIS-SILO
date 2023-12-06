@@ -111,8 +111,7 @@ Database Preprocessor::preprocess() {
          }
       }
    } else {
-      std::string order_by_select = ", partitioned_metadata." + database_config.schema.primary_key +
-                                    " as " + database_config.schema.primary_key;
+      std::string order_by_select = ", raw.key as " + database_config.schema.primary_key;
       if (database_config.schema.date_to_sort_by.has_value()) {
          order_by_select += ", partitioned_metadata." +
                             database_config.schema.date_to_sort_by.value() + " as " +
@@ -121,8 +120,10 @@ Database Preprocessor::preprocess() {
 
       for (const auto& [seq_name, reference_sequence] :
            reference_genomes.raw_nucleotide_sequences) {
+         const std::string raw_table_name = "raw_nuc_" + seq_name;
+         const std::string table_name = "nuc_" + seq_name;
          preprocessing_db.generateNucSequenceTable(
-            "raw_nuc_" + seq_name,
+            raw_table_name,
             reference_sequence,
             preprocessing_config.getNucFilenameNoExtension(seq_name).replace_extension(
                silo::preprocessing::FASTA_EXTENSION
@@ -131,15 +132,16 @@ Database Preprocessor::preprocess() {
 
          auto return_code = preprocessing_db.query(fmt::format(
             R"-(
-create or replace view nuc_{0} as
+create or replace view {} as
 select key, sequence,
 partitioned_metadata.partition_id as partition_id
-{2}
-from raw_nuc_{0} raw, partitioned_metadata
-where raw.key = partitioned_metadata.{1};)-",
-            seq_name,
-            database_config.schema.primary_key,
-            order_by_select
+{}
+from {} raw, partitioned_metadata
+where raw.key = partitioned_metadata.{};)-",
+            table_name,
+            order_by_select,
+            raw_table_name,
+            database_config.schema.primary_key
          ));
 
          if (return_code->HasError()) {
@@ -149,29 +151,29 @@ where raw.key = partitioned_metadata.{1};)-",
       }
 
       for (const auto& [seq_name, reference_sequence] : reference_genomes.raw_aa_sequences) {
+         const std::string raw_table_name = "raw_gene_" + seq_name;
+         const std::string table_name = "nuc_" + seq_name;
          preprocessing_db.generateNucSequenceTable(
-            "raw_gene_" + seq_name,
+            raw_table_name,
             reference_sequence,
             preprocessing_config.getGeneFilenameNoExtension(seq_name).replace_extension(
                silo::preprocessing::FASTA_EXTENSION
             )
          );
-         silo::FastaReader fasta_reader(preprocessing_config.getGeneFilenameNoExtension(seq_name)
-                                           .replace_extension(silo::preprocessing::FASTA_EXTENSION)
-         );
 
          auto return_code = preprocessing_db.query(fmt::format(
             R"-(
-create or replace view gene_{0} as
+create or replace view {} as
 select key, sequence,
 partitioned_metadata.partition_id as partition_id
-{2}
-from raw_gene_{0} raw, partitioned_metadata
-where raw.key = partitioned_metadata.{1};
+{}
+from {} raw, partitioned_metadata
+where raw.key = partitioned_metadata.{};
 )-",
-            seq_name,
-            database_config.schema.primary_key,
-            order_by_select
+            table_name,
+            order_by_select,
+            raw_table_name,
+            database_config.schema.primary_key
          ));
       }
    }
