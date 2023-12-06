@@ -14,13 +14,13 @@ class ZstdFastaTable {
   public:
    static void generate(
       duckdb::Connection& connection,
-      std::string table_name,
+      const std::string& table_name,
       ZstdFastaReader& file_reader
    );
 
    static void generate(
       duckdb::Connection& connection,
-      std::string table_name,
+      const std::string& table_name,
       FastaReader& file_reader,
       std::string_view reference_sequence
    );

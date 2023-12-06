@@ -29,7 +29,7 @@ void initializeTable(duckdb::Connection& connection, std::string table_name) {
 
 void silo::ZstdFastaTable::generate(
    duckdb::Connection& connection,
-   std::string table_name,
+   const std::string& table_name,
    silo::ZstdFastaReader& file_reader
 ) {
    initializeTable(connection, table_name);
@@ -41,9 +41,10 @@ void silo::ZstdFastaTable::generate(
       if (key == std::nullopt) {
          break;
       }
-      size_t compressed_size = compressed_genome.size();
-      auto compressed_data = reinterpret_cast<const unsigned char*>(compressed_genome.data());
-      duckdb::string_t key_value = key.value();
+      const size_t compressed_size = compressed_genome.size();
+      const auto* compressed_data =
+         reinterpret_cast<const unsigned char*>(compressed_genome.data());
+      const duckdb::string_t key_value = key.value();
       appender.BeginRow();
       appender.Append(key_value);
       appender.Append(duckdb::Value::BLOB(compressed_data, compressed_size));
@@ -54,7 +55,7 @@ void silo::ZstdFastaTable::generate(
 
 void silo::ZstdFastaTable::generate(
    duckdb::Connection& connection,
-   std::string table_name,
+   const std::string& table_name,
    silo::FastaReader& file_reader,
    std::string_view reference_sequence
 ) {
@@ -70,9 +71,10 @@ void silo::ZstdFastaTable::generate(
       if (key == std::nullopt) {
          break;
       }
-      size_t compressed_size = compressor.compress(uncompressed_genome, compressed_genome);
-      auto compressed_data = reinterpret_cast<const unsigned char*>(compressed_genome.data());
-      duckdb::string_t key_value = key.value();
+      const size_t compressed_size = compressor.compress(uncompressed_genome, compressed_genome);
+      const auto* compressed_data =
+         reinterpret_cast<const unsigned char*>(compressed_genome.data());
+      const duckdb::string_t key_value = key.value();
       appender.BeginRow();
       appender.Append(key_value);
       appender.Append(duckdb::Value::BLOB(compressed_data, compressed_size));
