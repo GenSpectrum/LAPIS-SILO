@@ -91,6 +91,10 @@ void validatePartitionBy(
 void ConfigRepository::validateConfig(const DatabaseConfig& config) const {
    std::map<std::string, ValueType> metadata_map = validateMetadataDefinitions(config);
 
+   if (config.schema.metadata.empty()) {
+      throw ConfigException("Database config without fields not possible");
+   }
+
    if (metadata_map.find(config.schema.primary_key) == metadata_map.end()) {
       throw ConfigException("Primary key is not in metadata");
    }

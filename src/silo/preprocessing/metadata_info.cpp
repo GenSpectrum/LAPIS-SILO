@@ -92,10 +92,6 @@ MetadataInfo MetadataInfo::validateFromMetadataFile(
    const std::filesystem::path& metadata_file,
    const silo::config::DatabaseConfig& database_config
 ) {
-   if (database_config.schema.metadata.empty()) {
-      throw PreprocessingException("Database config without fields not possible");
-   }
-
    duckdb::DuckDB db(nullptr);
    duckdb::Connection connection(db);
    // Get the column names (headers) of the table
@@ -119,10 +115,6 @@ MetadataInfo MetadataInfo::validateFromNdjsonFile(
    const std::filesystem::path& ndjson_file,
    const silo::config::DatabaseConfig& database_config
 ) {
-   if (database_config.schema.metadata.empty()) {
-      throw PreprocessingException("Database config without fields not possible");
-   }
-
    duckdb::DuckDB db(nullptr);
    duckdb::Connection connection(db);
 
