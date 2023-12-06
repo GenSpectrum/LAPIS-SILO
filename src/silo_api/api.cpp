@@ -217,9 +217,6 @@ class SiloServer : public Poco::Util::ServerApplication {
          auto database = preprocessor.preprocess();
 
          database.saveDatabaseState(preprocessing_config.getOutputDirectory());
-      } catch (const silo::preprocessing::PreprocessingException& preprocessing_exception) {
-         SPDLOG_ERROR(preprocessing_exception.what());
-         throw preprocessing_exception;
       } catch (const std::exception& ex) {
          SPDLOG_ERROR(ex.what());
          throw ex;

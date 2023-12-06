@@ -140,8 +140,6 @@ void silo_api::DatabaseDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*ti
    try {
       database_mutex.setDatabase(silo::Database::loadDatabaseState(most_recent_database_state->first
       ));
-   } catch (const silo::persistence::SaveDatabaseException& save_exception) {
-      SPDLOG_ERROR(save_exception.what());
    } catch (const std::exception& ex) {
       SPDLOG_ERROR(ex.what());
    } catch (const std::string& ex) {
