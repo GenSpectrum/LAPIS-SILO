@@ -36,12 +36,7 @@ Database Preprocessor::preprocess() {
    ReferenceGenomes reference_genomes =
       ReferenceGenomes::readFromFile(preprocessing_config.getReferenceGenomeFilename());
 
-   std::string order_by_clause = database_config.schema.getStrictOrderByClause();
-   SPDLOG_INFO("preprocessing - order by clause is {}", order_by_clause);
-
    buildTablesFromInput(reference_genomes);
-
-   const std::string metadata_filename = preprocessing_config.getMetadataInputFilename().string();
 
    SPDLOG_INFO("preprocessing - building alias key");
    const auto pango_lineage_definition_filename =
@@ -78,14 +73,14 @@ Database Preprocessor::preprocess() {
          auto return_code = preprocessing_db.query(fmt::format(
             "create or replace view nuc_{0} as\n"
             "select {1} as key, nuc_{0} as sequence,"
-            "{3}"
-            "{2} \n"
+            "{2}"
+            "{3} \n"
             "from preprocessing_table, partition_key_to_partition "
             "{4};",
             seq_name,
             database_config.schema.primary_key,
-            order_by_select,
             partition_by_select,
+            order_by_select,
             partition_by_where
          ));
 
@@ -99,14 +94,14 @@ Database Preprocessor::preprocess() {
          auto return_code = preprocessing_db.query(fmt::format(
             "create or replace view gene_{0} as\n"
             "select {1} as key, gene_{0} as sequence, "
-            "{3}\n"
-            "{2} \n"
+            "{2}\n"
+            "{3} \n"
             "from preprocessing_table, partition_key_to_partition "
             "{4};",
             seq_name,
             database_config.schema.primary_key,
-            order_by_select,
             partition_by_select,
+            order_by_select,
             partition_by_where
          ));
 
@@ -166,7 +161,6 @@ where raw.key = partitioned_metadata.{1};)-",
          );
 
          auto return_code = preprocessing_db.query(fmt::format(
-
             R"-(
 create or replace view gene_{0} as
 select key, sequence,
@@ -184,6 +178,9 @@ where raw.key = partitioned_metadata.{1};
 
    preprocessing::Partitions partition_descriptor = preprocessing_db.getPartitionDescriptor();
 
+   std::string order_by_clause = database_config.schema.getStrictOrderByClause();
+   SPDLOG_INFO("preprocessing - order by clause is {}", order_by_clause);
+
    SPDLOG_INFO("preprocessing - building database");
 
    return buildDatabase(partition_descriptor, reference_genomes, order_by_clause, alias_key);
@@ -191,10 +188,17 @@ where raw.key = partitioned_metadata.{1};
 
 void Preprocessor::buildPartitioningTable() {
    if (database_config.schema.partition_by.has_value()) {
-      SPDLOG_INFO("preprocessing - calculating partitions");
+      buildPartitioningTableByColumn(database_config.schema.partition_by.value());
+   } else {
+      buildEmptyPartitioning();
+   }
+}
 
-      auto return_code = preprocessing_db.query(fmt::format(
-         R"-(
+void Preprocessor::buildPartitioningTableByColumn(const std::string& partition_by_field) {
+   SPDLOG_INFO("preprocessing - calculating partitions");
+
+   auto return_code = preprocessing_db.query(fmt::format(
+      R"-(
 create
 or replace table partition_keys as
 select row_number() over () - 1 as id, partition_key, count
@@ -203,22 +207,21 @@ from (SELECT {} as partition_key, COUNT(*) as count
       GROUP BY partition_key
       ORDER BY partition_key);
 )-",
-         database_config.schema.partition_by.value()
-      ));
+      partition_by_field
+   ));
 
-      if (return_code->HasError()) {
-         throw PreprocessingException(
-            "Error in the execution of the duckdb statement for partition key table "
-            "generation: " +
-            return_code->GetError()
-         );
-      } else {
-         SPDLOG_TRACE("Executed statement for partition key table generation.");
-         SPDLOG_TRACE(return_code->ToString());
-      }
+   if (return_code->HasError()) {
+      throw PreprocessingException(
+         "Error in the execution of the duckdb statement for partition key table "
+         "generation: " +
+         return_code->GetError()
+      );
+   }
+   SPDLOG_TRACE("Executed statement for partition key table generation.");
+   SPDLOG_TRACE(return_code->ToString());
 
-      return_code = preprocessing_db.query(
-         R"-(
+   return_code = preprocessing_db.query(
+      R"-(
 create or replace table partitioning as
 with recursive
           allowed_count(allowed_count) as (select sum(count) / 32 from
@@ -242,14 +245,14 @@ from (select from_id, max(to_id) as to_id, max(count) as count
       from grouped_partition_keys
       group by from_id)
 )-"
-      );
-      if (return_code->HasError()) {
-         SPDLOG_ERROR("Error when executing duckdb statement: {}", return_code->GetError());
-         throw PreprocessingException(return_code->GetError());
-      }
+   );
+   if (return_code->HasError()) {
+      SPDLOG_ERROR("Error when executing duckdb statement: {}", return_code->GetError());
+      throw PreprocessingException(return_code->GetError());
+   }
 
-      return_code = preprocessing_db.query(
-         R"-(
+   return_code = preprocessing_db.query(
+      R"-(
 create
 or replace table partition_key_to_partition as
 select partition_keys.partition_key as partition_key,
@@ -259,14 +262,14 @@ from partition_keys,
 where partition_keys.id >= partitioning.from_id
   AND partition_keys.id <= partitioning.to_id;
 )-"
-      );
-      if (return_code->HasError()) {
-         SPDLOG_ERROR("Error when executing duckdb statement: {}", return_code->GetError());
-         throw PreprocessingException(return_code->GetError());
-      }
+   );
+   if (return_code->HasError()) {
+      SPDLOG_ERROR("Error when executing duckdb statement: {}", return_code->GetError());
+      throw PreprocessingException(return_code->GetError());
+   }
 
-      return_code = preprocessing_db.query(fmt::format(
-         R"-(
+   return_code = preprocessing_db.query(fmt::format(
+      R"-(
 create
 or replace view partitioned_metadata as
 select partitioning.partition_id as partition_id, metadata_table.*
@@ -278,54 +281,55 @@ and partition_keys.partition_key is null))
   AND partition_keys.id >= partitioning.from_id
   AND partition_keys.id <= partitioning.to_id;
 )-",
-         database_config.schema.partition_by.value()
-      ));
-      if (return_code->HasError()) {
-         SPDLOG_ERROR("Error when executing duckdb statement: {}", return_code->GetError());
-         throw PreprocessingException(return_code->GetError());
-      }
-   } else {
-      SPDLOG_INFO(
-         "preprocessing - skip partition merging because no partition_by key was provided, instead "
-         "putting all sequences into the same partition"
-      );
+      partition_by_field
+   ));
+   if (return_code->HasError()) {
+      SPDLOG_ERROR("Error when executing duckdb statement: {}", return_code->GetError());
+      throw PreprocessingException(return_code->GetError());
+   }
+}
 
-      auto return_code = preprocessing_db.query(
-         R"-(
+void Preprocessor::buildEmptyPartitioning() {
+   SPDLOG_INFO(
+      "preprocessing - skip partition merging because no partition_by key was provided, instead "
+      "putting all sequences into the same partition"
+   );
+
+   auto return_code = preprocessing_db.query(
+      R"-(
 create or replace table partitioning as
 select 0::bigint as partition_id, 0::bigint as from_id, 0::bigint as to_id, count(*) as count
 from metadata_table;
 )-"
-      );
+   );
 
-      if (return_code->HasError()) {
-         SPDLOG_ERROR(return_code->GetError());
-         throw PreprocessingException(return_code->GetError());
-      }
-
-      return_code = preprocessing_db.query(
-         "create or replace table partition_key_to_partition as\n"
-         "select 0::bigint as partition_key, 0::bigint as partition_id;"
-      );
-
-      if (return_code->HasError()) {
-         SPDLOG_ERROR(return_code->GetError());
-         throw PreprocessingException(return_code->GetError());
-      }
-
-      return_code = preprocessing_db.query(
-         "create\n"
-         "or replace view partitioned_metadata as\n"
-         "select 0::bigint as partition_id, metadata_table.*\n"
-         "from metadata_table;"
-      );
-
-      if (return_code->HasError()) {
-         SPDLOG_ERROR(return_code->GetError());
-         throw PreprocessingException(return_code->GetError());
-      }
+   if (return_code->HasError()) {
+      SPDLOG_ERROR(return_code->GetError());
+      throw PreprocessingException(return_code->GetError());
    }
-}
+
+   return_code = preprocessing_db.query(
+      "create or replace table partition_key_to_partition as\n"
+      "select 0::bigint as partition_key, 0::bigint as partition_id;"
+   );
+
+   if (return_code->HasError()) {
+      SPDLOG_ERROR(return_code->GetError());
+      throw PreprocessingException(return_code->GetError());
+   }
+
+   return_code = preprocessing_db.query(
+      "create\n"
+      "or replace view partitioned_metadata as\n"
+      "select 0::bigint as partition_id, metadata_table.*\n"
+      "from metadata_table;"
+   );
+
+   if (return_code->HasError()) {
+      SPDLOG_ERROR(return_code->GetError());
+      throw PreprocessingException(return_code->GetError());
+   }
+};
 
 void Preprocessor::buildTablesFromInput(const ReferenceGenomes& reference_genomes) {
    const std::optional<std::string> ndjson_input_filename =

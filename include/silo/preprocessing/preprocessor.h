@@ -25,6 +25,8 @@ class Preprocessor {
 
   private:
    void buildPartitioningTable();
+   void buildPartitioningTableByColumn(const std::string& partition_by_field);
+   void buildEmptyPartitioning();
 
    void buildTablesFromInput(const ReferenceGenomes& reference_genomes);
 
