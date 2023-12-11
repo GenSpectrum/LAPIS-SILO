@@ -89,13 +89,12 @@ std::optional<std::string> silo::ZstdFastaTableReader::next(std::string& genome)
    }
 
    decompressor->decompress(compressed_buffer, genome_buffer);
-   genome = genome_buffer;  // TODO is the copy necessary?
+   genome = genome_buffer;
 
    return key;
 }
 
 void silo::ZstdFastaTableReader::reset() {
-   // TODO assert that it is and define what is a 'zstdfastatable'
    query_result = connection.Query(fmt::format(
       "SELECT key, sequence FROM {} WHERE {} {}", table_name, where_clause, order_by_clause
    ));

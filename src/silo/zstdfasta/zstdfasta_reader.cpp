@@ -75,7 +75,7 @@ std::optional<std::string> silo::ZstdFastaReader::next(std::string& genome) {
       return std::nullopt;
    }
    decompressor->decompress(compressed_buffer, genome_buffer);
-   genome = genome_buffer;  // TODO is the copy necessary?
+   genome = genome_buffer;
    return key;
 }
 

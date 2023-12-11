@@ -152,7 +152,7 @@ where raw.key = partitioned_metadata.{};)-",
 
       for (const auto& [seq_name, reference_sequence] : reference_genomes.raw_aa_sequences) {
          const std::string raw_table_name = "raw_gene_" + seq_name;
-         const std::string table_name = "nuc_" + seq_name;
+         const std::string table_name = "gene_" + seq_name;
          preprocessing_db.generateNucSequenceTable(
             raw_table_name,
             reference_sequence,

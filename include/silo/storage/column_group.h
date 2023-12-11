@@ -24,7 +24,8 @@ class access;
 
 namespace duckdb {
 class Connection;
-}
+class Value;
+}  // namespace duckdb
 
 namespace silo {
 
@@ -93,6 +94,12 @@ class ColumnPartitionGroup {
       uint32_t partition_id,
       const std::string& order_by_clause,
       const silo::config::DatabaseConfig& database_config
+   );
+
+   void addValueToColumn(
+      const std::string& column_name,
+      config::ColumnType column_type,
+      const duckdb::Value& value
    );
 
    [[nodiscard]] ColumnPartitionGroup getSubgroup(

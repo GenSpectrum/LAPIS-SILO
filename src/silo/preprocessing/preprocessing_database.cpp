@@ -161,15 +161,14 @@ preprocessing::Partitions PreprocessingDatabase::getPartitionDescriptor() {
         it != partition_descriptor_from_sql->end();
         ++it) {
       const duckdb::Value db_partition_id = it.current_row.GetValue<duckdb::Value>(0);
-      const int64_t partition_id_int = duckdb::BigIntValue::Get(db_partition_id);
-      if (partition_id_int != check_partition_id_sorted_and_contiguous) {
+      const uint32_t partition_id = duckdb::BigIntValue::Get(db_partition_id);
+      if (partition_id != check_partition_id_sorted_and_contiguous) {
          throw PreprocessingException(
             "The partition IDs produced by the preprocessing are not sorted, not starting from 0 "
             "or not contiguous."
          );
       }
       check_partition_id_sorted_and_contiguous++;
-      uint32_t partition_id = partition_id_int;
 
       const duckdb::Value db_partition_size = it.current_row.GetValue<duckdb::Value>(1);
       const int64_t partition_size_bigint = duckdb::BigIntValue::Get(db_partition_size);

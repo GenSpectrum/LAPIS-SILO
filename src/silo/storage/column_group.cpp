@@ -59,55 +59,7 @@ uint32_t ColumnPartitionGroup::fill(
       for (const auto& item : database_config.schema.metadata) {
          const auto column_type = item.getColumnType();
          const duckdb::Value value = it.current_row.GetValue<duckdb::Value>(column_index++);
-         if (column_type == silo::config::ColumnType::INDEXED_STRING) {
-            if (value.IsNull()) {
-               indexed_string_columns.at(item.name).insertNull();
-            } else {
-               indexed_string_columns.at(item.name).insert(value.ToString());
-            }
-         } else if (column_type == silo::config::ColumnType::STRING) {
-            if (value.IsNull()) {
-               string_columns.at(item.name).insertNull();
-            } else {
-               string_columns.at(item.name).insert(value.ToString());
-            }
-         } else if (column_type == silo::config::ColumnType::INDEXED_PANGOLINEAGE) {
-            if (value.IsNull()) {
-               pango_lineage_columns.at(item.name).insertNull();
-            } else {
-               pango_lineage_columns.at(item.name).insert({value.ToString()});
-            }
-         } else if (column_type == silo::config::ColumnType::DATE) {
-            if (value.IsNull()) {
-               date_columns.at(item.name).insert(common::stringToDate(""));
-            } else {
-               date_columns.at(item.name).insert(common::stringToDate(value.ToString()));
-            }
-         } else if (column_type == silo::config::ColumnType::INT) {
-            if (value.IsNull()) {
-               int_columns.at(item.name).insert("");
-            } else {
-               int_columns.at(item.name).insert(value.ToString());
-            }
-         } else if (column_type == silo::config::ColumnType::FLOAT) {
-            if (value.IsNull()) {
-               float_columns.at(item.name).insert("");
-            } else {
-               float_columns.at(item.name).insert(value.ToString());
-            }
-         } else if (column_type == silo::config::ColumnType::NUC_INSERTION) {
-            if (value.IsNull()) {
-               nuc_insertion_columns.at(item.name).insert("");
-            } else {
-               nuc_insertion_columns.at(item.name).insert(value.ToString());
-            }
-         } else if (column_type == silo::config::ColumnType::AA_INSERTION) {
-            if (value.IsNull()) {
-               aa_insertion_columns.at(item.name).insert("");
-            } else {
-               aa_insertion_columns.at(item.name).insert(value.ToString());
-            }
-         }
+         addValueToColumn(item.name, column_type, value);
       }
       if (++sequence_count == UINT32_MAX) {
          throw std::runtime_error(
@@ -117,6 +69,71 @@ uint32_t ColumnPartitionGroup::fill(
    }
 
    return sequence_count;
+}
+
+void ColumnPartitionGroup::addValueToColumn(
+   const std::string& column_name,
+   config::ColumnType column_type,
+   const duckdb::Value& value
+) {
+   switch (column_type) {
+      case silo::config::ColumnType::INDEXED_STRING:
+         if (value.IsNull()) {
+            indexed_string_columns.at(column_name).insertNull();
+         } else {
+            indexed_string_columns.at(column_name).insert(value.ToString());
+         }
+         break;
+      case silo::config::ColumnType::STRING:
+         if (value.IsNull()) {
+            string_columns.at(column_name).insertNull();
+         } else {
+            string_columns.at(column_name).insert(value.ToString());
+         }
+         break;
+      case silo::config::ColumnType::INDEXED_PANGOLINEAGE:
+         if (value.IsNull()) {
+            pango_lineage_columns.at(column_name).insertNull();
+         } else {
+            pango_lineage_columns.at(column_name).insert({value.ToString()});
+         }
+         break;
+      case silo::config::ColumnType::DATE:
+         if (value.IsNull()) {
+            date_columns.at(column_name).insert(common::stringToDate(""));
+         } else {
+            date_columns.at(column_name).insert(common::stringToDate(value.ToString()));
+         }
+         break;
+      case silo::config::ColumnType::INT:
+         if (value.IsNull()) {
+            int_columns.at(column_name).insert("");
+         } else {
+            int_columns.at(column_name).insert(value.ToString());
+         }
+         break;
+      case silo::config::ColumnType::FLOAT:
+         if (value.IsNull()) {
+            float_columns.at(column_name).insert("");
+         } else {
+            float_columns.at(column_name).insert(value.ToString());
+         }
+         break;
+      case silo::config::ColumnType::NUC_INSERTION:
+         if (value.IsNull()) {
+            nuc_insertion_columns.at(column_name).insert("");
+         } else {
+            nuc_insertion_columns.at(column_name).insert(value.ToString());
+         }
+         break;
+      case silo::config::ColumnType::AA_INSERTION:
+         if (value.IsNull()) {
+            aa_insertion_columns.at(column_name).insert("");
+         } else {
+            aa_insertion_columns.at(column_name).insert(value.ToString());
+         }
+         break;
+   }
 }
 
 template <>
