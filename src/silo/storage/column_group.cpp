@@ -4,12 +4,12 @@
 #include <stdexcept>
 
 #include <boost/algorithm/string.hpp>
+#include <duckdb.hpp>
 
 #include "silo/common/date.h"
 #include "silo/common/pango_lineage.h"
 #include "silo/common/string.h"
 #include "silo/config/database_config.h"
-#include "silo/preprocessing/metadata.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/column/date_column.h"
 #include "silo/storage/column/float_column.h"

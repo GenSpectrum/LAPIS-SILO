@@ -10,7 +10,6 @@
 #include "silo/common/fasta_reader.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
-#include "silo/preprocessing/metadata.h"
 #include "silo/preprocessing/metadata_info.h"
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_database.h"
@@ -70,7 +69,7 @@ Database Preprocessor::preprocess() {
       }
 
       for (const auto& [seq_name, _] : reference_genomes.raw_nucleotide_sequences) {
-         auto return_code = preprocessing_db.query(fmt::format(
+         (void)preprocessing_db.query(fmt::format(
             "create or replace view nuc_{0} as\n"
             "select {1} as key, nuc_{0} as sequence,"
             "{2}"
@@ -83,11 +82,6 @@ Database Preprocessor::preprocess() {
             order_by_select,
             partition_by_where
          ));
-
-         if (return_code->HasError()) {
-            SPDLOG_ERROR(return_code->GetError());
-            throw PreprocessingException(return_code->GetError());
-         }
       }
 
       for (const auto& [seq_name, _] : reference_genomes.raw_aa_sequences) {
@@ -222,12 +216,12 @@ from (SELECT {} as partition_key, COUNT(*) as count
    SPDLOG_TRACE("Executed statement for partition key table generation.");
    SPDLOG_TRACE(return_code->ToString());
 
+   // create Recursive Hierarchical Partitioning By Partition Field
    return_code = preprocessing_db.query(
       R"-(
 create or replace table partitioning as
 with recursive
-          allowed_count(allowed_count) as (select sum(count) / 32 from
-partition_keys),
+          allowed_count(allowed_count) as (select sum(count) / 32 from partition_keys),
           grouped_partition_keys(from_id, to_id, count) as
               (select id, id, count
                from partition_keys

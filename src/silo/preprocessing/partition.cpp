@@ -14,29 +14,8 @@
 
 #include "silo/common/pango_lineage.h"
 #include "silo/config/database_config.h"
-#include "silo/preprocessing/metadata.h"
-#include "silo/preprocessing/pango_lineage_count.h"
 
 namespace silo::preprocessing {
-
-std::string commonPangoPrefix(std::string_view lineage1, std::string_view lineage2) {
-   std::string prefix;
-   // Buffer until it reaches another .
-   std::string buffer;
-   const uint32_t min_len = std::min(lineage1.length(), lineage2.length());
-   for (uint32_t i = 0; i < min_len; i++) {
-      if (lineage1[i] != lineage2[i]) {
-         return prefix;
-      }
-      if (lineage1[i] == '.') {
-         prefix += buffer + '.';
-         buffer = "";
-      } else {
-         buffer += lineage1[i];
-      }
-   }
-   return prefix + buffer;
-}
 
 silo::preprocessing::Partition::Partition(std::vector<PartitionChunk>&& chunks_)
     : chunks(std::move(chunks_)) {
@@ -47,38 +26,17 @@ silo::preprocessing::Partition::Partition(std::vector<PartitionChunk>&& chunks_)
    sequence_count = running_total;
 }
 
-silo::preprocessing::Partition::Partition(
-   uint32_t partition_id,
-   std::vector<LineageGroup>&& lineage_groups
-) {
-   uint32_t running_total = 0;
-   uint32_t chunk_id = 0;
-   for (LineageGroup& group : lineage_groups) {
-      chunks.push_back(PartitionChunk{
-         partition_id, chunk_id, group.getCountOfSequences(), running_total});
-      chunk_id++;
-      running_total += group.getCountOfSequences();
-   }
-   sequence_count = running_total;
-}
-
 const std::vector<PartitionChunk>& silo::preprocessing::Partition::getPartitionChunks() const {
    return chunks;
-}
-
-uint32_t Partition::getSequenceCount() const {
-   return sequence_count;
 }
 
 silo::preprocessing::Partitions::Partitions() = default;
 
 silo::preprocessing::Partitions::Partitions(std::vector<Partition> partitions_)
     : partitions(std::move(partitions_)) {
-   for (uint32_t part_id = 0, limit = partitions.size(); part_id < limit; ++part_id) {
-      const auto& part = partitions[part_id];
-      for (uint32_t chunk_id = 0, limit2 = part.getPartitionChunks().size(); chunk_id < limit2;
-           ++chunk_id) {
-         all_partition_chunks.emplace_back(part.getPartitionChunks()[chunk_id]);
+   for (const auto& partition : partitions) {
+      for (const auto& chunk : partition.getPartitionChunks()) {
+         all_partition_chunks.emplace_back(chunk);
       }
    }
 }
@@ -93,52 +51,6 @@ const std::vector<PartitionChunk>& Partitions::getAllPartitionChunks() const {
 
 bool PartitionChunk::operator==(const PartitionChunk& other) const {
    return partition == other.partition && chunk == other.chunk && size == other.size;
-}
-
-LineageGroup::LineageGroup(silo::common::UnaliasedPangoLineage lineage, uint32_t count)
-    : prefix(lineage.value),
-      count_of_sequences(count),
-      pango_lineages({{std::move(lineage)}}) {}
-
-LineageGroup::LineageGroup(
-   std::vector<silo::common::UnaliasedPangoLineage>&& lineages,
-   uint32_t count
-)
-    : count_of_sequences(count),
-      pango_lineages(lineages) {
-   if (lineages.empty()) {
-      throw std::runtime_error("Empty chunks should be impossible to create by design.");
-   }
-   std::sort(pango_lineages.begin(), pango_lineages.end());
-   prefix = commonPangoPrefix(pango_lineages.front().value, pango_lineages.back().value);
-}
-
-void LineageGroup::addLineageGroup(LineageGroup&& other) {
-   prefix = commonPangoPrefix(prefix, other.getPrefix());
-   count_of_sequences += other.count_of_sequences;
-   // Add all pango lineages but keep invariant of pango lineages being sorted
-   auto copy_of_my_lineages = std::move(pango_lineages);
-   pango_lineages.clear();
-   pango_lineages.resize(copy_of_my_lineages.size() + other.pango_lineages.size());
-   std::merge(
-      copy_of_my_lineages.begin(),
-      copy_of_my_lineages.end(),
-      other.pango_lineages.begin(),
-      other.pango_lineages.end(),
-      pango_lineages.begin()
-   );
-}
-
-std::string_view LineageGroup::getPrefix() const {
-   return prefix;
-}
-
-uint32_t LineageGroup::getCountOfSequences() const {
-   return count_of_sequences;
-}
-
-const std::vector<silo::common::UnaliasedPangoLineage>& LineageGroup::getPangoLineages() const {
-   return pango_lineages;
 }
 
 }  // namespace silo::preprocessing

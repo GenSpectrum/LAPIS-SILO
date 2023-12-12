@@ -87,8 +87,6 @@ class PreprocessingConfig {
    std::optional<std::filesystem::path> ndjson_input_filename;
    std::filesystem::path metadata_file;
    std::filesystem::path sequences_folder;
-   std::filesystem::path partition_folder;
-   std::filesystem::path sorted_partition_folder;
    std::filesystem::path reference_genome_file;
    std::string nucleotide_sequence_prefix;
    std::string gene_prefix;
@@ -123,58 +121,9 @@ class PreprocessingConfig {
 
    [[nodiscard]] std::filesystem::path getMetadataInputFilename() const;
 
-   [[nodiscard]] std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path>
-   getMetadataPartitionFilenames(const silo::preprocessing::Partitions& partitions) const;
-
-   [[nodiscard]] std::filesystem::path getMetadataPartitionFilename(
-      uint32_t partition,
-      uint32_t chunk
-   ) const;
-
-   [[nodiscard]] std::filesystem::path getMetadataSortedPartitionFilename(
-      uint32_t partition,
-      uint32_t chunk
-   ) const;
-
    [[nodiscard]] std::filesystem::path getNucFilenameNoExtension(std::string_view nuc_name) const;
 
-   [[nodiscard]] std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path>
-   getNucPartitionFilenames(
-      std::string_view nuc_name,
-      const silo::preprocessing::Partitions& partitions
-   ) const;
-
-   [[nodiscard]] std::filesystem::path getNucPartitionFilename(
-      std::string_view nuc_name,
-      uint32_t partition,
-      uint32_t chunk
-   ) const;
-
-   [[nodiscard]] std::filesystem::path getNucSortedPartitionFilename(
-      std::string_view nuc_name,
-      uint32_t partition,
-      uint32_t chunk
-   ) const;
-
    [[nodiscard]] std::filesystem::path getGeneFilenameNoExtension(std::string_view gene_name) const;
-
-   [[nodiscard]] std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path>
-   getGenePartitionFilenames(
-      std::string_view gene_name,
-      const silo::preprocessing::Partitions& partitions
-   ) const;
-
-   [[nodiscard]] std::filesystem::path getGenePartitionFilename(
-      std::string_view gene_name,
-      uint32_t partition,
-      uint32_t chunk
-   ) const;
-
-   [[nodiscard]] std::filesystem::path getGeneSortedPartitionFilename(
-      std::string_view gene_name,
-      uint32_t partition,
-      uint32_t chunk
-   ) const;
 };
 
 std::filesystem::path createPath(

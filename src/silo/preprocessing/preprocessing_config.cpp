@@ -79,9 +79,6 @@ PreprocessingConfig::PreprocessingConfig(
    }
    this->output_directory = output_directory_.directory;
 
-   partition_folder = createOutputPath(intermediate_results_directory, partition_folder_.folder);
-   sorted_partition_folder =
-      createOutputPath(intermediate_results_directory, sorted_partition_folder_.folder);
    nucleotide_sequence_prefix = nucleotide_sequence_prefix_.prefix;
    gene_prefix = gene_prefix_.prefix;
 }
@@ -111,36 +108,6 @@ std::optional<std::filesystem::path> PreprocessingConfig::getNdjsonInputFilename
    return ndjson_input_filename;
 }
 
-std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path> PreprocessingConfig::
-   getMetadataPartitionFilenames(const silo::preprocessing::Partitions& partitions) const {
-   std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path> result;
-   for (auto [partition, chunk, size, offset] : partitions.getAllPartitionChunks()) {
-      const std::filesystem::path filename = getMetadataPartitionFilename(partition, chunk);
-      result.insert({{partition, chunk, size, offset}, filename});
-   }
-   return result;
-}
-
-std::filesystem::path PreprocessingConfig::getMetadataPartitionFilename(
-   uint32_t partition,
-   uint32_t chunk
-) const {
-   std::filesystem::path filename = partition_folder;
-   filename /= buildChunkString(partition, chunk);
-   filename += TSV_EXTENSION;
-   return filename;
-}
-
-std::filesystem::path PreprocessingConfig::getMetadataSortedPartitionFilename(
-   uint32_t partition,
-   uint32_t chunk
-) const {
-   std::filesystem::path filename = sorted_partition_folder;
-   filename /= buildChunkString(partition, chunk);
-   filename += TSV_EXTENSION;
-   return filename;
-}
-
 std::filesystem::path PreprocessingConfig::getNucFilenameNoExtension(std::string_view nuc_name
 ) const {
    std::filesystem::path filename = sequences_folder;
@@ -149,89 +116,11 @@ std::filesystem::path PreprocessingConfig::getNucFilenameNoExtension(std::string
    return filename;
 }
 
-std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path> PreprocessingConfig::
-   getNucPartitionFilenames(
-      std::string_view nuc_name,
-      const silo::preprocessing::Partitions& partitions
-   ) const {
-   std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path> result;
-   for (auto [partition, chunk, size, offset] : partitions.getAllPartitionChunks()) {
-      const std::filesystem::path filename = getNucPartitionFilename(nuc_name, partition, chunk);
-      result.insert({{partition, chunk, size, offset}, filename});
-   }
-   return result;
-}
-
-std::filesystem::path PreprocessingConfig::getNucPartitionFilename(
-   std::string_view nuc_name,
-   uint32_t partition,
-   uint32_t chunk
-) const {
-   std::filesystem::path folder = nucleotide_sequence_prefix;
-   folder += nuc_name;
-   std::filesystem::path filename = createOutputPath(partition_folder, folder);
-   filename /= buildChunkString(partition, chunk);
-   filename += ZSTDFASTA_EXTENSION;
-   return filename;
-}
-
-std::filesystem::path PreprocessingConfig::getNucSortedPartitionFilename(
-   std::string_view nuc_name,
-   uint32_t partition,
-   uint32_t chunk
-) const {
-   std::filesystem::path folder = nucleotide_sequence_prefix;
-   folder += nuc_name;
-   std::filesystem::path filename = createOutputPath(sorted_partition_folder, folder);
-   filename /= buildChunkString(partition, chunk);
-   filename += ZSTDFASTA_EXTENSION;
-   return filename;
-}
-
 std::filesystem::path PreprocessingConfig::getGeneFilenameNoExtension(std::string_view gene_name
 ) const {
    std::filesystem::path filename = sequences_folder;
    filename /= gene_prefix;
    filename += gene_name;
-   return filename;
-}
-
-std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path> PreprocessingConfig::
-   getGenePartitionFilenames(
-      std::string_view gene_name,
-      const silo::preprocessing::Partitions& partitions
-   ) const {
-   std::unordered_map<silo::preprocessing::PartitionChunk, std::filesystem::path> result;
-   for (auto [partition, chunk, size, offset] : partitions.getAllPartitionChunks()) {
-      const std::filesystem::path filename = getGenePartitionFilename(gene_name, partition, chunk);
-      result.insert({{partition, chunk, size, offset}, filename});
-   }
-   return result;
-}
-
-std::filesystem::path PreprocessingConfig::getGenePartitionFilename(
-   std::string_view gene_name,
-   uint32_t partition,
-   uint32_t chunk
-) const {
-   std::filesystem::path folder = gene_prefix;
-   folder += gene_name;
-   std::filesystem::path filename = createOutputPath(partition_folder, folder);
-   filename /= buildChunkString(partition, chunk);
-   filename += ZSTDFASTA_EXTENSION;
-   return filename;
-}
-
-std::filesystem::path PreprocessingConfig::getGeneSortedPartitionFilename(
-   std::string_view gene_name,
-   uint32_t partition,
-   uint32_t chunk
-) const {
-   std::filesystem::path folder = gene_prefix;
-   folder += gene_name;
-   std::filesystem::path filename = createOutputPath(sorted_partition_folder, folder);
-   filename /= buildChunkString(partition, chunk);
-   filename += ZSTDFASTA_EXTENSION;
    return filename;
 }
 
@@ -244,8 +133,7 @@ std::filesystem::path PreprocessingConfig::getGeneSortedPartitionFilename(
    return format_to(
       ctx.out(),
       "{{ input directory: '{}', pango_lineage_definition_file: {}, output_directory: '{}', "
-      "metadata_file: '{}', partition_folder: '{}', sorted_partition_folder: '{}', "
-      "reference_genome_file: '{}',  gene_file_prefix: '{}',  "
+      "metadata_file: '{}', reference_genome_file: '{}',  gene_file_prefix: '{}',  "
       "nucleotide_sequence_file_prefix: '{}', ndjson_filename: {}, "
       "preprocessing_database_location: {} }}",
       preprocessing_config.input_directory.string(),
@@ -254,8 +142,6 @@ std::filesystem::path PreprocessingConfig::getGeneSortedPartitionFilename(
          ? "'" + preprocessing_config.pango_lineage_definition_file->string() + "'"
          : "none",
       preprocessing_config.metadata_file.string(),
-      preprocessing_config.partition_folder.string(),
-      preprocessing_config.sorted_partition_folder.string(),
       preprocessing_config.reference_genome_file.string(),
       preprocessing_config.nucleotide_sequence_prefix,
       preprocessing_config.gene_prefix,

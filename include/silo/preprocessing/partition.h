@@ -21,26 +21,6 @@ class DatabaseConfig;
 
 namespace silo::preprocessing {
 
-class LineageGroup {
-   friend class Partition;
-
-   std::string prefix;
-   uint32_t count_of_sequences;
-   std::vector<common::UnaliasedPangoLineage> pango_lineages;
-
-   LineageGroup() = default;
-
-  public:
-   LineageGroup(silo::common::UnaliasedPangoLineage lineage, uint32_t count);
-   LineageGroup(std::vector<silo::common::UnaliasedPangoLineage>&& lineages, uint32_t count);
-
-   void addLineageGroup(LineageGroup&& other);
-
-   std::string_view getPrefix() const;
-   uint32_t getCountOfSequences() const;
-   const std::vector<silo::common::UnaliasedPangoLineage>& getPangoLineages() const;
-};
-
 struct PartitionChunk {
    friend class boost::serialization::access;
 
@@ -69,14 +49,8 @@ class Partition {
   public:
    explicit Partition(std::vector<PartitionChunk>&& chunks);
 
-   explicit Partition(uint32_t partition_id, std::vector<LineageGroup>&& lineage_groups);
-
    [[nodiscard]] const std::vector<PartitionChunk>& getPartitionChunks() const;
-
-   [[nodiscard]] uint32_t getSequenceCount() const;
 };
-
-enum Architecture { MAX_PARTITIONS, SINGLE_PARTITION, SINGLE_SINGLE };
 
 class Partitions {
    std::vector<Partition> partitions;
@@ -97,11 +71,6 @@ class Partitions {
 
    [[nodiscard]] const std::vector<PartitionChunk>& getAllPartitionChunks() const;
 };
-
-Partitions createSingletonPartitions(
-   const std::filesystem::path& metadata_path,
-   const silo::config::DatabaseConfig& database_config
-);
 
 }  // namespace silo::preprocessing
 
