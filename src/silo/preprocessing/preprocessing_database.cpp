@@ -136,9 +136,12 @@ PreprocessingDatabase::PreprocessingDatabase(const std::string& backing_file)
 std::unique_ptr<duckdb::MaterializedQueryResult> PreprocessingDatabase::query(std::string sql_query
 ) {
    SPDLOG_DEBUG("Preprocessing Database - Query:\n{}", sql_query);
-   auto res = connection.Query(sql_query);
-   SPDLOG_DEBUG("Preprocessing Database - Result:\n{}", res->ToString());
-   return res;
+   auto result = connection.Query(sql_query);
+   SPDLOG_DEBUG("Preprocessing Database - Result:\n{}", result->ToString());
+   if (result->HasError()) {
+      throw silo::preprocessing::PreprocessingException(result->ToString());
+   }
+   return result;
 }
 
 void PreprocessingDatabase::registerSequences(const silo::ReferenceGenomes& reference_genomes) {

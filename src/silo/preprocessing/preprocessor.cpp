@@ -35,8 +35,6 @@ Database Preprocessor::preprocess() {
    ReferenceGenomes reference_genomes =
       ReferenceGenomes::readFromFile(preprocessing_config.getReferenceGenomeFilename());
 
-   buildTablesFromInput(reference_genomes);
-
    SPDLOG_INFO("preprocessing - building alias key");
    const auto pango_lineage_definition_filename =
       preprocessing_config.getPangoLineageDefinitionFilename();
@@ -45,131 +43,16 @@ Database Preprocessor::preprocess() {
       alias_key = PangoLineageAliasLookup::readFromFile(pango_lineage_definition_filename.value());
    }
 
-   buildPartitioningTable();
-
    if (preprocessing_config.getNdjsonInputFilename().has_value()) {
-      std::string order_by_select =
-         ", " + database_config.schema.primary_key + " as " + database_config.schema.primary_key;
-      if (database_config.schema.date_to_sort_by.has_value()) {
-         order_by_select += ", " + database_config.schema.date_to_sort_by.value() + " as " +
-                            database_config.schema.date_to_sort_by.value();
-      }
-      std::string partition_by_where, partition_by_select;
-      if (database_config.schema.partition_by.has_value()) {
-         partition_by_select = "partition_key_to_partition.partition_id as partition_id";
-         partition_by_where = fmt::format(
-            "where (preprocessing_table.{0} = partition_key_to_partition.partition_key) or "
-            "(preprocessing_table.{0} is null and "
-            "partition_key_to_partition.partition_key is null)",
-            database_config.schema.partition_by.value()
-         );
-      } else {
-         partition_by_select = "0 as partition_id";
-         partition_by_where = "";
-      }
-
-      for (const auto& [seq_name, _] : reference_genomes.raw_nucleotide_sequences) {
-         (void)preprocessing_db.query(fmt::format(
-            "create or replace view nuc_{0} as\n"
-            "select {1} as key, nuc_{0} as sequence,"
-            "{2}"
-            "{3} \n"
-            "from preprocessing_table, partition_key_to_partition "
-            "{4};",
-            seq_name,
-            database_config.schema.primary_key,
-            partition_by_select,
-            order_by_select,
-            partition_by_where
-         ));
-      }
-
-      for (const auto& [seq_name, _] : reference_genomes.raw_aa_sequences) {
-         auto return_code = preprocessing_db.query(fmt::format(
-            "create or replace view gene_{0} as\n"
-            "select {1} as key, gene_{0} as sequence, "
-            "{2}\n"
-            "{3} \n"
-            "from preprocessing_table, partition_key_to_partition "
-            "{4};",
-            seq_name,
-            database_config.schema.primary_key,
-            partition_by_select,
-            order_by_select,
-            partition_by_where
-         ));
-
-         if (return_code->HasError()) {
-            SPDLOG_ERROR(return_code->GetError());
-            throw PreprocessingException(return_code->GetError());
-         }
-      }
+      buildTablesFromNdjsonInput(
+         preprocessing_config.getNdjsonInputFilename().value(), reference_genomes
+      );
+      buildPartitioningTable();
+      createSequenceViews(reference_genomes);
    } else {
-      std::string order_by_select = ", raw.key as " + database_config.schema.primary_key;
-      if (database_config.schema.date_to_sort_by.has_value()) {
-         order_by_select += ", partitioned_metadata." +
-                            database_config.schema.date_to_sort_by.value() + " as " +
-                            database_config.schema.date_to_sort_by.value();
-      }
-
-      for (const auto& [seq_name, reference_sequence] :
-           reference_genomes.raw_nucleotide_sequences) {
-         const std::string raw_table_name = "raw_nuc_" + seq_name;
-         const std::string table_name = "nuc_" + seq_name;
-         preprocessing_db.generateNucSequenceTable(
-            raw_table_name,
-            reference_sequence,
-            preprocessing_config.getNucFilenameNoExtension(seq_name).replace_extension(
-               silo::preprocessing::FASTA_EXTENSION
-            )
-         );
-
-         auto return_code = preprocessing_db.query(fmt::format(
-            R"-(
-create or replace view {} as
-select key, sequence,
-partitioned_metadata.partition_id as partition_id
-{}
-from {} raw, partitioned_metadata
-where raw.key = partitioned_metadata.{};)-",
-            table_name,
-            order_by_select,
-            raw_table_name,
-            database_config.schema.primary_key
-         ));
-
-         if (return_code->HasError()) {
-            SPDLOG_ERROR(return_code->GetError());
-            throw PreprocessingException(return_code->GetError());
-         }
-      }
-
-      for (const auto& [seq_name, reference_sequence] : reference_genomes.raw_aa_sequences) {
-         const std::string raw_table_name = "raw_gene_" + seq_name;
-         const std::string table_name = "gene_" + seq_name;
-         preprocessing_db.generateNucSequenceTable(
-            raw_table_name,
-            reference_sequence,
-            preprocessing_config.getGeneFilenameNoExtension(seq_name).replace_extension(
-               silo::preprocessing::FASTA_EXTENSION
-            )
-         );
-
-         auto return_code = preprocessing_db.query(fmt::format(
-            R"-(
-create or replace view {} as
-select key, sequence,
-partitioned_metadata.partition_id as partition_id
-{}
-from {} raw, partitioned_metadata
-where raw.key = partitioned_metadata.{};
-)-",
-            table_name,
-            order_by_select,
-            raw_table_name,
-            database_config.schema.primary_key
-         ));
-      }
+      buildMetadataTableFromFile(preprocessing_config.getMetadataInputFilename());
+      buildPartitioningTable();
+      createPartitionedSequenceTables(reference_genomes);
    }
 
    preprocessing::Partitions partition_descriptor = preprocessing_db.getPartitionDescriptor();
@@ -180,6 +63,60 @@ where raw.key = partitioned_metadata.{};
    SPDLOG_INFO("preprocessing - building database");
 
    return buildDatabase(partition_descriptor, reference_genomes, order_by_clause, alias_key);
+}
+
+void Preprocessor::buildTablesFromNdjsonInput(
+   const std::filesystem::path& file_name,
+   const ReferenceGenomes& reference_genomes
+) {
+   SPDLOG_DEBUG("preprocessing - ndjson pipeline chosen");
+   if (!std::filesystem::exists(file_name)) {
+      throw silo::preprocessing::PreprocessingException(
+         fmt::format("The specified input file {} does not exist.", file_name.string())
+      );
+   }
+   if (std::filesystem::is_empty(file_name)) {
+      throw silo::preprocessing::PreprocessingException(
+         fmt::format("The specified input file {} is empty.", file_name.string())
+      );
+   }
+
+   SequenceInfo sequence_info(reference_genomes);
+   sequence_info.validate(preprocessing_db.getConnection(), file_name);
+
+   const auto metadata_info = MetadataInfo::validateFromNdjsonFile(file_name, database_config);
+
+   preprocessing_db.registerSequences(reference_genomes);
+
+   (void)preprocessing_db.query(fmt::format(
+      "CREATE OR REPLACE TABLE preprocessing_table AS SELECT {}, "
+      "{} \n FROM '{}' WHERE metadata.{} is not null;",
+      boost::join(metadata_info.getMetadataSelects(), ","),
+      boost::join(sequence_info.getSequenceSelects(), ","),
+      file_name.string(),
+      database_config.schema.primary_key
+   ));
+
+   (void)preprocessing_db.query(fmt::format(
+      "create or replace view metadata_table as\n"
+      "select {}\n"
+      "from preprocessing_table;",
+      boost::join(metadata_info.getMetadataFields(), ",")
+   ));
+}
+
+void Preprocessor::buildMetadataTableFromFile(const std::filesystem::path& metadata_filename) {
+   SPDLOG_DEBUG("preprocessing - classic metadata file pipeline chosen");
+   MetadataInfo metadata_info =
+      MetadataInfo::validateFromMetadataFile(metadata_filename, database_config);
+
+   (void)preprocessing_db.query(fmt::format(
+      "create or replace table metadata_table as\n"
+      "select {}\n"
+      "from '{}';",
+      boost::join(metadata_info.getMetadataSelects(), ","),
+      metadata_filename.string()
+   ));
 }
 
 void Preprocessor::buildPartitioningTable() {
@@ -193,7 +130,7 @@ void Preprocessor::buildPartitioningTable() {
 void Preprocessor::buildPartitioningTableByColumn(const std::string& partition_by_field) {
    SPDLOG_INFO("preprocessing - calculating partitions");
 
-   auto return_code = preprocessing_db.query(fmt::format(
+   (void)preprocessing_db.query(fmt::format(
       R"-(
 create
 or replace table partition_keys as
@@ -206,18 +143,8 @@ from (SELECT {} as partition_key, COUNT(*) as count
       partition_by_field
    ));
 
-   if (return_code->HasError()) {
-      throw PreprocessingException(
-         "Error in the execution of the duckdb statement for partition key table "
-         "generation: " +
-         return_code->GetError()
-      );
-   }
-   SPDLOG_TRACE("Executed statement for partition key table generation.");
-   SPDLOG_TRACE(return_code->ToString());
-
    // create Recursive Hierarchical Partitioning By Partition Field
-   return_code = preprocessing_db.query(
+   (void)preprocessing_db.query(
       R"-(
 create or replace table partitioning as
 with recursive
@@ -242,12 +169,8 @@ from (select from_id, max(to_id) as to_id, max(count) as count
       group by from_id)
 )-"
    );
-   if (return_code->HasError()) {
-      SPDLOG_ERROR("Error when executing duckdb statement: {}", return_code->GetError());
-      throw PreprocessingException(return_code->GetError());
-   }
 
-   return_code = preprocessing_db.query(
+   (void)preprocessing_db.query(
       R"-(
 create
 or replace table partition_key_to_partition as
@@ -259,12 +182,8 @@ where partition_keys.id >= partitioning.from_id
   AND partition_keys.id <= partitioning.to_id;
 )-"
    );
-   if (return_code->HasError()) {
-      SPDLOG_ERROR("Error when executing duckdb statement: {}", return_code->GetError());
-      throw PreprocessingException(return_code->GetError());
-   }
 
-   return_code = preprocessing_db.query(fmt::format(
+   (void)preprocessing_db.query(fmt::format(
       R"-(
 create
 or replace view partitioned_metadata as
@@ -279,10 +198,6 @@ and partition_keys.partition_key is null))
 )-",
       partition_by_field
    ));
-   if (return_code->HasError()) {
-      SPDLOG_ERROR("Error when executing duckdb statement: {}", return_code->GetError());
-      throw PreprocessingException(return_code->GetError());
-   }
 }
 
 void Preprocessor::buildEmptyPartitioning() {
@@ -291,7 +206,7 @@ void Preprocessor::buildEmptyPartitioning() {
       "putting all sequences into the same partition"
    );
 
-   auto return_code = preprocessing_db.query(
+   (void)preprocessing_db.query(
       R"-(
 create or replace table partitioning as
 select 0::bigint as partition_id, 0::bigint as from_id, 0::bigint as to_id, count(*) as count
@@ -299,111 +214,132 @@ from metadata_table;
 )-"
    );
 
-   if (return_code->HasError()) {
-      SPDLOG_ERROR(return_code->GetError());
-      throw PreprocessingException(return_code->GetError());
-   }
-
-   return_code = preprocessing_db.query(
+   (void)preprocessing_db.query(
       "create or replace table partition_key_to_partition as\n"
       "select 0::bigint as partition_key, 0::bigint as partition_id;"
    );
 
-   if (return_code->HasError()) {
-      SPDLOG_ERROR(return_code->GetError());
-      throw PreprocessingException(return_code->GetError());
-   }
-
-   return_code = preprocessing_db.query(
+   (void)preprocessing_db.query(
       "create\n"
       "or replace view partitioned_metadata as\n"
       "select 0::bigint as partition_id, metadata_table.*\n"
       "from metadata_table;"
    );
-
-   if (return_code->HasError()) {
-      SPDLOG_ERROR(return_code->GetError());
-      throw PreprocessingException(return_code->GetError());
-   }
 };
 
-void Preprocessor::buildTablesFromInput(const ReferenceGenomes& reference_genomes) {
-   const std::optional<std::string> ndjson_input_filename =
-      preprocessing_config.getNdjsonInputFilename();
-
-   if (ndjson_input_filename.has_value()) {
-      SPDLOG_DEBUG("preprocessing - ndjson pipeline chosen");
-
-      std::string file_name = ndjson_input_filename.value();
-
-      if (!std::filesystem::exists(file_name)) {
-         throw silo::preprocessing::PreprocessingException(
-            fmt::format("The specified input file {} does not exist.", file_name)
-         );
-      }
-      if (std::filesystem::is_empty(file_name)) {
-         throw silo::preprocessing::PreprocessingException(
-            fmt::format("The specified input file {} is empty.", file_name)
-         );
-      }
-
-      SequenceInfo sequence_info(reference_genomes);
-      sequence_info.validate(preprocessing_db.getConnection(), file_name);
-
-      const auto metadata_info = MetadataInfo::validateFromNdjsonFile(file_name, database_config);
-
-      preprocessing_db.registerSequences(reference_genomes);
-
-      auto return_value = preprocessing_db.query(fmt::format(
-         "CREATE OR REPLACE TABLE preprocessing_table AS SELECT {}, "
-         "{} \n FROM '{}' WHERE metadata.{} is not null;",
-         boost::join(metadata_info.getMetadataSelects(), ","),
-         boost::join(sequence_info.getSequenceSelects(), ","),
-         file_name,
-         database_config.schema.primary_key
-      ));
-      if (return_value->HasError()) {
-         SPDLOG_ERROR(return_value->GetError());
-         throw PreprocessingException(return_value->GetError());
-      }
-
-      auto return_code = preprocessing_db.query(fmt::format(
-         "create or replace view metadata_table as\n"
-         "select {}\n"
-         "from preprocessing_table;",
-         boost::join(metadata_info.getMetadataFields(), ",")
-      ));
-      if (return_code->HasError()) {
-         SPDLOG_ERROR(return_code->GetError());
-         throw PreprocessingException(return_code->GetError());
-      }
-
-      SPDLOG_INFO("preprocessing - finished building the in-memory table for preprocessing");
-      const std::string peek_query = "SELECT * FROM preprocessing_table LIMIT 5;";
-      SPDLOG_TRACE(
-         "preprocessing - peek into the table: {} \n {}",
-         peek_query,
-         preprocessing_db.query(peek_query)->ToString()
+void Preprocessor::createSequenceViews(const ReferenceGenomes& reference_genomes) {
+   std::string order_by_select =
+      ", " + database_config.schema.primary_key + " as " + database_config.schema.primary_key;
+   if (database_config.schema.date_to_sort_by.has_value()) {
+      order_by_select += ", " + database_config.schema.date_to_sort_by.value() + " as " +
+                         database_config.schema.date_to_sort_by.value();
+   }
+   std::string partition_by_where, partition_by_select;
+   if (database_config.schema.partition_by.has_value()) {
+      partition_by_select = "partition_key_to_partition.partition_id as partition_id";
+      partition_by_where = fmt::format(
+         "where (preprocessing_table.{0} = partition_key_to_partition.partition_key) or "
+         "(preprocessing_table.{0} is null and "
+         "partition_key_to_partition.partition_key is null)",
+         database_config.schema.partition_by.value()
       );
    } else {
-      SPDLOG_DEBUG("preprocessing - classic pipeline chosen");
-      const std::filesystem::path metadata_filename =
-         preprocessing_config.getMetadataInputFilename();
+      partition_by_select = "0 as partition_id";
+      partition_by_where = "";
+   }
 
-      MetadataInfo metadata_info =
-         MetadataInfo::validateFromMetadataFile(metadata_filename, database_config);
-
-      auto return_code = preprocessing_db.query(fmt::format(
-         "create or replace table metadata_table as\n"
-         "select {}\n"
-         "from '{}';",
-         boost::join(metadata_info.getMetadataSelects(), ","),
-         metadata_filename.string()
+   for (const auto& [seq_name, _] : reference_genomes.raw_nucleotide_sequences) {
+      (void)preprocessing_db.query(fmt::format(
+         "create or replace view nuc_{0} as\n"
+         "select {1} as key, nuc_{0} as sequence,"
+         "{2}"
+         "{3} \n"
+         "from preprocessing_table, partition_key_to_partition "
+         "{4};",
+         seq_name,
+         database_config.schema.primary_key,
+         partition_by_select,
+         order_by_select,
+         partition_by_where
       ));
-      if (return_code->HasError()) {
-         SPDLOG_ERROR(return_code->GetError());
-         throw PreprocessingException(return_code->GetError());
-      }
+   }
+
+   for (const auto& [seq_name, _] : reference_genomes.raw_aa_sequences) {
+      (void)preprocessing_db.query(fmt::format(
+         "create or replace view gene_{0} as\n"
+         "select {1} as key, gene_{0} as sequence, "
+         "{2}\n"
+         "{3} \n"
+         "from preprocessing_table, partition_key_to_partition "
+         "{4};",
+         seq_name,
+         database_config.schema.primary_key,
+         partition_by_select,
+         order_by_select,
+         partition_by_where
+      ));
+   }
+}
+
+void Preprocessor::createPartitionedSequenceTables(const ReferenceGenomes& reference_genomes) {
+   std::string order_by_select = ", raw.key as " + database_config.schema.primary_key;
+   if (database_config.schema.date_to_sort_by.has_value()) {
+      order_by_select += ", partitioned_metadata." +
+                         database_config.schema.date_to_sort_by.value() + " as " +
+                         database_config.schema.date_to_sort_by.value();
+   }
+
+   for (const auto& [seq_name, reference_sequence] : reference_genomes.raw_nucleotide_sequences) {
+      const std::string raw_table_name = "raw_nuc_" + seq_name;
+      const std::string table_name = "nuc_" + seq_name;
+      preprocessing_db.generateNucSequenceTable(
+         raw_table_name,
+         reference_sequence,
+         preprocessing_config.getNucFilenameNoExtension(seq_name).replace_extension(
+            silo::preprocessing::FASTA_EXTENSION
+         )
+      );
+
+      (void)preprocessing_db.query(fmt::format(
+         R"-(
+create or replace view {} as
+select key, sequence,
+partitioned_metadata.partition_id as partition_id
+{}
+from {} raw, partitioned_metadata
+where raw.key = partitioned_metadata.{};)-",
+         table_name,
+         order_by_select,
+         raw_table_name,
+         database_config.schema.primary_key
+      ));
+   }
+
+   for (const auto& [seq_name, reference_sequence] : reference_genomes.raw_aa_sequences) {
+      const std::string raw_table_name = "raw_gene_" + seq_name;
+      const std::string table_name = "gene_" + seq_name;
+      preprocessing_db.generateNucSequenceTable(
+         raw_table_name,
+         reference_sequence,
+         preprocessing_config.getGeneFilenameNoExtension(seq_name).replace_extension(
+            silo::preprocessing::FASTA_EXTENSION
+         )
+      );
+
+      (void)preprocessing_db.query(fmt::format(
+         R"-(
+create or replace view {} as
+select key, sequence,
+partitioned_metadata.partition_id as partition_id
+{}
+from {} raw, partitioned_metadata
+where raw.key = partitioned_metadata.{};
+)-",
+         table_name,
+         order_by_select,
+         raw_table_name,
+         database_config.schema.primary_key
+      ));
    }
 }
 

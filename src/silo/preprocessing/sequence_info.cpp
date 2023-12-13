@@ -39,12 +39,15 @@ std::vector<std::string> SequenceInfo::getSequenceSelects() {
    return sequence_selects;
 }
 
-void SequenceInfo::validate(duckdb::Connection& connection, std::string_view input_filename) const {
+void SequenceInfo::validate(
+   duckdb::Connection& connection,
+   const std::filesystem::path& input_filename
+) const {
    auto result = connection.Query(fmt::format(
       "SELECT json_keys(alignedNucleotideSequences), json_keys(alignedAminoAcidSequences) "
       "FROM "
       "'{}' LIMIT 1; ",
-      input_filename
+      input_filename.string()
    ));
    if (result->HasError()) {
       throw silo::preprocessing::PreprocessingException(
@@ -54,9 +57,9 @@ void SequenceInfo::validate(duckdb::Connection& connection, std::string_view inp
       );
    }
    if (result->RowCount() == 0) {
-      throw silo::preprocessing::PreprocessingException(
-         fmt::format("File {} is empty, which must not be empty at this point", input_filename)
-      );
+      throw silo::preprocessing::PreprocessingException(fmt::format(
+         "File {} is empty, which must not be empty at this point", input_filename.string()
+      ));
    }
    if (result->RowCount() > 1) {
       throw silo::preprocessing::PreprocessingException(
@@ -73,7 +76,7 @@ void SequenceInfo::validate(duckdb::Connection& connection, std::string_view inp
             "The aligned nucleotide sequence {} which is contained in the input file {} is "
             "not contained in the reference sequences.",
             name,
-            input_filename
+            input_filename.string()
          ));
       }
    }
@@ -85,7 +88,7 @@ void SequenceInfo::validate(duckdb::Connection& connection, std::string_view inp
             "The aligned nucleotide sequence {} which is contained in the reference sequences is "
             "not contained in the input file {}.",
             name,
-            input_filename
+            input_filename.string()
          ));
       }
    }
@@ -95,7 +98,7 @@ void SequenceInfo::validate(duckdb::Connection& connection, std::string_view inp
             "The aligned amino acid sequence {} which is contained in the input file {} is "
             "not contained in the reference sequences.",
             name,
-            input_filename
+            input_filename.string()
          ));
       }
    }
@@ -106,7 +109,7 @@ void SequenceInfo::validate(duckdb::Connection& connection, std::string_view inp
             "The aligned amino acid sequence {} which is contained in the reference sequences is "
             "not contained in the input file {}.",
             name,
-            input_filename
+            input_filename.string()
          ));
       }
    }

@@ -24,11 +24,18 @@ class Preprocessor {
    Database preprocess();
 
   private:
+   void buildTablesFromNdjsonInput(
+      const std::filesystem::path& file_name,
+      const ReferenceGenomes& reference_genomes
+   );
+   void buildMetadataTableFromFile(const std::filesystem::path& metadata_filename);
+
    void buildPartitioningTable();
    void buildPartitioningTableByColumn(const std::string& partition_by_field);
    void buildEmptyPartitioning();
 
-   void buildTablesFromInput(const ReferenceGenomes& reference_genomes);
+   void createSequenceViews(const ReferenceGenomes& reference_genomes);
+   void createPartitionedSequenceTables(const ReferenceGenomes& reference_genomes);
 
    Database buildDatabase(
       const preprocessing::Partitions& partition_descriptor,

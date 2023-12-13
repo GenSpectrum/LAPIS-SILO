@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -26,7 +27,7 @@ class SequenceInfo {
 
    std::vector<std::string> getSequenceSelects();
 
-   void validate(duckdb::Connection& connection, std::string_view input_filename) const;
+   void validate(duckdb::Connection& connection, const std::filesystem::path& input_filename) const;
 };
 }  // namespace preprocessing
 }  // namespace silo
