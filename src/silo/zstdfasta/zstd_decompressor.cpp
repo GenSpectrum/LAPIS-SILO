@@ -28,11 +28,11 @@ ZstdDecompressor& ZstdDecompressor::operator=(ZstdDecompressor&& other) {
 }
 
 void ZstdDecompressor::decompress(const std::string& input, std::string& output) {
-   auto return_code = ZSTD_decompress_usingDDict(
+   auto size_or_error_code = ZSTD_decompress_usingDDict(
       zstd_context, output.data(), output.length(), input.data(), input.size(), zstd_dictionary
    );
-   if (ZSTD_isError(return_code)) {
-      std::string error_name = ZSTD_getErrorName(return_code);
+   if (ZSTD_isError(size_or_error_code)) {
+      const std::string error_name = ZSTD_getErrorName(size_or_error_code);
       throw std::runtime_error(
          "Error '" + error_name + "' in dependency when decompressing using zstd."
       );

@@ -56,7 +56,10 @@ size_t ZstdCompressor::compress(
       zstd_context, output_data, output_size, input_data, input_size, dictionary->value
    );
    if (ZSTD_isError(size_or_error_code)) {
-      throw std::runtime_error("Zstd compression failed.");
+      const std::string error_name = ZSTD_getErrorName(size_or_error_code);
+      throw std::runtime_error(
+         "Error '" + error_name + "' in dependency when decompressing using zstd."
+      );
    }
    return size_or_error_code;
 }

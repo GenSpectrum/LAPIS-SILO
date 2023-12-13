@@ -10,15 +10,16 @@ using silo::ReferenceGenomes;
 using silo::preprocessing::SequenceInfo;
 
 TEST(SequenceInfo, validatesSuccessfulOnCorrectFile) {
-   const auto reference_genomes =
-      ReferenceGenomes::readFromFile("testBaseData/exampleDataset2/reference_genomes.json");
+   const auto reference_genomes = ReferenceGenomes::readFromFile(
+      "testBaseData/exampleDataset1000Sequences/reference_genomes.json"
+   );
    const SequenceInfo sequence_info(reference_genomes);
 
    duckdb::DuckDB duckdb;
    duckdb::Connection connection(duckdb);
-   ASSERT_NO_THROW(
-      sequence_info.validate(connection, "testBaseData/exampleDataset2/sample.ndjson.zst")
-   );
+   ASSERT_NO_THROW(sequence_info.validate(
+      connection, "testBaseData/exampleDataset1000Sequences/sample.ndjson.zst"
+   ));
 }
 
 TEST(SequenceInfo, failWhenTooManyGenomesInReferences) {
@@ -29,14 +30,17 @@ TEST(SequenceInfo, failWhenTooManyGenomesInReferences) {
    duckdb::DuckDB duckdb;
    duckdb::Connection connection(duckdb);
    ASSERT_THROW(
-      sequence_info.validate(connection, "testBaseData/exampleDataset2/sample.ndjson.zst"),
+      sequence_info.validate(
+         connection, "testBaseData/exampleDataset1000Sequences/sample.ndjson.zst"
+      ),
       silo::preprocessing::PreprocessingException
    );
 }
 
 TEST(SequenceInfo, failWhenTooManyGenomesInJson) {
-   const auto reference_genomes =
-      ReferenceGenomes::readFromFile("testBaseData/exampleDataset2/reference_genomes.json");
+   const auto reference_genomes = ReferenceGenomes::readFromFile(
+      "testBaseData/exampleDataset1000Sequences/reference_genomes.json"
+   );
    const SequenceInfo sequence_info(reference_genomes);
 
    duckdb::DuckDB duckdb;
@@ -48,8 +52,9 @@ TEST(SequenceInfo, failWhenTooManyGenomesInJson) {
 }
 
 TEST(SequenceInfo, failWhenTooFewAASequencesInJson) {
-   const auto reference_genomes =
-      ReferenceGenomes::readFromFile("testBaseData/exampleDataset2/reference_genomes.json");
+   const auto reference_genomes = ReferenceGenomes::readFromFile(
+      "testBaseData/exampleDataset1000Sequences/reference_genomes.json"
+   );
    const SequenceInfo sequence_info(reference_genomes);
 
    duckdb::DuckDB duckdb;
