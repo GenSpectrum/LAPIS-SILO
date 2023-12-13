@@ -1,7 +1,11 @@
 #include "silo/storage/column_group.h"
 
 #include <cmath>
+#include <filesystem>
+#include <iosfwd>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 #include <boost/algorithm/string.hpp>
 #include <duckdb.hpp>
