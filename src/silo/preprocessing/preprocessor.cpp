@@ -22,11 +22,11 @@
 namespace silo::preprocessing {
 
 Preprocessor::Preprocessor(
-   const preprocessing::PreprocessingConfig& preprocessing_config,
-   const config::DatabaseConfig& database_config
+   const preprocessing::PreprocessingConfig preprocessing_config,
+   const config::DatabaseConfig database_config
 )
-    : preprocessing_config(preprocessing_config),
-      database_config(database_config),
+    : preprocessing_config(std::move(preprocessing_config)),
+      database_config(std::move(database_config)),
       preprocessing_db(preprocessing_config.getPreprocessingDatabaseLocation().value_or(":memory:")
       ) {}
 
@@ -225,7 +225,7 @@ from metadata_table;
       "select 0::bigint as partition_id, metadata_table.*\n"
       "from metadata_table;"
    );
-};
+}
 
 void Preprocessor::createSequenceViews(const ReferenceGenomes& reference_genomes) {
    std::string order_by_select =

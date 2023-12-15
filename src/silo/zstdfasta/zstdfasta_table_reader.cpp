@@ -24,8 +24,7 @@ silo::ZstdFastaTableReader::ZstdFastaTableReader(
       table_name(table_name),
       where_clause(where_clause),
       order_by_clause(order_by_clause),
-      decompressor(std::make_unique<ZstdDecompressor>(compression_dict)),
-      DEBUG_dictionary(compression_dict) {
+      decompressor(std::make_unique<ZstdDecompressor>(compression_dict)) {
    SPDLOG_TRACE("Initializing ZstdFastaTableReader for table {}", table_name);
    genome_buffer.resize(compression_dict.size());
    reset();

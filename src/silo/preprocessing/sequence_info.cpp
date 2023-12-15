@@ -1,6 +1,5 @@
 #include "silo/preprocessing/sequence_info.h"
 
-#include <boost/algorithm/string/join.hpp>
 #include <duckdb.hpp>
 
 #include "silo/preprocessing/preprocessing_database.h"

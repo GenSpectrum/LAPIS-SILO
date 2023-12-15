@@ -18,8 +18,8 @@ TEST(ZstdFastaTableReader, correctlyReadsZstdFastaTableFromFastaFile) {
 
    silo::FastaReader file_reader(file_path);
 
-   duckdb::DuckDB duckDB(nullptr);
-   duckdb::Connection connection(duckDB);
+   duckdb::DuckDB duck_db(nullptr);
+   duckdb::Connection connection(duck_db);
 
    silo::ZstdFastaTable::generate(connection, "test", file_reader, "ACGT");
 
@@ -47,8 +47,8 @@ TEST(ZstdFastaTableReader, correctlyReadsZstdFastaTableFromZstdFastaFile) {
 
    silo::ZstdFastaReader file_reader(file_path, "ACGT");
 
-   duckdb::DuckDB duckDB(nullptr);
-   duckdb::Connection connection(duckDB);
+   duckdb::DuckDB duck_db(nullptr);
+   duckdb::Connection connection(duck_db);
 
    silo::ZstdFastaTable::generate(connection, "test", file_reader);
 
@@ -76,8 +76,8 @@ TEST(ZstdFastaTableReader, correctlySortsZstdFastaTableFromFastaFile) {
 
    silo::FastaReader file_reader(file_path);
 
-   duckdb::DuckDB duckDB(nullptr);
-   duckdb::Connection connection(duckDB);
+   duckdb::DuckDB duck_db(nullptr);
+   duckdb::Connection connection(duck_db);
 
    silo::ZstdFastaTable::generate(connection, "test", file_reader, "ACGT");
 
@@ -105,8 +105,8 @@ TEST(ZstdFastaTableReader, correctlySortsZstdFastaTableFromZstdFastaFile) {
 
    silo::ZstdFastaReader file_reader(file_path, "ACGT");
 
-   duckdb::DuckDB duckDB(nullptr);
-   duckdb::Connection connection(duckDB);
+   duckdb::DuckDB duck_db(nullptr);
+   duckdb::Connection connection(duck_db);
 
    silo::ZstdFastaTable::generate(connection, "test", file_reader);
 

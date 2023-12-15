@@ -81,13 +81,13 @@ target_link_libraries(
         silo
         PUBLIC
         ${Boost_LIBRARIES}
-        TBB::tbb
+        ${duckdb_LIBRARIES}
+        nlohmann_json::nlohmann_json
         ${roaring_LIBRARIES}
         ${spdlog_LIBRARIES}
+        TBB::tbb
         ${yaml-cpp_LIBRARIES}
-        nlohmann_json::nlohmann_json
         zstd::libzstd_static
-        ${duckdb_LIBRARIES}
 )
 
 add_executable(siloApi src/silo_api/api.cpp ${SRC_SILO_API})

@@ -17,8 +17,8 @@ class Preprocessor {
 
   public:
    Preprocessor(
-      const preprocessing::PreprocessingConfig& preprocessing_config,
-      const config::DatabaseConfig& database_config
+      const preprocessing::PreprocessingConfig preprocessing_config,
+      const config::DatabaseConfig database_config
    );
 
    Database preprocess();

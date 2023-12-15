@@ -27,7 +27,7 @@ class ZstdFastaTableReader {
    std::unique_ptr<silo::ZstdDecompressor> decompressor;
    size_t current_row;
 
-   std::string DEBUG_dictionary;
+   // std::string DEBUG_dictionary;
 
    std::string genome_buffer;
 
