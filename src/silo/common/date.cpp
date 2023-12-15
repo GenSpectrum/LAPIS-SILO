@@ -19,17 +19,17 @@ constexpr uint32_t BYTES_FOR_DAYS = 12;
 
 silo::common::Date silo::common::stringToDate(const std::string& value) {
    if (value.empty()) {
-      return 0;
+      return NULL_DATE;
    }
    auto split_position = value.find('-', 0);
    if (split_position == std::string::npos) {
       SPDLOG_WARN("Expect dates to be delimited by '-': " + value + "\nIgnoring date");
-      return 0;
+      return NULL_DATE;
    }
    auto split_position2 = value.find('-', split_position + 1);
    if (split_position2 == std::string::npos) {
       SPDLOG_WARN("Expect dates to be delimited twice by '-': " + value + "\nIgnoring date");
-      return 0;
+      return NULL_DATE;
    }
    const std::string year_string = value.substr(0, split_position);
    const std::string month_string = value.substr(split_position + 1, split_position2);
@@ -40,11 +40,11 @@ silo::common::Date silo::common::stringToDate(const std::string& value) {
       const uint32_t day = stoi(day_string);
       if (month > NUMBER_OF_MONTHS || month == 0) {
          SPDLOG_WARN("Month is not in [1,{}]: {} \nIgnoring date", NUMBER_OF_MONTHS, value);
-         return 0;
+         return NULL_DATE;
       }
       if (day > NUMBER_OF_DAYS || day == 0) {
          SPDLOG_WARN("Month is not in [1,{}]: {} \nIgnoring date", NUMBER_OF_DAYS, value);
-         return 0;
+         return NULL_DATE;
       }
       // Date is stored with the year in the upper 16 bits, month in bits [12,16), and day [0,12)
       const uint32_t date_value =
@@ -54,12 +54,12 @@ silo::common::Date silo::common::stringToDate(const std::string& value) {
       SPDLOG_WARN(
          "Parsing of date failed: " + value + "\nWith exception: " + ex.what() + "\nIgnoring date"
       );
-      return 0;
+      return NULL_DATE;
    } catch (const std::out_of_range& ex) {
       SPDLOG_WARN(
          "Parsing of date failed: " + value + "\nWith exception: " + ex.what() + "\nIgnoring date"
       );
-      return 0;
+      return NULL_DATE;
    }
 }
 

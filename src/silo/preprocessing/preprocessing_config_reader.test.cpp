@@ -24,22 +24,6 @@ TEST(PreprocessingConfigReader, shouldReadConfigWithCorrectParametersAndDefaults
    ASSERT_EQ(
       config.getPangoLineageDefinitionFilename(), input_directory + "pangolineage_alias.json"
    );
-   ASSERT_EQ(
-      config.getNucPartitionFilename("dummy", 0, 0),
-      intermediate_directory + "partitions/nuc_dummy/P0_C0.zstdfasta"
-   );
-   ASSERT_EQ(
-      config.getGenePartitionFilename("dummy2", 0, 0),
-      intermediate_directory + "partitions/gene_dummy2/P0_C0.zstdfasta"
-   );
-   ASSERT_EQ(
-      config.getNucSortedPartitionFilename("dummy", 2, 1),
-      intermediate_directory + "partitions_sorted/nuc_dummy/P2_C1.zstdfasta"
-   );
-   ASSERT_EQ(
-      config.getGeneSortedPartitionFilename("dummy", 2, 1),
-      intermediate_directory + "partitions_sorted/gene_dummy/P2_C1.zstdfasta"
-   );
 }
 
 TEST(PreprocessingConfigReader, shouldThrowExceptionWhenConfigFileDoesNotExist) {
@@ -67,14 +51,6 @@ TEST(PreprocessingConfigReader, shouldReadConfigWithOverriddenDefaults) {
    );
 
    ASSERT_EQ(config.getNucFilenameNoExtension("aligned"), input_directory + "aligned");
-   ASSERT_EQ(
-      config.getNucPartitionFilename("aligned", 0, 1),
-      intermediate_directory + "folder1/aligned/P0_C1.zstdfasta"
-   );
-   ASSERT_EQ(
-      config.getNucSortedPartitionFilename("aligned", 2, 3),
-      intermediate_directory + "folder2/aligned/P2_C3.zstdfasta"
-   );
    ASSERT_EQ(config.getOutputDirectory(), "./output/custom/");
 }
 

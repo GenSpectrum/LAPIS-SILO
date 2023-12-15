@@ -86,7 +86,7 @@ void Preprocessor::buildTablesFromNdjsonInput(
 
    const auto metadata_info = MetadataInfo::validateFromNdjsonFile(file_name, database_config);
 
-   preprocessing_db.registerSequences(reference_genomes);
+   PreprocessingDatabase::registerSequences(reference_genomes);
 
    (void)preprocessing_db.query(fmt::format(
       "CREATE OR REPLACE TABLE preprocessing_table AS SELECT {}, "

@@ -14,7 +14,7 @@ namespace preprocessing {
 class PreprocessingDatabase;
 
 class MetadataInfo {
-   a std::unordered_map<std::string, std::string> metadata_selects;
+   std::unordered_map<std::string, std::string> metadata_selects;
 
    MetadataInfo(std::unordered_map<std::string, std::string> metadata_selects);
 

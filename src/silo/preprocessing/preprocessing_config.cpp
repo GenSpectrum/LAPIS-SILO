@@ -7,14 +7,6 @@
 
 #include "silo/preprocessing/partition.h"
 
-namespace {
-
-std::string buildChunkString(uint32_t partition, uint32_t chunk) {
-   return "P" + std::to_string(partition) + "_C" + std::to_string(chunk);
-}
-
-}  // namespace
-
 namespace silo::preprocessing {
 
 std::filesystem::path createOutputPath(

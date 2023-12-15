@@ -77,7 +77,7 @@ class DatabasePartition {
 
    explicit DatabasePartition(std::vector<silo::preprocessing::PartitionChunk> chunks);
 
-   void validate();
+   void validate() const;
 
    void flipBitmaps();
 

@@ -28,6 +28,13 @@ std::unordered_map<std::string, std::string> validateFieldsAgainstConfig(
       if (std::find(config_metadata_fields.begin(), config_metadata_fields.end(), field_name)
        != config_metadata_fields.end()) {
          validated_metadata_fields.emplace(field_name, access_path);
+      } else {
+         SPDLOG_WARN(
+            "Metadata field {} ({}), which is contained in the file is not contained in the "
+            "config.",
+            field_name,
+            access_path
+         );
       }
    }
    for (const std::string& name : config_metadata_fields) {

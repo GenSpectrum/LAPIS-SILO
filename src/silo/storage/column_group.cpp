@@ -104,35 +104,35 @@ void ColumnPartitionGroup::addValueToColumn(
          break;
       case silo::config::ColumnType::DATE:
          if (value.IsNull()) {
-            date_columns.at(column_name).insert(common::stringToDate(""));
+            date_columns.at(column_name).insertNull();
          } else {
             date_columns.at(column_name).insert(common::stringToDate(value.ToString()));
          }
          break;
       case silo::config::ColumnType::INT:
          if (value.IsNull()) {
-            int_columns.at(column_name).insert("");
+            int_columns.at(column_name).insertNull();
          } else {
             int_columns.at(column_name).insert(value.ToString());
          }
          break;
       case silo::config::ColumnType::FLOAT:
          if (value.IsNull()) {
-            float_columns.at(column_name).insert("");
+            float_columns.at(column_name).insertNull();
          } else {
             float_columns.at(column_name).insert(value.ToString());
          }
          break;
       case silo::config::ColumnType::NUC_INSERTION:
          if (value.IsNull()) {
-            nuc_insertion_columns.at(column_name).insert("");
+            nuc_insertion_columns.at(column_name).insertNull();
          } else {
             nuc_insertion_columns.at(column_name).insert(value.ToString());
          }
          break;
       case silo::config::ColumnType::AA_INSERTION:
          if (value.IsNull()) {
-            aa_insertion_columns.at(column_name).insert("");
+            aa_insertion_columns.at(column_name).insertNull();
          } else {
             aa_insertion_columns.at(column_name).insert(value.ToString());
          }
