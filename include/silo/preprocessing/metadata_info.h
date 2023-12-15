@@ -14,10 +14,9 @@ namespace preprocessing {
 class PreprocessingDatabase;
 
 class MetadataInfo {
-   silo::config::DatabaseConfig database_config;
-   std::unordered_map<std::string, std::string> metadata_selects;
+   a std::unordered_map<std::string, std::string> metadata_selects;
 
-   MetadataInfo() = default;
+   MetadataInfo(std::unordered_map<std::string, std::string> metadata_selects);
 
   public:
    static MetadataInfo validateFromMetadataFile(

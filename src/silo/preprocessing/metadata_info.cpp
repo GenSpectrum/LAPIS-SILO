@@ -88,6 +88,9 @@ void detectInsertionLists(
 
 namespace silo::preprocessing {
 
+MetadataInfo::MetadataInfo(std::unordered_map<std::string, std::string> metadata_selects)
+    : metadata_selects(std::move(metadata_selects)) {}
+
 MetadataInfo MetadataInfo::validateFromMetadataFile(
    const std::filesystem::path& metadata_file,
    const silo::config::DatabaseConfig& database_config
@@ -105,10 +108,7 @@ MetadataInfo MetadataInfo::validateFromMetadataFile(
    const std::unordered_map<std::string, std::string> validated_metadata_fields =
       validateFieldsAgainstConfig(file_metadata_fields, database_config);
 
-   MetadataInfo metadata_info;
-   metadata_info.database_config = database_config;
-   metadata_info.metadata_selects = validated_metadata_fields;
-   return metadata_info;
+   return MetadataInfo(validated_metadata_fields);
 }
 
 MetadataInfo MetadataInfo::validateFromNdjsonFile(
@@ -151,10 +151,7 @@ MetadataInfo MetadataInfo::validateFromNdjsonFile(
    const std::unordered_map<std::string, std::string> validated_metadata_fields =
       validateFieldsAgainstConfig(metadata_fields_to_validate, database_config);
 
-   MetadataInfo metadata_info;
-   metadata_info.database_config = database_config;
-   metadata_info.metadata_selects = validated_metadata_fields;
-   return metadata_info;
+   return MetadataInfo(validated_metadata_fields);
 }
 
 std::vector<std::string> MetadataInfo::getMetadataFields() const {
