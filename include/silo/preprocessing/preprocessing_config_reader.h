@@ -40,14 +40,6 @@ struct OptionalPreprocessingConfig {
     */
    std::optional<std::filesystem::path> pango_lineage_definition_file;
    /**
-    * Folder for intermediate partition files, relative to the intermediateResultsDirectory
-    */
-   std::optional<std::filesystem::path> partition_folder;
-   /**
-    * Folder for intermediate sorted partition files, relative to the intermediateResultsDirectory
-    */
-   std::optional<std::filesystem::path> sorted_partition_folder;
-   /**
     * The filename of the reference genome file, relative to the inputDirectory
     */
    std::optional<std::filesystem::path> reference_genome_file;

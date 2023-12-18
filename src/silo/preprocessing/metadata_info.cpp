@@ -126,9 +126,8 @@ MetadataInfo MetadataInfo::validateFromNdjsonFile(
    duckdb::Connection connection(db);
 
    auto result = connection.Query(fmt::format(
-      "SELECT json_keys(metadata)"
-      "FROM "
-      "'{}' LIMIT 1; ",
+      "SELECT json_keys(metadata) "
+      "FROM read_json_auto(\"{}\") LIMIT 1; ",
       ndjson_file.string()
    ));
    if (result->HasError()) {

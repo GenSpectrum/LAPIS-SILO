@@ -62,16 +62,6 @@ struct GenePrefix {
 };
 const GenePrefix DEFAULT_GENE_PREFIX = {"gene_"};
 
-struct PartitionsFolder {
-   std::string folder;
-};
-const PartitionsFolder DEFAULT_PARTITIONS_FOLDER = {"partitions/"};
-
-struct SortedPartitionsFolder {
-   std::string folder;
-};
-const SortedPartitionsFolder DEFAULT_SORTED_PARTITIONS_FOLDER = {"partitions_sorted/"};
-
 struct ReferenceGenomeFilename {
    std::string filename;
 };
@@ -102,8 +92,6 @@ class PreprocessingConfig {
       const NdjsonInputFilename& ndjson_input_filename_,
       const MetadataFilename& metadata_filename_,
       const PangoLineageDefinitionFilename& pango_lineage_definition_filename_,
-      const PartitionsFolder& partition_folder_,
-      const SortedPartitionsFolder& sorted_partition_folder_,
       const ReferenceGenomeFilename& reference_genome_filename_,
       const NucleotideSequencePrefix& nucleotide_sequence_prefix_,
       const GenePrefix& gene_prefix_

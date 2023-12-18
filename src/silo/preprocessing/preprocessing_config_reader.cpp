@@ -31,8 +31,6 @@ struct convert<OptionalPreprocessingConfig> {
          extractStringIfPresent(node, "ndjsonInputFilename"),
          extractStringIfPresent(node, "metadataFilename"),
          extractStringIfPresent(node, "pangoLineageDefinitionFilename"),
-         extractStringIfPresent(node, "partitionsFolder"),
-         extractStringIfPresent(node, "sortedPartitionsFolder"),
          extractStringIfPresent(node, "referenceGenomeFilename"),
          extractStringIfPresent(node, "nucleotideSequencePrefix"),
          extractStringIfPresent(node, "genePrefix")};
@@ -92,13 +90,6 @@ PreprocessingConfig OptionalPreprocessingConfig::mergeValuesFromOrDefault(
       PangoLineageDefinitionFilename{
          pango_lineage_definition_file.has_value() ? pango_lineage_definition_file
                                                    : other.pango_lineage_definition_file},
-      PartitionsFolder{partition_folder.value_or(
-         other.partition_folder.value_or(silo::preprocessing::DEFAULT_PARTITIONS_FOLDER.folder)
-      )},
-      SortedPartitionsFolder{
-         sorted_partition_folder.value_or(other.sorted_partition_folder.value_or(
-            silo::preprocessing::DEFAULT_SORTED_PARTITIONS_FOLDER.folder
-         ))},
       ReferenceGenomeFilename{reference_genome_file.value_or(other.reference_genome_file.value_or(
          silo::preprocessing::DEFAULT_REFERENCE_GENOME_FILENAME.filename
       ))},
