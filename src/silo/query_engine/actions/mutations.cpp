@@ -162,7 +162,9 @@ void Mutations<SymbolType>::addMutationsToOutput(
          continue;
       }
       const auto threshold_count =
-         static_cast<uint32_t>(std::ceil(static_cast<double>(total) * min_proportion) - 1);
+         min_proportion == 0
+            ? 0
+            : static_cast<uint32_t>(std::ceil(static_cast<double>(total) * min_proportion) - 1);
 
       const typename SymbolType::Symbol symbol_in_reference_genome =
          sequence_store.reference_sequence.at(pos);
@@ -252,15 +254,17 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Mutations<SymbolType>
       sequence_names.emplace_back(json["sequenceName"].get<std::string>());
    }
 
-   double min_proportion = Mutations<SymbolType>::DEFAULT_MIN_PROPORTION;
-   if (json.contains("minProportion")) {
-      min_proportion = json["minProportion"].get<double>();
-      if (min_proportion <= 0 || min_proportion > 1) {
-         throw QueryParseException(
-            "Invalid proportion: minProportion must be in interval (0.0, 1.0]"
-         );
-      }
+   CHECK_SILO_QUERY(
+      json.contains("minProportion") && json["minProportion"].is_number(),
+      "Mutations action must contain the field minProportion of type number with limits [0.0, "
+      "1.0]. Only mutations are returned if the proportion of sequences having this mutation, is "
+      "at least minProportion"
+   )
+   double min_proportion = json["minProportion"].get<double>();
+   if (min_proportion < 0 || min_proportion > 1) {
+      throw QueryParseException("Invalid proportion: minProportion must be in interval [0.0, 1.0]");
    }
+
    action = std::make_unique<Mutations<SymbolType>>(std::move(sequence_names), min_proportion);
 }
 

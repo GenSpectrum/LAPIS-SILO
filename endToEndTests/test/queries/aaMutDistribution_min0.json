@@ -1,0 +1,34 @@
+{
+  "testCaseName": "The distribution of Amino Acid Mutations action with minProportion 0",
+  "query": {
+    "action": {
+      "type": "AminoAcidMutations",
+      "sequenceName": "E",
+      "minProportion": 0.0,
+      "orderByFields": ["mutation"]
+    },
+    "filterExpression": {
+      "type": "True"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 1,
+      "mutation": "F20L",
+      "proportion": 0.010101010101010102,
+      "sequenceName": "E"
+    },
+    {
+      "count": 1,
+      "mutation": "L18I",
+      "proportion": 0.010101010101010102,
+      "sequenceName": "E"
+    },
+    {
+      "count": 34,
+      "mutation": "T9I",
+      "proportion": 0.3469387755102041,
+      "sequenceName": "E"
+    }
+  ]
+}

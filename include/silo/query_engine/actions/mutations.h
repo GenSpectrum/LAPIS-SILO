@@ -44,10 +44,6 @@ class Mutations : public Action {
          full_bitmaps;
    };
 
-  public:
-   static constexpr double DEFAULT_MIN_PROPORTION = 0.05;
-
-  private:
    static std::unordered_map<std::string, Mutations<SymbolType>::PrefilteredBitmaps>
    preFilterBitmaps(const silo::Database& database, std::vector<OperatorResult>& bitmap_filter);
 
