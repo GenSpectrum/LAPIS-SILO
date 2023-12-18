@@ -10,6 +10,6 @@
   },
   "expectedError": {
     "error": "Bad request",
-    "message": "Mutations action must contain the field minProportion of type number which qualifies the mutations in the genome which should be returned. Only mutations are returned if the proportion of sequences having this mutation, is at least minProportion"
+    "message": "Mutations action must contain the field minProportion of type number with limits [0.0, 1.0]. Only mutations are returned if the proportion of sequences having this mutation, is at least minProportion"
   }
 }

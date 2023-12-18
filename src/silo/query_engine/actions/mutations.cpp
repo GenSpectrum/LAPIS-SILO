@@ -256,9 +256,9 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Mutations<SymbolType>
 
    CHECK_SILO_QUERY(
       json.contains("minProportion") && json["minProportion"].is_number(),
-      "Mutations action must contain the field minProportion of type number which qualifies the "
-      "mutations in the genome which should be returned. Only mutations are returned if the "
-      "proportion of sequences having this mutation, is at least minProportion"
+      "Mutations action must contain the field minProportion of type number with limits [0.0, "
+      "1.0]. Only mutations are returned if the proportion of sequences having this mutation, is "
+      "at least minProportion"
    )
    double min_proportion = json["minProportion"].get<double>();
    if (min_proportion < 0 || min_proportion > 1) {
