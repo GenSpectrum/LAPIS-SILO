@@ -5,9 +5,7 @@
       "type": "AminoAcidMutations",
       "sequenceName": "E",
       "minProportion": 0.0,
-      "orderByFields": [
-        "mutation"
-      ]
+      "orderByFields": ["mutation"]
     },
     "filterExpression": {
       "type": "True"
