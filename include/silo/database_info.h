@@ -4,6 +4,7 @@
 #include <map>
 #include <vector>
 
+#include "silo/common/format_number.h"
 #include "silo/common/nucleotide_symbols.h"
 
 namespace silo {
@@ -13,6 +14,24 @@ struct DatabaseInfo {
    uint64_t total_size;
    size_t n_bitmaps_size;
 };
+
+}  // namespace silo
+
+template <>
+struct [[maybe_unused]] fmt::formatter<silo::DatabaseInfo> : fmt::formatter<std::string> {
+   [[maybe_unused]] static auto format(silo::DatabaseInfo database_info, format_context& ctx)
+      -> decltype(ctx.out()) {
+      return format_to(
+         ctx.out(),
+         "sequence count: {}, total size: {}, N bitmaps size: {}",
+         database_info.sequence_count,
+         silo::formatNumber(database_info.total_size),
+         silo::formatNumber(database_info.n_bitmaps_size)
+      );
+   }
+};
+
+namespace silo {
 
 struct BitmapSizePerSymbol {
    std::map<Nucleotide::Symbol, uint64_t> size_in_bytes;

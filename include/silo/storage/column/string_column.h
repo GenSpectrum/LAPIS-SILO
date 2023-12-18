@@ -36,6 +36,8 @@ class StringColumnPartition {
 
    void insert(const std::string& value);
 
+   void insertNull();
+
    [[nodiscard]] std::optional<common::String<silo::common::STRING_SIZE>> embedString(
       const std::string& string
    ) const;

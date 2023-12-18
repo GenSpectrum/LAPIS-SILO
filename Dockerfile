@@ -1,13 +1,13 @@
-FROM alpine:3.17.0 AS dep_builder
+FROM alpine:3.18 AS dep_builder
 
 RUN apk update && apk add --no-cache py3-pip \
     build-base=0.5-r3 \
-    cmake=3.24.4-r0 \
-    linux-headers=5.19.5-r0 \
-    boost-build=1.79.0-r0 \
-    libtbb=2021.7.0-r0
+    cmake=3.26.5-r0 \
+    linux-headers=6.3-r0 \
+    boost-build=1.82.0-r0 \
+    libtbb=2021.9.0-r0
 
-RUN pip install conan==2.0.8
+RUN pip install conan==2.0.14
 
 WORKDIR /src
 COPY conanfile.py conanprofile.docker ./
@@ -32,14 +32,14 @@ RUN  \
     && cp build/siloApi .
 
 
-FROM alpine:3.17.0 AS server
+FROM alpine:3.18 AS server
 
 WORKDIR /app
 COPY docker_default_preprocessing_config.yaml ./default_preprocessing_config.yaml
 COPY docker_runtime_config.yaml ./runtime_config.yaml
 COPY --from=builder /src/siloApi ./
 
-RUN apk update && apk add libtbb=2021.7.0-r0 curl jq
+RUN apk update && apk add libtbb=2021.9.0-r0 curl jq
 
 # call /info, extract "seqeunceCount" from the JSON and assert that the value is not 0. If any of those fails, "exit 1".
 HEALTHCHECK --start-period=20s CMD curl --fail --silent localhost:8081/info | jq .sequenceCount | xargs test 0 -ne || exit 1

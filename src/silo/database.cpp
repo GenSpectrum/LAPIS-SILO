@@ -32,21 +32,20 @@
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/tracking_enum.hpp>
 #include <boost/serialization/vector.hpp>
+#include <duckdb.hpp>
 #include <roaring/roaring.hh>
 
 #include "silo/common/block_timer.h"
 #include "silo/common/data_version.h"
+#include "silo/common/fasta_reader.h"
 #include "silo/common/format_number.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/common/zstdfasta_reader.h"
 #include "silo/config/database_config.h"
 #include "silo/database_info.h"
 #include "silo/persistence/exception.h"
-#include "silo/prepare_dataset.h"
-#include "silo/preprocessing/metadata_validator.h"
-#include "silo/preprocessing/pango_lineage_count.h"
-#include "silo/preprocessing/partition.h"
+#include "silo/preprocessing/metadata_info.h"
 #include "silo/preprocessing/preprocessing_config.h"
+#include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/query_engine/query_engine.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/roaring/roaring_serialize.h"
@@ -63,20 +62,9 @@
 #include "silo/storage/reference_genomes.h"
 #include "silo/storage/sequence_store.h"
 #include "silo/storage/serialize_optional.h"
-
-template <>
-struct [[maybe_unused]] fmt::formatter<silo::DatabaseInfo> : fmt::formatter<std::string> {
-   [[maybe_unused]] static auto format(silo::DatabaseInfo database_info, format_context& ctx)
-      -> decltype(ctx.out()) {
-      return format_to(
-         ctx.out(),
-         "sequence count: {}, total size: {}, N bitmaps size: {}",
-         database_info.sequence_count,
-         silo::formatNumber(database_info.total_size),
-         silo::formatNumber(database_info.n_bitmaps_size)
-      );
-   }
-};
+#include "silo/zstdfasta/zstd_decompressor.h"
+#include "silo/zstdfasta/zstdfasta_table.h"
+#include "silo/zstdfasta/zstdfasta_table_reader.h"
 
 namespace silo {
 
@@ -120,81 +108,10 @@ const std::map<std::string, SequenceStore<AminoAcid>>& Database::getSequenceStor
    return aa_sequences;
 }
 
-const PangoLineageAliasLookup& Database::getAliasKey() const {
-   return alias_key;
-}
-
-void Database::build(
-   const preprocessing::PreprocessingConfig& preprocessing_config,
-   const preprocessing::Partitions& partition_descriptor,
-   const ReferenceGenomes& reference_genomes
-) {
-   int64_t micros = 0;
-   {
-      const BlockTimer timer(micros);
-      for (const auto& partition : partition_descriptor.getPartitions()) {
-         partitions.emplace_back(partition.getChunks());
-      }
-      initializeColumns();
-      initializeNucSequences(reference_genomes.nucleotide_sequences);
-      initializeAASequences(reference_genomes.aa_sequences);
-      for (size_t partition_index = 0;
-           partition_index < partition_descriptor.getPartitions().size();
-           ++partition_index) {
-         const auto& part = partition_descriptor.getPartitions()[partition_index];
-         for (size_t chunk_index = 0; chunk_index < part.getChunks().size(); ++chunk_index) {
-            const std::filesystem::path metadata_file =
-               preprocessing_config.getMetadataSortedPartitionFilename(
-                  partition_index, chunk_index
-               );
-            if (!std::filesystem::exists(metadata_file)) {
-               SPDLOG_ERROR("metadata file {} not found", metadata_file.string());
-               return;
-            }
-            SPDLOG_DEBUG("Using metadata file: {}", metadata_file.string());
-            partitions[partition_index].sequence_count +=
-               partitions[partition_index].columns.fill(metadata_file, database_config);
-         }
-      }
-      tbb::parallel_for(
-         tbb::blocked_range<size_t>(0, partition_descriptor.getPartitions().size()),
-         [&](const auto& local) {
-            for (auto partition_index = local.begin(); partition_index != local.end();
-                 ++partition_index) {
-               const auto& part = partition_descriptor.getPartitions()[partition_index];
-               for (size_t chunk_index = 0; chunk_index < part.getChunks().size(); ++chunk_index) {
-                  for (const auto& [nuc_name, reference_sequence] :
-                       reference_genomes.raw_nucleotide_sequences) {
-                     const std::filesystem::path sequence_filename =
-                        preprocessing_config.getNucSortedPartitionFilename(
-                           nuc_name, partition_index, chunk_index
-                        );
-
-                     silo::ZstdFastaReader sequence_input(sequence_filename, reference_sequence);
-                     SPDLOG_DEBUG("Using nucleotide sequence file: {}", sequence_filename.string());
-                     partitions[partition_index].nuc_sequences.at(nuc_name).fill(sequence_input);
-                  }
-                  for (const auto& [aa_name, reference_sequence] :
-                       reference_genomes.raw_aa_sequences) {
-                     const std::filesystem::path sequence_filename =
-                        preprocessing_config.getGeneSortedPartitionFilename(
-                           aa_name, partition_index, chunk_index
-                        );
-
-                     silo::ZstdFastaReader sequence_input(sequence_filename, reference_sequence);
-                     SPDLOG_DEBUG("Using amino acid sequence file: {}", sequence_filename.string());
-                     partitions[partition_index].aa_sequences.at(aa_name).fill(sequence_input);
-                  }
-               }
-               partitions.at(partition_index).flipBitmaps();
-            }
-         }
-      );
-      finalizeInsertionIndexes();
+void Database::validate() const {
+   for (const auto& partition : partitions) {
+      partition.validate();
    }
-
-   SPDLOG_INFO("Build took {} ms", micros);
-   SPDLOG_INFO("database info: {}", getDatabaseInfo());
 }
 
 using RoaringStatistics = roaring::api::roaring_statistics_t;
@@ -279,13 +196,14 @@ BitmapContainerSize& BitmapContainerSize::operator+=(const BitmapContainerSize& 
 
 BitmapSizePerSymbol& BitmapSizePerSymbol::operator+=(const BitmapSizePerSymbol& other) {
    for (const auto& symbol : Nucleotide::SYMBOLS) {
-      this->size_in_bytes.at(symbol) += other.size_in_bytes.at(symbol);
+      assert(size_in_bytes.contains(symbol));
+      size_in_bytes.at(symbol) += other.size_in_bytes.at(symbol);
    }
    return *this;
 }
 BitmapSizePerSymbol::BitmapSizePerSymbol() {
    for (const auto& symbol : Nucleotide::SYMBOLS) {
-      this->size_in_bytes[symbol] = 0;
+      size_in_bytes[symbol] = 0;
    }
 }
 
@@ -293,6 +211,7 @@ template <typename SymbolType>
 BitmapSizePerSymbol Database::calculateBitmapSizePerSymbol(
    const SequenceStore<SymbolType>& seq_store
 ) {
+   SPDLOG_TRACE("calculateBitmapSizePerSymbol");
    BitmapSizePerSymbol global_bitmap_size_per_symbol;
 
    std::mutex lock;
@@ -301,6 +220,7 @@ BitmapSizePerSymbol Database::calculateBitmapSizePerSymbol(
 
       for (const SequenceStorePartition<SymbolType>& seq_store_partition : seq_store.partitions) {
          for (const auto& position : seq_store_partition.positions) {
+            assert(bitmap_size_per_symbol.size_in_bytes.contains(symbol));
             bitmap_size_per_symbol.size_in_bytes[symbol] +=
                position.bitmaps.at(symbol).getSizeInBytes();
          }
@@ -337,60 +257,52 @@ BitmapContainerSize Database::calculateBitmapContainerSizePerGenomeSection(
    const SequenceStore<SymbolType>& seq_store,
    size_t section_length
 ) {
+   SPDLOG_TRACE("calculateBitmapContainerSizePerGenomeSection");
    const uint32_t genome_length = seq_store.reference_sequence.size();
 
-   BitmapContainerSize global_bitmap_container_size_per_genome_section(
-      genome_length, section_length
-   );
+   BitmapContainerSize bitmap_container_size_per_genome_section(genome_length, section_length);
 
-   std::mutex lock;
-   tbb::parallel_for(tbb::blocked_range<uint32_t>(0U, genome_length), [&](const auto& range) {
-      BitmapContainerSize bitmap_container_size_per_genome_section(genome_length, section_length);
-      for (auto position_index = range.begin(); position_index != range.end(); ++position_index) {
-         RoaringStatistics statistic;
-         for (const auto& seq_store_partition : seq_store.partitions) {
-            const auto& position = seq_store_partition.positions[position_index];
-            for (const auto& genome_symbol : Nucleotide::SYMBOLS) {
-               const auto& bitmap = position.bitmaps.at(genome_symbol);
+   for (size_t position_index = 0; position_index < genome_length; position_index++) {
+      RoaringStatistics statistic;
+      for (const auto& seq_store_partition : seq_store.partitions) {
+         const auto& position = seq_store_partition.positions[position_index];
+         for (const auto& genome_symbol : Nucleotide::SYMBOLS) {
+            const auto& bitmap = position.bitmaps.at(genome_symbol);
 
-               roaring_bitmap_statistics(&bitmap.roaring, &statistic);
-               addStatisticToBitmapContainerSize(
-                  statistic,
-                  bitmap_container_size_per_genome_section.bitmap_container_size_statistic
-               );
+            roaring_bitmap_statistics(&bitmap.roaring, &statistic);
+            addStatisticToBitmapContainerSize(
+               statistic, bitmap_container_size_per_genome_section.bitmap_container_size_statistic
+            );
 
-               bitmap_container_size_per_genome_section.total_bitmap_size_computed +=
-                  bitmap.getSizeInBytes();
-               bitmap_container_size_per_genome_section.total_bitmap_size_frozen +=
-                  bitmap.getFrozenSizeInBytes();
+            bitmap_container_size_per_genome_section.total_bitmap_size_computed +=
+               bitmap.getSizeInBytes();
+            bitmap_container_size_per_genome_section.total_bitmap_size_frozen +=
+               bitmap.getFrozenSizeInBytes();
 
-               if (statistic.n_bitset_containers > 0) {
-                  if (genome_symbol == Nucleotide::SYMBOL_MISSING) {
-                     bitmap_container_size_per_genome_section.size_per_genome_symbol_and_section
-                        .at("N")
-                        .at(position_index / section_length) += statistic.n_bitset_containers;
-                  } else if (genome_symbol == Nucleotide::Symbol::GAP) {
-                     bitmap_container_size_per_genome_section.size_per_genome_symbol_and_section
-                        .at("GAP")
-                        .at(position_index / section_length) += statistic.n_bitset_containers;
-                  } else {
-                     bitmap_container_size_per_genome_section.size_per_genome_symbol_and_section
-                        .at("NOT_N_NOT_GAP")
-                        .at(position_index / section_length) += statistic.n_bitset_containers;
-                  }
+            if (statistic.n_bitset_containers > 0) {
+               if (genome_symbol == Nucleotide::SYMBOL_MISSING) {
+                  bitmap_container_size_per_genome_section.size_per_genome_symbol_and_section
+                     .at("N")
+                     .at(position_index / section_length) += statistic.n_bitset_containers;
+               } else if (genome_symbol == Nucleotide::Symbol::GAP) {
+                  bitmap_container_size_per_genome_section.size_per_genome_symbol_and_section
+                     .at("GAP")
+                     .at(position_index / section_length) += statistic.n_bitset_containers;
+               } else {
+                  bitmap_container_size_per_genome_section.size_per_genome_symbol_and_section
+                     .at("NOT_N_NOT_GAP")
+                     .at(position_index / section_length) += statistic.n_bitset_containers;
                }
             }
          }
       }
-      lock.lock();
-      global_bitmap_container_size_per_genome_section += bitmap_container_size_per_genome_section;
-      lock.unlock();
-   });
+   }
 
-   return global_bitmap_container_size_per_genome_section;
+   return bitmap_container_size_per_genome_section;
 }
 
 DetailedDatabaseInfo Database::detailedDatabaseInfo() const {
+   SPDLOG_TRACE("detailedDatabaseInfo");
    constexpr uint32_t DEFAULT_SECTION_LENGTH = 500;
    DetailedDatabaseInfo result;
    for (const auto& [seq_name, seq_store] : nuc_sequences) {
@@ -625,93 +537,6 @@ Database Database::loadDatabaseState(const std::filesystem::path& save_directory
    return database;
 }
 
-Database Database::preprocessing(
-   const preprocessing::PreprocessingConfig& preprocessing_config,
-   const config::DatabaseConfig& database_config_
-) {
-   Database database;
-   database.database_config = database_config_;
-
-   const DataVersion& data_version = DataVersion::mineDataVersion();
-   SPDLOG_INFO("preprocessing - mining data data_version: {}", data_version.toString());
-   database.setDataVersion(data_version);
-
-   SPDLOG_INFO("preprocessing - validate metadata file against config");
-   preprocessing::MetadataValidator().validateMedataFile(
-      preprocessing_config.getMetadataInputFilename(), database_config_
-   );
-
-   SPDLOG_INFO("preprocessing - building alias key");
-   const auto pango_lineage_definition_filename =
-      preprocessing_config.getPangoLineageDefinitionFilename();
-   if (pango_lineage_definition_filename.has_value()) {
-      database.alias_key =
-         PangoLineageAliasLookup::readFromFile(pango_lineage_definition_filename.value());
-   }
-
-   SPDLOG_INFO("preprocessing - reading reference genome");
-   const ReferenceGenomes& reference_genomes =
-      ReferenceGenomes::readFromFile(preprocessing_config.getReferenceGenomeFilename());
-
-   preprocessing::Partitions partition_descriptor;
-   if (database_config_.schema.partition_by.has_value()) {
-      SPDLOG_INFO("preprocessing - counting pango lineages");
-      const preprocessing::PangoLineageCounts pango_descriptor(
-         preprocessing::buildPangoLineageCounts(
-            database.alias_key,
-            preprocessing_config.getMetadataInputFilename(),
-            database_config_.schema.partition_by.value()
-         )
-      );
-
-      SPDLOG_INFO("preprocessing - calculating partitions");
-      partition_descriptor = preprocessing::buildPartitions(
-         pango_descriptor, preprocessing::Architecture::MAX_PARTITIONS
-      );
-
-      SPDLOG_INFO("preprocessing - partitioning data");
-      partitionData(
-         preprocessing_config,
-         partition_descriptor,
-         database.alias_key,
-         database_config_.schema.primary_key,
-         database_config_.schema.partition_by.value(),
-         reference_genomes
-      );
-
-   } else {
-      SPDLOG_INFO(
-         "preprocessing - skip partition merging because no partition_by key was provided, instead "
-         "putting all sequences into the same partition"
-      );
-
-      partition_descriptor = preprocessing::createSingletonPartitions(
-         preprocessing_config.getMetadataInputFilename(), database_config_
-      );
-
-      copyDataToPartitionDirectory(preprocessing_config, reference_genomes);
-   }
-
-   if (database_config_.schema.date_to_sort_by.has_value()) {
-      SPDLOG_INFO("preprocessing - sorting chunks");
-      sortChunks(
-         preprocessing_config,
-         partition_descriptor,
-         {database_config_.schema.primary_key, database_config_.schema.date_to_sort_by.value()},
-         reference_genomes
-      );
-   } else {
-      SPDLOG_INFO("preprocessing - skipping sorting chunks because no date to sort by was specified"
-      );
-   }
-
-   SPDLOG_INFO("preprocessing - building database");
-
-   database.build(preprocessing_config, partition_descriptor, reference_genomes);
-
-   return database;
-}
-
 void Database::initializeColumn(config::ColumnType column_type, const std::string& name) {
    SPDLOG_TRACE("Initializing column {}", name);
    columns.metadata.push_back({name, column_type});
@@ -794,7 +619,7 @@ void Database::initializeColumns() {
 void Database::initializeNucSequences(
    const std::map<std::string, std::vector<Nucleotide::Symbol>>& reference_sequences
 ) {
-   SPDLOG_DEBUG("preprocessing - initializing nucleotide sequences");
+   SPDLOG_DEBUG("build - initializing nucleotide sequences");
    for (const auto& [nuc_name, reference_sequence] : reference_sequences) {
       auto seq_store = SequenceStore<Nucleotide>(reference_sequence);
       nuc_sequences.emplace(nuc_name, std::move(seq_store));
@@ -807,7 +632,7 @@ void Database::initializeNucSequences(
 void Database::initializeAASequences(
    const std::map<std::string, std::vector<AminoAcid::Symbol>>& reference_sequences
 ) {
-   SPDLOG_DEBUG("preprocessing - initializing amino acid sequences");
+   SPDLOG_DEBUG("build - initializing amino acid sequences");
    for (const auto& [aa_name, reference_sequence] : reference_sequences) {
       auto aa_store = SequenceStore<AminoAcid>(reference_sequence);
       aa_sequences.emplace(aa_name, std::move(aa_store));

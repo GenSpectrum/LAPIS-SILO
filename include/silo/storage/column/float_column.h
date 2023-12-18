@@ -30,6 +30,8 @@ class FloatColumnPartition {
    [[nodiscard]] const std::vector<double>& getValues() const;
 
    void insert(const std::string& value);
+
+   void insertNull();
 };
 
 class FloatColumn {

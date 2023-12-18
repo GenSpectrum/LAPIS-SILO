@@ -30,6 +30,8 @@ class IntColumnPartition {
    [[nodiscard]] const std::vector<int32_t>& getValues() const;
 
    void insert(const std::string& value);
+
+   void insertNull();
 };
 
 class IntColumn {

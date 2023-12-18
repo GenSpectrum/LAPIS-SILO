@@ -144,6 +144,7 @@ CompareToValueSelection<T>::CompareToValueSelection(
 
 template <typename T>
 bool CompareToValueSelection<T>::match(uint32_t row_id) const {
+   assert(column.size() > row_id);
    switch (comparator) {
       case Comparator::EQUALS:
          return column[row_id] == value;
@@ -165,6 +166,7 @@ bool CompareToValueSelection<T>::match(uint32_t row_id) const {
 
 template <>
 bool CompareToValueSelection<silo::common::SiloString>::match(uint32_t row_id) const {
+   assert(column.size() > row_id);
    if (comparator == Comparator::EQUALS) {
       return column[row_id] == value;
    }

@@ -109,6 +109,14 @@ QueryResult FastaAligned::execute(
       }
    }
 
+   size_t total_count = 0;
+   for (auto& filter : bitmap_filter) {
+      total_count += filter->cardinality();
+   }
+   CHECK_SILO_QUERY(
+      total_count < 10001, "FastaAligned action currently limited to 10000 sequences"
+   );
+
    QueryResult results;
    for (uint32_t partition_index = 0; partition_index < database.partitions.size();
         ++partition_index) {

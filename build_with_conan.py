@@ -65,7 +65,7 @@ if __name__ == "__main__":
     parser.add_argument("--clean", action="store_true", help="Clean build directory before building")
     parser.add_argument("--release", action="store_true", help="Trigger RELEASE build")
     parser.add_argument("--build_without_clang_tidy", action="store_true", help="Build without clang-tidy")
-    parser.add_argument("--parallel", type=int, default=1, help="Number of parallel jobs")
+    parser.add_argument("--parallel", type=int, default=16, help="Number of parallel jobs")
 
     args_parsed = parser.parse_args()
     main(args_parsed)

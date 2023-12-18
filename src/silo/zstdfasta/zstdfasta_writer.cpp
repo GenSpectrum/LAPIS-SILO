@@ -1,4 +1,4 @@
-#include "silo/common/zstdfasta_writer.h"
+#include "silo/zstdfasta/zstdfasta_writer.h"
 
 #include <cstddef>
 #include <filesystem>
@@ -6,7 +6,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include "silo/common/zstd_compressor.h"
+#include "silo/zstdfasta/zstd_compressor.h"
 
 silo::ZstdFastaWriter::ZstdFastaWriter(
    const std::filesystem::path& out_file,
@@ -58,6 +58,12 @@ void silo::ZstdFastaWriter::write(const std::string& key, const std::string& gen
 }
 
 void silo::ZstdFastaWriter::writeRaw(const std::string& key, const std::string& compressed_genome) {
+   outStream << '>' << key << '\n'
+             << std::to_string(compressed_genome.size()) << '\n'
+             << compressed_genome << '\n';
+}
+
+void silo::ZstdFastaWriter::writeRaw(const std::string& key, std::string_view compressed_genome) {
    outStream << '>' << key << '\n'
              << std::to_string(compressed_genome.size()) << '\n'
              << compressed_genome << '\n';

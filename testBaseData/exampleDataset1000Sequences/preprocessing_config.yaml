@@ -1,0 +1,3 @@
+ndjsonInputFilename: "sample.ndjson.zst"
+pangoLineageDefinitionFilename: "pangolineage_alias.json"
+referenceGenomeFilename: "reference_genomes.json"

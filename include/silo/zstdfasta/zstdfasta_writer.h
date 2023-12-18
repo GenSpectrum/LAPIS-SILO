@@ -7,7 +7,7 @@
 #include <string>
 #include <string_view>
 
-#include "silo/common/zstd_compressor.h"
+#include "zstd_compressor.h"
 
 namespace silo {
 class ZstdFastaWriter {
@@ -34,6 +34,9 @@ class ZstdFastaWriter {
 
    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
    void writeRaw(const std::string& key, const std::string& compressed_genome);
+
+   // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+   void writeRaw(const std::string& key, std::string_view compressed_genome);
 
    void writeDefault(const std::string& key);
 };

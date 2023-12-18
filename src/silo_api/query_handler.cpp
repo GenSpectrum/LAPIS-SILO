@@ -1,5 +1,6 @@
 #include "silo_api/query_handler.h"
 
+#include <cxxabi.h>
 #include <iosfwd>
 #include <string>
 
@@ -42,9 +43,35 @@ void QueryHandler::post(
       std::ostream& out_stream = response.send();
       out_stream << nlohmann::json(query_result);
    } catch (const silo::QueryParseException& ex) {
+      SPDLOG_INFO("Query is invalid: " + query);
       response.setStatus(Poco::Net::HTTPResponse::HTTP_BAD_REQUEST);
       std::ostream& out_stream = response.send();
       out_stream << nlohmann::json(ErrorResponse{"Bad request", ex.what()});
+   } catch (const std::exception& ex) {
+      SPDLOG_ERROR(ex.what());
+      response.setStatus(Poco::Net::HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
+      std::ostream& out_stream = response.send();
+      out_stream << nlohmann::json(ErrorResponse{"Internal Server Error", ex.what()});
+   } catch (const std::string& ex) {
+      SPDLOG_ERROR(ex);
+      response.setStatus(Poco::Net::HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
+      std::ostream& out_stream = response.send();
+      out_stream << nlohmann::json(ErrorResponse{"Internal Server Error", ex});
+   } catch (...) {
+      SPDLOG_ERROR("Query cancelled with uncatchable (...) exception");
+      const auto exception = std::current_exception();
+      if (exception) {
+         const auto* message = abi::__cxa_current_exception_type()->name();
+         SPDLOG_ERROR("current_exception: {}", message);
+         response.setStatus(Poco::Net::HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
+         std::ostream& out_stream = response.send();
+         out_stream << nlohmann::json(ErrorResponse{"Internal Server Error", message});
+      } else {
+         response.setStatus(Poco::Net::HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
+         std::ostream& out_stream = response.send();
+         out_stream << nlohmann::json(ErrorResponse{
+            "Internal Server Error", "non recoverable error message"});
+      }
    }
 }
 

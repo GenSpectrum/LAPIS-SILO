@@ -1,14 +1,20 @@
 #include "silo/storage/column_group.h"
 
 #include <cmath>
-#include <csv.hpp>
+#include <filesystem>
+#include <iosfwd>
 #include <stdexcept>
+#include <string>
+#include <vector>
+
+#include <boost/algorithm/string.hpp>
+#include <duckdb.hpp>
 
 #include "silo/common/date.h"
 #include "silo/common/pango_lineage.h"
 #include "silo/common/string.h"
 #include "silo/config/database_config.h"
-#include "silo/preprocessing/metadata.h"
+#include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/column/date_column.h"
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
@@ -25,35 +31,39 @@ class Nucleotide;
 namespace silo::storage {
 
 uint32_t ColumnPartitionGroup::fill(
-   const std::filesystem::path& input_file,
+   duckdb::Connection& connection,
+   uint32_t partition_id,
+   const std::string& order_by_clause,
    const silo::config::DatabaseConfig& database_config
 ) {
-   auto metadata_reader = silo::preprocessing::MetadataReader(input_file);
-
    uint32_t sequence_count = 0;
 
-   const auto column_names = metadata_reader.reader.get_col_names();
-   for (auto& row : metadata_reader.reader) {
+   std::vector<std::string> column_names;
+   for (const auto& item : database_config.schema.metadata) {
+      column_names.push_back(item.name);
+   }
+   std::string column_name_sql = boost::algorithm::join(column_names, ", ");
+
+   auto result = connection.Query(fmt::format(
+      "SELECT {} FROM partitioned_metadata WHERE partition_id = {} {}",
+      column_name_sql,
+      partition_id,
+      order_by_clause
+   ));
+   if (result->HasError()) {
+      throw preprocessing::PreprocessingException(
+         "Error in the execution of the duckdb statement for partition key table "
+         "generation: " +
+         result->GetError()
+      );
+   }
+
+   for (auto it = result->begin(); it != result->end(); ++it) {
+      size_t column_index = 0;
       for (const auto& item : database_config.schema.metadata) {
-         const std::string value = row[item.name].get();
          const auto column_type = item.getColumnType();
-         if (column_type == silo::config::ColumnType::INDEXED_STRING) {
-            indexed_string_columns.at(item.name).insert(value);
-         } else if (column_type == silo::config::ColumnType::STRING) {
-            string_columns.at(item.name).insert(value);
-         } else if (column_type == silo::config::ColumnType::INDEXED_PANGOLINEAGE) {
-            pango_lineage_columns.at(item.name).insert({value});
-         } else if (column_type == silo::config::ColumnType::DATE) {
-            date_columns.at(item.name).insert(common::stringToDate(value));
-         } else if (column_type == silo::config::ColumnType::INT) {
-            int_columns.at(item.name).insert(value);
-         } else if (column_type == silo::config::ColumnType::FLOAT) {
-            float_columns.at(item.name).insert(value);
-         } else if (column_type == silo::config::ColumnType::NUC_INSERTION) {
-            nuc_insertion_columns.at(item.name).insert(value);
-         } else if (column_type == silo::config::ColumnType::AA_INSERTION) {
-            aa_insertion_columns.at(item.name).insert(value);
-         }
+         const duckdb::Value value = it.current_row.GetValue<duckdb::Value>(column_index++);
+         addValueToColumn(item.name, column_type, value);
       }
       if (++sequence_count == UINT32_MAX) {
          throw std::runtime_error(
@@ -63,6 +73,71 @@ uint32_t ColumnPartitionGroup::fill(
    }
 
    return sequence_count;
+}
+
+void ColumnPartitionGroup::addValueToColumn(
+   const std::string& column_name,
+   config::ColumnType column_type,
+   const duckdb::Value& value
+) {
+   switch (column_type) {
+      case silo::config::ColumnType::INDEXED_STRING:
+         if (value.IsNull()) {
+            indexed_string_columns.at(column_name).insertNull();
+         } else {
+            indexed_string_columns.at(column_name).insert(value.ToString());
+         }
+         break;
+      case silo::config::ColumnType::STRING:
+         if (value.IsNull()) {
+            string_columns.at(column_name).insertNull();
+         } else {
+            string_columns.at(column_name).insert(value.ToString());
+         }
+         break;
+      case silo::config::ColumnType::INDEXED_PANGOLINEAGE:
+         if (value.IsNull()) {
+            pango_lineage_columns.at(column_name).insertNull();
+         } else {
+            pango_lineage_columns.at(column_name).insert({value.ToString()});
+         }
+         break;
+      case silo::config::ColumnType::DATE:
+         if (value.IsNull()) {
+            date_columns.at(column_name).insertNull();
+         } else {
+            date_columns.at(column_name).insert(common::stringToDate(value.ToString()));
+         }
+         break;
+      case silo::config::ColumnType::INT:
+         if (value.IsNull()) {
+            int_columns.at(column_name).insertNull();
+         } else {
+            int_columns.at(column_name).insert(value.ToString());
+         }
+         break;
+      case silo::config::ColumnType::FLOAT:
+         if (value.IsNull()) {
+            float_columns.at(column_name).insertNull();
+         } else {
+            float_columns.at(column_name).insert(value.ToString());
+         }
+         break;
+      case silo::config::ColumnType::NUC_INSERTION:
+         if (value.IsNull()) {
+            nuc_insertion_columns.at(column_name).insertNull();
+         } else {
+            nuc_insertion_columns.at(column_name).insert(value.ToString());
+         }
+         break;
+      case silo::config::ColumnType::AA_INSERTION:
+         if (value.IsNull()) {
+            aa_insertion_columns.at(column_name).insertNull();
+         } else {
+            aa_insertion_columns.at(column_name).insert(value.ToString());
+         }
+         break;
+   }
 }
 
 template <>

@@ -3,9 +3,9 @@
 #include <gtest/gtest.h>
 
 inline void configTestFunction() {
-   throw silo::PreprocessingException("SomeText");
+   throw silo::preprocessing::PreprocessingException("SomeText");
 }
 
 TEST(PreprocessingException, assertThatItThrows) {
-   EXPECT_THROW(configTestFunction(), silo::PreprocessingException);
+   EXPECT_THROW(configTestFunction(), silo::preprocessing::PreprocessingException);
 }

@@ -105,42 +105,47 @@ jobs:
   endToEndTests:
     name: Run End To End Tests
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'push' }}
+    strategy:
+      matrix:
+        preprocessing-docker-compose: [
+          docker-compose-for-tests-preprocessing-from-tsv.yml,
+          docker-compose-for-tests-preprocessing-from-ndjson.yml
+        ]
     steps:
-      -
-        uses: actions/checkout@v4
-      -
-        name: Use Node.js ${{ matrix.node-version }}
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: 18.x
-      -
-        uses: actions/cache@v3
+
+      - uses: actions/cache@v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-      -
-        name: npm install
+
+      - name: npm install
         run: cd endToEndTests && npm ci
-      -
-        name: Check Format
+
+      - name: Check Format
         run: cd endToEndTests && npm run check-format
-      -
-        name: Docker Metadata
+
+      - name: Docker Metadata
         id: dockerMetadata
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.DOCKER_IMAGE_NAME }}
           tags: type=ref,event=branch
-      -
-        name: Wait for Docker Image
+
+      - name: Wait for Docker Image
         uses: lewagon/wait-on-check-action@v1.3.1
         with:
           ref: ${{ github.ref }}
           check-name: Build And Run Unit Tests
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Start Docker Container and preprocess data
-        run: docker compose -f docker-compose-for-tests-preprocessing.yml up
+        run: docker compose -f ${{ matrix.preprocessing-docker-compose }} up
         env:
           SILO_IMAGE: ${{ steps.dockerMetadata.outputs.tags }}
 
@@ -148,6 +153,6 @@ jobs:
         run: docker compose -f docker-compose-for-tests-api.yml up -d --wait
         env:
           SILO_IMAGE: ${{ steps.dockerMetadata.outputs.tags }}
-      -
-        name: Run Tests
+
+      - name: Run Tests
         run: cd endToEndTests && SILO_URL=localhost:8080 npm run test

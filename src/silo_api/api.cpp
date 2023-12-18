@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include <cxxabi.h>
+
 #include <Poco/Net/HTTPServer.h>
 #include <Poco/Net/HTTPServerParams.h>
 #include <Poco/Net/ServerSocket.h>
@@ -24,6 +26,8 @@
 #include "silo/database.h"
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_config_reader.h"
+#include "silo/preprocessing/preprocessing_exception.h"
+#include "silo/preprocessing/preprocessor.h"
 #include "silo_api/database_directory_watcher.h"
 #include "silo_api/database_mutex.h"
 #include "silo_api/logging.h"
@@ -203,13 +207,31 @@ class SiloServer : public Poco::Util::ServerApplication {
 
    int handlePreprocessing() {
       SPDLOG_INFO("Starting SILO preprocessing");
-      const auto preprocessing_config = preprocessingConfig(config());
-      auto database_config = databaseConfig(config());
+      try {
+         const auto preprocessing_config = preprocessingConfig(config());
+         auto database_config = databaseConfig(config());
 
-      auto database = silo::Database::preprocessing(preprocessing_config, database_config);
+         auto preprocessor =
+            silo::preprocessing::Preprocessor(preprocessing_config, database_config);
 
-      database.saveDatabaseState(preprocessing_config.getOutputDirectory());
+         auto database = preprocessor.preprocess();
 
+         database.saveDatabaseState(preprocessing_config.getOutputDirectory());
+      } catch (const std::exception& ex) {
+         SPDLOG_ERROR(ex.what());
+         throw ex;
+      } catch (const std::string& ex) {
+         SPDLOG_ERROR(ex);
+         return 1;
+      } catch (...) {
+         SPDLOG_ERROR("Preprocessing cancelled with uncatchable (...) exception");
+         const auto exception = std::current_exception();
+         if (exception) {
+            const auto* message = abi::__cxa_current_exception_type()->name();
+            SPDLOG_ERROR("current_exception: {}", message);
+         }
+         return 1;
+      }
       return Application::EXIT_OK;
    };
 

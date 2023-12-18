@@ -10,6 +10,7 @@
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/preprocessing/partition.h"
+#include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/column_group.h"
 #include "silo/storage/sequence_store.h"
 
@@ -25,8 +26,120 @@ template <typename SymbolType>
 class InsertionColumnPartition;
 }  // namespace storage::column
 
-DatabasePartition::DatabasePartition(std::vector<silo::preprocessing::Chunk> chunks)
+DatabasePartition::DatabasePartition(std::vector<silo::preprocessing::PartitionChunk> chunks)
     : chunks(std::move(chunks)) {}
+
+void DatabasePartition::validate() const {
+   size_t partition_size = sequence_count;
+
+   for (const auto& [name, nuc_store] : nuc_sequences) {
+      if (nuc_store.sequence_count != partition_size) {
+         throw preprocessing::PreprocessingException(fmt::format(
+            "nuc_store {} ({}) has invalid size (expected {}).",
+            name,
+            nuc_store.sequence_count,
+            partition_size
+         ));
+      }
+      if (nuc_store.positions.size() != nuc_store.reference_sequence.size()) {
+         throw preprocessing::PreprocessingException(fmt::format(
+            "nuc_store positions {} ({}) has size unequal to reference (expected {}).",
+            name,
+            nuc_store.positions.size(),
+            nuc_store.reference_sequence.size()
+         ));
+      }
+      if (nuc_store.reference_sequence.size() == 0) {
+         throw preprocessing::PreprocessingException("reference_sequence " + name + " is empty.");
+      }
+      if (nuc_store.missing_symbol_bitmaps.size() != partition_size) {
+         throw preprocessing::PreprocessingException(
+            "nuc_store.missing_symbol_bitmaps " + name + " has invalid size."
+         );
+      }
+   }
+
+   for (const auto& [name, aa_store] : aa_sequences) {
+      if (aa_store.sequence_count != partition_size) {
+         throw preprocessing::PreprocessingException(fmt::format(
+            "aa_store {} ({}) has invalid size (expected {}).",
+            name,
+            aa_store.sequence_count,
+            partition_size
+         ));
+      }
+      if (aa_store.positions.size() != aa_store.reference_sequence.size()) {
+         throw preprocessing::PreprocessingException(
+            "aa_store " + name + " has invalid position size."
+         );
+      }
+      if (aa_store.reference_sequence.size() == 0) {
+         throw preprocessing::PreprocessingException("reference_sequence " + name + " is empty.");
+      }
+      if (aa_store.missing_symbol_bitmaps.size() != partition_size) {
+         throw preprocessing::PreprocessingException(
+            "aa_store.missing_symbol_bitmaps " + name + " has invalid size."
+         );
+      }
+   }
+
+   for (const auto& col : columns.aa_insertion_columns) {
+      if (col.second.getValues().size() != partition_size) {
+         throw preprocessing::PreprocessingException(
+            "aa_insertion_column " + col.first + " has invalid size."
+         );
+      }
+   }
+   for (const auto& col : columns.pango_lineage_columns) {
+      if (col.second.getValues().size() != partition_size) {
+         throw preprocessing::PreprocessingException(
+            "pango_lineage_column " + col.first + " has invalid size."
+         );
+      }
+   }
+   for (const auto& col : columns.nuc_insertion_columns) {
+      if (col.second.getValues().size() != partition_size) {
+         throw preprocessing::PreprocessingException(
+            "nuc_insertion_column " + col.first + " has invalid size."
+         );
+      }
+   }
+   for (const auto& col : columns.date_columns) {
+      if (col.second.getValues().size() != partition_size) {
+         throw preprocessing::PreprocessingException(
+            "date_column " + col.first + " has invalid size."
+         );
+      }
+   }
+   for (const auto& col : columns.int_columns) {
+      if (col.second.getValues().size() != partition_size) {
+         throw preprocessing::PreprocessingException(
+            "int_columns " + col.first + " has invalid size."
+         );
+      }
+   }
+   for (const auto& col : columns.indexed_string_columns) {
+      if (col.second.getValues().size() != partition_size) {
+         throw preprocessing::PreprocessingException(
+            "indexed_string_columns " + col.first + " has invalid size."
+         );
+      }
+   }
+   for (const auto& col : columns.string_columns) {
+      if (col.second.getValues().size() != partition_size) {
+         throw preprocessing::PreprocessingException(
+            "string_columns " + col.first + " has invalid size."
+         );
+      }
+   }
+   for (const auto& col : columns.float_columns) {
+      if (col.second.getValues().size() != partition_size) {
+         throw preprocessing::PreprocessingException(
+            "float_columns " + col.first + " has invalid size."
+         );
+      }
+   }
+}
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void DatabasePartition::flipBitmaps() {
@@ -73,7 +186,7 @@ void DatabasePartition::flipBitmaps() {
    }
 }
 
-const std::vector<preprocessing::Chunk>& DatabasePartition::getChunks() const {
+const std::vector<preprocessing::PartitionChunk>& DatabasePartition::getChunks() const {
    return chunks;
 }
 

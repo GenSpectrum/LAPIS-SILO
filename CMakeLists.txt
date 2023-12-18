@@ -25,13 +25,13 @@ add_compile_definitions(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 # ---------------------------------------------------------------------------
 
 find_package(Boost REQUIRED COMPONENTS system serialization iostreams)
-find_package(Poco REQUIRED COMPONENTS Net Util JSON)
+find_package(duckdb REQUIRED)
 find_package(LibLZMA REQUIRED)
-find_package(TBB REQUIRED)
 find_package(nlohmann_json REQUIRED)
+find_package(Poco REQUIRED COMPONENTS Net Util JSON)
 find_package(roaring REQUIRED)
 find_package(spdlog REQUIRED)
-find_package(vincentlaucsb-csv-parser REQUIRED)
+find_package(TBB REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(zstd REQUIRED)
 
@@ -81,12 +81,12 @@ target_link_libraries(
         silo
         PUBLIC
         ${Boost_LIBRARIES}
-        TBB::tbb
+        ${duckdb_LIBRARIES}
+        nlohmann_json::nlohmann_json
         ${roaring_LIBRARIES}
         ${spdlog_LIBRARIES}
-        ${vincentlaucsb-csv-parser_LIBRARIES}
+        TBB::tbb
         ${yaml-cpp_LIBRARIES}
-        nlohmann_json::nlohmann_json
         zstd::libzstd_static
 )
 

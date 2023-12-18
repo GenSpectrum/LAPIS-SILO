@@ -2,7 +2,8 @@
   "testCaseName": "N-Of query requesting 2 of 3 mutations with details action",
   "query": {
     "action": {
-      "type": "Details"
+      "type": "Details",
+      "orderByFields": ["gisaid_epi_isl"]
     },
     "filterExpression": {
       "type": "N-Of",
@@ -28,6 +29,19 @@
     }
   },
   "expectedQueryResult": [
+    {
+      "aaInsertions": null,
+      "age": 50,
+      "country": "Switzerland",
+      "date": "2020-11-13",
+      "division": "Solothurn",
+      "gisaid_epi_isl": "EPI_ISL_1005148",
+      "insertions": "25701:CCC",
+      "pango_lineage": "B.1.221",
+      "qc_value": 0.92,
+      "region": "Europe",
+      "unsorted_date": "2020-12-17"
+    },
     {
       "aaInsertions": null,
       "age": 50,
@@ -66,19 +80,6 @@
       "qc_value": 0.9,
       "region": "Europe",
       "unsorted_date": "2021-01-22"
-    },
-    {
-      "aaInsertions": null,
-      "age": 50,
-      "country": "Switzerland",
-      "date": "2020-11-13",
-      "division": "Solothurn",
-      "gisaid_epi_isl": "EPI_ISL_1005148",
-      "insertions": "25701:CCC",
-      "pango_lineage": "B.1.221",
-      "qc_value": 0.92,
-      "region": "Europe",
-      "unsorted_date": "2020-12-17"
     }
   ]
 }

@@ -7,13 +7,14 @@ class SiloRecipe(ConanFile):
 
     requires = [
         "boost/1.82.0",
+        "duckdb/0.8.1",
         "poco/1.12.4",
+        "hwloc/2.9.3",
         "onetbb/2021.9.0",
         "nlohmann_json/3.11.2",
         "gtest/cci.20210126",
         "roaring/1.0.0",
         "spdlog/1.11.0",
-        "vincentlaucsb-csv-parser/2.1.3",
         "yaml-cpp/0.7.0",
         "zstd/1.5.5",
     ]
@@ -23,6 +24,10 @@ class SiloRecipe(ConanFile):
 
         "zstd/*:shared": False,
 
+        "duckdb/*:shared": False,
+        "duckdb/*:with_json": True,
+        "duckdb/*:with_parquet": True,
+
         "roaring/*:shared": False,
 
         "gtest/*:no_main": True,
@@ -30,6 +35,8 @@ class SiloRecipe(ConanFile):
         "boost/*:lzma": True,
         "boost/*:zstd": True,
         "boost/*:shared": False,
+
+        "hwloc/*:shared": False,
 
         "boost/*:without_iostreams": False,
         "boost/*:without_serialization": False,
@@ -88,15 +95,16 @@ class SiloRecipe(ConanFile):
     def generate(self):
         deps = CMakeDeps(self)
         deps.set_property("boost", "cmake_find_mode", "both")
-        deps.set_property("onetbb", "cmake_find_mode", "both")
-        deps.set_property("poco", "cmake_find_mode", "both")
-        deps.set_property("nlohmann_json", "cmake_find_mode", "both")
+        deps.set_property("duckdb", "cmake_find_mode", "both")
+        deps.set_property("fmt", "cmake_find_mode", "both")
         deps.set_property("gtest", "cmake_find_mode", "both")
+        deps.set_property("hwloc", "cmake_find_mode", "both")
+        deps.set_property("nlohmann_json", "cmake_find_mode", "both")
+        deps.set_property("onetbb", "cmake_find_mode", "both")
         deps.set_property("pcre2", "cmake_find_mode", "both")
+        deps.set_property("poco", "cmake_find_mode", "both")
         deps.set_property("roaring", "cmake_find_mode", "both")
         deps.set_property("spdlog", "cmake_find_mode", "both")
-        deps.set_property("fmt", "cmake_find_mode", "both")
-        deps.set_property("vincentlaucsb-csv-parser", "cmake_find_mode", "both")
         deps.set_property("yaml-cpp", "cmake_find_mode", "both")
         deps.set_property("zstd", "cmake_find_mode", "both")
         deps.generate()

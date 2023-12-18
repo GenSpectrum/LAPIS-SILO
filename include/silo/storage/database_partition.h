@@ -65,7 +65,7 @@ class DatabasePartition {
    }
 
   private:
-   std::vector<silo::preprocessing::Chunk> chunks;
+   std::vector<silo::preprocessing::PartitionChunk> chunks;
 
    DatabasePartition() = default;
 
@@ -75,11 +75,13 @@ class DatabasePartition {
    std::map<std::string, SequenceStorePartition<AminoAcid>&> aa_sequences;
    uint32_t sequence_count = 0;
 
-   explicit DatabasePartition(std::vector<silo::preprocessing::Chunk> chunks);
+   explicit DatabasePartition(std::vector<silo::preprocessing::PartitionChunk> chunks);
+
+   void validate() const;
 
    void flipBitmaps();
 
-   [[nodiscard]] const std::vector<preprocessing::Chunk>& getChunks() const;
+   [[nodiscard]] const std::vector<preprocessing::PartitionChunk>& getChunks() const;
 
    void insertColumn(const std::string& name, storage::column::StringColumnPartition& column);
    void insertColumn(

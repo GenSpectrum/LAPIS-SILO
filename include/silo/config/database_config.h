@@ -24,7 +24,8 @@ enum class ColumnType {
 
 ValueType toDatabaseValueType(std::string_view type);
 
-struct DatabaseMetadata {
+class DatabaseMetadata {
+  public:
    std::string name;
    ValueType type;
    bool generate_index;
@@ -32,15 +33,19 @@ struct DatabaseMetadata {
    [[nodiscard]] ColumnType getColumnType() const;
 };
 
-struct DatabaseSchema {
+class DatabaseSchema {
+  public:
    std::string instance_name;
    std::vector<DatabaseMetadata> metadata;
    std::string primary_key;
    std::optional<std::string> date_to_sort_by;
    std::optional<std::string> partition_by;
+
+   std::string getStrictOrderByClause() const;
 };
 
-struct DatabaseConfig {
+class DatabaseConfig {
+  public:
    std::string default_nucleotide_sequence;
    DatabaseSchema schema;
 

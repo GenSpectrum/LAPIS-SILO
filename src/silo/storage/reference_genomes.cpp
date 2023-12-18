@@ -46,7 +46,7 @@ ReferenceGenomes::ReferenceGenomes(
          auto symbol = Nucleotide::charToSymbol(character);
 
          if (!symbol.has_value()) {
-            throw PreprocessingException(
+            throw preprocessing::PreprocessingException(
                "Nucleotide sequence with name " + sequence_name +
                " contains illegal amino acid code: " + std::to_string(character)
             );
@@ -64,7 +64,7 @@ ReferenceGenomes::ReferenceGenomes(
          auto symbol = AminoAcid::charToSymbol(character);
 
          if (!symbol.has_value()) {
-            throw PreprocessingException(
+            throw preprocessing::PreprocessingException(
                "Amino Acid sequence with name " + sequence_name +
                " contains illegal amino acid code: " + std::to_string(character)
             );
@@ -83,6 +83,17 @@ ReferenceGenomes readFromJson(const std::filesystem::path& reference_genomes_pat
    std::map<std::string, std::string> aa_sequences;
    nlohmann::json reference_genomes_json;
    std::ifstream(reference_genomes_path) >> reference_genomes_json;
+
+   if (!reference_genomes_json.contains("nucleotideSequences")) {
+      throw preprocessing::PreprocessingException(
+         "Reference genomes file does not contain key 'nucleotideSequences'"
+      );
+   }
+   if (!reference_genomes_json.contains("genes")) {
+      throw preprocessing::PreprocessingException(
+         "Reference genomes file does not contain key 'genes'"
+      );
+   }
 
    const nlohmann::json nuc_seq_json = reference_genomes_json["nucleotideSequences"];
    const nlohmann::json aa_seq_json = reference_genomes_json["genes"];

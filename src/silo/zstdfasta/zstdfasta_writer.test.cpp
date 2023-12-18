@@ -2,9 +2,10 @@
 #include <string>
 #include <unordered_map>
 
-#include "silo/common/zstdfasta_reader.h"
-#include "silo/common/zstdfasta_writer.h"
 #include "silo/preprocessing/preprocessing_config.h"
+#include "silo/zstdfasta/zstd_decompressor.h"
+#include "silo/zstdfasta/zstdfasta_reader.h"
+#include "silo/zstdfasta/zstdfasta_writer.h"
 
 TEST(ZstdFastaWriter, writesCorrectFiles) {
    const std::filesystem::path file_path("./testBaseData/tmp/test.fasta");

@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include <spdlog/spdlog.h>
 #include <boost/algorithm/string/join.hpp>
 #include <nlohmann/json.hpp>
 
@@ -61,12 +62,20 @@ std::unique_ptr<silo::query_engine::operators::Operator> InsertionContains<Symbo
    const silo::DatabasePartition& database_partition,
    Expression::AmbiguityMode /*mode*/
 ) const {
+   SPDLOG_TRACE(
+      "In InsertionContains<SymbolType>::compile with column names: " +
+      boost::join(column_names, ",")
+   );
    for (const std::string& column_name : column_names) {
       CHECK_SILO_QUERY(
          database_partition.columns.getInsertionColumns<SymbolType>().contains(column_name),
          "The insertion column '" + column_name + "' does not exist."
       )
    }
+   if (database_partition.columns.getInsertionColumns<SymbolType>().empty()) {
+      return std::make_unique<operators::Empty>(database_partition.sequence_count);
+   }
+
    std::string validated_sequence_name;
    if (sequence_name.has_value()) {
       validated_sequence_name = sequence_name.value();

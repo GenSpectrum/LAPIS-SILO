@@ -7,6 +7,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include "silo/preprocessing/preprocessing_config.h"
+#include "silo/preprocessing/preprocessing_exception.h"
 
 using silo::preprocessing::OptionalPreprocessingConfig;
 
@@ -26,10 +27,10 @@ struct convert<OptionalPreprocessingConfig> {
          extractStringIfPresent(node, "inputDirectory"),
          extractStringIfPresent(node, "outputDirectory"),
          extractStringIfPresent(node, "intermediateResultsDirectory"),
+         extractStringIfPresent(node, "preprocessingDatabaseLocation"),
+         extractStringIfPresent(node, "ndjsonInputFilename"),
          extractStringIfPresent(node, "metadataFilename"),
          extractStringIfPresent(node, "pangoLineageDefinitionFilename"),
-         extractStringIfPresent(node, "partitionsFolder"),
-         extractStringIfPresent(node, "sortedPartitionsFolder"),
          extractStringIfPresent(node, "referenceGenomeFilename"),
          extractStringIfPresent(node, "nucleotideSequencePrefix"),
          extractStringIfPresent(node, "genePrefix")};
@@ -47,7 +48,15 @@ OptionalPreprocessingConfig PreprocessingConfigReader::readConfig(
    SPDLOG_INFO("Reading preprocessing config from {}", config_path.string());
 
    try {
-      return YAML::LoadFile(config_path.string()).as<OptionalPreprocessingConfig>();
+      auto config = YAML::LoadFile(config_path.string()).as<OptionalPreprocessingConfig>();
+      if (config.ndjson_input_filename.has_value() && config.metadata_file) {
+         throw preprocessing::PreprocessingException(fmt::format(
+            "Cannot specify both a ndjsonInputFilename ('{}') and metadataFilename('{}').",
+            config.ndjson_input_filename.value().string(),
+            config.metadata_file.value().string()
+         ));
+      }
+      return config;
    } catch (const YAML::Exception& e) {
       throw std::runtime_error(
          "Failed to read preprocessing config from " + config_path.string() + ": " +
@@ -59,7 +68,7 @@ OptionalPreprocessingConfig PreprocessingConfigReader::readConfig(
 PreprocessingConfig OptionalPreprocessingConfig::mergeValuesFromOrDefault(
    const silo::preprocessing::OptionalPreprocessingConfig& other
 ) const {
-   return PreprocessingConfig(
+   return silo::preprocessing::PreprocessingConfig(
       InputDirectory{input_directory.value_or(
          other.input_directory.value_or(silo::preprocessing::DEFAULT_INPUT_DIRECTORY.directory)
       )},
@@ -70,19 +79,17 @@ PreprocessingConfig OptionalPreprocessingConfig::mergeValuesFromOrDefault(
       OutputDirectory{output_directory.value_or(
          other.output_directory.value_or(silo::preprocessing::DEFAULT_OUTPUT_DIRECTORY.directory)
       )},
+      PreprocessingDatabaseLocation{
+         preprocessing_database_location.has_value() ? preprocessing_database_location
+                                                     : other.preprocessing_database_location},
+      NdjsonInputFilename{
+         ndjson_input_filename.has_value() ? ndjson_input_filename : other.ndjson_input_filename},
       MetadataFilename{metadata_file.value_or(
          other.metadata_file.value_or(silo::preprocessing::DEFAULT_METADATA_FILENAME.filename)
       )},
       PangoLineageDefinitionFilename{
          pango_lineage_definition_file.has_value() ? pango_lineage_definition_file
                                                    : other.pango_lineage_definition_file},
-      PartitionsFolder{partition_folder.value_or(
-         other.partition_folder.value_or(silo::preprocessing::DEFAULT_PARTITIONS_FOLDER.folder)
-      )},
-      SortedPartitionsFolder{
-         sorted_partition_folder.value_or(other.sorted_partition_folder.value_or(
-            silo::preprocessing::DEFAULT_SORTED_PARTITIONS_FOLDER.folder
-         ))},
       ReferenceGenomeFilename{reference_genome_file.value_or(other.reference_genome_file.value_or(
          silo::preprocessing::DEFAULT_REFERENCE_GENOME_FILENAME.filename
       ))},

@@ -39,6 +39,10 @@ std::unique_ptr<silo::query_engine::operators::Operator> FloatBetween::compile(
    const silo::DatabasePartition& database_partition,
    silo::query_engine::filter_expressions::Expression::AmbiguityMode /*mode*/
 ) const {
+   CHECK_SILO_QUERY(
+      database_partition.columns.float_columns.contains(column),
+      "The database does not contain the float column '" + column + "'"
+   )
    const auto& float_column = database_partition.columns.float_columns.at(column);
 
    std::vector<std::unique_ptr<operators::Predicate>> predicates;

@@ -14,8 +14,8 @@
 #include "silo/common/format_number.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/symbol_map.h"
-#include "silo/common/zstdfasta_reader.h"
 #include "silo/preprocessing/preprocessing_exception.h"
+#include "silo/zstdfasta/zstdfasta_table_reader.h"
 
 template <typename SymbolType>
 silo::Position<SymbolType>::Position(typename SymbolType::Symbol symbol) {
@@ -69,13 +69,14 @@ silo::SequenceStorePartition<SymbolType>::SequenceStorePartition(
    const std::vector<typename SymbolType::Symbol>& reference_sequence
 )
     : reference_sequence(reference_sequence) {
+   positions.reserve(reference_sequence.size());
    for (const auto symbol : reference_sequence) {
       positions.emplace_back(symbol);
    }
 }
 
 template <typename Symbol>
-size_t silo::SequenceStorePartition<Symbol>::fill(silo::ZstdFastaReader& input_file) {
+size_t silo::SequenceStorePartition<Symbol>::fill(silo::ZstdFastaTableReader& input) {
    static constexpr size_t BUFFER_SIZE = 1024;
 
    size_t read_sequences_count = 0;
@@ -85,7 +86,7 @@ size_t silo::SequenceStorePartition<Symbol>::fill(silo::ZstdFastaReader& input_f
    std::optional<std::string> key;
    std::string genome;
    while (true) {
-      key = input_file.next(genome);
+      key = input.next(genome);
       if (!key) {
          break;
       }
@@ -148,7 +149,7 @@ void silo::SequenceStorePartition<SymbolType>::fillIndexes(const std::vector<std
                char const character = genomes[sequence_id][position];
                const auto symbol = SymbolType::charToSymbol(character);
                if (!symbol.has_value()) {
-                  throw PreprocessingException(
+                  throw preprocessing::PreprocessingException(
                      "Illegal character " + std::to_string(character) + " contained in sequence."
                   );
                }
