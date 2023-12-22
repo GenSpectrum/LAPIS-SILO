@@ -3,7 +3,7 @@
   "query": {
     "action": {
       "type": "Insertions",
-      "column": "insertions",
+      "column": "nucleotideInsertions",
       "sequenceName": "S"
     },
     "filterExpression": {

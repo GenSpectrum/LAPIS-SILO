@@ -3,14 +3,14 @@
   "query": {
     "action": {
       "type": "AminoAcidInsertions",
-      "column": "aaInsertions",
+      "column": "aminoAcidInsertions",
       "orderByFields": ["insertions", "position"]
     },
     "filterExpression": {
       "type": "AminoAcidInsertionContains",
       "sequenceName": "S",
       "value": "E.*",
-      "column": "aaInsertions",
+      "column": "aminoAcidInsertions",
       "position": 214
     }
   },

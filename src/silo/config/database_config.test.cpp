@@ -116,10 +116,10 @@ TEST(DatabaseConfigReader, shouldReadConfigWithCorrectParameters) {
    ASSERT_EQ(config.schema.metadata[8].name, "qc_value");
    ASSERT_EQ(config.schema.metadata[8].type, ValueType::FLOAT);
    ASSERT_EQ(config.schema.metadata[8].generate_index, false);
-   ASSERT_EQ(config.schema.metadata[9].name, "insertions");
+   ASSERT_EQ(config.schema.metadata[9].name, "nucleotideInsertions");
    ASSERT_EQ(config.schema.metadata[9].type, ValueType::NUC_INSERTION);
    ASSERT_EQ(config.schema.metadata[9].generate_index, false);
-   ASSERT_EQ(config.schema.metadata[10].name, "aaInsertions");
+   ASSERT_EQ(config.schema.metadata[10].name, "aminoAcidInsertions");
    ASSERT_EQ(config.schema.metadata[10].type, ValueType::AA_INSERTION);
    ASSERT_EQ(config.schema.metadata[10].generate_index, false);
 }

@@ -6,7 +6,7 @@
     },
     "filterExpression": {
       "type": "InsertionContains",
-      "column": "insertions",
+      "column": "nucleotideInsertions",
       "position": 25701,
       "value": "CC+++"
     }

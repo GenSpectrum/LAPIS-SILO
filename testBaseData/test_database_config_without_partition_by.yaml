@@ -22,7 +22,7 @@ schema:
       type: int
     - name: qc_value
       type: float
-    - name: insertions
+    - name: nucleotideInsertions
       type: insertion
   primaryKey: gisaid_epi_isl
   dateToSortBy: date
