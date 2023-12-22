@@ -53,27 +53,29 @@ class AminoAcid {
       Symbol::B,   Symbol::Z, Symbol::X, Symbol::STOP,
    };
 
-   static constexpr std::array<Symbol, 20> VALID_MUTATION_SYMBOLS{
-      AminoAcid::Symbol::A,  // Alanine
-      AminoAcid::Symbol::C,  // Cysteine
-      AminoAcid::Symbol::D,  // Aspartic Acid
-      AminoAcid::Symbol::E,  // Glutamic Acid
-      AminoAcid::Symbol::F,  // Phenylalanine
-      AminoAcid::Symbol::G,  // Glycine
-      AminoAcid::Symbol::H,  // Histidine
-      AminoAcid::Symbol::I,  // Isoleucine
-      AminoAcid::Symbol::K,  // Lysine
-      AminoAcid::Symbol::L,  // Leucine
-      AminoAcid::Symbol::M,  // Methionine
-      AminoAcid::Symbol::N,  // Asparagine
-      AminoAcid::Symbol::P,  // Proline
-      AminoAcid::Symbol::Q,  // Glutamine
-      AminoAcid::Symbol::R,  // Arginine
-      AminoAcid::Symbol::S,  // Serine
-      AminoAcid::Symbol::T,  // Threonine
-      AminoAcid::Symbol::V,  // Valine
-      AminoAcid::Symbol::W,  // Tryptophan
-      AminoAcid::Symbol::Y,  // Tyrosine
+   static constexpr std::array<Symbol, 22> VALID_MUTATION_SYMBOLS{
+      AminoAcid::Symbol::GAP,   // Gap, deletion in sequence
+      AminoAcid::Symbol::A,     // Alanine
+      AminoAcid::Symbol::C,     // Cysteine
+      AminoAcid::Symbol::D,     // Aspartic Acid
+      AminoAcid::Symbol::E,     // Glutamic Acid
+      AminoAcid::Symbol::F,     // Phenylalanine
+      AminoAcid::Symbol::G,     // Glycine
+      AminoAcid::Symbol::H,     // Histidine
+      AminoAcid::Symbol::I,     // Isoleucine
+      AminoAcid::Symbol::K,     // Lysine
+      AminoAcid::Symbol::L,     // Leucine
+      AminoAcid::Symbol::M,     // Methionine
+      AminoAcid::Symbol::N,     // Asparagine
+      AminoAcid::Symbol::P,     // Proline
+      AminoAcid::Symbol::Q,     // Glutamine
+      AminoAcid::Symbol::R,     // Arginine
+      AminoAcid::Symbol::S,     // Serine
+      AminoAcid::Symbol::T,     // Threonine
+      AminoAcid::Symbol::V,     // Valine
+      AminoAcid::Symbol::W,     // Tryptophan
+      AminoAcid::Symbol::Y,     // Tyrosine
+      AminoAcid::Symbol::STOP,  // Stop codon, Star-character in sequence
    };
 
    static constexpr Symbol SYMBOL_MISSING = Symbol::X;
