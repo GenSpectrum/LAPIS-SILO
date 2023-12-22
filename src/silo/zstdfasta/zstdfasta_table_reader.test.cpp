@@ -26,7 +26,7 @@ TEST(ZstdFastaTableReader, correctlyReadsZstdFastaTableFromFastaFile) {
    silo::ZstdFastaTableReader under_test(connection, "test", "ACGT", "true", "");
 
    std::optional<std::string> key;
-   std::string genome;
+   std::optional<std::string> genome;
 
    EXPECT_TRUE(key = under_test.next(genome));
    EXPECT_EQ(key, "Key1");
@@ -55,7 +55,7 @@ TEST(ZstdFastaTableReader, correctlyReadsZstdFastaTableFromZstdFastaFile) {
    silo::ZstdFastaTableReader under_test(connection, "test", "ACGT", "true", "");
 
    std::optional<std::string> key;
-   std::string genome;
+   std::optional<std::string> genome;
 
    EXPECT_TRUE(key = under_test.next(genome));
    EXPECT_EQ(key, "Key1");
@@ -84,7 +84,7 @@ TEST(ZstdFastaTableReader, correctlySortsZstdFastaTableFromFastaFile) {
    silo::ZstdFastaTableReader under_test(connection, "test", "ACGT", "true", "ORDER BY key desc");
 
    std::optional<std::string> key;
-   std::string genome;
+   std::optional<std::string> genome;
 
    EXPECT_TRUE(key = under_test.next(genome));
    EXPECT_EQ(key, "Key2");
@@ -113,7 +113,7 @@ TEST(ZstdFastaTableReader, correctlySortsZstdFastaTableFromZstdFastaFile) {
    silo::ZstdFastaTableReader under_test(connection, "test", "ACGT", "true", "ORDER BY key desc");
 
    std::optional<std::string> key;
-   std::string genome;
+   std::optional<std::string> genome;
 
    EXPECT_TRUE(key = under_test.next(genome));
    EXPECT_EQ(key, "Key2");

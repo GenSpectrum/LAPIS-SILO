@@ -1,0 +1,35 @@
+schema:
+  instanceName: Test
+  metadata:
+    - name: date
+      type: date
+    - name: dateSubmitted
+      type: date
+    - name: host
+      type: string
+    - name: age
+      type: int
+    - name: sex
+      type: string
+    - name: pangoLineage
+      type: pango_lineage
+    - name: qc
+      type: float
+    - name: accession
+      type: string
+    - name: version
+      type: int
+    - name: submissionId
+      type: string
+    - name: accessionVersion
+      type: string
+    - name: isRevocation
+      type: string
+    - name: versionStatus
+      type: string
+    - name: nucleotideInsertions
+      type: insertion
+    - name: aminoAcidInsertions
+      type: aaInsertion
+  primaryKey: accessionVersion
+  dateToSortBy: date

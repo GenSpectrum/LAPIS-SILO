@@ -68,9 +68,9 @@ class SequenceStorePartition {
       // clang-format on
    }
 
-   void fillIndexes(const std::vector<std::string>& genomes);
+   void fillIndexes(const std::vector<std::optional<std::string>>& genomes);
 
-   void fillNBitmaps(const std::vector<std::string>& genomes);
+   void fillNBitmaps(const std::vector<std::optional<std::string>>& genomes);
 
   public:
    explicit SequenceStorePartition(
@@ -95,7 +95,7 @@ class SequenceStorePartition {
 
    size_t fill(silo::ZstdFastaTableReader& input);
 
-   void interpret(const std::vector<std::string>& genomes);
+   void interpret(const std::vector<std::optional<std::string>>& genomes);
 };
 
 template <typename SymbolType>
