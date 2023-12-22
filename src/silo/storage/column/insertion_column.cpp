@@ -1,11 +1,12 @@
 #include "silo/storage/column/insertion_column.h"
 
 #include <optional>
-#include <roaring/roaring.hh>
 #include <string_view>
 #include <utility>
 
+#include <fmt/format.h>
 #include <boost/lexical_cast.hpp>
+#include <roaring/roaring.hh>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/bidirectional_map.h"
@@ -64,15 +65,13 @@ InsertionColumnPartition<SymbolType>::InsertionColumnPartition(
 
 template <typename SymbolType>
 void InsertionColumnPartition<SymbolType>::insert(const std::string& value) {
-   const auto sequence_id = values.size();
-
-   const Idx value_id = lookup.getOrCreateId(value);
-   values.push_back(value_id);
-
    if (value == "") {
+      insertNull();
       return;
    }
+   const auto sequence_id = values.size();
 
+   std::string standardized_value;
    for (auto& insertion_entry : splitBy(value, DELIMITER_INSERTIONS)) {
       auto [sequence_name, position, insertion] =
          parseInsertion(insertion_entry, default_sequence_name);
@@ -80,7 +79,26 @@ void InsertionColumnPartition<SymbolType>::insert(const std::string& value) {
          insertion_indexes.emplace(sequence_name, insertion::InsertionIndex<SymbolType>{})
             .first->second;
       insertion_index.addLazily(position, insertion, sequence_id);
+
+      if (!standardized_value.empty()) {
+         standardized_value += DELIMITER_INSERTIONS;
+      }
+      if (default_sequence_name.has_value() && default_sequence_name == sequence_name) {
+         standardized_value += fmt::format("{}{}{}", position, DELIMITER_INSERTION, insertion);
+      } else {
+         standardized_value += fmt::format(
+            "{}{}{}{}{}",
+            sequence_name,
+            DELIMITER_INSERTION,
+            position,
+            DELIMITER_INSERTION,
+            insertion
+         );
+      }
    }
+
+   const Idx value_id = lookup.getOrCreateId(standardized_value);
+   values.push_back(value_id);
 }
 
 template <typename SymbolType>

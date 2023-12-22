@@ -27,7 +27,7 @@
   "expectedQueryResult": [
     {
       "age": 50,
-      "aminoAcidInsertionsaminoAcidInsertions": null,
+      "aminoAcidInsertions": null,
       "country": "Switzerland",
       "date": "2021-03-03",
       "division": "Valais",
