@@ -29,15 +29,27 @@
       "sequenceName": "ORF1a"
     },
     {
+      "count": 44,
+      "mutation": "S3675-",
+      "proportion": 0.4489795918367347,
+      "sequenceName": "ORF1a"
+    },
+    {
+      "count": 44,
+      "mutation": "G3676-",
+      "proportion": 0.4444444444444444,
+      "sequenceName": "ORF1a"
+    },
+    {
       "count": 98,
       "mutation": "P314L",
-      "proportion": 0.98989898989899,
+      "proportion": 0.98,
       "sequenceName": "ORF1b"
     },
     {
       "count": 37,
       "mutation": "G142D",
-      "proportion": 0.49333333333333335,
+      "proportion": 0.4065934065934066,
       "sequenceName": "S"
     },
     {

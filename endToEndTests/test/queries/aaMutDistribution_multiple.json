@@ -14,37 +14,49 @@
     {
       "count": 37,
       "mutation": "T19R",
-      "proportion": 0.3854166666666667,
+      "proportion": 0.38144329896907214,
       "sequenceName": "S"
     },
     {
       "count": 37,
       "mutation": "G142D",
-      "proportion": 0.49333333333333335,
+      "proportion": 0.4065934065934066,
+      "sequenceName": "S"
+    },
+    {
+      "count": 35,
+      "mutation": "E156-",
+      "proportion": 0.3723404255319149,
+      "sequenceName": "S"
+    },
+    {
+      "count": 35,
+      "mutation": "F157-",
+      "proportion": 0.3723404255319149,
       "sequenceName": "S"
     },
     {
       "count": 34,
       "mutation": "R158G",
-      "proportion": 0.3655913978494624,
+      "proportion": 0.3617021276595745,
       "sequenceName": "S"
     },
     {
       "count": 34,
       "mutation": "G339D",
-      "proportion": 0.3469387755102041,
+      "proportion": 0.3434343434343434,
       "sequenceName": "S"
     },
     {
       "count": 33,
       "mutation": "S373P",
-      "proportion": 0.3402061855670103,
+      "proportion": 0.336734693877551,
       "sequenceName": "S"
     },
     {
       "count": 33,
       "mutation": "S375F",
-      "proportion": 0.336734693877551,
+      "proportion": 0.3333333333333333,
       "sequenceName": "S"
     },
     {
@@ -128,36 +140,54 @@
     {
       "count": 31,
       "mutation": "N764K",
-      "proportion": 0.32978723404255317,
+      "proportion": 0.3263157894736842,
       "sequenceName": "S"
     },
     {
       "count": 34,
       "mutation": "D796Y",
-      "proportion": 0.3469387755102041,
+      "proportion": 0.3434343434343434,
       "sequenceName": "S"
     },
     {
       "count": 34,
       "mutation": "D950N",
-      "proportion": 0.35789473684210527,
+      "proportion": 0.35051546391752575,
       "sequenceName": "S"
     },
     {
       "count": 33,
       "mutation": "Q954H",
-      "proportion": 0.34375,
+      "proportion": 0.336734693877551,
       "sequenceName": "S"
     },
     {
       "count": 34,
       "mutation": "N969K",
-      "proportion": 0.35051546391752575,
+      "proportion": 0.3434343434343434,
       "sequenceName": "S"
     },
     {
       "count": 34,
       "mutation": "P13L",
+      "proportion": 0.3469387755102041,
+      "sequenceName": "N"
+    },
+    {
+      "count": 34,
+      "mutation": "E31-",
+      "proportion": 0.3469387755102041,
+      "sequenceName": "N"
+    },
+    {
+      "count": 34,
+      "mutation": "R32-",
+      "proportion": 0.3469387755102041,
+      "sequenceName": "N"
+    },
+    {
+      "count": 34,
+      "mutation": "S33-",
       "proportion": 0.3469387755102041,
       "sequenceName": "N"
     },
@@ -194,7 +224,7 @@
     {
       "count": 37,
       "mutation": "D377Y",
-      "proportion": 0.38144329896907214,
+      "proportion": 0.37755102040816324,
       "sequenceName": "N"
     }
   ]
