@@ -1,4 +1,5 @@
 #include "silo/common/string_utils.h"
+#include <algorithm>
 
 namespace silo {
 
@@ -19,4 +20,9 @@ std::vector<std::string> splitBy(const std::string& value, const std::string_vie
    return splits;
 }
 
+std::string removeSymbol(const std::string& value, char symbol) {
+   std::string result = value;
+   result.erase(std::remove(result.begin(), result.end(), symbol), result.end());
+   return result;
+}
 }  // namespace silo

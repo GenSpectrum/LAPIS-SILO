@@ -10,7 +10,7 @@ class SiloRecipe(ConanFile):
         "duckdb/0.8.1",
         "poco/1.12.4",
         "hwloc/2.9.3",
-        "onetbb/2021.9.0",
+        "onetbb/2021.10.0",
         "nlohmann_json/3.11.2",
         "gtest/cci.20210126",
         "roaring/1.0.0",
