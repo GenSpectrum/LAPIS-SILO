@@ -33,22 +33,34 @@ InsertionEntry parseInsertion(
    const std::string& value,
    const std::optional<std::string>& default_sequence_name
 ) {
-   const auto position_and_insertion = splitBy(value, DELIMITER_INSERTION);
-   if (position_and_insertion.size() == 2) {
-      if (default_sequence_name == std::nullopt) {
-         const std::string message = "Failed to parse insertion due to invalid format: " + value;
-         throw preprocessing::PreprocessingException(message);
+   auto position_and_insertion = splitBy(value, DELIMITER_INSERTION);
+   std::transform(
+      position_and_insertion.begin(),
+      position_and_insertion.end(),
+      position_and_insertion.begin(),
+      [](const std::string& value) { return silo::removeSymbol(value, '\"'); }
+   );
+   try {
+      if (position_and_insertion.size() == 2) {
+         if (default_sequence_name == std::nullopt) {
+            const std::string message = "Failed to parse insertion due to invalid format: " + value;
+            throw preprocessing::PreprocessingException(message);
+         }
+         const auto position = boost::lexical_cast<uint32_t>(position_and_insertion[0]);
+         const auto& insertion = position_and_insertion[1];
+         return {*default_sequence_name, position, insertion};
       }
-      const auto position = boost::lexical_cast<uint32_t>(position_and_insertion[0]);
-      const auto& insertion = position_and_insertion[1];
-      return {*default_sequence_name, position, insertion};
+      if (position_and_insertion.size() == 3) {
+         const auto& sequence_name = position_and_insertion[0];
+         const auto position = boost::lexical_cast<uint32_t>(position_and_insertion[1]);
+         const auto& insertion = position_and_insertion[2];
+         return {sequence_name, position, insertion};
+      }
+   } catch (const boost::bad_lexical_cast& error) {
+      const std::string message = "Failed to parse insertion due to invalid format: " + value;
+      throw preprocessing::PreprocessingException(message + ". Error: " + error.what());
    }
-   if (position_and_insertion.size() == 3) {
-      const auto& sequence_name = position_and_insertion[0];
-      const auto position = boost::lexical_cast<uint32_t>(position_and_insertion[1]);
-      const auto& insertion = position_and_insertion[2];
-      return {sequence_name, position, insertion};
-   }
+
    const std::string message = "Failed to parse insertion due to invalid format: " + value;
    throw preprocessing::PreprocessingException(message);
 }

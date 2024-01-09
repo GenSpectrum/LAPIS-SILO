@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+using silo::removeSymbol;
 using silo::splitBy;
 
 TEST(splitBy, correctSplit) {
@@ -34,4 +35,39 @@ TEST(splitBy, correctWithEmptyString) {
 
    const auto result = splitBy(input, delimiter);
    EXPECT_EQ(result, std::vector<std::string>{""});
+}
+
+TEST(removeSymbol, removesAllOccurences) {
+   const std::string input(R"(ABC"DEF"ADS")");
+
+   const auto result = silo::removeSymbol(input, '\"');
+   EXPECT_EQ(result, std::string("ABCDEFADS"));
+}
+
+TEST(removeSymbol, removesAtBeginning) {
+   const std::string input(R"("ABC)");
+
+   const auto result = silo::removeSymbol(input, '\"');
+   EXPECT_EQ(result, std::string("ABC"));
+}
+
+TEST(removeSymbol, removesAtEnd) {
+   const std::string input(R"(ABC")");
+
+   const auto result = silo::removeSymbol(input, '\"');
+   EXPECT_EQ(result, std::string("ABC"));
+}
+
+TEST(removeSymbol, removesAtBeginningAndEnd) {
+   const std::string input(R"("ABC")");
+
+   const auto result = silo::removeSymbol(input, '\"');
+   EXPECT_EQ(result, std::string("ABC"));
+}
+
+TEST(removeSymbol, doesNotRemoveIfNotContained) {
+   const std::string input("ABCDEFADS");
+
+   const auto result = silo::removeSymbol(input, '\"');
+   EXPECT_EQ(result, std::string("ABCDEFADS"));
 }
