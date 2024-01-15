@@ -143,9 +143,9 @@ std::vector<actions::Tuple> produceSortedTuplesWithLimit(
                   std::push_heap(my_tuples.begin(), my_tuples.end(), tuple_comparator);
                }
             }
-            std::sort_heap(my_tuples.begin(), my_tuples.end());
+            std::sort_heap(my_tuples.begin(), my_tuples.end(), tuple_comparator);
          } else {
-            std::sort(my_tuples.begin(), my_tuples.end());
+            std::sort(my_tuples.begin(), my_tuples.end(), tuple_comparator);
          }
       }
    });

@@ -1,0 +1,66 @@
+{
+  "testCaseName": "Details action ordered by division descending with limit 15",
+  "query": {
+    "action": {
+      "type": "Details",
+      "fields": ["division"],
+      "orderByFields": [
+        {
+          "field": "division",
+          "order": "descending"
+        }
+      ],
+      "limit": 15
+    },
+    "filterExpression": {
+      "type": "True"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "division": "Zürich"
+    },
+    {
+      "division": "Zürich"
+    },
+    {
+      "division": "Zürich"
+    },
+    {
+      "division": "Zürich"
+    },
+    {
+      "division": "Zürich"
+    },
+    {
+      "division": "Zürich"
+    },
+    {
+      "division": "Zürich"
+    },
+    {
+      "division": "Zürich"
+    },
+    {
+      "division": "Zürich"
+    },
+    {
+      "division": "Zürich"
+    },
+    {
+      "division": "Zürich"
+    },
+    {
+      "division": "Zürich"
+    },
+    {
+      "division": "Zürich"
+    },
+    {
+      "division": "Vaud"
+    },
+    {
+      "division": "Vaud"
+    }
+  ]
+}
