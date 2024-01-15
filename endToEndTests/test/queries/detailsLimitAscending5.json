@@ -1,0 +1,36 @@
+{
+  "testCaseName": "Details action ordered by division ascending with limit 5",
+  "query": {
+    "action": {
+      "type": "Details",
+      "fields": ["division"],
+      "orderByFields": [
+        {
+          "field": "division",
+          "order": "ascending"
+        }
+      ],
+      "limit": 5
+    },
+    "filterExpression": {
+      "type": "True"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "division": null
+    },
+    {
+      "division": null
+    },
+    {
+      "division": "Aargau"
+    },
+    {
+      "division": "Aargau"
+    },
+    {
+      "division": "Aargau"
+    }
+  ]
+}
