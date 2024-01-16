@@ -8,6 +8,6 @@
     "chai": "^4.3.10",
     "mocha": "^10.2.0",
     "prettier": "^3.0.3",
-    "supertest": "^6.3.3"
+    "supertest": "^6.3.4"
   }
 }
