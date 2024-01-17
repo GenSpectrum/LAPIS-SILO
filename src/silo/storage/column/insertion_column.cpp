@@ -12,7 +12,6 @@
 #include "silo/common/bidirectional_map.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/string_utils.h"
-#include "silo/common/types.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/column/insertion_index.h"
 
@@ -69,15 +68,14 @@ InsertionEntry parseInsertion(
 template <typename SymbolType>
 InsertionColumnPartition<SymbolType>::InsertionColumnPartition(
    common::BidirectionalMap<std::string>& lookup,
-   const std::optional<std::string> default_sequence_name
-
+   std::optional<std::string> default_sequence_name
 )
     : lookup(lookup),
       default_sequence_name(std::move(default_sequence_name)) {}
 
 template <typename SymbolType>
 void InsertionColumnPartition<SymbolType>::insert(const std::string& value) {
-   if (value == "") {
+   if (value.empty()) {
       insertNull();
       return;
    }
@@ -156,7 +154,7 @@ std::string InsertionColumnPartition<SymbolType>::lookupValue(silo::Idx value_id
 
 template <typename SymbolType>
 InsertionColumn<SymbolType>::InsertionColumn(std::optional<std::string> default_sequence_name)
-    : default_sequence_name(default_sequence_name) {
+    : default_sequence_name(std::move(default_sequence_name)) {
    lookup = std::make_unique<silo::common::BidirectionalMap<std::string>>();
 }
 

@@ -1,11 +1,9 @@
 #include "silo/query_engine/filter_expressions/string_equals.h"
 
-#include <map>
 #include <optional>
 #include <utility>
 
 #include <nlohmann/json.hpp>
-#include <roaring/roaring.hh>
 
 #include "silo/common/string.h"
 #include "silo/query_engine/filter_expressions/expression.h"
@@ -13,9 +11,6 @@
 #include "silo/query_engine/operators/index_scan.h"
 #include "silo/query_engine/operators/selection.h"
 #include "silo/query_engine/query_parse_exception.h"
-#include "silo/storage/column/indexed_string_column.h"
-#include "silo/storage/column/string_column.h"
-#include "silo/storage/column_group.h"
 #include "silo/storage/database_partition.h"
 
 namespace silo {

@@ -1,9 +1,7 @@
 #include "silo_api/database_directory_watcher.h"
 
 #include <cxxabi.h>
-#include <algorithm>
 #include <fstream>
-#include <istream>
 #include <optional>
 #include <string>
 #include <utility>
@@ -13,7 +11,6 @@
 
 #include "silo/common/data_version.h"
 #include "silo/database.h"
-#include "silo/persistence/exception.h"
 #include "silo_api/database_mutex.h"
 
 silo_api::DatabaseDirectoryWatcher::DatabaseDirectoryWatcher(

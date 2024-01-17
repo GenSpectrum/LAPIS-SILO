@@ -1,6 +1,5 @@
 #include "silo/query_engine/filter_expressions/int_equals.h"
 
-#include <map>
 #include <utility>
 
 #include <nlohmann/json.hpp>
@@ -9,8 +8,6 @@
 #include "silo/query_engine/operators/empty.h"
 #include "silo/query_engine/operators/selection.h"
 #include "silo/query_engine/query_parse_exception.h"
-#include "silo/storage/column/int_column.h"
-#include "silo/storage/column_group.h"
 #include "silo/storage/database_partition.h"
 
 namespace silo {

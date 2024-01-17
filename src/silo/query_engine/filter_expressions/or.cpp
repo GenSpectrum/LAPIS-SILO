@@ -1,7 +1,6 @@
 #include "silo/query_engine/filter_expressions/or.h"
 
 #include <algorithm>
-#include <iterator>
 #include <string>
 #include <utility>
 

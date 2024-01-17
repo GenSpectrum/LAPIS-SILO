@@ -6,7 +6,7 @@ using silo::storage::column::InsertionColumnPartition;
 
 TEST(InsertionColumn, insertValuesToPartition) {
    silo::common::BidirectionalMap<std::string> lookup;
-   std::optional<std::string> default_name = "main";
+   const std::optional<std::string> default_name = "main";
    InsertionColumnPartition<silo::Nucleotide> under_test(lookup, default_name);
 
    under_test.insert("25701:ACCA");
@@ -30,7 +30,7 @@ TEST(InsertionColumn, insertValuesToPartition) {
 
 TEST(InsertionColumn, shouldReturnTheCorrectSearchedValues) {
    silo::common::BidirectionalMap<std::string> lookup;
-   std::optional<std::string> default_name = "main";
+   const std::optional<std::string> default_name = "main";
    InsertionColumnPartition<silo::Nucleotide> under_test(lookup, default_name);
 
    under_test.insert("25701:ACCA");

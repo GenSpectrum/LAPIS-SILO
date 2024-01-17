@@ -1,6 +1,5 @@
 #include "silo/zstdfasta/zstdfasta_reader.h"
 
-#include <cstddef>
 #include <fstream>
 #include <stdexcept>
 

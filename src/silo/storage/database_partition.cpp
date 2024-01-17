@@ -3,7 +3,6 @@
 #include <utility>
 
 #include <oneapi/tbb/blocked_range.h>
-#include <oneapi/tbb/concurrent_vector.h>
 #include <oneapi/tbb/enumerable_thread_specific.h>
 #include <oneapi/tbb/parallel_for.h>
 
@@ -30,7 +29,13 @@ DatabasePartition::DatabasePartition(std::vector<silo::preprocessing::PartitionC
     : chunks(std::move(chunks)) {}
 
 void DatabasePartition::validate() const {
-   size_t partition_size = sequence_count;
+   validateNucleotideSequences();
+   validateAminoAcidSequences();
+   validateMetadataColumns();
+}
+
+void DatabasePartition::validateNucleotideSequences() const {
+   const size_t partition_size = sequence_count;
 
    for (const auto& [name, nuc_store] : nuc_sequences) {
       if (nuc_store.sequence_count != partition_size) {
@@ -49,7 +54,7 @@ void DatabasePartition::validate() const {
             nuc_store.reference_sequence.size()
          ));
       }
-      if (nuc_store.reference_sequence.size() == 0) {
+      if (nuc_store.reference_sequence.empty()) {
          throw preprocessing::PreprocessingException("reference_sequence " + name + " is empty.");
       }
       if (nuc_store.missing_symbol_bitmaps.size() != partition_size) {
@@ -58,6 +63,10 @@ void DatabasePartition::validate() const {
          );
       }
    }
+}
+
+void DatabasePartition::validateAminoAcidSequences() const {
+   const size_t partition_size = sequence_count;
 
    for (const auto& [name, aa_store] : aa_sequences) {
       if (aa_store.sequence_count != partition_size) {
@@ -73,7 +82,7 @@ void DatabasePartition::validate() const {
             "aa_store " + name + " has invalid position size."
          );
       }
-      if (aa_store.reference_sequence.size() == 0) {
+      if (aa_store.reference_sequence.empty()) {
          throw preprocessing::PreprocessingException("reference_sequence " + name + " is empty.");
       }
       if (aa_store.missing_symbol_bitmaps.size() != partition_size) {
@@ -82,6 +91,10 @@ void DatabasePartition::validate() const {
          );
       }
    }
+}
+
+void DatabasePartition::validateMetadataColumns() const {
+   const size_t partition_size = sequence_count;
 
    for (const auto& col : columns.aa_insertion_columns) {
       if (col.second.getValues().size() != partition_size) {

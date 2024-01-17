@@ -1,6 +1,5 @@
 #include "silo/preprocessing/metadata_info.h"
 
-#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <boost/algorithm/string/join.hpp>
 #include <duckdb.hpp>
@@ -49,7 +48,11 @@ std::unordered_map<std::string, std::string> validateFieldsAgainstConfig(
 
    std::string metadata_field_string;
    for (const auto& [field_name, select] : validated_metadata_fields) {
-      metadata_field_string += "'" + field_name + "' with selection '" + select + "',";
+      metadata_field_string += "'";
+      metadata_field_string += field_name;
+      metadata_field_string += "' with selection '";
+      metadata_field_string += select;
+      metadata_field_string += "',";
    }
    SPDLOG_TRACE("Found metadata fields: " + metadata_field_string);
    return validated_metadata_fields;
@@ -59,8 +62,8 @@ void detectInsertionLists(
    const std::filesystem::path& ndjson_file,
    std::unordered_map<std::string, std::string>& metadata_fields_to_validate
 ) {
-   duckdb::DuckDB db(nullptr);
-   duckdb::Connection connection(db);
+   duckdb::DuckDB duck_db(nullptr);
+   duckdb::Connection connection(duck_db);
    auto top_level_entries =
       connection.Query(fmt::format("SELECT * FROM '{}' LIMIT 0", ndjson_file.string()));
    for (size_t idx = 0; idx < top_level_entries->ColumnCount(); idx++) {
@@ -102,8 +105,8 @@ MetadataInfo MetadataInfo::validateFromMetadataFile(
    const std::filesystem::path& metadata_file,
    const silo::config::DatabaseConfig& database_config
 ) {
-   duckdb::DuckDB db(nullptr);
-   duckdb::Connection connection(db);
+   duckdb::DuckDB duck_db(nullptr);
+   duckdb::Connection connection(duck_db);
    // Get the column names (headers) of the table
    auto result =
       connection.Query(fmt::format("SELECT * FROM '{}' LIMIT 0", metadata_file.string()));
@@ -115,15 +118,15 @@ MetadataInfo MetadataInfo::validateFromMetadataFile(
    const std::unordered_map<std::string, std::string> validated_metadata_fields =
       validateFieldsAgainstConfig(file_metadata_fields, database_config);
 
-   return MetadataInfo(validated_metadata_fields);
+   return {validated_metadata_fields};
 }
 
 MetadataInfo MetadataInfo::validateFromNdjsonFile(
    const std::filesystem::path& ndjson_file,
    const silo::config::DatabaseConfig& database_config
 ) {
-   duckdb::DuckDB db(nullptr);
-   duckdb::Connection connection(db);
+   duckdb::DuckDB duck_db(nullptr);
+   duckdb::Connection connection(duck_db);
 
    auto result = connection.Query(fmt::format(
       "SELECT json_keys(metadata) "
@@ -157,11 +160,12 @@ MetadataInfo MetadataInfo::validateFromNdjsonFile(
    const std::unordered_map<std::string, std::string> validated_metadata_fields =
       validateFieldsAgainstConfig(metadata_fields_to_validate, database_config);
 
-   return MetadataInfo(validated_metadata_fields);
+   return {validated_metadata_fields};
 }
 
 std::vector<std::string> MetadataInfo::getMetadataFields() const {
    std::vector<std::string> ret;
+   ret.reserve(metadata_selects.size());
    for (const auto& [field, _] : metadata_selects) {
       ret.push_back(field);
    }
@@ -170,6 +174,7 @@ std::vector<std::string> MetadataInfo::getMetadataFields() const {
 
 std::vector<std::string> MetadataInfo::getMetadataSelects() const {
    std::vector<std::string> ret;
+   ret.reserve(metadata_selects.size());
    for (const auto& [field, select] : metadata_selects) {
       ret.push_back(fmt::format("{} as {}", select, field));
    }

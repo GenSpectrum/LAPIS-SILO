@@ -3,12 +3,10 @@
 #include <string>
 
 #include <spdlog/spdlog.h>
-#include <boost/iostreams/categories.hpp>
 #include <boost/iostreams/detail/error.hpp>
 #include <boost/iostreams/filter/lzma.hpp>
 #include <boost/iostreams/filter/zstd.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
-#include <boost/iostreams/read.hpp>
 
 #include "silo/preprocessing/preprocessing_exception.h"
 

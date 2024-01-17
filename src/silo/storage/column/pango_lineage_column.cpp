@@ -5,7 +5,6 @@
 
 #include "silo/common/bidirectional_map.h"
 #include "silo/common/pango_lineage.h"
-#include "silo/common/types.h"
 #include "silo/storage/pango_lineage_alias.h"
 
 namespace silo::storage::column {
@@ -15,7 +14,7 @@ PangoLineageColumnPartition::PangoLineageColumnPartition(
    common::BidirectionalMap<common::UnaliasedPangoLineage>& lookup
 )
     : alias_key(alias_key),
-      lookup(lookup){};
+      lookup(lookup) {}
 
 void PangoLineageColumnPartition::insert(const common::RawPangoLineage& value) {
    const common::UnaliasedPangoLineage resolved_lineage = alias_key.unaliasPangoLineage(value);
@@ -72,7 +71,7 @@ const std::vector<silo::Idx>& PangoLineageColumnPartition::getValues() const {
 PangoLineageColumn::PangoLineageColumn(silo::PangoLineageAliasLookup alias_key) {
    lookup = std::make_unique<common::BidirectionalMap<common::UnaliasedPangoLineage>>();
    this->alias_key = std::make_unique<PangoLineageAliasLookup>(std::move(alias_key));
-};
+}
 
 PangoLineageColumnPartition& PangoLineageColumn::createPartition() {
    return partitions.emplace_back(*alias_key, *lookup);

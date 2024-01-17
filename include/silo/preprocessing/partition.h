@@ -68,8 +68,6 @@ class Partitions {
    static Partitions load(std::istream& input_file);
 
    [[nodiscard]] const std::vector<Partition>& getPartitions() const;
-
-   [[nodiscard]] const std::vector<PartitionChunk>& getAllPartitionChunks() const;
 };
 
 }  // namespace silo::preprocessing

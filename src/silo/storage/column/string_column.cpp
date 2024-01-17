@@ -34,7 +34,7 @@ std::optional<String<STRING_SIZE>> StringColumnPartition::embedString(const std:
 
 StringColumn::StringColumn() {
    lookup = std::make_unique<silo::common::BidirectionalMap<std::string>>();
-};
+}
 
 StringColumnPartition& StringColumn::createPartition() {
    return partitions.emplace_back(*lookup);

@@ -5,6 +5,8 @@
 #include "silo/config/database_config.h"
 #include "silo/query_engine/actions/action.h"
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
+
 std::pair<silo::storage::ColumnGroup, silo::storage::ColumnPartitionGroup>
 createSinglePartitionColumns() {
    std::pair<silo::storage::ColumnGroup, silo::storage::ColumnPartitionGroup> return_value;
@@ -176,7 +178,7 @@ TEST(Tuple, getsCreatedAndReturnsItsFieldsSuccessfully2) {
 TEST(TupleFactory, allocatesOneAllocatesManyEqual) {
    auto columns = createSinglePartitionColumns();
    TupleFactory factory(columns.second, columns.second.metadata);
-   Tuple under_test1 = factory.allocateOne(0);
+   const Tuple under_test1 = factory.allocateOne(0);
    auto under_test_vector = factory.allocateMany(1);
    ASSERT_EQ(under_test_vector.size(), 1);
    factory.overwrite(under_test_vector.front(), 0);
@@ -186,10 +188,10 @@ TEST(TupleFactory, allocatesOneAllocatesManyEqual) {
 TEST(Tuple, equalityOperatorEquatesCorrectly) {
    auto columns = createSinglePartitionColumns();
    TupleFactory factory(columns.second, columns.second.metadata);
-   Tuple under_test0a = factory.allocateOne(0);
-   Tuple under_test0b = factory.allocateOne(0);
-   Tuple under_test1 = factory.allocateOne(1);
-   Tuple under_test2 = factory.allocateOne(2);
+   const Tuple under_test0a = factory.allocateOne(0);
+   const Tuple under_test0b = factory.allocateOne(0);
+   const Tuple under_test1 = factory.allocateOne(1);
+   const Tuple under_test2 = factory.allocateOne(2);
    ASSERT_EQ(under_test0a, under_test0b);
    ASSERT_NE(under_test0a, under_test1);
    ASSERT_EQ(under_test0a, under_test2);
@@ -201,10 +203,10 @@ TEST(Tuple, equalityOperatorEquatesCorrectly) {
 TEST(Tuple, comparesFieldsCorrectly) {
    auto columns = createSinglePartitionColumns();
    TupleFactory factory(columns.second, columns.second.metadata);
-   Tuple tuple0a = factory.allocateOne(0);
-   Tuple tuple0b = factory.allocateOne(0);
-   Tuple tuple1 = factory.allocateOne(1);
-   Tuple tuple2 = factory.allocateOne(2);
+   const Tuple tuple0a = factory.allocateOne(0);
+   const Tuple tuple0b = factory.allocateOne(0);
+   const Tuple tuple1 = factory.allocateOne(1);
+   const Tuple tuple2 = factory.allocateOne(2);
 
    std::vector<silo::query_engine::actions::OrderByField> order_by_fields;
    order_by_fields.push_back({"dummy_indexed_string_column", true});
@@ -230,7 +232,8 @@ TEST(Tuple, comparesFieldsCorrectly) {
    ASSERT_TRUE(under_test(tuple2, tuple1));
 
    order_by_fields.clear();
-   Tuple::Comparator under_test2 = Tuple::getComparator(columns.second.metadata, order_by_fields);
+   const Tuple::Comparator under_test2 =
+      Tuple::getComparator(columns.second.metadata, order_by_fields);
 
    ASSERT_FALSE(under_test2(tuple0a, tuple0b));
    ASSERT_FALSE(under_test2(tuple0b, tuple0a));
@@ -294,3 +297,5 @@ TEST(Tuple, comparesFieldsCorrectly) {
    ASSERT_TRUE(under_test4(tuple1, tuple2));
    ASSERT_FALSE(under_test4(tuple2, tuple1));
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

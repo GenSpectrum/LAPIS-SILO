@@ -9,7 +9,7 @@ struct TestStruct {
    std::string stringField;
    int64_t intField;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(TestStruct, stringField, intField);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(TestStruct, stringField, intField)
 
 TEST(VariantJsonSerializer, deserializeStructVariant) {
    const int some_number = 42;

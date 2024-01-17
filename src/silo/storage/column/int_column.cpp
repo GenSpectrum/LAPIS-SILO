@@ -14,7 +14,7 @@ const std::vector<int32_t>& IntColumnPartition::getValues() const {
 
 void IntColumnPartition::insert(const std::string& value) {
    try {
-      int32_t int_value = value.empty() ? INT32_MIN : std::stoi(value);
+      const int32_t int_value = value.empty() ? INT32_MIN : std::stoi(value);
       values.push_back(int_value);
    } catch (std::logic_error& err) {
       throw std::runtime_error("Wrong format for Integer: '" + value + "'");

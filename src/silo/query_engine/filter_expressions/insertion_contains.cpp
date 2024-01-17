@@ -1,11 +1,8 @@
 #include "silo/query_engine/filter_expressions/insertion_contains.h"
 
-#include <algorithm>
-#include <map>
 #include <ostream>
 #include <regex>
 #include <sstream>
-#include <unordered_map>
 #include <utility>
 
 #include <spdlog/spdlog.h>
@@ -23,8 +20,6 @@
 #include "silo/query_engine/operators/union.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/storage/column/insertion_column.h"
-#include "silo/storage/column/insertion_index.h"
-#include "silo/storage/column_group.h"
 #include "silo/storage/database_partition.h"
 
 namespace silo::query_engine::filter_expressions {
@@ -41,17 +36,27 @@ InsertionContains<SymbolType>::InsertionContains(
       position(position),
       value(std::move(value)) {}
 
+std::string getColumnNamesString(
+   const std::vector<std::string>& column_names,
+   const std::string& symbol_name
+) {
+   if (column_names.empty()) {
+      return "in all available " + symbol_name + " columns";
+   }
+   if (column_names.size() == 1) {
+      return "in the " + symbol_name + " column " + column_names.at(0);
+   }
+   return "in the " + symbol_name + " columns [" + boost::algorithm::join(column_names, ",") + "]";
+}
+
 template <typename SymbolType>
 std::string InsertionContains<SymbolType>::toString(const silo::Database& /*database*/) const {
    const std::string symbol_name = std::string(SymbolType::SYMBOL_NAME);
    const std::string sequence_string = sequence_name
                                           ? "The sequence '" + sequence_name.value() + "'"
                                           : "The default " + symbol_name + " sequence ";
-   const std::string columns_string =
-      column_names.empty() ? "in all available " + symbol_name + " columns"
-      : column_names.size() == 1
-         ? "in the " + symbol_name + " column " + column_names.at(0)
-         : "in the " + symbol_name + " columns [" + boost::algorithm::join(column_names, ",") + "]";
+
+   const std::string columns_string = getColumnNamesString(column_names, symbol_name);
 
    return sequence_string + columns_string + " has insertion '" + value + "'";
 }
@@ -84,7 +89,8 @@ std::unique_ptr<silo::query_engine::operators::Operator> InsertionContains<Symbo
          database.getDefaultSequenceName<SymbolType>().has_value(),
          "The database has no default " + std::string(SymbolType::SYMBOL_NAME_LOWER_CASE) +
             " sequence name"
-      );
+      )
+      // NOLINTNEXTLINE(bugprone-unchecked-optional-access) -- the previous statement checks it
       validated_sequence_name = *database.getDefaultSequenceName<SymbolType>();
    }
 
@@ -110,13 +116,13 @@ std::unique_ptr<silo::query_engine::operators::Operator> InsertionContains<Symbo
 
    if (column_operators.empty()) {
       return std::make_unique<operators::Empty>(database_partition.sequence_count);
-   } else if (column_operators.size() == 1) {
-      return std::move(column_operators.at(0));
-   } else {
-      return std::make_unique<operators::Union>(
-         std::move(column_operators), database_partition.sequence_count
-      );
    }
+   if (column_operators.size() == 1) {
+      return std::move(column_operators.at(0));
+   }
+   return std::make_unique<operators::Union>(
+      std::move(column_operators), database_partition.sequence_count
+   );
 }
 
 namespace {
@@ -207,11 +213,13 @@ void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains<Sym
    );
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 template void from_json<Nucleotide>(
    const nlohmann::json& json,
    std::unique_ptr<InsertionContains<Nucleotide>>& filter
 );
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 template void from_json<AminoAcid>(
    const nlohmann::json& json,
    std::unique_ptr<InsertionContains<AminoAcid>>& filter

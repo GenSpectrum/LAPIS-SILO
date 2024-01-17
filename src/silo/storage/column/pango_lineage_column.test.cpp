@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
+
 TEST(PangoLineageColumn, addingLineageAndThenSublineageFiltersCorrectly) {
    silo::common::BidirectionalMap<silo::common::UnaliasedPangoLineage> lookup;
    silo::PangoLineageAliasLookup alias_key = silo::PangoLineageAliasLookup::readFromFile(
@@ -63,3 +65,5 @@ TEST(PangoLineageColumn, queryParentLineageThatWasNeverInserted) {
    EXPECT_EQ(under_test.filter({"A.1"}), std::nullopt);
    EXPECT_EQ(*under_test.filterIncludingSublineages({"A.1"}).value(), roaring::Roaring({0, 1, 3}));
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

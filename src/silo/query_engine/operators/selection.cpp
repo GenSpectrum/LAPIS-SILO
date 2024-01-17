@@ -1,6 +1,5 @@
 #include "silo/query_engine/operators/selection.h"
 
-#include <algorithm>
 #include <array>
 #include <compare>
 #include <iomanip>

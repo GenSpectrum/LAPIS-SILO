@@ -1,24 +1,9 @@
 #include "silo/preprocessing/preprocessing_config.h"
 
 #include <filesystem>
-#include <functional>
 #include <system_error>
-#include <vector>
-
-#include "silo/preprocessing/partition.h"
 
 namespace silo::preprocessing {
-
-std::filesystem::path createOutputPath(
-   const std::filesystem::path& output_directory,
-   const std::string& folder
-) {
-   auto return_path = output_directory / folder;
-   if (!std::filesystem::exists(return_path)) {
-      std::filesystem::create_directory(return_path);
-   }
-   return return_path;
-}
 
 PreprocessingConfig::PreprocessingConfig() = default;
 

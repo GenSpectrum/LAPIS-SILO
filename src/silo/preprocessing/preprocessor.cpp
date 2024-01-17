@@ -22,17 +22,18 @@
 namespace silo::preprocessing {
 
 Preprocessor::Preprocessor(
-   const preprocessing::PreprocessingConfig preprocessing_config,
-   const config::DatabaseConfig database_config
+   preprocessing::PreprocessingConfig preprocessing_config,
+   config::DatabaseConfig database_config
 )
     : preprocessing_config(std::move(preprocessing_config)),
       database_config(std::move(database_config)),
-      preprocessing_db(preprocessing_config.getPreprocessingDatabaseLocation().value_or(":memory:")
+      preprocessing_db(
+         this->preprocessing_config.getPreprocessingDatabaseLocation().value_or(":memory:")
       ) {}
 
 Database Preprocessor::preprocess() {
    SPDLOG_INFO("preprocessing - reading reference genome");
-   ReferenceGenomes reference_genomes =
+   const auto reference_genomes =
       ReferenceGenomes::readFromFile(preprocessing_config.getReferenceGenomeFilename());
 
    SPDLOG_INFO("preprocessing - building alias key");
@@ -43,10 +44,9 @@ Database Preprocessor::preprocess() {
       alias_key = PangoLineageAliasLookup::readFromFile(pango_lineage_definition_filename.value());
    }
 
-   if (preprocessing_config.getNdjsonInputFilename().has_value()) {
-      buildTablesFromNdjsonInput(
-         preprocessing_config.getNdjsonInputFilename().value(), reference_genomes
-      );
+   const auto& ndjson_input_filename = preprocessing_config.getNdjsonInputFilename();
+   if (ndjson_input_filename.has_value()) {
+      buildTablesFromNdjsonInput(ndjson_input_filename.value(), reference_genomes);
       buildPartitioningTable();
       createSequenceViews(reference_genomes);
    } else {
@@ -55,7 +55,7 @@ Database Preprocessor::preprocess() {
       createPartitionedSequenceTables(reference_genomes);
    }
 
-   preprocessing::Partitions partition_descriptor = preprocessing_db.getPartitionDescriptor();
+   const auto partition_descriptor = preprocessing_db.getPartitionDescriptor();
 
    std::string order_by_clause = database_config.schema.getStrictOrderByClause();
    SPDLOG_INFO("preprocessing - order by clause is {}", order_by_clause);
@@ -107,7 +107,7 @@ void Preprocessor::buildTablesFromNdjsonInput(
 
 void Preprocessor::buildMetadataTableFromFile(const std::filesystem::path& metadata_filename) {
    SPDLOG_DEBUG("preprocessing - classic metadata file pipeline chosen");
-   MetadataInfo metadata_info =
+   const auto metadata_info =
       MetadataInfo::validateFromMetadataFile(metadata_filename, database_config);
 
    (void)preprocessing_db.query(fmt::format(
@@ -234,7 +234,8 @@ void Preprocessor::createSequenceViews(const ReferenceGenomes& reference_genomes
       order_by_select += ", " + database_config.schema.date_to_sort_by.value() + " as " +
                          database_config.schema.date_to_sort_by.value();
    }
-   std::string partition_by_where, partition_by_select;
+   std::string partition_by_where;
+   std::string partition_by_select;
    if (database_config.schema.partition_by.has_value()) {
       partition_by_select = "partition_key_to_partition.partition_id as partition_id";
       partition_by_where = fmt::format(
@@ -373,7 +374,7 @@ Database Preprocessor::buildDatabase(
          const auto& part = partition_descriptor.getPartitions()[partition_id];
          for (size_t chunk_index = 0; chunk_index < part.getPartitionChunks().size();
               ++chunk_index) {
-            uint32_t sequences_added = database.partitions[partition_id].columns.fill(
+            const auto sequences_added = database.partitions[partition_id].columns.fill(
                preprocessing_db.getConnection(), partition_id, order_by_clause, database_config
             );
             database.partitions[partition_id].sequence_count += sequences_added;

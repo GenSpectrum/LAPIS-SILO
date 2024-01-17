@@ -16,7 +16,8 @@ TEST(ZstdFastaWriter, writesCorrectFiles) {
       {"Key2", "ACGTACGTACGTCCGT"},
       {"Key3", "ACGTACGTACGTACGT"},
       {"Key4", "CAGTTCGTACGTACGT"},
-      {"Key5", "ACGTACGTACCTACGC"}};
+      {"Key5", "ACGTACGTACCTACGC"}
+   };
 
    {
       silo::ZstdFastaWriter under_test(file_path, reference_genome);

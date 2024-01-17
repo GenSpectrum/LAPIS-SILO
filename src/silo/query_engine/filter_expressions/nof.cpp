@@ -1,6 +1,5 @@
 #include "silo/query_engine/filter_expressions/nof.h"
 
-#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
@@ -214,7 +213,8 @@ NOf::mapChildExpressions(
       int>{
       std::move(non_negated_child_operators),
       std::move(negated_child_operators),
-      updated_number_of_matchers};
+      updated_number_of_matchers
+   };
 }
 
 std::unique_ptr<operators::Operator> NOf::rewriteNonExact(

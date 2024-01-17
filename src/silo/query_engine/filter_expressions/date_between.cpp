@@ -1,6 +1,5 @@
 #include "silo/query_engine/filter_expressions/date_between.h"
 
-#include <algorithm>
 #include <cstdint>
 #include <map>
 #include <utility>
@@ -13,7 +12,6 @@
 #include "silo/query_engine/operators/selection.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/storage/column/date_column.h"
-#include "silo/storage/column_group.h"
 #include "silo/storage/database_partition.h"
 
 namespace silo {

@@ -14,7 +14,7 @@ TEST(ZstdFastaTableReader, correctlyReadsZstdFastaTableFromFastaFile) {
    const std::filesystem::path input_directory{"testBaseData/fastaFiles/"};
    const std::string sequence_filename{"test.fasta"};
 
-   std::filesystem::path file_path = input_directory / sequence_filename;
+   const std::filesystem::path file_path = input_directory / sequence_filename;
 
    silo::FastaReader file_reader(file_path);
 
@@ -43,7 +43,7 @@ TEST(ZstdFastaTableReader, correctlyReadsZstdFastaTableFromZstdFastaFile) {
    const std::filesystem::path input_directory{"testBaseData/fastaFiles/"};
    const std::string sequence_filename{"test.zstdfasta"};
 
-   std::filesystem::path file_path = input_directory / sequence_filename;
+   const std::filesystem::path file_path = input_directory / sequence_filename;
 
    silo::ZstdFastaReader file_reader(file_path, "ACGT");
 
@@ -72,7 +72,7 @@ TEST(ZstdFastaTableReader, correctlySortsZstdFastaTableFromFastaFile) {
    const std::filesystem::path input_directory{"testBaseData/fastaFiles/"};
    const std::string sequence_filename{"test.fasta"};
 
-   std::filesystem::path file_path = input_directory / sequence_filename;
+   const std::filesystem::path file_path = input_directory / sequence_filename;
 
    silo::FastaReader file_reader(file_path);
 
@@ -101,7 +101,7 @@ TEST(ZstdFastaTableReader, correctlySortsZstdFastaTableFromZstdFastaFile) {
    const std::filesystem::path input_directory{"testBaseData/fastaFiles/"};
    const std::string sequence_filename{"test.zstdfasta"};
 
-   std::filesystem::path file_path = input_directory / sequence_filename;
+   const std::filesystem::path file_path = input_directory / sequence_filename;
 
    silo::ZstdFastaReader file_reader(file_path, "ACGT");
 

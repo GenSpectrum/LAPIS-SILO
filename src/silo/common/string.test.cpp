@@ -72,6 +72,7 @@ TEST(String, comparesCorrectlyIfPrefixesMatchUpTo32Positions) {
    }
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(String, fastComparesCorrectlyIfPrefixesMatchUpTo32Positions) {
    BidirectionalMap<std::string> dict;
    const std::string value = "1234567890abcdefghijklmnopqrstuv";

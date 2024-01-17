@@ -1,6 +1,5 @@
 #include "silo/storage/sequence_store.h"
 
-#include <array>
 #include <string>
 #include <utility>
 #include <vector>

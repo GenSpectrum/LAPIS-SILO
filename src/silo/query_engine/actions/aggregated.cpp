@@ -1,10 +1,6 @@
 #include "silo/query_engine/actions/aggregated.h"
 
-#include <algorithm>
-#include <cstdint>
-#include <functional>
 #include <map>
-#include <memory>
 #include <optional>
 #include <unordered_map>
 #include <utility>
@@ -14,7 +10,6 @@
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/parallel_for.h>
 #include <nlohmann/json.hpp>
-#include <roaring/roaring.hh>
 
 #include "silo/config/database_config.h"
 #include "silo/database.h"
@@ -24,7 +19,6 @@
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/column_group.h"
-#include "silo/storage/database_partition.h"
 
 namespace {
 
@@ -65,7 +59,7 @@ QueryResult aggregateWithoutGrouping(const std::vector<OperatorResult>& bitmap_f
    uint32_t count = 0;
    for (const auto& filter : bitmap_filters) {
       count += filter->cardinality();
-   };
+   }
    std::map<std::string, std::optional<std::variant<std::string, int32_t, double>>> tuple_fields;
    tuple_fields[COUNT_FIELD] = static_cast<int32_t>(count);
    return QueryResult{std::vector<QueryResultEntry>{{tuple_fields}}};

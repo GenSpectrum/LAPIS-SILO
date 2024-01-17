@@ -4,6 +4,8 @@
 
 using silo::storage::column::IndexedStringColumnPartition;
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
+
 TEST(IndexedStringColumn, shouldReturnTheCorrectFilteredValues) {
    silo::common::BidirectionalMap<std::string> lookup;
    IndexedStringColumnPartition under_test(lookup);
@@ -44,3 +46,5 @@ TEST(IndexedStringColumnPartition, insertValuesToPartition) {
    EXPECT_EQ(under_test.lookupValue(1U), "value 2");
    EXPECT_EQ(under_test.lookupValue(2U), "value 3");
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

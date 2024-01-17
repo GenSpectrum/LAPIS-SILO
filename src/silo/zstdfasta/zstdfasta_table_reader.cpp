@@ -1,15 +1,11 @@
 #include "silo/zstdfasta/zstdfasta_table_reader.h"
 
-#include <cstddef>
-#include <fstream>
 #include <stdexcept>
 
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <duckdb.hpp>
-#include <duckdb/common/types/blob.hpp>
 
-#include "silo/common/fasta_format_exception.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/zstdfasta/zstd_decompressor.h"
 

@@ -1,20 +1,14 @@
 #include "silo_api/info_handler.h"
 
-#include <cstdint>
-#include <functional>
-#include <iosfwd>
 #include <map>
 #include <string>
-#include <unordered_map>
 
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/Net/HTTPServerResponse.h>
 #include <Poco/URI.h>
 #include <nlohmann/json.hpp>
 
-#include "silo/common/data_version.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/database.h"
 #include "silo/database_info.h"
 #include "silo_api/database_mutex.h"
 
@@ -25,7 +19,8 @@ void to_json(nlohmann::json& json, const DatabaseInfo& databaseInfo) {
    json = nlohmann::json{
       {"sequenceCount", databaseInfo.sequence_count},
       {"totalSize", databaseInfo.total_size},
-      {"nBitmapsSize", databaseInfo.n_bitmaps_size}};
+      {"nBitmapsSize", databaseInfo.n_bitmaps_size}
+   };
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
@@ -41,7 +36,8 @@ void to_json(nlohmann::json& json, const BitmapContainerSizeStatistic& statistic
        statistics.number_of_values_stored_in_bitset_containers},
       {"totalBitmapSizeArrayContainers", statistics.total_bitmap_size_array_containers},
       {"totalBitmapSizeRunContainers", statistics.total_bitmap_size_run_containers},
-      {"totalBitmapSizeBitsetContainers", statistics.total_bitmap_size_bitset_containers}};
+      {"totalBitmapSizeBitsetContainers", statistics.total_bitmap_size_bitset_containers}
+   };
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
@@ -61,7 +57,8 @@ void to_json(nlohmann::json& json, const BitmapContainerSize& bitmapContainerSiz
       {"sizePerGenomeSymbolAndSection", bitmapContainerSize.size_per_genome_symbol_and_section},
       {"bitmapContainerSizeStatistic", bitmapContainerSize.bitmap_container_size_statistic},
       {"totalBitmapSizeFrozen", bitmapContainerSize.total_bitmap_size_frozen},
-      {"totalBitmapSizeComputed", bitmapContainerSize.total_bitmap_size_computed}};
+      {"totalBitmapSizeComputed", bitmapContainerSize.total_bitmap_size_computed}
+   };
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
@@ -69,7 +66,8 @@ void to_json(nlohmann::json& json, const DetailedDatabaseInfo& databaseInfo) {
    json = nlohmann::json{
       {"bitmapSizePerSymbol", databaseInfo.sequences.at("main").bitmap_size_per_symbol},
       {"bitmapContainerSizePerGenomeSection",
-       databaseInfo.sequences.at("main").bitmap_container_size_per_genome_section}};
+       databaseInfo.sequences.at("main").bitmap_container_size_per_genome_section}
+   };
 }
 
 }  // namespace silo
@@ -100,9 +98,9 @@ void InfoHandler::get(
 
    response.set("data-version", fixed_database.database.getDataVersion().toString());
 
-   bool return_detailed_info = request_parameter.find("details") != request_parameter.end() &&
-                               request_parameter.at("details") == "true";
-   nlohmann::json database_info =
+   const bool return_detailed_info = request_parameter.find("details") != request_parameter.end() &&
+                                     request_parameter.at("details") == "true";
+   const nlohmann::json database_info =
       return_detailed_info ? nlohmann::json(database.getDatabase().database.detailedDatabaseInfo())
                            : nlohmann::json(database.getDatabase().database.getDatabaseInfo());
    response.setContentType("application/json");

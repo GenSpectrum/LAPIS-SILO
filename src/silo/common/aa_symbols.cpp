@@ -1,7 +1,6 @@
 #include "silo/common/aa_symbols.h"
 
 #include <cassert>
-#include <cstddef>
 
 char silo::AminoAcid::symbolToChar(silo::AminoAcid::Symbol symbol) {
    switch (symbol) {
@@ -118,12 +117,12 @@ std::optional<silo::AminoAcid::Symbol> silo::AminoAcid::charToSymbol(char charac
 }
 
 std::optional<std::vector<silo::AminoAcid::Symbol>> silo::AminoAcid::stringToSymbolVector(
-   const std::string& nucleotides
+   const std::string& sequence
 ) {
-   const size_t size = nucleotides.size();
+   const size_t size = sequence.size();
    std::vector<silo::AminoAcid::Symbol> result(size);
    for (size_t i = 0; i < size; ++i) {
-      auto symbol = silo::AminoAcid::charToSymbol(nucleotides[i]);
+      auto symbol = silo::AminoAcid::charToSymbol(sequence[i]);
       if (symbol == std::nullopt) {
          return std::nullopt;
       }

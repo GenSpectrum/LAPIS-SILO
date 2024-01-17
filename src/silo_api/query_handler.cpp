@@ -1,7 +1,6 @@
 #include "silo_api/query_handler.h"
 
 #include <cxxabi.h>
-#include <iosfwd>
 #include <string>
 
 #include <Poco/Net/HTTPResponse.h>
@@ -11,8 +10,6 @@
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
-#include "silo/common/data_version.h"
-#include "silo/database.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo_api/database_mutex.h"
 #include "silo_api/error_request_handler.h"
@@ -69,8 +66,9 @@ void QueryHandler::post(
       } else {
          response.setStatus(Poco::Net::HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
          std::ostream& out_stream = response.send();
-         out_stream << nlohmann::json(ErrorResponse{
-            "Internal Server Error", "non recoverable error message"});
+         out_stream << nlohmann::json(
+            ErrorResponse{"Internal Server Error", "non recoverable error message"}
+         );
       }
    }
 }

@@ -16,12 +16,12 @@ ZstdDecompressor::ZstdDecompressor(std::string_view dictionary_string) {
    zstd_context = ZSTD_createDCtx();
 }
 
-ZstdDecompressor::ZstdDecompressor(ZstdDecompressor&& other) {
+ZstdDecompressor::ZstdDecompressor(ZstdDecompressor&& other) noexcept {
    this->zstd_context = std::exchange(other.zstd_context, nullptr);
    this->zstd_dictionary = std::exchange(other.zstd_dictionary, nullptr);
 }
 
-ZstdDecompressor& ZstdDecompressor::operator=(ZstdDecompressor&& other) {
+ZstdDecompressor& ZstdDecompressor::operator=(ZstdDecompressor&& other) noexcept {
    std::swap(this->zstd_context, other.zstd_context);
    std::swap(this->zstd_dictionary, other.zstd_dictionary);
    return *this;

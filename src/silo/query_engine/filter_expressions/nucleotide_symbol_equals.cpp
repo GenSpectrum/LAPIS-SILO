@@ -1,14 +1,10 @@
 #include "silo/query_engine/filter_expressions/nucleotide_symbol_equals.h"
 
-#include <algorithm>
 #include <array>
-#include <iterator>
-#include <map>
 #include <utility>
 #include <vector>
 
 #include <nlohmann/json.hpp>
-#include <roaring/roaring.hh>
 
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/config/database_config.h"
@@ -21,7 +17,6 @@
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/storage/database_partition.h"
-#include "silo/storage/sequence_store.h"
 
 using silo::Nucleotide;
 
@@ -73,7 +68,7 @@ const std::array<std::vector<Nucleotide::Symbol>, Nucleotide::COUNT> AMBIGUITY_N
    {Nucleotide::Symbol::V},
    {Nucleotide::Symbol::N},
 }};
-};  // namespace
+}  // namespace
 
 namespace silo::query_engine::filter_expressions {
 

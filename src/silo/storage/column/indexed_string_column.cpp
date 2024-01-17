@@ -3,7 +3,6 @@
 #include <optional>
 
 #include "silo/common/bidirectional_map.h"
-#include "silo/common/types.h"
 
 namespace silo::storage::column {
 

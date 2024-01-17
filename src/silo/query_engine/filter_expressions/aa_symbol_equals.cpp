@@ -1,12 +1,9 @@
 #include "silo/query_engine/filter_expressions/aa_symbol_equals.h"
 
-#include <map>
 #include <optional>
 #include <utility>
-#include <vector>
 
 #include <nlohmann/json.hpp>
-#include <roaring/roaring.hh>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/query_engine/filter_expressions/expression.h"

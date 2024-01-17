@@ -19,6 +19,7 @@ SequenceInfo::SequenceInfo(const silo::ReferenceGenomes& reference_genomes) {
 
 std::vector<std::string> SequenceInfo::getSequenceSelects() {
    std::vector<std::string> sequence_selects;
+   sequence_selects.reserve(nuc_sequence_names.size() + aa_sequence_names.size());
    for (const std::string& name : nuc_sequence_names) {
       sequence_selects.emplace_back(fmt::format(
          "{0}(alignedNucleotideSequences.{1}, "
