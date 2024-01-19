@@ -293,7 +293,7 @@ void Preprocessor::createPartitionedSequenceTables(const ReferenceGenomes& refer
    for (const auto& [seq_name, reference_sequence] : reference_genomes.raw_nucleotide_sequences) {
       const std::string raw_table_name = "raw_nuc_" + seq_name;
       const std::string table_name = "nuc_" + seq_name;
-      preprocessing_db.generateNucSequenceTable(
+      preprocessing_db.generateSequenceTable(
          raw_table_name,
          reference_sequence,
          preprocessing_config.getNucFilenameNoExtension(seq_name).replace_extension(
@@ -303,12 +303,13 @@ void Preprocessor::createPartitionedSequenceTables(const ReferenceGenomes& refer
 
       (void)preprocessing_db.query(fmt::format(
          R"-(
-create or replace view {} as
-select key, sequence,
-partitioned_metadata.partition_id as partition_id
-{}
-from {} raw, partitioned_metadata
-where raw.key = partitioned_metadata.{};)-",
+            create or replace view {} as
+            select key, sequence,
+            partitioned_metadata.partition_id as partition_id
+            {}
+            from {} as raw right join partitioned_metadata
+            on raw.key = partitioned_metadata.{};
+         )-",
          table_name,
          order_by_select,
          raw_table_name,
@@ -319,7 +320,7 @@ where raw.key = partitioned_metadata.{};)-",
    for (const auto& [seq_name, reference_sequence] : reference_genomes.raw_aa_sequences) {
       const std::string raw_table_name = "raw_gene_" + seq_name;
       const std::string table_name = "gene_" + seq_name;
-      preprocessing_db.generateNucSequenceTable(
+      preprocessing_db.generateSequenceTable(
          raw_table_name,
          reference_sequence,
          preprocessing_config.getGeneFilenameNoExtension(seq_name).replace_extension(
@@ -329,13 +330,13 @@ where raw.key = partitioned_metadata.{};)-",
 
       (void)preprocessing_db.query(fmt::format(
          R"-(
-create or replace view {} as
-select key, sequence,
-partitioned_metadata.partition_id as partition_id
-{}
-from {} raw, partitioned_metadata
-where raw.key = partitioned_metadata.{};
-)-",
+            create or replace view {} as
+            select key, sequence,
+            partitioned_metadata.partition_id as partition_id
+            {}
+            from {} as raw right join partitioned_metadata
+            on raw.key = partitioned_metadata.{};
+         )-",
          table_name,
          order_by_select,
          raw_table_name,

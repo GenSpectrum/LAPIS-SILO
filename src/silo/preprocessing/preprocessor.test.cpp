@@ -9,10 +9,21 @@
 #include "silo/preprocessing/preprocessing_config_reader.h"
 #include "silo/query_engine/query_engine.h"
 
-TEST(PreprocessorTest, shouldProcessDataSetWithSequencesThatAreNull) {
-   const silo::preprocessing::InputDirectory input_directory{
-      "./testBaseData/ndjsonWithNullSequences/"
-   };
+namespace {
+
+class PreprocessorTestFixture : public ::testing::TestWithParam<std::string> {};
+
+INSTANTIATE_TEST_SUITE_P(
+   PreprocessorTest,
+   PreprocessorTestFixture,
+   ::testing::Values(
+      "testBaseData/fastaFilesWithMissingSequences/",
+      "testBaseData/ndjsonWithNullSequences/"
+   )
+);
+
+TEST_P(PreprocessorTestFixture, shouldProcessDataSetWithMissingSequences) {
+   const silo::preprocessing::InputDirectory input_directory{GetParam()};
 
    auto config = silo::preprocessing::PreprocessingConfigReader()
                     .readConfig(input_directory.directory + "preprocessing_config.yaml")
@@ -59,3 +70,5 @@ TEST(PreprocessorTest, shouldProcessDataSetWithSequencesThatAreNull) {
    };
    ASSERT_EQ(actual, expected);
 }
+
+}  // namespace

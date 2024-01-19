@@ -38,7 +38,7 @@ void DatabasePartition::validateNucleotideSequences() const {
    const size_t partition_size = sequence_count;
 
    for (const auto& [name, nuc_store] : nuc_sequences) {
-      if (nuc_store.sequence_count != partition_size) {
+      if (nuc_store.sequence_count > partition_size) {
          throw preprocessing::PreprocessingException(fmt::format(
             "nuc_store {} ({}) has invalid size (expected {}).",
             name,
@@ -57,7 +57,7 @@ void DatabasePartition::validateNucleotideSequences() const {
       if (nuc_store.reference_sequence.empty()) {
          throw preprocessing::PreprocessingException("reference_sequence " + name + " is empty.");
       }
-      if (nuc_store.missing_symbol_bitmaps.size() != partition_size) {
+      if (nuc_store.missing_symbol_bitmaps.size() > partition_size) {
          throw preprocessing::PreprocessingException(
             "nuc_store.missing_symbol_bitmaps " + name + " has invalid size."
          );
@@ -69,7 +69,7 @@ void DatabasePartition::validateAminoAcidSequences() const {
    const size_t partition_size = sequence_count;
 
    for (const auto& [name, aa_store] : aa_sequences) {
-      if (aa_store.sequence_count != partition_size) {
+      if (aa_store.sequence_count > partition_size) {
          throw preprocessing::PreprocessingException(fmt::format(
             "aa_store {} ({}) has invalid size (expected {}).",
             name,
@@ -85,7 +85,7 @@ void DatabasePartition::validateAminoAcidSequences() const {
       if (aa_store.reference_sequence.empty()) {
          throw preprocessing::PreprocessingException("reference_sequence " + name + " is empty.");
       }
-      if (aa_store.missing_symbol_bitmaps.size() != partition_size) {
+      if (aa_store.missing_symbol_bitmaps.size() > partition_size) {
          throw preprocessing::PreprocessingException(
             "aa_store.missing_symbol_bitmaps " + name + " has invalid size."
          );

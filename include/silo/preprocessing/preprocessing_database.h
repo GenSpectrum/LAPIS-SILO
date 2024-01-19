@@ -33,7 +33,7 @@ class PreprocessingDatabase {
 
    std::unique_ptr<duckdb::MaterializedQueryResult> query(std::string sql_query);
 
-   void generateNucSequenceTable(
+   void generateSequenceTable(
       const std::string& table_name,
       const std::string& reference_sequence,
       const std::string& filename

@@ -196,7 +196,7 @@ preprocessing::Partitions PreprocessingDatabase::getPartitionDescriptor() {
    return preprocessing::Partitions(partitions);
 }
 
-void PreprocessingDatabase::generateNucSequenceTable(
+void PreprocessingDatabase::generateSequenceTable(
    const std::string& table_name,
    const std::string& reference_sequence,
    const std::string& filename
