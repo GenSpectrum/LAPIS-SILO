@@ -163,23 +163,34 @@ void silo::SequenceStorePartition<SymbolType>::fillIndexes(
                   );
                }
             }
-            for (const auto& symbol : SymbolType::SYMBOLS) {
-               if (!ids_per_symbol_for_current_position.at(symbol).empty()) {
-                  positions[position].bitmaps[symbol].addMany(
-                     ids_per_symbol_for_current_position.at(symbol).size(),
-                     ids_per_symbol_for_current_position.at(symbol).data()
-                  );
-                  ids_per_symbol_for_current_position[symbol].clear();
-               }
-               if (symbol == positions[position].symbol_whose_bitmap_is_flipped) {
-                  positions[position].bitmaps[symbol].flip(
-                     sequence_count, sequence_count + number_of_sequences
-                  );
-               }
-            }
+            addSymbolsToPositions(
+               position, ids_per_symbol_for_current_position, number_of_sequences
+            );
          }
       }
    );
+}
+
+template <typename SymbolType>
+void silo::SequenceStorePartition<SymbolType>::addSymbolsToPositions(
+   const size_t& position,
+   SymbolMap<SymbolType, std::vector<uint32_t>>& ids_per_symbol_for_current_position,
+   const size_t number_of_sequences
+) {
+   for (const auto& symbol : SymbolType::SYMBOLS) {
+      if (!ids_per_symbol_for_current_position.at(symbol).empty()) {
+         positions[position].bitmaps[symbol].addMany(
+            ids_per_symbol_for_current_position.at(symbol).size(),
+            ids_per_symbol_for_current_position.at(symbol).data()
+         );
+         ids_per_symbol_for_current_position[symbol].clear();
+      }
+      if (symbol == positions[position].symbol_whose_bitmap_is_flipped) {
+         positions[position].bitmaps[symbol].flip(
+            sequence_count, sequence_count + number_of_sequences
+         );
+      }
+   }
 }
 
 template <typename SymbolType>

@@ -70,6 +70,12 @@ class SequenceStorePartition {
 
    void fillIndexes(const std::vector<std::optional<std::string>>& genomes);
 
+   void addSymbolsToPositions(
+      const size_t& position,
+      SymbolMap<SymbolType, std::vector<uint32_t>>& ids_per_symbol_for_current_position,
+      const size_t number_of_sequences
+   );
+
    void fillNBitmaps(const std::vector<std::optional<std::string>>& genomes);
 
   public:
