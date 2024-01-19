@@ -283,6 +283,34 @@ void Preprocessor::createSequenceViews(const ReferenceGenomes& reference_genomes
 }
 
 void Preprocessor::createPartitionedSequenceTables(const ReferenceGenomes& reference_genomes) {
+   for (const auto& [sequence_name, reference_sequence] :
+        reference_genomes.raw_nucleotide_sequences) {
+      createPartitionedTableForSequence(
+         sequence_name,
+         reference_sequence,
+         preprocessing_config.getNucFilenameNoExtension(sequence_name)
+            .replace_extension(silo::preprocessing::FASTA_EXTENSION),
+         "nuc_"
+      );
+   }
+
+   for (const auto& [sequence_name, reference_sequence] : reference_genomes.raw_aa_sequences) {
+      createPartitionedTableForSequence(
+         sequence_name,
+         reference_sequence,
+         preprocessing_config.getGeneFilenameNoExtension(sequence_name)
+            .replace_extension(silo::preprocessing::FASTA_EXTENSION),
+         "gene_"
+      );
+   }
+}
+
+void Preprocessor::createPartitionedTableForSequence(
+   const std::string& sequence_name,
+   const std::string& reference_sequence,
+   const std::filesystem::path& filename,
+   const std::string& table_prefix
+) {
    std::string order_by_select = ", raw.key as " + database_config.schema.primary_key;
    if (database_config.schema.date_to_sort_by.has_value()) {
       order_by_select += ", partitioned_metadata." +
@@ -290,59 +318,25 @@ void Preprocessor::createPartitionedSequenceTables(const ReferenceGenomes& refer
                          database_config.schema.date_to_sort_by.value();
    }
 
-   for (const auto& [seq_name, reference_sequence] : reference_genomes.raw_nucleotide_sequences) {
-      const std::string raw_table_name = "raw_nuc_" + seq_name;
-      const std::string table_name = "nuc_" + seq_name;
-      preprocessing_db.generateSequenceTable(
-         raw_table_name,
-         reference_sequence,
-         preprocessing_config.getNucFilenameNoExtension(seq_name).replace_extension(
-            silo::preprocessing::FASTA_EXTENSION
-         )
-      );
+   const std::string raw_table_name = "raw_" + table_prefix + sequence_name;
+   const std::string table_name = table_prefix + sequence_name;
 
-      (void)preprocessing_db.query(fmt::format(
-         R"-(
-            create or replace view {} as
-            select key, sequence,
-            partitioned_metadata.partition_id as partition_id
-            {}
-            from {} as raw right join partitioned_metadata
-            on raw.key = partitioned_metadata.{};
-         )-",
-         table_name,
-         order_by_select,
-         raw_table_name,
-         database_config.schema.primary_key
-      ));
-   }
+   preprocessing_db.generateSequenceTable(raw_table_name, reference_sequence, filename);
 
-   for (const auto& [seq_name, reference_sequence] : reference_genomes.raw_aa_sequences) {
-      const std::string raw_table_name = "raw_gene_" + seq_name;
-      const std::string table_name = "gene_" + seq_name;
-      preprocessing_db.generateSequenceTable(
-         raw_table_name,
-         reference_sequence,
-         preprocessing_config.getGeneFilenameNoExtension(seq_name).replace_extension(
-            silo::preprocessing::FASTA_EXTENSION
-         )
-      );
-
-      (void)preprocessing_db.query(fmt::format(
-         R"-(
-            create or replace view {} as
-            select key, sequence,
-            partitioned_metadata.partition_id as partition_id
-            {}
-            from {} as raw right join partitioned_metadata
-            on raw.key = partitioned_metadata.{};
-         )-",
-         table_name,
-         order_by_select,
-         raw_table_name,
-         database_config.schema.primary_key
-      ));
-   }
+   (void)preprocessing_db.query(fmt::format(
+      R"-(
+         create or replace view {} as
+         select key, sequence,
+         partitioned_metadata.partition_id as partition_id
+         {}
+         from {} as raw right join partitioned_metadata
+         on raw.key = partitioned_metadata.{};
+      )-",
+      table_name,
+      order_by_select,
+      raw_table_name,
+      database_config.schema.primary_key
+   ));
 }
 
 Database Preprocessor::buildDatabase(

@@ -36,6 +36,12 @@ class Preprocessor {
 
    void createSequenceViews(const ReferenceGenomes& reference_genomes);
    void createPartitionedSequenceTables(const ReferenceGenomes& reference_genomes);
+   void createPartitionedTableForSequence(
+      const std::string& sequence_name,
+      const std::string& reference_sequence,
+      const std::filesystem::path& filename,
+      const std::string& table_prefix
+   );
 
    Database buildDatabase(
       const preprocessing::Partitions& partition_descriptor,
