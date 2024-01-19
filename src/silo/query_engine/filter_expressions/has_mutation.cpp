@@ -1,7 +1,5 @@
 #include "silo/query_engine/filter_expressions/has_mutation.h"
 
-#include <algorithm>
-#include <iterator>
 #include <map>
 #include <utility>
 #include <vector>
@@ -17,7 +15,6 @@
 #include "silo/query_engine/filter_expressions/or.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_parse_exception.h"
-#include "silo/storage/sequence_store.h"
 
 namespace silo {
 class DatabasePartition;
@@ -64,6 +61,7 @@ std::unique_ptr<operators::Operator> HasMutation::compile(
       Nucleotide::Symbol::G,
       Nucleotide::Symbol::T,
    };
+   // NOLINTNEXTLINE(bugprone-unused-return-value)
    (void)std::remove(symbols.begin(), symbols.end(), ref_symbol);
    std::vector<std::unique_ptr<filter_expressions::Expression>> symbol_filters;
    std::transform(
@@ -79,7 +77,7 @@ std::unique_ptr<operators::Operator> HasMutation::compile(
    return Or(std::move(symbol_filters)).compile(database, database_partition, NONE);
 }
 
-// NOLINTNEXTLINE(readabi)
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<HasMutation>& filter) {
    CHECK_SILO_QUERY(
       json.contains("position"),

@@ -69,6 +69,12 @@ class DatabasePartition {
 
    DatabasePartition() = default;
 
+   void validateNucleotideSequences() const;
+
+   void validateAminoAcidSequences() const;
+
+   void validateMetadataColumns() const;
+
   public:
    storage::ColumnPartitionGroup columns;
    std::map<std::string, SequenceStorePartition<Nucleotide>&> nuc_sequences;

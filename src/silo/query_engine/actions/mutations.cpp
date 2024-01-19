@@ -1,9 +1,6 @@
 #include "silo/query_engine/actions/mutations.h"
 
-#include <algorithm>
 #include <cmath>
-#include <cstddef>
-#include <functional>
 #include <map>
 #include <optional>
 #include <unordered_map>
@@ -14,7 +11,6 @@
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/parallel_for.h>
 #include <nlohmann/json.hpp>
-#include <roaring/roaring.hh>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
@@ -127,7 +123,8 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
 template <typename SymbolType>
 void Mutations<SymbolType>::validateOrderByFields(const Database& /*database*/) const {
    const std::vector<std::string> result_field_names{
-      {MUTATION_FIELD_NAME, PROPORTION_FIELD_NAME, COUNT_FIELD_NAME}};
+      {MUTATION_FIELD_NAME, PROPORTION_FIELD_NAME, COUNT_FIELD_NAME}
+   };
 
    for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
@@ -182,7 +179,8 @@ void Mutations<SymbolType>::addMutationsToOutput(
                             std::to_string(pos + 1) + SymbolType::symbolToChar(symbol)},
                         {SEQUENCE_FIELD_NAME, sequence_name},
                         {PROPORTION_FIELD_NAME, proportion},
-                        {COUNT_FIELD_NAME, static_cast<int32_t>(count)}};
+                        {COUNT_FIELD_NAME, static_cast<int32_t>(count)}
+                     };
                output.push_back({fields});
             }
          }
@@ -230,8 +228,8 @@ QueryResult Mutations<SymbolType>::execute(
    return {mutation_proportions};
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
 template <typename SymbolType>
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Mutations<SymbolType>>& action) {
    CHECK_SILO_QUERY(
       !json.contains("sequenceName") ||
@@ -260,7 +258,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Mutations<SymbolType>
       "1.0]. Only mutations are returned if the proportion of sequences having this mutation, is "
       "at least minProportion"
    )
-   double min_proportion = json["minProportion"].get<double>();
+   const double min_proportion = json["minProportion"].get<double>();
    if (min_proportion < 0 || min_proportion > 1) {
       throw QueryParseException("Invalid proportion: minProportion must be in interval [0.0, 1.0]");
    }
@@ -270,10 +268,12 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Mutations<SymbolType>
 
 template class Mutations<AminoAcid>;
 template class Mutations<Nucleotide>;
+// NOLINTNEXTLINE(readability-identifier-naming)
 template void from_json<AminoAcid>(
    const nlohmann::json& json,
    std::unique_ptr<Mutations<AminoAcid>>& action
 );
+// NOLINTNEXTLINE(readability-identifier-naming)
 template void from_json<Nucleotide>(
    const nlohmann::json& json,
    std::unique_ptr<Mutations<Nucleotide>>& action

@@ -1,8 +1,6 @@
 #include "silo/storage/column_group.h"
 
 #include <cmath>
-#include <filesystem>
-#include <iosfwd>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -11,17 +9,9 @@
 #include <duckdb.hpp>
 
 #include "silo/common/date.h"
-#include "silo/common/pango_lineage.h"
-#include "silo/common/string.h"
 #include "silo/config/database_config.h"
 #include "silo/preprocessing/preprocessing_exception.h"
-#include "silo/storage/column/date_column.h"
-#include "silo/storage/column/float_column.h"
-#include "silo/storage/column/indexed_string_column.h"
 #include "silo/storage/column/insertion_column.h"
-#include "silo/storage/column/int_column.h"
-#include "silo/storage/column/pango_lineage_column.h"
-#include "silo/storage/column/string_column.h"
 
 namespace silo {
 class AminoAcid;
@@ -39,6 +29,7 @@ uint32_t ColumnPartitionGroup::fill(
    uint32_t sequence_count = 0;
 
    std::vector<std::string> column_names;
+   column_names.reserve(database_config.schema.metadata.size());
    for (const auto& item : database_config.schema.metadata) {
       column_names.push_back(item.name);
    }
@@ -62,7 +53,7 @@ uint32_t ColumnPartitionGroup::fill(
       size_t column_index = 0;
       for (const auto& item : database_config.schema.metadata) {
          const auto column_type = item.getColumnType();
-         const duckdb::Value value = it.current_row.GetValue<duckdb::Value>(column_index++);
+         const auto value = it.current_row.GetValue<duckdb::Value>(column_index++);
          addValueToColumn(item.name, column_type, value);
       }
       if (++sequence_count == UINT32_MAX) {
@@ -156,7 +147,7 @@ ColumnPartitionGroup ColumnPartitionGroup::getSubgroup(
    const std::vector<silo::storage::ColumnMetadata>& fields
 ) const {
    ColumnPartitionGroup result;
-   for (auto& field : fields) {
+   for (const auto& field : fields) {
       result.metadata.push_back({field.name, field.type});
    }
 

@@ -19,7 +19,8 @@ TEST(
             {"country", silo::config::ValueType::STRING},
          },
          "gisaid_epi_isl",
-      }};
+      }
+   };
 
    EXPECT_THROW(
       silo::preprocessing::MetadataInfo::validateFromMetadataFile(
@@ -42,9 +43,10 @@ TEST(MetadataInfo, isValidMedataFileShouldReturnTrueWithValidMetadataFile) {
             {"country", silo::config::ValueType::STRING},
          },
          "gisaid_epi_isl",
-      }};
+      }
+   };
 
-   silo::preprocessing::MetadataInfo fields =
+   const silo::preprocessing::MetadataInfo fields =
       silo::preprocessing::MetadataInfo::validateFromMetadataFile(
          "testBaseData/exampleDataset/small_metadata_set.tsv", valid_config
       );
@@ -80,9 +82,10 @@ TEST(MetadataInfo, shouldValidateCorrectNdjsonInputFile) {
             {"country", silo::config::ValueType::STRING},
          },
          "gisaid_epi_isl",
-      }};
+      }
+   };
 
-   silo::preprocessing::MetadataInfo fields =
+   const silo::preprocessing::MetadataInfo fields =
       silo::preprocessing::MetadataInfo::validateFromNdjsonFile(
          "testBaseData/exampleDatasetAsNdjson/input_file.ndjson", valid_config
       );

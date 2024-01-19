@@ -1,9 +1,6 @@
 #include "silo/query_engine/filter_expressions/has_aa_mutation.h"
 
-#include <algorithm>
 #include <array>
-#include <iterator>
-#include <map>
 #include <utility>
 #include <vector>
 
@@ -17,7 +14,6 @@
 #include "silo/query_engine/filter_expressions/or.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_parse_exception.h"
-#include "silo/storage/sequence_store.h"
 
 namespace silo {
 class DatabasePartition;
@@ -50,7 +46,9 @@ std::unique_ptr<operators::Operator> HasAAMutation::compile(
    }
 
    std::vector<AminoAcid::Symbol> symbols(AminoAcid::SYMBOLS.begin(), AminoAcid::SYMBOLS.end());
+   // NOLINTNEXTLINE(bugprone-unused-return-value)
    (void)std::remove(symbols.begin(), symbols.end(), AminoAcid::Symbol::X);
+   // NOLINTNEXTLINE(bugprone-unused-return-value)
    (void)std::remove(symbols.begin(), symbols.end(), ref_symbol);
    std::vector<std::unique_ptr<filter_expressions::Expression>> symbol_filters;
    std::transform(

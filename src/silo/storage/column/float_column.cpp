@@ -3,8 +3,6 @@
 #include <cmath>
 #include <stdexcept>
 
-#include <spdlog/spdlog.h>
-
 namespace silo::storage::column {
 
 FloatColumnPartition::FloatColumnPartition() = default;

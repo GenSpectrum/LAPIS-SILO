@@ -8,7 +8,9 @@
 namespace silo {
 
 struct ThousandSeparator : std::numpunct<char> {
+   // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
    [[nodiscard]] char_type do_thousands_sep() const override { return '\''; }
+   // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
    [[nodiscard]] string_type do_grouping() const override { return "\3"; }
 };
 

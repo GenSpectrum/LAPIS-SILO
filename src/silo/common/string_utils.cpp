@@ -1,5 +1,6 @@
-#include "silo/common/string_utils.h"
 #include <algorithm>
+
+#include "silo/common/string_utils.h"
 
 namespace silo {
 

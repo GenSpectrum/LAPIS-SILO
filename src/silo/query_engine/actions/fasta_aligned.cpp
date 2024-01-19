@@ -1,20 +1,14 @@
 #include "silo/query_engine/actions/fasta_aligned.h"
 
-#include <algorithm>
-#include <cstddef>
-#include <cstdint>
-#include <iterator>
 #include <map>
 #include <optional>
 #include <utility>
-#include <variant>
 
 #include <fmt/core.h>
 #include <fmt/format.h>
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/parallel_for.h>
 #include <nlohmann/json.hpp>
-#include <roaring/roaring.hh>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
@@ -24,8 +18,6 @@
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
-#include "silo/storage/column_group.h"
-#include "silo/storage/database_partition.h"
 #include "silo/storage/sequence_store.h"
 
 namespace silo::query_engine::actions {
@@ -113,9 +105,7 @@ QueryResult FastaAligned::execute(
    for (auto& filter : bitmap_filter) {
       total_count += filter->cardinality();
    }
-   CHECK_SILO_QUERY(
-      total_count < 10001, "FastaAligned action currently limited to 10000 sequences"
-   );
+   CHECK_SILO_QUERY(total_count < 10001, "FastaAligned action currently limited to 10000 sequences")
 
    QueryResult results;
    for (uint32_t partition_index = 0; partition_index < database.partitions.size();

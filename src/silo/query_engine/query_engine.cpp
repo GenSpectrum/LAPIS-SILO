@@ -1,26 +1,21 @@
 #include "silo/query_engine/query_engine.h"
 
-#include <cstddef>
-#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/parallel_for.h>
 #include <spdlog/spdlog.h>
 
 #include "silo/common/block_timer.h"
 #include "silo/common/log.h"
 #include "silo/database.h"
-#include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query.h"
 #include "silo/query_engine/query_result.h"
-#include "silo/storage/database_partition.h"
 
 #define CHECK_SILO_QUERY(condition, message)    \
    if (!(condition)) {                          \

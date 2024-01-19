@@ -33,7 +33,8 @@ struct convert<OptionalPreprocessingConfig> {
          extractStringIfPresent(node, "pangoLineageDefinitionFilename"),
          extractStringIfPresent(node, "referenceGenomeFilename"),
          extractStringIfPresent(node, "nucleotideSequencePrefix"),
-         extractStringIfPresent(node, "genePrefix")};
+         extractStringIfPresent(node, "genePrefix")
+      };
 
       return true;
    }
@@ -75,28 +76,33 @@ PreprocessingConfig OptionalPreprocessingConfig::mergeValuesFromOrDefault(
       IntermediateResultsDirectory{
          intermediate_results_directory.value_or(other.intermediate_results_directory.value_or(
             silo::preprocessing::DEFAULT_INTERMEDIATE_RESULTS_DIRECTORY.directory
-         ))},
+         ))
+      },
       OutputDirectory{output_directory.value_or(
          other.output_directory.value_or(silo::preprocessing::DEFAULT_OUTPUT_DIRECTORY.directory)
       )},
       PreprocessingDatabaseLocation{
          preprocessing_database_location.has_value() ? preprocessing_database_location
-                                                     : other.preprocessing_database_location},
+                                                     : other.preprocessing_database_location
+      },
       NdjsonInputFilename{
-         ndjson_input_filename.has_value() ? ndjson_input_filename : other.ndjson_input_filename},
+         ndjson_input_filename.has_value() ? ndjson_input_filename : other.ndjson_input_filename
+      },
       MetadataFilename{metadata_file.value_or(
          other.metadata_file.value_or(silo::preprocessing::DEFAULT_METADATA_FILENAME.filename)
       )},
       PangoLineageDefinitionFilename{
          pango_lineage_definition_file.has_value() ? pango_lineage_definition_file
-                                                   : other.pango_lineage_definition_file},
+                                                   : other.pango_lineage_definition_file
+      },
       ReferenceGenomeFilename{reference_genome_file.value_or(other.reference_genome_file.value_or(
          silo::preprocessing::DEFAULT_REFERENCE_GENOME_FILENAME.filename
       ))},
       NucleotideSequencePrefix{
          nucleotide_sequence_prefix.value_or(other.nucleotide_sequence_prefix.value_or(
             silo::preprocessing::DEFAULT_NUCLEOTIDE_SEQUENCE_PREFIX.prefix
-         ))},
+         ))
+      },
       GenePrefix{gene_prefix.value_or(
          other.gene_prefix.value_or(silo::preprocessing::DEFAULT_GENE_PREFIX.prefix)
       )}

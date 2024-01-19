@@ -1,7 +1,5 @@
 #include "silo/common/pango_lineage.h"
 
-#include <compare>
-
 std::size_t std::hash<silo::common::UnaliasedPangoLineage>::operator()(
    const silo::common::UnaliasedPangoLineage& pango_lineage
 ) const {

@@ -1,10 +1,8 @@
 #include "silo/database.h"
 
 #include <filesystem>
-#include <fstream>
 
 #include <gtest/gtest.h>
-#include <nlohmann/json.hpp>
 
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/config/config_repository.h"
@@ -27,16 +25,6 @@ silo::Database buildTestDatabase() {
 
    silo::preprocessing::Preprocessor preprocessor(config, database_config);
    return preprocessor.preprocess();
-}
-
-void testSingleQuery(const silo::Database& database, const std::string& query_name) {
-   silo::query_engine::QueryEngine query_engine(database);
-   std::filesystem::path query_directory("endToEndTests/test/queries/");
-   std::ifstream query_file(query_directory / query_name);
-   std::stringstream query_and_result;
-   query_and_result << query_file.rdbuf();
-   nlohmann::json json = nlohmann::json::parse(query_and_result.str());
-   query_engine.executeQuery(json.at("query").dump());
 }
 
 TEST(DatabaseTest, shouldBuildDatabaseWithoutErrors) {

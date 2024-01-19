@@ -1,14 +1,11 @@
 #include "silo_api/logging_request_handler.h"
 
-#include <cstdint>
-#include <string>
-
 #include <spdlog/spdlog.h>
 
 namespace silo_api {
 
 LoggingRequestHandler::LoggingRequestHandler(Poco::Net::HTTPRequestHandler* wrapped_handler)
-    : wrapped_handler(wrapped_handler){};
+    : wrapped_handler(wrapped_handler) {}
 
 void LoggingRequestHandler::handleRequest(
    Poco::Net::HTTPServerRequest& request,

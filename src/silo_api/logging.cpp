@@ -1,9 +1,7 @@
 #include "silo_api/logging.h"
 
 #include <chrono>
-#include <cstdint>
 #include <memory>
-#include <ratio>
 
 #include <spdlog/cfg/env.h>
 #include <spdlog/sinks/daily_file_sink.h>

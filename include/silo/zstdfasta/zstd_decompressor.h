@@ -12,8 +12,8 @@ class ZstdDecompressor {
    ZSTD_DCtx* zstd_context;
 
   public:
-   ZstdDecompressor(ZstdDecompressor&& other);
-   ZstdDecompressor& operator=(ZstdDecompressor&& other);
+   ZstdDecompressor(ZstdDecompressor&& other) noexcept;
+   ZstdDecompressor& operator=(ZstdDecompressor&& other) noexcept;
 
    ZstdDecompressor(const ZstdDecompressor& other) = delete;
    ZstdDecompressor& operator=(const ZstdDecompressor& other) = delete;

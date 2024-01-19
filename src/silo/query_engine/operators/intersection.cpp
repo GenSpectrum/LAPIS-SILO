@@ -1,13 +1,10 @@
 #include "silo/query_engine/operators/intersection.h"
 
-#include <algorithm>
-#include <iterator>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include <spdlog/spdlog.h>
-#include <roaring/roaring.hh>
 
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/complement.h"

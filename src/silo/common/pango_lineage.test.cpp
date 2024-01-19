@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 
 TEST(UnaliasedPangoLineage, isSublineageOf) {
-   silo::common::UnaliasedPangoLineage const under_test{"A.1.2"};
+   const silo::common::UnaliasedPangoLineage under_test{"A.1.2"};
 
    EXPECT_TRUE(under_test.isSublineageOf(silo::common::UnaliasedPangoLineage{"A.1"}));
    EXPECT_TRUE(under_test.isSublineageOf(silo::common::UnaliasedPangoLineage{"A"}));
@@ -18,7 +18,7 @@ TEST(UnaliasedPangoLineage, isSublineageOf) {
 }
 
 TEST(PangoLineage, getParentLineages) {
-   silo::common::UnaliasedPangoLineage const under_test{"A.1.23.4.513"};
+   const silo::common::UnaliasedPangoLineage under_test{"A.1.23.4.513"};
 
    const std::vector<silo::common::UnaliasedPangoLineage> expected = {
       silo::common::UnaliasedPangoLineage{"A"},

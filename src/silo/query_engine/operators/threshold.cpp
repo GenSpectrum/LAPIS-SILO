@@ -1,7 +1,5 @@
 #include "silo/query_engine/operators/threshold.h"
 
-#include <algorithm>
-#include <iterator>
 #include <string>
 #include <utility>
 #include <vector>

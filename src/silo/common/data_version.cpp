@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <compare>
 #include <utility>
 
 namespace silo {

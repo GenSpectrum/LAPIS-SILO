@@ -4,6 +4,8 @@
 #include <map>
 #include <vector>
 
+#include "fmt/format.h"
+
 #include "silo/common/format_number.h"
 #include "silo/common/nucleotide_symbols.h"
 

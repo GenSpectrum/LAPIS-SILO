@@ -1,8 +1,6 @@
 #include "silo/query_engine/filter_expressions/pango_lineage_filter.h"
 
-#include <algorithm>
 #include <cctype>
-#include <map>
 #include <optional>
 #include <utility>
 
@@ -11,8 +9,6 @@
 #include "silo/query_engine/operators/empty.h"
 #include "silo/query_engine/operators/index_scan.h"
 #include "silo/query_engine/query_parse_exception.h"
-#include "silo/storage/column/pango_lineage_column.h"
-#include "silo/storage/column_group.h"
 #include "silo/storage/database_partition.h"
 
 namespace silo::query_engine::operators {

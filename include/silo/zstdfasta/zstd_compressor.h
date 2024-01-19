@@ -28,8 +28,8 @@ class ZstdCompressor {
    ZstdCompressor(const ZstdCompressor& other);
    ZstdCompressor& operator=(const ZstdCompressor& other);
 
-   ZstdCompressor(ZstdCompressor&& other);
-   ZstdCompressor& operator=(ZstdCompressor&& other);
+   ZstdCompressor(ZstdCompressor&& other) noexcept;
+   ZstdCompressor& operator=(ZstdCompressor&& other) noexcept;
 
    virtual ~ZstdCompressor();
 

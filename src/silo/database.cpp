@@ -81,6 +81,7 @@ std::optional<std::string> Database::getDefaultSequenceName<AminoAcid>() const {
 template <>
 std::vector<std::string> Database::getSequenceNames<Nucleotide>() const {
    std::vector<std::string> sequence_names;
+   sequence_names.reserve(nuc_sequences.size());
    for (const auto& [name, _] : nuc_sequences) {
       sequence_names.emplace_back(name);
    }
@@ -90,6 +91,7 @@ std::vector<std::string> Database::getSequenceNames<Nucleotide>() const {
 template <>
 std::vector<std::string> Database::getSequenceNames<AminoAcid>() const {
    std::vector<std::string> sequence_names;
+   sequence_names.reserve(aa_sequences.size());
    for (const auto& [name, _] : aa_sequences) {
       sequence_names.emplace_back(name);
    }

@@ -2,72 +2,74 @@
 
 #include <gtest/gtest.h>
 
-using silo::removeSymbol;
 using silo::splitBy;
+using std::string;
+using std::string_view;
+using std::vector;
 
 TEST(splitBy, correctSplit) {
-   const std::string input("ABC,DEF,ADS,");
-   const std::string delimiter(",");
+   const string input("ABC,DEF,ADS,");
+   const string delimiter(",");
 
    const auto result = splitBy(input, delimiter);
-   EXPECT_EQ(result, std::vector<std::string>({"ABC", "DEF", "ADS", ""}));
+   EXPECT_EQ(result, vector<string>({"ABC", "DEF", "ADS", ""}));
 }
 
 TEST(splitBy, correctSplit2) {
-   const std::string input("ABC");
-   const std::string delimiter(",");
+   const string input("ABC");
+   const string delimiter(",");
 
    const auto result = splitBy(input, delimiter);
-   EXPECT_EQ(result, std::vector<std::string>({"ABC"}));
+   EXPECT_EQ(result, vector<string>({"ABC"}));
 }
 
 TEST(splitBy, correctSplit3) {
-   const std::string input("ABC.*");
-   const std::string delimiter(".*");
+   const string input("ABC.*");
+   const string delimiter(".*");
 
    const auto result = splitBy(input, delimiter);
-   EXPECT_EQ(result, std::vector<std::string>({"ABC", ""}));
+   EXPECT_EQ(result, vector<string>({"ABC", ""}));
 }
 
 TEST(splitBy, correctWithEmptyString) {
-   const std::string input;
-   const std::string_view delimiter(",");
+   const string input;
+   const string_view delimiter(",");
 
    const auto result = splitBy(input, delimiter);
-   EXPECT_EQ(result, std::vector<std::string>{""});
+   EXPECT_EQ(result, vector<string>{""});
 }
 
 TEST(removeSymbol, removesAllOccurences) {
-   const std::string input(R"(ABC"DEF"ADS")");
+   const string input(R"(ABC"DEF"ADS")");
 
    const auto result = silo::removeSymbol(input, '\"');
-   EXPECT_EQ(result, std::string("ABCDEFADS"));
+   EXPECT_EQ(result, string("ABCDEFADS"));
 }
 
 TEST(removeSymbol, removesAtBeginning) {
-   const std::string input(R"("ABC)");
+   const string input(R"("ABC)");
 
    const auto result = silo::removeSymbol(input, '\"');
-   EXPECT_EQ(result, std::string("ABC"));
+   EXPECT_EQ(result, string("ABC"));
 }
 
 TEST(removeSymbol, removesAtEnd) {
-   const std::string input(R"(ABC")");
+   const string input(R"(ABC")");
 
    const auto result = silo::removeSymbol(input, '\"');
-   EXPECT_EQ(result, std::string("ABC"));
+   EXPECT_EQ(result, string("ABC"));
 }
 
 TEST(removeSymbol, removesAtBeginningAndEnd) {
-   const std::string input(R"("ABC")");
+   const string input(R"("ABC")");
 
    const auto result = silo::removeSymbol(input, '\"');
-   EXPECT_EQ(result, std::string("ABC"));
+   EXPECT_EQ(result, string("ABC"));
 }
 
 TEST(removeSymbol, doesNotRemoveIfNotContained) {
-   const std::string input("ABCDEFADS");
+   const string input("ABCDEFADS");
 
    const auto result = silo::removeSymbol(input, '\"');
-   EXPECT_EQ(result, std::string("ABCDEFADS"));
+   EXPECT_EQ(result, string("ABCDEFADS"));
 }

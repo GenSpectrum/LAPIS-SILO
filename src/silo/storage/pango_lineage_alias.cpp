@@ -8,7 +8,6 @@
 #include <utility>
 
 #include <spdlog/spdlog.h>
-#include <nlohmann/detail/iterators/iteration_proxy.hpp>
 #include <nlohmann/json.hpp>
 
 #include "silo/common/pango_lineage.h"

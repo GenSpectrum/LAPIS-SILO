@@ -1,9 +1,7 @@
 #include "silo/query_engine/filter_expressions/and.h"
 
 #include <algorithm>
-#include <iterator>
 #include <memory>
-#include <optional>
 #include <string>
 #include <utility>
 
@@ -128,9 +126,8 @@ std::tuple<OperatorVector, OperatorVector, std::vector<std::unique_ptr<operators
          OperatorVector empty;
          empty.emplace_back(std::make_unique<operators::Empty>(database_partition.sequence_count));
          return {
-            std::move(empty),
-            OperatorVector(),
-            std::vector<std::unique_ptr<operators::Predicate>>{}};
+            std::move(empty), OperatorVector(), std::vector<std::unique_ptr<operators::Predicate>>{}
+         };
       }
       if (child->type() == operators::INTERSECTION) {
          auto* intersection_child = dynamic_cast<operators::Intersection*>(child.get());
@@ -162,7 +159,8 @@ std::tuple<OperatorVector, OperatorVector, std::vector<std::unique_ptr<operators
    return {
       std::move(non_negated_child_operators),
       std::move(negated_child_operators),
-      std::move(predicates)};
+      std::move(predicates)
+   };
 }
 
 std::unique_ptr<Operator> And::compile(

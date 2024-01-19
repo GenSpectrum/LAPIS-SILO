@@ -19,7 +19,6 @@ TEST(PreprocessingConfigReader, shouldReadConfigWithCorrectParametersAndDefaults
    );
 
    const std::string input_directory = "./testBaseData/exampleDataset/";
-   const std::string intermediate_directory = "./temp/";
    ASSERT_EQ(config.getMetadataInputFilename(), input_directory + "small_metadata_set.tsv");
    ASSERT_EQ(
       config.getPangoLineageDefinitionFilename(), input_directory + "pangolineage_alias.json"

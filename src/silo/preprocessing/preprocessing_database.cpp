@@ -15,7 +15,19 @@
 #include "silo/storage/reference_genomes.h"
 #include "silo/zstdfasta/zstd_compressor.h"
 #include "silo/zstdfasta/zstdfasta_table.h"
-#include "silo/zstdfasta/zstdfasta_writer.h"
+
+using duckdb::BigIntValue;
+using duckdb::BinaryExecutor;
+using duckdb::Connection;
+using duckdb::DataChunk;
+using duckdb::ExpressionState;
+using duckdb::ListValue;
+using duckdb::LogicalType;
+using duckdb::MaterializedQueryResult;
+using duckdb::string_t;
+using duckdb::StringVector;
+using duckdb::Value;
+using duckdb::Vector;
 
 namespace {
 
@@ -45,45 +57,36 @@ class Compressors {
       }
    }
 
-   static void compressNuc(
-      duckdb::DataChunk& args,
-      duckdb::ExpressionState& /*state*/,
-      duckdb::Vector& result
-   ) {
-      duckdb::BinaryExecutor::Execute<duckdb::string_t, duckdb::string_t, duckdb::string_t>(
+   static void compressNuc(DataChunk& args, ExpressionState& /*state*/, Vector& result) {
+      BinaryExecutor::Execute<string_t, string_t, string_t>(
          args.data[0],
          args.data[1],
          result,
          args.size(),
-         [&](const duckdb::string_t uncompressed, const duckdb::string_t segment_name) {
+         [&](const string_t uncompressed, const string_t segment_name) {
             std::string& buffer = nuc_buffers.at(segment_name.GetString()).local();
-            size_t size_or_error_code =
+            const size_t size_or_error_code =
                nuc_compressors.at(segment_name.GetString())
                   .local()
                   .compress(
                      uncompressed.GetData(), uncompressed.GetSize(), buffer.data(), buffer.size()
                   );
-            return duckdb::StringVector::AddStringOrBlob(
+            return StringVector::AddStringOrBlob(
                result, buffer.data(), static_cast<uint32_t>(size_or_error_code)
             );
          }
       );
    };
 
-   static void compressAA(
-      duckdb::DataChunk& args,
-      duckdb::ExpressionState& /*state*/,
-      duckdb::Vector& result
-   ) {
-      using namespace duckdb;
+   static void compressAA(DataChunk& args, ExpressionState& /*state*/, Vector& result) {
       BinaryExecutor::Execute<string_t, string_t, string_t>(
          args.data[0],
          args.data[1],
          result,
          args.size(),
-         [&](const duckdb::string_t uncompressed, const duckdb::string_t gene_name) {
+         [&](const string_t uncompressed, const string_t gene_name) {
             std::string& buffer = aa_buffers.at(gene_name.GetString()).local();
-            size_t size_or_error_code =
+            const size_t size_or_error_code =
                aa_compressors.at(gene_name.GetString())
                   .local()
                   .compress(
@@ -120,21 +123,20 @@ PreprocessingDatabase::PreprocessingDatabase(const std::string& backing_file)
 
    connection.CreateVectorizedFunction(
       std::string(COMPRESS_NUC),
-      {duckdb::LogicalType::VARCHAR, duckdb::LogicalType::VARCHAR},
-      duckdb::LogicalType::BLOB,
+      {LogicalType::VARCHAR, LogicalType::VARCHAR},
+      LogicalType::BLOB,
       Compressors::compressNuc
    );
 
    connection.CreateVectorizedFunction(
       std::string(COMPRESS_AA),
-      {duckdb::LogicalType::VARCHAR, duckdb::LogicalType::VARCHAR},
-      duckdb::LogicalType::BLOB,
+      {LogicalType::VARCHAR, LogicalType::VARCHAR},
+      LogicalType::BLOB,
       Compressors::compressAA
    );
 }
 
-std::unique_ptr<duckdb::MaterializedQueryResult> PreprocessingDatabase::query(std::string sql_query
-) {
+std::unique_ptr<MaterializedQueryResult> PreprocessingDatabase::query(std::string sql_query) {
    SPDLOG_DEBUG("Preprocessing Database - Query:\n{}", sql_query);
    auto result = connection.Query(sql_query);
    SPDLOG_DEBUG("Preprocessing Database - Result:\n{}", result->ToString());
@@ -148,7 +150,7 @@ void PreprocessingDatabase::registerSequences(const silo::ReferenceGenomes& refe
    Compressors::initialize(reference_genomes);
 }
 
-duckdb::Connection& PreprocessingDatabase::getConnection() {
+Connection& PreprocessingDatabase::getConnection() {
    return connection;
 }
 
@@ -163,8 +165,8 @@ preprocessing::Partitions PreprocessingDatabase::getPartitionDescriptor() {
    for (auto it = partition_descriptor_from_sql->begin();
         it != partition_descriptor_from_sql->end();
         ++it) {
-      const duckdb::Value db_partition_id = it.current_row.GetValue<duckdb::Value>(0);
-      const uint32_t partition_id = duckdb::BigIntValue::Get(db_partition_id);
+      const auto db_partition_id = it.current_row.GetValue<Value>(0);
+      const uint32_t partition_id = BigIntValue::Get(db_partition_id);
       if (partition_id != check_partition_id_sorted_and_contiguous) {
          throw PreprocessingException(
             "The partition IDs produced by the preprocessing are not sorted, not starting from 0 "
@@ -173,8 +175,8 @@ preprocessing::Partitions PreprocessingDatabase::getPartitionDescriptor() {
       }
       check_partition_id_sorted_and_contiguous++;
 
-      const duckdb::Value db_partition_size = it.current_row.GetValue<duckdb::Value>(1);
-      const int64_t partition_size_bigint = duckdb::BigIntValue::Get(db_partition_size);
+      const auto db_partition_size = it.current_row.GetValue<Value>(1);
+      const int64_t partition_size_bigint = BigIntValue::Get(db_partition_size);
       if (partition_size_bigint <= 0) {
          throw PreprocessingException("Non-positive partition size encountered.");
       }
@@ -186,8 +188,9 @@ preprocessing::Partitions PreprocessingDatabase::getPartitionDescriptor() {
 
       const auto partition_size = static_cast<uint32_t>(partition_size_bigint);
 
-      partitions.emplace_back(std::vector<preprocessing::PartitionChunk>{
-         {partition_id, 0, partition_size, 0}});
+      partitions.emplace_back(
+         std::vector<preprocessing::PartitionChunk>{{partition_id, 0, partition_size, 0}}
+      );
    }
 
    return preprocessing::Partitions(partitions);
@@ -203,18 +206,18 @@ void PreprocessingDatabase::generateNucSequenceTable(
 }
 
 std::vector<std::string> extractStringListValue(
-   duckdb::MaterializedQueryResult& result,
+   MaterializedQueryResult& result,
    size_t row,
    size_t column
 ) {
    std::vector<std::string> return_value;
-   const duckdb::Value tmp_value = result.GetValue(column, row);
-   std::vector<duckdb::Value> child_values = duckdb::ListValue::GetChildren(tmp_value);
+   const Value tmp_value = result.GetValue(column, row);
+   std::vector<Value> child_values = ListValue::GetChildren(tmp_value);
    std::transform(
       child_values.begin(),
       child_values.end(),
       std::back_inserter(return_value),
-      [](const duckdb::Value& value) { return value.GetValue<std::string>(); }
+      [](const Value& value) { return value.GetValue<std::string>(); }
    );
    return return_value;
 }

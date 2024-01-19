@@ -1,15 +1,11 @@
 #include "silo/query_engine/actions/details.h"
 
 #include <algorithm>
-#include <cstddef>
-#include <cstdint>
-#include <optional>
 #include <utility>
 
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/parallel_for.h>
 #include <nlohmann/json.hpp>
-#include <roaring/roaring.hh>
 
 #include "silo/config/database_config.h"
 #include "silo/database.h"
@@ -19,7 +15,6 @@
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/column_group.h"
-#include "silo/storage/database_partition.h"
 
 namespace {
 

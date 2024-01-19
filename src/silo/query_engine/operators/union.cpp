@@ -1,8 +1,5 @@
 #include "silo/query_engine/operators/union.h"
 
-#include <algorithm>
-#include <cstddef>
-#include <iterator>
 #include <string>
 #include <utility>
 #include <vector>

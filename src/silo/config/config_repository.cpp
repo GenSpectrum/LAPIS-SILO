@@ -3,7 +3,6 @@
 #include <map>
 #include <optional>
 #include <string>
-#include <vector>
 
 #include "silo/config/config_exception.h"
 #include "silo/config/database_config.h"

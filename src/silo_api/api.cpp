@@ -1,6 +1,5 @@
 #include <filesystem>
 #include <iostream>
-#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -13,7 +12,6 @@
 #include <Poco/Util/AbstractConfiguration.h>
 #include <Poco/Util/Application.h>
 #include <Poco/Util/HelpFormatter.h>
-#include <Poco/Util/LayeredConfiguration.h>
 #include <Poco/Util/Option.h>
 #include <Poco/Util/OptionCallback.h>
 #include <Poco/Util/OptionSet.h>
@@ -23,10 +21,8 @@
 
 #include "silo/config/config_repository.h"
 #include "silo/config/database_config.h"
-#include "silo/database.h"
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_config_reader.h"
-#include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/preprocessing/preprocessor.h"
 #include "silo_api/database_directory_watcher.h"
 #include "silo_api/database_mutex.h"

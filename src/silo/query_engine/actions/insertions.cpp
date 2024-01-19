@@ -1,9 +1,6 @@
 #include "silo/query_engine/actions/insertions.h"
 
 #include <algorithm>
-#include <cstddef>
-#include <cstdint>
-#include <functional>
 #include <map>
 #include <optional>
 #include <unordered_map>
@@ -13,7 +10,6 @@
 
 #include <boost/container_hash/hash.hpp>
 #include <nlohmann/json.hpp>
-#include <roaring/roaring.hh>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
@@ -28,6 +24,8 @@
 #include "silo/storage/database_partition.h"
 
 using silo::query_engine::OperatorResult;
+using silo::storage::ColumnGroup;
+using silo::storage::column::insertion::InsertionIndex;
 
 namespace silo::query_engine::actions {
 
@@ -45,7 +43,8 @@ void InsertionAggregation<SymbolType>::validateOrderByFields(const Database& /*d
       {std::string{POSITION_FIELD_NAME},
        std::string{INSERTION_FIELD_NAME},
        std::string{SEQUENCE_FIELD_NAME},
-       std::string{COUNT_FIELD_NAME}}};
+       std::string{COUNT_FIELD_NAME}}
+   };
 
    for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
@@ -60,14 +59,45 @@ void InsertionAggregation<SymbolType>::validateOrderByFields(const Database& /*d
 }
 
 template <typename SymbolType>
-void validateColumnNames(
+void validateDatabaseColumnNames(
+   const ColumnGroup& column_group,
+   const std::vector<std::string>& column_names
+) {
+   for (const std::string& column_name : column_names) {
+      CHECK_SILO_QUERY(
+         column_group.getInsertionColumns<SymbolType>().contains(column_name),
+         "The database does not contain the " + std::string(SymbolType::SYMBOL_NAME) + " column '" +
+            column_name + "'"
+      )
+   }
+}
+
+template <typename SymbolType>
+void validatePartitionColumnNames(
    const storage::ColumnPartitionGroup& column_group,
    const std::vector<std::string>& column_names
 ) {
-   for (std::string column_name : column_names) {
+   for (const std::string& column_name : column_names) {
       CHECK_SILO_QUERY(
          column_group.getInsertionColumns<SymbolType>().contains(column_name),
-         "The column '" + column_name + "' does not exist."
+         "The database does not contain the " + std::string(SymbolType::SYMBOL_NAME) + " column '" +
+            column_name + "'"
+      )
+   }
+}
+
+template <typename SymbolType>
+void validateSequenceNames(
+   const Database& database,
+   const std::vector<std::string>& sequence_names
+) {
+   std::vector<std::string> all_sequence_names = database.getSequenceNames<SymbolType>();
+   for (const std::string& sequence_name : sequence_names) {
+      CHECK_SILO_QUERY(
+         std::find(all_sequence_names.begin(), all_sequence_names.end(), sequence_name) !=
+            all_sequence_names.end(),
+         "The database does not contain the " + std::string(SymbolType::SYMBOL_NAME) +
+            " sequence '" + sequence_name + "'"
       )
    }
 }
@@ -93,28 +123,14 @@ InsertionAggregation<SymbolType>::validateFieldsAndPreFilterBitmaps(
    const Database& database,
    std::vector<OperatorResult>& bitmap_filter
 ) const {
-   for (const std::string& column_name : column_names) {
-      CHECK_SILO_QUERY(
-         database.columns.getInsertionColumns<SymbolType>().contains(column_name),
-         "The database does not contain the " + std::string(SymbolType::SYMBOL_NAME) + " column '" +
-            column_name + "'"
-      );
-   }
-   std::vector<std::string> all_sequence_names = database.getSequenceNames<SymbolType>();
-   for (const std::string& sequence_name : sequence_names) {
-      CHECK_SILO_QUERY(
-         std::find(all_sequence_names.begin(), all_sequence_names.end(), sequence_name) !=
-            all_sequence_names.end(),
-         "The database does not contain the " + std::string(SymbolType::SYMBOL_NAME) +
-            " sequence '" + sequence_name + "'"
-      );
-   }
+   validateDatabaseColumnNames<SymbolType>(database.columns, column_names);
+   validateSequenceNames<SymbolType>(database, sequence_names);
 
    std::unordered_map<std::string, PrefilteredBitmaps> pre_filtered_bitmaps;
    for (size_t i = 0; i < database.partitions.size(); ++i) {
       const DatabasePartition& database_partition = database.partitions.at(i);
 
-      validateColumnNames<SymbolType>(database_partition.columns, column_names);
+      validatePartitionColumnNames<SymbolType>(database_partition.columns, column_names);
 
       for (auto& [column_name, insertion_column] :
            database_partition.columns.getInsertionColumns<SymbolType>()) {
@@ -199,7 +215,8 @@ void InsertionAggregation<SymbolType>::addAggregatedInsertionsToInsertionCounts(
          {std::string(POSITION_FIELD_NAME), static_cast<int32_t>(position_and_insertion.position)},
          {std::string(SEQUENCE_FIELD_NAME), sequence_name},
          {std::string(INSERTION_FIELD_NAME), std::string(position_and_insertion.insertion_value)},
-         {std::string(COUNT_FIELD_NAME), static_cast<int32_t>(count)}};
+         {std::string(COUNT_FIELD_NAME), static_cast<int32_t>(count)}
+      };
       output.push_back({fields});
    }
 }
@@ -209,10 +226,7 @@ QueryResult InsertionAggregation<SymbolType>::execute(
    const Database& database,
    std::vector<OperatorResult> bitmap_filter
 ) const {
-   using storage::column::insertion::InsertionIndex;
-
-   std::unordered_map<std::string, InsertionAggregation<SymbolType>::PrefilteredBitmaps>
-      bitmaps_to_evaluate = validateFieldsAndPreFilterBitmaps(database, bitmap_filter);
+   const auto bitmaps_to_evaluate = validateFieldsAndPreFilterBitmaps(database, bitmap_filter);
 
    std::vector<QueryResultEntry> insertion_counts;
    for (const auto& [sequence_name, prefiltered_bitmaps] : bitmaps_to_evaluate) {
@@ -275,11 +289,13 @@ void from_json(
    );
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 template void from_json<AminoAcid>(
    const nlohmann::json& json,
    std::unique_ptr<InsertionAggregation<AminoAcid>>& action
 );
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 template void from_json<Nucleotide>(
    const nlohmann::json& json,
    std::unique_ptr<InsertionAggregation<Nucleotide>>& action
