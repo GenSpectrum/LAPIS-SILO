@@ -189,7 +189,7 @@ std::optional<std::variant<std::string, int32_t, double>> ColumnPartitionGroup::
    }
    if (pango_lineage_columns.contains(column)) {
       return pango_lineage_columns.at(column)
-         .lookupValue(pango_lineage_columns.at(column).getValues().at(sequence_id))
+         .lookupAliasedValue(pango_lineage_columns.at(column).getValues().at(sequence_id))
          .value;
    }
    if (date_columns.contains(column)) {

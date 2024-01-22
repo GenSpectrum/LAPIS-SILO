@@ -41,6 +41,38 @@ INSTANTIATE_TEST_SUITE_P(
    )
 );
 
+class UnresolveAliasTestFixture : public ::testing::TestWithParam<TestParameter> {
+  protected:
+   const silo::PangoLineageAliasLookup alias_map = silo::PangoLineageAliasLookup{
+      {{"BA", {"B.1.1.529"}}, {"BC", {"B.1.1.529.1.1.1"}}, {"XA", {"B.1.1.7", "B.1.177"}}}
+   };
+};
+
+TEST_P(UnresolveAliasTestFixture, shouldReturnExpectedUnresolvedAlias) {
+   const auto test_parameter = GetParam();
+
+   const auto result = alias_map.aliasPangoLineage({test_parameter.input});
+
+   ASSERT_EQ(result.value, test_parameter.expected_result);
+}
+
+// NOLINTNEXTLINE(readability-identifier-length)
+INSTANTIATE_TEST_SUITE_P(
+   UnresolveAliasTest,
+   UnresolveAliasTestFixture,
+   ::testing::Values(
+      TestParameter{"", ""},
+      TestParameter{"SomeNotListedAlias", "SomeNotListedAlias"},
+      TestParameter{"B.1.1.529", "B.1.1.529"},
+      TestParameter{"B.1.1.529.1", "BA.1"},
+      TestParameter{"B.1.1.529.1.1", "BA.1.1"},
+      TestParameter{"B.1.1.529.1.1.1", "BA.1.1.1"},
+      TestParameter{"B.1.1.529.1.1.1.1.1.1.1.1", "BC.1.1.1.1.1"},
+      TestParameter{"XA.1.1", "XA.1.1"},
+      TestParameter{"XA.1.1.1.1.1.1.1", "XA.1.1.1.1.1.1.1"}
+   )
+);
+
 TEST(PangoLineageAliasLookup, readFromFile) {
    auto under_test = silo::PangoLineageAliasLookup::readFromFile(
       "testBaseData/exampleDataset/pangolineage_alias.json"

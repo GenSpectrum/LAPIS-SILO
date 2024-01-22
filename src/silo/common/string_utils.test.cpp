@@ -73,3 +73,23 @@ TEST(removeSymbol, doesNotRemoveIfNotContained) {
    const auto result = silo::removeSymbol(input, '\"');
    EXPECT_EQ(result, string("ABCDEFADS"));
 }
+
+TEST(slice, correctSlice) {
+   const vector<string> input({"ABC", "DEF", "ADS"});
+
+   const auto result = silo::slice(input, 1, 3);
+   EXPECT_EQ(result, vector<string>({"DEF", "ADS"}));
+}
+
+TEST(slice, withLargerStart) {
+   const vector<string> input({"ABC", "DEF", "ADS"});
+
+   const auto result = silo::slice(input, 4, 3);
+   EXPECT_EQ(result, vector<string>({}));
+}
+
+TEST(slice, withLargerEnd) {
+   const vector<string> input({"ABC", "DEF", "ADS"});
+
+   EXPECT_THROW(silo::slice(input, 1, 4), std::out_of_range);
+}

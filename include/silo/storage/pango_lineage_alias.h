@@ -14,6 +14,7 @@ class access;
 namespace silo {
 
 namespace common {
+struct AliasedPangoLineage;
 struct UnaliasedPangoLineage;
 struct RawPangoLineage;
 
@@ -41,6 +42,10 @@ class PangoLineageAliasLookup {
 
    [[nodiscard]] common::UnaliasedPangoLineage unaliasPangoLineage(
       const common::RawPangoLineage& pango_lineage
+   ) const;
+
+   [[nodiscard]] common::AliasedPangoLineage aliasPangoLineage(
+      const common::UnaliasedPangoLineage& pango_lineage
    ) const;
 
    static silo::PangoLineageAliasLookup readFromFile(

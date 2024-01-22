@@ -115,7 +115,7 @@ json_value_type tupleFieldToValueType(
       const silo::Idx value = *reinterpret_cast<const silo::Idx*>(*data_pointer);
       *data_pointer += sizeof(decltype(value));
       std::string string_value =
-         columns.pango_lineage_columns.at(metadata.name).lookupValue(value).value;
+         columns.pango_lineage_columns.at(metadata.name).lookupAliasedValue(value).value;
       if (string_value.empty()) {
          return std::nullopt;
       }
@@ -232,11 +232,11 @@ std::strong_ordering compareTupleFields(
       const silo::Idx value1 = *reinterpret_cast<const silo::Idx*>(*data_pointer1);
       *data_pointer1 += sizeof(decltype(value1));
       const std::string string_value1 =
-         columns.pango_lineage_columns.at(metadata.name).lookupValue(value1).value;
+         columns.pango_lineage_columns.at(metadata.name).lookupAliasedValue(value1).value;
       const silo::Idx value2 = *reinterpret_cast<const silo::Idx*>(*data_pointer2);
       *data_pointer2 += sizeof(decltype(value2));
       const std::string string_value2 =
-         columns.pango_lineage_columns.at(metadata.name).lookupValue(value2).value;
+         columns.pango_lineage_columns.at(metadata.name).lookupAliasedValue(value2).value;
       return compareString(string_value1, string_value2);
    }
    if (metadata.type == ColumnType::INDEXED_STRING) {

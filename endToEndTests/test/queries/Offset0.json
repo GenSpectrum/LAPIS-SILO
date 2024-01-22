@@ -305,7 +305,7 @@
       "division": "Ticino",
       "gisaid_epi_isl": "EPI_ISL_1840634",
       "nucleotideInsertions": null,
-      "pango_lineage": "B.1.1.7.7",
+      "pango_lineage": "Q.7",
       "qc_value": 0.96,
       "region": "Europe",
       "unsorted_date": "2021-05-10"
@@ -409,7 +409,7 @@
       "division": "Geneva",
       "gisaid_epi_isl": "EPI_ISL_2213804",
       "nucleotideInsertions": "25701:CCC",
-      "pango_lineage": "B.1.1.7.7",
+      "pango_lineage": "Q.7",
       "qc_value": null,
       "region": "Europe",
       "unsorted_date": "2021-04-12"
@@ -513,7 +513,7 @@
       "division": "Ticino",
       "gisaid_epi_isl": "EPI_ISL_2360326",
       "nucleotideInsertions": null,
-      "pango_lineage": "B.1.1.7.7",
+      "pango_lineage": "Q.7",
       "qc_value": 0.89,
       "region": "Europe",
       "unsorted_date": "2021-03-10"
