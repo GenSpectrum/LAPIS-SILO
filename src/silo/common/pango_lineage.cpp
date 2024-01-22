@@ -6,6 +6,12 @@ std::size_t std::hash<silo::common::UnaliasedPangoLineage>::operator()(
    return hash<string>()(pango_lineage.value);
 }
 
+std::size_t std::hash<silo::common::AliasedPangoLineage>::operator()(
+   const silo::common::AliasedPangoLineage& pango_lineage
+) const {
+   return hash<string>()(pango_lineage.value);
+}
+
 namespace silo::common {
 
 bool UnaliasedPangoLineage::isSublineageOf(const silo::common::UnaliasedPangoLineage& other) const {
@@ -33,6 +39,14 @@ bool UnaliasedPangoLineage::operator<(const UnaliasedPangoLineage& other) const 
 }
 
 bool UnaliasedPangoLineage::operator==(const UnaliasedPangoLineage& other) const {
+   return value == other.value;
+}
+
+bool AliasedPangoLineage::operator<(const AliasedPangoLineage& other) const {
+   return value < other.value;
+}
+
+bool AliasedPangoLineage::operator==(const AliasedPangoLineage& other) const {
    return value == other.value;
 }
 

@@ -1,10 +1,15 @@
 {
-  "testCaseName": "Group all sequences by lineage",
+  "testCaseName": "Pango lineage should return only aliased",
   "query": {
     "action": {
       "type": "Aggregated",
       "groupByFields": ["pango_lineage"],
-      "orderByFields": ["pango_lineage"]
+      "orderByFields": [
+        {
+          "field": "pango_lineage",
+          "order": "ascending"
+        }
+      ]
     },
     "filterExpression": {
       "type": "True"

@@ -1,6 +1,7 @@
-#include <algorithm>
-
 #include "silo/common/string_utils.h"
+
+#include <algorithm>
+#include <stdexcept>
 
 namespace silo {
 
@@ -25,5 +26,18 @@ std::string removeSymbol(const std::string& value, char symbol) {
    std::string result = value;
    result.erase(std::remove(result.begin(), result.end(), symbol), result.end());
    return result;
+}
+
+std::vector<std::string> slice(const std::vector<std::string>& elements, size_t start, size_t end) {
+   std::vector<std::string> sliced_elements;
+
+   if (end > elements.size()) {
+      throw std::out_of_range("End index is larger than the size of the vector");
+   }
+
+   for (auto i = start; i < end; i++) {
+      sliced_elements.emplace_back(elements.at(i));
+   }
+   return sliced_elements;
 }
 }  // namespace silo

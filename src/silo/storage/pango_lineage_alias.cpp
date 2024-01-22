@@ -8,9 +8,12 @@
 #include <utility>
 
 #include <spdlog/spdlog.h>
+#include <boost/algorithm/string/join.hpp>
+#include <boost/algorithm/string/split.hpp>
 #include <nlohmann/json.hpp>
 
 #include "silo/common/pango_lineage.h"
+#include "silo/common/string_utils.h"
 
 namespace silo {
 
@@ -40,6 +43,39 @@ common::UnaliasedPangoLineage PangoLineageAliasLookup::unaliasPangoLineage(
       );
       return {alias_key.at(pango_lineage_prefix).at(0) + '.' + suffix};
    }
+   return {pango_lineage.value};
+}
+
+common::AliasedPangoLineage PangoLineageAliasLookup::aliasPangoLineage(
+   const common::UnaliasedPangoLineage& pango_lineage
+) const {
+   const auto elements = splitBy(pango_lineage.value, ".");
+   const size_t num_elements = elements.size();
+
+   for (auto i = num_elements; i > 3; i--) {
+      const auto search_value = boost::join(slice(elements, 0, i - 1), ".");
+
+      for (const auto& alias_entry : alias_key) {
+         const auto alias = alias_entry.first;
+         const auto alias_values = alias_entry.second;
+
+         if (alias_values.size() > 1 || alias_values.empty()) {
+            continue;
+         }
+
+         if (alias_values.at(0) == search_value) {
+            const auto leftover_value = boost::join(slice(elements, i - 1, num_elements), ".");
+
+            std::string value = alias;
+
+            if (!leftover_value.empty()) {
+               value += "." + leftover_value;
+            }
+            return {value};
+         }
+      }
+   }
+
    return {pango_lineage.value};
 }
 
