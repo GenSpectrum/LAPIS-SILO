@@ -23,8 +23,8 @@ def main(args):
 
     cmake_options = []
     conan_options = []
-    if args.build_without_clang_tidy:
-        cmake_options.append("-D BUILD_WITH_CLANG_TIDY=OFF")
+    if args.build_with_clang_tidy:
+        cmake_options.append("-D BUILD_WITH_CLANG_TIDY=ON")
 
     if args.release:
         cmake_options.append("-D CMAKE_BUILD_TYPE=Release")
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--clean", action="store_true", help="Clean build directory before building")
     parser.add_argument("--release", action="store_true", help="Trigger RELEASE build")
-    parser.add_argument("--build_without_clang_tidy", action="store_true", help="Build without clang-tidy")
+    parser.add_argument("--build_with_clang_tidy", action="store_true", help="Build with clang-tidy")
     parser.add_argument("--parallel", type=int, default=16, help="Number of parallel jobs")
 
     args_parsed = parser.parse_args()

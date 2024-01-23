@@ -60,7 +60,7 @@ list(REMOVE_ITEM SRC_SILO_API ${SRC_TEST})
 # Linter
 # ---------------------------------------------------------------------------
 
-option(BUILD_WITH_CLANG_TIDY "Build process clang-tidy" ON)
+option(BUILD_WITH_CLANG_TIDY "Build process clang-tidy")
 if (NOT CMAKE_BUILD_TYPE STREQUAL Release AND BUILD_WITH_CLANG_TIDY)
     find_program(CLANG_TIDY_EXE NAMES clang-tidy-18)
     if (NOT CLANG_TIDY_EXE)
