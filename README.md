@@ -23,7 +23,7 @@ decided for the approach with less maintenance effort, since it will automatical
 ### Running SILO locally with CLion
 
 `./run` contains run configurations for CLion that are ready to use.
-They assume that you configured CMake in CLion to use `./build` as build directory. 
+They assume that you configured CMake in CLion to use `./build` as build directory.
 CLion should be able to detect those files automatically.
 
 ## With Conan
@@ -67,7 +67,7 @@ The images contain default configuration so that a user only needs to mount data
 
 The preprocessing acts as a program that takes an input directory that contains the to-be-processed data
 and an output directory where the processed data will be stored.
-Both need to be mounted to the container. 
+Both need to be mounted to the container.
 SILO also expects a database config and a preprocessing config that need to be mounted to the default locations.
 
 ```shell
@@ -88,8 +88,11 @@ silo --preprocessing --preprocessingConfig=./custom/preprocessing_config.yaml --
 The Docker image contains a default preprocessing config that sets defaults specific for running SILO in Docker.
 Apart from that, there are default values if neither user-provided nor default config specify fields.
 The user-provided preprocessing config can be used to overwrite the default values. For a full reference, see
+
 * [testBaseData/test_preprocessing_config_with_overridden_defaults.yaml](https://github.com/GenSpectrum/LAPIS-SILO/blob/main/testBaseData/test_preprocessing_config_with_overridden_defaults.yaml)
-* or [include/silo/preprocessing/preprocessing_config_reader.h](https://github.com/GenSpectrum/LAPIS-SILO/blob/main/include/silo/preprocessing/preprocessing_config_reader.h)
+*
+
+or [include/silo/preprocessing/preprocessing_config_reader.h](https://github.com/GenSpectrum/LAPIS-SILO/blob/main/include/silo/preprocessing/preprocessing_config_reader.h)
 
 ### Run docker container (api)
 
@@ -131,12 +134,7 @@ To run all tests, run
 build/silo_test
 ```
 
-For linting we use clang-tidy. The config is stored in `.clang-tidy`. It will run automatically with the build process
-and will throw errors accordingly. However, it is rather slow. If you only want a fast build use
-
-```shell
-./build_with_conan.py --build_without_clang_tidy
-```
+For linting we use clang-tidy. The config is stored in `.clang-tidy`.
 
 When pushing to GitHub, a separate Docker image will be built, which runs the formatter. (This is a workaround, because
 building with clang-tidy under alpine was not possible yet.)
@@ -147,8 +145,8 @@ End-to-end tests are located in `/endToEndTests`. Those tests are used to verify
 queries. To execute the tests:
 
 * have a running SILO instance with preprocessd data e.g. via
-  * `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-preprocessing.yml up`
-  * `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-api.yml up -d wait`
+    * `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-preprocessing.yml up`
+    * `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-api.yml up -d wait`
 * `cd endToEndTests`
 * `npm install`
 * `SILO_URL=localhost:8081 npm run test`
