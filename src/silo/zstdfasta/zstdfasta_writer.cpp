@@ -71,7 +71,8 @@ void silo::ZstdFastaWriter::writeRaw(const std::string& key, std::string_view co
 void silo::ZstdFastaWriter::writeDefault(const std::string& key) {
    if (default_sequence == std::nullopt) {
       throw std::runtime_error(
-         "Tried to write default sequence, when non was provided in the ZstdFastaWriter constructor"
+         "Tried to write default sequence, when none was provided in the ZstdFastaWriter "
+         "constructor"
       );
    }
    outStream << '>' << key << '\n'

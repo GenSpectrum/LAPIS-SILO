@@ -24,12 +24,14 @@ class ZstdFastaTableReader {
    std::string order_by_clause;
    std::unique_ptr<duckdb::MaterializedQueryResult> query_result;
    std::unique_ptr<duckdb::DataChunk> current_chunk;
-   std::unique_ptr<silo::ZstdDecompressor> decompressor;
+   std::unique_ptr<ZstdDecompressor> decompressor;
    size_t current_row;
 
    std::string genome_buffer;
 
    std::optional<std::string> nextKey();
+
+   void advanceRow();
 
   public:
    explicit ZstdFastaTableReader(
@@ -42,9 +44,9 @@ class ZstdFastaTableReader {
 
    std::optional<std::string> nextSkipGenome();
 
-   std::optional<std::string> next(std::string& genome);
+   std::optional<std::string> next(std::optional<std::string>& genome);
 
-   std::optional<std::string> nextCompressed(std::string& compressed_genome);
+   std::optional<std::string> nextCompressed(std::optional<std::string>& compressed_genome);
 
    void reset();
 };

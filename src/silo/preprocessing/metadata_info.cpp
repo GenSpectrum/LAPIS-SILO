@@ -39,7 +39,7 @@ std::unordered_map<std::string, std::string> validateFieldsAgainstConfig(
    for (const std::string& name : config_metadata_fields) {
       if (!validated_metadata_fields.contains(name)) {
          throw silo::preprocessing::PreprocessingException(fmt::format(
-            "The metadata field {} which is contained in the database config is "
+            "The metadata field '{}' which is contained in the database config is "
             "not contained in the input.",
             name
          ));

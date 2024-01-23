@@ -20,7 +20,7 @@ describe('The /query endpoint', () => {
     })
   );
 
-  it(' - the query test cases should have unique names', () => {
+  it('test cases should have unique names', () => {
     const testCaseNames = testCases.map(testCase => testCase.testCaseName);
     const uniqueTestCaseNames = [...new Set(testCaseNames)];
 
@@ -41,7 +41,7 @@ describe('The /query endpoint', () => {
     })
   );
 
-  it(' - the invalid query test cases should have unique names', () => {
+  it('invalid query test cases should have unique names', () => {
     const testCaseNames = invalidQueryTestCases.map(testCase => testCase.testCaseName);
     const uniqueTestCaseNames = [...new Set(testCaseNames)];
 

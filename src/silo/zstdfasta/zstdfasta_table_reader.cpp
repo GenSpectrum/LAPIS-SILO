@@ -42,27 +42,73 @@ std::optional<std::string> silo::ZstdFastaTableReader::nextSkipGenome() {
       return std::nullopt;
    }
 
-   current_row++;
-   if (current_row == current_chunk->size()) {
-      current_row = 0;
-      current_chunk = query_result->Fetch();
-      while (current_chunk && current_chunk->size() == 0) {
-         current_chunk = query_result->Fetch();
-      }
-   }
-
+   advanceRow();
    return key;
 }
 
-std::optional<std::string> silo::ZstdFastaTableReader::nextCompressed(std::string& compressed_genome
+std::optional<std::string> silo::ZstdFastaTableReader::nextCompressed(
+   std::optional<std::string>& compressed_genome
 ) {
    auto key = nextKey();
    if (!key) {
       return std::nullopt;
    }
 
-   compressed_genome = current_chunk->GetValue(1, current_row).GetValueUnsafe<std::string>();
+   const auto value = current_chunk->GetValue(1, current_row);
+   if (value.IsNull()) {
+      compressed_genome = std::nullopt;
+   } else {
+      compressed_genome = value.GetValueUnsafe<std::string>();
+   }
 
+   advanceRow();
+   return key;
+}
+
+std::optional<std::string> silo::ZstdFastaTableReader::next(std::optional<std::string>& genome) {
+   std::optional<std::string> compressed_buffer;
+   auto key = nextCompressed(compressed_buffer);
+
+   if (!key) {
+      return std::nullopt;
+   }
+
+   if (compressed_buffer.has_value()) {
+      decompressor->decompress(compressed_buffer.value(), genome_buffer);
+      genome = genome_buffer;
+   } else {
+      genome = std::nullopt;
+   }
+
+   return key;
+}
+
+void silo::ZstdFastaTableReader::reset() {
+   try {
+      query_result = connection.Query(fmt::format(
+         "SELECT key, sequence FROM {} WHERE {} {}", table_name, where_clause, order_by_clause
+      ));
+   } catch (const std::exception& e) {
+      SPDLOG_ERROR("Error when executing SQL {}", e.what());
+      throw silo::preprocessing::PreprocessingException(
+         "Error when executing SQL " + std::string(e.what())
+      );
+   }
+   if (query_result->HasError()) {
+      SPDLOG_ERROR("Error when executing SQL " + query_result->GetError());
+      throw silo::preprocessing::PreprocessingException(
+         "Error when executing SQL " + query_result->GetError()
+      );
+   }
+   current_chunk = query_result->Fetch();
+   current_row = 0;
+
+   while (current_chunk && current_chunk->size() == 0) {
+      current_chunk = query_result->Fetch();
+   }
+}
+
+void silo::ZstdFastaTableReader::advanceRow() {
    current_row++;
    if (current_row == current_chunk->size()) {
       current_row = 0;
@@ -70,37 +116,5 @@ std::optional<std::string> silo::ZstdFastaTableReader::nextCompressed(std::strin
       while (current_chunk && current_chunk->size() == 0) {
          current_chunk = query_result->Fetch();
       }
-   }
-
-   return key;
-}
-
-std::optional<std::string> silo::ZstdFastaTableReader::next(std::string& genome) {
-   std::string compressed_buffer;
-   auto key = nextCompressed(compressed_buffer);
-
-   if (!key) {
-      return std::nullopt;
-   }
-
-   decompressor->decompress(compressed_buffer, genome_buffer);
-   genome = genome_buffer;
-
-   return key;
-}
-
-void silo::ZstdFastaTableReader::reset() {
-   query_result = connection.Query(fmt::format(
-      "SELECT key, sequence FROM {} WHERE {} {}", table_name, where_clause, order_by_clause
-   ));
-   if (query_result->HasError()) {
-      SPDLOG_ERROR("Error when executing SQL " + query_result->GetError());
-      throw preprocessing::PreprocessingException("Error when SQL " + query_result->GetError());
-   }
-   current_chunk = query_result->Fetch();
-   current_row = 0;
-
-   while (current_chunk && current_chunk->size() == 0) {
-      current_chunk = query_result->Fetch();
    }
 }
