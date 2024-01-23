@@ -30,4 +30,4 @@ RUN cp -R /root/.conan2_persisted /root/.conan2 && cp -R build_persisted build
 
 COPY . ./
 
-RUN python3 ./build_with_conan.py --parallel 4
+RUN python3 ./build_with_conan.py --parallel 4 --build_with_clang_tidy
