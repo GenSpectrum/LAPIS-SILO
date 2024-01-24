@@ -46,14 +46,17 @@ Database Preprocessor::preprocess() {
 
    const auto& ndjson_input_filename = preprocessing_config.getNdjsonInputFilename();
    if (ndjson_input_filename.has_value()) {
+      SPDLOG_INFO("preprocessing - ndjson pipeline chosen");
       buildTablesFromNdjsonInput(ndjson_input_filename.value(), reference_genomes);
       buildPartitioningTable();
       createSequenceViews(reference_genomes);
    } else {
+      SPDLOG_INFO("preprocessing - classic metadata file pipeline chosen");
       buildMetadataTableFromFile(preprocessing_config.getMetadataInputFilename());
       buildPartitioningTable();
       createPartitionedSequenceTables(reference_genomes);
    }
+   SPDLOG_INFO("preprocessing - finished initial loading of data");
 
    const auto partition_descriptor = preprocessing_db.getPartitionDescriptor();
 
@@ -69,7 +72,6 @@ void Preprocessor::buildTablesFromNdjsonInput(
    const std::filesystem::path& file_name,
    const ReferenceGenomes& reference_genomes
 ) {
-   SPDLOG_DEBUG("preprocessing - ndjson pipeline chosen");
    if (!std::filesystem::exists(file_name)) {
       throw silo::preprocessing::PreprocessingException(
          fmt::format("The specified input file {} does not exist.", file_name.string())
@@ -106,7 +108,6 @@ void Preprocessor::buildTablesFromNdjsonInput(
 }
 
 void Preprocessor::buildMetadataTableFromFile(const std::filesystem::path& metadata_filename) {
-   SPDLOG_DEBUG("preprocessing - classic metadata file pipeline chosen");
    const auto metadata_info =
       MetadataInfo::validateFromMetadataFile(metadata_filename, database_config);
 
