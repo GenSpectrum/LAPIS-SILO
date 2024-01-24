@@ -1,0 +1,3 @@
+inputDirectory: "testBaseData/ndjsonWithSqlKeywordField"
+ndjsonInputFilename: "input_file.ndjson"
+referenceGenomeFilename: "reference_genomes.json"

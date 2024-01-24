@@ -11,38 +11,23 @@
 
 namespace {
 
-class PreprocessorTestFixture : public ::testing::TestWithParam<std::string> {};
+struct Scenario {
+   std::string input_directory;
+   uint expected_sequence_count;
+   std::string query;
+   nlohmann::json expected_query_result;
+};
 
-INSTANTIATE_TEST_SUITE_P(
-   PreprocessorTest,
-   PreprocessorTestFixture,
-   ::testing::Values(
-      "testBaseData/fastaFilesWithMissingSequences/",
-      "testBaseData/ndjsonWithNullSequences/"
-   )
-);
+std::string printTestName(const ::testing::TestParamInfo<Scenario>& info) {
+   std::string name = "Dir_" + info.param.input_directory;
+   std::replace(name.begin(), name.end(), '/', '_');
+   return name;
+}
 
-TEST_P(PreprocessorTestFixture, shouldProcessDataSetWithMissingSequences) {
-   const silo::preprocessing::InputDirectory input_directory{GetParam()};
-
-   auto config = silo::preprocessing::PreprocessingConfigReader()
-                    .readConfig(input_directory.directory + "preprocessing_config.yaml")
-                    .mergeValuesFromOrDefault(silo::preprocessing::OptionalPreprocessingConfig());
-
-   const auto database_config = silo::config::ConfigRepository().getValidatedConfig(
-      input_directory.directory + "database_config.yaml"
-   );
-
-   silo::preprocessing::Preprocessor preprocessor(config, database_config);
-   auto database = preprocessor.preprocess();
-
-   const auto database_info = database.getDatabaseInfo();
-
-   EXPECT_GT(database_info.total_size, 0);
-   EXPECT_EQ(database_info.sequence_count, 5);
-
-   const silo::query_engine::QueryEngine query_engine(database);
-   const auto result = query_engine.executeQuery(R"(
+const Scenario FASTA_FILES_WITH_MISSING_SEGMENTS_AND_GENES = {
+   "testBaseData/fastaFilesWithMissingSequences/",
+   2,
+   R"(
       {
          "action": {
            "type": "FastaAligned",
@@ -53,22 +38,88 @@ TEST_P(PreprocessorTestFixture, shouldProcessDataSetWithMissingSequences) {
             "type": "True"
          }
       }
-   )");
-
-   const auto actual = nlohmann::json(result.query_result);
-   const nlohmann::json expected = {
+   )",
+   {
       {{"accessionVersion", "1.1"}, {"someShortGene", "MADS"}, {"secondSegment", "NNNNNNNNNNNNNNNN"}
-      },
-      {{"accessionVersion", "1.2"}, {"someShortGene", "MADS"}, {"secondSegment", "NNNNNNNNNNNNNNNN"}
       },
       {{"accessionVersion", "1.3"}, {"someShortGene", "XXXX"}, {"secondSegment", "NNNNNNNNNNNNNNNN"}
       },
-      {{"accessionVersion", "1.4"}, {"someShortGene", "MADS"}, {"secondSegment", "NNNNNNNNNNNNNNNN"}
-      },
-      {{"accessionVersion", "1.5"}, {"someShortGene", "MADS"}, {"secondSegment", "NNNNNNNNNNNNNNNN"}
+   }
+};
+
+const Scenario NDJSON_FILE_WITH_MISSING_SEGMENTS_AND_GENES = {
+   "testBaseData/ndjsonWithNullSequences/",
+   FASTA_FILES_WITH_MISSING_SEGMENTS_AND_GENES.expected_sequence_count,
+   FASTA_FILES_WITH_MISSING_SEGMENTS_AND_GENES.query,
+   FASTA_FILES_WITH_MISSING_SEGMENTS_AND_GENES.expected_query_result
+};
+
+const Scenario NDJSON_WITH_SQL_KEYWORD_AS_FIELD = {
+   "testBaseData/ndjsonWithSqlKeywordField/",
+   2,
+   R"(
+      {
+         "action": {
+            "type": "Aggregated",
+            "groupByFields": ["group"],
+            "orderByFields": ["group"]
+         },
+         "filterExpression": {
+            "type": "True"
+         }
       }
-   };
-   ASSERT_EQ(actual, expected);
+   )",
+   {
+      {{"count", 1}, {"group", nullptr}},
+      {{"count", 1}, {"group", "dummyValue"}},
+   }
+};
+
+const Scenario TSV_FILE_WITH_SQL_KEYWORD_AS_FIELD = {
+   "testBaseData/tsvWithSqlKeywordField/",
+   NDJSON_WITH_SQL_KEYWORD_AS_FIELD.expected_sequence_count,
+   NDJSON_WITH_SQL_KEYWORD_AS_FIELD.query,
+   NDJSON_WITH_SQL_KEYWORD_AS_FIELD.expected_query_result
+};
+
+class PreprocessorTestFixture : public ::testing::TestWithParam<Scenario> {};
+
+INSTANTIATE_TEST_SUITE_P(
+   PreprocessorTest,
+   PreprocessorTestFixture,
+   ::testing::Values(
+      FASTA_FILES_WITH_MISSING_SEGMENTS_AND_GENES,
+      NDJSON_FILE_WITH_MISSING_SEGMENTS_AND_GENES,
+      NDJSON_WITH_SQL_KEYWORD_AS_FIELD,
+      TSV_FILE_WITH_SQL_KEYWORD_AS_FIELD
+   ),
+   printTestName
+);
+
+TEST_P(PreprocessorTestFixture, shouldProcessDataSetWithMissingSequences) {
+   const auto scenario = GetParam();
+
+   auto config = silo::preprocessing::PreprocessingConfigReader()
+                    .readConfig(scenario.input_directory + "preprocessing_config.yaml")
+                    .mergeValuesFromOrDefault(silo::preprocessing::OptionalPreprocessingConfig());
+
+   const auto database_config = silo::config::ConfigRepository().getValidatedConfig(
+      scenario.input_directory + "database_config.yaml"
+   );
+
+   silo::preprocessing::Preprocessor preprocessor(config, database_config);
+   auto database = preprocessor.preprocess();
+
+   const auto database_info = database.getDatabaseInfo();
+
+   EXPECT_GT(database_info.total_size, 0);
+   EXPECT_EQ(database_info.sequence_count, scenario.expected_sequence_count);
+
+   const silo::query_engine::QueryEngine query_engine(database);
+   const auto result = query_engine.executeQuery(scenario.query);
+
+   const auto actual = nlohmann::json(result.query_result);
+   ASSERT_EQ(actual, scenario.expected_query_result);
 }
 
 }  // namespace

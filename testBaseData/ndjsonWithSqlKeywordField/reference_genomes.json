@@ -1,0 +1,14 @@
+{
+  "nucleotideSequences": [
+    {
+      "name": "main",
+      "sequence": "A"
+    }
+  ],
+  "genes": [
+    {
+      "name": "mainGene",
+      "sequence": "A*"
+    }
+  ]
+}

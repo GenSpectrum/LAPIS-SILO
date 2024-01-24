@@ -1,0 +1,2 @@
+{"metadata":{"group":"dummyValue","primaryKey":"1.1"},"unalignedNucleotideSequences":{"main":"A"},"alignedNucleotideSequences":{"main":"A"},"alignedAminoAcidSequences":{"mainGene":"A*"}}
+{"metadata":{"group":null,"primaryKey":"1.2"},"unalignedNucleotideSequences":{"main":null},"alignedNucleotideSequences":{"main":null},"alignedAminoAcidSequences":{"mainGene":null}}

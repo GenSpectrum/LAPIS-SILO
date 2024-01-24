@@ -98,8 +98,11 @@ void Preprocessor::buildTablesFromNdjsonInput(
    PreprocessingDatabase::registerSequences(reference_genomes);
 
    (void)preprocessing_db.query(fmt::format(
-      "CREATE OR REPLACE TABLE preprocessing_table AS SELECT {}, "
-      "{} \n FROM '{}' WHERE metadata.{} is not null;",
+      R"-(
+         CREATE OR REPLACE TABLE preprocessing_table AS SELECT {}, {}
+         FROM '{}'
+         WHERE metadata.{} is not null;
+      )-",
       boost::join(metadata_info.getMetadataSelects(), ","),
       boost::join(sequence_info.getSequenceSelects(), ","),
       file_name.string(),
@@ -107,9 +110,11 @@ void Preprocessor::buildTablesFromNdjsonInput(
    ));
 
    (void)preprocessing_db.query(fmt::format(
-      "create or replace view metadata_table as\n"
-      "select {}\n"
-      "from preprocessing_table;",
+      R"-(
+         create or replace view metadata_table as
+         select {}
+         from preprocessing_table;
+      )-",
       boost::join(metadata_info.getMetadataFields(), ",")
    ));
 }

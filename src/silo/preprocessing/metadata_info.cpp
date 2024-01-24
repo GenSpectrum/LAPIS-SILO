@@ -113,7 +113,7 @@ MetadataInfo MetadataInfo::validateFromMetadataFile(
 
    std::unordered_map<std::string, std::string> file_metadata_fields;
    for (size_t idx = 0; idx < result->ColumnCount(); idx++) {
-      file_metadata_fields[result->ColumnName(idx)] = result->ColumnName(idx);
+      file_metadata_fields[result->ColumnName(idx)] = "\"" + result->ColumnName(idx) + "\"";
    }
    const std::unordered_map<std::string, std::string> validated_metadata_fields =
       validateFieldsAgainstConfig(file_metadata_fields, database_config);
@@ -153,7 +153,7 @@ MetadataInfo MetadataInfo::validateFromNdjsonFile(
 
    std::unordered_map<std::string, std::string> metadata_fields_to_validate;
    for (const std::string& metadata_field : preprocessing::extractStringListValue(*result, 0, 0)) {
-      metadata_fields_to_validate[metadata_field] = "metadata." + metadata_field;
+      metadata_fields_to_validate[metadata_field] = "metadata.\"" + metadata_field + "\"";
    }
    detectInsertionLists(ndjson_file, metadata_fields_to_validate);
 
@@ -167,7 +167,7 @@ std::vector<std::string> MetadataInfo::getMetadataFields() const {
    std::vector<std::string> ret;
    ret.reserve(metadata_selects.size());
    for (const auto& [field, _] : metadata_selects) {
-      ret.push_back(field);
+      ret.push_back("\"" + field + "\"");
    }
    return ret;
 }
@@ -176,7 +176,7 @@ std::vector<std::string> MetadataInfo::getMetadataSelects() const {
    std::vector<std::string> ret;
    ret.reserve(metadata_selects.size());
    for (const auto& [field, select] : metadata_selects) {
-      ret.push_back(fmt::format("{} as {}", select, field));
+      ret.push_back(fmt::format(R"({} as "{}")", select, field));
    }
    return ret;
 }
