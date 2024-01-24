@@ -114,9 +114,9 @@ QueryResult FastaAligned::execute(
       const auto& bitmap = bitmap_filter[partition_index];
       for (const uint32_t sequence_id : *bitmap) {
          QueryResultEntry entry;
-         const std::string primary_key = database.database_config.schema.primary_key;
+         const std::string primary_key_column = database.database_config.schema.primary_key;
          entry.fields.emplace(
-            primary_key, database_partition.columns.getValue(primary_key, sequence_id)
+            primary_key_column, database_partition.columns.getValue(primary_key_column, sequence_id)
          );
          for (const auto& nuc_sequence_name : nuc_sequence_names) {
             const auto& sequence_store = database_partition.nuc_sequences.at(nuc_sequence_name);

@@ -16,6 +16,7 @@
 #include "silo/storage/database_partition.h"
 #include "silo/storage/pango_lineage_alias.h"
 #include "silo/storage/sequence_store.h"
+#include "silo/storage/unaligned_sequence_store.h"
 
 namespace silo {
 class BitmapContainerSize;
@@ -38,10 +39,13 @@ class Database {
   public:
    silo::config::DatabaseConfig database_config;
    std::vector<DatabasePartition> partitions;
+   std::filesystem::path intermediate_results_directory;
 
    silo::storage::ColumnGroup columns;
+
    std::map<std::string, SequenceStore<Nucleotide>> nuc_sequences;
    std::map<std::string, SequenceStore<AminoAcid>> aa_sequences;
+   std::map<std::string, UnalignedSequenceStore> unaligned_nuc_sequences;
 
    void validate() const;
 

@@ -21,9 +21,9 @@ class ZstdDecompressor {
 
    explicit ZstdDecompressor(std::string_view dictionary_string);
 
-   void decompress(const std::string& input, std::string& output);
+   size_t decompress(const std::string& input, std::string& output);
 
-   void decompress(
+   size_t decompress(
       const char* input_data,
       size_t input_length,
       char* output_data,

@@ -17,6 +17,7 @@ PreprocessingConfig::PreprocessingConfig(
    const PangoLineageDefinitionFilename& pango_lineage_definition_filename_,
    const ReferenceGenomeFilename& reference_genome_filename_,
    const NucleotideSequencePrefix& nucleotide_sequence_prefix_,
+   const UnalignedNucleotideSequencePrefix& unaligned_nucleotide_sequence_prefix_,
    const GenePrefix& gene_prefix_
 ) {
    preprocessing_database_location = preprocessing_database_location_.filename;
@@ -27,9 +28,8 @@ PreprocessingConfig::PreprocessingConfig(
       );
    }
 
-   const std::filesystem::path intermediate_results_directory(
-      intermediate_results_directory_.directory
-   );
+   intermediate_results_directory =
+      std::filesystem::path(intermediate_results_directory_.directory);
    if (!std::filesystem::exists(intermediate_results_directory_.directory)) {
       std::filesystem::create_directory(intermediate_results_directory_.directory);
    }
@@ -55,11 +55,16 @@ PreprocessingConfig::PreprocessingConfig(
    this->output_directory = output_directory_.directory;
 
    nucleotide_sequence_prefix = nucleotide_sequence_prefix_.prefix;
+   unaligned_nucleotide_sequence_prefix = unaligned_nucleotide_sequence_prefix_.prefix;
    gene_prefix = gene_prefix_.prefix;
 }
 
 std::filesystem::path PreprocessingConfig::getOutputDirectory() const {
    return output_directory;
+}
+
+std::filesystem::path PreprocessingConfig::getIntermediateResultsDirectory() const {
+   return intermediate_results_directory;
 }
 
 std::optional<std::filesystem::path> PreprocessingConfig::getPreprocessingDatabaseLocation() const {
@@ -87,6 +92,15 @@ std::filesystem::path PreprocessingConfig::getNucFilenameNoExtension(std::string
 ) const {
    std::filesystem::path filename = sequences_folder;
    filename /= nucleotide_sequence_prefix;
+   filename += nuc_name;
+   return filename;
+}
+
+std::filesystem::path PreprocessingConfig::getUnalignedNucFilenameNoExtension(
+   std::string_view nuc_name
+) const {
+   std::filesystem::path filename = sequences_folder;
+   filename /= unaligned_nucleotide_sequence_prefix;
    filename += nuc_name;
    return filename;
 }
@@ -119,6 +133,7 @@ std::filesystem::path PreprocessingConfig::getGeneFilenameNoExtension(std::strin
       preprocessing_config.metadata_file.string(),
       preprocessing_config.reference_genome_file.string(),
       preprocessing_config.nucleotide_sequence_prefix,
+      preprocessing_config.unaligned_nucleotide_sequence_prefix,
       preprocessing_config.gene_prefix,
       preprocessing_config.ndjson_input_filename.has_value()
          ? "'" + preprocessing_config.ndjson_input_filename->string() + "'"

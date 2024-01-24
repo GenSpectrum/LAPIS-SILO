@@ -14,7 +14,9 @@
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/reference_genomes.h"
 #include "silo/zstdfasta/zstd_compressor.h"
+#include "silo/zstdfasta/zstdfasta_reader.h"
 #include "silo/zstdfasta/zstdfasta_table.h"
+#include "silo/zstdfasta/zstdfasta_writer.h"
 
 using duckdb::BigIntValue;
 using duckdb::BinaryExecutor;
@@ -196,13 +198,22 @@ preprocessing::Partitions PreprocessingDatabase::getPartitionDescriptor() {
    return preprocessing::Partitions(partitions);
 }
 
-void PreprocessingDatabase::generateSequenceTable(
+ZstdFastaTable PreprocessingDatabase::generateSequenceTableFromFasta(
    const std::string& table_name,
    const std::string& reference_sequence,
    const std::string& filename
 ) {
    silo::FastaReader fasta_reader(filename);
-   ZstdFastaTable::generate(connection, table_name, fasta_reader, reference_sequence);
+   return ZstdFastaTable::generate(connection, table_name, fasta_reader, reference_sequence);
+}
+
+ZstdFastaTable PreprocessingDatabase::generateSequenceTableFromZstdFasta(
+   const std::string& table_name,
+   const std::string& reference_sequence,
+   const std::string& filename
+) {
+   silo::ZstdFastaReader zstd_fasta_reader(filename, reference_sequence);
+   return ZstdFastaTable::generate(connection, table_name, zstd_fasta_reader, reference_sequence);
 }
 
 std::vector<std::string> extractStringListValue(

@@ -7,6 +7,7 @@
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/zstdfasta/zstd_compressor.h"
 #include "silo/zstdfasta/zstdfasta_reader.h"
+#include "silo/zstdfasta/zstdfasta_table_reader.h"
 
 namespace {
 void initializeTable(duckdb::Connection& connection, std::string table_name) {
@@ -27,10 +28,22 @@ void initializeTable(duckdb::Connection& connection, std::string table_name) {
 }
 }  // namespace
 
-void silo::ZstdFastaTable::generate(
+namespace silo {
+
+ZstdFastaTable::ZstdFastaTable(
+   duckdb::Connection& connection,
+   std::string table_name,
+   std::string_view compression_dict
+)
+    : connection(connection),
+      table_name(std::move(table_name)),
+      compression_dict(compression_dict) {}
+
+ZstdFastaTable ZstdFastaTable::generate(
    duckdb::Connection& connection,
    const std::string& table_name,
-   silo::ZstdFastaReader& file_reader
+   ZstdFastaReader& file_reader,
+   std::string_view reference_sequence
 ) {
    initializeTable(connection, table_name);
    std::optional<std::string> key;
@@ -51,18 +64,19 @@ void silo::ZstdFastaTable::generate(
       appender.EndRow();
    }
    appender.Close();
+   return {connection, table_name, reference_sequence};
 }
 
-void silo::ZstdFastaTable::generate(
+ZstdFastaTable ZstdFastaTable::generate(
    duckdb::Connection& connection,
    const std::string& table_name,
-   silo::FastaReader& file_reader,
+   FastaReader& file_reader,
    std::string_view reference_sequence
 ) {
    initializeTable(connection, table_name);
    std::optional<std::string> key;
    std::string uncompressed_genome;
-   silo::ZstdCompressor compressor(reference_sequence);
+   ZstdCompressor compressor(reference_sequence);
    std::string compressed_genome;
    compressed_genome.resize(compressor.getSizeBound());
    duckdb::Appender appender(connection, table_name);
@@ -81,4 +95,16 @@ void silo::ZstdFastaTable::generate(
       appender.EndRow();
    }
    appender.Close();
+   return {connection, table_name, reference_sequence};
 }
+
+ZstdFastaTableReader ZstdFastaTable::getReader(
+   std::string_view where_clause,
+   std::string_view order_by_clause
+) {
+   return ZstdFastaTableReader(
+      connection, table_name, compression_dict, "sequence", where_clause, order_by_clause
+   );
+}
+
+}  // namespace silo

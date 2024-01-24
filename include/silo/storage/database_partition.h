@@ -31,14 +31,13 @@ class InsertionColumnPartition;
 }  // namespace storage
 template <typename SymbolType>
 class SequenceStorePartition;
+class UnalignedSequenceStorePartition;
 }  // namespace silo
 
 namespace silo {
 
 class DatabasePartition {
-   friend class boost::serialization::
-      access;  // here because serialize is private member
-               // (https://www.boost.org/doc/libs/1_34_0/libs/serialization/doc/serialization.html)
+   friend class boost::serialization::access;
 
    template <class Archive>
    void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
@@ -60,6 +59,9 @@ class DatabasePartition {
       for(auto& [name, store] : aa_sequences){
          archive & store;
       }
+      for(auto& [name, store] : unaligned_nuc_sequences){
+         archive & store;
+      }
       archive & sequence_count;
       // clang-format on
    }
@@ -78,6 +80,7 @@ class DatabasePartition {
   public:
    storage::ColumnPartitionGroup columns;
    std::map<std::string, SequenceStorePartition<Nucleotide>&> nuc_sequences;
+   std::map<std::string, UnalignedSequenceStorePartition&> unaligned_nuc_sequences;
    std::map<std::string, SequenceStorePartition<AminoAcid>&> aa_sequences;
    uint32_t sequence_count = 0;
 

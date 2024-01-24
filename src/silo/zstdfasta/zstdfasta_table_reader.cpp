@@ -1,5 +1,7 @@
 #include "silo/zstdfasta/zstdfasta_table_reader.h"
 
+#include <cstddef>
+#include <fstream>
 #include <stdexcept>
 
 #include <fmt/format.h>
@@ -13,11 +15,13 @@ silo::ZstdFastaTableReader::ZstdFastaTableReader(
    duckdb::Connection& connection,
    std::string_view table_name,
    std::string_view compression_dict,
+   std::string_view sequence_column,
    std::string_view where_clause,
    std::string_view order_by_clause
 )
     : connection(connection),
       table_name(table_name),
+      sequence_column(sequence_column),
       where_clause(where_clause),
       order_by_clause(order_by_clause),
       decompressor(std::make_unique<ZstdDecompressor>(compression_dict)) {
@@ -74,8 +78,8 @@ std::optional<std::string> silo::ZstdFastaTableReader::next(std::optional<std::s
    }
 
    if (compressed_buffer.has_value()) {
-      decompressor->decompress(compressed_buffer.value(), genome_buffer);
-      genome = genome_buffer;
+      auto size = decompressor->decompress(compressed_buffer.value(), genome_buffer);
+      genome = std::string(genome_buffer.data(), size);
    } else {
       genome = std::nullopt;
    }
@@ -83,11 +87,19 @@ std::optional<std::string> silo::ZstdFastaTableReader::next(std::optional<std::s
    return key;
 }
 
+std::string silo::ZstdFastaTableReader::getTableQuery() {
+   return fmt::format(
+      "SELECT key, {} FROM {} WHERE {} {}",
+      sequence_column,
+      table_name,
+      where_clause,
+      order_by_clause
+   );
+}
+
 void silo::ZstdFastaTableReader::reset() {
    try {
-      query_result = connection.Query(fmt::format(
-         "SELECT key, sequence FROM {} WHERE {} {}", table_name, where_clause, order_by_clause
-      ));
+      query_result = connection.Query(getTableQuery());
    } catch (const std::exception& e) {
       SPDLOG_ERROR("Error when executing SQL {}", e.what());
       throw silo::preprocessing::PreprocessingException(
@@ -117,4 +129,23 @@ void silo::ZstdFastaTableReader::advanceRow() {
          current_chunk = query_result->Fetch();
       }
    }
+}
+
+void silo::ZstdFastaTableReader::copyTableTo(std::string_view file_name) {
+   query_result = connection.Query(fmt::format("COPY ({}) to '{}'", getTableQuery(), file_name));
+   if (query_result->HasError()) {
+      SPDLOG_ERROR("Error when executing SQL " + query_result->GetError());
+      throw preprocessing::PreprocessingException("Error when SQL " + query_result->GetError());
+   }
+}
+
+size_t silo::ZstdFastaTableReader::lineCount() {
+   query_result = connection.Query(fmt::format("SELECT COUNT(*) FROM ({})", getTableQuery()));
+   if (query_result->HasError()) {
+      SPDLOG_ERROR("Error when executing SQL " + query_result->GetError());
+      throw preprocessing::PreprocessingException("Error when SQL " + query_result->GetError());
+   }
+   const duckdb::Value count_value = query_result->GetValue(0, 0);
+   const uint64_t line_count = duckdb::BigIntValue::Get(count_value);
+   return static_cast<size_t>(line_count);
 }

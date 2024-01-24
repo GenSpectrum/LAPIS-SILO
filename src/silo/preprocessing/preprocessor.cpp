@@ -16,6 +16,7 @@
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/preprocessing/sequence_info.h"
 #include "silo/storage/reference_genomes.h"
+#include "silo/storage/unaligned_sequence_store.h"
 #include "silo/zstdfasta/zstd_decompressor.h"
 #include "silo/zstdfasta/zstdfasta_table.h"
 
@@ -62,7 +63,13 @@ Database Preprocessor::preprocess() {
 
    SPDLOG_INFO("preprocessing - building database");
 
-   return buildDatabase(partition_descriptor, reference_genomes, order_by_clause, alias_key);
+   return buildDatabase(
+      partition_descriptor,
+      reference_genomes,
+      order_by_clause,
+      alias_key,
+      preprocessing_config.getIntermediateResultsDirectory()
+   );
 }
 
 void Preprocessor::buildTablesFromNdjsonInput(
@@ -107,7 +114,7 @@ void Preprocessor::buildTablesFromNdjsonInput(
 
 void Preprocessor::buildMetadataTableFromFile(const std::filesystem::path& metadata_filename) {
    SPDLOG_DEBUG("preprocessing - classic metadata file pipeline chosen");
-   const auto metadata_info =
+   const MetadataInfo metadata_info =
       MetadataInfo::validateFromMetadataFile(metadata_filename, database_config);
 
    (void)preprocessing_db.query(fmt::format(
@@ -263,6 +270,19 @@ void Preprocessor::createSequenceViews(const ReferenceGenomes& reference_genomes
          order_by_select,
          partition_by_where
       ));
+      (void)preprocessing_db.query(fmt::format(
+         "create or replace view unaligned_nuc_{0} as\n"
+         "select {1} as key, unaligned_nuc_{0} as sequence,"
+         "{2}"
+         "{3} \n"
+         "from preprocessing_table, partition_key_to_partition "
+         "{4};",
+         seq_name,
+         database_config.schema.primary_key,
+         partition_by_select,
+         order_by_select,
+         partition_by_where
+      ));
    }
 
    for (const auto& [seq_name, _] : reference_genomes.raw_aa_sequences) {
@@ -291,6 +311,13 @@ void Preprocessor::createPartitionedSequenceTables(const ReferenceGenomes& refer
          preprocessing_config.getNucFilenameNoExtension(sequence_name)
             .replace_extension(silo::preprocessing::FASTA_EXTENSION),
          "nuc_"
+      );
+      createPartitionedTableForSequence(
+         sequence_name,
+         reference_sequence,
+         preprocessing_config.getUnalignedNucFilenameNoExtension(sequence_name)
+            .replace_extension(silo::preprocessing::FASTA_EXTENSION),
+         "unaligned_nuc_"
       );
    }
 
@@ -321,7 +348,7 @@ void Preprocessor::createPartitionedTableForSequence(
    const std::string raw_table_name = "raw_" + table_prefix + sequence_name;
    const std::string table_name = table_prefix + sequence_name;
 
-   preprocessing_db.generateSequenceTable(raw_table_name, reference_sequence, filename);
+   preprocessing_db.generateSequenceTableFromFasta(raw_table_name, reference_sequence, filename);
 
    (void)preprocessing_db.query(fmt::format(
       R"-(
@@ -343,11 +370,13 @@ Database Preprocessor::buildDatabase(
    const preprocessing::Partitions& partition_descriptor,
    const ReferenceGenomes& reference_genomes,
    const std::string& order_by_clause,
-   const silo::PangoLineageAliasLookup& alias_key
+   const silo::PangoLineageAliasLookup& alias_key,
+   const std::filesystem::path& intermediate_results_directory
 ) {
    Database database;
    database.database_config = database_config;
    database.alias_key = alias_key;
+   database.intermediate_results_directory = intermediate_results_directory;
    const DataVersion& data_version = DataVersion::mineDataVersion();
    SPDLOG_INFO("preprocessing - mining data data_version: {}", data_version.toString());
    database.setDataVersion(data_version);
@@ -369,7 +398,7 @@ Database Preprocessor::buildDatabase(
          const auto& part = partition_descriptor.getPartitions()[partition_id];
          for (size_t chunk_index = 0; chunk_index < part.getPartitionChunks().size();
               ++chunk_index) {
-            const auto sequences_added = database.partitions[partition_id].columns.fill(
+            const uint32_t sequences_added = database.partitions[partition_id].columns.fill(
                preprocessing_db.getConnection(), partition_id, order_by_clause, database_config
             );
             database.partitions[partition_id].sequence_count += sequences_added;
@@ -400,11 +429,24 @@ Database Preprocessor::buildDatabase(
                         preprocessing_db.getConnection(),
                         "nuc_" + nuc_name,
                         reference_sequence,
+                        "sequence",
                         fmt::format("partition_id = {}", partition_index),
                         order_by_clause
                      );
                      database.partitions[partition_index].nuc_sequences.at(nuc_name).fill(
                         sequence_input
+                     );
+
+                     silo::ZstdFastaTableReader unaligned_sequence_input(
+                        preprocessing_db.getConnection(),
+                        "unaligned_nuc_" + nuc_name,
+                        reference_sequence,
+                        "sequence",
+                        fmt::format("partition_id = {}", partition_index),
+                        order_by_clause
+                     );
+                     database.partitions[partition_index].unaligned_nuc_sequences.at(nuc_name).fill(
+                        unaligned_sequence_input
                      );
                   }
                   for (const auto& [aa_name, reference_sequence] :
@@ -420,6 +462,7 @@ Database Preprocessor::buildDatabase(
                         preprocessing_db.getConnection(),
                         "gene_" + aa_name,
                         reference_sequence,
+                        "sequence",
                         fmt::format("partition_id = {}", partition_index),
                         order_by_clause
                      );
