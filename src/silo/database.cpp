@@ -62,6 +62,7 @@
 #include "silo/storage/reference_genomes.h"
 #include "silo/storage/sequence_store.h"
 #include "silo/storage/serialize_optional.h"
+#include "silo/storage/unaligned_sequence_store.h"
 #include "silo/zstdfasta/zstd_decompressor.h"
 #include "silo/zstdfasta/zstdfasta_table.h"
 #include "silo/zstdfasta/zstdfasta_table_reader.h"
@@ -367,7 +368,7 @@ void saveDataVersion(const Database& database, const std::filesystem::path& save
 
 void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
    if (getDataVersion().toString().empty()) {
-      throw std::runtime_error(
+      throw persistence::SaveDatabaseException(
          "Data version is empty. Please set a data version before saving the database."
       );
    }
@@ -382,7 +383,7 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
          save_directory.string(),
          getDataVersion().toString()
       );
-      throw persistence::LoadDatabaseException(error);
+      throw persistence::SaveDatabaseException(error);
    }
 
    std::filesystem::create_directory(versioned_save_directory);
@@ -417,14 +418,19 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
    ::boost::archive::binary_oarchive aa_sequences_archive(aa_sequences_file);
    aa_sequences_archive << aa_sequences_map;
 
-   std::vector<std::ofstream> file_vec;
-   for (uint32_t i = 0; i < partitions.size(); ++i) {
-      const auto& partition_file = versioned_save_directory / ("P" + std::to_string(i) + ".silo");
-      file_vec.emplace_back(openOutputFileOrThrow(partition_file));
+   for (auto& [name, store] : unaligned_nuc_sequences) {
+      store.saveFolder(versioned_save_directory / name);
+   }
 
-      if (!file_vec.back()) {
+   std::vector<std::ofstream> partition_archives;
+   for (uint32_t i = 0; i < partitions.size(); ++i) {
+      const auto& partition_archive =
+         versioned_save_directory / ("P" + std::to_string(i) + ".silo");
+      partition_archives.emplace_back(openOutputFileOrThrow(partition_archive));
+
+      if (!partition_archives.back()) {
          throw persistence::SaveDatabaseException(
-            "Cannot open partition output file " + partition_file.string() + " for saving"
+            "Cannot open partition output file " + partition_archive.string() + " for saving"
          );
       }
    }
@@ -433,7 +439,7 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
    tbb::parallel_for(tbb::blocked_range<size_t>(0, partitions.size()), [&](const auto& local) {
       for (size_t partition_index = local.begin(); partition_index != local.end();
            partition_index++) {
-         ::boost::archive::binary_oarchive output_archive(file_vec[partition_index]);
+         ::boost::archive::binary_oarchive output_archive(partition_archives[partition_index]);
          partitions[partition_index].serializeData(output_archive, 0);
       }
    });
@@ -464,15 +470,16 @@ Database Database::loadDatabaseState(const std::filesystem::path& save_directory
    const auto database_config_filename = save_directory / "database_config.yaml";
    database.database_config =
       silo::config::DatabaseConfigReader().readConfig(database_config_filename);
+   database.intermediate_results_directory = save_directory;
 
    SPDLOG_TRACE("Loading alias key from {}", (save_directory / "alias_key.silo").string());
    std::ifstream alias_key_file = openInputFileOrThrow(save_directory / "alias_key.silo");
-   ::boost::archive::binary_iarchive alias_key_archive(alias_key_file);
+   boost::archive::binary_iarchive alias_key_archive(alias_key_file);
    alias_key_archive >> database.alias_key;
 
    SPDLOG_TRACE("Loading partitions from {}", (save_directory / "partitions.silo").string());
    std::ifstream partitions_file = openInputFileOrThrow(save_directory / "partitions.silo");
-   ::boost::archive::binary_iarchive partitions_archive(partitions_file);
+   boost::archive::binary_iarchive partitions_archive(partitions_file);
    partitions_archive >> database.partitions;
 
    SPDLOG_TRACE("Initializing columns");
@@ -622,11 +629,32 @@ void Database::initializeNucSequences(
    const std::map<std::string, std::vector<Nucleotide::Symbol>>& reference_sequences
 ) {
    SPDLOG_DEBUG("build - initializing nucleotide sequences");
+   SPDLOG_TRACE("initializing aligned nucleotide sequences");
    for (const auto& [nuc_name, reference_sequence] : reference_sequences) {
       auto seq_store = SequenceStore<Nucleotide>(reference_sequence);
       nuc_sequences.emplace(nuc_name, std::move(seq_store));
       for (auto& partition : partitions) {
          partition.nuc_sequences.insert({nuc_name, nuc_sequences.at(nuc_name).createPartition()});
+      }
+   }
+   SPDLOG_TRACE("initializing unaligned nucleotide sequences");
+   for (const auto& [nuc_name, reference_sequence] : reference_sequences) {
+      const std::filesystem::path sequence_directory = intermediate_results_directory / nuc_name;
+      create_directory(sequence_directory);
+      if (!std::filesystem::is_directory(sequence_directory)) {
+         SPDLOG_TRACE(
+            "Sequence directory for unaligned sequences {} could not be created.",
+            sequence_directory.string()
+         );
+      }
+      auto seq_store = silo::UnalignedSequenceStore(
+         sequence_directory, ReferenceGenomes::vectorToString<Nucleotide>(reference_sequence)
+      );
+      unaligned_nuc_sequences.emplace(nuc_name, std::move(seq_store));
+      for (auto& partition : partitions) {
+         partition.unaligned_nuc_sequences.insert(
+            {nuc_name, unaligned_nuc_sequences.at(nuc_name).createPartition()}
+         );
       }
    }
 }
@@ -635,6 +663,7 @@ void Database::initializeAASequences(
    const std::map<std::string, std::vector<AminoAcid::Symbol>>& reference_sequences
 ) {
    SPDLOG_DEBUG("build - initializing amino acid sequences");
+   SPDLOG_TRACE("initializing aligned amino acid sequences");
    for (const auto& [aa_name, reference_sequence] : reference_sequences) {
       auto aa_store = SequenceStore<AminoAcid>(reference_sequence);
       aa_sequences.emplace(aa_name, std::move(aa_store));

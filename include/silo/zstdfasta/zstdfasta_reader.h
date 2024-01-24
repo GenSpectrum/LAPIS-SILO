@@ -7,8 +7,9 @@
 #include <string>
 #include <string_view>
 
+#include "silo/zstdfasta/zstd_decompressor.h"
+
 namespace silo {
-struct ZstdDecompressor;
 
 class ZstdFastaReader {
   private:

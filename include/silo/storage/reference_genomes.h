@@ -26,6 +26,12 @@ struct ReferenceGenomes {
    void writeToFile(const std::filesystem::path& reference_genomes_path) const;
 
    static ReferenceGenomes readFromFile(const std::filesystem::path& reference_genomes_path);
+
+   template <typename SymbolType>
+   static std::vector<typename SymbolType::Symbol> stringToVector(const std::string& string);
+
+   template <typename SymbolType>
+   static std::string vectorToString(const std::vector<typename SymbolType::Symbol>& vector);
 };
 
 }  // namespace silo

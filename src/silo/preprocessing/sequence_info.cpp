@@ -27,6 +27,12 @@ std::vector<std::string> SequenceInfo::getSequenceSelects() {
          preprocessing::PreprocessingDatabase::COMPRESS_NUC,
          name
       ));
+      sequence_selects.emplace_back(fmt::format(
+         "{0}(unalignedNucleotideSequences.{1}, "
+         "'{1}') as unaligned_nuc_{1}",
+         preprocessing::PreprocessingDatabase::COMPRESS_NUC,
+         name
+      ));
    }
    for (const std::string& name : aa_sequence_names) {
       sequence_selects.emplace_back(fmt::format(

@@ -47,7 +47,8 @@ class Preprocessor {
       const preprocessing::Partitions& partition_descriptor,
       const ReferenceGenomes& reference_genomes,
       const std::string& order_by_clause,
-      const silo::PangoLineageAliasLookup& alias_key
+      const silo::PangoLineageAliasLookup& alias_key,
+      const std::filesystem::path& intermediate_results_directory
    );
 };
 }  // namespace preprocessing

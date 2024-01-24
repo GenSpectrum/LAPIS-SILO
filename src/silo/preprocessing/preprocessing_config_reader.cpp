@@ -103,6 +103,11 @@ PreprocessingConfig OptionalPreprocessingConfig::mergeValuesFromOrDefault(
             silo::preprocessing::DEFAULT_NUCLEOTIDE_SEQUENCE_PREFIX.prefix
          ))
       },
+      UnalignedNucleotideSequencePrefix{unaligned_nucleotide_sequence_prefix.value_or(
+         other.unaligned_nucleotide_sequence_prefix.value_or(
+            silo::preprocessing::DEFAULT_UNALIGNED_NUC_SEQUENCE_PREFIX.prefix
+         )
+      )},
       GenePrefix{gene_prefix.value_or(
          other.gene_prefix.value_or(silo::preprocessing::DEFAULT_GENE_PREFIX.prefix)
       )}

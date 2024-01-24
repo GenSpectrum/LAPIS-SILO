@@ -3,10 +3,11 @@
 #include <memory>
 #include <string>
 
-#include "duckdb.hpp"
+#include <duckdb.hpp>
 
 namespace silo {
 
+class ZstdFastaTable;
 class ReferenceGenomes;
 
 namespace preprocessing {
@@ -33,7 +34,13 @@ class PreprocessingDatabase {
 
    std::unique_ptr<duckdb::MaterializedQueryResult> query(std::string sql_query);
 
-   void generateSequenceTable(
+   ZstdFastaTable generateSequenceTableFromFasta(
+      const std::string& table_name,
+      const std::string& reference_sequence,
+      const std::string& filename
+   );
+
+   ZstdFastaTable generateSequenceTableFromZstdFasta(
       const std::string& table_name,
       const std::string& reference_sequence,
       const std::string& filename

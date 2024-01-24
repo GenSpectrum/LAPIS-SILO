@@ -1,0 +1,44 @@
+{
+  "testCaseName": "Get the unaligned fasta for many sequences",
+  "query": {
+    "action": {
+      "type": "Fasta",
+      "sequenceName": "testSecondSequence"
+    },
+    "filterExpression": {
+      "type": "StringEquals",
+      "column": "division",
+      "value": "Vaud"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "gisaid_epi_isl": "EPI_ISL_3259931",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "gisaid_epi_isl": "EPI_ISL_3465732",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "gisaid_epi_isl": "EPI_ISL_2367431",
+      "testSecondSequence": "NCGT"
+    },
+    {
+      "gisaid_epi_isl": "EPI_ISL_2359636",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "gisaid_epi_isl": "EPI_ISL_1597890",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "gisaid_epi_isl": "EPI_ISL_2405276",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "gisaid_epi_isl": "EPI_ISL_1001493",
+      "testSecondSequence": "ACGT"
+    }
+  ]
+}

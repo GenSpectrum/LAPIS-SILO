@@ -57,21 +57,7 @@ ReferenceGenomes::ReferenceGenomes(
    }
 
    for (const auto& [sequence_name, raw_aa_sequence] : raw_aa_sequences) {
-      std::vector<AminoAcid::Symbol> aa_sequence;
-
-      for (const char character : raw_aa_sequence) {
-         auto symbol = AminoAcid::charToSymbol(character);
-
-         if (!symbol.has_value()) {
-            throw preprocessing::PreprocessingException(
-               "Amino Acid sequence with name " + sequence_name +
-               " contains illegal amino acid code: " + std::to_string(character)
-            );
-         }
-
-         aa_sequence.push_back(*symbol);
-      }
-      aa_sequences[sequence_name] = aa_sequence;
+      aa_sequences[sequence_name] = stringToVector<AminoAcid>(raw_aa_sequence);
    }
 }
 
@@ -176,5 +162,50 @@ void ReferenceGenomes::writeToFile(const std::filesystem::path& reference_genome
    const nlohmann::json reference_genomes_json = *this;
    std::ofstream(reference_genomes_path) << reference_genomes_json.dump(4);
 }
+
+template <typename SymbolType>
+std::vector<typename SymbolType::Symbol> ReferenceGenomes::stringToVector(const std::string& string
+) {
+   std::vector<typename SymbolType::Symbol> sequence_vector;
+
+   for (const char character : string) {
+      auto symbol = SymbolType::charToSymbol(character);
+
+      if (!symbol.has_value()) {
+         throw preprocessing::PreprocessingException(fmt::format(
+            "{} sequence with illegal {} code: {}",
+            SymbolType::SYMBOL_NAME,
+            SymbolType::SYMBOL_NAME_LOWER_CASE,
+            std::to_string(character)
+         ));
+      }
+
+      sequence_vector.push_back(*symbol);
+   }
+   return sequence_vector;
+}
+
+template <>
+std::vector<silo::Nucleotide::Symbol> ReferenceGenomes::stringToVector<silo::Nucleotide>(
+   const std::string& string
+);
+
+template <>
+std::string ReferenceGenomes::vectorToString<Nucleotide>(
+   const std::vector<Nucleotide::Symbol>& vector
+) {
+   std::string sequence_string;
+   sequence_string.reserve(vector.size());
+
+   for (const typename Nucleotide::Symbol symbol : vector) {
+      auto character = Nucleotide::symbolToChar(symbol);
+      sequence_string += character;
+   }
+   return sequence_string;
+}
+
+template <>
+std::string ReferenceGenomes::vectorToString<AminoAcid>(const std::vector<AminoAcid::Symbol>& vector
+);
 
 }  // namespace silo

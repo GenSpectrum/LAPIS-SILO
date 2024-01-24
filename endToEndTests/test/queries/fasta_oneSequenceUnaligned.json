@@ -1,0 +1,20 @@
+{
+  "testCaseName": "Get the unaligned fasta for one sequence",
+  "query": {
+    "action": {
+      "type": "Fasta",
+      "sequenceName": "main"
+    },
+    "filterExpression": {
+      "type": "StringEquals",
+      "column": "gisaid_epi_isl",
+      "value": "EPI_ISL_1749899"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "gisaid_epi_isl": "EPI_ISL_1749899",
+      "main": "some_very_short_string"
+    }
+  ]
+}

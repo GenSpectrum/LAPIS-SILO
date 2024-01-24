@@ -90,9 +90,7 @@ Apart from that, there are default values if neither user-provided nor default c
 The user-provided preprocessing config can be used to overwrite the default values. For a full reference, see
 
 * [testBaseData/test_preprocessing_config_with_overridden_defaults.yaml](https://github.com/GenSpectrum/LAPIS-SILO/blob/main/testBaseData/test_preprocessing_config_with_overridden_defaults.yaml)
-*
-
-or [include/silo/preprocessing/preprocessing_config_reader.h](https://github.com/GenSpectrum/LAPIS-SILO/blob/main/include/silo/preprocessing/preprocessing_config_reader.h)
+* or [include/silo/preprocessing/preprocessing_config_reader.h](https://github.com/GenSpectrum/LAPIS-SILO/blob/main/include/silo/preprocessing/preprocessing_config_reader.h)
 
 ### Run docker container (api)
 

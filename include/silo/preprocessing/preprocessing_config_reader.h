@@ -22,8 +22,8 @@ struct OptionalPreprocessingConfig {
     */
    std::optional<std::filesystem::path> intermediate_results_directory;
    /**
-    * The filename where the intermediate results will be stored
-    * that are not relevant for an end user.
+    * The location where the duckdb file for persistence of intermediate results will be stored
+    * might be ':memory:' for no backing storage but instead in-memory mode
     */
    std::optional<std::filesystem::path> preprocessing_database_location;
    /**
@@ -47,6 +47,10 @@ struct OptionalPreprocessingConfig {
     * Prefix that SILO expects for nucleotide sequence files
     */
    std::optional<std::string> nucleotide_sequence_prefix;
+   /**
+    * Prefix that SILO expects for nucleotide sequence files
+    */
+   std::optional<std::string> unaligned_nucleotide_sequence_prefix;
    /**
     * Prefix that SILO expects for gene sequence files
     */

@@ -23,7 +23,7 @@ TEST(ZstdFastaTableReader, correctlyReadsZstdFastaTableFromFastaFile) {
 
    silo::ZstdFastaTable::generate(connection, "test", file_reader, "ACGT");
 
-   silo::ZstdFastaTableReader under_test(connection, "test", "ACGT", "true", "");
+   silo::ZstdFastaTableReader under_test(connection, "test", "ACGT", "sequence", "true", "");
 
    std::optional<std::string> key;
    std::optional<std::string> genome;
@@ -50,9 +50,9 @@ TEST(ZstdFastaTableReader, correctlyReadsZstdFastaTableFromZstdFastaFile) {
    duckdb::DuckDB duck_db(nullptr);
    duckdb::Connection connection(duck_db);
 
-   silo::ZstdFastaTable::generate(connection, "test", file_reader);
+   silo::ZstdFastaTable::generate(connection, "test", file_reader, "ACGT");
 
-   silo::ZstdFastaTableReader under_test(connection, "test", "ACGT", "true", "");
+   silo::ZstdFastaTableReader under_test(connection, "test", "ACGT", "sequence", "true", "");
 
    std::optional<std::string> key;
    std::optional<std::string> genome;
@@ -81,7 +81,9 @@ TEST(ZstdFastaTableReader, correctlySortsZstdFastaTableFromFastaFile) {
 
    silo::ZstdFastaTable::generate(connection, "test", file_reader, "ACGT");
 
-   silo::ZstdFastaTableReader under_test(connection, "test", "ACGT", "true", "ORDER BY key desc");
+   silo::ZstdFastaTableReader under_test(
+      connection, "test", "ACGT", "sequence", "true", "ORDER BY key desc"
+   );
 
    std::optional<std::string> key;
    std::optional<std::string> genome;
@@ -108,9 +110,11 @@ TEST(ZstdFastaTableReader, correctlySortsZstdFastaTableFromZstdFastaFile) {
    duckdb::DuckDB duck_db(nullptr);
    duckdb::Connection connection(duck_db);
 
-   silo::ZstdFastaTable::generate(connection, "test", file_reader);
+   silo::ZstdFastaTable::generate(connection, "test", file_reader, "ACGT");
 
-   silo::ZstdFastaTableReader under_test(connection, "test", "ACGT", "true", "ORDER BY key desc");
+   silo::ZstdFastaTableReader under_test(
+      connection, "test", "ACGT", "sequence", "true", "ORDER BY key desc"
+   );
 
    std::optional<std::string> key;
    std::optional<std::string> genome;
