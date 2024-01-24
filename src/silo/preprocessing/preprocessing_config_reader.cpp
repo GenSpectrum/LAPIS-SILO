@@ -33,6 +33,7 @@ struct convert<OptionalPreprocessingConfig> {
          extractStringIfPresent(node, "pangoLineageDefinitionFilename"),
          extractStringIfPresent(node, "referenceGenomeFilename"),
          extractStringIfPresent(node, "nucleotideSequencePrefix"),
+         extractStringIfPresent(node, "unalignedNucleotideSequencePrefix"),
          extractStringIfPresent(node, "genePrefix")
       };
 
