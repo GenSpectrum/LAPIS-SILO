@@ -1,6 +1,7 @@
 const { server, headerToHaveDataVersion } = require('./common');
 const fs = require('fs');
 const { expect } = require('chai');
+const { describe, it } = require('node:test');
 
 const queriesPath = __dirname + '/queries';
 const queryTestFiles = fs.readdirSync(queriesPath);
@@ -12,11 +13,13 @@ describe('The /query endpoint', () => {
 
   testCases.forEach(testCase =>
     it('should return data for the test case ' + testCase.testCaseName, async () => {
-      const response = await server.post('/query').send(testCase.query);
+      const response = await server
+        .post('/query')
+        .send(testCase.query)
+        .expect(200)
+        .expect('Content-Type', 'application/json')
+        .expect(headerToHaveDataVersion);
       expect(response.body).to.deep.equal({ queryResult: testCase.expectedQueryResult });
-      expect(200);
-      expect('Content-Type', 'application/json');
-      expect(headerToHaveDataVersion);
     })
   );
 
@@ -50,21 +53,15 @@ describe('The /query endpoint', () => {
     );
   });
 
-  it('should return a method not allowed response when sending a GET request', done => {
-    server
-      .get('/query')
-      .send()
-      .expect(405)
-      .expect('Content-Type', 'application/json')
-      .expect({
-        error: 'Method not allowed',
-        message: 'GET is not allowed on resource /query',
-      })
-      .end(done);
+  it('should return a method not allowed response when sending a GET request', async () => {
+    await server.get('/query').send().expect(405).expect('Content-Type', 'application/json').expect({
+      error: 'Method not allowed',
+      message: 'GET is not allowed on resource /query',
+    });
   });
 
-  it('should return a bad request response when POSTing an invalid JSON', done => {
-    server
+  it('should return a bad request response when POSTing an invalid JSON', async () => {
+    await server
       .post('/query')
       .send('{ not a valid json')
       .expect(400)
@@ -75,12 +72,11 @@ describe('The /query endpoint', () => {
           'The query was not a valid JSON: [json.exception.parse_error.101] ' +
           'parse error at line 1, column 4: syntax error while parsing object key - invalid literal; ' +
           "last read: '{ no'; expected string literal",
-      })
-      .end(done);
+      });
   });
 
-  it('should return a bad request response when POSTing a JSON without filter and action', done => {
-    server
+  it('should return a bad request response when POSTing a JSON without filter and action', async () => {
+    await server
       .post('/query')
       .send({ someJson: 'but missing expected properties' })
       .expect(400)
@@ -88,12 +84,11 @@ describe('The /query endpoint', () => {
       .expect({
         error: 'Bad request',
         message: 'Query json must contain filterExpression and action.',
-      })
-      .end(done);
+      });
   });
 
-  it('should return a bad request response when POSTing an invalid filter type', done => {
-    server
+  it('should return a bad request response when POSTing an invalid filter type', async () => {
+    await server
       .post('/query')
       .send({
         action: {
@@ -108,7 +103,6 @@ describe('The /query endpoint', () => {
       .expect({
         error: 'Bad request',
         message: "Unknown object filter type 'invalid filter type'",
-      })
-      .end(done);
+      });
   });
 });

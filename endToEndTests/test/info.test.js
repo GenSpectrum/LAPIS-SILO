@@ -1,20 +1,19 @@
 const { server, headerToHaveDataVersion } = require('./common');
 const { expect } = require('chai');
+const { describe, it } = require('node:test');
 
 describe('The /info endpoint', () => {
-  it('should return info about the current state of the database', done => {
-    server
+  it('should return info about the current state of the database', async () => {
+    await server
       .get('/info')
       .expect(200)
       .expect('Content-Type', 'application/json')
       .expect(headerToHaveDataVersion)
-      .expect({ nBitmapsSize: 3898, sequenceCount: 100, totalSize: 26335659 })
-      .end(done);
+      .expect({ nBitmapsSize: 3898, sequenceCount: 100, totalSize: 26335659 });
   });
 
-  it('should return detailed info about the current state of the database', function (done) {
-    this.timeout(5000);
-    server
+  it('should return detailed info about the current state of the database', { timeout: 5000 }, async () => {
+    await server
       .get('/info?details=true')
       .expect(200)
       .expect('Content-Type', 'application/json')
@@ -80,7 +79,6 @@ describe('The /info endpoint', () => {
           'Y': 2631494,
         });
       })
-      .expect(headerToHaveDataVersion)
-      .end(done);
+      .expect(headerToHaveDataVersion);
   });
 });
