@@ -103,10 +103,8 @@ namespace silo::preprocessing {
 PreprocessingDatabase::PreprocessingDatabase(const std::string& backing_file)
     : duck_db(backing_file),
       connection(duck_db) {
-   auto return_code = connection.Query("PRAGMA default_null_order='NULLS FIRST';");
-   if (return_code->HasError()) {
-      throw PreprocessingException(return_code->GetError());
-   }
+   query("PRAGMA default_null_order='NULLS FIRST';");
+   query("SET preserve_insertion_order=FALSE;");
 
    connection.CreateVectorizedFunction(
       std::string(COMPRESS_NUC),
