@@ -47,16 +47,15 @@ ZstdFastaTable ZstdFastaTable::generate(
 ) {
    initializeTable(connection, table_name);
    std::optional<std::string> key;
-   std::string compressed_genome;
+   std::string compressed;
    duckdb::Appender appender(connection, table_name);
    while (true) {
-      key = file_reader.nextCompressed(compressed_genome);
+      key = file_reader.nextCompressed(compressed);
       if (key == std::nullopt) {
          break;
       }
-      const size_t compressed_size = compressed_genome.size();
-      const auto* compressed_data =
-         reinterpret_cast<const unsigned char*>(compressed_genome.data());
+      const size_t compressed_size = compressed.size();
+      const auto* compressed_data = reinterpret_cast<const unsigned char*>(compressed.data());
       const duckdb::string_t key_value = key.value();
       appender.BeginRow();
       appender.Append(key_value);
@@ -75,23 +74,20 @@ ZstdFastaTable ZstdFastaTable::generate(
 ) {
    initializeTable(connection, table_name);
    std::optional<std::string> key;
-   std::string uncompressed_genome;
+   std::string uncompressed;
    ZstdCompressor compressor(reference_sequence);
-   std::string compressed_genome;
-   compressed_genome.resize(compressor.getSizeBound());
    duckdb::Appender appender(connection, table_name);
    while (true) {
-      key = file_reader.next(uncompressed_genome);
+      key = file_reader.next(uncompressed);
       if (key == std::nullopt) {
          break;
       }
-      const size_t compressed_size = compressor.compress(uncompressed_genome, compressed_genome);
-      const auto* compressed_data =
-         reinterpret_cast<const unsigned char*>(compressed_genome.data());
+      const std::string_view compressed = compressor.compress(uncompressed);
+      const auto* compressed_data = reinterpret_cast<const unsigned char*>(compressed.data());
       const duckdb::string_t key_value = key.value();
       appender.BeginRow();
       appender.Append(key_value);
-      appender.Append(duckdb::Value::BLOB(compressed_data, compressed_size));
+      appender.Append(duckdb::Value::BLOB(compressed_data, compressed.size()));
       appender.EndRow();
    }
    appender.Close();

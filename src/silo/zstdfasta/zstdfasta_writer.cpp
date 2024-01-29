@@ -32,8 +32,6 @@ silo::ZstdFastaWriter::ZstdFastaWriter(
       );
    }
    SPDLOG_DEBUG("ZSTD Sequence Writer at {} successfully created", out_file.string());
-
-   buffer = std::string(compressor->getSizeBound(), '\0');
 }
 
 silo::ZstdFastaWriter::ZstdFastaWriter(
@@ -42,17 +40,15 @@ silo::ZstdFastaWriter::ZstdFastaWriter(
    const std::string& default_sequence_
 )
     : ZstdFastaWriter(out_file, compression_dict) {
-   const size_t compressed_length = compressor->compress(default_sequence_, buffer);
-   default_sequence = buffer;
-   default_sequence->resize(compressed_length);
+   default_sequence = std::string(compressor->compress(default_sequence_));
 }
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void silo::ZstdFastaWriter::write(const std::string& key, const std::string& genome) {
-   const size_t compressed_length = compressor->compress(genome, buffer);
+   const std::string_view compressed = compressor->compress(genome);
 
-   outStream << '>' << key << '\n' << std::to_string(compressed_length) << '\n';
-   outStream.write(buffer.data(), static_cast<std::streamsize>(compressed_length));
+   outStream << '>' << key << '\n' << std::to_string(compressed.size()) << '\n';
+   outStream.write(compressed.data(), static_cast<std::streamsize>(compressed.size()));
    outStream << '\n';
 }
 

@@ -16,43 +16,56 @@ ZstdDecompressor::~ZstdDecompressor() {
 ZstdDecompressor::ZstdDecompressor(std::string_view dictionary_string) {
    zstd_dictionary = ZSTD_createDDict(dictionary_string.data(), dictionary_string.length());
    zstd_context = ZSTD_createDCtx();
+   buffer = std::string(dictionary_string.size(), '\0');
 }
 
 ZstdDecompressor::ZstdDecompressor(ZstdDecompressor&& other) noexcept {
    this->zstd_context = std::exchange(other.zstd_context, nullptr);
    this->zstd_dictionary = std::exchange(other.zstd_dictionary, nullptr);
+   this->buffer = std::move(other.buffer);
 }
 
 ZstdDecompressor& ZstdDecompressor::operator=(ZstdDecompressor&& other) noexcept {
    std::swap(this->zstd_context, other.zstd_context);
    std::swap(this->zstd_dictionary, other.zstd_dictionary);
+   std::swap(this->buffer, other.buffer);
    return *this;
 }
 
-size_t ZstdDecompressor::decompress(const std::string& input, std::string& output) {
-   return decompress(input.data(), input.size(), output.data(), output.size());
+std::string_view ZstdDecompressor::decompress(const std::string& input) {
+   return decompress(input.data(), input.size());
 }
 
-size_t ZstdDecompressor::decompress(
-   const char* input_data,
-   size_t input_length,
-   char* output_data,
-   size_t output_length
-) {
-   auto size_or_error_code = ZSTD_decompress_usingDDict(
-      zstd_context, output_data, output_length, input_data, input_length, zstd_dictionary
-   );
-   if (ZSTD_isError(size_or_error_code)) {
-      const std::string error_name = ZSTD_getErrorName(size_or_error_code);
+std::string_view ZstdDecompressor::decompress(const char* input_data, size_t input_length) {
+   const size_t uncompressed_size = ZSTD_getFrameContentSize(input_data, input_length);
+   if (uncompressed_size == ZSTD_CONTENTSIZE_UNKNOWN) {
       throw std::runtime_error(fmt::format(
-         "Error '{}' in dependency when decompressing using zstd (dst buffer size: {}, src size: "
-         "{}).",
-         error_name,
-         output_length,
+         "ZSTD_Error: Cannot decompress data with unknown size (getFrameContentSize == "
+         "UNKNOWN) for compressed data of length {}",
          input_length
       ));
    }
-   return size_or_error_code;
+   if (uncompressed_size == ZSTD_CONTENTSIZE_ERROR) {
+      throw std::runtime_error(fmt::format(
+         "ZSTD_Error: Error in dependency, when getting decompressed size for compressed data of "
+         "length {}"
+         "(getFrameContentSize)",
+         input_length
+      ));
+   }
+   if (uncompressed_size > buffer.size()) {
+      buffer.resize(uncompressed_size);
+   }
+   auto size_or_error_code = ZSTD_decompress_usingDDict(
+      zstd_context, buffer.data(), buffer.size(), input_data, input_length, zstd_dictionary
+   );
+   if (ZSTD_isError(size_or_error_code)) {
+      const std::string error_name = ZSTD_getErrorName(size_or_error_code);
+      throw std::runtime_error(
+         fmt::format("Error '{}' in dependency when decompressing using zstd", error_name)
+      );
+   }
+   return {buffer.data(), size_or_error_code};
 }
 
 }  // namespace silo

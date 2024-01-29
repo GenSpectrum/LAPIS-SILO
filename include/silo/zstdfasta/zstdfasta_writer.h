@@ -14,7 +14,6 @@ class ZstdFastaWriter {
   private:
    std::ofstream outStream;
    std::unique_ptr<ZstdCompressor> compressor;
-   std::string buffer;
    std::optional<std::string> default_sequence;
 
   public:

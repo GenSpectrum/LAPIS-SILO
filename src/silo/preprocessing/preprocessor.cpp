@@ -48,13 +48,25 @@ Database Preprocessor::preprocess() {
    const auto& ndjson_input_filename = preprocessing_config.getNdjsonInputFilename();
    if (ndjson_input_filename.has_value()) {
       SPDLOG_INFO("preprocessing - ndjson pipeline chosen");
+      SPDLOG_DEBUG(
+         "preprocessing - building preprocessing tables from ndjson input '{}'",
+         ndjson_input_filename.value().string()
+      );
       buildTablesFromNdjsonInput(ndjson_input_filename.value(), reference_genomes);
+      SPDLOG_DEBUG("preprocessing - building partitioning tables");
       buildPartitioningTable();
+      SPDLOG_DEBUG("preprocessing - creating compressed sequence views for building SILO");
       createSequenceViews(reference_genomes);
    } else {
       SPDLOG_INFO("preprocessing - classic metadata file pipeline chosen");
+      SPDLOG_DEBUG(
+         "preprocessing - building metadata tables from metadata input '{}'",
+         preprocessing_config.getMetadataInputFilename().string()
+      );
       buildMetadataTableFromFile(preprocessing_config.getMetadataInputFilename());
+      SPDLOG_DEBUG("preprocessing - building partitioning tables");
       buildPartitioningTable();
+      SPDLOG_DEBUG("preprocessing - creating partitioned sequence tables for building SILO");
       createPartitionedSequenceTables(reference_genomes);
    }
    SPDLOG_INFO("preprocessing - finished initial loading of data");
@@ -134,8 +146,13 @@ void Preprocessor::buildMetadataTableFromFile(const std::filesystem::path& metad
 
 void Preprocessor::buildPartitioningTable() {
    if (database_config.schema.partition_by.has_value()) {
+      SPDLOG_DEBUG(
+         "preprocessing - partitioning input by metadata key '{}'",
+         database_config.schema.partition_by.value()
+      );
       buildPartitioningTableByColumn(database_config.schema.partition_by.value());
    } else {
+      SPDLOG_DEBUG("preprocessing - no metadata key for partitioning provided");
       buildEmptyPartitioning();
    }
 }
