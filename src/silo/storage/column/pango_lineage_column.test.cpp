@@ -89,16 +89,16 @@ TEST(PangoLineageColumnPartition, returnsAliasedLookupValue) {
    under_test.insert({"C"});
    under_test.insert({"B.1.1.1.1"});
 
-   EXPECT_EQ(under_test.lookupAliasedValue(0), silo::common::AliasedPangoLineage("B"));
-   EXPECT_EQ(under_test.lookupAliasedValue(1), silo::common::AliasedPangoLineage("B.1"));
-   EXPECT_EQ(under_test.lookupAliasedValue(2), silo::common::AliasedPangoLineage("B.1.1"));
-   EXPECT_EQ(under_test.lookupAliasedValue(3), silo::common::AliasedPangoLineage("B.1.1.1"));
-   EXPECT_EQ(under_test.lookupAliasedValue(4), silo::common::AliasedPangoLineage("C.1"));
+   EXPECT_EQ(under_test.lookupAliasedValue(0), silo::common::AliasedPangoLineage{"B"});
+   EXPECT_EQ(under_test.lookupAliasedValue(1), silo::common::AliasedPangoLineage{"B.1"});
+   EXPECT_EQ(under_test.lookupAliasedValue(2), silo::common::AliasedPangoLineage{"B.1.1"});
+   EXPECT_EQ(under_test.lookupAliasedValue(3), silo::common::AliasedPangoLineage{"B.1.1.1"});
+   EXPECT_EQ(under_test.lookupAliasedValue(4), silo::common::AliasedPangoLineage{"C.1"});
 
-   EXPECT_EQ(under_test.lookupUnaliasedValue(0), silo::common::UnaliasedPangoLineage("B"));
-   EXPECT_EQ(under_test.lookupUnaliasedValue(1), silo::common::UnaliasedPangoLineage("B.1"));
-   EXPECT_EQ(under_test.lookupUnaliasedValue(2), silo::common::UnaliasedPangoLineage("B.1.1"));
-   EXPECT_EQ(under_test.lookupUnaliasedValue(3), silo::common::UnaliasedPangoLineage("B.1.1.1"));
-   EXPECT_EQ(under_test.lookupUnaliasedValue(4), silo::common::UnaliasedPangoLineage("B.1.1.1.1"));
+   EXPECT_EQ(under_test.lookupUnaliasedValue(0), silo::common::UnaliasedPangoLineage{"B"});
+   EXPECT_EQ(under_test.lookupUnaliasedValue(1), silo::common::UnaliasedPangoLineage{"B.1"});
+   EXPECT_EQ(under_test.lookupUnaliasedValue(2), silo::common::UnaliasedPangoLineage{"B.1.1"});
+   EXPECT_EQ(under_test.lookupUnaliasedValue(3), silo::common::UnaliasedPangoLineage{"B.1.1.1"});
+   EXPECT_EQ(under_test.lookupUnaliasedValue(4), silo::common::UnaliasedPangoLineage{"B.1.1.1.1"});
 }
 // NOLINTEND(bugprone-unchecked-optional-access)
