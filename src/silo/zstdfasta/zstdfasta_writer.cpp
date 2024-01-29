@@ -45,10 +45,10 @@ silo::ZstdFastaWriter::ZstdFastaWriter(
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void silo::ZstdFastaWriter::write(const std::string& key, const std::string& genome) {
-   std::string_view buffer = compressor->compress(genome);
+   const std::string_view compressed = compressor->compress(genome);
 
-   outStream << '>' << key << '\n' << std::to_string(buffer.size()) << '\n';
-   outStream.write(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+   outStream << '>' << key << '\n' << std::to_string(compressed.size()) << '\n';
+   outStream.write(compressed.data(), static_cast<std::streamsize>(compressed.size()));
    outStream << '\n';
 }
 

@@ -100,9 +100,12 @@ void silo::ZstdFastaTableReader::reset() {
       query_result = connection.Query(getTableQuery());
    } catch (const std::exception& e) {
       SPDLOG_ERROR("Error when executing SQL {}", e.what());
-      throw silo::preprocessing::PreprocessingException(
-         "Error when executing SQL " + std::string(e.what())
-      );
+      throw silo::preprocessing::PreprocessingException(fmt::format(
+         "SQL for loading the results that the ZstdFastaTableReader reads:{}\n"
+         "Resulting Error:\n{}",
+         getTableQuery(),
+         std::string(e.what())
+      ));
    }
    if (query_result->HasError()) {
       SPDLOG_ERROR("Error when executing SQL " + query_result->GetError());

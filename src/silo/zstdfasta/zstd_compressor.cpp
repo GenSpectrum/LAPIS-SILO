@@ -70,7 +70,7 @@ std::string_view ZstdCompressor::compress(const char* input_data, size_t input_s
          "Error '" + error_name + "' in dependency when decompressing using zstd."
       );
    }
-   return std::string_view(buffer.data(), size_or_error_code);
+   return {buffer.data(), size_or_error_code};
 }
 
 }  // namespace silo

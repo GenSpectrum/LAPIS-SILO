@@ -37,14 +37,15 @@ std::string_view ZstdDecompressor::decompress(const std::string& input) {
 }
 
 std::string_view ZstdDecompressor::decompress(const char* input_data, size_t input_length) {
-   size_t uncompressed_size = ZSTD_getFrameContentSize(input_data, input_length);
+   const size_t uncompressed_size = ZSTD_getFrameContentSize(input_data, input_length);
    if (uncompressed_size == ZSTD_CONTENTSIZE_UNKNOWN) {
       throw std::runtime_error(fmt::format(
          "ZSTD_Error: Cannot decompress data with unknown size (getFrameContentSize == "
          "UNKNOWN) for compressed data of length {}",
          input_length
       ));
-   } else if (uncompressed_size == ZSTD_CONTENTSIZE_ERROR) {
+   }
+   if (uncompressed_size == ZSTD_CONTENTSIZE_ERROR) {
       throw std::runtime_error(fmt::format(
          "ZSTD_Error: Error in dependency, when getting decompressed size for compressed data of "
          "length {}"
@@ -64,7 +65,7 @@ std::string_view ZstdDecompressor::decompress(const char* input_data, size_t inp
          fmt::format("Error '{}' in dependency when decompressing using zstd", error_name)
       );
    }
-   return std::string_view(buffer.data(), size_or_error_code);
+   return {buffer.data(), size_or_error_code};
 }
 
 }  // namespace silo
