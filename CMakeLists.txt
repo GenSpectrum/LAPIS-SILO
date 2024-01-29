@@ -62,7 +62,7 @@ list(REMOVE_ITEM SRC_SILO_API ${SRC_TEST})
 
 option(BUILD_WITH_CLANG_TIDY "Build process clang-tidy")
 if (NOT CMAKE_BUILD_TYPE STREQUAL Release AND BUILD_WITH_CLANG_TIDY)
-    find_program(CLANG_TIDY_EXE NAMES clang-tidy-18)
+    find_program(CLANG_TIDY_EXE NAMES clang-tidy-19)
     if (NOT CLANG_TIDY_EXE)
         message(SEND_ERROR "clang-tidy not found, aborting. You can run the build with '-D BUILD_WITH_CLANG_TIDY=OFF' to disable clang-tidy.")
     else ()
