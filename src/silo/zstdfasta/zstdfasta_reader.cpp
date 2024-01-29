@@ -15,7 +15,6 @@ silo::ZstdFastaReader::ZstdFastaReader(
    if (!in_file) {
       throw std::runtime_error("Could not open file reader for file: " + in_file_name.string());
    }
-   genome_buffer = std::string(compression_dict.length(), '\0');
 }
 
 std::optional<std::string> silo::ZstdFastaReader::nextKey() {
@@ -73,8 +72,7 @@ std::optional<std::string> silo::ZstdFastaReader::next(std::string& genome) {
    if (!key) {
       return std::nullopt;
    }
-   decompressor->decompress(compressed_buffer, genome_buffer);
-   genome = genome_buffer;
+   genome = decompressor->decompress(compressed_buffer);
    return key;
 }
 

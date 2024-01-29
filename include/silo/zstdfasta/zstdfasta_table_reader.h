@@ -30,8 +30,6 @@ class ZstdFastaTableReader {
    std::unique_ptr<ZstdDecompressor> decompressor;
    size_t current_row;
 
-   std::string genome_buffer;
-
    std::optional<std::string> nextKey();
 
    std::string getTableQuery();

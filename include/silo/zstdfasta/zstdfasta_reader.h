@@ -15,7 +15,6 @@ class ZstdFastaReader {
   private:
    std::ifstream in_file;
    std::unique_ptr<silo::ZstdDecompressor> decompressor;
-   std::string genome_buffer;
 
    std::optional<std::string> nextKey();
 

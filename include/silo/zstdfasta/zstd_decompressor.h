@@ -10,6 +10,7 @@ namespace silo {
 class ZstdDecompressor {
    ZSTD_DDict* zstd_dictionary;
    ZSTD_DCtx* zstd_context;
+   std::string buffer;
 
   public:
    ZstdDecompressor(ZstdDecompressor&& other) noexcept;
@@ -21,14 +22,9 @@ class ZstdDecompressor {
 
    explicit ZstdDecompressor(std::string_view dictionary_string);
 
-   size_t decompress(const std::string& input, std::string& output);
+   std::string_view decompress(const std::string& input);
 
-   size_t decompress(
-      const char* input_data,
-      size_t input_length,
-      char* output_data,
-      size_t output_length
-   );
+   std::string_view decompress(const char* input_data, size_t input_length);
 };
 
 }  // namespace silo

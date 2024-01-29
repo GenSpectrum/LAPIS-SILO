@@ -26,7 +26,6 @@ silo::ZstdFastaTableReader::ZstdFastaTableReader(
       order_by_clause(order_by_clause),
       decompressor(std::make_unique<ZstdDecompressor>(compression_dict)) {
    SPDLOG_TRACE("Initializing ZstdFastaTableReader for table {}", table_name);
-   genome_buffer.resize(compression_dict.size());
    reset();
    SPDLOG_TRACE("Successfully initialized ZstdFastaTableReader for table {}", table_name);
 }
@@ -78,8 +77,7 @@ std::optional<std::string> silo::ZstdFastaTableReader::next(std::optional<std::s
    }
 
    if (compressed_buffer.has_value()) {
-      auto size = decompressor->decompress(compressed_buffer.value(), genome_buffer);
-      genome = std::string(genome_buffer.data(), size);
+      genome = decompressor->decompress(compressed_buffer.value());
    } else {
       genome = std::nullopt;
    }
