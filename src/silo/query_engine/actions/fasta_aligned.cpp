@@ -59,21 +59,20 @@ std::string reconstructSequence(
       reconstructed_sequence[position_id] = SymbolType::symbolToChar(symbol);
    }
 
-   tbb::
-      parallel_for(
-         tbb::blocked_range<size_t>(0, sequence_store.positions.size()),
-         [&](const auto local) {
-            for (auto position_id = local.begin(); position_id != local.end(); position_id++) {
-               const Position<SymbolType>& position = sequence_store.positions.at(position_id);
-               for (const auto symbol : SymbolType::SYMBOLS) {
-                  if (symbol != position.symbol_whose_bitmap_is_flipped &&
-                      position.bitmaps.at(symbol).contains(sequence_id)) {
-                     reconstructed_sequence[position_id] = SymbolType::symbolToChar(symbol);
-                  }
+   tbb::parallel_for(
+      tbb::blocked_range<size_t>(0, sequence_store.positions.size()),
+      [&](const auto local) {
+         for (auto position_id = local.begin(); position_id != local.end(); position_id++) {
+            const Position<SymbolType>& position = sequence_store.positions.at(position_id);
+            for (const auto symbol : SymbolType::SYMBOLS) {
+               if (!position.isSymbolFlipped(symbol) && !position.isSymbolDeleted(symbol)
+                   && position.getBitmap(symbol)->contains(sequence_id)) {
+                  reconstructed_sequence[position_id] = SymbolType::symbolToChar(symbol);
                }
             }
          }
-      );
+      }
+   );
 
    for (const size_t position : sequence_store.missing_symbol_bitmaps.at(sequence_id)) {
       reconstructed_sequence[position] = SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING);

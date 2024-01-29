@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
 #include "silo/common/nucleotide_symbols.h"
@@ -127,6 +128,11 @@ std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals:
          ->compile(database, database_partition, NONE);
    }
    if (nucleotide_symbol == Nucleotide::SYMBOL_MISSING) {
+      SPDLOG_TRACE(
+         "Filtering for '{}' at position {}",
+         Nucleotide::symbolToChar(Nucleotide::SYMBOL_MISSING),
+         position
+      );
       return std::make_unique<operators::BitmapSelection>(
          seq_store_partition.missing_symbol_bitmaps.data(),
          seq_store_partition.missing_symbol_bitmaps.size(),
@@ -134,7 +140,12 @@ std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals:
          position
       );
    }
-   if (seq_store_partition.positions[position].symbol_whose_bitmap_is_flipped == nucleotide_symbol) {
+   if (seq_store_partition.positions[position].isSymbolFlipped(nucleotide_symbol)) {
+      SPDLOG_TRACE(
+         "Filtering for flipped symbol '{}' at position {}",
+         Nucleotide::symbolToChar(nucleotide_symbol),
+         position
+      );
       return std::make_unique<operators::Complement>(
          std::make_unique<operators::IndexScan>(
             seq_store_partition.getBitmap(position, nucleotide_symbol),
@@ -143,6 +154,34 @@ std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals:
          database_partition.sequence_count
       );
    }
+   if (seq_store_partition.positions[position].isSymbolDeleted(nucleotide_symbol)) {
+      SPDLOG_TRACE(
+         "Filtering for deleted symbol '{}' at position {}",
+         Nucleotide::symbolToChar(nucleotide_symbol),
+         position
+      );
+      std::vector<Nucleotide::Symbol> symbols =
+         std::vector<Nucleotide::Symbol>(Nucleotide::SYMBOLS.begin(), Nucleotide::SYMBOLS.end());
+      // NOLINTNEXTLINE(bugprone-unused-return-value)
+      (void)std::remove(symbols.begin(), symbols.end(), nucleotide_symbol);
+      std::vector<std::unique_ptr<filter_expressions::Expression>> symbol_filters;
+      std::transform(
+         symbols.begin(),
+         symbols.end(),
+         std::back_inserter(symbol_filters),
+         [&](Nucleotide::Symbol symbol) {
+            return std::make_unique<NucleotideSymbolEquals>(
+               nuc_sequence_name_or_default, position, symbol
+            );
+         }
+      );
+      return Or(std::move(symbol_filters)).compile(database, database_partition, NONE);
+   }
+   SPDLOG_TRACE(
+      "Filtering for symbol '{}' at position {}",
+      Nucleotide::symbolToChar(nucleotide_symbol),
+      position
+   );
    return std::make_unique<operators::IndexScan>(
       seq_store_partition.getBitmap(position, nucleotide_symbol), database_partition.sequence_count
    );

@@ -31,7 +31,7 @@ class Nucleotide {
       N,    // any base
    };
 
-   static constexpr uint32_t COUNT = static_cast<uint32_t>(Symbol::N) + 1;
+   static constexpr uint32_t COUNT = 16;
 
    static constexpr std::string_view SYMBOL_NAME = "Nucleotide";
    static constexpr std::string_view SYMBOL_NAME_LOWER_CASE = "nucleotide";
@@ -64,6 +64,22 @@ class Nucleotide {
       Nucleotide::Symbol::G,
       Nucleotide::Symbol::T,
    };
+
+   static constexpr std::array<Symbol, 11> INVALID_MUTATION_SYMBOLS{
+      Nucleotide::Symbol::R,  // A or G
+      Nucleotide::Symbol::Y,  // C or T
+      Nucleotide::Symbol::S,  // G or C
+      Nucleotide::Symbol::W,  // A or T
+      Nucleotide::Symbol::K,  // G or T
+      Nucleotide::Symbol::M,  // A or C
+      Nucleotide::Symbol::B,  // C or G or T
+      Nucleotide::Symbol::D,  // A or G or T
+      Nucleotide::Symbol::H,  // A or C or T
+      Nucleotide::Symbol::V,  // A or C or G
+      Nucleotide::Symbol::N,  // any base
+   };
+
+   static_assert(INVALID_MUTATION_SYMBOLS.size() + VALID_MUTATION_SYMBOLS.size() == SYMBOLS.size());
 
    static constexpr Symbol SYMBOL_MISSING = Symbol::N;
 

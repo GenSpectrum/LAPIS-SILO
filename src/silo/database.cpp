@@ -225,7 +225,7 @@ BitmapSizePerSymbol Database::calculateBitmapSizePerSymbol(
          for (const auto& position : seq_store_partition.positions) {
             assert(bitmap_size_per_symbol.size_in_bytes.contains(symbol));
             bitmap_size_per_symbol.size_in_bytes[symbol] +=
-               position.bitmaps.at(symbol).getSizeInBytes();
+               position.getBitmap(symbol)->getSizeInBytes();
          }
       }
       lock.lock();
@@ -270,7 +270,7 @@ BitmapContainerSize Database::calculateBitmapContainerSizePerGenomeSection(
       for (const auto& seq_store_partition : seq_store.partitions) {
          const auto& position = seq_store_partition.positions[position_index];
          for (const auto& genome_symbol : Nucleotide::SYMBOLS) {
-            const auto& bitmap = position.bitmaps.at(genome_symbol);
+            const auto& bitmap = *position.getBitmap(genome_symbol);
 
             roaring_bitmap_statistics(&bitmap.roaring, &statistic);
             addStatisticToBitmapContainerSize(
