@@ -38,24 +38,19 @@ class Compressors {
    static std::
       unordered_map<std::string_view, tbb::enumerable_thread_specific<silo::ZstdCompressor>>
          nuc_compressors;
-   static std::unordered_map<std::string_view, tbb::enumerable_thread_specific<std::string>>
-      nuc_buffers;
    static std::
       unordered_map<std::string_view, tbb::enumerable_thread_specific<silo::ZstdCompressor>>
          aa_compressors;
-   static std::unordered_map<std::string_view, tbb::enumerable_thread_specific<std::string>>
-      aa_buffers;
 
    static void initialize(const silo::ReferenceGenomes& reference_genomes) {
+      SPDLOG_DEBUG("Preprocessing Database - initialize with reference_genomes");
       for (const auto& [name, sequence] : reference_genomes.raw_nucleotide_sequences) {
-         silo::ZstdCompressor exemplar(sequence);
-         nuc_buffers.emplace(name, std::string(exemplar.getSizeBound(), '\0'));
-         nuc_compressors.emplace(name, std::move(exemplar));
+         SPDLOG_DEBUG("Preprocessing Database - Creating Nucleotide Compressor for '{}'", name);
+         nuc_compressors.emplace(name, silo::ZstdCompressor(sequence));
       }
       for (const auto& [name, sequence] : reference_genomes.raw_aa_sequences) {
-         silo::ZstdCompressor exemplar(sequence);
-         aa_buffers.emplace(name, std::string(exemplar.getSizeBound(), '\0'));
-         aa_compressors.emplace(name, std::move(exemplar));
+         SPDLOG_DEBUG("Preprocessing Database - Creating Amino Acid Compressor for '{}'", name);
+         aa_compressors.emplace(name, silo::ZstdCompressor(sequence));
       }
    }
 
@@ -66,15 +61,12 @@ class Compressors {
          result,
          args.size(),
          [&](const string_t uncompressed, const string_t segment_name) {
-            std::string& buffer = nuc_buffers.at(segment_name.GetString()).local();
-            const size_t size_or_error_code =
+            std::string_view compressed =
                nuc_compressors.at(segment_name.GetString())
                   .local()
-                  .compress(
-                     uncompressed.GetData(), uncompressed.GetSize(), buffer.data(), buffer.size()
-                  );
+                  .compress(uncompressed.GetData(), uncompressed.GetSize());
             return StringVector::AddStringOrBlob(
-               result, buffer.data(), static_cast<uint32_t>(size_or_error_code)
+               result, compressed.data(), static_cast<uint32_t>(compressed.size())
             );
          }
       );
@@ -87,15 +79,12 @@ class Compressors {
          result,
          args.size(),
          [&](const string_t uncompressed, const string_t gene_name) {
-            std::string& buffer = aa_buffers.at(gene_name.GetString()).local();
-            const size_t size_or_error_code =
+            std::string_view compressed =
                aa_compressors.at(gene_name.GetString())
                   .local()
-                  .compress(
-                     uncompressed.GetData(), uncompressed.GetSize(), buffer.data(), buffer.size()
-                  );
+                  .compress(uncompressed.GetData(), uncompressed.GetSize());
             return StringVector::AddStringOrBlob(
-               result, buffer.data(), static_cast<uint32_t>(size_or_error_code)
+               result, compressed.data(), static_cast<uint32_t>(compressed.size())
             );
          }
       );
@@ -104,12 +93,8 @@ class Compressors {
 
 std::unordered_map<std::string_view, tbb::enumerable_thread_specific<silo::ZstdCompressor>>
    Compressors::nuc_compressors{};
-std::unordered_map<std::string_view, tbb::enumerable_thread_specific<std::string>>
-   Compressors::nuc_buffers{};
 std::unordered_map<std::string_view, tbb::enumerable_thread_specific<silo::ZstdCompressor>>
    Compressors::aa_compressors{};
-std::unordered_map<std::string_view, tbb::enumerable_thread_specific<std::string>>
-   Compressors::aa_buffers{};
 
 }  // namespace
 

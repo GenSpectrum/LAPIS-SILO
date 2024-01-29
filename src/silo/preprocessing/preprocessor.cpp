@@ -48,13 +48,25 @@ Database Preprocessor::preprocess() {
    const auto& ndjson_input_filename = preprocessing_config.getNdjsonInputFilename();
    if (ndjson_input_filename.has_value()) {
       SPDLOG_INFO("preprocessing - ndjson pipeline chosen");
+      SPDLOG_DEBUG(
+         "preprocessing - building preprocessing tables from ndjson input '{}'",
+         ndjson_input_filename.value().string()
+      );
       buildTablesFromNdjsonInput(ndjson_input_filename.value(), reference_genomes);
+      SPDLOG_DEBUG("preprocessing - building partitioning tables");
       buildPartitioningTable();
+      SPDLOG_DEBUG("preprocessing - creating compressed sequence views for building SILO");
       createSequenceViews(reference_genomes);
    } else {
       SPDLOG_INFO("preprocessing - classic metadata file pipeline chosen");
+      SPDLOG_DEBUG(
+         "preprocessing - building metadata tables from metadata input '{}'",
+         preprocessing_config.getMetadataInputFilename().string()
+      );
       buildMetadataTableFromFile(preprocessing_config.getMetadataInputFilename());
+      SPDLOG_DEBUG("preprocessing - building partitioning tables");
       buildPartitioningTable();
+      SPDLOG_DEBUG("preprocessing - creating partitioned sequence tables for building SILO");
       createPartitionedSequenceTables(reference_genomes);
    }
    SPDLOG_INFO("preprocessing - finished initial loading of data");
@@ -98,11 +110,8 @@ void Preprocessor::buildTablesFromNdjsonInput(
    PreprocessingDatabase::registerSequences(reference_genomes);
 
    (void)preprocessing_db.query(fmt::format(
-      R"-(
-         CREATE OR REPLACE TABLE preprocessing_table AS SELECT {}, {}
-         FROM '{}'
-         WHERE metadata.{} is not null;
-      )-",
+      "CREATE OR REPLACE TABLE preprocessing_table AS SELECT {}, "
+      "{} \n FROM '{}' WHERE metadata.{} is not null;",
       boost::join(metadata_info.getMetadataSelects(), ","),
       boost::join(sequence_info.getSequenceSelects(), ","),
       file_name.string(),
@@ -110,11 +119,9 @@ void Preprocessor::buildTablesFromNdjsonInput(
    ));
 
    (void)preprocessing_db.query(fmt::format(
-      R"-(
-         create or replace view metadata_table as
-         select {}
-         from preprocessing_table;
-      )-",
+      "create or replace view metadata_table as\n"
+      "select {}\n"
+      "from preprocessing_table;",
       boost::join(metadata_info.getMetadataFields(), ",")
    ));
 }
@@ -134,8 +141,13 @@ void Preprocessor::buildMetadataTableFromFile(const std::filesystem::path& metad
 
 void Preprocessor::buildPartitioningTable() {
    if (database_config.schema.partition_by.has_value()) {
+      SPDLOG_DEBUG(
+         "preprocessing - partitioning input by metadata key '{}'",
+         database_config.schema.partition_by.value()
+      );
       buildPartitioningTableByColumn(database_config.schema.partition_by.value());
    } else {
+      SPDLOG_DEBUG("preprocessing - no metadata key for partitioning provided");
       buildEmptyPartitioning();
    }
 }

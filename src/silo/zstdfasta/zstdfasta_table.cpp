@@ -77,21 +77,19 @@ ZstdFastaTable ZstdFastaTable::generate(
    std::optional<std::string> key;
    std::string uncompressed_genome;
    ZstdCompressor compressor(reference_sequence);
-   std::string compressed_genome;
-   compressed_genome.resize(compressor.getSizeBound());
    duckdb::Appender appender(connection, table_name);
    while (true) {
       key = file_reader.next(uncompressed_genome);
       if (key == std::nullopt) {
          break;
       }
-      const size_t compressed_size = compressor.compress(uncompressed_genome, compressed_genome);
+      std::string_view compressed_genome = compressor.compress(uncompressed_genome);
       const auto* compressed_data =
          reinterpret_cast<const unsigned char*>(compressed_genome.data());
       const duckdb::string_t key_value = key.value();
       appender.BeginRow();
       appender.Append(key_value);
-      appender.Append(duckdb::Value::BLOB(compressed_data, compressed_size));
+      appender.Append(duckdb::Value::BLOB(compressed_data, compressed_genome.size()));
       appender.EndRow();
    }
    appender.Close();
