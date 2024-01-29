@@ -61,7 +61,7 @@ class Compressors {
          result,
          args.size(),
          [&](const string_t uncompressed, const string_t segment_name) {
-            std::string_view compressed =
+            const std::string_view compressed =
                nuc_compressors.at(segment_name.GetString())
                   .local()
                   .compress(uncompressed.GetData(), uncompressed.GetSize());
@@ -79,7 +79,7 @@ class Compressors {
          result,
          args.size(),
          [&](const string_t uncompressed, const string_t gene_name) {
-            std::string_view compressed =
+            const std::string_view compressed =
                aa_compressors.at(gene_name.GetString())
                   .local()
                   .compress(uncompressed.GetData(), uncompressed.GetSize());
