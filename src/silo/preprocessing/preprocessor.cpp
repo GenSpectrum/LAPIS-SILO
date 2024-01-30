@@ -494,7 +494,7 @@ Database Preprocessor::buildDatabase(
                      );
                   }
                }
-               database.partitions.at(partition_index).flipBitmaps();
+               database.partitions.at(partition_index).optimizeBitmaps();
                SPDLOG_INFO("build - finished sequences for partition {}", partition_index);
             }
          }

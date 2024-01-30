@@ -28,13 +28,13 @@ void deserializeFromFile(const std::string& filename, Position<Nucleotide>& posi
    input_file.close();
 }
 
-TEST(Position, flipsMostNumerousCorrectlyFromUnset) {
+TEST(Position, flipsMostNumerousCorrectlyFromInitiallyUnoptimized) {
    Position<Nucleotide> under_test;
 
    under_test.addValues(Nucleotide::Symbol::C, std::vector<uint32_t>{1, 2, 3}, 0, 5);
    under_test.addValues(Nucleotide::Symbol::A, std::vector<uint32_t>{0, 4}, 0, 5);
 
-   ASSERT_EQ(*under_test.flipMostNumerousBitmap(5), Nucleotide::Symbol::C);
+   ASSERT_EQ(under_test.flipMostNumerousBitmap(5), Nucleotide::Symbol::C);
 
    ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::C), roaring::Roaring({0, 4}));
    ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::A), roaring::Roaring({0, 4}));
@@ -45,14 +45,14 @@ TEST(Position, flipsMostNumerousCorrectlyFromUnset) {
    ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::A), roaring::Roaring({0, 4}));
 }
 
-TEST(Position, flipsMostNumerousCorrectlyFromDifferent) {
+TEST(Position, flipsMostNumerousCorrectlyFromInitiallyDifferentSymbolFlipped) {
    Position<Nucleotide> under_test =
       Position<Nucleotide>::fromInitiallyFlipped(Nucleotide::Symbol::A);
 
    under_test.addValues(Nucleotide::Symbol::C, std::vector<uint32_t>{1, 2, 3}, 0, 5);
    under_test.addValues(Nucleotide::Symbol::A, std::vector<uint32_t>{0, 4}, 0, 5);
 
-   ASSERT_EQ(*under_test.flipMostNumerousBitmap(5), Nucleotide::Symbol::C);
+   ASSERT_EQ(under_test.flipMostNumerousBitmap(5), Nucleotide::Symbol::C);
 
    ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::C), roaring::Roaring({0, 4}));
    ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::A), roaring::Roaring({0, 4}));
@@ -63,7 +63,7 @@ TEST(Position, flipsMostNumerousCorrectlyFromDifferent) {
    ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::A), roaring::Roaring({0, 4}));
 }
 
-TEST(Position, flipsMostNumerousCorrectlyFromSame) {
+TEST(Position, flipsMostNumerousCorrectlyFromInitiallySameSymbolFlipped) {
    Position<Nucleotide> under_test =
       Position<Nucleotide>::fromInitiallyFlipped(Nucleotide::Symbol::C);
 
@@ -81,60 +81,24 @@ TEST(Position, flipsMostNumerousCorrectlyFromSame) {
    ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::A), roaring::Roaring({0, 4}));
 }
 
-TEST(Position, deletesMostNumerousCorrectlyFromUnset) {
+TEST(Position, deletesMostNumerousCorrectlyFromInitiallyUnoptimized) {
    Position<Nucleotide> under_test;
 
    under_test.addValues(Nucleotide::Symbol::C, std::vector<uint32_t>{1, 2, 3}, 0, 5);
    under_test.addValues(Nucleotide::Symbol::A, std::vector<uint32_t>{0, 4}, 0, 5);
 
-   ASSERT_EQ(*under_test.deleteMostNumerousBitmap(5), Nucleotide::Symbol::C);
+   ASSERT_EQ(under_test.deleteMostNumerousBitmap(5), Nucleotide::Symbol::C);
 
    ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::C), roaring::Roaring());
    ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::A), roaring::Roaring({0, 4}));
 
-   ASSERT_EQ(under_test.deleteMostNumerousBitmap(5), std::nullopt);
-
-   ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::C), roaring::Roaring());
-   ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::A), roaring::Roaring({0, 4}));
-}
-
-TEST(Position, deletesMostNumerousCorrectlyFromDifferent) {
-   Position<Nucleotide> under_test =
-      Position<Nucleotide>::fromInitiallyDeleted(Nucleotide::Symbol::A);
-
-   under_test.addValues(Nucleotide::Symbol::C, std::vector<uint32_t>{1, 2, 3}, 0, 5);
-   under_test.addValues(Nucleotide::Symbol::A, std::vector<uint32_t>{0, 4}, 0, 5);
-
-   ASSERT_EQ(*under_test.deleteMostNumerousBitmap(5), Nucleotide::Symbol::C);
-
-   ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::C), roaring::Roaring());
-   ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::A), roaring::Roaring({0, 4}));
-
-   ASSERT_EQ(under_test.deleteMostNumerousBitmap(5), std::nullopt);
+   ASSERT_THROW(under_test.deleteMostNumerousBitmap(5), std::runtime_error);
 
    ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::C), roaring::Roaring());
    ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::A), roaring::Roaring({0, 4}));
 }
 
-TEST(Position, deletesMostNumerousCorrectlyFromSame) {
-   Position<Nucleotide> under_test =
-      Position<Nucleotide>::fromInitiallyDeleted(Nucleotide::Symbol::C);
-
-   under_test.addValues(Nucleotide::Symbol::C, std::vector<uint32_t>{1, 2, 3}, 0, 5);
-   under_test.addValues(Nucleotide::Symbol::A, std::vector<uint32_t>{0, 4}, 0, 5);
-
-   ASSERT_EQ(under_test.deleteMostNumerousBitmap(5), std::nullopt);
-
-   ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::C), roaring::Roaring());
-   ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::A), roaring::Roaring({0, 4}));
-
-   ASSERT_EQ(under_test.deleteMostNumerousBitmap(5), std::nullopt);
-
-   ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::C), roaring::Roaring());
-   ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::A), roaring::Roaring({0, 4}));
-}
-
-TEST(Position, deleteFlipInterplay) {
+TEST(Position, deletesMostNumerousCorrectlyFromInitiallyDifferentSymbolFlipped) {
    Position<Nucleotide> under_test =
       Position<Nucleotide>::fromInitiallyDeleted(Nucleotide::Symbol::A);
 
@@ -144,17 +108,60 @@ TEST(Position, deleteFlipInterplay) {
    ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::C), roaring::Roaring({1, 2, 3}));
    ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::A), roaring::Roaring());
 
-   ASSERT_EQ(*under_test.flipMostNumerousBitmap(5), Nucleotide::Symbol::C);
+   ASSERT_THROW(under_test.deleteMostNumerousBitmap(5), std::runtime_error);
+}
 
-   ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::C), roaring::Roaring({0, 4}));
-   ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::A), roaring::Roaring({0, 4}));
+TEST(Position, deletesMostNumerousCorrectlyFromInitiallySameFlippedSymbol) {
+   Position<Nucleotide> under_test =
+      Position<Nucleotide>::fromInitiallyDeleted(Nucleotide::Symbol::C);
 
-   ASSERT_EQ(*under_test.deleteMostNumerousBitmap(5), Nucleotide::Symbol::C);
+   under_test.addValues(Nucleotide::Symbol::C, std::vector<uint32_t>{1, 2, 3}, 0, 5);
+   under_test.addValues(Nucleotide::Symbol::A, std::vector<uint32_t>{0, 4}, 0, 5);
+
+   ASSERT_THROW(under_test.deleteMostNumerousBitmap(5), std::runtime_error);
 
    ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::C), roaring::Roaring());
    ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::A), roaring::Roaring({0, 4}));
 }
 
+TEST(Position, deletesCorrectlyFromInitiallyDifferentSymbolFlipped) {
+   Position<Nucleotide> under_test =
+      Position<Nucleotide>::fromInitiallyFlipped(Nucleotide::Symbol::A);
+
+   under_test.addValues(Nucleotide::Symbol::C, std::vector<uint32_t>{1, 2, 3}, 0, 5);
+   under_test.addValues(Nucleotide::Symbol::A, std::vector<uint32_t>{0, 4}, 0, 5);
+
+   ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::C), roaring::Roaring({1, 2, 3}));
+   ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::A), roaring::Roaring({1, 2, 3}));
+
+   ASSERT_EQ(under_test.deleteMostNumerousBitmap(5), Nucleotide::Symbol::C);
+
+   ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::C), roaring::Roaring());
+   ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::A), roaring::Roaring({0, 4}));
+}
+
+TEST(Position, flipThenDeleteFromInitiallyDifferentSymbolFlipped) {
+   Position<Nucleotide> under_test =
+      Position<Nucleotide>::fromInitiallyFlipped(Nucleotide::Symbol::A);
+
+   under_test.addValues(Nucleotide::Symbol::C, std::vector<uint32_t>{1, 2, 3}, 0, 5);
+   under_test.addValues(Nucleotide::Symbol::A, std::vector<uint32_t>{0, 4}, 0, 5);
+
+   ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::C), roaring::Roaring({1, 2, 3}));
+   ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::A), roaring::Roaring({1, 2, 3}));
+
+   ASSERT_EQ(under_test.flipMostNumerousBitmap(5), Nucleotide::Symbol::C);
+
+   ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::C), roaring::Roaring({0, 4}));
+   ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::A), roaring::Roaring({0, 4}));
+
+   ASSERT_EQ(under_test.deleteMostNumerousBitmap(5), Nucleotide::Symbol::C);
+
+   ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::C), roaring::Roaring());
+   ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::A), roaring::Roaring({0, 4}));
+}
+
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(Position, shouldSerializeAndDeserializePositionsWithEmptyOptional) {
    const std::string test_file = "test.bin";
 
@@ -172,10 +179,11 @@ TEST(Position, shouldSerializeAndDeserializePositionsWithEmptyOptional) {
    ASSERT_NO_THROW(std::remove(test_file.c_str()));
 }
 
-TEST(Position, shouldSerializeAndDeserializePositionWithSetOptional) {
+TEST(Position, shouldSerializeAndDeserializePositionWithFlippedBitmap) {
    const std::string test_file = "test.bin";
 
-   Position<Nucleotide> position_with_set_optional;
+   const Position<Nucleotide> position_with_set_optional =
+      Position<Nucleotide>::fromInitiallyFlipped(Nucleotide::Symbol::A);
    serializeToFile(test_file, position_with_set_optional);
 
    Position<Nucleotide> deserialized_position;
@@ -185,9 +193,36 @@ TEST(Position, shouldSerializeAndDeserializePositionWithSetOptional) {
    EXPECT_TRUE(position_with_set_optional.isSymbolFlipped(Nucleotide::Symbol::A));
 
    for (const auto& symbol : Nucleotide::SYMBOLS) {
+      EXPECT_FALSE(position_with_set_optional.isSymbolDeleted(symbol));
+      EXPECT_FALSE(deserialized_position.isSymbolDeleted(symbol));
       if (symbol != Nucleotide::Symbol::A) {
          EXPECT_FALSE(position_with_set_optional.isSymbolFlipped(symbol));
          EXPECT_FALSE(deserialized_position.isSymbolFlipped(symbol));
+      }
+   }
+
+   ASSERT_NO_THROW(std::remove(test_file.c_str()));
+}
+
+TEST(Position, shouldSerializeAndDeserializePositionWithDeletedBitmap) {
+   const std::string test_file = "test.bin";
+
+   const Position<Nucleotide> position_with_set_optional =
+      Position<Nucleotide>::fromInitiallyDeleted(Nucleotide::Symbol::A);
+   serializeToFile(test_file, position_with_set_optional);
+
+   Position<Nucleotide> deserialized_position;
+   deserializeFromFile(test_file, deserialized_position);
+
+   EXPECT_TRUE(deserialized_position.isSymbolDeleted(Nucleotide::Symbol::A));
+   EXPECT_TRUE(position_with_set_optional.isSymbolDeleted(Nucleotide::Symbol::A));
+
+   for (const auto& symbol : Nucleotide::SYMBOLS) {
+      EXPECT_FALSE(position_with_set_optional.isSymbolFlipped(symbol));
+      EXPECT_FALSE(deserialized_position.isSymbolFlipped(symbol));
+      if (symbol != Nucleotide::Symbol::A) {
+         EXPECT_FALSE(position_with_set_optional.isSymbolDeleted(symbol));
+         EXPECT_FALSE(deserialized_position.isSymbolDeleted(symbol));
       }
    }
 

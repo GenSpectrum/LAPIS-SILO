@@ -42,10 +42,16 @@ template <typename SymbolType>
 std::optional<typename SymbolType::Symbol> silo::Position<SymbolType>::getHighestCardinalitySymbol(
    uint32_t sequence_count
 ) {
+   if (symbol_whose_bitmap_is_deleted.has_value()) {
+      throw std::runtime_error(fmt::format(
+         "Symbol '{}' is currently deleted. Cannot restore it implicitly and cannot calculate its "
+         "cardinality as we do not have information about missing symbols",
+         SymbolType::symbolToChar(*symbol_whose_bitmap_is_deleted)
+      ));
+   }
+
    std::optional<typename SymbolType::Symbol> max_symbol = std::nullopt;
    uint32_t max_count = 0;
-
-   uint32_t count_sum = 0;
 
    for (const auto& symbol : SymbolType::SYMBOLS) {
       roaring::Roaring& bitmap = bitmaps[symbol];
@@ -53,15 +59,9 @@ std::optional<typename SymbolType::Symbol> silo::Position<SymbolType>::getHighes
       bitmap.shrinkToFit();
       const uint32_t count =
          isSymbolFlipped(symbol) ? sequence_count - bitmap.cardinality() : bitmap.cardinality();
-      count_sum += count;
       if (count > max_count) {
          max_symbol = symbol;
          max_count = count;
-      }
-   }
-   if (symbol_whose_bitmap_is_deleted.has_value()) {
-      if (sequence_count - count_sum > max_count) {
-         return symbol_whose_bitmap_is_deleted;
       }
    }
    return max_symbol;
@@ -72,16 +72,10 @@ std::optional<typename SymbolType::Symbol> silo::Position<SymbolType>::flipMostN
    uint32_t sequence_count
 ) {
    if (symbol_whose_bitmap_is_deleted.has_value()) {
-      const auto missing_symbol = symbol_whose_bitmap_is_deleted.value();
-      for (const auto& symbol : SymbolType::SYMBOLS) {
-         if (symbol != missing_symbol) {
-            bitmaps[missing_symbol] |= bitmaps.at(symbol);
-         }
-      }
-      bitmaps[missing_symbol].flip(0, sequence_count);
-      bitmaps[missing_symbol].runOptimize();
-      bitmaps[missing_symbol].shrinkToFit();
-      symbol_whose_bitmap_is_deleted = std::nullopt;
+      throw std::runtime_error(fmt::format(
+         "Symbol '{}' is currently deleted. Cannot restore it implicitly",
+         SymbolType::symbolToChar(*symbol_whose_bitmap_is_deleted)
+      ));
    }
 
    std::optional<typename SymbolType::Symbol> max_symbol =
@@ -108,6 +102,12 @@ template <typename SymbolType>
 std::optional<typename SymbolType::Symbol> silo::Position<SymbolType>::deleteMostNumerousBitmap(
    uint32_t sequence_count
 ) {
+   if (symbol_whose_bitmap_is_deleted.has_value()) {
+      throw std::runtime_error(fmt::format(
+         "Symbol '{}' is currently deleted. Cannot restore it implicitly",
+         SymbolType::symbolToChar(*symbol_whose_bitmap_is_deleted)
+      ));
+   }
    if (symbol_whose_bitmap_is_flipped.has_value()) {
       bitmaps[*symbol_whose_bitmap_is_flipped].flip(0, sequence_count);
       bitmaps[*symbol_whose_bitmap_is_flipped].runOptimize();
@@ -118,20 +118,8 @@ std::optional<typename SymbolType::Symbol> silo::Position<SymbolType>::deleteMos
    std::optional<typename SymbolType::Symbol> max_symbol =
       getHighestCardinalitySymbol(sequence_count);
 
-   if (max_symbol != symbol_whose_bitmap_is_deleted) {
-      if (symbol_whose_bitmap_is_deleted.has_value()) {
-         for (const auto& symbol : SymbolType::SYMBOLS) {
-            if (symbol != *symbol_whose_bitmap_is_deleted) {
-               bitmaps[*symbol_whose_bitmap_is_deleted] |= bitmaps.at(symbol);
-            }
-         }
-         bitmaps[*symbol_whose_bitmap_is_deleted].flip(0, sequence_count);
-         bitmaps[*symbol_whose_bitmap_is_deleted].runOptimize();
-         bitmaps[*symbol_whose_bitmap_is_deleted].shrinkToFit();
-      }
-      if (max_symbol.has_value()) {
-         bitmaps[*max_symbol] = roaring::Roaring();
-      }
+   if (max_symbol.has_value()) {
+      bitmaps[*max_symbol] = roaring::Roaring();
       symbol_whose_bitmap_is_deleted = max_symbol;
       return symbol_whose_bitmap_is_deleted;
    }

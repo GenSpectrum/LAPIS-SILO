@@ -10,7 +10,9 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/config/database_config.h"
 #include "silo/database.h"
+#include "silo/query_engine/filter_expressions/and.h"
 #include "silo/query_engine/filter_expressions/expression.h"
+#include "silo/query_engine/filter_expressions/negation.h"
 #include "silo/query_engine/filter_expressions/or.h"
 #include "silo/query_engine/operators/bitmap_selection.h"
 #include "silo/query_engine/operators/complement.h"
@@ -124,8 +126,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals:
             );
          }
       );
-      return std::make_unique<Or>(std::move(symbol_filters))
-         ->compile(database, database_partition, NONE);
+      return Or(std::move(symbol_filters)).compile(database, database_partition, NONE);
    }
    if (nucleotide_symbol == Nucleotide::SYMBOL_MISSING) {
       SPDLOG_TRACE(
@@ -170,12 +171,12 @@ std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals:
          symbols.end(),
          std::back_inserter(symbol_filters),
          [&](Nucleotide::Symbol symbol) {
-            return std::make_unique<NucleotideSymbolEquals>(
+            return std::make_unique<Negation>(std::make_unique<NucleotideSymbolEquals>(
                nuc_sequence_name_or_default, position, symbol
-            );
+            ));
          }
       );
-      return Or(std::move(symbol_filters)).compile(database, database_partition, NONE);
+      return And(std::move(symbol_filters)).compile(database, database_partition, NONE);
    }
    SPDLOG_TRACE(
       "Filtering for symbol '{}' at position {}",

@@ -154,8 +154,12 @@ void DatabasePartition::validateMetadataColumns() const {
    }
 }
 
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
-void DatabasePartition::flipBitmaps() {
+void DatabasePartition::optimizeBitmaps() {
+   optimizeNucleotideBitmaps();
+   optimizeAminoAcidBitmaps();
+}
+
+void DatabasePartition::optimizeNucleotideBitmaps() {
    for (auto& [_, seq_store] : nuc_sequences) {
       tbb::enumerable_thread_specific<decltype(seq_store.indexing_differences_to_reference_sequence
       )>
@@ -177,21 +181,24 @@ void DatabasePartition::flipBitmaps() {
          }
       }
    }
+}
+
+void DatabasePartition::optimizeAminoAcidBitmaps() {
    for (auto& [_, aa_store] : aa_sequences) {
       tbb::enumerable_thread_specific<decltype(aa_store.indexing_differences_to_reference_sequence)>
-         flipped_bitmaps;
+         index_changes_to_reference;
 
       auto& positions = aa_store.positions;
       tbb::parallel_for(tbb::blocked_range<uint32_t>(0, positions.size()), [&](const auto& local) {
-         auto& local_flipped_bitmaps = flipped_bitmaps.local();
+         auto& local_index_changes = index_changes_to_reference.local();
          for (auto position = local.begin(); position != local.end(); ++position) {
-            auto flipped_symbol = positions[position].deleteMostNumerousBitmap(sequence_count);
-            if (flipped_symbol.has_value()) {
-               local_flipped_bitmaps.emplace_back(position, *flipped_symbol);
+            auto symbol_changed = positions[position].deleteMostNumerousBitmap(sequence_count);
+            if (symbol_changed.has_value()) {
+               local_index_changes.emplace_back(position, *symbol_changed);
             }
          }
       });
-      for (const auto& local : flipped_bitmaps) {
+      for (const auto& local : index_changes_to_reference) {
          for (const auto& element : local) {
             aa_store.indexing_differences_to_reference_sequence.emplace_back(element);
          }

@@ -88,7 +88,9 @@ class DatabasePartition {
 
    void validate() const;
 
-   void flipBitmaps();
+   void optimizeBitmaps();
+   void optimizeNucleotideBitmaps();
+   void optimizeAminoAcidBitmaps();
 
    [[nodiscard]] const std::vector<preprocessing::PartitionChunk>& getChunks() const;
 

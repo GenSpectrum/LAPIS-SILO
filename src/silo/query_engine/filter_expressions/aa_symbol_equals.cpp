@@ -6,8 +6,9 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/common/aa_symbols.h"
+#include "silo/query_engine/filter_expressions/and.h"
 #include "silo/query_engine/filter_expressions/expression.h"
-#include "silo/query_engine/filter_expressions/or.h"
+#include "silo/query_engine/filter_expressions/negation.h"
 #include "silo/query_engine/operators/bitmap_selection.h"
 #include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/index_scan.h"
@@ -78,10 +79,12 @@ std::unique_ptr<silo::query_engine::operators::Operator> AASymbolEquals::compile
          symbols.end(),
          std::back_inserter(symbol_filters),
          [&](AminoAcid::Symbol symbol) {
-            return std::make_unique<AASymbolEquals>(aa_sequence_name, position, symbol);
+            return std::make_unique<Negation>(
+               std::make_unique<AASymbolEquals>(aa_sequence_name, position, symbol)
+            );
          }
       );
-      return Or(std::move(symbol_filters)).compile(database, database_partition, NONE);
+      return And(std::move(symbol_filters)).compile(database, database_partition, NONE);
    }
    return std::make_unique<operators::IndexScan>(
       aa_store_partition.getBitmap(position, aa_symbol), database_partition.sequence_count
