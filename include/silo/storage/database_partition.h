@@ -88,10 +88,6 @@ class DatabasePartition {
 
    void validate() const;
 
-   void optimizeBitmaps();
-   void optimizeNucleotideBitmaps();
-   void optimizeAminoAcidBitmaps();
-
    [[nodiscard]] const std::vector<preprocessing::PartitionChunk>& getChunks() const;
 
    void insertColumn(const std::string& name, storage::column::StringColumnPartition& column);

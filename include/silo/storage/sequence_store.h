@@ -57,6 +57,8 @@ class SequenceStorePartition {
 
    void fillNBitmaps(const std::vector<std::optional<std::string>>& genomes);
 
+   void optimizeBitmaps();
+
   public:
    explicit SequenceStorePartition(
       const std::vector<typename SymbolType::Symbol>& reference_sequence
