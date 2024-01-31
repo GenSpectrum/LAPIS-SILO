@@ -69,6 +69,14 @@ class DatabasePartition {
   private:
    std::vector<silo::preprocessing::PartitionChunk> chunks;
 
+  public:
+   storage::ColumnPartitionGroup columns;
+   std::map<std::string, SequenceStorePartition<Nucleotide>&> nuc_sequences;
+   std::map<std::string, UnalignedSequenceStorePartition&> unaligned_nuc_sequences;
+   std::map<std::string, SequenceStorePartition<AminoAcid>&> aa_sequences;
+   uint32_t sequence_count = 0;
+
+  private:
    DatabasePartition() = default;
 
    void validateNucleotideSequences() const;
@@ -78,12 +86,6 @@ class DatabasePartition {
    void validateMetadataColumns() const;
 
   public:
-   storage::ColumnPartitionGroup columns;
-   std::map<std::string, SequenceStorePartition<Nucleotide>&> nuc_sequences;
-   std::map<std::string, UnalignedSequenceStorePartition&> unaligned_nuc_sequences;
-   std::map<std::string, SequenceStorePartition<AminoAcid>&> aa_sequences;
-   uint32_t sequence_count = 0;
-
    explicit DatabasePartition(std::vector<silo::preprocessing::PartitionChunk> chunks);
 
    void validate() const;

@@ -47,6 +47,11 @@ class Database {
    std::map<std::string, SequenceStore<AminoAcid>> aa_sequences;
    std::map<std::string, UnalignedSequenceStore> unaligned_nuc_sequences;
 
+  private:
+   PangoLineageAliasLookup alias_key;
+   DataVersion data_version_ = DataVersion{""};
+
+  public:
    void validate() const;
 
    void saveDatabaseState(const std::filesystem::path& save_directory);
@@ -74,9 +79,6 @@ class Database {
    virtual query_engine::QueryResult executeQuery(const std::string& query) const;
 
   private:
-   PangoLineageAliasLookup alias_key;
-   DataVersion data_version_ = DataVersion{""};
-
    std::map<std::string, std::vector<Nucleotide::Symbol>> getNucSequences() const;
 
    std::map<std::string, std::vector<AminoAcid::Symbol>> getAASequences() const;
