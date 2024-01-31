@@ -441,36 +441,48 @@ Database Preprocessor::buildDatabase(
                     ++chunk_index) {
                   for (const auto& [nuc_name, reference_sequence] :
                        reference_genomes.raw_nucleotide_sequences) {
-                     SPDLOG_DEBUG(
-                        "build - building sequence store for nucleotide sequence {} and partition "
-                        "{}",
-                        nuc_name,
-                        partition_index
-                     );
+                     {
+                        SPDLOG_DEBUG(
+                           "build - building aligned sequence store for nucleotide sequence {} and "
+                           "partition {}",
+                           nuc_name,
+                           partition_index
+                        );
 
-                     silo::ZstdFastaTableReader sequence_input(
-                        preprocessing_db.getConnection(),
-                        "nuc_" + nuc_name,
-                        reference_sequence,
-                        "sequence",
-                        fmt::format("partition_id = {}", partition_index),
-                        order_by_clause
-                     );
-                     database.partitions[partition_index].nuc_sequences.at(nuc_name).fill(
-                        sequence_input
-                     );
+                        silo::ZstdFastaTableReader sequence_input(
+                           preprocessing_db.getConnection(),
+                           "nuc_" + nuc_name,
+                           reference_sequence,
+                           "sequence",
+                           fmt::format("partition_id = {}", partition_index),
+                           order_by_clause
+                        );
+                        database.partitions[partition_index].nuc_sequences.at(nuc_name).fill(
+                           sequence_input
+                        );
+                     }
 
-                     silo::ZstdFastaTableReader unaligned_sequence_input(
-                        preprocessing_db.getConnection(),
-                        "unaligned_nuc_" + nuc_name,
-                        reference_sequence,
-                        "sequence",
-                        fmt::format("partition_id = {}", partition_index),
-                        order_by_clause
-                     );
-                     database.partitions[partition_index].unaligned_nuc_sequences.at(nuc_name).fill(
-                        unaligned_sequence_input
-                     );
+                     {
+                        SPDLOG_DEBUG(
+                           "build - building unaligned sequence store for nucleotide sequence {} "
+                           "and "
+                           "partition {}",
+                           nuc_name,
+                           partition_index
+                        );
+
+                        silo::ZstdFastaTableReader unaligned_sequence_input(
+                           preprocessing_db.getConnection(),
+                           "unaligned_nuc_" + nuc_name,
+                           reference_sequence,
+                           "sequence",
+                           fmt::format("partition_id = {}", partition_index),
+                           order_by_clause
+                        );
+                        database.partitions[partition_index]
+                           .unaligned_nuc_sequences.at(nuc_name)
+                           .fill(unaligned_sequence_input);
+                     }
                   }
                   for (const auto& [aa_name, reference_sequence] :
                        reference_genomes.raw_aa_sequences) {

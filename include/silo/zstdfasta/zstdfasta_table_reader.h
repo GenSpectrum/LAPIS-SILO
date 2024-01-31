@@ -52,7 +52,7 @@ class ZstdFastaTableReader {
 
    std::optional<std::string> nextCompressed(std::optional<std::string>& compressed_genome);
 
-   void reset();
+   void loadTable();
 
    void copyTableTo(std::string_view file_name);
 

@@ -33,6 +33,8 @@ template <typename Symbol>
 size_t silo::SequenceStorePartition<Symbol>::fill(ZstdFastaTableReader& input) {
    static constexpr size_t BUFFER_SIZE = 1024;
 
+   input.loadTable();
+
    size_t read_sequences_count = 0;
 
    std::vector<std::optional<std::string>> genome_buffer;
