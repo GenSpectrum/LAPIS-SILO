@@ -109,6 +109,7 @@ void addSequencesFromResultTableToJson(
          "TRUE",
          "ORDER BY key"
       );
+      table_reader.loadTable();
       std::optional<std::string> genome_buffer;
 
       const size_t start_of_partition_in_result = results.query_result.size() - number_of_values;

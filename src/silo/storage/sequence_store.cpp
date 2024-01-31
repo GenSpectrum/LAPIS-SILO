@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <oneapi/tbb/blocked_range.h>
+#include <oneapi/tbb/enumerable_thread_specific.h>
 #include <oneapi/tbb/parallel_for.h>
 #include <spdlog/spdlog.h>
 #include <roaring/roaring.hh>
@@ -14,54 +15,8 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/symbol_map.h"
 #include "silo/preprocessing/preprocessing_exception.h"
+#include "silo/storage/position.h"
 #include "silo/zstdfasta/zstdfasta_table_reader.h"
-
-template <typename SymbolType>
-silo::Position<SymbolType>::Position(typename SymbolType::Symbol symbol) {
-   symbol_whose_bitmap_is_flipped = symbol;
-}
-
-template <typename SymbolType>
-silo::Position<SymbolType>::Position(std::optional<typename SymbolType::Symbol> symbol) {
-   symbol_whose_bitmap_is_flipped = symbol;
-}
-
-template <typename SymbolType>
-std::optional<typename SymbolType::Symbol> silo::Position<SymbolType>::flipMostNumerousBitmap(
-   uint32_t sequence_count
-) {
-   std::optional<typename SymbolType::Symbol> flipped_bitmap_before =
-      symbol_whose_bitmap_is_flipped;
-   std::optional<typename SymbolType::Symbol> max_symbol = std::nullopt;
-   uint32_t max_count = 0;
-
-   for (const auto& symbol : SymbolType::SYMBOLS) {
-      roaring::Roaring& bitmap = bitmaps[symbol];
-      bitmap.runOptimize();
-      bitmap.shrinkToFit();
-      const uint32_t count = flipped_bitmap_before == symbol ? sequence_count - bitmap.cardinality()
-                                                             : bitmap.cardinality();
-      if (count > max_count) {
-         max_symbol = symbol;
-         max_count = count;
-      }
-   }
-   if (max_symbol != flipped_bitmap_before) {
-      if (flipped_bitmap_before.has_value()) {
-         bitmaps[*flipped_bitmap_before].flip(0, sequence_count);
-         bitmaps[*flipped_bitmap_before].runOptimize();
-         bitmaps[*flipped_bitmap_before].shrinkToFit();
-      }
-      if (max_symbol.has_value()) {
-         bitmaps[*max_symbol].flip(0, sequence_count);
-         bitmaps[*max_symbol].runOptimize();
-         bitmaps[*max_symbol].shrinkToFit();
-      }
-      symbol_whose_bitmap_is_flipped = max_symbol;
-      return symbol_whose_bitmap_is_flipped;
-   }
-   return std::nullopt;
-}
 
 template <typename SymbolType>
 silo::SequenceStorePartition<SymbolType>::SequenceStorePartition(
@@ -70,13 +25,15 @@ silo::SequenceStorePartition<SymbolType>::SequenceStorePartition(
     : reference_sequence(reference_sequence) {
    positions.reserve(reference_sequence.size());
    for (const auto symbol : reference_sequence) {
-      positions.emplace_back(symbol);
+      positions.emplace_back(Position<SymbolType>::fromInitiallyFlipped(symbol));
    }
 }
 
 template <typename Symbol>
 size_t silo::SequenceStorePartition<Symbol>::fill(ZstdFastaTableReader& input) {
    static constexpr size_t BUFFER_SIZE = 1024;
+
+   input.loadTable();
 
    size_t read_sequences_count = 0;
 
@@ -98,7 +55,14 @@ size_t silo::SequenceStorePartition<Symbol>::fill(ZstdFastaTableReader& input) {
       ++read_sequences_count;
    }
    interpret(genome_buffer);
-   SPDLOG_DEBUG("Sequence store partition info after filling it: {}", getInfo());
+   const SequenceStoreInfo info_before_optimisation = getInfo();
+   optimizeBitmaps();
+
+   SPDLOG_DEBUG(
+      "Sequence store partition info after filling it: {}, and after optimising: {}",
+      info_before_optimisation,
+      getInfo()
+   );
 
    return read_sequences_count;
 }
@@ -130,7 +94,7 @@ const roaring::Roaring* silo::SequenceStorePartition<SymbolType>::getBitmap(
    size_t position,
    typename SymbolType::Symbol symbol
 ) const {
-   return &positions[position].bitmaps.at(symbol);
+   return positions[position].getBitmap(symbol);
 }
 
 template <typename SymbolType>
@@ -178,18 +142,10 @@ void silo::SequenceStorePartition<SymbolType>::addSymbolsToPositions(
    const size_t number_of_sequences
 ) {
    for (const auto& symbol : SymbolType::SYMBOLS) {
-      if (!ids_per_symbol_for_current_position.at(symbol).empty()) {
-         positions[position].bitmaps[symbol].addMany(
-            ids_per_symbol_for_current_position.at(symbol).size(),
-            ids_per_symbol_for_current_position.at(symbol).data()
-         );
-         ids_per_symbol_for_current_position[symbol].clear();
-      }
-      if (symbol == positions[position].symbol_whose_bitmap_is_flipped) {
-         positions[position].bitmaps[symbol].flip(
-            sequence_count, sequence_count + number_of_sequences
-         );
-      }
+      positions[position].addValues(
+         symbol, ids_per_symbol_for_current_position.at(symbol), sequence_count, number_of_sequences
+      );
+      ids_per_symbol_for_current_position[symbol].clear();
    }
 }
 
@@ -233,6 +189,27 @@ void silo::SequenceStorePartition<SymbolType>::fillNBitmaps(
    });
 }
 
+template <typename Symbol>
+void silo::SequenceStorePartition<Symbol>::optimizeBitmaps() {
+   tbb::enumerable_thread_specific<decltype(indexing_differences_to_reference_sequence)>
+      index_changes_to_reference;
+
+   tbb::parallel_for(tbb::blocked_range<uint32_t>(0, positions.size()), [&](const auto& local) {
+      auto& local_index_changes = index_changes_to_reference.local();
+      for (auto position = local.begin(); position != local.end(); ++position) {
+         auto symbol_changed = positions[position].deleteMostNumerousBitmap(sequence_count);
+         if (symbol_changed.has_value()) {
+            local_index_changes.emplace_back(position, *symbol_changed);
+         }
+      }
+   });
+   for (const auto& local : index_changes_to_reference) {
+      for (const auto& element : local) {
+         indexing_differences_to_reference_sequence.emplace_back(element);
+      }
+   }
+}
+
 template <typename SymbolType>
 void silo::SequenceStorePartition<SymbolType>::interpret(
    const std::vector<std::optional<std::string>>& genomes
@@ -246,9 +223,7 @@ template <typename SymbolType>
 size_t silo::SequenceStorePartition<SymbolType>::computeSize() const {
    size_t result = 0;
    for (const auto& position : positions) {
-      for (const auto symbol : SymbolType::SYMBOLS) {
-         result += position.bitmaps.at(symbol).getSizeInBytes(false);
-      }
+      result += position.computeSize();
    }
    return result;
 }
@@ -263,9 +238,6 @@ template <typename Symbol>
 silo::SequenceStorePartition<Symbol>& silo::SequenceStore<Symbol>::createPartition() {
    return partitions.emplace_back(reference_sequence);
 }
-
-template class silo::Position<silo::Nucleotide>;
-template class silo::Position<silo::AminoAcid>;
 template class silo::SequenceStorePartition<silo::Nucleotide>;
 template class silo::SequenceStorePartition<silo::AminoAcid>;
 template class silo::SequenceStore<silo::Nucleotide>;

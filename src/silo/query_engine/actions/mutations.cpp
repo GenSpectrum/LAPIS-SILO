@@ -63,35 +63,73 @@ std::unordered_map<std::string, typename Mutations<SymbolType>::PrefilteredBitma
 }
 
 template <typename SymbolType>
-void Mutations<SymbolType>::addMutationsCountsForPosition(
+void Mutations<SymbolType>::addPositionToMutationCountsForMixedBitmaps(
    uint32_t position,
    const PrefilteredBitmaps& bitmaps_to_evaluate,
    SymbolMap<SymbolType, std::vector<uint32_t>>& count_of_mutations_per_position
 ) {
    for (const auto& [filter, sequence_store_partition] : bitmaps_to_evaluate.bitmaps) {
-      for (const auto symbol : SymbolType::VALID_MUTATION_SYMBOLS) {
-         if (sequence_store_partition.positions[position].symbol_whose_bitmap_is_flipped != symbol) {
-            count_of_mutations_per_position[symbol][position] += filter->and_cardinality(
-               sequence_store_partition.positions[position].bitmaps.at(symbol)
-            );
-         } else {
-            count_of_mutations_per_position[symbol][position] += filter->andnot_cardinality(
-               sequence_store_partition.positions[position].bitmaps.at(symbol)
-            );
+      for (const auto symbol : SymbolType::SYMBOLS) {
+         const auto& current_position = sequence_store_partition.positions[position];
+         if (current_position.isSymbolDeleted(symbol)) {
+            count_of_mutations_per_position[symbol][position] += filter->cardinality();
+            for (const uint32_t idx : *filter) {
+               const roaring::Roaring& n_bitmap =
+                  sequence_store_partition.missing_symbol_bitmaps[idx];
+               if (n_bitmap.contains(position)) {
+                  count_of_mutations_per_position[symbol][position] -= 1;
+               }
+            }
+            continue;
+         }
+         const uint32_t symbol_count =
+            current_position.isSymbolFlipped(symbol)
+               ? filter->andnot_cardinality(*current_position.getBitmap(symbol))
+               : filter->and_cardinality(*current_position.getBitmap(symbol));
+
+         count_of_mutations_per_position[symbol][position] += symbol_count;
+
+         const auto deleted_symbol = current_position.getDeletedSymbol();
+         if (deleted_symbol.has_value() && symbol != *deleted_symbol) {
+            count_of_mutations_per_position[*deleted_symbol][position] -= symbol_count;
          }
       }
    }
+}
+
+template <typename SymbolType>
+void Mutations<SymbolType>::addPositionToMutationCountsForFullBitmaps(
+   uint32_t position,
+   const PrefilteredBitmaps& bitmaps_to_evaluate,
+   SymbolMap<SymbolType, std::vector<uint32_t>>& count_of_mutations_per_position
+) {
    // For these partitions, we have full bitmaps. Do not need to bother with AND
    // cardinality
    for (const auto& [filter, sequence_store_partition] : bitmaps_to_evaluate.full_bitmaps) {
-      for (const auto symbol : SymbolType::VALID_MUTATION_SYMBOLS) {
-         if (sequence_store_partition.positions[position].symbol_whose_bitmap_is_flipped != symbol) {
+      for (const auto symbol : SymbolType::SYMBOLS) {
+         const auto& current_position = sequence_store_partition.positions[position];
+         if (current_position.isSymbolDeleted(symbol)) {
             count_of_mutations_per_position[symbol][position] +=
-               sequence_store_partition.positions[position].bitmaps.at(symbol).cardinality();
-         } else {
-            count_of_mutations_per_position[symbol][position] +=
-               sequence_store_partition.sequence_count -
-               sequence_store_partition.positions[position].bitmaps.at(symbol).cardinality();
+               sequence_store_partition.sequence_count;
+            for (const roaring::Roaring& n_bitmap :
+                 sequence_store_partition.missing_symbol_bitmaps) {
+               if (n_bitmap.contains(position)) {
+                  count_of_mutations_per_position[symbol][position] -= 1;
+               }
+            }
+            continue;
+         }
+         const uint32_t symbol_count = current_position.isSymbolFlipped(symbol)
+                                          ? sequence_store_partition.sequence_count -
+                                               current_position.getBitmap(symbol)->cardinality()
+                                          : current_position.getBitmap(symbol)->cardinality();
+
+         count_of_mutations_per_position[symbol][position] += symbol_count;
+
+         const auto deleted_symbol = current_position.getDeletedSymbol();
+         if (deleted_symbol.has_value() && symbol != *deleted_symbol) {
+            count_of_mutations_per_position[*deleted_symbol][position] -=
+               sequence_store_partition.positions[position].getBitmap(symbol)->cardinality();
          }
       }
    }
@@ -104,20 +142,28 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
 ) {
    const size_t sequence_length = sequence_store.reference_sequence.size();
 
-   SymbolMap<SymbolType, std::vector<uint32_t>> count_of_mutations_per_position;
-   for (const auto symbol : SymbolType::VALID_MUTATION_SYMBOLS) {
-      count_of_mutations_per_position[symbol].resize(sequence_length);
+   SymbolMap<SymbolType, std::vector<uint32_t>> mutation_counts_per_position;
+   for (const auto symbol : SymbolType::SYMBOLS) {
+      mutation_counts_per_position[symbol].resize(sequence_length);
    }
    static constexpr int POSITIONS_PER_PROCESS = 300;
    tbb::parallel_for(
       tbb::blocked_range<uint32_t>(0, sequence_length, /*grain_size=*/POSITIONS_PER_PROCESS),
       [&](const auto& local) {
          for (uint32_t pos = local.begin(); pos != local.end(); ++pos) {
-            addMutationsCountsForPosition(pos, bitmap_filter, count_of_mutations_per_position);
+            addPositionToMutationCountsForMixedBitmaps(
+               pos, bitmap_filter, mutation_counts_per_position
+            );
+            addPositionToMutationCountsForFullBitmaps(
+               pos, bitmap_filter, mutation_counts_per_position
+            );
+            correctDeletedSymbolCountForMissingSymbols(
+               pos, bitmap_filter, mutation_counts_per_position
+            );
          }
       }
    );
-   return count_of_mutations_per_position;
+   return mutation_counts_per_position;
 }
 
 template <typename SymbolType>
@@ -255,7 +301,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Mutations<SymbolType>
    CHECK_SILO_QUERY(
       json.contains("minProportion") && json["minProportion"].is_number(),
       "Mutations action must contain the field minProportion of type number with limits [0.0, "
-      "1.0]. Only mutations are returned if the proportion of sequences having this mutation, is "
+      "1.0]. Only mutations are returned if the proportion of sequences having this mutation, "
+      "is "
       "at least minProportion"
    )
    const double min_proportion = json["minProportion"].get<double>();

@@ -14,37 +14,16 @@
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/symbol_map.h"
+#include "silo/storage/position.h"
 
 namespace boost::serialization {
 class access;
 }  // namespace boost::serialization
 
 namespace silo {
-class ZstdFastaTableReader;
-
 template <typename SymbolType>
-class Position {
-   friend class boost::serialization::access;
-
-   template <class Archive>
-   void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
-      // clang-format off
-      archive & bitmaps;
-      archive & symbol_whose_bitmap_is_flipped;
-      // clang-format on
-   }
-
-   Position() = default;
-
-  public:
-   explicit Position(typename SymbolType::Symbol symbol);
-   explicit Position(std::optional<typename SymbolType::Symbol> symbol);
-
-   SymbolMap<SymbolType, roaring::Roaring> bitmaps;
-   std::optional<typename SymbolType::Symbol> symbol_whose_bitmap_is_flipped;
-
-   std::optional<typename SymbolType::Symbol> flipMostNumerousBitmap(uint32_t sequence_count);
-};
+class Position;
+class ZstdFastaTableReader;
 
 struct SequenceStoreInfo {
    uint32_t sequence_count;
@@ -77,6 +56,8 @@ class SequenceStorePartition {
    );
 
    void fillNBitmaps(const std::vector<std::optional<std::string>>& genomes);
+
+   void optimizeBitmaps();
 
   public:
    explicit SequenceStorePartition(

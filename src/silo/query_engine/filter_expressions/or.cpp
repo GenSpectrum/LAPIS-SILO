@@ -68,8 +68,9 @@ std::unique_ptr<operators::Operator> Or::compile(
             std::back_inserter(filtered_child_operators),
             [&](std::unique_ptr<operators::Operator>& expression) { return std::move(expression); }
          );
+      } else {
+         filtered_child_operators.push_back(std::move(child));
       }
-      filtered_child_operators.push_back(std::move(child));
    }
    if (filtered_child_operators.empty()) {
       return std::make_unique<operators::Empty>(database_partition.sequence_count);

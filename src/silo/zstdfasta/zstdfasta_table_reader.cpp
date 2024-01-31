@@ -26,8 +26,6 @@ silo::ZstdFastaTableReader::ZstdFastaTableReader(
       order_by_clause(order_by_clause),
       decompressor(std::make_unique<ZstdDecompressor>(compression_dict)) {
    SPDLOG_TRACE("Initializing ZstdFastaTableReader for table {}", table_name);
-   reset();
-   SPDLOG_TRACE("Successfully initialized ZstdFastaTableReader for table {}", table_name);
 }
 
 std::optional<std::string> silo::ZstdFastaTableReader::nextKey() {
@@ -95,7 +93,7 @@ std::string silo::ZstdFastaTableReader::getTableQuery() {
    );
 }
 
-void silo::ZstdFastaTableReader::reset() {
+void silo::ZstdFastaTableReader::loadTable() {
    try {
       query_result = connection.Query(getTableQuery());
    } catch (const std::exception& e) {

@@ -6,13 +6,16 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/common/aa_symbols.h"
+#include "silo/query_engine/filter_expressions/and.h"
 #include "silo/query_engine/filter_expressions/expression.h"
+#include "silo/query_engine/filter_expressions/negation.h"
 #include "silo/query_engine/operators/bitmap_selection.h"
 #include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/index_scan.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/storage/database_partition.h"
+#include "silo/storage/position.h"
 #include "silo/storage/sequence_store.h"
 
 namespace silo {
@@ -36,7 +39,7 @@ std::string AASymbolEquals::toString(const silo::Database& /*database*/) const {
 }
 
 std::unique_ptr<silo::query_engine::operators::Operator> AASymbolEquals::compile(
-   const silo::Database& /*database*/,
+   const silo::Database& database,
    const silo::DatabasePartition& database_partition,
    Expression::AmbiguityMode /*mode*/
 ) const {
@@ -57,13 +60,31 @@ std::unique_ptr<silo::query_engine::operators::Operator> AASymbolEquals::compile
          position
       );
    }
-   if (aa_store_partition.positions[position].symbol_whose_bitmap_is_flipped == aa_symbol) {
+   if (aa_store_partition.positions[position].isSymbolFlipped(aa_symbol)) {
       return std::make_unique<operators::Complement>(
          std::make_unique<operators::IndexScan>(
             aa_store_partition.getBitmap(position, aa_symbol), database_partition.sequence_count
          ),
          database_partition.sequence_count
       );
+   }
+   if (aa_store_partition.positions[position].isSymbolDeleted(aa_symbol)) {
+      std::vector<AminoAcid::Symbol> symbols =
+         std::vector<AminoAcid::Symbol>(AminoAcid::SYMBOLS.begin(), AminoAcid::SYMBOLS.end());
+      // NOLINTNEXTLINE(bugprone-unused-return-value)
+      (void)std::remove(symbols.begin(), symbols.end(), aa_symbol);
+      std::vector<std::unique_ptr<filter_expressions::Expression>> symbol_filters;
+      std::transform(
+         symbols.begin(),
+         symbols.end(),
+         std::back_inserter(symbol_filters),
+         [&](AminoAcid::Symbol symbol) {
+            return std::make_unique<Negation>(
+               std::make_unique<AASymbolEquals>(aa_sequence_name, position, symbol)
+            );
+         }
+      );
+      return And(std::move(symbol_filters)).compile(database, database_partition, NONE);
    }
    return std::make_unique<operators::IndexScan>(
       aa_store_partition.getBitmap(position, aa_symbol), database_partition.sequence_count

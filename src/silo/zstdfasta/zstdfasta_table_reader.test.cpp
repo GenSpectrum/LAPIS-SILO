@@ -24,6 +24,7 @@ TEST(ZstdFastaTableReader, correctlyReadsZstdFastaTableFromFastaFile) {
    silo::ZstdFastaTable::generate(connection, "test", file_reader, "ACGT");
 
    silo::ZstdFastaTableReader under_test(connection, "test", "ACGT", "sequence", "true", "");
+   under_test.loadTable();
 
    std::optional<std::string> key;
    std::optional<std::string> genome;
@@ -53,6 +54,7 @@ TEST(ZstdFastaTableReader, correctlyReadsZstdFastaTableFromZstdFastaFile) {
    silo::ZstdFastaTable::generate(connection, "test", file_reader, "ACGT");
 
    silo::ZstdFastaTableReader under_test(connection, "test", "ACGT", "sequence", "true", "");
+   under_test.loadTable();
 
    std::optional<std::string> key;
    std::optional<std::string> genome;
@@ -84,6 +86,7 @@ TEST(ZstdFastaTableReader, correctlySortsZstdFastaTableFromFastaFile) {
    silo::ZstdFastaTableReader under_test(
       connection, "test", "ACGT", "sequence", "true", "ORDER BY key desc"
    );
+   under_test.loadTable();
 
    std::optional<std::string> key;
    std::optional<std::string> genome;
@@ -115,6 +118,7 @@ TEST(ZstdFastaTableReader, correctlySortsZstdFastaTableFromZstdFastaFile) {
    silo::ZstdFastaTableReader under_test(
       connection, "test", "ACGT", "sequence", "true", "ORDER BY key desc"
    );
+   under_test.loadTable();
 
    std::optional<std::string> key;
    std::optional<std::string> genome;

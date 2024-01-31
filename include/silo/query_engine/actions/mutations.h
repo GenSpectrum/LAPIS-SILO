@@ -47,7 +47,13 @@ class Mutations : public Action {
    static std::unordered_map<std::string, Mutations<SymbolType>::PrefilteredBitmaps>
    preFilterBitmaps(const silo::Database& database, std::vector<OperatorResult>& bitmap_filter);
 
-   static void addMutationsCountsForPosition(
+   static void addPositionToMutationCountsForMixedBitmaps(
+      uint32_t position,
+      const PrefilteredBitmaps& bitmaps_to_evaluate,
+      SymbolMap<SymbolType, std::vector<uint32_t>>& count_of_mutations_per_position
+   );
+
+   static void addPositionToMutationCountsForFullBitmaps(
       uint32_t position,
       const PrefilteredBitmaps& bitmaps_to_evaluate,
       SymbolMap<SymbolType, std::vector<uint32_t>>& count_of_mutations_per_position

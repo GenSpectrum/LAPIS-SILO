@@ -39,7 +39,7 @@ class AminoAcid {
       STOP,  // Stop codon
       X,     // Any amino acid
    };
-   static constexpr uint32_t COUNT = static_cast<uint32_t>(Symbol::X) + 1;
+   static constexpr uint32_t COUNT = 25;
 
    static constexpr std::string_view SYMBOL_NAME = "Amino Acid";
    static constexpr std::string_view SYMBOL_NAME_LOWER_CASE = "amino acid";
@@ -77,6 +77,14 @@ class AminoAcid {
       AminoAcid::Symbol::Y,     // Tyrosine
       AminoAcid::Symbol::STOP,  // Stop codon, Star-character in sequence
    };
+
+   static constexpr std::array<Symbol, 3> INVALID_MUTATION_SYMBOLS{
+      AminoAcid::Symbol::B,  // Aspartic acid or Asparagine
+      AminoAcid::Symbol::Z,  // Glutamine or Glutamic acid
+      AminoAcid::Symbol::X,  // Any amino acid
+   };
+
+   static_assert(INVALID_MUTATION_SYMBOLS.size() + VALID_MUTATION_SYMBOLS.size() == SYMBOLS.size());
 
    static constexpr Symbol SYMBOL_MISSING = Symbol::X;
 
