@@ -157,9 +157,6 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
             addPositionToMutationCountsForFullBitmaps(
                pos, bitmap_filter, mutation_counts_per_position
             );
-            correctDeletedSymbolCountForMissingSymbols(
-               pos, bitmap_filter, mutation_counts_per_position
-            );
          }
       }
    );
