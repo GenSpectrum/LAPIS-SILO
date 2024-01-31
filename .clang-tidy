@@ -19,6 +19,7 @@ Checks: >
   -google-readability-avoid-underscore-in-googletest-name,
   -abseil-string-find-str-contains,
   -bugprone-easily-swappable-parameters,
+  -bugprone-unchecked-optional-access,
   -readability-magic-numbers
 #  TODO(someone): clean up misc-non-private-member-variables-in-classes and add option back in
 # Not using google-readability-avoid-underscore-in-googletest-name because it also fails for test_name

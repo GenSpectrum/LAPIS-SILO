@@ -47,6 +47,15 @@ class SequenceStorePartition {
       // clang-format on
    }
 
+  public:
+   const std::vector<typename SymbolType::Symbol>& reference_sequence;
+   std::vector<std::pair<size_t, typename SymbolType::Symbol>>
+      indexing_differences_to_reference_sequence;
+   std::vector<Position<SymbolType>> positions;
+   std::vector<roaring::Roaring> missing_symbol_bitmaps;
+   uint32_t sequence_count = 0;
+
+  private:
    void fillIndexes(const std::vector<std::optional<std::string>>& genomes);
 
    void addSymbolsToPositions(
@@ -63,13 +72,6 @@ class SequenceStorePartition {
    explicit SequenceStorePartition(
       const std::vector<typename SymbolType::Symbol>& reference_sequence
    );
-
-   const std::vector<typename SymbolType::Symbol>& reference_sequence;
-   std::vector<std::pair<size_t, typename SymbolType::Symbol>>
-      indexing_differences_to_reference_sequence;
-   std::vector<Position<SymbolType>> positions;
-   std::vector<roaring::Roaring> missing_symbol_bitmaps;
-   uint32_t sequence_count = 0;
 
    [[nodiscard]] size_t computeSize() const;
 

@@ -21,14 +21,14 @@ class UnalignedSequenceStorePartition {
    }
 
   public:
+   std::filesystem::path file_name;
+   std::string& compression_dictionary;
+   uint32_t sequence_count = 0;
+
    explicit UnalignedSequenceStorePartition(
       std::filesystem::path file_name,
       std::string& compression_dictionary
    );
-
-   std::filesystem::path file_name;
-   std::string& compression_dictionary;
-   uint32_t sequence_count = 0;
 
    size_t fill(silo::ZstdFastaTableReader& input);
 };

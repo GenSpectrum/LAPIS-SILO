@@ -8,6 +8,9 @@ namespace silo {
 class DataVersion {
    friend class Database;
 
+  private:
+   std::string data_version;
+
   public:
    [[nodiscard]] std::string toString() const;
 
@@ -24,7 +27,6 @@ class DataVersion {
 
   private:
    explicit DataVersion(std::string data_version);
-   std::string data_version;
 };
 
 }  // namespace silo
