@@ -118,7 +118,6 @@ void addSequencesFromResultTableToJson(
          auto current_key = table_reader.next(genome_buffer);
          assert(current_key.has_value());
          if (genome_buffer.has_value()) {
-            // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
             results.query_result.at(idx).fields.emplace(sequence_name, *genome_buffer);
          } else {
             results.query_result.at(idx).fields.emplace(sequence_name, std::nullopt);
