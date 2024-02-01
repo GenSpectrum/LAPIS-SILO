@@ -176,7 +176,7 @@ std::vector<std::string> MetadataInfo::getMetadataSelects() const {
    std::vector<std::string> ret;
    ret.reserve(metadata_selects.size());
    for (const auto& [field, select] : metadata_selects) {
-      ret.push_back(fmt::format(R"({} as "{}")", select, field));
+      ret.push_back(fmt::format(R"({} AS "{}")", select, field));
    }
    return ret;
 }

@@ -10,6 +10,8 @@ class PangoLineageAliasLookup;
 
 namespace preprocessing {
 
+class SequenceInfo;
+
 class Preprocessor {
    PreprocessingConfig preprocessing_config;
    config::DatabaseConfig database_config;
@@ -24,18 +26,36 @@ class Preprocessor {
    Database preprocess();
 
   private:
-   void buildTablesFromNdjsonInput(
-      const std::filesystem::path& file_name,
-      const ReferenceGenomes& reference_genomes
-   );
+   void buildTablesFromNdjsonInput(const std::filesystem::path& file_name);
    void buildMetadataTableFromFile(const std::filesystem::path& metadata_filename);
 
    void buildPartitioningTable();
    void buildPartitioningTableByColumn(const std::string& partition_by_field);
    void buildEmptyPartitioning();
 
-   void createSequenceViews(const ReferenceGenomes& reference_genomes);
-   void createPartitionedSequenceTables(const ReferenceGenomes& reference_genomes);
+   void createPartitionedSequenceTablesFromNdjson(
+      const std::filesystem::path& file_name,
+      const ReferenceGenomes& reference_genomes
+   );
+   void createAlignedPartitionedSequenceViews(
+      const std::filesystem::path& file_name,
+      const ReferenceGenomes& reference_genomes,
+      const SequenceInfo& sequence_info,
+      const std::string& partition_by_select,
+      const std::string& partition_by_where
+   );
+   void createUnalignedPartitionedSequenceFiles(
+      const std::filesystem::path& file_name,
+      const ReferenceGenomes& reference_genomes,
+      const std::string& partition_by_select,
+      const std::string& partition_by_where
+   );
+   void createUnalignedPartitionedSequenceFile(
+      const std::string& seq_name,
+      const std::string& table_sql
+   );
+
+   void createPartitionedSequenceTablesFromSequenceFiles(const ReferenceGenomes& reference_genomes);
    void createPartitionedTableForSequence(
       const std::string& sequence_name,
       const std::string& reference_sequence,
@@ -49,6 +69,24 @@ class Preprocessor {
       const std::string& order_by_clause,
       const silo::PangoLineageAliasLookup& alias_key,
       const std::filesystem::path& intermediate_results_directory
+   );
+
+   void buildMetadataStore(
+      Database& database,
+      const preprocessing::Partitions& partition_descriptor,
+      const std::string& order_by_clause
+   );
+   void buildNucleotideSequenceStore(
+      Database& database,
+      const preprocessing::Partitions& partition_descriptor,
+      const ReferenceGenomes& reference_genomes,
+      const std::string& order_by_clause
+   );
+   void buildAminoAcidSequenceStore(
+      Database& database,
+      const preprocessing::Partitions& partition_descriptor,
+      const ReferenceGenomes& reference_genomes,
+      const std::string& order_by_clause
    );
 };
 }  // namespace preprocessing

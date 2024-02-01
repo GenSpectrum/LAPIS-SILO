@@ -14,23 +14,19 @@
 #include "silo/common/format_number.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/symbol_map.h"
+#include "silo/persistence/exception.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/zstdfasta/zstdfasta_table_reader.h"
 
 silo::UnalignedSequenceStorePartition::UnalignedSequenceStorePartition(
-   std::filesystem::path file_name,
-   std::string& compression_dictionary
+   std::string sql_for_reading_file,
+   const std::string& compression_dictionary
 )
-    : file_name(std::move(file_name)),
+    : sql_for_reading_file(std::move(sql_for_reading_file)),
       compression_dictionary(compression_dictionary) {}
 
-size_t silo::UnalignedSequenceStorePartition::fill(silo::ZstdFastaTableReader& input) {
-   const size_t line_count = input.lineCount();
-
-   input.copyTableTo(file_name.string());
-
-   sequence_count += line_count;
-   return line_count;
+std::string silo::UnalignedSequenceStorePartition::getReadSQL() const {
+   return sql_for_reading_file;
 }
 
 silo::UnalignedSequenceStore::UnalignedSequenceStore(
@@ -41,11 +37,18 @@ silo::UnalignedSequenceStore::UnalignedSequenceStore(
       compression_dictionary(std::move(compression_dictionary)) {}
 
 silo::UnalignedSequenceStorePartition& silo::UnalignedSequenceStore::createPartition() {
+   const size_t partition_id = partitions.size();
    return partitions.emplace_back(
-      folder_path / fmt::format("P{}.parquet", partitions.size()), compression_dictionary
+      fmt::format(
+         "SELECT * FROM read_parquet('{}/*/*.parquet', hive_partitioning = 1) "
+         "WHERE partition_id = {}",
+         folder_path.string(),
+         partition_id
+      ),
+      compression_dictionary
    );
 }
 
 void silo::UnalignedSequenceStore::saveFolder(const std::filesystem::path& save_location) const {
-   std::filesystem::copy(folder_path, save_location);
+   std::filesystem::copy(folder_path, save_location, std::filesystem::copy_options::recursive);
 }

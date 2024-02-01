@@ -25,7 +25,13 @@ class SequenceInfo {
   public:
    SequenceInfo(const silo::ReferenceGenomes& reference_genomes);
 
-   std::vector<std::string> getSequenceSelects();
+   std::vector<std::string> getAlignedSequenceSelects() const;
+
+   static std::string getNucleotideSequenceSelect(const std::string& seq_name);
+
+   static std::string getUnalignedSequenceSelect(const std::string& seq_name);
+
+   static std::string getAminoAcidSequenceSelect(const std::string& seq_name);
 
    void validate(duckdb::Connection& connection, const std::filesystem::path& input_filename) const;
 };

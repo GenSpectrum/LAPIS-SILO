@@ -1,6 +1,8 @@
 #pragma once
 
+#include <filesystem>
 #include <memory>
+#include <optional>
 #include <string>
 
 #include <duckdb.hpp>
@@ -24,9 +26,11 @@ class PreprocessingDatabase {
    duckdb::Connection connection;
 
   public:
-   PreprocessingDatabase(const std::string& backing_file);
+   PreprocessingDatabase(const std::optional<std::filesystem::path>& backing_file);
 
    duckdb::Connection& getConnection();
+
+   void refreshConnection();
 
    Partitions getPartitionDescriptor();
 

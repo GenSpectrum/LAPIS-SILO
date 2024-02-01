@@ -112,7 +112,7 @@ TEST_P(PreprocessorTestFixture, shouldProcessDataSetWithMissingSequences) {
 
    const auto database_info = database.getDatabaseInfo();
 
-   EXPECT_GT(database_info.total_size, 0);
+   EXPECT_GT(database_info.total_size, 0UL);
    EXPECT_EQ(database_info.sequence_count, scenario.expected_sequence_count);
 
    const silo::query_engine::QueryEngine query_engine(database);

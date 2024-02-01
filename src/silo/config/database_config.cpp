@@ -211,7 +211,7 @@ std::optional<DatabaseMetadata> DatabaseConfig::getMetadata(const std::string& n
 
 void DatabaseConfig::writeConfig(const std::filesystem::path& config_path) const {
    const YAML::Node node = YAML::convert<DatabaseConfig>::encode(*this);
-   SPDLOG_INFO("Writing database config to {}", config_path.string());
+   SPDLOG_DEBUG("Writing database config to {}", config_path.string());
    std::ofstream out_file(config_path);
    out_file << YAML::Dump(node);
 }
