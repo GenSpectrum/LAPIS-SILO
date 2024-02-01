@@ -62,20 +62,22 @@ std::string getTableQuery(
    const DatabasePartition& database_partition,
    const std::string& key_table_name
 ) {
-   std::vector<std::filesystem::path> file_names;
-   file_names.reserve(sequence_names.size());
+   std::vector<std::filesystem::path> read_file_sqls;
+   read_file_sqls.reserve(sequence_names.size());
    for (const auto& sequence_name : sequence_names) {
-      file_names.emplace_back(database_partition.unaligned_nuc_sequences.at(sequence_name).file_name
+      read_file_sqls.emplace_back(
+         database_partition.unaligned_nuc_sequences.at(sequence_name).getReadSQL()
       );
    }
 
    std::string select_clause;
    std::string table_clause;
    std::string join_clause;
-   for (size_t idx = 0; idx < file_names.size(); idx++) {
-      const auto& file_name = file_names.at(idx);
-      select_clause += fmt::format(", t{0}.sequence as t{0}_sequence", idx);
-      table_clause += fmt::format(", '{}' t{}", file_name.string(), idx);
+   for (size_t idx = 0; idx < read_file_sqls.size(); idx++) {
+      const auto& sql_to_read_file = read_file_sqls.at(idx);
+      select_clause +=
+         fmt::format(", t{0}.unaligned_nuc_{1} as t{0}_sequence", idx, sequence_names.at(idx));
+      table_clause += fmt::format(", ({}) t{}", sql_to_read_file.string(), idx);
       join_clause += fmt::format(" AND key_table.key = t{}.key", idx);
    }
 

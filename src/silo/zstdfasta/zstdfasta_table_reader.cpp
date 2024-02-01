@@ -138,6 +138,19 @@ void silo::ZstdFastaTableReader::copyTableTo(std::string_view file_name) {
    }
 }
 
+void silo::ZstdFastaTableReader::copyTableToPartitioned(
+   std::string_view file_name,
+   std::string_view partition_key
+) {
+   query_result =
+      connection.Query(fmt::format("COPY ({}) to '{}' ;", getTableQuery(), file_name, partition_key)
+      );
+   if (query_result->HasError()) {
+      SPDLOG_ERROR("Error when executing SQL " + query_result->GetError());
+      throw preprocessing::PreprocessingException("Error when SQL " + query_result->GetError());
+   }
+}
+
 size_t silo::ZstdFastaTableReader::lineCount() {
    query_result = connection.Query(fmt::format("SELECT COUNT(*) FROM ({})", getTableQuery()));
    if (query_result->HasError()) {

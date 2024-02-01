@@ -20,7 +20,6 @@
 
 using duckdb::BigIntValue;
 using duckdb::BinaryExecutor;
-using duckdb::Connection;
 using duckdb::DataChunk;
 using duckdb::ExpressionState;
 using duckdb::ListValue;
@@ -100,11 +99,14 @@ std::unordered_map<std::string_view, tbb::enumerable_thread_specific<silo::ZstdC
 
 namespace silo::preprocessing {
 
-PreprocessingDatabase::PreprocessingDatabase(const std::string& backing_file)
-    : duck_db(backing_file),
+PreprocessingDatabase::PreprocessingDatabase(
+   const std::optional<std::filesystem::path>& backing_file
+)
+    : duck_db(backing_file.value_or(":memory:")),
       connection(duck_db) {
    query("PRAGMA default_null_order='NULLS FIRST';");
    query("SET preserve_insertion_order=FALSE;");
+   query("SET memory_limit='50 GB';");
 
    connection.CreateVectorizedFunction(
       std::string(COMPRESS_NUC),
@@ -135,8 +137,12 @@ void PreprocessingDatabase::registerSequences(const silo::ReferenceGenomes& refe
    Compressors::initialize(reference_genomes);
 }
 
-Connection& PreprocessingDatabase::getConnection() {
+duckdb::Connection& PreprocessingDatabase::getConnection() {
    return connection;
+}
+
+void PreprocessingDatabase::refreshConnection() {
+   connection = duckdb::Connection{duck_db};
 }
 
 preprocessing::Partitions PreprocessingDatabase::getPartitionDescriptor() {

@@ -59,9 +59,6 @@ class DatabasePartition {
       for(auto& [name, store] : aa_sequences){
          archive & store;
       }
-      for(auto& [name, store] : unaligned_nuc_sequences){
-         archive & store;
-      }
       archive & sequence_count;
       // clang-format on
    }

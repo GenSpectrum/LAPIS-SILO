@@ -375,6 +375,7 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
 
    const std::filesystem::path versioned_save_directory =
       save_directory / getDataVersion().toString();
+   SPDLOG_INFO("Saving database to '{}'", versioned_save_directory.string());
 
    if (std::filesystem::exists(versioned_save_directory)) {
       auto error = fmt::format(
@@ -387,6 +388,8 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
    }
 
    std::filesystem::create_directory(versioned_save_directory);
+
+   SPDLOG_INFO("Saving database config and schema");
 
    const std::filesystem::path database_config_filename =
       versioned_save_directory / "database_config.yaml";
@@ -406,6 +409,8 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
    ::boost::archive::binary_oarchive column_archive(column_file);
    column_archive << columns;
 
+   SPDLOG_INFO("Saving database sequence schema");
+
    auto nuc_sequences_map = getNucSequences();
    std::ofstream nuc_sequences_file =
       openOutputFileOrThrow(versioned_save_directory / "nuc_sequences.silo");
@@ -418,8 +423,15 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
    ::boost::archive::binary_oarchive aa_sequences_archive(aa_sequences_file);
    aa_sequences_archive << aa_sequences_map;
 
+   SPDLOG_INFO("Saving unaligned sequence data");
+
    for (auto& [name, store] : unaligned_nuc_sequences) {
-      store.saveFolder(versioned_save_directory / name);
+      const std::filesystem::path unaligned_sequence_directory =
+         versioned_save_directory / ("unaligned_nuc_" + name);
+      SPDLOG_DEBUG(
+         "Saving unaligned sequence {} to folder '{}'", name, unaligned_sequence_directory.string()
+      );
+      store.saveFolder(unaligned_sequence_directory);
    }
 
    std::vector<std::ofstream> partition_archives;
@@ -639,8 +651,9 @@ void Database::initializeNucSequences(
    }
    SPDLOG_TRACE("initializing unaligned nucleotide sequences");
    for (const auto& [nuc_name, reference_sequence] : reference_sequences) {
-      const std::filesystem::path sequence_directory = intermediate_results_directory / nuc_name;
-      create_directory(sequence_directory);
+      const std::filesystem::path sequence_directory =
+         intermediate_results_directory / ("unaligned_nuc_" + nuc_name);
+      std::filesystem::create_directory(sequence_directory);
       if (!std::filesystem::is_directory(sequence_directory)) {
          SPDLOG_TRACE(
             "Sequence directory for unaligned sequences {} could not be created.",

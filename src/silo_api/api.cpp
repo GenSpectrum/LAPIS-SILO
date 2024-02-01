@@ -201,16 +201,22 @@ class SiloServer : public Poco::Util::ServerApplication {
       return Application::EXIT_OK;
    };
 
+   silo::Database runPreprocessor(
+      const silo::preprocessing::PreprocessingConfig& preprocessing_config
+   ) {
+      auto database_config = databaseConfig(config());
+
+      auto preprocessor = silo::preprocessing::Preprocessor(preprocessing_config, database_config);
+
+      return preprocessor.preprocess();
+   }
+
    int handlePreprocessing() {
       SPDLOG_INFO("Starting SILO preprocessing");
       try {
          const auto preprocessing_config = preprocessingConfig(config());
-         auto database_config = databaseConfig(config());
 
-         auto preprocessor =
-            silo::preprocessing::Preprocessor(preprocessing_config, database_config);
-
-         auto database = preprocessor.preprocess();
+         auto database = runPreprocessor(preprocessing_config);
 
          database.saveDatabaseState(preprocessing_config.getOutputDirectory());
       } catch (const std::exception& ex) {
