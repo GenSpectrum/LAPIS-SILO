@@ -1,7 +1,11 @@
-const { server, headerToHaveDataVersion } = require('./common');
-const fs = require('fs');
-const { expect } = require('chai');
-const { describe, it } = require('node:test');
+import { headerToHaveDataVersion, server } from './common.js';
+import { expect } from 'chai';
+import { describe, it } from 'node:test';
+import fs from 'fs';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const queriesPath = __dirname + '/queries';
 const queryTestFiles = fs.readdirSync(queriesPath);

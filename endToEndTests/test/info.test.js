@@ -1,6 +1,6 @@
-const { server, headerToHaveDataVersion } = require('./common');
-const { expect } = require('chai');
-const { describe, it } = require('node:test');
+import { expect } from 'chai';
+import { headerToHaveDataVersion, server } from './common.js';
+import { describe, it } from 'node:test';
 
 describe('The /info endpoint', () => {
   it('should return info about the current state of the database', async () => {

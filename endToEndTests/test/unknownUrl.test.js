@@ -1,5 +1,5 @@
-const { server } = require('./common');
-const { describe, it } = require('node:test');
+import { describe, it } from 'node:test';
+import { server } from './common.js';
 
 describe('SILO', () => {
   it('should return a proper 404 message when GETting an unknown url', async () => {
