@@ -25,6 +25,10 @@ void IntColumnPartition::insertNull() {
    values.push_back(INT32_MIN);
 }
 
+void IntColumnPartition::reserve(size_t row_count) {
+   values.reserve(values.size() + row_count);
+}
+
 IntColumn::IntColumn() = default;
 
 IntColumnPartition& IntColumn::createPartition() {

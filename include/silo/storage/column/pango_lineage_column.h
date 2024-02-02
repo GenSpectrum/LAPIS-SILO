@@ -55,6 +55,8 @@ class PangoLineageColumnPartition {
 
    void insertNull();
 
+   void reserve(size_t row_count);
+
    std::optional<const roaring::Roaring*> filter(const common::RawPangoLineage& value) const;
 
    std::optional<const roaring::Roaring*> filterIncludingSublineages(

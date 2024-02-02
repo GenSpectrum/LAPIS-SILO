@@ -102,6 +102,12 @@ class ColumnPartitionGroup {
       const duckdb::Value& value
    );
 
+   void reserveSpaceInColumn(
+      const std::string& column_name,
+      config::ColumnType column_type,
+      size_t row_count
+   );
+
    [[nodiscard]] ColumnPartitionGroup getSubgroup(
       const std::vector<silo::storage::ColumnMetadata>& fields
    ) const;

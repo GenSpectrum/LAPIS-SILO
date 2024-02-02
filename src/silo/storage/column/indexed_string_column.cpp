@@ -34,6 +34,10 @@ void IndexedStringColumnPartition::insertNull() {
    value_ids.push_back(value_id);
 }
 
+void IndexedStringColumnPartition::reserve(size_t row_count) {
+   value_ids.reserve(value_ids.size() + row_count);
+}
+
 const std::vector<silo::Idx>& IndexedStringColumnPartition::getValues() const {
    return this->value_ids;
 }

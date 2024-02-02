@@ -32,6 +32,8 @@ class FloatColumnPartition {
    void insert(const std::string& value);
 
    void insertNull();
+
+   void reserve(size_t row_count);
 };
 
 class FloatColumn {

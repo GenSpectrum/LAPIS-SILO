@@ -54,6 +54,8 @@ class InsertionColumnPartition {
 
    void insertNull();
 
+   void reserve(size_t row_count);
+
    void buildInsertionIndexes();
 
    const std::unordered_map<std::string, insertion::InsertionIndex<SymbolType>>&

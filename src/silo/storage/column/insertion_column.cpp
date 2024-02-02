@@ -118,6 +118,11 @@ void InsertionColumnPartition<SymbolType>::insertNull() {
 }
 
 template <typename SymbolType>
+void InsertionColumnPartition<SymbolType>::reserve(size_t row_count) {
+   values.reserve(values.size() + row_count);
+}
+
+template <typename SymbolType>
 void InsertionColumnPartition<SymbolType>::buildInsertionIndexes() {
    for (auto& [_, insertion_index] : insertion_indexes) {
       insertion_index.buildIndex();

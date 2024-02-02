@@ -48,6 +48,11 @@ uint32_t ColumnPartitionGroup::fill(
          result->GetError()
       );
    }
+   const size_t row_count = result->RowCount();
+   for (const auto& item : database_config.schema.metadata) {
+      const auto column_type = item.getColumnType();
+      reserveSpaceInColumn(item.name, column_type, row_count);
+   }
 
    for (auto it = result->begin(); it != result->end(); ++it) {
       size_t column_index = 0;
@@ -127,6 +132,39 @@ void ColumnPartitionGroup::addValueToColumn(
          } else {
             aa_insertion_columns.at(column_name).insert(value.ToString());
          }
+         break;
+   }
+}
+
+void ColumnPartitionGroup::reserveSpaceInColumn(
+   const std::string& column_name,
+   config::ColumnType column_type,
+   size_t row_count
+) {
+   switch (column_type) {
+      case silo::config::ColumnType::INDEXED_STRING:
+         indexed_string_columns.at(column_name).reserve(row_count);
+         break;
+      case silo::config::ColumnType::STRING:
+         string_columns.at(column_name).reserve(row_count);
+         break;
+      case silo::config::ColumnType::INDEXED_PANGOLINEAGE:
+         pango_lineage_columns.at(column_name).reserve(row_count);
+         break;
+      case silo::config::ColumnType::DATE:
+         date_columns.at(column_name).reserve(row_count);
+         break;
+      case silo::config::ColumnType::INT:
+         int_columns.at(column_name).reserve(row_count);
+         break;
+      case silo::config::ColumnType::FLOAT:
+         float_columns.at(column_name).reserve(row_count);
+         break;
+      case silo::config::ColumnType::NUC_INSERTION:
+         nuc_insertion_columns.at(column_name).reserve(row_count);
+         break;
+      case silo::config::ColumnType::AA_INSERTION:
+         aa_insertion_columns.at(column_name).reserve(row_count);
          break;
    }
 }
