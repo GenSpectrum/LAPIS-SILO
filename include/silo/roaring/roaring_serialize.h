@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include <boost/exception/diagnostic_information.hpp>
 #include <boost/iostreams/copy.hpp>
 #include <boost/serialization/binary_object.hpp>
@@ -7,7 +9,6 @@
 #include <boost/serialization/unordered_map.hpp>
 #include <boost/serialization/vector.hpp>
 #include <roaring/roaring.hh>
-#include <vector>
 
 // no linting because needed by external library
 // NOLINTBEGIN
@@ -23,9 +24,9 @@ template <class Archive>
    std::vector<char> buffer(expected_size_in_bytes);
    std::size_t size_in_bytes = bitmask.write(buffer.data());
    // clang-format off
-   ar& size_in_bytes;
+   ar & size_in_bytes;
+   ar & boost::serialization::make_binary_object(buffer.data(), size_in_bytes);
    // clang-format on
-   ar& ::boost::serialization::make_binary_object(buffer.data(), size_in_bytes);
 }
 
 template <class Archive>
@@ -36,10 +37,10 @@ template <class Archive>
 ) {
    std::size_t size_in_bytes = 0;
    // clang-format off
-   ar& size_in_bytes;
-   // clang-format on
+   ar & size_in_bytes;
    std::vector<char> buffer(size_in_bytes);
-   ar& ::boost::serialization::make_binary_object(buffer.data(), size_in_bytes);
+   ar & boost::serialization::make_binary_object(buffer.data(), size_in_bytes);
+   // clang-format on
    bitmask = roaring::Roaring::readSafe(buffer.data(), size_in_bytes);
 }
 }  // namespace boost::serialization
