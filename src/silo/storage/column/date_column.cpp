@@ -19,6 +19,10 @@ void DateColumnPartition::insertNull() {
    values.push_back(common::NULL_DATE);
 }
 
+void DateColumnPartition::reserve(size_t row_count) {
+   values.reserve(values.size() + row_count);
+}
+
 const std::vector<silo::common::Date>& DateColumnPartition::getValues() const {
    return values;
 }

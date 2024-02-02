@@ -32,6 +32,8 @@ class IntColumnPartition {
    void insert(const std::string& value);
 
    void insertNull();
+
+   void reserve(size_t row_count);
 };
 
 class IntColumn {

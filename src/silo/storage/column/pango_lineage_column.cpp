@@ -37,6 +37,10 @@ void PangoLineageColumnPartition::insertNull() {
    insert({""});
 }
 
+void PangoLineageColumnPartition::reserve(size_t row_count) {
+   value_ids.reserve(value_ids.size() + row_count);
+}
+
 void PangoLineageColumnPartition::insertSublineageValues(
    const common::UnaliasedPangoLineage& value,
    size_t row_number

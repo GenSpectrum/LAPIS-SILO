@@ -36,6 +36,8 @@ class DateColumnPartition {
 
    void insertNull();
 
+   void reserve(size_t row_count);
+
    [[nodiscard]] const std::vector<silo::common::Date>& getValues() const;
 };
 

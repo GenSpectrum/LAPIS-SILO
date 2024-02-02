@@ -23,6 +23,10 @@ void StringColumnPartition::insertNull() {
    values.push_back(tmp);
 }
 
+void StringColumnPartition::reserve(size_t row_count) {
+   values.reserve(values.size() + row_count);
+}
+
 const std::vector<String<STRING_SIZE>>& StringColumnPartition::getValues() const {
    return values;
 }

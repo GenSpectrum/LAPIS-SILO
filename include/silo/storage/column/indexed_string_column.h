@@ -44,6 +44,8 @@ class IndexedStringColumnPartition {
 
    void insertNull();
 
+   void reserve(size_t row_count);
+
    [[nodiscard]] const std::vector<silo::Idx>& getValues() const;
 
    [[nodiscard]] inline std::string lookupValue(Idx id) const { return lookup.getValue(id); }

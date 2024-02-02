@@ -25,6 +25,10 @@ void FloatColumnPartition::insertNull() {
    values.push_back(std::nan(""));
 }
 
+void FloatColumnPartition::reserve(size_t row_count) {
+   values.reserve(values.size() + row_count);
+}
+
 FloatColumn::FloatColumn() = default;
 
 FloatColumnPartition& FloatColumn::createPartition() {
