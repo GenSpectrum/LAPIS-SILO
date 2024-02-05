@@ -1,4 +1,4 @@
-FROM ubuntu:22.04 AS linter
+FROM ubuntu:22.04 AS linter_dependencies
 
 WORKDIR /src
 
@@ -20,6 +20,11 @@ COPY conanfile.py conanprofile.docker ./
 RUN mv conanprofile.docker conanprofile
 
 RUN conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build -s build_type=Debug
+
+
+FROM linter_dependencies AS linter
+
+WORKDIR /src
 
 COPY . ./
 
