@@ -46,28 +46,14 @@ TEST(MetadataInfo, isValidMedataFileShouldReturnTrueWithValidMetadataFile) {
       }
    };
 
-   const silo::preprocessing::MetadataInfo fields =
-      silo::preprocessing::MetadataInfo::validateFromMetadataFile(
-         "testBaseData/exampleDataset/small_metadata_set.tsv", valid_config
-      );
-   ASSERT_TRUE(
-      std::find(
-         fields.getMetadataFields().begin(), fields.getMetadataFields().end(), "gisaid_epi_isl"
-      ) != fields.getMetadataFields().end()
-   );
-   ASSERT_TRUE(
-      std::find(
-         fields.getMetadataFields().begin(), fields.getMetadataFields().end(), "pango_lineage"
-      ) != fields.getMetadataFields().end()
-   );
-   ASSERT_TRUE(
-      std::find(fields.getMetadataFields().begin(), fields.getMetadataFields().end(), "date") !=
-      fields.getMetadataFields().end()
-   );
-   ASSERT_TRUE(
-      std::find(fields.getMetadataFields().begin(), fields.getMetadataFields().end(), "country") !=
-      fields.getMetadataFields().end()
-   );
+   const auto fields = silo::preprocessing::MetadataInfo::validateFromMetadataFile(
+                          "testBaseData/exampleDataset/small_metadata_set.tsv", valid_config
+   )
+                          .getMetadataFields();
+   ASSERT_TRUE(std::find(fields.begin(), fields.end(), R"("gisaid_epi_isl")") != fields.end());
+   ASSERT_TRUE(std::find(fields.begin(), fields.end(), R"("pango_lineage")") != fields.end());
+   ASSERT_TRUE(std::find(fields.begin(), fields.end(), R"("date")") != fields.end());
+   ASSERT_TRUE(std::find(fields.begin(), fields.end(), R"("country")") != fields.end());
 }
 
 TEST(MetadataInfo, shouldValidateCorrectNdjsonInputFile) {
@@ -85,26 +71,13 @@ TEST(MetadataInfo, shouldValidateCorrectNdjsonInputFile) {
       }
    };
 
-   const silo::preprocessing::MetadataInfo fields =
-      silo::preprocessing::MetadataInfo::validateFromNdjsonFile(
-         "testBaseData/exampleDatasetAsNdjson/input_file.ndjson", valid_config
-      );
-   ASSERT_TRUE(
-      std::find(
-         fields.getMetadataFields().begin(), fields.getMetadataFields().end(), "gisaid_epi_isl"
-      ) != fields.getMetadataFields().end()
-   );
-   ASSERT_TRUE(
-      std::find(
-         fields.getMetadataFields().begin(), fields.getMetadataFields().end(), "pango_lineage"
-      ) != fields.getMetadataFields().end()
-   );
-   ASSERT_TRUE(
-      std::find(fields.getMetadataFields().begin(), fields.getMetadataFields().end(), "date") !=
-      fields.getMetadataFields().end()
-   );
-   ASSERT_TRUE(
-      std::find(fields.getMetadataFields().begin(), fields.getMetadataFields().end(), "country") !=
-      fields.getMetadataFields().end()
-   );
+   const auto fields = silo::preprocessing::MetadataInfo::validateFromNdjsonFile(
+                          "testBaseData/exampleDatasetAsNdjson/input_file.ndjson", valid_config
+   )
+                          .getMetadataFields();
+
+   ASSERT_TRUE(std::find(fields.begin(), fields.end(), R"("gisaid_epi_isl")") != fields.end());
+   ASSERT_TRUE(std::find(fields.begin(), fields.end(), R"("pango_lineage")") != fields.end());
+   ASSERT_TRUE(std::find(fields.begin(), fields.end(), R"("date")") != fields.end());
+   ASSERT_TRUE(std::find(fields.begin(), fields.end(), R"("country")") != fields.end());
 }
