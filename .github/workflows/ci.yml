@@ -11,6 +11,7 @@ concurrency:
 env:
   DOCKER_IMAGE_NAME: ghcr.io/GenSpectrum/LAPIS-SILO
   DOCKER_TEST_IMAGE_NAME: silo/unittests
+  DOCKER_LINTER_IMAGE_NAME: silo/linter
 
 jobs:
   formatting-check:
@@ -47,7 +48,7 @@ jobs:
           context: .
           push: false
           target: linter
-          tags: ${{ env.DOCKER_TEST_IMAGE_NAME }}
+          tags: ${{ env.DOCKER_LINTER_IMAGE_NAME }}
           cache-from: type=gha,scope=${{ github.ref_name }}-linter-image-cache
           cache-to: type=gha,mode=max,scope=${{ github.ref_name }}-linter-image-cache
           file: Dockerfile_linter
