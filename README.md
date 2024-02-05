@@ -22,7 +22,7 @@ decided for the approach with less maintenance effort, since it will automatical
 
 ### Running SILO locally with CLion
 
-`./run` contains run configurations for CLion that are ready to use.
+`.run` contains run configurations for CLion that are ready to use.
 They assume that you configured CMake in CLion to use `./build` as build directory.
 CLion should be able to detect those files automatically.
 
