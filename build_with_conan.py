@@ -32,30 +32,31 @@ def main(args):
         cmake_options.append("-D CMAKE_BUILD_TYPE=Debug")
         conan_options.append("-s build_type=Debug")
 
-    print("----------------------------------")
-    print(
-        "conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build "
-        + " ".join(conan_options))
-    print("----------------------------------")
-
     conan_install_cmd = "conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build " + " ".join(
         conan_options)
+
+    print("----------------------------------")
+    print(conan_install_cmd)
+    print("----------------------------------")
+
     if subprocess.call(conan_install_cmd, shell=True) != 0:
         raise Exception("Conan install command failed.")
 
+    cmake_cmd = "cmake " + " ".join(cmake_options) + " -B build"
+
     print("----------------------------------")
-    print("cmake " + " ".join(cmake_options) + " -B build")
+    print(cmake_cmd)
     print("----------------------------------")
 
-    cmake_cmd = "cmake " + " ".join(cmake_options) + " -B build"
     if subprocess.call(cmake_cmd, shell=True) != 0:
         raise Exception("CMake command failed.")
 
+    cmake_build_cmd = f"cmake --build build --parallel {args.parallel}"
+
     print("----------------------------------")
-    print(f"cmake --build build --parallel {args.parallel}")
+    print(cmake_build_cmd)
     print("----------------------------------")
 
-    cmake_build_cmd = f"cmake --build build --parallel {args.parallel}"
     if subprocess.call(cmake_build_cmd, shell=True) != 0:
         raise Exception("CMake build command failed.")
 
