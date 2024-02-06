@@ -554,6 +554,7 @@ Database Database::loadDatabaseState(const std::filesystem::path& save_directory
    SPDLOG_INFO(
       "Finished loading data_version from {}", (save_directory / "data_version.silo").string()
    );
+   SPDLOG_INFO("Database info after loading: {}", database.getDatabaseInfo());
 
    return database;
 }
