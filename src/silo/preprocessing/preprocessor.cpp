@@ -15,6 +15,7 @@
 #include "silo/preprocessing/preprocessing_database.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/preprocessing/sequence_info.h"
+#include "silo/preprocessing/sql_function.h"
 #include "silo/storage/reference_genomes.h"
 #include "silo/storage/unaligned_sequence_store.h"
 #include "silo/zstdfasta/zstd_decompressor.h"
@@ -24,17 +25,15 @@ namespace silo::preprocessing {
 
 Preprocessor::Preprocessor(
    preprocessing::PreprocessingConfig preprocessing_config_,
-   config::DatabaseConfig database_config_
+   config::DatabaseConfig database_config_,
+   const ReferenceGenomes& reference_genomes
 )
     : preprocessing_config(std::move(preprocessing_config_)),
       database_config(std::move(database_config_)),
-      preprocessing_db(preprocessing_config.getPreprocessingDatabaseLocation()) {}
+      preprocessing_db(preprocessing_config.getPreprocessingDatabaseLocation(), reference_genomes),
+      reference_genomes_(reference_genomes) {}
 
 Database Preprocessor::preprocess() {
-   SPDLOG_INFO("preprocessing - reading reference genome");
-   const auto reference_genomes =
-      ReferenceGenomes::readFromFile(preprocessing_config.getReferenceGenomeFilename());
-
    SPDLOG_INFO("preprocessing - building alias key");
    const auto pango_lineage_definition_filename =
       preprocessing_config.getPangoLineageDefinitionFilename();
@@ -54,7 +53,7 @@ Database Preprocessor::preprocess() {
       SPDLOG_DEBUG("preprocessing - building partitioning tables");
       buildPartitioningTable();
       SPDLOG_DEBUG("preprocessing - creating compressed sequence views for building SILO");
-      createPartitionedSequenceTablesFromNdjson(ndjson_input_filename.value(), reference_genomes);
+      createPartitionedSequenceTablesFromNdjson(ndjson_input_filename.value());
    } else {
       SPDLOG_INFO("preprocessing - classic metadata file pipeline chosen");
       SPDLOG_DEBUG(
@@ -65,7 +64,7 @@ Database Preprocessor::preprocess() {
       SPDLOG_DEBUG("preprocessing - building partitioning tables");
       buildPartitioningTable();
       SPDLOG_DEBUG("preprocessing - creating partitioned sequence tables for building SILO");
-      createPartitionedSequenceTablesFromSequenceFiles(reference_genomes);
+      createPartitionedSequenceTablesFromSequenceFiles();
    }
    SPDLOG_INFO("preprocessing - finished initial loading of data");
 
@@ -79,7 +78,6 @@ Database Preprocessor::preprocess() {
    preprocessing_db.refreshConnection();
    return buildDatabase(
       partition_descriptor,
-      reference_genomes,
       order_by_clause,
       alias_key,
       preprocessing_config.getIntermediateResultsDirectory()
@@ -254,14 +252,10 @@ FROM metadata_table;
    );
 }
 
-void Preprocessor::createPartitionedSequenceTablesFromNdjson(
-   const std::filesystem::path& file_name,
-   const ReferenceGenomes& reference_genomes
+void Preprocessor::createPartitionedSequenceTablesFromNdjson(const std::filesystem::path& file_name
 ) {
-   const SequenceInfo sequence_info(reference_genomes);
+   const SequenceInfo sequence_info(reference_genomes_);
    sequence_info.validate(preprocessing_db.getConnection(), file_name);
-
-   PreprocessingDatabase::registerSequences(reference_genomes);
 
    std::string partition_by_select;
    std::string partition_by_where;
@@ -278,18 +272,15 @@ void Preprocessor::createPartitionedSequenceTablesFromNdjson(
       partition_by_where = "";
    }
 
-   createUnalignedPartitionedSequenceFiles(
-      file_name, reference_genomes, partition_by_select, partition_by_where
-   );
+   createUnalignedPartitionedSequenceFiles(file_name, partition_by_select, partition_by_where);
 
    createAlignedPartitionedSequenceViews(
-      file_name, reference_genomes, sequence_info, partition_by_select, partition_by_where
+      file_name, sequence_info, partition_by_select, partition_by_where
    );
 }
 
 void Preprocessor::createAlignedPartitionedSequenceViews(
    const std::filesystem::path& file_name,
-   const ReferenceGenomes& reference_genomes,
    const SequenceInfo& sequence_info,
    const std::string& partition_by_select,
    const std::string& partition_by_where
@@ -311,14 +302,14 @@ void Preprocessor::createAlignedPartitionedSequenceViews(
       "FROM '{}', partition_key_to_partition "
       "{};",
       database_config.schema.primary_key,
-      boost::join(sequence_info.getAlignedSequenceSelects(), ","),
+      boost::join(sequence_info.getAlignedSequenceSelects(preprocessing_db), ","),
       partition_by_select,
       order_by_select,
       file_name.string(),
       partition_by_where
    ));
 
-   for (const auto& [seq_name, _] : reference_genomes.raw_nucleotide_sequences) {
+   for (const auto& [seq_name, _] : reference_genomes_.raw_nucleotide_sequences) {
       (void)preprocessing_db.query(fmt::format(
          "CREATE OR REPLACE VIEW nuc_{0} AS\n"
          "SELECT key, nuc_{0} AS sequence, partition_id"
@@ -329,7 +320,7 @@ void Preprocessor::createAlignedPartitionedSequenceViews(
       ));
    }
 
-   for (const auto& [seq_name, _] : reference_genomes.raw_aa_sequences) {
+   for (const auto& [seq_name, _] : reference_genomes_.raw_aa_sequences) {
       (void)preprocessing_db.query(fmt::format(
          "CREATE OR REPLACE VIEW gene_{0} AS\n"
          "SELECT key, gene_{0} AS sequence, partition_id"
@@ -343,18 +334,17 @@ void Preprocessor::createAlignedPartitionedSequenceViews(
 
 void Preprocessor::createUnalignedPartitionedSequenceFiles(
    const std::filesystem::path& file_name,
-   const ReferenceGenomes& reference_genomes,
    const std::string& partition_by_select,
    const std::string& partition_by_where
 ) {
-   for (const auto& [seq_name, _] : reference_genomes.raw_nucleotide_sequences) {
+   for (const auto& [seq_name, _] : reference_genomes_.raw_nucleotide_sequences) {
       const std::string table_sql = fmt::format(
          "SELECT metadata.\"{}\" AS key, {},"
          "{} \n"
          "FROM '{}', partition_key_to_partition "
          "{}",
          database_config.schema.primary_key,
-         SequenceInfo::getUnalignedSequenceSelect(seq_name),
+         SequenceInfo::getUnalignedSequenceSelect(seq_name, preprocessing_db),
          partition_by_select,
          file_name.string(),
          partition_by_where
@@ -378,13 +368,9 @@ void Preprocessor::createUnalignedPartitionedSequenceFile(
    preprocessing_db.query("VACUUM;");
 }
 
-void Preprocessor::createPartitionedSequenceTablesFromSequenceFiles(
-   const ReferenceGenomes& reference_genomes
-) {
-   PreprocessingDatabase::registerSequences(reference_genomes);
-
+void Preprocessor::createPartitionedSequenceTablesFromSequenceFiles() {
    for (const auto& [sequence_name, reference_sequence] :
-        reference_genomes.raw_nucleotide_sequences) {
+        reference_genomes_.raw_nucleotide_sequences) {
       createPartitionedTableForSequence(
          sequence_name,
          reference_sequence,
@@ -413,7 +399,7 @@ void Preprocessor::createPartitionedSequenceTablesFromSequenceFiles(
       preprocessing_db.query("DROP TABLE IF EXISTS unaligned_tmp;");
    }
 
-   for (const auto& [sequence_name, reference_sequence] : reference_genomes.raw_aa_sequences) {
+   for (const auto& [sequence_name, reference_sequence] : reference_genomes_.raw_aa_sequences) {
       createPartitionedTableForSequence(
          sequence_name,
          reference_sequence,
@@ -460,7 +446,6 @@ void Preprocessor::createPartitionedTableForSequence(
 
 Database Preprocessor::buildDatabase(
    const preprocessing::Partitions& partition_descriptor,
-   const ReferenceGenomes& reference_genomes,
    const std::string& order_by_clause,
    const silo::PangoLineageAliasLookup& alias_key,
    const std::filesystem::path& intermediate_results_directory
@@ -480,8 +465,8 @@ Database Preprocessor::buildDatabase(
          database.partitions.emplace_back(partition.getPartitionChunks());
       }
       database.initializeColumns();
-      database.initializeNucSequences(reference_genomes.nucleotide_sequences);
-      database.initializeAASequences(reference_genomes.aa_sequences);
+      database.initializeNucSequences(reference_genomes_.nucleotide_sequences);
+      database.initializeAASequences(reference_genomes_.aa_sequences);
 
       tbb::task_group tasks;
 
@@ -495,15 +480,11 @@ Database Preprocessor::buildDatabase(
 
       tasks.run([&]() {
          SPDLOG_INFO("build - building nucleotide sequence stores");
-         buildNucleotideSequenceStore(
-            database, partition_descriptor, reference_genomes, order_by_clause
-         );
+         buildNucleotideSequenceStore(database, partition_descriptor, order_by_clause);
          SPDLOG_INFO("build - finished nucleotide sequence stores");
 
          SPDLOG_INFO("build - building amino acid sequence stores");
-         buildAminoAcidSequenceStore(
-            database, partition_descriptor, reference_genomes, order_by_clause
-         );
+         buildAminoAcidSequenceStore(database, partition_descriptor, order_by_clause);
          SPDLOG_INFO("build - finished amino acid sequence stores");
       });
 
@@ -544,10 +525,9 @@ void Preprocessor::buildMetadataStore(
 void Preprocessor::buildNucleotideSequenceStore(
    Database& database,
    const preprocessing::Partitions& partition_descriptor,
-   const ReferenceGenomes& reference_genomes,
    const std::string& order_by_clause
 ) {
-   for (const auto& pair : reference_genomes.raw_nucleotide_sequences) {
+   for (const auto& pair : reference_genomes_.raw_nucleotide_sequences) {
       const std::string& nuc_name = pair.first;
       const std::string& reference_sequence = pair.second;
       tbb::parallel_for(
@@ -587,10 +567,9 @@ void Preprocessor::buildNucleotideSequenceStore(
 void Preprocessor::buildAminoAcidSequenceStore(
    silo::Database& database,
    const preprocessing::Partitions& partition_descriptor,
-   const silo::ReferenceGenomes& reference_genomes,
    const std::string& order_by_clause
 ) {
-   for (const auto& pair : reference_genomes.raw_aa_sequences) {
+   for (const auto& pair : reference_genomes_.raw_aa_sequences) {
       const std::string& aa_name = pair.first;
       const std::string& reference_sequence = pair.second;
       tbb::parallel_for(

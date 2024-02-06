@@ -23,15 +23,26 @@ class SequenceInfo {
    std::vector<std::string> aa_sequence_names;
 
   public:
-   SequenceInfo(const silo::ReferenceGenomes& reference_genomes);
+   explicit SequenceInfo(const silo::ReferenceGenomes& reference_genomes);
 
-   std::vector<std::string> getAlignedSequenceSelects() const;
+   [[nodiscard]] std::vector<std::string> getAlignedSequenceSelects(
+      const PreprocessingDatabase& preprocessing_db
+   ) const;
 
-   static std::string getNucleotideSequenceSelect(const std::string& seq_name);
+   static std::string getNucleotideSequenceSelect(
+      const std::string& seq_name,
+      const PreprocessingDatabase& preprocessing_db
+   );
 
-   static std::string getUnalignedSequenceSelect(const std::string& seq_name);
+   static std::string getUnalignedSequenceSelect(
+      const std::string& seq_name,
+      const PreprocessingDatabase& preprocessing_db
+   );
 
-   static std::string getAminoAcidSequenceSelect(const std::string& seq_name);
+   static std::string getAminoAcidSequenceSelect(
+      const std::string& seq_name,
+      const PreprocessingDatabase& preprocessing_db
+   );
 
    void validate(duckdb::Connection& connection, const std::filesystem::path& input_filename) const;
 };

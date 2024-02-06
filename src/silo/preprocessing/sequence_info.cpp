@@ -4,6 +4,7 @@
 
 #include "silo/preprocessing/preprocessing_database.h"
 #include "silo/preprocessing/preprocessing_exception.h"
+#include "silo/preprocessing/sql_function.h"
 #include "silo/storage/reference_genomes.h"
 
 namespace silo::preprocessing {
@@ -17,38 +18,60 @@ SequenceInfo::SequenceInfo(const silo::ReferenceGenomes& reference_genomes) {
    }
 }
 
-std::vector<std::string> SequenceInfo::getAlignedSequenceSelects() const {
+std::vector<std::string> SequenceInfo::getAlignedSequenceSelects(
+   const PreprocessingDatabase& preprocessing_db
+) const {
    std::vector<std::string> sequence_selects;
    sequence_selects.reserve(nuc_sequence_names.size() + aa_sequence_names.size());
    for (const std::string& name : nuc_sequence_names) {
-      sequence_selects.emplace_back(getNucleotideSequenceSelect(name));
+      sequence_selects.emplace_back(getNucleotideSequenceSelect(name, preprocessing_db));
    }
    for (const std::string& name : aa_sequence_names) {
-      sequence_selects.emplace_back(getAminoAcidSequenceSelect(name));
+      sequence_selects.emplace_back(getAminoAcidSequenceSelect(name, preprocessing_db));
    }
    return sequence_selects;
 }
 
-std::string SequenceInfo::getNucleotideSequenceSelect(const std::string& seq_name) {
+std::string SequenceInfo::getNucleotideSequenceSelect(
+   const std::string& seq_name,
+   const PreprocessingDatabase& preprocessing_db
+) {
+   const std::string column_name_in_data = "alignedNucleotideSequences." + seq_name;
+
    return fmt::format(
-      "{0}(alignedNucleotideSequences.{1}, '{1}') AS nuc_{1}",
-      preprocessing::PreprocessingDatabase::COMPRESS_NUC,
+      "{0} AS nuc_{1}",
+      preprocessing_db.compress_nucleotide_function->generateSqlStatement(
+         column_name_in_data, seq_name
+      ),
       seq_name
    );
 }
 
-std::string SequenceInfo::getUnalignedSequenceSelect(const std::string& seq_name) {
+std::string SequenceInfo::getUnalignedSequenceSelect(
+   const std::string& seq_name,
+   const PreprocessingDatabase& preprocessing_db
+) {
+   const std::string column_name_in_data = "unalignedNucleotideSequences." + seq_name;
    return fmt::format(
-      "{0}(unalignedNucleotideSequences.{1}, '{1}') AS unaligned_nuc_{1}",
-      preprocessing::PreprocessingDatabase::COMPRESS_NUC,
+      "{0} AS unaligned_nuc_{1}",
+      preprocessing_db.compress_nucleotide_function->generateSqlStatement(
+         column_name_in_data, seq_name
+      ),
       seq_name
    );
 }
 
-std::string SequenceInfo::getAminoAcidSequenceSelect(const std::string& seq_name) {
+std::string SequenceInfo::getAminoAcidSequenceSelect(
+   const std::string& seq_name,
+   const PreprocessingDatabase& preprocessing_db
+) {
+   const std::string column_name_in_data = "alignedAminoAcidSequences." + seq_name;
+
    return fmt::format(
-      "{0}(alignedAminoAcidSequences.{1}, '{1}') AS gene_{1}",
-      preprocessing::PreprocessingDatabase::COMPRESS_AA,
+      "{0} AS gene_{1}",
+      preprocessing_db.compress_amino_acid_function->generateSqlStatement(
+         column_name_in_data, seq_name
+      ),
       seq_name
    );
 }

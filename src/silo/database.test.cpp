@@ -10,7 +10,9 @@
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_config_reader.h"
 #include "silo/preprocessing/preprocessor.h"
+#include "silo/preprocessing/sql_function.h"
 #include "silo/query_engine/query_engine.h"
+#include "silo/storage/reference_genomes.h"
 
 silo::Database buildTestDatabase() {
    const silo::preprocessing::InputDirectory input_directory{"./testBaseData/exampleDataset/"};
@@ -23,7 +25,10 @@ silo::Database buildTestDatabase() {
       input_directory.directory + "database_config.yaml"
    );
 
-   silo::preprocessing::Preprocessor preprocessor(config, database_config);
+   const auto reference_genomes =
+      silo::ReferenceGenomes::readFromFile(config.getReferenceGenomeFilename());
+
+   silo::preprocessing::Preprocessor preprocessor(config, database_config, reference_genomes);
    return preprocessor.preprocess();
 }
 
@@ -47,7 +52,10 @@ TEST(DatabaseTest, shouldSuccessfullyBuildDatabaseWithoutPartitionBy) {
       input_directory.directory + "test_database_config_without_partition_by.yaml"
    );
 
-   silo::preprocessing::Preprocessor preprocessor(config, database_config);
+   const auto reference_genomes =
+      silo::ReferenceGenomes::readFromFile(config.getReferenceGenomeFilename());
+
+   silo::preprocessing::Preprocessor preprocessor(config, database_config, reference_genomes);
    auto database = preprocessor.preprocess();
 
    const auto simple_database_info = database.getDatabaseInfo();
