@@ -7,6 +7,7 @@
 #include "silo/database.h"
 #include "silo/database_info.h"
 #include "silo/preprocessing/preprocessing_config_reader.h"
+#include "silo/preprocessing/sql_function.h"
 #include "silo/query_engine/query_engine.h"
 
 namespace {
@@ -107,7 +108,10 @@ TEST_P(PreprocessorTestFixture, shouldProcessDataSetWithMissingSequences) {
       scenario.input_directory + "database_config.yaml"
    );
 
-   silo::preprocessing::Preprocessor preprocessor(config, database_config);
+   const auto reference_genomes =
+      silo::ReferenceGenomes::readFromFile(config.getReferenceGenomeFilename());
+
+   silo::preprocessing::Preprocessor preprocessor(config, database_config, reference_genomes);
    auto database = preprocessor.preprocess();
 
    const auto database_info = database.getDatabaseInfo();

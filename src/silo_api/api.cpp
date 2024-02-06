@@ -24,6 +24,8 @@
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_config_reader.h"
 #include "silo/preprocessing/preprocessor.h"
+#include "silo/preprocessing/sql_function.h"
+#include "silo/storage/reference_genomes.h"
 #include "silo_api/database_directory_watcher.h"
 #include "silo_api/database_mutex.h"
 #include "silo_api/logging.h"
@@ -206,7 +208,13 @@ class SiloServer : public Poco::Util::ServerApplication {
    ) {
       auto database_config = databaseConfig(config());
 
-      auto preprocessor = silo::preprocessing::Preprocessor(preprocessing_config, database_config);
+      SPDLOG_INFO("preprocessing - reading reference genome");
+      const auto reference_genomes =
+         silo::ReferenceGenomes::readFromFile(preprocessing_config.getReferenceGenomeFilename());
+
+      auto preprocessor = silo::preprocessing::Preprocessor(
+         preprocessing_config, database_config, reference_genomes
+      );
 
       return preprocessor.preprocess();
    }

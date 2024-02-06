@@ -3,6 +3,7 @@
 #include "silo/config/database_config.h"
 #include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_database.h"
+#include "silo/storage/reference_genomes.h"
 
 namespace silo {
 class Database;
@@ -16,11 +17,13 @@ class Preprocessor {
    PreprocessingConfig preprocessing_config;
    config::DatabaseConfig database_config;
    PreprocessingDatabase preprocessing_db;
+   ReferenceGenomes reference_genomes_;
 
   public:
    Preprocessor(
       const preprocessing::PreprocessingConfig preprocessing_config,
-      const config::DatabaseConfig database_config
+      const config::DatabaseConfig database_config,
+      const ReferenceGenomes& reference_genomes
    );
 
    Database preprocess();
@@ -33,20 +36,16 @@ class Preprocessor {
    void buildPartitioningTableByColumn(const std::string& partition_by_field);
    void buildEmptyPartitioning();
 
-   void createPartitionedSequenceTablesFromNdjson(
-      const std::filesystem::path& file_name,
-      const ReferenceGenomes& reference_genomes
-   );
+   void createPartitionedSequenceTablesFromNdjson(const std::filesystem::path& file_name);
+
    void createAlignedPartitionedSequenceViews(
       const std::filesystem::path& file_name,
-      const ReferenceGenomes& reference_genomes,
       const SequenceInfo& sequence_info,
       const std::string& partition_by_select,
       const std::string& partition_by_where
    );
    void createUnalignedPartitionedSequenceFiles(
       const std::filesystem::path& file_name,
-      const ReferenceGenomes& reference_genomes,
       const std::string& partition_by_select,
       const std::string& partition_by_where
    );
@@ -55,7 +54,7 @@ class Preprocessor {
       const std::string& table_sql
    );
 
-   void createPartitionedSequenceTablesFromSequenceFiles(const ReferenceGenomes& reference_genomes);
+   void createPartitionedSequenceTablesFromSequenceFiles();
    void createPartitionedTableForSequence(
       const std::string& sequence_name,
       const std::string& reference_sequence,
@@ -65,7 +64,6 @@ class Preprocessor {
 
    Database buildDatabase(
       const preprocessing::Partitions& partition_descriptor,
-      const ReferenceGenomes& reference_genomes,
       const std::string& order_by_clause,
       const silo::PangoLineageAliasLookup& alias_key,
       const std::filesystem::path& intermediate_results_directory
@@ -79,13 +77,11 @@ class Preprocessor {
    void buildNucleotideSequenceStore(
       Database& database,
       const preprocessing::Partitions& partition_descriptor,
-      const ReferenceGenomes& reference_genomes,
       const std::string& order_by_clause
    );
    void buildAminoAcidSequenceStore(
       Database& database,
       const preprocessing::Partitions& partition_descriptor,
-      const ReferenceGenomes& reference_genomes,
       const std::string& order_by_clause
    );
 };

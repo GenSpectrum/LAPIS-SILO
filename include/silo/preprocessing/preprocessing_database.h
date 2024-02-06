@@ -11,6 +11,7 @@ namespace silo {
 
 class ZstdFastaTable;
 class ReferenceGenomes;
+class CompressSequence;
 
 namespace preprocessing {
 
@@ -18,23 +19,24 @@ class Partitions;
 
 class PreprocessingDatabase {
   public:
-   static constexpr std::string_view COMPRESS_NUC = "compressNuc";
-   static constexpr std::string_view COMPRESS_AA = "compressAA";
+   std::unique_ptr<CompressSequence> compress_nucleotide_function;
+   std::unique_ptr<CompressSequence> compress_amino_acid_function;
 
   private:
    duckdb::DuckDB duck_db;
    duckdb::Connection connection;
 
   public:
-   PreprocessingDatabase(const std::optional<std::filesystem::path>& backing_file);
+   PreprocessingDatabase(
+      const std::optional<std::filesystem::path>& backing_file,
+      const ReferenceGenomes& reference_genomes
+   );
 
    duckdb::Connection& getConnection();
 
    void refreshConnection();
 
    Partitions getPartitionDescriptor();
-
-   static void registerSequences(const silo::ReferenceGenomes& reference_genomes);
 
    std::unique_ptr<duckdb::MaterializedQueryResult> query(std::string sql_query);
 
