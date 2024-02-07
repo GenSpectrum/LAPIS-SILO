@@ -490,8 +490,8 @@ Database Preprocessor::buildDatabase(
 
       tasks.wait();
 
-      SPDLOG_INFO("build - finalizing insertion indexes");
-      database.finalizeInsertionIndexes();
+      SPDLOG_INFO("build - finalizing database");
+      database.finalize();
    }
 
    SPDLOG_INFO("Build took {} ms", micros);

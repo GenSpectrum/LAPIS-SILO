@@ -91,10 +91,10 @@ silo::SequenceStoreInfo silo::SequenceStorePartition<SymbolType>::getInfo() cons
 
 template <typename SymbolType>
 const roaring::Roaring* silo::SequenceStorePartition<SymbolType>::getBitmap(
-   size_t position,
+   size_t position_idx,
    typename SymbolType::Symbol symbol
 ) const {
-   return positions[position].getBitmap(symbol);
+   return positions[position_idx].getBitmap(symbol);
 }
 
 template <typename SymbolType>
@@ -107,14 +107,14 @@ void silo::SequenceStorePartition<SymbolType>::fillIndexes(
       tbb::blocked_range<size_t>(0, genome_length, genome_length / COUNT_SYMBOLS_PER_PROCESSOR),
       [&](const auto& local) {
          SymbolMap<SymbolType, std::vector<uint32_t>> ids_per_symbol_for_current_position;
-         for (size_t position = local.begin(); position != local.end(); ++position) {
+         for (size_t position_idx = local.begin(); position_idx != local.end(); ++position_idx) {
             const size_t number_of_sequences = genomes.size();
             for (size_t sequence_id = 0; sequence_id < number_of_sequences; ++sequence_id) {
                const auto& genome = genomes[sequence_id];
                if (!genome.has_value()) {
                   continue;
                }
-               char const character = genome.value()[position];
+               char const character = genome.value()[position_idx];
                const auto symbol = SymbolType::charToSymbol(character);
                if (!symbol.has_value()) {
                   throw silo::preprocessing::PreprocessingException(
@@ -128,7 +128,7 @@ void silo::SequenceStorePartition<SymbolType>::fillIndexes(
                }
             }
             addSymbolsToPositions(
-               position, ids_per_symbol_for_current_position, number_of_sequences
+               position_idx, ids_per_symbol_for_current_position, number_of_sequences
             );
          }
       }
@@ -137,12 +137,12 @@ void silo::SequenceStorePartition<SymbolType>::fillIndexes(
 
 template <typename SymbolType>
 void silo::SequenceStorePartition<SymbolType>::addSymbolsToPositions(
-   const size_t& position,
+   const size_t& position_idx,
    SymbolMap<SymbolType, std::vector<uint32_t>>& ids_per_symbol_for_current_position,
    const size_t number_of_sequences
 ) {
    for (const auto& symbol : SymbolType::SYMBOLS) {
-      positions[position].addValues(
+      positions[position_idx].addValues(
          symbol, ids_per_symbol_for_current_position.at(symbol), sequence_count, number_of_sequences
       );
       ids_per_symbol_for_current_position[symbol].clear();
@@ -171,11 +171,11 @@ void silo::SequenceStorePartition<SymbolType>::fillNBitmaps(
 
          const auto& genome = maybe_genome.value();
 
-         for (size_t position = 0; position < genome_length; ++position) {
-            char const character = genome[position];
+         for (size_t position_idx = 0; position_idx < genome_length; ++position_idx) {
+            char const character = genome[position_idx];
             const auto symbol = SymbolType::charToSymbol(character);
             if (symbol == SymbolType::SYMBOL_MISSING) {
-               positions_with_symbol_missing.push_back(position);
+               positions_with_symbol_missing.push_back(position_idx);
             }
          }
          if (!positions_with_symbol_missing.empty()) {
@@ -189,17 +189,18 @@ void silo::SequenceStorePartition<SymbolType>::fillNBitmaps(
    });
 }
 
-template <typename Symbol>
-void silo::SequenceStorePartition<Symbol>::optimizeBitmaps() {
+template <typename SymbolType>
+void silo::SequenceStorePartition<SymbolType>::optimizeBitmaps() {
    tbb::enumerable_thread_specific<decltype(indexing_differences_to_reference_sequence)>
       index_changes_to_reference;
 
    tbb::parallel_for(tbb::blocked_range<uint32_t>(0, positions.size()), [&](const auto& local) {
       auto& local_index_changes = index_changes_to_reference.local();
-      for (auto position = local.begin(); position != local.end(); ++position) {
-         auto symbol_changed = positions[position].deleteMostNumerousBitmap(sequence_count);
+      for (auto position_idx = local.begin(); position_idx != local.end(); ++position_idx) {
+         auto& position = positions[position_idx];
+         auto symbol_changed = position.deleteMostNumerousBitmap(sequence_count);
          if (symbol_changed.has_value()) {
-            local_index_changes.emplace_back(position, *symbol_changed);
+            local_index_changes.emplace_back(position_idx, *symbol_changed);
          }
       }
    });
@@ -217,6 +218,17 @@ void silo::SequenceStorePartition<SymbolType>::interpret(
    fillIndexes(genomes);
    fillNBitmaps(genomes);
    sequence_count += genomes.size();
+}
+
+template <typename SymbolType>
+void silo::SequenceStorePartition<SymbolType>::finalizePositions() {
+   for (size_t position_idx = 0; position_idx < positions.size(); position_idx++) {
+      // TODO(#268) dynamically optimize bitmaps for space and performance
+      // -> keep the bitmaps deleted where huge space savings are achieved
+      // (should only be some small proportion of all)
+      auto& position = positions[position_idx];
+      position.undeleteBitmap(sequence_count, position_idx, missing_symbol_bitmaps);
+   }
 }
 
 template <typename SymbolType>
