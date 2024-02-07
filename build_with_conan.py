@@ -9,6 +9,13 @@ def clean_build_folder(build_folder: str):
     if os.path.exists(build_folder):
         shutil.rmtree(build_folder)
 
+def run_cmd(context: str, cmd: str):
+    print("----------------------------------")
+    print(cmd)
+    print("----------------------------------")
+
+    if subprocess.call(cmd, shell=True) != 0:
+        raise Exception(f"{context} command failed.")
 
 def main(args):
     build_folder = "build"
@@ -32,32 +39,13 @@ def main(args):
         cmake_options.append("-D CMAKE_BUILD_TYPE=Debug")
         conan_options.append("-s build_type=Debug")
 
-    print("----------------------------------")
-    print(
-        "conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build "
-        + " ".join(conan_options))
-    print("----------------------------------")
+    run_cmd("Conan install",
+            "conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build " + " ".join(
+                conan_options))
 
-    conan_install_cmd = "conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build " + " ".join(
-        conan_options)
-    if subprocess.call(conan_install_cmd, shell=True) != 0:
-        raise Exception("Conan install command failed.")
+    run_cmd("CMake", "cmake " + " ".join(cmake_options) + " -B build")
 
-    print("----------------------------------")
-    print("cmake " + " ".join(cmake_options) + " -B build")
-    print("----------------------------------")
-
-    cmake_cmd = "cmake " + " ".join(cmake_options) + " -B build"
-    if subprocess.call(cmake_cmd, shell=True) != 0:
-        raise Exception("CMake command failed.")
-
-    print("----------------------------------")
-    print(f"cmake --build build --parallel {args.parallel}")
-    print("----------------------------------")
-
-    cmake_build_cmd = f"cmake --build build --parallel {args.parallel}"
-    if subprocess.call(cmake_build_cmd, shell=True) != 0:
-        raise Exception("CMake build command failed.")
+    run_cmd("CMake build", f"cmake --build build --parallel {args.parallel}")
 
 
 if __name__ == "__main__":
