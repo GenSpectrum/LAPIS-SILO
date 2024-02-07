@@ -55,6 +55,12 @@ class Position {
 
    std::optional<typename SymbolType::Symbol> deleteMostNumerousBitmap(uint32_t sequence_count);
 
+   void undeleteBitmap(
+      uint32_t sequence_count,
+      uint32_t position_idx,
+      const std::vector<roaring::Roaring>& missing_symbol_bitmaps
+   );
+
    size_t computeSize() const;
 
    bool isSymbolFlipped(typename SymbolType::Symbol) const;

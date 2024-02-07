@@ -127,6 +127,36 @@ std::optional<typename SymbolType::Symbol> silo::Position<SymbolType>::deleteMos
 }
 
 template <typename SymbolType>
+void silo::Position<SymbolType>::undeleteBitmap(
+   uint32_t sequence_count,
+   uint32_t position_idx,
+   const std::vector<roaring::Roaring>& missing_symbol_bitmaps
+) {
+   if (!symbol_whose_bitmap_is_deleted.has_value()) {
+      SPDLOG_TRACE("Cannot restore deleted symbol. No symbol is currently deleted.");
+      return;
+   }
+   const auto deleted_symbol = symbol_whose_bitmap_is_deleted.value();
+   for (auto symbol : SymbolType::SYMBOLS) {
+      if (symbol != deleted_symbol && symbol != SymbolType::SYMBOL_MISSING) {
+         bitmaps[deleted_symbol] |= bitmaps.at(symbol);
+         bitmaps[symbol].runOptimize();
+         bitmaps[symbol].shrinkToFit();
+      }
+   }
+   for (size_t sequence_idx = 0; sequence_idx < sequence_count; sequence_idx++) {
+      const roaring::Roaring& missing_symbol_bitmap = missing_symbol_bitmaps.at(sequence_idx);
+      if (missing_symbol_bitmap.contains(position_idx)) {
+         bitmaps[deleted_symbol].add(sequence_idx);
+      }
+   }
+   bitmaps[deleted_symbol].runOptimize();
+   bitmaps[deleted_symbol].shrinkToFit();
+   symbol_whose_bitmap_is_flipped = symbol_whose_bitmap_is_deleted;
+   symbol_whose_bitmap_is_deleted = std::nullopt;
+}
+
+template <typename SymbolType>
 size_t silo::Position<SymbolType>::computeSize() const {
    size_t result = 0;
    for (const auto symbol : SymbolType::SYMBOLS) {

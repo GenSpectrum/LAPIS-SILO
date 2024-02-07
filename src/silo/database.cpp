@@ -548,6 +548,7 @@ Database Database::loadDatabaseState(const std::filesystem::path& save_directory
          }
       }
    );
+   database.finalizePositions();
    SPDLOG_INFO("Finished loading partition data");
 
    database.setDataVersion(loadDataVersion(save_directory / "data_version.silo"));
@@ -685,6 +686,27 @@ void Database::initializeAASequences(
          partition.aa_sequences.insert({aa_name, aa_sequences.at(aa_name).createPartition()});
       }
    }
+}
+
+void Database::finalize() {
+   SPDLOG_INFO(
+      "build - partially revert positional compression to increase mutation action performance"
+   );
+   finalizePositions();
+
+   SPDLOG_INFO("build - finalizing insertion indexes");
+   finalizeInsertionIndexes();
+}
+
+void Database::finalizePositions() {
+   tbb::parallel_for_each(partitions.begin(), partitions.end(), [](auto& partition) {
+      for (auto& [name, seq_store] : partition.nuc_sequences) {
+         seq_store.finalizePositions();
+      }
+      for (auto& [name, seq_store] : partition.aa_sequences) {
+         seq_store.finalizePositions();
+      }
+   });
 }
 
 void Database::finalizeInsertionIndexes() {

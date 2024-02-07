@@ -85,6 +85,8 @@ class SequenceStorePartition {
    size_t fill(silo::ZstdFastaTableReader& input);
 
    void interpret(const std::vector<std::optional<std::string>>& genomes);
+
+   void finalizePositions();
 };
 
 template <typename SymbolType>

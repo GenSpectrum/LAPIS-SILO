@@ -91,6 +91,9 @@ class Database {
    void initializeAASequences(
       const std::map<std::string, std::vector<AminoAcid::Symbol>>& reference_sequences
    );
+
+   void finalize();
+   void finalizePositions();
    void finalizeInsertionIndexes();
 
    template <typename SymbolType>
