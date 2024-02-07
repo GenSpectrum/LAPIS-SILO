@@ -9,7 +9,7 @@ describe('The /info endpoint', () => {
       .expect(200)
       .expect('Content-Type', 'application/json')
       .expect(headerToHaveDataVersion)
-      .expect({ nBitmapsSize: 3898, sequenceCount: 100, totalSize: 26589432 });
+      .expect({ nBitmapsSize: 3898, sequenceCount: 100, totalSize: 26589431 });
   });
 
   it('should return detailed info about the current state of the database', { timeout: 5000 }, async () => {
@@ -26,15 +26,15 @@ describe('The /info endpoint', () => {
           'bitmapContainerSizeStatistic'
         );
         expect(returnedInfo.bitmapContainerSizePerGenomeSection.bitmapContainerSizeStatistic).to.deep.equal({
-          numberOfArrayContainers: 48524,
+          numberOfArrayContainers: 48613,
           numberOfBitsetContainers: 0,
-          numberOfRunContainers: 284,
-          numberOfValuesStoredInArrayContainers: 66620,
+          numberOfRunContainers: 195,
+          numberOfValuesStoredInArrayContainers: 66796,
           numberOfValuesStoredInBitsetContainers: 0,
-          numberOfValuesStoredInRunContainers: 2875,
-          totalBitmapSizeArrayContainers: 133240,
+          numberOfValuesStoredInRunContainers: 2699,
+          totalBitmapSizeArrayContainers: 133592,
           totalBitmapSizeBitsetContainers: 0,
-          totalBitmapSizeRunContainers: 4824,
+          totalBitmapSizeRunContainers: 4294,
         });
 
         expect(returnedInfo.bitmapContainerSizePerGenomeSection).to.have.property(
@@ -61,19 +61,19 @@ describe('The /info endpoint', () => {
 
         expect(returnedInfo).to.have.property('bitmapSizePerSymbol');
         expect(returnedInfo.bitmapSizePerSymbol).to.deep.equal({
-          '-': 2661831,
-          'A': 2775910,
+          '-': 2662131,
+          'A': 2775955,
           'B': 2631464,
-          'C': 2725728,
+          'C': 2725758,
           'D': 2631464,
-          'G': 2728118,
+          'G': 2728138,
           'H': 2631464,
           'K': 2631594,
           'M': 2631554,
           'N': 2631464,
           'R': 2631514,
           'S': 2631464,
-          'T': 2791923,
+          'T': 2791973,
           'V': 2631464,
           'W': 2631514,
           'Y': 2631494,
