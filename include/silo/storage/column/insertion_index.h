@@ -97,14 +97,16 @@ class InsertionIndex {
       collected_insertions;
 
   public:
-   void addLazily(uint32_t position, const std::string& insertion, uint32_t sequence_id);
+   void addLazily(uint32_t position_idx, const std::string& insertion, uint32_t sequence_id);
 
    void buildIndex();
 
    const std::unordered_map<uint32_t, InsertionPosition<SymbolType>>& getInsertionPositions() const;
 
-   std::unique_ptr<roaring::Roaring> search(uint32_t position, const std::string& search_pattern)
-      const;
+   std::unique_ptr<roaring::Roaring> search(
+      uint32_t position_idx,
+      const std::string& search_pattern
+   ) const;
 };
 
 }  // namespace silo::storage::column::insertion

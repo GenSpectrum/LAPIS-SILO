@@ -24,7 +24,7 @@ constexpr std::string_view DELIMITER_INSERTION = ":";
 
 struct InsertionEntry {
    std::string sequence_name;
-   uint32_t position;
+   uint32_t position_idx;
    std::string insertion;
 };
 
@@ -138,13 +138,13 @@ InsertionColumnPartition<SymbolType>::getInsertionIndexes() const {
 template <typename SymbolType>
 std::unique_ptr<roaring::Roaring> InsertionColumnPartition<SymbolType>::search(
    const std::string& sequence_name,
-   uint32_t position,
+   uint32_t position_idx,
    const std::string& search_pattern
 ) const {
    if (!insertion_indexes.contains(sequence_name)) {
       return std::make_unique<roaring::Roaring>();
    }
-   return insertion_indexes.at(sequence_name).search(position, search_pattern);
+   return insertion_indexes.at(sequence_name).search(position_idx, search_pattern);
 }
 
 template <typename SymbolType>

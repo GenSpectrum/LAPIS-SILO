@@ -74,8 +74,8 @@ std::string reconstructSequence(
       }
    );
 
-   for (const size_t position : sequence_store.missing_symbol_bitmaps.at(sequence_id)) {
-      reconstructed_sequence[position] = SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING);
+   for (const size_t position_idx : sequence_store.missing_symbol_bitmaps.at(sequence_id)) {
+      reconstructed_sequence[position_idx] = SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING);
    }
    return reconstructed_sequence;
 }

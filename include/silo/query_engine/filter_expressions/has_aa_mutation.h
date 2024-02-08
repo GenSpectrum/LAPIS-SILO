@@ -23,10 +23,10 @@ namespace silo::query_engine::filter_expressions {
 struct HasAAMutation : public Expression {
   private:
    std::string aa_sequence_name;
-   uint32_t position;
+   uint32_t position_idx;
 
   public:
-   explicit HasAAMutation(std::string aa_sequence_name, uint32_t position);
+   explicit HasAAMutation(std::string aa_sequence_name, uint32_t position_idx);
 
    std::string toString(const Database& database) const override;
 

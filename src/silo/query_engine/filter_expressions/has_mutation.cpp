@@ -22,14 +22,14 @@ class DatabasePartition;
 
 namespace silo::query_engine::filter_expressions {
 
-HasMutation::HasMutation(std::optional<std::string> nuc_sequence_name, uint32_t position)
+HasMutation::HasMutation(std::optional<std::string> nuc_sequence_name, uint32_t position_idx)
     : nuc_sequence_name(std::move(nuc_sequence_name)),
-      position(position) {}
+      position_idx(position_idx) {}
 
 std::string HasMutation::toString(const silo::Database& /*database*/) const {
    const std::string nuc_sequence_name_prefix =
       nuc_sequence_name ? nuc_sequence_name.value() + ":" : "";
-   return nuc_sequence_name_prefix + std::to_string(position);
+   return nuc_sequence_name_prefix + std::to_string(position_idx);
 }
 
 std::unique_ptr<operators::Operator> HasMutation::compile(
@@ -46,11 +46,11 @@ std::unique_ptr<operators::Operator> HasMutation::compile(
    )
 
    const Nucleotide::Symbol ref_symbol =
-      database.nuc_sequences.at(nuc_sequence_name_or_default).reference_sequence.at(position);
+      database.nuc_sequences.at(nuc_sequence_name_or_default).reference_sequence.at(position_idx);
 
    if (mode == UPPER_BOUND) {
       auto expression = std::make_unique<Negation>(std::make_unique<NucleotideSymbolEquals>(
-         nuc_sequence_name_or_default, position, ref_symbol
+         nuc_sequence_name_or_default, position_idx, ref_symbol
       ));
       return expression->compile(database, database_partition, NONE);
    }
@@ -70,7 +70,7 @@ std::unique_ptr<operators::Operator> HasMutation::compile(
       std::back_inserter(symbol_filters),
       [&](Nucleotide::Symbol symbol) {
          return std::make_unique<NucleotideSymbolEquals>(
-            nuc_sequence_name_or_default, position, symbol
+            nuc_sequence_name_or_default, position_idx, symbol
          );
       }
    );
@@ -91,8 +91,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<HasMutation>& filter)
    if (json.contains("sequenceName")) {
       nuc_sequence_name = json["sequenceName"].get<std::string>();
    }
-   const uint32_t position = json["position"].get<uint32_t>() - 1;
-   filter = std::make_unique<HasMutation>(nuc_sequence_name, position);
+   const uint32_t position_idx = json["position"].get<uint32_t>() - 1;
+   filter = std::make_unique<HasMutation>(nuc_sequence_name, position_idx);
 }
 
 }  // namespace silo::query_engine::filter_expressions

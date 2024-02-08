@@ -59,9 +59,9 @@ class SequenceStorePartition {
    void fillIndexes(const std::vector<std::optional<std::string>>& genomes);
 
    void addSymbolsToPositions(
-      const size_t& position,
+      size_t position_idx,
       SymbolMap<SymbolType, std::vector<uint32_t>>& ids_per_symbol_for_current_position,
-      const size_t number_of_sequences
+      size_t number_of_sequences
    );
 
    void fillNBitmaps(const std::vector<std::optional<std::string>>& genomes);
@@ -76,7 +76,7 @@ class SequenceStorePartition {
    [[nodiscard]] size_t computeSize() const;
 
    [[nodiscard]] const roaring::Roaring* getBitmap(
-      size_t position,
+      size_t position_idx,
       typename SymbolType::Symbol symbol
    ) const;
 

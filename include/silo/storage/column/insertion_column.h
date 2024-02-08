@@ -63,7 +63,7 @@ class InsertionColumnPartition {
 
    [[nodiscard]] std::unique_ptr<roaring::Roaring> search(
       const std::string& sequence_name,
-      uint32_t position,
+      uint32_t position_idx,
       const std::string& search_pattern
    ) const;
 

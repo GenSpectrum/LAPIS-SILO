@@ -237,12 +237,13 @@ std::unique_ptr<roaring::Roaring> InsertionPosition<SymbolType>::search(
 
 template <typename SymbolType>
 void InsertionIndex<SymbolType>::addLazily(
-   uint32_t position,
+   uint32_t position_idx,
    const std::string& insertion,
    uint32_t sequence_id
 ) {
    auto& insertions_at_position =
-      collected_insertions.emplace(position, std::unordered_map<std::string, roaring::Roaring>{})
+      collected_insertions
+         .emplace(position_idx, std::unordered_map<std::string, roaring::Roaring>{})
          .first->second;
    auto& sequence_ids_at_position =
       insertions_at_position.emplace(insertion, roaring::Roaring{}).first->second;
@@ -280,10 +281,10 @@ const std::unordered_map<uint32_t, InsertionPosition<SymbolType>>& InsertionInde
 
 template <typename SymbolType>
 std::unique_ptr<roaring::Roaring> InsertionIndex<SymbolType>::search(
-   uint32_t position,
+   uint32_t position_idx,
    const std::string& search_pattern
 ) const {
-   const auto insertion_pos_it = insertion_positions.find(position);
+   const auto insertion_pos_it = insertion_positions.find(position_idx);
    if (insertion_pos_it == insertion_positions.end()) {
       return std::make_unique<roaring::Roaring>();
    }

@@ -64,20 +64,20 @@ std::unordered_map<std::string, typename Mutations<SymbolType>::PrefilteredBitma
 
 template <typename SymbolType>
 void Mutations<SymbolType>::addPositionToMutationCountsForMixedBitmaps(
-   uint32_t position,
+   uint32_t position_idx,
    const PrefilteredBitmaps& bitmaps_to_evaluate,
    SymbolMap<SymbolType, std::vector<uint32_t>>& count_of_mutations_per_position
 ) {
    for (const auto& [filter, sequence_store_partition] : bitmaps_to_evaluate.bitmaps) {
       for (const auto symbol : SymbolType::SYMBOLS) {
-         const auto& current_position = sequence_store_partition.positions[position];
+         const auto& current_position = sequence_store_partition.positions[position_idx];
          if (current_position.isSymbolDeleted(symbol)) {
-            count_of_mutations_per_position[symbol][position] += filter->cardinality();
+            count_of_mutations_per_position[symbol][position_idx] += filter->cardinality();
             for (const uint32_t idx : *filter) {
                const roaring::Roaring& n_bitmap =
                   sequence_store_partition.missing_symbol_bitmaps[idx];
-               if (n_bitmap.contains(position)) {
-                  count_of_mutations_per_position[symbol][position] -= 1;
+               if (n_bitmap.contains(position_idx)) {
+                  count_of_mutations_per_position[symbol][position_idx] -= 1;
                }
             }
             continue;
@@ -87,11 +87,11 @@ void Mutations<SymbolType>::addPositionToMutationCountsForMixedBitmaps(
                ? filter->andnot_cardinality(*current_position.getBitmap(symbol))
                : filter->and_cardinality(*current_position.getBitmap(symbol));
 
-         count_of_mutations_per_position[symbol][position] += symbol_count;
+         count_of_mutations_per_position[symbol][position_idx] += symbol_count;
 
          const auto deleted_symbol = current_position.getDeletedSymbol();
          if (deleted_symbol.has_value() && symbol != *deleted_symbol) {
-            count_of_mutations_per_position[*deleted_symbol][position] -= symbol_count;
+            count_of_mutations_per_position[*deleted_symbol][position_idx] -= symbol_count;
          }
       }
    }
@@ -99,7 +99,7 @@ void Mutations<SymbolType>::addPositionToMutationCountsForMixedBitmaps(
 
 template <typename SymbolType>
 void Mutations<SymbolType>::addPositionToMutationCountsForFullBitmaps(
-   uint32_t position,
+   uint32_t position_idx,
    const PrefilteredBitmaps& bitmaps_to_evaluate,
    SymbolMap<SymbolType, std::vector<uint32_t>>& count_of_mutations_per_position
 ) {
@@ -107,14 +107,14 @@ void Mutations<SymbolType>::addPositionToMutationCountsForFullBitmaps(
    // cardinality
    for (const auto& [filter, sequence_store_partition] : bitmaps_to_evaluate.full_bitmaps) {
       for (const auto symbol : SymbolType::SYMBOLS) {
-         const auto& current_position = sequence_store_partition.positions[position];
+         const auto& current_position = sequence_store_partition.positions[position_idx];
          if (current_position.isSymbolDeleted(symbol)) {
-            count_of_mutations_per_position[symbol][position] +=
+            count_of_mutations_per_position[symbol][position_idx] +=
                sequence_store_partition.sequence_count;
             for (const roaring::Roaring& n_bitmap :
                  sequence_store_partition.missing_symbol_bitmaps) {
-               if (n_bitmap.contains(position)) {
-                  count_of_mutations_per_position[symbol][position] -= 1;
+               if (n_bitmap.contains(position_idx)) {
+                  count_of_mutations_per_position[symbol][position_idx] -= 1;
                }
             }
             continue;
@@ -124,12 +124,12 @@ void Mutations<SymbolType>::addPositionToMutationCountsForFullBitmaps(
                                                current_position.getBitmap(symbol)->cardinality()
                                           : current_position.getBitmap(symbol)->cardinality();
 
-         count_of_mutations_per_position[symbol][position] += symbol_count;
+         count_of_mutations_per_position[symbol][position_idx] += symbol_count;
 
          const auto deleted_symbol = current_position.getDeletedSymbol();
          if (deleted_symbol.has_value() && symbol != *deleted_symbol) {
-            count_of_mutations_per_position[*deleted_symbol][position] -=
-               sequence_store_partition.positions[position].getBitmap(symbol)->cardinality();
+            count_of_mutations_per_position[*deleted_symbol][position_idx] -=
+               sequence_store_partition.positions[position_idx].getBitmap(symbol)->cardinality();
          }
       }
    }

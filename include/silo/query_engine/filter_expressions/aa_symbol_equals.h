@@ -23,12 +23,12 @@ namespace silo::query_engine::filter_expressions {
 
 struct AASymbolEquals : public Expression {
    std::string aa_sequence_name;
-   uint32_t position;
+   uint32_t position_idx;
    std::optional<AminoAcid::Symbol> value;
 
    explicit AASymbolEquals(
       std::string aa_sequence_name,
-      uint32_t position,
+      uint32_t position_idx,
       std::optional<AminoAcid::Symbol> value
    );
 
