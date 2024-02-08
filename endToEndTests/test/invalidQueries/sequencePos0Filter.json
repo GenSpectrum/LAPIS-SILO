@@ -12,6 +12,6 @@
   },
   "expectedError": {
     "error": "Bad request",
-    "message": "The field 'position' in a NucleotideEquals expression needs to be an unsigned integer greater than 0"
+    "message": "The field 'position' in a SymbolEquals expression needs to be an unsigned integer greater than 0"
   }
 }

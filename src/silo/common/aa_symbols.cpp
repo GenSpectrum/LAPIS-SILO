@@ -2,7 +2,9 @@
 
 #include <cassert>
 
-char silo::AminoAcid::symbolToChar(silo::AminoAcid::Symbol symbol) {
+using silo::AminoAcid;
+
+char AminoAcid::symbolToChar(AminoAcid::Symbol symbol) {
    switch (symbol) {
       case AminoAcid::Symbol::GAP:
          return '-';
@@ -59,7 +61,7 @@ char silo::AminoAcid::symbolToChar(silo::AminoAcid::Symbol symbol) {
    return 'X';
 }
 
-std::optional<silo::AminoAcid::Symbol> silo::AminoAcid::charToSymbol(char character) {
+std::optional<AminoAcid::Symbol> AminoAcid::charToSymbol(char character) {
    switch (character) {
       case '-':
          return AminoAcid::Symbol::GAP;
@@ -116,13 +118,13 @@ std::optional<silo::AminoAcid::Symbol> silo::AminoAcid::charToSymbol(char charac
    }
 }
 
-std::optional<std::vector<silo::AminoAcid::Symbol>> silo::AminoAcid::stringToSymbolVector(
+std::optional<std::vector<AminoAcid::Symbol>> AminoAcid::stringToSymbolVector(
    const std::string& sequence
 ) {
    const size_t size = sequence.size();
-   std::vector<silo::AminoAcid::Symbol> result(size);
+   std::vector<AminoAcid::Symbol> result(size);
    for (size_t i = 0; i < size; ++i) {
-      auto symbol = silo::AminoAcid::charToSymbol(sequence[i]);
+      auto symbol = AminoAcid::charToSymbol(sequence[i]);
       if (symbol == std::nullopt) {
          return std::nullopt;
       }
@@ -131,12 +133,40 @@ std::optional<std::vector<silo::AminoAcid::Symbol>> silo::AminoAcid::stringToSym
    return result;
 }
 
-std::optional<char> silo::AminoAcid::findIllegalChar(const std::string& sequence) {
+std::optional<char> AminoAcid::findIllegalChar(const std::string& sequence) {
    for (const auto aa_char : sequence) {
-      auto symbol = silo::AminoAcid::charToSymbol(aa_char);
+      auto symbol = AminoAcid::charToSymbol(aa_char);
       if (symbol == std::nullopt) {
          return aa_char;
       }
    }
    return std::nullopt;
 }
+
+const silo::SymbolMap<AminoAcid, std::vector<AminoAcid::Symbol>> AminoAcid::AMBIGUITY_SYMBOLS{{{
+   {AminoAcid::Symbol::GAP, AminoAcid::Symbol::X},
+   {AminoAcid::Symbol::A, AminoAcid::Symbol::X},
+   {AminoAcid::Symbol::C, AminoAcid::Symbol::X},
+   {AminoAcid::Symbol::D, AminoAcid::Symbol::B, AminoAcid::Symbol::X},
+   {AminoAcid::Symbol::E, AminoAcid::Symbol::Z, AminoAcid::Symbol::X},
+   {AminoAcid::Symbol::F, AminoAcid::Symbol::X},
+   {AminoAcid::Symbol::G, AminoAcid::Symbol::X},
+   {AminoAcid::Symbol::H, AminoAcid::Symbol::X},
+   {AminoAcid::Symbol::I, AminoAcid::Symbol::X},
+   {AminoAcid::Symbol::K, AminoAcid::Symbol::X},
+   {AminoAcid::Symbol::L, AminoAcid::Symbol::X},
+   {AminoAcid::Symbol::M, AminoAcid::Symbol::X},
+   {AminoAcid::Symbol::N, AminoAcid::Symbol::B, AminoAcid::Symbol::X},
+   {AminoAcid::Symbol::P, AminoAcid::Symbol::X},
+   {AminoAcid::Symbol::Q, AminoAcid::Symbol::Z, AminoAcid::Symbol::X},
+   {AminoAcid::Symbol::R, AminoAcid::Symbol::X},
+   {AminoAcid::Symbol::S, AminoAcid::Symbol::X},
+   {AminoAcid::Symbol::T, AminoAcid::Symbol::X},
+   {AminoAcid::Symbol::V, AminoAcid::Symbol::X},
+   {AminoAcid::Symbol::W, AminoAcid::Symbol::X},
+   {AminoAcid::Symbol::Y, AminoAcid::Symbol::X},
+   {AminoAcid::Symbol::B, AminoAcid::Symbol::X},
+   {AminoAcid::Symbol::Z, AminoAcid::Symbol::X},
+   {AminoAcid::Symbol::STOP, AminoAcid::Symbol::X},
+   {AminoAcid::Symbol::X},
+}}};

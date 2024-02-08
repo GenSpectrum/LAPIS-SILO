@@ -2,15 +2,19 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 
 #include <nlohmann/json_fwd.hpp>
 
+#include "silo/common/aa_symbols.h"
+#include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/filter_expressions/expression.h"
 
 namespace silo {
 class Database;
 class DatabasePartition;
+
 namespace query_engine {
 namespace operators {
 class Operator;
@@ -20,13 +24,17 @@ class Operator;
 
 namespace silo::query_engine::filter_expressions {
 
-struct HasAAMutation : public Expression {
-  private:
-   std::string aa_sequence_name;
+template <typename SymbolType>
+struct SymbolEquals : public Expression {
+   std::optional<std::string> sequence_name;
    uint32_t position;
+   std::optional<typename SymbolType::Symbol> value;
 
-  public:
-   explicit HasAAMutation(std::string aa_sequence_name, uint32_t position);
+   explicit SymbolEquals(
+      std::optional<std::string> sequence_name,
+      uint32_t position,
+      std::optional<typename SymbolType::Symbol> value
+   );
 
    std::string toString(const Database& database) const override;
 
@@ -37,7 +45,8 @@ struct HasAAMutation : public Expression {
    ) const override;
 };
 
+template <typename SymbolType>
 // NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<HasAAMutation>& filter);
+void from_json(const nlohmann::json& json, std::unique_ptr<SymbolEquals<SymbolType>>& filter);
 
 }  // namespace silo::query_engine::filter_expressions

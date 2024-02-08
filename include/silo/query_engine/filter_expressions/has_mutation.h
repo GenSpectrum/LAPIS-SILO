@@ -21,13 +21,14 @@ class Operator;
 
 namespace silo::query_engine::filter_expressions {
 
+template <typename SymbolType>
 struct HasMutation : public Expression {
   private:
-   std::optional<std::string> nuc_sequence_name;
+   std::optional<std::string> sequence_name;
    uint32_t position;
 
   public:
-   explicit HasMutation(std::optional<std::string> nuc_sequence_name, uint32_t position);
+   explicit HasMutation(std::optional<std::string> sequence_name, uint32_t position);
 
    std::string toString(const Database& database) const override;
 
@@ -38,7 +39,8 @@ struct HasMutation : public Expression {
    ) const override;
 };
 
+template <typename SymbolType>
 // NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<HasMutation>& filter);
+void from_json(const nlohmann::json& json, std::unique_ptr<HasMutation<SymbolType>>& filter);
 
 }  // namespace silo::query_engine::filter_expressions
