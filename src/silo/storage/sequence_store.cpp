@@ -197,7 +197,7 @@ void silo::SequenceStorePartition<Symbol>::optimizeBitmaps() {
    tbb::parallel_for(tbb::blocked_range<uint32_t>(0, positions.size()), [&](const auto& local) {
       auto& local_index_changes = index_changes_to_reference.local();
       for (auto position = local.begin(); position != local.end(); ++position) {
-         auto symbol_changed = positions[position].deleteMostNumerousBitmap(sequence_count);
+         auto symbol_changed = positions[position].flipMostNumerousBitmap(sequence_count);
          if (symbol_changed.has_value()) {
             local_index_changes.emplace_back(position, *symbol_changed);
          }
