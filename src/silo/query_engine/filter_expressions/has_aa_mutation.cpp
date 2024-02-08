@@ -21,12 +21,12 @@ class DatabasePartition;
 
 namespace silo::query_engine::filter_expressions {
 
-HasAAMutation::HasAAMutation(std::string aa_sequence_name, uint32_t position)
+HasAAMutation::HasAAMutation(std::string aa_sequence_name, uint32_t position_idx)
     : aa_sequence_name(std::move(aa_sequence_name)),
-      position(position) {}
+      position_idx(position_idx) {}
 
 std::string HasAAMutation::toString(const silo::Database& /*database*/) const {
-   std::string res = aa_sequence_name + ":" + std::to_string(position);
+   std::string res = aa_sequence_name + ":" + std::to_string(position_idx);
    return res;
 }
 
@@ -36,11 +36,11 @@ std::unique_ptr<operators::Operator> HasAAMutation::compile(
    AmbiguityMode mode
 ) const {
    const AminoAcid::Symbol ref_symbol =
-      database.aa_sequences.at(aa_sequence_name).reference_sequence.at(position);
+      database.aa_sequences.at(aa_sequence_name).reference_sequence.at(position_idx);
 
    if (mode == UPPER_BOUND) {
       auto expression = std::make_unique<Negation>(
-         std::make_unique<AASymbolEquals>(aa_sequence_name, position, ref_symbol)
+         std::make_unique<AASymbolEquals>(aa_sequence_name, position_idx, ref_symbol)
       );
       return expression->compile(database, database_partition, NONE);
    }
@@ -56,7 +56,7 @@ std::unique_ptr<operators::Operator> HasAAMutation::compile(
       symbols.end(),
       std::back_inserter(symbol_filters),
       [&](AminoAcid::Symbol symbol) {
-         return std::make_unique<AASymbolEquals>(aa_sequence_name, position, symbol);
+         return std::make_unique<AASymbolEquals>(aa_sequence_name, position_idx, symbol);
       }
    );
    return Or(std::move(symbol_filters)).compile(database, database_partition, NONE);
@@ -77,8 +77,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<HasAAMutation>& filte
       "HasAminoAcidMutation expression requires the string field sequenceName"
    )
    const std::string aa_sequence_name = json["sequenceName"].get<std::string>();
-   const uint32_t position = json["position"].get<uint32_t>() - 1;
-   filter = std::make_unique<HasAAMutation>(aa_sequence_name, position);
+   const uint32_t position_idx = json["position"].get<uint32_t>() - 1;
+   filter = std::make_unique<HasAAMutation>(aa_sequence_name, position_idx);
 }
 
 }  // namespace silo::query_engine::filter_expressions

@@ -160,11 +160,11 @@ InsertionAggregation<SymbolType>::validateFieldsAndPreFilterBitmaps(
 }
 
 struct PositionAndInsertion {
-   uint32_t position;
+   uint32_t position_idx;
    std::string_view insertion_value;
 
    bool operator==(const PositionAndInsertion& other) const {
-      return position == other.position && insertion_value == other.insertion_value;
+      return position_idx == other.position_idx && insertion_value == other.insertion_value;
    }
 };
 }  // namespace silo::query_engine::actions
@@ -175,7 +175,7 @@ template <>
 struct std::hash<PositionAndInsertion> {
    std::size_t operator()(const PositionAndInsertion& position_and_insertion) const noexcept {
       std::size_t seed = 0;
-      boost::hash_combine(seed, position_and_insertion.position);
+      boost::hash_combine(seed, position_and_insertion.position_idx);
       boost::hash_combine(seed, position_and_insertion.insertion_value);
       return seed;
    }
@@ -212,7 +212,8 @@ void InsertionAggregation<SymbolType>::addAggregatedInsertionsToInsertionCounts(
    }
    for (const auto& [position_and_insertion, count] : all_insertions) {
       const std::map<std::string, std::optional<std::variant<std::string, int32_t, double>>> fields{
-         {std::string(POSITION_FIELD_NAME), static_cast<int32_t>(position_and_insertion.position)},
+         {std::string(POSITION_FIELD_NAME),
+          static_cast<int32_t>(position_and_insertion.position_idx)},
          {std::string(SEQUENCE_FIELD_NAME), sequence_name},
          {std::string(INSERTION_FIELD_NAME), std::string(position_and_insertion.insertion_value)},
          {std::string(COUNT_FIELD_NAME), static_cast<int32_t>(count)}

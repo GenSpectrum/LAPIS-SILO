@@ -28,12 +28,12 @@ template <typename SymbolType>
 InsertionContains<SymbolType>::InsertionContains(
    std::vector<std::string>&& column_names,
    std::optional<std::string> sequence_name,
-   uint32_t position,
+   uint32_t position_idx,
    std::string value
 )
     : column_names(std::move(column_names)),
       sequence_name(std::move(sequence_name)),
-      position(position),
+      position_idx(position_idx),
       value(std::move(value)) {}
 
 std::string getColumnNamesString(
@@ -105,7 +105,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> InsertionContains<Symbo
             column_operators.emplace_back(std::make_unique<operators::BitmapProducer>(
                [&, validated_sequence_name]() {
                   auto search_result =
-                     the_insertion_column.search(validated_sequence_name, position, value);
+                     the_insertion_column.search(validated_sequence_name, position_idx, value);
                   return OperatorResult(std::move(*search_result));
                },
                database_partition.sequence_count
@@ -195,7 +195,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains<Sym
    if (json.contains("sequenceName")) {
       sequence_name = json["sequenceName"].get<std::string>();
    }
-   const uint32_t position = json["position"].get<uint32_t>();
+   const uint32_t position_idx = json["position"].get<uint32_t>();
    const std::string& value = json["value"].get<std::string>();
    CHECK_SILO_QUERY(
       !value.empty(),
@@ -209,7 +209,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains<Sym
          " symbols and the regex symbol '.*'."
    )
    filter = std::make_unique<InsertionContains<SymbolType>>(
-      std::move(column_names), sequence_name, position, value
+      std::move(column_names), sequence_name, position_idx, value
    );
 }
 

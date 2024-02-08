@@ -77,18 +77,18 @@ namespace silo::query_engine::filter_expressions {
 
 NucleotideSymbolEquals::NucleotideSymbolEquals(
    std::optional<std::string> nuc_sequence_name,
-   uint32_t position,
+   uint32_t position_idx,
    std::optional<Nucleotide::Symbol> value
 )
     : nuc_sequence_name(std::move(nuc_sequence_name)),
-      position(position),
+      position_idx(position_idx),
       value(value) {}
 
 std::string NucleotideSymbolEquals::toString(const silo::Database& /*database*/) const {
    const std::string nuc_sequence_name_prefix =
       nuc_sequence_name ? nuc_sequence_name.value() + ":" : "";
    const char symbol_char = value.has_value() ? Nucleotide::symbolToChar(*value) : '.';
-   return nuc_sequence_name_prefix + std::to_string(position + 1) + std::to_string(symbol_char);
+   return nuc_sequence_name_prefix + std::to_string(position_idx + 1) + std::to_string(symbol_char);
 }
 
 std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals::compile(
@@ -105,14 +105,14 @@ std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals:
    )
    const auto& seq_store_partition =
       database_partition.nuc_sequences.at(nuc_sequence_name_or_default);
-   if (position >= seq_store_partition.reference_sequence.size()) {
+   if (position_idx >= seq_store_partition.reference_sequence.size()) {
       throw QueryParseException(
-         "NucleotideEquals position is out of bounds '" + std::to_string(position + 1) + "' > '" +
-         std::to_string(seq_store_partition.reference_sequence.size()) + "'"
+         "NucleotideEquals position is out of bounds '" + std::to_string(position_idx + 1) +
+         "' > '" + std::to_string(seq_store_partition.reference_sequence.size()) + "'"
       );
    }
    const Nucleotide::Symbol nucleotide_symbol =
-      value.value_or(seq_store_partition.reference_sequence.at(position));
+      value.value_or(seq_store_partition.reference_sequence.at(position_idx));
    if (mode == UPPER_BOUND) {
       auto symbols_to_match = AMBIGUITY_NUC_SYMBOLS.at(static_cast<uint32_t>(nucleotide_symbol));
       std::vector<std::unique_ptr<Expression>> symbol_filters;
@@ -122,7 +122,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals:
          std::back_inserter(symbol_filters),
          [&](silo::Nucleotide::Symbol symbol) {
             return std::make_unique<NucleotideSymbolEquals>(
-               nuc_sequence_name_or_default, position, symbol
+               nuc_sequence_name_or_default, position_idx, symbol
             );
          }
       );
@@ -132,34 +132,34 @@ std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals:
       SPDLOG_TRACE(
          "Filtering for '{}' at position {}",
          Nucleotide::symbolToChar(Nucleotide::SYMBOL_MISSING),
-         position
+         position_idx
       );
       return std::make_unique<operators::BitmapSelection>(
          seq_store_partition.missing_symbol_bitmaps.data(),
          seq_store_partition.missing_symbol_bitmaps.size(),
          operators::BitmapSelection::CONTAINS,
-         position
+         position_idx
       );
    }
-   if (seq_store_partition.positions[position].isSymbolFlipped(nucleotide_symbol)) {
+   if (seq_store_partition.positions[position_idx].isSymbolFlipped(nucleotide_symbol)) {
       SPDLOG_TRACE(
          "Filtering for flipped symbol '{}' at position {}",
          Nucleotide::symbolToChar(nucleotide_symbol),
-         position
+         position_idx
       );
       return std::make_unique<operators::Complement>(
          std::make_unique<operators::IndexScan>(
-            seq_store_partition.getBitmap(position, nucleotide_symbol),
+            seq_store_partition.getBitmap(position_idx, nucleotide_symbol),
             database_partition.sequence_count
          ),
          database_partition.sequence_count
       );
    }
-   if (seq_store_partition.positions[position].isSymbolDeleted(nucleotide_symbol)) {
+   if (seq_store_partition.positions[position_idx].isSymbolDeleted(nucleotide_symbol)) {
       SPDLOG_TRACE(
          "Filtering for deleted symbol '{}' at position {}",
          Nucleotide::symbolToChar(nucleotide_symbol),
-         position
+         position_idx
       );
       std::vector<Nucleotide::Symbol> symbols =
          std::vector<Nucleotide::Symbol>(Nucleotide::SYMBOLS.begin(), Nucleotide::SYMBOLS.end());
@@ -172,7 +172,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals:
          std::back_inserter(symbol_filters),
          [&](Nucleotide::Symbol symbol) {
             return std::make_unique<Negation>(std::make_unique<NucleotideSymbolEquals>(
-               nuc_sequence_name_or_default, position, symbol
+               nuc_sequence_name_or_default, position_idx, symbol
             ));
          }
       );
@@ -181,10 +181,11 @@ std::unique_ptr<silo::query_engine::operators::Operator> NucleotideSymbolEquals:
    SPDLOG_TRACE(
       "Filtering for symbol '{}' at position {}",
       Nucleotide::symbolToChar(nucleotide_symbol),
-      position
+      position_idx
    );
    return std::make_unique<operators::IndexScan>(
-      seq_store_partition.getBitmap(position, nucleotide_symbol), database_partition.sequence_count
+      seq_store_partition.getBitmap(position_idx, nucleotide_symbol),
+      database_partition.sequence_count
    );
 }
 
@@ -210,7 +211,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<NucleotideSymbolEqual
    if (json.contains("sequenceName")) {
       nuc_sequence_name = json["sequenceName"].get<std::string>();
    }
-   const uint32_t position = json["position"].get<uint32_t>() - 1;
+   const uint32_t position_idx = json["position"].get<uint32_t>() - 1;
    const std::string& nucleotide_symbol = json["symbol"];
 
    CHECK_SILO_QUERY(
@@ -223,7 +224,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<NucleotideSymbolEqual
       "The string field 'symbol' must be either a valid nucleotide symbol or the '.' symbol."
    )
 
-   filter = std::make_unique<NucleotideSymbolEquals>(nuc_sequence_name, position, nuc_value);
+   filter = std::make_unique<NucleotideSymbolEquals>(nuc_sequence_name, position_idx, nuc_value);
 }
 
 }  // namespace silo::query_engine::filter_expressions

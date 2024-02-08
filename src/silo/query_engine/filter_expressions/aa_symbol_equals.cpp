@@ -26,16 +26,16 @@ namespace silo::query_engine::filter_expressions {
 
 AASymbolEquals::AASymbolEquals(
    std::string aa_sequence_name,
-   uint32_t position,
+   uint32_t position_idx,
    std::optional<AminoAcid::Symbol> value
 )
     : aa_sequence_name(std::move(aa_sequence_name)),
-      position(position),
+      position_idx(position_idx),
       value(value) {}
 
 std::string AASymbolEquals::toString(const silo::Database& /*database*/) const {
    const char symbol_char = value.has_value() ? AminoAcid::symbolToChar(*value) : '.';
-   return aa_sequence_name + ":" + std::to_string(position + 1) + std::to_string(symbol_char);
+   return aa_sequence_name + ":" + std::to_string(position_idx + 1) + std::to_string(symbol_char);
 }
 
 std::unique_ptr<silo::query_engine::operators::Operator> AASymbolEquals::compile(
@@ -44,31 +44,31 @@ std::unique_ptr<silo::query_engine::operators::Operator> AASymbolEquals::compile
    Expression::AmbiguityMode /*mode*/
 ) const {
    const auto& aa_store_partition = database_partition.aa_sequences.at(aa_sequence_name);
-   if (position >= aa_store_partition.reference_sequence.size()) {
+   if (position_idx >= aa_store_partition.reference_sequence.size()) {
       throw QueryParseException(
-         "AminoAcidEquals position is out of bounds '" + std::to_string(position + 1) + "' > '" +
-         std::to_string(aa_store_partition.reference_sequence.size()) + "'"
+         "AminoAcidEquals position is out of bounds '" + std::to_string(position_idx + 1) +
+         "' > '" + std::to_string(aa_store_partition.reference_sequence.size()) + "'"
       );
    }
    const AminoAcid::Symbol aa_symbol =
-      value.value_or(aa_store_partition.reference_sequence.at(position));
+      value.value_or(aa_store_partition.reference_sequence.at(position_idx));
    if (aa_symbol == AminoAcid::SYMBOL_MISSING) {
       return std::make_unique<operators::BitmapSelection>(
          aa_store_partition.missing_symbol_bitmaps.data(),
          aa_store_partition.missing_symbol_bitmaps.size(),
          operators::BitmapSelection::CONTAINS,
-         position
+         position_idx
       );
    }
-   if (aa_store_partition.positions[position].isSymbolFlipped(aa_symbol)) {
+   if (aa_store_partition.positions[position_idx].isSymbolFlipped(aa_symbol)) {
       return std::make_unique<operators::Complement>(
          std::make_unique<operators::IndexScan>(
-            aa_store_partition.getBitmap(position, aa_symbol), database_partition.sequence_count
+            aa_store_partition.getBitmap(position_idx, aa_symbol), database_partition.sequence_count
          ),
          database_partition.sequence_count
       );
    }
-   if (aa_store_partition.positions[position].isSymbolDeleted(aa_symbol)) {
+   if (aa_store_partition.positions[position_idx].isSymbolDeleted(aa_symbol)) {
       std::vector<AminoAcid::Symbol> symbols =
          std::vector<AminoAcid::Symbol>(AminoAcid::SYMBOLS.begin(), AminoAcid::SYMBOLS.end());
       // NOLINTNEXTLINE(bugprone-unused-return-value)
@@ -80,14 +80,14 @@ std::unique_ptr<silo::query_engine::operators::Operator> AASymbolEquals::compile
          std::back_inserter(symbol_filters),
          [&](AminoAcid::Symbol symbol) {
             return std::make_unique<Negation>(
-               std::make_unique<AASymbolEquals>(aa_sequence_name, position, symbol)
+               std::make_unique<AASymbolEquals>(aa_sequence_name, position_idx, symbol)
             );
          }
       );
       return And(std::move(symbol_filters)).compile(database, database_partition, NONE);
    }
    return std::make_unique<operators::IndexScan>(
-      aa_store_partition.getBitmap(position, aa_symbol), database_partition.sequence_count
+      aa_store_partition.getBitmap(position_idx, aa_symbol), database_partition.sequence_count
    );
 }
 
@@ -111,7 +111,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<AASymbolEquals>& filt
       "The string field 'symbol' is required in a AminoAcidEquals expression"
    )
    const std::string aa_sequence_name = json["sequenceName"].get<std::string>();
-   const uint32_t position = json["position"].get<uint32_t>() - 1;
+   const uint32_t position_idx = json["position"].get<uint32_t>() - 1;
    const std::string aa_char = json["symbol"].get<std::string>();
 
    CHECK_SILO_QUERY(
@@ -122,7 +122,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<AASymbolEquals>& filt
       aa_value.has_value() || aa_char.at(0) == '.',
       "The string field 'symbol' must be either a valid amino acid or the '.' symbol."
    )
-   filter = std::make_unique<AASymbolEquals>(aa_sequence_name, position, aa_value);
+   filter = std::make_unique<AASymbolEquals>(aa_sequence_name, position_idx, aa_value);
 }
 
 }  // namespace silo::query_engine::filter_expressions

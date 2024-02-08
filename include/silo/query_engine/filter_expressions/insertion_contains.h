@@ -25,14 +25,14 @@ struct InsertionContains : public Expression {
   private:
    std::vector<std::string> column_names;
    std::optional<std::string> sequence_name;
-   uint32_t position;
+   uint32_t position_idx;
    std::string value;
 
   public:
    explicit InsertionContains(
       std::vector<std::string>&& column_names,
       std::optional<std::string> sequence_name,
-      uint32_t position,
+      uint32_t position_idx,
       std::string value
    );
 
