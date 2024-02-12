@@ -1,0 +1,22 @@
+{
+  "testCaseName": "Test sequence has exactly symbol A at position 2",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "Exact",
+      "child": {
+        "type": "NucleotideEquals",
+        "position": 2,
+        "symbol": "A",
+        "sequenceName": "testSecondSequence"
+      }
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 2
+    }
+  ]
+}

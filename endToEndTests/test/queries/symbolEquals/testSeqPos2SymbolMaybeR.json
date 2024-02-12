@@ -1,0 +1,22 @@
+{
+  "testCaseName": "Test sequence has maybe symbol R at position 2",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "Maybe",
+      "child": {
+        "type": "NucleotideEquals",
+        "position": 2,
+        "symbol": "R",
+        "sequenceName": "testSecondSequence"
+      }
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 2
+    }
+  ]
+}

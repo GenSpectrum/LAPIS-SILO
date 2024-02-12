@@ -8,12 +8,18 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const queriesPath = __dirname + '/queries';
-const queryTestFiles = fs.readdirSync(queriesPath);
+const queryTestFiles = fs
+  .readdirSync(queriesPath, {
+    recursive: true,
+    withFileTypes: true,
+  })
+  .filter(dirent => dirent.isFile())
+  .map(dirent => dirent.path + '/' + dirent.name);
 const invalidQueriesPath = __dirname + '/invalidQueries';
 const invalidQueryTestFiles = fs.readdirSync(invalidQueriesPath);
 
 describe('The /query endpoint', () => {
-  const testCases = queryTestFiles.map(file => JSON.parse(fs.readFileSync(`${queriesPath}/${file}`)));
+  const testCases = queryTestFiles.map(file => JSON.parse(fs.readFileSync(`${file}`)));
 
   testCases.forEach(testCase =>
     it('should return data for the test case ' + testCase.testCaseName, async () => {
