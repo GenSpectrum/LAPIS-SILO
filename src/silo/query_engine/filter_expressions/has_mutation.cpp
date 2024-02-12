@@ -23,14 +23,17 @@ class DatabasePartition;
 namespace silo::query_engine::filter_expressions {
 
 template <typename SymbolType>
-HasMutation<SymbolType>::HasMutation(std::optional<std::string> sequence_name, uint32_t position)
+HasMutation<SymbolType>::HasMutation(
+   std::optional<std::string> sequence_name,
+   uint32_t position_idx
+)
     : sequence_name(std::move(sequence_name)),
-      position(position) {}
+      position_idx(position_idx) {}
 
 template <typename SymbolType>
 std::string HasMutation<SymbolType>::toString(const silo::Database& /*database*/) const {
    const std::string sequence_name_prefix = sequence_name ? sequence_name.value() + ":" : "";
-   return sequence_name_prefix + std::to_string(position);
+   return sequence_name_prefix + std::to_string(position_idx);
 }
 
 template <typename SymbolType>
@@ -59,7 +62,7 @@ std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
 
    auto ref_symbol = database.getSequenceStores<SymbolType>()
                         .at(sequence_name_or_default)
-                        .reference_sequence.at(position);
+                        .reference_sequence.at(position_idx);
 
    std::vector<typename SymbolType::Symbol> symbols =
       std::vector(SymbolType::SYMBOLS.begin(), SymbolType::SYMBOLS.end());
@@ -79,7 +82,7 @@ std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
       std::back_inserter(symbol_filters),
       [&](typename SymbolType::Symbol symbol) {
          return std::make_unique<SymbolEquals<SymbolType>>(
-            sequence_name_or_default, position, symbol
+            sequence_name_or_default, position_idx, symbol
          );
       }
    );
@@ -101,8 +104,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<HasMutation<SymbolTyp
    if (json.contains("sequenceName")) {
       nuc_sequence_name = json["sequenceName"].get<std::string>();
    }
-   const uint32_t position = json["position"].get<uint32_t>() - 1;
-   filter = std::make_unique<HasMutation<SymbolType>>(nuc_sequence_name, position);
+   const uint32_t position_idx = json["position"].get<uint32_t>() - 1;
+   filter = std::make_unique<HasMutation<SymbolType>>(nuc_sequence_name, position_idx);
 }
 
 template void from_json<Nucleotide>(

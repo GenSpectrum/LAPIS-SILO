@@ -27,11 +27,11 @@ namespace silo::query_engine::filter_expressions {
 template <typename SymbolType>
 SymbolEquals<SymbolType>::SymbolEquals(
    std::optional<std::string> sequence_name,
-   uint32_t position,
+   uint32_t position_idx,
    std::optional<typename SymbolType::Symbol> value
 )
     : sequence_name(std::move(sequence_name)),
-      position(position),
+      position_idx(position_idx),
       value(value) {}
 
 template <typename SymbolType>
@@ -39,7 +39,7 @@ std::string SymbolEquals<SymbolType>::toString(const silo::Database& /*database*
    return fmt::format(
       "{}{}{}",
       sequence_name ? sequence_name.value() + ":" : "",
-      position + 1,
+      position_idx + 1,
       value.has_value() ? SymbolType::symbolToChar(*value) : '.'
    );
 }
@@ -69,13 +69,13 @@ std::unique_ptr<silo::query_engine::operators::Operator> SymbolEquals<SymbolType
    )
    const auto& seq_store_partition =
       database_partition.getSequenceStores<SymbolType>().at(sequence_name_or_default);
-   if (position >= seq_store_partition.reference_sequence.size()) {
+   if (position_idx >= seq_store_partition.reference_sequence.size()) {
       throw QueryParseException(
-         "SymbolEquals position is out of bounds '" + std::to_string(position + 1) + "' > '" +
+         "SymbolEquals position is out of bounds '" + std::to_string(position_idx + 1) + "' > '" +
          std::to_string(seq_store_partition.reference_sequence.size()) + "'"
       );
    }
-   auto symbol = value.value_or(seq_store_partition.reference_sequence.at(position));
+   auto symbol = value.value_or(seq_store_partition.reference_sequence.at(position_idx));
    if (mode == UPPER_BOUND) {
       auto symbols_to_match = SymbolType::AMBIGUITY_SYMBOLS.at(symbol);
       std::vector<std::unique_ptr<Expression>> symbol_filters;
@@ -85,7 +85,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> SymbolEquals<SymbolType
          std::back_inserter(symbol_filters),
          [&](SymbolType::Symbol symbol) {
             return std::make_unique<SymbolEquals<SymbolType>>(
-               sequence_name_or_default, position, symbol
+               sequence_name_or_default, position_idx, symbol
             );
          }
       );
@@ -95,33 +95,33 @@ std::unique_ptr<silo::query_engine::operators::Operator> SymbolEquals<SymbolType
       SPDLOG_TRACE(
          "Filtering for '{}' at position {}",
          SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING),
-         position
+         position_idx
       );
       return std::make_unique<operators::BitmapSelection>(
          seq_store_partition.missing_symbol_bitmaps.data(),
          seq_store_partition.missing_symbol_bitmaps.size(),
          operators::BitmapSelection::CONTAINS,
-         position
+         position_idx
       );
    }
-   if (seq_store_partition.positions[position].isSymbolFlipped(symbol)) {
+   if (seq_store_partition.positions[position_idx].isSymbolFlipped(symbol)) {
       SPDLOG_TRACE(
          "Filtering for flipped symbol '{}' at position {}",
          SymbolType::symbolToChar(symbol),
-         position
+         position_idx
       );
       return std::make_unique<operators::Complement>(
          std::make_unique<operators::IndexScan>(
-            seq_store_partition.getBitmap(position, symbol), database_partition.sequence_count
+            seq_store_partition.getBitmap(position_idx, symbol), database_partition.sequence_count
          ),
          database_partition.sequence_count
       );
    }
-   if (seq_store_partition.positions[position].isSymbolDeleted(symbol)) {
+   if (seq_store_partition.positions[position_idx].isSymbolDeleted(symbol)) {
       SPDLOG_TRACE(
          "Filtering for deleted symbol '{}' at position {}",
          SymbolType::symbolToChar(symbol),
-         position
+         position_idx
       );
       std::vector<typename SymbolType::Symbol> symbols = std::vector<typename SymbolType::Symbol>(
          SymbolType::SYMBOLS.begin(), SymbolType::SYMBOLS.end()
@@ -134,17 +134,17 @@ std::unique_ptr<silo::query_engine::operators::Operator> SymbolEquals<SymbolType
          std::back_inserter(symbol_filters),
          [&](typename SymbolType::Symbol symbol) {
             return std::make_unique<Negation>(std::make_unique<SymbolEquals<SymbolType>>(
-               sequence_name_or_default, position, symbol
+               sequence_name_or_default, position_idx, symbol
             ));
          }
       );
       return And(std::move(symbol_filters)).compile(database, database_partition, NONE);
    }
    SPDLOG_TRACE(
-      "Filtering for symbol '{}' at position {}", SymbolType::symbolToChar(symbol), position
+      "Filtering for symbol '{}' at position {}", SymbolType::symbolToChar(symbol), position_idx
    );
    return std::make_unique<operators::IndexScan>(
-      seq_store_partition.getBitmap(position, symbol), database_partition.sequence_count
+      seq_store_partition.getBitmap(position_idx, symbol), database_partition.sequence_count
    );
 }
 
@@ -171,7 +171,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<SymbolEquals<SymbolTy
    if (json.contains("sequenceName")) {
       sequence_name = json["sequenceName"].get<std::string>();
    }
-   const uint32_t position = json["position"].get<uint32_t>() - 1;
+   const uint32_t position_idx = json["position"].get<uint32_t>() - 1;
    const std::string& symbol = json["symbol"];
 
    CHECK_SILO_QUERY(
@@ -187,7 +187,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<SymbolEquals<SymbolTy
       )
    )
 
-   filter = std::make_unique<SymbolEquals<SymbolType>>(sequence_name, position, symbol_value);
+   filter = std::make_unique<SymbolEquals<SymbolType>>(sequence_name, position_idx, symbol_value);
 }
 
 template void from_json<Nucleotide>(

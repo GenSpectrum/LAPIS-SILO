@@ -25,10 +25,10 @@ template <typename SymbolType>
 struct HasMutation : public Expression {
   private:
    std::optional<std::string> sequence_name;
-   uint32_t position;
+   uint32_t position_idx;
 
   public:
-   explicit HasMutation(std::optional<std::string> sequence_name, uint32_t position);
+   explicit HasMutation(std::optional<std::string> sequence_name, uint32_t position_idx);
 
    std::string toString(const Database& database) const override;
 

@@ -27,12 +27,12 @@ namespace silo::query_engine::filter_expressions {
 template <typename SymbolType>
 struct SymbolEquals : public Expression {
    std::optional<std::string> sequence_name;
-   uint32_t position;
+   uint32_t position_idx;
    std::optional<typename SymbolType::Symbol> value;
 
    explicit SymbolEquals(
       std::optional<std::string> sequence_name,
-      uint32_t position,
+      uint32_t position_idx,
       std::optional<typename SymbolType::Symbol> value
    );
 
