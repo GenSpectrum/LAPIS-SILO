@@ -157,7 +157,7 @@ void Preprocessor::buildPartitioningTable() {
 }
 
 void Preprocessor::buildPartitioningTableByColumn(const std::string& partition_by_field) {
-   SPDLOG_INFO("preprocessing - calculating partitions");
+   SPDLOG_DEBUG("preprocessing - calculating partitions");
 
    (void)preprocessing_db.query(fmt::format(
       R"-(

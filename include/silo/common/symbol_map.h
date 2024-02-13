@@ -4,9 +4,6 @@
 
 #include <boost/serialization/access.hpp>
 
-#include "silo/common/aa_symbols.h"
-#include "silo/common/nucleotide_symbols.h"
-
 namespace silo {
 
 template <typename SymbolType, typename T>
@@ -24,6 +21,11 @@ class SymbolMap {
    std::array<T, SymbolType::COUNT> data;
 
   public:
+   SymbolMap() {}
+
+   SymbolMap(std::array<T, SymbolType::COUNT>&& data)
+       : data(data) {}
+
    T& operator[](typename SymbolType::Symbol symbol) {
       return data.at(static_cast<uint8_t>(symbol));
    }

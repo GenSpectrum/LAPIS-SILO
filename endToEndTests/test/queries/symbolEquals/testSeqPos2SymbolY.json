@@ -1,0 +1,19 @@
+{
+  "testCaseName": "Test sequence has symbol Y at position 2",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "NucleotideEquals",
+      "position": 2,
+      "symbol": "Y",
+      "sequenceName": "testSecondSequence"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 1
+    }
+  ]
+}

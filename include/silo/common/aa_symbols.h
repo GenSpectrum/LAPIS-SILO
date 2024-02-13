@@ -7,6 +7,8 @@
 #include <string_view>
 #include <vector>
 
+#include "silo/common/symbol_map.h"
+
 namespace silo {
 
 class AminoAcid {
@@ -86,6 +88,8 @@ class AminoAcid {
 
    static_assert(INVALID_MUTATION_SYMBOLS.size() + VALID_MUTATION_SYMBOLS.size() == SYMBOLS.size());
 
+   static const silo::SymbolMap<AminoAcid, std::vector<AminoAcid::Symbol>> AMBIGUITY_SYMBOLS;
+
    static constexpr Symbol SYMBOL_MISSING = Symbol::X;
 
    static char symbolToChar(Symbol symbol);
@@ -96,5 +100,6 @@ class AminoAcid {
 
    static std::optional<char> findIllegalChar(const std::string& sequence);
 };
+
 }  // namespace silo
 // namespace silo

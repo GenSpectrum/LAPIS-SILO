@@ -17,7 +17,7 @@
     },
     {
       "gisaid_epi_isl": "EPI_ISL_1001920",
-      "testSecondSequence": "ACGT"
+      "testSecondSequence": "ARGT"
     },
     {
       "gisaid_epi_isl": "EPI_ISL_1002052",
@@ -57,7 +57,7 @@
     },
     {
       "gisaid_epi_isl": "EPI_ISL_1004495",
-      "testSecondSequence": "ACGT"
+      "testSecondSequence": "ARGT"
     },
     {
       "gisaid_epi_isl": "EPI_ISL_1005148",
@@ -89,7 +89,7 @@
     },
     {
       "gisaid_epi_isl": "EPI_ISL_1131102",
-      "testSecondSequence": "ACGT"
+      "testSecondSequence": "AYGT"
     },
     {
       "gisaid_epi_isl": "EPI_ISL_1195052",
@@ -205,7 +205,7 @@
     },
     {
       "gisaid_epi_isl": "EPI_ISL_2019235",
-      "testSecondSequence": "ACGT"
+      "testSecondSequence": "A-GT"
     },
     {
       "gisaid_epi_isl": "EPI_ISL_2019350",
@@ -301,7 +301,7 @@
     },
     {
       "gisaid_epi_isl": "EPI_ISL_2408472",
-      "testSecondSequence": "AGGT"
+      "testSecondSequence": "AAGT"
     },
     {
       "gisaid_epi_isl": "EPI_ISL_2544226",

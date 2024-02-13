@@ -11,8 +11,8 @@
 #include "silo/database.h"
 #include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/filter_expressions/negation.h"
-#include "silo/query_engine/filter_expressions/nucleotide_symbol_equals.h"
 #include "silo/query_engine/filter_expressions/or.h"
+#include "silo/query_engine/filter_expressions/symbol_equals.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_parse_exception.h"
 
@@ -22,63 +22,76 @@ class DatabasePartition;
 
 namespace silo::query_engine::filter_expressions {
 
-HasMutation::HasMutation(std::optional<std::string> nuc_sequence_name, uint32_t position_idx)
-    : nuc_sequence_name(std::move(nuc_sequence_name)),
+template <typename SymbolType>
+HasMutation<SymbolType>::HasMutation(
+   std::optional<std::string> sequence_name,
+   uint32_t position_idx
+)
+    : sequence_name(std::move(sequence_name)),
       position_idx(position_idx) {}
 
-std::string HasMutation::toString(const silo::Database& /*database*/) const {
-   const std::string nuc_sequence_name_prefix =
-      nuc_sequence_name ? nuc_sequence_name.value() + ":" : "";
-   return nuc_sequence_name_prefix + std::to_string(position_idx);
+template <typename SymbolType>
+std::string HasMutation<SymbolType>::toString(const silo::Database& /*database*/) const {
+   const std::string sequence_name_prefix = sequence_name ? sequence_name.value() + ":" : "";
+   return sequence_name_prefix + std::to_string(position_idx);
 }
 
-std::unique_ptr<operators::Operator> HasMutation::compile(
+template <typename SymbolType>
+std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
    const silo::Database& database,
    const silo::DatabasePartition& database_partition,
    AmbiguityMode mode
 ) const {
-   const std::string nuc_sequence_name_or_default =
-      nuc_sequence_name.value_or(database.database_config.default_nucleotide_sequence);
    CHECK_SILO_QUERY(
-      database.nuc_sequences.contains(nuc_sequence_name_or_default),
-      "Database does not contain the nucleotide sequence with name: '" +
-         nuc_sequence_name_or_default + "'"
+      sequence_name.has_value() || database.getDefaultSequenceName<SymbolType>().has_value(),
+      fmt::format(
+         "Database does not have a default sequence name for {} Sequences", SymbolType::SYMBOL_NAME
+      )
+   );
+   const std::string sequence_name_or_default =
+      sequence_name.has_value() ? sequence_name.value()
+                                : database.getDefaultSequenceName<SymbolType>().value();
+   CHECK_SILO_QUERY(
+      database.getSequenceStores<SymbolType>().contains(sequence_name_or_default),
+      fmt::format(
+         "Database does not contain the {} sequence with name: '{}'",
+         SymbolType::SYMBOL_NAME,
+         sequence_name_or_default
+      )
    )
 
-   const Nucleotide::Symbol ref_symbol =
-      database.nuc_sequences.at(nuc_sequence_name_or_default).reference_sequence.at(position_idx);
+   auto ref_symbol = database.getSequenceStores<SymbolType>()
+                        .at(sequence_name_or_default)
+                        .reference_sequence.at(position_idx);
 
-   if (mode == UPPER_BOUND) {
-      auto expression = std::make_unique<Negation>(std::make_unique<NucleotideSymbolEquals>(
-         nuc_sequence_name_or_default, position_idx, ref_symbol
-      ));
-      return expression->compile(database, database_partition, NONE);
+   std::vector<typename SymbolType::Symbol> symbols =
+      std::vector(SymbolType::SYMBOLS.begin(), SymbolType::SYMBOLS.end());
+   if (mode == AmbiguityMode::UPPER_BOUND) {
+      // We can only be sure, that the symbol did not mutate, if the ref_symbol is at that position
+      symbols.erase(std::remove(symbols.begin(), symbols.end(), ref_symbol), symbols.end());
+   } else {
+      // Remove all symbols that could match the searched base
+      for (const auto symbol : SymbolType::AMBIGUITY_SYMBOLS.at(ref_symbol)) {
+         symbols.erase(std::remove(symbols.begin(), symbols.end(), symbol), symbols.end());
+      }
    }
-
-   std::vector<Nucleotide::Symbol> symbols = {
-      Nucleotide::Symbol::A,
-      Nucleotide::Symbol::C,
-      Nucleotide::Symbol::G,
-      Nucleotide::Symbol::T,
-   };
-   // NOLINTNEXTLINE(bugprone-unused-return-value)
-   (void)std::remove(symbols.begin(), symbols.end(), ref_symbol);
    std::vector<std::unique_ptr<filter_expressions::Expression>> symbol_filters;
    std::transform(
       symbols.begin(),
       symbols.end(),
       std::back_inserter(symbol_filters),
-      [&](Nucleotide::Symbol symbol) {
-         return std::make_unique<NucleotideSymbolEquals>(
-            nuc_sequence_name_or_default, position_idx, symbol
+      [&](typename SymbolType::Symbol symbol) {
+         return std::make_unique<SymbolEquals<SymbolType>>(
+            sequence_name_or_default, position_idx, symbol
          );
       }
    );
    return Or(std::move(symbol_filters)).compile(database, database_partition, NONE);
 }
 
+template <typename SymbolType>
 // NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<HasMutation>& filter) {
+void from_json(const nlohmann::json& json, std::unique_ptr<HasMutation<SymbolType>>& filter) {
    CHECK_SILO_QUERY(
       json.contains("position"),
       "The field 'position' is required in a HasNucleotideMutation expression"
@@ -92,7 +105,20 @@ void from_json(const nlohmann::json& json, std::unique_ptr<HasMutation>& filter)
       nuc_sequence_name = json["sequenceName"].get<std::string>();
    }
    const uint32_t position_idx = json["position"].get<uint32_t>() - 1;
-   filter = std::make_unique<HasMutation>(nuc_sequence_name, position_idx);
+   filter = std::make_unique<HasMutation<SymbolType>>(nuc_sequence_name, position_idx);
 }
+
+template void from_json<Nucleotide>(
+   const nlohmann::json& json,
+   std::unique_ptr<HasMutation<Nucleotide>>& filter
+);
+
+template void from_json<AminoAcid>(
+   const nlohmann::json& json,
+   std::unique_ptr<HasMutation<AminoAcid>>& filter
+);
+
+template class HasMutation<AminoAcid>;
+template class HasMutation<Nucleotide>;
 
 }  // namespace silo::query_engine::filter_expressions

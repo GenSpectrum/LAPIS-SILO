@@ -7,6 +7,8 @@
 #include <string_view>
 #include <vector>
 
+#include "silo/common/symbol_map.h"
+
 namespace silo {
 
 class Nucleotide {
@@ -80,6 +82,8 @@ class Nucleotide {
    };
 
    static_assert(INVALID_MUTATION_SYMBOLS.size() + VALID_MUTATION_SYMBOLS.size() == SYMBOLS.size());
+
+   static const silo::SymbolMap<Nucleotide, std::vector<Nucleotide::Symbol>> AMBIGUITY_SYMBOLS;
 
    static constexpr Symbol SYMBOL_MISSING = Symbol::N;
 

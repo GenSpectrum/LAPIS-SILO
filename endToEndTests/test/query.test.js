@@ -2,18 +2,36 @@ import { headerToHaveDataVersion, server } from './common.js';
 import { expect } from 'chai';
 import { describe, it } from 'node:test';
 import fs from 'fs';
+import path from 'path';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const queriesPath = __dirname + '/queries';
-const queryTestFiles = fs.readdirSync(queriesPath);
+function readFilesRecursively(directoryPath) {
+  let fileList = [];
+
+  const files = fs.readdirSync(directoryPath);
+
+  files.forEach(file => {
+    const filePath = path.join(directoryPath, file);
+
+    if (fs.statSync(filePath).isDirectory()) {
+      fileList = fileList.concat(readFilesRecursively(filePath));
+    } else {
+      fileList.push(filePath);
+    }
+  });
+
+  return fileList;
+}
+
+const queryTestFiles = readFilesRecursively(__dirname + '/queries');
 const invalidQueriesPath = __dirname + '/invalidQueries';
 const invalidQueryTestFiles = fs.readdirSync(invalidQueriesPath);
 
 describe('The /query endpoint', () => {
-  const testCases = queryTestFiles.map(file => JSON.parse(fs.readFileSync(`${queriesPath}/${file}`)));
+  const testCases = queryTestFiles.map(file => JSON.parse(fs.readFileSync(`${file}`)));
 
   testCases.forEach(testCase =>
     it('should return data for the test case ' + testCase.testCaseName, async () => {
