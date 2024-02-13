@@ -117,8 +117,8 @@ class ColumnPartitionGroup {
       uint32_t sequence_id
    ) const;
 
-   template <typename Symbol>
-   const std::map<std::string, storage::column::InsertionColumnPartition<Symbol>&>&
+   template <typename SymbolType>
+   const std::map<std::string, storage::column::InsertionColumnPartition<SymbolType>&>&
    getInsertionColumns() const;
 };
 
