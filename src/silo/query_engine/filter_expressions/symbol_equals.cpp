@@ -200,4 +200,7 @@ template void from_json<AminoAcid>(
    std::unique_ptr<SymbolEquals<AminoAcid>>& filter
 );
 
+template class SymbolEquals<AminoAcid>;
+template class SymbolEquals<Nucleotide>;
+
 }  // namespace silo::query_engine::filter_expressions

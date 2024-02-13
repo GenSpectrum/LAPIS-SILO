@@ -118,4 +118,7 @@ template void from_json<AminoAcid>(
    std::unique_ptr<HasMutation<AminoAcid>>& filter
 );
 
+template class HasMutation<AminoAcid>;
+template class HasMutation<Nucleotide>;
+
 }  // namespace silo::query_engine::filter_expressions
