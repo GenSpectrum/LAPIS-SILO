@@ -46,10 +46,7 @@ struct TestParameter {
    ColumnType expected_column_type;
 };
 
-class DatabaseMetadataFixture : public ::testing::TestWithParam<TestParameter> {
-  protected:
-   std::string something;
-};
+class DatabaseMetadataFixture : public ::testing::TestWithParam<TestParameter> {};
 
 TEST_P(DatabaseMetadataFixture, getColumnTypeShouldReturnCorrectColumnType) {
    const auto test_parameter = GetParam();

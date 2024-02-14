@@ -62,7 +62,7 @@ std::unique_ptr<operators::Operator> DateBetween::compile(
       predicates.emplace_back(
          std::make_unique<operators::CompareToValueSelection<silo::common::Date>>(
             date_column.getValues(),
-            operators::Comparator::LESS,
+            operators::Comparator::LESS_OR_EQUALS,
             date_to.value_or(silo::common::Date{UINT32_MAX})
          )
       );

@@ -17,11 +17,6 @@
 #include "silo/query_engine/query.h"
 #include "silo/query_engine/query_result.h"
 
-#define CHECK_SILO_QUERY(condition, message)    \
-   if (!(condition)) {                          \
-      throw silo::QueryParseException(message); \
-   }
-
 namespace silo::query_engine {
 
 QueryEngine::QueryEngine(const silo::Database& database)
