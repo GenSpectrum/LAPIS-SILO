@@ -65,3 +65,4 @@ conanprofile
 
 **/output/
 **/logs/
+**/temp/
