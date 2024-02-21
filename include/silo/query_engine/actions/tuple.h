@@ -52,7 +52,8 @@ class Tuple {
 
    static Comparator getComparator(
       const std::vector<silo::storage::ColumnMetadata>& columns_metadata,
-      const std::vector<OrderByField>& order_by_fields
+      const std::vector<OrderByField>& order_by_fields,
+      const std::optional<uint32_t>& randomize_seed
    );
 
    bool operator==(const Tuple& other) const;

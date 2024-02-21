@@ -1,6 +1,7 @@
 #include "silo/query_engine/actions/details.h"
 
 #include <algorithm>
+#include <random>
 #include <utility>
 
 #include <oneapi/tbb/blocked_range.h>
@@ -197,14 +198,16 @@ QueryResult Details::executeAndOrder(
       tuples = produceSortedTuplesWithLimit(
          tuple_factories,
          bitmap_filter,
-         Tuple::getComparator(field_metadata, order_by_fields),
+         Tuple::getComparator(field_metadata, order_by_fields, randomize_seed),
          limit.value() + offset.value_or(0)
       );
    } else {
       tuples = produceAllTuples(tuple_factories, bitmap_filter);
-      if (!order_by_fields.empty()) {
+      if (!order_by_fields.empty() || randomize_seed) {
          std::sort(
-            tuples.begin(), tuples.end(), Tuple::getComparator(field_metadata, order_by_fields)
+            tuples.begin(),
+            tuples.end(),
+            Tuple::getComparator(field_metadata, order_by_fields, randomize_seed)
          );
       }
    }

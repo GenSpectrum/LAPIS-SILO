@@ -2,8 +2,10 @@
 
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <map>
 #include <memory>
+#include <random>
 #include <utility>
 
 #include <nlohmann/json.hpp>
@@ -51,6 +53,12 @@ void Action::applySort(QueryResult& result) const {
       static_cast<size_t>(limit.value_or(result_vector.size()) + offset.value_or(0UL)),
       result_vector.size()
    );
+   if (randomize_seed) {
+      std::default_random_engine rng(*randomize_seed);
+      std::shuffle(
+         result_vector.begin(), result_vector.begin() + static_cast<int64_t>(end_of_sort), rng
+      );
+   }
    if (!order_by_fields.empty()) {
       if (end_of_sort < result_vector.size()) {
          std::partial_sort(
@@ -94,11 +102,13 @@ void Action::applyOffsetAndLimit(QueryResult& result) const {
 void Action::setOrdering(
    const std::vector<OrderByField>& order_by_fields_,
    std::optional<uint32_t> limit_,
-   std::optional<uint32_t> offset_
+   std::optional<uint32_t> offset_,
+   std::optional<uint32_t> randomize_seed_
 ) {
    order_by_fields = order_by_fields_;
    limit = limit_;
    offset = offset_;
+   randomize_seed = randomize_seed_;
 }
 
 QueryResult Action::executeAndOrder(
@@ -140,6 +150,45 @@ void from_json(const nlohmann::json& json, OrderByField& field) {
    field = {field_name, order_string == "ascending"};
 }
 
+std::optional<uint32_t> parseLimit(const nlohmann::json& json) {
+   CHECK_SILO_QUERY(
+      !json.contains("limit") || json["limit"].is_number_unsigned(),
+      "If the action contains a limit, it must be a non-negative number"
+   )
+   return json.contains("limit") ? std::optional<uint32_t>(json["limit"].get<uint32_t>())
+                                 : std::nullopt;
+}
+
+std::optional<uint32_t> parseOffset(const nlohmann::json& json) {
+   CHECK_SILO_QUERY(
+      !json.contains("offset") || json["offset"].is_number_unsigned(),
+      "If the action contains an offset, it must be a non-negative number"
+   )
+   return json.contains("offset") ? std::optional<uint32_t>(json["offset"].get<uint32_t>())
+                                  : std::nullopt;
+}
+
+std::optional<uint32_t> parseRandomizeSeed(const nlohmann::json& json) {
+   if (json.contains("randomize")) {
+      if (json["randomize"].is_boolean()) {
+         if (json["randomize"].get<bool>()) {
+            const uint32_t time_based_seed =
+               std::chrono::system_clock::now().time_since_epoch().count();
+            return time_based_seed;
+         }
+         return std::nullopt;
+      }
+      CHECK_SILO_QUERY(
+         json["randomize"].is_object() && json["randomize"].contains("seed") &&
+            json["randomize"]["seed"].is_number_unsigned(),
+         "If the action contains 'randomize', it must be either a boolean or an object "
+         "containing an unsigned 'seed'"
+      )
+      return json["randomize"]["seed"].get<uint32_t>();
+   }
+   return std::nullopt;
+}
+
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
    CHECK_SILO_QUERY(json.contains("type"), "The field 'type' is required in any action")
@@ -172,18 +221,13 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
                              ? json["orderByFields"].get<std::vector<OrderByField>>()
                              : std::vector<OrderByField>();
    CHECK_SILO_QUERY(
-      !json.contains("limit") || json["limit"].is_number_unsigned(),
-      "If the action contains a limit, it must be a non-negative number"
-   )
-   CHECK_SILO_QUERY(
       !json.contains("offset") || json["offset"].is_number_unsigned(),
       "If the action contains an offset, it must be a non-negative number"
    )
-   auto limit = json.contains("limit") ? std::optional<uint32_t>(json["limit"].get<uint32_t>())
-                                       : std::nullopt;
-   auto offset = json.contains("offset") ? std::optional<uint32_t>(json["offset"].get<uint32_t>())
-                                         : std::nullopt;
-   action->setOrdering(order_by_fields, limit, offset);
+   auto limit = parseLimit(json);
+   auto offset = parseOffset(json);
+   auto randomize_seed = parseRandomizeSeed(json);
+   action->setOrdering(order_by_fields, limit, offset, randomize_seed);
 }
 
 }  // namespace silo::query_engine::actions
