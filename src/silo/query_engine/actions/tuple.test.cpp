@@ -211,7 +211,7 @@ TEST(Tuple, comparesFieldsCorrectly) {
    std::vector<silo::query_engine::actions::OrderByField> order_by_fields;
    order_by_fields.push_back({"dummy_indexed_string_column", true});
    const Tuple::Comparator under_test =
-      Tuple::getComparator(columns.second.metadata, order_by_fields);
+      Tuple::getComparator(columns.second.metadata, order_by_fields, std::nullopt);
 
    ASSERT_FALSE(under_test(tuple0a, tuple0b));
    ASSERT_FALSE(under_test(tuple0b, tuple0a));
@@ -233,7 +233,7 @@ TEST(Tuple, comparesFieldsCorrectly) {
 
    order_by_fields.clear();
    const Tuple::Comparator under_test2 =
-      Tuple::getComparator(columns.second.metadata, order_by_fields);
+      Tuple::getComparator(columns.second.metadata, order_by_fields, std::nullopt);
 
    ASSERT_FALSE(under_test2(tuple0a, tuple0b));
    ASSERT_FALSE(under_test2(tuple0b, tuple0a));
@@ -255,7 +255,7 @@ TEST(Tuple, comparesFieldsCorrectly) {
 
    order_by_fields.push_back({"dummy_date_column", true});
    const Tuple::Comparator under_test3 =
-      Tuple::getComparator(columns.second.metadata, order_by_fields);
+      Tuple::getComparator(columns.second.metadata, order_by_fields, std::nullopt);
 
    ASSERT_FALSE(under_test3(tuple0a, tuple0b));
    ASSERT_FALSE(under_test3(tuple0b, tuple0a));
@@ -277,7 +277,7 @@ TEST(Tuple, comparesFieldsCorrectly) {
 
    order_by_fields.push_back({"dummy_string_column", false});
    const Tuple::Comparator under_test4 =
-      Tuple::getComparator(columns.second.metadata, order_by_fields);
+      Tuple::getComparator(columns.second.metadata, order_by_fields, std::nullopt);
 
    ASSERT_FALSE(under_test4(tuple0a, tuple0b));
    ASSERT_FALSE(under_test4(tuple0b, tuple0a));

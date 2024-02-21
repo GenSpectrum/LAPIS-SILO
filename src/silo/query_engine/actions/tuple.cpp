@@ -8,6 +8,8 @@
 #include <string_view>
 #include <utility>
 
+#include <boost/container_hash/hash.hpp>
+
 #include "silo/common/date.h"
 #include "silo/common/string.h"
 #include "silo/common/types.h"
@@ -363,10 +365,31 @@ std::vector<Tuple::ComparatorField> Tuple::getCompareFields(
 
 Tuple::Comparator Tuple::getComparator(
    const std::vector<silo::storage::ColumnMetadata>& columns_metadata,
-   const std::vector<OrderByField>& order_by_fields
+   const std::vector<OrderByField>& order_by_fields,
+   const std::optional<uint32_t>& randomize_seed
 ) {
    auto tuple_field_comparators =
       actions::Tuple::getCompareFields(columns_metadata, order_by_fields);
+   if (randomize_seed) {
+      const size_t seed = *randomize_seed;
+      return [tuple_field_comparators, seed](const Tuple& tuple1, const Tuple& tuple2) {
+         if (tuple1.compareLess(tuple2, tuple_field_comparators)) {
+            return true;
+         }
+         if (tuple2.compareLess(tuple1, tuple_field_comparators)) {
+            return false;
+         }
+         size_t random_number1 = seed;
+         size_t random_number2 = seed;
+         boost::hash_combine(
+            random_number1, std::hash<silo::query_engine::actions::Tuple>()(tuple1)
+         );
+         boost::hash_combine(
+            random_number2, std::hash<silo::query_engine::actions::Tuple>()(tuple2)
+         );
+         return random_number1 < random_number2;
+      };
+   }
    return [tuple_field_comparators](const Tuple& tuple1, const Tuple& tuple2) {
       return tuple1.compareLess(tuple2, tuple_field_comparators);
    };

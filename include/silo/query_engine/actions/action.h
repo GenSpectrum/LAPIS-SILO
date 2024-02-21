@@ -28,6 +28,7 @@ class Action {
    std::vector<OrderByField> order_by_fields;
    std::optional<uint32_t> limit;
    std::optional<uint32_t> offset;
+   std::optional<uint32_t> randomize_seed;
 
    void applySort(QueryResult& result) const;
    void applyOffsetAndLimit(QueryResult& result) const;
@@ -46,7 +47,8 @@ class Action {
    void setOrdering(
       const std::vector<OrderByField>& order_by_fields,
       std::optional<uint32_t> limit,
-      std::optional<uint32_t> offset
+      std::optional<uint32_t> offset,
+      std::optional<uint32_t> randomize_seed
    );
 
    [[nodiscard]] virtual QueryResult executeAndOrder(
@@ -54,6 +56,12 @@ class Action {
       std::vector<OperatorResult> bitmap_filter
    ) const;
 };
+
+std::optional<uint32_t> parseLimit(const nlohmann::json& json);
+
+std::optional<uint32_t> parseOffset(const nlohmann::json& json);
+
+std::optional<uint32_t> parseRandomizeSeed(const nlohmann::json& json);
 
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action);
