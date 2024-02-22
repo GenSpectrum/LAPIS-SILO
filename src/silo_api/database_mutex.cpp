@@ -15,9 +15,13 @@ silo_api::FixedDatabase::FixedDatabase(
 void silo_api::DatabaseMutex::setDatabase(silo::Database&& new_database) {
    const std::unique_lock lock(mutex);
    database = std::move(new_database);
+   is_initialized = true;
 }
 
 silo_api::FixedDatabase silo_api::DatabaseMutex::getDatabase() {
+   if (!is_initialized) {
+      throw silo_api::UninitializedDatabaseException();
+   }
    std::shared_lock<std::shared_mutex> lock(mutex);
    return {database, std::move(lock)};
 }

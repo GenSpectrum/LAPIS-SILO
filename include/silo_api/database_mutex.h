@@ -15,9 +15,16 @@ class FixedDatabase {
    const silo::Database& database;
 };
 
+class UninitializedDatabaseException : public std::runtime_error {
+  public:
+   UninitializedDatabaseException()
+       : std::runtime_error("Database not initialized yet") {}
+};
+
 class DatabaseMutex {
    std::shared_mutex mutex;
    silo::Database database;
+   bool is_initialized = false;
 
   public:
    DatabaseMutex() = default;

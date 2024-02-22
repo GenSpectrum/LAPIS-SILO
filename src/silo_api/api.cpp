@@ -32,6 +32,13 @@
 #include "silo_api/request_handler_factory.h"
 #include "silo_api/runtime_config.h"
 
+static const std::string ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION = "estimatedStartupTimeInMinutes";
+static const std::string PREPROCESSING_CONFIG_OPTION = "preprocessingConfig";
+static const std::string DATABASE_CONFIG_OPTION = "databaseConfig";
+static const std::string DATA_DIRECTORY_OPTION = "dataDirectory";
+static const std::string API_OPTION = "api";
+static const std::string PREPROCESSING_OPTION = "preprocessing";
+
 silo::preprocessing::PreprocessingConfig preprocessingConfig(
    const Poco::Util::AbstractConfiguration& config
 ) {
@@ -43,9 +50,9 @@ silo::preprocessing::PreprocessingConfig preprocessingConfig(
    }
 
    silo::preprocessing::OptionalPreprocessingConfig user_preprocessing_config;
-   if (config.hasProperty("preprocessingConfig")) {
+   if (config.hasProperty(PREPROCESSING_CONFIG_OPTION)) {
       user_preprocessing_config = silo::preprocessing::PreprocessingConfigReader().readConfig(
-         config.getString("preprocessingConfig")
+         config.getString(PREPROCESSING_CONFIG_OPTION)
       );
    } else if (std::filesystem::exists("./preprocessing_config.yaml")) {
       user_preprocessing_config =
@@ -59,8 +66,9 @@ silo::preprocessing::PreprocessingConfig preprocessingConfig(
 }
 
 silo::config::DatabaseConfig databaseConfig(const Poco::Util::AbstractConfiguration& config) {
-   if (config.hasProperty("databaseConfig")) {
-      return silo::config::ConfigRepository().getValidatedConfig(config.getString("databaseConfig")
+   if (config.hasProperty(DATABASE_CONFIG_OPTION)) {
+      return silo::config::ConfigRepository().getValidatedConfig(
+         config.getString(DATABASE_CONFIG_OPTION)
       );
    }
    SPDLOG_DEBUG("databaseConfig not found in config file. Using default value: databaseConfig.yaml"
@@ -72,12 +80,12 @@ std::filesystem::path dataDirectory(
    const Poco::Util::AbstractConfiguration& config,
    const silo_api::RuntimeConfig& runtime_config
 ) {
-   if (config.hasProperty("dataDirectory")) {
+   if (config.hasProperty(DATA_DIRECTORY_OPTION)) {
       SPDLOG_DEBUG(
          "Using dataDirectory passed via command line argument: {}",
-         config.getString("dataDirectory")
+         config.getString(DATA_DIRECTORY_OPTION)
       );
-      return config.getString("dataDirectory");
+      return config.getString(DATA_DIRECTORY_OPTION);
    }
    if (runtime_config.data_directory.has_value()) {
       SPDLOG_DEBUG(
@@ -107,45 +115,64 @@ class SiloServer : public Poco::Util::ServerApplication {
       );
 
       options.addOption(
-         Poco::Util::Option("preprocessingConfig", "pc", "path to the preprocessing config file")
+         Poco::Util::Option(
+            PREPROCESSING_CONFIG_OPTION, "pc", "path to the preprocessing config file"
+         )
             .required(false)
             .repeatable(false)
             .argument("PATH")
-            .binding("preprocessingConfig")
+            .binding(PREPROCESSING_CONFIG_OPTION)
       );
 
       options.addOption(
-         Poco::Util::Option("databaseConfig", "dc", "path to the database config file")
+         Poco::Util::Option(DATABASE_CONFIG_OPTION, "dc", "path to the database config file")
             .required(false)
             .repeatable(false)
             .argument("PATH")
-            .binding("databaseConfig")
+            .binding(DATABASE_CONFIG_OPTION)
       );
 
-      options.addOption(Poco::Util::Option("dataDirectory", "d", "path to the preprocessed data")
-                           .required(false)
-                           .repeatable(false)
-                           .argument("PATH")
-                           .binding("dataDirectory"));
-
       options.addOption(
-         Poco::Util::Option("api", "a", "Execution mode: start the SILO web interface")
+         Poco::Util::Option(DATA_DIRECTORY_OPTION, "d", "path to the preprocessed data")
             .required(false)
             .repeatable(false)
-            .binding("api")
+            .argument("PATH")
+            .binding(DATA_DIRECTORY_OPTION)
+      );
+
+      options.addOption(
+         Poco::Util::Option(API_OPTION, "a", "Execution mode: start the SILO web interface")
+            .required(false)
+            .repeatable(false)
+            .binding(API_OPTION)
             .group("executionMode")
       );
 
       options.addOption(Poco::Util::Option(
-                           "preprocessing",
+                           PREPROCESSING_OPTION,
                            "p",
                            "Execution mode: trigger the preprocessing pipeline to generate a "
                            "partitioned dataset that can be read by the database"
       )
                            .required(false)
                            .repeatable(false)
-                           .binding("preprocessing")
+                           .binding(PREPROCESSING_OPTION)
                            .group("executionMode"));
+
+      options.addOption(
+         Poco::Util::Option(
+            ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION,
+            "t",
+            "Estimated time in minutes that the initial loading of the database takes. "
+            "As long as no database is loaded yet, SILO will throw a 503 error. "
+            "This option allows SILO to compute a Retry-After header for the 503 response. ",
+            false
+         )
+            .required(false)
+            .repeatable(false)
+            .argument("MINUTES", true)
+            .binding(ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION)
+      );
    }
 
    int main(const std::vector<std::string>& args) override {
@@ -156,11 +183,11 @@ class SiloServer : public Poco::Util::ServerApplication {
          return Application::EXIT_USAGE;
       }
 
-      if (config().hasProperty("api")) {
+      if (config().hasProperty(API_OPTION)) {
          return handleApi();
       }
 
-      if (config().hasProperty("preprocessing")) {
+      if (config().hasProperty(PREPROCESSING_OPTION)) {
          return handlePreprocessing();
       }
 
@@ -171,6 +198,18 @@ class SiloServer : public Poco::Util::ServerApplication {
    }
 
   private:
+   silo_api::StartupConfig getStartupConfig() {
+      const auto now = std::chrono::system_clock::now();
+      const auto estimated_startup_time_in_minutes =
+         config().hasProperty(ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION)
+            ? std::optional(
+                 std::chrono::minutes(config().getInt(ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION))
+              )
+            : std::nullopt;
+
+      return {now, estimated_startup_time_in_minutes};
+   }
+
    int handleApi() {
       SPDLOG_INFO("Starting SILO API");
       const int port = 8081;
@@ -189,7 +228,7 @@ class SiloServer : public Poco::Util::ServerApplication {
       const silo_api::DatabaseDirectoryWatcher watcher(data_directory, database_mutex);
 
       Poco::Net::HTTPServer server(
-         new silo_api::SiloRequestHandlerFactory(database_mutex),
+         new silo_api::SiloRequestHandlerFactory(database_mutex, getStartupConfig()),
          server_socket,
          new Poco::Net::HTTPServerParams
       );
