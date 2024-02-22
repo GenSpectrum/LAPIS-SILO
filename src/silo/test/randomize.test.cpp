@@ -49,14 +49,14 @@ const QueryTestScenario RANDOMIZE_SEED = {
    "seed1231ProvidedShouldShuffleResults",
    {{"action", {{"type", "Details"}, {"fields", {"key"}}, {"randomize", {{"seed", 1231}}}}},
     {"filterExpression", {{"type", "True"}}}},
-   {{{"key", "id1"}}, {{"key", "id4"}}, {{"key", "id3"}}, {{"key", "id5"}}, {{"key", "id2"}}}
+   {{{"key", "id4"}}, {{"key", "id1"}}, {{"key", "id5"}}, {{"key", "id2"}}, {{"key", "id3"}}}
 };
 
 const QueryTestScenario RANDOMIZE_SEED_DIFFERENT = {
    "seed12312ProvidedShouldShuffleResultsDifferently",
    {{"action", {{"type", "Details"}, {"fields", {"key"}}, {"randomize", {{"seed", 12312}}}}},
     {"filterExpression", {{"type", "True"}}}},
-   {{{"key", "id2"}}, {{"key", "id1"}}, {{"key", "id4"}}, {{"key", "id5"}}, {{"key", "id3"}}}
+   {{{"key", "id1"}}, {{"key", "id4"}}, {{"key", "id3"}}, {{"key", "id2"}}, {{"key", "id5"}}}
 };
 
 const QueryTestScenario EXPLICIT_DO_NOT_RANDOMIZE = {
@@ -71,11 +71,11 @@ const QueryTestScenario AGGREGATE = {
    {{"action",
      {{"type", "Aggregated"}, {"groupByFields", {"key"}}, {"randomize", {{"seed", 12321}}}}},
     {"filterExpression", {{"type", "True"}}}},
-   {{{"count", 1}, {"key", "id1"}},
+   {{{"count", 1}, {"key", "id3"}},
+    {{"count", 1}, {"key", "id1"}},
     {{"count", 1}, {"key", "id4"}},
-    {{"count", 1}, {"key", "id2"}},
-    {{"count", 1}, {"key", "id3"}},
-    {{"count", 1}, {"key", "id5"}}}
+    {{"count", 1}, {"key", "id5"}},
+    {{"count", 1}, {"key", "id2"}}}
 };
 
 QUERY_TEST(
