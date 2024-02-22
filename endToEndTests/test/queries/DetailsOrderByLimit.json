@@ -26,19 +26,6 @@
   },
   "expectedQueryResult": [
     {
-      "age": 50,
-      "aminoAcidInsertions": null,
-      "country": "Switzerland",
-      "date": "2021-03-03",
-      "division": "Valais",
-      "gisaid_epi_isl": "EPI_ISL_1408062",
-      "nucleotideInsertions": "22204:CAGAA",
-      "pango_lineage": "B.1.1.7",
-      "qc_value": 0.97,
-      "region": "Europe",
-      "unsorted_date": "2020-11-24"
-    },
-    {
       "age": 4,
       "aminoAcidInsertions": "S:214:EPE",
       "country": "Switzerland",
@@ -50,6 +37,19 @@
       "qc_value": 0.98,
       "region": "Europe",
       "unsorted_date": null
+    },
+    {
+      "age": 51,
+      "aminoAcidInsertions": null,
+      "country": "Switzerland",
+      "date": "2021-03-21",
+      "division": "Vaud",
+      "gisaid_epi_isl": "EPI_ISL_1597890",
+      "nucleotideInsertions": "22339:GCTGGT",
+      "pango_lineage": "B.1.1.7",
+      "qc_value": 0.96,
+      "region": null,
+      "unsorted_date": "2021-01-25"
     }
   ]
 }

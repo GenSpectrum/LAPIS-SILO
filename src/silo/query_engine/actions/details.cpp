@@ -131,6 +131,7 @@ std::vector<actions::Tuple> produceSortedTuplesWithLimit(
                my_tuples.back() = current_tuple;
                std::push_heap(my_tuples.begin(), my_tuples.end(), tuple_comparator);
             }
+            iterator++;
             for (; iterator != end; iterator++) {
                tuple_factory.overwrite(current_tuple, *iterator);
                if (tuple_comparator(current_tuple, my_tuples.front())) {
