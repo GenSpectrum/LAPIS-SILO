@@ -31,7 +31,7 @@ QueryResult QueryEngine::executeQuery(const std::string& query_string) const {
    std::vector<silo::query_engine::OperatorResult> partition_filters(database.partitions.size());
    int64_t filter_time;
    {
-      const BlockTimer timer(filter_time);
+      const silo::common::BlockTimer timer(filter_time);
       for (size_t partition_index = 0; partition_index != database.partitions.size();
            partition_index++) {
          std::unique_ptr<operators::Operator> part_filter = query.filter->compile(
@@ -51,7 +51,7 @@ QueryResult QueryEngine::executeQuery(const std::string& query_string) const {
    QueryResult query_result;
    int64_t action_time;
    {
-      const BlockTimer timer(action_time);
+      const silo::common::BlockTimer timer(action_time);
       query_result = query.action->executeAndOrder(database, std::move(partition_filters));
    }
 

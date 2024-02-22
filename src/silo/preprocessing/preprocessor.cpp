@@ -460,7 +460,7 @@ Database Preprocessor::buildDatabase(
 
    int64_t micros = 0;
    {
-      const BlockTimer timer(micros);
+      const silo::common::BlockTimer timer(micros);
       for (const auto& partition : partition_descriptor.getPartitions()) {
          database.partitions.emplace_back(partition.getPartitionChunks());
       }
@@ -494,7 +494,7 @@ Database Preprocessor::buildDatabase(
       database.finalizeInsertionIndexes();
    }
 
-   SPDLOG_INFO("Build took {} ms", micros);
+   SPDLOG_INFO("Build took {}", silo::common::formatDuration(micros));
    SPDLOG_INFO("database info: {}", database.getDatabaseInfo());
 
    database.validate();
