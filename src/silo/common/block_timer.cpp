@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <iomanip>
+#include <sstream>
 #include <string>
 
 namespace silo::common {
