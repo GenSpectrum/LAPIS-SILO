@@ -42,15 +42,27 @@ class RequestHandlerTestFixture : public ::testing::Test {
    RequestHandlerTestFixture()
        : database_mutex(),
          request(silo_api::test::MockRequest(response)),
-         under_test(database_mutex) {}
+         under_test(database_mutex, {std::chrono::system_clock::now(), std::nullopt}) {}
 
-   void processRequest() {
+   void processRequest(silo_api::SiloRequestHandlerFactory& handler_factory) {
       std::unique_ptr<Poco::Net::HTTPRequestHandler> request_handler(
-         under_test.createRequestHandler(request)
+         handler_factory.createRequestHandler(request)
       );
       request_handler->handleRequest(request, response);
    }
+
+   void processRequest() { processRequest(under_test); }
 };
+
+silo_api::StartupConfig getStartupConfigWithStarted5MinutesAgo(
+   std::optional<std::chrono::minutes> estimated_startup_time = std::nullopt
+) {
+   const std::chrono::time_point point = std::chrono::system_clock::now();
+   const auto five_minutes_ago = point - std::chrono::minutes(5);
+   return {five_minutes_ago, estimated_startup_time};
+}
+
+static const int FOUR_MINUTES_IN_SECONDS = 240;
 
 TEST_F(RequestHandlerTestFixture, handlesGetInfoRequest) {
    EXPECT_CALL(database_mutex.mock_database, getDatabaseInfo)
@@ -146,8 +158,6 @@ TEST_F(RequestHandlerTestFixture, returnsMethodNotAllowedOnGetQuery) {
 }
 
 TEST_F(RequestHandlerTestFixture, givenRequestToUnknownUrl_thenReturnsNotFound) {
-   auto under_test = silo_api::SiloRequestHandlerFactory(database_mutex);
-
    request.setURI("/doesNotExist");
 
    processRequest();
@@ -157,6 +167,90 @@ TEST_F(RequestHandlerTestFixture, givenRequestToUnknownUrl_thenReturnsNotFound) 
       response.out_stream.str(),
       R"({"error":"Not found","message":"Resource /doesNotExist does not exist"})"
    );
+}
+
+TEST_F(
+   RequestHandlerTestFixture,
+   givenDuringStartupTime_whenIQueryUninitializedDatabase_thenReturnsRetryAfter
+) {
+   request.setMethod("POST");
+   request.setURI("/query");
+
+   silo_api::DatabaseMutex real_database_mutex;
+
+   auto under_test = silo_api::SiloRequestHandlerFactory(
+      real_database_mutex, getStartupConfigWithStarted5MinutesAgo(std::chrono::minutes{10})
+   );
+
+   processRequest(under_test);
+
+   const auto retry_after = std::stoi(response.get("Retry-After"));
+
+   EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_SERVICE_UNAVAILABLE);
+   EXPECT_GT(retry_after, FOUR_MINUTES_IN_SECONDS);
+   EXPECT_THAT(response.out_stream.str(), testing::HasSubstr("Database not initialized yet"));
+}
+
+TEST_F(
+   RequestHandlerTestFixture,
+   givenStartupTimeIsOver_whenIQueryUninitializedDatabase_thenReturnsErrorWithoutRetryAfter
+) {
+   request.setMethod("POST");
+   request.setURI("/query");
+
+   silo_api::DatabaseMutex real_database_mutex;
+
+   auto under_test = silo_api::SiloRequestHandlerFactory(
+      real_database_mutex, getStartupConfigWithStarted5MinutesAgo(std::chrono::minutes{1})
+   );
+
+   processRequest(under_test);
+
+   EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_SERVICE_UNAVAILABLE);
+   EXPECT_THROW(response.get("Retry-After"), Poco::NotFoundException);
+   EXPECT_THAT(response.out_stream.str(), testing::HasSubstr("Database not initialized yet"));
+}
+
+TEST_F(
+   RequestHandlerTestFixture,
+   givenDuringStartupTime_whenGettingInfoOfUnititializedDatabase_thenReturnsRetryAfter
+) {
+   request.setMethod("GET");
+   request.setURI("/info");
+
+   silo_api::DatabaseMutex real_database_mutex;
+
+   auto under_test = silo_api::SiloRequestHandlerFactory(
+      real_database_mutex, getStartupConfigWithStarted5MinutesAgo(std::chrono::minutes{10})
+   );
+
+   processRequest(under_test);
+
+   const auto retry_after = std::stoi(response.get("Retry-After"));
+
+   EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_SERVICE_UNAVAILABLE);
+   EXPECT_GT(retry_after, FOUR_MINUTES_IN_SECONDS);
+   EXPECT_THAT(response.out_stream.str(), testing::HasSubstr("Database not initialized yet"));
+}
+
+TEST_F(RequestHandlerTestFixture, postingQueryOnInitializedDatabase_isSuccessfull) {
+   request.setMethod("POST");
+   request.setURI("/query");
+   request.in_stream
+      << R"({"action":{"type": "Aggregated"}, "filterExpression": {"type": "True"}})";
+
+   silo_api::DatabaseMutex real_database_mutex;
+   silo::Database new_database;
+   real_database_mutex.setDatabase(std::move(new_database));
+
+   auto under_test = silo_api::SiloRequestHandlerFactory(
+      real_database_mutex, getStartupConfigWithStarted5MinutesAgo(std::chrono::minutes{10})
+   );
+
+   processRequest(under_test);
+
+   EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_OK);
+   EXPECT_EQ(response.out_stream.str(), R"({"queryResult":[{"count":0}]})");
 }
 
 // NOLINTEND(bugprone-unchecked-optional-access)

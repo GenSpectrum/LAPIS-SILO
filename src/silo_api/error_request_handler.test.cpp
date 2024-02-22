@@ -15,10 +15,15 @@ class MockRequestHandler : public Poco::Net::HTTPRequestHandler {
    );
 };
 
+const silo_api::StartupConfig TEST_STARTUP_CONFIG = {
+   std::chrono::system_clock::now(),
+   std::nullopt
+};
+
 TEST(ErrorRequestHandler, handlesRuntimeErrors) {
    auto* wrapped_handler_mock = new MockRequestHandler;
 
-   auto under_test = silo_api::ErrorRequestHandler(wrapped_handler_mock);
+   auto under_test = silo_api::ErrorRequestHandler(wrapped_handler_mock, TEST_STARTUP_CONFIG);
 
    ON_CALL(*wrapped_handler_mock, handleRequest)
       .WillByDefault(testing::Throw(std::runtime_error("my error message")));
@@ -29,14 +34,14 @@ TEST(ErrorRequestHandler, handlesRuntimeErrors) {
 
    EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
    EXPECT_EQ(
-      response.out_stream.str(), R"({"error":"Internal server error","message":"my error message"})"
+      response.out_stream.str(), R"({"error":"Internal Server Error","message":"my error message"})"
    );
 }
 
 TEST(ErrorRequestHandler, handlesOtherErrors) {
    auto* wrapped_handler_mock = new MockRequestHandler;
 
-   auto under_test = silo_api::ErrorRequestHandler(wrapped_handler_mock);
+   auto under_test = silo_api::ErrorRequestHandler(wrapped_handler_mock, TEST_STARTUP_CONFIG);
 
    ON_CALL(*wrapped_handler_mock, handleRequest)
       .WillByDefault(testing::Throw(
@@ -48,17 +53,14 @@ TEST(ErrorRequestHandler, handlesOtherErrors) {
    under_test.handleRequest(request, response);
 
    EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
-   EXPECT_EQ(
-      response.out_stream.str(),
-      R"({"error":"Internal server error","message":"Caught something: PKc"})"
-   );
+   EXPECT_EQ(response.out_stream.str(), R"({"error":"Internal Server Error","message":"PKc"})");
 }
 
 TEST(ErrorRequestHandler, doesNothingIfNoExceptionIsThrown) {
    const auto* wrapped_request_handler_message = "A message that the actual handler would write";
    auto* wrapped_handler_mock = new MockRequestHandler;
 
-   auto under_test = silo_api::ErrorRequestHandler(wrapped_handler_mock);
+   auto under_test = silo_api::ErrorRequestHandler(wrapped_handler_mock, TEST_STARTUP_CONFIG);
 
    EXPECT_CALL(*wrapped_handler_mock, handleRequest).Times(testing::AtLeast(1));
 

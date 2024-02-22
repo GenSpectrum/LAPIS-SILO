@@ -14,14 +14,19 @@
 
 namespace silo_api {
 
-SiloRequestHandlerFactory::SiloRequestHandlerFactory(silo_api::DatabaseMutex& database)
-    : database(database) {}
+SiloRequestHandlerFactory::SiloRequestHandlerFactory(
+   silo_api::DatabaseMutex& database,
+   StartupConfig startup_config
+)
+    : database(database),
+      startup_config(startup_config) {}
 
 Poco::Net::HTTPRequestHandler* SiloRequestHandlerFactory::createRequestHandler(
    const Poco::Net::HTTPServerRequest& request
 ) {
-   return new silo_api::LoggingRequestHandler(new silo_api::ErrorRequestHandler(routeRequest(request
-   )));
+   return new silo_api::LoggingRequestHandler(
+      new silo_api::ErrorRequestHandler(routeRequest(request), startup_config)
+   );
 }
 
 Poco::Net::HTTPRequestHandler* SiloRequestHandlerFactory::routeRequest(

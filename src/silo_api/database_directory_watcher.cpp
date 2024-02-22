@@ -121,15 +121,19 @@ void silo_api::DatabaseDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*ti
    }
 
    {
-      const auto fixed_database = database_mutex.getDatabase();
-      if (fixed_database.database.getDataVersion() >= most_recent_database_state->second) {
-         SPDLOG_TRACE(
-            "Do not update data version to {} in path {}. Its version is not newer than the "
-            "current version",
-            most_recent_database_state->second.toString(),
-            most_recent_database_state->first.string()
-         );
-         return;
+      try {
+         const auto fixed_database = database_mutex.getDatabase();
+         if (fixed_database.database.getDataVersion() >= most_recent_database_state->second) {
+            SPDLOG_TRACE(
+               "Do not update data version to {} in path {}. Its version is not newer than the "
+               "current version",
+               most_recent_database_state->second.toString(),
+               most_recent_database_state->first.string()
+            );
+            return;
+         }
+      } catch (const silo_api::UninitializedDatabaseException& exception) {
+         SPDLOG_DEBUG("No database loaded yet - continuing to load initial database.");
       }
    }
 
