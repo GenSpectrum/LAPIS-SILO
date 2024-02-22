@@ -1,6 +1,9 @@
 #pragma once
 
 #include <chrono>
+#include <string>
+
+namespace silo::common {
 
 template <typename Unit = std::chrono::microseconds, typename Clock = std::chrono::steady_clock>
 struct [[nodiscard]] BlockTimer {
@@ -21,3 +24,7 @@ struct [[nodiscard]] BlockTimer {
 
    output_t untilNow() { return std::chrono::duration_cast<Unit>(Clock::now() - start).count(); }
 };
+
+std::string formatDuration(int64_t int_microseconds);
+
+}  // namespace silo::common
