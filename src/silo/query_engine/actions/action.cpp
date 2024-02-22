@@ -169,24 +169,24 @@ std::optional<uint32_t> parseOffset(const nlohmann::json& json) {
 }
 
 std::optional<uint32_t> parseRandomizeSeed(const nlohmann::json& json) {
-   if (json.contains("randomize")) {
-      if (json["randomize"].is_boolean()) {
-         if (json["randomize"].get<bool>()) {
-            const uint32_t time_based_seed =
-               std::chrono::system_clock::now().time_since_epoch().count();
-            return time_based_seed;
-         }
-         return std::nullopt;
-      }
-      CHECK_SILO_QUERY(
-         json["randomize"].is_object() && json["randomize"].contains("seed") &&
-            json["randomize"]["seed"].is_number_unsigned(),
-         "If the action contains 'randomize', it must be either a boolean or an object "
-         "containing an unsigned 'seed'"
-      )
-      return json["randomize"]["seed"].get<uint32_t>();
+   if (!json.contains("randomize")) {
+      return std::nullopt;
    }
-   return std::nullopt;
+   if (json["randomize"].is_boolean()) {
+      if (json["randomize"].get<bool>()) {
+         const uint32_t time_based_seed =
+            std::chrono::system_clock::now().time_since_epoch().count();
+         return time_based_seed;
+      }
+      return std::nullopt;
+   }
+   CHECK_SILO_QUERY(
+      json["randomize"].is_object() && json["randomize"].contains("seed") &&
+         json["randomize"]["seed"].is_number_unsigned(),
+      "If the action contains 'randomize', it must be either a boolean or an object "
+      "containing an unsigned 'seed'"
+   )
+   return json["randomize"]["seed"].get<uint32_t>();
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
