@@ -133,7 +133,7 @@ void silo_api::DatabaseDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*ti
             return;
          }
       } catch (const silo_api::UninitializedDatabaseException& exception) {
-         SPDLOG_DEBUG("No database loaded yet - continuing to load initial database.");
+         SPDLOG_DEBUG("No database loaded yet - loading initial database next.");
       }
    }
 
