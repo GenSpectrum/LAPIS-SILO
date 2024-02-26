@@ -32,7 +32,7 @@ void ErrorRequestHandler::handleRequest(
       response.setStatusAndReason(Poco::Net::HTTPResponse::HTTP_SERVICE_UNAVAILABLE);
       std::string message = "Database not initialized yet.";
 
-      const auto retry_after = computeRetryAfter();
+      const auto retry_after = computeRetryAfterHintForStartupTime();
       if (retry_after.has_value()) {
          response.set("Retry-After", retry_after.value());
          message += " Please try again after " + retry_after.value() + " seconds.";
@@ -68,7 +68,7 @@ void ErrorRequestHandler::handleRequest(
    }
 }
 
-std::optional<std::string> ErrorRequestHandler::computeRetryAfter() {
+std::optional<std::string> ErrorRequestHandler::computeRetryAfterHintForStartupTime() {
    if (!startup_config.estimated_startup_time.has_value()) {
       return std::nullopt;
    }

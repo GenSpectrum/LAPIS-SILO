@@ -39,7 +39,7 @@ class ErrorRequestHandler : public Poco::Net::HTTPRequestHandler {
    ) override;
 
   private:
-   std::optional<std::string> computeRetryAfter();
+   std::optional<std::string> computeRetryAfterHintForStartupTime();
 };
 
 };  // namespace silo_api
