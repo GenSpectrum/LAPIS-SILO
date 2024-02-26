@@ -140,6 +140,24 @@ class SiloServer : public Poco::Util::ServerApplication {
             .binding(DATA_DIRECTORY_OPTION)
       );
 
+      options.addOption(Poco::Util::Option(
+                           "maxQueuedHttpConnections", "mqhc", "maximum number of http connections"
+      )
+                           .required(false)
+                           .repeatable(false)
+                           .argument("NUMBER")
+                           .binding("maxQueuedHttpConnections"));
+
+      options.addOption(
+         Poco::Util::Option(
+            "threadsForHttpConnections", "tfhc", "number of threads for http connections"
+         )
+            .required(false)
+            .repeatable(false)
+            .argument("NUMBER")
+            .binding("threadsForHttpConnections")
+      );
+
       options.addOption(
          Poco::Util::Option(API_OPTION, "a", "Execution mode: start the SILO web interface")
             .required(false)
@@ -227,10 +245,19 @@ class SiloServer : public Poco::Util::ServerApplication {
 
       const silo_api::DatabaseDirectoryWatcher watcher(data_directory, database_mutex);
 
+      auto* const poco_parameter = new Poco::Net::HTTPServerParams;
+      const auto max_connections = config().getInt("maxQueuedHttpConnections", 64);
+      SPDLOG_INFO("Using {} queued http connections", max_connections);
+      poco_parameter->setMaxQueued(max_connections);
+
+      const auto threads = config().getInt("threadsForHttpConnections", 4);
+      SPDLOG_INFO("Using {} threads for http connections", threads);
+      poco_parameter->setMaxThreads(threads);
+
       Poco::Net::HTTPServer server(
          new silo_api::SiloRequestHandlerFactory(database_mutex, getStartupConfig()),
          server_socket,
-         new Poco::Net::HTTPServerParams
+         poco_parameter
       );
 
       SPDLOG_INFO("Listening on port {}", port);
