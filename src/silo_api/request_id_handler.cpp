@@ -22,13 +22,13 @@ void RequestIdHandler::handleRequest(
 }
 
 std::string RequestIdHandler::getRequestId(Poco::Net::HTTPServerRequest& request) {
-   try {
+   if (request.has(REQUEST_ID_HEADER)) {
       return request.get(REQUEST_ID_HEADER);
-   } catch (const Poco::NotFoundException& not_found_exception) {
-      random_generator generator;
-      const auto request_id = generator();
-      return boost::uuids::to_string(request_id);
    }
+
+   random_generator generator;
+   const auto request_id = generator();
+   return boost::uuids::to_string(request_id);
 }
 
 }  // namespace silo_api
