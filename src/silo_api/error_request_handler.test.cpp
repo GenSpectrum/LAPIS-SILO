@@ -5,6 +5,8 @@
 #include "silo_api/error_request_handler.h"
 #include "silo_api/manual_poco_mocks.test.h"
 
+namespace {
+
 class MockRequestHandler : public Poco::Net::HTTPRequestHandler {
   public:
    MOCK_METHOD(
@@ -19,6 +21,8 @@ const silo_api::StartupConfig TEST_STARTUP_CONFIG = {
    std::chrono::system_clock::now(),
    std::nullopt
 };
+
+}  // namespace
 
 TEST(ErrorRequestHandler, handlesRuntimeErrors) {
    auto* wrapped_handler_mock = new MockRequestHandler;

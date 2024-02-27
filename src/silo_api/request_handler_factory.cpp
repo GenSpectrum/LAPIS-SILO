@@ -11,6 +11,11 @@
 #include "silo_api/logging_request_handler.h"
 #include "silo_api/not_found_handler.h"
 #include "silo_api/query_handler.h"
+#include "silo_api/request_id_handler.h"
+
+using silo_api::ErrorRequestHandler;
+using silo_api::LoggingRequestHandler;
+using silo_api::RequestIdHandler;
 
 namespace silo_api {
 
@@ -24,8 +29,8 @@ SiloRequestHandlerFactory::SiloRequestHandlerFactory(
 Poco::Net::HTTPRequestHandler* SiloRequestHandlerFactory::createRequestHandler(
    const Poco::Net::HTTPServerRequest& request
 ) {
-   return new silo_api::LoggingRequestHandler(
-      new silo_api::ErrorRequestHandler(routeRequest(request), startup_config)
+   return new RequestIdHandler(
+      new LoggingRequestHandler(new ErrorRequestHandler(routeRequest(request), startup_config))
    );
 }
 
