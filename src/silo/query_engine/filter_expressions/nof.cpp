@@ -190,17 +190,12 @@ NOf::mapChildExpressions(
    const silo::DatabasePartition& database_partition,
    AmbiguityMode mode
 ) const {
-   std::vector<std::unique_ptr<operators::Operator>> child_operators;
-   child_operators.reserve(children.size());
-   for (const auto& child_expression : children) {
-      child_operators.push_back(child_expression->compile(database, database_partition, mode));
-   }
-
    std::vector<std::unique_ptr<operators::Operator>> non_negated_child_operators;
    std::vector<std::unique_ptr<operators::Operator>> negated_child_operators;
    int updated_number_of_matchers = number_of_matchers;
 
-   for (auto& child_operator : child_operators) {
+   for (const auto& child_expression : children) {
+      auto child_operator = child_expression->compile(database, database_partition, mode);
       if (child_operator->type() == operators::EMPTY) {
          continue;
       }
@@ -210,8 +205,45 @@ NOf::mapChildExpressions(
       }
       if (child_operator->type() == operators::COMPLEMENT) {
          auto canceled_negation = operators::Operator::negate(std::move(child_operator));
+         if (canceled_negation->type() == operators::INTERSECTION) {
+            auto* intersection = dynamic_cast<Intersection*>(child_operator.get());
+            if (intersection->isNegatedDisjointUnion()) {
+               std::transform(
+                  intersection->children.begin(),
+                  intersection->children.end(),
+                  std::back_inserter(non_negated_child_operators),
+                  [&](std::unique_ptr<operators::Operator>& expression) {
+                     return std::move(expression);
+                  }
+               );
+               std::transform(
+                  intersection->negated_children.begin(),
+                  intersection->negated_children.end(),
+                  std::back_inserter(negated_child_operators),
+                  [&](std::unique_ptr<operators::Operator>& expression) {
+                     return std::move(expression);
+                  }
+               );
+               continue;
+            }
+         }
          negated_child_operators.emplace_back(std::move(canceled_negation));
          continue;
+      }
+      if (child_operator->type() == operators::UNION) {
+         auto* or_child = dynamic_cast<Union*>(child_operator.get());
+         if (or_child->isDisjointUnion()) {
+            auto or_children = std::move(or_child->children);
+            std::transform(
+               or_children.begin(),
+               or_children.end(),
+               std::back_inserter(non_negated_child_operators),
+               [&](std::unique_ptr<operators::Operator>& expression) {
+                  return std::move(expression);
+               }
+            );
+            continue;
+         }
       }
       non_negated_child_operators.push_back(std::move(child_operator));
    }

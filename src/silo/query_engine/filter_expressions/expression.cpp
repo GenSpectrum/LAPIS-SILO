@@ -99,4 +99,37 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) 
    }
 }
 
+std::optional<PositionalFilter> Expression::isPositionalFilterForSymbol(
+   const std::unique_ptr<Expression>& expression
+) {
+   if (dynamic_cast<filter_expressions::SymbolEquals<Nucleotide>*>(expression.get()) != nullptr) {
+      auto* symbol_equals =
+         dynamic_cast<filter_expressions::SymbolEquals<Nucleotide>*>(expression.get());
+      if (symbol_equals->value.has_value()) {
+         return PositionalFilter{
+            symbol_equals->sequence_name, symbol_equals->position_idx, *symbol_equals->value
+         };
+      }
+   } else if (dynamic_cast<filter_expressions::SymbolEquals<AminoAcid>*>(expression.get()) != nullptr) {
+      auto* symbol_equals =
+         dynamic_cast<filter_expressions::SymbolEquals<AminoAcid>*>(expression.get());
+      if (symbol_equals->value.has_value()) {
+         return PositionalFilter{
+            symbol_equals->sequence_name, symbol_equals->position_idx, *symbol_equals->value
+         };
+      }
+   }
+   return std::nullopt;
+}
+
+std::optional<PositionalFilter> Expression::isNegatedPositionalFilterForSymbol(
+   const std::unique_ptr<Expression>& expression
+) {
+   if (dynamic_cast<filter_expressions::Negation*>(expression.get()) != nullptr) {
+      auto* negation = dynamic_cast<filter_expressions::Negation*>(expression.get());
+      return isPositionalFilterForSymbol(negation->child);
+   }
+   return std::nullopt;
+}
+
 }  // namespace silo::query_engine::filter_expressions

@@ -1,9 +1,14 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
+#include <variant>
 
 #include <nlohmann/json_fwd.hpp>
+
+#include "silo/common/aa_symbols.h"
+#include "silo/common/nucleotide_symbols.h"
 
 namespace silo::query_engine::operators {
 struct Operator;
@@ -14,6 +19,12 @@ struct DatabasePartition;
 }  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
+
+struct PositionalFilter {
+   std::optional<std::string> sequence_name;
+   uint32_t position;
+   std::variant<Nucleotide::Symbol, AminoAcid::Symbol> symbol;
+};
 
 struct Expression {
    /// UPPER_BOUND returns the upper bound of sequences matching this expression (i.e. ambiguous
@@ -32,6 +43,14 @@ struct Expression {
       const DatabasePartition& database_partition,
       AmbiguityMode mode
    ) const = 0;
+
+   static std::optional<PositionalFilter> isPositionalFilterForSymbol(
+      const std::unique_ptr<Expression>& expression
+   );
+
+   static std::optional<PositionalFilter> isNegatedPositionalFilterForSymbol(
+      const std::unique_ptr<Expression>& expression
+   );
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)

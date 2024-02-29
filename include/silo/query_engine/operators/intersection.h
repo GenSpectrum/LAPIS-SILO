@@ -36,6 +36,8 @@ class Intersection : public Operator {
 
    [[nodiscard]] Type type() const override;
 
+   bool isNegatedDisjointUnion() const;
+
    virtual OperatorResult evaluate() const override;
 
    static std::unique_ptr<Operator> negate(std::unique_ptr<Intersection>&& intersection);
