@@ -20,8 +20,8 @@ namespace silo::query_engine::filter_expressions {
 Negation::Negation(std::unique_ptr<Expression> child)
     : child(std::move(child)) {}
 
-std::string Negation::toString(const silo::Database& database) const {
-   return "!(" + child->toString(database) + ")";
+std::string Negation::toString() const {
+   return "!(" + child->toString() + ")";
 }
 
 std::unique_ptr<operators::Operator> Negation::compile(
@@ -30,7 +30,7 @@ std::unique_ptr<operators::Operator> Negation::compile(
    AmbiguityMode mode
 ) const {
    auto child_operator = child->compile(database, database_partition, invertMode(mode));
-   return child_operator->negate();
+   return operators::Operator::negate(std::move(child_operator));
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

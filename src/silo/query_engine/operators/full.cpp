@@ -27,12 +27,8 @@ OperatorResult Full::evaluate() const {
    return result;
 }
 
-std::unique_ptr<Operator> Full::copy() const {
-   return std::make_unique<Full>(row_count);
-}
-
-std::unique_ptr<Operator> Full::negate() const {
-   return std::make_unique<Empty>(row_count);
+std::unique_ptr<Operator> Full::negate(std::unique_ptr<Full>&& full) {
+   return std::make_unique<Empty>(full->row_count);
 }
 
 }  // namespace silo::query_engine::operators

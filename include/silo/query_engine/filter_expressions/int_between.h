@@ -35,7 +35,7 @@ struct IntBetween : public Expression {
       std::optional<uint32_t> to
    );
 
-   std::string toString(const Database& database) const override;
+   std::string toString() const override;
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::operators::Operator> compile(
       const Database& database,

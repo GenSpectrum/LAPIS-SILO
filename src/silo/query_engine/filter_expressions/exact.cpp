@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 
+#include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
 #include "silo/query_engine/filter_expressions/expression.h"
@@ -20,8 +21,8 @@ namespace silo::query_engine::filter_expressions {
 Exact::Exact(std::unique_ptr<Expression> child)
     : child(std::move(child)) {}
 
-std::string Exact::toString(const silo::Database& database) const {
-   return "Exact ( " + child->toString(database) + ")";
+std::string Exact::toString() const {
+   return fmt::format("Exact ({})", child->toString());
 }
 std::unique_ptr<silo::query_engine::operators::Operator> Exact::compile(
    const silo::Database& database,

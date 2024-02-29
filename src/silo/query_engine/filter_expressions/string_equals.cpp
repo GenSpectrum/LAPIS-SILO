@@ -26,7 +26,7 @@ StringEquals::StringEquals(std::string column, std::string value)
     : column(std::move(column)),
       value(std::move(value)) {}
 
-std::string StringEquals::toString(const silo::Database& /*database*/) const {
+std::string StringEquals::toString() const {
    return column + " = '" + value + "'";
 }
 

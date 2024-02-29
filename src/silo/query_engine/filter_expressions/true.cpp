@@ -17,7 +17,7 @@ namespace silo::query_engine::filter_expressions {
 
 True::True() = default;
 
-std::string True::toString(const silo::Database& /*database*/) const {
+std::string True::toString() const {
    return "True";
 }
 

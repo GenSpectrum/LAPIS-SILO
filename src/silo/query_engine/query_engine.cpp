@@ -25,7 +25,7 @@ QueryEngine::QueryEngine(const silo::Database& database)
 QueryResult QueryEngine::executeQuery(const std::string& query_string) const {
    Query query(query_string);
 
-   SPDLOG_DEBUG("Parsed query: {}", query.filter->toString(database));
+   SPDLOG_DEBUG("Parsed query: {}", query.filter->toString());
 
    std::vector<std::string> compiled_queries(database.partitions.size());
    std::vector<silo::query_engine::OperatorResult> partition_filters(database.partitions.size());

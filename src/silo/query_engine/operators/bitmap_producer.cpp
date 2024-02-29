@@ -26,12 +26,9 @@ OperatorResult BitmapProducer::evaluate() const {
    return producer();
 }
 
-std::unique_ptr<Operator> BitmapProducer::copy() const {
-   return std::make_unique<BitmapProducer>(producer, row_count);
-}
-
-std::unique_ptr<Operator> BitmapProducer::negate() const {
-   return std::make_unique<Complement>(copy(), row_count);
+std::unique_ptr<Operator> BitmapProducer::negate(std::unique_ptr<BitmapProducer>&& bitmap_producer
+) {
+   return std::make_unique<Complement>(std::move(bitmap_producer), bitmap_producer->row_count);
 }
 
 }  // namespace silo::query_engine::operators

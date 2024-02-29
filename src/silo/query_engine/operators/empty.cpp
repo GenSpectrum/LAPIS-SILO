@@ -25,12 +25,8 @@ OperatorResult Empty::evaluate() const {
    return OperatorResult();
 }
 
-std::unique_ptr<Operator> Empty::copy() const {
-   return std::make_unique<Empty>(row_count);
-}
-
-std::unique_ptr<Operator> Empty::negate() const {
-   return std::make_unique<Full>(row_count);
+std::unique_ptr<Operator> Empty::negate(std::unique_ptr<Empty>&& empty) {
+   return std::make_unique<Full>(empty->row_count);
 }
 
 }  // namespace silo::query_engine::operators

@@ -9,6 +9,8 @@
 #include "silo/query_engine/operators/intersection.h"
 #include "silo/query_engine/operators/operator.h"
 
+using silo::query_engine::operators::Operator;
+
 namespace silo::query_engine::operators {
 
 Complement::Complement(std::unique_ptr<Operator> child, uint32_t row_count)
@@ -27,7 +29,7 @@ std::unique_ptr<Complement> Complement::fromDeMorgan(
    OperatorVector negated_child_operators;
    for (auto& disjunction_child : disjunction) {
       if (disjunction_child->type() == operators::COMPLEMENT) {
-         negated_child_operators.emplace_back(disjunction_child->negate());
+         negated_child_operators.emplace_back(Operator::negate(std::move(disjunction_child)));
       } else {
          non_negated_child_operators.push_back(std::move(disjunction_child));
       }
@@ -53,12 +55,8 @@ OperatorResult Complement::evaluate() const {
    return result;
 }
 
-std::unique_ptr<Operator> Complement::copy() const {
-   return std::make_unique<Complement>(child->copy(), row_count);
-}
-
-std::unique_ptr<Operator> Complement::negate() const {
-   return child->copy();
+std::unique_ptr<Operator> Complement::negate(std::unique_ptr<Complement>&& complement) {
+   return std::move(complement->child);
 }
 
 }  // namespace silo::query_engine::operators

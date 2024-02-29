@@ -1,9 +1,14 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "silo/query_engine/operator_result.h"
+
+namespace silo::query_engine::filter_expressions {
+class Expression;
+}
 
 namespace silo::query_engine::operators {
 
@@ -33,9 +38,9 @@ class Operator {
 
    virtual std::string toString() const = 0;
 
-   virtual std::unique_ptr<Operator> copy() const = 0;
+   virtual std::optional<std::unique_ptr<filter_expressions::Expression>> logicalEquivalent() const;
 
-   virtual std::unique_ptr<Operator> negate() const = 0;
+   static std::unique_ptr<Operator> negate(std::unique_ptr<Operator>&& some_operator);
 };
 
 }  // namespace silo::query_engine::operators

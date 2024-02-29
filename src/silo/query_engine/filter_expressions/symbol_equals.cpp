@@ -35,7 +35,7 @@ SymbolEquals<SymbolType>::SymbolEquals(
       value(value) {}
 
 template <typename SymbolType>
-std::string SymbolEquals<SymbolType>::toString(const silo::Database& /*database*/) const {
+std::string SymbolEquals<SymbolType>::toString() const {
    return fmt::format(
       "{}{}{}",
       sequence_name ? sequence_name.value() + ":" : "",
@@ -97,7 +97,11 @@ std::unique_ptr<silo::query_engine::operators::Operator> SymbolEquals<SymbolType
          SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING),
          position_idx
       );
+      auto logical_equivalent = std::make_unique<SymbolEquals>(
+         sequence_name_or_default, position_idx, SymbolType::SYMBOL_MISSING
+      );
       return std::make_unique<operators::BitmapSelection>(
+         std::move(logical_equivalent),
          seq_store_partition.missing_symbol_bitmaps.data(),
          seq_store_partition.missing_symbol_bitmaps.size(),
          operators::BitmapSelection::CONTAINS,
@@ -110,9 +114,14 @@ std::unique_ptr<silo::query_engine::operators::Operator> SymbolEquals<SymbolType
          SymbolType::symbolToChar(symbol),
          position_idx
       );
+      auto logical_equivalent_of_nested_index_scan = std::make_unique<Negation>(
+         std::make_unique<SymbolEquals>(sequence_name_or_default, position_idx, symbol)
+      );
       return std::make_unique<operators::Complement>(
          std::make_unique<operators::IndexScan>(
-            seq_store_partition.getBitmap(position_idx, symbol), database_partition.sequence_count
+            std::move(logical_equivalent_of_nested_index_scan),
+            seq_store_partition.getBitmap(position_idx, symbol),
+            database_partition.sequence_count
          ),
          database_partition.sequence_count
       );
@@ -143,8 +152,12 @@ std::unique_ptr<silo::query_engine::operators::Operator> SymbolEquals<SymbolType
    SPDLOG_TRACE(
       "Filtering for symbol '{}' at position {}", SymbolType::symbolToChar(symbol), position_idx
    );
+   auto logical_equivalent =
+      std::make_unique<SymbolEquals>(sequence_name_or_default, position_idx, symbol);
    return std::make_unique<operators::IndexScan>(
-      seq_store_partition.getBitmap(position_idx, symbol), database_partition.sequence_count
+      std::move(logical_equivalent),
+      seq_store_partition.getBitmap(position_idx, symbol),
+      database_partition.sequence_count
    );
 }
 

@@ -33,13 +33,13 @@ using operators::Operator;
 And::And(std::vector<std::unique_ptr<Expression>>&& children)
     : children(std::move(children)) {}
 
-std::string And::toString(const silo::Database& database) const {
+std::string And::toString() const {
    std::vector<std::string> child_strings;
    std::transform(
       children.begin(),
       children.end(),
       std::back_inserter(child_strings),
-      [&](const std::unique_ptr<Expression>& child) { return child->toString(database); }
+      [&](const std::unique_ptr<Expression>& child) { return child->toString(); }
    );
    return "And(" + boost::algorithm::join(child_strings, " & ") + ")";
 }
@@ -134,7 +134,7 @@ std::tuple<OperatorVector, OperatorVector, std::vector<std::unique_ptr<operators
          appendVectorToVector(intersection_child->children, non_negated_child_operators);
          appendVectorToVector(intersection_child->negated_children, negated_child_operators);
       } else if (child->type() == operators::COMPLEMENT) {
-         negated_child_operators.emplace_back(child->negate());
+         negated_child_operators.emplace_back(operators::Operator::negate(std::move(child)));
       } else if (child->type() == operators::SELECTION) {
          auto* selection_child = dynamic_cast<operators::Selection*>(child.get());
          appendVectorToVector<operators::Predicate>(selection_child->predicates, predicates);

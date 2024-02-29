@@ -10,12 +10,15 @@
 
 namespace silo::query_engine::filter_expressions {
 class Or;
+class NOf;
 }  // namespace silo::query_engine::filter_expressions
 
 namespace silo::query_engine::operators {
 
 class Union : public Operator {
    friend class silo::query_engine::filter_expressions::Or;
+   friend class silo::query_engine::filter_expressions::NOf;
+
    std::vector<std::unique_ptr<Operator>> children;
    uint32_t row_count;
 
@@ -24,15 +27,13 @@ class Union : public Operator {
 
    ~Union() noexcept override;
 
+   virtual std::string toString() const override;
+
    [[nodiscard]] Type type() const override;
 
    virtual OperatorResult evaluate() const override;
 
-   virtual std::string toString() const override;
-
-   virtual std::unique_ptr<Operator> copy() const override;
-
-   virtual std::unique_ptr<Operator> negate() const override;
+   static std::unique_ptr<Operator> negate(std::unique_ptr<Union>&& union_operator);
 };
 
 }  // namespace silo::query_engine::operators

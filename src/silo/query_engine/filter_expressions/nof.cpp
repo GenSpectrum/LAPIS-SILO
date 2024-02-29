@@ -166,7 +166,7 @@ NOf::NOf(
       number_of_matchers(number_of_matchers),
       match_exactly(match_exactly) {}
 
-std::string NOf::toString(const silo::Database& database) const {
+std::string NOf::toString() const {
    std::string res;
    if (match_exactly) {
       res = "[exactly-" + std::to_string(number_of_matchers) + "-of:";
@@ -174,7 +174,7 @@ std::string NOf::toString(const silo::Database& database) const {
       res = "[" + std::to_string(number_of_matchers) + "-of:";
    }
    for (const auto& child : children) {
-      res += child->toString(database);
+      res += child->toString();
       res += ", ";
    }
    res += "]";
@@ -190,22 +190,30 @@ NOf::mapChildExpressions(
    const silo::DatabasePartition& database_partition,
    AmbiguityMode mode
 ) const {
+   std::vector<std::unique_ptr<operators::Operator>> child_operators;
+   child_operators.reserve(children.size());
+   for (const auto& child_expression : children) {
+      child_operators.push_back(child_expression->compile(database, database_partition, mode));
+   }
+
    std::vector<std::unique_ptr<operators::Operator>> non_negated_child_operators;
    std::vector<std::unique_ptr<operators::Operator>> negated_child_operators;
    int updated_number_of_matchers = number_of_matchers;
 
-   for (const auto& child_expression : children) {
-      auto child_operator = child_expression->compile(database, database_partition, mode);
+   for (auto& child_operator : child_operators) {
       if (child_operator->type() == operators::EMPTY) {
          continue;
       }
       if (child_operator->type() == operators::FULL) {
          updated_number_of_matchers--;
-      } else if (child_operator->type() == operators::COMPLEMENT) {
-         negated_child_operators.emplace_back(child_operator->negate());
-      } else {
-         non_negated_child_operators.push_back(std::move(child_operator));
+         continue;
       }
+      if (child_operator->type() == operators::COMPLEMENT) {
+         auto canceled_negation = operators::Operator::negate(std::move(child_operator));
+         negated_child_operators.emplace_back(std::move(canceled_negation));
+         continue;
+      }
+      non_negated_child_operators.push_back(std::move(child_operator));
    }
    return std::tuple<
       std::vector<std::unique_ptr<operators::Operator>>,

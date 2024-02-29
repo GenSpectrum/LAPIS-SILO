@@ -34,9 +34,7 @@ class RangeSelection : public Operator {
 
    virtual std::string toString() const override;
 
-   virtual std::unique_ptr<Operator> copy() const override;
-
-   virtual std::unique_ptr<Operator> negate() const override;
+   static std::unique_ptr<Operator> negate(std::unique_ptr<RangeSelection>&& range_selection);
 };
 
 }  // namespace silo::query_engine::operators
