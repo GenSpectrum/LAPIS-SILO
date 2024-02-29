@@ -76,9 +76,7 @@ class Selection : public Operator {
 
    virtual std::string toString() const override;
 
-   virtual std::unique_ptr<Operator> copy() const override;
-
-   virtual std::unique_ptr<Operator> negate() const override;
+   static std::unique_ptr<Operator> negate(std::unique_ptr<Selection>&& selection);
 
   private:
    virtual bool matchesPredicates(uint32_t row) const;

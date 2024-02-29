@@ -30,7 +30,7 @@ class FloatBetween : public Expression {
   public:
    explicit FloatBetween(std::string column, std::optional<double> from, std::optional<double> to);
 
-   std::string toString(const Database& database) const override;
+   std::string toString() const override;
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::operators::Operator> compile(
       const Database& database,

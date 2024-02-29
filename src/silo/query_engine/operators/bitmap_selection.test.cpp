@@ -17,11 +17,11 @@ TEST(OperatorBitmapSelection, containsCheckShouldReturnCorrectValues) {
       roaring::Roaring({2, 4}),
    }});
 
-   const BitmapSelection under_test(
+   auto under_test = std::make_unique<BitmapSelection>(
       test_bitmaps.data(), test_bitmaps.size(), BitmapSelection::CONTAINS, 2
    );
-   ASSERT_EQ(*under_test.evaluate(), roaring::Roaring({0, 2, 7}));
-   auto negated = under_test.negate();
+   ASSERT_EQ(*under_test->evaluate(), roaring::Roaring({0, 2, 7}));
+   auto negated = BitmapSelection::negate(std::move(under_test));
    ASSERT_EQ(*negated->evaluate(), roaring::Roaring({1, 3, 4, 5, 6}));
 }
 
@@ -37,11 +37,11 @@ TEST(OperatorBitmapSelection, notContainsCheckShouldReturnCorrectValues) {
       roaring::Roaring({2, 4}),
    }});
 
-   const BitmapSelection under_test(
+   auto under_test = std::make_unique<BitmapSelection>(
       test_bitmaps.data(), test_bitmaps.size(), BitmapSelection::NOT_CONTAINS, 2
    );
-   ASSERT_EQ(*under_test.evaluate(), roaring::Roaring({1, 3, 4, 5, 6}));
-   auto negated = under_test.negate();
+   ASSERT_EQ(*under_test->evaluate(), roaring::Roaring({1, 3, 4, 5, 6}));
+   auto negated = BitmapSelection::negate(std::move(under_test));
    ASSERT_EQ(*negated->evaluate(), roaring::Roaring({0, 2, 7}));
 }
 
@@ -57,11 +57,11 @@ TEST(OperatorBitmapSelection, correctTypeInfo) {
       roaring::Roaring({2, 4}),
    }});
 
-   const BitmapSelection under_test(
+   auto under_test = std::make_unique<BitmapSelection>(
       test_bitmaps.data(), test_bitmaps.size(), BitmapSelection::NOT_CONTAINS, 2
    );
 
-   ASSERT_EQ(under_test.type(), silo::query_engine::operators::BITMAP_SELECTION);
-   auto negated = under_test.negate();
+   ASSERT_EQ(under_test->type(), silo::query_engine::operators::BITMAP_SELECTION);
+   auto negated = BitmapSelection::negate(std::move(under_test));
    ASSERT_EQ(negated->type(), silo::query_engine::operators::BITMAP_SELECTION);
 }

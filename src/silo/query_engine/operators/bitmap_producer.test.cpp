@@ -20,10 +20,11 @@ TEST(OperatorBitmapProducer, evaluateShouldReturnCorrectValuesWhenNegated) {
    const roaring::Roaring test_bitmap({1, 2, 3});
    const uint32_t row_count = 5;
 
-   const auto under_test =
-      BitmapProducer([&]() { return OperatorResult(test_bitmap); }, row_count).negate();
+   auto under_test =
+      std::make_unique<BitmapProducer>([&]() { return OperatorResult(test_bitmap); }, row_count);
+   const auto negated = BitmapProducer::negate(std::move(under_test));
 
-   ASSERT_EQ(*under_test->evaluate(), roaring::Roaring({0, 4}));
+   ASSERT_EQ(*negated->evaluate(), roaring::Roaring({0, 4}));
 }
 
 TEST(OperatorBitmapProducer, correctTypeInfo) {

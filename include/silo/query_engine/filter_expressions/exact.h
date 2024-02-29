@@ -23,7 +23,7 @@ class Exact : public Expression {
   public:
    explicit Exact(std::unique_ptr<Expression> child);
 
-   std::string toString(const Database& database) const override;
+   std::string toString() const override;
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::operators::Operator> compile(
       const Database& database,

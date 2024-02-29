@@ -23,7 +23,7 @@ IntEquals::IntEquals(std::string column, uint32_t value)
     : column(std::move(column)),
       value(value) {}
 
-std::string IntEquals::toString(const silo::Database& /*database*/) const {
+std::string IntEquals::toString() const {
    return column + " = '" + std::to_string(value) + "'";
 }
 

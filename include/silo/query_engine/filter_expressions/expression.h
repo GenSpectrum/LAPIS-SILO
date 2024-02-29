@@ -25,7 +25,7 @@ struct Expression {
    Expression();
    virtual ~Expression() = default;
 
-   virtual std::string toString(const silo::Database& database) const = 0;
+   virtual std::string toString() const = 0;
 
    [[nodiscard]] virtual std::unique_ptr<silo::query_engine::operators::Operator> compile(
       const Database& database,

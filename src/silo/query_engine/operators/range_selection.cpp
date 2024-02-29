@@ -47,14 +47,12 @@ OperatorResult RangeSelection::evaluate() const {
    return result;
 }
 
-std::unique_ptr<Operator> RangeSelection::copy() const {
-   return std::make_unique<RangeSelection>(std::vector<Range>(ranges), row_count);
-}
-
-std::unique_ptr<Operator> RangeSelection::negate() const {
+std::unique_ptr<Operator> RangeSelection::negate(std::unique_ptr<RangeSelection>&& range_selection
+) {
+   const uint32_t row_count = range_selection->row_count;
    std::vector<Range> new_ranges;
    uint32_t last_to = 0;
-   for (const auto& current : ranges) {
+   for (const auto& current : range_selection->ranges) {
       if (last_to != current.start) {
          new_ranges.emplace_back(last_to, current.start);
       }

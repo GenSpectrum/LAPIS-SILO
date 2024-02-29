@@ -108,27 +108,12 @@ OperatorResult Selection::evaluate() const {
    return result;
 }
 
-std::unique_ptr<Operator> Selection::copy() const {
-   std::vector<std::unique_ptr<Predicate>> copied_predicates;
-   std::transform(
-      predicates.begin(),
-      predicates.end(),
-      std::back_inserter(copied_predicates),
-      [](const auto& predicate) { return predicate->copy(); }
-   );
-   if (child_operator.has_value()) {
-      return std::make_unique<Selection>(
-         (*child_operator)->copy(), std::move(copied_predicates), row_count
-      );
+std::unique_ptr<Operator> Selection::negate(std::unique_ptr<Selection>&& selection) {
+   const uint32_t row_count = selection->row_count;
+   if (selection->child_operator == std::nullopt && selection->predicates.size() == 1) {
+      return std::make_unique<Selection>(selection->predicates.at(0)->negate(), row_count);
    }
-   return std::make_unique<Selection>(std::move(copied_predicates), row_count);
-}
-
-std::unique_ptr<Operator> Selection::negate() const {
-   if (child_operator == std::nullopt && predicates.size() == 1) {
-      return std::make_unique<Selection>(predicates.at(0)->negate(), row_count);
-   }
-   return std::make_unique<Complement>(this->copy(), row_count);
+   return std::make_unique<Complement>(std::move(selection), row_count);
 }
 
 template <typename T>

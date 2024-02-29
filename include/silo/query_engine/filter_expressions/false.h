@@ -23,7 +23,7 @@ namespace silo::query_engine::filter_expressions {
 struct False : public Expression {
    explicit False();
 
-   std::string toString(const Database& database) const override;
+   std::string toString() const override;
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::operators::Operator> compile(
       const Database& database,

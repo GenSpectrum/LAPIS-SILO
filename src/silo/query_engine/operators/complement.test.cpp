@@ -1,8 +1,9 @@
 #include "silo/query_engine/operators/complement.h"
-#include "silo/query_engine/operators/index_scan.h"
 
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
+
+#include "silo/query_engine/operators/index_scan.h"
 
 using silo::query_engine::operators::Complement;
 using silo::query_engine::operators::IndexScan;

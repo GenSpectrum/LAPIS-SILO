@@ -26,7 +26,7 @@ struct Or : public Expression {
   public:
    Or(std::vector<std::unique_ptr<Expression>>&& children);
 
-   std::string toString(const Database& database) const override;
+   std::string toString() const override;
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::operators::Operator> compile(
       const Database& database,

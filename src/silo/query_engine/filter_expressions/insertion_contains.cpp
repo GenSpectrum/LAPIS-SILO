@@ -50,7 +50,7 @@ std::string getColumnNamesString(
 }
 
 template <typename SymbolType>
-std::string InsertionContains<SymbolType>::toString(const silo::Database& /*database*/) const {
+std::string InsertionContains<SymbolType>::toString() const {
    const std::string symbol_name = std::string(SymbolType::SYMBOL_NAME);
    const std::string sequence_string = sequence_name
                                           ? "The sequence '" + sequence_name.value() + "'"

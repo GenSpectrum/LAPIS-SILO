@@ -2,8 +2,10 @@
 
 #include <string>
 
+#include <fmt/format.h>
 #include <roaring/roaring.hh>
 
+#include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/operator.h"
 
@@ -20,9 +22,25 @@ BitmapSelection::BitmapSelection(
       comparator(comparator),
       value(value) {}
 
+BitmapSelection::BitmapSelection(
+   std::unique_ptr<silo::query_engine::filter_expressions::Expression>&& logical_equivalent,
+   const roaring::Roaring* bitmaps,
+   uint32_t row_count,
+   Comparator comparator,
+   uint32_t value
+)
+    : logical_equivalent(std::move(logical_equivalent)),
+      bitmaps(bitmaps),
+      row_count(row_count),
+      comparator(comparator),
+      value(value) {}
+
 BitmapSelection::~BitmapSelection() noexcept = default;
 
 std::string BitmapSelection::toString() const {
+   if (logical_equivalent.has_value()) {
+      return fmt::format("BitmapSelection({})", logical_equivalent.value()->toString());
+   }
    return "BitmapSelection";
 }
 
@@ -51,21 +69,18 @@ OperatorResult BitmapSelection::evaluate() const {
    return bitmap;
 }
 
-std::unique_ptr<Operator> BitmapSelection::copy() const {
-   return std::make_unique<BitmapSelection>(bitmaps, row_count, comparator, value);
-}
-
-std::unique_ptr<Operator> BitmapSelection::negate() const {
-   auto ret = std::make_unique<BitmapSelection>(*this);
-   switch (this->comparator) {
+std::unique_ptr<Operator> BitmapSelection::negate(
+   std::unique_ptr<BitmapSelection>&& bitmap_selection
+) {
+   switch (bitmap_selection->comparator) {
       case CONTAINS:
-         ret->comparator = NOT_CONTAINS;
+         bitmap_selection->comparator = NOT_CONTAINS;
          break;
       case NOT_CONTAINS:
-         ret->comparator = CONTAINS;
+         bitmap_selection->comparator = CONTAINS;
          break;
    }
-   return ret;
+   return bitmap_selection;
 }
 
 }  // namespace silo::query_engine::operators

@@ -31,7 +31,7 @@ HasMutation<SymbolType>::HasMutation(
       position_idx(position_idx) {}
 
 template <typename SymbolType>
-std::string HasMutation<SymbolType>::toString(const silo::Database& /*database*/) const {
+std::string HasMutation<SymbolType>::toString() const {
    const std::string sequence_name_prefix = sequence_name ? sequence_name.value() + ":" : "";
    return sequence_name_prefix + std::to_string(position_idx);
 }

@@ -59,6 +59,8 @@ Type Intersection::type() const {
    return INTERSECTION;
 }
 
+namespace {
+
 OperatorResult intersectTwo(OperatorResult first, OperatorResult second) {
    OperatorResult result;
    if (first.isMutable()) {
@@ -72,6 +74,8 @@ OperatorResult intersectTwo(OperatorResult first, OperatorResult second) {
    }
    return result;
 }
+
+}  // namespace
 
 OperatorResult Intersection::evaluate() const {
    std::vector<OperatorResult> children_bm;
@@ -126,28 +130,9 @@ OperatorResult Intersection::evaluate() const {
    return result;
 }
 
-std::unique_ptr<Operator> Intersection::copy() const {
-   std::vector<std::unique_ptr<Operator>> children_copy;
-   std::transform(
-      children.begin(),
-      children.end(),
-      std::back_inserter(children_copy),
-      [](const auto& child) { return child->copy(); }
-   );
-   std::vector<std::unique_ptr<Operator>> negated_children_copy;
-   std::transform(
-      negated_children.begin(),
-      negated_children.end(),
-      std::back_inserter(negated_children_copy),
-      [](const auto& child) { return child->copy(); }
-   );
-   return std::make_unique<Intersection>(
-      std::move(children_copy), std::move(negated_children_copy), row_count
-   );
-}
-
-std::unique_ptr<Operator> Intersection::negate() const {
-   return std::make_unique<Complement>(this->copy(), row_count);
+std::unique_ptr<Operator> Intersection::negate(std::unique_ptr<Intersection>&& intersection) {
+   const uint32_t row_count = intersection->row_count;
+   return std::make_unique<Complement>(std::move(intersection), row_count);
 }
 
 }  // namespace silo::query_engine::operators

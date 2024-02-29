@@ -20,8 +20,8 @@ namespace silo::query_engine::filter_expressions {
 Maybe::Maybe(std::unique_ptr<Expression> child)
     : child(std::move(child)) {}
 
-std::string Maybe::toString(const silo::Database& database) const {
-   return "Maybe (" + child->toString(database) + ")";
+std::string Maybe::toString() const {
+   return "Maybe (" + child->toString() + ")";
 }
 std::unique_ptr<silo::query_engine::operators::Operator> Maybe::compile(
    const silo::Database& database,

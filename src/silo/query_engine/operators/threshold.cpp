@@ -137,32 +137,8 @@ OperatorResult Threshold::evaluate() const {
    return OperatorResult(std::move(partition_bitmaps.back()));
 }
 
-std::unique_ptr<Operator> Threshold::copy() const {
-   std::vector<std::unique_ptr<Operator>> children_copy;
-   std::transform(
-      non_negated_children.begin(),
-      non_negated_children.end(),
-      std::back_inserter(children_copy),
-      [](const auto& child) { return child->copy(); }
-   );
-   std::vector<std::unique_ptr<Operator>> negated_children_copy;
-   std::transform(
-      negated_children.begin(),
-      negated_children.end(),
-      std::back_inserter(negated_children_copy),
-      [](const auto& child) { return child->copy(); }
-   );
-   return std::make_unique<Threshold>(
-      std::move(children_copy),
-      std::move(negated_children_copy),
-      number_of_matchers,
-      match_exactly,
-      row_count
-   );
-}
-
-std::unique_ptr<Operator> Threshold::negate() const {
-   return std::make_unique<Complement>(this->copy(), row_count);
+std::unique_ptr<Operator> Threshold::negate(std::unique_ptr<Threshold>&& threshold) {
+   return std::make_unique<Complement>(std::move(threshold), threshold->row_count);
 }
 
 }  // namespace silo::query_engine::operators

@@ -36,7 +36,7 @@ struct SymbolEquals : public Expression {
       std::optional<typename SymbolType::Symbol> value
    );
 
-   std::string toString(const Database& database) const override;
+   std::string toString() const override;
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::operators::Operator> compile(
       const Database& database,

@@ -25,7 +25,7 @@ FloatEquals::FloatEquals(std::string column, double value)
     : column(std::move(column)),
       value(value) {}
 
-std::string FloatEquals::toString(const silo::Database& /*database*/) const {
+std::string FloatEquals::toString() const {
    return column + " = '" + std::to_string(value) + "'";
 }
 

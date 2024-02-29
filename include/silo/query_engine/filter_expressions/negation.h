@@ -21,13 +21,15 @@ struct Database;
 namespace silo::query_engine::filter_expressions {
 
 class Negation : public Expression {
+   friend class Expression;
+
   private:
    std::unique_ptr<Expression> child;
 
   public:
    explicit Negation(std::unique_ptr<Expression> child);
 
-   std::string toString(const Database& database) const override;
+   std::string toString() const override;
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::operators::Operator> compile(
       const Database& database,

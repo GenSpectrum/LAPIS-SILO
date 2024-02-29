@@ -27,13 +27,13 @@ using OperatorVector = std::vector<std::unique_ptr<operators::Operator>>;
 Or::Or(std::vector<std::unique_ptr<Expression>>&& children)
     : children(std::move(children)) {}
 
-std::string Or::toString(const silo::Database& database) const {
+std::string Or::toString() const {
    std::vector<std::string> child_strings;
    std::transform(
       children.begin(),
       children.end(),
       std::back_inserter(child_strings),
-      [&](const std::unique_ptr<Expression>& child) { return child->toString(database); }
+      [&](const std::unique_ptr<Expression>& child) { return child->toString(); }
    );
    return "Or(" + boost::algorithm::join(child_strings, " | ") + ")";
 }

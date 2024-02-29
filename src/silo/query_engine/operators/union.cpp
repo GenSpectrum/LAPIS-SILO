@@ -44,19 +44,8 @@ OperatorResult Union::evaluate() const {
    return OperatorResult(roaring::Roaring::fastunion(union_tmp.size(), union_tmp.data()));
 }
 
-std::unique_ptr<Operator> Union::copy() const {
-   std::vector<std::unique_ptr<Operator>> children_copy;
-   std::transform(
-      children.begin(),
-      children.end(),
-      std::back_inserter(children_copy),
-      [](const auto& child) { return child->copy(); }
-   );
-   return std::make_unique<Union>(std::move(children_copy), row_count);
-}
-
-std::unique_ptr<Operator> Union::negate() const {
-   return std::make_unique<Complement>(this->copy(), row_count);
+std::unique_ptr<Operator> Union::negate(std::unique_ptr<Union>&& union_operator) {
+   return std::make_unique<Complement>(std::move(union_operator), union_operator->row_count);
 }
 
 }  // namespace silo::query_engine::operators
