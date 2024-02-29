@@ -162,9 +162,18 @@ NOf::NOf(
    int number_of_matchers,
    bool match_exactly
 )
+    : NOf::NOf(std::move(children), number_of_matchers, match_exactly, false) {}
+
+NOf::NOf(
+   std::vector<std::unique_ptr<Expression>>&& children,
+   int number_of_matchers,
+   bool match_exactly,
+   bool optimize_disjoint_unions
+)
     : children(std::move(children)),
       number_of_matchers(number_of_matchers),
-      match_exactly(match_exactly) {}
+      match_exactly(match_exactly),
+      optimize_disjoint_unions(optimize_disjoint_unions) {}
 
 std::string NOf::toString() const {
    std::string res;
@@ -205,7 +214,7 @@ NOf::mapChildExpressions(
       }
       if (child_operator->type() == operators::COMPLEMENT) {
          auto canceled_negation = operators::Operator::negate(std::move(child_operator));
-         if (canceled_negation->type() == operators::INTERSECTION) {
+         if (optimize_disjoint_unions && canceled_negation->type() == operators::INTERSECTION) {
             auto* intersection = dynamic_cast<Intersection*>(child_operator.get());
             if (intersection->isNegatedDisjointUnion()) {
                std::transform(
@@ -232,7 +241,7 @@ NOf::mapChildExpressions(
       }
       if (child_operator->type() == operators::UNION) {
          auto* or_child = dynamic_cast<Union*>(child_operator.get());
-         if (or_child->isDisjointUnion()) {
+         if (optimize_disjoint_unions && or_child->isDisjointUnion()) {
             auto or_children = std::move(or_child->children);
             std::transform(
                or_children.begin(),
@@ -342,11 +351,16 @@ void from_json(const nlohmann::json& json, std::unique_ptr<NOf>& filter) {
       json["matchExactly"].is_boolean(),
       "The field 'matchExactly' in an N-Of expression needs to be a boolean"
    )
+   const bool optimize_disjoint_unions = json.contains("optimizeDisjointUnions") &&
+                                         json["optimizeDisjointUnions"].is_boolean() &&
+                                         json["optimizeDisjointUnions"].get<bool>();
 
    const uint32_t number_of_matchers = json["numberOfMatchers"];
    const bool match_exactly = json["matchExactly"];
    auto children = json["children"].get<std::vector<std::unique_ptr<Expression>>>();
-   filter = std::make_unique<NOf>(std::move(children), number_of_matchers, match_exactly);
+   filter = std::make_unique<NOf>(
+      std::move(children), number_of_matchers, match_exactly, optimize_disjoint_unions
+   );
 }
 
 }  // namespace silo::query_engine::filter_expressions
