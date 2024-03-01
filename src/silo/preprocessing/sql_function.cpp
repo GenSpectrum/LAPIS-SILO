@@ -40,7 +40,7 @@ void silo::CompressSequence::addToConnection(Connection& connection) const {
             args.size(),
             [&](const string_t uncompressed, const string_t segment_name) {
                auto compressor = compressors.at(segment_name.GetString());
-               std::string_view const compressed =
+               const std::string_view compressed =
                   compressor.local().compress(uncompressed.GetData(), uncompressed.GetSize());
 
                return StringVector::AddStringOrBlob(
