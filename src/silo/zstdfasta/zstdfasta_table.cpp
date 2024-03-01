@@ -75,7 +75,7 @@ ZstdFastaTable ZstdFastaTable::generate(
    initializeTable(connection, table_name);
    std::optional<std::string> key;
    std::string uncompressed;
-   ZstdCompressor compressor(reference_sequence);
+   ZstdCompressor compressor(std::make_shared<ZstdCDictionary>(reference_sequence, 2));
    duckdb::Appender appender(connection, table_name);
    while (true) {
       key = file_reader.next(uncompressed);

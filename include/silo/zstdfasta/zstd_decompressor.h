@@ -5,21 +5,17 @@
 
 #include <zstd.h>
 
+#include "zstd_context.h"
+#include "zstd_dictionary.h"
+
 namespace silo {
 
 class ZstdDecompressor {
-   ZSTD_DDict* zstd_dictionary;
-   ZSTD_DCtx* zstd_context;
+   ZstdDDictionary zstd_dictionary;
+   ZstdDContext zstd_context;
    std::string buffer;
 
   public:
-   ZstdDecompressor(ZstdDecompressor&& other) noexcept;
-   ZstdDecompressor& operator=(ZstdDecompressor&& other) noexcept;
-
-   ZstdDecompressor(const ZstdDecompressor& other) = delete;
-   ZstdDecompressor& operator=(const ZstdDecompressor& other) = delete;
-   virtual ~ZstdDecompressor();
-
    explicit ZstdDecompressor(std::string_view dictionary_string);
 
    std::string_view decompress(const std::string& input);

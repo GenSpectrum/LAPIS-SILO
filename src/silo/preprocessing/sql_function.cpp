@@ -26,11 +26,12 @@ silo::CompressSequence::CompressSequence(
    SPDLOG_DEBUG("CompressSequence - initialize with reference_genomes for '{}'", function_name);
    for (const auto& [name, sequence] : reference) {
       SPDLOG_TRACE("CompressSequence - Creating compressor for '{}'", name);
-      compressors.emplace(name, silo::ZstdCompressor(sequence));
+      zstd_dictionaries.emplace(name, std::make_shared<ZstdCDictionary>(sequence, 2));
+      compressors.emplace(name, [&]() { return ZstdCompressor(zstd_dictionaries.at(name)); });
    }
 }
 
-void silo::CompressSequence::addToConnection(Connection& connection) const {
+void silo::CompressSequence::addToConnection(Connection& connection) {
    const std::function<void(DataChunk&, ExpressionState&, Vector&)> compressor_wrapper =
       [&](DataChunk& args, ExpressionState& /*state*/, Vector& result) {
          BinaryExecutor::Execute<string_t, string_t, string_t>(
@@ -38,10 +39,10 @@ void silo::CompressSequence::addToConnection(Connection& connection) const {
             args.data[1],
             result,
             args.size(),
-            [&](const string_t uncompressed, const string_t segment_name) {
-               auto compressor = compressors.at(segment_name.GetString());
+            [&](const string_t uncompressed, const string_t sequence_name) {
+               silo::ZstdCompressor& compressor = compressors.at(sequence_name.GetString()).local();
                const std::string_view compressed =
-                  compressor.local().compress(uncompressed.GetData(), uncompressed.GetSize());
+                  compressor.compress(uncompressed.GetData(), uncompressed.GetSize());
 
                return StringVector::AddStringOrBlob(
                   result, compressed.data(), static_cast<uint32_t>(compressed.size())

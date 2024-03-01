@@ -5,9 +5,9 @@
 #include <string>
 #include <unordered_map>
 
+#include <oneapi/tbb/enumerable_thread_specific.h>
 #include <duckdb.hpp>
 
-#include <oneapi/tbb/enumerable_thread_specific.h>
 #include "silo/storage/pango_lineage_alias.h"
 #include "silo/zstdfasta/zstd_compressor.h"
 
@@ -19,7 +19,7 @@ class CustomSqlFunction {
   public:
    explicit CustomSqlFunction(std::string function_name);
 
-   virtual void addToConnection(duckdb::Connection& connection) const = 0;
+   virtual void addToConnection(duckdb::Connection& connection) = 0;
 
   protected:
    std::string function_name;
@@ -32,7 +32,7 @@ class CompressSequence : public CustomSqlFunction {
       const std::map<std::string, std::string>& reference
    );
 
-   void addToConnection(duckdb::Connection& connection) const override;
+   void addToConnection(duckdb::Connection& connection) override;
 
    std::string generateSqlStatement(
       const std::string& column_name_in_data,
@@ -40,6 +40,7 @@ class CompressSequence : public CustomSqlFunction {
    ) const;
 
   private:
+   std::unordered_map<std::string_view, std::shared_ptr<silo::ZstdCDictionary>> zstd_dictionaries;
    std::unordered_map<std::string_view, tbb::enumerable_thread_specific<silo::ZstdCompressor>>
       compressors;
 };
