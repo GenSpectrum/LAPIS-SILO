@@ -11,7 +11,9 @@ silo::ZstdFastaWriter::ZstdFastaWriter(
    const std::filesystem::path& out_file,
    std::string_view compression_dict
 )
-    : compressor(std::make_unique<ZstdCompressor>(compression_dict)) {
+    : compressor(
+         std::make_unique<ZstdCompressor>(std::make_shared<ZstdCDictionary>(compression_dict, 2))
+      ) {
    if (!exists(out_file)) {
       SPDLOG_DEBUG("ZSTD Sequence Writer at {} does not yet exist", out_file.string());
       if (!exists(out_file.parent_path())) {
