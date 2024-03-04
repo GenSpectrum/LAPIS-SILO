@@ -26,23 +26,19 @@ class CustomSqlFunction {
 };
 
 class CompressSequence : public CustomSqlFunction {
+   std::shared_ptr<silo::ZstdCDictionary> zstd_dictionary;
+   tbb::enumerable_thread_specific<silo::ZstdCompressor> compressor;
+
   public:
    CompressSequence(
-      const std::string& sequence_name,
-      const std::map<std::string, std::string>& reference
+      std::string_view symbol_type_name,
+      std::string_view sequence_name,
+      std::string_view reference
    );
 
    void addToConnection(duckdb::Connection& connection) override;
 
-   std::string generateSqlStatement(
-      const std::string& column_name_in_data,
-      const std::string& sequence_name
-   ) const;
-
-  private:
-   std::unordered_map<std::string_view, std::shared_ptr<silo::ZstdCDictionary>> zstd_dictionaries;
-   std::unordered_map<std::string_view, tbb::enumerable_thread_specific<silo::ZstdCompressor>>
-      compressors;
+   std::string generateSqlStatement(const std::string& column_name_in_data) const;
 };
 
 }  // namespace silo

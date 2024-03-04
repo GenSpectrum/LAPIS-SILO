@@ -30,17 +30,17 @@ class SequenceInfo {
    ) const;
 
    static std::string getNucleotideSequenceSelect(
-      const std::string& seq_name,
+      std::string_view seq_name,
       const PreprocessingDatabase& preprocessing_db
    );
 
    static std::string getUnalignedSequenceSelect(
-      const std::string& seq_name,
+      std::string_view seq_name,
       const PreprocessingDatabase& preprocessing_db
    );
 
    static std::string getAminoAcidSequenceSelect(
-      const std::string& seq_name,
+      std::string_view seq_name,
       const PreprocessingDatabase& preprocessing_db
    );
 

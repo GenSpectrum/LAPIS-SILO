@@ -19,8 +19,10 @@ class Partitions;
 
 class PreprocessingDatabase {
   public:
-   std::unique_ptr<CompressSequence> compress_nucleotide_function;
-   std::unique_ptr<CompressSequence> compress_amino_acid_function;
+   std::unordered_map<std::string_view, std::unique_ptr<CompressSequence>>
+      compress_nucleotide_functions;
+   std::unordered_map<std::string_view, std::unique_ptr<CompressSequence>>
+      compress_amino_acid_functions;
 
   private:
    duckdb::DuckDB duck_db;
