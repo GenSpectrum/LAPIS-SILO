@@ -33,44 +33,44 @@ std::vector<std::string> SequenceInfo::getAlignedSequenceSelects(
 }
 
 std::string SequenceInfo::getNucleotideSequenceSelect(
-   const std::string& seq_name,
+   std::string_view seq_name,
    const PreprocessingDatabase& preprocessing_db
 ) {
-   const std::string column_name_in_data = "alignedNucleotideSequences." + seq_name;
+   const std::string column_name_in_data = fmt::format("alignedNucleotideSequences.{}", seq_name);
 
    return fmt::format(
       "{0} AS nuc_{1}",
-      preprocessing_db.compress_nucleotide_function->generateSqlStatement(
-         column_name_in_data, seq_name
+      preprocessing_db.compress_nucleotide_functions.at(seq_name)->generateSqlStatement(
+         column_name_in_data
       ),
       seq_name
    );
 }
 
 std::string SequenceInfo::getUnalignedSequenceSelect(
-   const std::string& seq_name,
+   std::string_view seq_name,
    const PreprocessingDatabase& preprocessing_db
 ) {
-   const std::string column_name_in_data = "unalignedNucleotideSequences." + seq_name;
+   const std::string column_name_in_data = fmt::format("unalignedNucleotideSequences.{}", seq_name);
    return fmt::format(
       "{0} AS unaligned_nuc_{1}",
-      preprocessing_db.compress_nucleotide_function->generateSqlStatement(
-         column_name_in_data, seq_name
+      preprocessing_db.compress_nucleotide_functions.at(seq_name)->generateSqlStatement(
+         column_name_in_data
       ),
       seq_name
    );
 }
 
 std::string SequenceInfo::getAminoAcidSequenceSelect(
-   const std::string& seq_name,
+   std::string_view seq_name,
    const PreprocessingDatabase& preprocessing_db
 ) {
-   const std::string column_name_in_data = "alignedAminoAcidSequences." + seq_name;
+   const std::string column_name_in_data = fmt::format("alignedAminoAcidSequences.{}", seq_name);
 
    return fmt::format(
       "{0} AS gene_{1}",
-      preprocessing_db.compress_amino_acid_function->generateSqlStatement(
-         column_name_in_data, seq_name
+      preprocessing_db.compress_amino_acid_functions.at(seq_name)->generateSqlStatement(
+         column_name_in_data
       ),
       seq_name
    );

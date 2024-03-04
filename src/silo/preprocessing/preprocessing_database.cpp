@@ -30,20 +30,23 @@ PreprocessingDatabase::PreprocessingDatabase(
    const std::optional<std::filesystem::path>& backing_file,
    const ReferenceGenomes& reference_genomes
 )
-    : compress_nucleotide_function(
-         std::make_unique<CompressSequence>("nuc", reference_genomes.raw_nucleotide_sequences)
-      ),
-      compress_amino_acid_function(
-         std::make_unique<CompressSequence>("aa", reference_genomes.raw_aa_sequences)
-      ),
-      duck_db(backing_file.value_or(":memory:")),
+    : duck_db(backing_file.value_or(":memory:")),
       connection(duck_db) {
    query("PRAGMA default_null_order='NULLS FIRST';");
    query("SET preserve_insertion_order=FALSE;");
    query("SET memory_limit='50 GB';");
-
-   compress_nucleotide_function->addToConnection(connection);
-   compress_amino_acid_function->addToConnection(connection);
+   for (const auto& [sequence_name, reference] : reference_genomes.raw_nucleotide_sequences) {
+      compress_nucleotide_functions.emplace(
+         sequence_name, std::make_unique<CompressSequence>("nuc", sequence_name, reference)
+      );
+      compress_nucleotide_functions[sequence_name]->addToConnection(connection);
+   }
+   for (const auto& [sequence_name, reference] : reference_genomes.raw_aa_sequences) {
+      compress_amino_acid_functions.emplace(
+         sequence_name, std::make_unique<CompressSequence>("aa", sequence_name, reference)
+      );
+      compress_amino_acid_functions[sequence_name]->addToConnection(connection);
+   }
 }
 
 std::unique_ptr<MaterializedQueryResult> PreprocessingDatabase::query(std::string sql_query) {
@@ -79,8 +82,8 @@ preprocessing::Partitions PreprocessingDatabase::getPartitionDescriptor() {
       const uint32_t partition_id = BigIntValue::Get(db_partition_id);
       if (partition_id != check_partition_id_sorted_and_contiguous) {
          throw PreprocessingException(
-            "The partition IDs produced by the preprocessing are not sorted, not starting from 0 "
-            "or not contiguous."
+            "The partition IDs produced by the preprocessing are not sorted, not starting from "
+            "0 or not contiguous."
          );
       }
       check_partition_id_sorted_and_contiguous++;

@@ -6,43 +6,46 @@
 #include "silo/storage/reference_genomes.h"
 #include "silo/zstdfasta/zstd_compressor.h"
 
-using duckdb::BinaryExecutor;
 using duckdb::Connection;
 using duckdb::DataChunk;
 using duckdb::ExpressionState;
 using duckdb::LogicalType;
 using duckdb::string_t;
 using duckdb::StringVector;
+using duckdb::UnaryExecutor;
 using duckdb::Vector;
 
 silo::CustomSqlFunction::CustomSqlFunction(std::string function_name)
     : function_name(std::move(function_name)) {}
 
 silo::CompressSequence::CompressSequence(
-   const std::string& sequence_name,
-   const std::map<std::string, std::string>& reference
+   std::string_view symbol_type_name,
+   std::string_view sequence_name,
+   std::string_view reference
 )
-    : CustomSqlFunction("compress_" + sequence_name) {
-   SPDLOG_DEBUG("CompressSequence - initialize with reference_genomes for '{}'", function_name);
-   for (const auto& [name, sequence] : reference) {
-      SPDLOG_TRACE("CompressSequence - Creating compressor for '{}'", name);
-      zstd_dictionaries.emplace(name, std::make_shared<ZstdCDictionary>(sequence, 2));
-      compressors.emplace(name, [&]() { return ZstdCompressor(zstd_dictionaries.at(name)); });
-   }
+    : CustomSqlFunction(fmt::format("compress_{}_{}", symbol_type_name, sequence_name)),
+      zstd_dictionary(std::make_shared<ZstdCDictionary>(reference, 2)),
+      compressor(tbb::enumerable_thread_specific<ZstdCompressor>([&]() {
+         return ZstdCompressor(zstd_dictionary);
+      })) {
+   SPDLOG_DEBUG(
+      "CompressSequence UDF {} - initialize compressor for sequence  for '{}'",
+      function_name,
+      sequence_name
+   );
 }
 
 void silo::CompressSequence::addToConnection(Connection& connection) {
    const std::function<void(DataChunk&, ExpressionState&, Vector&)> compressor_wrapper =
       [&](DataChunk& args, ExpressionState& /*state*/, Vector& result) {
-         BinaryExecutor::Execute<string_t, string_t, string_t>(
+         UnaryExecutor::Execute<string_t, string_t>(
             args.data[0],
-            args.data[1],
             result,
             args.size(),
-            [&](const string_t uncompressed, const string_t sequence_name) {
-               silo::ZstdCompressor& compressor = compressors.at(sequence_name.GetString()).local();
+            [&](const string_t uncompressed) {
+               silo::ZstdCompressor& local_compressor = compressor.local();
                const std::string_view compressed =
-                  compressor.compress(uncompressed.GetData(), uncompressed.GetSize());
+                  local_compressor.compress(uncompressed.GetData(), uncompressed.GetSize());
 
                return StringVector::AddStringOrBlob(
                   result, compressed.data(), static_cast<uint32_t>(compressed.size())
@@ -52,15 +55,10 @@ void silo::CompressSequence::addToConnection(Connection& connection) {
       };
 
    connection.CreateVectorizedFunction(
-      function_name,
-      {LogicalType::VARCHAR, LogicalType::VARCHAR},
-      LogicalType::BLOB,
-      compressor_wrapper
+      function_name, {LogicalType::VARCHAR}, LogicalType::BLOB, compressor_wrapper
    );
 }
-std::string silo::CompressSequence::generateSqlStatement(
-   const std::string& column_name_in_data,
-   const std::string& sequence_name
+std::string silo::CompressSequence::generateSqlStatement(const std::string& column_name_in_data
 ) const {
-   return fmt::format("{0}({1}, '{2}')", function_name, column_name_in_data, sequence_name);
+   return fmt::format("{0}({1})", function_name, column_name_in_data);
 }
