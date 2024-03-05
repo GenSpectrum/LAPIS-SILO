@@ -19,31 +19,52 @@ nlohmann::json createDataWithAminoAcidSequence(const std::string& aminoAcidSeque
    };
 }
 const nlohmann::json DATA_WITH_D = createDataWithAminoAcidSequence("D*");
-const nlohmann::json DATA_WITH_M = createDataWithAminoAcidSequence("M*");
+const nlohmann::json DATA_SAME_AS_REFERENCE = createDataWithAminoAcidSequence("M*");
 const nlohmann::json DATA_WITH_B = createDataWithAminoAcidSequence("B*");
 
 const auto DATABASE_CONFIG =
-   DatabaseConfig{"segmenet1", {"dummy name", {{"primaryKey", ValueType::STRING}}, "primaryKey"}};
+   DatabaseConfig{"segment1", {"dummy name", {{"primaryKey", ValueType::STRING}}, "primaryKey"}};
 
 const auto REFERENCE_GENOMES = ReferenceGenomes{
    {{"segment1", "A"}},
-   {{"gene1", "M*"}},
+   {{GENE, "M*"}},
 };
 
 const QueryTestData TEST_DATA{
-   {DATA_WITH_D, DATA_WITH_M, DATA_WITH_B},
+   {DATA_WITH_D, DATA_SAME_AS_REFERENCE, DATA_SAME_AS_REFERENCE, DATA_WITH_B},
    DATABASE_CONFIG,
    REFERENCE_GENOMES
 };
 
-const nlohmann::json QUERY = {
-   {"action", {{"type", "Aggregated"}}},
-   {"filterExpression",
-    {{"type", "AminoAcidEquals"}, {"position", 1}, {"symbol", "D"}, {"sequenceName", GENE}}}
+nlohmann::json createAminoAcidSymbolEqualsQuery(
+   const std::string& symbol,
+   int position,
+   const std::string& gene
+) {
+   return {
+      {"action", {{"type", "Aggregated"}}},
+      {"filterExpression",
+       {{"type", "AminoAcidEquals"},
+        {"position", position},
+        {"symbol", symbol},
+        {"sequenceName", gene}}}
+   };
+}
+
+const QueryTestScenario AMINO_ACID_EQUALS_D = {
+   "aminoAcidEqualsD",
+   createAminoAcidSymbolEqualsQuery("D", 1, GENE),
+   {{{"count", 1}}}
 };
 
-const nlohmann::json EXPECTED = {{{"count", 1}}};
+const QueryTestScenario AMINO_ACID_EQUALS_WITH_DOT_RETURNS_AS_IF_REFERENCE = {
+   "aminoAcidEqualsM",
+   createAminoAcidSymbolEqualsQuery(".", 1, GENE),
+   {{{"count", 2}}}
+};
 
-const QueryTestScenario AMINO_ACID_EQUALS_D = {"aminoAcidEqualsD", QUERY, EXPECTED};
-
-QUERY_TEST(AminoAcidSymbolEquals, TEST_DATA, ::testing::Values(AMINO_ACID_EQUALS_D));
+QUERY_TEST(
+   AminoAcidSymbolEquals,
+   TEST_DATA,
+   ::testing::Values(AMINO_ACID_EQUALS_D, AMINO_ACID_EQUALS_WITH_DOT_RETURNS_AS_IF_REFERENCE)
+);
