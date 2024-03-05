@@ -7,7 +7,7 @@ TEST(NucleotideSymbol, enumShouldHaveSameLengthAsArrayOfSymbols) {
 }
 
 TEST(NucleotideSymbol, conversionFromCharacter) {
-   EXPECT_EQ(silo::Nucleotide::charToSymbol('.'), silo::Nucleotide::Symbol::GAP);
+   EXPECT_EQ(silo::Nucleotide::charToSymbol('.'), std::nullopt);
    EXPECT_EQ(silo::Nucleotide::charToSymbol('-'), silo::Nucleotide::Symbol::GAP);
    EXPECT_EQ(silo::Nucleotide::charToSymbol('A'), silo::Nucleotide::Symbol::A);
    EXPECT_EQ(silo::Nucleotide::charToSymbol('N'), silo::Nucleotide::Symbol::N);

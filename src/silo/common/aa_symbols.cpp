@@ -63,6 +63,8 @@ char AminoAcid::symbolToChar(AminoAcid::Symbol symbol) {
 
 std::optional<AminoAcid::Symbol> AminoAcid::charToSymbol(char character) {
    switch (character) {
+      case '.':
+         return std::nullopt;
       case '-':
          return AminoAcid::Symbol::GAP;
       case 'A':
@@ -114,6 +116,7 @@ std::optional<AminoAcid::Symbol> AminoAcid::charToSymbol(char character) {
       case '*':
          return AminoAcid::Symbol::STOP;
       default:
+         // TODO(#342): Revisit charToSymbol, so that illegal characters are not the same as '.'.
          return std::nullopt;
    }
 }
