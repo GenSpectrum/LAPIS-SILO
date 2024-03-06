@@ -1,5 +1,7 @@
 FROM alpine:3.18 AS dep_builder
 
+ARG TARGETPLATFORM
+
 RUN apk update && apk add --no-cache py3-pip \
     build-base=0.5-r3 \
     cmake=3.26.5-r0 \
@@ -11,8 +13,12 @@ RUN apk update && apk add --no-cache py3-pip \
 RUN pip install conan==2.0.17
 
 WORKDIR /src
-COPY conanfile.py conanprofile.docker ./
-RUN mv conanprofile.docker conanprofile
+COPY conanfile.py conanprofile.docker conanprofile.docker_arm ./
+RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
+        mv conanprofile.docker_arm conanprofile; \
+    else \
+        mv conanprofile.docker conanprofile; \
+    fi
 
 RUN conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build
 

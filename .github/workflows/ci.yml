@@ -120,6 +120,7 @@ jobs:
         with:
           context: .
           push: true
+          platforms: ${{ github.ref == 'refs/heads/main' && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
           tags: ${{ steps.dockerMetadata.outputs.tags }}
 
   endToEndTests:
