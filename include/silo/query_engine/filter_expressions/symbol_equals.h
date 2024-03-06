@@ -25,15 +25,33 @@ class Operator;
 namespace silo::query_engine::filter_expressions {
 
 template <typename SymbolType>
+class SymbolOrDot {
+   std::optional<typename SymbolType::Symbol> value;
+
+   SymbolOrDot() = default;
+
+  public:
+   static SymbolOrDot<SymbolType> dot();
+
+   SymbolOrDot(typename SymbolType::Symbol symbol);
+
+   typename SymbolType::Symbol getSymbolOrReplaceDotWith(
+      typename SymbolType::Symbol replace_dot_with
+   ) const;
+
+   char asChar() const;
+};
+
+template <typename SymbolType>
 struct SymbolEquals : public Expression {
    std::optional<std::string> sequence_name;
    uint32_t position_idx;
-   std::optional<typename SymbolType::Symbol> value;
+   SymbolOrDot<SymbolType> value;
 
    explicit SymbolEquals(
       std::optional<std::string> sequence_name,
       uint32_t position_idx,
-      std::optional<typename SymbolType::Symbol> value
+      SymbolOrDot<SymbolType> value
    );
 
    std::string toString() const override;
