@@ -45,7 +45,7 @@ void QueryHandler::post(
       SPDLOG_INFO("Query is invalid: " + query + " - exception: " + ex.what());
       response.setStatusAndReason(Poco::Net::HTTPResponse::HTTP_BAD_REQUEST);
       std::ostream& out_stream = response.send();
-      out_stream << nlohmann::json(ErrorResponse{"Bad request", ex.what()});
+      out_stream << nlohmann::json(ErrorResponse{.error = "Bad request", .message = ex.what()});
    }
 }
 

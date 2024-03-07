@@ -24,17 +24,21 @@ template <>
 struct convert<OptionalPreprocessingConfig> {
    static bool decode(const Node& node, OptionalPreprocessingConfig& config) {
       config = OptionalPreprocessingConfig{
-         extractStringIfPresent(node, "inputDirectory"),
-         extractStringIfPresent(node, "outputDirectory"),
-         extractStringIfPresent(node, "intermediateResultsDirectory"),
-         extractStringIfPresent(node, "preprocessingDatabaseLocation"),
-         extractStringIfPresent(node, "ndjsonInputFilename"),
-         extractStringIfPresent(node, "metadataFilename"),
-         extractStringIfPresent(node, "pangoLineageDefinitionFilename"),
-         extractStringIfPresent(node, "referenceGenomeFilename"),
-         extractStringIfPresent(node, "nucleotideSequencePrefix"),
-         extractStringIfPresent(node, "unalignedNucleotideSequencePrefix"),
-         extractStringIfPresent(node, "genePrefix")
+         .input_directory = extractStringIfPresent(node, "inputDirectory"),
+         .output_directory = extractStringIfPresent(node, "outputDirectory"),
+         .intermediate_results_directory =
+            extractStringIfPresent(node, "intermediateResultsDirectory"),
+         .preprocessing_database_location =
+            extractStringIfPresent(node, "preprocessingDatabaseLocation"),
+         .ndjson_input_filename = extractStringIfPresent(node, "ndjsonInputFilename"),
+         .metadata_file = extractStringIfPresent(node, "metadataFilename"),
+         .pango_lineage_definition_file =
+            extractStringIfPresent(node, "pangoLineageDefinitionFilename"),
+         .reference_genome_file = extractStringIfPresent(node, "referenceGenomeFilename"),
+         .nucleotide_sequence_prefix = extractStringIfPresent(node, "nucleotideSequencePrefix"),
+         .unaligned_nucleotide_sequence_prefix =
+            extractStringIfPresent(node, "unalignedNucleotideSequencePrefix"),
+         .gene_prefix = extractStringIfPresent(node, "genePrefix")
       };
 
       return true;

@@ -129,7 +129,7 @@ QueryResult Action::executeAndOrder(
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, OrderByField& field) {
    if (json.is_string()) {
-      field = {json.get<std::string>(), true};
+      field = {.name = json.get<std::string>(), .ascending = true};
       return;
    }
    CHECK_SILO_QUERY(
@@ -147,7 +147,7 @@ void from_json(const nlohmann::json& json, OrderByField& field) {
          "' must be either a string or an object containing the fields 'field':string and "
          "'order':string, where the value of order is 'ascending' or 'descending'"
    )
-   field = {field_name, order_string == "ascending"};
+   field = {.name = field_name, .ascending = order_string == "ascending"};
 }
 
 std::optional<uint32_t> parseLimit(const nlohmann::json& json) {

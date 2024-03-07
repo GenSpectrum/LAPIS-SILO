@@ -24,12 +24,18 @@ nlohmann::json createDataWithNucleotideSequence(const std::string& nucleotideSeq
       {"alignedAminoAcidSequences", {{"gene1", nullptr}}}
    };
 }
+
 const nlohmann::json DATA_SAME_AS_REFERENCE = createDataWithNucleotideSequence("ATGCN");
 const nlohmann::json DATA_WITH_ALL_N = createDataWithNucleotideSequence("NNNNN");
 const nlohmann::json DATA_WITH_ALL_MUTATED = createDataWithNucleotideSequence("CATTT");
 
-const auto DATABASE_CONFIG =
-   DatabaseConfig{"segment1", {"dummy name", {{"primaryKey", ValueType::STRING}}, "primaryKey"}};
+const auto DATABASE_CONFIG = DatabaseConfig{
+   .default_nucleotide_sequence = "segment1",
+   .schema =
+      {.instance_name = "dummy name",
+       .metadata = {{.name = "primaryKey", .type = ValueType::STRING}},
+       .primary_key = "primaryKey"}
+};
 
 const auto REFERENCE_GENOMES = ReferenceGenomes{
    {{"segment1", "ATGCN"}},
@@ -37,9 +43,10 @@ const auto REFERENCE_GENOMES = ReferenceGenomes{
 };
 
 const QueryTestData TEST_DATA{
-   {DATA_SAME_AS_REFERENCE, DATA_SAME_AS_REFERENCE, DATA_WITH_ALL_N, DATA_WITH_ALL_MUTATED},
-   DATABASE_CONFIG,
-   REFERENCE_GENOMES
+   .ndjson_input_data =
+      {DATA_SAME_AS_REFERENCE, DATA_SAME_AS_REFERENCE, DATA_WITH_ALL_N, DATA_WITH_ALL_MUTATED},
+   .database_config = DATABASE_CONFIG,
+   .reference_genomes = REFERENCE_GENOMES
 };
 
 nlohmann::json createNucleotideSymbolEqualsQuery(const std::string& symbol, int position) {
@@ -54,15 +61,15 @@ nlohmann::json createNucleotideSymbolEqualsQuery(const std::string& symbol, int 
 }
 
 const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL = {
-   "nucleotideEqualsWithSymbol",
-   createNucleotideSymbolEqualsQuery("C", 1),
-   {{{"count", 1}}}
+   .name = "nucleotideEqualsWithSymbol",
+   .query = createNucleotideSymbolEqualsQuery("C", 1),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 1}])")
 };
 
 const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_DOT_RETURNS_REFERENCE = {
-   "nucleotideEqualsWithDot",
-   createNucleotideSymbolEqualsQuery(".", 1),
-   {{{"count", 2}}}
+   .name = "nucleotideEqualsWithDot",
+   .query = createNucleotideSymbolEqualsQuery(".", 1),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 2}])")
 };
 
 QUERY_TEST(

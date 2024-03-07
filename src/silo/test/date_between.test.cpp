@@ -24,13 +24,15 @@ const nlohmann::json DATA = {
 };
 
 const auto DATABASE_CONFIG = DatabaseConfig{
-   "segment1",
-   {"dummy name",
-    {{"primaryKey", ValueType::STRING},
-     {"sorted_date", ValueType::DATE},
-     {"unsorted_date", ValueType::DATE}},
-    "primaryKey",
-    "sorted_date"}
+   .default_nucleotide_sequence = "segment1",
+   .schema =
+      {.instance_name = "dummy name",
+       .metadata =
+          {{.name = "primaryKey", .type = ValueType::STRING},
+           {.name = "sorted_date", .type = ValueType::DATE},
+           {.name = "unsorted_date", .type = ValueType::DATE}},
+       .primary_key = "primaryKey",
+       .date_to_sort_by = "sorted_date"}
 };
 
 const auto REFERENCE_GENOMES = ReferenceGenomes{
@@ -38,7 +40,11 @@ const auto REFERENCE_GENOMES = ReferenceGenomes{
    {{"gene1", "*"}},
 };
 
-const QueryTestData TEST_DATA{{DATA}, DATABASE_CONFIG, REFERENCE_GENOMES};
+const QueryTestData TEST_DATA{
+   .ndjson_input_data = {DATA},
+   .database_config = DATABASE_CONFIG,
+   .reference_genomes = REFERENCE_GENOMES
+};
 
 nlohmann::json createDateBetweenQuery(
    const std::string& column,
@@ -58,39 +64,39 @@ const nlohmann::json EXPECTED_RESULT = {
 };
 
 const QueryTestScenario SORTED_DATE_WITH_TO_AND_FROM_SCENARIO = {
-   "sortedDateWithToEqualsFrom",
-   createDateBetweenQuery("sorted_date", SORTED_DATE_VALUE, SORTED_DATE_VALUE),
-   EXPECTED_RESULT
+   .name = "sortedDateWithToEqualsFrom",
+   .query = createDateBetweenQuery("sorted_date", SORTED_DATE_VALUE, SORTED_DATE_VALUE),
+   .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario SORTED_DATE_WITH_TO_ONLY_SCENARIO = {
-   "sortedDateWithToOnly",
-   createDateBetweenQuery("sorted_date", nullptr, SORTED_DATE_VALUE),
-   EXPECTED_RESULT
+   .name = "sortedDateWithToOnly",
+   .query = createDateBetweenQuery("sorted_date", nullptr, SORTED_DATE_VALUE),
+   .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario SORTED_DATE_WITH_FROM_ONLY_SCENARIO = {
-   "sortedDateWithFromOnly",
-   createDateBetweenQuery("sorted_date", SORTED_DATE_VALUE, nullptr),
-   EXPECTED_RESULT
+   .name = "sortedDateWithFromOnly",
+   .query = createDateBetweenQuery("sorted_date", SORTED_DATE_VALUE, nullptr),
+   .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario UNSORTED_DATE_WITH_TO_AND_FROM_SCENARIO = {
-   "unsortedDateWithToEqualsFrom",
-   createDateBetweenQuery("unsorted_date", UNSORTED_DATE_VALUE, UNSORTED_DATE_VALUE),
-   EXPECTED_RESULT
+   .name = "unsortedDateWithToEqualsFrom",
+   .query = createDateBetweenQuery("unsorted_date", UNSORTED_DATE_VALUE, UNSORTED_DATE_VALUE),
+   .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario UNSORTED_DATE_WITH_TO_ONLY_SCENARIO = {
-   "unsortedDateWithToOnly",
-   createDateBetweenQuery("unsorted_date", nullptr, UNSORTED_DATE_VALUE),
-   EXPECTED_RESULT
+   .name = "unsortedDateWithToOnly",
+   .query = createDateBetweenQuery("unsorted_date", nullptr, UNSORTED_DATE_VALUE),
+   .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario UNSORTED_DATE_WITH_FROM_ONLY_SCENARIO = {
-   "unsortedDateWithFromOnly",
-   createDateBetweenQuery("unsorted_date", UNSORTED_DATE_VALUE, nullptr),
-   EXPECTED_RESULT
+   .name = "unsortedDateWithFromOnly",
+   .query = createDateBetweenQuery("unsorted_date", UNSORTED_DATE_VALUE, nullptr),
+   .expected_query_result = EXPECTED_RESULT
 };
 
 QUERY_TEST(

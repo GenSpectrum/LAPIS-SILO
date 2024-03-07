@@ -142,12 +142,15 @@ DatabaseInfo Database::getDatabaseInfo() const {
       }
    );
 
-   return DatabaseInfo{sequence_count, total_size, nucleotide_symbol_n_bitmaps_size};
+   return DatabaseInfo{
+      .sequence_count = sequence_count,
+      .total_size = total_size,
+      .n_bitmaps_size = nucleotide_symbol_n_bitmaps_size
+   };
 }
 
 BitmapContainerSize::BitmapContainerSize(size_t genome_length, size_t section_length)
     : section_length(section_length),
-      bitmap_container_size_statistic({0, 0, 0, 0, 0, 0, 0, 0, 0}),
       total_bitmap_size_frozen(0),
       total_bitmap_size_computed(0) {
    size_per_genome_symbol_and_section["NOT_N_NOT_GAP"] =
@@ -311,8 +314,11 @@ DetailedDatabaseInfo Database::detailedDatabaseInfo() const {
    for (const auto& [seq_name, seq_store] : nuc_sequences) {
       result.sequences.insert(
          {seq_name,
-          {BitmapSizePerSymbol{},
-           BitmapContainerSize{seq_store.reference_sequence.size(), DEFAULT_SECTION_LENGTH}}}
+          SequenceStoreStatistics{
+             .bitmap_size_per_symbol = BitmapSizePerSymbol(),
+             .bitmap_container_size_per_genome_section =
+                BitmapContainerSize{seq_store.reference_sequence.size(), DEFAULT_SECTION_LENGTH}
+          }}
       );
       result.sequences.at(seq_name).bitmap_size_per_symbol =
          calculateBitmapSizePerSymbol(seq_store);

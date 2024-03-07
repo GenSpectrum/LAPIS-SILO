@@ -44,7 +44,8 @@ TEST(VariantJsonSerializer, serializeStringVariant) {
 }
 
 TEST(VariantJsonSerializer, serializeStructVariant) {
-   const std::variant<TestStruct, std::string> value = TestStruct{"this is another string", 42};
+   const std::variant<TestStruct, std::string> value =
+      TestStruct{.stringField = "this is another string", .intField = 42};
 
    auto result = nlohmann::json(value).dump();
 

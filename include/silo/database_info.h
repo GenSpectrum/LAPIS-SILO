@@ -42,17 +42,17 @@ struct BitmapSizePerSymbol {
 };
 
 struct BitmapContainerSizeStatistic {
-   uint32_t number_of_array_containers;
-   uint32_t number_of_run_containers;
-   uint32_t number_of_bitset_containers;
+   uint32_t number_of_array_containers = 0;
+   uint32_t number_of_run_containers = 0;
+   uint32_t number_of_bitset_containers = 0;
 
-   uint32_t number_of_values_stored_in_array_containers;
-   uint32_t number_of_values_stored_in_run_containers;
-   uint32_t number_of_values_stored_in_bitset_containers;
+   uint32_t number_of_values_stored_in_array_containers = 0;
+   uint32_t number_of_values_stored_in_run_containers = 0;
+   uint32_t number_of_values_stored_in_bitset_containers = 0;
 
-   uint64_t total_bitmap_size_array_containers;
-   uint64_t total_bitmap_size_run_containers;
-   uint64_t total_bitmap_size_bitset_containers;
+   uint64_t total_bitmap_size_array_containers = 0;
+   uint64_t total_bitmap_size_run_containers = 0;
+   uint64_t total_bitmap_size_bitset_containers = 0;
 };
 
 struct BitmapContainerSize {

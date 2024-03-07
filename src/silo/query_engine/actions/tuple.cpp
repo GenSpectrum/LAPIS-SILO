@@ -356,7 +356,8 @@ std::vector<Tuple::ComparatorField> Tuple::getCompareFields(
       );
       if (element != order_by_fields.end()) {
          const size_t index = std::distance(order_by_fields.begin(), element);
-         tuple_field_comparators[index] = ComparatorField{offset, metadata, element->ascending};
+         tuple_field_comparators[index] =
+            ComparatorField{.offset = offset, .type = metadata, .ascending = element->ascending};
       }
       offset += getColumnSize(metadata);
    }
