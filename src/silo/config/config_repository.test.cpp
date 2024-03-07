@@ -30,18 +30,20 @@ ConfigReaderMock mockConfigReader(const DatabaseConfig& config) {
 
 TEST(ConfigRepository, shouldReadConfigWithoutErrors) {
    const auto config_reader_mock = mockConfigReader(
-      {"main",
-       {
-          "testInstanceName",
+      {.default_nucleotide_sequence = "main",
+       .schema =
           {
-             {"testPrimaryKey", ValueType::STRING},
-             {"metadata1", ValueType::PANGOLINEAGE, true},
-             {"metadata2", ValueType::DATE},
-          },
-          "testPrimaryKey",
-          std::nullopt,
-          "metadata1",
-       }}
+             .instance_name = "testInstanceName",
+             .metadata =
+                {
+                   {.name = "testPrimaryKey", .type = ValueType::STRING},
+                   {.name = "metadata1", .type = ValueType::PANGOLINEAGE, .generate_index = true},
+                   {.name = "metadata2", .type = ValueType::DATE},
+                },
+             .primary_key = "testPrimaryKey",
+             .date_to_sort_by = std::nullopt,
+             .partition_by = "metadata1",
+          }}
    );
 
    ASSERT_NO_THROW(ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml"));
@@ -49,14 +51,16 @@ TEST(ConfigRepository, shouldReadConfigWithoutErrors) {
 
 TEST(ConfigRepository, shouldThrowIfPrimaryKeyIsNotInMetadata) {
    const auto config_reader_mock = mockConfigReader(
-      {"main",
-       {
-          "testInstanceName",
+      {.default_nucleotide_sequence = "main",
+       .schema =
           {
-             {"notPrimaryKey", ValueType::STRING},
-          },
-          "testPrimaryKey",
-       }}
+             .instance_name = "testInstanceName",
+             .metadata =
+                {
+                   {.name = "notPrimaryKey", .type = ValueType::STRING},
+                },
+             .primary_key = "testPrimaryKey",
+          }}
    );
 
    ASSERT_THROW(
@@ -66,16 +70,18 @@ TEST(ConfigRepository, shouldThrowIfPrimaryKeyIsNotInMetadata) {
 
 TEST(ConfigRepository, shouldThrowIfThereAreTwoMetadataWithTheSameName) {
    const auto config_reader_mock = mockConfigReader(
-      {"main",
-       {
-          "testInstanceName",
+      {.default_nucleotide_sequence = "main",
+       .schema =
           {
-             {"testPrimaryKey", ValueType::STRING},
-             {"sameName", ValueType::PANGOLINEAGE},
-             {"sameName", ValueType::DATE},
-          },
-          "testPrimaryKey",
-       }}
+             .instance_name = "testInstanceName",
+             .metadata =
+                {
+                   {.name = "testPrimaryKey", .type = ValueType::STRING},
+                   {.name = "sameName", .type = ValueType::PANGOLINEAGE},
+                   {.name = "sameName", .type = ValueType::DATE},
+                },
+             .primary_key = "testPrimaryKey",
+          }}
    );
 
    ASSERT_THROW(
@@ -85,13 +91,15 @@ TEST(ConfigRepository, shouldThrowIfThereAreTwoMetadataWithTheSameName) {
 
 TEST(ConfigRepository, givenConfigWithDateToSortByThatIsNotConfiguredThenThrows) {
    const auto config_reader_mock = mockConfigReader(
-      {"main",
-       {"testInstanceName",
-        {
-           {"testPrimaryKey", ValueType::STRING},
-        },
-        "testPrimaryKey",
-        "notConfiguredDateToSortBy"}}
+      {.default_nucleotide_sequence = "main",
+       .schema =
+          {.instance_name = "testInstanceName",
+           .metadata =
+              {
+                 {.name = "testPrimaryKey", .type = ValueType::STRING},
+              },
+           .primary_key = "testPrimaryKey",
+           .date_to_sort_by = "notConfiguredDateToSortBy"}}
    );
 
    EXPECT_THAT(
@@ -106,14 +114,16 @@ TEST(ConfigRepository, givenConfigWithDateToSortByThatIsNotConfiguredThenThrows)
 
 TEST(ConfigRepository, givenDateToSortByThatIsNotADateThenThrows) {
    const auto config_reader_mock = mockConfigReader(
-      {"main",
-       {"testInstanceName",
-        {
-           {"testPrimaryKey", ValueType::STRING},
-           {"not a date", ValueType::STRING},
-        },
-        "testPrimaryKey",
-        "not a date"}}
+      {.default_nucleotide_sequence = "main",
+       .schema =
+          {.instance_name = "testInstanceName",
+           .metadata =
+              {
+                 {.name = "testPrimaryKey", .type = ValueType::STRING},
+                 {.name = "not a date", .type = ValueType::STRING},
+              },
+           .primary_key = "testPrimaryKey",
+           .date_to_sort_by = "not a date"}}
    );
 
    EXPECT_THAT(
@@ -128,15 +138,17 @@ TEST(ConfigRepository, givenDateToSortByThatIsNotADateThenThrows) {
 
 TEST(ConfigRepository, givenConfigPartitionByThatIsNotConfiguredThenThrows) {
    const auto config_reader_mock = mockConfigReader(
-      {"main",
-       {"testInstanceName",
-        {
-           {"testPrimaryKey", ValueType::STRING},
-           {"date_to_sort_by", ValueType::DATE},
-        },
-        "testPrimaryKey",
-        "date_to_sort_by",
-        "notConfiguredPartitionBy"}}
+      {.default_nucleotide_sequence = "main",
+       .schema =
+          {.instance_name = "testInstanceName",
+           .metadata =
+              {
+                 {.name = "testPrimaryKey", .type = ValueType::STRING},
+                 {.name = "date_to_sort_by", .type = ValueType::DATE},
+              },
+           .primary_key = "testPrimaryKey",
+           .date_to_sort_by = "date_to_sort_by",
+           .partition_by = "notConfiguredPartitionBy"}}
    );
 
    EXPECT_THAT(
@@ -151,16 +163,18 @@ TEST(ConfigRepository, givenConfigPartitionByThatIsNotConfiguredThenThrows) {
 
 TEST(ConfigRepository, givenConfigPartitionByThatIsNotPangoLineageThenThrows) {
    const auto config_reader_mock = mockConfigReader(
-      {"main",
-       {"testInstanceName",
-        {
-           {"testPrimaryKey", ValueType::STRING},
-           {"date_to_sort_by", ValueType::DATE},
-           {"not a pango lineage", ValueType::STRING},
-        },
-        "testPrimaryKey",
-        "date_to_sort_by",
-        "not a pango lineage"}}
+      {.default_nucleotide_sequence = "main",
+       .schema =
+          {.instance_name = "testInstanceName",
+           .metadata =
+              {
+                 {.name = "testPrimaryKey", .type = ValueType::STRING},
+                 {.name = "date_to_sort_by", .type = ValueType::DATE},
+                 {.name = "not a pango lineage", .type = ValueType::STRING},
+              },
+           .primary_key = "testPrimaryKey",
+           .date_to_sort_by = "date_to_sort_by",
+           .partition_by = "not a pango lineage"}}
    );
 
    EXPECT_THAT(
@@ -175,15 +189,17 @@ TEST(ConfigRepository, givenConfigPartitionByThatIsNotPangoLineageThenThrows) {
 
 TEST(ConfigRepository, givenMetadataToGenerateIndexForThatIsNotStringOrPangoLineageThenThrows) {
    const auto config_reader_mock = mockConfigReader(
-      {"main",
-       {"testInstanceName",
-        {
-           {"testPrimaryKey", ValueType::STRING},
-           {"indexed date", ValueType::DATE, true},
-        },
-        "testPrimaryKey",
-        std::nullopt,
-        "testPrimaryKey"}}
+      {.default_nucleotide_sequence = "main",
+       .schema =
+          {.instance_name = "testInstanceName",
+           .metadata =
+              {
+                 {.name = "testPrimaryKey", .type = ValueType::STRING},
+                 {.name = "indexed date", .type = ValueType::DATE, .generate_index = true},
+              },
+           .primary_key = "testPrimaryKey",
+           .date_to_sort_by = std::nullopt,
+           .partition_by = "testPrimaryKey"}}
    );
 
    EXPECT_THAT(
@@ -199,15 +215,19 @@ TEST(ConfigRepository, givenMetadataToGenerateIndexForThatIsNotStringOrPangoLine
 
 TEST(ConfigRepository, givenNotGenerateIndexOnPangoLineageThenThrows) {
    const auto config_reader_mock = mockConfigReader(
-      {"main",
-       {"testInstanceName",
-        {
-           {"testPrimaryKey", ValueType::STRING},
-           {"pango lineage without index", ValueType::PANGOLINEAGE, false},
-        },
-        "testPrimaryKey",
-        std::nullopt,
-        "testPrimaryKey"}}
+      {.default_nucleotide_sequence = "main",
+       .schema =
+          {.instance_name = "testInstanceName",
+           .metadata =
+              {
+                 {.name = "testPrimaryKey", .type = ValueType::STRING},
+                 {.name = "pango lineage without index",
+                  .type = ValueType::PANGOLINEAGE,
+                  .generate_index = false},
+              },
+           .primary_key = "testPrimaryKey",
+           .date_to_sort_by = std::nullopt,
+           .partition_by = "testPrimaryKey"}}
    );
 
    EXPECT_THAT(

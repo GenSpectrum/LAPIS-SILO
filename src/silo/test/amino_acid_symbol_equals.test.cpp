@@ -22,8 +22,13 @@ const nlohmann::json DATA_WITH_D = createDataWithAminoAcidSequence("D*");
 const nlohmann::json DATA_SAME_AS_REFERENCE = createDataWithAminoAcidSequence("M*");
 const nlohmann::json DATA_WITH_B = createDataWithAminoAcidSequence("B*");
 
-const auto DATABASE_CONFIG =
-   DatabaseConfig{"segment1", {"dummy name", {{"primaryKey", ValueType::STRING}}, "primaryKey"}};
+const auto DATABASE_CONFIG = DatabaseConfig{
+   .default_nucleotide_sequence = "segment1",
+   .schema =
+      {.instance_name = "dummy name",
+       .metadata = {{.name = "primaryKey", .type = ValueType::STRING}},
+       .primary_key = "primaryKey"}
+};
 
 const auto REFERENCE_GENOMES = ReferenceGenomes{
    {{"segment1", "A"}},
@@ -31,9 +36,9 @@ const auto REFERENCE_GENOMES = ReferenceGenomes{
 };
 
 const QueryTestData TEST_DATA{
-   {DATA_WITH_D, DATA_SAME_AS_REFERENCE, DATA_SAME_AS_REFERENCE, DATA_WITH_B},
-   DATABASE_CONFIG,
-   REFERENCE_GENOMES
+   .ndjson_input_data = {DATA_WITH_D, DATA_SAME_AS_REFERENCE, DATA_SAME_AS_REFERENCE, DATA_WITH_B},
+   .database_config = DATABASE_CONFIG,
+   .reference_genomes = REFERENCE_GENOMES
 };
 
 nlohmann::json createAminoAcidSymbolEqualsQuery(
@@ -52,15 +57,15 @@ nlohmann::json createAminoAcidSymbolEqualsQuery(
 }
 
 const QueryTestScenario AMINO_ACID_EQUALS_D = {
-   "aminoAcidEqualsD",
-   createAminoAcidSymbolEqualsQuery("D", 1, GENE),
-   {{{"count", 1}}}
+   .name = "aminoAcidEqualsD",
+   .query = createAminoAcidSymbolEqualsQuery("D", 1, GENE),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 1}])")
 };
 
 const QueryTestScenario AMINO_ACID_EQUALS_WITH_DOT_RETURNS_AS_IF_REFERENCE = {
-   "aminoAcidEqualsM",
-   createAminoAcidSymbolEqualsQuery(".", 1, GENE),
-   {{{"count", 2}}}
+   .name = "aminoAcidEqualsM",
+   .query = createAminoAcidSymbolEqualsQuery(".", 1, GENE),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 2}])")
 };
 
 QUERY_TEST(

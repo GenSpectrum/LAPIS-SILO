@@ -23,15 +23,18 @@ TEST(DatabaseMetadataType, shouldBeConvertableFromString) {
 TEST(DatabaseConfig, shouldBuildDatabaseConfig) {
    const std::string default_nuc_sequence = "main";
    const DatabaseSchema schema{
-      "testInstanceName",
-      {
-         {"metadata1", ValueType::PANGOLINEAGE},
-         {"metadata2", ValueType::STRING},
-         {"metadata3", ValueType::DATE},
-      },
-      "testPrimaryKey",
+      .instance_name = "testInstanceName",
+      .metadata =
+         {
+            {.name = "metadata1", .type = ValueType::PANGOLINEAGE},
+            {.name = "metadata2", .type = ValueType::STRING},
+            {.name = "metadata3", .type = ValueType::DATE},
+         },
+      .primary_key = "testPrimaryKey",
    };
-   const DatabaseConfig config{default_nuc_sequence, schema};
+   const DatabaseConfig config{
+      .default_nucleotide_sequence = default_nuc_sequence, .schema = schema
+   };
    ASSERT_TRUE(config.schema.instance_name == "testInstanceName");
    ASSERT_TRUE(config.schema.primary_key == "testPrimaryKey");
    ASSERT_TRUE(config.schema.metadata[0].name == "metadata1");
@@ -52,9 +55,9 @@ TEST_P(DatabaseMetadataFixture, getColumnTypeShouldReturnCorrectColumnType) {
    const auto test_parameter = GetParam();
 
    const silo::config::DatabaseMetadata under_test = {
-      "testName",
-      test_parameter.value_type,
-      test_parameter.generate_index,
+      .name = "testName",
+      .type = test_parameter.value_type,
+      .generate_index = test_parameter.generate_index,
    };
 
    ASSERT_EQ(under_test.getColumnType(), test_parameter.expected_column_type);
@@ -64,14 +67,46 @@ INSTANTIATE_TEST_SUITE_P(
    DatabaseMetadata,
    DatabaseMetadataFixture,
    ::testing::Values(
-      TestParameter{ValueType::STRING, false, ColumnType::STRING},
-      TestParameter{ValueType::STRING, true, ColumnType::INDEXED_STRING},
-      TestParameter{ValueType::DATE, false, ColumnType::DATE},
-      TestParameter{ValueType::PANGOLINEAGE, true, ColumnType::INDEXED_PANGOLINEAGE},
-      TestParameter{ValueType::INT, false, ColumnType::INT},
-      TestParameter{ValueType::FLOAT, false, ColumnType::FLOAT},
-      TestParameter{ValueType::NUC_INSERTION, false, ColumnType::NUC_INSERTION},
-      TestParameter{ValueType::AA_INSERTION, false, ColumnType::AA_INSERTION}
+      TestParameter{
+         .value_type = ValueType::STRING,
+         .generate_index = false,
+         .expected_column_type = ColumnType::STRING
+      },
+      TestParameter{
+         .value_type = ValueType::STRING,
+         .generate_index = true,
+         .expected_column_type = ColumnType::INDEXED_STRING
+      },
+      TestParameter{
+         .value_type = ValueType::DATE,
+         .generate_index = false,
+         .expected_column_type = ColumnType::DATE
+      },
+      TestParameter{
+         .value_type = ValueType::PANGOLINEAGE,
+         .generate_index = true,
+         .expected_column_type = ColumnType::INDEXED_PANGOLINEAGE
+      },
+      TestParameter{
+         .value_type = ValueType::INT,
+         .generate_index = false,
+         .expected_column_type = ColumnType::INT
+      },
+      TestParameter{
+         .value_type = ValueType::FLOAT,
+         .generate_index = false,
+         .expected_column_type = ColumnType::FLOAT
+      },
+      TestParameter{
+         .value_type = ValueType::NUC_INSERTION,
+         .generate_index = false,
+         .expected_column_type = ColumnType::NUC_INSERTION
+      },
+      TestParameter{
+         .value_type = ValueType::AA_INSERTION,
+         .generate_index = false,
+         .expected_column_type = ColumnType::AA_INSERTION
+      }
    )
 );
 

@@ -18,8 +18,8 @@ class MockRequestHandler : public Poco::Net::HTTPRequestHandler {
 };
 
 const silo_api::StartupConfig TEST_STARTUP_CONFIG = {
-   std::chrono::system_clock::now(),
-   std::nullopt
+   .start_time = std::chrono::system_clock::now(),
+   .estimated_startup_time = std::nullopt
 };
 
 }  // namespace

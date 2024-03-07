@@ -98,9 +98,9 @@ preprocessing::Partitions PreprocessingDatabase::getPartitionDescriptor() {
 
       const auto partition_size = static_cast<uint32_t>(partition_size_bigint);
 
-      partitions.emplace_back(
-         std::vector<preprocessing::PartitionChunk>{{partition_id, 0, partition_size, 0}}
-      );
+      partitions.emplace_back(std::vector<preprocessing::PartitionChunk>{
+         {.partition = partition_id, .chunk = 0, .size = partition_size, .offset = 0}
+      });
    }
 
    return preprocessing::Partitions(partitions);

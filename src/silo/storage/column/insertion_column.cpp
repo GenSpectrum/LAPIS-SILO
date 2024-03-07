@@ -47,13 +47,17 @@ InsertionEntry parseInsertion(
          }
          const auto position = boost::lexical_cast<uint32_t>(position_and_insertion[0]);
          const auto& insertion = position_and_insertion[1];
-         return {*default_sequence_name, position, insertion};
+         return {
+            .sequence_name = *default_sequence_name,
+            .position_idx = position,
+            .insertion = insertion
+         };
       }
       if (position_and_insertion.size() == 3) {
          const auto& sequence_name = position_and_insertion[0];
          const auto position = boost::lexical_cast<uint32_t>(position_and_insertion[1]);
          const auto& insertion = position_and_insertion[2];
-         return {sequence_name, position, insertion};
+         return {.sequence_name = sequence_name, .position_idx = position, .insertion = insertion};
       }
    } catch (const boost::bad_lexical_cast& error) {
       const std::string message = "Failed to parse insertion due to invalid format: " + value;

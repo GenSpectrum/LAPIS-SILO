@@ -38,18 +38,22 @@ void ErrorRequestHandler::handleRequest(
          message += " Please try again after " + retry_after.value() + " seconds.";
       }
       std::ostream& out_stream = response.send();
-      out_stream << nlohmann::json(ErrorResponse{"Service Temporarily Unavailable", message});
+      out_stream << nlohmann::json(
+         ErrorResponse{.error = "Service Temporarily Unavailable", .message = message}
+      );
    } catch (const std::exception& exception) {
       SPDLOG_ERROR("Caught exception: {}", exception.what());
 
       response.setStatusAndReason(Poco::Net::HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
       std::ostream& out_stream = response.send();
-      out_stream << nlohmann::json(ErrorResponse{"Internal Server Error", exception.what()});
+      out_stream << nlohmann::json(
+         ErrorResponse{.error = "Internal Server Error", .message = exception.what()}
+      );
    } catch (const std::string& ex) {
       SPDLOG_ERROR(ex);
       response.setStatusAndReason(Poco::Net::HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
       std::ostream& out_stream = response.send();
-      out_stream << nlohmann::json(ErrorResponse{"Internal Server Error", ex});
+      out_stream << nlohmann::json(ErrorResponse{.error = "Internal Server Error", .message = ex});
    } catch (...) {
       SPDLOG_ERROR("Query cancelled with uncatchable (...) exception");
       response.setStatusAndReason(Poco::Net::HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
@@ -59,11 +63,13 @@ void ErrorRequestHandler::handleRequest(
       if (exception) {
          const auto* message = abi::__cxa_current_exception_type()->name();
          SPDLOG_ERROR("current_exception: {}", message);
-         out_stream << nlohmann::json(ErrorResponse{"Internal Server Error", message});
-      } else {
          out_stream << nlohmann::json(
-            ErrorResponse{"Internal Server Error", "non recoverable error message"}
+            ErrorResponse{.error = "Internal Server Error", .message = message}
          );
+      } else {
+         out_stream << nlohmann::json(ErrorResponse{
+            .error = "Internal Server Error", .message = "non recoverable error message"
+         });
       }
    }
 }

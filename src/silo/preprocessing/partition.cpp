@@ -59,10 +59,10 @@ struct nlohmann::adl_serializer<silo::preprocessing::PartitionChunk> {
    // NOLINTNEXTLINE(readability-identifier-naming)
    static silo::preprocessing::PartitionChunk from_json(const nlohmann::json& js_object) {
       return silo::preprocessing::PartitionChunk{
-         js_object["partition"].template get<uint32_t>(),
-         js_object["chunk"].template get<uint32_t>(),
-         js_object["size"].template get<uint32_t>(),
-         js_object["offset"].template get<uint32_t>()
+         .partition = js_object["partition"].template get<uint32_t>(),
+         .chunk = js_object["chunk"].template get<uint32_t>(),
+         .size = js_object["size"].template get<uint32_t>(),
+         .offset = js_object["offset"].template get<uint32_t>()
       };
    }
 

@@ -10,16 +10,18 @@ TEST(
    isValidMedataFileShouldReturnFalseWhenOneConfigCoulmnIsNotPresentInMetadataFile
 ) {
    const silo::config::DatabaseConfig some_config_with_one_column_not_in_metadata{
-      "main",
-      {
-         "testInstanceName",
+      .default_nucleotide_sequence = "main",
+      .schema =
          {
-            {"gisaid_epi_isl", silo::config::ValueType::STRING},
-            {"notInMetadata", silo::config::ValueType::PANGOLINEAGE},
-            {"country", silo::config::ValueType::STRING},
-         },
-         "gisaid_epi_isl",
-      }
+            .instance_name = "testInstanceName",
+            .metadata =
+               {
+                  {.name = "gisaid_epi_isl", .type = silo::config::ValueType::STRING},
+                  {.name = "notInMetadata", .type = silo::config::ValueType::PANGOLINEAGE},
+                  {.name = "country", .type = silo::config::ValueType::STRING},
+               },
+            .primary_key = "gisaid_epi_isl",
+         }
    };
 
    EXPECT_THROW(
@@ -33,17 +35,19 @@ TEST(
 
 TEST(MetadataInfo, isValidMedataFileShouldReturnTrueWithValidMetadataFile) {
    const silo::config::DatabaseConfig valid_config{
-      "main",
-      {
-         "testInstanceName",
+      .default_nucleotide_sequence = "main",
+      .schema =
          {
-            {"gisaid_epi_isl", silo::config::ValueType::STRING},
-            {"pango_lineage", silo::config::ValueType::PANGOLINEAGE},
-            {"date", silo::config::ValueType::DATE},
-            {"country", silo::config::ValueType::STRING},
-         },
-         "gisaid_epi_isl",
-      }
+            .instance_name = "testInstanceName",
+            .metadata =
+               {
+                  {.name = "gisaid_epi_isl", .type = silo::config::ValueType::STRING},
+                  {.name = "pango_lineage", .type = silo::config::ValueType::PANGOLINEAGE},
+                  {.name = "date", .type = silo::config::ValueType::DATE},
+                  {.name = "country", .type = silo::config::ValueType::STRING},
+               },
+            .primary_key = "gisaid_epi_isl",
+         }
    };
 
    const auto fields = silo::preprocessing::MetadataInfo::validateFromMetadataFile(
@@ -58,17 +62,19 @@ TEST(MetadataInfo, isValidMedataFileShouldReturnTrueWithValidMetadataFile) {
 
 TEST(MetadataInfo, shouldValidateCorrectNdjsonInputFile) {
    const silo::config::DatabaseConfig valid_config{
-      "main",
-      {
-         "testInstanceName",
+      .default_nucleotide_sequence = "main",
+      .schema =
          {
-            {"gisaid_epi_isl", silo::config::ValueType::STRING},
-            {"pango_lineage", silo::config::ValueType::PANGOLINEAGE},
-            {"date", silo::config::ValueType::DATE},
-            {"country", silo::config::ValueType::STRING},
-         },
-         "gisaid_epi_isl",
-      }
+            .instance_name = "testInstanceName",
+            .metadata =
+               {
+                  {.name = "gisaid_epi_isl", .type = silo::config::ValueType::STRING},
+                  {.name = "pango_lineage", .type = silo::config::ValueType::PANGOLINEAGE},
+                  {.name = "date", .type = silo::config::ValueType::DATE},
+                  {.name = "country", .type = silo::config::ValueType::STRING},
+               },
+            .primary_key = "gisaid_epi_isl",
+         }
    };
 
    const auto fields = silo::preprocessing::MetadataInfo::validateFromNdjsonFile(

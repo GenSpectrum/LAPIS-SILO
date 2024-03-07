@@ -225,7 +225,7 @@ class SiloServer : public Poco::Util::ServerApplication {
               )
             : std::nullopt;
 
-      return {now, estimated_startup_time_in_minutes};
+      return {.start_time = now, .estimated_startup_time = estimated_startup_time_in_minutes};
    }
 
    int handleApi() {

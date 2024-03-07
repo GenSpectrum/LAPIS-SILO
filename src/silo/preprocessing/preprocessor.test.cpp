@@ -26,9 +26,9 @@ std::string printTestName(const ::testing::TestParamInfo<Scenario>& info) {
 }
 
 const Scenario FASTA_FILES_WITH_MISSING_SEGMENTS_AND_GENES = {
-   "testBaseData/fastaFilesWithMissingSequences/",
-   2,
-   R"(
+   .input_directory = "testBaseData/fastaFilesWithMissingSequences/",
+   .expected_sequence_count = 2,
+   .query = R"(
       {
          "action": {
            "type": "FastaAligned",
@@ -40,25 +40,30 @@ const Scenario FASTA_FILES_WITH_MISSING_SEGMENTS_AND_GENES = {
          }
       }
    )",
-   {
-      {{"accessionVersion", "1.1"}, {"someShortGene", "MADS"}, {"secondSegment", "NNNNNNNNNNNNNNNN"}
-      },
-      {{"accessionVersion", "1.3"}, {"someShortGene", "XXXX"}, {"secondSegment", "NNNNNNNNNNNNNNNN"}
-      },
-   }
+   .expected_query_result = nlohmann::json::parse(R"(
+[{
+   "accessionVersion": "1.1",
+   "someShortGene": "MADS",
+   "secondSegment": "NNNNNNNNNNNNNNNN"
+},
+{
+   "accessionVersion": "1.3",
+   "someShortGene": "XXXX",
+   "secondSegment": "NNNNNNNNNNNNNNNN"
+}])")
 };
 
 const Scenario NDJSON_FILE_WITH_MISSING_SEGMENTS_AND_GENES = {
-   "testBaseData/ndjsonWithNullSequences/",
-   FASTA_FILES_WITH_MISSING_SEGMENTS_AND_GENES.expected_sequence_count,
-   FASTA_FILES_WITH_MISSING_SEGMENTS_AND_GENES.query,
-   FASTA_FILES_WITH_MISSING_SEGMENTS_AND_GENES.expected_query_result
+   .input_directory = "testBaseData/ndjsonWithNullSequences/",
+   .expected_sequence_count = FASTA_FILES_WITH_MISSING_SEGMENTS_AND_GENES.expected_sequence_count,
+   .query = FASTA_FILES_WITH_MISSING_SEGMENTS_AND_GENES.query,
+   .expected_query_result = FASTA_FILES_WITH_MISSING_SEGMENTS_AND_GENES.expected_query_result
 };
 
 const Scenario NDJSON_WITH_SQL_KEYWORD_AS_FIELD = {
-   "testBaseData/ndjsonWithSqlKeywordField/",
-   2,
-   R"(
+   .input_directory = "testBaseData/ndjsonWithSqlKeywordField/",
+   .expected_sequence_count = 2,
+   .query = R"(
       {
          "action": {
             "type": "Aggregated",
@@ -70,17 +75,19 @@ const Scenario NDJSON_WITH_SQL_KEYWORD_AS_FIELD = {
          }
       }
    )",
-   {
-      {{"count", 1}, {"group", nullptr}},
-      {{"count", 1}, {"group", "dummyValue"}},
-   }
+   .expected_query_result = nlohmann::json::parse(
+      R"([
+         {"count": 1, "group": null},
+         {"count": 1, "group": "dummyValue"}
+   ])"
+   )
 };
 
 const Scenario TSV_FILE_WITH_SQL_KEYWORD_AS_FIELD = {
-   "testBaseData/tsvWithSqlKeywordField/",
-   NDJSON_WITH_SQL_KEYWORD_AS_FIELD.expected_sequence_count,
-   NDJSON_WITH_SQL_KEYWORD_AS_FIELD.query,
-   NDJSON_WITH_SQL_KEYWORD_AS_FIELD.expected_query_result
+   .input_directory = "testBaseData/tsvWithSqlKeywordField/",
+   .expected_sequence_count = NDJSON_WITH_SQL_KEYWORD_AS_FIELD.expected_sequence_count,
+   .query = NDJSON_WITH_SQL_KEYWORD_AS_FIELD.query,
+   .expected_query_result = NDJSON_WITH_SQL_KEYWORD_AS_FIELD.expected_query_result
 };
 
 class PreprocessorTestFixture : public ::testing::TestWithParam<Scenario> {};

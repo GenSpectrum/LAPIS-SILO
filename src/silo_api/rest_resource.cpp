@@ -18,7 +18,8 @@ void methodNotAllowed(
    response.setContentType("application/json");
    response.setStatus(Poco::Net::HTTPResponse::HTTP_METHOD_NOT_ALLOWED);
    response.send() << nlohmann::json(ErrorResponse{
-      "Method not allowed", request.getMethod() + " is not allowed on resource " + request.getURI()
+      .error = "Method not allowed",
+      .message = request.getMethod() + " is not allowed on resource " + request.getURI()
    });
 }
 

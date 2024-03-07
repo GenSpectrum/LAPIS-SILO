@@ -42,7 +42,10 @@ class RequestHandlerTestFixture : public ::testing::Test {
    RequestHandlerTestFixture()
        : database_mutex(),
          request(silo_api::test::MockRequest(response)),
-         under_test(database_mutex, {std::chrono::system_clock::now(), std::nullopt}) {}
+         under_test(
+            database_mutex,
+            {.start_time = std::chrono::system_clock::now(), .estimated_startup_time = std::nullopt}
+         ) {}
 
    void processRequest(silo_api::SiloRequestHandlerFactory& handler_factory) {
       std::unique_ptr<Poco::Net::HTTPRequestHandler> request_handler(
@@ -59,14 +62,16 @@ silo_api::StartupConfig getStartupConfigWithStarted5MinutesAgo(
 ) {
    const std::chrono::time_point point = std::chrono::system_clock::now();
    const auto five_minutes_ago = point - std::chrono::minutes(5);
-   return {five_minutes_ago, estimated_startup_time};
+   return {.start_time = five_minutes_ago, .estimated_startup_time = estimated_startup_time};
 }
 
 static const int FOUR_MINUTES_IN_SECONDS = 240;
 
 TEST_F(RequestHandlerTestFixture, handlesGetInfoRequest) {
    EXPECT_CALL(database_mutex.mock_database, getDatabaseInfo)
-      .WillRepeatedly(testing::Return(silo::DatabaseInfo{1, 2, 3}));
+      .WillRepeatedly(testing::Return(
+         silo::DatabaseInfo{.sequence_count = 1, .total_size = 2, .n_bitmaps_size = 3}
+      ));
    EXPECT_CALL(database_mutex.mock_database, getDataVersion)
       .WillRepeatedly(testing::Return(silo::DataVersion::fromString("1234").value()));
 
@@ -88,7 +93,10 @@ TEST_F(RequestHandlerTestFixture, handlesGetInfoRequestDetails) {
       29903, 4567
    );  // NOLINT(readability-magic-numbers)
 
-   silo::SequenceStoreStatistics stats = {bitmap_size_per_symbol, bitmap_container_size};
+   silo::SequenceStoreStatistics stats = {
+      .bitmap_size_per_symbol = bitmap_size_per_symbol,
+      .bitmap_container_size_per_genome_section = bitmap_container_size
+   };
 
    const silo::DetailedDatabaseInfo detailed_database_info = {{{"main", stats}}};
 
