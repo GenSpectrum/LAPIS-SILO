@@ -25,10 +25,34 @@
 namespace silo::query_engine::filter_expressions {
 
 template <typename SymbolType>
+SymbolOrDot<SymbolType>::SymbolOrDot(typename SymbolType::Symbol symbol)
+    : value(symbol) {}
+
+template <typename SymbolType>
+SymbolOrDot<SymbolType> SymbolOrDot<SymbolType>::dot() {
+   return SymbolOrDot<SymbolType>();
+}
+
+template <typename SymbolType>
+char SymbolOrDot<SymbolType>::asChar() const {
+   return value.has_value() ? SymbolType::symbolToChar(value.value()) : '.';
+}
+
+template <typename SymbolType>
+typename SymbolType::Symbol SymbolOrDot<SymbolType>::getSymbolOrReplaceDotWith(
+   typename SymbolType::Symbol replace_dot_with
+) const {
+   return value.value_or(replace_dot_with);
+}
+
+template class SymbolOrDot<AminoAcid>;
+template class SymbolOrDot<Nucleotide>;
+
+template <typename SymbolType>
 SymbolEquals<SymbolType>::SymbolEquals(
    std::optional<std::string> sequence_name,
    uint32_t position_idx,
-   std::optional<typename SymbolType::Symbol> value
+   SymbolOrDot<SymbolType> value
 )
     : sequence_name(std::move(sequence_name)),
       position_idx(position_idx),
@@ -37,10 +61,7 @@ SymbolEquals<SymbolType>::SymbolEquals(
 template <typename SymbolType>
 std::string SymbolEquals<SymbolType>::toString() const {
    return fmt::format(
-      "{}{}{}",
-      sequence_name ? sequence_name.value() + ":" : "",
-      position_idx + 1,
-      value.has_value() ? SymbolType::symbolToChar(*value) : '.'
+      "{}{}{}", sequence_name ? sequence_name.value() + ":" : "", position_idx + 1, value.asChar()
    );
 }
 
@@ -75,7 +96,8 @@ std::unique_ptr<silo::query_engine::operators::Operator> SymbolEquals<SymbolType
          std::to_string(seq_store_partition.reference_sequence.size()) + "'"
       );
    }
-   auto symbol = value.value_or(seq_store_partition.reference_sequence.at(position_idx));
+   auto symbol =
+      value.getSymbolOrReplaceDotWith(seq_store_partition.reference_sequence.at(position_idx));
    if (mode == UPPER_BOUND) {
       auto symbols_to_match = SymbolType::AMBIGUITY_SYMBOLS.at(symbol);
       std::vector<std::unique_ptr<Expression>> symbol_filters;
@@ -190,17 +212,23 @@ void from_json(const nlohmann::json& json, std::unique_ptr<SymbolEquals<SymbolTy
    CHECK_SILO_QUERY(
       symbol.size() == 1, "The string field 'symbol' must be exactly one character long"
    )
+
+   if (symbol.at(0) == '.') {
+      filter = std::make_unique<SymbolEquals<SymbolType>>(
+         sequence_name, position_idx, SymbolOrDot<SymbolType>::dot()
+      );
+      return;
+   }
    const std::optional<typename SymbolType::Symbol> symbol_value =
       SymbolType::charToSymbol(symbol.at(0));
    CHECK_SILO_QUERY(
-      symbol_value.has_value() || symbol.at(0) == '.',
+      symbol_value.has_value(),
       fmt::format(
          "The string field 'symbol' must be either a valid {} symbol or the '.' symbol.",
          SymbolType::SYMBOL_NAME
       )
    )
-
-   filter = std::make_unique<SymbolEquals<SymbolType>>(sequence_name, position_idx, symbol_value);
+   filter = std::make_unique<SymbolEquals<SymbolType>>(sequence_name, position_idx, *symbol_value);
 }
 
 template void from_json<Nucleotide>(

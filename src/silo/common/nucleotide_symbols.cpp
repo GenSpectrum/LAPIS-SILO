@@ -45,8 +45,6 @@ char Nucleotide::symbolToChar(Nucleotide::Symbol symbol) {
 
 std::optional<Nucleotide::Symbol> Nucleotide::charToSymbol(char character) {
    switch (character) {
-      case '.':
-         return std::nullopt;
       case '-':
          return Symbol::GAP;
       case 'A':
@@ -81,7 +79,6 @@ std::optional<Nucleotide::Symbol> Nucleotide::charToSymbol(char character) {
       case 'N':
          return Symbol::N;
       default:
-         // TODO(#342): Revisit charToSymbol, so that illegal characters are not the same as '.'.
          return std::nullopt;
    }
 }
