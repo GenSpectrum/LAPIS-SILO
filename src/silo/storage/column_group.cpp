@@ -161,6 +161,9 @@ void ColumnPartitionGroup::reserveSpaceInColumn(
       case silo::config::ColumnType::DATE:
          date_columns.at(column_name).reserve(row_count);
          break;
+      case silo::config::ColumnType::BOOL:
+          bool_columns.at(column_name).reserve(row_count);
+         break;
       case silo::config::ColumnType::INT:
          int_columns.at(column_name).reserve(row_count);
          break;
