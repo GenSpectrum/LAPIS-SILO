@@ -128,7 +128,8 @@ class ColumnPartitionGroup {
 };
 
 class ColumnGroup {
-   friend class boost::serialization::access;
+
+    friend class boost::serialization::access;
 
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
@@ -140,6 +141,9 @@ class ColumnGroup {
          archive & store;
       }
       for(auto& [_, store] : int_columns){
+         archive & store;
+      }
+      for(auto& [_, store] : bool_columns){
          archive & store;
       }
       for(auto& [_, store] : float_columns){
@@ -166,6 +170,7 @@ class ColumnGroup {
    std::map<std::string, storage::column::StringColumn> string_columns;
    std::map<std::string, storage::column::IndexedStringColumn> indexed_string_columns;
    std::map<std::string, storage::column::IntColumn> int_columns;
+   std::map<std::string, storage::column::BoolColumn> bool_columns;
    std::map<std::string, storage::column::FloatColumn> float_columns;
    std::map<std::string, storage::column::DateColumn> date_columns;
    std::map<std::string, storage::column::PangoLineageColumn> pango_lineage_columns;
