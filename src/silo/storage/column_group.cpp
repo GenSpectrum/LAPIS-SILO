@@ -112,6 +112,13 @@ void ColumnPartitionGroup::addValueToColumn(
             int_columns.at(column_name).insert(value.ToString());
          }
          break;
+      case silo::config::ColumnType::BOOL:
+         if (value.IsNull()) {
+            bool_columns.at(column_name).insertNull();
+         } else {
+            bool_columns.at(column_name).insert(value.ToString());
+         }
+         break;
       case silo::config::ColumnType::FLOAT:
          if (value.IsNull()) {
             float_columns.at(column_name).insertNull();
