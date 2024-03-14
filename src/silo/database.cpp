@@ -145,8 +145,7 @@ DatabaseInfo Database::getDatabaseInfo() const {
    return DatabaseInfo{
       .sequence_count = sequence_count,
       .total_size = total_size,
-      .n_bitmaps_size = nucleotide_symbol_n_bitmaps_size
-   };
+      .n_bitmaps_size = nucleotide_symbol_n_bitmaps_size};
 }
 
 BitmapContainerSize::BitmapContainerSize(size_t genome_length, size_t section_length)
@@ -317,8 +316,7 @@ DetailedDatabaseInfo Database::detailedDatabaseInfo() const {
           SequenceStoreStatistics{
              .bitmap_size_per_symbol = BitmapSizePerSymbol(),
              .bitmap_container_size_per_genome_section =
-                BitmapContainerSize{seq_store.reference_sequence.size(), DEFAULT_SECTION_LENGTH}
-          }}
+                BitmapContainerSize{seq_store.reference_sequence.size(), DEFAULT_SECTION_LENGTH}}}
       );
       result.sequences.at(seq_name).bitmap_size_per_symbol =
          calculateBitmapSizePerSymbol(seq_store);

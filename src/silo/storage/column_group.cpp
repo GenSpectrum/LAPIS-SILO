@@ -5,9 +5,9 @@
 #include <string>
 #include <vector>
 
+#include <fmt/format.h>
 #include <boost/algorithm/string.hpp>
 #include <duckdb.hpp>
-#include <fmt/format.h>
 
 #include "silo/common/date.h"
 #include "silo/config/database_config.h"
@@ -117,15 +117,16 @@ void ColumnPartitionGroup::addValueToColumn(
          if (value.IsNull()) {
             bool_columns.at(column_name).insertNull();
          } else {
-             // XX move to separate parsing abstraction
-             if (value.type() != duckdb::LogicalType::BOOLEAN) {
-                 auto str = value.ToString();
-                 // XX overly long line formatted by clang-format how?
-                 throw silo::preprocessing::PreprocessingException(fmt::format("trying to insert the value '{}' into column '{}'",
-                                                                               str, column_name));
-             }
-             bool bbbb = duckdb::BooleanValue::Get(value);
-             bool_columns.at(column_name).insert(bbbb);
+            // XX move to separate parsing abstraction
+            if (value.type() != duckdb::LogicalType::BOOLEAN) {
+               auto str = value.ToString();
+               // XX overly long line formatted by clang-format how?
+               throw silo::preprocessing::PreprocessingException(
+                  fmt::format("trying to insert the value '{}' into column '{}'", str, column_name)
+               );
+            }
+            bool bbbb = duckdb::BooleanValue::Get(value);
+            bool_columns.at(column_name).insert(bbbb);
          }
          break;
       case silo::config::ColumnType::FLOAT:
@@ -171,7 +172,7 @@ void ColumnPartitionGroup::reserveSpaceInColumn(
          date_columns.at(column_name).reserve(row_count);
          break;
       case silo::config::ColumnType::BOOL:
-          bool_columns.at(column_name).reserve(row_count);
+         bool_columns.at(column_name).reserve(row_count);
          break;
       case silo::config::ColumnType::INT:
          int_columns.at(column_name).reserve(row_count);

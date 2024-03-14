@@ -10,6 +10,7 @@
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/storage/column/bool_column.h"
 #include "silo/storage/column/date_column.h"
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
@@ -17,7 +18,6 @@
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/column/pango_lineage_column.h"
 #include "silo/storage/column/string_column.h"
-#include "silo/storage/column/bool_column.h"
 
 namespace boost::serialization {
 class access;
@@ -128,8 +128,7 @@ class ColumnPartitionGroup {
 };
 
 class ColumnGroup {
-
-    friend class boost::serialization::access;
+   friend class boost::serialization::access;
 
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
