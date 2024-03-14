@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdint>
+#include <cstdbool>
 #include <deque>
 #include <string>
 #include <vector>
@@ -11,23 +11,23 @@ struct access;
 
 namespace silo::storage::column {
 
-class IntColumnPartition {
+class BoolColumnPartition {
    friend class boost::serialization::access;
 
   private:
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+   [[maybe_unused]] void serialize(Archive& archive, const ubool32_t /* version */) {
       // clang-format off
       archive & values;
       // clang-format on
    }
 
-   std::vector<int32_t> values;
+   std::vector<bool32_t> values;
 
   public:
-   IntColumnPartition();
+   BoolColumnPartition();
 
-   [[nodiscard]] const std::vector<int32_t>& getValues() const;
+   [[nodiscard]] const std::vector<bool32_t>& getValues() const;
 
    void insert(const std::string& value);
 
@@ -36,21 +36,21 @@ class IntColumnPartition {
    void reserve(size_t row_count);
 };
 
-class IntColumn {
+class BoolColumn {
    friend class boost::serialization::access;
 
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+   [[maybe_unused]] void serialize(Archive& archive, const ubool32_t /* version */) {
       // clang-format off
       // clang-format on
    }
 
-   std::deque<IntColumnPartition> partitions;
+   std::deque<BoolColumnPartition> partitions;
 
   public:
-   IntColumn();
+   BoolColumn();
 
-   IntColumnPartition& createPartition();
+   BoolColumnPartition& createPartition();
 };
 
 }  // namespace silo::storage::column
