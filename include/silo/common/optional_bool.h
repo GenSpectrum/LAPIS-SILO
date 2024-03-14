@@ -14,9 +14,15 @@ public:
     explicit OptionalBool();
     explicit OptionalBool(bool value);
     explicit OptionalBool(std::optional<bool> value);
-    bool isNull() const noexcept;
-    std::optional<bool> value() const noexcept;
+    [[nodiscard]] bool isNull() const noexcept;
+    [[nodiscard]] std::optional<bool> value() const noexcept;
+
+    
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+       archive & flag_and_value;
+   }
 };
 
 
-}
+}  // namespace silo::common
