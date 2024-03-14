@@ -10,12 +10,13 @@
 
 namespace silo::config {
 
-enum class ValueType { STRING, PANGOLINEAGE, DATE, INT, FLOAT, NUC_INSERTION, AA_INSERTION };
+enum class ValueType { STRING, PANGOLINEAGE, DATE, BOOL, INT, FLOAT, NUC_INSERTION, AA_INSERTION };
 enum class ColumnType {
    STRING,
    INDEXED_STRING,
    INDEXED_PANGOLINEAGE,
    DATE,
+   BOOL,
    INT,
    FLOAT,
    NUC_INSERTION,
