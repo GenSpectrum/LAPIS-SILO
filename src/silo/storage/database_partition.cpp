@@ -174,6 +174,13 @@ void DatabasePartition::insertColumn(
 
 void DatabasePartition::insertColumn(
    const std::string& name,
+   storage::column::BoolColumnPartition& column
+) {
+   columns.bool_columns.insert({std::string(name), column});
+}
+
+void DatabasePartition::insertColumn(
+   const std::string& name,
    storage::column::IntColumnPartition& column
 ) {
    columns.int_columns.insert({std::string(name), column});
