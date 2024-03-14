@@ -17,6 +17,7 @@
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/column/pango_lineage_column.h"
 #include "silo/storage/column/string_column.h"
+#include "silo/storage/column/bool_column.h"
 
 namespace boost::serialization {
 class access;
@@ -54,6 +55,9 @@ class ColumnPartitionGroup {
       for(auto& [name, store] : indexed_string_columns){
          archive & store;
       }
+      for(auto& [name, store] : bool_columns){
+         archive & store;
+      }
       for(auto& [name, store] : int_columns){
          archive & store;
       }
@@ -80,6 +84,7 @@ class ColumnPartitionGroup {
 
    std::map<std::string, storage::column::StringColumnPartition&> string_columns;
    std::map<std::string, storage::column::IndexedStringColumnPartition&> indexed_string_columns;
+   std::map<std::string, storage::column::BoolColumnPartition&> bool_columns;
    std::map<std::string, storage::column::IntColumnPartition&> int_columns;
    std::map<std::string, storage::column::FloatColumnPartition&> float_columns;
    std::map<std::string, storage::column::DateColumnPartition&> date_columns;
