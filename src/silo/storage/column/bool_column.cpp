@@ -8,7 +8,7 @@ namespace silo::storage::column {
 
 BoolColumnPartition::BoolColumnPartition() = default;
 
-const std::vector<bool32_t>& BoolColumnPartition::getValues() const {
+    const std::vector<silo::common::OptionalBool>& BoolColumnPartition::getValues() const {
    return values;
 }
 
@@ -17,7 +17,7 @@ void BoolColumnPartition::insert(bool value) {
 }
 
 void BoolColumnPartition::insertNull() {
-   values.emplace_back(std::nullopt);
+    values.emplace_back();
 }
 
 void BoolColumnPartition::reserve(size_t row_count) {

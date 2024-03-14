@@ -10,10 +10,10 @@ class OptionalBool {
                             // true, use 0x00 for null 0x80 for false,
                             // 0x81 for true
 public:
-    static OptionalBool null();
     
-    explicit OptionalBool(std::optional<bool> value);
+    explicit OptionalBool();
     explicit OptionalBool(bool value);
+    explicit OptionalBool(std::optional<bool> value);
     bool isNull() const noexcept;
     std::optional<bool> value() const noexcept;
 };
