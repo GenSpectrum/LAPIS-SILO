@@ -1,4 +1,4 @@
-#include "silo/storage/column/int_column.h"
+#include "silo/storage/column/bool_column.h"
 
 #include <stdexcept>
 
@@ -12,17 +12,12 @@ const std::vector<bool32_t>& BoolColumnPartition::getValues() const {
    return values;
 }
 
-void BoolColumnPartition::insert(const std::string& value) {
-   try {
-      const bool32_t bool_value = value.empty() ? BOOL32_MIN : std::stoi(value);
-      values.push_back(bool_value);
-   } catch (std::logic_error& err) {
-      throw std::runtime_error("Wrong format for Booleger: '" + value + "'");
-   }
+void BoolColumnPartition::insert(bool value) {
+    values.emplace_back(value);
 }
 
 void BoolColumnPartition::insertNull() {
-   values.push_back(BOOL32_MIN);
+   values.emplace_back(std::nullopt);
 }
 
 void BoolColumnPartition::reserve(size_t row_count) {

@@ -24,14 +24,14 @@ class BoolColumnPartition {
       // clang-format on
    }
 
-   std::vector<int32_t> values;
+    std::vector<silo::common::OptionalBool> values;
 
   public:
    BoolColumnPartition();
 
-   [[nodiscard]] const std::vector<OptionalBool>& getValues() const;
+    [[nodiscard]] const std::vector<silo::common::OptionalBool>& getValues() const;
 
-   void insert(const std::string& value);
+   void insert(bool value);
 
    void insertNull();
 
