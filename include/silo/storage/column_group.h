@@ -10,6 +10,7 @@
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/storage/column/bool_column.h"
 #include "silo/storage/column/date_column.h"
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
@@ -51,6 +52,9 @@ class ColumnPartitionGroup {
       for(auto& [name, store] : indexed_string_columns){
          archive & store;
       }
+      for(auto& [name, store] : bool_columns){
+         archive & store;
+      }
       for(auto& [name, store] : int_columns){
          archive & store;
       }
@@ -77,6 +81,7 @@ class ColumnPartitionGroup {
 
    std::map<std::string, storage::column::StringColumnPartition&> string_columns;
    std::map<std::string, storage::column::IndexedStringColumnPartition&> indexed_string_columns;
+   std::map<std::string, storage::column::BoolColumnPartition&> bool_columns;
    std::map<std::string, storage::column::IntColumnPartition&> int_columns;
    std::map<std::string, storage::column::FloatColumnPartition&> float_columns;
    std::map<std::string, storage::column::DateColumnPartition&> date_columns;
@@ -131,6 +136,9 @@ class ColumnGroup {
       for(auto& [_, store] : indexed_string_columns){
          archive & store;
       }
+      for(auto& [_, store] : bool_columns){
+         archive & store;
+      }
       for(auto& [_, store] : int_columns){
          archive & store;
       }
@@ -157,6 +165,7 @@ class ColumnGroup {
 
    std::map<std::string, storage::column::StringColumn> string_columns;
    std::map<std::string, storage::column::IndexedStringColumn> indexed_string_columns;
+   std::map<std::string, storage::column::BoolColumn> bool_columns;
    std::map<std::string, storage::column::IntColumn> int_columns;
    std::map<std::string, storage::column::FloatColumn> float_columns;
    std::map<std::string, storage::column::DateColumn> date_columns;
