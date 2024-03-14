@@ -7,6 +7,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include <duckdb.hpp>
+#include <fmt/format.h>
 
 #include "silo/common/date.h"
 #include "silo/config/database_config.h"
@@ -117,12 +118,14 @@ void ColumnPartitionGroup::addValueToColumn(
             bool_columns.at(column_name).insertNull();
          } else {
              // XX move to separate parsing abstraction
-             auto str = value.ToString();
-             if (str.em()) {
-                 bool_columns.at(column_name).insertNull();
-             } else {
-                 bool_columns.at(column_name).insert();
+             if (value.type() != duckdb::LogicalType::BOOLEAN) {
+                 auto str = value.ToString();
+                 // XX overly long line formatted by clang-format how?
+                 throw silo::preprocessing::PreprocessingException(fmt::format("trying to insert the value '{}' into column '{}'",
+                                                                               str, column_name));
              }
+             bool bbbb = duckdb::BooleanValue::Get(value);
+             bool_columns.at(column_name).insert(bbbb);
          }
          break;
       case silo::config::ColumnType::FLOAT:
