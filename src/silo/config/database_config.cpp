@@ -288,6 +288,8 @@ DatabaseConfig DatabaseConfigReader::readConfig(const std::filesystem::path& con
          return format_to(ctx.out(), "date");
       case silo::config::ValueType::PANGOLINEAGE:
          return format_to(ctx.out(), "pango_lineage");
+      case silo::config::ValueType::BOOL:
+         return format_to(ctx.out(), "bool");
       case silo::config::ValueType::INT:
          return format_to(ctx.out(), "int");
       case silo::config::ValueType::FLOAT:
