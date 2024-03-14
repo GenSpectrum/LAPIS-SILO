@@ -117,10 +117,8 @@ void ColumnPartitionGroup::addValueToColumn(
          if (value.IsNull()) {
             bool_columns.at(column_name).insertNull();
          } else {
-            // XX move to separate parsing abstraction
             if (value.type() != duckdb::LogicalType::BOOLEAN) {
                auto str = value.ToString();
-               // XX overly long line formatted by clang-format how?
                throw silo::preprocessing::PreprocessingException(
                   fmt::format("trying to insert the value '{}' into column '{}'", str, column_name)
                );
