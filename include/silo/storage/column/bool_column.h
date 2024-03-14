@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "silo/common/optional_bool.h"
+
 namespace boost::serialization {
 struct access;
 }
@@ -16,18 +18,18 @@ class BoolColumnPartition {
 
   private:
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const ubool32_t /* version */) {
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
       archive & values;
       // clang-format on
    }
 
-   std::vector<bool32_t> values;
+   std::vector<int32_t> values;
 
   public:
    BoolColumnPartition();
 
-   [[nodiscard]] const std::vector<bool32_t>& getValues() const;
+   [[nodiscard]] const std::vector<OptionalBool>& getValues() const;
 
    void insert(const std::string& value);
 
