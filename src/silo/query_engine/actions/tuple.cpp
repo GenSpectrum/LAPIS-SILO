@@ -11,6 +11,7 @@
 #include <boost/container_hash/hash.hpp>
 
 #include "silo/common/date.h"
+#include "silo/common/optional_bool.h"
 #include "silo/common/string.h"
 #include "silo/common/types.h"
 #include "silo/config/database_config.h"
@@ -25,6 +26,7 @@ using silo::query_engine::actions::TupleFactory;
 
 namespace {
 using silo::common::Date;
+using silo::common::OptionalBool;
 using silo::common::String;
 using silo::common::STRING_SIZE;
 using silo::config::ColumnType;
@@ -38,6 +40,10 @@ void assignTupleField(
    if (metadata.type == ColumnType::DATE) {
       const Date value = columns.date_columns.at(metadata.name).getValues()[sequence_id];
       *reinterpret_cast<Date*>(*data_pointer) = value;
+      *data_pointer += sizeof(decltype(value));
+   } else if (metadata.type == ColumnType::BOOL) {
+      const OptionalBool value = columns.bool_columns.at(metadata.name).getValues()[sequence_id];
+      *reinterpret_cast<OptionalBool*>(*data_pointer) = value;
       *data_pointer += sizeof(decltype(value));
    } else if (metadata.type == ColumnType::INT) {
       const int32_t value = columns.int_columns.at(metadata.name).getValues()[sequence_id];
