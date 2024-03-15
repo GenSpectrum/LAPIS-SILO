@@ -176,6 +176,9 @@ ColumnType DatabaseMetadata::getColumnType() const {
       }
       throw std::runtime_error("Found pango lineage column without index: " + std::string(name));
    }
+   if (type == ValueType::BOOL) {
+      return ColumnType::BOOL;
+   }
    if (type == ValueType::INT) {
       return ColumnType::INT;
    }
