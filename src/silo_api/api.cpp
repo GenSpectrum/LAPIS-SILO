@@ -267,7 +267,7 @@ class SiloServer : public Poco::Util::ServerApplication {
       server.stop();
 
       return Application::EXIT_OK;
-   };
+   }
 
    silo::Database runPreprocessor(
       const silo::preprocessing::PreprocessingConfig& preprocessing_config
@@ -309,7 +309,7 @@ class SiloServer : public Poco::Util::ServerApplication {
          return 1;
       }
       return Application::EXIT_OK;
-   };
+   }
 
    void displayHelp(
       const std::string& /*name*/,
