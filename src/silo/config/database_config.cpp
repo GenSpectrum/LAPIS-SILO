@@ -23,6 +23,9 @@ ValueType silo::config::toDatabaseValueType(std::string_view type) {
    if (type == "pango_lineage") {
       return ValueType::PANGOLINEAGE;
    }
+   if (type == "boolean") {
+      return ValueType::BOOL;
+   }
    if (type == "int") {
       return ValueType::INT;
    }
@@ -49,6 +52,8 @@ std::string toString(ValueType type) {
          return "date";
       case ValueType::PANGOLINEAGE:
          return "pango_lineage";
+      case ValueType::BOOL:
+         return "boolean";
       case ValueType::INT:
          return "int";
       case ValueType::FLOAT:
