@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "silo/common/aa_symbols.h"
+#include "silo/common/json_value_type.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/storage/column/bool_column.h"
 #include "silo/storage/column/date_column.h"
@@ -116,10 +117,8 @@ class ColumnPartitionGroup {
       const std::vector<silo::storage::ColumnMetadata>& fields
    ) const;
 
-   [[nodiscard]] std::optional<std::variant<std::string, int32_t, double>> getValue(
-      const std::string& column,
-      uint32_t sequence_id
-   ) const;
+   [[nodiscard]] common::JsonValueType getValue(const std::string& column, uint32_t sequence_id)
+      const;
 
    template <typename SymbolType>
    const std::map<std::string, storage::column::InsertionColumnPartition<SymbolType>&>&

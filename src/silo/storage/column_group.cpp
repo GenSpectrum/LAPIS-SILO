@@ -11,6 +11,7 @@
 #include <duckdb.hpp>
 
 #include "silo/common/date.h"
+#include "silo/common/json_value_type.h"
 #include "silo/common/optional_bool.h"
 #include "silo/config/database_config.h"
 #include "silo/preprocessing/preprocessing_exception.h"
@@ -255,7 +256,7 @@ ColumnPartitionGroup ColumnPartitionGroup::getSubgroup(
    return result;
 }
 
-std::optional<std::variant<std::string, int32_t, double>> ColumnPartitionGroup::getValue(
+common::JsonValueType ColumnPartitionGroup::getValue(
    const std::string& column,
    uint32_t sequence_id
 ) const {

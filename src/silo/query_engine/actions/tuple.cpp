@@ -19,8 +19,6 @@
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column_group.h"
 
-using json_value_type = std::optional<std::variant<std::string, int32_t, double>>;
-
 using silo::query_engine::actions::Tuple;
 using silo::query_engine::actions::TupleFactory;
 
@@ -83,7 +81,7 @@ void assignTupleField(
    }
 }
 
-json_value_type tupleFieldToValueType(
+silo::common::JsonValueType tupleFieldToValueType(
    const std::byte** data_pointer,
    const silo::storage::ColumnMetadata& metadata,
    const silo::storage::ColumnPartitionGroup& columns
@@ -338,8 +336,8 @@ Tuple& Tuple::operator=(Tuple&& other) noexcept {
    return *this;
 }
 
-std::map<std::string, json_value_type> Tuple::getFields() const {
-   std::map<std::string, json_value_type> fields;
+std::map<std::string, silo::common::JsonValueType> Tuple::getFields() const {
+   std::map<std::string, common::JsonValueType> fields;
    const std::byte* data_pointer = data;
    for (const auto& metadata : columns->metadata) {
       fields[metadata.name] = tupleFieldToValueType(&data_pointer, metadata, *columns);

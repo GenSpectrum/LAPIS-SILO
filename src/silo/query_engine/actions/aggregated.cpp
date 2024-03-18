@@ -47,8 +47,7 @@ std::vector<QueryResultEntry> generateResult(std::unordered_map<Tuple, uint32_t>
    std::vector<QueryResultEntry> result;
    result.reserve(tuple_counts.size());
    for (auto& [tuple, count] : tuple_counts) {
-      std::map<std::string, std::optional<std::variant<std::string, int32_t, double>>> fields =
-         tuple.getFields();
+      std::map<std::string, common::JsonValueType> fields = tuple.getFields();
       fields[COUNT_FIELD] = static_cast<int32_t>(count);
       result.push_back({fields});
    }
@@ -60,7 +59,7 @@ QueryResult aggregateWithoutGrouping(const std::vector<OperatorResult>& bitmap_f
    for (const auto& filter : bitmap_filters) {
       count += filter->cardinality();
    }
-   std::map<std::string, std::optional<std::variant<std::string, int32_t, double>>> tuple_fields;
+   std::map<std::string, common::JsonValueType> tuple_fields;
    tuple_fields[COUNT_FIELD] = static_cast<int32_t>(count);
    return QueryResult{std::vector<QueryResultEntry>{{tuple_fields}}};
 }

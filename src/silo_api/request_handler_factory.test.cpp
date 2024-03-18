@@ -10,6 +10,8 @@
 #include "silo_api/manual_poco_mocks.test.h"
 #include "silo_api/request_handler_factory.h"
 
+using silo::common::JsonValueType;
+
 // NOLINTBEGIN(bugprone-unchecked-optional-access)
 
 class MockDatabase : public silo::Database {
@@ -131,9 +133,8 @@ TEST_F(RequestHandlerTestFixture, returnsMethodNotAllowedOnPostInfoRequest) {
 }
 
 TEST_F(RequestHandlerTestFixture, handlesPostQueryRequest) {
-   std::map<std::string, std::optional<std::variant<std::string, int32_t, double>>> fields{
-      // NOLINTNEXTLINE(readability-magic-numbers)
-      {"count", 5}
+   std::map<std::string, JsonValueType> fields{// NOLINTNEXTLINE(readability-magic-numbers)
+                                               {"count", 5}
    };
    const std::vector<silo::query_engine::QueryResultEntry> tmp{{fields}};
    const silo::query_engine::QueryResult query_result{tmp};

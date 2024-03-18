@@ -220,7 +220,7 @@ void InsertionAggregation<SymbolType>::addAggregatedInsertionsToInsertionCounts(
    }
    const std::string sequence_in_response = show_sequence_in_response ? sequence_name + ":" : "";
    for (const auto& [position_and_insertion, count] : all_insertions) {
-      const std::map<std::string, std::optional<std::variant<std::string, int32_t, double>>> fields{
+      const std::map<std::string, common::JsonValueType> fields{
          {std::string(POSITION_FIELD_NAME),
           static_cast<int32_t>(position_and_insertion.position_idx)},
          {std::string(INSERTED_SYMBOLS_FIELD_NAME),

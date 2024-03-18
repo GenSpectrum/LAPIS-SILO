@@ -226,28 +226,26 @@ void Mutations<SymbolType>::addMutationsToOutput(
             const uint32_t count = count_of_mutations_per_position.at(symbol)[pos];
             if (count > threshold_count) {
                const double proportion = static_cast<double>(count) / static_cast<double>(total);
-               const std::
-                  map<std::string, std::optional<std::variant<std::string, int32_t, double>>>
-                     fields{
-                        {
-                           MUTATION_FIELD_NAME,
-                           fmt::format(
-                              "{}{}{}",
-                              SymbolType::symbolToChar(symbol_in_reference_genome),
-                              pos + 1,
-                              SymbolType::symbolToChar(symbol)
-                           ),
-                        },
-                        {
-                           MUTATION_FROM_FIELD_NAME,
-                           std::string(1, SymbolType::symbolToChar(symbol_in_reference_genome)),
-                        },
-                        {MUTATION_TO_FIELD_NAME, std::string(1, SymbolType::symbolToChar(symbol))},
-                        {POSITION_FIELD_NAME, static_cast<int32_t>(pos + 1)},
-                        {SEQUENCE_FIELD_NAME, sequence_name},
-                        {PROPORTION_FIELD_NAME, proportion},
-                        {COUNT_FIELD_NAME, static_cast<int32_t>(count)}
-                     };
+               const std::map<std::string, common::JsonValueType> fields{
+                  {
+                     MUTATION_FIELD_NAME,
+                     fmt::format(
+                        "{}{}{}",
+                        SymbolType::symbolToChar(symbol_in_reference_genome),
+                        pos + 1,
+                        SymbolType::symbolToChar(symbol)
+                     ),
+                  },
+                  {
+                     MUTATION_FROM_FIELD_NAME,
+                     std::string(1, SymbolType::symbolToChar(symbol_in_reference_genome)),
+                  },
+                  {MUTATION_TO_FIELD_NAME, std::string(1, SymbolType::symbolToChar(symbol))},
+                  {POSITION_FIELD_NAME, static_cast<int32_t>(pos + 1)},
+                  {SEQUENCE_FIELD_NAME, sequence_name},
+                  {PROPORTION_FIELD_NAME, proportion},
+                  {COUNT_FIELD_NAME, static_cast<int32_t>(count)}
+               };
                output.push_back({fields});
             }
          }

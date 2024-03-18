@@ -9,10 +9,12 @@
 
 #include <nlohmann/json_fwd.hpp>
 
+#include "silo/common/json_value_type.h"
+
 namespace silo::query_engine {
 
 struct QueryResultEntry {
-   std::map<std::string, std::optional<std::variant<std::string, int32_t, double>>> fields;
+   std::map<std::string, common::JsonValueType> fields;
 };
 
 struct QueryResult {
