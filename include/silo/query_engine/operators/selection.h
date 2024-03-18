@@ -20,10 +20,10 @@ class Predicate {
   public:
    virtual ~Predicate() noexcept = default;
 
-   virtual std::string toString() const = 0;
-   virtual bool match(uint32_t row_id) const = 0;
-   virtual std::unique_ptr<Predicate> copy() const = 0;
-   virtual std::unique_ptr<Predicate> negate() const = 0;
+   [[nodiscard]] virtual std::string toString() const = 0;
+   [[nodiscard]] virtual bool match(uint32_t row_id) const = 0;
+   [[nodiscard]] virtual std::unique_ptr<Predicate> copy() const = 0;
+   [[nodiscard]] virtual std::unique_ptr<Predicate> negate() const = 0;
 };
 
 enum class Comparator { EQUALS, LESS, HIGHER, LESS_OR_EQUALS, HIGHER_OR_EQUALS, NOT_EQUALS };
@@ -72,14 +72,14 @@ class Selection : public Operator {
 
    [[nodiscard]] virtual Type type() const override;
 
-   virtual OperatorResult evaluate() const override;
+   [[nodiscard]] virtual OperatorResult evaluate() const override;
 
-   virtual std::string toString() const override;
+   [[nodiscard]] virtual std::string toString() const override;
 
    static std::unique_ptr<Operator> negate(std::unique_ptr<Selection>&& selection);
 
   private:
-   virtual bool matchesPredicates(uint32_t row) const;
+   [[nodiscard]] virtual bool matchesPredicates(uint32_t row) const;
 };
 
 }  // namespace silo::query_engine::operators

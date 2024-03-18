@@ -41,7 +41,7 @@ class DatabaseSchema {
    std::optional<std::string> date_to_sort_by;
    std::optional<std::string> partition_by;
 
-   std::string getStrictOrderByClause() const;
+   [[nodiscard]] std::string getStrictOrderByClause() const;
 };
 
 class DatabaseConfig {
