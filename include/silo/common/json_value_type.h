@@ -7,6 +7,6 @@
 
 namespace silo::common {
 
-using JsonValueType = std::optional<std::variant<std::string, int32_t, double>>;
+using JsonValueType = std::optional<std::variant<std::string, bool, int32_t, double>>;
 
 }

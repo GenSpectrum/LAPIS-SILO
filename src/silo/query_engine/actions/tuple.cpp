@@ -91,6 +91,14 @@ silo::common::JsonValueType tupleFieldToValueType(
       *data_pointer += sizeof(decltype(value));
       return silo::common::dateToString(value);
    }
+   if (metadata.type == ColumnType::BOOL) {
+      const OptionalBool value = *reinterpret_cast<const OptionalBool*>(*data_pointer);
+      *data_pointer += sizeof(decltype(value));
+      if (value.isNull()) {
+         return std::nullopt;
+      }
+      return value.value();
+   }
    if (metadata.type == ColumnType::INT) {
       const int32_t value = *reinterpret_cast<const int32_t*>(*data_pointer);
       *data_pointer += sizeof(decltype(value));
@@ -202,6 +210,13 @@ std::strong_ordering compareTupleFields(
       *data_pointer2 += sizeof(decltype(value2));
       return value1 <=> value2;
    }
+   if (metadata.type == ColumnType::BOOL) {
+      const OptionalBool value1 = *reinterpret_cast<const OptionalBool*>(*data_pointer1);
+      *data_pointer1 += sizeof(decltype(value1));
+      const OptionalBool value2 = *reinterpret_cast<const OptionalBool*>(*data_pointer2);
+      *data_pointer2 += sizeof(decltype(value2));
+      return value1 <=> value2;
+   }
    if (metadata.type == ColumnType::INT) {
       const int32_t value1 = *reinterpret_cast<const int32_t*>(*data_pointer1);
       *data_pointer1 += sizeof(decltype(value1));
@@ -287,6 +302,9 @@ size_t getColumnSize(const silo::storage::ColumnMetadata& metadata) {
    }
    if (metadata.type == silo::config::ColumnType::FLOAT) {
       return sizeof(double);
+   }
+   if (metadata.type == silo::config::ColumnType::BOOL) {
+      return sizeof(OptionalBool);
    }
    if (metadata.type == silo::config::ColumnType::INT) {
       return sizeof(int32_t);
