@@ -124,6 +124,13 @@ void DatabasePartition::validateMetadataColumns() const {
          );
       }
    }
+   for (const auto& col : columns.bool_columns) {
+      if (col.second.getValues().size() != partition_size) {
+         throw preprocessing::PreprocessingException(
+            "bool_columns " + col.first + " has invalid size."
+         );
+      }
+   }
    for (const auto& col : columns.int_columns) {
       if (col.second.getValues().size() != partition_size) {
          throw preprocessing::PreprocessingException(
@@ -170,6 +177,13 @@ void DatabasePartition::insertColumn(
    storage::column::IndexedStringColumnPartition& column
 ) {
    columns.indexed_string_columns.insert({std::string(name), column});
+}
+
+void DatabasePartition::insertColumn(
+   const std::string& name,
+   storage::column::BoolColumnPartition& column
+) {
+   columns.bool_columns.insert({std::string(name), column});
 }
 
 void DatabasePartition::insertColumn(

@@ -92,6 +92,7 @@ class DatabasePartition {
       const std::string& name,
       storage::column::IndexedStringColumnPartition& column
    );
+   void insertColumn(const std::string& name, storage::column::BoolColumnPartition& column);
    void insertColumn(const std::string& name, storage::column::IntColumnPartition& column);
    void insertColumn(const std::string& name, storage::column::DateColumnPartition& column);
    void insertColumn(const std::string& name, storage::column::PangoLineageColumnPartition& column);
