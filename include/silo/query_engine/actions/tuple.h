@@ -10,6 +10,7 @@
 #include <variant>
 #include <vector>
 
+#include "silo/common/json_value_type.h"
 #include "silo/storage/column_group.h"
 
 namespace silo::query_engine::actions {
@@ -47,8 +48,7 @@ class Tuple {
    Tuple& operator=(const Tuple& other);
    Tuple& operator=(Tuple&& other) noexcept;
 
-   [[nodiscard]] std::map<std::string, std::optional<std::variant<std::string, int32_t, double>>>
-   getFields() const;
+   [[nodiscard]] std::map<std::string, common::JsonValueType> getFields() const;
 
    static Comparator getComparator(
       const std::vector<silo::storage::ColumnMetadata>& columns_metadata,
