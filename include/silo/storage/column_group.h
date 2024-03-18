@@ -109,7 +109,7 @@ class ColumnPartitionGroup {
       const std::vector<silo::storage::ColumnMetadata>& fields
    ) const;
 
-   std::optional<std::variant<std::string, int32_t, double>> getValue(
+   [[nodiscard]] std::optional<std::variant<std::string, int32_t, double>> getValue(
       const std::string& column,
       uint32_t sequence_id
    ) const;
