@@ -70,11 +70,11 @@ class Selection : public Operator {
 
    ~Selection() noexcept override;
 
-   [[nodiscard]] virtual Type type() const override;
+   [[nodiscard]] Type type() const override;
 
-   [[nodiscard]] virtual OperatorResult evaluate() const override;
+   [[nodiscard]] OperatorResult evaluate() const override;
 
-   [[nodiscard]] virtual std::string toString() const override;
+   [[nodiscard]] std::string toString() const override;
 
    static std::unique_ptr<Operator> negate(std::unique_ptr<Selection>&& selection);
 
