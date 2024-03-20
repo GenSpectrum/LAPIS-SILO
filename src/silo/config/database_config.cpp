@@ -234,7 +234,7 @@ DatabaseConfig DatabaseConfigReader::readConfig(const std::filesystem::path& con
    const silo::config::DatabaseConfig& database_config,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
-   return format_to(
+   return fmt::format_to(
       ctx.out(),
       "{{ default_nucleotide_sequence: '{}', schema: {} }}",
       database_config.default_nucleotide_sequence,
@@ -246,7 +246,7 @@ DatabaseConfig DatabaseConfigReader::readConfig(const std::filesystem::path& con
    const silo::config::DatabaseSchema& database_schema,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
-   return format_to(
+   return fmt::format_to(
       ctx.out(),
       "{{ instance_name: '{}', primary_key: '{}', partition_by: {}, date_to_sort_by: {}, metadata: "
       "[{}] }}",
@@ -263,7 +263,7 @@ DatabaseConfig DatabaseConfigReader::readConfig(const std::filesystem::path& con
    const silo::config::DatabaseMetadata& database_metadata,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
-   return format_to(
+   return fmt::format_to(
       ctx.out(),
       "{{ name: '{}', type: '{}', generate_index: {} }}",
       database_metadata.name,
@@ -278,19 +278,19 @@ DatabaseConfig DatabaseConfigReader::readConfig(const std::filesystem::path& con
 ) -> decltype(ctx.out()) {
    switch (value_type) {
       case silo::config::ValueType::STRING:
-         return format_to(ctx.out(), "string");
+         return fmt::format_to(ctx.out(), "string");
       case silo::config::ValueType::DATE:
-         return format_to(ctx.out(), "date");
+         return fmt::format_to(ctx.out(), "date");
       case silo::config::ValueType::PANGOLINEAGE:
-         return format_to(ctx.out(), "pango_lineage");
+         return fmt::format_to(ctx.out(), "pango_lineage");
       case silo::config::ValueType::INT:
-         return format_to(ctx.out(), "int");
+         return fmt::format_to(ctx.out(), "int");
       case silo::config::ValueType::FLOAT:
-         return format_to(ctx.out(), "float");
+         return fmt::format_to(ctx.out(), "float");
       case silo::config::ValueType::NUC_INSERTION:
-         return format_to(ctx.out(), "insertion");
+         return fmt::format_to(ctx.out(), "insertion");
       case silo::config::ValueType::AA_INSERTION:
-         return format_to(ctx.out(), "aaInsertion");
+         return fmt::format_to(ctx.out(), "aaInsertion");
    }
-   return format_to(ctx.out(), "unknown");
+   return fmt::format_to(ctx.out(), "unknown");
 }
