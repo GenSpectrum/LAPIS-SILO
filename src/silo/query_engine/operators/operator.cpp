@@ -1,5 +1,7 @@
 #include "silo/query_engine/operators/operator.h"
 
+#include <cstdlib>
+
 #include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/filter_expressions/symbol_equals.h"
 #include "silo/query_engine/operators/bitmap_producer.h"
@@ -67,6 +69,7 @@ std::unique_ptr<Operator> Operator::negate(std::unique_ptr<Operator>&& some_oper
          return BitmapProducer::negate(std::unique_ptr<BitmapProducer>(bitmap_producer));
       }
    }
+   abort();
 }
 
 std::optional<std::unique_ptr<filter_expressions::Expression>> Operator::logicalEquivalent() const {
