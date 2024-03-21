@@ -23,7 +23,7 @@ template <>
 struct [[maybe_unused]] fmt::formatter<silo::DatabaseInfo> : fmt::formatter<std::string> {
    [[maybe_unused]] static auto format(silo::DatabaseInfo database_info, format_context& ctx)
       -> decltype(ctx.out()) {
-      return format_to(
+      return fmt::format_to(
          ctx.out(),
          "sequence count: {}, total size: {}, N bitmaps size: {}",
          database_info.sequence_count,

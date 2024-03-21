@@ -119,7 +119,7 @@ std::filesystem::path PreprocessingConfig::getGeneFilenameNoExtension(std::strin
    const silo::preprocessing::PreprocessingConfig& preprocessing_config,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
-   return format_to(
+   return fmt::format_to(
       ctx.out(),
       "{{ input directory: '{}', pango_lineage_definition_file: {}, output_directory: '{}', "
       "metadata_file: '{}', reference_genome_file: '{}',  gene_file_prefix: '{}',  "

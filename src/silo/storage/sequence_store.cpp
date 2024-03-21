@@ -71,7 +71,7 @@ size_t silo::SequenceStorePartition<SymbolType>::fill(ZstdFastaTableReader& inpu
    silo::SequenceStoreInfo sequence_store_info,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
-   return format_to(
+   return fmt::format_to(
       ctx.out(),
       "SequenceStoreInfo[sequence count: {}, size: {}, N bitmaps size: {}]",
       sequence_store_info.sequence_count,
