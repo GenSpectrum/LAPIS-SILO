@@ -27,6 +27,7 @@ struct NOf : public Expression {
    std::vector<std::unique_ptr<Expression>> children;
    int number_of_matchers;
    bool match_exactly;
+   bool optimize_disjoint_unions;
 
    std::tuple<
       std::vector<std::unique_ptr<operators::Operator>>,
@@ -49,6 +50,13 @@ struct NOf : public Expression {
       std::vector<std::unique_ptr<Expression>>&& children,
       int number_of_matchers,
       bool match_exactly
+   );
+
+   explicit NOf(
+      std::vector<std::unique_ptr<Expression>>&& children,
+      int number_of_matchers,
+      bool match_exactly,
+      bool optimize_disjoint_unions
    );
 
    std::string toString() const override;

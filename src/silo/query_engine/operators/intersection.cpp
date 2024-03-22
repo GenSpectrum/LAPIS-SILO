@@ -1,15 +1,20 @@
 #include "silo/query_engine/operators/intersection.h"
 
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include <spdlog/spdlog.h>
 
+#include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_compilation_exception.h"
+
+using silo::query_engine::filter_expressions::Expression;
+using silo::query_engine::filter_expressions::PositionalFilter;
 
 namespace silo::query_engine::operators {
 
@@ -57,6 +62,66 @@ std::string Intersection::toString() const {
 
 Type Intersection::type() const {
    return INTERSECTION;
+}
+
+bool Intersection::isNegatedDisjointUnion() const {
+   assert(!children.empty() || !negated_children.empty());
+   if (std::any_of(children.begin(), children.end(), [](auto& child) {
+          return child->logicalEquivalent() == std::nullopt;
+       })) {
+      return false;
+   }
+   if (std::any_of(negated_children.begin(), negated_children.end(), [](auto& child) {
+          return child->logicalEquivalent() == std::nullopt;
+       })) {
+      return false;
+   }
+   std::optional<PositionalFilter> matching_positional_for_all_children =
+      children.empty()
+         ? Expression::isPositionalFilterForSymbol(*negated_children.at(0)->logicalEquivalent())
+         : Expression::isNegatedPositionalFilterForSymbol(*children.at(0)->logicalEquivalent());
+   if (matching_positional_for_all_children == std::nullopt) {
+      return false;
+   }
+   auto sequence_name = matching_positional_for_all_children->sequence_name;
+   uint32_t position = matching_positional_for_all_children->position;
+   bool is_nucleotide =
+      holds_alternative<Nucleotide::Symbol>(matching_positional_for_all_children->symbol);
+   std::set<Nucleotide::Symbol> nuc_symbols;
+   std::set<AminoAcid::Symbol> aa_symbols;
+   const bool all_positional_filters_for_same_position =
+      std::all_of(
+         negated_children.begin(),
+         negated_children.end(),
+         [&](auto& child) {
+            auto test = Expression::isPositionalFilterForSymbol(*child->logicalEquivalent());
+            if (test == std::nullopt) {
+               return false;
+            }
+            if (holds_alternative<Nucleotide::Symbol>(test->symbol)) {
+               nuc_symbols.insert(std::get<Nucleotide::Symbol>(test->symbol));
+            } else {
+               aa_symbols.insert(std::get<AminoAcid::Symbol>(test->symbol));
+            }
+            return test->sequence_name == sequence_name && test->position == position &&
+                   holds_alternative<Nucleotide::Symbol>(test->symbol) == is_nucleotide;
+         }
+      ) &&
+      std::all_of(children.begin(), children.end(), [&](auto& child) {
+         auto test = Expression::isNegatedPositionalFilterForSymbol(*child->logicalEquivalent());
+         if (test == std::nullopt) {
+            return false;
+         }
+         if (holds_alternative<Nucleotide::Symbol>(test->symbol)) {
+            nuc_symbols.insert(std::get<Nucleotide::Symbol>(test->symbol));
+         } else {
+            aa_symbols.insert(std::get<AminoAcid::Symbol>(test->symbol));
+         }
+         return test->sequence_name == sequence_name && test->position == position &&
+                holds_alternative<Nucleotide::Symbol>(test->symbol) == is_nucleotide;
+      });
+   return all_positional_filters_for_same_position &&
+          (nuc_symbols.size() == children.size() || aa_symbols.size() == children.size());
 }
 
 namespace {
