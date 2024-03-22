@@ -11,15 +11,16 @@ namespace silo {
 namespace query_engine::operators {
 class Operator;
 }  // namespace query_engine::operators
-struct Database;
-struct DatabasePartition;
+class Database;
+class DatabasePartition;
 }  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
 
-struct Maybe : public Expression {
+class Maybe : public Expression {
    std::unique_ptr<Expression> child;
 
+  public:
    explicit Maybe(std::unique_ptr<Expression> child);
 
    std::string toString() const override;

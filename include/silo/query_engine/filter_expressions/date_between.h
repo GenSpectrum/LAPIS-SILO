@@ -19,7 +19,7 @@ namespace operators {
 class Operator;
 }  // namespace operators
 }  // namespace query_engine
-struct Database;
+class Database;
 }  // namespace silo
 
 namespace silo::storage::column {
@@ -32,7 +32,7 @@ struct PartitionChunk;
 
 namespace silo::query_engine::filter_expressions {
 
-struct DateBetween : public Expression {
+class DateBetween : public Expression {
   private:
    std::string column;
    std::optional<silo::common::Date> date_from;

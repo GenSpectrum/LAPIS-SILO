@@ -22,7 +22,7 @@
 #include "silo/storage/database_partition.h"
 
 namespace silo {
-struct Database;
+class Database;
 }  // namespace silo
 
 namespace silo::query_engine::filter_expressions {

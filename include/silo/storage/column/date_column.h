@@ -7,7 +7,7 @@
 #include "silo/common/date.h"
 
 namespace boost::serialization {
-struct access;
+class access;
 }
 
 namespace silo::storage::column {

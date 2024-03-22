@@ -1,6 +1,8 @@
 #include "silo/common/string.h"
 
 #include <cstring>
+#include <iomanip>
+#include <sstream>
 #include <string_view>
 
 #include "silo/common/bidirectional_map.h"
@@ -19,6 +21,14 @@ String<I>::String(const std::string& string, BidirectionalMap<std::string>& dict
       memcpy(data.data() + 4, string.data(), I - 4);
       *reinterpret_cast<uint32_t*>(data.data() + I) = idx;
    }
+}
+
+template <size_t I>
+std::string String<I>::dataAsHexString() const {
+   std::stringstream sstream;
+   sstream << "0x" << std::setfill('0') << std::setw(static_cast<int>(data.size() * 2)) << std::hex
+           << data.data();
+   return sstream.str();
 }
 
 template <size_t I>

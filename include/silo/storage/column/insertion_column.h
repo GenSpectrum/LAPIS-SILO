@@ -16,7 +16,7 @@
 #include "silo/storage/column/insertion_index.h"
 
 namespace boost::serialization {
-struct access;
+class access;
 }  // namespace boost::serialization
 
 namespace roaring {

@@ -12,8 +12,8 @@
 #include "silo/query_engine/query_parse_exception.h"
 
 namespace silo {
-struct Database;
-struct DatabasePartition;
+class Database;
+class DatabasePartition;
 }  // namespace silo
 
 namespace silo::query_engine::filter_expressions {

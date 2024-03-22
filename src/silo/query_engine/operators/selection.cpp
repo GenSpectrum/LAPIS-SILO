@@ -216,8 +216,7 @@ template <>
 template <>
 [[nodiscard]] std::string CompareToValueSelection<common::SiloString>::toString() const {
    std::stringstream stream;
-   stream << "$string " << displayComparator(comparator) << "0x" << std::setfill('0')
-          << std::setw(static_cast<int>(value.data.size() * 2)) << std::hex << value.data.data();
+   stream << "$string " << displayComparator(comparator) << " " << value.dataAsHexString();
    return stream.str();
 }
 

@@ -16,7 +16,7 @@
 #include "silo/storage/pango_lineage_alias.h"
 
 namespace boost::serialization {
-struct access;
+class access;
 }
 
 namespace silo::storage::column {

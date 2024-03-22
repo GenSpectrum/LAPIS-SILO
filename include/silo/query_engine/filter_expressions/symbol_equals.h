@@ -43,11 +43,12 @@ class SymbolOrDot {
 };
 
 template <typename SymbolType>
-struct SymbolEquals : public Expression {
+class SymbolEquals : public Expression {
    std::optional<std::string> sequence_name;
    uint32_t position_idx;
    SymbolOrDot<SymbolType> value;
 
+  public:
    explicit SymbolEquals(
       std::optional<std::string> sequence_name,
       uint32_t position_idx,

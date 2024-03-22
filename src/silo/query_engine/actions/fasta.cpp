@@ -12,7 +12,7 @@
 #include "silo/zstdfasta/zstdfasta_table_reader.h"
 
 namespace silo {
-struct Database;
+class Database;
 }  // namespace silo
 
 namespace {

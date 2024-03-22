@@ -12,7 +12,7 @@
 namespace silo {
 class Database;
 namespace query_engine {
-struct OperatorResult;
+class OperatorResult;
 }  // namespace query_engine
 }  // namespace silo
 

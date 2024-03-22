@@ -19,7 +19,7 @@ class Operator;
 
 namespace silo::query_engine::filter_expressions {
 
-struct StringEquals : public Expression {
+class StringEquals : public Expression {
   private:
    std::string column;
    std::string value;
