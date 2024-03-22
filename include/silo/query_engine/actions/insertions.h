@@ -31,9 +31,7 @@ class InsertionIndex;
 }  // namespace storage
 }  // namespace silo
 
-namespace silo::query_engine {
-
-namespace actions {
+namespace silo::query_engine::actions {
 
 template <typename SymbolType>
 class InsertionAggregation : public Action {
@@ -96,5 +94,4 @@ void from_json(
    std::unique_ptr<InsertionAggregation<SymbolType>>& action
 );
 
-}  // namespace actions
-}  // namespace silo::query_engine
+}  // namespace silo::query_engine::actions

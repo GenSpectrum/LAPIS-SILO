@@ -27,13 +27,10 @@ class Connection;
 class Value;
 }  // namespace duckdb
 
-namespace silo {
-
-namespace config {
+namespace silo::config {
 class DatabaseConfig;
 enum class ColumnType;
-}  // namespace config
-}  // namespace silo
+}  // namespace silo::config
 
 namespace silo::storage {
 

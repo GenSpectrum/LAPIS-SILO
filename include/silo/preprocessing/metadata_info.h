@@ -7,9 +7,7 @@
 
 #include "silo/config/database_config.h"
 
-namespace silo {
-
-namespace preprocessing {
+namespace silo::preprocessing {
 
 class PreprocessingDatabase;
 
@@ -33,6 +31,5 @@ class MetadataInfo {
 
    std::vector<std::string> getMetadataSelects() const;
 };
-}  // namespace preprocessing
 
-}  // namespace silo
+}  // namespace silo::preprocessing

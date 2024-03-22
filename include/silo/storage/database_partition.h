@@ -17,8 +17,7 @@ class access;
 namespace silo {
 class AminoAcid;
 class Nucleotide;
-namespace storage {
-namespace column {
+namespace storage::column {
 class DateColumnPartition;
 class FloatColumnPartition;
 class IndexedStringColumnPartition;
@@ -27,8 +26,7 @@ class PangoLineageColumnPartition;
 class StringColumnPartition;
 template <typename SymbolType>
 class InsertionColumnPartition;
-}  // namespace column
-}  // namespace storage
+}  // namespace storage::column
 template <typename SymbolType>
 class SequenceStorePartition;
 class UnalignedSequenceStorePartition;
