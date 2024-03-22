@@ -1,0 +1,35 @@
+#!/bin/bash
+set -euo pipefail
+# enable job control consistently, not just when there is a tty:
+set -m
+
+if [ $# -ne 0 ]; then
+    echo "usage: $0"
+    echo "  Auto-detect the mold linker and ninja builder and"
+    echo "  call cmake accordingly. Requires up to date configuration"
+    echo "  via conan first. Currently only fully runs on Linux."
+    exit 1
+fi
+
+
+IFS=" "
+
+args=../
+
+if _mold_path=$(which mold); then
+    args="$args -D CMAKE_EXE_LINKER_FLAGS=-fuse-ld=mold"
+fi
+
+if _ninja_path=$(which ninja); then
+    args="$args -G Ninja"
+    make=ninja
+else
+    corecount=$(grep -c ^processor /proc/cpuinfo)
+    make="make -j$corecount"
+fi
+
+set -x
+
+cd build
+cmake $args
+$make
