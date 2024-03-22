@@ -1,0 +1,7 @@
+#!/bin/bash
+set -euo pipefail
+# enable job control consistently, not just when there is a tty:
+set -m
+IFS=
+
+( cd build && cmake .. -D CMAKE_EXPORT_COMPILE_COMMANDS=1 )
