@@ -10,7 +10,7 @@ namespace silo {
 namespace query_engine::operators {
 class Operator;
 }  // namespace query_engine::operators
-struct Database;
+class Database;
 }  // namespace silo
 
 namespace silo::query_engine::filter_expressions {

@@ -21,7 +21,7 @@ class Operator;
 namespace silo::query_engine::filter_expressions {
 
 template <typename SymbolType>
-struct InsertionContains : public Expression {
+class InsertionContains : public Expression {
   private:
    std::vector<std::string> column_names;
    std::optional<std::string> sequence_name;

@@ -15,7 +15,7 @@
 #include "silo/common/nucleotide_symbols.h"
 
 namespace boost::serialization {
-struct access;
+class access;
 }  // namespace boost::serialization
 
 namespace silo::storage::column::insertion {

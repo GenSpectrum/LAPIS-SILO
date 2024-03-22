@@ -9,11 +9,11 @@
 #include <nlohmann/json_fwd.hpp>
 
 namespace silo::query_engine {
-struct OperatorResult;
-struct QueryResult;
+class OperatorResult;
+class QueryResult;
 }  // namespace silo::query_engine
 namespace silo {
-struct Database;
+class Database;
 }
 
 namespace silo::query_engine::actions {

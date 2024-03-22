@@ -18,12 +18,12 @@ class Operator;
 class Predicate;
 }  // namespace operators
 }  // namespace query_engine
-struct Database;
+class Database;
 }  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
 
-struct And : public Expression {
+class And : public Expression {
   private:
    std::vector<std::unique_ptr<Expression>> children;
 

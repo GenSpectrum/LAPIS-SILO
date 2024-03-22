@@ -22,7 +22,7 @@ template <typename SymbolType>
 class SequenceStorePartition;
 }  // namespace silo
 namespace silo::query_engine {
-struct OperatorResult;
+class OperatorResult;
 }  // namespace silo::query_engine
 
 namespace silo::query_engine::actions {

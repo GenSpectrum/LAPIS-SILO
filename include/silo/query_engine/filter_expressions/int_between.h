@@ -17,12 +17,12 @@ namespace operators {
 class Operator;
 }  // namespace operators
 }  // namespace query_engine
-struct Database;
+class Database;
 }  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
 
-struct IntBetween : public Expression {
+class IntBetween : public Expression {
   private:
    std::string column;
    std::optional<uint32_t> from;

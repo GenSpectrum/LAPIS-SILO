@@ -22,7 +22,7 @@ class Operator;
 namespace silo::query_engine::filter_expressions {
 
 template <typename SymbolType>
-struct HasMutation : public Expression {
+class HasMutation : public Expression {
   private:
    std::optional<std::string> sequence_name;
    uint32_t position_idx;

@@ -14,12 +14,13 @@ namespace operators {
 class Operator;
 }  // namespace operators
 }  // namespace query_engine
-struct Database;
+class Database;
 }  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
 
-struct True : public Expression {
+class True : public Expression {
+  public:
    explicit True();
 
    std::string toString() const override;

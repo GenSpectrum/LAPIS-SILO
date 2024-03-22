@@ -7,7 +7,7 @@
 #include <boost/iostreams/filtering_stream.hpp>
 
 namespace silo {
-struct InputStreamWrapper {
+class InputStreamWrapper {
   private:
    std::ifstream file;
    std::unique_ptr<boost::iostreams::filtering_istream> input_stream;

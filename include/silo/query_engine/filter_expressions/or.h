@@ -15,12 +15,12 @@ namespace operators {
 class Operator;
 }  // namespace operators
 }  // namespace query_engine
-struct Database;
+class Database;
 }  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
 
-struct Or : public Expression {
+class Or : public Expression {
    std::vector<std::unique_ptr<Expression>> children;
 
   public:

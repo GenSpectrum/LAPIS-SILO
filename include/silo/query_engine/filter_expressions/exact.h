@@ -11,8 +11,8 @@ namespace silo {
 namespace query_engine::operators {
 class Operator;
 }  // namespace query_engine::operators
-struct Database;
-struct DatabasePartition;
+class Database;
+class DatabasePartition;
 }  // namespace silo
 
 namespace silo::query_engine::filter_expressions {

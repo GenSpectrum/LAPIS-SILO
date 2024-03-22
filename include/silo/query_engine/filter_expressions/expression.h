@@ -6,24 +6,27 @@
 #include <nlohmann/json_fwd.hpp>
 
 namespace silo::query_engine::operators {
-struct Operator;
+class Operator;
 }
 namespace silo {
-struct Database;
-struct DatabasePartition;
+class Database;
+class DatabasePartition;
 }  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
 
-struct Expression {
+class Expression {
+  protected:
+   Expression();
+
+  public:
+   virtual ~Expression() = default;
+
    /// UPPER_BOUND returns the upper bound of sequences matching this expression (i.e. ambiguous
    /// codes count as matches), LOWER_BOUND returns the lower bound of sequences matching this
    /// expression (i.e. ambiguous codes in negations count as matches)
    /// NONE does not specially consider ambiguous symbols
    enum AmbiguityMode { UPPER_BOUND, LOWER_BOUND, NONE };
-
-   Expression();
-   virtual ~Expression() = default;
 
    virtual std::string toString() const = 0;
 

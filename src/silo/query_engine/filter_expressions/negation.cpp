@@ -12,7 +12,7 @@
 
 namespace silo {
 class DatabasePartition;
-struct Database;
+class Database;
 }  // namespace silo
 
 namespace silo::query_engine::filter_expressions {

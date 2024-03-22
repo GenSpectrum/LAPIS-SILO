@@ -15,7 +15,7 @@ namespace operators {
 class Operator;
 }  // namespace operators
 }  // namespace query_engine
-struct Database;
+class Database;
 }  // namespace silo
 
 namespace silo::query_engine::filter_expressions {

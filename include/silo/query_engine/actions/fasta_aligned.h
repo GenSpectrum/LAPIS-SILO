@@ -11,9 +11,9 @@
 
 namespace silo {
 namespace query_engine {
-struct OperatorResult;
+class OperatorResult;
 }  // namespace query_engine
-struct Database;
+class Database;
 }  // namespace silo
 
 namespace silo::query_engine::actions {
