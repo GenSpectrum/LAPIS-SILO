@@ -74,6 +74,15 @@ const QueryTestScenario RANDOMIZE_SEED = {
       R"({"action": {"type": "Details", "fields": ["key"], "randomize": {"seed": 1231}},
          "filterExpression": {"type": "True"}})"
    ),
+#ifdef TARGET_CPU_ARM
+   .expected_query_result = json::parse(
+      R"([{"key": "id1"},
+          {"key": "id4"},
+          {"key": "id3"},
+          {"key": "id5"},
+          {"key": "id2"}])"
+   )
+#else
    .expected_query_result = json::parse(
       R"([{"key": "id4"},
           {"key": "id1"},
@@ -81,6 +90,7 @@ const QueryTestScenario RANDOMIZE_SEED = {
           {"key": "id2"},
           {"key": "id3"}])"
    )
+#endif
 };
 
 const QueryTestScenario RANDOMIZE_SEED_DIFFERENT = {
@@ -89,6 +99,15 @@ const QueryTestScenario RANDOMIZE_SEED_DIFFERENT = {
       R"({"action": {"type": "Details", "fields": ["key"], "randomize": {"seed": 12312}},
          "filterExpression": {"type": "True"}})"
    ),
+#ifdef TARGET_CPU_ARM
+   .expected_query_result = json::parse(
+      R"([{"key": "id2"},
+          {"key": "id1"},
+          {"key": "id4"},
+          {"key": "id5"},
+          {"key": "id3"}])"
+   )
+#else
    .expected_query_result = json::parse(
       R"([{"key": "id1"},
           {"key": "id4"},
@@ -96,6 +115,7 @@ const QueryTestScenario RANDOMIZE_SEED_DIFFERENT = {
           {"key": "id2"},
           {"key": "id5"}])"
    )
+#endif
 };
 
 const QueryTestScenario EXPLICIT_DO_NOT_RANDOMIZE = {
@@ -119,6 +139,15 @@ const QueryTestScenario AGGREGATE = {
       R"({"action": {"type": "Aggregated", "groupByFields": ["key"], "randomize": {"seed": 12321}},
          "filterExpression": {"type": "True"}})"
    ),
+#ifdef TARGET_CPU_ARM
+   .expected_query_result = json::parse(
+      R"([{"count": 1, "key": "id1"},
+          {"count": 1, "key": "id4"},
+          {"count": 1, "key": "id2"},
+          {"count": 1, "key": "id3"},
+          {"count": 1, "key": "id5"}])"
+   )
+#else
    .expected_query_result = json::parse(
       R"([{"count": 1, "key": "id3"},
           {"count": 1, "key": "id1"},
@@ -126,6 +155,7 @@ const QueryTestScenario AGGREGATE = {
           {"count": 1, "key": "id5"},
           {"count": 1, "key": "id2"}])"
    )
+#endif
 };
 
 const QueryTestScenario ORDER_BY_PRECEDENCE = {
@@ -190,8 +220,13 @@ const QueryTestScenario AGGREGATE_LIMIT_RANDOMIZE = {
          "filterExpression": {"type": "True"}})"
    ),
    .expected_query_result = json::parse(
+#ifdef TARGET_CPU_ARM
+      R"([{"count": 1, "key": "id5", "col": "A"},
+          {"count": 1, "key": "id3", "col": "A"}])"
+#else
       R"([{"count": 1, "key": "id1", "col": "A"},
           {"count": 1, "key": "id3", "col": "A"}])"
+#endif
    )
 };
 
