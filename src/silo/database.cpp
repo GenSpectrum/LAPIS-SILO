@@ -3,6 +3,7 @@
 #include <array>
 #include <atomic>
 #include <cstdint>
+#include <cstdlib>
 #include <deque>
 #include <filesystem>
 #include <fstream>
@@ -575,7 +576,7 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
             partition.columns.metadata.push_back({name, column_type});
             partition.insertColumn(name, columns.string_columns.at(name).createPartition());
          }
-         break;
+         return;
       case config::ColumnType::INDEXED_STRING: {
          auto column = storage::column::IndexedStringColumn();
          columns.indexed_string_columns.emplace(name, std::move(column));
@@ -583,7 +584,8 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
             partition.columns.metadata.push_back({name, column_type});
             partition.insertColumn(name, columns.indexed_string_columns.at(name).createPartition());
          }
-      } break;
+      }
+         return;
       case config::ColumnType::INDEXED_PANGOLINEAGE:
          columns.pango_lineage_columns.emplace(
             name, storage::column::PangoLineageColumn(alias_key)
@@ -592,7 +594,7 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
             partition.columns.metadata.push_back({name, column_type});
             partition.insertColumn(name, columns.pango_lineage_columns.at(name).createPartition());
          }
-         break;
+         return;
       case config::ColumnType::DATE: {
          auto column = name == database_config.schema.date_to_sort_by
                           ? storage::column::DateColumn(true)
@@ -602,21 +604,22 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
             partition.columns.metadata.push_back({name, column_type});
             partition.insertColumn(name, columns.date_columns.at(name).createPartition());
          }
-      } break;
+      }
+         return;
       case config::ColumnType::INT:
          columns.int_columns.emplace(name, storage::column::IntColumn());
          for (auto& partition : partitions) {
             partition.columns.metadata.push_back({name, column_type});
             partition.insertColumn(name, columns.int_columns.at(name).createPartition());
          }
-         break;
+         return;
       case config::ColumnType::FLOAT:
          columns.float_columns.emplace(name, storage::column::FloatColumn());
          for (auto& partition : partitions) {
             partition.columns.metadata.push_back({name, column_type});
             partition.insertColumn(name, columns.float_columns.at(name).createPartition());
          }
-         break;
+         return;
       case config::ColumnType::NUC_INSERTION:
          columns.nuc_insertion_columns.emplace(
             name, storage::column::InsertionColumn<Nucleotide>(getDefaultSequenceName<Nucleotide>())
@@ -625,7 +628,7 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
             partition.columns.metadata.push_back({name, column_type});
             partition.insertColumn(name, columns.nuc_insertion_columns.at(name).createPartition());
          }
-         break;
+         return;
       case config::ColumnType::AA_INSERTION:
          columns.aa_insertion_columns.emplace(
             name, storage::column::InsertionColumn<AminoAcid>(getDefaultSequenceName<AminoAcid>())
@@ -634,8 +637,9 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
             partition.columns.metadata.push_back({name, column_type});
             partition.insertColumn(name, columns.aa_insertion_columns.at(name).createPartition());
          }
-         break;
+         return;
    }
+   abort();
 }
 
 void Database::initializeColumns() {
