@@ -606,6 +606,13 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
          }
       }
          return;
+      case config::ColumnType::BOOL:
+         columns.bool_columns.emplace(name, storage::column::BoolColumn());
+         for (auto& partition : partitions) {
+            partition.columns.metadata.push_back({name, column_type});
+            partition.insertColumn(name, columns.bool_columns.at(name).createPartition());
+         }
+         return;
       case config::ColumnType::INT:
          columns.int_columns.emplace(name, storage::column::IntColumn());
          for (auto& partition : partitions) {
