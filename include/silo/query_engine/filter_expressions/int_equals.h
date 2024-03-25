@@ -11,11 +11,9 @@
 namespace silo {
 class Database;
 class DatabasePartition;
-namespace query_engine {
-namespace operators {
+namespace query_engine::operators {
 class Operator;
-}  // namespace operators
-}  // namespace query_engine
+}  // namespace query_engine::operators
 }  // namespace silo
 
 namespace silo::query_engine::filter_expressions {
