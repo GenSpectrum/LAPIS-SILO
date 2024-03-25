@@ -1,6 +1,7 @@
 #include "silo/storage/column_group.h"
 
 #include <cmath>
+#include <cstdlib>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -83,57 +84,58 @@ void ColumnPartitionGroup::addValueToColumn(
          } else {
             indexed_string_columns.at(column_name).insert(value.ToString());
          }
-         break;
+         return;
       case silo::config::ColumnType::STRING:
          if (value.IsNull()) {
             string_columns.at(column_name).insertNull();
          } else {
             string_columns.at(column_name).insert(value.ToString());
          }
-         break;
+         return;
       case silo::config::ColumnType::INDEXED_PANGOLINEAGE:
          if (value.IsNull()) {
             pango_lineage_columns.at(column_name).insertNull();
          } else {
             pango_lineage_columns.at(column_name).insert({value.ToString()});
          }
-         break;
+         return;
       case silo::config::ColumnType::DATE:
          if (value.IsNull()) {
             date_columns.at(column_name).insertNull();
          } else {
             date_columns.at(column_name).insert(common::stringToDate(value.ToString()));
          }
-         break;
+         return;
       case silo::config::ColumnType::INT:
          if (value.IsNull()) {
             int_columns.at(column_name).insertNull();
          } else {
             int_columns.at(column_name).insert(value.ToString());
          }
-         break;
+         return;
       case silo::config::ColumnType::FLOAT:
          if (value.IsNull()) {
             float_columns.at(column_name).insertNull();
          } else {
             float_columns.at(column_name).insert(value.ToString());
          }
-         break;
+         return;
       case silo::config::ColumnType::NUC_INSERTION:
          if (value.IsNull()) {
             nuc_insertion_columns.at(column_name).insertNull();
          } else {
             nuc_insertion_columns.at(column_name).insert(value.ToString());
          }
-         break;
+         return;
       case silo::config::ColumnType::AA_INSERTION:
          if (value.IsNull()) {
             aa_insertion_columns.at(column_name).insertNull();
          } else {
             aa_insertion_columns.at(column_name).insert(value.ToString());
          }
-         break;
+         return;
    }
+   abort();
 }
 
 void ColumnPartitionGroup::reserveSpaceInColumn(
@@ -144,29 +146,30 @@ void ColumnPartitionGroup::reserveSpaceInColumn(
    switch (column_type) {
       case silo::config::ColumnType::INDEXED_STRING:
          indexed_string_columns.at(column_name).reserve(row_count);
-         break;
+         return;
       case silo::config::ColumnType::STRING:
          string_columns.at(column_name).reserve(row_count);
-         break;
+         return;
       case silo::config::ColumnType::INDEXED_PANGOLINEAGE:
          pango_lineage_columns.at(column_name).reserve(row_count);
-         break;
+         return;
       case silo::config::ColumnType::DATE:
          date_columns.at(column_name).reserve(row_count);
-         break;
+         return;
       case silo::config::ColumnType::INT:
          int_columns.at(column_name).reserve(row_count);
-         break;
+         return;
       case silo::config::ColumnType::FLOAT:
          float_columns.at(column_name).reserve(row_count);
-         break;
+         return;
       case silo::config::ColumnType::NUC_INSERTION:
          nuc_insertion_columns.at(column_name).reserve(row_count);
-         break;
+         return;
       case silo::config::ColumnType::AA_INSERTION:
          aa_insertion_columns.at(column_name).reserve(row_count);
-         break;
+         return;
    }
+   abort();
 }
 
 template <>
@@ -190,23 +193,39 @@ ColumnPartitionGroup ColumnPartitionGroup::getSubgroup(
    }
 
    for (const auto& item : fields) {
-      if (item.type == silo::config::ColumnType::INDEXED_STRING) {
-         result.indexed_string_columns.insert({item.name, indexed_string_columns.at(item.name)});
-      } else if (item.type == silo::config::ColumnType::STRING) {
-         result.string_columns.insert({item.name, string_columns.at(item.name)});
-      } else if (item.type == silo::config::ColumnType::INDEXED_PANGOLINEAGE) {
-         result.pango_lineage_columns.insert({item.name, pango_lineage_columns.at(item.name)});
-      } else if (item.type == silo::config::ColumnType::DATE) {
-         result.date_columns.insert({item.name, date_columns.at(item.name)});
-      } else if (item.type == silo::config::ColumnType::INT) {
-         result.int_columns.insert({item.name, int_columns.at(item.name)});
-      } else if (item.type == silo::config::ColumnType::FLOAT) {
-         result.float_columns.insert({item.name, float_columns.at(item.name)});
-      } else if (item.type == silo::config::ColumnType::NUC_INSERTION) {
-         result.nuc_insertion_columns.insert({item.name, nuc_insertion_columns.at(item.name)});
-      } else if (item.type == silo::config::ColumnType::AA_INSERTION) {
-         result.aa_insertion_columns.insert({item.name, aa_insertion_columns.at(item.name)});
-      }
+      ([&]() {
+         switch (item.type) {
+            case silo::config::ColumnType::INDEXED_STRING:
+               result.indexed_string_columns.insert(
+                  {item.name, indexed_string_columns.at(item.name)}
+               );
+               return;
+            case silo::config::ColumnType::STRING:
+               result.string_columns.insert({item.name, string_columns.at(item.name)});
+               return;
+            case silo::config::ColumnType::INDEXED_PANGOLINEAGE:
+               result.pango_lineage_columns.insert({item.name, pango_lineage_columns.at(item.name)}
+               );
+               return;
+            case silo::config::ColumnType::DATE:
+               result.date_columns.insert({item.name, date_columns.at(item.name)});
+               return;
+            case silo::config::ColumnType::INT:
+               result.int_columns.insert({item.name, int_columns.at(item.name)});
+               return;
+            case silo::config::ColumnType::FLOAT:
+               result.float_columns.insert({item.name, float_columns.at(item.name)});
+               return;
+            case silo::config::ColumnType::NUC_INSERTION:
+               result.nuc_insertion_columns.insert({item.name, nuc_insertion_columns.at(item.name)}
+               );
+               return;
+            case silo::config::ColumnType::AA_INSERTION:
+               result.aa_insertion_columns.insert({item.name, aa_insertion_columns.at(item.name)});
+               return;
+         }
+         abort();
+      })();
    }
    return result;
 }
