@@ -167,7 +167,12 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
 template <typename SymbolType>
 void Mutations<SymbolType>::validateOrderByFields(const Database& /*database*/) const {
    const std::vector<std::string> result_field_names{
-      {MUTATION_FIELD_NAME, PROPORTION_FIELD_NAME, COUNT_FIELD_NAME}
+      {MUTATION_FIELD_NAME,
+       MUTATION_FROM_FIELD_NAME,
+       MUTATION_TO_FIELD_NAME,
+       POSITION_FIELD_NAME,
+       PROPORTION_FIELD_NAME,
+       COUNT_FIELD_NAME}
    };
 
    for (const OrderByField& field : order_by_fields) {
@@ -223,9 +228,21 @@ void Mutations<SymbolType>::addMutationsToOutput(
                const std::
                   map<std::string, std::optional<std::variant<std::string, int32_t, double>>>
                      fields{
-                        {MUTATION_FIELD_NAME,
-                         SymbolType::symbolToChar(symbol_in_reference_genome) +
-                            std::to_string(pos + 1) + SymbolType::symbolToChar(symbol)},
+                        {
+                           MUTATION_FIELD_NAME,
+                           fmt::format(
+                              "{}{}{}",
+                              SymbolType::symbolToChar(symbol_in_reference_genome),
+                              pos + 1,
+                              SymbolType::symbolToChar(symbol)
+                           ),
+                        },
+                        {
+                           MUTATION_FROM_FIELD_NAME,
+                           std::string(1, SymbolType::symbolToChar(symbol_in_reference_genome)),
+                        },
+                        {MUTATION_TO_FIELD_NAME, std::string(1, SymbolType::symbolToChar(symbol))},
+                        {POSITION_FIELD_NAME, static_cast<int32_t>(pos + 1)},
                         {SEQUENCE_FIELD_NAME, sequence_name},
                         {PROPORTION_FIELD_NAME, proportion},
                         {COUNT_FIELD_NAME, static_cast<int32_t>(count)}
