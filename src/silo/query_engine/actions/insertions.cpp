@@ -8,6 +8,7 @@
 #include <variant>
 #include <vector>
 
+#include <fmt/format.h>
 #include <boost/container_hash/hash.hpp>
 #include <nlohmann/json.hpp>
 
@@ -53,7 +54,12 @@ void InsertionAggregation<SymbolType>::validateOrderByFields(const Database& /*d
             result_field_names.end(),
             [&](const std::string& result_field) { return result_field == field.name; }
          ),
-         "OrderByField " + field.name + " is not contained in the result of this operation."
+         fmt::format(
+            "OrderByField {} is not contained in the result of this operation. "
+            "Allowed values are {}.",
+            field.name,
+            fmt::join(result_field_names, ", ")
+         )
       )
    }
 }

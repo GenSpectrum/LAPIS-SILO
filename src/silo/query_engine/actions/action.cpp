@@ -217,6 +217,10 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
       throw QueryParseException(expression_type + " is not a valid action");
    }
 
+   CHECK_SILO_QUERY(
+      !json.contains("orderByFields") || json["orderByFields"].is_array(),
+      "orderByFields must be an array."
+   )
    auto order_by_fields = json.contains("orderByFields")
                              ? json["orderByFields"].get<std::vector<OrderByField>>()
                              : std::vector<OrderByField>();
