@@ -47,7 +47,9 @@ void Fasta::validateOrderByFields(const Database& database) const {
             std::find(sequence_names.begin(), sequence_names.end(), field.name) !=
                std::end(sequence_names),
          fmt::format(
+            "OrderByField {} is not contained in the result of this operation. "
             "The only fields returned by the Fasta action are {} and {}",
+            field.name,
             fmt::join(sequence_names, ","),
             primary_key_field
          )

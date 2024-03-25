@@ -8,6 +8,7 @@
 #include <variant>
 #include <vector>
 
+#include <fmt/format.h>
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/parallel_for.h>
 #include <nlohmann/json.hpp>
@@ -176,7 +177,12 @@ void Mutations<SymbolType>::validateOrderByFields(const Database& /*database*/) 
             result_field_names.end(),
             [&](const std::string& result_field) { return result_field == field.name; }
          ),
-         "OrderByField " + field.name + " is not contained in the result of this operation."
+         fmt::format(
+            "OrderByField {} is not contained in the result of this operation. "
+            "Allowed values are {}.",
+            field.name,
+            fmt::join(result_field_names, ", ")
+         )
       )
    }
 }
