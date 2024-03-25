@@ -33,6 +33,9 @@ class Mutations : public Action {
    double min_proportion;
 
    const std::string MUTATION_FIELD_NAME = "mutation";
+   const std::string MUTATION_FROM_FIELD_NAME = "mutationFrom";
+   const std::string MUTATION_TO_FIELD_NAME = "mutationTo";
+   const std::string POSITION_FIELD_NAME = "position";
    const std::string SEQUENCE_FIELD_NAME = "sequenceName";
    const std::string PROPORTION_FIELD_NAME = "proportion";
    const std::string COUNT_FIELD_NAME = "count";

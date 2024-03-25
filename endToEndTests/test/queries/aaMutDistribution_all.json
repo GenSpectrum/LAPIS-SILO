@@ -13,72 +13,108 @@
     {
       "count": 46,
       "mutation": "R203K",
+      "mutationFrom": "R",
+      "mutationTo": "K",
+      "position": 203,
       "proportion": 0.46,
       "sequenceName": "N"
     },
     {
       "count": 46,
       "mutation": "G204R",
+      "mutationFrom": "G",
+      "mutationTo": "R",
+      "position": 204,
       "proportion": 0.46,
       "sequenceName": "N"
     },
     {
       "count": 64,
       "mutation": "T3255I",
+      "mutationFrom": "T",
+      "mutationTo": "I",
+      "position": 3255,
       "proportion": 0.6464646464646465,
       "sequenceName": "ORF1a"
     },
     {
       "count": 44,
       "mutation": "S3675-",
+      "mutationFrom": "S",
+      "mutationTo": "-",
+      "position": 3675,
       "proportion": 0.4489795918367347,
       "sequenceName": "ORF1a"
     },
     {
       "count": 44,
       "mutation": "G3676-",
+      "mutationFrom": "G",
+      "mutationTo": "-",
+      "position": 3676,
       "proportion": 0.4444444444444444,
       "sequenceName": "ORF1a"
     },
     {
       "count": 98,
       "mutation": "P314L",
+      "mutationFrom": "P",
+      "mutationTo": "L",
+      "position": 314,
       "proportion": 0.98,
       "sequenceName": "ORF1b"
     },
     {
       "count": 37,
       "mutation": "G142D",
+      "mutationFrom": "G",
+      "mutationTo": "D",
+      "position": 142,
       "proportion": 0.4065934065934066,
       "sequenceName": "S"
     },
     {
       "count": 38,
       "mutation": "L452R",
+      "mutationFrom": "L",
+      "mutationTo": "R",
+      "position": 452,
       "proportion": 0.4318181818181818,
       "sequenceName": "S"
     },
     {
       "count": 69,
       "mutation": "T478K",
+      "mutationFrom": "T",
+      "mutationTo": "K",
+      "position": 478,
       "proportion": 0.7340425531914894,
       "sequenceName": "S"
     },
     {
       "count": 41,
       "mutation": "N501Y",
+      "mutationFrom": "N",
+      "mutationTo": "Y",
+      "position": 501,
       "proportion": 0.44086021505376344,
       "sequenceName": "S"
     },
     {
       "count": 98,
       "mutation": "D614G",
+      "mutationFrom": "D",
+      "mutationTo": "G",
+      "position": 614,
       "proportion": 0.98989898989899,
       "sequenceName": "S"
     },
     {
       "count": 42,
       "mutation": "P681H",
+      "mutationFrom": "P",
+      "mutationTo": "H",
+      "position": 681,
       "proportion": 0.42,
       "sequenceName": "S"
     }

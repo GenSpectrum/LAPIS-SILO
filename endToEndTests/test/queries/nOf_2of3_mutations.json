@@ -32,48 +32,72 @@
     {
       "count": 1,
       "mutation": "A1-",
+      "mutationFrom": "A",
+      "mutationTo": "-",
+      "position": 1,
       "proportion": 1,
       "sequenceName": "main"
     },
     {
       "count": 1,
       "mutation": "T2-",
+      "mutationFrom": "T",
+      "mutationTo": "-",
+      "position": 2,
       "proportion": 1,
       "sequenceName": "main"
     },
     {
       "count": 53,
       "mutation": "C241T",
+      "mutationFrom": "C",
+      "mutationTo": "T",
+      "position": 241,
       "proportion": 1,
       "sequenceName": "main"
     },
     {
       "count": 51,
       "mutation": "C3037T",
+      "mutationFrom": "C",
+      "mutationTo": "T",
+      "position": 3037,
       "proportion": 1,
       "sequenceName": "main"
     },
     {
       "count": 52,
       "mutation": "C14408T",
+      "mutationFrom": "C",
+      "mutationTo": "T",
+      "position": 14408,
       "proportion": 1,
       "sequenceName": "main"
     },
     {
       "count": 53,
       "mutation": "A23403G",
+      "mutationFrom": "A",
+      "mutationTo": "G",
+      "position": 23403,
       "proportion": 1,
       "sequenceName": "main"
     },
     {
       "count": 4,
       "mutation": "G29868-",
+      "mutationFrom": "G",
+      "mutationTo": "-",
+      "position": 29868,
       "proportion": 1,
       "sequenceName": "main"
     },
     {
       "count": 4,
       "mutation": "A29869-",
+      "mutationFrom": "A",
+      "mutationTo": "-",
+      "position": 29869,
       "proportion": 0.8,
       "sequenceName": "main"
     }

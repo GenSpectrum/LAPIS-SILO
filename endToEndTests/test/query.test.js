@@ -31,7 +31,12 @@ const invalidQueriesPath = __dirname + '/invalidQueries';
 const invalidQueryTestFiles = fs.readdirSync(invalidQueriesPath);
 
 describe('The /query endpoint', () => {
-  const testCases = queryTestFiles.map(file => JSON.parse(fs.readFileSync(`${file}`)));
+  const testCases = queryTestFiles.map(file => {
+    const fileContent = fs.readFileSync(file, 'utf8');
+    const testCase = JSON.parse(fileContent);
+    testCase.fileName = path.basename(file);
+    return testCase;
+  });
 
   testCases.forEach(testCase =>
     it('should return data for the test case ' + testCase.testCaseName, async () => {
@@ -41,7 +46,20 @@ describe('The /query endpoint', () => {
         .expect(200)
         .expect('Content-Type', 'application/json')
         .expect(headerToHaveDataVersion);
-      expect(response.body).to.deep.equal({ queryResult: testCase.expectedQueryResult });
+      try {
+        expect(response.body).to.deep.equal({ queryResult: testCase.expectedQueryResult });
+      } catch (e) {
+        const data = JSON.stringify(response.body, null, 2); // The `null` and `2` arguments format the JSON for readability
+        const errorFileName = 'actual_result_' + testCase.fileName;
+        fs.writeFile(errorFileName, data, err => {
+          if (err) {
+            console.error('Failed to write file', err);
+          } else {
+            console.log('Actual response saved to ' + errorFileName);
+          }
+        });
+        throw e;
+      }
     })
   );
 

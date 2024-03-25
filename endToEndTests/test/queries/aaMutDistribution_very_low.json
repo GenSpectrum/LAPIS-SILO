@@ -15,18 +15,27 @@
     {
       "count": 1,
       "mutation": "F20L",
+      "mutationFrom": "F",
+      "mutationTo": "L",
+      "position": 20,
       "proportion": 0.010101010101010102,
       "sequenceName": "E"
     },
     {
       "count": 1,
       "mutation": "L18I",
+      "mutationFrom": "L",
+      "mutationTo": "I",
+      "position": 18,
       "proportion": 0.010101010101010102,
       "sequenceName": "E"
     },
     {
       "count": 34,
       "mutation": "T9I",
+      "mutationFrom": "T",
+      "mutationTo": "I",
+      "position": 9,
       "proportion": 0.3469387755102041,
       "sequenceName": "E"
     }
