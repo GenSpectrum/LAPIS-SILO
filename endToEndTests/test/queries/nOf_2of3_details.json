@@ -32,26 +32,15 @@
   },
   "expectedQueryResult": [
     {
-      "age": 50,
+      "age": 58,
       "country": "Switzerland",
-      "date": "2021-02-23",
-      "division": "Solothurn",
-      "gisaid_epi_isl": "EPI_ISL_1195052",
+      "date": "2021-04-28",
+      "division": "Basel-Stadt",
+      "gisaid_epi_isl": "EPI_ISL_2019235",
       "pango_lineage": "B.1.1.7",
-      "qc_value": 0.95,
+      "qc_value": 0.9,
       "region": "Europe",
-      "unsorted_date": "2021-07-04"
-    },
-    {
-      "age": 50,
-      "country": "Switzerland",
-      "date": "2020-11-13",
-      "division": "Solothurn",
-      "gisaid_epi_isl": "EPI_ISL_1005148",
-      "pango_lineage": "B.1.221",
-      "qc_value": 0.92,
-      "region": "Europe",
-      "unsorted_date": "2020-12-17"
+      "unsorted_date": "2021-01-22"
     },
     {
       "age": 54,
@@ -65,15 +54,26 @@
       "unsorted_date": "2021-02-10"
     },
     {
-      "age": 58,
+      "age": 50,
       "country": "Switzerland",
-      "date": "2021-04-28",
-      "division": "Basel-Stadt",
-      "gisaid_epi_isl": "EPI_ISL_2019235",
-      "pango_lineage": "B.1.1.7",
-      "qc_value": 0.9,
+      "date": "2020-11-13",
+      "division": "Solothurn",
+      "gisaid_epi_isl": "EPI_ISL_1005148",
+      "pango_lineage": "B.1.221",
+      "qc_value": 0.92,
       "region": "Europe",
-      "unsorted_date": "2021-01-22"
+      "unsorted_date": "2020-12-17"
+    },
+    {
+      "age": 50,
+      "country": "Switzerland",
+      "date": "2021-02-23",
+      "division": "Solothurn",
+      "gisaid_epi_isl": "EPI_ISL_1195052",
+      "pango_lineage": "B.1.1.7",
+      "qc_value": 0.95,
+      "region": "Europe",
+      "unsorted_date": "2021-07-04"
     }
   ]
 }
