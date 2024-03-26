@@ -3,14 +3,14 @@ name: LAPIS-SILO
 on:
   push:
 
-
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  DOCKER_IMAGE_NAME: ghcr.io/GenSpectrum/LAPIS-SILO
-  DOCKER_TEST_IMAGE_NAME: silo/unittests
+  DOCKER_DEPENDENCY_IMAGE_NAME: ghcr.io/genspectrum/lapis-silo-dependencies
+  DOCKER_LINTER_DEPENDENCY_IMAGE_NAME: ghcr.io/genspectrum/lapis-silo-linter-dependencies
+  DOCKER_IMAGE_NAME: ghcr.io/genspectrum/lapis-silo
 
 jobs:
   formatting-check:
@@ -31,56 +31,172 @@ jobs:
           check-path: ${{ matrix.path['check'] }}
           exclude-regex: ${{ matrix.path['exclude'] }}
 
-  linter:
-    name: Build And Run linter
+  linterDependencies:
+    name: Build linter dependencies
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      - name: Generate dependency files hash
+        id: files-hash
+        run: |
+          DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', '.github/workflows/ci.yml', './Dockerfile_linter_dependencies') }})
+          echo "DIR_HASH=$DIR_HASH" >> $GITHUB_ENV
+
+      - name: Docker metadata
+        id: dockerMetadata
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_LINTER_DEPENDENCY_IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=${{ env.DIR_HASH }}
+            type=sha,prefix=commit-
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if image exists
+        id: check-image
+        run: |
+          EXISTS=$(docker manifest inspect ${{ env.DOCKER_LINTER_DEPENDENCY_IMAGE_NAME }}:${{ env.DIR_HASH }} > /dev/null 2>&1 && echo "true" || echo "false")
+          echo "CACHE_HIT=$EXISTS" >> $GITHUB_ENV
+
       - name: Set up Docker Buildx
+        if: env.CACHE_HIT == 'false'
         uses: docker/setup-buildx-action@v3
 
       - name: Build linter dependencies image
+        if: env.CACHE_HIT == 'false'
         uses: docker/build-push-action@v5
         with:
           context: .
-          target: linter_dependencies
-          tags: linter_dependencies
-          file: ./Dockerfile_linter
+          push: true
+          tags: ${{ steps.dockerMetadata.outputs.tags }}
+          file: ./Dockerfile_linter_dependencies
           cache-from: type=gha,ref=linter-dependencies-image-cache-${{ hashFiles('conanfile.py', 'Dockerfile_linter') }}
           cache-to: type=gha,mode=min,ref=linter-dependencies-image-cache-${{ hashFiles('conanfile.py', 'Dockerfile_linter') }}
+
+  linter:
+    name: Build And Run linter
+    needs: linterDependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate dependency files hash
+        id: files-hash
+        run: |
+          DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', '.github/workflows/ci.yml', './Dockerfile_linter_dependencies') }})
+          echo "DIR_HASH=$DIR_HASH" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Build linter image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile_linter
-          target: linter
           cache-from: type=gha,ref=${{ github.ref_name }}-linter-image-cache
           cache-to: type=gha,mode=min,ref=${{ github.ref_name }}-linter-image-cache
           push: false
+          build-args: |
+            DEPENDENCY_IMAGE=ghcr.io/genspectrum/lapis-silo-linter-dependencies:${{ env.DIR_HASH }}
 
-  dockerImage:
-    name: Build And Run Unit Tests
+  dependencyImage:
+    name: Build Docker Image Dependencies
     runs-on: ubuntu-latest
     permissions:
       packages: write
     steps:
       - uses: actions/checkout@v4
 
+      - name: Generate dependency files hash
+        id: files-hash
+        run: |
+          DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', '.github/workflows/ci.yml', './Dockerfile_dependencies') }})
+          echo "DIR_HASH=$DIR_HASH" >> $GITHUB_ENV
+
+      - name: Docker metadata
+        id: dockerMetadata
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=${{ env.DIR_HASH }}
+            type=sha,prefix=commit-
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if image exists
+        id: check-image
+        run: |
+          EXISTS=$(docker manifest inspect ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:${{ env.DIR_HASH }} > /dev/null 2>&1 && echo "true" || echo "false")
+          echo "CACHE_HIT=$EXISTS" >> $GITHUB_ENV
+
       - name: Set up Docker Buildx
+        if: env.CACHE_HIT == 'false'
         uses: docker/setup-buildx-action@v3
 
-      - name: Build builder image
+      - name: Build and push image if input files changed
+        if: env.CACHE_HIT == 'false'
         uses: docker/build-push-action@v5
         with:
           context: .
-          target: dep_builder
-          tags: dep_builder
-          load: true
-          file: ./Dockerfile
+          file: Dockerfile_dependencies
+          push: true
+          tags: ${{ steps.dockerMetadata.outputs.tags }}
           cache-from: type=gha,ref=builder-image-cache-${{ hashFiles('conanfile.py', 'Dockerfile') }}
           cache-to: type=gha,mode=min,ref=builder-image-cache-${{ hashFiles('conanfile.py', 'Dockerfile') }}
+          platforms: ${{ github.ref == 'refs/heads/main' && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
+
+  dockerImageUnitTests:
+    name: Build Docker Image and Run Unit Tests
+    runs-on: ubuntu-latest
+    needs: dependencyImage
+    permissions:
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate dependency files hash
+        id: files-hash
+        run: |
+          DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', '.github/workflows/ci.yml', './Dockerfile_dependencies') }})
+          echo "DIR_HASH=$DIR_HASH" >> $GITHUB_ENV
+
+      - name: Docker metadata
+        id: dockerMetadata
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+            type=sha,prefix=commit-
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Build unit test image
         uses: docker/build-push-action@v5
@@ -91,28 +207,14 @@ jobs:
           load: true
           cache-from: type=gha,ref=${{ github.ref_name }}-image-cache
           cache-to: type=gha,mode=min,ref=${{ github.ref_name }}-image-cache
+          build-args: |
+            DEPENDENCY_IMAGE=ghcr.io/genspectrum/lapis-silo-dependencies:${{ env.DIR_HASH }}
 
       - name: Run tests
         uses: addnab/docker-run-action@v3
         with:
           image: builder
           run: ./silo_test
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Docker metadata
-        id: dockerMetadata
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.DOCKER_IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
 
       - name: Build and push production image
         if: ${{ github.event_name == 'push' }}
@@ -122,9 +224,12 @@ jobs:
           push: true
           platforms: ${{ github.ref == 'refs/heads/main' && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
           tags: ${{ steps.dockerMetadata.outputs.tags }}
+          build-args: |
+            DEPENDENCY_IMAGE=ghcr.io/genspectrum/lapis-silo-dependencies:${{ env.DIR_HASH }}
 
   endToEndTests:
     name: Run End To End Tests
+    needs: dockerImageUnitTests
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -157,13 +262,6 @@ jobs:
         with:
           images: ${{ env.DOCKER_IMAGE_NAME }}
           tags: type=ref,event=branch
-
-      - name: Wait for Docker Image
-        uses: lewagon/wait-on-check-action@v1.3.3
-        with:
-          ref: ${{ github.ref }}
-          check-name: Build And Run Unit Tests
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Start Docker Container and preprocess data
         run: docker compose -f ${{ matrix.preprocessing-docker-compose }} up
