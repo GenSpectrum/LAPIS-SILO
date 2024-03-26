@@ -7,7 +7,7 @@ class SiloRecipe(ConanFile):
 
     requires = [
         "boost/1.82.0",
-        "duckdb/0.8.1",
+        "duckdb/0.10.1",
         "poco/1.12.4",
         "hwloc/2.9.3",
         "onetbb/2021.10.0",
