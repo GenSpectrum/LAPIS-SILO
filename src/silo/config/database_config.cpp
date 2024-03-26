@@ -1,13 +1,13 @@
 #include "silo/config/database_config.h"
 
 #include <filesystem>
+#include <fstream>
 #include <stdexcept>
 #include <string_view>
 
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/yaml.h>
-#include <fstream>
 
 #include "silo/config/config_exception.h"
 
