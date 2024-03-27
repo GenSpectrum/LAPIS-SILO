@@ -84,6 +84,7 @@ jobs:
 
   linter:
     name: Build And Run linter
+    needs: linterDependencies
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
