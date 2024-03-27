@@ -71,7 +71,7 @@ jobs:
       - name: Generate dependency files hash
         id: files-hash
         run: |
-          DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', '.github/workflows/ci.yml') }})
+          DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', '.github/workflows/ci.yml', './Dockerfile_dependencies') }})
           echo "DIR_HASH=$DIR_HASH" >> $GITHUB_ENV
 
       - name: Docker metadata
@@ -81,6 +81,7 @@ jobs:
           images: ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}
           tags: |
             type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=${{ env.DIR_HASH }}
             type=sha,prefix=commit-
 
@@ -105,7 +106,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          target: dep_builder
+          file: Dockerfile_dependencies
           push: true
           tags: ${{ steps.dockerMetadata.outputs.tags }}
           cache-from: type=gha,ref=builder-image-cache-${{ hashFiles('conanfile.py', 'Dockerfile') }}
@@ -120,6 +121,12 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+
+      - name: Generate dependency files hash
+        id: files-hash
+        run: |
+          DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', '.github/workflows/ci.yml', './Dockerfile_dependencies') }})
+          echo "DIR_HASH=$DIR_HASH" >> $GITHUB_ENV
 
       - name: Docker metadata
         id: dockerMetadata
@@ -147,9 +154,13 @@ jobs:
           context: .
           target: builder
           tags: builder
+          args: VERSION=your_version_here
           load: true
           cache-from: type=gha,ref=${{ github.ref_name }}-image-cache
           cache-to: type=gha,mode=min,ref=${{ github.ref_name }}-image-cache
+          build-args: |
+            DEPENDENCY_IMAGE_TAG=${{ env.DIR_HASH }}
+
 
       - name: Run tests
         uses: addnab/docker-run-action@v3
