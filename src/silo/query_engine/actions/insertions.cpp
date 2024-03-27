@@ -44,7 +44,8 @@ void InsertionAggregation<SymbolType>::validateOrderByFields(const Database& /*d
       {std::string{POSITION_FIELD_NAME},
        std::string{INSERTION_FIELD_NAME},
        std::string{SEQUENCE_FIELD_NAME},
-       std::string{COUNT_FIELD_NAME}}
+       std::string{COUNT_FIELD_NAME},
+       std::string{INSERTED_SYMBOLS_FIELD_NAME}}
    };
 
    for (const OrderByField& field : order_by_fields) {
@@ -220,8 +221,16 @@ void InsertionAggregation<SymbolType>::addAggregatedInsertionsToInsertionCounts(
       const std::map<std::string, std::optional<std::variant<std::string, int32_t, double>>> fields{
          {std::string(POSITION_FIELD_NAME),
           static_cast<int32_t>(position_and_insertion.position_idx)},
+         {std::string(INSERTED_SYMBOLS_FIELD_NAME),
+          std::string(position_and_insertion.insertion_value)},
          {std::string(SEQUENCE_FIELD_NAME), sequence_name},
-         {std::string(INSERTION_FIELD_NAME), std::string(position_and_insertion.insertion_value)},
+         {std::string(INSERTION_FIELD_NAME),
+          fmt::format(
+             "ins_{}:{}:{}",
+             sequence_name,
+             position_and_insertion.position_idx,
+             position_and_insertion.insertion_value
+          )},
          {std::string(COUNT_FIELD_NAME), static_cast<int32_t>(count)}
       };
       output.push_back({fields});
