@@ -6,10 +6,12 @@
 #include <string>
 #include <vector>
 
+#include <fmt/format.h>
 #include <boost/algorithm/string.hpp>
 #include <duckdb.hpp>
 
 #include "silo/common/date.h"
+#include "silo/common/optional_bool.h"
 #include "silo/config/database_config.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/column/insertion_column.h"
@@ -21,6 +23,8 @@ class Nucleotide;
 
 namespace silo::storage {
 using silo::config::ColumnType;
+
+using silo::common::OptionalBool;
 
 uint32_t ColumnPartitionGroup::fill(
    duckdb::Connection& connection,
@@ -75,65 +79,79 @@ uint32_t ColumnPartitionGroup::fill(
 
 void ColumnPartitionGroup::addValueToColumn(
    const std::string& column_name,
-   config::ColumnType column_type,
+   ColumnType column_type,
    const duckdb::Value& value
 ) {
+   if (value.IsNull()) {
+      addNullToColumn(column_name, column_type);
+      return;
+   }
    switch (column_type) {
       case ColumnType::INDEXED_STRING:
-         if (value.IsNull()) {
-            indexed_string_columns.at(column_name).insertNull();
-         } else {
-            indexed_string_columns.at(column_name).insert(value.ToString());
-         }
+         indexed_string_columns.at(column_name).insert(value.ToString());
          return;
       case ColumnType::STRING:
-         if (value.IsNull()) {
-            string_columns.at(column_name).insertNull();
-         } else {
-            string_columns.at(column_name).insert(value.ToString());
-         }
+         string_columns.at(column_name).insert(value.ToString());
          return;
       case ColumnType::INDEXED_PANGOLINEAGE:
-         if (value.IsNull()) {
-            pango_lineage_columns.at(column_name).insertNull();
-         } else {
-            pango_lineage_columns.at(column_name).insert({value.ToString()});
-         }
+         pango_lineage_columns.at(column_name).insert({value.ToString()});
          return;
       case ColumnType::DATE:
-         if (value.IsNull()) {
-            date_columns.at(column_name).insertNull();
+         date_columns.at(column_name).insert(common::stringToDate(value.ToString()));
+         return;
+      case ColumnType::BOOL:
+         if (value.type() != duckdb::LogicalType::BOOLEAN) {
+            auto str = value.ToString();
+            throw silo::preprocessing::PreprocessingException(
+               fmt::format("trying to insert the value '{}' into column '{}'", str, column_name)
+            );
          } else {
-            date_columns.at(column_name).insert(common::stringToDate(value.ToString()));
+            bool_columns.at(column_name).insert(duckdb::BooleanValue::Get(value));
          }
          return;
       case ColumnType::INT:
-         if (value.IsNull()) {
-            int_columns.at(column_name).insertNull();
-         } else {
-            int_columns.at(column_name).insert(value.ToString());
-         }
+         int_columns.at(column_name).insert(value.ToString());
          return;
       case ColumnType::FLOAT:
-         if (value.IsNull()) {
-            float_columns.at(column_name).insertNull();
-         } else {
-            float_columns.at(column_name).insert(value.ToString());
-         }
+         float_columns.at(column_name).insert(value.ToString());
          return;
       case ColumnType::NUC_INSERTION:
-         if (value.IsNull()) {
-            nuc_insertion_columns.at(column_name).insertNull();
-         } else {
-            nuc_insertion_columns.at(column_name).insert(value.ToString());
-         }
+         nuc_insertion_columns.at(column_name).insert(value.ToString());
          return;
       case ColumnType::AA_INSERTION:
-         if (value.IsNull()) {
-            aa_insertion_columns.at(column_name).insertNull();
-         } else {
-            aa_insertion_columns.at(column_name).insert(value.ToString());
-         }
+         aa_insertion_columns.at(column_name).insert(value.ToString());
+         return;
+   }
+}
+
+void ColumnPartitionGroup::addNullToColumn(const std::string& column_name, ColumnType column_type) {
+   switch (column_type) {
+      case ColumnType::INDEXED_STRING:
+         indexed_string_columns.at(column_name).insertNull();
+         return;
+      case ColumnType::STRING:
+         string_columns.at(column_name).insertNull();
+         return;
+      case ColumnType::INDEXED_PANGOLINEAGE:
+         pango_lineage_columns.at(column_name).insertNull();
+         return;
+      case ColumnType::DATE:
+         date_columns.at(column_name).insertNull();
+         return;
+      case ColumnType::BOOL:
+         bool_columns.at(column_name).insertNull();
+         return;
+      case ColumnType::INT:
+         int_columns.at(column_name).insertNull();
+         return;
+      case ColumnType::FLOAT:
+         float_columns.at(column_name).insertNull();
+         return;
+      case ColumnType::NUC_INSERTION:
+         nuc_insertion_columns.at(column_name).insertNull();
+         return;
+      case ColumnType::AA_INSERTION:
+         aa_insertion_columns.at(column_name).insertNull();
          return;
    }
    abort();
@@ -141,7 +159,7 @@ void ColumnPartitionGroup::addValueToColumn(
 
 void ColumnPartitionGroup::reserveSpaceInColumn(
    const std::string& column_name,
-   config::ColumnType column_type,
+   ColumnType column_type,
    size_t row_count
 ) {
    switch (column_type) {
@@ -156,6 +174,9 @@ void ColumnPartitionGroup::reserveSpaceInColumn(
          return;
       case ColumnType::DATE:
          date_columns.at(column_name).reserve(row_count);
+         return;
+      case ColumnType::BOOL:
+         bool_columns.at(column_name).reserve(row_count);
          return;
       case ColumnType::INT:
          int_columns.at(column_name).reserve(row_count);
@@ -211,6 +232,9 @@ ColumnPartitionGroup ColumnPartitionGroup::getSubgroup(
             case ColumnType::DATE:
                result.date_columns.insert({item.name, date_columns.at(item.name)});
                return;
+            case ColumnType::BOOL:
+               result.bool_columns.insert({item.name, bool_columns.at(item.name)});
+               return;
             case ColumnType::INT:
                result.int_columns.insert({item.name, int_columns.at(item.name)});
                return;
@@ -252,6 +276,13 @@ std::optional<std::variant<std::string, int32_t, double>> ColumnPartitionGroup::
    }
    if (date_columns.contains(column)) {
       return common::dateToString(date_columns.at(column).getValues().at(sequence_id));
+   }
+   if (bool_columns.contains(column)) {
+      OptionalBool value = bool_columns.at(column).getValues().at(sequence_id);
+      if (value.isNull()) {
+         return std::nullopt;
+      }
+      return value.value();
    }
    if (int_columns.contains(column)) {
       int32_t value = int_columns.at(column).getValues().at(sequence_id);
