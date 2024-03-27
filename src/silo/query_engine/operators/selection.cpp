@@ -9,16 +9,20 @@
 #include <utility>
 #include <vector>
 
+#include <fmt/format.h>
 #include <boost/algorithm/string/join.hpp>
 #include <roaring/roaring.hh>
 
 #include "silo/common/date.h"
+#include "silo/common/optional_bool.h"
 #include "silo/common/string.h"
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo::query_engine::operators {
+
+using silo::common::OptionalBool;
 
 Selection::Selection(
    std::unique_ptr<Operator>&& child_operator,
@@ -209,6 +213,11 @@ template <typename T>
 }
 
 template <>
+[[nodiscard]] std::string CompareToValueSelection<OptionalBool>::toString() const {
+   return fmt::format("$bool {} {}", displayComparator(comparator), value.asStr());
+}
+
+template <>
 [[nodiscard]] std::string CompareToValueSelection<int32_t>::toString() const {
    return "$int " + displayComparator(comparator) + " " + std::to_string(value);
 }
@@ -235,6 +244,7 @@ template <>
    return "$double " + displayComparator(comparator) + " " + std::to_string(value);
 }
 
+template class CompareToValueSelection<OptionalBool>;
 template class CompareToValueSelection<int32_t>;
 template class CompareToValueSelection<common::SiloString>;
 template class CompareToValueSelection<silo::common::Date>;
