@@ -19,6 +19,7 @@ class OptionalBool {
    explicit OptionalBool(std::optional<bool> value);
 
    std::strong_ordering operator<=>(const OptionalBool& other) const;
+   bool operator==(const OptionalBool& other) const;
 
    [[nodiscard]] bool isNull() const noexcept;
    [[nodiscard]] std::optional<bool> value() const noexcept;

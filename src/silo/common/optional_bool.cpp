@@ -26,6 +26,10 @@ std::strong_ordering OptionalBool::operator<=>(const OptionalBool& other) const 
    return representation <=> other.representation;
 }
 
+bool OptionalBool::operator==(const OptionalBool& other) const {
+   return representation == other.representation;
+}
+
 bool OptionalBool::isNull() const noexcept {
    return representation == Representation::NONE;
 }
