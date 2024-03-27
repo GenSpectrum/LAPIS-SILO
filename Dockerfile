@@ -1,6 +1,6 @@
-ARG DEPENDENCY_IMAGE_TAG=latest
+ARG DEPENDENCY_IMAGE=ghcr.io/genspectrum/lapis-silo-dependencies:latest
 
-FROM ghcr.io/genspectrum/lapis-silo-dependencies:DEPENDENCY_IMAGE_TAG AS builder
+FROM DEPENDENCY_IMAGE AS builder
 
 COPY . ./
 

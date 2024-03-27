@@ -11,6 +11,7 @@ concurrency:
 env:
   DOCKER_DEPENDENCY_IMAGE_NAME: ghcr.io/genspectrum/lapis-silo-dependencies
   DOCKER_IMAGE_NAME: ghcr.io/genspectrum/lapis-silo
+  DEPENDENCY_IMAGE_HASH: ${{ hashFiles('conanfile.py', 'conanprofile.docker', '.github/workflows/ci.yml', './Dockerfile_dependencies') }}
 
 jobs:
   formatting-check:
@@ -154,12 +155,11 @@ jobs:
           context: .
           target: builder
           tags: builder
-          args: VERSION=your_version_here
           load: true
           cache-from: type=gha,ref=${{ github.ref_name }}-image-cache
           cache-to: type=gha,mode=min,ref=${{ github.ref_name }}-image-cache
           build-args: |
-            DEPENDENCY_IMAGE_TAG=${{ env.DIR_HASH }}
+            DEPENDENCY_IMAGE_TAG=ghcr.io/genspectrum/lapis-silo-dependencies:${{ env.DIR_HASH }}
 
 
       - name: Run tests
