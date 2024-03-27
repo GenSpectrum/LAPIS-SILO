@@ -228,6 +228,7 @@ jobs:
 
   endToEndTests:
     name: Run End To End Tests
+    needs: dockerImageUnitTests
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -260,13 +261,6 @@ jobs:
         with:
           images: ${{ env.DOCKER_IMAGE_NAME }}
           tags: type=ref,event=branch
-
-      - name: Wait for Docker Image
-        uses: lewagon/wait-on-check-action@v1.3.3
-        with:
-          ref: ${{ github.ref }}
-          check-name: Build Docker Image and Run Unit Tests
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Start Docker Container and preprocess data
         run: docker compose -f ${{ matrix.preprocessing-docker-compose }} up
