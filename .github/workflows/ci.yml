@@ -10,7 +10,7 @@ concurrency:
 env:
   DOCKER_DEPENDENCY_IMAGE_NAME: ghcr.io/genspectrum/lapis-silo-dependencies
   DOCKER_IMAGE_NAME: ghcr.io/genspectrum/lapis-silo
-  DEPENDENCY_IMAGE_FILES_FOR_HASH: [ 'conanfile.py', 'conanprofile.docker', '.github/workflows/ci.yml', './Dockerfile_dependencies' ]
+  DEPENDENCY_IMAGE_FILES_FOR_HASH: 'conanfile.py conanprofile.docker .github/workflows/ci.yml ./Dockerfile_dependencies'
 
 jobs:
   formatting-check:
