@@ -173,6 +173,8 @@ jobs:
           push: true
           platforms: ${{ github.ref == 'refs/heads/main' && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
           tags: ${{ steps.dockerMetadata.outputs.tags }}
+          build-args: |
+            DEPENDENCY_IMAGE=ghcr.io/genspectrum/lapis-silo-dependencies:${{ env.DIR_HASH }}
 
   endToEndTests:
     name: Run End To End Tests
