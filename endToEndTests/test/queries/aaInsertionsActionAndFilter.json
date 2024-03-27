@@ -4,7 +4,7 @@
     "action": {
       "type": "AminoAcidInsertions",
       "column": "aminoAcidInsertions",
-      "orderByFields": ["insertions", "position"]
+      "orderByFields": ["insertedSymbols", "position"]
     },
     "filterExpression": {
       "type": "AminoAcidInsertionContains",
@@ -17,7 +17,8 @@
   "expectedQueryResult": [
     {
       "count": 5,
-      "insertions": "EPE",
+      "insertedSymbols": "EPE",
+      "insertion": "ins_S:214:EPE",
       "position": 214,
       "sequenceName": "S"
     }
