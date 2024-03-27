@@ -24,7 +24,7 @@ PreprocessingConfig::PreprocessingConfig(
    input_directory = input_directory_.directory;
    if (!std::filesystem::exists(input_directory)) {
       throw std::filesystem::filesystem_error(
-         input_directory.string() + " does  not exist", std::error_code()
+         input_directory.string() + " does not exist", std::error_code()
       );
    }
 
