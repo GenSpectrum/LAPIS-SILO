@@ -5,6 +5,7 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/query_engine/filter_expressions/and.h"
+#include "silo/query_engine/filter_expressions/bool_equals.h"
 #include "silo/query_engine/filter_expressions/date_between.h"
 #include "silo/query_engine/filter_expressions/exact.h"
 #include "silo/query_engine/filter_expressions/false.h"
@@ -78,6 +79,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) 
       filter = json.get<std::unique_ptr<PangoLineageFilter>>();
    } else if (expression_type == "StringEquals") {
       filter = json.get<std::unique_ptr<StringEquals>>();
+   } else if (expression_type == "BooleanEquals") {
+      filter = json.get<std::unique_ptr<BoolEquals>>();
    } else if (expression_type == "IntEquals") {
       filter = json.get<std::unique_ptr<IntEquals>>();
    } else if (expression_type == "IntBetween") {
