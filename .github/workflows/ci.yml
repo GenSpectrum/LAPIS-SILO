@@ -120,6 +120,16 @@ jobs:
             docker buildx imagetools create --tag $TAG ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DIR_HASH }}
           done
 
+      - name: Docker metadata
+        id: dockerMetadata
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+            type=sha,prefix=commit-
+
       - name: Build unit test image
         uses: docker/build-push-action@v5
         with:
