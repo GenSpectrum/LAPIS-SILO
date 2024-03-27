@@ -61,7 +61,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Check if image exists
+        id: check-image
+        run: |
+          EXISTS=$(docker manifest inspect ${{ env.DOCKER_LINTER_DEPENDENCY_IMAGE_NAME }}:${{ env.DIR_HASH }} > /dev/null 2>&1 && echo "true" || echo "false")
+          echo "CACHE_HIT=$EXISTS" >> $GITHUB_ENV
+
       - name: Set up Docker Buildx
+        if: env.CACHE_HIT == 'false'
         uses: docker/setup-buildx-action@v3
 
       - name: Build linter dependencies image
