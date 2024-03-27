@@ -157,8 +157,7 @@ jobs:
           cache-from: type=gha,ref=${{ github.ref_name }}-image-cache
           cache-to: type=gha,mode=min,ref=${{ github.ref_name }}-image-cache
           build-args: |
-            DEPENDENCY_IMAGE_TAG=ghcr.io/genspectrum/lapis-silo-dependencies:${{ env.DIR_HASH }}
-
+            DEPENDENCY_IMAGE=ghcr.io/genspectrum/lapis-silo-dependencies:${{ env.DIR_HASH }}
 
       - name: Run tests
         uses: addnab/docker-run-action@v3
