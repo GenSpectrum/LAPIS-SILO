@@ -36,7 +36,8 @@ namespace silo::query_engine::actions {
 template <typename SymbolType>
 class InsertionAggregation : public Action {
    static constexpr std::string_view POSITION_FIELD_NAME = "position";
-   static constexpr std::string_view INSERTION_FIELD_NAME = "insertions";
+   static constexpr std::string_view INSERTED_SYMBOLS_FIELD_NAME = "insertedSymbols";
+   static constexpr std::string_view INSERTION_FIELD_NAME = "insertion";
    static constexpr std::string_view SEQUENCE_FIELD_NAME = "sequenceName";
    static constexpr std::string_view COUNT_FIELD_NAME = "count";
 

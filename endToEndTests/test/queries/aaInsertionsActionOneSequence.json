@@ -4,7 +4,7 @@
     "action": {
       "type": "AminoAcidInsertions",
       "column": "aminoAcidInsertions",
-      "orderByFields": ["insertions", "position"],
+      "orderByFields": ["insertedSymbols", "position"],
       "sequenceName": "S"
     },
     "filterExpression": {
@@ -14,25 +14,29 @@
   "expectedQueryResult": [
     {
       "count": 5,
-      "insertions": "EPE",
+      "insertedSymbols": "EPE",
+      "insertion": "ins_S:214:EPE",
       "position": 214,
       "sequenceName": "S"
     },
     {
       "count": 1,
-      "insertions": "IV",
+      "insertedSymbols": "IV",
+      "insertion": "ins_S:210:IV",
       "position": 210,
       "sequenceName": "S"
     },
     {
       "count": 1,
-      "insertions": "SGE",
+      "insertedSymbols": "SGE",
+      "insertion": "ins_S:247:SGE",
       "position": 247,
       "sequenceName": "S"
     },
     {
       "count": 1,
-      "insertions": "T",
+      "insertedSymbols": "T",
+      "insertion": "ins_S:143:T",
       "position": 143,
       "sequenceName": "S"
     }
