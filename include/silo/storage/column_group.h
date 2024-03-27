@@ -104,6 +104,8 @@ class ColumnPartitionGroup {
       const duckdb::Value& value
    );
 
+   void addNullToColumn(const std::string& column_name, config::ColumnType column_type);
+
    void reserveSpaceInColumn(
       const std::string& column_name,
       config::ColumnType column_type,
