@@ -194,6 +194,7 @@ template <typename SymbolType>
 void InsertionAggregation<SymbolType>::addAggregatedInsertionsToInsertionCounts(
    std::vector<QueryResultEntry>& output,
    const std::string& sequence_name,
+   bool show_sequence_in_response,
    const PrefilteredBitmaps& prefiltered_bitmaps
 ) const {
    std::unordered_map<PositionAndInsertion, uint32_t> all_insertions;
@@ -217,6 +218,7 @@ void InsertionAggregation<SymbolType>::addAggregatedInsertionsToInsertionCounts(
          }
       }
    }
+   const std::string sequence_in_response = show_sequence_in_response ? sequence_name + ":" : "";
    for (const auto& [position_and_insertion, count] : all_insertions) {
       const std::map<std::string, std::optional<std::variant<std::string, int32_t, double>>> fields{
          {std::string(POSITION_FIELD_NAME),
@@ -226,8 +228,8 @@ void InsertionAggregation<SymbolType>::addAggregatedInsertionsToInsertionCounts(
          {std::string(SEQUENCE_FIELD_NAME), sequence_name},
          {std::string(INSERTION_FIELD_NAME),
           fmt::format(
-             "ins_{}:{}:{}",
-             sequence_name,
+             "ins_{}{}:{}",
+             sequence_in_response,
              position_and_insertion.position_idx,
              position_and_insertion.insertion_value
           )},
@@ -246,8 +248,10 @@ QueryResult InsertionAggregation<SymbolType>::execute(
 
    std::vector<QueryResultEntry> insertion_counts;
    for (const auto& [sequence_name, prefiltered_bitmaps] : bitmaps_to_evaluate) {
+      const bool show_sequence_in_response =
+         sequence_name != database.getDefaultSequenceName<SymbolType>();
       addAggregatedInsertionsToInsertionCounts(
-         insertion_counts, sequence_name, prefiltered_bitmaps
+         insertion_counts, sequence_name, show_sequence_in_response, prefiltered_bitmaps
       );
    }
    return {insertion_counts};
