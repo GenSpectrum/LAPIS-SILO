@@ -41,10 +41,12 @@ const MetadataFilename DEFAULT_METADATA_FILENAME = {"metadata.tsv"};
 struct NdjsonInputFilename {
    std::optional<std::string> filename;
 };
+const NdjsonInputFilename DEFAULT_NDJSON_INPUT_FILENAME = {std::nullopt};
 
 struct PreprocessingDatabaseLocation {
    std::optional<std::string> filename;
 };
+const PreprocessingDatabaseLocation DEFAULT_PREPROCESSING_DATABASE_LOCATION = {std::nullopt};
 
 struct PangoLineageDefinitionFilename {
    std::optional<std::string> filename;
