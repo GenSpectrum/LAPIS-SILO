@@ -65,6 +65,7 @@ class InsertionAggregation : public Action {
    void addAggregatedInsertionsToInsertionCounts(
       std::vector<QueryResultEntry>& output,
       const std::string& sequence_name,
+      bool show_sequence_in_response,
       const PrefilteredBitmaps& prefiltered_bitmaps
    ) const;
 
