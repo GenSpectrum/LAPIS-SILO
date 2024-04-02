@@ -172,6 +172,7 @@ void Mutations<SymbolType>::validateOrderByFields(const Database& /*database*/) 
        MUTATION_TO_FIELD_NAME,
        POSITION_FIELD_NAME,
        PROPORTION_FIELD_NAME,
+       SEQUENCE_FIELD_NAME,
        COUNT_FIELD_NAME}
    };
 
