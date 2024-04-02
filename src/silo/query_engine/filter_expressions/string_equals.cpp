@@ -1,4 +1,5 @@
 #include "silo/query_engine/filter_expressions/string_equals.h"
+#include <fmt/format.h>
 
 #include <optional>
 #include <utility>
@@ -35,6 +36,12 @@ std::unique_ptr<silo::query_engine::operators::Operator> StringEquals::compile(
    const silo::DatabasePartition& database_partition,
    Expression::AmbiguityMode /*mode*/
 ) const {
+   CHECK_SILO_QUERY(
+      database_partition.columns.string_columns.contains(column) ||
+         database_partition.columns.indexed_string_columns.contains(column),
+      fmt::format("the database does not contain the column {}", column)
+   );
+
    if (database_partition.columns.indexed_string_columns.contains(column)) {
       const auto& string_column = database_partition.columns.indexed_string_columns.at(column);
       const auto bitmap = string_column.filter(value);
@@ -46,21 +53,17 @@ std::unique_ptr<silo::query_engine::operators::Operator> StringEquals::compile(
          bitmap.value(), database_partition.sequence_count
       );
    }
-
-   if (database_partition.columns.string_columns.contains(column)) {
-      const auto& string_column = database_partition.columns.string_columns.at(column);
-      const auto& embedded_string = string_column.embedString(value);
-      if (embedded_string.has_value()) {
-         return std::make_unique<operators::Selection>(
-            std::make_unique<operators::CompareToValueSelection<common::SiloString>>(
-               string_column.getValues(), operators::Comparator::EQUALS, embedded_string.value()
-            ),
-            database_partition.sequence_count
-         );
-      }
-      return std::make_unique<operators::Empty>(database_partition.sequence_count);
+   // database_partition.columns.string_columns.contains(column)
+   const auto& string_column = database_partition.columns.string_columns.at(column);
+   const auto& embedded_string = string_column.embedString(value);
+   if (embedded_string.has_value()) {
+      return std::make_unique<operators::Selection>(
+         std::make_unique<operators::CompareToValueSelection<common::SiloString>>(
+            string_column.getValues(), operators::Comparator::EQUALS, embedded_string.value()
+         ),
+         database_partition.sequence_count
+      );
    }
-
    return std::make_unique<operators::Empty>(database_partition.sequence_count);
 }
 

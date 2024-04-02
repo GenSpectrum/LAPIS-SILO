@@ -4,6 +4,7 @@
 #include <optional>
 #include <utility>
 
+#include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
 #include "silo/query_engine/operators/empty.h"
@@ -39,9 +40,10 @@ std::unique_ptr<silo::query_engine::operators::Operator> PangoLineageFilter::com
    const silo::DatabasePartition& database_partition,
    AmbiguityMode /*mode*/
 ) const {
-   if (!database_partition.columns.pango_lineage_columns.contains(column)) {
-      return std::make_unique<operators::Empty>(database_partition.sequence_count);
-   }
+   CHECK_SILO_QUERY(
+      database_partition.columns.pango_lineage_columns.contains(column),
+      fmt::format("the database does not contain the column {}", column)
+   );
 
    std::string lineage_all_upper = lineage;
    std::transform(
