@@ -113,6 +113,40 @@ const Scenario TSV_FILE_WITH_SQL_KEYWORD_AS_FIELD = {
    .expected_query_result = NDJSON_WITH_SQL_KEYWORD_AS_FIELD.expected_query_result
 };
 
+const Scenario EMPTY_INPUT_TSV = {
+   .input_directory = "testBaseData/exampleDatasetEmpty/",
+   .expected_sequence_count = 2,
+   .query = R"(
+      {
+         "action": {
+           "type": "Details"
+         },
+         "filterExpression": {
+            "type": "True"
+         }
+      }
+   )",
+   .expected_query_result = nlohmann::json::parse(R"(
+[])")
+};
+
+const Scenario EMPTY_INPUT_NDJSON = {
+   .input_directory = "testBaseData/exampleDatasetEmpty/",
+   .expected_sequence_count = 2,
+   .query = R"(
+      {
+         "action": {
+           "type": "Details"
+         },
+         "filterExpression": {
+            "type": "True"
+         }
+      }
+   )",
+   .expected_query_result = nlohmann::json::parse(R"(
+[])")
+};
+
 class PreprocessorTestFixture : public ::testing::TestWithParam<Scenario> {};
 
 INSTANTIATE_TEST_SUITE_P(
@@ -123,7 +157,9 @@ INSTANTIATE_TEST_SUITE_P(
       NDJSON_FILE_WITH_MISSING_SEGMENTS_AND_GENES,
       NDJSON_WITH_SQL_KEYWORD_AS_FIELD,
       TSV_FILE_WITH_SQL_KEYWORD_AS_FIELD,
-      NDJSON_WITH_NUMERIC_NAMES
+      NDJSON_WITH_NUMERIC_NAMES,
+      EMPTY_INPUT_TSV,
+      EMPTY_INPUT_NDJSON
    ),
    printTestName
 );
