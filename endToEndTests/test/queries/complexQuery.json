@@ -97,8 +97,8 @@
               "type": "And"
             },
             {
-              "column": "pangoLineage",
-              "value": "A.1.2.3",
+              "column": "pango_lineage",
+              "value": "B",
               "includeSublineages": true,
               "type": "PangoLineage"
             }
