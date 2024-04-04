@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
@@ -36,6 +37,11 @@ std::unique_ptr<silo::query_engine::operators::Operator> IntBetween::compile(
    const silo::DatabasePartition& database_partition,
    silo::query_engine::filter_expressions::Expression::AmbiguityMode /*mode*/
 ) const {
+   CHECK_SILO_QUERY(
+      database_partition.columns.int_columns.contains(column),
+      fmt::format("the database does not contain the column '{}'", column)
+   );
+
    const auto& int_column = database_partition.columns.int_columns.at(column);
 
    std::vector<std::unique_ptr<operators::Predicate>> predicates;

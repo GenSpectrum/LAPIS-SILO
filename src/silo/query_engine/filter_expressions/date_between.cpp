@@ -4,6 +4,7 @@
 #include <map>
 #include <utility>
 
+#include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
 #include "silo/common/date.h"
@@ -48,6 +49,11 @@ std::unique_ptr<operators::Operator> DateBetween::compile(
    const silo::DatabasePartition& database_partition,
    AmbiguityMode /*mode*/
 ) const {
+   CHECK_SILO_QUERY(
+      database_partition.columns.date_columns.contains(column),
+      fmt::format("the database does not contain the column '{}'", column)
+   );
+
    const auto& date_column = database_partition.columns.date_columns.at(column);
 
    if (!date_column.isSorted()) {

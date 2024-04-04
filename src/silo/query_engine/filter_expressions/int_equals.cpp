@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
 #include "silo/query_engine/filter_expressions/expression.h"
@@ -32,9 +33,10 @@ std::unique_ptr<silo::query_engine::operators::Operator> IntEquals::compile(
    const silo::DatabasePartition& database_partition,
    Expression::AmbiguityMode /*mode*/
 ) const {
-   if (!database_partition.columns.int_columns.contains(column)) {
-      return std::make_unique<operators::Empty>(database_partition.sequence_count);
-   }
+   CHECK_SILO_QUERY(
+      database_partition.columns.int_columns.contains(column),
+      fmt::format("the database does not contain the column '{}'", column)
+   );
 
    const auto& int_column = database_partition.columns.int_columns.at(column);
 
