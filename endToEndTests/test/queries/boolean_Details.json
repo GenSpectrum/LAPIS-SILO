@@ -1,0 +1,56 @@
+{
+  "testCaseName": "boolean Details",
+  "query": {
+    "action": {
+      "type": "Details",
+      "fields": ["test_boolean_column", "gisaid_epi_isl"],
+      "orderByFields": ["gisaid_epi_isl"],
+      "limit": 10
+    },
+    "filterExpression": {
+      "type": "True"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "gisaid_epi_isl": "EPI_ISL_1001493",
+      "test_boolean_column": true
+    },
+    {
+      "gisaid_epi_isl": "EPI_ISL_1001920",
+      "test_boolean_column": false
+    },
+    {
+      "gisaid_epi_isl": "EPI_ISL_1002052",
+      "test_boolean_column": true
+    },
+    {
+      "gisaid_epi_isl": "EPI_ISL_1002156",
+      "test_boolean_column": true
+    },
+    {
+      "gisaid_epi_isl": "EPI_ISL_1003010",
+      "test_boolean_column": true
+    },
+    {
+      "gisaid_epi_isl": "EPI_ISL_1003036",
+      "test_boolean_column": null
+    },
+    {
+      "gisaid_epi_isl": "EPI_ISL_1003373",
+      "test_boolean_column": false
+    },
+    {
+      "gisaid_epi_isl": "EPI_ISL_1003425",
+      "test_boolean_column": true
+    },
+    {
+      "gisaid_epi_isl": "EPI_ISL_1003519",
+      "test_boolean_column": false
+    },
+    {
+      "gisaid_epi_isl": "EPI_ISL_1003629",
+      "test_boolean_column": null
+    }
+  ]
+}

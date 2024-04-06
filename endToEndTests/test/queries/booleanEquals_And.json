@@ -1,0 +1,29 @@
+{
+  "testCaseName": "BooleanEquals with And",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "And",
+      "children": [
+        {
+          "type": "BooleanEquals",
+          "column": "test_boolean_column",
+          "value": false
+        },
+        {
+          "type": "PangoLineage",
+          "column": "pango_lineage",
+          "value": "B.1",
+          "includeSublineages": true
+        }
+      ]
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 37
+    }
+  ]
+}

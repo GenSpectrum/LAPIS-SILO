@@ -1,0 +1,18 @@
+{
+  "testCaseName": "BooleanEquals for test_boolean_column",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "BooleanEquals",
+      "column": "test_boolean_column",
+      "value": true
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 41
+    }
+  ]
+}
