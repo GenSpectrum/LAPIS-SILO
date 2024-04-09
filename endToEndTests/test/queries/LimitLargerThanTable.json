@@ -33,6 +33,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.97,
       "region": "Europe",
+      "test_boolean_column": false,
       "unsorted_date": "2021-08-04"
     },
     {
@@ -44,6 +45,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.95,
       "region": "Europe",
+      "test_boolean_column": true,
       "unsorted_date": "2021-03-18"
     },
     {
@@ -55,6 +57,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.91,
       "region": "Europe",
+      "test_boolean_column": true,
       "unsorted_date": "2021-05-07"
     },
     {
@@ -66,6 +69,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.95,
       "region": "Europe",
+      "test_boolean_column": null,
       "unsorted_date": "2021-07-04"
     },
     {
@@ -77,6 +81,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.94,
       "region": "Europe",
+      "test_boolean_column": true,
       "unsorted_date": "2021-05-18"
     },
     {
@@ -88,6 +93,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.91,
       "region": "Europe",
+      "test_boolean_column": true,
       "unsorted_date": "2021-01-03"
     },
     {
@@ -99,6 +105,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.98,
       "region": "Europe",
+      "test_boolean_column": null,
       "unsorted_date": "2021-01-20"
     },
     {
@@ -110,6 +117,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.93,
       "region": "Europe",
+      "test_boolean_column": false,
       "unsorted_date": "2021-01-16"
     },
     {
@@ -121,6 +129,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.97,
       "region": "Europe",
+      "test_boolean_column": false,
       "unsorted_date": "2020-11-24"
     },
     {
@@ -132,6 +141,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.98,
       "region": "Europe",
+      "test_boolean_column": true,
       "unsorted_date": null
     },
     {
@@ -143,6 +153,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.96,
       "region": null,
+      "test_boolean_column": true,
       "unsorted_date": "2021-01-25"
     },
     {
@@ -154,6 +165,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.94,
       "region": "Europe",
+      "test_boolean_column": true,
       "unsorted_date": "2021-02-10"
     },
     {
@@ -165,6 +177,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.93,
       "region": "Europe",
+      "test_boolean_column": true,
       "unsorted_date": "2021-03-21"
     },
     {
@@ -176,6 +189,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.94,
       "region": "Europe",
+      "test_boolean_column": null,
       "unsorted_date": "2021-03-03"
     },
     {
@@ -187,6 +201,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.9,
       "region": "Europe",
+      "test_boolean_column": false,
       "unsorted_date": "2020-12-15"
     },
     {
@@ -198,6 +213,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.91,
       "region": "Europe",
+      "test_boolean_column": false,
       "unsorted_date": "2020-11-24"
     },
     {
@@ -209,6 +225,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.89,
       "region": "Europe",
+      "test_boolean_column": false,
       "unsorted_date": "2021-04-27"
     },
     {
@@ -220,6 +237,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.95,
       "region": "Europe",
+      "test_boolean_column": true,
       "unsorted_date": "2020-12-24"
     },
     {
@@ -231,6 +249,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.97,
       "region": "Europe",
+      "test_boolean_column": false,
       "unsorted_date": "2020-03-08"
     },
     {
@@ -242,6 +261,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.89,
       "region": "Europe",
+      "test_boolean_column": true,
       "unsorted_date": "2021-02-03"
     },
     {
@@ -253,6 +273,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.98,
       "region": "Europe",
+      "test_boolean_column": null,
       "unsorted_date": "2021-04-23"
     },
     {
@@ -264,6 +285,7 @@
       "pango_lineage": "Q.7",
       "qc_value": 0.96,
       "region": "Europe",
+      "test_boolean_column": false,
       "unsorted_date": "2021-05-10"
     },
     {
@@ -275,6 +297,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.96,
       "region": "Europe",
+      "test_boolean_column": null,
       "unsorted_date": "2021-01-29"
     },
     {
@@ -286,6 +309,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.91,
       "region": "Europe",
+      "test_boolean_column": true,
       "unsorted_date": "2021-03-09"
     },
     {
@@ -297,6 +321,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.9,
       "region": "Europe",
+      "test_boolean_column": false,
       "unsorted_date": "2021-01-22"
     },
     {
@@ -308,6 +333,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.92,
       "region": "Europe",
+      "test_boolean_column": null,
       "unsorted_date": "2020-12-21"
     },
     {
@@ -319,6 +345,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.93,
       "region": "Europe",
+      "test_boolean_column": true,
       "unsorted_date": "2020-08-17"
     },
     {
@@ -330,6 +357,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.95,
       "region": "Europe",
+      "test_boolean_column": null,
       "unsorted_date": "2021-05-25"
     },
     {
@@ -341,6 +369,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.94,
       "region": "Europe",
+      "test_boolean_column": null,
       "unsorted_date": "2020-10-08"
     },
     {
@@ -352,6 +381,7 @@
       "pango_lineage": "Q.7",
       "qc_value": null,
       "region": "Europe",
+      "test_boolean_column": false,
       "unsorted_date": "2021-04-12"
     },
     {
@@ -363,6 +393,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.93,
       "region": "Europe",
+      "test_boolean_column": null,
       "unsorted_date": "2021-04-23"
     },
     {
@@ -374,6 +405,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.92,
       "region": "Europe",
+      "test_boolean_column": true,
       "unsorted_date": "2021-05-09"
     },
     {
@@ -385,6 +417,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.89,
       "region": "Europe",
+      "test_boolean_column": true,
       "unsorted_date": "2020-11-13"
     },
     {
@@ -396,6 +429,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.92,
       "region": "Europe",
+      "test_boolean_column": true,
       "unsorted_date": "2021-05-08"
     },
     {
@@ -407,6 +441,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.89,
       "region": "Europe",
+      "test_boolean_column": null,
       "unsorted_date": "2021-05-08"
     },
     {
@@ -418,6 +453,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.96,
       "region": "Europe",
+      "test_boolean_column": false,
       "unsorted_date": "2021-05-23"
     },
     {
@@ -429,6 +465,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.94,
       "region": "Europe",
+      "test_boolean_column": null,
       "unsorted_date": "2020-12-09"
     },
     {
@@ -440,6 +477,7 @@
       "pango_lineage": "Q.7",
       "qc_value": 0.89,
       "region": "Europe",
+      "test_boolean_column": false,
       "unsorted_date": "2021-03-10"
     },
     {
@@ -451,6 +489,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.97,
       "region": "Europe",
+      "test_boolean_column": false,
       "unsorted_date": "2021-06-05"
     },
     {
@@ -462,6 +501,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.92,
       "region": "Europe",
+      "test_boolean_column": false,
       "unsorted_date": "2020-10-22"
     },
     {
@@ -473,6 +513,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.93,
       "region": "Europe",
+      "test_boolean_column": true,
       "unsorted_date": "2020-10-28"
     },
     {
@@ -484,6 +525,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": null,
       "region": "Europe",
+      "test_boolean_column": true,
       "unsorted_date": "2021-05-11"
     },
     {
@@ -495,6 +537,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.98,
       "region": "Europe",
+      "test_boolean_column": true,
       "unsorted_date": "2021-06-10"
     },
     {
@@ -506,6 +549,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.98,
       "region": "Europe",
+      "test_boolean_column": true,
       "unsorted_date": "2021-06-01"
     },
     {
@@ -517,6 +561,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.94,
       "region": "Europe",
+      "test_boolean_column": true,
       "unsorted_date": "2021-04-28"
     },
     {
@@ -528,6 +573,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.98,
       "region": "Europe",
+      "test_boolean_column": null,
       "unsorted_date": "2021-03-02"
     },
     {
@@ -539,6 +585,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.9,
       "region": "Europe",
+      "test_boolean_column": false,
       "unsorted_date": "2021-05-12"
     },
     {
@@ -550,6 +597,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.9,
       "region": "Europe",
+      "test_boolean_column": null,
       "unsorted_date": "2021-05-13"
     },
     {
@@ -561,6 +609,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.91,
       "region": "Europe",
+      "test_boolean_column": false,
       "unsorted_date": "2021-05-24"
     },
     {
@@ -572,6 +621,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.91,
       "region": "Europe",
+      "test_boolean_column": false,
       "unsorted_date": "2021-05-05"
     },
     {
@@ -583,6 +633,7 @@
       "pango_lineage": "B.1.1.7",
       "qc_value": 0.95,
       "region": "Europe",
+      "test_boolean_column": false,
       "unsorted_date": "2021-01-16"
     }
   ]

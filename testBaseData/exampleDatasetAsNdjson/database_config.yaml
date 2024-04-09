@@ -22,6 +22,8 @@ schema:
       type: int
     - name: qc_value
       type: float
+    - name: test_boolean_column
+      type: boolean
     - name: nucleotideInsertions
       type: insertion
     - name: aminoAcidInsertions
