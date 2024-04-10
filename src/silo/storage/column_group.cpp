@@ -279,7 +279,7 @@ common::JsonValueType ColumnPartitionGroup::getValue(
       return common::dateToString(date_columns.at(column).getValues().at(sequence_id));
    }
    if (bool_columns.contains(column)) {
-      OptionalBool value = bool_columns.at(column).getValues().at(sequence_id);
+      const OptionalBool value = bool_columns.at(column).getValues().at(sequence_id);
       if (value.isNull()) {
          return std::nullopt;
       }
