@@ -93,72 +93,31 @@ void DatabasePartition::validateAminoAcidSequences() const {
    }
 }
 
-void DatabasePartition::validateMetadataColumns() const {
-   const size_t partition_size = sequence_count;
+template <typename ColumnPartition>
+void DatabasePartition::validateColumnsHaveSize(
+   const std::map<std::string, ColumnPartition>& columnsOfTheType,
+   const std::string& columnType
+) const {
+   for (const auto& column : columnsOfTheType) {
+      if (column.second.getValues().size() != sequence_count) {
+         throw preprocessing::PreprocessingException(
+            columnType + " " + column.first + " has invalid size " +
+            std::to_string(column.second.getValues().size())
+         );
+      }
+   }
+}
 
-   for (const auto& col : columns.aa_insertion_columns) {
-      if (col.second.getValues().size() != partition_size) {
-         throw preprocessing::PreprocessingException(
-            "aa_insertion_column " + col.first + " has invalid size."
-         );
-      }
-   }
-   for (const auto& col : columns.pango_lineage_columns) {
-      if (col.second.getValues().size() != partition_size) {
-         throw preprocessing::PreprocessingException(
-            "pango_lineage_column " + col.first + " has invalid size."
-         );
-      }
-   }
-   for (const auto& col : columns.nuc_insertion_columns) {
-      if (col.second.getValues().size() != partition_size) {
-         throw preprocessing::PreprocessingException(
-            "nuc_insertion_column " + col.first + " has invalid size."
-         );
-      }
-   }
-   for (const auto& col : columns.date_columns) {
-      if (col.second.getValues().size() != partition_size) {
-         throw preprocessing::PreprocessingException(
-            "date_column " + col.first + " has invalid size."
-         );
-      }
-   }
-   for (const auto& col : columns.bool_columns) {
-      if (col.second.getValues().size() != partition_size) {
-         throw preprocessing::PreprocessingException(
-            "bool_columns " + col.first + " has invalid size."
-         );
-      }
-   }
-   for (const auto& col : columns.int_columns) {
-      if (col.second.getValues().size() != partition_size) {
-         throw preprocessing::PreprocessingException(
-            "int_columns " + col.first + " has invalid size."
-         );
-      }
-   }
-   for (const auto& col : columns.indexed_string_columns) {
-      if (col.second.getValues().size() != partition_size) {
-         throw preprocessing::PreprocessingException(
-            "indexed_string_columns " + col.first + " has invalid size."
-         );
-      }
-   }
-   for (const auto& col : columns.string_columns) {
-      if (col.second.getValues().size() != partition_size) {
-         throw preprocessing::PreprocessingException(
-            "string_columns " + col.first + " has invalid size."
-         );
-      }
-   }
-   for (const auto& col : columns.float_columns) {
-      if (col.second.getValues().size() != partition_size) {
-         throw preprocessing::PreprocessingException(
-            "float_columns " + col.first + " has invalid size."
-         );
-      }
-   }
+void DatabasePartition::validateMetadataColumns() const {
+   validateColumnsHaveSize(columns.aa_insertion_columns, "aa_insertion_column");
+   validateColumnsHaveSize(columns.pango_lineage_columns, "pango_lineage_column");
+   validateColumnsHaveSize(columns.nuc_insertion_columns, "nuc_insertion_column");
+   validateColumnsHaveSize(columns.date_columns, "date_column");
+   validateColumnsHaveSize(columns.bool_columns, "bool_columns");
+   validateColumnsHaveSize(columns.int_columns, "int_columns");
+   validateColumnsHaveSize(columns.indexed_string_columns, "indexed_string_columns");
+   validateColumnsHaveSize(columns.string_columns, "string_columns");
+   validateColumnsHaveSize(columns.float_columns, "float_columns");
 }
 
 const std::vector<preprocessing::PartitionChunk>& DatabasePartition::getChunks() const {

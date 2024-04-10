@@ -80,6 +80,12 @@ class DatabasePartition {
 
    void validateMetadataColumns() const;
 
+   template <typename ColumnPartition>
+   void validateColumnsHaveSize(
+      const std::map<std::string, ColumnPartition>& columnsOfTheType,
+      const std::string& columnType
+   ) const;
+
   public:
    explicit DatabasePartition(std::vector<silo::preprocessing::PartitionChunk> chunks);
 
