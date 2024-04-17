@@ -133,10 +133,15 @@ TEST_F(RequestHandlerTestFixture, returnsMethodNotAllowedOnPostInfoRequest) {
 }
 
 TEST_F(RequestHandlerTestFixture, handlesPostQueryRequest) {
-   std::map<std::string, JsonValueType> fields{// NOLINTNEXTLINE(readability-magic-numbers)
-                                               {"count", 5}
+   std::map<std::string, JsonValueType> fields1{// NOLINTNEXTLINE(readability-magic-numbers)
+                                                {"count", 5},
+                                                {"someField", "value 1"}
    };
-   const std::vector<silo::query_engine::QueryResultEntry> tmp{{fields}};
+   std::map<std::string, JsonValueType> fields2{// NOLINTNEXTLINE(readability-magic-numbers)
+                                                {"count", 7},
+                                                {"someField", "value 2"}
+   };
+   const std::vector<silo::query_engine::QueryResultEntry> tmp{{fields1}, {fields2}};
    const silo::query_engine::QueryResult query_result{tmp};
    EXPECT_CALL(database_mutex.mock_database, executeQuery)
       .WillRepeatedly(testing::Return(query_result));
@@ -148,8 +153,11 @@ TEST_F(RequestHandlerTestFixture, handlesPostQueryRequest) {
 
    processRequest();
 
+   const std::string ndjson_line_1 = R"({"count":5,"someField":"value 1"})";
+   const std::string ndjson_line_2 = R"({"count":7,"someField":"value 2"})";
+
    EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_OK);
-   EXPECT_EQ(response.out_stream.str(), R"({"queryResult":[{"count":5}]})");
+   EXPECT_EQ(response.out_stream.str(), ndjson_line_1 + "\n" + ndjson_line_2 + "\n");
    EXPECT_EQ(response.get("data-version"), "1234");
 }
 
@@ -242,7 +250,7 @@ TEST_F(
    EXPECT_THAT(response.out_stream.str(), testing::HasSubstr("Database not initialized yet"));
 }
 
-TEST_F(RequestHandlerTestFixture, postingQueryOnInitializedDatabase_isSuccessfull) {
+TEST_F(RequestHandlerTestFixture, postingQueryOnInitializedDatabase_isSuccessful) {
    request.setMethod("POST");
    request.setURI("/query");
    request.in_stream
@@ -259,7 +267,11 @@ TEST_F(RequestHandlerTestFixture, postingQueryOnInitializedDatabase_isSuccessful
    processRequest(under_test);
 
    EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_OK);
-   EXPECT_EQ(response.out_stream.str(), R"({"queryResult":[{"count":0}]})");
+   EXPECT_EQ(
+      response.out_stream.str(),
+      R"({"count":0})"
+      "\n"
+   );
 }
 
 // NOLINTEND(bugprone-unchecked-optional-access)

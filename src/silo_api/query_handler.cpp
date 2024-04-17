@@ -31,7 +31,6 @@ void QueryHandler::post(
 
    SPDLOG_INFO("Request Id [{}] - received query: {}", request_id, query);
 
-   response.setContentType("application/json");
    try {
       const auto fixed_database = database_mutex.getDatabase();
 
@@ -39,9 +38,13 @@ void QueryHandler::post(
 
       response.set("data-version", fixed_database.database.getDataVersion().toString());
 
+      response.setContentType("application/x-ndjson");
       std::ostream& out_stream = response.send();
-      out_stream << nlohmann::json(query_result);
+      for (const auto& entry : query_result.query_result) {
+         out_stream << nlohmann::json(entry) << '\n';
+      }
    } catch (const silo::QueryParseException& ex) {
+      response.setContentType("application/json");
       SPDLOG_INFO("Query is invalid: " + query + " - exception: " + ex.what());
       response.setStatusAndReason(Poco::Net::HTTPResponse::HTTP_BAD_REQUEST);
       std::ostream& out_stream = response.send();

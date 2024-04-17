@@ -18,7 +18,7 @@ function readFilesRecursively(directoryPath) {
 
     if (fs.statSync(filePath).isDirectory()) {
       fileList = fileList.concat(readFilesRecursively(filePath));
-    } else {
+    } else if (filePath.endsWith('.json')) {
       fileList.push(filePath);
     }
   });
@@ -44,22 +44,16 @@ describe('The /query endpoint', () => {
         .post('/query')
         .send(testCase.query)
         .expect(200)
-        .expect('Content-Type', 'application/json')
+        .expect('Content-Type', 'application/x-ndjson')
         .expect(headerToHaveDataVersion);
-      try {
-        expect(response.body).to.deep.equal({ queryResult: testCase.expectedQueryResult });
-      } catch (e) {
-        const data = JSON.stringify(response.body, null, 2); // The `null` and `2` arguments format the JSON for readability
-        const errorFileName = 'actual_result_' + testCase.fileName;
-        fs.writeFile(errorFileName, data, err => {
-          if (err) {
-            console.error('Failed to write file', err);
-          } else {
-            console.log('Actual response saved to ' + errorFileName);
-          }
-        });
-        throw e;
-      }
+
+      let responseLines = response.text
+        .split(/\n/)
+        .filter(it => it !== '')
+        .map(it => JSON.parse(it));
+
+      const errorMessage = 'Actual result is:\n' + response.text + '\n';
+      expect(responseLines, errorMessage).to.deep.equal(testCase.expectedQueryResult);
     })
   );
 
