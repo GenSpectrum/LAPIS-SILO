@@ -23,7 +23,6 @@ struct QueryResult {
 
 // NOLINTBEGIN(readability-identifier-naming)
 void to_json(nlohmann::json& json, const QueryResultEntry& result_entry);
-void to_json(nlohmann::json& json, const QueryResult& query_result);
 // NOLINTEND(readability-identifier-naming)
 
 }  // namespace silo::query_engine
