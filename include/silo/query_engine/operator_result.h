@@ -28,7 +28,7 @@ class OperatorResult {
    roaring::Roaring* operator->();
    const roaring::Roaring* operator->() const;
 
-   bool isMutable() const;
+   [[nodiscard]] bool isMutable() const;
 };
 
 }  // namespace silo::query_engine
