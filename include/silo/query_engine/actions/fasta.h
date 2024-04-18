@@ -24,10 +24,12 @@ class Fasta : public Action {
 
    std::vector<std::string> sequence_names;
 
-   [[nodiscard]] void validateOrderByFields(const Database& database) const override;
+   void validateOrderByFields(const Database& database) const override;
 
-   QueryResult execute(const Database& database, std::vector<OperatorResult> bitmap_filter)
-      const override;
+   [[nodiscard]] QueryResult execute(
+      const Database& database,
+      std::vector<OperatorResult> bitmap_filter
+   ) const override;
 
    void addSequencesToResultsForPartition(
       QueryResult& results,
