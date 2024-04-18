@@ -83,7 +83,7 @@ std::string getTableQuery(
       join_clause += fmt::format(" AND key_table.key = t{}.key", idx);
    }
 
-   const std::string duckdb_table_query = fmt::format(
+   std::string duckdb_table_query = fmt::format(
       "SELECT key_table.key {} FROM {} key_table {} WHERE TRUE {}",
       select_clause,
       key_table_name,
