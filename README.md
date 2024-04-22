@@ -183,3 +183,17 @@ The includes are sorted in the following order:
 4. Internal includes
 
 Internal includes are marked by double quotes. External includes are marked by angle brackets.
+
+## Conventional Commits
+
+We follow the [conventional commits](https://www.conventionalcommits.org/) guidelines for commit messages.
+This will allow to automatically generate a changelog.
+
+We use [commitlint](https://commitlint.js.org/) to enforce the commit message format.
+To use it locally, run `npm install`.
+
+The last commit message can be checked with 
+    
+```shell
+npm run commitlint:last-commit
+``` 
