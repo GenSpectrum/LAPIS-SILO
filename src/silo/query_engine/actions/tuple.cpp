@@ -296,35 +296,20 @@ std::strong_ordering compareTupleFields(
    throw std::runtime_error("Unchecked column type of column " + metadata.name);
 }
 
-size_t getColumnSize(const silo::storage::ColumnMetadata& metadata) {
-   if (metadata.type == silo::config::ColumnType::STRING) {
-      return sizeof(silo::common::String<silo::common::STRING_SIZE>);
-   }
-   if (metadata.type == silo::config::ColumnType::FLOAT) {
-      return sizeof(double);
-   }
-   if (metadata.type == silo::config::ColumnType::BOOL) {
-      return sizeof(OptionalBool);
-   }
-   if (metadata.type == silo::config::ColumnType::INT) {
-      return sizeof(int32_t);
-   }
-   if (metadata.type == silo::config::ColumnType::DATE) {
-      return sizeof(silo::common::Date);
-   }
-   return sizeof(silo::Idx);
-}
-
 }  // namespace
 
 size_t silo::query_engine::actions::getTupleSize(
    const std::vector<silo::storage::ColumnMetadata>& metadata_list
 ) {
+   assert(!metadata_list.empty());
    size_t size = 0;
    for (const auto& metadata : metadata_list) {
       size += getColumnSize(metadata);
    }
-   return size;
+   size_t largest_data_member = getColumnSize(metadata_list.front());
+   size_t rounded_up_to_next_multiple =
+      ((size - 1 + largest_data_member) / largest_data_member) * largest_data_member;
+   return rounded_up_to_next_multiple;
 }
 
 Tuple::Tuple(const silo::storage::ColumnPartitionGroup* columns, std::byte* data, size_t data_size)

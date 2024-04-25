@@ -27,6 +27,25 @@ using silo::config::ColumnType;
 
 using silo::common::OptionalBool;
 
+size_t getColumnSize(const silo::storage::ColumnMetadata& metadata) {
+   if (metadata.type == silo::config::ColumnType::STRING) {
+      return sizeof(silo::common::String<silo::common::STRING_SIZE>);
+   }
+   if (metadata.type == silo::config::ColumnType::FLOAT) {
+      return sizeof(double);
+   }
+   if (metadata.type == silo::config::ColumnType::BOOL) {
+      return sizeof(OptionalBool);
+   }
+   if (metadata.type == silo::config::ColumnType::INT) {
+      return sizeof(int32_t);
+   }
+   if (metadata.type == silo::config::ColumnType::DATE) {
+      return sizeof(silo::common::Date);
+   }
+   return sizeof(silo::Idx);
+}
+
 uint32_t ColumnPartitionGroup::fill(
    duckdb::Connection& connection,
    uint32_t partition_id,
@@ -214,8 +233,11 @@ ColumnPartitionGroup ColumnPartitionGroup::getSubgroup(
    for (const auto& field : fields) {
       result.metadata.push_back({field.name, field.type});
    }
+   std::sort(result.metadata.begin(), result.metadata.end(), [](const auto& a, const auto& b) {
+      return getColumnSize(a) > getColumnSize(b);
+   });
 
-   for (const auto& item : fields) {
+   for (const auto& item : result.metadata) {
       ([&]() {
          switch (item.type) {
             case ColumnType::INDEXED_STRING:

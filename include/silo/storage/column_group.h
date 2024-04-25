@@ -41,6 +41,8 @@ struct ColumnMetadata {
    silo::config::ColumnType type;
 };
 
+size_t getColumnSize(const silo::storage::ColumnMetadata& metadata);
+
 class ColumnPartitionGroup {
    friend class boost::serialization::access;
 
