@@ -216,6 +216,7 @@ class SiloServer : public Poco::Util::ServerApplication {
       if (std::filesystem::exists("./runtime_config.yaml")) {
          runtime_config.overwriteFromFile("./runtime_config.yaml");
       }
+      runtime_config.overwriteFromEnvironmentVariables();
       runtime_config.overwriteFromCommandLineArguments(config());
 
       silo_api::DatabaseMutex database_mutex;

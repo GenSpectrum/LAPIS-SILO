@@ -3,8 +3,10 @@
 #include <stdexcept>
 #include <string>
 
+#include <Poco/Environment.h>
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/yaml.h>
+#include <boost/lexical_cast.hpp>
 
 namespace silo_api {
 
@@ -42,6 +44,39 @@ void RuntimeConfig::overwriteFromFile(const std::filesystem::path& config_path) 
       throw std::runtime_error(
          "Failed to read runtime config from " + config_path.string() + ": " + std::string(e.what())
       );
+   }
+}
+
+void RuntimeConfig::overwriteFromEnvironmentVariables() {
+   if (Poco::Environment::has(DATA_DIRECTORY_ENV_OPTION)) {
+      SPDLOG_DEBUG(
+         "Using dataDirectory passed via environment variable: {}",
+         Poco::Environment::get(DATA_DIRECTORY_ENV_OPTION)
+      );
+      data_directory = Poco::Environment::get(DATA_DIRECTORY_ENV_OPTION);
+   }
+   if (Poco::Environment::has(MAX_CONNECTIONS_ENV_OPTION)) {
+      SPDLOG_DEBUG(
+         "Using maximum queued http connections passed via environment variable: {}",
+         Poco::Environment::get(MAX_CONNECTIONS_ENV_OPTION)
+      );
+      max_connections =
+         boost::lexical_cast<int>(Poco::Environment::get(MAX_CONNECTIONS_ENV_OPTION));
+   }
+   if (Poco::Environment::has(PARALLEL_THREADS_ENV_OPTION)) {
+      SPDLOG_DEBUG(
+         "Using parallel threads for accepting http connections as passed via environment "
+         "variable: {}",
+         Poco::Environment::get(PARALLEL_THREADS_ENV_OPTION)
+      );
+      parallel_threads =
+         boost::lexical_cast<int>(Poco::Environment::get(PARALLEL_THREADS_ENV_OPTION));
+   }
+   if (Poco::Environment::has(PORT_ENV_OPTION)) {
+      SPDLOG_DEBUG(
+         "Using port passed via environment variable: {}", Poco::Environment::get(PORT_ENV_OPTION)
+      );
+      port = boost::lexical_cast<uint16_t>(Poco::Environment::get(PORT_ENV_OPTION));
    }
 }
 
