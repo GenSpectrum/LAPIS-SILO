@@ -35,7 +35,6 @@
 static const std::string ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION = "estimatedStartupTimeInMinutes";
 static const std::string PREPROCESSING_CONFIG_OPTION = "preprocessingConfig";
 static const std::string DATABASE_CONFIG_OPTION = "databaseConfig";
-static const std::string DATA_DIRECTORY_OPTION = "dataDirectory";
 static const std::string API_OPTION = "api";
 static const std::string PREPROCESSING_OPTION = "preprocessing";
 
@@ -76,106 +75,90 @@ silo::config::DatabaseConfig databaseConfig(const Poco::Util::AbstractConfigurat
    return silo::config::ConfigRepository().getValidatedConfig("database_config.yaml");
 }
 
-std::filesystem::path dataDirectory(
-   const Poco::Util::AbstractConfiguration& config,
-   const silo_api::RuntimeConfig& runtime_config
-) {
-   if (config.hasProperty(DATA_DIRECTORY_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using dataDirectory passed via command line argument: {}",
-         config.getString(DATA_DIRECTORY_OPTION)
-      );
-      return config.getString(DATA_DIRECTORY_OPTION);
-   }
-   if (runtime_config.data_directory.has_value()) {
-      SPDLOG_DEBUG(
-         "Using dataDirectory from runtime config file: {}",
-         runtime_config.data_directory.value().string()
-      );
-      return runtime_config.data_directory.value();
-   }
-
-   SPDLOG_DEBUG(
-      "dataDirectory not found in specified. Using default value: {}",
-      silo::preprocessing::DEFAULT_OUTPUT_DIRECTORY.directory
-   );
-   return silo::preprocessing::DEFAULT_OUTPUT_DIRECTORY.directory;
-}
-
 class SiloServer : public Poco::Util::ServerApplication {
   protected:
    [[maybe_unused]] void defineOptions(Poco::Util::OptionSet& options) override {
       ServerApplication::defineOptions(options);
 
       options.addOption(
-         Poco::Util::Option("help", "h", "display help information on command line arguments")
+         Poco::Util::Option()
+            .fullName("help")
+            .shortName("h")
+            .description("display help information on command line arguments")
             .required(false)
             .repeatable(false)
             .callback(Poco::Util::OptionCallback<SiloServer>(this, &SiloServer::displayHelp))
       );
 
-      options.addOption(
-         Poco::Util::Option(
-            PREPROCESSING_CONFIG_OPTION, "pc", "path to the preprocessing config file"
-         )
-            .required(false)
-            .repeatable(false)
-            .argument("PATH")
-            .binding(PREPROCESSING_CONFIG_OPTION)
-      );
+      options.addOption(Poco::Util::Option()
+                           .fullName(PREPROCESSING_CONFIG_OPTION)
+                           .description("path to the preprocessing config file")
+                           .required(false)
+                           .repeatable(false)
+                           .argument("PATH")
+                           .binding(PREPROCESSING_CONFIG_OPTION));
 
-      options.addOption(
-         Poco::Util::Option(DATABASE_CONFIG_OPTION, "dc", "path to the database config file")
-            .required(false)
-            .repeatable(false)
-            .argument("PATH")
-            .binding(DATABASE_CONFIG_OPTION)
-      );
+      options.addOption(Poco::Util::Option()
+                           .fullName(DATABASE_CONFIG_OPTION)
+                           .description("path to the database config file")
+                           .required(false)
+                           .repeatable(false)
+                           .argument("PATH")
+                           .binding(DATABASE_CONFIG_OPTION));
 
-      options.addOption(
-         Poco::Util::Option(DATA_DIRECTORY_OPTION, "d", "path to the preprocessed data")
-            .required(false)
-            .repeatable(false)
-            .argument("PATH")
-            .binding(DATA_DIRECTORY_OPTION)
-      );
+      options.addOption(Poco::Util::Option()
+                           .fullName(silo_api::DATA_DIRECTORY_OPTION)
+                           .shortName("d")
+                           .description("path to the preprocessed data")
+                           .required(false)
+                           .repeatable(false)
+                           .argument("PATH")
+                           .binding(silo_api::DATA_DIRECTORY_OPTION));
 
-      options.addOption(Poco::Util::Option(
-                           "maxQueuedHttpConnections", "mqhc", "maximum number of http connections"
-      )
+      options.addOption(Poco::Util::Option()
+                           .fullName(silo_api::PORT_OPTION)
+                           .description("port to listen to requests")
+                           .required(false)
+                           .repeatable(false)
+                           .argument("NUMBER")
+                           .binding(silo_api::PORT_OPTION));
+
+      options.addOption(Poco::Util::Option()
+                           .fullName("maxQueuedHttpConnections")
+                           .description("maximum number of http connections")
                            .required(false)
                            .repeatable(false)
                            .argument("NUMBER")
                            .binding("maxQueuedHttpConnections"));
 
-      options.addOption(
-         Poco::Util::Option(
-            "threadsForHttpConnections", "tfhc", "number of threads for http connections"
-         )
-            .required(false)
-            .repeatable(false)
-            .argument("NUMBER")
-            .binding("threadsForHttpConnections")
-      );
-
-      options.addOption(
-         Poco::Util::Option(API_OPTION, "a", "Execution mode: start the SILO web interface")
-            .required(false)
-            .repeatable(false)
-            .binding(API_OPTION)
-            .group("executionMode")
-      );
-
-      options.addOption(Poco::Util::Option(
-                           PREPROCESSING_OPTION,
-                           "p",
-                           "Execution mode: trigger the preprocessing pipeline to generate a "
-                           "partitioned dataset that can be read by the database"
-      )
+      options.addOption(Poco::Util::Option()
+                           .fullName("threadsForHttpConnections")
+                           .description("number of threads for http connections")
                            .required(false)
                            .repeatable(false)
-                           .binding(PREPROCESSING_OPTION)
+                           .argument("NUMBER")
+                           .binding("threadsForHttpConnections"));
+
+      options.addOption(Poco::Util::Option()
+                           .fullName(API_OPTION)
+                           .shortName("a")
+                           .description("Execution mode: start the SILO web interface")
+                           .required(false)
+                           .repeatable(false)
+                           .binding(API_OPTION)
                            .group("executionMode"));
+
+      options.addOption(
+         Poco::Util::Option()
+            .fullName(PREPROCESSING_OPTION)
+            .shortName("p")
+            .description("Execution mode: trigger the preprocessing pipeline to generate a "
+                         "partitioned dataset that can be read by the database")
+            .required(false)
+            .repeatable(false)
+            .binding(PREPROCESSING_OPTION)
+            .group("executionMode")
+      );
 
       options.addOption(
          Poco::Util::Option(
@@ -209,8 +192,7 @@ class SiloServer : public Poco::Util::ServerApplication {
          return handlePreprocessing();
       }
 
-      std::cout << "No execution mode specified."
-                << "\n\n";
+      std::cout << "No execution mode specified.\n\n";
       displayHelp("", "");
       return Application::EXIT_USAGE;
    }
@@ -230,29 +212,27 @@ class SiloServer : public Poco::Util::ServerApplication {
 
    int handleApi() {
       SPDLOG_INFO("Starting SILO API");
-      const int port = 8081;
-
       silo_api::RuntimeConfig runtime_config;
       if (std::filesystem::exists("./runtime_config.yaml")) {
-         runtime_config = silo_api::RuntimeConfig::readFromFile("./runtime_config.yaml");
+         runtime_config.overwriteFromFile("./runtime_config.yaml");
       }
-
-      const auto data_directory = dataDirectory(config(), runtime_config);
+      runtime_config.overwriteFromCommandLineArguments(config());
 
       silo_api::DatabaseMutex database_mutex;
 
-      const Poco::Net::ServerSocket server_socket(port);
+      const Poco::Net::ServerSocket server_socket(runtime_config.port);
 
-      const silo_api::DatabaseDirectoryWatcher watcher(data_directory, database_mutex);
+      const silo_api::DatabaseDirectoryWatcher watcher(
+         runtime_config.data_directory, database_mutex
+      );
 
       auto* const poco_parameter = new Poco::Net::HTTPServerParams;
-      const auto max_connections = config().getInt("maxQueuedHttpConnections", 64);
-      SPDLOG_INFO("Using {} queued http connections", max_connections);
-      poco_parameter->setMaxQueued(max_connections);
 
-      const auto threads = config().getInt("threadsForHttpConnections", 4);
-      SPDLOG_INFO("Using {} threads for http connections", threads);
-      poco_parameter->setMaxThreads(threads);
+      SPDLOG_INFO("Using {} queued http connections", runtime_config.max_connections);
+      poco_parameter->setMaxQueued(runtime_config.max_connections);
+
+      SPDLOG_INFO("Using {} threads for http connections", runtime_config.parallel_threads);
+      poco_parameter->setMaxThreads(runtime_config.parallel_threads);
 
       Poco::Net::HTTPServer server(
          new silo_api::SiloRequestHandlerFactory(database_mutex, getStartupConfig()),
@@ -260,7 +240,7 @@ class SiloServer : public Poco::Util::ServerApplication {
          poco_parameter
       );
 
-      SPDLOG_INFO("Listening on port {}", port);
+      SPDLOG_INFO("Listening on port {}", runtime_config.port);
 
       server.start();
       waitForTerminationRequest();
