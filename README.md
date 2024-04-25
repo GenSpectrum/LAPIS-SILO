@@ -197,3 +197,9 @@ The last commit message can be checked with
 ```shell
 npm run commitlint:last-commit
 ``` 
+
+To check commit messages of a branch to the commit where it branches off from `main`, run
+
+```shell
+npm run commitlint:merge-base
+```
