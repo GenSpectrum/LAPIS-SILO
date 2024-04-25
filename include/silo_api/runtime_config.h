@@ -9,10 +9,14 @@
 
 namespace silo_api {
 
-static const std::string DATA_DIRECTORY_OPTION = "dataDirectory";
-static const std::string MAX_CONNECTIONS_OPTION = "maxQueuedHttpConnections";
-static const std::string PARALLEL_THREADS_OPTION = "threadsForHttpConnections";
-static const std::string PORT_OPTION = "port";
+const std::string DATA_DIRECTORY_OPTION = "dataDirectory";
+const std::string DATA_DIRECTORY_ENV_OPTION = "SILO_DATA_DIRECTORY";
+const std::string MAX_CONNECTIONS_OPTION = "maxQueuedHttpConnections";
+const std::string MAX_CONNECTIONS_ENV_OPTION = "SILO_MAX_QUEUED_HTTP_CONNECTIONS";
+const std::string PARALLEL_THREADS_OPTION = "threadsForHttpConnections";
+const std::string PARALLEL_THREADS_ENV_OPTION = "SILO_THREADS_FOR_HTTP_CONNECTIONS";
+const std::string PORT_OPTION = "port";
+const std::string PORT_ENV_OPTION = "SILO_PORT";
 
 struct RuntimeConfig {
    std::filesystem::path data_directory = silo::preprocessing::DEFAULT_OUTPUT_DIRECTORY.directory;
@@ -21,6 +25,7 @@ struct RuntimeConfig {
    uint16_t port = 8081;
 
    void overwriteFromFile(const std::filesystem::path& config_path);
+   void overwriteFromEnvironmentVariables();
    void overwriteFromCommandLineArguments(const Poco::Util::AbstractConfiguration& config);
 };
 
