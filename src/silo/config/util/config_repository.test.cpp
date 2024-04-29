@@ -1,11 +1,11 @@
-#include "silo/config/config_repository.h"
+#include "silo/config/util/config_repository.h"
 
 #include <filesystem>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "silo/config/config_exception.h"
+#include "silo/config/util/config_exception.h"
 
 using silo::config::ConfigException;
 using silo::config::ConfigRepository;

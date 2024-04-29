@@ -9,10 +9,10 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/config/database_config.h"
+#include "silo/config/preprocessing_config.h"
+#include "silo/config/util/yaml_config.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
-#include "silo/preprocessing/preprocessing_config.h"
-#include "silo/preprocessing/preprocessing_config_reader.h"
 #include "silo/preprocessing/preprocessor.h"
 #include "silo/preprocessing/sql_function.h"
 #include "silo/query_engine/query_engine.h"
@@ -84,26 +84,28 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
       auto now = std::chrono::system_clock::now();
       auto duration = now.time_since_epoch();
       auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+      std::filesystem::path input_directory = fmt::format("test{}", millis);
+      std::filesystem::create_directories(input_directory);
 
-      auto config_with_input_dir = silo::preprocessing::OptionalPreprocessingConfig{};
-      config_with_input_dir.input_directory = {"test" + std::to_string(millis)};
-      config_with_input_dir.ndjson_input_filename = "input.ndjson";
-      config_with_input_dir.intermediate_results_directory =
-         config_with_input_dir.input_directory.value() / "temp";
+      std::ofstream config_file(input_directory / "preprocessing_config.yaml");
+      assert(config_file.is_open());
+      config_file << "inputDirectory: " << input_directory << "\n";
+      config_file << "ndjsonInputFilename: input.ndjson\n";
+      config_file << "intermediateResultsDirectory: " << input_directory / "temp\n";
+      config_file.close();
 
-      DataContainer::input_directory = config_with_input_dir.input_directory.value();
+      config::PreprocessingConfig config_with_input_dir;
+      config_with_input_dir.overwrite(
+         silo::config::YamlConfig(input_directory / "preprocessing_config.yaml")
+      );
+      config_with_input_dir.validate();
+
+      DataContainer::input_directory = input_directory;
 
       const DataContainer data_container;
       const QueryTestData& test_data = data_container.test_data;
 
-      std::filesystem::create_directories(config_with_input_dir.input_directory.value());
-
-      auto preprocessing_config =
-         silo::preprocessing::OptionalPreprocessingConfig{}.mergeValuesFromOrDefault(
-            config_with_input_dir
-         );
-
-      std::ofstream file(preprocessing_config.getNdjsonInputFilename().value());
+      std::ofstream file(config_with_input_dir.getNdjsonInputFilename().value());
 
       if (!file.is_open()) {
          std::cerr << "Could not open file for writing" << std::endl;
@@ -115,7 +117,7 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
       file.close();
 
       silo::preprocessing::Preprocessor preprocessor(
-         preprocessing_config, test_data.database_config, test_data.reference_genomes
+         config_with_input_dir, test_data.database_config, test_data.reference_genomes
       );
       DataContainer::database = std::make_unique<Database>(preprocessor.preprocess());
 

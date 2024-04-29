@@ -28,8 +28,10 @@ class ReferenceGenomes;
 namespace silo::preprocessing {
 class Preprocessor;
 class Partitions;
-class PreprocessingConfig;
 }  // namespace silo::preprocessing
+namespace silo::config {
+class PreprocessingConfig;
+}
 
 namespace silo {
 

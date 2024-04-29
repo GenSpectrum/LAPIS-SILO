@@ -6,6 +6,7 @@
 
 #include <cxxabi.h>
 
+#include <Poco/Environment.h>
 #include <Poco/Net/HTTPServer.h>
 #include <Poco/Net/HTTPServerParams.h>
 #include <Poco/Net/ServerSocket.h>
@@ -17,48 +18,55 @@
 #include <Poco/Util/OptionSet.h>
 #include <Poco/Util/ServerApplication.h>
 #include <spdlog/spdlog.h>
+#include <yaml-cpp/node/parse.h>
+#include <yaml-cpp/yaml.h>
 #include <boost/algorithm/string/join.hpp>
+#include <boost/lexical_cast.hpp>
 
-#include "silo/config/config_repository.h"
 #include "silo/config/database_config.h"
-#include "silo/preprocessing/preprocessing_config.h"
-#include "silo/preprocessing/preprocessing_config_reader.h"
+#include "silo/config/preprocessing_config.h"
+#include "silo/config/runtime_config.h"
+#include "silo/config/util/abstract_config.h"
+#include "silo/config/util/config_repository.h"
+#include "silo/config/util/yaml_config.h"
 #include "silo/preprocessing/preprocessor.h"
 #include "silo/preprocessing/sql_function.h"
 #include "silo/storage/reference_genomes.h"
+#include "silo_api/command_line_arguments.h"
 #include "silo_api/database_directory_watcher.h"
 #include "silo_api/database_mutex.h"
+#include "silo_api/environment_variables.h"
 #include "silo_api/logging.h"
 #include "silo_api/request_handler_factory.h"
-#include "silo_api/runtime_config.h"
 
 static const std::string PREPROCESSING_CONFIG_OPTION = "preprocessingConfig";
+static const std::string RUNTIME_CONFIG_OPTION = "runtimeConfig";
 static const std::string DATABASE_CONFIG_OPTION = "databaseConfig";
 static const std::string API_OPTION = "api";
 static const std::string PREPROCESSING_OPTION = "preprocessing";
 
-silo::preprocessing::PreprocessingConfig preprocessingConfig(
+using silo::config::YamlConfig;
+using silo_api::CommandLineArguments;
+using silo_api::EnvironmentVariables;
+
+silo::config::PreprocessingConfig preprocessingConfig(
    const Poco::Util::AbstractConfiguration& config
 ) {
-   silo::preprocessing::OptionalPreprocessingConfig default_preprocessing_config;
+   silo::config::PreprocessingConfig preprocessing_config;
    if (std::filesystem::exists("./default_preprocessing_config.yaml")) {
-      default_preprocessing_config = silo::preprocessing::PreprocessingConfigReader().readConfig(
-         "./default_preprocessing_config.yaml"
-      );
+      preprocessing_config.overwrite(YamlConfig("./default_preprocessing_config.yaml"));
    }
 
-   silo::preprocessing::OptionalPreprocessingConfig user_preprocessing_config;
    if (config.hasProperty(PREPROCESSING_CONFIG_OPTION)) {
-      user_preprocessing_config = silo::preprocessing::PreprocessingConfigReader().readConfig(
-         config.getString(PREPROCESSING_CONFIG_OPTION)
-      );
+      preprocessing_config.overwrite(YamlConfig(config.getString(PREPROCESSING_CONFIG_OPTION)));
    } else if (std::filesystem::exists("./preprocessing_config.yaml")) {
-      user_preprocessing_config =
-         silo::preprocessing::PreprocessingConfigReader().readConfig("./preprocessing_config.yaml");
+      preprocessing_config.overwrite(YamlConfig("./preprocessing_config.yaml"));
    }
 
-   const auto preprocessing_config =
-      user_preprocessing_config.mergeValuesFromOrDefault(default_preprocessing_config);
+   preprocessing_config.overwrite(EnvironmentVariables());
+   preprocessing_config.overwrite(CommandLineArguments(config));
+   preprocessing_config.validate();
+
    SPDLOG_INFO("Resulting preprocessing config: {}", preprocessing_config);
    return preprocessing_config;
 }
@@ -200,11 +208,13 @@ class SiloServer : public Poco::Util::ServerApplication {
    int handleApi() {
       SPDLOG_INFO("Starting SILO API");
       silo_api::RuntimeConfig runtime_config;
-      if (std::filesystem::exists("./runtime_config.yaml")) {
-         runtime_config.overwriteFromFile("./runtime_config.yaml");
+      if (config().hasProperty(RUNTIME_CONFIG_OPTION)) {
+         runtime_config.overwrite(YamlConfig(config().getString(RUNTIME_CONFIG_OPTION)));
+      } else if (std::filesystem::exists("./runtime_config.yaml")) {
+         runtime_config.overwrite(YamlConfig("./runtime_config.yaml"));
       }
-      runtime_config.overwriteFromEnvironmentVariables();
-      runtime_config.overwriteFromCommandLineArguments(config());
+      runtime_config.overwrite(EnvironmentVariables());
+      runtime_config.overwrite(CommandLineArguments(config()));
 
       silo_api::DatabaseMutex database_mutex;
 
@@ -237,9 +247,7 @@ class SiloServer : public Poco::Util::ServerApplication {
       return Application::EXIT_OK;
    }
 
-   silo::Database runPreprocessor(
-      const silo::preprocessing::PreprocessingConfig& preprocessing_config
-   ) {
+   silo::Database runPreprocessor(const silo::config::PreprocessingConfig& preprocessing_config) {
       auto database_config = databaseConfig(config());
 
       SPDLOG_INFO("preprocessing - reading reference genome");

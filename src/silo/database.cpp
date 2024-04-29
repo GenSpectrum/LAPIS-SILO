@@ -42,10 +42,10 @@
 #include "silo/common/format_number.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/config/database_config.h"
+#include "silo/config/preprocessing_config.h"
 #include "silo/database_info.h"
 #include "silo/persistence/exception.h"
 #include "silo/preprocessing/metadata_info.h"
-#include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/query_engine/query_engine.h"
 #include "silo/query_engine/query_result.h"
@@ -380,6 +380,16 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
       );
    }
 
+   std::filesystem::create_directory(save_directory);
+   if (!std::filesystem::exists(save_directory)) {
+      auto error = fmt::format(
+         "Could not create the directory '{}' which contains the saved databases outputs",
+         save_directory.string()
+      );
+      SPDLOG_ERROR(error);
+      throw persistence::SaveDatabaseException(error);
+   }
+
    const std::filesystem::path versioned_save_directory =
       save_directory / getDataVersion().toString();
    SPDLOG_INFO("Saving database to '{}'", versioned_save_directory.string());
@@ -391,6 +401,7 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
          save_directory.string(),
          getDataVersion().toString()
       );
+      SPDLOG_ERROR(error);
       throw persistence::SaveDatabaseException(error);
    }
 

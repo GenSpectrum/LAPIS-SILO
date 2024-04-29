@@ -9,7 +9,7 @@
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/yaml.h>
 
-#include "silo/config/config_exception.h"
+#include "silo/config/util/config_exception.h"
 
 using silo::config::ValueType;
 

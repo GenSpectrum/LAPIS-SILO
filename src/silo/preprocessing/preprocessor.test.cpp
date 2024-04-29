@@ -3,10 +3,10 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
-#include "silo/config/config_repository.h"
+#include "silo/config/util/config_repository.h"
+#include "silo/config/util/yaml_config.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
-#include "silo/preprocessing/preprocessing_config_reader.h"
 #include "silo/preprocessing/sql_function.h"
 #include "silo/query_engine/query_engine.h"
 
@@ -107,9 +107,9 @@ INSTANTIATE_TEST_SUITE_P(
 TEST_P(PreprocessorTestFixture, shouldProcessDataSetWithMissingSequences) {
    const auto scenario = GetParam();
 
-   auto config = silo::preprocessing::PreprocessingConfigReader()
-                    .readConfig(scenario.input_directory + "preprocessing_config.yaml")
-                    .mergeValuesFromOrDefault(silo::preprocessing::OptionalPreprocessingConfig());
+   silo::config::PreprocessingConfig config;
+   config.overwrite(silo::config::YamlConfig(scenario.input_directory + "preprocessing_config.yaml")
+   );
 
    const auto database_config = silo::config::ConfigRepository().getValidatedConfig(
       scenario.input_directory + "database_config.yaml"

@@ -8,10 +8,10 @@
 
 #include "silo/common/block_timer.h"
 #include "silo/common/fasta_reader.h"
+#include "silo/config/preprocessing_config.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
 #include "silo/preprocessing/metadata_info.h"
-#include "silo/preprocessing/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_database.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/preprocessing/sequence_info.h"
@@ -23,8 +23,10 @@
 
 namespace silo::preprocessing {
 
+constexpr std::string_view FASTA_EXTENSION = ".fasta";
+
 Preprocessor::Preprocessor(
-   preprocessing::PreprocessingConfig preprocessing_config_,
+   config::PreprocessingConfig preprocessing_config_,
    config::DatabaseConfig database_config_,
    const ReferenceGenomes& reference_genomes
 )
@@ -34,6 +36,20 @@ Preprocessor::Preprocessor(
       reference_genomes_(reference_genomes) {}
 
 Database Preprocessor::preprocess() {
+   SPDLOG_INFO(
+      "preprocessing - creating intermediate results directory '{}'",
+      preprocessing_config.getIntermediateResultsDirectory().string()
+   );
+   std::filesystem::create_directory(preprocessing_config.getIntermediateResultsDirectory());
+   if (!std::filesystem::is_directory(preprocessing_config.getIntermediateResultsDirectory())) {
+      auto error = fmt::format(
+         "Directory for intermediate results could not be created.",
+         preprocessing_config.getIntermediateResultsDirectory().string()
+      );
+      SPDLOG_ERROR(error);
+      throw silo::preprocessing::PreprocessingException(error);
+   }
+
    SPDLOG_INFO("preprocessing - building alias key");
    const auto pango_lineage_definition_filename =
       preprocessing_config.getPangoLineageDefinitionFilename();
@@ -58,9 +74,9 @@ Database Preprocessor::preprocess() {
       SPDLOG_INFO("preprocessing - classic metadata file pipeline chosen");
       SPDLOG_DEBUG(
          "preprocessing - building metadata tables from metadata input '{}'",
-         preprocessing_config.getMetadataInputFilename().string()
+         preprocessing_config.getMetadataInputFilename()->string()
       );
-      buildMetadataTableFromFile(preprocessing_config.getMetadataInputFilename());
+      buildMetadataTableFromFile(*preprocessing_config.getMetadataInputFilename());
       SPDLOG_DEBUG("preprocessing - building partitioning tables");
       buildPartitioningTable();
       SPDLOG_DEBUG("preprocessing - creating partitioned sequence tables for building SILO");
@@ -74,7 +90,6 @@ Database Preprocessor::preprocess() {
    SPDLOG_INFO("preprocessing - order by clause is {}", order_by_clause);
 
    SPDLOG_INFO("preprocessing - building database");
-
    preprocessing_db.refreshConnection();
    return buildDatabase(
       partition_descriptor,
@@ -375,7 +390,7 @@ void Preprocessor::createPartitionedSequenceTablesFromSequenceFiles() {
          sequence_name,
          reference_sequence,
          preprocessing_config.getNucFilenameNoExtension(sequence_name)
-            .replace_extension(silo::preprocessing::FASTA_EXTENSION),
+            .replace_extension(FASTA_EXTENSION),
          "nuc_"
       );
 
@@ -383,7 +398,7 @@ void Preprocessor::createPartitionedSequenceTablesFromSequenceFiles() {
          "unaligned_tmp",
          reference_sequence,
          preprocessing_config.getUnalignedNucFilenameNoExtension(sequence_name)
-            .replace_extension(silo::preprocessing::FASTA_EXTENSION)
+            .replace_extension(FASTA_EXTENSION)
       );
       createUnalignedPartitionedSequenceFile(
          sequence_name,
@@ -404,7 +419,7 @@ void Preprocessor::createPartitionedSequenceTablesFromSequenceFiles() {
          sequence_name,
          reference_sequence,
          preprocessing_config.getGeneFilenameNoExtension(sequence_name)
-            .replace_extension(silo::preprocessing::FASTA_EXTENSION),
+            .replace_extension(FASTA_EXTENSION),
          "gene_"
       );
    }

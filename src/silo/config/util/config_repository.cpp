@@ -1,11 +1,11 @@
-#include "silo/config/config_repository.h"
+#include "silo/config/util/config_repository.h"
 
 #include <map>
 #include <optional>
 #include <string>
 
-#include "silo/config/config_exception.h"
 #include "silo/config/database_config.h"
+#include "silo/config/util/config_exception.h"
 
 namespace silo::config {
 

@@ -54,7 +54,7 @@ std::unique_ptr<MaterializedQueryResult> PreprocessingDatabase::query(std::strin
    auto result = connection.Query(sql_query);
    SPDLOG_DEBUG("Preprocessing Database - Result:\n{}", result->ToString());
    if (result->HasError()) {
-      throw silo::preprocessing::PreprocessingException(result->ToString());
+      throw silo::preprocessing::PreprocessingException(result->GetError());
    }
    return result;
 }

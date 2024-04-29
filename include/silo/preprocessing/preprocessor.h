@@ -1,7 +1,7 @@
 #pragma once
 
 #include "silo/config/database_config.h"
-#include "silo/preprocessing/preprocessing_config.h"
+#include "silo/config/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_database.h"
 #include "silo/storage/reference_genomes.h"
 
@@ -14,14 +14,14 @@ namespace preprocessing {
 class SequenceInfo;
 
 class Preprocessor {
-   PreprocessingConfig preprocessing_config;
+   config::PreprocessingConfig preprocessing_config;
    config::DatabaseConfig database_config;
    PreprocessingDatabase preprocessing_db;
    ReferenceGenomes reference_genomes_;
 
   public:
    Preprocessor(
-      const preprocessing::PreprocessingConfig preprocessing_config,
+      const config::PreprocessingConfig preprocessing_config,
       const config::DatabaseConfig database_config,
       const ReferenceGenomes& reference_genomes
    );

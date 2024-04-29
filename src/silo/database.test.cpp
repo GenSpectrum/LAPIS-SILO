@@ -5,25 +5,23 @@
 #include <gtest/gtest.h>
 
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/config/config_repository.h"
+#include "silo/config/preprocessing_config.h"
+#include "silo/config/util/config_repository.h"
+#include "silo/config/util/yaml_config.h"
 #include "silo/database_info.h"
-#include "silo/preprocessing/preprocessing_config.h"
-#include "silo/preprocessing/preprocessing_config_reader.h"
 #include "silo/preprocessing/preprocessor.h"
 #include "silo/preprocessing/sql_function.h"
 #include "silo/query_engine/query_engine.h"
 #include "silo/storage/reference_genomes.h"
 
 silo::Database buildTestDatabase() {
-   const silo::preprocessing::InputDirectory input_directory{"./testBaseData/exampleDataset/"};
+   const std::string input_directory{"./testBaseData/exampleDataset/"};
 
-   auto config = silo::preprocessing::PreprocessingConfigReader()
-                    .readConfig("./testBaseData/test_preprocessing_config.yaml")
-                    .mergeValuesFromOrDefault(silo::preprocessing::OptionalPreprocessingConfig());
+   silo::config::PreprocessingConfig config;
+   config.overwrite(silo::config::YamlConfig("./testBaseData/test_preprocessing_config.yaml"));
 
-   const auto database_config = silo::config::ConfigRepository().getValidatedConfig(
-      input_directory.directory + "database_config.yaml"
-   );
+   const auto database_config =
+      silo::config::ConfigRepository().getValidatedConfig(input_directory + "database_config.yaml");
 
    const auto reference_genomes =
       silo::ReferenceGenomes::readFromFile(config.getReferenceGenomeFilename());
@@ -42,14 +40,13 @@ TEST(DatabaseTest, shouldBuildDatabaseWithoutErrors) {
 }
 
 TEST(DatabaseTest, shouldSuccessfullyBuildDatabaseWithoutPartitionBy) {
-   const silo::preprocessing::InputDirectory input_directory{"./testBaseData/"};
+   const std::string input_directory{"./testBaseData/"};
 
-   auto config = silo::preprocessing::PreprocessingConfigReader()
-                    .readConfig(input_directory.directory + "test_preprocessing_config.yaml")
-                    .mergeValuesFromOrDefault(silo::preprocessing::OptionalPreprocessingConfig());
+   silo::config::PreprocessingConfig config;
+   config.overwrite(silo::config::YamlConfig(input_directory + "test_preprocessing_config.yaml"));
 
    const auto database_config = silo::config::ConfigRepository().getValidatedConfig(
-      input_directory.directory + "test_database_config_without_partition_by.yaml"
+      input_directory + "test_database_config_without_partition_by.yaml"
    );
 
    const auto reference_genomes =

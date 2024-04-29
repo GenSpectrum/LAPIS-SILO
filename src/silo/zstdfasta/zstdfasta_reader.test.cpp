@@ -3,7 +3,7 @@
 #include <unordered_map>
 
 #include "silo/common/fasta_format_exception.h"
-#include "silo/preprocessing/preprocessing_config.h"
+#include "silo/config/preprocessing_config.h"
 #include "silo/zstdfasta/zstd_decompressor.h"
 #include "silo/zstdfasta/zstdfasta_reader.h"
 

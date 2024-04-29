@@ -4,8 +4,8 @@
 #include <Poco/Net/HTTPRequestHandlerFactory.h>
 #include <Poco/Net/HTTPServerRequest.h>
 
+#include "silo/config/runtime_config.h"
 #include "silo_api/error_request_handler.h"
-#include "silo_api/runtime_config.h"
 
 namespace silo_api {
 class DatabaseMutex;

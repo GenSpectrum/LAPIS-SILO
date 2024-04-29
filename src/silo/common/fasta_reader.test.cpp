@@ -4,7 +4,7 @@
 
 #include "silo/common/fasta_format_exception.h"
 #include "silo/common/fasta_reader.h"
-#include "silo/preprocessing/preprocessing_config.h"
+#include "silo/config/preprocessing_config.h"
 
 TEST(FastaReader, shouldReadFastaFile) {
    const std::filesystem::path input_directory{"./testBaseData/fastaFiles/"};

@@ -2,7 +2,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "silo/preprocessing/preprocessing_config.h"
+#include "silo/config/preprocessing_config.h"
 #include "silo/zstdfasta/zstd_decompressor.h"
 #include "silo/zstdfasta/zstdfasta_reader.h"
 #include "silo/zstdfasta/zstdfasta_writer.h"
