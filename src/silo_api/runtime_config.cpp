@@ -40,6 +40,15 @@ void RuntimeConfig::overwriteFromFile(const std::filesystem::path& config_path) 
          SPDLOG_DEBUG("Using port passed via config file: {}", node[PORT_OPTION].as<uint16_t>());
          port = node[PORT_OPTION].as<uint16_t>();
       }
+      if (node[ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION]) {
+         SPDLOG_DEBUG(
+            "Using estimated startup time in minutes as passed via config file: {}",
+            node[ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION].as<int32_t>()
+         );
+         const std::chrono::minutes minutes =
+            std::chrono::minutes(node[ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION].as<int32_t>());
+         estimated_startup_end = std::chrono::system_clock::now() + minutes;
+      }
    } catch (const YAML::Exception& e) {
       throw std::runtime_error(
          "Failed to read runtime config from " + config_path.string() + ": " + std::string(e.what())
@@ -78,6 +87,16 @@ void RuntimeConfig::overwriteFromEnvironmentVariables() {
       );
       port = boost::lexical_cast<uint16_t>(Poco::Environment::get(PORT_ENV_OPTION));
    }
+   if (Poco::Environment::has(ESTIMATED_STARTUP_TIME_IN_MINUTES_ENV_OPTION)) {
+      SPDLOG_DEBUG(
+         "Using estimated startup time in minutes as passed via environment variable: {}",
+         Poco::Environment::get(ESTIMATED_STARTUP_TIME_IN_MINUTES_ENV_OPTION)
+      );
+      const std::chrono::minutes minutes = std::chrono::minutes(boost::lexical_cast<int32_t>(
+         Poco::Environment::get(ESTIMATED_STARTUP_TIME_IN_MINUTES_ENV_OPTION)
+      ));
+      estimated_startup_end = std::chrono::system_clock::now() + minutes;
+   }
 }
 
 void RuntimeConfig::overwriteFromCommandLineArguments(
@@ -110,6 +129,15 @@ void RuntimeConfig::overwriteFromCommandLineArguments(
          "Using port passed via command line argument: {}", config.getString(PORT_OPTION)
       );
       port = config.getUInt(PORT_OPTION);
+   }
+   if (config.hasProperty(ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION)) {
+      SPDLOG_DEBUG(
+         "Using estimated startup time in minutes as passed via environment variable: {}",
+         config.getString(ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION)
+      );
+      const std::chrono::minutes minutes =
+         std::chrono::minutes(config.getInt(ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION));
+      estimated_startup_end = std::chrono::system_clock::now() + minutes;
    }
 }
 

@@ -44,10 +44,7 @@ class RequestHandlerTestFixture : public ::testing::Test {
    RequestHandlerTestFixture()
        : database_mutex(),
          request(silo_api::test::MockRequest(response)),
-         under_test(
-            database_mutex,
-            {.start_time = std::chrono::system_clock::now(), .estimated_startup_time = std::nullopt}
-         ) {}
+         under_test(database_mutex, {}) {}
 
    void processRequest(silo_api::SiloRequestHandlerFactory& handler_factory) {
       std::unique_ptr<Poco::Net::HTTPRequestHandler> request_handler(
@@ -59,12 +56,11 @@ class RequestHandlerTestFixture : public ::testing::Test {
    void processRequest() { processRequest(under_test); }
 };
 
-silo_api::StartupConfig getStartupConfigWithStarted5MinutesAgo(
-   std::optional<std::chrono::minutes> estimated_startup_time = std::nullopt
+silo_api::RuntimeConfig getRuntimeConfigThatEndsInXMinutes(
+   std::chrono::minutes estimated_time_in_minutes
 ) {
    const std::chrono::time_point point = std::chrono::system_clock::now();
-   const auto five_minutes_ago = point - std::chrono::minutes(5);
-   return {.start_time = five_minutes_ago, .estimated_startup_time = estimated_startup_time};
+   return {.estimated_startup_end = point + estimated_time_in_minutes};
 }
 
 static const int FOUR_MINUTES_IN_SECONDS = 240;
@@ -196,7 +192,7 @@ TEST_F(
    silo_api::DatabaseMutex real_database_mutex;
 
    auto under_test = silo_api::SiloRequestHandlerFactory(
-      real_database_mutex, getStartupConfigWithStarted5MinutesAgo(std::chrono::minutes{10})
+      real_database_mutex, getRuntimeConfigThatEndsInXMinutes(std::chrono::minutes{5})
    );
 
    processRequest(under_test);
@@ -218,7 +214,7 @@ TEST_F(
    silo_api::DatabaseMutex real_database_mutex;
 
    auto under_test = silo_api::SiloRequestHandlerFactory(
-      real_database_mutex, getStartupConfigWithStarted5MinutesAgo(std::chrono::minutes{1})
+      real_database_mutex, getRuntimeConfigThatEndsInXMinutes(std::chrono::minutes{-4})
    );
 
    processRequest(under_test);
@@ -238,7 +234,7 @@ TEST_F(
    silo_api::DatabaseMutex real_database_mutex;
 
    auto under_test = silo_api::SiloRequestHandlerFactory(
-      real_database_mutex, getStartupConfigWithStarted5MinutesAgo(std::chrono::minutes{10})
+      real_database_mutex, getRuntimeConfigThatEndsInXMinutes(std::chrono::minutes{5})
    );
 
    processRequest(under_test);
@@ -261,7 +257,7 @@ TEST_F(RequestHandlerTestFixture, postingQueryOnInitializedDatabase_isSuccessful
    real_database_mutex.setDatabase(std::move(new_database));
 
    auto under_test = silo_api::SiloRequestHandlerFactory(
-      real_database_mutex, getStartupConfigWithStarted5MinutesAgo(std::chrono::minutes{10})
+      real_database_mutex, getRuntimeConfigThatEndsInXMinutes(std::chrono::minutes{5})
    );
 
    processRequest(under_test);

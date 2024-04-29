@@ -32,7 +32,6 @@
 #include "silo_api/request_handler_factory.h"
 #include "silo_api/runtime_config.h"
 
-static const std::string ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION = "estimatedStartupTimeInMinutes";
 static const std::string PREPROCESSING_CONFIG_OPTION = "preprocessingConfig";
 static const std::string DATABASE_CONFIG_OPTION = "databaseConfig";
 static const std::string API_OPTION = "api";
@@ -162,7 +161,7 @@ class SiloServer : public Poco::Util::ServerApplication {
 
       options.addOption(
          Poco::Util::Option(
-            ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION,
+            silo_api::ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION,
             "t",
             "Estimated time in minutes that the initial loading of the database takes. "
             "As long as no database is loaded yet, SILO will throw a 503 error. "
@@ -172,7 +171,7 @@ class SiloServer : public Poco::Util::ServerApplication {
             .required(false)
             .repeatable(false)
             .argument("MINUTES", true)
-            .binding(ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION)
+            .binding(silo_api::ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION)
       );
    }
 
@@ -198,18 +197,6 @@ class SiloServer : public Poco::Util::ServerApplication {
    }
 
   private:
-   silo_api::StartupConfig getStartupConfig() {
-      const auto now = std::chrono::system_clock::now();
-      const auto estimated_startup_time_in_minutes =
-         config().hasProperty(ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION)
-            ? std::optional(
-                 std::chrono::minutes(config().getInt(ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION))
-              )
-            : std::nullopt;
-
-      return {.start_time = now, .estimated_startup_time = estimated_startup_time_in_minutes};
-   }
-
    int handleApi() {
       SPDLOG_INFO("Starting SILO API");
       silo_api::RuntimeConfig runtime_config;
@@ -236,7 +223,7 @@ class SiloServer : public Poco::Util::ServerApplication {
       poco_parameter->setMaxThreads(runtime_config.parallel_threads);
 
       Poco::Net::HTTPServer server(
-         new silo_api::SiloRequestHandlerFactory(database_mutex, getStartupConfig()),
+         new silo_api::SiloRequestHandlerFactory(database_mutex, runtime_config),
          server_socket,
          poco_parameter
       );

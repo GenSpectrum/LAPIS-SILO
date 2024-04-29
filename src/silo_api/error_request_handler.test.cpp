@@ -17,9 +17,8 @@ class MockRequestHandler : public Poco::Net::HTTPRequestHandler {
    );
 };
 
-const silo_api::StartupConfig TEST_STARTUP_CONFIG = {
-   .start_time = std::chrono::system_clock::now(),
-   .estimated_startup_time = std::nullopt
+const silo_api::RuntimeConfig TEST_RUNTIME_CONFIG = {
+   .estimated_startup_end = std::chrono::system_clock::now()
 };
 
 }  // namespace
@@ -27,7 +26,7 @@ const silo_api::StartupConfig TEST_STARTUP_CONFIG = {
 TEST(ErrorRequestHandler, handlesRuntimeErrors) {
    auto* wrapped_handler_mock = new MockRequestHandler;
 
-   auto under_test = silo_api::ErrorRequestHandler(wrapped_handler_mock, TEST_STARTUP_CONFIG);
+   auto under_test = silo_api::ErrorRequestHandler(wrapped_handler_mock, TEST_RUNTIME_CONFIG);
 
    ON_CALL(*wrapped_handler_mock, handleRequest)
       .WillByDefault(testing::Throw(std::runtime_error("my error message")));
@@ -45,7 +44,7 @@ TEST(ErrorRequestHandler, handlesRuntimeErrors) {
 TEST(ErrorRequestHandler, handlesOtherErrors) {
    auto* wrapped_handler_mock = new MockRequestHandler;
 
-   auto under_test = silo_api::ErrorRequestHandler(wrapped_handler_mock, TEST_STARTUP_CONFIG);
+   auto under_test = silo_api::ErrorRequestHandler(wrapped_handler_mock, TEST_RUNTIME_CONFIG);
 
    ON_CALL(*wrapped_handler_mock, handleRequest)
       .WillByDefault(testing::Throw(
@@ -64,7 +63,7 @@ TEST(ErrorRequestHandler, doesNothingIfNoExceptionIsThrown) {
    const auto* wrapped_request_handler_message = "A message that the actual handler would write";
    auto* wrapped_handler_mock = new MockRequestHandler;
 
-   auto under_test = silo_api::ErrorRequestHandler(wrapped_handler_mock, TEST_STARTUP_CONFIG);
+   auto under_test = silo_api::ErrorRequestHandler(wrapped_handler_mock, TEST_RUNTIME_CONFIG);
 
    EXPECT_CALL(*wrapped_handler_mock, handleRequest).Times(testing::AtLeast(1));
 

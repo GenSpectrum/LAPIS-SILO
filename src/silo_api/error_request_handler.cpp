@@ -15,10 +15,10 @@
 namespace silo_api {
 ErrorRequestHandler::ErrorRequestHandler(
    Poco::Net::HTTPRequestHandler* wrapped_handler,
-   const StartupConfig& startup_config
+   const RuntimeConfig& runtime_config
 )
     : wrapped_handler(wrapped_handler),
-      startup_config(startup_config) {}
+      runtime_config(runtime_config) {}
 
 void ErrorRequestHandler::handleRequest(
    Poco::Net::HTTPServerRequest& request,
@@ -75,14 +75,13 @@ void ErrorRequestHandler::handleRequest(
 }
 
 std::optional<std::string> ErrorRequestHandler::computeRetryAfterHintForStartupTime() {
-   if (!startup_config.estimated_startup_time.has_value()) {
+   if (!runtime_config.estimated_startup_end.has_value()) {
       return std::nullopt;
    }
 
    const auto now = std::chrono::system_clock::now();
 
-   const auto startup_time_end =
-      startup_config.start_time + startup_config.estimated_startup_time.value();
+   const auto startup_time_end = runtime_config.estimated_startup_end.value();
 
    const auto remaining_startup_time_in_seconds =
       std::chrono::duration_cast<std::chrono::seconds>(startup_time_end - now).count();

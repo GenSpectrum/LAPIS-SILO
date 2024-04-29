@@ -21,16 +21,16 @@ namespace silo_api {
 
 SiloRequestHandlerFactory::SiloRequestHandlerFactory(
    silo_api::DatabaseMutex& database,
-   StartupConfig startup_config
+   RuntimeConfig runtime_config
 )
     : database(database),
-      startup_config(startup_config) {}
+      runtime_config(std::move(runtime_config)) {}
 
 Poco::Net::HTTPRequestHandler* SiloRequestHandlerFactory::createRequestHandler(
    const Poco::Net::HTTPServerRequest& request
 ) {
    return new RequestIdHandler(
-      new LoggingRequestHandler(new ErrorRequestHandler(routeRequest(request), startup_config))
+      new LoggingRequestHandler(new ErrorRequestHandler(routeRequest(request), runtime_config))
    );
 }
 
