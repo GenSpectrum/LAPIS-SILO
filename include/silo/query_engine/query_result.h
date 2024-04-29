@@ -76,7 +76,7 @@ class QueryResult {
    /// Returns nullptr at the end of the result set. The returned
    /// pointer is borrowing and is only valid until the next `next`
    /// call.
-   const QueryResultEntry* next();
+   std::optional<std::reference_wrapper<const QueryResultEntry>> next();
 
    /// Mutable access to the vector for sorting purposes. Can only be
    /// called for materialized QueryResult:s. NOTE: this method
