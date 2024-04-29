@@ -14,7 +14,7 @@ void QueryResult::clear() {
    iter_ = query_result_chunk_.begin();
 }
 
-const QueryResultEntry* QueryResult::next() {
+std::optional<std::reference_wrapper<const QueryResultEntry>> QueryResult::next() {
    SPDLOG_TRACE(
       "DEBUG: next called, is_materialized_ = {}, chunk len = {}",
       is_materialized_,
@@ -29,13 +29,13 @@ const QueryResultEntry* QueryResult::next() {
       SPDLOG_TRACE("DEBUG: set iterator to begin");
       if (query_result_chunk_.empty()) {
          SPDLOG_TRACE("returning nullopt from next");
-         return nullptr;
+         return {};
       }
    }
-   const QueryResultEntry* ptr = &*iter_;
+   const QueryResultEntry& ref = *iter_;
    ++iter_;
    SPDLOG_TRACE("returning ref from next");
-   return ptr;
+   return {std::cref(ref)};
 }
 
 std::vector<QueryResultEntry>& QueryResult::entriesMut() {
