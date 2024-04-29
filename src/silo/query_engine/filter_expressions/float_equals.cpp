@@ -63,7 +63,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<FloatEquals>& filter)
    )
    CHECK_SILO_QUERY(
       json["value"].is_number_float() || json["value"].is_null(),
-      "The field 'value' in an FloatEquals expression must be a float"
+      "The field 'value' in an FloatEquals expression must be a float or null"
    )
    const std::string& column = json["column"];
    const double& value = json["value"].is_null() ? std::nan("") : json["value"].get<double>();

@@ -1,6 +1,7 @@
 #include "silo/query_engine/operators/selection.h"
 
 #include <array>
+#include <cmath>
 #include <compare>
 #include <iomanip>
 #include <iterator>
@@ -149,6 +150,35 @@ bool CompareToValueSelection<T>::match(uint32_t row_id) const {
    }
    throw std::runtime_error(
       "Uncovered enum switch case in CompareToValueSelection<T>::match should be covered by linter."
+   );
+}
+
+template <>
+bool CompareToValueSelection<double>::match(uint32_t row_id) const {
+   assert(column.size() > row_id);
+   switch (comparator) {
+      case Comparator::EQUALS:
+         if (std::isnan(value)) {
+            return std::isnan(column[row_id]);
+         }
+         return column[row_id] == value;
+      case Comparator::NOT_EQUALS:
+         if (std::isnan(value)) {
+            return !std::isnan(column[row_id]);
+         }
+         return column[row_id] != value;
+      case Comparator::LESS:
+         return column[row_id] < value;
+      case Comparator::HIGHER_OR_EQUALS:
+         return column[row_id] >= value;
+      case Comparator::HIGHER:
+         return column[row_id] > value;
+      case Comparator::LESS_OR_EQUALS:
+         return column[row_id] <= value;
+   }
+   throw std::runtime_error(
+      "Uncovered enum switch case in CompareToValueSelection<double>::match should be covered by "
+      "linter."
    );
 }
 

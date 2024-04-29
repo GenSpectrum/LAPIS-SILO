@@ -45,7 +45,6 @@ const auto DATA_JSON = R"([
    }
 ])";
 
-// Parsing the JSON string to a json object
 const std::vector<json> DATA = json::parse(DATA_JSON);
 
 const auto DATABASE_CONFIG = DatabaseConfig{

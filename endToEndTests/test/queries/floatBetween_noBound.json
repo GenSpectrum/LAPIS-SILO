@@ -1,5 +1,5 @@
 {
-  "testCaseName": "FloatBetween for column without bounds",
+  "testCaseName": "FloatBetween for column without bounds returns all non null values",
   "query": {
     "action": {
       "type": "Aggregated"
@@ -13,7 +13,7 @@
   },
   "expectedQueryResult": [
     {
-      "count": 100
+      "count": 98
     }
   ]
 }
