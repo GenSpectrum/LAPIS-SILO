@@ -63,6 +63,33 @@ The Docker images are built in such a way that they can be used for both,
 preprocessing and running the api, with minimal configuration.
 The images contain default configuration so that a user only needs to mount data to the correct locations.
 
+## Configuration Files
+
+For SILO, there are three different configuration files:
+
+- `DatabaseConfig` described in
+  file [database_config.h](https://github.com/GenSpectrum/LAPIS-SILO/blob/main/include/config/database_config.h)
+- `PreprocessingConfig` used when started with `--preprocessing` and described in
+  file [preprocessing_config.h](https://github.com/GenSpectrum/LAPIS-SILO/blob/main/include/config/preprocessing_config.h)
+- `RuntimeConfig` used when started with `--api` and described in
+  file [runtime_config.h](https://github.com/GenSpectrum/LAPIS-SILO/blob/main/include/config/preprocessing_config.h)
+
+The database config contains the schema of the database and is always required when preprocessing data. The database
+config will be saved together with the output of the preprocessing and is therefore not required when starting SILO as
+an API.
+An example of a configuration file can be seen
+in [testBaseData/exampleDataset/database_config.yaml](https://github.com/GenSpectrum/LAPIS-SILO/blob/main/testBaseData/exampleDataset/database_config.yaml).
+
+By default, the config files are expected to be YAML files in the current working directory in
+snake_case (`database_config.yaml`, `preprocessing_config.yaml`, `runtime_config.yaml`), but their location can be
+overridden using the options `--databaseConfig=X`, `--preprocessingConfig=X`, and `--runtimeConfig=X`.
+
+Preprocessing and Runtime configurations contain default values for all fields and are thus only optional. Their
+parameters can also be provided as command-line arguments in snake_case and as environment variables prefixed with SILO_
+in capital SNAKE_CASE. (e.g. SILO_INPUT_DIRECTORY).
+
+The precendence is `CLI argument > Environment Variable > Configuration File > Default Value`
+
 ### Run The Preprocessing
 
 The preprocessing acts as a program that takes an input directory that contains the to-be-processed data
@@ -90,7 +117,6 @@ Apart from that, there are default values if neither user-provided nor default c
 The user-provided preprocessing config can be used to overwrite the default values. For a full reference, see
 
 * [testBaseData/test_preprocessing_config_with_overridden_defaults.yaml](https://github.com/GenSpectrum/LAPIS-SILO/blob/main/testBaseData/test_preprocessing_config_with_overridden_defaults.yaml)
-* or [include/silo/preprocessing/preprocessing_config_reader.h](https://github.com/GenSpectrum/LAPIS-SILO/blob/main/include/silo/preprocessing/preprocessing_config_reader.h)
 
 ### Run docker container (api)
 
@@ -104,7 +130,8 @@ docker run
 ```
 
 The directory where SILO expects the preprocessing output can be overwritten via
-`silo --api --dataDirectory=/custom/data/directory`.
+`silo --api --dataDirectory=/custom/data/directory` or in a corresponding
+configuration [configuration file](#configuration-files).
 
 ### Notes On Building The Image
 
@@ -192,8 +219,8 @@ This will allow to automatically generate a changelog.
 We use [commitlint](https://commitlint.js.org/) to enforce the commit message format.
 To use it locally, run `npm install`.
 
-The last commit message can be checked with 
-    
+The last commit message can be checked with
+
 ```shell
 npm run commitlint:last-commit
 ``` 
