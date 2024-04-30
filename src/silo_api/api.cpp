@@ -254,8 +254,13 @@ class SiloServer : public Poco::Util::ServerApplication {
       const auto reference_genomes =
          silo::ReferenceGenomes::readFromFile(preprocessing_config.getReferenceGenomeFilename());
 
+      SPDLOG_INFO("preprocessing - reading pango lineage alias");
+      const auto alias_lookup = silo::PangoLineageAliasLookup::readFromFile(
+         preprocessing_config.getPangoLineageDefinitionFilename()
+      );
+
       auto preprocessor = silo::preprocessing::Preprocessor(
-         preprocessing_config, database_config, reference_genomes
+         preprocessing_config, database_config, reference_genomes, alias_lookup
       );
 
       return preprocessor.preprocess();

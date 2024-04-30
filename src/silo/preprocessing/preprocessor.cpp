@@ -28,12 +28,14 @@ constexpr std::string_view FASTA_EXTENSION = ".fasta";
 Preprocessor::Preprocessor(
    config::PreprocessingConfig preprocessing_config_,
    config::DatabaseConfig database_config_,
-   const ReferenceGenomes& reference_genomes
+   const ReferenceGenomes& reference_genomes,
+   PangoLineageAliasLookup alias_lookup
 )
     : preprocessing_config(std::move(preprocessing_config_)),
       database_config(std::move(database_config_)),
       preprocessing_db(preprocessing_config.getPreprocessingDatabaseLocation(), reference_genomes),
-      reference_genomes_(reference_genomes) {}
+      reference_genomes_(reference_genomes),
+      alias_lookup_(std::move(alias_lookup)) {}
 
 Database Preprocessor::preprocess() {
    SPDLOG_INFO(
@@ -48,14 +50,6 @@ Database Preprocessor::preprocess() {
       );
       SPDLOG_ERROR(error);
       throw silo::preprocessing::PreprocessingException(error);
-   }
-
-   SPDLOG_INFO("preprocessing - building alias key");
-   const auto pango_lineage_definition_filename =
-      preprocessing_config.getPangoLineageDefinitionFilename();
-   PangoLineageAliasLookup alias_key;
-   if (pango_lineage_definition_filename.has_value()) {
-      alias_key = PangoLineageAliasLookup::readFromFile(pango_lineage_definition_filename.value());
    }
 
    const auto& ndjson_input_filename = preprocessing_config.getNdjsonInputFilename();
@@ -92,10 +86,7 @@ Database Preprocessor::preprocess() {
    SPDLOG_INFO("preprocessing - building database");
    preprocessing_db.refreshConnection();
    return buildDatabase(
-      partition_descriptor,
-      order_by_clause,
-      alias_key,
-      preprocessing_config.getIntermediateResultsDirectory()
+      partition_descriptor, order_by_clause, preprocessing_config.getIntermediateResultsDirectory()
    );
 }
 
@@ -462,12 +453,11 @@ void Preprocessor::createPartitionedTableForSequence(
 Database Preprocessor::buildDatabase(
    const preprocessing::Partitions& partition_descriptor,
    const std::string& order_by_clause,
-   const silo::PangoLineageAliasLookup& alias_key,
    const std::filesystem::path& intermediate_results_directory
 ) {
    Database database;
    database.database_config = database_config;
-   database.alias_key = alias_key;
+   database.alias_key = alias_lookup_;
    database.intermediate_results_directory = intermediate_results_directory;
    const DataVersion& data_version = DataVersion::mineDataVersion();
    SPDLOG_INFO("preprocessing - mining data data_version: {}", data_version.toString());

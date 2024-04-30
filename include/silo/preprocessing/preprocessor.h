@@ -3,11 +3,11 @@
 #include "silo/config/database_config.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_database.h"
+#include "silo/storage/pango_lineage_alias.h"
 #include "silo/storage/reference_genomes.h"
 
 namespace silo {
 class Database;
-class PangoLineageAliasLookup;
 
 namespace preprocessing {
 
@@ -18,12 +18,14 @@ class Preprocessor {
    config::DatabaseConfig database_config;
    PreprocessingDatabase preprocessing_db;
    ReferenceGenomes reference_genomes_;
+   PangoLineageAliasLookup alias_lookup_;
 
   public:
    Preprocessor(
-      const config::PreprocessingConfig preprocessing_config,
-      const config::DatabaseConfig database_config,
-      const ReferenceGenomes& reference_genomes
+      config::PreprocessingConfig preprocessing_config,
+      config::DatabaseConfig database_config,
+      const ReferenceGenomes& reference_genomes,
+      PangoLineageAliasLookup alias_lookup
    );
 
    Database preprocess();
@@ -65,7 +67,6 @@ class Preprocessor {
    Database buildDatabase(
       const preprocessing::Partitions& partition_descriptor,
       const std::string& order_by_clause,
-      const silo::PangoLineageAliasLookup& alias_key,
       const std::filesystem::path& intermediate_results_directory
    );
 

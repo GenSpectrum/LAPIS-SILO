@@ -26,7 +26,12 @@ silo::Database buildTestDatabase() {
    const auto reference_genomes =
       silo::ReferenceGenomes::readFromFile(config.getReferenceGenomeFilename());
 
-   silo::preprocessing::Preprocessor preprocessor(config, database_config, reference_genomes);
+   const auto alias_lookup =
+      silo::PangoLineageAliasLookup::readFromFile(config.getPangoLineageDefinitionFilename());
+
+   silo::preprocessing::Preprocessor preprocessor(
+      config, database_config, reference_genomes, alias_lookup
+   );
    return preprocessor.preprocess();
 }
 
@@ -52,7 +57,12 @@ TEST(DatabaseTest, shouldSuccessfullyBuildDatabaseWithoutPartitionBy) {
    const auto reference_genomes =
       silo::ReferenceGenomes::readFromFile(config.getReferenceGenomeFilename());
 
-   silo::preprocessing::Preprocessor preprocessor(config, database_config, reference_genomes);
+   const auto alias_lookup =
+      silo::PangoLineageAliasLookup::readFromFile(config.getPangoLineageDefinitionFilename());
+
+   silo::preprocessing::Preprocessor preprocessor(
+      config, database_config, reference_genomes, alias_lookup
+   );
    auto database = preprocessor.preprocess();
 
    const auto simple_database_info = database.getDatabaseInfo();

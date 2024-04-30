@@ -100,25 +100,32 @@ std::unordered_map<std::string, std::vector<std::string>> readFromJson(
 }  // namespace
 
 silo::PangoLineageAliasLookup silo::PangoLineageAliasLookup::readFromFile(
-   const std::filesystem::path& pango_lineage_alias_file
+   const std::optional<std::filesystem::path>& pango_lineage_alias_file
 ) {
-   if (!std::filesystem::exists(pango_lineage_alias_file)) {
+   if (!pango_lineage_alias_file.has_value()) {
+      SPDLOG_INFO("No pango lineage alias file provided. Using empty alias lookup.");
+      return {};
+   }
+
+   const auto& pango_lineage_alias_path = pango_lineage_alias_file.value();
+
+   if (!std::filesystem::exists(pango_lineage_alias_path)) {
       throw std::filesystem::filesystem_error(
-         "Alias key file " + pango_lineage_alias_file.string() + " does not exist",
+         "Alias key file " + pango_lineage_alias_path.string() + " does not exist",
          std::error_code()
       );
    }
 
-   if (pango_lineage_alias_file.extension() != ".json") {
+   if (pango_lineage_alias_path.extension() != ".json") {
       throw std::filesystem::filesystem_error(
-         "Alias key file " + pango_lineage_alias_file.string() + " is not a json file",
+         "Alias key file " + pango_lineage_alias_path.string() + " is not a json file",
          std::error_code()
       );
    }
 
-   SPDLOG_INFO("Read pango lineage alias from file: {}", pango_lineage_alias_file.string());
+   SPDLOG_INFO("Read pango lineage alias from file: {}", pango_lineage_alias_path.string());
 
-   return PangoLineageAliasLookup(readFromJson(pango_lineage_alias_file));
+   return PangoLineageAliasLookup(readFromJson(pango_lineage_alias_path));
 }
 
 }  // namespace silo
