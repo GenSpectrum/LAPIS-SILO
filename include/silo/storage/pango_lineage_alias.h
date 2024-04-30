@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <functional>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -49,7 +50,7 @@ class PangoLineageAliasLookup {
    ) const;
 
    static silo::PangoLineageAliasLookup readFromFile(
-      const std::filesystem::path& pango_lineage_alias_file
+      const std::optional<std::filesystem::path>& pango_lineage_alias_file
    );
 };
 

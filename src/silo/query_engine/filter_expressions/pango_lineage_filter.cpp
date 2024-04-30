@@ -73,8 +73,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<PangoLineageFilter>& 
       json.contains("value"), "The field 'value' is required in a PangoLineage expression"
    )
    CHECK_SILO_QUERY(
-      json["value"].is_string(),
-      "The field 'value' in a PangoLineage expression needs to be a string"
+      json["value"].is_string() || json["value"].is_null(),
+      "The field 'value' in a PangoLineage expression needs to be a string or null"
    )
    CHECK_SILO_QUERY(
       json.contains("includeSublineages"),
@@ -85,7 +85,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<PangoLineageFilter>& 
       "The field 'includeSublineages' in a PangoLineage expression needs to be a boolean"
    )
    const std::string& column = json["column"];
-   const std::string& lineage = json["value"];
+   const std::string& lineage = json["value"].is_null() ? "" : json["value"].get<std::string>();
    const bool include_sublineages = json["includeSublineages"];
    filter = std::make_unique<PangoLineageFilter>(column, lineage, include_sublineages);
 }
