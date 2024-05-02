@@ -1,5 +1,6 @@
 #include "silo/query_engine/query_result.h"
 
+#include <iostream>
 #include <nlohmann/json.hpp>
 
 #include "silo_api/variant_json_serializer.h"
@@ -28,9 +29,9 @@ const QueryResultEntry* QueryResult::next() {
 
 std::vector<QueryResultEntry>& QueryResult::entriesMut() {
    if (!is_materialized_) {
-      throw std::runtime_error(
-         "can't give access to entries vector for a QueryResult that is streamed"
-      );
+      std::cerr << "can't give access to entries vector for a QueryResult that is streamed\n"
+                << std::flush;
+      abort();
    }
    return query_result_chunk_;
 }
