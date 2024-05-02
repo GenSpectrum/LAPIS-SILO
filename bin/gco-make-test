@@ -1,0 +1,11 @@
+#!/bin/bash
+set -emuo pipefail
+IFS=
+
+set -x
+
+while read -r commit; do
+    git checkout "$commit"
+    make -j16 test
+done
+
