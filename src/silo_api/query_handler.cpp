@@ -15,6 +15,7 @@
 #include "silo_api/error_request_handler.h"
 
 namespace silo_api {
+using silo::query_engine::QueryResultEntry;
 
 QueryHandler::QueryHandler(silo_api::DatabaseMutex& database_mutex)
     : database_mutex(database_mutex) {}
@@ -34,14 +35,15 @@ void QueryHandler::post(
    try {
       const auto fixed_database = database_mutex.getDatabase();
 
-      const auto query_result = fixed_database.database.executeQuery(query);
+      auto query_result = fixed_database.database.executeQuery(query);
 
       response.set("data-version", fixed_database.database.getDataVersionTimestamp().value);
 
       response.setContentType("application/x-ndjson");
       std::ostream& out_stream = response.send();
-      for (const auto& entry : query_result.entries()) {
-         out_stream << nlohmann::json(entry) << '\n';
+      std::optional<std::reference_wrapper<const QueryResultEntry>> entry;
+      while ((entry = query_result.next())) {
+         out_stream << nlohmann::json(*entry) << '\n';
       }
    } catch (const silo::QueryParseException& ex) {
       response.setContentType("application/json");
