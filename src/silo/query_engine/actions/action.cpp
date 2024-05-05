@@ -30,7 +30,7 @@ namespace silo::query_engine::actions {
 Action::Action() = default;
 
 void Action::applySort(QueryResult& result) const {
-   auto& result_vector = result.query_result;
+   auto& result_vector = result.entriesMut();
 
    auto cmp = [&](const QueryResultEntry& entry1, const QueryResultEntry& entry2) {
       for (const OrderByField& field : order_by_fields) {
@@ -67,7 +67,7 @@ void Action::applySort(QueryResult& result) const {
 }
 
 void Action::applyOffsetAndLimit(QueryResult& result) const {
-   auto& result_vector = result.query_result;
+   auto& result_vector = result.entriesMut();
 
    size_t end_of_sort = std::min(
       static_cast<size_t>(limit.value_or(result_vector.size()) + offset.value_or(0UL)),
@@ -75,7 +75,7 @@ void Action::applyOffsetAndLimit(QueryResult& result) const {
    );
 
    if (offset.has_value() && offset.value() >= end_of_sort) {
-      result = {};
+      result.clear();
       return;
    }
 
@@ -111,7 +111,7 @@ QueryResult Action::executeAndOrder(
    validateOrderByFields(database);
 
    QueryResult result = execute(database, std::move(bitmap_filter));
-   if (offset.has_value() && offset.value() >= result.query_result.size()) {
+   if (offset.has_value() && offset.value() >= result.entriesMut().size()) {
       return {};
    }
    applySort(result);

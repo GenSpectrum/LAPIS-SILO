@@ -40,7 +40,7 @@ void QueryHandler::post(
 
       response.setContentType("application/x-ndjson");
       std::ostream& out_stream = response.send();
-      for (const auto& entry : query_result.query_result) {
+      for (const auto& entry : query_result.entries()) {
          out_stream << nlohmann::json(entry) << '\n';
       }
    } catch (const silo::QueryParseException& ex) {
