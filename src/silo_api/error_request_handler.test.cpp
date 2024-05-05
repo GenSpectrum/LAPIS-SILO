@@ -28,8 +28,9 @@ TEST(ErrorRequestHandler, handlesRuntimeErrors) {
 
    auto under_test = silo_api::ErrorRequestHandler(wrapped_handler_mock, TEST_RUNTIME_CONFIG);
 
+   // Test whether an exception we throw is actually caught by ErrorRequestHandler
    ON_CALL(*wrapped_handler_mock, handleRequest)
-      .WillByDefault(testing::Throw(std::runtime_error("my error message")));
+      .WillByDefault(testing::Throw(std::runtime_error("test exception")));
 
    silo_api::test::MockResponse response;
    silo_api::test::MockRequest request(response);
@@ -37,7 +38,7 @@ TEST(ErrorRequestHandler, handlesRuntimeErrors) {
 
    EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
    EXPECT_EQ(
-      response.out_stream.str(), R"({"error":"Internal Server Error","message":"my error message"})"
+      response.out_stream.str(), R"({"error":"Internal Server Error","message":"test exception"})"
    );
 }
 

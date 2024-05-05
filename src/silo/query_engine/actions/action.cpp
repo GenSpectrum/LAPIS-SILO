@@ -114,8 +114,11 @@ QueryResult Action::executeAndOrder(
    if (offset.has_value() && offset.value() >= result.entriesMut().size()) {
       return {};
    }
-   applySort(result);
-   applyOffsetAndLimit(result);
+   // XX HACK
+   if (result.isMaterialized()) {
+      applySort(result);
+      applyOffsetAndLimit(result);  // XXXX
+   }
    return result;
 }
 

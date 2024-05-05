@@ -31,13 +31,6 @@ class Fasta : public Action {
       std::vector<OperatorResult> bitmap_filter
    ) const override;
 
-   void addSequencesToResultsForPartition(
-      QueryResult& results,
-      const silo::DatabasePartition& database_partition,
-      const OperatorResult& bitmap,
-      const std::string& primary_key_column
-   ) const;
-
   public:
    explicit Fasta(std::vector<std::string>&& sequence_names);
 };
