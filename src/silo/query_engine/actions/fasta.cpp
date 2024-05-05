@@ -3,6 +3,7 @@
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <duckdb.hpp>
+#include <memory>
 #include <nlohmann/json.hpp>
 
 #include "silo/database.h"
@@ -94,7 +95,7 @@ std::string getTableQuery(
 }
 
 void addSequencesFromResultTableToJson(
-   QueryResult& results,
+   std::vector<QueryResultEntry>& results,
    duckdb::Connection& connection,
    const std::string& result_table_name,
    const std::vector<std::string>& sequence_names,
@@ -116,15 +117,15 @@ void addSequencesFromResultTableToJson(
       table_reader.loadTable();
       std::optional<std::string> genome_buffer;
 
-      const size_t start_of_partition_in_result = results.entriesMut().size() - number_of_values;
-      const size_t end_of_partition_in_result = results.entriesMut().size();
+      const size_t start_of_partition_in_result = results.size() - number_of_values;
+      const size_t end_of_partition_in_result = results.size();
       for (size_t idx = start_of_partition_in_result; idx < end_of_partition_in_result; idx++) {
          auto current_key = table_reader.next(genome_buffer);
          assert(current_key.has_value());
          if (genome_buffer.has_value()) {
-            results.entriesMut().at(idx).fields.emplace(sequence_name, *genome_buffer);
+            results.at(idx).fields.emplace(sequence_name, *genome_buffer);
          } else {
-            results.entriesMut().at(idx).fields.emplace(sequence_name, std::nullopt);
+            results.at(idx).fields.emplace(sequence_name, std::nullopt);
          }
       }
    }
@@ -132,12 +133,13 @@ void addSequencesFromResultTableToJson(
 
 }  // namespace
 
-void Fasta::addSequencesToResultsForPartition(
-   QueryResult& results,
+void addSequencesToResultsForPartition(
+   std::vector<std::string>& sequence_names,
+   std::vector<QueryResultEntry>& results,
    const DatabasePartition& database_partition,
    const OperatorResult& bitmap,
    const std::string& primary_key_column
-) const {
+) {
    duckdb::DuckDB duck_db;
    duckdb::Connection connection(duck_db);
 
@@ -194,7 +196,7 @@ void Fasta::addSequencesToResultsForPartition(
       // Add the primary key to the result
       QueryResultEntry entry;
       entry.fields.emplace(primary_key_column, primary_key.value());
-      results.entriesMut().emplace_back(std::move(entry));
+      results.emplace_back(std::move(entry));
 
       appender.EndRow();
       appender.Flush();
@@ -231,8 +233,6 @@ QueryResult Fasta::execute(const Database& database, std::vector<OperatorResult>
       );
    }
 
-   const std::string& primary_key_column = database.database_config.schema.primary_key;
-
    size_t total_count = 0;
    for (auto& filter : bitmap_filter) {
       total_count += filter->cardinality();
@@ -242,18 +242,29 @@ QueryResult Fasta::execute(const Database& database, std::vector<OperatorResult>
       fmt::format("Fasta action currently limited to {} sequences", SEQUENCE_LIMIT)
    );
 
-   QueryResult results;
-   results.entriesMut().reserve(total_count);
-
-   for (uint32_t partition_index = 0; partition_index < database.partitions.size();
-        ++partition_index) {
-      const auto& database_partition = database.partitions[partition_index];
-      const auto& bitmap = bitmap_filter[partition_index];
-
-      addSequencesToResultsForPartition(results, database_partition, bitmap, primary_key_column);
-   }
-
-   return results;
+   uint32_t partition_index = 0;
+   return QueryResult{[bitmap_filter =
+                          std::make_shared<std::vector<OperatorResult>>(std::move(bitmap_filter)),
+                       &database,
+                       partition_index,
+                       sequence_names =
+                          sequence_names](std::vector<QueryResultEntry>& results) mutable {
+      while (partition_index < database.partitions.size()) {
+         SPDLOG_DEBUG(
+            "fasta closure for partition_index {}/{}", partition_index, database.partitions.size()
+         );
+         const auto& database_partition = database.partitions[partition_index];
+         const auto& bitmap = (*bitmap_filter)[partition_index];
+         const std::string& primary_key_column = database.database_config.schema.primary_key;
+         addSequencesToResultsForPartition(
+            sequence_names, results, database_partition, bitmap, primary_key_column
+         );
+         ++partition_index;
+         if (!results.empty()) {
+            return;
+         }
+      }
+   }};
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

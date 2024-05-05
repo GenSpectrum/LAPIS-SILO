@@ -144,10 +144,9 @@ TEST_F(RequestHandlerTestFixture, handlesPostQueryRequest) {
    };
    std::vector<silo::query_engine::QueryResultEntry> tmp{{fields1}, {fields2}};
    silo::query_engine::QueryResult query_result{std::move(tmp)};
-   EXPECT_CALL(database_mutex.mock_database, executeQuery)
-      .WillRepeatedly(testing::Return(std::move(query_result)));
+   EXPECT_CALL(database_mutex.mock_database, executeQuery).WillOnce(testing::Return(query_result));
    EXPECT_CALL(database_mutex.mock_database, getDataVersionTimestamp)
-      .WillRepeatedly(testing::Return(silo::DataVersion::Timestamp::fromString("1234").value()));
+      .WillOnce(testing::Return(silo::DataVersion::Timestamp::fromString("1234").value()));
 
    request.setMethod("POST");
    request.setURI("/query");

@@ -36,6 +36,8 @@ class Action {
    virtual void validateOrderByFields(const Database& database) const = 0;
 
    [[nodiscard]] virtual QueryResult execute(
+      /// Life time: until query result was delivered (and the lock
+      /// inside `FixedDatabase` is released)
       const Database& database,
       std::vector<OperatorResult> bitmap_filter
    ) const = 0;
