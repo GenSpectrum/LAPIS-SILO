@@ -151,7 +151,7 @@ void Fasta::addSequencesToResultsForPartition(
    std::string key_table_name = fmt::format("tmp_fasta_key_{}", unique_identifier_for_function);
    std::string result_table_name = fmt::format("tmp_result_{}", unique_identifier_for_function);
 
-   (void)query(
+   query(
       connection,
       fmt::format(
          "CREATE TABLE {} ("
@@ -201,14 +201,14 @@ void Fasta::addSequencesToResultsForPartition(
       fmt::format("CREATE TABLE {} AS ({})", result_table_name, table_query)
    );
 
-   (void)query(connection, fmt::format("CREATE TABLE {} AS ({})", result_table_name, table_query));
+   query(connection, fmt::format("CREATE TABLE {} AS ({})", result_table_name, table_query));
 
    addSequencesFromResultTableToJson(
       results, connection, result_table_name, sequence_names, database_partition, number_of_values
    );
 
-   (void)query(connection, fmt::format("DROP TABLE {};", result_table_name));
-   (void)query(connection, fmt::format("DROP TABLE {};", key_table_name));
+   query(connection, fmt::format("DROP TABLE {};", result_table_name));
+   query(connection, fmt::format("DROP TABLE {};", key_table_name));
 }
 
 QueryResult Fasta::execute(const Database& database, std::vector<OperatorResult> bitmap_filter)
