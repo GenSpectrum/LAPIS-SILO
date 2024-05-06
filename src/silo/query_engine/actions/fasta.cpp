@@ -208,12 +208,13 @@ void addSequencesToResultsForPartition(
    const std::string table_query =
       getTableQuery(sequence_names, database_partition, key_table_name);
 
+   const auto create_table_query =
+      fmt::format("CREATE TABLE {} AS ({})", result_table_name, table_query);
    SPDLOG_TRACE(
-      "Create table query for unaligned in-memory sequence tables: {}",
-      fmt::format("CREATE TABLE {} AS ({})", result_table_name, table_query)
+      "Create table query for unaligned in-memory sequence tables: {}", create_table_query
    );
 
-   query(connection, fmt::format("CREATE TABLE {} AS ({})", result_table_name, table_query));
+   query(connection, create_table_query);
 
    // 4. Fill the decompressed sequences into the `QueryResultEntry` entries in `result`
    addSequencesFromResultTableToJson(
