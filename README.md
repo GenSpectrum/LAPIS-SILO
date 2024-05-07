@@ -131,7 +131,7 @@ docker run
 
 The directory where SILO expects the preprocessing output can be overwritten via
 `silo --api --dataDirectory=/custom/data/directory` or in a corresponding
-configuration [configuration file](#configuration-files).
+[configuration file](#configuration-files).
 
 ### Notes On Building The Image
 
@@ -140,6 +140,22 @@ Docker will cache layers, and it will cache the dependencies built by Conan via 
 
 However, cache mounts don't work in GitHub Actions (https://github.com/docker/build-push-action/issues/716),
 so there we only rely on Docker's layer cache via Docker's gha cache backend.
+
+## Creating A Release
+
+This project uses [Release Please](https://github.com/google-github-actions/release-please-action) to generate releases.
+On every commit on the `main` branch, it will update a Pull Request with a changelog.
+When the PR is merged, the release will be created.
+Creating a release means:
+
+* A new Git tag is created.
+* The Docker images of SILO are tagged with the new version.
+  * Suppose the created version is `2.4.5`, then it creates the tags `2`, `2.4` and `2.4.5` on the current `latest` image.
+
+The changelog and the version number are determined by the commit messages.
+Therefore, commit messages should follow the [Conventional Commits](https://www.conventionalcommits.org/) specification.
+Also refer to the Release Please documentation for more information on how to write commit messages
+or see [Conventional Commits](#conventional-commits) below.
 
 # Testing
 
