@@ -140,15 +140,15 @@ void addSequencesToResultsForPartition(
    const OperatorResult& bitmap,
    const std::string& primary_key_column
 ) {
-   duckdb::DuckDB duck_db;
-   duckdb::Connection connection(duck_db);
-
    const size_t number_of_values = bitmap->cardinality();
 
    if (bitmap->isEmpty()) {
       SPDLOG_TRACE("Skipping empty partition!");
       return;
    }
+
+   duckdb::DuckDB duck_db;
+   duckdb::Connection connection(duck_db);
 
    uint64_t unique_identifier_for_function = unique_identifier++;
    std::string key_table_name = fmt::format("tmp_fasta_key_{}", unique_identifier_for_function);
