@@ -222,6 +222,7 @@ void addSequencesToResultsForPartition(
       results, connection, result_table_name, sequence_names, database_partition, number_of_values
    );
 
+   // XX don't we need guaranteed cleanup for those?
    query(connection, fmt::format("DROP TABLE {};", result_table_name));
    query(connection, fmt::format("DROP TABLE {};", key_table_name));
 }
