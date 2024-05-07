@@ -302,7 +302,7 @@ void Preprocessor::createAlignedPartitionedSequenceViews(
 
    (void)preprocessing_db.query(fmt::format(
       "CREATE OR REPLACE TABLE sequence_table AS\n"
-      "SELECT metadata.{} AS key, {},"
+      "SELECT metadata.\"{}\" AS key, {},"
       "{}"
       "{} \n"
       "FROM '{}', partition_key_to_partition "
@@ -397,7 +397,7 @@ void Preprocessor::createPartitionedSequenceTablesFromSequenceFiles() {
             "SELECT unaligned_tmp.key AS key, unaligned_tmp.sequence AS unaligned_nuc_{}, "
             "partitioned_metadata.partition_id AS partition_id "
             "FROM unaligned_tmp RIGHT JOIN partitioned_metadata "
-            "ON unaligned_tmp.key = partitioned_metadata.{} ",
+            "ON unaligned_tmp.key = partitioned_metadata.\"{}\" ",
             sequence_name,
             database_config.schema.primary_key
          )
@@ -441,7 +441,7 @@ void Preprocessor::createPartitionedTableForSequence(
          partitioned_metadata.partition_id AS partition_id
          {}
          FROM {} AS raw RIGHT JOIN partitioned_metadata
-         ON raw.key = partitioned_metadata.{};
+         ON raw.key = partitioned_metadata."{}";
       )-",
       table_name,
       order_by_select,

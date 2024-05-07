@@ -36,7 +36,8 @@ std::string SequenceInfo::getNucleotideSequenceSelect(
    std::string_view seq_name,
    const PreprocessingDatabase& preprocessing_db
 ) {
-   const std::string column_name_in_data = fmt::format("alignedNucleotideSequences.{}", seq_name);
+   const std::string column_name_in_data =
+      fmt::format("alignedNucleotideSequences.\"{}\"", seq_name);
 
    return fmt::format(
       "{0} AS nuc_{1}",
@@ -51,7 +52,8 @@ std::string SequenceInfo::getUnalignedSequenceSelect(
    std::string_view seq_name,
    const PreprocessingDatabase& preprocessing_db
 ) {
-   const std::string column_name_in_data = fmt::format("unalignedNucleotideSequences.{}", seq_name);
+   const std::string column_name_in_data =
+      fmt::format("unalignedNucleotideSequences.\"{}\"", seq_name);
    return fmt::format(
       "{0} AS unaligned_nuc_{1}",
       preprocessing_db.compress_nucleotide_functions.at(seq_name)->generateSqlStatement(
@@ -65,7 +67,8 @@ std::string SequenceInfo::getAminoAcidSequenceSelect(
    std::string_view seq_name,
    const PreprocessingDatabase& preprocessing_db
 ) {
-   const std::string column_name_in_data = fmt::format("alignedAminoAcidSequences.{}", seq_name);
+   const std::string column_name_in_data =
+      fmt::format("alignedAminoAcidSequences.\"{}\"", seq_name);
 
    return fmt::format(
       "{0} AS gene_{1}",
@@ -107,7 +110,9 @@ void SequenceInfo::validate(
    auto aa_sequence_names_to_validate = extractStringListValue(*result, 0, 1);
 
    for (const std::string& name : nuc_sequence_names_to_validate) {
-      if (std::find(nuc_sequence_names.begin(), nuc_sequence_names.end(), name) == nuc_sequence_names.end()) {
+      if (std::find(
+             nuc_sequence_names_to_validate.begin(), nuc_sequence_names_to_validate.end(), name
+          ) == nuc_sequence_names_to_validate.end()) {
          throw silo::preprocessing::PreprocessingException(fmt::format(
             "The aligned nucleotide sequence {} which is contained in the input file {} is "
             "not contained in the reference sequences.",
@@ -117,8 +122,9 @@ void SequenceInfo::validate(
       }
    }
    for (const std::string& name : nuc_sequence_names) {
-      if (std::find(nuc_sequence_names_to_validate.begin(), nuc_sequence_names_to_validate.end(), name)
-          == nuc_sequence_names_to_validate.end()) {
+      if (std::find(
+             nuc_sequence_names_to_validate.begin(), nuc_sequence_names_to_validate.end(), name
+          ) == nuc_sequence_names_to_validate.end()) {
          // TODO(#220) handle the cases when segments are left out appropriately
          throw silo::preprocessing::PreprocessingException(fmt::format(
             "The aligned nucleotide sequence {} which is contained in the reference "
@@ -139,8 +145,9 @@ void SequenceInfo::validate(
       }
    }
    for (const std::string& name : aa_sequence_names) {
-      if (std::find(aa_sequence_names_to_validate.begin(), aa_sequence_names_to_validate.end(), name)
-          == aa_sequence_names_to_validate.end()) {
+      if (std::find(
+             aa_sequence_names_to_validate.begin(), aa_sequence_names_to_validate.end(), name
+          ) == aa_sequence_names_to_validate.end()) {
          throw silo::preprocessing::PreprocessingException(fmt::format(
             "The aligned amino acid sequence {} which is contained in the reference "
             "sequences is not contained in the input file {}.",
