@@ -24,8 +24,8 @@ std::unordered_map<std::string, std::string> validateFieldsAgainstConfig(
 
    std::unordered_map<std::string, std::string> validated_metadata_fields;
    for (const auto& [field_name, access_path] : found_metadata_fields) {
-      if (std::find(config_metadata_fields.begin(), config_metadata_fields.end(), field_name)
-       != config_metadata_fields.end()) {
+      if (std::find(config_metadata_fields.begin(), config_metadata_fields.end(), field_name) !=
+          config_metadata_fields.end()) {
          validated_metadata_fields.emplace(field_name, access_path);
       } else {
          SPDLOG_WARN(
@@ -77,7 +77,7 @@ void detectInsertionLists(
          }
          if (contained_insertions->ColumnCount() == 1) {
             metadata_fields_to_validate[top_level_entry] = fmt::format(
-               "list_string_agg({}.{})", top_level_entry, contained_insertions->ColumnName(0)
+               "list_string_agg({}.\"{}\")", top_level_entry, contained_insertions->ColumnName(0)
             );
          }
 
@@ -85,7 +85,7 @@ void detectInsertionLists(
          for (size_t idx2 = 0; idx2 < contained_insertions->ColumnCount(); idx2++) {
             const std::string& sequence_name = contained_insertions->ColumnName(idx2);
             list_transforms.push_back(fmt::format(
-               "list_transform({0}.{1}, x ->'{1}:' || x)", top_level_entry, sequence_name
+               "list_transform({0}.\"{1}\", x ->'{1}:' || x)", top_level_entry, sequence_name
             ));
          }
          metadata_fields_to_validate[top_level_entry] =
