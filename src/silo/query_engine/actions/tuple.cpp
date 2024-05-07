@@ -1,3 +1,11 @@
+//! Runtime-defined compact tuple for one row of the database, for the
+//! columns requested by the user.
+
+//! Used for:
+
+//! - index in hash tables for aggregation (hashing and comparison (via memcmp))
+//! - currently sorting for order by queries in Details (via TupleFactory)
+
 #include "silo/query_engine/actions/tuple.h"
 
 #include <cassert>
@@ -368,6 +376,7 @@ Tuple::Comparator Tuple::getComparator(
    };
 }
 
+/// Compare tuples according to user-provided fields
 bool Tuple::compareLess(const Tuple& other, const std::vector<ComparatorField>& fields) const {
    for (const auto& field : fields) {
       const std::byte* data_pointer1 = (this->data + field.offset);
@@ -391,6 +400,7 @@ bool Tuple::operator!=(const Tuple& other) const {
    return !(*this == other);
 }
 
+/// Compare according to native column order.
 bool Tuple::operator<(const Tuple& other) const {
    const std::byte* data_pointer1 = data;
    const std::byte* data_pointer2 = other.data;
