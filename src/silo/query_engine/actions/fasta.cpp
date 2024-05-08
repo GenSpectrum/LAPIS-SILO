@@ -243,7 +243,7 @@ uint32_t uint64ToUint32(uint64_t val) {
    return val;
 }
 
-const size_t PARTITION_CHUNK_SIZE = 1000;
+const size_t PARTITION_CHUNK_SIZE = 10000;
 
 }  // namespace
 
