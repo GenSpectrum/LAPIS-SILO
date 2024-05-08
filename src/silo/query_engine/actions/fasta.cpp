@@ -247,7 +247,7 @@ uint32_t uint64ToUint32(uint64_t val) {
    return val;
 }
 
-const size_t PARTITION_CHUNK_SIZE = 1000;
+const size_t PARTITION_CHUNK_SIZE = 10000;
 
 QueryResult Fasta::execute(const Database& database, std::vector<OperatorResult> bitmap_filter)
    const {
