@@ -1,0 +1,6 @@
+#!/bin/bash
+set -meuo pipefail
+IFS=
+
+find src/ include/ -name "*.h" -o -name "*.cpp" | grep -v '#'
+

@@ -1,0 +1,45 @@
+#!/bin/bash
+set -meuo pipefail
+IFS=
+
+usage() {
+    echo "usage: $0 dir [more find arguments ...]"
+    echo "  Runs find with the given dir and arguments,"
+    echo "  but if it can run git ls-files on the same dir,"
+    echo "  verifies if both give the same output and warns"
+    echo "  if not."
+    false
+}
+
+if [[ $# -lt 1 ]]; then
+    usage
+fi
+if [[ "$1" = -h ]] || [[ "$1" = --help ]]; then
+    usage
+fi
+
+tmp1=$(mktemp)
+tmp2=$(mktemp)
+tmp3=$(mktemp)
+
+find "$@" | LANG=C sort > "$tmp1"
+cat "$tmp1"
+
+# oh, have to exclude the .js files in the endToEndTests/test/
+# case; there are TWO subdirectories with test files in
+# testBaseData, but who knows if that changes in the future?
+if git ls-files "$1" | grep -v '\.js$' | LANG=C sort > "$tmp2" 2>/dev/null; then
+    if [ -s "$tmp2" ]; then
+        if diff -u "$tmp1" "$tmp2" > "$tmp3"; then
+            true
+        else
+            {
+                echo "Warning: $0: '$1' yielded different results for find vs. git:"
+                cat "$tmp3"
+            } >&2
+            # but continue running.
+        fi
+    fi
+fi
+
+rm -f "$tmp1" "$tmp2" "$tmp3"

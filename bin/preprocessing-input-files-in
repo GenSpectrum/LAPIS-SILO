@@ -1,0 +1,7 @@
+#!/bin/bash
+set -meuo pipefail
+IFS=
+
+# preprocessing inputs
+bin/verified-find "$1" -maxdepth 1 -a \( -name "*.fasta" -o -name "*.yaml" -o -name "*.xz" \
+     -o -name "*.zst" -o -name "*.json" -o -name "*.tsv" -o -name "*.ndjson" \)

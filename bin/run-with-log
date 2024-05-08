@@ -1,0 +1,43 @@
+#!/bin/bash
+set -meuo pipefail
+IFS=
+
+usage() {
+    echo "$0 logfile cmd [args...]"
+    echo "  Renames logfile to logfile.old, then runs cmd with args,"
+    echo "  redirecting its stdout/stderr to logfile.tmp, when successful"
+    echo "  renames logfile.tmp to logfile."
+    echo "  If not successful, prints logfile.tmp to stdout and fails."
+    echo
+    echo "  If the COLOR env variable is true, the cmd will not see the "
+    echo "  pipe and hence will colorize as if running under a terminal."
+    echo "  This requites the 'unbuffer' tool from the 'expect' package "
+    echo "  to be installed."
+    exit 1
+}
+
+if [[ $# -lt 2 ]]; then
+    usage
+fi
+
+logfile="$1"
+shift
+
+if [ -e "$logfile" ]; then
+    mv "$logfile" "$logfile".old
+fi
+
+_run() {
+    if [[ "${COLOR-0}" = 0 ]]; then
+        "$@"
+    else
+        unbuffer "$@"
+    fi
+}
+
+if _run "$@" > "$logfile".tmp 2>&1; then
+    mv "$logfile".tmp "$logfile"
+else
+    P="$logfile".tmp perl -wne 's/^/$ENV{P}\t/; print' < "$logfile".tmp
+    false
+fi

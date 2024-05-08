@@ -1,0 +1,52 @@
+#!/bin/bash
+set -meuo pipefail
+IFS=
+
+usage() {
+    echo "usage: $0 [...]"
+    echo "  Auto-detect the mold linker and ninja builder and"
+    echo "  call cmake accordingly. Requires up to date configuration"
+    echo "  via conan first. Currently only fully runs on Linux and"
+    echo "  Mac OS, detection for core count on Windows is missing."
+    echo "  Arguments are passed on to make/ninja."
+    exit 1
+}
+
+if [[ $# -gt 0 ]] && { [[ "$1" = "-h" ]] || [[ "$1" = "--help" ]] ; }; then
+    usage
+fi
+
+args=(../)
+
+if _mold_path=$(which mold); then
+    args=("${args[@]}" -D CMAKE_EXE_LINKER_FLAGS=-fuse-ld=mold)
+fi
+
+if _ninja_path=$(which ninja); then
+    args=("${args[@]}" -G Ninja)
+    make=(ninja)
+else
+    # Linux: /proc/cpuinfo
+    # Mac OS: sysctl -n hw.ncpu
+    corecount=$(grep -c ^processor /proc/cpuinfo || sysctl -n hw.ncpu)
+    make=(make "-j$corecount")
+fi
+
+_do() {
+    echo "+" "$@"
+    "$@"
+}
+
+_do cd build
+_do cmake "${args[@]}"
+# Make all binaries..
+_do "${make[@]}" 
+
+# ..but touch the desired ones afterwards for the top-level Makefile's
+# sake (XX sigh, alternatives?)
+#if [ $# -gt 0 ]; then
+#    cd ..
+#    touch "$@"
+#fi
+# --- nah, just let it re-run build, sadly, still better than re-running tests unnecessarily.
+

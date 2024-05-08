@@ -1,0 +1,28 @@
+#!/bin/bash
+set -meuo pipefail
+IFS=
+
+usage() {
+    echo "$0 test-input-dir" >&2
+    false
+}
+
+if [[ $# != 1 ]]; then
+    usage
+fi
+if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
+    usage
+fi
+testdir="$1"
+
+set +x
+
+rm -rf temp
+
+cd "$testdir"
+
+rm -rf {output,temp,test?*}
+
+
+#SPDLOG_LEVEL=debug
+../../build/siloApi --preprocessing

@@ -1,0 +1,42 @@
+#!/bin/bash
+set -meuo pipefail
+IFS=
+
+#set -x
+
+usage() {
+    echo "$0 test-input-dir port-number" >&2
+    false
+}
+
+if [[ $# != 2 ]]; then
+    usage
+fi
+testdir="$1"
+portnumber="$2"
+
+
+runapi-in "$testdir" "$portnumber" &
+apipid=$(jobs -p)
+
+cleanup () {
+    kill -9 "$apipid" || true
+}
+trap cleanup EXIT
+
+# Wait until the API is ready
+while true; do
+    if res=$(curl --silent --fail-early --data '{}' http://localhost:"$portnumber"/query); then
+        if echo " $res"| grep -q "Database not initialized yet"; then
+            true # continue
+        else
+            break
+        fi
+    fi
+    sleep 1
+done
+
+# Run the tests
+SILO_URL=127.0.0.1:"$portnumber" node --test --test-reporter=tap
+
+# Bash afterwards kills the API process via `cleanup`.

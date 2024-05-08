@@ -1,0 +1,80 @@
+#!/bin/bash
+set -meuo pipefail
+IFS=
+
+usage() {
+    echo "usage: $0 [-v|--verbose] file-for-exitcode cmd [args...]"
+    echo "  Takes a lock on file-for-exitcode, if it gets the lock,"
+    echo "  runs cmd with args and stores the exit code in file-for-exitcode."
+    echo "  If the file is already locked, waits until unlocked then reads"
+    echo "  the file contents as the exit code."
+    echo "  Exits with the exitcode in either case."
+    echo "  If -v/--verbose is given, prints to stderr when it's waiting for"
+    echo "  another instance."
+    exit 1
+}
+
+if [[ $# -lt 1 ]]; then
+    usage
+fi
+
+if [[ "$1" = -v ]] || [[ "$1" = --verbose ]]; then
+    verbose=1
+    shift
+else
+    verbose=0
+fi
+
+if [[ $# -lt 2 ]]; then
+    usage
+fi
+
+cachepath="$1"
+shift
+
+info() {
+    if [[ "$verbose" = 1 ]]; then
+        echo "$@" >&2
+    fi
+}
+
+
+# Open the cache file read/write to an unused file descriptor.
+exec {fd}<>"$cachepath"
+
+if flock -E77 --nonblock "$fd"; then
+    # We have an exclusive lock, so we are supposed to run the cmd;
+    # don't fail if it doesn't exit successfully.
+
+    # Remove previously stored code. (Have to reopen, `>&"$fd"` does
+    # not truncate.)
+    true > "$cachepath"
+
+    if "$@"; then
+        code=$?
+    else
+        code=$?
+    fi
+    echo "$code" >&"$fd"
+    exit "$code"
+else
+    e=$?
+    if [[ "$e" == 77 ]]; then
+        # Another instance is running the command already; wait it out
+        # then read out the exit code.
+        info -n "$0 $cachepath: waiting for concurrent run to finish..."
+        flock "$fd"
+        # `read` will fail if the file is empty (possible if the other
+        # $0-instance was killed)
+        if read -r code <&"$fd"; then
+            info "exited with code $code"
+            exit "$code"
+        else
+            info "other $0 instance was killed"
+            exit 130
+        fi
+    else
+        echo "$0: got exit code $e, is the 'flock' command not available?" >&2
+        false
+    fi
+fi

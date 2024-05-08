@@ -1,0 +1,7 @@
+#!/bin/bash
+set -meuo pipefail
+IFS=
+
+# query inputs
+bin/verified-find endToEndTests/test/ -name "*.json"
+
