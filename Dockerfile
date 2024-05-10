@@ -25,3 +25,6 @@ HEALTHCHECK --start-period=20s CMD curl --fail --silent localhost:8081/info | jq
 EXPOSE 8081
 
 ENTRYPOINT ["./siloApi"]
+
+LABEL org.opencontainers.image.source="https://github.com/GenSpectrum/LAPIS-SILO"
+LABEL org.opencontainers.image.description="Sequence Indexing engine for Large Order of genomic data"
