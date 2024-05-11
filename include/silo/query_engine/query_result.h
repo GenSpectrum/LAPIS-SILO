@@ -77,6 +77,12 @@ class QueryResult {
    /// call.
    std::optional<std::reference_wrapper<const QueryResultEntry>> next();
 
+   /// Change a streaming result to a materialized one: after
+   /// returning, all results have been retrieved and are available
+   /// via next() or entries(). Execution before running next() is
+   /// leading to unspecified results!  NOOP on materialized results.
+   void materialize();
+
    /// Mutable access to the vector for sorting purposes. Can only be
    /// called for materialized QueryResult:s. NOTE: this method
    /// should probably be removed in the future and the code structured
