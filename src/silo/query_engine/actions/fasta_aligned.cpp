@@ -46,7 +46,7 @@ namespace {
 template <typename SymbolType>
 std::string reconstructSequence(
    const SequenceStorePartition<SymbolType>& sequence_store,
-   uint32_t sequence_id
+   uint32_t row_id
 ) {
    std::string reconstructed_sequence;
    std::transform(
@@ -68,7 +68,7 @@ std::string reconstructSequence(
             const Position<SymbolType>& position = sequence_store.positions.at(position_id);
             for (const auto symbol : SymbolType::SYMBOLS) {
                if (!position.isSymbolFlipped(symbol) && !position.isSymbolDeleted(symbol) &&
-                   position.getBitmap(symbol)->contains(sequence_id)) {
+                   position.getBitmap(symbol)->contains(row_id)) {
                   reconstructed_sequence[position_id] = SymbolType::symbolToChar(symbol);
                }
             }
@@ -76,7 +76,7 @@ std::string reconstructSequence(
       }
    );
 
-   for (const size_t position_idx : sequence_store.missing_symbol_bitmaps.at(sequence_id)) {
+   for (const size_t position_idx : sequence_store.missing_symbol_bitmaps.at(row_id)) {
       reconstructed_sequence[position_idx] = SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING);
    }
    return reconstructed_sequence;
