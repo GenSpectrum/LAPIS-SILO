@@ -45,8 +45,18 @@ void QueryHandler::post(
       uint32_t unflushed_rows = 0;
       while ((entry = query_result.next())) {
          out_stream << nlohmann::json(*entry) << '\n';
+         if (!out_stream) {
+            throw std::runtime_error(
+               fmt::format("error writing to HTTP stream: {}", std::strerror(errno))
+            );
+         }
          if (++unflushed_rows >= 1000) {
             out_stream.flush();
+            if (!out_stream) {
+               throw std::runtime_error(
+                  fmt::format("error flushing HTTP stream: {}", std::strerror(errno))
+               );
+            }
             unflushed_rows = 0;
          }
       }
