@@ -88,7 +88,7 @@ std::string reconstructSequence(
 }  // namespace
 
 // Note: fasta.cpp has its own PARTITION_CHUNK_SIZE
-const size_t PARTITION_CHUNK_SIZE = 10000;
+const size_t PARTITION_CHUNK_SIZE = 100;
 
 QueryResult FastaAligned::execute(
    const Database& database,
