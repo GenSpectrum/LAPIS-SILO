@@ -10,7 +10,7 @@ RUN  \
     && cp build/siloApi .
 
 
-FROM alpine:3.18 AS server
+FROM alpine:3.19 AS server
 
 WORKDIR /app
 COPY docker_default_preprocessing_config.yaml ./default_preprocessing_config.yaml
