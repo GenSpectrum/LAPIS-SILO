@@ -10,37 +10,43 @@
 silo::FastaReader::FastaReader(const std::filesystem::path& in_file_name)
     : in_file(in_file_name) {}
 
-std::optional<std::string> silo::FastaReader::nextKey() {
-   std::string key_with_prefix;
-   if (!getline(in_file.getInputStream(), key_with_prefix)) {
+std::optional<silo::FastaReader::SequenceIdentifier> silo::FastaReader::nextIdentifier() {
+   std::string data;
+   if (!getline(in_file.getInputStream(), data)) {
       return std::nullopt;
    }
 
-   if (key_with_prefix.empty() || key_with_prefix.at(0) != '>') {
-      throw FastaFormatException("Fasta key prefix '>' missing for key: " + key_with_prefix);
+   if (data.empty() || data.at(0) != '>') {
+      throw FastaFormatException("Fasta key prefix '>' missing for key: " + data);
    }
 
-   return key_with_prefix.substr(1);
+   silo::FastaReader::SequenceIdentifier identifier(data.substr(1));
+
+   if (identifier.key.empty()) {
+      throw FastaFormatException("Fasta description not valid, missing id: " + data);
+   }
+
+   return identifier;
 }
 
-std::optional<std::string> silo::FastaReader::nextSkipGenome() {
-   auto key = nextKey();
+std::optional<silo::FastaReader::SequenceIdentifier> silo::FastaReader::nextSkipGenome() {
+   auto identifier = nextIdentifier();
 
    in_file.getInputStream().ignore(LONG_MAX, '\n');
-   return key;
+   return identifier;
 }
 
-std::optional<std::string> silo::FastaReader::next(std::string& genome_buffer) {
-   auto key = nextKey();
-   if (!key) {
+std::optional<silo::FastaReader::SequenceIdentifier> silo::FastaReader::next(std::string& genome_buffer) {
+   auto identifier = nextIdentifier();
+   if (!identifier) {
       return std::nullopt;
    }
 
    if (!getline(in_file.getInputStream(), genome_buffer)) {
-      throw FastaFormatException("Missing genome sequence in line following key: " + *key);
+      throw FastaFormatException("Missing genome sequence in line following identifier: " + identifier->key);
    }
 
-   return key;
+   return identifier;
 }
 
 void silo::FastaReader::reset() {

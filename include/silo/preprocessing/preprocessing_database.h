@@ -53,6 +53,12 @@ class PreprocessingDatabase {
       const std::string& reference_sequence,
       const std::string& filename
    );
+
+   ZstdFastaTable generateSequenceTableFromSAM(
+      const std::string& table_name,
+      const std::string& reference_sequence,
+      const std::string& filename
+   );
 };
 
 std::vector<std::string> extractStringListValue(

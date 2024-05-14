@@ -73,18 +73,18 @@ ZstdFastaTable ZstdFastaTable::generate(
    std::string_view reference_sequence
 ) {
    initializeTable(connection, table_name);
-   std::optional<std::string> key;
+   std::optional<silo::FastaReader::SequenceIdentifier> identifier;
    std::string uncompressed;
    ZstdCompressor compressor(std::make_shared<ZstdCDictionary>(reference_sequence, 2));
    duckdb::Appender appender(connection, table_name);
    while (true) {
-      key = file_reader.next(uncompressed);
-      if (key == std::nullopt) {
+      identifier = file_reader.next(uncompressed);
+      if (identifier == std::nullopt) {
          break;
       }
       const std::string_view compressed = compressor.compress(uncompressed);
       const auto* compressed_data = reinterpret_cast<const unsigned char*>(compressed.data());
-      const duckdb::string_t key_value = key.value();
+      const duckdb::string_t key_value = identifier->key;
       appender.BeginRow();
       appender.Append(key_value);
       appender.Append(duckdb::Value::BLOB(compressed_data, compressed.size()));

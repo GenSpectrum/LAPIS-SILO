@@ -10,6 +10,7 @@
 #include <duckdb.hpp>
 
 #include "silo/common/fasta_reader.h"
+#include "silo/common/sam_reader.h"
 #include "silo/preprocessing/partition.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/preprocessing/sql_function.h"
@@ -25,6 +26,9 @@ using duckdb::MaterializedQueryResult;
 using duckdb::Value;
 
 namespace silo::preprocessing {
+
+constexpr std::string_view FASTA_EXTENSION = ".fasta";
+constexpr std::string_view SAM_EXTENSION = ".sam";
 
 PreprocessingDatabase::PreprocessingDatabase(
    const std::optional<std::filesystem::path>& backing_file,
@@ -109,6 +113,21 @@ preprocessing::Partitions PreprocessingDatabase::getPartitionDescriptor() {
    return preprocessing::Partitions(partitions);
 }
 
+ZstdFastaTable PreprocessingDatabase::generateSequenceTableViaFile(
+   const std::string& table_name,
+   const std::string& reference_sequence,
+   std::filesystem::path filename
+) {
+   auto file = filename.replace_extension(FASTA_EXTENSION);
+   if (std::filesystem::exists(file)) {
+      return generateSequenceTableFromFasta(table_name, reference_sequence, file);
+   }
+   file = filename.replace_extension(SAM_EXTENSION);
+   if (std::filesystem::exists(file)) {
+      return generateSequenceTableFromSAM(table_name, reference_sequence, file);
+   }
+}
+
 ZstdFastaTable PreprocessingDatabase::generateSequenceTableFromFasta(
    const std::string& table_name,
    const std::string& reference_sequence,
@@ -125,6 +144,16 @@ ZstdFastaTable PreprocessingDatabase::generateSequenceTableFromZstdFasta(
 ) {
    silo::ZstdFastaReader zstd_fasta_reader(filename, reference_sequence);
    return ZstdFastaTable::generate(connection, table_name, zstd_fasta_reader, reference_sequence);
+}
+
+ZstdFastaTable PreprocessingDatabase::generateSequenceTableFromSAM(
+   const std::string& table_name,
+   const std::string& reference_sequence,
+   const std::string& filename
+) {
+   silo::SamReader sam_reader(filename);
+
+   return ZstdFastaTable::generate(connection, table_name, samr, reference_sequence);
 }
 
 std::vector<std::string> extractStringListValue(

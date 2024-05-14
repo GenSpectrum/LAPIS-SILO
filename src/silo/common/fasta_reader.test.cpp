@@ -17,17 +17,17 @@ TEST(FastaReader, shouldReadFastaFile) {
 
    std::optional<std::string> key;
    std::string genome;
-   key = under_test.next(genome);
+   key = under_test.next(genome)->key;
    EXPECT_TRUE(key != std::nullopt);
    EXPECT_EQ(key, "Key1");
    EXPECT_EQ(genome, "ACGT");
 
-   key = under_test.next(genome);
+   key = under_test.next(genome)->key;
    EXPECT_TRUE(key != std::nullopt);
    EXPECT_EQ(key, "Key2");
    EXPECT_EQ(genome, "CGTA");
 
-   key = under_test.next(genome);
+   key = under_test.next(genome)->key;
    EXPECT_FALSE(key != std::nullopt);
 }
 
@@ -43,12 +43,12 @@ TEST(FastaReader, shouldReadFastaFileWithoutNewLineAtEnd) {
    std::optional<std::string> key;
    std::string genome;
 
-   key = under_test.next(genome);
+   key = under_test.next(genome)->key;
    EXPECT_TRUE(key != std::nullopt);
    EXPECT_EQ(key, "Key");
    EXPECT_EQ(genome, "ACGT");
 
-   key = under_test.next(genome);
+   key = under_test.next(genome)->key;
    EXPECT_FALSE(key != std::nullopt);
 }
 
@@ -77,7 +77,7 @@ TEST(FastaReader, givenDataInWithMissingGenomeThenShouldThrowAnException) {
    std::optional<std::string> key;
    std::string genome;
 
-   key = under_test.next(genome);
+   key = under_test.next(genome)->key;
    EXPECT_TRUE(key != std::nullopt);
    EXPECT_EQ(key, "Key");
    EXPECT_EQ(genome, "ACGT");
