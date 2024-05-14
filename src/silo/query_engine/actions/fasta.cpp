@@ -13,7 +13,7 @@
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
-#include "silo/zstdfasta/zstdfasta_table_reader.h"
+#include "silo/zstd/zstd_table_reader.h"
 
 using silo::common::add1;
 using silo::common::Range;
@@ -112,7 +112,7 @@ void addSequencesFromResultTableToJson(
       const std::string& sequence_name = sequence_names.at(sequence_idx);
       const std::string_view compression_dict =
          database_partition.unaligned_nuc_sequences.at(sequence_name).compression_dictionary;
-      silo::ZstdFastaTableReader table_reader(
+      silo::ZstdTableReader table_reader(
          connection,
          result_table_name,
          compression_dict,

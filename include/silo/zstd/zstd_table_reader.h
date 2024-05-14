@@ -7,7 +7,7 @@
 #include <string>
 #include <string_view>
 
-#include "silo/zstdfasta/zstd_decompressor.h"
+#include "silo/zstd/zstd_decompressor.h"
 
 namespace duckdb {
 struct Connection;
@@ -18,7 +18,7 @@ struct DataChunk;
 namespace silo {
 struct ZstdDecompressor;
 
-class ZstdFastaTableReader {
+class ZstdTableReader {
   private:
    duckdb::Connection& connection;
    std::string table_name;
@@ -37,7 +37,7 @@ class ZstdFastaTableReader {
    void advanceRow();
 
   public:
-   explicit ZstdFastaTableReader(
+   explicit ZstdTableReader(
       duckdb::Connection& connection,
       std::string_view table_name,
       std::string_view compression_dict,

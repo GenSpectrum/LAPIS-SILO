@@ -1,4 +1,4 @@
-#include "silo/zstdfasta/zstd_dictionary.h"
+#include "silo/zstd/zstd_dictionary.h"
 
 #include <utility>
 

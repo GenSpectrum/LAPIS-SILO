@@ -9,12 +9,14 @@
 #include <vector>
 
 #include <fmt/format.h>
+#include <duckdb/main/connection.hpp>
 #include <roaring/roaring.hh>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/format_number.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/symbol_map.h"
+#include "silo/common/table_reader.h"
 #include "silo/storage/insertion_index.h"
 #include "silo/storage/position.h"
 
@@ -25,12 +27,25 @@ class access;
 namespace silo {
 template <typename SymbolType>
 class Position;
-class ZstdFastaTableReader;
+class ZstdTableReader;
 
 struct SequenceStoreInfo {
    uint32_t sequence_count;
    uint64_t size;
    size_t n_bitmaps_size;
+};
+
+struct ReadSequence {
+   bool is_valid = false;
+   std::string sequence = "";
+   uint32_t offset;
+
+   ReadSequence(std::string_view _sequence, uint32_t _offset = 0)
+       : sequence(std::move(_sequence)),
+         offset(_offset),
+         is_valid(true) {}
+
+   ReadSequence() {}
 };
 
 template <typename SymbolType>
@@ -60,7 +75,10 @@ class SequenceStorePartition {
    uint32_t sequence_count = 0;
 
   private:
-   void fillIndexes(const std::vector<std::optional<std::string>>& genomes);
+   static constexpr size_t BUFFER_SIZE = 1024;
+   std::vector<ReadSequence> lazy_buffer;
+
+   void fillIndexes(const std::vector<ReadSequence>& reads);
 
    void addSymbolsToPositions(
       size_t position_idx,
@@ -68,9 +86,11 @@ class SequenceStorePartition {
       size_t number_of_sequences
    );
 
-   void fillNBitmaps(const std::vector<std::optional<std::string>>& genomes);
+   void fillNBitmaps(const std::vector<ReadSequence>& reads);
 
    void optimizeBitmaps();
+
+   void flushBuffer(const std::vector<ReadSequence>& reads);
 
   public:
    explicit SequenceStorePartition(
@@ -86,11 +106,9 @@ class SequenceStorePartition {
 
    [[nodiscard]] SequenceStoreInfo getInfo() const;
 
-   size_t fill(silo::ZstdFastaTableReader& input);
+   ReadSequence& appendNewSequenceRead();
 
    void insertInsertion(size_t row_id, const std::string& insertion_and_position);
-
-   void interpret(const std::vector<std::optional<std::string>>& genomes);
 
    void finalize();
 };

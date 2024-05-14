@@ -4,7 +4,7 @@
 
 #include "silo/common/pango_lineage.h"
 #include "silo/storage/reference_genomes.h"
-#include "silo/zstdfasta/zstd_compressor.h"
+#include "silo/zstd/zstd_compressor.h"
 
 using duckdb::Connection;
 using duckdb::DataChunk;
