@@ -13,14 +13,13 @@ namespace silo {
 class ZstdDecompressor {
    ZstdDDictionary zstd_dictionary;
    ZstdDContext zstd_context;
-   std::string buffer;
 
   public:
    explicit ZstdDecompressor(std::string_view dictionary_string);
 
-   std::string_view decompress(const std::string& input);
+   void decompress(const std::string& input, std::string& buffer);
 
-   std::string_view decompress(const char* input_data, size_t input_length);
+   void decompress(const char* input_data, size_t input_length, std::string& buffer);
 };
 
 }  // namespace silo

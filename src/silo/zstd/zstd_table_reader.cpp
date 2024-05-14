@@ -1,4 +1,4 @@
-#include "silo/zstdfasta/zstdfasta_table_reader.h"
+#include "silo/zstd/zstd_table_reader.h"
 
 #include <cstddef>
 #include <fstream>
@@ -9,9 +9,9 @@
 #include <duckdb.hpp>
 
 #include "silo/preprocessing/preprocessing_exception.h"
-#include "silo/zstdfasta/zstd_decompressor.h"
+#include "silo/zstd/zstd_decompressor.h"
 
-silo::ZstdFastaTableReader::ZstdFastaTableReader(
+silo::ZstdTableReader::ZstdTableReader(
    duckdb::Connection& connection,
    std::string_view table_name,
    std::string_view compression_dict,
@@ -25,10 +25,10 @@ silo::ZstdFastaTableReader::ZstdFastaTableReader(
       where_clause(where_clause),
       order_by_clause(order_by_clause),
       decompressor(std::make_unique<ZstdDecompressor>(compression_dict)) {
-   SPDLOG_TRACE("Initializing ZstdFastaTableReader for table {}", table_name);
+   SPDLOG_TRACE("Initializing ZstdTableReader for table {}", table_name);
 }
 
-std::optional<std::string> silo::ZstdFastaTableReader::nextKey() {
+std::optional<std::string> silo::ZstdTableReader::nextKey() {
    if (!current_chunk) {
       return std::nullopt;
    }
@@ -36,7 +36,7 @@ std::optional<std::string> silo::ZstdFastaTableReader::nextKey() {
    return current_chunk->GetValue(0, current_row).GetValue<std::string>();
 }
 
-std::optional<std::string> silo::ZstdFastaTableReader::nextSkipGenome() {
+std::optional<std::string> silo::ZstdTableReader::nextSkipGenome() {
    auto key = nextKey();
 
    if (!key) {
@@ -47,7 +47,7 @@ std::optional<std::string> silo::ZstdFastaTableReader::nextSkipGenome() {
    return key;
 }
 
-std::optional<std::string> silo::ZstdFastaTableReader::nextCompressed(
+std::optional<std::string> silo::ZstdTableReader::nextCompressed(
    std::optional<std::string>& compressed_genome
 ) {
    auto key = nextKey();
@@ -59,14 +59,19 @@ std::optional<std::string> silo::ZstdFastaTableReader::nextCompressed(
    if (value.IsNull()) {
       compressed_genome = std::nullopt;
    } else {
-      compressed_genome = value.GetValueUnsafe<std::string>();
+      const auto& children = duckdb::StructValue::GetChildren(value);
+      if (children[1].IsNull()) {
+         compressed_genome = std::nullopt;
+         return std::nullopt;
+      }
+      compressed_genome = children[1].GetValueUnsafe<std::string>();
    }
 
    advanceRow();
    return key;
 }
 
-std::optional<std::string> silo::ZstdFastaTableReader::next(std::optional<std::string>& genome) {
+std::optional<std::string> silo::ZstdTableReader::next(std::optional<std::string>& genome) {
    std::optional<std::string> compressed_buffer;
    auto key = nextCompressed(compressed_buffer);
 
@@ -75,7 +80,11 @@ std::optional<std::string> silo::ZstdFastaTableReader::next(std::optional<std::s
    }
 
    if (compressed_buffer.has_value()) {
-      genome = decompressor->decompress(compressed_buffer.value());
+      if (!genome) {  // TODO(#230) this is not good. it is doing the opposite of buffering and
+                      // should be removed
+         genome = std::string();
+      }
+      decompressor->decompress(compressed_buffer.value(), genome.value());
    } else {
       genome = std::nullopt;
    }
@@ -83,7 +92,7 @@ std::optional<std::string> silo::ZstdFastaTableReader::next(std::optional<std::s
    return key;
 }
 
-std::string silo::ZstdFastaTableReader::getTableQuery() {
+std::string silo::ZstdTableReader::getTableQuery() {
    return fmt::format(
       "SELECT key, {} FROM {} WHERE {} {}",
       sequence_column,
@@ -93,13 +102,13 @@ std::string silo::ZstdFastaTableReader::getTableQuery() {
    );
 }
 
-void silo::ZstdFastaTableReader::loadTable() {
+void silo::ZstdTableReader::loadTable() {
    try {
       query_result = connection.Query(getTableQuery());
    } catch (const std::exception& e) {
       SPDLOG_ERROR("Error when executing SQL {}", e.what());
       throw silo::preprocessing::PreprocessingException(fmt::format(
-         "SQL for loading the results that the ZstdFastaTableReader reads:{}\n"
+         "SQL for loading the results that the ZstdTableReader reads:{}\n"
          "Resulting Error:\n{}",
          getTableQuery(),
          std::string(e.what())
@@ -119,7 +128,7 @@ void silo::ZstdFastaTableReader::loadTable() {
    }
 }
 
-void silo::ZstdFastaTableReader::advanceRow() {
+void silo::ZstdTableReader::advanceRow() {
    current_row++;
    if (current_row == current_chunk->size()) {
       current_row = 0;

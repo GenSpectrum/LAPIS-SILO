@@ -241,5 +241,4 @@ std::string ReferenceGenomes::vectorToString<Nucleotide>(
 template <>
 std::string ReferenceGenomes::vectorToString<AminoAcid>(const std::vector<AminoAcid::Symbol>& vector
 );
-
 }  // namespace silo

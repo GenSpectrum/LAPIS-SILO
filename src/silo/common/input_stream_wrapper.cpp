@@ -27,21 +27,27 @@ InputStreamWrapper::InputStreamWrapper(const std::filesystem::path& filename)
     : input_stream(std::make_unique<boost::iostreams::filtering_istream>()) {
    if (std::filesystem::is_regular_file(withZSTending(filename))) {
       SPDLOG_INFO("Detected file-ending .zst for input file " + filename.string());
-      file = std::ifstream(withZSTending(filename), std::ios::binary);
+      file_stream = std::ifstream(withZSTending(filename), std::ios::binary);
       input_stream->push(boost::iostreams::zstd_decompressor());
    } else if (std::filesystem::is_regular_file(withXZending(filename))) {
       SPDLOG_INFO("Detected file-ending .xz for input file " + filename.string());
-      file = std::ifstream(withXZending(filename), std::ios::binary);
+      file_stream = std::ifstream(withXZending(filename), std::ios::binary);
       input_stream->push(boost::iostreams::lzma_decompressor());
    } else if (std::filesystem::is_regular_file(filename)) {
       SPDLOG_INFO("Detected file without specialized ending, processing raw: " + filename.string());
-      file = std::ifstream(filename, std::ios::binary);
+      file_stream = std::ifstream(filename, std::ios::binary);
    } else {
       throw silo::preprocessing::PreprocessingException(
          "Cannot find file with name or associated endings (.xz, .zst): " + filename.string()
       );
    }
-   input_stream->push(file);
+   input_stream->push(file_stream);
+}
+
+InputStreamWrapper::InputStreamWrapper(const std::string& content) {
+   string_stream = std::istringstream(content);
+   input_stream = std::make_unique<boost::iostreams::filtering_istream>();
+   input_stream->push(string_stream);
 }
 
 std::istream& silo::InputStreamWrapper::getInputStream() const {

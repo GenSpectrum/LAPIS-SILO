@@ -10,7 +10,7 @@ class access;
 }  // namespace boost::serialization
 
 namespace silo {
-class ZstdFastaTableReader;
+class ZstdTableReader;
 
 /// Holds information where to read unaligned sequences for a
 /// segment (= the sequence of a particular name) in one partition.

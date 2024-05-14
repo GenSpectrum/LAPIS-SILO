@@ -2,11 +2,14 @@
 
 #include <optional>
 
+#include "silo/common/table_reader.h"
 #include "silo/config/database_config.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_database.h"
 #include "silo/storage/pango_lineage_alias.h"
 #include "silo/storage/reference_genomes.h"
+#include "silo/storage/sequence_store.h"
+#include "silo/zstd/zstd_decompressor.h"
 
 namespace silo {
 class Database;
@@ -89,6 +92,18 @@ class Preprocessor {
       Database& database,
       const preprocessing::Partitions& partition_descriptor,
       const std::string& order_by_clause
+   );
+
+   template <typename SymbolType>
+   ColumnFunction createRawReadLambda(
+      ZstdDecompressor& decompressor,
+      silo::SequenceStorePartition<SymbolType>& sequence_store
+   );
+
+   template <typename SymbolType>
+   ColumnFunction createInsertionLambda(
+      const std::string& sequence_name,
+      silo::SequenceStorePartition<SymbolType>& sequence_store
    );
 
    template <typename SymbolType>

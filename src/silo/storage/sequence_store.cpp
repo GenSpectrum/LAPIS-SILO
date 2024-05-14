@@ -15,15 +15,17 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/string_utils.h"
 #include "silo/common/symbol_map.h"
+#include "silo/common/table_reader.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/position.h"
-#include "silo/zstdfasta/zstdfasta_table_reader.h"
+#include "silo/zstd/zstd_decompressor.h"
 
 template <typename SymbolType>
 silo::SequenceStorePartition<SymbolType>::SequenceStorePartition(
    const std::vector<typename SymbolType::Symbol>& reference_sequence
 )
     : reference_sequence(reference_sequence) {
+   lazy_buffer.reserve(BUFFER_SIZE);
    positions.reserve(reference_sequence.size());
    for (const auto symbol : reference_sequence) {
       positions.emplace_back(Position<SymbolType>::fromInitiallyFlipped(symbol));
@@ -31,41 +33,14 @@ silo::SequenceStorePartition<SymbolType>::SequenceStorePartition(
 }
 
 template <typename SymbolType>
-size_t silo::SequenceStorePartition<SymbolType>::fill(ZstdFastaTableReader& input) {
-   static constexpr size_t BUFFER_SIZE = 1024;
-
-   input.loadTable();
-
-   size_t read_sequences_count = 0;
-
-   std::vector<std::optional<std::string>> genome_buffer;
-
-   std::optional<std::string> key;
-   std::optional<std::string> genome;
-   while (true) {
-      key = input.next(genome);
-      if (!key) {
-         break;
-      }
-      genome_buffer.push_back(std::move(genome));
-      if (genome_buffer.size() >= BUFFER_SIZE) {
-         interpret(genome_buffer);
-         genome_buffer.clear();
-      }
-
-      ++read_sequences_count;
+silo::ReadSequence& silo::SequenceStorePartition<SymbolType>::appendNewSequenceRead() {
+   if (lazy_buffer.size() > BUFFER_SIZE) {
+      flushBuffer(lazy_buffer);
+      lazy_buffer.clear();
    }
-   interpret(genome_buffer);
-   const SequenceStoreInfo info_before_optimisation = getInfo();
-   optimizeBitmaps();
 
-   SPDLOG_DEBUG(
-      "Sequence store partition info after filling it: {}, and after optimising: {}",
-      info_before_optimisation,
-      getInfo()
-   );
-
-   return read_sequences_count;
+   lazy_buffer.emplace_back();
+   return lazy_buffer.back();
 }
 
 namespace {
@@ -112,6 +87,9 @@ void silo::SequenceStorePartition<SymbolType>::insertInsertion(
 
 template <typename SymbolType>
 void silo::SequenceStorePartition<SymbolType>::finalize() {
+   flushBuffer(lazy_buffer);
+   lazy_buffer.clear();
+
    SPDLOG_DEBUG("Building insertion index");
 
    insertion_index.buildIndex();
@@ -159,9 +137,7 @@ const roaring::Roaring* silo::SequenceStorePartition<SymbolType>::getBitmap(
 }
 
 template <typename SymbolType>
-void silo::SequenceStorePartition<SymbolType>::fillIndexes(
-   const std::vector<std::optional<std::string>>& genomes
-) {
+void silo::SequenceStorePartition<SymbolType>::fillIndexes(const std::vector<ReadSequence>& reads) {
    const size_t genome_length = positions.size();
    static constexpr int COUNT_SYMBOLS_PER_PROCESSOR = 64;
    tbb::parallel_for(
@@ -169,13 +145,13 @@ void silo::SequenceStorePartition<SymbolType>::fillIndexes(
       [&](const auto& local) {
          SymbolMap<SymbolType, std::vector<uint32_t>> ids_per_symbol_for_current_position;
          for (size_t position_idx = local.begin(); position_idx != local.end(); ++position_idx) {
-            const size_t number_of_sequences = genomes.size();
+            const size_t number_of_sequences = reads.size();
             for (size_t sequence_id = 0; sequence_id < number_of_sequences; ++sequence_id) {
-               const auto& genome = genomes[sequence_id];
-               if (!genome.has_value()) {
+               const auto& [is_valid, sequence, offset] = reads[sequence_id];
+               if (!is_valid || position_idx < offset || position_idx - offset >= sequence.size()) {
                   continue;
                }
-               const char character = genome.value()[position_idx];
+               const char character = sequence[position_idx - offset];
                const auto symbol = SymbolType::charToSymbol(character);
                if (!symbol.has_value()) {
                   throw silo::preprocessing::PreprocessingException(
@@ -211,34 +187,38 @@ void silo::SequenceStorePartition<SymbolType>::addSymbolsToPositions(
 }
 
 template <typename SymbolType>
-void silo::SequenceStorePartition<SymbolType>::fillNBitmaps(
-   const std::vector<std::optional<std::string>>& genomes
+void silo::SequenceStorePartition<SymbolType>::fillNBitmaps(const std::vector<ReadSequence>& reads
 ) {
    const size_t genome_length = positions.size();
 
-   missing_symbol_bitmaps.resize(sequence_count + genomes.size());
+   missing_symbol_bitmaps.resize(sequence_count + reads.size());
 
-   const tbb::blocked_range<size_t> range(0, genomes.size());
+   const tbb::blocked_range<size_t> range(0, reads.size());
    tbb::parallel_for(range, [&](const decltype(range)& local) {
       std::vector<uint32_t> positions_with_symbol_missing;
       for (size_t sequence_index = local.begin(); sequence_index != local.end(); ++sequence_index) {
-         const auto& maybe_genome = genomes[sequence_index];
+         const auto& [is_valid, maybe_sequence, offset] = reads[sequence_index];
 
-         if (!maybe_genome.has_value()) {
+         if (!is_valid) {
             missing_symbol_bitmaps[sequence_count + sequence_index].addRange(0, genome_length);
             missing_symbol_bitmaps[sequence_count + sequence_index].runOptimize();
             continue;
          }
 
-         const auto& genome = maybe_genome.value();
+         missing_symbol_bitmaps[sequence_count + sequence_index].addRange(0, offset);
 
-         for (size_t position_idx = 0; position_idx < genome_length; ++position_idx) {
-            const char character = genome[position_idx];
+         for (size_t position_idx = 0; position_idx < maybe_sequence.size(); ++position_idx) {
+            const char character = maybe_sequence[position_idx];
             const auto symbol = SymbolType::charToSymbol(character);
             if (symbol == SymbolType::SYMBOL_MISSING) {
-               positions_with_symbol_missing.push_back(position_idx);
+               positions_with_symbol_missing.push_back(position_idx + offset);
             }
          }
+
+         missing_symbol_bitmaps[sequence_count + sequence_index].addRange(
+            offset + maybe_sequence.size(), genome_length
+         );
+
          if (!positions_with_symbol_missing.empty()) {
             missing_symbol_bitmaps[sequence_count + sequence_index].addMany(
                positions_with_symbol_missing.size(), positions_with_symbol_missing.data()
@@ -272,12 +252,10 @@ void silo::SequenceStorePartition<SymbolType>::optimizeBitmaps() {
 }
 
 template <typename SymbolType>
-void silo::SequenceStorePartition<SymbolType>::interpret(
-   const std::vector<std::optional<std::string>>& genomes
-) {
-   fillIndexes(genomes);
-   fillNBitmaps(genomes);
-   sequence_count += genomes.size();
+void silo::SequenceStorePartition<SymbolType>::flushBuffer(const std::vector<ReadSequence>& reads) {
+   fillIndexes(reads);
+   fillNBitmaps(reads);
+   sequence_count += reads.size();
 }
 
 template <typename SymbolType>

@@ -53,6 +53,35 @@ const Scenario FASTA_FILES_WITH_MISSING_SEGMENTS_AND_GENES = {
 }])")
 };
 
+// First 10 characters of sequence in nuc_main.sam have been removed
+// This is to test the offset (set to 10 for both reads)
+const Scenario SAM_FILES = {
+   .input_directory = "testBaseData/samFiles/",
+   .expected_sequence_count = 2,
+   .query = R"(
+      {
+         "action": {
+           "type": "FastaAligned",
+           "sequenceName": ["main"],
+           "orderByFields": ["accessionVersion"]
+         },
+         "filterExpression": {
+            "type": "True"
+         }
+      }
+   )",
+   .expected_query_result = nlohmann::json::parse(R"([
+         {
+            "accessionVersion": "1.1",
+            "main": "NNNNNNNNNNTATACCTTCCCAGGTAACAAACCAACCAACTTTCGATCT"
+         },
+         {
+            "accessionVersion": "1.3",
+            "main": "NNNNNTATACCTTCCCAGGTAACAAACCAACCAACTTTCGATCTNNNNN"
+         }
+      ])")
+};
+
 const Scenario NDJSON_FILE_WITH_MISSING_SEGMENTS_AND_GENES = {
    .input_directory = "testBaseData/ndjsonWithNullSequences/",
    .expected_sequence_count = FASTA_FILES_WITH_MISSING_SEGMENTS_AND_GENES.expected_sequence_count,
@@ -236,6 +265,7 @@ INSTANTIATE_TEST_SUITE_P(
    ::testing::Values(
       FASTA_FILES_WITH_MISSING_SEGMENTS_AND_GENES,
       NDJSON_FILE_WITH_MISSING_SEGMENTS_AND_GENES,
+      SAM_FILES,
       NDJSON_WITH_SQL_KEYWORD_AS_FIELD,
       TSV_FILE_WITH_SQL_KEYWORD_AS_FIELD,
       NDJSON_WITH_NUMERIC_NAMES,

@@ -7,8 +7,8 @@
 
 #include <zstd.h>
 
-#include "silo/zstdfasta/zstd_context.h"
-#include "silo/zstdfasta/zstd_dictionary.h"
+#include "silo/zstd/zstd_context.h"
+#include "silo/zstd/zstd_dictionary.h"
 
 namespace silo {
 

@@ -9,20 +9,25 @@
 #include <spdlog/spdlog.h>
 #include <duckdb.hpp>
 
-#include "silo/common/fasta_reader.h"
+#include "silo/common/string_utils.h"
 #include "silo/preprocessing/partition.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/preprocessing/sql_function.h"
+#include "silo/sequence_file_reader/fasta_reader.h"
+#include "silo/sequence_file_reader/sam_reader.h"
 #include "silo/storage/reference_genomes.h"
-#include "silo/zstdfasta/zstd_compressor.h"
-#include "silo/zstdfasta/zstdfasta_reader.h"
-#include "silo/zstdfasta/zstdfasta_table.h"
-#include "silo/zstdfasta/zstdfasta_writer.h"
+#include "silo/zstd/zstd_compressor.h"
+#include "silo/zstd/zstd_table.h"
 
 using duckdb::BigIntValue;
 using duckdb::ListValue;
 using duckdb::MaterializedQueryResult;
 using duckdb::Value;
+
+namespace {
+constexpr std::string_view FASTA_EXTENSION = "fasta";
+constexpr std::string_view SAM_EXTENSION = "sam";
+}  // namespace
 
 namespace silo::preprocessing {
 
@@ -109,22 +114,55 @@ preprocessing::Partitions PreprocessingDatabase::getPartitionDescriptor() {
    return preprocessing::Partitions(partitions);
 }
 
-ZstdFastaTable PreprocessingDatabase::generateSequenceTableFromFasta(
+ZstdTable PreprocessingDatabase::generateSequenceTableViaFile(
    const std::string& table_name,
    const std::string& reference_sequence,
-   const std::string& filename
+   const std::filesystem::path& file_path
 ) {
-   silo::FastaReader fasta_reader(filename);
-   return ZstdFastaTable::generate(connection, table_name, fasta_reader, reference_sequence);
+   const auto file_stem = file_path.stem().string();
+   for (const auto& entry : std::filesystem::directory_iterator(file_path.parent_path())) {
+      const auto entry_file_name = entry.path().filename().string();
+      if (!entry.is_regular_file() || !entry_file_name.starts_with(file_stem)) {
+         continue;
+      }
+      auto extensions = splitBy(entry_file_name, ".");
+      auto last = extensions.back();
+      if (last == "zst" || last == "xz") {
+         extensions.pop_back();
+         last = extensions.back();
+      }
+      if (last == FASTA_EXTENSION) {
+         return generateSequenceTableFromFasta(table_name, reference_sequence, entry.path());
+      }
+      if (last == SAM_EXTENSION) {
+         return generateSequenceTableFromSAM(table_name, reference_sequence, entry.path());
+      }
+   }
+
+   throw PreprocessingException(fmt::format(
+      "Could not find reference file for {}, tried file extensions: .fasta(.zst,.xz), "
+      ".sam(.zst,.xz)",
+      file_path.string()
+   ));
 }
 
-ZstdFastaTable PreprocessingDatabase::generateSequenceTableFromZstdFasta(
+ZstdTable PreprocessingDatabase::generateSequenceTableFromFasta(
    const std::string& table_name,
    const std::string& reference_sequence,
-   const std::string& filename
+   const std::filesystem::path& file_name
 ) {
-   silo::ZstdFastaReader zstd_fasta_reader(filename, reference_sequence);
-   return ZstdFastaTable::generate(connection, table_name, zstd_fasta_reader, reference_sequence);
+   silo::sequence_file_reader::FastaReader fasta_reader(file_name);
+   return ZstdTable::generate(connection, table_name, fasta_reader, reference_sequence);
+}
+
+ZstdTable PreprocessingDatabase::generateSequenceTableFromSAM(
+   const std::string& table_name,
+   const std::string& reference_sequence,
+   const std::filesystem::path& file_name
+) {
+   silo::sequence_file_reader::SamReader sam_reader(file_name);
+
+   return ZstdTable::generate(connection, table_name, sam_reader, reference_sequence);
 }
 
 std::vector<std::string> extractStringListValue(
