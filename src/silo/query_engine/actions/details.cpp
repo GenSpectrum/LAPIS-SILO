@@ -25,11 +25,7 @@ std::vector<silo::storage::ColumnMetadata> parseFields(
    const std::vector<std::string>& fields
 ) {
    if (fields.empty()) {
-      auto filtered_fields = database.columns.metadata | std::views::filter([](const auto& object) {
-                                return object.type != silo::config::ColumnType::NUC_INSERTION &&
-                                       object.type != silo::config::ColumnType::AA_INSERTION;
-                             });
-      return {filtered_fields.begin(), filtered_fields.end()};
+      return database.columns.metadata;
    }
    std::vector<silo::storage::ColumnMetadata> field_metadata;
    for (const std::string& field : fields) {

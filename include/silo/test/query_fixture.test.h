@@ -89,17 +89,11 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
       std::filesystem::path input_directory = fmt::format("test{}", millis);
       std::filesystem::create_directories(input_directory);
 
-      std::ofstream config_file(input_directory / "preprocessing_config.yaml");
-      assert(config_file.is_open());
-      config_file << "inputDirectory: " << input_directory << "\n";
-      config_file << "ndjsonInputFilename: input.ndjson\n";
-      config_file << "intermediateResultsDirectory: " << input_directory / "temp\n";
-      config_file.close();
-
-      config::PreprocessingConfig config_with_input_dir;
-      config_with_input_dir.overwrite(
-         silo::config::YamlConfig(input_directory / "preprocessing_config.yaml")
-      );
+      config::PreprocessingConfig config_with_input_dir{
+         .input_directory = input_directory,
+         .intermediate_results_directory = input_directory,
+         .ndjson_input_filename = "input.json"
+      };
       config_with_input_dir.validate();
 
       DataContainer::input_directory = input_directory;

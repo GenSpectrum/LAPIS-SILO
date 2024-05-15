@@ -21,7 +21,9 @@ nlohmann::json createDataWithIntValue(const std::string& primaryKey, int value) 
       {"metadata", {{"primaryKey", primaryKey}, {"int_value", value}}},
       {"alignedNucleotideSequences", {{"segment1", nullptr}}},
       {"unalignedNucleotideSequences", {{"segment1", nullptr}}},
-      {"alignedAminoAcidSequences", {{"gene1", nullptr}}}
+      {"alignedAminoAcidSequences", {{"gene1", nullptr}}},
+      {"nucleotideInsertions", {{"segment1", {}}}},
+      {"aminoAcidInsertions", {{"gene1", {}}}}
    };
 }
 
@@ -30,7 +32,9 @@ nlohmann::json createDataWithIntNullValue(const std::string& primaryKey) {
       {"metadata", {{"primaryKey", primaryKey}, {"int_value", nullptr}}},
       {"alignedNucleotideSequences", {{"segment1", nullptr}}},
       {"unalignedNucleotideSequences", {{"segment1", nullptr}}},
-      {"alignedAminoAcidSequences", {{"gene1", nullptr}}}
+      {"alignedAminoAcidSequences", {{"gene1", nullptr}}},
+      {"nucleotideInsertions", {{"segment1", {}}}},
+      {"aminoAcidInsertions", {{"gene1", {}}}}
    };
 }
 

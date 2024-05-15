@@ -20,8 +20,10 @@ nlohmann::json createDataWithNucleotideSequence(const std::string& nucleotideSeq
    return {
       {"metadata", {{"primaryKey", "id_" + to_string(request_id)}}},
       {"alignedNucleotideSequences", {{"segment1", nucleotideSequence}}},
-      {"unalignedNucleotideSequences", {{"segment1", nullptr}}},
-      {"alignedAminoAcidSequences", {{"gene1", nullptr}}}
+      {"unalignedNucleotideSequences", {{"segment1", {}}}},
+      {"alignedAminoAcidSequences", {{"gene1", {}}}},
+      {"nucleotideInsertions", {{"segment1", {}}}},
+      {"aminoAcidInsertions", {{"gene1", {}}}}
    };
 }
 

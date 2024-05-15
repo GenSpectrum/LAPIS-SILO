@@ -27,9 +27,5 @@ schema:
       type: string
     - name: versionStatus
       type: string
-    - name: nucleotideInsertions
-      type: insertion
-    - name: aminoAcidInsertions
-      type: aaInsertion
   primaryKey: accessionVersion
   dateToSortBy: date

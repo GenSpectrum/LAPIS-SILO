@@ -17,31 +17,41 @@ const auto DATA_JSON = R"([
       "metadata": {"key": "id1", "col": "A"},
       "alignedNucleotideSequences": {"segment1": null},
       "unalignedNucleotideSequences": {"segment1": null},
-      "alignedAminoAcidSequences": {"gene1": null}
+      "alignedAminoAcidSequences": {"gene1": null},
+      "nucleotideInsertions": {"segment1": []},
+      "aminoAcidInsertions": {"gene1": []}
    },
    {
       "metadata": {"key": "id2", "col": "B"},
       "alignedNucleotideSequences": {"segment1": null},
       "unalignedNucleotideSequences": {"segment1": null},
-      "alignedAminoAcidSequences": {"gene1": null}
+      "alignedAminoAcidSequences": {"gene1": null},
+      "nucleotideInsertions": {"segment1": []},
+      "aminoAcidInsertions": {"gene1": []}
    },
    {
       "metadata": {"key": "id3", "col": "A"},
       "alignedNucleotideSequences": {"segment1": null},
       "unalignedNucleotideSequences": {"segment1": null},
-      "alignedAminoAcidSequences": {"gene1": null}
+      "alignedAminoAcidSequences": {"gene1": null},
+      "nucleotideInsertions": {"segment1": []},
+      "aminoAcidInsertions": {"gene1": []}
    },
    {
       "metadata": {"key": "id4", "col": "B"},
       "alignedNucleotideSequences": {"segment1": null},
       "unalignedNucleotideSequences": {"segment1": null},
-      "alignedAminoAcidSequences": {"gene1": null}
+      "alignedAminoAcidSequences": {"gene1": null},
+      "nucleotideInsertions": {"segment1": []},
+      "aminoAcidInsertions": {"gene1": []}
    },
    {
       "metadata": {"key": "id5", "col": "A"},
       "alignedNucleotideSequences": {"segment1": null},
       "unalignedNucleotideSequences": {"segment1": null},
-      "alignedAminoAcidSequences": {"gene1": null}
+      "alignedAminoAcidSequences": {"gene1": null},
+      "nucleotideInsertions": {"segment1": []},
+      "aminoAcidInsertions": {"gene1": []}
    }
 ])";
 

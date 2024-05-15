@@ -58,42 +58,6 @@ std::unordered_map<std::string, std::string> validateFieldsAgainstConfig(
    return validated_metadata_fields;
 }
 
-void detectInsertionLists(
-   const std::filesystem::path& ndjson_file,
-   std::unordered_map<std::string, std::string>& metadata_fields_to_validate
-) {
-   duckdb::DuckDB duck_db(nullptr);
-   duckdb::Connection connection(duck_db);
-   auto top_level_entries =
-      connection.Query(fmt::format("SELECT * FROM '{}' LIMIT 0", ndjson_file.string()));
-   for (size_t idx = 0; idx < top_level_entries->ColumnCount(); idx++) {
-      const std::string& top_level_entry = top_level_entries->ColumnName(idx);
-      if (top_level_entry == "nucleotideInsertions" || top_level_entry == "aminoAcidInsertions") {
-         auto contained_insertions = connection.Query(
-            fmt::format("SELECT {}.* FROM '{}' LIMIT 0", top_level_entry, ndjson_file.string())
-         );
-         if (contained_insertions->ColumnCount() == 0) {
-            metadata_fields_to_validate[top_level_entry] = "''";
-         }
-         if (contained_insertions->ColumnCount() == 1) {
-            metadata_fields_to_validate[top_level_entry] = fmt::format(
-               "list_string_agg({}.\"{}\")", top_level_entry, contained_insertions->ColumnName(0)
-            );
-         }
-
-         std::vector<std::string> list_transforms;
-         for (size_t idx2 = 0; idx2 < contained_insertions->ColumnCount(); idx2++) {
-            const std::string& sequence_name = contained_insertions->ColumnName(idx2);
-            list_transforms.push_back(fmt::format(
-               "list_transform({0}.\"{1}\", x ->'{1}:' || x)", top_level_entry, sequence_name
-            ));
-         }
-         metadata_fields_to_validate[top_level_entry] =
-            "list_string_agg(flatten([" + boost::join(list_transforms, ",") + "]))";
-      }
-   }
-}
-
 }  // namespace
 
 namespace silo::preprocessing {
@@ -155,7 +119,6 @@ MetadataInfo MetadataInfo::validateFromNdjsonFile(
    for (const std::string& metadata_field : preprocessing::extractStringListValue(*result, 0, 0)) {
       metadata_fields_to_validate[metadata_field] = "metadata.\"" + metadata_field + "\"";
    }
-   detectInsertionLists(ndjson_file, metadata_fields_to_validate);
 
    const std::unordered_map<std::string, std::string> validated_metadata_fields =
       validateFieldsAgainstConfig(metadata_fields_to_validate, database_config);

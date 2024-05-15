@@ -8,11 +8,13 @@
 #include <oneapi/tbb/enumerable_thread_specific.h>
 #include <oneapi/tbb/parallel_for.h>
 #include <spdlog/spdlog.h>
+#include <boost/lexical_cast.hpp>
 #include <roaring/roaring.hh>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/format_number.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/common/string_utils.h"
 #include "silo/common/symbol_map.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/position.h"
@@ -67,6 +69,71 @@ size_t silo::SequenceStorePartition<SymbolType>::fill(ZstdFastaTableReader& inpu
    return read_sequences_count;
 }
 
+namespace {
+
+constexpr std::string_view DELIMITER_INSERTION = ":";
+
+struct InsertionEntry {
+   uint32_t position_idx;
+   std::string insertion;
+};
+
+InsertionEntry parseInsertion(const std::string& value) {
+   auto position_and_insertion = silo::splitBy(value, DELIMITER_INSERTION);
+   std::transform(
+      position_and_insertion.begin(),
+      position_and_insertion.end(),
+      position_and_insertion.begin(),
+      [](const std::string& value) { return silo::removeSymbol(value, '\"'); }
+   );
+   try {
+      if (position_and_insertion.size() == 2) {
+         const auto position = boost::lexical_cast<uint32_t>(position_and_insertion[0]);
+         if (position == 0) {
+            const std::string message =
+               "Positions are 1-indexed, position of 0 not allowed in insertion: " + value;
+            throw silo::preprocessing::PreprocessingException(message);
+         }
+         const auto& insertion = position_and_insertion[1];
+         return {.position_idx = position, .insertion = insertion};
+      }
+   } catch (const boost::bad_lexical_cast& error) {
+      const std::string message = "Failed to parse insertion due to invalid format: " + value;
+      throw silo::preprocessing::PreprocessingException(message + ". Error: " + error.what());
+   }
+
+   const std::string message = "Failed to parse insertion due to invalid format: " + value;
+   throw silo::preprocessing::PreprocessingException(message);
+}
+}  // namespace
+
+template <typename SymbolType>
+void silo::SequenceStorePartition<SymbolType>::insertInsertion(
+   size_t row_id,
+   const std::string& insertion_and_position
+) {
+   auto [position, insertion] = parseInsertion(insertion_and_position);
+   insertion_index.addLazily(position, insertion, row_id);
+}
+
+template <typename SymbolType>
+void silo::SequenceStorePartition<SymbolType>::finalize() {
+   SPDLOG_DEBUG("Building insertion index");
+
+   insertion_index.buildIndex();
+
+   SPDLOG_DEBUG("Optimizing bitmaps");
+
+   const SequenceStoreInfo info_before_optimisation = getInfo();
+   optimizeBitmaps();
+
+   SPDLOG_DEBUG(
+      "Sequence store partition info after filling it: {}, and after optimising: {}",
+      info_before_optimisation,
+      getInfo()
+   );
+}
+
 [[maybe_unused]] auto fmt::formatter<silo::SequenceStoreInfo>::format(
    silo::SequenceStoreInfo sequence_store_info,
    fmt::format_context& ctx
@@ -114,7 +181,7 @@ void silo::SequenceStorePartition<SymbolType>::fillIndexes(
                if (!genome.has_value()) {
                   continue;
                }
-               char const character = genome.value()[position_idx];
+               const char character = genome.value()[position_idx];
                const auto symbol = SymbolType::charToSymbol(character);
                if (!symbol.has_value()) {
                   throw silo::preprocessing::PreprocessingException(
@@ -172,7 +239,7 @@ void silo::SequenceStorePartition<SymbolType>::fillNBitmaps(
          const auto& genome = maybe_genome.value();
 
          for (size_t position_idx = 0; position_idx < genome_length; ++position_idx) {
-            char const character = genome[position_idx];
+            const char character = genome[position_idx];
             const auto symbol = SymbolType::charToSymbol(character);
             if (symbol == SymbolType::SYMBOL_MISSING) {
                positions_with_symbol_missing.push_back(position_idx);

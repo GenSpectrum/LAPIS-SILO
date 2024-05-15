@@ -19,24 +19,17 @@
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
-#include "silo/storage/column/insertion_column.h"
-#include "silo/storage/column/insertion_index.h"
-#include "silo/storage/column_group.h"
 #include "silo/storage/database_partition.h"
+#include "silo/storage/insertion_index.h"
 
 using silo::query_engine::OperatorResult;
-using silo::storage::ColumnGroup;
-using silo::storage::column::insertion::InsertionIndex;
+using silo::storage::insertion::InsertionIndex;
 
 namespace silo::query_engine::actions {
 
 template <typename SymbolType>
-InsertionAggregation<SymbolType>::InsertionAggregation(
-   std::vector<std::string>&& column_names,
-   std::vector<std::string>&& sequence_names
-)
-    : column_names(std::move(column_names)),
-      sequence_names(std::move(sequence_names)) {}
+InsertionAggregation<SymbolType>::InsertionAggregation(std::vector<std::string>&& sequence_names)
+    : sequence_names(std::move(sequence_names)) {}
 
 template <typename SymbolType>
 void InsertionAggregation<SymbolType>::validateOrderByFields(const Database& /*database*/) const {
@@ -66,34 +59,6 @@ void InsertionAggregation<SymbolType>::validateOrderByFields(const Database& /*d
 }
 
 template <typename SymbolType>
-void validateDatabaseColumnNames(
-   const ColumnGroup& column_group,
-   const std::vector<std::string>& column_names
-) {
-   for (const std::string& column_name : column_names) {
-      CHECK_SILO_QUERY(
-         column_group.getInsertionColumns<SymbolType>().contains(column_name),
-         "The database does not contain the " + std::string(SymbolType::SYMBOL_NAME) + " column '" +
-            column_name + "'"
-      )
-   }
-}
-
-template <typename SymbolType>
-void validatePartitionColumnNames(
-   const storage::ColumnPartitionGroup& column_group,
-   const std::vector<std::string>& column_names
-) {
-   for (const std::string& column_name : column_names) {
-      CHECK_SILO_QUERY(
-         column_group.getInsertionColumns<SymbolType>().contains(column_name),
-         "The database does not contain the " + std::string(SymbolType::SYMBOL_NAME) + " column '" +
-            column_name + "'"
-      )
-   }
-}
-
-template <typename SymbolType>
 void validateSequenceNames(
    const Database& database,
    const std::vector<std::string>& sequence_names
@@ -110,54 +75,37 @@ void validateSequenceNames(
 }
 
 template <typename SymbolType>
-void InsertionAggregation<SymbolType>::addAllColumnIndexesToPreFilteredBitmaps(
-   const storage::column::InsertionColumnPartition<SymbolType>& column,
-   const OperatorResult& filter,
-   std::unordered_map<std::string, InsertionAggregation<SymbolType>::PrefilteredBitmaps>&
-      bitmaps_to_evaluate
-) const {
-   for (const auto& [sequence_name, sequence_index] : column.getInsertionIndexes()) {
-      if(sequence_names.empty() ||
-          std::find(sequence_names.begin(), sequence_names.end(), sequence_name) != sequence_names.end()){
-         bitmaps_to_evaluate[sequence_name].bitmaps.emplace_back(filter, sequence_index);
-      }
-   }
-}
-
-template <typename SymbolType>
 std::unordered_map<std::string, typename InsertionAggregation<SymbolType>::PrefilteredBitmaps>
 InsertionAggregation<SymbolType>::validateFieldsAndPreFilterBitmaps(
    const Database& database,
    std::vector<OperatorResult>& bitmap_filter
 ) const {
-   validateDatabaseColumnNames<SymbolType>(database.columns, column_names);
    validateSequenceNames<SymbolType>(database, sequence_names);
 
    std::unordered_map<std::string, PrefilteredBitmaps> pre_filtered_bitmaps;
    for (size_t i = 0; i < database.partitions.size(); ++i) {
       const DatabasePartition& database_partition = database.partitions.at(i);
 
-      validatePartitionColumnNames<SymbolType>(database_partition.columns, column_names);
-
-      for (auto& [column_name, insertion_column] :
-           database_partition.columns.getInsertionColumns<SymbolType>()) {
-         if(column_names.empty() ||
-             std::find(column_names.begin(), column_names.end(), column_name) != column_names.end()){
+      for (auto& [sequence_name, sequence_store] :
+           database_partition.getSequenceStores<SymbolType>()) {
+         if (sequence_names.empty() ||
+             std::find(sequence_names.begin(), sequence_names.end(), sequence_name) !=
+                sequence_names.end()) {
             OperatorResult& filter = bitmap_filter[i];
             const size_t cardinality = filter->cardinality();
             if (cardinality == 0) {
                continue;
             }
             if (cardinality == database_partition.sequence_count) {
-               addAllColumnIndexesToPreFilteredBitmaps(
-                  insertion_column, filter, pre_filtered_bitmaps
+               pre_filtered_bitmaps[sequence_name].bitmaps.emplace_back(
+                  filter, sequence_store.insertion_index
                );
             } else {
                if (filter.isMutable()) {
                   filter->runOptimize();
                }
-               addAllColumnIndexesToPreFilteredBitmaps(
-                  insertion_column, filter, pre_filtered_bitmaps
+               pre_filtered_bitmaps[sequence_name].bitmaps.emplace_back(
+                  filter, sequence_store.insertion_index
                );
             }
          }
@@ -203,7 +151,7 @@ void InsertionAggregation<SymbolType>::addAggregatedInsertionsToInsertionCounts(
            insertion_index.getInsertionPositions()) {
          for (const auto& insertion : insertions_at_position.insertions) {
             all_insertions[PositionAndInsertion{position, insertion.value}] +=
-               insertion.sequence_ids.cardinality();
+               insertion.row_ids.cardinality();
          }
       }
    }
@@ -211,7 +159,7 @@ void InsertionAggregation<SymbolType>::addAggregatedInsertionsToInsertionCounts(
       for (const auto& [position, insertions_at_position] :
            insertion_index.getInsertionPositions()) {
          for (const auto& insertion : insertions_at_position.insertions) {
-            const uint32_t count = insertion.sequence_ids.and_cardinality(*bitmap_filter);
+            const uint32_t count = insertion.row_ids.and_cardinality(*bitmap_filter);
             if (count > 0) {
                all_insertions[PositionAndInsertion{position, insertion.value}] += count;
             }
@@ -284,29 +232,7 @@ void from_json(
       sequence_names.emplace_back(json["sequenceName"].get<std::string>());
    }
 
-   CHECK_SILO_QUERY(
-      !json.contains("column") || (json["column"].is_string() || json["column"].is_array()),
-      "Insertions action can have the field column of type string or an array of "
-      "strings, but no other type"
-   )
-   std::vector<std::string> column_names;
-   if (json.contains("column") && json.at("column").is_array()) {
-      for (const auto& child : json["column"]) {
-         CHECK_SILO_QUERY(
-            child.is_string(),
-            "The field column of the Insertions action must have type string or an "
-            "array, if present. Found:" +
-               child.dump()
-         )
-         column_names.emplace_back(child.get<std::string>());
-      }
-   } else if (json.contains("column") && json["column"].is_string()) {
-      column_names.emplace_back(json["column"].get<std::string>());
-   }
-
-   action = std::make_unique<InsertionAggregation<SymbolType>>(
-      std::move(column_names), std::move(sequence_names)
-   );
+   action = std::make_unique<InsertionAggregation<SymbolType>>(std::move(sequence_names));
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

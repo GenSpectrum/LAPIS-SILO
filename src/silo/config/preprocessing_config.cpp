@@ -10,8 +10,6 @@
 
 namespace silo::config {
 
-PreprocessingConfig::PreprocessingConfig() = default;
-
 void PreprocessingConfig::validate() const {
    if (!std::filesystem::exists(input_directory)) {
       throw preprocessing::PreprocessingException(input_directory.string() + " does not exist");
@@ -79,6 +77,14 @@ std::filesystem::path PreprocessingConfig::getGeneFilenameNoExtension(std::strin
    std::filesystem::path filename = input_directory;
    filename /= fmt::format("{}{}", gene_prefix, gene_name);
    return filename;
+}
+
+std::filesystem::path PreprocessingConfig::getNucleotideInsertionsFilename() const {
+   return input_directory / nuc_insertions_filename;
+}
+
+std::filesystem::path PreprocessingConfig::getAminoAcidInsertionsFilename() const {
+   return input_directory / aa_insertions_filename;
 }
 
 void PreprocessingConfig::overwrite(const silo::config::AbstractConfig& config) {
@@ -181,6 +187,24 @@ void PreprocessingConfig::overwrite(const silo::config::AbstractConfig& config) 
          config.getString(GENE_PREFIX_OPTION)
       );
       gene_prefix = config.getString(GENE_PREFIX_OPTION);
+   }
+   if (config.hasProperty(NUCLEOTIDE_INSERTIONS_OPTION)) {
+      SPDLOG_DEBUG(
+         "Using {} as passed via {}: {}",
+         NUCLEOTIDE_INSERTIONS_OPTION,
+         config.configType(),
+         config.getString(NUCLEOTIDE_INSERTIONS_OPTION)
+      );
+      nuc_insertions_filename = config.getString(NUCLEOTIDE_INSERTIONS_OPTION);
+   }
+   if (config.hasProperty(AMINO_ACID_INSERTIONS_OPTION)) {
+      SPDLOG_DEBUG(
+         "Using {} as passed via {}: {}",
+         AMINO_ACID_INSERTIONS_OPTION,
+         config.configType(),
+         config.getString(AMINO_ACID_INSERTIONS_OPTION)
+      );
+      aa_insertions_filename = config.getString(AMINO_ACID_INSERTIONS_OPTION);
    }
 }
 

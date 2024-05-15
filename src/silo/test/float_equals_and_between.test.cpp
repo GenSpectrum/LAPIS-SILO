@@ -21,7 +21,9 @@ nlohmann::json createDataWithFloatValue(const std::string& primaryKey, double va
       {"metadata", {{"primaryKey", primaryKey}, {"float_value", value}}},
       {"alignedNucleotideSequences", {{"segment1", nullptr}}},
       {"unalignedNucleotideSequences", {{"segment1", nullptr}}},
-      {"alignedAminoAcidSequences", {{"gene1", nullptr}}}
+      {"alignedAminoAcidSequences", {{"gene1", nullptr}}},
+      {"nucleotideInsertions", {{"segment1", {}}}},
+      {"aminoAcidInsertions", {{"gene1", {}}}}
    };
 }
 
@@ -30,7 +32,9 @@ nlohmann::json createDataWithFloatNullValue(const std::string& primaryKey) {
       {"metadata", {{"primaryKey", primaryKey}, {"float_value", nullptr}}},
       {"alignedNucleotideSequences", {{"segment1", nullptr}}},
       {"unalignedNucleotideSequences", {{"segment1", nullptr}}},
-      {"alignedAminoAcidSequences", {{"gene1", nullptr}}}
+      {"alignedAminoAcidSequences", {{"gene1", nullptr}}},
+      {"nucleotideInsertions", {{"segment1", {}}}},
+      {"aminoAcidInsertions", {{"gene1", {}}}}
    };
 }
 const std::vector<nlohmann::json> DATA = {

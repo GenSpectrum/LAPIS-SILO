@@ -15,7 +15,6 @@
 #include "silo/common/optional_bool.h"
 #include "silo/config/database_config.h"
 #include "silo/preprocessing/preprocessing_exception.h"
-#include "silo/storage/column/insertion_column.h"
 
 namespace silo {
 class AminoAcid;
@@ -116,12 +115,6 @@ void ColumnPartitionGroup::addValueToColumn(
       case ColumnType::FLOAT:
          float_columns.at(column_name).insert(value.ToString());
          return;
-      case ColumnType::NUC_INSERTION:
-         nuc_insertion_columns.at(column_name).insert(value.ToString());
-         return;
-      case ColumnType::AA_INSERTION:
-         aa_insertion_columns.at(column_name).insert(value.ToString());
-         return;
    }
 }
 
@@ -147,12 +140,6 @@ void ColumnPartitionGroup::addNullToColumn(const std::string& column_name, Colum
          return;
       case ColumnType::FLOAT:
          float_columns.at(column_name).insertNull();
-         return;
-      case ColumnType::NUC_INSERTION:
-         nuc_insertion_columns.at(column_name).insertNull();
-         return;
-      case ColumnType::AA_INSERTION:
-         aa_insertion_columns.at(column_name).insertNull();
          return;
    }
    abort();
@@ -185,26 +172,8 @@ void ColumnPartitionGroup::reserveSpaceInColumn(
       case ColumnType::FLOAT:
          float_columns.at(column_name).reserve(row_count);
          return;
-      case ColumnType::NUC_INSERTION:
-         nuc_insertion_columns.at(column_name).reserve(row_count);
-         return;
-      case ColumnType::AA_INSERTION:
-         aa_insertion_columns.at(column_name).reserve(row_count);
-         return;
    }
    abort();
-}
-
-template <>
-const std::map<std::string, storage::column::InsertionColumnPartition<Nucleotide>&>&
-ColumnPartitionGroup::getInsertionColumns<Nucleotide>() const {
-   return this->nuc_insertion_columns;
-}
-
-template <>
-const std::map<std::string, storage::column::InsertionColumnPartition<AminoAcid>&>&
-ColumnPartitionGroup::getInsertionColumns<AminoAcid>() const {
-   return this->aa_insertion_columns;
 }
 
 ColumnPartitionGroup ColumnPartitionGroup::getSubgroup(
@@ -241,13 +210,6 @@ ColumnPartitionGroup ColumnPartitionGroup::getSubgroup(
                return;
             case ColumnType::FLOAT:
                result.float_columns.insert({item.name, float_columns.at(item.name)});
-               return;
-            case ColumnType::NUC_INSERTION:
-               result.nuc_insertion_columns.insert({item.name, nuc_insertion_columns.at(item.name)}
-               );
-               return;
-            case ColumnType::AA_INSERTION:
-               result.aa_insertion_columns.insert({item.name, aa_insertion_columns.at(item.name)});
                return;
          }
          abort();
@@ -299,28 +261,7 @@ common::JsonValueType ColumnPartitionGroup::getValue(
       }
       return value;
    }
-   if (nuc_insertion_columns.contains(column)) {
-      return nuc_insertion_columns.at(column).lookupValue(
-         nuc_insertion_columns.at(column).getValues().at(sequence_id)
-      );
-   }
-   if (aa_insertion_columns.contains(column)) {
-      return aa_insertion_columns.at(column).lookupValue(
-         aa_insertion_columns.at(column).getValues().at(sequence_id)
-      );
-   }
    return std::nullopt;
-}
-
-template <>
-const std::map<std::string, storage::column::InsertionColumn<Nucleotide>>& ColumnGroup::
-   getInsertionColumns<Nucleotide>() const {
-   return nuc_insertion_columns;
-}
-template <>
-const std::map<std::string, storage::column::InsertionColumn<AminoAcid>>& ColumnGroup::
-   getInsertionColumns<AminoAcid>() const {
-   return aa_insertion_columns;
 }
 
 }  // namespace silo::storage
