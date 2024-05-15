@@ -13,14 +13,14 @@
 namespace {
 
 struct Scenario {
-   std::string input_directory;
+   std::filesystem::path input_directory;
    uint expected_sequence_count;
    std::string query;
    nlohmann::json expected_query_result;
 };
 
 std::string printTestName(const ::testing::TestParamInfo<Scenario>& info) {
-   std::string name = "Dir_" + info.param.input_directory;
+   std::string name = "Dir_" + info.param.input_directory.string();
    std::replace(name.begin(), name.end(), '/', '_');
    return name;
 }
@@ -114,8 +114,8 @@ const Scenario TSV_FILE_WITH_SQL_KEYWORD_AS_FIELD = {
 };
 
 const Scenario EMPTY_INPUT_TSV = {
-   .input_directory = "testBaseData/exampleDatasetEmpty/",
-   .expected_sequence_count = 2,
+   .input_directory = "testBaseData/emptyInputTsv/",
+   .expected_sequence_count = 0,
    .query = R"(
       {
          "action": {
@@ -131,8 +131,8 @@ const Scenario EMPTY_INPUT_TSV = {
 };
 
 const Scenario EMPTY_INPUT_NDJSON = {
-   .input_directory = "testBaseData/exampleDatasetEmpty/",
-   .expected_sequence_count = 2,
+   .input_directory = "testBaseData/emptyInputNdjson/",
+   .expected_sequence_count = 0,
    .query = R"(
       {
          "action": {
@@ -164,14 +164,14 @@ INSTANTIATE_TEST_SUITE_P(
    printTestName
 );
 
-TEST_P(PreprocessorTestFixture, shouldProcessDataSetWithMissingSequences) {
+TEST_P(PreprocessorTestFixture, shouldProcessData) {
    const auto scenario = GetParam();
+   silo::config::PreprocessingConfig config{.input_directory = scenario.input_directory};
 
-   silo::config::PreprocessingConfig config;
-   config.overwrite(silo::config::YamlFile(scenario.input_directory + "preprocessing_config.yaml"));
+   config.overwrite(silo::config::YamlFile(scenario.input_directory / "preprocessing_config.yaml"));
 
    const auto database_config = silo::config::ConfigRepository().getValidatedConfig(
-      scenario.input_directory + "database_config.yaml"
+      scenario.input_directory / "database_config.yaml"
    );
 
    const auto reference_genomes =
@@ -186,7 +186,9 @@ TEST_P(PreprocessorTestFixture, shouldProcessDataSetWithMissingSequences) {
 
    const auto database_info = database.getDatabaseInfo();
 
-   EXPECT_GT(database_info.total_size, 0UL);
+   if (scenario.expected_sequence_count > 0) {
+      EXPECT_GT(database_info.total_size, 0UL);
+   }
    EXPECT_EQ(database_info.sequence_count, scenario.expected_sequence_count);
 
    const silo::query_engine::QueryEngine query_engine(database);

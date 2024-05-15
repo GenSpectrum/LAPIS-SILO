@@ -163,6 +163,40 @@ void ReferenceGenomes::writeToFile(const std::filesystem::path& reference_genome
    std::ofstream(reference_genomes_path) << reference_genomes_json.dump(4);
 }
 
+template <>
+std::vector<std::string> ReferenceGenomes::getSequenceNames<Nucleotide>() const {
+   std::vector<std::string> result;
+   std::transform(
+      raw_nucleotide_sequences.begin(),
+      raw_nucleotide_sequences.end(),
+      std::back_inserter(result),
+      [](auto& pair) { return pair.first; }
+   );
+   return result;
+}
+
+template <>
+std::vector<std::string> ReferenceGenomes::getSequenceNames<AminoAcid>() const {
+   std::vector<std::string> result;
+   std::transform(
+      raw_aa_sequences.begin(),
+      raw_aa_sequences.end(),
+      std::back_inserter(result),
+      [](auto& pair) { return pair.first; }
+   );
+   return result;
+}
+
+template <>
+std::map<std::string, std::string> ReferenceGenomes::getRawSequenceMap<Nucleotide>() const {
+   return raw_nucleotide_sequences;
+}
+
+template <>
+std::map<std::string, std::string> ReferenceGenomes::getRawSequenceMap<AminoAcid>() const {
+   return raw_aa_sequences;
+}
+
 template <typename SymbolType>
 std::vector<typename SymbolType::Symbol> ReferenceGenomes::stringToVector(const std::string& string
 ) {

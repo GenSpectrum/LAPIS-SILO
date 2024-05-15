@@ -19,32 +19,32 @@ namespace preprocessing {
 class PreprocessingDatabase;
 
 class SequenceInfo {
-   std::vector<std::string> nuc_sequence_names;
-   std::vector<std::string> aa_sequence_names;
-
   public:
-   explicit SequenceInfo(const silo::ReferenceGenomes& reference_genomes);
-
-   [[nodiscard]] std::vector<std::string> getAlignedSequenceSelects(
+   [[nodiscard]] static std::vector<std::string> getAlignedSequenceSelects(
+      const silo::ReferenceGenomes& reference_genomes,
       const PreprocessingDatabase& preprocessing_db
-   ) const;
+   );
 
-   static std::string getNucleotideSequenceSelect(
+   [[nodiscard]] static std::string getNucleotideSequenceSelect(
       std::string_view seq_name,
       const PreprocessingDatabase& preprocessing_db
    );
 
-   static std::string getUnalignedSequenceSelect(
+   [[nodiscard]] static std::string getUnalignedSequenceSelect(
       std::string_view seq_name,
       const PreprocessingDatabase& preprocessing_db
    );
 
-   static std::string getAminoAcidSequenceSelect(
+   [[nodiscard]] static std::string getAminoAcidSequenceSelect(
       std::string_view seq_name,
       const PreprocessingDatabase& preprocessing_db
    );
 
-   void validate(duckdb::Connection& connection, const std::filesystem::path& input_filename) const;
+   static void validateNdjsonFile(
+      const silo::ReferenceGenomes& reference_genomes,
+      duckdb::Connection& connection,
+      const std::filesystem::path& input_filename
+   );
 };
 }  // namespace preprocessing
 }  // namespace silo

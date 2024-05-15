@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include "silo/config/database_config.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/preprocessing/preprocessing_database.h"
@@ -20,6 +22,15 @@ class Preprocessor {
    ReferenceGenomes reference_genomes_;
    PangoLineageAliasLookup alias_lookup_;
 
+   std::vector<std::string> nuc_sequences;
+   std::vector<std::string> aa_sequences;
+   std::vector<std::string> order_by_fields;
+   std::vector<std::string> prefixed_order_by_fields;
+   std::vector<std::string> prefixed_nuc_sequences;
+   std::vector<std::string> prefixed_aa_sequences;
+   std::vector<std::string> prefixed_nuc_insertions_fields;
+   std::vector<std::string> prefixed_aa_insertions_fields;
+
   public:
    Preprocessor(
       config::PreprocessingConfig preprocessing_config,
@@ -31,6 +42,9 @@ class Preprocessor {
    Database preprocess();
 
   private:
+   static std::string makeNonNullKey(const std::string& field);
+   std::string getPartitionKeySelect() const;
+
    void buildTablesFromNdjsonInput(const std::filesystem::path& file_name);
    void buildMetadataTableFromFile(const std::filesystem::path& metadata_filename);
 
@@ -39,40 +53,31 @@ class Preprocessor {
    void buildEmptyPartitioning();
 
    void createInsertionsTableFromFile(
-      const std::map<std::string, std::string>& expected_sequences,
+      const std::vector<std::string>& expected_sequences,
       const std::filesystem::path& insertion_file,
       const std::string& table_name
    );
 
    void createPartitionedSequenceTablesFromNdjson(const std::filesystem::path& file_name);
 
-   void createAlignedPartitionedSequenceViews(
-      const std::filesystem::path& file_name,
-      const SequenceInfo& sequence_info,
-      const std::string& partition_by_select,
-      const std::string& partition_by_where
-   );
-   void createUnalignedPartitionedSequenceFiles(
-      const std::filesystem::path& file_name,
-      const std::string& partition_by_select,
-      const std::string& partition_by_where
-   );
+   void createAlignedPartitionedSequenceViews(const std::filesystem::path& file_name);
+   void createUnalignedPartitionedSequenceFiles(const std::filesystem::path& file_name);
    void createUnalignedPartitionedSequenceFile(
       const std::string& seq_name,
       const std::string& table_sql
    );
 
    void createPartitionedSequenceTablesFromSequenceFiles();
+
+   template <typename SymbolType>
    void createPartitionedTableForSequence(
       const std::string& sequence_name,
       const std::string& reference_sequence,
-      const std::filesystem::path& filename,
-      const std::string& table_prefix
+      const std::filesystem::path& filename
    );
 
    Database buildDatabase(
       const preprocessing::Partitions& partition_descriptor,
-      const std::string& order_by_clause,
       const std::filesystem::path& intermediate_results_directory
    );
 
@@ -81,12 +86,9 @@ class Preprocessor {
       const preprocessing::Partitions& partition_descriptor,
       const std::string& order_by_clause
    );
-   void buildNucleotideSequenceStore(
-      Database& database,
-      const preprocessing::Partitions& partition_descriptor,
-      const std::string& order_by_clause
-   );
-   void buildAminoAcidSequenceStore(
+
+   template <typename SymbolType>
+   void buildSequenceStore(
       Database& database,
       const preprocessing::Partitions& partition_descriptor,
       const std::string& order_by_clause

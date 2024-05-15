@@ -1,5 +1,5 @@
 schema:
-  instanceName: sars_cov-2_minimal_test_config
+  instanceName: empty_input_in_tsv_format
   metadata:
     - name: gisaid_epi_isl
       type: string
@@ -22,10 +22,6 @@ schema:
       type: int
     - name: qc_value
       type: float
-    - name: nucleotideInsertions
-      type: insertion
-    - name: aminoAcidInsertions
-      type: aaInsertion
   primaryKey: gisaid_epi_isl
   dateToSortBy: date
   partitionBy: pango_lineage
