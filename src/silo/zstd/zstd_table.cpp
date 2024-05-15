@@ -51,7 +51,7 @@ ZstdTable ZstdTable::generate(
       appender.BeginRow();
       appender.Append(key_value);
       appender.Append(duckdb::Value::STRUCT(
-         {{"\"offset\"", duckdb::Value::UINTEGER(entry.value().offset)},
+         {{"offset", duckdb::Value::UINTEGER(entry.value().offset)},
           {"sequence", duckdb::Value::BLOB(compressed_data, compressed.size())}}
       ));
       appender.EndRow();
