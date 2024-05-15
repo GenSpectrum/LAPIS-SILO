@@ -38,6 +38,12 @@ class Preprocessor {
    void buildPartitioningTableByColumn(const std::string& partition_by_field);
    void buildEmptyPartitioning();
 
+   void createInsertionsTableFromFile(
+      const std::map<std::string, std::string>& expected_sequences,
+      const std::filesystem::path& insertion_file,
+      const std::string& table_name
+   );
+
    void createPartitionedSequenceTablesFromNdjson(const std::filesystem::path& file_name);
 
    void createAlignedPartitionedSequenceViews(

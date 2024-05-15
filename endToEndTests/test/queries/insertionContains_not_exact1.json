@@ -6,7 +6,6 @@
     },
     "filterExpression": {
       "type": "InsertionContains",
-      "column": "nucleotideInsertions",
       "position": 22339,
       "value": ".*GCT.*GGT.*"
     }

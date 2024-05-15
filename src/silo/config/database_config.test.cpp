@@ -96,16 +96,6 @@ INSTANTIATE_TEST_SUITE_P(
          .value_type = ValueType::FLOAT,
          .generate_index = false,
          .expected_column_type = ColumnType::FLOAT
-      },
-      TestParameter{
-         .value_type = ValueType::NUC_INSERTION,
-         .generate_index = false,
-         .expected_column_type = ColumnType::NUC_INSERTION
-      },
-      TestParameter{
-         .value_type = ValueType::AA_INSERTION,
-         .generate_index = false,
-         .expected_column_type = ColumnType::AA_INSERTION
       }
    )
 );
@@ -120,7 +110,7 @@ TEST(DatabaseConfigReader, shouldReadConfigWithCorrectParameters) {
    ASSERT_EQ(config.schema.primary_key, "gisaid_epi_isl");
    ASSERT_EQ(config.schema.date_to_sort_by, "date");
    ASSERT_EQ(config.schema.partition_by, "pango_lineage");
-   ASSERT_EQ(config.schema.metadata.size(), 11);
+   ASSERT_EQ(config.schema.metadata.size(), 9);
    ASSERT_EQ(config.schema.metadata[0].name, "gisaid_epi_isl");
    ASSERT_EQ(config.schema.metadata[0].type, ValueType::STRING);
    ASSERT_EQ(config.schema.metadata[0].generate_index, false);
@@ -148,12 +138,6 @@ TEST(DatabaseConfigReader, shouldReadConfigWithCorrectParameters) {
    ASSERT_EQ(config.schema.metadata[8].name, "qc_value");
    ASSERT_EQ(config.schema.metadata[8].type, ValueType::FLOAT);
    ASSERT_EQ(config.schema.metadata[8].generate_index, false);
-   ASSERT_EQ(config.schema.metadata[9].name, "nucleotideInsertions");
-   ASSERT_EQ(config.schema.metadata[9].type, ValueType::NUC_INSERTION);
-   ASSERT_EQ(config.schema.metadata[9].generate_index, false);
-   ASSERT_EQ(config.schema.metadata[10].name, "aminoAcidInsertions");
-   ASSERT_EQ(config.schema.metadata[10].type, ValueType::AA_INSERTION);
-   ASSERT_EQ(config.schema.metadata[10].generate_index, false);
 }
 
 TEST(DatabaseConfigReader, shouldThrowExceptionWhenConfigFileDoesNotExist) {

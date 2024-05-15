@@ -20,14 +20,10 @@
 namespace silo {
 class Database;
 namespace storage {
-namespace column {
-template <typename SymbolType>
-class InsertionColumnPartition;
 namespace insertion {
 template <typename SymbolType>
 class InsertionIndex;
 }  // namespace insertion
-}  // namespace column
 }  // namespace storage
 }  // namespace silo
 
@@ -41,26 +37,18 @@ class InsertionAggregation : public Action {
    static constexpr std::string_view SEQUENCE_FIELD_NAME = "sequenceName";
    static constexpr std::string_view COUNT_FIELD_NAME = "count";
 
-   std::vector<std::string> column_names;
    std::vector<std::string> sequence_names;
 
    struct PrefilteredBitmaps {
       std::vector<std::pair<
          const OperatorResult&,
-         const silo::storage::column::insertion::InsertionIndex<SymbolType>&>>
+         const silo::storage::insertion::InsertionIndex<SymbolType>&>>
          bitmaps;
       std::vector<std::pair<
          const OperatorResult&,
-         const silo::storage::column::insertion::InsertionIndex<SymbolType>&>>
+         const silo::storage::insertion::InsertionIndex<SymbolType>&>>
          full_bitmaps;
    };
-
-   void addAllColumnIndexesToPreFilteredBitmaps(
-      const silo::storage::column::InsertionColumnPartition<SymbolType>& column,
-      const OperatorResult& filter,
-      std::unordered_map<std::string, InsertionAggregation<SymbolType>::PrefilteredBitmaps>&
-         bitmaps_to_evaluate
-   ) const;
 
    void addAggregatedInsertionsToInsertionCounts(
       std::vector<QueryResultEntry>& output,
@@ -76,10 +64,7 @@ class InsertionAggregation : public Action {
    ) const;
 
   public:
-   InsertionAggregation(
-      std::vector<std::string>&& column,
-      std::vector<std::string>&& sequence_names
-   );
+   InsertionAggregation(std::vector<std::string>&& sequence_names);
 
    void validateOrderByFields(const Database& database) const override;
 

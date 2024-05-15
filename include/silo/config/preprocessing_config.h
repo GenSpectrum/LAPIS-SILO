@@ -23,12 +23,15 @@ const std::string REFERENCE_GENOME_FILENAME_OPTION = "referenceGenomeFilename";
 const std::string NUCLEOTIDE_SEQUENCE_PREFIX_OPTION = "nucleotideSequencePrefix";
 const std::string UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX_OPTION = "unalignedNucleotideSequencePrefix";
 const std::string GENE_PREFIX_OPTION = "genePrefix";
+const std::string NUCLEOTIDE_INSERTIONS_OPTION = "nucleotideInsertionsFilename";
+const std::string AMINO_ACID_INSERTIONS_OPTION = "aminoAcidInsertionsFilename";
 
 const std::string DEFAULT_OUTPUT_DIRECTORY = "./output/";
 
 class PreprocessingConfig {
    friend class fmt::formatter<silo::config::PreprocessingConfig>;
 
+  public:
    std::filesystem::path input_directory = "./";
    std::filesystem::path output_directory = DEFAULT_OUTPUT_DIRECTORY;
    std::filesystem::path intermediate_results_directory = "./temp/";
@@ -40,9 +43,8 @@ class PreprocessingConfig {
    std::string nucleotide_sequence_prefix = "nuc_";
    std::string unaligned_nucleotide_sequence_prefix = "unaligned_";
    std::string gene_prefix = "gene_";
-
-  public:
-   explicit PreprocessingConfig();
+   std::string nuc_insertions_filename = "nuc_insertions.tsv";
+   std::string aa_insertions_filename = "aa_insertions.tsv";
 
    void validate() const;
 
@@ -66,6 +68,10 @@ class PreprocessingConfig {
    ) const;
 
    [[nodiscard]] std::filesystem::path getGeneFilenameNoExtension(std::string_view gene_name) const;
+
+   [[nodiscard]] std::filesystem::path getNucleotideInsertionsFilename() const;
+
+   [[nodiscard]] std::filesystem::path getAminoAcidInsertionsFilename() const;
 
    void overwrite(const silo::config::AbstractConfig& config_reader);
 };

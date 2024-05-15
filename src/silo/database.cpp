@@ -53,7 +53,6 @@
 #include "silo/storage/column/date_column.h"
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
-#include "silo/storage/column/insertion_column.h"
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/column/pango_lineage_column.h"
 #include "silo/storage/column/string_column.h"
@@ -634,24 +633,6 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
             partition.insertColumn(name, columns.float_columns.at(name).createPartition());
          }
          return;
-      case config::ColumnType::NUC_INSERTION:
-         columns.nuc_insertion_columns.emplace(
-            name, storage::column::InsertionColumn<Nucleotide>(getDefaultSequenceName<Nucleotide>())
-         );
-         for (auto& partition : partitions) {
-            partition.columns.metadata.push_back({name, column_type});
-            partition.insertColumn(name, columns.nuc_insertion_columns.at(name).createPartition());
-         }
-         return;
-      case config::ColumnType::AA_INSERTION:
-         columns.aa_insertion_columns.emplace(
-            name, storage::column::InsertionColumn<AminoAcid>(getDefaultSequenceName<AminoAcid>())
-         );
-         for (auto& partition : partitions) {
-            partition.columns.metadata.push_back({name, column_type});
-            partition.insertColumn(name, columns.aa_insertion_columns.at(name).createPartition());
-         }
-         return;
    }
    abort();
 }
@@ -709,17 +690,6 @@ void Database::initializeAASequences(
          partition.aa_sequences.insert({aa_name, aa_sequences.at(aa_name).createPartition()});
       }
    }
-}
-
-void Database::finalizeInsertionIndexes() {
-   tbb::parallel_for_each(partitions.begin(), partitions.end(), [](auto& partition) {
-      for (auto& insertion_column : partition.columns.nuc_insertion_columns) {
-         insertion_column.second.buildInsertionIndexes();
-      }
-      for (auto& insertion_column : partition.columns.aa_insertion_columns) {
-         insertion_column.second.buildInsertionIndexes();
-      }
-   });
 }
 
 void Database::setDataVersion(const DataVersion& data_version) {

@@ -109,9 +109,7 @@ void DatabasePartition::validateColumnsHaveSize(
 }
 
 void DatabasePartition::validateMetadataColumns() const {
-   validateColumnsHaveSize(columns.aa_insertion_columns, "aa_insertion_column");
    validateColumnsHaveSize(columns.pango_lineage_columns, "pango_lineage_column");
-   validateColumnsHaveSize(columns.nuc_insertion_columns, "nuc_insertion_column");
    validateColumnsHaveSize(columns.date_columns, "date_column");
    validateColumnsHaveSize(columns.bool_columns, "bool_columns");
    validateColumnsHaveSize(columns.int_columns, "int_columns");
@@ -157,20 +155,6 @@ void DatabasePartition::insertColumn(
    storage::column::DateColumnPartition& column
 ) {
    columns.date_columns.insert({std::string(name), column});
-}
-
-void DatabasePartition::insertColumn(
-   const std::string& name,
-   storage::column::InsertionColumnPartition<Nucleotide>& column
-) {
-   columns.nuc_insertion_columns.insert({std::string(name), column});
-}
-
-void DatabasePartition::insertColumn(
-   const std::string& name,
-   storage::column::InsertionColumnPartition<AminoAcid>& column
-) {
-   columns.aa_insertion_columns.insert({std::string(name), column});
 }
 
 void DatabasePartition::insertColumn(

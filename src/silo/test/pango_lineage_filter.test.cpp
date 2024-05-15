@@ -19,7 +19,9 @@ nlohmann::json createDataWithPangoLineageValue(const std::string& primaryKey, st
       {"metadata", {{"primaryKey", primaryKey}, {"pango_lineage", value}}},
       {"alignedNucleotideSequences", {{"segment1", nullptr}}},
       {"unalignedNucleotideSequences", {{"segment1", nullptr}}},
-      {"alignedAminoAcidSequences", {{"gene1", nullptr}}}
+      {"alignedAminoAcidSequences", {{"gene1", nullptr}}},
+      {"nucleotideInsertions", {{"segment1", {}}}},
+      {"aminoAcidInsertions", {{"gene1", {}}}}
    };
 }
 
@@ -28,7 +30,9 @@ nlohmann::json createDataWithPangoLineageNullValue(const std::string& primaryKey
       {"metadata", {{"primaryKey", primaryKey}, {"pango_lineage", nullptr}}},
       {"alignedNucleotideSequences", {{"segment1", nullptr}}},
       {"unalignedNucleotideSequences", {{"segment1", nullptr}}},
-      {"alignedAminoAcidSequences", {{"gene1", nullptr}}}
+      {"alignedAminoAcidSequences", {{"gene1", nullptr}}},
+      {"nucleotideInsertions", {{"segment1", {}}}},
+      {"aminoAcidInsertions", {{"gene1", {}}}}
    };
 }
 const std::vector<nlohmann::json> DATA = {

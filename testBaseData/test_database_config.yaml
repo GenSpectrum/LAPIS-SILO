@@ -22,10 +22,6 @@ schema:
       type: int
     - name: qc_value
       type: float
-    - name: nucleotideInsertions
-      type: insertion
-    - name: aminoAcidInsertions
-      type: aaInsertion
   primaryKey: gisaid_epi_isl
   dateToSortBy: date
   partitionBy: pango_lineage

@@ -20,7 +20,9 @@ const nlohmann::json DATA = {
      {"unsorted_date", UNSORTED_DATE_VALUE}}},
    {"alignedNucleotideSequences", {{"segment1", nullptr}}},
    {"unalignedNucleotideSequences", {{"segment1", nullptr}}},
-   {"alignedAminoAcidSequences", {{"gene1", nullptr}}}
+   {"alignedAminoAcidSequences", {{"gene1", nullptr}}},
+   {"nucleotideInsertions", {{"segment1", {}}}},
+   {"aminoAcidInsertions", {{"gene1", {}}}}
 };
 
 const auto DATABASE_CONFIG = DatabaseConfig{

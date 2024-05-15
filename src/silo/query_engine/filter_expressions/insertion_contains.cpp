@@ -19,35 +19,21 @@
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/operators/union.h"
 #include "silo/query_engine/query_parse_exception.h"
-#include "silo/storage/column/insertion_column.h"
 #include "silo/storage/database_partition.h"
+#include "silo/storage/insertion_index.h"
+#include "silo/storage/sequence_store.h"
 
 namespace silo::query_engine::filter_expressions {
 
 template <typename SymbolType>
 InsertionContains<SymbolType>::InsertionContains(
-   std::vector<std::string>&& column_names,
    std::optional<std::string> sequence_name,
    uint32_t position_idx,
    std::string value
 )
-    : column_names(std::move(column_names)),
-      sequence_name(std::move(sequence_name)),
+    : sequence_name(std::move(sequence_name)),
       position_idx(position_idx),
       value(std::move(value)) {}
-
-std::string getColumnNamesString(
-   const std::vector<std::string>& column_names,
-   const std::string& symbol_name
-) {
-   if (column_names.empty()) {
-      return "in all available " + symbol_name + " columns";
-   }
-   if (column_names.size() == 1) {
-      return "in the " + symbol_name + " column " + column_names.at(0);
-   }
-   return "in the " + symbol_name + " columns [" + boost::algorithm::join(column_names, ",") + "]";
-}
 
 template <typename SymbolType>
 std::string InsertionContains<SymbolType>::toString() const {
@@ -56,9 +42,7 @@ std::string InsertionContains<SymbolType>::toString() const {
                                           ? "The sequence '" + sequence_name.value() + "'"
                                           : "The default " + symbol_name + " sequence ";
 
-   const std::string columns_string = getColumnNamesString(column_names, symbol_name);
-
-   return sequence_string + columns_string + " has insertion '" + value + "'";
+   return sequence_string + " has insertion '" + value + "'";
 }
 
 template <typename SymbolType>
@@ -67,17 +51,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> InsertionContains<Symbo
    const silo::DatabasePartition& database_partition,
    Expression::AmbiguityMode /*mode*/
 ) const {
-   SPDLOG_TRACE(
-      "In InsertionContains<SymbolType>::compile with column names: " +
-      boost::join(column_names, ",")
-   );
-   for (const std::string& column_name : column_names) {
-      CHECK_SILO_QUERY(
-         database_partition.columns.getInsertionColumns<SymbolType>().contains(column_name),
-         "The insertion column '" + column_name + "' does not exist."
-      )
-   }
-   if (database_partition.columns.getInsertionColumns<SymbolType>().empty()) {
+   if (database_partition.getSequenceStores<SymbolType>().empty()) {
       return std::make_unique<operators::Empty>(database_partition.sequence_count);
    }
 
@@ -93,35 +67,22 @@ std::unique_ptr<silo::query_engine::operators::Operator> InsertionContains<Symbo
       // NOLINTNEXTLINE(bugprone-unchecked-optional-access) -- the previous statement checks it
       validated_sequence_name = *database.getDefaultSequenceName<SymbolType>();
    }
+   const std::map<std::string, SequenceStorePartition<SymbolType>&>& sequence_stores =
+      database_partition.getSequenceStores<SymbolType>();
+   CHECK_SILO_QUERY(
+      sequence_stores.contains(validated_sequence_name),
+      "The database has no default " + std::string(SymbolType::SYMBOL_NAME_LOWER_CASE) +
+         " sequence name"
+   )
 
-   std::vector<std::unique_ptr<operators::Operator>> column_operators;
-
-   for (const auto& [column_name, insertion_column] :
-        database_partition.columns.getInsertionColumns<SymbolType>()) {
-      const storage::column::InsertionColumnPartition<SymbolType>& the_insertion_column =
-         insertion_column;
-      if(column_names.empty() || std::find(column_names.begin(), column_names.end(), column_name) != column_names.end()){
-         if (the_insertion_column.getInsertionIndexes().contains(validated_sequence_name)) {
-            column_operators.emplace_back(std::make_unique<operators::BitmapProducer>(
-               [&, validated_sequence_name]() {
-                  auto search_result =
-                     the_insertion_column.search(validated_sequence_name, position_idx, value);
-                  return OperatorResult(std::move(*search_result));
-               },
-               database_partition.sequence_count
-            ));
-         }
-      }
-   }
-
-   if (column_operators.empty()) {
-      return std::make_unique<operators::Empty>(database_partition.sequence_count);
-   }
-   if (column_operators.size() == 1) {
-      return std::move(column_operators.at(0));
-   }
-   return std::make_unique<operators::Union>(
-      std::move(column_operators), database_partition.sequence_count
+   const SequenceStorePartition<SymbolType>& sequence_store =
+      sequence_stores.at(validated_sequence_name);
+   return std::make_unique<operators::BitmapProducer>(
+      [&]() {
+         auto search_result = sequence_store.insertion_index.search(position_idx, value);
+         return OperatorResult(std::move(*search_result));
+      },
+      database_partition.sequence_count
    );
 }
 
@@ -152,26 +113,6 @@ bool validateInsertionSearchValue(const std::string& value) {
 template <typename SymbolType>
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains<SymbolType>>& filter) {
-   CHECK_SILO_QUERY(
-      !json.contains("column") || (json["column"].is_string() || json["column"].is_array()),
-      "The InsertionsContains filter can have the field column of type string or an array of "
-      "strings, but no other type"
-   )
-   std::vector<std::string> column_names;
-   if (json.contains("column") && json.at("column").is_array()) {
-      for (const auto& child : json["column"]) {
-         CHECK_SILO_QUERY(
-            child.is_string(),
-            "The field column of the InsertionsContains filter must have type string or an "
-            "array, if present. Found:" +
-               child.dump()
-         )
-         column_names.emplace_back(child.get<std::string>());
-      }
-   } else if (json.contains("column") && json["column"].is_string()) {
-      column_names.emplace_back(json["column"].get<std::string>());
-   }
-
    CHECK_SILO_QUERY(
       json.contains("position"),
       "The field 'position' is required in an InsertionContains expression"
@@ -208,9 +149,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains<Sym
          value + "\". It must only consist of " + std::string(SymbolType::SYMBOL_NAME_LOWER_CASE) +
          " symbols and the regex symbol '.*'."
    )
-   filter = std::make_unique<InsertionContains<SymbolType>>(
-      std::move(column_names), sequence_name, position_idx, value
-   );
+   filter = std::make_unique<InsertionContains<SymbolType>>(sequence_name, position_idx, value);
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

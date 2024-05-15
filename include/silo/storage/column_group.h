@@ -15,7 +15,6 @@
 #include "silo/storage/column/date_column.h"
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
-#include "silo/storage/column/insertion_column.h"
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/column/pango_lineage_column.h"
 #include "silo/storage/column/string_column.h"
@@ -68,12 +67,6 @@ class ColumnPartitionGroup {
       for(auto& [name, store] : pango_lineage_columns){
          archive & store;
       }
-      for(auto& [name, store] : nuc_insertion_columns){
-         archive & store;
-      }
-      for(auto& [name, store] : aa_insertion_columns){
-         archive & store;
-      }
       // clang-format on
    }
 
@@ -87,10 +80,6 @@ class ColumnPartitionGroup {
    std::map<std::string, storage::column::FloatColumnPartition&> float_columns;
    std::map<std::string, storage::column::DateColumnPartition&> date_columns;
    std::map<std::string, storage::column::PangoLineageColumnPartition&> pango_lineage_columns;
-   std::map<std::string, storage::column::InsertionColumnPartition<Nucleotide>&>
-      nuc_insertion_columns;
-   std::map<std::string, storage::column::InsertionColumnPartition<AminoAcid>&>
-      aa_insertion_columns;
 
    uint32_t fill(
       duckdb::Connection& connection,
@@ -119,10 +108,6 @@ class ColumnPartitionGroup {
 
    [[nodiscard]] common::JsonValueType getValue(const std::string& column, uint32_t sequence_id)
       const;
-
-   template <typename SymbolType>
-   const std::map<std::string, storage::column::InsertionColumnPartition<SymbolType>&>&
-   getInsertionColumns() const;
 };
 
 class ColumnGroup {
@@ -152,12 +137,6 @@ class ColumnGroup {
       for(auto& [_, store] : pango_lineage_columns){
          archive & store;
       }
-      for(auto& [_, store] : nuc_insertion_columns){
-         archive & store;
-      }
-      for(auto& [_, store] : aa_insertion_columns){
-         archive & store;
-      }
       // clang-format on
    }
 
@@ -171,12 +150,6 @@ class ColumnGroup {
    std::map<std::string, storage::column::FloatColumn> float_columns;
    std::map<std::string, storage::column::DateColumn> date_columns;
    std::map<std::string, storage::column::PangoLineageColumn> pango_lineage_columns;
-   std::map<std::string, storage::column::InsertionColumn<Nucleotide>> nuc_insertion_columns;
-   std::map<std::string, storage::column::InsertionColumn<AminoAcid>> aa_insertion_columns;
-
-   template <typename SymbolType>
-   const std::map<std::string, storage::column::InsertionColumn<SymbolType>>& getInsertionColumns(
-   ) const;
 };
 
 }  // namespace silo::storage

@@ -91,7 +91,6 @@ class Database {
    void initializeAASequences(
       const std::map<std::string, std::vector<AminoAcid::Symbol>>& reference_sequences
    );
-   void finalizeInsertionIndexes();
 
    template <typename SymbolType>
    static BitmapSizePerSymbol calculateBitmapSizePerSymbol(

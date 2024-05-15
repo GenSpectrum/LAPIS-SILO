@@ -16,16 +16,24 @@ TEST(DatabaseDirectoryWatcher, validBackwardsCompatible) {
    auto under_test =
       DatabaseDirectoryWatcher::checkValidDataSource("testBaseData/dataDirectories/1234");
    ASSERT_TRUE(under_test.has_value());
-   ASSERT_TRUE(under_test.value().isCompatibleVersion());
+   ASSERT_FALSE(under_test.value().isCompatibleVersion());
    ASSERT_EQ(under_test->getTimestamp(), silo::DataVersion::Timestamp::fromString("1234"));
 }
 
-TEST(DatabaseDirectoryWatcher, validNewFormat) {
+TEST(DatabaseDirectoryWatcher, validNewFormatOldVersion) {
    auto under_test =
       DatabaseDirectoryWatcher::checkValidDataSource("testBaseData/dataDirectories/1235");
    ASSERT_TRUE(under_test.has_value());
-   ASSERT_TRUE(under_test.value().isCompatibleVersion());
+   ASSERT_FALSE(under_test.value().isCompatibleVersion());
    ASSERT_EQ(under_test->getTimestamp(), silo::DataVersion::Timestamp::fromString("1235"));
+}
+
+TEST(DatabaseDirectoryWatcher, validNewFormatCurrentVersion) {
+   auto under_test =
+      DatabaseDirectoryWatcher::checkValidDataSource("testBaseData/dataDirectories/1236");
+   ASSERT_TRUE(under_test.has_value());
+   ASSERT_TRUE(under_test.value().isCompatibleVersion());
+   ASSERT_EQ(under_test->getTimestamp(), silo::DataVersion::Timestamp::fromString("1236"));
 }
 
 TEST(DatabaseDirectoryWatcher, validNewFormatIncompatible) {
@@ -61,9 +69,9 @@ TEST(DatabaseDirectoryWatcher, getsMostRecentCompatible) {
    auto under_test =
       DatabaseDirectoryWatcher::getMostRecentDataDirectory("testBaseData/dataDirectories");
    ASSERT_TRUE(under_test.has_value());
-   ASSERT_EQ(under_test.value().first, "testBaseData/dataDirectories/1235");
+   ASSERT_EQ(under_test.value().first, "testBaseData/dataDirectories/1236");
    ASSERT_TRUE(under_test.value().second.isCompatibleVersion());
    ASSERT_EQ(
-      under_test.value().second.getTimestamp(), silo::DataVersion::Timestamp::fromString("1235")
+      under_test.value().second.getTimestamp(), silo::DataVersion::Timestamp::fromString("1236")
    );
 }

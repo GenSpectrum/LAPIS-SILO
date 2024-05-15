@@ -24,10 +24,6 @@ schema:
       type: float
     - name: test_boolean_column
       type: boolean
-    - name: nucleotideInsertions
-      type: insertion
-    - name: aminoAcidInsertions
-      type: aaInsertion
   primaryKey: gisaid_epi_isl
   dateToSortBy: date
   partitionBy: pango_lineage

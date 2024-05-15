@@ -3,11 +3,10 @@
   "query": {
     "action": {
       "type": "Insertions",
-      "column": "nucleotideInsertions"
+      "sequenceName": "main"
     },
     "filterExpression": {
       "type": "InsertionContains",
-      "column": "nucleotideInsertions",
       "position": 22339,
       "value": ".*C.*G.*"
     }

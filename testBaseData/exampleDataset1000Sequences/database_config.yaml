@@ -20,10 +20,6 @@ schema:
       type: int
     - name: nextcladeQcOverallScore
       type: float
-    - name: nucleotideInsertions
-      type: insertion
-    - name: aminoAcidInsertions
-      type: aaInsertion
   primaryKey: strain
   dateToSortBy: date
   partitionBy: pangoLineage

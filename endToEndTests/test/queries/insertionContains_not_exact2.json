@@ -6,7 +6,6 @@
     },
     "filterExpression": {
       "type": "InsertionContains",
-      "column": "nucleotideInsertions",
       "position": 22204,
       "value": "CAG.*AA"
     }
