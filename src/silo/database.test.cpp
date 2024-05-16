@@ -42,6 +42,7 @@ TEST(DatabaseTest, shouldBuildDatabaseWithoutErrors) {
 
    EXPECT_GT(simple_database_info.total_size, 0);
    EXPECT_EQ(simple_database_info.sequence_count, 100);
+   EXPECT_EQ(simple_database_info.number_of_partitions, 11);
 }
 
 TEST(DatabaseTest, shouldSuccessfullyBuildDatabaseWithoutPartitionBy) {
@@ -69,6 +70,7 @@ TEST(DatabaseTest, shouldSuccessfullyBuildDatabaseWithoutPartitionBy) {
 
    EXPECT_GT(simple_database_info.total_size, 0);
    EXPECT_EQ(simple_database_info.sequence_count, 100);
+   EXPECT_EQ(simple_database_info.number_of_partitions, 1);
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -138,4 +140,5 @@ TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
    EXPECT_GT(simple_database_info.total_size, 0);
    EXPECT_EQ(simple_database_info.sequence_count, 100);
    EXPECT_GT(simple_database_info.n_bitmaps_size, 0);
+   EXPECT_EQ(simple_database_info.number_of_partitions, 11);
 }
