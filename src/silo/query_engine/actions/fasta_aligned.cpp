@@ -171,7 +171,7 @@ QueryResult FastaAligned::execute(
                   // Finished the batch. Remove processed `row_id`s;
                   // we already removed the corresponding result
                   // indices from `remaining_result_row_indices`.
-                  bitmap->removeRange(0, row_id + 1);
+                  bitmap->removeRange(0, inc(row_id));
                   return;
                }
             }
