@@ -21,10 +21,6 @@
       "testSecondSequence": "ACGT"
     },
     {
-      "gisaid_epi_isl": "EPI_ISL_2367431",
-      "testSecondSequence": "NCGT"
-    },
-    {
       "gisaid_epi_isl": "EPI_ISL_2359636",
       "testSecondSequence": "ACGT"
     },
@@ -39,6 +35,10 @@
     {
       "gisaid_epi_isl": "EPI_ISL_1001493",
       "testSecondSequence": "ACGT"
+    },
+    {
+      "gisaid_epi_isl": "EPI_ISL_2367431",
+      "testSecondSequence": "NCGT"
     }
   ]
 }
