@@ -78,7 +78,10 @@ TEST_F(RequestHandlerTestFixture, handlesGetInfoRequest) {
    processRequest();
 
    EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_OK);
-   EXPECT_EQ(response.out_stream.str(), R"({"nBitmapsSize":3,"sequenceCount":1,"totalSize":2})");
+   EXPECT_EQ(
+      response.out_stream.str(),
+      R"({"nBitmapsSize":3,"numberOfPartitions":0,"sequenceCount":1,"totalSize":2})"
+   );
    EXPECT_EQ(response.get("data-version"), "1234");
 }
 

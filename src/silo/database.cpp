@@ -146,7 +146,8 @@ DatabaseInfo Database::getDatabaseInfo() const {
    return DatabaseInfo{
       .sequence_count = sequence_count,
       .total_size = total_size,
-      .n_bitmaps_size = nucleotide_symbol_n_bitmaps_size
+      .n_bitmaps_size = nucleotide_symbol_n_bitmaps_size,
+      .number_of_partitions = partitions.size()
    };
 }
 

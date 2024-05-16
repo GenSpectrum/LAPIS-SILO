@@ -15,6 +15,7 @@ struct DatabaseInfo {
    uint32_t sequence_count;
    uint64_t total_size;
    size_t n_bitmaps_size;
+   uint64_t number_of_partitions;
 };
 
 }  // namespace silo
