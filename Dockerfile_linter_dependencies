@@ -17,6 +17,10 @@ RUN apt update \
 RUN pip install conan==2.0.17
 
 COPY conanfile.py conanprofile.docker ./
-RUN mv conanprofile.docker conanprofile
+RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
+        mv conanprofile.docker_arm conanprofile; \
+    else \
+        mv conanprofile.docker conanprofile; \
+    fi
 
 RUN conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build -s build_type=Debug

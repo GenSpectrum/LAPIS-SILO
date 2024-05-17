@@ -458,7 +458,7 @@ std::vector<Tuple> TupleFactory::allocateMany(size_t count) {
    const size_t allocation_size = tuple_size * count;
    std::vector<std::byte>& data = all_tuple_data.emplace_back(allocation_size);
    for (unsigned i = 0; i < count; i++) {
-      tuples.emplace_back(&columns, data.data() + i * tuple_size, tuple_size);
+      tuples.emplace_back(&columns, data.data() + (i * tuple_size), tuple_size);
    }
    return tuples;
 }
