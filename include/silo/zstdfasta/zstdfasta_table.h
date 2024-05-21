@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include <silo/file_reader/file_reader.h>
+
 namespace duckdb {
 struct Connection;
 }
@@ -35,7 +37,7 @@ class ZstdFastaTable {
    static ZstdFastaTable generate(
       duckdb::Connection& connection,
       const std::string& table_name,
-      FastaReader& file_reader,
+      FileReader& file_reader,
       std::string_view reference_sequence
    );
 };

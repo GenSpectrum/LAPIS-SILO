@@ -1,4 +1,4 @@
-#include "silo/common/fasta_format_exception.h"
+#include "silo/file_reader/fasta_format_exception.h"
 
 #include <stdexcept>
 #include <string>

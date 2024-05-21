@@ -1,9 +1,9 @@
 #include "silo/zstdfasta/zstdfasta_table.h"
 
 #include <fmt/format.h>
+#include <silo/file_reader/file_reader.h>
 #include <duckdb.hpp>
 
-#include "silo/common/fasta_reader.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/zstdfasta/zstd_compressor.h"
 #include "silo/zstdfasta/zstdfasta_reader.h"
@@ -69,22 +69,21 @@ ZstdFastaTable ZstdFastaTable::generate(
 ZstdFastaTable ZstdFastaTable::generate(
    duckdb::Connection& connection,
    const std::string& table_name,
-   FastaReader& file_reader,
+   FileReader& file_reader,
    std::string_view reference_sequence
 ) {
    initializeTable(connection, table_name);
-   std::optional<silo::FastaReader::SequenceIdentifier> identifier;
-   std::string uncompressed;
+   std::optional<silo::FileReader::ReadSequence> entry;
    ZstdCompressor compressor(std::make_shared<ZstdCDictionary>(reference_sequence, 2));
    duckdb::Appender appender(connection, table_name);
    while (true) {
-      identifier = file_reader.next(uncompressed);
-      if (identifier == std::nullopt) {
+      entry = file_reader.nextEntry();
+      if (!entry) {
          break;
       }
-      const std::string_view compressed = compressor.compress(uncompressed);
+      const std::string_view compressed = compressor.compress(entry->sequence);
       const auto* compressed_data = reinterpret_cast<const unsigned char*>(compressed.data());
-      const duckdb::string_t key_value = identifier->key;
+      const duckdb::string_t key_value = entry->key;
       appender.BeginRow();
       appender.Append(key_value);
       appender.Append(duckdb::Value::BLOB(compressed_data, compressed.size()));

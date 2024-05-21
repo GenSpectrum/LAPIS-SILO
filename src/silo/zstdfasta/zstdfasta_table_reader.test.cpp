@@ -4,7 +4,7 @@
 
 #include <duckdb.hpp>
 
-#include "silo/common/fasta_reader.h"
+#include "silo/file_reader/fasta_reader.h"
 #include "silo/zstdfasta/zstd_decompressor.h"
 #include "silo/zstdfasta/zstdfasta_reader.h"
 #include "silo/zstdfasta/zstdfasta_table.h"

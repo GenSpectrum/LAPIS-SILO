@@ -42,6 +42,12 @@ class PreprocessingDatabase {
 
    std::unique_ptr<duckdb::MaterializedQueryResult> query(std::string sql_query);
 
+   ZstdFastaTable generateSequenceTableViaFile(
+      const std::string& table_name,
+      const std::string& reference_sequence,
+      std::filesystem::path filename
+   );
+
    ZstdFastaTable generateSequenceTableFromFasta(
       const std::string& table_name,
       const std::string& reference_sequence,

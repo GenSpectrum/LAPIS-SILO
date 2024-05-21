@@ -2,8 +2,8 @@
 #include <string>
 #include <unordered_map>
 
-#include "silo/common/fasta_format_exception.h"
-#include "silo/common/fasta_reader.h"
+#include "silo/file_reader/fasta_format_exception.h"
+#include "silo/file_reader/fasta_reader.h"
 #include "silo/config/preprocessing_config.h"
 
 TEST(FastaReader, shouldReadFastaFile) {
@@ -15,20 +15,21 @@ TEST(FastaReader, shouldReadFastaFile) {
 
    silo::FastaReader under_test(file_path);
 
-   std::optional<std::string> key;
-   std::string genome;
-   key = under_test.next(genome)->key;
-   EXPECT_TRUE(key != std::nullopt);
+   auto entry = under_test.nextEntry();
+   EXPECT_TRUE(entry.has_value());
+   auto [key, _, genome] = entry.value();
    EXPECT_EQ(key, "Key1");
    EXPECT_EQ(genome, "ACGT");
 
-   key = under_test.next(genome)->key;
-   EXPECT_TRUE(key != std::nullopt);
+   entry = under_test.nextEntry();
+   EXPECT_TRUE(entry.has_value());
+   key = entry.value().key;
+   genome = entry.value().sequence;
    EXPECT_EQ(key, "Key2");
    EXPECT_EQ(genome, "CGTA");
 
-   key = under_test.next(genome)->key;
-   EXPECT_FALSE(key != std::nullopt);
+   entry = under_test.nextEntry();
+   EXPECT_FALSE(entry.has_value());
 }
 
 TEST(FastaReader, shouldReadFastaFileWithoutNewLineAtEnd) {
@@ -40,16 +41,14 @@ TEST(FastaReader, shouldReadFastaFileWithoutNewLineAtEnd) {
 
    silo::FastaReader under_test(file_path);
 
-   std::optional<std::string> key;
-   std::string genome;
-
-   key = under_test.next(genome)->key;
-   EXPECT_TRUE(key != std::nullopt);
+   auto entry = under_test.nextEntry();
+   EXPECT_TRUE(entry.has_value());
+   auto [key, _, genome] = entry.value();
    EXPECT_EQ(key, "Key");
    EXPECT_EQ(genome, "ACGT");
 
-   key = under_test.next(genome)->key;
-   EXPECT_FALSE(key != std::nullopt);
+   entry = under_test.nextEntry();
+   EXPECT_FALSE(entry.has_value());
 }
 
 TEST(FastaReader, givenDataInWrongFormatThenShouldThrowAnException) {
@@ -61,8 +60,7 @@ TEST(FastaReader, givenDataInWrongFormatThenShouldThrowAnException) {
 
    silo::FastaReader under_test(file_path);
 
-   std::string genome;
-   EXPECT_THROW(under_test.next(genome), silo::FastaFormatException);
+   EXPECT_THROW(under_test.nextEntry(), silo::FastaFormatException);
 }
 
 TEST(FastaReader, givenDataInWithMissingGenomeThenShouldThrowAnException) {
@@ -74,13 +72,11 @@ TEST(FastaReader, givenDataInWithMissingGenomeThenShouldThrowAnException) {
 
    silo::FastaReader under_test(file_path);
 
-   std::optional<std::string> key;
-   std::string genome;
-
-   key = under_test.next(genome)->key;
-   EXPECT_TRUE(key != std::nullopt);
+   auto entry = under_test.nextEntry();
+   EXPECT_TRUE(entry.has_value());
+   auto [key, _, genome] = entry.value();
    EXPECT_EQ(key, "Key");
    EXPECT_EQ(genome, "ACGT");
 
-   EXPECT_THROW(under_test.next(genome), silo::FastaFormatException);
+   EXPECT_THROW(under_test.nextEntry(), silo::FastaFormatException);
 }

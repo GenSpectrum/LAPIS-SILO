@@ -9,8 +9,8 @@
 #include <spdlog/spdlog.h>
 #include <duckdb.hpp>
 
-#include "silo/common/fasta_reader.h"
-#include "silo/common/sam_reader.h"
+#include "silo/file_reader/fasta_reader.h"
+#include "silo/file_reader/sam_reader.h"
 #include "silo/preprocessing/partition.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/preprocessing/sql_function.h"
@@ -151,9 +151,9 @@ ZstdFastaTable PreprocessingDatabase::generateSequenceTableFromSAM(
    const std::string& reference_sequence,
    const std::string& filename
 ) {
-   silo::SamReader sam_reader(filename);
-
-   return ZstdFastaTable::generate(connection, table_name, samr, reference_sequence);
+//   silo::SamReader sam_reader(filename);
+//
+//   return ZstdFastaTable::generate(connection, table_name, sam_reader, reference_sequence);
 }
 
 std::vector<std::string> extractStringListValue(

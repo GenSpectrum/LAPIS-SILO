@@ -38,7 +38,7 @@
 
 #include "silo/common/block_timer.h"
 #include "silo/common/data_version.h"
-#include "silo/common/fasta_reader.h"
+#include "silo/file_reader/fasta_reader.h"
 #include "silo/common/format_number.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/config/database_config.h"
