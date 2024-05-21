@@ -7,10 +7,12 @@
   "devDependencies": {
     "@commitlint/cli": "^19.3.0",
     "@commitlint/config-conventional": "^19.2.2",
-    "@commitlint/types": "^19.0.3"
+    "@commitlint/types": "^19.0.3",
+    "release-please": "^16.10.2"
   },
   "scripts": {
     "commitlint:last-commit": "commitlint --from=HEAD~1 --verbose",
-    "commitlint:merge-base": "commitlint --from=$(git merge-base HEAD main) --verbose"
+    "commitlint:merge-base": "commitlint --from=$(git merge-base HEAD main) --verbose",
+    "release-please-dry-run": "npx release-please release-pr --dry-run --config-file=release-please-config.json --manifest-file=.release-please-manifest.json --repo-url='https://github.com/GenSpectrum/LAPIS-SILO'"
   }
 }

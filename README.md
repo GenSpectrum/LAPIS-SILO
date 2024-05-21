@@ -246,3 +246,17 @@ To check commit messages of a branch to the commit where it branches off from `m
 ```shell
 npm run commitlint:merge-base
 ```
+
+### Testing The Generated Changelog
+
+To test the generated changelog, run
+
+```shell
+npm run release-please-dry-run -- --token=<GitHub PAT> --target-branch=<name of the upstream branch>
+```
+
+where 
+* `<GitHub PAT>` is a GitHub Personal Access Token. It doesn't need any permissions.
+* `<name of the upstream branch>` is the name of the branch for which the changelog should be generated.
+
+__NOTE: This command does not respect local changes. It will pull the commit messages from the remote repository.__
