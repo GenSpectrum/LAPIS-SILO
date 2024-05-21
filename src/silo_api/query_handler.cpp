@@ -42,22 +42,12 @@ void QueryHandler::post(
       response.setContentType("application/x-ndjson");
       std::ostream& out_stream = response.send();
       std::optional<std::reference_wrapper<const QueryResultEntry>> entry;
-      uint32_t unflushed_rows = 0;
       while ((entry = query_result.next())) {
          out_stream << nlohmann::json(*entry) << '\n';
          if (!out_stream) {
             throw std::runtime_error(
                fmt::format("error writing to HTTP stream: {}", std::strerror(errno))
             );
-         }
-         if (++unflushed_rows >= 1000) {
-            out_stream.flush();
-            if (!out_stream) {
-               throw std::runtime_error(
-                  fmt::format("error flushing HTTP stream: {}", std::strerror(errno))
-               );
-            }
-            unflushed_rows = 0;
          }
       }
    } catch (const silo::QueryParseException& ex) {
