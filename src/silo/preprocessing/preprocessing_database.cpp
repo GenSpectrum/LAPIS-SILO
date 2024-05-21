@@ -16,8 +16,8 @@
 #include "silo/preprocessing/sql_function.h"
 #include "silo/storage/reference_genomes.h"
 #include "silo/zstdfasta/zstd_compressor.h"
+#include "silo/zstdfasta/zstd_table.h"
 #include "silo/zstdfasta/zstdfasta_reader.h"
-#include "silo/zstdfasta/zstdfasta_table.h"
 #include "silo/zstdfasta/zstdfasta_writer.h"
 
 using duckdb::BigIntValue;
@@ -113,7 +113,7 @@ preprocessing::Partitions PreprocessingDatabase::getPartitionDescriptor() {
    return preprocessing::Partitions(partitions);
 }
 
-ZstdFastaTable PreprocessingDatabase::generateSequenceTableViaFile(
+ZstdTable PreprocessingDatabase::generateSequenceTableViaFile(
    const std::string& table_name,
    const std::string& reference_sequence,
    std::filesystem::path filename
@@ -128,32 +128,32 @@ ZstdFastaTable PreprocessingDatabase::generateSequenceTableViaFile(
    }
 }
 
-ZstdFastaTable PreprocessingDatabase::generateSequenceTableFromFasta(
+ZstdTable PreprocessingDatabase::generateSequenceTableFromFasta(
    const std::string& table_name,
    const std::string& reference_sequence,
    const std::string& filename
 ) {
    silo::FastaReader fasta_reader(filename);
-   return ZstdFastaTable::generate(connection, table_name, fasta_reader, reference_sequence);
+   return ZstdTable::generate(connection, table_name, fasta_reader, reference_sequence);
 }
 
-ZstdFastaTable PreprocessingDatabase::generateSequenceTableFromZstdFasta(
+ZstdTable PreprocessingDatabase::generateSequenceTableFromZstdFasta(
    const std::string& table_name,
    const std::string& reference_sequence,
    const std::string& filename
 ) {
    silo::ZstdFastaReader zstd_fasta_reader(filename, reference_sequence);
-   return ZstdFastaTable::generate(connection, table_name, zstd_fasta_reader, reference_sequence);
+   return ZstdTable::generate(connection, table_name, zstd_fasta_reader, reference_sequence);
 }
 
-ZstdFastaTable PreprocessingDatabase::generateSequenceTableFromSAM(
+ZstdTable PreprocessingDatabase::generateSequenceTableFromSAM(
    const std::string& table_name,
    const std::string& reference_sequence,
    const std::string& filename
 ) {
-//   silo::SamReader sam_reader(filename);
-//
-//   return ZstdFastaTable::generate(connection, table_name, sam_reader, reference_sequence);
+   silo::SamReader sam_reader(filename);
+
+   return ZstdTable::generate(connection, table_name, sam_reader, reference_sequence);
 }
 
 std::vector<std::string> extractStringListValue(

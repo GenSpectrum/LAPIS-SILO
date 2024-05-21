@@ -6,8 +6,8 @@
 
 #include "silo/file_reader/fasta_reader.h"
 #include "silo/zstdfasta/zstd_decompressor.h"
+#include "silo/zstdfasta/zstd_table.h"
 #include "silo/zstdfasta/zstdfasta_reader.h"
-#include "silo/zstdfasta/zstdfasta_table.h"
 #include "silo/zstdfasta/zstdfasta_table_reader.h"
 
 TEST(ZstdFastaTableReader, correctlyReadsZstdFastaTableFromFastaFile) {
@@ -21,7 +21,7 @@ TEST(ZstdFastaTableReader, correctlyReadsZstdFastaTableFromFastaFile) {
    duckdb::DuckDB duck_db(nullptr);
    duckdb::Connection connection(duck_db);
 
-   silo::ZstdFastaTable::generate(connection, "test", file_reader, "ACGT");
+   silo::ZstdTable::generate(connection, "test", file_reader, "ACGT");
 
    silo::ZstdFastaTableReader under_test(connection, "test", "ACGT", "sequence", "true", "");
    under_test.loadTable();
@@ -51,7 +51,7 @@ TEST(ZstdFastaTableReader, correctlyReadsZstdFastaTableFromZstdFastaFile) {
    duckdb::DuckDB duck_db(nullptr);
    duckdb::Connection connection(duck_db);
 
-   silo::ZstdFastaTable::generate(connection, "test", file_reader, "ACGT");
+   silo::ZstdTable::generate(connection, "test", file_reader, "ACGT");
 
    silo::ZstdFastaTableReader under_test(connection, "test", "ACGT", "sequence", "true", "");
    under_test.loadTable();
@@ -81,7 +81,7 @@ TEST(ZstdFastaTableReader, correctlySortsZstdFastaTableFromFastaFile) {
    duckdb::DuckDB duck_db(nullptr);
    duckdb::Connection connection(duck_db);
 
-   silo::ZstdFastaTable::generate(connection, "test", file_reader, "ACGT");
+   silo::ZstdTable::generate(connection, "test", file_reader, "ACGT");
 
    silo::ZstdFastaTableReader under_test(
       connection, "test", "ACGT", "sequence", "true", "ORDER BY key desc"
@@ -113,7 +113,7 @@ TEST(ZstdFastaTableReader, correctlySortsZstdFastaTableFromZstdFastaFile) {
    duckdb::DuckDB duck_db(nullptr);
    duckdb::Connection connection(duck_db);
 
-   silo::ZstdFastaTable::generate(connection, "test", file_reader, "ACGT");
+   silo::ZstdTable::generate(connection, "test", file_reader, "ACGT");
 
    silo::ZstdFastaTableReader under_test(
       connection, "test", "ACGT", "sequence", "true", "ORDER BY key desc"

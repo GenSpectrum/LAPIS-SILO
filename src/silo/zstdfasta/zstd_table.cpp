@@ -1,4 +1,4 @@
-#include "silo/zstdfasta/zstdfasta_table.h"
+#include "silo/zstdfasta/zstd_table.h"
 
 #include <fmt/format.h>
 #include <silo/file_reader/file_reader.h>
@@ -30,7 +30,7 @@ void initializeTable(duckdb::Connection& connection, std::string table_name) {
 
 namespace silo {
 
-ZstdFastaTable::ZstdFastaTable(
+ZstdTable::ZstdTable(
    duckdb::Connection& connection,
    std::string table_name,
    std::string_view compression_dict
@@ -39,7 +39,7 @@ ZstdFastaTable::ZstdFastaTable(
       table_name(std::move(table_name)),
       compression_dict(compression_dict) {}
 
-ZstdFastaTable ZstdFastaTable::generate(
+ZstdTable ZstdTable::generate(
    duckdb::Connection& connection,
    const std::string& table_name,
    ZstdFastaReader& file_reader,
@@ -66,7 +66,7 @@ ZstdFastaTable ZstdFastaTable::generate(
    return {connection, table_name, reference_sequence};
 }
 
-ZstdFastaTable ZstdFastaTable::generate(
+ZstdTable ZstdTable::generate(
    duckdb::Connection& connection,
    const std::string& table_name,
    FileReader& file_reader,
@@ -93,7 +93,7 @@ ZstdFastaTable ZstdFastaTable::generate(
    return {connection, table_name, reference_sequence};
 }
 
-ZstdFastaTableReader ZstdFastaTable::getReader(
+ZstdFastaTableReader ZstdTable::getReader(
    std::string_view where_clause,
    std::string_view order_by_clause
 ) {

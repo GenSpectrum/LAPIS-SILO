@@ -13,12 +13,12 @@ class ZstdFastaReader;
 class ZstdFastaTableReader;
 class FastaReader;
 
-class ZstdFastaTable {
+class ZstdTable {
    duckdb::Connection& connection;
    std::string table_name;
    std::string_view compression_dict;
 
-   ZstdFastaTable(
+   ZstdTable(
       duckdb::Connection& connection,
       std::string table_name,
       std::string_view compression_dict
@@ -27,14 +27,14 @@ class ZstdFastaTable {
   public:
    ZstdFastaTableReader getReader(std::string_view where_clause, std::string_view order_by_clause);
 
-   static ZstdFastaTable generate(
+   static ZstdTable generate(
       duckdb::Connection& connection,
       const std::string& table_name,
       ZstdFastaReader& file_reader,
       std::string_view reference_sequence
    );
 
-   static ZstdFastaTable generate(
+   static ZstdTable generate(
       duckdb::Connection& connection,
       const std::string& table_name,
       FileReader& file_reader,

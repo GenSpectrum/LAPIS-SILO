@@ -6,7 +6,6 @@
 #include <boost/algorithm/string/join.hpp>
 
 #include "silo/common/block_timer.h"
-#include "silo/common/table_reader.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
@@ -18,7 +17,7 @@
 #include "silo/storage/reference_genomes.h"
 #include "silo/storage/unaligned_sequence_store.h"
 #include "silo/zstdfasta/zstd_decompressor.h"
-#include "silo/zstdfasta/zstdfasta_table.h"
+#include "silo/zstdfasta/zstd_table.h"
 #include "silo/zstdfasta/zstdfasta_table_reader.h"
 
 namespace silo::preprocessing {
