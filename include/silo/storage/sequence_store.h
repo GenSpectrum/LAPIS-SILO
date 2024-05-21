@@ -50,6 +50,13 @@ class SequenceStorePartition {
    }
 
   public:
+   struct ReadSequence {
+      std::optional<std::string> sequence;
+      uint32_t offset;
+
+      ReadSequence(std::optional<std::string> _sequence, uint32_t _offset = 0): sequence(std::move(_sequence)), offset(_offset) {}
+   };
+
    const std::vector<typename SymbolType::Symbol>& reference_sequence;
    std::vector<std::pair<size_t, typename SymbolType::Symbol>>
       indexing_differences_to_reference_sequence;
@@ -59,7 +66,7 @@ class SequenceStorePartition {
    uint32_t sequence_count = 0;
 
   private:
-   void fillIndexes(const std::vector<std::optional<std::string>>& genomes);
+   void fillIndexes(const std::vector<ReadSequence>& reads);
 
    void addSymbolsToPositions(
       size_t position_idx,
@@ -67,7 +74,7 @@ class SequenceStorePartition {
       size_t number_of_sequences
    );
 
-   void fillNBitmaps(const std::vector<std::optional<std::string>>& genomes);
+   void fillNBitmaps(const std::vector<ReadSequence>& reads);
 
    void optimizeBitmaps();
 
@@ -89,7 +96,7 @@ class SequenceStorePartition {
 
    void insertInsertion(size_t row_id, const std::string& insertion_and_position);
 
-   void interpret(const std::vector<std::optional<std::string>>& genomes);
+   void interpret(const std::vector<ReadSequence>& reads);
 
    void finalize();
 };
