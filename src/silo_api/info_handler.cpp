@@ -97,7 +97,7 @@ void InfoHandler::get(
 
    const auto fixed_database = database.getDatabase();
 
-   response.set("data-version", fixed_database.database.getDataVersion().toString());
+   response.set("data-version", fixed_database.database.getDataVersionTimestamp().value);
 
    const bool return_detailed_info = request_parameter.find("details") != request_parameter.end() &&
                                      request_parameter.at("details") == "true";

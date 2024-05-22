@@ -51,7 +51,7 @@ class Database {
 
   private:
    PangoLineageAliasLookup alias_key;
-   DataVersion data_version_ = DataVersion{""};
+   DataVersion data_version_ = DataVersion::mineDataVersion();
 
   public:
    void validate() const;
@@ -65,7 +65,7 @@ class Database {
    [[nodiscard]] virtual DetailedDatabaseInfo detailedDatabaseInfo() const;
 
    void setDataVersion(const DataVersion& data_version);
-   virtual DataVersion getDataVersion() const;
+   virtual DataVersion::Timestamp getDataVersionTimestamp() const;
 
    template <typename SymbolType>
    std::optional<std::string> getDefaultSequenceName() const;

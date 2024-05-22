@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <optional>
 #include <string>
 
@@ -8,25 +9,55 @@ namespace silo {
 class DataVersion {
    friend class Database;
 
+  public:
+   class Timestamp {
+     public:
+      std::string value;
+      static std::optional<Timestamp> fromString(std::string timestamp_string);
+
+      [[nodiscard]] bool operator==(const Timestamp& other) const;
+      [[nodiscard]] bool operator<(const Timestamp& other) const;
+      [[nodiscard]] bool operator>(const Timestamp& other) const;
+      [[nodiscard]] bool operator<=(const Timestamp& other) const;
+      [[nodiscard]] bool operator>=(const Timestamp& other) const;
+
+     private:
+      explicit Timestamp(std::string value);
+   };
+
+   class SerializationVersion {
+     public:
+      uint32_t value;
+   };
+
+   static constexpr SerializationVersion CURRENT_SILO_SERIALIZATION_VERSION{0};
+
   private:
-   std::string data_version;
+   Timestamp timestamp;
+   SerializationVersion serialization_version;
 
   public:
    [[nodiscard]] std::string toString() const;
 
-   bool operator==(const DataVersion& other) const;
-   bool operator!=(const DataVersion& other) const;
-   bool operator<(const DataVersion& other) const;
-   bool operator>(const DataVersion& other) const;
-   bool operator<=(const DataVersion& other) const;
-   bool operator>=(const DataVersion& other) const;
+   [[nodiscard]] bool operator==(const DataVersion& other) const;
+   [[nodiscard]] bool operator!=(const DataVersion& other) const;
+   [[nodiscard]] bool operator<(const DataVersion& other) const;
+   [[nodiscard]] bool operator>(const DataVersion& other) const;
+   [[nodiscard]] bool operator<=(const DataVersion& other) const;
+   [[nodiscard]] bool operator>=(const DataVersion& other) const;
+
+   [[nodiscard]] bool isCompatibleVersion() const;
+
+   Timestamp getTimestamp() const;
 
    static DataVersion mineDataVersion();
 
-   static std::optional<DataVersion> fromString(const std::string& string);
+   static std::optional<DataVersion> fromFile(const std::filesystem::path& filename);
+
+   void saveToFile(std::ofstream& save_file) const;
 
   private:
-   explicit DataVersion(std::string data_version);
+   explicit DataVersion(Timestamp timestamp, SerializationVersion serialization_version);
 };
 
 }  // namespace silo

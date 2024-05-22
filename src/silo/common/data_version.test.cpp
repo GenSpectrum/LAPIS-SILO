@@ -6,27 +6,27 @@ using silo::DataVersion;
 
 TEST(DataVersion, shouldMineDataVersionFromUnixTime) {
    const auto mined_version = DataVersion::mineDataVersion();
-   EXPECT_EQ(mined_version.toString().size(), 10UL);
-   EXPECT_EQ(mined_version.toString()[0], '1');
+   EXPECT_EQ(mined_version.getTimestamp().value.size(), 10UL);
+   EXPECT_EQ(mined_version.getTimestamp().value[0], '1');
 }
 
 TEST(DataVersion, shouldConstructFromVersionString) {
-   const auto version = DataVersion::fromString("1234567890");
-   EXPECT_TRUE(version.has_value());
-   if (version.has_value()) {
-      EXPECT_EQ(version->toString(), "1234567890");
+   const auto timestamp = DataVersion::Timestamp::fromString("1234567890");
+   EXPECT_TRUE(timestamp.has_value());
+   if (timestamp.has_value()) {
+      EXPECT_EQ(timestamp->value, "1234567890");
    }
 }
 
 TEST(DataVersion, shouldRejectFalseVersionFromString) {
-   const auto version = DataVersion::fromString("3X123");
-   EXPECT_FALSE(version.has_value());
+   const auto timestamp = DataVersion::Timestamp::fromString("3X123");
+   EXPECT_FALSE(timestamp.has_value());
 }
 
 TEST(DataVersion, shouldConstructWithDefaultVersion) {
-   const auto version = DataVersion::fromString("");
-   EXPECT_TRUE(version.has_value());
-   if (version.has_value()) {
-      EXPECT_EQ(version->toString(), "");
+   const auto timestamp = DataVersion::Timestamp::fromString("");
+   EXPECT_TRUE(timestamp.has_value());
+   if (timestamp.has_value()) {
+      EXPECT_EQ(timestamp->value, "");
    }
 }

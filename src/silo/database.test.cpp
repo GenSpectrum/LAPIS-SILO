@@ -129,11 +129,12 @@ TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
    }
    std::filesystem::create_directories(directory);
 
-   const silo::DataVersion data_version = first_database.getDataVersion();
+   const silo::DataVersion::Timestamp data_version_timestamp =
+      first_database.getDataVersionTimestamp();
 
    first_database.saveDatabaseState(directory);
 
-   auto database = silo::Database::loadDatabaseState(directory / data_version.toString());
+   auto database = silo::Database::loadDatabaseState(directory / data_version_timestamp.value);
 
    const auto simple_database_info = database.getDatabaseInfo();
 

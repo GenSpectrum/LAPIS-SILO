@@ -36,7 +36,7 @@ void QueryHandler::post(
 
       const auto query_result = fixed_database.database.executeQuery(query);
 
-      response.set("data-version", fixed_database.database.getDataVersion().toString());
+      response.set("data-version", fixed_database.database.getDataVersionTimestamp().value);
 
       response.setContentType("application/x-ndjson");
       std::ostream& out_stream = response.send();
