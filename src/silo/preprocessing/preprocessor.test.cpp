@@ -4,7 +4,7 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/config/util/config_repository.h"
-#include "silo/config/util/yaml_config.h"
+#include "silo/config/util/yaml_file.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
 #include "silo/preprocessing/sql_function.h"
@@ -108,8 +108,7 @@ TEST_P(PreprocessorTestFixture, shouldProcessDataSetWithMissingSequences) {
    const auto scenario = GetParam();
 
    silo::config::PreprocessingConfig config;
-   config.overwrite(silo::config::YamlConfig(scenario.input_directory + "preprocessing_config.yaml")
-   );
+   config.overwrite(silo::config::YamlFile(scenario.input_directory + "preprocessing_config.yaml"));
 
    const auto database_config = silo::config::ConfigRepository().getValidatedConfig(
       scenario.input_directory + "database_config.yaml"

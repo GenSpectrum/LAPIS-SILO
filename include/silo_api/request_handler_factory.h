@@ -16,10 +16,13 @@ namespace silo_api {
 class SiloRequestHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
   private:
    silo_api::DatabaseMutex& database;
-   const RuntimeConfig runtime_config;
+   const silo::config::RuntimeConfig runtime_config;
 
   public:
-   SiloRequestHandlerFactory(silo_api::DatabaseMutex& database, RuntimeConfig runtime_config);
+   SiloRequestHandlerFactory(
+      silo_api::DatabaseMutex& database,
+      silo::config::RuntimeConfig runtime_config
+   );
 
    Poco::Net::HTTPRequestHandler* createRequestHandler(const Poco::Net::HTTPServerRequest& request);
 
