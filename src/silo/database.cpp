@@ -368,16 +368,10 @@ std::ofstream openOutputFileOrThrow(const std::string& path) {
 
 }  // namespace
 
-void saveDataVersion(const Database& database, const std::filesystem::path& save_directory) {
-   std::ofstream data_version_file = openOutputFileOrThrow(save_directory / "data_version.silo");
-   const auto data_version = database.getDataVersion().toString();
-   data_version_file << data_version;
-}
-
 void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
-   if (getDataVersion().toString().empty()) {
+   if (getDataVersionTimestamp().value.empty()) {
       throw persistence::SaveDatabaseException(
-         "Data version is empty. Please set a data version before saving the database."
+         "Corrupted database (Data version is empty). Cannot save database."
       );
    }
 
@@ -392,7 +386,7 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
    }
 
    const std::filesystem::path versioned_save_directory =
-      save_directory / getDataVersion().toString();
+      save_directory / getDataVersionTimestamp().value;
    SPDLOG_INFO("Saving database to '{}'", versioned_save_directory.string());
 
    if (std::filesystem::exists(versioned_save_directory)) {
@@ -400,7 +394,7 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
          "In the output directory {} there already exists a file/folder with the name equal to "
          "the current data-version: {}",
          save_directory.string(),
-         getDataVersion().toString()
+         getDataVersionTimestamp().value
       );
       SPDLOG_ERROR(error);
       throw persistence::SaveDatabaseException(error);
@@ -476,22 +470,23 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
    });
    SPDLOG_INFO("Finished saving partitions", partitions.size());
 
-   saveDataVersion(*this, versioned_save_directory);
+   std::ofstream data_version_file =
+      openOutputFileOrThrow(versioned_save_directory / "data_version.silo");
+   data_version_.saveToFile(data_version_file);
 }
 
 DataVersion loadDataVersion(const std::filesystem::path& filename) {
-   std::ifstream data_version_file = openInputFileOrThrow(filename);
-   std::string data_version_string;
-   data_version_file >> data_version_string;
-   auto data_version = DataVersion::fromString(data_version_string);
-   if (data_version == std::nullopt) {
-      auto error = fmt::format(
-         "Data version file {} did not contain a valid data version: {}",
-         filename.string(),
-         data_version_string
-      );
-      SPDLOG_ERROR(error);
+   if (!std::filesystem::is_regular_file(filename)) {
+      auto error = fmt::format("Input file {} could not be opened.", filename.string());
       throw persistence::LoadDatabaseException(error);
+   }
+   auto data_version = DataVersion::fromFile(filename);
+   if (data_version == std::nullopt) {
+      auto error_message = fmt::format(
+         "Data version file {} did not contain a valid data version", filename.string()
+      );
+      SPDLOG_ERROR(error_message);
+      throw persistence::LoadDatabaseException(error_message);
    }
    return data_version.value();
 }
@@ -732,8 +727,8 @@ void Database::setDataVersion(const DataVersion& data_version) {
    data_version_ = data_version;
 }
 
-DataVersion Database::getDataVersion() const {
-   return data_version_;
+DataVersion::Timestamp Database::getDataVersionTimestamp() const {
+   return data_version_.timestamp;
 }
 
 query_engine::QueryResult Database::executeQuery(const std::string& query) const {

@@ -18,7 +18,7 @@ class MockDatabase : public silo::Database {
   public:
    MOCK_METHOD(silo::DatabaseInfo, getDatabaseInfo, (), (const));
    MOCK_METHOD(silo::DetailedDatabaseInfo, detailedDatabaseInfo, (), (const));
-   MOCK_METHOD(silo::DataVersion, getDataVersion, (), (const));
+   MOCK_METHOD(silo::DataVersion::Timestamp, getDataVersionTimestamp, (), (const));
 
    MOCK_METHOD(silo::query_engine::QueryResult, executeQuery, (const std::string&), (const));
 };
@@ -70,8 +70,8 @@ TEST_F(RequestHandlerTestFixture, handlesGetInfoRequest) {
       .WillRepeatedly(testing::Return(
          silo::DatabaseInfo{.sequence_count = 1, .total_size = 2, .n_bitmaps_size = 3}
       ));
-   EXPECT_CALL(database_mutex.mock_database, getDataVersion)
-      .WillRepeatedly(testing::Return(silo::DataVersion::fromString("1234").value()));
+   EXPECT_CALL(database_mutex.mock_database, getDataVersionTimestamp)
+      .WillRepeatedly(testing::Return(silo::DataVersion::Timestamp::fromString("1234").value()));
 
    request.setURI("/info");
 
@@ -103,8 +103,8 @@ TEST_F(RequestHandlerTestFixture, handlesGetInfoRequestDetails) {
 
    EXPECT_CALL(database_mutex.mock_database, detailedDatabaseInfo)
       .WillRepeatedly(testing::Return(detailed_database_info));
-   EXPECT_CALL(database_mutex.mock_database, getDataVersion)
-      .WillRepeatedly(testing::Return(silo::DataVersion::fromString("1234").value()));
+   EXPECT_CALL(database_mutex.mock_database, getDataVersionTimestamp)
+      .WillRepeatedly(testing::Return(silo::DataVersion::Timestamp::fromString("1234").value()));
 
    request.setURI("/info?details=true");
 
@@ -144,8 +144,8 @@ TEST_F(RequestHandlerTestFixture, handlesPostQueryRequest) {
    const silo::query_engine::QueryResult query_result{tmp};
    EXPECT_CALL(database_mutex.mock_database, executeQuery)
       .WillRepeatedly(testing::Return(query_result));
-   EXPECT_CALL(database_mutex.mock_database, getDataVersion)
-      .WillRepeatedly(testing::Return(silo::DataVersion::fromString("1234").value()));
+   EXPECT_CALL(database_mutex.mock_database, getDataVersionTimestamp)
+      .WillRepeatedly(testing::Return(silo::DataVersion::Timestamp::fromString("1234").value()));
 
    request.setMethod("POST");
    request.setURI("/query");
