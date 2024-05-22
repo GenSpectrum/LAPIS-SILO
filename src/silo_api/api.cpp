@@ -26,9 +26,9 @@
 #include "silo/config/database_config.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/config/runtime_config.h"
-#include "silo/config/util/abstract_config.h"
+#include "silo/config/util/abstract_config_source.h"
 #include "silo/config/util/config_repository.h"
-#include "silo/config/util/yaml_config.h"
+#include "silo/config/util/yaml_file.h"
 #include "silo/preprocessing/preprocessor.h"
 #include "silo/preprocessing/sql_function.h"
 #include "silo/storage/reference_genomes.h"
@@ -39,13 +39,13 @@
 #include "silo_api/logging.h"
 #include "silo_api/request_handler_factory.h"
 
-static const std::string PREPROCESSING_CONFIG_OPTION = "preprocessingConfig";
-static const std::string RUNTIME_CONFIG_OPTION = "runtimeConfig";
-static const std::string DATABASE_CONFIG_OPTION = "databaseConfig";
+static const std::string PREPROCESSING_CONFIG_OPTION = "preprocessing-config";
+static const std::string RUNTIME_CONFIG_OPTION = "runtime-config";
+static const std::string DATABASE_CONFIG_OPTION = "database-config";
 static const std::string API_OPTION = "api";
 static const std::string PREPROCESSING_OPTION = "preprocessing";
 
-using silo::config::YamlConfig;
+using silo::config::YamlFile;
 using silo_api::CommandLineArguments;
 using silo_api::EnvironmentVariables;
 
@@ -54,13 +54,13 @@ silo::config::PreprocessingConfig preprocessingConfig(
 ) {
    silo::config::PreprocessingConfig preprocessing_config;
    if (std::filesystem::exists("./default_preprocessing_config.yaml")) {
-      preprocessing_config.overwrite(YamlConfig("./default_preprocessing_config.yaml"));
+      preprocessing_config.overwrite(YamlFile("./default_preprocessing_config.yaml"));
    }
 
    if (config.hasProperty(PREPROCESSING_CONFIG_OPTION)) {
-      preprocessing_config.overwrite(YamlConfig(config.getString(PREPROCESSING_CONFIG_OPTION)));
+      preprocessing_config.overwrite(YamlFile(config.getString(PREPROCESSING_CONFIG_OPTION)));
    } else if (std::filesystem::exists("./preprocessing_config.yaml")) {
-      preprocessing_config.overwrite(YamlConfig("./preprocessing_config.yaml"));
+      preprocessing_config.overwrite(YamlFile("./preprocessing_config.yaml"));
    }
 
    preprocessing_config.overwrite(EnvironmentVariables());
@@ -114,37 +114,37 @@ class SiloServer : public Poco::Util::ServerApplication {
                            .binding(DATABASE_CONFIG_OPTION));
 
       options.addOption(Poco::Util::Option()
-                           .fullName(silo_api::DATA_DIRECTORY_OPTION)
+                           .fullName(silo::config::DATA_DIRECTORY_OPTION.toCamelCase())
                            .shortName("d")
                            .description("path to the preprocessed data")
                            .required(false)
                            .repeatable(false)
                            .argument("PATH")
-                           .binding(silo_api::DATA_DIRECTORY_OPTION));
+                           .binding(silo::config::DATA_DIRECTORY_OPTION.toCamelCase()));
 
       options.addOption(Poco::Util::Option()
-                           .fullName(silo_api::PORT_OPTION)
+                           .fullName(silo::config::PORT_OPTION.toCamelCase())
                            .description("port to listen to requests")
                            .required(false)
                            .repeatable(false)
                            .argument("NUMBER")
-                           .binding(silo_api::PORT_OPTION));
+                           .binding(silo::config::PORT_OPTION.toCamelCase()));
 
       options.addOption(Poco::Util::Option()
-                           .fullName("maxQueuedHttpConnections")
+                           .fullName(silo::config::MAX_CONNECTIONS_OPTION.toCamelCase())
                            .description("maximum number of http connections")
                            .required(false)
                            .repeatable(false)
                            .argument("NUMBER")
-                           .binding("maxQueuedHttpConnections"));
+                           .binding(silo::config::MAX_CONNECTIONS_OPTION.toCamelCase()));
 
       options.addOption(Poco::Util::Option()
-                           .fullName("threadsForHttpConnections")
+                           .fullName(silo::config::PARALLEL_THREADS_OPTION.toCamelCase())
                            .description("number of threads for http connections")
                            .required(false)
                            .repeatable(false)
                            .argument("NUMBER")
-                           .binding("threadsForHttpConnections"));
+                           .binding(silo::config::PARALLEL_THREADS_OPTION.toCamelCase()));
 
       options.addOption(Poco::Util::Option()
                            .fullName(API_OPTION)
@@ -169,7 +169,7 @@ class SiloServer : public Poco::Util::ServerApplication {
 
       options.addOption(
          Poco::Util::Option(
-            silo_api::ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION,
+            silo::config::ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION.toCamelCase(),
             "t",
             "Estimated time in minutes that the initial loading of the database takes. "
             "As long as no database is loaded yet, SILO will throw a 503 error. "
@@ -179,7 +179,7 @@ class SiloServer : public Poco::Util::ServerApplication {
             .required(false)
             .repeatable(false)
             .argument("MINUTES", true)
-            .binding(silo_api::ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION)
+            .binding(silo::config::ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION.toCamelCase())
       );
    }
 
@@ -207,30 +207,32 @@ class SiloServer : public Poco::Util::ServerApplication {
   private:
    int handleApi() {
       SPDLOG_INFO("Starting SILO API");
-      silo_api::RuntimeConfig runtime_config;
+      silo::config::RuntimeConfig runtime_config;
       if (config().hasProperty(RUNTIME_CONFIG_OPTION)) {
-         runtime_config.overwrite(YamlConfig(config().getString(RUNTIME_CONFIG_OPTION)));
+         runtime_config.overwrite(YamlFile(config().getString(RUNTIME_CONFIG_OPTION)));
       } else if (std::filesystem::exists("./runtime_config.yaml")) {
-         runtime_config.overwrite(YamlConfig("./runtime_config.yaml"));
+         runtime_config.overwrite(YamlFile("./runtime_config.yaml"));
       }
       runtime_config.overwrite(EnvironmentVariables());
       runtime_config.overwrite(CommandLineArguments(config()));
 
       silo_api::DatabaseMutex database_mutex;
 
-      const Poco::Net::ServerSocket server_socket(runtime_config.port);
+      const Poco::Net::ServerSocket server_socket(runtime_config.api_options.port);
 
       const silo_api::DatabaseDirectoryWatcher watcher(
-         runtime_config.data_directory, database_mutex
+         runtime_config.api_options.data_directory, database_mutex
       );
 
       auto* const poco_parameter = new Poco::Net::HTTPServerParams;
 
-      SPDLOG_INFO("Using {} queued http connections", runtime_config.max_connections);
-      poco_parameter->setMaxQueued(runtime_config.max_connections);
+      SPDLOG_INFO("Using {} queued http connections", runtime_config.api_options.max_connections);
+      poco_parameter->setMaxQueued(runtime_config.api_options.max_connections);
 
-      SPDLOG_INFO("Using {} threads for http connections", runtime_config.parallel_threads);
-      poco_parameter->setMaxThreads(runtime_config.parallel_threads);
+      SPDLOG_INFO(
+         "Using {} threads for http connections", runtime_config.api_options.parallel_threads
+      );
+      poco_parameter->setMaxThreads(runtime_config.api_options.parallel_threads);
 
       Poco::Net::HTTPServer server(
          new silo_api::SiloRequestHandlerFactory(database_mutex, runtime_config),
@@ -238,7 +240,7 @@ class SiloServer : public Poco::Util::ServerApplication {
          poco_parameter
       );
 
-      SPDLOG_INFO("Listening on port {}", runtime_config.port);
+      SPDLOG_INFO("Listening on port {}", runtime_config.api_options.port);
 
       server.start();
       waitForTerminationRequest();

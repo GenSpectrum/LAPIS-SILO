@@ -21,7 +21,7 @@ namespace silo_api {
 
 SiloRequestHandlerFactory::SiloRequestHandlerFactory(
    silo_api::DatabaseMutex& database,
-   RuntimeConfig runtime_config
+   silo::config::RuntimeConfig runtime_config
 )
     : database(database),
       runtime_config(std::move(runtime_config)) {}
