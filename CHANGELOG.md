@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.1.0...v0.1.1) (2024-05-23)
+
+
+### Features
+
+* add number of partitions to /info ([1e780b5](https://github.com/GenSpectrum/LAPIS-SILO/commit/1e780b51f7b64334e9102fef3eeb279132e363e5))
+* add serializationVersion to SILO output for smoother transitioning to new formats ([d3badb6](https://github.com/GenSpectrum/LAPIS-SILO/commit/d3badb65e6c2ce5d59ab8134cf2a237c836d417e))
+
 ## [0.1.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.0.1...v0.1.0) (2024-05-10)
 
 
