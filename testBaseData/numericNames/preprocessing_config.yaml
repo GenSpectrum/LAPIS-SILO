@@ -1,0 +1,4 @@
+inputDirectory: "testBaseData/numericNames"
+ndjsonInputFilename: "input_file.ndjson"
+referenceGenomeFilename: "reference_genomes.json"
+preprocessingDatabaseLocation: "debug.duckdb"
