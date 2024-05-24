@@ -83,6 +83,29 @@ const Scenario NDJSON_WITH_SQL_KEYWORD_AS_FIELD = {
    )
 };
 
+const Scenario NDJSON_WITH_NUMERIC_NAMES = {
+   .input_directory = "testBaseData/numericNames/",
+   .expected_sequence_count = 2,
+   .query = R"(
+      {
+         "action": {
+            "type": "Aggregated",
+            "groupByFields": ["2"],
+            "orderByFields": ["2"]
+         },
+         "filterExpression": {
+            "type": "True"
+         }
+      }
+   )",
+   .expected_query_result = nlohmann::json::parse(
+      R"([
+         {"count": 1, "2": null},
+         {"count": 1, "2": "google.com"}
+   ])"
+   )
+};
+
 const Scenario TSV_FILE_WITH_SQL_KEYWORD_AS_FIELD = {
    .input_directory = "testBaseData/tsvWithSqlKeywordField/",
    .expected_sequence_count = NDJSON_WITH_SQL_KEYWORD_AS_FIELD.expected_sequence_count,
@@ -99,7 +122,8 @@ INSTANTIATE_TEST_SUITE_P(
       FASTA_FILES_WITH_MISSING_SEGMENTS_AND_GENES,
       NDJSON_FILE_WITH_MISSING_SEGMENTS_AND_GENES,
       NDJSON_WITH_SQL_KEYWORD_AS_FIELD,
-      TSV_FILE_WITH_SQL_KEYWORD_AS_FIELD
+      TSV_FILE_WITH_SQL_KEYWORD_AS_FIELD,
+      NDJSON_WITH_NUMERIC_NAMES
    ),
    printTestName
 );
