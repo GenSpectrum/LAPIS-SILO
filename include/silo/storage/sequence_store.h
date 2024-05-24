@@ -32,6 +32,16 @@ struct SequenceStoreInfo {
    size_t n_bitmaps_size;
 };
 
+class ReadSequence {
+  public:
+   std::string_view sequence;
+   uint32_t offset;
+
+   ReadSequence(uint32_t _offset, std::string_view _sequence)
+       : sequence(_sequence),
+         offset(_offset) {}
+};
+
 template <typename SymbolType>
 class SequenceStorePartition {
    friend class boost::serialization::access;
@@ -50,16 +60,11 @@ class SequenceStorePartition {
    }
 
   public:
-   struct ReadSequence {
-      std::optional<std::string> sequence;
-      uint32_t offset;
-
-      ReadSequence(std::optional<std::string> _sequence, uint32_t _offset = 0)
-          : sequence(std::move(_sequence)),
-            offset(_offset) {}
-   };
-
    const std::vector<typename SymbolType::Symbol>& reference_sequence;
+
+   static constexpr size_t BUFFER_SIZE = 1024;
+   std::vector<ReadSequence> lazy_buffer;
+
    std::vector<std::pair<size_t, typename SymbolType::Symbol>>
       indexing_differences_to_reference_sequence;
    std::vector<Position<SymbolType>> positions;
@@ -94,7 +99,9 @@ class SequenceStorePartition {
 
    [[nodiscard]] SequenceStoreInfo getInfo() const;
 
-   size_t fill(silo::ZstdFastaTableReader& input);
+   void insertRead(size_t row_id, ReadSequence&& read);
+
+   void insertNull(size_t row_id);
 
    void insertInsertion(size_t row_id, const std::string& insertion_and_position);
 

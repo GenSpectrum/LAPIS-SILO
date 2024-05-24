@@ -46,7 +46,7 @@ class AminoAcid {
    static constexpr std::string_view SYMBOL_NAME = "Amino Acid";
    static constexpr std::string_view SYMBOL_NAME_LOWER_CASE = "amino acid";
    static constexpr std::string_view SYMBOL_NAME_UPPER_CASE = "AMINO ACID";
-   static constexpr std::string_view SYMBOL_NAME_SHORT = "AA";
+   static constexpr std::string_view SYMBOL_NAME_SHORT = "aa";
 
    static constexpr std::array<Symbol, COUNT> SYMBOLS{
       Symbol::GAP, Symbol::A, Symbol::C, Symbol::D,    Symbol::E, Symbol::F, Symbol::G,
@@ -99,6 +99,8 @@ class AminoAcid {
    static std::optional<std::vector<Symbol>> stringToSymbolVector(const std::string& sequence);
 
    static std::optional<char> findIllegalChar(const std::string& sequence);
+
+   static std::string suffixWith(std::string_view suffix);
 };
 
 }  // namespace silo

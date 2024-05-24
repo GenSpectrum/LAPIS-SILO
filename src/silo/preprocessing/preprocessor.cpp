@@ -24,8 +24,7 @@
 namespace silo::preprocessing {
 
 constexpr std::string_view FASTA_EXTENSION = ".fasta";
-const std::string NUC_INSERTION_TABLE_NAME = "nuc_insertions";
-const std::string AA_INSERTION_TABLE_NAME = "aa_insertions";
+const std::string INSERTION_TABLE_NAME_SUFFIX = "_insertions";
 
 Preprocessor::Preprocessor(
    config::PreprocessingConfig preprocessing_config_,
@@ -79,12 +78,12 @@ Database Preprocessor::preprocess() {
       createInsertionsTableFromFile(
          reference_genomes_.raw_nucleotide_sequences,
          preprocessing_config.getNucleotideInsertionsFilename(),
-         NUC_INSERTION_TABLE_NAME
+         Nucleotide::suffixWith(INSERTION_TABLE_NAME_SUFFIX)
       );
       createInsertionsTableFromFile(
          reference_genomes_.raw_aa_sequences,
          preprocessing_config.getAminoAcidInsertionsFilename(),
-         AA_INSERTION_TABLE_NAME
+         AminoAcid::suffixWith(INSERTION_TABLE_NAME_SUFFIX)
       );
       SPDLOG_DEBUG("preprocessing - creating partitioned sequence tables for building SILO");
       createPartitionedSequenceTablesFromSequenceFiles();
@@ -330,7 +329,7 @@ void Preprocessor::createAlignedPartitionedSequenceViews(
       "CREATE OR REPLACE VIEW {} AS\n"
       "SELECT key, partition_id, nucleotideInsertions.* {} \n"
       "FROM sequence_table",
-      NUC_INSERTION_TABLE_NAME,
+      Nucleotide::suffixWith(INSERTION_TABLE_NAME_SUFFIX),
       order_by_fields
    ));
 
@@ -338,7 +337,7 @@ void Preprocessor::createAlignedPartitionedSequenceViews(
       "CREATE OR REPLACE VIEW {} AS\n"
       "SELECT key, partition_id, aminoAcidInsertions.* {} \n"
       "FROM sequence_table",
-      AA_INSERTION_TABLE_NAME,
+      AminoAcid::suffixWith(INSERTION_TABLE_NAME_SUFFIX),
       order_by_fields
    ));
 
@@ -565,11 +564,11 @@ Database Preprocessor::buildDatabase(
 
       tasks.run([&]() {
          SPDLOG_INFO("build - building nucleotide sequence stores");
-         buildNucleotideSequenceStore(database, partition_descriptor, order_by_clause);
+         buildSequenceStore<Nucleotide>(database, partition_descriptor, order_by_clause);
          SPDLOG_INFO("build - finished nucleotide sequence stores");
 
          SPDLOG_INFO("build - building amino acid sequence stores");
-         buildAminoAcidSequenceStore(database, partition_descriptor, order_by_clause);
+         buildSequenceStore<AminoAcid>(database, partition_descriptor, order_by_clause);
          SPDLOG_INFO("build - finished amino acid sequence stores");
       });
 
@@ -604,13 +603,14 @@ void Preprocessor::buildMetadataStore(
    }
 }
 
-void Preprocessor::buildNucleotideSequenceStore(
+template <typename SymbolType>
+void Preprocessor::buildSequenceStore(
    Database& database,
    const preprocessing::Partitions& partition_descriptor,
    const std::string& order_by_clause
 ) {
-   for (const auto& pair : reference_genomes_.raw_nucleotide_sequences) {
-      const std::string& nuc_name = pair.first;
+   for (const auto& pair : reference_genomes_.getRawSequences<SymbolType>()) {
+      const std::string& sequence_name = pair.first;
       const std::string& reference_sequence = pair.second;
       tbb::parallel_for(
          tbb::blocked_range<size_t>(0, partition_descriptor.getPartitions().size()),
@@ -621,121 +621,73 @@ void Preprocessor::buildNucleotideSequenceStore(
                for (size_t chunk_index = 0; chunk_index < part.getPartitionChunks().size();
                     ++chunk_index) {
                   SPDLOG_DEBUG(
-                     "build - building aligned sequence store for nucleotide "
+                     "build - building aligned sequence store for {} "
                      "sequence {} and partition {}",
-                     nuc_name,
+                     SymbolType::SYMBOL_NAME,
+                     sequence_name,
                      partition_index
                   );
 
-                  auto& nuc_sequence_store =
-                     database.partitions.at(partition_index).nuc_sequences.at(nuc_name);
+                  auto& sequence_store = database.partitions.at(partition_index)
+                                            .template getSequenceStores<SymbolType>()
+                                            .at(sequence_name);
 
-                  silo::ZstdFastaTableReader sequence_input(
-                     preprocessing_db.getConnection(),
-                     "nuc_" + nuc_name,
-                     reference_sequence,
-                     "sequence",
-                     fmt::format("partition_id = {}", partition_index),
-                     order_by_clause
-                  );
-                  nuc_sequence_store.fill(sequence_input);
+                  ZstdDecompressor decompressor(reference_sequence);
 
-                  const silo::ColumnFunction column_function{
-                     nuc_name,
-                     [&nuc_sequence_store](size_t row_id, const duckdb::Value& value) {
+                  const silo::ColumnFunction column_function_reads{
+                     sequence_name,
+                     [&sequence_store, &decompressor](size_t row_id, const duckdb::Value& value) {
                         if (value.IsNull()) {
+                           sequence_store.insertNull(row_id);
                            return;
                         }
-                        for (const auto& child : duckdb::ListValue::GetChildren(value)) {
-                           nuc_sequence_store.insertInsertion(
-                              row_id, child.GetValue<std::string>()
-                           );
-                        }
+                        auto& children = duckdb::StructValue::GetChildren(value);
+                        sequence_store.insertRead(
+                           row_id,
+                           ReadSequence{
+                              children[0].GetValue<uint32_t>(),
+                              decompressor.decompress(children[1].GetValue<std::string>())
+                           }
+                        );
                      }
                   };
                   silo::TableReader(
                      preprocessing_db.getConnection(),
-                     NUC_INSERTION_TABLE_NAME,
+                     SymbolType::suffixWith("_" + sequence_name),
                      "key",
-                     {column_function},
+                     {column_function_reads},
                      fmt::format("partition_id = {}", partition_index),
                      order_by_clause
                   )
                      .read();
 
-                  nuc_sequence_store.finalize();
-               }
-            }
-         }
-      );
-      SPDLOG_INFO("build - finished nucleotide sequence {}", nuc_name);
-   }
-}
-
-void Preprocessor::buildAminoAcidSequenceStore(
-   silo::Database& database,
-   const preprocessing::Partitions& partition_descriptor,
-   const std::string& order_by_clause
-) {
-   for (const auto& pair : reference_genomes_.raw_aa_sequences) {
-      const std::string& aa_name = pair.first;
-      const std::string& reference_sequence = pair.second;
-      tbb::parallel_for(
-         tbb::blocked_range<size_t>(0, partition_descriptor.getPartitions().size()),
-         [&](const auto& local) {
-            for (auto partition_index = local.begin(); partition_index != local.end();
-                 ++partition_index) {
-               const auto& part = partition_descriptor.getPartitions()[partition_index];
-               for (size_t chunk_index = 0; chunk_index < part.getPartitionChunks().size();
-                    ++chunk_index) {
-                  SPDLOG_DEBUG(
-                     "build - building sequence store for amino acid "
-                     "sequence {} and partition {}",
-                     aa_name,
-                     partition_index
-                  );
-
-                  auto& aa_sequence_store =
-                     database.partitions.at(partition_index).aa_sequences.at(aa_name);
-
-                  silo::ZstdFastaTableReader sequence_input(
-                     preprocessing_db.getConnection(),
-                     "gene_" + aa_name,
-                     reference_sequence,
-                     "sequence",
-                     fmt::format("partition_id = {}", partition_index),
-                     order_by_clause
-                  );
-
-                  aa_sequence_store.fill(sequence_input);
-
-                  const silo::ColumnFunction column_function{
-                     aa_name,
-                     [&aa_sequence_store](size_t row_id, const duckdb::Value& value) {
+                  const silo::ColumnFunction column_function_insertions{
+                     sequence_name,
+                     [&sequence_store](size_t row_id, const duckdb::Value& value) {
                         if (value.IsNull()) {
                            return;
                         }
                         for (const auto& child : duckdb::ListValue::GetChildren(value)) {
-                           aa_sequence_store.insertInsertion(row_id, child.GetValue<std::string>());
+                           sequence_store.insertInsertion(row_id, child.GetValue<std::string>());
                         }
                      }
                   };
                   silo::TableReader(
                      preprocessing_db.getConnection(),
-                     AA_INSERTION_TABLE_NAME,
+                     SymbolType::suffixWith(INSERTION_TABLE_NAME_SUFFIX),
                      "key",
-                     {column_function},
+                     {column_function_insertions},
                      fmt::format("partition_id = {}", partition_index),
                      order_by_clause
                   )
                      .read();
 
-                  aa_sequence_store.finalize();
+                  sequence_store.finalize();
                }
             }
          }
       );
-      SPDLOG_INFO("build - finished amino acid sequence {}", aa_name);
+      SPDLOG_INFO("build - finished {} sequence {}", SymbolType::SYMBOL_NAME, sequence_name);
    }
 }
 

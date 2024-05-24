@@ -25,6 +25,7 @@ silo::SequenceStorePartition<SymbolType>::SequenceStorePartition(
    const std::vector<typename SymbolType::Symbol>& reference_sequence
 )
     : reference_sequence(reference_sequence) {
+   lazy_buffer.reserve(BUFFER_SIZE);
    positions.reserve(reference_sequence.size());
    for (const auto symbol : reference_sequence) {
       positions.emplace_back(Position<SymbolType>::fromInitiallyFlipped(symbol));
@@ -32,41 +33,15 @@ silo::SequenceStorePartition<SymbolType>::SequenceStorePartition(
 }
 
 template <typename SymbolType>
-size_t silo::SequenceStorePartition<SymbolType>::fill(ZstdFastaTableReader& input) {
-   static constexpr size_t BUFFER_SIZE = 1024;
-
-   input.loadTable();
-
-   size_t read_sequences_count = 0;
-
-   std::vector<ReadSequence> reads_buffer;
-
-   std::optional<std::string> key;
-   std::optional<std::string> sequence;
-   while (true) {
-      key = input.next(sequence);
-      if (!key) {
-         break;
-      }
-      reads_buffer.emplace_back(sequence /* , entry.offset after table reader refactor */);
-      if (reads_buffer.size() >= BUFFER_SIZE) {
-         interpret(reads_buffer);
-         reads_buffer.clear();
-      }
-
-      ++read_sequences_count;
+void silo::SequenceStorePartition<SymbolType>::insertRead(
+   size_t row_id,
+   silo::ReadSequence&& read
+) {
+   lazy_buffer.emplace_back(read /* , entry.offset after table reader refactor */);
+   if (lazy_buffer.size() >= BUFFER_SIZE) {
+      interpret(lazy_buffer);
+      lazy_buffer.clear();
    }
-   interpret(reads_buffer);
-   const SequenceStoreInfo info_before_optimisation = getInfo();
-   optimizeBitmaps();
-
-   SPDLOG_DEBUG(
-      "Sequence store partition info after filling it: {}, and after optimising: {}",
-      info_before_optimisation,
-      getInfo()
-   );
-
-   return read_sequences_count;
 }
 
 namespace {
@@ -118,13 +93,15 @@ void silo::SequenceStorePartition<SymbolType>::insertInsertion(
 
 template <typename SymbolType>
 void silo::SequenceStorePartition<SymbolType>::finalize() {
+   interpret(lazy_buffer);
+   lazy_buffer.clear();
+
    SPDLOG_DEBUG("Building insertion index");
 
    insertion_index.buildIndex();
 
-   SPDLOG_DEBUG("Optimizing bitmaps");
-
    const SequenceStoreInfo info_before_optimisation = getInfo();
+   SPDLOG_DEBUG("Optimizing bitmaps");
    optimizeBitmaps();
 
    SPDLOG_DEBUG(
@@ -176,10 +153,7 @@ void silo::SequenceStorePartition<SymbolType>::fillIndexes(const std::vector<Rea
             const size_t number_of_sequences = reads.size();
             for (size_t sequence_id = 0; sequence_id < number_of_sequences; ++sequence_id) {
                const auto& [sequence, offset] = reads[sequence_id];
-               if (!sequence.has_value()) {
-                  continue;
-               }
-               const char character = sequence.value()[position_idx];
+               const char character = sequence[position_idx];
                const auto symbol = SymbolType::charToSymbol(character);
                if (!symbol.has_value()) {
                   throw silo::preprocessing::PreprocessingException(

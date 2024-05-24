@@ -81,12 +81,8 @@ class Preprocessor {
       const preprocessing::Partitions& partition_descriptor,
       const std::string& order_by_clause
    );
-   void buildNucleotideSequenceStore(
-      Database& database,
-      const preprocessing::Partitions& partition_descriptor,
-      const std::string& order_by_clause
-   );
-   void buildAminoAcidSequenceStore(
+   template <typename SymbolType>
+   void buildSequenceStore(
       Database& database,
       const preprocessing::Partitions& partition_descriptor,
       const std::string& order_by_clause
