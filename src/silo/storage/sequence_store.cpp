@@ -165,8 +165,7 @@ const roaring::Roaring* silo::SequenceStorePartition<SymbolType>::getBitmap(
 }
 
 template <typename SymbolType>
-void silo::SequenceStorePartition<SymbolType>::fillIndexes(
-   const std::vector<ReadSequence>& reads) {
+void silo::SequenceStorePartition<SymbolType>::fillIndexes(const std::vector<ReadSequence>& reads) {
    const size_t genome_length = positions.size();
    static constexpr int COUNT_SYMBOLS_PER_PROCESSOR = 64;
    tbb::parallel_for(
@@ -216,8 +215,7 @@ void silo::SequenceStorePartition<SymbolType>::addSymbolsToPositions(
 }
 
 template <typename SymbolType>
-void silo::SequenceStorePartition<SymbolType>::fillNBitmaps(
-   const std::vector<ReadSequence>& reads
+void silo::SequenceStorePartition<SymbolType>::fillNBitmaps(const std::vector<ReadSequence>& reads
 ) {
    const size_t genome_length = positions.size();
 
@@ -277,9 +275,7 @@ void silo::SequenceStorePartition<SymbolType>::optimizeBitmaps() {
 }
 
 template <typename SymbolType>
-void silo::SequenceStorePartition<SymbolType>::interpret(
-   const std::vector<ReadSequence>& reads
-) {
+void silo::SequenceStorePartition<SymbolType>::interpret(const std::vector<ReadSequence>& reads) {
    fillIndexes(reads);
    fillNBitmaps(reads);
    sequence_count += reads.size();

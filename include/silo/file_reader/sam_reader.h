@@ -10,9 +10,9 @@
 
 namespace silo {
 class SamReader : public FileReader {
-   public:
-      std::optional<ReadSequence> nextEntry() override;
-    explicit SamReader(const std::filesystem::path& in_file_name)
-        : FileReader(in_file_name){}
+  public:
+   std::optional<ReadSequence> nextEntry() override;
+   explicit SamReader(const std::filesystem::path& in_file_name)
+       : FileReader(in_file_name) {}
 };
 }  // namespace silo

@@ -6,6 +6,7 @@
 #include <boost/algorithm/string/join.hpp>
 
 #include "silo/common/block_timer.h"
+#include "silo/common/table_reader.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/database.h"
 #include "silo/database_info.h"

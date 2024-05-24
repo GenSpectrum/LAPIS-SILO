@@ -6,7 +6,6 @@
 
 namespace silo {
 class FileReader {
-
   protected:
    explicit FileReader(const std::filesystem::path& in_file_name)
        : in_file(in_file_name){};
@@ -24,6 +23,6 @@ class FileReader {
 
    void reset();
 
-   virtual ~FileReader() {};
+   virtual ~FileReader(){};
 };
 }  // namespace silo

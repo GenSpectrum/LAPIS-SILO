@@ -54,7 +54,9 @@ class SequenceStorePartition {
       std::optional<std::string> sequence;
       uint32_t offset;
 
-      ReadSequence(std::optional<std::string> _sequence, uint32_t _offset = 0): sequence(std::move(_sequence)), offset(_offset) {}
+      ReadSequence(std::optional<std::string> _sequence, uint32_t _offset = 0)
+          : sequence(std::move(_sequence)),
+            offset(_offset) {}
    };
 
    const std::vector<typename SymbolType::Symbol>& reference_sequence;

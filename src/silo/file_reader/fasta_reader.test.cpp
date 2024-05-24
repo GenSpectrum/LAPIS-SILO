@@ -2,9 +2,9 @@
 #include <string>
 #include <unordered_map>
 
+#include "silo/config/preprocessing_config.h"
 #include "silo/file_reader/fasta_format_exception.h"
 #include "silo/file_reader/fasta_reader.h"
-#include "silo/config/preprocessing_config.h"
 
 TEST(FastaReader, shouldReadFastaFile) {
    const std::filesystem::path input_directory{"./testBaseData/fastaFiles/"};
