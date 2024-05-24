@@ -18,7 +18,7 @@ void initializeTable(duckdb::Connection& connection, std::string table_name) {
    return_value = connection.Query(fmt::format(
       "CREATE TABLE {} ("
       "    key STRING,"
-      "    sequence BLOB"
+      "    read STRUCT(offset INT, sequence BLOB)"
       ");",
       table_name
    ));

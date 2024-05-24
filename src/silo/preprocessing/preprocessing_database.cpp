@@ -126,6 +126,7 @@ ZstdTable PreprocessingDatabase::generateSequenceTableViaFile(
    if (std::filesystem::exists(file)) {
       return generateSequenceTableFromSAM(table_name, reference_sequence, file);
    }
+   throw silo::preprocessing::PreprocessingException("");  // TODO
 }
 
 ZstdTable PreprocessingDatabase::generateSequenceTableFromFasta(
