@@ -460,16 +460,14 @@ void Preprocessor::createPartitionedSequenceTablesFromSequenceFiles() {
       createPartitionedTableForSequence(
          sequence_name,
          reference_sequence,
-         preprocessing_config.getNucFilenameNoExtension(sequence_name)
-            .replace_extension(FASTA_EXTENSION),
+         preprocessing_config.getNucFilenameNoExtension(sequence_name),
          "nuc_"
       );
 
-      preprocessing_db.generateSequenceTableFromFasta(
+      preprocessing_db.generateSequenceTableViaFile(
          "unaligned_tmp",
          reference_sequence,
          preprocessing_config.getUnalignedNucFilenameNoExtension(sequence_name)
-            .replace_extension(FASTA_EXTENSION)
       );
       createUnalignedPartitionedSequenceFile(
          sequence_name,
@@ -489,8 +487,7 @@ void Preprocessor::createPartitionedSequenceTablesFromSequenceFiles() {
       createPartitionedTableForSequence(
          sequence_name,
          reference_sequence,
-         preprocessing_config.getGeneFilenameNoExtension(sequence_name)
-            .replace_extension(FASTA_EXTENSION),
+         preprocessing_config.getGeneFilenameNoExtension(sequence_name),
          "gene_"
       );
    }
@@ -512,7 +509,7 @@ void Preprocessor::createPartitionedTableForSequence(
    const std::string raw_table_name = "raw_" + table_prefix + sequence_name;
    const std::string table_name = table_prefix + sequence_name;
 
-   preprocessing_db.generateSequenceTableFromFasta(raw_table_name, reference_sequence, filename);
+   preprocessing_db.generateSequenceTableViaFile(raw_table_name, reference_sequence, filename);
 
    (void)preprocessing_db.query(fmt::format(
       R"-(

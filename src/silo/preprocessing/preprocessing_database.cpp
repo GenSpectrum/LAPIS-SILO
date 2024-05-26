@@ -137,15 +137,6 @@ ZstdTable PreprocessingDatabase::generateSequenceTableFromFasta(
    return ZstdTable::generate(connection, table_name, fasta_reader, reference_sequence);
 }
 
-ZstdTable PreprocessingDatabase::generateSequenceTableFromZstdFasta(
-   const std::string& table_name,
-   const std::string& reference_sequence,
-   const std::string& filename
-) {
-   silo::ZstdFastaReader zstd_fasta_reader(filename, reference_sequence);
-   return ZstdTable::generate(connection, table_name, zstd_fasta_reader, reference_sequence);
-}
-
 ZstdTable PreprocessingDatabase::generateSequenceTableFromSAM(
    const std::string& table_name,
    const std::string& reference_sequence,

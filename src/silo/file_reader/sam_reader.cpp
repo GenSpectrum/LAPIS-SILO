@@ -16,6 +16,8 @@ std::optional<silo::FileReader::ReadSequence> silo::SamReader::nextEntry() {
 
    auto parts = splitBy(data, "\t");
    return silo::FileReader::ReadSequence{
-      parts.at(0), static_cast<uint32_t>(std::stoi(parts.at(3))), parts.at(9)
+      .key = parts.at(0),
+      .offset = static_cast<uint32_t>(std::stoi(parts.at(3))),
+      .sequence = parts.at(9)
    };
 }
