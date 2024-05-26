@@ -31,5 +31,6 @@ std::optional<silo::FileReader::ReadSequence> silo::FastaReader::nextEntry() {
    return ReadSequence{
       .key = key,
       .offset = fields.empty() ? 0 : static_cast<uint32_t>(std::stoi(fields[0])),
-      .sequence = sequence};
+      .sequence = sequence
+   };
 }

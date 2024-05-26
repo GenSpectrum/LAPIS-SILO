@@ -78,7 +78,7 @@ const Scenario SAM_FILES = {
             "main": "ATTAAAGGTTTATACCTTCCCAGGTAACAAACCAACCAACTTTCGATCT"
          }
       ])")
-   };
+};
 
 const Scenario NDJSON_FILE_WITH_MISSING_SEGMENTS_AND_GENES = {
    .input_directory = "testBaseData/ndjsonWithNullSequences/",
