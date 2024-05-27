@@ -11,8 +11,9 @@ std::optional<silo::FileReader::ReadSequence> silo::SamReader::nextEntry() {
    }
 
    // optional header data
-   while (data.at(0) == '@' && getline(in_file.getInputStream(), data))
+   while (data.at(0) == '@' && getline(in_file.getInputStream(), data)) {
       ;
+   }
 
    auto parts = splitBy(data, "\t");
    return silo::FileReader::ReadSequence{

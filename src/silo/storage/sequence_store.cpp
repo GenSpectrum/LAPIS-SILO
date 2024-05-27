@@ -176,10 +176,10 @@ void silo::SequenceStorePartition<SymbolType>::fillIndexes(const std::vector<Rea
             const size_t number_of_sequences = reads.size();
             for (size_t sequence_id = 0; sequence_id < number_of_sequences; ++sequence_id) {
                const auto& [sequence, offset] = reads[sequence_id];
-               if (!sequence.has_value()) {
+               if (!sequence.has_value() || position_idx < offset) {
                   continue;
                }
-               const char character = sequence.value()[position_idx];
+               const char character = sequence.value()[position_idx - offset];
                const auto symbol = SymbolType::charToSymbol(character);
                if (!symbol.has_value()) {
                   throw silo::preprocessing::PreprocessingException(
@@ -235,7 +235,7 @@ void silo::SequenceStorePartition<SymbolType>::fillNBitmaps(const std::vector<Re
 
          const auto& genome = maybe_sequence.value();
 
-         for (size_t position_idx = 0; position_idx < genome_length; ++position_idx) {
+         for (size_t position_idx = offset; position_idx < genome_length; ++position_idx) {
             const char character = genome[position_idx - offset];
             const auto symbol = SymbolType::charToSymbol(character);
             if (symbol == SymbolType::SYMBOL_MISSING) {
