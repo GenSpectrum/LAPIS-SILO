@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.1.1...v0.2.0) (2024-05-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* old database_config files might be invalid if they contained insertion columns. Also, we are more prohibitive for ndjson input files, which now MUST contain nucleotide/amino acid insertions for all respective sequences. The insertions action and filter do no longer require a column field.
+
+### Features
+
+* insertions no longer in metadata or databaseConfig, instead expected for all aligned sequences [#372](https://github.com/GenSpectrum/LAPIS-SILO/issues/372) ([1f3680c](https://github.com/GenSpectrum/LAPIS-SILO/commit/1f3680c87e912b57a79cd1280213f828a40c238e))
+
 ## [0.1.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.1.0...v0.1.1) (2024-05-23)
 
 
