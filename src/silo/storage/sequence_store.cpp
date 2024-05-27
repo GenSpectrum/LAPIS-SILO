@@ -89,11 +89,6 @@ InsertionEntry parseInsertion(const std::string& value) {
    try {
       if (position_and_insertion.size() == 2) {
          const auto position = boost::lexical_cast<uint32_t>(position_and_insertion[0]);
-         if (position == 0) {
-            const std::string message =
-               "Positions are 1-indexed, position of 0 not allowed in insertion: " + value;
-            throw silo::preprocessing::PreprocessingException(message);
-         }
          const auto& insertion = position_and_insertion[1];
          return {.position_idx = position, .insertion = insertion};
       }
