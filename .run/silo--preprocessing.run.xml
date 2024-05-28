@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-    <configuration default="false" name="silo --preprocessing" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="--preprocessing --preprocessingConfig=testBaseData/test_preprocessing_config.yaml --databaseConfig=testBaseData/exampleDataset/database_config.yaml" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://.." PASS_PARENT_ENVS_2="true" PROJECT_NAME="SILO" TARGET_NAME="siloApi" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="SILO" RUN_TARGET_NAME="siloApi">
+    <configuration default="false" name="silo --preprocessing" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="--preprocessing --preprocessing-config=testBaseData/test_preprocessing_config.yaml --database-config=testBaseData/exampleDataset/database_config.yaml" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://.." PASS_PARENT_ENVS_2="true" PROJECT_NAME="SILO" TARGET_NAME="siloApi" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="SILO" RUN_TARGET_NAME="siloApi">
         <envs>
             <env name="SPDLOG_LEVEL" value="debug" />
         </envs>
