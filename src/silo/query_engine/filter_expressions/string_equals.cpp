@@ -71,18 +71,18 @@ std::unique_ptr<silo::query_engine::operators::Operator> StringEquals::compile(
 void from_json(const nlohmann::json& json, std::unique_ptr<StringEquals>& filter) {
    CHECK_SILO_QUERY(
       json.contains("column"), "The field 'column' is required in an StringEquals expression"
-   )
+   );
    CHECK_SILO_QUERY(
       json["column"].is_string(),
       "The field 'column' in an StringEquals expression needs to be a string"
-   )
+   );
    CHECK_SILO_QUERY(
       json.contains("value"), "The field 'value' is required in an StringEquals expression"
-   )
+   );
    CHECK_SILO_QUERY(
       json["value"].is_string() || json["value"].is_null(),
       "The field 'value' in an StringEquals expression needs to be a string or null"
-   )
+   );
    const std::string& column = json["column"];
    const std::string& value = json["value"].is_null() ? "" : json["value"].get<std::string>();
    filter = std::make_unique<StringEquals>(column, value);

@@ -183,19 +183,19 @@ void from_json(const nlohmann::json& json, std::unique_ptr<SymbolEquals<SymbolTy
    CHECK_SILO_QUERY(
       json.is_object() && json.contains("position"),
       "The field 'position' is required in a SymbolEquals expression"
-   )
+   );
    CHECK_SILO_QUERY(
       json["position"].is_number_unsigned() && json["position"].get<uint32_t>() > 0,
       "The field 'position' in a SymbolEquals expression needs to be an unsigned "
       "integer greater than 0"
-   )
+   );
    CHECK_SILO_QUERY(
       json.contains("symbol"), "The field 'symbol' is required in a SymbolEquals expression"
-   )
+   );
    CHECK_SILO_QUERY(
       json["symbol"].is_string(),
       "The field 'symbol' in a SymbolEquals expression needs to be a string"
-   )
+   );
    std::optional<std::string> sequence_name;
    if (json.contains("sequenceName")) {
       sequence_name = json["sequenceName"].get<std::string>();
@@ -205,7 +205,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<SymbolEquals<SymbolTy
 
    CHECK_SILO_QUERY(
       symbol.size() == 1, "The string field 'symbol' must be exactly one character long"
-   )
+   );
 
    if (symbol.at(0) == '.') {
       filter = std::make_unique<SymbolEquals<SymbolType>>(
@@ -221,7 +221,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<SymbolEquals<SymbolTy
          "The string field 'symbol' must be either a valid {} symbol or the '.' symbol.",
          SymbolType::SYMBOL_NAME
       )
-   )
+   );
    filter = std::make_unique<SymbolEquals<SymbolType>>(sequence_name, position_idx, *symbol_value);
 }
 
