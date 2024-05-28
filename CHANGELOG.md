@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.0...v0.2.1) (2024-05-28)
+
+
+### Bug Fixes
+
+* allow insertions that start at 0 ([#449](https://github.com/GenSpectrum/LAPIS-SILO/issues/449)) ([f427137](https://github.com/GenSpectrum/LAPIS-SILO/commit/f4271375b743cab0b012ef4337316c8bb3d0c6d8))
+
 ## [0.2.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.1.1...v0.2.0) (2024-05-23)
 
 
