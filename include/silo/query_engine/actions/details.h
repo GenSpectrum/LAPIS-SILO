@@ -21,16 +21,24 @@ namespace silo::query_engine::actions {
 class Details : public Action {
    std::vector<std::string> fields;
 
-   [[nodiscard]] void validateOrderByFields(const Database& database) const override;
+   void validateOrderByFields(const Database& database) const override;
 
-   QueryResult execute(const Database& database, std::vector<OperatorResult> bitmap_filter)
-      const override;
+   [[nodiscard]] QueryResult execute(
+      const Database& database,
+      std::vector<OperatorResult> bitmap_filter
+   ) const override;
 
   public:
+   Details(const Details&) = default;
+   Details(Details&&) = default;
+   Details& operator=(const Details&) = default;
+   Details& operator=(Details&&) = default;
    explicit Details(std::vector<std::string> fields);
 
-   QueryResult executeAndOrder(const Database& database, std::vector<OperatorResult> bitmap_filter)
-      const override;
+   [[nodiscard]] QueryResult executeAndOrder(
+      const Database& database,
+      std::vector<OperatorResult> bitmap_filter
+   ) const override;
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)
