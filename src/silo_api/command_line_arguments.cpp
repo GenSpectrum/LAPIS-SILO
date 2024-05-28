@@ -6,7 +6,7 @@
 
 #include "silo/config/util/config_exception.h"
 
-using silo_api::CommandLineArguments;
+namespace silo_api {
 
 std::string CommandLineArguments::asUnixOptionString(
    const silo::config::AbstractConfigSource::Option& option
@@ -48,3 +48,5 @@ std::optional<std::string> CommandLineArguments::getString(const Option& option)
    }
    return std::nullopt;
 }
+
+}  // namespace silo_api
