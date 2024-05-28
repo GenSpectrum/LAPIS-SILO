@@ -67,20 +67,20 @@ std::unique_ptr<silo::query_engine::operators::Operator> IntBetween::compile(
 void from_json(const nlohmann::json& json, std::unique_ptr<IntBetween>& filter) {
    CHECK_SILO_QUERY(
       json.contains("column"), "The field 'column' is required in a IntBetween expression"
-   )
+   );
    CHECK_SILO_QUERY(
       json["column"].is_string(), "The field 'column' in a IntBetween expression must be a string"
-   )
-   CHECK_SILO_QUERY(json.contains("from"), "The field 'from' is required in IntBetween expression")
+   );
+   CHECK_SILO_QUERY(json.contains("from"), "The field 'from' is required in IntBetween expression");
    CHECK_SILO_QUERY(
       json["from"].is_null() || json["from"].is_number_integer(),
       "The field 'from' in a IntBetween expression must be an int or null"
-   )
-   CHECK_SILO_QUERY(json.contains("to"), "The field 'to' is required in a IntBetween expression")
+   );
+   CHECK_SILO_QUERY(json.contains("to"), "The field 'to' is required in a IntBetween expression");
    CHECK_SILO_QUERY(
       json["to"].is_null() || json["to"].is_number_integer(),
       "The field 'to' in a IntBetween expression must be an int or null"
-   )
+   );
    const std::string& column = json["column"];
    std::optional<int32_t> value_from;
    if (json["from"].is_number_integer()) {

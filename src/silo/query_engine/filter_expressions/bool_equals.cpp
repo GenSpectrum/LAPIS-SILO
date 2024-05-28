@@ -54,17 +54,17 @@ std::unique_ptr<silo::query_engine::operators::Operator> BoolEquals::compile(
 void from_json(const nlohmann::json& json, std::unique_ptr<BoolEquals>& filter) {
    CHECK_SILO_QUERY(
       json.contains("column"), "The field 'column' is required in an BoolEquals expression"
-   )
+   );
    CHECK_SILO_QUERY(
       json["column"].is_string(), "The field 'column' in an BoolEquals expression must be a string"
-   )
+   );
    CHECK_SILO_QUERY(
       json.contains("value"), "The field 'value' is required in an BoolEquals expression"
-   )
+   );
    CHECK_SILO_QUERY(
       json["value"].is_boolean() || json["value"].is_null(),
       "The field 'value' in an BoolEquals expression must be a boolean or null"
-   )
+   );
    const std::string& column = json["column"];
    const OptionalBool value =
       json["value"].is_null() ? OptionalBool() : OptionalBool(json["value"].get<bool>());
