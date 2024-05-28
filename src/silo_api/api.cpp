@@ -39,9 +39,9 @@
 #include "silo_api/logging.h"
 #include "silo_api/request_handler_factory.h"
 
-static const std::string PREPROCESSING_CONFIG_OPTION = "preprocessing-config";
-static const std::string RUNTIME_CONFIG_OPTION = "runtime-config";
-static const std::string DATABASE_CONFIG_OPTION = "database-config";
+static const std::string PREPROCESSING_CONFIG_OPTION = "preprocessingConfig";
+static const std::string RUNTIME_CONFIG_OPTION = "runtimeConfig";
+static const std::string DATABASE_CONFIG_OPTION = "databaseConfig";
 static const std::string API_OPTION = "api";
 static const std::string PREPROCESSING_OPTION = "preprocessing";
 
