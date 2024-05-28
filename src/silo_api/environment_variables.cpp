@@ -5,7 +5,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/lexical_cast.hpp>
 
-using silo_api::EnvironmentVariables;
+namespace silo_api {
 
 std::string EnvironmentVariables::prefixedUppercase(const Option& option) {
    std::vector<std::string> result;
@@ -40,3 +40,5 @@ std::optional<std::string> EnvironmentVariables::getString(const Option& option)
    }
    return std::nullopt;
 }
+
+}  // namespace silo_api
