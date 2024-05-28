@@ -13,7 +13,7 @@ class YamlFile : public silo::config::AbstractConfigSource {
    YAML::Node node;
 
   public:
-   YamlFile(const std::filesystem::path& filename);
+   explicit YamlFile(const std::filesystem::path& filename);
 
    std::string configType() const override;
 
