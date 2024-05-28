@@ -52,32 +52,33 @@ using silo::config::YamlFile;
 using silo_api::CommandLineArguments;
 using silo_api::EnvironmentVariables;
 
-silo::config::PreprocessingConfig preprocessingConfig(
-   const Poco::Util::AbstractConfiguration& config
+silo::config::PreprocessingConfig getPreprocessingConfig(
+   const Poco::Util::AbstractConfiguration& cmdline_args
 ) {
    silo::config::PreprocessingConfig preprocessing_config;
    if (std::filesystem::exists("./default_preprocessing_config.yaml")) {
       preprocessing_config.overwrite(YamlFile("./default_preprocessing_config.yaml"));
    }
 
-   if (config.hasProperty(PREPROCESSING_CONFIG_OPTION)) {
-      preprocessing_config.overwrite(YamlFile(config.getString(PREPROCESSING_CONFIG_OPTION)));
+   if (cmdline_args.hasProperty(PREPROCESSING_CONFIG_OPTION)) {
+      preprocessing_config.overwrite(YamlFile(cmdline_args.getString(PREPROCESSING_CONFIG_OPTION)));
    } else if (std::filesystem::exists("./preprocessing_config.yaml")) {
       preprocessing_config.overwrite(YamlFile("./preprocessing_config.yaml"));
    }
 
    preprocessing_config.overwrite(EnvironmentVariables());
-   preprocessing_config.overwrite(CommandLineArguments(config));
+   preprocessing_config.overwrite(CommandLineArguments(cmdline_args));
    preprocessing_config.validate();
 
    SPDLOG_INFO("Resulting preprocessing config: {}", preprocessing_config);
    return preprocessing_config;
 }
 
-silo::config::DatabaseConfig databaseConfig(const Poco::Util::AbstractConfiguration& config) {
-   if (config.hasProperty(DATABASE_CONFIG_OPTION)) {
+silo::config::DatabaseConfig getDatabaseConfig(const Poco::Util::AbstractConfiguration& cmdline_args
+) {
+   if (cmdline_args.hasProperty(DATABASE_CONFIG_OPTION)) {
       return silo::config::ConfigRepository().getValidatedConfig(
-         config.getString(DATABASE_CONFIG_OPTION)
+         cmdline_args.getString(DATABASE_CONFIG_OPTION)
       );
    }
    SPDLOG_DEBUG("databaseConfig not found in config file. Using default value: databaseConfig.yaml"
@@ -253,7 +254,7 @@ class SiloServer : public Poco::Util::ServerApplication {
    }
 
    silo::Database runPreprocessor(const silo::config::PreprocessingConfig& preprocessing_config) {
-      auto database_config = databaseConfig(config());
+      auto database_config = getDatabaseConfig(config());
 
       SPDLOG_INFO("preprocessing - reading reference genome");
       const auto reference_genomes =
@@ -280,7 +281,7 @@ class SiloServer : public Poco::Util::ServerApplication {
    int handlePreprocessing() {
       SPDLOG_INFO("Starting SILO preprocessing");
       try {
-         const auto preprocessing_config = preprocessingConfig(config());
+         const auto preprocessing_config = getPreprocessingConfig(config());
 
          auto database = runPreprocessor(preprocessing_config);
 
