@@ -38,7 +38,7 @@ void FastaAligned::validateOrderByFields(const Database& database) const {
             fmt::join(sequence_names, ","),
             primary_key_field
          )
-      )
+      );
    }
 }
 
@@ -95,7 +95,7 @@ QueryResult FastaAligned::execute(
          database.nuc_sequences.contains(sequence_name) ||
             database.aa_sequences.contains(sequence_name),
          "Database does not contain a sequence with name: '" + sequence_name + "'"
-      )
+      );
       if (database.nuc_sequences.contains(sequence_name)) {
          nuc_sequence_names.emplace_back(sequence_name);
       } else {
@@ -107,7 +107,9 @@ QueryResult FastaAligned::execute(
    for (auto& filter : bitmap_filter) {
       total_count += filter->cardinality();
    }
-   CHECK_SILO_QUERY(total_count < 10001, "FastaAligned action currently limited to 10000 sequences")
+   CHECK_SILO_QUERY(
+      total_count < 10001, "FastaAligned action currently limited to 10000 sequences"
+   );
 
    QueryResult results;
    for (uint32_t partition_index = 0; partition_index < database.partitions.size();
@@ -145,7 +147,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<FastaAligned>& action
          (json["sequenceName"].is_string() || json["sequenceName"].is_array()),
       "FastaAligned action must have the field sequenceName of type string or an array of "
       "strings"
-   )
+   );
    std::vector<std::string> sequence_names;
    if (json["sequenceName"].is_array()) {
       for (const auto& child : json["sequenceName"]) {
@@ -154,7 +156,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<FastaAligned>& action
             "FastaAligned action must have the field sequenceName of type string or an array "
             "of strings; while parsing array encountered the element " +
                child.dump() + " which is not of type string"
-         )
+         );
          sequence_names.emplace_back(child.get<std::string>());
       }
    } else {

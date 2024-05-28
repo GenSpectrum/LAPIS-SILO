@@ -35,7 +35,7 @@ std::unique_ptr<operators::Operator> Negation::compile(
 
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Negation>& filter) {
-   CHECK_SILO_QUERY(json.contains("child"), "The field 'child' is required in a Not expression")
+   CHECK_SILO_QUERY(json.contains("child"), "The field 'child' is required in a Not expression");
    auto child = json["child"].get<std::unique_ptr<Expression>>();
    filter = std::make_unique<Negation>(std::move(child));
 }

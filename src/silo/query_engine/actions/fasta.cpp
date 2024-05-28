@@ -217,7 +217,7 @@ QueryResult Fasta::execute(const Database& database, std::vector<OperatorResult>
       CHECK_SILO_QUERY(
          database.unaligned_nuc_sequences.contains(sequence_name),
          "Database does not contain an unaligned sequence with name: '" + sequence_name + "'"
-      )
+      );
    }
 
    const std::string& primary_key_column = database.database_config.schema.primary_key;
@@ -252,7 +252,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Fasta>& action) {
          (json["sequenceName"].is_string() || json["sequenceName"].is_array()),
       "Fasta action must have the field sequenceName of type string or an array of "
       "strings"
-   )
+   );
    std::vector<std::string> sequence_names;
    if (json["sequenceName"].is_array()) {
       for (const auto& child : json["sequenceName"]) {
@@ -261,7 +261,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Fasta>& action) {
             "Fasta action must have the field sequenceName of type string or an array "
             "of strings; while parsing array encountered the element " +
                child.dump() + " which is not of type string"
-         )
+         );
          sequence_names.emplace_back(child.get<std::string>());
       }
    } else {

@@ -189,7 +189,7 @@ void Mutations<SymbolType>::validateOrderByFields(const Database& /*database*/) 
             field.name,
             fmt::join(result_field_names, ", ")
          )
-      )
+      );
    }
 }
 
@@ -264,7 +264,7 @@ QueryResult Mutations<SymbolType>::execute(
          database.getSequenceStores<SymbolType>().contains(sequence_name),
          "Database does not contain the " + std::string(SymbolType::SYMBOL_NAME_LOWER_CASE) +
             " sequence with name: '" + sequence_name + "'"
-      )
+      );
       sequence_names_to_evaluate.emplace_back(sequence_name);
    }
    if (sequence_names.empty()) {
@@ -301,7 +301,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Mutations<SymbolType>
          (json["sequenceName"].is_string() || json["sequenceName"].is_array()),
       "Mutations action can have the field sequenceName of type string or an array of "
       "strings, but no other type"
-   )
+   );
    std::vector<std::string> sequence_names;
    if (json.contains("sequenceName") && json["sequenceName"].is_array()) {
       for (const auto& child : json["sequenceName"]) {
@@ -310,7 +310,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Mutations<SymbolType>
             "The field sequenceName of Mutations action must have type string or an "
             "array, if present. Found:" +
                child.dump()
-         )
+         );
          sequence_names.emplace_back(child.get<std::string>());
       }
    } else if (json.contains("sequenceName") && json["sequenceName"].is_string()) {
@@ -323,7 +323,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Mutations<SymbolType>
       "1.0]. Only mutations are returned if the proportion of sequences having this mutation, "
       "is "
       "at least minProportion"
-   )
+   );
    const double min_proportion = json["minProportion"].get<double>();
    if (min_proportion < 0 || min_proportion > 1) {
       throw QueryParseException("Invalid proportion: minProportion must be in interval [0.0, 1.0]");

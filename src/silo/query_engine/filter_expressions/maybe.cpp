@@ -33,7 +33,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> Maybe::compile(
 
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Maybe>& filter) {
-   CHECK_SILO_QUERY(json.contains("child"), "The field 'child' is required in a Maybe expression")
+   CHECK_SILO_QUERY(json.contains("child"), "The field 'child' is required in a Maybe expression");
    auto child = json["child"].get<std::unique_ptr<Expression>>();
    filter = std::make_unique<Maybe>(std::move(child));
 }

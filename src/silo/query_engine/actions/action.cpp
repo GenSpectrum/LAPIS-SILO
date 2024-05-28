@@ -131,7 +131,7 @@ void from_json(const nlohmann::json& json, OrderByField& field) {
       "The orderByField '" + json.dump() +
          "' must be either a string or an object containing the fields 'field':string and "
          "'order':string, where the value of order is 'ascending' or 'descending'"
-   )
+   );
    const std::string field_name = json["field"].get<std::string>();
    const std::string order_string = json["order"].get<std::string>();
    CHECK_SILO_QUERY(
@@ -139,7 +139,7 @@ void from_json(const nlohmann::json& json, OrderByField& field) {
       "The orderByField '" + json.dump() +
          "' must be either a string or an object containing the fields 'field':string and "
          "'order':string, where the value of order is 'ascending' or 'descending'"
-   )
+   );
    field = {.name = field_name, .ascending = order_string == "ascending"};
 }
 
@@ -147,7 +147,7 @@ std::optional<uint32_t> parseLimit(const nlohmann::json& json) {
    CHECK_SILO_QUERY(
       !json.contains("limit") || json["limit"].is_number_unsigned(),
       "If the action contains a limit, it must be a non-negative number"
-   )
+   );
    return json.contains("limit") ? std::optional<uint32_t>(json["limit"].get<uint32_t>())
                                  : std::nullopt;
 }
@@ -156,7 +156,7 @@ std::optional<uint32_t> parseOffset(const nlohmann::json& json) {
    CHECK_SILO_QUERY(
       !json.contains("offset") || json["offset"].is_number_unsigned(),
       "If the action contains an offset, it must be a non-negative number"
-   )
+   );
    return json.contains("offset") ? std::optional<uint32_t>(json["offset"].get<uint32_t>())
                                   : std::nullopt;
 }
@@ -178,17 +178,17 @@ std::optional<uint32_t> parseRandomizeSeed(const nlohmann::json& json) {
          json["randomize"]["seed"].is_number_unsigned(),
       "If the action contains 'randomize', it must be either a boolean or an object "
       "containing an unsigned 'seed'"
-   )
+   );
    return json["randomize"]["seed"].get<uint32_t>();
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
-   CHECK_SILO_QUERY(json.contains("type"), "The field 'type' is required in any action")
+   CHECK_SILO_QUERY(json.contains("type"), "The field 'type' is required in any action");
    CHECK_SILO_QUERY(
       json["type"].is_string(),
       "The field 'type' in all actions needs to be a string, but is: " + json["type"].dump()
-   )
+   );
    const std::string expression_type = json["type"];
    if (expression_type == "Aggregated") {
       action = json.get<std::unique_ptr<Aggregated>>();
@@ -213,14 +213,14 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
    CHECK_SILO_QUERY(
       !json.contains("orderByFields") || json["orderByFields"].is_array(),
       "orderByFields must be an array."
-   )
+   );
    auto order_by_fields = json.contains("orderByFields")
                              ? json["orderByFields"].get<std::vector<OrderByField>>()
                              : std::vector<OrderByField>();
    CHECK_SILO_QUERY(
       !json.contains("offset") || json["offset"].is_number_unsigned(),
       "If the action contains an offset, it must be a non-negative number"
-   )
+   );
    auto limit = parseLimit(json);
    auto offset = parseOffset(json);
    auto randomize_seed = parseRandomizeSeed(json);

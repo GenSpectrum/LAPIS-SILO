@@ -54,7 +54,7 @@ void InsertionAggregation<SymbolType>::validateOrderByFields(const Database& /*d
             field.name,
             fmt::join(result_field_names, ", ")
          )
-      )
+      );
    }
 }
 
@@ -71,7 +71,7 @@ void validateSequenceNames(
             all_sequence_names.end(),
          "The database does not contain the " + std::string(SymbolType::SYMBOL_NAME) +
             " sequence '" + sequence_name + "'"
-      )
+      );
    }
 }
 }  // namespace
@@ -218,7 +218,7 @@ void from_json(
          (json["sequenceName"].is_string() || json["sequenceName"].is_array()),
       "Insertions action can have the field sequenceName of type string or an array of "
       "strings, but no other type"
-   )
+   );
    std::vector<std::string> sequence_names;
    if (json.contains("sequenceName") && json["sequenceName"].is_array()) {
       for (const auto& child : json["sequenceName"]) {
@@ -227,7 +227,7 @@ void from_json(
             "The field sequenceName of the Insertions action must have type string or an "
             "array, if present. Found:" +
                child.dump()
-         )
+         );
          sequence_names.emplace_back(child.get<std::string>());
       }
    } else if (json.contains("sequenceName") && json["sequenceName"].is_string()) {

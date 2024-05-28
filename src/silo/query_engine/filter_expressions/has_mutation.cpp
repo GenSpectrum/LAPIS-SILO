@@ -88,11 +88,11 @@ void from_json(const nlohmann::json& json, std::unique_ptr<HasMutation<SymbolTyp
    CHECK_SILO_QUERY(
       json.contains("position"),
       "The field 'position' is required in a HasNucleotideMutation expression"
-   )
+   );
    CHECK_SILO_QUERY(
       json["position"].is_number_unsigned(),
       "The field 'position' in a HasNucleotideMutation expression needs to be an unsigned integer"
-   )
+   );
    std::optional<std::string> nuc_sequence_name;
    if (json.contains("sequenceName")) {
       nuc_sequence_name = json["sequenceName"].get<std::string>();

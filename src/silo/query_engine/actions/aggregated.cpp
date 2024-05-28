@@ -36,7 +36,7 @@ std::vector<silo::storage::ColumnMetadata> parseGroupByFields(
       const auto& metadata = database.database_config.getMetadata(group_by_field);
       CHECK_SILO_QUERY(
          metadata.has_value(), "Metadata field '" + group_by_field + "' to group by not found"
-      )
+      );
       group_by_metadata.push_back({metadata->name, metadata->getColumnType()});
    }
    return group_by_metadata;
@@ -87,7 +87,7 @@ void Aggregated::validateOrderByFields(const Database& database) const {
                                       ),
          "The orderByField '" + field.name +
             "' cannot be ordered by, as it does not appear in the groupByFields."
-      )
+      );
    }
 }
 

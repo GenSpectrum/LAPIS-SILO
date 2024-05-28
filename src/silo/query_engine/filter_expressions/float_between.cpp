@@ -39,7 +39,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> FloatBetween::compile(
    CHECK_SILO_QUERY(
       database_partition.columns.float_columns.contains(column),
       "The database does not contain the float column '" + column + "'"
-   )
+   );
    const auto& float_column = database_partition.columns.float_columns.at(column);
 
    std::vector<std::unique_ptr<operators::Predicate>> predicates;
@@ -70,22 +70,22 @@ std::unique_ptr<silo::query_engine::operators::Operator> FloatBetween::compile(
 void from_json(const nlohmann::json& json, std::unique_ptr<FloatBetween>& filter) {
    CHECK_SILO_QUERY(
       json.contains("column"), "The field 'column' is required in a FloatBetween expression"
-   )
+   );
    CHECK_SILO_QUERY(
       json["column"].is_string(), "The field 'column' in a FloatBetween expression must be a string"
-   )
+   );
    CHECK_SILO_QUERY(
       json.contains("from"), "The field 'from' is required in FloatBetween expression"
-   )
+   );
    CHECK_SILO_QUERY(
       json["from"].is_null() || json["from"].is_number_float(),
       "The field 'from' in a FloatBetween expression must be a float or null"
-   )
-   CHECK_SILO_QUERY(json.contains("to"), "The field 'to' is required in a FloatBetween expression")
+   );
+   CHECK_SILO_QUERY(json.contains("to"), "The field 'to' is required in a FloatBetween expression");
    CHECK_SILO_QUERY(
       json["to"].is_null() || json["to"].is_number_float(),
       "The field 'to' in a FloatBetween expression must be a float or null"
-   )
+   );
    const std::string& column = json["column"];
    std::optional<double> value_from;
    if (json["from"].is_number_float()) {

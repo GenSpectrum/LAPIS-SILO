@@ -108,21 +108,23 @@ std::vector<silo::query_engine::operators::RangeSelection::Range> DateBetween::
 void from_json(const nlohmann::json& json, std::unique_ptr<DateBetween>& filter) {
    CHECK_SILO_QUERY(
       json.contains("column"), "The field 'column' is required in a DateBetween expression"
-   )
+   );
    CHECK_SILO_QUERY(
       json["column"].is_string(),
       "The field 'column' in a DateBetween expression needs to be a string"
-   )
-   CHECK_SILO_QUERY(json.contains("from"), "The field 'from' is required in DateBetween expression")
+   );
+   CHECK_SILO_QUERY(
+      json.contains("from"), "The field 'from' is required in DateBetween expression"
+   );
    CHECK_SILO_QUERY(
       json["from"].is_null() || (json["from"].is_string() && !json["from"].empty()),
       "The field 'from' in a DateBetween expression needs to be a string or null"
-   )
-   CHECK_SILO_QUERY(json.contains("to"), "The field 'to' is required in a DateBetween expression")
+   );
+   CHECK_SILO_QUERY(json.contains("to"), "The field 'to' is required in a DateBetween expression");
    CHECK_SILO_QUERY(
       json["to"].is_null() || (json["to"].is_string() && !json["to"].empty()),
       "The field 'to' in a DateBetween expression needs to be a non-empty string or null"
-   )
+   );
    const std::string& column = json["column"];
    std::optional<silo::common::Date> date_from;
    if (json["from"].type() == nlohmann::detail::value_t::string) {
