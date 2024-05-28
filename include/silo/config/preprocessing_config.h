@@ -11,8 +11,6 @@
 
 #include "silo/config/util/abstract_config_source.h"
 
-using silo::config::AbstractConfigSource;
-
 namespace silo::config {
 
 const AbstractConfigSource::Option INPUT_DIRECTORY_OPTION{{"inputDirectory"}};
