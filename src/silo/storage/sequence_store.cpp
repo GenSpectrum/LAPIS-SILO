@@ -142,7 +142,9 @@ const roaring::Roaring* silo::SequenceStorePartition<SymbolType>::getBitmap(
 }
 
 template <typename SymbolType>
-void silo::SequenceStorePartition<SymbolType>::fillIndexes(const std::vector<ReadSequence>& reads) {
+void silo::SequenceStorePartition<SymbolType>::fillIndexes(
+   const std::vector<std::pair<size_t, ReadSequence>>& lazy_buffer
+) {
    const size_t genome_length = positions.size();
    static constexpr int COUNT_SYMBOLS_PER_PROCESSOR = 64;
    tbb::parallel_for(
@@ -150,10 +152,8 @@ void silo::SequenceStorePartition<SymbolType>::fillIndexes(const std::vector<Rea
       [&](const auto& local) {
          SymbolMap<SymbolType, std::vector<uint32_t>> ids_per_symbol_for_current_position;
          for (size_t position_idx = local.begin(); position_idx != local.end(); ++position_idx) {
-            const size_t number_of_sequences = reads.size();
-            for (size_t sequence_id = 0; sequence_id < number_of_sequences; ++sequence_id) {
-               const auto& [sequence, offset] = reads[sequence_id];
-               const char character = sequence[position_idx];
+            for (auto [sequence_id, sequence_read] : lazy_buffer) {
+               const char character = sequence_read.sequence[position_idx];
                const auto symbol = SymbolType::charToSymbol(character);
                if (!symbol.has_value()) {
                   throw silo::preprocessing::PreprocessingException(
@@ -161,9 +161,7 @@ void silo::SequenceStorePartition<SymbolType>::fillIndexes(const std::vector<Rea
                   );
                }
                if (symbol != SymbolType::SYMBOL_MISSING) {
-                  ids_per_symbol_for_current_position[*symbol].push_back(
-                     sequence_count + sequence_id
-                  );
+                  ids_per_symbol_for_current_position[*symbol].push_back(sequence_id);
                }
             }
             addSymbolsToPositions(

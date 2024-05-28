@@ -642,13 +642,10 @@ void Preprocessor::buildSequenceStore(
                            return;
                         }
                         auto& children = duckdb::StructValue::GetChildren(value);
-                        sequence_store.insertRead(
-                           row_id,
-                           ReadSequence{
-                              children[0].GetValue<uint32_t>(),
-                              decompressor.decompress(children[1].GetValue<std::string>())
-                           }
-                        );
+                        ReadSequence& buffer = sequence_store.insertRead(row_id);
+                        buffer.offset = children[0].GetValue<uint32_t>();
+                        buffer.sequence =
+                           decompressor.decompress(children[1].GetValue<std::string>());
                      }
                   };
                   silo::TableReader(

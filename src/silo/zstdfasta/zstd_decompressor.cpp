@@ -1,5 +1,6 @@
 #include "silo/zstdfasta/zstd_decompressor.h"
 
+#include <cassert>
 #include <memory>
 #include <string>
 #include <utility>
@@ -11,11 +12,15 @@ namespace silo {
 ZstdDecompressor::ZstdDecompressor(std::string_view dictionary_string)
     : zstd_dictionary(ZstdDDictionary(dictionary_string)) {}
 
-std::string_view ZstdDecompressor::decompress(const std::string& input) {
-   return decompress(input.data(), input.size());
+void ZstdDecompressor::decompress(const std::string& input, std::string& buffer) {
+   decompress(input.data(), input.size(), buffer);
 }
 
-std::string_view ZstdDecompressor::decompress(const char* input_data, size_t input_length) {
+void ZstdDecompressor::decompress(
+   const char* input_data,
+   size_t input_length,
+   std::string& buffer
+) {
    const size_t uncompressed_size = ZSTD_getFrameContentSize(input_data, input_length);
    if (uncompressed_size == ZSTD_CONTENTSIZE_UNKNOWN) {
       throw std::runtime_error(fmt::format(
@@ -49,7 +54,7 @@ std::string_view ZstdDecompressor::decompress(const char* input_data, size_t inp
          fmt::format("Error '{}' in dependency when decompressing using zstd", error_name)
       );
    }
-   return {buffer.data(), size_or_error_code};
+   assert(uncompressed_size == size_or_error_code);
 }
 
 }  // namespace silo

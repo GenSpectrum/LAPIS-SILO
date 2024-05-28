@@ -66,7 +66,7 @@ std::optional<std::string> silo::ZstdFastaTableReader::nextCompressed(
    return key;
 }
 
-std::optional<std::string> silo::ZstdFastaTableReader::next(std::optional<std::string>& genome) {
+std::optional<std::string> silo::ZstdFastaTableReader::next(std::string& genome) {
    std::optional<std::string> compressed_buffer;
    auto key = nextCompressed(compressed_buffer);
 
@@ -75,9 +75,9 @@ std::optional<std::string> silo::ZstdFastaTableReader::next(std::optional<std::s
    }
 
    if (compressed_buffer.has_value()) {
-      genome = decompressor->decompress(compressed_buffer.value());
+      decompressor->decompress(compressed_buffer.value(), genome);
    } else {
-      genome = std::nullopt;
+      // ?? genome = std::nullopt;
    }
 
    return key;
