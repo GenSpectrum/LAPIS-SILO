@@ -32,7 +32,7 @@ void RuntimeConfig::overwrite(const silo::config::AbstractConfigSource& config) 
       );
       api_options.parallel_threads = *value;
    }
-   if (auto value = config.getUInt32(PORT_OPTION)) {
+   if (auto value = config.getUInt16(PORT_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} passed via {}: {}", PORT_OPTION.toString(), config.configType(), *value
       );

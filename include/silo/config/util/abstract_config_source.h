@@ -35,6 +35,7 @@ class AbstractConfigSource {
    /// (potentially converting other value types).
    [[nodiscard]] virtual std::optional<std::string> getString(const Option& option) const = 0;
    [[nodiscard]] virtual std::optional<int32_t> getInt32(const Option& option) const;
+   [[nodiscard]] virtual std::optional<uint16_t> getUInt16(const Option& option) const;
    [[nodiscard]] virtual std::optional<uint32_t> getUInt32(const Option& option) const;
 };
 
