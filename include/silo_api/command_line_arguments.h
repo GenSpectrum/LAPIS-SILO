@@ -14,11 +14,11 @@ class CommandLineArguments : public silo::config::AbstractConfigSource {
 
    explicit CommandLineArguments(const Poco::Util::AbstractConfiguration& config);
 
-   std::string configType() const override;
+   [[nodiscard]] std::string configType() const override;
 
-   bool hasProperty(const Option& option) const override;
+   [[nodiscard]] bool hasProperty(const Option& option) const override;
 
-   std::optional<std::string> getString(const Option& option) const override;
+   [[nodiscard]] std::optional<std::string> getString(const Option& option) const override;
 };
 
 }  // namespace silo_api

@@ -28,11 +28,11 @@ class RangeSelection : public Operator {
 
    ~RangeSelection() noexcept override;
 
-   [[nodiscard]] virtual Type type() const override;
+   [[nodiscard]] Type type() const override;
 
-   virtual OperatorResult evaluate() const override;
+   [[nodiscard]] OperatorResult evaluate() const override;
 
-   virtual std::string toString() const override;
+   [[nodiscard]] std::string toString() const override;
 
    static std::unique_ptr<Operator> negate(std::unique_ptr<RangeSelection>&& range_selection);
 };
