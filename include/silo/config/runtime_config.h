@@ -8,12 +8,12 @@
 
 namespace silo::config {
 
-const AbstractConfigSource::Option DATA_DIRECTORY_OPTION{{"dataDirectory"}};
-const AbstractConfigSource::Option MAX_CONNECTIONS_OPTION{{"maxQueuedHttpConnections"}};
-const AbstractConfigSource::Option PARALLEL_THREADS_OPTION{{"threadsForHttpConnections"}};
-const AbstractConfigSource::Option PORT_OPTION{{"port"}};
+const AbstractConfigSource::Option DATA_DIRECTORY_OPTION{{"api", "dataDirectory"}};
+const AbstractConfigSource::Option MAX_CONNECTIONS_OPTION{{"api", "maxQueuedHttpConnections"}};
+const AbstractConfigSource::Option PARALLEL_THREADS_OPTION{{"api", "threadsForHttpConnections"}};
+const AbstractConfigSource::Option PORT_OPTION{{"api", "port"}};
 const AbstractConfigSource::Option ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION{
-   {"estimatedStartupTimeInMinutes"}
+   {"api", "estimatedStartupTimeInMinutes"}
 };
 
 struct ApiOptions {
