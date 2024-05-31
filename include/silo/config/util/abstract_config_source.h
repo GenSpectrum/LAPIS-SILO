@@ -8,19 +8,31 @@
 
 namespace silo::config {
 
+/// A holder of config values ([from a] config file, env vars, command
+/// line arguments).
 class AbstractConfigSource {
   public:
    class Option {
      public:
+      /// List of hierarchical option path segments, each of which in
+      /// camel case.
       std::vector<std::string> access_path;
 
+      /// `access_path` joined with ".".
       [[nodiscard]] std::string toString() const;
+      /// `access_path` joined with "". (For lower-casing and joining
+      /// with "-", see `CommandLineArguments::asUnixOptionString`.)
       [[nodiscard]] std::string toCamelCase() const;
    };
 
+   /// A human-readable description including type (command line,
+   /// config file, env var) and if applicable path to the file.
    [[nodiscard]] virtual std::string configType() const = 0;
 
+   /// Check if a value is available for the given key.
    [[nodiscard]] virtual bool hasProperty(const Option& option) const = 0;
+   /// Retrieve a config value for the given key as a string
+   /// (potentially converting other value types).
    [[nodiscard]] virtual std::optional<std::string> getString(const Option& option) const = 0;
    [[nodiscard]] virtual std::optional<int32_t> getInt32(const Option& option) const;
    [[nodiscard]] virtual std::optional<uint32_t> getUInt32(const Option& option) const;
