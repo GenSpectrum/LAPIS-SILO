@@ -34,6 +34,7 @@ class AbstractConfigSource {
    [[nodiscard]] virtual std::optional<int32_t> getInt32(const Option& option) const;
    [[nodiscard]] virtual std::optional<uint16_t> getUInt16(const Option& option) const;
    [[nodiscard]] virtual std::optional<uint32_t> getUInt32(const Option& option) const;
+   [[nodiscard]] virtual std::optional<uint64_t> getUInt64(const Option& option) const;
 };
 
 }  // namespace silo::config
