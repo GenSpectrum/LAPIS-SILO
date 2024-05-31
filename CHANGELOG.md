@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.1...v0.2.2) (2024-05-31)
+
+
+### Bug Fixes
+
+* start with empty files without throwing an error ([d407b92](https://github.com/GenSpectrum/LAPIS-SILO/commit/d407b9277ea89294ebbc581a80d23124040e266d))
+
 ## [0.2.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.0...v0.2.1) (2024-05-28)
 
 
