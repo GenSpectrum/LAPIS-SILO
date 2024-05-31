@@ -22,4 +22,12 @@ std::vector<std::string> tie(
    std::string_view suffix
 );
 
+std::string tieAsString(
+   std::string_view prefix,
+   const std::vector<std::string>& elements1,
+   std::string_view delimiter,
+   const std::vector<std::string>& elements2,
+   std::string_view suffix
+);
+
 }  // namespace silo
