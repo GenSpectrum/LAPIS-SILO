@@ -86,6 +86,22 @@ silo::config::DatabaseConfig getDatabaseConfig(const Poco::Util::AbstractConfigu
    return silo::config::ConfigRepository().getValidatedConfig("database_config.yaml");
 }
 
+Poco::Util::Option optionalNonRepeatableOption(
+   const silo::config::AbstractConfigSource::Option& option,
+   const std::string& description,
+   const std::string& argumentType
+) {
+   std::string option_string = CommandLineArguments::asUnixOptionString(option);
+   return Poco::Util::Option()
+      .fullName(option_string)
+      .description(description)
+      .required(false)
+      .repeatable(false)
+      .argument(argumentType)
+      // the key under which it will be retrieved, same as documented string:
+      .binding(option_string);
+}
+
 class SiloServer : public Poco::Util::ServerApplication {
   protected:
    [[maybe_unused]] void defineOptions(Poco::Util::OptionSet& options) override {
@@ -117,38 +133,24 @@ class SiloServer : public Poco::Util::ServerApplication {
                            .argument("PATH")
                            .binding(DATABASE_CONFIG_OPTION));
 
-      options.addOption(Poco::Util::Option()
-                           .fullName(silo::config::DATA_DIRECTORY_OPTION.toCamelCase())
-                           .shortName("d")
-                           .description("path to the preprocessed data")
-                           .required(false)
-                           .repeatable(false)
-                           .argument("PATH")
-                           .binding(silo::config::DATA_DIRECTORY_OPTION.toCamelCase()));
+      options.addOption(
+         optionalNonRepeatableOption(
+            silo::config::DATA_DIRECTORY_OPTION, "path to the preprocessed data", "PATH"
+         )
+            .shortName("d")
+      );
 
-      options.addOption(Poco::Util::Option()
-                           .fullName(silo::config::PORT_OPTION.toCamelCase())
-                           .description("port to listen to requests")
-                           .required(false)
-                           .repeatable(false)
-                           .argument("NUMBER")
-                           .binding(silo::config::PORT_OPTION.toCamelCase()));
+      options.addOption(optionalNonRepeatableOption(
+         silo::config::PORT_OPTION, "port to listen to requests", "NUMBER"
+      ));
 
-      options.addOption(Poco::Util::Option()
-                           .fullName(silo::config::MAX_CONNECTIONS_OPTION.toCamelCase())
-                           .description("maximum number of http connections")
-                           .required(false)
-                           .repeatable(false)
-                           .argument("NUMBER")
-                           .binding(silo::config::MAX_CONNECTIONS_OPTION.toCamelCase()));
+      options.addOption(optionalNonRepeatableOption(
+         silo::config::MAX_CONNECTIONS_OPTION, "maximum number of http connections", "NUMBER"
+      ));
 
-      options.addOption(Poco::Util::Option()
-                           .fullName(silo::config::PARALLEL_THREADS_OPTION.toCamelCase())
-                           .description("number of threads for http connections")
-                           .required(false)
-                           .repeatable(false)
-                           .argument("NUMBER")
-                           .binding(silo::config::PARALLEL_THREADS_OPTION.toCamelCase()));
+      options.addOption(optionalNonRepeatableOption(
+         silo::config::PARALLEL_THREADS_OPTION, "number of threads for http connections", "NUMBER"
+      ));
 
       options.addOption(Poco::Util::Option()
                            .fullName(API_OPTION)
@@ -171,20 +173,13 @@ class SiloServer : public Poco::Util::ServerApplication {
             .group("executionMode")
       );
 
-      options.addOption(
-         Poco::Util::Option(
-            silo::config::ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION.toCamelCase(),
-            "t",
-            "Estimated time in minutes that the initial loading of the database takes. "
-            "As long as no database is loaded yet, SILO will throw a 503 error. "
-            "This option allows SILO to compute a Retry-After header for the 503 response. ",
-            false
-         )
-            .required(false)
-            .repeatable(false)
-            .argument("MINUTES", true)
-            .binding(silo::config::ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION.toCamelCase())
-      );
+      options.addOption(optionalNonRepeatableOption(
+         silo::config::ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION,
+         "Estimated time in minutes that the initial loading of the database takes. "
+         "As long as no database is loaded yet, SILO will throw a 503 error. "
+         "This option allows SILO to compute a Retry-After header for the 503 response. ",
+         "MINUTES"
+      ));
    }
 
    int main(const std::vector<std::string>& args) override {

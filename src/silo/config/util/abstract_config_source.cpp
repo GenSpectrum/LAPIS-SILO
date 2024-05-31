@@ -14,10 +14,6 @@ std::string AbstractConfigSource::Option::toString() const {
    return boost::join(access_path, ".");
 }
 
-std::string AbstractConfigSource::Option::toCamelCase() const {
-   return boost::join(access_path, "");
-}
-
 std::optional<int32_t> AbstractConfigSource::getInt32(const Option& option) const {
    const auto string_value = getString(option);
    if (string_value == std::nullopt) {

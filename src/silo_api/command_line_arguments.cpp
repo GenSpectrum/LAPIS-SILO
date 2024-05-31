@@ -37,14 +37,12 @@ std::string CommandLineArguments::configType() const {
 }
 
 bool CommandLineArguments::hasProperty(const Option& option) const {
-   // TODO(#444) return config.hasProperty(asUnixOptionString(option));
-   return config.hasProperty(option.toCamelCase());
+   return config.hasProperty(asUnixOptionString(option));
 }
 
 std::optional<std::string> CommandLineArguments::getString(const Option& option) const {
    if (hasProperty(option)) {
-      // TODO(#444) return config.getString(asUnixOptionString(option));
-      return config.getString(option.toCamelCase());
+      return config.getString(asUnixOptionString(option));
    }
    return std::nullopt;
 }

@@ -20,9 +20,6 @@ class AbstractConfigSource {
 
       /// `access_path` joined with ".".
       [[nodiscard]] std::string toString() const;
-      /// `access_path` joined with "". (For lower-casing and joining
-      /// with "-", see `CommandLineArguments::asUnixOptionString`.)
-      [[nodiscard]] std::string toCamelCase() const;
    };
 
    /// A human-readable description including type (command line,
