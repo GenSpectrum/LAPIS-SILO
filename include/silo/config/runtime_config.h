@@ -23,10 +23,22 @@ struct ApiOptions {
    uint16_t port = 8081;
    std::optional<std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>>
       estimated_startup_end;
+
+   void overwrite(const silo::config::AbstractConfigSource& config);
+};
+
+const AbstractConfigSource::Option MATERIALIZATION_CUTOFF_OPTION{{"query", "materializationCutoff"}
+};
+
+struct QueryOptions {
+   size_t materialization_cutoff = 10000;
+
+   void overwrite(const silo::config::AbstractConfigSource& config);
 };
 
 struct RuntimeConfig {
    ApiOptions api_options;
+   QueryOptions query_options;
 
    void overwrite(const silo::config::AbstractConfigSource& config);
 };
