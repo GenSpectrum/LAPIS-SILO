@@ -327,49 +327,33 @@ void Preprocessor::createAlignedPartitionedSequenceViews(const std::filesystem::
    std::string file_reader_sql;
    if (std::filesystem::is_empty(file_name)) {
       file_reader_sql = fmt::format(
-         "SELECT ''::VARCHAR AS key, 'NULL'::VARCHAR AS partition_key, {}, {}, {}, {}, {} LIMIT 0",
-         boost::join(silo::prepend("''::VARCHAR AS ", prefixed_nuc_sequences), ", "),
-         boost::join(silo::prepend("''::VARCHAR AS ", prefixed_aa_sequences), ", "),
-         boost::join(silo::prepend("''::VARCHAR AS ", prefixed_nuc_insertions_fields), ", "),
-         boost::join(silo::prepend("''::VARCHAR AS ", prefixed_aa_insertions_fields), ", "),
-         boost::join(silo::prepend("''::VARCHAR AS ", prefixed_order_by_fields), ", ")
+         "SELECT ''::VARCHAR AS key, 'NULL'::VARCHAR AS partition_key {} {} {} {} {} LIMIT 0",
+         boost::join(silo::prepend(", ''::VARCHAR AS ", prefixed_nuc_sequences), ""),
+         boost::join(silo::prepend(", ''::VARCHAR AS ", prefixed_aa_sequences), ""),
+         boost::join(silo::prepend(", ''::VARCHAR AS ", prefixed_nuc_insertions_fields), ""),
+         boost::join(silo::prepend(", ''::VARCHAR AS ", prefixed_aa_insertions_fields), ""),
+         boost::join(silo::prepend(", ''::VARCHAR AS ", prefixed_order_by_fields), "")
       );
    } else {
       file_reader_sql = fmt::format(
-         "SELECT metadata.\"{}\" AS key, {} AS partition_key, {}, {}, {}, {}, {} FROM "
+         "SELECT metadata.\"{}\" AS key, {} AS partition_key {} {} {} {} {} FROM "
          "read_json_auto('{}')",
          database_config.schema.primary_key,
          getPartitionKeySelect(),
-         boost::join(
-            silo::tie(
-               "alignedNucleotideSequences.\"", nuc_sequences, "\" AS ", prefixed_nuc_sequences, ""
-            ),
-            ", "
+         silo::tieAsString(
+            ", alignedNucleotideSequences.\"", nuc_sequences, "\" AS ", prefixed_nuc_sequences, ""
          ),
-         boost::join(
-            silo::tie(
-               "alignedAminoAcidSequences.\"", aa_sequences, "\" AS ", prefixed_aa_sequences, ""
-            ),
-            ", "
+         silo::tieAsString(
+            ", alignedAminoAcidSequences.\"", aa_sequences, "\" AS ", prefixed_aa_sequences, ""
          ),
-         boost::join(
-            silo::tie(
-               "nucleotideInsertions.\"",
-               nuc_sequences,
-               "\" AS ",
-               prefixed_nuc_insertions_fields,
-               ""
-            ),
-            ", "
+         silo::tieAsString(
+            ", nucleotideInsertions.\"", nuc_sequences, "\" AS ", prefixed_nuc_insertions_fields, ""
          ),
-         boost::join(
-            silo::tie(
-               "aminoAcidInsertions.\"", aa_sequences, "\" AS ", prefixed_aa_insertions_fields, ""
-            ),
-            ", "
+         silo::tieAsString(
+            ", aminoAcidInsertions.\"", aa_sequences, "\" AS ", prefixed_aa_insertions_fields, ""
          ),
-         boost::join(
-            silo::tie("metadata.\"", order_by_fields, "\" AS ", prefixed_order_by_fields, ""), ", "
+         silo::tieAsString(
+            ", metadata.\"", order_by_fields, "\" AS ", prefixed_order_by_fields, ""
          ),
          file_name.string()
       );
@@ -377,36 +361,37 @@ void Preprocessor::createAlignedPartitionedSequenceViews(const std::filesystem::
 
    (void)preprocessing_db.query(fmt::format(
       "CREATE OR REPLACE TABLE sequence_table AS\n"
-      "SELECT key, partition_key_to_partition.partition_id AS partition_id, {}, {}, {}, {} \n"
+      "SELECT key, partition_key_to_partition.partition_id AS partition_id {} {} {}, {} \n"
       "FROM ({}) file_reader "
       "JOIN partition_key_to_partition "
       "ON (file_reader.partition_key = partition_key_to_partition.partition_key);",
       boost::join(
-         SequenceInfo::getAlignedSequenceSelects(reference_genomes_, preprocessing_db), ", "
+         silo::prepend(
+            ", ", SequenceInfo::getAlignedSequenceSelects(reference_genomes_, preprocessing_db)
+         ),
+         ""
       ),
-      boost::join(prefixed_nuc_insertions_fields, ", "),
-      boost::join(prefixed_aa_insertions_fields, ", "),
-      boost::join(prefixed_order_by_fields, ", "),
+      boost::join(silo::prepend(", ", prefixed_nuc_insertions_fields), ""),
+      boost::join(silo::prepend(", ", prefixed_aa_insertions_fields), ""),
+      boost::join(prefixed_order_by_fields, ","),
       file_reader_sql
    ));
 
    (void)preprocessing_db.query(fmt::format(
       "CREATE OR REPLACE VIEW {} AS\n"
-      "SELECT key, partition_id, {}, {} \n"
+      "SELECT key, partition_id {}, {} \n"
       "FROM sequence_table;",
       getInsertionsTableName<Nucleotide>(),
-      boost::join(
-         silo::tie("", prefixed_nuc_insertions_fields, " AS \"", nuc_sequences, "\" "), ","
-      ),
+      silo::tieAsString(", ", prefixed_nuc_insertions_fields, " AS \"", nuc_sequences, "\" "),
       boost::join(prefixed_order_by_fields, ",")
    ));
 
    (void)preprocessing_db.query(fmt::format(
       "CREATE OR REPLACE VIEW {} AS\n"
-      "SELECT key, partition_id, {}, {} \n"
+      "SELECT key, partition_id {}, {} \n"
       "FROM sequence_table;",
       getInsertionsTableName<AminoAcid>(),
-      boost::join(silo::tie("", prefixed_aa_insertions_fields, " AS \"", aa_sequences, "\" "), ","),
+      silo::tieAsString(", ", prefixed_aa_insertions_fields, " AS \"", aa_sequences, "\" "),
       boost::join(prefixed_order_by_fields, ",")
    ));
 
@@ -509,7 +494,7 @@ void Preprocessor::createInsertionsTableFromFile(
          insertion_file.string(),
          actual_column_name,
          database_config.schema.primary_key,
-         boost::join(expected_sequence_columns, ",")
+         boost::join(expected_sequence_columns, ", ")
       );
       SPDLOG_ERROR(error_message);
       throw silo::preprocessing::PreprocessingException(error_message);
@@ -518,20 +503,15 @@ void Preprocessor::createInsertionsTableFromFile(
    (void)preprocessing_db.query(fmt::format(
       R"-(
       CREATE OR REPLACE TABLE {0} AS
-      (SELECT ins."{1}" AS key, {2}, {3}, partition_id
+      (SELECT ins."{1}" AS key {2} {3}, partition_id
       FROM read_csv('{4}', delim = '\t', header = true,
                     columns = {{{5}}}) ins
       INNER JOIN partitioned_metadata ON ins."{1}" == partitioned_metadata."{1}" );)-",
       table_name,
       database_config.schema.primary_key,
-      boost::join(
-         silo::tie("ins.\"", expected_sequences, "\" AS \"", expected_sequences, "\" "), ","
-      ),
-      boost::join(
-         silo::tie(
-            "partitioned_metadata.\"", order_by_fields, "\" AS ", prefixed_order_by_fields, " "
-         ),
-         ","
+      silo::tieAsString(", ins.\"", expected_sequences, "\" AS \"", expected_sequences, "\" "),
+      silo::tieAsString(
+         ", partitioned_metadata.\"", order_by_fields, "\" AS ", prefixed_order_by_fields, " "
       ),
       insertion_file.string(),
       boost::join(column_structs, ",")
@@ -594,16 +574,13 @@ void Preprocessor::createPartitionedTableForSequence(
       R"-(
          CREATE OR REPLACE VIEW {} AS
          SELECT key, sequence,
-         partitioned_metadata.partition_id AS partition_id, {}
+         partitioned_metadata.partition_id AS partition_id {}
          FROM {} AS raw RIGHT JOIN partitioned_metadata
          ON raw.key = partitioned_metadata."{}";
       )-",
       table_name,
-      boost::join(
-         silo::tie(
-            "partitioned_metadata.\"", order_by_fields, "\" AS ", prefixed_order_by_fields, " "
-         ),
-         ","
+      silo::tieAsString(
+         ", partitioned_metadata.\"", order_by_fields, "\" AS ", prefixed_order_by_fields, " "
       ),
       raw_table_name,
       database_config.schema.primary_key

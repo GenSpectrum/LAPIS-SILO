@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 #include <fmt/format.h>
+#include <boost/algorithm/string/join.hpp>
 
 namespace silo {
 
@@ -72,6 +73,16 @@ std::vector<std::string> tie(
       );
    }
    return output;
+}
+
+std::string tieAsString(
+   std::string_view prefix,
+   const std::vector<std::string>& elements1,
+   std::string_view delimiter,
+   const std::vector<std::string>& elements2,
+   std::string_view suffix
+) {
+   return boost::join(tie(prefix, elements1, delimiter, elements2, suffix), "");
 }
 
 }  // namespace silo

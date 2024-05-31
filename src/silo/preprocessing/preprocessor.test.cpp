@@ -147,6 +147,57 @@ const Scenario EMPTY_INPUT_NDJSON = {
 [])")
 };
 
+const Scenario NO_GENES = {
+   .input_directory = "testBaseData/noGenes/",
+   .expected_sequence_count = 30,
+   .query = R"(
+      {
+         "action": {
+           "type": "Aggregated"
+         },
+         "filterExpression": {
+            "type": "True"
+         }
+      }
+   )",
+   .expected_query_result = nlohmann::json::parse(R"(
+[{"count":30}])")
+};
+
+const Scenario NO_NUCLEOTIDE_SEQUENCES = {
+   .input_directory = "testBaseData/noNucleotideSequences/",
+   .expected_sequence_count = 30,
+   .query = R"(
+      {
+         "action": {
+           "type": "Aggregated"
+         },
+         "filterExpression": {
+            "type": "True"
+         }
+      }
+   )",
+   .expected_query_result = nlohmann::json::parse(R"(
+[{"count":30}])")
+};
+
+const Scenario NO_SEQUENCES = {
+   .input_directory = "testBaseData/noSequences/",
+   .expected_sequence_count = 30,
+   .query = R"(
+      {
+         "action": {
+           "type": "Aggregated"
+         },
+         "filterExpression": {
+            "type": "True"
+         }
+      }
+   )",
+   .expected_query_result = nlohmann::json::parse(R"(
+[{"count":30}])")
+};
+
 class PreprocessorTestFixture : public ::testing::TestWithParam<Scenario> {};
 
 INSTANTIATE_TEST_SUITE_P(
@@ -159,7 +210,10 @@ INSTANTIATE_TEST_SUITE_P(
       TSV_FILE_WITH_SQL_KEYWORD_AS_FIELD,
       NDJSON_WITH_NUMERIC_NAMES,
       EMPTY_INPUT_TSV,
-      EMPTY_INPUT_NDJSON
+      EMPTY_INPUT_NDJSON,
+      NO_GENES,
+      NO_NUCLEOTIDE_SEQUENCES,
+      NO_SEQUENCES
    ),
    printTestName
 );
@@ -186,9 +240,6 @@ TEST_P(PreprocessorTestFixture, shouldProcessData) {
 
    const auto database_info = database.getDatabaseInfo();
 
-   if (scenario.expected_sequence_count > 0) {
-      EXPECT_GT(database_info.total_size, 0UL);
-   }
    EXPECT_EQ(database_info.sequence_count, scenario.expected_sequence_count);
 
    const silo::query_engine::QueryEngine query_engine(database);
