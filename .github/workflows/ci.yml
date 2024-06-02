@@ -2,6 +2,13 @@ name: LAPIS-SILO
 
 on:
   push:
+  workflow_dispatch:
+    inputs:
+      build_arm:
+        type: boolean
+        description: "Build for ARM as well"
+        default: false
+        required: false
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -11,6 +18,7 @@ env:
   DOCKER_DEPENDENCY_IMAGE_NAME: ghcr.io/genspectrum/lapis-silo-dependencies
   DOCKER_LINTER_DEPENDENCY_IMAGE_NAME: ghcr.io/genspectrum/lapis-silo-linter-dependencies
   DOCKER_IMAGE_NAME: ghcr.io/genspectrum/lapis-silo
+  BUILD_ARM: ${{ github.event.inputs.build_arm || github.ref == 'refs/heads/main' }}
 
 jobs:
   formatting-check:
@@ -19,15 +27,15 @@ jobs:
     strategy:
       matrix:
         path:
-          - check: 'src'
-          - check: 'include'
-            exclude: '(PerfEvent.hpp)'
+          - check: "src"
+          - check: "include"
+            exclude: "(PerfEvent.hpp)"
     steps:
       - uses: actions/checkout@v4
       - name: Run clang-format style check
         uses: jidicula/clang-format-action@v4.11.0
         with:
-          clang-format-version: '17'
+          clang-format-version: "17"
           check-path: ${{ matrix.path['check'] }}
           exclude-regex: ${{ matrix.path['exclude'] }}
 
@@ -39,8 +47,17 @@ jobs:
 
       - name: Generate dependency files hash
         id: files-hash
-        run: |
-          DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', '.github/workflows/ci.yml', './Dockerfile_linter_dependencies') }})
+        run: |-
+          DIR_HASH=$(
+            echo -n ${{
+              hashFiles(
+                'conanfile.py',
+                'conanprofile.docker',
+                '.github/workflows/ci.yml',
+                './Dockerfile_linter_dependencies'
+              )
+            }}
+          )
           echo "DIR_HASH=$DIR_HASH" >> $GITHUB_ENV
 
       - name: Docker metadata
@@ -91,8 +108,17 @@ jobs:
 
       - name: Generate dependency files hash
         id: files-hash
-        run: |
-          DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', '.github/workflows/ci.yml', './Dockerfile_linter_dependencies') }})
+        run: |-
+          DIR_HASH=$(
+            echo -n ${{
+              hashFiles(
+                'conanfile.py',
+                'conanprofile.docker',
+                '.github/workflows/ci.yml',
+                './Dockerfile_linter_dependencies'
+              )
+            }}
+          )
           echo "DIR_HASH=$DIR_HASH" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
@@ -119,9 +145,22 @@ jobs:
 
       - name: Generate dependency files hash
         id: files-hash
-        run: |
-          DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', '.github/workflows/ci.yml', './Dockerfile_dependencies') }})
-          echo "DIR_HASH=$DIR_HASH" >> $GITHUB_ENV
+        run: |-
+          DIR_HASH=$(
+            echo -n ${{
+              hashFiles(
+                'conanfile.py',
+                'conanprofile.docker',
+                'conanprofile.docker_arm',
+                '.github/workflows/ci.yml',
+                './Dockerfile_dependencies'
+              )
+            }}
+          )
+          if [ $BUILD_ARM == 'true' ]; then
+            echo "NONARM_HASH=$DIR_HASH" >> $GITHUB_ENV
+          fi
+          echo "DIR_HASH=$DIR_HASH${{ env.BUILD_ARM == 'true' && '-arm' || '' }}" >> $GITHUB_ENV
 
       - name: Docker metadata
         id: dockerMetadata
@@ -132,6 +171,7 @@ jobs:
             type=ref,event=branch
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=${{ env.DIR_HASH }}
+            type=raw,value=${{ env.NONARM_HASH }},enable=${{ env.BUILD_ARM }}
             type=sha,prefix=commit-
 
       - name: Login to GitHub Container Registry
@@ -161,7 +201,7 @@ jobs:
           tags: ${{ steps.dockerMetadata.outputs.tags }}
           cache-from: type=gha,ref=builder-image-cache-${{ hashFiles('conanfile.py', 'Dockerfile') }}
           cache-to: type=gha,mode=min,ref=builder-image-cache-${{ hashFiles('conanfile.py', 'Dockerfile') }}
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ env.BUILD_ARM == 'true' && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
 
   dockerImageUnitTests:
     name: Build Docker Image and Run Unit Tests
@@ -174,9 +214,19 @@ jobs:
 
       - name: Generate dependency files hash
         id: files-hash
-        run: |
-          DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', '.github/workflows/ci.yml', './Dockerfile_dependencies') }})
-          echo "DIR_HASH=$DIR_HASH" >> $GITHUB_ENV
+        run: |-
+          DIR_HASH=$(
+            echo -n ${{
+              hashFiles(
+                'conanfile.py',
+                'conanprofile.docker',
+                'conanprofile.docker_arm',
+                '.github/workflows/ci.yml',
+                './Dockerfile_dependencies'
+              )
+            }}
+          )
+          echo "DIR_HASH=$DIR_HASH${{ env.BUILD_ARM == 'true' && '-arm' || '' }}" >> $GITHUB_ENV
 
       - name: Docker metadata
         id: dockerMetadata
@@ -233,10 +283,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        preprocessing-docker-compose: [
-          docker-compose-for-tests-preprocessing-from-tsv.yml,
-          docker-compose-for-tests-preprocessing-from-ndjson.yml
-        ]
+        preprocessing-docker-compose:
+          [
+            docker-compose-for-tests-preprocessing-from-tsv.yml,
+            docker-compose-for-tests-preprocessing-from-ndjson.yml,
+          ]
     steps:
       - uses: actions/checkout@v4
 

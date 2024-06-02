@@ -28,6 +28,7 @@ void deserializeFromFile(const std::string& filename, Position<Nucleotide>& posi
    input_file.close();
 }
 
+// NOLINTBEGIN(readability-function-cognitive-complexity)
 TEST(Position, flipsMostNumerousCorrectlyFromInitiallyUnoptimized) {
    Position<Nucleotide> under_test;
 
@@ -228,3 +229,4 @@ TEST(Position, shouldSerializeAndDeserializePositionWithDeletedBitmap) {
 
    ASSERT_NO_THROW(std::remove(test_file.c_str()));
 }
+// NOLINTEND(readability-function-cognitive-complexity)
