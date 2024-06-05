@@ -9,7 +9,7 @@
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
-#include "silo/zstdfasta/zstdfasta_table_reader.h"
+#include <silo/zstd/zstd_decompressor.h>
 
 namespace silo {
 class Database;
@@ -105,28 +105,44 @@ void addSequencesFromResultTableToJson(
       const std::string& sequence_name = sequence_names.at(sequence_idx);
       const std::string_view compression_dict =
          database_partition.unaligned_nuc_sequences.at(sequence_name).compression_dictionary;
-      silo::ZstdFastaTableReader table_reader(
-         connection,
-         result_table_name,
-         compression_dict,
-         fmt::format("t{}_sequence", sequence_idx),
-         "TRUE",
-         "ORDER BY key"
-      );
-      table_reader.loadTable();
+
+      auto decompressor = std::make_unique<ZstdDecompressor>(compression_dict);
+
+
       std::optional<std::string> genome_buffer;
 
       const size_t start_of_partition_in_result = results.query_result.size() - number_of_values;
       const size_t end_of_partition_in_result = results.query_result.size();
-      for (size_t idx = start_of_partition_in_result; idx < end_of_partition_in_result; idx++) {
-         auto current_key = table_reader.next(genome_buffer);
-         assert(current_key.has_value());
-         if (genome_buffer.has_value()) {
-            results.query_result.at(idx).fields.emplace(sequence_name, *genome_buffer);
-         } else {
-            results.query_result.at(idx).fields.emplace(sequence_name, std::nullopt);
+
+      size_t idx = start_of_partition_in_result;
+
+      const silo::ColumnFunction column_function{
+         result_table_name,
+         [&start_of_partition_in_result, &end_of_partition_in_result, &decompressor, &genome_buffer, &sequence_name, &results, &idx](size_t row_id, const duckdb::Value& value) {
+            if (idx >= end_of_partition_in_result) {
+               return; // does not break outer scan early unfortunately
+            }
+            assert(!value.IsNull()); // should check key instead I know - maybe add return value check
+            genome_buffer = decompressor->decompress(value.GetValueUnsafe<std::string>());
+            if (genome_buffer.has_value()) {
+               results.query_result.at(idx).fields.emplace(sequence_name, *genome_buffer);
+            } else {
+               results.query_result.at(idx).fields.emplace(sequence_name, std::nullopt);
+            }
+            idx++;
          }
-      }
+      };
+
+      silo::TableReader table_reader(
+         connection,
+         result_table_name,
+         fmt::format("t{}_sequence", sequence_idx),
+         {column_function},
+         "TRUE",
+         "ORDER BY key"
+      );
+
+      table_reader.read();
    }
 }
 

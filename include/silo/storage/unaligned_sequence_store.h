@@ -10,7 +10,7 @@ class access;
 }  // namespace boost::serialization
 
 namespace silo {
-class ZstdFastaTableReader;
+class ZstdTableReader;
 
 class UnalignedSequenceStorePartition {
    friend class boost::serialization::access;

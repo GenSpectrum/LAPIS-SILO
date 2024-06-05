@@ -15,10 +15,8 @@
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/preprocessing/sql_function.h"
 #include "silo/storage/reference_genomes.h"
-#include "silo/zstdfasta/zstd_compressor.h"
-#include "silo/zstdfasta/zstd_table.h"
-#include "silo/zstdfasta/zstdfasta_reader.h"
-#include "silo/zstdfasta/zstdfasta_writer.h"
+#include "silo/zstd/zstd_compressor.h"
+#include "silo/zstd/zstd_table.h"
 
 using duckdb::BigIntValue;
 using duckdb::ListValue;

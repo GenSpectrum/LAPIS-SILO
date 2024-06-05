@@ -1,13 +1,11 @@
-#include "silo/zstdfasta/zstd_table.h"
+#include "silo/zstd/zstd_table.h"
 
 #include <fmt/format.h>
 #include <silo/file_reader/file_reader.h>
 #include <duckdb.hpp>
 
 #include "silo/preprocessing/preprocessing_exception.h"
-#include "silo/zstdfasta/zstd_compressor.h"
-#include "silo/zstdfasta/zstdfasta_reader.h"
-#include "silo/zstdfasta/zstdfasta_table_reader.h"
+#include "silo/zstd/zstd_compressor.h"
 
 namespace {
 void initializeTable(duckdb::Connection& connection, std::string table_name) {
@@ -39,32 +37,6 @@ ZstdTable::ZstdTable(
       table_name(std::move(table_name)),
       compression_dict(compression_dict) {}
 
-ZstdTable ZstdTable::generate(
-   duckdb::Connection& connection,
-   const std::string& table_name,
-   ZstdFastaReader& file_reader,
-   std::string_view reference_sequence
-) {
-   initializeTable(connection, table_name);
-   std::optional<std::string> key;
-   std::string compressed;
-   duckdb::Appender appender(connection, table_name);
-   while (true) {
-      key = file_reader.nextCompressed(compressed);
-      if (key == std::nullopt) {
-         break;
-      }
-      const size_t compressed_size = compressed.size();
-      const auto* compressed_data = reinterpret_cast<const unsigned char*>(compressed.data());
-      const duckdb::string_t key_value = key.value();
-      appender.BeginRow();
-      appender.Append(key_value);
-      appender.Append(duckdb::Value::BLOB(compressed_data, compressed_size));
-      appender.EndRow();
-   }
-   appender.Close();
-   return {connection, table_name, reference_sequence};
-}
 
 ZstdTable ZstdTable::generate(
    duckdb::Connection& connection,
@@ -91,15 +63,6 @@ ZstdTable ZstdTable::generate(
    }
    appender.Close();
    return {connection, table_name, reference_sequence};
-}
-
-ZstdFastaTableReader ZstdTable::getReader(
-   std::string_view where_clause,
-   std::string_view order_by_clause
-) {
-   return ZstdFastaTableReader(
-      connection, table_name, compression_dict, "sequence", where_clause, order_by_clause
-   );
 }
 
 }  // namespace silo

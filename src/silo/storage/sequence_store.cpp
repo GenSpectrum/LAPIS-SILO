@@ -7,6 +7,7 @@
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/enumerable_thread_specific.h>
 #include <oneapi/tbb/parallel_for.h>
+#include <silo/common/table_reader.h>
 #include <spdlog/spdlog.h>
 #include <boost/lexical_cast.hpp>
 #include <roaring/roaring.hh>
@@ -18,7 +19,7 @@
 #include "silo/common/symbol_map.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/position.h"
-#include "silo/zstdfasta/zstdfasta_table_reader.h"
+#include <silo/zstd/zstd_decompressor.h>
 
 template <typename SymbolType>
 silo::SequenceStorePartition<SymbolType>::SequenceStorePartition(
@@ -32,31 +33,51 @@ silo::SequenceStorePartition<SymbolType>::SequenceStorePartition(
 }
 
 template <typename SymbolType>
-size_t silo::SequenceStorePartition<SymbolType>::fill(ZstdFastaTableReader& input) {
+size_t silo::SequenceStorePartition<SymbolType>::fill(
+      duckdb::Connection& connection,
+      std::string table_name,
+      std::string_view key_column,
+      std::string_view reference_sequence_string,
+      std::string_view where_clause,
+      std::string_view order_by_clause
+   ) {
    static constexpr size_t BUFFER_SIZE = 1024;
-
-   input.loadTable();
-
    size_t read_sequences_count = 0;
-
    std::vector<ReadSequence> reads_buffer;
+   auto decompressor = std::make_unique<ZstdDecompressor>(reference_sequence_string);
 
-   std::optional<std::string> key;
-   std::optional<std::string> sequence;
-   while (true) {
-      key = input.next(sequence);
-      if (!key) {
-         break;
-      }
-      reads_buffer.emplace_back(sequence /* , entry.offset after table reader refactor */);
-      if (reads_buffer.size() >= BUFFER_SIZE) {
+   const silo::ColumnFunction column_function{
+      table_name,
+      [&read_sequences_count, &reads_buffer, &decompressor, this](size_t row_id, const duckdb::Value& value) {
+         if (value.IsNull()) {
+            return;
+         }
+         auto decompressed = decompressor->decompress(value.GetValueUnsafe<std::string>());
+
+         ++read_sequences_count;
+
+         reads_buffer.emplace_back(decompressed /* , entry.offset after table reader refactor */);
+         if (reads_buffer.size() >= BUFFER_SIZE) {
+            interpret(reads_buffer);
+            reads_buffer.clear();
+            return;
+         }
+
          interpret(reads_buffer);
-         reads_buffer.clear();
       }
+   };
 
-      ++read_sequences_count;
-   }
-   interpret(reads_buffer);
+   silo::TableReader table_reader(
+      connection,
+      table_name,
+      key_column,
+      {column_function},
+      where_clause,
+      order_by_clause
+   );
+
+   table_reader.read();
+
    const SequenceStoreInfo info_before_optimisation = getInfo();
    optimizeBitmaps();
 

@@ -9,8 +9,6 @@ struct Connection;
 }
 
 namespace silo {
-class ZstdFastaReader;
-class ZstdFastaTableReader;
 class FastaReader;
 
 class ZstdTable {
@@ -25,15 +23,6 @@ class ZstdTable {
    );
 
   public:
-   ZstdFastaTableReader getReader(std::string_view where_clause, std::string_view order_by_clause);
-
-   static ZstdTable generate(
-      duckdb::Connection& connection,
-      const std::string& table_name,
-      ZstdFastaReader& file_reader,
-      std::string_view reference_sequence
-   );
-
    static ZstdTable generate(
       duckdb::Connection& connection,
       const std::string& table_name,

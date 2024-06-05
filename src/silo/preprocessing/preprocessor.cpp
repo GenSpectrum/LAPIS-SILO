@@ -17,9 +17,8 @@
 #include "silo/preprocessing/sql_function.h"
 #include "silo/storage/reference_genomes.h"
 #include "silo/storage/unaligned_sequence_store.h"
-#include "silo/zstdfasta/zstd_decompressor.h"
-#include "silo/zstdfasta/zstd_table.h"
-#include "silo/zstdfasta/zstdfasta_table_reader.h"
+#include "silo/zstd/zstd_decompressor.h"
+#include "silo/zstd/zstd_table.h"
 
 namespace silo::preprocessing {
 
@@ -627,7 +626,7 @@ void Preprocessor::buildNucleotideSequenceStore(
                   auto& nuc_sequence_store =
                      database.partitions.at(partition_index).nuc_sequences.at(nuc_name);
 
-                  silo::ZstdFastaTableReader sequence_input(
+                  nuc_sequence_store.fill(
                      preprocessing_db.getConnection(),
                      "nuc_" + nuc_name,
                      reference_sequence,
@@ -635,7 +634,6 @@ void Preprocessor::buildNucleotideSequenceStore(
                      fmt::format("partition_id = {}", partition_index),
                      order_by_clause
                   );
-                  nuc_sequence_store.fill(sequence_input);
 
                   const silo::ColumnFunction column_function{
                      nuc_name,
@@ -695,7 +693,7 @@ void Preprocessor::buildAminoAcidSequenceStore(
                   auto& aa_sequence_store =
                      database.partitions.at(partition_index).aa_sequences.at(aa_name);
 
-                  silo::ZstdFastaTableReader sequence_input(
+                  aa_sequence_store.fill(
                      preprocessing_db.getConnection(),
                      "gene_" + aa_name,
                      reference_sequence,
@@ -703,8 +701,6 @@ void Preprocessor::buildAminoAcidSequenceStore(
                      fmt::format("partition_id = {}", partition_index),
                      order_by_clause
                   );
-
-                  aa_sequence_store.fill(sequence_input);
 
                   const silo::ColumnFunction column_function{
                      aa_name,

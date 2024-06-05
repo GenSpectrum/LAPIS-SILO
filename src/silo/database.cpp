@@ -63,9 +63,8 @@
 #include "silo/storage/sequence_store.h"
 #include "silo/storage/serialize_optional.h"
 #include "silo/storage/unaligned_sequence_store.h"
-#include "silo/zstdfasta/zstd_decompressor.h"
-#include "silo/zstdfasta/zstd_table.h"
-#include "silo/zstdfasta/zstdfasta_table_reader.h"
+#include "silo/zstd/zstd_decompressor.h"
+#include "silo/zstd/zstd_table.h"
 
 namespace silo {
 

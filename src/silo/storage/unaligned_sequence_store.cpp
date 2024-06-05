@@ -16,7 +16,6 @@
 #include "silo/common/symbol_map.h"
 #include "silo/persistence/exception.h"
 #include "silo/preprocessing/preprocessing_exception.h"
-#include "silo/zstdfasta/zstdfasta_table_reader.h"
 
 silo::UnalignedSequenceStorePartition::UnalignedSequenceStorePartition(
    std::string sql_for_reading_file,

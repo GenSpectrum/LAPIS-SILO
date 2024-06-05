@@ -1,4 +1,4 @@
-#include "silo/zstdfasta/zstd_context.h"
+#include "silo/zstd/zstd_context.h"
 
 #include <memory>
 #include <utility>

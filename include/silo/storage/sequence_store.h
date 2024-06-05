@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <fmt/core.h>
+#include <silo/common/table_reader.h>
 #include <roaring/roaring.hh>
 
 #include "silo/common/aa_symbols.h"
@@ -24,7 +25,7 @@ class access;
 namespace silo {
 template <typename SymbolType>
 class Position;
-class ZstdFastaTableReader;
+class ZstdTableReader;
 
 struct SequenceStoreInfo {
    uint32_t sequence_count;
@@ -51,10 +52,10 @@ class SequenceStorePartition {
 
   public:
    struct ReadSequence {
-      std::optional<std::string> sequence;
+      std::optional<std::string_view> sequence;
       uint32_t offset;
 
-      ReadSequence(std::optional<std::string> _sequence, uint32_t _offset = 0)
+      ReadSequence(std::optional<std::string_view> _sequence, uint32_t _offset = 0)
           : sequence(std::move(_sequence)),
             offset(_offset) {}
    };
@@ -94,7 +95,14 @@ class SequenceStorePartition {
 
    [[nodiscard]] SequenceStoreInfo getInfo() const;
 
-   size_t fill(silo::ZstdFastaTableReader& input);
+   size_t fill(
+      duckdb::Connection& connection,
+      std::string table_name,
+      std::string_view key_column,
+      std::string_view reference_sequence_string,
+      std::string_view where_clause,
+      std::string_view order_by_clause
+   );
 
    void insertInsertion(size_t row_id, const std::string& insertion_and_position);
 
