@@ -20,6 +20,7 @@
 #include "silo/query_engine/operators/index_scan.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_parse_exception.h"
+#include "silo/query_engine/query_parse_sequence_name.h"
 #include "silo/storage/database_partition.h"
 
 namespace silo::query_engine::filter_expressions {
@@ -77,19 +78,12 @@ std::unique_ptr<silo::query_engine::operators::Operator> SymbolEquals<SymbolType
          "Database does not have a default sequence name for {} Sequences", SymbolType::SYMBOL_NAME
       )
    );
-   const std::string sequence_name_or_default =
-      sequence_name.has_value() ? sequence_name.value()
-                                : database.getDefaultSequenceName<SymbolType>().value();
-   CHECK_SILO_QUERY(
-      database.getSequenceStores<SymbolType>().contains(sequence_name_or_default),
-      fmt::format(
-         "Database does not contain the {} Sequence with name: '{}'",
-         SymbolType::SYMBOL_NAME,
-         sequence_name_or_default
-      )
-   )
+
+   const auto valid_sequence_name =
+      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, database);
+
    const auto& seq_store_partition =
-      database_partition.getSequenceStores<SymbolType>().at(sequence_name_or_default);
+      database_partition.getSequenceStores<SymbolType>().at(valid_sequence_name);
    if (position_idx >= seq_store_partition.reference_sequence.size()) {
       throw QueryParseException(
          "SymbolEquals position is out of bounds '" + std::to_string(position_idx + 1) + "' > '" +
@@ -107,7 +101,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> SymbolEquals<SymbolType
          std::back_inserter(symbol_filters),
          [&](SymbolType::Symbol symbol) {
             return std::make_unique<SymbolEquals<SymbolType>>(
-               sequence_name_or_default, position_idx, symbol
+               valid_sequence_name, position_idx, symbol
             );
          }
       );
@@ -120,7 +114,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> SymbolEquals<SymbolType
          position_idx
       );
       auto logical_equivalent = std::make_unique<SymbolEquals>(
-         sequence_name_or_default, position_idx, SymbolType::SYMBOL_MISSING
+         valid_sequence_name, position_idx, SymbolType::SYMBOL_MISSING
       );
       return std::make_unique<operators::BitmapSelection>(
          std::move(logical_equivalent),
@@ -137,7 +131,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> SymbolEquals<SymbolType
          position_idx
       );
       auto logical_equivalent_of_nested_index_scan = std::make_unique<Negation>(
-         std::make_unique<SymbolEquals>(sequence_name_or_default, position_idx, symbol)
+         std::make_unique<SymbolEquals>(valid_sequence_name, position_idx, symbol)
       );
       return std::make_unique<operators::Complement>(
          std::make_unique<operators::IndexScan>(
@@ -164,9 +158,9 @@ std::unique_ptr<silo::query_engine::operators::Operator> SymbolEquals<SymbolType
          symbols.end(),
          std::back_inserter(symbol_filters),
          [&](typename SymbolType::Symbol symbol) {
-            return std::make_unique<Negation>(std::make_unique<SymbolEquals<SymbolType>>(
-               sequence_name_or_default, position_idx, symbol
-            ));
+            return std::make_unique<Negation>(
+               std::make_unique<SymbolEquals<SymbolType>>(valid_sequence_name, position_idx, symbol)
+            );
          }
       );
       return And(std::move(symbol_filters)).compile(database, database_partition, NONE);
@@ -175,7 +169,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> SymbolEquals<SymbolType
       "Filtering for symbol '{}' at position {}", SymbolType::symbolToChar(symbol), position_idx
    );
    auto logical_equivalent =
-      std::make_unique<SymbolEquals>(sequence_name_or_default, position_idx, symbol);
+      std::make_unique<SymbolEquals>(valid_sequence_name, position_idx, symbol);
    return std::make_unique<operators::IndexScan>(
       std::move(logical_equivalent),
       seq_store_partition.getBitmap(position_idx, symbol),
