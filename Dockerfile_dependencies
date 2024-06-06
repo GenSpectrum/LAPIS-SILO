@@ -1,23 +1,28 @@
-FROM alpine:3.18
+FROM ubuntu:24.04
 
 ARG TARGETPLATFORM
 
-RUN apk update && apk add --no-cache py3-pip \
-    build-base=0.5-r3 \
-    cmake=3.26.5-r0 \
-    bash=5.2.15-r5 \
-    linux-headers=6.3-r0 \
-    boost-build=1.82.0-r0 \
-    libtbb=2021.9.0-r0
-
-RUN pip install conan==2.0.17
-
 WORKDIR /src
+
+RUN apt-get update \
+    && apt-get install -y \
+    cmake \
+    pipx \
+    build-essential \
+    gcc \
+    g++ \
+    && apt-get clean \
+    && apt-get autoremove --purge -y
+
+ENV PATH="/root/.local/bin:$PATH"
+RUN pipx install conan --pip-args="--no-cache-dir" --system-site-packages
+
 COPY conanfile.py conanprofile.docker conanprofile.docker_arm ./
+
 RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
-        mv conanprofile.docker_arm conanprofile; \
+    mv conanprofile.docker_arm conanprofile; \
     else \
-        mv conanprofile.docker conanprofile; \
+    mv conanprofile.docker conanprofile; \
     fi
 
 RUN conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build

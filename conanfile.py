@@ -5,18 +5,19 @@ from conan.tools.cmake import CMakeDeps
 class SiloRecipe(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
 
+    # Update regularly
     requires = [
-        "boost/1.82.0",
-        "duckdb/0.8.1",
-        "poco/1.12.4",
-        "hwloc/2.9.3",
-        "onetbb/2021.10.0",
-        "nlohmann_json/3.11.2",
-        "gtest/cci.20210126",
-        "roaring/1.0.0",
-        "spdlog/1.11.0",
-        "yaml-cpp/0.7.0",
-        "zstd/1.5.5",
+        "boost/1.83.0", # https://conan.io/center/recipes?value=boosta #FIXME: Serialization error with 1.84.0
+        "duckdb/0.8.1", # https://conan.io/center/recipes?value=duckdb #FIXME: test files only compatible with 0.8, need to EXPORT DATABASE in v0.8, then IMPORT DATABASE on the current version of DuckDB
+        "gtest/1.14.0", # https://conan.io/center/recipes?value=gtest
+        "hwloc/2.9.3", # https://conan.io/center/recipes?value=hwloc # BLOCKED: Pinned by onetbb <= 2021.12.0
+        "nlohmann_json/3.11.3", # https://conan.io/center/recipes?value=nlohmann_json
+        "onetbb/2021.12.0", # https://conan.io/center/recipes?value=onetbb
+        "poco/1.13.3", # https://conan.io/center/recipes?value=poco
+        "roaring/4.0.0", # https://conan.io/center/recipes?value=roaring
+        "spdlog/1.11.0", # https://conan.io/center/recipes?value=spdlog #FIXME: 1.12.0 fails with `error: implicit instantiation of undefined template` #TODO: holding back upgrade to 1.14.1
+        "yaml-cpp/0.8.0", # https://conan.io/center/recipes?value=yaml-cpp
+        "zstd/1.5.5", # https://conan.io/center/recipes?value=zstd #BLOCKED: Pinned by boost <=1.85.0
     ]
 
     default_options = {
