@@ -19,13 +19,11 @@ struct ColumnFunction {
 };
 
 class TableReader {
-  public:
-   std::vector<ColumnFunction> column_functions;
-   std::string table_name;
-
   private:
    duckdb::Connection& connection;
+   std::string table_name;
    std::string key_column;
+   std::vector<ColumnFunction> column_functions;
    std::string where_clause;
    std::string order_by_clause;
    std::unique_ptr<duckdb::MaterializedQueryResult> query_result;
