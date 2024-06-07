@@ -38,7 +38,8 @@ class Nucleotide {
    static constexpr std::string_view SYMBOL_NAME = "Nucleotide";
    static constexpr std::string_view SYMBOL_NAME_LOWER_CASE = "nucleotide";
    static constexpr std::string_view SYMBOL_NAME_UPPER_CASE = "NUCLEOTIDE";
-   static constexpr std::string_view SYMBOL_NAME_SHORT = "nuc";
+   static constexpr std::string_view SYMBOL_NAME_SHORT = "NUC";
+   static constexpr std::string_view PREFIX = "nuc_";
 
    static constexpr std::array<Symbol, COUNT> SYMBOLS{
       Symbol::GAP,

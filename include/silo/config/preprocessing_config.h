@@ -9,22 +9,35 @@
 
 #include <fmt/core.h>
 
-namespace silo::config {
-class AbstractConfig;
+#include "silo/config/util/abstract_config_source.h"
 
-const std::string INPUT_DIRECTORY_OPTION = "inputDirectory";
-const std::string OUTPUT_DIRECTORY_OPTION = "outputDirectory";
-const std::string INTERMEDIATE_RESULTS_DIRECTORY_OPTION = "intermediateResultsDirectory";
-const std::string PREPROCESSING_DATABASE_LOCATION = "preprocessingDatabaseLocation";
-const std::string PANGO_LINEAGE_DEFINITION_FILENAME_OPTION = "pangoLineageDefinitionFilename";
-const std::string NDJSON_INPUT_FILENAME_OPTION = "ndjsonInputFilename";
-const std::string METADATA_FILENAME_OPTION = "metadataFilename";
-const std::string REFERENCE_GENOME_FILENAME_OPTION = "referenceGenomeFilename";
-const std::string NUCLEOTIDE_SEQUENCE_PREFIX_OPTION = "nucleotideSequencePrefix";
-const std::string UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX_OPTION = "unalignedNucleotideSequencePrefix";
-const std::string GENE_PREFIX_OPTION = "genePrefix";
-const std::string NUCLEOTIDE_INSERTIONS_OPTION = "nucleotideInsertionsFilename";
-const std::string AMINO_ACID_INSERTIONS_OPTION = "aminoAcidInsertionsFilename";
+using silo::config::AbstractConfigSource;
+
+namespace silo::config {
+
+const AbstractConfigSource::Option INPUT_DIRECTORY_OPTION{{"inputDirectory"}};
+const AbstractConfigSource::Option OUTPUT_DIRECTORY_OPTION = {{"outputDirectory"}};
+const AbstractConfigSource::Option INTERMEDIATE_RESULTS_DIRECTORY_OPTION = {
+   {"intermediateResultsDirectory"}
+};
+const AbstractConfigSource::Option PREPROCESSING_DATABASE_LOCATION_OPTION = {
+   {"preprocessingDatabaseLocation"}
+};
+const AbstractConfigSource::Option PANGO_LINEAGE_DEFINITION_FILENAME_OPTION = {
+   {"pangoLineageDefinitionFilename"}
+};
+const AbstractConfigSource::Option NDJSON_INPUT_FILENAME_OPTION = {{"ndjsonInputFilename"}};
+const AbstractConfigSource::Option METADATA_FILENAME_OPTION = {{"metadataFilename"}};
+const AbstractConfigSource::Option REFERENCE_GENOME_FILENAME_OPTION = {{"referenceGenomeFilename"}};
+const AbstractConfigSource::Option NUCLEOTIDE_SEQUENCE_PREFIX_OPTION = {{"nucleotideSequencePrefix"}
+};
+const AbstractConfigSource::Option UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX_OPTION = {
+   {"unalignedNucleotideSequencePrefix"}
+};
+const AbstractConfigSource::Option GENE_PREFIX_OPTION = {{"genePrefix"}};
+const AbstractConfigSource::Option NUCLEOTIDE_INSERTIONS_OPTION = {{"nucleotideInsertionsFilename"}
+};
+const AbstractConfigSource::Option AMINO_ACID_INSERTIONS_OPTION = {{"aminoAcidInsertionsFilename"}};
 
 const std::string DEFAULT_OUTPUT_DIRECTORY = "./output/";
 
@@ -73,7 +86,7 @@ class PreprocessingConfig {
 
    [[nodiscard]] std::filesystem::path getAminoAcidInsertionsFilename() const;
 
-   void overwrite(const silo::config::AbstractConfig& config_reader);
+   void overwrite(const silo::config::AbstractConfigSource& config_reader);
 };
 
 }  // namespace silo::config

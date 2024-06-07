@@ -118,8 +118,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains<Sym
       "The field 'position' is required in an InsertionContains expression"
    )
    CHECK_SILO_QUERY(
-      json["position"].is_number_unsigned() && (json["position"].get<uint32_t>() > 0),
-      "The field 'position' in an InsertionContains expression needs to be a positive number (> 0)"
+      json["position"].is_number_unsigned(),
+      "The field 'position' in an InsertionContains expression needs to be an unsigned integer"
    )
    CHECK_SILO_QUERY(
       !json.contains("sequenceName") || json["sequenceName"].is_string(),

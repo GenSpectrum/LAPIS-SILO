@@ -5,51 +5,49 @@
 
 #include <spdlog/spdlog.h>
 
-#include "silo/config/util/abstract_config.h"
+#include "silo/config/util/abstract_config_source.h"
 
-namespace silo_api {
+namespace silo::config {
 
-void RuntimeConfig::overwrite(const silo::config::AbstractConfig& config) {
-   if (config.hasProperty(DATA_DIRECTORY_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using dataDirectory passed via {}: {}",
-         config.configType(),
-         config.getString(DATA_DIRECTORY_OPTION)
-      );
-      data_directory = config.getString(DATA_DIRECTORY_OPTION);
+void RuntimeConfig::overwrite(const silo::config::AbstractConfigSource& config) {
+   if (auto value = config.getString(DATA_DIRECTORY_OPTION)) {
+      SPDLOG_DEBUG("Using dataDirectory passed via {}: {}", config.configType(), *value);
+      api_options.data_directory = *value;
    }
-   if (config.hasProperty(MAX_CONNECTIONS_OPTION)) {
+   if (auto value = config.getInt32(MAX_CONNECTIONS_OPTION)) {
       SPDLOG_DEBUG(
-         "Using maximum queued http connections passed via {}: {}",
+         "Using {} passed via {}: {}",
+         MAX_CONNECTIONS_OPTION.toString(),
          config.configType(),
-         config.getInt32(MAX_CONNECTIONS_OPTION)
+         *value
       );
-      max_connections = config.getInt32(MAX_CONNECTIONS_OPTION);
+      api_options.max_connections = *value;
    }
-   if (config.hasProperty(PARALLEL_THREADS_OPTION)) {
+   if (auto value = config.getInt32(PARALLEL_THREADS_OPTION)) {
       SPDLOG_DEBUG(
-         "Using parallel threads for accepting http connections as passed via {}: {}",
+         "Using {} as passed via {}: {}",
+         PARALLEL_THREADS_OPTION.toString(),
          config.configType(),
-         config.getInt32(PARALLEL_THREADS_OPTION)
+         *value
       );
-      parallel_threads = config.getInt32(PARALLEL_THREADS_OPTION);
+      api_options.parallel_threads = *value;
    }
-   if (config.hasProperty(PORT_OPTION)) {
+   if (auto value = config.getUInt32(PORT_OPTION)) {
       SPDLOG_DEBUG(
-         "Using port passed via {}: {}", config.configType(), config.getString(PORT_OPTION)
+         "Using {} passed via {}: {}", PORT_OPTION.toString(), config.configType(), *value
       );
-      port = config.getUInt32(PORT_OPTION);
+      api_options.port = *value;
    }
-   if (config.hasProperty(ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION)) {
+   if (auto value = config.getInt32(ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION)) {
       SPDLOG_DEBUG(
-         "Using estimated startup time in minutes as passed via {}: {}",
+         "Using {} as passed via {}: {}",
+         ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION.toString(),
          config.configType(),
-         config.getString(ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION)
+         *value
       );
-      const std::chrono::minutes minutes =
-         std::chrono::minutes(config.getInt32(ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION));
-      estimated_startup_end = std::chrono::system_clock::now() + minutes;
+      const std::chrono::minutes minutes = std::chrono::minutes(*value);
+      api_options.estimated_startup_end = std::chrono::system_clock::now() + minutes;
    }
 }
 
-}  // namespace silo_api
+}  // namespace silo::config

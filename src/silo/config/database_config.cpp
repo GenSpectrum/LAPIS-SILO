@@ -179,16 +179,6 @@ ColumnType DatabaseMetadata::getColumnType() const {
    throw std::runtime_error("Did not find metadata with name: " + std::string(name));
 }
 
-std::string DatabaseSchema::getStrictOrderByClause() const {
-   if (date_to_sort_by.has_value()) {
-      SPDLOG_INFO("preprocessing - produce order by clause with a date to sort by");
-      return fmt::format("ORDER BY {}, {}", date_to_sort_by.value(), primary_key);
-   }
-
-   SPDLOG_INFO("preprocessing - produce order by clause without a date to sort by");
-   return fmt::format("ORDER BY {}", primary_key);
-}
-
 std::optional<DatabaseMetadata> DatabaseConfig::getMetadata(const std::string& name) const {
    auto element = std::find_if(
       std::begin(schema.metadata),

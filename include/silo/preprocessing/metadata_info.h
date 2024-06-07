@@ -2,34 +2,35 @@
 
 #include <filesystem>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 #include "silo/config/database_config.h"
 
 namespace silo::preprocessing {
 
-class PreprocessingDatabase;
-
 class MetadataInfo {
-   std::unordered_map<std::string, std::string> metadata_selects;
-
-   MetadataInfo(std::unordered_map<std::string, std::string> metadata_selects);
-
   public:
-   static MetadataInfo validateFromMetadataFile(
+   static void validateMetadataFile(
       const std::filesystem::path& metadata_file,
       const silo::config::DatabaseConfig& database_config
    );
 
-   static MetadataInfo validateFromNdjsonFile(
+   static void validateNdjsonFile(
       const std::filesystem::path& ndjson_file,
       const silo::config::DatabaseConfig& database_config
    );
 
-   std::vector<std::string> getMetadataFields() const;
+   static std::vector<std::string> getMetadataFields(
+      const silo::config::DatabaseConfig& database_config
+   );
 
-   std::vector<std::string> getMetadataSelects() const;
+   static std::vector<std::string> getMetadataSQLTypes(
+      const silo::config::DatabaseConfig& database_config
+   );
+
+   static std::vector<std::string> getMetadataSelects(
+      const silo::config::DatabaseConfig& database_config
+   );
 };
 
 }  // namespace silo::preprocessing

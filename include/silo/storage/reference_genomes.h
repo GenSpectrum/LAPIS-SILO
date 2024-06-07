@@ -28,6 +28,12 @@ struct ReferenceGenomes {
    static ReferenceGenomes readFromFile(const std::filesystem::path& reference_genomes_path);
 
    template <typename SymbolType>
+   std::vector<std::string> getSequenceNames() const;
+
+   template <typename SymbolType>
+   std::map<std::string, std::string> getRawSequenceMap() const;
+
+   template <typename SymbolType>
    static std::vector<typename SymbolType::Symbol> stringToVector(const std::string& string);
 
    template <typename SymbolType>

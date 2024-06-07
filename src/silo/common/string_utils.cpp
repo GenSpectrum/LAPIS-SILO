@@ -1,7 +1,11 @@
 #include "silo/common/string_utils.h"
 
 #include <algorithm>
+#include <cassert>
 #include <stdexcept>
+
+#include <fmt/format.h>
+#include <boost/algorithm/string/join.hpp>
 
 namespace silo {
 
@@ -40,4 +44,45 @@ std::vector<std::string> slice(const std::vector<std::string>& elements, size_t 
    }
    return sliced_elements;
 }
+
+std::vector<std::string> prepend(
+   std::string_view prefix,
+   const std::vector<std::string>& elements
+) {
+   std::vector<std::string> output;
+   output.reserve(elements.size());
+   for (const std::string& str : elements) {
+      output.emplace_back(fmt::format("{}{}", prefix, str));
+   }
+   return output;
+}
+
+std::vector<std::string> tie(
+   std::string_view prefix,
+   const std::vector<std::string>& elements1,
+   std::string_view delimiter,
+   const std::vector<std::string>& elements2,
+   std::string_view suffix
+) {
+   assert(elements1.size() == elements2.size());
+   std::vector<std::string> output;
+   output.reserve(elements1.size());
+   for (size_t i = 0; i < elements1.size(); ++i) {
+      output.emplace_back(
+         fmt::format("{}{}{}{}{}", prefix, elements1.at(i), delimiter, elements2.at(i), suffix)
+      );
+   }
+   return output;
+}
+
+std::string tieAsString(
+   std::string_view prefix,
+   const std::vector<std::string>& elements1,
+   std::string_view delimiter,
+   const std::vector<std::string>& elements2,
+   std::string_view suffix
+) {
+   return boost::join(tie(prefix, elements1, delimiter, elements2, suffix), "");
+}
+
 }  // namespace silo

@@ -5,7 +5,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include "silo/config/util/abstract_config.h"
+#include "silo/config/util/abstract_config_source.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
 namespace silo::config {
@@ -87,124 +87,120 @@ std::filesystem::path PreprocessingConfig::getAminoAcidInsertionsFilename() cons
    return input_directory / aa_insertions_filename;
 }
 
-void PreprocessingConfig::overwrite(const silo::config::AbstractConfig& config) {
-   if (config.hasProperty(INPUT_DIRECTORY_OPTION)) {
+void PreprocessingConfig::overwrite(const silo::config::AbstractConfigSource& config) {
+   if (auto value = config.getString(INPUT_DIRECTORY_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
-         INPUT_DIRECTORY_OPTION,
+         INPUT_DIRECTORY_OPTION.toString(),
          config.configType(),
-         config.getString(INPUT_DIRECTORY_OPTION)
+         *value
       );
-      input_directory = config.getString(INPUT_DIRECTORY_OPTION);
+      input_directory = *value;
    }
-   if (config.hasProperty(OUTPUT_DIRECTORY_OPTION)) {
+   if (auto value = config.getString(OUTPUT_DIRECTORY_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
-         OUTPUT_DIRECTORY_OPTION,
+         OUTPUT_DIRECTORY_OPTION.toString(),
          config.configType(),
-         config.getString(OUTPUT_DIRECTORY_OPTION)
+         *value
       );
-      output_directory = config.getString(OUTPUT_DIRECTORY_OPTION);
+      output_directory = *value;
    }
-   if (config.hasProperty(INTERMEDIATE_RESULTS_DIRECTORY_OPTION)) {
+   if (auto value = config.getString(INTERMEDIATE_RESULTS_DIRECTORY_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
-         INTERMEDIATE_RESULTS_DIRECTORY_OPTION,
+         INTERMEDIATE_RESULTS_DIRECTORY_OPTION.toString(),
          config.configType(),
-         config.getString(INTERMEDIATE_RESULTS_DIRECTORY_OPTION)
+         *value
       );
-      intermediate_results_directory = config.getString(INTERMEDIATE_RESULTS_DIRECTORY_OPTION);
+      intermediate_results_directory = *value;
    }
-   if (config.hasProperty(PREPROCESSING_DATABASE_LOCATION)) {
+   if (auto value = config.getString(PREPROCESSING_DATABASE_LOCATION_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
-         PREPROCESSING_DATABASE_LOCATION,
+         PREPROCESSING_DATABASE_LOCATION_OPTION.toString(),
          config.configType(),
-         config.getString(PREPROCESSING_DATABASE_LOCATION)
+         *value
       );
-      preprocessing_database_location = config.getString(PREPROCESSING_DATABASE_LOCATION);
+      preprocessing_database_location = *value;
    }
-   if (config.hasProperty(PANGO_LINEAGE_DEFINITION_FILENAME_OPTION)) {
+   if (auto value = config.getString(PANGO_LINEAGE_DEFINITION_FILENAME_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
-         PANGO_LINEAGE_DEFINITION_FILENAME_OPTION,
+         PANGO_LINEAGE_DEFINITION_FILENAME_OPTION.toString(),
          config.configType(),
-         config.getString(PANGO_LINEAGE_DEFINITION_FILENAME_OPTION)
+         *value
       );
-      pango_lineage_definition_file = config.getString(PANGO_LINEAGE_DEFINITION_FILENAME_OPTION);
+      pango_lineage_definition_file = *value;
    }
-   if (config.hasProperty(NDJSON_INPUT_FILENAME_OPTION)) {
+   if (auto value = config.getString(NDJSON_INPUT_FILENAME_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
-         NDJSON_INPUT_FILENAME_OPTION,
+         NDJSON_INPUT_FILENAME_OPTION.toString(),
          config.configType(),
-         config.getString(NDJSON_INPUT_FILENAME_OPTION)
+         *value
       );
-      ndjson_input_filename = config.getString(NDJSON_INPUT_FILENAME_OPTION);
+      ndjson_input_filename = *value;
    }
-   if (config.hasProperty(METADATA_FILENAME_OPTION)) {
+   if (auto value = config.getString(METADATA_FILENAME_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
-         METADATA_FILENAME_OPTION,
+         METADATA_FILENAME_OPTION.toString(),
          config.configType(),
-         config.getString(METADATA_FILENAME_OPTION)
+         *value
       );
-      metadata_file = config.getString(METADATA_FILENAME_OPTION);
+      metadata_file = *value;
    }
-   if (config.hasProperty(REFERENCE_GENOME_FILENAME_OPTION)) {
+   if (auto value = config.getString(REFERENCE_GENOME_FILENAME_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
-         REFERENCE_GENOME_FILENAME_OPTION,
+         REFERENCE_GENOME_FILENAME_OPTION.toString(),
          config.configType(),
-         config.getString(REFERENCE_GENOME_FILENAME_OPTION)
+         *value
       );
-      reference_genome_file = config.getString(REFERENCE_GENOME_FILENAME_OPTION);
+      reference_genome_file = *value;
    }
-   if (config.hasProperty(NUCLEOTIDE_SEQUENCE_PREFIX_OPTION)) {
+   if (auto value = config.getString(NUCLEOTIDE_SEQUENCE_PREFIX_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
-         NUCLEOTIDE_SEQUENCE_PREFIX_OPTION,
+         NUCLEOTIDE_SEQUENCE_PREFIX_OPTION.toString(),
          config.configType(),
-         config.getString(NUCLEOTIDE_SEQUENCE_PREFIX_OPTION)
+         *value
       );
-      nucleotide_sequence_prefix = config.getString(NUCLEOTIDE_SEQUENCE_PREFIX_OPTION);
+      nucleotide_sequence_prefix = *value;
    }
-   if (config.hasProperty(UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX_OPTION)) {
+   if (auto value = config.getString(UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
-         UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX_OPTION,
+         UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX_OPTION.toString(),
          config.configType(),
-         config.getString(UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX_OPTION)
+         *value
       );
-      unaligned_nucleotide_sequence_prefix =
-         config.getString(UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX_OPTION);
+      unaligned_nucleotide_sequence_prefix = *value;
    }
-   if (config.hasProperty(GENE_PREFIX_OPTION)) {
+   if (auto value = config.getString(GENE_PREFIX_OPTION)) {
       SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         GENE_PREFIX_OPTION,
-         config.configType(),
-         config.getString(GENE_PREFIX_OPTION)
+         "Using {} as passed via {}: {}", GENE_PREFIX_OPTION.toString(), config.configType(), *value
       );
-      gene_prefix = config.getString(GENE_PREFIX_OPTION);
+      gene_prefix = *value;
    }
-   if (config.hasProperty(NUCLEOTIDE_INSERTIONS_OPTION)) {
+   if (auto value = config.getString(NUCLEOTIDE_INSERTIONS_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
-         NUCLEOTIDE_INSERTIONS_OPTION,
+         NUCLEOTIDE_INSERTIONS_OPTION.toString(),
          config.configType(),
-         config.getString(NUCLEOTIDE_INSERTIONS_OPTION)
+         *value
       );
-      nuc_insertions_filename = config.getString(NUCLEOTIDE_INSERTIONS_OPTION);
+      nuc_insertions_filename = *value;
    }
-   if (config.hasProperty(AMINO_ACID_INSERTIONS_OPTION)) {
+   if (auto value = config.getString(AMINO_ACID_INSERTIONS_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
-         AMINO_ACID_INSERTIONS_OPTION,
+         AMINO_ACID_INSERTIONS_OPTION.toString(),
          config.configType(),
-         config.getString(AMINO_ACID_INSERTIONS_OPTION)
+         *value
       );
-      aa_insertions_filename = config.getString(AMINO_ACID_INSERTIONS_OPTION);
+      aa_insertions_filename = *value;
    }
 }
 

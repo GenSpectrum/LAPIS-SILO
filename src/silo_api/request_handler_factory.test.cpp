@@ -56,11 +56,11 @@ class RequestHandlerTestFixture : public ::testing::Test {
    void processRequest() { processRequest(under_test); }
 };
 
-silo_api::RuntimeConfig getRuntimeConfigThatEndsInXMinutes(
+silo::config::RuntimeConfig getRuntimeConfigThatEndsInXMinutes(
    std::chrono::minutes estimated_time_in_minutes
 ) {
    const std::chrono::time_point point = std::chrono::system_clock::now();
-   return {.estimated_startup_end = point + estimated_time_in_minutes};
+   return {.api_options = {.estimated_startup_end = point + estimated_time_in_minutes}};
 }
 
 static const int FOUR_MINUTES_IN_SECONDS = 240;

@@ -9,83 +9,83 @@
 #include "silo/preprocessing/preprocessing_exception.h"
 
 namespace {
+using silo::config::ValueType;
 
-std::unordered_map<std::string, std::string> validateFieldsAgainstConfig(
-   const std::unordered_map<std::string, std::string>& found_metadata_fields,
-   const silo::config::DatabaseConfig& database_config
-) {
-   std::vector<std::string> config_metadata_fields;
-   std::transform(
-      database_config.schema.metadata.begin(),
-      database_config.schema.metadata.end(),
-      std::back_inserter(config_metadata_fields),
-      [](auto metadata) { return metadata.name; }
-   );
-
-   std::unordered_map<std::string, std::string> validated_metadata_fields;
-   for (const auto& [field_name, access_path] : found_metadata_fields) {
-      if (std::find(config_metadata_fields.begin(), config_metadata_fields.end(), field_name) !=
-          config_metadata_fields.end()) {
-         validated_metadata_fields.emplace(field_name, access_path);
-      } else {
-         SPDLOG_WARN(
-            "Metadata field {} ({}), which is contained in the file is not contained in the "
-            "config.",
-            field_name,
-            access_path
-         );
-      }
+std::string toSQLType(ValueType value_type) {
+   switch (value_type) {
+      case ValueType::INT:
+         return "INT4";
+      case ValueType::STRING:
+      case ValueType::PANGOLINEAGE:
+         return "VARCHAR";
+      case ValueType::FLOAT:
+         return "FLOAT4";
+      case ValueType::BOOL:
+         return "BOOL";
+      case ValueType::DATE:
+         return "DATE";
    }
-   for (const std::string& name : config_metadata_fields) {
-      if (!validated_metadata_fields.contains(name)) {
-         throw silo::preprocessing::PreprocessingException(fmt::format(
-            "The metadata field '{}' which is contained in the database config is "
-            "not contained in the input.",
-            name
-         ));
-      }
-   }
-
-   std::string metadata_field_string;
-   for (const auto& [field_name, select] : validated_metadata_fields) {
-      metadata_field_string += "'";
-      metadata_field_string += field_name;
-      metadata_field_string += "' with selection '";
-      metadata_field_string += select;
-      metadata_field_string += "',";
-   }
-   SPDLOG_TRACE("Found metadata fields: " + metadata_field_string);
-   return validated_metadata_fields;
+   abort();
 }
 
 }  // namespace
 
 namespace silo::preprocessing {
 
-MetadataInfo::MetadataInfo(std::unordered_map<std::string, std::string> metadata_selects)
-    : metadata_selects(std::move(metadata_selects)) {}
-
-MetadataInfo MetadataInfo::validateFromMetadataFile(
+void MetadataInfo::validateMetadataFile(
    const std::filesystem::path& metadata_file,
    const silo::config::DatabaseConfig& database_config
 ) {
    duckdb::DuckDB duck_db(nullptr);
    duckdb::Connection connection(duck_db);
    // Get the column names (headers) of the table
-   auto result =
-      connection.Query(fmt::format("SELECT * FROM '{}' LIMIT 0", metadata_file.string()));
+   auto result = connection.Query(fmt::format(
+      "SELECT * FROM read_csv_auto('{}', delim = '\t', header = true) LIMIT 0",
+      metadata_file.string()
+   ));
 
-   std::unordered_map<std::string, std::string> file_metadata_fields;
-   for (size_t idx = 0; idx < result->ColumnCount(); idx++) {
-      file_metadata_fields[result->ColumnName(idx)] = "\"" + result->ColumnName(idx) + "\"";
+   if (result->HasError()) {
+      const std::string error_message = fmt::format(
+         "Preprocessing exception when retrieving the fields of the "
+         "metadata file '{}', "
+         "duckdb threw with error: {}",
+         metadata_file.string(),
+         result->GetError()
+      );
+      SPDLOG_ERROR(error_message);
+      throw silo::preprocessing::PreprocessingException(error_message);
    }
-   const std::unordered_map<std::string, std::string> validated_metadata_fields =
-      validateFieldsAgainstConfig(file_metadata_fields, database_config);
 
-   return {validated_metadata_fields};
+   std::set<std::string> actual_fields;
+   for (size_t idx = 0; idx < result->ColumnCount(); idx++) {
+      actual_fields.emplace(result->ColumnName(idx));
+      if (std::find_if(database_config.schema.metadata.begin(), database_config.schema.metadata.end(), [&](const auto& metadata) {
+             return metadata.name == result->ColumnName(idx);
+          }) == database_config.schema.metadata.end()) {
+         SPDLOG_WARN(
+            "The field '{}' which is contained in the metadata file '{}' is not contained in the "
+            "database config.",
+            result->ColumnName(idx),
+            metadata_file.string()
+         );
+      }
+   }
+
+   for (const auto& field : database_config.schema.metadata) {
+      if (!actual_fields.contains(field.name)) {
+         const std::string error_message = fmt::format(
+            "The field '{}' which is contained in the database config is not contained in the "
+            "input field '{}'.",
+            field.name,
+            metadata_file.string()
+         );
+         SPDLOG_ERROR(error_message);
+         throw silo::preprocessing::PreprocessingException(error_message);
+      }
+   }
 }
 
-MetadataInfo MetadataInfo::validateFromNdjsonFile(
+void MetadataInfo::validateNdjsonFile(
    const std::filesystem::path& ndjson_file,
    const silo::config::DatabaseConfig& database_config
 ) {
@@ -93,53 +93,81 @@ MetadataInfo MetadataInfo::validateFromNdjsonFile(
    duckdb::Connection connection(duck_db);
 
    auto result = connection.Query(fmt::format(
-      "SELECT json_keys(metadata) "
-      "FROM read_json_auto(\"{}\") LIMIT 1; ",
+      "SELECT metadata.* "
+      "FROM read_json_auto(\"{}\") LIMIT 0; ",
       ndjson_file.string()
    ));
+
    if (result->HasError()) {
-      throw silo::preprocessing::PreprocessingException(
-         "Preprocessing exception when retrieving the field 'metadata', "
-         "duckdb threw with error: " +
+      const std::string error_message = fmt::format(
+         "Preprocessing exception when retrieving the fields of the struct 'metadata' from the "
+         "metadata ndjson file '{}', "
+         "duckdb threw with error: {}",
+         ndjson_file.string(),
          result->GetError()
       );
-   }
-   if (result->RowCount() == 0) {
-      throw silo::preprocessing::PreprocessingException(fmt::format(
-         "File {} is empty, which must not be empty at this point", ndjson_file.string()
-      ));
-   }
-   if (result->RowCount() > 1) {
-      throw silo::preprocessing::PreprocessingException(
-         "Internal exception, expected Row Count=1, actual " + std::to_string(result->RowCount())
-      );
+      SPDLOG_ERROR(error_message);
+      throw PreprocessingException(error_message);
    }
 
-   std::unordered_map<std::string, std::string> metadata_fields_to_validate;
-   for (const std::string& metadata_field : preprocessing::extractStringListValue(*result, 0, 0)) {
-      metadata_fields_to_validate[metadata_field] = "metadata.\"" + metadata_field + "\"";
+   std::set<std::string> actual_fields;
+   for (size_t idx = 0; idx < result->ColumnCount(); idx++) {
+      actual_fields.emplace(result->ColumnName(idx));
+      if (std::find_if(database_config.schema.metadata.begin(), database_config.schema.metadata.end(), [&](const auto& metadata) {
+             return metadata.name == result->ColumnName(idx);
+          }) == database_config.schema.metadata.end()) {
+         SPDLOG_WARN(
+            "The field '{}' which is contained in the metadata file '{}' is not contained in the "
+            "database config.",
+            result->ColumnName(idx),
+            ndjson_file.string()
+         );
+      }
    }
 
-   const std::unordered_map<std::string, std::string> validated_metadata_fields =
-      validateFieldsAgainstConfig(metadata_fields_to_validate, database_config);
-
-   return {validated_metadata_fields};
+   for (const auto& field : database_config.schema.metadata) {
+      if (!actual_fields.contains(field.name)) {
+         const std::string error_message = fmt::format(
+            "The field '{}' which is contained in the database config is not contained in the "
+            "input field '{}'.",
+            field.name,
+            ndjson_file.string()
+         );
+         SPDLOG_ERROR(error_message);
+         throw silo::preprocessing::PreprocessingException(error_message);
+      }
+   }
 }
 
-std::vector<std::string> MetadataInfo::getMetadataFields() const {
+std::vector<std::string> MetadataInfo::getMetadataFields(
+   const silo::config::DatabaseConfig& database_config
+) {
    std::vector<std::string> ret;
-   ret.reserve(metadata_selects.size());
-   for (const auto& [field, _] : metadata_selects) {
-      ret.push_back("\"" + field + "\"");
+   ret.reserve(database_config.schema.metadata.size());
+   for (const auto& field : database_config.schema.metadata) {
+      ret.push_back("\"" + field.name + "\"");
    }
    return ret;
 }
 
-std::vector<std::string> MetadataInfo::getMetadataSelects() const {
+std::vector<std::string> MetadataInfo::getMetadataSQLTypes(
+   const silo::config::DatabaseConfig& database_config
+) {
    std::vector<std::string> ret;
-   ret.reserve(metadata_selects.size());
-   for (const auto& [field, select] : metadata_selects) {
-      ret.push_back(fmt::format(R"({} AS "{}")", select, field));
+   ret.reserve(database_config.schema.metadata.size());
+   for (const auto& field : database_config.schema.metadata) {
+      ret.push_back(fmt::format("\"{}\" {}", field.name, toSQLType(field.type)));
+   }
+   return ret;
+}
+
+std::vector<std::string> MetadataInfo::getMetadataSelects(
+   const silo::config::DatabaseConfig& database_config
+) {
+   std::vector<std::string> ret;
+   ret.reserve(database_config.schema.metadata.size());
+   for (const auto& field : database_config.schema.metadata) {
+      ret.push_back(fmt::format(R"( "metadata"."{0}" AS "{0}")", field.name));
    }
    return ret;
 }

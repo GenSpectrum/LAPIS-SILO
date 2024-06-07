@@ -17,8 +17,8 @@ class MockRequestHandler : public Poco::Net::HTTPRequestHandler {
    );
 };
 
-const silo_api::RuntimeConfig TEST_RUNTIME_CONFIG = {
-   .estimated_startup_end = std::chrono::system_clock::now()
+const silo::config::RuntimeConfig TEST_RUNTIME_CONFIG = {
+   .api_options{.estimated_startup_end = std::chrono::system_clock::now()}
 };
 
 }  // namespace

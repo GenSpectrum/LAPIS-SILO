@@ -4,7 +4,7 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/config/util/config_repository.h"
-#include "silo/config/util/yaml_config.h"
+#include "silo/config/util/yaml_file.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
 #include "silo/preprocessing/sql_function.h"
@@ -13,14 +13,14 @@
 namespace {
 
 struct Scenario {
-   std::string input_directory;
+   std::filesystem::path input_directory;
    uint expected_sequence_count;
    std::string query;
    nlohmann::json expected_query_result;
 };
 
 std::string printTestName(const ::testing::TestParamInfo<Scenario>& info) {
-   std::string name = "Dir_" + info.param.input_directory;
+   std::string name = "Dir_" + info.param.input_directory.string();
    std::replace(name.begin(), name.end(), '/', '_');
    return name;
 }
@@ -110,11 +110,119 @@ const Scenario NDJSON_WITH_SQL_KEYWORD_AS_FIELD = {
    )
 };
 
+const Scenario NDJSON_WITH_NUMERIC_NAMES = {
+   .input_directory = "testBaseData/numericNames/",
+   .expected_sequence_count = 2,
+   .query = R"(
+      {
+         "action": {
+            "type": "Aggregated",
+            "groupByFields": ["2"],
+            "orderByFields": ["2"]
+         },
+         "filterExpression": {
+            "type": "True"
+         }
+      }
+   )",
+   .expected_query_result = nlohmann::json::parse(
+      R"([
+         {"count": 1, "2": null},
+         {"count": 1, "2": "google.com"}
+   ])"
+   )
+};
+
 const Scenario TSV_FILE_WITH_SQL_KEYWORD_AS_FIELD = {
    .input_directory = "testBaseData/tsvWithSqlKeywordField/",
    .expected_sequence_count = NDJSON_WITH_SQL_KEYWORD_AS_FIELD.expected_sequence_count,
    .query = NDJSON_WITH_SQL_KEYWORD_AS_FIELD.query,
    .expected_query_result = NDJSON_WITH_SQL_KEYWORD_AS_FIELD.expected_query_result
+};
+
+const Scenario EMPTY_INPUT_TSV = {
+   .input_directory = "testBaseData/emptyInputTsv/",
+   .expected_sequence_count = 0,
+   .query = R"(
+      {
+         "action": {
+           "type": "Details"
+         },
+         "filterExpression": {
+            "type": "True"
+         }
+      }
+   )",
+   .expected_query_result = nlohmann::json::parse(R"(
+[])")
+};
+
+const Scenario EMPTY_INPUT_NDJSON = {
+   .input_directory = "testBaseData/emptyInputNdjson/",
+   .expected_sequence_count = 0,
+   .query = R"(
+      {
+         "action": {
+           "type": "Details"
+         },
+         "filterExpression": {
+            "type": "True"
+         }
+      }
+   )",
+   .expected_query_result = nlohmann::json::parse(R"(
+[])")
+};
+
+const Scenario NO_GENES = {
+   .input_directory = "testBaseData/noGenes/",
+   .expected_sequence_count = 30,
+   .query = R"(
+      {
+         "action": {
+           "type": "Aggregated"
+         },
+         "filterExpression": {
+            "type": "True"
+         }
+      }
+   )",
+   .expected_query_result = nlohmann::json::parse(R"(
+[{"count":30}])")
+};
+
+const Scenario NO_NUCLEOTIDE_SEQUENCES = {
+   .input_directory = "testBaseData/noNucleotideSequences/",
+   .expected_sequence_count = 30,
+   .query = R"(
+      {
+         "action": {
+           "type": "Aggregated"
+         },
+         "filterExpression": {
+            "type": "True"
+         }
+      }
+   )",
+   .expected_query_result = nlohmann::json::parse(R"(
+[{"count":30}])")
+};
+
+const Scenario NO_SEQUENCES = {
+   .input_directory = "testBaseData/noSequences/",
+   .expected_sequence_count = 30,
+   .query = R"(
+      {
+         "action": {
+           "type": "Aggregated"
+         },
+         "filterExpression": {
+            "type": "True"
+         }
+      }
+   )",
+   .expected_query_result = nlohmann::json::parse(R"(
+[{"count":30}])")
 };
 
 class PreprocessorTestFixture : public ::testing::TestWithParam<Scenario> {};
@@ -127,20 +235,25 @@ INSTANTIATE_TEST_SUITE_P(
       NDJSON_FILE_WITH_MISSING_SEGMENTS_AND_GENES,
       SAM_FILES,
       NDJSON_WITH_SQL_KEYWORD_AS_FIELD,
-      TSV_FILE_WITH_SQL_KEYWORD_AS_FIELD
+      TSV_FILE_WITH_SQL_KEYWORD_AS_FIELD,
+      NDJSON_WITH_NUMERIC_NAMES,
+      EMPTY_INPUT_TSV,
+      EMPTY_INPUT_NDJSON,
+      NO_GENES,
+      NO_NUCLEOTIDE_SEQUENCES,
+      NO_SEQUENCES
    ),
    printTestName
 );
 
-TEST_P(PreprocessorTestFixture, shouldProcessDataSetWithMissingSequences) {
+TEST_P(PreprocessorTestFixture, shouldProcessData) {
    const auto scenario = GetParam();
+   silo::config::PreprocessingConfig config{.input_directory = scenario.input_directory};
 
-   silo::config::PreprocessingConfig config;
-   config.overwrite(silo::config::YamlConfig(scenario.input_directory + "preprocessing_config.yaml")
-   );
+   config.overwrite(silo::config::YamlFile(scenario.input_directory / "preprocessing_config.yaml"));
 
    const auto database_config = silo::config::ConfigRepository().getValidatedConfig(
-      scenario.input_directory + "database_config.yaml"
+      scenario.input_directory / "database_config.yaml"
    );
 
    const auto reference_genomes =
@@ -155,7 +268,6 @@ TEST_P(PreprocessorTestFixture, shouldProcessDataSetWithMissingSequences) {
 
    const auto database_info = database.getDatabaseInfo();
 
-   EXPECT_GT(database_info.total_size, 0UL);
    EXPECT_EQ(database_info.sequence_count, scenario.expected_sequence_count);
 
    const silo::query_engine::QueryEngine query_engine(database);

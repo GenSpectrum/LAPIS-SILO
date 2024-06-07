@@ -10,7 +10,7 @@
 
 #include "silo/config/database_config.h"
 #include "silo/config/preprocessing_config.h"
-#include "silo/config/util/yaml_config.h"
+#include "silo/config/util/yaml_file.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
 #include "silo/preprocessing/preprocessor.h"

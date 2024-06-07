@@ -7,7 +7,7 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/config/util/config_repository.h"
-#include "silo/config/util/yaml_config.h"
+#include "silo/config/util/yaml_file.h"
 #include "silo/database_info.h"
 #include "silo/preprocessing/preprocessor.h"
 #include "silo/preprocessing/sql_function.h"
@@ -18,7 +18,7 @@ silo::Database buildTestDatabase() {
    const std::string input_directory{"./testBaseData/exampleDataset/"};
 
    silo::config::PreprocessingConfig config;
-   config.overwrite(silo::config::YamlConfig("./testBaseData/test_preprocessing_config.yaml"));
+   config.overwrite(silo::config::YamlFile("./testBaseData/test_preprocessing_config.yaml"));
 
    const auto database_config =
       silo::config::ConfigRepository().getValidatedConfig(input_directory + "database_config.yaml");
@@ -49,7 +49,7 @@ TEST(DatabaseTest, shouldSuccessfullyBuildDatabaseWithoutPartitionBy) {
    const std::string input_directory{"./testBaseData/"};
 
    silo::config::PreprocessingConfig config;
-   config.overwrite(silo::config::YamlConfig(input_directory + "test_preprocessing_config.yaml"));
+   config.overwrite(silo::config::YamlFile(input_directory + "test_preprocessing_config.yaml"));
 
    const auto database_config = silo::config::ConfigRepository().getValidatedConfig(
       input_directory + "test_database_config_without_partition_by.yaml"
