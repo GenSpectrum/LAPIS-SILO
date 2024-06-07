@@ -33,6 +33,19 @@ struct SequenceStoreInfo {
    size_t n_bitmaps_size;
 };
 
+struct ReadSequence {
+   bool is_valid = false;
+   std::string_view sequence;
+   uint32_t offset;
+
+   ReadSequence(std::string_view _sequence, uint32_t _offset = 0)
+       : sequence(std::move(_sequence)),
+         offset(_offset),
+         is_valid(true) {}
+
+   ReadSequence() {}
+};
+
 template <typename SymbolType>
 class SequenceStorePartition {
    friend class boost::serialization::access;
@@ -51,14 +64,6 @@ class SequenceStorePartition {
    }
 
   public:
-   struct ReadSequence {
-      std::optional<std::string_view> sequence;
-      uint32_t offset;
-
-      ReadSequence(std::optional<std::string_view> _sequence, uint32_t _offset = 0)
-          : sequence(std::move(_sequence)),
-            offset(_offset) {}
-   };
 
    const std::vector<typename SymbolType::Symbol>& reference_sequence;
    std::vector<std::pair<size_t, typename SymbolType::Symbol>>
@@ -82,6 +87,8 @@ class SequenceStorePartition {
    void optimizeBitmaps();
 
   public:
+   static constexpr size_t BUFFER_SIZE = 1024;
+   std::vector<ReadSequence> lazy_buffer;
    explicit SequenceStorePartition(
       const std::vector<typename SymbolType::Symbol>& reference_sequence
    );
@@ -103,6 +110,8 @@ class SequenceStorePartition {
       std::string_view where_clause,
       std::string_view order_by_clause
    );
+
+   ReadSequence& reserveRead(size_t row_id);
 
    void insertInsertion(size_t row_id, const std::string& insertion_and_position);
 

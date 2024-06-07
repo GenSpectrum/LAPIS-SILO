@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-using silo::AminoAcid;
+namespace silo {
 
 char AminoAcid::symbolToChar(AminoAcid::Symbol symbol) {
    switch (symbol) {
@@ -170,3 +170,9 @@ const silo::SymbolMap<AminoAcid, std::vector<AminoAcid::Symbol>> AminoAcid::AMBI
    {AminoAcid::Symbol::STOP, AminoAcid::Symbol::X},
    {AminoAcid::Symbol::X},
 }}};
+
+std::string AminoAcid::suffixWith(std::string_view suffix) {
+   return std::string(SYMBOL_NAME_SHORT).append(suffix);
+}
+
+} // namespace silo

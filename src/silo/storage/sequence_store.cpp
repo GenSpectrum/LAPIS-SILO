@@ -26,6 +26,7 @@ silo::SequenceStorePartition<SymbolType>::SequenceStorePartition(
    const std::vector<typename SymbolType::Symbol>& reference_sequence
 )
     : reference_sequence(reference_sequence) {
+   lazy_buffer.reserve(BUFFER_SIZE);
    positions.reserve(reference_sequence.size());
    for (const auto symbol : reference_sequence) {
       positions.emplace_back(Position<SymbolType>::fromInitiallyFlipped(symbol));
@@ -33,61 +34,16 @@ silo::SequenceStorePartition<SymbolType>::SequenceStorePartition(
 }
 
 template <typename SymbolType>
-size_t silo::SequenceStorePartition<SymbolType>::fill(
-      duckdb::Connection& connection,
-      std::string table_name,
-      std::string_view key_column,
-      std::string_view reference_sequence_string,
-      std::string_view where_clause,
-      std::string_view order_by_clause
-   ) {
-   static constexpr size_t BUFFER_SIZE = 1024;
-   size_t read_sequences_count = 0;
-   std::vector<ReadSequence> reads_buffer;
-   auto decompressor = std::make_unique<ZstdDecompressor>(reference_sequence_string);
+silo::ReadSequence& silo::SequenceStorePartition<SymbolType>::reserveRead(
+   size_t row_id
+) {
+   if (lazy_buffer.size() > BUFFER_SIZE) {
+      interpret(lazy_buffer);
+      lazy_buffer.clear();
+   }
 
-   const silo::ColumnFunction column_function{
-      table_name,
-      [&read_sequences_count, &reads_buffer, &decompressor, this](size_t row_id, const duckdb::Value& value) {
-         if (value.IsNull()) {
-            return;
-         }
-         auto decompressed = decompressor->decompress(value.GetValueUnsafe<std::string>());
-
-         ++read_sequences_count;
-
-         reads_buffer.emplace_back(decompressed /* , entry.offset after table reader refactor */);
-         if (reads_buffer.size() >= BUFFER_SIZE) {
-            interpret(reads_buffer);
-            reads_buffer.clear();
-            return;
-         }
-
-         interpret(reads_buffer);
-      }
-   };
-
-   silo::TableReader table_reader(
-      connection,
-      table_name,
-      key_column,
-      {column_function},
-      where_clause,
-      order_by_clause
-   );
-
-   table_reader.read();
-
-   const SequenceStoreInfo info_before_optimisation = getInfo();
-   optimizeBitmaps();
-
-   SPDLOG_DEBUG(
-      "Sequence store partition info after filling it: {}, and after optimising: {}",
-      info_before_optimisation,
-      getInfo()
-   );
-
-   return read_sequences_count;
+   lazy_buffer.emplace_back();
+   return lazy_buffer.back();
 }
 
 namespace {
@@ -139,6 +95,9 @@ void silo::SequenceStorePartition<SymbolType>::insertInsertion(
 
 template <typename SymbolType>
 void silo::SequenceStorePartition<SymbolType>::finalize() {
+   interpret(lazy_buffer);
+   lazy_buffer.clear();
+
    SPDLOG_DEBUG("Building insertion index");
 
    insertion_index.buildIndex();
@@ -196,11 +155,11 @@ void silo::SequenceStorePartition<SymbolType>::fillIndexes(const std::vector<Rea
          for (size_t position_idx = local.begin(); position_idx != local.end(); ++position_idx) {
             const size_t number_of_sequences = reads.size();
             for (size_t sequence_id = 0; sequence_id < number_of_sequences; ++sequence_id) {
-               const auto& [sequence, offset] = reads[sequence_id];
-               if (!sequence.has_value() || position_idx < offset) {
+               const auto& [is_valid, sequence, offset] = reads[sequence_id];
+               if (!is_valid || position_idx < offset) {
                   continue;
                }
-               const char character = sequence.value()[position_idx - offset];
+               const char character = sequence[position_idx - offset];
                const auto symbol = SymbolType::charToSymbol(character);
                if (!symbol.has_value()) {
                   throw silo::preprocessing::PreprocessingException(
@@ -246,18 +205,16 @@ void silo::SequenceStorePartition<SymbolType>::fillNBitmaps(const std::vector<Re
    tbb::parallel_for(range, [&](const decltype(range)& local) {
       std::vector<uint32_t> positions_with_symbol_missing;
       for (size_t sequence_index = local.begin(); sequence_index != local.end(); ++sequence_index) {
-         const auto& [maybe_sequence, offset] = reads[sequence_index];
+         const auto& [is_valid, maybe_sequence, offset] = reads[sequence_index];
 
-         if (!maybe_sequence.has_value()) {
+         if (!is_valid) {
             missing_symbol_bitmaps[sequence_count + sequence_index].addRange(0, genome_length);
             missing_symbol_bitmaps[sequence_count + sequence_index].runOptimize();
             continue;
          }
 
-         const auto& genome = maybe_sequence.value();
-
          for (size_t position_idx = offset; position_idx < genome_length; ++position_idx) {
-            const char character = genome[position_idx - offset];
+            const char character = maybe_sequence[position_idx - offset];
             const auto symbol = SymbolType::charToSymbol(character);
             if (symbol == SymbolType::SYMBOL_MISSING) {
                positions_with_symbol_missing.push_back(position_idx);

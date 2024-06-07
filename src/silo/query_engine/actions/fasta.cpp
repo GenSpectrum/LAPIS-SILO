@@ -109,7 +109,7 @@ void addSequencesFromResultTableToJson(
       auto decompressor = std::make_unique<ZstdDecompressor>(compression_dict);
 
 
-      std::optional<std::string> genome_buffer;
+      std::string genome_buffer;
 
       const size_t start_of_partition_in_result = results.query_result.size() - number_of_values;
       const size_t end_of_partition_in_result = results.query_result.size();
@@ -120,12 +120,12 @@ void addSequencesFromResultTableToJson(
          result_table_name,
          [&start_of_partition_in_result, &end_of_partition_in_result, &decompressor, &genome_buffer, &sequence_name, &results, &idx](size_t row_id, const duckdb::Value& value) {
             if (idx >= end_of_partition_in_result) {
-               return; // does not break outer scan early unfortunately
+               return; // does not break outer scan early unfortunately - maybe add return value check
             }
-            assert(!value.IsNull()); // should check key instead I know - maybe add return value check
-            genome_buffer = decompressor->decompress(value.GetValueUnsafe<std::string>());
-            if (genome_buffer.has_value()) {
-               results.query_result.at(idx).fields.emplace(sequence_name, *genome_buffer);
+            assert(!value.IsNull()); // should check key instead I know
+            decompressor->decompress(value.GetValueUnsafe<std::string>(), genome_buffer);
+            if (!genome_buffer.empty()) {
+               results.query_result.at(idx).fields.emplace(sequence_name, genome_buffer);
             } else {
                results.query_result.at(idx).fields.emplace(sequence_name, std::nullopt);
             }
