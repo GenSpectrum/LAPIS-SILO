@@ -45,7 +45,7 @@ class PreprocessingDatabase {
    ZstdTable generateSequenceTableViaFile(
       const std::string& table_name,
       const std::string& reference_sequence,
-      std::filesystem::path filename
+      std::filesystem::path file_path
    );
 
    ZstdTable generateSequenceTableFromFasta(

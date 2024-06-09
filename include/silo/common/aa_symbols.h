@@ -100,8 +100,6 @@ class AminoAcid {
    static std::optional<std::vector<Symbol>> stringToSymbolVector(const std::string& sequence);
 
    static std::optional<char> findIllegalChar(const std::string& sequence);
-
-   static std::string suffixWith(std::string_view suffix);
 };
 
 }  // namespace silo

@@ -154,9 +154,4 @@ const silo::SymbolMap<Nucleotide, std::vector<Nucleotide::Symbol>> Nucleotide::A
    {Nucleotide::Symbol::V},
    {Nucleotide::Symbol::N},
 }}};
-
-std::string Nucleotide::suffixWith(std::string_view suffix) {
-   return std::string(SYMBOL_NAME_SHORT).append(suffix);
-}
-
 }  // namespace silo

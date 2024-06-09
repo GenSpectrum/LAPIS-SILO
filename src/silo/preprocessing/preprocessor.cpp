@@ -6,7 +6,7 @@
 #include <boost/algorithm/string/join.hpp>
 
 #include "silo/common/block_timer.h"
-#include "silo/common/fasta_reader.h"
+#include "silo/file_reader/fasta_reader.h"
 #include "silo/common/string_utils.h"
 #include "silo/common/table_reader.h"
 #include "silo/config/preprocessing_config.h"
@@ -98,10 +98,12 @@ Database Preprocessor::preprocess() {
       buildPartitioningTable();
       SPDLOG_DEBUG("preprocessing - creating insertions tables for building SILO");
       createInsertionsTableFromFile(
+         nuc_sequences,
          preprocessing_config.getNucleotideInsertionsFilename(),
          getInsertionsTableName<Nucleotide>()
       );
       createInsertionsTableFromFile(
+         aa_sequences,
          preprocessing_config.getAminoAcidInsertionsFilename(),
          getInsertionsTableName<AminoAcid>()
       );
@@ -395,7 +397,7 @@ void Preprocessor::createAlignedPartitionedSequenceViews(const std::filesystem::
    for (const auto& prefixed_nuc_name : prefixed_nuc_sequences) {
       (void)preprocessing_db.query(fmt::format(
          "CREATE OR REPLACE VIEW {0} AS\n"
-         "SELECT key, {0} AS sequence, partition_id, {1} "
+         "SELECT key, struct_pack(\"position\" := 0, sequence := {0}) AS read, partition_id, {1} "
          "FROM sequence_table;",
          prefixed_nuc_name,
          boost::join(prefixed_order_by_fields, ",")
@@ -405,7 +407,7 @@ void Preprocessor::createAlignedPartitionedSequenceViews(const std::filesystem::
    for (const auto& prefixed_aa_name : prefixed_aa_sequences) {
       (void)preprocessing_db.query(fmt::format(
          "CREATE OR REPLACE VIEW {0} AS\n"
-         "SELECT key, {0} AS sequence, partition_id, {1} "
+         "SELECT key, struct_pack(\"position\" := 0, sequence := {0}) AS read, partition_id, {1} "
          "FROM sequence_table;",
          prefixed_aa_name,
          boost::join(prefixed_order_by_fields, ",")
@@ -533,7 +535,7 @@ void Preprocessor::createPartitionedSequenceTablesFromSequenceFiles() {
       createUnalignedPartitionedSequenceFile(
          sequence_name,
          fmt::format(
-            "SELECT unaligned_tmp.key AS key, unaligned_tmp.sequence AS unaligned_nuc_{}, "
+            "SELECT unaligned_tmp.key AS key, unaligned_tmp.read AS unaligned_nuc_{}, "
             "partitioned_metadata.partition_id AS partition_id "
             "FROM unaligned_tmp RIGHT JOIN partitioned_metadata "
             "ON unaligned_tmp.key = partitioned_metadata.\"{}\" ",
@@ -569,7 +571,7 @@ void Preprocessor::createPartitionedTableForSequence(
    (void)preprocessing_db.query(fmt::format(
       R"-(
          CREATE OR REPLACE VIEW {} AS
-         SELECT key, sequence,
+         SELECT key, read,
          partitioned_metadata.partition_id AS partition_id {}
          FROM {} AS raw RIGHT JOIN partitioned_metadata
          ON raw.key = partitioned_metadata."{}";
@@ -692,24 +694,27 @@ void Preprocessor::buildSequenceStore(
                   ZstdDecompressor decompressor(reference_sequence);
 
                   const silo::ColumnFunction column_function_reads{
-                     sequence_name,
+                     "read",
                      [&sequence_store, &decompressor](size_t row_id, const duckdb::Value& value) {
                         ReadSequence& target = sequence_store.reserveRead(row_id);
                         if (value.IsNull()) {
                            return;
                         }
                         const auto& children = duckdb::StructValue::GetChildren(value);
+                        if (children[1].IsNull()) {
+                           return;
+                        }
                         std::string sequence;
-                        decompressor.decompress(children[1].GetValue<std::string>(), sequence);
-                        target.sequence = sequence;
+                        decompressor.decompress(children[1].GetValueUnsafe<std::string>(), sequence);
                         target.offset = children[0].GetValue<uint32_t>();
+                        target.sequence = sequence;
                         target.is_valid = true;
                      }
                   };
 
                   silo::TableReader(
                      preprocessing_db.getConnection(),
-                     SymbolType::suffixWith("_" + sequence_name),
+                     fmt::format("{}{}", SymbolType::PREFIX, sequence_name),
                      "key",
                      {column_function_reads},
                      fmt::format("partition_id = {}", partition_index),

@@ -16,7 +16,7 @@ void initializeTable(duckdb::Connection& connection, std::string table_name) {
    return_value = connection.Query(fmt::format(
       "CREATE TABLE {} ("
       "    key STRING,"
-      "    read STRUCT(offset UINTEGER, sequence BLOB)"
+      "    read STRUCT(position UINTEGER, sequence BLOB)"
       ");",
       table_name
    ));
@@ -58,7 +58,10 @@ ZstdTable ZstdTable::generate(
       const duckdb::string_t key_value = entry->key;
       appender.BeginRow();
       appender.Append(key_value);
-      appender.Append(duckdb::Value::BLOB(compressed_data, compressed.size()));
+      appender.Append(duckdb::Value::STRUCT({
+         {"\"offset\"", duckdb::Value::UINTEGER(entry.value().offset)},
+         {"sequence", duckdb::Value::BLOB(compressed_data, compressed.size())}
+      }));
       appender.EndRow();
    }
    appender.Close();

@@ -25,8 +25,8 @@ using duckdb::Value;
 
 namespace silo::preprocessing {
 
-constexpr std::string_view FASTA_EXTENSION = ".fasta";
-constexpr std::string_view SAM_EXTENSION = ".sam";
+constexpr std::string_view FASTA_EXTENSION = "fasta";
+constexpr std::string_view SAM_EXTENSION = "sam";
 
 PreprocessingDatabase::PreprocessingDatabase(
    const std::optional<std::filesystem::path>& backing_file,
@@ -114,16 +114,32 @@ preprocessing::Partitions PreprocessingDatabase::getPartitionDescriptor() {
 ZstdTable PreprocessingDatabase::generateSequenceTableViaFile(
    const std::string& table_name,
    const std::string& reference_sequence,
-   std::filesystem::path filename
+   std::filesystem::path file_path
 ) {
-   auto file = filename.replace_extension(FASTA_EXTENSION);
-   if (std::filesystem::exists(file)) {
-      return generateSequenceTableFromFasta(table_name, reference_sequence, file);
+   const auto file_stem = file_path.stem().string();
+   for (const auto & entry : std::filesystem::directory_iterator(file_path.parent_path())) {
+      const auto entry_file_name = entry.path().filename().string();
+      if (!entry.is_regular_file() || !entry_file_name.starts_with(file_stem)) {
+         continue;
+      }
+      auto extensions = splitBy(entry_file_name, ".");
+      auto last = extensions.back();
+      if (last == "zst" || last == "xz") {
+         extensions.pop_back();
+         last = extensions.back();
+      }
+      if (last == FASTA_EXTENSION) {
+         return generateSequenceTableFromFasta(table_name, reference_sequence, entry.path());
+      }
+      if (last == SAM_EXTENSION) {
+         return generateSequenceTableFromSAM(table_name, reference_sequence, entry.path());
+      }
    }
-   file = filename.replace_extension(SAM_EXTENSION);
-   if (std::filesystem::exists(file)) {
-      return generateSequenceTableFromSAM(table_name, reference_sequence, file);
-   }
+
+   throw PreprocessingException(
+      fmt::format("Could not find reference file for {}, tried file extensions: .fasta(.zst,.xz), .sam(.zst,.xz)",
+      file_path.string())
+   );
 }
 
 ZstdTable PreprocessingDatabase::generateSequenceTableFromFasta(
