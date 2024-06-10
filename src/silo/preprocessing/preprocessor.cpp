@@ -134,7 +134,7 @@ void Preprocessor::buildTablesFromNdjsonInput(const std::filesystem::path& file_
       );
    }
 
-   if (std::filesystem::is_empty(file_name)) {
+   if (MetadataInfo::isNdjsonFileEmpty(file_name)) {
       SPDLOG_WARN(
          "The specified input file {} is empty. Ignoring its content.", file_name.string()
       );
@@ -325,7 +325,7 @@ void Preprocessor::createPartitionedSequenceTablesFromNdjson(const std::filesyst
 
 void Preprocessor::createAlignedPartitionedSequenceViews(const std::filesystem::path& file_name) {
    std::string file_reader_sql;
-   if (std::filesystem::is_empty(file_name)) {
+   if (MetadataInfo::isNdjsonFileEmpty(file_name)) {
       file_reader_sql = fmt::format(
          "SELECT ''::VARCHAR AS key, 'NULL'::VARCHAR AS partition_key {} {} {} {} {} LIMIT 0",
          boost::join(silo::prepend(", ''::VARCHAR AS ", prefixed_nuc_sequences), ""),
@@ -419,7 +419,7 @@ void Preprocessor::createAlignedPartitionedSequenceViews(const std::filesystem::
 void Preprocessor::createUnalignedPartitionedSequenceFiles(const std::filesystem::path& file_name) {
    for (const auto& [seq_name, _] : reference_genomes_.raw_nucleotide_sequences) {
       const std::string file_reader_sql =
-         std::filesystem::is_empty(file_name)
+         MetadataInfo::isNdjsonFileEmpty(file_name)
             ? fmt::format(
                  "SELECT ''::VARCHAR AS key, 'NULL'::VARCHAR as partition_key,"
                  " ''::VARCHAR AS unaligned_nuc_{} LIMIT 0",
