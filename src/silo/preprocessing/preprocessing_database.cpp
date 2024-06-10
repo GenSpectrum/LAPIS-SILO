@@ -117,7 +117,7 @@ ZstdTable PreprocessingDatabase::generateSequenceTableViaFile(
    std::filesystem::path file_path
 ) {
    const auto file_stem = file_path.stem().string();
-   for (const auto & entry : std::filesystem::directory_iterator(file_path.parent_path())) {
+   for (const auto& entry : std::filesystem::directory_iterator(file_path.parent_path())) {
       const auto entry_file_name = entry.path().filename().string();
       if (!entry.is_regular_file() || !entry_file_name.starts_with(file_stem)) {
          continue;
@@ -136,10 +136,11 @@ ZstdTable PreprocessingDatabase::generateSequenceTableViaFile(
       }
    }
 
-   throw PreprocessingException(
-      fmt::format("Could not find reference file for {}, tried file extensions: .fasta(.zst,.xz), .sam(.zst,.xz)",
-      file_path.string())
-   );
+   throw PreprocessingException(fmt::format(
+      "Could not find reference file for {}, tried file extensions: .fasta(.zst,.xz), "
+      ".sam(.zst,.xz)",
+      file_path.string()
+   ));
 }
 
 ZstdTable PreprocessingDatabase::generateSequenceTableFromFasta(

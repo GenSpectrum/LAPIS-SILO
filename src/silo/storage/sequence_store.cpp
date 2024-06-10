@@ -12,6 +12,7 @@
 #include <boost/lexical_cast.hpp>
 #include <roaring/roaring.hh>
 
+#include <silo/zstd/zstd_decompressor.h>
 #include "silo/common/aa_symbols.h"
 #include "silo/common/format_number.h"
 #include "silo/common/nucleotide_symbols.h"
@@ -19,7 +20,6 @@
 #include "silo/common/symbol_map.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/position.h"
-#include <silo/zstd/zstd_decompressor.h>
 
 template <typename SymbolType>
 silo::SequenceStorePartition<SymbolType>::SequenceStorePartition(
@@ -34,9 +34,7 @@ silo::SequenceStorePartition<SymbolType>::SequenceStorePartition(
 }
 
 template <typename SymbolType>
-silo::ReadSequence& silo::SequenceStorePartition<SymbolType>::reserveRead(
-   size_t row_id
-) {
+silo::ReadSequence& silo::SequenceStorePartition<SymbolType>::reserveRead(size_t row_id) {
    if (lazy_buffer.size() > BUFFER_SIZE) {
       interpret(lazy_buffer);
       lazy_buffer.clear();

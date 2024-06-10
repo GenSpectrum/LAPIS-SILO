@@ -5,11 +5,11 @@
 #include <duckdb.hpp>
 #include <nlohmann/json.hpp>
 
+#include <silo/zstd/zstd_table_reader.h>
 #include "silo/database.h"
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
-#include <silo/zstd/zstd_table_reader.h>
 
 namespace silo {
 class Database;
@@ -116,7 +116,6 @@ void addSequencesFromResultTableToJson(
       );
       table_reader.loadTable();
       std::optional<std::string> genome_buffer;
-
 
       const size_t start_of_partition_in_result = results.query_result.size() - number_of_values;
       const size_t end_of_partition_in_result = results.query_result.size();

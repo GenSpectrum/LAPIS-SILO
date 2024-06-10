@@ -16,7 +16,11 @@ void ZstdDecompressor::decompress(const std::string& input, std::string& buffer)
    return decompress(input.data(), input.size(), buffer);
 }
 
-void ZstdDecompressor::decompress(const char* input_data, size_t input_length, std::string& buffer) {
+void ZstdDecompressor::decompress(
+   const char* input_data,
+   size_t input_length,
+   std::string& buffer
+) {
    const size_t uncompressed_size = ZSTD_getFrameContentSize(input_data, input_length);
    if (uncompressed_size == ZSTD_CONTENTSIZE_UNKNOWN) {
       throw std::runtime_error(fmt::format(

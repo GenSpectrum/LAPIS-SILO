@@ -6,12 +6,12 @@
 #include <boost/algorithm/string/join.hpp>
 
 #include "silo/common/block_timer.h"
-#include "silo/file_reader/fasta_reader.h"
 #include "silo/common/string_utils.h"
 #include "silo/common/table_reader.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
+#include "silo/file_reader/fasta_reader.h"
 #include "silo/preprocessing/metadata_info.h"
 #include "silo/preprocessing/preprocessing_database.h"
 #include "silo/preprocessing/preprocessing_exception.h"
@@ -705,7 +705,9 @@ void Preprocessor::buildSequenceStore(
                            return;
                         }
                         std::string sequence;
-                        decompressor.decompress(children[1].GetValueUnsafe<std::string>(), sequence);
+                        decompressor.decompress(
+                           children[1].GetValueUnsafe<std::string>(), sequence
+                        );
                         target.offset = children[0].GetValue<uint32_t>();
                         target.sequence = sequence;
                         target.is_valid = true;

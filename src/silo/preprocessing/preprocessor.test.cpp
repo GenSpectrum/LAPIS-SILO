@@ -53,6 +53,8 @@ const Scenario FASTA_FILES_WITH_MISSING_SEGMENTS_AND_GENES = {
 }])")
 };
 
+// First 10 characters of sequence in nuc_main.sam have been removed
+// This is to test the offset (set to 10 for both reads)
 const Scenario SAM_FILES = {
    .input_directory = "testBaseData/samFiles/",
    .expected_sequence_count = 2,

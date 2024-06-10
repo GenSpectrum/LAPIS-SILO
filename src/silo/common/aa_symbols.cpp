@@ -170,4 +170,4 @@ const silo::SymbolMap<AminoAcid, std::vector<AminoAcid::Symbol>> AminoAcid::AMBI
    {AminoAcid::Symbol::STOP, AminoAcid::Symbol::X},
    {AminoAcid::Symbol::X},
 }}};
-} // namespace silo
+}  // namespace silo

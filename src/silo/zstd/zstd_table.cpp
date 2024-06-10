@@ -37,7 +37,6 @@ ZstdTable::ZstdTable(
       table_name(std::move(table_name)),
       compression_dict(compression_dict) {}
 
-
 ZstdTable ZstdTable::generate(
    duckdb::Connection& connection,
    const std::string& table_name,
@@ -58,10 +57,10 @@ ZstdTable ZstdTable::generate(
       const duckdb::string_t key_value = entry->key;
       appender.BeginRow();
       appender.Append(key_value);
-      appender.Append(duckdb::Value::STRUCT({
-         {"\"offset\"", duckdb::Value::UINTEGER(entry.value().offset)},
-         {"sequence", duckdb::Value::BLOB(compressed_data, compressed.size())}
-      }));
+      appender.Append(duckdb::Value::STRUCT(
+         {{"\"offset\"", duckdb::Value::UINTEGER(entry.value().offset)},
+          {"sequence", duckdb::Value::BLOB(compressed_data, compressed.size())}}
+      ));
       appender.EndRow();
    }
    appender.Close();
