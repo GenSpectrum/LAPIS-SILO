@@ -64,7 +64,6 @@ class SequenceStorePartition {
    }
 
   public:
-
    const std::vector<typename SymbolType::Symbol>& reference_sequence;
    std::vector<std::pair<size_t, typename SymbolType::Symbol>>
       indexing_differences_to_reference_sequence;
