@@ -15,6 +15,7 @@ class MetadataInfo {
       const silo::config::DatabaseConfig& database_config
    );
 
+   static bool isNdjsonFileEmpty(const std::filesystem::path& ndjson_file);
    static void validateNdjsonFile(
       const std::filesystem::path& ndjson_file,
       const silo::config::DatabaseConfig& database_config

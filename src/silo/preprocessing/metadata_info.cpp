@@ -85,6 +85,21 @@ void MetadataInfo::validateMetadataFile(
    }
 }
 
+bool MetadataInfo::isNdjsonFileEmpty(const std::filesystem::path& ndjson_file) {
+   duckdb::DuckDB duck_db(nullptr);
+   duckdb::Connection connection(duck_db);
+
+   auto result = connection.Query(fmt::format(
+      "SELECT COUNT(*) "
+      "FROM read_json_auto(\"{}\");",
+      ndjson_file.string()
+   ));
+
+   auto row_count_value = result->GetValue<int64_t>(0, 0);
+   const int64_t row_count = duckdb::BigIntValue::Get(row_count_value);
+   return row_count == 0;
+}
+
 void MetadataInfo::validateNdjsonFile(
    const std::filesystem::path& ndjson_file,
    const silo::config::DatabaseConfig& database_config

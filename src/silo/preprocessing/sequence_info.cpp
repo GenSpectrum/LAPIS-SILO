@@ -2,6 +2,7 @@
 
 #include <duckdb.hpp>
 
+#include "silo/preprocessing/metadata_info.h"
 #include "silo/preprocessing/preprocessing_database.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/preprocessing/sql_function.h"
@@ -106,7 +107,7 @@ void SequenceInfo::validateNdjsonFile(
    duckdb::Connection& connection,
    const std::filesystem::path& input_filename
 ) {
-   if (std::filesystem::is_empty(input_filename)) {
+   if (MetadataInfo::isNdjsonFileEmpty(input_filename)) {
       return;
    }
 
