@@ -29,6 +29,7 @@ class TableReader {
    std::unique_ptr<duckdb::MaterializedQueryResult> query_result;
    std::unique_ptr<duckdb::DataChunk> current_chunk;
    size_t current_row;
+   size_t current_row_in_chunk;
 
    std::optional<std::string> nextKey();
 
