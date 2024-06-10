@@ -31,7 +31,7 @@ std::optional<std::string> silo::TableReader::nextKey() {
       return std::nullopt;
    }
 
-   return current_chunk->GetValue(0, current_row).GetValue<std::string>();
+   return current_chunk->GetValue(0, current_row_in_chunk).GetValue<std::string>();
 }
 
 void silo::TableReader::read() {
@@ -40,7 +40,7 @@ void silo::TableReader::read() {
    while (nextKey()) {
       for (size_t column_idx = 0; column_idx < column_functions.size(); column_idx++) {
          column_functions.at(column_idx)
-            .function(current_row, current_chunk->GetValue(column_idx + 1, current_row));
+            .function(current_row, current_chunk->GetValue(column_idx + 1, current_row_in_chunk));
       }
       advanceRow();
    }
@@ -81,6 +81,7 @@ void silo::TableReader::loadTable() {
    }
    current_chunk = query_result->Fetch();
    current_row = 0;
+   current_row_in_chunk = 0;
 
    while (current_chunk && current_chunk->size() == 0) {
       current_chunk = query_result->Fetch();
@@ -89,8 +90,9 @@ void silo::TableReader::loadTable() {
 
 void silo::TableReader::advanceRow() {
    current_row++;
-   if (current_row == current_chunk->size()) {
-      current_row = 0;
+   current_row_in_chunk++;
+   if (current_row_in_chunk == current_chunk->size()) {
+      current_row_in_chunk = 0;
       current_chunk = query_result->Fetch();
       while (current_chunk && current_chunk->size() == 0) {
          current_chunk = query_result->Fetch();
