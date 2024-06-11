@@ -7,7 +7,7 @@
 #include <string_view>
 #include <unordered_map>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 
 #include "silo/config/util/abstract_config_source.h"
 
@@ -39,7 +39,7 @@ const AbstractConfigSource::Option NUCLEOTIDE_INSERTIONS_OPTION = {{"nucleotideI
 };
 const AbstractConfigSource::Option AMINO_ACID_INSERTIONS_OPTION = {{"aminoAcidInsertionsFilename"}};
 
-const std::string DEFAULT_OUTPUT_DIRECTORY = "./output/";
+static const std::string DEFAULT_OUTPUT_DIRECTORY = "./output/";
 
 class PreprocessingConfig {
    friend class fmt::formatter<silo::config::PreprocessingConfig>;

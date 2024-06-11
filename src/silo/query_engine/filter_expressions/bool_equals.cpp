@@ -1,5 +1,4 @@
 #include "silo/query_engine/filter_expressions/bool_equals.h"
-#include <fmt/core.h>
 
 #include <utility>
 

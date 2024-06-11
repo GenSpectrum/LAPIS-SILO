@@ -7,7 +7,7 @@
 #include <string_view>
 #include <vector>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 
 namespace silo::config {
 
@@ -52,24 +52,29 @@ class DatabaseConfigReader {
 }  // namespace silo::config
 
 template <>
-struct [[maybe_unused]] fmt::formatter<silo::config::DatabaseConfig> : fmt::formatter<std::string> {
+class [[maybe_unused]] fmt::formatter<silo::config::DatabaseConfig> : fmt::formatter<std::string> {
+  public:
+   constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
    [[maybe_unused]] static auto format(
       const silo::config::DatabaseConfig& database_config,
-      format_context& ctx
+      fmt::format_context& ctx
    ) -> decltype(ctx.out());
 };
 
 template <>
-struct [[maybe_unused]] fmt::formatter<silo::config::DatabaseSchema> : fmt::formatter<std::string> {
+class [[maybe_unused]] fmt::formatter<silo::config::DatabaseSchema> {
+  public:
+   constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
    [[maybe_unused]] static auto format(
       const silo::config::DatabaseSchema& database_schema,
-      format_context& ctx
+      fmt::format_context& ctx
    ) -> decltype(ctx.out());
 };
 
 template <>
-struct [[maybe_unused]] fmt::formatter<silo::config::DatabaseMetadata>
-    : fmt::formatter<std::string> {
+class [[maybe_unused]] fmt::formatter<silo::config::DatabaseMetadata> {
+  public:
+   constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
    [[maybe_unused]] static auto format(
       const silo::config::DatabaseMetadata& database_metadata,
       format_context& ctx
@@ -77,7 +82,9 @@ struct [[maybe_unused]] fmt::formatter<silo::config::DatabaseMetadata>
 };
 
 template <>
-struct [[maybe_unused]] fmt::formatter<silo::config::ValueType> : fmt::formatter<std::string> {
+class [[maybe_unused]] fmt::formatter<silo::config::ValueType> {
+  public:
+   constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
    [[maybe_unused]] static auto format(
       const silo::config::ValueType& value_type,
       format_context& ctx

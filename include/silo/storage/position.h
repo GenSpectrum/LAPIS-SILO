@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <roaring/roaring.hh>
 
 #include "silo/common/aa_symbols.h"

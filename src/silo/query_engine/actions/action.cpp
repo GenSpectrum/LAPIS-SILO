@@ -29,13 +29,6 @@ namespace silo::query_engine::actions {
 
 Action::Action() = default;
 
-std::string stringToLowerCase(std::string str) {
-   std::transform(str.begin(), str.end(), str.begin(), [](unsigned char character) {
-      return std::tolower(character);
-   });
-   return str;
-}
-
 void Action::applySort(QueryResult& result) const {
    auto& result_vector = result.query_result;
 
@@ -126,7 +119,7 @@ QueryResult Action::executeAndOrder(
    return result;
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
+// NOLINTNEXTLINE(readability-identifier-naming,misc-use-internal-linkage)
 void from_json(const nlohmann::json& json, OrderByField& field) {
    if (json.is_string()) {
       field = {.name = json.get<std::string>(), .ascending = true};

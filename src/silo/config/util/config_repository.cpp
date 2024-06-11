@@ -18,6 +18,7 @@ DatabaseConfig ConfigRepository::getValidatedConfig(const std::filesystem::path&
    return config;
 }
 
+namespace {
 std::map<std::string, ValueType> validateMetadataDefinitions(const DatabaseConfig& config) {
    std::map<std::string, ValueType> metadata_map;
    for (const auto& metadata : config.schema.metadata) {
@@ -86,6 +87,7 @@ void validatePartitionBy(
       throw ConfigException("partition_by '" + partition_by + "' must be of type PANGOLINEAGE");
    }
 }
+}  // namespace
 
 void ConfigRepository::validateConfig(const DatabaseConfig& config) const {
    std::map<std::string, ValueType> metadata_map = validateMetadataDefinitions(config);

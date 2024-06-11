@@ -2,6 +2,8 @@
 #include <string>
 #include <unordered_map>
 
+#include <fmt/format.h>
+
 #include "silo/common/fasta_format_exception.h"
 #include "silo/common/fasta_reader.h"
 #include "silo/config/preprocessing_config.h"

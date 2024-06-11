@@ -39,11 +39,13 @@
 #include "silo_api/logging.h"
 #include "silo_api/request_handler_factory.h"
 
-static const std::string PREPROCESSING_CONFIG_OPTION = "preprocessingConfig";
-static const std::string RUNTIME_CONFIG_OPTION = "runtimeConfig";
-static const std::string DATABASE_CONFIG_OPTION = "databaseConfig";
-static const std::string API_OPTION = "api";
-static const std::string PREPROCESSING_OPTION = "preprocessing";
+namespace {
+
+const std::string PREPROCESSING_CONFIG_OPTION = "preprocessingConfig";
+const std::string RUNTIME_CONFIG_OPTION = "runtimeConfig";
+const std::string DATABASE_CONFIG_OPTION = "databaseConfig";
+const std::string API_OPTION = "api";
+const std::string PREPROCESSING_OPTION = "preprocessing";
 
 using silo::config::YamlFile;
 using silo_api::CommandLineArguments;
@@ -305,6 +307,8 @@ class SiloServer : public Poco::Util::ServerApplication {
       help_formatter.format(std::cout);
    }
 };
+
+}  // namespace
 
 int main(int argc, char** argv) {
    setupLogger();

@@ -17,7 +17,7 @@
 #include <utility>
 #include <vector>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/parallel_for.h>
 #include <oneapi/tbb/parallel_for_each.h>
@@ -240,6 +240,8 @@ BitmapSizePerSymbol Database::calculateBitmapSizePerSymbol(
    return global_bitmap_size_per_symbol;
 }
 
+namespace {
+
 void addStatisticToBitmapContainerSize(
    const RoaringStatistics& statistic,
    BitmapContainerSizeStatistic& size_statistic
@@ -258,6 +260,8 @@ void addStatisticToBitmapContainerSize(
    size_statistic.number_of_values_stored_in_bitset_containers +=
       statistic.n_values_bitset_containers;
 }
+
+}  // namespace
 
 template <typename SymbolType>
 BitmapContainerSize Database::calculateBitmapContainerSizePerGenomeSection(
@@ -474,6 +478,7 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
    data_version_.saveToFile(data_version_file);
 }
 
+namespace {
 DataVersion loadDataVersion(const std::filesystem::path& filename) {
    if (!std::filesystem::is_regular_file(filename)) {
       auto error = fmt::format("Input file {} could not be opened.", filename.string());
@@ -489,6 +494,7 @@ DataVersion loadDataVersion(const std::filesystem::path& filename) {
    }
    return data_version.value();
 }
+}  // namespace
 
 Database Database::loadDatabaseState(const std::filesystem::path& save_directory) {
    Database database;

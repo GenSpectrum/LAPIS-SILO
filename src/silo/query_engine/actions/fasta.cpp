@@ -30,11 +30,10 @@ std::unique_ptr<duckdb::MaterializedQueryResult> query(
    return result;
 }
 
+std::atomic<uint64_t> unique_identifier = 0;
 }  // namespace
 
 namespace silo::query_engine::actions {
-
-std::atomic<uint64_t> unique_identifier = 0;
 
 Fasta::Fasta(std::vector<std::string>&& sequence_names)
     : sequence_names(sequence_names) {}

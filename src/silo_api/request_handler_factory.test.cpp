@@ -12,8 +12,9 @@
 
 using silo::common::JsonValueType;
 
-// NOLINTBEGIN(bugprone-unchecked-optional-access)
+namespace {
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 class MockDatabase : public silo::Database {
   public:
    MOCK_METHOD(silo::DatabaseInfo, getDatabaseInfo, (), (const));
@@ -63,7 +64,8 @@ silo::config::RuntimeConfig getRuntimeConfigThatEndsInXMinutes(
    return {.api_options = {.estimated_startup_end = point + estimated_time_in_minutes}};
 }
 
-static const int FOUR_MINUTES_IN_SECONDS = 240;
+const int FOUR_MINUTES_IN_SECONDS = 240;
+}  // namespace
 
 TEST_F(RequestHandlerTestFixture, handlesGetInfoRequest) {
    EXPECT_CALL(database_mutex.mock_database, getDatabaseInfo)
