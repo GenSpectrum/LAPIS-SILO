@@ -91,7 +91,7 @@ bool MetadataInfo::isNdjsonFileEmpty(const std::filesystem::path& ndjson_file) {
 
    auto result = connection.Query(fmt::format(
       "SELECT COUNT(*) "
-      "FROM read_json_auto(\"{}\");",
+      "FROM (SELECT * FROM read_json_auto(\"{}\") LIMIT 1);",
       ndjson_file.string()
    ));
 
