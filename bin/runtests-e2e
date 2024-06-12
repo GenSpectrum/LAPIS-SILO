@@ -25,6 +25,7 @@ cleanup () {
 trap cleanup EXIT
 
 # Wait until the API is ready
+tries=300
 while true; do
     if res=$(curl --silent --fail-early --data '{}' http://localhost:"$portnumber"/query); then
         if echo " $res"| grep -q "Database not initialized yet"; then
@@ -32,6 +33,11 @@ while true; do
         else
             break
         fi
+    fi
+    tries=$(( tries - 1 ))
+    if [[ $tries < 1 ]]; then
+        echo "Timeout waiting for the database to be ready."
+        exit 1
     fi
     sleep 1
 done
