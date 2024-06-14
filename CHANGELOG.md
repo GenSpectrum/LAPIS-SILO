@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.4](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.3...v0.2.4) (2024-06-14)
+
+
+### Features
+
+* allow null for sequenceName in insertion contains queries ([6dbe251](https://github.com/GenSpectrum/LAPIS-SILO/commit/6dbe251a03e8a317188de0292f0e637b8ec4c24d))
+
+
+### Bug Fixes
+
+* more efficient ndjson emptiness check ([#481](https://github.com/GenSpectrum/LAPIS-SILO/issues/481)) ([344ec7b](https://github.com/GenSpectrum/LAPIS-SILO/commit/344ec7b20a3d6727e8972334542a610260cdc782))
+
 ## [0.2.3](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.2...v0.2.3) (2024-06-10)
 
 
