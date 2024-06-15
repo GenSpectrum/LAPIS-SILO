@@ -75,6 +75,9 @@ std::optional<std::string> silo::ZstdTableReader::next(std::optional<std::string
    }
 
    if (compressed_buffer.has_value()) {
+      if(!genome) { // TODO(#230) this is not good. it is doing the opposite of buffering and should be removed
+         genome = std::string();
+      }
       decompressor->decompress(compressed_buffer.value(), genome.value());
    } else {
       genome = std::nullopt;

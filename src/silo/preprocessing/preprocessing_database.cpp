@@ -114,7 +114,7 @@ preprocessing::Partitions PreprocessingDatabase::getPartitionDescriptor() {
 ZstdTable PreprocessingDatabase::generateSequenceTableViaFile(
    const std::string& table_name,
    const std::string& reference_sequence,
-   std::filesystem::path file_path
+   const std::filesystem::path file_path
 ) {
    const auto file_stem = file_path.stem().string();
    for (const auto& entry : std::filesystem::directory_iterator(file_path.parent_path())) {

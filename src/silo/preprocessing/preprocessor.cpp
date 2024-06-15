@@ -704,12 +704,10 @@ void Preprocessor::buildSequenceStore(
                         if (children[1].IsNull()) {
                            return;
                         }
-                        std::string sequence;
                         decompressor.decompress(
-                           children[1].GetValueUnsafe<std::string>(), sequence
+                           children[1].GetValueUnsafe<std::string>(), target.sequence
                         );
                         target.offset = children[0].GetValue<uint32_t>();
-                        target.sequence = sequence;
                         target.is_valid = true;
                      }
                   };
