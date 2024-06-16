@@ -232,6 +232,8 @@ void silo::SequenceStorePartition<SymbolType>::fillNBitmaps(const std::vector<Re
 
 template <typename SymbolType>
 void silo::SequenceStorePartition<SymbolType>::optimizeBitmaps() {
+   size_t size_of_positions = computeSize();
+
    tbb::enumerable_thread_specific<decltype(indexing_differences_to_reference_sequence)>
       index_changes_to_reference;
 
@@ -242,6 +244,11 @@ void silo::SequenceStorePartition<SymbolType>::optimizeBitmaps() {
          if (symbol_changed.has_value()) {
             local_index_changes.emplace_back(position_idx, *symbol_changed);
          }
+
+         symbol_changed = positions[position_idx].deleteMostNumerousBitmap(sequence_count);
+         if (symbol_changed.has_value()) {
+            local_index_changes.emplace_back(position_idx, *symbol_changed);
+         }
       }
    });
    for (const auto& local : index_changes_to_reference) {
@@ -249,6 +256,15 @@ void silo::SequenceStorePartition<SymbolType>::optimizeBitmaps() {
          indexing_differences_to_reference_sequence.emplace_back(element);
       }
    }
+
+   size_t size_of_optimized_positions = computeSize();
+   SPDLOG_DEBUG(
+      "Size of position indexes before optimization: {}, after: {}, saved: {}",
+      size_of_positions,
+      size_of_optimized_positions,
+      size_of_positions - size_of_optimized_positions
+   );
+
 }
 
 template <typename SymbolType>
