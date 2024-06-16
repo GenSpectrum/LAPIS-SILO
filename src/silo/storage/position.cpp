@@ -39,7 +39,7 @@ void silo::Position<SymbolType>::addValues(
 }
 
 template <typename SymbolType>
-std::optional<typename SymbolType::Symbol> silo::Position<SymbolType>::getHighestCardinalitySymbol(
+std::optional<std::pair<typename SymbolType::Symbol, uint32_t>> silo::Position<SymbolType>::getHighestCardinalitySymbol(
    uint32_t sequence_count
 ) {
    if (symbol_whose_bitmap_is_deleted.has_value()) {
@@ -64,7 +64,12 @@ std::optional<typename SymbolType::Symbol> silo::Position<SymbolType>::getHighes
          max_count = count;
       }
    }
-   return max_symbol;
+
+   if (max_count == 0) {
+      return std::nullopt;
+   }
+
+   return std::make_pair(max_symbol.value(), max_count);
 }
 
 template <typename SymbolType>
@@ -78,21 +83,24 @@ std::optional<typename SymbolType::Symbol> silo::Position<SymbolType>::flipMostN
       ));
    }
 
-   std::optional<typename SymbolType::Symbol> max_symbol =
-      getHighestCardinalitySymbol(sequence_count);
+   auto max_symbol_result = getHighestCardinalitySymbol(sequence_count);
 
-   if (max_symbol != symbol_whose_bitmap_is_flipped) {
+   if (!max_symbol_result.has_value()) {
+      return std::nullopt;
+   }
+
+   auto [symbol, cardinality] = max_symbol_result.value();
+
+   if (symbol != symbol_whose_bitmap_is_flipped) {
       if (symbol_whose_bitmap_is_flipped.has_value()) {
          bitmaps[*symbol_whose_bitmap_is_flipped].flip(0, sequence_count);
          bitmaps[*symbol_whose_bitmap_is_flipped].runOptimize();
          bitmaps[*symbol_whose_bitmap_is_flipped].shrinkToFit();
       }
-      if (max_symbol.has_value()) {
-         bitmaps[*max_symbol].flip(0, sequence_count);
-         bitmaps[*max_symbol].runOptimize();
-         bitmaps[*max_symbol].shrinkToFit();
-      }
-      symbol_whose_bitmap_is_flipped = max_symbol;
+      bitmaps[symbol].flip(0, sequence_count);
+      bitmaps[symbol].runOptimize();
+      bitmaps[symbol].shrinkToFit();
+      symbol_whose_bitmap_is_flipped = symbol;
       return symbol_whose_bitmap_is_flipped;
    }
    return std::nullopt;
@@ -115,15 +123,22 @@ std::optional<typename SymbolType::Symbol> silo::Position<SymbolType>::deleteMos
       symbol_whose_bitmap_is_flipped = std::nullopt;
    }
 
-   std::optional<typename SymbolType::Symbol> max_symbol =
-      getHighestCardinalitySymbol(sequence_count);
+   auto max_symbol_result = getHighestCardinalitySymbol(sequence_count);
 
-   if (max_symbol.has_value()) {
-      bitmaps[*max_symbol] = roaring::Roaring();
-      symbol_whose_bitmap_is_deleted = max_symbol;
-      return symbol_whose_bitmap_is_deleted;
+   if (!max_symbol_result.has_value()) {
+      return std::nullopt;
    }
-   return std::nullopt;
+
+   auto [symbol, cardinality] = max_symbol_result.value();
+
+   if (static_cast<double>(cardinality) < 0.5) {
+
+      return std::nullopt;
+   }
+
+   bitmaps[symbol] = roaring::Roaring();
+   symbol_whose_bitmap_is_deleted = symbol;
+   return symbol_whose_bitmap_is_deleted;
 }
 
 template <typename SymbolType>

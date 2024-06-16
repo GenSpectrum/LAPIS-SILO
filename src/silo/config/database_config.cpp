@@ -69,6 +69,12 @@ struct convert<silo::config::DatabaseConfig> {
          config.default_nucleotide_sequence = "main";
       }
 
+      if (node["positionIndexDeletionThreshold"].IsDefined()) {
+         config.position_index_deletion_threshold = node["positionIndexDeletionThreshold"].as<double>();
+      } else {
+         config.position_index_deletion_threshold = 0;
+      }
+
       SPDLOG_TRACE("Resulting database config: {}", config);
 
       return true;

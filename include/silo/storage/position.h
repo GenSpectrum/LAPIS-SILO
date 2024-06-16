@@ -36,7 +36,7 @@ class Position {
    std::optional<typename SymbolType::Symbol> symbol_whose_bitmap_is_flipped;
    std::optional<typename SymbolType::Symbol> symbol_whose_bitmap_is_deleted;
 
-   std::optional<typename SymbolType::Symbol> getHighestCardinalitySymbol(uint32_t sequence_count);
+   std::optional<std::pair<typename SymbolType::Symbol, uint32_t>> getHighestCardinalitySymbol(uint32_t sequence_count);
 
   public:
    Position() = default;

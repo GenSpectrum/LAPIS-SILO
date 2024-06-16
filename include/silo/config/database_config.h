@@ -37,6 +37,7 @@ class DatabaseSchema {
 class DatabaseConfig {
   public:
    std::string default_nucleotide_sequence;
+   double position_index_deletion_threshold;
    DatabaseSchema schema;
 
    [[nodiscard]] std::optional<DatabaseMetadata> getMetadata(const std::string& name) const;
