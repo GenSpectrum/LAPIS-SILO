@@ -35,7 +35,7 @@ struct SequenceStoreInfo {
 
 struct ReadSequence {
    bool is_valid = false;
-   std::string sequence;
+   std::string sequence = "";
    uint32_t offset;
 
    ReadSequence(std::string_view _sequence, uint32_t _offset = 0)

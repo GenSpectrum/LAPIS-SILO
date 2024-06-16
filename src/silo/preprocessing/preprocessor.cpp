@@ -663,6 +663,41 @@ void Preprocessor::buildMetadataStore(
 }
 
 template <typename SymbolType>
+ColumnFunction Preprocessor::createRawReadLambda(
+   ZstdDecompressor& decompressor,
+   silo::SequenceStorePartition<SymbolType>& sequence_store
+) {
+   return {"read", [&sequence_store, &decompressor](size_t row_id, const duckdb::Value& value) {
+              ReadSequence& target = sequence_store.reserveRead(row_id);
+              if (value.IsNull()) {
+                 return;
+              }
+              const auto& children = duckdb::StructValue::GetChildren(value);
+              if (children[1].IsNull()) {
+                 return;
+              }
+              decompressor.decompress(children[1].GetValueUnsafe<std::string>(), target.sequence);
+              target.offset = children[0].GetValue<uint32_t>();
+              target.is_valid = true;
+           }};
+}
+
+template <typename SymbolType>
+silo::ColumnFunction Preprocessor::createInsertionLambda(
+   const std::string& sequence_name,
+   silo::SequenceStorePartition<SymbolType>& sequence_store
+) {
+   return {sequence_name, [&sequence_store](size_t row_id, const duckdb::Value& value) {
+              if (value.IsNull()) {
+                 return;
+              }
+              for (const auto& child : duckdb::ListValue::GetChildren(value)) {
+                 sequence_store.insertInsertion(row_id, child.GetValue<std::string>());
+              }
+           }};
+}
+
+template <typename SymbolType>
 void Preprocessor::buildSequenceStore(
    Database& database,
    const preprocessing::Partitions& partition_descriptor,
@@ -687,30 +722,14 @@ void Preprocessor::buildSequenceStore(
                      partition_index
                   );
 
-                  auto& sequence_store = database.partitions.at(partition_index)
-                                            .template getSequenceStores<SymbolType>()
-                                            .at(sequence_name);
+                  SequenceStorePartition<SymbolType>& sequence_store =
+                     database.partitions.at(partition_index)
+                        .template getSequenceStores<SymbolType>()
+                        .at(sequence_name);
 
                   ZstdDecompressor decompressor(reference_sequence);
 
-                  const silo::ColumnFunction column_function_reads{
-                     "read",
-                     [&sequence_store, &decompressor](size_t row_id, const duckdb::Value& value) {
-                        ReadSequence& target = sequence_store.reserveRead(row_id);
-                        if (value.IsNull()) {
-                           return;
-                        }
-                        const auto& children = duckdb::StructValue::GetChildren(value);
-                        if (children[1].IsNull()) {
-                           return;
-                        }
-                        decompressor.decompress(
-                           children[1].GetValueUnsafe<std::string>(), target.sequence
-                        );
-                        target.offset = children[0].GetValue<uint32_t>();
-                        target.is_valid = true;
-                     }
-                  };
+                  auto column_function_reads = createRawReadLambda(decompressor, sequence_store);
 
                   silo::TableReader(
                      preprocessing_db.getConnection(),
@@ -722,17 +741,8 @@ void Preprocessor::buildSequenceStore(
                   )
                      .read();
 
-                  const silo::ColumnFunction column_function_insertions{
-                     sequence_name,
-                     [&sequence_store](size_t row_id, const duckdb::Value& value) {
-                        if (value.IsNull()) {
-                           return;
-                        }
-                        for (const auto& child : duckdb::ListValue::GetChildren(value)) {
-                           sequence_store.insertInsertion(row_id, child.GetValue<std::string>());
-                        }
-                     }
-                  };
+                  auto column_function_insertions =
+                     createInsertionLambda(sequence_name, sequence_store);
 
                   silo::TableReader(
                      preprocessing_db.getConnection(),
