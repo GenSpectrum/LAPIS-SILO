@@ -668,7 +668,7 @@ ColumnFunction Preprocessor::createRawReadLambda(
    silo::SequenceStorePartition<SymbolType>& sequence_store
 ) {
    return {"read", [&sequence_store, &decompressor](size_t row_id, const duckdb::Value& value) {
-              ReadSequence& target = sequence_store.reserveRead(row_id);
+              ReadSequence& target = sequence_store.reserveRead();
               if (value.IsNull()) {
                  return;
               }

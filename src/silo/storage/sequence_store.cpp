@@ -34,7 +34,7 @@ silo::SequenceStorePartition<SymbolType>::SequenceStorePartition(
 }
 
 template <typename SymbolType>
-silo::ReadSequence& silo::SequenceStorePartition<SymbolType>::reserveRead(size_t row_id) {
+silo::ReadSequence& silo::SequenceStorePartition<SymbolType>::reserveRead() {
    if (lazy_buffer.size() > BUFFER_SIZE) {
       interpret(lazy_buffer);
       lazy_buffer.clear();

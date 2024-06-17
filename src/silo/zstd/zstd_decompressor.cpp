@@ -13,7 +13,7 @@ ZstdDecompressor::ZstdDecompressor(std::string_view dictionary_string)
     : zstd_dictionary(ZstdDDictionary(dictionary_string)) {}
 
 void ZstdDecompressor::decompress(const std::string& input, std::string& buffer) {
-   return decompress(input.data(), input.size(), buffer);
+   decompress(input.data(), input.size(), buffer);
 }
 
 void ZstdDecompressor::decompress(

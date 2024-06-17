@@ -110,7 +110,7 @@ class SequenceStorePartition {
       std::string_view order_by_clause
    );
 
-   ReadSequence& reserveRead(size_t row_id);
+   ReadSequence& reserveRead();
 
    void insertInsertion(size_t row_id, const std::string& insertion_and_position);
 
