@@ -13,7 +13,8 @@ RUN apt update \
     && wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc \
     && add-apt-repository 'deb http://apt.llvm.org/jammy/  llvm-toolchain-jammy main' \
     && apt install -y clang-tidy-19 \
-    && apt install -y jq
+    && apt install -y jq \
+    && apt install -y curl
 
 RUN pip install conan==2.0.17
 
