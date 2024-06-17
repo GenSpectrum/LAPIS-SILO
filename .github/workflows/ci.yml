@@ -98,9 +98,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install jq
-        run: sudo apt-get install -y jq
-
       - name: Get list of changed files
         id: changed-files
         run: |
