@@ -26,57 +26,6 @@ using silo::config::ColumnType;
 
 using silo::common::OptionalBool;
 
-uint32_t ColumnPartitionGroup::fill(
-   duckdb::Connection& connection,
-   uint32_t partition_id,
-   const std::string& order_by_clause,
-   const silo::config::DatabaseConfig& database_config
-) {
-   uint32_t sequence_count = 0;
-
-   std::vector<std::string> column_names;
-   column_names.reserve(database_config.schema.metadata.size());
-   for (const auto& item : database_config.schema.metadata) {
-      column_names.push_back("\"" + item.name + "\"");
-   }
-   std::string column_name_sql = boost::algorithm::join(column_names, ", ");
-
-   auto result = connection.Query(fmt::format(
-      "SELECT {} FROM partitioned_metadata WHERE partition_id = {} {}",
-      column_name_sql,
-      partition_id,
-      order_by_clause
-   ));
-   if (result->HasError()) {
-      throw preprocessing::PreprocessingException(
-         "Error in the execution of the duckdb statement for partition key table "
-         "generation: " +
-         result->GetError()
-      );
-   }
-   const size_t row_count = result->RowCount();
-   for (const auto& item : database_config.schema.metadata) {
-      const auto column_type = item.getColumnType();
-      reserveSpaceInColumn(item.name, column_type, row_count);
-   }
-
-   for (auto it = result->begin(); it != result->end(); ++it) {
-      size_t column_index = 0;
-      for (const auto& item : database_config.schema.metadata) {
-         const auto column_type = item.getColumnType();
-         const auto value = it.current_row.GetValue<duckdb::Value>(column_index++);
-         addValueToColumn(item.name, column_type, value);
-      }
-      if (++sequence_count == UINT32_MAX) {
-         throw std::runtime_error(
-            "SILO is currently limited to UINT32_MAX=" + std::to_string(UINT32_MAX) + " sequences."
-         );
-      }
-   }
-
-   return sequence_count;
-}
-
 void ColumnPartitionGroup::addValueToColumn(
    const std::string& column_name,
    ColumnType column_type,

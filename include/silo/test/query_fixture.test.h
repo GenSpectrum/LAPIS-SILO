@@ -58,11 +58,20 @@ namespace silo::test {
                                                                                                    \
    TEST_P(TEST_SUITE_NAME##FixtureAlias, testQuery) {                                              \
       const auto scenario = GetParam();                                                            \
-      const auto result = query_engine.executeQuery(nlohmann::to_string(scenario.query));          \
-      const auto actual = nlohmann::json(result.query_result);                                     \
-      ASSERT_EQ(actual, scenario.expected_query_result);                                           \
+      if (!scenario.expected_error_message.empty()) {                                              \
+         try {                                                                                     \
+            const auto result = query_engine.executeQuery(nlohmann::to_string(scenario.query));    \
+            FAIL() << "Expected an error in test case, but noting was thrown";                     \
+         } catch (const std::exception& e) {                                                       \
+            EXPECT_EQ(std::string(e.what()), scenario.expected_error_message);                     \
+         }                                                                                         \
+      } else {                                                                                     \
+         const auto result = query_engine.executeQuery(nlohmann::to_string(scenario.query));       \
+         const auto actual = nlohmann::json(result.query_result);                                  \
+         ASSERT_EQ(actual, scenario.expected_query_result);                                        \
+      }                                                                                            \
    }                                                                                               \
-   }  // namespace
+   }  // namespace                                                                                  \
 
 struct QueryTestData {
    const std::vector<nlohmann::json> ndjson_input_data;
@@ -75,6 +84,7 @@ struct QueryTestScenario {
    std::string name;
    nlohmann::json query;
    nlohmann::json expected_query_result;
+   std::string expected_error_message;
 };
 
 std::string printScenarioName(const ::testing::TestParamInfo<QueryTestScenario>& scenario);

@@ -15,6 +15,7 @@
 #include "silo/query_engine/filter_expressions/symbol_equals.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_parse_exception.h"
+#include "silo/query_engine/query_parse_sequence_name.h"
 
 namespace silo {
 class DatabasePartition;
@@ -48,20 +49,12 @@ std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
          "Database does not have a default sequence name for {} Sequences", SymbolType::SYMBOL_NAME
       )
    );
-   const std::string sequence_name_or_default =
-      sequence_name.has_value() ? sequence_name.value()
-                                : database.getDefaultSequenceName<SymbolType>().value();
-   CHECK_SILO_QUERY(
-      database.getSequenceStores<SymbolType>().contains(sequence_name_or_default),
-      fmt::format(
-         "Database does not contain the {} sequence with name: '{}'",
-         SymbolType::SYMBOL_NAME,
-         sequence_name_or_default
-      )
-   )
+
+   const auto valid_sequence_name =
+      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, database);
 
    auto ref_symbol = database.getSequenceStores<SymbolType>()
-                        .at(sequence_name_or_default)
+                        .at(valid_sequence_name)
                         .reference_sequence.at(position_idx);
 
    std::vector<typename SymbolType::Symbol> symbols =
@@ -82,7 +75,7 @@ std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
       std::back_inserter(symbol_filters),
       [&](typename SymbolType::Symbol symbol) {
          return std::make_unique<SymbolEquals<SymbolType>>(
-            sequence_name_or_default, position_idx, symbol
+            valid_sequence_name, position_idx, symbol
          );
       }
    );

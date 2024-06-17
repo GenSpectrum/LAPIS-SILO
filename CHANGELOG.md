@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.2.4](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.3...v0.2.4) (2024-06-14)
+
+
+### Features
+
+* allow null for sequenceName in insertion contains queries ([6dbe251](https://github.com/GenSpectrum/LAPIS-SILO/commit/6dbe251a03e8a317188de0292f0e637b8ec4c24d))
+
+
+### Bug Fixes
+
+* more efficient ndjson emptiness check ([#481](https://github.com/GenSpectrum/LAPIS-SILO/issues/481)) ([344ec7b](https://github.com/GenSpectrum/LAPIS-SILO/commit/344ec7b20a3d6727e8972334542a610260cdc782))
+
+## [0.2.3](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.2...v0.2.3) (2024-06-10)
+
+
+### Bug Fixes
+
+* be able to start without genes, without nucleotide sequences or with neither ([e878ed5](https://github.com/GenSpectrum/LAPIS-SILO/commit/e878ed5567679f966c615a26b2d4c713f2f045e6))
+* empty ndjson input files more robust ([#473](https://github.com/GenSpectrum/LAPIS-SILO/issues/473)) ([9d4232b](https://github.com/GenSpectrum/LAPIS-SILO/commit/9d4232b01cb366def7e464155867bc6f7a466471))
+* erroneous file created during unit tests should not leak ([1b764af](https://github.com/GenSpectrum/LAPIS-SILO/commit/1b764afbefe13969496bf8b2bf51d50824c495bf))
+* insertions being added at wrong index for large files ([#472](https://github.com/GenSpectrum/LAPIS-SILO/issues/472)) ([e056ed9](https://github.com/GenSpectrum/LAPIS-SILO/commit/e056ed9354306690b51d6d0f829b962420e2be24))
+* remove incorrect compile flags ([b92ee4e](https://github.com/GenSpectrum/LAPIS-SILO/commit/b92ee4e0816f0f5b9ef1bef711b968600620f80d))
+
 ## [0.2.2](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.1...v0.2.2) (2024-05-31)
 
 

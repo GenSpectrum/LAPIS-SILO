@@ -19,6 +19,7 @@
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/operators/union.h"
 #include "silo/query_engine/query_parse_exception.h"
+#include "silo/query_engine/query_parse_sequence_name.h"
 #include "silo/storage/database_partition.h"
 #include "silo/storage/insertion_index.h"
 #include "silo/storage/sequence_store.h"
@@ -55,28 +56,14 @@ std::unique_ptr<silo::query_engine::operators::Operator> InsertionContains<Symbo
       return std::make_unique<operators::Empty>(database_partition.sequence_count);
    }
 
-   std::string validated_sequence_name;
-   if (sequence_name.has_value()) {
-      validated_sequence_name = sequence_name.value();
-   } else {
-      CHECK_SILO_QUERY(
-         database.getDefaultSequenceName<SymbolType>().has_value(),
-         "The database has no default " + std::string(SymbolType::SYMBOL_NAME_LOWER_CASE) +
-            " sequence name"
-      )
-      // NOLINTNEXTLINE(bugprone-unchecked-optional-access) -- the previous statement checks it
-      validated_sequence_name = *database.getDefaultSequenceName<SymbolType>();
-   }
+   const auto valid_sequence_name =
+      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, database);
+
    const std::map<std::string, SequenceStorePartition<SymbolType>&>& sequence_stores =
       database_partition.getSequenceStores<SymbolType>();
-   CHECK_SILO_QUERY(
-      sequence_stores.contains(validated_sequence_name),
-      "The database has no default " + std::string(SymbolType::SYMBOL_NAME_LOWER_CASE) +
-         " sequence name"
-   )
 
    const SequenceStorePartition<SymbolType>& sequence_store =
-      sequence_stores.at(validated_sequence_name);
+      sequence_stores.at(valid_sequence_name);
    return std::make_unique<operators::BitmapProducer>(
       [&]() {
          auto search_result = sequence_store.insertion_index.search(position_idx, value);
@@ -122,17 +109,13 @@ void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains<Sym
       "The field 'position' in an InsertionContains expression needs to be an unsigned integer"
    )
    CHECK_SILO_QUERY(
-      !json.contains("sequenceName") || json["sequenceName"].is_string(),
-      "The optional field 'sequenceName' in an InsertionContains expression needs to be a string"
-   )
-   CHECK_SILO_QUERY(
       json.contains("value"), "The field 'value' is required in an InsertionContains expression"
    )
    CHECK_SILO_QUERY(
       json["value"].is_string() && !json["value"].is_null(),
       "The field 'value' in an InsertionContains expression needs to be a string"
    )
-   std::optional<std::string> sequence_name;
+   std::optional<std::string> sequence_name = std::nullopt;
    if (json.contains("sequenceName")) {
       sequence_name = json["sequenceName"].get<std::string>();
    }
