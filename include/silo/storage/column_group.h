@@ -81,13 +81,6 @@ class ColumnPartitionGroup {
    std::map<std::string, storage::column::DateColumnPartition&> date_columns;
    std::map<std::string, storage::column::PangoLineageColumnPartition&> pango_lineage_columns;
 
-   uint32_t fill(
-      duckdb::Connection& connection,
-      uint32_t partition_id,
-      const std::string& order_by_clause,
-      const silo::config::DatabaseConfig& database_config
-   );
-
    void addValueToColumn(
       const std::string& column_name,
       config::ColumnType column_type,

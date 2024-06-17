@@ -651,15 +651,31 @@ void Preprocessor::buildMetadataStore(
 ) {
    for (size_t partition_id = 0; partition_id < partition_descriptor.getPartitions().size();
         ++partition_id) {
-      const auto& part = partition_descriptor.getPartitions()[partition_id];
-      for (size_t chunk_index = 0; chunk_index < part.getPartitionChunks().size(); ++chunk_index) {
-         const uint32_t sequences_added =
-            database.partitions.at(partition_id)
-               .columns.fill(
-                  preprocessing_db.getConnection(), partition_id, order_by_clause, database_config
-               );
-         database.partitions.at(partition_id).sequence_count += sequences_added;
+      auto& column_group = database.partitions.at(partition_id).columns;
+      std::vector<ColumnFunction> column_functions;
+      column_functions.reserve(database_config.schema.metadata.size());
+      for (auto& item : database_config.schema.metadata) {
+         column_functions.emplace_back(
+            item.name,
+            [&](size_t /*row_idx*/, const duckdb::Value& value) {
+               if (value.IsNull()) {
+                  column_group.addNullToColumn(item.name, item.getColumnType());
+               } else {
+                  column_group.addValueToColumn(item.name, item.getColumnType(), value);
+               }
+            }
+         );
       }
+      TableReader table_reader(
+         preprocessing_db.getConnection(),
+         "partitioned_metadata",
+         database_config.schema.primary_key,
+         column_functions,
+         fmt::format("partition_id = {}", partition_id),
+         order_by_clause
+      );
+      const size_t number_of_rows = table_reader.read();
+      database.partitions.at(partition_id).sequence_count += number_of_rows;
       SPDLOG_INFO("build - finished columns for partition {}", partition_id);
    }
 }

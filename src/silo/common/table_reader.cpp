@@ -11,6 +11,13 @@
 
 #include "silo/preprocessing/preprocessing_exception.h"
 
+silo::ColumnFunction::ColumnFunction(
+   std::string column_name,
+   std::function<void(size_t, const duckdb::Value&)> function
+)
+    : column_name(std::move(column_name)),
+      function(std::move(function)) {}
+
 silo::TableReader::TableReader(
    duckdb::Connection& connection,
    std::string_view table_name,
@@ -34,7 +41,7 @@ std::optional<std::string> silo::TableReader::nextKey() {
    return current_chunk->GetValue(0, current_row_in_chunk).GetValue<std::string>();
 }
 
-void silo::TableReader::read() {
+size_t silo::TableReader::read() {
    loadTable();
    assert(query_result->ColumnCount() == column_functions.size() + 1);
    while (nextKey()) {
@@ -44,6 +51,7 @@ void silo::TableReader::read() {
       }
       advanceRow();
    }
+   return current_row;
 }
 
 std::string silo::TableReader::getTableQuery() {
