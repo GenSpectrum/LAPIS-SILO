@@ -1,0 +1,22 @@
+{
+  "nucleotideSequences": [
+    {
+      "name": "main",
+      "sequence": "AAAD"
+    },
+    {
+      "name": "testSecondSequence",
+      "sequence": "ACGT"
+    }
+  ],
+  "genes": [
+    {
+      "name": "E",
+      "sequence": "MYSFVSEETGTLIVNSVLLFLAFVVFLLVTLAILTALRLCAYCCNIVNVSLVKPSFYVYSRVKNLNSSRVPDLLV*"
+    },
+    {
+      "name": "S",
+      "sequence": "MYSFVSEETGTLIVNSVLLFLAFVVFLLVTLAILTALRLCAYCCNIVNVSLVKPSFYVYSRVKNLNSSRVPDLLV*"
+    }
+  ]
+}
