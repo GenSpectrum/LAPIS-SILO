@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.5](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.4...v0.2.5) (2024-06-17)
+
+
+### Bug Fixes
+
+* empty input without partitioning ([5fa3c92](https://github.com/GenSpectrum/LAPIS-SILO/commit/5fa3c9267eff1b0e59dda718a2ded0f874b038ae))
+
 ## [0.2.4](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.3...v0.2.4) (2024-06-14)
 
 
