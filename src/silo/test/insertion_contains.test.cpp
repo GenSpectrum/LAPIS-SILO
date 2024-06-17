@@ -10,6 +10,7 @@ using silo::config::ValueType;
 using silo::test::QueryTestData;
 using silo::test::QueryTestScenario;
 
+namespace {
 nlohmann::json createDataWithNucleotideInsertions(
    const std::string& primaryKey,
    const nlohmann::json& nucleotideInsertions
@@ -98,7 +99,7 @@ const QueryTestScenario INSERTION_CONTAINS_WITH_UNKNOWN_SEGMENT_SCENARIO = {
    .expected_error_message =
       "Database does not contain the Nucleotide Sequence with name: 'unknownSegmentName'"
 };
-
+}  // namespace
 QUERY_TEST(
    InsertionContainsTest,
    TEST_DATA,

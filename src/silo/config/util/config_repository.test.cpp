@@ -20,6 +20,8 @@ class ConfigReaderMock : public silo::config::DatabaseConfigReader {
    MOCK_METHOD((DatabaseConfig), readConfig, (const std::filesystem::path&), (const override));
 };
 
+namespace {
+
 ConfigReaderMock mockConfigReader(const DatabaseConfig& config) {
    const ConfigReaderMock config_reader_mock;
 
@@ -27,6 +29,8 @@ ConfigReaderMock mockConfigReader(const DatabaseConfig& config) {
 
    return config_reader_mock;
 }
+
+}  // namespace
 
 TEST(ConfigRepository, shouldReadConfigWithoutErrors) {
    const auto config_reader_mock = mockConfigReader(

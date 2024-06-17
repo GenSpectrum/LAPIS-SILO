@@ -8,10 +8,11 @@
 #include <utility>
 #include <vector>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <roaring/roaring.hh>
 
 #include "silo/common/aa_symbols.h"
+#include "silo/common/format_number.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/symbol_map.h"
 #include "silo/storage/insertion_index.h"
@@ -108,9 +109,11 @@ class SequenceStore {
 }  // namespace silo
 
 template <>
-struct [[maybe_unused]] fmt::formatter<silo::SequenceStoreInfo> : fmt::formatter<std::string> {
+class [[maybe_unused]] fmt::formatter<silo::SequenceStoreInfo> {
+  public:
+   constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
    [[maybe_unused]] static auto format(
-      silo::SequenceStoreInfo sequence_store_info,
+      const silo::SequenceStoreInfo& sequence_store_info,
       format_context& ctx
    ) -> decltype(ctx.out());
 };

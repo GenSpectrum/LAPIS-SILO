@@ -4,17 +4,18 @@
 
 #include "silo/test/query_fixture.test.h"
 
+namespace {
 using silo::ReferenceGenomes;
 using silo::config::DatabaseConfig;
 using silo::config::ValueType;
 using silo::test::QueryTestData;
 using silo::test::QueryTestScenario;
 
-static const int VALUE_IN_FILTER = 3;
-static const int VALUE_BELOW_FILTER = 1;
-static const int VALUE_ABOVE_FILTER = 5;
-static const int BELOW_FILTER = 2;
-static const int ABOVE_FILTER = 4;
+const int VALUE_IN_FILTER = 3;
+const int VALUE_BELOW_FILTER = 1;
+const int VALUE_ABOVE_FILTER = 5;
+const int BELOW_FILTER = 2;
+const int ABOVE_FILTER = 4;
 
 nlohmann::json createDataWithIntValue(const std::string& primaryKey, int value) {
    return {
@@ -140,6 +141,7 @@ const QueryTestScenario INT_BETWEEN_WITH_FROM_AND_TO_NULL_SCENARIO = {
        {{"primaryKey", "id_3"}, {"int_value", VALUE_ABOVE_FILTER}}}
    )
 };
+}  // namespace
 
 QUERY_TEST(
    IntEqualsTest,

@@ -8,6 +8,8 @@ using silo::config::ValueType;
 using silo::test::QueryTestData;
 using silo::test::QueryTestScenario;
 
+namespace {
+
 const std::string GENE = "gene1";
 
 nlohmann::json createDataWithAminoAcidSequence(const std::string& aminoAcidSequence) {
@@ -69,6 +71,8 @@ const QueryTestScenario AMINO_ACID_EQUALS_WITH_DOT_RETURNS_AS_IF_REFERENCE = {
    .query = createAminoAcidSymbolEqualsQuery(".", 1, GENE),
    .expected_query_result = nlohmann::json::parse(R"([{"count": 2}])")
 };
+
+}  // namespace
 
 QUERY_TEST(
    AminoAcidSymbolEquals,

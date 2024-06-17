@@ -14,6 +14,7 @@
 using silo::Nucleotide;
 using silo::Position;
 
+namespace {
 void serializeToFile(const std::string& filename, const Position<Nucleotide>& position) {
    std::ofstream output_file(filename.c_str(), std::ios::binary);
    ::boost::archive::binary_oarchive output_archive(output_file);
@@ -27,6 +28,7 @@ void deserializeFromFile(const std::string& filename, Position<Nucleotide>& posi
    input_archive >> position;
    input_file.close();
 }
+}  // namespace
 
 TEST(Position, flipsMostNumerousCorrectlyFromInitiallyUnoptimized) {
    Position<Nucleotide> under_test;

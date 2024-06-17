@@ -82,6 +82,14 @@ jobs:
           cache-from: type=gha,ref=linter-dependencies-image-cache-${{ hashFiles('conanfile.py', 'Dockerfile_linter') }}
           cache-to: type=gha,mode=min,ref=linter-dependencies-image-cache-${{ hashFiles('conanfile.py', 'Dockerfile_linter') }}
 
+      - name: Retag and push existing image if cache hit
+        if: env.CACHE_HIT == 'true'
+        run: |
+          TAGS=(${{ steps.dockerMetadata.outputs.tags }})
+          for TAG in "${TAGS[@]}"; do
+            docker buildx imagetools create --tag $TAG ${{ env.DOCKER_LINTER_DEPENDENCY_IMAGE_NAME }}:${{ env.DIR_HASH }}
+          done
+
   linter:
     name: Build And Run linter
     needs: linterDependencies
@@ -162,6 +170,14 @@ jobs:
           cache-from: type=gha,ref=builder-image-cache-${{ hashFiles('conanfile.py', 'Dockerfile') }}
           cache-to: type=gha,mode=min,ref=builder-image-cache-${{ hashFiles('conanfile.py', 'Dockerfile') }}
           platforms: linux/amd64,linux/arm64
+
+      - name: Retag and push existing image if cache hit
+        if: env.CACHE_HIT == 'true'
+        run: |
+          TAGS=(${{ steps.dockerMetadata.outputs.tags }})
+          for TAG in "${TAGS[@]}"; do
+            docker buildx imagetools create --tag $TAG ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:${{ env.DIR_HASH }}
+          done
 
   dockerImageUnitTests:
     name: Build Docker Image and Run Unit Tests

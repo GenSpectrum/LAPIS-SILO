@@ -4,7 +4,6 @@
 #include <optional>
 #include <utility>
 
-#include <fmt/core.h>
 #include <fmt/format.h>
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/parallel_for.h>
@@ -43,6 +42,7 @@ void FastaAligned::validateOrderByFields(const Database& database) const {
    }
 }
 
+namespace {
 template <typename SymbolType>
 std::string reconstructSequence(
    const SequenceStorePartition<SymbolType>& sequence_store,
@@ -67,8 +67,8 @@ std::string reconstructSequence(
          for (auto position_id = local.begin(); position_id != local.end(); position_id++) {
             const Position<SymbolType>& position = sequence_store.positions.at(position_id);
             for (const auto symbol : SymbolType::SYMBOLS) {
-               if (!position.isSymbolFlipped(symbol) && !position.isSymbolDeleted(symbol)
-                   && position.getBitmap(symbol)->contains(sequence_id)) {
+               if (!position.isSymbolFlipped(symbol) && !position.isSymbolDeleted(symbol) &&
+                   position.getBitmap(symbol)->contains(sequence_id)) {
                   reconstructed_sequence[position_id] = SymbolType::symbolToChar(symbol);
                }
             }
@@ -81,6 +81,7 @@ std::string reconstructSequence(
    }
    return reconstructed_sequence;
 }
+}  // namespace
 
 QueryResult FastaAligned::execute(
    const Database& database,

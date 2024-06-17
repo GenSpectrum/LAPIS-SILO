@@ -10,6 +10,7 @@ using silo::config::ValueType;
 using silo::test::QueryTestData;
 using silo::test::QueryTestScenario;
 
+namespace {
 nlohmann::json createDataWithAminoAcidInsertions(
    const std::string& primaryKey,
    const nlohmann::json& aminoAcidInsertions
@@ -91,6 +92,8 @@ const QueryTestScenario AMINO_ACID_INSERTION_CONTAINS_WITH_NULL_SEGMENT_SCENARIO
    .query = createAminoAcidInsertionContainsQueryWithEmptySequenceName(123, "A"),
    .expected_error_message = "The database has no default amino acid sequence name",
 };
+
+}  // namespace
 
 QUERY_TEST(
    AminoAcidInsertionContainsTest,

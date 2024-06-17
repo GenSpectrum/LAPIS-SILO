@@ -71,6 +71,7 @@ std::string SequenceInfo::getAminoAcidSequenceSelect(
    );
 }
 
+namespace {
 void validateStruct(
    std::vector<std::string> names_to_validate,
    std::vector<std::string> names_to_validate_against,
@@ -101,6 +102,7 @@ void validateStruct(
       }
    }
 }
+}  // namespace
 
 void SequenceInfo::validateNdjsonFile(
    const silo::ReferenceGenomes& reference_genomes,

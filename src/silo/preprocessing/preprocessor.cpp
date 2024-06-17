@@ -25,8 +25,8 @@
 
 namespace silo::preprocessing {
 
-constexpr std::string_view FASTA_EXTENSION = ".fasta";
-const std::string INSERTIONS_TABLE_NAME_SUFFIX = "insertions";
+static constexpr std::string_view FASTA_EXTENSION = ".fasta";
+static const std::string INSERTIONS_TABLE_NAME_SUFFIX = "insertions";
 
 namespace {
 template <typename SymbolType>
