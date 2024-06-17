@@ -1,5 +1,8 @@
 #pragma once
 
+#include <silo/common/table_reader.h>
+#include <silo/storage/sequence_store.h>
+#include <silo/zstd/zstd_decompressor.h>
 #include <optional>
 
 #include "silo/config/database_config.h"
@@ -85,6 +88,18 @@ class Preprocessor {
       Database& database,
       const preprocessing::Partitions& partition_descriptor,
       const std::string& order_by_clause
+   );
+
+   template <typename SymbolType>
+   ColumnFunction createRawReadLambda(
+      ZstdDecompressor& decompressor,
+      silo::SequenceStorePartition<SymbolType>& sequence_store
+   );
+
+   template <typename SymbolType>
+   ColumnFunction createInsertionLambda(
+      const std::string& sequence_name,
+      silo::SequenceStorePartition<SymbolType>& sequence_store
    );
 
    template <typename SymbolType>

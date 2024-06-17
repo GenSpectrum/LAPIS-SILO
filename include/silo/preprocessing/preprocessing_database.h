@@ -9,7 +9,7 @@
 
 namespace silo {
 
-class ZstdFastaTable;
+class ZstdTable;
 class ReferenceGenomes;
 class CompressSequence;
 
@@ -42,13 +42,25 @@ class PreprocessingDatabase {
 
    std::unique_ptr<duckdb::MaterializedQueryResult> query(std::string sql_query);
 
-   ZstdFastaTable generateSequenceTableFromFasta(
+   ZstdTable generateSequenceTableViaFile(
+      const std::string& table_name,
+      const std::string& reference_sequence,
+      const std::filesystem::path& file_path
+   );
+
+   ZstdTable generateSequenceTableFromFasta(
       const std::string& table_name,
       const std::string& reference_sequence,
       const std::string& filename
    );
 
-   ZstdFastaTable generateSequenceTableFromZstdFasta(
+   ZstdTable generateSequenceTableFromZstdFasta(
+      const std::string& table_name,
+      const std::string& reference_sequence,
+      const std::string& filename
+   );
+
+   ZstdTable generateSequenceTableFromSAM(
       const std::string& table_name,
       const std::string& reference_sequence,
       const std::string& filename

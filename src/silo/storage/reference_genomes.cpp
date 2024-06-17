@@ -242,4 +242,14 @@ template <>
 std::string ReferenceGenomes::vectorToString<AminoAcid>(const std::vector<AminoAcid::Symbol>& vector
 );
 
+template <typename SymbolType>
+const std::map<std::string, std::string>& ReferenceGenomes::getRawSequences() const {
+   if constexpr (std::is_same_v<SymbolType, Nucleotide>) {
+      return raw_nucleotide_sequences;
+   }
+   if constexpr (std::is_same_v<SymbolType, AminoAcid>) {
+      return raw_aa_sequences;
+   }
+}
+
 }  // namespace silo

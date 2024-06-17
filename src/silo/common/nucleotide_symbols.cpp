@@ -154,5 +154,4 @@ const silo::SymbolMap<Nucleotide, std::vector<Nucleotide::Symbol>> Nucleotide::A
    {Nucleotide::Symbol::V},
    {Nucleotide::Symbol::N},
 }}};
-
 }  // namespace silo

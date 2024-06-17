@@ -38,12 +38,12 @@
 
 #include "silo/common/block_timer.h"
 #include "silo/common/data_version.h"
-#include "silo/common/fasta_reader.h"
 #include "silo/common/format_number.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/config/database_config.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/database_info.h"
+#include "silo/file_reader/fasta_reader.h"
 #include "silo/persistence/exception.h"
 #include "silo/preprocessing/metadata_info.h"
 #include "silo/preprocessing/preprocessing_exception.h"
@@ -63,9 +63,8 @@
 #include "silo/storage/sequence_store.h"
 #include "silo/storage/serialize_optional.h"
 #include "silo/storage/unaligned_sequence_store.h"
-#include "silo/zstdfasta/zstd_decompressor.h"
-#include "silo/zstdfasta/zstdfasta_table.h"
-#include "silo/zstdfasta/zstdfasta_table_reader.h"
+#include "silo/zstd/zstd_decompressor.h"
+#include "silo/zstd/zstd_table.h"
 
 namespace silo {
 

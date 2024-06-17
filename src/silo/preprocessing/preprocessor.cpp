@@ -6,12 +6,12 @@
 #include <boost/algorithm/string/join.hpp>
 
 #include "silo/common/block_timer.h"
-#include "silo/common/fasta_reader.h"
 #include "silo/common/string_utils.h"
 #include "silo/common/table_reader.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
+#include "silo/file_reader/fasta_reader.h"
 #include "silo/preprocessing/metadata_info.h"
 #include "silo/preprocessing/preprocessing_database.h"
 #include "silo/preprocessing/preprocessing_exception.h"
@@ -19,9 +19,8 @@
 #include "silo/preprocessing/sql_function.h"
 #include "silo/storage/reference_genomes.h"
 #include "silo/storage/unaligned_sequence_store.h"
-#include "silo/zstdfasta/zstd_decompressor.h"
-#include "silo/zstdfasta/zstdfasta_table.h"
-#include "silo/zstdfasta/zstdfasta_table_reader.h"
+#include "silo/zstd/zstd_decompressor.h"
+#include "silo/zstd/zstd_table.h"
 
 namespace silo::preprocessing {
 
@@ -398,7 +397,7 @@ void Preprocessor::createAlignedPartitionedSequenceViews(const std::filesystem::
    for (const auto& prefixed_nuc_name : prefixed_nuc_sequences) {
       (void)preprocessing_db.query(fmt::format(
          "CREATE OR REPLACE VIEW {0} AS\n"
-         "SELECT key, {0} AS sequence, partition_id, {1} "
+         "SELECT key, struct_pack(\"position\" := 0, sequence := {0}) AS read, partition_id, {1} "
          "FROM sequence_table;",
          prefixed_nuc_name,
          boost::join(prefixed_order_by_fields, ",")
@@ -408,7 +407,7 @@ void Preprocessor::createAlignedPartitionedSequenceViews(const std::filesystem::
    for (const auto& prefixed_aa_name : prefixed_aa_sequences) {
       (void)preprocessing_db.query(fmt::format(
          "CREATE OR REPLACE VIEW {0} AS\n"
-         "SELECT key, {0} AS sequence, partition_id, {1} "
+         "SELECT key, struct_pack(\"position\" := 0, sequence := {0}) AS read, partition_id, {1} "
          "FROM sequence_table;",
          prefixed_aa_name,
          boost::join(prefixed_order_by_fields, ",")
@@ -528,16 +527,15 @@ void Preprocessor::createPartitionedSequenceTablesFromSequenceFiles() {
             .replace_extension(FASTA_EXTENSION)
       );
 
-      preprocessing_db.generateSequenceTableFromFasta(
+      preprocessing_db.generateSequenceTableViaFile(
          "unaligned_tmp",
          reference_sequence,
          preprocessing_config.getUnalignedNucFilenameNoExtension(sequence_name)
-            .replace_extension(FASTA_EXTENSION)
       );
       createUnalignedPartitionedSequenceFile(
          sequence_name,
          fmt::format(
-            "SELECT unaligned_tmp.key AS key, unaligned_tmp.sequence AS unaligned_nuc_{}, "
+            "SELECT unaligned_tmp.key AS key, unaligned_tmp.read AS unaligned_nuc_{}, "
             "partitioned_metadata.partition_id AS partition_id "
             "FROM unaligned_tmp RIGHT JOIN partitioned_metadata "
             "ON unaligned_tmp.key = partitioned_metadata.\"{}\" ",
@@ -568,12 +566,12 @@ void Preprocessor::createPartitionedTableForSequence(
       fmt::format("{}{}{}", "raw_", SymbolType::PREFIX, sequence_name);
    const std::string table_name = fmt::format("{}{}", SymbolType::PREFIX, sequence_name);
 
-   preprocessing_db.generateSequenceTableFromFasta(raw_table_name, reference_sequence, filename);
+   preprocessing_db.generateSequenceTableViaFile(raw_table_name, reference_sequence, filename);
 
    (void)preprocessing_db.query(fmt::format(
       R"-(
          CREATE OR REPLACE VIEW {} AS
-         SELECT key, sequence,
+         SELECT key, read,
          partitioned_metadata.partition_id AS partition_id {}
          FROM {} AS raw RIGHT JOIN partitioned_metadata
          ON raw.key = partitioned_metadata."{}";
@@ -681,6 +679,41 @@ void Preprocessor::buildMetadataStore(
 }
 
 template <typename SymbolType>
+ColumnFunction Preprocessor::createRawReadLambda(
+   ZstdDecompressor& decompressor,
+   silo::SequenceStorePartition<SymbolType>& sequence_store
+) {
+   return {"read", [&sequence_store, &decompressor](size_t row_id, const duckdb::Value& value) {
+              ReadSequence& target = sequence_store.reserveRead();
+              if (value.IsNull()) {
+                 return;
+              }
+              const auto& children = duckdb::StructValue::GetChildren(value);
+              if (children[1].IsNull()) {
+                 return;
+              }
+              decompressor.decompress(children[1].GetValueUnsafe<std::string>(), target.sequence);
+              target.offset = children[0].GetValue<uint32_t>();
+              target.is_valid = true;
+           }};
+}
+
+template <typename SymbolType>
+silo::ColumnFunction Preprocessor::createInsertionLambda(
+   const std::string& sequence_name,
+   silo::SequenceStorePartition<SymbolType>& sequence_store
+) {
+   return {sequence_name, [&sequence_store](size_t row_id, const duckdb::Value& value) {
+              if (value.IsNull()) {
+                 return;
+              }
+              for (const auto& child : duckdb::ListValue::GetChildren(value)) {
+                 sequence_store.insertInsertion(row_id, child.GetValue<std::string>());
+              }
+           }};
+}
+
+template <typename SymbolType>
 void Preprocessor::buildSequenceStore(
    Database& database,
    const preprocessing::Partitions& partition_descriptor,
@@ -705,36 +738,33 @@ void Preprocessor::buildSequenceStore(
                      partition_index
                   );
 
-                  auto& sequence_store = database.partitions.at(partition_index)
-                                            .template getSequenceStores<SymbolType>()
-                                            .at(sequence_name);
+                  SequenceStorePartition<SymbolType>& sequence_store =
+                     database.partitions.at(partition_index)
+                        .template getSequenceStores<SymbolType>()
+                        .at(sequence_name);
 
-                  silo::ZstdFastaTableReader sequence_input(
+                  ZstdDecompressor decompressor(reference_sequence);
+
+                  auto column_function_reads = createRawReadLambda(decompressor, sequence_store);
+
+                  silo::TableReader(
                      preprocessing_db.getConnection(),
                      fmt::format("{}{}", SymbolType::PREFIX, sequence_name),
-                     reference_sequence,
-                     "sequence",
+                     "key",
+                     {column_function_reads},
                      fmt::format("partition_id = {}", partition_index),
                      order_by_clause
-                  );
-                  sequence_store.fill(sequence_input);
+                  )
+                     .read();
 
-                  const silo::ColumnFunction column_function{
-                     sequence_name,
-                     [&sequence_store](size_t row_id, const duckdb::Value& value) {
-                        if (value.IsNull()) {
-                           return;
-                        }
-                        for (const auto& child : duckdb::ListValue::GetChildren(value)) {
-                           sequence_store.insertInsertion(row_id, child.GetValue<std::string>());
-                        }
-                     }
-                  };
+                  auto column_function_insertions =
+                     createInsertionLambda(sequence_name, sequence_store);
+
                   silo::TableReader(
                      preprocessing_db.getConnection(),
                      getInsertionsTableName<SymbolType>(),
                      "key",
-                     {column_function},
+                     {column_function_insertions},
                      fmt::format("partition_id = {}", partition_index),
                      order_by_clause
                   )

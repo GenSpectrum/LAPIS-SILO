@@ -38,6 +38,9 @@ struct ReferenceGenomes {
 
    template <typename SymbolType>
    static std::string vectorToString(const std::vector<typename SymbolType::Symbol>& vector);
+
+   template <typename SymbolType>
+   const std::map<std::string, std::string>& getRawSequences() const;
 };
 
 }  // namespace silo

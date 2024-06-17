@@ -9,7 +9,7 @@
 #include <duckdb.hpp>
 
 #include "silo/storage/pango_lineage_alias.h"
-#include "silo/zstdfasta/zstd_compressor.h"
+#include "silo/zstd/zstd_compressor.h"
 
 namespace silo {
 
