@@ -90,8 +90,8 @@ preprocessing::Partitions PreprocessingDatabase::getPartitionDescriptor() {
 
       const auto db_partition_size = it.current_row.GetValue<Value>(1);
       const int64_t partition_size_bigint = BigIntValue::Get(db_partition_size);
-      if (partition_size_bigint <= 0) {
-         throw PreprocessingException("Non-positive partition size encountered.");
+      if (partition_size_bigint < 0) {
+         throw PreprocessingException("Negative partition size encountered.");
       }
       if (partition_size_bigint > UINT32_MAX) {
          throw PreprocessingException(

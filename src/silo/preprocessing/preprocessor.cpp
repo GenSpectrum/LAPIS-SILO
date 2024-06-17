@@ -249,7 +249,7 @@ WITH RECURSIVE
                FROM grouped_partition_keys l1,
                     partition_keys l2,
                     allowed_count
-WHERE l1.to_id + 1 = l2.id)
+               WHERE l1.to_id + 1 = l2.id)
 SELECT row_number() OVER () - 1 AS partition_id, from_id, to_id, count
 FROM (SELECT from_id, MAX(to_id) AS to_id, MAX(count) AS count
       FROM grouped_partition_keys

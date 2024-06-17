@@ -147,6 +147,22 @@ const Scenario EMPTY_INPUT_NDJSON = {
 [])")
 };
 
+const Scenario EMPTY_INPUT_NDJSON_UNPARTITIONED = {
+   .input_directory = "testBaseData/emptyInputNdjsonUnpartitioned/",
+   .expected_sequence_count = 0,
+   .query = R"(
+      {
+         "action": {
+           "type": "Details"
+         },
+         "filterExpression": {
+            "type": "True"
+         }
+      }
+   )",
+   .expected_query_result = nlohmann::json::parse(R"([])")
+};
+
 const Scenario NO_GENES = {
    .input_directory = "testBaseData/noGenes/",
    .expected_sequence_count = 30,
@@ -211,6 +227,7 @@ INSTANTIATE_TEST_SUITE_P(
       NDJSON_WITH_NUMERIC_NAMES,
       EMPTY_INPUT_TSV,
       EMPTY_INPUT_NDJSON,
+      EMPTY_INPUT_NDJSON_UNPARTITIONED,
       NO_GENES,
       NO_NUCLEOTIDE_SEQUENCES,
       NO_SEQUENCES
