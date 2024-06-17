@@ -93,29 +93,29 @@ jobs:
   linter:
     name: Build And Run linter
     needs: linterDependencies
-    runs-on: ubuntu-latest
+    runs-on: ghcr.io/genspectrum/lapis-silo-linter-dependencies:commit-${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Generate dependency files hash
-        id: files-hash
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Get list of changed files
+        id: changed-files
         run: |
-          DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', '.github/workflows/ci.yml', './Dockerfile_linter_dependencies') }})
-          echo "DIR_HASH=$DIR_HASH" >> $GITHUB_ENV
+          files=$(jq -r '.pull_request.files[] | select(.status == "added" or .status == "modified") | .filename' $GITHUB_EVENT_PATH)
+          echo "::set-output name=files::$files"
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build linter image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile_linter
-          cache-from: type=gha,ref=${{ github.ref_name }}-linter-image-cache
-          cache-to: type=gha,mode=min,ref=${{ github.ref_name }}-linter-image-cache
-          push: false
-          build-args: |
-            DEPENDENCY_IMAGE=ghcr.io/genspectrum/lapis-silo-linter-dependencies:${{ env.DIR_HASH }}
+      - name: Configure and run clang-tidy on changed files
+        run: |
+          mkdir -p build
+          cd build
+          changed_files="${{ steps.changed-files.outputs.files }}"
+          IFS=$'\n' read -d '' -r -a file_array <<< "$changed_files"
+          for file in "${file_array[@]}"; do
+            cmake -DCMAKE_CXX_CLANG_TIDY="clang-tidy" ..
+            cmake --build . --target $(basename $file)
+          done
 
   dependencyImage:
     name: Build Docker Image Dependencies
