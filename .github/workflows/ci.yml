@@ -52,7 +52,7 @@ jobs:
             type=ref,event=branch
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=${{ env.DIR_HASH }}
-            type=sha,prefix=commit-
+            type=sha,format=long,prefix=commit-
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -141,7 +141,7 @@ jobs:
             type=ref,event=branch
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=${{ env.DIR_HASH }}
-            type=sha,prefix=commit-
+            type=sha,format=long,prefix=commit-
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -203,7 +203,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
-            type=sha,prefix=commit-
+            type=sha,format=long,prefix=commit-
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
