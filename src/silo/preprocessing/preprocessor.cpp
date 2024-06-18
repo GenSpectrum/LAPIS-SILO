@@ -128,12 +128,21 @@ void Preprocessor::buildTablesFromNdjsonInput(const std::filesystem::path& file_
       boost::join(MetadataInfo::getMetadataSQLTypes(database_config), ",")
    ));
 
+   SPDLOG_DEBUG("build - checking whether the file '{}' exists: ", file_name.string());
    if (!std::filesystem::exists(file_name)) {
       throw silo::preprocessing::PreprocessingException(
          fmt::format("The specified input file {} does not exist.", file_name.string())
       );
    }
 
+   SPDLOG_DEBUG("build - checking whether the file '{}' is not a directory: ", file_name.string());
+   if (std::filesystem::is_directory(file_name)) {
+      throw silo::preprocessing::PreprocessingException(
+         fmt::format("The specified input file {} is a directory.", file_name.string())
+      );
+   }
+
+   SPDLOG_DEBUG("build - checking whether the file '{}' is empty: ", file_name.string());
    if (MetadataInfo::isNdjsonFileEmpty(file_name)) {
       SPDLOG_WARN(
          "The specified input file {} is empty. Ignoring its content.", file_name.string()
