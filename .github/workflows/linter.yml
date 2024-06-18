@@ -1,7 +1,5 @@
-name: Build and Run Linter
-
 on:
-  pull_request:
+  [pull_request]
 
 concurrency:
   group: linter-${{ github.ref }}
