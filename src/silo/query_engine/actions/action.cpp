@@ -128,7 +128,7 @@ void from_json(const nlohmann::json& json, OrderByField& field) {
    CHECK_SILO_QUERY(
       json.is_object() && json.contains("field") && json.contains("order") &&
          json["field"].is_string() && json["order"].is_string(),
-      "The orderByField '" + json.dump() +
+      "The TEST RERUN orderByField '" + json.dump() +
          "' must be either a string or an object containing the fields 'field':string and "
          "'order':string, where the value of order is 'ascending' or 'descending'"
    )
