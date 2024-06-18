@@ -37,6 +37,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Get changed files
+        id: changed-files1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          echo "Github Event ${{ github.event }}"
+          echo "Github Event number ${{ github.event.number }}"
+          echo "github.repository_owner ${{ github.repository_owner }}"
+          echo "github.repository ${{ github.repository }}"
+          echo "Changed files in PR #${PR_NUMBER}:"
+          $files=$(curl -s \
+           "https://api.github.com/repos/${{ github.repository_owner }}/${{ github.repository }}/pulls/${PR_NUMBER}/files" \
+           | jq -r '.[].filename')
+          echo "${$files}"
+          echo "::set-output name=files::$files"
+
       - name: Generate dependency files hash
         id: files-hash
         run: |
