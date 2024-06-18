@@ -89,7 +89,7 @@ jobs:
     name: Build And Run linter
     needs: linterDependencies
     runs-on: ubuntu-latest
-    container: ${{ env.DOCKER_LINTER_DEPENDENCY_IMAGE_NAME }}:commit-${{ github.sha }}
+    container: ghcr.io/genspectrum/lapis-silo-linter-dependencies:commit-${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
 
