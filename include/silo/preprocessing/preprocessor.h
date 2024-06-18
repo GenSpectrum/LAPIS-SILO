@@ -14,6 +14,7 @@ class Database;
 namespace preprocessing {
 
 class SequenceInfo;
+class ValidatedNdjsonFile;
 
 class Preprocessor {
    config::PreprocessingConfig preprocessing_config;
@@ -45,7 +46,7 @@ class Preprocessor {
    static std::string makeNonNullKey(const std::string& field);
    std::string getPartitionKeySelect() const;
 
-   void buildTablesFromNdjsonInput(const std::filesystem::path& file_name);
+   void buildTablesFromNdjsonInput(const ValidatedNdjsonFile& input_file);
    void buildMetadataTableFromFile(const std::filesystem::path& metadata_filename);
 
    void buildPartitioningTable();
@@ -58,10 +59,10 @@ class Preprocessor {
       const std::string& table_name
    );
 
-   void createPartitionedSequenceTablesFromNdjson(const std::filesystem::path& file_name);
+   void createPartitionedSequenceTablesFromNdjson(const ValidatedNdjsonFile& input_file);
 
-   void createAlignedPartitionedSequenceViews(const std::filesystem::path& file_name);
-   void createUnalignedPartitionedSequenceFiles(const std::filesystem::path& file_name);
+   void createAlignedPartitionedSequenceViews(const ValidatedNdjsonFile& input_file);
+   void createUnalignedPartitionedSequenceFiles(const ValidatedNdjsonFile& input_file);
    void createUnalignedPartitionedSequenceFile(
       const std::string& seq_name,
       const std::string& table_sql
