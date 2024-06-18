@@ -1,5 +1,7 @@
 #include "silo/preprocessing/metadata_info.h"
 
+#include <fstream>
+
 #include <spdlog/spdlog.h>
 #include <boost/algorithm/string/join.hpp>
 #include <duckdb.hpp>
@@ -85,19 +87,29 @@ void MetadataInfo::validateMetadataFile(
    }
 }
 
+/// Returns true if the file is empty, or it only contains a single whitespace character
 bool MetadataInfo::isNdjsonFileEmpty(const std::filesystem::path& ndjson_file) {
-   duckdb::DuckDB duck_db(nullptr);
-   duckdb::Connection connection(duck_db);
-
-   auto result = connection.Query(fmt::format(
-      "SELECT COUNT(*) "
-      "FROM (SELECT * FROM read_json_auto(\"{}\") LIMIT 1);",
-      ndjson_file.string()
-   ));
-
-   auto row_count_value = result->GetValue<int64_t>(0, 0);
-   const int64_t row_count = duckdb::BigIntValue::Get(row_count_value);
-   return row_count == 0;
+   if(std::filesystem::is_empty(ndjson_file)){
+      return true;
+   }
+   std::ifstream file(ndjson_file.string(), std::ios::in | std::ios::binary);
+   if (!file) {
+      throw silo::preprocessing::PreprocessingException(fmt::format("Could not open file: {}", ndjson_file.string()));
+   }
+   char first_character_in_file;
+   file.get(first_character_in_file);
+   if(file.eof()){
+      return true;
+   }
+   if(!std::isspace(static_cast<unsigned char>(first_character_in_file))){
+      return false;
+   }
+   char second_character_in_file;
+   file.get(second_character_in_file);
+   if (file.eof()) {
+      return true;
+   }
+   return false;
 }
 
 void MetadataInfo::validateNdjsonFile(
