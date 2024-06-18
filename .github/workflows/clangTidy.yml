@@ -1,5 +1,9 @@
 on:
-  [pull_request]
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
 
 concurrency:
   group: linter-${{ github.ref }}
