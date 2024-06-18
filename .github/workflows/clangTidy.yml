@@ -15,23 +15,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Get changed files
-        id: changed-files1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.number }}
-        run: |
-          echo "Github Event ${{ github.event }}"
-          echo "Github Event number ${{ github.event.number }}"
-          echo "github.repository_owner ${{ github.repository_owner }}"
-          echo "github.repository ${{ github.repository }}"
-          echo "Changed files in PR #${PR_NUMBER}:"
-          $files=$(curl -s \
-           "https://api.github.com/repos/${{ github.repository_owner }}/${{ github.repository }}/pulls/${PR_NUMBER}/files" \
-           | jq -r '.[].filename')
-          echo "${$files}"
-          echo "::set-output name=files::$files"
-
       - name: Generate dependency files hash
         id: files-hash
         run: |
@@ -83,42 +66,4 @@ jobs:
           TAGS=(${{ steps.dockerMetadata.outputs.tags }})
           for TAG in "${TAGS[@]}"; do
             docker buildx imagetools create --tag $TAG ${{ env.DOCKER_LINTER_DEPENDENCY_IMAGE_NAME }}:${{ env.DIR_HASH }}
-          done
-
-  linter:
-    name: Build And Run linter
-    needs: linterDependencies
-    runs-on: ubuntu-latest
-    container: ghcr.io/genspectrum/lapis-silo-linter-dependencies:commit-${{ github.sha }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Get changed files
-        id: changed-files1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.number }}
-        run: |
-          echo "Changed files in PR #${PR_NUMBER}:"
-          $files=$(curl -s \
-           "https://api.github.com/repos/${{ github.repository_owner }}/${{ github.repository }}/pulls/${PR_NUMBER}/files" \
-           | jq -r '.[].filename')
-          echo "${$files}"
-          echo "::set-output name=files::$files"
-
-      - name: Get list of changed files
-        id: changed-files2
-        run: |
-          files=$(jq -r '.pull_request.files[] | select(.status == "added" or .status == "modified") | .filename' $GITHUB_EVENT_PATH)
-          echo "::set-output name=files::$files"
-
-      - name: Configure and run clang-tidy on changed files
-        run: |
-          mkdir -p build
-          cd build
-          changed_files="${{ steps.changed-files1.outputs.files }}"
-          IFS=$'\n' read -d '' -r -a file_array <<< "$changed_files"
-          for file in "${file_array[@]}"; do
-            cmake -DCMAKE_CXX_CLANG_TIDY="clang-tidy" ..
-            cmake --build . --target $(basename $file)
           done
