@@ -75,7 +75,7 @@ jobs:
 
       - name: Build linter dependencies image
         if: env.CACHE_HIT == 'false'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
@@ -109,7 +109,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build linter image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile_linter
@@ -163,7 +163,7 @@ jobs:
 
       - name: Build and push image if input files changed
         if: env.CACHE_HIT == 'false'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile_dependencies
@@ -217,7 +217,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build unit test image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           target: builder
@@ -236,7 +236,7 @@ jobs:
 
       - name: Build and push production image
         if: ${{ github.event_name == 'push' }}
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
