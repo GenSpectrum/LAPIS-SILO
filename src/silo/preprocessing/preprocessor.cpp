@@ -17,6 +17,7 @@
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/preprocessing/sequence_info.h"
 #include "silo/preprocessing/sql_function.h"
+#include "silo/preprocessing/validated_ndjson_file.h"
 #include "silo/storage/reference_genomes.h"
 #include "silo/storage/unaligned_sequence_store.h"
 #include "silo/zstdfasta/zstd_decompressor.h"
@@ -79,15 +80,18 @@ Database Preprocessor::preprocess() {
    const auto& ndjson_input_filename = preprocessing_config.getNdjsonInputFilename();
    if (ndjson_input_filename.has_value()) {
       SPDLOG_INFO("preprocessing - ndjson pipeline chosen");
+      auto input_file = ValidatedNdjsonFile::validateFileAgainstConfig(
+         ndjson_input_filename.value(), database_config, reference_genomes_
+      );
       SPDLOG_DEBUG(
          "preprocessing - building preprocessing tables from ndjson input '{}'",
          ndjson_input_filename.value().string()
       );
-      buildTablesFromNdjsonInput(ndjson_input_filename.value());
+      buildTablesFromNdjsonInput(input_file);
       SPDLOG_DEBUG("preprocessing - building partitioning tables");
       buildPartitioningTable();
       SPDLOG_DEBUG("preprocessing - creating compressed sequence views for building SILO");
-      createPartitionedSequenceTablesFromNdjson(ndjson_input_filename.value());
+      createPartitionedSequenceTablesFromNdjson(input_file);
    } else {
       SPDLOG_INFO("preprocessing - classic metadata file pipeline chosen");
       SPDLOG_DEBUG(
@@ -122,41 +126,24 @@ Database Preprocessor::preprocess() {
    );
 }
 
-void Preprocessor::buildTablesFromNdjsonInput(const std::filesystem::path& file_name) {
+void Preprocessor::buildTablesFromNdjsonInput(const ValidatedNdjsonFile& input_file) {
    (void)preprocessing_db.query(fmt::format(
       "CREATE OR REPLACE TABLE metadata_table({});",
       boost::join(MetadataInfo::getMetadataSQLTypes(database_config), ",")
    ));
 
-   SPDLOG_DEBUG("build - checking whether the file '{}' exists: ", file_name.string());
-   if (!std::filesystem::exists(file_name)) {
-      throw silo::preprocessing::PreprocessingException(
-         fmt::format("The specified input file {} does not exist.", file_name.string())
-      );
-   }
-
-   SPDLOG_DEBUG("build - checking whether the file '{}' is not a directory: ", file_name.string());
-   if (std::filesystem::is_directory(file_name)) {
-      throw silo::preprocessing::PreprocessingException(
-         fmt::format("The specified input file {} is a directory.", file_name.string())
-      );
-   }
-
-   SPDLOG_DEBUG("build - checking whether the file '{}' is empty: ", file_name.string());
-   if (MetadataInfo::isNdjsonFileEmpty(file_name)) {
+   if (input_file.isEmpty()) {
       SPDLOG_WARN(
-         "The specified input file {} is empty. Ignoring its content.", file_name.string()
+         "The specified input file {} is empty. Ignoring its content.",
+         input_file.getFileName().string()
       );
       return;
    }
 
-   SPDLOG_DEBUG("build - validating metadata file '{}' with config", file_name.string());
-   MetadataInfo::validateNdjsonFile(file_name, database_config);
-
    (void)preprocessing_db.query(fmt::format(
       "INSERT INTO metadata_table BY NAME (SELECT {} FROM read_json_auto('{}'));",
       boost::join(MetadataInfo::getMetadataSelects(database_config), ","),
-      file_name.string()
+      input_file.getFileName().string()
    ));
 
    auto null_primary_key_result = preprocessing_db.query(fmt::format(
@@ -170,7 +157,7 @@ void Preprocessor::buildTablesFromNdjsonInput(const std::filesystem::path& file_
       const std::string error_message = fmt::format(
          "Error, there are {} primary keys that are NULL",
          null_primary_key_result->RowCount(),
-         file_name.string()
+         input_file.getFileName().string()
       );
       SPDLOG_ERROR(error_message);
       if (null_primary_key_result->RowCount() <= 10) {
@@ -321,20 +308,16 @@ FROM metadata_table;
    );
 }
 
-void Preprocessor::createPartitionedSequenceTablesFromNdjson(const std::filesystem::path& file_name
+void Preprocessor::createPartitionedSequenceTablesFromNdjson(const ValidatedNdjsonFile& input_file
 ) {
-   SequenceInfo::validateNdjsonFile(
-      reference_genomes_, preprocessing_db.getConnection(), file_name
-   );
+   createUnalignedPartitionedSequenceFiles(input_file);
 
-   createUnalignedPartitionedSequenceFiles(file_name);
-
-   createAlignedPartitionedSequenceViews(file_name);
+   createAlignedPartitionedSequenceViews(input_file);
 }
 
-void Preprocessor::createAlignedPartitionedSequenceViews(const std::filesystem::path& file_name) {
+void Preprocessor::createAlignedPartitionedSequenceViews(const ValidatedNdjsonFile& input_file) {
    std::string file_reader_sql;
-   if (MetadataInfo::isNdjsonFileEmpty(file_name)) {
+   if (input_file.isEmpty()) {
       file_reader_sql = fmt::format(
          "SELECT ''::VARCHAR AS key, 'NULL'::VARCHAR AS partition_key {} {} {} {} {} LIMIT 0",
          boost::join(silo::prepend(", ''::VARCHAR AS ", prefixed_nuc_sequences), ""),
@@ -364,7 +347,7 @@ void Preprocessor::createAlignedPartitionedSequenceViews(const std::filesystem::
          silo::tieAsString(
             ", metadata.\"", order_by_fields, "\" AS ", prefixed_order_by_fields, ""
          ),
-         file_name.string()
+         input_file.getFileName().string()
       );
    }
 
@@ -425,10 +408,10 @@ void Preprocessor::createAlignedPartitionedSequenceViews(const std::filesystem::
    }
 }
 
-void Preprocessor::createUnalignedPartitionedSequenceFiles(const std::filesystem::path& file_name) {
+void Preprocessor::createUnalignedPartitionedSequenceFiles(const ValidatedNdjsonFile& input_file) {
    for (const auto& [seq_name, _] : reference_genomes_.raw_nucleotide_sequences) {
       const std::string file_reader_sql =
-         MetadataInfo::isNdjsonFileEmpty(file_name)
+         input_file.isEmpty()
             ? fmt::format(
                  "SELECT ''::VARCHAR AS key, 'NULL'::VARCHAR as partition_key,"
                  " ''::VARCHAR AS unaligned_nuc_{} LIMIT 0",
@@ -441,7 +424,7 @@ void Preprocessor::createUnalignedPartitionedSequenceFiles(const std::filesystem
                  database_config.schema.primary_key,
                  getPartitionKeySelect(),
                  seq_name,
-                 file_name.string()
+                 input_file.getFileName().string()
               );
       const std::string table_sql = fmt::format(
          "SELECT key, {}, partition_key_to_partition.partition_id \n"
