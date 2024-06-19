@@ -1,3 +1,5 @@
+name: ClangTidy
+
 on:
   pull_request:
     types:
@@ -5,69 +7,26 @@ on:
       - reopened
       - synchronize
 
-concurrency:
-  group: linter-${{ github.ref }}
-  cancel-in-progress: true
-
-env:
-  DOCKER_LINTER_DEPENDENCY_IMAGE_NAME: ghcr.io/genspectrum/lapis-silo-linter-dependencies
-
 jobs:
-  linterDependencies:
-    name: Build linter dependencies
+  commitlint:
+    name: Lint commit messages
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Generate dependency files hash
-        id: files-hash
-        run: |
-          DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', '.github/workflows/linter.yml', './Dockerfile_linter_dependencies') }})
-          echo "DIR_HASH=$DIR_HASH" >> $GITHUB_ENV
-
-      - name: Docker metadata
-        id: dockerMetadata
-        uses: docker/metadata-action@v5
         with:
-          images: ${{ env.DOCKER_LINTER_DEPENDENCY_IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=${{ env.DIR_HASH }}
-            type=sha,format=long,prefix=commit-
+          fetch-depth: 0
 
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+      - uses: actions/setup-node@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          node-version: lts/*
 
-      - name: Check if image exists
-        id: check-image
-        run: |
-          EXISTS=$(docker manifest inspect ${{ env.DOCKER_LINTER_DEPENDENCY_IMAGE_NAME }}:${{ env.DIR_HASH }} > /dev/null 2>&1 && echo "true" || echo "false")
-          echo "CACHE_HIT=$EXISTS" >> $GITHUB_ENV
-
-      - name: Set up Docker Buildx
-        if: env.CACHE_HIT == 'false'
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build linter dependencies image
-        if: env.CACHE_HIT == 'false'
-        uses: docker/build-push-action@v5
+      - uses: actions/cache@v4
         with:
-          context: .
-          push: true
-          tags: ${{ steps.dockerMetadata.outputs.tags }}
-          file: ./Dockerfile_linter_dependencies
-          cache-from: type=gha,ref=linter-dependencies-image-cache-${{ hashFiles('conanfile.py', 'Dockerfile_linter') }}
-          cache-to: type=gha,mode=min,ref=linter-dependencies-image-cache-${{ hashFiles('conanfile.py', 'Dockerfile_linter') }}
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
 
-      - name: Retag and push existing image if cache hit
-        if: env.CACHE_HIT == 'true'
-        run: |
-          TAGS=(${{ steps.dockerMetadata.outputs.tags }})
-          for TAG in "${TAGS[@]}"; do
-            docker buildx imagetools create --tag $TAG ${{ env.DOCKER_LINTER_DEPENDENCY_IMAGE_NAME }}:${{ env.DIR_HASH }}
-          done
+      - name: Install npm packages
+        run: npm ci
+
+      - name: Validate PR commits with commitlint
+        run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --verbose
