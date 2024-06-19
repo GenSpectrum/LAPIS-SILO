@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.6](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.5...v0.2.6) (2024-06-19)
+
+
+### Bug Fixes
+
+* trigger release due to refactor commit-5e3041e5 ([#494](https://github.com/GenSpectrum/LAPIS-SILO/issues/494)) ([#496](https://github.com/GenSpectrum/LAPIS-SILO/issues/496)) ([ecd4ba0](https://github.com/GenSpectrum/LAPIS-SILO/commit/ecd4ba0f4b2f5338c4f968bda7b2b18dfbea0c2c))
+
 ## [0.2.5](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.4...v0.2.5) (2024-06-17)
 
 
