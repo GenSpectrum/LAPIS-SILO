@@ -59,6 +59,9 @@ file(GLOB_RECURSE SRC_TEST "src/*.test.cpp")
 file(GLOB_RECURSE SRC_SILO "src/*.cpp")
 list(REMOVE_ITEM SRC_SILO ${SRC_TEST})
 
+set(SRC_SILO_WITHOUT_MAIN ${SRC_SILO})
+list(REMOVE_ITEM SRC_SILO_WITHOUT_MAIN "${CMAKE_SOURCE_DIR}/src/silo_api/api.cpp")
+
 # ---------------------------------------------------------------------------
 # Linter
 # ---------------------------------------------------------------------------
@@ -79,9 +82,9 @@ endif ()
 # Targets
 # ---------------------------------------------------------------------------
 
-add_executable(siloApi src/silo_api/api.cpp ${SRC_SILO})
+add_library(silolib OBJECT ${SRC_SILO_WITHOUT_MAIN})
 target_link_libraries(
-        siloApi
+        silolib
         PUBLIC
         ${Boost_LIBRARIES}
         ${duckdb_LIBRARIES}
@@ -96,6 +99,13 @@ target_link_libraries(
         Poco::JSON
 )
 
+add_executable(siloApi "${CMAKE_SOURCE_DIR}/src/silo_api/api.cpp" $<TARGET_OBJECTS:silolib>)
+target_link_libraries(
+        siloApi
+        PUBLIC
+        silolib
+)
+
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
@@ -104,26 +114,8 @@ enable_testing()
 find_package(GTest REQUIRED)
 include_directories(${GTest_INCLUDE_DIRS})
 
-set(SRC_SILO_WITHOUT_MAIN ${SRC_SILO})
-list(REMOVE_ITEM SRC_SILO_WITHOUT_MAIN "${CMAKE_SOURCE_DIR}/src/silo_api/api.cpp")
-
-add_executable(silo_test ${SRC_TEST} ${SRC_SILO_WITHOUT_MAIN})
+add_executable(silo_test ${SRC_TEST} $<TARGET_OBJECTS:silolib>)
 if (NOT GTest_LIBRARIES)
     set(GTest_LIBRARIES gtest gmock)
 endif ()
-target_link_libraries(
-        silo_test
-        ${GTest_LIBRARIES}
-        ${Boost_LIBRARIES}
-        ${duckdb_LIBRARIES}
-        nlohmann_json::nlohmann_json
-        ${roaring_LIBRARIES}
-        ${spdlog_LIBRARIES}
-        TBB::tbb
-        ${yaml-cpp_LIBRARIES}
-        zstd::libzstd_static
-        Poco::Net
-        Poco::Util
-        Poco::JSON
-        nlohmann_json::nlohmann_json
-)
+target_link_libraries(silo_test PUBLIC ${GTest_LIBRARIES} silolib)
