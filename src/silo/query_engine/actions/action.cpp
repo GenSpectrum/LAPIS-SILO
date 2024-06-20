@@ -105,7 +105,7 @@ void Action::setOrdering(
    randomize_seed = randomize_seed_;
 }
 
-const size_t MATERIALIZATION_CUTOFF = 10000;
+static const size_t MATERIALIZATION_CUTOFF = 10000;
 
 QueryResult Action::executeAndOrder(
    const Database& database,

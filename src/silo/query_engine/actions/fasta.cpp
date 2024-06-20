@@ -244,7 +244,7 @@ uint32_t addSequencesToResultsForPartition(
 }
 
 // Note: fasta_aligned.cpp has its own PARTITION_CHUNK_SIZE
-const size_t PARTITION_CHUNK_SIZE = 10000;
+static const size_t PARTITION_CHUNK_SIZE = 10000;
 
 QueryResult Fasta::execute(const Database& database, std::vector<OperatorResult> bitmap_filter)
    const {
