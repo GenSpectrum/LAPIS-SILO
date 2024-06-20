@@ -35,8 +35,8 @@ class TableReader {
    std::string order_by_clause;
    std::unique_ptr<duckdb::MaterializedQueryResult> query_result;
    std::unique_ptr<duckdb::DataChunk> current_chunk;
-   size_t current_row;
-   size_t current_row_in_chunk;
+   size_t current_start_of_chunk = 0;
+   size_t current_chunk_size = 0;
 
   public:
    explicit TableReader(
@@ -51,11 +51,7 @@ class TableReader {
    size_t read();
 
   private:
-   std::optional<std::string> nextKey();
-
    std::string getTableQuery();
-
-   void advanceRow();
 
    void loadTable();
 };
