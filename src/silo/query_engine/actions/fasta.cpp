@@ -137,8 +137,6 @@ void addSequencesFromResultTableToJson(
    }
 }
 
-}  // namespace
-
 /// Must only be called with num_result_rows > 0. Returns the last processed row_id.
 uint32_t addSequencesToResultsForPartition(
    std::vector<std::string>& sequence_names,
@@ -242,6 +240,8 @@ uint32_t addSequencesToResultsForPartition(
 
    return last_row_id;
 }
+
+}  // namespace
 
 // Note: fasta_aligned.cpp has its own PARTITION_CHUNK_SIZE
 static const size_t PARTITION_CHUNK_SIZE = 10000;
