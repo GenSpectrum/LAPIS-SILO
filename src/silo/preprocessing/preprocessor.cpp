@@ -666,8 +666,18 @@ void Preprocessor::buildMetadataStore(
          fmt::format("partition_id = {}", partition_id),
          order_by_clause
       );
-      const size_t number_of_rows = table_reader.read();
-      database.partitions.at(partition_id).sequence_count += number_of_rows;
+
+      int64_t fill_time;
+      {
+         const silo::common::BlockTimer timer(fill_time);
+         const size_t number_of_rows = table_reader.read();
+         database.partitions.at(partition_id).sequence_count += number_of_rows;
+      }
+      SPDLOG_DEBUG(
+         "build - finished fill columns for partition {} in {} microseconds",
+         partition_id,
+         fill_time
+      );
       SPDLOG_INFO("build - finished columns for partition {}", partition_id);
    }
 }
