@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <fmt/format.h>
+#include <spdlog/spdlog.h>
 #include <boost/algorithm/string.hpp>
 #include <duckdb.hpp>
 
@@ -65,6 +66,10 @@ void ColumnPartitionGroup::addValueToColumn(
          float_columns.at(column_name).insert(value.ToString());
          return;
    }
+   SPDLOG_ERROR(
+      "Unknown column type '{}' for column '{}'", static_cast<int>(column_type), column_name
+   );
+   abort();
 }
 
 void ColumnPartitionGroup::addNullToColumn(const std::string& column_name, ColumnType column_type) {
@@ -91,6 +96,9 @@ void ColumnPartitionGroup::addNullToColumn(const std::string& column_name, Colum
          float_columns.at(column_name).insertNull();
          return;
    }
+   SPDLOG_ERROR(
+      "Unknown column type '{}' for column '{}'", static_cast<int>(column_type), column_name
+   );
    abort();
 }
 
@@ -122,6 +130,9 @@ void ColumnPartitionGroup::reserveSpaceInColumn(
          float_columns.at(column_name).reserve(row_count);
          return;
    }
+   SPDLOG_ERROR(
+      "Unknown column type '{}' for column '{}'", static_cast<int>(column_type), column_name
+   );
    abort();
 }
 
