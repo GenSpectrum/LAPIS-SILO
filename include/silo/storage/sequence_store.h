@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <fmt/format.h>
+#include <duckdb/main/connection.hpp>
 #include <roaring/roaring.hh>
 
 #include "silo/common/aa_symbols.h"

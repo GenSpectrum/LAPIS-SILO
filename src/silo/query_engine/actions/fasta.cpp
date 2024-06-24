@@ -114,11 +114,11 @@ void addSequencesFromResultTableToJson(
          "ORDER BY key"
       );
       table_reader.loadTable();
-      std::optional<std::string> genome_buffer;
 
       const size_t start_of_partition_in_result = results.query_result.size() - number_of_values;
       const size_t end_of_partition_in_result = results.query_result.size();
       for (size_t idx = start_of_partition_in_result; idx < end_of_partition_in_result; idx++) {
+         std::optional<std::string> genome_buffer;
          auto current_key = table_reader.next(genome_buffer);
          assert(current_key.has_value());
          if (genome_buffer.has_value()) {

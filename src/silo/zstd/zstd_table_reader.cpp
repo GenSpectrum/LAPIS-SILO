@@ -59,7 +59,12 @@ std::optional<std::string> silo::ZstdTableReader::nextCompressed(
    if (value.IsNull()) {
       compressed_genome = std::nullopt;
    } else {
-      compressed_genome = value.GetValueUnsafe<std::string>();
+      const auto& children = duckdb::StructValue::GetChildren(value);
+      if (children[1].IsNull()) {
+         compressed_genome = std::nullopt;
+         return std::nullopt;
+      }
+      compressed_genome = children[1].GetValueUnsafe<std::string>();
    }
 
    advanceRow();
