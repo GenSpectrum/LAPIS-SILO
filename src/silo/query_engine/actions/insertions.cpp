@@ -58,6 +58,7 @@ void InsertionAggregation<SymbolType>::validateOrderByFields(const Database& /*d
    }
 }
 
+namespace {
 template <typename SymbolType>
 void validateSequenceNames(
    const Database& database,
@@ -73,6 +74,7 @@ void validateSequenceNames(
       )
    }
 }
+}  // namespace
 
 template <typename SymbolType>
 std::unordered_map<std::string, typename InsertionAggregation<SymbolType>::PrefilteredBitmaps>

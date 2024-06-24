@@ -10,11 +10,13 @@ using silo::config::ValueType;
 using silo::test::QueryTestData;
 using silo::test::QueryTestScenario;
 
-static const double VALUE_IN_FILTER = 1.23;
-static const double VALUE_BELOW_FILTER = 0.345;
-static const double VALUE_ABOVE_FILTER = 2.345;
-static const double BELOW_FILTER = 0.5;
-static const double ABOVE_FILTER = 1.5;
+namespace {
+
+const double VALUE_IN_FILTER = 1.23;
+const double VALUE_BELOW_FILTER = 0.345;
+const double VALUE_ABOVE_FILTER = 2.345;
+const double BELOW_FILTER = 0.5;
+const double ABOVE_FILTER = 1.5;
 
 nlohmann::json createDataWithFloatValue(const std::string& primaryKey, double value) {
    return {
@@ -139,6 +141,8 @@ const QueryTestScenario FLOAT_BETWEEN_WITH_FROM_AND_TO_NULL_SCENARIO = {
        {{"primaryKey", "id_3"}, {"float_value", VALUE_ABOVE_FILTER}}}
    )
 };
+
+}  // namespace
 
 QUERY_TEST(
    FloatEqualsTest,

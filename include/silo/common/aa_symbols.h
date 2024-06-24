@@ -45,8 +45,6 @@ class AminoAcid {
 
    static constexpr std::string_view SYMBOL_NAME = "Amino Acid";
    static constexpr std::string_view SYMBOL_NAME_LOWER_CASE = "amino acid";
-   static constexpr std::string_view SYMBOL_NAME_UPPER_CASE = "AMINO ACID";
-   static constexpr std::string_view SYMBOL_NAME_SHORT = "AA";
    static constexpr std::string_view PREFIX = "aa_";
 
    static constexpr std::array<Symbol, COUNT> SYMBOLS{

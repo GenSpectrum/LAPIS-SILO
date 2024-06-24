@@ -11,8 +11,8 @@
 
 namespace silo {
 
-const std::string TIMESTAMP_FIELD = "timestamp";
-const std::string SERIALIZATION_VERSION_FIELD = "serializationVersion";
+static const std::string TIMESTAMP_FIELD = "timestamp";
+static const std::string SERIALIZATION_VERSION_FIELD = "serializationVersion";
 
 DataVersion::Timestamp::Timestamp(std::string value)
     : value(std::move(value)) {}

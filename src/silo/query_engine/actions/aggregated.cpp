@@ -20,6 +20,11 @@
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/column_group.h"
 
+using silo::query_engine::OperatorResult;
+using silo::query_engine::QueryResult;
+using silo::query_engine::QueryResultEntry;
+using silo::query_engine::actions::Tuple;
+
 namespace {
 
 std::vector<silo::storage::ColumnMetadata> parseGroupByFields(
@@ -37,17 +42,13 @@ std::vector<silo::storage::ColumnMetadata> parseGroupByFields(
    return group_by_metadata;
 }
 
-}  // namespace
-
-namespace silo::query_engine::actions {
-
 const std::string COUNT_FIELD = "count";
 
 std::vector<QueryResultEntry> generateResult(std::unordered_map<Tuple, uint32_t>& tuple_counts) {
    std::vector<QueryResultEntry> result;
    result.reserve(tuple_counts.size());
    for (auto& [tuple, count] : tuple_counts) {
-      std::map<std::string, common::JsonValueType> fields = tuple.getFields();
+      std::map<std::string, silo::common::JsonValueType> fields = tuple.getFields();
       fields[COUNT_FIELD] = static_cast<int32_t>(count);
       result.push_back({fields});
    }
@@ -59,10 +60,14 @@ QueryResult aggregateWithoutGrouping(const std::vector<OperatorResult>& bitmap_f
    for (const auto& filter : bitmap_filters) {
       count += filter->cardinality();
    }
-   std::map<std::string, common::JsonValueType> tuple_fields;
+   std::map<std::string, silo::common::JsonValueType> tuple_fields;
    tuple_fields[COUNT_FIELD] = static_cast<int32_t>(count);
    return QueryResult{std::vector<QueryResultEntry>{{tuple_fields}}};
 }
+
+}  // namespace
+
+namespace silo::query_engine::actions {
 
 Aggregated::Aggregated(std::vector<std::string> group_by_fields)
     : group_by_fields(std::move(group_by_fields)) {}

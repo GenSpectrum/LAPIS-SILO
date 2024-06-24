@@ -17,18 +17,8 @@
 
 namespace silo::storage::insertion {
 
+namespace {
 constexpr std::string_view REGEX_ANY = ".*";
-
-template <typename SymbolType>
-size_t ThreeMerHash<SymbolType>::operator()(
-   const std::array<typename SymbolType::Symbol, 3>& three_mer
-) const {
-   size_t seed = 0;
-   for (const auto one_mer : three_mer) {
-      boost::hash_combine(seed, std::hash<typename SymbolType::Symbol>{}(one_mer));
-   }
-   return seed;
-}
 
 template <typename SymbolType>
 std::vector<std::array<typename SymbolType::Symbol, 3>> extractThreeMers(
@@ -53,6 +43,18 @@ std::vector<std::array<typename SymbolType::Symbol, 3>> extractThreeMers(
       }
    }
    return {result.begin(), result.end()};
+}
+}  // namespace
+
+template <typename SymbolType>
+size_t ThreeMerHash<SymbolType>::operator()(
+   const std::array<typename SymbolType::Symbol, 3>& three_mer
+) const {
+   size_t seed = 0;
+   for (const auto one_mer : three_mer) {
+      boost::hash_combine(seed, std::hash<typename SymbolType::Symbol>{}(one_mer));
+   }
+   return seed;
 }
 
 template <typename SymbolType>

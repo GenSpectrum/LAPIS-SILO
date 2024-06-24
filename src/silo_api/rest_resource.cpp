@@ -9,19 +9,21 @@
 
 #include "silo_api/error_request_handler.h"
 
-namespace silo_api {
-
+namespace {
 void methodNotAllowed(
    Poco::Net::HTTPServerRequest& request,
    Poco::Net::HTTPServerResponse& response
 ) {
    response.setContentType("application/json");
    response.setStatus(Poco::Net::HTTPResponse::HTTP_METHOD_NOT_ALLOWED);
-   response.send() << nlohmann::json(ErrorResponse{
+   response.send() << nlohmann::json(silo_api::ErrorResponse{
       .error = "Method not allowed",
       .message = request.getMethod() + " is not allowed on resource " + request.getURI()
    });
 }
+}  // namespace
+
+namespace silo_api {
 
 void RestResource::handleRequest(
    Poco::Net::HTTPServerRequest& request,

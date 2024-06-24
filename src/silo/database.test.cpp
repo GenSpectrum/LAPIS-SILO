@@ -14,6 +14,7 @@
 #include "silo/query_engine/query_engine.h"
 #include "silo/storage/reference_genomes.h"
 
+namespace {
 silo::Database buildTestDatabase() {
    const std::string input_directory{"./testBaseData/exampleDataset/"};
 
@@ -34,6 +35,7 @@ silo::Database buildTestDatabase() {
    );
    return preprocessor.preprocess();
 }
+}  // namespace
 
 TEST(DatabaseTest, shouldBuildDatabaseWithoutErrors) {
    auto database{buildTestDatabase()};

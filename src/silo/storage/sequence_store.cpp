@@ -14,7 +14,6 @@
 
 #include <silo/zstd/zstd_decompressor.h>
 #include "silo/common/aa_symbols.h"
-#include "silo/common/format_number.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/string_utils.h"
 #include "silo/common/symbol_map.h"
@@ -108,7 +107,7 @@ void silo::SequenceStorePartition<SymbolType>::finalize() {
 }
 
 [[maybe_unused]] auto fmt::formatter<silo::SequenceStoreInfo>::format(
-   silo::SequenceStoreInfo sequence_store_info,
+   const silo::SequenceStoreInfo& sequence_store_info,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
    return fmt::format_to(

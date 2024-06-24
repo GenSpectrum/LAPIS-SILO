@@ -66,6 +66,7 @@ QueryResult Details::execute(
    return QueryResult{};
 }
 
+namespace {
 std::vector<actions::Tuple> mergeSortedTuples(
    const Tuple::Comparator& tuple_comparator,
    std::vector<std::vector<actions::Tuple>>& tuples,
@@ -181,6 +182,7 @@ std::vector<Tuple> produceAllTuples(
    });
    return all_tuples;
 }
+}  // namespace
 
 QueryResult Details::executeAndOrder(
    const silo::Database& database,

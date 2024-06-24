@@ -21,7 +21,9 @@ struct DatabaseInfo {
 }  // namespace silo
 
 template <>
-struct [[maybe_unused]] fmt::formatter<silo::DatabaseInfo> : fmt::formatter<std::string> {
+class [[maybe_unused]] fmt::formatter<silo::DatabaseInfo> {
+  public:
+   constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
    [[maybe_unused]] static auto format(silo::DatabaseInfo database_info, format_context& ctx)
       -> decltype(ctx.out()) {
       return fmt::format_to(

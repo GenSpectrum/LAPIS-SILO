@@ -42,7 +42,6 @@ class SequenceInfo {
 
    static void validateNdjsonFile(
       const silo::ReferenceGenomes& reference_genomes,
-      duckdb::Connection& connection,
       const std::filesystem::path& input_filename
    );
 };

@@ -10,8 +10,9 @@ using silo::config::ValueType;
 using silo::test::QueryTestData;
 using silo::test::QueryTestScenario;
 
-static const std::string SORTED_DATE_VALUE = "2020-12-24";
-static const std::string UNSORTED_DATE_VALUE = "2023-01-20";
+namespace {
+const std::string SORTED_DATE_VALUE = "2020-12-24";
+const std::string UNSORTED_DATE_VALUE = "2023-01-20";
 
 const nlohmann::json DATA = {
    {"metadata",
@@ -100,6 +101,8 @@ const QueryTestScenario UNSORTED_DATE_WITH_FROM_ONLY_SCENARIO = {
    .query = createDateBetweenQuery("unsorted_date", UNSORTED_DATE_VALUE, nullptr),
    .expected_query_result = EXPECTED_RESULT
 };
+
+}  // namespace
 
 QUERY_TEST(
    DateBetweenTest,

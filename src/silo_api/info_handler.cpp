@@ -14,7 +14,7 @@
 
 namespace silo {
 
-// NOLINTNEXTLINE(readability-identifier-naming)
+// NOLINTNEXTLINE(readability-identifier-naming,misc-use-internal-linkage)
 void to_json(nlohmann::json& json, const DatabaseInfo& databaseInfo) {
    json = nlohmann::json{
       {"sequenceCount", databaseInfo.sequence_count},
@@ -24,7 +24,7 @@ void to_json(nlohmann::json& json, const DatabaseInfo& databaseInfo) {
    };
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
+// NOLINTNEXTLINE(readability-identifier-naming,misc-use-internal-linkage)
 void to_json(nlohmann::json& json, const BitmapContainerSizeStatistic& statistics) {
    json = nlohmann::json{
       {"numberOfArrayContainers", statistics.number_of_array_containers},
@@ -41,7 +41,7 @@ void to_json(nlohmann::json& json, const BitmapContainerSizeStatistic& statistic
    };
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
+// NOLINTNEXTLINE(readability-identifier-naming,misc-use-internal-linkage)
 void to_json(nlohmann::json& json, const BitmapSizePerSymbol& bitmapSizePerSymbol) {
    std::map<std::string, uint64_t> size_in_bytes_for_nlohmann;
    for (const auto& [symbol, size] : bitmapSizePerSymbol.size_in_bytes) {
@@ -51,7 +51,7 @@ void to_json(nlohmann::json& json, const BitmapSizePerSymbol& bitmapSizePerSymbo
    json = size_in_bytes_for_nlohmann;
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
+// NOLINTNEXTLINE(readability-identifier-naming,misc-use-internal-linkage)
 void to_json(nlohmann::json& json, const BitmapContainerSize& bitmapContainerSize) {
    json = nlohmann::json{
       {"sectionLength", bitmapContainerSize.section_length},
@@ -62,7 +62,7 @@ void to_json(nlohmann::json& json, const BitmapContainerSize& bitmapContainerSiz
    };
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
+// NOLINTNEXTLINE(readability-identifier-naming,misc-use-internal-linkage)
 void to_json(nlohmann::json& json, const DetailedDatabaseInfo& databaseInfo) {
    json = nlohmann::json{
       {"bitmapSizePerSymbol", databaseInfo.sequences.at("main").bitmap_size_per_symbol},
@@ -73,8 +73,7 @@ void to_json(nlohmann::json& json, const DetailedDatabaseInfo& databaseInfo) {
 
 }  // namespace silo
 
-namespace silo_api {
-
+namespace {
 std::map<std::string, std::string> getQueryParameter(const Poco::Net::HTTPServerRequest& request) {
    std::map<std::string, std::string> map;
    const Poco::URI uri(request.getURI());
@@ -85,6 +84,9 @@ std::map<std::string, std::string> getQueryParameter(const Poco::Net::HTTPServer
    }
    return map;
 }
+}  // namespace
+
+namespace silo_api {
 
 InfoHandler::InfoHandler(DatabaseMutex& database)
     : database(database) {}

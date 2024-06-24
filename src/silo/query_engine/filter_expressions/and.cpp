@@ -58,7 +58,6 @@ void inline appendVectorToVector(
       [&](std::unique_ptr<T>& ele) { return std::move(ele); }
    );
 }
-}  // namespace
 
 void logCompiledChildren(
    OperatorVector& non_negated_child_operators,
@@ -97,6 +96,7 @@ void logCompiledChildren(
       predicates.size()
    );
 }
+}  // namespace
 
 std::tuple<OperatorVector, OperatorVector, std::vector<std::unique_ptr<operators::Predicate>>> And::
    compileChildren(

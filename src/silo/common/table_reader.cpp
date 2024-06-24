@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <fmt/format.h>
+#include <oneapi/tbb/parallel_for.h>
 #include <spdlog/spdlog.h>
 #include <duckdb.hpp>
 
@@ -33,25 +34,38 @@ silo::TableReader::TableReader(
       where_clause(where_clause),
       order_by_clause(order_by_clause) {}
 
-std::optional<std::string> silo::TableReader::nextKey() {
-   if (!current_chunk) {
-      return std::nullopt;
-   }
-
-   return current_chunk->GetValue(0, current_row_in_chunk).GetValue<std::string>();
-}
-
 size_t silo::TableReader::read() {
    loadTable();
    assert(query_result->ColumnCount() == column_functions.size() + 1);
-   while (nextKey()) {
-      for (size_t column_idx = 0; column_idx < column_functions.size(); column_idx++) {
-         column_functions.at(column_idx)
-            .function(current_row, current_chunk->GetValue(column_idx + 1, current_row_in_chunk));
+   while (true) {
+      current_chunk = query_result->Fetch();
+      if (!current_chunk) {
+         break;
       }
-      advanceRow();
-   }
-   return current_row;
+      if (current_chunk->size() == 0) {
+         continue;
+      }
+      current_chunk_size = current_chunk->size();
+
+      tbb::parallel_for(
+         tbb::blocked_range<uint32_t>(0, column_functions.size()),
+         [&](const auto& local) {
+            for (size_t column_idx = local.begin(); column_idx != local.end(); column_idx++) {
+               auto& column = current_chunk->data[column_idx + 1];
+               for (size_t row_in_chunk = 0; row_in_chunk < current_chunk_size; row_in_chunk++) {
+                  column_functions.at(column_idx)
+                     .function(
+                        current_start_of_chunk + row_in_chunk,
+                        column.GetValue(current_start_of_chunk + row_in_chunk)
+                     );
+               }
+            }
+         }
+      );
+      current_start_of_chunk += current_chunk_size;
+   };
+
+   return current_start_of_chunk;
 }
 
 std::string silo::TableReader::getTableQuery() {
@@ -86,24 +100,5 @@ void silo::TableReader::loadTable() {
       throw silo::preprocessing::PreprocessingException(
          "Error when executing SQL " + query_result->GetError()
       );
-   }
-   current_chunk = query_result->Fetch();
-   current_row = 0;
-   current_row_in_chunk = 0;
-
-   while (current_chunk && current_chunk->size() == 0) {
-      current_chunk = query_result->Fetch();
-   }
-}
-
-void silo::TableReader::advanceRow() {
-   current_row++;
-   current_row_in_chunk++;
-   if (current_row_in_chunk == current_chunk->size()) {
-      current_row_in_chunk = 0;
-      current_chunk = query_result->Fetch();
-      while (current_chunk && current_chunk->size() == 0) {
-         current_chunk = query_result->Fetch();
-      }
    }
 }

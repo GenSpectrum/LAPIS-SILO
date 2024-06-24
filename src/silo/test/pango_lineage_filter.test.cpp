@@ -4,6 +4,7 @@
 
 #include "silo/test/query_fixture.test.h"
 
+namespace {
 using silo::PangoLineageAliasLookup;
 using silo::ReferenceGenomes;
 using silo::config::DatabaseConfig;
@@ -11,8 +12,8 @@ using silo::config::ValueType;
 using silo::test::QueryTestData;
 using silo::test::QueryTestScenario;
 
-static const std::string SOME_BASE_PANGO_LINEAGE = "BASE.1";
-static const std::string SOME_SUBLINEAGE = "CHILD.1";
+const std::string SOME_BASE_PANGO_LINEAGE = "BASE.1";
+const std::string SOME_SUBLINEAGE = "CHILD.1";
 
 nlohmann::json createDataWithPangoLineageValue(const std::string& primaryKey, std::string value) {
    return {
@@ -107,6 +108,8 @@ const QueryTestScenario PANGO_LINEAGE_FILTER_NULL_INCLUDING_SUBLINEAGES_SCENARIO
    .query = createPangoLineageQuery(nullptr, true),
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_3"}, {"pango_lineage", nullptr}}})
 };
+
+}  // namespace
 
 QUERY_TEST(
    PangoLineageFilterTest,

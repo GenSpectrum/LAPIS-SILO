@@ -1,15 +1,15 @@
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include <nlohmann/json.hpp>
 
 #include "silo/test/query_fixture.test.h"
 
+namespace {
 using silo::ReferenceGenomes;
 using silo::config::DatabaseConfig;
 using silo::config::ValueType;
 using silo::test::QueryTestData;
 using silo::test::QueryTestScenario;
-
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
 
 using boost::uuids::random_generator;
 
@@ -73,6 +73,8 @@ const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_DOT_RETURNS_REFERENCE = {
    .query = createNucleotideSymbolEqualsQuery(".", 1),
    .expected_query_result = nlohmann::json::parse(R"([{"count": 2}])")
 };
+
+}  // namespace
 
 QUERY_TEST(
    NucleotideSymbolEquals,

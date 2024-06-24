@@ -55,6 +55,7 @@ Selection::Selection(std::unique_ptr<Predicate> predicate, uint32_t row_count)
 
 Selection::~Selection() noexcept = default;
 
+namespace {
 std::string displayComparator(Comparator comparator) {
    switch (comparator) {
       case Comparator::EQUALS:
@@ -72,6 +73,7 @@ std::string displayComparator(Comparator comparator) {
    }
    throw std::runtime_error("found unhandled comparator");
 }
+}  // namespace
 
 std::string Selection::toString() const {
    std::vector<std::string> predicate_strings;

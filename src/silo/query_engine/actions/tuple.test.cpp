@@ -7,6 +7,7 @@
 
 // NOLINTBEGIN(bugprone-unchecked-optional-access)
 
+namespace {
 std::pair<silo::storage::ColumnGroup, silo::storage::ColumnPartitionGroup>
 createSinglePartitionColumns() {
    std::pair<silo::storage::ColumnGroup, silo::storage::ColumnPartitionGroup> return_value;
@@ -93,6 +94,7 @@ createSinglePartitionColumns() {
 
    return return_value;
 }
+}  // namespace
 
 using silo::query_engine::actions::Tuple;
 using silo::query_engine::actions::TupleFactory;

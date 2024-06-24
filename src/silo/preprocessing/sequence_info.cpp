@@ -71,6 +71,7 @@ std::string SequenceInfo::getAminoAcidSequenceSelect(
    );
 }
 
+namespace {
 void validateStruct(
    std::vector<std::string> names_to_validate,
    std::vector<std::string> names_to_validate_against,
@@ -101,16 +102,14 @@ void validateStruct(
       }
    }
 }
+}  // namespace
 
 void SequenceInfo::validateNdjsonFile(
    const silo::ReferenceGenomes& reference_genomes,
-   duckdb::Connection& connection,
    const std::filesystem::path& input_filename
 ) {
-   if (MetadataInfo::isNdjsonFileEmpty(input_filename)) {
-      return;
-   }
-
+   duckdb::DuckDB duck_db(nullptr);
+   duckdb::Connection connection(duck_db);
    const std::vector<std::string> nuc_sequence_names =
       reference_genomes.getSequenceNames<Nucleotide>();
    const std::vector<std::string> aa_sequence_names =

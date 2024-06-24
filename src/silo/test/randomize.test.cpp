@@ -4,6 +4,7 @@
 
 #include "silo/test/query_fixture.test.h"
 
+namespace {
 using nlohmann::json;
 
 using silo::ReferenceGenomes;
@@ -238,6 +239,8 @@ const QueryTestScenario AGGREGATE_LIMIT_RANDOMIZE = {
 #endif
    )
 };
+
+}  // namespace
 
 QUERY_TEST(
    RandomizeTest,
