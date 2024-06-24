@@ -55,8 +55,7 @@ size_t silo::TableReader::read() {
                for (size_t row_in_chunk = 0; row_in_chunk < current_chunk_size; row_in_chunk++) {
                   column_functions.at(column_idx)
                      .function(
-                        current_start_of_chunk + row_in_chunk,
-                        column.GetValue(current_start_of_chunk + row_in_chunk)
+                        current_start_of_chunk + row_in_chunk, column.GetValue(row_in_chunk)
                      );
                }
             }
