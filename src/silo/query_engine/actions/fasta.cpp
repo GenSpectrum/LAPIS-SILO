@@ -58,6 +58,7 @@ void Fasta::validateOrderByFields(const Database& database) const {
 
 namespace {
 
+/// Build SQL statement to retrieve all the entries as rows.
 std::string getTableQuery(
    const std::vector<std::string>& sequence_names,
    const DatabasePartition& database_partition,
@@ -151,6 +152,7 @@ void Fasta::addSequencesToResultsForPartition(
    std::string key_table_name = fmt::format("tmp_fasta_key_{}", unique_identifier_for_function);
    std::string result_table_name = fmt::format("tmp_result_{}", unique_identifier_for_function);
 
+   // 1. Collect all primary keys into a DuckDB table
    query(
       connection,
       fmt::format(
@@ -162,8 +164,12 @@ void Fasta::addSequencesToResultsForPartition(
    );
    SPDLOG_TRACE("Created temporary duckdb table for holding keys");
 
-   duckdb::Appender appender(connection, key_table_name);
+   // 2. Fill the DuckDB table `key_table_name`, as well as `results`
+   // (with fresh `QueryResultEntry` entries) with the primary keys
+   // (`results` entries are completed with genomes later in the next
+   // steps below).
 
+   duckdb::Appender appender(connection, key_table_name);
    for (const uint32_t sequence_id : *bitmap) {
       appender.BeginRow();
       auto primary_key = database_partition.columns.getValue(primary_key_column, sequence_id);
@@ -172,6 +178,8 @@ void Fasta::addSequencesToResultsForPartition(
             fmt::format("Detected primary_key in column '{}' that is null.", primary_key_column)
          );
       }
+
+      // Add the primary key to the DuckDB table
       std::string primary_key_string;
       if (holds_alternative<double>(primary_key.value())) {
          primary_key_string = std::to_string(get<double>(primary_key.value()));
@@ -183,7 +191,7 @@ void Fasta::addSequencesToResultsForPartition(
       }
       appender.Append(duckdb::Value::BLOB(primary_key_string));
 
-      // Also add the key to the entries for later
+      // Add the primary key to the result
       QueryResultEntry entry;
       entry.fields.emplace(primary_key_column, primary_key.value());
       results.query_result.emplace_back(std::move(entry));
@@ -192,6 +200,8 @@ void Fasta::addSequencesToResultsForPartition(
       appender.Flush();
    }
    appender.Close();
+
+   // 3. Create a super table containing all the XX tables together
 
    const std::string table_query =
       getTableQuery(sequence_names, database_partition, key_table_name);
@@ -203,6 +213,7 @@ void Fasta::addSequencesToResultsForPartition(
 
    query(connection, fmt::format("CREATE TABLE {} AS ({})", result_table_name, table_query));
 
+   // 4. Fill the decompressed sequences into the `QueryResultEntry` entries in `result`
    addSequencesFromResultTableToJson(
       results, connection, result_table_name, sequence_names, database_partition, number_of_values
    );

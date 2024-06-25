@@ -12,6 +12,8 @@ class access;
 namespace silo {
 class ZstdFastaTableReader;
 
+/// Holds information where to read unaligned sequences for a
+/// segment (= the sequence of a particular name) in one partition.
 class UnalignedSequenceStorePartition {
    friend class boost::serialization::access;
 
