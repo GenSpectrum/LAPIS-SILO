@@ -28,7 +28,7 @@ std::optional<std::reference_wrapper<const QueryResultEntry>> QueryResult::next(
       siz = query_result_chunk_.size();
       SPDLOG_DEBUG("returned from get_chunk_, chunk size() = {}", siz);
       if (siz == 0) {
-         SPDLOG_DEBUG("returning {} from next");
+         SPDLOG_DEBUG("returning nullopt from next");
          return {};
       }
    }
