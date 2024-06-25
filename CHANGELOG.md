@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.7](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.6...v0.2.7) (2024-06-25)
+
+
+### Bug Fixes
+
+* don't abort when reading table in chunks ([26b1558](https://github.com/GenSpectrum/LAPIS-SILO/commit/26b155881a6f0a46ea1882c4f3f3641d691b13a7))
+
 ## [0.2.6](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.5...v0.2.6) (2024-06-19)
 
 
