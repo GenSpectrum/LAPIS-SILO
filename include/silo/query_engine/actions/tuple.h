@@ -1,3 +1,11 @@
+//! Runtime-defined compact tuple for one row of the database, for the
+//! columns requested by the user.
+
+//! Used for:
+
+//! - index in hash tables for aggregation (hashing and comparison (via memcmp))
+//! - currently sorting for order by queries in Details (via TupleFactory)
+
 #pragma once
 
 #include <cstddef>
@@ -37,6 +45,7 @@ class Tuple {
       const std::vector<OrderByField>& order_by_fields
    );
 
+   /// Compare tuples according to user-provided fields
    [[nodiscard]] bool compareLess(const Tuple& other, const std::vector<ComparatorField>& fields)
       const;
 
@@ -59,6 +68,7 @@ class Tuple {
    bool operator==(const Tuple& other) const;
    bool operator!=(const Tuple& other) const;
 
+   /// Compare according to native column order.
    bool operator<(const Tuple& other) const;
    bool operator>(const Tuple& other) const;
    bool operator<=(const Tuple& other) const;
