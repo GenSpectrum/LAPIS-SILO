@@ -103,18 +103,18 @@ void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains<Sym
    CHECK_SILO_QUERY(
       json.contains("position"),
       "The field 'position' is required in an InsertionContains expression"
-   )
+   );
    CHECK_SILO_QUERY(
       json["position"].is_number_unsigned(),
       "The field 'position' in an InsertionContains expression needs to be an unsigned integer"
-   )
+   );
    CHECK_SILO_QUERY(
       json.contains("value"), "The field 'value' is required in an InsertionContains expression"
-   )
+   );
    CHECK_SILO_QUERY(
       json["value"].is_string() && !json["value"].is_null(),
       "The field 'value' in an InsertionContains expression needs to be a string"
-   )
+   );
    std::optional<std::string> sequence_name = std::nullopt;
    if (json.contains("sequenceName")) {
       sequence_name = json["sequenceName"].get<std::string>();
@@ -124,14 +124,14 @@ void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains<Sym
    CHECK_SILO_QUERY(
       !value.empty(),
       "The field 'value' in an InsertionContains expression must not be an empty string"
-   )
+   );
    CHECK_SILO_QUERY(
       validateInsertionSearchValue<SymbolType>(value),
       "The field 'value' in the InsertionContains expression does not contain a valid regex "
       "pattern: \"" +
          value + "\". It must only consist of " + std::string(SymbolType::SYMBOL_NAME_LOWER_CASE) +
          " symbols and the regex symbol '.*'."
-   )
+   );
    filter = std::make_unique<InsertionContains<SymbolType>>(sequence_name, position_idx, value);
 }
 

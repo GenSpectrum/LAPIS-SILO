@@ -54,17 +54,17 @@ std::unique_ptr<silo::query_engine::operators::Operator> FloatEquals::compile(
 void from_json(const nlohmann::json& json, std::unique_ptr<FloatEquals>& filter) {
    CHECK_SILO_QUERY(
       json.contains("column"), "The field 'column' is required in an FloatEquals expression"
-   )
+   );
    CHECK_SILO_QUERY(
       json["column"].is_string(), "The field 'column' in an FloatEquals expression must be a string"
-   )
+   );
    CHECK_SILO_QUERY(
       json.contains("value"), "The field 'value' is required in an FloatEquals expression"
-   )
+   );
    CHECK_SILO_QUERY(
       json["value"].is_number_float() || json["value"].is_null(),
       "The field 'value' in an FloatEquals expression must be a float or null"
-   )
+   );
    const std::string& column = json["column"];
    const double& value = json["value"].is_null() ? std::nan("") : json["value"].get<double>();
    filter = std::make_unique<FloatEquals>(column, value);

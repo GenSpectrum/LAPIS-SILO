@@ -277,7 +277,7 @@ TEST_P(PreprocessorTestFixture, shouldProcessData) {
    const silo::query_engine::QueryEngine query_engine(database);
    const auto result = query_engine.executeQuery(scenario.query);
 
-   const auto actual = nlohmann::json(result.query_result);
+   const auto actual = nlohmann::json(result.entries());
    ASSERT_EQ(actual, scenario.expected_query_result);
 }
 

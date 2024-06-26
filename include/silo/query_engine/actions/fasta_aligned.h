@@ -23,8 +23,10 @@ class FastaAligned : public Action {
 
    void validateOrderByFields(const Database& database) const override;
 
-   QueryResult execute(const Database& database, std::vector<OperatorResult> bitmap_filter)
-      const override;
+   [[nodiscard]] QueryResult execute(
+      const Database& database,
+      std::vector<OperatorResult> bitmap_filter
+   ) const override;
 
   public:
    explicit FastaAligned(std::vector<std::string>&& sequence_names);

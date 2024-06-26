@@ -8,6 +8,7 @@
 #include <random>
 #include <utility>
 
+#include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
 #include "silo/query_engine/actions/aggregated.h"
@@ -30,7 +31,7 @@ namespace silo::query_engine::actions {
 Action::Action() = default;
 
 void Action::applySort(QueryResult& result) const {
-   auto& result_vector = result.query_result;
+   auto& result_vector = result.entriesMut();
 
    auto cmp = [&](const QueryResultEntry& entry1, const QueryResultEntry& entry2) {
       for (const OrderByField& field : order_by_fields) {
@@ -67,7 +68,7 @@ void Action::applySort(QueryResult& result) const {
 }
 
 void Action::applyOffsetAndLimit(QueryResult& result) const {
-   auto& result_vector = result.query_result;
+   auto& result_vector = result.entriesMut();
 
    size_t end_of_sort = std::min(
       static_cast<size_t>(limit.value_or(result_vector.size()) + offset.value_or(0UL)),
@@ -75,7 +76,7 @@ void Action::applyOffsetAndLimit(QueryResult& result) const {
    );
 
    if (offset.has_value() && offset.value() >= end_of_sort) {
-      result = {};
+      result.clear();
       return;
    }
 
@@ -104,18 +105,42 @@ void Action::setOrdering(
    randomize_seed = randomize_seed_;
 }
 
+static const size_t MATERIALIZATION_CUTOFF = 10000;
+
 QueryResult Action::executeAndOrder(
    const Database& database,
    std::vector<OperatorResult> bitmap_filter
 ) const {
    validateOrderByFields(database);
 
-   QueryResult result = execute(database, std::move(bitmap_filter));
-   if (offset.has_value() && offset.value() >= result.query_result.size()) {
-      return {};
+   // Hacky solution to give the full feature set (randomization,
+   // sorting) for small result sets, and streaming without those
+   // features for larger ones.
+
+   bool is_large = false;
+   {
+      size_t num_rows = 0;
+      for (auto& bitmap : bitmap_filter) {
+         num_rows += bitmap->cardinality();
+         if (num_rows > MATERIALIZATION_CUTOFF) {
+            is_large = true;
+            break;
+         }
+      }
    }
-   applySort(result);
-   applyOffsetAndLimit(result);
+
+   QueryResult result = execute(database, std::move(bitmap_filter));
+
+   if (result.isMaterialized() || !is_large) {
+      SPDLOG_DEBUG("materialized or small -> full featured sort, offset+limit");
+      result.materialize();
+      if (offset.has_value() && offset.value() >= result.entriesMut().size()) {
+         return {};
+      }
+      applySort(result);
+      applyOffsetAndLimit(result);
+   }
+
    return result;
 }
 
@@ -131,7 +156,7 @@ void from_json(const nlohmann::json& json, OrderByField& field) {
       "The orderByField '" + json.dump() +
          "' must be either a string or an object containing the fields 'field':string and "
          "'order':string, where the value of order is 'ascending' or 'descending'"
-   )
+   );
    const std::string field_name = json["field"].get<std::string>();
    const std::string order_string = json["order"].get<std::string>();
    CHECK_SILO_QUERY(
@@ -139,7 +164,7 @@ void from_json(const nlohmann::json& json, OrderByField& field) {
       "The orderByField '" + json.dump() +
          "' must be either a string or an object containing the fields 'field':string and "
          "'order':string, where the value of order is 'ascending' or 'descending'"
-   )
+   );
    field = {.name = field_name, .ascending = order_string == "ascending"};
 }
 
@@ -147,7 +172,7 @@ std::optional<uint32_t> parseLimit(const nlohmann::json& json) {
    CHECK_SILO_QUERY(
       !json.contains("limit") || json["limit"].is_number_unsigned(),
       "If the action contains a limit, it must be a non-negative number"
-   )
+   );
    return json.contains("limit") ? std::optional<uint32_t>(json["limit"].get<uint32_t>())
                                  : std::nullopt;
 }
@@ -156,7 +181,7 @@ std::optional<uint32_t> parseOffset(const nlohmann::json& json) {
    CHECK_SILO_QUERY(
       !json.contains("offset") || json["offset"].is_number_unsigned(),
       "If the action contains an offset, it must be a non-negative number"
-   )
+   );
    return json.contains("offset") ? std::optional<uint32_t>(json["offset"].get<uint32_t>())
                                   : std::nullopt;
 }
@@ -178,17 +203,17 @@ std::optional<uint32_t> parseRandomizeSeed(const nlohmann::json& json) {
          json["randomize"]["seed"].is_number_unsigned(),
       "If the action contains 'randomize', it must be either a boolean or an object "
       "containing an unsigned 'seed'"
-   )
+   );
    return json["randomize"]["seed"].get<uint32_t>();
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
-   CHECK_SILO_QUERY(json.contains("type"), "The field 'type' is required in any action")
+   CHECK_SILO_QUERY(json.contains("type"), "The field 'type' is required in any action");
    CHECK_SILO_QUERY(
       json["type"].is_string(),
       "The field 'type' in all actions needs to be a string, but is: " + json["type"].dump()
-   )
+   );
    const std::string expression_type = json["type"];
    if (expression_type == "Aggregated") {
       action = json.get<std::unique_ptr<Aggregated>>();
@@ -213,14 +238,14 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
    CHECK_SILO_QUERY(
       !json.contains("orderByFields") || json["orderByFields"].is_array(),
       "orderByFields must be an array."
-   )
+   );
    auto order_by_fields = json.contains("orderByFields")
                              ? json["orderByFields"].get<std::vector<OrderByField>>()
                              : std::vector<OrderByField>();
    CHECK_SILO_QUERY(
       !json.contains("offset") || json["offset"].is_number_unsigned(),
       "If the action contains an offset, it must be a non-negative number"
-   )
+   );
    auto limit = parseLimit(json);
    auto offset = parseOffset(json);
    auto randomize_seed = parseRandomizeSeed(json);

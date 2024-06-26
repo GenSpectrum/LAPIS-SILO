@@ -30,7 +30,7 @@ std::vector<silo::storage::ColumnMetadata> parseFields(
    std::vector<silo::storage::ColumnMetadata> field_metadata;
    for (const std::string& field : fields) {
       const auto& metadata = database.database_config.getMetadata(field);
-      CHECK_SILO_QUERY(metadata.has_value(), "Metadata field " + field + " not found.")
+      CHECK_SILO_QUERY(metadata.has_value(), "Metadata field " + field + " not found.");
       field_metadata.push_back({metadata->name, metadata->getColumnType()});
    }
    return field_metadata;
@@ -55,7 +55,7 @@ void Details::validateOrderByFields(const Database& database) const {
             }
          ),
          "OrderByField " + field.name + " is not contained in the result of this operation."
-      )
+      );
    }
 }
 
@@ -218,7 +218,7 @@ QueryResult Details::executeAndOrder(
 
    QueryResult results_in_format;
    for (const auto& tuple : tuples) {
-      results_in_format.query_result.push_back({tuple.getFields()});
+      results_in_format.entriesMut().push_back({tuple.getFields()});
    }
    applyOffsetAndLimit(results_in_format);
    return results_in_format;

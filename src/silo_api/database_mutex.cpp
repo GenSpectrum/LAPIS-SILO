@@ -5,6 +5,8 @@
 
 #include "silo/database.h"
 
+namespace silo_api {
+
 silo_api::FixedDatabase::FixedDatabase(
    const silo::Database& database,
    std::shared_lock<std::shared_mutex>&& mutex
@@ -25,3 +27,5 @@ silo_api::FixedDatabase silo_api::DatabaseMutex::getDatabase() {
    std::shared_lock<std::shared_mutex> lock(mutex);
    return {database, std::move(lock)};
 }
+
+}  // namespace silo_api

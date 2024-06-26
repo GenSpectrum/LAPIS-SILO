@@ -9,15 +9,17 @@
 
 #include "silo/config/util/config_exception.h"
 
-std::string silo::config::AbstractConfigSource::Option::toString() const {
+namespace silo::config {
+
+std::string AbstractConfigSource::Option::toString() const {
    return boost::join(access_path, ".");
 }
 
-std::string silo::config::AbstractConfigSource::Option::toCamelCase() const {
+std::string AbstractConfigSource::Option::toCamelCase() const {
    return boost::join(access_path, "");
 }
 
-std::optional<int32_t> silo::config::AbstractConfigSource::getInt32(const Option& option) const {
+std::optional<int32_t> AbstractConfigSource::getInt32(const Option& option) const {
    const auto string_value = getString(option);
    if (string_value == std::nullopt) {
       return std::nullopt;
@@ -32,11 +34,11 @@ std::optional<int32_t> silo::config::AbstractConfigSource::getInt32(const Option
          option.toString()
       );
       SPDLOG_ERROR(error_message);
-      throw silo::config::ConfigException(error_message);
+      throw ConfigException(error_message);
    }
 }
 
-std::optional<uint32_t> silo::config::AbstractConfigSource::getUInt32(const Option& option) const {
+std::optional<uint32_t> AbstractConfigSource::getUInt32(const Option& option) const {
    const auto string_value = getString(option);
    if (string_value == std::nullopt) {
       return std::nullopt;
@@ -51,6 +53,8 @@ std::optional<uint32_t> silo::config::AbstractConfigSource::getUInt32(const Opti
          option.toString()
       );
       SPDLOG_ERROR(error_message);
-      throw silo::config::ConfigException(error_message);
+      throw ConfigException(error_message);
    }
 }
+
+}  // namespace silo::config
