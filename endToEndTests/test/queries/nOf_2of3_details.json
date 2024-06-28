@@ -32,6 +32,18 @@
   },
   "expectedQueryResult": [
     {
+      "age": 54,
+      "country": "Switzerland",
+      "date": "2021-03-19",
+      "division": "Solothurn",
+      "gisaid_epi_isl": "EPI_ISL_1597932",
+      "pango_lineage": "B.1.1.7",
+      "qc_value": 0.94,
+      "region": "Europe",
+      "test_boolean_column": true,
+      "unsorted_date": "2021-02-10"
+    },
+    {
       "age": 50,
       "country": "Switzerland",
       "date": "2021-02-23",
@@ -42,18 +54,6 @@
       "region": "Europe",
       "test_boolean_column": null,
       "unsorted_date": "2021-07-04"
-    },
-    {
-      "age": 50,
-      "country": "Switzerland",
-      "date": "2020-11-13",
-      "division": "Solothurn",
-      "gisaid_epi_isl": "EPI_ISL_1005148",
-      "pango_lineage": "B.1.221",
-      "qc_value": 0.92,
-      "region": "Europe",
-      "test_boolean_column": null,
-      "unsorted_date": "2020-12-17"
     },
     {
       "age": 58,
@@ -68,16 +68,16 @@
       "unsorted_date": "2021-01-22"
     },
     {
-      "age": 54,
+      "age": 50,
       "country": "Switzerland",
-      "date": "2021-03-19",
+      "date": "2020-11-13",
       "division": "Solothurn",
-      "gisaid_epi_isl": "EPI_ISL_1597932",
-      "pango_lineage": "B.1.1.7",
-      "qc_value": 0.94,
+      "gisaid_epi_isl": "EPI_ISL_1005148",
+      "pango_lineage": "B.1.221",
+      "qc_value": 0.92,
       "region": "Europe",
-      "test_boolean_column": true,
-      "unsorted_date": "2021-02-10"
+      "test_boolean_column": null,
+      "unsorted_date": "2020-12-17"
     }
   ]
 }
