@@ -21,7 +21,7 @@ jobs:
       - name: Generate dependency files hash
         id: files-hash
         run: |
-          DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', '.github/workflows/linter.yml', './Dockerfile_linter_dependencies') }})
+          DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', '.github/workflows/clang-tidy-image.yml', './Dockerfile_linter_dependencies') }})
           echo "DIR_HASH=$DIR_HASH" >> $GITHUB_ENV
 
       - name: Docker metadata
