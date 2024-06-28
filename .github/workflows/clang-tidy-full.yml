@@ -19,6 +19,7 @@ jobs:
         uses: lewagon/wait-on-check-action@v1.3.1
         with:
           ref: ${{ github.ref }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
           check-name: Build linter dependencies
 
   linter:
