@@ -1,11 +1,10 @@
-name: Run Linter
+name: Build Linter Image
 
 on:
-  pull_request:
+  push:
 
 concurrency:
   group: linter-${{ github.ref }}
-  cancel-in-progress: true
 
 env:
   DOCKER_LINTER_DEPENDENCY_IMAGE_NAME: ghcr.io/genspectrum/lapis-silo-linter-dependencies
@@ -22,7 +21,7 @@ jobs:
       - name: Generate dependency files hash
         id: files-hash
         run: |
-          DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', '.github/workflows/linter.yml', './Dockerfile_linter_dependencies') }})
+          DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', '.github/workflows/clang-tidy-image.yml', './Dockerfile_linter_dependencies') }})
           echo "DIR_HASH=$DIR_HASH" >> $GITHUB_ENV
 
       - name: Docker metadata
@@ -55,7 +54,7 @@ jobs:
 
       - name: Build linter dependencies image
         if: env.CACHE_HIT == 'false'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v5
         with:
           context: .
           push: true
@@ -70,36 +69,4 @@ jobs:
           TAGS=(${{ steps.dockerMetadata.outputs.tags }})
           for TAG in "${TAGS[@]}"; do
             docker buildx imagetools create --tag $TAG ${{ env.DOCKER_LINTER_DEPENDENCY_IMAGE_NAME }}:${{ env.DIR_HASH }}
-          done
-
-  linter:
-    name: Build And Run linter
-    needs: linterDependencies
-    runs-on: ubuntu-latest
-    env:
-      PR_NUMBER: ${{ github.event.number }}
-    container:
-      image: ghcr.io/genspectrum/lapis-silo-linter-dependencies:commit-${{ github.sha }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - shell: bash
-        name: Configure and run clang-tidy on changed files
-        run: |
-          mv /src/build .
-          cmake -DBUILD_WITH_CLANG_TIDY=on -D CMAKE_BUILD_TYPE=Debug -B build
-          echo "Successfully configured cmake"
-          files=$(curl -s \
-           "https://api.github.com/repos/${{ github.repository }}/pulls/${PR_NUMBER}/files" \
-           | jq -r '.[].filename')
-          echo "Changed files of this PR:"
-          echo "$files"
-          IFS=$'\n'
-          for file in $files; do
-            echo "Check ending for file: $file"
-            if [[ $file == *.cpp ]]; then
-              echo "Now linting the file: $file"
-              echo "cmake --build build --target ${file%.cpp}.o"
-              cmake --build build --target ${file%.cpp}.o
-            fi
           done

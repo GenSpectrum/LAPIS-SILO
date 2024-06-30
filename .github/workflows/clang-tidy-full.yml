@@ -1,0 +1,55 @@
+name: Run Linter on all Files
+
+on:
+  workflow_run:
+    workflows: [Build Linter Image]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  DOCKER_LINTER_DEPENDENCY_IMAGE_NAME: ghcr.io/genspectrum/lapis-silo-linter-dependencies
+
+jobs:
+  waitForDependencyImage:
+    name: Wait for Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for Docker Image
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          ref: ${{ github.ref }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          check-name: Build linter dependencies
+
+  linter:
+    name: Build And Run linter
+    needs: waitForDependencyImage
+    runs-on: ubuntu-latest
+    env:
+      PR_NUMBER: ${{ github.event.number }}
+    container:
+      image: ghcr.io/genspectrum/lapis-silo-linter-dependencies:commit-${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - shell: bash
+        name: Configure and run clang-tidy on changed files
+        run: |
+          mv /src/build .
+          cmake -DBUILD_WITH_CLANG_TIDY=on -D CMAKE_BUILD_TYPE=Debug -B build
+          echo "Successfully configured cmake"
+          files=$(curl -s \
+           "https://api.github.com/repos/${{ github.repository }}/pulls/${PR_NUMBER}/files" \
+           | jq -r '.[].filename')
+          echo "Changed files of this PR:"
+          echo "$files"
+          IFS=$'\n'
+          for file in $files; do
+            echo "Check ending for file: $file"
+            if [[ $file == *.cpp ]]; then
+              echo "Now linting the file: $file"
+              echo "cmake --build build --target ${file%.cpp}.o"
+              cmake --build build --target ${file%.cpp}.o
+            fi
+          done
