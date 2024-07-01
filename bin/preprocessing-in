@@ -14,6 +14,9 @@ if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
     usage
 fi
 testdir="$1"
+mypath=$(readlink -f "$0")
+mydir=$(dirname "$mypath")
+builddir=$(dirname "$mydir")/build
 
 IFS=' '
 
@@ -27,4 +30,4 @@ rm -rf {output,temp,test?*}
 
 
 #SPDLOG_LEVEL=debug
-${DEBUGGER-} ../../build/siloApi --preprocessing
+${DEBUGGER-} "$builddir"/siloApi --preprocessing
