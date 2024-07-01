@@ -16,15 +16,15 @@ class Range {
    /// `first <= beyond_last` must be true.
    Range(T first, T beyond_last);
 
-   /// Get the first value of the Range. Unsafe, only valid if
-   /// !isEmpty().
+   /// Get the first value of the Range. Throws a `std::runtime_error`
+   /// if isEmpty().
    T first() const;
 
    /// Get the value one after the last one in the Range.
    T beyondLast() const;
 
-   /// Mutate this Range to drop the first element. Unsafe, only
-   /// valid if !isEmpty().
+   /// Mutate this Range to drop the first element. Throws a `std::runtime_error`
+   /// if isEmpty().
    void mutRest();
 
    [[nodiscard]] std::string toString() const;
