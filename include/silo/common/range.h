@@ -13,7 +13,8 @@ class Range {
    T beyond_last_;
 
   public:
-   /// `first <= beyond_last` must be true.
+   /// `first <= beyond_last` must be true, otherwise throws a
+   /// `std::runtime_error`.
    Range(T first, T beyond_last);
 
    /// Get the first value of the Range. Throws a `std::runtime_error`
