@@ -7,6 +7,9 @@ namespace silo::common {
 /// A range of values that support `-` yielding `size_t`, `+ (size_t)`
 /// yielding `T`, `<=`, `++` and `==` (todo: find and use the concepts
 /// for these).
+///
+/// Consider using `std::ranges::iota_view` instead if you don't need
+/// the utility methods.
 template <typename T>
 class Range {
    T first_;
