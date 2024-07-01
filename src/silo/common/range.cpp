@@ -1,6 +1,5 @@
 #include "silo/common/range.h"
 
-#include <cassert>
 #include <cstddef>
 
 #include <fmt/format.h>
@@ -12,7 +11,9 @@ template <typename T>
 Range<T>::Range(T first, T beyond_last)
     : first_(first),
       beyond_last_(beyond_last) {
-   assert(first <= beyond_last);
+   if (!(first <= beyond_last)) {
+      throw std::runtime_error("can't make a range with first > beyond_last");
+   }
 }
 
 template <typename T>
