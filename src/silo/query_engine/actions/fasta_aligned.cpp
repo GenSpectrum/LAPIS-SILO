@@ -11,6 +11,7 @@
 #include <silo/common/numbers.h>
 #include <silo/common/range.h>
 #include <spdlog/spdlog.h>
+#include <boost/numeric/conversion/cast.hpp>
 #include <nlohmann/json.hpp>
 
 #include "silo/common/aa_symbols.h"
@@ -158,7 +159,9 @@ QueryResult FastaAligned::execute(
            ++partition_index, remaining_result_row_indices = {}) {
          auto& bitmap = (*bitmap_filter)[partition_index];
          if (!remaining_result_row_indices) {
-            remaining_result_row_indices = {{0, uint64ToUint32(bitmap->cardinality())}};
+            remaining_result_row_indices = {
+               {0, boost::numeric_cast<uint32_t, uint64_t>(bitmap->cardinality())}
+            };
          }
 
          // The range of results to fully process in this batch

@@ -2,6 +2,7 @@
 
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
+#include <boost/numeric/conversion/cast.hpp>
 #include <duckdb.hpp>
 #include <memory>
 #include <nlohmann/json.hpp>
@@ -273,7 +274,9 @@ QueryResult Fasta::execute(const Database& database, std::vector<OperatorResult>
          if (!remaining_result_row_indices) {
             // We set `remaining_result_row_indices` only once using the
             // original, undrained bitmap.
-            remaining_result_row_indices = {{0, uint64ToUint32(bitmap->cardinality())}};
+            remaining_result_row_indices = {
+               {0, boost::numeric_cast<uint32_t, uint64_t>(bitmap->cardinality())}
+            };
          }
 
          const Range<uint32_t> result_row_indices =
