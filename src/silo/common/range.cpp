@@ -17,6 +17,9 @@ Range<T>::Range(T first, T beyond_last)
 
 template <typename T>
 T Range<T>::first() const {
+   if (isEmpty()) {
+      throw std::runtime_error("can't get the first element of an empty range");
+   }
    return first_;
 }
 
@@ -27,6 +30,9 @@ T Range<T>::beyondLast() const {
 
 template <typename T>
 void Range<T>::mutRest() {
+   if (isEmpty()) {
+      throw std::runtime_error("can't get the rest of an empty range");
+   }
    first_++;
 }
 
