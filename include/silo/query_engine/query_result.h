@@ -33,18 +33,23 @@ class QueryResult {
    // `entries` or `entriesMut`.
    bool is_materialized_;
 
+  protected:
+   QueryResult(
+      std::vector<QueryResultEntry>&& query_result_chunk,
+      std::function<void(std::vector<QueryResultEntry>&)>&& get_chunk,
+      bool is_materialized
+   )
+       : query_result_chunk_(std::move(query_result_chunk)),
+         get_chunk_(std::move(get_chunk)),
+         i_(0),
+         is_materialized_(is_materialized) {}
+
   public:
    /// For eager query evaluation.
-   explicit QueryResult(std::vector<QueryResultEntry>&& query_result)
-       : query_result_chunk_(std::move(query_result)),
-         get_chunk_([](std::vector<QueryResultEntry>& /*query_result_chunk*/) {}),
-         i_(0),
-         is_materialized_(true) {}
+   static QueryResult fromVector(std::vector<QueryResultEntry>&& query_result);
    /// For streaming query evaluation.
-   explicit QueryResult(std::function<void(std::vector<QueryResultEntry>&)>&& get_chunk)
-       : get_chunk_(get_chunk),
-         i_(0),
-         is_materialized_(false) {}
+   static QueryResult fromGenerator(std::function<void(std::vector<QueryResultEntry>&)>&& get_chunk
+   );
    /// The empty result.
    QueryResult()
        : get_chunk_([](std::vector<QueryResultEntry>& /*query_result_chunk*/) {}),

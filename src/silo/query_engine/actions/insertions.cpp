@@ -204,7 +204,7 @@ QueryResult InsertionAggregation<SymbolType>::execute(
          insertion_counts, sequence_name, show_sequence_in_response, prefiltered_bitmaps
       );
    }
-   return QueryResult(std::move(insertion_counts));
+   return QueryResult::fromVector(std::move(insertion_counts));
 }
 
 template <typename SymbolType>
