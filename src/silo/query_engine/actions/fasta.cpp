@@ -6,6 +6,7 @@
 #include <memory>
 #include <nlohmann/json.hpp>
 
+#include "silo/common/range.h"
 #include "silo/database.h"
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/query_parse_exception.h"
@@ -100,7 +101,7 @@ void addSequencesFromResultTableToJson(
    const std::string& result_table_name,
    const std::vector<std::string>& sequence_names,
    const DatabasePartition& database_partition,
-   size_t number_of_values
+   size_t num_result_rows
 ) {
    for (size_t sequence_idx = 0; sequence_idx < sequence_names.size(); sequence_idx++) {
       const std::string& sequence_name = sequence_names.at(sequence_idx);
@@ -117,7 +118,10 @@ void addSequencesFromResultTableToJson(
       table_reader.loadTable();
       std::optional<std::string> genome_buffer;
 
-      const size_t start_of_partition_in_result = results.size() - number_of_values;
+      // `start_of_partition_in_result` will always be 0 when
+      // streaming (result is cleared for every batch), but not for
+      // materialized cases (where result is kept across partitions).
+      const size_t start_of_partition_in_result = results.size() - num_result_rows;
       const size_t end_of_partition_in_result = results.size();
       for (size_t idx = start_of_partition_in_result; idx < end_of_partition_in_result; idx++) {
          auto current_key = table_reader.next(genome_buffer);
@@ -131,21 +135,16 @@ void addSequencesFromResultTableToJson(
    }
 }
 
-}  // namespace
-
-void addSequencesToResultsForPartition(
+/// Must only be called with num_result_rows > 0. Returns the last processed row_id.
+uint32_t addSequencesToResultsForPartition(
    std::vector<std::string>& sequence_names,
    std::vector<QueryResultEntry>& results,
    const DatabasePartition& database_partition,
    const OperatorResult& bitmap,
-   const std::string& primary_key_column
+   const std::string& primary_key_column,
+   size_t num_result_rows
 ) {
-   const size_t number_of_values = bitmap->cardinality();
-
-   if (bitmap->isEmpty()) {
-      SPDLOG_TRACE("Skipping empty partition!");
-      return;
-   }
+   assert(num_result_rows > 0);
 
    duckdb::DuckDB duck_db;
    duckdb::Connection connection(duck_db);
@@ -170,60 +169,83 @@ void addSequencesToResultsForPartition(
    // (with fresh `QueryResultEntry` entries) with the primary keys
    // (`results` entries are completed with genomes later in the next
    // steps below).
+   uint32_t last_row_id = 0;
+   {
+      duckdb::Appender appender(connection, key_table_name);
+      uint32_t num_row_ids = 0;
+      for (const uint32_t row_id : *bitmap) {
+         if (num_row_ids++ >= num_result_rows) {
+            break;
+         }
+         last_row_id = row_id;
 
-   duckdb::Appender appender(connection, key_table_name);
-   for (const uint32_t sequence_id : *bitmap) {
-      appender.BeginRow();
-      auto primary_key = database_partition.columns.getValue(primary_key_column, sequence_id);
-      if (primary_key == std::nullopt) {
-         throw std::runtime_error(
-            fmt::format("Detected primary_key in column '{}' that is null.", primary_key_column)
-         );
+         auto primary_key = database_partition.columns.getValue(primary_key_column, row_id);
+         if (primary_key == std::nullopt) {
+            throw std::runtime_error(
+               fmt::format("Detected primary_key in column '{}' that is null.", primary_key_column)
+            );
+         }
+
+         // Add the primary key to the DuckDB table
+         {
+            appender.BeginRow();
+            std::string primary_key_string;
+            if (holds_alternative<double>(primary_key.value())) {
+               primary_key_string = std::to_string(get<double>(primary_key.value()));
+            } else if (holds_alternative<int32_t>(primary_key.value())) {
+               primary_key_string = std::to_string(get<int32_t>(primary_key.value()));
+            } else {
+               assert(holds_alternative<std::string>(primary_key.value()));
+               primary_key_string = get<std::string>(primary_key.value());
+            }
+            appender.Append(duckdb::Value::BLOB(primary_key_string));
+            appender.EndRow();
+            appender.Flush();  // XX needed?
+         }
+
+         // Add the primary key to the result
+         {
+            QueryResultEntry entry;
+            entry.fields.emplace(primary_key_column, primary_key.value());
+            results.emplace_back(std::move(entry));
+         }
       }
-
-      // Add the primary key to the DuckDB table
-      std::string primary_key_string;
-      if (holds_alternative<double>(primary_key.value())) {
-         primary_key_string = std::to_string(get<double>(primary_key.value()));
-      } else if (holds_alternative<int32_t>(primary_key.value())) {
-         primary_key_string = std::to_string(get<int32_t>(primary_key.value()));
-      } else {
-         assert(holds_alternative<std::string>(primary_key.value()));
-         primary_key_string = get<std::string>(primary_key.value());
-      }
-      appender.Append(duckdb::Value::BLOB(primary_key_string));
-
-      // Add the primary key to the result
-      QueryResultEntry entry;
-      entry.fields.emplace(primary_key_column, primary_key.value());
-      results.emplace_back(std::move(entry));
-
-      appender.EndRow();
-      appender.Flush();
+      appender.Close();
    }
-   appender.Close();
 
    // 3. Create a super table containing all the XX tables together
+   {
+      const std::string table_query =
+         getTableQuery(sequence_names, database_partition, key_table_name);
 
-   const std::string table_query =
-      getTableQuery(sequence_names, database_partition, key_table_name);
+      const auto create_table_query =
+         fmt::format("CREATE TABLE {} AS ({})", result_table_name, table_query);
+      SPDLOG_TRACE(
+         "Create table query for unaligned in-memory sequence tables: {}", create_table_query
+      );
 
-   const auto create_table_query =
-      fmt::format("CREATE TABLE {} AS ({})", result_table_name, table_query);
-   SPDLOG_TRACE(
-      "Create table query for unaligned in-memory sequence tables: {}", create_table_query
-   );
-
-   query(connection, create_table_query);
+      query(connection, create_table_query);
+   }
 
    // 4. Fill the decompressed sequences into the `QueryResultEntry` entries in `result`
    addSequencesFromResultTableToJson(
-      results, connection, result_table_name, sequence_names, database_partition, number_of_values
+      results, connection, result_table_name, sequence_names, database_partition, num_result_rows
    );
 
    query(connection, fmt::format("DROP TABLE {};", result_table_name));
    query(connection, fmt::format("DROP TABLE {};", key_table_name));
+
+   return last_row_id;
 }
+
+uint32_t uint64ToUint32(uint64_t val) {
+   assert(val <= UINT32_MAX);
+   return val;
+}
+
+const size_t PARTITION_CHUNK_SIZE = 1000;
+
+}  // namespace
 
 QueryResult Fasta::execute(const Database& database, std::vector<OperatorResult> bitmap_filter)
    const {
@@ -234,27 +256,59 @@ QueryResult Fasta::execute(const Database& database, std::vector<OperatorResult>
       );
    }
 
-   uint32_t partition_index = 0;
-   return QueryResult{[bitmap_filter =
+   size_t current_partition = 0;
+   // The unprocessed part of the result row numbers, counting from 0
+   // from the start of the current partition:
+   std::optional<Range<uint32_t>> remaining_result_row_indices;
+   return QueryResult{[sequence_names = sequence_names,
+                       remaining_result_row_indices,
+                       bitmap_filter =
                           std::make_shared<std::vector<OperatorResult>>(std::move(bitmap_filter)),
                        &database,
-                       partition_index,
-                       sequence_names =
-                          sequence_names](std::vector<QueryResultEntry>& results) mutable {
-      while (partition_index < database.partitions.size()) {
-         SPDLOG_DEBUG(
-            "fasta closure for partition_index {}/{}", partition_index, database.partitions.size()
-         );
-         const auto& database_partition = database.partitions[partition_index];
-         const auto& bitmap = (*bitmap_filter)[partition_index];
-         const std::string& primary_key_column = database.database_config.schema.primary_key;
-         addSequencesToResultsForPartition(
-            sequence_names, results, database_partition, bitmap, primary_key_column
-         );
-         ++partition_index;
-         if (!results.empty()) {
+                       current_partition](std::vector<QueryResultEntry>& results) mutable {
+      while (current_partition < database.partitions.size()) {
+         // We drain bitmap_filter as we process the query (because
+         // the only way to get an iterator over a bitmap is from the
+         // beginning?)! And `remaining_result_row_indices` is really
+         // only for show now.
+         auto& bitmap = (*bitmap_filter)[current_partition];
+         if (!remaining_result_row_indices) {
+            // We set `remaining_result_row_indices` only once using the
+            // original, undrained bitmap.
+            remaining_result_row_indices = {{0, uint64ToUint32(bitmap->cardinality())}};
+         }
+
+         const Range<uint32_t> result_row_indices =
+            remaining_result_row_indices->take(PARTITION_CHUNK_SIZE);
+         if (!result_row_indices.isEmpty()) {
+            SPDLOG_TRACE(
+               "Fasta::execute: refill QueryResult for partition_index {}/{}, {}",
+               current_partition,
+               database.partitions.size(),
+               result_row_indices.toString()
+            );
+            const std::string& primary_key_column = database.database_config.schema.primary_key;
+            const auto& database_partition = database.partitions[current_partition];
+
+            const uint32_t last_row_id = addSequencesToResultsForPartition(
+               sequence_names,
+               results,
+               database_partition,
+               bitmap,
+               primary_key_column,
+               result_row_indices.size()
+            );
+
+            assert(results.size() == result_row_indices.size());
+
+            *remaining_result_row_indices =
+               remaining_result_row_indices->drop(result_row_indices.size());
+            assert(last_row_id < UINT32_MAX);
+            bitmap->removeRange(0, last_row_id + 1);
             return;
          }
+         remaining_result_row_indices = {};
+         ++current_partition;
       }
    }};
 }
