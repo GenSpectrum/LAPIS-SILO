@@ -6,6 +6,7 @@
 #include <memory>
 #include <nlohmann/json.hpp>
 
+#include "silo/common/numbers.h"
 #include "silo/common/range.h"
 #include "silo/database.h"
 #include "silo/query_engine/operator_result.h"
@@ -236,11 +237,6 @@ uint32_t addSequencesToResultsForPartition(
    query(connection, fmt::format("DROP TABLE {};", key_table_name));
 
    return last_row_id;
-}
-
-uint32_t uint64ToUint32(uint64_t val) {
-   assert(val <= UINT32_MAX);
-   return val;
 }
 
 const size_t PARTITION_CHUNK_SIZE = 10000;
