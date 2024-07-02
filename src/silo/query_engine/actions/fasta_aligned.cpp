@@ -151,63 +151,64 @@ QueryResult FastaAligned::execute(
 
    uint32_t partition_index = 0;
    std::optional<Range<uint32_t>> remaining_result_row_indices{};
-   return QueryResult{[nuc_sequence_names = std::move(nuc_sequence_names),
-                       aa_sequence_names = std::move(aa_sequence_names),
-                       bitmap_filter =
-                          std::make_shared<std::vector<OperatorResult>>(std::move(bitmap_filter)),
-                       remaining_result_row_indices,
-                       &database,
-                       partition_index](std::vector<QueryResultEntry>& results) mutable {
-      for (; partition_index < database.partitions.size();
-           ++partition_index, remaining_result_row_indices = {}) {
-         auto& bitmap = (*bitmap_filter)[partition_index];
-         if (!remaining_result_row_indices) {
-            remaining_result_row_indices = {
-               {0, boost::numeric_cast<uint32_t, uint64_t>(bitmap->cardinality())}
-            };
-         }
-
-         // The range of results to fully process in this batch
-         Range<uint32_t> result_row_indices =
-            remaining_result_row_indices->take(PARTITION_CHUNK_SIZE);
-         // Remove the same range from the result rows that need to be
-         // created for the current partition
-         remaining_result_row_indices->mutDrop(PARTITION_CHUNK_SIZE);
-
-         if (!result_row_indices.isEmpty()) {
-            SPDLOG_TRACE(
-               "FastaAligned::execute: refill QueryResult for partition_index {}/{}, {}/{}",
-               partition_index,
-               database.partitions.size(),
-               result_row_indices.toString(),
-               remaining_result_row_indices->beyondLast()
-            );
-
-            const auto& database_partition = database.partitions[partition_index];
-            for (const uint32_t row_id : *bitmap) {
-               results.emplace_back(makeEntry(
-                  database.database_config.schema.primary_key,
-                  database_partition,
-                  nuc_sequence_names,
-                  aa_sequence_names,
-                  row_id
-               ));
-
-               result_row_indices.mutRest();
-               if (result_row_indices.isEmpty()) {
-                  // Finished the batch. Remove processed `row_id`s;
-                  // we already removed the corresponding result
-                  // indices from `remaining_result_row_indices`.
-                  bitmap->removeRange(0, add1(row_id));
-                  return;
-               }
+   return QueryResult::fromGenerator(
+      [nuc_sequence_names = std::move(nuc_sequence_names),
+       aa_sequence_names = std::move(aa_sequence_names),
+       bitmap_filter = std::make_shared<std::vector<OperatorResult>>(std::move(bitmap_filter)),
+       remaining_result_row_indices,
+       &database,
+       partition_index](std::vector<QueryResultEntry>& results) mutable {
+         for (; partition_index < database.partitions.size();
+              ++partition_index, remaining_result_row_indices = {}) {
+            auto& bitmap = (*bitmap_filter)[partition_index];
+            if (!remaining_result_row_indices) {
+               remaining_result_row_indices = {
+                  {0, boost::numeric_cast<uint32_t, uint64_t>(bitmap->cardinality())}
+               };
             }
-            std::cerr << "ERROR: ran out of bitmap before finishing result_row_indices\n"
-                      << std::flush;
-            abort();
+
+            // The range of results to fully process in this batch
+            Range<uint32_t> result_row_indices =
+               remaining_result_row_indices->take(PARTITION_CHUNK_SIZE);
+            // Remove the same range from the result rows that need to be
+            // created for the current partition
+            remaining_result_row_indices->mutDrop(PARTITION_CHUNK_SIZE);
+
+            if (!result_row_indices.isEmpty()) {
+               SPDLOG_TRACE(
+                  "FastaAligned::execute: refill QueryResult for partition_index {}/{}, {}/{}",
+                  partition_index,
+                  database.partitions.size(),
+                  result_row_indices.toString(),
+                  remaining_result_row_indices->beyondLast()
+               );
+
+               const auto& database_partition = database.partitions[partition_index];
+               for (const uint32_t row_id : *bitmap) {
+                  results.emplace_back(makeEntry(
+                     database.database_config.schema.primary_key,
+                     database_partition,
+                     nuc_sequence_names,
+                     aa_sequence_names,
+                     row_id
+                  ));
+
+                  result_row_indices.mutRest();
+                  if (result_row_indices.isEmpty()) {
+                     // Finished the batch. Remove processed `row_id`s;
+                     // we already removed the corresponding result
+                     // indices from `remaining_result_row_indices`.
+                     bitmap->removeRange(0, add1(row_id));
+                     return;
+                  }
+               }
+               std::cerr << "ERROR: ran out of bitmap before finishing result_row_indices\n"
+                         << std::flush;
+               abort();
+            }
          }
       }
-   }};
+   );
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

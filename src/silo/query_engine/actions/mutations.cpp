@@ -321,7 +321,7 @@ QueryResult Mutations<SymbolType>::execute(
          );
       }
    }
-   return QueryResult(std::move(mutation_proportions));
+   return QueryResult::fromVector(std::move(mutation_proportions));
 }
 
 template <typename SymbolType>

@@ -8,6 +8,18 @@
 
 namespace silo::query_engine {
 
+QueryResult QueryResult::fromVector(std::vector<QueryResultEntry>&& query_result) {
+   return QueryResult{
+      std::move(query_result), [](std::vector<QueryResultEntry>& /*query_result_chunk*/) {}, true
+   };
+}
+
+QueryResult QueryResult::fromGenerator(
+   std::function<void(std::vector<QueryResultEntry>&)>&& get_chunk
+) {
+   return QueryResult{{}, std::move(get_chunk), false};
+}
+
 void QueryResult::clear() {
    query_result_chunk_.clear();
    get_chunk_ = [](std::vector<QueryResultEntry>& /*query_result_chunk*/) {};

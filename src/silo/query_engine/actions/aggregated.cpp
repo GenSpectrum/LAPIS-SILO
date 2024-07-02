@@ -62,7 +62,7 @@ QueryResult aggregateWithoutGrouping(const std::vector<OperatorResult>& bitmap_f
    }
    std::map<std::string, silo::common::JsonValueType> tuple_fields;
    tuple_fields[COUNT_FIELD] = static_cast<int32_t>(count);
-   return QueryResult{std::vector<QueryResultEntry>{{tuple_fields}}};
+   return QueryResult::fromVector(std::vector<QueryResultEntry>{{tuple_fields}});
 }
 
 }  // namespace
@@ -150,7 +150,7 @@ QueryResult Aggregated::execute(
          }
       }
    }
-   return QueryResult{generateResult(final_map)};
+   return QueryResult::fromVector(generateResult(final_map));
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
