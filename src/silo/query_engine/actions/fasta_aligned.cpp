@@ -24,6 +24,7 @@
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/sequence_store.h"
 
+using silo::common::add1;
 using silo::common::Range;
 
 namespace silo::query_engine::actions {
