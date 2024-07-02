@@ -8,6 +8,7 @@
 #include <random>
 #include <utility>
 
+#include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
 #include "silo/query_engine/actions/aggregated.h"
@@ -104,21 +105,42 @@ void Action::setOrdering(
    randomize_seed = randomize_seed_;
 }
 
+static const size_t MATERIALIZATION_CUTOFF = 10000;
+
 QueryResult Action::executeAndOrder(
    const Database& database,
    std::vector<OperatorResult> bitmap_filter
 ) const {
    validateOrderByFields(database);
 
+   // Hacky solution to give the full feature set (randomization,
+   // sorting) for small result sets, and streaming without those
+   // features for larger ones.
+
+   bool is_large = false;
+   {
+      size_t num_rows = 0;
+      for (auto& bitmap : bitmap_filter) {
+         num_rows += bitmap->cardinality();
+         if (num_rows > MATERIALIZATION_CUTOFF) {
+            is_large = true;
+            break;
+         }
+      }
+   }
+
    QueryResult result = execute(database, std::move(bitmap_filter));
-   if (offset.has_value() && offset.value() >= result.entriesMut().size()) {
-      return {};
-   }
-   // XX HACK
-   if (result.isMaterialized()) {
+
+   if (result.isMaterialized() || !is_large) {
+      SPDLOG_TRACE("materialized or small -> full featured sort, offset+limit");
+      result.materialize();
+      if (offset.has_value() && offset.value() >= result.entriesMut().size()) {
+         return {};
+      }
       applySort(result);
-      applyOffsetAndLimit(result);  // XXXX
+      applyOffsetAndLimit(result);
    }
+
    return result;
 }
 
