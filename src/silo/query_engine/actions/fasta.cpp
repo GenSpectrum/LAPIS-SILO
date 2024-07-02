@@ -239,6 +239,7 @@ uint32_t addSequencesToResultsForPartition(
    return last_row_id;
 }
 
+// Note: fasta_aligned.cpp has its own PARTITION_CHUNK_SIZE
 const size_t PARTITION_CHUNK_SIZE = 10000;
 
 }  // namespace
