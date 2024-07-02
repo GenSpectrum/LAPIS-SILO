@@ -116,15 +116,15 @@ void addSequencesFromResultTableToJson(
       table_reader.loadTable();
       std::optional<std::string> genome_buffer;
 
-      const size_t start_of_partition_in_result = results.query_result.size() - number_of_values;
-      const size_t end_of_partition_in_result = results.query_result.size();
+      const size_t start_of_partition_in_result = results.entriesMut().size() - number_of_values;
+      const size_t end_of_partition_in_result = results.entriesMut().size();
       for (size_t idx = start_of_partition_in_result; idx < end_of_partition_in_result; idx++) {
          auto current_key = table_reader.next(genome_buffer);
          assert(current_key.has_value());
          if (genome_buffer.has_value()) {
-            results.query_result.at(idx).fields.emplace(sequence_name, *genome_buffer);
+            results.entriesMut().at(idx).fields.emplace(sequence_name, *genome_buffer);
          } else {
-            results.query_result.at(idx).fields.emplace(sequence_name, std::nullopt);
+            results.entriesMut().at(idx).fields.emplace(sequence_name, std::nullopt);
          }
       }
    }
@@ -194,7 +194,7 @@ void Fasta::addSequencesToResultsForPartition(
       // Add the primary key to the result
       QueryResultEntry entry;
       entry.fields.emplace(primary_key_column, primary_key.value());
-      results.query_result.emplace_back(std::move(entry));
+      results.entriesMut().emplace_back(std::move(entry));
 
       appender.EndRow();
       appender.Flush();
@@ -243,7 +243,7 @@ QueryResult Fasta::execute(const Database& database, std::vector<OperatorResult>
    );
 
    QueryResult results;
-   results.query_result.reserve(total_count);
+   results.entriesMut().reserve(total_count);
 
    for (uint32_t partition_index = 0; partition_index < database.partitions.size();
         ++partition_index) {

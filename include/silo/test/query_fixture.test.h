@@ -67,7 +67,7 @@ namespace silo::test {
          }                                                                                         \
       } else {                                                                                     \
          const auto result = query_engine.executeQuery(nlohmann::to_string(scenario.query));       \
-         const auto actual = nlohmann::json(result.query_result);                                  \
+         const auto actual = nlohmann::json(result.entries());                                     \
          ASSERT_EQ(actual, scenario.expected_query_result);                                        \
       }                                                                                            \
    }                                                                                               \
