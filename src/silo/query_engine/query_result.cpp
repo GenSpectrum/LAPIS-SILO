@@ -20,6 +20,15 @@ QueryResult QueryResult::fromGenerator(
    return QueryResult{{}, std::move(get_chunk), false};
 }
 
+QueryResult& QueryResult::operator=(QueryResult&& other) noexcept {
+   query_result_chunk_ = std::move(other.query_result_chunk_);
+   get_chunk_ = std::move(other.get_chunk_);
+   i_ = other.i_;
+   is_materialized_ = other.is_materialized_;
+   // No marker needed since all fields have one themselves.
+   return *this;
+}
+
 void QueryResult::clear() {
    query_result_chunk_.clear();
    get_chunk_ = [](std::vector<QueryResultEntry>& /*query_result_chunk*/) {};
