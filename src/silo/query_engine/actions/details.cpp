@@ -218,7 +218,7 @@ QueryResult Details::executeAndOrder(
 
    QueryResult results_in_format;
    for (const auto& tuple : tuples) {
-      results_in_format.query_result.push_back({tuple.getFields()});
+      results_in_format.entriesMut().push_back({tuple.getFields()});
    }
    applyOffsetAndLimit(results_in_format);
    return results_in_format;
