@@ -24,6 +24,8 @@
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/sequence_store.h"
 
+using silo::common::Range;
+
 namespace silo::query_engine::actions {
 
 FastaAligned::FastaAligned(std::vector<std::string>&& sequence_names)
