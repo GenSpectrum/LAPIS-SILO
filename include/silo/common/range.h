@@ -45,26 +45,8 @@ class Range {
    /// returns the same range as this range.
    [[nodiscard]] Range<T> take(size_t n) const;
 
-   /* untested
-   struct Iterator {
-      T value;
-
-      Iterator& operator++() {
-         ++value;
-         return *this;
-      }
-
-      bool operator==(const Iterator& other) const { return value == other.value; }
-
-      bool operator!=(const Iterator& other) const { return !(*this == other); }
-
-      T operator*() const { return value; }
-   };
-
-   Iterator begin() const { return {first_}; }
-
-   Iterator end() const { return {beyond_last_}; }
-   */
+   /// For an Iterator type, see the commit in the Git history that
+   /// changed *this* line.
 };
 
 }  // namespace silo::common
