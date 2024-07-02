@@ -27,9 +27,9 @@ class Range {
    /// Get the value one after the last one in the Range.
    T beyondLast() const;
 
-   /// Mutate this Range to drop the first element. Throws a `std::runtime_error`
-   /// if isEmpty().
-   void mutRest();
+   /// Return the rest of the range after dropping the first
+   /// element. Throws a `std::runtime_error` if isEmpty().
+   [[nodiscard]] Range<T> skip1() const;
 
    [[nodiscard]] std::string toString() const;
 
@@ -37,13 +37,10 @@ class Range {
 
    [[nodiscard]] size_t size() const;
 
-   /// Skip the first `n` positions. If `n` is greater than `size()`,
+   /// Drop the first `n` positions. If `n` is greater than `size()`,
    /// returns the empty range with `first()` and `beyondLast()` both
    /// being the original `beyondLast()`.
-   [[nodiscard]] Range<T> drop(size_t n) const;
-
-   /// Same as `drop` but mutating this Range in place.
-   void mutDrop(size_t n);
+   [[nodiscard]] Range<T> skip(size_t n) const;
 
    /// Take the first `n` positions. If `n` is greater than `size()`,
    /// returns the same range as this range.
