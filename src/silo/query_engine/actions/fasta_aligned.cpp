@@ -161,7 +161,7 @@ QueryResult FastaAligned::execute(
          for (; partition_index < database.partitions.size();
               ++partition_index, remaining_result_row_indices = {}) {
             auto& bitmap = (*bitmap_filter)[partition_index];
-            if (!remaining_result_row_indices) {
+            if (!remaining_result_row_indices.has_value()) {
                remaining_result_row_indices = {
                   {0, boost::numeric_cast<uint32_t, uint64_t>(bitmap->cardinality())}
                };
