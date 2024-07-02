@@ -237,9 +237,6 @@ uint32_t addSequencesToResultsForPartition(
       results, connection, result_table_name, sequence_names, database_partition, num_result_rows
    );
 
-   query(connection, fmt::format("DROP TABLE {};", result_table_name));
-   query(connection, fmt::format("DROP TABLE {};", key_table_name));
-
    return last_row_id;
 }
 
