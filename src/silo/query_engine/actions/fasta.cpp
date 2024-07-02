@@ -274,7 +274,7 @@ QueryResult Fasta::execute(const Database& database, std::vector<OperatorResult>
             // beginning?)! And `remaining_result_row_indices` is really
             // only for show now.
             auto& bitmap = (*bitmap_filter)[current_partition];
-            if (!remaining_result_row_indices) {
+            if (!remaining_result_row_indices.has_value()) {
                // We set `remaining_result_row_indices` only once using the
                // original, undrained bitmap.
                remaining_result_row_indices = {
