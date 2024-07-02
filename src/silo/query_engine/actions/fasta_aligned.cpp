@@ -116,23 +116,23 @@ QueryResult FastaAligned::execute(
         ++partition_index) {
       const auto& database_partition = database.partitions[partition_index];
       const auto& bitmap = bitmap_filter[partition_index];
-      for (const uint32_t sequence_id : *bitmap) {
+      for (const uint32_t row_id : *bitmap) {
          QueryResultEntry entry;
          std::string primary_key_column = database.database_config.schema.primary_key;
          entry.fields.emplace(
             std::move(primary_key_column),
-            database_partition.columns.getValue(primary_key_column, sequence_id)
+            database_partition.columns.getValue(primary_key_column, row_id)
          );
          for (const auto& nuc_sequence_name : nuc_sequence_names) {
             const auto& sequence_store = database_partition.nuc_sequences.at(nuc_sequence_name);
             entry.fields.emplace(
-               nuc_sequence_name, reconstructSequence<Nucleotide>(sequence_store, sequence_id)
+               nuc_sequence_name, reconstructSequence<Nucleotide>(sequence_store, row_id)
             );
          }
          for (const auto& aa_sequence_name : aa_sequence_names) {
             const auto& aa_store = database_partition.aa_sequences.at(aa_sequence_name);
             entry.fields.emplace(
-               aa_sequence_name, reconstructSequence<AminoAcid>(aa_store, sequence_id)
+               aa_sequence_name, reconstructSequence<AminoAcid>(aa_store, row_id)
             );
          }
          results.entriesMut().emplace_back(entry);
