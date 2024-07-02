@@ -172,7 +172,7 @@ QueryResult FastaAligned::execute(
                remaining_result_row_indices->take(PARTITION_CHUNK_SIZE);
             // Remove the same range from the result rows that need to be
             // created for the current partition
-            remaining_result_row_indices->mutDrop(PARTITION_CHUNK_SIZE);
+            remaining_result_row_indices = remaining_result_row_indices->skip(PARTITION_CHUNK_SIZE);
 
             if (!result_row_indices.isEmpty()) {
                SPDLOG_TRACE(
@@ -193,7 +193,7 @@ QueryResult FastaAligned::execute(
                      row_id
                   ));
 
-                  result_row_indices.mutRest();
+                  result_row_indices = result_row_indices.skip1();
                   if (result_row_indices.isEmpty()) {
                      // Finished the batch. Remove processed `row_id`s;
                      // we already removed the corresponding result

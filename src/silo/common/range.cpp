@@ -30,11 +30,13 @@ T Range<T>::beyondLast() const {
 }
 
 template <typename T>
-void Range<T>::mutRest() {
+[[nodiscard]] Range<T> Range<T>::skip1() const {
    if (isEmpty()) {
       throw std::runtime_error("can't get the rest of an empty range");
    }
-   first_++;
+   auto first = first_;
+   first++;
+   return Range{first, beyond_last_};
 }
 
 template <typename T>
@@ -53,16 +55,11 @@ template <typename T>
 }
 
 template <typename T>
-[[nodiscard]] Range<T> Range<T>::drop(size_t n) const {
+[[nodiscard]] Range<T> Range<T>::skip(size_t n) const {
    if (n <= size()) {
       return {first_ + boost::numeric_cast<T, size_t>(n), beyond_last_};
    }
    return {beyond_last_, beyond_last_};
-}
-
-template <typename T>
-void Range<T>::mutDrop(size_t n) {
-   *this = drop(n);
 }
 
 template <typename T>
