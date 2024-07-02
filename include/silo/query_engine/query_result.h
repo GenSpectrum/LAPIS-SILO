@@ -28,7 +28,7 @@ class QueryResult {
    // end of the result set has been reached.
    std::function<void(std::vector<QueryResultEntry>&)> get_chunk_;
    // Iterating through query_result_chunk_.
-   std::vector<QueryResultEntry>::const_iterator iter_;
+   size_t i_;
    // Used for safety checks when asking to get all values via
    // `entries` or `entriesMut`.
    bool is_materialized_;
@@ -38,30 +38,29 @@ class QueryResult {
    explicit QueryResult(std::vector<QueryResultEntry>&& query_result)
        : query_result_chunk_(std::move(query_result)),
          get_chunk_([](std::vector<QueryResultEntry>& /*query_result_chunk*/) {}),
-         is_materialized_(true) {
-      iter_ = query_result_chunk_.begin();
-   }
+         i_(0),
+         is_materialized_(true) {}
    /// For streaming query evaluation.
    explicit QueryResult(std::function<void(std::vector<QueryResultEntry>&)>&& get_chunk)
        : get_chunk_(get_chunk),
-         is_materialized_(false) {
-      iter_ = query_result_chunk_.begin();
-   }
+         i_(0),
+         is_materialized_(false) {}
    /// The empty result.
    QueryResult()
        : get_chunk_([](std::vector<QueryResultEntry>& /*query_result_chunk*/) {}),
+         i_(0),
          is_materialized_(true) {}
 
    // Moves
    QueryResult(QueryResult&& other) noexcept
        : query_result_chunk_(std::move(other.query_result_chunk_)),
          get_chunk_(std::move(other.get_chunk_)),
-         iter_(other.iter_),
+         i_(other.i_),
          is_materialized_(other.is_materialized_){};
    QueryResult& operator=(QueryResult&& other) noexcept {
       query_result_chunk_ = std::move(other.query_result_chunk_);
       get_chunk_ = std::move(other.get_chunk_);
-      iter_ = other.iter_;
+      i_ = other.i_;
       is_materialized_ = other.is_materialized_;
       // No marker needed since all fields have one themselves.
       return *this;
