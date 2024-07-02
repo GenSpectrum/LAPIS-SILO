@@ -1,5 +1,6 @@
 #include "silo/query_engine/query_result.h"
 
+#include <spdlog/spdlog.h>
 #include <iostream>
 #include <nlohmann/json.hpp>
 
@@ -14,16 +15,26 @@ void QueryResult::clear() {
 }
 
 const QueryResultEntry* QueryResult::next() {
+   SPDLOG_TRACE(
+      "DEBUG: next called, is_materialized_ = {}, chunk len = {}",
+      is_materialized_,
+      query_result_chunk_.size()
+   );
    if (iter_ == query_result_chunk_.end()) {
+      SPDLOG_TRACE("reached the end of last chunk");
       query_result_chunk_.clear();
       get_chunk_(query_result_chunk_);
+      SPDLOG_DEBUG("DEBUG: returned from get_chunk_");
       iter_ = query_result_chunk_.begin();
+      SPDLOG_TRACE("DEBUG: set iterator to begin");
       if (query_result_chunk_.empty()) {
+         SPDLOG_TRACE("returning nullopt from next");
          return nullptr;
       }
    }
    const QueryResultEntry* ptr = &*iter_;
    ++iter_;
+   SPDLOG_TRACE("returning ref from next");
    return ptr;
 }
 
