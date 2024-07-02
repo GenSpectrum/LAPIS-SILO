@@ -15,6 +15,7 @@
 #include "silo/query_engine/query_result.h"
 #include "silo/zstdfasta/zstdfasta_table_reader.h"
 
+using silo::common::add1;
 using silo::common::Range;
 
 namespace silo {
