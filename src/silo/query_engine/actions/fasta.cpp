@@ -306,7 +306,7 @@ QueryResult Fasta::execute(const Database& database, std::vector<OperatorResult>
 
             *remaining_result_row_indices =
                remaining_result_row_indices->drop(result_row_indices.size());
-            bitmap->removeRange(0, inc(last_row_id));
+            bitmap->removeRange(0, add1(last_row_id));
             return;
          }
       }
