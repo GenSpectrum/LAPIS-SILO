@@ -4,6 +4,7 @@
 #include <iostream>
 #include <nlohmann/json.hpp>
 
+#include "silo/common/panic.h"
 #include "silo_api/variant_json_serializer.h"
 
 namespace silo::query_engine {
@@ -91,18 +92,14 @@ void QueryResult::materialize() {
 
 std::vector<QueryResultEntry>& QueryResult::entriesMut() {
    if (!is_materialized_) {
-      std::cerr << "can't give access to entries vector for a QueryResult that is streamed\n"
-                << std::flush;
-      abort();
+      PANIC("can't give access to entries vector for a QueryResult that is streamed");
    }
    return query_result_chunk_;
 }
 
 const std::vector<QueryResultEntry>& QueryResult::entries() const {
    if (!is_materialized_) {
-      throw std::runtime_error(
-         "can't give access to entries vector for a QueryResult that is streamed"
-      );
+      PANIC("can't give access to entries vector for a QueryResult that is streamed");
    }
    return query_result_chunk_;
 }
