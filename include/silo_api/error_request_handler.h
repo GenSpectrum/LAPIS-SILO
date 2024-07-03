@@ -1,3 +1,10 @@
+//! This class catches exceptions thrown from an object while it is
+//! wrapped by it.
+
+//! This is used by wrapping the object in question; it has a
+//! `handleRequest` method and delegates that to the underlying
+//! object, while catching exceptions.
+
 #pragma once
 
 #include <chrono>

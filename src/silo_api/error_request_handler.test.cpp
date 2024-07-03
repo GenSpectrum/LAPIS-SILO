@@ -23,13 +23,16 @@ const silo::config::RuntimeConfig TEST_RUNTIME_CONFIG = {
 
 }  // namespace
 
+// We want to test whether ErrorRequestHandler works, i.e. whether it
+// catches an exception which is thrown, but wrapped by it.
+
 TEST(ErrorRequestHandler, handlesRuntimeErrors) {
    auto* wrapped_handler_mock = new MockRequestHandler;
 
    auto under_test = silo_api::ErrorRequestHandler(wrapped_handler_mock, TEST_RUNTIME_CONFIG);
 
    ON_CALL(*wrapped_handler_mock, handleRequest)
-      .WillByDefault(testing::Throw(std::runtime_error("my error message")));
+      .WillByDefault(testing::Throw(std::runtime_error("test exception, expected to be caught")));
 
    silo_api::test::MockResponse response;
    silo_api::test::MockRequest request(response);
@@ -37,7 +40,8 @@ TEST(ErrorRequestHandler, handlesRuntimeErrors) {
 
    EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
    EXPECT_EQ(
-      response.out_stream.str(), R"({"error":"Internal Server Error","message":"my error message"})"
+      response.out_stream.str(),
+      R"({"error":"Internal Server Error","message":"test exception, expected to be caught"})"
    );
 }
 
