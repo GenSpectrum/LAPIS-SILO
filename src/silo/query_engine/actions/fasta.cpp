@@ -266,7 +266,8 @@ QueryResult Fasta::execute(const Database& database, std::vector<OperatorResult>
                           std::make_shared<std::vector<OperatorResult>>(std::move(bitmap_filter)),
                        &database,
                        current_partition](std::vector<QueryResultEntry>& results) mutable {
-      while (current_partition < database.partitions.size()) {
+      for (; current_partition < database.partitions.size();
+           ++current_partition, remaining_result_row_indices = {}) {
          // We drain bitmap_filter as we process the query (because
          // the only way to get an iterator over a bitmap is from the
          // beginning?)! And `remaining_result_row_indices` is really
@@ -307,8 +308,6 @@ QueryResult Fasta::execute(const Database& database, std::vector<OperatorResult>
             bitmap->removeRange(0, last_row_id + 1);
             return;
          }
-         remaining_result_row_indices = {};
-         ++current_partition;
       }
    }};
 }
