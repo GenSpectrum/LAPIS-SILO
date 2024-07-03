@@ -205,7 +205,6 @@ uint32_t addSequencesToResultsForPartition(
             }
             appender.Append(duckdb::Value::BLOB(primary_key_string));
             appender.EndRow();
-            appender.Flush();  // XX needed?
          }
 
          // Add the primary key to the result
