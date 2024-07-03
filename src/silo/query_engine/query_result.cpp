@@ -41,6 +41,33 @@ std::optional<std::reference_wrapper<const QueryResultEntry>> QueryResult::next(
    return {std::cref(ref)};
 }
 
+void QueryResult::materialize() {
+   if (is_materialized_) {
+      return;
+   }
+
+   std::vector<QueryResultEntry> tmp{};
+   while (true) {
+      get_chunk_(tmp);
+      if (tmp.empty()) {
+         break;
+      }
+      if (query_result_chunk_.empty()) {
+         // This is only an optimization
+         query_result_chunk_ = std::move(tmp);
+      } else {
+         query_result_chunk_.insert(
+            query_result_chunk_.end(),
+            std::make_move_iterator(tmp.begin()),
+            std::make_move_iterator(tmp.end())
+         );
+         tmp.clear();
+      }
+   }
+
+   is_materialized_ = true;
+}
+
 std::vector<QueryResultEntry>& QueryResult::entriesMut() {
    if (!is_materialized_) {
       std::cerr << "can't give access to entries vector for a QueryResult that is streamed\n"
