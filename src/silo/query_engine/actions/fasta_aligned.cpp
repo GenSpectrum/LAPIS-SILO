@@ -199,6 +199,8 @@ QueryResult FastaAligned::execute(
                      // we already removed the corresponding result
                      // indices from `remaining_result_row_indices`.
                      bitmap->removeRange(0, add1(row_id));
+                     // "yield", although control comes back into the
+                     // `for` loop from outside:
                      return;
                   }
                }
