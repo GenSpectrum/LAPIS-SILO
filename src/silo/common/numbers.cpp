@@ -2,9 +2,9 @@
 
 #include <stdexcept>
 
-uint32_t inc(uint32_t val) {
+uint32_t add1(uint32_t val) {
    if (val < UINT32_MAX) {
       return val + 1;
    }
-   throw std::overflow_error{"inc: uint32 number overflow"};
+   throw std::overflow_error{"add1: uint32 number overflow"};
 }

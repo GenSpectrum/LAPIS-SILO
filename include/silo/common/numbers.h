@@ -3,4 +3,4 @@
 #include <cstdint>
 
 /// Throws `std::overflow_error` on overflow
-uint32_t inc(uint32_t val);
+uint32_t add1(uint32_t val);

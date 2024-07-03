@@ -2,8 +2,8 @@
 
 #include "silo/common/numbers.h"
 
-TEST(inc, signalsErrorWhenNeeded) {
-   EXPECT_EQ(inc(0), 1);
-   EXPECT_EQ(inc(4294967294), 4294967295);
-   EXPECT_THROW(inc(4294967295), std::overflow_error);
+TEST(add1, signalsErrorWhenNeeded) {
+   EXPECT_EQ(add1(0), 1);
+   EXPECT_EQ(add1(4294967294), 4294967295);
+   EXPECT_THROW(add1(4294967295), std::overflow_error);
 }
