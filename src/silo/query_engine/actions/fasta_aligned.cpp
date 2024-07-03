@@ -16,6 +16,7 @@
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/common/panic.h"
 #include "silo/config/database_config.h"
 #include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
@@ -204,9 +205,7 @@ QueryResult FastaAligned::execute(
                      return;
                   }
                }
-               std::cerr << "ERROR: ran out of bitmap before finishing result_row_indices\n"
-                         << std::flush;
-               abort();
+               PANIC("ran out of bitmap before finishing result_row_indices");
             }
          }
       }
