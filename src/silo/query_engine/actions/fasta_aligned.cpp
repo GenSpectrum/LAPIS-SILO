@@ -161,8 +161,18 @@ QueryResult FastaAligned::execute(
        partition_index](std::vector<QueryResultEntry>& results) mutable {
          for (; partition_index < database.partitions.size();
               ++partition_index, remaining_result_row_indices = {}) {
+            // We drain the bitmaps in bitmap_filter as we process the
+            // query, because roaring bitmaps don't come with
+            // external, only internal iterators, which can't be used
+            // for our external iterator. Instead of implementing an
+            // external iterator on bitmaps, we just remove the bitmap
+            // members as we process them. To know how far into the
+            // result generation we are, we maintain a `Range` of
+            // output rows at the same time.
             auto& bitmap = (*bitmap_filter)[partition_index];
             if (!remaining_result_row_indices.has_value()) {
+               // We set `remaining_result_row_indices` only once using the
+               // original, undrained bitmap.
                remaining_result_row_indices = {
                   {0, boost::numeric_cast<uint32_t, uint64_t>(bitmap->cardinality())}
                };

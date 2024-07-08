@@ -262,22 +262,21 @@ QueryResult Fasta::execute(const Database& database, std::vector<OperatorResult>
        remaining_result_row_indices,
        bitmap_filter = std::make_shared<std::vector<OperatorResult>>(std::move(bitmap_filter)),
        &database,
+       // For an explanation of the iteration algorithm, see the
+       // comments in the same location (`execute` method) in
+       // `fasta_aligned.cpp`.
        current_partition](std::vector<QueryResultEntry>& results) mutable {
          for (; current_partition < database.partitions.size();
               ++current_partition, remaining_result_row_indices = {}) {
-            // We drain bitmap_filter as we process the query (because
-            // the only way to get an iterator over a bitmap is from the
-            // beginning?)! And `remaining_result_row_indices` is really
-            // only for show now.
             auto& bitmap = (*bitmap_filter)[current_partition];
             if (!remaining_result_row_indices.has_value()) {
-               // We set `remaining_result_row_indices` only once using the
-               // original, undrained bitmap.
+               // (See comments in `execute` in `fasta_aligned.cpp`.)
                remaining_result_row_indices = {
                   {0, boost::numeric_cast<uint32_t, uint64_t>(bitmap->cardinality())}
                };
             }
 
+            // (See comments in `execute` in `fasta_aligned.cpp`.)
             const Range<uint32_t> result_row_indices =
                remaining_result_row_indices->take(PARTITION_CHUNK_SIZE);
             if (!result_row_indices.isEmpty()) {
@@ -303,9 +302,9 @@ QueryResult Fasta::execute(const Database& database, std::vector<OperatorResult>
 
                *remaining_result_row_indices =
                   remaining_result_row_indices->skip(result_row_indices.size());
+               // (See comments in `execute` in `fasta_aligned.cpp`.)
                bitmap->removeRange(0, add1(last_row_id));
-               // "yield", although control comes back into the `for`
-               // loop from outside:
+               // (See comments in `execute` in `fasta_aligned.cpp`.)
                return;
             }
          }
