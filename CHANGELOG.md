@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.8](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.7...v0.2.8) (2024-07-08)
+
+
+### Features
+
+* streaming: fasta_aligned: process in sub-partition batches ([e87d927](https://github.com/GenSpectrum/LAPIS-SILO/commit/e87d92720a032cd4c59493cc7d6a5f4cf65ef516)), closes [#112](https://github.com/GenSpectrum/LAPIS-SILO/issues/112)
+* streaming: fasta: process as a batch per partition ([66bfdff](https://github.com/GenSpectrum/LAPIS-SILO/commit/66bfdffbfd427e169efab48e70390af504dd8771)), closes [#112](https://github.com/GenSpectrum/LAPIS-SILO/issues/112)
+* streaming: fasta: process in sub-partition batches ([12f873f](https://github.com/GenSpectrum/LAPIS-SILO/commit/12f873f3af5d88f13fd37553ee31d369d9eff5bb)), closes [#112](https://github.com/GenSpectrum/LAPIS-SILO/issues/112)
+* streaming: fasta: remove limit on total row count ([df185cc](https://github.com/GenSpectrum/LAPIS-SILO/commit/df185cca7318fbe0d0ea499d1ca0504802598356)), closes [#112](https://github.com/GenSpectrum/LAPIS-SILO/issues/112)
+* streaming: implement materialization cut-off ([fd1a77c](https://github.com/GenSpectrum/LAPIS-SILO/commit/fd1a77c29c760ff827ed51c6bb9ffae268c21c03)), closes [#112](https://github.com/GenSpectrum/LAPIS-SILO/issues/112)
+
+
+### Bug Fixes
+
+* query_handler: check for I/O errors when writing to the HTTP stream ([de2b475](https://github.com/GenSpectrum/LAPIS-SILO/commit/de2b475527641c6811cbe3511912d6fa5c335e8d)), closes [#112](https://github.com/GenSpectrum/LAPIS-SILO/issues/112)
+
 ## [0.2.7](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.6...v0.2.7) (2024-06-25)
 
 
