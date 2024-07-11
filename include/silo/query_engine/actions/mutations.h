@@ -40,11 +40,15 @@ class Mutations : public Action {
    const std::string PROPORTION_FIELD_NAME = "proportion";
    const std::string COUNT_FIELD_NAME = "count";
 
+   struct PrefilteredBitmap {
+      const OperatorResult& operator_result;
+      const silo::SequenceStorePartition<SymbolType>& sequence_store_partition;
+      uint64_t cardinality;
+   };
+
    struct PrefilteredBitmaps {
-      std::vector<std::pair<const OperatorResult&, const silo::SequenceStorePartition<SymbolType>&>>
-         bitmaps;
-      std::vector<std::pair<const OperatorResult&, const silo::SequenceStorePartition<SymbolType>&>>
-         full_bitmaps;
+      std::vector<PrefilteredBitmap> bitmaps;
+      std::vector<PrefilteredBitmap> full_bitmaps;
    };
 
    static std::unordered_map<std::string, Mutations<SymbolType>::PrefilteredBitmaps>

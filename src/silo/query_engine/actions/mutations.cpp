@@ -11,6 +11,8 @@
 #include <fmt/format.h>
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/parallel_for.h>
+#include <silo/common/block_timer.h>
+#include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
 #include "silo/common/aa_symbols.h"
@@ -48,7 +50,7 @@ std::unordered_map<std::string, typename Mutations<SymbolType>::PrefilteredBitma
       if (cardinality == database_partition.sequence_count) {
          for (const auto& [sequence_name, sequence_store] :
               database_partition.getSequenceStores<SymbolType>()) {
-            bitmaps_to_evaluate[sequence_name].full_bitmaps.emplace_back(filter, sequence_store);
+            bitmaps_to_evaluate[sequence_name].full_bitmaps.emplace_back(filter, sequence_store, filter->cardinality());
          }
       } else {
          if (filter.isMutable()) {
@@ -56,7 +58,7 @@ std::unordered_map<std::string, typename Mutations<SymbolType>::PrefilteredBitma
          }
          for (const auto& [sequence_name, sequence_store] :
               database_partition.getSequenceStores<SymbolType>()) {
-            bitmaps_to_evaluate[sequence_name].bitmaps.emplace_back(filter, sequence_store);
+            bitmaps_to_evaluate[sequence_name].bitmaps.emplace_back(filter, sequence_store, filter->cardinality());
          }
       }
    }
@@ -69,18 +71,11 @@ void Mutations<SymbolType>::addPositionToMutationCountsForMixedBitmaps(
    const PrefilteredBitmaps& bitmaps_to_evaluate,
    SymbolMap<SymbolType, std::vector<uint32_t>>& count_of_mutations_per_position
 ) {
-   for (const auto& [filter, sequence_store_partition] : bitmaps_to_evaluate.bitmaps) {
+   for (const auto& [filter, sequence_store_partition, filter_cardinality] : bitmaps_to_evaluate.bitmaps) {
       for (const auto symbol : SymbolType::SYMBOLS) {
          const auto& current_position = sequence_store_partition.positions[position_idx];
          if (current_position.isSymbolDeleted(symbol)) {
-            count_of_mutations_per_position[symbol][position_idx] += filter->cardinality();
-            for (const uint32_t idx : *filter) {
-               const roaring::Roaring& n_bitmap =
-                  sequence_store_partition.missing_symbol_bitmaps[idx];
-               if (n_bitmap.contains(position_idx)) {
-                  count_of_mutations_per_position[symbol][position_idx] -= 1;
-               }
-            }
+            count_of_mutations_per_position[symbol][position_idx] += filter_cardinality;
             continue;
          }
          const uint32_t symbol_count =
@@ -106,18 +101,12 @@ void Mutations<SymbolType>::addPositionToMutationCountsForFullBitmaps(
 ) {
    // For these partitions, we have full bitmaps. Do not need to bother with AND
    // cardinality
-   for (const auto& [filter, sequence_store_partition] : bitmaps_to_evaluate.full_bitmaps) {
+   for (const auto& [filter, sequence_store_partition, filter_cardinality] : bitmaps_to_evaluate.full_bitmaps) {
       for (const auto symbol : SymbolType::SYMBOLS) {
          const auto& current_position = sequence_store_partition.positions[position_idx];
          if (current_position.isSymbolDeleted(symbol)) {
             count_of_mutations_per_position[symbol][position_idx] +=
                sequence_store_partition.sequence_count;
-            for (const roaring::Roaring& n_bitmap :
-                 sequence_store_partition.missing_symbol_bitmaps) {
-               if (n_bitmap.contains(position_idx)) {
-                  count_of_mutations_per_position[symbol][position_idx] -= 1;
-               }
-            }
             continue;
          }
          const uint32_t symbol_count = current_position.isSymbolFlipped(symbol)
@@ -129,8 +118,7 @@ void Mutations<SymbolType>::addPositionToMutationCountsForFullBitmaps(
 
          const auto deleted_symbol = current_position.getDeletedSymbol();
          if (deleted_symbol.has_value() && symbol != *deleted_symbol) {
-            count_of_mutations_per_position[*deleted_symbol][position_idx] -=
-               sequence_store_partition.positions[position_idx].getBitmap(symbol)->cardinality();
+            count_of_mutations_per_position[*deleted_symbol][position_idx] -= symbol_count;
          }
       }
    }
@@ -148,16 +136,59 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
       mutation_counts_per_position[symbol].resize(sequence_length);
    }
    static constexpr int POSITIONS_PER_PROCESS = 300;
+
+   int64_t time;
+   {
+      const silo::common::BlockTimer timer(time);
+
+      for (const auto& [filter, sequence_store_partition, _] : bitmap_filter.full_bitmaps) {
+         for (const roaring::Roaring& n_bitmap : sequence_store_partition.missing_symbol_bitmaps) {
+            for (const uint32_t position: n_bitmap) {
+               const auto symbol = sequence_store_partition.positions[position].getDeletedSymbol();
+               if (symbol.has_value()) {
+                  mutation_counts_per_position[symbol.value()][position] -= 1;
+               }
+            }
+         }
+      }
+      for (const auto& [filter, sequence_store_partition, _] : bitmap_filter.bitmaps) {
+         for (const uint32_t idx : *filter) {
+            const roaring::Roaring& n_bitmap =
+               sequence_store_partition.missing_symbol_bitmaps[idx];
+            for (const uint32_t position: n_bitmap) {
+               const auto symbol = sequence_store_partition.positions[position].getDeletedSymbol();
+               if (symbol.has_value()) {
+                  mutation_counts_per_position[symbol.value()][position] -= 1;
+               }
+
+            }
+         }
+      }
+   }
+   SPDLOG_DEBUG(
+      "Time taken for mutation N count (time): {}",
+      time
+   );
+
+
    tbb::parallel_for(
       tbb::blocked_range<uint32_t>(0, sequence_length, /*grain_size=*/POSITIONS_PER_PROCESS),
       [&](const auto& local) {
          for (uint32_t pos = local.begin(); pos != local.end(); ++pos) {
-            addPositionToMutationCountsForMixedBitmaps(
-               pos, bitmap_filter, mutation_counts_per_position
-            );
-            addPositionToMutationCountsForFullBitmaps(
-               pos, bitmap_filter, mutation_counts_per_position
-            );
+            int64_t time;
+            {
+               const silo::common::BlockTimer timer(time);
+               addPositionToMutationCountsForMixedBitmaps(
+                  pos, bitmap_filter, mutation_counts_per_position
+               );
+               addPositionToMutationCountsForFullBitmaps(
+                  pos, bitmap_filter, mutation_counts_per_position
+               );
+            }
+            SPDLOG_DEBUG(
+               "Time taken for mutation count (position/time): {},{}",
+               pos, time
+               );
          }
       }
    );
