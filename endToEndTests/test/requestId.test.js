@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { headerToHaveDataVersion, server } from './common.js';
+import { server } from './common.js';
 import { describe, it } from 'node:test';
 
 const X_REQUEST_ID = 'x-request-id';

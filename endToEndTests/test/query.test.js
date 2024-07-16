@@ -1,4 +1,4 @@
-import { headerToHaveDataVersion, server } from './common.js';
+import { expectHeaderToHaveDataVersion, server } from './common.js';
 import { expect } from 'chai';
 import { describe, it } from 'node:test';
 import fs from 'fs';
@@ -40,19 +40,16 @@ describe('The /query endpoint', () => {
 
   testCases.forEach(testCase =>
     it('should return data for the test case ' + testCase.testCaseName, async () => {
-      const response = await server
-        .post('/query')
-        .send(testCase.query)
-        .expect(200)
-        .expect('Content-Type', 'application/x-ndjson')
-        .expect(headerToHaveDataVersion);
+      const response = await server.post('/query').send(testCase.query);
 
+      const errorMessage = 'Actual result is:\n' + response.text + '\n';
+      expect(response.status, errorMessage).to.equal(200);
+      expect(response.header['content-type'], errorMessage).to.equal('application/x-ndjson');
+      expectHeaderToHaveDataVersion(response);
       let responseLines = response.text
         .split(/\n/)
         .filter(it => it !== '')
         .map(it => JSON.parse(it));
-
-      const errorMessage = 'Actual result is:\n' + response.text + '\n';
       expect(responseLines, errorMessage).to.deep.equal(testCase.expectedQueryResult);
     })
   );
