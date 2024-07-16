@@ -38,6 +38,9 @@ ValueType silo::config::toDatabaseValueType(std::string_view type) {
 
 namespace {
 
+const std::string DEFAULT_NUCLEOTIDE_SEQUENCE_KEY = "defaultNucleotideSequence";
+const std::string DEFAULT_AMINO_ACID_SEQUENCE_KEY = "defaultAminoAcidSequence";
+
 std::string toString(ValueType type) {
    switch (type) {
       case ValueType::STRING:
@@ -63,10 +66,15 @@ struct convert<silo::config::DatabaseConfig> {
    static bool decode(const Node& node, silo::config::DatabaseConfig& config) {
       config.schema = node["schema"].as<silo::config::DatabaseSchema>();
 
-      if (node["defaultNucleotideSequence"].IsDefined()) {
-         config.default_nucleotide_sequence = node["defaultNucleotideSequence"].as<std::string>();
-      } else {
-         config.default_nucleotide_sequence = "main";
+      if (node[DEFAULT_NUCLEOTIDE_SEQUENCE_KEY].IsDefined() &&
+          !node[DEFAULT_NUCLEOTIDE_SEQUENCE_KEY].IsNull()) {
+         config.default_nucleotide_sequence =
+            node[DEFAULT_NUCLEOTIDE_SEQUENCE_KEY].as<std::string>();
+      }
+      if (node[DEFAULT_AMINO_ACID_SEQUENCE_KEY].IsDefined() &&
+          !node[DEFAULT_AMINO_ACID_SEQUENCE_KEY].IsNull()) {
+         config.default_amino_acid_sequence =
+            node[DEFAULT_AMINO_ACID_SEQUENCE_KEY].as<std::string>();
       }
 
       SPDLOG_TRACE("Resulting database config: {}", config);
@@ -77,8 +85,11 @@ struct convert<silo::config::DatabaseConfig> {
       Node node;
       node["schema"] = config.schema;
 
-      if (config.default_nucleotide_sequence != "main") {
-         node["defaultNucleotideSequence"] = config.default_nucleotide_sequence;
+      if (config.default_nucleotide_sequence.has_value()) {
+         node[DEFAULT_NUCLEOTIDE_SEQUENCE_KEY] = *config.default_nucleotide_sequence;
+      }
+      if (config.default_amino_acid_sequence.has_value()) {
+         node[DEFAULT_AMINO_ACID_SEQUENCE_KEY] = *config.default_amino_acid_sequence;
       }
       return node;
    }
@@ -233,8 +244,13 @@ DatabaseConfig DatabaseConfigReader::parseYaml(const std::string& yaml) const {
 ) -> decltype(ctx.out()) {
    return fmt::format_to(
       ctx.out(),
-      "{{ default_nucleotide_sequence: '{}', schema: {} }}",
-      database_config.default_nucleotide_sequence,
+      "{{ default_nucleotide_sequence: {}, default_amino_acid_sequence: {}, schema: {} }}",
+      database_config.default_nucleotide_sequence.has_value()
+         ? "'" + *database_config.default_nucleotide_sequence + "'"
+         : "null",
+      database_config.default_amino_acid_sequence.has_value()
+         ? "'" + *database_config.default_nucleotide_sequence + "'"
+         : "null",
       database_config.schema
    );
 }

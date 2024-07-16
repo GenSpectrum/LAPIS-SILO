@@ -36,7 +36,8 @@ class DatabaseSchema {
 
 class DatabaseConfig {
   public:
-   std::string default_nucleotide_sequence;
+   std::optional<std::string> default_nucleotide_sequence;
+   std::optional<std::string> default_amino_acid_sequence;
    DatabaseSchema schema;
 
    [[nodiscard]] std::optional<DatabaseMetadata> getMetadata(const std::string& name) const;
