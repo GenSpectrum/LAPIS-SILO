@@ -43,6 +43,7 @@ class Preprocessor {
    Database preprocess();
 
   private:
+   void finalizeConfig();
    void validateConfig();
 
    static std::string makeNonNullKey(const std::string& field);

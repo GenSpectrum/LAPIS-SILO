@@ -63,7 +63,7 @@ Preprocessor::Preprocessor(
 }
 
 Database Preprocessor::preprocess() {
-   validateConfig();
+   finalizeConfig();
 
    SPDLOG_INFO(
       "preprocessing - creating intermediate results directory '{}'",
@@ -126,6 +126,17 @@ Database Preprocessor::preprocess() {
    return buildDatabase(
       partition_descriptor, preprocessing_config.getIntermediateResultsDirectory()
    );
+}
+
+void Preprocessor::finalizeConfig() {
+   if (nuc_sequences.size() == 1 && !database_config.default_nucleotide_sequence.has_value()) {
+      database_config.default_nucleotide_sequence = nuc_sequences.at(0);
+   }
+   if (aa_sequences.size() == 1 && !database_config.default_amino_acid_sequence.has_value()) {
+      database_config.default_amino_acid_sequence = aa_sequences.at(0);
+   }
+
+   validateConfig();
 }
 
 void Preprocessor::validateConfig() {
