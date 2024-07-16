@@ -8,7 +8,7 @@ if (!siloUrl) {
 
 export const server = supertest.agent(siloUrl);
 
-export function headerToHaveDataVersion(response) {
+export function expectHeaderToHaveDataVersion(response) {
   const headers = response.headers;
   expect(headers).to.have.property('data-version');
   const dataVersion = headers['data-version'];
