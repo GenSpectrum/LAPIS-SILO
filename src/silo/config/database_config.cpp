@@ -200,14 +200,29 @@ void DatabaseConfig::writeConfig(const std::filesystem::path& config_path) const
 
 DatabaseConfig DatabaseConfigReader::readConfig(const std::filesystem::path& config_path) const {
    SPDLOG_INFO("Reading database config from {}", config_path.string());
+   std::stringstream yaml;
+
+   std::ifstream file(config_path);
+   if (!file.is_open()) {
+      throw std::runtime_error(
+         "Failed to read database config: Could not open file " + config_path.string()
+      );
+   }
+
+   yaml << file.rdbuf();
+
    try {
-      return YAML::LoadFile(config_path.string()).as<DatabaseConfig>();
+      return parseYaml(yaml.str());
    } catch (const YAML::Exception& e) {
       throw std::runtime_error(
          "Failed to read database config from " + config_path.string() + ": " +
          std::string(e.what())
       );
    }
+}
+
+DatabaseConfig DatabaseConfigReader::parseYaml(const std::string& yaml) const {
+   return YAML::Load(yaml).as<DatabaseConfig>();
 }
 
 }  // namespace silo::config
