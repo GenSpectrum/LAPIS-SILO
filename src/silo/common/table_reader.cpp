@@ -1,12 +1,13 @@
 #include "silo/common/table_reader.h"
 
 #include <cstddef>
+#include <numeric>
 #include <string>
 #include <string_view>
 #include <vector>
 
 #include <fmt/format.h>
-#include <oneapi/tbb/parallel_for.h>
+#include <oneapi/tbb/parallel_invoke.h>
 #include <spdlog/spdlog.h>
 #include <duckdb.hpp>
 
@@ -14,7 +15,7 @@
 
 silo::ColumnFunction::ColumnFunction(
    std::string column_name,
-   std::function<void(size_t, const duckdb::Value&)> function
+   std::function<void(size_t, const duckdb::Vector&, size_t)> function
 )
     : column_name(std::move(column_name)),
       function(std::move(function)) {}
@@ -37,32 +38,27 @@ silo::TableReader::TableReader(
 size_t silo::TableReader::read() {
    loadTable();
    assert(query_result->ColumnCount() == column_functions.size() + 1);
-   while (true) {
-      current_chunk = query_result->Fetch();
-      if (!current_chunk) {
-         break;
-      }
-      if (current_chunk->size() == 0) {
-         continue;
-      }
-      current_chunk_size = current_chunk->size();
+   size_t current_start_of_chunk = 0;
+   std::unique_ptr<duckdb::DataChunk> current_chunk = query_result->Fetch();
+   while (current_chunk) {
+      size_t current_chunk_size = current_chunk->size();
 
-      tbb::parallel_for(
-         tbb::blocked_range<uint32_t>(0, column_functions.size()),
-         [&](const auto& local) {
-            for (size_t column_idx = local.begin(); column_idx != local.end(); column_idx++) {
-               auto& column = current_chunk->data[column_idx + 1];
-               for (size_t row_in_chunk = 0; row_in_chunk < current_chunk_size; row_in_chunk++) {
-                  column_functions.at(column_idx)
-                     .function(
-                        current_start_of_chunk + row_in_chunk, column.GetValue(row_in_chunk)
-                     );
-               }
+      std::unique_ptr<duckdb::DataChunk> next_chunk;
+
+      tbb::parallel_invoke(
+         [&]() {
+            for (size_t column_idx = 0; column_idx < column_functions.size(); column_idx++) {
+               const auto& column_vector = current_chunk->data[column_idx + 1];
+               column_functions.at(column_idx)
+                  .function(current_start_of_chunk, column_vector, current_chunk_size);
             }
-         }
+         },
+         [&]() { next_chunk = query_result->Fetch(); }
       );
+
       current_start_of_chunk += current_chunk_size;
-   };
+      current_chunk = std::move(next_chunk);
+   }
 
    return current_start_of_chunk;
 }

@@ -53,11 +53,5 @@ class ZstdFastaTableReader {
    std::optional<std::string> nextCompressed(std::optional<std::string>& compressed_genome);
 
    void loadTable();
-
-   void copyTableTo(std::string_view file_name);
-
-   void copyTableToPartitioned(std::string_view file_name, std::string_view partition_key);
-
-   size_t lineCount();
 };
 }  // namespace silo
