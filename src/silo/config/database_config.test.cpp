@@ -138,6 +138,8 @@ TEST(DatabaseConfigReader, shouldReadConfigWithCorrectParameters) {
    ASSERT_EQ(config.schema.metadata[8].name, "qc_value");
    ASSERT_EQ(config.schema.metadata[8].type, ValueType::FLOAT);
    ASSERT_EQ(config.schema.metadata[8].generate_index, false);
+   ASSERT_EQ(config.default_nucleotide_sequence, std::nullopt);
+   ASSERT_EQ(config.default_amino_acid_sequence, std::nullopt);
 }
 
 TEST(DatabaseConfigReader, shouldThrowExceptionWhenConfigFileDoesNotExist) {
@@ -222,6 +224,42 @@ schema:
    const DatabaseConfig& config = DatabaseConfigReader().parseYaml(yaml);
 
    ASSERT_EQ(config.schema.partition_by, std::nullopt);
+}
+
+TEST(DatabaseConfigReader, shouldReadConfigWithDefaultSequencesSet) {
+   const auto* yaml = R"-(
+schema:
+  instanceName: dummy without partitionBy
+  metadata:
+    - name: primaryKey
+      type: string
+  primaryKey: primaryKey
+defaultNucleotideSequence: defaultNuc
+defaultAminoAcidSequence: defaultAA
+)-";
+
+   const DatabaseConfig& config = DatabaseConfigReader().parseYaml(yaml);
+
+   ASSERT_EQ(config.default_nucleotide_sequence, "defaultNuc");
+   ASSERT_EQ(config.default_amino_acid_sequence, "defaultAA");
+}
+
+TEST(DatabaseConfigReader, shouldReadConfigWithDefaultSequencesSetButNull) {
+   const auto* yaml = R"-(
+schema:
+  instanceName: dummy without partitionBy
+  metadata:
+    - name: primaryKey
+      type: string
+  primaryKey: primaryKey
+defaultNucleotideSequence: null
+defaultAminoAcidSequence: null
+)-";
+
+   const DatabaseConfig& config = DatabaseConfigReader().parseYaml(yaml);
+
+   ASSERT_EQ(config.default_nucleotide_sequence, std::nullopt);
+   ASSERT_EQ(config.default_amino_acid_sequence, std::nullopt);
 }
 
 }  // namespace
