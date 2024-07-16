@@ -48,6 +48,8 @@ class DatabaseConfig {
 class DatabaseConfigReader {
   public:
    [[nodiscard]] virtual DatabaseConfig readConfig(const std::filesystem::path& config_path) const;
+
+   [[nodiscard]] virtual DatabaseConfig parseYaml(const std::string& yaml) const;
 };
 
 }  // namespace silo::config
