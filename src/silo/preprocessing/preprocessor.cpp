@@ -63,6 +63,8 @@ Preprocessor::Preprocessor(
 }
 
 Database Preprocessor::preprocess() {
+   validateConfig();
+
    SPDLOG_INFO(
       "preprocessing - creating intermediate results directory '{}'",
       preprocessing_config.getIntermediateResultsDirectory().string()
@@ -124,6 +126,31 @@ Database Preprocessor::preprocess() {
    return buildDatabase(
       partition_descriptor, preprocessing_config.getIntermediateResultsDirectory()
    );
+}
+
+void Preprocessor::validateConfig() {
+   const bool default_nucleotide_sequence_is_not_in_reference =
+      database_config.default_nucleotide_sequence.has_value() &&
+      std::find(
+         nuc_sequences.begin(), nuc_sequences.end(), *database_config.default_nucleotide_sequence
+      ) == nuc_sequences.end();
+   if (default_nucleotide_sequence_is_not_in_reference) {
+      throw silo::preprocessing::PreprocessingException(
+         "The default nucleotide sequence that is set in the database config is not contained in "
+         "the reference genomes."
+      );
+   }
+   const bool default_amino_acid_sequence_is_not_in_reference =
+      database_config.default_amino_acid_sequence.has_value() &&
+      std::find(
+         aa_sequences.begin(), aa_sequences.end(), *database_config.default_amino_acid_sequence
+      ) == aa_sequences.end();
+   if (default_amino_acid_sequence_is_not_in_reference) {
+      throw silo::preprocessing::PreprocessingException(
+         "The default amino acid sequence that is set in the database config is not contained in "
+         "the reference genomes."
+      );
+   }
 }
 
 void Preprocessor::buildTablesFromNdjsonInput(const ValidatedNdjsonFile& input_file) {
