@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { headerToHaveDataVersion, server } from './common.js';
+import { expectHeaderToHaveDataVersion, server } from './common.js';
 import { describe, it } from 'node:test';
 
 describe('The /info endpoint', () => {
@@ -8,7 +8,7 @@ describe('The /info endpoint', () => {
       .get('/info')
       .expect(200)
       .expect('Content-Type', 'application/json')
-      .expect(headerToHaveDataVersion)
+      .expect(expectHeaderToHaveDataVersion)
       .expect({ nBitmapsSize: 3898, sequenceCount: 100, totalSize: 26589464, numberOfPartitions: 11 });
   });
 
@@ -79,6 +79,6 @@ describe('The /info endpoint', () => {
           'Y': 2631494,
         });
       })
-      .expect(headerToHaveDataVersion);
+      .expect(expectHeaderToHaveDataVersion);
   });
 });
