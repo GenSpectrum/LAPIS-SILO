@@ -214,10 +214,10 @@ void from_json(
    std::unique_ptr<InsertionAggregation<SymbolType>>& action
 ) {
    CHECK_SILO_QUERY(
-      !json.contains("sequenceName") ||
-         (json["sequenceName"].is_string() || json["sequenceName"].is_array()),
-      "Insertions action can have the field sequenceName of type string or an array of "
-      "strings, but no other type"
+      !json.contains("sequenceName") || json["sequenceName"].is_string() ||
+         json["sequenceName"].is_array(),
+      "The field 'sequenceName' of the insertions action must be of type string or array, was " +
+         std::string(json["sequenceName"].type_name())
    );
    std::vector<std::string> sequence_names;
    if (json.contains("sequenceName") && json["sequenceName"].is_array()) {

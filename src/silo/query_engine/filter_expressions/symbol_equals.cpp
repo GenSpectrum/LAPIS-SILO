@@ -75,7 +75,10 @@ std::unique_ptr<silo::query_engine::operators::Operator> SymbolEquals<SymbolType
    CHECK_SILO_QUERY(
       sequence_name.has_value() || database.getDefaultSequenceName<SymbolType>().has_value(),
       fmt::format(
-         "Database does not have a default sequence name for {} Sequences", SymbolType::SYMBOL_NAME
+         "Database does not have a default sequence name for {} Sequences. "
+         "You need to provide the sequence name with the {}Equals filter.",
+         SymbolType::SYMBOL_NAME,
+         SymbolType::SYMBOL_NAME
       )
    );
 
