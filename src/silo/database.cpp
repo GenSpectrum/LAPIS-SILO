@@ -76,7 +76,7 @@ std::optional<std::string> Database::getDefaultSequenceName<Nucleotide>() const 
 
 template <>
 std::optional<std::string> Database::getDefaultSequenceName<AminoAcid>() const {
-   return std::nullopt;
+   return database_config.default_amino_acid_sequence;
 }
 
 template <>
