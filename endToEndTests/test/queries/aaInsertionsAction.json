@@ -3,7 +3,6 @@
   "query": {
     "action": {
       "type": "AminoAcidInsertions",
-      "column": "aminoAcidInsertions",
       "orderByFields": ["insertion", "position"]
     },
     "filterExpression": {

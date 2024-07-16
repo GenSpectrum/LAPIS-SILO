@@ -10,7 +10,6 @@
       "type": "AminoAcidInsertionContains",
       "sequenceName": "S",
       "value": "E.*E",
-      "column": "aminoAcidInsertions",
       "position": 214
     }
   },
