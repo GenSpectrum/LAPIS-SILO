@@ -10,7 +10,6 @@
 #include "silo/config/database_config.h"
 #include "silo/database.h"
 #include "silo/query_engine/filter_expressions/expression.h"
-#include "silo/query_engine/filter_expressions/negation.h"
 #include "silo/query_engine/filter_expressions/or.h"
 #include "silo/query_engine/filter_expressions/symbol_equals.h"
 #include "silo/query_engine/operators/operator.h"
@@ -46,7 +45,10 @@ std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
    CHECK_SILO_QUERY(
       sequence_name.has_value() || database.getDefaultSequenceName<SymbolType>().has_value(),
       fmt::format(
-         "Database does not have a default sequence name for {} Sequences", SymbolType::SYMBOL_NAME
+         "Database does not have a default sequence name for {} Sequences. "
+         "You need to provide the sequence name with the {}Mutation filter.",
+         SymbolType::SYMBOL_NAME,
+         SymbolType::SYMBOL_NAME
       )
    );
 
