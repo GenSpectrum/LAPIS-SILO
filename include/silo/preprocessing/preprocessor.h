@@ -43,6 +43,8 @@ class Preprocessor {
    Database preprocess();
 
   private:
+   void validateConfig();
+
    static std::string makeNonNullKey(const std::string& field);
    std::string getPartitionKeySelect() const;
 
