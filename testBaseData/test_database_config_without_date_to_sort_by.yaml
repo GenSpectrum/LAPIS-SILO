@@ -1,7 +1,0 @@
-schema:
-  instanceName: Having no dateToSortBy is valid
-  metadata:
-    - name: gisaid_epi_isl
-      type: string
-  primaryKey: gisaid_epi_isl
-  partitionBy: pango_lineage

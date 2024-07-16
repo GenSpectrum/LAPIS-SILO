@@ -148,27 +148,42 @@ TEST(DatabaseConfigReader, shouldThrowExceptionWhenConfigFileDoesNotExist) {
 }
 
 TEST(DatabaseConfigReader, shouldThrowErrorForInvalidMetadataType) {
-   ASSERT_THROW(
-      (void)DatabaseConfigReader().readConfig(
-         "testBaseData/test_database_config_with_invalid_metadata_type.yaml"
-      ),
-      ConfigException
-   );
+   const auto* yaml = R"-(
+schema:
+  instanceName: dummy name
+  metadata:
+    - name: wrongType
+      type: wrong_type
+  primaryKey: gisaid_epi_isl
+)-";
+
+   ASSERT_THROW((void)DatabaseConfigReader().parseYaml(yaml), ConfigException);
 }
 
 TEST(DatabaseConfigReader, shouldNotThrowIfThereAreAdditionalEntries) {
-   ASSERT_NO_THROW((void)DatabaseConfigReader().readConfig(
-      "testBaseData/test_database_config_with_additional_entries.yaml"
-   ));
+   const auto* yaml = R"-(
+schema:
+  instanceName: dummy name
+  metadata:
+    - name: key
+      type: string
+  primaryKey: key
+  features:
+    - name: this is unknown to SILO
+)-";
+
+   ASSERT_NO_THROW((void)DatabaseConfigReader().parseYaml(yaml));
 }
 
 TEST(DatabaseConfigReader, shouldThrowIfTheConfigHasAnInvalidStructure) {
+   const auto* yaml = R"-(
+schema:
+  instanceName: dummy name
+  primaryKey: missing metadata
+)-";
+
    EXPECT_THAT(
-      []() {
-         (void)DatabaseConfigReader().readConfig(
-            "testBaseData/test_database_config_with_invalid_structure.yaml"
-         );
-      },
+      [yaml]() { (void)DatabaseConfigReader().parseYaml(yaml); },
       ThrowsMessage<std::runtime_error>(
          ::testing::HasSubstr("invalid node; first invalid key: \"metadata\"")
       )
@@ -176,17 +191,35 @@ TEST(DatabaseConfigReader, shouldThrowIfTheConfigHasAnInvalidStructure) {
 }
 
 TEST(DatabaseConfigReader, shouldReadConfigWithoutDateToSortBy) {
-   const DatabaseConfig& config = DatabaseConfigReader().readConfig(
-      "testBaseData/test_database_config_without_date_to_sort_by.yaml"
-   );
+   const auto* yaml = R"-(
+schema:
+  instanceName: Having no dateToSortBy is valid
+  metadata:
+    - name: primaryKey
+      type: string
+  primaryKey: primaryKey
+  partitionBy: pango_lineage
+)-";
+
+   const DatabaseConfig& config = DatabaseConfigReader().parseYaml(yaml);
 
    ASSERT_EQ(config.schema.date_to_sort_by, std::nullopt);
 }
 
 TEST(DatabaseConfigReader, shouldReadConfigWithoutPartitionBy) {
-   const DatabaseConfig& config = DatabaseConfigReader().readConfig(
-      "testBaseData/test_database_config_without_partition_by.yaml"
-   );
+   const auto* yaml = R"-(
+schema:
+  instanceName: dummy without partitionBy
+  metadata:
+    - name: primaryKey
+      type: string
+    - name: date
+      type: date
+  primaryKey: primaryKey
+  dateToSortBy: date
+)-";
+
+   const DatabaseConfig& config = DatabaseConfigReader().parseYaml(yaml);
 
    ASSERT_EQ(config.schema.partition_by, std::nullopt);
 }
