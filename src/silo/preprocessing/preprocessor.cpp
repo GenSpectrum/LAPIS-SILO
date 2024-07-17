@@ -19,8 +19,6 @@
 #include "silo/preprocessing/sql_function.h"
 #include "silo/preprocessing/validated_ndjson_file.h"
 #include "silo/storage/reference_genomes.h"
-#include "silo/storage/unaligned_sequence_store.h"
-#include "silo/zstdfasta/zstd_decompressor.h"
 #include "silo/zstdfasta/zstdfasta_table.h"
 #include "silo/zstdfasta/zstdfasta_table_reader.h"
 
