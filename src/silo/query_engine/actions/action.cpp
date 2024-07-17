@@ -135,6 +135,8 @@ QueryResult Action::executeAndOrder(
       SPDLOG_TRACE("materialized or small -> full featured sort, offset+limit");
       result.materialize();
       if (offset.has_value() && offset.value() >= result.entriesMut().size()) {
+         // Optimization: avoid sorting the result set, if the
+         // offset+limit yields an empty result.
          return {};
       }
       applySort(result);
