@@ -8,6 +8,7 @@
 #include <random>
 #include <utility>
 
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
@@ -117,15 +118,13 @@ QueryResult Action::executeAndOrder(
    // sorting) for small result sets, and streaming without those
    // features for larger ones.
 
+   size_t num_rows_at_least = 0;
    bool is_large = false;
-   {
-      size_t num_rows = 0;
-      for (auto& bitmap : bitmap_filter) {
-         num_rows += bitmap->cardinality();
-         if (num_rows > MATERIALIZATION_CUTOFF) {
-            is_large = true;
-            break;
-         }
+   for (auto& bitmap : bitmap_filter) {
+      num_rows_at_least += bitmap->cardinality();
+      if (num_rows_at_least > MATERIALIZATION_CUTOFF) {
+         is_large = true;
+         break;
       }
    }
 
@@ -141,6 +140,29 @@ QueryResult Action::executeAndOrder(
       }
       applySort(result);
       applyOffsetAndLimit(result);
+   } else {
+      // Report an error if the unimplemented limit and/or offset is
+      // relevant for the query.  HACK: (1) *assume* that none of the
+      // actions actually implement limit+offset, (2) mis-use
+      // `QueryParseException` because it is caught in
+      // query_handler.cpp, even though it is not a problem with the
+      // query syntax but with its execution. But this will disappear
+      // from the code base again soon.
+      auto error = [&](const std::string_view& what) {
+         throw silo::QueryParseException(fmt::format(
+            "{} not supported for streaming endpoints when receiving more than {} rows, but got "
+            "{}+",
+            what,
+            MATERIALIZATION_CUTOFF,
+            num_rows_at_least
+         ));
+      };
+      if (offset.has_value() && offset.value() > 0) {
+         error("offset");
+      }
+      if (limit.has_value()) {
+         error("limit");
+      }
    }
 
    return result;
