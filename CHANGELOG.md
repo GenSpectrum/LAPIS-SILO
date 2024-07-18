@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.9](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.8...v0.2.9) (2024-07-18)
+
+
+### Features
+
+* have no default sequence by default, implement default amino acid sequence from config ([2edf924](https://github.com/GenSpectrum/LAPIS-SILO/commit/2edf9240fb9f63400289121f495367c7aff4ea73)), closes [#454](https://github.com/GenSpectrum/LAPIS-SILO/issues/454)
+* set the default sequence when there is only a single sequence in the reference genomes ([0ae4022](https://github.com/GenSpectrum/LAPIS-SILO/commit/0ae40221e66382ac330748c3eefe916de5e26975)), closes [#454](https://github.com/GenSpectrum/LAPIS-SILO/issues/454)
+* throw error in preprocessing when default sequence is not in reference genomes ([287bb8b](https://github.com/GenSpectrum/LAPIS-SILO/commit/287bb8bb08f376a2b9a9c69613b73182c900fc7a)), closes [#454](https://github.com/GenSpectrum/LAPIS-SILO/issues/454)
+
+
+### Bug Fixes
+
+* streaming: report an error when the unimplemented offset or limit matters ([3be9c06](https://github.com/GenSpectrum/LAPIS-SILO/commit/3be9c06ded44c0b1666fd770d88876856a0a9899)), closes [#511](https://github.com/GenSpectrum/LAPIS-SILO/issues/511)
+
 ## [0.2.8](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.7...v0.2.8) (2024-07-08)
 
 
