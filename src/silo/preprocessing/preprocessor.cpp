@@ -2,6 +2,7 @@
 
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/parallel_for.h>
+#include <oneapi/tbb/parallel_invoke.h>
 #include <spdlog/spdlog.h>
 #include <boost/algorithm/string/join.hpp>
 
@@ -637,31 +638,28 @@ Database Preprocessor::buildDatabase(
       database.initializeNucSequences(reference_genomes_.nucleotide_sequences);
       database.initializeAASequences(reference_genomes_.aa_sequences);
 
-      tbb::task_group tasks;
+      tbb::parallel_invoke(
+         [&]() {
+            SPDLOG_INFO("build - building metadata store in parallel");
 
-      tasks.run([&]() {
-         SPDLOG_INFO("build - building metadata store in parallel");
+            buildMetadataStore(
+               database, partition_descriptor, "ORDER BY " + boost::join(order_by_fields, ",")
+            );
 
-         buildMetadataStore(
-            database, partition_descriptor, "ORDER BY " + boost::join(order_by_fields, ",")
-         );
+            SPDLOG_INFO("build - finished metadata store");
+         },
+         [&]() {
+            const std::string order_by_clause =
+               "ORDER BY " + boost::join(prefixed_order_by_fields, ",");
+            SPDLOG_INFO("build - building nucleotide sequence stores");
+            buildSequenceStore<Nucleotide>(database, partition_descriptor, order_by_clause);
+            SPDLOG_INFO("build - finished nucleotide sequence stores");
 
-         SPDLOG_INFO("build - finished metadata store");
-      });
-
-      tasks.run([&]() {
-         const std::string order_by_clause =
-            "ORDER BY " + boost::join(prefixed_order_by_fields, ",");
-         SPDLOG_INFO("build - building nucleotide sequence stores");
-         buildSequenceStore<Nucleotide>(database, partition_descriptor, order_by_clause);
-         SPDLOG_INFO("build - finished nucleotide sequence stores");
-
-         SPDLOG_INFO("build - building amino acid sequence stores");
-         buildSequenceStore<AminoAcid>(database, partition_descriptor, order_by_clause);
-         SPDLOG_INFO("build - finished amino acid sequence stores");
-      });
-
-      tasks.wait();
+            SPDLOG_INFO("build - building amino acid sequence stores");
+            buildSequenceStore<AminoAcid>(database, partition_descriptor, order_by_clause);
+            SPDLOG_INFO("build - finished amino acid sequence stores");
+         }
+      );
    }
 
    SPDLOG_INFO("Build took {}", silo::common::formatDuration(micros));
@@ -685,11 +683,14 @@ void Preprocessor::buildMetadataStore(
       for (auto& item : database_config.schema.metadata) {
          column_functions.emplace_back(
             item.name,
-            [&](size_t /*row_idx*/, const duckdb::Value& value) {
-               if (value.IsNull()) {
-                  column_group.addNullToColumn(item.name, item.getColumnType());
-               } else {
-                  column_group.addValueToColumn(item.name, item.getColumnType(), value);
+            [&](size_t /*chunk_offset*/, const duckdb::Vector& vector, size_t chunk_size) {
+               for (size_t row_in_chunk = 0; row_in_chunk < chunk_size; row_in_chunk++) {
+                  const auto& value = vector.GetValue(row_in_chunk);
+                  if (value.IsNull()) {
+                     column_group.addNullToColumn(item.name, item.getColumnType());
+                  } else {
+                     column_group.addValueToColumn(item.name, item.getColumnType(), value);
+                  }
                }
             }
          );
@@ -717,6 +718,31 @@ void Preprocessor::buildMetadataStore(
       SPDLOG_INFO("build - finished columns for partition {}", partition_id);
    }
 }
+
+namespace {
+template <typename SymbolType>
+ColumnFunction createInsertionsLambda(
+   std::string sequence_name,
+   SequenceStorePartition<SymbolType>& sequence_store
+) {
+   return ColumnFunction{
+      sequence_name,
+      [&sequence_store](size_t chunk_offset, const duckdb::Vector& vector, size_t chunk_size) {
+         for (size_t row_in_chunk = 0; row_in_chunk < chunk_size; row_in_chunk++) {
+            const auto& value = vector.GetValue(row_in_chunk);
+            if (value.IsNull()) {
+               return;
+            }
+            for (const auto& child : duckdb::ListValue::GetChildren(value)) {
+               sequence_store.insertInsertion(
+                  chunk_offset + row_in_chunk, child.GetValue<std::string>()
+               );
+            }
+         }
+      }
+   };
+}
+}  // namespace
 
 template <typename SymbolType>
 void Preprocessor::buildSequenceStore(
@@ -757,17 +783,8 @@ void Preprocessor::buildSequenceStore(
                   );
                   sequence_store.fill(sequence_input);
 
-                  const silo::ColumnFunction column_function{
-                     sequence_name,
-                     [&sequence_store](size_t row_id, const duckdb::Value& value) {
-                        if (value.IsNull()) {
-                           return;
-                        }
-                        for (const auto& child : duckdb::ListValue::GetChildren(value)) {
-                           sequence_store.insertInsertion(row_id, child.GetValue<std::string>());
-                        }
-                     }
-                  };
+                  const silo::ColumnFunction column_function =
+                     createInsertionsLambda<SymbolType>(sequence_name, sequence_store);
                   silo::TableReader(
                      preprocessing_db.getConnection(),
                      getInsertionsTableName<SymbolType>(),
