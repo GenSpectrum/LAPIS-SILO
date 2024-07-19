@@ -16,12 +16,12 @@ namespace silo {
 class ColumnFunction {
    friend class TableReader;
    std::string column_name;
-   std::function<void(size_t, const duckdb::Value&)> function;
+   std::function<void(size_t, const duckdb::Vector&, size_t)> function;
 
   public:
    ColumnFunction(
       std::string column_name,
-      std::function<void(size_t, const duckdb::Value&)> function
+      std::function<void(size_t, const duckdb::Vector&, size_t)> function
    );
 };
 
@@ -34,9 +34,6 @@ class TableReader {
    std::string where_clause;
    std::string order_by_clause;
    std::unique_ptr<duckdb::MaterializedQueryResult> query_result;
-   std::unique_ptr<duckdb::DataChunk> current_chunk;
-   size_t current_start_of_chunk = 0;
-   size_t current_chunk_size = 0;
 
   public:
    explicit TableReader(
