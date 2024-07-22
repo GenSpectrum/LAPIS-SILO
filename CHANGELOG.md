@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.10](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.9...v0.2.10) (2024-07-22)
+
+
+### Bug Fixes
+
+* reduce function calls and parallelism when inserting rows into storage backend ([#509](https://github.com/GenSpectrum/LAPIS-SILO/issues/509)) ([93ba858](https://github.com/GenSpectrum/LAPIS-SILO/commit/93ba8584fed5807123ea3fb724ff55fc57b6265d))
+* preprocessing: don't abort inserting insertions upon finding a null value ([03a500a](https://github.com/GenSpectrum/LAPIS-SILO/commit/03a500acf02f4d13975748f1bb6f222392604b7c))
+
 ## [0.2.9](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.8...v0.2.9) (2024-07-18)
 
 
