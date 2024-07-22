@@ -118,15 +118,11 @@ QueryResult Action::executeAndOrder(
    // sorting) for small result sets, and streaming without those
    // features for larger ones.
 
-   size_t num_rows_at_least = 0;
-   bool is_large = false;
+   size_t num_rows = 0;
    for (auto& bitmap : bitmap_filter) {
-      num_rows_at_least += bitmap->cardinality();
-      if (num_rows_at_least > MATERIALIZATION_CUTOFF) {
-         is_large = true;
-         break;
-      }
+      num_rows += bitmap->cardinality();
    }
+   const bool is_large = num_rows > MATERIALIZATION_CUTOFF;
 
    QueryResult result = execute(database, std::move(bitmap_filter));
 
@@ -141,20 +137,16 @@ QueryResult Action::executeAndOrder(
       applySort(result);
       applyOffsetAndLimit(result);
    } else {
-      // Report an error if the unimplemented limit and/or offset is
-      // relevant for the query.  HACK: (1) *assume* that none of the
-      // actions actually implement limit+offset, (2) mis-use
-      // `QueryParseException` because it is caught in
-      // query_handler.cpp, even though it is not a problem with the
-      // query syntax but with its execution. But this will disappear
-      // from the code base again soon.
+      // Report an error if the unimplemented limit / offset or sort
+      // features are relevant for the query.  Currently *assumes* that
+      // none of the actions actually implement limit+offset
       auto error = [&](const std::string_view& what) {
          throw silo::QueryEvaluationException(fmt::format(
             "{} not supported for streaming endpoints when returning more than {} rows, but got "
-            "{}+",
+            "{}",
             what,
             MATERIALIZATION_CUTOFF,
-            num_rows_at_least
+            num_rows
          ));
       };
       if (offset.has_value() && offset.value() > 0) {
@@ -162,6 +154,9 @@ QueryResult Action::executeAndOrder(
       }
       if (limit.has_value()) {
          error("limit");
+      }
+      if (!order_by_fields.empty()) {
+         error("sorting");
       }
    }
 
