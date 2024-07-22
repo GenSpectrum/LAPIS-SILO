@@ -12,6 +12,6 @@ namespace silo {
 
 class [[maybe_unused]] QueryParseException : public std::runtime_error {
   public:
-   [[maybe_unused]] QueryParseException(const std::string& error_message);
+   [[maybe_unused]] explicit QueryParseException(const std::string& error_message);
 };
 }  // namespace silo
