@@ -731,7 +731,7 @@ ColumnFunction createInsertionsLambda(
          for (size_t row_in_chunk = 0; row_in_chunk < chunk_size; row_in_chunk++) {
             const auto& value = vector.GetValue(row_in_chunk);
             if (value.IsNull()) {
-               return;
+               continue;
             }
             for (const auto& child : duckdb::ListValue::GetChildren(value)) {
                sequence_store.insertInsertion(
