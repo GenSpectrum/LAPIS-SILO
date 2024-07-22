@@ -4,11 +4,11 @@ ARG TARGETPLATFORM
 
 RUN apt update \
     && apt install -y \
-    cmake=3.25.1-1 \
-    python3-pip=23.0.1+dfsg-1 \
-    software-properties-common=0.99.30-4.1~deb12u1 \
-    wget=1.21.3-1+b2 \
-    lsb-release-minimal=12.0-1
+    cmake \
+    python3-pip \
+    software-properties-common \
+    wget \
+    lsb-release-minimal
 
 RUN pip install conan --break-system-packages
 
