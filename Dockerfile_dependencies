@@ -10,7 +10,7 @@ RUN apt update \
     wget=1.21.3-1+b2 \
     lsb-release-minimal=12.0-1
 
-RUN pip install conan==2.4.1 --break-system-packages
+RUN pip install conan --break-system-packages
 
 WORKDIR /src
 COPY conanfile.py conanprofile.docker conanprofile.docker_arm ./
