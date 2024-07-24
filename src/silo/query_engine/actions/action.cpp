@@ -149,8 +149,8 @@ QueryResult Action::executeAndOrder(
       // query syntax but with its execution. But this will disappear
       // from the code base again soon.
       auto error = [&](const std::string_view& what) {
-         throw silo::QueryParseException(fmt::format(
-            "{} not supported for streaming endpoints when receiving more than {} rows, but got "
+         throw silo::QueryEvaluationException(fmt::format(
+            "{} not supported for streaming endpoints when returning more than {} rows, but got "
             "{}+",
             what,
             MATERIALIZATION_CUTOFF,
