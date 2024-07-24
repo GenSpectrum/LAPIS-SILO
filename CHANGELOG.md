@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.11](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.10...v0.2.11) (2024-07-24)
+
+
+### Bug Fixes
+
+* streaming: report an error when sorting requested while streaming ([313d6bb](https://github.com/GenSpectrum/LAPIS-SILO/commit/313d6bba7b0201c330fe4b39a6d68063142f8b1d))
+
 ## [0.2.10](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.9...v0.2.10) (2024-07-22)
 
 
