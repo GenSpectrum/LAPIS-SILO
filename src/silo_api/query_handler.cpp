@@ -50,9 +50,11 @@ void QueryHandler::post(
             );
          }
       }
-   } catch (const silo::QueryParseException& ex) {
+   } catch (const silo::QueryException& ex) {
       response.setContentType("application/json");
-      SPDLOG_INFO("Query is invalid: " + query + " - exception: " + ex.what());
+      SPDLOG_INFO(
+         "Query is invalid: {} - exception during {}: {}", query, ex.duringString(), ex.what()
+      );
       response.setStatusAndReason(Poco::Net::HTTPResponse::HTTP_BAD_REQUEST);
       std::ostream& out_stream = response.send();
       out_stream << nlohmann::json(ErrorResponse{.error = "Bad request", .message = ex.what()});
