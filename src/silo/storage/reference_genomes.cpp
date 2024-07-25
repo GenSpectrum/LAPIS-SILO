@@ -18,13 +18,19 @@ struct nlohmann::adl_serializer<silo::ReferenceGenomes> {
    // NOLINTNEXTLINE(readability-identifier-naming)
    static void to_json(nlohmann::json& js_object, const silo::ReferenceGenomes& reference_genomes) {
       nlohmann::json nucleotide_sequences_json;
-      for (const auto& [name, sequence] : reference_genomes.raw_nucleotide_sequences) {
+      for (size_t sequence_idx = 0; sequence_idx < reference_genomes.nucleotide_sequences.size();
+           ++sequence_idx) {
+         const auto& name = reference_genomes.nucleotide_sequence_names.at(sequence_idx);
+         const auto& sequence = reference_genomes.nucleotide_sequences.at(sequence_idx);
          nucleotide_sequences_json.push_back({{"name", name}, {"sequence", sequence}});
       }
       js_object["nucleotideSequences"] = std::move(nucleotide_sequences_json);
 
       nlohmann::json aa_sequences_json;
-      for (const auto& [name, sequence] : reference_genomes.raw_aa_sequences) {
+      for (size_t sequence_idx = 0; sequence_idx < reference_genomes.aa_sequences.size();
+           ++sequence_idx) {
+         const auto& name = reference_genomes.aa_sequence_names.at(sequence_idx);
+         const auto& sequence = reference_genomes.aa_sequences.at(sequence_idx);
          aa_sequences_json.push_back({{"name", name}, {"sequence", sequence}});
       }
       js_object["genes"] = std::move(aa_sequences_json);
@@ -34,38 +40,33 @@ struct nlohmann::adl_serializer<silo::ReferenceGenomes> {
 namespace silo {
 
 ReferenceGenomes::ReferenceGenomes(
-   std::map<std::string, std::string>&& raw_nucleotide_sequences_,
-   std::map<std::string, std::string>&& raw_aa_sequences_
-)
-    : raw_nucleotide_sequences(std::move(raw_nucleotide_sequences_)),
-      raw_aa_sequences(std::move(raw_aa_sequences_)) {
-   for (const auto& [sequence_name, raw_nucleotide_sequence] : raw_nucleotide_sequences) {
-      std::vector<Nucleotide::Symbol> nucleotide_sequence;
-      for (const char character : raw_nucleotide_sequence) {
-         auto symbol = Nucleotide::charToSymbol(character);
-
-         if (!symbol.has_value()) {
-            throw preprocessing::PreprocessingException(
-               "Nucleotide sequence with name " + sequence_name +
-               " contains illegal amino acid code: " + std::to_string(character)
-            );
-         }
-
-         nucleotide_sequence.push_back(*symbol);
-      }
-      nucleotide_sequences[sequence_name] = nucleotide_sequence;
+   const std::vector<std::pair<std::string, std::string>>& nucleotide_sequences_,
+   const std::vector<std::pair<std::string, std::string>>& aa_sequences_
+) {
+   nucleotide_sequence_names.reserve(nucleotide_sequences_.size());
+   nucleotide_sequences.reserve(nucleotide_sequences_.size());
+   raw_nucleotide_sequences.reserve(nucleotide_sequences_.size());
+   for (const auto& [sequence_name, raw_nucleotide_sequence] : nucleotide_sequences_) {
+      nucleotide_sequence_names.emplace_back(sequence_name);
+      nucleotide_sequences.emplace_back(stringToVector<Nucleotide>(raw_nucleotide_sequence));
+      raw_nucleotide_sequences.emplace_back(raw_nucleotide_sequence);
    }
 
-   for (const auto& [sequence_name, raw_aa_sequence] : raw_aa_sequences) {
-      aa_sequences[sequence_name] = stringToVector<AminoAcid>(raw_aa_sequence);
+   aa_sequence_names.reserve(aa_sequences_.size());
+   aa_sequences.reserve(aa_sequences_.size());
+   raw_aa_sequences.reserve(aa_sequences_.size());
+   for (const auto& [sequence_name, raw_aa_sequence] : aa_sequences_) {
+      aa_sequence_names.emplace_back(sequence_name);
+      aa_sequences.emplace_back(stringToVector<AminoAcid>(raw_aa_sequence));
+      raw_aa_sequences.emplace_back(raw_aa_sequence);
    }
 }
 
 namespace {
 
 ReferenceGenomes readFromJson(const std::filesystem::path& reference_genomes_path) {
-   std::map<std::string, std::string> nucleotide_sequences;
-   std::map<std::string, std::string> aa_sequences;
+   std::vector<std::pair<std::string, std::string>> nucleotide_sequences;
+   std::vector<std::pair<std::string, std::string>> aa_sequences;
    nlohmann::json reference_genomes_json;
    std::ifstream(reference_genomes_path) >> reference_genomes_json;
 
@@ -94,6 +95,11 @@ ReferenceGenomes readFromJson(const std::filesystem::path& reference_genomes_pat
          );
          continue;
       }
+      std::string name = value["name"].get<std::string>();
+      if (std::ranges::all_of(name, [](char chr) { return isspace(chr); })) {
+         SPDLOG_INFO("The name {} consists only of whitespace characters. Ignoring key.", name);
+         continue;
+      }
       if (!value.contains("sequence") || !value["sequence"].is_string()) {
          SPDLOG_INFO(
             "Expected object to contain the key 'sequence' with string value, got: " + value.dump()
@@ -101,7 +107,7 @@ ReferenceGenomes readFromJson(const std::filesystem::path& reference_genomes_pat
          continue;
       }
 
-      nucleotide_sequences[value["name"]] = value["sequence"];
+      nucleotide_sequences.emplace_back(value["name"], value["sequence"]);
    }
 
    for (const auto& [key, value] : aa_seq_json.items()) {
@@ -115,6 +121,11 @@ ReferenceGenomes readFromJson(const std::filesystem::path& reference_genomes_pat
          );
          continue;
       }
+      std::string name = value["name"].get<std::string>();
+      if (std::ranges::all_of(name, [](char chr) { return isspace(chr); })) {
+         SPDLOG_INFO("The name {} consists only of whitespace characters. Ignoring key.", name);
+         continue;
+      }
       if (!value.contains("sequence") || !value["sequence"].is_string()) {
          SPDLOG_INFO(
             "Expected object to contain the key 'sequence' with string value, got: " + value.dump()
@@ -122,9 +133,9 @@ ReferenceGenomes readFromJson(const std::filesystem::path& reference_genomes_pat
          continue;
       }
 
-      aa_sequences[value["name"]] = value["sequence"];
+      aa_sequences.emplace_back(value["name"], value["sequence"]);
    }
-   return ReferenceGenomes{std::move(nucleotide_sequences), std::move(aa_sequences)};
+   return ReferenceGenomes{nucleotide_sequences, aa_sequences};
 }
 
 }  // namespace
@@ -164,36 +175,22 @@ void ReferenceGenomes::writeToFile(const std::filesystem::path& reference_genome
 }
 
 template <>
-std::vector<std::string> ReferenceGenomes::getSequenceNames<Nucleotide>() const {
-   std::vector<std::string> result;
-   std::transform(
-      raw_nucleotide_sequences.begin(),
-      raw_nucleotide_sequences.end(),
-      std::back_inserter(result),
-      [](auto& pair) { return pair.first; }
-   );
-   return result;
+const std::vector<std::string>& ReferenceGenomes::getSequenceNames<Nucleotide>() const {
+   return nucleotide_sequence_names;
 }
 
 template <>
-std::vector<std::string> ReferenceGenomes::getSequenceNames<AminoAcid>() const {
-   std::vector<std::string> result;
-   std::transform(
-      raw_aa_sequences.begin(),
-      raw_aa_sequences.end(),
-      std::back_inserter(result),
-      [](auto& pair) { return pair.first; }
-   );
-   return result;
+const std::vector<std::string>& ReferenceGenomes::getSequenceNames<AminoAcid>() const {
+   return aa_sequence_names;
 }
 
 template <>
-std::map<std::string, std::string> ReferenceGenomes::getRawSequenceMap<Nucleotide>() const {
+const std::vector<std::string>& ReferenceGenomes::getRawSequences<Nucleotide>() const {
    return raw_nucleotide_sequences;
 }
 
 template <>
-std::map<std::string, std::string> ReferenceGenomes::getRawSequenceMap<AminoAcid>() const {
+const std::vector<std::string>& ReferenceGenomes::getRawSequences<AminoAcid>() const {
    return raw_aa_sequences;
 }
 
@@ -218,11 +215,6 @@ std::vector<typename SymbolType::Symbol> ReferenceGenomes::stringToVector(const 
    }
    return sequence_vector;
 }
-
-template <>
-std::vector<silo::Nucleotide::Symbol> ReferenceGenomes::stringToVector<silo::Nucleotide>(
-   const std::string& string
-);
 
 template <>
 std::string ReferenceGenomes::vectorToString<Nucleotide>(

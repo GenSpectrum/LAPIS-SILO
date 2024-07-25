@@ -1,0 +1,3 @@
+gisaid_epi_isl	pango_lineage	date	region	country	division	unsorted_date	age	qc_value	test_boolean_column
+EPI_ISL_1408408	B.1.1.7	2021-03-18	Europe	Switzerland	Basel-Land		4	0.98	true
+EPI_ISL_1749899	B.1.1.7	2021-04-13	Europe	Switzerland	Bern	2020-03-08	5	0.97	false

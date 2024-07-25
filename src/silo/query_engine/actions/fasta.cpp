@@ -50,8 +50,7 @@ void Fasta::validateOrderByFields(const Database& database) const {
    for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
          field.name == primary_key_field ||
-            std::find(sequence_names.begin(), sequence_names.end(), field.name) !=
-               std::end(sequence_names),
+            std::ranges::find(sequence_names, field.name) != std::end(sequence_names),
          fmt::format(
             "OrderByField {} is not contained in the result of this operation. "
             "The only fields returned by the Fasta action are {} and {}",
@@ -59,7 +58,7 @@ void Fasta::validateOrderByFields(const Database& database) const {
             fmt::join(sequence_names, ","),
             primary_key_field
          )
-      );
+      )
    }
 }
 
@@ -84,8 +83,7 @@ std::string getTableQuery(
    std::string join_clause;
    for (size_t idx = 0; idx < read_file_sqls.size(); idx++) {
       const auto& sql_to_read_file = read_file_sqls.at(idx);
-      select_clause +=
-         fmt::format(", t{0}.unaligned_nuc_{1} as t{0}_sequence", idx, sequence_names.at(idx));
+      select_clause += fmt::format(", t{0}.sequence as t{0}_sequence", idx);
       table_clause += fmt::format(", ({}) t{}", sql_to_read_file.string(), idx);
       join_clause += fmt::format(" AND key_table.key = t{}.key", idx);
    }
@@ -250,7 +248,7 @@ QueryResult Fasta::execute(const Database& database, std::vector<OperatorResult>
       CHECK_SILO_QUERY(
          database.unaligned_nuc_sequences.contains(sequence_name),
          "Database does not contain an unaligned sequence with name: '" + sequence_name + "'"
-      );
+      )
    }
 
    size_t current_partition = 0;

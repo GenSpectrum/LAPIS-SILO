@@ -77,6 +77,6 @@ TEST(YamlFile, shouldReadConfigWithOverriddenDefaults) {
       config.getPangoLineageDefinitionFilename(), input_directory + "pangolineage_alias.json"
    );
 
-   ASSERT_EQ(config.getNucFilenameNoExtension("aligned"), input_directory + "aligned");
+   ASSERT_EQ(config.getNucFilenameNoExtension(0), input_directory + "0");
    ASSERT_EQ(config.getOutputDirectory(), "./output/custom/");
 }

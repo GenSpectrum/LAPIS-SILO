@@ -27,11 +27,9 @@
 #include <boost/archive/detail/interface_iarchive.hpp>
 #include <boost/archive/detail/interface_oarchive.hpp>
 #include <boost/serialization/array.hpp>
-#include <boost/serialization/level_enum.hpp>
 #include <boost/serialization/map.hpp>
 #include <boost/serialization/optional.hpp>
 #include <boost/serialization/string.hpp>
-#include <boost/serialization/tracking_enum.hpp>
 #include <boost/serialization/vector.hpp>
 #include <duckdb.hpp>
 #include <roaring/roaring.hh>
@@ -332,20 +330,22 @@ DetailedDatabaseInfo Database::detailedDatabaseInfo() const {
    return result;
 }
 
-std::map<std::string, std::vector<Nucleotide::Symbol>> Database::getNucSequences() const {
-   std::map<std::string, std::vector<Nucleotide::Symbol>> nucleotide_sequences_map;
-   for (const auto& [name, store] : nuc_sequences) {
-      nucleotide_sequences_map.emplace(name, store.reference_sequence);
+std::vector<std::vector<Nucleotide::Symbol>> Database::getNucSequences() const {
+   std::vector<std::vector<Nucleotide::Symbol>> nuc_reference_sequences;
+   nuc_reference_sequences.reserve(nuc_sequence_names.size());
+   for (const auto& name : nuc_sequence_names) {
+      nuc_reference_sequences.emplace_back(nuc_sequences.at(name).reference_sequence);
    }
-   return nucleotide_sequences_map;
+   return nuc_reference_sequences;
 }
 
-std::map<std::string, std::vector<AminoAcid::Symbol>> Database::getAASequences() const {
-   std::map<std::string, std::vector<AminoAcid::Symbol>> aa_sequences_map;
-   for (const auto& [name, store] : aa_sequences) {
-      aa_sequences_map.emplace(name, store.reference_sequence);
+std::vector<std::vector<AminoAcid::Symbol>> Database::getAASequences() const {
+   std::vector<std::vector<AminoAcid::Symbol>> aa_reference_sequences;
+   aa_reference_sequences.reserve(aa_sequence_names.size());
+   for (const auto& name : aa_sequence_names) {
+      aa_reference_sequences.emplace_back(this->aa_sequences.at(name).reference_sequence);
    }
-   return aa_sequences_map;
+   return aa_reference_sequences;
 }
 
 namespace {
@@ -426,27 +426,33 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
 
    SPDLOG_INFO("Saving database sequence schema");
 
-   auto nuc_sequences_map = getNucSequences();
+   const std::vector<std::vector<Nucleotide::Symbol>> nuc_reference_sequences = getNucSequences();
    std::ofstream nuc_sequences_file =
       openOutputFileOrThrow(versioned_save_directory / "nuc_sequences.silo");
    ::boost::archive::binary_oarchive nuc_sequences_archive(nuc_sequences_file);
-   nuc_sequences_archive << nuc_sequences_map;
+   nuc_sequences_archive << nuc_sequence_names;
+   nuc_sequences_archive << nuc_reference_sequences;
 
    auto aa_sequences_map = getAASequences();
    std::ofstream aa_sequences_file =
       openOutputFileOrThrow(versioned_save_directory / "aa_sequences.silo");
    ::boost::archive::binary_oarchive aa_sequences_archive(aa_sequences_file);
+   aa_sequences_archive << aa_sequence_names;
    aa_sequences_archive << aa_sequences_map;
 
    SPDLOG_INFO("Saving unaligned sequence data");
-
-   for (auto& [name, store] : unaligned_nuc_sequences) {
+   for (size_t sequence_idx = 0; sequence_idx < nuc_sequences.size(); ++sequence_idx) {
+      const auto sequence_name = nuc_sequence_names.at(sequence_idx);
+      const auto& sequence_store = unaligned_nuc_sequences.at(sequence_name);
       const std::filesystem::path unaligned_sequence_directory =
-         versioned_save_directory / ("unaligned_nuc_" + name);
+         versioned_save_directory / fmt::format("unaligned_nuc_{}", sequence_idx);
       SPDLOG_DEBUG(
-         "Saving unaligned sequence {} to folder '{}'", name, unaligned_sequence_directory.string()
+         "Saving unaligned sequence {} ({}) to folder '{}'",
+         sequence_idx,
+         sequence_name,
+         unaligned_sequence_directory.string()
       );
-      store.saveFolder(unaligned_sequence_directory);
+      sequence_store.saveFolder(unaligned_sequence_directory);
    }
 
    std::vector<std::ofstream> partition_archives;
@@ -523,25 +529,29 @@ Database Database::loadDatabaseState(const std::filesystem::path& save_directory
    SPDLOG_TRACE(
       "Loading nucleotide sequences from {}", (save_directory / "nuc_sequences.silo").string()
    );
-   std::map<std::string, std::vector<Nucleotide::Symbol>> nuc_sequences_map;
+   std::vector<std::string> nuc_sequence_names;
+   std::vector<std::vector<Nucleotide::Symbol>> nuc_sequences;
    std::ifstream nuc_sequences_file = openInputFileOrThrow(save_directory / "nuc_sequences.silo");
    ::boost::archive::binary_iarchive nuc_sequences_archive(nuc_sequences_file);
-   nuc_sequences_archive >> nuc_sequences_map;
+   nuc_sequences_archive >> nuc_sequence_names;
+   nuc_sequences_archive >> nuc_sequences;
 
    SPDLOG_TRACE(
       "Loading amino acid sequences from {}", (save_directory / "aa_sequences.silo").string()
    );
-   std::map<std::string, std::vector<AminoAcid::Symbol>> aa_sequences_map;
+   std::vector<std::string> aa_sequence_names;
+   std::vector<std::vector<AminoAcid::Symbol>> aa_sequences;
    std::ifstream aa_sequences_file = openInputFileOrThrow(save_directory / "aa_sequences.silo");
    ::boost::archive::binary_iarchive aa_sequences_archive(aa_sequences_file);
-   aa_sequences_archive >> aa_sequences_map;
+   aa_sequences_archive >> aa_sequence_names;
+   aa_sequences_archive >> aa_sequences;
 
    SPDLOG_INFO(
       "Finished loading partitions from {}", (save_directory / "aa_sequences.silo").string()
    );
 
-   database.initializeNucSequences(nuc_sequences_map);
-   database.initializeAASequences(aa_sequences_map);
+   database.initializeNucSequences(nuc_sequence_names, nuc_sequences);
+   database.initializeAASequences(aa_sequence_names, aa_sequences);
 
    SPDLOG_DEBUG("Loading partition data");
    std::vector<std::ifstream> file_vec;
@@ -649,21 +659,30 @@ void Database::initializeColumns() {
 }
 
 void Database::initializeNucSequences(
-   const std::map<std::string, std::vector<Nucleotide::Symbol>>& reference_sequences
+   const std::vector<std::string>& sequence_names,
+   const std::vector<std::vector<Nucleotide::Symbol>>& reference_sequences
 ) {
+   nuc_sequence_names = sequence_names;
+
    SPDLOG_DEBUG("build - initializing nucleotide sequences");
    SPDLOG_TRACE("initializing aligned nucleotide sequences");
-   for (const auto& [nuc_name, reference_sequence] : reference_sequences) {
+   for (size_t sequence_idx = 0; sequence_idx < sequence_names.size(); ++sequence_idx) {
+      const auto& sequence_name = sequence_names.at(sequence_idx);
+      const auto& reference_sequence = reference_sequences.at(sequence_idx);
       auto seq_store = SequenceStore<Nucleotide>(reference_sequence);
-      nuc_sequences.emplace(nuc_name, std::move(seq_store));
+      nuc_sequences.emplace(sequence_name, std::move(seq_store));
       for (auto& partition : partitions) {
-         partition.nuc_sequences.insert({nuc_name, nuc_sequences.at(nuc_name).createPartition()});
+         partition.nuc_sequences.insert(
+            {sequence_name, nuc_sequences.at(sequence_name).createPartition()}
+         );
       }
    }
    SPDLOG_TRACE("initializing unaligned nucleotide sequences");
-   for (const auto& [nuc_name, reference_sequence] : reference_sequences) {
+   for (size_t sequence_idx = 0; sequence_idx < sequence_names.size(); ++sequence_idx) {
+      const auto& sequence_name = sequence_names.at(sequence_idx);
+      const auto& reference_sequence = reference_sequences.at(sequence_idx);
       const std::filesystem::path sequence_directory =
-         intermediate_results_directory / ("unaligned_nuc_" + nuc_name);
+         intermediate_results_directory / fmt::format("unaligned_nuc_{}", sequence_idx);
       std::filesystem::create_directory(sequence_directory);
       if (!std::filesystem::is_directory(sequence_directory)) {
          SPDLOG_TRACE(
@@ -674,25 +693,32 @@ void Database::initializeNucSequences(
       auto seq_store = silo::UnalignedSequenceStore(
          sequence_directory, ReferenceGenomes::vectorToString<Nucleotide>(reference_sequence)
       );
-      unaligned_nuc_sequences.emplace(nuc_name, std::move(seq_store));
+      unaligned_nuc_sequences.emplace(sequence_name, std::move(seq_store));
       for (auto& partition : partitions) {
          partition.unaligned_nuc_sequences.insert(
-            {nuc_name, unaligned_nuc_sequences.at(nuc_name).createPartition()}
+            {sequence_name, unaligned_nuc_sequences.at(sequence_name).createPartition()}
          );
       }
    }
 }
 
 void Database::initializeAASequences(
-   const std::map<std::string, std::vector<AminoAcid::Symbol>>& reference_sequences
+   const std::vector<std::string>& sequence_names,
+   const std::vector<std::vector<AminoAcid::Symbol>>& reference_sequences
 ) {
+   aa_sequence_names = sequence_names;
+
    SPDLOG_DEBUG("build - initializing amino acid sequences");
    SPDLOG_TRACE("initializing aligned amino acid sequences");
-   for (const auto& [aa_name, reference_sequence] : reference_sequences) {
+   for (size_t sequence_idx = 0; sequence_idx < sequence_names.size(); ++sequence_idx) {
+      const auto& aa_sequence_name = aa_sequence_names.at(sequence_idx);
+      const auto& reference_sequence = reference_sequences.at(sequence_idx);
       auto aa_store = SequenceStore<AminoAcid>(reference_sequence);
-      aa_sequences.emplace(aa_name, std::move(aa_store));
+      aa_sequences.emplace(aa_sequence_name, std::move(aa_store));
       for (auto& partition : partitions) {
-         partition.aa_sequences.insert({aa_name, aa_sequences.at(aa_name).createPartition()});
+         partition.aa_sequences.insert(
+            {aa_sequence_name, aa_sequences.at(aa_sequence_name).createPartition()}
+         );
       }
    }
 }

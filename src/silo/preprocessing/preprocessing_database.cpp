@@ -10,6 +10,7 @@
 #include <duckdb.hpp>
 
 #include "silo/common/string_utils.h"
+#include "silo/preprocessing/identifiers.h"
 #include "silo/preprocessing/partition.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/preprocessing/sql_function.h"
@@ -40,17 +41,25 @@ PreprocessingDatabase::PreprocessingDatabase(
    query("PRAGMA default_null_order='NULLS FIRST';");
    query("SET preserve_insertion_order=FALSE;");
    query("SET memory_limit='50 GB';");
-   for (const auto& [sequence_name, reference] : reference_genomes.raw_nucleotide_sequences) {
-      compress_nucleotide_functions.emplace(
-         sequence_name, std::make_unique<CompressSequence>("nuc", sequence_name, reference)
-      );
-      compress_nucleotide_functions[sequence_name]->addToConnection(connection);
+   const Identifiers compress_nucleotide_function_identifiers =
+      Identifiers{reference_genomes.getSequenceNames<Nucleotide>()}.prefix("compress_nuc_");
+   const Identifiers compress_amino_acid_function_identifiers =
+      Identifiers{reference_genomes.getSequenceNames<AminoAcid>()}.prefix("compress_aa_");
+   for (size_t sequence_idx = 0; sequence_idx < reference_genomes.nucleotide_sequence_names.size();
+        ++sequence_idx) {
+      const auto& reference = reference_genomes.raw_nucleotide_sequences.at(sequence_idx);
+      compress_nucleotide_functions.emplace_back(std::make_unique<CompressSequence>(
+         compress_nucleotide_function_identifiers.getIdentifier(sequence_idx), reference
+      ));
+      compress_nucleotide_functions[sequence_idx]->addToConnection(connection);
    }
-   for (const auto& [sequence_name, reference] : reference_genomes.raw_aa_sequences) {
-      compress_amino_acid_functions.emplace(
-         sequence_name, std::make_unique<CompressSequence>("aa", sequence_name, reference)
-      );
-      compress_amino_acid_functions[sequence_name]->addToConnection(connection);
+   for (size_t sequence_idx = 0; sequence_idx < reference_genomes.aa_sequence_names.size();
+        ++sequence_idx) {
+      const auto& reference = reference_genomes.raw_aa_sequences.at(sequence_idx);
+      compress_amino_acid_functions.emplace_back(std::make_unique<CompressSequence>(
+         compress_amino_acid_function_identifiers.getIdentifier(sequence_idx), reference
+      ));
+      compress_amino_acid_functions[sequence_idx]->addToConnection(connection);
    }
 }
 
@@ -173,12 +182,9 @@ std::vector<std::string> extractStringListValue(
    std::vector<std::string> return_value;
    const Value tmp_value = result.GetValue(column, row);
    std::vector<Value> child_values = ListValue::GetChildren(tmp_value);
-   std::transform(
-      child_values.begin(),
-      child_values.end(),
-      std::back_inserter(return_value),
-      [](const Value& value) { return value.GetValue<std::string>(); }
-   );
+   std::ranges::transform(child_values, std::back_inserter(return_value), [](const Value& value) {
+      return value.GetValue<std::string>();
+   });
    return return_value;
 }
 

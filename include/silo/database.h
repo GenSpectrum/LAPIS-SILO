@@ -45,6 +45,9 @@ class Database {
 
    silo::storage::ColumnGroup columns;
 
+   std::vector<std::string> nuc_sequence_names;
+   std::vector<std::string> aa_sequence_names;
+
    std::map<std::string, SequenceStore<Nucleotide>> nuc_sequences;
    std::map<std::string, SequenceStore<AminoAcid>> aa_sequences;
    std::map<std::string, UnalignedSequenceStore> unaligned_nuc_sequences;
@@ -79,17 +82,19 @@ class Database {
    virtual query_engine::QueryResult executeQuery(const std::string& query) const;
 
   private:
-   std::map<std::string, std::vector<Nucleotide::Symbol>> getNucSequences() const;
+   std::vector<std::vector<Nucleotide::Symbol>> getNucSequences() const;
 
-   std::map<std::string, std::vector<AminoAcid::Symbol>> getAASequences() const;
+   std::vector<std::vector<AminoAcid::Symbol>> getAASequences() const;
 
    void initializeColumns();
    void initializeColumn(config::ColumnType column_type, const std::string& name);
    void initializeNucSequences(
-      const std::map<std::string, std::vector<Nucleotide::Symbol>>& reference_sequences
+      const std::vector<std::string>& sequence_names,
+      const std::vector<std::vector<Nucleotide::Symbol>>& reference_sequences
    );
    void initializeAASequences(
-      const std::map<std::string, std::vector<AminoAcid::Symbol>>& reference_sequences
+      const std::vector<std::string>& sequence_names,
+      const std::vector<std::vector<AminoAcid::Symbol>>& reference_sequences
    );
 
    template <typename SymbolType>
