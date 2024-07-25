@@ -8,6 +8,7 @@
 #include <oneapi/tbb/enumerable_thread_specific.h>
 #include <duckdb.hpp>
 
+#include "silo/preprocessing/identifier.h"
 #include "silo/storage/pango_lineage_alias.h"
 #include "silo/zstd/zstd_compressor.h"
 
@@ -17,12 +18,12 @@ class ZstdCompressor;
 
 class CustomSqlFunction {
   public:
-   explicit CustomSqlFunction(std::string function_name);
+   explicit CustomSqlFunction(preprocessing::Identifier function_name_);
 
    virtual void addToConnection(duckdb::Connection& connection) = 0;
 
   protected:
-   std::string function_name;
+   preprocessing::Identifier function_name;
 };
 
 class CompressSequence : public CustomSqlFunction {
@@ -30,11 +31,7 @@ class CompressSequence : public CustomSqlFunction {
    tbb::enumerable_thread_specific<silo::ZstdCompressor> compressor;
 
   public:
-   CompressSequence(
-      std::string_view symbol_type_name,
-      std::string_view sequence_name,
-      std::string_view reference
-   );
+   CompressSequence(preprocessing::Identifier function_name, std::string_view reference);
 
    void addToConnection(duckdb::Connection& connection) override;
 

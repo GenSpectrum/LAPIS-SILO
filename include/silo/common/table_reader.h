@@ -11,16 +11,18 @@
 
 #include <duckdb.hpp>
 
+#include "silo/preprocessing/identifier.h"
+
 namespace silo {
 
 class ColumnFunction {
    friend class TableReader;
-   std::string column_name;
+   silo::preprocessing::Identifier column_name;
    std::function<void(size_t, const duckdb::Vector&, size_t)> function;
 
   public:
    ColumnFunction(
-      std::string column_name,
+      preprocessing::Identifier column_name,
       std::function<void(size_t, const duckdb::Vector&, size_t)> function
    );
 };
@@ -28,8 +30,8 @@ class ColumnFunction {
 class TableReader {
   private:
    duckdb::Connection& connection;
-   std::string table_name;
-   std::string key_column;
+   preprocessing::Identifier table_name;
+   preprocessing::Identifier key_column;
    std::vector<ColumnFunction> column_functions;
    std::string where_clause;
    std::string order_by_clause;
@@ -38,8 +40,8 @@ class TableReader {
   public:
    explicit TableReader(
       duckdb::Connection& connection,
-      std::string_view table_name,
-      std::string_view key_column,
+      preprocessing::Identifier table_name,
+      preprocessing::Identifier key_column,
       std::vector<ColumnFunction> column_functions,
       std::string_view where_clause,
       std::string_view order_by_clause

@@ -3,6 +3,7 @@
 #include <spdlog/spdlog.h>
 
 #include "silo/common/pango_lineage.h"
+#include "silo/preprocessing/identifiers.h"
 #include "silo/storage/reference_genomes.h"
 #include "silo/zstd/zstd_compressor.h"
 
@@ -15,25 +16,24 @@ using duckdb::StringVector;
 using duckdb::UnaryExecutor;
 using duckdb::Vector;
 
-silo::CustomSqlFunction::CustomSqlFunction(std::string function_name)
-    : function_name(std::move(function_name)) {}
+silo::CustomSqlFunction::CustomSqlFunction(preprocessing::Identifier function_name_)
+    : function_name(std::move(function_name_)) {
+   SPDLOG_DEBUG(
+      "Registering UDF {} (escaped in SQL strings as: {})",
+      function_name.getRawIdentifier(),
+      function_name.escape()
+   );
+}
 
 silo::CompressSequence::CompressSequence(
-   std::string_view symbol_type_name,
-   std::string_view sequence_name,
+   preprocessing::Identifier function_name,
    std::string_view reference
 )
-    : CustomSqlFunction(fmt::format("compress_{}_{}", symbol_type_name, sequence_name)),
+    : CustomSqlFunction(std::move(function_name)),
       zstd_dictionary(std::make_shared<ZstdCDictionary>(reference, 2)),
       compressor(tbb::enumerable_thread_specific<ZstdCompressor>([&]() {
          return ZstdCompressor(zstd_dictionary);
-      })) {
-   SPDLOG_DEBUG(
-      "CompressSequence UDF {} - initialize compressor for sequence  for '{}'",
-      function_name,
-      sequence_name
-   );
-}
+      })) {}
 
 void silo::CompressSequence::addToConnection(Connection& connection) {
    const std::function<void(DataChunk&, ExpressionState&, Vector&)> compressor_wrapper =
@@ -55,10 +55,13 @@ void silo::CompressSequence::addToConnection(Connection& connection) {
       };
 
    connection.CreateVectorizedFunction(
-      function_name, {LogicalType::VARCHAR}, LogicalType::BLOB, compressor_wrapper
+      function_name.getRawIdentifier(),
+      {LogicalType::VARCHAR},
+      LogicalType::BLOB,
+      compressor_wrapper
    );
 }
 std::string silo::CompressSequence::generateSqlStatement(const std::string& column_name_in_data
 ) const {
-   return fmt::format("{0}({1})", function_name, column_name_in_data);
+   return fmt::format("{0}({1})", function_name.escape(), column_name_in_data);
 }

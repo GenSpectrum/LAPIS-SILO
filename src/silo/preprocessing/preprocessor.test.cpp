@@ -21,7 +21,7 @@ struct Scenario {
 
 std::string printTestName(const ::testing::TestParamInfo<Scenario>& info) {
    std::string name = "Dir_" + info.param.input_directory.string();
-   std::replace(name.begin(), name.end(), '/', '_');
+   std::ranges::replace(name, '/', '_');
    return name;
 }
 
@@ -241,6 +241,40 @@ const Scenario NO_SEQUENCES = {
    .expected_query_result = nlohmann::json::parse(R"([{"count":30}])")
 };
 
+const Scenario DIVERSE_SEQUENCE_NAMES = {
+   .input_directory = "testBaseData/diverseSequenceNames/",
+   .expected_sequence_count = 2,
+   .query = R"(
+      {
+         "action": {
+           "type": "Aggregated"
+         },
+         "filterExpression": {
+            "type": "True"
+         }
+      }
+   )",
+   .expected_query_result = nlohmann::json::parse(R"(
+[{"count":2}])")
+};
+
+const Scenario DIVERSE_SEQUENCE_NAMES_NDJSON = {
+   .input_directory = "testBaseData/diverseSequenceNamesAsNdjson/",
+   .expected_sequence_count = 2,
+   .query = R"(
+      {
+         "action": {
+           "type": "Aggregated"
+         },
+         "filterExpression": {
+            "type": "True"
+         }
+      }
+   )",
+   .expected_query_result = nlohmann::json::parse(R"(
+[{"count":2}])")
+};
+
 const Scenario MEDIUM_SIZED_RSV_DATASET = {
    .input_directory = "testBaseData/mediumSizedRsvDataset/",
    .expected_sequence_count = 19662,
@@ -263,6 +297,8 @@ INSTANTIATE_TEST_SUITE_P(
    PreprocessorTest,
    PreprocessorTestFixture,
    ::testing::Values(
+      DIVERSE_SEQUENCE_NAMES,
+      DIVERSE_SEQUENCE_NAMES_NDJSON,
       FASTA_FILES_WITH_MISSING_SEGMENTS_AND_GENES,
       NDJSON_FILE_WITH_MISSING_SEGMENTS_AND_GENES,
       SAM_FILES,

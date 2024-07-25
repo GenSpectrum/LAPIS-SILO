@@ -20,26 +20,6 @@ class PreprocessingDatabase;
 
 class SequenceInfo {
   public:
-   [[nodiscard]] static std::vector<std::string> getAlignedSequenceSelects(
-      const silo::ReferenceGenomes& reference_genomes,
-      const PreprocessingDatabase& preprocessing_db
-   );
-
-   [[nodiscard]] static std::string getNucleotideSequenceSelect(
-      std::string_view seq_name,
-      const PreprocessingDatabase& preprocessing_db
-   );
-
-   [[nodiscard]] static std::string getUnalignedSequenceSelect(
-      std::string_view seq_name,
-      const PreprocessingDatabase& preprocessing_db
-   );
-
-   [[nodiscard]] static std::string getAminoAcidSequenceSelect(
-      std::string_view seq_name,
-      const PreprocessingDatabase& preprocessing_db
-   );
-
    static void validateNdjsonFile(
       const silo::ReferenceGenomes& reference_genomes,
       const std::filesystem::path& input_filename

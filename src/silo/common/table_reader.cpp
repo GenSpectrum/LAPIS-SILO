@@ -11,10 +11,11 @@
 #include <spdlog/spdlog.h>
 #include <duckdb.hpp>
 
+#include "silo/preprocessing/identifier.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
 silo::ColumnFunction::ColumnFunction(
-   std::string column_name,
+   silo::preprocessing::Identifier column_name,
    std::function<void(size_t, const duckdb::Vector&, size_t)> function
 )
     : column_name(std::move(column_name)),
@@ -22,15 +23,15 @@ silo::ColumnFunction::ColumnFunction(
 
 silo::TableReader::TableReader(
    duckdb::Connection& connection,
-   std::string_view table_name,
-   std::string_view key_column,
+   preprocessing::Identifier table_name,
+   preprocessing::Identifier key_column,
    std::vector<ColumnFunction> column_functions,
    std::string_view where_clause,
    std::string_view order_by_clause
 )
     : connection(connection),
-      table_name(table_name),
-      key_column(key_column),
+      table_name(std::move(table_name)),
+      key_column(std::move(key_column)),
       column_functions(std::move(column_functions)),
       where_clause(where_clause),
       order_by_clause(order_by_clause) {}
@@ -66,13 +67,13 @@ size_t silo::TableReader::read() {
 std::string silo::TableReader::getTableQuery() {
    std::string columns;
    for (const auto& column_function : column_functions) {
-      columns += fmt::format(", \"{}\"", column_function.column_name);
+      columns += fmt::format(", {}", column_function.column_name.escape());
    }
    return fmt::format(
-      "SELECT \"{}\" {} FROM {} WHERE {} {}",
-      key_column,
+      "SELECT {} {} FROM {} WHERE {} {}",
+      key_column.escape(),
       columns,
-      table_name,
+      table_name.escape(),
       where_clause,
       order_by_clause
    );
@@ -80,6 +81,7 @@ std::string silo::TableReader::getTableQuery() {
 
 void silo::TableReader::loadTable() {
    try {
+      SPDLOG_DEBUG("Table Query: {}", getTableQuery());
       query_result = connection.Query(getTableQuery());
    } catch (const std::exception& e) {
       SPDLOG_ERROR("Error when executing SQL {}", e.what());

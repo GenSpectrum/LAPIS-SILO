@@ -73,12 +73,12 @@ class PreprocessingConfig {
 
    [[nodiscard]] std::optional<std::filesystem::path> getMetadataInputFilename() const;
 
-   [[nodiscard]] std::filesystem::path getNucFilenameNoExtension(std::string_view nuc_name) const;
+   [[nodiscard]] std::filesystem::path getNucFilenameNoExtension(size_t sequence_idx) const;
 
-   [[nodiscard]] std::filesystem::path getUnalignedNucFilenameNoExtension(std::string_view nuc_name
+   [[nodiscard]] std::filesystem::path getUnalignedNucFilenameNoExtension(size_t sequence_idx
    ) const;
 
-   [[nodiscard]] std::filesystem::path getGeneFilenameNoExtension(std::string_view gene_name) const;
+   [[nodiscard]] std::filesystem::path getGeneFilenameNoExtension(size_t sequence_idx) const;
 
    [[nodiscard]] std::filesystem::path getNucleotideInsertionsFilename() const;
 

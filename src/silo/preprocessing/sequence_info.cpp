@@ -10,77 +10,15 @@
 
 namespace silo::preprocessing {
 
-std::vector<std::string> SequenceInfo::getAlignedSequenceSelects(
-   const silo::ReferenceGenomes& reference_genomes,
-   const PreprocessingDatabase& preprocessing_db
-) {
-   std::vector<std::string> sequence_selects;
-   sequence_selects.reserve(
-      reference_genomes.nucleotide_sequences.size() + reference_genomes.aa_sequences.size()
-   );
-   for (const auto& [name, _] : reference_genomes.nucleotide_sequences) {
-      sequence_selects.emplace_back(getNucleotideSequenceSelect(name, preprocessing_db));
-   }
-   for (const auto& [name, _] : reference_genomes.aa_sequences) {
-      sequence_selects.emplace_back(getAminoAcidSequenceSelect(name, preprocessing_db));
-   }
-   return sequence_selects;
-}
-
-std::string SequenceInfo::getNucleotideSequenceSelect(
-   std::string_view seq_name,
-   const PreprocessingDatabase& preprocessing_db
-) {
-   const std::string column_name_in_data = fmt::format("nuc_{}", seq_name);
-
-   return fmt::format(
-      "{0} AS nuc_{1}",
-      preprocessing_db.compress_nucleotide_functions.at(seq_name)->generateSqlStatement(
-         column_name_in_data
-      ),
-      seq_name
-   );
-}
-
-std::string SequenceInfo::getUnalignedSequenceSelect(
-   std::string_view seq_name,
-   const PreprocessingDatabase& preprocessing_db
-) {
-   const std::string column_name_in_data = fmt::format("unaligned_nuc_{}", seq_name);
-   return fmt::format(
-      "{0} AS unaligned_nuc_{1}",
-      preprocessing_db.compress_nucleotide_functions.at(seq_name)->generateSqlStatement(
-         column_name_in_data
-      ),
-      seq_name
-   );
-}
-
-std::string SequenceInfo::getAminoAcidSequenceSelect(
-   std::string_view seq_name,
-   const PreprocessingDatabase& preprocessing_db
-) {
-   const std::string column_name_in_data = fmt::format("aa_{}", seq_name);
-
-   return fmt::format(
-      "{0} AS aa_{1}",
-      preprocessing_db.compress_amino_acid_functions.at(seq_name)->generateSqlStatement(
-         column_name_in_data
-      ),
-      seq_name
-   );
-}
-
 namespace {
 void validateStruct(
-   std::vector<std::string> names_to_validate,
-   std::vector<std::string> names_to_validate_against,
+   const std::vector<std::string>& names_to_validate,
+   const std::vector<std::string>& names_to_validate_against,
    std::string name_type,
    const std::filesystem::path& input_filename
 ) {
    for (const std::string& name : names_to_validate) {
-      if (std::find(names_to_validate_against.begin(), names_to_validate_against.end(), name) ==
-          names_to_validate_against.end()) {
+      if (std::ranges::find(names_to_validate_against, name) == names_to_validate_against.end()) {
          throw silo::preprocessing::PreprocessingException(fmt::format(
             "The {} {} which is contained in the input file {} is "
             "not contained in the reference sequences.",
@@ -91,7 +29,7 @@ void validateStruct(
       }
    }
    for (const std::string& name : names_to_validate_against) {
-      if (std::find(names_to_validate.begin(), names_to_validate.end(), name) == names_to_validate.end()) {
+      if (std::ranges::find(names_to_validate, name) == names_to_validate.end()) {
          throw silo::preprocessing::PreprocessingException(fmt::format(
             "The {} {} which is contained in the reference "
             "sequences is not contained in the input file {}.",
@@ -110,9 +48,9 @@ void SequenceInfo::validateNdjsonFile(
 ) {
    duckdb::DuckDB duck_db(nullptr);
    duckdb::Connection connection(duck_db);
-   const std::vector<std::string> nuc_sequence_names =
+   const std::vector<std::string>& nuc_sequence_names =
       reference_genomes.getSequenceNames<Nucleotide>();
-   const std::vector<std::string> aa_sequence_names =
+   const std::vector<std::string>& aa_sequence_names =
       reference_genomes.getSequenceNames<AminoAcid>();
    auto result = connection.Query(fmt::format(
       "SELECT json_keys(alignedNucleotideSequences), json_keys(alignedAminoAcidSequences), "
@@ -139,32 +77,32 @@ void SequenceInfo::validateNdjsonFile(
       );
    }
 
-   auto nuc_sequence_names_to_validate = extractStringListValue(*result, 0, 0);
+   const auto& nuc_sequence_names_to_validate = extractStringListValue(*result, 0, 0);
    validateStruct(
       nuc_sequence_names_to_validate,
       nuc_sequence_names,
       "aligned nucleotide sequences",
       input_filename
    );
-   auto aa_sequence_names_to_validate = extractStringListValue(*result, 0, 1);
+   const auto& aa_sequence_names_to_validate = extractStringListValue(*result, 0, 1);
    validateStruct(
       aa_sequence_names_to_validate,
       aa_sequence_names,
       "aligned amino acid sequences",
       input_filename
    );
-   auto unaligned_nuc_sequence_names_to_validate = extractStringListValue(*result, 0, 2);
+   const auto& unaligned_nuc_sequence_names_to_validate = extractStringListValue(*result, 0, 2);
    validateStruct(
       unaligned_nuc_sequence_names_to_validate,
       nuc_sequence_names,
       "unaligned nucleotide sequences",
       input_filename
    );
-   auto nuc_insertion_names_to_validate = extractStringListValue(*result, 0, 3);
+   const auto& nuc_insertion_names_to_validate = extractStringListValue(*result, 0, 3);
    validateStruct(
       nuc_insertion_names_to_validate, nuc_sequence_names, "nucleotide insertions", input_filename
    );
-   auto aa_insertion_names_to_validate = extractStringListValue(*result, 0, 4);
+   const auto& aa_insertion_names_to_validate = extractStringListValue(*result, 0, 4);
    validateStruct(
       aa_insertion_names_to_validate, aa_sequence_names, "amino acid insertions", input_filename
    );

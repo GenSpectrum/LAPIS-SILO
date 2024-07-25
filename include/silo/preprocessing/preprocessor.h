@@ -5,6 +5,7 @@
 #include "silo/common/table_reader.h"
 #include "silo/config/database_config.h"
 #include "silo/config/preprocessing_config.h"
+#include "silo/preprocessing/identifiers.h"
 #include "silo/preprocessing/preprocessing_database.h"
 #include "silo/storage/pango_lineage_alias.h"
 #include "silo/storage/reference_genomes.h"
@@ -22,30 +23,35 @@ class ValidatedNdjsonFile;
 class Preprocessor {
    config::PreprocessingConfig preprocessing_config;
    config::DatabaseConfig database_config;
-   PreprocessingDatabase preprocessing_db;
-   ReferenceGenomes reference_genomes_;
-   PangoLineageAliasLookup alias_lookup_;
+   ReferenceGenomes reference_genomes;
+   PangoLineageAliasLookup alias_lookup;
 
-   std::vector<std::string> nuc_sequences;
-   std::vector<std::string> aa_sequences;
-   std::vector<std::string> order_by_fields;
-   std::vector<std::string> prefixed_order_by_fields;
-   std::vector<std::string> prefixed_nuc_sequences;
-   std::vector<std::string> prefixed_aa_sequences;
-   std::vector<std::string> prefixed_nuc_insertions_fields;
-   std::vector<std::string> prefixed_aa_insertions_fields;
+   PreprocessingDatabase preprocessing_db;
+
+   Identifiers nuc_sequence_identifiers_without_prefix;
+   Identifiers aa_sequence_identifiers_without_prefix;
+   Identifiers nuc_sequence_identifiers;
+   Identifiers aa_sequence_identifiers;
+   Identifiers unaligned_nuc_sequences;
+   Identifiers order_by_fields_without_prefix;
+   Identifiers order_by_fields;
+   Identifiers nuc_insertions_fields;
+   Identifiers aa_insertions_fields;
 
   public:
    Preprocessor(
       config::PreprocessingConfig preprocessing_config,
       config::DatabaseConfig database_config,
-      const ReferenceGenomes& reference_genomes,
+      ReferenceGenomes reference_genomes,
       PangoLineageAliasLookup alias_lookup
    );
 
    Database preprocess();
 
   private:
+   template <typename SymbolType>
+   Identifiers getSequenceIdentifiers();
+
    void finalizeConfig();
    void validateConfig();
 
@@ -59,27 +65,25 @@ class Preprocessor {
    void buildPartitioningTableByColumn(const std::string& partition_by_field);
    void buildEmptyPartitioning();
 
-   void createInsertionsTableFromFile(
-      const std::vector<std::string>& expected_sequences,
-      const std::filesystem::path& insertion_file,
-      const std::string& table_name
-   );
+   template <typename SymbolType>
+   Identifiers getInsertionsFields();
+
+   template <typename SymbolType>
+   void createInsertionsTableFromFile(const std::filesystem::path& insertion_file);
 
    void createPartitionedSequenceTablesFromNdjson(const ValidatedNdjsonFile& input_file);
 
    void createAlignedPartitionedSequenceViews(const ValidatedNdjsonFile& input_file);
    void createUnalignedPartitionedSequenceFiles(const ValidatedNdjsonFile& input_file);
-   void createUnalignedPartitionedSequenceFile(
-      const std::string& seq_name,
-      const std::string& table_sql
-   );
+   void createUnalignedPartitionedSequenceFile(size_t sequence_idx, const std::string& table_sql);
 
    void createPartitionedSequenceTablesFromSequenceFiles();
 
    template <typename SymbolType>
    void createPartitionedTableForSequence(
-      const std::string& sequence_name,
-      const std::string& reference_sequence,
+      size_t sequence_idx,
+      const Identifier& prefixed_sequence_identifier,
+      const std::string& compression_dictionary,
       const std::filesystem::path& filename
    );
 

@@ -1,0 +1,62 @@
+{
+  "nucleotideSequences": [
+    {
+      "name": "\"",
+      "sequence": "ACGTACGT"
+    },
+    {
+      "name": ".",
+      "sequence": "ACGT"
+    }
+  ],
+  "genes": [
+    {
+      "name": "---",
+      "sequence": "MYSF"
+    },
+    {
+      "name": "\"\\\"",
+      "sequence": "MADS"
+    },
+    {
+      "name": ";|\\$!",
+      "sequence": "MSDN"
+    },
+    {
+      "name": "S-;",
+      "sequence": "MESL"
+    },
+    {
+      "name": "≤",
+      "sequence": "RVC*"
+    },
+    {
+      "name": "ł",
+      "sequence": "MDL*"
+    },
+    {
+      "name": "select",
+      "sequence": "MFH*"
+    },
+    {
+      "name": "S_-%",
+      "sequence": "MKI*"
+    },
+    {
+      "name": "S:;",
+      "sequence": "MIELSLIDFYLCFLAFLLFLVLIMLIIFWFSLELQDHNETCHA*"
+    },
+    {
+      "name": "#",
+      "sequence": "MKF*"
+    },
+    {
+      "name": "{{}}",
+      "sequence": "MDP*"
+    },
+    {
+      "name": "•",
+      "sequence": "MFV*"
+    }
+  ]
+}

@@ -57,25 +57,22 @@ std::optional<std::filesystem::path> PreprocessingConfig::getNdjsonInputFilename
              : std::nullopt;
 }
 
-std::filesystem::path PreprocessingConfig::getNucFilenameNoExtension(std::string_view nuc_name
-) const {
+std::filesystem::path PreprocessingConfig::getNucFilenameNoExtension(size_t sequence_idx) const {
    std::filesystem::path filename = input_directory;
-   filename /= fmt::format("{}{}", nucleotide_sequence_prefix, nuc_name);
+   filename /= fmt::format("{}{}", nucleotide_sequence_prefix, sequence_idx);
    return filename;
 }
 
-std::filesystem::path PreprocessingConfig::getUnalignedNucFilenameNoExtension(
-   std::string_view nuc_name
+std::filesystem::path PreprocessingConfig::getUnalignedNucFilenameNoExtension(size_t sequence_idx
 ) const {
    std::filesystem::path filename = input_directory;
-   filename /= fmt::format("{}{}", unaligned_nucleotide_sequence_prefix, nuc_name);
+   filename /= fmt::format("{}{}", unaligned_nucleotide_sequence_prefix, sequence_idx);
    return filename;
 }
 
-std::filesystem::path PreprocessingConfig::getGeneFilenameNoExtension(std::string_view gene_name
-) const {
+std::filesystem::path PreprocessingConfig::getGeneFilenameNoExtension(size_t sequence_idx) const {
    std::filesystem::path filename = input_directory;
-   filename /= fmt::format("{}{}", gene_prefix, gene_name);
+   filename /= fmt::format("{}{}", gene_prefix, sequence_idx);
    return filename;
 }
 
