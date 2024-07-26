@@ -65,6 +65,7 @@ impl Database {
             Vec::new()
         }
     }
+}
 
 impl Database {
     pub fn get_default_sequence_name<T>(&self) -> Option<String> {
