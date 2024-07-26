@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeMap};
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 use std::sync::Mutex;
 use std::sync::Arc;
@@ -37,7 +37,7 @@ use crate::storage::column_group::ColumnGroup;
 use crate::storage::database_partition::DatabasePartition;
 use crate::storage::pango_lineage_alias::PangoLineageAlias;
 use crate::storage::reference_genomes::ReferenceGenomes;
-use crate::storage::sequence_store::SequenceStore;
+use crate::storage::sequence_store::{SequenceStore, Nucleotide, AminoAcid};
 use crate::storage::serialize_optional::SerializeOptional;
 use crate::storage::unaligned_sequence_store::UnalignedSequenceStore;
 use crate::zstdfasta::zstd_decompressor::ZstdDecompressor;
@@ -54,6 +54,17 @@ pub struct Database {
     data_version: DataVersion,
     intermediate_results_directory: String,
 }
+
+impl Database {
+    pub fn get_default_sequence_name<T>(&self) -> Option<String> {
+        if std::any::TypeId::of::<T>() == std::any::TypeId::of::<Nucleotide>() {
+            self.database_config.default_nucleotide_sequence.clone()
+        } else if std::any::TypeId::of::<T>() == std::any::TypeId::of::<AminoAcid>() {
+            self.database_config.default_amino_acid_sequence.clone()
+        } else {
+            None
+        }
+    }
 
 impl Database {
     pub fn new(database_config: DatabaseConfig) -> Self {
