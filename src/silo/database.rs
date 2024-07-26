@@ -56,6 +56,17 @@ pub struct Database {
 }
 
 impl Database {
+    pub fn get_sequence_names<T>(&self) -> Vec<String> {
+        if std::any::TypeId::of::<T>() == std::any::TypeId::of::<Nucleotide>() {
+            self.nuc_sequences.keys().cloned().collect()
+        } else if std::any::TypeId::of::<T>() == std::any::TypeId::of::<AminoAcid>() {
+            self.aa_sequences.keys().cloned().collect()
+        } else {
+            Vec::new()
+        }
+    }
+
+impl Database {
     pub fn get_default_sequence_name<T>(&self) -> Option<String> {
         if std::any::TypeId::of::<T>() == std::any::TypeId::of::<Nucleotide>() {
             self.database_config.default_nucleotide_sequence.clone()
