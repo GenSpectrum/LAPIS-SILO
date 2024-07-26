@@ -65,6 +65,7 @@ impl Database {
             None
         }
     }
+}
 
 impl Database {
     pub fn new(database_config: DatabaseConfig) -> Self {
