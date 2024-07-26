@@ -68,3 +68,4 @@ conanprofile
 **/temp/
 
 **/node_modules/
+.aider*
