@@ -30,10 +30,10 @@ TEST(DatabaseDirectoryWatcher, validNewFormatOldVersion) {
 
 TEST(DatabaseDirectoryWatcher, validNewFormatCurrentVersion) {
    auto under_test =
-      DatabaseDirectoryWatcher::checkValidDataSource("testBaseData/dataDirectories/1236");
+      DatabaseDirectoryWatcher::checkValidDataSource("testBaseData/dataDirectories/1237");
    ASSERT_TRUE(under_test.has_value());
    ASSERT_TRUE(under_test.value().isCompatibleVersion());
-   ASSERT_EQ(under_test->getTimestamp(), silo::DataVersion::Timestamp::fromString("1236"));
+   ASSERT_EQ(under_test->getTimestamp(), silo::DataVersion::Timestamp::fromString("1237"));
 }
 
 TEST(DatabaseDirectoryWatcher, validNewFormatIncompatible) {
@@ -69,9 +69,9 @@ TEST(DatabaseDirectoryWatcher, getsMostRecentCompatible) {
    auto under_test =
       DatabaseDirectoryWatcher::getMostRecentDataDirectory("testBaseData/dataDirectories");
    ASSERT_TRUE(under_test.has_value());
-   ASSERT_EQ(under_test.value().first, "testBaseData/dataDirectories/1236");
+   ASSERT_EQ(under_test.value().first, "testBaseData/dataDirectories/1237");
    ASSERT_TRUE(under_test.value().second.isCompatibleVersion());
    ASSERT_EQ(
-      under_test.value().second.getTimestamp(), silo::DataVersion::Timestamp::fromString("1236")
+      under_test.value().second.getTimestamp(), silo::DataVersion::Timestamp::fromString("1237")
    );
 }
