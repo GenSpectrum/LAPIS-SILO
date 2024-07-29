@@ -2,11 +2,9 @@ FROM ubuntu:22.04
 
 ARG TARGETPLATFORM
 
-RUN apt update \
+RUN apt update && apt dist-upgrade -y \
     && apt install -y \
-    cmake=3.22.1-1ubuntu1.22.04.2 \
-    python3-pip=22.0.2+dfsg-1ubuntu0.4 \
-    software-properties-common=0.99.22.9
+    cmake python3-pip
 
 RUN pip install conan==2.5.0
 
