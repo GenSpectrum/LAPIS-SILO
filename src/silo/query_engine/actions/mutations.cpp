@@ -12,6 +12,7 @@
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/parallel_for.h>
 #include <oneapi/tbb/parallel_for_each.h>
+#include <oneapi/tbb/parallel_invoke.h>
 #include <oneapi/tbb/enumerable_thread_specific.h>
 #include <silo/common/block_timer.h>
 #include <spdlog/spdlog.h>
@@ -139,87 +140,89 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
    }
    static constexpr int POSITIONS_PER_PROCESS = 300;
 
+   tbb::enumerable_thread_specific<SymbolMap<SymbolType, std::vector<uint32_t>>> thread_mutation_counts;
+
    int64_t time;
    {
       const silo::common::BlockTimer timer(time);
 
-      const int number_of_threads = sequence_store.partitions.size();
-
-      tbb::enumerable_thread_specific<SymbolMap<SymbolType, std::vector<uint32_t>>> thread_mutation_counts;
-
-//      tbb::parallel_for_each(bitmap_filter.bitmaps.begin(), bitmap_filter.bitmaps.end(), [&](const auto& bitmap_entry) {
-
-      tbb::parallel_for(0, number_of_threads, [&](size_t index) {
-         int64_t time;
-         size_t filterCardinalitySum = 0;
-         {
-         const silo::common::BlockTimer timer(time);
-         auto& local_mutation_counts = thread_mutation_counts.local();
-         for (const auto symbol : SymbolType::SYMBOLS) {
-            local_mutation_counts[symbol].resize(sequence_length);
-         }
-         if (index < bitmap_filter.bitmaps.size()) {
-            const auto& [filter, sequence_store_partition, cardinality] = bitmap_filter.bitmaps.at(index);
-            filterCardinalitySum += cardinality;
-            for (const uint32_t idx : *filter) {
-               const roaring::Roaring& n_bitmap =
-                  sequence_store_partition.missing_symbol_bitmaps[idx];
-               for (const uint32_t position: n_bitmap) {
-                  const auto symbol = sequence_store_partition.positions[position].getDeletedSymbol();
-                  if (symbol.has_value()) {
-                     local_mutation_counts[symbol.value()][position] -= 1;
+         tbb::parallel_invoke(
+            [&] {
+               tbb::parallel_for_each(
+                  bitmap_filter.bitmaps.begin(),
+                  bitmap_filter.bitmaps.end(),
+                  [&](const auto& bitmap_entry) {
+                     int64_t time;
+                     {
+                     auto& local_mutation_counts = thread_mutation_counts.local();
+                     for (const auto symbol : SymbolType::SYMBOLS) {
+                        local_mutation_counts[symbol].resize(sequence_length);
+                     }
+                     const auto& [filter, sequence_store_partition, cardinality] = bitmap_entry;
+                     for (const uint32_t idx : *filter) {
+                        const roaring::Roaring& n_bitmap =
+                           sequence_store_partition.missing_symbol_bitmaps[idx];
+                        for (const uint32_t position: n_bitmap) {
+                           const auto symbol = sequence_store_partition.positions[position].getDeletedSymbol();
+                           if (symbol.has_value()) {
+                              local_mutation_counts[symbol.value()][position] -= 1;
+                           }
+                        }
+                     }
+                     }
+                     SPDLOG_DEBUG(
+                        "Time taken for thread {} mutation N count, time {}",
+                        tbb::this_task_arena::current_thread_index(),
+                        time
+                     );
                   }
-
-               }
-            }
-         }
-         if (index < bitmap_filter.full_bitmaps.size()) {
-            const auto& [filter, sequence_store_partition, cardinality] = bitmap_filter.full_bitmaps.at(index);
-            filterCardinalitySum += cardinality;
-
-            for (const roaring::Roaring& n_bitmap : sequence_store_partition.missing_symbol_bitmaps) {
-               for (const uint32_t position: n_bitmap) {
-                  const auto symbol = sequence_store_partition.positions[position].getDeletedSymbol();
-                  if (symbol.has_value()) {
-                     local_mutation_counts[symbol.value()][position] -= 1;
+               );
+            },
+            [&] {
+               tbb::parallel_for_each(
+                  bitmap_filter.full_bitmaps.begin(),
+                  bitmap_filter.full_bitmaps.end(),
+                  [&](const auto& bitmap_entry) {
+                     int64_t time;
+                     {
+                     const silo::common::BlockTimer timer(time);
+                     auto& local_mutation_counts = thread_mutation_counts.local();
+                     for (const auto symbol : SymbolType::SYMBOLS) {
+                        local_mutation_counts[symbol].resize(sequence_length);
+                     }
+                     const auto& [filter, sequence_store_partition, cardinality] = bitmap_entry;
+                     for (const roaring::Roaring& n_bitmap : sequence_store_partition.missing_symbol_bitmaps) {
+                        for (const uint32_t position: n_bitmap) {
+                           const auto symbol = sequence_store_partition.positions[position].getDeletedSymbol();
+                           if (symbol.has_value()) {
+                              local_mutation_counts[symbol.value()][position] -= 1;
+                           }
+                        }
+                     }
+                     }
+                     SPDLOG_DEBUG(
+                        "Time taken for thread {} mutation N count, time {}",
+                        tbb::this_task_arena::current_thread_index(),
+                        time
+                     );
                   }
-               }
+               );
             }
-         }
-         }
-         SPDLOG_DEBUG(
-            "Time taken for thread {} mutation N count, time {} and cardinality: {}",
-            index,
-            time,
-            filterCardinalitySum
          );
-      });
-
-      int64_t time;
-      {
-         const silo::common::BlockTimer timer(time);
-
-
-      for (auto& local_mutation_counts: thread_mutation_counts) {
-         for (const auto symbol : SymbolType::SYMBOLS) {
-            for (uint32_t position = 0; position < sequence_length; position++) {
-               mutation_counts_per_position[symbol][position] += local_mutation_counts[symbol][position];
-            }
-         }
-      }
-
-      }
-      SPDLOG_DEBUG(
-         "Time taken for mutation N count (time) AGGREGATING: {}",
-         time
-      );
-
-
    }
    SPDLOG_DEBUG(
       "Time taken for mutation N count (time): {}",
       time
    );
+   
+   for (auto& local_mutation_counts: thread_mutation_counts) {
+      for (const auto symbol : SymbolType::SYMBOLS) {
+         for (uint32_t position = 0; position < sequence_length; position++) {
+            mutation_counts_per_position[symbol][position] += local_mutation_counts[symbol][position];
+         }
+      }
+   }
+
 
 
    tbb::parallel_for(
