@@ -1,9 +1,10 @@
 ARG DEPENDENCY_IMAGE=ghcr.io/genspectrum/lapis-silo-linter-dependencies:latest
 
 FROM $DEPENDENCY_IMAGE AS linter
+ARG THREADS=4
 
 WORKDIR /src
 
 COPY . ./
 
-RUN python3 ./build_with_conan.py --parallel 4 --build_with_clang_tidy
+RUN python3 ./build_with_conan.py --parallel $THREADS --build_with_clang_tidy
