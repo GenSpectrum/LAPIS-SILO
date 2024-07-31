@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.12](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.11...v0.2.12) (2024-07-31)
+
+
+### Features
+
+* change base image to ubuntu ([64dee0d](https://github.com/GenSpectrum/LAPIS-SILO/commit/64dee0d90decd8aeafacbf88db611c53eb12c4b5))
+
 ## [0.2.11](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.10...v0.2.11) (2024-07-24)
 
 
