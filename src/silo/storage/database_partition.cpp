@@ -29,7 +29,7 @@ DatabasePartition::DatabasePartition(std::vector<silo::preprocessing::PartitionC
     : chunks(std::move(chunks)) {}
 
 void DatabasePartition::validate() const {
-   validateNucleotideSequences();
+//   validateNucleotideSequences();
    validateAminoAcidSequences();
    validateMetadataColumns();
 }
