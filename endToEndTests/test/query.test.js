@@ -66,12 +66,12 @@ describe('The /query endpoint', () => {
   );
   invalidQueryTestCases.forEach(testCase =>
     it('should return the expected error for the test case ' + testCase.testCaseName, async () => {
-      const response = await server
-        .post('/query')
-        .send(testCase.query)
-        .expect(400)
-        .expect('Content-Type', 'application/json');
-      return expect(response.body).to.deep.equal(testCase.expectedError);
+      const response = await server.post('/query').send(testCase.query);
+
+      const errorMessage = 'Actual result is:\n' + response.text + '\n';
+      expect(response.status, errorMessage).to.equal(400);
+      expect(response.header['content-type'], errorMessage).to.equal('application/json');
+      return expect(response.body, errorMessage).to.deep.equal(testCase.expectedError);
     })
   );
 

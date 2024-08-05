@@ -40,6 +40,7 @@ find_package(spdlog REQUIRED)
 find_package(TBB REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(zstd REQUIRED)
+find_package(re2 REQUIRED)
 
 # ---------------------------------------------------------------------------
 # Includes
@@ -97,6 +98,7 @@ target_link_libraries(
         Poco::Net
         Poco::Util
         Poco::JSON
+        re2::re2
 )
 
 add_executable(siloApi "${CMAKE_SOURCE_DIR}/src/silo_api/api.cpp" $<TARGET_OBJECTS:silolib>)

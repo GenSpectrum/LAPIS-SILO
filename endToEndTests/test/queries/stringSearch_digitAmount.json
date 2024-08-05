@@ -1,0 +1,18 @@
+{
+  "testCaseName": "StringSearch that matches the primary key to end with exactly six digits",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "StringSearch",
+      "column": "gisaid_epi_isl",
+      "searchExpression": "^\\D*\\d{6}$"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 12
+    }
+  ]
+}

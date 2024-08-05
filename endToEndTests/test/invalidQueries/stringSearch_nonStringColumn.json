@@ -1,0 +1,17 @@
+{
+  "testCaseName": "StringSearch that wants to match a non-string column",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "StringSearch",
+      "column": "age",
+      "searchExpression": "test"
+    }
+  },
+  "expectedError": {
+    "error": "Bad request",
+    "message": "The database does not contain the string column 'age'"
+  }
+}

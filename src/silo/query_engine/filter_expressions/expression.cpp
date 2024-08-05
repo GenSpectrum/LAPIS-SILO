@@ -21,6 +21,7 @@
 #include "silo/query_engine/filter_expressions/or.h"
 #include "silo/query_engine/filter_expressions/pango_lineage_filter.h"
 #include "silo/query_engine/filter_expressions/string_equals.h"
+#include "silo/query_engine/filter_expressions/string_search.h"
 #include "silo/query_engine/filter_expressions/symbol_equals.h"
 #include "silo/query_engine/filter_expressions/true.h"
 #include "silo/query_engine/query_parse_exception.h"
@@ -44,7 +45,7 @@ Expression::AmbiguityMode invertMode(Expression::AmbiguityMode mode) {
    return mode;
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
+// NOLINTNEXTLINE(readability-identifier-naming,readability-function-cognitive-complexity)
 void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) {
    CHECK_SILO_QUERY(json.contains("type"), "The field 'type' is required in any filter expression");
    CHECK_SILO_QUERY(
@@ -79,6 +80,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) 
       filter = json.get<std::unique_ptr<PangoLineageFilter>>();
    } else if (expression_type == "StringEquals") {
       filter = json.get<std::unique_ptr<StringEquals>>();
+   } else if (expression_type == "StringSearch") {
+      filter = json.get<std::unique_ptr<StringSearch>>();
    } else if (expression_type == "BooleanEquals") {
       filter = json.get<std::unique_ptr<BoolEquals>>();
    } else if (expression_type == "IntEquals") {
