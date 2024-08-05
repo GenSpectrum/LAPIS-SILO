@@ -1,0 +1,18 @@
+{
+  "testCaseName": "StringSearch with a regex matching the prefix",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "StringSearch",
+      "column": "gisaid_epi_isl",
+      "searchExpression": "^EP"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 100
+    }
+  ]
+}

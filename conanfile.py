@@ -17,6 +17,8 @@ class SiloRecipe(ConanFile):
         "spdlog/1.14.1",
         "yaml-cpp/0.7.0",
         "zstd/1.5.5",
+        "re2/20240702",
+        "abseil/20240116.1",
     ]
 
     default_options = {
@@ -90,6 +92,10 @@ class SiloRecipe(ConanFile):
         "poco/*:enable_redis": False,
         "poco/*:enable_xml": False,
         "poco/*:enable_zip": False,
+
+        "re2/*:shared": False,
+
+        "absl/*:shared": False,
     }
 
     def generate(self):
@@ -107,4 +113,6 @@ class SiloRecipe(ConanFile):
         deps.set_property("spdlog", "cmake_find_mode", "both")
         deps.set_property("yaml-cpp", "cmake_find_mode", "both")
         deps.set_property("zstd", "cmake_find_mode", "both")
+        deps.set_property("re2", "cmake_find_mode", "both")
+        deps.set_property("abseil", "cmake_find_mode", "both")
         deps.generate()

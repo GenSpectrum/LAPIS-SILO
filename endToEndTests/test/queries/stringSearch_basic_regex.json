@@ -1,0 +1,21 @@
+{
+  "testCaseName": "StringSearch with a basic regex",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "Not",
+      "child": {
+        "type": "StringSearch",
+        "column": "gisaid_epi_isl",
+        "searchExpression": "EPI"
+      }
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 0
+    }
+  ]
+}

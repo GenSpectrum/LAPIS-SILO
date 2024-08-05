@@ -1,0 +1,18 @@
+{
+  "testCaseName": "StringSearch that matches exactly a string",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "StringSearch",
+      "column": "division",
+      "searchExpression": "^Aargau$"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 6
+    }
+  ]
+}
