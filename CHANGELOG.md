@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.13](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.12...v0.2.13) (2024-08-06)
+
+
+### Features
+
+* bump serialization version to 2 ([e897203](https://github.com/GenSpectrum/LAPIS-SILO/commit/e897203780e7cd7546dfc82a2d29a6725bf07da2))
+* bump serialization version to 3 ([7584214](https://github.com/GenSpectrum/LAPIS-SILO/commit/7584214e7c6866d38ad415c82abf7a01aa95d8bf))
+* support SAM files as sequence input and allow partial sequence input with an offset ([5be9a9f](https://github.com/GenSpectrum/LAPIS-SILO/commit/5be9a9f23d5c1e2c54ca5837a82798aa459f9859))
+
+
+### Bug Fixes
+
+* allow all sequence-names by escaping them properly in all SQL statements ([901fc7e](https://github.com/GenSpectrum/LAPIS-SILO/commit/901fc7e0645954c7fc5ca705fd9c3902ab3d0928))
+
 ## [0.2.12](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.11...v0.2.12) (2024-07-31)
 
 
