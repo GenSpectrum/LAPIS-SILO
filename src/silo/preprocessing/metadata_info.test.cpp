@@ -1,5 +1,8 @@
 #include "silo/preprocessing/metadata_info.h"
 
+#include <algorithm>
+#include <ranges>
+
 #include <gtest/gtest.h>
 
 #include "silo/config/util/config_repository.h"
@@ -51,10 +54,10 @@ TEST(MetadataInfo, isValidMedataFileShouldReturnTrueWithValidMetadataFile) {
    };
 
    const auto fields = silo::preprocessing::MetadataInfo::getMetadataFields(valid_config);
-   ASSERT_TRUE(std::find(fields.begin(), fields.end(), R"("gisaid_epi_isl")") != fields.end());
-   ASSERT_TRUE(std::find(fields.begin(), fields.end(), R"("pango_lineage")") != fields.end());
-   ASSERT_TRUE(std::find(fields.begin(), fields.end(), R"("date")") != fields.end());
-   ASSERT_TRUE(std::find(fields.begin(), fields.end(), R"("country")") != fields.end());
+   ASSERT_TRUE(std::ranges::find(fields, R"("gisaid_epi_isl")") != fields.end());
+   ASSERT_TRUE(std::ranges::find(fields, R"("pango_lineage")") != fields.end());
+   ASSERT_TRUE(std::ranges::find(fields, R"("date")") != fields.end());
+   ASSERT_TRUE(std::ranges::find(fields, R"("country")") != fields.end());
 }
 
 TEST(MetadataInfo, shouldValidateCorrectNdjsonInputFile) {
@@ -76,8 +79,8 @@ TEST(MetadataInfo, shouldValidateCorrectNdjsonInputFile) {
 
    const auto fields = silo::preprocessing::MetadataInfo::getMetadataFields(valid_config);
 
-   ASSERT_TRUE(std::find(fields.begin(), fields.end(), R"("gisaid_epi_isl")") != fields.end());
-   ASSERT_TRUE(std::find(fields.begin(), fields.end(), R"("pango_lineage")") != fields.end());
-   ASSERT_TRUE(std::find(fields.begin(), fields.end(), R"("date")") != fields.end());
-   ASSERT_TRUE(std::find(fields.begin(), fields.end(), R"("country")") != fields.end());
+   ASSERT_TRUE(std::ranges::find(fields, R"("gisaid_epi_isl")") != fields.end());
+   ASSERT_TRUE(std::ranges::find(fields, R"("pango_lineage")") != fields.end());
+   ASSERT_TRUE(std::ranges::find(fields, R"("date")") != fields.end());
+   ASSERT_TRUE(std::ranges::find(fields, R"("country")") != fields.end());
 }

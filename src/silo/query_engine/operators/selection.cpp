@@ -77,9 +77,8 @@ std::string displayComparator(Comparator comparator) {
 
 std::string Selection::toString() const {
    std::vector<std::string> predicate_strings;
-   std::transform(
-      predicates.begin(),
-      predicates.end(),
+   std::ranges::transform(
+      predicates,
       std::back_inserter(predicate_strings),
       [](const auto& predicate) { return predicate->toString(); }
    );
@@ -91,7 +90,7 @@ Type Selection::type() const {
 }
 
 bool Selection::matchesPredicates(uint32_t row) const {
-   return std::all_of(predicates.begin(), predicates.end(), [&](const auto& predicate) {
+   return std::ranges::all_of(predicates, [&](const auto& predicate) {
       return predicate->match(row);
    });
 }

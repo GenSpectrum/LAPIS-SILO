@@ -54,9 +54,8 @@ struct InsertionEntry {
 
 InsertionEntry parseInsertion(const std::string& value) {
    auto position_and_insertion = silo::splitBy(value, DELIMITER_INSERTION);
-   std::transform(
-      position_and_insertion.begin(),
-      position_and_insertion.end(),
+   std::ranges::transform(
+      position_and_insertion,
       position_and_insertion.begin(),
       [](const std::string& value) { return silo::removeSymbol(value, '\"'); }
    );

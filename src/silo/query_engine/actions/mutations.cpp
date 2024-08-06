@@ -178,9 +178,8 @@ void Mutations<SymbolType>::validateOrderByFields(const Database& /*database*/) 
 
    for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
-         std::any_of(
-            result_field_names.begin(),
-            result_field_names.end(),
+         std::ranges::any_of(
+            result_field_names,
             [&](const std::string& result_field) { return result_field == field.name; }
          ),
          fmt::format(

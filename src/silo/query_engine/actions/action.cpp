@@ -63,7 +63,7 @@ void Action::applySort(QueryResult& result) const {
             cmp
          );
       } else {
-         std::sort(result_vector.begin(), result_vector.end(), cmp);
+         std::ranges::sort(result_vector, cmp);
       }
    }
 }

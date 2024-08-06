@@ -84,11 +84,9 @@ std::optional<std::pair<std::filesystem::path, silo::DataVersion>> silo_api::
       SPDLOG_TRACE("Scan of path {} returned no valid data", path.string());
       return std::nullopt;
    }
-   std::sort(
-      all_found_data.begin(),
-      all_found_data.end(),
-      [](const auto& element1, const auto& element2) { return element1.second > element2.second; }
-   );
+   std::ranges::sort(all_found_data, [](const auto& element1, const auto& element2) {
+      return element1.second > element2.second;
+   });
    for (auto& entry : all_found_data) {
       if (entry.second.isCompatibleVersion()) {
          SPDLOG_TRACE(

@@ -38,8 +38,7 @@ void FastaAligned::validateOrderByFields(const Database& database) const {
    for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
          field.name == primary_key_field ||
-            std::find(sequence_names.begin(), sequence_names.end(), field.name) !=
-               std::end(sequence_names),
+            std::ranges::find(sequence_names, field.name) != std::end(sequence_names),
          fmt::format(
             "OrderByField {} is not contained in the result of this operation. "
             "The only fields returned by the FastaAligned action are {} and {}",
@@ -58,9 +57,8 @@ std::string reconstructSequence(
    uint32_t row_id
 ) {
    std::string reconstructed_sequence;
-   std::transform(
-      sequence_store.reference_sequence.begin(),
-      sequence_store.reference_sequence.end(),
+   std::ranges::transform(
+      sequence_store.reference_sequence,
       std::back_inserter(reconstructed_sequence),
       SymbolType::symbolToChar
    );

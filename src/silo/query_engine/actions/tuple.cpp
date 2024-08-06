@@ -321,11 +321,9 @@ std::vector<Tuple::ComparatorField> Tuple::getCompareFields(
    tuple_field_comparators.resize(order_by_fields.size());
    size_t offset = 0;
    for (const auto& metadata : columns_metadata) {
-      auto element = std::find_if(
-         order_by_fields.begin(),
-         order_by_fields.end(),
-         [&](const auto& order_by_field) { return metadata.name == order_by_field.name; }
-      );
+      auto element = std::ranges::find_if(order_by_fields, [&](const auto& order_by_field) {
+         return metadata.name == order_by_field.name;
+      });
       if (element != order_by_fields.end()) {
          const size_t index = std::distance(order_by_fields.begin(), element);
          tuple_field_comparators[index] =

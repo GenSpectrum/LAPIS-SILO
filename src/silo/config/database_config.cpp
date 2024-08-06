@@ -191,11 +191,9 @@ ColumnType DatabaseMetadata::getColumnType() const {
 }
 
 std::optional<DatabaseMetadata> DatabaseConfig::getMetadata(const std::string& name) const {
-   auto element = std::find_if(
-      std::begin(schema.metadata),
-      std::end(schema.metadata),
-      [&name](const auto& metadata) { return metadata.name == name; }
-   );
+   auto element = std::ranges::find_if(schema.metadata, [&name](const auto& metadata) {
+      return metadata.name == name;
+   });
    if (element == std::end(schema.metadata)) {
       return std::nullopt;
    }

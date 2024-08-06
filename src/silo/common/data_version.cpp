@@ -20,7 +20,7 @@ DataVersion::Timestamp::Timestamp(std::string value)
 std::optional<DataVersion::Timestamp> DataVersion::Timestamp::fromString(
    std::string timestamp_string
 ) {
-   if (!std::all_of(timestamp_string.begin(), timestamp_string.end(), [](char character) {
+   if (!std::ranges::all_of(timestamp_string, [](char character) {
           return character >= '0' && character <= '9';
        })) {
       return std::nullopt;

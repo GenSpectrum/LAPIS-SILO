@@ -46,9 +46,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> PangoLineageFilter::com
    );
 
    std::string lineage_all_upper = lineage;
-   std::transform(
-      lineage_all_upper.begin(), lineage_all_upper.end(), lineage_all_upper.begin(), ::toupper
-   );
+   std::ranges::transform(lineage_all_upper, lineage_all_upper.begin(), ::toupper);
 
    const auto& pango_lineage_column = database_partition.columns.pango_lineage_columns.at(column);
    const auto& bitmap = include_sublineages

@@ -47,9 +47,8 @@ void Details::validateOrderByFields(const Database& database) const {
 
    for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
-         std::any_of(
-            field_metadata.begin(),
-            field_metadata.end(),
+         std::ranges::any_of(
+            field_metadata,
             [&](const silo::storage::ColumnMetadata& metadata) {
                return metadata.name == field.name;
             }
@@ -84,18 +83,18 @@ std::vector<actions::Tuple> mergeSortedTuples(
       [&](const std::pair<iterator, iterator>& lhs, const std::pair<iterator, iterator>& rhs) {
          return tuple_comparator(*rhs.first, *lhs.first);
       };
-   std::make_heap(min_heap.begin(), min_heap.end(), heap_cmp);
+   std::ranges::make_heap(min_heap, heap_cmp);
 
    std::vector<actions::Tuple> result;
 
    for (uint32_t counter = 0; counter < to_produce && !min_heap.empty(); counter++) {
-      std::pop_heap(min_heap.begin(), min_heap.end(), heap_cmp);
+      std::ranges::pop_heap(min_heap, heap_cmp);
       auto& current = min_heap.back();
       result.emplace_back(std::move(*current.first++));
       if (current.first == current.second) {
          min_heap.pop_back();
       } else {
-         std::push_heap(min_heap.begin(), min_heap.end(), heap_cmp);
+         std::ranges::push_heap(min_heap, heap_cmp);
       }
    }
 
@@ -126,25 +125,25 @@ std::vector<actions::Tuple> produceSortedTuplesWithLimit(
          }
 
          if (iterator != end) {
-            std::make_heap(my_tuples.begin(), my_tuples.end(), tuple_comparator);
+            std::ranges::make_heap(my_tuples, tuple_comparator);
             Tuple current_tuple = tuple_factory.allocateOne(*iterator);
             if (tuple_comparator(current_tuple, my_tuples.front())) {
-               std::pop_heap(my_tuples.begin(), my_tuples.end(), tuple_comparator);
+               std::ranges::pop_heap(my_tuples, tuple_comparator);
                my_tuples.back() = current_tuple;
-               std::push_heap(my_tuples.begin(), my_tuples.end(), tuple_comparator);
+               std::ranges::push_heap(my_tuples, tuple_comparator);
             }
             iterator++;
             for (; iterator != end; iterator++) {
                tuple_factory.overwrite(current_tuple, *iterator);
                if (tuple_comparator(current_tuple, my_tuples.front())) {
-                  std::pop_heap(my_tuples.begin(), my_tuples.end(), tuple_comparator);
+                  std::ranges::pop_heap(my_tuples, tuple_comparator);
                   my_tuples.back() = current_tuple;
-                  std::push_heap(my_tuples.begin(), my_tuples.end(), tuple_comparator);
+                  std::ranges::push_heap(my_tuples, tuple_comparator);
                }
             }
-            std::sort_heap(my_tuples.begin(), my_tuples.end(), tuple_comparator);
+            std::ranges::sort_heap(my_tuples, tuple_comparator);
          } else {
-            std::sort(my_tuples.begin(), my_tuples.end(), tuple_comparator);
+            std::ranges::sort(my_tuples, tuple_comparator);
          }
       }
    });
@@ -208,10 +207,8 @@ QueryResult Details::executeAndOrder(
    } else {
       tuples = produceAllTuples(tuple_factories, bitmap_filter);
       if (!order_by_fields.empty() || randomize_seed) {
-         std::sort(
-            tuples.begin(),
-            tuples.end(),
-            Tuple::getComparator(field_metadata, order_by_fields, randomize_seed)
+         std::ranges::sort(
+            tuples, Tuple::getComparator(field_metadata, order_by_fields, randomize_seed)
          );
       }
    }

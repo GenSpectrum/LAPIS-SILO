@@ -98,9 +98,8 @@ std::unique_ptr<silo::query_engine::operators::Operator> SymbolEquals<SymbolType
    if (mode == UPPER_BOUND) {
       auto symbols_to_match = SymbolType::AMBIGUITY_SYMBOLS.at(symbol);
       std::vector<std::unique_ptr<Expression>> symbol_filters;
-      std::transform(
-         symbols_to_match.begin(),
-         symbols_to_match.end(),
+      std::ranges::transform(
+         symbols_to_match,
          std::back_inserter(symbol_filters),
          [&](SymbolType::Symbol symbol) {
             return std::make_unique<SymbolEquals<SymbolType>>(
@@ -154,11 +153,10 @@ std::unique_ptr<silo::query_engine::operators::Operator> SymbolEquals<SymbolType
       std::vector<typename SymbolType::Symbol> symbols = std::vector<typename SymbolType::Symbol>(
          SymbolType::SYMBOLS.begin(), SymbolType::SYMBOLS.end()
       );
-      symbols.erase(std::remove(symbols.begin(), symbols.end(), symbol), symbols.end());
+      std::erase(symbols, symbol);
       std::vector<std::unique_ptr<filter_expressions::Expression>> symbol_filters;
-      std::transform(
-         symbols.begin(),
-         symbols.end(),
+      std::ranges::transform(
+         symbols,
          std::back_inserter(symbol_filters),
          [&](typename SymbolType::Symbol symbol) {
             return std::make_unique<Negation>(

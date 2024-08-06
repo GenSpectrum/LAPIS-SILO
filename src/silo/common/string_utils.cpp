@@ -28,7 +28,7 @@ std::vector<std::string> splitBy(const std::string& value, const std::string_vie
 
 std::string removeSymbol(const std::string& value, char symbol) {
    std::string result = value;
-   result.erase(std::remove(result.begin(), result.end(), symbol), result.end());
+   std::erase(result, symbol);
    return result;
 }
 
