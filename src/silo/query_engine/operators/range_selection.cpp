@@ -24,9 +24,8 @@ RangeSelection::~RangeSelection() noexcept = default;
 
 std::string RangeSelection::toString() const {
    std::vector<std::string> range_strings;
-   std::transform(
-      ranges.begin(),
-      ranges.end(),
+   std::ranges::transform(
+      ranges,
       std::back_inserter(range_strings),
       [](const RangeSelection::Range& range) {
          return std::to_string(range.start) + "-" + std::to_string(range.end);

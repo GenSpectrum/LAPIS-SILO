@@ -80,32 +80,26 @@ OperatorResult intersectTwo(OperatorResult first, OperatorResult second) {
 OperatorResult Intersection::evaluate() const {
    std::vector<OperatorResult> children_bm;
    children_bm.reserve(children.size());
-   std::transform(
-      children.begin(),
-      children.end(),
-      std::back_inserter(children_bm),
-      [&](const auto& child) { return child->evaluate(); }
-   );
+   std::ranges::transform(children, std::back_inserter(children_bm), [&](const auto& child) {
+      return child->evaluate();
+   });
    std::vector<OperatorResult> negated_children_bm;
    negated_children_bm.reserve(negated_children.size());
-   std::transform(
-      negated_children.begin(),
-      negated_children.end(),
+   std::ranges::transform(
+      negated_children,
       std::back_inserter(negated_children_bm),
       [&](const auto& child) { return child->evaluate(); }
    );
    // Sort ascending, such that intermediate results are kept small
-   std::sort(
-      children_bm.begin(),
-      children_bm.end(),
+   std::ranges::sort(
+      children_bm,
       [](const OperatorResult& expression1, const OperatorResult& expression2) {
          return expression1->cardinality() < expression2->cardinality();
       }
    );
    // Sort negated children descending by size
-   std::sort(
-      negated_children_bm.begin(),
-      negated_children_bm.end(),
+   std::ranges::sort(
+      negated_children_bm,
       [](const OperatorResult& expression_result1, const OperatorResult& expression_result2) {
          return expression_result1->cardinality() > expression_result2->cardinality();
       }

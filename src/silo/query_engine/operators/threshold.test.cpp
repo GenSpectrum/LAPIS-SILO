@@ -18,12 +18,9 @@ OperatorVector generateTestInput(
    const uint32_t row_count
 ) {
    OperatorVector result;
-   std::transform(
-      bitmaps.begin(),
-      bitmaps.end(),
-      std::back_inserter(result),
-      [&](const auto& bitmap) { return std::make_unique<IndexScan>(&bitmap, row_count); }
-   );
+   std::ranges::transform(bitmaps, std::back_inserter(result), [&](const auto& bitmap) {
+      return std::make_unique<IndexScan>(&bitmap, row_count);
+   });
    return result;
 }
 }  // namespace

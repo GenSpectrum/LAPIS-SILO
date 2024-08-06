@@ -59,7 +59,7 @@ void MetadataInfo::validateMetadataFile(
    std::set<std::string> actual_fields;
    for (size_t idx = 0; idx < result->ColumnCount(); idx++) {
       actual_fields.emplace(result->ColumnName(idx));
-      if (std::find_if(database_config.schema.metadata.begin(), database_config.schema.metadata.end(), [&](const auto& metadata) {
+      if (std::ranges::find_if(database_config.schema.metadata, [&](const auto& metadata) {
              return metadata.name == result->ColumnName(idx);
           }) == database_config.schema.metadata.end()) {
          SPDLOG_WARN(
@@ -130,7 +130,7 @@ void MetadataInfo::validateNdjsonFile(
    std::set<std::string> actual_fields;
    for (size_t idx = 0; idx < result->ColumnCount(); idx++) {
       actual_fields.emplace(result->ColumnName(idx));
-      if (std::find_if(database_config.schema.metadata.begin(), database_config.schema.metadata.end(), [&](const auto& metadata) {
+      if (std::ranges::find_if(database_config.schema.metadata, [&](const auto& metadata) {
              return metadata.name == result->ColumnName(idx);
           }) == database_config.schema.metadata.end()) {
          SPDLOG_WARN(

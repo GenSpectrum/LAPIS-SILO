@@ -63,17 +63,16 @@ std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
       std::vector(SymbolType::SYMBOLS.begin(), SymbolType::SYMBOLS.end());
    if (mode == AmbiguityMode::UPPER_BOUND) {
       // We can only be sure, that the symbol did not mutate, if the ref_symbol is at that position
-      symbols.erase(std::remove(symbols.begin(), symbols.end(), ref_symbol), symbols.end());
+      std::erase(symbols, ref_symbol);
    } else {
       // Remove all symbols that could match the searched base
       for (const auto symbol : SymbolType::AMBIGUITY_SYMBOLS.at(ref_symbol)) {
-         symbols.erase(std::remove(symbols.begin(), symbols.end(), symbol), symbols.end());
+         std::erase(symbols, symbol);
       }
    }
    std::vector<std::unique_ptr<filter_expressions::Expression>> symbol_filters;
-   std::transform(
-      symbols.begin(),
-      symbols.end(),
+   std::ranges::transform(
+      symbols,
       std::back_inserter(symbol_filters),
       [&](typename SymbolType::Symbol symbol) {
          return std::make_unique<SymbolEquals<SymbolType>>(

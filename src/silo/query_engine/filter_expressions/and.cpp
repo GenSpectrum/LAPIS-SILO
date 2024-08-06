@@ -35,9 +35,8 @@ And::And(std::vector<std::unique_ptr<Expression>>&& children)
 
 std::string And::toString() const {
    std::vector<std::string> child_strings;
-   std::transform(
-      children.begin(),
-      children.end(),
+   std::ranges::transform(
+      children,
       std::back_inserter(child_strings),
       [&](const std::unique_ptr<Expression>& child) { return child->toString(); }
    );
@@ -51,12 +50,9 @@ void inline appendVectorToVector(
    std::vector<std::unique_ptr<T>>& vec_1,
    std::vector<std::unique_ptr<T>>& vec_2
 ) {
-   std::transform(
-      vec_1.begin(),
-      vec_1.end(),
-      std::back_inserter(vec_2),
-      [&](std::unique_ptr<T>& ele) { return std::move(ele); }
-   );
+   std::ranges::transform(vec_1, std::back_inserter(vec_2), [&](std::unique_ptr<T>& ele) {
+      return std::move(ele);
+   });
 }
 
 void logCompiledChildren(
@@ -65,24 +61,21 @@ void logCompiledChildren(
    std::vector<std::unique_ptr<operators::Predicate>>& predicates
 ) {
    std::vector<std::string> child_operator_strings;
-   std::transform(
-      non_negated_child_operators.begin(),
-      non_negated_child_operators.end(),
+   std::ranges::transform(
+      non_negated_child_operators,
       std::back_inserter(child_operator_strings),
       [&](const std::unique_ptr<operators::Operator>& operator_) { return operator_->toString(); }
    );
-   std::transform(
-      negated_child_operators.begin(),
-      negated_child_operators.end(),
+   std::ranges::transform(
+      negated_child_operators,
       std::back_inserter(child_operator_strings),
       [&](const std::unique_ptr<operators::Operator>& operator_) {
          return "!" + operator_->toString();
       }
    );
    std::vector<std::string> predicate_strings;
-   std::transform(
-      predicates.begin(),
-      predicates.end(),
+   std::ranges::transform(
+      predicates,
       std::back_inserter(predicate_strings),
       [&](const std::unique_ptr<operators::Predicate>& predicate) { return predicate->toString(); }
    );
@@ -105,9 +98,8 @@ std::tuple<OperatorVector, OperatorVector, std::vector<std::unique_ptr<operators
       AmbiguityMode mode
    ) const {
    OperatorVector all_child_operators;
-   std::transform(
-      children.begin(),
-      children.end(),
+   std::ranges::transform(
+      children,
       std::back_inserter(all_child_operators),
       [&](const std::unique_ptr<Expression>& expression) {
          return expression->compile(database, database_partition, mode);

@@ -43,9 +43,8 @@ void InsertionAggregation<SymbolType>::validateOrderByFields(const Database& /*d
 
    for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
-         std::any_of(
-            result_field_names.begin(),
-            result_field_names.end(),
+         std::ranges::any_of(
+            result_field_names,
             [&](const std::string& result_field) { return result_field == field.name; }
          ),
          fmt::format(
@@ -67,8 +66,7 @@ void validateSequenceNames(
    std::vector<std::string> all_sequence_names = database.getSequenceNames<SymbolType>();
    for (const std::string& sequence_name : sequence_names) {
       CHECK_SILO_QUERY(
-         std::find(all_sequence_names.begin(), all_sequence_names.end(), sequence_name) !=
-            all_sequence_names.end(),
+         std::ranges::find(all_sequence_names, sequence_name) != all_sequence_names.end(),
          "The database does not contain the " + std::string(SymbolType::SYMBOL_NAME) +
             " sequence '" + sequence_name + "'"
       );
@@ -91,7 +89,7 @@ InsertionAggregation<SymbolType>::validateFieldsAndPreFilterBitmaps(
       for (auto& [sequence_name, sequence_store] :
            database_partition.getSequenceStores<SymbolType>()) {
          if (sequence_names.empty() ||
-             std::find(sequence_names.begin(), sequence_names.end(), sequence_name) !=
+             std::ranges::find(sequence_names, sequence_name) !=
                 sequence_names.end()) {
             OperatorResult& filter = bitmap_filter[i];
             const size_t cardinality = filter->cardinality();

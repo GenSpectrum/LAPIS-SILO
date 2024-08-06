@@ -78,9 +78,8 @@ void Aggregated::validateOrderByFields(const Database& database) const {
 
    for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
-         field.name == COUNT_FIELD || std::any_of(
-                                         field_metadata.begin(),
-                                         field_metadata.end(),
+         field.name == COUNT_FIELD || std::ranges::any_of(
+                                         field_metadata,
                                          [&](const silo::storage::ColumnMetadata& metadata) {
                                             return metadata.name == field.name;
                                          }

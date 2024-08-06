@@ -85,7 +85,7 @@ std::unique_ptr<roaring::Roaring> InsertionPosition<SymbolType>::searchWithThree
    const auto cmp = [](const std::pair<it, it>& lhs_it_pair, const std::pair<it, it>& rhs_it_pair) {
       return *lhs_it_pair.first > *rhs_it_pair.first;
    };
-   std::make_heap(min_heap.begin(), min_heap.end(), cmp);
+   std::ranges::make_heap(min_heap, cmp);
 
    auto result = std::make_unique<roaring::Roaring>();
 
@@ -94,13 +94,13 @@ std::unique_ptr<roaring::Roaring> InsertionPosition<SymbolType>::searchWithThree
    while (!min_heap.empty()) {
       const auto next_insertion_id = *min_heap.front().first;
 
-      std::pop_heap(min_heap.begin(), min_heap.end(), cmp);
+      std::ranges::pop_heap(min_heap, cmp);
       ++min_heap.back().first;
 
       if (min_heap.back().first == min_heap.back().second) {
          min_heap.pop_back();
       } else {
-         std::push_heap(min_heap.begin(), min_heap.end(), cmp);
+         std::ranges::push_heap(min_heap, cmp);
       }
 
       if (next_insertion_id != current_insertion_id) {
@@ -259,9 +259,8 @@ void InsertionIndex<SymbolType>::buildIndex() {
    for (auto [pos, insertion_info] : collected_insertions) {
       InsertionPosition<SymbolType> insertion_position;
       insertion_position.insertions.reserve(insertion_info.size());
-      std::transform(
-         insertion_info.begin(),
-         insertion_info.end(),
+      std::ranges::transform(
+         insertion_info,
          std::back_inserter(insertion_position.insertions),
          [](auto& insertion) {
             return Insertion{std::move(insertion.first), std::move(insertion.second)};

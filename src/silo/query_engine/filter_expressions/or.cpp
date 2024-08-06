@@ -29,9 +29,8 @@ Or::Or(std::vector<std::unique_ptr<Expression>>&& children)
 
 std::string Or::toString() const {
    std::vector<std::string> child_strings;
-   std::transform(
-      children.begin(),
-      children.end(),
+   std::ranges::transform(
+      children,
       std::back_inserter(child_strings),
       [&](const std::unique_ptr<Expression>& child) { return child->toString(); }
    );
@@ -44,9 +43,8 @@ std::unique_ptr<operators::Operator> Or::compile(
    Expression::AmbiguityMode mode
 ) const {
    OperatorVector all_child_operators;
-   std::transform(
-      children.begin(),
-      children.end(),
+   std::ranges::transform(
+      children,
       std::back_inserter(all_child_operators),
       [&](const std::unique_ptr<Expression>& expression) {
          return expression->compile(database, database_partition, mode);
@@ -62,9 +60,8 @@ std::unique_ptr<operators::Operator> Or::compile(
       }
       if (child->type() == operators::UNION) {
          auto* or_child = dynamic_cast<operators::Union*>(child.get());
-         std::transform(
-            or_child->children.begin(),
-            or_child->children.end(),
+         std::ranges::transform(
+            or_child->children,
             std::back_inserter(filtered_child_operators),
             [&](std::unique_ptr<operators::Operator>& expression) { return std::move(expression); }
          );
@@ -79,11 +76,9 @@ std::unique_ptr<operators::Operator> Or::compile(
       return std::move(filtered_child_operators[0]);
    }
 
-   if (std::any_of(
-          filtered_child_operators.begin(),
-          filtered_child_operators.end(),
-          [](const auto& child) { return child->type() == operators::COMPLEMENT; }
-       )) {
+   if (std::ranges::any_of(filtered_child_operators, [](const auto& child) {
+          return child->type() == operators::COMPLEMENT;
+       })) {
       return operators::Complement::fromDeMorgan(
          std::move(filtered_child_operators), database_partition.sequence_count
       );
