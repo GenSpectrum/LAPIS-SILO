@@ -21,11 +21,11 @@ namespace silo::query_engine::filter_expressions {
 
 class StringEquals : public Expression {
   private:
-   std::string column;
+   std::string column_name;
    std::string value;
 
   public:
-   explicit StringEquals(std::string column, std::string value);
+   explicit StringEquals(std::string column_name, std::string value);
 
    std::string toString() const override;
 

@@ -22,12 +22,12 @@ class Operator;
 
 namespace silo::query_engine::filter_expressions {
 
-FloatEquals::FloatEquals(std::string column, double value)
-    : column(std::move(column)),
+FloatEquals::FloatEquals(std::string column_name, double value)
+    : column_name(std::move(column_name)),
       value(value) {}
 
 std::string FloatEquals::toString() const {
-   return column + " = '" + std::to_string(value) + "'";
+   return fmt::format("{} = '{}'", column_name, std::to_string(value));
 }
 
 std::unique_ptr<silo::query_engine::operators::Operator> FloatEquals::compile(
@@ -36,11 +36,11 @@ std::unique_ptr<silo::query_engine::operators::Operator> FloatEquals::compile(
    silo::query_engine::filter_expressions::Expression::AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
-      database_partition.columns.float_columns.contains(column),
-      fmt::format("the database does not contain the column '{}'", column)
+      database_partition.columns.float_columns.contains(column_name),
+      fmt::format("the database does not contain the column '{}'", column_name)
    );
 
-   const auto& float_column = database_partition.columns.float_columns.at(column);
+   const auto& float_column = database_partition.columns.float_columns.at(column_name);
 
    return std::make_unique<operators::Selection>(
       std::make_unique<operators::CompareToValueSelection<double>>(
@@ -65,9 +65,9 @@ void from_json(const nlohmann::json& json, std::unique_ptr<FloatEquals>& filter)
       json["value"].is_number_float() || json["value"].is_null(),
       "The field 'value' in an FloatEquals expression must be a float or null"
    );
-   const std::string& column = json["column"];
+   const std::string& column_name = json["column"];
    const double& value = json["value"].is_null() ? std::nan("") : json["value"].get<double>();
-   filter = std::make_unique<FloatEquals>(column, value);
+   filter = std::make_unique<FloatEquals>(column_name, value);
 }
 
 }  // namespace silo::query_engine::filter_expressions

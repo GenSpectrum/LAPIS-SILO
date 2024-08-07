@@ -24,13 +24,13 @@ namespace silo::query_engine::filter_expressions {
 
 class IntBetween : public Expression {
   private:
-   std::string column;
+   std::string column_name;
    std::optional<uint32_t> from;
    std::optional<uint32_t> to;
 
   public:
    explicit IntBetween(
-      std::string column,
+      std::string column_name,
       std::optional<uint32_t> from,
       std::optional<uint32_t> to
    );

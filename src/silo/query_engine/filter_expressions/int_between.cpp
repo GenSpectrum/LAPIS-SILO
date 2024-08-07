@@ -19,9 +19,14 @@ class Database;
 
 namespace silo::query_engine::filter_expressions {
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters,readability-identifier-length)
-IntBetween::IntBetween(std::string column, std::optional<uint32_t> from, std::optional<uint32_t> to)
-    : column(std::move(column)),
+// NOLINTBEGIN(bugprone-easily-swappable-parameters,readability-identifier-length)
+IntBetween::IntBetween(
+   std::string column_name,
+   std::optional<uint32_t> from,
+   std::optional<uint32_t> to
+)
+    // NOLINTEND(bugprone-easily-swappable-parameters,readability-identifier-length)
+    : column_name(std::move(column_name)),
       from(from),
       to(to) {}
 
@@ -38,11 +43,11 @@ std::unique_ptr<silo::query_engine::operators::Operator> IntBetween::compile(
    silo::query_engine::filter_expressions::Expression::AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
-      database_partition.columns.int_columns.contains(column),
-      fmt::format("the database does not contain the column '{}'", column)
+      database_partition.columns.int_columns.contains(column_name),
+      fmt::format("the database does not contain the column '{}'", column_name)
    );
 
-   const auto& int_column = database_partition.columns.int_columns.at(column);
+   const auto& int_column = database_partition.columns.int_columns.at(column_name);
 
    std::vector<std::unique_ptr<operators::Predicate>> predicates;
    predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<int32_t>>(
@@ -81,7 +86,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<IntBetween>& filter) 
       json["to"].is_null() || json["to"].is_number_integer(),
       "The field 'to' in a IntBetween expression must be an int or null"
    );
-   const std::string& column = json["column"];
+   const std::string& column_name = json["column"];
    std::optional<int32_t> value_from;
    if (json["from"].is_number_integer()) {
       value_from = json["from"].get<int32_t>();
@@ -90,7 +95,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<IntBetween>& filter) 
    if (json["to"].is_number_integer()) {
       value_to = json["to"].get<int32_t>();
    }
-   filter = std::make_unique<IntBetween>(column, value_from, value_to);
+   filter = std::make_unique<IntBetween>(column_name, value_from, value_to);
 }
 
 }  // namespace silo::query_engine::filter_expressions

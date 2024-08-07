@@ -21,13 +21,13 @@ class Operator;
 namespace silo::query_engine::filter_expressions {
 
 class PangoLineageFilter : public Expression {
-   std::string column;
+   std::string column_name;
    std::string lineage;
    bool include_sublineages;
 
   public:
    explicit PangoLineageFilter(
-      std::string column,
+      std::string column_name,
       std::string lineage_key,
       bool include_sublineages
    );

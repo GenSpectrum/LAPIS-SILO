@@ -21,12 +21,12 @@ class Operator;
 
 namespace silo::query_engine::filter_expressions {
 
-StringSearch::StringSearch(std::string column, std::unique_ptr<re2::RE2> search_expression)
-    : column(std::move(column)),
+StringSearch::StringSearch(std::string column_name, std::unique_ptr<re2::RE2> search_expression)
+    : column_name(std::move(column_name)),
       search_expression(std::move(search_expression)) {}
 
 std::string StringSearch::toString() const {
-   return fmt::format("column {} regex_matches \"{}\"", column, search_expression->pattern());
+   return fmt::format("column {} regex_matches \"{}\"", column_name, search_expression->pattern());
 }
 
 namespace {
@@ -60,19 +60,19 @@ std::unique_ptr<silo::query_engine::operators::Operator> StringSearch::compile(
    Expression::AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
-      database_partition.columns.string_columns.contains(column) ||
-         database_partition.columns.indexed_string_columns.contains(column),
-      fmt::format("The database does not contain the string column '{}'", column)
+      database_partition.columns.string_columns.contains(column_name) ||
+         database_partition.columns.indexed_string_columns.contains(column_name),
+      fmt::format("The database does not contain the string column '{}'", column_name)
    )
 
-   if (database_partition.columns.indexed_string_columns.contains(column)) {
-      const auto& string_column = database_partition.columns.indexed_string_columns.at(column);
+   if (database_partition.columns.indexed_string_columns.contains(column_name)) {
+      const auto& string_column = database_partition.columns.indexed_string_columns.at(column_name);
       return createMatchingBitmap(
          string_column, *search_expression, database_partition.sequence_count
       );
    }
-   assert(database_partition.columns.string_columns.contains(column));
-   const auto& string_column = database_partition.columns.string_columns.at(column);
+   assert(database_partition.columns.string_columns.contains(column_name));
+   const auto& string_column = database_partition.columns.string_columns.at(column_name);
    return createMatchingBitmap(
       string_column, *search_expression, database_partition.sequence_count
    );

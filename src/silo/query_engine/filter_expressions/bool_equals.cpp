@@ -22,12 +22,12 @@ namespace silo::query_engine::filter_expressions {
 
 using silo::common::OptionalBool;
 
-BoolEquals::BoolEquals(std::string column, OptionalBool value)
-    : column(std::move(column)),
+BoolEquals::BoolEquals(std::string column_name, OptionalBool value)
+    : column_name(std::move(column_name)),
       value(value) {}
 
 std::string BoolEquals::toString() const {
-   return fmt::format("{} = '{}'", column, value.asStr());
+   return fmt::format("{} = '{}'", column_name, value.asStr());
 }
 
 std::unique_ptr<silo::query_engine::operators::Operator> BoolEquals::compile(
@@ -36,11 +36,12 @@ std::unique_ptr<silo::query_engine::operators::Operator> BoolEquals::compile(
    Expression::AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
-      database_partition.columns.bool_columns.contains(column),
-      fmt::format("the database does not contain the column {}", column)
+      database_partition.columns.bool_columns.contains(column_name),
+      // TODO
+      fmt::format("the database does not contain the column '{}'", column_name)
    );
 
-   const auto& bool_column = database_partition.columns.bool_columns.at(column);
+   const auto& bool_column = database_partition.columns.bool_columns.at(column_name);
 
    return std::make_unique<operators::Selection>(
       std::make_unique<operators::CompareToValueSelection<OptionalBool>>(
@@ -65,10 +66,10 @@ void from_json(const nlohmann::json& json, std::unique_ptr<BoolEquals>& filter) 
       json["value"].is_boolean() || json["value"].is_null(),
       "The field 'value' in an BoolEquals expression must be a boolean or null"
    );
-   const std::string& column = json["column"];
+   const std::string& column_name = json["column"];
    const OptionalBool value =
       json["value"].is_null() ? OptionalBool() : OptionalBool(json["value"].get<bool>());
-   filter = std::make_unique<BoolEquals>(column, value);
+   filter = std::make_unique<BoolEquals>(column_name, value);
 }
 
 }  // namespace silo::query_engine::filter_expressions

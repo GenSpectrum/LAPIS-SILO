@@ -25,11 +25,11 @@ using silo::common::OptionalBool;
 
 struct BoolEquals : public Expression {
   private:
-   std::string column;
+   std::string column_name;
    OptionalBool value;
 
   public:
-   explicit BoolEquals(std::string column, OptionalBool value);
+   explicit BoolEquals(std::string column_name, OptionalBool value);
 
    [[nodiscard]] std::string toString() const override;
 

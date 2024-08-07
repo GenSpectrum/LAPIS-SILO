@@ -34,7 +34,7 @@ namespace silo::query_engine::filter_expressions {
 
 class DateBetween : public Expression {
   private:
-   std::string column;
+   std::string column_name;
    std::optional<silo::common::Date> date_from;
    std::optional<silo::common::Date> date_to;
 
@@ -46,7 +46,7 @@ class DateBetween : public Expression {
 
   public:
    explicit DateBetween(
-      std::string column,
+      std::string column_name,
       std::optional<silo::common::Date> date_from,
       std::optional<silo::common::Date> date_to
    );

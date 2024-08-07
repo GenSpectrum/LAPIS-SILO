@@ -22,11 +22,11 @@ namespace silo::query_engine::filter_expressions {
 
 class FloatEquals : public Expression {
   private:
-   std::string column;
+   std::string column_name;
    double value;
 
   public:
-   FloatEquals(std::string column, double value);
+   FloatEquals(std::string column_name, double value);
 
    std::string toString() const override;
 
