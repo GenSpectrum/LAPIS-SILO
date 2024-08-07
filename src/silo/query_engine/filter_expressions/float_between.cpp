@@ -18,9 +18,14 @@ class Database;
 
 namespace silo::query_engine::filter_expressions {
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters,readability-identifier-length)
-FloatBetween::FloatBetween(std::string column, std::optional<double> from, std::optional<double> to)
-    : column(std::move(column)),
+// NOLINTBEGIN(bugprone-easily-swappable-parameters,readability-identifier-length)
+FloatBetween::FloatBetween(
+   std::string column_name,
+   std::optional<double> from,
+   std::optional<double> to
+)
+    // NOLINTEND(bugprone-easily-swappable-parameters,readability-identifier-length)
+    : column_name(std::move(column_name)),
       from(from),
       to(to) {}
 
@@ -37,10 +42,10 @@ std::unique_ptr<silo::query_engine::operators::Operator> FloatBetween::compile(
    silo::query_engine::filter_expressions::Expression::AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
-      database_partition.columns.float_columns.contains(column),
-      "The database does not contain the float column '" + column + "'"
+      database_partition.columns.float_columns.contains(column_name),
+      "The database does not contain the float column '" + column_name + "'"
    );
-   const auto& float_column = database_partition.columns.float_columns.at(column);
+   const auto& float_column = database_partition.columns.float_columns.at(column_name);
 
    std::vector<std::unique_ptr<operators::Predicate>> predicates;
    if (from.has_value()) {
@@ -86,7 +91,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<FloatBetween>& filter
       json["to"].is_null() || json["to"].is_number_float(),
       "The field 'to' in a FloatBetween expression must be a float or null"
    );
-   const std::string& column = json["column"];
+   const std::string& column_name = json["column"];
    std::optional<double> value_from;
    if (json["from"].is_number_float()) {
       value_from = json["from"].get<double>();
@@ -95,7 +100,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<FloatBetween>& filter
    if (json["to"].is_number_float()) {
       value_to = json["to"].get<double>();
    }
-   filter = std::make_unique<FloatBetween>(column, value_from, value_to);
+   filter = std::make_unique<FloatBetween>(column_name, value_from, value_to);
 }
 
 }  // namespace silo::query_engine::filter_expressions

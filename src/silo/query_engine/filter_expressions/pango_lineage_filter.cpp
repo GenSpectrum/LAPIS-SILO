@@ -19,11 +19,11 @@ class Operator;
 namespace silo::query_engine::filter_expressions {
 
 PangoLineageFilter::PangoLineageFilter(
-   std::string column,
+   std::string column_name,
    std::string lineage,
    bool include_sublineages
 )
-    : column(std::move(column)),
+    : column_name(std::move(column_name)),
       lineage(std::move(lineage)),
       include_sublineages(include_sublineages) {}
 
@@ -41,14 +41,15 @@ std::unique_ptr<silo::query_engine::operators::Operator> PangoLineageFilter::com
    AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
-      database_partition.columns.pango_lineage_columns.contains(column),
-      fmt::format("the database does not contain the column '{}'", column)
+      database_partition.columns.pango_lineage_columns.contains(column_name),
+      fmt::format("the database does not contain the column '{}'", column_name)
    );
 
    std::string lineage_all_upper = lineage;
    std::ranges::transform(lineage_all_upper, lineage_all_upper.begin(), ::toupper);
 
-   const auto& pango_lineage_column = database_partition.columns.pango_lineage_columns.at(column);
+   const auto& pango_lineage_column =
+      database_partition.columns.pango_lineage_columns.at(column_name);
    const auto& bitmap = include_sublineages
                            ? pango_lineage_column.filterIncludingSublineages({lineage_all_upper})
                            : pango_lineage_column.filter({lineage_all_upper});
@@ -82,10 +83,10 @@ void from_json(const nlohmann::json& json, std::unique_ptr<PangoLineageFilter>& 
       json["includeSublineages"].is_boolean(),
       "The field 'includeSublineages' in a PangoLineage expression needs to be a boolean"
    );
-   const std::string& column = json["column"];
+   const std::string& column_name = json["column"];
    const std::string& lineage = json["value"].is_null() ? "" : json["value"].get<std::string>();
    const bool include_sublineages = json["includeSublineages"];
-   filter = std::make_unique<PangoLineageFilter>(column, lineage, include_sublineages);
+   filter = std::make_unique<PangoLineageFilter>(column_name, lineage, include_sublineages);
 }
 
 }  // namespace silo::query_engine::filter_expressions

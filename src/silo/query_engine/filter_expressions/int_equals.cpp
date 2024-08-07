@@ -20,12 +20,12 @@ class Operator;
 
 namespace silo::query_engine::filter_expressions {
 
-IntEquals::IntEquals(std::string column, uint32_t value)
-    : column(std::move(column)),
+IntEquals::IntEquals(std::string column_name, uint32_t value)
+    : column_name(std::move(column_name)),
       value(value) {}
 
 std::string IntEquals::toString() const {
-   return column + " = '" + std::to_string(value) + "'";
+   return column_name + " = '" + std::to_string(value) + "'";
 }
 
 std::unique_ptr<silo::query_engine::operators::Operator> IntEquals::compile(
@@ -34,11 +34,11 @@ std::unique_ptr<silo::query_engine::operators::Operator> IntEquals::compile(
    Expression::AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
-      database_partition.columns.int_columns.contains(column),
-      fmt::format("the database does not contain the column '{}'", column)
+      database_partition.columns.int_columns.contains(column_name),
+      fmt::format("the database does not contain the column '{}'", column_name)
    );
 
-   const auto& int_column = database_partition.columns.int_columns.at(column);
+   const auto& int_column = database_partition.columns.int_columns.at(column_name);
 
    return std::make_unique<operators::Selection>(
       std::make_unique<operators::CompareToValueSelection<int32_t>>(

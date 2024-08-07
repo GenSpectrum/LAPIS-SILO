@@ -23,12 +23,12 @@ class Operator;
 
 namespace silo::query_engine::filter_expressions {
 
-StringEquals::StringEquals(std::string column, std::string value)
-    : column(std::move(column)),
+StringEquals::StringEquals(std::string column_name, std::string value)
+    : column_name(std::move(column_name)),
       value(std::move(value)) {}
 
 std::string StringEquals::toString() const {
-   return column + " = '" + value + "'";
+   return fmt::format("{} = '{}'", column_name, value);
 }
 
 std::unique_ptr<silo::query_engine::operators::Operator> StringEquals::compile(
@@ -37,13 +37,13 @@ std::unique_ptr<silo::query_engine::operators::Operator> StringEquals::compile(
    Expression::AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
-      database_partition.columns.string_columns.contains(column) ||
-         database_partition.columns.indexed_string_columns.contains(column),
-      fmt::format("the database does not contain the column '{}'", column)
+      database_partition.columns.string_columns.contains(column_name) ||
+         database_partition.columns.indexed_string_columns.contains(column_name),
+      fmt::format("the database does not contain the column '{}'", column_name)
    );
 
-   if (database_partition.columns.indexed_string_columns.contains(column)) {
-      const auto& string_column = database_partition.columns.indexed_string_columns.at(column);
+   if (database_partition.columns.indexed_string_columns.contains(column_name)) {
+      const auto& string_column = database_partition.columns.indexed_string_columns.at(column_name);
       const auto bitmap = string_column.filter(value);
 
       if (bitmap == std::nullopt || bitmap.value()->isEmpty()) {
@@ -53,8 +53,8 @@ std::unique_ptr<silo::query_engine::operators::Operator> StringEquals::compile(
          bitmap.value(), database_partition.sequence_count
       );
    }
-   assert(database_partition.columns.string_columns.contains(column));
-   const auto& string_column = database_partition.columns.string_columns.at(column);
+   assert(database_partition.columns.string_columns.contains(column_name));
+   const auto& string_column = database_partition.columns.string_columns.at(column_name);
    const auto& embedded_string = string_column.embedString(value);
    if (embedded_string.has_value()) {
       return std::make_unique<operators::Selection>(
@@ -83,9 +83,9 @@ void from_json(const nlohmann::json& json, std::unique_ptr<StringEquals>& filter
       json["value"].is_string() || json["value"].is_null(),
       "The field 'value' in an StringEquals expression needs to be a string or null"
    );
-   const std::string& column = json["column"];
+   const std::string& column_name = json["column"];
    const std::string& value = json["value"].is_null() ? "" : json["value"].get<std::string>();
-   filter = std::make_unique<StringEquals>(column, value);
+   filter = std::make_unique<StringEquals>(column_name, value);
 }
 
 }  // namespace silo::query_engine::filter_expressions

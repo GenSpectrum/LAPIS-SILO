@@ -23,12 +23,16 @@ namespace silo::query_engine::filter_expressions {
 
 class FloatBetween : public Expression {
   private:
-   std::string column;
+   std::string column_name;
    std::optional<double> from;
    std::optional<double> to;
 
   public:
-   explicit FloatBetween(std::string column, std::optional<double> from, std::optional<double> to);
+   explicit FloatBetween(
+      std::string column_name,
+      std::optional<double> from,
+      std::optional<double> to
+   );
 
    std::string toString() const override;
 

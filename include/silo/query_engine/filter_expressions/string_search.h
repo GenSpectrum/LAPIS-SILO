@@ -22,11 +22,11 @@ namespace silo::query_engine::filter_expressions {
 
 class StringSearch : public Expression {
   private:
-   std::string column;
+   std::string column_name;
    std::unique_ptr<re2::RE2> search_expression;
 
   public:
-   explicit StringSearch(std::string column, std::unique_ptr<re2::RE2> search_expression);
+   explicit StringSearch(std::string column_name, std::unique_ptr<re2::RE2> search_expression);
 
    std::string toString() const override;
 
