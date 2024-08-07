@@ -42,7 +42,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> PangoLineageFilter::com
 ) const {
    CHECK_SILO_QUERY(
       database_partition.columns.pango_lineage_columns.contains(column_name),
-      fmt::format("the database does not contain the column '{}'", column_name)
+      fmt::format("The database does not contain the column '{}'", column_name)
    );
 
    std::string lineage_all_upper = lineage;
