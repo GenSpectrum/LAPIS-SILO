@@ -35,7 +35,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> IntEquals::compile(
 ) const {
    CHECK_SILO_QUERY(
       database_partition.columns.int_columns.contains(column_name),
-      fmt::format("the database does not contain the column '{}'", column_name)
+      fmt::format("The database does not contain the column '{}'", column_name)
    );
 
    const auto& int_column = database_partition.columns.int_columns.at(column_name);
