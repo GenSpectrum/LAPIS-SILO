@@ -142,6 +142,9 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
 
    tbb::enumerable_thread_specific<SymbolMap<SymbolType, std::vector<uint32_t>>> thread_mutation_counts;
 
+   tbb::enumerable_thread_specific<SymbolMap<SymbolType, roaring::Roaring>> thread_deleted_symbols;
+
+
    int64_t time;
    {
       const silo::common::BlockTimer timer(time);
@@ -152,22 +155,43 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
                   bitmap_filter.bitmaps.begin(),
                   bitmap_filter.bitmaps.end(),
                   [&](const auto& bitmap_entry) {
+                     const auto& [filter, sequence_store_partition, cardinality] = bitmap_entry;
+                     auto& local_deleted_symbols = thread_deleted_symbols.local();
                      int64_t time;
+                     {
+                     for (uint32_t position = 0; position != sequence_length; ++position) {
+                        const auto symbol = sequence_store_partition.positions[position].getDeletedSymbol();
+                        if (!symbol.has_value()) {
+                           continue;
+                        }
+                        local_deleted_symbols[symbol.value()].add(position);
+                     }
+                     }
+                     SPDLOG_DEBUG(
+                        "Time taken for thread {} deleted symbols bitmaps, time {}",
+                        tbb::this_task_arena::current_thread_index(),
+                        time
+                     );
+                     time = 0;
                      {
                      auto& local_mutation_counts = thread_mutation_counts.local();
                      for (const auto symbol : SymbolType::SYMBOLS) {
                         local_mutation_counts[symbol].resize(sequence_length);
                      }
-                     const auto& [filter, sequence_store_partition, cardinality] = bitmap_entry;
                      for (const uint32_t idx : *filter) {
+                        for (const auto symbol : SymbolType::SYMBOLS) {
                         const roaring::Roaring& n_bitmap =
-                           sequence_store_partition.missing_symbol_bitmaps[idx];
-                        for (const uint32_t position: n_bitmap) {
-                           const auto symbol = sequence_store_partition.positions[position].getDeletedSymbol();
-                           if (symbol.has_value()) {
-                              local_mutation_counts[symbol.value()][position] -= 1;
+                           sequence_store_partition.missing_symbol_bitmaps[idx] & local_deleted_symbols[symbol];
+                           for (const auto position: n_bitmap) {
+                              local_mutation_counts[symbol][position] -= 1;
                            }
                         }
+//                        for (const uint32_t position: n_bitmap) {
+//                           const auto symbol = sequence_store_partition.positions[position].getDeletedSymbol();
+//                           if (symbol.has_value()) {
+//                              local_mutation_counts[symbol.value()][position] -= 1;
+//                           }
+//                        }
                      }
                      }
                      SPDLOG_DEBUG(
@@ -183,21 +207,43 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
                   bitmap_filter.full_bitmaps.begin(),
                   bitmap_filter.full_bitmaps.end(),
                   [&](const auto& bitmap_entry) {
+                  const auto& [filter, sequence_store_partition, cardinality] = bitmap_entry;
+                     auto& local_deleted_symbols = thread_deleted_symbols.local();
                      int64_t time;
+                     {
+                        for (uint32_t position = 0; position != sequence_length; ++position) {
+                           const auto symbol = sequence_store_partition.positions[position].getDeletedSymbol();
+                           if (!symbol.has_value()) {
+                              continue;
+                           }
+                           local_deleted_symbols[symbol.value()].add(position);
+                        }
+                     }
+                     SPDLOG_DEBUG(
+                        "Time taken for thread {} deleted symbols bitmaps, time {}",
+                        tbb::this_task_arena::current_thread_index(),
+                        time
+                     );
+                     time = 0;
                      {
                      const silo::common::BlockTimer timer(time);
                      auto& local_mutation_counts = thread_mutation_counts.local();
                      for (const auto symbol : SymbolType::SYMBOLS) {
                         local_mutation_counts[symbol].resize(sequence_length);
                      }
-                     const auto& [filter, sequence_store_partition, cardinality] = bitmap_entry;
                      for (const roaring::Roaring& n_bitmap : sequence_store_partition.missing_symbol_bitmaps) {
-                        for (const uint32_t position: n_bitmap) {
-                           const auto symbol = sequence_store_partition.positions[position].getDeletedSymbol();
-                           if (symbol.has_value()) {
-                              local_mutation_counts[symbol.value()][position] -= 1;
+                           for (const auto symbol : SymbolType::SYMBOLS) {
+                              const auto combined = n_bitmap & local_deleted_symbols[symbol];
+                              for (const auto position: combined) {
+                                 local_mutation_counts[symbol][position] -= 1;
+                              }
                            }
-                        }
+//                        for (const uint32_t position: n_bitmap) {
+//                           const auto symbol = sequence_store_partition.positions[position].getDeletedSymbol();
+//                           if (symbol.has_value()) {
+//                              local_mutation_counts[symbol.value()][position] -= 1;
+//                           }
+//                        }
                      }
                      }
                      SPDLOG_DEBUG(
