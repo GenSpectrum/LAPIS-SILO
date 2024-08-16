@@ -140,6 +140,7 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
    }
    static constexpr int POSITIONS_PER_PROCESS = 300;
 
+   if (!sequence_store.sparse_mode) {
    tbb::enumerable_thread_specific<SymbolMap<SymbolType, std::vector<uint32_t>>> thread_mutation_counts;
 
    int64_t time;
@@ -214,7 +215,7 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
       "Time taken for mutation N count (time): {}",
       time
    );
-   
+
    for (auto& local_mutation_counts: thread_mutation_counts) {
       for (const auto symbol : SymbolType::SYMBOLS) {
          for (uint32_t position = 0; position < sequence_length; position++) {
@@ -222,6 +223,8 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
          }
       }
    }
+   }
+
 
 
 

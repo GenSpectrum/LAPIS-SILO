@@ -83,6 +83,12 @@ struct convert<silo::config::DatabaseConfig> {
          config.position_index_deletion_threshold = 0;
       }
 
+      if (node["sparseMode"].IsDefined()) {
+         config.sparse_mode = node["sparseMode"].as<bool>();
+      } else {
+         config.sparse_mode = false;
+      }
+
       SPDLOG_TRACE("Resulting database config: {}", config);
 
       return true;
@@ -97,6 +103,7 @@ struct convert<silo::config::DatabaseConfig> {
       if (config.default_amino_acid_sequence.has_value()) {
          node[DEFAULT_AMINO_ACID_SEQUENCE_KEY] = *config.default_amino_acid_sequence;
       }
+      node["sparseMode"] = config.sparse_mode;
       return node;
    }
 };

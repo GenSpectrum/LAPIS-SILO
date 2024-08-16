@@ -39,6 +39,7 @@ class DatabaseConfig {
    std::optional<std::string> default_nucleotide_sequence;
    std::optional<std::string> default_amino_acid_sequence;
    double position_index_deletion_threshold;
+   bool sparse_mode;
    DatabaseSchema schema;
 
    [[nodiscard]] std::optional<DatabaseMetadata> getMetadata(const std::string& name) const;

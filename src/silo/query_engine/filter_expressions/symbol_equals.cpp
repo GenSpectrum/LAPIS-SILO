@@ -110,7 +110,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> SymbolEquals<SymbolType
       );
       return Or(std::move(symbol_filters)).compile(database, database_partition, NONE);
    }
-   if (symbol == SymbolType::SYMBOL_MISSING) {
+   if (!database.database_config.sparse_mode && symbol == SymbolType::SYMBOL_MISSING) {
       SPDLOG_TRACE(
          "Filtering for '{}' at position {}",
          SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING),

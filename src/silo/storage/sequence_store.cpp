@@ -22,9 +22,9 @@
 
 template <typename SymbolType>
 silo::SequenceStorePartition<SymbolType>::SequenceStorePartition(
-   const std::vector<typename SymbolType::Symbol>& reference_sequence
+   const std::vector<typename SymbolType::Symbol>& reference_sequence, bool sparse_mode
 )
-    : reference_sequence(reference_sequence) {
+    : reference_sequence(reference_sequence), sparse_mode(sparse_mode) {
    lazy_buffer.reserve(BUFFER_SIZE);
    positions.reserve(reference_sequence.size());
    for (const auto symbol : reference_sequence) {
@@ -158,7 +158,7 @@ void silo::SequenceStorePartition<SymbolType>::fillIndexes(const std::vector<Rea
                      "Illegal character " + std::to_string(character) + " contained in sequence."
                   );
                }
-               if (symbol != SymbolType::SYMBOL_MISSING) {
+               if (sparse_mode || symbol != SymbolType::SYMBOL_MISSING) {
                   ids_per_symbol_for_current_position[*symbol].push_back(
                      sequence_count + sequence_id
                   );
@@ -273,7 +273,9 @@ void silo::SequenceStorePartition<SymbolType>::optimizeBitmaps() {
 template <typename SymbolType>
 void silo::SequenceStorePartition<SymbolType>::flushBuffer(const std::vector<ReadSequence>& reads) {
    fillIndexes(reads);
-   fillNBitmaps(reads);
+   if (!sparse_mode) {
+      fillNBitmaps(reads);
+   }
    sequence_count += reads.size();
 }
 
@@ -288,13 +290,13 @@ size_t silo::SequenceStorePartition<SymbolType>::computeSize() const {
 
 template <typename SymbolType>
 silo::SequenceStore<SymbolType>::SequenceStore(
-   std::vector<typename SymbolType::Symbol> reference_sequence
+   std::vector<typename SymbolType::Symbol> reference_sequence, bool sparse_mode
 )
-    : reference_sequence(std::move(reference_sequence)) {}
+    : reference_sequence(std::move(reference_sequence)), sparse_mode(sparse_mode) {}
 
 template <typename SymbolType>
 silo::SequenceStorePartition<SymbolType>& silo::SequenceStore<SymbolType>::createPartition() {
-   return partitions.emplace_back(reference_sequence);
+   return partitions.emplace_back(reference_sequence, sparse_mode);
 }
 template class silo::SequenceStorePartition<silo::Nucleotide>;
 template class silo::SequenceStorePartition<silo::AminoAcid>;

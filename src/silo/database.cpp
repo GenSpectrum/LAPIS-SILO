@@ -654,7 +654,7 @@ void Database::initializeNucSequences(
    SPDLOG_DEBUG("build - initializing nucleotide sequences");
    SPDLOG_TRACE("initializing aligned nucleotide sequences");
    for (const auto& [nuc_name, reference_sequence] : reference_sequences) {
-      auto seq_store = SequenceStore<Nucleotide>(reference_sequence);
+      auto seq_store = SequenceStore<Nucleotide>(reference_sequence, database_config.sparse_mode);
       nuc_sequences.emplace(nuc_name, std::move(seq_store));
       for (auto& partition : partitions) {
          partition.nuc_sequences.insert({nuc_name, nuc_sequences.at(nuc_name).createPartition()});
@@ -689,7 +689,7 @@ void Database::initializeAASequences(
    SPDLOG_DEBUG("build - initializing amino acid sequences");
    SPDLOG_TRACE("initializing aligned amino acid sequences");
    for (const auto& [aa_name, reference_sequence] : reference_sequences) {
-      auto aa_store = SequenceStore<AminoAcid>(reference_sequence);
+      auto aa_store = SequenceStore<AminoAcid>(reference_sequence, database_config.sparse_mode);
       aa_sequences.emplace(aa_name, std::move(aa_store));
       for (auto& partition : partitions) {
          partition.aa_sequences.insert({aa_name, aa_sequences.at(aa_name).createPartition()});

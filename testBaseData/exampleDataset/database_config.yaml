@@ -28,3 +28,4 @@ schema:
   dateToSortBy: date
   partitionBy: pango_lineage
 defaultNucleotideSequence: "main"
+sparseMode: true

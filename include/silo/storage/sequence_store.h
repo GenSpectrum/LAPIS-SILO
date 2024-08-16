@@ -62,6 +62,7 @@ class SequenceStorePartition {
       archive & insertion_index;
       archive & missing_symbol_bitmaps;
       archive & sequence_count;
+      archive & sparse_mode;
       // clang-format on
    }
 
@@ -73,6 +74,7 @@ class SequenceStorePartition {
    std::vector<roaring::Roaring> missing_symbol_bitmaps;
    storage::insertion::InsertionIndex<SymbolType> insertion_index;
    uint32_t sequence_count = 0;
+   bool sparse_mode = false;
 
   private:
    static constexpr size_t BUFFER_SIZE = 1024;
@@ -94,7 +96,7 @@ class SequenceStorePartition {
 
   public:
    explicit SequenceStorePartition(
-      const std::vector<typename SymbolType::Symbol>& reference_sequence
+      const std::vector<typename SymbolType::Symbol>& reference_sequence, bool sparse_mode
    );
 
    [[nodiscard]] size_t computeSize() const;
@@ -118,8 +120,9 @@ class SequenceStore {
   public:
    std::vector<typename SymbolType::Symbol> reference_sequence;
    std::deque<SequenceStorePartition<SymbolType>> partitions;
+   bool sparse_mode = false;
 
-   explicit SequenceStore(std::vector<typename SymbolType::Symbol> reference_sequence);
+   explicit SequenceStore(std::vector<typename SymbolType::Symbol> reference_sequence, bool sparse_mode);
 
    SequenceStorePartition<SymbolType>& createPartition();
 };
