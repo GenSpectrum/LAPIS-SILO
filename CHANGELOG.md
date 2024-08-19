@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.14](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.13...v0.2.14) (2024-08-19)
+
+
+### Features
+
+* new operator for matching strings against regular expressions ([ade25e8](https://github.com/GenSpectrum/LAPIS-SILO/commit/ade25e8b147914ff7383a0404981437d77956dd3))
+
+
+### Bug Fixes
+
+* typo in the error message if a column is not found ([67029a4](https://github.com/GenSpectrum/LAPIS-SILO/commit/67029a4ace345b8c3687ea39aff066849bcc19d1))
+
 ## [0.2.13](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.12...v0.2.13) (2024-08-06)
 
 
