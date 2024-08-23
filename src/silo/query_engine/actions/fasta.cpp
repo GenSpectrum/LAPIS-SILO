@@ -128,7 +128,6 @@ void addSequencesFromResultTableToJson(
       const size_t end_of_partition_in_result = results.size();
       for (size_t idx = start_of_partition_in_result; idx < end_of_partition_in_result; idx++) {
          auto current_key = table_reader.next(genome_buffer);
-         assert(current_key.has_value());
          if (genome_buffer.has_value()) {
             results.at(idx).fields.emplace(sequence_name, *genome_buffer);
          } else {
