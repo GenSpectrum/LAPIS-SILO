@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.15](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.14...v0.2.15) (2024-08-23)
+
+
+### Bug Fixes
+
+* don't abort when unaligned sequence is missing - we should return `null` ([#542](https://github.com/GenSpectrum/LAPIS-SILO/issues/542)) ([2c649cb](https://github.com/GenSpectrum/LAPIS-SILO/commit/2c649cb324b2855204869a9cead42b03e6378fdb)), closes [#541](https://github.com/GenSpectrum/LAPIS-SILO/issues/541)
+
 ## [0.2.14](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.13...v0.2.14) (2024-08-19)
 
 
