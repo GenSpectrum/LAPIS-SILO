@@ -8,6 +8,7 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/common/numbers.h"
+#include "silo/common/panic.h"
 #include "silo/common/range.h"
 #include "silo/database.h"
 #include "silo/query_engine/operator_result.h"
@@ -154,7 +155,7 @@ uint32_t addSequencesToResultsForPartition(
    const std::string& primary_key_column,
    size_t num_result_rows
 ) {
-   assert(num_result_rows > 0);
+   ASSERT(num_result_rows > 0);
 
    duckdb::DuckDB duck_db;
    duckdb::Connection connection(duck_db);
@@ -202,7 +203,7 @@ uint32_t addSequencesToResultsForPartition(
             } else if (holds_alternative<int32_t>(primary_key.value())) {
                primary_key_string = std::to_string(get<int32_t>(primary_key.value()));
             } else {
-               assert(holds_alternative<std::string>(primary_key.value()));
+               ASSERT(holds_alternative<std::string>(primary_key.value()));
                primary_key_string = get<std::string>(primary_key.value());
             }
             appender.Append(duckdb::Value::BLOB(primary_key_string));
@@ -299,6 +300,8 @@ QueryResult Fasta::execute(const Database& database, std::vector<OperatorResult>
                   primary_key_column,
                   result_row_indices.size()
                );
+
+               ASSERT(results.size() == result_row_indices.size());
 
                *remaining_result_row_indices =
                   remaining_result_row_indices->skip(result_row_indices.size());

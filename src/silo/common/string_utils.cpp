@@ -1,11 +1,11 @@
 #include "silo/common/string_utils.h"
 
 #include <algorithm>
-#include <cassert>
 #include <stdexcept>
 
 #include <fmt/format.h>
 #include <boost/algorithm/string/join.hpp>
+#include "silo/common/panic.h"
 
 namespace silo {
 
@@ -64,7 +64,7 @@ std::vector<std::string> tie(
    const std::vector<std::string>& elements2,
    std::string_view suffix
 ) {
-   assert(elements1.size() == elements2.size());
+   ASSERT(elements1.size() == elements2.size());
    std::vector<std::string> output;
    output.reserve(elements1.size());
    for (size_t i = 0; i < elements1.size(); ++i) {

@@ -5,7 +5,8 @@
 #include <utility>
 
 #include <fmt/format.h>
-#include <cassert>
+
+#include "silo/common/panic.h"
 
 namespace silo {
 
@@ -52,7 +53,7 @@ void ZstdDecompressor::decompress(
          fmt::format("Error '{}' in dependency when decompressing using zstd", error_name)
       );
    }
-   assert(uncompressed_size == size_or_error_code);
+   ASSERT(uncompressed_size == size_or_error_code);
 }
 
 }  // namespace silo

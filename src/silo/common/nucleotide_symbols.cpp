@@ -1,6 +1,5 @@
 #include "silo/common/nucleotide_symbols.h"
-
-#include <cassert>
+#include "silo/common/panic.h"
 
 namespace silo {
 
@@ -39,8 +38,7 @@ char Nucleotide::symbolToChar(Nucleotide::Symbol symbol) {
       case Symbol::N:
          return 'N';
    }
-   assert(false);
-   return 'N';
+   UNREACHABLE();
 }
 
 std::optional<Nucleotide::Symbol> Nucleotide::charToSymbol(char character) {

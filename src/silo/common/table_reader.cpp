@@ -11,6 +11,7 @@
 #include <spdlog/spdlog.h>
 #include <duckdb.hpp>
 
+#include "silo/common/panic.h"
 #include "silo/preprocessing/identifier.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
@@ -38,7 +39,7 @@ silo::TableReader::TableReader(
 
 size_t silo::TableReader::read() {
    loadTable();
-   assert(query_result->ColumnCount() == column_functions.size() + 1);
+   ASSERT(query_result->ColumnCount() == column_functions.size() + 1);
    size_t current_start_of_chunk = 0;
    std::unique_ptr<duckdb::DataChunk> current_chunk = query_result->Fetch();
    while (current_chunk) {

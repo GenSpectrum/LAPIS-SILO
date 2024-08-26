@@ -16,6 +16,7 @@
 
 #include "silo/common/date.h"
 #include "silo/common/optional_bool.h"
+#include "silo/common/panic.h"
 #include "silo/common/string.h"
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/complement.h"
@@ -134,7 +135,7 @@ CompareToValueSelection<T>::CompareToValueSelection(
 
 template <typename T>
 bool CompareToValueSelection<T>::match(uint32_t row_id) const {
-   assert(column.size() > row_id);
+   ASSERT(column.size() > row_id);
    switch (comparator) {
       case Comparator::EQUALS:
          return column[row_id] == value;
@@ -156,7 +157,7 @@ bool CompareToValueSelection<T>::match(uint32_t row_id) const {
 
 template <>
 bool CompareToValueSelection<double>::match(uint32_t row_id) const {
-   assert(column.size() > row_id);
+   ASSERT(column.size() > row_id);
    switch (comparator) {
       case Comparator::EQUALS:
          if (std::isnan(value)) {
@@ -185,7 +186,7 @@ bool CompareToValueSelection<double>::match(uint32_t row_id) const {
 
 template <>
 bool CompareToValueSelection<silo::common::SiloString>::match(uint32_t row_id) const {
-   assert(column.size() > row_id);
+   ASSERT(column.size() > row_id);
    if (comparator == Comparator::EQUALS) {
       return column[row_id] == value;
    }
