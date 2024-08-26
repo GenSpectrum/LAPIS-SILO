@@ -1,6 +1,5 @@
 #include "silo/query_engine/actions/tuple.h"
 
-#include <cassert>
 #include <cmath>
 #include <compare>
 #include <cstring>
@@ -12,6 +11,7 @@
 
 #include "silo/common/date.h"
 #include "silo/common/optional_bool.h"
+#include "silo/common/panic.h"
 #include "silo/common/string.h"
 #include "silo/common/types.h"
 #include "silo/config/database_config.h"
@@ -291,7 +291,7 @@ Tuple& Tuple::operator=(const Tuple& other) {
    if (this == &other) {
       return *this;
    }
-   assert(this->data_size == other.data_size);
+   ASSERT(this->data_size == other.data_size);
    columns = other.columns;
    std::memcpy(this->data, other.data, data_size);
    return *this;

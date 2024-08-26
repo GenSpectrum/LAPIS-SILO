@@ -1,6 +1,5 @@
 #include "silo/common/aa_symbols.h"
-
-#include <cassert>
+#include "silo/common/panic.h"
 
 namespace silo {
 
@@ -57,8 +56,7 @@ char AminoAcid::symbolToChar(AminoAcid::Symbol symbol) {
       case AminoAcid::Symbol::STOP:
          return '*';
    }
-   assert(false);
-   return 'X';
+   UNREACHABLE();
 }
 
 std::optional<AminoAcid::Symbol> AminoAcid::charToSymbol(char character) {

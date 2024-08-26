@@ -6,6 +6,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "silo/common/panic.h"
 #include "silo/common/string.h"
 #include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/operators/empty.h"
@@ -53,7 +54,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> StringEquals::compile(
          bitmap.value(), database_partition.sequence_count
       );
    }
-   assert(database_partition.columns.string_columns.contains(column_name));
+   ASSERT(database_partition.columns.string_columns.contains(column_name));
    const auto& string_column = database_partition.columns.string_columns.at(column_name);
    const auto& embedded_string = string_column.embedString(value);
    if (embedded_string.has_value()) {

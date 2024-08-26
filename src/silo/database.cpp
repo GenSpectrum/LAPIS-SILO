@@ -38,6 +38,7 @@
 #include "silo/common/data_version.h"
 #include "silo/common/format_number.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/common/panic.h"
 #include "silo/config/database_config.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/database_info.h"
@@ -200,7 +201,7 @@ BitmapContainerSize& BitmapContainerSize::operator+=(const BitmapContainerSize& 
 
 BitmapSizePerSymbol& BitmapSizePerSymbol::operator+=(const BitmapSizePerSymbol& other) {
    for (const auto& symbol : Nucleotide::SYMBOLS) {
-      assert(size_in_bytes.contains(symbol));
+      ASSERT(size_in_bytes.contains(symbol));
       size_in_bytes.at(symbol) += other.size_in_bytes.at(symbol);
    }
    return *this;
@@ -224,7 +225,7 @@ BitmapSizePerSymbol Database::calculateBitmapSizePerSymbol(
 
       for (const SequenceStorePartition<SymbolType>& seq_store_partition : seq_store.partitions) {
          for (const auto& position : seq_store_partition.positions) {
-            assert(bitmap_size_per_symbol.size_in_bytes.contains(symbol));
+            ASSERT(bitmap_size_per_symbol.size_in_bytes.contains(symbol));
             bitmap_size_per_symbol.size_in_bytes[symbol] +=
                position.getBitmap(symbol)->getSizeInBytes();
          }
