@@ -5,6 +5,10 @@ export PATH := bin:$(PATH)
 
 all: build/siloApi build/silo_test
 
+clean:
+	find build -name "*.o" -print0 | xargs -0 rm -f
+	rm -f build/siloApi build/silo_test
+
 # Have separate targets for the binaries, but share a single build
 # (faster to build them both?); use `run-cached` to only actually run one
 # build, though.
@@ -50,4 +54,4 @@ runapi-ndjson: build/siloApi build/preprocessing-tsv.log
 	runapi-in testBaseData/exampleDatasetAsNdjson 8081
 
 
-.PHONY: all test runapi-tsv runapi-ndjson
+.PHONY: all clean test runapi-tsv runapi-ndjson
