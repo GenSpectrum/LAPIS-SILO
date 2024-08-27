@@ -13,11 +13,12 @@ using silo::test::QueryTestScenario;
 namespace {
 nlohmann::json createDataWithUnalignedSequences(
    const std::string& primaryKey,
+   const std::string& date,
    const nlohmann::json& segment1,
    const nlohmann::json& segment2
 ) {
    return {
-      {"metadata", {{"primaryKey", primaryKey}}},
+      {"metadata", {{"primaryKey", primaryKey}, {"date", date}}},
       {"alignedNucleotideSequences", {{"segment1", nullptr}, {"segment2", nullptr}}},
       {"unalignedNucleotideSequences", {{"segment1", segment1}, {"segment2", segment2}}},
       {"alignedAminoAcidSequences", {{"gene1", nullptr}, {"gene2", nullptr}}},
@@ -27,17 +28,23 @@ nlohmann::json createDataWithUnalignedSequences(
 }
 
 const std::vector<nlohmann::json> DATA = {
-   createDataWithUnalignedSequences("bothSegments", "A", "G"),
-   createDataWithUnalignedSequences("onlySegment1", "T", nullptr),
-   createDataWithUnalignedSequences("onlySegment2", nullptr, "T"),
-   createDataWithUnalignedSequences("noSegment", nullptr, nullptr)
+   createDataWithUnalignedSequences("bothSegments", "2024-08-01", "A", "G"),
+   createDataWithUnalignedSequences("onlySegment1", "2024-08-03", "T", nullptr),
+   createDataWithUnalignedSequences("onlySegment2", "2024-08-02", nullptr, "T"),
+   createDataWithUnalignedSequences("noSegment", "2024-08-08", nullptr, nullptr),
+   createDataWithUnalignedSequences("1", "2024-08-05", nullptr, "A"),
+   createDataWithUnalignedSequences("2", "2024-08-03", nullptr, nullptr),
+   createDataWithUnalignedSequences("3", "2024-08-02", nullptr, "AA")
 };
 
 const auto DATABASE_CONFIG = DatabaseConfig{
    .schema =
       {.instance_name = "dummy name",
-       .metadata = {{.name = "primaryKey", .type = ValueType::STRING}},
-       .primary_key = "primaryKey"}
+       .metadata =
+          {{.name = "primaryKey", .type = ValueType::STRING},
+           {.name = "date", .type = ValueType::DATE}},
+       .primary_key = "primaryKey",
+       .date_to_sort_by = "date"}
 };
 
 const auto REFERENCE_GENOMES = ReferenceGenomes{
@@ -91,6 +98,25 @@ const QueryTestScenario SEQUENCE_WITH_NO_SEGMENT_SCENARIO = {
       nlohmann::json({{{"primaryKey", "noSegment"}, {"segment1", nullptr}, {"segment2", nullptr}}})
 };
 
+const QueryTestScenario DOWNLOAD_ALL_SEQUENCES_SCENARIO = {
+   .name = "downloadAllSequences",
+   .query =
+      {{"action",
+        {{"type", "Fasta"},
+         {"orderByFields", {"primaryKey"}},
+         {"sequenceName", {"segment1", "segment2"}}}},
+       {"filterExpression", {{"type", "True"}}}},
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "1"}, {"segment1", nullptr}, {"segment2", "A"}},
+       {{"primaryKey", "2"}, {"segment1", nullptr}, {"segment2", nullptr}},
+       {{"primaryKey", "3"}, {"segment1", nullptr}, {"segment2", "AA"}},
+       {{"primaryKey", "bothSegments"}, {"segment1", "A"}, {"segment2", "G"}},
+       {{"primaryKey", "noSegment"}, {"segment1", nullptr}, {"segment2", nullptr}},
+       {{"primaryKey", "onlySegment1"}, {"segment1", "T"}, {"segment2", nullptr}},
+       {{"primaryKey", "onlySegment2"}, {"segment1", nullptr}, {"segment2", "T"}}}
+   )
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -100,6 +126,7 @@ QUERY_TEST(
       SEQUENCE_WITH_BOTH_SEGMENTS_SCENARIO,
       SEQUENCE_WITH_ONLY_FIRST_SEGMENT_SCENARIO,
       SEQUENCE_WITH_ONLY_SECOND_SEGMENT_SCENARIO,
-      SEQUENCE_WITH_NO_SEGMENT_SCENARIO
+      SEQUENCE_WITH_NO_SEGMENT_SCENARIO,
+      DOWNLOAD_ALL_SEQUENCES_SCENARIO
    )
 );
