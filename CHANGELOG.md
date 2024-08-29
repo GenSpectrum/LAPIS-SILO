@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.16](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.15...v0.2.16) (2024-08-29)
+
+
+### Bug Fixes
+
+* do not order keys and sequences differently, leading to wrong unaligned sequence results when dateToSortBy is set ([b0f8352](https://github.com/GenSpectrum/LAPIS-SILO/commit/b0f8352814594e6171217ebf4f869b41d51453a3))
+* do not return incorrect results when encountering a null value in the unaligned sequence action ([a69d117](https://github.com/GenSpectrum/LAPIS-SILO/commit/a69d117fdce2f8263d450b9646ab4432f09da304))
+* fix the RIGHT JOIN in preprocessing of unaligned sequences to contain the correct primary key ([a25d5d0](https://github.com/GenSpectrum/LAPIS-SILO/commit/a25d5d0527e5cb2571c1d94c73c7d5b8ebcee3b6))
+
 ## [0.2.15](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.14...v0.2.15) (2024-08-23)
 
 
