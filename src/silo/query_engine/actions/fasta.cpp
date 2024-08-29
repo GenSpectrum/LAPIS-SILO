@@ -104,6 +104,7 @@ void addSequencesFromResultTableToJson(
    const std::string& result_table_name,
    const std::vector<std::string>& sequence_names,
    const DatabasePartition& database_partition,
+   const std::string& primary_key_column,
    size_t num_result_rows
 ) {
    for (size_t sequence_idx = 0; sequence_idx < sequence_names.size(); sequence_idx++) {
@@ -128,6 +129,13 @@ void addSequencesFromResultTableToJson(
       const size_t end_of_partition_in_result = results.size();
       for (size_t idx = start_of_partition_in_result; idx < end_of_partition_in_result; idx++) {
          auto current_key = table_reader.next(genome_buffer);
+         if (!current_key.has_value()) {
+            throw std::runtime_error(
+               "Internal Error. The internal parquet file with compressed unaligned sequences does "
+               "not contain all the primary keys, that are matched by this query."
+            );
+         }
+         results.at(idx).fields.emplace(primary_key_column, current_key.value());
          if (genome_buffer.has_value()) {
             results.at(idx).fields.emplace(sequence_name, *genome_buffer);
          } else {
@@ -167,10 +175,7 @@ uint32_t addSequencesToResultsForPartition(
    );
    SPDLOG_TRACE("Created temporary duckdb table for holding keys");
 
-   // 2. Fill the DuckDB table `key_table_name`, as well as `results`
-   // (with fresh `QueryResultEntry` entries) with the primary keys
-   // (`results` entries are completed with genomes later in the next
-   // steps below).
+   // 2. Fill the DuckDB table `key_table_name` with the primary keys
    uint32_t last_row_id = 0;
    {
       duckdb::Appender appender(connection, key_table_name);
@@ -203,13 +208,6 @@ uint32_t addSequencesToResultsForPartition(
             appender.Append(duckdb::Value::BLOB(primary_key_string));
             appender.EndRow();
          }
-
-         // Add the primary key to the result
-         {
-            QueryResultEntry entry;
-            entry.fields.emplace(primary_key_column, primary_key.value());
-            results.emplace_back(std::move(entry));
-         }
       }
       appender.Close();
    }
@@ -230,7 +228,13 @@ uint32_t addSequencesToResultsForPartition(
 
    // 4. Fill the decompressed sequences into the `QueryResultEntry` entries in `result`
    addSequencesFromResultTableToJson(
-      results, connection, result_table_name, sequence_names, database_partition, num_result_rows
+      results,
+      connection,
+      result_table_name,
+      sequence_names,
+      database_partition,
+      primary_key_column,
+      num_result_rows
    );
 
    return last_row_id;
@@ -286,6 +290,7 @@ QueryResult Fasta::execute(const Database& database, std::vector<OperatorResult>
                const std::string& primary_key_column = database.database_config.schema.primary_key;
                const auto& database_partition = database.partitions[current_partition];
 
+               results.resize(result_row_indices.size());
                const uint32_t last_row_id = addSequencesToResultsForPartition(
                   sequence_names,
                   results,
@@ -294,8 +299,6 @@ QueryResult Fasta::execute(const Database& database, std::vector<OperatorResult>
                   primary_key_column,
                   result_row_indices.size()
                );
-
-               assert(results.size() == result_row_indices.size());
 
                *remaining_result_row_indices =
                   remaining_result_row_indices->skip(result_row_indices.size());
