@@ -245,7 +245,7 @@
     },
     {
       "gisaid_epi_isl": "EPI_ISL_2270139",
-      "testSecondSequence": "ACGT"
+      "testSecondSequence": "NNNN"
     },
     {
       "gisaid_epi_isl": "EPI_ISL_2307766",
@@ -257,7 +257,7 @@
     },
     {
       "gisaid_epi_isl": "EPI_ISL_2308054",
-      "testSecondSequence": "ACGT"
+      "testSecondSequence": "NNNN"
     },
     {
       "gisaid_epi_isl": "EPI_ISL_2359636",
@@ -341,7 +341,7 @@
     },
     {
       "gisaid_epi_isl": "EPI_ISL_3247294",
-      "testSecondSequence": "ACGT"
+      "testSecondSequence": "NNNN"
     },
     {
       "gisaid_epi_isl": "EPI_ISL_3259931",
