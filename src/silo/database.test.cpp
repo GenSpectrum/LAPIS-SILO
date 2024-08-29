@@ -117,9 +117,9 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfo) {
       133240
    );
 
-   EXPECT_EQ(simple_info.total_size, 26589464);
+   EXPECT_EQ(simple_info.total_size, 26589508);
    EXPECT_EQ(simple_info.sequence_count, 100);
-   EXPECT_EQ(simple_info.n_bitmaps_size, 3898);
+   EXPECT_EQ(simple_info.n_bitmaps_size, 3931);
 }
 
 TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {

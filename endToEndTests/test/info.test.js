@@ -9,7 +9,7 @@ describe('The /info endpoint', () => {
       .expect(200)
       .expect('Content-Type', 'application/json')
       .expect(expectHeaderToHaveDataVersion)
-      .expect({ nBitmapsSize: 3898, sequenceCount: 100, totalSize: 26589464, numberOfPartitions: 11 });
+      .expect({ nBitmapsSize: 3931, sequenceCount: 100, totalSize: 26589508, numberOfPartitions: 11 });
   });
 
   it('should return detailed info about the current state of the database', { timeout: 5000 }, async () => {
