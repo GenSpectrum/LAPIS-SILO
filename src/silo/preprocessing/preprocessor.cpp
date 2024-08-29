@@ -651,10 +651,10 @@ void Preprocessor::createPartitionedSequenceTablesFromSequenceFiles() {
       createUnalignedPartitionedSequenceFile(
          sequence_idx,
          fmt::format(
-            "SELECT unaligned_tmp.key AS key, unaligned_tmp.read AS sequence, "
+            "SELECT partitioned_metadata.{0} AS key, unaligned_tmp.read AS sequence, "
             "partitioned_metadata.partition_id AS partition_id "
             "FROM unaligned_tmp RIGHT JOIN partitioned_metadata "
-            "ON unaligned_tmp.key = partitioned_metadata.{} ",
+            "ON unaligned_tmp.key = partitioned_metadata.{0} ",
             Identifier::escapeIdentifier(database_config.schema.primary_key)
          )
       );
