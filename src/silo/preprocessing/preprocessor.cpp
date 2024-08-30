@@ -555,6 +555,24 @@ void Preprocessor::createUnalignedPartitionedSequenceFile(
    const std::filesystem::path save_location =
       preprocessing_config.getIntermediateResultsDirectory() /
       fmt::format("unaligned_nuc_{}", sequence_idx);
+   // duckdb OVERWRITE and OVERWRITE_OR_IGNORE is broken in the current version,
+   // therefore we manually delete the save_location directory in case it already exists
+   if (std::filesystem::exists(save_location)) {
+      if (!std::filesystem::is_directory(save_location)) {
+         const std::string error_message = fmt::format(
+            "The temp directory contains an erroneous file {}. Delete this file then rerun "
+            "preprocessing.",
+            save_location.string()
+         );
+         SPDLOG_ERROR("{}", error_message);
+         throw silo::preprocessing::PreprocessingException(error_message);
+      }
+      SPDLOG_INFO(
+         "Deleting old unaligned sequence files contained in the directory: {}",
+         save_location.string()
+      );
+      std::filesystem::remove_all(save_location);
+   }
    preprocessing_db.query(fmt::format(
       "COPY ({}) TO '{}' (FORMAT PARQUET, PARTITION_BY ({}), OVERWRITE_OR_IGNORE);",
       table_sql,
