@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.17](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.16...v0.2.17) (2024-08-30)
+
+
+### Bug Fixes
+
+* manually overwrite already existing unaligned sequence files in the temp folder ([f37fd88](https://github.com/GenSpectrum/LAPIS-SILO/commit/f37fd88dc36f0907e09881f6ca921c405a99cf43))
+  
+  * In case the unaligned sequence directory already existed in the temp folder when running preprocessing,
+  it is manually deleted. Before, this lead to a bug, as the currently used duckdb version does
+  not correctly overwrite the temp files and may leave duplicate entries
+  in the output. This is fixed in duckdb PR [#11787](https://github.com/duckdb/duckdb/pull/11787) 
+  which is included in release v0.10.3
+
 ## [0.2.16](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.15...v0.2.16) (2024-08-29)
 
 
