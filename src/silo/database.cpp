@@ -650,7 +650,7 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
          }
          return;
    }
-   abort();
+   UNREACHABLE();
 }
 
 void Database::initializeColumns() {

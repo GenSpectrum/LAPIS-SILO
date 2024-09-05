@@ -14,6 +14,7 @@
 #include "silo/common/date.h"
 #include "silo/common/json_value_type.h"
 #include "silo/common/optional_bool.h"
+#include "silo/common/panic.h"
 #include "silo/config/database_config.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
@@ -66,10 +67,7 @@ void ColumnPartitionGroup::addValueToColumn(
          float_columns.at(column_name).insert(value.ToString());
          return;
    }
-   SPDLOG_ERROR(
-      "Unknown column type '{}' for column '{}'", static_cast<int>(column_type), column_name
-   );
-   abort();
+   UNREACHABLE();
 }
 
 void ColumnPartitionGroup::addNullToColumn(const std::string& column_name, ColumnType column_type) {
@@ -96,10 +94,7 @@ void ColumnPartitionGroup::addNullToColumn(const std::string& column_name, Colum
          float_columns.at(column_name).insertNull();
          return;
    }
-   SPDLOG_ERROR(
-      "Unknown column type '{}' for column '{}'", static_cast<int>(column_type), column_name
-   );
-   abort();
+   UNREACHABLE();
 }
 
 void ColumnPartitionGroup::reserveSpaceInColumn(
@@ -130,10 +125,7 @@ void ColumnPartitionGroup::reserveSpaceInColumn(
          float_columns.at(column_name).reserve(row_count);
          return;
    }
-   SPDLOG_ERROR(
-      "Unknown column type '{}' for column '{}'", static_cast<int>(column_type), column_name
-   );
-   abort();
+   UNREACHABLE();
 }
 
 ColumnPartitionGroup ColumnPartitionGroup::getSubgroup(
@@ -172,7 +164,7 @@ ColumnPartitionGroup ColumnPartitionGroup::getSubgroup(
                result.float_columns.insert({item.name, float_columns.at(item.name)});
                return;
          }
-         abort();
+         UNREACHABLE();
       })();
    }
    return result;

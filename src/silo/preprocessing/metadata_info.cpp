@@ -4,6 +4,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <duckdb.hpp>
 
+#include "silo/common/panic.h"
 #include "silo/config/database_config.h"
 #include "silo/preprocessing/preprocessing_database.h"
 #include "silo/preprocessing/preprocessing_exception.h"
@@ -25,7 +26,7 @@ std::string toSQLType(ValueType value_type) {
       case ValueType::DATE:
          return "DATE";
    }
-   abort();
+   UNREACHABLE();
 }
 
 }  // namespace

@@ -2,6 +2,8 @@
 
 #include <cstdlib>
 
+#include "silo/common/panic.h"
+
 namespace silo::common {
 
 using optional_bool::Representation;
@@ -43,7 +45,7 @@ std::optional<bool> OptionalBool::value() const noexcept {
       case Representation::TRUE:
          return true;
    }
-   abort();
+   UNREACHABLE();
 }
 
 std::string_view OptionalBool::asStr() const noexcept {
@@ -55,7 +57,7 @@ std::string_view OptionalBool::asStr() const noexcept {
       case Representation::TRUE:
          return "true";
    }
-   abort();
+   UNREACHABLE();
 }
 
 }  // namespace silo::common
