@@ -53,4 +53,8 @@ namespace {
    panic("ASSERT failure: ", msg, file, line);
 }
 
+[[noreturn]] void debugAssertFailure(const char* msg, const char* file, int line) {
+   panic("DEBUG_ASSERT failure: ", msg, file, line);
+}
+
 }  // namespace silo::common

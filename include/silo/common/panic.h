@@ -45,7 +45,8 @@ namespace silo::common {
 
 /// Asserts that the expression `e` evaluates to true. On failure
 /// calls `panic` with the stringification of the code `e` and
-/// file/line information.
+/// file/line information. `ASSERT` is always compiled in; if
+/// performance overrides safety, use `DEBUG_ASSERT` instead.
 #define ASSERT(e)                                             \
    do {                                                       \
       if (!(e)) {                                             \
@@ -54,5 +55,37 @@ namespace silo::common {
    } while (0)
 
 [[noreturn]] void assertFailure(const char* msg, const char* file, int line);
+
+/// `DEBUG_ASSERT` is like `ASSERT`, but for cases where performance
+/// is more important than verification in production: instantiations
+/// are only active when compiling SILO in debug (via
+/// `CMakeLists.txt`; concretely, they are compiled to be active when
+/// the preprocessor variable `DEBUG_ASSERTIONS` is set to 1, and
+/// ignored if that variable is set to 0; if the variable is missing,
+/// a compilation warning is printed and `DEBUG_ASSERT` is ignored, if
+/// present with another value, a compilation error results. Note that
+/// `DEBUG_ASSERTIONS` must be set to 1 for debug builds or
+/// `DEBUG_ASSERT` won't even check the assertion in debug builds. The
+/// SILO `CMakeLists.txt` does set it up that way.)
+#ifndef DEBUG_ASSERTIONS
+#warning \
+   "DEBUG_ASSERTIONS is not set, should be 0 to ignore DEBUG_ASSERT, 1 to compile it in, assuming 0"
+#define DEBUG_ASSERT(e)
+#else                     // DEBUG_ASSERTIONS is defined
+#if DEBUG_ASSERTIONS == 0 /* never */
+#define DEBUG_ASSERT(e)
+#elif DEBUG_ASSERTIONS == 1 /* always */
+#define DEBUG_ASSERT(e)                                            \
+   do {                                                            \
+      if (!(e)) {                                                  \
+         silo::common::debugAssertFailure(#e, __FILE__, __LINE__); \
+      }                                                            \
+   } while (0)
+#else
+#error "DEBUG_ASSERTIONS should be 0 to ignore DEBUG_ASSERT, 1 to compile it in"
+#endif
+#endif
+
+[[noreturn]] void debugAssertFailure(const char* msg, const char* file, int line);
 
 }  // namespace silo::common

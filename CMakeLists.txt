@@ -8,13 +8,13 @@ endif ()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 set(CMAKE_CXX_FLAGS "-Wall")
-set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address -D DEBUG_ASSERTIONS=1")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D DEBUG_ASSERTIONS=0")
 
 # Work-around only for MacOS
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set(CMAKE_CXX_FLAGS_DEBUG "-g")
-    set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+    set(CMAKE_CXX_FLAGS_DEBUG "-g -D DEBUG_ASSERTIONS=1")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D DEBUG_ASSERTIONS=0")
 endif ()
 
 set(CMAKE_CXX_STANDARD 20)
