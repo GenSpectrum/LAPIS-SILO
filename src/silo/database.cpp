@@ -141,6 +141,43 @@ DatabaseInfo Database::getDatabaseInfo() const {
       }
    );
 
+   SymbolMap<Nucleotide, int> counts;
+
+   for (const auto& symbol: Nucleotide::SYMBOLS) {
+      counts[symbol] = 0;
+   }
+
+   SymbolMap<Nucleotide, int> flipped_counts;
+
+   for (const auto& symbol: Nucleotide::SYMBOLS) {
+      flipped_counts[symbol] = 0;
+   }
+
+
+   for (const auto& partition : partitions) {
+      for (const auto& [_, seq_store] : partition.nuc_sequences) {
+         for (const auto& position: seq_store.positions) {
+            if (position.getDeletedSymbol().has_value()) {
+               counts[position.getDeletedSymbol().value()]++;
+            }
+            for (const auto& symbol: Nucleotide::SYMBOLS) {
+               if (static_cast<double>((position.getBitmap(symbol)->cardinality())) / sequence_count > 0.01) {
+                  flipped_counts[symbol]++;
+               }
+            }
+         }
+      }
+   }
+
+   for (const auto& symbol: Nucleotide::SYMBOLS) {
+      SPDLOG_DEBUG(
+         "Number of positions with '{}' deleted: {}, flipped: {}",
+         Nucleotide::symbolToChar(symbol),
+         counts[symbol],
+         flipped_counts[symbol]
+      );
+   }
+
    return DatabaseInfo{
       .sequence_count = sequence_count,
       .total_size = total_size,

@@ -148,7 +148,11 @@ void silo::SequenceStorePartition<SymbolType>::fillIndexes(const std::vector<Rea
             const size_t number_of_sequences = reads.size();
             for (size_t sequence_id = 0; sequence_id < number_of_sequences; ++sequence_id) {
                const auto& [is_valid, sequence, offset] = reads[sequence_id];
-               if (!is_valid || position_idx < offset || position_idx - offset >= sequence.size()) {
+               if(!is_valid){
+                  continue;
+               }
+               if (position_idx < offset || position_idx - offset >= sequence.size()) {
+                  ids_per_symbol_for_current_position[SymbolType::SYMBOL_MISSING].push_back(sequence_count + sequence_id);
                   continue;
                }
                const char character = sequence[position_idx - offset];
@@ -240,11 +244,22 @@ void silo::SequenceStorePartition<SymbolType>::optimizeBitmaps() {
    tbb::parallel_for(tbb::blocked_range<uint32_t>(0, positions.size()), [&](const auto& local) {
       auto& local_index_changes = index_changes_to_reference.local();
       for (auto position_idx = local.begin(); position_idx != local.end(); ++position_idx) {
+         auto highest_symbol_result = positions[position_idx].getHighestCardinalitySymbol(sequence_count);
+         auto before_size = positions[position_idx].getBitmap(highest_symbol_result.value().first)->getSizeInBytes(false);
          auto symbol_changed = positions[position_idx].flipMostNumerousBitmap(sequence_count);
-         if (symbol_changed.has_value()) {
+         if (symbol_changed.has_value() && highest_symbol_result.has_value()) {
             local_index_changes.emplace_back(position_idx, *symbol_changed);
          }
-         auto highest_symbol_result = positions[position_idx].getHighestCardinalitySymbol(sequence_count);
+            SPDLOG_DEBUG(
+               "StorageTestPerIndex position/symbol/before_size/after_flip/logical_cardinality/total_after_size: {},{},{},{},{},{}",
+               position_idx,
+               SymbolType::symbolToChar(highest_symbol_result.value().first),
+               before_size,
+               positions[position_idx].getBitmap(symbol_changed.value())->getSizeInBytes(false),
+               highest_symbol_result.value().second,
+               positions[position_idx].computeSize()
+            );
+         highest_symbol_result = positions[position_idx].getHighestCardinalitySymbol(sequence_count);
          if (highest_symbol_result.has_value()) {
             const size_t logicalCardinality = highest_symbol_result.value().second;
             symbol_changed = positions[position_idx].deleteMostNumerousBitmap(sequence_count);

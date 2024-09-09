@@ -16,7 +16,7 @@ silo::Position<SymbolType> silo::Position<SymbolType>::fromInitiallyFlipped(
    typename SymbolType::Symbol symbol
 ) {
    silo::Position<SymbolType> position;
-   position.symbol_whose_bitmap_is_flipped = symbol;
+   //position.symbol_whose_bitmap_is_flipped = symbol;
    return position;
 }
 
@@ -73,6 +73,39 @@ std::optional<std::pair<typename SymbolType::Symbol, uint32_t>> silo::Position<S
 }
 
 template <typename SymbolType>
+std::optional<std::pair<typename SymbolType::Symbol, uint32_t>> silo::Position<SymbolType>::getHighestInformationSymbol(
+   uint32_t sequence_count
+) {
+   if (symbol_whose_bitmap_is_deleted.has_value()) {
+      throw std::runtime_error(fmt::format(
+         "Symbol '{}' is currently deleted. Cannot restore it implicitly and cannot calculate its "
+         "cardinality as we do not have information about missing symbols",
+         SymbolType::symbolToChar(*symbol_whose_bitmap_is_deleted)
+      ));
+   }
+
+   std::optional<typename SymbolType::Symbol> max_symbol = std::nullopt;
+   uint32_t max_count = 0;
+
+   for (const auto& symbol : SymbolType::SYMBOLS) {
+      roaring::Roaring& bitmap = bitmaps[symbol];
+      bitmap.runOptimize();
+      bitmap.shrinkToFit();
+      const uint32_t count = bitmap.getSizeInBytes();
+      if (count > max_count) {
+         max_symbol = symbol;
+         max_count = count;
+      }
+   }
+
+   if (max_count == 0) {
+      return std::nullopt;
+   }
+
+   return std::make_pair(max_symbol.value(), max_count);
+}
+
+template <typename SymbolType>
 std::optional<typename SymbolType::Symbol> silo::Position<SymbolType>::flipMostNumerousBitmap(
    uint32_t sequence_count
 ) {
@@ -103,6 +136,7 @@ std::optional<typename SymbolType::Symbol> silo::Position<SymbolType>::flipMostN
       symbol_whose_bitmap_is_flipped = symbol;
       return symbol_whose_bitmap_is_flipped;
    }
+
    return std::nullopt;
 }
 
