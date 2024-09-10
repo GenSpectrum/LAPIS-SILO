@@ -124,6 +124,10 @@ std::optional<typename SymbolType::Symbol> silo::Position<SymbolType>::flipMostN
 
    auto [symbol, cardinality] = max_symbol_result.value();
 
+   if (static_cast<double>(cardinality) / static_cast<double>(sequence_count) < 0.5) {
+      return std::nullopt;
+   }
+
    if (symbol != symbol_whose_bitmap_is_flipped) {
       if (symbol_whose_bitmap_is_flipped.has_value()) {
          bitmaps[*symbol_whose_bitmap_is_flipped].flip(0, sequence_count);
@@ -165,10 +169,10 @@ std::optional<typename SymbolType::Symbol> silo::Position<SymbolType>::deleteMos
 
    auto [symbol, cardinality] = max_symbol_result.value();
 
-   if (static_cast<double>(cardinality) < 0.5) {
-
-      return std::nullopt;
-   }
+//   if (static_cast<double>(cardinality) / static_cast<double>(sequence_count) < 0.5) {
+//
+//      return std::nullopt;
+//   }
 
    bitmaps[symbol] = roaring::Roaring();
    symbol_whose_bitmap_is_deleted = symbol;
