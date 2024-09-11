@@ -148,7 +148,7 @@ DatabaseInfo Database::getDatabaseInfo() const {
    }
 
    SymbolMap<Nucleotide, int> flipped_counts;
-   SymbolMap<Nucleotide, int> sizePerSymbol;
+   SymbolMap<Nucleotide, size_t> sizePerSymbol;
 
    for (const auto& symbol: Nucleotide::SYMBOLS) {
       flipped_counts[symbol] = 0;
