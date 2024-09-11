@@ -148,9 +148,11 @@ DatabaseInfo Database::getDatabaseInfo() const {
    }
 
    SymbolMap<Nucleotide, int> flipped_counts;
+   SymbolMap<Nucleotide, int> sizePerSymbol;
 
    for (const auto& symbol: Nucleotide::SYMBOLS) {
       flipped_counts[symbol] = 0;
+      sizePerSymbol[symbol] = 0;
    }
 
 
@@ -161,9 +163,10 @@ DatabaseInfo Database::getDatabaseInfo() const {
                counts[position.getDeletedSymbol().value()]++;
             }
             for (const auto& symbol: Nucleotide::SYMBOLS) {
-               if (static_cast<double>((position.getBitmap(symbol)->cardinality())) / sequence_count > 0.01) {
+               if (position.isSymbolFlipped(symbol)) {
                   flipped_counts[symbol]++;
                }
+               sizePerSymbol[symbol] += position.getBitmap(symbol)->getSizeInBytes(false);
             }
          }
       }
@@ -171,10 +174,11 @@ DatabaseInfo Database::getDatabaseInfo() const {
 
    for (const auto& symbol: Nucleotide::SYMBOLS) {
       SPDLOG_DEBUG(
-         "Number of positions with '{}' deleted: {}, flipped: {}",
+         "Number of positions with '{}' deleted: {}, flipped: {}, size: {}",
          Nucleotide::symbolToChar(symbol),
          counts[symbol],
-         flipped_counts[symbol]
+         flipped_counts[symbol],
+         sizePerSymbol[symbol]
       );
    }
 
