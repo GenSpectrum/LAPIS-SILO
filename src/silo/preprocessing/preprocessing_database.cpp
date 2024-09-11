@@ -40,7 +40,7 @@ PreprocessingDatabase::PreprocessingDatabase(
       connection(duck_db) {
    query("PRAGMA default_null_order='NULLS FIRST';");
    query("SET preserve_insertion_order=FALSE;");
-   query("SET memory_limit='50 GB';");
+   query("SET memory_limit='80 GB';");
    const Identifiers compress_nucleotide_function_identifiers =
       Identifiers{reference_genomes.getSequenceNames<Nucleotide>()}.prefix("compress_nuc_");
    const Identifiers compress_amino_acid_function_identifiers =
