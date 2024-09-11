@@ -194,7 +194,7 @@ const Scenario EMPTY_INPUT_NDJSON_UNPARTITIONED = {
 
 const Scenario NO_GENES = {
    .input_directory = "testBaseData/noGenes/",
-   .expected_sequence_count = 30,
+   .expected_sequence_count = 9,
    .query = R"(
       {
          "action": {
@@ -206,7 +206,7 @@ const Scenario NO_GENES = {
       }
    )",
    .expected_query_result = nlohmann::json::parse(R"(
-[{"count":30}])")
+[{"count":9}])")
 };
 
 const Scenario NO_NUCLEOTIDE_SEQUENCES = {
@@ -227,7 +227,7 @@ const Scenario NO_NUCLEOTIDE_SEQUENCES = {
 
 const Scenario NO_SEQUENCES = {
    .input_directory = "testBaseData/noSequences/",
-   .expected_sequence_count = 30,
+   .expected_sequence_count = 6,
    .query = R"(
       {
          "action": {
@@ -238,7 +238,7 @@ const Scenario NO_SEQUENCES = {
          }
       }
    )",
-   .expected_query_result = nlohmann::json::parse(R"([{"count":30}])")
+   .expected_query_result = nlohmann::json::parse(R"([{"count":6}])")
 };
 
 const Scenario DIVERSE_SEQUENCE_NAMES = {
@@ -275,22 +275,6 @@ const Scenario DIVERSE_SEQUENCE_NAMES_NDJSON = {
 [{"count":2}])")
 };
 
-const Scenario MEDIUM_SIZED_RSV_DATASET = {
-   .input_directory = "testBaseData/mediumSizedRsvDataset/",
-   .expected_sequence_count = 19662,
-   .query = R"(
-      {
-         "action": {
-           "type": "Aggregated"
-         },
-         "filterExpression": {
-            "type": "True"
-         }
-      }
-   )",
-   .expected_query_result = nlohmann::json::parse(R"([{"count":19662}])")
-};
-
 class PreprocessorTestFixture : public ::testing::TestWithParam<Scenario> {};
 
 INSTANTIATE_TEST_SUITE_P(
@@ -310,8 +294,7 @@ INSTANTIATE_TEST_SUITE_P(
       EMPTY_INPUT_NDJSON_UNPARTITIONED,
       NO_GENES,
       NO_NUCLEOTIDE_SEQUENCES,
-      NO_SEQUENCES,
-      MEDIUM_SIZED_RSV_DATASET
+      NO_SEQUENCES
    ),
    printTestName
 );

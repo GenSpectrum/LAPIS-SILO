@@ -16,10 +16,10 @@
 
 namespace {
 silo::Database buildTestDatabase() {
-   const std::string input_directory{"./testBaseData/exampleDataset/"};
+   const std::string input_directory{"./testBaseData/unitTestDummyDataset/"};
 
    silo::config::PreprocessingConfig config;
-   config.overwrite(silo::config::YamlFile("./testBaseData/test_preprocessing_config.yaml"));
+   config.overwrite(silo::config::YamlFile(input_directory + "preprocessing_config.yaml"));
 
    const auto database_config =
       silo::config::ConfigRepository().getValidatedConfig(input_directory + "database_config.yaml");
@@ -43,8 +43,8 @@ TEST(DatabaseTest, shouldBuildDatabaseWithoutErrors) {
    const auto simple_database_info = database.getDatabaseInfo();
 
    EXPECT_GT(simple_database_info.total_size, 0);
-   EXPECT_EQ(simple_database_info.sequence_count, 100);
-   EXPECT_EQ(simple_database_info.number_of_partitions, 11);
+   EXPECT_EQ(simple_database_info.sequence_count, 5);
+   EXPECT_EQ(simple_database_info.number_of_partitions, 2);
 }
 
 TEST(DatabaseTest, shouldSuccessfullyBuildDatabaseWithoutPartitionBy) {
@@ -83,10 +83,10 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfo) {
    const auto simple_info = database.getDatabaseInfo();
 
    EXPECT_EQ(
-      detailed_info.bitmap_size_per_symbol.size_in_bytes.at(silo::Nucleotide::Symbol::A), 2775910
+      detailed_info.bitmap_size_per_symbol.size_in_bytes.at(silo::Nucleotide::Symbol::A), 148
    );
    EXPECT_EQ(
-      detailed_info.bitmap_size_per_symbol.size_in_bytes.at(silo::Nucleotide::Symbol::GAP), 2661831
+      detailed_info.bitmap_size_per_symbol.size_in_bytes.at(silo::Nucleotide::Symbol::GAP), 128
    );
 
    EXPECT_EQ(
@@ -97,7 +97,7 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfo) {
    EXPECT_EQ(
       detailed_info.bitmap_container_size_per_genome_section.bitmap_container_size_statistic
          .number_of_values_stored_in_run_containers,
-      2875
+      0
    );
    EXPECT_EQ(
       detailed_info.bitmap_container_size_per_genome_section.bitmap_container_size_statistic
@@ -106,20 +106,18 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfo) {
    );
 
    EXPECT_EQ(
-      detailed_info.bitmap_container_size_per_genome_section.total_bitmap_size_computed, 42629964
+      detailed_info.bitmap_container_size_per_genome_section.total_bitmap_size_computed, 2108
    );
-   EXPECT_EQ(
-      detailed_info.bitmap_container_size_per_genome_section.total_bitmap_size_frozen, 21433248
-   );
+   EXPECT_EQ(detailed_info.bitmap_container_size_per_genome_section.total_bitmap_size_frozen, 1066);
    EXPECT_EQ(
       detailed_info.bitmap_container_size_per_genome_section.bitmap_container_size_statistic
          .total_bitmap_size_array_containers,
-      133240
+      12
    );
 
-   EXPECT_EQ(simple_info.total_size, 26589508);
-   EXPECT_EQ(simple_info.sequence_count, 100);
-   EXPECT_EQ(simple_info.n_bitmaps_size, 3931);
+   EXPECT_EQ(simple_info.total_size, 1956);
+   EXPECT_EQ(simple_info.sequence_count, 5);
+   EXPECT_EQ(simple_info.n_bitmaps_size, 62);
 }
 
 TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
@@ -141,7 +139,7 @@ TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
    const auto simple_database_info = database.getDatabaseInfo();
 
    EXPECT_GT(simple_database_info.total_size, 0);
-   EXPECT_EQ(simple_database_info.sequence_count, 100);
+   EXPECT_EQ(simple_database_info.sequence_count, 5);
    EXPECT_GT(simple_database_info.n_bitmaps_size, 0);
-   EXPECT_EQ(simple_database_info.number_of_partitions, 11);
+   EXPECT_EQ(simple_database_info.number_of_partitions, 2);
 }
