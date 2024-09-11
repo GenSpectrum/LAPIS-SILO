@@ -91,7 +91,7 @@ std::optional<std::pair<typename SymbolType::Symbol, uint32_t>> silo::Position<S
       roaring::Roaring& bitmap = bitmaps[symbol];
       bitmap.runOptimize();
       bitmap.shrinkToFit();
-      const uint32_t count = bitmap.getSizeInBytes();
+      const uint32_t count = bitmap.getSizeInBytes(false);
       if (count > max_count) {
          max_symbol = symbol;
          max_count = count;
