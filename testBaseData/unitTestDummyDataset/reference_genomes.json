@@ -1,0 +1,22 @@
+{
+  "nucleotideSequences": [
+    {
+      "name": "main",
+      "sequence": "ACGTACGT"
+    },
+    {
+      "name": "testSecondSequence",
+      "sequence": "ACGT"
+    }
+  ],
+  "genes": [
+    {
+      "name": "E",
+      "sequence": "MYSF*"
+    },
+    {
+      "name": "M",
+      "sequence": "MADS*"
+    }
+  ]
+}

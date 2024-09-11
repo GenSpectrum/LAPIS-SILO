@@ -2,24 +2,6 @@ schema:
   instanceName: RSV A
   opennessLevel: OPEN
   metadata:
-    - name: accession
-      type: string
-    - name: version
-      type: int
-    - name: submissionId
-      type: string
     - name: accessionVersion
       type: string
-    - name: isRevocation
-      type: boolean
-    - name: submitter
-      type: string
-      generateIndex: true
-    - name: groupId
-      type: int
-    - name: dataUseTermsUrl
-      type: string
-    - name: sample_collection_date
-      type: date
   primaryKey: accessionVersion
-  dateToSortBy: sample_collection_date
