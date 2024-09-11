@@ -70,21 +70,23 @@ namespace silo::common {
 #ifndef DEBUG_ASSERTIONS
 #warning \
    "DEBUG_ASSERTIONS is not set, should be 0 to ignore DEBUG_ASSERT, 1 to compile it in, assuming 0"
-#define DEBUG_ASSERT(e)
-#else                     // DEBUG_ASSERTIONS is defined
-#if DEBUG_ASSERTIONS == 0 /* never */
-#define DEBUG_ASSERT(e)
+#define DEBUG_ASSERTIONS 0
+#else
+#if DEBUG_ASSERTIONS == 0   /* never */
 #elif DEBUG_ASSERTIONS == 1 /* always */
-#define DEBUG_ASSERT(e)                                            \
-   do {                                                            \
-      if (!(e)) {                                                  \
-         silo::common::debugAssertFailure(#e, __FILE__, __LINE__); \
-      }                                                            \
-   } while (0)
 #else
 #error "DEBUG_ASSERTIONS should be 0 to ignore DEBUG_ASSERT, 1 to compile it in"
 #endif
 #endif
+
+#define DEBUG_ASSERT(e)                                               \
+   do {                                                               \
+      if (DEBUG_ASSERTIONS) {                                         \
+         if (!(e)) {                                                  \
+            silo::common::debugAssertFailure(#e, __FILE__, __LINE__); \
+         }                                                            \
+      }                                                               \
+   } while (0)
 
 [[noreturn]] void debugAssertFailure(const char* msg, const char* file, int line);
 
