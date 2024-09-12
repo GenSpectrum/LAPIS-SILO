@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.18](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.17...v0.2.18) (2024-09-12)
+
+
+### Features
+
+* do not abort on assertment failures ([4e5f598](https://github.com/GenSpectrum/LAPIS-SILO/commit/4e5f59879ce95c8925e15ca6df2f773d989e5c51))
+* panic: add `ASSERT`, `UNREACHABLE`, `UNIMPLEMENTED`, safer env var ([867d08f](https://github.com/GenSpectrum/LAPIS-SILO/commit/867d08f4f8b068617b2102edb1ddb36fa6c585fc))
+* update duckdb version ([577c1b2](https://github.com/GenSpectrum/LAPIS-SILO/commit/577c1b29d0dde43caf23227b518b7a1927e1f9be))
+
+
+### Bug Fixes
+
+* duplicate key in sample.ndjson ([c9b5232](https://github.com/GenSpectrum/LAPIS-SILO/commit/c9b523221a8a1ee20ce8830ce8105f2a248afd13))
+* increase duckdb memory limit to 80GB ([20131bb](https://github.com/GenSpectrum/LAPIS-SILO/commit/20131bbd294f1da3683a58e0fb7e58cc72649bd5))
+* order of randomized tests changed ([d29b2f2](https://github.com/GenSpectrum/LAPIS-SILO/commit/d29b2f267274db5708e857b22240c782a3fa2e80))
+
 ## [0.2.17](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.16...v0.2.17) (2024-08-30)
 
 
