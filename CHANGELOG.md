@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.19](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.18...v0.2.19) (2024-09-12)
+
+
+### Bug Fixes
+
+* preprocessing: validate that either a ndjson or tsv file was given as input ([#564](https://github.com/GenSpectrum/LAPIS-SILO/issues/564)) ([7bf2ef7](https://github.com/GenSpectrum/LAPIS-SILO/commit/7bf2ef7fafb63fe2938cf846385ddc087290ca3b))
+
 ## [0.2.18](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.17...v0.2.18) (2024-09-12)
 
 
