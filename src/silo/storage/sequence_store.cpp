@@ -250,15 +250,15 @@ void silo::SequenceStorePartition<SymbolType>::optimizeBitmaps() {
          if (symbol_changed.has_value() && highest_symbol_result.has_value()) {
             local_index_changes.emplace_back(position_idx, *symbol_changed);
          }
-            SPDLOG_DEBUG(
-               "StorageTestPerIndex position/symbol/before_size/after_flip/logical_cardinality/total_after_size: {},{},{},{},{},{}",
-               position_idx,
-               SymbolType::symbolToChar(highest_symbol_result.value().first),
-               before_size,
-               positions[position_idx].getBitmap(symbol_changed.value())->getSizeInBytes(false),
-               highest_symbol_result.value().second,
-               positions[position_idx].computeSize()
-            );
+//            SPDLOG_DEBUG(
+//               "StorageTestPerIndex position/symbol/before_size/after_flip/logical_cardinality/total_after_size: {},{},{},{},{},{}",
+//               position_idx,
+//               SymbolType::symbolToChar(highest_symbol_result.value().first),
+//               before_size,
+//               positions[position_idx].getBitmap(symbol_changed.value())->getSizeInBytes(false),
+//               highest_symbol_result.value().second,
+//               positions[position_idx].computeSize()
+//            );
          highest_symbol_result = positions[position_idx].getHighestCardinalitySymbol(sequence_count);
          if (highest_symbol_result.has_value()) {
             const size_t logicalCardinality = highest_symbol_result.value().second;
