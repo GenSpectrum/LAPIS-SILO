@@ -14,11 +14,19 @@ void PreprocessingConfig::validate() const {
    if (!std::filesystem::exists(input_directory)) {
       throw preprocessing::PreprocessingException(input_directory.string() + " does not exist");
    }
-   if (ndjson_input_filename.has_value() && metadata_file) {
+   if (ndjson_input_filename.has_value() && metadata_file.has_value()) {
       throw preprocessing::PreprocessingException(fmt::format(
          "Cannot specify both a ndjsonInputFilename ('{}') and metadataFilename('{}').",
          ndjson_input_filename.value().string(),
          metadata_file.value().string()
+      ));
+   }
+   if (!ndjson_input_filename.has_value() && !metadata_file.has_value()) {
+      throw preprocessing::PreprocessingException(fmt::format(
+         "Neither a ndjsonInputFilename ('{}') nor a metadataFilename ('{}') was specified as "
+         "preprocessing option.",
+         NDJSON_INPUT_FILENAME_OPTION.toCamelCase(),
+         METADATA_FILENAME_OPTION.toCamelCase()
       ));
    }
 }
@@ -211,7 +219,7 @@ void PreprocessingConfig::overwrite(const silo::config::AbstractConfigSource& co
       ctx.out(),
       "{{ input directory: '{}', pango_lineage_definition_file: {}, output_directory: '{}', "
       "metadata_file: '{}', reference_genome_file: '{}',  gene_file_prefix: '{}',  "
-      "nucleotide_sequence_file_prefix: '{}', unalgined_nucleotide_sequence_file_prefix: '{}', "
+      "nucleotide_sequence_file_prefix: '{}', unaligned_nucleotide_sequence_file_prefix: '{}', "
       "ndjson_filename: {}, "
       "preprocessing_database_location: {} }}",
       preprocessing_config.input_directory.string(),
