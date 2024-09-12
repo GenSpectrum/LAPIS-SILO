@@ -262,10 +262,10 @@ void silo::SequenceStorePartition<SymbolType>::optimizeBitmaps() {
          highest_symbol_result = positions[position_idx].getHighestCardinalitySymbol(sequence_count);
          if (highest_symbol_result.has_value()) {
             const size_t logicalCardinality = highest_symbol_result.value().second;
-            symbol_changed = positions[position_idx].deleteMostNumerousBitmap(sequence_count);
-            if (symbol_changed.has_value()) {
-               local_index_changes.emplace_back(position_idx, *symbol_changed);
-            }
+//            symbol_changed = positions[position_idx].deleteMostNumerousBitmap(sequence_count);
+//            if (symbol_changed.has_value()) {
+//               local_index_changes.emplace_back(position_idx, *symbol_changed);
+//            }
          }
       }
    });
