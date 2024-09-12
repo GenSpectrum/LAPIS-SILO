@@ -245,7 +245,7 @@ void silo::SequenceStorePartition<SymbolType>::optimizeBitmaps() {
       auto& local_index_changes = index_changes_to_reference.local();
       for (auto position_idx = local.begin(); position_idx != local.end(); ++position_idx) {
          auto highest_symbol_result = positions[position_idx].getHighestCardinalitySymbol(sequence_count);
-         auto before_size = positions[position_idx].getBitmap(highest_symbol_result.value().first)->getSizeInBytes(false);
+//         auto before_size = positions[position_idx].getBitmap(highest_symbol_result.value().first)->getSizeInBytes(false);
          auto symbol_changed = positions[position_idx].flipMostNumerousBitmap(sequence_count);
          if (symbol_changed.has_value() && highest_symbol_result.has_value()) {
             local_index_changes.emplace_back(position_idx, *symbol_changed);
