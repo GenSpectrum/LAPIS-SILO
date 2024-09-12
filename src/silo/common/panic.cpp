@@ -4,6 +4,8 @@
 #include <cstring>
 #include <iostream>
 
+#include <fmt/format.h>
+
 namespace silo::common {
 
 namespace {
@@ -51,6 +53,18 @@ namespace {
 
 [[noreturn]] void assertFailure(const char* msg, const char* file, int line) {
    panic("ASSERT failure: ", msg, file, line);
+}
+
+[[noreturn]] void assertOpFailure(
+   const char* prefix,
+   const char* e1_str,
+   const char* op_str,
+   const char* e2_str,
+   const std::string& values,
+   const char* file,
+   int line
+) {
+   panic(fmt::format("{} failure: {} {} {}: ", prefix, e1_str, op_str, e2_str), values, file, line);
 }
 
 [[noreturn]] void debugAssertFailure(const char* msg, const char* file, int line) {

@@ -56,6 +56,57 @@ namespace silo::common {
 
 [[noreturn]] void assertFailure(const char* msg, const char* file, int line);
 
+#define INTERNAL_ASSERT_OP_(prefix_str, e1, op, e2)                                       \
+   do {                                                                                   \
+      auto internal_assert_op__v1 = (e1);                                                 \
+      auto internal_assert_op__v2 = (e2);                                                 \
+      if (!(internal_assert_op__v1 op internal_assert_op__v2)) {                          \
+         silo::common::assertOpFailure(                                                   \
+            prefix_str,                                                                   \
+            #e1,                                                                          \
+            #op,                                                                          \
+            #e2,                                                                          \
+            fmt::format("{} " #op " {}", internal_assert_op__v1, internal_assert_op__v2), \
+            __FILE__,                                                                     \
+            __LINE__                                                                      \
+         );                                                                               \
+      }                                                                                   \
+   } while (0)
+
+#define ASSERT_OP_(partial_prefix, e1, op, e2) \
+   INTERNAL_ASSERT_OP_("ASSERT_" #partial_prefix, e1, op, e2)
+
+[[noreturn]] void assertOpFailure(
+   const char* prefix,
+   const char* e1_str,
+   const char* op_str,
+   const char* e2_str,
+   const std::string& values,
+   const char* file,
+   int line
+);
+
+/// Asserts that the two given expressions evaluate to the same
+/// value, compared via `==`. On failure calls `panic` with the stringification of the code and the
+/// two values passed through fmt::format, plus file/line information. Always compiled in, if
+/// performance overrides safety, use `DEBUG_ASSERT_EQ` instead.
+#define ASSERT_EQ(e1, e2) ASSERT_OP_(EQ, e1, ==, e2)
+
+/// Like ASSERT_EQ but asserts that `e1 <= e2`.
+#define ASSERT_LE(e1, e2) ASSERT_OP_(LE, e1, <=, e2)
+
+/// Like ASSERT_EQ but asserts that `e1 < e2`.
+#define ASSERT_LT(e1, e2) ASSERT_OP_(LT, e1, <, e2)
+
+/// Like ASSERT_EQ but asserts that `e1 >= e2`.
+#define ASSERT_GE(e1, e2) ASSERT_OP_(GE, e1, >=, e2)
+
+/// Like ASSERT_EQ but asserts that `e1 > e2`.
+#define ASSERT_GT(e1, e2) ASSERT_OP_(GT, e1, >, e2)
+
+/// Like ASSERT_EQ but asserts that `e1 != e2`.
+#define ASSERT_NE(e1, e2) ASSERT_OP_(NE, e1, !=, e2)
+
 /// `DEBUG_ASSERT` is like `ASSERT`, but for cases where performance
 /// is more important than verification in production: instantiations
 /// are only active when compiling SILO in debug (via
@@ -89,5 +140,31 @@ namespace silo::common {
    } while (0)
 
 [[noreturn]] void debugAssertFailure(const char* msg, const char* file, int line);
+
+#define DEBUG_ASSERT_OP_(partial_prefix, e1, op, e2)                       \
+   do {                                                                    \
+      if (DEBUG_ASSERTIONS) {                                              \
+         INTERNAL_ASSERT_OP_("DEBUG_ASSERT_" #partial_prefix, e1, op, e2); \
+      }                                                                    \
+   } while (0)
+
+/// Like `ASSERT_EQ`, but like `DEBUG_ASSERT`, for cases where
+/// performance is more important than verification in production.
+#define DEBUG_ASSERT_EQ(e1, e2) DEBUG_ASSERT_OP_(EQ, e1, ==, e2)
+
+/// Like DEBUG_ASSERT_EQ but asserts that `e1 <= e2`.
+#define DEBUG_ASSERT_LE(e1, e2) DEBUG_ASSERT_OP_(LE, e1, <=, e2)
+
+/// Like DEBUG_ASSERT_EQ but asserts that `e1 < e2`.
+#define DEBUG_ASSERT_LT(e1, e2) DEBUG_ASSERT_OP_(LT, e1, <, e2)
+
+/// Like DEBUG_ASSERT_EQ but asserts that `e1 >= e2`.
+#define DEBUG_ASSERT_GE(e1, e2) DEBUG_ASSERT_OP_(GE, e1, >=, e2)
+
+/// Like DEBUG_ASSERT_EQ but asserts that `e1 > e2`.
+#define DEBUG_ASSERT_GT(e1, e2) DEBUG_ASSERT_OP_(GT, e1, >, e2)
+
+/// Like DEBUG_ASSERT_EQ but asserts that `e1 != e2`.
+#define DEBUG_ASSERT_NE(e1, e2) DEBUG_ASSERT_OP_(NE, e1, !=, e2)
 
 }  // namespace silo::common
