@@ -18,7 +18,7 @@ COPY docker_runtime_config.yaml ./runtime_config.yaml
 COPY --from=builder /src/siloApi ./
 
 RUN apt update && apt dist-upgrade -y \
-    &&  apt install -y libtbb12 curl jq
+    &&  apt install -y libtbb12 curl jq zstd
 
 # call /info, extract "seqeunceCount" from the JSON and assert that the value is not 0. If any of those fails, "exit 1".
 HEALTHCHECK --start-period=20s CMD curl --fail --silent localhost:8081/info | jq .sequenceCount | xargs test 0 -ne || exit 1
