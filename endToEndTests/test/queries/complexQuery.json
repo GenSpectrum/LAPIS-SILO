@@ -100,7 +100,7 @@
               "column": "pango_lineage",
               "value": "B",
               "includeSublineages": true,
-              "type": "PangoLineage"
+              "type": "Lineage"
             }
           ],
           "type": "And"

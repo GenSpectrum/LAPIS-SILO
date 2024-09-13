@@ -45,7 +45,7 @@ const auto REFERENCE_GENOMES = ReferenceGenomes{
    {{"gene1", "*"}},
 };
 
-const QueryTestData TEST_DATA{
+QueryTestData TEST_DATA{
    .ndjson_input_data = {DATA},
    .database_config = DATABASE_CONFIG,
    .reference_genomes = REFERENCE_GENOMES

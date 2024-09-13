@@ -2,20 +2,22 @@
 
 #include <optional>
 
+#include "silo/preprocessing/lineage_definition_file.h"
 #include "silo/test/query_fixture.test.h"
 
 namespace {
-using silo::PangoLineageAliasLookup;
 using silo::ReferenceGenomes;
+using silo::common::LineageTreeAndIdMap;
 using silo::config::DatabaseConfig;
 using silo::config::ValueType;
+using silo::preprocessing::LineageDefinitionFile;
 using silo::test::QueryTestData;
 using silo::test::QueryTestScenario;
 
-const std::string SOME_BASE_PANGO_LINEAGE = "BASE.1";
-const std::string SOME_SUBLINEAGE = "CHILD.1";
+const std::string SOME_BASE_LINEAGE = "BASE.1";
+const std::string SOME_SUBLINEAGE = "CHILD";
 
-nlohmann::json createDataWithPangoLineageValue(const std::string& primaryKey, std::string value) {
+nlohmann::json createDataWithLineageValue(const std::string& primaryKey, std::string value) {
    return {
       {"metadata", {{"primaryKey", primaryKey}, {"pango_lineage", value}}},
       {"alignedNucleotideSequences", {{"segment1", nullptr}}},
@@ -26,7 +28,7 @@ nlohmann::json createDataWithPangoLineageValue(const std::string& primaryKey, st
    };
 }
 
-nlohmann::json createDataWithPangoLineageNullValue(const std::string& primaryKey) {
+nlohmann::json createDataWithLineageNullValue(const std::string& primaryKey) {
    return {
       {"metadata", {{"primaryKey", primaryKey}, {"pango_lineage", nullptr}}},
       {"alignedNucleotideSequences", {{"segment1", nullptr}}},
@@ -37,10 +39,10 @@ nlohmann::json createDataWithPangoLineageNullValue(const std::string& primaryKey
    };
 }
 const std::vector<nlohmann::json> DATA = {
-   createDataWithPangoLineageValue("id_0", SOME_BASE_PANGO_LINEAGE),
-   createDataWithPangoLineageValue("id_1", SOME_BASE_PANGO_LINEAGE),
-   createDataWithPangoLineageValue("id_2", SOME_SUBLINEAGE),
-   createDataWithPangoLineageNullValue("id_3")
+   createDataWithLineageValue("id_0", SOME_BASE_LINEAGE),
+   createDataWithLineageValue("id_1", SOME_BASE_LINEAGE),
+   createDataWithLineageValue("id_2", SOME_SUBLINEAGE),
+   createDataWithLineageNullValue("id_3")
 };
 
 const auto DATABASE_CONFIG = DatabaseConfig{
@@ -49,7 +51,10 @@ const auto DATABASE_CONFIG = DatabaseConfig{
       {.instance_name = "dummy name",
        .metadata =
           {{.name = "primaryKey", .type = ValueType::STRING},
-           {.name = "pango_lineage", .type = ValueType::PANGOLINEAGE, .generate_index = true}},
+           {.name = "pango_lineage",
+            .type = ValueType::STRING,
+            .generate_index = true,
+            .lineage_index = true}},
        .primary_key = "primaryKey"}
 };
 
@@ -58,66 +63,73 @@ const auto REFERENCE_GENOMES = ReferenceGenomes{
    {{"gene1", "*"}},
 };
 
-const auto ALIAS_LOOKUP = PangoLineageAliasLookup{{{"CHILD", {"BASE.1.1.1"}}}};
+const auto LINEAGE_TREE =
+   LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAML(R"(
+CHILD:
+  parents:
+  - BASE.1
+BASE.1:
+  parents: []
+)"));
 
 const QueryTestData TEST_DATA{
    .ndjson_input_data = {DATA},
    .database_config = DATABASE_CONFIG,
    .reference_genomes = REFERENCE_GENOMES,
-   .alias_lookup = ALIAS_LOOKUP
+   .lineage_tree = LINEAGE_TREE
 };
 
-nlohmann::json createPangoLineageQuery(const nlohmann::json value, bool include_sublineages) {
+nlohmann::json createLineageQuery(const nlohmann::json value, bool include_sublineages) {
    return {
       {"action", {{"type", "Details"}}},
       {"filterExpression",
-       {{"type", "PangoLineage"},
+       {{"type", "Lineage"},
         {"column", "pango_lineage"},
         {"value", value},
         {"includeSublineages", include_sublineages}}}
    };
 }
 
-const QueryTestScenario PANGO_LINEAGE_FILTER_SCENARIO = {
-   .name = "pangoLineageFilter",
-   .query = createPangoLineageQuery(SOME_BASE_PANGO_LINEAGE, false),
+const QueryTestScenario LINEAGE_FILTER_SCENARIO = {
+   .name = "lineageFilter",
+   .query = createLineageQuery(SOME_BASE_LINEAGE, false),
    .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_0"}, {"pango_lineage", SOME_BASE_PANGO_LINEAGE}},
-       {{"primaryKey", "id_1"}, {"pango_lineage", SOME_BASE_PANGO_LINEAGE}}}
+      {{{"primaryKey", "id_0"}, {"pango_lineage", SOME_BASE_LINEAGE}},
+       {{"primaryKey", "id_1"}, {"pango_lineage", SOME_BASE_LINEAGE}}}
    )
 };
 
-const QueryTestScenario PANGO_LINEAGE_FILTER_INCLUDING_SUBLINEAGES_SCENARIO = {
-   .name = "pangoLineageFilterIncludingSublineages",
-   .query = createPangoLineageQuery(SOME_BASE_PANGO_LINEAGE, true),
+const QueryTestScenario LINEAGE_FILTER_INCLUDING_SUBLINEAGES_SCENARIO = {
+   .name = "lineageFilterIncludingSublineages",
+   .query = createLineageQuery(SOME_BASE_LINEAGE, true),
    .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_0"}, {"pango_lineage", SOME_BASE_PANGO_LINEAGE}},
-       {{"primaryKey", "id_1"}, {"pango_lineage", SOME_BASE_PANGO_LINEAGE}},
+      {{{"primaryKey", "id_0"}, {"pango_lineage", SOME_BASE_LINEAGE}},
+       {{"primaryKey", "id_1"}, {"pango_lineage", SOME_BASE_LINEAGE}},
        {{"primaryKey", "id_2"}, {"pango_lineage", SOME_SUBLINEAGE}}}
    )
 };
 
-const QueryTestScenario PANGO_LINEAGE_FILTER_NULL_SCENARIO = {
-   .name = "pangoLineageFilterNull",
-   .query = createPangoLineageQuery(nullptr, false),
+const QueryTestScenario LINEAGE_FILTER_NULL_SCENARIO = {
+   .name = "lineageFilterNull",
+   .query = createLineageQuery(nullptr, false),
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_3"}, {"pango_lineage", nullptr}}})
 };
 
-const QueryTestScenario PANGO_LINEAGE_FILTER_NULL_INCLUDING_SUBLINEAGES_SCENARIO = {
-   .name = "pangoLineageFilterNullIncludingSublineages",
-   .query = createPangoLineageQuery(nullptr, true),
+const QueryTestScenario LINEAGE_FILTER_NULL_INCLUDING_SUBLINEAGES_SCENARIO = {
+   .name = "lineageFilterNullIncludingSublineages",
+   .query = createLineageQuery(nullptr, true),
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_3"}, {"pango_lineage", nullptr}}})
 };
 
 }  // namespace
 
 QUERY_TEST(
-   PangoLineageFilterTest,
+   LineageFilterTest,
    TEST_DATA,
    ::testing::Values(
-      PANGO_LINEAGE_FILTER_SCENARIO,
-      PANGO_LINEAGE_FILTER_INCLUDING_SUBLINEAGES_SCENARIO,
-      PANGO_LINEAGE_FILTER_NULL_SCENARIO,
-      PANGO_LINEAGE_FILTER_NULL_INCLUDING_SUBLINEAGES_SCENARIO
+      LINEAGE_FILTER_SCENARIO,
+      LINEAGE_FILTER_INCLUDING_SUBLINEAGES_SCENARIO,
+      LINEAGE_FILTER_NULL_SCENARIO,
+      LINEAGE_FILTER_NULL_INCLUDING_SUBLINEAGES_SCENARIO
    )
 );
