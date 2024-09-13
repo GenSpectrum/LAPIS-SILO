@@ -47,10 +47,9 @@ std::optional<std::filesystem::path> PreprocessingConfig::getPreprocessingDataba
    return duckdb_memory_limit_in_g;
 }
 
-std::optional<std::filesystem::path> PreprocessingConfig::getPangoLineageDefinitionFilename(
-) const {
-   return pango_lineage_definition_file.has_value()
-             ? std::optional(input_directory / *pango_lineage_definition_file)
+std::optional<std::filesystem::path> PreprocessingConfig::getLineageDefinitionsFilename() const {
+   return lineage_definitions_file.has_value()
+             ? std::optional(input_directory / *lineage_definitions_file)
              : std::nullopt;
 }
 
@@ -142,14 +141,14 @@ void PreprocessingConfig::overwrite(const silo::config::AbstractConfigSource& co
       );
       duckdb_memory_limit_in_g = value;
    }
-   if (auto value = config.getString(PANGO_LINEAGE_DEFINITION_FILENAME_OPTION)) {
+   if (auto value = config.getString(LINEAGE_DEFINITIONS_FILENAME_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
-         PANGO_LINEAGE_DEFINITION_FILENAME_OPTION.toString(),
+         LINEAGE_DEFINITIONS_FILENAME_OPTION.toString(),
          config.configType(),
          *value
       );
-      pango_lineage_definition_file = *value;
+      lineage_definitions_file = *value;
    }
    if (auto value = config.getString(NDJSON_INPUT_FILENAME_OPTION)) {
       SPDLOG_DEBUG(
@@ -230,14 +229,13 @@ void PreprocessingConfig::overwrite(const silo::config::AbstractConfigSource& co
 ) -> decltype(ctx.out()) {
    return fmt::format_to(
       ctx.out(),
-      "{{ input directory: '{}', pango_lineage_definition_file: {}, output_directory: '{}', "
-      "metadata_file: '{}', reference_genome_file: '{}',  gene_file_prefix: '{}',  "
+      "{{ input directory: '{}', lineage_definitions_file: {}, output_directory: '{}', "
+      "metadata_file: {}, reference_genome_file: '{}',  gene_file_prefix: '{}',  "
       "nucleotide_sequence_file_prefix: '{}', unaligned_nucleotide_sequence_file_prefix: '{}', "
-      "ndjson_filename: {}, "
-      "preprocessing_database_location: {} }}",
+      "ndjson_filename: {}, preprocessing_database_location: {} }}",
       preprocessing_config.input_directory.string(),
-      preprocessing_config.pango_lineage_definition_file.has_value()
-         ? "'" + preprocessing_config.pango_lineage_definition_file->string() + "'"
+      preprocessing_config.lineage_definitions_file.has_value()
+         ? "'" + preprocessing_config.lineage_definitions_file->string() + "'"
          : "none",
       preprocessing_config.output_directory.string(),
       preprocessing_config.metadata_file.has_value()

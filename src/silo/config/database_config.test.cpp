@@ -16,7 +16,6 @@ using silo::config::ValueType;
 TEST(DatabaseMetadataType, shouldBeConvertableFromString) {
    ASSERT_TRUE(toDatabaseValueType("string") == ValueType::STRING);
    ASSERT_TRUE(toDatabaseValueType("date") == ValueType::DATE);
-   ASSERT_TRUE(toDatabaseValueType("pango_lineage") == ValueType::PANGOLINEAGE);
    ASSERT_THROW(toDatabaseValueType("unknown"), ConfigException);
 }
 
@@ -26,7 +25,7 @@ TEST(DatabaseConfig, shouldBuildDatabaseConfig) {
       .instance_name = "testInstanceName",
       .metadata =
          {
-            {.name = "metadata1", .type = ValueType::PANGOLINEAGE},
+            {.name = "metadata1", .type = ValueType::STRING},
             {.name = "metadata2", .type = ValueType::STRING},
             {.name = "metadata3", .type = ValueType::DATE},
          },
@@ -46,6 +45,7 @@ namespace {
 struct TestParameter {
    ValueType value_type;
    bool generate_index;
+   bool lineage_index;
    ColumnType expected_column_type;
 };
 
@@ -83,9 +83,10 @@ INSTANTIATE_TEST_SUITE_P(
          .expected_column_type = ColumnType::DATE
       },
       TestParameter{
-         .value_type = ValueType::PANGOLINEAGE,
+         .value_type = ValueType::STRING,
          .generate_index = true,
-         .expected_column_type = ColumnType::INDEXED_PANGOLINEAGE
+         .lineage_index = true,
+         .expected_column_type = ColumnType::INDEXED_STRING
       },
       TestParameter{
          .value_type = ValueType::INT,
@@ -127,11 +128,13 @@ TEST(DatabaseConfigReader, shouldReadConfigWithCorrectParameters) {
    ASSERT_EQ(config.schema.metadata[4].type, ValueType::STRING);
    ASSERT_EQ(config.schema.metadata[4].generate_index, true);
    ASSERT_EQ(config.schema.metadata[5].name, "pango_lineage");
-   ASSERT_EQ(config.schema.metadata[5].type, ValueType::PANGOLINEAGE);
+   ASSERT_EQ(config.schema.metadata[5].type, ValueType::STRING);
    ASSERT_EQ(config.schema.metadata[5].generate_index, true);
+   ASSERT_EQ(config.schema.metadata[5].lineage_index, true);
    ASSERT_EQ(config.schema.metadata[6].name, "division");
    ASSERT_EQ(config.schema.metadata[6].type, ValueType::STRING);
    ASSERT_EQ(config.schema.metadata[6].generate_index, true);
+   ASSERT_EQ(config.schema.metadata[6].lineage_index, false);
    ASSERT_EQ(config.schema.metadata[7].name, "age");
    ASSERT_EQ(config.schema.metadata[7].type, ValueType::INT);
    ASSERT_EQ(config.schema.metadata[7].generate_index, false);

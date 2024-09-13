@@ -6,18 +6,7 @@
 #include <oneapi/tbb/enumerable_thread_specific.h>
 #include <oneapi/tbb/parallel_for.h>
 
-#include "silo/common/aa_symbols.h"
-#include "silo/common/nucleotide_symbols.h"
-#include "silo/preprocessing/partition.h"
 #include "silo/preprocessing/preprocessing_exception.h"
-#include "silo/storage/column/date_column.h"
-#include "silo/storage/column/float_column.h"
-#include "silo/storage/column/indexed_string_column.h"
-#include "silo/storage/column/int_column.h"
-#include "silo/storage/column/pango_lineage_column.h"
-#include "silo/storage/column/string_column.h"
-#include "silo/storage/column_group.h"
-#include "silo/storage/sequence_store.h"
 
 namespace silo {
 
@@ -105,7 +94,6 @@ void DatabasePartition::validateColumnsHaveSize(
 }
 
 void DatabasePartition::validateMetadataColumns() const {
-   validateColumnsHaveSize(columns.pango_lineage_columns, "pango_lineage_column");
    validateColumnsHaveSize(columns.date_columns, "date_column");
    validateColumnsHaveSize(columns.bool_columns, "bool_columns");
    validateColumnsHaveSize(columns.int_columns, "int_columns");
@@ -151,13 +139,6 @@ void DatabasePartition::insertColumn(
    storage::column::DateColumnPartition& column
 ) {
    columns.date_columns.insert({std::string(name), column});
-}
-
-void DatabasePartition::insertColumn(
-   const std::string& name,
-   storage::column::PangoLineageColumnPartition& column
-) {
-   columns.pango_lineage_columns.insert({std::string(name), column});
 }
 
 void DatabasePartition::insertColumn(

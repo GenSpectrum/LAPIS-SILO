@@ -106,15 +106,15 @@
     },
     {
       "count": 1,
+      "pango_lineage": "GL.1"
+    },
+    {
+      "count": 1,
       "pango_lineage": "P.1"
     },
     {
       "count": 3,
       "pango_lineage": "Q.7"
-    },
-    {
-      "count": 1,
-      "pango_lineage": "XA.1"
     }
   ]
 }

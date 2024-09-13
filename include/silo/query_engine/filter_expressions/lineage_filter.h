@@ -12,15 +12,15 @@
 
 namespace silo::query_engine::filter_expressions {
 
-class PangoLineageFilter : public Expression {
+class LineageFilter : public Expression {
    std::string column_name;
-   std::string lineage;
+   std::optional<std::string> lineage;
    bool include_sublineages;
 
   public:
-   explicit PangoLineageFilter(
+   explicit LineageFilter(
       std::string column_name,
-      std::string lineage_key,
+      std::optional<std::string> lineage,
       bool include_sublineages
    );
 
@@ -31,9 +31,14 @@ class PangoLineageFilter : public Expression {
       const DatabasePartition& database_partition,
       AmbiguityMode mode
    ) const override;
+
+  private:
+   std::optional<const roaring::Roaring*> getBitmapForValue(
+      const silo::storage::column::IndexedStringColumnPartition& lineage_column
+   ) const;
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<PangoLineageFilter>& filter);
+void from_json(const nlohmann::json& json, std::unique_ptr<LineageFilter>& filter);
 
 }  // namespace silo::query_engine::filter_expressions

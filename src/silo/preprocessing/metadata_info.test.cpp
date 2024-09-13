@@ -20,7 +20,7 @@ TEST(
             .metadata =
                {
                   {.name = "gisaid_epi_isl", .type = silo::config::ValueType::STRING},
-                  {.name = "notInMetadata", .type = silo::config::ValueType::PANGOLINEAGE},
+                  {.name = "notInMetadata", .type = silo::config::ValueType::STRING},
                   {.name = "country", .type = silo::config::ValueType::STRING},
                },
             .primary_key = "gisaid_epi_isl",

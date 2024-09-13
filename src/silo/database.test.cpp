@@ -27,11 +27,15 @@ silo::Database buildTestDatabase() {
    const auto reference_genomes =
       silo::ReferenceGenomes::readFromFile(config.getReferenceGenomeFilename());
 
-   const auto alias_lookup =
-      silo::PangoLineageAliasLookup::readFromFile(config.getPangoLineageDefinitionFilename());
+   silo::common::LineageTreeAndIDMap lineage_tree;
+   if (config.getLineageDefinitionsFilename().has_value()) {
+      lineage_tree = silo::common::LineageTreeAndIDMap::fromLineageDefinitionFilePath(
+         config.getLineageDefinitionsFilename().value()
+      );
+   }
 
    silo::preprocessing::Preprocessor preprocessor(
-      config, database_config, reference_genomes, alias_lookup
+      config, database_config, reference_genomes, std::move(lineage_tree)
    );
    return preprocessor.preprocess();
 }
@@ -60,11 +64,15 @@ TEST(DatabaseTest, shouldSuccessfullyBuildDatabaseWithoutPartitionBy) {
    const auto reference_genomes =
       silo::ReferenceGenomes::readFromFile(config.getReferenceGenomeFilename());
 
-   const auto alias_lookup =
-      silo::PangoLineageAliasLookup::readFromFile(config.getPangoLineageDefinitionFilename());
+   silo::common::LineageTreeAndIDMap lineage_tree;
+   if (config.getLineageDefinitionsFilename().has_value()) {
+      lineage_tree = silo::common::LineageTreeAndIDMap::fromLineageDefinitionFilePath(
+         config.getLineageDefinitionsFilename().value()
+      );
+   }
 
    silo::preprocessing::Preprocessor preprocessor(
-      config, database_config, reference_genomes, alias_lookup
+      config, database_config, reference_genomes, std::move(lineage_tree)
    );
    auto database = preprocessor.preprocess();
 

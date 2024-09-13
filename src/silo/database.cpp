@@ -37,6 +37,7 @@
 #include "silo/common/block_timer.h"
 #include "silo/common/data_version.h"
 #include "silo/common/format_number.h"
+#include "silo/common/lineage_tree.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/panic.h"
 #include "silo/config/database_config.h"
@@ -53,11 +54,9 @@
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
 #include "silo/storage/column/int_column.h"
-#include "silo/storage/column/pango_lineage_column.h"
 #include "silo/storage/column/string_column.h"
 #include "silo/storage/column_group.h"
 #include "silo/storage/database_partition.h"
-#include "silo/storage/pango_lineage_alias.h"
 #include "silo/storage/reference_genomes.h"
 #include "silo/storage/sequence_store.h"
 #include "silo/storage/serialize_optional.h"
@@ -411,10 +410,9 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
       versioned_save_directory / "database_config.yaml";
    database_config.writeConfig(database_config_filename);
 
-   std::ofstream alias_key_file =
-      openOutputFileOrThrow(versioned_save_directory / "alias_key.silo");
-   ::boost::archive::binary_oarchive alias_key_archive(alias_key_file);
-   alias_key_archive << alias_key;
+   std::ofstream lineage_file(versioned_save_directory / "lineage_definitions.silo");
+   boost::archive::binary_oarchive lineage_archive(lineage_file);
+   lineage_archive << lineage_tree;
 
    std::ofstream partitions_file =
       openOutputFileOrThrow(versioned_save_directory / "partitions.silo");
@@ -507,12 +505,14 @@ Database Database::loadDatabaseState(const std::filesystem::path& save_directory
    const auto database_config_filename = save_directory / "database_config.yaml";
    database.database_config =
       silo::config::DatabaseConfigReader().readConfig(database_config_filename);
-   database.intermediate_results_directory = save_directory;
+   database.unaligned_sequences_directory = save_directory;
 
-   SPDLOG_TRACE("Loading alias key from {}", (save_directory / "alias_key.silo").string());
-   std::ifstream alias_key_file = openInputFileOrThrow(save_directory / "alias_key.silo");
-   boost::archive::binary_iarchive alias_key_archive(alias_key_file);
-   alias_key_archive >> database.alias_key;
+   SPDLOG_TRACE(
+      "Loading lineage definitions from {}", (save_directory / "lineage_definitions.silo").string()
+   );
+   std::ifstream lineage_file = openInputFileOrThrow(save_directory / "lineage_definitions.silo");
+   boost::archive::binary_iarchive lineage_archive(lineage_file);
+   lineage_archive >> database.lineage_tree;
 
    SPDLOG_TRACE("Loading partitions from {}", (save_directory / "partitions.silo").string());
    std::ifstream partitions_file = openInputFileOrThrow(save_directory / "partitions.silo");
@@ -608,15 +608,6 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
          }
       }
          return;
-      case config::ColumnType::INDEXED_PANGOLINEAGE:
-         columns.pango_lineage_columns.emplace(
-            name, storage::column::PangoLineageColumn(alias_key)
-         );
-         for (auto& partition : partitions) {
-            partition.columns.metadata.push_back({name, column_type});
-            partition.insertColumn(name, columns.pango_lineage_columns.at(name).createPartition());
-         }
-         return;
       case config::ColumnType::DATE: {
          auto column = name == database_config.schema.date_to_sort_by
                           ? storage::column::DateColumn(true)
@@ -656,6 +647,10 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
 void Database::initializeColumns() {
    for (const auto& item : database_config.schema.metadata) {
       initializeColumn(item.getColumnType(), item.name);
+      if (item.lineage_index) {
+         ASSERT(columns.indexed_string_columns.contains(item.name));
+         columns.indexed_string_columns.at(item.name).generateLineageIndex(lineage_tree);
+      }
    }
 }
 
@@ -683,7 +678,7 @@ void Database::initializeNucSequences(
       const auto& sequence_name = sequence_names.at(sequence_idx);
       const auto& reference_sequence = reference_sequences.at(sequence_idx);
       const std::filesystem::path sequence_directory =
-         intermediate_results_directory / fmt::format("unaligned_nuc_{}", sequence_idx);
+         unaligned_sequences_directory / fmt::format("unaligned_nuc_{}", sequence_idx);
       std::filesystem::create_directory(sequence_directory);
       if (!std::filesystem::is_directory(sequence_directory)) {
          SPDLOG_TRACE(
