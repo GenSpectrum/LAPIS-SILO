@@ -17,11 +17,11 @@
 #include "silo/query_engine/filter_expressions/insertion_contains.h"
 #include "silo/query_engine/filter_expressions/int_between.h"
 #include "silo/query_engine/filter_expressions/int_equals.h"
+#include "silo/query_engine/filter_expressions/lineage_filter.h"
 #include "silo/query_engine/filter_expressions/maybe.h"
 #include "silo/query_engine/filter_expressions/negation.h"
 #include "silo/query_engine/filter_expressions/nof.h"
 #include "silo/query_engine/filter_expressions/or.h"
-#include "silo/query_engine/filter_expressions/pango_lineage_filter.h"
 #include "silo/query_engine/filter_expressions/string_equals.h"
 #include "silo/query_engine/filter_expressions/string_search.h"
 #include "silo/query_engine/filter_expressions/symbol_equals.h"
@@ -73,8 +73,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) 
       filter = json.get<std::unique_ptr<SymbolEquals<AminoAcid>>>();
    } else if (expression_type == "HasAminoAcidMutation") {
       filter = json.get<std::unique_ptr<HasMutation<AminoAcid>>>();
-   } else if (expression_type == "PangoLineage") {
-      filter = json.get<std::unique_ptr<PangoLineageFilter>>();
+   } else if (expression_type == "Lineage") {
+      filter = json.get<std::unique_ptr<LineageFilter>>();
    } else if (expression_type == "StringEquals") {
       filter = json.get<std::unique_ptr<StringEquals>>();
    } else if (expression_type == "StringSearch") {

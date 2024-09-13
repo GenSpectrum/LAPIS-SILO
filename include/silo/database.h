@@ -9,6 +9,7 @@
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/data_version.h"
+#include "silo/common/lineage_tree.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/config/database_config.h"
 #include "silo/config/preprocessing_config.h"
@@ -17,7 +18,6 @@
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/column_group.h"
 #include "silo/storage/database_partition.h"
-#include "silo/storage/pango_lineage_alias.h"
 #include "silo/storage/reference_genomes.h"
 #include "silo/storage/sequence_store.h"
 #include "silo/storage/unaligned_sequence_store.h"
@@ -25,7 +25,6 @@
 namespace silo::preprocessing {
 // Forward declaration for friend class access. Include would introduce cyclic dependency
 class Preprocessor;
-
 }  // namespace silo::preprocessing
 
 namespace silo {
@@ -36,7 +35,7 @@ class Database {
   public:
    silo::config::DatabaseConfig database_config;
    std::vector<DatabasePartition> partitions;
-   std::filesystem::path intermediate_results_directory;
+   std::filesystem::path unaligned_sequences_directory;
 
    silo::storage::ColumnGroup columns;
 
@@ -48,7 +47,7 @@ class Database {
    std::map<std::string, UnalignedSequenceStore> unaligned_nuc_sequences;
 
   private:
-   PangoLineageAliasLookup alias_key;
+   common::LineageTreeAndIDMap lineage_tree;
    DataVersion data_version_ = DataVersion::mineDataVersion();
 
   public:

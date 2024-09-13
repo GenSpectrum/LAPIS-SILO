@@ -26,22 +26,27 @@ std::map<std::string, ValueType> validateMetadataDefinitions(const DatabaseConfi
          throw ConfigException("Metadata " + metadata.name + " is defined twice in the config");
       }
 
-      const auto must_not_generate_index_on_type =
-         metadata.type != ValueType::STRING && metadata.type != ValueType::PANGOLINEAGE;
+      const auto must_not_generate_index_on_type = metadata.type != ValueType::STRING;
       if (metadata.generate_index && must_not_generate_index_on_type) {
          throw ConfigException(
             "Metadata '" + metadata.name +
-            "' generate_index is set, but generating an index is only allowed for types STRING and "
-            "PANGOLINEAGE"
+            "' generate_index is set, but generating an index is only allowed for types STRING"
          );
       }
 
-      const auto must_generate_index_on_type = metadata.type == ValueType::PANGOLINEAGE;
-      if (!metadata.generate_index && must_generate_index_on_type) {
+      const auto must_generate_index = metadata.lineage_index;
+      if (!metadata.generate_index && must_generate_index) {
          throw ConfigException(
             "Metadata '" + metadata.name +
-            "' generate_index is not set, but generating an index is mandatory for type "
-            "PANGOLINEAGE"
+            "' lineage_index is set, generate_index must also be set."
+         );
+      }
+
+      const auto must_be_string = metadata.lineage_index;
+      if (metadata.type != ValueType::STRING && must_be_string) {
+         throw ConfigException(
+            "Metadata '" + metadata.name +
+            "' lineage_index is set, but the column must be of type STRING."
          );
       }
 
@@ -80,11 +85,6 @@ void validatePartitionBy(
 
    if (metadata_map.find(partition_by) == metadata_map.end()) {
       throw ConfigException("partition_by '" + partition_by + "' is not in metadata");
-   }
-
-   const auto& partition_by_type = metadata_map[partition_by];
-   if (partition_by_type != ValueType::PANGOLINEAGE) {
-      throw ConfigException("partition_by '" + partition_by + "' must be of type PANGOLINEAGE");
    }
 }
 }  // namespace

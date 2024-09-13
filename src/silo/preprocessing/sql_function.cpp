@@ -2,7 +2,6 @@
 
 #include <spdlog/spdlog.h>
 
-#include "silo/common/pango_lineage.h"
 #include "silo/preprocessing/identifiers.h"
 #include "silo/storage/reference_genomes.h"
 #include "silo/zstd/zstd_compressor.h"

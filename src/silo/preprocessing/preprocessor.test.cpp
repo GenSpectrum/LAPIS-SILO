@@ -363,10 +363,9 @@ TEST_P(PreprocessorTestFixture, shouldProcessData) {
    const auto reference_genomes =
       silo::ReferenceGenomes::readFromFile(config.getReferenceGenomeFilename());
 
-   const auto alias_lookup =
-      silo::PangoLineageAliasLookup::readFromFile(config.getPangoLineageDefinitionFilename());
+   auto lineage_tree = silo::common::LineageTreeAndIDMap();
    silo::preprocessing::Preprocessor preprocessor(
-      config, database_config, reference_genomes, alias_lookup
+      config, database_config, reference_genomes, std::move(lineage_tree)
    );
    auto database = preprocessor.preprocess();
 

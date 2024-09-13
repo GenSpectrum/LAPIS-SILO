@@ -11,8 +11,8 @@
 
 namespace silo::config {
 
-enum class ValueType { STRING, PANGOLINEAGE, DATE, BOOL, INT, FLOAT };
-enum class ColumnType { STRING, INDEXED_STRING, INDEXED_PANGOLINEAGE, DATE, BOOL, INT, FLOAT };
+enum class ValueType { STRING, DATE, BOOL, INT, FLOAT };
+enum class ColumnType { STRING, INDEXED_STRING, DATE, BOOL, INT, FLOAT };
 
 ValueType toDatabaseValueType(std::string_view type);
 
@@ -21,6 +21,7 @@ class DatabaseMetadata {
    std::string name;
    ValueType type;
    bool generate_index;
+   bool lineage_index;
 
    [[nodiscard]] ColumnType getColumnType() const;
 };

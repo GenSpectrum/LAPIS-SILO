@@ -12,7 +12,9 @@ schema:
       type: string
       generateIndex: true
     - name: pangoLineage
-      type: pango_lineage
+      type: string
+      generateIndex: true
+      lineageIndex: true
     - name: division
       type: string
       generateIndex: true
