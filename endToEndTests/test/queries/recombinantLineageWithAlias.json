@@ -5,7 +5,7 @@
       "type": "Aggregated"
     },
     "filterExpression": {
-      "type": "PangoLineage",
+      "type": "Lineage",
       "column": "pango_lineage",
       "value": "GD",
       "includeSublineages": true

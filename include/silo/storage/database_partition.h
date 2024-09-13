@@ -14,7 +14,6 @@
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
 #include "silo/storage/column/int_column.h"
-#include "silo/storage/column/pango_lineage_column.h"
 #include "silo/storage/column/string_column.h"
 #include "silo/storage/column_group.h"
 #include "silo/storage/sequence_store.h"
@@ -89,7 +88,6 @@ class DatabasePartition {
    void insertColumn(const std::string& name, storage::column::BoolColumnPartition& column);
    void insertColumn(const std::string& name, storage::column::IntColumnPartition& column);
    void insertColumn(const std::string& name, storage::column::DateColumnPartition& column);
-   void insertColumn(const std::string& name, storage::column::PangoLineageColumnPartition& column);
    void insertColumn(const std::string& name, storage::column::FloatColumnPartition& column);
 
    template <typename SymbolType>

@@ -16,7 +16,7 @@
           "value": "Switzerland"
         },
         {
-          "type": "PangoLineage",
+          "type": "Lineage",
           "column": "pango_lineage",
           "value": "B.1.1.7",
           "includeSublineages": true

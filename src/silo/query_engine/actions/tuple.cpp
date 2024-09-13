@@ -35,40 +35,47 @@ void assignTupleField(
    const silo::storage::ColumnMetadata& metadata,
    const silo::storage::ColumnPartitionGroup& columns
 ) {
-   if (metadata.type == ColumnType::DATE) {
-      const Date value = columns.date_columns.at(metadata.name).getValues()[sequence_id];
-      *reinterpret_cast<Date*>(*data_pointer) = value;
-      *data_pointer += sizeof(decltype(value));
-   } else if (metadata.type == ColumnType::BOOL) {
-      const OptionalBool value = columns.bool_columns.at(metadata.name).getValues()[sequence_id];
-      *reinterpret_cast<OptionalBool*>(*data_pointer) = value;
-      *data_pointer += sizeof(decltype(value));
-   } else if (metadata.type == ColumnType::INT) {
-      const int32_t value = columns.int_columns.at(metadata.name).getValues()[sequence_id];
-      *reinterpret_cast<int32_t*>(*data_pointer) = value;
-      *data_pointer += sizeof(decltype(value));
-   } else if (metadata.type == ColumnType::FLOAT) {
-      const double value = columns.float_columns.at(metadata.name).getValues()[sequence_id];
-      *reinterpret_cast<double*>(*data_pointer) = value;
-      *data_pointer += sizeof(decltype(value));
-   } else if (metadata.type == ColumnType::STRING) {
-      const String<STRING_SIZE> value =
-         columns.string_columns.at(metadata.name).getValues()[sequence_id];
-      *reinterpret_cast<String<STRING_SIZE>*>(*data_pointer) = value;
-      *data_pointer += sizeof(decltype(value));
-   } else if (metadata.type == ColumnType::INDEXED_PANGOLINEAGE) {
-      const silo::Idx value =
-         columns.pango_lineage_columns.at(metadata.name).getValues()[sequence_id];
-      *reinterpret_cast<silo::Idx*>(*data_pointer) = value;
-      *data_pointer += sizeof(decltype(value));
-   } else if (metadata.type == ColumnType::INDEXED_STRING) {
-      const silo::Idx value =
-         columns.indexed_string_columns.at(metadata.name).getValues()[sequence_id];
-      *reinterpret_cast<silo::Idx*>(*data_pointer) = value;
-      *data_pointer += sizeof(decltype(value));
-   } else {
-      throw std::runtime_error("Unchecked column type of column " + metadata.name);
+   switch (metadata.type) {
+      case ColumnType::DATE: {
+         const Date value = columns.date_columns.at(metadata.name).getValues()[sequence_id];
+         *reinterpret_cast<Date*>(*data_pointer) = value;
+         *data_pointer += sizeof(decltype(value));
+         return;
+      }
+      case ColumnType::BOOL: {
+         const OptionalBool value = columns.bool_columns.at(metadata.name).getValues()[sequence_id];
+         *reinterpret_cast<OptionalBool*>(*data_pointer) = value;
+         *data_pointer += sizeof(decltype(value));
+         return;
+      }
+      case ColumnType::INT: {
+         const int32_t value = columns.int_columns.at(metadata.name).getValues()[sequence_id];
+         *reinterpret_cast<int32_t*>(*data_pointer) = value;
+         *data_pointer += sizeof(decltype(value));
+         return;
+      }
+      case ColumnType::FLOAT: {
+         const double value = columns.float_columns.at(metadata.name).getValues()[sequence_id];
+         *reinterpret_cast<double*>(*data_pointer) = value;
+         *data_pointer += sizeof(decltype(value));
+         return;
+      }
+      case ColumnType::STRING: {
+         const String<STRING_SIZE> value =
+            columns.string_columns.at(metadata.name).getValues()[sequence_id];
+         *reinterpret_cast<String<STRING_SIZE>*>(*data_pointer) = value;
+         *data_pointer += sizeof(decltype(value));
+         return;
+      }
+      case ColumnType::INDEXED_STRING: {
+         const silo::Idx value =
+            columns.indexed_string_columns.at(metadata.name).getValues()[sequence_id];
+         *reinterpret_cast<silo::Idx*>(*data_pointer) = value;
+         *data_pointer += sizeof(decltype(value));
+         return;
+      }
    }
+   UNREACHABLE();
 }
 
 silo::common::JsonValueType tupleFieldToValueType(
@@ -76,66 +83,58 @@ silo::common::JsonValueType tupleFieldToValueType(
    const silo::storage::ColumnMetadata& metadata,
    const silo::storage::ColumnPartitionGroup& columns
 ) {
-   if (metadata.type == ColumnType::DATE) {
-      const Date value = *reinterpret_cast<const Date*>(*data_pointer);
-      *data_pointer += sizeof(decltype(value));
-      return silo::common::dateToString(value);
-   }
-   if (metadata.type == ColumnType::BOOL) {
-      const OptionalBool value = *reinterpret_cast<const OptionalBool*>(*data_pointer);
-      *data_pointer += sizeof(decltype(value));
-      if (value.isNull()) {
-         return std::nullopt;
+   switch (metadata.type) {
+      case ColumnType::DATE: {
+         const Date value = *reinterpret_cast<const Date*>(*data_pointer);
+         *data_pointer += sizeof(decltype(value));
+         return silo::common::dateToString(value);
       }
-      return value.value();
-   }
-   if (metadata.type == ColumnType::INT) {
-      const int32_t value = *reinterpret_cast<const int32_t*>(*data_pointer);
-      *data_pointer += sizeof(decltype(value));
-      if (value == INT32_MIN) {
-         return std::nullopt;
+      case ColumnType::BOOL: {
+         const OptionalBool value = *reinterpret_cast<const OptionalBool*>(*data_pointer);
+         *data_pointer += sizeof(decltype(value));
+         if (value.isNull()) {
+            return std::nullopt;
+         }
+         return value.value();
       }
-      return value;
-   }
-   if (metadata.type == ColumnType::FLOAT) {
-      const double value = *reinterpret_cast<const double*>(*data_pointer);
-      *data_pointer += sizeof(decltype(value));
-      if (std::isnan(value)) {
-         return std::nullopt;
+      case ColumnType::INT: {
+         const int32_t value = *reinterpret_cast<const int32_t*>(*data_pointer);
+         *data_pointer += sizeof(decltype(value));
+         if (value == INT32_MIN) {
+            return std::nullopt;
+         }
+         return value;
       }
-      return value;
-   }
-   if (metadata.type == ColumnType::STRING) {
-      const String<STRING_SIZE> value =
-         *reinterpret_cast<const String<STRING_SIZE>*>(*data_pointer);
-      *data_pointer += sizeof(decltype(value));
-      std::string string_value = columns.string_columns.at(metadata.name).lookupValue(value);
-      if (string_value.empty()) {
-         return std::nullopt;
+      case ColumnType::FLOAT: {
+         const double value = *reinterpret_cast<const double*>(*data_pointer);
+         *data_pointer += sizeof(decltype(value));
+         if (std::isnan(value)) {
+            return std::nullopt;
+         }
+         return value;
       }
-      return std::move(string_value);
-   }
-   if (metadata.type == ColumnType::INDEXED_PANGOLINEAGE) {
-      const silo::Idx value = *reinterpret_cast<const silo::Idx*>(*data_pointer);
-      *data_pointer += sizeof(decltype(value));
-      std::string string_value =
-         columns.pango_lineage_columns.at(metadata.name).lookupAliasedValue(value).value;
-      if (string_value.empty()) {
-         return std::nullopt;
+      case ColumnType::STRING: {
+         const String<STRING_SIZE> value =
+            *reinterpret_cast<const String<STRING_SIZE>*>(*data_pointer);
+         *data_pointer += sizeof(decltype(value));
+         std::string string_value = columns.string_columns.at(metadata.name).lookupValue(value);
+         if (string_value.empty()) {
+            return std::nullopt;
+         }
+         return std::move(string_value);
       }
-      return std::move(string_value);
-   }
-   if (metadata.type == ColumnType::INDEXED_STRING) {
-      const silo::Idx value = *reinterpret_cast<const silo::Idx*>(*data_pointer);
-      *data_pointer += sizeof(decltype(value));
-      std::string string_value =
-         columns.indexed_string_columns.at(metadata.name).lookupValue(value);
-      if (string_value.empty()) {
-         return std::nullopt;
+      case ColumnType::INDEXED_STRING: {
+         const silo::Idx value = *reinterpret_cast<const silo::Idx*>(*data_pointer);
+         *data_pointer += sizeof(decltype(value));
+         std::string string_value =
+            columns.indexed_string_columns.at(metadata.name).lookupValue(value);
+         if (string_value.empty()) {
+            return std::nullopt;
+         }
+         return std::move(string_value);
       }
-      return std::move(string_value);
    }
-   throw std::runtime_error("Unchecked column type of column " + metadata.name);
+   UNREACHABLE();
 }
 
 std::strong_ordering compareDouble(double value1, double value2) {
@@ -175,94 +174,90 @@ std::strong_ordering compareTupleFields(
    const silo::storage::ColumnMetadata& metadata,
    const silo::storage::ColumnPartitionGroup& columns
 ) {
-   if (metadata.type == ColumnType::DATE) {
-      const Date value1 = *reinterpret_cast<const Date*>(*data_pointer1);
-      *data_pointer1 += sizeof(decltype(value1));
-      const Date value2 = *reinterpret_cast<const Date*>(*data_pointer2);
-      *data_pointer2 += sizeof(decltype(value2));
-      return value1 <=> value2;
-   }
-   if (metadata.type == ColumnType::BOOL) {
-      const OptionalBool value1 = *reinterpret_cast<const OptionalBool*>(*data_pointer1);
-      *data_pointer1 += sizeof(decltype(value1));
-      const OptionalBool value2 = *reinterpret_cast<const OptionalBool*>(*data_pointer2);
-      *data_pointer2 += sizeof(decltype(value2));
-      return value1 <=> value2;
-   }
-   if (metadata.type == ColumnType::INT) {
-      const int32_t value1 = *reinterpret_cast<const int32_t*>(*data_pointer1);
-      *data_pointer1 += sizeof(decltype(value1));
-      const int32_t value2 = *reinterpret_cast<const int32_t*>(*data_pointer2);
-      *data_pointer2 += sizeof(decltype(value2));
-      return value1 <=> value2;
-   }
-   if (metadata.type == ColumnType::FLOAT) {
-      const double value1 = *reinterpret_cast<const double*>(*data_pointer1);
-      *data_pointer1 += sizeof(decltype(value1));
-      const double value2 = *reinterpret_cast<const double*>(*data_pointer2);
-      *data_pointer2 += sizeof(decltype(value2));
-      return compareDouble(value1, value2);
-   }
-   if (metadata.type == ColumnType::STRING) {
-      const String<STRING_SIZE> value1 =
-         *reinterpret_cast<const String<STRING_SIZE>*>(*data_pointer1);
-      *data_pointer1 += sizeof(decltype(value1));
-      const String<STRING_SIZE> value2 =
-         *reinterpret_cast<const String<STRING_SIZE>*>(*data_pointer2);
-      *data_pointer2 += sizeof(decltype(value2));
-
-      auto fast_compare = value1.fastCompare(value2);
-      if (fast_compare) {
-         return fast_compare.value();
+   switch (metadata.type) {
+      case ColumnType::DATE: {
+         const Date value1 = *reinterpret_cast<const Date*>(*data_pointer1);
+         *data_pointer1 += sizeof(decltype(value1));
+         const Date value2 = *reinterpret_cast<const Date*>(*data_pointer2);
+         *data_pointer2 += sizeof(decltype(value2));
+         return value1 <=> value2;
       }
-      const std::string string_value1 =
-         columns.string_columns.at(metadata.name).lookupValue(value1);
-      const std::string string_value2 =
-         columns.string_columns.at(metadata.name).lookupValue(value2);
-      return compareString(string_value1, string_value2);
+      case ColumnType::BOOL: {
+         const OptionalBool value1 = *reinterpret_cast<const OptionalBool*>(*data_pointer1);
+         *data_pointer1 += sizeof(decltype(value1));
+         const OptionalBool value2 = *reinterpret_cast<const OptionalBool*>(*data_pointer2);
+         *data_pointer2 += sizeof(decltype(value2));
+         return value1 <=> value2;
+      }
+      case ColumnType::INT: {
+         const int32_t value1 = *reinterpret_cast<const int32_t*>(*data_pointer1);
+         *data_pointer1 += sizeof(decltype(value1));
+         const int32_t value2 = *reinterpret_cast<const int32_t*>(*data_pointer2);
+         *data_pointer2 += sizeof(decltype(value2));
+         return value1 <=> value2;
+      }
+      case ColumnType::FLOAT: {
+         const double value1 = *reinterpret_cast<const double*>(*data_pointer1);
+         *data_pointer1 += sizeof(decltype(value1));
+         const double value2 = *reinterpret_cast<const double*>(*data_pointer2);
+         *data_pointer2 += sizeof(decltype(value2));
+         return compareDouble(value1, value2);
+      }
+      case ColumnType::STRING: {
+         const String<STRING_SIZE> value1 =
+            *reinterpret_cast<const String<STRING_SIZE>*>(*data_pointer1);
+         *data_pointer1 += sizeof(decltype(value1));
+         const String<STRING_SIZE> value2 =
+            *reinterpret_cast<const String<STRING_SIZE>*>(*data_pointer2);
+         *data_pointer2 += sizeof(decltype(value2));
+
+         auto fast_compare = value1.fastCompare(value2);
+         if (fast_compare) {
+            return fast_compare.value();
+         }
+         const std::string string_value1 =
+            columns.string_columns.at(metadata.name).lookupValue(value1);
+         const std::string string_value2 =
+            columns.string_columns.at(metadata.name).lookupValue(value2);
+         return compareString(string_value1, string_value2);
+      }
+      case ColumnType::INDEXED_STRING: {
+         const silo::Idx value1 = *reinterpret_cast<const silo::Idx*>(*data_pointer1);
+         *data_pointer1 += sizeof(decltype(value1));
+         const std::string string_value1 =
+            columns.indexed_string_columns.at(metadata.name).lookupValue(value1);
+         const silo::Idx value2 = *reinterpret_cast<const silo::Idx*>(*data_pointer2);
+         *data_pointer2 += sizeof(decltype(value2));
+         const std::string string_value2 =
+            columns.indexed_string_columns.at(metadata.name).lookupValue(value2);
+         return compareString(string_value1, string_value2);
+      }
    }
-   if (metadata.type == ColumnType::INDEXED_PANGOLINEAGE) {
-      const silo::Idx value1 = *reinterpret_cast<const silo::Idx*>(*data_pointer1);
-      *data_pointer1 += sizeof(decltype(value1));
-      const std::string string_value1 =
-         columns.pango_lineage_columns.at(metadata.name).lookupAliasedValue(value1).value;
-      const silo::Idx value2 = *reinterpret_cast<const silo::Idx*>(*data_pointer2);
-      *data_pointer2 += sizeof(decltype(value2));
-      const std::string string_value2 =
-         columns.pango_lineage_columns.at(metadata.name).lookupAliasedValue(value2).value;
-      return compareString(string_value1, string_value2);
-   }
-   if (metadata.type == ColumnType::INDEXED_STRING) {
-      const silo::Idx value1 = *reinterpret_cast<const silo::Idx*>(*data_pointer1);
-      *data_pointer1 += sizeof(decltype(value1));
-      const std::string string_value1 =
-         columns.indexed_string_columns.at(metadata.name).lookupValue(value1);
-      const silo::Idx value2 = *reinterpret_cast<const silo::Idx*>(*data_pointer2);
-      *data_pointer2 += sizeof(decltype(value2));
-      const std::string string_value2 =
-         columns.indexed_string_columns.at(metadata.name).lookupValue(value2);
-      return compareString(string_value1, string_value2);
-   }
-   throw std::runtime_error("Unchecked column type of column " + metadata.name);
+   UNREACHABLE();
 }
 
 size_t getColumnSize(const silo::storage::ColumnMetadata& metadata) {
-   if (metadata.type == silo::config::ColumnType::STRING) {
-      return sizeof(silo::common::String<silo::common::STRING_SIZE>);
+   switch (metadata.type) {
+      case ColumnType::STRING: {
+         return sizeof(silo::common::String<silo::common::STRING_SIZE>);
+      }
+      case ColumnType::FLOAT: {
+         return sizeof(double);
+      }
+      case ColumnType::BOOL: {
+         return sizeof(OptionalBool);
+      }
+      case ColumnType::INT: {
+         return sizeof(int32_t);
+      }
+      case ColumnType::DATE: {
+         return sizeof(silo::common::Date);
+      }
+      case ColumnType::INDEXED_STRING: {
+         return sizeof(silo::Idx);
+      }
    }
-   if (metadata.type == silo::config::ColumnType::FLOAT) {
-      return sizeof(double);
-   }
-   if (metadata.type == silo::config::ColumnType::BOOL) {
-      return sizeof(OptionalBool);
-   }
-   if (metadata.type == silo::config::ColumnType::INT) {
-      return sizeof(int32_t);
-   }
-   if (metadata.type == silo::config::ColumnType::DATE) {
-      return sizeof(silo::common::Date);
-   }
-   return sizeof(silo::Idx);
+   UNREACHABLE();
 }
 
 }  // namespace

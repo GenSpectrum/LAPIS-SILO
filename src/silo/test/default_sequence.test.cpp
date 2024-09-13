@@ -50,7 +50,8 @@ const auto REFERENCE_GENOMES = ReferenceGenomes{
 const QueryTestData TEST_DATA{
    .ndjson_input_data = {DATA_DIFFERENT_FROM_REFERENCE, DATA_EQUALS_TO_REFERENCE},
    .database_config = DATABASE_CONFIG,
-   .reference_genomes = REFERENCE_GENOMES
+   .reference_genomes = REFERENCE_GENOMES,
+   .lineage_tree = silo::common::LineageTreeAndIdMap()
 };
 
 nlohmann::json createQueryWithFilter(const nlohmann::json filter) {

@@ -12,7 +12,8 @@ schema:
     - name: sex
       type: string
     - name: pangoLineage
-      type: pango_lineage
+      type: string
+      generateIndex: true
     - name: qc
       type: float
     - name: accession

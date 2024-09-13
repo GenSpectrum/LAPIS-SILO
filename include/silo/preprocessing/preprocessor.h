@@ -2,6 +2,7 @@
 
 #include <optional>
 
+#include "silo/common/lineage_tree.h"
 #include "silo/common/table_reader.h"
 #include "silo/config/database_config.h"
 #include "silo/config/preprocessing_config.h"
@@ -10,7 +11,6 @@
 #include "silo/preprocessing/identifiers.h"
 #include "silo/preprocessing/preprocessing_database.h"
 #include "silo/preprocessing/validated_ndjson_file.h"
-#include "silo/storage/pango_lineage_alias.h"
 #include "silo/storage/reference_genomes.h"
 #include "silo/storage/sequence_store.h"
 #include "silo/zstd/zstd_decompressor.h"
@@ -21,7 +21,7 @@ class Preprocessor {
    config::PreprocessingConfig preprocessing_config;
    config::DatabaseConfig database_config;
    ReferenceGenomes reference_genomes;
-   PangoLineageAliasLookup alias_lookup;
+   common::LineageTreeAndIdMap lineage_tree;
 
    PreprocessingDatabase preprocessing_db;
 
@@ -40,7 +40,7 @@ class Preprocessor {
       config::PreprocessingConfig preprocessing_config,
       config::DatabaseConfig database_config,
       ReferenceGenomes reference_genomes,
-      PangoLineageAliasLookup alias_lookup
+      common::LineageTreeAndIdMap lineage_definitions
    );
 
    Database preprocess();

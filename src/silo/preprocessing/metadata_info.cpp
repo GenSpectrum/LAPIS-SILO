@@ -17,7 +17,6 @@ std::string toSQLType(ValueType value_type) {
       case ValueType::INT:
          return "INT4";
       case ValueType::STRING:
-      case ValueType::PANGOLINEAGE:
          return "VARCHAR";
       case ValueType::FLOAT:
          return "FLOAT4";

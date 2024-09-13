@@ -20,7 +20,6 @@
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
 #include "silo/storage/column/int_column.h"
-#include "silo/storage/column/pango_lineage_column.h"
 #include "silo/storage/column/string_column.h"
 
 namespace silo::storage {
@@ -54,9 +53,6 @@ class ColumnPartitionGroup {
       for(auto& [name, store] : date_columns){
          archive & store;
       }
-      for(auto& [name, store] : pango_lineage_columns){
-         archive & store;
-      }
       // clang-format on
    }
 
@@ -69,7 +65,6 @@ class ColumnPartitionGroup {
    std::map<std::string, storage::column::IntColumnPartition&> int_columns;
    std::map<std::string, storage::column::FloatColumnPartition&> float_columns;
    std::map<std::string, storage::column::DateColumnPartition&> date_columns;
-   std::map<std::string, storage::column::PangoLineageColumnPartition&> pango_lineage_columns;
 
    void addValueToColumn(
       const std::string& column_name,
@@ -117,9 +112,6 @@ class ColumnGroup {
       for(auto& [_, store] : date_columns){
          archive & store;
       }
-      for(auto& [_, store] : pango_lineage_columns){
-         archive & store;
-      }
       // clang-format on
    }
 
@@ -132,7 +124,6 @@ class ColumnGroup {
    std::map<std::string, storage::column::IntColumn> int_columns;
    std::map<std::string, storage::column::FloatColumn> float_columns;
    std::map<std::string, storage::column::DateColumn> date_columns;
-   std::map<std::string, storage::column::PangoLineageColumn> pango_lineage_columns;
 };
 
 }  // namespace silo::storage

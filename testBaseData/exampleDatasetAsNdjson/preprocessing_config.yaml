@@ -1,4 +1,4 @@
 ndjsonInputFilename: "input_file.ndjson"
-pangoLineageDefinitionFilename: "pangolineage_alias.json"
+lineageDefinitionsFilename: "lineage_definitions.yaml"
 referenceGenomeFilename: "reference_genomes.json"
 duckdbMemoryLimitInG: 20

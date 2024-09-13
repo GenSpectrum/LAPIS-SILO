@@ -50,12 +50,12 @@ Preprocessor::Preprocessor(
    config::PreprocessingConfig preprocessing_config_,
    config::DatabaseConfig database_config_,
    ReferenceGenomes reference_genomes_,
-   PangoLineageAliasLookup alias_lookup
+   common::LineageTreeAndIdMap lineage_tree
 )
     : preprocessing_config(std::move(preprocessing_config_)),
       database_config(std::move(database_config_)),
       reference_genomes(std::move(reference_genomes_)),
-      alias_lookup(std::move(alias_lookup)),
+      lineage_tree(std::move(lineage_tree)),
       preprocessing_db(
          preprocessing_config.getPreprocessingDatabaseLocation(),
          reference_genomes,
@@ -255,11 +255,11 @@ std::string Preprocessor::getPartitionKeySelect() const {
 
 void Preprocessor::buildPartitioningTable() {
    if (database_config.schema.partition_by.has_value()) {
+      Identifier partition_by_field{database_config.schema.partition_by.value()};
       SPDLOG_DEBUG(
-         "preprocessing - partitioning input by metadata key '{}'",
-         database_config.schema.partition_by.value()
+         "preprocessing - partitioning input by metadata key {}", partition_by_field.escape()
       );
-      buildPartitioningTableByColumn(Identifier{database_config.schema.partition_by.value()});
+      buildPartitioningTableByColumn(partition_by_field);
    } else {
       SPDLOG_DEBUG("preprocessing - no metadata key for partitioning provided");
       buildEmptyPartitioning();
@@ -735,8 +735,8 @@ Database Preprocessor::buildDatabase(
 ) {
    Database database;
    database.database_config = database_config;
-   database.alias_key = alias_lookup;
-   database.intermediate_results_directory = intermediate_results_directory;
+   database.lineage_tree = std::move(lineage_tree);
+   database.unaligned_sequences_directory = intermediate_results_directory;
    const DataVersion& data_version = DataVersion::mineDataVersion();
    SPDLOG_INFO("preprocessing - mining data data_version: {}", data_version.toString());
    database.setDataVersion(data_version);

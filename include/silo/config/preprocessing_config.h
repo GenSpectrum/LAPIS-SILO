@@ -22,8 +22,8 @@ const AbstractConfigSource::Option PREPROCESSING_DATABASE_LOCATION_OPTION = {
    {"preprocessingDatabaseLocation"}
 };
 const AbstractConfigSource::Option DUCKDB_MEMORY_LIMIT_OPTION = {{"duckdbMemoryLimitInG"}};
-const AbstractConfigSource::Option PANGO_LINEAGE_DEFINITION_FILENAME_OPTION = {
-   {"pangoLineageDefinitionFilename"}
+const AbstractConfigSource::Option LINEAGE_DEFINITIONS_FILENAME_OPTION = {
+   {"lineageDefinitionsFilename"}
 };
 const AbstractConfigSource::Option NDJSON_INPUT_FILENAME_OPTION = {{"ndjsonInputFilename"}};
 const AbstractConfigSource::Option METADATA_FILENAME_OPTION = {{"metadataFilename"}};
@@ -38,7 +38,7 @@ const AbstractConfigSource::Option NUCLEOTIDE_INSERTIONS_OPTION = {{"nucleotideI
 };
 const AbstractConfigSource::Option AMINO_ACID_INSERTIONS_OPTION = {{"aminoAcidInsertionsFilename"}};
 
-static const std::string DEFAULT_OUTPUT_DIRECTORY = "./output/";
+const std::string DEFAULT_OUTPUT_DIRECTORY = "./output/";
 
 class PreprocessingConfig {
    friend class fmt::formatter<silo::config::PreprocessingConfig>;
@@ -49,7 +49,7 @@ class PreprocessingConfig {
    std::filesystem::path intermediate_results_directory = "./temp/";
    std::optional<std::filesystem::path> preprocessing_database_location;
    std::optional<uint32_t> duckdb_memory_limit_in_g;
-   std::optional<std::filesystem::path> pango_lineage_definition_file;
+   std::optional<std::filesystem::path> lineage_definitions_file;
    std::optional<std::filesystem::path> ndjson_input_filename;
    std::optional<std::filesystem::path> metadata_file;
    std::filesystem::path reference_genome_file = "reference_genomes.json";
@@ -65,7 +65,7 @@ class PreprocessingConfig {
 
    [[nodiscard]] std::filesystem::path getIntermediateResultsDirectory() const;
 
-   [[nodiscard]] std::optional<std::filesystem::path> getPangoLineageDefinitionFilename() const;
+   [[nodiscard]] std::optional<std::filesystem::path> getLineageDefinitionsFilename() const;
 
    [[nodiscard]] std::filesystem::path getReferenceGenomeFilename() const;
 
