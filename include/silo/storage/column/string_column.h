@@ -7,12 +7,10 @@
 #include <string>
 #include <vector>
 
+#include <boost/serialization/access.hpp>
+
 #include "silo/common/bidirectional_map.h"
 #include "silo/common/string.h"
-
-namespace boost::serialization {
-class access;
-}
 
 namespace silo::storage::column {
 

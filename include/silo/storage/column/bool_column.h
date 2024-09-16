@@ -5,11 +5,9 @@
 #include <string>
 #include <vector>
 
-#include "silo/common/optional_bool.h"
+#include <boost/serialization/access.hpp>
 
-namespace boost::serialization {
-struct access;
-}
+#include "silo/common/optional_bool.h"
 
 namespace silo::storage::column {
 

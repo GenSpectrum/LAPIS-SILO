@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <fmt/format.h>
+#include <boost/serialization/access.hpp>
 #include <duckdb/main/connection.hpp>
 #include <roaring/roaring.hh>
 
@@ -20,14 +21,7 @@
 #include "silo/storage/insertion_index.h"
 #include "silo/storage/position.h"
 
-namespace boost::serialization {
-class access;
-}  // namespace boost::serialization
-
 namespace silo {
-template <typename SymbolType>
-class Position;
-class ZstdTableReader;
 
 struct SequenceStoreInfo {
    uint32_t sequence_count;

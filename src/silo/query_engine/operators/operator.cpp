@@ -73,8 +73,4 @@ std::unique_ptr<Operator> Operator::negate(std::unique_ptr<Operator>&& some_oper
    UNREACHABLE();
 }
 
-std::optional<std::unique_ptr<filter_expressions::Expression>> Operator::logicalEquivalent() const {
-   return std::nullopt;
-}
-
 }  // namespace silo::query_engine::operators

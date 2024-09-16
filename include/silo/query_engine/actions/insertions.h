@@ -13,19 +13,11 @@
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_result.h"
-
-namespace silo {
-class Database;
-namespace storage {
-namespace insertion {
-template <typename SymbolType>
-class InsertionIndex;
-}  // namespace insertion
-}  // namespace storage
-}  // namespace silo
 
 namespace silo::query_engine::actions {
 

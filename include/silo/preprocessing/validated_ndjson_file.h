@@ -2,13 +2,8 @@
 
 #include <filesystem>
 
-namespace silo {
-class ReferenceGenomes;
-}
-
-namespace silo::config {
-class DatabaseConfig;
-}
+#include "silo/config/database_config.h"
+#include "silo/storage/reference_genomes.h"
 
 namespace silo::preprocessing {
 

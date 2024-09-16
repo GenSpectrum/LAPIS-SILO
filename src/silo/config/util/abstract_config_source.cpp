@@ -1,11 +1,10 @@
 #include "silo/config/util/abstract_config_source.h"
 
-#include <string>
-
-#include <fmt/format.h>
+#include <fmt/core.h>
 #include <spdlog/spdlog.h>
 #include <boost/algorithm/string/join.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/lexical_cast/bad_lexical_cast.hpp>
 
 #include "silo/config/util/config_exception.h"
 

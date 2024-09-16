@@ -15,10 +15,7 @@
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_parse_sequence_name.h"
-
-namespace silo {
-class DatabasePartition;
-}  // namespace silo
+#include "silo/storage/database_partition.h"
 
 namespace silo::query_engine::filter_expressions {
 

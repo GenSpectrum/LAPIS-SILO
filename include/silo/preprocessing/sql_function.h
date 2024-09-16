@@ -14,8 +14,6 @@
 
 namespace silo {
 
-class ZstdCompressor;
-
 class CustomSqlFunction {
   public:
    explicit CustomSqlFunction(preprocessing::Identifier function_name_);

@@ -4,11 +4,9 @@
 #include <deque>
 #include <vector>
 
-#include "silo/common/date.h"
+#include <boost/serialization/access.hpp>
 
-namespace boost::serialization {
-class access;
-}
+#include "silo/common/date.h"
 
 namespace silo::storage::column {
 

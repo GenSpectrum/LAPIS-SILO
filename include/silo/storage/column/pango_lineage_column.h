@@ -8,16 +8,13 @@
 #include <unordered_map>
 #include <vector>
 
+#include <boost/serialization/access.hpp>
 #include <roaring/roaring.hh>
 
 #include "silo/common/bidirectional_map.h"
 #include "silo/common/pango_lineage.h"
 #include "silo/common/types.h"
 #include "silo/storage/pango_lineage_alias.h"
-
-namespace boost::serialization {
-class access;
-}
 
 namespace silo::storage::column {
 

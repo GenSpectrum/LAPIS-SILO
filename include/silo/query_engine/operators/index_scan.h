@@ -4,14 +4,13 @@
 #include <memory>
 #include <string>
 
+#include <roaring/roaring.hh>
+
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/operator.h"
 
-namespace roaring {
-class Roaring;
-}  // namespace roaring
-
 namespace silo::query_engine::filter_expressions {
+// Forward declaration for friend class access. Include would introduce cyclic dependency
 class Expression;
 }  // namespace silo::query_engine::filter_expressions
 

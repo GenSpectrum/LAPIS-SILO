@@ -9,14 +9,11 @@
 #include <unordered_map>
 #include <vector>
 
+#include <boost/serialization/access.hpp>
 #include <roaring/roaring.hh>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
-
-namespace boost::serialization {
-class access;
-}  // namespace boost::serialization
 
 namespace silo::storage::insertion {
 

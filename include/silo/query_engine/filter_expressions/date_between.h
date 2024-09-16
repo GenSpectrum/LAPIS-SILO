@@ -8,27 +8,13 @@
 #include <nlohmann/json_fwd.hpp>
 
 #include "silo/common/date.h"
+#include "silo/database.h"
+#include "silo/preprocessing/partition.h"
 #include "silo/query_engine/filter_expressions/expression.h"
+#include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/operators/range_selection.h"
-
-namespace silo {
-class DatabasePartition;
-
-namespace query_engine {
-namespace operators {
-class Operator;
-}  // namespace operators
-}  // namespace query_engine
-class Database;
-}  // namespace silo
-
-namespace silo::storage::column {
-class DateColumnPartition;
-}
-
-namespace silo::preprocessing {
-struct PartitionChunk;
-}
+#include "silo/storage/column/date_column.h"
+#include "silo/storage/database_partition.h"
 
 namespace silo::query_engine::filter_expressions {
 

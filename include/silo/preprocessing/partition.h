@@ -10,14 +10,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "silo/common/pango_lineage.h"
-
-namespace boost::serialization {
-class access;
-}
-namespace silo::config {
-class DatabaseConfig;
-}
+#include <boost/serialization/access.hpp>
 
 namespace silo::preprocessing {
 

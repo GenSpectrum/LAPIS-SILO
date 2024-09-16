@@ -3,8 +3,11 @@
 #include <zstd.h>
 
 namespace silo {
-
+// Forward declaration for friend class access. Include would introduce cyclic dependency
 class ZstdCompressor;
+}  // namespace silo
+
+namespace silo {
 
 class ZstdCContext final {
    friend class ZstdCompressor;

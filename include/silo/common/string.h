@@ -8,13 +8,9 @@
 #include <optional>
 #include <string>
 
-namespace boost::serialization {
-class access;
-}  // namespace boost::serialization
-namespace silo::common {
-template <typename V>
-class BidirectionalMap;
-}  // namespace silo::common
+#include <boost/serialization/access.hpp>
+
+#include "silo/common/bidirectional_map.h"
 
 namespace silo::common {
 

@@ -11,19 +11,11 @@
 #include <nlohmann/json_fwd.hpp>
 
 #include "silo/common/symbol_map.h"
+#include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
+#include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_result.h"
-
-namespace silo {
-class Database;
-template <typename SymbolType>
-class SequenceStore;
-template <typename SymbolType>
-class SequenceStorePartition;
-}  // namespace silo
-namespace silo::query_engine {
-class OperatorResult;
-}  // namespace silo::query_engine
+#include "silo/storage/sequence_store.h"
 
 namespace silo::query_engine::actions {
 
