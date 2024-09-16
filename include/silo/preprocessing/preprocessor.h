@@ -5,20 +5,16 @@
 #include "silo/common/table_reader.h"
 #include "silo/config/database_config.h"
 #include "silo/config/preprocessing_config.h"
+#include "silo/database.h"
 #include "silo/preprocessing/identifiers.h"
 #include "silo/preprocessing/preprocessing_database.h"
+#include "silo/preprocessing/validated_ndjson_file.h"
 #include "silo/storage/pango_lineage_alias.h"
 #include "silo/storage/reference_genomes.h"
 #include "silo/storage/sequence_store.h"
 #include "silo/zstd/zstd_decompressor.h"
 
-namespace silo {
-class Database;
-
-namespace preprocessing {
-
-class SequenceInfo;
-class ValidatedNdjsonFile;
+namespace silo::preprocessing {
 
 class Preprocessor {
    config::PreprocessingConfig preprocessing_config;
@@ -117,5 +113,4 @@ class Preprocessor {
       const std::string& order_by_clause
    );
 };
-}  // namespace preprocessing
-}  // namespace silo
+}  // namespace silo::preprocessing

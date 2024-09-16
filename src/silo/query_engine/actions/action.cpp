@@ -12,6 +12,8 @@
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
+#include "silo/common/aa_symbols.h"
+#include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/actions/aggregated.h"
 #include "silo/query_engine/actions/details.h"
 #include "silo/query_engine/actions/fasta.h"
@@ -21,11 +23,6 @@
 #include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
-
-namespace silo {
-class AminoAcid;
-class Nucleotide;
-}  // namespace silo
 
 namespace silo::query_engine::actions {
 

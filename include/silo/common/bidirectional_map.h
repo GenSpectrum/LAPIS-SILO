@@ -7,12 +7,10 @@
 #include <unordered_map>
 #include <vector>
 
+#include <boost/serialization/access.hpp>
+
 #include "silo/common/pango_lineage.h"
 #include "silo/common/types.h"
-
-namespace boost::serialization {
-class access;
-}  // namespace boost::serialization
 
 namespace silo::common {
 

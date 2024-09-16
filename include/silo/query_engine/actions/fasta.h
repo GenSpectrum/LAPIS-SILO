@@ -6,16 +6,10 @@
 
 #include <nlohmann/json_fwd.hpp>
 
+#include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
+#include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/query_result.h"
-
-namespace silo {
-namespace query_engine {
-class OperatorResult;
-}  // namespace query_engine
-class Database;
-class DatabasePartition;
-}  // namespace silo
 
 namespace silo::query_engine::actions {
 

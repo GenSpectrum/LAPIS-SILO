@@ -9,18 +9,10 @@
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/database.h"
 #include "silo/query_engine/filter_expressions/expression.h"
-
-namespace silo {
-class Database;
-class DatabasePartition;
-
-namespace query_engine {
-namespace operators {
-class Operator;
-}  // namespace operators
-}  // namespace query_engine
-}  // namespace silo
+#include "silo/query_engine/operators/operator.h"
+#include "silo/storage/database_partition.h"
 
 namespace silo::query_engine::filter_expressions {
 

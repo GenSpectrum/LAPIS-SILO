@@ -10,20 +10,16 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/preprocessing/partition.h"
 #include "silo/preprocessing/preprocessing_exception.h"
+#include "silo/storage/column/date_column.h"
+#include "silo/storage/column/float_column.h"
+#include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/int_column.h"
+#include "silo/storage/column/pango_lineage_column.h"
+#include "silo/storage/column/string_column.h"
 #include "silo/storage/column_group.h"
 #include "silo/storage/sequence_store.h"
 
 namespace silo {
-namespace storage::column {
-class DateColumnPartition;
-class FloatColumnPartition;
-class IndexedStringColumnPartition;
-class IntColumnPartition;
-class PangoLineageColumnPartition;
-class StringColumnPartition;
-template <typename SymbolType>
-class InsertionColumnPartition;
-}  // namespace storage::column
 
 DatabasePartition::DatabasePartition(std::vector<silo::preprocessing::PartitionChunk> chunks)
     : chunks(std::move(chunks)) {}

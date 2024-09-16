@@ -8,9 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace boost::serialization {
-class access;
-}  // namespace boost::serialization
+#include <boost/serialization/access.hpp>
 
 namespace silo {
 

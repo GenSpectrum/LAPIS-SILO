@@ -3,11 +3,8 @@
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/Net/HTTPServerResponse.h>
 
+#include "silo_api/database_mutex.h"
 #include "silo_api/rest_resource.h"
-
-namespace silo_api {
-class DatabaseMutex;
-}
 
 namespace silo_api {
 class QueryHandler : public RestResource {

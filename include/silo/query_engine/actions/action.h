@@ -8,13 +8,9 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-namespace silo::query_engine {
-class OperatorResult;
-class QueryResult;
-}  // namespace silo::query_engine
-namespace silo {
-class Database;
-}
+#include "silo/database.h"
+#include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/query_result.h"
 
 namespace silo::query_engine::actions {
 

@@ -6,10 +6,7 @@
 #include <Poco/Timer.h>
 
 #include "silo/common/data_version.h"
-
-namespace silo_api {
-class DatabaseMutex;
-}
+#include "silo_api/database_mutex.h"
 
 namespace silo_api {
 

@@ -7,15 +7,13 @@
 
 #include <duckdb.hpp>
 
-namespace silo {
+#include "silo/preprocessing/partition.h"
+#include "silo/preprocessing/sql_function.h"
+#include "silo/storage/reference_genomes.h"
+#include "silo/zstd/zstd_compressor.h"
+#include "silo/zstd/zstd_table.h"
 
-class ZstdTable;
-class ReferenceGenomes;
-class CompressSequence;
-
-namespace preprocessing {
-
-class Partitions;
+namespace silo::preprocessing {
 
 class PreprocessingDatabase {
   public:
@@ -66,5 +64,4 @@ std::vector<std::string> extractStringListValue(
    size_t column
 );
 
-}  // namespace preprocessing
-}  // namespace silo
+}  // namespace silo::preprocessing

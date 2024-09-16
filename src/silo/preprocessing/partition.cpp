@@ -8,8 +8,6 @@
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
-#include "silo/common/pango_lineage.h"
-
 namespace silo::preprocessing {
 
 silo::preprocessing::Partition::Partition(std::vector<PartitionChunk>&& chunks_)

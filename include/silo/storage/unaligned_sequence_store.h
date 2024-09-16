@@ -5,12 +5,9 @@
 #include <filesystem>
 #include <string>
 
-namespace boost::serialization {
-class access;
-}  // namespace boost::serialization
+#include <boost/serialization/access.hpp>
 
 namespace silo {
-class ZstdTableReader;
 
 /// Holds information where to read unaligned sequences for a
 /// segment (= the sequence of a particular name) in one partition.

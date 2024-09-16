@@ -19,10 +19,6 @@
 using silo::common::add1;
 using silo::common::Range;
 
-namespace silo {
-class Database;
-}  // namespace silo
-
 namespace {
 
 std::unique_ptr<duckdb::MaterializedQueryResult> query(

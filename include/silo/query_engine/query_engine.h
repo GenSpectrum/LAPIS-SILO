@@ -2,9 +2,7 @@
 
 #include <string>
 
-namespace silo {
-class Database;
-}  // namespace silo
+#include "silo/database.h"
 
 namespace silo::query_engine {
 

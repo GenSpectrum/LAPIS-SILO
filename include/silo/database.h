@@ -11,27 +11,22 @@
 #include "silo/common/data_version.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/config/database_config.h"
+#include "silo/config/preprocessing_config.h"
+#include "silo/database_info.h"
+#include "silo/preprocessing/partition.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/column_group.h"
 #include "silo/storage/database_partition.h"
 #include "silo/storage/pango_lineage_alias.h"
+#include "silo/storage/reference_genomes.h"
 #include "silo/storage/sequence_store.h"
 #include "silo/storage/unaligned_sequence_store.h"
 
-namespace silo {
-class BitmapContainerSize;
-class BitmapSizePerSymbol;
-class DatabaseInfo;
-class DetailedDatabaseInfo;
-class ReferenceGenomes;
-}  // namespace silo
 namespace silo::preprocessing {
+// Forward declaration for friend class access. Include would introduce cyclic dependency
 class Preprocessor;
-class Partitions;
+
 }  // namespace silo::preprocessing
-namespace silo::config {
-class PreprocessingConfig;
-}
 
 namespace silo {
 

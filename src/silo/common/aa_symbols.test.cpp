@@ -1,5 +1,8 @@
 #include "silo/common/aa_symbols.h"
 
+#include <array>
+#include <optional>
+
 #include <gtest/gtest.h>
 
 TEST(AminoAcidSymbol, enumShouldHaveSameLengthAsArrayOfSymbols) {

@@ -4,19 +4,9 @@
 #include <string>
 #include <vector>
 
-#include <fmt/format.h>
+#include "silo/storage/reference_genomes.h"
 
-namespace duckdb {
-class Connection;
-}
-
-namespace silo {
-
-class ReferenceGenomes;
-
-namespace preprocessing {
-
-class PreprocessingDatabase;
+namespace silo::preprocessing {
 
 class SequenceInfo {
   public:
@@ -25,5 +15,4 @@ class SequenceInfo {
       const std::filesystem::path& input_filename
    );
 };
-}  // namespace preprocessing
-}  // namespace silo
+}  // namespace silo::preprocessing

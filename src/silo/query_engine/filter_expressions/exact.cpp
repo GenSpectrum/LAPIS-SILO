@@ -7,14 +7,11 @@
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
+#include "silo/database.h"
 #include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_parse_exception.h"
-
-namespace silo {
-class Database;
-class DatabasePartition;
-}  // namespace silo
+#include "silo/storage/database_partition.h"
 
 namespace silo::query_engine::filter_expressions {
 

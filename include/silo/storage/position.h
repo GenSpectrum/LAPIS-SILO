@@ -7,15 +7,12 @@
 #include <vector>
 
 #include <fmt/format.h>
+#include <boost/serialization/access.hpp>
 #include <roaring/roaring.hh>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/symbol_map.h"
-
-namespace boost::serialization {
-class access;
-}  // namespace boost::serialization
 
 namespace silo {
 

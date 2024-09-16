@@ -5,9 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace boost::serialization {
-class access;
-}
+#include <boost/serialization/access.hpp>
 
 namespace silo::storage::column {
 

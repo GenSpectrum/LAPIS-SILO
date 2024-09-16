@@ -6,10 +6,6 @@
 
 #include "silo/query_engine/operator_result.h"
 
-namespace silo::query_engine::filter_expressions {
-class Expression;
-}
-
 namespace silo::query_engine::operators {
 
 enum Type {
@@ -37,8 +33,6 @@ class Operator {
    virtual OperatorResult evaluate() const = 0;
 
    virtual std::string toString() const = 0;
-
-   virtual std::optional<std::unique_ptr<filter_expressions::Expression>> logicalEquivalent() const;
 
    static std::unique_ptr<Operator> negate(std::unique_ptr<Operator>&& some_operator);
 };

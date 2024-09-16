@@ -8,9 +8,13 @@
 #include <variant>
 #include <vector>
 
+#include <boost/serialization/access.hpp>
+#include <duckdb.hpp>
+
 #include "silo/common/aa_symbols.h"
 #include "silo/common/json_value_type.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/config/database_config.h"
 #include "silo/storage/column/bool_column.h"
 #include "silo/storage/column/date_column.h"
 #include "silo/storage/column/float_column.h"
@@ -18,20 +22,6 @@
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/column/pango_lineage_column.h"
 #include "silo/storage/column/string_column.h"
-
-namespace boost::serialization {
-class access;
-}  // namespace boost::serialization
-
-namespace duckdb {
-class Connection;
-class Value;
-}  // namespace duckdb
-
-namespace silo::config {
-class DatabaseConfig;
-enum class ColumnType;
-}  // namespace silo::config
 
 namespace silo::storage {
 

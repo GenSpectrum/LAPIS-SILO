@@ -9,6 +9,7 @@
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo::query_engine::filter_expressions {
+// Forward declaration for friend class access. Include would introduce cyclic dependency
 class Or;
 class NOf;
 }  // namespace silo::query_engine::filter_expressions

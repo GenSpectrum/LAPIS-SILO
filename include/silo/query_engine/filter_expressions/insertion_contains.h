@@ -8,15 +8,10 @@
 
 #include <nlohmann/json_fwd.hpp>
 
+#include "silo/database.h"
 #include "silo/query_engine/filter_expressions/expression.h"
-
-namespace silo {
-class Database;
-class DatabasePartition;
-namespace query_engine::operators {
-class Operator;
-}  // namespace query_engine::operators
-}  // namespace silo
+#include "silo/query_engine/operators/operator.h"
+#include "silo/storage/database_partition.h"
 
 namespace silo::query_engine::filter_expressions {
 

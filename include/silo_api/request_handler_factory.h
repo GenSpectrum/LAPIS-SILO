@@ -5,11 +5,8 @@
 #include <Poco/Net/HTTPServerRequest.h>
 
 #include "silo/config/runtime_config.h"
+#include "silo_api/database_mutex.h"
 #include "silo_api/error_request_handler.h"
-
-namespace silo_api {
-class DatabaseMutex;
-}  // namespace silo_api
 
 namespace silo_api {
 

@@ -5,32 +5,20 @@
 #include <string>
 #include <vector>
 
+#include <boost/serialization/access.hpp>
+
+#include "silo/common/aa_symbols.h"
+#include "silo/common/nucleotide_symbols.h"
 #include "silo/preprocessing/partition.h"
+#include "silo/storage/column/date_column.h"
+#include "silo/storage/column/float_column.h"
+#include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/int_column.h"
+#include "silo/storage/column/pango_lineage_column.h"
+#include "silo/storage/column/string_column.h"
 #include "silo/storage/column_group.h"
-
-namespace boost {
-namespace serialization {
-class access;
-}  // namespace serialization
-}  // namespace boost
-
-namespace silo {
-class AminoAcid;
-class Nucleotide;
-namespace storage::column {
-class DateColumnPartition;
-class FloatColumnPartition;
-class IndexedStringColumnPartition;
-class IntColumnPartition;
-class PangoLineageColumnPartition;
-class StringColumnPartition;
-template <typename SymbolType>
-class InsertionColumnPartition;
-}  // namespace storage::column
-template <typename SymbolType>
-class SequenceStorePartition;
-class UnalignedSequenceStorePartition;
-}  // namespace silo
+#include "silo/storage/sequence_store.h"
+#include "silo/storage/unaligned_sequence_store.h"
 
 namespace silo {
 
@@ -103,14 +91,6 @@ class DatabasePartition {
    void insertColumn(const std::string& name, storage::column::DateColumnPartition& column);
    void insertColumn(const std::string& name, storage::column::PangoLineageColumnPartition& column);
    void insertColumn(const std::string& name, storage::column::FloatColumnPartition& column);
-   void insertColumn(
-      const std::string& name,
-      storage::column::InsertionColumnPartition<Nucleotide>& column
-   );
-   void insertColumn(
-      const std::string& name,
-      storage::column::InsertionColumnPartition<AminoAcid>& column
-   );
 
    template <typename SymbolType>
    const std::map<std::string, SequenceStorePartition<SymbolType>&>& getSequenceStores() const;
