@@ -29,7 +29,8 @@ class PreprocessingDatabase {
   public:
    PreprocessingDatabase(
       const std::optional<std::filesystem::path>& backing_file,
-      const ReferenceGenomes& reference_genomes
+      const ReferenceGenomes& reference_genomes,
+      std::optional<uint32_t> memory_limit
    );
 
    duckdb::Connection& getConnection();

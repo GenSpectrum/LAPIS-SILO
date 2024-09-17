@@ -43,6 +43,10 @@ std::optional<std::filesystem::path> PreprocessingConfig::getPreprocessingDataba
    return preprocessing_database_location;
 }
 
+[[nodiscard]] std::optional<uint32_t> PreprocessingConfig::getDuckdbMemoryLimitInG() const {
+   return duckdb_memory_limit_in_g;
+}
+
 std::optional<std::filesystem::path> PreprocessingConfig::getPangoLineageDefinitionFilename(
 ) const {
    return pango_lineage_definition_file.has_value()
@@ -128,6 +132,15 @@ void PreprocessingConfig::overwrite(const silo::config::AbstractConfigSource& co
          *value
       );
       preprocessing_database_location = *value;
+   }
+   if (auto value = config.getUInt32(DUCKDB_MEMORY_LIMIT_OPTION)) {
+      SPDLOG_DEBUG(
+         "Using {} as passed via {}: {}",
+         DUCKDB_MEMORY_LIMIT_OPTION.toString(),
+         config.configType(),
+         *value
+      );
+      duckdb_memory_limit_in_g = value;
    }
    if (auto value = config.getString(PANGO_LINEAGE_DEFINITION_FILENAME_OPTION)) {
       SPDLOG_DEBUG(

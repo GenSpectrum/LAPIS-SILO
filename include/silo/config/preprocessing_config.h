@@ -21,6 +21,7 @@ const AbstractConfigSource::Option INTERMEDIATE_RESULTS_DIRECTORY_OPTION = {
 const AbstractConfigSource::Option PREPROCESSING_DATABASE_LOCATION_OPTION = {
    {"preprocessingDatabaseLocation"}
 };
+const AbstractConfigSource::Option DUCKDB_MEMORY_LIMIT_OPTION = {{"duckdbMemoryLimitInG"}};
 const AbstractConfigSource::Option PANGO_LINEAGE_DEFINITION_FILENAME_OPTION = {
    {"pangoLineageDefinitionFilename"}
 };
@@ -47,6 +48,7 @@ class PreprocessingConfig {
    std::filesystem::path output_directory = DEFAULT_OUTPUT_DIRECTORY;
    std::filesystem::path intermediate_results_directory = "./temp/";
    std::optional<std::filesystem::path> preprocessing_database_location;
+   std::optional<uint32_t> duckdb_memory_limit_in_g;
    std::optional<std::filesystem::path> pango_lineage_definition_file;
    std::optional<std::filesystem::path> ndjson_input_filename;
    std::optional<std::filesystem::path> metadata_file;
@@ -68,6 +70,8 @@ class PreprocessingConfig {
    [[nodiscard]] std::filesystem::path getReferenceGenomeFilename() const;
 
    [[nodiscard]] std::optional<std::filesystem::path> getPreprocessingDatabaseLocation() const;
+
+   [[nodiscard]] std::optional<uint32_t> getDuckdbMemoryLimitInG() const;
 
    [[nodiscard]] std::optional<std::filesystem::path> getNdjsonInputFilename() const;
 
