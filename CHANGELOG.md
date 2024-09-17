@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.20](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.19...v0.2.20) (2024-09-17)
+
+
+### Features
+
+* make duckdb memory limit configurable via preprocessing config ([c112eb1](https://github.com/GenSpectrum/LAPIS-SILO/commit/c112eb18976b86240ae23069bf11b7286e634d1f))
+
 ## [0.2.19](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.18...v0.2.19) (2024-09-12)
 
 
