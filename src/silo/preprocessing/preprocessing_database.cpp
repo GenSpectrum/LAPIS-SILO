@@ -34,13 +34,16 @@ namespace silo::preprocessing {
 
 PreprocessingDatabase::PreprocessingDatabase(
    const std::optional<std::filesystem::path>& backing_file,
-   const ReferenceGenomes& reference_genomes
+   const ReferenceGenomes& reference_genomes,
+   std::optional<uint32_t> memory_limit
 )
     : duck_db(backing_file.value_or(":memory:")),
       connection(duck_db) {
    query("PRAGMA default_null_order='NULLS FIRST';");
    query("SET preserve_insertion_order=FALSE;");
-   query("SET memory_limit='80 GB';");
+   if (memory_limit.has_value()) {
+      query(fmt::format("SET memory_limit='{} GB';", memory_limit.value()));
+   }
    const Identifiers compress_nucleotide_function_identifiers =
       Identifiers{reference_genomes.getSequenceNames<Nucleotide>()}.prefix("compress_nuc_");
    const Identifiers compress_amino_acid_function_identifiers =

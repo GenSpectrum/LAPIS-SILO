@@ -56,7 +56,11 @@ Preprocessor::Preprocessor(
       database_config(std::move(database_config_)),
       reference_genomes(std::move(reference_genomes_)),
       alias_lookup(std::move(alias_lookup)),
-      preprocessing_db(preprocessing_config.getPreprocessingDatabaseLocation(), reference_genomes),
+      preprocessing_db(
+         preprocessing_config.getPreprocessingDatabaseLocation(),
+         reference_genomes,
+         preprocessing_config.getDuckdbMemoryLimitInG()
+      ),
       nuc_sequence_identifiers_without_prefix(
          Identifiers{reference_genomes.getSequenceNames<Nucleotide>()}
       ),
