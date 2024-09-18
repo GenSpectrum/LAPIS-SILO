@@ -41,6 +41,7 @@ PreprocessingDatabase::PreprocessingDatabase(
       connection(duck_db) {
    query("PRAGMA default_null_order='NULLS FIRST';");
    query("SET preserve_insertion_order=FALSE;");
+   query("SET partitioned_write_flush_threshold = 1024;");
    if (memory_limit.has_value()) {
       query(fmt::format("SET memory_limit='{} GB';", memory_limit.value()));
    }
