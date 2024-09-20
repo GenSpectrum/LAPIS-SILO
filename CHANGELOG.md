@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.21](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.20...v0.2.21) (2024-09-20)
+
+
+### Bug Fixes
+
+* **preprocessing:** resolves spurious OOM crashes when handling large datasets ([6e4eae2](https://github.com/GenSpectrum/LAPIS-SILO/commit/6e4eae283317b932e34008912997bfd6f4037c10))
+
 ## [0.2.20](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.19...v0.2.20) (2024-09-17)
 
 
