@@ -94,126 +94,129 @@ std::filesystem::path PreprocessingConfig::getAminoAcidInsertionsFilename() cons
    return input_directory / aa_insertions_filename;
 }
 
-void PreprocessingConfig::overwrite(const silo::config::AbstractConfigSource& config) {
-   if (auto value = config.getString(INPUT_DIRECTORY_OPTION)) {
+void PreprocessingConfig::overwrite(const silo::config::AbstractConfigSource& config_source) {
+   if (auto value = config_source.getString(INPUT_DIRECTORY_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
          INPUT_DIRECTORY_OPTION.toString(),
-         config.configType(),
+         config_source.configType(),
          *value
       );
       input_directory = *value;
    }
-   if (auto value = config.getString(OUTPUT_DIRECTORY_OPTION)) {
+   if (auto value = config_source.getString(OUTPUT_DIRECTORY_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
          OUTPUT_DIRECTORY_OPTION.toString(),
-         config.configType(),
+         config_source.configType(),
          *value
       );
       output_directory = *value;
    }
-   if (auto value = config.getString(INTERMEDIATE_RESULTS_DIRECTORY_OPTION)) {
+   if (auto value = config_source.getString(INTERMEDIATE_RESULTS_DIRECTORY_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
          INTERMEDIATE_RESULTS_DIRECTORY_OPTION.toString(),
-         config.configType(),
+         config_source.configType(),
          *value
       );
       intermediate_results_directory = *value;
    }
-   if (auto value = config.getString(PREPROCESSING_DATABASE_LOCATION_OPTION)) {
+   if (auto value = config_source.getString(PREPROCESSING_DATABASE_LOCATION_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
          PREPROCESSING_DATABASE_LOCATION_OPTION.toString(),
-         config.configType(),
+         config_source.configType(),
          *value
       );
       preprocessing_database_location = *value;
    }
-   if (auto value = config.getUInt32(DUCKDB_MEMORY_LIMIT_OPTION)) {
+   if (auto value = config_source.getUInt32(DUCKDB_MEMORY_LIMIT_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
          DUCKDB_MEMORY_LIMIT_OPTION.toString(),
-         config.configType(),
+         config_source.configType(),
          *value
       );
       duckdb_memory_limit_in_g = value;
    }
-   if (auto value = config.getString(PANGO_LINEAGE_DEFINITION_FILENAME_OPTION)) {
+   if (auto value = config_source.getString(PANGO_LINEAGE_DEFINITION_FILENAME_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
          PANGO_LINEAGE_DEFINITION_FILENAME_OPTION.toString(),
-         config.configType(),
+         config_source.configType(),
          *value
       );
       pango_lineage_definition_file = *value;
    }
-   if (auto value = config.getString(NDJSON_INPUT_FILENAME_OPTION)) {
+   if (auto value = config_source.getString(NDJSON_INPUT_FILENAME_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
          NDJSON_INPUT_FILENAME_OPTION.toString(),
-         config.configType(),
+         config_source.configType(),
          *value
       );
       ndjson_input_filename = *value;
    }
-   if (auto value = config.getString(METADATA_FILENAME_OPTION)) {
+   if (auto value = config_source.getString(METADATA_FILENAME_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
          METADATA_FILENAME_OPTION.toString(),
-         config.configType(),
+         config_source.configType(),
          *value
       );
       metadata_file = *value;
    }
-   if (auto value = config.getString(REFERENCE_GENOME_FILENAME_OPTION)) {
+   if (auto value = config_source.getString(REFERENCE_GENOME_FILENAME_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
          REFERENCE_GENOME_FILENAME_OPTION.toString(),
-         config.configType(),
+         config_source.configType(),
          *value
       );
       reference_genome_file = *value;
    }
-   if (auto value = config.getString(NUCLEOTIDE_SEQUENCE_PREFIX_OPTION)) {
+   if (auto value = config_source.getString(NUCLEOTIDE_SEQUENCE_PREFIX_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
          NUCLEOTIDE_SEQUENCE_PREFIX_OPTION.toString(),
-         config.configType(),
+         config_source.configType(),
          *value
       );
       nucleotide_sequence_prefix = *value;
    }
-   if (auto value = config.getString(UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX_OPTION)) {
+   if (auto value = config_source.getString(UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
          UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX_OPTION.toString(),
-         config.configType(),
+         config_source.configType(),
          *value
       );
       unaligned_nucleotide_sequence_prefix = *value;
    }
-   if (auto value = config.getString(GENE_PREFIX_OPTION)) {
+   if (auto value = config_source.getString(GENE_PREFIX_OPTION)) {
       SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}", GENE_PREFIX_OPTION.toString(), config.configType(), *value
+         "Using {} as passed via {}: {}",
+         GENE_PREFIX_OPTION.toString(),
+         config_source.configType(),
+         *value
       );
       gene_prefix = *value;
    }
-   if (auto value = config.getString(NUCLEOTIDE_INSERTIONS_OPTION)) {
+   if (auto value = config_source.getString(NUCLEOTIDE_INSERTIONS_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
          NUCLEOTIDE_INSERTIONS_OPTION.toString(),
-         config.configType(),
+         config_source.configType(),
          *value
       );
       nuc_insertions_filename = *value;
    }
-   if (auto value = config.getString(AMINO_ACID_INSERTIONS_OPTION)) {
+   if (auto value = config_source.getString(AMINO_ACID_INSERTIONS_OPTION)) {
       SPDLOG_DEBUG(
          "Using {} as passed via {}: {}",
          AMINO_ACID_INSERTIONS_OPTION.toString(),
-         config.configType(),
+         config_source.configType(),
          *value
       );
       aa_insertions_filename = *value;

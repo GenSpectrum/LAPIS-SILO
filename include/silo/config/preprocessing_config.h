@@ -59,7 +59,7 @@ class PreprocessingConfig {
 
    [[nodiscard]] std::optional<std::filesystem::path> getNdjsonInputFilename() const;
 
-   void overwrite(const silo::config::AbstractConfigSource& config_reader);
+   void overwrite(const silo::config::AbstractConfigSource& config_source);
 };
 
 }  // namespace silo::config
