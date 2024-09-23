@@ -128,6 +128,7 @@ class SiloApp : public Poco::Util::ServerApplication {
       help_formatter.setUsage("OPTIONS");
       help_formatter.setHeader("SILO - Sequence Indexing engine for Large Order of genomic data");
       help_formatter.format(std::cout);
+      exit(0);
    }
 };
 
