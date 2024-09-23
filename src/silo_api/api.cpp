@@ -17,6 +17,7 @@
 #include <Poco/Util/OptionCallback.h>
 #include <Poco/Util/OptionSet.h>
 #include <Poco/Util/ServerApplication.h>
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/node/parse.h>
 #include <yaml-cpp/yaml.h>
@@ -45,8 +46,6 @@ namespace {
 const std::string PREPROCESSING_CONFIG_OPTION = "preprocessingConfig";
 const std::string RUNTIME_CONFIG_OPTION = "runtimeConfig";
 const std::string DATABASE_CONFIG_OPTION = "databaseConfig";
-const std::string API_OPTION = "api";
-const std::string PREPROCESSING_OPTION = "preprocessing";
 
 using silo::config::YamlFile;
 using silo_api::CommandLineArguments;
@@ -102,7 +101,130 @@ Poco::Util::Option optionalNonRepeatableOption(
       .binding(option_string);
 }
 
-class SiloServer : public Poco::Util::ServerApplication {
+enum class ExecutionMode { PREPROCESSING, API };
+
+ExecutionMode executionModeFromPath(const std::filesystem::path& program_path) {
+   const auto filename = program_path.filename();
+   if (filename == "siloPreprocessor") {
+      return ExecutionMode::PREPROCESSING;
+   }
+   if (filename == "siloServer") {
+      return ExecutionMode::API;
+   }
+   throw std::runtime_error(fmt::format(
+      "run as invalid filename '{}' (must be 'siloPreprocessing' or 'siloServer')",
+      filename.string()
+   ));
+}
+
+class SiloApp : public Poco::Util::ServerApplication {
+  protected:
+   void displayHelp(
+      const std::string& /*name*/,
+      const std::string& /*value*/
+   ) {
+      Poco::Util::HelpFormatter help_formatter(options());
+      help_formatter.setCommand(commandName());
+      help_formatter.setUsage("OPTIONS");
+      help_formatter.setHeader("SILO - Sequence Indexing engine for Large Order of genomic data");
+      help_formatter.format(std::cout);
+   }
+};
+
+void addDatabaseConfigOption(Poco::Util::OptionSet& options) {
+   options.addOption(optionalNonRepeatableOption(
+      silo::config::AbstractConfigSource::Option{{DATABASE_CONFIG_OPTION}},
+      "path to the database config file",
+      "PATH"
+   ));
+}
+
+class SiloPreprocessor : public SiloApp {
+  protected:
+   [[maybe_unused]] void defineOptions(Poco::Util::OptionSet& options) override {
+      ServerApplication::defineOptions(options);
+
+      options.addOption(Poco::Util::Option()
+                           .fullName("help")
+                           .shortName("h")
+                           .description("display help information on command line arguments")
+                           .required(false)
+                           .repeatable(false)
+                           .callback(Poco::Util::OptionCallback<SiloPreprocessor>(
+                              this, &SiloPreprocessor::displayHelp
+                           )));
+
+      options.addOption(Poco::Util::Option()
+                           .fullName(PREPROCESSING_CONFIG_OPTION)
+                           .description("path to the preprocessing config file")
+                           .required(false)
+                           .repeatable(false)
+                           .argument("PATH")
+                           .binding(PREPROCESSING_CONFIG_OPTION));
+
+      addDatabaseConfigOption(options);
+
+      options.addOption(
+         optionalNonRepeatableOption(
+            silo::config::DATA_DIRECTORY_OPTION, "path to the preprocessed data", "PATH"
+         )
+            .shortName("d")
+      );
+   }
+
+   silo::Database runPreprocessor(const silo::config::PreprocessingConfig& preprocessing_config) {
+      auto database_config = getDatabaseConfig(config());
+
+      SPDLOG_INFO("preprocessing - reading reference genome");
+      const auto reference_genomes =
+         silo::ReferenceGenomes::readFromFile(preprocessing_config.getReferenceGenomeFilename());
+
+      silo::common::LineageTreeAndIdMap lineage_definitions;
+      if (auto lineage_file_name = preprocessing_config.getLineageDefinitionsFilename()) {
+         SPDLOG_INFO(
+            "preprocessing - read and verify the lineage tree '{}'",
+            lineage_file_name.value().string()
+         );
+         lineage_definitions = silo::common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(
+            lineage_file_name.value()
+         );
+      }
+
+      auto preprocessor = silo::preprocessing::Preprocessor(
+         preprocessing_config, database_config, reference_genomes, std::move(lineage_definitions)
+      );
+
+      return preprocessor.preprocess();
+   }
+
+   int main(const std::vector<std::string>& /*args*/) override {
+      SPDLOG_INFO("Starting SILO preprocessing");
+      try {
+         const auto preprocessing_config = getPreprocessingConfig(config());
+
+         auto database = runPreprocessor(preprocessing_config);
+
+         database.saveDatabaseState(preprocessing_config.getOutputDirectory());
+      } catch (const std::exception& ex) {
+         SPDLOG_ERROR(ex.what());
+         throw ex;
+      } catch (const std::string& ex) {
+         SPDLOG_ERROR(ex);
+         return 1;
+      } catch (...) {
+         SPDLOG_ERROR("Preprocessing cancelled with uncatchable (...) exception");
+         const auto exception = std::current_exception();
+         if (exception) {
+            const auto* message = abi::__cxa_current_exception_type()->name();
+            SPDLOG_ERROR("current_exception: {}", message);
+         }
+         return 1;
+      }
+      return Application::EXIT_OK;
+   }
+};
+
+class SiloServer : public SiloApp {
   protected:
    [[maybe_unused]] void defineOptions(Poco::Util::OptionSet& options) override {
       ServerApplication::defineOptions(options);
@@ -117,28 +239,7 @@ class SiloServer : public Poco::Util::ServerApplication {
             .callback(Poco::Util::OptionCallback<SiloServer>(this, &SiloServer::displayHelp))
       );
 
-      options.addOption(Poco::Util::Option()
-                           .fullName(PREPROCESSING_CONFIG_OPTION)
-                           .description("path to the preprocessing config file")
-                           .required(false)
-                           .repeatable(false)
-                           .argument("PATH")
-                           .binding(PREPROCESSING_CONFIG_OPTION));
-
-      options.addOption(Poco::Util::Option()
-                           .fullName(DATABASE_CONFIG_OPTION)
-                           .description("path to the database config file")
-                           .required(false)
-                           .repeatable(false)
-                           .argument("PATH")
-                           .binding(DATABASE_CONFIG_OPTION));
-
-      options.addOption(
-         optionalNonRepeatableOption(
-            silo::config::DATA_DIRECTORY_OPTION, "path to the preprocessed data", "PATH"
-         )
-            .shortName("d")
-      );
+      addDatabaseConfigOption(options);
 
       options.addOption(optionalNonRepeatableOption(
          silo::config::PORT_OPTION, "port to listen to requests", "NUMBER"
@@ -151,27 +252,6 @@ class SiloServer : public Poco::Util::ServerApplication {
       options.addOption(optionalNonRepeatableOption(
          silo::config::PARALLEL_THREADS_OPTION, "number of threads for http connections", "NUMBER"
       ));
-
-      options.addOption(Poco::Util::Option()
-                           .fullName(API_OPTION)
-                           .shortName("a")
-                           .description("Execution mode: start the SILO web interface")
-                           .required(false)
-                           .repeatable(false)
-                           .binding(API_OPTION)
-                           .group("executionMode"));
-
-      options.addOption(
-         Poco::Util::Option()
-            .fullName(PREPROCESSING_OPTION)
-            .shortName("p")
-            .description("Execution mode: trigger the preprocessing pipeline to generate a "
-                         "partitioned dataset that can be read by the database")
-            .required(false)
-            .repeatable(false)
-            .binding(PREPROCESSING_OPTION)
-            .group("executionMode")
-      );
 
       options.addOption(optionalNonRepeatableOption(
          silo::config::ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION,
@@ -189,22 +269,6 @@ class SiloServer : public Poco::Util::ServerApplication {
          displayHelp("", "");
          return Application::EXIT_USAGE;
       }
-
-      if (config().hasProperty(API_OPTION)) {
-         return handleApi();
-      }
-
-      if (config().hasProperty(PREPROCESSING_OPTION)) {
-         return handlePreprocessing();
-      }
-
-      std::cout << "No execution mode specified.\n\n";
-      displayHelp("", "");
-      return Application::EXIT_USAGE;
-   }
-
-  private:
-   int handleApi() {
       SPDLOG_INFO("Starting SILO API");
       silo::config::RuntimeConfig runtime_config;
       if (config().hasProperty(RUNTIME_CONFIG_OPTION)) {
@@ -247,82 +311,47 @@ class SiloServer : public Poco::Util::ServerApplication {
 
       return Application::EXIT_OK;
    }
-
-   silo::Database runPreprocessor(const silo::config::PreprocessingConfig& preprocessing_config) {
-      auto database_config = getDatabaseConfig(config());
-
-      SPDLOG_INFO("preprocessing - reading reference genome");
-      const auto reference_genomes =
-         silo::ReferenceGenomes::readFromFile(preprocessing_config.getReferenceGenomeFilename());
-
-      silo::common::LineageTreeAndIdMap lineage_definitions;
-      if (auto lineage_file_name = preprocessing_config.getLineageDefinitionsFilename()) {
-         SPDLOG_INFO(
-            "preprocessing - read and verify the lineage tree '{}'",
-            lineage_file_name.value().string()
-         );
-         lineage_definitions = silo::common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(
-            lineage_file_name.value()
-         );
-      }
-
-      auto preprocessor = silo::preprocessing::Preprocessor(
-         preprocessing_config, database_config, reference_genomes, std::move(lineage_definitions)
-      );
-
-      return preprocessor.preprocess();
-   }
-
-   int handlePreprocessing() {
-      SPDLOG_INFO("Starting SILO preprocessing");
-      try {
-         const auto preprocessing_config = getPreprocessingConfig(config());
-
-         auto database = runPreprocessor(preprocessing_config);
-
-         database.saveDatabaseState(preprocessing_config.getOutputDirectory());
-      } catch (const std::exception& ex) {
-         SPDLOG_ERROR(ex.what());
-         throw ex;
-      } catch (const std::string& ex) {
-         SPDLOG_ERROR(ex);
-         return 1;
-      } catch (...) {
-         SPDLOG_ERROR("Preprocessing cancelled with uncatchable (...) exception");
-         const auto exception = std::current_exception();
-         if (exception) {
-            const auto* message = abi::__cxa_current_exception_type()->name();
-            SPDLOG_ERROR("current_exception: {}", message);
-         }
-         return 1;
-      }
-      return Application::EXIT_OK;
-   }
-
-   void displayHelp(
-      const std::string& /*name*/,
-      const std::string& /*value*/
-   ) {
-      Poco::Util::HelpFormatter help_formatter(options());
-      help_formatter.setCommand(commandName());
-      help_formatter.setUsage("OPTIONS");
-      help_formatter.setHeader("SILO - Sequence Indexing engine for Large Order of genomic data");
-      help_formatter.format(std::cout);
-   }
 };
 
 }  // namespace
 
+int run(int argc, char** argv) {
+   SPDLOG_INFO("Starting SILO");
+
+   int return_code;
+   switch (executionModeFromPath(argv[0])) {
+      case ExecutionMode::PREPROCESSING: {
+         SiloPreprocessor app{};
+         return_code = app.run(argc, argv);
+         break;
+      }
+      case ExecutionMode::API: {
+         SiloServer app{};
+         return_code = app.run(argc, argv);
+         break;
+      }
+   }
+
+   SPDLOG_INFO("Stopping SILO");
+
+   spdlog::default_logger()->flush();
+
+   return return_code;
+}
+
+// NOLINTNEXTLINE(bugprone-exception-escape)
 int main(int argc, char** argv) {
    setupLogger();
 
-   SPDLOG_INFO("Starting SILO");
-
-   SiloServer app;
-   const auto return_code = app.run(argc, argv);
-
-   SPDLOG_INFO("Stopping SILO");
-   spdlog::default_logger()->flush();
-
+   if (getenv("DEBUG_EXCEPTION")) {
+      return run(argc, argv);
+   }
+   int return_code;
+   try {
+      return_code = run(argc, argv);
+   } catch (std::exception& ex) {
+      SPDLOG_ERROR("{}", ex.what());
+      return 1;
+   };
    return return_code;
 }
