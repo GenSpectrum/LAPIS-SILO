@@ -52,8 +52,6 @@ namespace {
 const std::string PREPROCESSING_CONFIG_OPTION = "preprocessing-config";
 // For the siloServer command:
 const std::string RUNTIME_CONFIG_OPTION = "runtime-config";
-// For both commands:
-const std::string DATABASE_CONFIG_OPTION = "databaseConfig";
 
 // The 3 config source principles
 using silo::config::YamlFile;
@@ -76,18 +74,6 @@ Config getConfig(
 
    SPDLOG_INFO("Resulting config from {}: {}", commandline_option_name, config);
    return config;
-}
-
-silo::config::DatabaseConfig getDatabaseConfig(const Poco::Util::AbstractConfiguration& cmdline_args
-) {
-   auto option = CommandLineArguments::asUnixOptionString(
-      silo::config::AbstractConfigSource::Option{{DATABASE_CONFIG_OPTION}}
-   );
-   if (cmdline_args.hasProperty(option)) {
-      return silo::config::ConfigRepository().getValidatedConfig(cmdline_args.getString(option));
-   }
-   SPDLOG_DEBUG("--database-config option not found. Using default value: databaseConfig.yaml");
-   return silo::config::ConfigRepository().getValidatedConfig("database_config.yaml");
 }
 
 Poco::Util::Option optionalNonRepeatableOption(
@@ -176,10 +162,14 @@ class SiloPreprocessor : public SiloApp {
          )
             .shortName("d")
       );
+
+      silo::config::PreprocessingConfig::addOptions(options);
    }
 
    silo::Database runPreprocessor(const silo::config::PreprocessingConfig& preprocessing_config) {
-      auto database_config = getDatabaseConfig(config());
+      auto database_config = silo::config::ConfigRepository().getValidatedConfig(
+         preprocessing_config.getDatabaseConfigFilename()
+      );
 
       SPDLOG_INFO("preprocessing - reading reference genome");
       const auto reference_genomes =

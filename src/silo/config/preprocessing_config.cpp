@@ -7,6 +7,7 @@
 
 #include "silo/config/util/abstract_config_source.h"
 #include "silo/preprocessing/preprocessing_exception.h"
+#include "silo_api/command_line_arguments.h"
 
 namespace silo::config {
 
@@ -94,133 +95,62 @@ std::filesystem::path PreprocessingConfig::getAminoAcidInsertionsFilename() cons
    return input_directory / aa_insertions_filename;
 }
 
+namespace {
+std::string toUnix(const AbstractConfigSource::Option& option) {
+   return silo_api::CommandLineArguments::asUnixOptionString(option);
+}
+}  // namespace
+
+void PreprocessingConfig::addOptions(Poco::Util::OptionSet& options) {
+#define TUPLE(                                                    \
+   TYPE,                                                          \
+   FIELD_NAME,                                                    \
+   HAS_DEFAULT,                                                   \
+   DEFAULT_VALUE,                                                 \
+   OPTION_PATH,                                                   \
+   PARSING_ACCESSOR_TYPE_NAME,                                    \
+   HELP_TEXT                                                      \
+)                                                                 \
+   {                                                              \
+      const AbstractConfigSource::Option opt{OPTION_PATH};        \
+      std::string option_string = toUnix(opt);                    \
+      options.addOption(Poco::Util::Option()                      \
+                           .fullName(option_string)               \
+                           .description(HELP_TEXT)                \
+                           .required(false)                       \
+                           .repeatable(false)                     \
+                           .argument(#PARSING_ACCESSOR_TYPE_NAME) \
+                           .binding(option_string));              \
+   }
+
+   PREPROCESSING_CONFIG_DEFINITION;
+
+#undef TUPLE
+}
+
 void PreprocessingConfig::overwrite(const silo::config::AbstractConfigSource& config_source) {
-   if (auto value = config_source.getString(INPUT_DIRECTORY_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         INPUT_DIRECTORY_OPTION.toString(),
-         config_source.configType(),
-         *value
-      );
-      input_directory = *value;
+#define TUPLE(                                                                                  \
+   TYPE,                                                                                        \
+   FIELD_NAME,                                                                                  \
+   HAS_DEFAULT,                                                                                 \
+   DEFAULT_VALUE,                                                                               \
+   OPTION_PATH,                                                                                 \
+   PARSING_ACCESSOR_TYPE_NAME,                                                                  \
+   HELP_TEXT                                                                                    \
+)                                                                                               \
+   {                                                                                            \
+      const AbstractConfigSource::Option opt{OPTION_PATH};                                      \
+      if (auto value = config_source.get##PARSING_ACCESSOR_TYPE_NAME(opt)) {                    \
+         SPDLOG_DEBUG(                                                                          \
+            "Using {} as passed via {}: {}", opt.toString(), config_source.configType(), *value \
+         );                                                                                     \
+         (FIELD_NAME) = *value;                                                                 \
+      }                                                                                         \
    }
-   if (auto value = config_source.getString(OUTPUT_DIRECTORY_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         OUTPUT_DIRECTORY_OPTION.toString(),
-         config_source.configType(),
-         *value
-      );
-      output_directory = *value;
-   }
-   if (auto value = config_source.getString(INTERMEDIATE_RESULTS_DIRECTORY_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         INTERMEDIATE_RESULTS_DIRECTORY_OPTION.toString(),
-         config_source.configType(),
-         *value
-      );
-      intermediate_results_directory = *value;
-   }
-   if (auto value = config_source.getString(PREPROCESSING_DATABASE_LOCATION_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         PREPROCESSING_DATABASE_LOCATION_OPTION.toString(),
-         config_source.configType(),
-         *value
-      );
-      preprocessing_database_location = *value;
-   }
-   if (auto value = config_source.getUInt32(DUCKDB_MEMORY_LIMIT_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         DUCKDB_MEMORY_LIMIT_OPTION.toString(),
-         config_source.configType(),
-         *value
-      );
-      duckdb_memory_limit_in_g = value;
-   }
-   if (auto value = config_source.getString(PANGO_LINEAGE_DEFINITION_FILENAME_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         PANGO_LINEAGE_DEFINITION_FILENAME_OPTION.toString(),
-         config_source.configType(),
-         *value
-      );
-      pango_lineage_definition_file = *value;
-   }
-   if (auto value = config_source.getString(NDJSON_INPUT_FILENAME_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         NDJSON_INPUT_FILENAME_OPTION.toString(),
-         config_source.configType(),
-         *value
-      );
-      ndjson_input_filename = *value;
-   }
-   if (auto value = config_source.getString(METADATA_FILENAME_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         METADATA_FILENAME_OPTION.toString(),
-         config_source.configType(),
-         *value
-      );
-      metadata_file = *value;
-   }
-   if (auto value = config_source.getString(REFERENCE_GENOME_FILENAME_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         REFERENCE_GENOME_FILENAME_OPTION.toString(),
-         config_source.configType(),
-         *value
-      );
-      reference_genome_file = *value;
-   }
-   if (auto value = config_source.getString(NUCLEOTIDE_SEQUENCE_PREFIX_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         NUCLEOTIDE_SEQUENCE_PREFIX_OPTION.toString(),
-         config_source.configType(),
-         *value
-      );
-      nucleotide_sequence_prefix = *value;
-   }
-   if (auto value = config_source.getString(UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX_OPTION.toString(),
-         config_source.configType(),
-         *value
-      );
-      unaligned_nucleotide_sequence_prefix = *value;
-   }
-   if (auto value = config_source.getString(GENE_PREFIX_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         GENE_PREFIX_OPTION.toString(),
-         config_source.configType(),
-         *value
-      );
-      gene_prefix = *value;
-   }
-   if (auto value = config_source.getString(NUCLEOTIDE_INSERTIONS_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         NUCLEOTIDE_INSERTIONS_OPTION.toString(),
-         config_source.configType(),
-         *value
-      );
-      nuc_insertions_filename = *value;
-   }
-   if (auto value = config_source.getString(AMINO_ACID_INSERTIONS_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         AMINO_ACID_INSERTIONS_OPTION.toString(),
-         config_source.configType(),
-         *value
-      );
-      aa_insertions_filename = *value;
-   }
+
+   PREPROCESSING_CONFIG_DEFINITION;
+
+#undef TUPLE
 }
 
 }  // namespace silo::config
