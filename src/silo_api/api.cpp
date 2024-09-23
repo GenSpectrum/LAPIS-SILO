@@ -50,6 +50,7 @@ const std::string RUNTIME_CONFIG_OPTION = "runtimeConfig";
 // For both commands:
 const std::string DATABASE_CONFIG_OPTION = "databaseConfig";
 
+// The 3 config source principles
 using silo::config::YamlFile;
 using silo_api::CommandLineArguments;
 using silo_api::EnvironmentVariables;
