@@ -64,14 +64,9 @@ silo::config::PreprocessingConfig getPreprocessingConfig(
    const Poco::Util::AbstractConfiguration& cmdline_args
 ) {
    silo::config::PreprocessingConfig preprocessing_config;
-   if (std::filesystem::exists("./default_preprocessing_config.yaml")) {
-      preprocessing_config.overwrite(YamlFile("./default_preprocessing_config.yaml"));
-   }
 
    if (cmdline_args.hasProperty(PREPROCESSING_CONFIG_OPTION)) {
       preprocessing_config.overwrite(YamlFile(cmdline_args.getString(PREPROCESSING_CONFIG_OPTION)));
-   } else if (std::filesystem::exists("./preprocessing_config.yaml")) {
-      preprocessing_config.overwrite(YamlFile("./preprocessing_config.yaml"));
    }
 
    preprocessing_config.overwrite(EnvironmentVariables());
