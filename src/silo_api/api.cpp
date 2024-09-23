@@ -43,10 +43,15 @@
 
 namespace {
 
+// The first level of option processing purely accesses command
+// line arguments (environment variables are ignored); thus we're
+// using the kebab case style for command line arguments directly,
+// without going through `AbstractConfigSource::Option`:
+
 // For the siloPreprocessor command:
-const std::string PREPROCESSING_CONFIG_OPTION = "preprocessingConfig";
+const std::string PREPROCESSING_CONFIG_OPTION = "preprocessing-config";
 // For the siloServer command:
-const std::string RUNTIME_CONFIG_OPTION = "runtimeConfig";
+const std::string RUNTIME_CONFIG_OPTION = "runtime-config";
 // For both commands:
 const std::string DATABASE_CONFIG_OPTION = "databaseConfig";
 
