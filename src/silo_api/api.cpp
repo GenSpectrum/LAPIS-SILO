@@ -274,7 +274,6 @@ class SiloServer : public SiloApp {
          displayHelp("", "");
          return Application::EXIT_USAGE;
       }
-      SPDLOG_INFO("Starting SILO API");
       silo::config::RuntimeConfig runtime_config;
       if (config().hasProperty(RUNTIME_CONFIG_OPTION)) {
          runtime_config.overwrite(YamlFile(config().getString(RUNTIME_CONFIG_OPTION)));
@@ -283,6 +282,8 @@ class SiloServer : public SiloApp {
       }
       runtime_config.overwrite(EnvironmentVariables());
       runtime_config.overwrite(CommandLineArguments(config()));
+
+      SPDLOG_INFO("Starting SILO API");
 
       silo_api::DatabaseMutex database_mutex;
 
