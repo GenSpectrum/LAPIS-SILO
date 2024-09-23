@@ -43,8 +43,11 @@
 
 namespace {
 
+// For the siloPreprocessor command:
 const std::string PREPROCESSING_CONFIG_OPTION = "preprocessingConfig";
+// For the siloServer command:
 const std::string RUNTIME_CONFIG_OPTION = "runtimeConfig";
+// For both commands:
 const std::string DATABASE_CONFIG_OPTION = "databaseConfig";
 
 using silo::config::YamlFile;
