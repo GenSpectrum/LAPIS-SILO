@@ -75,13 +75,13 @@ silo::config::PreprocessingConfig getPreprocessingConfig(
 
 silo::config::DatabaseConfig getDatabaseConfig(const Poco::Util::AbstractConfiguration& cmdline_args
 ) {
-   if (cmdline_args.hasProperty(DATABASE_CONFIG_OPTION)) {
-      return silo::config::ConfigRepository().getValidatedConfig(
-         cmdline_args.getString(DATABASE_CONFIG_OPTION)
-      );
-   }
-   SPDLOG_DEBUG("databaseConfig not found in config file. Using default value: databaseConfig.yaml"
+   auto option = CommandLineArguments::asUnixOptionString(
+      silo::config::AbstractConfigSource::Option{{DATABASE_CONFIG_OPTION}}
    );
+   if (cmdline_args.hasProperty(option)) {
+      return silo::config::ConfigRepository().getValidatedConfig(cmdline_args.getString(option));
+   }
+   SPDLOG_DEBUG("--database-config option not found. Using default value: databaseConfig.yaml");
    return silo::config::ConfigRepository().getValidatedConfig("database_config.yaml");
 }
 
