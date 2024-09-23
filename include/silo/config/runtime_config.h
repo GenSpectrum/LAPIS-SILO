@@ -41,6 +41,7 @@ struct RuntimeConfig {
    QueryOptions query_options;
 
    void overwrite(const silo::config::AbstractConfigSource& config);
+   void validate() const {};
 };
 
 }  // namespace silo::config

@@ -60,21 +60,22 @@ using silo::config::YamlFile;
 using silo_api::CommandLineArguments;
 using silo_api::EnvironmentVariables;
 
-silo::config::PreprocessingConfig getPreprocessingConfig(
-   const Poco::Util::AbstractConfiguration& cmdline_args
+template <typename Config>
+Config getConfig(
+   const Poco::Util::AbstractConfiguration& cmdline_args,
+   const std::string& commandline_option_name
 ) {
-   silo::config::PreprocessingConfig preprocessing_config;
-
-   if (cmdline_args.hasProperty(PREPROCESSING_CONFIG_OPTION)) {
-      preprocessing_config.overwrite(YamlFile(cmdline_args.getString(PREPROCESSING_CONFIG_OPTION)));
+   Config config;
+   if (cmdline_args.hasProperty(commandline_option_name)) {
+      config.overwrite(YamlFile(cmdline_args.getString(commandline_option_name)));
    }
 
-   preprocessing_config.overwrite(EnvironmentVariables());
-   preprocessing_config.overwrite(CommandLineArguments(cmdline_args));
-   preprocessing_config.validate();
+   config.overwrite(EnvironmentVariables());
+   config.overwrite(CommandLineArguments(cmdline_args));
+   config.validate();
 
-   SPDLOG_INFO("Resulting preprocessing config: {}", preprocessing_config);
-   return preprocessing_config;
+   SPDLOG_INFO("Resulting config from {}: {}", commandline_option_name, config);
+   return config;
 }
 
 silo::config::DatabaseConfig getDatabaseConfig(const Poco::Util::AbstractConfiguration& cmdline_args
@@ -205,7 +206,8 @@ class SiloPreprocessor : public SiloApp {
    int main(const std::vector<std::string>& /*args*/) override {
       SPDLOG_INFO("Starting SILO preprocessing");
       try {
-         const auto preprocessing_config = getPreprocessingConfig(config());
+         const auto preprocessing_config =
+            getConfig<silo::config::PreprocessingConfig>(config(), PREPROCESSING_CONFIG_OPTION);
 
          auto database = runPreprocessor(preprocessing_config);
 
@@ -274,14 +276,9 @@ class SiloServer : public SiloApp {
          displayHelp("", "");
          return Application::EXIT_USAGE;
       }
-      silo::config::RuntimeConfig runtime_config;
-      if (config().hasProperty(RUNTIME_CONFIG_OPTION)) {
-         runtime_config.overwrite(YamlFile(config().getString(RUNTIME_CONFIG_OPTION)));
-      } else if (std::filesystem::exists("./runtime_config.yaml")) {
-         runtime_config.overwrite(YamlFile("./runtime_config.yaml"));
-      }
-      runtime_config.overwrite(EnvironmentVariables());
-      runtime_config.overwrite(CommandLineArguments(config()));
+
+      const auto runtime_config =
+         getConfig<silo::config::RuntimeConfig>(config(), RUNTIME_CONFIG_OPTION);
 
       SPDLOG_INFO("Starting SILO API");
 
