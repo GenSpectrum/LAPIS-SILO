@@ -142,6 +142,55 @@ const Scenario TSV_FILE_WITH_SQL_KEYWORD_AS_FIELD = {
    .expected_query_result = NDJSON_WITH_SQL_KEYWORD_AS_FIELD.expected_query_result
 };
 
+const Scenario TSV_FILE_WITH_QUOTE_IN_FIELD_NAME = {
+   .input_directory = "testBaseData/tsvWithQuoteInFieldName/",
+   .expected_sequence_count = 2,
+   .query = R"(
+{
+   "action": {
+      "type": "Aggregated",
+      "groupByFields": ["x\"y"],
+      "orderByFields": ["x\"y"]
+   },
+   "filterExpression": {
+      "type": "StringEquals",
+      "column": "x\"y",
+      "value": "a"
+   }
+}
+   )",
+   .expected_query_result = nlohmann::json::parse(
+      R"([
+         {"count": 1, "x\"y": "a"}
+   ])"
+   )
+};
+
+const Scenario TSV_FILE_WITH_QUOTE_IN_PARTITION_BY = {
+   .input_directory = "testBaseData/tsvWithQuoteInPartitionBy/",
+   .expected_sequence_count = 100,
+   .query = R"(
+{
+   "action": {
+      "type": "Aggregated",
+      "groupByFields": ["pango_\"lineage"],
+      "orderByFields": ["pango_\"lineage"],
+      "limit": 3
+   },
+   "filterExpression": {
+      "type": "True"
+   }
+}
+   )",
+   .expected_query_result = nlohmann::json::parse(
+      R"([
+         {"count":1,"pango_\"lineage":null},
+         {"count":1,"pango_\"lineage":"AY.122"},
+         {"count":4,"pango_\"lineage":"AY.43"}
+   ])"
+   )
+};
+
 const Scenario EMPTY_INPUT_TSV = {
    .input_directory = "testBaseData/emptyInputTsv/",
    .expected_sequence_count = 0,
@@ -288,6 +337,8 @@ INSTANTIATE_TEST_SUITE_P(
       SAM_FILES,
       NDJSON_WITH_SQL_KEYWORD_AS_FIELD,
       TSV_FILE_WITH_SQL_KEYWORD_AS_FIELD,
+      TSV_FILE_WITH_QUOTE_IN_FIELD_NAME,
+      TSV_FILE_WITH_QUOTE_IN_PARTITION_BY,
       NDJSON_WITH_NUMERIC_NAMES,
       EMPTY_INPUT_TSV,
       EMPTY_INPUT_NDJSON,

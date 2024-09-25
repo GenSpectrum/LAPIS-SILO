@@ -6,6 +6,7 @@
 #include "silo/config/database_config.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/database.h"
+#include "silo/preprocessing/identifier.h"
 #include "silo/preprocessing/identifiers.h"
 #include "silo/preprocessing/preprocessing_database.h"
 #include "silo/preprocessing/validated_ndjson_file.h"
@@ -58,7 +59,7 @@ class Preprocessor {
    void buildMetadataTableFromFile(const std::filesystem::path& metadata_filename);
 
    void buildPartitioningTable();
-   void buildPartitioningTableByColumn(const std::string& partition_by_field);
+   void buildPartitioningTableByColumn(const Identifier& partition_by_field);
    void buildEmptyPartitioning();
 
    template <typename SymbolType>

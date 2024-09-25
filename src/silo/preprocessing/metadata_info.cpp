@@ -112,8 +112,8 @@ void MetadataInfo::validateNdjsonFile(
 
    auto result = connection.Query(fmt::format(
       "SELECT metadata.* "
-      "FROM read_json_auto(\"{}\") LIMIT 0; ",
-      ndjson_file.string()
+      "FROM read_json_auto({}) LIMIT 0; ",
+      Identifier{ndjson_file.string()}.escape()
    ));
 
    if (result->HasError()) {
@@ -157,13 +157,10 @@ void MetadataInfo::validateNdjsonFile(
    }
 }
 
-std::vector<std::string> MetadataInfo::getMetadataFields(
-   const silo::config::DatabaseConfig& database_config
-) {
-   std::vector<std::string> ret;
-   ret.reserve(database_config.schema.metadata.size());
+Identifiers MetadataInfo::getMetadataFields(const silo::config::DatabaseConfig& database_config) {
+   Identifiers ret;
    for (const auto& field : database_config.schema.metadata) {
-      ret.push_back("\"" + field.name + "\"");
+      ret.addIdentifier(field.name);
    }
    return ret;
 }
@@ -174,7 +171,7 @@ std::vector<std::string> MetadataInfo::getMetadataSQLTypes(
    std::vector<std::string> ret;
    ret.reserve(database_config.schema.metadata.size());
    for (const auto& field : database_config.schema.metadata) {
-      ret.push_back(fmt::format("\"{}\" {}", field.name, toSQLType(field.type)));
+      ret.push_back(fmt::format("{} {}", Identifier{field.name}.escape(), toSQLType(field.type)));
    }
    return ret;
 }
@@ -185,7 +182,7 @@ std::vector<std::string> MetadataInfo::getMetadataSelects(
    std::vector<std::string> ret;
    ret.reserve(database_config.schema.metadata.size());
    for (const auto& field : database_config.schema.metadata) {
-      ret.push_back(fmt::format(R"( "metadata"."{0}" AS "{0}")", field.name));
+      ret.push_back(fmt::format(R"( "metadata".{0} AS {0})", Identifier{field.name}.escape()));
    }
    return ret;
 }

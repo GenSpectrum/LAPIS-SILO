@@ -230,7 +230,9 @@ void Preprocessor::buildMetadataTableFromFile(const std::filesystem::path& metad
    (void)preprocessing_db.query(fmt::format(
       "INSERT INTO metadata_table BY NAME (SELECT {} FROM read_csv_auto('{}', delim = '\t', "
       "header = true));",
-      boost::join(MetadataInfo::getMetadataFields(database_config), ","),
+      boost::join(
+         MetadataInfo::getMetadataFields(database_config).getEscapedIdentifierStrings(), ","
+      ),
       metadata_filename.string()
    ));
 }
@@ -257,14 +259,14 @@ void Preprocessor::buildPartitioningTable() {
          "preprocessing - partitioning input by metadata key '{}'",
          database_config.schema.partition_by.value()
       );
-      buildPartitioningTableByColumn(database_config.schema.partition_by.value());
+      buildPartitioningTableByColumn(Identifier{database_config.schema.partition_by.value()});
    } else {
       SPDLOG_DEBUG("preprocessing - no metadata key for partitioning provided");
       buildEmptyPartitioning();
    }
 }
 
-void Preprocessor::buildPartitioningTableByColumn(const std::string& partition_by_field) {
+void Preprocessor::buildPartitioningTableByColumn(const Identifier& partition_by_field) {
    SPDLOG_DEBUG("preprocessing - calculating partitions");
 
    (void)preprocessing_db.query(fmt::format(
@@ -276,7 +278,7 @@ FROM (SELECT {} AS partition_key, COUNT(*) AS count
       GROUP BY partition_key
       ORDER BY partition_key);
 )-",
-      makeNonNullKey(partition_by_field)
+      makeNonNullKey(partition_by_field.escape())
    ));
 
    // create Recursive Hierarchical Partitioning By Partition Field
@@ -330,8 +332,8 @@ AND partition_keys.partition_key = 'NULL'))
   AND partition_keys.id >= partitioning.from_id
   AND partition_keys.id <= partitioning.to_id;
 )-",
-      makeNonNullKey(partition_by_field),
-      partition_by_field
+      makeNonNullKey(partition_by_field.escape()),
+      partition_by_field.escape()
    ));
 }
 

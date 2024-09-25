@@ -26,4 +26,8 @@ std::string Identifier::escape() const {
    return escapeIdentifier(raw_identifier);
 }
 
+bool Identifier::operator==(const Identifier& other) const {
+   return raw_identifier == other.raw_identifier;
+}
+
 }  // namespace silo::preprocessing
