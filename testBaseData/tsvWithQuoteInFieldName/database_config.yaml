@@ -1,0 +1,8 @@
+schema:
+  instanceName: Test
+  metadata:
+    - name: id
+      type: string
+    - name: 'x"y'
+      type: string
+  primaryKey: id

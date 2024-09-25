@@ -230,7 +230,9 @@ void Preprocessor::buildMetadataTableFromFile(const std::filesystem::path& metad
    (void)preprocessing_db.query(fmt::format(
       "INSERT INTO metadata_table BY NAME (SELECT {} FROM read_csv_auto('{}', delim = '\t', "
       "header = true));",
-      boost::join(MetadataInfo::getMetadataFields(database_config), ","),
+      boost::join(
+         MetadataInfo::getMetadataFields(database_config).getEscapedIdentifierStrings(), ","
+      ),
       metadata_filename.string()
    ));
 }

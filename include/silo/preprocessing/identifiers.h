@@ -11,7 +11,14 @@ class Identifiers {
    std::vector<Identifier> identifiers;
 
   public:
+   explicit Identifiers() = default;
+
    Identifiers(const std::vector<std::string>& raw_identifiers);
+
+   template <typename T>
+   void addIdentifier(T&& identifier) {
+      identifiers.emplace_back(std::forward<T>(identifier));
+   }
 
    Identifiers prefix(const std::string& prefix) const;
 

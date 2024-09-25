@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "silo/config/database_config.h"
+#include "silo/preprocessing/identifiers.h"
 
 namespace silo::preprocessing {
 
@@ -21,7 +22,7 @@ class MetadataInfo {
       const silo::config::DatabaseConfig& database_config
    );
 
-   static std::vector<std::string> getMetadataFields(
+   static silo::preprocessing::Identifiers getMetadataFields(
       const silo::config::DatabaseConfig& database_config
    );
 

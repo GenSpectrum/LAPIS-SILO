@@ -53,11 +53,19 @@ TEST(MetadataInfo, isValidMedataFileShouldReturnTrueWithValidMetadataFile) {
          }
    };
 
-   const auto fields = silo::preprocessing::MetadataInfo::getMetadataFields(valid_config);
-   ASSERT_TRUE(std::ranges::find(fields, R"("gisaid_epi_isl")") != fields.end());
-   ASSERT_TRUE(std::ranges::find(fields, R"("pango_lineage")") != fields.end());
-   ASSERT_TRUE(std::ranges::find(fields, R"("date")") != fields.end());
-   ASSERT_TRUE(std::ranges::find(fields, R"("country")") != fields.end());
+   const auto raw_fields =
+      silo::preprocessing::MetadataInfo::getMetadataFields(valid_config).getRawIdentifierStrings();
+   ASSERT_TRUE(std::ranges::find(raw_fields, "gisaid_epi_isl") != raw_fields.end());
+   ASSERT_TRUE(std::ranges::find(raw_fields, "pango_lineage") != raw_fields.end());
+   ASSERT_TRUE(std::ranges::find(raw_fields, "date") != raw_fields.end());
+   ASSERT_TRUE(std::ranges::find(raw_fields, "country") != raw_fields.end());
+
+   const auto escaped_fields = silo::preprocessing::MetadataInfo::getMetadataFields(valid_config)
+                                  .getEscapedIdentifierStrings();
+   ASSERT_TRUE(std::ranges::find(escaped_fields, R"("gisaid_epi_isl")") != escaped_fields.end());
+   ASSERT_TRUE(std::ranges::find(escaped_fields, R"("pango_lineage")") != escaped_fields.end());
+   ASSERT_TRUE(std::ranges::find(escaped_fields, R"("date")") != escaped_fields.end());
+   ASSERT_TRUE(std::ranges::find(escaped_fields, R"("country")") != escaped_fields.end());
 }
 
 TEST(MetadataInfo, shouldValidateCorrectNdjsonInputFile) {
@@ -77,10 +85,17 @@ TEST(MetadataInfo, shouldValidateCorrectNdjsonInputFile) {
          }
    };
 
-   const auto fields = silo::preprocessing::MetadataInfo::getMetadataFields(valid_config);
+   const auto raw_fields =
+      silo::preprocessing::MetadataInfo::getMetadataFields(valid_config).getRawIdentifierStrings();
+   ASSERT_TRUE(std::ranges::find(raw_fields, "gisaid_epi_isl") != raw_fields.end());
+   ASSERT_TRUE(std::ranges::find(raw_fields, "pango_lineage") != raw_fields.end());
+   ASSERT_TRUE(std::ranges::find(raw_fields, "date") != raw_fields.end());
+   ASSERT_TRUE(std::ranges::find(raw_fields, "country") != raw_fields.end());
 
-   ASSERT_TRUE(std::ranges::find(fields, R"("gisaid_epi_isl")") != fields.end());
-   ASSERT_TRUE(std::ranges::find(fields, R"("pango_lineage")") != fields.end());
-   ASSERT_TRUE(std::ranges::find(fields, R"("date")") != fields.end());
-   ASSERT_TRUE(std::ranges::find(fields, R"("country")") != fields.end());
+   const auto escaped_fields = silo::preprocessing::MetadataInfo::getMetadataFields(valid_config)
+                                  .getEscapedIdentifierStrings();
+   ASSERT_TRUE(std::ranges::find(escaped_fields, R"("gisaid_epi_isl")") != escaped_fields.end());
+   ASSERT_TRUE(std::ranges::find(escaped_fields, R"("pango_lineage")") != escaped_fields.end());
+   ASSERT_TRUE(std::ranges::find(escaped_fields, R"("date")") != escaped_fields.end());
+   ASSERT_TRUE(std::ranges::find(escaped_fields, R"("country")") != escaped_fields.end());
 }

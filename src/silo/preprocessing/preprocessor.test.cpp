@@ -142,6 +142,30 @@ const Scenario TSV_FILE_WITH_SQL_KEYWORD_AS_FIELD = {
    .expected_query_result = NDJSON_WITH_SQL_KEYWORD_AS_FIELD.expected_query_result
 };
 
+const Scenario TSV_FILE_WITH_QUOTE_IN_FIELD_NAME = {
+   .input_directory = "testBaseData/tsvWithQuoteInFieldName/",
+   .expected_sequence_count = 2,
+   .query = R"(
+{
+   "action": {
+      "type": "Aggregated",
+      "groupByFields": ["x\"y"],
+      "orderByFields": ["x\"y"]
+   },
+   "filterExpression": {
+      "type": "StringEquals",
+      "column": "x\"y",
+      "value": "a"
+   }
+}
+   )",
+   .expected_query_result = nlohmann::json::parse(
+      R"([
+         {"count": 1, "x\"y": "a"}
+   ])"
+   )
+};
+
 const Scenario EMPTY_INPUT_TSV = {
    .input_directory = "testBaseData/emptyInputTsv/",
    .expected_sequence_count = 0,
@@ -288,6 +312,7 @@ INSTANTIATE_TEST_SUITE_P(
       SAM_FILES,
       NDJSON_WITH_SQL_KEYWORD_AS_FIELD,
       TSV_FILE_WITH_SQL_KEYWORD_AS_FIELD,
+      TSV_FILE_WITH_QUOTE_IN_FIELD_NAME,
       NDJSON_WITH_NUMERIC_NAMES,
       EMPTY_INPUT_TSV,
       EMPTY_INPUT_NDJSON,
