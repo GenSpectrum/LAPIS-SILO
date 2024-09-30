@@ -16,6 +16,8 @@ class Identifier {
    const std::string& getRawIdentifier() const;
 
    std::string escape() const;
+
+   bool operator==(const Identifier& other) const;
 };
 
 }  // namespace silo::preprocessing
