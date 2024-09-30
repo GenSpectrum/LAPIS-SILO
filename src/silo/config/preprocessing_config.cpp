@@ -30,22 +30,6 @@ void PreprocessingConfig::validate() const {
    }
 }
 
-std::filesystem::path PreprocessingConfig::getOutputDirectory() const {
-   return output_directory;
-}
-
-std::filesystem::path PreprocessingConfig::getIntermediateResultsDirectory() const {
-   return intermediate_results_directory;
-}
-
-std::optional<std::filesystem::path> PreprocessingConfig::getPreprocessingDatabaseLocation() const {
-   return preprocessing_database_location;
-}
-
-[[nodiscard]] std::optional<uint32_t> PreprocessingConfig::getDuckdbMemoryLimitInG() const {
-   return duckdb_memory_limit_in_g;
-}
-
 std::optional<std::filesystem::path> PreprocessingConfig::getPangoLineageDefinitionFilename(
 ) const {
    return pango_lineage_definition_file.has_value()
@@ -109,7 +93,9 @@ void PreprocessingConfig::addOptions(Poco::Util::OptionSet& options) {
    DEFAULT_VALUE,                                                 \
    OPTION_PATH,                                                   \
    PARSING_ACCESSOR_TYPE_NAME,                                    \
-   HELP_TEXT                                                      \
+   HELP_TEXT,                                                     \
+   ACCESSOR_GENERATION,                                           \
+   ACCESSOR_NAME                                                  \
 )                                                                 \
    {                                                              \
       const AbstractConfigSource::Option opt{OPTION_PATH};        \
@@ -136,7 +122,9 @@ void PreprocessingConfig::overwrite(const silo::config::AbstractConfigSource& co
    DEFAULT_VALUE,                                                                               \
    OPTION_PATH,                                                                                 \
    PARSING_ACCESSOR_TYPE_NAME,                                                                  \
-   HELP_TEXT                                                                                    \
+   HELP_TEXT,                                                                                   \
+   ACCESSOR_GENERATION,                                                                         \
+   ACCESSOR_NAME                                                                                \
 )                                                                                               \
    {                                                                                            \
       const AbstractConfigSource::Option opt{OPTION_PATH};                                      \

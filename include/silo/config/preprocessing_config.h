@@ -53,10 +53,6 @@ class PreprocessingConfig {
 
    [[nodiscard]] std::filesystem::path getReferenceGenomeFilename() const;
 
-   [[nodiscard]] std::optional<std::filesystem::path> getPreprocessingDatabaseLocation() const;
-
-   [[nodiscard]] std::optional<uint32_t> getDuckdbMemoryLimitInG() const;
-
    [[nodiscard]] std::optional<std::filesystem::path> getNdjsonInputFilename() const;
 
    void overwrite(const silo::config::AbstractConfigSource& config_source);
