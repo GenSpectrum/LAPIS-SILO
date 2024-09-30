@@ -123,14 +123,6 @@ class SiloApp : public Poco::Util::ServerApplication {
    }
 };
 
-void addDatabaseConfigOption(Poco::Util::OptionSet& options) {
-   options.addOption(optionalNonRepeatableOption(
-      silo::config::AbstractConfigSource::Option{{DATABASE_CONFIG_OPTION}},
-      "path to the database config file",
-      "PATH"
-   ));
-}
-
 class SiloPreprocessor : public SiloApp {
   protected:
    [[maybe_unused]] void defineOptions(Poco::Util::OptionSet& options) override {
@@ -153,8 +145,6 @@ class SiloPreprocessor : public SiloApp {
                            .repeatable(false)
                            .argument("PATH")
                            .binding(PREPROCESSING_CONFIG_OPTION));
-
-      addDatabaseConfigOption(options);
 
       options.addOption(
          optionalNonRepeatableOption(
