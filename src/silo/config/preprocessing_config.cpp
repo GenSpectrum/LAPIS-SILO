@@ -30,6 +30,10 @@ void PreprocessingConfig::validate() const {
    }
 }
 
+std::filesystem::path PreprocessingConfig::getDatabaseConfigFilename() const {
+   return input_directory / database_config_file;
+}
+
 std::optional<std::filesystem::path> PreprocessingConfig::getPangoLineageDefinitionFilename(
 ) const {
    return pango_lineage_definition_file.has_value()

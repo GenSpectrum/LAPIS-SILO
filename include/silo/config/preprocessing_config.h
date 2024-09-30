@@ -45,6 +45,8 @@ class PreprocessingConfig {
 
    void validate() const;
 
+   [[nodiscard]] std::filesystem::path getDatabaseConfigFilename() const;
+
    [[nodiscard]] std::filesystem::path getOutputDirectory() const;
 
    [[nodiscard]] std::filesystem::path getIntermediateResultsDirectory() const;
