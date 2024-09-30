@@ -238,8 +238,6 @@ class SiloServer : public SiloApp {
             .callback(Poco::Util::OptionCallback<SiloServer>(this, &SiloServer::displayHelp))
       );
 
-      addDatabaseConfigOption(options);
-
       options.addOption(optionalNonRepeatableOption(
          silo::config::PORT_OPTION, "port to listen to requests", "NUMBER"
       ));
