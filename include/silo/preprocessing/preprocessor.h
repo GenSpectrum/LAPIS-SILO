@@ -21,7 +21,7 @@ class Preprocessor {
    config::PreprocessingConfig preprocessing_config;
    config::DatabaseConfig database_config;
    ReferenceGenomes reference_genomes;
-   common::LineageTreeAndIDMap lineage_tree;
+   common::LineageTreeAndIdMap lineage_tree;
 
    PreprocessingDatabase preprocessing_db;
 
@@ -40,7 +40,7 @@ class Preprocessor {
       config::PreprocessingConfig preprocessing_config,
       config::DatabaseConfig database_config,
       ReferenceGenomes reference_genomes,
-      common::LineageTreeAndIDMap lineage_definitions
+      common::LineageTreeAndIdMap lineage_definitions
    );
 
    Database preprocess();

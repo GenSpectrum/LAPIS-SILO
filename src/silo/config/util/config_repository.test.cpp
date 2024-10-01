@@ -209,3 +209,29 @@ TEST(ConfigRepository, givenMetadataToGenerateIndexForThatIsNotStringThenThrows)
       )
    );
 }
+
+TEST(ConfigRepository, givenLineageIndexAndNotGenerateThenThrows) {
+   const auto config_reader_mock = mockConfigReader(
+      {.default_nucleotide_sequence = "main",
+       .schema =
+          {.instance_name = "testInstanceName",
+           .metadata =
+              {
+                 {.name = "testPrimaryKey", .type = ValueType::STRING},
+                 {.name = "some lineage", .type = ValueType::STRING, .lineage_index = true},
+              },
+           .primary_key = "testPrimaryKey",
+           .date_to_sort_by = std::nullopt,
+           .partition_by = "testPrimaryKey"}}
+   );
+
+   EXPECT_THAT(
+      [&config_reader_mock]() {
+         ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml");
+      },
+      ThrowsMessage<ConfigException>(
+         ::testing::HasSubstr("Metadata 'some lineage' lineage_index is set, "
+                              "generate_index must also be set")
+      )
+   );
+}

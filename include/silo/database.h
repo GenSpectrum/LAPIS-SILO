@@ -47,7 +47,7 @@ class Database {
    std::map<std::string, UnalignedSequenceStore> unaligned_nuc_sequences;
 
   private:
-   common::LineageTreeAndIDMap lineage_tree;
+   common::LineageTreeAndIdMap lineage_tree;
    DataVersion data_version_ = DataVersion::mineDataVersion();
 
   public:
@@ -81,7 +81,7 @@ class Database {
    std::vector<std::vector<AminoAcid::Symbol>> getAASequences() const;
 
    void initializeColumns();
-   void initializeColumn(config::ColumnType column_type, const std::string& name);
+   void initializeColumn(const config::DatabaseMetadata& metadata);
    void initializeNucSequences(
       const std::vector<std::string>& sequence_names,
       const std::vector<std::vector<Nucleotide::Symbol>>& reference_sequences

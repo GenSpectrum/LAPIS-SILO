@@ -50,7 +50,7 @@ Preprocessor::Preprocessor(
    config::PreprocessingConfig preprocessing_config_,
    config::DatabaseConfig database_config_,
    ReferenceGenomes reference_genomes_,
-   common::LineageTreeAndIDMap lineage_tree
+   common::LineageTreeAndIdMap lineage_tree
 )
     : preprocessing_config(std::move(preprocessing_config_)),
       database_config(std::move(database_config_)),

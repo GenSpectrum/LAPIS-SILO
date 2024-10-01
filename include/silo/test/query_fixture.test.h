@@ -77,7 +77,7 @@ struct QueryTestData {
    const std::vector<nlohmann::json> ndjson_input_data;
    const silo::config::DatabaseConfig database_config;
    const silo::ReferenceGenomes reference_genomes;
-   const silo::common::LineageTreeAndIDMap lineage_tree;
+   const silo::common::LineageTreeAndIdMap lineage_tree;
 };
 
 struct QueryTestScenario {

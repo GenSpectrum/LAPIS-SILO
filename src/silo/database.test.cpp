@@ -27,9 +27,9 @@ silo::Database buildTestDatabase() {
    const auto reference_genomes =
       silo::ReferenceGenomes::readFromFile(config.getReferenceGenomeFilename());
 
-   silo::common::LineageTreeAndIDMap lineage_tree;
+   silo::common::LineageTreeAndIdMap lineage_tree;
    if (config.getLineageDefinitionsFilename().has_value()) {
-      lineage_tree = silo::common::LineageTreeAndIDMap::fromLineageDefinitionFilePath(
+      lineage_tree = silo::common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(
          config.getLineageDefinitionsFilename().value()
       );
    }
@@ -64,9 +64,9 @@ TEST(DatabaseTest, shouldSuccessfullyBuildDatabaseWithoutPartitionBy) {
    const auto reference_genomes =
       silo::ReferenceGenomes::readFromFile(config.getReferenceGenomeFilename());
 
-   silo::common::LineageTreeAndIDMap lineage_tree;
+   silo::common::LineageTreeAndIdMap lineage_tree;
    if (config.getLineageDefinitionsFilename().has_value()) {
-      lineage_tree = silo::common::LineageTreeAndIDMap::fromLineageDefinitionFilePath(
+      lineage_tree = silo::common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(
          config.getLineageDefinitionsFilename().value()
       );
    }

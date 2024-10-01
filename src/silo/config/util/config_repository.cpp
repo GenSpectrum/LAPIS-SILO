@@ -26,6 +26,14 @@ std::map<std::string, ValueType> validateMetadataDefinitions(const DatabaseConfi
          throw ConfigException("Metadata " + metadata.name + " is defined twice in the config");
       }
 
+      const auto must_be_string = metadata.lineage_index;
+      if (metadata.type != ValueType::STRING && must_be_string) {
+         throw ConfigException(
+            "Metadata '" + metadata.name +
+            "' lineage_index is set, but the column is not of type STRING."
+         );
+      }
+
       const auto must_not_generate_index_on_type = metadata.type != ValueType::STRING;
       if (metadata.generate_index && must_not_generate_index_on_type) {
          throw ConfigException(
@@ -39,14 +47,6 @@ std::map<std::string, ValueType> validateMetadataDefinitions(const DatabaseConfi
          throw ConfigException(
             "Metadata '" + metadata.name +
             "' lineage_index is set, generate_index must also be set."
-         );
-      }
-
-      const auto must_be_string = metadata.lineage_index;
-      if (metadata.type != ValueType::STRING && must_be_string) {
-         throw ConfigException(
-            "Metadata '" + metadata.name +
-            "' lineage_index is set, but the column must be of type STRING."
          );
       }
 

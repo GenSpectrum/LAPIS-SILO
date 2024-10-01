@@ -28,12 +28,15 @@ class LineageTree {
    LineageTree& operator=(const LineageTree& other) = default;
    LineageTree& operator=(LineageTree&& other) = default;
 
-   static LineageTree fromEdgeList(size_t n_vertices, std::vector<std::pair<Idx, Idx>> edge_list);
+   static LineageTree fromEdgeList(
+      size_t n_vertices,
+      const std::vector<std::pair<Idx, Idx>>& edge_list
+   );
 
    std::optional<Idx> getParent(Idx value);
 };
 
-class LineageTreeAndIDMap {
+class LineageTreeAndIdMap {
    friend class boost::serialization::access;
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
@@ -47,20 +50,20 @@ class LineageTreeAndIDMap {
    LineageTree lineage_tree;
    BidirectionalMap<std::string> lineage_id_lookup_map;
 
-   LineageTreeAndIDMap() = default;
-   LineageTreeAndIDMap(LineageTreeAndIDMap&& other) = default;
-   LineageTreeAndIDMap& operator=(LineageTreeAndIDMap&& other) = default;
-   LineageTreeAndIDMap(const LineageTreeAndIDMap& other);
-   LineageTreeAndIDMap& operator=(const LineageTreeAndIDMap& other);
+   LineageTreeAndIdMap() = default;
+   LineageTreeAndIdMap(LineageTreeAndIdMap&& other) = default;
+   LineageTreeAndIdMap& operator=(LineageTreeAndIdMap&& other) = default;
+   LineageTreeAndIdMap(const LineageTreeAndIdMap& other);
+   LineageTreeAndIdMap& operator=(const LineageTreeAndIdMap& other);
 
-   static LineageTreeAndIDMap fromLineageDefinitionFile(
+   static LineageTreeAndIdMap fromLineageDefinitionFile(
       const silo::preprocessing::LineageDefinitionFile& file
    );
 
-   static LineageTreeAndIDMap fromLineageDefinitionFilePath(const std::filesystem::path& file_path);
+   static LineageTreeAndIdMap fromLineageDefinitionFilePath(const std::filesystem::path& file_path);
 
   private:
-   LineageTreeAndIDMap(
+   LineageTreeAndIdMap(
       LineageTree&& lineage_tree,
       BidirectionalMap<std::string>&& lineage_id_lookup_map
    );

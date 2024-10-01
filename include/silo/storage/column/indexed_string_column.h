@@ -17,8 +17,8 @@
 #include "silo/storage/lineage_index.h"
 
 namespace silo::storage::column {
-
-class IndexedStringColumn;  // TODO comment
+// Forward declaration for friend class access
+class IndexedStringColumn;
 
 class IndexedStringColumnPartition {
    friend class boost::serialization::access;
@@ -79,7 +79,7 @@ class IndexedStringColumn {
 
    IndexedStringColumnPartition& createPartition();
 
-   void generateLineageIndex(const common::LineageTreeAndIDMap& lineage_tree);
+   void generateLineageIndex(const common::LineageTreeAndIdMap& lineage_tree);
 };
 
 }  // namespace silo::storage::column

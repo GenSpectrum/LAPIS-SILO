@@ -7,7 +7,7 @@
 
 namespace {
 using silo::ReferenceGenomes;
-using silo::common::LineageTreeAndIDMap;
+using silo::common::LineageTreeAndIdMap;
 using silo::config::DatabaseConfig;
 using silo::config::ValueType;
 using silo::preprocessing::LineageDefinitionFile;
@@ -64,13 +64,13 @@ const auto REFERENCE_GENOMES = ReferenceGenomes{
 };
 
 const auto LINEAGE_TREE =
-   LineageTreeAndIDMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAML(R"(
+   LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAML(R"(
 CHILD:
   parents:
   - BASE.1
 BASE.1:
   parents: []
-)"));  // TODO {{{"CHILD", {"BASE.1.1.1"}}}};
+)"));
 
 const QueryTestData TEST_DATA{
    .ndjson_input_data = {DATA},
@@ -124,7 +124,7 @@ const QueryTestScenario LINEAGE_FILTER_NULL_INCLUDING_SUBLINEAGES_SCENARIO = {
 }  // namespace
 
 QUERY_TEST(
-   PangoLineageFilterTest,
+   LineageFilterTest,
    TEST_DATA,
    ::testing::Values(
       LINEAGE_FILTER_SCENARIO,

@@ -3,7 +3,6 @@
 #include <spdlog/spdlog.h>
 
 #include "silo/preprocessing/identifiers.h"
-#include "silo/storage/reference_genomes.h"
 #include "silo/zstd/zstd_compressor.h"
 
 using duckdb::Connection;
