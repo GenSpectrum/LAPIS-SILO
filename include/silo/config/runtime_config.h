@@ -45,3 +45,11 @@ struct RuntimeConfig {
 };
 
 }  // namespace silo::config
+
+template <>
+struct [[maybe_unused]] fmt::formatter<silo::config::RuntimeConfig> : fmt::formatter<std::string> {
+   [[maybe_unused]] static auto format(
+      const silo::config::RuntimeConfig& runtime_config,
+      format_context& ctx
+   ) -> decltype(ctx.out());
+};
