@@ -14,6 +14,7 @@ parser = argparse.ArgumentParser(description="Process a JSON file and convert it
 parser.add_argument('alias_key', type=str, help='Path to the alias_key in JSON format')
 parser.add_argument('lineage_file', type=str, help='Path to the input_file containing all lineages')
 parser.add_argument('--preserve-tmp-dir', action='store_true', help='Preserve the temporary directory to keep the intermediate duckdb tables')
+parser.add_argument('--verbose', '-v', action='store_true', help='Verbose logging')
 
 # Parse the arguments
 args = parser.parse_args()
@@ -40,6 +41,8 @@ for key, value in alias_key.items():
 df = pl.DataFrame(reformatted_data)
 
 temp_dir = tempfile.mkdtemp()
+if args.verbose:
+    print(f"Temporary directory: {temp_dir}", file=sys.stderr)
 db_path = os.path.join(temp_dir, "lineage_transform.duckdb")
 con = duckdb.connect(db_path)
 con.execute(f"CREATE TABLE alias_key (alias_name VARCHAR, alias_value VARCHAR)")
@@ -86,7 +89,7 @@ con.execute(f"""
                 FROM filled_gaps
                 WHERE NOT EXISTS ( SELECT * FROM lineages_unaliased WHERE lineages_unaliased.unaliased = filled_gaps.unaliased )
             )
-            SELECT DISTINCT lineage
+            SELECT DISTINCT lineage, unaliased
             FROM filled_gaps
             WHERE lineage IS NOT NULL
             ORDER BY lineage
@@ -98,33 +101,38 @@ con.execute(f"""
             CASE 
                 WHEN instr(REVERSE(unaliased), '.') > 0 THEN REVERSE(SUBSTR(REVERSE(unaliased), instr(REVERSE(unaliased), '.') + 1))
             END AS parent_lineage
-            FROM lineages_unaliased )
+            FROM all_lineages_unaliased )
 """)
 
 con.execute(f"""
             CREATE TABLE parent_child_relations AS (
             SELECT DISTINCT child.lineage AS lineage, parent.lineage AS parent, parent.unaliased as unaliased_parent
-            FROM with_unaliased_parent_lineage child, lineages_unaliased parent
+            FROM with_unaliased_parent_lineage child, all_lineages_unaliased parent
             WHERE child.parent_lineage = parent.unaliased)
 """)
 
 con.execute(f"""
-            CREATE TABLE lineage_definitions AS (
-            SELECT lineages.lineage AS lineage, parent_child_relations.parent
-            FROM lineages LEFT OUTER JOIN parent_child_relations
-            ON lineages.lineage = parent_child_relations.lineage)
+            CREATE TABLE all_aliases AS (
+            SELECT lineage, alias_name || substr(unaliased, strlen(alias_value) + 1, strlen(lineage) - strlen(alias_value))
+            FROM all_lineages_unaliased, alias_key
+            WHERE unaliased LIKE alias_value || '%'
+            )
 """)
 
-query = "SELECT lineage, parent FROM lineage_definitions ORDER BY lineage"
+query = "SELECT lineage FROM all_lineages_unaliased ORDER BY lineage"
 data = con.execute(query).fetchall()
 
-# Transform the data into YAML
 lineage_dict = {}
-for lineage, parent in data:
+for lineage in data:
     lineage_dict[lineage] = {}
     lineage_dict[lineage]["parents"] = []
-    if parent:
-        lineage_dict[lineage]["parents"].append(parent)
+    lineage_dict[lineage]["aliases"] = []
+
+query = "SELECT lineage, parent FROM parent_child_relations ORDER BY lineage"
+data = con.execute(query).fetchall()
+
+for lineage, parent in data:
+    lineage_dict[lineage]["parents"].append(parent)
 
 yaml.dump(lineage_dict, sys.stdout, default_flow_style=False)
 

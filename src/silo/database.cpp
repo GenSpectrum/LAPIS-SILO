@@ -588,7 +588,9 @@ Database Database::loadDatabaseState(const std::filesystem::path& save_directory
    return database;
 }
 
-void Database::initializeColumn(config::ColumnType column_type, const std::string& name) {
+void Database::initializeColumn(const config::DatabaseMetadata& metadata) {
+   const std::string& name = metadata.name;
+   const config::ColumnType column_type = metadata.getColumnType();
    SPDLOG_TRACE("Initializing column {}", name);
    columns.metadata.push_back({name, column_type});
    switch (column_type) {
@@ -605,6 +607,9 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
          for (auto& partition : partitions) {
             partition.columns.metadata.push_back({name, column_type});
             partition.insertColumn(name, columns.indexed_string_columns.at(name).createPartition());
+         }
+         if (metadata.lineage_index) {
+            column.generateLineageIndex(lineage_tree);
          }
       }
          return;
@@ -646,11 +651,7 @@ void Database::initializeColumn(config::ColumnType column_type, const std::strin
 
 void Database::initializeColumns() {
    for (const auto& item : database_config.schema.metadata) {
-      initializeColumn(item.getColumnType(), item.name);
-      if (item.lineage_index) {
-         ASSERT(columns.indexed_string_columns.contains(item.name));
-         columns.indexed_string_columns.at(item.name).generateLineageIndex(lineage_tree);
-      }
+      initializeColumn(item);
    }
 }
 

@@ -5,10 +5,10 @@
 #include "silo/preprocessing/lineage_definition_file.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
-using silo::common::LineageTreeAndIDMap;
+using silo::common::LineageTreeAndIdMap;
 using silo::preprocessing::LineageDefinitionFile;
 
-TEST(LineageTreeAndIDMap, correctSimpleTree) {
+TEST(LineageTreeAndIdMap, correctSimpleTree) {
    auto lineage_definition_file = LineageDefinitionFile::fromYAML(R"(
 BASE:
   parents: []
@@ -16,7 +16,7 @@ CHILD:
   parents:
     - BASE
 )");
-   auto lineage_tree = LineageTreeAndIDMap::fromLineageDefinitionFile(lineage_definition_file);
+   auto lineage_tree = LineageTreeAndIdMap::fromLineageDefinitionFile(lineage_definition_file);
    ASSERT_TRUE(lineage_tree.lineage_id_lookup_map.getId("BASE").has_value());
    ASSERT_TRUE(lineage_tree.lineage_id_lookup_map.getId("CHILD").has_value());
    ASSERT_FALSE(lineage_tree.lineage_id_lookup_map.getId("Base").has_value());
@@ -32,19 +32,33 @@ CHILD:
    );
 }
 
-TEST(LineageTreeAndIDMap, errorOnMissingParent) {
-   auto lineage_definition_file = LineageDefinitionFile::fromYAML(R"(
+TEST(LineageTreeAndIdMap, errorOnMissingParent) {
+   auto throwing_lambda = []() {
+      (void)LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAML(R"(
 some_lineage:
   parents:
     - parent_that_does_not_exist
-)");
-   ASSERT_THROW(
-      LineageTreeAndIDMap::fromLineageDefinitionFile(lineage_definition_file),
+)"));
+   };
+
+   EXPECT_THROW(
+      {
+         try {
+            throwing_lambda();
+         } catch (const silo::preprocessing::PreprocessingException& e) {
+            ASSERT_EQ(
+               std::string(e.what()),
+               "The lineage 'parent_that_does_not_exist' which is specified as the parent of "
+               "vertex 'some_lineage' does not have a definition itself."
+            );
+            throw;
+         }
+      },
       silo::preprocessing::PreprocessingException
    );
 }
 
-TEST(LineageTreeAndIDMap, correctTreeRelations) {
+TEST(LineageTreeAndIdMap, correctTreeRelations) {
    auto lineage_definition_file = LineageDefinitionFile::fromYAML(R"(
 BASE:
   parents: []
@@ -61,7 +75,7 @@ GRANDCHILD2:
   parents:
     - CHILD1
 )");
-   auto lineage_tree = LineageTreeAndIDMap::fromLineageDefinitionFile(lineage_definition_file);
+   auto lineage_tree = LineageTreeAndIdMap::fromLineageDefinitionFile(lineage_definition_file);
    ASSERT_TRUE(lineage_tree.lineage_id_lookup_map.getId("BASE").has_value());
    ASSERT_TRUE(lineage_tree.lineage_id_lookup_map.getId("CHILD1").has_value());
    ASSERT_TRUE(lineage_tree.lineage_id_lookup_map.getId("CHILD2").has_value());
@@ -80,24 +94,34 @@ GRANDCHILD2:
    ASSERT_EQ(lineage_tree.lineage_tree.getParent(base), std::nullopt);
 }
 
-TEST(LineageTreeAndIDMap, correctCycleInFile) {
-   auto lineage_definition_file = LineageDefinitionFile::fromYAML(R"(
+TEST(LineageTreeAndIdMap, correctCycleInFile) {
+   auto throwing_lambda = []() {
+      LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAML(R"(
 BASE:
   parents:
    - CHILD
 CHILD:
   parents:
     - BASE
-)");
-   ASSERT_THROW(
-      LineageTreeAndIDMap::fromLineageDefinitionFile(lineage_definition_file),
+)"));
+   };
+
+   EXPECT_THROW(
+      {
+         try {
+            throwing_lambda();
+         } catch (const silo::preprocessing::PreprocessingException& e) {
+            ASSERT_EQ(std::string(e.what()), "The given LineageTree contains a cycle.");
+            throw;
+         }
+      },
       silo::preprocessing::PreprocessingException
    );
 }
 
 TEST(containsCycle, findsCycles) {
    // 1. Simple cycle
-   ASSERT_TRUE(silo::common::containsCycle(3, {{0, 1}, {1, 2}, {2, 0}}));
+   ASSERT_TRUE(silo::common::containsCycle(3, {{0, 1}, {1, 0}}));
 
    // 2. Graph with a cycle and disconnected edges
    ASSERT_TRUE(silo::common::containsCycle(5, {{0, 1}, {1, 2}, {2, 0}, {3, 4}}));
@@ -109,7 +133,7 @@ TEST(containsCycle, findsCycles) {
    ASSERT_TRUE(silo::common::containsCycle(6, {{0, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 0}}));
 
    // 5. Disconnected cycle components
-   ASSERT_TRUE(silo::common::containsCycle(6, {{0, 1}, {1, 2}, {2, 0}, {3, 4}, {4, 5}, {5, 3}}));
+   ASSERT_TRUE(silo::common::containsCycle(7, {{0, 1}, {1, 2}, {2, 3}, {4, 5}, {5, 6}, {6, 4}}));
 
    // 6. Self-loop, cycle present
    ASSERT_TRUE(silo::common::containsCycle(3, {{0, 1}, {1, 2}, {2, 2}}));

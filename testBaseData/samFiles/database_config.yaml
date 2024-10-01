@@ -5,9 +5,6 @@ schema:
       type: date
     - name: host
       type: string
-    - name: pangoLineage
-      type: string
-      generateIndex: true
     - name: accessionVersion
       type: string
   primaryKey: accessionVersion

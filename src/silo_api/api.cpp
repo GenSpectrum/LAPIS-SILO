@@ -259,10 +259,13 @@ class SiloServer : public Poco::Util::ServerApplication {
       const auto reference_genomes =
          silo::ReferenceGenomes::readFromFile(preprocessing_config.getReferenceGenomeFilename());
 
-      SPDLOG_INFO("preprocessing - verify the tree and generate tree obect");
-      silo::common::LineageTreeAndIDMap lineage_definitions;
+      silo::common::LineageTreeAndIdMap lineage_definitions;
       if (auto lineage_file_name = preprocessing_config.getLineageDefinitionsFilename()) {
-         lineage_definitions = silo::common::LineageTreeAndIDMap::fromLineageDefinitionFilePath(
+         SPDLOG_INFO(
+            "preprocessing - read and verify the lineage tree '{}'",
+            lineage_file_name.value().string()
+         );
+         lineage_definitions = silo::common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(
             lineage_file_name.value()
          );
       }

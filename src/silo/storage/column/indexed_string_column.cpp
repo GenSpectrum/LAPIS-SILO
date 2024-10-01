@@ -81,7 +81,7 @@ IndexedStringColumnPartition& IndexedStringColumn::createPartition() {
    return partitions.emplace_back(*lookup);
 }
 
-void IndexedStringColumn::generateLineageIndex(const common::LineageTreeAndIDMap& lineage_tree) {
+void IndexedStringColumn::generateLineageIndex(const common::LineageTreeAndIdMap& lineage_tree) {
    *lookup = lineage_tree.lineage_id_lookup_map.copy();
    for (auto& partition : partitions) {
       std::reference_wrapper(partition.lookup) = *lookup;
