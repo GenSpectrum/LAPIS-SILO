@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.22](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.21...v0.2.22) (2024-10-01)
+
+
+### Bug Fixes
+
+* correctly escape quotes in field names ([#595](https://github.com/GenSpectrum/LAPIS-SILO/issues/595)) ([7e7b448](https://github.com/GenSpectrum/LAPIS-SILO/commit/7e7b448670c2080bee62c876adb68e6e439e9da6))
+
 ## [0.2.21](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.20...v0.2.21) (2024-09-20)
 
 
