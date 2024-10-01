@@ -93,7 +93,7 @@ void PreprocessingConfig::addOptions(Poco::Util::OptionSet& options) {
 #define TUPLE(                                                    \
    TYPE,                                                          \
    FIELD_NAME,                                                    \
-   HAS_DEFAULT,                                                   \
+   DEFAULT_GENERATION,                                            \
    DEFAULT_VALUE,                                                 \
    OPTION_PATH,                                                   \
    PARSING_ACCESSOR_TYPE_NAME,                                    \
@@ -122,7 +122,7 @@ void PreprocessingConfig::overwrite(const silo::config::AbstractConfigSource& co
 #define TUPLE(                                                                                  \
    TYPE,                                                                                        \
    FIELD_NAME,                                                                                  \
-   HAS_DEFAULT,                                                                                 \
+   DEFAULT_GENERATION,                                                                          \
    DEFAULT_VALUE,                                                                               \
    OPTION_PATH,                                                                                 \
    PARSING_ACCESSOR_TYPE_NAME,                                                                  \
@@ -157,7 +157,7 @@ void PreprocessingConfig::overwrite(const silo::config::AbstractConfigSource& co
 #define TUPLE(                                   \
    TYPE,                                         \
    FIELD_NAME,                                   \
-   HAS_DEFAULT,                                  \
+   DEFAULT_GENERATION,                           \
    DEFAULT_VALUE,                                \
    OPTION_PATH,                                  \
    PARSING_ACCESSOR_TYPE_NAME,                   \
