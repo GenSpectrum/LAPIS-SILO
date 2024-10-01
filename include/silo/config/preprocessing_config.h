@@ -21,7 +21,7 @@
    TUPLE(                                                               \
       std::filesystem::path,                                            \
       input_directory,                                                  \
-      YES,                                                              \
+      HAS_DEFAULT,                                                      \
       "./",                                                             \
       {"inputDirectory"},                                               \
       String,                                                           \
@@ -32,7 +32,7 @@
    TUPLE(                                                               \
       std::filesystem::path,                                            \
       output_directory,                                                 \
-      YES,                                                              \
+      HAS_DEFAULT,                                                      \
       DEFAULT_OUTPUT_DIRECTORY,                                         \
       {"outputDirectory"},                                              \
       String,                                                           \
@@ -43,7 +43,7 @@
    TUPLE(                                                               \
       std::filesystem::path,                                            \
       intermediate_results_directory,                                   \
-      YES,                                                              \
+      HAS_DEFAULT,                                                      \
       "./temp/",                                                        \
       {"intermediateResultsDirectory"},                                 \
       String,                                                           \
@@ -54,7 +54,7 @@
    TUPLE(                                                               \
       std::optional<std::filesystem::path>,                             \
       preprocessing_database_location,                                  \
-      NO,                                                               \
+      HAS_NO_DEFAULT,                                                   \
       ,                                                                 \
       {"preprocessingDatabaseLocation"},                                \
       String,                                                           \
@@ -65,7 +65,7 @@
    TUPLE(                                                               \
       std::optional<uint32_t>,                                          \
       duckdb_memory_limit_in_g,                                         \
-      NO,                                                               \
+      HAS_NO_DEFAULT,                                                   \
       ,                                                                 \
       {"duckdbMemoryLimitInG"},                                         \
       UInt32,                                                           \
@@ -76,7 +76,7 @@
    TUPLE(                                                               \
       std::optional<std::filesystem::path>,                             \
       pango_lineage_definition_file,                                    \
-      NO,                                                               \
+      HAS_NO_DEFAULT,                                                   \
       ,                                                                 \
       {"pangoLineageDefinitionFilename"},                               \
       String,                                                           \
@@ -87,7 +87,7 @@
    TUPLE(                                                               \
       std::optional<std::filesystem::path>,                             \
       ndjson_input_filename,                                            \
-      NO,                                                               \
+      HAS_NO_DEFAULT,                                                   \
       ,                                                                 \
       {"ndjsonInputFilename"},                                          \
       String,                                                           \
@@ -98,7 +98,7 @@
    TUPLE(                                                               \
       std::optional<std::filesystem::path>,                             \
       metadata_file,                                                    \
-      NO,                                                               \
+      HAS_NO_DEFAULT,                                                   \
       ,                                                                 \
       {"metadataFilename"},                                             \
       String,                                                           \
@@ -109,7 +109,7 @@
    TUPLE(                                                               \
       std::filesystem::path,                                            \
       database_config_file,                                             \
-      YES,                                                              \
+      HAS_DEFAULT,                                                      \
       "database_config.yaml",                                           \
       {"databaseConfigFile"},                                           \
       String,                                                           \
@@ -120,7 +120,7 @@
    TUPLE(                                                               \
       std::filesystem::path,                                            \
       reference_genome_file,                                            \
-      YES,                                                              \
+      HAS_DEFAULT,                                                      \
       "reference_genomes.json",                                         \
       {"referenceGenomeFilename"},                                      \
       String,                                                           \
@@ -131,7 +131,7 @@
    TUPLE(                                                               \
       std::string,                                                      \
       nucleotide_sequence_prefix,                                       \
-      YES,                                                              \
+      HAS_DEFAULT,                                                      \
       "nuc_",                                                           \
       {"nucleotideSequencePrefix"},                                     \
       String,                                                           \
@@ -142,7 +142,7 @@
    TUPLE(                                                               \
       std::string,                                                      \
       unaligned_nucleotide_sequence_prefix,                             \
-      YES,                                                              \
+      HAS_DEFAULT,                                                      \
       "unaligned_",                                                     \
       {"unalignedNucleotideSequencePrefix"},                            \
       String,                                                           \
@@ -153,7 +153,7 @@
    TUPLE(                                                               \
       std::string,                                                      \
       gene_prefix,                                                      \
-      YES,                                                              \
+      HAS_DEFAULT,                                                      \
       "gene_",                                                          \
       {"genePrefix"},                                                   \
       String,                                                           \
@@ -164,7 +164,7 @@
    TUPLE(                                                               \
       std::string,                                                      \
       nuc_insertions_filename,                                          \
-      YES,                                                              \
+      HAS_DEFAULT,                                                      \
       "nuc_insertions.tsv",                                             \
       {"nucleotideInsertionsFilename"},                                 \
       String,                                                           \
@@ -175,7 +175,7 @@
    TUPLE(                                                               \
       std::string,                                                      \
       aa_insertions_filename,                                           \
-      YES,                                                              \
+      HAS_DEFAULT,                                                      \
       "aa_insertions.tsv",                                              \
       {"aminoAcidInsertionsFilename"},                                  \
       String,                                                           \
@@ -205,8 +205,8 @@ class PreprocessingConfig {
 )                                                                                       \
    ACCESSOR_GENERATION([[nodiscard]] TYPE ACCESSOR_NAME() const { return FIELD_NAME; }) \
    TYPE FIELD_NAME DEFAULT_GENERATION DEFAULT_VALUE
-#define YES =
-#define NO
+#define HAS_DEFAULT =
+#define HAS_NO_DEFAULT
 #define ACCESSOR(code) code
 #define NOACCESSOR(code)
 
@@ -214,8 +214,8 @@ class PreprocessingConfig {
 
 #undef NOACCESSOR
 #undef ACCESSOR
-#undef NO
-#undef YES
+#undef HAS_NO_DEFAULT
+#undef HAS_DEFAULT
 #undef TUPLE
 
    static void addOptions(Poco::Util::OptionSet& options);
