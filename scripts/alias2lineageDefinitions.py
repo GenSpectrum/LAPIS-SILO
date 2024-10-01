@@ -1,44 +1,77 @@
 import polars as pl
 import json
+import csv
 import argparse
 import duckdb
-import yaml
 import shutil
 import sys
+import yaml
 import os
 import tempfile
 
-
-# Define the argument parser
 parser = argparse.ArgumentParser(description="Process a JSON file and convert it to a DataFrame.")
 parser.add_argument('alias_key', type=str, help='Path to the alias_key in JSON format')
 parser.add_argument('lineage_file', type=str, help='Path to the input_file containing all lineages')
 parser.add_argument('--preserve-tmp-dir', action='store_true', help='Preserve the temporary directory to keep the intermediate duckdb tables')
 parser.add_argument('--verbose', '-v', action='store_true', help='Verbose logging')
 
-# Parse the arguments
 args = parser.parse_args()
 
-# Load the JSON data from the file path provided as argument
+alias_table = []
+alias_dict = dict()
+
 with open(args.alias_key, 'r') as file:
-    alias_key = json.load(file)
+    alias_file = json.load(file)
 
-# Create a list to store the reformatted data
-reformatted_data = []
+    for key, value in alias_file.items():
+        if isinstance(value, str):
+            if value and len(value) > 0:
+                alias_table.append({"name": key, "alias": value})
+                alias_dict[key] = [value]
+            else:
+                alias_table.append({"name": key, "alias": key})
+                alias_dict[key] = [key]
+        else:
+            alias_dict[key] = value
 
-# Loop through the JSON and format it as desired
-for key, value in alias_key.items():
-    #if isinstance(value, list):
-    #    for list_element in value:
-    #        reformatted_data.append({"name": key, "alias": list_element})
-    if value and isinstance(value, str):  
-        reformatted_data.append({"name": key, "alias": value})
+def unalias_lineage(lineage):
+    parts = lineage.split('.')
+    part_before_first_dot = parts[0]
+    if part_before_first_dot in alias_dict and len(alias_dict[part_before_first_dot]) == 1:
+        parts[0] = alias_dict[part_before_first_dot][0]
+        return '.'.join(parts)
     else:
-        reformatted_data.append({"name": key, "alias": key})
+        return lineage
 
+def find_immediate_parent(lineage):
+    if '.' in lineage:
+        return lineage.rsplit('.', 1)[0]
+    return None
 
-# Convert the list of dictionaries to a Polars DataFrame
-df = pl.DataFrame(reformatted_data)
+lineage_table = []
+
+all_unaliased = set()
+
+with open(args.lineage_file, mode='r', newline='', encoding='utf-8') as infile:
+    reader = csv.reader(infile)
+    for row in reader:
+        lineage = row[0]
+        unaliased = unalias_lineage(lineage)
+        all_unaliased.add(unaliased)
+        parent_lineage_unaliased = find_immediate_parent(unaliased)
+        lineage_table.append({"lineage": lineage, "unaliased": unaliased, "parent_lineage_unaliased": parent_lineage_unaliased})
+
+idx = 0
+while idx < len(lineage_table):
+    unaliased = lineage_table[idx]["parent_lineage_unaliased"]
+    if unaliased and unaliased not in all_unaliased:
+        all_unaliased.add(unaliased)
+        parent_lineage_unaliased = find_immediate_parent(unaliased)
+        lineage_table.append({"lineage": unaliased, "unaliased": unaliased, "parent_lineage_unaliased": parent_lineage_unaliased})
+    idx += 1
+
+lineage_table_df = pl.DataFrame(lineage_table)
+alias_table_df = pl.DataFrame(alias_table)
 
 temp_dir = tempfile.mkdtemp()
 if args.verbose:
@@ -46,93 +79,49 @@ if args.verbose:
 db_path = os.path.join(temp_dir, "lineage_transform.duckdb")
 con = duckdb.connect(db_path)
 con.execute(f"CREATE TABLE alias_key (alias_name VARCHAR, alias_value VARCHAR)")
-con.execute(f"INSERT INTO alias_key SELECT * FROM df")
+con.execute(f"INSERT INTO alias_key SELECT * FROM alias_table_df")
 
-con.execute(f"CREATE TABLE lineages (lineage VARCHAR)")
-con.execute(f"INSERT INTO lineages SELECT DISTINCT * FROM '{args.lineage_file}'")
-
-con.execute(f"""
-            CREATE TABLE lineages_unaliased AS (
-            SELECT 
-                lineage, 
-                alias_value || 
-                CASE 
-                    WHEN instr(lineage, '.') > 0 THEN substr(lineage, instr(lineage, '.'))
-                    ELSE ''
-                END AS unaliased
-            FROM lineages
-            JOIN alias_key
-            ON alias_key.alias_name = 
-                CASE 
-                    WHEN instr(lineage, '.') > 0 THEN substr(lineage, 1, instr(lineage, '.') - 1)
-                    ELSE lineage
-                END
-            )
-""")
-
-con.execute(f"""
-            CREATE TABLE all_lineages_unaliased AS
-            WITH RECURSIVE filled_gaps AS (
-                -- Start with the original values
-                SELECT lineage, unaliased
-                FROM lineages_unaliased
-                
-                UNION ALL
-                
-                -- Recursively remove the last ".XX" from the current value
-                SELECT CASE 
-                           WHEN instr(unaliased, '.') > 0 THEN substr(unaliased, 1, length(unaliased) - instr(reverse(unaliased), '.'))
-                       END AS lineage,
-                       CASE 
-                           WHEN instr(unaliased, '.') > 0 THEN substr(unaliased, 1, length(unaliased) - instr(reverse(unaliased), '.'))
-                       END AS unaliased
-                FROM filled_gaps
-                WHERE NOT EXISTS ( SELECT * FROM lineages_unaliased WHERE lineages_unaliased.unaliased = filled_gaps.unaliased )
-            )
-            SELECT DISTINCT lineage, unaliased
-            FROM filled_gaps
-            WHERE lineage IS NOT NULL
-            ORDER BY lineage
-""")
-
-con.execute(f"""
-            CREATE TABLE with_unaliased_parent_lineage AS (
-            SELECT lineage, 
-            CASE 
-                WHEN instr(REVERSE(unaliased), '.') > 0 THEN REVERSE(SUBSTR(REVERSE(unaliased), instr(REVERSE(unaliased), '.') + 1))
-            END AS parent_lineage
-            FROM all_lineages_unaliased )
-""")
+con.execute(f"CREATE TABLE lineages (lineage VARCHAR, unaliased VARCHAR, parent_lineage_unaliased VARCHAR)")
+con.execute(f"INSERT INTO lineages SELECT * FROM lineage_table_df")
 
 con.execute(f"""
             CREATE TABLE parent_child_relations AS (
-            SELECT DISTINCT child.lineage AS lineage, parent.lineage AS parent, parent.unaliased as unaliased_parent
-            FROM with_unaliased_parent_lineage child, all_lineages_unaliased parent
-            WHERE child.parent_lineage = parent.unaliased)
+            SELECT DISTINCT child.lineage AS lineage, parent.lineage AS parent
+            FROM lineages child, lineages parent
+            WHERE child.parent_lineage_unaliased = parent.unaliased)
 """)
 
 con.execute(f"""
             CREATE TABLE all_aliases AS (
-            SELECT lineage, alias_name || substr(unaliased, strlen(alias_value) + 1, strlen(lineage) - strlen(alias_value))
-            FROM all_lineages_unaliased, alias_key
-            WHERE unaliased LIKE alias_value || '%'
+            SELECT lineage, alias_name || substr(unaliased, strlen(alias_value) + 1, strlen(unaliased) - strlen(alias_value)) as valid_alias
+            FROM lineages, alias_key
+            WHERE (unaliased = alias_value OR unaliased LIKE alias_value || '.%') 
+            AND lineage <> valid_alias
             )
 """)
 
-query = "SELECT lineage FROM all_lineages_unaliased ORDER BY lineage"
+query = "SELECT lineage FROM lineages ORDER BY lineage"
 data = con.execute(query).fetchall()
 
 lineage_dict = {}
-for lineage in data:
+for lineage, in data:
     lineage_dict[lineage] = {}
-    lineage_dict[lineage]["parents"] = []
-    lineage_dict[lineage]["aliases"] = []
 
 query = "SELECT lineage, parent FROM parent_child_relations ORDER BY lineage"
 data = con.execute(query).fetchall()
 
 for lineage, parent in data:
+    if "parents" not in lineage_dict[lineage]:
+        lineage_dict[lineage]["parents"] = []
     lineage_dict[lineage]["parents"].append(parent)
+
+query = "SELECT lineage, valid_alias FROM all_aliases ORDER BY lineage"
+data = con.execute(query).fetchall()
+
+for lineage, valid_alias in data:
+    if "aliases" not in lineage_dict[lineage]:
+        lineage_dict[lineage]["aliases"] = []
+    lineage_dict[lineage]["aliases"].append(valid_alias)
 
 yaml.dump(lineage_dict, sys.stdout, default_flow_style=False)
 
