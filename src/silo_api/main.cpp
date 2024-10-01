@@ -166,7 +166,9 @@ class SiloPreprocessor : public SiloApp {
       silo::config::PreprocessingConfig::addOptions(options);
    }
 
-   silo::Database runPreprocessor(const silo::config::PreprocessingConfig& preprocessing_config) {
+   static silo::Database runPreprocessor(
+      const silo::config::PreprocessingConfig& preprocessing_config
+   ) {
       auto database_config = silo::config::ConfigRepository().getValidatedConfig(
          preprocessing_config.getDatabaseConfigFilename()
       );
