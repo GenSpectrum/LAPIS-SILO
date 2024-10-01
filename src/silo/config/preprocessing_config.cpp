@@ -151,30 +151,32 @@ void PreprocessingConfig::overwrite(const silo::config::AbstractConfigSource& co
    const silo::config::PreprocessingConfig& preprocessing_config,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
-   return fmt::format_to(
-      ctx.out(),
-      "{{ input directory: '{}', pango_lineage_definition_file: {}, output_directory: '{}', "
-      "metadata_file: '{}', reference_genome_file: '{}',  gene_file_prefix: '{}',  "
-      "nucleotide_sequence_file_prefix: '{}', unaligned_nucleotide_sequence_file_prefix: '{}', "
-      "ndjson_filename: {}, "
-      "preprocessing_database_location: {} }}",
-      preprocessing_config.input_directory.string(),
-      preprocessing_config.pango_lineage_definition_file.has_value()
-         ? "'" + preprocessing_config.pango_lineage_definition_file->string() + "'"
-         : "none",
-      preprocessing_config.output_directory.string(),
-      preprocessing_config.metadata_file.has_value()
-         ? "'" + preprocessing_config.metadata_file->string() + "'"
-         : "none",
-      preprocessing_config.reference_genome_file.string(),
-      preprocessing_config.gene_prefix,
-      preprocessing_config.nucleotide_sequence_prefix,
-      preprocessing_config.unaligned_nucleotide_sequence_prefix,
-      preprocessing_config.ndjson_input_filename.has_value()
-         ? "'" + preprocessing_config.ndjson_input_filename->string() + "'"
-         : "none",
-      preprocessing_config.preprocessing_database_location.has_value()
-         ? "'" + preprocessing_config.preprocessing_database_location->string() + "'"
-         : "none"
-   );
+   fmt::format_to(ctx.out(), "{{\n");
+   const char* perhaps_comma = "";
+
+#define TUPLE(                                   \
+   TYPE,                                         \
+   FIELD_NAME,                                   \
+   HAS_DEFAULT,                                  \
+   DEFAULT_VALUE,                                \
+   OPTION_PATH,                                  \
+   PARSING_ACCESSOR_TYPE_NAME,                   \
+   HELP_TEXT,                                    \
+   ACCESSOR_GENERATION,                          \
+   ACCESSOR_NAME                                 \
+)                                                \
+   fmt::format_to(                               \
+      ctx.out(),                                 \
+      "{} {}: '{}'",                             \
+      perhaps_comma,                             \
+      #FIELD_NAME,                               \
+      to_string(preprocessing_config.FIELD_NAME) \
+   );                                            \
+   perhaps_comma = ",";
+
+   PREPROCESSING_CONFIG_DEFINITION;
+
+#undef TUPLE
+
+   return fmt::format_to(ctx.out(), "}}\n");
 }
