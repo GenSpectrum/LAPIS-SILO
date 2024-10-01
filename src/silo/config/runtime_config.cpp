@@ -5,6 +5,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include "silo/common/fmt_formatters.h"
 #include "silo/config/util/abstract_config_source.h"
 
 namespace silo::config {
@@ -67,3 +68,38 @@ void RuntimeConfig::overwrite(const silo::config::AbstractConfigSource& config) 
 }
 
 }  // namespace silo::config
+
+[[maybe_unused]] auto fmt::formatter<silo::config::RuntimeConfig>::format(
+   const silo::config::RuntimeConfig& runtime_config,
+   fmt::format_context& ctx
+) -> decltype(ctx.out()) {
+   fmt::format_to(ctx.out(), "{{{{\n");
+   const char* perhaps_comma = " ";
+
+#define CODE_FOR_FIELD(TOPLEVEL_FIELD, FIELD_NAME) \
+   fmt::format_to(                                 \
+      ctx.out(),                                   \
+      "{} {}: '{}'",                               \
+      perhaps_comma,                               \
+      #FIELD_NAME,                                 \
+      runtime_config.TOPLEVEL_FIELD.FIELD_NAME     \
+   );                                              \
+   perhaps_comma = ",";
+
+   // struct ApiOptions
+   CODE_FOR_FIELD(api_options, data_directory);
+   CODE_FOR_FIELD(api_options, max_connections);
+   CODE_FOR_FIELD(api_options, parallel_threads);
+   CODE_FOR_FIELD(api_options, port);
+   CODE_FOR_FIELD(api_options, estimated_startup_end);
+
+   fmt::format_to(ctx.out(), "}}, {{\n");
+   perhaps_comma = " ";
+
+   // struct QueryOptions
+   CODE_FOR_FIELD(query_options, materialization_cutoff);
+
+#undef CODE_FOR_FIELD
+
+   return fmt::format_to(ctx.out(), "}}}}\n");
+}
