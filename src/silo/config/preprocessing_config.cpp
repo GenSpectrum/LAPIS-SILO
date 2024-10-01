@@ -5,6 +5,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include "silo/common/fmt_formatters.h"
 #include "silo/config/util/abstract_config_source.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo_api/command_line_arguments.h"
@@ -154,24 +155,20 @@ void PreprocessingConfig::overwrite(const silo::config::AbstractConfigSource& co
    fmt::format_to(ctx.out(), "{{\n");
    const char* perhaps_comma = " ";
 
-#define TUPLE(                                   \
-   TYPE,                                         \
-   FIELD_NAME,                                   \
-   DEFAULT_GENERATION,                           \
-   DEFAULT_VALUE,                                \
-   OPTION_PATH,                                  \
-   PARSING_ACCESSOR_TYPE_NAME,                   \
-   HELP_TEXT,                                    \
-   ACCESSOR_GENERATION,                          \
-   ACCESSOR_NAME                                 \
-)                                                \
-   fmt::format_to(                               \
-      ctx.out(),                                 \
-      "{} {}: '{}'",                             \
-      perhaps_comma,                             \
-      #FIELD_NAME,                               \
-      to_string(preprocessing_config.FIELD_NAME) \
-   );                                            \
+#define TUPLE(                                                                              \
+   TYPE,                                                                                    \
+   FIELD_NAME,                                                                              \
+   DEFAULT_GENERATION,                                                                      \
+   DEFAULT_VALUE,                                                                           \
+   OPTION_PATH,                                                                             \
+   PARSING_ACCESSOR_TYPE_NAME,                                                              \
+   HELP_TEXT,                                                                               \
+   ACCESSOR_GENERATION,                                                                     \
+   ACCESSOR_NAME                                                                            \
+)                                                                                           \
+   fmt::format_to(                                                                          \
+      ctx.out(), "{} {}: ''", perhaps_comma, "#FIELD_NAME", preprocessing_config.FIELD_NAME \
+   );                                                                                       \
    perhaps_comma = ",";
 
    PREPROCESSING_CONFIG_DEFINITION;
