@@ -152,7 +152,7 @@ void PreprocessingConfig::overwrite(const silo::config::AbstractConfigSource& co
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
    fmt::format_to(ctx.out(), "{{\n");
-   const char* perhaps_comma = "";
+   const char* perhaps_comma = " ";
 
 #define TUPLE(                                   \
    TYPE,                                         \
