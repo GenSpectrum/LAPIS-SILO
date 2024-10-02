@@ -232,6 +232,21 @@ Internal includes are marked by double quotes. External includes are marked by a
 We follow the [conventional commits](https://www.conventionalcommits.org/) guidelines for commit messages.
 This will allow to automatically generate a changelog.
 
+Please make sure to mention a reference in the commit message so that the generated changelog can be linked to 
+either an issue or a pull request.
+This can be done via:
+* Referencing an issue via "resolves" to the commit footer (preferred solution):
+```
+feat: my fancy new feature
+
+some description
+
+resolves #123
+```
+* Referencing an issue in the commit message header: `feat: my fancy new feature (#123)`
+* Squash-merging on GitHub and adding the PR number to the commit message
+(useful for smaller changes that don't have a corresponding issue).
+
 We use [commitlint](https://commitlint.js.org/) to enforce the commit message format.
 To use it locally, run `npm install`.
 
