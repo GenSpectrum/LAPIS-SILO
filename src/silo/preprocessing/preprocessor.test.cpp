@@ -364,6 +364,11 @@ TEST_P(PreprocessorTestFixture, shouldProcessData) {
       silo::ReferenceGenomes::readFromFile(config.getReferenceGenomeFilename());
 
    auto lineage_tree = silo::common::LineageTreeAndIdMap();
+   if (config.getLineageDefinitionsFilename()) {
+      lineage_tree = silo::common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(
+         config.getLineageDefinitionsFilename().value()
+      );
+   }
    silo::preprocessing::Preprocessor preprocessor(
       config, database_config, reference_genomes, std::move(lineage_tree)
    );
