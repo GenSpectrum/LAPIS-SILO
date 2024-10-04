@@ -30,18 +30,25 @@ class IndexedStringColumnPartition {
       // clang-format off
       archive & value_ids;
       archive & indexed_values;
-      archive & lineage_index;
+      if(lineage_index.has_value()){
+         archive & lineage_index.value();
+      }
       // clang-format on
    }
 
    std::vector<Idx> value_ids;
    std::unordered_map<Idx, roaring::Roaring> indexed_values;
-   common::BidirectionalMap<std::string>& lookup;
    std::optional<LineageIndex> lineage_index;
+   common::BidirectionalMap<std::string>* lookup;
+
+   explicit IndexedStringColumnPartition(common::BidirectionalMap<std::string>* lookup);
+
+   explicit IndexedStringColumnPartition(
+      common::BidirectionalMap<std::string>* lookup,
+      const common::LineageTree* lineage_tree
+   );
 
   public:
-   explicit IndexedStringColumnPartition(common::BidirectionalMap<std::string>& lookup);
-
    [[nodiscard]] std::optional<const roaring::Roaring*> filter(silo::Idx value_id) const;
 
    std::optional<const roaring::Roaring*> filter(const std::optional<std::string>& value) const;
@@ -54,7 +61,7 @@ class IndexedStringColumnPartition {
 
    [[nodiscard]] const std::vector<silo::Idx>& getValues() const;
 
-   [[nodiscard]] inline std::string lookupValue(Idx id) const { return lookup.getValue(id); }
+   [[nodiscard]] inline std::string lookupValue(Idx id) const { return lookup->getValue(id); }
 
    [[nodiscard]] std::optional<silo::Idx> getValueId(const std::string& value) const;
 
@@ -67,19 +74,21 @@ class IndexedStringColumn {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      archive & *lookup;
+      archive & lookup;
+      archive & lineage_tree;
       // clang-format on
    }
 
-   std::unique_ptr<common::BidirectionalMap<std::string>> lookup;
+   common::BidirectionalMap<std::string> lookup;
+   std::optional<common::LineageTree> lineage_tree;
    std::deque<IndexedStringColumnPartition> partitions;
 
   public:
    IndexedStringColumn();
 
-   IndexedStringColumnPartition& createPartition();
+   IndexedStringColumn(const common::LineageTreeAndIdMap& lineage_tree_and_id_map);
 
-   void generateLineageIndex(const common::LineageTreeAndIdMap& lineage_tree);
+   IndexedStringColumnPartition& createPartition();
 };
 
 }  // namespace silo::storage::column

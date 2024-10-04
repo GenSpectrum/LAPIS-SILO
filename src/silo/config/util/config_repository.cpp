@@ -73,18 +73,26 @@ void validateDateToSortBy(
    }
 }
 
-void validatePartitionBy(
-   const DatabaseConfig& config,
-   std::map<std::string, ValueType>& metadata_map
-) {
+void validatePartitionBy(const DatabaseConfig& config) {
    if (config.schema.partition_by == std::nullopt) {
       return;
    }
 
    const std::string partition_by = config.schema.partition_by.value();
 
-   if (metadata_map.find(partition_by) == metadata_map.end()) {
+   const auto& partition_by_metadata = std::find_if(
+      config.schema.metadata.begin(),
+      config.schema.metadata.end(),
+      [&](const DatabaseMetadata& metadata) { return metadata.name == partition_by; }
+   );
+   if (partition_by_metadata == config.schema.metadata.end()) {
       throw ConfigException("partition_by '" + partition_by + "' is not in metadata");
+   }
+
+   if (partition_by_metadata->type != ValueType::STRING || !partition_by_metadata->lineage_index) {
+      throw ConfigException(
+         "partition_by '" + partition_by + "' must be of type STRING and needs 'lineageIndex' set"
+      );
    }
 }
 }  // namespace
@@ -102,7 +110,7 @@ void ConfigRepository::validateConfig(const DatabaseConfig& config) const {
 
    validateDateToSortBy(config, metadata_map);
 
-   validatePartitionBy(config, metadata_map);
+   validatePartitionBy(config);
 }
 
 }  // namespace silo::config

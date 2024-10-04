@@ -41,7 +41,10 @@ TEST(ConfigRepository, shouldReadConfigWithoutErrors) {
              .metadata =
                 {
                    {.name = "testPrimaryKey", .type = ValueType::STRING},
-                   {.name = "metadata1", .type = ValueType::STRING, .generate_index = true},
+                   {.name = "metadata1",
+                    .type = ValueType::STRING,
+                    .generate_index = true,
+                    .lineage_index = true},
                    {.name = "metadata2", .type = ValueType::DATE},
                 },
              .primary_key = "testPrimaryKey",
@@ -165,7 +168,7 @@ TEST(ConfigRepository, givenConfigPartitionByThatIsNotConfiguredThenThrows) {
    );
 }
 
-TEST(ConfigRepository, givenConfigPartitionByThatIsNotPangoLineageDoesNotThrow) {
+TEST(ConfigRepository, givenConfigPartitionByThatIsNotALineageThrows) {
    const auto config_reader_mock = mockConfigReader(
       {.default_nucleotide_sequence = "main",
        .schema =
@@ -174,14 +177,20 @@ TEST(ConfigRepository, givenConfigPartitionByThatIsNotPangoLineageDoesNotThrow) 
               {
                  {.name = "testPrimaryKey", .type = ValueType::STRING},
                  {.name = "date_to_sort_by", .type = ValueType::DATE},
-                 {.name = "not a pango lineage", .type = ValueType::STRING},
+                 {.name = "not a lineage", .type = ValueType::STRING},
               },
            .primary_key = "testPrimaryKey",
            .date_to_sort_by = "date_to_sort_by",
-           .partition_by = "not a pango lineage"}}
+           .partition_by = "not a lineage"}}
    );
-
-   EXPECT_NO_THROW(ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml"););
+   EXPECT_THAT(
+      [&config_reader_mock]() {
+         ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml");
+      },
+      ThrowsMessage<silo::config::ConfigException>(::testing::HasSubstr(
+         "partition_by 'not a lineage' must be of type STRING and needs 'lineageIndex' set"
+      ))
+   );
 }
 
 TEST(ConfigRepository, givenMetadataToGenerateIndexForThatIsNotStringThenThrows) {
