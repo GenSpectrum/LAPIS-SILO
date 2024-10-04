@@ -34,12 +34,22 @@ void assertMsg(std::string got, std::string expected) {
    }
    // good enough, ignore the rest of the remainder.
 }
+
+void nullCapableSetenv(const char* name, const char* value, int overwrite) {
+   if (value) {
+      setenv(name, value, overwrite);
+   } else {
+      unsetenv(name);
+   }
+}
+
 }  // namespace
 
 // NOLINTNEXTLINE(readability-identifier-naming,readability-function-cognitive-complexity)
 TEST(panic, assertEqPanicModes) {
    ASSERT_EQ(1 + 1, 2);
 
+   const char* old_env = getenv("SILO_PANIC");
    setenv("SILO_PANIC", "", 1);
    try {
       ASSERT_EQ(1 + 1, 3);
@@ -51,7 +61,7 @@ TEST(panic, assertEqPanicModes) {
    ASSERT_DEATH(ASSERT_EQ(1 + 1, 3), "ASSERT_EQ failure: 1 \\+ 1 == 3: 2 == 3");
 
    // revert it back
-   setenv("SILO_PANIC", "", 1);
+   nullCapableSetenv("SILO_PANIC", old_env, 1);
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming,readability-function-cognitive-complexity)
@@ -65,12 +75,14 @@ TEST(panic, debugAssertBehavesAsPerCompilationMode) {
 
 #if DEBUG_ASSERTIONS
 
+   const char* old_env = getenv("SILO_PANIC");
    setenv("SILO_PANIC", "", 1);
    try {
       DEBUG_ASSERT(1 + 1 == 3);
    } catch (const std::exception& ex) {
       assertMsg(ex.what(), "DEBUG_ASSERT failure: 1 + 1 == 3");
    };
+   nullCapableSetenv("SILO_PANIC", old_env, 1);
 
 #else
    // check that DEBUG_ASSERT is disabled
@@ -87,12 +99,14 @@ TEST(panic, debugAssertGeWorks) {
 
 #if DEBUG_ASSERTIONS
 
+   const char* old_env = getenv("SILO_PANIC");
    setenv("SILO_PANIC", "", 1);
    try {
       DEBUG_ASSERT_GE(1 + 5, 7);
    } catch (const std::exception& ex) {
       assertMsg(ex.what(), "DEBUG_ASSERT_GE failure: 1 + 5 >= 7: 6 >= 7");
    };
+   nullCapableSetenv("SILO_PANIC", old_env, 1);
 
 #else
    // check that DEBUG_ASSERT is disabled
