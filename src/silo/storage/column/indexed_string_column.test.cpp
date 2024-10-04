@@ -8,7 +8,7 @@ using silo::storage::column::IndexedStringColumnPartition;
 
 TEST(IndexedStringColumn, shouldReturnTheCorrectFilteredValues) {
    silo::common::BidirectionalMap<std::string> lookup;
-   IndexedStringColumnPartition under_test(lookup);
+   IndexedStringColumnPartition under_test(&lookup);
 
    under_test.insert("value 1");
    under_test.insert("value 2");
@@ -28,7 +28,7 @@ TEST(IndexedStringColumn, shouldReturnTheCorrectFilteredValues) {
 
 TEST(IndexedStringColumnPartition, insertValuesToPartition) {
    silo::common::BidirectionalMap<std::string> lookup;
-   IndexedStringColumnPartition under_test(lookup);
+   IndexedStringColumnPartition under_test(&lookup);
 
    under_test.insert("value 1");
    under_test.insert("value 2");

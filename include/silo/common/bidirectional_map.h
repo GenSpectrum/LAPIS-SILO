@@ -33,6 +33,10 @@ class BidirectionalMap {
        : id_to_value(),
          value_to_id() {}
 
+   BidirectionalMap(std::vector<V>&& id_to_value, std::unordered_map<V, Idx>&& value_to_id)
+       : id_to_value(id_to_value),
+         value_to_id(value_to_id) {}
+
    BidirectionalMap(BidirectionalMap&& map) = default;
    BidirectionalMap& operator=(BidirectionalMap&& map) = default;
 

@@ -1,7 +1,10 @@
 #pragma once
 
+#include <filesystem>
 #include <unordered_map>
 
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/unordered_map.hpp>
 #include <roaring/roaring.hh>
 
 #include "silo/common/bidirectional_map.h"
@@ -13,24 +16,26 @@ namespace silo::storage {
 class LineageIndex {
    friend class boost::serialization::access;
 
-   common::LineageTree lineage_tree;
-   std::unordered_map<Idx, roaring::Roaring> index;
+   const common::LineageTree* lineage_tree;
+   std::unordered_map<Idx, roaring::Roaring> index_including_sublineages;
+   std::unordered_map<Idx, roaring::Roaring> index_excluding_sublineages;
 
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      archive & index;
+      archive & index_including_sublineages;
+      archive & index_excluding_sublineages;
       // clang-format on
    }
 
   public:
-   LineageIndex(common::LineageTree lineage_tree);
+   explicit LineageIndex(const common::LineageTree* lineage_tree);
 
-   LineageIndex() = default;
-
-   void insert(size_t row_id, Idx value);
+   void insert(size_t row_id, Idx value_id);
 
    std::optional<const roaring::Roaring*> filterIncludingSublineages(Idx value_id) const;
+
+   std::optional<const roaring::Roaring*> filterExcludingSublineages(Idx value_id) const;
 };
 
 }  // namespace silo::storage

@@ -37,10 +37,10 @@ class Preprocessor {
 
   public:
    Preprocessor(
-      config::PreprocessingConfig preprocessing_config,
-      config::DatabaseConfig database_config,
-      ReferenceGenomes reference_genomes,
-      common::LineageTreeAndIdMap lineage_definitions
+      config::PreprocessingConfig preprocessing_config_,
+      config::DatabaseConfig database_config_,
+      ReferenceGenomes reference_genomes_,
+      common::LineageTreeAndIdMap lineage_tree_
    );
 
    Database preprocess();

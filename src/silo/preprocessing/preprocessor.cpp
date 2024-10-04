@@ -50,12 +50,12 @@ Preprocessor::Preprocessor(
    config::PreprocessingConfig preprocessing_config_,
    config::DatabaseConfig database_config_,
    ReferenceGenomes reference_genomes_,
-   common::LineageTreeAndIdMap lineage_tree
+   common::LineageTreeAndIdMap lineage_tree_
 )
     : preprocessing_config(std::move(preprocessing_config_)),
       database_config(std::move(database_config_)),
       reference_genomes(std::move(reference_genomes_)),
-      lineage_tree(std::move(lineage_tree)),
+      lineage_tree(std::move(lineage_tree_)),
       preprocessing_db(
          preprocessing_config.getPreprocessingDatabaseLocation(),
          reference_genomes,
@@ -255,7 +255,7 @@ std::string Preprocessor::getPartitionKeySelect() const {
 
 void Preprocessor::buildPartitioningTable() {
    if (database_config.schema.partition_by.has_value()) {
-      Identifier partition_by_field{database_config.schema.partition_by.value()};
+      const Identifier partition_by_field{database_config.schema.partition_by.value()};
       SPDLOG_DEBUG(
          "preprocessing - partitioning input by metadata key {}", partition_by_field.escape()
       );

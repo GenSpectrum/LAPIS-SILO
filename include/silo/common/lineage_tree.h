@@ -1,10 +1,14 @@
 #pragma once
 
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <boost/serialization/access.hpp>
 
 #include "silo/common/bidirectional_map.h"
+#include "silo/common/lineage_name.h"
+#include "silo/common/types.h"
 #include "silo/preprocessing/lineage_definition_file.h"
 
 namespace silo::common {
@@ -12,12 +16,14 @@ namespace silo::common {
 // The tree is allowed to be disconnected
 class LineageTree {
    friend class boost::serialization::access;
-   std::vector<std::optional<Idx>> parent_relation;
+   std::vector<std::vector<Idx>> parent_relation;
+   std::unordered_map<Idx, Idx> alias_mapping;
 
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
       archive & parent_relation;
+      archive & alias_mapping;
       // clang-format on
    }
 
@@ -30,10 +36,14 @@ class LineageTree {
 
    static LineageTree fromEdgeList(
       size_t n_vertices,
-      const std::vector<std::pair<Idx, Idx>>& edge_list
+      const std::vector<std::pair<Idx, Idx>>& edge_list,
+      const BidirectionalMap<std::string>& lookup,
+      std::unordered_map<Idx, Idx>&& alias_mapping
    );
 
-   std::optional<Idx> getParent(Idx value);
+   std::optional<Idx> getParent(Idx value_id) const;
+
+   Idx resolveAlias(Idx value_id) const;
 };
 
 class LineageTreeAndIdMap {
@@ -69,6 +79,9 @@ class LineageTreeAndIdMap {
    );
 };
 
-bool containsCycle(int n, const std::vector<std::pair<Idx, Idx>>& edges);
+std::optional<std::vector<Idx>> containsCycle(
+   size_t number_of_vertices,
+   const std::vector<std::pair<Idx, Idx>>& edges
+);
 
 }  // namespace silo::common
