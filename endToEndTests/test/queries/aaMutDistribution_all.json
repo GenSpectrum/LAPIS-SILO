@@ -3,13 +3,23 @@
   "query": {
     "action": {
       "type": "AminoAcidMutations",
-      "minProportion": 0.4
+      "minProportion": 0.4,
+      "orderByFields": ["position", "mutationFrom"]
     },
     "filterExpression": {
       "type": "True"
     }
   },
   "expectedQueryResult": [
+    {
+      "count": 37,
+      "mutation": "G142D",
+      "mutationFrom": "G",
+      "mutationTo": "D",
+      "position": 142,
+      "proportion": 0.4065934065934066,
+      "sequenceName": "S"
+    },
     {
       "count": 46,
       "mutation": "R203K",
@@ -29,33 +39,6 @@
       "sequenceName": "N"
     },
     {
-      "count": 64,
-      "mutation": "T3255I",
-      "mutationFrom": "T",
-      "mutationTo": "I",
-      "position": 3255,
-      "proportion": 0.6464646464646465,
-      "sequenceName": "ORF1a"
-    },
-    {
-      "count": 44,
-      "mutation": "S3675-",
-      "mutationFrom": "S",
-      "mutationTo": "-",
-      "position": 3675,
-      "proportion": 0.4489795918367347,
-      "sequenceName": "ORF1a"
-    },
-    {
-      "count": 44,
-      "mutation": "G3676-",
-      "mutationFrom": "G",
-      "mutationTo": "-",
-      "position": 3676,
-      "proportion": 0.4444444444444444,
-      "sequenceName": "ORF1a"
-    },
-    {
       "count": 98,
       "mutation": "P314L",
       "mutationFrom": "P",
@@ -63,15 +46,6 @@
       "position": 314,
       "proportion": 0.98,
       "sequenceName": "ORF1b"
-    },
-    {
-      "count": 37,
-      "mutation": "G142D",
-      "mutationFrom": "G",
-      "mutationTo": "D",
-      "position": 142,
-      "proportion": 0.4065934065934066,
-      "sequenceName": "S"
     },
     {
       "count": 38,
@@ -117,6 +91,33 @@
       "position": 681,
       "proportion": 0.42,
       "sequenceName": "S"
+    },
+    {
+      "count": 64,
+      "mutation": "T3255I",
+      "mutationFrom": "T",
+      "mutationTo": "I",
+      "position": 3255,
+      "proportion": 0.6464646464646465,
+      "sequenceName": "ORF1a"
+    },
+    {
+      "count": 44,
+      "mutation": "S3675-",
+      "mutationFrom": "S",
+      "mutationTo": "-",
+      "position": 3675,
+      "proportion": 0.4489795918367347,
+      "sequenceName": "ORF1a"
+    },
+    {
+      "count": 44,
+      "mutation": "G3676-",
+      "mutationFrom": "G",
+      "mutationTo": "-",
+      "position": 3676,
+      "proportion": 0.4444444444444444,
+      "sequenceName": "ORF1a"
     }
   ]
 }

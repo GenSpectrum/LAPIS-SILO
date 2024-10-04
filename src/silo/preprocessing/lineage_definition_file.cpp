@@ -1,27 +1,16 @@
 #include "silo/preprocessing/lineage_definition_file.h"
 
 #include <fstream>
-#include <unordered_set>
 
 #include <yaml-cpp/yaml.h>
 
 #include "silo/common/panic.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
-namespace std {
-using silo::preprocessing::LineageName;
-template <>
-struct hash<LineageName> {
-   std::size_t operator()(const LineageName& ln) const {
-      return std::hash<std::string>()(ln.string);
-   }
-};
-}  // namespace std
-
 namespace YAML {
+using silo::common::LineageName;
 using silo::preprocessing::LineageDefinition;
 using silo::preprocessing::LineageDefinitionFile;
-using silo::preprocessing::LineageName;
 
 template <>
 struct convert<LineageName> {
@@ -42,60 +31,71 @@ struct convert<LineageName> {
    }
 };
 
+namespace {
+
+LineageDefinition entryToLineageDefinition(const YAML::detail::iterator_value& entry) {
+   auto lineage_name = entry.first.as<LineageName>();
+   if (entry.second.IsNull()) {
+      return {
+         .lineage_name = lineage_name,
+         .aliases = std::vector<LineageName>{},
+         .parents = std::vector<LineageName>{}
+      };
+   }
+   if (!entry.second.IsMap()) {
+      throw silo::preprocessing::PreprocessingException(fmt::format(
+         "The lineage '{}' is not defined as a valid YAML Map in its definition: {}",
+         lineage_name,
+         YAML::Dump(entry.second)
+      ));
+   }
+   if (std::ranges::any_of(entry.second, [](const auto& element) {
+          const auto field_name = element.first.template as<std::string>();
+          return field_name != "parents" && field_name != "aliases";
+       })) {
+      throw silo::preprocessing::PreprocessingException(fmt::format(
+         "The definition of lineage '{}' may only contain the fields 'parents' and 'aliases', it "
+         "also contains invalid fields:\n{}",
+         lineage_name,
+         YAML::Dump(entry.second)
+      ));
+   }
+   std::vector<LineageName> parents;
+   if (entry.second["parents"]) {
+      if (!entry.second["parents"].IsSequence()) {
+         throw silo::preprocessing::PreprocessingException(fmt::format(
+            "The parents of lineage '{}' are not defined as a YAML Sequence", lineage_name
+         ));
+      }
+      parents = entry.second["parents"].as<std::vector<LineageName>>();
+   }
+   std::vector<LineageName> aliases;
+   if (entry.second["aliases"]) {
+      if (!entry.second["aliases"].IsSequence()) {
+         throw silo::preprocessing::PreprocessingException(fmt::format(
+            "The aliases of lineage '{}' are not defined as a YAML Sequence", lineage_name
+         ));
+      }
+      aliases = entry.second["aliases"].as<std::vector<LineageName>>();
+   }
+   return {.lineage_name = lineage_name, .aliases = aliases, .parents = parents};
+}
+}  // namespace
+
 template <>
 struct convert<LineageDefinitionFile> {
-   static bool decode(const Node& node, LineageDefinitionFile& lineage_definition) {
+   static bool decode(const Node& node, LineageDefinitionFile& lineage_definition_file) {
       std::vector<LineageDefinition> lineage_definitions;
-      std::unordered_set<LineageName> unique_lineage_definitions;
       for (const auto& entry : node) {
-         auto lineage_name = entry.first.as<LineageName>();
-         if (unique_lineage_definitions.contains(lineage_name)) {
-            throw silo::preprocessing::PreprocessingException(fmt::format(
-               "The lineage definitions contain the duplicate lineage '{}'", lineage_name.string
-            ));
-         }
-         if (!entry.second.IsMap()) {
-            throw silo::preprocessing::PreprocessingException(fmt::format(
-               "The lineage '{}' is not defined as a valid YAML Map in its definition: {}",
-               lineage_name.string,
-               YAML::Dump(entry.second)
-            ));
-         }
-         if (!entry.second["parents"]) {
-            throw silo::preprocessing::PreprocessingException(fmt::format(
-               "The lineage '{}' does not contain the field 'parents'", lineage_name.string
-            ));
-         }
-         if (!entry.second["parents"].IsSequence()) {
-            throw silo::preprocessing::PreprocessingException(fmt::format(
-               "The parents of lineage '{}' are not defined as a YAML Sequence", lineage_name.string
-            ));
-         }
-         if (std::ranges::any_of(entry.second, [](const auto& element) {
-                return element.first.template as<std::string>() != "parents";
-             })) {
-            throw silo::preprocessing::PreprocessingException(fmt::format(
-               "The definition of lineage '{}' contains the invalid fields (only 'parents' is "
-               "allowed): {}",
-               lineage_name.string,
-               YAML::Dump(entry.second)
-            ));
-         }
-         unique_lineage_definitions.emplace(lineage_name);
-         auto parents = entry.second["parents"].as<std::vector<LineageName>>();
-         lineage_definitions.emplace_back(lineage_name, parents);
+         lineage_definitions.emplace_back(entryToLineageDefinition(entry));
       }
-      lineage_definition = LineageDefinitionFile{lineage_definitions};
+      lineage_definition_file = LineageDefinitionFile{lineage_definitions};
       return true;
    }
 };
 }  // namespace YAML
 
 namespace silo::preprocessing {
-
-bool LineageName::operator==(const LineageName& other) const {
-   return string == other.string;
-}
 
 LineageDefinitionFile LineageDefinitionFile::fromYAMLFile(const std::filesystem::path& yaml_path) {
    const std::ifstream file(yaml_path, std::ios::in | std::ios::binary);
@@ -109,7 +109,7 @@ LineageDefinitionFile LineageDefinitionFile::fromYAMLFile(const std::filesystem:
    contents << file.rdbuf();
    try {
       return fromYAML(contents.str());
-   } catch (YAML::ParserException parser_exception) {
+   } catch (const YAML::ParserException& parser_exception) {
       throw silo::preprocessing::PreprocessingException(
          "The YAML file {} does not contain valid YAML."
       );

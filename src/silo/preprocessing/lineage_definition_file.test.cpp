@@ -34,33 +34,6 @@ SOME_lineage: "
    );
 }
 
-TEST(LineageDefinitionFile, errorOnDuplicateKey) {
-   auto throwing_lambda = []() {
-      LineageDefinitionFile::fromYAML(R"(
-some_duplicate_lineage:
-  parents:
-  - anything
-some_duplicate_lineage:
-  parents:
-  - also_anything)");
-   };
-
-   EXPECT_THROW(
-      {
-         try {
-            throwing_lambda();
-         } catch (const silo::preprocessing::PreprocessingException& e) {
-            ASSERT_EQ(
-               std::string(e.what()),
-               "The lineage definitions contain the duplicate lineage 'some_duplicate_lineage'"
-            );
-            throw;
-         }
-      },
-      silo::preprocessing::PreprocessingException
-   );
-}
-
 TEST(LineageDefinitionFile, errorOnMisspelledParents) {
    auto throwing_lambda = []() {
       LineageDefinitionFile::fromYAML(R"(
@@ -79,7 +52,9 @@ some_other_lineage:
          } catch (const silo::preprocessing::PreprocessingException& e) {
             ASSERT_EQ(
                std::string(e.what()),
-               "The lineage 'some_lineage' does not contain the field 'parents'"
+               R"(The definition of lineage 'some_lineage' may only contain the fields 'parents' and 'aliases', it also contains invalid fields:
+parent:
+  - anything)"
             );
             throw;
          }
@@ -88,29 +63,20 @@ some_other_lineage:
    );
 }
 
-TEST(LineageDefinitionFile, errorOnEmptyMap) {
-   auto throwing_lambda = []() {
-      LineageDefinitionFile::fromYAML(R"(
+TEST(LineageDefinitionFile, noErrorOnEmptyMap) {
+   EXPECT_NO_THROW(LineageDefinitionFile::fromYAML(R"(
 some_lineage: {}
 some_other_lineage:
   parents:
-  - also_anything)");
-   };
+  - some_lineage)"));
+}
 
-   EXPECT_THROW(
-      {
-         try {
-            throwing_lambda();
-         } catch (const silo::preprocessing::PreprocessingException& e) {
-            ASSERT_EQ(
-               std::string(e.what()),
-               "The lineage 'some_lineage' does not contain the field 'parents'"
-            );
-            throw;
-         }
-      },
-      silo::preprocessing::PreprocessingException
-   );
+TEST(LineageDefinitionFile, noErrorOnNull) {
+   EXPECT_NO_THROW(LineageDefinitionFile::fromYAML(R"(
+some_lineage:
+some_other_lineage:
+  parents:
+  - some_lineage)"));
 }
 
 TEST(LineageDefinitionFile, errorOnExtraFields) {
@@ -131,34 +97,9 @@ some_other_lineage:
          } catch (const silo::preprocessing::PreprocessingException& e) {
             ASSERT_EQ(
                std::string(e.what()),
-               "The definition of lineage 'some_lineage' contains the invalid fields (only "
-               "'parents' is allowed): parents: []\nsome_extra_field: some_value"
-            );
-            throw;
-         }
-      },
-      silo::preprocessing::PreprocessingException
-   );
-}
-
-TEST(LineageDefinitionFile, errorOnNullLineageMap) {
-   auto throwing_lambda = []() {
-      LineageDefinitionFile::fromYAML(R"(
-some_lineage:
-some_other_lineage:
-  parents:
-  - some_lineage
-)");
-   };
-
-   EXPECT_THROW(
-      {
-         try {
-            throwing_lambda();
-         } catch (const silo::preprocessing::PreprocessingException& e) {
-            ASSERT_EQ(
-               std::string(e.what()),
-               "The lineage 'some_lineage' is not defined as a valid YAML Map in its definition: ~"
+               "The definition of lineage 'some_lineage' may only contain the fields 'parents' and "
+               "'aliases', it also contains invalid fields:\nparents: []\nsome_extra_field: "
+               "some_value"
             );
             throw;
          }

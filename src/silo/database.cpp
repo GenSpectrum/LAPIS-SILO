@@ -26,6 +26,7 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/detail/interface_iarchive.hpp>
 #include <boost/archive/detail/interface_oarchive.hpp>
+#include <boost/serialization/access.hpp>
 #include <boost/serialization/array.hpp>
 #include <boost/serialization/map.hpp>
 #include <boost/serialization/optional.hpp>
@@ -567,16 +568,11 @@ Database Database::loadDatabaseState(const std::filesystem::path& save_directory
       }
    }
 
-   tbb::parallel_for(
-      tbb::blocked_range<size_t>(0, database.partitions.size()),
-      [&](const auto& local) {
-         for (size_t partition_index = local.begin(); partition_index != local.end();
-              ++partition_index) {
-            ::boost::archive::binary_iarchive input_archive(file_vec[partition_index]);
-            database.partitions[partition_index].serializeData(input_archive, 0);
-         }
-      }
-   );
+   for (size_t partition_index = 0; partition_index < database.partitions.size();
+        ++partition_index) {
+      ::boost::archive::binary_iarchive input_archive(file_vec[partition_index]);
+      database.partitions[partition_index].serializeData(input_archive, 0);
+   }
    SPDLOG_INFO("Finished loading partition data");
 
    database.setDataVersion(loadDataVersion(save_directory / "data_version.silo"));
@@ -602,14 +598,16 @@ void Database::initializeColumn(const config::DatabaseMetadata& metadata) {
          }
          return;
       case config::ColumnType::INDEXED_STRING: {
-         auto column = storage::column::IndexedStringColumn();
-         columns.indexed_string_columns.emplace(name, std::move(column));
+         if (metadata.lineage_index) {
+            auto column = storage::column::IndexedStringColumn(lineage_tree);
+            columns.indexed_string_columns.emplace(name, std::move(column));
+         } else {
+            auto column = storage::column::IndexedStringColumn();
+            columns.indexed_string_columns.emplace(name, std::move(column));
+         }
          for (auto& partition : partitions) {
             partition.columns.metadata.push_back({name, column_type});
             partition.insertColumn(name, columns.indexed_string_columns.at(name).createPartition());
-         }
-         if (metadata.lineage_index) {
-            column.generateLineageIndex(lineage_tree);
          }
       }
          return;

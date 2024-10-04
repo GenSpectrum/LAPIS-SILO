@@ -94,7 +94,7 @@ GRANDCHILD2:
    ASSERT_EQ(lineage_tree.lineage_tree.getParent(base), std::nullopt);
 }
 
-TEST(LineageTreeAndIdMap, correctCycleInFile) {
+TEST(LineageTreeAndIdMap, correctCycleErrorInFile) {
    auto throwing_lambda = []() {
       LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAML(R"(
 BASE:
@@ -111,7 +111,164 @@ CHILD:
          try {
             throwing_lambda();
          } catch (const silo::preprocessing::PreprocessingException& e) {
-            ASSERT_EQ(std::string(e.what()), "The given LineageTree contains a cycle.");
+            ASSERT_EQ(
+               std::string(e.what()),
+               "The given LineageTree contains the cycle: BASE -> CHILD -> BASE"
+            );
+            throw;
+         }
+      },
+      silo::preprocessing::PreprocessingException
+   );
+}
+
+TEST(LineageTreeAndIdMap, correctSelfCycleErrorInFile) {
+   auto throwing_lambda = []() {
+      LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAML(R"(
+BASE:
+  parents:
+   - BASE
+CHILD:
+  parents:
+    - BASE
+)"));
+   };
+
+   EXPECT_THROW(
+      {
+         try {
+            throwing_lambda();
+         } catch (const silo::preprocessing::PreprocessingException& e) {
+            ASSERT_EQ(
+               std::string(e.what()), "The given LineageTree contains the cycle: BASE -> BASE"
+            );
+            throw;
+         }
+      },
+      silo::preprocessing::PreprocessingException
+   );
+}
+
+TEST(LineageTreeAndIdMap, correctLassoCycleErrorInFile) {
+   auto throwing_lambda = []() {
+      LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAML(R"(
+BASE: {}
+CHILD1:
+  parents:
+    - BASE
+    - CHILD3
+CHILD2:
+  parents:
+    - CHILD1
+CHILD3:
+  parents:
+    - CHILD2
+)"));
+   };
+
+   EXPECT_THROW(
+      {
+         try {
+            throwing_lambda();
+         } catch (const silo::preprocessing::PreprocessingException& e) {
+            ASSERT_EQ(
+               std::string(e.what()),
+               "The given LineageTree contains the cycle: CHILD1 -> CHILD2 -> CHILD3 -> CHILD1"
+            );
+            throw;
+         }
+      },
+      silo::preprocessing::PreprocessingException
+   );
+}
+
+TEST(LineageDefinitionFile, errorOnDuplicateKey) {
+   auto throwing_lambda = []() {
+      LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAML(R"(
+some_duplicate_lineage:
+  parents:
+  - some_other_key
+some_other_key:
+some_duplicate_lineage:
+  parents:
+  - some_other_key)"));
+   };
+
+   EXPECT_THROW(
+      {
+         try {
+            throwing_lambda();
+         } catch (const silo::preprocessing::PreprocessingException& e) {
+            ASSERT_EQ(
+               std::string(e.what()),
+               "The lineage definitions contain the duplicate lineage 'some_duplicate_lineage'"
+            );
+            throw;
+         }
+      },
+      silo::preprocessing::PreprocessingException
+   );
+}
+
+TEST(LineageDefinitionFile, errorOnDuplicateAlias) {
+   auto throwing_lambda = []() {
+      LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAML(R"(
+lineage1:
+  aliases:
+  - duplicate_alias
+  parents:
+  - some_other_key
+lineage2:
+lineage3:
+  aliases:
+  - duplicate_alias
+  parents:
+  - some_other_key)"));
+   };
+
+   EXPECT_THROW(
+      {
+         try {
+            throwing_lambda();
+         } catch (const silo::preprocessing::PreprocessingException& e) {
+            ASSERT_EQ(
+               std::string(e.what()),
+               "The alias 'duplicate_alias' for lineage 'lineage3' is already defined as a lineage "
+               "or another alias."
+            );
+            throw;
+         }
+      },
+      silo::preprocessing::PreprocessingException
+   );
+}
+
+TEST(LineageDefinitionFile, errorOnLineageAsAlias) {
+   auto throwing_lambda = []() {
+      LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAML(R"(
+lineage1:
+  aliases:
+  - some_alias
+  parents:
+  - some_other_key
+lineage2_also_used_as_alias:
+lineage3:
+  aliases:
+  - lineage2_also_used_as_alias
+  parents:
+  - some_other_key)"));
+   };
+
+   EXPECT_THROW(
+      {
+         try {
+            throwing_lambda();
+         } catch (const silo::preprocessing::PreprocessingException& e) {
+            ASSERT_EQ(
+               std::string(e.what()),
+               "The alias 'lineage2_also_used_as_alias' for lineage 'lineage3' is already defined "
+               "as a lineage or another alias."
+            );
             throw;
          }
       },
@@ -142,15 +299,18 @@ TEST(containsCycle, findsCycles) {
    ASSERT_TRUE(silo::common::containsCycle(4, {{0, 1}, {1, 0}, {2, 3}, {3, 2}}));
 
    // 8. Tree structure with additional edge forming a cycle
-   ASSERT_TRUE(silo::common::containsCycle(6, {{0, 1}, {0, 2}, {1, 3}, {1, 4}, {3, 5}, {4, 5}}));
+   ASSERT_TRUE(silo::common::containsCycle(6, {{0, 1}, {0, 2}, {1, 3}, {4, 1}, {3, 5}, {5, 4}}));
 
    // 9. Fully connected graph of 4 nodes (cycle present)
-   ASSERT_TRUE(silo::common::containsCycle(4, {{0, 1}, {0, 2}, {0, 3}, {1, 2}, {1, 3}, {2, 3}}));
+   ASSERT_TRUE(silo::common::containsCycle(4, {{0, 1}, {2, 0}, {0, 3}, {1, 2}, {3, 1}, {2, 3}}));
 
    // 10. Graph with multiple isolated cycles
    ASSERT_TRUE(
       silo::common::containsCycle(8, {{0, 1}, {1, 2}, {2, 0}, {3, 4}, {4, 5}, {5, 3}, {6, 7}})
    );
+
+   // 11. Single node with a self-loop (directed cycle)
+   ASSERT_TRUE(silo::common::containsCycle(1, {{0, 0}}));
 }
 
 TEST(containsCycle, correctTrees) {
@@ -181,6 +341,14 @@ TEST(containsCycle, correctTrees) {
    // 9. Two disconnected nodes
    ASSERT_FALSE(silo::common::containsCycle(2, {}));
 
-   // 10. Chain of 5 nodes (no cycle)
+   // 10. Chain of 5 nodes
    ASSERT_FALSE(silo::common::containsCycle(5, {{0, 1}, {1, 2}, {2, 3}, {3, 4}}));
+}
+
+TEST(containsCycle, correctDirectedAcyclicGraphs) {
+   // 1. Undirected lasso, but no directed cycle
+   ASSERT_FALSE(silo::common::containsCycle(6, {{0, 1}, {0, 2}, {1, 3}, {1, 4}, {3, 5}, {4, 5}}));
+
+   // 2. Chain of 5 nodes and first to last shortcut
+   ASSERT_FALSE(silo::common::containsCycle(5, {{0, 1}, {1, 2}, {2, 3}, {3, 4}, {0, 4}}));
 }

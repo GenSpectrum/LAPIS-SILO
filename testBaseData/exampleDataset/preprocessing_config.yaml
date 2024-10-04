@@ -1,4 +1,3 @@
 metadataFilename: "small_metadata_set.tsv"
 lineageDefinitionsFilename: "lineage_definitions.yaml"
 referenceGenomeFilename: "reference_genomes.json"
-preprocessingDatabaseLocation: "test.duckdb"
