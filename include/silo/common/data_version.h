@@ -10,6 +10,13 @@ class DataVersion {
    friend class Database;
 
   public:
+   class SerializationVersion {
+     public:
+      uint32_t value;
+   };
+
+   static constexpr SerializationVersion CURRENT_SILO_SERIALIZATION_VERSION{4};
+
    class Timestamp {
      public:
       std::string value;
@@ -24,13 +31,6 @@ class DataVersion {
      private:
       explicit Timestamp(std::string value);
    };
-
-   class SerializationVersion {
-     public:
-      uint32_t value;
-   };
-
-   static constexpr SerializationVersion CURRENT_SILO_SERIALIZATION_VERSION{4};
 
   private:
    Timestamp timestamp;
