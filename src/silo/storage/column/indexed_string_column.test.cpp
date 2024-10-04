@@ -2,13 +2,15 @@
 
 #include <gtest/gtest.h>
 
+using silo::common::LineageTreeAndIdMap;
+using silo::storage::column::IndexedStringColumn;
 using silo::storage::column::IndexedStringColumnPartition;
 
 // NOLINTBEGIN(bugprone-unchecked-optional-access)
 
-TEST(IndexedStringColumn, shouldReturnTheCorrectFilteredValues) {
-   silo::common::BidirectionalMap<std::string> lookup;
-   IndexedStringColumnPartition under_test(lookup);
+TEST(IndexedStringColumnPartition, shouldReturnTheCorrectFilteredValues) {
+   IndexedStringColumn column_wrapper;
+   IndexedStringColumnPartition& under_test = column_wrapper.createPartition();
 
    under_test.insert("value 1");
    under_test.insert("value 2");
@@ -27,8 +29,8 @@ TEST(IndexedStringColumn, shouldReturnTheCorrectFilteredValues) {
 }
 
 TEST(IndexedStringColumnPartition, insertValuesToPartition) {
-   silo::common::BidirectionalMap<std::string> lookup;
-   IndexedStringColumnPartition under_test(lookup);
+   IndexedStringColumn column_wrapper;
+   IndexedStringColumnPartition& under_test = column_wrapper.createPartition();
 
    under_test.insert("value 1");
    under_test.insert("value 2");
@@ -45,6 +47,103 @@ TEST(IndexedStringColumnPartition, insertValuesToPartition) {
    EXPECT_EQ(under_test.lookupValue(0U), "value 1");
    EXPECT_EQ(under_test.lookupValue(1U), "value 2");
    EXPECT_EQ(under_test.lookupValue(2U), "value 3");
+}
+
+TEST(IndexedStringColumnPartition, addingLineageAndThenSublineageFiltersCorrectly) {
+   auto lineage_definitions = LineageTreeAndIdMap::fromLineageDefinitionFilePath(
+      "testBaseData/exampleDataset/lineage_definitions.yaml"
+   );
+   auto column_wrapper = silo::storage::column::IndexedStringColumn(lineage_definitions);
+   IndexedStringColumnPartition& under_test = column_wrapper.createPartition();
+
+   under_test.insert({"BA.1.1"});
+   under_test.insert({"BA.1.1"});
+   under_test.insert({"BA.1.1.1"});
+   under_test.insert({"BA.1.1.1.1"});
+   under_test.insert({"BA.1.1"});
+
+   EXPECT_EQ(*under_test.filter({"BA.1.1"}).value(), roaring::Roaring({0, 1, 4}));
+   EXPECT_EQ(
+      *under_test.getLineageIndex()
+          ->filterIncludingSublineages(under_test.getValueId("BA.1.1").value())
+          .value(),
+      roaring::Roaring({0, 1, 2, 3, 4})
+   );
+
+   EXPECT_EQ(*under_test.filter({"BA.1.1.1"}).value(), roaring::Roaring({2}));
+   EXPECT_EQ(
+      *under_test.getLineageIndex()
+          ->filterIncludingSublineages(under_test.getValueId("BA.1.1.1").value())
+          .value(),
+      roaring::Roaring({2, 3})
+   );
+}
+
+TEST(IndexedStringColumnPartition, addingSublineageAndThenLineageFiltersCorrectly) {
+   auto lineage_definitions = LineageTreeAndIdMap::fromLineageDefinitionFilePath(
+      "testBaseData/exampleDataset/lineage_definitions.yaml"
+   );
+   auto column_wrapper = silo::storage::column::IndexedStringColumn(lineage_definitions);
+   IndexedStringColumnPartition& under_test = column_wrapper.createPartition();
+
+   under_test.insert({"BA.1.1.1"});
+   under_test.insert({"BA.1.1.1"});
+   under_test.insert({"BA.1"});
+   under_test.insert({"BA.1.1"});
+   under_test.insert({"BA.1.1.1"});
+
+   EXPECT_EQ(*under_test.filter({"BA.1.1"}).value(), roaring::Roaring({3}));
+   EXPECT_EQ(under_test.filter({"B.1.1.529.1.1"}), std::nullopt);
+   EXPECT_EQ(
+      *under_test.getLineageIndex()
+          ->filterExcludingSublineages(under_test.getValueId("B.1.1.529.1.1").value())
+          .value(),
+      roaring::Roaring({3})
+   );
+   EXPECT_EQ(
+      *under_test.getLineageIndex()
+          ->filterIncludingSublineages(under_test.getValueId("BA.1.1").value())
+          .value(),
+      roaring::Roaring({0, 1, 3, 4})
+   );
+
+   EXPECT_EQ(
+      *under_test.getLineageIndex()
+          ->filterIncludingSublineages(under_test.getValueId("BA.1.1.1").value())
+          .value(),
+      roaring::Roaring({0, 1, 4})
+   );
+   EXPECT_EQ(
+      *under_test.getLineageIndex()
+          ->filterIncludingSublineages(under_test.getValueId("BA.1.1.1").value())
+          .value(),
+      roaring::Roaring({0, 1, 4})
+   );
+}
+
+TEST(IndexedStringColumnPartition, queryParentLineageThatWasNeverInserted) {
+   auto lineage_definitions = LineageTreeAndIdMap::fromLineageDefinitionFilePath(
+      "testBaseData/exampleDataset/lineage_definitions.yaml"
+   );
+   auto column_wrapper = silo::storage::column::IndexedStringColumn(lineage_definitions);
+   IndexedStringColumnPartition& under_test = column_wrapper.createPartition();
+
+   under_test.insert({"BA.1.1.1"});
+   under_test.insert({"BA.1.1.1"});
+   under_test.insert({"BA.2"});
+   under_test.insert({"BA.1.1"});
+
+   EXPECT_EQ(
+      under_test.getLineageIndex()->filterExcludingSublineages(under_test.getValueId("BA.1").value()
+      ),
+      std::nullopt
+   );
+   EXPECT_EQ(
+      *under_test.getLineageIndex()
+          ->filterIncludingSublineages(under_test.getValueId("BA.1").value())
+          .value(),
+      roaring::Roaring({0, 1, 3})
+   );
 }
 
 // NOLINTEND(bugprone-unchecked-optional-access)

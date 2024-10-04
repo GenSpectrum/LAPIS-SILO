@@ -55,7 +55,7 @@ std::optional<const roaring::Roaring*> LineageFilter::getBitmapForValue(
    if (include_sublineages) {
       return lineage_column.getLineageIndex()->filterIncludingSublineages(value_id);
    }
-   return lineage_column.filter(value_id);
+   return lineage_column.getLineageIndex()->filterExcludingSublineages(value_id);
 }
 
 std::unique_ptr<silo::query_engine::operators::Operator> LineageFilter::compile(

@@ -26,6 +26,7 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/detail/interface_iarchive.hpp>
 #include <boost/archive/detail/interface_oarchive.hpp>
+#include <boost/serialization/access.hpp>
 #include <boost/serialization/array.hpp>
 #include <boost/serialization/map.hpp>
 #include <boost/serialization/optional.hpp>
@@ -602,14 +603,16 @@ void Database::initializeColumn(const config::DatabaseMetadata& metadata) {
          }
          return;
       case config::ColumnType::INDEXED_STRING: {
-         auto column = storage::column::IndexedStringColumn();
-         columns.indexed_string_columns.emplace(name, std::move(column));
+         if (metadata.lineage_index) {
+            auto column = storage::column::IndexedStringColumn(lineage_tree);
+            columns.indexed_string_columns.emplace(name, std::move(column));
+         } else {
+            auto column = storage::column::IndexedStringColumn();
+            columns.indexed_string_columns.emplace(name, std::move(column));
+         }
          for (auto& partition : partitions) {
             partition.columns.metadata.push_back({name, column_type});
             partition.insertColumn(name, columns.indexed_string_columns.at(name).createPartition());
-         }
-         if (metadata.lineage_index) {
-            column.generateLineageIndex(lineage_tree);
          }
       }
          return;
