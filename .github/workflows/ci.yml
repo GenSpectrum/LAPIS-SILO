@@ -163,7 +163,6 @@ jobs:
     strategy:
       matrix:
         preprocessing-docker-compose: [
-          docker-compose-for-tests-preprocessing-from-tsv.yml,
           docker-compose-for-tests-preprocessing-from-ndjson.yml
         ]
     steps:

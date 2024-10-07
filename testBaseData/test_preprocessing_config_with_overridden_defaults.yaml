@@ -1,4 +1,4 @@
-inputDirectory: "./testBaseData/exampleDataset/"
+inputDirectory: "./testBaseData/exampleDatasetAsTsv/"
 outputDirectory: "./output/custom/"
 intermediateResultsDirectory: "./output/overriddenTemp/"
 metadataFilename: "small_metadata_set.tsv"
