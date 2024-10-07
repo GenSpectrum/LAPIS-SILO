@@ -192,6 +192,7 @@ LineageTreeAndIdMap LineageTreeAndIdMap::fromLineageDefinitionFile(
       lookup.getOrCreateId(lineage.lineage_name.string);
    }
    for (const auto& lineage : file.lineages) {
+      ASSERT(lookup.getId(lineage.lineage_name.string).has_value());
       auto lineage_id = lookup.getId(lineage.lineage_name.string).value();
       for (const auto& alias : lineage.aliases) {
          if (lookup.getId(alias.string).has_value()) {
@@ -207,6 +208,7 @@ LineageTreeAndIdMap LineageTreeAndIdMap::fromLineageDefinitionFile(
    }
    std::vector<std::pair<Idx, Idx>> edge_list;
    for (const auto& lineage : file.lineages) {
+      ASSERT(!lookup.getId(lineage.lineage_name.string).has_value());
       const Idx my_id = lookup.getId(lineage.lineage_name.string).value();
       ASSERT(!alias_mapping.contains(my_id));
 
