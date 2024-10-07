@@ -3,10 +3,10 @@ services:
   silo:
     image: ${SILO_IMAGE}
     volumes:
-      - ./testBaseData/exampleDatasetAsNdjson:/preprocessing/input
+      - ./testBaseData/exampleDataset:/preprocessing/input
       - ./testBaseData/output:/preprocessing/output
-      - ./testBaseData/exampleDatasetAsNdjson/preprocessing_config.yaml:/app/preprocessing_config.yaml
-      - ./testBaseData/exampleDatasetAsNdjson/database_config.yaml:/app/database_config.yaml
+      - ./testBaseData/exampleDataset/preprocessing_config.yaml:/app/preprocessing_config.yaml
+      - ./testBaseData/exampleDataset/database_config.yaml:/app/database_config.yaml
       - ./logs:/app/logs
     command:
       - "--preprocessing"
