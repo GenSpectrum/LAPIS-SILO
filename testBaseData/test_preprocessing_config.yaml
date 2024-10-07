@@ -1,4 +1,4 @@
-inputDirectory: "./testBaseData/exampleDataset/"
+inputDirectory: "./testBaseData/exampleDatasetAsTsv/"
 outputDirectory: "./output/"
 metadataFilename: "small_metadata_set.tsv"
 lineageDefinitionsFilename: "lineage_definitions.yaml"

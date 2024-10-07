@@ -7,7 +7,8 @@
 
 TEST(ReferenceGenome, readFromFile) {
    auto under_test =
-      silo::ReferenceGenomes::readFromFile("testBaseData/exampleDataset/reference_genomes.json");
+      silo::ReferenceGenomes::readFromFile("testBaseData/exampleDatasetAsTsv/reference_genomes.json"
+      );
 
    ASSERT_EQ(under_test.nucleotide_sequences.size(), 2UL);
    ASSERT_EQ(under_test.aa_sequences.size(), 12UL);
