@@ -9,7 +9,7 @@
 namespace silo::query_engine::operators {
 
 Empty::Empty(uint32_t row_count)
-    : row_count(row_count){};
+    : row_count(row_count) {};
 
 Empty::~Empty() noexcept = default;
 

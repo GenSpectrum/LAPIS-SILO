@@ -19,7 +19,6 @@ Checks: >
   -google-readability-avoid-underscore-in-googletest-name,
   -abseil-string-find-str-contains,
   -bugprone-easily-swappable-parameters,
-  -bugprone-unchecked-optional-access,
   -bugprone-unused-return-value,
   -readability-magic-numbers
 #  TODO(someone): clean up misc-non-private-member-variables-in-classes and add option back in
