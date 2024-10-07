@@ -9,6 +9,8 @@
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/yaml.h>
 
+#include "silo/common/panic.h"
+
 namespace silo {
 
 static const std::string TIMESTAMP_FIELD = "timestamp";
@@ -48,6 +50,7 @@ bool DataVersion::Timestamp::operator>=(const DataVersion::Timestamp& other) con
 DataVersion DataVersion::mineDataVersion() {
    const auto now = std::chrono::system_clock::now();
    const auto now_as_time_t = std::chrono::system_clock::to_time_t(now);
+   ASSERT(Timestamp::fromString(std::to_string(now_as_time_t)).has_value());
    return DataVersion{
       *Timestamp::fromString(std::to_string(now_as_time_t)), {CURRENT_SILO_SERIALIZATION_VERSION}
    };
