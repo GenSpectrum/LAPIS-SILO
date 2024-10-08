@@ -217,9 +217,11 @@ std::unordered_map<Idx, Idx> assignAliasIdsAndGetAliasMapping(
    return alias_mapping;
 }
 
-std::vector<std::pair<Idx, Idx>> getParentChildEdges(const preprocessing::LineageDefinitionFile& file,
-                                                     const BidirectionalMap<std::string>& lookup,
-                                                     const std::unordered_map<Idx, Idx>& alias_mapping){
+std::vector<std::pair<Idx, Idx>> getParentChildEdges(
+   const preprocessing::LineageDefinitionFile& file,
+   const BidirectionalMap<std::string>& lookup,
+   const std::unordered_map<Idx, Idx>& alias_mapping
+) {
    std::vector<std::pair<Idx, Idx>> edge_list;
    for (const auto& lineage : file.lineages) {
       ASSERT(!lookup.getId(lineage.lineage_name.string).has_value());
@@ -245,7 +247,7 @@ std::vector<std::pair<Idx, Idx>> getParentChildEdges(const preprocessing::Lineag
    return edge_list;
 }
 
-}
+}  // namespace
 
 LineageTreeAndIdMap LineageTreeAndIdMap::fromLineageDefinitionFile(
    const preprocessing::LineageDefinitionFile& file
