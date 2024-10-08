@@ -19,7 +19,7 @@ TEST(SequenceInfo, validatesSuccessfulOnCorrectFile) {
 
 TEST(SequenceInfo, failWhenTooManyGenomesInReferences) {
    const auto reference_genomes =
-      ReferenceGenomes::readFromFile("testBaseData/exampleDatasetAsTsv/reference_genomes.json");
+      ReferenceGenomes::readFromFile("testBaseData/exampleDataset/reference_genomes.json");
 
    ASSERT_THROW(
       SequenceInfo::validateNdjsonFile(

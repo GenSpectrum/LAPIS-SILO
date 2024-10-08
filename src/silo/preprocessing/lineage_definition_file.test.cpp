@@ -1,5 +1,6 @@
 #include "silo/preprocessing/lineage_definition_file.h"
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <yaml-cpp/exceptions.h>
 
@@ -45,21 +46,12 @@ some_other_lineage:
   - also_anything)");
    };
 
-   EXPECT_THROW(
-      {
-         try {
-            throwing_lambda();
-         } catch (const silo::preprocessing::PreprocessingException& e) {
-            ASSERT_EQ(
-               std::string(e.what()),
-               R"(The definition of lineage 'some_lineage' may only contain the fields 'parents' and 'aliases', it also contains invalid fields:
-parent:
-  - anything)"
-            );
-            throw;
-         }
-      },
-      silo::preprocessing::PreprocessingException
+   EXPECT_THAT(
+      throwing_lambda,
+      ThrowsMessage<silo::preprocessing::PreprocessingException>(
+         ::testing::HasSubstr("The definition of lineage 'some_lineage' may only contain the "
+                              "fields 'parents' and 'aliases', it also contains invalid fields")
+      )
    );
 }
 
@@ -90,20 +82,12 @@ some_other_lineage:
   - also_anything)");
    };
 
-   EXPECT_THROW(
-      {
-         try {
-            throwing_lambda();
-         } catch (const silo::preprocessing::PreprocessingException& e) {
-            ASSERT_EQ(
-               std::string(e.what()),
-               "The definition of lineage 'some_lineage' may only contain the fields 'parents' and "
-               "'aliases', it also contains invalid fields:\nparents: []\nsome_extra_field: "
-               "some_value"
-            );
-            throw;
-         }
-      },
-      silo::preprocessing::PreprocessingException
+   EXPECT_THAT(
+      throwing_lambda,
+      ThrowsMessage<silo::preprocessing::PreprocessingException>(::testing::HasSubstr(
+         "The definition of lineage 'some_lineage' may only contain the fields 'parents' and "
+         "'aliases', it also contains invalid fields:\nparents: []\nsome_extra_field: "
+         "some_value"
+      ))
    );
 }

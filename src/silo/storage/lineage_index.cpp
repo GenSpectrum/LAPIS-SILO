@@ -21,10 +21,8 @@ std::optional<const roaring::Roaring*> LineageIndex::filterIncludingSublineages(
 ) const {
    value_id = lineage_tree->resolveAlias(value_id);
    if (index_including_sublineages.contains(value_id)) {
-      SPDLOG_ERROR("Present in index: {}", value_id);
       return &index_including_sublineages.at(value_id);
    }
-   SPDLOG_ERROR("Not present in index: {}", value_id);
    return std::nullopt;
 }
 

@@ -41,7 +41,6 @@ class IndexedStringColumnPartition {
    std::optional<LineageIndex> lineage_index;
    common::BidirectionalMap<std::string>* lookup;
 
-  public:
    explicit IndexedStringColumnPartition(common::BidirectionalMap<std::string>* lookup);
 
    explicit IndexedStringColumnPartition(
@@ -49,6 +48,7 @@ class IndexedStringColumnPartition {
       const common::LineageTree* lineage_tree
    );
 
+  public:
    [[nodiscard]] std::optional<const roaring::Roaring*> filter(silo::Idx value_id) const;
 
    std::optional<const roaring::Roaring*> filter(const std::optional<std::string>& value) const;

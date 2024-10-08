@@ -3,8 +3,6 @@
 #include <filesystem>
 #include <vector>
 
-#include <yaml-cpp/yaml.h>
-
 #include "silo/common/lineage_name.h"
 
 namespace silo::preprocessing {

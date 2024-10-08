@@ -568,11 +568,16 @@ Database Database::loadDatabaseState(const std::filesystem::path& save_directory
       }
    }
 
-   for (size_t partition_index = 0; partition_index < database.partitions.size();
-        ++partition_index) {
-      ::boost::archive::binary_iarchive input_archive(file_vec[partition_index]);
-      database.partitions[partition_index].serializeData(input_archive, 0);
-   }
+   tbb::parallel_for(
+      tbb::blocked_range<size_t>(0, database.partitions.size()),
+      [&](const auto& local) {
+         for (size_t partition_index = local.begin(); partition_index != local.end();
+              ++partition_index) {
+            ::boost::archive::binary_iarchive input_archive(file_vec[partition_index]);
+            database.partitions[partition_index].serializeData(input_archive, 0);
+         }
+      }
+   );
    SPDLOG_INFO("Finished loading partition data");
 
    database.setDataVersion(loadDataVersion(save_directory / "data_version.silo"));

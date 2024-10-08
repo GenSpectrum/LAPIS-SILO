@@ -13,7 +13,17 @@
 
 namespace silo::storage {
 
+// Forward declaration for the friend class access of IndexedStringColumn
+// which is the only allowed user of this class (/this class's constructor).
+// This ensures safety of the lineage_tree pointer, which
+// (i) is guaranteed to be initialized (and const)  by the constructor and stays valid as
+// (ii) the lifetime of this index is bound to the containing column_partition containing it
+namespace column {
+class IndexedStringColumnPartition;
+}
+
 class LineageIndex {
+   friend class column::IndexedStringColumnPartition;
    friend class boost::serialization::access;
 
    const common::LineageTree* lineage_tree;
@@ -28,9 +38,9 @@ class LineageIndex {
       // clang-format on
    }
 
-  public:
    explicit LineageIndex(const common::LineageTree* lineage_tree);
 
+  public:
    void insert(size_t row_id, Idx value_id);
 
    std::optional<const roaring::Roaring*> filterIncludingSublineages(Idx value_id) const;

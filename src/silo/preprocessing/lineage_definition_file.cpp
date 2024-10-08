@@ -24,7 +24,7 @@ struct convert<LineageName> {
       }
       return true;
    }
-   static Node encode(const LineageName& lineage_name) {
+   static YAML::Node encode(const LineageName& lineage_name) {
       Node node;
       node = lineage_name.string;
       return node;

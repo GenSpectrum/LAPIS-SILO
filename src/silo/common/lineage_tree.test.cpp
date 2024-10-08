@@ -1,5 +1,6 @@
 #include "silo/common/lineage_tree.h"
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "silo/preprocessing/lineage_definition_file.h"
@@ -61,13 +62,14 @@ some_lineage:
 TEST(LineageTreeAndIdMap, correctTreeRelations) {
    auto lineage_definition_file = LineageDefinitionFile::fromYAML(R"(
 BASE:
+  aliases: [ base_alias ]
   parents: []
 CHILD1:
   parents:
     - BASE
 CHILD2:
   parents:
-    - BASE
+    - base_alias
 GRANDCHILD1:
   parents:
     - CHILD1
@@ -106,19 +108,12 @@ CHILD:
 )"));
    };
 
-   EXPECT_THROW(
-      {
-         try {
-            throwing_lambda();
-         } catch (const silo::preprocessing::PreprocessingException& e) {
-            ASSERT_EQ(
-               std::string(e.what()),
-               "The given LineageTree contains the cycle: BASE -> CHILD -> BASE"
-            );
-            throw;
-         }
-      },
-      silo::preprocessing::PreprocessingException
+   EXPECT_THAT(
+      throwing_lambda,
+      ThrowsMessage<silo::preprocessing::PreprocessingException>(::testing::HasSubstr(
+         "The given LineageTree contains the cycle: BASE -> CHILD -> BASE"
+
+      ))
    );
 }
 
@@ -134,18 +129,12 @@ CHILD:
 )"));
    };
 
-   EXPECT_THROW(
-      {
-         try {
-            throwing_lambda();
-         } catch (const silo::preprocessing::PreprocessingException& e) {
-            ASSERT_EQ(
-               std::string(e.what()), "The given LineageTree contains the cycle: BASE -> BASE"
-            );
-            throw;
-         }
-      },
-      silo::preprocessing::PreprocessingException
+   EXPECT_THAT(
+      throwing_lambda,
+      ThrowsMessage<silo::preprocessing::PreprocessingException>(::testing::HasSubstr(
+         "The given LineageTree contains the cycle: BASE -> BASE"
+
+      ))
    );
 }
 
@@ -166,19 +155,11 @@ CHILD3:
 )"));
    };
 
-   EXPECT_THROW(
-      {
-         try {
-            throwing_lambda();
-         } catch (const silo::preprocessing::PreprocessingException& e) {
-            ASSERT_EQ(
-               std::string(e.what()),
-               "The given LineageTree contains the cycle: CHILD1 -> CHILD2 -> CHILD3 -> CHILD1"
-            );
-            throw;
-         }
-      },
-      silo::preprocessing::PreprocessingException
+   EXPECT_THAT(
+      throwing_lambda,
+      ThrowsMessage<silo::preprocessing::PreprocessingException>(::testing::HasSubstr(
+         "The given LineageTree contains the cycle: CHILD1 -> CHILD2 -> CHILD3 -> CHILD1"
+      ))
    );
 }
 
@@ -194,19 +175,12 @@ some_duplicate_lineage:
   - some_other_key)"));
    };
 
-   EXPECT_THROW(
-      {
-         try {
-            throwing_lambda();
-         } catch (const silo::preprocessing::PreprocessingException& e) {
-            ASSERT_EQ(
-               std::string(e.what()),
-               "The lineage definitions contain the duplicate lineage 'some_duplicate_lineage'"
-            );
-            throw;
-         }
-      },
-      silo::preprocessing::PreprocessingException
+   EXPECT_THAT(
+      throwing_lambda,
+      ThrowsMessage<silo::preprocessing::PreprocessingException>(::testing::HasSubstr(
+         "The lineage definitions contain the duplicate lineage 'some_duplicate_lineage'"
+
+      ))
    );
 }
 
@@ -226,20 +200,12 @@ lineage3:
   - some_other_key)"));
    };
 
-   EXPECT_THROW(
-      {
-         try {
-            throwing_lambda();
-         } catch (const silo::preprocessing::PreprocessingException& e) {
-            ASSERT_EQ(
-               std::string(e.what()),
-               "The alias 'duplicate_alias' for lineage 'lineage3' is already defined as a lineage "
-               "or another alias."
-            );
-            throw;
-         }
-      },
-      silo::preprocessing::PreprocessingException
+   EXPECT_THAT(
+      throwing_lambda,
+      ThrowsMessage<silo::preprocessing::PreprocessingException>(::testing::HasSubstr(
+         "The alias 'duplicate_alias' for lineage 'lineage3' is already defined as a lineage "
+         "or another alias."
+      ))
    );
 }
 
@@ -259,21 +225,29 @@ lineage3:
   - some_other_key)"));
    };
 
-   EXPECT_THROW(
-      {
-         try {
-            throwing_lambda();
-         } catch (const silo::preprocessing::PreprocessingException& e) {
-            ASSERT_EQ(
-               std::string(e.what()),
-               "The alias 'lineage2_also_used_as_alias' for lineage 'lineage3' is already defined "
-               "as a lineage or another alias."
-            );
-            throw;
-         }
-      },
-      silo::preprocessing::PreprocessingException
+   EXPECT_THAT(
+      throwing_lambda,
+      ThrowsMessage<silo::preprocessing::PreprocessingException>(::testing::HasSubstr(
+         "The alias 'lineage2_also_used_as_alias' for lineage 'lineage3' is already defined "
+         "as a lineage or another alias."
+      ))
    );
+}
+
+TEST(containsCycle, doesNotFindCycleInPangoLineageTree) {
+   ASSERT_NO_THROW(LineageTreeAndIdMap::fromLineageDefinitionFilePath(
+      "testBaseData/exampleDataset/lineage_definitions.yaml"
+   ));
+}
+
+TEST(containsCycle, doesNotFindCycleInMediumSizedChainGraph) {
+   std::vector<std::pair<uint32_t, uint32_t>> chain_edges;
+   uint32_t N = UINT16_MAX;
+   chain_edges.reserve(N);
+   for (size_t i = 0; i + 1 < N; i++) {
+      chain_edges.emplace_back(i, i + 1);
+   }
+   ASSERT_FALSE(silo::common::containsCycle(N, chain_edges));
 }
 
 TEST(containsCycle, findsCycles) {

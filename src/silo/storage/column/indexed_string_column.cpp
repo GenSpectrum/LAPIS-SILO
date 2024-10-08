@@ -91,9 +91,9 @@ IndexedStringColumn::IndexedStringColumn(const common::LineageTreeAndIdMap& line
 
 IndexedStringColumnPartition& IndexedStringColumn::createPartition() {
    if (lineage_tree.has_value()) {
-      return partitions.emplace_back(&lookup, &lineage_tree.value());
+      return partitions.emplace_back(IndexedStringColumnPartition{&lookup, &lineage_tree.value()});
    }
-   return partitions.emplace_back(&lookup);
+   return partitions.emplace_back(IndexedStringColumnPartition{&lookup});
 }
 
 }  // namespace silo::storage::column
