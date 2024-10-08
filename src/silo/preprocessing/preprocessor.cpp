@@ -120,7 +120,7 @@ Database Preprocessor::preprocess() {
          "preprocessing - building metadata tables from metadata input '{}'",
          metadata_filename.value().string()
       );
-      buildMetadataTableFromFile(*preprocessing_config.getMetadataInputFilename());
+      buildMetadataTableFromFile(metadata_filename.value());
       SPDLOG_DEBUG("preprocessing - building partitioning tables");
       buildPartitioningTable();
       SPDLOG_DEBUG("preprocessing - creating insertions tables for building SILO");
