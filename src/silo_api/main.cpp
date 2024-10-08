@@ -326,6 +326,12 @@ int run(int argc, char** argv) {
 int main(int argc, char** argv) {
    setupLogger();
 
+   auto args = std::span<char*>(argv, argc);
+   // SPDLOG_INFO("program arguments: {}", args);
+   for (auto* arg : args) {
+      SPDLOG_INFO("program argument: {}", arg);
+   }
+
    if (getenv("DEBUG_EXCEPTION")) {
       return run(argc, argv);
    }
