@@ -7,6 +7,7 @@
 #include <boost/algorithm/string/join.hpp>
 
 #include "silo/common/block_timer.h"
+#include "silo/common/panic.h"
 #include "silo/common/string_utils.h"
 #include "silo/common/table_reader.h"
 #include "silo/config/preprocessing_config.h"
@@ -113,9 +114,11 @@ Database Preprocessor::preprocess() {
       createPartitionedSequenceTablesFromNdjson(input_file);
    } else {
       SPDLOG_INFO("preprocessing - classic metadata file pipeline chosen");
+      const auto metadata_filename = preprocessing_config.getMetadataInputFilename();
+      ASSERT(metadata_filename.has_value());
       SPDLOG_DEBUG(
          "preprocessing - building metadata tables from metadata input '{}'",
-         preprocessing_config.getMetadataInputFilename()->string()
+         metadata_filename.value().string()
       );
       buildMetadataTableFromFile(*preprocessing_config.getMetadataInputFilename());
       SPDLOG_DEBUG("preprocessing - building partitioning tables");

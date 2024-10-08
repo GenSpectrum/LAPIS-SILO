@@ -255,7 +255,8 @@ LineageTreeAndIdMap LineageTreeAndIdMap::fromLineageDefinitionFile(
    assignLineageIds(file, lookup);
    std::unordered_map<Idx, Idx> alias_mapping = assignAliasIdsAndGetAliasMapping(file, lookup);
 
-   const std::vector<std::pair<Idx, Idx>> edge_list = getParentChildEdges(file, lookup, alias_mapping);
+   const std::vector<std::pair<Idx, Idx>> edge_list =
+      getParentChildEdges(file, lookup, alias_mapping);
    auto lineage_tree =
       LineageTree::fromEdgeList(file.lineages.size(), edge_list, lookup, std::move(alias_mapping));
    return {std::move(lineage_tree), std::move(lookup)};

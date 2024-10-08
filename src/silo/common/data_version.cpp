@@ -52,9 +52,7 @@ DataVersion DataVersion::mineDataVersion() {
    const auto now_as_time_t = std::chrono::system_clock::to_time_t(now);
    const auto current_timestamp = Timestamp::fromString(std::to_string(now_as_time_t));
    ASSERT(current_timestamp.has_value());
-   return DataVersion{
-      current_timestamp.value(), {CURRENT_SILO_SERIALIZATION_VERSION}
-   };
+   return DataVersion{current_timestamp.value(), {CURRENT_SILO_SERIALIZATION_VERSION}};
 }
 
 DataVersion::DataVersion(
