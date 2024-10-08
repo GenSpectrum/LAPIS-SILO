@@ -178,11 +178,12 @@ LineageTreeAndIdMap::LineageTreeAndIdMap(
     : lineage_tree(std::move(lineage_tree)),
       lineage_id_lookup_map(std::move(lineage_id_lookup_map)) {}
 
-LineageTreeAndIdMap LineageTreeAndIdMap::fromLineageDefinitionFile(
-   const preprocessing::LineageDefinitionFile& file
+namespace {
+
+void assignLineageIds(
+   const preprocessing::LineageDefinitionFile& file,
+   BidirectionalMap<std::string>& lookup
 ) {
-   BidirectionalMap<std::string> lookup;
-   std::unordered_map<uint32_t, uint32_t> alias_mapping;
    for (const auto& lineage : file.lineages) {
       if (lookup.getId(lineage.lineage_name.string).has_value()) {
          throw silo::preprocessing::PreprocessingException(fmt::format(
@@ -191,6 +192,13 @@ LineageTreeAndIdMap LineageTreeAndIdMap::fromLineageDefinitionFile(
       }
       lookup.getOrCreateId(lineage.lineage_name.string);
    }
+}
+
+std::unordered_map<Idx, Idx> assignAliasIdsAndGetAliasMapping(
+   const preprocessing::LineageDefinitionFile& file,
+   BidirectionalMap<std::string>& lookup
+) {
+   std::unordered_map<Idx, Idx> alias_mapping;
    for (const auto& lineage : file.lineages) {
       ASSERT(lookup.getId(lineage.lineage_name.string).has_value());
       auto lineage_id = lookup.getId(lineage.lineage_name.string).value();
@@ -206,6 +214,12 @@ LineageTreeAndIdMap LineageTreeAndIdMap::fromLineageDefinitionFile(
          alias_mapping[alias_id] = lineage_id;
       }
    }
+   return alias_mapping;
+}
+
+std::vector<std::pair<Idx, Idx>> getParentChildEdges(const preprocessing::LineageDefinitionFile& file,
+                                                     const BidirectionalMap<std::string>& lookup,
+                                                     const std::unordered_map<Idx, Idx>& alias_mapping){
    std::vector<std::pair<Idx, Idx>> edge_list;
    for (const auto& lineage : file.lineages) {
       ASSERT(!lookup.getId(lineage.lineage_name.string).has_value());
@@ -228,6 +242,19 @@ LineageTreeAndIdMap LineageTreeAndIdMap::fromLineageDefinitionFile(
          edge_list.emplace_back(parent_id.value(), my_id);
       }
    }
+   return edge_list;
+}
+
+}
+
+LineageTreeAndIdMap LineageTreeAndIdMap::fromLineageDefinitionFile(
+   const preprocessing::LineageDefinitionFile& file
+) {
+   BidirectionalMap<std::string> lookup;
+   assignLineageIds(file, lookup);
+   std::unordered_map<Idx, Idx> alias_mapping = assignAliasIdsAndGetAliasMapping(file, lookup);
+
+   std::vector<std::pair<Idx, Idx>> edge_list = getParentChildEdges(file, lookup, alias_mapping);
    auto lineage_tree =
       LineageTree::fromEdgeList(file.lineages.size(), edge_list, lookup, std::move(alias_mapping));
    return {std::move(lineage_tree), std::move(lookup)};
