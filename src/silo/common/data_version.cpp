@@ -50,9 +50,10 @@ bool DataVersion::Timestamp::operator>=(const DataVersion::Timestamp& other) con
 DataVersion DataVersion::mineDataVersion() {
    const auto now = std::chrono::system_clock::now();
    const auto now_as_time_t = std::chrono::system_clock::to_time_t(now);
-   ASSERT(Timestamp::fromString(std::to_string(now_as_time_t)).has_value());
+   const auto current_timestamp = Timestamp::fromString(std::to_string(now_as_time_t));
+   ASSERT(current_timestamp.has_value());
    return DataVersion{
-      *Timestamp::fromString(std::to_string(now_as_time_t)), {CURRENT_SILO_SERIALIZATION_VERSION}
+      current_timestamp.value(), {CURRENT_SILO_SERIALIZATION_VERSION}
    };
 }
 

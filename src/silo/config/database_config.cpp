@@ -237,15 +237,18 @@ DatabaseConfig DatabaseConfigReader::parseYaml(const std::string& yaml) const {
    const silo::config::DatabaseConfig& database_config,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
+   const auto default_nucleotide_sequence_string = database_config.default_nucleotide_sequence.has_value()
+                                                      ? "'" + database_config.default_nucleotide_sequence.value() + "'"
+                                                      : "null";
+   const auto default_amino_acid_sequence_string =
+                 database_config.default_amino_acid_sequence.has_value()
+                    ? "'" + database_config.default_amino_acid_sequence.value() + "'"
+                    : "null";
    return fmt::format_to(
       ctx.out(),
       "{{ default_nucleotide_sequence: {}, default_amino_acid_sequence: {}, schema: {} }}",
-      database_config.default_nucleotide_sequence.has_value()
-         ? "'" + *database_config.default_nucleotide_sequence + "'"
-         : "null",
-      database_config.default_amino_acid_sequence.has_value()
-         ? "'" + *database_config.default_nucleotide_sequence + "'"
-         : "null",
+      default_nucleotide_sequence_string,
+      default_amino_acid_sequence_string,
       database_config.schema
    );
 }
