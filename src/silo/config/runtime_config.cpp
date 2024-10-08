@@ -65,6 +65,7 @@ void QueryOptions::overwrite(const silo::config::AbstractConfigSource& config) {
 
 void RuntimeConfig::overwrite(const silo::config::AbstractConfigSource& config) {
    api_options.overwrite(config);
+   query_options.overwrite(config);
 }
 
 }  // namespace silo::config
