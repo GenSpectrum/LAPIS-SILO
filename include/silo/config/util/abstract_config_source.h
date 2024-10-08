@@ -34,7 +34,7 @@ class AbstractConfigSource {
       /// camel case.
       std::vector<std::string> access_path;
 
-      /// `access_path` joined with ".".
+      /// `access_path` joined with ".".  --- XXX wrong  that  depends!
       [[nodiscard]] std::string toString() const;
    };
 
