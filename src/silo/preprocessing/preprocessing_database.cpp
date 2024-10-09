@@ -127,15 +127,25 @@ preprocessing::Partitions PreprocessingDatabase::getPartitionDescriptor() {
    return preprocessing::Partitions(partitions);
 }
 
+std::string PreprocessingDatabase::getBaseStem(const std::filesystem::path& file_path) {
+   std::filesystem::path stem = file_path;
+   while (stem.has_extension()) {
+      stem = stem.stem();
+   }
+
+   return stem.stem().string();
+}
+
 ZstdTable PreprocessingDatabase::generateSequenceTableViaFile(
    const std::string& table_name,
    const std::string& reference_sequence,
    const std::filesystem::path& file_path
 ) {
-   const auto file_stem = file_path.stem().string();
+   const auto file_stem = getBaseStem(file_path);
    for (const auto& entry : std::filesystem::directory_iterator(file_path.parent_path())) {
+      const auto entry_stem = getBaseStem(entry.path());
       const auto entry_file_name = entry.path().filename().string();
-      if (!entry.is_regular_file() || !entry_file_name.starts_with(file_stem)) {
+      if (!entry.is_regular_file() || entry_stem != file_stem) {
          continue;
       }
       auto extensions = splitBy(entry_file_name, ".");
