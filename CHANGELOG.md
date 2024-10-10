@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.23](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.22...v0.2.23) (2024-10-10)
+
+
+### Bug Fixes
+
+* **preprocessing:** enforce exact match on file base stem when pairing sequence and metadata when processing from file ([7c9b23d](https://github.com/GenSpectrum/LAPIS-SILO/commit/7c9b23d618a75c4455ed9c7ac4cd76cf1218251a)), closes [#607](https://github.com/GenSpectrum/LAPIS-SILO/issues/607)
+
 ## [0.2.22](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.21...v0.2.22) (2024-10-01)
 
 
