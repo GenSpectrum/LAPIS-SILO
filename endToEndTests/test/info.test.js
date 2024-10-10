@@ -9,7 +9,7 @@ describe('The /info endpoint', () => {
       .expect(200)
       .expect('Content-Type', 'application/json')
       .expect(expectHeaderToHaveDataVersion)
-      .expect({ nBitmapsSize: 3931, sequenceCount: 100, totalSize: 26589508, numberOfPartitions: 11 });
+      .expect({ nBitmapsSize: 3931, sequenceCount: 100, totalSize: 24198036, numberOfPartitions: 10 });
   });
 
   it('should return detailed info about the current state of the database', { timeout: 5000 }, async () => {
@@ -26,13 +26,13 @@ describe('The /info endpoint', () => {
           'bitmapContainerSizeStatistic'
         );
         expect(returnedInfo.bitmapContainerSizePerGenomeSection.bitmapContainerSizeStatistic).to.deep.equal({
-          numberOfArrayContainers: 48524,
+          numberOfArrayContainers: 48579,
           numberOfBitsetContainers: 0,
           numberOfRunContainers: 284,
-          numberOfValuesStoredInArrayContainers: 66620,
+          numberOfValuesStoredInArrayContainers: 66892,
           numberOfValuesStoredInBitsetContainers: 0,
           numberOfValuesStoredInRunContainers: 2875,
-          totalBitmapSizeArrayContainers: 133240,
+          totalBitmapSizeArrayContainers: 133784,
           totalBitmapSizeBitsetContainers: 0,
           totalBitmapSizeRunContainers: 4824,
         });
@@ -61,22 +61,22 @@ describe('The /info endpoint', () => {
 
         expect(returnedInfo).to.have.property('bitmapSizePerSymbol');
         expect(returnedInfo.bitmapSizePerSymbol).to.deep.equal({
-          '-': 2661831,
-          'A': 2775910,
-          'B': 2631464,
-          'C': 2725728,
-          'D': 2631464,
-          'G': 2728118,
-          'H': 2631464,
-          'K': 2631594,
-          'M': 2631554,
-          'N': 2631464,
-          'R': 2631514,
-          'S': 2631464,
-          'T': 2791923,
-          'V': 2631464,
-          'W': 2631514,
-          'Y': 2631494,
+          '-': 2422869,
+          'A': 2536840,
+          'B': 2392240,
+          'C': 2486656,
+          'D': 2392240,
+          'G': 2489072,
+          'H': 2392240,
+          'K': 2392370,
+          'M': 2392330,
+          'N': 2392240,
+          'R': 2392290,
+          'S': 2392240,
+          'T': 2552937,
+          'V': 2392240,
+          'W': 2392290,
+          'Y': 2392270,
         });
       })
       .expect(expectHeaderToHaveDataVersion);

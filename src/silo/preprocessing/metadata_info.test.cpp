@@ -20,7 +20,7 @@ TEST(
             .metadata =
                {
                   {.name = "gisaid_epi_isl", .type = silo::config::ValueType::STRING},
-                  {.name = "notInMetadata", .type = silo::config::ValueType::PANGOLINEAGE},
+                  {.name = "notInMetadata", .type = silo::config::ValueType::STRING},
                   {.name = "country", .type = silo::config::ValueType::STRING},
                },
             .primary_key = "gisaid_epi_isl",
@@ -29,7 +29,7 @@ TEST(
 
    EXPECT_THROW(
       silo::preprocessing::MetadataInfo::validateMetadataFile(
-         "testBaseData/exampleDataset/small_metadata_set.tsv",
+         "testBaseData/exampleDatasetAsTsv/small_metadata_set.tsv",
          some_config_with_one_column_not_in_metadata
       ),
       silo::preprocessing::PreprocessingException

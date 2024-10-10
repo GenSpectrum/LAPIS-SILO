@@ -23,6 +23,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/lexical_cast.hpp>
 
+#include "silo/common/lineage_tree.h"
 #include "silo/config/database_config.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/config/runtime_config.h"
@@ -258,13 +259,19 @@ class SiloServer : public Poco::Util::ServerApplication {
       const auto reference_genomes =
          silo::ReferenceGenomes::readFromFile(preprocessing_config.getReferenceGenomeFilename());
 
-      SPDLOG_INFO("preprocessing - reading pango lineage alias");
-      const auto alias_lookup = silo::PangoLineageAliasLookup::readFromFile(
-         preprocessing_config.getPangoLineageDefinitionFilename()
-      );
+      silo::common::LineageTreeAndIdMap lineage_definitions;
+      if (auto lineage_file_name = preprocessing_config.getLineageDefinitionsFilename()) {
+         SPDLOG_INFO(
+            "preprocessing - read and verify the lineage tree '{}'",
+            lineage_file_name.value().string()
+         );
+         lineage_definitions = silo::common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(
+            lineage_file_name.value()
+         );
+      }
 
       auto preprocessor = silo::preprocessing::Preprocessor(
-         preprocessing_config, database_config, reference_genomes, alias_lookup
+         preprocessing_config, database_config, reference_genomes, std::move(lineage_definitions)
       );
 
       return preprocessor.preprocess();

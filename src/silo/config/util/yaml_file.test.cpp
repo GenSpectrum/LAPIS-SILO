@@ -24,16 +24,16 @@ TEST(YamlFile, canCorrectlyCheckForNonPresentProperties) {
 TEST(YamlFile, getStringGetsCorrectField) {
    const YamlFile under_test("./testBaseData/test_preprocessing_config.yaml");
 
-   ASSERT_EQ(under_test.getString({{"inputDirectory"}}), "./testBaseData/exampleDataset/");
+   ASSERT_EQ(under_test.getString({{"inputDirectory"}}), "./testBaseData/exampleDatasetAsTsv/");
 }
 
 TEST(YamlFile, getStringGetsCorrectFieldsRepeatedly) {
    const YamlFile under_test("./testBaseData/test_preprocessing_config.yaml");
 
-   ASSERT_EQ(under_test.getString({{"inputDirectory"}}), "./testBaseData/exampleDataset/");
+   ASSERT_EQ(under_test.getString({{"inputDirectory"}}), "./testBaseData/exampleDatasetAsTsv/");
    ASSERT_EQ(under_test.getString({{"outputDirectory"}}), "./output/");
    ASSERT_EQ(under_test.getString({{"metadataFilename"}}), "small_metadata_set.tsv");
-   ASSERT_EQ(under_test.getString({{"pangoLineageDefinitionFilename"}}), "pangolineage_alias.json");
+   ASSERT_EQ(under_test.getString({{"lineageDefinitionsFilename"}}), "lineage_definitions.yaml");
    ASSERT_EQ(under_test.getString({{"referenceGenomeFilename"}}), "reference_genomes.json");
 }
 
@@ -49,11 +49,9 @@ TEST(YamlFile, shouldReadConfigWithCorrectParametersAndDefaults) {
 
    ASSERT_NO_THROW(config.overwrite(YamlFile("./testBaseData/test_preprocessing_config.yaml")););
 
-   const std::string input_directory = "./testBaseData/exampleDataset/";
+   const std::string input_directory = "./testBaseData/exampleDatasetAsTsv/";
    ASSERT_EQ(config.getMetadataInputFilename(), input_directory + "small_metadata_set.tsv");
-   ASSERT_EQ(
-      config.getPangoLineageDefinitionFilename(), input_directory + "pangolineage_alias.json"
-   );
+   ASSERT_EQ(config.getLineageDefinitionsFilename(), input_directory + "lineage_definitions.yaml");
 }
 
 TEST(YamlFile, shouldThrowExceptionWhenConfigFileDoesNotExist) {
@@ -71,11 +69,9 @@ TEST(YamlFile, shouldReadConfigWithOverriddenDefaults) {
       YamlFile("./testBaseData/test_preprocessing_config_with_overridden_defaults.yaml")
    ););
 
-   const std::string input_directory = "./testBaseData/exampleDataset/";
+   const std::string input_directory = "./testBaseData/exampleDatasetAsTsv/";
    ASSERT_EQ(config.getMetadataInputFilename(), input_directory + "small_metadata_set.tsv");
-   ASSERT_EQ(
-      config.getPangoLineageDefinitionFilename(), input_directory + "pangolineage_alias.json"
-   );
+   ASSERT_EQ(config.getLineageDefinitionsFilename(), input_directory + "lineage_definitions.yaml");
 
    ASSERT_EQ(config.getNucFilenameNoExtension(0), input_directory + "0");
    ASSERT_EQ(config.getOutputDirectory(), "./output/custom/");

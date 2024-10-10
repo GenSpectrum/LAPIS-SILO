@@ -6,7 +6,8 @@ schema:
     - name: host
       type: string
     - name: pangoLineage
-      type: pango_lineage
+      type: string
+      generateIndex: true
     - name: accessionVersion
       type: string
   primaryKey: accessionVersion

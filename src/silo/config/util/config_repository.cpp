@@ -26,22 +26,27 @@ std::map<std::string, ValueType> validateMetadataDefinitions(const DatabaseConfi
          throw ConfigException("Metadata " + metadata.name + " is defined twice in the config");
       }
 
-      const auto must_not_generate_index_on_type =
-         metadata.type != ValueType::STRING && metadata.type != ValueType::PANGOLINEAGE;
-      if (metadata.generate_index && must_not_generate_index_on_type) {
+      const auto must_be_string = metadata.lineage_index;
+      if (metadata.type != ValueType::STRING && must_be_string) {
          throw ConfigException(
             "Metadata '" + metadata.name +
-            "' generate_index is set, but generating an index is only allowed for types STRING and "
-            "PANGOLINEAGE"
+            "' lineage_index is set, but the column is not of type STRING."
          );
       }
 
-      const auto must_generate_index_on_type = metadata.type == ValueType::PANGOLINEAGE;
-      if (!metadata.generate_index && must_generate_index_on_type) {
+      const auto must_not_generate_index_on_type = metadata.type != ValueType::STRING;
+      if (metadata.generate_index && must_not_generate_index_on_type) {
          throw ConfigException(
             "Metadata '" + metadata.name +
-            "' generate_index is not set, but generating an index is mandatory for type "
-            "PANGOLINEAGE"
+            "' generate_index is set, but generating an index is only allowed for types STRING"
+         );
+      }
+
+      const auto must_generate_index = metadata.lineage_index;
+      if (!metadata.generate_index && must_generate_index) {
+         throw ConfigException(
+            "Metadata '" + metadata.name +
+            "' lineage_index is set, generate_index must also be set."
          );
       }
 
@@ -68,23 +73,26 @@ void validateDateToSortBy(
    }
 }
 
-void validatePartitionBy(
-   const DatabaseConfig& config,
-   std::map<std::string, ValueType>& metadata_map
-) {
+void validatePartitionBy(const DatabaseConfig& config) {
    if (config.schema.partition_by == std::nullopt) {
       return;
    }
 
    const std::string partition_by = config.schema.partition_by.value();
 
-   if (metadata_map.find(partition_by) == metadata_map.end()) {
+   const auto& partition_by_metadata = std::find_if(
+      config.schema.metadata.begin(),
+      config.schema.metadata.end(),
+      [&](const DatabaseMetadata& metadata) { return metadata.name == partition_by; }
+   );
+   if (partition_by_metadata == config.schema.metadata.end()) {
       throw ConfigException("partition_by '" + partition_by + "' is not in metadata");
    }
 
-   const auto& partition_by_type = metadata_map[partition_by];
-   if (partition_by_type != ValueType::PANGOLINEAGE) {
-      throw ConfigException("partition_by '" + partition_by + "' must be of type PANGOLINEAGE");
+   if (partition_by_metadata->type != ValueType::STRING || !partition_by_metadata->lineage_index) {
+      throw ConfigException(
+         "partition_by '" + partition_by + "' must be of type STRING and needs 'lineageIndex' set"
+      );
    }
 }
 }  // namespace
@@ -102,7 +110,7 @@ void ConfigRepository::validateConfig(const DatabaseConfig& config) const {
 
    validateDateToSortBy(config, metadata_map);
 
-   validatePartitionBy(config, metadata_map);
+   validatePartitionBy(config);
 }
 
 }  // namespace silo::config

@@ -41,7 +41,10 @@ TEST(ConfigRepository, shouldReadConfigWithoutErrors) {
              .metadata =
                 {
                    {.name = "testPrimaryKey", .type = ValueType::STRING},
-                   {.name = "metadata1", .type = ValueType::PANGOLINEAGE, .generate_index = true},
+                   {.name = "metadata1",
+                    .type = ValueType::STRING,
+                    .generate_index = true,
+                    .lineage_index = true},
                    {.name = "metadata2", .type = ValueType::DATE},
                 },
              .primary_key = "testPrimaryKey",
@@ -81,7 +84,7 @@ TEST(ConfigRepository, shouldThrowIfThereAreTwoMetadataWithTheSameName) {
              .metadata =
                 {
                    {.name = "testPrimaryKey", .type = ValueType::STRING},
-                   {.name = "sameName", .type = ValueType::PANGOLINEAGE},
+                   {.name = "sameName", .type = ValueType::STRING},
                    {.name = "sameName", .type = ValueType::DATE},
                 },
              .primary_key = "testPrimaryKey",
@@ -165,7 +168,7 @@ TEST(ConfigRepository, givenConfigPartitionByThatIsNotConfiguredThenThrows) {
    );
 }
 
-TEST(ConfigRepository, givenConfigPartitionByThatIsNotPangoLineageThenThrows) {
+TEST(ConfigRepository, givenConfigPartitionByThatIsNotALineageThrows) {
    const auto config_reader_mock = mockConfigReader(
       {.default_nucleotide_sequence = "main",
        .schema =
@@ -174,24 +177,23 @@ TEST(ConfigRepository, givenConfigPartitionByThatIsNotPangoLineageThenThrows) {
               {
                  {.name = "testPrimaryKey", .type = ValueType::STRING},
                  {.name = "date_to_sort_by", .type = ValueType::DATE},
-                 {.name = "not a pango lineage", .type = ValueType::STRING},
+                 {.name = "not a lineage", .type = ValueType::STRING},
               },
            .primary_key = "testPrimaryKey",
            .date_to_sort_by = "date_to_sort_by",
-           .partition_by = "not a pango lineage"}}
+           .partition_by = "not a lineage"}}
    );
-
    EXPECT_THAT(
       [&config_reader_mock]() {
          ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml");
       },
-      ThrowsMessage<ConfigException>(
-         ::testing::HasSubstr("partition_by 'not a pango lineage' must be of type PANGOLINEAGE")
-      )
+      ThrowsMessage<silo::config::ConfigException>(::testing::HasSubstr(
+         "partition_by 'not a lineage' must be of type STRING and needs 'lineageIndex' set"
+      ))
    );
 }
 
-TEST(ConfigRepository, givenMetadataToGenerateIndexForThatIsNotStringOrPangoLineageThenThrows) {
+TEST(ConfigRepository, givenMetadataToGenerateIndexForThatIsNotStringThenThrows) {
    const auto config_reader_mock = mockConfigReader(
       {.default_nucleotide_sequence = "main",
        .schema =
@@ -212,12 +214,12 @@ TEST(ConfigRepository, givenMetadataToGenerateIndexForThatIsNotStringOrPangoLine
       },
       ThrowsMessage<ConfigException>(
          ::testing::HasSubstr("Metadata 'indexed date' generate_index is set, but generating an "
-                              "index is only allowed for types STRING and PANGOLINEAGE")
+                              "index is only allowed for types STRING")
       )
    );
 }
 
-TEST(ConfigRepository, givenNotGenerateIndexOnPangoLineageThenThrows) {
+TEST(ConfigRepository, givenLineageIndexAndNotGenerateThenThrows) {
    const auto config_reader_mock = mockConfigReader(
       {.default_nucleotide_sequence = "main",
        .schema =
@@ -225,9 +227,7 @@ TEST(ConfigRepository, givenNotGenerateIndexOnPangoLineageThenThrows) {
            .metadata =
               {
                  {.name = "testPrimaryKey", .type = ValueType::STRING},
-                 {.name = "pango lineage without index",
-                  .type = ValueType::PANGOLINEAGE,
-                  .generate_index = false},
+                 {.name = "some lineage", .type = ValueType::STRING, .lineage_index = true},
               },
            .primary_key = "testPrimaryKey",
            .date_to_sort_by = std::nullopt,
@@ -239,8 +239,8 @@ TEST(ConfigRepository, givenNotGenerateIndexOnPangoLineageThenThrows) {
          ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml");
       },
       ThrowsMessage<ConfigException>(
-         ::testing::HasSubstr("Metadata 'pango lineage without index' generate_index is not set, "
-                              "but generating an index is mandatory for type PANGOLINEAGE")
+         ::testing::HasSubstr("Metadata 'some lineage' lineage_index is set, "
+                              "generate_index must also be set")
       )
    );
 }

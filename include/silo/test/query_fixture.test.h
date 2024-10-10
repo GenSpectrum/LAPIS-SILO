@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
+#include "silo/common/lineage_tree.h"
 #include "silo/config/database_config.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/config/util/yaml_file.h"
@@ -16,7 +17,6 @@
 #include "silo/preprocessing/preprocessor.h"
 #include "silo/preprocessing/sql_function.h"
 #include "silo/query_engine/query_engine.h"
-#include "silo/storage/pango_lineage_alias.h"
 #include "silo/storage/reference_genomes.h"
 
 namespace silo::test {
@@ -77,7 +77,7 @@ struct QueryTestData {
    const std::vector<nlohmann::json> ndjson_input_data;
    const silo::config::DatabaseConfig database_config;
    const silo::ReferenceGenomes reference_genomes;
-   const silo::PangoLineageAliasLookup alias_lookup;
+   const silo::common::LineageTreeAndIdMap lineage_tree;
 };
 
 struct QueryTestScenario {
@@ -126,7 +126,7 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
          config_with_input_dir,
          test_data.database_config,
          test_data.reference_genomes,
-         test_data.alias_lookup
+         test_data.lineage_tree
       );
       DataContainer::database = std::make_unique<Database>(preprocessor.preprocess());
 

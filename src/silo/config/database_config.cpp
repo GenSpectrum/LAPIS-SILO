@@ -20,9 +20,6 @@ ValueType silo::config::toDatabaseValueType(std::string_view type) {
    if (type == "date") {
       return ValueType::DATE;
    }
-   if (type == "pango_lineage") {
-      return ValueType::PANGOLINEAGE;
-   }
    if (type == "boolean") {
       return ValueType::BOOL;
    }
@@ -47,8 +44,6 @@ std::string toString(ValueType type) {
          return "string";
       case ValueType::DATE:
          return "date";
-      case ValueType::PANGOLINEAGE:
-         return "pango_lineage";
       case ValueType::BOOL:
          return "boolean";
       case ValueType::INT:
@@ -144,7 +139,12 @@ struct convert<silo::config::DatabaseMetadata> {
       if (node["generateIndex"].IsDefined()) {
          metadata.generate_index = node["generateIndex"].as<bool>();
       } else {
-         metadata.generate_index = metadata.type == silo::config::ValueType::PANGOLINEAGE;
+         metadata.generate_index = false;
+      }
+      if (node["lineageIndex"].IsDefined()) {
+         metadata.lineage_index = node["lineageIndex"].as<bool>();
+      } else {
+         metadata.lineage_index = false;
       }
       return true;
    }
@@ -153,6 +153,9 @@ struct convert<silo::config::DatabaseMetadata> {
       node["name"] = metadata.name;
       node["type"] = toString(metadata.type);
       node["generateIndex"] = metadata.generate_index;
+      if (metadata.lineage_index) {
+         node["lineageIndex"] = true;
+      }
       return node;
    }
 };
@@ -170,12 +173,6 @@ ColumnType DatabaseMetadata::getColumnType() const {
    }
    if (type == ValueType::DATE) {
       return ColumnType::DATE;
-   }
-   if (type == ValueType::PANGOLINEAGE) {
-      if (generate_index) {
-         return ColumnType::INDEXED_PANGOLINEAGE;
-      }
-      throw std::runtime_error("Found pango lineage column without index: " + std::string(name));
    }
    if (type == ValueType::BOOL) {
       return ColumnType::BOOL;
@@ -292,8 +289,6 @@ DatabaseConfig DatabaseConfigReader::parseYaml(const std::string& yaml) const {
          return fmt::format_to(ctx.out(), "string");
       case silo::config::ValueType::DATE:
          return fmt::format_to(ctx.out(), "date");
-      case silo::config::ValueType::PANGOLINEAGE:
-         return fmt::format_to(ctx.out(), "pango_lineage");
       case silo::config::ValueType::BOOL:
          return fmt::format_to(ctx.out(), "bool");
       case silo::config::ValueType::INT:

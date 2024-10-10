@@ -41,9 +41,6 @@ void ColumnPartitionGroup::addValueToColumn(
       case ColumnType::STRING:
          string_columns.at(column_name).insert(value.ToString());
          return;
-      case ColumnType::INDEXED_PANGOLINEAGE:
-         pango_lineage_columns.at(column_name).insert({value.ToString()});
-         return;
       case ColumnType::DATE:
          date_columns.at(column_name).insert(common::stringToDate(value.ToString()));
          return;
@@ -75,9 +72,6 @@ void ColumnPartitionGroup::addNullToColumn(const std::string& column_name, Colum
       case ColumnType::STRING:
          string_columns.at(column_name).insertNull();
          return;
-      case ColumnType::INDEXED_PANGOLINEAGE:
-         pango_lineage_columns.at(column_name).insertNull();
-         return;
       case ColumnType::DATE:
          date_columns.at(column_name).insertNull();
          return;
@@ -105,9 +99,6 @@ void ColumnPartitionGroup::reserveSpaceInColumn(
          return;
       case ColumnType::STRING:
          string_columns.at(column_name).reserve(row_count);
-         return;
-      case ColumnType::INDEXED_PANGOLINEAGE:
-         pango_lineage_columns.at(column_name).reserve(row_count);
          return;
       case ColumnType::DATE:
          date_columns.at(column_name).reserve(row_count);
@@ -144,10 +135,6 @@ ColumnPartitionGroup ColumnPartitionGroup::getSubgroup(
             case ColumnType::STRING:
                result.string_columns.insert({item.name, string_columns.at(item.name)});
                return;
-            case ColumnType::INDEXED_PANGOLINEAGE:
-               result.pango_lineage_columns.insert({item.name, pango_lineage_columns.at(item.name)}
-               );
-               return;
             case ColumnType::DATE:
                result.date_columns.insert({item.name, date_columns.at(item.name)});
                return;
@@ -180,11 +167,6 @@ common::JsonValueType ColumnPartitionGroup::getValue(
       return indexed_string_columns.at(column).lookupValue(
          indexed_string_columns.at(column).getValues().at(sequence_id)
       );
-   }
-   if (pango_lineage_columns.contains(column)) {
-      return pango_lineage_columns.at(column)
-         .lookupAliasedValue(pango_lineage_columns.at(column).getValues().at(sequence_id))
-         .value;
    }
    if (date_columns.contains(column)) {
       return common::dateToString(date_columns.at(column).getValues().at(sequence_id));
