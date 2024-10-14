@@ -26,13 +26,9 @@ class MockDatabase : public silo::Database {
 
 class MockDatabaseMutex : public silo_api::DatabaseMutex {
   public:
-   std::shared_mutex mutex;
-   MockDatabase mock_database;
+   std::shared_ptr<MockDatabase> mock_database = std::make_shared<MockDatabase>();
 
-   silo_api::FixedDatabase getDatabase() override {
-      std::shared_lock<std::shared_mutex> lock(mutex);
-      return {mock_database, std::move(lock)};
-   }
+   std::shared_ptr<silo::Database> getDatabase() override { return mock_database; }
 };
 
 class RequestHandlerTestFixture : public ::testing::Test {
@@ -68,11 +64,11 @@ const int FOUR_MINUTES_IN_SECONDS = 240;
 }  // namespace
 
 TEST_F(RequestHandlerTestFixture, handlesGetInfoRequest) {
-   EXPECT_CALL(database_mutex.mock_database, getDatabaseInfo)
+   EXPECT_CALL(*database_mutex.mock_database, getDatabaseInfo)
       .WillRepeatedly(testing::Return(
          silo::DatabaseInfo{.sequence_count = 1, .total_size = 2, .n_bitmaps_size = 3}
       ));
-   EXPECT_CALL(database_mutex.mock_database, getDataVersionTimestamp)
+   EXPECT_CALL(*database_mutex.mock_database, getDataVersionTimestamp)
       .WillRepeatedly(testing::Return(silo::DataVersion::Timestamp::fromString("1234").value()));
 
    request.setURI("/info");
@@ -103,9 +99,9 @@ TEST_F(RequestHandlerTestFixture, handlesGetInfoRequestDetails) {
 
    const silo::DetailedDatabaseInfo detailed_database_info = {{{"main", stats}}};
 
-   EXPECT_CALL(database_mutex.mock_database, detailedDatabaseInfo)
+   EXPECT_CALL(*database_mutex.mock_database, detailedDatabaseInfo)
       .WillRepeatedly(testing::Return(detailed_database_info));
-   EXPECT_CALL(database_mutex.mock_database, getDataVersionTimestamp)
+   EXPECT_CALL(*database_mutex.mock_database, getDataVersionTimestamp)
       .WillRepeatedly(testing::Return(silo::DataVersion::Timestamp::fromString("1234").value()));
 
    request.setURI("/info?details=true");
@@ -144,8 +140,8 @@ TEST_F(RequestHandlerTestFixture, handlesPostQueryRequest) {
    };
    std::vector<silo::query_engine::QueryResultEntry> tmp{{fields1}, {fields2}};
    auto query_result = silo::query_engine::QueryResult::fromVector(std::move(tmp));
-   EXPECT_CALL(database_mutex.mock_database, executeQuery).WillOnce(testing::Return(query_result));
-   EXPECT_CALL(database_mutex.mock_database, getDataVersionTimestamp)
+   EXPECT_CALL(*database_mutex.mock_database, executeQuery).WillOnce(testing::Return(query_result));
+   EXPECT_CALL(*database_mutex.mock_database, getDataVersionTimestamp)
       .WillOnce(testing::Return(silo::DataVersion::Timestamp::fromString("1234").value()));
 
    request.setMethod("POST");

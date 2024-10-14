@@ -1,19 +1,10 @@
 #pragma once
 
-#include <shared_mutex>
+#include <memory>
 
 #include "silo/database.h"
 
 namespace silo_api {
-
-class FixedDatabase {
-   std::shared_lock<std::shared_mutex> lock;
-
-  public:
-   FixedDatabase(const silo::Database& database, std::shared_lock<std::shared_mutex>&& mutex);
-
-   const silo::Database& database;
-};
 
 class UninitializedDatabaseException : public std::runtime_error {
   public:
@@ -22,15 +13,18 @@ class UninitializedDatabaseException : public std::runtime_error {
 };
 
 class DatabaseMutex {
-   std::shared_mutex mutex;
-   silo::Database database;
    bool is_initialized = false;
+   std::shared_ptr<silo::Database> database;
 
   public:
    DatabaseMutex() = default;
+   DatabaseMutex(const DatabaseMutex& other) = delete;
+   DatabaseMutex(DatabaseMutex&& other) = delete;
+   DatabaseMutex& operator=(const DatabaseMutex& other) = delete;
+   DatabaseMutex& operator=(DatabaseMutex&& other) = delete;
 
    void setDatabase(silo::Database&& new_database);
 
-   virtual FixedDatabase getDatabase();
+   virtual std::shared_ptr<silo::Database> getDatabase();
 };
 }  // namespace silo_api

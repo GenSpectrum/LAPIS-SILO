@@ -35,9 +35,9 @@ void QueryHandler::post(
    try {
       const auto fixed_database = database_mutex.getDatabase();
 
-      auto query_result = fixed_database.database.executeQuery(query);
+      auto query_result = fixed_database->executeQuery(query);
 
-      response.set("data-version", fixed_database.database.getDataVersionTimestamp().value);
+      response.set("data-version", fixed_database->getDataVersionTimestamp().value);
 
       response.setContentType("application/x-ndjson");
       std::ostream& out_stream = response.send();
