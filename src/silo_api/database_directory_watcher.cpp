@@ -116,7 +116,7 @@ void silo_api::DatabaseDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*ti
    {
       try {
          const auto current_data_version_timestamp =
-            database_mutex.getDatabase().database.getDataVersionTimestamp();
+            database_mutex.getDatabase()->getDataVersionTimestamp();
          const auto most_recent_data_version_timestamp_found =
             most_recent_database_state->second.getTimestamp();
          if (current_data_version_timestamp >= most_recent_data_version_timestamp_found) {
@@ -137,6 +137,11 @@ void silo_api::DatabaseDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*ti
    try {
       database_mutex.setDatabase(silo::Database::loadDatabaseState(most_recent_database_state->first
       ));
+      SPDLOG_INFO(
+         "New database with version {} successfully loaded.",
+         most_recent_database_state->first.string()
+      );
+      return;
    } catch (const std::exception& ex) {
       SPDLOG_ERROR(ex.what());
    } catch (const std::string& ex) {
@@ -150,7 +155,7 @@ void silo_api::DatabaseDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*ti
       }
    }
    SPDLOG_INFO(
-      "New database with version {} successfully loaded.",
+      "Did not load new database with version {} successfully.",
       most_recent_database_state->first.string()
    );
 }
