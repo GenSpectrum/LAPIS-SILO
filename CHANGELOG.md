@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.24](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.23...v0.2.24) (2024-10-15)
+
+
+### Bug Fixes
+
+* prevent setDatabase starvation which leads to no updates of currently loaded database ([24e4db6](https://github.com/GenSpectrum/LAPIS-SILO/commit/24e4db60b6da7d5e7b909818d230a740aa41ef74)) ([#613](https://github.com/GenSpectrum/LAPIS-SILO/pull/613))
+
 ## [0.2.23](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.22...v0.2.23) (2024-10-10)
 
 
