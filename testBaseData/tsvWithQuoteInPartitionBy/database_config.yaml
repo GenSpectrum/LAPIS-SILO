@@ -16,7 +16,7 @@ schema:
     - name: 'pango_"lineage'
       type: string
       generateIndex: true
-      lineageIndex: true
+      generateLineageIndex: true
     - name: division
       type: string
       generateIndex: true

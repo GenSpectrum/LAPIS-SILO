@@ -44,7 +44,7 @@ TEST(ConfigRepository, shouldReadConfigWithoutErrors) {
                    {.name = "metadata1",
                     .type = ValueType::STRING,
                     .generate_index = true,
-                    .lineage_index = true},
+                    .generate_lineage_index = true},
                    {.name = "metadata2", .type = ValueType::DATE},
                 },
              .primary_key = "testPrimaryKey",
@@ -114,7 +114,7 @@ TEST(ConfigRepository, givenConfigWithDateToSortByThatIsNotConfiguredThenThrows)
          ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml");
       },
       ThrowsMessage<ConfigException>(
-         ::testing::HasSubstr("date_to_sort_by 'notConfiguredDateToSortBy' is not in metadata")
+         ::testing::HasSubstr("dateToSortBy 'notConfiguredDateToSortBy' is not in metadata")
       )
    );
 }
@@ -138,7 +138,7 @@ TEST(ConfigRepository, givenDateToSortByThatIsNotADateThenThrows) {
          ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml");
       },
       ThrowsMessage<ConfigException>(
-         ::testing::HasSubstr("date_to_sort_by 'not a date' must be of type DATE")
+         ::testing::HasSubstr("dateToSortBy 'not a date' must be of type DATE")
       )
    );
 }
@@ -163,7 +163,7 @@ TEST(ConfigRepository, givenConfigPartitionByThatIsNotConfiguredThenThrows) {
          ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml");
       },
       ThrowsMessage<ConfigException>(
-         ::testing::HasSubstr("partition_by 'notConfiguredPartitionBy' is not in metadata")
+         ::testing::HasSubstr("partitionBy 'notConfiguredPartitionBy' is not in metadata")
       )
    );
 }
@@ -188,7 +188,7 @@ TEST(ConfigRepository, givenConfigPartitionByThatIsNotALineageThrows) {
          ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml");
       },
       ThrowsMessage<silo::config::ConfigException>(::testing::HasSubstr(
-         "partition_by 'not a lineage' must be of type STRING and needs 'lineageIndex' set"
+         "partitionBy 'not a lineage' must be of type STRING and needs 'generateLineageIndex' set"
       ))
    );
 }
@@ -213,7 +213,7 @@ TEST(ConfigRepository, givenMetadataToGenerateIndexForThatIsNotStringThenThrows)
          ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml");
       },
       ThrowsMessage<ConfigException>(
-         ::testing::HasSubstr("Metadata 'indexed date' generate_index is set, but generating an "
+         ::testing::HasSubstr("Metadata 'indexed date' generateIndex is set, but generating an "
                               "index is only allowed for types STRING")
       )
    );
@@ -227,7 +227,8 @@ TEST(ConfigRepository, givenLineageIndexAndNotGenerateThenThrows) {
            .metadata =
               {
                  {.name = "testPrimaryKey", .type = ValueType::STRING},
-                 {.name = "some lineage", .type = ValueType::STRING, .lineage_index = true},
+                 {.name = "some lineage", .type = ValueType::STRING, .generate_lineage_index = true
+                 },
               },
            .primary_key = "testPrimaryKey",
            .date_to_sort_by = std::nullopt,
@@ -239,8 +240,8 @@ TEST(ConfigRepository, givenLineageIndexAndNotGenerateThenThrows) {
          ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml");
       },
       ThrowsMessage<ConfigException>(
-         ::testing::HasSubstr("Metadata 'some lineage' lineage_index is set, "
-                              "generate_index must also be set")
+         ::testing::HasSubstr("Metadata 'some lineage' generateLineageIndex is set, "
+                              "generateIndex must also be set")
       )
    );
 }

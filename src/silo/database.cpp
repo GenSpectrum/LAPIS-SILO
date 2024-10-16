@@ -603,7 +603,7 @@ void Database::initializeColumn(const config::DatabaseMetadata& metadata) {
          }
          return;
       case config::ColumnType::INDEXED_STRING: {
-         if (metadata.lineage_index) {
+         if (metadata.generate_lineage_index) {
             auto column = storage::column::IndexedStringColumn(lineage_tree);
             columns.indexed_string_columns.emplace(name, std::move(column));
          } else {

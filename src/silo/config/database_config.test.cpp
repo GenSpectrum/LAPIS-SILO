@@ -45,7 +45,7 @@ namespace {
 struct TestParameter {
    ValueType value_type;
    bool generate_index;
-   bool lineage_index;
+   bool generate_lineage_index;
    ColumnType expected_column_type;
 };
 
@@ -85,7 +85,7 @@ INSTANTIATE_TEST_SUITE_P(
       TestParameter{
          .value_type = ValueType::STRING,
          .generate_index = true,
-         .lineage_index = true,
+         .generate_lineage_index = true,
          .expected_column_type = ColumnType::INDEXED_STRING
       },
       TestParameter{
@@ -130,11 +130,11 @@ TEST(DatabaseConfigReader, shouldReadConfigWithCorrectParameters) {
    ASSERT_EQ(config.schema.metadata[5].name, "pango_lineage");
    ASSERT_EQ(config.schema.metadata[5].type, ValueType::STRING);
    ASSERT_EQ(config.schema.metadata[5].generate_index, true);
-   ASSERT_EQ(config.schema.metadata[5].lineage_index, true);
+   ASSERT_EQ(config.schema.metadata[5].generate_lineage_index, true);
    ASSERT_EQ(config.schema.metadata[6].name, "division");
    ASSERT_EQ(config.schema.metadata[6].type, ValueType::STRING);
    ASSERT_EQ(config.schema.metadata[6].generate_index, true);
-   ASSERT_EQ(config.schema.metadata[6].lineage_index, false);
+   ASSERT_EQ(config.schema.metadata[6].generate_lineage_index, false);
    ASSERT_EQ(config.schema.metadata[7].name, "age");
    ASSERT_EQ(config.schema.metadata[7].type, ValueType::INT);
    ASSERT_EQ(config.schema.metadata[7].generate_index, false);

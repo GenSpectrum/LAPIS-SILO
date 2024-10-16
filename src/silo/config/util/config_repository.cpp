@@ -26,11 +26,11 @@ std::map<std::string, ValueType> validateMetadataDefinitions(const DatabaseConfi
          throw ConfigException("Metadata " + metadata.name + " is defined twice in the config");
       }
 
-      const auto must_be_string = metadata.lineage_index;
+      const auto must_be_string = metadata.generate_lineage_index;
       if (metadata.type != ValueType::STRING && must_be_string) {
          throw ConfigException(
             "Metadata '" + metadata.name +
-            "' lineage_index is set, but the column is not of type STRING."
+            "' generateLineageIndex is set, but the column is not of type STRING."
          );
       }
 
@@ -38,15 +38,15 @@ std::map<std::string, ValueType> validateMetadataDefinitions(const DatabaseConfi
       if (metadata.generate_index && must_not_generate_index_on_type) {
          throw ConfigException(
             "Metadata '" + metadata.name +
-            "' generate_index is set, but generating an index is only allowed for types STRING"
+            "' generateIndex is set, but generating an index is only allowed for types STRING"
          );
       }
 
-      const auto must_generate_index = metadata.lineage_index;
+      const auto must_generate_index = metadata.generate_lineage_index;
       if (!metadata.generate_index && must_generate_index) {
          throw ConfigException(
             "Metadata '" + metadata.name +
-            "' lineage_index is set, generate_index must also be set."
+            "' generateLineageIndex is set, generateIndex must also be set."
          );
       }
 
@@ -65,11 +65,11 @@ void validateDateToSortBy(
 
    const std::string date_to_sort_by = config.schema.date_to_sort_by.value();
    if (metadata_map.find(date_to_sort_by) == metadata_map.end()) {
-      throw ConfigException("date_to_sort_by '" + date_to_sort_by + "' is not in metadata");
+      throw ConfigException("dateToSortBy '" + date_to_sort_by + "' is not in metadata");
    }
 
    if (metadata_map[date_to_sort_by] != ValueType::DATE) {
-      throw ConfigException("date_to_sort_by '" + date_to_sort_by + "' must be of type DATE");
+      throw ConfigException("dateToSortBy '" + date_to_sort_by + "' must be of type DATE");
    }
 }
 
@@ -86,12 +86,13 @@ void validatePartitionBy(const DatabaseConfig& config) {
       [&](const DatabaseMetadata& metadata) { return metadata.name == partition_by; }
    );
    if (partition_by_metadata == config.schema.metadata.end()) {
-      throw ConfigException("partition_by '" + partition_by + "' is not in metadata");
+      throw ConfigException("partitionBy '" + partition_by + "' is not in metadata");
    }
 
-   if (partition_by_metadata->type != ValueType::STRING || !partition_by_metadata->lineage_index) {
+   if (partition_by_metadata->type != ValueType::STRING || !partition_by_metadata->generate_lineage_index) {
       throw ConfigException(
-         "partition_by '" + partition_by + "' must be of type STRING and needs 'lineageIndex' set"
+         "partitionBy '" + partition_by +
+         "' must be of type STRING and needs 'generateLineageIndex' set"
       );
    }
 }
