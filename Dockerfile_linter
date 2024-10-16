@@ -1,10 +1,15 @@
 ARG DEPENDENCY_IMAGE=ghcr.io/genspectrum/lapis-silo-linter-dependencies:latest
 
 FROM $DEPENDENCY_IMAGE AS linter
-ARG THREADS=4
+ARG THREADS=16
 
 WORKDIR /src
 
 COPY . ./
 
-RUN python3 ./build_with_conan.py --parallel $THREADS --build_with_clang_tidy
+RUN mkdir build
+WORKDIR build
+
+RUN conan install .. --build=missing --profile ../conanprofile --profile:build ../conanprofile --output-folder=build
+RUN cmake -D BUILD_WITH_CLANG_TIDY=ON . -B build
+RUN cmake --build build --parallel $THREADS
