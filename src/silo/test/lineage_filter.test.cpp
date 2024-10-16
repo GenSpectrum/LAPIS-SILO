@@ -54,7 +54,7 @@ const auto DATABASE_CONFIG = DatabaseConfig{
            {.name = "pango_lineage",
             .type = ValueType::STRING,
             .generate_index = true,
-            .lineage_index = true}},
+            .generate_lineage_index = true}},
        .primary_key = "primaryKey"}
 };
 

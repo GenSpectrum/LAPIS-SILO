@@ -141,10 +141,10 @@ struct convert<silo::config::DatabaseMetadata> {
       } else {
          metadata.generate_index = false;
       }
-      if (node["lineageIndex"].IsDefined()) {
-         metadata.lineage_index = node["lineageIndex"].as<bool>();
+      if (node["generateLineageIndex"].IsDefined()) {
+         metadata.generate_lineage_index = node["generateLineageIndex"].as<bool>();
       } else {
-         metadata.lineage_index = false;
+         metadata.generate_lineage_index = false;
       }
       return true;
    }
@@ -153,8 +153,8 @@ struct convert<silo::config::DatabaseMetadata> {
       node["name"] = metadata.name;
       node["type"] = toString(metadata.type);
       node["generateIndex"] = metadata.generate_index;
-      if (metadata.lineage_index) {
-         node["lineageIndex"] = true;
+      if (metadata.generate_lineage_index) {
+         node["generateLineageIndex"] = true;
       }
       return node;
    }

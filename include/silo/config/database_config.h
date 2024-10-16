@@ -21,7 +21,7 @@ class DatabaseMetadata {
    std::string name;
    ValueType type;
    bool generate_index;
-   bool lineage_index;
+   bool generate_lineage_index;
 
    [[nodiscard]] ColumnType getColumnType() const;
 };
