@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.24...v0.3.0) (2024-10-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* generalized wildcard queries ([#458](https://github.com/GenSpectrum/LAPIS-SILO/issues/458))
+
+### Features
+
+* generalized wildcard queries ([#458](https://github.com/GenSpectrum/LAPIS-SILO/issues/458)) ([1432320](https://github.com/GenSpectrum/LAPIS-SILO/commit/143232056146405c1fbb391d22adfd271f699c69))
+
+
+### Bug Fixes
+
+* resolve aliases when inserting to or querying lineage indexes again ([0e841e6](https://github.com/GenSpectrum/LAPIS-SILO/commit/0e841e659d2c59677820d3b83a21f864c27d069a))
+* update script to also generate aliases ([43ac4aa](https://github.com/GenSpectrum/LAPIS-SILO/commit/43ac4aa0ffd6939fafa6b1f56a8ec1e7190e0c22))
+
 ## [0.2.24](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.23...v0.2.24) (2024-10-15)
 
 
