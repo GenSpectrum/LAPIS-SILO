@@ -90,7 +90,7 @@ jobs:
           cmake -DBUILD_WITH_CLANG_TIDY=on -D CMAKE_BUILD_TYPE=Debug -B build
           echo "Successfully configured cmake"
           files=$(curl -s \
-           "https://api.github.com/repos/${{ github.repository }}/pulls/${PR_NUMBER}/files" \
+           "https://api.github.com/repos/${{ github.repository }}/pulls/${PR_NUMBER}/files?per_page=100" \
            | jq -r '.[] | select(.status != "removed") | .filename')
           echo "Changed files of this PR:"
           echo "$files"
