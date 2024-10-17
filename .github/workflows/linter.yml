@@ -89,9 +89,20 @@ jobs:
           mv /src/build .
           cmake -DBUILD_WITH_CLANG_TIDY=on -D CMAKE_BUILD_TYPE=Debug -B build
           echo "Successfully configured cmake"
-          files=$(curl -s \
-           "https://api.github.com/repos/${{ github.repository }}/pulls/${PR_NUMBER}/files" \
+          files=""
+          PAGE=1  
+          while true; do
+            page_files=$(curl -s \
+           "https://api.github.com/repos/${{ github.repository }}/pulls/${PR_NUMBER}/files?per_page=100&page=$PAGE" \
            | jq -r '.[] | select(.status != "removed") | .filename')
+            # If there are no more files, break the loop
+            if [[ -z "$page_files" ]]; then
+              break
+            fi
+            files+="$page_files"$'\n'
+            PAGE=$((PAGE + 1))
+          done
+          
           echo "Changed files of this PR:"
           echo "$files"
           IFS=$'\n'
