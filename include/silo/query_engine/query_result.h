@@ -61,7 +61,7 @@ class QueryResult {
        : query_result_chunk_(std::move(other.query_result_chunk_)),
          get_chunk_(std::move(other.get_chunk_)),
          i_(other.i_),
-         is_materialized_(other.is_materialized_) {};
+         is_materialized_(other.is_materialized_){};
    QueryResult& operator=(QueryResult&& other) noexcept;
    // Copy, only needed for testing::Return in gtest's
    // include/gmock/gmock-actions.h

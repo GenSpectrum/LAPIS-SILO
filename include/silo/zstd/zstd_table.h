@@ -16,7 +16,7 @@ class ZstdTable {
 
    ZstdTable(duckdb::Connection& connection, std::string table_name)
        : connection(connection),
-         table_name(std::move(table_name)) {};
+         table_name(std::move(table_name)){};
 
   public:
    static ZstdTable generate(

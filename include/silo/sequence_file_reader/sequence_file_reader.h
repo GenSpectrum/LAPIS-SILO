@@ -9,9 +9,9 @@ namespace silo::sequence_file_reader {
 class SequenceFileReader {
   protected:
    explicit SequenceFileReader(const std::filesystem::path& in_file_name)
-       : in_file(in_file_name) {};
+       : in_file(in_file_name){};
    explicit SequenceFileReader(const std::string& file_content)
-       : in_file(file_content) {};
+       : in_file(file_content){};
 
    silo::InputStreamWrapper in_file;
 
@@ -24,6 +24,6 @@ class SequenceFileReader {
 
    virtual std::optional<ReadSequence> nextEntry() = 0;
 
-   virtual ~SequenceFileReader() {};
+   virtual ~SequenceFileReader(){};
 };
 }  // namespace silo::sequence_file_reader

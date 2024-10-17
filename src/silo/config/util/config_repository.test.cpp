@@ -15,7 +15,7 @@ using silo::config::ValueType;
 class ConfigReaderMock : public silo::config::DatabaseConfigReader {
   public:
    ConfigReaderMock() = default;
-   ConfigReaderMock(const ConfigReaderMock& /*other*/) {};
+   ConfigReaderMock(const ConfigReaderMock& /*other*/){};
 
    MOCK_METHOD((DatabaseConfig), readConfig, (const std::filesystem::path&), (const override));
 };
