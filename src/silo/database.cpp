@@ -37,6 +37,7 @@
 
 #include "silo/common/block_timer.h"
 #include "silo/common/data_version.h"
+#include "silo/common/fmt_formatters.h"
 #include "silo/common/format_number.h"
 #include "silo/common/lineage_tree.h"
 #include "silo/common/nucleotide_symbols.h"
@@ -390,7 +391,7 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
 
    const std::filesystem::path versioned_save_directory =
       save_directory / getDataVersionTimestamp().value;
-   SPDLOG_INFO("Saving database to '{}'", versioned_save_directory.string());
+   SPDLOG_INFO("Saving database to '{}'", versioned_save_directory);
 
    if (std::filesystem::exists(versioned_save_directory)) {
       auto error = fmt::format(
@@ -450,7 +451,7 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
          "Saving unaligned sequence {} ({}) to folder '{}'",
          sequence_idx,
          sequence_name,
-         unaligned_sequence_directory.string()
+         unaligned_sequence_directory
       );
       sequence_store.saveFolder(unaligned_sequence_directory);
    }
@@ -463,7 +464,7 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
 
       if (!partition_archives.back()) {
          throw persistence::SaveDatabaseException(
-            "Cannot open partition output file " + partition_archive.string() + " for saving"
+            fmt::format("Cannot open partition output file {} for saving", partition_archive)
          );
       }
    }
@@ -486,14 +487,13 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
 namespace {
 DataVersion loadDataVersion(const std::filesystem::path& filename) {
    if (!std::filesystem::is_regular_file(filename)) {
-      auto error = fmt::format("Input file {} could not be opened.", filename.string());
+      auto error = fmt::format("Input file {} could not be opened.", filename);
       throw persistence::LoadDatabaseException(error);
    }
    auto data_version = DataVersion::fromFile(filename);
    if (data_version == std::nullopt) {
-      auto error_message = fmt::format(
-         "Data version file {} did not contain a valid data version", filename.string()
-      );
+      auto error_message =
+         fmt::format("Data version file {} did not contain a valid data version", filename);
       SPDLOG_ERROR(error_message);
       throw persistence::LoadDatabaseException(error_message);
    }
@@ -509,13 +509,13 @@ Database Database::loadDatabaseState(const std::filesystem::path& save_directory
    database.unaligned_sequences_directory = save_directory;
 
    SPDLOG_TRACE(
-      "Loading lineage definitions from {}", (save_directory / "lineage_definitions.silo").string()
+      "Loading lineage definitions from {}", (save_directory / "lineage_definitions.silo")
    );
    std::ifstream lineage_file = openInputFileOrThrow(save_directory / "lineage_definitions.silo");
    boost::archive::binary_iarchive lineage_archive(lineage_file);
    lineage_archive >> database.lineage_tree;
 
-   SPDLOG_TRACE("Loading partitions from {}", (save_directory / "partitions.silo").string());
+   SPDLOG_TRACE("Loading partitions from {}", (save_directory / "partitions.silo"));
    std::ifstream partitions_file = openInputFileOrThrow(save_directory / "partitions.silo");
    boost::archive::binary_iarchive partitions_archive(partitions_file);
    partitions_archive >> database.partitions;
@@ -523,14 +523,12 @@ Database Database::loadDatabaseState(const std::filesystem::path& save_directory
    SPDLOG_TRACE("Initializing columns");
    database.initializeColumns();
 
-   SPDLOG_TRACE("Loading column info from {}", (save_directory / "column_info.silo").string());
+   SPDLOG_TRACE("Loading column info from {}", (save_directory / "column_info.silo"));
    std::ifstream column_file = openInputFileOrThrow(save_directory / "column_info.silo");
    ::boost::archive::binary_iarchive column_archive(column_file);
    column_archive >> database.columns;
 
-   SPDLOG_TRACE(
-      "Loading nucleotide sequences from {}", (save_directory / "nuc_sequences.silo").string()
-   );
+   SPDLOG_TRACE("Loading nucleotide sequences from {}", (save_directory / "nuc_sequences.silo"));
    std::vector<std::string> nuc_sequence_names;
    std::vector<std::vector<Nucleotide::Symbol>> nuc_sequences;
    std::ifstream nuc_sequences_file = openInputFileOrThrow(save_directory / "nuc_sequences.silo");
@@ -538,9 +536,7 @@ Database Database::loadDatabaseState(const std::filesystem::path& save_directory
    nuc_sequences_archive >> nuc_sequence_names;
    nuc_sequences_archive >> nuc_sequences;
 
-   SPDLOG_TRACE(
-      "Loading amino acid sequences from {}", (save_directory / "aa_sequences.silo").string()
-   );
+   SPDLOG_TRACE("Loading amino acid sequences from {}", (save_directory / "aa_sequences.silo"));
    std::vector<std::string> aa_sequence_names;
    std::vector<std::vector<AminoAcid::Symbol>> aa_sequences;
    std::ifstream aa_sequences_file = openInputFileOrThrow(save_directory / "aa_sequences.silo");
@@ -548,9 +544,7 @@ Database Database::loadDatabaseState(const std::filesystem::path& save_directory
    aa_sequences_archive >> aa_sequence_names;
    aa_sequences_archive >> aa_sequences;
 
-   SPDLOG_INFO(
-      "Finished loading partitions from {}", (save_directory / "aa_sequences.silo").string()
-   );
+   SPDLOG_INFO("Finished loading partitions from {}", (save_directory / "aa_sequences.silo"));
 
    database.initializeNucSequences(nuc_sequence_names, nuc_sequences);
    database.initializeAASequences(aa_sequence_names, aa_sequences);
@@ -563,7 +557,7 @@ Database Database::loadDatabaseState(const std::filesystem::path& save_directory
 
       if (!file_vec.back()) {
          throw persistence::SaveDatabaseException(
-            "Cannot open partition input file " + partition_file.string() + " for loading"
+            fmt::format("Cannot open partition input file {} for loading", partition_file)
          );
       }
    }
@@ -576,9 +570,7 @@ Database Database::loadDatabaseState(const std::filesystem::path& save_directory
    SPDLOG_INFO("Finished loading partition data");
 
    database.setDataVersion(loadDataVersion(save_directory / "data_version.silo"));
-   SPDLOG_INFO(
-      "Finished loading data_version from {}", (save_directory / "data_version.silo").string()
-   );
+   SPDLOG_INFO("Finished loading data_version from {}", (save_directory / "data_version.silo"));
    SPDLOG_INFO("Database info after loading: {}", database.getDatabaseInfo());
 
    return database;
@@ -682,7 +674,7 @@ void Database::initializeNucSequences(
       if (!std::filesystem::is_directory(sequence_directory)) {
          SPDLOG_TRACE(
             "Sequence directory for unaligned sequences {} could not be created.",
-            sequence_directory.string()
+            sequence_directory
          );
       }
       auto seq_store = silo::UnalignedSequenceStore(
