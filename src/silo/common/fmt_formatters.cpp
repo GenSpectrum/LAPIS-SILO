@@ -6,15 +6,17 @@ std::string toIsoString(
    const std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>& time_point
 ) {
    // Convert the time_point to system time (std::time_t)
-   std::time_t time = std::chrono::system_clock::to_time_t(time_point);
+   const auto time_point_seconds = std::chrono::time_point_cast<std::chrono::seconds>(time_point);
+   const std::time_t time = std::chrono::system_clock::to_time_t(time_point_seconds);
+
 
    // Get the nanoseconds part
-   auto nanoseconds =
+   const auto nanoseconds =
       std::chrono::duration_cast<std::chrono::nanoseconds>(time_point.time_since_epoch()) %
       1'000'000'000;
 
    // Convert to UTC time (std::tm)
-   std::tm utime = *std::gmtime(&time);
+   const std::tm utime = *std::gmtime(&time);
 
    // Create an ISO 8601 string with nanoseconds precision
    std::ostringstream oss;
