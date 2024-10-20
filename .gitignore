@@ -69,3 +69,6 @@ conanprofile
 **/temp/
 
 **/node_modules/
+
+
+/test*
