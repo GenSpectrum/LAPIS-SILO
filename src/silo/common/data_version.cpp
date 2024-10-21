@@ -9,6 +9,7 @@
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/yaml.h>
 
+#include "silo/common/fmt_formatters.h"
 #include "silo/common/panic.h"
 
 namespace silo {
@@ -124,7 +125,7 @@ std::optional<DataVersion> DataVersion::fromFile(const std::filesystem::path& fi
       SPDLOG_WARN(
          "The serialization version {} in {} is not a valid 32-bit unsigned integer.",
          node[SERIALIZATION_VERSION_FIELD].as<std::string>(),
-         filename.string()
+         filename
       );
       return std::nullopt;
    }
