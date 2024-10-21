@@ -9,7 +9,6 @@ std::string toIsoString(
    const auto time_point_seconds = std::chrono::time_point_cast<std::chrono::seconds>(time_point);
    const std::time_t time = std::chrono::system_clock::to_time_t(time_point_seconds);
 
-
    // Get the nanoseconds part
    const auto nanoseconds =
       std::chrono::duration_cast<std::chrono::nanoseconds>(time_point.time_since_epoch()) %
