@@ -38,6 +38,10 @@ namespace {
    panic("PANIC: ", msg, file, line);
 }
 
+[[noreturn]] void todo(const char* file, int line) {
+   panic("TODO: ", "This execution path is not implemented yet", file, line);
+}
+
 [[noreturn]] void unreachable(const char* file, int line) {
    panic(
       "UNREACHABLE: ",
@@ -48,7 +52,7 @@ namespace {
 }
 
 [[noreturn]] void unimplemented(const char* file, int line) {
-   panic("UNIMPLEMENTED: ", "This execution path is not implemented yet", file, line);
+   panic("UNIMPLEMENTED: ", "This execution path is not implemented", file, line);
 }
 
 [[noreturn]] void assertFailure(const char* msg, const char* file, int line) {

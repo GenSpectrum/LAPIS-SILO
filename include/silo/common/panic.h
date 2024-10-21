@@ -31,6 +31,12 @@ namespace silo::common {
 /// calls `panic`.
 #define PANIC(...) silo::common::panic(fmt::format(__VA_ARGS__), __FILE__, __LINE__)
 
+/// Denotes a place that isn't implemented *yet*, during
+/// development. Follows the same path as `PANIC` when reached.
+#define TODO() silo::common::todo(__FILE__, __LINE__)
+
+[[noreturn]] void todo(const char* file, int line);
+
 /// Denotes a place that theoretically can't be reached. Follows the
 /// same path as `PANIC` when reached.
 #define UNREACHABLE() silo::common::unreachable(__FILE__, __LINE__)
