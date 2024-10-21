@@ -7,6 +7,6 @@ WORKDIR /src
 
 COPY . ./
 
-RUN conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build
-RUN cmake -D BUILD_WITH_CLANG_TIDY=ON . -B build
+RUN conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build -s build_type=Debug
+RUN cmake -D BUILD_WITH_CLANG_TIDY=ON -D CMAKE_BUILD_TYPE=Debug . -B build
 RUN cmake --build build --parallel $THREADS
