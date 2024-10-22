@@ -1,14 +1,13 @@
 ARG DEPENDENCY_IMAGE=ghcr.io/genspectrum/lapis-silo-dependencies:latest
 
 FROM $DEPENDENCY_IMAGE AS builder
+ARG THREADS=16
 
 COPY . ./
 
-RUN  \
-    python3 ./build_with_conan.py --release --parallel 4\
-    && cp build/silo_test . \
-    && cp build/siloApi .
-
+RUN conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build -s build_type=Release
+RUN cmake -D CMAKE_BUILD_TYPE=Release . -B build
+RUN cmake --build build --parallel $THREADS
 
 FROM ubuntu:22.04 AS server
 

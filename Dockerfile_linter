@@ -3,20 +3,18 @@ ARG DEPENDENCY_IMAGE=ghcr.io/genspectrum/lapis-silo-linter-dependencies:latest
 FROM $DEPENDENCY_IMAGE AS linter
 ARG THREADS=16
 
-WORKDIR /src
+WORKDIR /app
 
-COPY . ./
-
-RUN ls -la
-
-RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
-        mv conanprofile.docker_arm conanprofile; \
-    else \
-        mv conanprofile.docker conanprofile; \
-    fi
+RUN mv /src/build .
 
 RUN ls -la
 
-RUN conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build -s build_type=Debug
-RUN cmake -D BUILD_WITH_CLANG_TIDY=ON -D CMAKE_BUILD_TYPE=Debug . -B build
+COPY ./ .
+
+RUN ls -la
+
+RUN ls -la build
+
+RUN cmake -D BUILD_WITH_CLANG_TIDY=on -D CMAKE_BUILD_TYPE=Debug -B build
+
 RUN cmake --build build --parallel $THREADS
