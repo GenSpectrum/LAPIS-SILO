@@ -18,34 +18,36 @@ def run_cmd(context: str, cmd: str):
         raise Exception(f"{context} command failed.")
 
 def main(args):
-    build_folder = "build"
-
-    if args.clean:
-        print("----------------------------------")
-        print("cleaning build directory...")
-        print("----------------------------------")
-        clean_build_folder(build_folder)
-
-    os.makedirs(build_folder, exist_ok=True)
-
     cmake_options = []
     conan_options = []
     if args.build_with_clang_tidy:
         cmake_options.append("-D BUILD_WITH_CLANG_TIDY=ON")
 
     if args.release:
+        build_folder = "build/Release"
         cmake_options.append("-D CMAKE_BUILD_TYPE=Release")
+        conan_options.append("--output-folder=build/Release/generators")
     else:
+        build_folder = "build/Debug"
         cmake_options.append("-D CMAKE_BUILD_TYPE=Debug")
         conan_options.append("-s build_type=Debug")
+        conan_options.append("--output-folder=build/Debug/generators")
+
+    if args.clean:
+        print("----------------------------------")
+        print(f"cleaning build directory {build_folder}")
+        print("----------------------------------")
+        clean_build_folder(build_folder)
+
+    os.makedirs(build_folder, exist_ok=True)
 
     run_cmd("Conan install",
-            "conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build " + " ".join(
+            "conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile " + " ".join(
                 conan_options))
 
-    run_cmd("CMake", "cmake " + " ".join(cmake_options) + " -B build")
+    run_cmd("CMake", "cmake " + " ".join(cmake_options) + f" -B {build_folder}")
 
-    run_cmd("CMake build", f"cmake --build build --parallel {args.parallel}")
+    run_cmd("CMake build", f"cmake --build {build_folder} --parallel {args.parallel}")
 
 
 if __name__ == "__main__":
