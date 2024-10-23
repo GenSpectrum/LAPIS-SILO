@@ -87,7 +87,7 @@ jobs:
         name: Configure and run clang-tidy on changed files
         run: |
           mv /src/build .
-          cmake -DBUILD_WITH_CLANG_TIDY=on -D CMAKE_BUILD_TYPE=Debug -B build
+          cmake -DBUILD_WITH_CLANG_TIDY=on -D CMAKE_BUILD_TYPE=Debug -B build/Debug
           echo "Successfully configured cmake"
           files=""
           PAGE=1  
@@ -110,7 +110,7 @@ jobs:
             echo "Check ending for file: $file"
             if [[ $file == *.cpp ]]; then
               echo "Now linting the file: $file"
-              echo "cmake --build build --target ${file%.cpp}.o"
-              cmake --build build --target ${file%.cpp}.o
+              echo "cmake --build build/Debug --target ${file%.cpp}.o"
+              cmake --build build/Debug --target ${file%.cpp}.o
             fi
           done

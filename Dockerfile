@@ -6,8 +6,8 @@ COPY . ./
 
 RUN  \
     python3 ./build_with_conan.py --release --parallel 4\
-    && cp build/silo_test . \
-    && cp build/siloApi .
+    && cp build/Release/silo_test . \
+    && cp build/Release/siloApi .
 
 
 FROM ubuntu:22.04 AS server

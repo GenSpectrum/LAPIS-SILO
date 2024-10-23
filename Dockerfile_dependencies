@@ -16,4 +16,4 @@ RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
         mv conanprofile.docker conanprofile; \
     fi
 
-RUN conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build
+RUN conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build/Release/generators

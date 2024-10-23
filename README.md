@@ -172,7 +172,7 @@ located in the corresponding source folder.
 To run all tests, run
 
 ```shell
-build/silo_test
+build/Release/silo_test
 ```
 
 For linting we use clang-tidy. The config is stored in `.clang-tidy`.
