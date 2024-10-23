@@ -8,7 +8,7 @@
 # Conan
 conanprofile
 
-# Cmake Build folders
+# CMake Build folders
 /release
 /Release
 /RelWithDebInfo

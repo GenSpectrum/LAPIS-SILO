@@ -16,7 +16,7 @@ RUN apt update \
     && apt install -y jq \
     && apt install -y curl
 
-RUN pip install conan==2.0.17
+RUN pip install conan==2.8.1
 
 COPY conanfile.py conanprofile.docker ./
 RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
