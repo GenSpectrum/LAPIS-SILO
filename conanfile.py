@@ -102,7 +102,6 @@ class SiloRecipe(ConanFile):
         deps = CMakeDeps(self)
         deps.set_property("boost", "cmake_find_mode", "both")
         deps.set_property("duckdb", "cmake_find_mode", "both")
-        deps.set_property("fmt", "cmake_find_mode", "both")
         deps.set_property("gtest", "cmake_find_mode", "both")
         deps.set_property("hwloc", "cmake_find_mode", "both")
         deps.set_property("nlohmann_json", "cmake_find_mode", "both")
