@@ -19,7 +19,11 @@ endif ()
 
 set(CMAKE_CXX_STANDARD 20)
 
+# For find_package calls in Module mode (looking for the Find<lib>.cmake files)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_BINARY_DIR}/generators/")
+# For find_package calls in config mode / find_dependency calls
+# (looking for the <lib>-config.cmake files of transitive dependencies of modules, e.g. spdlog->fmt)
+set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${CMAKE_BINARY_DIR}/generators/")
 
 # ---------------------------------------------------------------------------
 # Logging
