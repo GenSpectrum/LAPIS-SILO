@@ -8,7 +8,7 @@ RUN apt update && apt dist-upgrade -y \
 
 RUN pip install conan==2.8.1
 
-RUN apt install -y wget jq curl \
+RUN apt install -y software-properties-common wget gnupg lsb-release wget jq curl \
     && wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc \
     && add-apt-repository 'deb http://apt.llvm.org/jammy/  llvm-toolchain-jammy main' \
     && apt install -y clang-tidy-20
