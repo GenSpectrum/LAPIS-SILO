@@ -193,9 +193,10 @@ void Preprocessor::buildTablesFromNdjsonInput(const ValidatedNdjsonFile& input_f
    }
 
    (void)preprocessing_db.query(fmt::format(
-      "INSERT INTO metadata_table BY NAME (SELECT {} FROM read_json_auto('{}'));",
+      "INSERT INTO metadata_table BY NAME (SELECT {} FROM read_json('{}', columns = {}));",
       boost::join(MetadataInfo::getMetadataSelects(database_config), ","),
-      input_file.getFileName().string()
+      input_file.getFileName().string(),
+      MetadataInfo::getNdjsonMetadataSQLColumnStruct(database_config)
    ));
 
    auto null_primary_key_result = preprocessing_db.query(fmt::format(
@@ -203,7 +204,7 @@ void Preprocessor::buildTablesFromNdjsonInput(const ValidatedNdjsonFile& input_f
          SELECT {0} FROM metadata_table
          WHERE {0} IS NULL;
       )-",
-      database_config.schema.primary_key
+      Identifier{database_config.schema.primary_key}.escape()
    ));
    if (null_primary_key_result->RowCount() > 0) {
       const std::string error_message = fmt::format(
