@@ -18,6 +18,19 @@ std::string Identifier::escapeIdentifier(const std::string& identifier) {
    return "\"" + output + "\"";
 }
 
+// See https://duckdb.org/docs/sql/dialect/keywords_and_identifiers.html#identifiers
+std::string Identifier::escapeIdentifierSingleQuote(const std::string& identifier) {
+   std::string output;
+   for (const char character : identifier) {
+      if (character == '\'') {
+         output += "''";
+      } else {
+         output += character;
+      }
+   }
+   return "'" + output + "'";
+}
+
 const std::string& Identifier::getRawIdentifier() const {
    return raw_identifier;
 }

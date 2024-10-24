@@ -324,6 +324,24 @@ const Scenario DIVERSE_SEQUENCE_NAMES_NDJSON = {
 [{"count":2}])")
 };
 
+const Scenario PREVENT_LATE_AUTO_CASTING = {
+   .input_directory = "testBaseData/autoCasting/",
+   .expected_sequence_count = 3,
+   .query = R"(
+      {
+         "action": {
+           "type": "Details",
+            "orderByFields": ["accessionVersion"]
+         },
+         "filterExpression": {
+            "type": "True"
+         }
+      }
+   )",
+   .expected_query_result = nlohmann::json::parse(R"(
+[{"accessionVersion":"0"},{"accessionVersion":"0.12"},{"accessionVersion":"text_without_quotes"}])")
+};
+
 class PreprocessorTestFixture : public ::testing::TestWithParam<Scenario> {};
 
 INSTANTIATE_TEST_SUITE_P(
@@ -345,7 +363,8 @@ INSTANTIATE_TEST_SUITE_P(
       EMPTY_INPUT_NDJSON_UNPARTITIONED,
       NO_GENES,
       NO_NUCLEOTIDE_SEQUENCES,
-      NO_SEQUENCES
+      NO_SEQUENCES,
+      PREVENT_LATE_AUTO_CASTING
    ),
    printTestName
 );

@@ -175,6 +175,25 @@ std::vector<std::string> MetadataInfo::getMetadataSQLTypes(
    return ret;
 }
 
+std::string MetadataInfo::getNdjsonMetadataSQLColumnStruct(
+   const silo::config::DatabaseConfig& database_config
+) {
+   const std::string metadata_struct =
+      fmt::format("STRUCT({})", boost::join(getMetadataSQLTypes(database_config), ","));
+
+   std::string result = fmt::format(
+      R"(
+{{metadata: {},
+  alignedAminoAcidSequences: 'json',
+  alignedNucleotideSequences: 'json',
+  aminoAcidInsertions: 'json',
+  nucleotideInsertions: 'json',
+  unalignedNucleotideSequences: 'json'}})",
+      Identifier::escapeIdentifierSingleQuote(metadata_struct)
+   );
+   return result;
+}
+
 std::vector<std::string> MetadataInfo::getMetadataSelects(
    const silo::config::DatabaseConfig& database_config
 ) {

@@ -13,6 +13,8 @@ class Identifier {
 
    static std::string escapeIdentifier(const std::string& identifier);
 
+   static std::string escapeIdentifierSingleQuote(const std::string& identifier);
+
    const std::string& getRawIdentifier() const;
 
    std::string escape() const;

@@ -1,2 +1,2 @@
-ndjsonInputFilename: "data.ndjson.zst"
+ndjsonInputFilename: "input.ndjson"
 referenceGenomeFilename: "reference_genomes.json"
