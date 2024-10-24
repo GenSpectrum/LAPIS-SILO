@@ -30,6 +30,10 @@ class MetadataInfo {
       const silo::config::DatabaseConfig& database_config
    );
 
+   static std::string getNdjsonMetadataSQLColumnStruct(
+      const silo::config::DatabaseConfig& database_config
+   );
+
    static std::vector<std::string> getMetadataSelects(
       const silo::config::DatabaseConfig& database_config
    );
