@@ -207,14 +207,40 @@ void Preprocessor::buildTablesFromNdjsonInput(const ValidatedNdjsonFile& input_f
    ));
    if (null_primary_key_result->RowCount() > 0) {
       const std::string error_message = fmt::format(
-         "Error, there are {} primary keys that are NULL",
-         null_primary_key_result->RowCount(),
-         input_file.getFileName().string()
+         "Error, there are {} primary keys that are NULL", null_primary_key_result->RowCount()
       );
       SPDLOG_ERROR(error_message);
       if (null_primary_key_result->RowCount() <= 10) {
          SPDLOG_ERROR(null_primary_key_result->ToString());
       }
+      throw silo::preprocessing::PreprocessingException(error_message);
+   }
+
+   auto duplicate_primary_key_result = preprocessing_db.query(fmt::format(
+      R"-(
+         SELECT {0} FROM metadata_table
+         GROUP BY {0} HAVING count(*) > 1 ORDER BY {0};
+      )-",
+      Identifier{database_config.schema.primary_key}.escape()
+   ));
+   idx_t duplicate_primary_keys_count = duplicate_primary_key_result->RowCount();
+   if (duplicate_primary_keys_count > 0) {
+      std::vector<std::string> duplicate_primary_keys;
+      for (idx_t i = 0; i < duplicate_primary_keys_count; ++i) {
+         if (i >= 10) {
+            duplicate_primary_keys.emplace_back("...");
+            break;
+         }
+         duplicate_primary_keys.emplace_back(duplicate_primary_key_result->GetValue(0, i).ToString()
+         );
+      }
+
+      const std::string error_message = fmt::format(
+         "Found {} duplicate primary key(s): {}",
+         duplicate_primary_keys_count,
+         boost::join(duplicate_primary_keys, ", ")
+      );
+      SPDLOG_ERROR(error_message);
       throw silo::preprocessing::PreprocessingException(error_message);
    }
 }

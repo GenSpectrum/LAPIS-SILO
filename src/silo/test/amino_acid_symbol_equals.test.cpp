@@ -12,9 +12,11 @@ namespace {
 
 const std::string GENE = "gene1";
 
+size_t idx = 0;
+
 nlohmann::json createDataWithAminoAcidSequence(const std::string& aminoAcidSequence) {
    return {
-      {"metadata", {{"primaryKey", "id_" + aminoAcidSequence}}},
+      {"metadata", {{"primaryKey", fmt::format("id_{}", idx++)}}},
       {"alignedNucleotideSequences", {{"segment1", nullptr}}},
       {"unalignedNucleotideSequences", {{"segment1", nullptr}}},
       {"alignedAminoAcidSequences", {{GENE, aminoAcidSequence}}},
@@ -24,6 +26,7 @@ nlohmann::json createDataWithAminoAcidSequence(const std::string& aminoAcidSeque
 }
 const nlohmann::json DATA_WITH_D = createDataWithAminoAcidSequence("D*");
 const nlohmann::json DATA_SAME_AS_REFERENCE = createDataWithAminoAcidSequence("M*");
+const nlohmann::json DATA_SAME_AS_REFERENCE2 = createDataWithAminoAcidSequence("M*");
 const nlohmann::json DATA_WITH_B = createDataWithAminoAcidSequence("B*");
 
 const auto DATABASE_CONFIG = DatabaseConfig{
@@ -40,7 +43,7 @@ const auto REFERENCE_GENOMES = ReferenceGenomes{
 };
 
 const QueryTestData TEST_DATA{
-   .ndjson_input_data = {DATA_WITH_D, DATA_SAME_AS_REFERENCE, DATA_SAME_AS_REFERENCE, DATA_WITH_B},
+   .ndjson_input_data = {DATA_WITH_D, DATA_SAME_AS_REFERENCE, DATA_SAME_AS_REFERENCE2, DATA_WITH_B},
    .database_config = DATABASE_CONFIG,
    .reference_genomes = REFERENCE_GENOMES
 };

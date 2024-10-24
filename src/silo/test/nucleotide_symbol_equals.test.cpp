@@ -15,10 +15,10 @@ using boost::uuids::random_generator;
 
 nlohmann::json createDataWithNucleotideSequence(const std::string& nucleotideSequence) {
    random_generator generator;
-   const auto request_id = generator();
+   const auto primary_key = generator();
 
    return {
-      {"metadata", {{"primaryKey", "id_" + to_string(request_id)}}},
+      {"metadata", {{"primaryKey", "id_" + to_string(primary_key)}}},
       {"alignedNucleotideSequences", {{"segment1", nucleotideSequence}}},
       {"unalignedNucleotideSequences", {{"segment1", {}}}},
       {"alignedAminoAcidSequences", {{"gene1", {}}}},
@@ -28,6 +28,7 @@ nlohmann::json createDataWithNucleotideSequence(const std::string& nucleotideSeq
 }
 
 const nlohmann::json DATA_SAME_AS_REFERENCE = createDataWithNucleotideSequence("ATGCN");
+const nlohmann::json DATA_SAME_AS_REFERENCE2 = createDataWithNucleotideSequence("ATGCN");
 const nlohmann::json DATA_WITH_ALL_N = createDataWithNucleotideSequence("NNNNN");
 const nlohmann::json DATA_WITH_ALL_MUTATED = createDataWithNucleotideSequence("CATTT");
 
@@ -46,7 +47,7 @@ const auto REFERENCE_GENOMES = ReferenceGenomes{
 
 const QueryTestData TEST_DATA{
    .ndjson_input_data =
-      {DATA_SAME_AS_REFERENCE, DATA_SAME_AS_REFERENCE, DATA_WITH_ALL_N, DATA_WITH_ALL_MUTATED},
+      {DATA_SAME_AS_REFERENCE, DATA_SAME_AS_REFERENCE2, DATA_WITH_ALL_N, DATA_WITH_ALL_MUTATED},
    .database_config = DATABASE_CONFIG,
    .reference_genomes = REFERENCE_GENOMES
 };
