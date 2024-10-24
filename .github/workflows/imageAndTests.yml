@@ -12,100 +12,26 @@ env:
   DOCKER_IMAGE_NAME: ghcr.io/genspectrum/lapis-silo
 
 jobs:
-  formatting-check:
-    name: Formatting Check
+  waitForDependencyImage:
+    name: Wait for dependency image
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        path:
-          - check: 'src'
-          - check: 'include'
-            exclude: '(PerfEvent.hpp)'
     steps:
-      - uses: actions/checkout@v4
-      - name: Run clang-format style check
-        uses: jidicula/clang-format-action@v4.14.0
+      - name: Wait
+        uses: lewagon/wait-on-check-action@v1.3.4
         with:
-          clang-format-version: '17'
-          check-path: ${{ matrix.path['check'] }}
-          exclude-regex: ${{ matrix.path['exclude'] }}
-
-  dependencyImage:
-    name: Build Docker Image Dependencies
-    runs-on: ubuntu-latest
-    permissions:
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Generate dependency files hash
-        id: files-hash
-        run: |
-          DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', '.github/workflows/ci.yml', './Dockerfile_dependencies') }})
-          echo "DIR_HASH=$DIR_HASH" >> $GITHUB_ENV
-
-      - name: Docker metadata
-        id: dockerMetadata
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=${{ env.DIR_HASH }}
-            type=sha,format=long,prefix=commit-
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Check if image exists
-        id: check-image
-        run: |
-          EXISTS=$(docker manifest inspect ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:${{ env.DIR_HASH }} > /dev/null 2>&1 && echo "true" || echo "false")
-          echo "CACHE_HIT=$EXISTS" >> $GITHUB_ENV
-
-      - name: Set up Docker Buildx
-        if: env.CACHE_HIT == 'false'
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push image if input files changed
-        if: env.CACHE_HIT == 'false'
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile_dependencies
-          push: true
-          tags: ${{ steps.dockerMetadata.outputs.tags }}
-          cache-from: type=gha,ref=builder-image-cache-${{ hashFiles('conanfile.py', 'Dockerfile') }}
-          cache-to: type=gha,mode=min,ref=builder-image-cache-${{ hashFiles('conanfile.py', 'Dockerfile') }}
-          platforms: linux/amd64,linux/arm64
-
-      - name: Retag and push existing image if cache hit
-        if: env.CACHE_HIT == 'true'
-        run: |
-          TAGS=(${{ steps.dockerMetadata.outputs.tags }})
-          for TAG in "${TAGS[@]}"; do
-            docker buildx imagetools create --tag $TAG ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:${{ env.DIR_HASH }}
-          done
+          ref: ${{ github.sha }}
+          running-workflow-name: "Dependency Image"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 3
 
   dockerImageUnitTests:
     name: Build Docker Image and Run Unit Tests
     runs-on: ubuntu-latest
-    needs: dependencyImage
+    needs: waitForDependencyImage
     permissions:
       packages: write
     steps:
       - uses: actions/checkout@v4
-
-      - name: Generate dependency files hash
-        id: files-hash
-        run: |
-          DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', '.github/workflows/ci.yml', './Dockerfile_dependencies') }})
-          echo "DIR_HASH=$DIR_HASH" >> $GITHUB_ENV
 
       - name: Docker metadata
         id: dockerMetadata
@@ -137,7 +63,7 @@ jobs:
           cache-from: type=gha,ref=${{ github.ref_name }}-image-cache
           cache-to: type=gha,mode=min,ref=${{ github.ref_name }}-image-cache
           build-args: |
-            DEPENDENCY_IMAGE=ghcr.io/genspectrum/lapis-silo-dependencies:${{ env.DIR_HASH }}
+            DEPENDENCY_IMAGE=${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ github.sha }}
 
       - name: Run tests
         uses: addnab/docker-run-action@v3
@@ -176,7 +102,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          key: "${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}"
 
       - name: npm install
         run: cd endToEndTests && npm ci
