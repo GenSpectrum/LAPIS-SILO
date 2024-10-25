@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.3.0...v0.3.1) (2024-10-25)
+
+
+### Bug Fixes
+
+* **preprocessing:** error on duplicate primary keys ([687c3ef](https://github.com/GenSpectrum/LAPIS-SILO/commit/687c3ef8803c3dee19b222bcb790bbc4fb33cabe))
+* validate the column types earlier to prevent duckdb auto-casting to cast types with differing round-trip conversions ([ac238b2](https://github.com/GenSpectrum/LAPIS-SILO/commit/ac238b208a02a7b00bdab92ff3039562e2a1d704))
+
 ## [0.3.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.2.24...v0.3.0) (2024-10-16)
 
 
