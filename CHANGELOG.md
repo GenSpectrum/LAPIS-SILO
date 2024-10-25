@@ -6,6 +6,11 @@
 ### ⚠ BREAKING CHANGES
 
 * generalized wildcard queries ([#458](https://github.com/GenSpectrum/LAPIS-SILO/issues/458))
+  * The preprocessing config field `pangoLineageDefinitionFilename` has been renamed to `lineageDefinitionFilename`.
+  * We now accept a YAML lineage definition file instead of a Pango alias key.
+  * Input and query validation now checks whether the provided lineage exists in the defined lineages, and errors are thrown if validation fails.
+  * The metadata type `pangoLineage` has been removed. `type: string` with `generateLineageIndex: true` should be used instead.
+
 
 ### Features
 
