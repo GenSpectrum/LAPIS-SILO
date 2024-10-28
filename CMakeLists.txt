@@ -12,7 +12,6 @@ set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${CMAKE_BINARY_DIR}/")
 # ---------------------------------------------------------------------------
 
 find_package(spdlog REQUIRED)
-find_package(fmt REQUIRED)
 
 # ---------------------------------------------------------------------------
 # Sources
@@ -29,8 +28,8 @@ list(REMOVE_ITEM SRC_SILO_WITHOUT_MAIN "${CMAKE_SOURCE_DIR}/src/silo_api/api.cpp
 
 add_executable(siloApi "${CMAKE_SOURCE_DIR}/src/silo_api/api.cpp" ${SRC_SILO_WITHOUT_MAIN})
 target_link_libraries(
-        siloApi
-        PUBLIC
+	siloApi
+	PUBLIC
 	${spdlog_LIBRARIES}
 	${fmt_LIBRARIES}
 )
