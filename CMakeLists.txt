@@ -92,16 +92,5 @@ add_executable(siloApi "${CMAKE_SOURCE_DIR}/src/silo_api/api.cpp" ${SRC_SILO_WIT
 target_link_libraries(
         siloApi
         PUBLIC
-        ${Boost_LIBRARIES}
-        ${duckdb_LIBRARIES}
-        nlohmann_json::nlohmann_json
-        ${roaring_LIBRARIES}
         ${spdlog_LIBRARIES}
-        TBB::tbb
-        ${yaml-cpp_LIBRARIES}
-        zstd::libzstd_static
-        Poco::Net
-        Poco::Util
-        Poco::JSON
-        re2::re2
 )
