@@ -16,9 +16,6 @@ RUN apt update \
     && apt install -y jq \
     && apt install -y curl
 
-RUN clang --version
-RUN clang++ --version
-
 RUN pip install conan==2.0.17
 
 RUN cat <<EOF > conanprofile
