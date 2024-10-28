@@ -31,6 +31,5 @@ target_link_libraries(
 	siloApi
 	PUBLIC
 	${spdlog_LIBRARIES}
-	${fmt_LIBRARIES}
 )
 
