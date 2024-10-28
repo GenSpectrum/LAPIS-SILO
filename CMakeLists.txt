@@ -26,12 +26,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_BINARY_DIR}/generators/")
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${CMAKE_BINARY_DIR}/generators/")
 
 # ---------------------------------------------------------------------------
-# Logging
-# ---------------------------------------------------------------------------
-
-add_compile_definitions(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
-
-# ---------------------------------------------------------------------------
 # Dependencies
 # ---------------------------------------------------------------------------
 
@@ -49,10 +43,7 @@ include_directories(SYSTEM
 # Sources
 # ---------------------------------------------------------------------------
 
-file(GLOB_RECURSE SRC_TEST "src/*.test.cpp")
-
 file(GLOB_RECURSE SRC_SILO "src/*.cpp")
-list(REMOVE_ITEM SRC_SILO ${SRC_TEST})
 
 set(SRC_SILO_WITHOUT_MAIN ${SRC_SILO})
 list(REMOVE_ITEM SRC_SILO_WITHOUT_MAIN "${CMAKE_SOURCE_DIR}/src/silo_api/api.cpp")
