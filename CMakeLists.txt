@@ -30,6 +30,7 @@ set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${CMAKE_BINARY_DIR}/generators/")
 # ---------------------------------------------------------------------------
 
 find_package(spdlog REQUIRED)
+find_package(fmt REQUIRED)
 
 # ---------------------------------------------------------------------------
 # Includes
