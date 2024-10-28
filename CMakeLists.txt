@@ -88,9 +88,9 @@ endif ()
 # Targets
 # ---------------------------------------------------------------------------
 
-add_library(silolib OBJECT ${SRC_SILO_WITHOUT_MAIN})
+add_executable(siloApi "${CMAKE_SOURCE_DIR}/src/silo_api/api.cpp" ${SRC_SILO_WITHOUT_MAIN})
 target_link_libraries(
-        silolib
+        siloApi
         PUBLIC
         ${Boost_LIBRARIES}
         ${duckdb_LIBRARIES}
@@ -105,24 +105,3 @@ target_link_libraries(
         Poco::JSON
         re2::re2
 )
-
-add_executable(siloApi "${CMAKE_SOURCE_DIR}/src/silo_api/api.cpp" $<TARGET_OBJECTS:silolib>)
-target_link_libraries(
-        siloApi
-        PUBLIC
-        silolib
-)
-
-# ---------------------------------------------------------------------------
-# Tests
-# ---------------------------------------------------------------------------
-
-enable_testing()
-find_package(GTest REQUIRED)
-include_directories(${GTest_INCLUDE_DIRS})
-
-add_executable(silo_test ${SRC_TEST} $<TARGET_OBJECTS:silolib>)
-if (NOT GTest_LIBRARIES)
-    set(GTest_LIBRARIES gtest gmock)
-endif ()
-target_link_libraries(silo_test PUBLIC ${GTest_LIBRARIES} silolib)
