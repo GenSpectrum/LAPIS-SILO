@@ -35,17 +35,7 @@ add_compile_definitions(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 # Dependencies
 # ---------------------------------------------------------------------------
 
-find_package(Boost REQUIRED COMPONENTS system serialization iostreams)
-find_package(duckdb REQUIRED)
-find_package(LibLZMA REQUIRED)
-find_package(nlohmann_json REQUIRED)
-find_package(Poco REQUIRED COMPONENTS Net Util JSON)
-find_package(roaring REQUIRED)
 find_package(spdlog REQUIRED)
-find_package(TBB REQUIRED)
-find_package(yaml-cpp REQUIRED)
-find_package(zstd REQUIRED)
-find_package(re2 REQUIRED)
 
 # ---------------------------------------------------------------------------
 # Includes
@@ -53,7 +43,6 @@ find_package(re2 REQUIRED)
 
 include_directories(SYSTEM
         ${CMAKE_SOURCE_DIR}/include
-        ${roaring_INCLUDE_DIRS}
 )
 
 # ---------------------------------------------------------------------------
