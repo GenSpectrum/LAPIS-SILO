@@ -596,7 +596,7 @@ void Database::initializeColumn(const config::DatabaseMetadata& metadata) {
    columns.metadata.push_back({name, column_type});
    switch (column_type) {
       case config::ColumnType::STRING:
-         columns.string_columns.emplace(name, storage::column::StringColumn());
+         columns.string_columns.emplace(name, name);
          for (auto& partition : partitions) {
             partition.columns.metadata.push_back({name, column_type});
             partition.insertColumn(name, columns.string_columns.at(name).createPartition());
@@ -604,11 +604,13 @@ void Database::initializeColumn(const config::DatabaseMetadata& metadata) {
          return;
       case config::ColumnType::INDEXED_STRING: {
          if (metadata.generate_lineage_index) {
-            auto column = storage::column::IndexedStringColumn(lineage_tree);
-            columns.indexed_string_columns.emplace(name, std::move(column));
+            columns.indexed_string_columns.emplace(
+               std::piecewise_construct,
+               std::forward_as_tuple(name),
+               std::forward_as_tuple(name, lineage_tree)
+            );
          } else {
-            auto column = storage::column::IndexedStringColumn();
-            columns.indexed_string_columns.emplace(name, std::move(column));
+            columns.indexed_string_columns.emplace(name, name);
          }
          for (auto& partition : partitions) {
             partition.columns.metadata.push_back({name, column_type});
@@ -618,8 +620,8 @@ void Database::initializeColumn(const config::DatabaseMetadata& metadata) {
          return;
       case config::ColumnType::DATE: {
          auto column = name == database_config.schema.date_to_sort_by
-                          ? storage::column::DateColumn(true)
-                          : storage::column::DateColumn(false);
+                          ? storage::column::DateColumn(name, true)
+                          : storage::column::DateColumn(name, false);
          columns.date_columns.emplace(name, std::move(column));
          for (auto& partition : partitions) {
             partition.columns.metadata.push_back({name, column_type});
@@ -628,21 +630,21 @@ void Database::initializeColumn(const config::DatabaseMetadata& metadata) {
       }
          return;
       case config::ColumnType::BOOL:
-         columns.bool_columns.emplace(name, storage::column::BoolColumn());
+         columns.bool_columns.emplace(name, storage::column::BoolColumn(name));
          for (auto& partition : partitions) {
             partition.columns.metadata.push_back({name, column_type});
             partition.insertColumn(name, columns.bool_columns.at(name).createPartition());
          }
          return;
       case config::ColumnType::INT:
-         columns.int_columns.emplace(name, storage::column::IntColumn());
+         columns.int_columns.emplace(name, storage::column::IntColumn(name));
          for (auto& partition : partitions) {
             partition.columns.metadata.push_back({name, column_type});
             partition.insertColumn(name, columns.int_columns.at(name).createPartition());
          }
          return;
       case config::ColumnType::FLOAT:
-         columns.float_columns.emplace(name, storage::column::FloatColumn());
+         columns.float_columns.emplace(name, storage::column::FloatColumn(name));
          for (auto& partition : partitions) {
             partition.columns.metadata.push_back({name, column_type});
             partition.insertColumn(name, columns.float_columns.at(name).createPartition());

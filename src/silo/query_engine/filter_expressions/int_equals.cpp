@@ -59,7 +59,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<IntEquals>& filter) {
       "The field 'value' in an IntEquals expression must be an integer or null"
    );
    const std::string& column = json["column"];
-   const int32_t& value = json["value"].is_null() ? INT32_MIN : json["value"].get<int32_t>();
+   const int32_t& value =
+      json["value"].is_null() ? storage::column::IntColumn::null() : json["value"].get<int32_t>();
    filter = std::make_unique<IntEquals>(column, value);
 }
 

@@ -59,7 +59,9 @@ std::unique_ptr<silo::query_engine::operators::Operator> FloatBetween::compile(
 
    if (predicates.empty()) {
       predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<double>>(
-         float_column.getValues(), operators::Comparator::NOT_EQUALS, std::nan("")
+         float_column.getValues(),
+         operators::Comparator::NOT_EQUALS,
+         storage::column::FloatColumn::null()
       ));
    }
 

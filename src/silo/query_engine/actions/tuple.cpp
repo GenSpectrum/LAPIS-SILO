@@ -100,7 +100,7 @@ silo::common::JsonValueType tupleFieldToValueType(
       case ColumnType::INT: {
          const int32_t value = *reinterpret_cast<const int32_t*>(*data_pointer);
          *data_pointer += sizeof(decltype(value));
-         if (value == INT32_MIN) {
+         if (value == silo::storage::column::IntColumn::null()) {
             return std::nullopt;
          }
          return value;

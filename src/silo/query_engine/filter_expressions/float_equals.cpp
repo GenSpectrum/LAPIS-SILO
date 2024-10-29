@@ -61,7 +61,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<FloatEquals>& filter)
       "The field 'value' in an FloatEquals expression must be a float or null"
    );
    const std::string& column_name = json["column"];
-   const double& value = json["value"].is_null() ? std::nan("") : json["value"].get<double>();
+   const double& value =
+      json["value"].is_null() ? storage::column::FloatColumn::null() : json["value"].get<double>();
    filter = std::make_unique<FloatEquals>(column_name, value);
 }
 

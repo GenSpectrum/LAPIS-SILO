@@ -18,14 +18,16 @@ class BoolColumnPartition {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
+      archive & column_name;
       archive & values;
       // clang-format on
    }
 
+   std::string column_name;
    std::vector<silo::common::OptionalBool> values;
 
   public:
-   BoolColumnPartition();
+   explicit BoolColumnPartition(std::string column_name);
 
    [[nodiscard]] const std::vector<silo::common::OptionalBool>& getValues() const;
 
@@ -42,13 +44,15 @@ class BoolColumn {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
+      archive & column_name;
       // clang-format on
    }
 
+   std::string column_name;
    std::deque<BoolColumnPartition> partitions;
 
   public:
-   BoolColumn();
+   explicit BoolColumn(std::string column_name);
 
    BoolColumnPartition& createPartition();
 };

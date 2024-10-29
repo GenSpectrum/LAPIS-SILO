@@ -28,6 +28,7 @@ class IndexedStringColumnPartition {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
+      archive & column_name;
       archive & value_ids;
       archive & indexed_values;
       if(lineage_index.has_value()){
@@ -36,14 +37,19 @@ class IndexedStringColumnPartition {
       // clang-format on
    }
 
+   std::string column_name;
    std::vector<Idx> value_ids;
    std::unordered_map<Idx, roaring::Roaring> indexed_values;
    std::optional<LineageIndex> lineage_index;
    common::BidirectionalMap<std::string>* lookup;
 
-   explicit IndexedStringColumnPartition(common::BidirectionalMap<std::string>* lookup);
+   explicit IndexedStringColumnPartition(
+      std::string column_name,
+      common::BidirectionalMap<std::string>* lookup
+   );
 
    explicit IndexedStringColumnPartition(
+      std::string column_name,
       common::BidirectionalMap<std::string>* lookup,
       const common::LineageTree* lineage_tree
    );
@@ -74,19 +80,29 @@ class IndexedStringColumn {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
+      archive & column_name;
       archive & lookup;
       archive & lineage_tree;
       // clang-format on
    }
 
+   std::string column_name;
    common::BidirectionalMap<std::string> lookup;
    std::optional<common::LineageTree> lineage_tree;
    std::deque<IndexedStringColumnPartition> partitions;
 
   public:
-   IndexedStringColumn();
+   explicit IndexedStringColumn(std::string column_name);
 
-   IndexedStringColumn(const common::LineageTreeAndIdMap& lineage_tree_and_id_map);
+   IndexedStringColumn(
+      std::string column_name,
+      const common::LineageTreeAndIdMap& lineage_tree_and_id_map
+   );
+
+   IndexedStringColumn(const IndexedStringColumn& other) = delete;
+   IndexedStringColumn(IndexedStringColumn&& other) = delete;
+   IndexedStringColumn& operator=(const IndexedStringColumn& other) = delete;
+   IndexedStringColumn& operator=(IndexedStringColumn&& other) = delete;
 
    IndexedStringColumnPartition& createPartition();
 };

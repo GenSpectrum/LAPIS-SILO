@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 
 TEST(DateColumn, insertValues) {
-   silo::storage::column::DateColumnPartition under_test(false);
+   silo::storage::column::DateColumnPartition under_test("date_column", false);
 
    under_test.insert(silo::common::stringToDate("2020-01-01"));
    under_test.insert(silo::common::stringToDate("2023-1-05"));

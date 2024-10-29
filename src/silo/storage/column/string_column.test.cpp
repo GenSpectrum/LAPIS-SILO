@@ -7,7 +7,7 @@ using silo::storage::column::StringColumnPartition;
 
 TEST(StringColumnPartition, rawInsertedValuesRequeried) {
    silo::common::BidirectionalMap<std::string> lookup;
-   StringColumnPartition under_test(lookup);
+   StringColumnPartition under_test("string_column", &lookup);
 
    under_test.insert("value 1");
    under_test.insert("value 2");
@@ -25,7 +25,7 @@ TEST(StringColumnPartition, rawInsertedValuesRequeried) {
 }
 
 TEST(StringColumn, rawInsertedValuesRequeried) {
-   StringColumn column;
+   StringColumn column("string_column");
    StringColumnPartition under_test = column.createPartition();
 
    under_test.insert("value 1");
@@ -44,7 +44,7 @@ TEST(StringColumn, rawInsertedValuesRequeried) {
 }
 
 TEST(StringColumn, compareAcrossPartitions) {
-   StringColumn under_test;
+   StringColumn under_test("string_column");
    StringColumnPartition partition_1 = under_test.createPartition();
    partition_1.insert("value 1");
    partition_1.insert("value 2");

@@ -16,7 +16,7 @@ createSinglePartitionColumns() {
 
    {
       const std::string string_column_name = "dummy_string_column";
-      group.string_columns.emplace(string_column_name, silo::storage::column::StringColumn());
+      group.string_columns.emplace(string_column_name, string_column_name);
       partition_group.metadata.push_back({string_column_name, silo::config::ColumnType::STRING});
       partition_group.string_columns.emplace(
          string_column_name, group.string_columns.at(string_column_name).createPartition()
@@ -34,9 +34,7 @@ createSinglePartitionColumns() {
    }
    {
       const std::string indexed_string_column_name = "dummy_indexed_string_column";
-      group.indexed_string_columns.emplace(
-         indexed_string_column_name, silo::storage::column::IndexedStringColumn()
-      );
+      group.indexed_string_columns.emplace(indexed_string_column_name, indexed_string_column_name);
       partition_group.metadata.push_back(
          {indexed_string_column_name, silo::config::ColumnType::INDEXED_STRING}
       );
@@ -58,7 +56,7 @@ createSinglePartitionColumns() {
    {
       const std::string int_column_name = "dummy_int_column";
       partition_group.metadata.push_back({int_column_name, silo::config::ColumnType::INT});
-      group.int_columns.emplace(int_column_name, silo::storage::column::IntColumn());
+      group.int_columns.emplace(int_column_name, int_column_name);
       partition_group.int_columns.emplace(
          int_column_name, group.int_columns.at(int_column_name).createPartition()
       );
@@ -69,7 +67,7 @@ createSinglePartitionColumns() {
    {
       const std::string float_column_name = "dummy_float_column";
       partition_group.metadata.push_back({float_column_name, silo::config::ColumnType::FLOAT});
-      group.float_columns.emplace(float_column_name, silo::storage::column::FloatColumn());
+      group.float_columns.emplace(float_column_name, float_column_name);
       partition_group.float_columns.emplace(
          float_column_name, group.float_columns.at(float_column_name).createPartition()
       );
@@ -80,7 +78,9 @@ createSinglePartitionColumns() {
    {
       const std::string date_column_name = "dummy_date_column";
       partition_group.metadata.push_back({date_column_name, silo::config::ColumnType::DATE});
-      group.date_columns.emplace(date_column_name, silo::storage::column::DateColumn(false));
+      group.date_columns.emplace(
+         date_column_name, silo::storage::column::DateColumn(date_column_name, false)
+      );
       partition_group.date_columns.emplace(
          date_column_name, group.date_columns.at(date_column_name).createPartition()
       );

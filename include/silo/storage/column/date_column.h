@@ -17,16 +17,18 @@ class DateColumnPartition {
    template <class Archive>
    void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
+      archive & column_name;
       archive & values;
       archive & is_sorted;
       // clang-format on
    }
 
+   std::string column_name;
    std::vector<silo::common::Date> values;
    bool is_sorted;
 
   public:
-   explicit DateColumnPartition(bool is_sorted);
+   explicit DateColumnPartition(std::string column_name, bool is_sorted);
 
    [[nodiscard]] bool isSorted() const;
 
@@ -45,17 +47,17 @@ class DateColumn {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
+      archive & column_name;
       archive & is_sorted;
       // clang-format on
    }
 
+   std::string column_name;
    bool is_sorted;
    std::deque<DateColumnPartition> partitions;
 
-   DateColumn();
-
   public:
-   explicit DateColumn(bool is_sorted);
+   explicit DateColumn(std::string column_name, bool is_sorted);
 
    DateColumnPartition& createPartition();
 };

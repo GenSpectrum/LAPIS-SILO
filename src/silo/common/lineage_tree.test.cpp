@@ -110,10 +110,9 @@ CHILD:
 
    EXPECT_THAT(
       throwing_lambda,
-      ThrowsMessage<silo::preprocessing::PreprocessingException>(::testing::HasSubstr(
-         "The given LineageTree contains the cycle: BASE -> CHILD -> BASE"
-
-      ))
+      ThrowsMessage<silo::preprocessing::PreprocessingException>(
+         ::testing::HasSubstr("The given LineageTree contains the cycle: BASE -> CHILD -> BASE")
+      )
    );
 }
 
