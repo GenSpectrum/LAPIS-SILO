@@ -47,7 +47,9 @@ std::optional<const roaring::Roaring*> LineageFilter::getBitmapForValue(
 
    CHECK_SILO_QUERY(
       value_id_opt.has_value(),
-      fmt::format("The lineage '{}' is not a valid lineage.", lineage.value())
+      fmt::format(
+         "The lineage '{}' is not a valid lineage for column '{}'.", lineage.value(), column_name
+      )
    );
 
    const Idx value_id = value_id_opt.value();

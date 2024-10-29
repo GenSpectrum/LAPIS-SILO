@@ -10,15 +10,19 @@
 namespace silo::storage::column {
 
 IndexedStringColumnPartition::IndexedStringColumnPartition(
+   std::string column_name,
    common::BidirectionalMap<std::string>* lookup
 )
-    : lookup(lookup) {}
+    : column_name(std::move(column_name)),
+      lookup(lookup) {}
 
 IndexedStringColumnPartition::IndexedStringColumnPartition(
+   std::string column_name,
    common::BidirectionalMap<std::string>* lookup,
    const common::LineageTree* lineage_tree
 )
-    : lineage_index(LineageIndex(lineage_tree)),
+    : column_name(std::move(column_name)),
+      lineage_index(LineageIndex(lineage_tree)),
       lookup(lookup) {}
 
 std::optional<const roaring::Roaring*> IndexedStringColumnPartition::filter(Idx value_id) const {
@@ -44,9 +48,12 @@ void IndexedStringColumnPartition::insert(const std::string& value) {
    if (lineage_index.has_value()) {
       const auto value_id = lookup->getId(value);
       if (!value_id.has_value()) {
-         throw silo::preprocessing::PreprocessingException(
-            fmt::format("The value '{}' is not a valid lineage value.", value)
-         );
+         throw silo::preprocessing::PreprocessingException(fmt::format(
+            "The value '{}' is not a valid lineage value for column '{}'. "
+            "Is your lineage definition file outdated?",
+            value,
+            column_name
+         ));
       }
       lineage_index->insert(row_id, value_id.value());
    }
@@ -80,20 +87,26 @@ const std::optional<LineageIndex>& IndexedStringColumnPartition::getLineageIndex
    return lineage_index;
 }
 
-IndexedStringColumn::IndexedStringColumn() {
-   lookup = common::BidirectionalMap<std::string>();
-}
+IndexedStringColumn::IndexedStringColumn(std::string column_name)
+    : column_name(std::move(column_name)),
+      lookup() {}
 
-IndexedStringColumn::IndexedStringColumn(const common::LineageTreeAndIdMap& lineage_tree_and_id_map)
-    : lineage_tree(lineage_tree_and_id_map.lineage_tree) {
+IndexedStringColumn::IndexedStringColumn(
+   std::string column_name,
+   const common::LineageTreeAndIdMap& lineage_tree_and_id_map
+)
+    : column_name(std::move(column_name)) {
+   lineage_tree = lineage_tree_and_id_map.lineage_tree;
    lookup = lineage_tree_and_id_map.lineage_id_lookup_map.copy();
 }
 
 IndexedStringColumnPartition& IndexedStringColumn::createPartition() {
    if (lineage_tree.has_value()) {
-      return partitions.emplace_back(IndexedStringColumnPartition{&lookup, &lineage_tree.value()});
+      return partitions.emplace_back(
+         IndexedStringColumnPartition{column_name, &lookup, &lineage_tree.value()}
+      );
    }
-   return partitions.emplace_back(IndexedStringColumnPartition{&lookup});
+   return partitions.emplace_back(IndexedStringColumnPartition{column_name, &lookup});
 }
 
 }  // namespace silo::storage::column

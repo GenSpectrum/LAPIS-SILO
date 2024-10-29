@@ -1,15 +1,19 @@
 #include "silo/storage/column/indexed_string_column.h"
 
+#include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
 
+#include "silo/preprocessing/preprocessing_exception.h"
+
 using silo::common::LineageTreeAndIdMap;
+using silo::preprocessing::LineageDefinitionFile;
 using silo::storage::column::IndexedStringColumn;
 using silo::storage::column::IndexedStringColumnPartition;
 
 // NOLINTBEGIN(bugprone-unchecked-optional-access)
 
 TEST(IndexedStringColumnPartition, shouldReturnTheCorrectFilteredValues) {
-   IndexedStringColumn column_wrapper;
+   IndexedStringColumn column_wrapper("some_column");
    IndexedStringColumnPartition& under_test = column_wrapper.createPartition();
 
    under_test.insert("value 1");
@@ -29,7 +33,7 @@ TEST(IndexedStringColumnPartition, shouldReturnTheCorrectFilteredValues) {
 }
 
 TEST(IndexedStringColumnPartition, insertValuesToPartition) {
-   IndexedStringColumn column_wrapper;
+   IndexedStringColumn column_wrapper("string_column");
    IndexedStringColumnPartition& under_test = column_wrapper.createPartition();
 
    under_test.insert("value 1");
@@ -53,7 +57,8 @@ TEST(IndexedStringColumnPartition, addingLineageAndThenSublineageFiltersCorrectl
    auto lineage_definitions = LineageTreeAndIdMap::fromLineageDefinitionFilePath(
       "testBaseData/exampleDataset/lineage_definitions.yaml"
    );
-   auto column_wrapper = silo::storage::column::IndexedStringColumn(lineage_definitions);
+   auto column_wrapper =
+      silo::storage::column::IndexedStringColumn("string_column", lineage_definitions);
    IndexedStringColumnPartition& under_test = column_wrapper.createPartition();
 
    under_test.insert({"BA.1.1"});
@@ -83,7 +88,8 @@ TEST(IndexedStringColumnPartition, addingSublineageAndThenLineageFiltersCorrectl
    auto lineage_definitions = LineageTreeAndIdMap::fromLineageDefinitionFilePath(
       "testBaseData/exampleDataset/lineage_definitions.yaml"
    );
-   auto column_wrapper = silo::storage::column::IndexedStringColumn(lineage_definitions);
+   auto column_wrapper =
+      silo::storage::column::IndexedStringColumn("string_column", lineage_definitions);
    IndexedStringColumnPartition& under_test = column_wrapper.createPartition();
 
    under_test.insert({"BA.1.1.1"});
@@ -125,7 +131,8 @@ TEST(IndexedStringColumnPartition, queryParentLineageThatWasNeverInserted) {
    auto lineage_definitions = LineageTreeAndIdMap::fromLineageDefinitionFilePath(
       "testBaseData/exampleDataset/lineage_definitions.yaml"
    );
-   auto column_wrapper = silo::storage::column::IndexedStringColumn(lineage_definitions);
+   auto column_wrapper =
+      silo::storage::column::IndexedStringColumn("string_column", lineage_definitions);
    IndexedStringColumnPartition& under_test = column_wrapper.createPartition();
 
    under_test.insert({"BA.1.1.1"});
@@ -143,6 +150,26 @@ TEST(IndexedStringColumnPartition, queryParentLineageThatWasNeverInserted) {
           ->filterIncludingSublineages(under_test.getValueId("BA.1").value())
           .value(),
       roaring::Roaring({0, 1, 3})
+   );
+}
+
+TEST(IndexedStringColumnPartition, errorWhenInsertingIncorrectLineages) {
+   auto lineage_definitions =
+      LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAML(R"(
+A: {}
+A.1:
+  parents: ["A"]
+)"));
+   auto column_wrapper =
+      silo::storage::column::IndexedStringColumn("string_column", lineage_definitions);
+   IndexedStringColumnPartition& under_test = column_wrapper.createPartition();
+   under_test.insert({"A"});
+   EXPECT_THAT(
+      [&]() { under_test.insert({"A.2"}); },
+      ThrowsMessage<silo::preprocessing::PreprocessingException>(
+         ::testing::HasSubstr("The value 'A.2' is not a valid lineage value for column "
+                              "'string_column'. Is your lineage definition file outdated?")
+      )
    );
 }
 

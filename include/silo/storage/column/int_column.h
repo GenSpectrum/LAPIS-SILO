@@ -16,14 +16,16 @@ class IntColumnPartition {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
+      archive & column_name;
       archive & values;
       // clang-format on
    }
 
+   std::string column_name;
    std::vector<int32_t> values;
 
   public:
-   IntColumnPartition();
+   explicit IntColumnPartition(std::string column_name);
 
    [[nodiscard]] const std::vector<int32_t>& getValues() const;
 
@@ -40,13 +42,17 @@ class IntColumn {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
+      archive & column_name;
       // clang-format on
    }
 
+   std::string column_name;
    std::deque<IntColumnPartition> partitions;
 
   public:
-   IntColumn();
+   static int32_t null() { return INT32_MIN; }
+
+   explicit IntColumn(std::string column_name);
 
    IntColumnPartition& createPartition();
 };

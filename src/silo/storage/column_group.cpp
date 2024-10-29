@@ -180,7 +180,7 @@ common::JsonValueType ColumnPartitionGroup::getValue(
    }
    if (int_columns.contains(column)) {
       int32_t value = int_columns.at(column).getValues().at(sequence_id);
-      if (value == INT32_MIN) {
+      if (value == column::IntColumn::null()) {
          return std::nullopt;
       }
       return value;

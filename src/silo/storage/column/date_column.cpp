@@ -4,8 +4,9 @@
 
 namespace silo::storage::column {
 
-DateColumnPartition::DateColumnPartition(bool is_sorted)
-    : is_sorted(is_sorted) {}
+DateColumnPartition::DateColumnPartition(std::string column_name, bool is_sorted)
+    : column_name(std::move(column_name)),
+      is_sorted(is_sorted) {}
 
 bool DateColumnPartition::isSorted() const {
    return is_sorted;
@@ -27,14 +28,12 @@ const std::vector<silo::common::Date>& DateColumnPartition::getValues() const {
    return values;
 }
 
-DateColumn::DateColumn()
-    : DateColumn::DateColumn(false) {}
-
-DateColumn::DateColumn(bool is_sorted)
-    : is_sorted(is_sorted) {}
+DateColumn::DateColumn(std::string column_name, bool is_sorted)
+    : column_name(std::move(column_name)),
+      is_sorted(is_sorted) {}
 
 DateColumnPartition& DateColumn::createPartition() {
-   return partitions.emplace_back(is_sorted);
+   return partitions.emplace_back(column_name, is_sorted);
 }
 
 }  // namespace silo::storage::column

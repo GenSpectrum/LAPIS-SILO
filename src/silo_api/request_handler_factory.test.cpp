@@ -22,6 +22,8 @@ class MockDatabase : public silo::Database {
    MOCK_METHOD(silo::DataVersion::Timestamp, getDataVersionTimestamp, (), (const));
 
    MOCK_METHOD(silo::query_engine::QueryResult, executeQuery, (const std::string&), (const));
+
+   ~MockDatabase() = default;
 };
 
 class MockDatabaseMutex : public silo_api::DatabaseMutex {

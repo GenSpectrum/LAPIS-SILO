@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <cstdint>
 #include <deque>
 #include <string>
@@ -16,14 +17,16 @@ class FloatColumnPartition {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
+      archive & column_name;
       archive & values;
       // clang-format on
    }
 
+   std::string column_name;
    std::vector<double> values;
 
   public:
-   FloatColumnPartition();
+   explicit FloatColumnPartition(std::string column_name);
 
    [[nodiscard]] const std::vector<double>& getValues() const;
 
@@ -40,13 +43,17 @@ class FloatColumn {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
+      archive & column_name;
       // clang-format on
    }
 
+   std::string column_name;
    std::deque<FloatColumnPartition> partitions;
 
   public:
-   FloatColumn();
+   static double null() { return std::nan(""); }
+
+   explicit FloatColumn(std::string column_name);
 
    FloatColumnPartition& createPartition();
 };

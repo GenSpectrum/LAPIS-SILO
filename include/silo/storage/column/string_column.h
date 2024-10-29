@@ -20,15 +20,20 @@ class StringColumnPartition {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
+      archive & column_name;
       archive & values;
       // clang-format on
    }
 
+   std::string column_name;
    std::vector<common::String<silo::common::STRING_SIZE>> values;
-   silo::common::BidirectionalMap<std::string>& lookup;
+   silo::common::BidirectionalMap<std::string>* lookup;
 
   public:
-   explicit StringColumnPartition(silo::common::BidirectionalMap<std::string>& lookup);
+   explicit StringColumnPartition(
+      std::string column_name,
+      silo::common::BidirectionalMap<std::string>* lookup
+   );
 
    [[nodiscard]] const std::vector<common::String<silo::common::STRING_SIZE>>& getValues() const;
 
@@ -44,7 +49,7 @@ class StringColumnPartition {
 
    [[nodiscard]] inline std::string lookupValue(common::String<silo::common::STRING_SIZE> string
    ) const {
-      return string.toString(lookup);
+      return string.toString(*lookup);
    }
 };
 
@@ -54,16 +59,23 @@ class StringColumn {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      archive & *lookup;
+      archive & column_name;
+      archive & lookup;
       // clang-format on
    }
 
-   std::unique_ptr<silo::common::BidirectionalMap<std::string>> lookup;
+   std::string column_name;
+   silo::common::BidirectionalMap<std::string> lookup;
    // Need container with pointer stability, because database partitions point into this
    std::deque<StringColumnPartition> partitions;
 
   public:
-   StringColumn();
+   explicit StringColumn(std::string column_name);
+
+   StringColumn(const StringColumn& other) = delete;
+   StringColumn(StringColumn&& other) = delete;
+   StringColumn& operator=(const StringColumn& other) = delete;
+   StringColumn& operator=(StringColumn&& other) = delete;
 
    StringColumnPartition& createPartition();
 
