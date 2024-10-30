@@ -1,6 +1,0 @@
-primaryKey	pango_lineage	date	region	country	division	unsorted_date	age	qc_value	test_boolean_column
-key1	B.1.1.7	2021-03-18	Europe	Switzerland	Basel-Land		4	0.98	true
-key2	B.1.1.7	2021-04-13	Europe	Switzerland	Bern	2020-03-08	5	0.97	false
-key3	B.1.1.7	2021-04-25	Europe	Switzerland	Aargau	2021-01-29	6	0.96	
-key4	XBB	2021-04-13	Europe	Switzerland	Bern	2020-12-24	4	0.95	true
-key5	XBB	2021-03-19	Europe	Switzerland	Solothurn	2021-02-10	54	0.94	true

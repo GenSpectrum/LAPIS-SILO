@@ -11,7 +11,6 @@
 #include "silo/preprocessing/sql_function.h"
 #include "silo/storage/reference_genomes.h"
 #include "silo/zstd/zstd_compressor.h"
-#include "silo/zstd/zstd_table.h"
 
 namespace silo::preprocessing {
 
@@ -38,26 +37,6 @@ class PreprocessingDatabase {
    Partitions getPartitionDescriptor();
 
    std::unique_ptr<duckdb::MaterializedQueryResult> query(std::string sql_query);
-
-   static std::string getBaseStem(const std::filesystem::path& file_path);
-
-   ZstdTable generateSequenceTableViaFile(
-      const std::string& table_name,
-      const std::string& reference_sequence,
-      const std::filesystem::path& file_path
-   );
-
-   ZstdTable generateSequenceTableFromFasta(
-      const std::string& table_name,
-      const std::string& reference_sequence,
-      const std::filesystem::path& file_name
-   );
-
-   ZstdTable generateSequenceTableFromSAM(
-      const std::string& table_name,
-      const std::string& reference_sequence,
-      const std::filesystem::path& file_name
-   );
 };
 
 std::vector<std::string> extractStringListValue(

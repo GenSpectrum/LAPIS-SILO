@@ -1,5 +1,5 @@
 inputDirectory: "./testBaseData/unitTestDummyDataset/"
 outputDirectory: "./output/"
-metadataFilename: "metadata.tsv"
+ndjsonInputFilename: "input.ndjson"
 lineageDefinitionsFilename: "lineage_definitions.yaml"
 referenceGenomeFilename: "reference_genomes.json"

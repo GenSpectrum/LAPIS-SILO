@@ -56,7 +56,6 @@ class Preprocessor {
    std::string getPartitionKeySelect() const;
 
    void buildTablesFromNdjsonInput(const ValidatedNdjsonFile& input_file);
-   void buildMetadataTableFromFile(const std::filesystem::path& metadata_filename);
 
    void buildPartitioningTable();
    void buildPartitioningTableByColumn(const Identifier& partition_by_field);
@@ -65,24 +64,11 @@ class Preprocessor {
    template <typename SymbolType>
    Identifiers getInsertionsFields();
 
-   template <typename SymbolType>
-   void createInsertionsTableFromFile(const std::filesystem::path& insertion_file);
-
    void createPartitionedSequenceTablesFromNdjson(const ValidatedNdjsonFile& input_file);
 
    void createAlignedPartitionedSequenceViews(const ValidatedNdjsonFile& input_file);
    void createUnalignedPartitionedSequenceFiles(const ValidatedNdjsonFile& input_file);
    void createUnalignedPartitionedSequenceFile(size_t sequence_idx, const std::string& table_sql);
-
-   void createPartitionedSequenceTablesFromSequenceFiles();
-
-   template <typename SymbolType>
-   void createPartitionedTableForSequence(
-      size_t sequence_idx,
-      const Identifier& prefixed_sequence_identifier,
-      const std::string& compression_dictionary,
-      const std::filesystem::path& filename
-   );
 
    Database buildDatabase(
       const preprocessing::Partitions& partition_descriptor,
@@ -98,12 +84,6 @@ class Preprocessor {
    template <typename SymbolType>
    ColumnFunction createRawReadLambda(
       ZstdDecompressor& decompressor,
-      silo::SequenceStorePartition<SymbolType>& sequence_store
-   );
-
-   template <typename SymbolType>
-   ColumnFunction createInsertionLambda(
-      const std::string& sequence_name,
       silo::SequenceStorePartition<SymbolType>& sequence_store
    );
 

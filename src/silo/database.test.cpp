@@ -16,13 +16,13 @@
 
 namespace {
 silo::Database buildTestDatabase() {
-   const std::string input_directory{"./testBaseData/unitTestDummyDataset/"};
+   const std::filesystem::path input_directory{"./testBaseData/unitTestDummyDataset/"};
 
    silo::config::PreprocessingConfig config;
-   config.overwrite(silo::config::YamlFile(input_directory + "preprocessing_config.yaml"));
+   config.overwrite(silo::config::YamlFile(input_directory / "preprocessing_config.yaml"));
 
    const auto database_config =
-      silo::config::ConfigRepository().getValidatedConfig(input_directory + "database_config.yaml");
+      silo::config::ConfigRepository().getValidatedConfig(input_directory / "database_config.yaml");
 
    const auto reference_genomes =
       silo::ReferenceGenomes::readFromFile(config.getReferenceGenomeFilename());
@@ -52,13 +52,13 @@ TEST(DatabaseTest, shouldBuildDatabaseWithoutErrors) {
 }
 
 TEST(DatabaseTest, shouldSuccessfullyBuildDatabaseWithoutPartitionBy) {
-   const std::string input_directory{"./testBaseData/"};
+   const std::filesystem::path input_directory{"./testBaseData/"};
 
    silo::config::PreprocessingConfig config;
-   config.overwrite(silo::config::YamlFile(input_directory + "test_preprocessing_config.yaml"));
+   config.overwrite(silo::config::YamlFile(input_directory / "test_preprocessing_config.yaml"));
 
    const auto database_config = silo::config::ConfigRepository().getValidatedConfig(
-      input_directory + "test_database_config_without_partition_by.yaml"
+      input_directory / "test_database_config_without_partition_by.yaml"
    );
 
    const auto reference_genomes =
