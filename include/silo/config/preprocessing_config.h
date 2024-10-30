@@ -26,17 +26,7 @@ const AbstractConfigSource::Option LINEAGE_DEFINITIONS_FILENAME_OPTION = {
    {"lineageDefinitionsFilename"}
 };
 const AbstractConfigSource::Option NDJSON_INPUT_FILENAME_OPTION = {{"ndjsonInputFilename"}};
-const AbstractConfigSource::Option METADATA_FILENAME_OPTION = {{"metadataFilename"}};
 const AbstractConfigSource::Option REFERENCE_GENOME_FILENAME_OPTION = {{"referenceGenomeFilename"}};
-const AbstractConfigSource::Option NUCLEOTIDE_SEQUENCE_PREFIX_OPTION = {{"nucleotideSequencePrefix"}
-};
-const AbstractConfigSource::Option UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX_OPTION = {
-   {"unalignedNucleotideSequencePrefix"}
-};
-const AbstractConfigSource::Option GENE_PREFIX_OPTION = {{"genePrefix"}};
-const AbstractConfigSource::Option NUCLEOTIDE_INSERTIONS_OPTION = {{"nucleotideInsertionsFilename"}
-};
-const AbstractConfigSource::Option AMINO_ACID_INSERTIONS_OPTION = {{"aminoAcidInsertionsFilename"}};
 
 const std::string DEFAULT_OUTPUT_DIRECTORY = "./output/";
 
@@ -51,13 +41,7 @@ class PreprocessingConfig {
    std::optional<uint32_t> duckdb_memory_limit_in_g;
    std::optional<std::filesystem::path> lineage_definitions_file;
    std::optional<std::filesystem::path> ndjson_input_filename;
-   std::optional<std::filesystem::path> metadata_file;
    std::filesystem::path reference_genome_file = "reference_genomes.json";
-   std::string nucleotide_sequence_prefix = "nuc_";
-   std::string unaligned_nucleotide_sequence_prefix = "unaligned_";
-   std::string gene_prefix = "gene_";
-   std::string nuc_insertions_filename = "nuc_insertions.tsv";
-   std::string aa_insertions_filename = "aa_insertions.tsv";
 
    void validate() const;
 
@@ -74,19 +58,6 @@ class PreprocessingConfig {
    [[nodiscard]] std::optional<uint32_t> getDuckdbMemoryLimitInG() const;
 
    [[nodiscard]] std::optional<std::filesystem::path> getNdjsonInputFilename() const;
-
-   [[nodiscard]] std::optional<std::filesystem::path> getMetadataInputFilename() const;
-
-   [[nodiscard]] std::filesystem::path getNucFilenameNoExtension(size_t sequence_idx) const;
-
-   [[nodiscard]] std::filesystem::path getUnalignedNucFilenameNoExtension(size_t sequence_idx
-   ) const;
-
-   [[nodiscard]] std::filesystem::path getGeneFilenameNoExtension(size_t sequence_idx) const;
-
-   [[nodiscard]] std::filesystem::path getNucleotideInsertionsFilename() const;
-
-   [[nodiscard]] std::filesystem::path getAminoAcidInsertionsFilename() const;
 
    void overwrite(const silo::config::AbstractConfigSource& config_reader);
 };

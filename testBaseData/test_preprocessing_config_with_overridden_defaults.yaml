@@ -1,8 +1,8 @@
-inputDirectory: "./testBaseData/exampleDatasetAsTsv/"
+inputDirectory: "./testBaseData/exampleDataset/"
 outputDirectory: "./output/custom/"
 intermediateResultsDirectory: "./output/overriddenTemp/"
-metadataFilename: "small_metadata_set.tsv"
+ndjsonInputFilename: "input_file.ndjson"
 lineageDefinitionsFilename: "lineage_definitions.yaml"
 referenceGenomeFilename: "reference_genomes.json"
-genePrefix: "aaSeq_"
-nucleotideSequencePrefix: ""
+preprocessingDatabaseLocation: "preprocessing.duckdb"
+duckdbMemoryLimitInG: 8

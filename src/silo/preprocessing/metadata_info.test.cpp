@@ -29,7 +29,7 @@ TEST(
 
    EXPECT_THROW(
       silo::preprocessing::MetadataInfo::validateMetadataFile(
-         "testBaseData/exampleDatasetAsTsv/small_metadata_set.tsv",
+         "testBaseData/exampleDataset/small_metadata_set.tsv",
          some_config_with_one_column_not_in_metadata
       ),
       silo::preprocessing::PreprocessingException

@@ -25,8 +25,8 @@ std::string printTestName(const ::testing::TestParamInfo<Scenario>& info) {
    return name;
 }
 
-const Scenario FASTA_FILES_WITH_MISSING_SEGMENTS_AND_GENES = {
-   .input_directory = "testBaseData/fastaFilesWithMissingSequences/",
+const Scenario NDJSON_FILE_WITH_MISSING_SEGMENTS_AND_GENES = {
+   .input_directory = "testBaseData/ndjsonWithNullSequences/",
    .expected_sequence_count = 2,
    .query = R"(
       {
@@ -51,42 +51,6 @@ const Scenario FASTA_FILES_WITH_MISSING_SEGMENTS_AND_GENES = {
    "someShortGene": "XXXX",
    "secondSegment": "NNNNNNNNNNNNNNNN"
 }])")
-};
-
-// First 10 characters of sequence in nuc_main.sam have been removed
-// This is to test the offset (set to 10 for both reads)
-const Scenario SAM_FILES = {
-   .input_directory = "testBaseData/samFiles/",
-   .expected_sequence_count = 2,
-   .query = R"(
-      {
-         "action": {
-           "type": "FastaAligned",
-           "sequenceName": ["main"],
-           "orderByFields": ["accessionVersion"]
-         },
-         "filterExpression": {
-            "type": "True"
-         }
-      }
-   )",
-   .expected_query_result = nlohmann::json::parse(R"([
-         {
-            "accessionVersion": "1.1",
-            "main": "NNNNNNNNNNTATACCTTCCCAGGTAACAAACCAACCAACTTTCGATCT"
-         },
-         {
-            "accessionVersion": "1.3",
-            "main": "NNNNNTATACCTTCCCAGGTAACAAACCAACCAACTTTCGATCTNNNNN"
-         }
-      ])")
-};
-
-const Scenario NDJSON_FILE_WITH_MISSING_SEGMENTS_AND_GENES = {
-   .input_directory = "testBaseData/ndjsonWithNullSequences/",
-   .expected_sequence_count = FASTA_FILES_WITH_MISSING_SEGMENTS_AND_GENES.expected_sequence_count,
-   .query = FASTA_FILES_WITH_MISSING_SEGMENTS_AND_GENES.query,
-   .expected_query_result = FASTA_FILES_WITH_MISSING_SEGMENTS_AND_GENES.expected_query_result
 };
 
 const Scenario NDJSON_WITH_SQL_KEYWORD_AS_FIELD = {
@@ -133,79 +97,6 @@ const Scenario NDJSON_WITH_NUMERIC_NAMES = {
          {"count": 1, "2": "google.com"}
    ])"
    )
-};
-
-const Scenario TSV_FILE_WITH_SQL_KEYWORD_AS_FIELD = {
-   .input_directory = "testBaseData/tsvWithSqlKeywordField/",
-   .expected_sequence_count = NDJSON_WITH_SQL_KEYWORD_AS_FIELD.expected_sequence_count,
-   .query = NDJSON_WITH_SQL_KEYWORD_AS_FIELD.query,
-   .expected_query_result = NDJSON_WITH_SQL_KEYWORD_AS_FIELD.expected_query_result
-};
-
-const Scenario TSV_FILE_WITH_QUOTE_IN_FIELD_NAME = {
-   .input_directory = "testBaseData/tsvWithQuoteInFieldName/",
-   .expected_sequence_count = 2,
-   .query = R"(
-{
-   "action": {
-      "type": "Aggregated",
-      "groupByFields": ["x\"y"],
-      "orderByFields": ["x\"y"]
-   },
-   "filterExpression": {
-      "type": "StringEquals",
-      "column": "x\"y",
-      "value": "a"
-   }
-}
-   )",
-   .expected_query_result = nlohmann::json::parse(
-      R"([
-         {"count": 1, "x\"y": "a"}
-   ])"
-   )
-};
-
-const Scenario TSV_FILE_WITH_QUOTE_IN_PARTITION_BY = {
-   .input_directory = "testBaseData/tsvWithQuoteInPartitionBy/",
-   .expected_sequence_count = 100,
-   .query = R"(
-{
-   "action": {
-      "type": "Aggregated",
-      "groupByFields": ["pango_\"lineage"],
-      "orderByFields": ["pango_\"lineage"],
-      "limit": 3
-   },
-   "filterExpression": {
-      "type": "True"
-   }
-}
-   )",
-   .expected_query_result = nlohmann::json::parse(
-      R"([
-         {"count":1,"pango_\"lineage":null},
-         {"count":1,"pango_\"lineage":"AY.122"},
-         {"count":4,"pango_\"lineage":"AY.43"}
-   ])"
-   )
-};
-
-const Scenario EMPTY_INPUT_TSV = {
-   .input_directory = "testBaseData/emptyInputTsv/",
-   .expected_sequence_count = 0,
-   .query = R"(
-      {
-         "action": {
-           "type": "Details"
-         },
-         "filterExpression": {
-            "type": "True"
-         }
-      }
-   )",
-   .expected_query_result = nlohmann::json::parse(R"(
-[])")
 };
 
 const Scenario EMPTY_INPUT_NDJSON = {
@@ -290,23 +181,6 @@ const Scenario NO_SEQUENCES = {
    .expected_query_result = nlohmann::json::parse(R"([{"count":6}])")
 };
 
-const Scenario DIVERSE_SEQUENCE_NAMES = {
-   .input_directory = "testBaseData/diverseSequenceNames/",
-   .expected_sequence_count = 2,
-   .query = R"(
-      {
-         "action": {
-           "type": "Aggregated"
-         },
-         "filterExpression": {
-            "type": "True"
-         }
-      }
-   )",
-   .expected_query_result = nlohmann::json::parse(R"(
-[{"count":2}])")
-};
-
 const Scenario DIVERSE_SEQUENCE_NAMES_NDJSON = {
    .input_directory = "testBaseData/diverseSequenceNamesAsNdjson/",
    .expected_sequence_count = 2,
@@ -348,17 +222,10 @@ INSTANTIATE_TEST_SUITE_P(
    PreprocessorTest,
    PreprocessorTestFixture,
    ::testing::Values(
-      DIVERSE_SEQUENCE_NAMES,
       DIVERSE_SEQUENCE_NAMES_NDJSON,
-      FASTA_FILES_WITH_MISSING_SEGMENTS_AND_GENES,
       NDJSON_FILE_WITH_MISSING_SEGMENTS_AND_GENES,
-      SAM_FILES,
       NDJSON_WITH_SQL_KEYWORD_AS_FIELD,
-      TSV_FILE_WITH_SQL_KEYWORD_AS_FIELD,
-      TSV_FILE_WITH_QUOTE_IN_FIELD_NAME,
-      TSV_FILE_WITH_QUOTE_IN_PARTITION_BY,
       NDJSON_WITH_NUMERIC_NAMES,
-      EMPTY_INPUT_TSV,
       EMPTY_INPUT_NDJSON,
       EMPTY_INPUT_NDJSON_UNPARTITIONED,
       NO_GENES,

@@ -1,3 +1,0 @@
-inputDirectory: "testBaseData/tsvWithSqlKeywordField"
-metadataFilename: "metadata.tsv"
-referenceGenomeFilename: "reference_genomes.json"
