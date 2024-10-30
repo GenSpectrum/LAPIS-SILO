@@ -7,7 +7,7 @@ RUN apt update \
     cmake python3-pip software-properties-common wget gnupg lsb-release \
     && wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc \
     && add-apt-repository 'deb http://apt.llvm.org/jammy/  llvm-toolchain-jammy main' \
-    && apt install -y clang-tidy-20 \
+    && apt install -y clang-tidy-15 \
     && apt install -y jq \
     && apt install -y curl
 
