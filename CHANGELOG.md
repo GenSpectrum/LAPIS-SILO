@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.3.1...v0.3.2) (2024-10-30)
+
+
+### Bug Fixes
+
+* **preprocessing**: add column_name to column classes and add them to error messages ([e011e5c](https://github.com/GenSpectrum/LAPIS-SILO/commit/e011e5c804ed11a32bb42ca57be8d304c22d4fe9)) ([#629](https://github.com/GenSpectrum/LAPIS-SILO/pull/629))
+
 ## [0.3.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.3.0...v0.3.1) (2024-10-25)
 
 
