@@ -6,7 +6,11 @@
 
 TEST(RuntimeConfig, shouldReadConfig) {
    silo::config::RuntimeConfig runtime_config;
-   runtime_config.overwrite(silo::config::YamlFile("./testBaseData/test_runtime_config.yaml"));
+
+   auto source = YamlFile::readFile("./testBaseData/test_runtime_config.yaml")
+                    .verify(silo::config::RUNTIME_CONFIG_METADATA.configValues());
+
+   runtime_config.overwriteFrom(ConsList<std::string>(), *source);
 
    ASSERT_EQ(runtime_config.api_options.data_directory, std::filesystem::path("test/directory"));
 }

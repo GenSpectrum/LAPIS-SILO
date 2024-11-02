@@ -3,20 +3,19 @@
 #include <filesystem>
 #include <optional>
 
-#include "silo/config/preprocessing_config.h"
-#include "silo/config/util/abstract_config_source.h"
+#include <fmt/format.h>
+
+#include "config/config_metadata.h"
+#include "config/ignored.h"
+#include "config/toplevel_interface.h"
+#include "silo/config/config_defaults.h"
 
 namespace silo::config {
 
-const AbstractConfigSource::Option DATA_DIRECTORY_OPTION{{"api", "dataDirectory"}};
-const AbstractConfigSource::Option MAX_CONNECTIONS_OPTION{{"api", "maxQueuedHttpConnections"}};
-const AbstractConfigSource::Option PARALLEL_THREADS_OPTION{{"api", "threadsForHttpConnections"}};
-const AbstractConfigSource::Option PORT_OPTION{{"api", "port"}};
-const AbstractConfigSource::Option ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION{
-   {"api", "estimatedStartupTimeInMinutes"}
-};
+extern const ConfigStruct RUNTIME_CONFIG_METADATA;
 
-struct ApiOptions {
+struct ApiOptions : public OverwriteFrom {
+   // XXX remove defaults, now in structs
    std::filesystem::path data_directory = silo::config::DEFAULT_OUTPUT_DIRECTORY;
    int32_t max_connections = 64;
    int32_t parallel_threads = 4;
@@ -24,23 +23,36 @@ struct ApiOptions {
    std::optional<std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>>
       estimated_startup_end;
 
-   void overwrite(const silo::config::AbstractConfigSource& config);
+   void overwriteFrom(
+      const ConsList<std::string>& parents,
+      const VerifiedConfigSource& config_source
+   ) override;
 };
 
-const AbstractConfigSource::Option MATERIALIZATION_CUTOFF_OPTION{{"query", "materializationCutoff"}
-};
-
-struct QueryOptions {
+struct QueryOptions : public OverwriteFrom {
    size_t materialization_cutoff = 10000;
 
-   void overwrite(const silo::config::AbstractConfigSource& config);
+   void overwriteFrom(
+      const ConsList<std::string>& parents,
+      const VerifiedConfigSource& config_source
+   ) override;
 };
 
-struct RuntimeConfig {
+struct RuntimeConfig : public ToplevelConfig {
+   bool help;
+   std::optional<Ignored> preprocessing_config;
+   std::optional<std::filesystem::path> runtime_config;
    ApiOptions api_options;
    QueryOptions query_options;
 
-   void overwrite(const silo::config::AbstractConfigSource& config);
+   [[nodiscard]] bool asksForHelp() const override;
+   [[nodiscard]] std::optional<std::filesystem::path> configPath() const override;
+
+   void overwriteFrom(
+      const ConsList<std::string>& parents,
+      const VerifiedConfigSource& config_source
+   ) override;
+
    void validate() const {};
 };
 

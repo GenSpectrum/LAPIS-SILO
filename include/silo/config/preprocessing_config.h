@@ -10,6 +10,7 @@
 #include <Poco/Util/OptionSet.h>
 #include <fmt/format.h>
 
+#include "silo/config/config_defaults.h"
 #include "silo/config/util/abstract_config_source.h"
 
 // Definition of the PreprocessingConfig struct and associated config
@@ -185,8 +186,6 @@
    )
 
 namespace silo::config {
-
-static const std::string DEFAULT_OUTPUT_DIRECTORY = "./output/";
 
 class PreprocessingConfig {
    friend class fmt::formatter<silo::config::PreprocessingConfig>;
