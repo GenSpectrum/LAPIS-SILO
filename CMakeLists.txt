@@ -65,7 +65,7 @@ file(GLOB_RECURSE SRC_SILO "src/*.cpp")
 list(REMOVE_ITEM SRC_SILO ${SRC_TEST})
 
 set(SRC_SILO_WITHOUT_MAIN ${SRC_SILO})
-list(REMOVE_ITEM SRC_SILO_WITHOUT_MAIN "${CMAKE_SOURCE_DIR}/src/silo_api/api.cpp")
+list(REMOVE_ITEM SRC_SILO_WITHOUT_MAIN "${CMAKE_SOURCE_DIR}/src/silo_api/main.cpp")
 
 # ---------------------------------------------------------------------------
 # Linter
@@ -105,11 +105,23 @@ target_link_libraries(
         re2::re2
 )
 
-add_executable(siloApi "${CMAKE_SOURCE_DIR}/src/silo_api/api.cpp" $<TARGET_OBJECTS:silolib>)
+add_executable(silo "${CMAKE_SOURCE_DIR}/src/silo_api/main.cpp" $<TARGET_OBJECTS:silolib>)
 target_link_libraries(
-        siloApi
+        silo
         PUBLIC
         silolib
+)
+
+# Is run on every default make run (make all). (Does *not* generate
+# siloServer or siloPreprocessor targets somehow, thus the default
+# make has to be used at least once.)
+add_custom_target(
+        siloServer ALL
+        COMMAND ${CMAKE_COMMAND} -E create_symlink silo siloServer
+)
+add_custom_target(
+        siloPreprocessor ALL
+        COMMAND ${CMAKE_COMMAND} -E create_symlink silo siloPreprocessor
 )
 
 # ---------------------------------------------------------------------------

@@ -1,1 +1,2 @@
-dataDirectory: test/directory
+api:
+    dataDirectory: "test/directory"

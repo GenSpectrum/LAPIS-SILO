@@ -5,8 +5,10 @@
 
 #include <spdlog/spdlog.h>
 
+#include "silo/common/fmt_formatters.h"
 #include "silo/config/util/abstract_config_source.h"
 #include "silo/preprocessing/preprocessing_exception.h"
+#include "silo_api/command_line_arguments.h"
 
 namespace silo::config {
 
@@ -14,37 +16,39 @@ void PreprocessingConfig::validate() const {
    if (!std::filesystem::exists(input_directory)) {
       throw preprocessing::PreprocessingException(input_directory.string() + " does not exist");
    }
-   if (!ndjson_input_filename.has_value()) {
+   if (ndjson_input_filename.has_value() && metadata_file.has_value()) {
       throw preprocessing::PreprocessingException(fmt::format(
-         "{} must be specified as preprocessing option.", NDJSON_INPUT_FILENAME_OPTION.toCamelCase()
+         "Cannot specify both a ndjsonInputFilename ('{}') and metadataFilename('{}').",
+         ndjson_input_filename.value().string(),
+         metadata_file.value().string()
       ));
+   }
+   if (!ndjson_input_filename.has_value() && !metadata_file.has_value()) {
+      throw preprocessing::PreprocessingException(
+         fmt::format("Neither a ndjsonInputFilename nor a metadataFilename was specified as "
+                     "preprocessing option.")
+      );
    }
 }
 
-std::filesystem::path PreprocessingConfig::getOutputDirectory() const {
-   return output_directory;
+std::filesystem::path PreprocessingConfig::getDatabaseConfigFilename() const {
+   return input_directory / database_config_file;
 }
 
-std::filesystem::path PreprocessingConfig::getIntermediateResultsDirectory() const {
-   return intermediate_results_directory;
-}
-
-std::optional<std::filesystem::path> PreprocessingConfig::getPreprocessingDatabaseLocation() const {
-   return preprocessing_database_location;
-}
-
-[[nodiscard]] std::optional<uint32_t> PreprocessingConfig::getDuckdbMemoryLimitInG() const {
-   return duckdb_memory_limit_in_g;
-}
-
-std::optional<std::filesystem::path> PreprocessingConfig::getLineageDefinitionsFilename() const {
-   return lineage_definitions_file.has_value()
-             ? std::optional(input_directory / *lineage_definitions_file)
+std::optional<std::filesystem::path> PreprocessingConfig::getPangoLineageDefinitionFilename(
+) const {
+   return pango_lineage_definition_file.has_value()
+             ? std::optional(input_directory / *pango_lineage_definition_file)
              : std::nullopt;
 }
 
 std::filesystem::path PreprocessingConfig::getReferenceGenomeFilename() const {
    return input_directory / reference_genome_file;
+}
+
+std::optional<std::filesystem::path> PreprocessingConfig::getMetadataInputFilename() const {
+   return metadata_file.has_value() ? std::optional(input_directory / *metadata_file)
+                                    : std::nullopt;
 }
 
 std::optional<std::filesystem::path> PreprocessingConfig::getNdjsonInputFilename() const {
@@ -53,79 +57,93 @@ std::optional<std::filesystem::path> PreprocessingConfig::getNdjsonInputFilename
              : std::nullopt;
 }
 
-void PreprocessingConfig::overwrite(const silo::config::AbstractConfigSource& config) {
-   if (auto value = config.getString(INPUT_DIRECTORY_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         INPUT_DIRECTORY_OPTION.toString(),
-         config.configType(),
-         *value
-      );
-      input_directory = *value;
+std::filesystem::path PreprocessingConfig::getNucFilenameNoExtension(size_t sequence_idx) const {
+   std::filesystem::path filename = input_directory;
+   filename /= fmt::format("{}{}", nucleotide_sequence_prefix, sequence_idx);
+   return filename;
+}
+
+std::filesystem::path PreprocessingConfig::getUnalignedNucFilenameNoExtension(size_t sequence_idx
+) const {
+   std::filesystem::path filename = input_directory;
+   filename /= fmt::format("{}{}", unaligned_nucleotide_sequence_prefix, sequence_idx);
+   return filename;
+}
+
+std::filesystem::path PreprocessingConfig::getGeneFilenameNoExtension(size_t sequence_idx) const {
+   std::filesystem::path filename = input_directory;
+   filename /= fmt::format("{}{}", gene_prefix, sequence_idx);
+   return filename;
+}
+
+std::filesystem::path PreprocessingConfig::getNucleotideInsertionsFilename() const {
+   return input_directory / nuc_insertions_filename;
+}
+
+std::filesystem::path PreprocessingConfig::getAminoAcidInsertionsFilename() const {
+   return input_directory / aa_insertions_filename;
+}
+
+namespace {
+std::string toUnix(const AbstractConfigSource::Option& option) {
+   return silo_api::CommandLineArguments::asUnixOptionString(option);
+}
+}  // namespace
+
+void PreprocessingConfig::addOptions(Poco::Util::OptionSet& options) {
+#define TUPLE(                                                    \
+   TYPE,                                                          \
+   FIELD_NAME,                                                    \
+   DEFAULT_GENERATION,                                            \
+   DEFAULT_VALUE,                                                 \
+   OPTION_PATH,                                                   \
+   PARSING_ACCESSOR_TYPE_NAME,                                    \
+   HELP_TEXT,                                                     \
+   ACCESSOR_GENERATION,                                           \
+   ACCESSOR_NAME                                                  \
+)                                                                 \
+   {                                                              \
+      const AbstractConfigSource::Option opt{OPTION_PATH};        \
+      std::string option_string = toUnix(opt);                    \
+      options.addOption(Poco::Util::Option()                      \
+                           .fullName(option_string)               \
+                           .description(HELP_TEXT)                \
+                           .required(false)                       \
+                           .repeatable(false)                     \
+                           .argument(#PARSING_ACCESSOR_TYPE_NAME) \
+                           .binding(option_string));              \
    }
-   if (auto value = config.getString(OUTPUT_DIRECTORY_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         OUTPUT_DIRECTORY_OPTION.toString(),
-         config.configType(),
-         *value
-      );
-      output_directory = *value;
+
+   PREPROCESSING_CONFIG_DEFINITION;
+
+#undef TUPLE
+}
+
+void PreprocessingConfig::overwrite(const silo::config::AbstractConfigSource& config_source) {
+#define TUPLE(                                                                                  \
+   TYPE,                                                                                        \
+   FIELD_NAME,                                                                                  \
+   DEFAULT_GENERATION,                                                                          \
+   DEFAULT_VALUE,                                                                               \
+   OPTION_PATH,                                                                                 \
+   PARSING_ACCESSOR_TYPE_NAME,                                                                  \
+   HELP_TEXT,                                                                                   \
+   ACCESSOR_GENERATION,                                                                         \
+   ACCESSOR_NAME                                                                                \
+)                                                                                               \
+   {                                                                                            \
+      const AbstractConfigSource::Option opt{OPTION_PATH};                                      \
+      if (auto value = config_source.get##PARSING_ACCESSOR_TYPE_NAME(opt)) {                    \
+         SPDLOG_DEBUG(                                                                          \
+            "Using {} as passed via {}: {}", opt.toString(), config_source.configType(), *value \
+         );                                                                                     \
+         (FIELD_NAME) = *value;                                                                 \
+      }                                                                                         \
    }
-   if (auto value = config.getString(INTERMEDIATE_RESULTS_DIRECTORY_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         INTERMEDIATE_RESULTS_DIRECTORY_OPTION.toString(),
-         config.configType(),
-         *value
-      );
-      intermediate_results_directory = *value;
-   }
-   if (auto value = config.getString(PREPROCESSING_DATABASE_LOCATION_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         PREPROCESSING_DATABASE_LOCATION_OPTION.toString(),
-         config.configType(),
-         *value
-      );
-      preprocessing_database_location = *value;
-   }
-   if (auto value = config.getUInt32(DUCKDB_MEMORY_LIMIT_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         DUCKDB_MEMORY_LIMIT_OPTION.toString(),
-         config.configType(),
-         *value
-      );
-      duckdb_memory_limit_in_g = value;
-   }
-   if (auto value = config.getString(LINEAGE_DEFINITIONS_FILENAME_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         LINEAGE_DEFINITIONS_FILENAME_OPTION.toString(),
-         config.configType(),
-         *value
-      );
-      lineage_definitions_file = *value;
-   }
-   if (auto value = config.getString(NDJSON_INPUT_FILENAME_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         NDJSON_INPUT_FILENAME_OPTION.toString(),
-         config.configType(),
-         *value
-      );
-      ndjson_input_filename = *value;
-   }
-   if (auto value = config.getString(REFERENCE_GENOME_FILENAME_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         REFERENCE_GENOME_FILENAME_OPTION.toString(),
-         config.configType(),
-         *value
-      );
-      reference_genome_file = *value;
-   }
+
+   PREPROCESSING_CONFIG_DEFINITION;
+
+#undef TUPLE
 }
 
 }  // namespace silo::config
@@ -134,21 +152,28 @@ void PreprocessingConfig::overwrite(const silo::config::AbstractConfigSource& co
    const silo::config::PreprocessingConfig& preprocessing_config,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
-   return fmt::format_to(
-      ctx.out(),
-      "{{ input directory: '{}', lineage_definitions_file: {}, output_directory: '{}', "
-      "reference_genome_file: '{}', ndjson_filename: {}, preprocessing_database_location: {} }}",
-      preprocessing_config.input_directory.string(),
-      preprocessing_config.lineage_definitions_file.has_value()
-         ? "'" + preprocessing_config.lineage_definitions_file->string() + "'"
-         : "none",
-      preprocessing_config.output_directory.string(),
-      preprocessing_config.reference_genome_file.string(),
-      preprocessing_config.ndjson_input_filename.has_value()
-         ? "'" + preprocessing_config.ndjson_input_filename->string() + "'"
-         : "none",
-      preprocessing_config.preprocessing_database_location.has_value()
-         ? "'" + preprocessing_config.preprocessing_database_location->string() + "'"
-         : "none"
-   );
+   fmt::format_to(ctx.out(), "{{\n");
+   const char* perhaps_comma = " ";
+
+#define TUPLE(                                                                              \
+   TYPE,                                                                                    \
+   FIELD_NAME,                                                                              \
+   DEFAULT_GENERATION,                                                                      \
+   DEFAULT_VALUE,                                                                           \
+   OPTION_PATH,                                                                             \
+   PARSING_ACCESSOR_TYPE_NAME,                                                              \
+   HELP_TEXT,                                                                               \
+   ACCESSOR_GENERATION,                                                                     \
+   ACCESSOR_NAME                                                                            \
+)                                                                                           \
+   fmt::format_to(                                                                          \
+      ctx.out(), "{} {}: ''", perhaps_comma, "#FIELD_NAME", preprocessing_config.FIELD_NAME \
+   );                                                                                       \
+   perhaps_comma = ",";
+
+   PREPROCESSING_CONFIG_DEFINITION;
+
+#undef TUPLE
+
+   return fmt::format_to(ctx.out(), "}}\n");
 }
