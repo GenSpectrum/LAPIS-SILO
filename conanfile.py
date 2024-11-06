@@ -95,7 +95,7 @@ class SiloRecipe(ConanFile):
 
         "re2/*:shared": False,
 
-        "absl/*:shared": False,
+        "abseil/*:shared": False,
     }
 
     def generate(self):

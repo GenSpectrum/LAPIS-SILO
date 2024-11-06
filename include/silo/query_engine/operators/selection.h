@@ -11,7 +11,7 @@
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo::query_engine::filter_expressions {
-struct And;
+class And;
 }
 
 namespace silo::query_engine::operators {
