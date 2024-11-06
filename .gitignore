@@ -64,6 +64,8 @@ conanprofile
 *.out
 *.app
 
+# Generated html files from markdown files
+*.html
 
 **/output/
 **/logs/
