@@ -51,9 +51,8 @@ find_package(re2 REQUIRED)
 # Includes
 # ---------------------------------------------------------------------------
 
-include_directories(SYSTEM
+include_directories(
         ${CMAKE_SOURCE_DIR}/include
-        ${roaring_INCLUDE_DIRS}
 )
 
 # ---------------------------------------------------------------------------

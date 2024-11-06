@@ -35,9 +35,9 @@ struct ReadSequence {
    uint32_t offset;
 
    ReadSequence(std::string_view _sequence, uint32_t _offset = 0)
-       : sequence(std::move(_sequence)),
-         offset(_offset),
-         is_valid(true) {}
+       : is_valid(true),
+         sequence(std::move(_sequence)),
+         offset(_offset) {}
 
    ReadSequence() {}
 };

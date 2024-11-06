@@ -16,7 +16,7 @@ struct DataChunk;
 }  // namespace duckdb
 
 namespace silo {
-struct ZstdDecompressor;
+class ZstdDecompressor;
 
 class ZstdTableReader {
   private:

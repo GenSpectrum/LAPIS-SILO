@@ -18,7 +18,8 @@
 namespace silo::storage::insertion {
 
 template <typename SymbolType>
-struct ThreeMerHash {
+class ThreeMerHash {
+  public:
    size_t operator()(const std::array<typename SymbolType::Symbol, 3>& three_mer) const;
 };
 

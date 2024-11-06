@@ -6,7 +6,7 @@
 
 namespace silo::query_engine {
 
-struct QueryResult;
+class QueryResult;
 
 class QueryEngine {
   private:

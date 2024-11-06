@@ -66,7 +66,7 @@ class Mutations : public Action {
       std::vector<QueryResultEntry>& output
    ) const;
 
-   [[nodiscard]] void validateOrderByFields(const Database& database) const override;
+   void validateOrderByFields(const Database& database) const override;
 
    [[nodiscard]] QueryResult execute(
       const Database& database,
