@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include <roaring/roaring.hh>
 
 namespace silo::query_engine {
@@ -8,24 +10,17 @@ namespace silo::query_engine {
 /// May return either a mutable or immutable bitmap.
 class OperatorResult {
   private:
-   roaring::Roaring* mutable_bitmap;
+   std::shared_ptr<roaring::Roaring> mutable_bitmap;
    const roaring::Roaring* immutable_bitmap;
 
   public:
-   explicit OperatorResult();
+   OperatorResult();
    explicit OperatorResult(const roaring::Roaring& bitmap);
    explicit OperatorResult(roaring::Roaring&& bitmap);
 
-   // rule of five for manual memory management
-   ~OperatorResult();
-   OperatorResult(const OperatorResult& other) = delete;
-   OperatorResult(OperatorResult&& other) noexcept;
-   OperatorResult& operator=(const OperatorResult& other) = delete;
-   OperatorResult& operator=(OperatorResult&& other) noexcept;
-
    roaring::Roaring& operator*();
    const roaring::Roaring& operator*() const;
-   roaring::Roaring* operator->();
+   std::shared_ptr<roaring::Roaring> operator->();
    const roaring::Roaring* operator->() const;
 
    [[nodiscard]] bool isMutable() const;

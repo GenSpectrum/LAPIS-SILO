@@ -255,60 +255,59 @@ QueryResult Fasta::execute(const Database& database, std::vector<OperatorResult>
    // The unprocessed part of the result row numbers, counting from 0
    // from the start of the current partition:
    std::optional<Range<uint32_t>> remaining_result_row_indices;
-   return QueryResult::fromGenerator(
-      [sequence_names = sequence_names,
-       remaining_result_row_indices,
-       bitmap_filter = std::make_shared<std::vector<OperatorResult>>(std::move(bitmap_filter)),
-       &database,
-       // For an explanation of the iteration algorithm, see the
-       // comments in the same location (`execute` method) in
-       // `fasta_aligned.cpp`.
-       current_partition](std::vector<QueryResultEntry>& results) mutable {
-         for (; current_partition < database.partitions.size();
-              ++current_partition, remaining_result_row_indices = {}) {
-            auto& bitmap = (*bitmap_filter)[current_partition];
-            if (!remaining_result_row_indices.has_value()) {
-               // (See comments in `execute` in `fasta_aligned.cpp`.)
-               remaining_result_row_indices = {
-                  {0, boost::numeric_cast<uint32_t, uint64_t>(bitmap->cardinality())}
-               };
-            }
-
+   return QueryResult::fromGenerator([sequence_names = sequence_names,
+                                      remaining_result_row_indices,
+                                      bitmap_filter = std::move(bitmap_filter),
+                                      &database,
+                                      // For an explanation of the iteration algorithm, see the
+                                      // comments in the same location (`execute` method) in
+                                      // `fasta_aligned.cpp`.
+                                      current_partition](std::vector<QueryResultEntry>& results
+                                     ) mutable {
+      for (; current_partition < database.partitions.size();
+           ++current_partition, remaining_result_row_indices = {}) {
+         auto& bitmap = bitmap_filter[current_partition];
+         if (!remaining_result_row_indices.has_value()) {
             // (See comments in `execute` in `fasta_aligned.cpp`.)
-            const Range<uint32_t> result_row_indices =
-               remaining_result_row_indices->take(PARTITION_CHUNK_SIZE);
-            if (!result_row_indices.isEmpty()) {
-               SPDLOG_TRACE(
-                  "Fasta::execute: refill QueryResult for partition_index {}/{}, {}",
-                  current_partition,
-                  database.partitions.size(),
-                  result_row_indices.toString()
-               );
-               const std::string& primary_key_column = database.database_config.schema.primary_key;
-               const auto& database_partition = database.partitions[current_partition];
+            remaining_result_row_indices = {
+               {0, boost::numeric_cast<uint32_t, uint64_t>(bitmap->cardinality())}
+            };
+         }
 
-               results.resize(result_row_indices.size());
-               const uint32_t last_row_id = addSequencesToResultsForPartition(
-                  sequence_names,
-                  results,
-                  database_partition,
-                  bitmap,
-                  primary_key_column,
-                  result_row_indices.size()
-               );
+         // (See comments in `execute` in `fasta_aligned.cpp`.)
+         const Range<uint32_t> result_row_indices =
+            remaining_result_row_indices->take(PARTITION_CHUNK_SIZE);
+         if (!result_row_indices.isEmpty()) {
+            SPDLOG_TRACE(
+               "Fasta::execute: refill QueryResult for partition_index {}/{}, {}",
+               current_partition,
+               database.partitions.size(),
+               result_row_indices.toString()
+            );
+            const std::string& primary_key_column = database.database_config.schema.primary_key;
+            const auto& database_partition = database.partitions[current_partition];
 
-               ASSERT(results.size() == result_row_indices.size());
+            results.resize(result_row_indices.size());
+            const uint32_t last_row_id = addSequencesToResultsForPartition(
+               sequence_names,
+               results,
+               database_partition,
+               bitmap,
+               primary_key_column,
+               result_row_indices.size()
+            );
 
-               *remaining_result_row_indices =
-                  remaining_result_row_indices->skip(result_row_indices.size());
-               // (See comments in `execute` in `fasta_aligned.cpp`.)
-               bitmap->removeRange(0, add1(last_row_id));
-               // (See comments in `execute` in `fasta_aligned.cpp`.)
-               return;
-            }
+            ASSERT(results.size() == result_row_indices.size());
+
+            *remaining_result_row_indices =
+               remaining_result_row_indices->skip(result_row_indices.size());
+            // (See comments in `execute` in `fasta_aligned.cpp`.)
+            bitmap->removeRange(0, add1(last_row_id));
+            // (See comments in `execute` in `fasta_aligned.cpp`.)
+            return;
          }
       }
-   );
+   });
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
