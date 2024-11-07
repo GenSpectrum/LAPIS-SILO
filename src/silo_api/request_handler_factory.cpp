@@ -13,10 +13,6 @@
 #include "silo_api/query_handler.h"
 #include "silo_api/request_id_handler.h"
 
-using silo_api::ErrorRequestHandler;
-using silo_api::LoggingRequestHandler;
-using silo_api::RequestIdHandler;
-
 namespace silo_api {
 
 SiloRequestHandlerFactory::SiloRequestHandlerFactory(

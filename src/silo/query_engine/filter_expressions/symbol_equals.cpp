@@ -101,7 +101,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> SymbolEquals<SymbolType
       std::ranges::transform(
          symbols_to_match,
          std::back_inserter(symbol_filters),
-         [&](SymbolType::Symbol symbol) {
+         [&](typename SymbolType::Symbol symbol) {
             return std::make_unique<SymbolEquals<SymbolType>>(
                valid_sequence_name, position_idx, symbol
             );

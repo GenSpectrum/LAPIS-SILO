@@ -34,28 +34,18 @@ CHILD:
 }
 
 TEST(LineageTreeAndIdMap, errorOnMissingParent) {
-   auto throwing_lambda = []() {
-      (void)LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAML(R"(
+   EXPECT_THAT(
+      []() {
+         (void)LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAML(R"(
 some_lineage:
   parents:
     - parent_that_does_not_exist
 )"));
-   };
-
-   EXPECT_THROW(
-      {
-         try {
-            throwing_lambda();
-         } catch (const silo::preprocessing::PreprocessingException& e) {
-            ASSERT_EQ(
-               std::string(e.what()),
-               "The lineage 'parent_that_does_not_exist' which is specified as the parent of "
-               "vertex 'some_lineage' does not have a definition itself."
-            );
-            throw;
-         }
       },
-      silo::preprocessing::PreprocessingException
+      ThrowsMessage<silo::preprocessing::PreprocessingException>(::testing::HasSubstr(
+         "The lineage 'parent_that_does_not_exist' which is specified as the parent of "
+         "vertex 'some_lineage' does not have a definition itself."
+      ))
    );
 }
 
@@ -241,12 +231,12 @@ TEST(containsCycle, doesNotFindCycleInPangoLineageTree) {
 
 TEST(containsCycle, doesNotFindCycleInMediumSizedChainGraph) {
    std::vector<std::pair<uint32_t, uint32_t>> chain_edges;
-   uint32_t N = UINT16_MAX;
-   chain_edges.reserve(N);
-   for (size_t i = 0; i + 1 < N; i++) {
+   const uint32_t number_of_edges = UINT16_MAX;
+   chain_edges.reserve(number_of_edges);
+   for (size_t i = 0; i + 1 < number_of_edges; i++) {
       chain_edges.emplace_back(i, i + 1);
    }
-   ASSERT_FALSE(silo::common::containsCycle(N, chain_edges));
+   ASSERT_FALSE(silo::common::containsCycle(number_of_edges, chain_edges));
 }
 
 TEST(containsCycle, findsCycles) {
