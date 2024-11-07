@@ -38,7 +38,7 @@ char Nucleotide::symbolToChar(Nucleotide::Symbol symbol) {
       case Symbol::N:
          return 'N';
    }
-   UNREACHABLE();
+   SILO_UNREACHABLE();
 }
 
 std::optional<Nucleotide::Symbol> Nucleotide::charToSymbol(char character) {

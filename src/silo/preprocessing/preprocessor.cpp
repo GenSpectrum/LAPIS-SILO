@@ -92,7 +92,7 @@ Database Preprocessor::preprocess() {
    }
 
    const auto& ndjson_input_filename = preprocessing_config.getNdjsonInputFilename();
-   ASSERT(ndjson_input_filename.has_value());
+   SILO_ASSERT(ndjson_input_filename.has_value());
    SPDLOG_INFO("preprocessing - ndjson pipeline chosen");
    auto input_file = ValidatedNdjsonFile::validateFileAgainstConfig(
       ndjson_input_filename.value(), database_config, reference_genomes

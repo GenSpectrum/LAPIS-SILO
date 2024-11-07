@@ -75,7 +75,7 @@ void assignTupleField(
          return;
       }
    }
-   UNREACHABLE();
+   SILO_UNREACHABLE();
 }
 
 silo::common::JsonValueType tupleFieldToValueType(
@@ -134,7 +134,7 @@ silo::common::JsonValueType tupleFieldToValueType(
          return std::move(string_value);
       }
    }
-   UNREACHABLE();
+   SILO_UNREACHABLE();
 }
 
 std::strong_ordering compareDouble(double value1, double value2) {
@@ -233,7 +233,7 @@ std::strong_ordering compareTupleFields(
          return compareString(string_value1, string_value2);
       }
    }
-   UNREACHABLE();
+   SILO_UNREACHABLE();
 }
 
 size_t getColumnSize(const silo::storage::ColumnMetadata& metadata) {
@@ -257,7 +257,7 @@ size_t getColumnSize(const silo::storage::ColumnMetadata& metadata) {
          return sizeof(silo::Idx);
       }
    }
-   UNREACHABLE();
+   SILO_UNREACHABLE();
 }
 
 }  // namespace
@@ -286,7 +286,7 @@ Tuple& Tuple::operator=(const Tuple& other) {
    if (this == &other) {
       return *this;
    }
-   ASSERT(this->data_size == other.data_size);
+   SILO_ASSERT(this->data_size == other.data_size);
    columns = other.columns;
    std::memcpy(this->data, other.data, data_size);
    return *this;

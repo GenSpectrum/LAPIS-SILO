@@ -61,7 +61,7 @@ void ColumnPartitionGroup::addValueToColumn(
          float_columns.at(column_name).insert(value.ToString());
          return;
    }
-   UNREACHABLE();
+   SILO_UNREACHABLE();
 }
 
 void ColumnPartitionGroup::addNullToColumn(const std::string& column_name, ColumnType column_type) {
@@ -85,7 +85,7 @@ void ColumnPartitionGroup::addNullToColumn(const std::string& column_name, Colum
          float_columns.at(column_name).insertNull();
          return;
    }
-   UNREACHABLE();
+   SILO_UNREACHABLE();
 }
 
 void ColumnPartitionGroup::reserveSpaceInColumn(
@@ -113,7 +113,7 @@ void ColumnPartitionGroup::reserveSpaceInColumn(
          float_columns.at(column_name).reserve(row_count);
          return;
    }
-   UNREACHABLE();
+   SILO_UNREACHABLE();
 }
 
 ColumnPartitionGroup ColumnPartitionGroup::getSubgroup(
@@ -148,7 +148,7 @@ ColumnPartitionGroup ColumnPartitionGroup::getSubgroup(
                result.float_columns.insert({item.name, float_columns.at(item.name)});
                return;
          }
-         UNREACHABLE();
+         SILO_UNREACHABLE();
       })();
    }
    return result;

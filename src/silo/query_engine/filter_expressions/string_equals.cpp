@@ -49,7 +49,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> StringEquals::compile(
          bitmap.value(), database_partition.sequence_count
       );
    }
-   ASSERT(database_partition.columns.string_columns.contains(column_name));
+   SILO_ASSERT(database_partition.columns.string_columns.contains(column_name));
    const auto& string_column = database_partition.columns.string_columns.at(column_name);
    const auto& embedded_string = string_column.embedString(value);
    if (embedded_string.has_value()) {

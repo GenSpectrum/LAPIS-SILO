@@ -46,8 +46,8 @@ Graph::Graph(size_t number_of_vertices)
       adjacency_list(number_of_vertices) {}
 
 void Graph::addEdge(Idx vertex_from, Idx vertex_to) {
-   ASSERT_LT(vertex_from, number_of_vertices);
-   ASSERT_LT(vertex_to, number_of_vertices);
+   SILO_ASSERT_LT(vertex_from, number_of_vertices);
+   SILO_ASSERT_LT(vertex_to, number_of_vertices);
    adjacency_list.at(vertex_from).emplace_back(vertex_to);
 }
 
@@ -100,11 +100,11 @@ std::optional<std::vector<Idx>> Graph::getCycle() const {
          if (witness_lasso.has_value()) {
             // We found a witness lasso of the form 1 -> 2 -> 3 -> 4 -> 5 -> 3
             // We need to remove leading vertices up until the cycle
-            ASSERT_GE(witness_lasso.value().size(), 2);
+            SILO_ASSERT_GE(witness_lasso.value().size(), 2);
             const Idx cycle_node = witness_lasso.value().back();
             auto cycle_node_first_occurrence =
                std::find(witness_lasso.value().begin(), witness_lasso.value().end(), cycle_node);
-            ASSERT(cycle_node_first_occurrence < witness_lasso.value().end());
+            SILO_ASSERT(cycle_node_first_occurrence < witness_lasso.value().end());
             witness_lasso.value().erase(witness_lasso.value().begin(), cycle_node_first_occurrence);
             return witness_lasso;
          }
@@ -201,7 +201,7 @@ std::unordered_map<Idx, Idx> assignAliasIdsAndGetAliasMapping(
    std::unordered_map<Idx, Idx> alias_mapping;
    for (const auto& lineage : file.lineages) {
       const auto lineage_id = lookup.getId(lineage.lineage_name.string);
-      ASSERT(lineage_id.has_value());
+      SILO_ASSERT(lineage_id.has_value());
       for (const auto& alias : lineage.aliases) {
          if (lookup.getId(alias.string).has_value()) {
             throw silo::preprocessing::PreprocessingException(fmt::format(
@@ -225,7 +225,7 @@ std::vector<std::pair<Idx, Idx>> getParentChildEdges(
    std::vector<std::pair<Idx, Idx>> edge_list;
    for (const auto& lineage : file.lineages) {
       const auto child_id = lookup.getId(lineage.lineage_name.string);
-      ASSERT(child_id.has_value());
+      SILO_ASSERT(child_id.has_value());
 
       for (const auto& parent_lineage : lineage.parents) {
          auto parent_id = lookup.getId(parent_lineage.string);

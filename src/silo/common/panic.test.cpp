@@ -3,14 +3,10 @@
 #include <cctype>
 #include <cstdlib>
 
-/* get rid of gtest's definition, we're going to test our own */
-#undef ASSERT_EQ
-
 #include "silo/common/panic.h"
 
 namespace {
-// Since we can't use ASSERT_EQ from gtest, make a simple
-// replacement. `expected` should be without the file:line
+// Fuzzy comparison: `expected` should be without the file:line
 // information, whereas `got` should contain it.
 void assertMsg(std::string got, std::string expected) {
    auto start = got.substr(0, expected.size());
@@ -47,18 +43,18 @@ void nullCapableSetenv(const char* name, const char* value, int overwrite) {
 
 // NOLINTNEXTLINE(readability-identifier-naming,readability-function-cognitive-complexity)
 TEST(panic, assertEqPanicModes) {
-   ASSERT_EQ(1 + 1, 2);
+   SILO_ASSERT_EQ(1 + 1, 2);
 
    const char* old_env = getenv("SILO_PANIC");
    setenv("SILO_PANIC", "", 1);
    try {
-      ASSERT_EQ(1 + 1, 3);
+      SILO_ASSERT_EQ(1 + 1, 3);
    } catch (const std::exception& ex) {
       assertMsg(ex.what(), "ASSERT_EQ failure: 1 + 1 == 3: 2 == 3");
    };
 
    setenv("SILO_PANIC", "abort", 1);
-   ASSERT_DEATH(ASSERT_EQ(1 + 1, 3), "ASSERT_EQ failure: 1 \\+ 1 == 3: 2 == 3");
+   ASSERT_DEATH(SILO_ASSERT_EQ(1 + 1, 3), "ASSERT_EQ failure: 1 \\+ 1 == 3: 2 == 3");
 
    // revert it back
    nullCapableSetenv("SILO_PANIC", old_env, 1);
@@ -67,49 +63,49 @@ TEST(panic, assertEqPanicModes) {
 // NOLINTNEXTLINE(readability-identifier-naming,readability-function-cognitive-complexity)
 TEST(panic, debugAssertBehavesAsPerCompilationMode) {
    // should never complain
-   DEBUG_ASSERT(1 + 1 == 2);
+   SILO_DEBUG_ASSERT(1 + 1 == 2);
 
-   // Check that DEBUG_ASSERT is active if DEBUG_ASSERTIONS==1, off
+   // Check that SILO_DEBUG_ASSERT is active if SILO_DEBUG_ASSERTIONS==1, off
    // otherwise; each of those branches is only tested when compiling
    // the unit tests in debug or release mode, respectively.
 
-#if DEBUG_ASSERTIONS
+#if SILO_DEBUG_ASSERTIONS
 
    const char* old_env = getenv("SILO_PANIC");
    setenv("SILO_PANIC", "", 1);
    try {
-      DEBUG_ASSERT(1 + 1 == 3);
+      SILO_DEBUG_ASSERT(1 + 1 == 3);
    } catch (const std::exception& ex) {
       assertMsg(ex.what(), "DEBUG_ASSERT failure: 1 + 1 == 3");
    };
    nullCapableSetenv("SILO_PANIC", old_env, 1);
 
 #else
-   // check that DEBUG_ASSERT is disabled
-   DEBUG_ASSERT(1 + 1 == 3);
+   // check that SILO_DEBUG_ASSERT is disabled
+   SILO_DEBUG_ASSERT(1 + 1 == 3);
 #endif
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming,readability-function-cognitive-complexity)
 TEST(panic, debugAssertGeWorks) {
-   // stand-in for all the DEBUG_ASSERT_* variants
+   // stand-in for all the SILO_DEBUG_ASSERT_* variants
 
-   DEBUG_ASSERT_GE(1 + 5, 6);
-   DEBUG_ASSERT_GE(1 + 5, 5);
+   SILO_DEBUG_ASSERT_GE(1 + 5, 6);
+   SILO_DEBUG_ASSERT_GE(1 + 5, 5);
 
-#if DEBUG_ASSERTIONS
+#if SILO_DEBUG_ASSERTIONS
 
    const char* old_env = getenv("SILO_PANIC");
    setenv("SILO_PANIC", "", 1);
    try {
-      DEBUG_ASSERT_GE(1 + 5, 7);
+      SILO_DEBUG_ASSERT_GE(1 + 5, 7);
    } catch (const std::exception& ex) {
       assertMsg(ex.what(), "DEBUG_ASSERT_GE failure: 1 + 5 >= 7: 6 >= 7");
    };
    nullCapableSetenv("SILO_PANIC", old_env, 1);
 
 #else
-   // check that DEBUG_ASSERT is disabled
-   DEBUG_ASSERT_GE(1 + 5, 7);
+   // check that SILO_DEBUG_ASSERT is disabled
+   SILO_DEBUG_ASSERT_GE(1 + 5, 7);
 #endif
 }
