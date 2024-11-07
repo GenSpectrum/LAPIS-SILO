@@ -15,12 +15,12 @@
 #include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/actions/tuple.h"
-#include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/column_group.h"
 
-using silo::query_engine::OperatorResult;
+using silo::query_engine::CopyOnWriteBitmap;
 using silo::query_engine::QueryResult;
 using silo::query_engine::QueryResultEntry;
 using silo::query_engine::actions::Tuple;
@@ -55,7 +55,7 @@ std::vector<QueryResultEntry> generateResult(std::unordered_map<Tuple, uint32_t>
    return result;
 }
 
-QueryResult aggregateWithoutGrouping(const std::vector<OperatorResult>& bitmap_filters) {
+QueryResult aggregateWithoutGrouping(const std::vector<CopyOnWriteBitmap>& bitmap_filters) {
    uint32_t count = 0;
    for (const auto& filter : bitmap_filters) {
       count += filter->cardinality();
@@ -92,7 +92,7 @@ void Aggregated::validateOrderByFields(const Database& database) const {
 
 QueryResult Aggregated::execute(
    const Database& database,
-   std::vector<OperatorResult> bitmap_filters
+   std::vector<CopyOnWriteBitmap> bitmap_filters
 ) const {
    if (group_by_fields.empty()) {
       return aggregateWithoutGrouping(bitmap_filters);
@@ -117,7 +117,7 @@ QueryResult Aggregated::execute(
          for (uint32_t partition_id = range.begin(); partition_id != range.end(); ++partition_id) {
             TupleFactory& tuple_factory = tuple_factories.at(partition_id);
             std::unordered_map<Tuple, uint32_t>& map = tuple_maps.at(partition_id);
-            OperatorResult& bitmap = bitmap_filters[partition_id];
+            CopyOnWriteBitmap& bitmap = bitmap_filters[partition_id];
 
             auto iterator = bitmap->begin();
             auto end = bitmap->end();

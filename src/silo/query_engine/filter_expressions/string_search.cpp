@@ -42,7 +42,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> createMatchingBitmap(
                result_bitmap.add(row_idx);
             }
          }
-         return OperatorResult(std::move(result_bitmap));
+         return CopyOnWriteBitmap(std::move(result_bitmap));
       },
       row_count
    );

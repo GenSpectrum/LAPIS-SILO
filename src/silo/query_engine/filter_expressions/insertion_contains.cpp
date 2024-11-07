@@ -12,8 +12,8 @@
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/database.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter_expressions/expression.h"
-#include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/bitmap_producer.h"
 #include "silo/query_engine/operators/empty.h"
 #include "silo/query_engine/operators/operator.h"
@@ -67,7 +67,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> InsertionContains<Symbo
    return std::make_unique<operators::BitmapProducer>(
       [&]() {
          auto search_result = sequence_store.insertion_index.search(position_idx, value);
-         return OperatorResult(std::move(*search_result));
+         return CopyOnWriteBitmap(std::move(*search_result));
       },
       database_partition.sequence_count
    );

@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "silo/common/string.h"
-#include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo::query_engine::filter_expressions {
@@ -72,7 +72,7 @@ class Selection : public Operator {
 
    [[nodiscard]] Type type() const override;
 
-   [[nodiscard]] OperatorResult evaluate() const override;
+   [[nodiscard]] CopyOnWriteBitmap evaluate() const override;
 
    [[nodiscard]] std::string toString() const override;
 

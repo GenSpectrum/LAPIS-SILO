@@ -6,7 +6,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_compilation_exception.h"
@@ -61,8 +61,8 @@ Type Intersection::type() const {
 
 namespace {
 
-OperatorResult intersectTwo(OperatorResult first, OperatorResult second) {
-   OperatorResult result;
+CopyOnWriteBitmap intersectTwo(CopyOnWriteBitmap first, CopyOnWriteBitmap second) {
+   CopyOnWriteBitmap result;
    if (first.isMutable()) {
       result = std::move(first);
       *result &= *second;
@@ -70,20 +70,20 @@ OperatorResult intersectTwo(OperatorResult first, OperatorResult second) {
       result = std::move(second);
       *result &= *first;
    } else {
-      result = OperatorResult(*first & *second);
+      result = CopyOnWriteBitmap(*first & *second);
    }
    return result;
 }
 
 }  // namespace
 
-OperatorResult Intersection::evaluate() const {
-   std::vector<OperatorResult> children_bm;
+CopyOnWriteBitmap Intersection::evaluate() const {
+   std::vector<CopyOnWriteBitmap> children_bm;
    children_bm.reserve(children.size());
    std::ranges::transform(children, std::back_inserter(children_bm), [&](const auto& child) {
       return child->evaluate();
    });
-   std::vector<OperatorResult> negated_children_bm;
+   std::vector<CopyOnWriteBitmap> negated_children_bm;
    negated_children_bm.reserve(negated_children.size());
    std::ranges::transform(
       negated_children,
@@ -93,14 +93,14 @@ OperatorResult Intersection::evaluate() const {
    // Sort ascending, such that intermediate results are kept small
    std::ranges::sort(
       children_bm,
-      [](const OperatorResult& expression1, const OperatorResult& expression2) {
+      [](const CopyOnWriteBitmap& expression1, const CopyOnWriteBitmap& expression2) {
          return expression1->cardinality() < expression2->cardinality();
       }
    );
    // Sort negated children descending by size
    std::ranges::sort(
       negated_children_bm,
-      [](const OperatorResult& expression_result1, const OperatorResult& expression_result2) {
+      [](const CopyOnWriteBitmap& expression_result1, const CopyOnWriteBitmap& expression_result2) {
          return expression_result1->cardinality() > expression_result2->cardinality();
       }
    );
@@ -108,7 +108,7 @@ OperatorResult Intersection::evaluate() const {
    // children_bm > 0 as asserted in constructor
    if (children_bm.size() == 1) {
       // negated_children_bm cannot be empty because of size assertion in constructor
-      OperatorResult& result = children_bm[0];
+      CopyOnWriteBitmap& result = children_bm[0];
       for (auto& neg_bm : negated_children_bm) {
          *result -= *neg_bm;
       }

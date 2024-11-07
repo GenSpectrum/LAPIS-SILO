@@ -6,7 +6,7 @@
 
 #include <roaring/roaring.hh>
 
-#include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_compilation_exception.h"
@@ -61,7 +61,7 @@ Type Threshold::type() const {
    return THRESHOLD;
 }
 
-OperatorResult Threshold::evaluate() const {
+CopyOnWriteBitmap Threshold::evaluate() const {
    uint32_t dp_table_size;
    if (this->match_exactly) {
       // We need to keep track of the ones that matched too many
@@ -132,9 +132,9 @@ OperatorResult Threshold::evaluate() const {
       // Because exact, we remove all that have too many
       partition_bitmaps[number_of_matchers - 1] -= partition_bitmaps[number_of_matchers];
 
-      return OperatorResult(std::move(partition_bitmaps[number_of_matchers - 1]));
+      return CopyOnWriteBitmap(std::move(partition_bitmaps[number_of_matchers - 1]));
    }
-   return OperatorResult(std::move(partition_bitmaps.back()));
+   return CopyOnWriteBitmap(std::move(partition_bitmaps.back()));
 }
 
 std::unique_ptr<Operator> Threshold::negate(std::unique_ptr<Threshold>&& threshold) {

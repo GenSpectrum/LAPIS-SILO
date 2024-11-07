@@ -5,8 +5,8 @@
 #include <fmt/format.h>
 #include <roaring/roaring.hh>
 
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter_expressions/expression.h"
-#include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/operator.h"
 
@@ -39,8 +39,8 @@ Type IndexScan::type() const {
    return INDEX_SCAN;
 }
 
-OperatorResult IndexScan::evaluate() const {
-   return OperatorResult(*bitmap);
+CopyOnWriteBitmap IndexScan::evaluate() const {
+   return CopyOnWriteBitmap(*bitmap);
 }
 std::unique_ptr<Operator> IndexScan::negate(std::unique_ptr<IndexScan>&& index_scan) {
    const uint32_t row_count = index_scan->row_count;

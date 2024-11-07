@@ -9,7 +9,7 @@
 #include <nlohmann/json_fwd.hpp>
 
 #include "silo/database.h"
-#include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/query_result.h"
 
 namespace silo::query_engine::actions {
@@ -35,7 +35,7 @@ class Action {
       /// Life time: until query result was delivered (and the lock
       /// inside `FixedDatabase` is released)
       const Database& database,
-      std::vector<OperatorResult> bitmap_filter
+      std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const = 0;
 
   public:
@@ -51,7 +51,7 @@ class Action {
 
    [[nodiscard]] virtual QueryResult executeAndOrder(
       const Database& database,
-      std::vector<OperatorResult> bitmap_filter
+      std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const;
 };
 

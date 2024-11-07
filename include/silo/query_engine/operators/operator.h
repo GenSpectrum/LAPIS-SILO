@@ -4,7 +4,7 @@
 #include <optional>
 #include <string>
 
-#include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 
 namespace silo::query_engine::operators {
 
@@ -30,7 +30,7 @@ class Operator {
 
    [[nodiscard]] virtual Type type() const = 0;
 
-   virtual OperatorResult evaluate() const = 0;
+   virtual CopyOnWriteBitmap evaluate() const = 0;
 
    virtual std::string toString() const = 0;
 

@@ -2,13 +2,13 @@
 
 #include <utility>
 
-#include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo::query_engine::operators {
 
-BitmapProducer::BitmapProducer(std::function<OperatorResult()> producer, uint32_t row_count)
+BitmapProducer::BitmapProducer(std::function<CopyOnWriteBitmap()> producer, uint32_t row_count)
     : producer(std::move(producer)),
       row_count(row_count) {}
 
@@ -22,7 +22,7 @@ Type BitmapProducer::type() const {
    return BITMAP_PRODUCER;
 }
 
-OperatorResult BitmapProducer::evaluate() const {
+CopyOnWriteBitmap BitmapProducer::evaluate() const {
    return producer();
 }
 

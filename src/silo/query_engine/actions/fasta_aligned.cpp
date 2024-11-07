@@ -20,7 +20,7 @@
 #include "silo/config/database_config.h"
 #include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
-#include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/sequence_store.h"
@@ -141,7 +141,7 @@ QueryResultEntry makeEntry(
 
 QueryResult FastaAligned::execute(
    const Database& database,
-   std::vector<OperatorResult> bitmap_filter
+   std::vector<CopyOnWriteBitmap> bitmap_filter
 ) const {
    std::vector<std::string> nuc_sequence_names;
    std::vector<std::string> aa_sequence_names;

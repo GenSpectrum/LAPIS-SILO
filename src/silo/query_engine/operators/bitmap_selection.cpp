@@ -5,8 +5,8 @@
 #include <fmt/format.h>
 #include <roaring/roaring.hh>
 
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter_expressions/expression.h"
-#include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo::query_engine::operators {
@@ -48,8 +48,8 @@ Type BitmapSelection::type() const {
    return BITMAP_SELECTION;
 }
 
-OperatorResult BitmapSelection::evaluate() const {
-   OperatorResult bitmap;
+CopyOnWriteBitmap BitmapSelection::evaluate() const {
+   CopyOnWriteBitmap bitmap;
    switch (this->comparator) {
       case CONTAINS:
          for (uint32_t i = 0; i < row_count; i++) {

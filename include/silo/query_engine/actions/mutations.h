@@ -33,14 +33,16 @@ class Mutations : public Action {
    const std::string COUNT_FIELD_NAME = "count";
 
    struct PrefilteredBitmaps {
-      std::vector<std::pair<const OperatorResult&, const silo::SequenceStorePartition<SymbolType>&>>
+      std::vector<
+         std::pair<const CopyOnWriteBitmap&, const silo::SequenceStorePartition<SymbolType>&>>
          bitmaps;
-      std::vector<std::pair<const OperatorResult&, const silo::SequenceStorePartition<SymbolType>&>>
+      std::vector<
+         std::pair<const CopyOnWriteBitmap&, const silo::SequenceStorePartition<SymbolType>&>>
          full_bitmaps;
    };
 
    static std::unordered_map<std::string, Mutations<SymbolType>::PrefilteredBitmaps>
-   preFilterBitmaps(const silo::Database& database, std::vector<OperatorResult>& bitmap_filter);
+   preFilterBitmaps(const silo::Database& database, std::vector<CopyOnWriteBitmap>& bitmap_filter);
 
    static void addPositionToMutationCountsForMixedBitmaps(
       uint32_t position_idx,
@@ -70,7 +72,7 @@ class Mutations : public Action {
 
    [[nodiscard]] QueryResult execute(
       const Database& database,
-      std::vector<OperatorResult> bitmap_filter
+      std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const override;
 
   public:

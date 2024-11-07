@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo::query_engine::filter_expressions {
@@ -32,7 +32,7 @@ class Union : public Operator {
 
    [[nodiscard]] Type type() const override;
 
-   virtual OperatorResult evaluate() const override;
+   virtual CopyOnWriteBitmap evaluate() const override;
 
    static std::unique_ptr<Operator> negate(std::unique_ptr<Union>&& union_operator);
 };

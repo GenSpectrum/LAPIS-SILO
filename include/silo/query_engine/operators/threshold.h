@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo::query_engine::operators {
@@ -31,7 +31,7 @@ class Threshold : public Operator {
 
    [[nodiscard]] virtual Type type() const override;
 
-   virtual OperatorResult evaluate() const override;
+   virtual CopyOnWriteBitmap evaluate() const override;
 
    virtual std::string toString() const override;
 

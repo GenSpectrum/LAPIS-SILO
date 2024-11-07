@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/operators/full.h"
 #include "silo/query_engine/operators/operator.h"
 
@@ -21,8 +21,8 @@ Type Empty::type() const {
    return EMPTY;
 }
 
-OperatorResult Empty::evaluate() const {
-   return OperatorResult();
+CopyOnWriteBitmap Empty::evaluate() const {
+   return CopyOnWriteBitmap();
 }
 
 std::unique_ptr<Operator> Empty::negate(std::unique_ptr<Empty>&& empty) {

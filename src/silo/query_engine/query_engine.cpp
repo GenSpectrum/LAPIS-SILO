@@ -11,8 +11,8 @@
 #include "silo/common/block_timer.h"
 #include "silo/common/log.h"
 #include "silo/database.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter_expressions/expression.h"
-#include "silo/query_engine/operator_result.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query.h"
 #include "silo/query_engine/query_result.h"
@@ -28,7 +28,7 @@ QueryResult QueryEngine::executeQuery(const std::string& query_string) const {
    SPDLOG_DEBUG("Parsed query: {}", query.filter->toString());
 
    std::vector<std::string> compiled_queries(database.partitions.size());
-   std::vector<silo::query_engine::OperatorResult> partition_filters(database.partitions.size());
+   std::vector<silo::query_engine::CopyOnWriteBitmap> partition_filters(database.partitions.size());
    int64_t filter_time;
    {
       const silo::common::BlockTimer timer(filter_time);
