@@ -75,7 +75,7 @@ void MetadataInfo::validateMetadataFile(
       if (!actual_fields.contains(field.name)) {
          const std::string error_message = fmt::format(
             "The field '{}' which is contained in the database config is not contained in the "
-            "input field '{}'.",
+            "metadata file '{}'.",
             field.name,
             metadata_file.string()
          );
