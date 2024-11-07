@@ -16,7 +16,7 @@ fi
 testdir="$1"
 mypath=$(readlink -f "$0")
 mydir=$(dirname "$mypath")
-builddir=$(dirname "$mydir")/build
+builddir=$(dirname "$mydir")/build/Debug
 
 IFS=' '
 

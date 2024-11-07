@@ -16,7 +16,7 @@ if [[ $# -gt 0 ]] && { [[ "$1" = "-h" ]] || [[ "$1" = "--help" ]] ; }; then
     usage
 fi
 
-args=(../)
+args=(../../)
 
 if _mold_path=$(which mold); then
     args=("${args[@]}" -D CMAKE_EXE_LINKER_FLAGS=-fuse-ld=mold)
@@ -37,7 +37,7 @@ _do() {
     "$@"
 }
 
-_do cd build
+_do cd build/Debug
 _do cmake "${args[@]}"
 # Make all binaries..
 _do "${make[@]}" 

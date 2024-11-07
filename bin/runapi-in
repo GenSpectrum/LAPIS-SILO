@@ -20,4 +20,4 @@ set -x
 cd "$testdir"
 
 export SPDLOG_LEVEL=${SPDLOG_LEVEL-debug}
-exec ${DEBUGGER-} ../../build/siloApi --api --port "$portnumber"
+exec ${DEBUGGER-} ../../build/Debug/siloApi --api --port "$portnumber"
