@@ -67,7 +67,7 @@ std::unique_ptr<silo::query_engine::operators::Operator> StringSearch::compile(
          string_column, *search_expression, database_partition.sequence_count
       );
    }
-   ASSERT(database_partition.columns.string_columns.contains(column_name));
+   SILO_ASSERT(database_partition.columns.string_columns.contains(column_name));
    const auto& string_column = database_partition.columns.string_columns.at(column_name);
    return createMatchingBitmap(
       string_column, *search_expression, database_partition.sequence_count

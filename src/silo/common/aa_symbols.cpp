@@ -61,7 +61,7 @@ char AminoAcid::symbolToChar(AminoAcid::Symbol symbol) {
       case AminoAcid::Symbol::STOP:
          return '*';
    }
-   UNREACHABLE();
+   SILO_UNREACHABLE();
 }
 
 std::optional<AminoAcid::Symbol> AminoAcid::charToSymbol(char character) {

@@ -45,7 +45,7 @@ std::optional<bool> OptionalBool::value() const noexcept {
       case Representation::TRUE:
          return true;
    }
-   UNREACHABLE();
+   SILO_UNREACHABLE();
 }
 
 std::string_view OptionalBool::asStr() const noexcept {
@@ -57,7 +57,7 @@ std::string_view OptionalBool::asStr() const noexcept {
       case Representation::TRUE:
          return "true";
    }
-   UNREACHABLE();
+   SILO_UNREACHABLE();
 }
 
 }  // namespace silo::common

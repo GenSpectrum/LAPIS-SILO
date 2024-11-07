@@ -199,7 +199,7 @@ BitmapContainerSize& BitmapContainerSize::operator+=(const BitmapContainerSize& 
 
 BitmapSizePerSymbol& BitmapSizePerSymbol::operator+=(const BitmapSizePerSymbol& other) {
    for (const auto& symbol : Nucleotide::SYMBOLS) {
-      ASSERT(size_in_bytes.contains(symbol));
+      SILO_ASSERT(size_in_bytes.contains(symbol));
       size_in_bytes.at(symbol) += other.size_in_bytes.at(symbol);
    }
    return *this;
@@ -223,7 +223,7 @@ BitmapSizePerSymbol Database::calculateBitmapSizePerSymbol(
 
       for (const SequenceStorePartition<SymbolType>& seq_store_partition : seq_store.partitions) {
          for (const auto& position : seq_store_partition.positions) {
-            ASSERT(bitmap_size_per_symbol.size_in_bytes.contains(symbol));
+            SILO_ASSERT(bitmap_size_per_symbol.size_in_bytes.contains(symbol));
             bitmap_size_per_symbol.size_in_bytes[symbol] +=
                position.getBitmap(symbol)->getSizeInBytes();
          }
@@ -649,7 +649,7 @@ void Database::initializeColumn(const config::DatabaseMetadata& metadata) {
          }
          return;
    }
-   UNREACHABLE();
+   SILO_UNREACHABLE();
 }
 
 void Database::initializeColumns() {

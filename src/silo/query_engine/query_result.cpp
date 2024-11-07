@@ -92,14 +92,14 @@ void QueryResult::materialize() {
 
 std::vector<QueryResultEntry>& QueryResult::entriesMut() {
    if (!is_materialized_) {
-      PANIC("can't give access to entries vector for a QueryResult that is streamed");
+      SILO_PANIC("can't give access to entries vector for a QueryResult that is streamed");
    }
    return query_result_chunk_;
 }
 
 const std::vector<QueryResultEntry>& QueryResult::entries() const {
    if (!is_materialized_) {
-      PANIC("can't give access to entries vector for a QueryResult that is streamed");
+      SILO_PANIC("can't give access to entries vector for a QueryResult that is streamed");
    }
    return query_result_chunk_;
 }

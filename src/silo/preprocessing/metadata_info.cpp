@@ -25,7 +25,7 @@ std::string toSQLType(ValueType value_type) {
       case ValueType::DATE:
          return "DATE";
    }
-   UNREACHABLE();
+   SILO_UNREACHABLE();
 }
 
 }  // namespace

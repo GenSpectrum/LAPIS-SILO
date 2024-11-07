@@ -70,7 +70,7 @@ std::unique_ptr<Operator> Operator::negate(std::unique_ptr<Operator>&& some_oper
          return BitmapProducer::negate(std::unique_ptr<BitmapProducer>(bitmap_producer));
       }
    }
-   UNREACHABLE();
+   SILO_UNREACHABLE();
 }
 
 }  // namespace silo::query_engine::operators

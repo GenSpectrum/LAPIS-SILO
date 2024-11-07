@@ -213,7 +213,7 @@ QueryResult FastaAligned::execute(
                   return;
                }
             }
-            PANIC("ran out of bitmap before finishing result_row_indices");
+            SILO_PANIC("ran out of bitmap before finishing result_row_indices");
          }
       }
    });

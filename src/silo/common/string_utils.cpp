@@ -64,7 +64,7 @@ std::vector<std::string> tie(
    const std::vector<std::string>& elements2,
    std::string_view suffix
 ) {
-   ASSERT(elements1.size() == elements2.size());
+   SILO_ASSERT(elements1.size() == elements2.size());
    std::vector<std::string> output;
    output.reserve(elements1.size());
    for (size_t i = 0; i < elements1.size(); ++i) {
