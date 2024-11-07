@@ -18,7 +18,7 @@
 #include "silo/common/optional_bool.h"
 #include "silo/common/panic.h"
 #include "silo/common/string.h"
-#include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/operator.h"
 
@@ -96,10 +96,10 @@ bool Selection::matchesPredicates(uint32_t row) const {
    });
 }
 
-OperatorResult Selection::evaluate() const {
-   OperatorResult result;
+CopyOnWriteBitmap Selection::evaluate() const {
+   CopyOnWriteBitmap result;
    if (child_operator.has_value()) {
-      OperatorResult child_result = (*child_operator)->evaluate();
+      CopyOnWriteBitmap child_result = (*child_operator)->evaluate();
       for (const uint32_t row : *child_result) {
          if (matchesPredicates(row)) {
             result->add(row);

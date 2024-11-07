@@ -8,15 +8,15 @@ namespace silo::query_engine {
 
 /// The return value of the Operator::evaluate method.
 /// May return either a mutable or immutable bitmap.
-class OperatorResult {
+class CopyOnWriteBitmap {
   private:
    std::shared_ptr<roaring::Roaring> mutable_bitmap;
    const roaring::Roaring* immutable_bitmap;
 
   public:
-   OperatorResult();
-   explicit OperatorResult(const roaring::Roaring& bitmap);
-   explicit OperatorResult(roaring::Roaring&& bitmap);
+   CopyOnWriteBitmap();
+   explicit CopyOnWriteBitmap(const roaring::Roaring& bitmap);
+   explicit CopyOnWriteBitmap(roaring::Roaring&& bitmap);
 
    roaring::Roaring& operator*();
    const roaring::Roaring& operator*() const;

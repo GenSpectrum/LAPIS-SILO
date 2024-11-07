@@ -16,13 +16,13 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
-#include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/database_partition.h"
 #include "silo/storage/insertion_index.h"
 
-using silo::query_engine::OperatorResult;
+using silo::query_engine::CopyOnWriteBitmap;
 using silo::storage::insertion::InsertionIndex;
 
 namespace silo::query_engine::actions {
@@ -78,7 +78,7 @@ template <typename SymbolType>
 std::unordered_map<std::string, typename InsertionAggregation<SymbolType>::PrefilteredBitmaps>
 InsertionAggregation<SymbolType>::validateFieldsAndPreFilterBitmaps(
    const Database& database,
-   std::vector<OperatorResult>& bitmap_filter
+   std::vector<CopyOnWriteBitmap>& bitmap_filter
 ) const {
    validateSequenceNames<SymbolType>(database, sequence_names);
 
@@ -91,7 +91,7 @@ InsertionAggregation<SymbolType>::validateFieldsAndPreFilterBitmaps(
          if (sequence_names.empty() ||
              std::ranges::find(sequence_names, sequence_name) !=
                 sequence_names.end()) {
-            OperatorResult& filter = bitmap_filter[i];
+            CopyOnWriteBitmap& filter = bitmap_filter[i];
             const size_t cardinality = filter->cardinality();
             if (cardinality == 0) {
                continue;
@@ -190,7 +190,7 @@ void InsertionAggregation<SymbolType>::addAggregatedInsertionsToInsertionCounts(
 template <typename SymbolType>
 QueryResult InsertionAggregation<SymbolType>::execute(
    const Database& database,
-   std::vector<OperatorResult> bitmap_filter
+   std::vector<CopyOnWriteBitmap> bitmap_filter
 ) const {
    const auto bitmaps_to_evaluate = validateFieldsAndPreFilterBitmaps(database, bitmap_filter);
 

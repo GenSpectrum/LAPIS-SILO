@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/operators/empty.h"
 #include "silo/query_engine/operators/operator.h"
 
@@ -21,8 +21,8 @@ Type Full::type() const {
    return FULL;
 }
 
-OperatorResult Full::evaluate() const {
-   OperatorResult result;
+CopyOnWriteBitmap Full::evaluate() const {
+   CopyOnWriteBitmap result;
    result->addRange(0, row_count);
    return result;
 }

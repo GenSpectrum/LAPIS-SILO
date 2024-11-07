@@ -6,7 +6,7 @@
 
 #include <roaring/roaring.hh>
 
-#include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/operator.h"
 
@@ -32,16 +32,16 @@ Type Union::type() const {
    return UNION;
 }
 
-OperatorResult Union::evaluate() const {
+CopyOnWriteBitmap Union::evaluate() const {
    const uint32_t size_of_children = children.size();
    std::vector<const roaring::Roaring*> union_tmp(size_of_children);
-   std::vector<OperatorResult> child_res(size_of_children);
+   std::vector<CopyOnWriteBitmap> child_res(size_of_children);
    for (uint32_t i = 0; i < size_of_children; i++) {
       child_res[i] = children[i]->evaluate();
       const roaring::Roaring& const_bitmap = *child_res[i];
       union_tmp[i] = &const_bitmap;
    }
-   return OperatorResult(roaring::Roaring::fastunion(union_tmp.size(), union_tmp.data()));
+   return CopyOnWriteBitmap(roaring::Roaring::fastunion(union_tmp.size(), union_tmp.data()));
 }
 
 std::unique_ptr<Operator> Union::negate(std::unique_ptr<Union>&& union_operator) {

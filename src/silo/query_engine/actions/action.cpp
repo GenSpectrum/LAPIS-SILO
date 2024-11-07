@@ -20,7 +20,7 @@
 #include "silo/query_engine/actions/fasta_aligned.h"
 #include "silo/query_engine/actions/insertions.h"
 #include "silo/query_engine/actions/mutations.h"
-#include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
 
@@ -107,7 +107,7 @@ static const size_t MATERIALIZATION_CUTOFF = 10000;
 
 QueryResult Action::executeAndOrder(
    const Database& database,
-   std::vector<OperatorResult> bitmap_filter
+   std::vector<CopyOnWriteBitmap> bitmap_filter
 ) const {
    validateOrderByFields(database);
 

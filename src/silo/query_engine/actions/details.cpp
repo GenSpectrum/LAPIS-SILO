@@ -13,7 +13,7 @@
 #include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/actions/tuple.h"
-#include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/column_group.h"
@@ -60,7 +60,7 @@ void Details::validateOrderByFields(const Database& database) const {
 
 QueryResult Details::execute(
    const silo::Database& /*database*/,
-   std::vector<OperatorResult> /*bitmap_filter*/
+   std::vector<CopyOnWriteBitmap> /*bitmap_filter*/
 ) const {
    return QueryResult{};
 }
@@ -103,7 +103,7 @@ std::vector<actions::Tuple> mergeSortedTuples(
 
 std::vector<actions::Tuple> produceSortedTuplesWithLimit(
    std::vector<TupleFactory>& tuple_factories,
-   std::vector<OperatorResult>& bitmap_filter,
+   std::vector<CopyOnWriteBitmap>& bitmap_filter,
    const Tuple::Comparator tuple_comparator,
    const uint32_t to_produce
 ) {
@@ -152,7 +152,7 @@ std::vector<actions::Tuple> produceSortedTuplesWithLimit(
 
 std::vector<Tuple> produceAllTuples(
    std::vector<TupleFactory>& tuple_factories,
-   std::vector<OperatorResult>& bitmap_filter
+   std::vector<CopyOnWriteBitmap>& bitmap_filter
 ) {
    if (tuple_factories.empty()) {
       return {};
@@ -185,7 +185,7 @@ std::vector<Tuple> produceAllTuples(
 
 QueryResult Details::executeAndOrder(
    const silo::Database& database,
-   std::vector<OperatorResult> bitmap_filter
+   std::vector<CopyOnWriteBitmap> bitmap_filter
 ) const {
    validateOrderByFields(database);
    const std::vector<storage::ColumnMetadata> field_metadata = parseFields(database, fields);

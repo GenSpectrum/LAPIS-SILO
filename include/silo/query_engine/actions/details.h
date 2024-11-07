@@ -8,7 +8,7 @@
 
 #include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
-#include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/query_result.h"
 
 namespace silo::query_engine::actions {
@@ -20,7 +20,7 @@ class Details : public Action {
 
    [[nodiscard]] QueryResult execute(
       const Database& database,
-      std::vector<OperatorResult> bitmap_filter
+      std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const override;
 
   public:
@@ -32,7 +32,7 @@ class Details : public Action {
 
    [[nodiscard]] QueryResult executeAndOrder(
       const Database& database,
-      std::vector<OperatorResult> bitmap_filter
+      std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const override;
 };
 

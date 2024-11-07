@@ -18,13 +18,13 @@
 #include "silo/common/symbol_map.h"
 #include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
-#include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/database_partition.h"
 #include "silo/storage/sequence_store.h"
 
-using silo::query_engine::OperatorResult;
+using silo::query_engine::CopyOnWriteBitmap;
 
 namespace silo::query_engine::actions {
 
@@ -36,11 +36,11 @@ Mutations<SymbolType>::Mutations(std::vector<std::string>&& sequence_names, doub
 template <typename SymbolType>
 std::unordered_map<std::string, typename Mutations<SymbolType>::PrefilteredBitmaps> Mutations<
    SymbolType>::
-   preFilterBitmaps(const silo::Database& database, std::vector<OperatorResult>& bitmap_filter) {
+   preFilterBitmaps(const silo::Database& database, std::vector<CopyOnWriteBitmap>& bitmap_filter) {
    std::unordered_map<std::string, PrefilteredBitmaps> bitmaps_to_evaluate;
    for (size_t i = 0; i < database.partitions.size(); ++i) {
       const DatabasePartition& database_partition = database.partitions.at(i);
-      OperatorResult& filter = bitmap_filter[i];
+      CopyOnWriteBitmap& filter = bitmap_filter[i];
       const size_t cardinality = filter->cardinality();
       if (cardinality == 0) {
          continue;
@@ -255,7 +255,7 @@ void Mutations<SymbolType>::addMutationsToOutput(
 template <typename SymbolType>
 QueryResult Mutations<SymbolType>::execute(
    const Database& database,
-   std::vector<OperatorResult> bitmap_filter
+   std::vector<CopyOnWriteBitmap> bitmap_filter
 ) const {
    std::vector<std::string> sequence_names_to_evaluate;
    for (const auto& sequence_name : sequence_names) {

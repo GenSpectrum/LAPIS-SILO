@@ -15,7 +15,7 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
-#include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_result.h"
 
@@ -33,11 +33,11 @@ class InsertionAggregation : public Action {
 
    struct PrefilteredBitmaps {
       std::vector<std::pair<
-         const OperatorResult&,
+         const CopyOnWriteBitmap&,
          const silo::storage::insertion::InsertionIndex<SymbolType>&>>
          bitmaps;
       std::vector<std::pair<
-         const OperatorResult&,
+         const CopyOnWriteBitmap&,
          const silo::storage::insertion::InsertionIndex<SymbolType>&>>
          full_bitmaps;
    };
@@ -52,7 +52,7 @@ class InsertionAggregation : public Action {
    std::unordered_map<std::string, InsertionAggregation<SymbolType>::PrefilteredBitmaps>
    validateFieldsAndPreFilterBitmaps(
       const Database& database,
-      std::vector<OperatorResult>& bitmap_filter
+      std::vector<CopyOnWriteBitmap>& bitmap_filter
    ) const;
 
   public:
@@ -62,7 +62,7 @@ class InsertionAggregation : public Action {
 
    [[nodiscard]] QueryResult execute(
       const Database& database,
-      std::vector<OperatorResult> bitmap_filter
+      std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const override;
 };
 

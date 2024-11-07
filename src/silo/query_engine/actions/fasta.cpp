@@ -11,7 +11,7 @@
 #include "silo/common/panic.h"
 #include "silo/common/range.h"
 #include "silo/database.h"
-#include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/zstd/zstd_table_reader.h"
@@ -147,7 +147,7 @@ uint32_t addSequencesToResultsForPartition(
    std::vector<std::string>& sequence_names,
    std::vector<QueryResultEntry>& results,
    const DatabasePartition& database_partition,
-   const OperatorResult& bitmap,
+   const CopyOnWriteBitmap& bitmap,
    const std::string& primary_key_column,
    size_t num_result_rows
 ) {
@@ -242,7 +242,7 @@ const size_t PARTITION_CHUNK_SIZE = 10000;
 
 }  // namespace
 
-QueryResult Fasta::execute(const Database& database, std::vector<OperatorResult> bitmap_filter)
+QueryResult Fasta::execute(const Database& database, std::vector<CopyOnWriteBitmap> bitmap_filter)
    const {
    for (const std::string& sequence_name : sequence_names) {
       CHECK_SILO_QUERY(

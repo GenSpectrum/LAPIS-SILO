@@ -5,24 +5,24 @@
 #include <memory>
 #include <string>
 
-#include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo::query_engine::operators {
 
 class BitmapProducer : public Operator {
   private:
-   std::function<OperatorResult()> producer;
+   std::function<CopyOnWriteBitmap()> producer;
    uint32_t row_count;
 
   public:
-   explicit BitmapProducer(std::function<OperatorResult()> producer, uint32_t row_count);
+   explicit BitmapProducer(std::function<CopyOnWriteBitmap()> producer, uint32_t row_count);
 
    ~BitmapProducer() noexcept override;
 
    [[nodiscard]] virtual Type type() const override;
 
-   virtual OperatorResult evaluate() const override;
+   virtual CopyOnWriteBitmap evaluate() const override;
 
    virtual std::string toString() const override;
 

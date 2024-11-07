@@ -6,7 +6,7 @@
 
 #include <boost/algorithm/string/join.hpp>
 
-#include "silo/query_engine/operator_result.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/operators/operator.h"
 
 namespace silo::query_engine::operators {
@@ -38,8 +38,8 @@ Type RangeSelection::type() const {
    return RANGE_SELECTION;
 }
 
-OperatorResult RangeSelection::evaluate() const {
-   OperatorResult result;
+CopyOnWriteBitmap RangeSelection::evaluate() const {
+   CopyOnWriteBitmap result;
    for (const auto& range : ranges) {
       result->addRange(range.start, range.end);
    }
