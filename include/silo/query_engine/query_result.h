@@ -96,8 +96,7 @@ class QueryResult {
    [[nodiscard]] bool isMaterialized() const { return is_materialized_; }
 };
 
-// NOLINTBEGIN(readability-identifier-naming)
+// NOLINTNEXTLINE(readability-identifier-naming)
 void to_json(nlohmann::json& json, const QueryResultEntry& result_entry);
-// NOLINTEND(readability-identifier-naming)
 
 }  // namespace silo::query_engine

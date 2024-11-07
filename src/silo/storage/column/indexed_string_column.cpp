@@ -88,8 +88,7 @@ const std::optional<LineageIndex>& IndexedStringColumnPartition::getLineageIndex
 }
 
 IndexedStringColumn::IndexedStringColumn(std::string column_name)
-    : column_name(std::move(column_name)),
-      lookup() {}
+    : column_name(std::move(column_name)) {}
 
 IndexedStringColumn::IndexedStringColumn(
    std::string column_name,

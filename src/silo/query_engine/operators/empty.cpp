@@ -22,7 +22,7 @@ Type Empty::type() const {
 }
 
 CopyOnWriteBitmap Empty::evaluate() const {
-   return CopyOnWriteBitmap();
+   return {};
 }
 
 std::unique_ptr<Operator> Empty::negate(std::unique_ptr<Empty>&& empty) {

@@ -16,7 +16,13 @@
 #include "silo/query_engine/query_engine.h"
 
 namespace {
-using namespace silo;
+using silo::ReferenceGenomes;
+using silo::common::LineageTreeAndIdMap;
+using silo::config::DatabaseConfig;
+using silo::config::PreprocessingConfig;
+using silo::config::ValueType;
+using silo::preprocessing::PreprocessingException;
+using silo::preprocessing::Preprocessor;
 
 struct NdjsonInputLine {
    std::map<std::string, nlohmann::json> metadata;
@@ -41,9 +47,9 @@ struct NdjsonInputLine {
 struct InvalidScenario {
    std::string test_name;
    std::function<std::vector<NdjsonInputLine>()> input_data;
-   silo::config::DatabaseConfig database_config;
-   silo::ReferenceGenomes reference_genomes;
-   silo::common::LineageTreeAndIdMap lineage_tree;
+   DatabaseConfig database_config;
+   ReferenceGenomes reference_genomes;
+   LineageTreeAndIdMap lineage_tree;
    std::string error_message;
 };
 
@@ -55,10 +61,10 @@ std::string printTestName(const ::testing::TestParamInfo<InvalidScenario>& info)
 
 class InvalidPreprocessorTestFixture : public ::testing::TestWithParam<InvalidScenario> {};
 
-const auto DATABASE_CONFIG = silo::config::DatabaseConfig{
+const auto DATABASE_CONFIG = DatabaseConfig{
    .schema =
       {.instance_name = "dummy name",
-       .metadata = {{.name = "primaryKey", .type = silo::config::ValueType::STRING}},
+       .metadata = {{.name = "primaryKey", .type = ValueType::STRING}},
        .primary_key = "primaryKey"}
 };
 
@@ -95,7 +101,7 @@ TEST_P(InvalidPreprocessorTestFixture, shouldNotProcessData) {
    const std::filesystem::path input_directory = fmt::format("test{}", millis);
    std::filesystem::create_directories(input_directory);
 
-   const config::PreprocessingConfig config_with_input_dir{
+   const PreprocessingConfig config_with_input_dir{
       .input_directory = input_directory,
       .intermediate_results_directory = input_directory,
       .ndjson_input_filename = "input.json"
@@ -113,7 +119,7 @@ TEST_P(InvalidPreprocessorTestFixture, shouldNotProcessData) {
    }
    file.close();
 
-   silo::preprocessing::Preprocessor preprocessor(
+   Preprocessor preprocessor(
       config_with_input_dir,
       scenario.database_config,
       scenario.reference_genomes,
@@ -121,9 +127,7 @@ TEST_P(InvalidPreprocessorTestFixture, shouldNotProcessData) {
    );
    EXPECT_THAT(
       [&]() { preprocessor.preprocess(); },
-      ThrowsMessage<silo::preprocessing::PreprocessingException>(
-         ::testing::HasSubstr(scenario.error_message)
-      )
+      ThrowsMessage<PreprocessingException>(::testing::HasSubstr(scenario.error_message))
    );
    std::filesystem::remove_all(input_directory);
 }
