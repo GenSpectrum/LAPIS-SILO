@@ -26,32 +26,21 @@ build/Debug/silo_test: $(shell bin/cplusplus-source-files)
 build/Debug/unit-tests.log: build/Debug/silo_test
 	run-with-log $@ build/Debug/silo_test
 
-build/Debug/preprocessing-tsv.log: \
+build/Debug/preprocessing.log: \
         build/Debug/siloApi \
         $(shell bin/preprocessing-input-files-in testBaseData/exampleDataset)
 	run-with-log $@ preprocessing-in testBaseData/exampleDataset
 
-build/Debug/preprocessing-ndjson.log: \
-        build/Debug/siloApi \
-        $(shell bin/preprocessing-input-files-in testBaseData/exampleDatasetAsNdjson)
-	run-with-log $@ preprocessing-in testBaseData/exampleDatasetAsNdjson
+build/Debug/integration-tests.log: build/Debug/siloApi build/Debug/preprocessing.log $(shell bin/test-query-files)
+	run-with-log $@ runtests-e2e testBaseData/exampleDataset 7002
 
-build/Debug/tsv-tests.log: build/Debug/siloApi build/Debug/preprocessing-tsv.log $(shell bin/test-query-files)
-	run-with-log $@ runtests-e2e testBaseData/exampleDataset 7001
-
-build/Debug/ndjson-tests.log: build/Debug/siloApi build/Debug/preprocessing-ndjson.log $(shell bin/test-query-files)
-	run-with-log $@ runtests-e2e testBaseData/exampleDatasetAsNdjson 7002
-
-test: build/Debug/unit-tests.log build/Debug/tsv-tests.log build/Debug/ndjson-tests.log
+test: build/Debug/unit-tests.log build/Debug/integration-tests.log
 
 
 # Manually run the api so that it can be queried interactively.
 
-runapi-tsv: build/Debug/siloApi build/Debug/preprocessing-tsv.log
+runapi: build/Debug/siloApi build/Debug/preprocessing.log
 	runapi-in testBaseData/exampleDataset 8081
 
-runapi-ndjson: build/Debug/siloApi build/Debug/preprocessing-tsv.log
-	runapi-in testBaseData/exampleDatasetAsNdjson 8081
 
-
-.PHONY: all clean test runapi-tsv runapi-ndjson
+.PHONY: all clean test runapi
