@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.4.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.3.2...v0.4.0) (2024-11-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* `metadataInputFile` key in preprocessing config file has been removed. Instead, ndjson files should be used and specified with the `ndjsonInputFilename` option
+
+### Features
+
+* remove tsv/fasta/sam input format ([#562](https://github.com/GenSpectrum/LAPIS-SILO/issues/562)) ([fd7dc6f](https://github.com/GenSpectrum/LAPIS-SILO/commit/fd7dc6f4628f7dc512a99daeb184bab3e05d4150))
+
+
+### Bug Fixes
+
+* **preprocessing:** correct error message when field is in config but not in metadata file ([828182a](https://github.com/GenSpectrum/LAPIS-SILO/commit/828182af791ea4da1fd39685f3366b9f36bacb02))
+* remove shared_ptr in lambda captures which might lead to memory leaks ([a26d8b8](https://github.com/GenSpectrum/LAPIS-SILO/commit/a26d8b88146e5ca7f2841525c1d8c3b6bc93e87b))
+
 ## [0.3.2](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.3.1...v0.3.2) (2024-10-30)
 
 
