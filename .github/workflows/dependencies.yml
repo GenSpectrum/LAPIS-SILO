@@ -11,6 +11,9 @@ jobs:
   dependencyImage:
     name: Build Docker Image Dependencies
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platforms: []
     permissions:
       packages: write
     steps:
