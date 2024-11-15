@@ -13,8 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        args:
-          ${{ contains(github.event_name, 'workflow_dispatch') || github.ref == 'refs/heads/main' ? ['linux/amd64', 'linux/arm64']: [ 'linux/amd64' ] }}
+        platform:
+          ['linux/amd64', 'linux/arm64']
     permissions:
       packages: write
     steps:
@@ -45,17 +45,27 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check if image exists
-        id: check-image
         run: |
           EXISTS=$(docker manifest inspect ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:${{ env.DIR_HASH }} > /dev/null 2>&1 && echo "true" || echo "false")
           echo "CACHE_HIT=$EXISTS" >> $GITHUB_ENV
 
+      - name: Determine platform build necessity
+        id: platform-check
+        run: |
+          if [[ "${{ matrix.platform }}" == "linux/amd64" || "${{ github.event_name }}" == "workflow_dispatch" || "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "PLATFORM_BUILD=true" >> $GITHUB_ENV
+          else
+            echo "Skipping Platform Build for ${{ matrix.plaform }}"
+            echo "PLATFORM_BUILD=false" >> $GITHUB_ENV
+          fi
+        shell: bash
+
       - name: Set up Docker Buildx
-        if: env.CACHE_HIT == 'false'
+        if: env.CACHE_HIT == 'false' && env.PLATFORM_BUILD == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push image if input files changed
-        if: env.CACHE_HIT == 'false'
+        if: env.CACHE_HIT == 'false' && env.PLATFORM_BUILD == 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -64,10 +74,10 @@ jobs:
           tags: ${{ steps.dockerMetadata.outputs.tags }}
           cache-from: type=gha,ref=builder-image-cache-${{ hashFiles('conanfile.py', 'Dockerfile') }}
           cache-to: type=gha,mode=min,ref=builder-image-cache-${{ hashFiles('conanfile.py', 'Dockerfile') }}
-          platforms: 'linux/amd64'
+          platforms: ${{ matrix.platform }}
 
       - name: Retag and push existing image if cache hit
-        if: env.CACHE_HIT == 'true'
+        if: env.CACHE_HIT == 'true' && env.PLATFORM_BUILD == 'true'
         run: |
           TAGS=(${{ steps.dockerMetadata.outputs.tags }})
           for TAG in "${TAGS[@]}"; do
