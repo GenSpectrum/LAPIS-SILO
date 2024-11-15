@@ -19,11 +19,16 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - shell: bash
+        name: Print job function
+        run: |
+          echo "Calling waiter for workflow 'Dependency Image', sha: ${{ github.sha }}"
+
       - name: Wait
         uses: lewagon/wait-on-check-action@v1.3.4
         with:
           ref: ${{ github.sha }}
-          running-workflow-name: "Dependency Image"
+          check-name: "Dependency Image"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           wait-interval: 3
 
