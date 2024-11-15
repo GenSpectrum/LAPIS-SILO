@@ -46,7 +46,7 @@ jobs:
 
       - name: Check if image exists
         run: |
-          if [[ $(docker manifest inspect ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:${{ env.DIR_HASH }} > /dev/null 2>&1 ]]; then
+          if [[ $(docker manifest inspect ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:${{ env.DIR_HASH }} > /dev/null 2>&1) ]]; then
             echo "Cache hit, do not require rebuild of this docker image. Retagging old image instead."
             echo "CACHE_HIT=true" >> $GITHUB_ENV
           else
