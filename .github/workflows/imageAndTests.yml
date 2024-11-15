@@ -32,7 +32,7 @@ jobs:
     strategy:
       matrix:
         args:
-          ${{ contains(github.event_name, 'workflow_dispatch') || github.ref == 'refs/heads/main' ? ['linux/amd64', 'linux/arm64']: [ 'linux/amd64' ] }}
+          ['linux/amd64', 'linux/arm64']
     permissions:
       packages: write
     steps:
