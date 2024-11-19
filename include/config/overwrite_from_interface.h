@@ -13,7 +13,7 @@ class OverwriteFrom {
    /// .to_vec_reverse() and wrap in ConfigKeyPath). Throws
    /// `silo::config::ConfigException` for config value parse errors
    /// (subclass as ConfigValueParseError?).
-   virtual void overwriteFrom(
+   virtual void overwriteFromParents(
       const ConsList<std::string>& parents,
       const VerifiedConfigSource& config_source
    ) = 0;

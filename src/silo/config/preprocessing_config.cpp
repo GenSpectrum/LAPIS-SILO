@@ -12,6 +12,163 @@
 
 namespace silo::config {
 
+const ConfigStruct PREPROCESSING_CONFIG_METADATA{
+   "PreprocessingOptions",
+   {ConfigStructField{"help", ConfigValue{
+                         type_name : "bool",
+                         default_value : {},
+                         help_text : "Show help text.",
+                      }},
+    ConfigStructField{"runtimeConfig", ConfigValue{
+                         type_name : "ignored",
+                         default_value : {},
+                         help_text :
+                            "Ignored so that defaults can be provided via env vars for both \n"
+                            "execution modes of the multi-call binary.",
+                      }},
+    ConfigStructField{"preprocessingConfig", ConfigValue{
+                         type_name : "path",
+                         default_value : {},
+                         help_text : "Path to config file in YAML format.",
+                      }},
+
+    ConfigStructField{
+       .field_name_camel = "inputDirectory",
+       .value =
+          ConfigValue{
+             .type_name = "path",
+             .default_value = {"./"},
+             .help_text = "the path to the directory with the input files",
+          }
+    },
+    ConfigStructField{
+       .field_name_camel = "outputDirectory",
+       .value =
+          ConfigValue{
+             .type_name = "path",
+             .default_value = {DEFAULT_OUTPUT_DIRECTORY},
+             .help_text = "the path to the directory to hold the output files",
+          }
+    },
+    ConfigStructField{
+       .field_name_camel = "intermediateResultsDirectory",
+       .value =
+          ConfigValue{
+             .type_name = "path",
+             .default_value = {"./temp/"},
+             .help_text = "the path to the directory to hold temporary files",
+          }
+    },
+    ConfigStructField{
+       .field_name_camel = "preprocessingDatabaseLocation",
+       .value =
+          ConfigValue{
+             .type_name = "Option<path>",
+             .default_value = std::nullopt,
+             .help_text = "XXX?",
+          }
+    },
+    ConfigStructField{
+       .field_name_camel = "duckdbMemoryLimitInG",
+       .value =
+          ConfigValue{
+             .type_name = "Option<u32>",
+             .default_value = std::nullopt,
+             .help_text = "DuckDB memory limit in GB",
+          }
+    },
+    ConfigStructField{
+       .field_name_camel = "pangoLineageDefinitionFilename",
+       .value =
+          ConfigValue{
+             .type_name = "Option<path>",
+             .default_value = std::nullopt,
+             .help_text = "file name of the file holding the pango lineage definitions",
+          }
+    },
+    ConfigStructField{
+       .field_name_camel = "ndjsonInputFilename",
+       .value =
+          ConfigValue{
+             .type_name = "Option<path>",
+             .default_value = std::nullopt,
+             .help_text = "file name of the file holding NDJSON input",
+          }
+    },
+    ConfigStructField{
+       .field_name_camel = "metadataFilename",
+       .value =
+          ConfigValue{
+             .type_name = "Option<path>",
+             .default_value = std::nullopt,
+             .help_text = "file name of the file holding metadata",
+          }
+    },
+    ConfigStructField{
+       .field_name_camel = "databaseConfigFile",
+       .value =
+          ConfigValue{
+             .type_name = "path",
+             .default_value = {"database_config.yaml"},
+             .help_text = "file name of the file holding the database table configuration",
+          }
+    },
+    ConfigStructField{
+       .field_name_camel = "referenceGenomeFilename",
+       .value =
+          ConfigValue{
+             .type_name = "path",
+             .default_value = {"reference_genomes.json"},
+             .help_text = "file name of the file holding the reference genome",
+          }
+    },
+    ConfigStructField{
+       .field_name_camel = "nucleotideSequencePrefix",
+       .value =
+          ConfigValue{
+             .type_name = "string",
+             .default_value = {"nuc_"},
+             .help_text = "the prefix for nucleotide sequences",
+          }
+    },
+    ConfigStructField{
+       .field_name_camel = "unalignedNucleotideSequencePrefix",
+       .value =
+          ConfigValue{
+             .type_name = "string",
+             .default_value = {"unaligned_"},
+             .help_text = "the prefix for unaligned nucleotide sequences",
+          }
+    },
+    ConfigStructField{
+       .field_name_camel = "genePrefix",
+       .value =
+          ConfigValue{
+             .type_name = "string",
+             .default_value = {"gene_"},
+             .help_text = "the prefix for genes XX?",
+          }
+    },
+    ConfigStructField{
+       .field_name_camel = "nucleotideInsertionsFilename",
+       .value =
+          ConfigValue{
+             .type_name = "string",
+             .default_value = {"nuc_insertions.tsv"},
+             .help_text = "the file name of the file holding nucleotide insertions",
+          }
+    },
+    ConfigStructField{
+       .field_name_camel = "aminoAcidInsertionsFilename",
+       .value =
+          ConfigValue{
+             .type_name = "string",
+             .default_value = {"aa_insertions.tsv"},
+             .help_text = "the file name of the file hodling amino acid insertions",
+          }
+    }}
+};
+
 void PreprocessingConfig::validate() const {
    if (!std::filesystem::exists(input_directory)) {
       throw preprocessing::PreprocessingException(input_directory.string() + " does not exist");
@@ -90,90 +247,102 @@ std::string toUnix(const AbstractConfigSource::Option& option) {
 }
 }  // namespace
 
-void PreprocessingConfig::addOptions(Poco::Util::OptionSet& options) {
-#define TUPLE(                                                    \
-   TYPE,                                                          \
-   FIELD_NAME,                                                    \
-   DEFAULT_GENERATION,                                            \
-   DEFAULT_VALUE,                                                 \
-   OPTION_PATH,                                                   \
-   PARSING_ACCESSOR_TYPE_NAME,                                    \
-   HELP_TEXT,                                                     \
-   ACCESSOR_GENERATION,                                           \
-   ACCESSOR_NAME                                                  \
-)                                                                 \
-   {                                                              \
-      const AbstractConfigSource::Option opt{OPTION_PATH};        \
-      std::string option_string = toUnix(opt);                    \
-      options.addOption(Poco::Util::Option()                      \
-                           .fullName(option_string)               \
-                           .description(HELP_TEXT)                \
-                           .required(false)                       \
-                           .repeatable(false)                     \
-                           .argument(#PARSING_ACCESSOR_TYPE_NAME) \
-                           .binding(option_string));              \
-   }
+void PreprocessingConfig::overwriteFromParents(
+   const ConsList<std::string>& parents,
+   const VerifiedConfigSource& config_source
+) {
+   using ::config::config_source_interface::get;
+   using ::config::config_source_interface::set;
 
-   PREPROCESSING_CONFIG_DEFINITION;
+   set<bool, bool>(help, config_source, parents, "help");
+   set<Ignored, decltype(runtime_config)>(runtime_config, config_source, parents, "runtimeConfig");
+   set<std::filesystem::path, decltype(preprocessing_config)>(
+      preprocessing_config, config_source, parents, "preprocessingConfig"
+   );
 
-#undef TUPLE
+   set<std::filesystem::path, decltype(input_directory)>(
+      input_directory, config_source, parents, "inputDirectory"
+   );
+   set<std::filesystem::path, decltype(output_directory)>(
+      output_directory, config_source, parents, "outputDirectory"
+   );
+   set<std::filesystem::path, decltype(intermediate_results_directory)>(
+      intermediate_results_directory, config_source, parents, "intermediateResultsDirectory"
+   );
+   set<std::filesystem::path, decltype(preprocessing_database_location)>(
+      preprocessing_database_location, config_source, parents, "preprocessingDatabaseLocation"
+   );
+   set<uint32_t, decltype(duckdb_memory_limit_in_g)>(
+      duckdb_memory_limit_in_g, config_source, parents, "duckdbMemoryLimitInG"
+   );
+   set<std::filesystem::path, decltype(pango_lineage_definition_file)>(
+      pango_lineage_definition_file, config_source, parents, "pangoLineageDefinitionFilename"
+   );
+   set<std::filesystem::path, decltype(ndjson_input_filename)>(
+      ndjson_input_filename, config_source, parents, "ndjsonInputFilename"
+   );
+   set<std::filesystem::path, decltype(metadata_file)>(
+      metadata_file, config_source, parents, "metadataFilename"
+   );
+   set<std::filesystem::path, decltype(database_config_file)>(
+      database_config_file, config_source, parents, "databaseConfigFile"
+   );
+   set<std::filesystem::path, decltype(reference_genome_file)>(
+      reference_genome_file, config_source, parents, "referenceGenomeFilename"
+   );
+   set<std::string, decltype(nucleotide_sequence_prefix)>(
+      nucleotide_sequence_prefix, config_source, parents, "nucleotideSequencePrefix"
+   );
+   set<std::string, decltype(unaligned_nucleotide_sequence_prefix)>(
+      unaligned_nucleotide_sequence_prefix,
+      config_source,
+      parents,
+      "unalignedNucleotideSequencePrefix"
+   );
+   set<std::string, decltype(gene_prefix)>(gene_prefix, config_source, parents, "genePrefix");
+   set<std::string, decltype(nuc_insertions_filename)>(
+      nuc_insertions_filename, config_source, parents, "nucleotideInsertionsFilename"
+   );
+   set<std::string, decltype(aa_insertions_filename)>(
+      aa_insertions_filename, config_source, parents, "aminoAcidInsertionsFilename"
+   );
 }
 
-void PreprocessingConfig::overwrite(const silo::config::AbstractConfigSource& config_source) {
-#define TUPLE(                                                                                  \
-   TYPE,                                                                                        \
-   FIELD_NAME,                                                                                  \
-   DEFAULT_GENERATION,                                                                          \
-   DEFAULT_VALUE,                                                                               \
-   OPTION_PATH,                                                                                 \
-   PARSING_ACCESSOR_TYPE_NAME,                                                                  \
-   HELP_TEXT,                                                                                   \
-   ACCESSOR_GENERATION,                                                                         \
-   ACCESSOR_NAME                                                                                \
-)                                                                                               \
-   {                                                                                            \
-      const AbstractConfigSource::Option opt{OPTION_PATH};                                      \
-      if (auto value = config_source.get##PARSING_ACCESSOR_TYPE_NAME(opt)) {                    \
-         SPDLOG_DEBUG(                                                                          \
-            "Using {} as passed via {}: {}", opt.toString(), config_source.configType(), *value \
-         );                                                                                     \
-         (FIELD_NAME) = *value;                                                                 \
-      }                                                                                         \
-   }
-
-   PREPROCESSING_CONFIG_DEFINITION;
-
-#undef TUPLE
+bool PreprocessingConfig::asksForHelp() const {
+   return help;
+}
+std::optional<std::filesystem::path> PreprocessingConfig::configPath() const {
+   return preprocessing_config;
 }
 
 }  // namespace silo::config
 
-[[maybe_unused]] auto fmt::formatter<silo::config::PreprocessingConfig>::format(
-   const silo::config::PreprocessingConfig& preprocessing_config,
-   fmt::format_context& ctx
-) -> decltype(ctx.out()) {
-   fmt::format_to(ctx.out(), "{{\n");
-   const char* perhaps_comma = " ";
+// [[maybe_unused]] auto fmt::formatter<silo::config::PreprocessingConfig>::format(
+//    const silo::config::PreprocessingConfig& preprocessing_config,
+//    fmt::format_context& ctx
+// ) -> decltype(ctx.out()) {
+//    fmt::format_to(ctx.out(), "{{\n");
+//    const char* perhaps_comma = " ";
 
-#define TUPLE(                                                                              \
-   TYPE,                                                                                    \
-   FIELD_NAME,                                                                              \
-   DEFAULT_GENERATION,                                                                      \
-   DEFAULT_VALUE,                                                                           \
-   OPTION_PATH,                                                                             \
-   PARSING_ACCESSOR_TYPE_NAME,                                                              \
-   HELP_TEXT,                                                                               \
-   ACCESSOR_GENERATION,                                                                     \
-   ACCESSOR_NAME                                                                            \
-)                                                                                           \
-   fmt::format_to(                                                                          \
-      ctx.out(), "{} {}: ''", perhaps_comma, "#FIELD_NAME", preprocessing_config.FIELD_NAME \
-   );                                                                                       \
-   perhaps_comma = ",";
+// #define TUPLE(                                                                              \
+//    TYPE,                                                                                    \
+//    FIELD_NAME,                                                                              \
+//    DEFAULT_GENERATION,                                                                      \
+//    DEFAULT_VALUE,                                                                           \
+//    OPTION_PATH,                                                                             \
+//    PARSING_ACCESSOR_TYPE_NAME,                                                              \
+//    HELP_TEXT,                                                                               \
+//    ACCESSOR_GENERATION,                                                                     \
+//    ACCESSOR_NAME                                                                            \
+// )                                                                                           \
+//    fmt::format_to(                                                                          \
+//       ctx.out(), "{} {}: ''", perhaps_comma, "#FIELD_NAME", preprocessing_config.FIELD_NAME \
+//    );                                                                                       \
+//    perhaps_comma = ",";
 
-   PREPROCESSING_CONFIG_DEFINITION;
+//    PREPROCESSING_CONFIG_DEFINITION;
 
-#undef TUPLE
+// #undef TUPLE
 
-   return fmt::format_to(ctx.out(), "}}\n");
-}
+//    return fmt::format_to(ctx.out(), "}}\n");
+// }

@@ -16,14 +16,14 @@ extern const ConfigStruct RUNTIME_CONFIG_METADATA;
 
 struct ApiOptions : public OverwriteFrom {
    // XXX remove defaults, now in structs
-   std::filesystem::path data_directory = silo::config::DEFAULT_OUTPUT_DIRECTORY;
-   int32_t max_connections = 64;
-   int32_t parallel_threads = 4;
-   uint16_t port = 8081;
+   std::filesystem::path data_directory;
+   int32_t max_connections;
+   int32_t parallel_threads;
+   uint16_t port;
    std::optional<std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>>
       estimated_startup_end;
 
-   void overwriteFrom(
+   void overwriteFromParents(
       const ConsList<std::string>& parents,
       const VerifiedConfigSource& config_source
    ) override;
@@ -32,7 +32,7 @@ struct ApiOptions : public OverwriteFrom {
 struct QueryOptions : public OverwriteFrom {
    size_t materialization_cutoff = 10000;
 
-   void overwriteFrom(
+   void overwriteFromParents(
       const ConsList<std::string>& parents,
       const VerifiedConfigSource& config_source
    ) override;
@@ -48,7 +48,7 @@ struct RuntimeConfig : public ToplevelConfig {
    [[nodiscard]] bool asksForHelp() const override;
    [[nodiscard]] std::optional<std::filesystem::path> configPath() const override;
 
-   void overwriteFrom(
+   void overwriteFromParents(
       const ConsList<std::string>& parents,
       const VerifiedConfigSource& config_source
    ) override;

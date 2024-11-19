@@ -29,18 +29,18 @@ class CommandLineArguments : public VerifyConfigSource {
 class VerifiedCommandLineArguments : public VerifiedConfigSource {
    CommandLineArguments base;
    std::unordered_map<std::string, std::string> config_value_by_option;
-   std::vector<std::string> surplus_args;
+   std::vector<std::string> positional_args;
 
    friend CommandLineArguments;
 
    VerifiedCommandLineArguments(
       CommandLineArguments base_,
-      std::unordered_map<std::string, std::string> config_value_by_option_,
-      std::vector<std::string> surplus_args_
+      std::unordered_map<std::string, std::string> config_value_by_option,
+      std::vector<std::string> positional_args
    )
        : base(std::move(base_)),
-         config_value_by_option(std::move(config_value_by_option_)),
-         surplus_args(std::move(surplus_args_)) {}
+         config_value_by_option(std::move(config_value_by_option)),
+         positional_args(std::move(positional_args)) {}
 
   public:
    [[nodiscard]] std::string configContext() const override;

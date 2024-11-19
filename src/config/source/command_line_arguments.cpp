@@ -47,7 +47,7 @@ std::unique_ptr<VerifiedConfigSource> CommandLineArguments::verify(
 
    // E.g. "--api-foo" => "1234"
    std::unordered_map<std::string, std::string> config_value_by_option;
-   std::vector<std::string> surplus_args;
+   std::vector<std::string> positional_args;
    std::vector<std::string> invalid_config_keys;
 
    for (size_t i = 0; i < args.size(); ++i) {
@@ -55,7 +55,7 @@ std::unique_ptr<VerifiedConfigSource> CommandLineArguments::verify(
       if (arg.starts_with('-')) {
          if (arg == "--") {
             for (size_t j = i + 1; j < args.size(); ++j) {
-               surplus_args.push_back(args[j]);
+               positional_args.push_back(args[j]);
             }
             break;
          }
@@ -79,7 +79,7 @@ std::unique_ptr<VerifiedConfigSource> CommandLineArguments::verify(
             invalid_config_keys.push_back(arg);
          }
       } else {
-         surplus_args.push_back(arg);
+         positional_args.push_back(arg);
       }
    }
 
@@ -97,7 +97,7 @@ std::unique_ptr<VerifiedConfigSource> CommandLineArguments::verify(
    // constructor is private and std::make_unique foils the friend
    // relationship.
    return std::make_unique<VerifiedCommandLineArguments>(VerifiedCommandLineArguments{
-      std::move(*this), std::move(config_value_by_option), std::move(surplus_args)
+      std::move(*this), std::move(config_value_by_option), std::move(positional_args)
    });
 }
 
@@ -121,5 +121,5 @@ std::optional<std::string> VerifiedCommandLineArguments::getString(const ConfigK
 }
 
 const std::vector<std::string>* VerifiedCommandLineArguments::positionalArgs() const {
-   return &surplus_args;
+   return &positional_args;
 }

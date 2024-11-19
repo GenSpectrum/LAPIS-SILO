@@ -9,9 +9,9 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/common/lineage_tree.h"
+#include "config/source/yaml_file.h"
 #include "silo/config/database_config.h"
 #include "silo/config/preprocessing_config.h"
-#include "silo/config/util/yaml_file.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
 #include "silo/preprocessing/preprocessor.h"
@@ -71,7 +71,7 @@ namespace silo::test {
          ASSERT_EQ(actual, scenario.expected_query_result);                                        \
       }                                                                                            \
    }                                                                                               \
-   }  // namespace                                                                                  \
+   }  // namespace
 
 struct QueryTestData {
    const std::vector<nlohmann::json> ndjson_input_data;
@@ -99,11 +99,10 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
       std::filesystem::path input_directory = fmt::format("test{}", millis);
       std::filesystem::create_directories(input_directory);
 
-      config::PreprocessingConfig config_with_input_dir{
-         .input_directory = input_directory,
-         .intermediate_results_directory = input_directory,
-         .ndjson_input_filename = "input.json"
-      };
+      config::PreprocessingConfig config_with_input_dir;
+      config_with_input_dir.input_directory = input_directory;
+      config_with_input_dir.intermediate_results_directory = input_directory;
+      config_with_input_dir.ndjson_input_filename = "input.json";
       config_with_input_dir.validate();
 
       DataContainer::input_directory = input_directory;

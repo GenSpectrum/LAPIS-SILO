@@ -16,9 +16,12 @@
 /// For top-level config structs (containing help and possibly config
 /// file paths):
 class ToplevelConfig : public OverwriteFrom {
+  public:
    /// Whether the user gave the --help option or environment
    /// variable equivalent.
    [[nodiscard]] virtual bool asksForHelp() const = 0;
+
+   void overwriteFrom(const VerifiedConfigSource& config_source);
 
    /// Optional config file that the user gave (or that is provided
    /// by the type via its defaults) that should be loaded.
@@ -31,8 +34,6 @@ std::optional<C> rawGetConfig(std::span<const std::string> cmd, const ConfigStru
    auto env_source = EnvironmentVariables::parse()->verify(config_values);
    auto cmd_source = CommandLineArguments{cmd}.verify(config_values);
 
-   const ConsList<std::string> no_parents{};
-
    C config;
 
    // First, only check command line arguments, for "--help"; avoid
@@ -40,7 +41,7 @@ std::optional<C> rawGetConfig(std::span<const std::string> cmd, const ConfigStru
    // path to the config file yet. Since we're only interested in the
    // help option, there's no need to read config_struct first, OK?
    config = {};
-   config.overwriteFrom(no_parents, *cmd_source);
+   config.overwriteFrom(*cmd_source);
    if (config.asksForHelp()) {
       return std::nullopt;
    }
@@ -48,9 +49,9 @@ std::optional<C> rawGetConfig(std::span<const std::string> cmd, const ConfigStru
    // Then process env and cmd, to get to the config file
    // path. Re-initialize since env must be processed for cmd.
    config = {};
-   config.overwriteFrom(no_parents, config_struct);
-   config.overwriteFrom(no_parents, *env_source);
-   config.overwriteFrom(no_parents, *cmd_source);
+   config.overwriteFrom(config_struct);
+   config.overwriteFrom(*env_source);
+   config.overwriteFrom(*cmd_source);
    // Would anyone request help via SILO_ENV=true? Well, allow it:
    if (config.asksForHelp()) {
       return std::nullopt;
@@ -61,10 +62,10 @@ std::optional<C> rawGetConfig(std::span<const std::string> cmd, const ConfigStru
       auto file_source = YamlFile::readFile(*config_path).verify(config_values);
       // Now read again with the file first:
       config = {};
-      config.overwriteFrom(no_parents, config_struct);
-      config.overwriteFrom(no_parents, *file_source);
-      config.overwriteFrom(no_parents, *env_source);
-      config.overwriteFrom(no_parents, *cmd_source);
+      config.overwriteFrom(config_struct);
+      config.overwriteFrom(*file_source);
+      config.overwriteFrom(*env_source);
+      config.overwriteFrom(*cmd_source);
       // (The config file might specify --help, too, but we ignore
       // that.)
    }

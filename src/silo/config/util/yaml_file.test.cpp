@@ -1,42 +1,98 @@
-#include "silo/config/util/yaml_file.h"
+#include "config/source/yaml_file.h"
 
 #include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
 
+#include "silo/config/preprocessing_config.h"
+
 using silo::config::YamlFile;
+using silo::config::PreprocessingConfig;
+using silo::config::PreprocessingConfig;
+using silo::config::PREPROCESSING_CONFIG_METADATA;
+using silo::config::PreprocessingConfig;
+
+std::unique_ptr<VerifiedConfigSource> yamlFileUnderTest() {
+   return YamlFile::readFile("./testBaseData/test_preprocessing_config.yaml")
+      .verify(PREPROCESSING_CONFIG_METADATA.configValues());
+}
 
 TEST(YamlFile, canCorrectlyCheckForPresentPropertiesCaseSensitively) {
-   const YamlFile under_test("./testBaseData/test_preprocessing_config.yaml");
+   const auto under_test = yamlFileUnderTest();
 
-   ASSERT_EQ(under_test.hasProperty({{"inputDirectory"}}), true);
-   ASSERT_EQ(under_test.hasProperty({{"INPUTDIRECTORY"}}), false);
+   ASSERT_EQ(under_test->hasProperty({{"inputDirectory"}}), true);
+   ASSERT_EQ(under_test->hasProperty({{"INPUTDIRECTORY"}}), false);
 }
 
 TEST(YamlFile, canCorrectlyCheckForNonPresentProperties) {
-   const YamlFile under_test("./testBaseData/test_preprocessing_config.yaml");
+   const auto under_test = yamlFileUnderTest();
 
-   ASSERT_EQ(under_test.hasProperty({{"a"}}), false);
+   ASSERT_EQ(under_test->hasProperty({{"a"}}), false);
 }
 
 TEST(YamlFile, getStringGetsCorrectField) {
-   const YamlFile under_test("./testBaseData/test_preprocessing_config.yaml");
+   const auto under_test = yamlFileUnderTest();
 
-   ASSERT_EQ(under_test.getString({{"inputDirectory"}}), "./testBaseData/exampleDataset/");
+   ASSERT_EQ(under_test->getString({{"inputDirectory"}}), "./testBaseData/exampleDataset/");
 }
 
 TEST(YamlFile, getStringGetsCorrectFieldsRepeatedly) {
-   const YamlFile under_test("./testBaseData/test_preprocessing_config.yaml");
+   const auto under_test = yamlFileUnderTest();
 
-   ASSERT_EQ(under_test.getString({{"inputDirectory"}}), "./testBaseData/exampleDataset/");
-   ASSERT_EQ(under_test.getString({{"outputDirectory"}}), "./output/");
-   ASSERT_EQ(under_test.getString({{"ndjsonInputFilename"}}), "input_file.ndjson");
-   ASSERT_EQ(under_test.getString({{"lineageDefinitionsFilename"}}), "lineage_definitions.yaml");
-   ASSERT_EQ(under_test.getString({{"referenceGenomeFilename"}}), "reference_genomes.json");
+   ASSERT_EQ(under_test->getString({{"inputDirectory"}}), "./testBaseData/exampleDataset/");
+   ASSERT_EQ(under_test->getString({{"outputDirectory"}}), "./output/");
+   ASSERT_EQ(under_test->getString({{"metadataFilename"}}), "small_metadata_set.tsv");
+   ASSERT_EQ(
+      under_test->getString({{"pangoLineageDefinitionFilename"}}), "pangolineage_alias.json"
+   );
+   ASSERT_EQ(under_test->getString({{"referenceGenomeFilename"}}), "reference_genomes.json");
 }
 
 TEST(YamlFile, getStringNulloptOnNotPresent) {
-   const YamlFile under_test("./testBaseData/test_preprocessing_config.yaml");
+   const auto under_test = yamlFileUnderTest();
 
-   ASSERT_EQ(under_test.getString({{"a", "a"}}), std::nullopt);
-   ASSERT_EQ(under_test.getString({{"again_not_present"}}), std::nullopt);
+   ASSERT_EQ(under_test->getString({{"a", "a"}}), std::nullopt);
+   ASSERT_EQ(under_test->getString({{"again_not_present"}}), std::nullopt);
+}
+
+TEST(YamlFile, shouldReadConfigWithCorrectParametersAndDefaults) {
+   PreprocessingConfig config;
+   ASSERT_NO_THROW(
+      config.overwriteFrom(*YamlFile::readFile("./testBaseData/test_preprocessing_config.yaml")
+                               .verify(PREPROCESSING_CONFIG_METADATA.configValues()));
+   );
+
+   const std::string input_directory = "./testBaseData/exampleDataset/";
+   ASSERT_EQ(config.getMetadataInputFilename(), input_directory + "small_metadata_set.tsv");
+   ASSERT_EQ(
+      config.getPangoLineageDefinitionFilename(), input_directory + "pangolineage_alias.json"
+   );
+}
+
+TEST(YamlFile, shouldThrowExceptionWhenConfigFileDoesNotExist) {
+   PreprocessingConfig config;
+   EXPECT_THAT(
+      [&config]() {
+         config.overwriteFrom(*YamlFile::readFile("testBaseData/does_not_exist.yaml")
+                                  .verify(PREPROCESSING_CONFIG_METADATA.configValues()));
+      },
+      ThrowsMessage<std::runtime_error>(::testing::HasSubstr("Failed to read preprocessing config"))
+   );
+}
+
+TEST(YamlFile, shouldReadConfigWithOverriddenDefaults) {
+   PreprocessingConfig config;
+
+   ASSERT_NO_THROW(config.overwriteFrom(
+      *YamlFile::readFile("./testBaseData/test_preprocessing_config_with_overridden_defaults.yaml")
+          .verify(PREPROCESSING_CONFIG_METADATA.configValues())
+   ););
+
+   const std::string input_directory = "./testBaseData/exampleDataset/";
+   ASSERT_EQ(config.getMetadataInputFilename(), input_directory + "small_metadata_set.tsv");
+   ASSERT_EQ(
+      config.getPangoLineageDefinitionFilename(), input_directory + "pangolineage_alias.json"
+   );
+
+   ASSERT_EQ(config.getNucFilenameNoExtension(0), input_directory + "0");
+   ASSERT_EQ(config.output_directory, "./output/custom/");
 }
