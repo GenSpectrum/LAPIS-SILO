@@ -125,6 +125,8 @@ class VerifyConfigSource : public ConfigSource /* XX does it make sense to reque
    [[nodiscard]] std::unordered_map<std::string, const ConfigValue*> stringifiedKeyToConfigMap(
       const std::span<const std::pair<ConfigKeyPath, const ConfigValue*>>& config_structs
    ) const;
+
+   virtual ~VerifyConfigSource() = default;
 };
 
 /// A VerifiedConfigSource is providing I/O- and key error free (but
@@ -150,6 +152,8 @@ class VerifiedConfigSource : public ConfigSource {
    [[nodiscard]] bool hasProperty(const ConfigKeyPath& config_key_path) const {
       return getString(config_key_path).has_value();
    }
+
+   virtual ~VerifiedConfigSource() = default;
 };
 
 namespace config::config_source_interface {
@@ -206,7 +210,7 @@ bool set(
       *value,
       source.configContext()
    );
-   out = std::move(*value);
+   out = std::move(value.value());
    return true;
 }
 

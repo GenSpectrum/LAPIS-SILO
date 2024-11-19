@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#include "silo/config/util/yaml_file.h"
+#include "config/source/yaml_file.h"
 
 TEST(RuntimeConfig, shouldReadConfig) {
    silo::config::RuntimeConfig runtime_config;
@@ -10,7 +10,7 @@ TEST(RuntimeConfig, shouldReadConfig) {
    auto source = YamlFile::readFile("./testBaseData/test_runtime_config.yaml")
                     .verify(silo::config::RUNTIME_CONFIG_METADATA.configValues());
 
-   runtime_config.overwriteFrom(ConsList<std::string>(), *source);
+   runtime_config.overwriteFromParents(ConsList<std::string>(), *source);
 
    ASSERT_EQ(runtime_config.api_options.data_directory, std::filesystem::path("test/directory"));
 }

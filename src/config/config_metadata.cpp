@@ -66,7 +66,7 @@ std::string ConfigStruct::configContext() const {
    return fmt::format("ConfigStruct {:?}", program_or_struct_name);
 }
 std::string ConfigStruct::configKeyPathToString(const ConfigKeyPath& /*config_key_path*/) const {
-   UNIMPLEMENTED();
+   SILO_UNIMPLEMENTED();
 }
 
 /// Returns the default value string template for the given
@@ -89,7 +89,7 @@ std::optional<std::string> ConfigStruct::getString(const ConfigKeyPath& config_k
       );
 
       if (path.empty()) {
-         PANIC(
+         SILO_PANIC(
             "config key path {} led to sub-struct {} instead of a leaf field",
             config_key_path.toDebugString(),
             config_struct->program_or_struct_name
@@ -107,7 +107,7 @@ std::optional<std::string> ConfigStruct::getString(const ConfigKeyPath& config_k
                if (path.empty()) {
                   return cval.default_value;
                }
-               PANIC(
+               SILO_PANIC(
                   "key {} in ConfigStruct {} leads to a leaf field "
                   "but path isn't finished: {}",
                   key,
@@ -119,18 +119,18 @@ std::optional<std::string> ConfigStruct::getString(const ConfigKeyPath& config_k
                config_struct = cstr;
                goto outer;
             } else {
-               UNREACHABLE();
+               SILO_UNREACHABLE();
             }
          }
       }
-      PANIC("key '{}' not found in {}", key, config_struct->configContext());
+      SILO_PANIC("key '{}' not found in {}", key, config_struct->configContext());
    outer: { /* continue */
    }
    }
 }
 
 const std::vector<std::string>* ConfigStruct::positionalArgs() const {
-   UNIMPLEMENTED();
+   SILO_UNIMPLEMENTED();
 }
 
 std::vector<std::pair<ConfigKeyPath, const ConfigValue*>> ConfigStruct::configValues() const {

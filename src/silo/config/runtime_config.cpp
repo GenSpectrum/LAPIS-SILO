@@ -16,48 +16,48 @@ const ConfigStruct API_OPTIONS_METADATA{
       ConfigStructField{
          "dataDirectory",
          ConfigValue{
-            /* type_name: */ "path",
-            /* default_value: */ {DEFAULT_OUTPUT_DIRECTORY},
-            /* help_text: */
-            "The path to the directory with the data files (output from preprocessing).",
+            .type_name = "path",
+            .default_value = {DEFAULT_OUTPUT_DIRECTORY},
+            .help_text =
+               "The path to the directory with the data files (output from preprocessing).",
          },
       },
       ConfigStructField{
          "maxQueuedHttpConnections",
          ConfigValue{
-            /* type_name: */ "u32",  // XX change to this in C++?
-            /* default_value: */ {"64"},
-            /* help_text: */ "The maximum number of concurrent connections accepted at any time.",
+            .type_name = "u32",  // XX change to this in C++?
+            .default_value = {"64"},
+            .help_text = "The maximum number of concurrent connections accepted at any time.",
          }
       },
       ConfigStructField{
          "threadsForHttpConnections",
          ConfigValue{
-            /* type_name: */ "u32",
-            /* default_value: */ {"4"},
-            /* help_text: */ "The number of worker threads.",
+            .type_name = "u32",
+            .default_value = {"4"},
+            .help_text = "The number of worker threads.",
             // XX docs: how does this interact with MAX_CONNECTIONS_OPTION ?
          }
       },
       ConfigStructField{
          "port",
          ConfigValue{
-            /* type_name: */ "u16",
-            /* default_value: */ {"8081"},
-            /* help_text: */ "The port number on which to listen for incoming HTTP connections.",
+            .type_name = "u16",
+            .default_value = {"8081"},
+            .help_text = "The port number on which to listen for incoming HTTP connections.",
          }
       },
       ConfigStructField{
          "estimatedStartupTimeInMinutes",
          ConfigValue{
-            /* type_name: */ "u32",
+            .type_name = "u32",
             // ^ XX and that is the type for an intermediary value
             //   here; but really separate that step?
-            /* default_value: */ {},
-            /* help_text: */
-            "Estimated time in minutes that the initial loading of the database takes. \n"
-            "As long as no database is loaded yet, SILO will throw a 503 error. \n"
-            "This option allows SILO to compute a Retry-After header for the 503 response."
+            .default_value = {},
+            .help_text =
+               "Estimated time in minutes that the initial loading of the database takes. \n"
+               "As long as no database is loaded yet, SILO will throw a 503 error. \n"
+               "This option allows SILO to compute a Retry-After header for the 503 response."
          }
       },
    }
@@ -69,11 +69,11 @@ const ConfigStruct QUERY_OPTIONS_METADATA{
       ConfigStructField{
          "materializationCutoff",
          ConfigValue{
-            /* type_name: */ "usize",
-            /* default_value: */ {"10000"},
-            /* help_text: */
-            "Above how many records in a result set the result rows are to be constructed\n"
-            "lazily (by streaming).",
+            .type_name = "usize",
+            .default_value = {"10000"},
+            .help_text =
+               "Above how many records in a result set the result rows are to be constructed\n"
+               "lazily (by streaming).",
          }
       },
    }
@@ -84,27 +84,26 @@ const ConfigStruct RUNTIME_CONFIG_METADATA{
    {ConfigStructField{
        "help",
        ConfigValue{
-          /* type_name: */ "bool",
-          /* default_value: */ {},
-          /* help_text: */ "Show help text.",
+          .type_name = "bool",
+          .default_value = {},
+          .help_text = "Show help text.",
        }
     },
     ConfigStructField{
        "runtimeConfig",
        ConfigValue{
-          /* type_name: */ "path",
-          /* default_value: */ {},
-          /* help_text: */ "Path to config file in YAML format.",
+          .type_name = "path",
+          .default_value = {},
+          .help_text = "Path to config file in YAML format.",
        }
     },
     ConfigStructField{
        "preprocessingConfig",
        ConfigValue{
-          /* type_name: */ "ignored",
-          /* default_value: */ {},
-          /* help_text: */
-          "Ignored so that defaults can be provided via env vars for both \n"
-          "execution modes of the multi-call binary.",
+          .type_name = "ignored",
+          .default_value = {},
+          .help_text = "Ignored so that defaults can be provided via env vars for both \n"
+                       "execution modes of the multi-call binary.",
        }
     },
 
@@ -115,13 +114,14 @@ const ConfigStruct RUNTIME_CONFIG_METADATA{
     ConfigStructField{"query", &QUERY_OPTIONS_METADATA}}
 };
 
-void ApiOptions::overwriteFrom(
+void ApiOptions::overwriteFromParents(
    const ConsList<std::string>& parents,
    const VerifiedConfigSource& config_source
 ) {
    using ::config::config_source_interface::get;
    using ::config::config_source_interface::set;
 
+   // XX why did I not give option<path> here for 2nd argument?
    set<std::filesystem::path, std::filesystem::path>(
       data_directory, config_source, parents, "dataDirectory"
    );
@@ -136,7 +136,7 @@ void ApiOptions::overwriteFrom(
    }
 }
 
-void QueryOptions::overwriteFrom(
+void QueryOptions::overwriteFromParents(
    const ConsList<std::string>& parents,
    const VerifiedConfigSource& config_source
 ) {
@@ -152,22 +152,22 @@ std::optional<std::filesystem::path> RuntimeConfig::configPath() const {
    return runtime_config;
 }
 
-void RuntimeConfig::overwriteFrom(
+void RuntimeConfig::overwriteFromParents(
    const ConsList<std::string>& parents,
    const VerifiedConfigSource& config_source
 ) {
    using ::config::config_source_interface::set;
 
    set<bool, bool>(help, config_source, parents, "help");
-   set<std::filesystem::path, typeof(runtime_config)>(
+   set<std::filesystem::path, decltype(runtime_config)>(
       runtime_config, config_source, parents, "runtimeConfig"
    );
-   set<Ignored, typeof(preprocessing_config)>(
+   set<Ignored, decltype(preprocessing_config)>(
       preprocessing_config, config_source, parents, "preprocessingConfig"
    );
 
-   api_options.overwriteFrom(parents.cons("api"), config_source);
-   query_options.overwriteFrom(parents.cons("query"), config_source);
+   api_options.overwriteFromParents(parents.cons("api"), config_source);
+   query_options.overwriteFromParents(parents.cons("query"), config_source);
 }
 
 }  // namespace silo::config
@@ -177,7 +177,7 @@ void RuntimeConfig::overwriteFrom(
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
    fmt::format_to(ctx.out(), "{{{{\n");
-   const char* perhaps_comma = " ";
+   std::string_view perhaps_comma = " ";
 
 #define CODE_FOR_FIELD(TOPLEVEL_FIELD, FIELD_NAME) \
    fmt::format_to(                                 \

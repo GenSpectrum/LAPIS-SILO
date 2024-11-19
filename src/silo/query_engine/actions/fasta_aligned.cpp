@@ -212,6 +212,7 @@ QueryResult FastaAligned::execute(
                   // `for` loop from outside:
                   return;
                }
+               SILO_PANIC("ran out of bitmap before finishing result_row_indices");
             }
             SILO_PANIC("ran out of bitmap before finishing result_row_indices");
          }

@@ -27,7 +27,7 @@ during construction. The resulting object must implement
 which takes the config values vector mentioned in the previous
 paragraph, and returns an object that implements
 [`VerifiedConfigSource`](../include/config/config_source_interface.h). This is then, inside
-[`raw_get_config`](XX), passed to the
+[`rawGetConfig`](XX) (which is wrapped by the [`getConfig`](XX) function that is meant to be used by the application), passed to the
 [`OverwriteFrom::overwrite_from`](XX?) method to
 fill the fields of the to-be configured struct with the values
 destined for them.
@@ -42,12 +42,34 @@ should be read, if given.
 
 The process of going through the 3 sources, and reading the config
 file that was specified by the user, is handled by the
-aforementiond `raw_get_config` function. All this
+aforementiond `getConfig` function. All this
 function needs is a reference to the (remaining) command line
 arguments to be parsed, and a reference to the struct metadata for
 the toplevel configuration struct. It returns the filled-in
 struct, of the given type parameter which must match the metadata
 that was given.
 
+NOTE: the configuration classes should not declare default values
+directly in the class definition, since the defaults are specified (as
+strings) in the metadata via `ConfigStruct`, and duplicate declaration
+would be confusing. But that also means that instantiating a
+configuration class outside of `getConfig` will not set its fields to
+the default values from the metadata; to achieve that, one then has to
+call `overwriteFrom(..._CONFIG_METADATA)` explicitly. Note that it's
+not possible to define a constructor that executes that call, because
+`overwriteFrom` is a virtual method and during construction time the
+vtable is 0x0, leading to a segfault when calling the method.
+
 For more information (with quite some overlap with this description),
 see [`config_source_interface`](../include/config/config_source_interface.h).
+
+## How to add a new field
+
+XXX
+- meetadata
+- overwriteFrom  set
+- formatting
+
+## How to add a new sub-struct
+
+XXX
