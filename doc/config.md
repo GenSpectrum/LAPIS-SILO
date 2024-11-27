@@ -12,10 +12,10 @@ The system works off metadata on the structs making up the
 configuration data. 
 
 The metadata is converted at runtime (via
-[`ConfigStruct`](../include/config/config_metadata.h)) to a flat
+[`ConfigStruct`](../include/config/config_specification.h)) to a flat
 representation, a vector of tuples of
 [`ConfigKeyPath`](../include/config/config_key_path.h) (list of key segment strings) and
-reference to [`ConfigValue`](../include/config/config_metadata.h) (the metadata on a
+reference to [`ConfigValue`](../include/config/config_specification.h) (the metadata on a
 struct field).  This vector is the basis to build the help text,
 or to map to vectors or key/value representations for the source
 in question.
@@ -23,10 +23,10 @@ in question.
 Each source ([command line arguments](XX), [environment variables](XX),
 [yaml file](XX)) has its individual constructor and error handling
 during construction. The resulting object must implement
-[`VerifyConfigSource`](../include/config/config_metadata.h), the `verify` method of
+[`VerifyConfigSource`](../include/config/config_specification.h), the `verify` method of
 which takes the config values vector mentioned in the previous
 paragraph, and returns an object that implements
-[`VerifiedConfigSource`](../include/config/config_source_interface.h). This is then, inside
+[`VerifiedConfigSource`](../include/config/config_backend.h). This is then, inside
 [`raw_get_config`](XX), passed to the
 [`OverwriteFrom::overwrite_from`](XX?) method to
 fill the fields of the to-be configured struct with the values
@@ -50,4 +50,4 @@ struct, of the given type parameter which must match the metadata
 that was given.
 
 For more information (with quite some overlap with this description),
-see [`config_source_interface`](../include/config/config_source_interface.h).
+see [`config_source_interface`](../include/config/config_backend.h).

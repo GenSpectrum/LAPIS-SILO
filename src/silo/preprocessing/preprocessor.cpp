@@ -7,6 +7,7 @@
 #include <boost/algorithm/string/join.hpp>
 
 #include "silo/common/block_timer.h"
+#include "silo/common/fmt_formatters.h"
 #include "silo/common/panic.h"
 #include "silo/common/string_utils.h"
 #include "silo/common/table_reader.h"
@@ -52,7 +53,7 @@ Preprocessor::Preprocessor(
       reference_genomes(std::move(reference_genomes_)),
       lineage_tree(std::move(lineage_tree_)),
       preprocessing_db(
-         preprocessing_config.getPreprocessingDatabaseLocation(),
+         preprocessing_config.preprocessing_database_location,
          reference_genomes,
          preprocessing_config.getDuckdbMemoryLimitInG()
       ),
@@ -79,13 +80,13 @@ Database Preprocessor::preprocess() {
 
    SPDLOG_INFO(
       "preprocessing - creating intermediate results directory '{}'",
-      preprocessing_config.getIntermediateResultsDirectory().string()
+      preprocessing_config.intermediate_results_directory
    );
-   std::filesystem::create_directory(preprocessing_config.getIntermediateResultsDirectory());
-   if (!std::filesystem::is_directory(preprocessing_config.getIntermediateResultsDirectory())) {
+   std::filesystem::create_directory(preprocessing_config.intermediate_results_directory);
+   if (!std::filesystem::is_directory(preprocessing_config.intermediate_results_directory)) {
       auto error = fmt::format(
          "Directory for intermediate results could not be created.",
-         preprocessing_config.getIntermediateResultsDirectory().string()
+         preprocessing_config.intermediate_results_directory
       );
       SPDLOG_ERROR(error);
       throw silo::preprocessing::PreprocessingException(error);
@@ -113,9 +114,7 @@ Database Preprocessor::preprocess() {
 
    SPDLOG_INFO("preprocessing - building database");
    preprocessing_db.refreshConnection();
-   return buildDatabase(
-      partition_descriptor, preprocessing_config.getIntermediateResultsDirectory()
-   );
+   return buildDatabase(partition_descriptor, preprocessing_config.intermediate_results_directory);
 }
 
 void Preprocessor::finalizeConfig() {
@@ -545,9 +544,8 @@ void Preprocessor::createUnalignedPartitionedSequenceFile(
    size_t sequence_idx,
    const std::string& table_sql
 ) {
-   const std::filesystem::path save_location =
-      preprocessing_config.getIntermediateResultsDirectory() /
-      fmt::format("unaligned_nuc_{}", sequence_idx);
+   const std::filesystem::path save_location = preprocessing_config.intermediate_results_directory /
+                                               fmt::format("unaligned_nuc_{}", sequence_idx);
    // duckdb OVERWRITE and OVERWRITE_OR_IGNORE is broken in the current version,
    // therefore we manually delete the save_location directory in case it already exists
    if (std::filesystem::exists(save_location)) {

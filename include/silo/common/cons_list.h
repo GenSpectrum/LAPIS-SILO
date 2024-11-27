@@ -65,4 +65,22 @@ class ConsList {
       std::reverse(values.begin(), values.end());
       return values;
    }
+
+   template <typename Combine, typename Result>
+   Result foldRight(const Result& acc, Combine fn) const {
+      if (isEmpty()) {
+         return acc;
+      }
+
+      // Get the rest of the list
+      auto restListOpt = rest();
+      if (restListOpt.has_value()) {
+         const ConsList<T>& restList = restListOpt.value().get();
+         // Recursively call foldRight on the rest
+         return fn(first().value(), restList.foldRight(acc, fn));
+      }
+
+      // If there's no rest, just return the function application
+      return fn(first().value(), acc);
+   }
 };

@@ -1,0 +1,126 @@
+#include <filesystem>
+#include <iostream>
+#include <variant>
+
+#include <boost/algorithm/string/join.hpp>
+
+#include "silo/common/overloaded.h"
+#include "silo/config/preprocessing_config.h"
+#include "silo/config/runtime_config.h"
+#include "silo/config/util/config_repository.h"
+#include "silo/database.h"
+#include "silo/preprocessing/preprocessing_exception.h"
+#include "silo/preprocessing/preprocessor.h"
+#include "silo_api/api.h"
+#include "silo_api/logging.h"
+
+/// Does not throw exceptions
+static int runPreprocessor(const silo::config::PreprocessingConfig& preprocessing_config) {
+   try {
+      auto database_config = silo::config::ConfigRepository().getValidatedConfig(
+         preprocessing_config.getDatabaseConfigFilename()
+      );
+
+      SPDLOG_INFO("preprocessing - reading reference genome");
+      const auto reference_genomes =
+         silo::ReferenceGenomes::readFromFile(preprocessing_config.getReferenceGenomeFilename());
+
+      silo::common::LineageTreeAndIdMap lineage_definitions;
+      if (auto lineage_file_name = preprocessing_config.getLineageDefinitionsFilename()) {
+         SPDLOG_INFO(
+            "preprocessing - read and verify the lineage tree '{}'",
+            lineage_file_name.value().string()
+         );
+         lineage_definitions = silo::common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(
+            lineage_file_name.value()
+         );
+      }
+
+      auto preprocessor = silo::preprocessing::Preprocessor(
+         preprocessing_config, database_config, reference_genomes, std::move(lineage_definitions)
+      );
+      auto database = preprocessor.preprocess();
+
+      database.saveDatabaseState(preprocessing_config.output_directory);
+      return 0;
+   } catch (const silo::preprocessing::PreprocessingException& preprocessing_exception) {
+      SPDLOG_ERROR("Preprocessing Error: {}", preprocessing_exception.what());
+      return 1;
+   } catch (const std::runtime_error& error) {
+      SPDLOG_ERROR("Internal Error: {}", error.what());
+      return 1;
+   }
+}
+
+static int runApi(const silo::config::RuntimeConfig& runtime_config) {
+   try {
+      SiloServer server;
+      return server.runApi(runtime_config);
+   } catch (const std::runtime_error& error) {
+      SPDLOG_ERROR("Internal Error: {}", error.what());
+      return 1;
+   }
+}
+
+enum class ExecutionMode { PREPROCESSING, API };
+
+int main(int argc, char** argv) {
+   setupLogger();
+
+   std::vector<std::string> all_args(argv, argv + argc);
+
+   const std::filesystem::path program_path{all_args[0]};
+
+   const std::string program_name = program_path.filename();
+
+   std::span<const std::string> args(all_args.begin() + 1, all_args.end());
+
+   ExecutionMode mode;
+   if (program_name == "siloPreprocessor") {
+      mode = ExecutionMode::PREPROCESSING;
+   } else if (program_name == "siloServer") {
+      mode = ExecutionMode::API;
+   } else if (!args.empty()) {
+      const std::string& mode_argument = args[0];
+      args = {args.begin() + 1, args.end()};
+      if (mode_argument == "preprocessing") {
+         mode = ExecutionMode::PREPROCESSING;
+      } else if (mode_argument == "api") {
+         mode = ExecutionMode::API;
+      } else {
+         std::cerr << program_name
+                   << ": need either 'preprocessing' or 'api' as the first program argument, got '"
+                   << mode_argument << "'\n";
+         return 1;
+      }
+   } else {
+      std::cerr << program_name
+                << ": need either 'preprocessing' or 'api' as the first program argument\n";
+      return 1;
+   }
+
+   switch (mode) {
+      case ExecutionMode::PREPROCESSING:
+         return std::visit(
+            overloaded{
+               [&](const silo::config::PreprocessingConfig& preprocessing_config) {
+                  SPDLOG_INFO("preprocessing_config = {}", preprocessing_config);
+                  return runPreprocessor(preprocessing_config);
+               },
+               [&](int32_t exit_code) { return exit_code; }
+            },
+            silo::config::getConfig<silo::config::PreprocessingConfig>(args)
+         );
+      case ExecutionMode::API:
+         return std::visit(
+            overloaded{
+               [&](const silo::config::RuntimeConfig& runtime_config) {
+                  SPDLOG_INFO("runtime_config = {}", runtime_config);
+                  return runApi(runtime_config);
+               },
+               [&](int32_t exit_code) { return exit_code; }
+            },
+            silo::config::getConfig<silo::config::RuntimeConfig>(args)
+         );
+   }
+}
