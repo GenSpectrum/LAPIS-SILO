@@ -17,6 +17,21 @@ namespace silo::query_engine::filter_expressions {
 
 using silo::storage::column::IndexedStringColumnPartition;
 
+namespace {
+
+std::string toUpperCase(const std::string& string) {
+   std::string upper_case_str = string;
+   std::transform(
+      upper_case_str.begin(),
+      upper_case_str.end(),
+      upper_case_str.begin(),
+      [](unsigned char c) { return std::toupper(c); }
+   );
+   return upper_case_str;
+}
+
+}
+
 LineageFilter::LineageFilter(
    std::string column_name,
    std::optional<std::string> lineage,
@@ -43,7 +58,9 @@ std::optional<const roaring::Roaring*> LineageFilter::getBitmapForValue(
       return lineage_column.filter(std::nullopt);
    }
 
-   const auto value_id_opt = lineage_column.getValueId(lineage.value());
+   const std::string lineage_upper_case = toUpperCase(lineage.value());
+
+   const auto value_id_opt = lineage_column.getValueId(lineage_upper_case);
 
    CHECK_SILO_QUERY(
       value_id_opt.has_value(),
