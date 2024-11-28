@@ -116,5 +116,5 @@ class ConfigValueSpecification {
       return value_specification;
    }
 };
-
+  
 }  // namespace silo::config
