@@ -21,9 +21,14 @@ namespace silo::config {
 class EnvironmentVariables : public ConfigSource {
    /* EnvironmentVariables base, */
    std::vector<std::pair<std::string, std::string>> alist;
+   std::vector<std::string> allow_list;
 
-   explicit EnvironmentVariables(std::vector<std::pair<std::string, std::string>>&& alist_)
-       : alist(std::move(alist_)){};
+   explicit EnvironmentVariables(
+      std::vector<std::pair<std::string, std::string>>&& alist_,
+      std::vector<std::string> allow_list_
+   )
+       : alist(std::move(alist_)),
+         allow_list(std::move(allow_list_)){};
 
    explicit EnvironmentVariables(){};
 
@@ -31,7 +36,10 @@ class EnvironmentVariables : public ConfigSource {
    [[nodiscard]] VerifiedConfigSource verify(const ConfigSpecification& config_specification
    ) const override;
 
-   static EnvironmentVariables decodeEnvironmentVariables(const char* const* envp = environ);
+   static EnvironmentVariables newWithAllowListAndEnv(
+      const std::vector<std::string>& allow_list,
+      const char* const* envp
+   );
 
    [[nodiscard]] constexpr std::string_view errorContext() const {
       return "environment variables";

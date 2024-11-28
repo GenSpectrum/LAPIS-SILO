@@ -2,8 +2,8 @@
 #include <iostream>
 #include <variant>
 
-#include <boost/algorithm/string/join.hpp>
 #include <spdlog/spdlog.h>
+#include <boost/algorithm/string/join.hpp>
 
 #include "silo/common/overloaded.h"
 #include "silo/config/preprocessing_config.h"
@@ -96,6 +96,19 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
       return 1;
    }
 
+   std::vector<std::string> env_allow_list;
+   env_allow_list.emplace_back("SILO_PANIC");
+   for (auto& field : silo::config::PreprocessingConfig::getConfigSpecification().fields) {
+      env_allow_list.emplace_back(
+         silo::config::EnvironmentVariables::configKeyPathToString(field.key)
+      );
+   }
+   for (auto& field : silo::config::RuntimeConfig::getConfigSpecification().fields) {
+      env_allow_list.emplace_back(
+         silo::config::EnvironmentVariables::configKeyPathToString(field.key)
+      );
+   }
+
    switch (mode) {
       case ExecutionMode::PREPROCESSING:
          return std::visit(
@@ -106,7 +119,7 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
                },
                [&](int32_t exit_code) { return exit_code; }
             },
-            silo::config::getConfig<silo::config::PreprocessingConfig>(args)
+            silo::config::getConfig<silo::config::PreprocessingConfig>(args, env_allow_list)
          );
       case ExecutionMode::API:
          return std::visit(
@@ -117,7 +130,7 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
                },
                [&](int32_t exit_code) { return exit_code; }
             },
-            silo::config::getConfig<silo::config::RuntimeConfig>(args)
+            silo::config::getConfig<silo::config::RuntimeConfig>(args, env_allow_list)
          );
    }
 }

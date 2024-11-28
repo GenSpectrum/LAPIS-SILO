@@ -53,7 +53,10 @@ concept Config = requires(C c, const C cc, const VerifiedConfigSource& config_so
 /// pass to exit(): 0 if the user gave --help, 1 in case of erroneous
 /// usage (the error is already printed in that case).
 template <Config C>
-std::variant<C, int32_t> getConfig(std::span<const std::string> cmd) {
+std::variant<C, int32_t> getConfig(
+   std::span<const std::string> cmd,
+   const std::vector<std::string>& allow_list_for_env_vars
+) {
    const auto config_specification = C::getConfigSpecification();
    try {
       auto cmd_source = CommandLineArguments{cmd}.verify(config_specification);
@@ -74,7 +77,8 @@ std::variant<C, int32_t> getConfig(std::span<const std::string> cmd) {
       }
 
       auto env_source =
-         EnvironmentVariables::decodeEnvironmentVariables().verify(config_specification);
+         EnvironmentVariables::newWithAllowListAndEnv(allow_list_for_env_vars, environ)
+            .verify(config_specification);
       // Restart from scratch, because the values from cmd_source need
       // to shadow the ones from env_source.
       config = {};
