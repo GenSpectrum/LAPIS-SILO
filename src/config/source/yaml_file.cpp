@@ -111,12 +111,12 @@ void yamlToPaths(
          // transforming the elements into camel-case and joining them with a '.'
          const std::string debug_string_parents = parents.foldRight(
             std::string{},
-            [](const std::vector<std::string>& rest_of_parents, const std::string& acc) {
-               return acc + "." + joinCamelCase(rest_of_parents);
+            [](const std::vector<std::string>& parent, const std::string& acc) {
+               return acc + "." + joinCamelCase(parent);
             }
          );
          throw silo::config::ConfigException(
-            fmt::format("{}: found invalid key", debug_string_parents)
+            fmt::format("{}: found invalid key: {}", config_context, debug_string_parents)
          );
       }
       if (isProperSingularValue(node)) {
