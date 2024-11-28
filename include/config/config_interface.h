@@ -62,44 +62,38 @@ std::variant<C, int32_t> getConfig(
    const auto config_specification = C::getConfigSpecification();
    try {
       auto cmd_source = CommandLineArguments{cmd}.verify(config_specification);
-
-      if (!cmd_source.positional_arguments.empty()) {
-         throw silo::config::ConfigException{"SILO does not expect positional arguments"};
-      }
-
-      C config;
-
-      // First, only check command line arguments, for "--help"; avoid
-      // potential errors from env processing, and we don't have the
-      // path to the config file yet.
-      config = {};
-      config.overwriteFrom(cmd_source);
-      if (config.asksForHelp()) {
+      if (cmd_source.asks_for_help) {
          std::cout << config_specification.helpText() << "\n" << std::flush;
          return 0;
+      }
+      if (!cmd_source.positional_arguments.empty()) {
+         throw silo::config::ConfigException{"SILO does not expect positional arguments"};
       }
 
       auto env_source =
          EnvironmentVariables::newWithAllowListAndEnv(allow_list_for_env_vars, environ)
             .verify(config_specification);
-      // Restart from scratch, because the values from cmd_source need
-      // to shadow the ones from env_source.
+
+      C config;
+
+      // First, get the config paths, if any
       config = {};
       config.overwriteFrom(env_source);
       config.overwriteFrom(cmd_source);
       auto config_paths = config.getConfigPaths();
 
+      // Restart from scratch, reading the given config files (if any)
+      // first.
       config = {};
-      // Was a config file given as an argument or by environment variable?
       for (auto config_path : config_paths) {
          auto file_source = YamlConfig::readFile(config_path).verify(config_specification);
-         // Now read again with the file first:
          config.overwriteFrom(file_source);
-         // (The config file might specify --help, too, but we ignore that.)
       }
       config.overwriteFrom(env_source);
       config.overwriteFrom(cmd_source);
+
       config.validate();
+
       return std::move(config);
    } catch (const silo::config::ConfigException& e) {
       std::cerr << fmt::format(
