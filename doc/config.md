@@ -83,5 +83,5 @@ satisfy the last point above; this is done in
 
 Hard-coded values for a "Config" struct should be read from its
 `ConfigSpecification`, in its constructor, rather than using the `=`
-based initialization default in the class definition, to keep one
-source of truth for both the help text and the actual run time.
+syntax in the class definition, to keep one source of truth for both
+the help text and the actual run time.
