@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include <config/config_backend.h>
+#include <config/config_source.h>
 #include <config/config_specification.h>
 
 namespace silo::config {

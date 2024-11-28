@@ -26,7 +26,7 @@ during construction. The resulting object must implement
 [`VerifyConfigSource`](../include/config/config_specification.h), the `verify` method of
 which takes the config values vector mentioned in the previous
 paragraph, and returns an object that implements
-[`VerifiedConfigSource`](../include/config/config_backend.h). This is then, inside
+[`VerifiedConfigSource`](../include/config/config_source.h). This is then, inside
 [`raw_get_config`](XX), passed to the
 [`OverwriteFrom::overwrite_from`](XX?) method to
 fill the fields of the to-be configured struct with the values
@@ -50,4 +50,4 @@ struct, of the given type parameter which must match the metadata
 that was given.
 
 For more information (with quite some overlap with this description),
-see [`config_source_interface`](../include/config/config_backend.h).
+see [`config_source_interface`](../include/config/config_source.h).

@@ -5,7 +5,7 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include "config/config_backend.h"
+#include "config/config_source.h"
 
 namespace silo::config {
 

@@ -8,7 +8,7 @@
 #include "config/backend/command_line_arguments.h"
 #include "config/backend/environment_variables.h"
 #include "config/backend/yaml_file.h"
-#include "config/config_backend.h"
+#include "config/config_source.h"
 #include "config/config_specification.h"
 #include "silo/common/cons_list.h"
 #include "silo/common/overloaded.h"
