@@ -28,8 +28,10 @@
 //!     there's no interface for this since this is specific to each
 //!     source.
 //!
-//!  2. The ConfigBackend::verify function that this object implements checks that all found keys
-//!  are OK and specified for the desired config type, and returns a VerifiedConfigSource object.
+//!  2. The ConfigBackend::verify function that this object implements
+//!     checks that all found keys are OK and specified for the
+//!     desired config type, and returns a VerifiedConfigSource
+//!     object.
 //!
 //!  3. To fill in a to be configured struct, the
 //!     `VerifiedConfigSource` object is queried for each field key
