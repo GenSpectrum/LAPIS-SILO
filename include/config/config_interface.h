@@ -72,9 +72,14 @@ std::variant<C, int32_t> getConfig(std::span<const std::string> cmd) {
          std::cout << config_specification.helpText() << "\n" << std::flush;
          return 0;
       }
+
       auto env_source =
          EnvironmentVariables::decodeEnvironmentVariables().verify(config_specification);
+      // Restart from scratch, because the values from cmd_source need
+      // to shadow the ones from env_source.
+      config = {};
       config.overwriteFrom(env_source);
+      config.overwriteFrom(cmd_source);
 
       // Was a config file given as an argument or by environment variable?
       auto config_path = config.configPath();
