@@ -25,31 +25,27 @@ namespace silo::config {
 /// PreprocessingConfig), whose easily accessible structure should remain.
 template <typename C>
 concept Config = requires(C c, const C cc, const VerifiedConfigSource& config_source) {
-   /// The specification which
+   /// Get the specification (ConfigSpecification) for this kind (C)
+   /// of config.
    { C::getConfigSpecification() } -> std::same_as<ConfigSpecification>;
 
    /// Whether the user gave the --help option or environment
    /// variable equivalent.
-   /// bool asksForHelp() const = 0;
    { cc.asksForHelp() } -> std::same_as<bool>;
 
    /// Optional config file that the user gave (or that is provided
    /// by the type via its defaults) that should be loaded.
-   /// std::optional<std::filesystem::path> configPath() const = 0;
    { cc.configPath() } -> std::same_as<std::optional<std::filesystem::path>>;
 
    /// Overwrite the fields of an instance of the target type; done
    /// that way so that multiple kinds of config sources can shadow
-   /// each other's values by application in sequence. `parents` is
-   /// the upwards path to the root of the struct tree (use
-   /// .to_vec_reverse() and wrap in ConfigKeyPath). Throws
-   /// `silo::config::ConfigException` for config value parse errors
-   /// (subclass as ConfigValueParseError?).
-   /// void overwriteFrom(const VerifiedConfigSource& config_source) = 0;
+   /// each other's values by application in sequence. Does not throw
+   /// exceptions, except overwriteFrom can call SILO_PANIC when there
+   /// is an inconsistency (bug) between ConfigSpecification and
+   /// overwriteFrom implementation.
    { c.overwriteFrom(config_source) } -> std::same_as<void>;
 
    /// Validation / Sanity checks about the values of this config
-   /// void validate() = 0;
    { c.validate() } -> std::same_as<void>;
 };
 
