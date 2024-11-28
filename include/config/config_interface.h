@@ -49,6 +49,11 @@ concept Config = requires(C c, const C cc, const VerifiedConfigSource& config_so
    { c.validate() } -> std::same_as<void>;
 };
 
+/// This function needs a reference to the (remaining) command line
+/// arguments to be parsed, thus the application gets a chance to take
+/// off some arguments first (like "api" or "preprocessing" in the
+/// current SILO version).
+/// 
 /// In case of error, returns the exit code that the caller should
 /// pass to exit(): 0 if the user gave --help, 1 in case of erroneous
 /// usage (the error is already printed in that case).
