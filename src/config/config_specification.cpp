@@ -81,7 +81,6 @@ std::string ConfigSpecification::helpText() const {
              << "\n"
              << "    -h | --help  show help\n"
              << "\n";
-   // ^ XX are keys with dot working in YAML? Or have to describe what is meant?
    auto addln = [&help_text](const std::string& line) { help_text << line << "\n"; };
 
    for (const auto& field_spec : fields) {
