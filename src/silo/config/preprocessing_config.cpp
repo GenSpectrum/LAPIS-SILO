@@ -54,7 +54,7 @@ namespace silo::config {
 // Specification of the fields in inputs to the PreprocessingConfig struct
 ConfigSpecification PreprocessingConfig::getConfigSpecification() {
    return ConfigSpecification{
-      .program_name = "siloPreprocessing",
+      .program_name = "silo preprocessing",
       .fields{
          ConfigValueSpecification::createWithoutDefault(
             helpOptionKey(), ConfigValueType::BOOL, "Show help text."
