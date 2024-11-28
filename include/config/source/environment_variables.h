@@ -18,7 +18,7 @@ extern const char* const* environ;
 namespace silo::config {
 
 // (Inheriting implementation for ConfigSource directly.)
-class EnvironmentVariables : public ConfigBackend {
+class EnvironmentVariables : public ConfigSource {
    /* EnvironmentVariables base, */
    std::vector<std::pair<std::string, std::string>> alist;
 

@@ -11,7 +11,7 @@
 
 namespace silo::config {
 
-class CommandLineArguments : public ConfigBackend {
+class CommandLineArguments : public ConfigSource {
    std::vector<std::string> args;
 
   public:

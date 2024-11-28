@@ -9,7 +9,7 @@
 
 namespace silo::config {
 
-class YamlConfig : public ConfigBackend {
+class YamlConfig : public ConfigSource {
    std::string error_context;
    std::unordered_map<ConfigKeyPath, YAML::Node> yaml_fields;
 

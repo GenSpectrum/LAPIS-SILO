@@ -28,7 +28,7 @@
 //!     there's no interface for this since this is specific to each
 //!     source.
 //!
-//!  2. The ConfigBackend::verify function that this object implements
+//!  2. The ConfigSource::verify function that this object implements
 //!     checks that all found keys are OK and specified for the
 //!     desired config type, and returns a VerifiedConfigSource
 //!     object.
@@ -59,12 +59,12 @@ namespace silo::config {
 /// environment variables to uppercase with underscores and prefixed
 /// with "SILO_". Multi-segment paths are treated as nested
 /// dictionaries in yaml config files, joined with '-' for command
-/// line arguments and '_' for environment variables. Each `ConfigBackend`
+/// line arguments and '_' for environment variables. Each `ConfigSource`
 /// provides the means to do these type-specific conversions
 
-/// A ConfigBackend is providing I/O-error free access to a set of
+/// A ConfigSource is providing I/O-error free access to a set of
 /// unverified configuration data.
-class ConfigBackend {
+class ConfigSource {
   public:
    /// Verify that all user-presented *keys* in `self` are
    /// valid and the types of corresponding *values* resolved.
