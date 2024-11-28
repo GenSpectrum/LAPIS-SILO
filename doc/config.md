@@ -2,11 +2,12 @@
 
 SILO takes configuration information from 3 configuration sources:
 YAML files, environment variables, and command line arguments. The
-same variables can be defined via any of them (but while the path to
-the first-level configuration file can even be defined in the file
-itself, only values passed by env variable or command line are useful,
-of course). Environment variables override YAML file entries, and
-command line arguments override both.
+same variables can be defined via any of them (except the path to the
+config file only makes sense to be defined via environment variable or
+command line option, of course). Environment variables override YAML
+file entries, and command line arguments override both.
+
+
 
 The system works off metadata on the structs making up the
 configuration data. 
