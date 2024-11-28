@@ -1,0 +1,83 @@
+{
+  "testCaseName": "N-Of query requesting 2 of 3 mutations with details action",
+  "query": {
+    "action": {
+      "type": "Details",
+      "randomize": {
+        "seed": 1232
+      }
+    },
+    "filterExpression": {
+      "type": "N-Of",
+      "numberOfMatchers": 2,
+      "matchExactly": false,
+      "children": [
+        {
+          "type": "NucleotideEquals",
+          "position": 1,
+          "symbol": "-"
+        },
+        {
+          "type": "NucleotideEquals",
+          "position": 2,
+          "symbol": "T"
+        },
+        {
+          "type": "NucleotideEquals",
+          "position": 27542,
+          "symbol": "N"
+        }
+      ]
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "age": 58,
+      "country": "Switzerland",
+      "date": "2021-04-28",
+      "division": "Basel-Stadt",
+      "gisaid_epi_isl": "EPI_ISL_2019235",
+      "pango_lineage": "B.1.1.7",
+      "qc_value": 0.9,
+      "region": "Europe",
+      "test_boolean_column": false,
+      "unsorted_date": "2021-01-22"
+    },
+    {
+      "age": 50,
+      "country": "Switzerland",
+      "date": "2020-11-13",
+      "division": "Solothurn",
+      "gisaid_epi_isl": "EPI_ISL_1005148",
+      "pango_lineage": "B.1.221",
+      "qc_value": 0.92,
+      "region": "Europe",
+      "test_boolean_column": null,
+      "unsorted_date": "2020-12-17"
+    },
+    {
+      "age": 50,
+      "country": "Switzerland",
+      "date": "2021-02-23",
+      "division": "Solothurn",
+      "gisaid_epi_isl": "EPI_ISL_1195052",
+      "pango_lineage": "B.1.1.7",
+      "qc_value": 0.95,
+      "region": "Europe",
+      "test_boolean_column": null,
+      "unsorted_date": "2021-07-04"
+    },
+    {
+      "age": 54,
+      "country": "Switzerland",
+      "date": "2021-03-19",
+      "division": "Solothurn",
+      "gisaid_epi_isl": "EPI_ISL_1597932",
+      "pango_lineage": "B.1.1.7",
+      "qc_value": 0.94,
+      "region": "Europe",
+      "test_boolean_column": true,
+      "unsorted_date": "2021-02-10"
+    }
+  ]
+}
