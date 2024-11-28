@@ -77,13 +77,15 @@ ValueAndConsumedFlag getValueFromArg(
    const std::optional<std::string>& next_arg
 ) {
    if (value_specification.type == ConfigValueType::BOOL) {
-      return {ConfigValue::fromBool(true), false};
+      return {.value = ConfigValue::fromBool(true), .consumed_next = false};
    }
    if (!next_arg.has_value()) {
       // VerificationError::ParseError in Rust
       throw silo::config::ConfigException("missing argument after option " + arg);
    }
-   return {value_specification.getValueFromString(next_arg.value()), true};
+   return {
+      .value = value_specification.getValueFromString(next_arg.value()), .consumed_next = true
+   };
 }
 
 }  // namespace
