@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -41,10 +42,10 @@ class ConfigValueSpecification;
 class ConfigValue {
    friend class ConfigValueSpecification;
 
-   ConfigValue(
+   explicit ConfigValue(
       std::variant<std::string, std::filesystem::path, int32_t, uint32_t, uint16_t, bool> value
    )
-       : value(value) {}
+       : value(std::move(value)) {}
 
   public:
    std::variant<std::string, std::filesystem::path, int32_t, uint32_t, uint16_t, bool> value;
@@ -52,7 +53,7 @@ class ConfigValue {
    static ConfigValue fromString(const std::string& value) { return ConfigValue{value}; }
 
    static ConfigValue fromPath(const std::filesystem::path& value) {
-      const ConfigValue result{value};
+      ConfigValue result{value};
       SILO_ASSERT(get_if<std::filesystem::path>(&result.value) != nullptr);
       return result;
    }
@@ -65,9 +66,9 @@ class ConfigValue {
 
    static ConfigValue fromBool(bool value) { return ConfigValue{value}; }
 
-   ConfigValueType getValueType() const;
+   [[nodiscard]] ConfigValueType getValueType() const;
 
-   std::string toString() const;
+   [[nodiscard]] std::string toString() const;
 };
 
 class ConfigValueSpecification {
@@ -82,7 +83,7 @@ class ConfigValueSpecification {
    /// is the constant "true", which will be added to the help text
    std::string_view help_text;
 
-   ConfigValue getValueFromString(std::string value_string) const;
+   [[nodiscard]] ConfigValue getValueFromString(std::string value_string) const;
 
    ConfigValue createValue(
       std::variant<std::string, std::filesystem::path, int32_t, uint32_t, uint16_t, bool> value
@@ -94,7 +95,7 @@ class ConfigValueSpecification {
       std::string_view help_text
    ) {
       ConfigValueSpecification value_specification;
-      value_specification.key = key;
+      value_specification.key = std::move(key);
       value_specification.type = value_type;
       value_specification.help_text = help_text;
       return value_specification;
@@ -108,7 +109,7 @@ class ConfigValueSpecification {
       std::string_view help_text
    ) {
       ConfigValueSpecification value_specification;
-      value_specification.key = key;
+      value_specification.key = std::move(key);
       value_specification.type = default_value.getValueType();
       value_specification.default_value = default_value;
       value_specification.help_text = help_text;
