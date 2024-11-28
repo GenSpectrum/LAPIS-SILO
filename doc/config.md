@@ -10,8 +10,10 @@ file entries, and command line arguments override both.
 For a struct representing application configuration data, the system
 needs metadata, represented with the [`ConfigSpecification`](XXX)
 type. This metadata is the basis for building the help text, and used
-by the configuration source "backends" (in the `verify` methods) to
-know what user-provided values are valid.
+by the configuration source "backends" (in the `verify` method
+implementations of the [`ConfigSource`
+interface](include/config/config_source_interface.h)) to know which
+user-provided values are valid, and what type they represent.
 
 to map to vectors or key/value representations for the source
 in question.
