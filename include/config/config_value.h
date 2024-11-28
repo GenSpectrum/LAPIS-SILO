@@ -1,9 +1,5 @@
 #pragma once
 
-//! Part of config metadata, but can't be in `config_metadata.h` due to
-//! that depending on `config/config_source_interface.h` which also
-//! references `ConfigValue`.
-
 #include <filesystem>
 #include <optional>
 #include <string>
