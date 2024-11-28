@@ -5,11 +5,11 @@
 #include <span>
 #include <variant>
 
+#include "config/config_source.h"
+#include "config/config_specification.h"
 #include "config/source/command_line_arguments.h"
 #include "config/source/environment_variables.h"
 #include "config/source/yaml_file.h"
-#include "config/config_source.h"
-#include "config/config_specification.h"
 #include "silo/common/cons_list.h"
 #include "silo/common/overloaded.h"
 #include "silo/config/util/config_exception.h"
@@ -61,6 +61,9 @@ std::variant<C, int32_t> getConfig(std::span<const std::string> cmd) {
    const auto config_specification = C::getConfigSpecification();
    try {
       auto cmd_source = CommandLineArguments{cmd}.verify(config_specification);
+      if (!cmd_source.positional_arguments.empty()) {
+         throw silo::config::ConfigException{"SILO does not expect positional arguments"};
+      }
 
       C config;
 

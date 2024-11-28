@@ -11,10 +11,10 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/core/span.hpp>
 
+#include "config/config_key_path.h"
 #include "config/source/command_line_arguments.h"
 #include "config/source/environment_variables.h"
 #include "config/source/yaml_file.h"
-#include "config/config_key_path.h"
 #include "silo/common/cons_list.h"
 #include "silo/common/fmt_formatters.h"
 #include "silo/common/panic.h"

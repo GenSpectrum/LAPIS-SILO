@@ -15,6 +15,9 @@ namespace silo::config {
 class VerifiedConfigSource {
   public:
    std::unordered_map<ConfigKeyPath, ConfigValue> config_values;
+   /// For the command line argunment backend. Empty for backends that
+   /// do not support positional arguments.
+   std::vector<std::string> positional_arguments;
 
    /// Retrieve a config value for the given key as a string
    /// (potentially converting other value types). (Explicitly

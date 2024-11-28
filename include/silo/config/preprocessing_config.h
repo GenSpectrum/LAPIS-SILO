@@ -10,8 +10,8 @@
 #include <Poco/Util/OptionSet.h>
 #include <fmt/format.h>
 
-#include "config/source/yaml_file.h"
 #include "config/config_interface.h"
+#include "config/source/yaml_file.h"
 #include "silo/config/config_defaults.h"
 
 namespace silo::config {
