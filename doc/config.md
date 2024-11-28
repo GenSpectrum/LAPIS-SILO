@@ -7,18 +7,13 @@ config file only makes sense to be defined via environment variable or
 command line option, of course). Environment variables override YAML
 file entries, and command line arguments override both.
 
+For a struct representing application configuration data, the system
+needs metadata, represented with the [`ConfigSpecification`](XXX)
+type. This metadata is the basis for building the help text, and used
+by the configuration source "backends" (in the `verify` methods) to
+know what user-provided values are valid.
 
-
-The system works off metadata on the structs making up the
-configuration data. 
-
-The metadata is converted at runtime (via
-[`ConfigStruct`](../include/config/config_specification.h)) to a flat
-representation, a vector of tuples of
-[`ConfigKeyPath`](../include/config/config_key_path.h) (list of key segment strings) and
-reference to [`ConfigValue`](../include/config/config_specification.h) (the metadata on a
-struct field).  This vector is the basis to build the help text,
-or to map to vectors or key/value representations for the source
+to map to vectors or key/value representations for the source
 in question.
 
 Each source ([command line arguments](XX), [environment variables](XX),
