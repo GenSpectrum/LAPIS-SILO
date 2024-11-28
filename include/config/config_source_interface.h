@@ -3,7 +3,6 @@
 #include "config/config_specification.h"
 #include "config/verified_config_source.h"
 
-
 namespace silo::config {
 
 class ConfigSource {
