@@ -20,9 +20,17 @@ As per the `Config` concept, a "Config" needs to implement an
 user-provided data from one of the config sources, and has to fill in
 all struct fields with the values given by the source.
 
+Each configuration source has a first step, before the `verify` step
+happens, that retrieves the information provided by the user without
+configuration-specific parsing (e.g. parse the configuration file with
+a Yaml parser). That first step takes source-specific arguments and
+can have source-specific errors: Yaml parsing throws exceptions for
+Yaml parsing errors.
+
+
 There are some complications:
 
-* boolean  options +   command line   -> only in verify posisible
+* boolean  options +   command line   -> only in verify posisible  XXX
 
 * configuration file path must be read from environment variables or
   command line arguments first, then the file can be parsed, but then
