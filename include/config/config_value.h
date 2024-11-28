@@ -101,7 +101,7 @@ class ConfigValueSpecification {
    /// misspecification.
    static ConfigValueSpecification createWithDefault(
       ConfigKeyPath key,
-      ConfigValue default_value,
+      const ConfigValue& default_value,
       std::string_view help_text
    ) {
       ConfigValueSpecification value_specification;
