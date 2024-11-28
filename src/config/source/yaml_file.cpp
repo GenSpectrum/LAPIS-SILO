@@ -5,6 +5,7 @@
 #include <unordered_set>
 
 #include <fmt/format.h>
+#include <spdlog/spdlog.h>
 #include <boost/algorithm/string/join.hpp>
 
 #include "silo/common/alist.h"
