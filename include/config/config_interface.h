@@ -5,7 +5,7 @@
 #include <span>
 #include <variant>
 
-#include "config/config_source.h"
+#include "config/config_source_interface.h"
 #include "config/config_specification.h"
 #include "config/source/command_line_arguments.h"
 #include "config/source/environment_variables.h"
