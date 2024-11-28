@@ -1,6 +1,7 @@
 #include "config/verified_config_source.h"
 
 #include "silo/common/panic.h"
+#include "config/source/yaml_file.h"
 
 namespace silo::config {
 
@@ -13,7 +14,7 @@ std::optional<std::string> VerifiedConfigSource::getString(const ConfigKeyPath& 
          SILO_PANIC(
             "Called getString on a ConfigKeyPath ('{}') that belongs to a value of another "
             "type ({}).",
-            config_key_path.toDebugString(),
+            YamlConfig::configKeyPathToString(config_key_path),
             configValueTypeToString(value.getValueType())
          );
       }
@@ -32,7 +33,7 @@ std::optional<std::filesystem::path> VerifiedConfigSource::getPath(
          SILO_PANIC(
             "Called getPath on a ConfigKeyPath ('{}') that belongs to a value of another "
             "type ({}).",
-            config_key_path.toDebugString(),
+            YamlConfig::configKeyPathToString(config_key_path),
             configValueTypeToString(value.getValueType())
          );
       }
@@ -49,7 +50,7 @@ std::optional<int32_t> VerifiedConfigSource::getInt32(const ConfigKeyPath& confi
          SILO_PANIC(
             "Called getInt32 on a ConfigKeyPath ('{}') that belongs to a value of another "
             "type ({}).",
-            config_key_path.toDebugString(),
+            YamlConfig::configKeyPathToString(config_key_path),
             configValueTypeToString(value.getValueType())
          );
       }
@@ -67,7 +68,7 @@ std::optional<uint32_t> VerifiedConfigSource::getUint32(const ConfigKeyPath& con
          SILO_PANIC(
             "Called getUint32 on a ConfigKeyPath ('{}') that belongs to a value of another "
             "type ({}).",
-            config_key_path.toDebugString(),
+            YamlConfig::configKeyPathToString(config_key_path),
             configValueTypeToString(value.getValueType())
          );
       }
@@ -85,7 +86,7 @@ std::optional<uint16_t> VerifiedConfigSource::getUint16(const ConfigKeyPath& con
          SILO_PANIC(
             "Called getUint16 on a ConfigKeyPath ('{}') that belongs to a value of another "
             "type ({}).",
-            config_key_path.toDebugString(),
+            YamlConfig::configKeyPathToString(config_key_path),
             configValueTypeToString(value.getValueType())
          );
       }
@@ -102,7 +103,7 @@ std::optional<bool> VerifiedConfigSource::getBool(const ConfigKeyPath& config_ke
          SILO_PANIC(
             "Called getBool on a ConfigKeyPath ('{}') that belongs to a value of another "
             "type ({}).",
-            config_key_path.toDebugString(),
+            YamlConfig::configKeyPathToString(config_key_path),
             configValueTypeToString(value.getValueType())
          );
       }
