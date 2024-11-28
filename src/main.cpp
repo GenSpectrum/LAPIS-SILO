@@ -3,6 +3,7 @@
 #include <variant>
 
 #include <boost/algorithm/string/join.hpp>
+#include <spdlog/spdlog.h>
 
 #include "silo/common/overloaded.h"
 #include "silo/config/preprocessing_config.h"
