@@ -20,6 +20,7 @@ class PreprocessingConfig {
    friend class fmt::formatter<silo::config::PreprocessingConfig>;
 
    std::optional<bool> help;
+   std::optional<std::filesystem::path> default_preprocessing_config;
    std::optional<std::filesystem::path> preprocessing_config;
 
   public:
@@ -54,7 +55,7 @@ class PreprocessingConfig {
 
    void overwriteFrom(const silo::config::VerifiedConfigSource& config_source);
 
-   [[nodiscard]] std::optional<std::filesystem::path> configPath() const;
+   [[nodiscard]] std::vector<std::filesystem::path> getConfigPaths() const;
 };
 
 }  // namespace silo::config

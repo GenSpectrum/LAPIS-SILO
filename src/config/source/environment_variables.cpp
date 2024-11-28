@@ -21,7 +21,10 @@ std::string toLowerCase(std::string input) {
 
 namespace silo::config {
 
-EnvironmentVariables EnvironmentVariables::decodeEnvironmentVariables(const char* const* envp) {
+EnvironmentVariables EnvironmentVariables::newWithAllowListAndEnv(
+   const std::vector<std::string>& allow_list,
+   const char* const* envp
+) {
    std::vector<std::pair<std::string, std::string>> alist;
    for (const char* const* current_envp = envp; *current_envp != nullptr; current_envp++) {
       const char* env = *current_envp;
@@ -35,7 +38,7 @@ EnvironmentVariables EnvironmentVariables::decodeEnvironmentVariables(const char
          }
       }
    }
-   return EnvironmentVariables{std::move(alist)};
+   return EnvironmentVariables{std::move(alist), allow_list};
 }
 
 [[nodiscard]] std::string EnvironmentVariables::configKeyPathToString(
@@ -100,9 +103,11 @@ AmbiguousConfigKeyPath EnvironmentVariables::stringToConfigKeyPath(
          const ConfigValue value = value_specification.getValueFromString(value_string);
          config_values.emplace(value_specification.key, value);
       } else {
-         if (key_string == "SILO_PANIC") {
-            SPDLOG_TRACE(
-               "allowing env variable {} which is independent of the config system", key_string
+         if (std::find(allow_list.begin(), allow_list.end(), key_string) != allow_list.end()) {
+            SPDLOG_INFO(
+               "Given env variable '{}' is not a valid key for '{}'. (but explicitly allowed)",
+               key_string,
+               config_specification.program_name
             );
          } else {
             invalid_config_keys.push_back(key_string);
@@ -114,10 +119,11 @@ AmbiguousConfigKeyPath EnvironmentVariables::stringToConfigKeyPath(
       const std::string_view keys_or_options =
          (invalid_config_keys.size() >= 2) ? "variables" : "variable";
       throw silo::config::ConfigException(fmt::format(
-         "in {}: unknown {} {}",
+         "in {}: unknown {} {} for '{}'",
          errorContext(),
          keys_or_options,
-         boost::join(invalid_config_keys, ", ")
+         boost::join(invalid_config_keys, ", "),
+         config_specification.program_name
       ));
    }
 

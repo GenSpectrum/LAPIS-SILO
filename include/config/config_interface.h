@@ -33,9 +33,10 @@ concept Config = requires(C c, const C cc, const VerifiedConfigSource& config_so
    /// variable equivalent.
    { cc.asksForHelp() } -> std::same_as<bool>;
 
-   /// Optional config file that the user gave (or that is provided
-   /// by the type via its defaults) that should be loaded.
-   { cc.configPath() } -> std::same_as<std::optional<std::filesystem::path>>;
+   /// Vector of config files that the user gave (or that is provided
+   /// by the type via its defaults) that should be loaded and shadowed
+   /// in the order of the vector.
+   { cc.getConfigPaths() } -> std::same_as<std::vector<std::filesystem::path>>;
 
    /// Overwrite the fields of an instance of the target type; done
    /// that way so that multiple kinds of config sources can shadow
@@ -58,7 +59,10 @@ concept Config = requires(C c, const C cc, const VerifiedConfigSource& config_so
 /// pass to exit(): 0 if the user gave --help, 1 in case of erroneous
 /// usage (the error is already printed in that case).
 template <Config C>
-std::variant<C, int32_t> getConfig(std::span<const std::string> cmd) {
+std::variant<C, int32_t> getConfig(
+   std::span<const std::string> cmd,
+   const std::vector<std::string>& allow_list_for_env_vars
+) {
    const auto config_specification = C::getConfigSpecification();
    try {
       auto cmd_source = CommandLineArguments{cmd}.verify(config_specification);
@@ -79,24 +83,25 @@ std::variant<C, int32_t> getConfig(std::span<const std::string> cmd) {
       }
 
       auto env_source =
-         EnvironmentVariables::decodeEnvironmentVariables().verify(config_specification);
+         EnvironmentVariables::newWithAllowListAndEnv(allow_list_for_env_vars, environ)
+            .verify(config_specification);
       // Restart from scratch, because the values from cmd_source need
       // to shadow the ones from env_source.
       config = {};
       config.overwriteFrom(env_source);
       config.overwriteFrom(cmd_source);
+      auto config_paths = config.getConfigPaths();
 
+      config = {};
       // Was a config file given as an argument or by environment variable?
-      auto config_path = config.configPath();
-      if (config_path.has_value()) {
-         auto file_source = YamlConfig::readFile(*config_path).verify(config_specification);
+      for (auto config_path : config_paths) {
+         auto file_source = YamlConfig::readFile(config_path).verify(config_specification);
          // Now read again with the file first:
-         config = {};
          config.overwriteFrom(file_source);
-         config.overwriteFrom(env_source);
-         config.overwriteFrom(cmd_source);
          // (The config file might specify --help, too, but we ignore that.)
       }
+      config.overwriteFrom(env_source);
+      config.overwriteFrom(cmd_source);
       config.validate();
       return std::move(config);
    } catch (const silo::config::ConfigException& e) {
