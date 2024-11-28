@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#include "config/backend/yaml_file.h"
+#include "config/source/yaml_file.h"
 
 using silo::config::RuntimeConfig;
 using silo::config::YamlConfig;

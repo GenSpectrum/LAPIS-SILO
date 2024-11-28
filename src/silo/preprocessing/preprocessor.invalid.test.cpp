@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
-#include "config/backend/yaml_file.h"
+#include "config/source/yaml_file.h"
 #include "silo/config/util/config_repository.h"
 #include "silo/database.h"
 #include "silo/database_info.h"

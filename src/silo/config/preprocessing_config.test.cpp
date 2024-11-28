@@ -3,7 +3,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "config/backend/yaml_file.h"
+#include "config/source/yaml_file.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
 using silo::config::PreprocessingConfig;

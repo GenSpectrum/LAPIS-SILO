@@ -3,7 +3,7 @@
 #include <fmt/format.h>
 #include <boost/algorithm/string/join.hpp>
 
-#include "config/backend/yaml_file.h"
+#include "config/source/yaml_file.h"
 
 namespace {
 bool isLowerCaseOrNumeric(char character) {

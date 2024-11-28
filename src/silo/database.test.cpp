@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 
-#include "config/backend/yaml_file.h"
+#include "config/source/yaml_file.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/config/util/config_repository.h"
