@@ -14,9 +14,6 @@ namespace {
 using silo::config::ConfigKeyPath;
 using silo::config::YamlConfig;
 
-ConfigKeyPath helpOptionKey() {
-   return YamlConfig::stringToConfigKeyPath("help");
-}
 ConfigKeyPath preprocessingConfigOptionKey() {
    return YamlConfig::stringToConfigKeyPath("preprocessingConfig");
 }
@@ -59,9 +56,6 @@ ConfigSpecification PreprocessingConfig::getConfigSpecification() {
    return ConfigSpecification{
       .program_name = "silo preprocessing",
       .fields{
-         ConfigValueSpecification::createWithoutDefault(
-            helpOptionKey(), ConfigValueType::BOOL, "Show help text."
-         ),
          ConfigValueSpecification::createWithoutDefault(
             preprocessingConfigOptionKey(),
             ConfigValueType::PATH,
@@ -164,14 +158,7 @@ std::optional<std::filesystem::path> PreprocessingConfig::getNdjsonInputFilename
              : std::nullopt;
 }
 
-bool PreprocessingConfig::asksForHelp() const {
-   return help.has_value() && help.value();
-}
-
 void PreprocessingConfig::overwriteFrom(const VerifiedConfigSource& config_source) {
-   if (auto var = config_source.getBool(helpOptionKey())) {
-      help = var.value();
-   }
    if (auto var = config_source.getPath(preprocessingConfigOptionKey())) {
       preprocessing_config = var.value();
    }

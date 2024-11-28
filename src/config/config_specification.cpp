@@ -77,7 +77,10 @@ std::string ConfigSpecification::helpText() const {
              << "  program, use 'silo api|preprocess --help'.\n"
              << "\n"
              << "  Options override environment variables which override YAML file entries.\n"
-             << "  The following options are valid:\n";
+             << "  The following options are valid:\n"
+             << "\n"
+             << "    -h | --help  show help\n"
+             << "\n";
    // ^ XX are keys with dot working in YAML? Or have to describe what is meant?
    auto addln = [&help_text](const std::string& line) { help_text << line << "\n"; };
 

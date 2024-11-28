@@ -28,15 +28,15 @@ class ConfigSpecification {
    // dropping constexpr for that.
    std::vector<ConfigValueSpecification> fields;
 
-   std::string helpText() const;
+   [[nodiscard]] std::string helpText() const;
 
-   std::optional<ConfigValueSpecification> getValueSpecification(const ConfigKeyPath& key) const;
+   [[nodiscard]] std::optional<ConfigValueSpecification> getValueSpecification(const ConfigKeyPath& key) const;
 
-   std::optional<ConfigValueSpecification> getValueSpecificationFromAmbiguousKey(
+   [[nodiscard]] std::optional<ConfigValueSpecification> getValueSpecificationFromAmbiguousKey(
       const AmbiguousConfigKeyPath& key
    ) const;
 
-   VerifiedConfigSource getConfigSourceFromDefaults() const;
+   [[nodiscard]] VerifiedConfigSource getConfigSourceFromDefaults() const;
 };
 
 }  // namespace silo::config

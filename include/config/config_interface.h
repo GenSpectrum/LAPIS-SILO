@@ -16,7 +16,7 @@
 
 namespace silo::config {
 
-/// For config structs (containing help and possibly config file paths):
+/// For config structs (possibly containing config file paths):
 /// We use a concept instead of virtual method overrides.
 /// This is because we want to call the virtual method overwriteFrom for the default values when
 /// constructing a Config. Instead, making the constructor private and instead creating a factory
@@ -28,10 +28,6 @@ concept Config = requires(C c, const C cc, const VerifiedConfigSource& config_so
    /// Get the specification (ConfigSpecification) for this kind (C)
    /// of config.
    { C::getConfigSpecification() } -> std::same_as<ConfigSpecification>;
-
-   /// Whether the user gave the --help option or environment
-   /// variable equivalent.
-   { cc.asksForHelp() } -> std::same_as<bool>;
 
    /// Vector of config files that the user gave (or that is provided
    /// by the type via its defaults) that should be loaded and shadowed
@@ -66,6 +62,7 @@ std::variant<C, int32_t> getConfig(
    const auto config_specification = C::getConfigSpecification();
    try {
       auto cmd_source = CommandLineArguments{cmd}.verify(config_specification);
+      
       if (!cmd_source.positional_arguments.empty()) {
          throw silo::config::ConfigException{"SILO does not expect positional arguments"};
       }

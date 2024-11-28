@@ -15,9 +15,6 @@ namespace {
 using silo::config::ConfigKeyPath;
 using silo::config::YamlConfig;
 
-ConfigKeyPath helpOptionKey() {
-   return YamlConfig::stringToConfigKeyPath("help");
-}
 ConfigKeyPath runtimeConfigOptionKey() {
    return YamlConfig::stringToConfigKeyPath("runtimeConfig");
 }
@@ -52,9 +49,6 @@ ConfigSpecification RuntimeConfig::getConfigSpecification() {
       .program_name = "silo api",
       .fields =
          {
-            ConfigValueSpecification::createWithoutDefault(
-               helpOptionKey(), ConfigValueType::BOOL, "Show help text."
-            ),
             ConfigValueSpecification::createWithoutDefault(
                runtimeConfigOptionKey(),
                ConfigValueType::PATH,
@@ -108,10 +102,6 @@ RuntimeConfig::RuntimeConfig() {
    overwriteFrom(getConfigSpecification().getConfigSourceFromDefaults());
 }
 
-bool RuntimeConfig::asksForHelp() const {
-   return help.has_value() && help.value();
-}
-
 std::vector<std::filesystem::path> RuntimeConfig::getConfigPaths() const {
    std::vector<std::filesystem::path> result;
    if(default_runtime_config.has_value()){
@@ -124,9 +114,6 @@ std::vector<std::filesystem::path> RuntimeConfig::getConfigPaths() const {
 }
 
 void RuntimeConfig::overwriteFrom(const VerifiedConfigSource& config_source) {
-   if (auto var = config_source.getBool(helpOptionKey())) {
-      help = var.value();
-   }
    if (auto var = config_source.getPath(runtimeConfigOptionKey())) {
       runtime_config = var.value();
    }

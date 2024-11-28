@@ -19,7 +19,6 @@ namespace silo::config {
 class PreprocessingConfig {
    friend class fmt::formatter<silo::config::PreprocessingConfig>;
 
-   std::optional<bool> help;
    std::optional<std::filesystem::path> default_preprocessing_config;
    std::optional<std::filesystem::path> preprocessing_config;
 
@@ -50,8 +49,6 @@ class PreprocessingConfig {
    [[nodiscard]] std::optional<std::filesystem::path> getNdjsonInputFilename() const;
 
    [[nodiscard]] std::optional<uint32_t> getDuckdbMemoryLimitInG() const;
-
-   [[nodiscard]] bool asksForHelp() const;
 
    void overwriteFrom(const silo::config::VerifiedConfigSource& config_source);
 

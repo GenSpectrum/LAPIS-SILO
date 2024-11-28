@@ -27,7 +27,6 @@ class QueryOptions {
 };
 
 class RuntimeConfig {
-   std::optional<bool> help;
    std::optional<std::filesystem::path> default_runtime_config;
    std::optional<std::filesystem::path> runtime_config;
 
@@ -41,8 +40,6 @@ class RuntimeConfig {
    static ConfigSpecification getConfigSpecification();
 
    void validate() const {};
-
-   [[nodiscard]] bool asksForHelp() const;
 
    [[nodiscard]] std::vector<std::filesystem::path> getConfigPaths() const;
 
