@@ -30,7 +30,9 @@ class ConfigSpecification {
 
    [[nodiscard]] std::string helpText() const;
 
-   [[nodiscard]] std::optional<ConfigValueSpecification> getValueSpecification(const ConfigKeyPath& key) const;
+   [[nodiscard]] std::optional<ConfigValueSpecification> getValueSpecification(
+      const ConfigKeyPath& key
+   ) const;
 
    [[nodiscard]] std::optional<ConfigValueSpecification> getValueSpecificationFromAmbiguousKey(
       const AmbiguousConfigKeyPath& key

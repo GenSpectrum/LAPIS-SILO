@@ -62,7 +62,7 @@ std::variant<C, int32_t> getConfig(
    const auto config_specification = C::getConfigSpecification();
    try {
       auto cmd_source = CommandLineArguments{cmd}.verify(config_specification);
-      
+
       if (!cmd_source.positional_arguments.empty()) {
          throw silo::config::ConfigException{"SILO does not expect positional arguments"};
       }

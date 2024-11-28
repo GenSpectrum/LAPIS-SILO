@@ -104,10 +104,10 @@ RuntimeConfig::RuntimeConfig() {
 
 std::vector<std::filesystem::path> RuntimeConfig::getConfigPaths() const {
    std::vector<std::filesystem::path> result;
-   if(default_runtime_config.has_value()){
+   if (default_runtime_config.has_value()) {
       result.emplace_back(default_runtime_config.value());
    }
-   if(runtime_config.has_value()){
+   if (runtime_config.has_value()) {
       result.emplace_back(runtime_config.value());
    }
    return result;

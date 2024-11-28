@@ -107,6 +107,9 @@ VerifiedConfigSource CommandLineArguments::verify(const ConfigSpecification& con
          if (arg == "--") {
             break;
          }
+         if (arg == "-h" || arg == "--help") {
+            return {{}, {}, true};
+         }
          const AmbiguousConfigKeyPath ambiguous_key = stringToConfigKeyPath(arg);
          if (auto value_specification_opt = config_specification.getValueSpecificationFromAmbiguousKey(ambiguous_key)) {
             auto value_specification = value_specification_opt.value();
