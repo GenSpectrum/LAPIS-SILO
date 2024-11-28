@@ -105,16 +105,16 @@ void yamlToPaths(
          yamlToPaths(config_context, child_node, parents2, paths);
       }
    } else {
-      auto path = ConfigKeyPath::tryFrom(parents.toVecReverse());
+      auto parents_vector = parents.toVecReverse();
+      auto path = ConfigKeyPath::tryFrom(parents_vector);
       if (!path) {
          // transform the ConsList parents into a debug string by reversing it,
          // transforming the elements into camel-case and joining them with a '.'
-         const std::string debug_string_parents = parents.foldRight(
-            std::string{},
-            [](const std::vector<std::string>& parent, const std::string& acc) {
-               return acc + "." + joinCamelCase(parent);
-            }
-         );
+         auto debug_string_parents = ({
+            std::vector<std::string> result;
+            std::ranges::transform(parents_vector, std::back_inserter(result), joinCamelCase);
+            boost::join(result, ": ");
+         });
          throw silo::config::ConfigException(
             fmt::format("{}: found invalid key: {}", config_context, debug_string_parents)
          );
