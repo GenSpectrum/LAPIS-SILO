@@ -100,7 +100,7 @@ std::optional<std::vector<Idx>> Graph::getCycle() const {
          if (witness_lasso.has_value()) {
             // We found a witness lasso of the form 1 -> 2 -> 3 -> 4 -> 5 -> 3
             // We need to remove leading vertices up until the cycle
-            SILO_ASSERT_GE(witness_lasso.value().size(), 2);
+            SILO_ASSERT_GE(witness_lasso.value().size(), 2UL);
             const Idx cycle_node = witness_lasso.value().back();
             auto cycle_node_first_occurrence =
                std::find(witness_lasso.value().begin(), witness_lasso.value().end(), cycle_node);

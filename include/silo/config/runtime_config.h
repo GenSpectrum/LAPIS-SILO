@@ -3,32 +3,74 @@
 #include <filesystem>
 #include <optional>
 
-#include "silo/config/preprocessing_config.h"
-#include "silo/config/util/abstract_config_source.h"
+#include <fmt/format.h>
+
+#include "config/config_interface.h"
+#include "config/config_source_interface.h"
+#include "config/config_specification.h"
+#include "silo/config/config_defaults.h"
 
 namespace silo::config {
 
-const AbstractConfigSource::Option DATA_DIRECTORY_OPTION{{"dataDirectory"}};
-const AbstractConfigSource::Option MAX_CONNECTIONS_OPTION{{"maxQueuedHttpConnections"}};
-const AbstractConfigSource::Option PARALLEL_THREADS_OPTION{{"threadsForHttpConnections"}};
-const AbstractConfigSource::Option PORT_OPTION{{"port"}};
-const AbstractConfigSource::Option ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION{
-   {"estimatedStartupTimeInMinutes"}
-};
-
-struct ApiOptions {
-   std::filesystem::path data_directory = silo::config::DEFAULT_OUTPUT_DIRECTORY;
-   int32_t max_connections = 64;
-   int32_t parallel_threads = 4;
-   uint16_t port = 8081;
+class ApiOptions {
+  public:
+   int32_t max_connections;
+   int32_t parallel_threads;
+   uint16_t port;
    std::optional<std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>>
       estimated_startup_end;
 };
 
-struct RuntimeConfig {
-   ApiOptions api_options;
+class QueryOptions {
+  public:
+   size_t materialization_cutoff;
+};
 
-   void overwrite(const silo::config::AbstractConfigSource& config);
+class RuntimeConfig {
+   std::optional<bool> help;
+   std::optional<std::filesystem::path> default_runtime_config;
+   std::optional<std::filesystem::path> runtime_config;
+
+  public:
+   std::filesystem::path data_directory;
+   ApiOptions api_options;
+   QueryOptions query_options;
+
+   RuntimeConfig();
+
+   static ConfigSpecification getConfigSpecification();
+
+   void validate() const {};
+
+   [[nodiscard]] bool asksForHelp() const;
+
+   [[nodiscard]] std::vector<std::filesystem::path> getConfigPaths() const;
+
+   void overwriteFrom(const VerifiedConfigSource& config_source);
 };
 
 }  // namespace silo::config
+
+template <>
+struct [[maybe_unused]] fmt::formatter<silo::config::ApiOptions> : fmt::formatter<std::string> {
+   [[maybe_unused]] static auto format(
+      const silo::config::ApiOptions& api_options,
+      format_context& ctx
+   ) -> decltype(ctx.out());
+};
+
+template <>
+struct [[maybe_unused]] fmt::formatter<silo::config::QueryOptions> : fmt::formatter<std::string> {
+   [[maybe_unused]] static auto format(
+      const silo::config::QueryOptions& query_options,
+      format_context& ctx
+   ) -> decltype(ctx.out());
+};
+
+template <>
+struct [[maybe_unused]] fmt::formatter<silo::config::RuntimeConfig> : fmt::formatter<std::string> {
+   [[maybe_unused]] static auto format(
+      const silo::config::RuntimeConfig& runtime_config,
+      format_context& ctx
+   ) -> decltype(ctx.out());
+};

@@ -1,1 +1,3 @@
-dataDirectory: test/directory
+dataDirectory: "test/directory"
+api:
+    port: 1234

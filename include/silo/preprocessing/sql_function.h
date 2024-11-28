@@ -19,6 +19,8 @@ class CustomSqlFunction {
 
    virtual void addToConnection(duckdb::Connection& connection) = 0;
 
+   virtual ~CustomSqlFunction() = default;
+
   protected:
    preprocessing::Identifier function_name;
 };
