@@ -14,8 +14,11 @@
 #include "silo_api/api.h"
 #include "silo_api/logging.h"
 
+namespace {
+
 /// Does not throw exceptions
-static int runPreprocessor(const silo::config::PreprocessingConfig& preprocessing_config) {
+int runPreprocessor(const silo::config::PreprocessingConfig& preprocessing_config) {
+   // TODO (#656): move body of siloPreprocessing to preprocessing.{h,cpp} #656
    try {
       auto database_config = silo::config::ConfigRepository().getValidatedConfig(
          preprocessing_config.getDatabaseConfigFilename()
@@ -52,14 +55,16 @@ static int runPreprocessor(const silo::config::PreprocessingConfig& preprocessin
    }
 }
 
-static int runApi(const silo::config::RuntimeConfig& runtime_config) {
+int runApi(const silo::config::RuntimeConfig& runtime_config) {
    SiloServer server;
    return server.runApi(runtime_config);
 }
 
+}  // namespace
+
 enum class ExecutionMode { PREPROCESSING, API };
 
-int mainWhichMayThrowExceptions(int argc, char** argv){
+int mainWhichMayThrowExceptions(int argc, char** argv) {
    setupLogger();
 
    std::vector<std::string> all_args(argv, argv + argc);
