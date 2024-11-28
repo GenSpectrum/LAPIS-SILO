@@ -12,7 +12,6 @@ services:
       - "preprocessing"
       - "--input-directory"
       - "/preprocessing/input/"
-      - "/preprocessing/input/"
       - "--intermediate-results-directory"
       - "/preprocessing/temp/"
       - "--output-directory"
