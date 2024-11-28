@@ -20,10 +20,11 @@ interface](../include/config/config_source_interface.h)) to know which
 user-provided values are valid, and what type they represent (which is
 used to choose the right parser).
 
-As per the `Config` concept, a "Config" needs to implement an
-`overwriteFrom` method, which receives the parsed and verified
-user-provided data from one of the config sources, and has to fill in
-all struct fields with the values given by the source.
+As per the [`Config`](../include/config/config_interface.h) concept, a
+"Config" needs to implement an `overwriteFrom` method, which receives
+the parsed and verified user-provided data from one of the config
+sources, and has to fill in all struct fields with the values given by
+the source.
 
 Each configuration source has a first step, before the `verify` step
 happens, that retrieves the information provided by the user without
@@ -50,7 +51,20 @@ There are some complications:
 * Command line arguments should be read first, to get the `--help`
   option, to avoid erroring out and stopping while reading environment
   variables.
+  
+* Allowing multiple modes (in silo currently "api" and
+  "preprocessing"), while also allowing configuration via environment
+  variables, requires that environment variables meant for the other
+  mode should not lead to errors (environment variables are often set
+  before deciding in which mode the program should run, or hang
+  around, or in the case of the docker image the configuration files
+  are always specified via env vars, for both modes), but while
+  totally unknown environment variables that start with the
+  application prefix (`SILO_`) should be reported as usage errors.
 
 The logic for handling the precedence and these complications is in
 the templated [`getConfig`](../include/config/config_interface.h)
-function, which returns a fully filled-in "Config" instance.
+function, which returns a fully filled-in "Config"
+instance. `getConfig` needs an allow list for environment variables to
+satisfy the last point above; this is done in
+[`main.cpp`](../src/main.cpp).
