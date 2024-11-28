@@ -76,11 +76,7 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
    std::span<const std::string> args(all_args.begin() + 1, all_args.end());
 
    ExecutionMode mode;
-   if (program_name == "siloPreprocessor") {
-      mode = ExecutionMode::PREPROCESSING;
-   } else if (program_name == "siloServer") {
-      mode = ExecutionMode::API;
-   } else if (!args.empty()) {
+   if (!args.empty()) {
       const std::string& mode_argument = args[0];
       args = {args.begin() + 1, args.end()};
       if (mode_argument == "preprocessing") {
