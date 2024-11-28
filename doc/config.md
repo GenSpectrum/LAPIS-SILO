@@ -55,6 +55,15 @@ There are some complications:
   option, to avoid erroring out and stopping while reading environment
   variables.
 
+* SILO needs to be able to receive two config files: one with default
+  values for an environment (for a Docker image), and another one
+  optionally provided by the Docker file user; values in the latter
+  should shadow values in the former. For this reason,
+  [`Config`](../include/config/config_interface.h) requires a
+  `getConfigPaths` method that returns the paths to the default, and
+  if given, user-provided config file (taken from (defaults,) env vars
+  and command line options).
+
 * Allowing multiple modes (in silo currently "api" and
   "preprocessing"), while also allowing configuration via environment
   variables, requires that environment variables meant for the other
@@ -71,3 +80,8 @@ function, which returns a fully filled-in "Config"
 instance. `getConfig` needs an allow list for environment variables to
 satisfy the last point above; this is done in
 [`main.cpp`](../src/main.cpp).
+
+Hard-coded values for a "Config" struct should be read from its
+`ConfigSpecification`, in its constructor, rather than using the `=`
+based initialization default in the class definition, to keep one
+source of truth for both the help text and the actual run time.
