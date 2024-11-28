@@ -200,17 +200,17 @@ ConfigValue yamlNodeToConfigValue(
 ) {
    switch (value_specification.type) {
       case ConfigValueType::STRING:
-         return value_specification.createValue(yaml.as<std::string>());
+         return ConfigValue::fromString(yaml.as<std::string>());
       case ConfigValueType::PATH:
-         return value_specification.createValue({std::filesystem::path{yaml.as<std::string>()}});
+         return ConfigValue::fromPath({std::filesystem::path{yaml.as<std::string>()}});
       case ConfigValueType::INT32:
-         return value_specification.createValue(yaml.as<int32_t>());
+         return ConfigValue::fromInt32(yaml.as<int32_t>());
       case ConfigValueType::UINT32:
-         return value_specification.createValue(yaml.as<uint32_t>());
+         return ConfigValue::fromUint32(yaml.as<uint32_t>());
       case ConfigValueType::UINT16:
-         return value_specification.createValue(yaml.as<uint16_t>());
+         return ConfigValue::fromUint16(yaml.as<uint16_t>());
       case ConfigValueType::BOOL:
-         return value_specification.createValue(yaml.as<bool>());
+         return ConfigValue::fromBool(yaml.as<bool>());
    }
    SILO_UNREACHABLE();
 }

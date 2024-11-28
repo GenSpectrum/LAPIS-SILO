@@ -5,6 +5,7 @@
 
 #include "config/source/yaml_file.h"
 #include "silo/common/panic.h"
+#include "silo/config/util/config_exception.h"
 
 namespace silo::config {
 
@@ -51,39 +52,61 @@ std::string ConfigValue::toString() const {
 ConfigValue ConfigValueSpecification::getValueFromString(std::string value_string) const {
    switch (type) {
       case ConfigValueType::STRING:
-         return createValue(value_string);
+         return ConfigValue::fromString(value_string);
       case ConfigValueType::PATH: {
-         std::filesystem::path path = value_string;
-         return createValue(path);
+         return ConfigValue::fromPath(value_string);
       }
-      case ConfigValueType::UINT32: {
-         const auto parsed_unsigned = boost::lexical_cast<uint32_t>(value_string);
-         return createValue(parsed_unsigned);
-      }
-      case ConfigValueType::UINT16: {
-         const auto parsed_unsigned = boost::lexical_cast<uint16_t>(value_string);
-         return createValue(parsed_unsigned);
-      }
-      case ConfigValueType::INT32: {
-         const auto parsed_signed = boost::lexical_cast<int32_t>(value_string);
-         return createValue(parsed_signed);
-      }
+      case ConfigValueType::UINT32:
+         try {
+            // Because boost does not error on negative numbers
+            if (value_string.starts_with('-')) {
+               throw ConfigException(
+                  fmt::format("cannot parse: {} as {}", value_string, configValueTypeToString(type))
+               );
+            }
+            const auto parsed_unsigned = boost::lexical_cast<uint32_t>(value_string);
+            return ConfigValue::fromUint32(parsed_unsigned);
+         } catch (boost::bad_lexical_cast& _) {
+            throw ConfigException(
+               fmt::format("cannot parse: {} as {}", value_string, configValueTypeToString(type))
+            );
+         }
+      case ConfigValueType::UINT16:
+         try {
+            // Because boost does not error on negative numbers
+            if (value_string.starts_with('-')) {
+               throw ConfigException(
+                  fmt::format("cannot parse: {} as {}", value_string, configValueTypeToString(type))
+               );
+            }
+            const auto parsed_unsigned = boost::lexical_cast<uint16_t>(value_string);
+            return ConfigValue::fromUint16(parsed_unsigned);
+         } catch (boost::bad_lexical_cast& _) {
+            throw ConfigException(
+               fmt::format("cannot parse: {} as {}", value_string, configValueTypeToString(type))
+            );
+         }
+      case ConfigValueType::INT32:
+         try {
+            const auto parsed_signed = boost::lexical_cast<int32_t>(value_string);
+            return ConfigValue::fromInt32(parsed_signed);
+         } catch (boost::bad_lexical_cast& _) {
+            throw ConfigException(
+               fmt::format("cannot parse: {} as {}", value_string, configValueTypeToString(type))
+            );
+         }
       case ConfigValueType::BOOL:
-         return createValue(true);
+         if (value_string == "true" || value_string == "1") {
+            return ConfigValue::fromBool(true);
+         }
+         if (value_string == "false" || value_string == "0") {
+            return ConfigValue::fromBool(false);
+         }
+         throw ConfigException(fmt::format(
+            "cannot parse '{}' as boolean: only 0,1,false,true are allowed", value_string
+         ));
    }
    SILO_UNREACHABLE();
-}
-
-ConfigValue ConfigValueSpecification::createValue(
-   std::variant<std::string, std::filesystem::path, int32_t, uint32_t, uint16_t, bool> value
-) const {
-   ConfigValue created_value{std::move(value)};
-   if (created_value.getValueType() != type) {
-      throw std::runtime_error(
-         "Internal Error: value created for this specification that is of the wrong type."
-      );
-   }
-   return created_value;
 }
 
 }  // namespace silo::config

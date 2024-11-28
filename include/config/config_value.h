@@ -85,10 +85,6 @@ class ConfigValueSpecification {
 
    [[nodiscard]] ConfigValue getValueFromString(std::string value_string) const;
 
-   ConfigValue createValue(
-      std::variant<std::string, std::filesystem::path, int32_t, uint32_t, uint16_t, bool> value
-   ) const;
-
    static ConfigValueSpecification createWithoutDefault(
       ConfigKeyPath key,
       ConfigValueType value_type,
