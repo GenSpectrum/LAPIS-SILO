@@ -14,6 +14,9 @@ namespace {
 using silo::config::ConfigKeyPath;
 using silo::config::YamlConfig;
 
+// Using functions instead of global variables because of
+// initialization order issues.
+
 ConfigKeyPath preprocessingConfigOptionKey() {
    return YamlConfig::stringToConfigKeyPath("preprocessingConfig");
 }

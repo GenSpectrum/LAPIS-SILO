@@ -198,7 +198,7 @@ ConfigValue yamlNodeToConfigValue(
    const ConfigValueSpecification& value_specification,
    const YAML::Node& yaml
 ) {
-   try{
+   try {
       switch (value_specification.type) {
          case ConfigValueType::STRING:
             return ConfigValue::fromString(yaml.as<std::string>());
@@ -214,10 +214,13 @@ ConfigValue yamlNodeToConfigValue(
             return ConfigValue::fromBool(yaml.as<bool>());
       }
       SILO_UNREACHABLE();
-   } catch (YAML::BadConversion& error){
-      throw ConfigException(
-         fmt::format("cannot parse '{}' as {}: {}", yaml, configValueTypeToString(value_specification.type), error.what())
-      );
+   } catch (YAML::BadConversion& error) {
+      throw ConfigException(fmt::format(
+         "cannot parse '{}' as {}: {}",
+         yaml,
+         configValueTypeToString(value_specification.type),
+         error.what()
+      ));
    }
 }
 }  // namespace
