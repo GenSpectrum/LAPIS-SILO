@@ -34,8 +34,6 @@ class VerifiedConfigSource {
 
    [[nodiscard]] std::optional<uint16_t> getUint16(const ConfigKeyPath& config_key_path) const;
 
-   [[nodiscard]] std::optional<double> getFloat(const ConfigKeyPath& config_key_path) const;
-
    [[nodiscard]] std::optional<bool> getBool(const ConfigKeyPath& config_key_path) const;
 };
 

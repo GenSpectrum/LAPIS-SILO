@@ -53,18 +53,13 @@ static int runPreprocessor(const silo::config::PreprocessingConfig& preprocessin
 }
 
 static int runApi(const silo::config::RuntimeConfig& runtime_config) {
-   try {
-      SiloServer server;
-      return server.runApi(runtime_config);
-   } catch (const std::runtime_error& error) {
-      SPDLOG_ERROR("Internal Error: {}", error.what());
-      return 1;
-   }
+   SiloServer server;
+   return server.runApi(runtime_config);
 }
 
 enum class ExecutionMode { PREPROCESSING, API };
 
-int main(int argc, char** argv) {
+int mainWhichMayThrowExceptions(int argc, char** argv){
    setupLogger();
 
    std::vector<std::string> all_args(argv, argv + argc);
@@ -122,5 +117,14 @@ int main(int argc, char** argv) {
             },
             silo::config::getConfig<silo::config::RuntimeConfig>(args)
          );
+   }
+}
+
+int main(int argc, char** argv) {
+   try {
+      return mainWhichMayThrowExceptions(argc, argv);
+   } catch (const std::runtime_error& error) {
+      SPDLOG_ERROR("Internal Error: {}", error.what());
+      return 1;
    }
 }
