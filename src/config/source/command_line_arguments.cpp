@@ -99,7 +99,6 @@ VerifiedConfigSource CommandLineArguments::verify(const ConfigSpecification& con
    std::vector<std::string> positional_args;
    std::vector<std::string> invalid_config_keys;
    size_t args_index = 0;
-   std::optional<ConfigException> opt_exception;
    while (args_index < args.size()) {
       const std::string& arg = args[args_index];
       args_index++;
@@ -114,29 +113,20 @@ VerifiedConfigSource CommandLineArguments::verify(const ConfigSpecification& con
          const AmbiguousConfigKeyPath ambiguous_key = stringToConfigKeyPath(arg);
          if (auto value_specification_opt = config_specification.getValueSpecificationFromAmbiguousKey(ambiguous_key)) {
             auto value_specification = value_specification_opt.value();
-            try {
-               const auto value_and_consume = getValueFromArg(value_specification, arg, next_arg);
-               if (value_and_consume.consumed_next) {
-                  ++args_index;
-               }
-               // Overwrite value with the last occurrence
-               // (i.e. `silo --foo 4 --foo 5` will leave "--foo"
-               // => "5" in the map).
-               config_value_by_option.emplace(value_specification.key, value_and_consume.value);
-            } catch (ConfigException & e) {
-               if (!opt_exception.has_value()) {
-                  opt_exception = { e };
-               }
+            const auto value_and_consume = getValueFromArg(value_specification, arg, next_arg);
+            if (value_and_consume.consumed_next) {
+               ++args_index;
             }
+            // Overwrite value with the last occurrence
+            // (i.e. `silo --foo 4 --foo 5` will leave "--foo"
+            // => "5" in the map).
+            config_value_by_option.emplace(value_specification.key, value_and_consume.value);
          } else {
             invalid_config_keys.push_back(arg);
          }
       } else {
          positional_args.push_back(arg);
       }
-   }
-   if (opt_exception.has_value()) {
-      throw std::move(opt_exception.value());
    }
    while (args_index < args.size()) {
       positional_args.push_back(args[args_index]);
