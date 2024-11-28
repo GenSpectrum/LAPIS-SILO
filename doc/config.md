@@ -38,7 +38,7 @@ There are some complications:
   `ConfigSpecification`, because boolean command line options do not
   take a value after them, thus how the next argument is to be
   processed depends on that information. This is why only the `verify`
-  step can find out which positional arguments exist. This is why
+  step can find out which positional arguments exist, and why
   `VerifiedConfigSource` also carries positional arguments (which are
   the empty vector for backends that do not have them).
 
