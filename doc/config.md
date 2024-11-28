@@ -8,10 +8,11 @@ command line option, of course). Environment variables override YAML
 file entries, and command line arguments override both.
 
 For a struct representing application configuration data (from here on
-called "Config", because there is a C++ concept called
-[`Config`](../include/config/config_interface.h) that it needs to
-implement--currently those are `PreprocessingConfig` or
-`RuntimeConfig`), the system needs metadata, represented with the
+called "Config", because the config library defines a C++ concept
+called [`Config`](../include/config/config_interface.h) that the
+"Config" struct needs to implement--currently those are
+`PreprocessingConfig` or `RuntimeConfig`), the system needs metadata,
+represented with the
 [`ConfigSpecification`](../include/config/config_interface.h)
 type. This metadata is the basis for building the help text, and used
 by the configuration source "backends" (in the `verify` method
