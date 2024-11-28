@@ -19,20 +19,22 @@ by the configuration source "backends" (via the `verify` method
 implementations of the [`ConfigSource`
 interface](../include/config/config_source_interface.h)) to know which
 user-provided values are valid, and what type they represent (which is
-used to choose the right parser).
+used in the help text and to choose the right parser).
 
 As per the [`Config`](../include/config/config_interface.h) concept, a
 "Config" needs to implement an `overwriteFrom` method, which receives
 the parsed and verified user-provided data from one of the config
 sources, and has to fill in all struct fields with the values given by
-the source.
+the source. `overwriteFrom` is called for each config source on the
+same "Config" instance, each next one overwriting (shadowing) the
+value from the former source.
 
-Each configuration source has a first step, before the `verify` step
-happens, that retrieves the information provided by the user without
-configuration-specific parsing (e.g. parse the configuration file with
-a Yaml parser). That first step takes source-specific arguments and
-can have source-specific errors: Yaml parsing throws exceptions for
-Yaml parsing errors.
+Each configuration source has a first representation, before the
+`verify` step happens, which represents the information provided by
+the user without configuration-specific parsing. Its creation takes
+source-specific arguments and can have source-specific errors: the
+Yaml source parses the given configuration file with a Yaml parser,
+throwing exceptions for Yaml parsing errors.
 
 There are some complications:
 
@@ -52,7 +54,7 @@ There are some complications:
 * Command line arguments should be read first, to get the `--help`
   option, to avoid erroring out and stopping while reading environment
   variables.
-  
+
 * Allowing multiple modes (in silo currently "api" and
   "preprocessing"), while also allowing configuration via environment
   variables, requires that environment variables meant for the other
