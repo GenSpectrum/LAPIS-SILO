@@ -13,9 +13,9 @@ called [`Config`](../include/config/config_interface.h) that the
 "Config" struct needs to implement--currently those are
 `PreprocessingConfig` or `RuntimeConfig`), the system needs metadata,
 represented with the
-[`ConfigSpecification`](../include/config/config_interface.h)
+[`ConfigSpecification`](../include/config/config_specification.h)
 type. This metadata is the basis for building the help text, and used
-by the configuration source "backends" (in the `verify` method
+by the configuration source "backends" (via the `verify` method
 implementations of the [`ConfigSource`
 interface](../include/config/config_source_interface.h)) to know which
 user-provided values are valid, and what type they represent (which is
