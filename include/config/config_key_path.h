@@ -35,9 +35,11 @@ class ConfigKeyPath {
    [[nodiscard]] std::string toDebugString() const;
 };
 
-/// Like ConfigKeyPath, but it is impossible to decide whether the input value
-/// meant to refer to api.port or apiPort. This is the case for CLI arguments (--api-port)
-/// and Environment Variables (SILO_API_PORT)
+/// Like ConfigKeyPath, but it is impossible to know if a split point
+/// refers to a path segment or sub-path segment (i.e. to decide
+/// whether the input value meant to refer to api.port or apiPort), so
+/// we have only 1 level of strings. This is the case for CLI
+/// arguments (--api-port) and Environment Variables (SILO_API_PORT)
 class AmbiguousConfigKeyPath {
    std::vector<std::string> path;
 
