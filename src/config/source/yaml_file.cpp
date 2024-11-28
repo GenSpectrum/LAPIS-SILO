@@ -130,7 +130,7 @@ void yamlToPaths(
          throw silo::config::ConfigException(fmt::format(
             "{}: found non-usable leaf value at nesting {}",
             config_context,
-            path.value().toDebugString()
+            silo::config::YamlConfig::configKeyPathToString(path.value())
          ));
       }
    }
@@ -145,7 +145,7 @@ std::string YamlConfig::configKeyPathToString(const ConfigKeyPath& config_key_pa
    for (const auto& list : config_key_path.getPath()) {
       camel_case_strings.emplace_back(joinCamelCase(list));
    }
-   return boost::join(camel_case_strings, ".");
+   return boost::join(camel_case_strings, ": ");
 }
 
 ConfigKeyPath YamlConfig::stringToConfigKeyPath(const std::string& key_path_string) {

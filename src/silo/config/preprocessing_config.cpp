@@ -128,8 +128,8 @@ void PreprocessingConfig::validate() const {
    }
    if (!ndjson_input_filename.has_value()) {
       throw preprocessing::PreprocessingException(fmt::format(
-         "{} must be specified as preprocessing option.",
-         ndjsonInputFilenameOptionKey().toDebugString()
+         " must be specified as preprocessing option.",
+         YamlConfig::configKeyPathToString(ndjsonInputFilenameOptionKey())
       ));
    }
 }

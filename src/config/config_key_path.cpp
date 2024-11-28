@@ -35,10 +35,6 @@ std::optional<ConfigKeyPath> ConfigKeyPath::tryFrom(
    return result;
 }
 
-std::string ConfigKeyPath::toDebugString() const {
-   return YamlConfig::configKeyPathToString(*this);
-}
-
 AmbiguousConfigKeyPath AmbiguousConfigKeyPath::from(const ConfigKeyPath& key_path) {
    AmbiguousConfigKeyPath result;
    for (const auto& sublevel : key_path.getPath()) {
