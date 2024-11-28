@@ -21,6 +21,9 @@ ConfigKeyPath helpOptionKey() {
 ConfigKeyPath runtimeConfigOptionKey() {
    return YamlConfig::stringToConfigKeyPath("runtimeConfig");
 }
+ConfigKeyPath defaultRuntimeConfigOptionKey() {
+   return YamlConfig::stringToConfigKeyPath("defaultRuntimeConfig");
+}
 ConfigKeyPath dataDirectoryOptionKey() {
    return YamlConfig::stringToConfigKeyPath("dataDirectory");
 }
@@ -56,6 +59,13 @@ ConfigSpecification RuntimeConfig::getConfigSpecification() {
                runtimeConfigOptionKey(),
                ConfigValueType::PATH,
                "Path to config file in YAML format."
+            ),
+            ConfigValueSpecification::createWithoutDefault(
+               defaultRuntimeConfigOptionKey(),
+               ConfigValueType::PATH,
+               "Path to config file in YAML format with default values. "
+               "This path will often be set by an environment variable, thus "
+               "providing defaults to a silo in a specific environment (e.g. Docker)"
             ),
             ConfigValueSpecification::createWithDefault(
                dataDirectoryOptionKey(),
@@ -102,8 +112,15 @@ bool RuntimeConfig::asksForHelp() const {
    return help.has_value() && help.value();
 }
 
-std::optional<std::filesystem::path> RuntimeConfig::configPath() const {
-   return runtime_config;
+std::vector<std::filesystem::path> RuntimeConfig::getConfigPaths() const {
+   std::vector<std::filesystem::path> result;
+   if(default_runtime_config.has_value()){
+      result.emplace_back(default_runtime_config.value());
+   }
+   if(runtime_config.has_value()){
+      result.emplace_back(runtime_config.value());
+   }
+   return result;
 }
 
 void RuntimeConfig::overwriteFrom(const VerifiedConfigSource& config_source) {
@@ -112,6 +129,9 @@ void RuntimeConfig::overwriteFrom(const VerifiedConfigSource& config_source) {
    }
    if (auto var = config_source.getPath(runtimeConfigOptionKey())) {
       runtime_config = var.value();
+   }
+   if (auto var = config_source.getPath(defaultRuntimeConfigOptionKey())) {
+      default_runtime_config = var.value();
    }
    if (auto var = config_source.getPath(dataDirectoryOptionKey())) {
       data_directory = var.value();

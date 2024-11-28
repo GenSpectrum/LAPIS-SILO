@@ -20,6 +20,9 @@ ConfigKeyPath helpOptionKey() {
 ConfigKeyPath preprocessingConfigOptionKey() {
    return YamlConfig::stringToConfigKeyPath("preprocessingConfig");
 }
+ConfigKeyPath defaultPreprocessingConfigOptionKey() {
+   return YamlConfig::stringToConfigKeyPath("defaultPreprocessingConfig");
+}
 ConfigKeyPath inputDirectoryOptionKey() {
    return YamlConfig::stringToConfigKeyPath("inputDirectory");
 }
@@ -64,6 +67,13 @@ ConfigSpecification PreprocessingConfig::getConfigSpecification() {
             ConfigValueType::PATH,
             "Path to a preprocessing config that should be read before overwriting its values "
             "with environment variables and other CLI arguments."
+         ),
+         ConfigValueSpecification::createWithoutDefault(
+            defaultPreprocessingConfigOptionKey(),
+            ConfigValueType::PATH,
+            "Path to a default preprocessing config that should be read first."
+            "This value will often be set as an environment variable, "
+            "in cases where defaults are provided to SILO."
          ),
          ConfigValueSpecification::createWithDefault(
             inputDirectoryOptionKey(),
@@ -165,6 +175,9 @@ void PreprocessingConfig::overwriteFrom(const VerifiedConfigSource& config_sourc
    if (auto var = config_source.getPath(preprocessingConfigOptionKey())) {
       preprocessing_config = var.value();
    }
+   if (auto var = config_source.getPath(defaultPreprocessingConfigOptionKey())) {
+      default_preprocessing_config = var.value();
+   }
    if (auto var = config_source.getPath(inputDirectoryOptionKey())) {
       input_directory = var.value();
    }
@@ -194,8 +207,15 @@ void PreprocessingConfig::overwriteFrom(const VerifiedConfigSource& config_sourc
    }
 }
 
-std::optional<std::filesystem::path> PreprocessingConfig::configPath() const {
-   return preprocessing_config;
+std::vector<std::filesystem::path> PreprocessingConfig::getConfigPaths() const {
+   std::vector<std::filesystem::path> result;
+   if(default_preprocessing_config.has_value()){
+      result.emplace_back();
+   }
+   if(preprocessing_config.has_value()){
+      result.emplace_back();
+   }
+   return result;
 }
 
 }  // namespace silo::config
