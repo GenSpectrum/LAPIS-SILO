@@ -161,18 +161,18 @@ ConfigKeyPath YamlFile::stringToConfigKeyPath(const std::string& key_path_string
    return ConfigKeyPath::tryFrom(result).value();
 }
 
-YamlFile YamlFile::fromYAML(const std::string& error_context, const std::string& yaml_string) {
+YamlFile YamlFile::fromYAML(const std::string& debug_context, const std::string& yaml_string) {
    try {
       const YAML::Node node = YAML::Load(yaml_string);
 
       // Collect all paths present
       std::unordered_map<ConfigKeyPath, YAML::Node> paths;
-      yamlToPaths(error_context, node, ConsList<std::vector<std::string>>{}, paths);
+      yamlToPaths(debug_context, node, ConsList<std::vector<std::string>>{}, paths);
 
-      return YamlFile{error_context, paths};
+      return YamlFile{debug_context, paths};
    } catch (const YAML::ParserException& parser_exception) {
       throw std::runtime_error(
-         fmt::format("{} does not contain valid YAML: {}", error_context, parser_exception.what())
+         fmt::format("{} does not contain valid YAML: {}", debug_context, parser_exception.what())
       );
    }
 }
@@ -195,7 +195,7 @@ YamlFile YamlFile::readFile(const std::filesystem::path& path) {
 }
 
 std::string YamlFile::debugContext() const {
-   return fmt::format("YAML file '{}'", error_context);
+   return fmt::format("YAML file '{}'", debug_context);
 }
 
 namespace {
