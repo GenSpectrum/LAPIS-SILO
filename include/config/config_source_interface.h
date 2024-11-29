@@ -6,6 +6,8 @@
 namespace silo::config {
 
 class ConfigSource {
+   [[nodiscard]] virtual std::string debugContext() const = 0;
+   
   public:
    /// The verify method checks that all found keys are OK and
    /// specified for the desired config type, parses their

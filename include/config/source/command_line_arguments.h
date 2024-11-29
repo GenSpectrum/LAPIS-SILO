@@ -14,13 +14,13 @@ namespace silo::config {
 class CommandLineArguments : public ConfigSource {
    std::vector<std::string> args;
 
-  public:
-   explicit CommandLineArguments(std::span<const std::string> args_)
-       : args(args_.begin(), args_.end()) {}
-
    [[nodiscard]] constexpr std::string_view errorContext() const {
       return "command line arguments";
    };
+
+  public:
+   explicit CommandLineArguments(std::span<const std::string> args_)
+       : args(args_.begin(), args_.end()) {}
 
    [[nodiscard]] VerifiedConfigSource verify(const ConfigSpecification& config_specification
    ) const override;
