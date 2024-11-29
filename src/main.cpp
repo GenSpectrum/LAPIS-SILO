@@ -6,6 +6,7 @@
 #include <boost/algorithm/string/join.hpp>
 
 #include "silo/common/overloaded.h"
+#include "silo/common/panic.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/config/runtime_config.h"
 #include "silo/config/util/config_repository.h"
@@ -133,6 +134,7 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
             silo::config::getConfig<silo::config::RuntimeConfig>(args, env_allow_list)
          );
    }
+   SILO_UNREACHABLE();
 }
 
 int main(int argc, char** argv) {
