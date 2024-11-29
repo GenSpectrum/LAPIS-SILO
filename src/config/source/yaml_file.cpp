@@ -7,6 +7,7 @@
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <boost/algorithm/string/join.hpp>
+#include <boost/algorithm/string/trim.hpp>
 
 #include "silo/common/alist.h"
 #include "silo/common/fmt_formatters.h"
@@ -32,13 +33,14 @@ bool isProperSingularValue(const YAML::Node& node) {
    return true;
 }
 
-std::vector<std::string> splitByDot(const std::string& str) {
+std::vector<std::string> splitByColonAndTrim(const std::string& str) {
    std::vector<std::string> result;
    std::stringstream buffer(str);
    std::string token;
 
-   while (std::getline(buffer, token, '.')) {
-      result.push_back(token);
+   while (std::getline(buffer, token, ':')) {
+      boost::algorithm::trim(token);
+      result.emplace_back(token);
    }
 
    return result;
@@ -150,15 +152,19 @@ std::string YamlFile::configKeyPathToString(const ConfigKeyPath& config_key_path
 }
 
 ConfigKeyPath YamlFile::stringToConfigKeyPath(const std::string& key_path_string) {
-   const std::vector<std::string> camel_case_strings = splitByDot(key_path_string);
-   std::vector<std::vector<std::string>> result;
+   const std::vector<std::string> camel_case_strings = splitByColonAndTrim(key_path_string);
+   std::vector<std::vector<std::string>> result_path;
    std::transform(
       camel_case_strings.begin(),
       camel_case_strings.end(),
-      std::back_inserter(result),
+      std::back_inserter(result_path),
       splitCamelCase
    );
-   return ConfigKeyPath::tryFrom(result).value();
+   auto result = ConfigKeyPath::tryFrom(result_path);
+   if(result == std::nullopt){
+      throw ConfigException(fmt::format("'{}' is not a valid YamlPath", key_path_string));
+   }
+   return result.value();
 }
 
 YamlFile YamlFile::fromYAML(const std::string& debug_context, const std::string& yaml_string) {

@@ -19,13 +19,13 @@ TEST(YamlFile, simpleStringToConfigKeyPath) {
 }
 
 TEST(YamlFile, stringToConfigKeyPath1) {
-   auto under_test = YamlFile::stringToConfigKeyPath("api.port");
+   auto under_test = YamlFile::stringToConfigKeyPath("api: port");
    ASSERT_EQ(under_test, (ConfigKeyPath::tryFrom({{"api"}, {"port"}})));
    ASSERT_NE(under_test, (ConfigKeyPath::tryFrom({{"api", "port"}})));
 }
 
 TEST(YamlFile, stringToConfigKeyPath2) {
-   auto under_test = YamlFile::stringToConfigKeyPath("query.materializationCutoff");
+   auto under_test = YamlFile::stringToConfigKeyPath("query: materializationCutoff");
    ASSERT_EQ(under_test, (ConfigKeyPath::tryFrom({{"query"}, {"materialization", "cutoff"}})));
 }
 
@@ -35,26 +35,26 @@ TEST(YamlFile, configKeyPathToString) {
       YamlFile::configKeyPathToString(
          (ConfigKeyPath::tryFrom({{"query"}, {"materialization", "cutoff"}})).value()
       ),
-      "query.materializationCutoff"
+      "query: materializationCutoff"
    );
 }
 
 TEST(YamlFile, validRoundTrip) {
    auto under_test =
-      std::vector<std::string>{"test", "somethingElse.that.is.quiteLong", "a.2.3.4", "asd", "aa"};
+      std::vector<std::string>{"test", "somethingElse: that: is: quiteLong", "a: 2: 3: 4", "asd", "aa"};
    for (const auto& string : under_test) {
       ASSERT_EQ(YamlFile::configKeyPathToString(YamlFile::stringToConfigKeyPath(string)), string);
    }
 }
 
 TEST(YamlFile, resolvesConfigKeyPath1) {
-   auto under_test = YamlFile::stringToConfigKeyPath("api.port");
+   auto under_test = YamlFile::stringToConfigKeyPath("api: port");
    ASSERT_EQ(under_test, (ConfigKeyPath::tryFrom({{"api"}, {"port"}})));
    ASSERT_NE(under_test, (ConfigKeyPath::tryFrom({{"api", "port"}})));
 }
 
 TEST(YamlFile, resolvesConfigKeyPath2) {
-   auto under_test = YamlFile::stringToConfigKeyPath("query.materializationCutoff");
+   auto under_test = YamlFile::stringToConfigKeyPath("query: materializationCutoff");
    ASSERT_EQ(under_test, (ConfigKeyPath::tryFrom({{"query"}, {"materialization", "cutoff"}})));
 }
 
@@ -89,7 +89,7 @@ TEST(YamlFile, containsCorrectFieldsFromNestedYAML) {
 
    const std::unordered_map<ConfigKeyPath, YAML::Node> expected_result{
       {YamlFile::stringToConfigKeyPath("dataDirectory"), YAML::Node{"test/directory"}},
-      {YamlFile::stringToConfigKeyPath("api.port"), YAML::Node{1234}},
+      {YamlFile::stringToConfigKeyPath("api: port"), YAML::Node{1234}},
    };
 
    for (const auto& [key, value] : expected_result) {
