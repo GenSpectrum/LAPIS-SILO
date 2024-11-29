@@ -23,6 +23,7 @@ class YamlFile : public ConfigSource {
    [[nodiscard]] VerifiedConfigSource verify(const ConfigSpecification& config_specification
    ) const override;
 
+   // Make yaml_fields accessible for testing
    const std::unordered_map<ConfigKeyPath, YAML::Node>& getYamlFields() const;
 
    static YamlFile readFile(const std::filesystem::path& path);
