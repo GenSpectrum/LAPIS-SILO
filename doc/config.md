@@ -88,31 +88,31 @@ the help text and the actual run time.
 
 ## Overview
 
-include/config/config_interface.h
+[include/config/config_interface.h](../include/config/config_interface.h)
 
 The `Config` concept, and the `getConfig<Config>` function.
 
-include/config/config_specification.h
+[include/config/config_specification.h](../include/config/config_specification.h)
 
 `ConfigSpecification`, describing the "metadata" on a Config struct (using `ConfigValueSpecification` for each field).
 
-include/config/verified_config_source.h
+[include/config/verified_config_source.h](../include/config/verified_config_source.h)
 
 `VerifiedConfigSource`: the result of the verification (`verify` method), input for `getConfig`.
 
-include/config/config_key_path.h
+[include/config/config_key_path.h](../include/config/config_key_path.h)
 
 `ConfigKeyPath`: source-independent abstraction for a configuration key.
 
-include/config/config_value.h
+[include/config/config_value.h](../include/config/config_value.h)
 
 `ConfigValue`: A parsed value from user config input.
 
-include/config/config_source_interface.h
+[include/config/config_source_interface.h](../include/config/config_source_interface.h)
 
 Declares the `verify` method.
 
-include/config/source/
+[include/config/source/](../include/config/source/)
 
 Contains the source "backends".
 
