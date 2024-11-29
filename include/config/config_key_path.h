@@ -31,8 +31,6 @@ class ConfigKeyPath {
    friend bool operator==(const ConfigKeyPath& lhs, const ConfigKeyPath& rhs) {
       return lhs.path == rhs.path;
    }
-
-   [[nodiscard]] std::string toDebugString() const;
 };
 
 /// Like ConfigKeyPath, but it is impossible to know if a split point
@@ -54,14 +52,6 @@ class AmbiguousConfigKeyPath {
 };
 
 }  // namespace silo::config
-
-template <>
-struct [[maybe_unused]] fmt::formatter<silo::config::ConfigKeyPath> : fmt::formatter<std::string> {
-   [[maybe_unused]] static auto format(const silo::config::ConfigKeyPath& val, format_context& ctx)
-      -> decltype(ctx.out()) {
-      return fmt::format_to(ctx.out(), "{}", val.toDebugString());
-   }
-};
 
 // So that we are able to use std::unordered_map of our internal representation of config keys
 namespace std {
