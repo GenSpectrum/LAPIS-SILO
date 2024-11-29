@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <fmt/format.h>
@@ -19,15 +20,15 @@ namespace silo::config {
 /// Note: to print `ConfigKeyPath`s, decide on a representation,
 /// probably the Yaml one, and call its `configKeyPathToString`.
 class ConfigKeyPath {
-   ConfigKeyPath(std::vector<std::vector<std::string>> path)
-       : path(path) {}
+   explicit ConfigKeyPath(std::vector<std::vector<std::string>> path)
+       : path(std::move(path)) {}
 
    std::vector<std::vector<std::string>> path;
 
   public:
    ConfigKeyPath() = default;
 
-   std::vector<std::vector<std::string>> getPath() const;
+   [[nodiscard]] std::vector<std::vector<std::string>> getPath() const;
 
    static std::optional<ConfigKeyPath> tryFrom(const std::vector<std::vector<std::string>>& paths);
 
