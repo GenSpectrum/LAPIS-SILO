@@ -32,12 +32,7 @@ constexpr std::string_view configValueTypeToString(ConfigValueType type) {
    SILO_UNREACHABLE();
 }
 
-// Forward declaration for friend class access
-class ConfigValueSpecification;
-
 class ConfigValue {
-   friend class ConfigValueSpecification;
-
    explicit ConfigValue(
       std::variant<std::string, std::filesystem::path, int32_t, uint32_t, uint16_t, bool> value
    )
@@ -65,48 +60,6 @@ class ConfigValue {
    [[nodiscard]] ConfigValueType getValueType() const;
 
    [[nodiscard]] std::string toString() const;
-};
-
-class ConfigValueSpecification {
-   ConfigValueSpecification() = default;
-
-  public:
-   ConfigKeyPath key;
-   ConfigValueType type;
-   std::optional<ConfigValue> default_value;
-   /// Help as shown for --help, excluding the other info above.
-   /// If type is bool, the command line option does not take an argument but
-   /// is the constant "true", which will be added to the help text
-   std::string_view help_text;
-
-   [[nodiscard]] ConfigValue getValueFromString(std::string value_string) const;
-
-   static ConfigValueSpecification createWithoutDefault(
-      ConfigKeyPath key,
-      ConfigValueType value_type,
-      std::string_view help_text
-   ) {
-      ConfigValueSpecification value_specification;
-      value_specification.key = std::move(key);
-      value_specification.type = value_type;
-      value_specification.help_text = help_text;
-      return value_specification;
-   }
-
-   /// No need for the value_type. It is implicitly defined by the default. Prevents
-   /// misspecification.
-   static ConfigValueSpecification createWithDefault(
-      ConfigKeyPath key,
-      const ConfigValue& default_value,
-      std::string_view help_text
-   ) {
-      ConfigValueSpecification value_specification;
-      value_specification.key = std::move(key);
-      value_specification.type = default_value.getValueType();
-      value_specification.default_value = default_value;
-      value_specification.help_text = help_text;
-      return value_specification;
-   }
 };
 
 }  // namespace silo::config

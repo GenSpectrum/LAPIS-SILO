@@ -14,6 +14,48 @@
 
 namespace silo::config {
 
+class ConfigValueSpecification {
+   ConfigValueSpecification() = default;
+
+  public:
+   ConfigKeyPath key;
+   ConfigValueType type;
+   std::optional<ConfigValue> default_value;
+   /// Help as shown for --help, excluding the other info above.
+   /// If type is bool, the command line option does not take an argument but
+   /// is the constant "true", which will be added to the help text
+   std::string_view help_text;
+
+   [[nodiscard]] ConfigValue getValueFromString(std::string value_string) const;
+
+   static ConfigValueSpecification createWithoutDefault(
+      ConfigKeyPath key,
+      ConfigValueType value_type,
+      std::string_view help_text
+   ) {
+      ConfigValueSpecification value_specification;
+      value_specification.key = std::move(key);
+      value_specification.type = value_type;
+      value_specification.help_text = help_text;
+      return value_specification;
+   }
+
+   /// No need for the value_type. It is implicitly defined by the default. Prevents
+   /// misspecification.
+   static ConfigValueSpecification createWithDefault(
+      ConfigKeyPath key,
+      const ConfigValue& default_value,
+      std::string_view help_text
+   ) {
+      ConfigValueSpecification value_specification;
+      value_specification.key = std::move(key);
+      value_specification.type = default_value.getValueType();
+      value_specification.default_value = default_value;
+      value_specification.help_text = help_text;
+      return value_specification;
+   }
+};
+
 /// Does not support extracting non-option arguments; those wouldn't
 /// be supported by env vars or config files anyway, although could
 /// still be specified for command line, but that's not implemented
