@@ -15,6 +15,9 @@ namespace silo::config {
 /// ["query",["materialization","cutoff"]]
 /// This is easy to handle internally and also easy for transformation
 /// into CLI argument string and environment variable string
+///
+/// Note: to print `ConfigKeyPath`s, decide on a representation,
+/// probably the Yaml one, and call its `configKeyPathToString`.
 class ConfigKeyPath {
    ConfigKeyPath(std::vector<std::vector<std::string>> path)
        : path(path) {}

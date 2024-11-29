@@ -65,5 +65,4 @@ class ConsList {
       std::reverse(values.begin(), values.end());
       return values;
    }
-
 };
