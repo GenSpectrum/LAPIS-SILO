@@ -20,7 +20,13 @@ std::vector<std::vector<std::string>> ConfigKeyPath::getPath() const {
 std::optional<ConfigKeyPath> ConfigKeyPath::tryFrom(
    const std::vector<std::vector<std::string>>& paths
 ) {
+   if (paths.empty()) {
+      return std::nullopt;
+   }
    for (const auto& sublevel : paths) {
+      if (sublevel.empty()) {
+         return std::nullopt;
+      }
       for (const std::string& string : sublevel) {
          if (string.empty()) {
             return std::nullopt;
