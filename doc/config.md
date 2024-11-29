@@ -86,7 +86,7 @@ Hard-coded values for a "Config" struct should be read from its
 syntax in the class definition, to keep one source of truth for both
 the help text and the actual run time.
 
-
+## Overview
 
 include/config/config_interface.h
 
@@ -94,24 +94,20 @@ The `Config` concept, and the `getConfig<Config>` function.
 
 include/config/config_specification.h
 
-`ConfigSpecification`, describing the "metadata" on a Config struct, using `ConfigValueSpecification` for each field.
+`ConfigSpecification`, describing the "metadata" on a Config struct (using `ConfigValueSpecification` for each field).
 
 include/config/verified_config_source.h
 
-The result of the verification (`verify` method), input for `getConfig`.
+`VerifiedConfigSource`: the result of the verification (`verify` method), input for `getConfig`.
 
 include/config/config_key_path.h
 
-Source-independent abstraction for a configuration key.
+`ConfigKeyPath`: source-independent abstraction for a configuration key.
 
 include/config/config_value.h
 
 `ConfigValue`: A parsed value from user config input.
 
-`ConfigValueSpecification`: XXX move?
-
-
-__
 include/config/config_source_interface.h
 
 Declares the `verify` method.
@@ -119,7 +115,6 @@ Declares the `verify` method.
 include/config/source/
 
 Contains the source "backends".
-
 
 <img src="config.svg">
 
