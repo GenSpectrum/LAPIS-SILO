@@ -96,11 +96,7 @@ VerifiedConfigAttributes CommandLineArguments::verify(
       remaining_args = remaining_args.subspan(1);
       if (arg.starts_with('-')) {
          if (arg == "--") {
-            //  while (args_index < args.size()) {
-            //    positional_args.push_back(args[args_index]);
-            //    ++args_index;
-            // }
-            SILO_TODO();
+            std::ranges::copy(remaining_args, std::back_inserter(positional_args));
             break;
          }
          if (arg == "-h" || arg == "--help") {
