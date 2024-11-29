@@ -71,7 +71,7 @@ class ValueAndConsumedFlag {
    bool consumed_next;
 };
 
-ValueAndConsumedFlag getValueFromArg(
+ValueAndConsumedFlag parseValueFromArg(
    const ConfigAttributeSpecification& attribute_spec,
    const std::string& arg,
    const std::optional<std::string>& next_arg
@@ -118,15 +118,15 @@ VerifiedConfigAttributes CommandLineArguments::verify(const ConfigSpecification&
          }
          const AmbiguousConfigKeyPath ambiguous_key = stringToConfigKeyPath(arg);
          if (auto opt = config_specification.getAttributeSpecificationFromAmbiguousKey(ambiguous_key)) {
-            ConfigAttributeSpecification type_information = opt.value();
-            const auto value_and_consume = getValueFromArg(type_information, arg, next_arg);
+            ConfigAttributeSpecification attribute_spec = opt.value();
+            const auto value_and_consume = parseValueFromArg(attribute_spec, arg, next_arg);
             if (value_and_consume.consumed_next) {
                ++args_index;
             }
             // Overwrite value with the last occurrence
             // (i.e. `silo --foo 4 --foo 5` will leave "--foo"
             // => "5" in the map).
-            config_value_by_option.emplace(type_information.key, value_and_consume.value);
+            config_value_by_option.emplace(attribute_spec.key, value_and_consume.value);
          } else {
             invalid_config_keys.push_back(arg);
          }
