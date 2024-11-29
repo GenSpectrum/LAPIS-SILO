@@ -7,10 +7,10 @@ config file only makes sense to be defined via environment variable or
 command line option, of course). Environment variables override YAML
 file entries, and command line arguments override both.
 
-For a struct representing application configuration data (from here on
+For a class representing application configuration data (from here on
 called "Config", because the config library defines a C++ concept
 called [`Config`](../include/config/config_interface.h) that the
-"Config" struct needs to implement--currently those are
+"Config" class needs to implement--currently those are
 `PreprocessingConfig` or `RuntimeConfig`), the system needs metadata,
 represented with the
 [`ConfigSpecification`](../include/config/config_specification.h)
@@ -24,7 +24,7 @@ used in the help text and to choose the right parser).
 As per the [`Config`](../include/config/config_interface.h) concept, a
 "Config" needs to implement an `overwriteFrom` method, which receives
 the parsed and verified user-provided data from one of the config
-sources, and has to fill in all struct fields with the values given by
+sources, and has to fill in all class fields with the values given by
 the source. `overwriteFrom` is called for each config source on the
 same "Config" instance, each next one overwriting (shadowing) the
 value from the former source.
@@ -81,7 +81,7 @@ instance. `getConfig` needs an allow list for environment variables to
 satisfy the last point above; this is done in
 [`main.cpp`](../src/main.cpp).
 
-Hard-coded values for a "Config" struct should be read from its
+Hard-coded values for a "Config" class should be read from its
 `ConfigSpecification`, in its constructor, rather than using the `=`
 syntax in the class definition, to keep one source of truth for both
 the help text and the actual run time.
@@ -94,7 +94,7 @@ The `Config` concept, and the `getConfig<Config>` function.
 
 [include/config/config_specification.h](../include/config/config_specification.h)
 
-`ConfigSpecification`, describing the "metadata" on a Config struct (using `ConfigValueSpecification` for each field).
+`ConfigSpecification`, describing the "metadata" on a Config class (using `ConfigValueSpecification` for each field).
 
 [include/config/verified_config_source.h](../include/config/verified_config_source.h)
 
