@@ -58,13 +58,6 @@ AmbiguousConfigKeyPath CommandLineArguments::stringToConfigKeyPath(
 
 namespace {
 
-std::optional<std::string> tryGetAt(const std::vector<std::string>& args, size_t index) {
-   if (index < args.size()) {
-      return args[index];
-   }
-   return std::nullopt;
-}
-
 std::tuple<ConfigValue, std::span<const std::string>> parseValueFromArg(
    const ConfigAttributeSpecification& attribute_spec,
    const std::string& arg,
@@ -116,8 +109,8 @@ VerifiedConfigAttributes CommandLineArguments::verify(
          const AmbiguousConfigKeyPath ambiguous_key = stringToConfigKeyPath(arg);
          if (auto opt = config_specification.getAttributeSpecificationFromAmbiguousKey(ambiguous_key)) {
             ConfigAttributeSpecification attribute_spec = opt.value();
-            const auto [value, rest] = parseValueFromArg(attribute_spec, arg, remaining_args);
-            remaining_args = rest;
+            const auto [value, new_remaining_args] = parseValueFromArg(attribute_spec, arg, remaining_args);
+            remaining_args = new_remaining_args;
             // Overwrite value with the last occurrence
             // (i.e. `silo --foo 4 --foo 5` will leave "--foo"
             // => "5" in the map).
