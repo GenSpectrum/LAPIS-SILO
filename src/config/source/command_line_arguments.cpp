@@ -107,10 +107,10 @@ VerifiedConfigSource CommandLineArguments::verify(const ConfigSpecification& con
       const std::optional<std::string>& next_arg = tryGetAt(args, args_index);
       if (arg.starts_with('-')) {
          if (arg == "--") {
-   while (args_index < args.size()) {
-      positional_args.push_back(args[args_index]);
-      ++args_index;
-   }
+            while (args_index < args.size()) {
+               positional_args.push_back(args[args_index]);
+               ++args_index;
+            }
             break;
          }
          if (arg == "-h" || arg == "--help") {

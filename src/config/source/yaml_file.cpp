@@ -161,7 +161,7 @@ ConfigKeyPath YamlFile::stringToConfigKeyPath(const std::string& key_path_string
       splitCamelCase
    );
    auto result = ConfigKeyPath::tryFrom(result_path);
-   if(result == std::nullopt){
+   if (result == std::nullopt) {
       throw ConfigException(fmt::format("'{}' is not a valid YamlPath", key_path_string));
    }
    return result.value();
