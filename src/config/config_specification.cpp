@@ -119,7 +119,7 @@ VerifiedConfigSource ConfigSpecification::getConfigSourceFromDefaults() const {
    return result;
 }
 
-ConfigValue ConfigValueSpecification::getValueFromString(std::string value_string) const {
+ConfigValue ConfigValueSpecification::parseValueFromString(std::string value_string) const {
    try {
       switch (type) {
          case ConfigValueType::STRING:
