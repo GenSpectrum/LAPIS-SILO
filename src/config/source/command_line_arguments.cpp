@@ -90,7 +90,7 @@ VerifiedConfigAttributes CommandLineArguments::verify(
    std::unordered_map<ConfigKeyPath, ConfigValue> config_value_by_option;
    std::vector<std::string> positional_args;
    std::vector<std::string> invalid_config_keys;
-   std::span<const std::string> remaining_args{args.date(), args.size()};
+   std::span<const std::string> remaining_args{args.data(), args.size()};
    while (!remaining_args.empty()) {
       const std::string& arg = args[0];
       remaining_args = remaining_args.subspan(1);
