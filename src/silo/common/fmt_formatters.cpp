@@ -27,7 +27,4 @@ std::string toIsoString(
 
    return oss.str();
 }
-inline std::string toDebugString(const std::filesystem::path& value) {
-   return fmt::format("'{}'", value);
-}
 }  // namespace silo::common
