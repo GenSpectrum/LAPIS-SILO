@@ -14,8 +14,8 @@
 
 namespace silo::config {
 
-class ConfigValueSpecification {
-   ConfigValueSpecification() = default;
+class ConfigAttributeSpecification {
+   ConfigAttributeSpecification() = default;
 
   public:
    ConfigKeyPath key;
@@ -28,12 +28,12 @@ class ConfigValueSpecification {
 
    [[nodiscard]] ConfigValue parseValueFromString(std::string value_string) const;
 
-   static ConfigValueSpecification createWithoutDefault(
+   static ConfigAttributeSpecification createWithoutDefault(
       ConfigKeyPath key,
       ConfigValueType value_type,
       std::string_view help_text
    ) {
-      ConfigValueSpecification value_specification;
+      ConfigAttributeSpecification value_specification;
       value_specification.key = std::move(key);
       value_specification.type = value_type;
       value_specification.help_text = help_text;
@@ -42,12 +42,12 @@ class ConfigValueSpecification {
 
    /// No need for the value_type. It is implicitly defined by the default. Prevents
    /// misspecification.
-   static ConfigValueSpecification createWithDefault(
+   static ConfigAttributeSpecification createWithDefault(
       ConfigKeyPath key,
       const ConfigValue& default_value,
       std::string_view help_text
    ) {
-      ConfigValueSpecification value_specification;
+      ConfigAttributeSpecification value_specification;
       value_specification.key = std::move(key);
       value_specification.type = default_value.getValueType();
       value_specification.default_value = default_value;
@@ -68,15 +68,15 @@ class ConfigSpecification {
    // std::span would require the array to exist in a different global
    // first, don't want to make it verbose like that. Paying with
    // dropping constexpr for that.
-   std::vector<ConfigValueSpecification> fields;
+   std::vector<ConfigAttributeSpecification> fields;
 
    [[nodiscard]] std::string helpText() const;
 
-   [[nodiscard]] std::optional<ConfigValueSpecification> getValueSpecification(
+   [[nodiscard]] std::optional<ConfigAttributeSpecification> getValueSpecification(
       const ConfigKeyPath& key
    ) const;
 
-   [[nodiscard]] std::optional<ConfigValueSpecification> getValueSpecificationFromAmbiguousKey(
+   [[nodiscard]] std::optional<ConfigAttributeSpecification> getValueSpecificationFromAmbiguousKey(
       const AmbiguousConfigKeyPath& key
    ) const;
 

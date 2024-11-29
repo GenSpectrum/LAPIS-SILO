@@ -50,46 +50,46 @@ ConfigSpecification RuntimeConfig::getConfigSpecification() {
       .program_name = "silo api",
       .fields =
          {
-            ConfigValueSpecification::createWithoutDefault(
+            ConfigAttributeSpecification::createWithoutDefault(
                runtimeConfigOptionKey(),
                ConfigValueType::PATH,
                "Path to config file in YAML format."
             ),
-            ConfigValueSpecification::createWithoutDefault(
+            ConfigAttributeSpecification::createWithoutDefault(
                defaultRuntimeConfigOptionKey(),
                ConfigValueType::PATH,
                "Path to config file in YAML format with default values. "
                "This path will often be set by an environment variable, thus "
                "providing defaults to a silo in a specific environment (e.g. Docker)"
             ),
-            ConfigValueSpecification::createWithDefault(
+            ConfigAttributeSpecification::createWithDefault(
                dataDirectoryOptionKey(),
                ConfigValue::fromPath(DEFAULT_OUTPUT_DIRECTORY),
                "The path to the directory with the data files (output from preprocessing)."
             ),
-            ConfigValueSpecification::createWithDefault(
+            ConfigAttributeSpecification::createWithDefault(
                apiPortOptionKey(),
                ConfigValue::fromUint16(8081),
                "The port number on which to listen for incoming HTTP connections."
             ),
-            ConfigValueSpecification::createWithDefault(
+            ConfigAttributeSpecification::createWithDefault(
                apiMaxConnectionsOptionKey(),
                ConfigValue::fromInt32(64),
                "The maximum number of concurrent connections accepted at any time."
             ),
-            ConfigValueSpecification::createWithDefault(
+            ConfigAttributeSpecification::createWithDefault(
                apiParallelThreadsOptionKey(),
                ConfigValue::fromInt32(4),
                "The number of worker threads."
             ),
-            ConfigValueSpecification::createWithoutDefault(
+            ConfigAttributeSpecification::createWithoutDefault(
                apiEstimatedStartupTimeOptionKey(),
                ConfigValueType::UINT32,
                "Estimated time in minutes that the initial loading of the database takes. \n"
                "As long as no database is loaded yet, SILO will throw a 503 error. \n"
                "This option allows SILO to compute a Retry-After header for the 503 response."
             ),
-            ConfigValueSpecification::createWithDefault(
+            ConfigAttributeSpecification::createWithDefault(
                queryMaterializationOptionKey(),
                ConfigValue::fromUint32(10000),
                "Above how many records in a result set the result rows are to be constructed\n"

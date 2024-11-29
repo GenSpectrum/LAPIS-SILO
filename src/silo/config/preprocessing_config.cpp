@@ -57,60 +57,60 @@ ConfigSpecification PreprocessingConfig::getConfigSpecification() {
    return ConfigSpecification{
       .program_name = "silo preprocessing",
       .fields{
-         ConfigValueSpecification::createWithoutDefault(
+         ConfigAttributeSpecification::createWithoutDefault(
             preprocessingConfigOptionKey(),
             ConfigValueType::PATH,
             "Path to a preprocessing config that should be read before overwriting its values "
             "with environment variables and other CLI arguments."
          ),
-         ConfigValueSpecification::createWithoutDefault(
+         ConfigAttributeSpecification::createWithoutDefault(
             defaultPreprocessingConfigOptionKey(),
             ConfigValueType::PATH,
             "Path to a default preprocessing config that should be read first."
             "This value will often be set as an environment variable, "
             "in cases where defaults are provided to SILO."
          ),
-         ConfigValueSpecification::createWithDefault(
+         ConfigAttributeSpecification::createWithDefault(
             inputDirectoryOptionKey(),
             ConfigValue::fromPath("./"),
             "the path to the directory with the input files"
          ),
-         ConfigValueSpecification::createWithDefault(
+         ConfigAttributeSpecification::createWithDefault(
             outputDirectoryOptionKey(),
             ConfigValue::fromPath(DEFAULT_OUTPUT_DIRECTORY),
             "the path to the directory to hold the output files"
          ),
-         ConfigValueSpecification::createWithDefault(
+         ConfigAttributeSpecification::createWithDefault(
             intermediateResultsDirectoryOptionKey(),
             ConfigValue::fromPath("./temp/"),
             "the path to the directory to hold temporary files"
          ),
-         ConfigValueSpecification::createWithoutDefault(
+         ConfigAttributeSpecification::createWithoutDefault(
             preprocessingDatabaseLocationOptionKey(),
             ConfigValueType::PATH,
             "the file where the duckdb database will be stored, which is used during preprocessing"
          ),
-         ConfigValueSpecification::createWithoutDefault(
+         ConfigAttributeSpecification::createWithoutDefault(
             duckdbMemoryLimitInGTimeOptionKey(),
             ConfigValueType::UINT32,
             "DuckDB memory limit in GB"
          ),
-         ConfigValueSpecification::createWithoutDefault(
+         ConfigAttributeSpecification::createWithoutDefault(
             lineageDefinitionsFilenameOptionKey(),
             ConfigValueType::PATH,
             "file name of the file holding the lineage definitions"
          ),
-         ConfigValueSpecification::createWithoutDefault(
+         ConfigAttributeSpecification::createWithoutDefault(
             ndjsonInputFilenameOptionKey(),
             ConfigValueType::PATH,
             "file name of the file holding NDJSON input"
          ),
-         ConfigValueSpecification::createWithDefault(
+         ConfigAttributeSpecification::createWithDefault(
             databaseConfigFileOptionKey(),
             ConfigValue::fromPath("database_config.yaml"),
             "file name of the file holding the database table configuration"
          ),
-         ConfigValueSpecification::createWithDefault(
+         ConfigAttributeSpecification::createWithDefault(
             referenceGenomeFilenameOptionKey(),
             ConfigValue::fromPath("reference_genomes.json"),
             "file name of the file holding the reference genome"

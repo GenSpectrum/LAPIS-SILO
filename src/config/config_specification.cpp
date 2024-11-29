@@ -41,7 +41,7 @@ std::string indent(std::string_view indentation, const std::string& str) {
 
 namespace silo::config {
 
-std::optional<ConfigValueSpecification> ConfigSpecification::getValueSpecificationFromAmbiguousKey(
+std::optional<ConfigAttributeSpecification> ConfigSpecification::getValueSpecificationFromAmbiguousKey(
    const silo::config::AmbiguousConfigKeyPath& key
 ) const {
    for (const auto& field : fields) {
@@ -52,13 +52,13 @@ std::optional<ConfigValueSpecification> ConfigSpecification::getValueSpecificati
    return std::nullopt;
 }
 
-std::optional<ConfigValueSpecification> ConfigSpecification::getValueSpecification(
+std::optional<ConfigAttributeSpecification> ConfigSpecification::getValueSpecification(
    const silo::config::ConfigKeyPath& key
 ) const {
    auto maybe_result = std::find_if(
       fields.begin(),
       fields.end(),
-      [&](const ConfigValueSpecification& value_specification) {
+      [&](const ConfigAttributeSpecification& value_specification) {
          return value_specification.key == key;
       }
    );
@@ -119,7 +119,7 @@ VerifiedConfigAttributes ConfigSpecification::getConfigSourceFromDefaults() cons
    return result;
 }
 
-ConfigValue ConfigValueSpecification::parseValueFromString(std::string value_string) const {
+ConfigValue ConfigAttributeSpecification::parseValueFromString(std::string value_string) const {
    try {
       switch (type) {
          case ConfigValueType::STRING:

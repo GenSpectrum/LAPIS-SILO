@@ -72,7 +72,7 @@ class ValueAndConsumedFlag {
 };
 
 ValueAndConsumedFlag getValueFromArg(
-   const ConfigValueSpecification& value_specification,
+   const ConfigAttributeSpecification& value_specification,
    const std::string& arg,
    const std::optional<std::string>& next_arg
 ) {
@@ -118,7 +118,7 @@ VerifiedConfigAttributes CommandLineArguments::verify(const ConfigSpecification&
          }
          const AmbiguousConfigKeyPath ambiguous_key = stringToConfigKeyPath(arg);
          if (auto opt = config_specification.getValueSpecificationFromAmbiguousKey(ambiguous_key)) {
-            ConfigValueSpecification type_information = opt.value();
+            ConfigAttributeSpecification type_information = opt.value();
             const auto value_and_consume = getValueFromArg(type_information, arg, next_arg);
             if (value_and_consume.consumed_next) {
                ++args_index;

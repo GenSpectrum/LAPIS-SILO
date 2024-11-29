@@ -206,7 +206,7 @@ std::string YamlFile::debugContext() const {
 
 namespace {
 ConfigValue yamlNodeToConfigValue(
-   const ConfigValueSpecification& value_specification,
+   const ConfigAttributeSpecification& value_specification,
    const YAML::Node& yaml
 ) {
    try {
