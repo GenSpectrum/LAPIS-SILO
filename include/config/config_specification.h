@@ -72,7 +72,7 @@ class ConfigSpecification {
 
    [[nodiscard]] std::string helpText() const;
 
-   [[nodiscard]] std::optional<ConfigAttributeSpecification> getValueSpecification(
+   [[nodiscard]] std::optional<ConfigAttributeSpecification> getAttributeSpecification(
       const ConfigKeyPath& key
    ) const;
 

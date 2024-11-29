@@ -52,7 +52,7 @@ std::optional<ConfigAttributeSpecification> ConfigSpecification::getValueSpecifi
    return std::nullopt;
 }
 
-std::optional<ConfigAttributeSpecification> ConfigSpecification::getValueSpecification(
+std::optional<ConfigAttributeSpecification> ConfigSpecification::getAttributeSpecification(
    const silo::config::ConfigKeyPath& key
 ) const {
    auto maybe_result = std::find_if(

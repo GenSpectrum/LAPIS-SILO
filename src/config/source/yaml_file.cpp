@@ -244,7 +244,7 @@ VerifiedConfigAttributes YamlFile::verify(const ConfigSpecification& config_spec
    std::vector<std::string> invalid_config_keys;
    std::unordered_map<ConfigKeyPath, ConfigValue> provided_config_values;
    for (const auto& [key, yaml] : getYamlFields()) {
-      auto attribute_spec = config_specification.getValueSpecification(key);
+      auto attribute_spec = config_specification.getAttributeSpecification(key);
       if (!attribute_spec.has_value()) {
          invalid_config_keys.push_back(configKeyPathToString(key));
       } else {
