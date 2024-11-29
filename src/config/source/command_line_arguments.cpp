@@ -72,11 +72,11 @@ class ValueAndConsumedFlag {
 };
 
 ValueAndConsumedFlag getValueFromArg(
-   const ConfigAttributeSpecification& value_specification,
+   const ConfigAttributeSpecification& attribute_spec,
    const std::string& arg,
    const std::optional<std::string>& next_arg
 ) {
-   if (value_specification.type == ConfigValueType::BOOL) {
+   if (attribute_spec.type == ConfigValueType::BOOL) {
       return {.value = ConfigValue::fromBool(true), .consumed_next = false};
    }
    if (!next_arg.has_value()) {
@@ -84,7 +84,7 @@ ValueAndConsumedFlag getValueFromArg(
       throw silo::config::ConfigException("missing argument after option " + arg);
    }
    return {
-      .value = value_specification.parseValueFromString(next_arg.value()), .consumed_next = true
+      .value = attribute_spec.parseValueFromString(next_arg.value()), .consumed_next = true
    };
 }
 

@@ -206,11 +206,11 @@ std::string YamlFile::debugContext() const {
 
 namespace {
 ConfigValue yamlNodeToConfigValue(
-   const ConfigAttributeSpecification& value_specification,
+   const ConfigAttributeSpecification& attribute_spec,
    const YAML::Node& yaml
 ) {
    try {
-      switch (value_specification.type) {
+      switch (attribute_spec.type) {
          case ConfigValueType::STRING:
             return ConfigValue::fromString(yaml.as<std::string>());
          case ConfigValueType::PATH:
@@ -229,7 +229,7 @@ ConfigValue yamlNodeToConfigValue(
       throw ConfigException(fmt::format(
          "cannot parse '{}' as {}: {}",
          yaml,
-         configValueTypeToString(value_specification.type),
+         configValueTypeToString(attribute_spec.type),
          error.what()
       ));
    }
@@ -244,11 +244,11 @@ VerifiedConfigAttributes YamlFile::verify(const ConfigSpecification& config_spec
    std::vector<std::string> invalid_config_keys;
    std::unordered_map<ConfigKeyPath, ConfigValue> provided_config_values;
    for (const auto& [key, yaml] : getYamlFields()) {
-      auto value_specification = config_specification.getValueSpecification(key);
-      if (!value_specification.has_value()) {
+      auto attribute_spec = config_specification.getValueSpecification(key);
+      if (!attribute_spec.has_value()) {
          invalid_config_keys.push_back(configKeyPathToString(key));
       } else {
-         const ConfigValue value = yamlNodeToConfigValue(value_specification.value(), yaml);
+         const ConfigValue value = yamlNodeToConfigValue(attribute_spec.value(), yaml);
          provided_config_values.emplace(key, value);
       }
    }

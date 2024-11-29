@@ -99,9 +99,9 @@ AmbiguousConfigKeyPath EnvironmentVariables::stringToConfigKeyPath(
       auto value_specification_opt =
          config_specification.getValueSpecificationFromAmbiguousKey(ambiguous_key);
       if (value_specification_opt.has_value()) {
-         auto value_specification = value_specification_opt.value();
-         const ConfigValue value = value_specification.parseValueFromString(value_string);
-         config_values.emplace(value_specification.key, value);
+         auto attribute_spec = value_specification_opt.value();
+         const ConfigValue value = attribute_spec.parseValueFromString(value_string);
+         config_values.emplace(attribute_spec.key, value);
       } else {
          if (std::find(allow_list.begin(), allow_list.end(), key_string) != allow_list.end()) {
             SPDLOG_INFO(

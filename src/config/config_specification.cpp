@@ -58,8 +58,8 @@ std::optional<ConfigAttributeSpecification> ConfigSpecification::getValueSpecifi
    auto maybe_result = std::find_if(
       fields.begin(),
       fields.end(),
-      [&](const ConfigAttributeSpecification& value_specification) {
-         return value_specification.key == key;
+      [&](const ConfigAttributeSpecification& attribute_spec) {
+         return attribute_spec.key == key;
       }
    );
    if (maybe_result == fields.end()) {
@@ -109,10 +109,10 @@ std::string ConfigSpecification::helpText() const {
 
 VerifiedConfigAttributes ConfigSpecification::getConfigSourceFromDefaults() const {
    VerifiedConfigAttributes result;
-   for (const auto& value_specification : fields) {
-      if (value_specification.default_value.has_value()) {
+   for (const auto& attribute_spec : fields) {
+      if (attribute_spec.default_value.has_value()) {
          result.config_values.emplace(
-            value_specification.key, value_specification.default_value.value()
+            attribute_spec.key, attribute_spec.default_value.value()
          );
       }
    }

@@ -33,11 +33,11 @@ class ConfigAttributeSpecification {
       ConfigValueType value_type,
       std::string_view help_text
    ) {
-      ConfigAttributeSpecification value_specification;
-      value_specification.key = std::move(key);
-      value_specification.type = value_type;
-      value_specification.help_text = help_text;
-      return value_specification;
+      ConfigAttributeSpecification attribute_spec;
+      attribute_spec.key = std::move(key);
+      attribute_spec.type = value_type;
+      attribute_spec.help_text = help_text;
+      return attribute_spec;
    }
 
    /// No need for the value_type. It is implicitly defined by the default. Prevents
@@ -47,12 +47,12 @@ class ConfigAttributeSpecification {
       const ConfigValue& default_value,
       std::string_view help_text
    ) {
-      ConfigAttributeSpecification value_specification;
-      value_specification.key = std::move(key);
-      value_specification.type = default_value.getValueType();
-      value_specification.default_value = default_value;
-      value_specification.help_text = help_text;
-      return value_specification;
+      ConfigAttributeSpecification attribute_spec;
+      attribute_spec.key = std::move(key);
+      attribute_spec.type = default_value.getValueType();
+      attribute_spec.default_value = default_value;
+      attribute_spec.help_text = help_text;
+      return attribute_spec;
    }
 };
 
