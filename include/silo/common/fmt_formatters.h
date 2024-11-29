@@ -38,28 +38,7 @@ std::string toIsoString(
    const std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>& time_point
 );
 
-template <typename T>
-std::string toDebugString(const std::optional<T>& value) {
-   if (value.has_value()) {
-      return fmt::format("{}", value.value());
-   }
-   return fmt::format("null");
 }
-
-inline std::string toDebugString(const std::string& value) {
-   return fmt::format("'{}'", value);
-}
-
-inline std::string toDebugString(const std::filesystem::path& value) {
-   return fmt::format("'{}'", value);
-}
-
-template <typename T>
-std::string toDebugString(const T& value) {
-   return fmt::format("{}", value);
-}
-
-}  // namespace silo::common
 
 template <>
 struct [[maybe_unused]] fmt::formatter<
@@ -99,3 +78,45 @@ struct formatter<YAML::Node> {
 };
 
 }  // namespace fmt
+
+namespace silo::common {
+
+inline std::string toDebugString(const std::string& value) {
+   return fmt::format("'{}'", value);
+}
+
+inline std::string toDebugString(const std::filesystem::path& value) {
+   return fmt::format("'{}'", value);
+}
+
+inline std::string toDebugString(bool value) {
+   return fmt::format("{}", value);
+}
+
+inline std::string toDebugString(int32_t value) {
+   return fmt::format("{}", value);
+}
+
+inline std::string toDebugString(uint32_t value) {
+   return fmt::format("{}", value);
+}
+
+inline std::string toDebugString(size_t value) {
+   return fmt::format("{}", value);
+}
+
+inline std::string toDebugString(
+   std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> value
+) {
+   return fmt::format("{}", value);
+}
+
+template <typename T>
+std::string toDebugString(const std::optional<T>& value) {
+   if (value.has_value()) {
+      return fmt::format("{}", toDebugString(value.value()));
+   }
+   return fmt::format("null");
+}
+
+}  // namespace silo::common

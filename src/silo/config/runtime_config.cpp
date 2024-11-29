@@ -9,8 +9,6 @@
 #include "config/source/yaml_file.h"
 #include "silo/common/fmt_formatters.h"
 
-using silo::common::toDebugString;
-
 namespace {
 using silo::config::ConfigKeyPath;
 using silo::config::YamlFile;
@@ -147,39 +145,42 @@ void RuntimeConfig::overwriteFrom(const VerifiedConfigSource& config_source) {
 
 }  // namespace silo::config
 
-#define CODE_FOR_FIELD(VARIABLE, FIELD_NAME) \
-   fmt::format_to(ctx.out(), "{}: {}, ", #FIELD_NAME, toDebugString(VARIABLE.FIELD_NAME))
+namespace silo::common {
+// Using a macro to get the declared variable name #FIELD_NAME
+#define ADD_FIELD_TO_RESULT(VARIABLE, FIELD_NAME) \
+   result += fmt::format("{}: {}, ", #FIELD_NAME, toDebugString(VARIABLE.FIELD_NAME))
 
-[[maybe_unused]] auto fmt::formatter<silo::config::ApiOptions>::format(
-   const silo::config::ApiOptions& api_options,
-   fmt::format_context& ctx
-) -> decltype(ctx.out()) {
-   fmt::format_to(ctx.out(), "{{");
-   CODE_FOR_FIELD(api_options, max_connections);
-   CODE_FOR_FIELD(api_options, parallel_threads);
-   CODE_FOR_FIELD(api_options, port);
-   CODE_FOR_FIELD(api_options, estimated_startup_end);
-   return fmt::format_to(ctx.out(), "}}");
+std::string toDebugString(const silo::config::ApiOptions& api_options) {
+   std::string result = "{";
+   ADD_FIELD_TO_RESULT(api_options, max_connections);
+   ADD_FIELD_TO_RESULT(api_options, parallel_threads);
+   ADD_FIELD_TO_RESULT(api_options, port);
+   ADD_FIELD_TO_RESULT(api_options, estimated_startup_end);
+   result += "}";
+   return result;
 }
 
-[[maybe_unused]] auto fmt::formatter<silo::config::QueryOptions>::format(
-   const silo::config::QueryOptions& query_options,
-   fmt::format_context& ctx
-) -> decltype(ctx.out()) {
-   fmt::format_to(ctx.out(), "{{");
-   CODE_FOR_FIELD(query_options, materialization_cutoff);
-   return fmt::format_to(ctx.out(), "}}");
+std::string toDebugString(const silo::config::QueryOptions& query_options) {
+   std::string result = "{";
+   ADD_FIELD_TO_RESULT(query_options, materialization_cutoff);
+   result += "}";
+   return result;
 }
+
+std::string toDebugString(const silo::config::RuntimeConfig& runtime_config) {
+   std::string result = "{";
+   ADD_FIELD_TO_RESULT(runtime_config, data_directory);
+   ADD_FIELD_TO_RESULT(runtime_config, api_options);
+   ADD_FIELD_TO_RESULT(runtime_config, query_options);
+   result += "}";
+   return result;
+}
+#undef ADD_FIELD_TO_RESULT
+}  // namespace silo::common
 
 [[maybe_unused]] auto fmt::formatter<silo::config::RuntimeConfig>::format(
    const silo::config::RuntimeConfig& runtime_config,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
-   fmt::format_to(ctx.out(), "{{");
-   CODE_FOR_FIELD(runtime_config, data_directory);
-   CODE_FOR_FIELD(runtime_config, api_options);
-   CODE_FOR_FIELD(runtime_config, query_options);
-   return fmt::format_to(ctx.out(), "}}");
+   return fmt::format_to(ctx.out(), "{}", silo::common::toDebugString(runtime_config));
 }
-
-#undef CODE_FOR_FIELD
