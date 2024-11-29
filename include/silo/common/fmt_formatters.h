@@ -42,9 +42,8 @@ template <typename T>
 std::string toDebugString(const std::optional<T>& value) {
    if (value.has_value()) {
       return fmt::format("{}", value.value());
-   } else {
-      return fmt::format("null");
    }
+   return fmt::format("null");
 }
 
 inline std::string toDebugString(const std::string& value) {
