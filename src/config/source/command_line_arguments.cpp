@@ -117,16 +117,16 @@ VerifiedConfigSource CommandLineArguments::verify(const ConfigSpecification& con
             return {{}, {}, true};
          }
          const AmbiguousConfigKeyPath ambiguous_key = stringToConfigKeyPath(arg);
-         if (auto value_specification_opt = config_specification.getValueSpecificationFromAmbiguousKey(ambiguous_key)) {
-            auto value_specification = value_specification_opt.value();
-            const auto value_and_consume = getValueFromArg(value_specification, arg, next_arg);
+         if (auto opt = config_specification.getValueSpecificationFromAmbiguousKey(ambiguous_key)) {
+            ConfigValueSpecification type_information = opt.value();
+            const auto value_and_consume = getValueFromArg(type_information, arg, next_arg);
             if (value_and_consume.consumed_next) {
                ++args_index;
             }
             // Overwrite value with the last occurrence
             // (i.e. `silo --foo 4 --foo 5` will leave "--foo"
             // => "5" in the map).
-            config_value_by_option.emplace(value_specification.key, value_and_consume.value);
+            config_value_by_option.emplace(type_information.key, value_and_consume.value);
          } else {
             invalid_config_keys.push_back(arg);
          }
