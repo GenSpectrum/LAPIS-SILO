@@ -105,7 +105,8 @@ VerifiedConfigAttributes CommandLineArguments::verify(
          const AmbiguousConfigKeyPath ambiguous_key = stringToConfigKeyPath(arg);
          if (auto opt = config_specification.getAttributeSpecificationFromAmbiguousKey(ambiguous_key)) {
             ConfigAttributeSpecification attribute_spec = opt.value();
-            const auto [value, new_remaining_args] = parseValueFromArg(attribute_spec, arg, remaining_args);
+            const auto [value, new_remaining_args] =
+               parseValueFromArg(attribute_spec, arg, remaining_args);
             remaining_args = new_remaining_args;
             // Overwrite value with the last occurrence
             // (i.e. `silo --foo 4 --foo 5` will leave "--foo"
