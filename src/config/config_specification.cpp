@@ -70,11 +70,10 @@ std::optional<ConfigValueSpecification> ConfigSpecification::getValueSpecificati
 std::string ConfigSpecification::helpText() const {
    std::ostringstream help_text;
    help_text << "Usage: " << program_name << " [options...]\n"
-             << "   or: silo api|preprocess [options...]\n"
              << "\n"
              << "  Showing the options for " << program_name
              << ". To see the options for the sister\n"
-             << "  program, use 'silo api|preprocess --help'.\n"
+             << "  program, use 'silo api|preprocessing --help'.\n"
              << "\n"
              << "  Options override environment variables which override YAML file entries.\n"
              << "  The following options are valid:\n"
