@@ -80,6 +80,8 @@ class ConfigSpecification {
       const AmbiguousConfigKeyPath& key
    ) const;
 
+   /// Convert the ConfigSpecification to a VerifiedConfigSource, to
+   /// use as the source for the default values.
    [[nodiscard]] VerifiedConfigSource getConfigSourceFromDefaults() const;
 };
 
