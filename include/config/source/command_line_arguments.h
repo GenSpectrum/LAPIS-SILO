@@ -14,7 +14,7 @@ namespace silo::config {
 class CommandLineArguments : public ConfigSource {
    std::vector<std::string> args;
 
-   [[nodiscard]] constexpr std::string_view debugContext() const {
+   [[nodiscard]] inline std::string debugContext() const override {
       return "command line arguments";
    };
 

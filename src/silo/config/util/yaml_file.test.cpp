@@ -43,9 +43,7 @@ TEST(YamlFile, validRoundTrip) {
    auto under_test =
       std::vector<std::string>{"test", "somethingElse.that.is.quiteLong", "a.2.3.4", "asd", "aa"};
    for (const auto& string : under_test) {
-      ASSERT_EQ(
-         YamlFile::configKeyPathToString(YamlFile::stringToConfigKeyPath(string)), string
-      );
+      ASSERT_EQ(YamlFile::configKeyPathToString(YamlFile::stringToConfigKeyPath(string)), string);
    }
 }
 
