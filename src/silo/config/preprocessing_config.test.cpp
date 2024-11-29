@@ -7,13 +7,13 @@
 #include "silo/preprocessing/preprocessing_exception.h"
 
 using silo::config::PreprocessingConfig;
-using silo::config::YamlConfig;
+using silo::config::YamlFile;
 
 TEST(PreprocessingConfig, shouldReadConfigWithCorrectParametersAndDefaults) {
    PreprocessingConfig config;
 
    ASSERT_NO_THROW(
-      config.overwriteFrom(YamlConfig::readFile("./testBaseData/test_preprocessing_config.yaml")
+      config.overwriteFrom(YamlFile::readFile("./testBaseData/test_preprocessing_config.yaml")
                               .verify(PreprocessingConfig::getConfigSpecification()))
    );
 
@@ -26,7 +26,7 @@ TEST(PreprocessingConfig, shouldReadConfigWithOverriddenDefaults) {
    PreprocessingConfig config;
 
    ASSERT_NO_THROW(config.overwriteFrom(
-      YamlConfig::readFile("./testBaseData/test_preprocessing_config_with_overridden_defaults.yaml")
+      YamlFile::readFile("./testBaseData/test_preprocessing_config_with_overridden_defaults.yaml")
          .verify(PreprocessingConfig::getConfigSpecification())
    ););
 

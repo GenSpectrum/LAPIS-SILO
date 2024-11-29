@@ -12,43 +12,43 @@ using silo::common::toDebugString;
 
 namespace {
 using silo::config::ConfigKeyPath;
-using silo::config::YamlConfig;
+using silo::config::YamlFile;
 
 // Using functions instead of global variables because of
 // initialization order issues.
 
 ConfigKeyPath preprocessingConfigOptionKey() {
-   return YamlConfig::stringToConfigKeyPath("preprocessingConfig");
+   return YamlFile::stringToConfigKeyPath("preprocessingConfig");
 }
 ConfigKeyPath defaultPreprocessingConfigOptionKey() {
-   return YamlConfig::stringToConfigKeyPath("defaultPreprocessingConfig");
+   return YamlFile::stringToConfigKeyPath("defaultPreprocessingConfig");
 }
 ConfigKeyPath inputDirectoryOptionKey() {
-   return YamlConfig::stringToConfigKeyPath("inputDirectory");
+   return YamlFile::stringToConfigKeyPath("inputDirectory");
 }
 ConfigKeyPath outputDirectoryOptionKey() {
-   return YamlConfig::stringToConfigKeyPath("outputDirectory");
+   return YamlFile::stringToConfigKeyPath("outputDirectory");
 }
 ConfigKeyPath intermediateResultsDirectoryOptionKey() {
-   return YamlConfig::stringToConfigKeyPath("intermediateResultsDirectory");
+   return YamlFile::stringToConfigKeyPath("intermediateResultsDirectory");
 }
 ConfigKeyPath preprocessingDatabaseLocationOptionKey() {
-   return YamlConfig::stringToConfigKeyPath("preprocessingDatabaseLocation");
+   return YamlFile::stringToConfigKeyPath("preprocessingDatabaseLocation");
 }
 ConfigKeyPath duckdbMemoryLimitInGTimeOptionKey() {
-   return YamlConfig::stringToConfigKeyPath("duckdbMemoryLimitInG");
+   return YamlFile::stringToConfigKeyPath("duckdbMemoryLimitInG");
 }
 ConfigKeyPath lineageDefinitionsFilenameOptionKey() {
-   return YamlConfig::stringToConfigKeyPath("lineageDefinitionsFilename");
+   return YamlFile::stringToConfigKeyPath("lineageDefinitionsFilename");
 }
 ConfigKeyPath ndjsonInputFilenameOptionKey() {
-   return YamlConfig::stringToConfigKeyPath("ndjsonInputFilename");
+   return YamlFile::stringToConfigKeyPath("ndjsonInputFilename");
 }
 ConfigKeyPath databaseConfigFileOptionKey() {
-   return YamlConfig::stringToConfigKeyPath("databaseConfig");
+   return YamlFile::stringToConfigKeyPath("databaseConfig");
 }
 ConfigKeyPath referenceGenomeFilenameOptionKey() {
-   return YamlConfig::stringToConfigKeyPath("referenceGenomeFilename");
+   return YamlFile::stringToConfigKeyPath("referenceGenomeFilename");
 }
 }  // namespace
 
@@ -132,7 +132,7 @@ void PreprocessingConfig::validate() const {
    if (!ndjson_input_filename.has_value()) {
       throw preprocessing::PreprocessingException(fmt::format(
          " must be specified as preprocessing option.",
-         YamlConfig::configKeyPathToString(ndjsonInputFilenameOptionKey())
+         YamlFile::configKeyPathToString(ndjsonInputFilenameOptionKey())
       ));
    }
 }

@@ -95,7 +95,7 @@ std::string ConfigSpecification::helpText() const {
       addln(fmt::format(
          "    Env var : {}", EnvironmentVariables::configKeyPathToString(field_spec.key)
       ));
-      addln(fmt::format("    YAML key: {}", YamlConfig::configKeyPathToString(field_spec.key)));
+      addln(fmt::format("    YAML key: {}", YamlFile::configKeyPathToString(field_spec.key)));
       addln("\n" + indent(std::string_view{"    "}, std::string{field_spec.help_text}));
       addln(
          field_spec.default_value.has_value()

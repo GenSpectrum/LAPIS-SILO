@@ -13,34 +13,34 @@ using silo::common::toDebugString;
 
 namespace {
 using silo::config::ConfigKeyPath;
-using silo::config::YamlConfig;
+using silo::config::YamlFile;
 
 // Using functions instead of global variables because of
 // initialization order issues.
 
 ConfigKeyPath runtimeConfigOptionKey() {
-   return YamlConfig::stringToConfigKeyPath("runtimeConfig");
+   return YamlFile::stringToConfigKeyPath("runtimeConfig");
 }
 ConfigKeyPath defaultRuntimeConfigOptionKey() {
-   return YamlConfig::stringToConfigKeyPath("defaultRuntimeConfig");
+   return YamlFile::stringToConfigKeyPath("defaultRuntimeConfig");
 }
 ConfigKeyPath dataDirectoryOptionKey() {
-   return YamlConfig::stringToConfigKeyPath("dataDirectory");
+   return YamlFile::stringToConfigKeyPath("dataDirectory");
 }
 ConfigKeyPath apiPortOptionKey() {
-   return YamlConfig::stringToConfigKeyPath("api.port");
+   return YamlFile::stringToConfigKeyPath("api.port");
 }
 ConfigKeyPath apiMaxConnectionsOptionKey() {
-   return YamlConfig::stringToConfigKeyPath("api.maxQueuedHttpConnections");
+   return YamlFile::stringToConfigKeyPath("api.maxQueuedHttpConnections");
 }
 ConfigKeyPath apiParallelThreadsOptionKey() {
-   return YamlConfig::stringToConfigKeyPath("api.threadsForHttpConnections");
+   return YamlFile::stringToConfigKeyPath("api.threadsForHttpConnections");
 }
 ConfigKeyPath apiEstimatedStartupTimeOptionKey() {
-   return YamlConfig::stringToConfigKeyPath("api.estimatedStartupTimeInMinutes");
+   return YamlFile::stringToConfigKeyPath("api.estimatedStartupTimeInMinutes");
 }
 ConfigKeyPath queryMaterializationOptionKey() {
-   return YamlConfig::stringToConfigKeyPath("query.materializationCutoff");
+   return YamlFile::stringToConfigKeyPath("query.materializationCutoff");
 }
 
 }  // namespace

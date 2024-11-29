@@ -22,7 +22,7 @@ silo::Database buildTestDatabase() {
 
    PreprocessingConfig config;
    config.overwriteFrom(
-      silo::config::YamlConfig::readFile(input_directory / "preprocessing_config.yaml")
+      silo::config::YamlFile::readFile(input_directory / "preprocessing_config.yaml")
          .verify(PreprocessingConfig::getConfigSpecification())
    );
    const auto database_config =
@@ -60,7 +60,7 @@ TEST(DatabaseTest, shouldSuccessfullyBuildDatabaseWithoutPartitionBy) {
 
    PreprocessingConfig config;
    config.overwriteFrom(
-      silo::config::YamlConfig::readFile(input_directory / "test_preprocessing_config.yaml")
+      silo::config::YamlFile::readFile(input_directory / "test_preprocessing_config.yaml")
          .verify(PreprocessingConfig::getConfigSpecification())
    );
 

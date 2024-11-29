@@ -244,7 +244,7 @@ TEST_P(PreprocessorTestFixture, shouldProcessData) {
    config.input_directory = scenario.input_directory;
 
    config.overwriteFrom(
-      silo::config::YamlConfig::readFile(scenario.input_directory / "preprocessing_config.yaml")
+      silo::config::YamlFile::readFile(scenario.input_directory / "preprocessing_config.yaml")
          .verify(PreprocessingConfig::getConfigSpecification())
    );
 

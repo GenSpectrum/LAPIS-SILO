@@ -9,11 +9,11 @@
 
 namespace silo::config {
 
-class YamlConfig : public ConfigSource {
+class YamlFile : public ConfigSource {
    std::string error_context;
    std::unordered_map<ConfigKeyPath, YAML::Node> yaml_fields;
 
-   YamlConfig(std::string error_context, std::unordered_map<ConfigKeyPath, YAML::Node> yaml_fields)
+   YamlFile(std::string error_context, std::unordered_map<ConfigKeyPath, YAML::Node> yaml_fields)
        : error_context(std::move(error_context)),
          yaml_fields(std::move(yaml_fields)) {}
 
@@ -25,9 +25,9 @@ class YamlConfig : public ConfigSource {
 
    const std::unordered_map<ConfigKeyPath, YAML::Node>& getYamlFields() const;
 
-   static YamlConfig readFile(const std::filesystem::path& path);
+   static YamlFile readFile(const std::filesystem::path& path);
 
-   static YamlConfig fromYAML(const std::string& error_context, const std::string& yaml_string);
+   static YamlFile fromYAML(const std::string& error_context, const std::string& yaml_string);
 
    static std::string configKeyPathToString(const ConfigKeyPath& key_path);
 

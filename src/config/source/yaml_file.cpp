@@ -131,7 +131,7 @@ void yamlToPaths(
          throw silo::config::ConfigException(fmt::format(
             "{}: found non-usable leaf value at nesting {}",
             config_context,
-            silo::config::YamlConfig::configKeyPathToString(path.value())
+            silo::config::YamlFile::configKeyPathToString(path.value())
          ));
       }
    }
@@ -141,7 +141,7 @@ void yamlToPaths(
 
 namespace silo::config {
 
-std::string YamlConfig::configKeyPathToString(const ConfigKeyPath& config_key_path) {
+std::string YamlFile::configKeyPathToString(const ConfigKeyPath& config_key_path) {
    std::vector<std::string> camel_case_strings;
    for (const auto& list : config_key_path.getPath()) {
       camel_case_strings.emplace_back(joinCamelCase(list));
@@ -149,7 +149,7 @@ std::string YamlConfig::configKeyPathToString(const ConfigKeyPath& config_key_pa
    return boost::join(camel_case_strings, ": ");
 }
 
-ConfigKeyPath YamlConfig::stringToConfigKeyPath(const std::string& key_path_string) {
+ConfigKeyPath YamlFile::stringToConfigKeyPath(const std::string& key_path_string) {
    const std::vector<std::string> camel_case_strings = splitByDot(key_path_string);
    std::vector<std::vector<std::string>> result;
    std::transform(
@@ -161,7 +161,7 @@ ConfigKeyPath YamlConfig::stringToConfigKeyPath(const std::string& key_path_stri
    return ConfigKeyPath::tryFrom(result).value();
 }
 
-YamlConfig YamlConfig::fromYAML(const std::string& error_context, const std::string& yaml_string) {
+YamlFile YamlFile::fromYAML(const std::string& error_context, const std::string& yaml_string) {
    try {
       const YAML::Node node = YAML::Load(yaml_string);
 
@@ -169,7 +169,7 @@ YamlConfig YamlConfig::fromYAML(const std::string& error_context, const std::str
       std::unordered_map<ConfigKeyPath, YAML::Node> paths;
       yamlToPaths(error_context, node, ConsList<std::vector<std::string>>{}, paths);
 
-      return YamlConfig{error_context, paths};
+      return YamlFile{error_context, paths};
    } catch (const YAML::ParserException& parser_exception) {
       throw std::runtime_error(
          fmt::format("{} does not contain valid YAML: {}", error_context, parser_exception.what())
@@ -177,7 +177,7 @@ YamlConfig YamlConfig::fromYAML(const std::string& error_context, const std::str
    }
 }
 
-YamlConfig YamlConfig::readFile(const std::filesystem::path& path) {
+YamlFile YamlFile::readFile(const std::filesystem::path& path) {
    std::ifstream file(path, std::ios::in | std::ios::binary);
    if (file.fail()) {
       throw std::runtime_error(fmt::format("Could not open the YAML file: '{}'", path));
@@ -194,7 +194,7 @@ YamlConfig YamlConfig::readFile(const std::filesystem::path& path) {
    return fromYAML(fmt::format("file: '{}'", path.string()), contents.str());
 }
 
-std::string YamlConfig::errorContext() const {
+std::string YamlFile::errorContext() const {
    return fmt::format("YAML file '{}'", error_context);
 }
 
@@ -230,7 +230,7 @@ ConfigValue yamlNodeToConfigValue(
 }
 }  // namespace
 
-VerifiedConfigSource YamlConfig::verify(const ConfigSpecification& config_specification) const {
+VerifiedConfigSource YamlFile::verify(const ConfigSpecification& config_specification) const {
    // No need to stringify and do duplicate check since
    // ConfigKeyPath is actually directly representing YAML paths.
 
@@ -260,7 +260,7 @@ VerifiedConfigSource YamlConfig::verify(const ConfigSpecification& config_specif
    return VerifiedConfigSource{provided_config_values};
 }
 
-const std::unordered_map<ConfigKeyPath, YAML::Node>& YamlConfig::getYamlFields() const {
+const std::unordered_map<ConfigKeyPath, YAML::Node>& YamlFile::getYamlFields() const {
    return yaml_fields;
 }
 

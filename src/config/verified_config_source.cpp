@@ -15,13 +15,13 @@ std::optional<std::string> VerifiedConfigSource::getString(const ConfigKeyPath& 
          SILO_PANIC(
             "Called getString on a ConfigKeyPath ('{}') that belongs to a value of another "
             "type ({}).",
-            YamlConfig::configKeyPathToString(config_key_path),
+            YamlFile::configKeyPathToString(config_key_path),
             configValueTypeToString(value.getValueType())
          );
       }
       SPDLOG_TRACE(
          "Using for key {} the value {}",
-         YamlConfig::configKeyPathToString(config_key_path),
+         YamlFile::configKeyPathToString(config_key_path),
          value.toString()
       );
       return get<std::string>(value.value);
@@ -39,13 +39,13 @@ std::optional<std::filesystem::path> VerifiedConfigSource::getPath(
          SILO_PANIC(
             "Called getPath on a ConfigKeyPath ('{}') that belongs to a value of another "
             "type ({}).",
-            YamlConfig::configKeyPathToString(config_key_path),
+            YamlFile::configKeyPathToString(config_key_path),
             configValueTypeToString(value.getValueType())
          );
       }
       SPDLOG_TRACE(
          "Using for key {} the value {}",
-         YamlConfig::configKeyPathToString(config_key_path),
+         YamlFile::configKeyPathToString(config_key_path),
          value.toString()
       );
       return get<std::filesystem::path>(value.value);
@@ -61,13 +61,13 @@ std::optional<int32_t> VerifiedConfigSource::getInt32(const ConfigKeyPath& confi
          SILO_PANIC(
             "Called getInt32 on a ConfigKeyPath ('{}') that belongs to a value of another "
             "type ({}).",
-            YamlConfig::configKeyPathToString(config_key_path),
+            YamlFile::configKeyPathToString(config_key_path),
             configValueTypeToString(value.getValueType())
          );
       }
       SPDLOG_TRACE(
          "Using for key {} the value {}",
-         YamlConfig::configKeyPathToString(config_key_path),
+         YamlFile::configKeyPathToString(config_key_path),
          value.toString()
       );
       return get<int32_t>(value.value);
@@ -84,13 +84,13 @@ std::optional<uint32_t> VerifiedConfigSource::getUint32(const ConfigKeyPath& con
          SILO_PANIC(
             "Called getUint32 on a ConfigKeyPath ('{}') that belongs to a value of another "
             "type ({}).",
-            YamlConfig::configKeyPathToString(config_key_path),
+            YamlFile::configKeyPathToString(config_key_path),
             configValueTypeToString(value.getValueType())
          );
       }
       SPDLOG_TRACE(
          "Using for key {} the value {}",
-         YamlConfig::configKeyPathToString(config_key_path),
+         YamlFile::configKeyPathToString(config_key_path),
          value.toString()
       );
       return std::get<uint32_t>(value.value);
@@ -107,13 +107,13 @@ std::optional<uint16_t> VerifiedConfigSource::getUint16(const ConfigKeyPath& con
          SILO_PANIC(
             "Called getUint16 on a ConfigKeyPath ('{}') that belongs to a value of another "
             "type ({}).",
-            YamlConfig::configKeyPathToString(config_key_path),
+            YamlFile::configKeyPathToString(config_key_path),
             configValueTypeToString(value.getValueType())
          );
       }
       SPDLOG_TRACE(
          "Using for key {} the value {}",
-         YamlConfig::configKeyPathToString(config_key_path),
+         YamlFile::configKeyPathToString(config_key_path),
          value.toString()
       );
       return std::get<uint16_t>(value.value);
@@ -129,13 +129,13 @@ std::optional<bool> VerifiedConfigSource::getBool(const ConfigKeyPath& config_ke
          SILO_PANIC(
             "Called getBool on a ConfigKeyPath ('{}') that belongs to a value of another "
             "type ({}).",
-            YamlConfig::configKeyPathToString(config_key_path),
+            YamlFile::configKeyPathToString(config_key_path),
             configValueTypeToString(value.getValueType())
          );
       }
       SPDLOG_TRACE(
          "Using for key {} the value {}",
-         YamlConfig::configKeyPathToString(config_key_path),
+         YamlFile::configKeyPathToString(config_key_path),
          value.toString()
       );
       return get<bool>(value.value);
