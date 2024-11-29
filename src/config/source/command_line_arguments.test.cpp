@@ -3,7 +3,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "silo/config/util/config_exception.h"
+#include "config/config_exception.h"
 
 using silo::config::CommandLineArguments;
 using silo::config::ConfigException;

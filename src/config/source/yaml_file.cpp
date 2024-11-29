@@ -9,9 +9,9 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
+#include "config/config_exception.h"
 #include "silo/common/alist.h"
 #include "silo/common/fmt_formatters.h"
-#include "silo/config/util/config_exception.h"
 
 using silo::config::ConfigKeyPath;
 

@@ -7,9 +7,9 @@
 
 #include "silo/common/overloaded.h"
 #include "silo/common/panic.h"
+#include "silo/config/config_repository.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/config/runtime_config.h"
-#include "silo/config/util/config_repository.h"
 #include "silo/database.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/preprocessing/preprocessor.h"

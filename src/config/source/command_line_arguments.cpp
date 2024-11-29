@@ -7,8 +7,8 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/split.hpp>
 
+#include "config/config_exception.h"
 #include "silo/common/panic.h"
-#include "silo/config/util/config_exception.h"
 
 namespace silo::config {
 
