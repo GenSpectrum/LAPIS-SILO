@@ -32,7 +32,7 @@ class EnvironmentVariables : public ConfigSource {
 
    explicit EnvironmentVariables() = default;
 
-   [[nodiscard]] static constexpr std::string_view errorContext() {
+   [[nodiscard]] static constexpr std::string_view debugContext() {
       return "environment variables";
    };
 

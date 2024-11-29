@@ -120,7 +120,7 @@ AmbiguousConfigKeyPath EnvironmentVariables::stringToConfigKeyPath(
          (invalid_config_keys.size() >= 2) ? "variables" : "variable";
       throw silo::config::ConfigException(fmt::format(
          "in {}: unknown {} {} for '{}'",
-         errorContext(),
+         debugContext(),
          keys_or_options,
          boost::join(invalid_config_keys, ", "),
          config_specification.program_name

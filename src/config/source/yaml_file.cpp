@@ -194,7 +194,7 @@ YamlFile YamlFile::readFile(const std::filesystem::path& path) {
    return fromYAML(fmt::format("file: '{}'", path.string()), contents.str());
 }
 
-std::string YamlFile::errorContext() const {
+std::string YamlFile::debugContext() const {
    return fmt::format("YAML file '{}'", error_context);
 }
 
@@ -251,7 +251,7 @@ VerifiedConfigSource YamlFile::verify(const ConfigSpecification& config_specific
       const char* keys_or_options = (invalid_config_keys.size() >= 2) ? "keys" : "key";
       throw silo::config::ConfigException(fmt::format(
          "in {}: unknown {} {}",
-         errorContext(),
+         debugContext(),
          keys_or_options,
          boost::join(invalid_config_keys, ", ")
       ));

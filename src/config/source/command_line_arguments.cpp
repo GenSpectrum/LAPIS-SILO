@@ -139,7 +139,7 @@ VerifiedConfigSource CommandLineArguments::verify(const ConfigSpecification& con
       const char* keys_or_options = (invalid_config_keys.size() >= 2) ? "options" : "option";
       throw silo::config::ConfigException(fmt::format(
          "in {}: unknown {} {}",
-         errorContext(),
+         debugContext(),
          keys_or_options,
          boost::join(invalid_config_keys, ", ")
       ));

@@ -17,7 +17,7 @@ class YamlFile : public ConfigSource {
        : error_context(std::move(error_context)),
          yaml_fields(std::move(yaml_fields)) {}
 
-   std::string errorContext() const;
+   std::string debugContext() const;
 
   public:
    [[nodiscard]] VerifiedConfigSource verify(const ConfigSpecification& config_specification
