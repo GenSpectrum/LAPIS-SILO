@@ -97,7 +97,7 @@ AmbiguousConfigKeyPath EnvironmentVariables::stringToConfigKeyPath(
    for (const auto& [key_string, value_string] : alist) {
       auto ambiguous_key = EnvironmentVariables::stringToConfigKeyPath(key_string);
       auto value_specification_opt =
-         config_specification.getValueSpecificationFromAmbiguousKey(ambiguous_key);
+         config_specification.getAttributeSpecificationFromAmbiguousKey(ambiguous_key);
       if (value_specification_opt.has_value()) {
          auto attribute_spec = value_specification_opt.value();
          const ConfigValue value = attribute_spec.parseValueFromString(value_string);

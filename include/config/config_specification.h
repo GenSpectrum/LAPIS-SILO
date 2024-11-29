@@ -76,7 +76,7 @@ class ConfigSpecification {
       const ConfigKeyPath& key
    ) const;
 
-   [[nodiscard]] std::optional<ConfigAttributeSpecification> getValueSpecificationFromAmbiguousKey(
+   [[nodiscard]] std::optional<ConfigAttributeSpecification> getAttributeSpecificationFromAmbiguousKey(
       const AmbiguousConfigKeyPath& key
    ) const;
 

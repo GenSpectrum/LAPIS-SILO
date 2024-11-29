@@ -41,7 +41,7 @@ std::string indent(std::string_view indentation, const std::string& str) {
 
 namespace silo::config {
 
-std::optional<ConfigAttributeSpecification> ConfigSpecification::getValueSpecificationFromAmbiguousKey(
+std::optional<ConfigAttributeSpecification> ConfigSpecification::getAttributeSpecificationFromAmbiguousKey(
    const silo::config::AmbiguousConfigKeyPath& key
 ) const {
    for (const auto& field : fields) {

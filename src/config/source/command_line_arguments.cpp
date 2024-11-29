@@ -117,7 +117,7 @@ VerifiedConfigAttributes CommandLineArguments::verify(const ConfigSpecification&
             return {{}, {}, true};
          }
          const AmbiguousConfigKeyPath ambiguous_key = stringToConfigKeyPath(arg);
-         if (auto opt = config_specification.getValueSpecificationFromAmbiguousKey(ambiguous_key)) {
+         if (auto opt = config_specification.getAttributeSpecificationFromAmbiguousKey(ambiguous_key)) {
             ConfigAttributeSpecification type_information = opt.value();
             const auto value_and_consume = getValueFromArg(type_information, arg, next_arg);
             if (value_and_consume.consumed_next) {
