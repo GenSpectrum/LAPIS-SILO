@@ -80,7 +80,7 @@ std::string ConfigSpecification::helpText() const {
              << "\n"
              << "  -h | --help\n"
              << "\n"
-             << "    Show help\n";
+             << "    Show help.\n";
    auto addln = [&help_text](const std::string& line) { help_text << line << "\n"; };
 
    for (const auto& field_spec : fields) {
