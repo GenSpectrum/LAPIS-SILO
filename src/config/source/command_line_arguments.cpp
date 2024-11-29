@@ -119,8 +119,8 @@ VerifiedConfigAttributes CommandLineArguments::verify(const ConfigSpecification&
          const AmbiguousConfigKeyPath ambiguous_key = stringToConfigKeyPath(arg);
          if (auto opt = config_specification.getAttributeSpecificationFromAmbiguousKey(ambiguous_key)) {
             ConfigAttributeSpecification attribute_spec = opt.value();
-            const auto value_and_consume = parseValueFromArg(attribute_spec, arg, next_arg);
-            if (value_and_consume.consumed_next) {
+            const auto [value, consumed_next] = parseValueFromArg(attribute_spec, arg, next_arg);
+            if (consumed_next) {
                ++args_index;
             }
             // Overwrite value with the last occurrence
