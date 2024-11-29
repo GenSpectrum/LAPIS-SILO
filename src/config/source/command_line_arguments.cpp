@@ -64,27 +64,25 @@ std::optional<std::string> tryGetAt(const std::vector<std::string>& args, size_t
    }
    return std::nullopt;
 }
-
-class ValueAndConsumedFlag {
-  public:
-   ConfigValue value;
-   bool consumed_next;
-};
-
-ValueAndConsumedFlag parseValueFromArg(
+ 
+std::tuple<ConfigValue, std::span<const std::string>> parseValueFromArg(
    const ConfigAttributeSpecification& attribute_spec,
    const std::string& arg,
-   const std::optional<std::string>& next_arg
+   std::span<const std::string> remaining_args
 ) {
    if (attribute_spec.type == ConfigValueType::BOOL) {
-      return {.value = ConfigValue::fromBool(true), .consumed_next = false};
+      return std::tuple<ConfigValue, std::span<const std::string>>{
+         ConfigValue::fromBool(true),
+         remaining_args
+      };
    }
-   if (!next_arg.has_value()) {
+   if (remaining_args.empty()) {
       // VerificationError::ParseError in Rust
       throw silo::config::ConfigException("missing argument after option " + arg);
    }
-   return {
-      .value = attribute_spec.parseValueFromString(next_arg.value()), .consumed_next = true
+   return std::tuple<ConfigValue, std::span<const std::string>>{
+      attribute_spec.parseValueFromString(remaining_args[0]),
+      remaining_args.subspan(1)
    };
 }
 
@@ -100,17 +98,17 @@ VerifiedConfigAttributes CommandLineArguments::verify(const ConfigSpecification&
    std::unordered_map<ConfigKeyPath, ConfigValue> config_value_by_option;
    std::vector<std::string> positional_args;
    std::vector<std::string> invalid_config_keys;
-   size_t args_index = 0;
-   while (args_index < args.size()) {
-      const std::string& arg = args[args_index];
-      args_index++;
-      const std::optional<std::string>& next_arg = tryGetAt(args, args_index);
+   std::span<const std::string> remaining_args { args.date(), args.size() };
+   while (!remaining_args.empty()) {
+      const std::string& arg = args[0];
+      remaining_args = remaining_args.subspan(1);
       if (arg.starts_with('-')) {
          if (arg == "--") {
-            while (args_index < args.size()) {
-               positional_args.push_back(args[args_index]);
-               ++args_index;
-            }
+            //  while (args_index < args.size()) {
+            //    positional_args.push_back(args[args_index]);
+            //    ++args_index;
+            // }
+            SILO_TODO();
             break;
          }
          if (arg == "-h" || arg == "--help") {
@@ -119,14 +117,13 @@ VerifiedConfigAttributes CommandLineArguments::verify(const ConfigSpecification&
          const AmbiguousConfigKeyPath ambiguous_key = stringToConfigKeyPath(arg);
          if (auto opt = config_specification.getAttributeSpecificationFromAmbiguousKey(ambiguous_key)) {
             ConfigAttributeSpecification attribute_spec = opt.value();
-            const auto [value, consumed_next] = parseValueFromArg(attribute_spec, arg, next_arg);
-            if (consumed_next) {
-               ++args_index;
-            }
+            const auto [value, rest] = parseValueFromArg(attribute_spec, arg,
+                                                                  remaining_args);
+            remaining_args = rest;
             // Overwrite value with the last occurrence
             // (i.e. `silo --foo 4 --foo 5` will leave "--foo"
             // => "5" in the map).
-            config_value_by_option.emplace(attribute_spec.key, value_and_consume.value);
+            config_value_by_option.emplace(attribute_spec.key, value);
          } else {
             invalid_config_keys.push_back(arg);
          }
