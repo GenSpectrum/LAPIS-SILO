@@ -6,8 +6,8 @@
 
 #include "config/source/yaml_file.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/config/config_repository.h"
 #include "silo/config/preprocessing_config.h"
-#include "silo/config/util/config_repository.h"
 #include "silo/database_info.h"
 #include "silo/preprocessing/preprocessor.h"
 #include "silo/preprocessing/sql_function.h"

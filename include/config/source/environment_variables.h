@@ -7,8 +7,8 @@
 #include <utility>
 #include <vector>
 
+#include "config/config_exception.h"
 #include "config/config_source_interface.h"
-#include "silo/config/util/config_exception.h"
 
 #ifdef __APPLE__
 // macOS-specific
