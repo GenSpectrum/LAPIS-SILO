@@ -56,7 +56,7 @@ namespace silo::config {
 ConfigSpecification PreprocessingConfig::getConfigSpecification() {
    return ConfigSpecification{
       .program_name = "silo preprocessing",
-      .fields{
+      .attribute_specifications{
          ConfigAttributeSpecification::createWithoutDefault(
             preprocessingConfigOptionKey(),
             ConfigValueType::PATH,

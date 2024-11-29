@@ -68,7 +68,7 @@ class ConfigSpecification {
    // std::span would require the array to exist in a different global
    // first, don't want to make it verbose like that. Paying with
    // dropping constexpr for that.
-   std::vector<ConfigAttributeSpecification> fields;
+   std::vector<ConfigAttributeSpecification> attribute_specifications;
 
    [[nodiscard]] std::string helpText() const;
 
