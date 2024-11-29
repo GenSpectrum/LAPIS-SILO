@@ -44,7 +44,7 @@ namespace silo::config {
 std::optional<ConfigAttributeSpecification> ConfigSpecification::
    getAttributeSpecificationFromAmbiguousKey(const silo::config::AmbiguousConfigKeyPath& key
    ) const {
-   for (const auto& field : fields) {
+   for (const auto& field : attribute_specifications) {
       if (key == AmbiguousConfigKeyPath::from(field.key)) {
          return field;
       }
@@ -56,11 +56,11 @@ std::optional<ConfigAttributeSpecification> ConfigSpecification::getAttributeSpe
    const silo::config::ConfigKeyPath& key
 ) const {
    auto maybe_result = std::find_if(
-      fields.begin(),
-      fields.end(),
+      attribute_specifications.begin(),
+      attribute_specifications.end(),
       [&](const ConfigAttributeSpecification& attribute_spec) { return attribute_spec.key == key; }
    );
-   if (maybe_result == fields.end()) {
+   if (maybe_result == attribute_specifications.end()) {
       return std::nullopt;
    }
    return *maybe_result;
@@ -82,7 +82,7 @@ std::string ConfigSpecification::helpText() const {
              << "    Show help.\n";
    auto addln = [&help_text](const std::string& line) { help_text << line << "\n"; };
 
-   for (const auto& field_spec : fields) {
+   for (const auto& field_spec : attribute_specifications) {
       addln("");
       const std::string_view type_text = field_spec.type == ConfigValueType::BOOL
                                             ? " (boolean, the option implies 'true')"
@@ -107,7 +107,7 @@ std::string ConfigSpecification::helpText() const {
 
 VerifiedConfigAttributes ConfigSpecification::getConfigSourceFromDefaults() const {
    VerifiedConfigAttributes result;
-   for (const auto& attribute_spec : fields) {
+   for (const auto& attribute_spec : attribute_specifications) {
       if (attribute_spec.default_value.has_value()) {
          result.config_values.emplace(attribute_spec.key, attribute_spec.default_value.value());
       }

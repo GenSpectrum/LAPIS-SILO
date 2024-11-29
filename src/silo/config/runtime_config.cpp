@@ -48,7 +48,7 @@ namespace silo::config {
 ConfigSpecification RuntimeConfig::getConfigSpecification() {
    return {
       .program_name = "silo api",
-      .fields =
+      .attribute_specifications =
          {
             ConfigAttributeSpecification::createWithoutDefault(
                runtimeConfigOptionKey(),
