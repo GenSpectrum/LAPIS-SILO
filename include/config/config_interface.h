@@ -86,10 +86,13 @@ std::variant<C, int32_t> getConfig(
       // first.
       config = {};
       for (auto config_path : config_paths) {
+         SPDLOG_TRACE("Now overwriting config from yaml file {}", config_path);
          auto file_source = YamlConfig::readFile(config_path).verify(config_specification);
          config.overwriteFrom(file_source);
       }
+      SPDLOG_TRACE("Now overwriting config from environment variables");
       config.overwriteFrom(env_source);
+      SPDLOG_TRACE("Now overwriting config from command line arguments");
       config.overwriteFrom(cmd_source);
 
       config.validate();

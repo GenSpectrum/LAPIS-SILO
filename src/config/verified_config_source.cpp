@@ -1,4 +1,5 @@
 #include "config/verified_config_source.h"
+#include <spdlog/spdlog.h>
 
 #include "config/source/yaml_file.h"
 #include "silo/common/panic.h"
@@ -72,6 +73,7 @@ std::optional<uint32_t> VerifiedConfigSource::getUint32(const ConfigKeyPath& con
             configValueTypeToString(value.getValueType())
          );
       }
+      // TODO ..
       return get<uint32_t>(value.value);
    }
    return std::nullopt;
@@ -107,7 +109,9 @@ std::optional<bool> VerifiedConfigSource::getBool(const ConfigKeyPath& config_ke
             configValueTypeToString(value.getValueType())
          );
       }
-      return get<bool>(value.value);
+      bool result = get<bool>(value.value);
+      SPDLOG_TRACE("Using for key {} the value {}", YamlConfig::configKeyPathToString(config_key_path), result);
+      return result;
    }
    return std::nullopt;
 }
