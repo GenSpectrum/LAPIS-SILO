@@ -44,7 +44,7 @@ TEST(PreprocessingConfig, shouldThrowErrorWhenNdjsonInputFileNameIsNotSet) {
    EXPECT_THAT(
       [&config]() { config.validate(); },
       ThrowsMessage<silo::preprocessing::PreprocessingException>(
-         ::testing::HasSubstr("ndjsonInputFilename must be specified as preprocessing option.")
+         ::testing::HasSubstr("'ndjsonInputFilename' must be specified as preprocessing option.")
       )
    );
 }
