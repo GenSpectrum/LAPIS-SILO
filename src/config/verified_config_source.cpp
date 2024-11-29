@@ -19,6 +19,11 @@ std::optional<std::string> VerifiedConfigSource::getString(const ConfigKeyPath& 
             configValueTypeToString(value.getValueType())
          );
       }
+      SPDLOG_TRACE(
+         "Using for key {} the value {}",
+         YamlConfig::configKeyPathToString(config_key_path),
+         value.toString()
+      );
       return get<std::string>(value.value);
    }
    return std::nullopt;
@@ -38,6 +43,11 @@ std::optional<std::filesystem::path> VerifiedConfigSource::getPath(
             configValueTypeToString(value.getValueType())
          );
       }
+      SPDLOG_TRACE(
+         "Using for key {} the value {}",
+         YamlConfig::configKeyPathToString(config_key_path),
+         value.toString()
+      );
       return get<std::filesystem::path>(value.value);
    }
    return std::nullopt;
@@ -55,6 +65,11 @@ std::optional<int32_t> VerifiedConfigSource::getInt32(const ConfigKeyPath& confi
             configValueTypeToString(value.getValueType())
          );
       }
+      SPDLOG_TRACE(
+         "Using for key {} the value {}",
+         YamlConfig::configKeyPathToString(config_key_path),
+         value.toString()
+      );
       return get<int32_t>(value.value);
    }
    return std::nullopt;
@@ -73,8 +88,12 @@ std::optional<uint32_t> VerifiedConfigSource::getUint32(const ConfigKeyPath& con
             configValueTypeToString(value.getValueType())
          );
       }
-      // TODO ..
-      return get<uint32_t>(value.value);
+      SPDLOG_TRACE(
+         "Using for key {} the value {}",
+         YamlConfig::configKeyPathToString(config_key_path),
+         value.toString()
+      );
+      return std::get<uint32_t>(value.value);
    }
    return std::nullopt;
 }
@@ -92,7 +111,12 @@ std::optional<uint16_t> VerifiedConfigSource::getUint16(const ConfigKeyPath& con
             configValueTypeToString(value.getValueType())
          );
       }
-      return get<uint16_t>(value.value);
+      SPDLOG_TRACE(
+         "Using for key {} the value {}",
+         YamlConfig::configKeyPathToString(config_key_path),
+         value.toString()
+      );
+      return std::get<uint16_t>(value.value);
    }
    return std::nullopt;
 }
@@ -109,9 +133,12 @@ std::optional<bool> VerifiedConfigSource::getBool(const ConfigKeyPath& config_ke
             configValueTypeToString(value.getValueType())
          );
       }
-      bool result = get<bool>(value.value);
-      SPDLOG_TRACE("Using for key {} the value {}", YamlConfig::configKeyPathToString(config_key_path), result);
-      return result;
+      SPDLOG_TRACE(
+         "Using for key {} the value {}",
+         YamlConfig::configKeyPathToString(config_key_path),
+         value.toString()
+      );
+      return get<bool>(value.value);
    }
    return std::nullopt;
 }

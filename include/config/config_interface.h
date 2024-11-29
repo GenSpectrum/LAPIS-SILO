@@ -5,6 +5,8 @@
 #include <span>
 #include <variant>
 
+#include <spdlog/spdlog.h>
+
 #include "config/config_source_interface.h"
 #include "config/config_specification.h"
 #include "config/source/command_line_arguments.h"
