@@ -1,7 +1,7 @@
 #include "config/verified_config_source.h"
 
-#include "silo/common/panic.h"
 #include "config/source/yaml_file.h"
+#include "silo/common/panic.h"
 
 namespace silo::config {
 

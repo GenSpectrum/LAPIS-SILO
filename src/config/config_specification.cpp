@@ -79,8 +79,9 @@ std::string ConfigSpecification::helpText() const {
              << "  Options override environment variables which override YAML file entries.\n"
              << "  The following options are valid:\n"
              << "\n"
-             << "    -h | --help  show help\n"
-             << "\n";
+             << "  -h | --help\n"
+             << "\n"
+             << "    Show help\n";
    auto addln = [&help_text](const std::string& line) { help_text << line << "\n"; };
 
    for (const auto& field_spec : fields) {
