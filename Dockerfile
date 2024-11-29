@@ -27,8 +27,8 @@ EXPOSE 8081
 
 ENTRYPOINT ["./silo"]
 
-ENV SILO_DEFAULT_PREPROCESSING_CONFIG "/app/default_preprocessing_config.yaml"
-ENV SILO_DEFAULT_RUNTIME_CONFIG "/app/default_runtime_config.yaml"
+ENV SILO_DEFAULT_PREPROCESSING_CONFIG="/app/default_preprocessing_config.yaml"
+ENV SILO_DEFAULT_RUNTIME_CONFIG="/app/default_runtime_config.yaml"
 
 LABEL org.opencontainers.image.source="https://github.com/GenSpectrum/LAPIS-SILO"
 LABEL org.opencontainers.image.description="Sequence Indexing engine for Large Order of genomic data"
