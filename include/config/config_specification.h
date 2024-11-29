@@ -26,7 +26,7 @@ class ConfigValueSpecification {
    /// is the constant "true", which will be added to the help text
    std::string_view help_text;
 
-   [[nodiscard]] ConfigValue getValueFromString(std::string value_string) const;
+   [[nodiscard]] ConfigValue parseValueFromString(std::string value_string) const;
 
    static ConfigValueSpecification createWithoutDefault(
       ConfigKeyPath key,
@@ -80,6 +80,8 @@ class ConfigSpecification {
       const AmbiguousConfigKeyPath& key
    ) const;
 
+   /// Convert the ConfigSpecification to a VerifiedConfigSource, to
+   /// use as the source for the default values.
    [[nodiscard]] VerifiedConfigSource getConfigSourceFromDefaults() const;
 };
 

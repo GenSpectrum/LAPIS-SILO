@@ -84,7 +84,7 @@ ValueAndConsumedFlag getValueFromArg(
       throw silo::config::ConfigException("missing argument after option " + arg);
    }
    return {
-      .value = value_specification.getValueFromString(next_arg.value()), .consumed_next = true
+      .value = value_specification.parseValueFromString(next_arg.value()), .consumed_next = true
    };
 }
 
