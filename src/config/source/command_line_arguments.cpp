@@ -64,7 +64,7 @@ std::optional<std::string> tryGetAt(const std::vector<std::string>& args, size_t
    }
    return std::nullopt;
 }
- 
+
 std::tuple<ConfigValue, std::span<const std::string>> parseValueFromArg(
    const ConfigAttributeSpecification& attribute_spec,
    const std::string& arg,
@@ -72,8 +72,7 @@ std::tuple<ConfigValue, std::span<const std::string>> parseValueFromArg(
 ) {
    if (attribute_spec.type == ConfigValueType::BOOL) {
       return std::tuple<ConfigValue, std::span<const std::string>>{
-         ConfigValue::fromBool(true),
-         remaining_args
+         ConfigValue::fromBool(true), remaining_args
       };
    }
    if (remaining_args.empty()) {
@@ -81,14 +80,14 @@ std::tuple<ConfigValue, std::span<const std::string>> parseValueFromArg(
       throw silo::config::ConfigException("missing argument after option " + arg);
    }
    return std::tuple<ConfigValue, std::span<const std::string>>{
-      attribute_spec.parseValueFromString(remaining_args[0]),
-      remaining_args.subspan(1)
+      attribute_spec.parseValueFromString(remaining_args[0]), remaining_args.subspan(1)
    };
 }
 
 }  // namespace
 
-VerifiedConfigAttributes CommandLineArguments::verify(const ConfigSpecification& config_specification
+VerifiedConfigAttributes CommandLineArguments::verify(
+   const ConfigSpecification& config_specification
 ) const {
    // Parse the command line, now that we have the option keys
    // and the info about whether they take an argument (any that
@@ -98,7 +97,7 @@ VerifiedConfigAttributes CommandLineArguments::verify(const ConfigSpecification&
    std::unordered_map<ConfigKeyPath, ConfigValue> config_value_by_option;
    std::vector<std::string> positional_args;
    std::vector<std::string> invalid_config_keys;
-   std::span<const std::string> remaining_args { args.date(), args.size() };
+   std::span<const std::string> remaining_args{args.date(), args.size()};
    while (!remaining_args.empty()) {
       const std::string& arg = args[0];
       remaining_args = remaining_args.subspan(1);
@@ -117,8 +116,7 @@ VerifiedConfigAttributes CommandLineArguments::verify(const ConfigSpecification&
          const AmbiguousConfigKeyPath ambiguous_key = stringToConfigKeyPath(arg);
          if (auto opt = config_specification.getAttributeSpecificationFromAmbiguousKey(ambiguous_key)) {
             ConfigAttributeSpecification attribute_spec = opt.value();
-            const auto [value, rest] = parseValueFromArg(attribute_spec, arg,
-                                                                  remaining_args);
+            const auto [value, rest] = parseValueFromArg(attribute_spec, arg, remaining_args);
             remaining_args = rest;
             // Overwrite value with the last occurrence
             // (i.e. `silo --foo 4 --foo 5` will leave "--foo"

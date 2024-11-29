@@ -1,5 +1,5 @@
-#include "config/verified_config_attributes.h"
 #include <spdlog/spdlog.h>
+#include "config/verified_config_attributes.h"
 
 #include "config/source/yaml_file.h"
 #include "silo/common/panic.h"
@@ -53,7 +53,8 @@ std::optional<std::filesystem::path> VerifiedConfigAttributes::getPath(
    return std::nullopt;
 }
 
-std::optional<int32_t> VerifiedConfigAttributes::getInt32(const ConfigKeyPath& config_key_path) const {
+std::optional<int32_t> VerifiedConfigAttributes::getInt32(const ConfigKeyPath& config_key_path
+) const {
    auto value_it = config_values.find(config_key_path);
    if (value_it != config_values.end()) {
       const ConfigValue& value = value_it->second;

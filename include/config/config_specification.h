@@ -76,9 +76,8 @@ class ConfigSpecification {
       const ConfigKeyPath& key
    ) const;
 
-   [[nodiscard]] std::optional<ConfigAttributeSpecification> getAttributeSpecificationFromAmbiguousKey(
-      const AmbiguousConfigKeyPath& key
-   ) const;
+   [[nodiscard]] std::optional<ConfigAttributeSpecification>
+   getAttributeSpecificationFromAmbiguousKey(const AmbiguousConfigKeyPath& key) const;
 
    /// Convert the ConfigSpecification to a VerifiedConfigAttributes, to
    /// use as the source for the default values.

@@ -41,9 +41,9 @@ std::string indent(std::string_view indentation, const std::string& str) {
 
 namespace silo::config {
 
-std::optional<ConfigAttributeSpecification> ConfigSpecification::getAttributeSpecificationFromAmbiguousKey(
-   const silo::config::AmbiguousConfigKeyPath& key
-) const {
+std::optional<ConfigAttributeSpecification> ConfigSpecification::
+   getAttributeSpecificationFromAmbiguousKey(const silo::config::AmbiguousConfigKeyPath& key
+   ) const {
    for (const auto& field : fields) {
       if (key == AmbiguousConfigKeyPath::from(field.key)) {
          return field;
@@ -58,9 +58,7 @@ std::optional<ConfigAttributeSpecification> ConfigSpecification::getAttributeSpe
    auto maybe_result = std::find_if(
       fields.begin(),
       fields.end(),
-      [&](const ConfigAttributeSpecification& attribute_spec) {
-         return attribute_spec.key == key;
-      }
+      [&](const ConfigAttributeSpecification& attribute_spec) { return attribute_spec.key == key; }
    );
    if (maybe_result == fields.end()) {
       return std::nullopt;
@@ -111,9 +109,7 @@ VerifiedConfigAttributes ConfigSpecification::getConfigSourceFromDefaults() cons
    VerifiedConfigAttributes result;
    for (const auto& attribute_spec : fields) {
       if (attribute_spec.default_value.has_value()) {
-         result.config_values.emplace(
-            attribute_spec.key, attribute_spec.default_value.value()
-         );
+         result.config_values.emplace(attribute_spec.key, attribute_spec.default_value.value());
       }
    }
    return result;
