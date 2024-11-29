@@ -119,3 +119,7 @@ Declares the `verify` method.
 include/config/source/
 
 Contains the source "backends".
+
+
+<img src="config.svg">
+

@@ -7,6 +7,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include "silo/common/fmt_formatters.h"
 #include "config/config_source_interface.h"
 #include "config/config_specification.h"
 #include "config/source/command_line_arguments.h"
