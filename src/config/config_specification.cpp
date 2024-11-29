@@ -107,8 +107,8 @@ std::string ConfigSpecification::helpText() const {
    return help_text.str();
 }
 
-VerifiedConfigSource ConfigSpecification::getConfigSourceFromDefaults() const {
-   VerifiedConfigSource result;
+VerifiedConfigAttributes ConfigSpecification::getConfigSourceFromDefaults() const {
+   VerifiedConfigAttributes result;
    for (const auto& value_specification : fields) {
       if (value_specification.default_value.has_value()) {
          result.config_values.emplace(

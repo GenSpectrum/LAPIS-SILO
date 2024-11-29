@@ -236,7 +236,7 @@ ConfigValue yamlNodeToConfigValue(
 }
 }  // namespace
 
-VerifiedConfigSource YamlFile::verify(const ConfigSpecification& config_specification) const {
+VerifiedConfigAttributes YamlFile::verify(const ConfigSpecification& config_specification) const {
    // No need to stringify and do duplicate check since
    // ConfigKeyPath is actually directly representing YAML paths.
 
@@ -263,7 +263,7 @@ VerifiedConfigSource YamlFile::verify(const ConfigSpecification& config_specific
       ));
    }
 
-   return VerifiedConfigSource{provided_config_values};
+   return VerifiedConfigAttributes{provided_config_values};
 }
 
 const std::unordered_map<ConfigKeyPath, YAML::Node>& YamlFile::getYamlFields() const {

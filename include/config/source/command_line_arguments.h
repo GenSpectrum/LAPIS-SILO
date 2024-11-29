@@ -22,7 +22,7 @@ class CommandLineArguments : public ConfigSource {
    explicit CommandLineArguments(std::span<const std::string> args_)
        : args(args_.begin(), args_.end()) {}
 
-   [[nodiscard]] VerifiedConfigSource verify(const ConfigSpecification& config_specification
+   [[nodiscard]] VerifiedConfigAttributes verify(const ConfigSpecification& config_specification
    ) const override;
 
    static std::string configKeyPathToString(const ConfigKeyPath& key_path);

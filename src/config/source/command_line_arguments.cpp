@@ -90,7 +90,7 @@ ValueAndConsumedFlag getValueFromArg(
 
 }  // namespace
 
-VerifiedConfigSource CommandLineArguments::verify(const ConfigSpecification& config_specification
+VerifiedConfigAttributes CommandLineArguments::verify(const ConfigSpecification& config_specification
 ) const {
    // Parse the command line, now that we have the option keys
    // and the info about whether they take an argument (any that
@@ -148,7 +148,7 @@ VerifiedConfigSource CommandLineArguments::verify(const ConfigSpecification& con
    // Need to specify VerifiedCommandLineArguments { } because the
    // constructor is private and std::make_unique foils the friend
    // relationship.
-   return VerifiedConfigSource{std::move(config_value_by_option), std::move(positional_args)};
+   return VerifiedConfigAttributes{std::move(config_value_by_option), std::move(positional_args)};
 }
 
 }  // namespace silo::config

@@ -6,7 +6,7 @@
 
 namespace silo::config {
 
-std::optional<std::string> VerifiedConfigSource::getString(const ConfigKeyPath& config_key_path
+std::optional<std::string> VerifiedConfigAttributes::getString(const ConfigKeyPath& config_key_path
 ) const {
    auto value_it = config_values.find(config_key_path);
    if (value_it != config_values.end()) {
@@ -29,7 +29,7 @@ std::optional<std::string> VerifiedConfigSource::getString(const ConfigKeyPath& 
    return std::nullopt;
 }
 
-std::optional<std::filesystem::path> VerifiedConfigSource::getPath(
+std::optional<std::filesystem::path> VerifiedConfigAttributes::getPath(
    const ConfigKeyPath& config_key_path
 ) const {
    auto value_it = config_values.find(config_key_path);
@@ -53,7 +53,7 @@ std::optional<std::filesystem::path> VerifiedConfigSource::getPath(
    return std::nullopt;
 }
 
-std::optional<int32_t> VerifiedConfigSource::getInt32(const ConfigKeyPath& config_key_path) const {
+std::optional<int32_t> VerifiedConfigAttributes::getInt32(const ConfigKeyPath& config_key_path) const {
    auto value_it = config_values.find(config_key_path);
    if (value_it != config_values.end()) {
       const ConfigValue& value = value_it->second;
@@ -75,7 +75,7 @@ std::optional<int32_t> VerifiedConfigSource::getInt32(const ConfigKeyPath& confi
    return std::nullopt;
 }
 
-std::optional<uint32_t> VerifiedConfigSource::getUint32(const ConfigKeyPath& config_key_path
+std::optional<uint32_t> VerifiedConfigAttributes::getUint32(const ConfigKeyPath& config_key_path
 ) const {
    auto value_it = config_values.find(config_key_path);
    if (value_it != config_values.end()) {
@@ -98,7 +98,7 @@ std::optional<uint32_t> VerifiedConfigSource::getUint32(const ConfigKeyPath& con
    return std::nullopt;
 }
 
-std::optional<uint16_t> VerifiedConfigSource::getUint16(const ConfigKeyPath& config_key_path
+std::optional<uint16_t> VerifiedConfigAttributes::getUint16(const ConfigKeyPath& config_key_path
 ) const {
    auto value_it = config_values.find(config_key_path);
    if (value_it != config_values.end()) {
@@ -121,7 +121,7 @@ std::optional<uint16_t> VerifiedConfigSource::getUint16(const ConfigKeyPath& con
    return std::nullopt;
 }
 
-std::optional<bool> VerifiedConfigSource::getBool(const ConfigKeyPath& config_key_path) const {
+std::optional<bool> VerifiedConfigAttributes::getBool(const ConfigKeyPath& config_key_path) const {
    auto value_it = config_values.find(config_key_path);
    if (value_it != config_values.end()) {
       const ConfigValue& value = value_it->second;

@@ -50,7 +50,7 @@ class PreprocessingConfig {
 
    [[nodiscard]] std::optional<uint32_t> getDuckdbMemoryLimitInG() const;
 
-   void overwriteFrom(const silo::config::VerifiedConfigSource& config_source);
+   void overwriteFrom(const silo::config::VerifiedConfigAttributes& config_source);
 
    [[nodiscard]] std::vector<std::filesystem::path> getConfigPaths() const;
 };

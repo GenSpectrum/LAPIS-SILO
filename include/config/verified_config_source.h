@@ -9,7 +9,7 @@
 
 namespace silo::config {
 
-/// A VerifiedConfigSource is providing I/O-, key error and parse
+/// A VerifiedConfigAttributes is providing I/O-, key error and parse
 /// error free access to a set of configuration data.
 ///
 /// The accessors return an option since even though invalid options are
@@ -17,7 +17,7 @@ namespace silo::config {
 ///
 /// `positional_arguments` and `asks_for_help` are only used by the command
 /// line argument backend, other backends leave them empty/false.
-class VerifiedConfigSource {
+class VerifiedConfigAttributes {
   public:
    std::unordered_map<ConfigKeyPath, ConfigValue> config_values;
    std::vector<std::string> positional_arguments;

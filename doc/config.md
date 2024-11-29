@@ -43,7 +43,7 @@ There are some complications:
   take a value after them, thus how the next argument is to be
   processed depends on that information. This is why only the `verify`
   step can find out which positional arguments exist, and why
-  `VerifiedConfigSource` also carries positional arguments (which are
+  `VerifiedConfigAttributes` also carries positional arguments (which are
   the empty vector for backends that do not have them).
 
 * Configuration file path must be read from environment variables or
@@ -98,7 +98,7 @@ The `Config` concept, and the `getConfig<Config>` function.
 
 [include/config/verified_config_source.h](../include/config/verified_config_source.h)
 
-`VerifiedConfigSource`: the result of the verification (`verify` method), input for `getConfig`.
+`VerifiedConfigAttributes`: the result of the verification (`verify` method), input for `getConfig`.
 
 [include/config/config_key_path.h](../include/config/config_key_path.h)
 

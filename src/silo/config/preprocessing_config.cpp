@@ -159,7 +159,7 @@ std::optional<std::filesystem::path> PreprocessingConfig::getNdjsonInputFilename
              : std::nullopt;
 }
 
-void PreprocessingConfig::overwriteFrom(const VerifiedConfigSource& config_source) {
+void PreprocessingConfig::overwriteFrom(const VerifiedConfigAttributes& config_source) {
    if (auto var = config_source.getPath(preprocessingConfigOptionKey())) {
       preprocessing_config = var.value();
    }

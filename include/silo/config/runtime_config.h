@@ -43,7 +43,7 @@ class RuntimeConfig {
 
    [[nodiscard]] std::vector<std::filesystem::path> getConfigPaths() const;
 
-   void overwriteFrom(const VerifiedConfigSource& config_source);
+   void overwriteFrom(const VerifiedConfigAttributes& config_source);
 };
 
 }  // namespace silo::config

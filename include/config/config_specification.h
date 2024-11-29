@@ -80,9 +80,9 @@ class ConfigSpecification {
       const AmbiguousConfigKeyPath& key
    ) const;
 
-   /// Convert the ConfigSpecification to a VerifiedConfigSource, to
+   /// Convert the ConfigSpecification to a VerifiedConfigAttributes, to
    /// use as the source for the default values.
-   [[nodiscard]] VerifiedConfigSource getConfigSourceFromDefaults() const;
+   [[nodiscard]] VerifiedConfigAttributes getConfigSourceFromDefaults() const;
 };
 
 }  // namespace silo::config

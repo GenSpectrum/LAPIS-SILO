@@ -89,7 +89,7 @@ AmbiguousConfigKeyPath EnvironmentVariables::stringToConfigKeyPath(
    return result.value();
 }
 
-[[nodiscard]] VerifiedConfigSource EnvironmentVariables::verify(
+[[nodiscard]] VerifiedConfigAttributes EnvironmentVariables::verify(
    const ConfigSpecification& config_specification
 ) const {
    std::unordered_map<ConfigKeyPath, ConfigValue> config_values;
@@ -127,7 +127,7 @@ AmbiguousConfigKeyPath EnvironmentVariables::stringToConfigKeyPath(
       ));
    }
 
-   return VerifiedConfigSource{config_values};
+   return VerifiedConfigAttributes{config_values};
 }
 
 }  // namespace silo::config

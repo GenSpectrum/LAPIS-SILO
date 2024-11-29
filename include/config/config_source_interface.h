@@ -11,9 +11,9 @@ class ConfigSource {
   public:
    /// The verify method checks that all found keys are OK and
    /// specified for the desired config type, parses their
-   /// representation, and returns a VerifiedConfigSource object ready
+   /// representation, and returns a VerifiedConfigAttributes object ready
    /// for retrieval of the values.
-   [[nodiscard]] virtual VerifiedConfigSource verify(const ConfigSpecification& config_specification
+   [[nodiscard]] virtual VerifiedConfigAttributes verify(const ConfigSpecification& config_specification
    ) const = 0;
 };
 

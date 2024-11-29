@@ -27,7 +27,7 @@ namespace silo::config {
 /// interface uses a template anyways, due to the different return types (RuntimeConfig vs.
 /// PreprocessingConfig), whose easily accessible structure should remain.
 template <typename C>
-concept Config = requires(C c, const C cc, const VerifiedConfigSource& config_source) {
+concept Config = requires(C c, const C cc, const VerifiedConfigAttributes& config_source) {
    /// Get the specification (ConfigSpecification) for this kind (C)
    /// of config.
    { C::getConfigSpecification() } -> std::same_as<ConfigSpecification>;

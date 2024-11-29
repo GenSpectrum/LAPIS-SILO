@@ -46,7 +46,7 @@ class EnvironmentVariables : public ConfigSource {
 
    static AmbiguousConfigKeyPath stringToConfigKeyPath(const std::string& key_path_string);
 
-   [[nodiscard]] VerifiedConfigSource verify(const ConfigSpecification& config_specification
+   [[nodiscard]] VerifiedConfigAttributes verify(const ConfigSpecification& config_specification
    ) const override;
 };
 

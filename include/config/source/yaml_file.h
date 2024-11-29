@@ -20,7 +20,7 @@ class YamlFile : public ConfigSource {
    std::string debugContext() const override;
 
   public:
-   [[nodiscard]] VerifiedConfigSource verify(const ConfigSpecification& config_specification
+   [[nodiscard]] VerifiedConfigAttributes verify(const ConfigSpecification& config_specification
    ) const override;
 
    // Make yaml_fields accessible for testing

@@ -114,7 +114,7 @@ std::vector<std::filesystem::path> RuntimeConfig::getConfigPaths() const {
    return result;
 }
 
-void RuntimeConfig::overwriteFrom(const VerifiedConfigSource& config_source) {
+void RuntimeConfig::overwriteFrom(const VerifiedConfigAttributes& config_source) {
    if (auto var = config_source.getPath(runtimeConfigOptionKey())) {
       runtime_config = var.value();
    }
