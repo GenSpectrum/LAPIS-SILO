@@ -96,7 +96,7 @@ The `Config` concept, and the `getConfig<Config>` function.
 
 `ConfigSpecification`, describing the "metadata" on a Config class (using `ConfigAttributeSpecification` for each field).
 
-[include/config/verified_config_source.h](../include/config/verified_config_source.h)
+[include/config/verified_config_attributes.h](../include/config/verified_config_attributes.h)
 
 `VerifiedConfigAttributes`: the result of the verification (`verify` method), input for `getConfig`.
 
