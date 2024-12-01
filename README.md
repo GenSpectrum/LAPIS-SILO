@@ -69,9 +69,9 @@ For SILO, there are three different configuration files:
 
 - `DatabaseConfig` described in
   file [database_config.h](https://github.com/GenSpectrum/LAPIS-SILO/blob/main/include/config/database_config.h)
-- `PreprocessingConfig` used when started with `--preprocessing` and described in
+- `PreprocessingConfig` used when started with `preprocessing` and described in
   file [preprocessing_config.h](https://github.com/GenSpectrum/LAPIS-SILO/blob/main/include/config/preprocessing_config.h)
-- `RuntimeConfig` used when started with `--api` and described in
+- `RuntimeConfig` used when started with `api` and described in
   file [runtime_config.h](https://github.com/GenSpectrum/LAPIS-SILO/blob/main/include/config/preprocessing_config.h)
 
 The database config contains the schema of the database and is always required when preprocessing data. The database
@@ -103,13 +103,13 @@ docker run \
   -v your/preprocessing/output:/preprocessing/output \
   -v your/preprocessing_config.yaml:/app/preprocessing_config.yaml \
   -v your/database_config.yaml:/app/database_config.yaml \
-  silo --preprocessing
+  silo preprocessing
 ```
 
 Both config files can also be provided in custom locations:
 
 ```shell
-silo --preprocessing --preprocessingConfig=./custom/preprocessing_config.yaml --databaseConfig=./custom/database_config.yaml
+silo preprocessing --preprocessingConfig=./custom/preprocessing_config.yaml --databaseConfig=./custom/database_config.yaml
 ```
 
 The Docker image contains a default preprocessing config that sets defaults specific for running SILO in Docker.
@@ -126,11 +126,11 @@ After preprocessing the data, the api can be started with the following command:
 docker run 
   -p 8081:8081
   -v your/preprocessing/output:/data
-  silo --api
+  silo api
 ```
 
 The directory where SILO expects the preprocessing output can be overwritten via
-`silo --api --dataDirectory=/custom/data/directory` or in a corresponding
+`silo api --dataDirectory=/custom/data/directory` or in a corresponding
 [configuration file](#configuration-files).
 
 ### Notes On Building The Image
