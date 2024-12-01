@@ -68,17 +68,17 @@ The images contain default configuration so that a user only needs to mount data
 For SILO, there are three different configuration files:
 
 - `DatabaseConfig` described in
-  file [database_config.h](https://github.com/GenSpectrum/LAPIS-SILO/blob/main/include/config/database_config.h)
+  file [database_config.h](include/config/database_config.h)
 - `PreprocessingConfig` used when started with `preprocessing` and described in
-  file [preprocessing_config.h](https://github.com/GenSpectrum/LAPIS-SILO/blob/main/include/config/preprocessing_config.h)
+  file [preprocessing_config.h](include/config/preprocessing_config.h)
 - `RuntimeConfig` used when started with `api` and described in
-  file [runtime_config.h](https://github.com/GenSpectrum/LAPIS-SILO/blob/main/include/config/preprocessing_config.h)
+  file [runtime_config.h](include/config/preprocessing_config.h)
 
 The database config contains the schema of the database and is always required when preprocessing data. The database
 config will be saved together with the output of the preprocessing and is therefore not required when starting SILO as
 an API.
 An example of a configuration file can be seen
-in [testBaseData/exampleDataset/database_config.yaml](https://github.com/GenSpectrum/LAPIS-SILO/blob/main/testBaseData/exampleDataset/database_config.yaml).
+in [testBaseData/exampleDataset/database_config.yaml](testBaseData/exampleDataset/database_config.yaml).
 
 By default, the config files are expected to be YAML files in the current working directory in
 snake_case (`database_config.yaml`, `preprocessing_config.yaml`, `runtime_config.yaml`), but their location can be
@@ -116,7 +116,7 @@ The Docker image contains a default preprocessing config that sets defaults spec
 Apart from that, there are default values if neither user-provided nor default config specify fields.
 The user-provided preprocessing config can be used to overwrite the default values. For a full reference, see
 
-* [testBaseData/test_preprocessing_config_with_overridden_defaults.yaml](https://github.com/GenSpectrum/LAPIS-SILO/blob/main/testBaseData/test_preprocessing_config_with_overridden_defaults.yaml)
+* [testBaseData/test_preprocessing_config_with_overridden_defaults.yaml](testBaseData/test_preprocessing_config_with_overridden_defaults.yaml)
 
 ### Run docker container (api)
 
