@@ -30,4 +30,4 @@ rm -rf {output,temp,test?*}
 
 
 #SPDLOG_LEVEL=debug
-${DEBUGGER-} "$builddir"/siloApi --preprocessing
+${DEBUGGER-} "$builddir"/silo --preprocessing
