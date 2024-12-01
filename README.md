@@ -82,7 +82,7 @@ in [testBaseData/exampleDataset/database_config.yaml](testBaseData/exampleDatase
 
 By default, the config files are expected to be YAML files in the current working directory in
 snake_case (`database_config.yaml`, `preprocessing_config.yaml`, `runtime_config.yaml`), but their location can be
-overridden using the options `--databaseConfig=X`, `--preprocessingConfig=X`, and `--runtimeConfig=X`.
+overridden using the options `--database-config=X`, `--preprocessing-config=X`, and `--runtime-config=X`.
 
 Preprocessing and Runtime configurations contain default values for all fields and are thus only optional. Their
 parameters can also be provided as command-line arguments in snake_case and as environment variables prefixed with SILO_
@@ -109,7 +109,7 @@ docker run \
 Both config files can also be provided in custom locations:
 
 ```shell
-silo preprocessing --preprocessingConfig=./custom/preprocessing_config.yaml --databaseConfig=./custom/database_config.yaml
+silo preprocessing --preprocessing-config=./custom/preprocessing_config.yaml --database-config=./custom/database_config.yaml
 ```
 
 The Docker image contains a default preprocessing config that sets defaults specific for running SILO in Docker.
@@ -130,7 +130,7 @@ docker run
 ```
 
 The directory where SILO expects the preprocessing output can be overwritten via
-`silo api --dataDirectory=/custom/data/directory` or in a corresponding
+`silo api --data-directory=/custom/data/directory` or in a corresponding
 [configuration file](#configuration-files).
 
 ### Notes On Building The Image
