@@ -99,12 +99,14 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
 
    std::vector<std::string> env_allow_list;
    env_allow_list.emplace_back("SILO_PANIC");
-   for (auto& field : silo::config::PreprocessingConfig::getConfigSpecification().fields) {
+   for (auto& field :
+        silo::config::PreprocessingConfig::getConfigSpecification().attribute_specifications) {
       env_allow_list.emplace_back(
          silo::config::EnvironmentVariables::configKeyPathToString(field.key)
       );
    }
-   for (auto& field : silo::config::RuntimeConfig::getConfigSpecification().fields) {
+   for (auto& field :
+        silo::config::RuntimeConfig::getConfigSpecification().attribute_specifications) {
       env_allow_list.emplace_back(
          silo::config::EnvironmentVariables::configKeyPathToString(field.key)
       );

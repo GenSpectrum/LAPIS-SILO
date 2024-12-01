@@ -1,5 +1,5 @@
-#include <spdlog/spdlog.h>
 #include "config/verified_config_attributes.h"
+#include <spdlog/spdlog.h>
 
 #include "config/source/yaml_file.h"
 #include "silo/common/panic.h"
