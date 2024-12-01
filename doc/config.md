@@ -86,7 +86,7 @@ Hard-coded values for a "Config" class should be read from its
 syntax in the class definition, to keep one source of truth for both
 the help text and the actual run time.
 
-## Overview
+## Code Overview
 
 [include/config/config_interface.h](../include/config/config_interface.h)
 
