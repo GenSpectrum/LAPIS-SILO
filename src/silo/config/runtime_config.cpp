@@ -53,14 +53,14 @@ ConfigSpecification RuntimeConfig::getConfigSpecification() {
             ConfigAttributeSpecification::createWithoutDefault(
                runtimeConfigOptionKey(),
                ConfigValueType::PATH,
-               "Path to config file in YAML format."
+               "The path to the config file in YAML format."
             ),
             ConfigAttributeSpecification::createWithoutDefault(
                defaultRuntimeConfigOptionKey(),
                ConfigValueType::PATH,
-               "Path to config file in YAML format with default values. "
-               "This path will often be set by an environment variable, thus "
-               "providing defaults to a silo in a specific environment (e.g. Docker)"
+               "The path to config file in YAML format with default values. \n"
+               "This path will often be set by an environment variable, thus \n"
+               "providing defaults to a silo in a specific environment (e.g. Docker)."
             ),
             ConfigAttributeSpecification::createWithDefault(
                dataDirectoryOptionKey(),
