@@ -105,7 +105,7 @@ AmbiguousConfigKeyPath EnvironmentVariables::stringToConfigKeyPath(
       } else {
          if (std::find(allow_list.begin(), allow_list.end(), key_string) != allow_list.end()) {
             SPDLOG_INFO(
-               "Given env variable '{}' is not a valid key for '{}'. (but explicitly allowed)",
+               "Given env variable '{}' is not a valid key for '{}' but in allow_list.",
                key_string,
                config_specification.program_name
             );
