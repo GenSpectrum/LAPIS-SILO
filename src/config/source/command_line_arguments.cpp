@@ -3,7 +3,6 @@
 #include <map>
 
 #include <fmt/format.h>
-#include <spdlog/spdlog.h>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/split.hpp>
@@ -74,7 +73,6 @@ std::tuple<ConfigValue, std::span<const std::string>> parseValueFromArg(
    const std::optional<std::string>& opt_value_string,
    std::span<const std::string> remaining_args
 ) {
-   SPDLOG_TRACE("{} remaining_args", remaining_args.size());
    if (attribute_spec.type == ConfigValueType::BOOL) {
       if (opt_value_string.has_value()) {
          throw silo::config::ConfigException("'=' not acceptable for boolean option: " + arg);
@@ -91,7 +89,6 @@ std::tuple<ConfigValue, std::span<const std::string>> parseValueFromArg(
       value_string = remaining_args[0];
       remaining_args = remaining_args.subspan(1);
    }
-   SPDLOG_TRACE("{} remaining_args", remaining_args.size());
    return {attribute_spec.parseValueFromString(value_string), remaining_args};
 }
 
@@ -111,7 +108,6 @@ VerifiedConfigAttributes CommandLineArguments::verify(
    std::span<const std::string> remaining_args{args.data(), args.size()};
    while (!remaining_args.empty()) {
       const std::string& arg = remaining_args[0];
-      SPDLOG_TRACE("arg='{}'", arg);
       remaining_args = remaining_args.subspan(1);
       if (arg.starts_with('-')) {
          if (arg == "--") {
@@ -122,10 +118,6 @@ VerifiedConfigAttributes CommandLineArguments::verify(
             return {{}, {}, true};
          }
          const auto [option, opt_value_string] = splitOption(arg);
-         SPDLOG_TRACE("option='{}'", option);
-         if (opt_value_string.has_value()) {
-            SPDLOG_TRACE("opt_value_string='{}'", *opt_value_string);
-         }
          const auto ambiguous_key = stringToConfigKeyPath(option);
          if (auto opt = config_specification.getAttributeSpecificationFromAmbiguousKey(ambiguous_key)) {
             ConfigAttributeSpecification attribute_spec = opt.value();
@@ -136,9 +128,7 @@ VerifiedConfigAttributes CommandLineArguments::verify(
             // (i.e. `silo --foo 4 --foo 5` will leave "--foo"
             // => "5" in the map).
             config_value_by_option.emplace(attribute_spec.key, value);
-            SPDLOG_TRACE("valid config key, {} remaining_args", remaining_args.size());
          } else {
-            SPDLOG_TRACE("invalid config key");
             invalid_config_keys.push_back(option);
          }
       } else {
