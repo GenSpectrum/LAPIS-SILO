@@ -62,8 +62,6 @@ int runApi(const silo::config::RuntimeConfig& runtime_config) {
    return server.runApi(runtime_config);
 }
 
-}  // namespace
-
 enum class ExecutionMode { PREPROCESSING, API };
 
 int mainWhichMayThrowExceptions(int argc, char** argv) {
@@ -138,6 +136,8 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
    }
    SILO_UNREACHABLE();
 }
+
+}  // namespace
 
 int main(int argc, char** argv) {
    try {
