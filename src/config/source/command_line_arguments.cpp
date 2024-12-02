@@ -109,7 +109,7 @@ VerifiedConfigAttributes CommandLineArguments::verify(
    std::vector<std::string> invalid_config_keys;
    std::span<const std::string> remaining_args{args.data(), args.size()};
    while (!remaining_args.empty()) {
-      const std::string& arg = args[0];
+      const std::string& arg = remaining_args[0];
       remaining_args = remaining_args.subspan(1);
       if (arg.starts_with('-')) {
          if (arg == "--") {
@@ -120,7 +120,7 @@ VerifiedConfigAttributes CommandLineArguments::verify(
             return {{}, {}, true};
          }
          const auto [option, opt_value_string] = splitOption(arg);
-         SPDLOG_TRACE("option='{}', opt_value_string='{}'", option, opt_value_string);
+         SPDLOG_TRACE("option='{}'", option);
          const auto ambiguous_key = stringToConfigKeyPath(option);
          if (auto opt = config_specification.getAttributeSpecificationFromAmbiguousKey(ambiguous_key)) {
             ConfigAttributeSpecification attribute_spec = opt.value();
