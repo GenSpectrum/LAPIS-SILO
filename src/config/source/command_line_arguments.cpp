@@ -110,6 +110,7 @@ VerifiedConfigAttributes CommandLineArguments::verify(
    std::span<const std::string> remaining_args{args.data(), args.size()};
    while (!remaining_args.empty()) {
       const std::string& arg = remaining_args[0];
+      SPDLOG_TRACE("arg='{}'", arg);
       remaining_args = remaining_args.subspan(1);
       if (arg.starts_with('-')) {
          if (arg == "--") {
