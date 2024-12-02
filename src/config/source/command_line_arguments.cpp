@@ -22,38 +22,48 @@ std::string CommandLineArguments::configKeyPathToString(const ConfigKeyPath& key
    return "--" + boost::join(result, "-");
 }
 
-AmbiguousConfigKeyPath CommandLineArguments::stringToConfigKeyPath(
-   const std::string& command_line_argument
-) {
+std::tuple<AmbiguousConfigKeyPath, std::optional<std::string>> CommandLineArguments::
+   stringToConfigKeyPath(const std::string& command_line_argument) {
    if (command_line_argument.size() < 3 || !command_line_argument.starts_with("--")) {
       throw silo::config::ConfigException(fmt::format(
          "the provided option '{}' is not a valid command line option", command_line_argument
       ));
    }
 
+   // Split off value, if any
+   std::string option;
+   std::optional<std::string> opt_value_string;
+   std::size_t pos = command_line_argument.find('=');
+   if (pos != std::string::npos) {
+      option = command_line_argument.substr(0, pos);
+      opt_value_string = command_line_argument.substr(pos + 1);
+   } else {
+      option = command_line_argument;
+   }
+
    std::vector<std::string> delimited_strings;
    // Remove the leading dashes and split by '-'
-   std::string trimmed = command_line_argument.substr(2);
+   std::string trimmed = option.substr(2);
    std::vector<std::string> tokens;
 
    boost::split(tokens, trimmed, boost::is_any_of("-"));
 
    for (const auto& token : tokens) {
       if (token.empty()) {
-         throw silo::config::ConfigException(fmt::format(
-            "the provided option '{}' is not a valid command line option", command_line_argument
-         ));
+         throw silo::config::ConfigException(
+            fmt::format("the provided option '{}' is not a valid command line option", option)
+         );
       }
       delimited_strings.push_back(token);
    }
 
    auto result = AmbiguousConfigKeyPath::tryFrom(std::move(delimited_strings));
    if (result == std::nullopt) {
-      throw silo::config::ConfigException(fmt::format(
-         "the provided option '{}' is not a valid command line option", command_line_argument
-      ));
+      throw silo::config::ConfigException(
+         fmt::format("the provided option '{}' is not a valid command line option", option)
+      );
    }
-   return result.value();
+   return {result.value(), opt_value_string};
 }
 
 namespace {
@@ -82,7 +92,7 @@ VerifiedConfigAttributes CommandLineArguments::verify(
    // and the info about whether they take an argument (any that
    // are not of type bool).
 
-   // E.g. "--api-foo" => "1234"
+   // E.g. "--api-foo" => "1234" or "--api-foo=1234"
    std::unordered_map<ConfigKeyPath, ConfigValue> config_value_by_option;
    std::vector<std::string> positional_args;
    std::vector<std::string> invalid_config_keys;
@@ -98,7 +108,7 @@ VerifiedConfigAttributes CommandLineArguments::verify(
          if (arg == "-h" || arg == "--help") {
             return {{}, {}, true};
          }
-         const AmbiguousConfigKeyPath ambiguous_key = stringToConfigKeyPath(arg);
+         const auto [ambiguous_key, opt_value_string] = stringToConfigKeyPath(arg);
          if (auto opt = config_specification.getAttributeSpecificationFromAmbiguousKey(ambiguous_key)) {
             ConfigAttributeSpecification attribute_spec = opt.value();
             const auto [value, new_remaining_args] =
