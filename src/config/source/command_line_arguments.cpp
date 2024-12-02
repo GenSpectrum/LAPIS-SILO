@@ -22,23 +22,11 @@ std::string CommandLineArguments::configKeyPathToString(const ConfigKeyPath& key
    return "--" + boost::join(result, "-");
 }
 
-std::tuple<AmbiguousConfigKeyPath, std::optional<std::string>> CommandLineArguments::
-   stringToConfigKeyPath(const std::string& command_line_argument) {
-   if (command_line_argument.size() < 3 || !command_line_argument.starts_with("--")) {
-      throw silo::config::ConfigException(fmt::format(
-         "the provided option '{}' is not a valid command line option", command_line_argument
-      ));
-   }
-
-   // Split off value, if any
-   std::string option;
-   std::optional<std::string> opt_value_string;
-   std::size_t pos = command_line_argument.find('=');
-   if (pos != std::string::npos) {
-      option = command_line_argument.substr(0, pos);
-      opt_value_string = command_line_argument.substr(pos + 1);
-   } else {
-      option = command_line_argument;
+AmbiguousConfigKeyPath CommandLineArguments::stringToConfigKeyPath(const std::string& option) {
+   if (option.size() < 3 || !option.starts_with("--")) {
+      throw silo::config::ConfigException(
+         fmt::format("the provided option '{}' is not a valid command line option", option)
+      );
    }
 
    std::vector<std::string> delimited_strings;
@@ -63,11 +51,22 @@ std::tuple<AmbiguousConfigKeyPath, std::optional<std::string>> CommandLineArgume
          fmt::format("the provided option '{}' is not a valid command line option", option)
       );
    }
-   return {result.value(), opt_value_string};
+   return result.value();
 }
 
 namespace {
 
+// Split an individual command line argument in option and value
+// parts, if a '=' was given.
+std::tuple<std::string, std::optional<std::string>> tokenizeOption(const std::string& arg) {
+   std::size_t pos = arg.find('=');
+   if (pos != std::string::npos) {
+      return {arg.substr(0, pos), arg.substr(pos + 1)};
+   }
+   return {arg, std::nullopt};
+}
+
+// Parse an option's value, taking the next argument if needed.
 std::tuple<ConfigValue, std::span<const std::string>> parseValueFromArg(
    const ConfigAttributeSpecification& attribute_spec,
    const std::string& arg,
