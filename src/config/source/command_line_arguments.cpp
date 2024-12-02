@@ -92,7 +92,7 @@ std::tuple<ConfigValue, std::span<const std::string>> parseValueFromArg(
       remaining_args = remaining_args.subspan(1);
    }
    SPDLOG_TRACE("{} remaining_args", remaining_args.size());
-   return {attribute_spec.parseValueFromString(value_string), remaining_args.subspan(1)};
+   return {attribute_spec.parseValueFromString(value_string), remaining_args};
 }
 
 }  // namespace
