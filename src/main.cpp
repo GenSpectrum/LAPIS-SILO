@@ -144,6 +144,6 @@ int main(int argc, char** argv) {
       return mainWhichMayThrowExceptions(argc, argv);
    } catch (const std::runtime_error& error) {
       SPDLOG_ERROR("Internal Error: {}", error.what());
-      return 1;
+      return 2;
    }
 }
