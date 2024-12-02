@@ -74,6 +74,7 @@ std::tuple<ConfigValue, std::span<const std::string>> parseValueFromArg(
    const std::optional<std::string>& opt_value_string,
    std::span<const std::string> remaining_args
 ) {
+   SPDLOG_TRACE("{} remaining_args", remaining_args.size());
    if (attribute_spec.type == ConfigValueType::BOOL) {
       if (opt_value_string.has_value()) {
          throw silo::config::ConfigException("'=' not acceptable for boolean option: " + arg);
@@ -90,6 +91,7 @@ std::tuple<ConfigValue, std::span<const std::string>> parseValueFromArg(
       value_string = remaining_args[0];
       remaining_args = remaining_args.subspan(1);
    }
+   SPDLOG_TRACE("{} remaining_args", remaining_args.size());
    return {attribute_spec.parseValueFromString(value_string), remaining_args.subspan(1)};
 }
 
