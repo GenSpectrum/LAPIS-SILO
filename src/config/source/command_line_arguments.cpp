@@ -64,17 +64,13 @@ std::tuple<ConfigValue, std::span<const std::string>> parseValueFromArg(
    std::span<const std::string> remaining_args
 ) {
    if (attribute_spec.type == ConfigValueType::BOOL) {
-      return std::tuple<ConfigValue, std::span<const std::string>>{
-         ConfigValue::fromBool(true), remaining_args
-      };
+      return {ConfigValue::fromBool(true), remaining_args};
    }
    if (remaining_args.empty()) {
       // VerificationError::ParseError in Rust
       throw silo::config::ConfigException("missing argument after option " + arg);
    }
-   return std::tuple<ConfigValue, std::span<const std::string>>{
-      attribute_spec.parseValueFromString(remaining_args[0]), remaining_args.subspan(1)
-   };
+   return {attribute_spec.parseValueFromString(remaining_args[0]), remaining_args.subspan(1)};
 }
 
 }  // namespace
