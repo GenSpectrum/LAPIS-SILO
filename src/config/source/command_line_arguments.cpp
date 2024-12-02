@@ -122,6 +122,9 @@ VerifiedConfigAttributes CommandLineArguments::verify(
          }
          const auto [option, opt_value_string] = splitOption(arg);
          SPDLOG_TRACE("option='{}'", option);
+         if (opt_value_string.has_value()) {
+            SPDLOG_TRACE("opt_value_string='{}'", *opt_value_string);
+         }
          const auto ambiguous_key = stringToConfigKeyPath(option);
          if (auto opt = config_specification.getAttributeSpecificationFromAmbiguousKey(ambiguous_key)) {
             ConfigAttributeSpecification attribute_spec = opt.value();
@@ -132,7 +135,9 @@ VerifiedConfigAttributes CommandLineArguments::verify(
             // (i.e. `silo --foo 4 --foo 5` will leave "--foo"
             // => "5" in the map).
             config_value_by_option.emplace(attribute_spec.key, value);
+            SPDLOG_TRACE("valid config key, {} remaining_args", remaining_args.size());
          } else {
+            SPDLOG_TRACE("invalid config key");
             invalid_config_keys.push_back(option);
          }
       } else {
