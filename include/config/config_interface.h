@@ -91,7 +91,7 @@ std::variant<C, int32_t> getConfig(
          SPDLOG_TRACE("Now overwriting config from defaults");
          config = {};
          for (auto config_path : config_paths) {
-            SPDLOG_TRACE("Now overwriting config from yaml file {}", config_path);
+            SPDLOG_TRACE("Now overwriting config from yaml file '{}'", config_path);
             auto file_source = YamlFile::readFile(config_path).verify(config_specification);
             config.overwriteFrom(file_source);
          }
