@@ -20,7 +20,7 @@ std::optional<std::string> VerifiedConfigAttributes::getString(const ConfigKeyPa
          );
       }
       SPDLOG_TRACE(
-         "Using for key {} the value {}",
+         "Using for key `{}` the value {}",
          YamlFile::configKeyPathToString(config_key_path),
          value.toString()
       );
@@ -44,7 +44,7 @@ std::optional<std::filesystem::path> VerifiedConfigAttributes::getPath(
          );
       }
       SPDLOG_TRACE(
-         "Using for key {} the value {}",
+         "Using for key `{}` the value {}",
          YamlFile::configKeyPathToString(config_key_path),
          value.toString()
       );
@@ -67,7 +67,7 @@ std::optional<int32_t> VerifiedConfigAttributes::getInt32(const ConfigKeyPath& c
          );
       }
       SPDLOG_TRACE(
-         "Using for key {} the value {}",
+         "Using for key `{}` the value {}",
          YamlFile::configKeyPathToString(config_key_path),
          value.toString()
       );
@@ -90,7 +90,7 @@ std::optional<uint32_t> VerifiedConfigAttributes::getUint32(const ConfigKeyPath&
          );
       }
       SPDLOG_TRACE(
-         "Using for key {} the value {}",
+         "Using for key `{}` the value {}",
          YamlFile::configKeyPathToString(config_key_path),
          value.toString()
       );
@@ -113,7 +113,7 @@ std::optional<uint16_t> VerifiedConfigAttributes::getUint16(const ConfigKeyPath&
          );
       }
       SPDLOG_TRACE(
-         "Using for key {} the value {}",
+         "Using for key `{}` the value {}",
          YamlFile::configKeyPathToString(config_key_path),
          value.toString()
       );
@@ -135,7 +135,7 @@ std::optional<bool> VerifiedConfigAttributes::getBool(const ConfigKeyPath& confi
          );
       }
       SPDLOG_TRACE(
-         "Using for key {} the value {}",
+         "Using for key `{}` the value {}",
          YamlFile::configKeyPathToString(config_key_path),
          value.toString()
       );
