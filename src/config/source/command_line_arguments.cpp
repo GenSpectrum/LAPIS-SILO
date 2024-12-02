@@ -3,6 +3,7 @@
 #include <map>
 
 #include <fmt/format.h>
+#include <spdlog/spdlog.h>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/split.hpp>
@@ -119,6 +120,7 @@ VerifiedConfigAttributes CommandLineArguments::verify(
             return {{}, {}, true};
          }
          const auto [option, opt_value_string] = splitOption(arg);
+         SPDLOG_TRACE("option='{}', opt_value_string='{}'", option, opt_value_string);
          const auto ambiguous_key = stringToConfigKeyPath(option);
          if (auto opt = config_specification.getAttributeSpecificationFromAmbiguousKey(ambiguous_key)) {
             ConfigAttributeSpecification attribute_spec = opt.value();
@@ -130,7 +132,7 @@ VerifiedConfigAttributes CommandLineArguments::verify(
             // => "5" in the map).
             config_value_by_option.emplace(attribute_spec.key, value);
          } else {
-            invalid_config_keys.push_back(arg);
+            invalid_config_keys.push_back(option);
          }
       } else {
          positional_args.push_back(arg);
