@@ -62,3 +62,17 @@ TEST(CommandLineArguments, shouldFailAppropriatelyOnInvalidOptions) {
       );
    }
 }
+
+TEST(CommandLineArguments, shouldParseOptionsWithEqualSign) {
+   const std::vector<std::string> args{
+      
+   };
+   for (const auto& invalid_option : invalid_options) {
+      EXPECT_THAT(
+         [&invalid_option]() { CommandLineArguments::stringToConfigKeyPath(invalid_option); },
+         ThrowsMessage<ConfigException>(::testing::HasSubstr(fmt::format(
+            "the provided option '{}' is not a valid command line option", invalid_option
+         )))
+      );
+   }
+}
