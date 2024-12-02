@@ -76,7 +76,7 @@ std::tuple<ConfigValue, std::span<const std::string>> parseValueFromArg(
 ) {
    if (attribute_spec.type == ConfigValueType::BOOL) {
       if (opt_value_string.has_value()) {
-         throw silo::config::ConfigException("'=' not acceptable for boolean option " + arg);
+         throw silo::config::ConfigException("'=' not acceptable for boolean option: " + arg);
       }
       return {ConfigValue::fromBool(true), remaining_args};
    }
@@ -85,7 +85,6 @@ std::tuple<ConfigValue, std::span<const std::string>> parseValueFromArg(
       value_string = opt_value_string.value();
    } else {
       if (remaining_args.empty()) {
-         // VerificationError::ParseError in Rust
          throw silo::config::ConfigException("missing argument after option " + arg);
       }
       value_string = remaining_args[0];

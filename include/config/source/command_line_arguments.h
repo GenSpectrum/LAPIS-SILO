@@ -27,7 +27,7 @@ class CommandLineArguments : public ConfigSource {
 
    static std::string configKeyPathToString(const ConfigKeyPath& key_path);
 
-   static AmbiguousConfigKeyPath stringToConfigKeyPath(const std::string& command_line_argument);
+   static AmbiguousConfigKeyPath stringToConfigKeyPath(const std::string& option);
 };
 
 }  // namespace silo::config
