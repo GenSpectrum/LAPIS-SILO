@@ -58,7 +58,7 @@ namespace {
 
 // Split an individual command line argument in option and value
 // parts, if a '=' was given.
-std::tuple<std::string, std::optional<std::string>> tokenizeOption(const std::string& arg) {
+std::tuple<std::string, std::optional<std::string>> splitOption(const std::string& arg) {
    std::size_t pos = arg.find('=');
    if (pos != std::string::npos) {
       return {arg.substr(0, pos), arg.substr(pos + 1)};
@@ -70,16 +70,27 @@ std::tuple<std::string, std::optional<std::string>> tokenizeOption(const std::st
 std::tuple<ConfigValue, std::span<const std::string>> parseValueFromArg(
    const ConfigAttributeSpecification& attribute_spec,
    const std::string& arg,
+   const std::optional<std::string>& opt_value_string,
    std::span<const std::string> remaining_args
 ) {
    if (attribute_spec.type == ConfigValueType::BOOL) {
+      if (opt_value_string.has_value()) {
+         throw silo::config::ConfigException("'=' not acceptable for boolean option " + arg);
+      }
       return {ConfigValue::fromBool(true), remaining_args};
    }
-   if (remaining_args.empty()) {
-      // VerificationError::ParseError in Rust
-      throw silo::config::ConfigException("missing argument after option " + arg);
+   std::string value_string;
+   if (opt_value_string.has_value()) {
+      value_string = opt_value_string.value();
+   } else {
+      if (remaining_args.empty()) {
+         // VerificationError::ParseError in Rust
+         throw silo::config::ConfigException("missing argument after option " + arg);
+      }
+      value_string = remaining_args[0];
+      remaining_args = remaining_args.subspan(1);
    }
-   return {attribute_spec.parseValueFromString(remaining_args[0]), remaining_args.subspan(1)};
+   return {attribute_spec.parseValueFromString(value_string), remaining_args.subspan(1)};
 }
 
 }  // namespace
@@ -107,11 +118,12 @@ VerifiedConfigAttributes CommandLineArguments::verify(
          if (arg == "-h" || arg == "--help") {
             return {{}, {}, true};
          }
-         const auto [ambiguous_key, opt_value_string] = stringToConfigKeyPath(arg);
+         const auto [option, opt_value_string] = splitOption(arg);
+         const auto ambiguous_key = stringToConfigKeyPath(option);
          if (auto opt = config_specification.getAttributeSpecificationFromAmbiguousKey(ambiguous_key)) {
             ConfigAttributeSpecification attribute_spec = opt.value();
             const auto [value, new_remaining_args] =
-               parseValueFromArg(attribute_spec, arg, remaining_args);
+               parseValueFromArg(attribute_spec, arg, opt_value_string, remaining_args);
             remaining_args = new_remaining_args;
             // Overwrite value with the last occurrence
             // (i.e. `silo --foo 4 --foo 5` will leave "--foo"
