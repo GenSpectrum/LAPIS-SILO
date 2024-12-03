@@ -40,7 +40,9 @@ AmbiguousConfigKeyPath CommandLineArguments::stringToConfigKeyPath(const std::st
    for (const auto& token : tokens) {
       if (token.empty()) {
          throw silo::config::ConfigException(
-            fmt::format("the provided option '{}' is not a valid command line option", option)
+            fmt::format("the provided option '{}' is not a valid command line option"
+                        " because it contains an empty string segment between '-'",
+                        option)
          );
       }
       delimited_strings.push_back(token);
