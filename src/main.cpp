@@ -1,9 +1,6 @@
 #include <filesystem>
-#include <iostream>
-#include <variant>
 
 #include <spdlog/spdlog.h>
-#include <boost/algorithm/string/join.hpp>
 
 #include "silo/common/overloaded.h"
 #include "silo/common/panic.h"
