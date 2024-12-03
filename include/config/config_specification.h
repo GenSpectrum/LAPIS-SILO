@@ -40,8 +40,6 @@ class ConfigAttributeSpecification {
       return attribute_spec;
    }
 
-   /// No need for the value_type. It is implicitly defined by the default. Prevents
-   /// misspecification.
    static ConfigAttributeSpecification createWithDefault(
       ConfigKeyPath key,
       const ConfigValue& default_value,
