@@ -25,7 +25,9 @@ std::string CommandLineArguments::configKeyPathToString(const ConfigKeyPath& key
 AmbiguousConfigKeyPath CommandLineArguments::stringToConfigKeyPath(const std::string& option) {
    if (option.size() < 3 || !option.starts_with("--")) {
       throw silo::config::ConfigException(
-         fmt::format("the provided option '{}' is not a valid command line option", option)
+         fmt::format("the provided option '{}' is not a valid command line option"
+                     " as silo currently only accepts long-form options starting with '--'",
+                     option)
       );
    }
    std::string trimmed = option.substr(2);
