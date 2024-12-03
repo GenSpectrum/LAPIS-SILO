@@ -49,22 +49,6 @@ class RuntimeConfig {
 }  // namespace silo::config
 
 template <>
-struct [[maybe_unused]] fmt::formatter<silo::config::ApiOptions> : fmt::formatter<std::string> {
-   [[maybe_unused]] static auto format(
-      const silo::config::ApiOptions& api_options,
-      format_context& ctx
-   ) -> decltype(ctx.out());
-};
-
-template <>
-struct [[maybe_unused]] fmt::formatter<silo::config::QueryOptions> : fmt::formatter<std::string> {
-   [[maybe_unused]] static auto format(
-      const silo::config::QueryOptions& query_options,
-      format_context& ctx
-   ) -> decltype(ctx.out());
-};
-
-template <>
 struct [[maybe_unused]] fmt::formatter<silo::config::RuntimeConfig> : fmt::formatter<std::string> {
    [[maybe_unused]] static auto format(
       const silo::config::RuntimeConfig& runtime_config,
