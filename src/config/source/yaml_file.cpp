@@ -7,7 +7,6 @@
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <boost/algorithm/string/join.hpp>
-#include <boost/algorithm/string/trim.hpp>
 
 #include "config/config_exception.h"
 #include "silo/common/alist.h"
@@ -33,14 +32,13 @@ bool isProperSingularValue(const YAML::Node& node) {
    return true;
 }
 
-std::vector<std::string> splitByColonAndTrim(const std::string& str) {
+std::vector<std::string> splitByDot(const std::string& str) {
    std::vector<std::string> result;
    std::stringstream buffer(str);
    std::string token;
 
-   while (std::getline(buffer, token, ':')) {
-      boost::algorithm::trim(token);
-      result.emplace_back(token);
+   while (std::getline(buffer, token, '.')) {
+      result.push_back(token);
    }
 
    return result;
@@ -152,7 +150,7 @@ std::string YamlFile::configKeyPathToString(const ConfigKeyPath& config_key_path
 }
 
 ConfigKeyPath YamlFile::stringToConfigKeyPath(const std::string& key_path_string) {
-   const std::vector<std::string> camel_case_strings = splitByColonAndTrim(key_path_string);
+   const std::vector<std::string> camel_case_strings = splitByDot(key_path_string);
    std::vector<std::vector<std::string>> result_path;
    std::transform(
       camel_case_strings.begin(),

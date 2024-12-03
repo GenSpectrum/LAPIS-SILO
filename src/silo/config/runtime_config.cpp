@@ -26,19 +26,19 @@ ConfigKeyPath dataDirectoryOptionKey() {
    return YamlFile::stringToConfigKeyPath("dataDirectory");
 }
 ConfigKeyPath apiPortOptionKey() {
-   return YamlFile::stringToConfigKeyPath("api: port");
+   return YamlFile::stringToConfigKeyPath("api.port");
 }
 ConfigKeyPath apiMaxConnectionsOptionKey() {
-   return YamlFile::stringToConfigKeyPath("api: maxQueuedHttpConnections");
+   return YamlFile::stringToConfigKeyPath("api.maxQueuedHttpConnections");
 }
 ConfigKeyPath apiParallelThreadsOptionKey() {
-   return YamlFile::stringToConfigKeyPath("api: threadsForHttpConnections");
+   return YamlFile::stringToConfigKeyPath("api.threadsForHttpConnections");
 }
 ConfigKeyPath apiEstimatedStartupTimeOptionKey() {
-   return YamlFile::stringToConfigKeyPath("api: estimatedStartupTimeInMinutes");
+   return YamlFile::stringToConfigKeyPath("api.estimatedStartupTimeInMinutes");
 }
 ConfigKeyPath queryMaterializationOptionKey() {
-   return YamlFile::stringToConfigKeyPath("query: materializationCutoff");
+   return YamlFile::stringToConfigKeyPath("query.materializationCutoff");
 }
 
 }  // namespace
