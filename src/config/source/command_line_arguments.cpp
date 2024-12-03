@@ -24,11 +24,11 @@ std::string CommandLineArguments::configKeyPathToString(const ConfigKeyPath& key
 
 AmbiguousConfigKeyPath CommandLineArguments::stringToConfigKeyPath(const std::string& option) {
    if (option.size() < 3 || !option.starts_with("--")) {
-      throw silo::config::ConfigException(
-         fmt::format("the provided option '{}' is not a valid command line option"
-                     " as silo currently only accepts long-form options starting with '--'",
-                     option)
-      );
+      throw silo::config::ConfigException(fmt::format(
+         "the provided option '{}' is not a valid command line option"
+         " as silo currently only accepts long-form options starting with '--'",
+         option
+      ));
    }
    std::string trimmed = option.substr(2);
 
@@ -39,11 +39,11 @@ AmbiguousConfigKeyPath CommandLineArguments::stringToConfigKeyPath(const std::st
 
    for (const auto& token : tokens) {
       if (token.empty()) {
-         throw silo::config::ConfigException(
-            fmt::format("the provided option '{}' is not a valid command line option"
-                        " because it contains an empty string segment between '-'",
-                        option)
-         );
+         throw silo::config::ConfigException(fmt::format(
+            "the provided option '{}' is not a valid command line option"
+            " because it contains an empty string segment between '-'",
+            option
+         ));
       }
       delimited_strings.push_back(token);
    }
