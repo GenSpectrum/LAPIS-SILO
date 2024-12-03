@@ -98,9 +98,9 @@ std::tuple<ConfigValue, std::span<const std::string>> parseValueFromArg(
 VerifiedConfigAttributes CommandLineArguments::verify(
    const ConfigSpecification& config_specification
 ) const {
-   // Parse the command line, now that we have the option keys
-   // and the info about whether they take an argument (any that
-   // are not of type bool).
+   // Now, given config_specification (and thus which options are
+   // boolean and which take arguments), we can parse the command
+   // line.
 
    // E.g. "--api-foo" => "1234" or "--api-foo=1234"
    std::unordered_map<ConfigKeyPath, ConfigValue> config_value_by_option;
