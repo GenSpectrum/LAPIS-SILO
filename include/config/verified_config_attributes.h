@@ -13,7 +13,7 @@ namespace silo::config {
 /// error free access to a set of configuration data.
 ///
 /// The accessors return an option since even though invalid options are
-/// not present in self, the given option may also not be present.
+/// not present in this, the given option may also not be present.
 ///
 /// `positional_arguments` and `asks_for_help` are only used by the command
 /// line argument backend, other backends leave them empty/false.
