@@ -19,13 +19,12 @@
 
 namespace silo::config {
 
-/// For config structs (possibly containing config file paths):
-/// We use a concept instead of virtual method overrides.
-/// This is because we want to call the virtual method overwriteFrom for the default values when
-/// constructing a Config. Instead, making the constructor private and instead creating a factory
-/// method would also be possible. Here, a concept works great, because the only usage of the
-/// interface uses a template anyways, due to the different return types (RuntimeConfig vs.
-/// PreprocessingConfig), whose easily accessible structure should remain.
+/// For config structs (possibly containing config file paths).
+// We use a concept instead of virtual methods, because the context of
+// its usage (getConfig) is using a template anyways, due to the
+// different return types (RuntimeConfig vs.
+// PreprocessingConfig). Alternatively, making the constructor private
+// and instead creating a factory method would also be possible.
 template <typename C>
 concept Config = requires(C c, const C cc, const VerifiedConfigAttributes& config_source) {
    /// The configuration class must provide its configuration
