@@ -158,6 +158,9 @@ ConfigValue ConfigAttributeSpecification::parseValueFromString(std::string value
             if (value_string == "false" || value_string == "0") {
                return ConfigValue::fromBool(false);
             }
+            throw ConfigException(
+               fmt::format("'{}' is not a valid string for a boolean", value_string)
+            );
       }
       SILO_UNREACHABLE();
    } catch (boost::bad_lexical_cast&) {
