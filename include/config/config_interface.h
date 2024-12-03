@@ -27,8 +27,6 @@ namespace silo::config {
 // and instead creating a factory method would also be possible.
 template <typename C>
 concept Config = requires(C c, const C cc, const VerifiedConfigAttributes& config_source) {
-   /// The configuration class must provide its configuration
-   /// specification via this method.
    { C::getConfigSpecification() } -> std::same_as<ConfigSpecification>;
 
    /// Vector of config files that the user gave (or that is provided
