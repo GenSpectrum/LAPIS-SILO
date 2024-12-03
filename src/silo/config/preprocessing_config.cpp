@@ -67,8 +67,8 @@ ConfigSpecification PreprocessingConfig::getConfigSpecification() {
             defaultPreprocessingConfigOptionKey(),
             ConfigValueType::PATH,
             "The path to a default preprocessing config that should be read first.\n"
-            "This value will often be set as an environment variable, \n"
-            "in cases where defaults are provided to SILO."
+            "This path will often be set by an environment variable, thus \n"
+            "providing defaults to a silo in a specific environment (e.g. Docker)."
          ),
          ConfigAttributeSpecification::createWithDefault(
             inputDirectoryOptionKey(),
