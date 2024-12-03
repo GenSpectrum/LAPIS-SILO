@@ -9,6 +9,8 @@
 #include "silo_api/database_mutex.h"
 #include "silo_api/request_handler_factory.h"
 
+namespace silo_api {
+
 int SiloServer::runApi(const silo::config::RuntimeConfig& runtime_config) {
    SPDLOG_INFO("Starting SILO API");
 
@@ -42,3 +44,5 @@ int SiloServer::runApi(const silo::config::RuntimeConfig& runtime_config) {
 
    return Application::EXIT_OK;
 }
+
+}  // namespace silo_api

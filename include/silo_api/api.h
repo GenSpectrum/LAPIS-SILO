@@ -4,7 +4,11 @@
 
 #include "silo/config/runtime_config.h"
 
+namespace silo_api {
+
 class SiloServer : public Poco::Util::ServerApplication {
   public:
    int runApi(const silo::config::RuntimeConfig& runtime_config);
 };
+
+}  // namespace silo_api
