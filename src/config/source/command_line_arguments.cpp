@@ -28,10 +28,9 @@ AmbiguousConfigKeyPath CommandLineArguments::stringToConfigKeyPath(const std::st
          fmt::format("the provided option '{}' is not a valid command line option", option)
       );
    }
+   std::string trimmed = option.substr(2);
 
    std::vector<std::string> delimited_strings;
-   // Remove the leading dashes
-   std::string trimmed = option.substr(2);
    std::vector<std::string> tokens;
 
    boost::split(tokens, trimmed, boost::is_any_of("-"));
