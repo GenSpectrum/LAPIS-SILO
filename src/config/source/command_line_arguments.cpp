@@ -30,7 +30,7 @@ AmbiguousConfigKeyPath CommandLineArguments::stringToConfigKeyPath(const std::st
    }
 
    std::vector<std::string> delimited_strings;
-   // Remove the leading dashes and split by '-'
+   // Remove the leading dashes
    std::string trimmed = option.substr(2);
    std::vector<std::string> tokens;
 
