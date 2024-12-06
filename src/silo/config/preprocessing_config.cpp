@@ -125,7 +125,7 @@ PreprocessingConfig::PreprocessingConfig() {
 
 void PreprocessingConfig::validate() const {
    if (!std::filesystem::exists(input_directory)) {
-      throw preprocessing::PreprocessingException(input_directory.string() + " does not exist");
+      throw preprocessing::PreprocessingException("directory '" + input_directory.string() + "' does not exist");
    }
    if (!ndjson_input_filename.has_value()) {
       throw preprocessing::PreprocessingException(fmt::format(
