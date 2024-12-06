@@ -7,7 +7,7 @@ COPY . ./
 RUN  \
     python3 ./build_with_conan.py --release --parallel 4\
     && cp build/Release/silo_test . \
-    && cp --no-dereference build/Release/silo .
+    && cp build/Release/silo .
 
 
 FROM ubuntu:22.04 AS server
