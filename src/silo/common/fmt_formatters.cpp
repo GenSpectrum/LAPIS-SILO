@@ -7,15 +7,12 @@ std::string toIsoString(
 ) {
    auto duration_since_epoch = time_point.time_since_epoch();
 
-
    auto seconds_since_epoch =
       std::chrono::duration_cast<std::chrono::seconds>(duration_since_epoch);
    const std::time_t time = seconds_since_epoch.count();
 
-
    auto nanoseconds =
       std::chrono::duration_cast<std::chrono::nanoseconds>(duration_since_epoch) % 1'000'000'000;
-
 
    const std::tm utime = *std::gmtime(&time);
 
