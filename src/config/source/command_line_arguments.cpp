@@ -149,9 +149,6 @@ VerifiedConfigAttributes CommandLineArguments::verify(
       ));
    }
 
-   // Need to specify VerifiedCommandLineArguments { } because the
-   // constructor is private and std::make_unique foils the friend
-   // relationship.
    return VerifiedConfigAttributes{std::move(config_value_by_option), std::move(positional_args)};
 }
 
