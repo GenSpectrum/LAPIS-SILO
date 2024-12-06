@@ -103,7 +103,7 @@ ConfigSpecification PreprocessingConfig::getConfigSpecification() {
          ConfigAttributeSpecification::createWithoutDefault(
             ndjsonInputFilenameOptionKey(),
             ConfigValueType::PATH,
-            "File name of the file holding NDJSON input."
+            "File name of the file holding NDJSON input. Required."
          ),
          ConfigAttributeSpecification::createWithDefault(
             databaseConfigFileOptionKey(),
