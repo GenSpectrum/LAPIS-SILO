@@ -5,7 +5,7 @@
 #include <spdlog/spdlog.h>
 #include <boost/algorithm/string/join.hpp>
 
-#include "silo/common/alist.h"
+#include "silo/common/association_list.h"
 
 constexpr std::string_view ENV_VAR_PREFIX = "SILO_";
 
@@ -25,7 +25,7 @@ EnvironmentVariables EnvironmentVariables::newWithAllowListAndEnv(
    const std::vector<std::string>& allow_list,
    const char* const* envp
 ) {
-   std::vector<std::pair<std::string, std::string>> alist;
+   std::vector<std::pair<std::string, std::string>> association_list;
    for (const char* const* current_envp = envp; *current_envp != nullptr; current_envp++) {
       const char* env = *current_envp;
       for (size_t i = 0; env[i] != 0; i++) {
@@ -33,12 +33,12 @@ EnvironmentVariables EnvironmentVariables::newWithAllowListAndEnv(
             const std::string key{env, i};
             if (key.starts_with(ENV_VAR_PREFIX)) {
                const std::string val{env + i + 1};
-               alist.emplace_back(key, val);
+               association_list.emplace_back(key, val);
             }
          }
       }
    }
-   return EnvironmentVariables{std::move(alist), allow_list};
+   return EnvironmentVariables{std::move(association_list), allow_list};
 }
 
 [[nodiscard]] std::string EnvironmentVariables::configKeyPathToString(
@@ -94,7 +94,7 @@ AmbiguousConfigKeyPath EnvironmentVariables::stringToConfigKeyPath(
 ) const {
    std::unordered_map<ConfigKeyPath, ConfigValue> config_values;
    std::vector<std::string> invalid_config_keys;
-   for (const auto& [key_string, value_string] : alist) {
+   for (const auto& [key_string, value_string] : association_list) {
       auto ambiguous_key = EnvironmentVariables::stringToConfigKeyPath(key_string);
       auto value_specification_opt =
          config_specification.getAttributeSpecificationFromAmbiguousKey(ambiguous_key);

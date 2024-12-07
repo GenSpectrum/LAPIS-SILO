@@ -9,7 +9,7 @@
 #include <boost/algorithm/string/join.hpp>
 
 #include "config/config_exception.h"
-#include "silo/common/alist.h"
+#include "silo/common/association_list.h"
 #include "silo/common/fmt_formatters.h"
 
 using silo::config::ConfigKeyPath;

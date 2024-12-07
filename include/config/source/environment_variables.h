@@ -20,14 +20,14 @@ namespace silo::config {
 // (Inheriting implementation for ConfigSource directly.)
 class EnvironmentVariables : public ConfigSource {
    /* EnvironmentVariables base, */
-   std::vector<std::pair<std::string, std::string>> alist;
+   std::vector<std::pair<std::string, std::string>> association_list;
    std::vector<std::string> allow_list;
 
    explicit EnvironmentVariables(
-      std::vector<std::pair<std::string, std::string>>&& alist_,
+      std::vector<std::pair<std::string, std::string>>&& association_list_,
       std::vector<std::string> allow_list_
    )
-       : alist(std::move(alist_)),
+       : association_list(std::move(association_list_)),
          allow_list(std::move(allow_list_)){};
 
    explicit EnvironmentVariables() = default;
