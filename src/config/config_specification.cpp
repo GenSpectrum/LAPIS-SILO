@@ -42,7 +42,7 @@ std::string indent(std::string_view indentation, const std::string& str) {
 namespace silo::config {
 
 std::optional<ConfigAttributeSpecification> ConfigSpecification::
-   getAttributeSpecificationFromAmbiguousKey(const silo::config::AmbiguousConfigKeyPath& key
+   getAttributeSpecificationFromAmbiguousKey(const AmbiguousConfigKeyPath& key
    ) const {
    for (const auto& field : attribute_specifications) {
       if (key == AmbiguousConfigKeyPath::from(field.key)) {
@@ -53,7 +53,7 @@ std::optional<ConfigAttributeSpecification> ConfigSpecification::
 }
 
 std::optional<ConfigAttributeSpecification> ConfigSpecification::getAttributeSpecification(
-   const silo::config::ConfigKeyPath& key
+   const ConfigKeyPath& key
 ) const {
    auto maybe_result = std::find_if(
       attribute_specifications.begin(),
