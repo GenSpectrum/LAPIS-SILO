@@ -59,8 +59,8 @@ AmbiguousConfigKeyPath CommandLineArguments::stringToConfigKeyPath(const std::st
 
 namespace {
 
-// Split an individual command line argument in option and value
-// parts, if a '=' was given.
+// Split `--foo-bar=baz` -> `{"--foo-bar", "baz"}`, `--foo-bar` ->
+// `{"--foo-bar", nullopt}`.
 std::tuple<std::string, std::optional<std::string>> splitOption(const std::string& arg) {
    std::size_t pos = arg.find('=');
    if (pos != std::string::npos) {
