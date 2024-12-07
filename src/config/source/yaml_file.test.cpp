@@ -9,7 +9,6 @@
 using silo::config::ConfigKeyPath;
 using silo::config::YamlFile;
 
-
 TEST(YamlFile, simpleStringToConfigKeyPath) {
    auto under_test = YamlFile::stringToConfigKeyPath("test");
    ASSERT_EQ(under_test, (ConfigKeyPath::tryFrom({{{"test"}}})));
