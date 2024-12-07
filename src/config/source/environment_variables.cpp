@@ -35,6 +35,7 @@ EnvironmentVariables EnvironmentVariables::newWithAllowListAndEnv(
                const std::string val{env + i + 1};
                association_list.emplace_back(key, val);
             }
+            break;
          }
       }
    }
