@@ -9,9 +9,6 @@
 using silo::config::ConfigKeyPath;
 using silo::config::YamlFile;
 
-// static std::string configKeyPathToString(const ConfigKeyPath& key_path);
-
-// static ConfigKeyPath stringToConfigKeyPath(const std::string& key_path_string);
 
 TEST(YamlFile, simpleStringToConfigKeyPath) {
    auto under_test = YamlFile::stringToConfigKeyPath("test");
