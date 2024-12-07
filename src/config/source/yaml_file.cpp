@@ -92,7 +92,7 @@ std::string joinCamelCase(const std::vector<std::string>& words) {
 
 // NOLINTNEXTLINE(misc-no-recursion)
 void yamlToPaths(
-   const std::string& config_context,
+   const std::string& debug_context,
    const YAML::Node& node,
    const ConsList<std::vector<std::string>>& parents,
    std::unordered_map<ConfigKeyPath, YAML::Node>& paths
@@ -103,7 +103,7 @@ void yamlToPaths(
             const auto key = key_value.first.as<std::string>();
             const auto parents2 = parents.cons(splitCamelCase(key));
             const auto child_node = key_value.second;
-            yamlToPaths(config_context, child_node, parents2, paths);
+            yamlToPaths(debug_context, child_node, parents2, paths);
          } catch (YAML::BadConversion& bad_conversion) {
             throw silo::config::ConfigException(fmt::format(
                "invalid (non-literal) key in yaml config file: {}", bad_conversion.what()
@@ -122,7 +122,7 @@ void yamlToPaths(
             boost::join(result, ".");
          });
          throw silo::config::ConfigException(
-            fmt::format("{}: found invalid key: {}", config_context, debug_string_parents)
+            fmt::format("{}: found invalid key: {}", debug_context, debug_string_parents)
          );
       }
       if (isProperSingularValue(node)) {
@@ -130,7 +130,7 @@ void yamlToPaths(
       } else {
          throw silo::config::ConfigException(fmt::format(
             "{}: found non-usable leaf value at nesting {}",
-            config_context,
+            debug_context,
             silo::config::YamlFile::configKeyPathToString(path.value())
          ));
       }
