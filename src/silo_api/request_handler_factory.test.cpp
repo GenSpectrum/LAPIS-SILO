@@ -59,7 +59,9 @@ silo::config::RuntimeConfig getRuntimeConfigThatEndsInXMinutes(
    std::chrono::minutes estimated_time_in_minutes
 ) {
    const std::chrono::time_point point = std::chrono::system_clock::now();
-   return {.api_options = {.estimated_startup_end = point + estimated_time_in_minutes}};
+   silo::config::RuntimeConfig result;
+   result.api_options.estimated_startup_end = point + estimated_time_in_minutes;
+   return result;
 }
 
 const int FOUR_MINUTES_IN_SECONDS = 240;

@@ -5,41 +5,149 @@
 
 #include <spdlog/spdlog.h>
 
-#include "silo/config/util/abstract_config_source.h"
+#include "silo/common/fmt_formatters.h"
 #include "silo/preprocessing/preprocessing_exception.h"
+
+namespace {
+using silo::config::ConfigKeyPath;
+using silo::config::YamlFile;
+
+// Using functions instead of global variables because of
+// initialization order issues.
+
+ConfigKeyPath preprocessingConfigOptionKey() {
+   return YamlFile::stringToConfigKeyPath("preprocessingConfig");
+}
+ConfigKeyPath defaultPreprocessingConfigOptionKey() {
+   return YamlFile::stringToConfigKeyPath("defaultPreprocessingConfig");
+}
+ConfigKeyPath inputDirectoryOptionKey() {
+   return YamlFile::stringToConfigKeyPath("inputDirectory");
+}
+ConfigKeyPath outputDirectoryOptionKey() {
+   return YamlFile::stringToConfigKeyPath("outputDirectory");
+}
+ConfigKeyPath intermediateResultsDirectoryOptionKey() {
+   return YamlFile::stringToConfigKeyPath("intermediateResultsDirectory");
+}
+ConfigKeyPath preprocessingDatabaseLocationOptionKey() {
+   return YamlFile::stringToConfigKeyPath("preprocessingDatabaseLocation");
+}
+ConfigKeyPath duckdbMemoryLimitInGTimeOptionKey() {
+   return YamlFile::stringToConfigKeyPath("duckdbMemoryLimitInG");
+}
+ConfigKeyPath lineageDefinitionsFilenameOptionKey() {
+   return YamlFile::stringToConfigKeyPath("lineageDefinitionsFilename");
+}
+ConfigKeyPath ndjsonInputFilenameOptionKey() {
+   return YamlFile::stringToConfigKeyPath("ndjsonInputFilename");
+}
+ConfigKeyPath databaseConfigFileOptionKey() {
+   return YamlFile::stringToConfigKeyPath("databaseConfig");
+}
+ConfigKeyPath referenceGenomeFilenameOptionKey() {
+   return YamlFile::stringToConfigKeyPath("referenceGenomeFilename");
+}
+}  // namespace
 
 namespace silo::config {
 
+// Specification of the fields in inputs to the PreprocessingConfig struct
+ConfigSpecification PreprocessingConfig::getConfigSpecification() {
+   return ConfigSpecification{
+      .program_name = "silo preprocessing",
+      .attribute_specifications{
+         ConfigAttributeSpecification::createWithoutDefault(
+            preprocessingConfigOptionKey(),
+            ConfigValueType::PATH,
+            "The path to a preprocessing config that should be read before overwriting\n"
+            "its values with environment variables and other CLI arguments."
+         ),
+         ConfigAttributeSpecification::createWithoutDefault(
+            defaultPreprocessingConfigOptionKey(),
+            ConfigValueType::PATH,
+            "The path to a default preprocessing config that should be read first.\n"
+            "This path will often be set by an environment variable, thus \n"
+            "providing defaults to a silo in a specific environment (e.g. Docker)."
+         ),
+         ConfigAttributeSpecification::createWithDefault(
+            inputDirectoryOptionKey(),
+            ConfigValue::fromPath("./"),
+            "The path to the directory with the input files."
+         ),
+         ConfigAttributeSpecification::createWithDefault(
+            outputDirectoryOptionKey(),
+            ConfigValue::fromPath(DEFAULT_OUTPUT_DIRECTORY),
+            "The path to the directory to hold the output files."
+         ),
+         ConfigAttributeSpecification::createWithDefault(
+            intermediateResultsDirectoryOptionKey(),
+            ConfigValue::fromPath("./temp/"),
+            "The path to the directory to hold temporary files."
+         ),
+         ConfigAttributeSpecification::createWithoutDefault(
+            preprocessingDatabaseLocationOptionKey(),
+            ConfigValueType::PATH,
+            "The file where the duckdb database will be stored, which is used during preprocessing."
+         ),
+         ConfigAttributeSpecification::createWithoutDefault(
+            duckdbMemoryLimitInGTimeOptionKey(),
+            ConfigValueType::UINT32,
+            "DuckDB memory limit in GB."
+         ),
+         ConfigAttributeSpecification::createWithoutDefault(
+            lineageDefinitionsFilenameOptionKey(),
+            ConfigValueType::PATH,
+            "File name of the file holding the lineage definitions."
+         ),
+         ConfigAttributeSpecification::createWithoutDefault(
+            ndjsonInputFilenameOptionKey(),
+            ConfigValueType::PATH,
+            "File name of the file holding NDJSON input. Required."
+         ),
+         ConfigAttributeSpecification::createWithDefault(
+            databaseConfigFileOptionKey(),
+            ConfigValue::fromPath("database_config.yaml"),
+            "File name of the file holding the database table configuration."
+         ),
+         ConfigAttributeSpecification::createWithDefault(
+            referenceGenomeFilenameOptionKey(),
+            ConfigValue::fromPath("reference_genomes.json"),
+            "File name of the file holding the reference genome."
+         ),
+      }
+   };
+}
+
+PreprocessingConfig::PreprocessingConfig() {
+   overwriteFrom(getConfigSpecification().getConfigSourceFromDefaults());
+}
+
 void PreprocessingConfig::validate() const {
    if (!std::filesystem::exists(input_directory)) {
-      throw preprocessing::PreprocessingException(input_directory.string() + " does not exist");
+      throw preprocessing::PreprocessingException(
+         "directory '" + input_directory.string() + "' does not exist"
+      );
    }
    if (!ndjson_input_filename.has_value()) {
       throw preprocessing::PreprocessingException(fmt::format(
-         "{} must be specified as preprocessing option.", NDJSON_INPUT_FILENAME_OPTION.toCamelCase()
+         "'{}' must be specified as preprocessing option.",
+         YamlFile::configKeyPathToString(ndjsonInputFilenameOptionKey())
       ));
    }
 }
 
-std::filesystem::path PreprocessingConfig::getOutputDirectory() const {
-   return output_directory;
-}
-
-std::filesystem::path PreprocessingConfig::getIntermediateResultsDirectory() const {
-   return intermediate_results_directory;
-}
-
-std::optional<std::filesystem::path> PreprocessingConfig::getPreprocessingDatabaseLocation() const {
-   return preprocessing_database_location;
-}
-
-[[nodiscard]] std::optional<uint32_t> PreprocessingConfig::getDuckdbMemoryLimitInG() const {
+std::optional<uint32_t> PreprocessingConfig::getDuckdbMemoryLimitInG() const {
    return duckdb_memory_limit_in_g;
+}
+
+std::filesystem::path PreprocessingConfig::getDatabaseConfigFilename() const {
+   return input_directory / database_config_file;
 }
 
 std::optional<std::filesystem::path> PreprocessingConfig::getLineageDefinitionsFilename() const {
    return lineage_definitions_file.has_value()
-             ? std::optional(input_directory / *lineage_definitions_file)
+             ? std::optional(input_directory / lineage_definitions_file.value())
              : std::nullopt;
 }
 
@@ -53,102 +161,80 @@ std::optional<std::filesystem::path> PreprocessingConfig::getNdjsonInputFilename
              : std::nullopt;
 }
 
-void PreprocessingConfig::overwrite(const silo::config::AbstractConfigSource& config) {
-   if (auto value = config.getString(INPUT_DIRECTORY_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         INPUT_DIRECTORY_OPTION.toString(),
-         config.configType(),
-         *value
-      );
-      input_directory = *value;
+void PreprocessingConfig::overwriteFrom(const VerifiedConfigAttributes& config_source) {
+   if (auto var = config_source.getPath(preprocessingConfigOptionKey())) {
+      preprocessing_config = var.value();
    }
-   if (auto value = config.getString(OUTPUT_DIRECTORY_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         OUTPUT_DIRECTORY_OPTION.toString(),
-         config.configType(),
-         *value
-      );
-      output_directory = *value;
+   if (auto var = config_source.getPath(defaultPreprocessingConfigOptionKey())) {
+      default_preprocessing_config = var.value();
    }
-   if (auto value = config.getString(INTERMEDIATE_RESULTS_DIRECTORY_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         INTERMEDIATE_RESULTS_DIRECTORY_OPTION.toString(),
-         config.configType(),
-         *value
-      );
-      intermediate_results_directory = *value;
+   if (auto var = config_source.getPath(inputDirectoryOptionKey())) {
+      input_directory = var.value();
    }
-   if (auto value = config.getString(PREPROCESSING_DATABASE_LOCATION_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         PREPROCESSING_DATABASE_LOCATION_OPTION.toString(),
-         config.configType(),
-         *value
-      );
-      preprocessing_database_location = *value;
+   if (auto var = config_source.getPath(outputDirectoryOptionKey())) {
+      output_directory = var.value();
    }
-   if (auto value = config.getUInt32(DUCKDB_MEMORY_LIMIT_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         DUCKDB_MEMORY_LIMIT_OPTION.toString(),
-         config.configType(),
-         *value
-      );
-      duckdb_memory_limit_in_g = value;
+   if (auto var = config_source.getPath(intermediateResultsDirectoryOptionKey())) {
+      intermediate_results_directory = var.value();
    }
-   if (auto value = config.getString(LINEAGE_DEFINITIONS_FILENAME_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         LINEAGE_DEFINITIONS_FILENAME_OPTION.toString(),
-         config.configType(),
-         *value
-      );
-      lineage_definitions_file = *value;
+   if (auto var = config_source.getPath(preprocessingDatabaseLocationOptionKey())) {
+      preprocessing_database_location = var.value();
    }
-   if (auto value = config.getString(NDJSON_INPUT_FILENAME_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         NDJSON_INPUT_FILENAME_OPTION.toString(),
-         config.configType(),
-         *value
-      );
-      ndjson_input_filename = *value;
+   if (auto var = config_source.getUint32(duckdbMemoryLimitInGTimeOptionKey())) {
+      duckdb_memory_limit_in_g = var.value();
    }
-   if (auto value = config.getString(REFERENCE_GENOME_FILENAME_OPTION)) {
-      SPDLOG_DEBUG(
-         "Using {} as passed via {}: {}",
-         REFERENCE_GENOME_FILENAME_OPTION.toString(),
-         config.configType(),
-         *value
-      );
-      reference_genome_file = *value;
+   if (auto var = config_source.getPath(lineageDefinitionsFilenameOptionKey())) {
+      lineage_definitions_file = var.value();
+   }
+   if (auto var = config_source.getPath(ndjsonInputFilenameOptionKey())) {
+      ndjson_input_filename = var.value();
+   }
+   if (auto var = config_source.getPath(databaseConfigFileOptionKey())) {
+      database_config_file = var.value();
+   }
+   if (auto var = config_source.getPath(referenceGenomeFilenameOptionKey())) {
+      reference_genome_file = var.value();
    }
 }
 
+std::vector<std::filesystem::path> PreprocessingConfig::getConfigPaths() const {
+   std::vector<std::filesystem::path> result;
+   if (default_preprocessing_config.has_value()) {
+      result.emplace_back();
+   }
+   if (preprocessing_config.has_value()) {
+      result.emplace_back();
+   }
+   return result;
+}
+
 }  // namespace silo::config
+
+namespace silo::common {
+// Using a macro to get the declared variable name #FIELD_NAME
+#define ADD_FIELD_TO_RESULT(VARIABLE, FIELD_NAME) \
+   result += fmt::format("{}: {}, ", #FIELD_NAME, toDebugString(VARIABLE.FIELD_NAME))
+
+std::string toDebugString(const silo::config::PreprocessingConfig& preprocessing_config) {
+   std::string result = "{";
+   ADD_FIELD_TO_RESULT(preprocessing_config, input_directory);
+   ADD_FIELD_TO_RESULT(preprocessing_config, output_directory);
+   ADD_FIELD_TO_RESULT(preprocessing_config, intermediate_results_directory);
+   ADD_FIELD_TO_RESULT(preprocessing_config, preprocessing_database_location);
+   ADD_FIELD_TO_RESULT(preprocessing_config, duckdb_memory_limit_in_g);
+   ADD_FIELD_TO_RESULT(preprocessing_config, lineage_definitions_file);
+   ADD_FIELD_TO_RESULT(preprocessing_config, ndjson_input_filename);
+   ADD_FIELD_TO_RESULT(preprocessing_config, database_config_file);
+   ADD_FIELD_TO_RESULT(preprocessing_config, reference_genome_file);
+   result += "}";
+   return result;
+}
+#undef ADD_FIELD_TO_RESULT
+}  // namespace silo::common
 
 [[maybe_unused]] auto fmt::formatter<silo::config::PreprocessingConfig>::format(
    const silo::config::PreprocessingConfig& preprocessing_config,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
-   return fmt::format_to(
-      ctx.out(),
-      "{{ input directory: '{}', lineage_definitions_file: {}, output_directory: '{}', "
-      "reference_genome_file: '{}', ndjson_filename: {}, preprocessing_database_location: {} }}",
-      preprocessing_config.input_directory.string(),
-      preprocessing_config.lineage_definitions_file.has_value()
-         ? "'" + preprocessing_config.lineage_definitions_file->string() + "'"
-         : "none",
-      preprocessing_config.output_directory.string(),
-      preprocessing_config.reference_genome_file.string(),
-      preprocessing_config.ndjson_input_filename.has_value()
-         ? "'" + preprocessing_config.ndjson_input_filename->string() + "'"
-         : "none",
-      preprocessing_config.preprocessing_database_location.has_value()
-         ? "'" + preprocessing_config.preprocessing_database_location->string() + "'"
-         : "none"
-   );
+   return fmt::format_to(ctx.out(), "{}", silo::common::toDebugString(preprocessing_config));
 }

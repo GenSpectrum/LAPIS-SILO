@@ -7,15 +7,15 @@ COPY . ./
 RUN  \
     python3 ./build_with_conan.py --release --parallel 4\
     && cp build/Release/silo_test . \
-    && cp build/Release/siloApi .
+    && cp build/Release/silo .
 
 
 FROM ubuntu:22.04 AS server
 
 WORKDIR /app
 COPY docker_default_preprocessing_config.yaml ./default_preprocessing_config.yaml
-COPY docker_runtime_config.yaml ./runtime_config.yaml
-COPY --from=builder /src/siloApi ./
+COPY docker_runtime_config.yaml ./default_runtime_config.yaml
+COPY --from=builder /src/silo ./
 
 RUN apt update && apt dist-upgrade -y \
     &&  apt install -y libtbb12 curl jq
@@ -25,7 +25,12 @@ HEALTHCHECK --start-period=20s CMD curl --fail --silent localhost:8081/info | jq
 
 EXPOSE 8081
 
-ENTRYPOINT ["./siloApi"]
+ENTRYPOINT ["./silo"]
+
+ENV SILO_PREPROCESSING_CONFIG="/app/preprocessing_config.yaml"
+ENV SILO_DEFAULT_PREPROCESSING_CONFIG="/app/default_preprocessing_config.yaml"
+ENV SILO_RUNTIME_CONFIG="/app/runtime_config.yaml"
+ENV SILO_DEFAULT_RUNTIME_CONFIG="/app/default_runtime_config.yaml"
 
 LABEL org.opencontainers.image.source="https://github.com/GenSpectrum/LAPIS-SILO"
 LABEL org.opencontainers.image.description="Sequence Indexing engine for Large Order of genomic data"
