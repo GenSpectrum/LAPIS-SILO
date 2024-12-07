@@ -84,7 +84,7 @@ satisfy the last point above; this is done in
 Hard-coded values for a "Config" class should be read from its
 `ConfigSpecification`, in its constructor, rather than using the `=`
 syntax in the class definition, to maintain a single source of truth for both
-the help text and the actual run time.
+the help text and the actual runtime.
 
 ## Code Overview
 
