@@ -3,10 +3,10 @@
 #include <vector>
 
 template <typename K, typename V>
-class AList {
+class AssociationList {
   public:
    // Constructor that takes a reference to a vector of key-value pairs
-   explicit AList(const std::vector<std::pair<K, V>>& data)
+   explicit AssociationList(const std::vector<std::pair<K, V>>& data)
        : data(data) {}
 
    // Find the value associated with a given key; returns NULL if key
