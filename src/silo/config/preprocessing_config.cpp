@@ -225,7 +225,6 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
    database_config_file,
    reference_genome_file
 )
-
 }  // namespace nlohmann
 
 [[maybe_unused]] auto fmt::formatter<silo::config::PreprocessingConfig>::format(
