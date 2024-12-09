@@ -25,6 +25,15 @@ TEST(YamlFile, stringToConfigKeyPath2) {
    ASSERT_EQ(under_test, (ConfigKeyPath::tryFrom({{"query"}, {"materialization", "cutoff"}})));
 }
 
+TEST(YamlFile, errorOnPascalCase) {
+   EXPECT_THAT(
+      []() { YamlFile::stringToConfigKeyPath("Api.Port"); },
+      ThrowsMessage<std::runtime_error>(
+         ::testing::HasSubstr("'Api.Port' is not a valid YamlPath")
+      )
+   );
+}
+
 TEST(YamlFile, configKeyPathToString) {
    ASSERT_EQ(YamlFile::configKeyPathToString(ConfigKeyPath::tryFrom({{"test"}}).value()), "test");
    ASSERT_EQ(
@@ -43,20 +52,16 @@ TEST(YamlFile, validRoundTrip) {
    }
 }
 
-TEST(YamlFile, resolvesConfigKeyPath1) {
-   auto under_test = YamlFile::stringToConfigKeyPath("api.port");
-   ASSERT_EQ(under_test, (ConfigKeyPath::tryFrom({{"api"}, {"port"}})));
-   ASSERT_NE(under_test, (ConfigKeyPath::tryFrom({{"api", "port"}})));
-}
-
-TEST(YamlFile, resolvesConfigKeyPath2) {
-   auto under_test = YamlFile::stringToConfigKeyPath("query.materializationCutoff");
-   ASSERT_EQ(under_test, (ConfigKeyPath::tryFrom({{"query"}, {"materialization", "cutoff"}})));
-}
-
 TEST(YamlFile, containsCorrectFieldsFromFlatYAML) {
    const auto under_test =
-      YamlFile::readFile("./testBaseData/test_preprocessing_config.yaml").getYamlFields();
+      YamlFile::fromYAML("inline",
+                         R"(
+inputDirectory: "./testBaseData/exampleDataset/"
+outputDirectory: "./output/"
+ndjsonInputFilename: "input_file.ndjson"
+lineageDefinitionsFilename: "lineage_definitions.yaml"
+referenceGenomeFilename: "reference_genomes.json"
+)").getYamlFields();
 
    const std::unordered_map<ConfigKeyPath, YAML::Node> expected_result{
       {YamlFile::stringToConfigKeyPath("inputDirectory"),
@@ -81,7 +86,10 @@ TEST(YamlFile, containsCorrectFieldsFromFlatYAML) {
 
 TEST(YamlFile, containsCorrectFieldsFromNestedYAML) {
    const auto under_test =
-      YamlFile::readFile("./testBaseData/test_runtime_config.yaml").getYamlFields();
+      YamlFile::fromYAML("inline", R"(
+dataDirectory: "test/directory"
+api:
+   port: 1234)").getYamlFields();
 
    const std::unordered_map<ConfigKeyPath, YAML::Node> expected_result{
       {YamlFile::stringToConfigKeyPath("dataDirectory"), YAML::Node{"test/directory"}},

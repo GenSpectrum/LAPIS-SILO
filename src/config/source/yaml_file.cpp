@@ -50,19 +50,14 @@ std::vector<std::string> splitCamelCase(const std::string& camelCaseString) {
 
    for (const char character : camelCaseString) {
       if (std::isupper(character)) {
-         // If current is not empty, push it to the result
-         if (!current.empty()) {
-            result.push_back(current);
-            current.clear();
-         }
-         // Add the lowercase version of the uppercase char as the start of a new substring
+         result.push_back(current);
+         current.clear();
+
          current += static_cast<char>(std::tolower(character));
       } else {
-         // Append lowercase or non-uppercase char to current
          current += character;
       }
    }
-   // Push the last accumulated string to result
    if (!current.empty()) {
       result.push_back(current);
    }
