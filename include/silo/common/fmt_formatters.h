@@ -55,9 +55,7 @@ struct [[maybe_unused]] fmt::formatter<
 namespace fmt {
 
 template <>
-struct formatter<nlohmann::json> {
-   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.end(); }
-
+struct formatter<nlohmann::json> : fmt::formatter<std::string> {
    template <typename FormatContext>
    auto format(const nlohmann::json& json, FormatContext& ctx) -> decltype(ctx.out()) {
       return fmt::format_to(ctx.out(), "{}", json.dump());
@@ -65,9 +63,7 @@ struct formatter<nlohmann::json> {
 };
 
 template <>
-struct formatter<YAML::Node> {
-   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.end(); }
-
+struct formatter<YAML::Node> : fmt::formatter<std::string> {
    template <typename FormatContext>
    auto format(const YAML::Node& yaml, FormatContext& ctx) -> decltype(ctx.out()) {
       YAML::Emitter out;
