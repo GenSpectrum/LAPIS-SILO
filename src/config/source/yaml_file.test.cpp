@@ -14,13 +14,13 @@ TEST(YamlFile, simpleStringToConfigKeyPath) {
    ASSERT_EQ(under_test, (ConfigKeyPath::tryFrom({{{"test"}}})));
 }
 
-TEST(YamlFile, stringToConfigKeyPath1) {
+TEST(YamlFile, stringToConfigKeyPathWithDot) {
    auto under_test = YamlFile::stringToConfigKeyPath("api.port");
    ASSERT_EQ(under_test, (ConfigKeyPath::tryFrom({{"api"}, {"port"}})));
    ASSERT_NE(under_test, (ConfigKeyPath::tryFrom({{"api", "port"}})));
 }
 
-TEST(YamlFile, stringToConfigKeyPath2) {
+TEST(YamlFile, stringToConfigKeyPathWithCamelCase) {
    auto under_test = YamlFile::stringToConfigKeyPath("query.materializationCutoff");
    ASSERT_EQ(under_test, (ConfigKeyPath::tryFrom({{"query"}, {"materialization", "cutoff"}})));
 }

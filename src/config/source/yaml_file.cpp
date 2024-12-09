@@ -6,7 +6,9 @@
 
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
+#include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/join.hpp>
+#include <boost/algorithm/string/split.hpp>
 
 #include "config/config_exception.h"
 #include "silo/common/association_list.h"
@@ -34,13 +36,7 @@ bool isProperSingularValue(const YAML::Node& node) {
 
 std::vector<std::string> splitByDot(const std::string& str) {
    std::vector<std::string> result;
-   std::stringstream buffer(str);
-   std::string token;
-
-   while (std::getline(buffer, token, '.')) {
-      result.push_back(token);
-   }
-
+   boost::split(result, str, boost::is_any_of("."));
    return result;
 }
 
@@ -70,10 +66,8 @@ std::string joinCamelCase(const std::vector<std::string>& words) {
 
    for (size_t i = 0; i < words.size(); ++i) {
       if (i == 0) {
-         // Add the first word as is (lowercase)
          camel_case_string += words[i];
       } else {
-         // Capitalize the first character of subsequent words and append them
          std::string word = words[i];
          if (!word.empty()) {
             word[0] = static_cast<char>(std::toupper(word[0]));
@@ -101,7 +95,7 @@ void yamlToPaths(
             yamlToPaths(debug_context, child_node, parents2, paths);
          } catch (YAML::BadConversion& bad_conversion) {
             throw silo::config::ConfigException(fmt::format(
-               "invalid (non-literal) key in yaml config file: {}", bad_conversion.what()
+               "invalid (non-literal) key in yaml config file '{}': {}", debug_context, bad_conversion.what()
             ));
          }
       }
@@ -236,12 +230,12 @@ VerifiedConfigAttributes YamlFile::verify(const ConfigSpecification& config_spec
    // Check the ones given, collect erroneous ones in foo.bar syntax
    std::vector<std::string> invalid_config_keys;
    std::unordered_map<ConfigKeyPath, ConfigValue> provided_config_values;
-   for (const auto& [key, yaml] : getYamlFields()) {
+   for (const auto& [key, yamlNode] : getYamlFields()) {
       auto attribute_spec = config_specification.getAttributeSpecification(key);
       if (!attribute_spec.has_value()) {
          invalid_config_keys.push_back(configKeyPathToString(key));
       } else {
-         const ConfigValue value = yamlNodeToConfigValue(attribute_spec.value(), yaml);
+         const ConfigValue value = yamlNodeToConfigValue(attribute_spec.value(), yamlNode);
          provided_config_values.emplace(key, value);
       }
    }
