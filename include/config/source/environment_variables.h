@@ -19,8 +19,6 @@ namespace silo::config {
 
 // (Inheriting implementation for ConfigSource directly.)
 class EnvironmentVariables {
-   using VerifiedType = VerifiedConfigAttributes;
-
    /* EnvironmentVariables base, */
    std::vector<std::pair<std::string, std::string>> association_list;
    std::vector<std::string> allow_list;
@@ -46,7 +44,8 @@ class EnvironmentVariables {
 
    static AmbiguousConfigKeyPath stringToConfigKeyPath(const std::string& key_path_string);
 
-   [[nodiscard]] VerifiedConfigAttributes verify(const ConfigSpecification& config_specification
+   using VerifiedType = VerifiedConfigAttributes;
+   [[nodiscard]] VerifiedType verify(const ConfigSpecification& config_specification
    ) const;
 };
 

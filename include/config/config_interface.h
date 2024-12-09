@@ -61,13 +61,13 @@ std::variant<C, int32_t> getConfig(
 ) {
    const auto config_specification = C::getConfigSpecification();
    try {
-      auto cmd_source = CommandLineArguments{cmd}.verify(config_specification);
+      VerifiedCommandLineArguments cmd_source = CommandLineArguments{cmd}.verify(config_specification);
       if (cmd_source.asks_for_help) {
          std::cout << config_specification.helpText() << "\n" << std::flush;
          return 0;
       }
       if (!cmd_source.positional_arguments.empty()) {
-         throw silo::config::ConfigException{fmt::format("SILO does not expect positional arguments, found {}", cmd_source.positional_arguments)};
+         throw silo::config::ConfigException{fmt::format("SILO does not expect positional arguments, found {}", nlohmann::json{cmd_source.positional_arguments})};
       }
 
       auto env_source =

@@ -10,8 +10,6 @@
 namespace silo::config {
 
 class YamlFile {
-   using VerifiedType = VerifiedConfigAttributes;
-
    std::string debug_context;
    std::unordered_map<ConfigKeyPath, YAML::Node> yaml_fields;
 
@@ -22,6 +20,7 @@ class YamlFile {
    std::string debugContext() const;
 
   public:
+   using VerifiedType = VerifiedConfigAttributes;
    [[nodiscard]] VerifiedConfigAttributes verify(const ConfigSpecification& config_specification
    ) const;
 

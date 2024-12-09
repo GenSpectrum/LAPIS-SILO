@@ -12,8 +12,6 @@
 namespace silo::config {
 
 class CommandLineArguments {
-   using VerifiedType = VerifiedCommandLineArguments;
-
    std::vector<std::string> args;
 
    [[nodiscard]] inline std::string debugContext() const { return "command line arguments"; };
@@ -22,6 +20,7 @@ class CommandLineArguments {
    explicit CommandLineArguments(std::span<const std::string> args_)
        : args(args_.begin(), args_.end()) {}
 
+   using VerifiedType = VerifiedCommandLineArguments;
    [[nodiscard]] VerifiedType verify(const ConfigSpecification& config_specification) const;
 
    static std::string configKeyPathToString(const ConfigKeyPath& key_path);
