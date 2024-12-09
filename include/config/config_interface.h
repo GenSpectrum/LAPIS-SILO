@@ -54,20 +54,11 @@ concept Config = requires(
    { c.validate() } -> std::same_as<void>;
 };
 
-// TODO think about moving this to a source file
-inline std::optional<std::filesystem::path> getConfigFilePath(
+std::optional<std::filesystem::path> getConfigFilePath(
    const silo::config::ConfigKeyPath& config_key_path,
    const VerifiedCommandLineArguments& cmd_source,
    const VerifiedConfigAttributes& env_source
-) {
-   if (auto path = cmd_source.getPath(config_key_path)) {
-      return path;
-   }
-   if (auto path = env_source.getPath(config_key_path)) {
-      return path;
-   }
-   return std::nullopt;
-}
+);
 
 /// This function needs a reference to the (remaining) command line
 /// arguments to be parsed, thus the application gets a chance to take
