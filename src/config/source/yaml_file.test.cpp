@@ -28,9 +28,7 @@ TEST(YamlFile, stringToConfigKeyPathWithCamelCase) {
 TEST(YamlFile, errorOnPascalCase) {
    EXPECT_THAT(
       []() { YamlFile::stringToConfigKeyPath("Api.Port"); },
-      ThrowsMessage<std::runtime_error>(
-         ::testing::HasSubstr("'Api.Port' is not a valid YamlPath")
-      )
+      ThrowsMessage<std::runtime_error>(::testing::HasSubstr("'Api.Port' is not a valid YamlPath"))
    );
 }
 
@@ -53,15 +51,17 @@ TEST(YamlFile, validRoundTrip) {
 }
 
 TEST(YamlFile, containsCorrectFieldsFromFlatYAML) {
-   const auto under_test =
-      YamlFile::fromYAML("inline",
-                         R"(
+   const auto under_test = YamlFile::fromYAML(
+                              "inline",
+                              R"(
 inputDirectory: "./testBaseData/exampleDataset/"
 outputDirectory: "./output/"
 ndjsonInputFilename: "input_file.ndjson"
 lineageDefinitionsFilename: "lineage_definitions.yaml"
 referenceGenomeFilename: "reference_genomes.json"
-)").getYamlFields();
+)"
+   )
+                              .getYamlFields();
 
    const std::unordered_map<ConfigKeyPath, YAML::Node> expected_result{
       {YamlFile::stringToConfigKeyPath("inputDirectory"),
@@ -85,11 +85,11 @@ referenceGenomeFilename: "reference_genomes.json"
 }
 
 TEST(YamlFile, containsCorrectFieldsFromNestedYAML) {
-   const auto under_test =
-      YamlFile::fromYAML("inline", R"(
+   const auto under_test = YamlFile::fromYAML("inline", R"(
 dataDirectory: "test/directory"
 api:
-   port: 1234)").getYamlFields();
+   port: 1234)")
+                              .getYamlFields();
 
    const std::unordered_map<ConfigKeyPath, YAML::Node> expected_result{
       {YamlFile::stringToConfigKeyPath("dataDirectory"), YAML::Node{"test/directory"}},

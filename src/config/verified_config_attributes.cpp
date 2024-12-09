@@ -7,13 +7,17 @@
 namespace silo::config {
 
 template <typename T, ConfigValueType ExpectedType>
-std::optional<T> getValue(const ConfigKeyPath& config_key_path, const std::unordered_map<ConfigKeyPath, ConfigValue>& config_values) {
+std::optional<T> getValue(
+   const ConfigKeyPath& config_key_path,
+   const std::unordered_map<ConfigKeyPath, ConfigValue>& config_values
+) {
    auto value_it = config_values.find(config_key_path);
    if (value_it != config_values.end()) {
       const ConfigValue& value = value_it->second;
       if (value.getValueType() != ExpectedType) {
          SILO_PANIC(
-            "Called getValue with type {} on a ConfigKeyPath ('{}') that belongs to a value of another type ({}).",
+            "Called getValue with type {} on a ConfigKeyPath ('{}') that belongs to a value of "
+            "another type ({}).",
             configValueTypeToString(ExpectedType),
             YamlFile::configKeyPathToString(config_key_path),
             configValueTypeToString(value.getValueType())
@@ -29,7 +33,8 @@ std::optional<T> getValue(const ConfigKeyPath& config_key_path, const std::unord
    return std::nullopt;
 }
 
-std::optional<std::string> VerifiedConfigAttributes::getString(const ConfigKeyPath& config_key_path) const {
+std::optional<std::string> VerifiedConfigAttributes::getString(const ConfigKeyPath& config_key_path
+) const {
    return getValue<std::string, ConfigValueType::STRING>(config_key_path, config_values);
 }
 

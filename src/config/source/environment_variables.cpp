@@ -65,7 +65,6 @@ EnvironmentVariables EnvironmentVariables::newWithAllowListAndEnv(
 AmbiguousConfigKeyPath EnvironmentVariables::stringToConfigKeyPath(
    const std::string& key_path_string
 ) {
-
    if (!key_path_string.starts_with(ENV_VAR_PREFIX)) {
       throw silo::config::ConfigException(fmt::format(
          "the provided option '{}' is not a valid environment variable option", key_path_string
@@ -79,7 +78,9 @@ AmbiguousConfigKeyPath EnvironmentVariables::stringToConfigKeyPath(
    boost::split(delimited_strings, trimmed, boost::is_any_of("_"));
 
    std::vector<std::string> delimited_lowercase_strings;
-   std::ranges::transform(delimited_strings, std::back_inserter(delimited_lowercase_strings), toLowerCase);
+   std::ranges::transform(
+      delimited_strings, std::back_inserter(delimited_lowercase_strings), toLowerCase
+   );
 
    auto result = AmbiguousConfigKeyPath::tryFrom(std::move(delimited_strings));
    if (result == std::nullopt) {

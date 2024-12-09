@@ -95,7 +95,9 @@ void yamlToPaths(
             yamlToPaths(debug_context, child_node, parents2, paths);
          } catch (YAML::BadConversion& bad_conversion) {
             throw silo::config::ConfigException(fmt::format(
-               "invalid (non-literal) key in yaml config file '{}': {}", debug_context, bad_conversion.what()
+               "invalid (non-literal) key in yaml config file '{}': {}",
+               debug_context,
+               bad_conversion.what()
             ));
          }
       }
