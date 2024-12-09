@@ -26,13 +26,8 @@ std::string indent(std::string_view indentation, const std::string& str) {
    auto lines = silo::splitBy(str, "\n");
    std::string out{};
    for (const auto& line : lines) {
-      // Can't do: out.push_back(std::string { indentation });
-      for (const char character : indentation) {
-         out.push_back(character);
-      }
-      for (const char character : line) {
-         out.push_back(character);
-      }
+      out.append(indentation);
+      out.append(line);
       out.push_back('\n');
    }
    return out;
