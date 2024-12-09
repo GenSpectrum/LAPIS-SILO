@@ -3,7 +3,9 @@
 #include <cstddef>
 
 #include <spdlog/spdlog.h>
+#include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/join.hpp>
+#include <boost/algorithm/string/split.hpp>
 
 #include "silo/common/association_list.h"
 
@@ -63,7 +65,6 @@ EnvironmentVariables EnvironmentVariables::newWithAllowListAndEnv(
 AmbiguousConfigKeyPath EnvironmentVariables::stringToConfigKeyPath(
    const std::string& key_path_string
 ) {
-   std::vector<std::string> delimited_strings;
 
    if (!key_path_string.starts_with(ENV_VAR_PREFIX)) {
       throw silo::config::ConfigException(fmt::format(
@@ -74,12 +75,11 @@ AmbiguousConfigKeyPath EnvironmentVariables::stringToConfigKeyPath(
    // Remove the prefix
    const std::string trimmed = key_path_string.substr(ENV_VAR_PREFIX.size());
 
-   // Split by '_'
-   std::stringstream buffer(trimmed);
-   std::string token;
-   while (std::getline(buffer, token, '_')) {
-      delimited_strings.push_back(toLowerCase(token));
-   }
+   std::vector<std::string> delimited_strings;
+   boost::split(delimited_strings, trimmed, boost::is_any_of("_"));
+
+   std::vector<std::string> delimited_lowercase_strings;
+   std::ranges::transform(delimited_strings, std::back_inserter(delimited_lowercase_strings), toLowerCase);
 
    auto result = AmbiguousConfigKeyPath::tryFrom(std::move(delimited_strings));
    if (result == std::nullopt) {
