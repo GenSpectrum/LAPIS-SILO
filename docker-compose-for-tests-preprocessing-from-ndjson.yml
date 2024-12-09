@@ -9,4 +9,6 @@ services:
       - ./testBaseData/exampleDataset/database_config.yaml:/app/database_config.yaml
       - ./logs:/app/logs
     command:
-      - "--preprocessing"
+      - "preprocessing"
+      - "--preprocessing-config"
+      - "preprocessing_config.yaml"

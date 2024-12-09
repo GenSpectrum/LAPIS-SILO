@@ -1,0 +1,25 @@
+#include <algorithm>
+#include <optional>
+#include <vector>
+
+template <typename K, typename V>
+class AssociationList {
+  public:
+   // Constructor that takes a reference to a vector of key-value pairs
+   explicit AssociationList(const std::vector<std::pair<K, V>>& data)
+       : data(data) {}
+
+   // Find the value associated with a given key; returns NULL if key
+   // is not found.
+   const V* get(const K& key) const {
+      auto iter =
+         std::ranges::find_if(data, [&key](const auto& pair) { return pair.first == key; });
+      if (iter != data.end()) {
+         return &iter->second;
+      }
+      return NULL;
+   }
+
+  private:
+   const std::vector<std::pair<K, V>>& data;
+};

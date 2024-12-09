@@ -1,4 +1,4 @@
-#include "silo/config/util/config_exception.h"
+#include "config/config_exception.h"
 
 #include <string>
 

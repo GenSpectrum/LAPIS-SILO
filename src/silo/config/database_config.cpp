@@ -9,7 +9,7 @@
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/yaml.h>
 
-#include "silo/config/util/config_exception.h"
+#include "config/config_exception.h"
 
 using silo::config::ValueType;
 
@@ -215,7 +215,9 @@ DatabaseConfig DatabaseConfigReader::readConfig(const std::filesystem::path& con
       );
    }
 
-   yaml << file.rdbuf();
+   if (file.peek() != std::ifstream::traits_type::eof()) {
+      yaml << file.rdbuf();
+   }
 
    try {
       return parseYaml(yaml.str());
