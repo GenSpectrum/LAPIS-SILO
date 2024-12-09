@@ -6,6 +6,7 @@
 #include <spdlog/spdlog.h>
 #include <boost/algorithm/string/join.hpp>
 
+#include "config/config_interface.h"
 #include "config/source/yaml_file.h"
 #include "silo/common/fmt_formatters.h"
 #include "silo/common/json_type_definitions.h"
@@ -105,11 +106,17 @@ RuntimeConfig::RuntimeConfig() {
    overwriteFrom(getConfigSpecification().getConfigSourceFromDefaults());
 }
 
-std::vector<std::filesystem::path> RuntimeConfig::getConfigPaths() const {
+std::vector<std::filesystem::path> RuntimeConfig::getConfigFilePaths(
+   const VerifiedCommandLineArguments& cmd_source,
+   const VerifiedConfigAttributes& env_source
+) {
    std::vector<std::filesystem::path> result;
+   auto default_runtime_config =
+      getConfigFilePath(defaultRuntimeConfigOptionKey(), cmd_source, env_source);
    if (default_runtime_config.has_value()) {
       result.emplace_back(default_runtime_config.value());
    }
+   auto runtime_config = getConfigFilePath(runtimeConfigOptionKey(), cmd_source, env_source);
    if (runtime_config.has_value()) {
       result.emplace_back(runtime_config.value());
    }
@@ -117,12 +124,6 @@ std::vector<std::filesystem::path> RuntimeConfig::getConfigPaths() const {
 }
 
 void RuntimeConfig::overwriteFrom(const VerifiedConfigAttributes& config_source) {
-   if (auto var = config_source.getPath(runtimeConfigOptionKey())) {
-      runtime_config = var.value();
-   }
-   if (auto var = config_source.getPath(defaultRuntimeConfigOptionKey())) {
-      default_runtime_config = var.value();
-   }
    if (auto var = config_source.getPath(dataDirectoryOptionKey())) {
       data_directory = var.value();
    }
@@ -157,10 +158,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
    estimated_startup_end
 )
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
-   silo::config::QueryOptions,
-   materialization_cutoff
-)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(silo::config::QueryOptions, materialization_cutoff)
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
    silo::config::RuntimeConfig,
@@ -169,7 +167,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
    query_options
 )
 
-}
+}  // namespace nlohmann
 
 [[maybe_unused]] auto fmt::formatter<silo::config::RuntimeConfig>::format(
    const silo::config::RuntimeConfig& runtime_config,

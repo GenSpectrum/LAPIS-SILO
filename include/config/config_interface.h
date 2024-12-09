@@ -26,13 +26,21 @@ namespace silo::config {
 // PreprocessingConfig). Alternatively, making the constructor private
 // and instead creating a factory method would also be possible.
 template <typename C>
-concept Config = requires(C c, const C cc, const VerifiedConfigAttributes& config_source) {
+concept Config = requires(
+   C c,
+   const C cc,
+   const VerifiedConfigAttributes& config_source,
+   const VerifiedCommandLineArguments& cmd_source,
+   const VerifiedConfigAttributes& env_source
+) {
    { C::getConfigSpecification() } -> std::same_as<ConfigSpecification>;
 
    /// Vector of config files that the user gave (or that is provided
    /// by the type via its defaults) that should be loaded and shadowed
    /// in the order of the vector.
-   { cc.getConfigPaths() } -> std::same_as<std::vector<std::filesystem::path>>;
+   {
+      C::getConfigFilePaths(cmd_source, env_source)
+   } -> std::same_as<std::vector<std::filesystem::path>>;
 
    /// Overwrite the fields of an instance of the target type; done
    /// that way so that multiple kinds of config sources can shadow
@@ -45,6 +53,21 @@ concept Config = requires(C c, const C cc, const VerifiedConfigAttributes& confi
    /// Validation / Sanity checks about the values of this config
    { c.validate() } -> std::same_as<void>;
 };
+
+// TODO think about moving this to a source file
+inline std::optional<std::filesystem::path> getConfigFilePath(
+   const silo::config::ConfigKeyPath& config_key_path,
+   const VerifiedCommandLineArguments& cmd_source,
+   const VerifiedConfigAttributes& env_source
+) {
+   if (auto path = cmd_source.getPath(config_key_path)) {
+      return path;
+   }
+   if (auto path = env_source.getPath(config_key_path)) {
+      return path;
+   }
+   return std::nullopt;
+}
 
 /// This function needs a reference to the (remaining) command line
 /// arguments to be parsed, thus the application gets a chance to take
@@ -61,42 +84,36 @@ std::variant<C, int32_t> getConfig(
 ) {
    const auto config_specification = C::getConfigSpecification();
    try {
-      VerifiedCommandLineArguments cmd_source = CommandLineArguments{cmd}.verify(config_specification);
+      VerifiedCommandLineArguments cmd_source =
+         CommandLineArguments{cmd}.verify(config_specification);
       if (cmd_source.asks_for_help) {
          std::cout << config_specification.helpText() << "\n" << std::flush;
          return 0;
       }
       if (!cmd_source.positional_arguments.empty()) {
-         throw silo::config::ConfigException{fmt::format("SILO does not expect positional arguments, found {}", nlohmann::json{cmd_source.positional_arguments})};
+         throw silo::config::ConfigException{fmt::format(
+            "SILO does not expect positional arguments, found {}",
+            nlohmann::json{cmd_source.positional_arguments}
+         )};
       }
 
       auto env_source =
          EnvironmentVariables::newWithAllowListAndEnv(allow_list_for_env_vars, environ)
             .verify(config_specification);
 
-      // First, get the config paths, if any
+      auto config_paths = C::getConfigFilePaths(cmd_source, env_source);
+
       SPDLOG_TRACE("Now overwriting config from defaults");
       C config;
+      for (auto config_path : config_paths) {
+         SPDLOG_TRACE("Now overwriting config from yaml file '{}'", config_path);
+         auto file_source = YamlFile::readFile(config_path).verify(config_specification);
+         config.overwriteFrom(file_source);
+      }
       SPDLOG_TRACE("Now overwriting config from environment variables");
       config.overwriteFrom(env_source);
       SPDLOG_TRACE("Now overwriting config from command line arguments");
       config.overwriteFrom(cmd_source);
-      auto config_paths = config.getConfigPaths();
-
-      if (!config_paths.empty()) {
-         SPDLOG_TRACE("Restart from scratch, reading the given config files");
-         SPDLOG_TRACE("Now overwriting config from defaults");
-         config = {};
-         for (auto config_path : config_paths) {
-            SPDLOG_TRACE("Now overwriting config from yaml file '{}'", config_path);
-            auto file_source = YamlFile::readFile(config_path).verify(config_specification);
-            config.overwriteFrom(file_source);
-         }
-         SPDLOG_TRACE("Now overwriting config from environment variables");
-         config.overwriteFrom(env_source);
-         SPDLOG_TRACE("Now overwriting config from command line arguments");
-         config.overwriteFrom(cmd_source);
-      }
 
       config.validate();
 

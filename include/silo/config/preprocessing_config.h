@@ -19,9 +19,6 @@ namespace silo::config {
 class PreprocessingConfig {
    friend class fmt::formatter<silo::config::PreprocessingConfig>;
 
-   std::optional<std::filesystem::path> default_preprocessing_config;
-   std::optional<std::filesystem::path> preprocessing_config;
-
   public:
    std::filesystem::path input_directory;
    std::filesystem::path output_directory;
@@ -52,7 +49,10 @@ class PreprocessingConfig {
 
    void overwriteFrom(const silo::config::VerifiedConfigAttributes& config_source);
 
-   [[nodiscard]] std::vector<std::filesystem::path> getConfigPaths() const;
+   [[nodiscard]] static std::vector<std::filesystem::path> getConfigFilePaths(
+      const VerifiedCommandLineArguments& cmd_source,
+      const VerifiedConfigAttributes& env_source
+   );
 };
 
 }  // namespace silo::config

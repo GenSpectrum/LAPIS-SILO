@@ -27,9 +27,6 @@ class QueryOptions {
 };
 
 class RuntimeConfig {
-   std::optional<std::filesystem::path> default_runtime_config;
-   std::optional<std::filesystem::path> runtime_config;
-
   public:
    std::filesystem::path data_directory;
    ApiOptions api_options;
@@ -41,7 +38,10 @@ class RuntimeConfig {
 
    void validate() const {};
 
-   [[nodiscard]] std::vector<std::filesystem::path> getConfigPaths() const;
+   [[nodiscard]] static std::vector<std::filesystem::path> getConfigFilePaths(
+      const VerifiedCommandLineArguments& cmd_source,
+      const VerifiedConfigAttributes& env_source
+   );
 
    void overwriteFrom(const VerifiedConfigAttributes& config_source);
 };

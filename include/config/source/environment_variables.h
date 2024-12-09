@@ -45,8 +45,7 @@ class EnvironmentVariables {
    static AmbiguousConfigKeyPath stringToConfigKeyPath(const std::string& key_path_string);
 
    using VerifiedType = VerifiedConfigAttributes;
-   [[nodiscard]] VerifiedType verify(const ConfigSpecification& config_specification
-   ) const;
+   [[nodiscard]] VerifiedType verify(const ConfigSpecification& config_specification) const;
 };
 
 }  // namespace silo::config

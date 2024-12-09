@@ -5,6 +5,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include "config/config_interface.h"
 #include "silo/common/fmt_formatters.h"
 #include "silo/common/json_type_definitions.h"
 #include "silo/preprocessing/preprocessing_exception.h"
@@ -163,12 +164,6 @@ std::optional<std::filesystem::path> PreprocessingConfig::getNdjsonInputFilename
 }
 
 void PreprocessingConfig::overwriteFrom(const VerifiedConfigAttributes& config_source) {
-   if (auto var = config_source.getPath(preprocessingConfigOptionKey())) {
-      preprocessing_config = var.value();
-   }
-   if (auto var = config_source.getPath(defaultPreprocessingConfigOptionKey())) {
-      default_preprocessing_config = var.value();
-   }
    if (auto var = config_source.getPath(inputDirectoryOptionKey())) {
       input_directory = var.value();
    }
@@ -198,13 +193,19 @@ void PreprocessingConfig::overwriteFrom(const VerifiedConfigAttributes& config_s
    }
 }
 
-std::vector<std::filesystem::path> PreprocessingConfig::getConfigPaths() const {
+std::vector<std::filesystem::path> PreprocessingConfig::getConfigFilePaths(
+   const VerifiedCommandLineArguments& cmd_source,
+   const VerifiedConfigAttributes& env_source
+) {
    std::vector<std::filesystem::path> result;
-   if (default_preprocessing_config.has_value()) {
-      result.emplace_back(default_preprocessing_config.value());
+   auto default_runtime_config =
+      getConfigFilePath(defaultPreprocessingConfigOptionKey(), cmd_source, env_source);
+   if (default_runtime_config.has_value()) {
+      result.emplace_back(default_runtime_config.value());
    }
-   if (preprocessing_config.has_value()) {
-      result.emplace_back(preprocessing_config.value());
+   auto runtime_config = getConfigFilePath(preprocessingConfigOptionKey(), cmd_source, env_source);
+   if (runtime_config.has_value()) {
+      result.emplace_back(runtime_config.value());
    }
    return result;
 }
@@ -225,7 +226,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
    reference_genome_file
 )
 
-}  // namespace
+}  // namespace nlohmann
 
 [[maybe_unused]] auto fmt::formatter<silo::config::PreprocessingConfig>::format(
    const silo::config::PreprocessingConfig& preprocessing_config,
