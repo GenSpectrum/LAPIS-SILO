@@ -67,7 +67,10 @@ AmbiguousConfigKeyPath EnvironmentVariables::stringToConfigKeyPath(
 ) {
    if (!key_path_string.starts_with(ENV_VAR_PREFIX)) {
       throw silo::config::ConfigException(fmt::format(
-         "the provided option '{}' is not a valid environment variable option", key_path_string
+         "the provided option '{}' is not a valid environment variable option. It should be "
+         "prefixed with '{}'",
+         key_path_string,
+         ENV_VAR_PREFIX
       ));
    }
 
@@ -82,7 +85,7 @@ AmbiguousConfigKeyPath EnvironmentVariables::stringToConfigKeyPath(
       delimited_strings, std::back_inserter(delimited_lowercase_strings), toLowerCase
    );
 
-   auto result = AmbiguousConfigKeyPath::tryFrom(std::move(delimited_strings));
+   auto result = AmbiguousConfigKeyPath::tryFrom(std::move(delimited_lowercase_strings));
    if (result == std::nullopt) {
       throw silo::config::ConfigException(fmt::format(
          "the provided option '{}' is not a valid environment variable option", key_path_string

@@ -9,6 +9,7 @@
 
 #include "config/config_exception.h"
 #include "config/config_source_interface.h"
+#include "config/config_specification.h"
 
 #ifdef __APPLE__
 // macOS-specific
