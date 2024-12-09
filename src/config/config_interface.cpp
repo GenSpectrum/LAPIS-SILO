@@ -2,7 +2,7 @@
 
 namespace silo::config {
 
-inline std::optional<std::filesystem::path> getConfigFilePath(
+std::optional<std::filesystem::path> getConfigFilePath(
    const silo::config::ConfigKeyPath& config_key_path,
    const VerifiedCommandLineArguments& cmd_source,
    const VerifiedConfigAttributes& env_source
