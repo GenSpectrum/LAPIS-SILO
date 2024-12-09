@@ -110,7 +110,8 @@ ConfigSpecification PreprocessingConfig::getConfigSpecification() {
          ConfigAttributeSpecification::createWithDefault(
             databaseConfigFileOptionKey(),
             ConfigValue::fromPath("database_config.yaml"),
-            "File name of the file holding the database table configuration. Relative from input_directory."
+            "File name of the file holding the database table configuration. Relative from "
+            "input_directory."
          ),
          ConfigAttributeSpecification::createWithDefault(
             referenceGenomeFilenameOptionKey(),
