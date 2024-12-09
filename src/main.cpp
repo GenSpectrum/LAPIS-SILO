@@ -55,7 +55,7 @@ int runPreprocessor(const silo::config::PreprocessingConfig& preprocessing_confi
 }
 
 int runApi(const silo::config::RuntimeConfig& runtime_config) {
-   silo_api::SiloServer server;
+   silo_api::Api server;
    return server.runApi(runtime_config);
 }
 

@@ -11,7 +11,7 @@
 
 namespace silo_api {
 
-int SiloServer::runApi(const silo::config::RuntimeConfig& runtime_config) {
+int Api::runApi(const silo::config::RuntimeConfig& runtime_config) {
    SPDLOG_INFO("Starting SILO API");
 
    silo_api::DatabaseMutex database_mutex;

@@ -6,7 +6,7 @@
 
 namespace silo_api {
 
-class SiloServer : public Poco::Util::ServerApplication {
+class Api : public Poco::Util::ServerApplication {
   public:
    int runApi(const silo::config::RuntimeConfig& runtime_config);
 };
