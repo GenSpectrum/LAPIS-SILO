@@ -27,12 +27,14 @@ class QueryOptions {
 };
 
 class RuntimeConfig {
+   RuntimeConfig() = default;
+
   public:
    std::filesystem::path data_directory;
    ApiOptions api_options;
    QueryOptions query_options;
 
-   RuntimeConfig();
+   static RuntimeConfig withDefaults();
 
    static ConfigSpecification getConfigSpecification();
 

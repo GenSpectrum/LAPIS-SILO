@@ -121,8 +121,10 @@ ConfigSpecification PreprocessingConfig::getConfigSpecification() {
    };
 }
 
-PreprocessingConfig::PreprocessingConfig() {
-   overwriteFrom(getConfigSpecification().getConfigSourceFromDefaults());
+PreprocessingConfig PreprocessingConfig::withDefaults() {
+   PreprocessingConfig result;
+   result.overwriteFrom(getConfigSpecification().getConfigSourceFromDefaults());
+   return result;
 }
 
 void PreprocessingConfig::validate() const {
@@ -211,21 +213,6 @@ std::vector<std::filesystem::path> PreprocessingConfig::getConfigFilePaths(
 }
 
 }  // namespace silo::config
-
-namespace nlohmann {
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
-   silo::config::PreprocessingConfig,
-   input_directory,
-   output_directory,
-   intermediate_results_directory,
-   preprocessing_database_location,
-   duckdb_memory_limit_in_g,
-   lineage_definitions_file,
-   ndjson_input_filename,
-   database_config_file,
-   reference_genome_file
-)
-}  // namespace nlohmann
 
 [[maybe_unused]] auto fmt::formatter<silo::config::PreprocessingConfig>::format(
    const silo::config::PreprocessingConfig& preprocessing_config,

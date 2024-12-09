@@ -102,8 +102,10 @@ ConfigSpecification RuntimeConfig::getConfigSpecification() {
    };
 }
 
-RuntimeConfig::RuntimeConfig() {
-   overwriteFrom(getConfigSpecification().getConfigSourceFromDefaults());
+RuntimeConfig RuntimeConfig::withDefaults() {
+   RuntimeConfig config;
+   config.overwriteFrom(getConfigSpecification().getConfigSourceFromDefaults());
+   return config;
 }
 
 std::vector<std::filesystem::path> RuntimeConfig::getConfigFilePaths(

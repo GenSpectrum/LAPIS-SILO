@@ -33,6 +33,8 @@ concept Config = requires(
    const VerifiedCommandLineArguments& cmd_source,
    const VerifiedConfigAttributes& env_source
 ) {
+   { C::withDefaults() } -> std::same_as<C>;
+
    { C::getConfigSpecification() } -> std::same_as<ConfigSpecification>;
 
    /// Vector of config files that the user gave (or that is provided
@@ -95,7 +97,7 @@ std::variant<C, int32_t> getConfig(
       auto config_paths = C::getConfigFilePaths(cmd_source, env_source);
 
       SPDLOG_TRACE("Now overwriting config from defaults");
-      C config;
+      C config = C::withDefaults();
       for (auto config_path : config_paths) {
          SPDLOG_TRACE("Now overwriting config from yaml file '{}'", config_path);
          auto file_source = YamlFile::readFile(config_path).verify(config_specification);

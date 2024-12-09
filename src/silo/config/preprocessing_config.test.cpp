@@ -10,7 +10,7 @@ using silo::config::PreprocessingConfig;
 using silo::config::YamlFile;
 
 TEST(PreprocessingConfig, shouldReadConfigWithCorrectParametersAndDefaults) {
-   PreprocessingConfig config;
+   auto config = PreprocessingConfig::withDefaults();
 
    ASSERT_NO_THROW(
       config.overwriteFrom(YamlFile::readFile("./testBaseData/test_preprocessing_config.yaml")
@@ -23,7 +23,7 @@ TEST(PreprocessingConfig, shouldReadConfigWithCorrectParametersAndDefaults) {
 }
 
 TEST(PreprocessingConfig, shouldReadConfigWithOverriddenDefaults) {
-   PreprocessingConfig config;
+   auto config = PreprocessingConfig::withDefaults();
 
    ASSERT_NO_THROW(config.overwriteFrom(
       YamlFile::readFile("./testBaseData/test_preprocessing_config_with_overridden_defaults.yaml")
@@ -40,7 +40,7 @@ TEST(PreprocessingConfig, shouldReadConfigWithOverriddenDefaults) {
 }
 
 TEST(PreprocessingConfig, shouldThrowErrorWhenNdjsonInputFileNameIsNotSet) {
-   PreprocessingConfig config;
+   auto config = PreprocessingConfig::withDefaults();
    EXPECT_THAT(
       [&config]() { config.validate(); },
       ThrowsMessage<silo::preprocessing::PreprocessingException>(
