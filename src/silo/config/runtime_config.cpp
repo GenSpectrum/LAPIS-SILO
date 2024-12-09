@@ -8,6 +8,7 @@
 
 #include "config/source/yaml_file.h"
 #include "silo/common/fmt_formatters.h"
+#include "silo/common/json_type_definitions.h"
 
 namespace {
 using silo::config::ConfigKeyPath;
@@ -146,42 +147,34 @@ void RuntimeConfig::overwriteFrom(const VerifiedConfigAttributes& config_source)
 
 }  // namespace silo::config
 
-namespace silo::common {
-// Using a macro to get the declared variable name #FIELD_NAME
-#define ADD_FIELD_TO_RESULT(VARIABLE, FIELD_NAME) \
-   result += fmt::format("{}: {}, ", #FIELD_NAME, toDebugString(VARIABLE.FIELD_NAME))
+namespace nlohmann {
 
-std::string toDebugString(const silo::config::ApiOptions& api_options) {
-   std::string result = "{";
-   ADD_FIELD_TO_RESULT(api_options, max_connections);
-   ADD_FIELD_TO_RESULT(api_options, parallel_threads);
-   ADD_FIELD_TO_RESULT(api_options, port);
-   ADD_FIELD_TO_RESULT(api_options, estimated_startup_end);
-   result += "}";
-   return result;
-}
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
+   silo::config::ApiOptions,
+   max_connections,
+   parallel_threads,
+   port,
+   estimated_startup_end
+)
 
-std::string toDebugString(const silo::config::QueryOptions& query_options) {
-   std::string result = "{";
-   ADD_FIELD_TO_RESULT(query_options, materialization_cutoff);
-   result += "}";
-   return result;
-}
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
+   silo::config::QueryOptions,
+   materialization_cutoff
+)
 
-std::string toDebugString(const silo::config::RuntimeConfig& runtime_config) {
-   std::string result = "{";
-   ADD_FIELD_TO_RESULT(runtime_config, data_directory);
-   ADD_FIELD_TO_RESULT(runtime_config, api_options);
-   ADD_FIELD_TO_RESULT(runtime_config, query_options);
-   result += "}";
-   return result;
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
+   silo::config::RuntimeConfig,
+   data_directory,
+   api_options,
+   query_options
+)
+
 }
-#undef ADD_FIELD_TO_RESULT
-}  // namespace silo::common
 
 [[maybe_unused]] auto fmt::formatter<silo::config::RuntimeConfig>::format(
    const silo::config::RuntimeConfig& runtime_config,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
-   return fmt::format_to(ctx.out(), "{}", silo::common::toDebugString(runtime_config));
+   nlohmann::json json = runtime_config;
+   return fmt::format_to(ctx.out(), "{}", runtime_config);
 }

@@ -6,6 +6,7 @@
 #include <spdlog/spdlog.h>
 
 #include "silo/common/fmt_formatters.h"
+#include "silo/common/json_type_definitions.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
 namespace {
@@ -210,31 +211,26 @@ std::vector<std::filesystem::path> PreprocessingConfig::getConfigPaths() const {
 
 }  // namespace silo::config
 
-namespace silo::common {
-// Using a macro to get the declared variable name #FIELD_NAME
-#define ADD_FIELD_TO_RESULT(VARIABLE, FIELD_NAME) \
-   result += fmt::format("{}: {}, ", #FIELD_NAME, toDebugString(VARIABLE.FIELD_NAME))
+namespace nlohmann {
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
+   silo::config::PreprocessingConfig,
+   input_directory,
+   output_directory,
+   intermediate_results_directory,
+   preprocessing_database_location,
+   duckdb_memory_limit_in_g,
+   lineage_definitions_file,
+   ndjson_input_filename,
+   database_config_file,
+   reference_genome_file
+)
 
-std::string toDebugString(const silo::config::PreprocessingConfig& preprocessing_config) {
-   std::string result = "{";
-   ADD_FIELD_TO_RESULT(preprocessing_config, input_directory);
-   ADD_FIELD_TO_RESULT(preprocessing_config, output_directory);
-   ADD_FIELD_TO_RESULT(preprocessing_config, intermediate_results_directory);
-   ADD_FIELD_TO_RESULT(preprocessing_config, preprocessing_database_location);
-   ADD_FIELD_TO_RESULT(preprocessing_config, duckdb_memory_limit_in_g);
-   ADD_FIELD_TO_RESULT(preprocessing_config, lineage_definitions_file);
-   ADD_FIELD_TO_RESULT(preprocessing_config, ndjson_input_filename);
-   ADD_FIELD_TO_RESULT(preprocessing_config, database_config_file);
-   ADD_FIELD_TO_RESULT(preprocessing_config, reference_genome_file);
-   result += "}";
-   return result;
-}
-#undef ADD_FIELD_TO_RESULT
-}  // namespace silo::common
+}  // namespace
 
 [[maybe_unused]] auto fmt::formatter<silo::config::PreprocessingConfig>::format(
    const silo::config::PreprocessingConfig& preprocessing_config,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
-   return fmt::format_to(ctx.out(), "{}", silo::common::toDebugString(preprocessing_config));
+   nlohmann::json json = preprocessing_config;
+   return fmt::format_to(ctx.out(), "{}", json);
 }

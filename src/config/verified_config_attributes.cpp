@@ -144,7 +144,7 @@ std::optional<bool> VerifiedConfigAttributes::getBool(const ConfigKeyPath& confi
    return std::nullopt;
 }
 
-VerifiedCommandLineArguments VerifiedCommandLineArguments::askingForHelp(){
+VerifiedCommandLineArguments VerifiedCommandLineArguments::askingForHelp() {
    VerifiedCommandLineArguments result;
    result.asks_for_help = true;
    return result;
@@ -153,7 +153,7 @@ VerifiedCommandLineArguments VerifiedCommandLineArguments::askingForHelp(){
 VerifiedCommandLineArguments VerifiedCommandLineArguments::fromConfigValuesAndPositionalArguments(
    std::unordered_map<ConfigKeyPath, ConfigValue> config_values,
    std::vector<std::string> positional_arguments
-){
+) {
    VerifiedCommandLineArguments result;
    result.config_values = config_values;
    result.positional_arguments = positional_arguments;
