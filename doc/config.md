@@ -1,0 +1,51 @@
+# How the configuration system works
+
+SILO takes configuration information from 3 configuration sources:
+YAML files, environment variables, and command line arguments. The
+same variables can be defined via any of them (except the path to the
+config file only makes sense to be defined via environment variable or
+command line option, of course). Environment variables override YAML
+file entries, and command line arguments override both.
+
+For a struct representing application configuration data, the system
+needs metadata, represented with the [`ConfigSpecification`](XXX)
+type. This metadata is the basis for building the help text, and used
+by the configuration source "backends" (in the `verify` method
+implementations of the [`ConfigSource`
+interface](include/config/config_source_interface.h)) to know which
+user-provided values are valid, and what type they represent.
+
+to map to vectors or key/value representations for the source
+in question.
+
+Each source ([command line arguments](XX), [environment variables](XX),
+[yaml file](XX)) has its individual constructor and error handling
+during construction. The resulting object must implement
+[`VerifyConfigSource`](../include/config/config_specification.h), the `verify` method of
+which takes the config values vector mentioned in the previous
+paragraph, and returns an object that implements
+[`VerifiedConfigSource`](../include/config/config_source_interface.h). This is then, inside
+[`raw_get_config`](XX), passed to the
+[`OverwriteFrom::overwrite_from`](XX?) method to
+fill the fields of the to-be configured struct with the values
+destined for them.
+
+To make this work, each configurable struct needs to implement
+[`OverwriteFrom`](XX?), additionally, the top-level
+configurable struct needs to implement
+[`ToplevelConfig`](XX). To provide that latter
+implementation, the top-level config struct should have a boolean
+help field, and a field to take a path to the config file that
+should be read, if given.
+
+The process of going through the 3 sources, and reading the config
+file that was specified by the user, is handled by the
+aforementiond `raw_get_config` function. All this
+function needs is a reference to the (remaining) command line
+arguments to be parsed, and a reference to the struct metadata for
+the toplevel configuration struct. It returns the filled-in
+struct, of the given type parameter which must match the metadata
+that was given.
+
+For more information (with quite some overlap with this description),
+see [`config_source_interface`](../include/config/config_source_interface.h).
