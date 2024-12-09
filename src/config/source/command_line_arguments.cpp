@@ -97,7 +97,7 @@ std::tuple<ConfigValue, std::span<const std::string>> parseValueFromArg(
 
 }  // namespace
 
-VerifiedConfigAttributes CommandLineArguments::verify(
+VerifiedCommandLineArguments CommandLineArguments::verify(
    const ConfigSpecification& config_specification
 ) const {
    // Now, given config_specification (and thus which options are
@@ -118,7 +118,7 @@ VerifiedConfigAttributes CommandLineArguments::verify(
             break;
          }
          if (arg == "-h" || arg == "--help") {
-            return {{}, {}, true};
+            return VerifiedCommandLineArguments::askingForHelp();
          }
          const auto [option, opt_value_string] = splitOption(arg);
          const auto ambiguous_key = stringToConfigKeyPath(option);
@@ -149,7 +149,9 @@ VerifiedConfigAttributes CommandLineArguments::verify(
       ));
    }
 
-   return VerifiedConfigAttributes{std::move(config_value_by_option), std::move(positional_args)};
+   return VerifiedCommandLineArguments::fromConfigValuesAndPositionalArguments(
+      std::move(config_value_by_option), std::move(positional_args)
+   );
 }
 
 }  // namespace silo::config

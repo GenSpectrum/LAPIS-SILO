@@ -20,8 +20,6 @@ namespace silo::config {
 class VerifiedConfigAttributes {
   public:
    std::unordered_map<ConfigKeyPath, ConfigValue> config_values;
-   std::vector<std::string> positional_arguments;
-   bool asks_for_help;
 
    [[nodiscard]] std::optional<std::string> getString(const ConfigKeyPath& config_key_path) const;
 
@@ -35,6 +33,19 @@ class VerifiedConfigAttributes {
    [[nodiscard]] std::optional<uint16_t> getUint16(const ConfigKeyPath& config_key_path) const;
 
    [[nodiscard]] std::optional<bool> getBool(const ConfigKeyPath& config_key_path) const;
+};
+
+class VerifiedCommandLineArguments : public VerifiedConfigAttributes {
+  public:
+   std::vector<std::string> positional_arguments;
+   bool asks_for_help;
+
+   static VerifiedCommandLineArguments askingForHelp();
+
+   static VerifiedCommandLineArguments fromConfigValuesAndPositionalArguments(
+      std::unordered_map<ConfigKeyPath, ConfigValue> config_values,
+      std::vector<std::string> positional_arguments
+   );
 };
 
 }  // namespace silo::config

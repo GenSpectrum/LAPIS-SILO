@@ -18,7 +18,9 @@ extern const char* const* environ;
 namespace silo::config {
 
 // (Inheriting implementation for ConfigSource directly.)
-class EnvironmentVariables : public ConfigSource {
+class EnvironmentVariables {
+   using VerifiedType = VerifiedConfigAttributes;
+
    /* EnvironmentVariables base, */
    std::vector<std::pair<std::string, std::string>> association_list;
    std::vector<std::string> allow_list;
@@ -32,9 +34,7 @@ class EnvironmentVariables : public ConfigSource {
 
    explicit EnvironmentVariables() = default;
 
-   [[nodiscard]] inline std::string debugContext() const override {
-      return "environment variables";
-   };
+   [[nodiscard]] inline std::string debugContext() const { return "environment variables"; };
 
   public:
    static EnvironmentVariables newWithAllowListAndEnv(
@@ -47,7 +47,7 @@ class EnvironmentVariables : public ConfigSource {
    static AmbiguousConfigKeyPath stringToConfigKeyPath(const std::string& key_path_string);
 
    [[nodiscard]] VerifiedConfigAttributes verify(const ConfigSpecification& config_specification
-   ) const override;
+   ) const;
 };
 
 }  // namespace silo::config

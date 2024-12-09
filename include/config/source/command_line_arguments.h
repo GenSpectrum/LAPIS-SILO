@@ -11,19 +11,18 @@
 
 namespace silo::config {
 
-class CommandLineArguments : public ConfigSource {
+class CommandLineArguments {
+   using VerifiedType = VerifiedCommandLineArguments;
+
    std::vector<std::string> args;
 
-   [[nodiscard]] inline std::string debugContext() const override {
-      return "command line arguments";
-   };
+   [[nodiscard]] inline std::string debugContext() const { return "command line arguments"; };
 
   public:
    explicit CommandLineArguments(std::span<const std::string> args_)
        : args(args_.begin(), args_.end()) {}
 
-   [[nodiscard]] VerifiedConfigAttributes verify(const ConfigSpecification& config_specification
-   ) const override;
+   [[nodiscard]] VerifiedType verify(const ConfigSpecification& config_specification) const;
 
    static std::string configKeyPathToString(const ConfigKeyPath& key_path);
 

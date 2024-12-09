@@ -9,7 +9,9 @@
 
 namespace silo::config {
 
-class YamlFile : public ConfigSource {
+class YamlFile {
+   using VerifiedType = VerifiedConfigAttributes;
+
    std::string debug_context;
    std::unordered_map<ConfigKeyPath, YAML::Node> yaml_fields;
 
@@ -17,11 +19,11 @@ class YamlFile : public ConfigSource {
        : debug_context(std::move(debug_context)),
          yaml_fields(std::move(yaml_fields)) {}
 
-   std::string debugContext() const override;
+   std::string debugContext() const;
 
   public:
    [[nodiscard]] VerifiedConfigAttributes verify(const ConfigSpecification& config_specification
-   ) const override;
+   ) const;
 
    // Make yaml_fields accessible for testing
    const std::unordered_map<ConfigKeyPath, YAML::Node>& getYamlFields() const;

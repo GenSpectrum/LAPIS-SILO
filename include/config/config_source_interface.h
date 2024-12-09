@@ -5,17 +5,15 @@
 
 namespace silo::config {
 
-class ConfigSource {
-   [[nodiscard]] virtual std::string debugContext() const = 0;
+template <typename T>
+concept ConfigSource = requires(const T& obj, const ConfigSpecification& spec) {
+   { obj.debugContext() } -> std::convertible_to<std::string>;
 
-  public:
    /// The verify method checks that all found keys are OK and
    /// specified for the desired config type, parses their
    /// representation, and returns a VerifiedConfigAttributes object ready
    /// for retrieval of the values.
-   [[nodiscard]] virtual VerifiedConfigAttributes verify(
-      const ConfigSpecification& config_specification
-   ) const = 0;
+   { obj.verify(spec) } -> std::same_as<typename T::VerifiedType>;
 };
 
 }  // namespace silo::config
