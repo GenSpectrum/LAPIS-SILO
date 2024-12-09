@@ -18,14 +18,14 @@ extern const char* const* environ;
 namespace silo::config {
 
 class EnvironmentVariables {
-   std::vector<std::pair<std::string, std::string>> association_list;
+   std::vector<std::pair<std::string, std::string>> key_value_pairs;
    std::vector<std::string> allow_list;
 
    explicit EnvironmentVariables(
-      std::vector<std::pair<std::string, std::string>>&& association_list_,
+      std::vector<std::pair<std::string, std::string>>&& key_value_pairs_,
       std::vector<std::string> allow_list_
    )
-       : association_list(std::move(association_list_)),
+       : key_value_pairs(std::move(key_value_pairs_)),
          allow_list(std::move(allow_list_)){};
 
    explicit EnvironmentVariables() = default;
