@@ -12,10 +12,8 @@ using silo::config::YamlFile;
 TEST(PreprocessingConfig, shouldReadConfigWithCorrectParametersAndDefaults) {
    auto config = PreprocessingConfig::withDefaults();
 
-   ASSERT_NO_THROW(
-      config.overwriteFrom(YamlFile::readFile("./testBaseData/test_preprocessing_config.yaml")
-                              .verify(PreprocessingConfig::getConfigSpecification()))
-   );
+   config.overwriteFrom(YamlFile::readFile("./testBaseData/test_preprocessing_config.yaml")
+                           .verify(PreprocessingConfig::getConfigSpecification()));
 
    const std::string input_directory = "./testBaseData/exampleDataset/";
    ASSERT_EQ(config.getNdjsonInputFilename(), input_directory + "input_file.ndjson");
@@ -25,10 +23,10 @@ TEST(PreprocessingConfig, shouldReadConfigWithCorrectParametersAndDefaults) {
 TEST(PreprocessingConfig, shouldReadConfigWithOverriddenDefaults) {
    auto config = PreprocessingConfig::withDefaults();
 
-   ASSERT_NO_THROW(config.overwriteFrom(
+   config.overwriteFrom(
       YamlFile::readFile("./testBaseData/test_preprocessing_config_with_overridden_defaults.yaml")
          .verify(PreprocessingConfig::getConfigSpecification())
-   ););
+   );
 
    const std::string input_directory = "./testBaseData/exampleDataset/";
    ASSERT_EQ(config.getNdjsonInputFilename(), input_directory + "input_file.ndjson");
