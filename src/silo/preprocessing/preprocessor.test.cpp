@@ -240,7 +240,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 TEST_P(PreprocessorTestFixture, shouldProcessData) {
    const auto scenario = GetParam();
-   silo::config::PreprocessingConfig config;
+   auto config = PreprocessingConfig::withDefaults();
    config.input_directory = scenario.input_directory;
 
    config.overwriteFrom(

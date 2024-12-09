@@ -101,7 +101,7 @@ TEST_P(InvalidPreprocessorTestFixture, shouldNotProcessData) {
    const std::filesystem::path input_directory = fmt::format("test{}", millis);
    std::filesystem::create_directories(input_directory);
 
-   PreprocessingConfig config_with_input_dir;
+   auto config_with_input_dir = PreprocessingConfig::withDefaults();
    config_with_input_dir.input_directory = input_directory;
    config_with_input_dir.intermediate_results_directory = input_directory;
    config_with_input_dir.ndjson_input_filename = "input.json";

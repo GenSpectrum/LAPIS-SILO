@@ -20,7 +20,7 @@ namespace {
 silo::Database buildTestDatabase() {
    const std::filesystem::path input_directory{"./testBaseData/unitTestDummyDataset/"};
 
-   PreprocessingConfig config;
+   auto config = PreprocessingConfig::withDefaults();
    config.overwriteFrom(
       silo::config::YamlFile::readFile(input_directory / "preprocessing_config.yaml")
          .verify(PreprocessingConfig::getConfigSpecification())
@@ -58,7 +58,7 @@ TEST(DatabaseTest, shouldBuildDatabaseWithoutErrors) {
 TEST(DatabaseTest, shouldSuccessfullyBuildDatabaseWithoutPartitionBy) {
    const std::filesystem::path input_directory{"./testBaseData/"};
 
-   PreprocessingConfig config;
+   auto config = PreprocessingConfig::withDefaults();
    config.overwriteFrom(
       silo::config::YamlFile::readFile(input_directory / "test_preprocessing_config.yaml")
          .verify(PreprocessingConfig::getConfigSpecification())

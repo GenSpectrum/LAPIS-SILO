@@ -8,7 +8,7 @@ using silo::config::RuntimeConfig;
 using silo::config::YamlFile;
 
 TEST(RuntimeConfig, shouldReadConfig) {
-   RuntimeConfig runtime_config;
+   auto runtime_config = RuntimeConfig::withDefaults();
 
    auto source = YamlFile::readFile("./testBaseData/test_runtime_config.yaml")
                     .verify(RuntimeConfig::getConfigSpecification());
