@@ -31,19 +31,15 @@ AmbiguousConfigKeyPath CommandLineArguments::stringToConfigKeyPath(const std::st
    }
    std::string trimmed = option.substr(2);
 
-   std::vector<std::string> tokens;
-   boost::split(tokens, trimmed, boost::is_any_of("-"));
-
    std::vector<std::string> delimited_strings;
-   for (const auto& token : tokens) {
-      if (token.empty()) {
-         throw silo::config::ConfigException(fmt::format(
-            "the provided option '{}' is not a valid command line option"
-            " because it contains an empty string segment between '-'",
-            option
-         ));
-      }
-      delimited_strings.push_back(token);
+   boost::split(delimited_strings, trimmed, boost::is_any_of("-"));
+
+   if (std::ranges::any_of(delimited_strings, [](const auto& str) { return str.empty(); })) {
+      throw silo::config::ConfigException(fmt::format(
+         "the provided option '{}' is not a valid command line option"
+         " because it contains an empty string segment between '-'",
+         option
+      ));
    }
 
    auto result = AmbiguousConfigKeyPath::tryFrom(std::move(delimited_strings));
