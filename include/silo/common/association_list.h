@@ -12,9 +12,8 @@ class AssociationList {
    // Find the value associated with a given key; returns NULL if key
    // is not found.
    const V* get(const K& key) const {
-      auto iter = std::find_if(data.begin(), data.end(), [&key](const auto& pair) {
-         return pair.first == key;
-      });
+      auto iter =
+         std::ranges::find_if(data, [&key](const auto& pair) { return pair.first == key; });
       if (iter != data.end()) {
          return &iter->second;
       }
