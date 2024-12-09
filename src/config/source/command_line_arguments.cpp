@@ -8,7 +8,6 @@
 #include <boost/algorithm/string/split.hpp>
 
 #include "config/config_exception.h"
-#include "silo/common/panic.h"
 
 namespace silo::config {
 
@@ -32,11 +31,10 @@ AmbiguousConfigKeyPath CommandLineArguments::stringToConfigKeyPath(const std::st
    }
    std::string trimmed = option.substr(2);
 
-   std::vector<std::string> delimited_strings;
    std::vector<std::string> tokens;
-
    boost::split(tokens, trimmed, boost::is_any_of("-"));
 
+   std::vector<std::string> delimited_strings;
    for (const auto& token : tokens) {
       if (token.empty()) {
          throw silo::config::ConfigException(fmt::format(

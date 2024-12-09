@@ -17,9 +17,7 @@ extern const char* const* environ;
 
 namespace silo::config {
 
-// (Inheriting implementation for ConfigSource directly.)
 class EnvironmentVariables {
-   /* EnvironmentVariables base, */
    std::vector<std::pair<std::string, std::string>> association_list;
    std::vector<std::string> allow_list;
 
@@ -32,7 +30,7 @@ class EnvironmentVariables {
 
    explicit EnvironmentVariables() = default;
 
-   [[nodiscard]] inline std::string debugContext() const { return "environment variables"; };
+   [[nodiscard]] std::string debugContext() const { return "environment variables"; };
 
   public:
    static EnvironmentVariables newWithAllowListAndEnv(
