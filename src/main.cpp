@@ -73,22 +73,22 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
    std::span<const std::string> args(all_args.begin() + 1, all_args.end());
 
    ExecutionMode mode;
-   if (!args.empty()) {
-      const std::string& mode_argument = args[0];
-      args = {args.begin() + 1, args.end()};
-      if (mode_argument == "preprocessing") {
-         mode = ExecutionMode::PREPROCESSING;
-      } else if (mode_argument == "api") {
-         mode = ExecutionMode::API;
-      } else {
-         std::cerr << program_name
-                   << ": need either 'preprocessing' or 'api' as the first program argument, got '"
-                   << mode_argument << "'\n";
-         return 1;
-      }
-   } else {
+   if (args.empty()) {
       std::cerr << program_name
                 << ": need either 'preprocessing' or 'api' as the first program argument\n";
+      return 1;
+   }
+
+   const std::string& mode_argument = args[0];
+   args = {args.begin() + 1, args.end()};
+   if (mode_argument == "preprocessing") {
+      mode = ExecutionMode::PREPROCESSING;
+   } else if (mode_argument == "api") {
+      mode = ExecutionMode::API;
+   } else {
+      std::cerr << program_name
+                << ": need either 'preprocessing' or 'api' as the first program argument, got '"
+                << mode_argument << "'\n";
       return 1;
    }
 
