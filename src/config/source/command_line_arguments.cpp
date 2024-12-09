@@ -48,9 +48,11 @@ AmbiguousConfigKeyPath CommandLineArguments::stringToConfigKeyPath(const std::st
 
    auto result = AmbiguousConfigKeyPath::tryFrom(std::move(delimited_strings));
    if (result == std::nullopt) {
-      throw silo::config::ConfigException(
-         fmt::format("the provided option '{}' is not a valid command line option", option)
-      );
+      throw silo::config::ConfigException(fmt::format(
+         "the provided option '{}' is not a valid command line option. The string after -- should "
+         "be '-' delimited and lower-case",
+         option
+      ));
    }
    return result.value();
 }
