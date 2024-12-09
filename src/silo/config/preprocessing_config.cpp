@@ -201,10 +201,10 @@ void PreprocessingConfig::overwriteFrom(const VerifiedConfigAttributes& config_s
 std::vector<std::filesystem::path> PreprocessingConfig::getConfigPaths() const {
    std::vector<std::filesystem::path> result;
    if (default_preprocessing_config.has_value()) {
-      result.emplace_back();
+      result.emplace_back(default_preprocessing_config.value());
    }
    if (preprocessing_config.has_value()) {
-      result.emplace_back();
+      result.emplace_back(preprocessing_config.value());
    }
    return result;
 }
