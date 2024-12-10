@@ -5,7 +5,7 @@
 
 #include <gtest/gtest.h>
 
-#include "silo/config/util/config_repository.h"
+#include "silo/config/config_repository.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
 TEST(

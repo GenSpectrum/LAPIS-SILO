@@ -3,32 +3,57 @@
 #include <filesystem>
 #include <optional>
 
-#include "silo/config/preprocessing_config.h"
-#include "silo/config/util/abstract_config_source.h"
+#include <fmt/format.h>
+
+#include "config/config_interface.h"
+#include "config/config_source_interface.h"
+#include "config/config_specification.h"
+#include "silo/config/config_defaults.h"
 
 namespace silo::config {
 
-const AbstractConfigSource::Option DATA_DIRECTORY_OPTION{{"dataDirectory"}};
-const AbstractConfigSource::Option MAX_CONNECTIONS_OPTION{{"maxQueuedHttpConnections"}};
-const AbstractConfigSource::Option PARALLEL_THREADS_OPTION{{"threadsForHttpConnections"}};
-const AbstractConfigSource::Option PORT_OPTION{{"port"}};
-const AbstractConfigSource::Option ESTIMATED_STARTUP_TIME_IN_MINUTES_OPTION{
-   {"estimatedStartupTimeInMinutes"}
-};
-
-struct ApiOptions {
-   std::filesystem::path data_directory = silo::config::DEFAULT_OUTPUT_DIRECTORY;
-   int32_t max_connections = 64;
-   int32_t parallel_threads = 4;
-   uint16_t port = 8081;
+class ApiOptions {
+  public:
+   int32_t max_connections;
+   int32_t parallel_threads;
+   uint16_t port;
    std::optional<std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>>
       estimated_startup_end;
 };
 
-struct RuntimeConfig {
-   ApiOptions api_options;
+class QueryOptions {
+  public:
+   size_t materialization_cutoff;
+};
 
-   void overwrite(const silo::config::AbstractConfigSource& config);
+class RuntimeConfig {
+   RuntimeConfig() = default;
+
+  public:
+   std::filesystem::path data_directory;
+   ApiOptions api_options;
+   QueryOptions query_options;
+
+   static RuntimeConfig withDefaults();
+
+   static ConfigSpecification getConfigSpecification();
+
+   void validate() const {};
+
+   [[nodiscard]] static std::vector<std::filesystem::path> getConfigFilePaths(
+      const VerifiedCommandLineArguments& cmd_source,
+      const VerifiedConfigAttributes& env_source
+   );
+
+   void overwriteFrom(const VerifiedConfigAttributes& config_source);
 };
 
 }  // namespace silo::config
+
+template <>
+struct [[maybe_unused]] fmt::formatter<silo::config::RuntimeConfig> : fmt::formatter<std::string> {
+   [[maybe_unused]] static auto format(
+      const silo::config::RuntimeConfig& runtime_config,
+      format_context& ctx
+   ) -> decltype(ctx.out());
+};
