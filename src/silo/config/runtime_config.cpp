@@ -176,5 +176,5 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
    nlohmann::json json = runtime_config;
-   return fmt::format_to(ctx.out(), "{}", runtime_config);
+   return fmt::format_to(ctx.out(), "{}", json);
 }
