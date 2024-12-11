@@ -4,6 +4,6 @@
 
 namespace silo::config {
 
-static const char* DEFAULT_OUTPUT_DIRECTORY = "./output/";
+static const std::filesystem::path DEFAULT_OUTPUT_DIRECTORY = "./output/";
 
 }

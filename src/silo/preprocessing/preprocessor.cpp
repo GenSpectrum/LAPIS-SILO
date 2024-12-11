@@ -7,6 +7,7 @@
 #include <boost/algorithm/string/join.hpp>
 
 #include "silo/common/block_timer.h"
+#include "silo/common/fmt_formatters.h"
 #include "silo/common/panic.h"
 #include "silo/common/string_utils.h"
 #include "silo/common/table_reader.h"
@@ -54,7 +55,7 @@ Preprocessor::Preprocessor(
       preprocessing_db(
          preprocessing_config.preprocessing_database_location,
          reference_genomes,
-         preprocessing_config.duckdb_memory_limit_in_g
+         preprocessing_config.getDuckdbMemoryLimitInG()
       ),
       nuc_sequence_identifiers_without_prefix(
          Identifiers{reference_genomes.getSequenceNames<Nucleotide>()}
@@ -79,13 +80,13 @@ Database Preprocessor::preprocess() {
 
    SPDLOG_INFO(
       "preprocessing - creating intermediate results directory '{}'",
-      preprocessing_config.intermediate_results_directory.string()
+      preprocessing_config.intermediate_results_directory
    );
    std::filesystem::create_directory(preprocessing_config.intermediate_results_directory);
    if (!std::filesystem::is_directory(preprocessing_config.intermediate_results_directory)) {
       auto error = fmt::format(
          "Directory for intermediate results could not be created.",
-         preprocessing_config.intermediate_results_directory.string()
+         preprocessing_config.intermediate_results_directory
       );
       SPDLOG_ERROR(error);
       throw silo::preprocessing::PreprocessingException(error);

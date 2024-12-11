@@ -7,7 +7,7 @@ COPY . ./
 RUN  \
     python3 ./build_with_conan.py --release --parallel 4\
     && cp build/Release/silo_test . \
-    && cp --no-dereference build/Release/{silo,siloServer,siloPreprocessor} .
+    && cp --no-dereference build/Release/silo .
 
 
 FROM ubuntu:22.04 AS server
@@ -15,7 +15,7 @@ FROM ubuntu:22.04 AS server
 WORKDIR /app
 COPY docker_default_preprocessing_config.yaml ./default_preprocessing_config.yaml
 COPY docker_runtime_config.yaml ./runtime_config.yaml
-COPY --from=builder /src/{silo,siloServer,siloPreprocessor} ./
+COPY --from=builder /src/silo ./
 
 RUN apt update && apt dist-upgrade -y \
     &&  apt install -y libtbb12 curl jq

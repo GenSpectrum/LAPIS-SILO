@@ -2,8 +2,10 @@
 
 #include <fstream>
 
+#include <fmt/format.h>
 #include <yaml-cpp/yaml.h>
 
+#include "silo/common/fmt_formatters.h"
 #include "silo/common/panic.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
@@ -98,20 +100,27 @@ struct convert<LineageDefinitionFile> {
 namespace silo::preprocessing {
 
 LineageDefinitionFile LineageDefinitionFile::fromYAMLFile(const std::filesystem::path& yaml_path) {
-   const std::ifstream file(yaml_path, std::ios::in | std::ios::binary);
+   std::ifstream file(yaml_path, std::ios::in | std::ios::binary);
    if (!file) {
       throw silo::preprocessing::PreprocessingException(
-         "Could not open the YAML file: " + yaml_path.string()
+         fmt::format("Could not open the YAML file: ", yaml_path.string())
       );
    }
 
    std::ostringstream contents;
-   contents << file.rdbuf();
+   if (file.peek() != std::ifstream::traits_type::eof()) {
+      contents << file.rdbuf();
+      if (contents.fail()) {
+         throw silo::preprocessing::PreprocessingException(
+            fmt::format("Error when reading the YAML file: '{}'", yaml_path)
+         );
+      }
+   }
    try {
       return fromYAML(contents.str());
    } catch (const YAML::ParserException& parser_exception) {
       throw silo::preprocessing::PreprocessingException(
-         "The YAML file {} does not contain valid YAML."
+         fmt::format("The YAML file {} does not contain valid YAML.", yaml_path)
       );
    }
 }

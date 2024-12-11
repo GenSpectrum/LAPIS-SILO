@@ -8,8 +8,8 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
+#include "silo/common/fmt_formatters.h"
 #include "silo/common/lineage_tree.h"
-#include "config/source/yaml_file.h"
 #include "silo/config/database_config.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/database.h"
@@ -116,7 +116,7 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
          std::cerr << "Could not open file for writing" << std::endl;
          return;
       }
-      for (const auto json : test_data.ndjson_input_data) {
+      for (const auto& json : test_data.ndjson_input_data) {
          file << json.dump() << std::endl;
       }
       file.close();

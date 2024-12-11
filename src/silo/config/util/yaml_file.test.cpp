@@ -1,98 +1,129 @@
-#include "config/source/yaml_file.h"
+#include "config/backend/yaml_file.h"
 
 #include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
 
-#include "silo/config/preprocessing_config.h"
+#include "config/config_key_path.h"
+#include "silo/common/fmt_formatters.h"
 
-using silo::config::YamlFile;
-using silo::config::PreprocessingConfig;
-using silo::config::PreprocessingConfig;
-using silo::config::PREPROCESSING_CONFIG_METADATA;
-using silo::config::PreprocessingConfig;
+using silo::config::ConfigKeyPath;
+using silo::config::YamlConfig;
 
-std::unique_ptr<VerifiedConfigSource> yamlFileUnderTest() {
-   return YamlFile::readFile("./testBaseData/test_preprocessing_config.yaml")
-      .verify(PREPROCESSING_CONFIG_METADATA.configValues());
+// static std::string configKeyPathToString(const ConfigKeyPath& key_path);
+
+// static ConfigKeyPath stringToConfigKeyPath(const std::string& key_path_string);
+
+TEST(YamlConfig, simpleStringToConfigKeyPath) {
+   auto under_test = YamlConfig::stringToConfigKeyPath("test");
+   ASSERT_EQ(under_test, (ConfigKeyPath::tryFrom({{{"test"}}})));
 }
 
-TEST(YamlFile, canCorrectlyCheckForPresentPropertiesCaseSensitively) {
-   const auto under_test = yamlFileUnderTest();
-
-   ASSERT_EQ(under_test->hasProperty({{"inputDirectory"}}), true);
-   ASSERT_EQ(under_test->hasProperty({{"INPUTDIRECTORY"}}), false);
+TEST(YamlConfig, stringToConfigKeyPath1) {
+   auto under_test = YamlConfig::stringToConfigKeyPath("api.port");
+   ASSERT_EQ(under_test, (ConfigKeyPath::tryFrom({{"api"}, {"port"}})));
+   ASSERT_NE(under_test, (ConfigKeyPath::tryFrom({{"api", "port"}})));
 }
 
-TEST(YamlFile, canCorrectlyCheckForNonPresentProperties) {
-   const auto under_test = yamlFileUnderTest();
-
-   ASSERT_EQ(under_test->hasProperty({{"a"}}), false);
+TEST(YamlConfig, stringToConfigKeyPath2) {
+   auto under_test = YamlConfig::stringToConfigKeyPath("query.materializationCutoff");
+   ASSERT_EQ(under_test, (ConfigKeyPath::tryFrom({{"query"}, {"materialization", "cutoff"}})));
 }
 
-TEST(YamlFile, getStringGetsCorrectField) {
-   const auto under_test = yamlFileUnderTest();
-
-   ASSERT_EQ(under_test->getString({{"inputDirectory"}}), "./testBaseData/exampleDataset/");
-}
-
-TEST(YamlFile, getStringGetsCorrectFieldsRepeatedly) {
-   const auto under_test = yamlFileUnderTest();
-
-   ASSERT_EQ(under_test->getString({{"inputDirectory"}}), "./testBaseData/exampleDataset/");
-   ASSERT_EQ(under_test->getString({{"outputDirectory"}}), "./output/");
-   ASSERT_EQ(under_test->getString({{"metadataFilename"}}), "small_metadata_set.tsv");
+TEST(YamlConfig, configKeyPathToString) {
+   ASSERT_EQ(YamlConfig::configKeyPathToString(ConfigKeyPath::tryFrom({{"test"}}).value()), "test");
    ASSERT_EQ(
-      under_test->getString({{"pangoLineageDefinitionFilename"}}), "pangolineage_alias.json"
-   );
-   ASSERT_EQ(under_test->getString({{"referenceGenomeFilename"}}), "reference_genomes.json");
-}
-
-TEST(YamlFile, getStringNulloptOnNotPresent) {
-   const auto under_test = yamlFileUnderTest();
-
-   ASSERT_EQ(under_test->getString({{"a", "a"}}), std::nullopt);
-   ASSERT_EQ(under_test->getString({{"again_not_present"}}), std::nullopt);
-}
-
-TEST(YamlFile, shouldReadConfigWithCorrectParametersAndDefaults) {
-   PreprocessingConfig config;
-   ASSERT_NO_THROW(
-      config.overwriteFrom(*YamlFile::readFile("./testBaseData/test_preprocessing_config.yaml")
-                               .verify(PREPROCESSING_CONFIG_METADATA.configValues()));
-   );
-
-   const std::string input_directory = "./testBaseData/exampleDataset/";
-   ASSERT_EQ(config.getMetadataInputFilename(), input_directory + "small_metadata_set.tsv");
-   ASSERT_EQ(
-      config.getPangoLineageDefinitionFilename(), input_directory + "pangolineage_alias.json"
+      YamlConfig::configKeyPathToString(
+         (ConfigKeyPath::tryFrom({{"query"}, {"materialization", "cutoff"}})).value()
+      ),
+      "query.materializationCutoff"
    );
 }
 
-TEST(YamlFile, shouldThrowExceptionWhenConfigFileDoesNotExist) {
-   PreprocessingConfig config;
+TEST(YamlConfig, validRoundTrip) {
+   auto under_test =
+      std::vector<std::string>{"test", "somethingElse.that.is.quiteLong", "a.2.3.4", "asd", "aa"};
+   for (const auto& string : under_test) {
+      ASSERT_EQ(
+         YamlConfig::configKeyPathToString(YamlConfig::stringToConfigKeyPath(string)), string
+      );
+   }
+}
+
+TEST(YamlConfig, resolvesConfigKeyPath1) {
+   auto under_test = YamlConfig::stringToConfigKeyPath("api.port");
+   ASSERT_EQ(under_test, (ConfigKeyPath::tryFrom({{"api"}, {"port"}})));
+   ASSERT_NE(under_test, (ConfigKeyPath::tryFrom({{"api", "port"}})));
+}
+
+TEST(YamlConfig, resolvesConfigKeyPath2) {
+   auto under_test = YamlConfig::stringToConfigKeyPath("query.materializationCutoff");
+   ASSERT_EQ(under_test, (ConfigKeyPath::tryFrom({{"query"}, {"materialization", "cutoff"}})));
+}
+
+TEST(YamlConfig, containsCorrectFieldsFromFlatYAML) {
+   const auto under_test =
+      YamlConfig::readFile("./testBaseData/test_preprocessing_config.yaml").getYamlFields();
+
+   const std::unordered_map<ConfigKeyPath, YAML::Node> expected_result{
+      {YamlConfig::stringToConfigKeyPath("inputDirectory"),
+       YAML::Node{"./testBaseData/exampleDataset/"}},
+      {YamlConfig::stringToConfigKeyPath("outputDirectory"), YAML::Node{"./output/"}},
+      {YamlConfig::stringToConfigKeyPath("ndjsonInputFilename"), YAML::Node{"input_file.ndjson"}},
+      {YamlConfig::stringToConfigKeyPath("lineageDefinitionsFilename"),
+       YAML::Node{"lineage_definitions.yaml"}},
+      {YamlConfig::stringToConfigKeyPath("referenceGenomeFilename"),
+       YAML::Node{"reference_genomes.json"}},
+   };
+
+   for (const auto& [key, value] : expected_result) {
+      ASSERT_TRUE(under_test.contains(key));
+      ASSERT_EQ(under_test.at(key).as<std::string>(), value.as<std::string>());
+   }
+   for (const auto& [key, value] : under_test) {
+      ASSERT_TRUE(expected_result.contains(key));
+      ASSERT_EQ(expected_result.at(key).as<std::string>(), value.as<std::string>());
+   }
+}
+
+TEST(YamlConfig, containsCorrectFieldsFromNestedYAML) {
+   const auto under_test =
+      YamlConfig::readFile("./testBaseData/test_runtime_config.yaml").getYamlFields();
+
+   const std::unordered_map<ConfigKeyPath, YAML::Node> expected_result{
+      {YamlConfig::stringToConfigKeyPath("dataDirectory"), YAML::Node{"test/directory"}},
+      {YamlConfig::stringToConfigKeyPath("api.port"), YAML::Node{1234}},
+   };
+
+   for (const auto& [key, value] : expected_result) {
+      ASSERT_TRUE(under_test.contains(key));
+      ASSERT_EQ(under_test.at(key).as<std::string>(), value.as<std::string>());
+   }
+   for (const auto& [key, value] : under_test) {
+      ASSERT_TRUE(expected_result.contains(key));
+      ASSERT_EQ(expected_result.at(key).as<std::string>(), value.as<std::string>());
+   }
+}
+
+TEST(YamlConfig, shouldThrowExceptionWhenConfigFileDoesNotExist) {
    EXPECT_THAT(
-      [&config]() {
-         config.overwriteFrom(*YamlFile::readFile("testBaseData/does_not_exist.yaml")
-                                  .verify(PREPROCESSING_CONFIG_METADATA.configValues()));
-      },
-      ThrowsMessage<std::runtime_error>(::testing::HasSubstr("Failed to read preprocessing config"))
+      []() { YamlConfig::readFile("testBaseData/does_not_exist.yaml"); },
+      ThrowsMessage<std::runtime_error>(
+         ::testing::HasSubstr("Could not open the YAML file: 'testBaseData/does_not_exist.yaml'")
+      )
    );
 }
 
-TEST(YamlFile, shouldReadConfigWithOverriddenDefaults) {
-   PreprocessingConfig config;
-
-   ASSERT_NO_THROW(config.overwriteFrom(
-      *YamlFile::readFile("./testBaseData/test_preprocessing_config_with_overridden_defaults.yaml")
-          .verify(PREPROCESSING_CONFIG_METADATA.configValues())
-   ););
-
-   const std::string input_directory = "./testBaseData/exampleDataset/";
-   ASSERT_EQ(config.getMetadataInputFilename(), input_directory + "small_metadata_set.tsv");
-   ASSERT_EQ(
-      config.getPangoLineageDefinitionFilename(), input_directory + "pangolineage_alias.json"
+TEST(YamlConfig, shouldThrowExceptionWhenConfigFileCannotBeParsed) {
+   EXPECT_THAT(
+      []() {
+         YamlConfig::fromYAML("string", R"(
+X
+s:
+)");
+      },
+      ThrowsMessage<std::runtime_error>(
+         ::testing::HasSubstr("string does not contain valid YAML: yaml-cpp: error at line 3, "
+                              "column 2: illegal map value")
+      )
    );
-
-   ASSERT_EQ(config.getNucFilenameNoExtension(0), input_directory + "0");
-   ASSERT_EQ(config.output_directory, "./output/custom/");
 }
