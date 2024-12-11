@@ -4,10 +4,10 @@
 
 #include <gtest/gtest.h>
 
-#include "config/backend/yaml_file.h"
+#include "config/source/yaml_file.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/config/config_repository.h"
 #include "silo/config/preprocessing_config.h"
-#include "silo/config/util/config_repository.h"
 #include "silo/database_info.h"
 #include "silo/preprocessing/preprocessor.h"
 #include "silo/preprocessing/sql_function.h"
@@ -20,9 +20,9 @@ namespace {
 silo::Database buildTestDatabase() {
    const std::filesystem::path input_directory{"./testBaseData/unitTestDummyDataset/"};
 
-   PreprocessingConfig config;
+   auto config = PreprocessingConfig::withDefaults();
    config.overwriteFrom(
-      silo::config::YamlConfig::readFile(input_directory / "preprocessing_config.yaml")
+      silo::config::YamlFile::readFile(input_directory / "preprocessing_config.yaml")
          .verify(PreprocessingConfig::getConfigSpecification())
    );
    const auto database_config =
@@ -58,9 +58,9 @@ TEST(DatabaseTest, shouldBuildDatabaseWithoutErrors) {
 TEST(DatabaseTest, shouldSuccessfullyBuildDatabaseWithoutPartitionBy) {
    const std::filesystem::path input_directory{"./testBaseData/"};
 
-   PreprocessingConfig config;
+   auto config = PreprocessingConfig::withDefaults();
    config.overwriteFrom(
-      silo::config::YamlConfig::readFile(input_directory / "test_preprocessing_config.yaml")
+      silo::config::YamlFile::readFile(input_directory / "test_preprocessing_config.yaml")
          .verify(PreprocessingConfig::getConfigSpecification())
    );
 

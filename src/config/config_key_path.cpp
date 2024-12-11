@@ -3,7 +3,7 @@
 #include <fmt/format.h>
 #include <boost/algorithm/string/join.hpp>
 
-#include "config/backend/yaml_file.h"
+#include "config/source/yaml_file.h"
 
 namespace {
 bool isLowerCaseOrNumeric(char character) {
@@ -20,7 +20,13 @@ std::vector<std::vector<std::string>> ConfigKeyPath::getPath() const {
 std::optional<ConfigKeyPath> ConfigKeyPath::tryFrom(
    const std::vector<std::vector<std::string>>& paths
 ) {
+   if (paths.empty()) {
+      return std::nullopt;
+   }
    for (const auto& sublevel : paths) {
+      if (sublevel.empty()) {
+         return std::nullopt;
+      }
       for (const std::string& string : sublevel) {
          if (string.empty()) {
             return std::nullopt;
@@ -33,10 +39,6 @@ std::optional<ConfigKeyPath> ConfigKeyPath::tryFrom(
    ConfigKeyPath result;
    result.path = paths;
    return result;
-}
-
-std::string ConfigKeyPath::toDebugString() const {
-   return YamlConfig::configKeyPathToString(*this);
 }
 
 AmbiguousConfigKeyPath AmbiguousConfigKeyPath::from(const ConfigKeyPath& key_path) {

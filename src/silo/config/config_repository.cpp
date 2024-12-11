@@ -1,11 +1,11 @@
-#include "silo/config/util/config_repository.h"
+#include "silo/config/config_repository.h"
 
 #include <map>
 #include <optional>
 #include <string>
 
+#include "config/config_exception.h"
 #include "silo/config/database_config.h"
-#include "silo/config/util/config_exception.h"
 
 namespace silo::config {
 
@@ -80,6 +80,7 @@ void validatePartitionBy(const DatabaseConfig& config) {
 
    const std::string partition_by = config.schema.partition_by.value();
 
+   // TODO(#663)
    const auto& partition_by_metadata = std::find_if(
       config.schema.metadata.begin(),
       config.schema.metadata.end(),

@@ -99,7 +99,8 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
       std::filesystem::path input_directory = fmt::format("test{}", millis);
       std::filesystem::create_directories(input_directory);
 
-      config::PreprocessingConfig config_with_input_dir;
+      config::PreprocessingConfig config_with_input_dir =
+         config::PreprocessingConfig::withDefaults();
       config_with_input_dir.input_directory = input_directory;
       config_with_input_dir.intermediate_results_directory = input_directory;
       config_with_input_dir.ndjson_input_filename = "input.json";

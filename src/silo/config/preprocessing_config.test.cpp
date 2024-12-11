@@ -3,19 +3,17 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "config/backend/yaml_file.h"
+#include "config/source/yaml_file.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
 using silo::config::PreprocessingConfig;
-using silo::config::YamlConfig;
+using silo::config::YamlFile;
 
 TEST(PreprocessingConfig, shouldReadConfigWithCorrectParametersAndDefaults) {
-   PreprocessingConfig config;
+   auto config = PreprocessingConfig::withDefaults();
 
-   ASSERT_NO_THROW(
-      config.overwriteFrom(YamlConfig::readFile("./testBaseData/test_preprocessing_config.yaml")
-                              .verify(PreprocessingConfig::getConfigSpecification()))
-   );
+   config.overwriteFrom(YamlFile::readFile("./testBaseData/test_preprocessing_config.yaml")
+                           .verify(PreprocessingConfig::getConfigSpecification()));
 
    const std::string input_directory = "./testBaseData/exampleDataset/";
    ASSERT_EQ(config.getNdjsonInputFilename(), input_directory + "input_file.ndjson");
@@ -23,12 +21,18 @@ TEST(PreprocessingConfig, shouldReadConfigWithCorrectParametersAndDefaults) {
 }
 
 TEST(PreprocessingConfig, shouldReadConfigWithOverriddenDefaults) {
-   PreprocessingConfig config;
+   auto config = PreprocessingConfig::withDefaults();
 
-   ASSERT_NO_THROW(config.overwriteFrom(
-      YamlConfig::readFile("./testBaseData/test_preprocessing_config_with_overridden_defaults.yaml")
-         .verify(PreprocessingConfig::getConfigSpecification())
-   ););
+   config.overwriteFrom(YamlFile::fromYAML("inline", R"(
+inputDirectory: "./testBaseData/exampleDataset/"
+outputDirectory: "./output/custom/"
+intermediateResultsDirectory: "./output/overriddenTemp/"
+ndjsonInputFilename: "input_file.ndjson"
+lineageDefinitionsFilename: "lineage_definitions.yaml"
+referenceGenomeFilename: "reference_genomes.json"
+preprocessingDatabaseLocation: "preprocessing.duckdb"
+duckdbMemoryLimitInG: 8)")
+                           .verify(PreprocessingConfig::getConfigSpecification()));
 
    const std::string input_directory = "./testBaseData/exampleDataset/";
    ASSERT_EQ(config.getNdjsonInputFilename(), input_directory + "input_file.ndjson");
@@ -40,11 +44,11 @@ TEST(PreprocessingConfig, shouldReadConfigWithOverriddenDefaults) {
 }
 
 TEST(PreprocessingConfig, shouldThrowErrorWhenNdjsonInputFileNameIsNotSet) {
-   PreprocessingConfig config;
+   auto config = PreprocessingConfig::withDefaults();
    EXPECT_THAT(
       [&config]() { config.validate(); },
       ThrowsMessage<silo::preprocessing::PreprocessingException>(
-         ::testing::HasSubstr("ndjsonInputFilename must be specified as preprocessing option.")
+         ::testing::HasSubstr("'ndjsonInputFilename' must be specified as preprocessing option.")
       )
    );
 }

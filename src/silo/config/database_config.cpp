@@ -9,7 +9,7 @@
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/yaml.h>
 
-#include "silo/config/util/config_exception.h"
+#include "config/config_exception.h"
 
 using silo::config::ValueType;
 
@@ -188,9 +188,11 @@ ColumnType DatabaseMetadata::getColumnType() const {
 }
 
 std::optional<DatabaseMetadata> DatabaseConfig::getMetadata(const std::string& name) const {
-   auto element = std::ranges::find_if(schema.metadata, [&name](const auto& metadata) {
-      return metadata.name == name;
-   });
+   // TODO(#663)
+   auto element =
+      std::find_if(schema.metadata.begin(), schema.metadata.end(), [&name](const auto& metadata) {
+         return metadata.name == name;
+      });
    if (element == std::end(schema.metadata)) {
       return std::nullopt;
    }

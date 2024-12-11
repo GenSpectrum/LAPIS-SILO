@@ -1,20 +1,17 @@
 #include "config/config_specification.h"
 
-#include <cstring>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <unordered_set>
-#include <variant>
 #include <vector>
 
-#include <boost/algorithm/string/join.hpp>
-#include <boost/core/span.hpp>
+#include <boost/lexical_cast.hpp>
 
-#include "config/backend/command_line_arguments.h"
-#include "config/backend/environment_variables.h"
-#include "config/backend/yaml_file.h"
 #include "config/config_key_path.h"
+#include "config/source/command_line_arguments.h"
+#include "config/source/environment_variables.h"
+#include "config/source/yaml_file.h"
 #include "silo/common/cons_list.h"
 #include "silo/common/fmt_formatters.h"
 #include "silo/common/panic.h"
@@ -25,13 +22,8 @@ std::string indent(std::string_view indentation, const std::string& str) {
    auto lines = silo::splitBy(str, "\n");
    std::string out{};
    for (const auto& line : lines) {
-      // Can't do: out.push_back(std::string { indentation });
-      for (const char character : indentation) {
-         out.push_back(character);
-      }
-      for (const char character : line) {
-         out.push_back(character);
-      }
+      out.append(indentation);
+      out.append(line);
       out.push_back('\n');
    }
    return out;
@@ -40,28 +32,32 @@ std::string indent(std::string_view indentation, const std::string& str) {
 
 namespace silo::config {
 
-std::optional<ConfigValueSpecification> ConfigSpecification::getValueSpecificationFromAmbiguousKey(
-   const silo::config::AmbiguousConfigKeyPath& key
-) const {
-   for (const auto& field : fields) {
-      if (key == AmbiguousConfigKeyPath::from(field.key)) {
-         return field;
-      }
-   }
-   return std::nullopt;
-}
-
-std::optional<ConfigValueSpecification> ConfigSpecification::getValueSpecification(
-   const silo::config::ConfigKeyPath& key
-) const {
+std::optional<ConfigAttributeSpecification> ConfigSpecification::
+   getAttributeSpecificationFromAmbiguousKey(const AmbiguousConfigKeyPath& key) const {
+   // TODO(#663)
    auto maybe_result = std::find_if(
-      fields.begin(),
-      fields.end(),
-      [&](const ConfigValueSpecification& value_specification) {
-         return value_specification.key == key;
+      attribute_specifications.begin(),
+      attribute_specifications.end(),
+      [&](const auto& attribute_spec) {
+         return AmbiguousConfigKeyPath::from(attribute_spec.key) == key;
       }
    );
-   if (maybe_result == fields.end()) {
+   if (maybe_result == attribute_specifications.end()) {
+      return std::nullopt;
+   }
+   return *maybe_result;
+}
+
+std::optional<ConfigAttributeSpecification> ConfigSpecification::getAttributeSpecification(
+   const ConfigKeyPath& key
+) const {
+   // TODO(#663)
+   auto maybe_result = std::find_if(
+      attribute_specifications.begin(),
+      attribute_specifications.end(),
+      [&](const auto& attribute_spec) { return attribute_spec.key == key; }
+   );
+   if (maybe_result == attribute_specifications.end()) {
       return std::nullopt;
    }
    return *maybe_result;
@@ -70,18 +66,20 @@ std::optional<ConfigValueSpecification> ConfigSpecification::getValueSpecificati
 std::string ConfigSpecification::helpText() const {
    std::ostringstream help_text;
    help_text << "Usage: " << program_name << " [options...]\n"
-             << "   or: silo api|preprocess [options...]\n"
              << "\n"
-             << "  Showing the options for " << program_name
-             << ". To see the options for the sister\n"
-             << "  program, use 'silo api|preprocess --help'.\n"
+             << "  Showing the options for `" << program_name
+             << "`. To see the options for the other\n"
+             << "  mode, use 'silo api|preprocessing --help'.\n"
              << "\n"
              << "  Options override environment variables which override YAML file entries.\n"
-             << "  The following options are valid:\n";
-   // ^ XX are keys with dot working in YAML? Or have to describe what is meant?
+             << "  The following options are valid:\n"
+             << "\n"
+             << "  -h | --help\n"
+             << "\n"
+             << "    Show help.\n";
    auto addln = [&help_text](const std::string& line) { help_text << line << "\n"; };
 
-   for (const auto& field_spec : fields) {
+   for (const auto& field_spec : attribute_specifications) {
       addln("");
       const std::string_view type_text = field_spec.type == ConfigValueType::BOOL
                                             ? " (boolean, the option implies 'true')"
@@ -90,9 +88,9 @@ std::string ConfigSpecification::helpText() const {
          "  {} {}", CommandLineArguments::configKeyPathToString(field_spec.key), type_text
       ));
       addln(fmt::format(
-         "     Env var: {}", EnvironmentVariables::configKeyPathToString(field_spec.key)
+         "    Env var : {}", EnvironmentVariables::configKeyPathToString(field_spec.key)
       ));
-      addln(fmt::format("    YAML key: {}", YamlConfig::configKeyPathToString(field_spec.key)));
+      addln(fmt::format("    YAML key: {}", YamlFile::configKeyPathToString(field_spec.key)));
       addln("\n" + indent(std::string_view{"    "}, std::string{field_spec.help_text}));
       addln(
          field_spec.default_value.has_value()
@@ -104,16 +102,69 @@ std::string ConfigSpecification::helpText() const {
    return help_text.str();
 }
 
-VerifiedConfigSource ConfigSpecification::getConfigSourceFromDefaults() const {
-   VerifiedConfigSource result;
-   for (const auto& value_specification : fields) {
-      if (value_specification.default_value) {
-         result.config_values.emplace(
-            value_specification.key, value_specification.default_value.value()
-         );
+VerifiedConfigAttributes ConfigSpecification::getConfigSourceFromDefaults() const {
+   VerifiedConfigAttributes result;
+   for (const auto& attribute_spec : attribute_specifications) {
+      if (attribute_spec.default_value.has_value()) {
+         result.config_values.emplace(attribute_spec.key, attribute_spec.default_value.value());
       }
    }
    return result;
+}
+
+ConfigValue ConfigAttributeSpecification::parseValueFromString(std::string value_string) const {
+   try {
+      switch (type) {
+         case ConfigValueType::STRING:
+            return ConfigValue::fromString(value_string);
+         case ConfigValueType::PATH: {
+            return ConfigValue::fromPath(value_string);
+         }
+         case ConfigValueType::UINT32: {
+            // Because boost does not error on negative numbers
+            if (value_string.starts_with('-')) {
+               throw ConfigException(fmt::format(
+                  "cannot parse negative number '{}' as unsigned type {}",
+                  value_string,
+                  configValueTypeToString(type)
+               ));
+            }
+            const auto parsed_unsigned = boost::lexical_cast<uint32_t>(value_string);
+            return ConfigValue::fromUint32(parsed_unsigned);
+         }
+         case ConfigValueType::UINT16: {
+            // Because boost does not error on negative numbers
+            if (value_string.starts_with('-')) {
+               throw ConfigException(fmt::format(
+                  "cannot parse negative number '{}' as unsigned type {}",
+                  value_string,
+                  configValueTypeToString(type)
+               ));
+            }
+            const auto parsed_unsigned = boost::lexical_cast<uint16_t>(value_string);
+            return ConfigValue::fromUint16(parsed_unsigned);
+         }
+         case ConfigValueType::INT32: {
+            const auto parsed_signed = boost::lexical_cast<int32_t>(value_string);
+            return ConfigValue::fromInt32(parsed_signed);
+         }
+         case ConfigValueType::BOOL:
+            if (value_string == "true" || value_string == "1") {
+               return ConfigValue::fromBool(true);
+            }
+            if (value_string == "false" || value_string == "0") {
+               return ConfigValue::fromBool(false);
+            }
+            throw ConfigException(
+               fmt::format("'{}' is not a valid string for a boolean", value_string)
+            );
+      }
+      SILO_UNREACHABLE();
+   } catch (boost::bad_lexical_cast&) {
+      throw ConfigException(
+         fmt::format("cannot parse '{}' as {}", value_string, configValueTypeToString(type))
+      );
+   }
 }
 
 }  // namespace silo::config

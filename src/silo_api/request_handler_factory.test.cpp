@@ -43,7 +43,7 @@ class RequestHandlerTestFixture : public ::testing::Test {
    RequestHandlerTestFixture()
        : database_mutex(),
          request(silo_api::test::MockRequest(response)),
-         under_test(database_mutex, {}) {}
+         under_test(database_mutex, silo::config::RuntimeConfig::withDefaults()) {}
 
    void processRequest(silo_api::SiloRequestHandlerFactory& handler_factory) {
       std::unique_ptr<Poco::Net::HTTPRequestHandler> request_handler(
@@ -59,7 +59,7 @@ silo::config::RuntimeConfig getRuntimeConfigThatEndsInXMinutes(
    std::chrono::minutes estimated_time_in_minutes
 ) {
    const std::chrono::time_point point = std::chrono::system_clock::now();
-   silo::config::RuntimeConfig result;
+   auto result = silo::config::RuntimeConfig::withDefaults();
    result.api_options.estimated_startup_end = point + estimated_time_in_minutes;
    return result;
 }

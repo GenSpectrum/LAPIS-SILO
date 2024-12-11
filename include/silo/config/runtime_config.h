@@ -5,8 +5,8 @@
 
 #include <fmt/format.h>
 
-#include "config/config_backend.h"
 #include "config/config_interface.h"
+#include "config/config_source_interface.h"
 #include "config/config_specification.h"
 #include "silo/config/config_defaults.h"
 
@@ -27,44 +27,28 @@ class QueryOptions {
 };
 
 class RuntimeConfig {
-   std::optional<bool> help;
-   std::optional<std::filesystem::path> runtime_config;
+   RuntimeConfig() = default;
 
   public:
    std::filesystem::path data_directory;
    ApiOptions api_options;
    QueryOptions query_options;
 
-   RuntimeConfig();
+   static RuntimeConfig withDefaults();
 
    static ConfigSpecification getConfigSpecification();
 
    void validate() const {};
 
-   [[nodiscard]] bool asksForHelp() const;
+   [[nodiscard]] static std::vector<std::filesystem::path> getConfigFilePaths(
+      const VerifiedCommandLineArguments& cmd_source,
+      const VerifiedConfigAttributes& env_source
+   );
 
-   [[nodiscard]] std::optional<std::filesystem::path> configPath() const;
-
-   void overwriteFrom(const VerifiedConfigSource& config_source);
+   void overwriteFrom(const VerifiedConfigAttributes& config_source);
 };
 
 }  // namespace silo::config
-
-template <>
-struct [[maybe_unused]] fmt::formatter<silo::config::ApiOptions> : fmt::formatter<std::string> {
-   [[maybe_unused]] static auto format(
-      const silo::config::ApiOptions& api_options,
-      format_context& ctx
-   ) -> decltype(ctx.out());
-};
-
-template <>
-struct [[maybe_unused]] fmt::formatter<silo::config::QueryOptions> : fmt::formatter<std::string> {
-   [[maybe_unused]] static auto format(
-      const silo::config::QueryOptions& query_options,
-      format_context& ctx
-   ) -> decltype(ctx.out());
-};
 
 template <>
 struct [[maybe_unused]] fmt::formatter<silo::config::RuntimeConfig> : fmt::formatter<std::string> {
