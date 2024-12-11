@@ -287,6 +287,16 @@ QueryResult Fasta::execute(const Database& database, std::vector<CopyOnWriteBitm
             const std::string& primary_key_column = database.database_config.schema.primary_key;
             const auto& database_partition = database.partitions[current_partition];
 
+            results.resize(result_row_indices.size());
+            const uint32_t last_row_id = addSequencesToResultsForPartition(
+               sequence_names,
+               results,
+               database_partition,
+               bitmap,
+               primary_key_column,
+               result_row_indices.size()
+            );
+
             SILO_ASSERT(results.size() == result_row_indices.size());
 
             *remaining_result_row_indices =

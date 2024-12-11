@@ -1,5 +1,6 @@
 #include "silo/query_engine/operators/index_scan.h"
 
+#include <fmt/format.h>
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
 

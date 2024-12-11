@@ -5,16 +5,19 @@ namespace silo::common {
 std::string toIsoString(
    const std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>& time_point
 ) {
+   auto duration_since_epoch = time_point.time_since_epoch();
+
    // Convert the time_point to system time (std::time_t)
-   std::time_t time = std::chrono::system_clock::to_time_t(time_point);
+   auto seconds_since_epoch =
+      std::chrono::duration_cast<std::chrono::seconds>(duration_since_epoch);
+   const std::time_t time = seconds_since_epoch.count();
 
    // Get the nanoseconds part
    auto nanoseconds =
-      std::chrono::duration_cast<std::chrono::nanoseconds>(time_point.time_since_epoch()) %
-      1'000'000'000;
+      std::chrono::duration_cast<std::chrono::nanoseconds>(duration_since_epoch) % 1'000'000'000;
 
    // Convert to UTC time (std::tm)
-   std::tm utime = *std::gmtime(&time);
+   const std::tm utime = *std::gmtime(&time);
 
    // Create an ISO 8601 string with nanoseconds precision
    std::ostringstream oss;

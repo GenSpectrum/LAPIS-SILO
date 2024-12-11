@@ -2,15 +2,19 @@
 
 #include <gtest/gtest.h>
 
-#include "config/source/yaml_file.h"
+#include "config/backend/yaml_file.h"
+
+using silo::config::RuntimeConfig;
+using silo::config::YamlConfig;
 
 TEST(RuntimeConfig, shouldReadConfig) {
-   silo::config::RuntimeConfig runtime_config;
+   RuntimeConfig runtime_config;
 
-   auto source = YamlFile::readFile("./testBaseData/test_runtime_config.yaml")
-                    .verify(silo::config::RUNTIME_CONFIG_METADATA.configValues());
+   auto source = YamlConfig::readFile("./testBaseData/test_runtime_config.yaml")
+                    .verify(RuntimeConfig::getConfigSpecification());
 
-   runtime_config.overwriteFromParents(ConsList<std::string>(), *source);
+   runtime_config.overwriteFrom(source);
 
-   ASSERT_EQ(runtime_config.api_options.data_directory, std::filesystem::path("test/directory"));
+   ASSERT_EQ(runtime_config.api_options.port, 1234);
+   ASSERT_EQ(runtime_config.data_directory, "test/directory");
 }

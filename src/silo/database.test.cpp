@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 
-#include "config/source/yaml_file.h"
+#include "config/backend/yaml_file.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/config/util/config_repository.h"
@@ -14,25 +14,17 @@
 #include "silo/query_engine/query_engine.h"
 #include "silo/storage/reference_genomes.h"
 
+using silo::config::PreprocessingConfig;
+
 namespace {
-
-silo::config::PreprocessingConfig getPreprocessingConfigFromYaml(const std::string& path) {
-   auto source =
-      YamlFile::readFile(path).verify(silo::config::PREPROCESSING_CONFIG_METADATA.configValues());
-
-   silo::config::PreprocessingConfig config;
-   config.overwriteFrom(silo::config::PREPROCESSING_CONFIG_METADATA);
-   config.overwriteFrom(*source);
-   return config;
-}
-
 silo::Database buildTestDatabase() {
    const std::filesystem::path input_directory{"./testBaseData/unitTestDummyDataset/"};
 
-   silo::config::PreprocessingConfig config;
-   config.overwriteFrom(*YamlFile::readFile(input_directory + "preprocessing_config.yaml")
-                            .verify(silo::config::PREPROCESSING_CONFIG_METADATA.configValues()));
-
+   PreprocessingConfig config;
+   config.overwriteFrom(
+      silo::config::YamlConfig::readFile(input_directory / "preprocessing_config.yaml")
+         .verify(PreprocessingConfig::getConfigSpecification())
+   );
    const auto database_config =
       silo::config::ConfigRepository().getValidatedConfig(input_directory / "database_config.yaml");
 
@@ -66,12 +58,11 @@ TEST(DatabaseTest, shouldBuildDatabaseWithoutErrors) {
 TEST(DatabaseTest, shouldSuccessfullyBuildDatabaseWithoutPartitionBy) {
    const std::filesystem::path input_directory{"./testBaseData/"};
 
-   silo::config::PreprocessingConfig config;
-   config.overwrite(silo::config::YamlFile(input_directory / "test_preprocessing_config.yaml"));
-      silo::config::PreprocessingConfig config = readPreprocessingConfig (input_directory + "test_preprocessing_config.yaml");
-      silo::config::PreprocessingConfig config = readPreprocessingConfig (input_directory + "test_preprocessing_config.yaml");
-   silo::config::PreprocessingConfig config =
-      getPreprocessingConfigFromYaml(input_directory + "test_preprocessing_config.yaml");
+   PreprocessingConfig config;
+   config.overwriteFrom(
+      silo::config::YamlConfig::readFile(input_directory / "test_preprocessing_config.yaml")
+         .verify(PreprocessingConfig::getConfigSpecification())
+   );
 
    const auto database_config = silo::config::ConfigRepository().getValidatedConfig(
       input_directory / "test_database_config_without_partition_by.yaml"

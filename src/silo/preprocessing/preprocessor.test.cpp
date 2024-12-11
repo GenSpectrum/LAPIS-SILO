@@ -3,12 +3,14 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
-#include "config/source/yaml_file.h"
+#include "config/backend/yaml_file.h"
 #include "silo/config/util/config_repository.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
 #include "silo/preprocessing/sql_function.h"
 #include "silo/query_engine/query_engine.h"
+
+using silo::config::PreprocessingConfig;
 
 namespace {
 
@@ -239,12 +241,12 @@ INSTANTIATE_TEST_SUITE_P(
 TEST_P(PreprocessorTestFixture, shouldProcessData) {
    const auto scenario = GetParam();
    silo::config::PreprocessingConfig config;
-   config.overwriteFrom(silo::config::PREPROCESSING_CONFIG_METADATA);
    config.input_directory = scenario.input_directory;
 
-   auto source = YamlFile::readFile(scenario.input_directory / "preprocessing_config.yaml")
-                    .verify(silo::config::PREPROCESSING_CONFIG_METADATA.configValues());
-   config.overwriteFrom(*source);
+   config.overwriteFrom(
+      silo::config::YamlConfig::readFile(scenario.input_directory / "preprocessing_config.yaml")
+         .verify(PreprocessingConfig::getConfigSpecification())
+   );
 
    const auto database_config = silo::config::ConfigRepository().getValidatedConfig(
       scenario.input_directory / "database_config.yaml"

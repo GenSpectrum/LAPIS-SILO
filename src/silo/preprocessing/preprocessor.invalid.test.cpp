@@ -7,8 +7,8 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
+#include "config/backend/yaml_file.h"
 #include "silo/config/util/config_repository.h"
-#include "silo/config/util/yaml_file.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
 #include "silo/preprocessing/preprocessing_exception.h"
@@ -101,11 +101,10 @@ TEST_P(InvalidPreprocessorTestFixture, shouldNotProcessData) {
    const std::filesystem::path input_directory = fmt::format("test{}", millis);
    std::filesystem::create_directories(input_directory);
 
-   const PreprocessingConfig config_with_input_dir{
-      .input_directory = input_directory,
-      .intermediate_results_directory = input_directory,
-      .ndjson_input_filename = "input.json"
-   };
+   PreprocessingConfig config_with_input_dir;
+   config_with_input_dir.input_directory = input_directory;
+   config_with_input_dir.intermediate_results_directory = input_directory;
+   config_with_input_dir.ndjson_input_filename = "input.json";
    config_with_input_dir.validate();
 
    std::ofstream file(config_with_input_dir.getNdjsonInputFilename().value());

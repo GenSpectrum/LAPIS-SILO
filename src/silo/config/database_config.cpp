@@ -215,7 +215,9 @@ DatabaseConfig DatabaseConfigReader::readConfig(const std::filesystem::path& con
       );
    }
 
-   yaml << file.rdbuf();
+   if (file.peek() != std::ifstream::traits_type::eof()) {
+      yaml << file.rdbuf();
+   }
 
    try {
       return parseYaml(yaml.str());

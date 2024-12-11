@@ -8,4 +8,6 @@ services:
     ports:
       - "8080:8081"
     command:
-      - "--api"
+      - "api"
+      - "--data-directory"
+      - "/data"
