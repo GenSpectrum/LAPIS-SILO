@@ -3,8 +3,8 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
-#include "config/backend/yaml_file.h"
-#include "silo/config/util/config_repository.h"
+#include "config/source/yaml_file.h"
+#include "silo/config/config_repository.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
 #include "silo/preprocessing/sql_function.h"
@@ -240,11 +240,11 @@ INSTANTIATE_TEST_SUITE_P(
 
 TEST_P(PreprocessorTestFixture, shouldProcessData) {
    const auto scenario = GetParam();
-   silo::config::PreprocessingConfig config;
+   auto config = PreprocessingConfig::withDefaults();
    config.input_directory = scenario.input_directory;
 
    config.overwriteFrom(
-      silo::config::YamlConfig::readFile(scenario.input_directory / "preprocessing_config.yaml")
+      silo::config::YamlFile::readFile(scenario.input_directory / "preprocessing_config.yaml")
          .verify(PreprocessingConfig::getConfigSpecification())
    );
 

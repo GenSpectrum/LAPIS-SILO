@@ -1,11 +1,11 @@
-#include "config/backend/environment_variables.h"
+#include "config/source/environment_variables.h"
 
 #include <cstddef>
 
 #include <spdlog/spdlog.h>
+#include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/join.hpp>
-
-#include "silo/common/alist.h"
+#include <boost/algorithm/string/split.hpp>
 
 constexpr std::string_view ENV_VAR_PREFIX = "SILO_";
 
@@ -21,8 +21,11 @@ std::string toLowerCase(std::string input) {
 
 namespace silo::config {
 
-EnvironmentVariables EnvironmentVariables::decodeEnvironmentVariables(const char* const* envp) {
-   std::vector<std::pair<std::string, std::string>> alist;
+EnvironmentVariables EnvironmentVariables::newWithAllowListAndEnv(
+   const std::vector<std::string>& allow_list,
+   const char* const* envp
+) {
+   std::vector<std::pair<std::string, std::string>> key_value_pairs;
    for (const char* const* current_envp = envp; *current_envp != nullptr; current_envp++) {
       const char* env = *current_envp;
       for (size_t i = 0; env[i] != 0; i++) {
@@ -30,12 +33,13 @@ EnvironmentVariables EnvironmentVariables::decodeEnvironmentVariables(const char
             const std::string key{env, i};
             if (key.starts_with(ENV_VAR_PREFIX)) {
                const std::string val{env + i + 1};
-               alist.emplace_back(key, val);
+               key_value_pairs.emplace_back(key, val);
             }
+            break;
          }
       }
    }
-   return EnvironmentVariables{std::move(alist)};
+   return EnvironmentVariables{std::move(key_value_pairs), allow_list};
 }
 
 [[nodiscard]] std::string EnvironmentVariables::configKeyPathToString(
@@ -59,25 +63,27 @@ EnvironmentVariables EnvironmentVariables::decodeEnvironmentVariables(const char
 AmbiguousConfigKeyPath EnvironmentVariables::stringToConfigKeyPath(
    const std::string& key_path_string
 ) {
-   std::vector<std::string> delimited_strings;
-
    if (!key_path_string.starts_with(ENV_VAR_PREFIX)) {
       throw silo::config::ConfigException(fmt::format(
-         "the provided option '{}' is not a valid environment variable option", key_path_string
+         "the provided option '{}' is not a valid environment variable option. It should be "
+         "prefixed with '{}'",
+         key_path_string,
+         ENV_VAR_PREFIX
       ));
    }
 
    // Remove the prefix
    const std::string trimmed = key_path_string.substr(ENV_VAR_PREFIX.size());
 
-   // Split by '_'
-   std::stringstream buffer(trimmed);
-   std::string token;
-   while (std::getline(buffer, token, '_')) {
-      delimited_strings.push_back(toLowerCase(token));
-   }
+   std::vector<std::string> delimited_strings;
+   boost::split(delimited_strings, trimmed, boost::is_any_of("_"));
 
-   auto result = AmbiguousConfigKeyPath::tryFrom(std::move(delimited_strings));
+   std::vector<std::string> delimited_lowercase_strings;
+   std::ranges::transform(
+      delimited_strings, std::back_inserter(delimited_lowercase_strings), toLowerCase
+   );
+
+   auto result = AmbiguousConfigKeyPath::tryFrom(std::move(delimited_lowercase_strings));
    if (result == std::nullopt) {
       throw silo::config::ConfigException(fmt::format(
          "the provided option '{}' is not a valid environment variable option", key_path_string
@@ -86,23 +92,25 @@ AmbiguousConfigKeyPath EnvironmentVariables::stringToConfigKeyPath(
    return result.value();
 }
 
-[[nodiscard]] VerifiedConfigSource EnvironmentVariables::verify(
+[[nodiscard]] VerifiedConfigAttributes EnvironmentVariables::verify(
    const ConfigSpecification& config_specification
 ) const {
    std::unordered_map<ConfigKeyPath, ConfigValue> config_values;
    std::vector<std::string> invalid_config_keys;
-   for (const auto& [key_string, value_string] : alist) {
+   for (const auto& [key_string, value_string] : key_value_pairs) {
       auto ambiguous_key = EnvironmentVariables::stringToConfigKeyPath(key_string);
       auto value_specification_opt =
-         config_specification.getValueSpecificationFromAmbiguousKey(ambiguous_key);
+         config_specification.getAttributeSpecificationFromAmbiguousKey(ambiguous_key);
       if (value_specification_opt.has_value()) {
-         auto value_specification = value_specification_opt.value();
-         const ConfigValue value = value_specification.getValueFromString(value_string);
-         config_values.emplace(value_specification.key, value);
+         auto attribute_spec = value_specification_opt.value();
+         const ConfigValue value = attribute_spec.parseValueFromString(value_string);
+         config_values.emplace(attribute_spec.key, value);
       } else {
-         if (key_string == "SILO_PANIC") {
-            SPDLOG_TRACE(
-               "allowing env variable {} which is independent of the config system", key_string
+         if (std::find(allow_list.begin(), allow_list.end(), key_string) != allow_list.end()) {
+            SPDLOG_INFO(
+               "Given env variable '{}' is not a valid key for '{}' but in allow_list.",
+               key_string,
+               config_specification.program_name
             );
          } else {
             invalid_config_keys.push_back(key_string);
@@ -114,14 +122,15 @@ AmbiguousConfigKeyPath EnvironmentVariables::stringToConfigKeyPath(
       const std::string_view keys_or_options =
          (invalid_config_keys.size() >= 2) ? "variables" : "variable";
       throw silo::config::ConfigException(fmt::format(
-         "in {}: unknown {} {}",
-         errorContext(),
+         "in {}: unknown {} {} for '{}'",
+         debugContext(),
          keys_or_options,
-         boost::join(invalid_config_keys, ", ")
+         boost::join(invalid_config_keys, ", "),
+         config_specification.program_name
       ));
    }
 
-   return VerifiedConfigSource{config_values};
+   return VerifiedConfigAttributes{config_values};
 }
 
 }  // namespace silo::config

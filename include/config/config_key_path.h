@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <fmt/format.h>
@@ -15,29 +16,32 @@ namespace silo::config {
 /// ["query",["materialization","cutoff"]]
 /// This is easy to handle internally and also easy for transformation
 /// into CLI argument string and environment variable string
+///
+/// Note: to print `ConfigKeyPath`s, decide on a representation,
+/// probably the Yaml one, and call its `configKeyPathToString`.
 class ConfigKeyPath {
-   ConfigKeyPath(std::vector<std::vector<std::string>> path)
-       : path(path) {}
+   explicit ConfigKeyPath(std::vector<std::vector<std::string>> path)
+       : path(std::move(path)) {}
 
    std::vector<std::vector<std::string>> path;
 
   public:
    ConfigKeyPath() = default;
 
-   std::vector<std::vector<std::string>> getPath() const;
+   [[nodiscard]] std::vector<std::vector<std::string>> getPath() const;
 
    static std::optional<ConfigKeyPath> tryFrom(const std::vector<std::vector<std::string>>& paths);
 
    friend bool operator==(const ConfigKeyPath& lhs, const ConfigKeyPath& rhs) {
       return lhs.path == rhs.path;
    }
-
-   [[nodiscard]] std::string toDebugString() const;
 };
 
-/// Like ConfigKeyPath, but it is impossible to decide whether the input value
-/// meant to refer to api.port or apiPort. This is the case for CLI arguments (--api-port)
-/// and Environment Variables (SILO_API_PORT)
+/// Like ConfigKeyPath, but it is impossible to know if a split point
+/// refers to a path segment or sub-path segment (i.e. to decide
+/// whether the input value meant to refer to api.port or apiPort), so
+/// we have only 1 level of strings. This is the case for CLI
+/// arguments (--api-port) and Environment Variables (SILO_API_PORT)
 class AmbiguousConfigKeyPath {
    std::vector<std::string> path;
 
@@ -52,14 +56,6 @@ class AmbiguousConfigKeyPath {
 };
 
 }  // namespace silo::config
-
-template <>
-struct [[maybe_unused]] fmt::formatter<silo::config::ConfigKeyPath> : fmt::formatter<std::string> {
-   [[maybe_unused]] static auto format(const silo::config::ConfigKeyPath& val, format_context& ctx)
-      -> decltype(ctx.out()) {
-      return fmt::format_to(ctx.out(), "{}", val.toDebugString());
-   }
-};
 
 // So that we are able to use std::unordered_map of our internal representation of config keys
 namespace std {

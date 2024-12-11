@@ -9,20 +9,18 @@
 
 namespace silo::config {
 
-/// A VerifiedConfigSource is providing I/O- and key error free (but
-/// not necessarily value-error free) access to a set of configuration
-/// data.
-class VerifiedConfigSource {
+/// A VerifiedConfigAttributes is providing I/O-, key error and parse
+/// error free access to a set of configuration data.
+///
+/// The accessors return an option since even though invalid options are
+/// not present in this, the given option may also not be present.
+///
+/// `positional_arguments` and `asks_for_help` are only used by the command
+/// line argument backend, other backends leave them empty/false.
+class VerifiedConfigAttributes {
   public:
    std::unordered_map<ConfigKeyPath, ConfigValue> config_values;
 
-   /// Retrieve a config value for the given key as a string
-   /// (potentially converting other value types). (Explicitly
-   /// getting as a string is necessary for YAML, where the YAML
-   /// parser already has some typed representations but not
-   /// necessarily those we need. (Todo: this is a hack, improve.))
-   /// This returns an option since even though invalid options are
-   /// not present in self, the given option may also not be present.
    [[nodiscard]] std::optional<std::string> getString(const ConfigKeyPath& config_key_path) const;
 
    [[nodiscard]] std::optional<std::filesystem::path> getPath(const ConfigKeyPath& config_key_path
@@ -35,6 +33,19 @@ class VerifiedConfigSource {
    [[nodiscard]] std::optional<uint16_t> getUint16(const ConfigKeyPath& config_key_path) const;
 
    [[nodiscard]] std::optional<bool> getBool(const ConfigKeyPath& config_key_path) const;
+};
+
+class VerifiedCommandLineArguments : public VerifiedConfigAttributes {
+  public:
+   std::vector<std::string> positional_arguments;
+   bool asks_for_help;
+
+   static VerifiedCommandLineArguments askingForHelp();
+
+   static VerifiedCommandLineArguments fromConfigValuesAndPositionalArguments(
+      std::unordered_map<ConfigKeyPath, ConfigValue> config_values,
+      std::vector<std::string> positional_arguments
+   );
 };
 
 }  // namespace silo::config

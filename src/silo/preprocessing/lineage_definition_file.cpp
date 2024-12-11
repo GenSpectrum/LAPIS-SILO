@@ -103,7 +103,7 @@ LineageDefinitionFile LineageDefinitionFile::fromYAMLFile(const std::filesystem:
    std::ifstream file(yaml_path, std::ios::in | std::ios::binary);
    if (!file) {
       throw silo::preprocessing::PreprocessingException(
-         fmt::format("Could not open the YAML file: ", yaml_path.string())
+         fmt::format("Could not open the YAML file: '{}'", yaml_path)
       );
    }
 
@@ -120,7 +120,7 @@ LineageDefinitionFile LineageDefinitionFile::fromYAMLFile(const std::filesystem:
       return fromYAML(contents.str());
    } catch (const YAML::ParserException& parser_exception) {
       throw silo::preprocessing::PreprocessingException(
-         fmt::format("The YAML file {} does not contain valid YAML.", yaml_path)
+         fmt::format("The YAML file '{}' does not contain valid YAML.", yaml_path)
       );
    }
 }

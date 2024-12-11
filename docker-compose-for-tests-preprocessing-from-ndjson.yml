@@ -10,12 +10,3 @@ services:
       - ./logs:/app/logs
     command:
       - "preprocessing"
-      - "--input-directory"
-      - "/preprocessing/input/"
-      - "/preprocessing/input/"
-      - "--intermediate-results-directory"
-      - "/preprocessing/temp/"
-      - "--output-directory"
-      - "/preprocessing/output/"
-      - "--preprocessing-config"
-      - "preprocessing_config.yaml"

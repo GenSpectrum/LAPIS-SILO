@@ -38,29 +38,7 @@ std::string toIsoString(
    const std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>& time_point
 );
 
-template <typename T>
-std::string toDebugString(const std::optional<T>& value) {
-   if (value.has_value()) {
-      return fmt::format("{}", value.value());
-   } else {
-      return fmt::format("null");
-   }
 }
-
-inline std::string toDebugString(const std::string& value) {
-   return fmt::format("'{}'", value);
-}
-
-inline std::string toDebugString(const std::filesystem::path& value) {
-   return fmt::format("'{}'", value);
-}
-
-template <typename T>
-std::string toDebugString(const T& value) {
-   return fmt::format("{}", value);
-}
-
-}  // namespace silo::common
 
 template <>
 struct [[maybe_unused]] fmt::formatter<
@@ -77,9 +55,7 @@ struct [[maybe_unused]] fmt::formatter<
 namespace fmt {
 
 template <>
-struct formatter<nlohmann::json> {
-   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.end(); }
-
+struct formatter<nlohmann::json> : fmt::formatter<std::string> {
    template <typename FormatContext>
    auto format(const nlohmann::json& json, FormatContext& ctx) -> decltype(ctx.out()) {
       return fmt::format_to(ctx.out(), "{}", json.dump());
@@ -87,9 +63,7 @@ struct formatter<nlohmann::json> {
 };
 
 template <>
-struct formatter<YAML::Node> {
-   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.end(); }
-
+struct formatter<YAML::Node> : fmt::formatter<std::string> {
    template <typename FormatContext>
    auto format(const YAML::Node& yaml, FormatContext& ctx) -> decltype(ctx.out()) {
       YAML::Emitter out;

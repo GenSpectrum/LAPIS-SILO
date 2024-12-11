@@ -1,12 +1,9 @@
 #pragma once
 
-//! Part of config metadata, but can't be in `config_metadata.h` due to
-//! that depending on `config/config_source_interface.h` which also
-//! references `ConfigValue`.
-
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -35,16 +32,11 @@ constexpr std::string_view configValueTypeToString(ConfigValueType type) {
    SILO_UNREACHABLE();
 }
 
-// Forward declaration for friend class access
-class ConfigValueSpecification;
-
 class ConfigValue {
-   friend class ConfigValueSpecification;
-
-   ConfigValue(
+   explicit ConfigValue(
       std::variant<std::string, std::filesystem::path, int32_t, uint32_t, uint16_t, bool> value
    )
-       : value(value) {}
+       : value(std::move(value)) {}
 
   public:
    std::variant<std::string, std::filesystem::path, int32_t, uint32_t, uint16_t, bool> value;
@@ -52,7 +44,7 @@ class ConfigValue {
    static ConfigValue fromString(const std::string& value) { return ConfigValue{value}; }
 
    static ConfigValue fromPath(const std::filesystem::path& value) {
-      const ConfigValue result{value};
+      ConfigValue result{value};
       SILO_ASSERT(get_if<std::filesystem::path>(&result.value) != nullptr);
       return result;
    }
@@ -65,55 +57,9 @@ class ConfigValue {
 
    static ConfigValue fromBool(bool value) { return ConfigValue{value}; }
 
-   ConfigValueType getValueType() const;
+   [[nodiscard]] ConfigValueType getValueType() const;
 
-   std::string toString() const;
-};
-
-class ConfigValueSpecification {
-   ConfigValueSpecification() = default;
-
-  public:
-   ConfigKeyPath key;
-   ConfigValueType type;
-   std::optional<ConfigValue> default_value;
-   /// Help as shown for --help, excluding the other info above.
-   /// If type is bool, the command line option does not take an argument but
-   /// is the constant "true", which will be added to the help text
-   std::string_view help_text;
-
-   ConfigValue getValueFromString(std::string value_string) const;
-
-   ConfigValue createValue(
-      std::variant<std::string, std::filesystem::path, int32_t, uint32_t, uint16_t, bool> value
-   ) const;
-
-   static ConfigValueSpecification createWithoutDefault(
-      ConfigKeyPath key,
-      ConfigValueType value_type,
-      std::string_view help_text
-   ) {
-      ConfigValueSpecification value_specification;
-      value_specification.key = key;
-      value_specification.type = value_type;
-      value_specification.help_text = help_text;
-      return value_specification;
-   }
-
-   /// No need for the value_type. It is implicitly defined by the default. Prevents
-   /// misspecification.
-   static ConfigValueSpecification createWithDefault(
-      ConfigKeyPath key,
-      ConfigValue default_value,
-      std::string_view help_text
-   ) {
-      ConfigValueSpecification value_specification;
-      value_specification.key = key;
-      value_specification.type = default_value.getValueType();
-      value_specification.default_value = default_value;
-      value_specification.help_text = help_text;
-      return value_specification;
-   }
+   [[nodiscard]] std::string toString() const;
 };
 
 }  // namespace silo::config

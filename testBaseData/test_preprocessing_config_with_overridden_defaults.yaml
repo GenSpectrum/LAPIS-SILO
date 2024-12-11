@@ -1,8 +1,0 @@
-inputDirectory: "./testBaseData/exampleDataset/"
-outputDirectory: "./output/custom/"
-intermediateResultsDirectory: "./output/overriddenTemp/"
-ndjsonInputFilename: "input_file.ndjson"
-lineageDefinitionsFilename: "lineage_definitions.yaml"
-referenceGenomeFilename: "reference_genomes.json"
-preprocessingDatabaseLocation: "preprocessing.duckdb"
-duckdbMemoryLimitInG: 8

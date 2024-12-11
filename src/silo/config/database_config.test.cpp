@@ -3,7 +3,7 @@
 #include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
 
-#include "silo/config/util/config_exception.h"
+#include "config/config_exception.h"
 
 using silo::config::ColumnType;
 using silo::config::ConfigException;

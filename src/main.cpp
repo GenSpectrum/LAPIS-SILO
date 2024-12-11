@@ -1,21 +1,23 @@
 #include <filesystem>
-#include <iostream>
-#include <variant>
 
-#include <boost/algorithm/string/join.hpp>
+#include <spdlog/spdlog.h>
 
 #include "silo/common/overloaded.h"
+#include "silo/common/panic.h"
+#include "silo/config/config_repository.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/config/runtime_config.h"
-#include "silo/config/util/config_repository.h"
 #include "silo/database.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/preprocessing/preprocessor.h"
 #include "silo_api/api.h"
 #include "silo_api/logging.h"
 
+namespace {
+
 /// Does not throw exceptions
-static int runPreprocessor(const silo::config::PreprocessingConfig& preprocessing_config) {
+int runPreprocessor(const silo::config::PreprocessingConfig& preprocessing_config) {
+   // TODO (#656): move body of siloPreprocessing to preprocessing.{h,cpp} #656
    try {
       auto database_config = silo::config::ConfigRepository().getValidatedConfig(
          preprocessing_config.getDatabaseConfigFilename()
@@ -52,14 +54,14 @@ static int runPreprocessor(const silo::config::PreprocessingConfig& preprocessin
    }
 }
 
-static int runApi(const silo::config::RuntimeConfig& runtime_config) {
-   SiloServer server;
+int runApi(const silo::config::RuntimeConfig& runtime_config) {
+   silo_api::Api server;
    return server.runApi(runtime_config);
 }
 
 enum class ExecutionMode { PREPROCESSING, API };
 
-int mainWhichMayThrowExceptions(int argc, char** argv){
+int mainWhichMayThrowExceptions(int argc, char** argv) {
    setupLogger();
 
    std::vector<std::string> all_args(argv, argv + argc);
@@ -71,23 +73,38 @@ int mainWhichMayThrowExceptions(int argc, char** argv){
    std::span<const std::string> args(all_args.begin() + 1, all_args.end());
 
    ExecutionMode mode;
-   if (!args.empty()) {
-      const std::string& mode_argument = args[0];
-      args = {args.begin() + 1, args.end()};
-      if (mode_argument == "preprocessing") {
-         mode = ExecutionMode::PREPROCESSING;
-      } else if (mode_argument == "api") {
-         mode = ExecutionMode::API;
-      } else {
-         std::cerr << program_name
-                   << ": need either 'preprocessing' or 'api' as the first program argument, got '"
-                   << mode_argument << "'\n";
-         return 1;
-      }
-   } else {
+   if (args.empty()) {
       std::cerr << program_name
                 << ": need either 'preprocessing' or 'api' as the first program argument\n";
       return 1;
+   }
+
+   const std::string& mode_argument = args[0];
+   args = {args.begin() + 1, args.end()};
+   if (mode_argument == "preprocessing") {
+      mode = ExecutionMode::PREPROCESSING;
+   } else if (mode_argument == "api") {
+      mode = ExecutionMode::API;
+   } else {
+      std::cerr << program_name
+                << ": need either 'preprocessing' or 'api' as the first program argument, got '"
+                << mode_argument << "'\n";
+      return 1;
+   }
+
+   std::vector<std::string> env_allow_list;
+   env_allow_list.emplace_back("SILO_PANIC");
+   for (auto& field :
+        silo::config::PreprocessingConfig::getConfigSpecification().attribute_specifications) {
+      env_allow_list.emplace_back(
+         silo::config::EnvironmentVariables::configKeyPathToString(field.key)
+      );
+   }
+   for (auto& field :
+        silo::config::RuntimeConfig::getConfigSpecification().attribute_specifications) {
+      env_allow_list.emplace_back(
+         silo::config::EnvironmentVariables::configKeyPathToString(field.key)
+      );
    }
 
    switch (mode) {
@@ -100,7 +117,7 @@ int mainWhichMayThrowExceptions(int argc, char** argv){
                },
                [&](int32_t exit_code) { return exit_code; }
             },
-            silo::config::getConfig<silo::config::PreprocessingConfig>(args)
+            silo::config::getConfig<silo::config::PreprocessingConfig>(args, env_allow_list)
          );
       case ExecutionMode::API:
          return std::visit(
@@ -111,16 +128,19 @@ int mainWhichMayThrowExceptions(int argc, char** argv){
                },
                [&](int32_t exit_code) { return exit_code; }
             },
-            silo::config::getConfig<silo::config::RuntimeConfig>(args)
+            silo::config::getConfig<silo::config::RuntimeConfig>(args, env_allow_list)
          );
    }
+   SILO_UNREACHABLE();
 }
+
+}  // namespace
 
 int main(int argc, char** argv) {
    try {
       return mainWhichMayThrowExceptions(argc, argv);
    } catch (const std::runtime_error& error) {
       SPDLOG_ERROR("Internal Error: {}", error.what());
-      return 1;
+      return 2;
    }
 }
