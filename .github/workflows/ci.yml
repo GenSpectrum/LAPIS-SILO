@@ -31,7 +31,7 @@ jobs:
           echo "DIR_HASH=$DIR_HASH" >> $GITHUB_ENV
 
       - name: Docker metadata
-        id: dockerMetadata
+        id: dockerMetadataDependencies
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}
@@ -80,7 +80,7 @@ jobs:
           context: .
           file: Dockerfile_dependencies
           push: true
-          tags: ${{ steps.dockerMetadata.outputs.tags }}
+          tags: ${{ steps.dockerMetadataDependencies.outputs.tags }}
           cache-from: type=gha,ref=builder-image-cache-${{ hashFiles('conanfile.py', 'Dockerfile') }}
           cache-to: type=gha,mode=min,ref=builder-image-cache-${{ hashFiles('conanfile.py', 'Dockerfile') }}
           platforms: ${{ matrix.platform }}
@@ -88,14 +88,14 @@ jobs:
       - name: Retag and push existing image if cache hit
         if: env.CACHE_HIT == 'true' && env.PLATFORM_BUILD == 'true'
         run: |
-          TAGS=(${{ steps.dockerMetadata.outputs.tags }})
+          TAGS=(${{ steps.dockerMetadataDependencies.outputs.tags }})
           for TAG in "${TAGS[@]}"; do
             docker buildx imagetools create --tag $TAG ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:${{ env.DIR_HASH }}
           done
 
       - name: Docker metadata
         if: env.PLATFORM_BUILD == 'true'
-        id: dockerMetadata
+        id: dockerMetadataImage
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.DOCKER_IMAGE_NAME }}
@@ -130,6 +130,6 @@ jobs:
           context: .
           push: true
           platforms: ${{ github.ref == 'refs/heads/main' && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
-          tags: ${{ steps.dockerMetadata.outputs.tags }}
+          tags: ${{ steps.dockerMetadataImage.outputs.tags }}
           build-args: |
             DEPENDENCY_IMAGE=ghcr.io/genspectrum/lapis-silo-dependencies:${{ env.DIR_HASH }}
