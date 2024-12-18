@@ -4,9 +4,7 @@ ARG TARGETPLATFORM
 
 RUN apt update && apt dist-upgrade -y \
     && apt install -y \
-    cmake python3-pip
-
-RUN pip install conan==2.8.1
+    cmake apt python3-conan
 
 WORKDIR /src
 COPY conanfile.py conanprofile.docker conanprofile.docker_arm ./
