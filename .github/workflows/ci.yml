@@ -27,7 +27,7 @@ jobs:
       - name: Generate dependency files hash
         id: files-hash
         run: |
-          DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', './Dockerfile_dependencies') }})
+          DIR_HASH=$(echo -n ${{ hashFiles(matrix.platform, 'conanfile.py', 'conanprofile.docker', './Dockerfile_dependencies') }})
           echo "DIR_HASH=$DIR_HASH" >> $GITHUB_ENV
 
       - name: Docker metadata
