@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        args:
+        platform:
           ['linux/amd64', 'linux/arm64']
     permissions:
       packages: write
@@ -61,7 +61,7 @@ jobs:
         if: env.CACHE_HIT == 'false'
         id: platform-check
         run: |
-          if [[ "${{ matrix.platform }}" == "linux/amd64" || "${{ github.event_name }}" == "workflow_dispatch" || "${{ github.ref }}" == "refs/heads/main" ]]; then
+          if [[ "${{ matrix.platform }}" == "linux/amd64" || "${{ github.ref }}" == "refs/heads/main" ]]; then
             echo "PLATFORM_BUILD=true" >> $GITHUB_ENV
           else
             echo "Skipping build for this platform"
@@ -125,6 +125,7 @@ jobs:
           run: ./silo_test
 
       - name: Build and push production image
+        if: env.PLATFORM_BUILD == 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
