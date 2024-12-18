@@ -115,7 +115,7 @@ jobs:
           cache-from: type=gha,ref=${{ github.ref_name }}-image-cache
           cache-to: type=gha,mode=min,ref=${{ github.ref_name }}-image-cache
           build-args: |
-            DEPENDENCY_IMAGE=${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ github.sha }}
+            DEPENDENCY_IMAGE=${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ github.event.pull_request.head.sha }}
 
       - name: Run tests
         if: env.PLATFORM_BUILD == 'true'
