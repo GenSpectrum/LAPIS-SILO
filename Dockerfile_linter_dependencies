@@ -1,5 +1,7 @@
 FROM ubuntu:22.04
 
+ARG TARGETPLATFORM
+
 WORKDIR /src
 
 RUN apt update \
@@ -13,7 +15,7 @@ RUN apt update \
 
 RUN pip install conan==2.8.1
 
-COPY conanfile.py conanprofile.docker ./
+COPY conanfile.py conanprofile.docker conanprofile.docker_arm ./
 RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
         mv conanprofile.docker_arm conanprofile; \
     else \
