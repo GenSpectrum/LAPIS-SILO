@@ -1,17 +1,22 @@
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 ARG TARGETPLATFORM
 
 RUN apt update && apt dist-upgrade -y \
     && apt install -y \
-    cmake python3-pip
-
-RUN pip install conan==2.8.1
-
-RUN apt install -y software-properties-common wget gnupg lsb-release wget jq curl \
+    build-essential cmake python3 pipx software-properties-common wget gnupg lsb-release jq curl \
     && wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc \
     && add-apt-repository 'deb http://apt.llvm.org/jammy/  llvm-toolchain-jammy main' \
     && apt install -y clang-tidy-15
+
+# ensurepath adds a line to .profile
+# which puts the pipx install directory ~/.local/bin into the PATH variable
+RUN python3 -m pipx ensurepath
+# .profile is only sourced on relogin. Dockerfile shells do not login by default.
+# This line tells it to execute all subsequent commands with a prior login
+SHELL ["/bin/bash", "-login", "-c"]
+
+RUN python3 -m pipx install conan==2.8.1
 
 WORKDIR /src
 COPY conanfile.py conanprofile.docker conanprofile.docker_arm ./
