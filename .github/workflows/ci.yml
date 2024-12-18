@@ -157,6 +157,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Determine SHA
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
+          else
+            echo "SHA=${{ github.sha }}" >> $GITHUB_ENV
+          fi
+
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
@@ -173,17 +181,10 @@ jobs:
       - name: Check Format
         run: cd endToEndTests && npm run check-format
 
-      - name: Docker Metadata
-        id: dockerMetadata
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.DOCKER_IMAGE_NAME }}
-          tags: type=ref,event=branch
-
       - name: Start Docker Container and preprocess data
         run: docker compose -f ${{ matrix.preprocessing-docker-compose }} up
         env:
-          SILO_IMAGE: ${{ steps.dockerMetadata.outputs.tags }}
+          SILO_IMAGE: ${{ env.DOCKER_IMAGE_NAME }}:commit-$SHA
 
       - name: Start Docker Container and run api
         run: docker compose -f docker-compose-for-tests-api.yml up -d --wait
