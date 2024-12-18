@@ -39,7 +39,7 @@ jobs:
             type=ref,event=branch
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=${{ env.DIR_HASH }}
-            type=raw,prefix=commit-${{ github.event.pull_request.head.sha }}
+            type=raw,value=commit-${{ github.event.pull_request.head.sha }}
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -102,7 +102,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
-            type=raw,prefix=commit-${{ github.event.pull_request.head.sha }}
+            type=raw,value=commit-${{ github.event.pull_request.head.sha }}
 
       - name: Build unit test image
         if: env.PLATFORM_BUILD == 'true'
