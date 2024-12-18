@@ -190,7 +190,7 @@ jobs:
     env:
       PR_NUMBER: ${{ github.event.number }}
     container:
-      image: ghcr.io/genspectrum/lapis-silo-dependencies:commit-${{ github.sha }}"
+      image: ghcr.io/genspectrum/lapis-silo-dependencies:commit-${{ github.event.pull_request.head.sha }}"
     steps:
       - uses: actions/checkout@v4
 
