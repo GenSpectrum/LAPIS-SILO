@@ -2,6 +2,9 @@ name: LAPIS-SILO
 
 on:
   pull_request:
+  push:
+    branches:
+      - main
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -24,6 +27,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Determine SHA
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
+          else
+            echo "SHA=${{ github.sha }}" >> $GITHUB_ENV
+          fi
+
       - name: Generate dependency files hash
         id: files-hash
         run: |
@@ -39,7 +50,7 @@ jobs:
             type=ref,event=branch
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=${{ env.DIR_HASH }}
-            type=raw,value=commit-${{ github.event.pull_request.head.sha }}
+            type=raw,value=commit-$SHA
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -101,7 +112,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
-            type=raw,value=commit-${{ github.event.pull_request.head.sha }}
+            type=raw,value=commit-$SHA
 
       - name: Build unit test image
         if: env.PLATFORM_BUILD == 'true'
@@ -114,7 +125,7 @@ jobs:
           cache-from: type=gha,ref=${{ github.ref_name }}-image-cache
           cache-to: type=gha,mode=min,ref=${{ github.ref_name }}-image-cache
           build-args: |
-            DEPENDENCY_IMAGE=${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ github.event.pull_request.head.sha }}
+            DEPENDENCY_IMAGE=${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-$SHA
 
       - name: Run tests
         if: env.PLATFORM_BUILD == 'true'
