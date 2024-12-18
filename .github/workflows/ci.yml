@@ -2,6 +2,7 @@ name: LAPIS-SILO
 
 on:
   pull_request:
+  push:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -134,3 +135,105 @@ jobs:
           tags: ${{ steps.dockerMetadataImage.outputs.tags }}
           build-args: |
             DEPENDENCY_IMAGE=ghcr.io/genspectrum/lapis-silo-dependencies:${{ env.DIR_HASH }}
+
+  endToEndTests:
+    name: Run End To End Tests
+    needs: dockerImageUnitTests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        preprocessing-docker-compose: [
+          docker-compose-for-tests-preprocessing-from-ndjson.yml
+        ]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18.x
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: "${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}"
+
+      - name: npm install
+        run: cd endToEndTests && npm ci
+
+      - name: Check Format
+        run: cd endToEndTests && npm run check-format
+
+      - name: Docker Metadata
+        id: dockerMetadata
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_IMAGE_NAME }}
+          tags: type=ref,event=branch
+
+      - name: Start Docker Container and preprocess data
+        run: docker compose -f ${{ matrix.preprocessing-docker-compose }} up
+        env:
+          SILO_IMAGE: ${{ steps.dockerMetadata.outputs.tags }}
+
+      - name: Start Docker Container and run api
+        run: docker compose -f docker-compose-for-tests-api.yml up -d --wait
+        env:
+          SILO_IMAGE: ${{ steps.dockerMetadata.outputs.tags }}
+
+      - name: Run Tests
+        run: cd endToEndTests && SILO_URL=localhost:8080 npm run test
+
+  linterChanges:
+    name: Build And Run linter
+    needs: dockerImageUnitTests
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      PR_NUMBER: ${{ github.event.number }}
+    container:
+      image: ghcr.io/genspectrum/lapis-silo-dependencies:commit-${{ github.sha }}"
+    steps:
+      - uses: actions/checkout@v4
+
+      - shell: bash
+        name: Configure and run clang-tidy on changed files
+        run: |
+          mv /src/build .
+          cmake -DBUILD_WITH_CLANG_TIDY=on -D CMAKE_BUILD_TYPE=Debug -B build/Debug
+          echo "Successfully configured cmake"
+          files=""
+          PAGE=1  
+          while true; do
+            page_files=$(curl -s \
+           "https://api.github.com/repos/${{ github.repository }}/pulls/${PR_NUMBER}/files?per_page=100&page=$PAGE" \
+           | jq -r '.[] | select(.status != "removed") | .filename')
+            # If there are no more files, break the loop
+            if [[ -z "$page_files" ]]; then
+              break
+            fi
+            files+="$page_files"$'\n'
+            PAGE=$((PAGE + 1))
+          done
+          
+          echo "Changed files of this PR:"
+          echo "$files"
+          IFS=$'\n'
+          for file in $files; do
+            echo "Check ending for file: $file"
+            if [[ $file == *.cpp ]]; then
+              echo "Now linting the file: $file"
+              echo "cmake --build build/Debug --target ${file%.cpp}.o"
+              cmake --build build/Debug --target ${file%.cpp}.o
+            fi
+          done
+
+
+  linterAll:
+    name: Build And Run linter
+    needs: dockerImageUnitTests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'refs/heads/main'
+    steps:
+
+
