@@ -10,7 +10,7 @@ RUN  \
     && cp build/Release/silo .
 
 
-FROM ubuntu:22.04 AS server
+FROM ubuntu:24.04 AS server
 
 WORKDIR /app
 COPY docker_default_preprocessing_config.yaml ./default_preprocessing_config.yaml
