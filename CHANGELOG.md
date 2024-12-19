@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.5.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.4.0...v0.5.0) (2024-12-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* new command line / config system
+
+### Features
+
+* add materializationCutoff option ([8920d5f](https://github.com/GenSpectrum/LAPIS-SILO/commit/8920d5ff7af6906aa55f4a5b034e11c631df2955))
+* new command line / config system ([2a29074](https://github.com/GenSpectrum/LAPIS-SILO/commit/2a2907493fd8ce28d93fb73ccfdc205396a17e35)), closes [#633](https://github.com/GenSpectrum/LAPIS-SILO/issues/633)
+
+
+### Bug Fixes
+
+* declare virtual constructor for abstract base class CustomSqlFunction ([603ddf6](https://github.com/GenSpectrum/LAPIS-SILO/commit/603ddf6f23595de390dac4899411177f95fec022))
+
 ## [0.4.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.3.2...v0.4.0) (2024-11-14)
 
 
