@@ -95,14 +95,16 @@ The precendence is `CLI argument > Environment Variable > Configuration File > D
 The preprocessing acts as a program that takes an input directory that contains the to-be-processed data
 and an output directory where the processed data will be stored.
 Both need to be mounted to the container.
-SILO also expects a database config and a preprocessing config that need to be mounted to the default locations.
+
+SILO expects a preprocessing config that can to be mounted to the default location `/app/preprocessing_config.yaml`.
+
+Additionally, a database config and a ndjson file containing the data are required. They should typically be mounted in `/preprocessing/input`.
 
 ```shell
 docker run \
   -v your/input/directory:/preprocessing/input \
   -v your/preprocessing/output:/preprocessing/output \
-  -v your/preprocessing_config.yaml:/app/preprocessing_config.yaml \
-  -v your/database_config.yaml:/app/database_config.yaml \
+  -v your/preprocessing_config.yaml:/app/preprocessing_config.yaml
   silo preprocessing
 ```
 
