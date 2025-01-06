@@ -74,14 +74,21 @@ void from_json(const nlohmann::json& json, std::unique_ptr<IntBetween>& filter) 
       json["column"].is_string(), "The field 'column' in a IntBetween expression must be a string"
    );
    CHECK_SILO_QUERY(json.contains("from"), "The field 'from' is required in IntBetween expression");
+   bool value_from_in_allowed_range =
+      json["from"].is_number_integer() &&
+      json["from"].get<int32_t>() != storage::column::IntColumn::null();
    CHECK_SILO_QUERY(
-      json["from"].is_null() || json["from"].is_number_integer(),
-      "The field 'from' in a IntBetween expression must be an int or null"
+      value_from_in_allowed_range || json["from"].is_null(),
+      "The field 'from' in an IntBetween expression must be an integer in [-2147483647; "
+      "2147483647] or null"
    );
    CHECK_SILO_QUERY(json.contains("to"), "The field 'to' is required in a IntBetween expression");
+   bool value_to_in_allowed_range = json["to"].is_number_integer() &&
+                                    json["to"].get<int32_t>() != storage::column::IntColumn::null();
    CHECK_SILO_QUERY(
-      json["to"].is_null() || json["to"].is_number_integer(),
-      "The field 'to' in a IntBetween expression must be an int or null"
+      value_to_in_allowed_range || json["to"].is_null(),
+      "The field 'to' in an IntBetween expression must be an integer in [-2147483647; 2147483647] "
+      "or null"
    );
    const std::string& column_name = json["column"];
    std::optional<int32_t> value_from;

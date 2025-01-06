@@ -54,9 +54,12 @@ void from_json(const nlohmann::json& json, std::unique_ptr<IntEquals>& filter) {
    CHECK_SILO_QUERY(
       json.contains("value"), "The field 'value' is required in an IntEquals expression"
    );
+   bool value_in_allowed_range = json["value"].is_number_integer() &&
+                                 json["value"].get<int32_t>() != storage::column::IntColumn::null();
    CHECK_SILO_QUERY(
-      json["value"].is_number_integer() || json["value"].is_null(),
-      "The field 'value' in an IntEquals expression must be an integer or null"
+      value_in_allowed_range || json["value"].is_null(),
+      "The field 'value' in an IntEquals expression must be an integer in [-2147483647; "
+      "2147483647] or null"
    );
    const std::string& column = json["column"];
    const int32_t& value =
