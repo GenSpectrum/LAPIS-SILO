@@ -141,6 +141,30 @@ const QueryTestScenario INT_BETWEEN_WITH_FROM_AND_TO_NULL_SCENARIO = {
        {{"primaryKey", "id_3"}, {"int_value", VALUE_ABOVE_FILTER}}}
    )
 };
+
+const QueryTestScenario INT_EQUALS_WITH_INVALID_VALUE = {
+   .name = "intEqualsWithInvalidValue",
+   .query = createIntEqualsQuery("int_value", INT32_MIN),
+   .expected_error_message =
+      "The field 'value' in an IntEquals expression must be an integer in [-2147483647; "
+      "2147483647] or null"
+};
+
+const QueryTestScenario INT_BETWEEN_WITH_INVALID_FROM_VALUE = {
+   .name = "intBetweenWithInvalidFromValue",
+   .query = createIntBetweenQuery("int_value", INT32_MIN, 1),
+   .expected_error_message =
+      "The field 'from' in an IntBetween expression must be an integer in [-2147483647; "
+      "2147483647] or null"
+};
+
+const QueryTestScenario INT_BETWEEN_WITH_INVALID_TO_VALUE = {
+   .name = "intBetweenWithInvalidToValue",
+   .query = createIntBetweenQuery("int_value", 0, INT32_MIN),
+   .expected_error_message =
+      "The field 'to' in an IntBetween expression must be an integer in [-2147483647; 2147483647] "
+      "or null"
+};
 }  // namespace
 
 QUERY_TEST(
@@ -152,6 +176,9 @@ QUERY_TEST(
       INT_BETWEEN_WITH_FROM_AND_TO_SCENARIO,
       INT_BETWEEN_WITH_FROM_SCENARIO,
       INT_BETWEEN_WITH_TO_SCENARIO,
-      INT_BETWEEN_WITH_FROM_AND_TO_NULL_SCENARIO
+      INT_BETWEEN_WITH_FROM_AND_TO_NULL_SCENARIO,
+      INT_EQUALS_WITH_INVALID_VALUE,
+      INT_BETWEEN_WITH_INVALID_FROM_VALUE,
+      INT_BETWEEN_WITH_INVALID_TO_VALUE
    )
 );
