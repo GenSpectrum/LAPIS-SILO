@@ -34,14 +34,10 @@ namespace silo::config {
 
 std::optional<ConfigAttributeSpecification> ConfigSpecification::
    getAttributeSpecificationFromAmbiguousKey(const AmbiguousConfigKeyPath& key) const {
-   // TODO(#663)
-   auto maybe_result = std::find_if(
-      attribute_specifications.begin(),
-      attribute_specifications.end(),
-      [&](const auto& attribute_spec) {
+   auto maybe_result =
+      std::ranges::find_if(attribute_specifications, [&](const auto& attribute_spec) {
          return AmbiguousConfigKeyPath::from(attribute_spec.key) == key;
-      }
-   );
+      });
    if (maybe_result == attribute_specifications.end()) {
       return std::nullopt;
    }
@@ -51,12 +47,10 @@ std::optional<ConfigAttributeSpecification> ConfigSpecification::
 std::optional<ConfigAttributeSpecification> ConfigSpecification::getAttributeSpecification(
    const ConfigKeyPath& key
 ) const {
-   // TODO(#663)
-   auto maybe_result = std::find_if(
-      attribute_specifications.begin(),
-      attribute_specifications.end(),
-      [&](const auto& attribute_spec) { return attribute_spec.key == key; }
-   );
+   auto maybe_result =
+      std::ranges::find_if(attribute_specifications, [&](const auto& attribute_spec) {
+         return attribute_spec.key == key;
+      });
    if (maybe_result == attribute_specifications.end()) {
       return std::nullopt;
    }

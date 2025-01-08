@@ -106,7 +106,7 @@ AmbiguousConfigKeyPath EnvironmentVariables::stringToConfigKeyPath(
          const ConfigValue value = attribute_spec.parseValueFromString(value_string);
          config_values.emplace(attribute_spec.key, value);
       } else {
-         if (std::find(allow_list.begin(), allow_list.end(), key_string) != allow_list.end()) {
+         if (std::ranges::find(allow_list, key_string) != allow_list.end()) {
             SPDLOG_INFO(
                "Given env variable '{}' is not a valid key for '{}' but in allow_list.",
                key_string,
