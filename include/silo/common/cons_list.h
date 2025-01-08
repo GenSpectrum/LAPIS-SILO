@@ -4,6 +4,7 @@
 //! (no reference counting). This is meant to be used with recursive
 //! algorithms to maintain a path back up.
 
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -62,7 +63,7 @@ class ConsList {
       // then set Vec slots via index, but that needs Default and
       // writes to memory twice, too), right?
       std::vector<T> values = toVec();
-      std::reverse(values.begin(), values.end());
+      std::ranges::reverse(values);
       return values;
    }
 };
