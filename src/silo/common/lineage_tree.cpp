@@ -102,8 +102,7 @@ std::optional<std::vector<Idx>> Graph::getCycle() const {
             // We need to remove leading vertices up until the cycle
             SILO_ASSERT_GE(witness_lasso.value().size(), 2UL);
             const Idx cycle_node = witness_lasso.value().back();
-            auto cycle_node_first_occurrence =
-               std::find(witness_lasso.value().begin(), witness_lasso.value().end(), cycle_node);
+            auto cycle_node_first_occurrence = std::ranges::find(witness_lasso.value(), cycle_node);
             SILO_ASSERT(cycle_node_first_occurrence < witness_lasso.value().end());
             witness_lasso.value().erase(witness_lasso.value().begin(), cycle_node_first_occurrence);
             return witness_lasso;

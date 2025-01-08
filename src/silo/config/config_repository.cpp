@@ -80,12 +80,10 @@ void validatePartitionBy(const DatabaseConfig& config) {
 
    const std::string partition_by = config.schema.partition_by.value();
 
-   // TODO(#663)
-   const auto& partition_by_metadata = std::find_if(
-      config.schema.metadata.begin(),
-      config.schema.metadata.end(),
-      [&](const DatabaseMetadata& metadata) { return metadata.name == partition_by; }
-   );
+   const auto& partition_by_metadata =
+      std::ranges::find_if(config.schema.metadata, [&](const DatabaseMetadata& metadata) {
+         return metadata.name == partition_by;
+      });
    if (partition_by_metadata == config.schema.metadata.end()) {
       throw ConfigException("partitionBy '" + partition_by + "' is not in metadata");
    }
