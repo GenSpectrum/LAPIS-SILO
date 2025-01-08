@@ -36,7 +36,6 @@ jobs:
           fi
 
       - name: Generate dependency files hash
-        id: files-hash
         run: |
           DIR_HASH=$(echo -n ${{ hashFiles(matrix.platform, 'conanfile.py', 'conanprofile.docker', './Dockerfile_dependencies') }})
           echo "DIR_HASH=$DIR_HASH" >> $GITHUB_ENV
@@ -61,19 +60,17 @@ jobs:
 
       - name: Check if image exists
         run: |
-          EXISTS=$(docker manifest inspect ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:${{ env.DIR_HASH }} > /dev/null 2>&1 && echo "true" || echo "false")
+          EXISTS=$(docker manifest inspect ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:filehash-${{ env.DIR_HASH }} > /dev/null 2>&1 && echo "true" || echo "false")
           echo "CACHE_HIT=$EXISTS" >> $GITHUB_ENV
 
       - name: Determine platform build necessity
-        id: platform-check
         run: |
           if [[ "${{ matrix.platform }}" == "linux/amd64" || "${{ github.ref }}" == "refs/heads/main" ]]; then
             echo "PLATFORM_BUILD=true" >> $GITHUB_ENV
           else
-            echo "Skipping build for this platform"
+            echo "Skipping build for platform ${{ matrix.platform }}"
             echo "PLATFORM_BUILD=false" >> $GITHUB_ENV
           fi
-        shell: bash
 
       - name: Set up Docker Buildx
         if: env.PLATFORM_BUILD == 'true'
