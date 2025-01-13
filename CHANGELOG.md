@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.5.0...v0.5.1) (2025-01-07)
+
+
+### Bug Fixes
+
+* return an error if reserved value INT32_MIN is used in filter ([042646b](https://github.com/GenSpectrum/LAPIS-SILO/commit/042646be296d7a8d68736ad3b0d8da6715f51c92))
+
 ## [0.5.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.4.0...v0.5.0) (2024-12-19)
 
 
