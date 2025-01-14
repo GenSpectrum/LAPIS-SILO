@@ -8,4 +8,4 @@ WORKDIR /src
 COPY . ./
 
 RUN cmake -D BUILD_WITH_CLANG_TIDY=ON -D CMAKE_BUILD_TYPE=Debug -B build/Debug
-RUN cmake --build build/Debug
+RUN cmake --build build/Debug --parallel $THREADS
