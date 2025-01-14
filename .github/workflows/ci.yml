@@ -15,19 +15,23 @@ env:
   DOCKER_IMAGE_NAME: ghcr.io/genspectrum/lapis-silo
 
 jobs:
-  dockerImageUnitTests:
-    name: Build Docker Image and Run Unit Tests
+  dockerImage:
+    name: Build docker images
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        os:
-          ['linux']
-        arch:
-          ['amd64', 'arm64']
     permissions:
       packages: write
     steps:
       - uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Determine HEAD_SHA
         run: |
@@ -42,114 +46,99 @@ jobs:
           DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', './Dockerfile_dependencies') }})
           echo "DIR_HASH=$DIR_HASH" >> $GITHUB_ENV
 
-      - name: Docker metadata
-        id: dockerMetadataDependencies
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=filehash-${{ matrix.os }}-${{ matrix.arch }}-${{ env.DIR_HASH }}
-            type=raw,value=commit-${{ env.HEAD_SHA }}
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Check if image exists
         run: |
-          EXISTS=$(docker manifest inspect ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:filehash-${{ matrix.os }}-${{ matrix.arch }}-${{ env.DIR_HASH }} > /dev/null 2>&1 && echo "true" || echo "false")
+          EXISTS=$(docker manifest inspect \
+            ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:filehash-${{ env.DIR_HASH }} > /dev/null 2>&1 && echo "true" || echo "false")
           echo "CACHE_HIT=$EXISTS" >> $GITHUB_ENV
 
-      - name: Determine platform build necessity
+      - name: Determine platforms for build
         run: |
-          if [[ "${{ matrix.arch }}" == "amd64" || "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "PLATFORM_BUILD=true" >> $GITHUB_ENV
-          else
-            echo "Skipping build for platform ${{ matrix.os }}/${{ matrix.arch }}"
-            echo "PLATFORM_BUILD=false" >> $GITHUB_ENV
+          echo "PLATFORMS=amd64 " >> $GITHUB_ENV
+
+          # Write the current labels to a file
+          cat <<EOF > event.json
+          ${{ toJSON(github.event.pull_request.labels) }}
+          EOF
+
+          # Check if we are on main or the PR has the label 'arm-image'
+          if [[ "$GITHUB_REF" == "refs/heads/main" ]] || jq -e '.[] | select(.name == "arm-image")' event.json > /dev/null; then
+            echo "PLATFORMS+=arm64" >> $GITHUB_ENV
+            EXISTS=$(docker manifest inspect \
+              ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:filehash-${{ env.DIR_HASH }} \
+              | jq '.manifests | map(.platform.architecture) | contains(["arm64"])') > /dev/null 2>&1 && echo "true" || echo "false"
+            echo "CACHE_HIT=$EXISTS" >> $GITHUB_ENV
           fi
 
-      - name: Set up Docker Buildx
-        if: env.PLATFORM_BUILD == 'true'
-        uses: docker/setup-buildx-action@v3
-
       - name: Build and push image if input files changed
-        if: env.CACHE_HIT == 'false' && env.PLATFORM_BUILD == 'true'
+        if: env.CACHE_HIT == 'false'
         uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile_dependencies
           push: true
-          tags: ${{ steps.dockerMetadataDependencies.outputs.tags }}
+          tags: ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:filehash-${{ env.DIR_HASH }}
           cache-from: type=gha,ref=builder-image-cache-${{ hashFiles('conanfile.py', 'Dockerfile') }}
           cache-to: type=gha,mode=min,ref=builder-image-cache-${{ hashFiles('conanfile.py', 'Dockerfile') }}
-          platforms: "${{ matrix.os }}/${{ matrix.arch }}"
+          platforms: ${{ env.PLATFORMS }}
 
-      - name: Retag and push existing image if cache hit
-        if: env.CACHE_HIT == 'true' && env.PLATFORM_BUILD == 'true'
+      - name: Tag dependency image with commit hash
         run: |
-          TAGS=(${{ steps.dockerMetadataDependencies.outputs.tags }})
-          for TAG in "${TAGS[@]}"; do
-            docker buildx imagetools create --tag $TAG ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:filehash-${{ matrix.os }}-${{ matrix.arch }}-${{ env.DIR_HASH }}
-          done
+          docker buildx imagetools create \
+            --tag ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }} \
+            ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:filehash-${{ env.DIR_HASH }}
 
       - name: Docker metadata
-        if: env.PLATFORM_BUILD == 'true'
         id: dockerMetadataImage
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.DOCKER_IMAGE_NAME }}
           tags: |
             type=ref,event=branch
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=commit-${{ env.HEAD_SHA }}
 
-      - name: Build unit test image
-        if: env.PLATFORM_BUILD == 'true'
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          target: builder
-          tags: builder
-          load: true
-          platforms: "${{ matrix.os }}/${{ matrix.arch }}"
-          cache-from: type=gha,ref=${{ github.ref_name }}-image-cache
-          cache-to: type=gha,mode=min,ref=${{ github.ref_name }}-image-cache
-          build-args: |
-            DEPENDENCY_IMAGE=${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}
-
-      - name: Run unit tests
-        if: env.PLATFORM_BUILD == 'true'
-        run: |
-          docker run \
-            --platform "${{ matrix.os }}/${{ matrix.arch }}" \
-            --entrypoint "./silo_test" \
-            builder
-
       - name: Build and push production image
-        if: env.PLATFORM_BUILD == 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          platforms: "${{ matrix.os }}/${{ matrix.arch }}"
+          platforms: ${{ env.PLATFORMS }}
           cache-from: type=gha,ref=${{ github.ref_name }}-image-cache
           cache-to: type=gha,mode=min,ref=${{ github.ref_name }}-image-cache
           tags: ${{ steps.dockerMetadataImage.outputs.tags }}
           build-args: |
             DEPENDENCY_IMAGE=${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}
 
+      - name: Build unit test image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: builder
+          tags: builder
+          load: true
+          cache-from: type=gha,ref=${{ github.ref_name }}-image-cache
+          cache-to: type=gha,mode=min,ref=${{ github.ref_name }}-image-cache
+          build-args: |
+            DEPENDENCY_IMAGE=${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}
+
+      - name: Run unit tests
+        run: |
+          docker run \
+            --entrypoint "./silo_test" \
+            builder
+
   endToEndTests:
     name: Run End To End Tests
-    needs: dockerImageUnitTests
+    needs: dockerImage
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18.x
 
       - name: Determine HEAD_SHA
         run: |
@@ -158,11 +147,6 @@ jobs:
           else
             echo "HEAD_SHA=${{ github.sha }}" >> $GITHUB_ENV
           fi
-
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18.x
 
       - uses: actions/cache@v4
         with:
@@ -189,8 +173,8 @@ jobs:
         run: cd endToEndTests && SILO_URL=localhost:8080 npm run test
 
   linterChanges:
-    name: Build And Run linter
-    needs: dockerImageUnitTests
+    name: Build/Run linter on changed files
+    needs: dockerImage
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     env:

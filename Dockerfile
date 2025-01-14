@@ -1,4 +1,4 @@
-ARG DEPENDENCY_IMAGE=ghcr.io/genspectrum/lapis-silo-dependencies:latest
+ARG DEPENDENCY_IMAGE
 
 FROM $DEPENDENCY_IMAGE AS builder
 
