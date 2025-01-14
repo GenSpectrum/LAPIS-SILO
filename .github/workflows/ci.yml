@@ -60,23 +60,35 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check if image exists
-        run: |
-          EXISTS=$(docker manifest inspect ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:filehash-${{ matrix.os }}-${{ matrix.arch }}-${{ env.DIR_HASH }} > /dev/null 2>&1 && echo "true" || echo "false")
-          echo "CACHE_HIT=$EXISTS" >> $GITHUB_ENV
-
       - name: Determine platform build necessity
         run: |
-          if [[ "${{ matrix.arch }}" == "amd64" || "${{ github.ref }}" == "refs/heads/main" ]]; then
+          # Default PLATFORM_BUILD to false
+          echo "PLATFORM_BUILD=false" >> $GITHUB_ENV
+
+          # Check if architecture is amd64
+          if [[ "${{ matrix.arch }}" == "amd64" ]]; then
             echo "PLATFORM_BUILD=true" >> $GITHUB_ENV
-          else
-            echo "Skipping build for platform ${{ matrix.os }}/${{ matrix.arch }}"
-            echo "PLATFORM_BUILD=false" >> $GITHUB_ENV
+          fi
+
+          # Check if branch is main
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "PLATFORM_BUILD=true" >> $GITHUB_ENV
+          fi
+
+          # Check if the PR has the label 'arm-image'
+          if [[ "${{ github.event.pull_request.labels.*.name }}" == *'arm-image'* ]]; then
+            echo "PLATFORM_BUILD=true" >> $GITHUB_ENV
           fi
 
       - name: Set up Docker Buildx
         if: env.PLATFORM_BUILD == 'true'
         uses: docker/setup-buildx-action@v3
+
+      - name: Check if image exists
+        if: env.PLATFORM_BUILD == 'true'
+        run: |
+          EXISTS=$(docker manifest inspect ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:filehash-${{ matrix.os }}-${{ matrix.arch }}-${{ env.DIR_HASH }} > /dev/null 2>&1 && echo "true" || echo "false")
+          echo "CACHE_HIT=$EXISTS" >> $GITHUB_ENV
 
       - name: Build and push image if input files changed
         if: env.CACHE_HIT == 'false' && env.PLATFORM_BUILD == 'true'
