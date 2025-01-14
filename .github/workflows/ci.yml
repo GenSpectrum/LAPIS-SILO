@@ -20,8 +20,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        platform:
-          ['linux/amd64', 'linux/arm64']
+        os:
+          ['linux']
+        arch:
+          ['amd64', 'arm64']
     permissions:
       packages: write
     steps:
@@ -37,7 +39,7 @@ jobs:
 
       - name: Generate dependency files hash
         run: |
-          DIR_HASH=$(echo -n ${{ hashFiles(matrix.platform, 'conanfile.py', 'conanprofile.docker', './Dockerfile_dependencies') }})
+          DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', './Dockerfile_dependencies') }})
           echo "DIR_HASH=$DIR_HASH" >> $GITHUB_ENV
 
       - name: Docker metadata
@@ -48,7 +50,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=filehash-${{ env.DIR_HASH }}
+            type=raw,value=filehash-${{ matrix.os }}-${{ matrix.arch }}-${{ env.DIR_HASH }}
             type=raw,value=commit-${{ env.HEAD_SHA }}
 
       - name: Login to GitHub Container Registry
@@ -60,15 +62,15 @@ jobs:
 
       - name: Check if image exists
         run: |
-          EXISTS=$(docker manifest inspect ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:filehash-${{ env.DIR_HASH }} > /dev/null 2>&1 && echo "true" || echo "false")
+          EXISTS=$(docker manifest inspect ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:filehash-${{ matrix.os }}-${{ matrix.arch }}-${{ env.DIR_HASH }} > /dev/null 2>&1 && echo "true" || echo "false")
           echo "CACHE_HIT=$EXISTS" >> $GITHUB_ENV
 
       - name: Determine platform build necessity
         run: |
-          if [[ "${{ matrix.platform }}" == "linux/amd64" || "${{ github.ref }}" == "refs/heads/main" ]]; then
+          if [[ "${{ matrix.arch }}" == "amd64" || "${{ github.ref }}" == "refs/heads/main" ]]; then
             echo "PLATFORM_BUILD=true" >> $GITHUB_ENV
           else
-            echo "Skipping build for platform ${{ matrix.platform }}"
+            echo "Skipping build for platform ${{ matrix.os }}/${{ matrix.arch }}"
             echo "PLATFORM_BUILD=false" >> $GITHUB_ENV
           fi
 
@@ -86,14 +88,14 @@ jobs:
           tags: ${{ steps.dockerMetadataDependencies.outputs.tags }}
           cache-from: type=gha,ref=builder-image-cache-${{ hashFiles('conanfile.py', 'Dockerfile') }}
           cache-to: type=gha,mode=min,ref=builder-image-cache-${{ hashFiles('conanfile.py', 'Dockerfile') }}
-          platforms: ${{ matrix.platform }}
+          platforms: ${{ matrix.os }}/${{ matrix.arch }}
 
       - name: Retag and push existing image if cache hit
         if: env.CACHE_HIT == 'true' && env.PLATFORM_BUILD == 'true'
         run: |
           TAGS=(${{ steps.dockerMetadataDependencies.outputs.tags }})
           for TAG in "${TAGS[@]}"; do
-            docker buildx imagetools create --tag $TAG ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:filehash-${{ env.DIR_HASH }}
+            docker buildx imagetools create --tag $TAG ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:filehash-${{ matrix.os }}-${{ matrix.arch }}-${{ env.DIR_HASH }}
           done
 
       - name: Docker metadata
