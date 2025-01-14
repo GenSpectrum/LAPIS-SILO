@@ -22,4 +22,4 @@ RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
     fi
 
 RUN conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build/Release/generators
-RUN conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build/Debug/generators
+RUN conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --settings "&:build_type=Debug" --output-folder=build/Debug/generators

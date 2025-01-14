@@ -9,6 +9,7 @@ def clean_build_folder(build_folder: str):
     if os.path.exists(build_folder):
         shutil.rmtree(build_folder)
 
+
 def run_cmd(context: str, cmd: str):
     print("----------------------------------")
     print(cmd)
@@ -16,6 +17,7 @@ def run_cmd(context: str, cmd: str):
 
     if subprocess.call(cmd, shell=True) != 0:
         raise Exception(f"{context} command failed.")
+
 
 def main(args):
     cmake_options = []
@@ -30,7 +32,8 @@ def main(args):
     else:
         build_folder = "build/Debug"
         cmake_options.append("-D CMAKE_BUILD_TYPE=Debug")
-        conan_options.append("-s build_type=Debug")
+        # We still want to have our dependencies in Release, but the & tells conan we will build the consumer as Debug
+        conan_options.append("--settings '&:build_type=Debug'")
         conan_options.append("--output-folder=build/Debug/generators")
 
     if args.clean:
