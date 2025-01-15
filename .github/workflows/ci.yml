@@ -123,12 +123,13 @@ jobs:
           build-args: |
             DEPENDENCY_IMAGE=${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}
 
-      - name: Run tests
+      - name: Run unit tests
         if: env.PLATFORM_BUILD == 'true'
-        uses: addnab/docker-run-action@v3
-        with:
-          image: builder
-          run: ./silo_test
+        run: |
+          docker run \
+            --platform "${{ matrix.os }}/${{ matrix.arch }}" \
+            --entrypoint "./silo_test" \
+            builder
 
       - name: Build and push production image
         if: env.PLATFORM_BUILD == 'true'
