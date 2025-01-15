@@ -75,8 +75,13 @@ jobs:
             echo "PLATFORM_BUILD=true" >> $GITHUB_ENV
           fi
 
+          # Write the current labels to a file
+          cat <<EOF > event.json
+          ${{ toJSON(github.event.pull_request.labels) }}
+          EOF
+
           # Check if the PR has the label 'arm-image'
-          if [[ "${{ github.event.pull_request.labels.*.name }}" == *'arm-image'* ]]; then
+          if jq -e '[]?.name | select(. == "arm-image")' event.json > /dev/null; then
             echo "PLATFORM_BUILD=true" >> $GITHUB_ENV
           fi
 
