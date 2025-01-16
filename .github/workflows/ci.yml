@@ -189,7 +189,7 @@ jobs:
         run: cd endToEndTests && SILO_URL=localhost:8080 npm run test
 
   linterChanges:
-    name: Build And Run linter
+    name: Build/Run linter on changed files
     needs: dockerImageUnitTests
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -231,3 +231,20 @@ jobs:
               cmake --build build/Debug --target ${file%.cpp}.o
             fi
           done
+
+  linterAll:
+    name: Build/Run linter on all files
+    needs: dockerImageUnitTests
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/genspectrum/lapis-silo-dependencies:commit-${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - shell: bash
+        name: Configure and run clang-tidy on changed files
+        run: |
+          mv /src/build .
+          cmake -DBUILD_WITH_CLANG_TIDY=on -D CMAKE_BUILD_TYPE=Debug -B build/Debug
+          cmake --build build/Debug
