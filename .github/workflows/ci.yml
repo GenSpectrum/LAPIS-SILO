@@ -81,7 +81,7 @@ jobs:
           EOF
 
           # Check if the PR has the label 'arm-image'
-          if jq -e '[]?.name | select(. == "arm-image")' event.json > /dev/null; then
+          if jq -e '.[] | select(.name == "arm-image")' event.json > /dev/null; then
             echo "PLATFORM_BUILD=true" >> $GITHUB_ENV
           fi
 
