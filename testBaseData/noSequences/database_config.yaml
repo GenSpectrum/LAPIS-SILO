@@ -1,7 +1,0 @@
-schema:
-  instanceName: RSV A
-  opennessLevel: OPEN
-  metadata:
-    - name: accessionVersion
-      type: string
-  primaryKey: accessionVersion
