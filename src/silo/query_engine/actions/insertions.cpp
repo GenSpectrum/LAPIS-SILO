@@ -89,8 +89,7 @@ InsertionAggregation<SymbolType>::validateFieldsAndPreFilterBitmaps(
       for (auto& [sequence_name, sequence_store] :
            database_partition.getSequenceStores<SymbolType>()) {
          if (sequence_names.empty() ||
-             std::ranges::find(sequence_names, sequence_name) !=
-                sequence_names.end()) {
+             std::ranges::find(sequence_names, sequence_name) != sequence_names.end()) {
             CopyOnWriteBitmap& filter = bitmap_filter[i];
             const size_t cardinality = filter->cardinality();
             if (cardinality == 0) {
