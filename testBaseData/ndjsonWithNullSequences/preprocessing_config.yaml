@@ -1,3 +1,0 @@
-inputDirectory: "testBaseData/ndjsonWithNullSequences"
-ndjsonInputFilename: "input_file.ndjson"
-referenceGenomeFilename: "reference_genomes.json"
