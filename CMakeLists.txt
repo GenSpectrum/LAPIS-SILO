@@ -30,7 +30,7 @@ set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${CMAKE_BINARY_DIR}/generators/")
 # ---------------------------------------------------------------------------
 
 execute_process(
-        COMMAND git describe --tags --match "v*"
+        COMMAND cat version.txt
         OUTPUT_VARIABLE VERSION
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -40,7 +40,7 @@ if (VERSION_AVAILABLE EQUAL 0)
     message(STATUS "Version: ${VERSION}")
     add_compile_definitions(SILO_VERSION="${VERSION}")
 else ()
-    message(STATUS "Unable to determine the version")
+    message(STATUS "No version.txt available for setting the version")
 endif()
 
 # ---------------------------------------------------------------------------

@@ -37,6 +37,10 @@ jobs:
             echo "HEAD_SHA=${{ github.sha }}" >> $GITHUB_ENV
           fi
 
+      - name: Update version.txt to contain the precise version of this commit
+        run: |
+          awk '{print $0 "-$HEAD_SHA"}' version.txt > temp.txt && mv temp.txt version.txt
+
       - name: Generate dependency files hash
         run: |
           DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', './Dockerfile_dependencies') }})
