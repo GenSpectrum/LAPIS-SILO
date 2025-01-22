@@ -2,9 +2,10 @@ name: LAPIS-SILO
 
 on:
   pull_request:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows: [Release SILO]
+    types: [completed]
+    branches: [main]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -19,8 +20,7 @@ jobs:
     name: Build docker images
     strategy:
       matrix:
-        arch:
-          ['amd64', 'arm64']
+        arch: ["amd64", "arm64"]
     runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-22.04-arm' || 'ubuntu-latest' }}
     permissions:
       packages: write
@@ -74,6 +74,19 @@ jobs:
             --tag ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-${{ matrix.arch }} \
             ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:filehash-${{ env.DIR_HASH }}-${{ matrix.arch }}
 
+      - name: Write release_version.txt
+        run: |
+          if git describe --tags --exact-match >/dev/null 2>&1; then
+            echo "Using release version from git tag"
+            VERSION=$(git describe --tags --exact-match | sed 's/^v//')
+          else
+            echo "Using release version from commit hash"
+            VERSION="${{ env.HEAD_SHA }}"
+          fi
+
+          echo "Using release version: $VERSION"
+          echo "$VERSION" > release_version.txt
+
       - name: Build unit test image
         uses: docker/build-push-action@v6
         with:
@@ -102,7 +115,6 @@ jobs:
           tags: ${{ env.DOCKER_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-${{ matrix.arch }}
           build-args: |
             DEPENDENCY_IMAGE=${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-${{ matrix.arch }}
-
 
   multiPlatformImages:
     name: Create multi-platform images
@@ -221,7 +233,7 @@ jobs:
             files+="$page_files"$'\n'
             PAGE=$((PAGE + 1))
           done
-          
+
           echo "Changed files of this PR:"
           echo "$files"
           IFS=$'\n'

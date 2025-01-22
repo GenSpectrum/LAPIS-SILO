@@ -9,7 +9,19 @@ describe('The /info endpoint', () => {
       .expect(200)
       .expect('Content-Type', 'application/json')
       .expect(expectHeaderToHaveDataVersion)
-      .expect({ nBitmapsSize: 3931, sequenceCount: 100, totalSize: 24198036, numberOfPartitions: 10 });
+      .expect(response => {
+        const returnedInfo = response.body;
+
+        expect(returnedInfo).to.have.property('version').and.match(/.+/);
+
+        const { version, ...infoWithoutVersion } = returnedInfo;
+        expect(infoWithoutVersion).to.deep.equal({
+          nBitmapsSize: 3931,
+          sequenceCount: 100,
+          totalSize: 24198036,
+          numberOfPartitions: 10,
+        });
+      });
   });
 
   it('should return detailed info about the current state of the database', { timeout: 5000 }, async () => {
