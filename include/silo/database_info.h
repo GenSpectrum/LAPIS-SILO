@@ -12,6 +12,7 @@
 namespace silo {
 
 struct DatabaseInfo {
+   std::string_view git_version;
    uint32_t sequence_count;
    uint64_t total_size;
    size_t n_bitmaps_size;
@@ -28,7 +29,8 @@ class [[maybe_unused]] fmt::formatter<silo::DatabaseInfo> {
       -> decltype(ctx.out()) {
       return fmt::format_to(
          ctx.out(),
-         "sequence count: {}, total size: {}, N bitmaps size: {}",
+         "version: {}, sequence count: {}, total size: {}, N bitmaps size: {}",
+         database_info.git_version,
          database_info.sequence_count,
          silo::formatNumber(database_info.total_size),
          silo::formatNumber(database_info.n_bitmaps_size)

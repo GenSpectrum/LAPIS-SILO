@@ -26,6 +26,24 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_BINARY_DIR}/generators/")
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${CMAKE_BINARY_DIR}/generators/")
 
 # ---------------------------------------------------------------------------
+# Version
+# ---------------------------------------------------------------------------
+
+execute_process(
+        COMMAND git describe --tags --match "v*"
+        OUTPUT_VARIABLE VERSION
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE VERSION_AVAILABLE
+)
+if (VERSION_AVAILABLE EQUAL 0)
+    message(STATUS "Version: ${VERSION}")
+    add_compile_definitions(SILO_VERSION="${VERSION}")
+else ()
+    message(STATUS "Unable to determine the version")
+endif()
+
+# ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
 
