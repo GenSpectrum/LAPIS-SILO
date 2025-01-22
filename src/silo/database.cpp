@@ -41,6 +41,7 @@
 #include "silo/common/lineage_tree.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/panic.h"
+#include "silo/common/version.h"
 #include "silo/config/database_config.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/database_info.h"
@@ -139,6 +140,7 @@ DatabaseInfo Database::getDatabaseInfo() const {
    );
 
    return DatabaseInfo{
+      .version = silo::RELEASE_VERSION,
       .sequence_count = sequence_count,
       .total_size = total_size,
       .n_bitmaps_size = nucleotide_symbol_n_bitmaps_size,
