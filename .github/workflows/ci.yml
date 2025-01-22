@@ -2,9 +2,10 @@ name: LAPIS-SILO
 
 on:
   pull_request:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows: [Release SILO]
+    types: [completed]
+    branches: [main]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -19,8 +20,7 @@ jobs:
     name: Build docker images
     strategy:
       matrix:
-        arch:
-          ['amd64', 'arm64']
+        arch: ["amd64", "arm64"]
     runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-22.04-arm' || 'ubuntu-latest' }}
     permissions:
       packages: write
@@ -74,6 +74,24 @@ jobs:
             --tag ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-${{ matrix.arch }} \
             ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:filehash-${{ env.DIR_HASH }}-${{ matrix.arch }}
 
+      - name: Write release_version.txt
+        run: |
+          git fetch origin 'refs/tags/*:refs/tags/*'
+
+          echo "Available tags:"
+          git tag -l
+
+          if git describe --tags --exact-match >/dev/null 2>&1; then
+            echo "Using release version from git tag"
+            VERSION=$(git describe --tags --exact-match | sed 's/^v//')
+          else
+            echo "Using release version from commit hash"
+            VERSION="${{ env.HEAD_SHA }}"
+          fi
+
+          echo "Using release version: $VERSION"
+          echo "$VERSION" > release_version.txt
+
       - name: Build unit test image
         uses: docker/build-push-action@v6
         with:
@@ -103,12 +121,13 @@ jobs:
           build-args: |
             DEPENDENCY_IMAGE=${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-${{ matrix.arch }}
 
-
   multiPlatformImages:
     name: Create multi-platform images
     needs: dockerImage
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -127,6 +146,19 @@ jobs:
             echo "HEAD_SHA=${{ github.sha }}" >> $GITHUB_ENV
           fi
 
+      - name: Determine whether to use a release version
+        run: |
+          git fetch origin 'refs/tags/*:refs/tags/*'
+
+          echo "Available tags:"
+          git tag -l
+
+          if git describe --tags --exact-match >/dev/null 2>&1; then
+            echo "Using release version from git tag"
+            VERSION=$(git describe --tags --exact-match | sed 's/^v//')
+            echo "SILO_VERSION=${VERSION}" >> $GITHUB_ENV
+          fi
+
       - name: Docker metadata
         id: dockerMetadataImage
         uses: docker/metadata-action@v5
@@ -136,6 +168,8 @@ jobs:
             type=ref,event=branch
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=commit-${{ env.HEAD_SHA }}
+            type=semver,value=${{ env.SILO_VERSION }},enable=${{ env.SILO_VERSION != '' }},pattern={{version}}
+            type=semver,value=${{ env.SILO_VERSION }},enable=${{ env.SILO_VERSION != '' }},pattern={{major}}.{{minor}}
 
       - name: Tag images
         run: |
@@ -221,7 +255,7 @@ jobs:
             files+="$page_files"$'\n'
             PAGE=$((PAGE + 1))
           done
-          
+
           echo "Changed files of this PR:"
           echo "$files"
           IFS=$'\n'

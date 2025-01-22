@@ -4,6 +4,7 @@
 
 #include "silo/common/overloaded.h"
 #include "silo/common/panic.h"
+#include "silo/common/version.h"
 #include "silo/config/config_repository.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/config/runtime_config.h"
@@ -91,6 +92,8 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
                 << mode_argument << "'\n";
       return 1;
    }
+
+   SPDLOG_INFO("Starting SILO (version {})", silo::RELEASE_VERSION);
 
    std::vector<std::string> env_allow_list;
    env_allow_list.emplace_back("SILO_PANIC");

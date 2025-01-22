@@ -48,6 +48,24 @@ find_package(zstd REQUIRED)
 find_package(re2 REQUIRED)
 
 # ---------------------------------------------------------------------------
+# Version
+# ---------------------------------------------------------------------------
+
+execute_process(
+        COMMAND cat release_version.txt
+        OUTPUT_VARIABLE VERSION
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE VERSION_AVAILABLE
+)
+if (VERSION_AVAILABLE EQUAL 0)
+    message(STATUS "Detected version from release_version.txt: ${VERSION}")
+    add_compile_definitions(SILO_RELEASE_VERSION="${VERSION}")
+else ()
+    message(STATUS "No release_version.txt available for setting the version")
+endif()
+
+# ---------------------------------------------------------------------------
 # Includes
 # ---------------------------------------------------------------------------
 
