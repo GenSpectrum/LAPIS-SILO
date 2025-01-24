@@ -54,7 +54,7 @@ jobs:
 
       - name: Determine platforms for build
         run: |
-          PLATFORMS="amd64 "
+          PLATFORMS="amd64"
 
           # Write the current labels to a file
           cat <<EOF > event.json
@@ -63,7 +63,7 @@ jobs:
 
           # Check if we are on main or the PR has the label 'arm-image'
           if [[ "$GITHUB_REF" == "refs/heads/main" ]] || jq -e '.[] | select(.name == "arm-image")' event.json > /dev/null; then
-            PLATFORMS+="arm64 "
+            PLATFORMS+=",arm64"
             EXISTS=$(docker manifest inspect \
               ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:filehash-${{ env.DIR_HASH }} \
               | jq '.manifests | map(.platform.architecture) | contains(["arm64"])') > /dev/null 2>&1 && echo "true" || echo "false"
