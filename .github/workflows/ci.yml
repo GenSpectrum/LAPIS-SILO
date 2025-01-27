@@ -17,11 +17,11 @@ env:
 jobs:
   dockerImage:
     name: Build docker images
-    runs-on: ubuntu-latest
     strategy:
       matrix:
         arch:
           ['amd64', 'arm64']
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-22.04-arm' || 'ubuntu-latest' }}
     permissions:
       packages: write
     steps:
