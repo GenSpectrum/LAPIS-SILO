@@ -172,10 +172,12 @@ LineageTreeAndIdMap& LineageTreeAndIdMap::operator=(const LineageTreeAndIdMap& o
 
 LineageTreeAndIdMap::LineageTreeAndIdMap(
    LineageTree&& lineage_tree,
-   BidirectionalMap<std::string>&& lineage_id_lookup_map
+   BidirectionalMap<std::string>&& lineage_id_lookup_map,
+   std::string&& file
 )
     : lineage_tree(std::move(lineage_tree)),
-      lineage_id_lookup_map(std::move(lineage_id_lookup_map)) {}
+      lineage_id_lookup_map(std::move(lineage_id_lookup_map)),
+      file(std::move(file)) {}
 
 namespace {
 
@@ -248,7 +250,7 @@ std::vector<std::pair<Idx, Idx>> getParentChildEdges(
 }  // namespace
 
 LineageTreeAndIdMap LineageTreeAndIdMap::fromLineageDefinitionFile(
-   const preprocessing::LineageDefinitionFile& file
+   preprocessing::LineageDefinitionFile&& file
 ) {
    BidirectionalMap<std::string> lookup;
    assignLineageIds(file, lookup);
@@ -258,7 +260,7 @@ LineageTreeAndIdMap LineageTreeAndIdMap::fromLineageDefinitionFile(
       getParentChildEdges(file, lookup, alias_mapping);
    auto lineage_tree =
       LineageTree::fromEdgeList(file.lineages.size(), edge_list, lookup, std::move(alias_mapping));
-   return {std::move(lineage_tree), std::move(lookup)};
+   return {std::move(lineage_tree), std::move(lookup), std::move(file.raw_file)};
 }
 
 LineageTreeAndIdMap LineageTreeAndIdMap::fromLineageDefinitionFilePath(
@@ -266,7 +268,7 @@ LineageTreeAndIdMap LineageTreeAndIdMap::fromLineageDefinitionFilePath(
 ) {
    auto definition_file = preprocessing::LineageDefinitionFile::fromYAMLFile(file_path);
 
-   return fromLineageDefinitionFile(definition_file);
+   return fromLineageDefinitionFile(std::move(definition_file));
 }
 
 }  // namespace silo::common
