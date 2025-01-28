@@ -26,9 +26,6 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 20
-          fetch-tags: true
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -79,11 +76,10 @@ jobs:
 
       - name: Write release_version.txt
         run: |
-          git tag -l
-          echo "Fetching tags"
           git fetch origin 'refs/tags/*:refs/tags/*'
+
+          echo "Available tags:"
           git tag -l
-          echo "Done"
 
           if git describe --tags --exact-match >/dev/null 2>&1; then
             echo "Using release version from git tag"
