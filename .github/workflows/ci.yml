@@ -80,6 +80,11 @@ jobs:
       - name: Write release_version.txt
         run: |
           git tag -l
+          echo "Fetching tags"
+          git fetch origin 'refs/tags/*:refs/tags/*'
+          git tag -l
+          echo "Done"
+
           if git describe --tags --exact-match >/dev/null 2>&1; then
             echo "Using release version from git tag"
             VERSION=$(git describe --tags --exact-match | sed 's/^v//')
