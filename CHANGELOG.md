@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.5.0...v0.5.1) (2025-01-28)
+
+
+### Features
+
+* update base image to ubuntu:24.04 ([46d0567](https://github.com/GenSpectrum/LAPIS-SILO/commit/46d056739f7b673ad6a2f3d9daa72f4514abe4e3))
+
+
+### Bug Fixes
+
+* return an error if reserved value INT32_MIN is used in filter ([042646b](https://github.com/GenSpectrum/LAPIS-SILO/commit/042646be296d7a8d68736ad3b0d8da6715f51c92))
+
 ## [0.5.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.4.0...v0.5.0) (2024-12-19)
 
 
