@@ -50,36 +50,7 @@ jobs:
           DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', './Dockerfile_dependencies') }})
           echo "DIR_HASH=$DIR_HASH" >> $GITHUB_ENV
 
-      - name: Determine platform build necessity
-        run: |
-          # Default PLATFORM_BUILD to false
-          echo "PLATFORM_BUILD=false" >> $GITHUB_ENV
-
-          # Check if architecture is amd64
-          if [[ "${{ matrix.arch }}" == "amd64" ]]; then
-            echo "PLATFORM_BUILD=true" >> $GITHUB_ENV
-            exit 0
-          fi
-
-          # Check if branch is main
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "PLATFORM_BUILD=true" >> $GITHUB_ENV
-            exit 0
-          fi
-
-          # Write the current labels to a file
-          cat <<EOF > event.json
-          ${{ toJSON(github.event.pull_request.labels) }}
-          EOF
-
-          # Check if the PR has the label 'arm-image'
-          if jq -e '.[] | select(.name == "arm-image")' event.json > /dev/null; then
-            echo "PLATFORM_BUILD=true" >> $GITHUB_ENV
-            exit 0
-          fi
-
       - name: Check if image exists
-        if: env.PLATFORM_BUILD == 'true'
         run: |
           EXISTS=$(docker manifest inspect \
             ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:filehash-${{ env.DIR_HASH }}-${{ matrix.arch }} \ 
@@ -87,7 +58,7 @@ jobs:
           echo "CACHE_HIT=$EXISTS" >> $GITHUB_ENV
 
       - name: Build and push image if input files changed
-        if: env.CACHE_HIT == 'false' && env.PLATFORM_BUILD == 'true'
+        if: env.CACHE_HIT == 'false'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -99,14 +70,12 @@ jobs:
           platforms: "linux/${{ matrix.arch }}"
 
       - name: Tag dependency image with commit hash
-        if: env.PLATFORM_BUILD == 'true'
         run: |
           docker buildx imagetools create \
             --tag ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-${{ matrix.arch }} \
             ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:filehash-${{ env.DIR_HASH }}-${{ matrix.arch }}
 
       - name: Build and push production image
-        if: env.PLATFORM_BUILD == 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -177,30 +146,6 @@ jobs:
             echo "HEAD_SHA=${{ github.sha }}" >> $GITHUB_ENV
           fi
 
-      - name: Detect all platforms with built images
-        run: |
-          PLATFORMS=""
-          
-          PLATFORMS_TO_CHECK=(
-          "${{ env.DOCKER_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-arm64"
-          "${{ env.DOCKER_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-amd64"
-          )
-          
-          for PLATFORM in "${PLATFORMS_TO_CHECK[@]}"; do
-            echo "Checking existence of: $PLATFORM"
-            if docker manifest inspect "$PLATFORM" > /dev/null 2>&1; then
-              echo "Image for $PLATFORM exists"
-              PLATFORMS+="$PLATFORM "
-            else
-              echo "Image for $PLATFORM does not exist"
-            fi
-          done
-          
-          # Trim trailing space from PLATFORMS
-          PLATFORMS=$(echo "$PLATFORMS" | sed 's/[[:space:]]*$//')
-          
-          echo "PLATFORM_SPECIFIC_IMAGES=$PLATFORMS" >> $GITHUB_ENV
-
       - name: Docker metadata
         id: dockerMetadataImage
         uses: docker/metadata-action@v5
@@ -216,7 +161,8 @@ jobs:
           TAGS=(${{ steps.dockerMetadataImage.outputs.tags }})
           for TAG in "${TAGS[@]}"; do
             docker buildx imagetools create --tag $TAG \
-              ${{ env.PLATFORM_SPECIFIC_IMAGES }}
+              "${{ env.DOCKER_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-arm64" \
+              "${{ env.DOCKER_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-amd64"
           done
 
   endToEndTests:
