@@ -53,12 +53,14 @@ class LineageTreeAndIdMap {
       // clang-format off
       archive & lineage_tree;
       archive & lineage_id_lookup_map;
+      archive & file;
       // clang-format on
    }
 
   public:
    LineageTree lineage_tree;
    BidirectionalMap<std::string> lineage_id_lookup_map;
+   std::string file;
 
    LineageTreeAndIdMap() = default;
    LineageTreeAndIdMap(LineageTreeAndIdMap&& other) = default;
@@ -67,7 +69,7 @@ class LineageTreeAndIdMap {
    LineageTreeAndIdMap& operator=(const LineageTreeAndIdMap& other);
 
    static LineageTreeAndIdMap fromLineageDefinitionFile(
-      const silo::preprocessing::LineageDefinitionFile& file
+      silo::preprocessing::LineageDefinitionFile&& file
    );
 
    static LineageTreeAndIdMap fromLineageDefinitionFilePath(const std::filesystem::path& file_path);
@@ -75,7 +77,8 @@ class LineageTreeAndIdMap {
   private:
    LineageTreeAndIdMap(
       LineageTree&& lineage_tree,
-      BidirectionalMap<std::string>&& lineage_id_lookup_map
+      BidirectionalMap<std::string>&& lineage_id_lookup_map,
+      std::string&& file
    );
 };
 

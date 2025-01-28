@@ -132,6 +132,7 @@ LineageDefinitionFile LineageDefinitionFile::fromYAML(const std::string& yaml_st
    const YAML::Node yaml = YAML::Load(yaml_string);
    LineageDefinitionFile file;
    YAML::convert<LineageDefinitionFile>::decode(yaml, file);
+   file.raw_file = yaml_string;
    return file;
 }
 

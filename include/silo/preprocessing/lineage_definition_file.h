@@ -18,6 +18,7 @@ class LineageDefinition {
 class LineageDefinitionFile {
   public:
    std::vector<LineageDefinition> lineages;
+   std::string raw_file;
 
    static LineageDefinitionFile fromYAMLFile(const std::filesystem::path& yaml_path);
 
