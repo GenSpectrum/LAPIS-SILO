@@ -22,6 +22,8 @@ class LineageDefinitionFile {
    static LineageDefinitionFile fromYAMLFile(const std::filesystem::path& yaml_path);
 
    static LineageDefinitionFile fromYAML(const std::string& yaml_string);
+
+   std::string toYAML();
 };
 
 }  // namespace silo::preprocessing
