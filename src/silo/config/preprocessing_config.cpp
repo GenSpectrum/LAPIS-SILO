@@ -100,24 +100,24 @@ ConfigSpecification PreprocessingConfig::getConfigSpecification() {
          ConfigAttributeSpecification::createWithoutDefault(
             lineageDefinitionsFilenameOptionKey(),
             ConfigValueType::PATH,
-            "File name of the file holding the lineage definitions. Relative from input_directory."
+            "File name of the file holding the lineage definitions. Relative from inputDirectory."
          ),
          ConfigAttributeSpecification::createWithoutDefault(
             ndjsonInputFilenameOptionKey(),
             ConfigValueType::PATH,
             "File name of the file holding NDJSON input. This file may also be zstd or gzip "
-            "compressed. Relative from input_directory. Required."
+            "compressed. Relative from inputDirectory. Required."
          ),
          ConfigAttributeSpecification::createWithDefault(
             databaseConfigFileOptionKey(),
             ConfigValue::fromPath("database_config.yaml"),
             "File name of the file holding the database table configuration. Relative from "
-            "input_directory."
+            "inputDirectory."
          ),
          ConfigAttributeSpecification::createWithDefault(
             referenceGenomeFilenameOptionKey(),
             ConfigValue::fromPath("reference_genomes.json"),
-            "File name of the file holding the reference genome. Relative from input_directory."
+            "File name of the file holding the reference genome. Relative from inputDirectory."
          ),
       }
    };
