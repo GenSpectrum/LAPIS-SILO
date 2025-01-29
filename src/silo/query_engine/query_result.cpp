@@ -5,7 +5,7 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/common/panic.h"
-#include "silo_api/variant_json_serializer.h"
+#include "silo/common/variant_json_serializer.h"
 
 namespace silo::query_engine {
 
