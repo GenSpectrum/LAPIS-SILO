@@ -105,6 +105,8 @@ class IndexedStringColumn {
    IndexedStringColumn& operator=(IndexedStringColumn&& other) = delete;
 
    IndexedStringColumnPartition& createPartition();
+
+   bool hasLineageTree() const;
 };
 
 }  // namespace silo::storage::column

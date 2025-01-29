@@ -8,6 +8,7 @@
 
 #include "silo/api/error_request_handler.h"
 #include "silo/api/info_handler.h"
+#include "silo/api/lineage_definition_handler.h"
 #include "silo/api/logging_request_handler.h"
 #include "silo/api/not_found_handler.h"
 #include "silo/api/query_handler.h"
@@ -35,8 +36,14 @@ std::unique_ptr<Poco::Net::HTTPRequestHandler> SiloRequestHandlerFactory::routeR
 ) {
    const auto& uri = Poco::URI(request.getURI());
    const auto path = uri.getPath();
+   std::vector<std::string> segments;
+   uri.getPathSegments(segments);
+
    if (path == "/info") {
       return std::make_unique<silo::api::InfoHandler>(database);
+   }
+   if (segments.size() == 2 && segments.at(0) == "lineageDefinition") {
+      return std::make_unique<silo::api::LineageDefinitionHandler>(database, segments.at(1));
    }
    if (path == "/query") {
       return std::make_unique<silo::api::QueryHandler>(database);
