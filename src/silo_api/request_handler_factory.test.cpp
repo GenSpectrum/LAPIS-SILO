@@ -69,9 +69,9 @@ const int FOUR_MINUTES_IN_SECONDS = 240;
 
 TEST_F(RequestHandlerTestFixture, handlesGetInfoRequest) {
    EXPECT_CALL(*database_mutex.mock_database, getDatabaseInfo)
-      .WillRepeatedly(testing::Return(
-         silo::DatabaseInfo{.sequence_count = 1, .total_size = 2, .n_bitmaps_size = 3}
-      ));
+      .WillRepeatedly(testing::Return(silo::DatabaseInfo{
+         .version = "1.2.3", .sequence_count = 1, .total_size = 2, .n_bitmaps_size = 3
+      }));
    EXPECT_CALL(*database_mutex.mock_database, getDataVersionTimestamp)
       .WillRepeatedly(testing::Return(silo::DataVersion::Timestamp::fromString("1234").value()));
 
@@ -82,7 +82,7 @@ TEST_F(RequestHandlerTestFixture, handlesGetInfoRequest) {
    EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_OK);
    EXPECT_EQ(
       response.out_stream.str(),
-      R"({"nBitmapsSize":3,"numberOfPartitions":0,"sequenceCount":1,"totalSize":2})"
+      R"({"nBitmapsSize":3,"numberOfPartitions":0,"sequenceCount":1,"totalSize":2,"version":"1.2.3"})"
    );
    EXPECT_EQ(response.get("data-version"), "1234");
 }
