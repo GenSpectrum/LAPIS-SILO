@@ -2,6 +2,8 @@
 
 #include <spdlog/spdlog.h>
 
+#include "silo/api/api.h"
+#include "silo/api/logging.h"
 #include "silo/common/overloaded.h"
 #include "silo/common/panic.h"
 #include "silo/common/version.h"
@@ -10,8 +12,6 @@
 #include "silo/database.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/preprocessing/preprocessor.h"
-#include "silo_api/api.h"
-#include "silo_api/logging.h"
 
 namespace {
 
@@ -55,7 +55,7 @@ int runPreprocessor(const silo::config::PreprocessingConfig& preprocessing_confi
 }
 
 int runApi(const silo::config::RuntimeConfig& runtime_config) {
-   silo_api::Api server;
+   silo::api::Api server;
    return server.runApi(runtime_config);
 }
 
