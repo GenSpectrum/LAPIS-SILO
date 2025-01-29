@@ -34,6 +34,7 @@ class Database {
 
   public:
    silo::config::DatabaseConfig database_config;
+   common::LineageTreeAndIdMap lineage_tree;
    std::vector<DatabasePartition> partitions;
    std::filesystem::path unaligned_sequences_directory;
 
@@ -47,7 +48,6 @@ class Database {
    std::map<std::string, UnalignedSequenceStore> unaligned_nuc_sequences;
 
   private:
-   common::LineageTreeAndIdMap lineage_tree;
    DataVersion data_version_ = DataVersion::mineDataVersion();
 
   public:

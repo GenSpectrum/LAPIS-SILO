@@ -108,4 +108,8 @@ IndexedStringColumnPartition& IndexedStringColumn::createPartition() {
    return partitions.emplace_back(IndexedStringColumnPartition{column_name, &lookup});
 }
 
+bool IndexedStringColumn::hasLineageTree() const {
+   return lineage_tree.has_value();
+}
+
 }  // namespace silo::storage::column
