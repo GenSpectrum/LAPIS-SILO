@@ -24,6 +24,44 @@ CHILD:
    ASSERT_EQ(lineage_definition_file.lineages.at(1).parents.at(0).string, "BASE");
 }
 
+TEST(LineageDefinitionFile, correctlySerializesToYAML) {
+   auto lineage_definition_file = LineageDefinitionFile::fromYAML(R"(
+BASE:
+  parents: []
+CHILD:
+  parents:
+    - BASE
+SOMETHING:
+  aliases:
+    - SOMETHING_ELSE
+BOTH_PARENTS_AND_ALIASES:
+  aliases:
+  - ALIAS1
+  - ALIAS2
+  parents:
+  - BASE
+  - SOMETHING
+)");
+   ASSERT_EQ(lineage_definition_file.toYAML(), R"(BASE: ~
+CHILD:
+  parents:
+    - BASE
+SOMETHING:
+  aliases:
+    - SOMETHING_ELSE
+BOTH_PARENTS_AND_ALIASES:
+  parents:
+    - BASE
+    - SOMETHING
+  aliases:
+    - ALIAS1
+    - ALIAS2)");
+}
+
+TEST(LineageDefinitionFile, correctlySerializesEmptyLineagesToYAML) {
+   ASSERT_EQ(LineageDefinitionFile{}.toYAML(), "");
+}
+
 TEST(LineageDefinitionFile, unparsableOnBadFormat) {
    ASSERT_THROW(
       LineageDefinitionFile::fromYAML(R"(

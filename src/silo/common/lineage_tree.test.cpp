@@ -17,7 +17,8 @@ CHILD:
   parents:
     - BASE
 )");
-   auto lineage_tree = LineageTreeAndIdMap::fromLineageDefinitionFile(lineage_definition_file);
+   auto lineage_tree =
+      LineageTreeAndIdMap::fromLineageDefinitionFile(std::move(lineage_definition_file));
    ASSERT_TRUE(lineage_tree.lineage_id_lookup_map.getId("BASE").has_value());
    ASSERT_TRUE(lineage_tree.lineage_id_lookup_map.getId("CHILD").has_value());
    ASSERT_FALSE(lineage_tree.lineage_id_lookup_map.getId("Base").has_value());
@@ -67,7 +68,8 @@ GRANDCHILD2:
   parents:
     - CHILD1
 )");
-   auto lineage_tree = LineageTreeAndIdMap::fromLineageDefinitionFile(lineage_definition_file);
+   auto lineage_tree =
+      LineageTreeAndIdMap::fromLineageDefinitionFile(std::move(lineage_definition_file));
    ASSERT_TRUE(lineage_tree.lineage_id_lookup_map.getId("BASE").has_value());
    ASSERT_TRUE(lineage_tree.lineage_id_lookup_map.getId("CHILD1").has_value());
    ASSERT_TRUE(lineage_tree.lineage_id_lookup_map.getId("CHILD2").has_value());

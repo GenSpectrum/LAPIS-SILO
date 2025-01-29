@@ -82,6 +82,19 @@ LineageDefinition entryToLineageDefinition(const YAML::detail::iterator_value& e
    }
    return {.lineage_name = lineage_name, .aliases = aliases, .parents = parents};
 }
+
+std::pair<LineageName, YAML::Node> lineageDefinitionToEntry(
+   const LineageDefinition& lineage_definition
+) {
+   YAML::Node node;
+   if (!lineage_definition.parents.empty()) {
+      node["parents"] = YAML::Node{lineage_definition.parents};
+   }
+   if (!lineage_definition.aliases.empty()) {
+      node["aliases"] = YAML::Node{lineage_definition.aliases};
+   }
+   return {lineage_definition.lineage_name, node};
+}
 }  // namespace
 
 template <>
@@ -93,6 +106,15 @@ struct convert<LineageDefinitionFile> {
       }
       lineage_definition_file = LineageDefinitionFile{lineage_definitions};
       return true;
+   }
+
+   static YAML::Node encode(const LineageDefinitionFile& lineage_definition_file) {
+      YAML::Node yaml;
+      for (const auto& lineage_definition : lineage_definition_file.lineages) {
+         auto [lineage_name, lineage_node] = lineageDefinitionToEntry(lineage_definition);
+         yaml[lineage_name] = lineage_node;
+      }
+      return yaml;
    }
 };
 }  // namespace YAML
@@ -133,6 +155,11 @@ LineageDefinitionFile LineageDefinitionFile::fromYAML(const std::string& yaml_st
    LineageDefinitionFile file;
    YAML::convert<LineageDefinitionFile>::decode(yaml, file);
    return file;
+}
+
+std::string LineageDefinitionFile::toYAML() {
+   YAML::Node yaml = YAML::convert<LineageDefinitionFile>::encode(*this);
+   return YAML::Dump(yaml);
 }
 
 }  // namespace silo::preprocessing
