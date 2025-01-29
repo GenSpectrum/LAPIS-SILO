@@ -25,23 +25,23 @@ SiloRequestHandlerFactory::SiloRequestHandlerFactory(
 Poco::Net::HTTPRequestHandler* SiloRequestHandlerFactory::createRequestHandler(
    const Poco::Net::HTTPServerRequest& request
 ) {
-   return new RequestIdHandler(
-      new LoggingRequestHandler(new ErrorRequestHandler(routeRequest(request), runtime_config))
-   );
+   return new RequestIdHandler(std::make_unique<LoggingRequestHandler>(
+      std::make_unique<ErrorRequestHandler>(routeRequest(request), runtime_config)
+   ));
 }
 
-Poco::Net::HTTPRequestHandler* SiloRequestHandlerFactory::routeRequest(
+std::unique_ptr<Poco::Net::HTTPRequestHandler> SiloRequestHandlerFactory::routeRequest(
    const Poco::Net::HTTPServerRequest& request
 ) {
    const auto& uri = Poco::URI(request.getURI());
    const auto path = uri.getPath();
    if (path == "/info") {
-      return new silo::api::InfoHandler(database);
+      return std::make_unique<silo::api::InfoHandler>(database);
    }
    if (path == "/query") {
-      return new silo::api::QueryHandler(database);
+      return std::make_unique<silo::api::QueryHandler>(database);
    }
-   return new silo::api::NotFoundHandler;
+   return std::make_unique<silo::api::NotFoundHandler>();
 }
 
 }  // namespace silo::api
