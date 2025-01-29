@@ -233,3 +233,25 @@ jobs:
               cmake --build build/Debug --target ${file%.cpp}.o
             fi
           done
+
+  linterAll:
+    name: Build/Run linter on all files
+    needs: dockerImage
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'trigger-linter')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine HEAD_SHA
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "HEAD_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
+          else
+            echo "HEAD_SHA=${{ github.sha }}" >> $GITHUB_ENV
+          fi
+
+      - shell: bash
+        name: Build all files with clang-tidy
+        run: |
+          docker build -f ./Dockerfile_linter \
+            --build-arg DEPENDENCY_IMAGE=ghcr.io/genspectrum/lapis-silo-dependencies:commit-${{ env.HEAD_SHA }}-amd64 . 
