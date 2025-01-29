@@ -24,7 +24,9 @@ class SiloRequestHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
    Poco::Net::HTTPRequestHandler* createRequestHandler(const Poco::Net::HTTPServerRequest& request);
 
   private:
-   Poco::Net::HTTPRequestHandler* routeRequest(const Poco::Net::HTTPServerRequest& request);
+   std::unique_ptr<Poco::Net::HTTPRequestHandler> routeRequest(
+      const Poco::Net::HTTPServerRequest& request
+   );
 };
 
 }  // namespace silo::api

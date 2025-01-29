@@ -13,7 +13,7 @@ class LoggingRequestHandler : public Poco::Net::HTTPRequestHandler {
    std::unique_ptr<Poco::Net::HTTPRequestHandler> wrapped_handler;
 
   public:
-   explicit LoggingRequestHandler(Poco::Net::HTTPRequestHandler* wrapped_handler);
+   explicit LoggingRequestHandler(std::unique_ptr<Poco::Net::HTTPRequestHandler> wrapped_handler);
 
    void handleRequest(
       Poco::Net::HTTPServerRequest& request,

@@ -15,7 +15,7 @@ class RequestIdHandler : public Poco::Net::HTTPRequestHandler {
    std::unique_ptr<Poco::Net::HTTPRequestHandler> wrapped_handler;
 
   public:
-   explicit RequestIdHandler(Poco::Net::HTTPRequestHandler* wrapped_handler);
+   explicit RequestIdHandler(std::unique_ptr<Poco::Net::HTTPRequestHandler> wrapped_handler);
 
    void handleRequest(
       Poco::Net::HTTPServerRequest& request,

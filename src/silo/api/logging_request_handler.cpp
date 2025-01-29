@@ -4,8 +4,10 @@
 
 namespace silo::api {
 
-LoggingRequestHandler::LoggingRequestHandler(Poco::Net::HTTPRequestHandler* wrapped_handler)
-    : wrapped_handler(wrapped_handler) {}
+LoggingRequestHandler::LoggingRequestHandler(
+   std::unique_ptr<Poco::Net::HTTPRequestHandler> wrapped_handler
+)
+    : wrapped_handler(std::move(wrapped_handler)) {}
 
 void LoggingRequestHandler::handleRequest(
    Poco::Net::HTTPServerRequest& request,

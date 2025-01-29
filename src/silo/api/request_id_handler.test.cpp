@@ -22,9 +22,9 @@ class MockRequestHandler : public Poco::Net::HTTPRequestHandler {
 }  // namespace
 
 TEST(RequestIdHandler, givenNoRequestIdIsSet_thenGeneratesOne) {
-   auto* wrapped_handler_mock = new MockRequestHandler;
-   auto under_test = RequestIdHandler(wrapped_handler_mock);
+   auto wrapped_handler_mock = std::make_unique<MockRequestHandler>();
    EXPECT_CALL(*wrapped_handler_mock, handleRequest);
+   auto under_test = RequestIdHandler(std::move(wrapped_handler_mock));
 
    silo::api::test::MockResponse response;
    silo::api::test::MockRequest request(response);
@@ -36,9 +36,9 @@ TEST(RequestIdHandler, givenNoRequestIdIsSet_thenGeneratesOne) {
 TEST(RequestIdHandler, givenRequestIdIsSet_thenResponseAlsoContainsIt) {
    const std::string request_id_value = "request id value";
 
-   auto* wrapped_handler_mock = new MockRequestHandler;
-   auto under_test = RequestIdHandler(wrapped_handler_mock);
+   auto wrapped_handler_mock = std::make_unique<MockRequestHandler>();
    EXPECT_CALL(*wrapped_handler_mock, handleRequest);
+   auto under_test = RequestIdHandler(std::move(wrapped_handler_mock));
 
    silo::api::test::MockResponse response;
    silo::api::test::MockRequest request(response);

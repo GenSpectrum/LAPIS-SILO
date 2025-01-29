@@ -8,8 +8,8 @@ using boost::uuids::random_generator;
 
 namespace silo::api {
 
-RequestIdHandler::RequestIdHandler(Poco::Net::HTTPRequestHandler* wrapped_handler)
-    : wrapped_handler(wrapped_handler) {}
+RequestIdHandler::RequestIdHandler(std::unique_ptr<Poco::Net::HTTPRequestHandler> wrapped_handler)
+    : wrapped_handler(std::move(wrapped_handler)) {}
 
 void RequestIdHandler::handleRequest(
    Poco::Net::HTTPServerRequest& request,

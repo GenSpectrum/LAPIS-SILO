@@ -33,7 +33,7 @@ class ErrorRequestHandler : public Poco::Net::HTTPRequestHandler {
 
   public:
    explicit ErrorRequestHandler(
-      Poco::Net::HTTPRequestHandler* wrapped_handler,
+      std::unique_ptr<Poco::Net::HTTPRequestHandler> wrapped_handler,
       const silo::config::RuntimeConfig& runtime_config
    );
 

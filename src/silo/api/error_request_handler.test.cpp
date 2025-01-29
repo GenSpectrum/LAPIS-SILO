@@ -29,12 +29,12 @@ const auto TEST_RUNTIME_CONFIG = [] {
 // catches an exception which is thrown, but wrapped by it.
 
 TEST(ErrorRequestHandler, handlesRuntimeErrors) {
-   auto* wrapped_handler_mock = new MockRequestHandler;
-
-   auto under_test = silo::api::ErrorRequestHandler(wrapped_handler_mock, TEST_RUNTIME_CONFIG);
-
+   auto wrapped_handler_mock = std::make_unique<MockRequestHandler>();
    ON_CALL(*wrapped_handler_mock, handleRequest)
       .WillByDefault(testing::Throw(std::runtime_error("test exception, expected to be caught")));
+
+   auto under_test =
+      silo::api::ErrorRequestHandler(std::move(wrapped_handler_mock), TEST_RUNTIME_CONFIG);
 
    silo::api::test::MockResponse response;
    silo::api::test::MockRequest request(response);
@@ -48,14 +48,15 @@ TEST(ErrorRequestHandler, handlesRuntimeErrors) {
 }
 
 TEST(ErrorRequestHandler, handlesOtherErrors) {
-   auto* wrapped_handler_mock = new MockRequestHandler;
-
-   auto under_test = silo::api::ErrorRequestHandler(wrapped_handler_mock, TEST_RUNTIME_CONFIG);
+   auto wrapped_handler_mock = std::make_unique<MockRequestHandler>();
 
    ON_CALL(*wrapped_handler_mock, handleRequest)
       .WillByDefault(testing::Throw(
          "One should not actually do this - since C++ admits it, throw a string here"
       ));
+
+   auto under_test =
+      silo::api::ErrorRequestHandler(std::move(wrapped_handler_mock), TEST_RUNTIME_CONFIG);
 
    silo::api::test::MockResponse response;
    silo::api::test::MockRequest request(response);
@@ -66,12 +67,14 @@ TEST(ErrorRequestHandler, handlesOtherErrors) {
 }
 
 TEST(ErrorRequestHandler, doesNothingIfNoExceptionIsThrown) {
-   const auto* wrapped_request_handler_message = "A message that the actual handler would write";
-   auto* wrapped_handler_mock = new MockRequestHandler;
-
-   auto under_test = silo::api::ErrorRequestHandler(wrapped_handler_mock, TEST_RUNTIME_CONFIG);
+   std::string_view wrapped_request_handler_message =
+      "A message that the actual handler would write";
+   auto wrapped_handler_mock = std::make_unique<MockRequestHandler>();
 
    EXPECT_CALL(*wrapped_handler_mock, handleRequest).Times(testing::AtLeast(1));
+
+   auto under_test =
+      silo::api::ErrorRequestHandler(std::move(wrapped_handler_mock), TEST_RUNTIME_CONFIG);
 
    silo::api::test::MockResponse response;
    silo::api::test::MockRequest request(response);
