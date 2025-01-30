@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.2](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.5.1...v0.5.2) (2025-01-29)
+
+
+### Features
+
+* add the version to the output of the info endpoint ([#680](https://github.com/GenSpectrum/LAPIS-SILO/issues/680)) ([87e3f60](https://github.com/GenSpectrum/LAPIS-SILO/commit/87e3f60c5c517a6ad1e33376886cb72e6fb9cd2c)), closes [#604](https://github.com/GenSpectrum/LAPIS-SILO/issues/604)
+
 ## [0.5.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.5.0...v0.5.1) (2025-01-28)
 
 
