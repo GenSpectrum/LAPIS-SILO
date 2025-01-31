@@ -1,8 +1,0 @@
-schema:
-  instanceName: Test
-  metadata:
-    - name: "2"
-      type: string
-    - name: accessionVersion
-      type: string
-  primaryKey: accessionVersion

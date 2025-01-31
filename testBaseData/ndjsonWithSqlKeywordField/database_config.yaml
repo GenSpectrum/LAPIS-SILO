@@ -1,8 +1,0 @@
-schema:
-  instanceName: Test
-  metadata:
-    - name: primaryKey
-      type: string
-    - name: group
-      type: string
-  primaryKey: primaryKey
