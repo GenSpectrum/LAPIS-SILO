@@ -5,7 +5,6 @@
 
 #include <gtest/gtest.h>
 
-#include "silo/config/config_repository.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
 TEST(
@@ -13,7 +12,7 @@ TEST(
    isValidMedataFileShouldReturnFalseWhenOneConfigCoulmnIsNotPresentInMetadataFile
 ) {
    const silo::config::DatabaseConfig some_config_with_one_column_not_in_metadata =
-      silo::config::DatabaseConfigReader().parseYaml(
+      silo::config::DatabaseConfig::getValidatedConfig(
          R"(
 defaultNucleotideSequence: "main"
 schema:

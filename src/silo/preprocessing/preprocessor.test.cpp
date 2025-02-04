@@ -8,7 +8,6 @@
 #include <nlohmann/json.hpp>
 
 #include "config/source/yaml_file.h"
-#include "silo/config/config_repository.h"
 #include "silo/config/database_config.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
@@ -19,7 +18,6 @@
 namespace {
 using silo::ReferenceGenomes;
 using silo::common::LineageTreeAndIdMap;
-using silo::config::ConfigRepository;
 using silo::config::DatabaseConfig;
 using silo::config::PreprocessingConfig;
 using silo::config::ValueType;
@@ -66,9 +64,13 @@ struct Scenario {
    Assertion assertion;
 };
 
+struct InputDirectoryAndPreprocessor {
+   std::filesystem::path input_directory;
+   Preprocessor preprocessor;
+};
+
 template <typename Assertion>
-std::pair<std::filesystem::path, Preprocessor> prepareInputDirAndPreprocessorForScenario(
-   Scenario<Assertion> scenario
+InputDirectoryAndPreprocessor prepareInputDirAndPreprocessorForScenario(Scenario<Assertion> scenario
 ) {
    auto now = std::chrono::system_clock::now();
    auto duration = now.time_since_epoch();
@@ -92,11 +94,11 @@ std::pair<std::filesystem::path, Preprocessor> prepareInputDirAndPreprocessorFor
    }
    file.close();
 
-   return {
-      input_directory,
-      Preprocessor(
+   return InputDirectoryAndPreprocessor{
+      .input_directory = input_directory,
+      .preprocessor = Preprocessor(
          config_with_input_dir,
-         silo::config::DatabaseConfigReader().parseYaml(scenario.database_config),
+         silo::config::DatabaseConfig::getValidatedConfig(scenario.database_config),
          scenario.reference_genomes,
          scenario.lineage_tree
       )
@@ -309,6 +311,8 @@ schema:
       type: "string"
     - name: "2"
       type: "string"
+      generateIndex: true
+      generateLineageIndex: true
   primaryKey: "accessionVersion"
   partitionBy: "2"
 )",
@@ -672,13 +676,14 @@ INSTANTIATE_TEST_SUITE_P(PreprocessorTest, InvalidPreprocessorTestFixture, ::tes
 TEST_P(InvalidPreprocessorTestFixture, shouldNotProcessData) {
    const auto scenario = GetParam();
 
-   auto [input_directory, preprocessor] = prepareInputDirAndPreprocessorForScenario(scenario);
+   auto preparedInput = prepareInputDirAndPreprocessorForScenario(scenario);
 
    EXPECT_THAT(
-      [&]() { preprocessor.preprocess(); },
+      // NOLINTNEXTLINE(clang-diagnostic-error)
+      [&]() { preparedInput.preprocessor.preprocess(); },
       ThrowsMessage<PreprocessingException>(::testing::HasSubstr(scenario.assertion.error_message))
    );
-   std::filesystem::remove_all(input_directory);
+   std::filesystem::remove_all(preparedInput.input_directory);
 }
 
 }  // namespace

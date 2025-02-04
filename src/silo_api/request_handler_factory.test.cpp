@@ -23,7 +23,7 @@ class MockDatabase : public silo::Database {
 
    MOCK_METHOD(silo::query_engine::QueryResult, executeQuery, (const std::string&), (const));
    MockDatabase()
-       : Database(silo::config::DatabaseConfigReader().parseYaml(
+       : Database(silo::config::DatabaseConfig::getValidatedConfig(
             R"(
 schema:
   instanceName: "Test"
@@ -268,7 +268,7 @@ TEST_F(RequestHandlerTestFixture, postingQueryOnInitializedDatabase_isSuccessful
       << R"({"action":{"type": "Aggregated"}, "filterExpression": {"type": "True"}})";
 
    silo_api::DatabaseMutex real_database_mutex;
-   silo::Database new_database(silo::config::DatabaseConfigReader().parseYaml(
+   silo::Database new_database(silo::config::DatabaseConfig::getValidatedConfig(
       R"(
 schema:
   instanceName: "Test"

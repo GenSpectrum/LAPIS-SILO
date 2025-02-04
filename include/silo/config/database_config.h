@@ -36,8 +36,6 @@ class DatabaseSchema {
    std::optional<std::string> partition_by;
 };
 
-class DatabaseConfigReader;
-
 class DatabaseConfig {
    friend struct YAML::as_if<DatabaseConfig, void>;
 
@@ -56,13 +54,12 @@ class DatabaseConfig {
    [[nodiscard]] std::optional<DatabaseMetadata> getMetadata(const std::string& name) const;
 
    void writeConfig(const std::filesystem::path& config_path) const;
-};
 
-class DatabaseConfigReader {
-  public:
-   [[nodiscard]] virtual DatabaseConfig readConfig(const std::filesystem::path& config_path) const;
+   static DatabaseConfig getValidatedConfig(const std::string& config_yaml);
 
-   [[nodiscard]] virtual DatabaseConfig parseYaml(const std::string& yaml) const;
+   static DatabaseConfig getValidatedConfigFromFile(const std::filesystem::path& config_path);
+
+   static void validateConfig(const DatabaseConfig& config);
 };
 
 }  // namespace silo::config

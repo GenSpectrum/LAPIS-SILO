@@ -45,7 +45,7 @@ const std::vector<nlohmann::json> DATA = {
    createDataWithLineageNullValue("id_3")
 };
 
-const auto DATABASE_CONFIG = silo::config::DatabaseConfigReader().parseYaml(
+const auto DATABASE_CONFIG =
    R"(
 defaultNucleotideSequence: "segment1"
 schema:
@@ -58,8 +58,7 @@ schema:
       generateIndex: true
       generateLineageIndex: true
   primaryKey: "primaryKey"
-)"
-);
+)";
 
 const auto REFERENCE_GENOMES = ReferenceGenomes{
    {{"segment1", "A"}},
