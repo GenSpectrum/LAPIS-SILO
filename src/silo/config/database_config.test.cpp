@@ -20,20 +20,21 @@ TEST(DatabaseMetadataType, shouldBeConvertableFromString) {
 }
 
 TEST(DatabaseConfig, shouldBuildDatabaseConfig) {
-   const std::string default_nuc_sequence = "main";
-   const DatabaseSchema schema{
-      .instance_name = "testInstanceName",
-      .metadata =
-         {
-            {.name = "metadata1", .type = ValueType::STRING},
-            {.name = "metadata2", .type = ValueType::STRING},
-            {.name = "metadata3", .type = ValueType::DATE},
-         },
-      .primary_key = "testPrimaryKey",
-   };
-   const DatabaseConfig config{
-      .default_nucleotide_sequence = default_nuc_sequence, .schema = schema
-   };
+   const DatabaseConfig config = DatabaseConfigReader().parseYaml(
+      R"(
+defaultNucleotideSequence: "main"
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "metadata1"
+      type: "string"
+    - name: "metadata2"
+      type: "string"
+    - name: "metadata3"
+      type: "date"
+  primaryKey: "testPrimaryKey"
+)"
+   );
    ASSERT_TRUE(config.schema.instance_name == "testInstanceName");
    ASSERT_TRUE(config.schema.primary_key == "testPrimaryKey");
    ASSERT_TRUE(config.schema.metadata[0].name == "metadata1");
@@ -102,10 +103,8 @@ INSTANTIATE_TEST_SUITE_P(
 );
 
 TEST(DatabaseConfigReader, shouldReadConfigWithCorrectParameters) {
-   DatabaseConfig config;
-   ASSERT_NO_THROW(
-      config = DatabaseConfigReader().readConfig("testBaseData/test_database_config.yaml")
-   );
+   DatabaseConfig config =
+      DatabaseConfigReader().readConfig("testBaseData/test_database_config.yaml");
 
    ASSERT_EQ(config.schema.instance_name, "sars_cov-2_minimal_test_config");
    ASSERT_EQ(config.schema.primary_key, "gisaid_epi_isl");

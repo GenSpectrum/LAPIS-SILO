@@ -9,6 +9,7 @@
 
 #include "config/source/yaml_file.h"
 #include "silo/config/config_repository.h"
+#include "silo/config/database_config.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
 #include "silo/preprocessing/preprocessing_exception.h"
@@ -18,6 +19,7 @@
 namespace {
 using silo::ReferenceGenomes;
 using silo::common::LineageTreeAndIdMap;
+using silo::config::ConfigRepository;
 using silo::config::DatabaseConfig;
 using silo::config::PreprocessingConfig;
 using silo::config::ValueType;
@@ -58,7 +60,7 @@ template <typename Assertion>
 struct Scenario {
    std::string test_name;
    std::function<std::vector<NdjsonInputLine>()> input_data;
-   DatabaseConfig database_config;
+   std::string database_config;
    ReferenceGenomes reference_genomes;
    LineageTreeAndIdMap lineage_tree;
    Assertion assertion;
@@ -94,7 +96,7 @@ std::pair<std::filesystem::path, Preprocessor> prepareInputDirAndPreprocessorFor
       input_directory,
       Preprocessor(
          config_with_input_dir,
-         scenario.database_config,
+         silo::config::DatabaseConfigReader().parseYaml(scenario.database_config),
          scenario.reference_genomes,
          scenario.lineage_tree
       )
@@ -137,15 +139,14 @@ const Scenario<Success> NDJSON_FILE_WITH_MISSING_SEGMENTS_AND_GENES = {
          return result;
       },
    .database_config =
-      {.schema =
-          {
-             .instance_name = "Test",
-             .metadata =
-                {
-                   {.name = "accessionVersion", .type = ValueType::STRING},
-                },
-             .primary_key = "accessionVersion",
-          }},
+      R"(
+schema:
+  instanceName: "Test"
+  metadata:
+    - name: "accessionVersion"
+      type: "string"
+  primaryKey: "accessionVersion"
+)",
    .reference_genomes = ReferenceGenomes(
       {{"main", "ATTAAAGGTTTATACCTTCCCAGGTAACAAACCAACCAACTTTCGATCT"},
        {"secondSegment", "AAAAAAAAAAAAAAAA"}},
@@ -203,16 +204,16 @@ const Scenario<Success> NDJSON_WITH_SQL_KEYWORD_AS_FIELD = {
          return result;
       },
    .database_config =
-      {.schema =
-          {
-             .instance_name = "Test",
-             .metadata =
-                {
-                   {.name = "primaryKey", .type = ValueType::STRING},
-                   {.name = "group", .type = ValueType::STRING},
-                },
-             .primary_key = "primaryKey",
-          }},
+      R"(
+schema:
+   instanceName: "Test"
+   metadata:
+   - name: "primaryKey"
+     type: "string"
+   - name: "group"
+     type: "string"
+   primaryKey: "primaryKey"
+)",
    .reference_genomes = ReferenceGenomes({{"main", "A"}}, {{"mainGene", "A*"}}),
    .assertion{
       .expected_sequence_count = 2,
@@ -261,16 +262,16 @@ const Scenario<Success> NDJSON_WITH_NUMERIC_NAMES = {
          return result;
       },
    .database_config =
-      {.schema =
-          {
-             .instance_name = "Test",
-             .metadata =
-                {
-                   {.name = "accessionVersion", .type = ValueType::STRING},
-                   {.name = "2", .type = ValueType::STRING},
-                },
-             .primary_key = "accessionVersion",
-          }},
+      R"(
+schema:
+  instanceName: "Test"
+  metadata:
+    - name: "accessionVersion"
+      type: "string"
+    - name: "2"
+      type: "string"
+  primaryKey: "accessionVersion"
+)",
    .reference_genomes =
       ReferenceGenomes({{"main", "A"}, {"3", "AA"}}, {{"someGene", "AA*"}, {"4", "A*"}}),
    .assertion{
@@ -300,16 +301,19 @@ const Scenario<Success> EMPTY_INPUT_NDJSON = {
    .test_name = "EMPTY_INPUT_NDJSON",
    .input_data = []() { return std::vector<NdjsonInputLine>{}; },
    .database_config =
-      {.schema =
-          {.instance_name = "Test",
-           .metadata =
-              {
-                 {.name = "accessionVersion", .type = ValueType::STRING},
-                 {.name = "2", .type = ValueType::STRING},
-              },
-           .primary_key = "accessionVersion",
-           .partition_by = "2"}},
-   .reference_genomes = NDJSON_WITH_NUMERIC_NAMES.reference_genomes,
+      R"(
+schema:
+  instanceName: "Test"
+  metadata:
+    - name: "accessionVersion"
+      type: "string"
+    - name: "2"
+      type: "string"
+  primaryKey: "accessionVersion"
+  partitionBy: "2"
+)",
+   .reference_genomes =
+      ReferenceGenomes({{"main", "A"}, {"3", "AA"}}, {{"someGene", "AA*"}, {"4", "A*"}}),
    .assertion{
       .expected_sequence_count = 0,
       .query = R"(
@@ -330,8 +334,19 @@ const Scenario<Success> EMPTY_INPUT_NDJSON = {
 const Scenario<Success> EMPTY_INPUT_NDJSON_UNPARTITIONED = {
    .test_name = "EMPTY_INPUT_NDJSON_UNPARTITIONED",
    .input_data = []() { return std::vector<NdjsonInputLine>{}; },
-   .database_config = NDJSON_WITH_NUMERIC_NAMES.database_config,
-   .reference_genomes = NDJSON_WITH_NUMERIC_NAMES.reference_genomes,
+   .database_config =
+      R"(
+schema:
+  instanceName: "Test"
+  metadata:
+    - name: "accessionVersion"
+      type: "string"
+    - name: "2"
+      type: "string"
+  primaryKey: "accessionVersion"
+)",
+   .reference_genomes =
+      ReferenceGenomes({{"main", "A"}, {"3", "AA"}}, {{"someGene", "AA*"}, {"4", "A*"}}),
    .assertion{
       .expected_sequence_count = 0,
       .query = R"(
@@ -365,15 +380,14 @@ const Scenario<Success> NO_GENES = {
          return result;
       },
    .database_config =
-      {.schema =
-          {
-             .instance_name = "Test",
-             .metadata =
-                {
-                   {.name = "accessionVersion", .type = ValueType::STRING},
-                },
-             .primary_key = "accessionVersion",
-          }},
+      R"(
+schema:
+  instanceName: "Test"
+  metadata:
+    - name: "accessionVersion"
+      type: "string"
+  primaryKey: "accessionVersion"
+)",
    .reference_genomes = ReferenceGenomes({{"main", "ACGT"}}, {}),
    .assertion{
       .expected_sequence_count = 100,
@@ -407,15 +421,14 @@ const Scenario<Success> NO_NUCLEOTIDE_SEQUENCES = {
          return result;
       },
    .database_config =
-      {.schema =
-          {
-             .instance_name = "Test",
-             .metadata =
-                {
-                   {.name = "accessionVersion", .type = ValueType::STRING},
-                },
-             .primary_key = "accessionVersion",
-          }},
+      R"(
+schema:
+  instanceName: "Test"
+  metadata:
+    - name: "accessionVersion"
+      type: "string"
+  primaryKey: "accessionVersion"
+)",
    .reference_genomes = ReferenceGenomes({}, {{"someGene", "AAAA"}}),
    .assertion{
       .expected_sequence_count = 100,
@@ -445,15 +458,14 @@ const Scenario<Success> NO_SEQUENCES = {
          return result;
       },
    .database_config =
-      {.schema =
-          {
-             .instance_name = "Test",
-             .metadata =
-                {
-                   {.name = "accessionVersion", .type = ValueType::STRING},
-                },
-             .primary_key = "accessionVersion",
-          }},
+      R"(
+schema:
+  instanceName: "Test"
+  metadata:
+    - name: "accessionVersion"
+      type: "string"
+  primaryKey: "accessionVersion"
+)",
    .reference_genomes = ReferenceGenomes({}, {}),
    .assertion{
       .expected_sequence_count = 100,
@@ -514,15 +526,14 @@ const Scenario<Success> DIVERSE_SEQUENCE_NAMES_NDJSON = {
          return result;
       },
    .database_config =
-      {.schema =
-          {
-             .instance_name = "Test",
-             .metadata =
-                {
-                   {.name = "accessionVersion", .type = ValueType::STRING},
-                },
-             .primary_key = "accessionVersion",
-          }},
+      R"(
+schema:
+  instanceName: "Test"
+  metadata:
+    - name: "accessionVersion"
+      type: "string"
+  primaryKey: "accessionVersion"
+)",
    .reference_genomes = ReferenceGenomes(
       {{"\"", "ACGTACGT"}, {".", "ACGT"}},
       {{"---", "MYSF"},
@@ -566,15 +577,14 @@ const Scenario<Success> PREVENT_LATE_AUTO_CASTING = {
          return result;
       },
    .database_config =
-      {.schema =
-          {
-             .instance_name = "Test",
-             .metadata =
-                {
-                   {.name = "accessionVersion", .type = ValueType::STRING},
-                },
-             .primary_key = "accessionVersion",
-          }},
+      R"(
+schema:
+  instanceName: "Test"
+  metadata:
+    - name: "accessionVersion"
+      type: "string"
+  primaryKey: "accessionVersion"
+)",
    .reference_genomes = ReferenceGenomes({}, {}),
    .assertion{
       .expected_sequence_count = 3,
@@ -645,10 +655,14 @@ const Scenario<Error> DUPLICATE_PRIMARY_KEY{
          return result;
       },
    .database_config =
-      {.schema =
-          {.instance_name = "dummy name",
-           .metadata = {{.name = "primaryKey", .type = ValueType::STRING}},
-           .primary_key = "primaryKey"}},
+      R"(
+schema:
+  instanceName: "dummy name"
+  metadata:
+    - name: "primaryKey"
+      type: "string"
+  primaryKey: "primaryKey"
+)",
    .reference_genomes = {},
    .assertion = {.error_message = "Found 2 duplicate primary key(s): id_1, id_2"}
 };

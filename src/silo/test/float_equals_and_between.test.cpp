@@ -47,15 +47,20 @@ const std::vector<nlohmann::json> DATA = {
    createDataWithFloatNullValue("id_4")
 };
 
-const auto DATABASE_CONFIG = DatabaseConfig{
-   .default_nucleotide_sequence = "segment1",
-   .schema =
-      {.instance_name = "dummy name",
-       .metadata =
-          {{.name = "primaryKey", .type = ValueType::STRING},
-           {.name = "float_value", .type = ValueType::FLOAT}},
-       .primary_key = "primaryKey"}
-};
+const auto DATABASE_CONFIG = silo::config::DatabaseConfigReader().parseYaml(
+   R"(
+defaultNucleotideSequence: "segment1"
+schema:
+  instanceName: "dummy name"
+  metadata:
+    - name: "primaryKey"
+      type: "string"
+    - name: "float_value"
+      type: "float"
+  primaryKey: "primaryKey"
+)"
+
+);
 
 const auto REFERENCE_GENOMES = ReferenceGenomes{
    {{"segment1", "A"}},
