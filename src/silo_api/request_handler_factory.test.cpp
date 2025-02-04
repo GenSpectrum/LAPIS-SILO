@@ -22,6 +22,17 @@ class MockDatabase : public silo::Database {
    MOCK_METHOD(silo::DataVersion::Timestamp, getDataVersionTimestamp, (), (const));
 
    MOCK_METHOD(silo::query_engine::QueryResult, executeQuery, (const std::string&), (const));
+   MockDatabase()
+       : Database(silo::config::DatabaseConfigReader().parseYaml(
+            R"(
+schema:
+  instanceName: "Test"
+  metadata:
+    - name: "accessionVersion"
+      type: "string"
+  primaryKey: "accessionVersion"
+)"
+         )) {}
 
    ~MockDatabase() = default;
 };
@@ -257,7 +268,18 @@ TEST_F(RequestHandlerTestFixture, postingQueryOnInitializedDatabase_isSuccessful
       << R"({"action":{"type": "Aggregated"}, "filterExpression": {"type": "True"}})";
 
    silo_api::DatabaseMutex real_database_mutex;
-   silo::Database new_database;
+   silo::Database new_database(silo::config::DatabaseConfigReader().parseYaml(
+      R"(
+schema:
+  instanceName: "Test"
+  metadata:
+    - name: "primaryKey"
+      type: "string"
+    - name: "group"
+      type: "string"
+  primaryKey: "primaryKey"
+)"
+   ));
    real_database_mutex.setDatabase(std::move(new_database));
 
    auto under_test = silo_api::SiloRequestHandlerFactory(

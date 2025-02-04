@@ -29,13 +29,17 @@ const nlohmann::json DATA_SAME_AS_REFERENCE = createDataWithAminoAcidSequence("M
 const nlohmann::json DATA_SAME_AS_REFERENCE2 = createDataWithAminoAcidSequence("M*");
 const nlohmann::json DATA_WITH_B = createDataWithAminoAcidSequence("B*");
 
-const auto DATABASE_CONFIG = DatabaseConfig{
-   .default_nucleotide_sequence = "segment1",
-   .schema =
-      {.instance_name = "dummy name",
-       .metadata = {{.name = "primaryKey", .type = ValueType::STRING}},
-       .primary_key = "primaryKey"}
-};
+const auto DATABASE_CONFIG = silo::config::DatabaseConfigReader().parseYaml(
+   R"(
+defaultNucleotideSequence: "segment1"
+schema:
+  instanceName: "dummy name"
+  metadata:
+    - name: "primaryKey"
+      type: "string"
+  primaryKey: "primaryKey"
+)"
+);
 
 const auto REFERENCE_GENOMES = ReferenceGenomes{
    {{"segment1", "A"}},

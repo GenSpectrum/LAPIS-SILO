@@ -22,10 +22,13 @@ class ConfigReaderMock : public silo::config::DatabaseConfigReader {
 
 namespace {
 
-ConfigReaderMock mockConfigReader(const DatabaseConfig& config) {
+ConfigReaderMock mockConfigReader(const std::string& config_yaml) {
    const ConfigReaderMock config_reader_mock;
 
-   EXPECT_CALL(config_reader_mock, readConfig(testing::_)).WillRepeatedly(testing::Return(config));
+   YAML::Node config = YAML::Load(config_yaml);
+
+   EXPECT_CALL(config_reader_mock, readConfig(testing::_))
+      .WillRepeatedly(testing::Return(config.as<silo::config::DatabaseConfig>()));
 
    return config_reader_mock;
 }
@@ -34,23 +37,22 @@ ConfigReaderMock mockConfigReader(const DatabaseConfig& config) {
 
 TEST(ConfigRepository, shouldReadConfigWithoutErrors) {
    const auto config_reader_mock = mockConfigReader(
-      {.default_nucleotide_sequence = "main",
-       .schema =
-          {
-             .instance_name = "testInstanceName",
-             .metadata =
-                {
-                   {.name = "testPrimaryKey", .type = ValueType::STRING},
-                   {.name = "metadata1",
-                    .type = ValueType::STRING,
-                    .generate_index = true,
-                    .generate_lineage_index = true},
-                   {.name = "metadata2", .type = ValueType::DATE},
-                },
-             .primary_key = "testPrimaryKey",
-             .date_to_sort_by = std::nullopt,
-             .partition_by = "metadata1",
-          }}
+      R"(
+defaultNucleotideSequence: "main"
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+    - name: "metadata1"
+      type: "string"
+      generateIndex: true
+      generateLineageIndex: true
+    - name: "metadata2"
+      type: "date"
+  primaryKey: "testPrimaryKey"
+  partitionBy: "metadata1"
+)"
    );
 
    ASSERT_NO_THROW(ConfigRepository(config_reader_mock).getValidatedConfig("test.yaml"));
@@ -58,16 +60,15 @@ TEST(ConfigRepository, shouldReadConfigWithoutErrors) {
 
 TEST(ConfigRepository, shouldThrowIfPrimaryKeyIsNotInMetadata) {
    const auto config_reader_mock = mockConfigReader(
-      {.default_nucleotide_sequence = "main",
-       .schema =
-          {
-             .instance_name = "testInstanceName",
-             .metadata =
-                {
-                   {.name = "notPrimaryKey", .type = ValueType::STRING},
-                },
-             .primary_key = "testPrimaryKey",
-          }}
+      R"(
+defaultNucleotideSequence: "main"
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "notPrimaryKey"
+      type: "string"
+  primaryKey: "testPrimaryKey"
+)"
    );
 
    ASSERT_THROW(
@@ -77,18 +78,19 @@ TEST(ConfigRepository, shouldThrowIfPrimaryKeyIsNotInMetadata) {
 
 TEST(ConfigRepository, shouldThrowIfThereAreTwoMetadataWithTheSameName) {
    const auto config_reader_mock = mockConfigReader(
-      {.default_nucleotide_sequence = "main",
-       .schema =
-          {
-             .instance_name = "testInstanceName",
-             .metadata =
-                {
-                   {.name = "testPrimaryKey", .type = ValueType::STRING},
-                   {.name = "sameName", .type = ValueType::STRING},
-                   {.name = "sameName", .type = ValueType::DATE},
-                },
-             .primary_key = "testPrimaryKey",
-          }}
+      R"(
+defaultNucleotideSequence: "main"
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+    - name: "sameName"
+      type: "string"
+    - name: "sameName"
+      type: "date"
+  primaryKey: "testPrimaryKey"
+)"
    );
 
    ASSERT_THROW(
@@ -98,15 +100,16 @@ TEST(ConfigRepository, shouldThrowIfThereAreTwoMetadataWithTheSameName) {
 
 TEST(ConfigRepository, givenConfigWithDateToSortByThatIsNotConfiguredThenThrows) {
    const auto config_reader_mock = mockConfigReader(
-      {.default_nucleotide_sequence = "main",
-       .schema =
-          {.instance_name = "testInstanceName",
-           .metadata =
-              {
-                 {.name = "testPrimaryKey", .type = ValueType::STRING},
-              },
-           .primary_key = "testPrimaryKey",
-           .date_to_sort_by = "notConfiguredDateToSortBy"}}
+      R"(
+defaultNucleotideSequence: "main"
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+  primaryKey: "testPrimaryKey"
+  dateToSortBy: "notConfiguredDateToSortBy"
+)"
    );
 
    EXPECT_THAT(
@@ -121,16 +124,18 @@ TEST(ConfigRepository, givenConfigWithDateToSortByThatIsNotConfiguredThenThrows)
 
 TEST(ConfigRepository, givenDateToSortByThatIsNotADateThenThrows) {
    const auto config_reader_mock = mockConfigReader(
-      {.default_nucleotide_sequence = "main",
-       .schema =
-          {.instance_name = "testInstanceName",
-           .metadata =
-              {
-                 {.name = "testPrimaryKey", .type = ValueType::STRING},
-                 {.name = "not a date", .type = ValueType::STRING},
-              },
-           .primary_key = "testPrimaryKey",
-           .date_to_sort_by = "not a date"}}
+      R"(
+defaultNucleotideSequence: "main"
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+    - name: "not a date"
+      type: "string"
+  primaryKey: "testPrimaryKey"
+  dateToSortBy: "not a date"
+)"
    );
 
    EXPECT_THAT(
@@ -145,17 +150,19 @@ TEST(ConfigRepository, givenDateToSortByThatIsNotADateThenThrows) {
 
 TEST(ConfigRepository, givenConfigPartitionByThatIsNotConfiguredThenThrows) {
    const auto config_reader_mock = mockConfigReader(
-      {.default_nucleotide_sequence = "main",
-       .schema =
-          {.instance_name = "testInstanceName",
-           .metadata =
-              {
-                 {.name = "testPrimaryKey", .type = ValueType::STRING},
-                 {.name = "date_to_sort_by", .type = ValueType::DATE},
-              },
-           .primary_key = "testPrimaryKey",
-           .date_to_sort_by = "date_to_sort_by",
-           .partition_by = "notConfiguredPartitionBy"}}
+      R"(
+defaultNucleotideSequence: "main"
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+    - name: "dateToSortBy"
+      type: "date"
+  primaryKey: "testPrimaryKey"
+  dateToSortBy: "dateToSortBy"
+  partitionBy: "notConfiguredPartitionBy"
+)"
    );
 
    EXPECT_THAT(
@@ -170,18 +177,21 @@ TEST(ConfigRepository, givenConfigPartitionByThatIsNotConfiguredThenThrows) {
 
 TEST(ConfigRepository, givenConfigPartitionByThatIsNotALineageThrows) {
    const auto config_reader_mock = mockConfigReader(
-      {.default_nucleotide_sequence = "main",
-       .schema =
-          {.instance_name = "testInstanceName",
-           .metadata =
-              {
-                 {.name = "testPrimaryKey", .type = ValueType::STRING},
-                 {.name = "date_to_sort_by", .type = ValueType::DATE},
-                 {.name = "not a lineage", .type = ValueType::STRING},
-              },
-           .primary_key = "testPrimaryKey",
-           .date_to_sort_by = "date_to_sort_by",
-           .partition_by = "not a lineage"}}
+      R"(
+defaultNucleotideSequence: "main"
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+    - name: "dateToSortBy"
+      type: "date"
+    - name: "not a lineage"
+      type: "string"
+  primaryKey: "testPrimaryKey"
+  dateToSortBy: "dateToSortBy"
+  partitionBy: "not a lineage"
+)"
    );
    EXPECT_THAT(
       [&config_reader_mock]() {
@@ -195,17 +205,20 @@ TEST(ConfigRepository, givenConfigPartitionByThatIsNotALineageThrows) {
 
 TEST(ConfigRepository, givenMetadataToGenerateIndexForThatIsNotStringThenThrows) {
    const auto config_reader_mock = mockConfigReader(
-      {.default_nucleotide_sequence = "main",
-       .schema =
-          {.instance_name = "testInstanceName",
-           .metadata =
-              {
-                 {.name = "testPrimaryKey", .type = ValueType::STRING},
-                 {.name = "indexed date", .type = ValueType::DATE, .generate_index = true},
-              },
-           .primary_key = "testPrimaryKey",
-           .date_to_sort_by = std::nullopt,
-           .partition_by = "testPrimaryKey"}}
+      R"(
+defaultNucleotideSequence: "main"
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+    - name: "indexed date"
+      type: "date"
+      generateIndex: true
+  primaryKey: "testPrimaryKey"
+  dateToSortBy: null
+  partitionBy: "testPrimaryKey"
+)"
    );
 
    EXPECT_THAT(
@@ -221,18 +234,20 @@ TEST(ConfigRepository, givenMetadataToGenerateIndexForThatIsNotStringThenThrows)
 
 TEST(ConfigRepository, givenLineageIndexAndNotGenerateThenThrows) {
    const auto config_reader_mock = mockConfigReader(
-      {.default_nucleotide_sequence = "main",
-       .schema =
-          {.instance_name = "testInstanceName",
-           .metadata =
-              {
-                 {.name = "testPrimaryKey", .type = ValueType::STRING},
-                 {.name = "some lineage", .type = ValueType::STRING, .generate_lineage_index = true
-                 },
-              },
-           .primary_key = "testPrimaryKey",
-           .date_to_sort_by = std::nullopt,
-           .partition_by = "testPrimaryKey"}}
+      R"(
+defaultNucleotideSequence: "main"
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+    - name: "some lineage"
+      type: "string"
+      generateLineageIndex: true
+  primaryKey: "testPrimaryKey"
+  dateToSortBy: null
+  partitionBy: "testPrimaryKey"
+)"
    );
 
    EXPECT_THAT(

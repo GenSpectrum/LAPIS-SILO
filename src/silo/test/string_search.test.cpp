@@ -41,16 +41,24 @@ const std::vector<nlohmann::json> DATA = {
    createDataEntry("id7", nullptr)
 };
 
-const auto DATABASE_CONFIG = DatabaseConfig{
-   .default_nucleotide_sequence = "segment1",
-   .schema =
-      {.instance_name = "dummy name",
-       .metadata =
-          {{.name = "primaryKey", .type = ValueType::STRING},
-           {.name = TEST_COLUMN, .type = ValueType::STRING},
-           {.name = INDEXED_TEST_COLUMN, .type = ValueType::STRING, .generate_index = true}},
-       .primary_key = "primaryKey"}
-};
+const auto DATABASE_CONFIG = silo::config::DatabaseConfigReader().parseYaml(fmt::format(
+   R"(
+defaultNucleotideSequence: "segment1"
+schema:
+  instanceName: "dummy name"
+  metadata:
+    - name: "primaryKey"
+      type: "string"
+    - name: "{}"
+      type: "string"
+    - name: "{}"
+      type: "string"
+      generateIndex: true
+  primaryKey: "primaryKey"
+)",
+   TEST_COLUMN,
+   INDEXED_TEST_COLUMN
+));
 
 const auto REFERENCE_GENOMES = ReferenceGenomes{
    {{"segment1", "A"}},

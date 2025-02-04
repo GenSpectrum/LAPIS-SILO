@@ -577,8 +577,7 @@ Database Preprocessor::buildDatabase(
    const preprocessing::Partitions& partition_descriptor,
    const std::filesystem::path& intermediate_results_directory
 ) {
-   Database database;
-   database.database_config = database_config;
+   Database database{silo::config::DatabaseConfig{database_config}};
    database.lineage_tree = std::move(lineage_tree);
    database.unaligned_sequences_directory = intermediate_results_directory;
    const DataVersion& data_version = DataVersion::mineDataVersion();

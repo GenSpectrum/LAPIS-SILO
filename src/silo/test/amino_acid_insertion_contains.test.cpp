@@ -32,13 +32,17 @@ const std::vector<nlohmann::json> DATA = {
    createDataWithAminoAcidInsertions("id_3", {{"gene1", {"123:CCC"}}, {"gene2", {}}}),
 };
 
-const auto DATABASE_CONFIG = DatabaseConfig{
-   .default_nucleotide_sequence = "segment1",
-   .schema =
-      {.instance_name = "dummy name",
-       .metadata = {{.name = "primaryKey", .type = ValueType::STRING}},
-       .primary_key = "primaryKey"}
-};
+const auto DATABASE_CONFIG = silo::config::DatabaseConfigReader().parseYaml(
+   R"(
+defaultNucleotideSequence: "segment1"
+schema:
+  instanceName: "dummy name"
+  metadata:
+    - name: "primaryKey"
+      type: "string"
+  primaryKey: "primaryKey"
+)"
+);
 
 const auto REFERENCE_GENOMES = ReferenceGenomes{
    {{"segment1", "A"}, {"segment2", "T"}},

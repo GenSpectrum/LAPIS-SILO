@@ -51,6 +51,18 @@ class Database {
    DataVersion data_version_ = DataVersion::mineDataVersion();
 
   public:
+   Database(silo::config::DatabaseConfig&& database_config)
+       : database_config(database_config) {}
+
+   Database() = delete;
+
+   Database(const Database&) = default;
+   Database(Database&&) = default;
+   Database& operator=(const Database&) = default;
+   Database& operator=(Database&&) = default;
+
+   virtual ~Database() = default;
+
    void validate() const;
 
    void saveDatabaseState(const std::filesystem::path& save_directory);

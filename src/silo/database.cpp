@@ -502,10 +502,8 @@ DataVersion loadDataVersion(const std::filesystem::path& filename) {
 }  // namespace
 
 Database Database::loadDatabaseState(const std::filesystem::path& save_directory) {
-   Database database;
    const auto database_config_filename = save_directory / "database_config.yaml";
-   database.database_config =
-      silo::config::DatabaseConfigReader().readConfig(database_config_filename);
+   Database database{silo::config::DatabaseConfigReader().readConfig(database_config_filename)};
    database.unaligned_sequences_directory = save_directory;
 
    SPDLOG_TRACE(

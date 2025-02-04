@@ -33,14 +33,18 @@ const nlohmann::json DATA_EQUALS_TO_REFERENCE = {
    {"aminoAcidInsertions", {{"gene1", {}}, {"gene2", {}}}}
 };
 
-const auto DATABASE_CONFIG = DatabaseConfig{
-   .default_nucleotide_sequence = "segment1",
-   .default_amino_acid_sequence = "gene1",
-   .schema =
-      {.instance_name = "dummy name",
-       .metadata = {{.name = "primaryKey", .type = ValueType::STRING}},
-       .primary_key = "primaryKey"}
-};
+const auto DATABASE_CONFIG = silo::config::DatabaseConfigReader().parseYaml(
+   R"(
+defaultNucleotideSequence: "segment1"
+defaultAminoAcidSequence: "gene1"
+schema:
+  instanceName: "dummy name"
+  metadata:
+    - name: "primaryKey"
+      type: "string"
+  primaryKey: "primaryKey"
+)"
+);
 
 const auto REFERENCE_GENOMES = ReferenceGenomes{
    {{"segment1", "T"}, {"segment2", "T"}},

@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <fmt/format.h>
+#include <yaml-cpp/yaml.h>
 
 namespace silo::config {
 
@@ -35,8 +36,19 @@ class DatabaseSchema {
    std::optional<std::string> partition_by;
 };
 
+class DatabaseConfigReader;
+
 class DatabaseConfig {
+   friend struct YAML::as_if<DatabaseConfig, void>;
+
+   DatabaseConfig() = default;
+
   public:
+   DatabaseConfig(const DatabaseConfig&) = default;
+   DatabaseConfig(DatabaseConfig&&) = default;
+   DatabaseConfig& operator=(const DatabaseConfig&) = default;
+   DatabaseConfig& operator=(DatabaseConfig&&) = default;
+
    std::optional<std::string> default_nucleotide_sequence;
    std::optional<std::string> default_amino_acid_sequence;
    DatabaseSchema schema;
@@ -54,6 +66,27 @@ class DatabaseConfigReader {
 };
 
 }  // namespace silo::config
+
+namespace YAML {
+template <>
+struct convert<silo::config::DatabaseConfig> {
+   static bool decode(const Node& node, silo::config::DatabaseConfig& config);
+   static Node encode(const silo::config::DatabaseConfig& config);
+};
+
+template <>
+struct convert<silo::config::DatabaseSchema> {
+   static bool decode(const Node& node, silo::config::DatabaseSchema& schema);
+   static Node encode(const silo::config::DatabaseSchema& schema);
+};
+
+template <>
+struct convert<silo::config::DatabaseMetadata> {
+   static bool decode(const Node& node, silo::config::DatabaseMetadata& metadata);
+   static Node encode(const silo::config::DatabaseMetadata& metadata);
+};
+
+}  // namespace YAML
 
 template <>
 class [[maybe_unused]] fmt::formatter<silo::config::DatabaseConfig> : fmt::formatter<std::string> {

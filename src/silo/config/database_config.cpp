@@ -55,112 +55,111 @@ std::string toString(ValueType type) {
 }
 }  // namespace
 
-namespace YAML {
-template <>
-struct convert<silo::config::DatabaseConfig> {
-   static bool decode(const Node& node, silo::config::DatabaseConfig& config) {
-      config.schema = node["schema"].as<silo::config::DatabaseSchema>();
+bool YAML::convert<silo::config::DatabaseConfig>::decode(
+   const Node& node,
+   silo::config::DatabaseConfig& config
+) {
+   config.schema = node["schema"].as<silo::config::DatabaseSchema>();
 
-      if (node[DEFAULT_NUCLEOTIDE_SEQUENCE_KEY].IsDefined() &&
-          !node[DEFAULT_NUCLEOTIDE_SEQUENCE_KEY].IsNull()) {
-         config.default_nucleotide_sequence =
-            node[DEFAULT_NUCLEOTIDE_SEQUENCE_KEY].as<std::string>();
-      }
-      if (node[DEFAULT_AMINO_ACID_SEQUENCE_KEY].IsDefined() &&
-          !node[DEFAULT_AMINO_ACID_SEQUENCE_KEY].IsNull()) {
-         config.default_amino_acid_sequence =
-            node[DEFAULT_AMINO_ACID_SEQUENCE_KEY].as<std::string>();
-      }
-
-      SPDLOG_TRACE("Resulting database config: {}", config);
-
-      return true;
+   if (node[DEFAULT_NUCLEOTIDE_SEQUENCE_KEY].IsDefined() && !node[DEFAULT_NUCLEOTIDE_SEQUENCE_KEY].IsNull()) {
+      config.default_nucleotide_sequence = node[DEFAULT_NUCLEOTIDE_SEQUENCE_KEY].as<std::string>();
    }
-   static Node encode(const silo::config::DatabaseConfig& config) {
-      Node node;
-      node["schema"] = config.schema;
-
-      if (config.default_nucleotide_sequence.has_value()) {
-         node[DEFAULT_NUCLEOTIDE_SEQUENCE_KEY] = *config.default_nucleotide_sequence;
-      }
-      if (config.default_amino_acid_sequence.has_value()) {
-         node[DEFAULT_AMINO_ACID_SEQUENCE_KEY] = *config.default_amino_acid_sequence;
-      }
-      return node;
-   }
-};
-
-template <>
-struct convert<silo::config::DatabaseSchema> {
-   static bool decode(const Node& node, silo::config::DatabaseSchema& schema) {
-      schema.instance_name = node["instanceName"].as<std::string>();
-      schema.primary_key = node["primaryKey"].as<std::string>();
-      if (node["dateToSortBy"].IsDefined()) {
-         schema.date_to_sort_by = node["dateToSortBy"].as<std::string>();
-      } else {
-         schema.date_to_sort_by = std::nullopt;
-      }
-      if (node["partitionBy"].IsDefined()) {
-         schema.partition_by = node["partitionBy"].as<std::string>();
-      } else {
-         schema.partition_by = std::nullopt;
-      }
-
-      if (!node["metadata"].IsSequence()) {
-         return false;
-      }
-
-      for (const auto& metadata : node["metadata"]) {
-         schema.metadata.push_back(metadata.as<silo::config::DatabaseMetadata>());
-      }
-      return true;
+   if (node[DEFAULT_AMINO_ACID_SEQUENCE_KEY].IsDefined() && !node[DEFAULT_AMINO_ACID_SEQUENCE_KEY].IsNull()) {
+      config.default_amino_acid_sequence = node[DEFAULT_AMINO_ACID_SEQUENCE_KEY].as<std::string>();
    }
 
-   static Node encode(const silo::config::DatabaseSchema& schema) {
-      Node node;
-      node["instanceName"] = schema.instance_name;
-      node["primaryKey"] = schema.primary_key;
-      if (schema.partition_by.has_value()) {
-         node["partitionBy"] = *schema.partition_by;
-      }
-      if (schema.date_to_sort_by.has_value()) {
-         node["dateToSortBy"] = *schema.date_to_sort_by;
-      }
-      node["metadata"] = schema.metadata;
-      return node;
-   }
-};
+   SPDLOG_TRACE("Resulting database config: {}", config);
 
-template <>
-struct convert<silo::config::DatabaseMetadata> {
-   static bool decode(const Node& node, silo::config::DatabaseMetadata& metadata) {
-      metadata.name = node["name"].as<std::string>();
-      metadata.type = silo::config::toDatabaseValueType(node["type"].as<std::string>());
-      if (node["generateIndex"].IsDefined()) {
-         metadata.generate_index = node["generateIndex"].as<bool>();
-      } else {
-         metadata.generate_index = false;
-      }
-      if (node["generateLineageIndex"].IsDefined()) {
-         metadata.generate_lineage_index = node["generateLineageIndex"].as<bool>();
-      } else {
-         metadata.generate_lineage_index = false;
-      }
-      return true;
-   }
-   static Node encode(const silo::config::DatabaseMetadata& metadata) {
-      Node node;
-      node["name"] = metadata.name;
-      node["type"] = toString(metadata.type);
-      node["generateIndex"] = metadata.generate_index;
-      if (metadata.generate_lineage_index) {
-         node["generateLineageIndex"] = true;
-      }
-      return node;
-   }
-};
+   return true;
+}
+YAML::Node YAML::convert<silo::config::DatabaseConfig>::encode(
+   const silo::config::DatabaseConfig& config
+) {
+   Node node;
+   node["schema"] = config.schema;
 
-}  // namespace YAML
+   if (config.default_nucleotide_sequence.has_value()) {
+      node[DEFAULT_NUCLEOTIDE_SEQUENCE_KEY] = *config.default_nucleotide_sequence;
+   }
+   if (config.default_amino_acid_sequence.has_value()) {
+      node[DEFAULT_AMINO_ACID_SEQUENCE_KEY] = *config.default_amino_acid_sequence;
+   }
+   return node;
+}
+
+bool YAML::convert<silo::config::DatabaseSchema>::decode(
+   const Node& node,
+   silo::config::DatabaseSchema& schema
+) {
+   schema.instance_name = node["instanceName"].as<std::string>();
+   schema.primary_key = node["primaryKey"].as<std::string>();
+   if (node["dateToSortBy"].IsDefined()) {
+      schema.date_to_sort_by = node["dateToSortBy"].as<std::string>();
+   } else {
+      schema.date_to_sort_by = std::nullopt;
+   }
+   if (node["partitionBy"].IsDefined()) {
+      schema.partition_by = node["partitionBy"].as<std::string>();
+   } else {
+      schema.partition_by = std::nullopt;
+   }
+
+   if (!node["metadata"].IsSequence()) {
+      return false;
+   }
+
+   for (const auto& metadata : node["metadata"]) {
+      schema.metadata.push_back(metadata.as<silo::config::DatabaseMetadata>());
+   }
+   return true;
+}
+
+YAML::Node YAML::convert<silo::config::DatabaseSchema>::encode(
+   const silo::config::DatabaseSchema& schema
+) {
+   Node node;
+   node["instanceName"] = schema.instance_name;
+   node["primaryKey"] = schema.primary_key;
+   if (schema.partition_by.has_value()) {
+      node["partitionBy"] = *schema.partition_by;
+   }
+   if (schema.date_to_sort_by.has_value()) {
+      node["dateToSortBy"] = *schema.date_to_sort_by;
+   }
+   node["metadata"] = schema.metadata;
+   return node;
+}
+
+bool YAML::convert<silo::config::DatabaseMetadata>::decode(
+   const Node& node,
+   silo::config::DatabaseMetadata& metadata
+) {
+   metadata.name = node["name"].as<std::string>();
+   metadata.type = silo::config::toDatabaseValueType(node["type"].as<std::string>());
+   if (node["generateIndex"].IsDefined()) {
+      metadata.generate_index = node["generateIndex"].as<bool>();
+   } else {
+      metadata.generate_index = false;
+   }
+   if (node["generateLineageIndex"].IsDefined()) {
+      metadata.generate_lineage_index = node["generateLineageIndex"].as<bool>();
+   } else {
+      metadata.generate_lineage_index = false;
+   }
+   return true;
+}
+YAML::Node YAML::convert<silo::config::DatabaseMetadata>::encode(
+   const silo::config::DatabaseMetadata& metadata
+) {
+   Node node;
+   node["name"] = metadata.name;
+   node["type"] = toString(metadata.type);
+   node["generateIndex"] = metadata.generate_index;
+   if (metadata.generate_lineage_index) {
+      node["generateLineageIndex"] = true;
+   }
+   return node;
+}
 
 namespace silo::config {
 

@@ -12,20 +12,22 @@ TEST(
    MetadataInfo,
    isValidMedataFileShouldReturnFalseWhenOneConfigCoulmnIsNotPresentInMetadataFile
 ) {
-   const silo::config::DatabaseConfig some_config_with_one_column_not_in_metadata{
-      .default_nucleotide_sequence = "main",
-      .schema =
-         {
-            .instance_name = "testInstanceName",
-            .metadata =
-               {
-                  {.name = "gisaid_epi_isl", .type = silo::config::ValueType::STRING},
-                  {.name = "notInMetadata", .type = silo::config::ValueType::STRING},
-                  {.name = "country", .type = silo::config::ValueType::STRING},
-               },
-            .primary_key = "gisaid_epi_isl",
-         }
-   };
+   const silo::config::DatabaseConfig some_config_with_one_column_not_in_metadata =
+      silo::config::DatabaseConfigReader().parseYaml(
+         R"(
+defaultNucleotideSequence: "main"
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "gisaidEpiIsl"
+      type: "string"
+    - name: "notInMetadata"
+      type: "string"
+    - name: "country"
+      type: "string"
+  primaryKey: "gisaidEpiIsl"
+)"
+      );
 
    EXPECT_THROW(
       silo::preprocessing::MetadataInfo::validateMetadataFile(

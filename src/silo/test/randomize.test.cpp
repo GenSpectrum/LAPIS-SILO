@@ -58,14 +58,19 @@ const auto DATA_JSON = R"([
 
 const std::vector<json> DATA = json::parse(DATA_JSON);
 
-const auto DATABASE_CONFIG = DatabaseConfig{
-   .default_nucleotide_sequence = "segment1",
-   .schema =
-      {.instance_name = "dummy name",
-       .metadata =
-          {{.name = "key", .type = ValueType::STRING}, {.name = "col", .type = ValueType::STRING}},
-       .primary_key = "key"}
-};
+const auto DATABASE_CONFIG = silo::config::DatabaseConfigReader().parseYaml(
+   R"(
+defaultNucleotideSequence: "segment1"
+schema:
+  instanceName: "dummy name"
+  metadata:
+    - name: "key"
+      type: "string"
+    - name: "col"
+      type: "string"
+  primaryKey: "key"
+)"
+);
 
 const auto REFERENCE_GENOMES = ReferenceGenomes{
    {{"segment1", "A"}},
