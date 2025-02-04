@@ -6,7 +6,6 @@
 
 #include "config/source/yaml_file.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/config/config_repository.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/database_info.h"
 #include "silo/preprocessing/preprocessor.h"
@@ -25,8 +24,9 @@ silo::Database buildTestDatabase() {
       silo::config::YamlFile::readFile(input_directory / "preprocessing_config.yaml")
          .verify(PreprocessingConfig::getConfigSpecification())
    );
-   const auto database_config =
-      silo::config::ConfigRepository().getValidatedConfig(input_directory / "database_config.yaml");
+   const auto database_config = silo::config::DatabaseConfig::getValidatedConfigFromFile(
+      input_directory / "database_config.yaml"
+   );
 
    const auto reference_genomes =
       silo::ReferenceGenomes::readFromFile(config.getReferenceGenomeFilename());
@@ -64,7 +64,7 @@ TEST(DatabaseTest, shouldSuccessfullyBuildDatabaseWithoutPartitionBy) {
          .verify(PreprocessingConfig::getConfigSpecification())
    );
 
-   const auto database_config = silo::config::ConfigRepository().getValidatedConfig(
+   const auto database_config = silo::config::DatabaseConfig::getValidatedConfigFromFile(
       input_directory / "test_database_config_without_partition_by.yaml"
    );
 

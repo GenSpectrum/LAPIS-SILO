@@ -8,7 +8,6 @@
 using silo::config::ColumnType;
 using silo::config::ConfigException;
 using silo::config::DatabaseConfig;
-using silo::config::DatabaseConfigReader;
 using silo::config::DatabaseSchema;
 using silo::config::toDatabaseValueType;
 using silo::config::ValueType;
@@ -20,7 +19,7 @@ TEST(DatabaseMetadataType, shouldBeConvertableFromString) {
 }
 
 TEST(DatabaseConfig, shouldBuildDatabaseConfig) {
-   const DatabaseConfig config = DatabaseConfigReader().parseYaml(
+   const DatabaseConfig config = silo::config::DatabaseConfig::getValidatedConfig(
       R"(
 defaultNucleotideSequence: "main"
 schema:
@@ -30,7 +29,7 @@ schema:
       type: "string"
     - name: "metadata2"
       type: "string"
-    - name: "metadata3"
+    - name: "testPrimaryKey"
       type: "date"
   primaryKey: "testPrimaryKey"
 )"
@@ -102,9 +101,10 @@ INSTANTIATE_TEST_SUITE_P(
    )
 );
 
-TEST(DatabaseConfigReader, shouldReadConfigWithCorrectParameters) {
-   DatabaseConfig config =
-      DatabaseConfigReader().readConfig("testBaseData/test_database_config.yaml");
+TEST(DatabaseConfig, shouldReadConfigWithCorrectParameters) {
+   DatabaseConfig config = silo::config::DatabaseConfig::getValidatedConfigFromFile(
+      "testBaseData/test_database_config.yaml"
+   );
 
    ASSERT_EQ(config.schema.instance_name, "sars_cov-2_minimal_test_config");
    ASSERT_EQ(config.schema.primary_key, "gisaid_epi_isl");
@@ -144,14 +144,18 @@ TEST(DatabaseConfigReader, shouldReadConfigWithCorrectParameters) {
    ASSERT_EQ(config.default_amino_acid_sequence, std::nullopt);
 }
 
-TEST(DatabaseConfigReader, shouldThrowExceptionWhenConfigFileDoesNotExist) {
+TEST(DatabaseConfig, shouldThrowExceptionWhenConfigFileDoesNotExist) {
    EXPECT_THAT(
-      []() { (void)DatabaseConfigReader().readConfig("testBaseData/does_not_exist.yaml"); },
+      []() {
+         (void)silo::config::DatabaseConfig::getValidatedConfigFromFile(
+            "testBaseData/does_not_exist.yaml"
+         );
+      },
       ThrowsMessage<std::runtime_error>(::testing::HasSubstr("Failed to read database config"))
    );
 }
 
-TEST(DatabaseConfigReader, shouldThrowErrorForInvalidMetadataType) {
+TEST(DatabaseConfig, shouldThrowErrorForInvalidMetadataType) {
    const auto* yaml = R"-(
 schema:
   instanceName: dummy name
@@ -161,10 +165,10 @@ schema:
   primaryKey: gisaid_epi_isl
 )-";
 
-   ASSERT_THROW((void)DatabaseConfigReader().parseYaml(yaml), ConfigException);
+   ASSERT_THROW((void)silo::config::DatabaseConfig::getValidatedConfig(yaml), ConfigException);
 }
 
-TEST(DatabaseConfigReader, shouldNotThrowIfThereAreAdditionalEntries) {
+TEST(DatabaseConfig, shouldNotThrowIfThereAreAdditionalEntries) {
    const auto* yaml = R"-(
 schema:
   instanceName: dummy name
@@ -176,10 +180,10 @@ schema:
     - name: this is unknown to SILO
 )-";
 
-   ASSERT_NO_THROW((void)DatabaseConfigReader().parseYaml(yaml));
+   ASSERT_NO_THROW((void)silo::config::DatabaseConfig::getValidatedConfig(yaml));
 }
 
-TEST(DatabaseConfigReader, shouldThrowIfTheConfigHasAnInvalidStructure) {
+TEST(DatabaseConfig, shouldThrowIfTheConfigHasAnInvalidStructure) {
    const auto* yaml = R"-(
 schema:
   instanceName: dummy name
@@ -187,14 +191,14 @@ schema:
 )-";
 
    EXPECT_THAT(
-      [yaml]() { (void)DatabaseConfigReader().parseYaml(yaml); },
+      [yaml]() { (void)silo::config::DatabaseConfig::getValidatedConfig(yaml); },
       ThrowsMessage<std::runtime_error>(
          ::testing::HasSubstr("invalid node; first invalid key: \"metadata\"")
       )
    );
 }
 
-TEST(DatabaseConfigReader, shouldReadConfigWithoutDateToSortBy) {
+TEST(DatabaseConfig, shouldReadConfigWithoutDateToSortBy) {
    const auto* yaml = R"-(
 schema:
   instanceName: Having no dateToSortBy is valid
@@ -202,15 +206,14 @@ schema:
     - name: primaryKey
       type: string
   primaryKey: primaryKey
-  partitionBy: pango_lineage
 )-";
 
-   const DatabaseConfig& config = DatabaseConfigReader().parseYaml(yaml);
+   const DatabaseConfig& config = silo::config::DatabaseConfig::getValidatedConfig(yaml);
 
    ASSERT_EQ(config.schema.date_to_sort_by, std::nullopt);
 }
 
-TEST(DatabaseConfigReader, shouldReadConfigWithoutPartitionBy) {
+TEST(DatabaseConfig, shouldReadConfigWithoutPartitionBy) {
    const auto* yaml = R"-(
 schema:
   instanceName: dummy without partitionBy
@@ -223,12 +226,12 @@ schema:
   dateToSortBy: date
 )-";
 
-   const DatabaseConfig& config = DatabaseConfigReader().parseYaml(yaml);
+   const DatabaseConfig& config = silo::config::DatabaseConfig::getValidatedConfig(yaml);
 
    ASSERT_EQ(config.schema.partition_by, std::nullopt);
 }
 
-TEST(DatabaseConfigReader, shouldReadConfigWithDefaultSequencesSet) {
+TEST(DatabaseConfig, shouldReadConfigWithDefaultSequencesSet) {
    const auto* yaml = R"-(
 schema:
   instanceName: dummy without partitionBy
@@ -240,13 +243,13 @@ defaultNucleotideSequence: defaultNuc
 defaultAminoAcidSequence: defaultAA
 )-";
 
-   const DatabaseConfig& config = DatabaseConfigReader().parseYaml(yaml);
+   const DatabaseConfig& config = silo::config::DatabaseConfig::getValidatedConfig(yaml);
 
    ASSERT_EQ(config.default_nucleotide_sequence, "defaultNuc");
    ASSERT_EQ(config.default_amino_acid_sequence, "defaultAA");
 }
 
-TEST(DatabaseConfigReader, shouldReadConfigWithDefaultSequencesSetButNull) {
+TEST(DatabaseConfig, shouldReadConfigWithDefaultSequencesSetButNull) {
    const auto* yaml = R"-(
 schema:
   instanceName: dummy without partitionBy
@@ -258,10 +261,212 @@ defaultNucleotideSequence: null
 defaultAminoAcidSequence: null
 )-";
 
-   const DatabaseConfig& config = DatabaseConfigReader().parseYaml(yaml);
+   const DatabaseConfig& config = silo::config::DatabaseConfig::getValidatedConfig(yaml);
 
    ASSERT_EQ(config.default_nucleotide_sequence, std::nullopt);
    ASSERT_EQ(config.default_amino_acid_sequence, std::nullopt);
+}
+
+TEST(DatabaseConfig, shouldReadConfigWithoutErrors) {
+   const auto config_yaml =
+      R"(
+defaultNucleotideSequence: "main"
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+    - name: "metadata1"
+      type: "string"
+      generateIndex: true
+      generateLineageIndex: true
+    - name: "metadata2"
+      type: "date"
+  primaryKey: "testPrimaryKey"
+  partitionBy: "metadata1"
+)";
+
+   ASSERT_NO_THROW(DatabaseConfig::getValidatedConfig(config_yaml));
+}
+
+TEST(DatabaseConfig, shouldThrowIfPrimaryKeyIsNotInMetadata) {
+   const auto config_yaml =
+      R"(
+defaultNucleotideSequence: "main"
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "notPrimaryKey"
+      type: "string"
+  primaryKey: "testPrimaryKey"
+)";
+
+   ASSERT_THROW(DatabaseConfig::getValidatedConfig(config_yaml), ConfigException);
+}
+
+TEST(DatabaseConfig, shouldThrowIfThereAreTwoMetadataWithTheSameName) {
+   const auto config_yaml =
+      R"(
+defaultNucleotideSequence: "main"
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+    - name: "sameName"
+      type: "string"
+    - name: "sameName"
+      type: "date"
+  primaryKey: "testPrimaryKey"
+)";
+
+   ASSERT_THROW(DatabaseConfig::getValidatedConfig(config_yaml), ConfigException);
+}
+
+TEST(DatabaseConfig, givenConfigWithDateToSortByThatIsNotConfiguredThenThrows) {
+   const auto config_yaml =
+      R"(
+defaultNucleotideSequence: "main"
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+  primaryKey: "testPrimaryKey"
+  dateToSortBy: "notConfiguredDateToSortBy"
+)";
+
+   EXPECT_THAT(
+      [&config_yaml]() { DatabaseConfig::getValidatedConfig(config_yaml); },
+      ThrowsMessage<ConfigException>(
+         ::testing::HasSubstr("dateToSortBy 'notConfiguredDateToSortBy' is not in metadata")
+      )
+   );
+}
+
+TEST(DatabaseConfig, givenDateToSortByThatIsNotADateThenThrows) {
+   const auto config_yaml =
+      R"(
+defaultNucleotideSequence: "main"
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+    - name: "not a date"
+      type: "string"
+  primaryKey: "testPrimaryKey"
+  dateToSortBy: "not a date"
+)";
+
+   EXPECT_THAT(
+      [&config_yaml]() { DatabaseConfig::getValidatedConfig(config_yaml); },
+      ThrowsMessage<ConfigException>(
+         ::testing::HasSubstr("dateToSortBy 'not a date' must be of type DATE")
+      )
+   );
+}
+
+TEST(DatabaseConfig, givenConfigPartitionByThatIsNotConfiguredThenThrows) {
+   const auto config_yaml =
+      R"(
+defaultNucleotideSequence: "main"
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+    - name: "dateToSortBy"
+      type: "date"
+  primaryKey: "testPrimaryKey"
+  dateToSortBy: "dateToSortBy"
+  partitionBy: "notConfiguredPartitionBy"
+)";
+
+   EXPECT_THAT(
+      [&config_yaml]() { DatabaseConfig::getValidatedConfig(config_yaml); },
+      ThrowsMessage<ConfigException>(
+         ::testing::HasSubstr("partitionBy 'notConfiguredPartitionBy' is not in metadata")
+      )
+   );
+}
+
+TEST(DatabaseConfig, givenConfigPartitionByThatIsNotALineageThrows) {
+   const auto config_yaml =
+      R"(
+defaultNucleotideSequence: "main"
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+    - name: "dateToSortBy"
+      type: "date"
+    - name: "not a lineage"
+      type: "string"
+  primaryKey: "testPrimaryKey"
+  dateToSortBy: "dateToSortBy"
+  partitionBy: "not a lineage"
+)";
+
+   EXPECT_THAT(
+      [&config_yaml]() { DatabaseConfig::getValidatedConfig(config_yaml); },
+      ThrowsMessage<silo::config::ConfigException>(::testing::HasSubstr(
+         "partitionBy 'not a lineage' must be of type STRING and needs 'generateLineageIndex' set"
+      ))
+   );
+}
+
+TEST(DatabaseConfig, givenMetadataToGenerateIndexForThatIsNotStringThenThrows) {
+   const auto config_yaml =
+      R"(
+defaultNucleotideSequence: "main"
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+    - name: "indexed date"
+      type: "date"
+      generateIndex: true
+  primaryKey: "testPrimaryKey"
+  dateToSortBy: null
+  partitionBy: "testPrimaryKey"
+)";
+
+   EXPECT_THAT(
+      [&config_yaml]() { DatabaseConfig::getValidatedConfig(config_yaml); },
+      ThrowsMessage<ConfigException>(
+         ::testing::HasSubstr("Metadata 'indexed date' generateIndex is set, but generating an "
+                              "index is only allowed for types STRING")
+      )
+   );
+}
+
+TEST(DatabaseConfig, givenLineageIndexAndNotGenerateThenThrows) {
+   const auto config_yaml =
+      R"(
+defaultNucleotideSequence: "main"
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+    - name: "some lineage"
+      type: "string"
+      generateLineageIndex: true
+  primaryKey: "testPrimaryKey"
+  dateToSortBy: null
+  partitionBy: "testPrimaryKey"
+)";
+
+   EXPECT_THAT(
+      [&config_yaml]() { DatabaseConfig::getValidatedConfig(config_yaml); },
+      ThrowsMessage<ConfigException>(
+         ::testing::HasSubstr("Metadata 'some lineage' generateLineageIndex is set, "
+                              "generateIndex must also be set")
+      )
+   );
 }
 
 }  // namespace

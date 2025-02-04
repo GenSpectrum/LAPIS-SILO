@@ -32,7 +32,7 @@ const nlohmann::json DATA_SAME_AS_REFERENCE2 = createDataWithNucleotideSequence(
 const nlohmann::json DATA_WITH_ALL_N = createDataWithNucleotideSequence("NNNNN");
 const nlohmann::json DATA_WITH_ALL_MUTATED = createDataWithNucleotideSequence("CATTT");
 
-const auto DATABASE_CONFIG = silo::config::DatabaseConfigReader().parseYaml(
+const auto DATABASE_CONFIG =
    R"(
 defaultNucleotideSequence: "segment1"
 schema:
@@ -41,8 +41,7 @@ schema:
     - name: "primaryKey"
       type: "string"
   primaryKey: "primaryKey"
-)"
-);
+)";
 
 const auto REFERENCE_GENOMES = ReferenceGenomes{
    {{"segment1", "ATGCN"}},

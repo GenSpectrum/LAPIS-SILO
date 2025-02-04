@@ -37,7 +37,7 @@ const std::vector<nlohmann::json> DATA = {
    createDataWithUnalignedSequences("3", "2024-08-02", nullptr, "AA")
 };
 
-const auto DATABASE_CONFIG = silo::config::DatabaseConfigReader().parseYaml(
+const auto DATABASE_CONFIG =
    R"(
 schema:
   instanceName: "dummy name"
@@ -48,8 +48,7 @@ schema:
       type: "date"
   primaryKey: "primaryKey"
   dateToSortBy: "date"
-)"
-);
+)";
 
 const auto REFERENCE_GENOMES = ReferenceGenomes{
    {{"segment1", "A"}, {"segment2", "T"}},

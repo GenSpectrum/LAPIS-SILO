@@ -41,7 +41,7 @@ const std::vector<nlohmann::json> DATA = {
    createDataEntry("id7", nullptr)
 };
 
-const auto DATABASE_CONFIG = silo::config::DatabaseConfigReader().parseYaml(fmt::format(
+const auto DATABASE_CONFIG = fmt::format(
    R"(
 defaultNucleotideSequence: "segment1"
 schema:
@@ -58,7 +58,7 @@ schema:
 )",
    TEST_COLUMN,
    INDEXED_TEST_COLUMN
-));
+);
 
 const auto REFERENCE_GENOMES = ReferenceGenomes{
    {{"segment1", "A"}},

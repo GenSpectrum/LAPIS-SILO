@@ -75,7 +75,7 @@ namespace silo::test {
 
 struct QueryTestData {
    const std::vector<nlohmann::json> ndjson_input_data;
-   const silo::config::DatabaseConfig database_config;
+   const std::string database_config;
    const silo::ReferenceGenomes reference_genomes;
    const silo::common::LineageTreeAndIdMap lineage_tree;
 };
@@ -124,7 +124,7 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
 
       silo::preprocessing::Preprocessor preprocessor(
          config_with_input_dir,
-         test_data.database_config,
+         silo::config::DatabaseConfig::getValidatedConfig(test_data.database_config),
          test_data.reference_genomes,
          test_data.lineage_tree
       );

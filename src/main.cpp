@@ -5,7 +5,6 @@
 #include "silo/common/overloaded.h"
 #include "silo/common/panic.h"
 #include "silo/common/version.h"
-#include "silo/config/config_repository.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/config/runtime_config.h"
 #include "silo/database.h"
@@ -20,7 +19,7 @@ namespace {
 int runPreprocessor(const silo::config::PreprocessingConfig& preprocessing_config) {
    // TODO (#656): move body of siloPreprocessing to preprocessing.{h,cpp} #656
    try {
-      auto database_config = silo::config::ConfigRepository().getValidatedConfig(
+      auto database_config = silo::config::DatabaseConfig::getValidatedConfigFromFile(
          preprocessing_config.getDatabaseConfigFilename()
       );
 
