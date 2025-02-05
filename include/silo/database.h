@@ -7,7 +7,6 @@
 #include "silo/common/data_version.h"
 #include "silo/common/silo_directory.h"
 #include "silo/database_info.h"
-#include "silo/query_engine/query_result.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
@@ -35,8 +34,6 @@ class Database {
    [[nodiscard]] virtual DatabaseInfo getDatabaseInfo() const;
 
    virtual DataVersion::Timestamp getDataVersionTimestamp() const;
-
-   virtual query_engine::QueryResult executeQuery(const std::string& query) const;
 };
 
 }  // namespace silo

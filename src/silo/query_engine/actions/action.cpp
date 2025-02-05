@@ -8,6 +8,8 @@
 #include <random>
 #include <utility>
 
+#include <arrow/acero/exec_plan.h>
+#include <arrow/compute/ordering.h>
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
@@ -22,6 +24,8 @@
 #include "silo/query_engine/actions/mutations.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
+#include "silo/query_engine/exec_node/legacy_result_producer.h"
+#include "silo/query_engine/exec_node/ndjson_sink.h"
 #include "silo/query_engine/query_result.h"
 
 namespace silo::query_engine::actions {
@@ -103,13 +107,27 @@ void Action::setOrdering(
    randomize_seed = randomize_seed_;
 }
 
+std::optional<arrow::Ordering> Action::getOrdering() const {
+   using arrow::compute::SortOrder;
+   if (order_by_fields.empty()) {
+      return std::nullopt;
+   }
+   std::vector<arrow::compute::SortKey> sort_keys;
+   for (auto order_by_field : order_by_fields) {
+      auto sort_order = order_by_field.ascending ? SortOrder::Ascending : SortOrder::Descending;
+      sort_keys.emplace_back(order_by_field.name, sort_order);
+   }
+   return {sort_keys};
+}
+
 static const size_t MATERIALIZATION_CUTOFF = 10000;
 
 QueryResult Action::executeAndOrder(
-   const Database& database,
+   std::shared_ptr<const storage::Table> table,
+
    std::vector<CopyOnWriteBitmap> bitmap_filter
 ) const {
-   validateOrderByFields(database.table->schema);
+   validateOrderByFields(table->schema);
 
    // Hacky solution to give the full feature set (randomization,
    // sorting) for small result sets, and streaming without those
@@ -121,7 +139,7 @@ QueryResult Action::executeAndOrder(
    }
    const bool is_large = num_rows > MATERIALIZATION_CUTOFF;
 
-   QueryResult result = execute(database, std::move(bitmap_filter));
+   QueryResult result = execute(table, std::move(bitmap_filter));
 
    if (result.isMaterialized() || !is_large) {
       SPDLOG_TRACE("materialized or small -> full featured sort, offset+limit");
@@ -266,6 +284,45 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
    auto offset = parseOffset(json);
    auto randomize_seed = parseRandomizeSeed(json);
    action->setOrdering(order_by_fields, limit, offset, randomize_seed);
+}
+
+std::vector<schema::ColumnIdentifier> columnNamesToFields(
+   const std::vector<std::string>& column_names,
+   const silo::schema::TableSchema& table_schema
+) {
+   std::vector<schema::ColumnIdentifier> fields;
+   for (const auto& column_name : column_names) {
+      auto column = table_schema.getColumn(column_name);
+      CHECK_SILO_QUERY(
+         column.has_value(), fmt::format("The table does not contain the field {}", column_name)
+      );
+      fields.emplace_back(column_name, column.value().type);
+   }
+   return fields;
+}
+
+QueryPlan Action::toQueryPlan(
+   std::shared_ptr<const storage::Table> table,
+   const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
+   std::ostream& output_stream,
+   const config::QueryOptions& query_options
+) {
+   QueryPlan query_plan;
+   auto source_node = query_plan.arrow_plan->EmplaceNode<exec_node::LegacyResultProducer>(
+      query_plan.arrow_plan.get(),
+      getOutputSchema(table->schema),
+      table,
+      partition_filter_operators,
+      this,
+      query_options.materialization_cutoff
+   );
+
+   // TODO(#764) make output format configurable
+   query_plan.arrow_plan->EmplaceNode<exec_node::NdjsonSink>(
+      query_plan.arrow_plan.get(), &output_stream, source_node
+   );
+
+   return query_plan;
 }
 
 }  // namespace silo::query_engine::actions

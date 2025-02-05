@@ -11,10 +11,10 @@
 #include <nlohmann/json_fwd.hpp>
 
 #include "silo/common/symbol_map.h"
-#include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/column/sequence_column.h"
+#include "silo/storage/table.h"
 
 namespace silo::query_engine::actions {
 
@@ -89,7 +89,7 @@ class Mutations : public Action {
    void validateOrderByFields(const schema::TableSchema& schema) const override;
 
    [[nodiscard]] QueryResult execute(
-      const Database& database,
+      std::shared_ptr<const storage::Table> table,
       std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const override;
 
@@ -99,6 +99,10 @@ class Mutations : public Action {
       double min_proportion,
       std::vector<std::string_view>&& fields
    );
+
+   std::vector<schema::ColumnIdentifier> getOutputSchema(
+      const silo::schema::TableSchema& table_schema
+   ) const override;
 };
 
 template <typename SymbolType>

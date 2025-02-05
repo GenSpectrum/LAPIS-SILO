@@ -13,7 +13,6 @@ Checks: >
   performance-*,
   readability-magic-numbers,
 # clang-analyzer-cplusplus.NewDeleteLeaks TODO(#632) readd
-  -modernize-use-trailing-return-type,
   -misc-non-private-member-variables-in-classes,
   -misc-include-cleaner,
   -google-readability-avoid-underscore-in-googletest-name,
