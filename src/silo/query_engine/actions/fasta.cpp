@@ -64,11 +64,12 @@ QueryResultEntry makeEntry(
    return entry;
 }
 
-QueryResult Fasta::execute(const Database& database, std::vector<CopyOnWriteBitmap> bitmap_filter)
-   const {
+QueryResult Fasta::execute(
+   std::shared_ptr<const storage::Table> table,
+   std::vector<CopyOnWriteBitmap> bitmap_filter
+) const {
    auto columns_in_database =
-      database.table->schema.getColumnByType<storage::column::ZstdCompressedStringColumnPartition>(
-      );
+      table->schema.getColumnByType<storage::column::ZstdCompressedStringColumnPartition>();
    for (const std::string& sequence_name : sequence_names) {
       schema::ColumnIdentifier column_identifier_to_find{
          storage::UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX + sequence_name,
@@ -94,10 +95,10 @@ QueryResult Fasta::execute(const Database& database, std::vector<CopyOnWriteBitm
    return QueryResult::fromGenerator([sequence_names = std::move(sequence_names),
                                       bitmap_filter = std::move(bitmap_filter),
                                       remaining_result_row_indices,
-                                      &database,
+                                      table,
                                       partition_index](std::vector<QueryResultEntry>& results
                                      ) mutable {
-      for (; partition_index < database.table->getNumberOfPartitions();
+      for (; partition_index < table->getNumberOfPartitions();
            ++partition_index, remaining_result_row_indices = {}) {
          // We drain the bitmaps in bitmap_filter as we process the
          // query, because roaring bitmaps don't come with
@@ -127,18 +128,15 @@ QueryResult Fasta::execute(const Database& database, std::vector<CopyOnWriteBitm
             SPDLOG_TRACE(
                "FastaAligned::execute: refill QueryResult for partition_index {}/{}, {}/{}",
                partition_index,
-               database.table->getNumberOfPartitions(),
+               table->getNumberOfPartitions(),
                result_row_indices.toString(),
                remaining_result_row_indices->beyondLast()
             );
 
-            const auto& database_partition = database.table->getPartition(partition_index);
+            const auto& database_partition = table->getPartition(partition_index);
             for (const uint32_t row_id : *bitmap) {
                results.emplace_back(makeEntry(
-                  database.table->schema.primary_key.name,
-                  database_partition,
-                  sequence_names,
-                  row_id
+                  table->schema.primary_key.name, database_partition, sequence_names, row_id
                ));
 
                result_row_indices = result_row_indices.skip1();
@@ -156,6 +154,18 @@ QueryResult Fasta::execute(const Database& database, std::vector<CopyOnWriteBitm
          }
       }
    });
+}
+
+std::vector<schema::ColumnIdentifier> Fasta::getOutputSchema(
+   const silo::schema::TableSchema& table_schema
+) const {
+   std::vector<schema::ColumnIdentifier> fields;
+   for (const auto& sequence_name : sequence_names) {
+      // TODO(#763) leave it zstd compressed
+      fields.emplace_back(sequence_name, schema::ColumnType::STRING);
+   }
+   fields.push_back(table_schema.primary_key);
+   return fields;
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

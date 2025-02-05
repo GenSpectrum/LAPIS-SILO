@@ -13,7 +13,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D SILO_DEBUG_ASSERTIONS=0")
 
 # Work-around only for MacOS
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set(CMAKE_CXX_FLAGS_DEBUG "-g -D SILO_DEBUG_ASSERTIONS=1")
+    set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address -D SILO_DEBUG_ASSERTIONS=1")
     set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D SILO_DEBUG_ASSERTIONS=0")
 endif ()
 
@@ -35,6 +35,7 @@ add_compile_definitions(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 # Dependencies
 # ---------------------------------------------------------------------------
 
+find_package(Arrow REQUIRED COMPONENTS Acero XYZ)
 find_package(Boost REQUIRED COMPONENTS system serialization iostreams)
 find_package(LibLZMA REQUIRED)
 find_package(nlohmann_json REQUIRED)
@@ -108,6 +109,8 @@ add_library(silolib OBJECT ${SRC_SILO_WITHOUT_MAIN})
 target_link_libraries(
         silolib
         PUBLIC
+        Arrow::arrow_static
+        Acero::arrow_acero_static
         ${Boost_LIBRARIES}
         ${duckdb_LIBRARIES}
         nlohmann_json::nlohmann_json

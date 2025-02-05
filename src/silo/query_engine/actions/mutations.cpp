@@ -17,7 +17,6 @@
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/symbol_map.h"
-#include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
@@ -178,7 +177,8 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
 }
 
 template <typename SymbolType>
-void Mutations<SymbolType>::validateOrderByFields(const schema::TableSchema& /*database*/) const {
+void Mutations<SymbolType>::validateOrderByFields(const schema::TableSchema& /*table_schema*/)
+   const {
    for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
          std::ranges::any_of(
@@ -274,11 +274,9 @@ void Mutations<SymbolType>::addMutationsToOutput(
 
 template <typename SymbolType>
 QueryResult Mutations<SymbolType>::execute(
-   const Database& database,
+   std::shared_ptr<const storage::Table> table,
    std::vector<CopyOnWriteBitmap> bitmap_filter
 ) const {
-   const auto& table = database.table;
-
    std::vector<std::string> sequence_names_to_evaluate;
    for (const auto& sequence_name : sequence_names) {
       auto column_identifier = table->schema.getColumn(sequence_name);
@@ -314,6 +312,38 @@ QueryResult Mutations<SymbolType>::execute(
       }
    }
    return QueryResult::fromVector(std::move(mutation_proportions));
+}
+
+template <typename SymbolType>
+std::vector<schema::ColumnIdentifier> Mutations<SymbolType>::getOutputSchema(
+   const silo::schema::TableSchema& table_schema
+) const {
+   std::vector<schema::ColumnIdentifier> output_fields;
+   if (std::ranges::find(fields, MUTATION_FIELD_NAME) != fields.end()) {
+      output_fields.emplace_back(std::string(MUTATION_FIELD_NAME), schema::ColumnType::STRING);
+   }
+   if (std::ranges::find(fields, MUTATION_FROM_FIELD_NAME) != fields.end()) {
+      output_fields.emplace_back(std::string(MUTATION_FROM_FIELD_NAME), schema::ColumnType::STRING);
+   }
+   if (std::ranges::find(fields, MUTATION_TO_FIELD_NAME) != fields.end()) {
+      output_fields.emplace_back(std::string(MUTATION_TO_FIELD_NAME), schema::ColumnType::STRING);
+   }
+   if (std::ranges::find(fields, SEQUENCE_FIELD_NAME) != fields.end()) {
+      output_fields.emplace_back(std::string(SEQUENCE_FIELD_NAME), schema::ColumnType::STRING);
+   }
+   if (std::ranges::find(fields, POSITION_FIELD_NAME) != fields.end()) {
+      output_fields.emplace_back(std::string(POSITION_FIELD_NAME), schema::ColumnType::INT);
+   }
+   if (std::ranges::find(fields, PROPORTION_FIELD_NAME) != fields.end()) {
+      output_fields.emplace_back(std::string(PROPORTION_FIELD_NAME), schema::ColumnType::FLOAT);
+   }
+   if (std::ranges::find(fields, COVERAGE_FIELD_NAME) != fields.end()) {
+      output_fields.emplace_back(std::string(COVERAGE_FIELD_NAME), schema::ColumnType::INT);
+   }
+   if (std::ranges::find(fields, COUNT_FIELD_NAME) != fields.end()) {
+      output_fields.emplace_back(std::string(COUNT_FIELD_NAME), schema::ColumnType::INT);
+   }
+   return output_fields;
 }
 
 template <typename SymbolType>

@@ -6,7 +6,8 @@ class SiloRecipe(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
 
     requires = [
-        "boost/1.82.0",
+        "arrow/19.0.1",
+        "boost/1.85.0",
         "poco/1.13.3",
         "hwloc/2.9.3",
         "onetbb/2021.10.0",
@@ -21,29 +22,23 @@ class SiloRecipe(ConanFile):
     ]
 
     default_options = {
-        "yaml-cpp/*:shared": False,
+        "abseil/*:shared": False,
 
-        "zstd/*:shared": False,
-
-        "roaring/*:shared": False,
-
-        "gtest/*:no_main": True,
+        "arrow/*:compute": True,
+        "arrow/*:acero": True,
 
         "boost/*:lzma": True,
         "boost/*:zstd": True,
         "boost/*:shared": False,
 
-        "hwloc/*:shared": False,
-
         "boost/*:without_iostreams": False,
         "boost/*:without_serialization": False,
+        "boost/*:without_container": False,
         "boost/*:without_system": False,
         "boost/*:without_random": False,
         "boost/*:without_regex": False,
-
         "boost/*:without_atomic": True,
         "boost/*:without_chrono": True,
-        "boost/*:without_container": True,
         "boost/*:without_context": True,
         "boost/*:without_contract": True,
         "boost/*:without_coroutine": True,
@@ -68,6 +63,10 @@ class SiloRecipe(ConanFile):
         "boost/*:without_type_erasure": True,
         "boost/*:without_wave": True,
 
+        "gtest/*:no_main": True,
+
+        "hwloc/*:shared": False,
+
         "poco/*:shared": False,
         "poco/*:enable_json": True,
         "poco/*:enable_net": True,
@@ -90,7 +89,11 @@ class SiloRecipe(ConanFile):
 
         "re2/*:shared": False,
 
-        "abseil/*:shared": False,
+        "roaring/*:shared": False,
+
+        "yaml-cpp/*:shared": False,
+
+        "zstd/*:shared": False,
     }
 
     def generate(self):
