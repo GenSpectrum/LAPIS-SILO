@@ -1,0 +1,101 @@
+#include <memory>
+#include <string>
+#include <vector>
+
+#include <arrow/acero/exec_plan.h>
+#include <arrow/builder.h>
+#include <arrow/record_batch.h>
+#include <spdlog/spdlog.h>
+#include <nlohmann/json_fwd.hpp>
+
+#include "silo/query_engine/bad_request.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
+#include "silo/query_engine/exec_node/arrow_util.h"
+#include "silo/query_engine/filter/expressions/expression.h"
+#include "silo/query_engine/filter/operators/operator.h"
+#include "silo/query_engine/query_result.h"
+#include "silo/storage/column/column_type_visitor.h"
+#include "silo/storage/table.h"
+
+namespace silo::query_engine::exec_node {
+
+class TableScan : public arrow::acero::ExecNode {
+   std::map<schema::ColumnType, std::map<std::string, std::unique_ptr<arrow::ArrayBuilder>>>
+      array_builders;
+
+   std::vector<CopyOnWriteBitmap> partition_filters;
+
+   std::vector<silo::schema::ColumnIdentifier> output_fields;
+
+   const std::shared_ptr<const storage::Table> table;
+
+   // We need to tell the consumer how many batches we produced in total
+   size_t num_batches = 0;
+
+  public:
+   TableScan(
+      arrow::acero::ExecPlan* plan,
+      const std::vector<silo::schema::ColumnIdentifier>& columns,
+      const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
+      std::shared_ptr<const storage::Table> table
+   )
+       : arrow::acero::ExecNode(plan, {}, {}, columnsToArrowSchema(columns)),
+         output_fields(columns),
+         table(table) {
+      for (const auto& partition_filter_operator : partition_filter_operators) {
+         partition_filters.emplace_back(partition_filter_operator->evaluate());
+      }
+      prepareOutputArrays();
+   }
+
+   template <storage::column::Column Column>
+   std::map<std::string, ArrowBuilder<Column>*> getColumnTypeArrayBuilders() {
+      std::map<std::string, ArrowBuilder<Column>*> result;
+      for (auto& [builder_name, builder] : array_builders.at(Column::TYPE)) {
+         result.emplace(builder_name, dynamic_cast<ArrowBuilder<Column>*>(builder.get()));
+      }
+      return result;
+   }
+
+  private:
+   void prepareOutputArrays();
+
+   const char* kind_name() const override { return "TableScan"; }
+
+   arrow::Status InputReceived(ExecNode* input, arrow::ExecBatch batch) override {
+      SILO_PANIC("TableScan does not support having inputs.");
+   }
+
+   arrow::Status InputFinished(ExecNode* input, int total_batches) override {
+      SILO_PANIC("TableScan does not support having inputs.");
+   }
+
+   arrow::Status StartProducing() override {
+      SPDLOG_TRACE("TableScan::StartProducing");
+      ARROW_RETURN_NOT_OK(produce());
+      return arrow::Status::OK();
+   }
+
+   arrow::Status StopProducingImpl() override {
+      SPDLOG_TRACE("TableScan::StopProducing");
+      return arrow::Status::OK();
+   }
+
+   void PauseProducing(arrow::acero::ExecNode* output, int32_t counter) override {}
+
+   void ResumeProducing(arrow::acero::ExecNode* output, int32_t counter) override {}
+
+  private:
+   arrow::Status flushOutput();
+
+   static constexpr size_t MATERIALIZATION_CUTOFF = 50000;
+
+   arrow::Status produce();
+
+   arrow::Status appendEntries(
+      const storage::TablePartition& table_partition,
+      const roaring::Roaring& row_ids
+   );
+};
+
+}  // namespace silo::query_engine::exec_node

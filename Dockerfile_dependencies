@@ -16,7 +16,7 @@ RUN python3 -m pipx ensurepath
 # This line tells it to execute all subsequent commands with a prior login
 SHELL ["/bin/bash", "-login", "-c"]
 
-RUN python3 -m pipx install conan==2.8.1
+RUN python3 -m pipx install conan==2.16.1
 
 WORKDIR /src
 COPY conanfile.py conanprofile.docker conanprofile.docker_arm ./

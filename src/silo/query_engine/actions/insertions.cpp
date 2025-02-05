@@ -14,7 +14,6 @@
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
@@ -33,7 +32,7 @@ InsertionAggregation<SymbolType>::InsertionAggregation(std::vector<std::string>&
 
 template <typename SymbolType>
 void InsertionAggregation<
-   SymbolType>::validateOrderByFields(const schema::TableSchema& /*database*/) const {
+   SymbolType>::validateOrderByFields(const schema::TableSchema& /*table_schema*/) const {
    const std::vector<std::string> result_field_names{
       {std::string{POSITION_FIELD_NAME},
        std::string{INSERTION_FIELD_NAME},
@@ -61,11 +60,11 @@ void InsertionAggregation<
 namespace {
 template <typename SymbolType>
 void validateSequenceNames(
-   const Database& database,
+   std::shared_ptr<const storage::Table> table,
    const std::vector<std::string>& sequence_names
 ) {
    for (const std::string& sequence_name : sequence_names) {
-      auto column = database.table->schema.getColumn(sequence_name);
+      auto column = table->schema.getColumn(sequence_name);
       CHECK_SILO_QUERY(
          column.has_value() && column.value().type == SymbolType::COLUMN_TYPE,
          "The database does not contain the " + std::string(SymbolType::SYMBOL_NAME) +
@@ -78,14 +77,14 @@ void validateSequenceNames(
 template <typename SymbolType>
 std::unordered_map<std::string, typename InsertionAggregation<SymbolType>::PrefilteredBitmaps>
 InsertionAggregation<SymbolType>::validateFieldsAndPreFilterBitmaps(
-   const Database& database,
+   std::shared_ptr<const storage::Table> table,
    std::vector<CopyOnWriteBitmap>& bitmap_filter
 ) const {
-   validateSequenceNames<SymbolType>(database, sequence_names);
+   validateSequenceNames<SymbolType>(table, sequence_names);
 
    std::unordered_map<std::string, PrefilteredBitmaps> pre_filtered_bitmaps;
-   for (size_t i = 0; i < database.table->getNumberOfPartitions(); ++i) {
-      const storage::TablePartition& table_partition = database.table->getPartition(i);
+   for (size_t i = 0; i < table->getNumberOfPartitions(); ++i) {
+      const storage::TablePartition& table_partition = table->getPartition(i);
 
       for (auto& [sequence_name, sequence_column] :
            table_partition.columns.getColumns<typename SymbolType::Column>()) {
@@ -189,15 +188,14 @@ void InsertionAggregation<SymbolType>::addAggregatedInsertionsToInsertionCounts(
 
 template <typename SymbolType>
 QueryResult InsertionAggregation<SymbolType>::execute(
-   const Database& database,
+   std::shared_ptr<const storage::Table> table,
    std::vector<CopyOnWriteBitmap> bitmap_filter
 ) const {
-   const auto bitmaps_to_evaluate = validateFieldsAndPreFilterBitmaps(database, bitmap_filter);
+   const auto bitmaps_to_evaluate = validateFieldsAndPreFilterBitmaps(table, bitmap_filter);
 
    std::vector<QueryResultEntry> insertion_counts;
    for (const auto& [sequence_name, prefiltered_bitmaps] : bitmaps_to_evaluate) {
-      const auto default_sequence_name =
-         database.table->schema.getDefaultSequenceName<SymbolType>();
+      const auto default_sequence_name = table->schema.getDefaultSequenceName<SymbolType>();
       const bool omit_sequence_in_response =
          default_sequence_name.has_value() && (default_sequence_name.value().name == sequence_name);
       addAggregatedInsertionsToInsertionCounts(
@@ -205,6 +203,19 @@ QueryResult InsertionAggregation<SymbolType>::execute(
       );
    }
    return QueryResult::fromVector(std::move(insertion_counts));
+}
+template <typename SymbolType>
+
+std::vector<schema::ColumnIdentifier> InsertionAggregation<SymbolType>::getOutputSchema(
+   const silo::schema::TableSchema& table_schema
+) const {
+   std::vector<schema::ColumnIdentifier> fields;
+   fields.emplace_back(std::string(POSITION_FIELD_NAME), schema::ColumnType::INT);
+   fields.emplace_back(std::string(INSERTED_SYMBOLS_FIELD_NAME), schema::ColumnType::STRING);
+   fields.emplace_back(std::string(SEQUENCE_FIELD_NAME), schema::ColumnType::STRING);
+   fields.emplace_back(std::string(INSERTION_FIELD_NAME), schema::ColumnType::STRING);
+   fields.emplace_back(std::string(COUNT_FIELD_NAME), schema::ColumnType::INT);
+   return fields;
 }
 
 template <typename SymbolType>

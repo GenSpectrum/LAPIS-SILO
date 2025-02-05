@@ -47,7 +47,9 @@ std::unique_ptr<Poco::Net::HTTPRequestHandler> SiloRequestHandlerFactory::routeR
       return std::make_unique<silo::api::LineageDefinitionHandler>(database_handle, segments.at(1));
    }
    if (path == "/query") {
-      return std::make_unique<silo::api::QueryHandler>(database_handle);
+      return std::make_unique<silo::api::QueryHandler>(
+         database_handle, runtime_config.query_options
+      );
    }
    return std::make_unique<silo::api::NotFoundHandler>();
 }
