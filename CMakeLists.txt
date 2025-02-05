@@ -35,6 +35,7 @@ add_compile_definitions(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 # Dependencies
 # ---------------------------------------------------------------------------
 
+find_package(Arrow REQUIRED COMPONENTS Acero XYZ)
 find_package(Boost REQUIRED COMPONENTS system serialization iostreams)
 find_package(LibLZMA REQUIRED)
 find_package(nlohmann_json REQUIRED)
@@ -108,6 +109,8 @@ add_library(silolib OBJECT ${SRC_SILO_WITHOUT_MAIN})
 target_link_libraries(
         silolib
         PUBLIC
+        Arrow::arrow_static
+        Acero::arrow_acero_static
         ${Boost_LIBRARIES}
         ${duckdb_LIBRARIES}
         nlohmann_json::nlohmann_json

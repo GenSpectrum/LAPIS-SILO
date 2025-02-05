@@ -51,8 +51,9 @@ std::vector<silo::schema::ColumnIdentifier> parseFields(
 }  // namespace
 
 namespace silo::query_engine::actions {
-Details::Details(std::vector<std::string> fields)
-    : fields(std::move(fields)) {}
+Details::Details(arrow::acero::ExecPlan* plan, std::vector<std::string> fields)
+    : fields(std::move(fields)),
+      arrow::acero::ExecNode(plan, {}, {}, std::make_shared<arrow::Schema>()) {}
 
 void Details::validateOrderByFields(const schema::TableSchema& schema) const {
    const std::vector<silo::schema::ColumnIdentifier> field_metadata = parseFields(schema, fields);

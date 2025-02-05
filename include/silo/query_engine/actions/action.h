@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include <arrow/acero/exec_plan.h>
 #include <nlohmann/json_fwd.hpp>
 
 #include "silo/database.h"
