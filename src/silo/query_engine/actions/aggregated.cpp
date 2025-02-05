@@ -160,6 +160,13 @@ QueryResult Aggregated::execute(
    return QueryResult::fromVector(generateResult(final_map));
 }
 
+arrow::Schema Aggregated::getOutputSchema(const schema::TableSchema& table_schema) const {
+   std::vector<std::shared_ptr<arrow::Field>> fields =
+      columnNamesToFields(this->group_by_fields, table_schema);
+   fields.push_back(std::make_shared<arrow::Field>("count", arrow::int32()));
+   return arrow::Schema{fields};
+}
+
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Aggregated>& action) {
    const std::vector<std::string> group_by_fields =

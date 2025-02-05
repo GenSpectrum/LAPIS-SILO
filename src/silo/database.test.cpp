@@ -14,7 +14,6 @@
 #include "silo/config/preprocessing_config.h"
 #include "silo/database_info.h"
 #include "silo/initialize/initializer.h"
-#include "silo/query_engine/query_engine.h"
 #include "silo/storage/reference_genomes.h"
 
 using silo::config::PreprocessingConfig;

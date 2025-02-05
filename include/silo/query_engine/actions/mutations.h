@@ -99,6 +99,8 @@ class Mutations : public Action {
       double min_proportion,
       std::vector<std::string_view>&& fields
    );
+
+   arrow::Schema getOutputSchema(const silo::schema::TableSchema& table_schema) const override;
 };
 
 template <typename SymbolType>

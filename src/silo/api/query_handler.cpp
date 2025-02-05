@@ -13,6 +13,7 @@
 #include "silo/api/active_database.h"
 #include "silo/api/error_request_handler.h"
 #include "silo/query_engine/bad_request.h"
+#include "silo/query_engine/optimizer/query_plan_generator.h"
 
 namespace silo::api {
 using silo::query_engine::QueryResultEntry;
@@ -35,21 +36,14 @@ void QueryHandler::post(
    SPDLOG_INFO("Request Id [{}] - received query: {}", request_id, query);
 
    try {
-      auto query_result = database->executeQuery(query);
+      query_engine::optimizer::QueryPlanGenerator query_plan_generator(database);
 
       response.set("data-version", database->getDataVersionTimestamp().value);
-
       response.setContentType("application/x-ndjson");
       std::ostream& out_stream = response.send();
-      std::optional<std::reference_wrapper<const QueryResultEntry>> entry;
-      while ((entry = query_result.next())) {
-         out_stream << nlohmann::json(*entry) << '\n';
-         if (!out_stream) {
-            throw std::runtime_error(
-               fmt::format("error writing to HTTP stream: {}", std::strerror(errno))
-            );
-         }
-      }
+
+      auto query_plan = query_plan_generator.createQueryPlan(query_engine::Query{query}, out_stream);
+      query_plan.execute();
    } catch (const silo::BadRequest& ex) {
       response.setContentType("application/json");
       SPDLOG_INFO("Query is invalid: {}", query, ex.what());

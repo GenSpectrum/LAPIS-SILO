@@ -206,6 +206,23 @@ QueryResult InsertionAggregation<SymbolType>::execute(
    }
    return QueryResult::fromVector(std::move(insertion_counts));
 }
+template <typename SymbolType>
+arrow::Schema InsertionAggregation<SymbolType>::getOutputSchema(
+   const silo::schema::TableSchema& table_schema
+) const {
+   std::vector<std::shared_ptr<arrow::Field>> fields;
+   fields.push_back(std::make_shared<arrow::Field>(std::string(POSITION_FIELD_NAME), arrow::int32())
+   );
+   fields.push_back(
+      std::make_shared<arrow::Field>(std::string(INSERTED_SYMBOLS_FIELD_NAME), arrow::utf8())
+   );
+   fields.push_back(std::make_shared<arrow::Field>(std::string(SEQUENCE_FIELD_NAME), arrow::utf8())
+   );
+   fields.push_back(std::make_shared<arrow::Field>(std::string(INSERTION_FIELD_NAME), arrow::utf8())
+   );
+   fields.push_back(std::make_shared<arrow::Field>(std::string(COUNT_FIELD_NAME), arrow::int32()));
+   return arrow::Schema{fields};
+}
 
 template <typename SymbolType>
 // NOLINTNEXTLINE(readability-identifier-naming)

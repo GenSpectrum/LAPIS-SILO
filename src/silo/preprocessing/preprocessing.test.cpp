@@ -13,7 +13,8 @@
 #include "silo/database.h"
 #include "silo/database_info.h"
 #include "silo/preprocessing/preprocessing_exception.h"
-#include "silo/query_engine/query_engine.h"
+#include "silo/query_engine/optimizer/query_plan_generator.h"
+#include "silo/query_engine/query_plan.h"
 
 namespace {
 using silo::ReferenceGenomes;
@@ -797,16 +798,25 @@ TEST_P(PreprocessorTestFixture, shouldProcessData) {
 
    auto preprocessing_config = prepareInputDirAndPreprocessorForScenario(scenario);
 
-   auto database = silo::preprocessing::preprocessing(preprocessing_config);
+   auto database = std::make_shared<silo::Database>(silo::preprocessing::preprocessing(preprocessing_config));
 
-   const auto database_info = database.getDatabaseInfo();
+   const auto database_info = database->getDatabaseInfo();
 
    EXPECT_EQ(database_info.sequence_count, scenario.assertion.expected_sequence_count);
 
-   const auto result = silo::query_engine::executeQuery(database, scenario.assertion.query);
+   std::stringstream actual_result_stream;
+   silo::query_engine::optimizer::QueryPlanGenerator query_plan_generator(database);
+   auto query_plan = query_plan_generator.createQueryPlan(silo::query_engine::Query{scenario.assertion.query}, actual_result_stream);
+   query_plan.execute();
+   nlohmann::json actual_ndjson_result_as_array = nlohmann::json::array();
+   std::string line;
+   while (std::getline(actual_result_stream, line)) {
+      auto line_object = nlohmann::json::parse(line);
+      std::cout << line_object.dump() << std::endl;
+      actual_ndjson_result_as_array.push_back(line_object);
+   }
 
-   const auto actual = nlohmann::json(result.entries());
-   ASSERT_EQ(actual, scenario.assertion.expected_query_result);
+   ASSERT_EQ(actual_ndjson_result_as_array, scenario.assertion.expected_query_result);
 
    std::filesystem::remove_all(preprocessing_config.initialization_files.directory);
 }

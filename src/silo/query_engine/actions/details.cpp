@@ -49,23 +49,12 @@ std::vector<silo::schema::ColumnIdentifier> parseFields(
 }  // namespace
 
 namespace silo::query_engine::actions {
+
 Details::Details(std::vector<std::string> fields)
     : fields(std::move(fields)) {}
 
 void Details::validateOrderByFields(const schema::TableSchema& schema) const {
    const std::vector<silo::schema::ColumnIdentifier> field_metadata = parseFields(schema, fields);
-
-   for (const OrderByField& field : order_by_fields) {
-      CHECK_SILO_QUERY(
-         std::ranges::any_of(
-            field_metadata,
-            [&](const silo::schema::ColumnIdentifier& metadata) {
-               return metadata.name == field.name;
-            }
-         ),
-         "OrderByField " + field.name + " is not contained in the result of this operation."
-      );
-   }
 }
 
 QueryResult Details::execute(
@@ -234,6 +223,15 @@ QueryResult Details::executeAndOrder(
    }
    applyOffsetAndLimit(results_in_format);
    return results_in_format;
+}
+
+arrow::Schema Details::getOutputSchema(const silo::schema::TableSchema& table_schema) const {
+   auto output_columns = parseFields(table_schema, fields);
+   std::vector<std::shared_ptr<arrow::Field>> output_fields;
+   for(const auto& [name, type] : output_columns){
+      output_fields.emplace_back(std::make_shared<arrow::Field>(name, columnTypeToArrowType(type)));
+   }
+   return arrow::Schema{output_fields};
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

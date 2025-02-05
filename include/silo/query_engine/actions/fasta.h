@@ -27,6 +27,8 @@ class Fasta : public Action {
 
   public:
    explicit Fasta(std::vector<std::string>&& sequence_names);
+
+   arrow::Schema getOutputSchema(const silo::schema::TableSchema& table_schema) const override;
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)
