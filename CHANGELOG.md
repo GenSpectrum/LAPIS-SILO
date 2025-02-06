@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.3](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.5.2...v0.5.3) (2025-02-06)
+
+
+### Features
+
+* add endpoint that returns the lineageDefinitions for the requested column ([#689](https://github.com/GenSpectrum/LAPIS-SILO/issues/689)) ([69cd9b0](https://github.com/GenSpectrum/LAPIS-SILO/commit/69cd9b0f5947d8b249a1c5431dd425e7f090e50f))
+
 ## [0.5.2](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.5.1...v0.5.2) (2025-01-29)
 
 
