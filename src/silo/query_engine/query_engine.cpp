@@ -12,12 +12,15 @@
 #include "silo/common/log.h"
 #include "silo/database.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
-#include "silo/query_engine/filter_expressions/expression.h"
-#include "silo/query_engine/operators/operator.h"
+#include "silo/query_engine/filter/expressions/expression.h"
+#include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/query.h"
 #include "silo/query_engine/query_result.h"
 
 namespace silo::query_engine {
+
+using filter::expressions::Expression;
+using filter::operators::Operator;
 
 QueryEngine::QueryEngine(const silo::Database& database)
     : database(database) {}
@@ -28,16 +31,14 @@ QueryResult QueryEngine::executeQuery(const std::string& query_string) const {
    SPDLOG_DEBUG("Parsed query: {}", query.filter->toString());
 
    std::vector<std::string> compiled_queries(database.partitions.size());
-   std::vector<silo::query_engine::CopyOnWriteBitmap> partition_filters(database.partitions.size());
+   std::vector<CopyOnWriteBitmap> partition_filters(database.partitions.size());
    int64_t filter_time;
    {
       const silo::common::BlockTimer timer(filter_time);
       for (size_t partition_index = 0; partition_index != database.partitions.size();
            partition_index++) {
-         std::unique_ptr<operators::Operator> part_filter = query.filter->compile(
-            database,
-            database.partitions[partition_index],
-            silo::query_engine::filter_expressions::Expression::AmbiguityMode::NONE
+         std::unique_ptr<Operator> part_filter = query.filter->compile(
+            database, database.partitions[partition_index], Expression::AmbiguityMode::NONE
          );
          compiled_queries[partition_index] = part_filter->toString();
          partition_filters[partition_index] = part_filter->evaluate();

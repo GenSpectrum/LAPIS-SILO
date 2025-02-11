@@ -6,7 +6,7 @@
 
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/bad_request.h"
-#include "silo/query_engine/filter_expressions/expression.h"
+#include "silo/query_engine/filter/expressions/expression.h"
 
 namespace silo::query_engine {
 
@@ -18,7 +18,7 @@ Query::Query(const std::string& query_string) {
          throw BadRequest("Query json must contain filterExpression and action.");
       }
       filter = json["filterExpression"]
-                  .get<std::unique_ptr<silo::query_engine::filter_expressions::Expression>>();
+                  .get<std::unique_ptr<silo::query_engine::filter::expressions::Expression>>();
       action = json["action"].get<std::unique_ptr<silo::query_engine::actions::Action>>();
    } catch (const nlohmann::json::parse_error& ex) {
       throw BadRequest("The query was not a valid JSON: " + std::string(ex.what()));
