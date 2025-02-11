@@ -1,14 +1,14 @@
-#include "silo/query_engine/operators/threshold.h"
+#include "silo/query_engine/filter/operators/threshold.h"
 
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
 
-#include "silo/query_engine/operators/index_scan.h"
+#include "silo/query_engine/filter/operators/index_scan.h"
 #include "silo/query_engine/query_compilation_exception.h"
 
-using silo::query_engine::operators::IndexScan;
-using silo::query_engine::operators::Operator;
-using silo::query_engine::operators::Threshold;
+using silo::query_engine::filter::operators::IndexScan;
+using silo::query_engine::filter::operators::Operator;
+using silo::query_engine::filter::operators::Threshold;
 
 using OperatorVector = std::vector<std::unique_ptr<Operator>>;
 
@@ -318,5 +318,5 @@ TEST(OperatorThreshold, correctTypeInfo) {
       generateTestInput(test_bitmaps, row_count), OperatorVector(), 1, true, row_count
    );
 
-   ASSERT_EQ(under_test.type(), silo::query_engine::operators::THRESHOLD);
+   ASSERT_EQ(under_test.type(), silo::query_engine::filter::operators::THRESHOLD);
 }

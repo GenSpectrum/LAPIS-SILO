@@ -1,12 +1,12 @@
-#include "silo/query_engine/operators/complement.h"
+#include "silo/query_engine/filter/operators/complement.h"
 
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
 
-#include "silo/query_engine/operators/index_scan.h"
+#include "silo/query_engine/filter/operators/index_scan.h"
 
-using silo::query_engine::operators::Complement;
-using silo::query_engine::operators::IndexScan;
+using silo::query_engine::filter::operators::Complement;
+using silo::query_engine::filter::operators::IndexScan;
 
 TEST(OperatorComplement, evaluateShouldReturnCorrectValues) {
    const roaring::Roaring test_bitmap(roaring::Roaring({1, 2, 3}));
@@ -54,5 +54,5 @@ TEST(OperatorComplement, correctTypeInfo) {
 
    const Complement under_test(std::make_unique<IndexScan>(&test_bitmap, row_count), row_count);
 
-   ASSERT_EQ(under_test.type(), silo::query_engine::operators::COMPLEMENT);
+   ASSERT_EQ(under_test.type(), silo::query_engine::filter::operators::COMPLEMENT);
 }

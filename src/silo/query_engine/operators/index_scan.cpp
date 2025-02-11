@@ -1,4 +1,4 @@
-#include "silo/query_engine/operators/index_scan.h"
+#include "silo/query_engine/filter/operators/index_scan.h"
 
 #include <string>
 
@@ -6,18 +6,18 @@
 #include <roaring/roaring.hh>
 
 #include "silo/query_engine/copy_on_write_bitmap.h"
-#include "silo/query_engine/filter_expressions/expression.h"
-#include "silo/query_engine/operators/complement.h"
-#include "silo/query_engine/operators/operator.h"
+#include "silo/query_engine/filter/expressions/expression.h"
+#include "silo/query_engine/filter/operators/complement.h"
+#include "silo/query_engine/filter/operators/operator.h"
 
-namespace silo::query_engine::operators {
+namespace silo::query_engine::filter::operators {
 
 IndexScan::IndexScan(const roaring::Roaring* bitmap, uint32_t row_count)
     : bitmap(bitmap),
       row_count(row_count) {}
 
 IndexScan::IndexScan(
-   std::unique_ptr<query_engine::filter_expressions::Expression>&& logical_equivalent,
+   std::unique_ptr<query_engine::filter::expressions::Expression>&& logical_equivalent,
    const roaring::Roaring* bitmap,
    uint32_t row_count
 )
@@ -47,4 +47,4 @@ std::unique_ptr<Operator> IndexScan::negate(std::unique_ptr<IndexScan>&& index_s
    return std::make_unique<Complement>(std::move(index_scan), row_count);
 }
 
-}  // namespace silo::query_engine::operators
+}  // namespace silo::query_engine::filter::operators

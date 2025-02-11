@@ -1,4 +1,4 @@
-#include "silo/query_engine/operators/complement.h"
+#include "silo/query_engine/filter/operators/complement.h"
 
 #include <string>
 #include <utility>
@@ -6,12 +6,12 @@
 #include <roaring/roaring.hh>
 
 #include "silo/query_engine/copy_on_write_bitmap.h"
-#include "silo/query_engine/operators/intersection.h"
-#include "silo/query_engine/operators/operator.h"
+#include "silo/query_engine/filter/operators/intersection.h"
+#include "silo/query_engine/filter/operators/operator.h"
 
-using silo::query_engine::operators::Operator;
+using silo::query_engine::filter::operators::Operator;
 
-namespace silo::query_engine::operators {
+namespace silo::query_engine::filter::operators {
 
 Complement::Complement(std::unique_ptr<Operator> child, uint32_t row_count)
     : child(std::move(child)),
@@ -59,4 +59,4 @@ std::unique_ptr<Operator> Complement::negate(std::unique_ptr<Complement>&& compl
    return std::move(complement->child);
 }
 
-}  // namespace silo::query_engine::operators
+}  // namespace silo::query_engine::filter::operators

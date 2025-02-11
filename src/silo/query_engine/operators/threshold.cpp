@@ -1,4 +1,4 @@
-#include "silo/query_engine/operators/threshold.h"
+#include "silo/query_engine/filter/operators/threshold.h"
 
 #include <string>
 #include <utility>
@@ -7,11 +7,11 @@
 #include <roaring/roaring.hh>
 
 #include "silo/query_engine/copy_on_write_bitmap.h"
-#include "silo/query_engine/operators/complement.h"
-#include "silo/query_engine/operators/operator.h"
+#include "silo/query_engine/filter/operators/complement.h"
+#include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/query_compilation_exception.h"
 
-namespace silo::query_engine::operators {
+namespace silo::query_engine::filter::operators {
 
 Threshold::Threshold(
    std::vector<std::unique_ptr<Operator>>&& non_negated_children,
@@ -141,4 +141,4 @@ std::unique_ptr<Operator> Threshold::negate(std::unique_ptr<Threshold>&& thresho
    return std::make_unique<Complement>(std::move(threshold), threshold->row_count);
 }
 
-}  // namespace silo::query_engine::operators
+}  // namespace silo::query_engine::filter::operators

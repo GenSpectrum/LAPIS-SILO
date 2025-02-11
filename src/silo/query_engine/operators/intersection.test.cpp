@@ -1,14 +1,14 @@
-#include "silo/query_engine/operators/intersection.h"
+#include "silo/query_engine/filter/operators/intersection.h"
 
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
 
-#include "silo/query_engine/operators/index_scan.h"
+#include "silo/query_engine/filter/operators/index_scan.h"
 #include "silo/query_engine/query_compilation_exception.h"
 
-using silo::query_engine::operators::IndexScan;
-using silo::query_engine::operators::Intersection;
-using silo::query_engine::operators::Operator;
+using silo::query_engine::filter::operators::IndexScan;
+using silo::query_engine::filter::operators::Intersection;
+using silo::query_engine::filter::operators::Operator;
 
 using OperatorVector = std::vector<std::unique_ptr<Operator>>;
 
@@ -128,5 +128,5 @@ TEST(OperatorIntersection, correctTypeInfo) {
    OperatorVector negated;
    const Intersection under_test(std::move(non_negated), std::move(negated), row_count);
 
-   ASSERT_EQ(under_test.type(), silo::query_engine::operators::INTERSECTION);
+   ASSERT_EQ(under_test.type(), silo::query_engine::filter::operators::INTERSECTION);
 }

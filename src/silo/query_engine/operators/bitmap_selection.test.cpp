@@ -1,9 +1,9 @@
-#include "silo/query_engine/operators/bitmap_selection.h"
+#include "silo/query_engine/filter/operators/bitmap_selection.h"
 
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
 
-using silo::query_engine::operators::BitmapSelection;
+using silo::query_engine::filter::operators::BitmapSelection;
 
 TEST(OperatorBitmapSelection, containsCheckShouldReturnCorrectValues) {
    const std::vector<roaring::Roaring> test_bitmaps({{
@@ -61,7 +61,7 @@ TEST(OperatorBitmapSelection, correctTypeInfo) {
       test_bitmaps.data(), test_bitmaps.size(), BitmapSelection::NOT_CONTAINS, 2
    );
 
-   ASSERT_EQ(under_test->type(), silo::query_engine::operators::BITMAP_SELECTION);
+   ASSERT_EQ(under_test->type(), silo::query_engine::filter::operators::BITMAP_SELECTION);
    auto negated = BitmapSelection::negate(std::move(under_test));
-   ASSERT_EQ(negated->type(), silo::query_engine::operators::BITMAP_SELECTION);
+   ASSERT_EQ(negated->type(), silo::query_engine::filter::operators::BITMAP_SELECTION);
 }

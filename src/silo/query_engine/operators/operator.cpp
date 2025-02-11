@@ -1,23 +1,23 @@
-#include "silo/query_engine/operators/operator.h"
+#include "silo/query_engine/filter/operators/operator.h"
 
 #include <cstdlib>
 
 #include "silo/common/panic.h"
-#include "silo/query_engine/filter_expressions/expression.h"
-#include "silo/query_engine/filter_expressions/symbol_equals.h"
-#include "silo/query_engine/operators/bitmap_producer.h"
-#include "silo/query_engine/operators/bitmap_selection.h"
-#include "silo/query_engine/operators/complement.h"
-#include "silo/query_engine/operators/empty.h"
-#include "silo/query_engine/operators/full.h"
-#include "silo/query_engine/operators/index_scan.h"
-#include "silo/query_engine/operators/intersection.h"
-#include "silo/query_engine/operators/range_selection.h"
-#include "silo/query_engine/operators/selection.h"
-#include "silo/query_engine/operators/threshold.h"
-#include "silo/query_engine/operators/union.h"
+#include "silo/query_engine/filter/expressions/expression.h"
+#include "silo/query_engine/filter/expressions/symbol_equals.h"
+#include "silo/query_engine/filter/operators/bitmap_producer.h"
+#include "silo/query_engine/filter/operators/bitmap_selection.h"
+#include "silo/query_engine/filter/operators/complement.h"
+#include "silo/query_engine/filter/operators/empty.h"
+#include "silo/query_engine/filter/operators/full.h"
+#include "silo/query_engine/filter/operators/index_scan.h"
+#include "silo/query_engine/filter/operators/intersection.h"
+#include "silo/query_engine/filter/operators/range_selection.h"
+#include "silo/query_engine/filter/operators/selection.h"
+#include "silo/query_engine/filter/operators/threshold.h"
+#include "silo/query_engine/filter/operators/union.h"
 
-namespace silo::query_engine::operators {
+namespace silo::query_engine::filter::operators {
 
 Operator::Operator() = default;
 
@@ -73,4 +73,4 @@ std::unique_ptr<Operator> Operator::negate(std::unique_ptr<Operator>&& some_oper
    SILO_UNREACHABLE();
 }
 
-}  // namespace silo::query_engine::operators
+}  // namespace silo::query_engine::filter::operators
