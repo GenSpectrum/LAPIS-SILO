@@ -125,6 +125,8 @@ jobs:
     name: Create multi-platform images
     needs: dockerImage
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
     steps:
       - uses: actions/checkout@v4
 
