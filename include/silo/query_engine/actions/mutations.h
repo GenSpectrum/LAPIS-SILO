@@ -13,7 +13,6 @@
 #include "silo/common/symbol_map.h"
 #include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
-#include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/sequence_store.h"
 

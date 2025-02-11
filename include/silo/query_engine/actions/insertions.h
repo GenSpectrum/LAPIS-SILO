@@ -16,7 +16,6 @@
 #include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
-#include "silo/query_engine/operators/operator.h"
 #include "silo/query_engine/query_result.h"
 
 namespace silo::query_engine::actions {
