@@ -53,8 +53,8 @@ jobs:
       - name: Check if dependency image exists
         run: |
           EXISTS=$(docker manifest inspect \
-            ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:filehash-${{ env.DIR_HASH }}-${{ matrix.arch }} \ 
-            > /dev/null 2>&1 && echo "true" || echo "false")
+            ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:filehash-${{ env.DIR_HASH }}-${{ matrix.arch }} > /dev/null 2>&1 && 
+            echo "true" || echo "false")
           echo "CACHE_HIT=$EXISTS" >> $GITHUB_ENV
 
       - name: Build and push dependency image if input files changed
