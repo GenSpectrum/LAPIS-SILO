@@ -30,8 +30,16 @@ int Api::runApi(const silo::config::RuntimeConfig& runtime_config) {
    );
    poco_parameter->setMaxThreads(runtime_config.api_options.parallel_threads);
 
+   // For better profiling, we do not want requests to allocate new threads in the thread pool.
+   // Instead, just allocate all of them directly on start-up (by setting minCapacity)
+   Poco::ThreadPool thread_pool(
+      /* minCapacity = */ runtime_config.api_options.parallel_threads,
+      /* maxCapacity = */ runtime_config.api_options.parallel_threads
+   );
+
    Poco::Net::HTTPServer server(
       new silo::api::SiloRequestHandlerFactory(database_mutex, runtime_config),
+      thread_pool,
       server_socket,
       poco_parameter
    );
