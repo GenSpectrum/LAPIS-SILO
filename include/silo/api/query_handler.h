@@ -1,20 +1,15 @@
 #pragma once
 
-#include <Poco/Net/HTTPServerRequest.h>
-#include <Poco/Net/HTTPServerResponse.h>
-
-#include "active_database.h"
-#include "rest_resource.h"
+#include "silo/api/active_database.h"
+#include "silo/api/rest_resource.h"
 
 namespace silo::api {
-class QueryHandler : public RestResource {
-  private:
-   std::shared_ptr<Database> database;
-
+class QueryHandler {
   public:
-   explicit QueryHandler(std::shared_ptr<Database> database);
-
-   void post(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response)
-      override;
+   static void post(
+      std::shared_ptr<const Database> database,
+      crow::request& request,
+      crow::response& response
+   );
 };
 }  // namespace silo::api

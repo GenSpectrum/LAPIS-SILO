@@ -4,8 +4,7 @@
 #include <utility>
 #include <vector>
 
-#include <roaring/roaring.hh>
-
+#include "external/roaring_include_wrapper.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/operator.h"

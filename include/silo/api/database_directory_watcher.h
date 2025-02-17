@@ -1,27 +1,33 @@
 #pragma once
 
+#include <atomic>
 #include <filesystem>
 #include <optional>
 
-#include <Poco/Timer.h>
+#include <crow.h>
 
-#include "silo/api/request_handler_factory.h"
+#include "silo/api/active_database.h"
 #include "silo/common/data_version.h"
 
 namespace silo::api {
 
 class DatabaseDirectoryWatcher {
+   std::atomic<bool> running;
+   std::atomic<bool> stopped;
    std::filesystem::path path;
-   std::shared_ptr<ActiveDatabase> database_handle;
-   Poco::Timer timer;
+   std::shared_ptr<ActiveDatabase> active_database;
 
   public:
    DatabaseDirectoryWatcher(
       std::filesystem::path path,
-      std::shared_ptr<ActiveDatabase> database_handle
+      std::shared_ptr<ActiveDatabase> active_database
    );
 
-   void checkDirectoryForData(Poco::Timer& timer);
+   void start();
+
+   void stop();
+
+   void checkDirectoryForData();
 
    static std::optional<silo::DataVersion> checkValidDataSource(const std::filesystem::path& path);
 

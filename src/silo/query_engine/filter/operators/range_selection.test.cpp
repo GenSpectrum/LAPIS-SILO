@@ -1,7 +1,8 @@
 #include "silo/query_engine/filter/operators/range_selection.h"
 
 #include <gtest/gtest.h>
-#include <roaring/roaring.hh>
+
+#include "external/roaring_include_wrapper.h"
 
 using silo::query_engine::filter::operators::RangeSelection;
 TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValues) {

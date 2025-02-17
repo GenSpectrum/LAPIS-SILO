@@ -12,8 +12,8 @@
 
 #include <fmt/format.h>
 #include <boost/algorithm/string/join.hpp>
-#include <roaring/roaring.hh>
 
+#include "external/roaring_include_wrapper.h"
 #include "silo/common/date.h"
 #include "silo/common/optional_bool.h"
 #include "silo/common/panic.h"

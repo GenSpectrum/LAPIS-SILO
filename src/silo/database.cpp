@@ -33,8 +33,8 @@
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/vector.hpp>
 #include <duckdb.hpp>
-#include <roaring/roaring.hh>
 
+#include "external/roaring_include_wrapper.h"
 #include "silo/common/block_timer.h"
 #include "silo/common/data_version.h"
 #include "silo/common/format_number.h"

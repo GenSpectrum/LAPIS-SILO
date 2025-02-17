@@ -10,8 +10,8 @@
 #include <vector>
 
 #include <boost/serialization/access.hpp>
-#include <roaring/roaring.hh>
 
+#include "external/roaring_include_wrapper.h"
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 
