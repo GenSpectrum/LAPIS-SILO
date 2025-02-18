@@ -10,7 +10,7 @@
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
-#include "silo/api/database_mutex.h"
+#include "silo/api/active_database.h"
 
 namespace silo::api {
 ErrorRequestHandler::ErrorRequestHandler(

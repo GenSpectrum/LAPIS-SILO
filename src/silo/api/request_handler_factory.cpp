@@ -17,36 +17,39 @@
 namespace silo::api {
 
 SiloRequestHandlerFactory::SiloRequestHandlerFactory(
-   silo::api::DatabaseMutex& database,
-   silo::config::RuntimeConfig runtime_config
+   silo::config::RuntimeConfig runtime_config,
+   std::shared_ptr<ActiveDatabase> database_handle
 )
-    : database(database),
-      runtime_config(std::move(runtime_config)) {}
+    : runtime_config(std::move(runtime_config)),
+      database_handle(database_handle) {}
 
 Poco::Net::HTTPRequestHandler* SiloRequestHandlerFactory::createRequestHandler(
    const Poco::Net::HTTPServerRequest& request
 ) {
-   return new RequestIdHandler(std::make_unique<LoggingRequestHandler>(
-      std::make_unique<ErrorRequestHandler>(routeRequest(request), runtime_config)
-   ));
+   return new RequestIdHandler(
+      std::make_unique<LoggingRequestHandler>(std::make_unique<ErrorRequestHandler>(
+         routeRequest(Poco::URI(request.getURI())), runtime_config
+      ))
+   );
 }
 
 std::unique_ptr<Poco::Net::HTTPRequestHandler> SiloRequestHandlerFactory::routeRequest(
-   const Poco::Net::HTTPServerRequest& request
+   const Poco::URI& uri
 ) {
-   const auto& uri = Poco::URI(request.getURI());
    const auto path = uri.getPath();
    std::vector<std::string> segments;
    uri.getPathSegments(segments);
 
    if (path == "/info") {
-      return std::make_unique<silo::api::InfoHandler>(database);
+      return std::make_unique<silo::api::InfoHandler>(database_handle->getActiveDatabase());
    }
    if (segments.size() == 2 && segments.at(0) == "lineageDefinition") {
-      return std::make_unique<silo::api::LineageDefinitionHandler>(database, segments.at(1));
+      return std::make_unique<silo::api::LineageDefinitionHandler>(
+         database_handle->getActiveDatabase(), segments.at(1)
+      );
    }
    if (path == "/query") {
-      return std::make_unique<silo::api::QueryHandler>(database);
+      return std::make_unique<silo::api::QueryHandler>(database_handle->getActiveDatabase());
    }
    return std::make_unique<silo::api::NotFoundHandler>();
 }

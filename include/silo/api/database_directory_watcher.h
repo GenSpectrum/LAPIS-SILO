@@ -5,18 +5,21 @@
 
 #include <Poco/Timer.h>
 
-#include "database_mutex.h"
+#include "silo/api/request_handler_factory.h"
 #include "silo/common/data_version.h"
 
 namespace silo::api {
 
 class DatabaseDirectoryWatcher {
    std::filesystem::path path;
-   DatabaseMutex& database_mutex;
+   std::shared_ptr<ActiveDatabase> database_handle;
    Poco::Timer timer;
 
   public:
-   DatabaseDirectoryWatcher(std::filesystem::path path, DatabaseMutex& database_mutex);
+   DatabaseDirectoryWatcher(
+      std::filesystem::path path,
+      std::shared_ptr<ActiveDatabase> database_handle
+   );
 
    void checkDirectoryForData(Poco::Timer& timer);
 

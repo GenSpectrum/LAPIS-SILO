@@ -10,15 +10,15 @@
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
-#include "silo/api/database_mutex.h"
+#include "silo/api/active_database.h"
 #include "silo/api/error_request_handler.h"
 #include "silo/query_engine/query_parse_exception.h"
 
 namespace silo::api {
 using silo::query_engine::QueryResultEntry;
 
-QueryHandler::QueryHandler(silo::api::DatabaseMutex& database_mutex)
-    : database_mutex(database_mutex) {}
+QueryHandler::QueryHandler(std::shared_ptr<Database> database)
+    : database(database) {}
 
 void QueryHandler::post(
    Poco::Net::HTTPServerRequest& request,
@@ -33,11 +33,9 @@ void QueryHandler::post(
    SPDLOG_INFO("Request Id [{}] - received query: {}", request_id, query);
 
    try {
-      const auto fixed_database = database_mutex.getDatabase();
+      auto query_result = database->executeQuery(query);
 
-      auto query_result = fixed_database->executeQuery(query);
-
-      response.set("data-version", fixed_database->getDataVersionTimestamp().value);
+      response.set("data-version", database->getDataVersionTimestamp().value);
 
       response.setContentType("application/x-ndjson");
       std::ostream& out_stream = response.send();

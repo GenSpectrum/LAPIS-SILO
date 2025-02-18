@@ -3,17 +3,17 @@
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/Net/HTTPServerResponse.h>
 
-#include "database_mutex.h"
+#include "active_database.h"
 #include "rest_resource.h"
 
 namespace silo::api {
 
 class InfoHandler : public RestResource {
   private:
-   DatabaseMutex& database;
+   std::shared_ptr<Database> database;
 
   public:
-   explicit InfoHandler(DatabaseMutex& database);
+   explicit InfoHandler(std::shared_ptr<Database> database);
 
    void get(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response)
       override;
