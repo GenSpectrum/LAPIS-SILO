@@ -9,16 +9,16 @@
 
 #include <spdlog/spdlog.h>
 
-#include "silo/api/database_mutex.h"
+#include "silo/api/active_database.h"
 #include "silo/common/data_version.h"
 #include "silo/database.h"
 
 silo::api::DatabaseDirectoryWatcher::DatabaseDirectoryWatcher(
    std::filesystem::path path,
-   DatabaseMutex& database_mutex
+   std::shared_ptr<ActiveDatabase> database_handle
 )
     : path(std::move(path)),
-      database_mutex(database_mutex),
+      database_handle(database_handle),
       timer(0, 2000) {
    timer.start(Poco::TimerCallback<DatabaseDirectoryWatcher>(
       *this, &DatabaseDirectoryWatcher::checkDirectoryForData
@@ -116,7 +116,7 @@ void silo::api::DatabaseDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*t
    {
       try {
          const auto current_data_version_timestamp =
-            database_mutex.getDatabase()->getDataVersionTimestamp();
+            database_handle->getActiveDatabase()->getDataVersionTimestamp();
          const auto most_recent_data_version_timestamp_found =
             most_recent_database_state->second.getTimestamp();
          if (current_data_version_timestamp >= most_recent_data_version_timestamp_found) {
@@ -135,8 +135,9 @@ void silo::api::DatabaseDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*t
 
    SPDLOG_INFO("New data version detected: {}", most_recent_database_state->first.string());
    try {
-      database_mutex.setDatabase(silo::Database::loadDatabaseState(most_recent_database_state->first
-      ));
+      database_handle->setActiveDatabase(
+         silo::Database::loadDatabaseState(most_recent_database_state->first)
+      );
       SPDLOG_INFO(
          "New database with version {} successfully loaded.",
          most_recent_database_state->first.string()

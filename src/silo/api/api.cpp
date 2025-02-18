@@ -5,8 +5,8 @@
 #include <Poco/Net/ServerSocket.h>
 #include <spdlog/spdlog.h>
 
+#include "silo/api/active_database.h"
 #include "silo/api/database_directory_watcher.h"
-#include "silo/api/database_mutex.h"
 #include "silo/api/request_handler_factory.h"
 
 namespace silo::api {
@@ -14,11 +14,7 @@ namespace silo::api {
 int Api::runApi(const silo::config::RuntimeConfig& runtime_config) {
    SPDLOG_INFO("Starting SILO API");
 
-   silo::api::DatabaseMutex database_mutex;
-
    const Poco::Net::ServerSocket server_socket(runtime_config.api_options.port);
-
-   const silo::api::DatabaseDirectoryWatcher watcher(runtime_config.data_directory, database_mutex);
 
    auto* const poco_parameter = new Poco::Net::HTTPServerParams;
 
@@ -37,11 +33,16 @@ int Api::runApi(const silo::config::RuntimeConfig& runtime_config) {
       /* maxCapacity = */ runtime_config.api_options.parallel_threads
    );
 
+   auto database = std::make_shared<ActiveDatabase>();
+
+   auto silo_request_handler_factory =
+      std::make_unique<silo::api::SiloRequestHandlerFactory>(runtime_config, database);
+
+   const silo::api::DatabaseDirectoryWatcher watcher(runtime_config.data_directory, database);
+
+   // HTTPServer will erase the memory of the request_handler, therefore we call `release`
    Poco::Net::HTTPServer server(
-      new silo::api::SiloRequestHandlerFactory(database_mutex, runtime_config),
-      thread_pool,
-      server_socket,
-      poco_parameter
+      silo_request_handler_factory.release(), thread_pool, server_socket, poco_parameter
    );
 
    SPDLOG_INFO("Listening on port {}", runtime_config.api_options.port);
