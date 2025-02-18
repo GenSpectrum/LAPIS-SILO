@@ -1,9 +1,9 @@
-#include "silo/query_engine/operators/full.h"
+#include "silo/query_engine/filter/operators/full.h"
 
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
 
-using silo::query_engine::operators::Full;
+using silo::query_engine::filter::operators::Full;
 
 TEST(OperatorFull, containsCheckShouldReturnCorrectValues) {
    const Full under_test(5);
@@ -18,5 +18,5 @@ TEST(OperatorFull, containsCheckShouldReturnCorrectValuesWhenEmptyDatabase) {
 TEST(OperatorFull, correctTypeInfo) {
    const Full under_test(5);
 
-   ASSERT_EQ(under_test.type(), silo::query_engine::operators::FULL);
+   ASSERT_EQ(under_test.type(), silo::query_engine::filter::operators::FULL);
 }

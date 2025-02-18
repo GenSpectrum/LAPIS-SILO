@@ -1,12 +1,12 @@
-#include "silo/query_engine/operators/full.h"
+#include "silo/query_engine/filter/operators/full.h"
 
 #include <string>
 
 #include "silo/query_engine/copy_on_write_bitmap.h"
-#include "silo/query_engine/operators/empty.h"
-#include "silo/query_engine/operators/operator.h"
+#include "silo/query_engine/filter/operators/empty.h"
+#include "silo/query_engine/filter/operators/operator.h"
 
-namespace silo::query_engine::operators {
+namespace silo::query_engine::filter::operators {
 
 Full::Full(uint32_t row_count)
     : row_count(row_count) {}
@@ -31,4 +31,4 @@ std::unique_ptr<Operator> Full::negate(std::unique_ptr<Full>&& full) {
    return std::make_unique<Empty>(full->row_count);
 }
 
-}  // namespace silo::query_engine::operators
+}  // namespace silo::query_engine::filter::operators

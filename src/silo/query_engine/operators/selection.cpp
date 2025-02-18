@@ -1,4 +1,4 @@
-#include "silo/query_engine/operators/selection.h"
+#include "silo/query_engine/filter/operators/selection.h"
 
 #include <array>
 #include <cmath>
@@ -19,10 +19,10 @@
 #include "silo/common/panic.h"
 #include "silo/common/string.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
-#include "silo/query_engine/operators/complement.h"
-#include "silo/query_engine/operators/operator.h"
+#include "silo/query_engine/filter/operators/complement.h"
+#include "silo/query_engine/filter/operators/operator.h"
 
-namespace silo::query_engine::operators {
+namespace silo::query_engine::filter::operators {
 
 using silo::common::OptionalBool;
 
@@ -282,4 +282,4 @@ template class CompareToValueSelection<common::SiloString>;
 template class CompareToValueSelection<silo::common::Date>;
 template class CompareToValueSelection<double>;
 
-}  // namespace silo::query_engine::operators
+}  // namespace silo::query_engine::filter::operators

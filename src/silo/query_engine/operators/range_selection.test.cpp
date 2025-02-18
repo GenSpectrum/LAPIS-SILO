@@ -1,9 +1,9 @@
-#include "silo/query_engine/operators/range_selection.h"
+#include "silo/query_engine/filter/operators/range_selection.h"
 
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
 
-using silo::query_engine::operators::RangeSelection;
+using silo::query_engine::filter::operators::RangeSelection;
 TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValues) {
    std::vector<RangeSelection::Range> test_ranges(
       // NOLINTNEXTLINE(readability-magic-numbers)
@@ -70,7 +70,7 @@ TEST(OperatorRangeSelection, returnsCorrectTypeInfo) {
 
    auto under_test = std::make_unique<RangeSelection>(std::move(test_ranges), row_count);
 
-   ASSERT_EQ(under_test->type(), silo::query_engine::operators::RANGE_SELECTION);
+   ASSERT_EQ(under_test->type(), silo::query_engine::filter::operators::RANGE_SELECTION);
    auto negated = RangeSelection::negate(std::move(under_test));
-   ASSERT_EQ(negated->type(), silo::query_engine::operators::RANGE_SELECTION);
+   ASSERT_EQ(negated->type(), silo::query_engine::filter::operators::RANGE_SELECTION);
 }

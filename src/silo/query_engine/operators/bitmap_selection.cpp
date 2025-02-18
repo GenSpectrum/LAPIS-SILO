@@ -1,4 +1,4 @@
-#include "silo/query_engine/operators/bitmap_selection.h"
+#include "silo/query_engine/filter/operators/bitmap_selection.h"
 
 #include <string>
 
@@ -6,10 +6,10 @@
 #include <roaring/roaring.hh>
 
 #include "silo/query_engine/copy_on_write_bitmap.h"
-#include "silo/query_engine/filter_expressions/expression.h"
-#include "silo/query_engine/operators/operator.h"
+#include "silo/query_engine/filter/expressions/expression.h"
+#include "silo/query_engine/filter/operators/operator.h"
 
-namespace silo::query_engine::operators {
+namespace silo::query_engine::filter::operators {
 
 BitmapSelection::BitmapSelection(
    const roaring::Roaring* bitmaps,
@@ -23,7 +23,7 @@ BitmapSelection::BitmapSelection(
       value(value) {}
 
 BitmapSelection::BitmapSelection(
-   std::unique_ptr<silo::query_engine::filter_expressions::Expression>&& logical_equivalent,
+   std::unique_ptr<silo::query_engine::filter::expressions::Expression>&& logical_equivalent,
    const roaring::Roaring* bitmaps,
    uint32_t row_count,
    Comparator comparator,
@@ -83,4 +83,4 @@ std::unique_ptr<Operator> BitmapSelection::negate(
    return bitmap_selection;
 }
 
-}  // namespace silo::query_engine::operators
+}  // namespace silo::query_engine::filter::operators

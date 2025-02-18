@@ -1,4 +1,4 @@
-#include "silo/query_engine/operators/bitmap_producer.h"
+#include "silo/query_engine/filter/operators/bitmap_producer.h"
 
 #include "silo/query_engine/copy_on_write_bitmap.h"
 
@@ -6,7 +6,7 @@
 #include <roaring/roaring.hh>
 
 using silo::query_engine::CopyOnWriteBitmap;
-using silo::query_engine::operators::BitmapProducer;
+using silo::query_engine::filter::operators::BitmapProducer;
 
 TEST(OperatorBitmapProducer, evaluateShouldReturnCorrectValues) {
    const roaring::Roaring test_bitmap({1, 2, 3});
@@ -32,7 +32,7 @@ TEST(OperatorBitmapProducer, correctTypeInfo) {
    const uint32_t row_count = 5;
 
    const BitmapProducer under_test([&]() { return CopyOnWriteBitmap(test_bitmap); }, row_count);
-   ASSERT_EQ(under_test.type(), silo::query_engine::operators::BITMAP_PRODUCER);
+   ASSERT_EQ(under_test.type(), silo::query_engine::filter::operators::BITMAP_PRODUCER);
 }
 
 TEST(OperatorBitmapProducer, correctToString) {

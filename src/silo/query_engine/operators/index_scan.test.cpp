@@ -1,14 +1,14 @@
-#include "silo/query_engine/operators/index_scan.h"
+#include "silo/query_engine/filter/operators/index_scan.h"
 
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
 
-#include "silo/query_engine/filter_expressions/false.h"
-#include "silo/query_engine/filter_expressions/true.h"
+#include "silo/query_engine/filter/expressions/false.h"
+#include "silo/query_engine/filter/expressions/true.h"
 
-using silo::query_engine::filter_expressions::False;
-using silo::query_engine::filter_expressions::True;
-using silo::query_engine::operators::IndexScan;
+using silo::query_engine::filter::expressions::False;
+using silo::query_engine::filter::expressions::True;
+using silo::query_engine::filter::operators::IndexScan;
 
 TEST(OperatorIndexScan, evaluateShouldReturnCorrectValues) {
    const roaring::Roaring test_bitmap(roaring::Roaring({1, 3}));
@@ -21,7 +21,7 @@ TEST(OperatorIndexScan, correctTypeInfo) {
 
    const IndexScan under_test(&test_bitmap, 5);
 
-   ASSERT_EQ(under_test.type(), silo::query_engine::operators::INDEX_SCAN);
+   ASSERT_EQ(under_test.type(), silo::query_engine::filter::operators::INDEX_SCAN);
 }
 
 TEST(OperatorIndexScan, correctLogicalEquivalent) {

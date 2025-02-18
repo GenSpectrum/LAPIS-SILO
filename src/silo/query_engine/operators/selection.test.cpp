@@ -1,11 +1,11 @@
-#include "silo/query_engine/operators/selection.h"
+#include "silo/query_engine/filter/operators/selection.h"
 
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
 
-using silo::query_engine::operators::Comparator;
-using silo::query_engine::operators::CompareToValueSelection;
-using silo::query_engine::operators::Selection;
+using silo::query_engine::filter::operators::Comparator;
+using silo::query_engine::filter::operators::CompareToValueSelection;
+using silo::query_engine::filter::operators::Selection;
 
 TEST(OperatorSelection, equalsShouldReturnCorrectValues) {
    const std::vector<int32_t> test_column({{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}});
@@ -116,5 +116,5 @@ TEST(OperatorSelection, returnsCorrectTypeInfo) {
       row_count
    );
 
-   ASSERT_EQ(under_test.type(), silo::query_engine::operators::SELECTION);
+   ASSERT_EQ(under_test.type(), silo::query_engine::filter::operators::SELECTION);
 }

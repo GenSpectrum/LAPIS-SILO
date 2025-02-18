@@ -1,14 +1,14 @@
-#include "silo/query_engine/operators/union.h"
+#include "silo/query_engine/filter/operators/union.h"
 
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
 
-#include "silo/query_engine/operators/index_scan.h"
+#include "silo/query_engine/filter/operators/index_scan.h"
 #include "silo/query_engine/query_compilation_exception.h"
 
-using silo::query_engine::operators::IndexScan;
-using silo::query_engine::operators::Operator;
-using silo::query_engine::operators::Union;
+using silo::query_engine::filter::operators::IndexScan;
+using silo::query_engine::filter::operators::Operator;
+using silo::query_engine::filter::operators::Union;
 
 using OperatorVector = std::vector<std::unique_ptr<Operator>>;
 
@@ -103,5 +103,5 @@ TEST(OperatorUnion, correctTypeInfo) {
    OperatorVector input = generateTestInput(test_bitmaps, row_count);
    const Union under_test(std::move(input), row_count);
 
-   ASSERT_EQ(under_test.type(), silo::query_engine::operators::UNION);
+   ASSERT_EQ(under_test.type(), silo::query_engine::filter::operators::UNION);
 }

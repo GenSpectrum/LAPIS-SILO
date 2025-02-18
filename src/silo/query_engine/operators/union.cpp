@@ -1,4 +1,4 @@
-#include "silo/query_engine/operators/union.h"
+#include "silo/query_engine/filter/operators/union.h"
 
 #include <string>
 #include <utility>
@@ -7,10 +7,10 @@
 #include <roaring/roaring.hh>
 
 #include "silo/query_engine/copy_on_write_bitmap.h"
-#include "silo/query_engine/operators/complement.h"
-#include "silo/query_engine/operators/operator.h"
+#include "silo/query_engine/filter/operators/complement.h"
+#include "silo/query_engine/filter/operators/operator.h"
 
-namespace silo::query_engine::operators {
+namespace silo::query_engine::filter::operators {
 
 Union::Union(std::vector<std::unique_ptr<Operator>>&& children, uint32_t row_count)
     : children(std::move(children)),
@@ -48,4 +48,4 @@ std::unique_ptr<Operator> Union::negate(std::unique_ptr<Union>&& union_operator)
    return std::make_unique<Complement>(std::move(union_operator), union_operator->row_count);
 }
 
-}  // namespace silo::query_engine::operators
+}  // namespace silo::query_engine::filter::operators

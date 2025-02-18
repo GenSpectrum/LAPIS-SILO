@@ -1,4 +1,4 @@
-#include "silo/query_engine/operators/range_selection.h"
+#include "silo/query_engine/filter/operators/range_selection.h"
 
 #include <string>
 #include <utility>
@@ -7,9 +7,9 @@
 #include <boost/algorithm/string/join.hpp>
 
 #include "silo/query_engine/copy_on_write_bitmap.h"
-#include "silo/query_engine/operators/operator.h"
+#include "silo/query_engine/filter/operators/operator.h"
 
-namespace silo::query_engine::operators {
+namespace silo::query_engine::filter::operators {
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 RangeSelection::Range::Range(uint32_t start, uint32_t end)
@@ -63,4 +63,4 @@ std::unique_ptr<Operator> RangeSelection::negate(std::unique_ptr<RangeSelection>
    return std::make_unique<RangeSelection>(std::move(new_ranges), row_count);
 }
 
-}  // namespace silo::query_engine::operators
+}  // namespace silo::query_engine::filter::operators
