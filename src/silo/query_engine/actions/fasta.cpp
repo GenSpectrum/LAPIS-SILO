@@ -1,5 +1,9 @@
 #include "silo/query_engine/actions/fasta.h"
 
+#if defined(__linux__)
+#include <malloc.h>
+#endif
+
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <boost/numeric/conversion/cast.hpp>
@@ -296,6 +300,13 @@ QueryResult Fasta::execute(const Database& database, std::vector<CopyOnWriteBitm
                primary_key_column,
                result_row_indices.size()
             );
+#if defined(__linux__)
+            SPDLOG_INFO(
+               "Fasta sequences generated for partition. Manually invoking malloc_trim() to give "
+               "back memory to OS."
+            );
+            malloc_trim(0);
+#endif
 
             SILO_ASSERT(results.size() == result_row_indices.size());
 
