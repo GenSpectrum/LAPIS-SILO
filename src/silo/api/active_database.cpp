@@ -6,9 +6,44 @@
 #include "silo/common/data_version.h"
 #include "silo/database.h"
 
+namespace {
+void monitorReferenceCount(
+   silo::DataVersion::Timestamp data_version,
+   std::weak_ptr<silo::Database> weak_ptr
+) {
+   while (true) {
+      if (auto shared = weak_ptr.lock()) {
+         SPDLOG_INFO(
+            "Some requests on the old database with version {} are still running. "
+            "Current reference count: {}",
+            data_version.value,
+            shared.use_count()
+         );
+      } else {
+         SPDLOG_INFO(
+            "No more references to the old database with version {} present. Stopping monitoring.",
+            data_version.value
+         );
+         break;
+      }
+      std::this_thread::sleep_for(std::chrono::seconds(5));
+   }
+}
+}  // namespace
+
 namespace silo::api {
 
 void silo::api::ActiveDatabase::setActiveDatabase(silo::Database&& new_database) {
+   auto active_database = std::atomic_load(&database);
+   if (active_database != nullptr) {
+      std::thread monitorThread(
+         monitorReferenceCount,
+         database->getDataVersionTimestamp(),
+         std::weak_ptr<silo::Database>(active_database)
+      );
+      monitorThread.detach();
+   }
+
    auto new_database_pointer = std::make_shared<silo::Database>(std::move(new_database));
 
    std::atomic_store(&database, new_database_pointer);
