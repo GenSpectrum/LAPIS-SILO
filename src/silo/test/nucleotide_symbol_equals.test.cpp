@@ -67,13 +67,19 @@ nlohmann::json createNucleotideSymbolEqualsQuery(const std::string& symbol, int 
 }
 
 const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL = {
-   .name = "nucleotideEqualsWithSymbol",
+   .name = "NUCLEOTIDE_EQUALS_WITH_SYMBOL",
    .query = createNucleotideSymbolEqualsQuery("C", 1),
    .expected_query_result = nlohmann::json::parse(R"([{"count": 1}])")
 };
 
+const QueryTestScenario NUCLEOTIDE_EQUALS_SYMBOL_OUT_OF_RANGE = {
+   .name = "NUCLEOTIDE_EQUALS_SYMBOL_OUT_OF_RANGE",
+   .query = createNucleotideSymbolEqualsQuery("C", 1000),
+   .expected_error_message = "NucleotideEquals position is out of bounds 1000 > 5"
+};
+
 const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_DOT_RETURNS_REFERENCE = {
-   .name = "nucleotideEqualsWithDot",
+   .name = "NUCLEOTIDE_EQUALS_WITH_DOT_RETURNS_REFERENCE",
    .query = createNucleotideSymbolEqualsQuery(".", 1),
    .expected_query_result = nlohmann::json::parse(R"([{"count": 2}])")
 };
@@ -83,5 +89,9 @@ const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_DOT_RETURNS_REFERENCE = {
 QUERY_TEST(
    NucleotideSymbolEquals,
    TEST_DATA,
-   ::testing::Values(NUCLEOTIDE_EQUALS_WITH_SYMBOL, NUCLEOTIDE_EQUALS_WITH_DOT_RETURNS_REFERENCE)
+   ::testing::Values(
+      NUCLEOTIDE_EQUALS_WITH_SYMBOL,
+      NUCLEOTIDE_EQUALS_SYMBOL_OUT_OF_RANGE,
+      NUCLEOTIDE_EQUALS_WITH_DOT_RETURNS_REFERENCE
+   )
 );

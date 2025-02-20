@@ -7,8 +7,6 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-#include "silo/common/aa_symbols.h"
-#include "silo/common/nucleotide_symbols.h"
 #include "silo/database.h"
 #include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/operators/operator.h"
