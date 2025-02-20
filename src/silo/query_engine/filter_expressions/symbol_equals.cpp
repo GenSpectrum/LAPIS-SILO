@@ -87,12 +87,17 @@ std::unique_ptr<silo::query_engine::operators::Operator> SymbolEquals<SymbolType
 
    const auto& seq_store_partition =
       database_partition.getSequenceStores<SymbolType>().at(valid_sequence_name);
-   if (position_idx >= seq_store_partition.reference_sequence.size()) {
-      throw QueryParseException(
-         "SymbolEquals position is out of bounds '" + std::to_string(position_idx + 1) + "' > '" +
-         std::to_string(seq_store_partition.reference_sequence.size()) + "'"
-      );
-   }
+
+   CHECK_SILO_QUERY(
+      position_idx < seq_store_partition.reference_sequence.size(),
+      fmt::format(
+         "{}Equals position is out of bounds {} > {}",
+         SymbolType::SYMBOL_NAME,
+         position_idx + 1,
+         seq_store_partition.reference_sequence.size()
+      )
+   )
+
    auto symbol =
       value.getSymbolOrReplaceDotWith(seq_store_partition.reference_sequence.at(position_idx));
    if (mode == UPPER_BOUND) {

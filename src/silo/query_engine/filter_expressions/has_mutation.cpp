@@ -52,9 +52,20 @@ std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
    const auto valid_sequence_name =
       validateSequenceNameOrGetDefault<SymbolType>(sequence_name, database);
 
-   auto ref_symbol = database.getSequenceStores<SymbolType>()
-                        .at(valid_sequence_name)
-                        .reference_sequence.at(position_idx);
+   const auto& seq_store_partition =
+      database.getSequenceStores<SymbolType>().at(valid_sequence_name);
+
+   CHECK_SILO_QUERY(
+      position_idx < seq_store_partition.reference_sequence.size(),
+      fmt::format(
+         "Has{}Mutation position is out of bounds {} > {}",
+         SymbolType::SYMBOL_NAME,
+         position_idx + 1,
+         seq_store_partition.reference_sequence.size()
+      )
+   )
+
+   auto ref_symbol = seq_store_partition.reference_sequence.at(position_idx);
 
    std::vector<typename SymbolType::Symbol> symbols =
       std::vector(SymbolType::SYMBOLS.begin(), SymbolType::SYMBOLS.end());
@@ -85,11 +96,16 @@ template <typename SymbolType>
 void from_json(const nlohmann::json& json, std::unique_ptr<HasMutation<SymbolType>>& filter) {
    CHECK_SILO_QUERY(
       json.contains("position"),
-      "The field 'position' is required in a HasNucleotideMutation expression"
+      fmt::format(
+         "The field 'position' is required in a Has{}Mutation expression", SymbolType::SYMBOL_NAME
+      )
    );
    CHECK_SILO_QUERY(
       json["position"].is_number_unsigned(),
-      "The field 'position' in a HasNucleotideMutation expression needs to be an unsigned integer"
+      fmt::format(
+         "The field 'position' in a Has{}Mutation expression needs to be an unsigned integer",
+         SymbolType::SYMBOL_NAME
+      )
    );
    std::optional<std::string> nuc_sequence_name;
    if (json.contains("sequenceName")) {
