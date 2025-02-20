@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.5.4](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.5.3...v0.5.4) (2025-02-20)
+
+
+### Features
+
+* add monitoring to log the swapover to datasets ([39f1ed2](https://github.com/GenSpectrum/LAPIS-SILO/commit/39f1ed2ddba4e4711ce850380674b8d41d645d52))
+* call malloc_trim after all connections to the old database are finished ([5742a52](https://github.com/GenSpectrum/LAPIS-SILO/commit/5742a521b467d153a2dd633cdacfd7ec3b8080bb))
+* tell malloc to give empty heap space back to the OS before every fasta call ([16ce850](https://github.com/GenSpectrum/LAPIS-SILO/commit/16ce850145db75d81f702368f3944692dd0da080))
+
+
+### Bug Fixes
+
+* prohibit allocation of new Poco threads for incoming requests ([7c2994f](https://github.com/GenSpectrum/LAPIS-SILO/commit/7c2994f515e8750eb5c43a882d76788b59dfc11c))
+
 ## [0.5.3](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.5.2...v0.5.3) (2025-02-06)
 
 
