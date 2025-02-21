@@ -20,8 +20,8 @@
 #include "silo/query_engine/actions/fasta_aligned.h"
 #include "silo/query_engine/actions/insertions.h"
 #include "silo/query_engine/actions/mutations.h"
+#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
-#include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
 
 namespace silo::query_engine::actions {
@@ -138,7 +138,7 @@ QueryResult Action::executeAndOrder(
       // features are relevant for the query.  Currently *assumes* that
       // none of the actions actually implement limit+offset
       auto error = [&](const std::string_view& what) {
-         throw silo::QueryEvaluationException(fmt::format(
+         throw BadRequest(fmt::format(
             "{} not supported for streaming endpoints when returning more than {} rows, but got "
             "{}",
             what,
@@ -248,7 +248,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
    } else if (expression_type == "AminoAcidInsertions") {
       action = json.get<std::unique_ptr<InsertionAggregation<AminoAcid>>>();
    } else {
-      throw QueryParseException(expression_type + " is not a valid action");
+      throw BadRequest(expression_type + " is not a valid action");
    }
 
    CHECK_SILO_QUERY(

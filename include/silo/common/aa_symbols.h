@@ -43,7 +43,7 @@ class AminoAcid {
    };
    static constexpr uint32_t COUNT = 25;
 
-   static constexpr std::string_view SYMBOL_NAME = "Amino Acid";
+   static constexpr std::string_view SYMBOL_NAME = "AminoAcid";
    static constexpr std::string_view SYMBOL_NAME_LOWER_CASE = "amino acid";
    static constexpr std::string_view PREFIX = "aa_";
 

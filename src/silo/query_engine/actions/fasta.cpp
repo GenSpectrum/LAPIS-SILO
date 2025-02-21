@@ -15,8 +15,8 @@
 #include "silo/common/panic.h"
 #include "silo/common/range.h"
 #include "silo/database.h"
+#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
-#include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/zstd/zstd_table_reader.h"
 
