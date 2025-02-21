@@ -11,6 +11,7 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/config/database_config.h"
 #include "silo/database.h"
+#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter_expressions/and.h"
 #include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/filter_expressions/negation.h"
@@ -19,7 +20,6 @@
 #include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/index_scan.h"
 #include "silo/query_engine/operators/operator.h"
-#include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_parse_sequence_name.h"
 #include "silo/storage/database_partition.h"
 

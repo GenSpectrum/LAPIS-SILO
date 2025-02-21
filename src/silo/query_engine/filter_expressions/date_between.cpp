@@ -10,9 +10,9 @@
 #include "silo/common/date.h"
 #include "silo/database.h"
 #include "silo/preprocessing/partition.h"
+#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/operators/range_selection.h"
 #include "silo/query_engine/operators/selection.h"
-#include "silo/query_engine/query_parse_exception.h"
 #include "silo/storage/column/date_column.h"
 #include "silo/storage/database_partition.h"
 
