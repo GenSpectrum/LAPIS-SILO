@@ -18,8 +18,8 @@
 #include "silo/common/symbol_map.h"
 #include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
+#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
-#include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/database_partition.h"
 #include "silo/storage/sequence_store.h"
@@ -325,7 +325,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Mutations<SymbolType>
    );
    const double min_proportion = json["minProportion"].get<double>();
    if (min_proportion < 0 || min_proportion > 1) {
-      throw QueryParseException("Invalid proportion: minProportion must be in interval [0.0, 1.0]");
+      throw BadRequest("Invalid proportion: minProportion must be in interval [0.0, 1.0]");
    }
 
    action = std::make_unique<Mutations<SymbolType>>(std::move(sequence_names), min_proportion);

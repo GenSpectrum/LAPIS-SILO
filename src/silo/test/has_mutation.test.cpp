@@ -92,6 +92,24 @@ const QueryTestScenario HAS_NUCLEOTIDE_MUTATION_OUT_OF_RANGE = {
    .expected_error_message = "HasNucleotideMutation position is out of bounds 2000 > 5"
 };
 
+const QueryTestScenario HAS_NUCLEOTIDE_MUTATION_OUT_OF_RANGE_EDGE_LOW = {
+   .name = "HAS_NUCLEOTIDE_MUTATION_OUT_OF_RANGE_EDGE_HIGH",
+   .query = createHasNucleotideMutationQuery(0),
+   .expected_error_message = "The field 'position' is 1-indexed. Value of 0 not allowed."
+};
+
+const QueryTestScenario HAS_NUCLEOTIDE_MUTATION_OUT_OF_RANGE_EDGE_HIGH = {
+   .name = "HAS_NUCLEOTIDE_MUTATION_OUT_OF_RANGE_EDGE_LOW",
+   .query = createHasNucleotideMutationQuery(6),
+   .expected_error_message = "HasNucleotideMutation position is out of bounds 6 > 5"
+};
+
+const QueryTestScenario HAS_NUCLEOTIDE_MUTATION_IN_RANGE_EDGE = {
+   .name = "HAS_NUCLEOTIDE_MUTATION_IN_RANGE_EDGE",
+   .query = createHasNucleotideMutationQuery(5),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 1}])")
+};
+
 const QueryTestScenario HAS_AMINO_ACID_MUTATION_OUT_OF_RANGE = {
    .name = "HAS_AMINO_ACID_MUTATION_OUT_OF_RANGE",
    .query = createHasAminoAcidMutationQuery(1000),
@@ -107,6 +125,9 @@ QUERY_TEST(
       HAS_NUCLEOTIDE_MUTATION,
       HAS_AMINO_ACID_MUTATION,
       HAS_NUCLEOTIDE_MUTATION_OUT_OF_RANGE,
+      HAS_NUCLEOTIDE_MUTATION_OUT_OF_RANGE_EDGE_LOW,
+      HAS_NUCLEOTIDE_MUTATION_OUT_OF_RANGE_EDGE_HIGH,
+      HAS_NUCLEOTIDE_MUTATION_IN_RANGE_EDGE,
       HAS_AMINO_ACID_MUTATION_OUT_OF_RANGE
    )
 );

@@ -11,6 +11,7 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/config/database_config.h"
 #include "silo/database.h"
+#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter_expressions/and.h"
 #include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/filter_expressions/negation.h"
@@ -19,7 +20,6 @@
 #include "silo/query_engine/operators/complement.h"
 #include "silo/query_engine/operators/index_scan.h"
 #include "silo/query_engine/operators/operator.h"
-#include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_parse_sequence_name.h"
 #include "silo/storage/database_partition.h"
 
@@ -191,9 +191,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<SymbolEquals<SymbolTy
       "The field 'position' is required in a SymbolEquals expression"
    );
    CHECK_SILO_QUERY(
-      json["position"].is_number_unsigned() && json["position"].get<uint32_t>() > 0,
-      "The field 'position' in a SymbolEquals expression needs to be an unsigned "
-      "integer greater than 0"
+      json["position"].is_number_unsigned(),
+      "The field 'position' in a SymbolEquals expression needs to be an unsigned integer"
    );
    CHECK_SILO_QUERY(
       json.contains("symbol"), "The field 'symbol' is required in a SymbolEquals expression"
@@ -206,7 +205,11 @@ void from_json(const nlohmann::json& json, std::unique_ptr<SymbolEquals<SymbolTy
    if (json.contains("sequenceName")) {
       sequence_name = json["sequenceName"].get<std::string>();
    }
-   const uint32_t position_idx = json["position"].get<uint32_t>() - 1;
+   const uint32_t position_idx_1_indexed = json["position"].get<uint32_t>();
+   CHECK_SILO_QUERY(
+      position_idx_1_indexed > 0, "The field 'position' is 1-indexed. Value of 0 not allowed."
+   );
+   const uint32_t position_idx = position_idx_1_indexed - 1;
    const std::string& symbol = json["symbol"];
 
    CHECK_SILO_QUERY(

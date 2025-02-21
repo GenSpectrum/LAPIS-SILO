@@ -9,11 +9,11 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/config/database_config.h"
 #include "silo/database.h"
+#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter_expressions/expression.h"
 #include "silo/query_engine/filter_expressions/or.h"
 #include "silo/query_engine/filter_expressions/symbol_equals.h"
 #include "silo/query_engine/operators/operator.h"
-#include "silo/query_engine/query_parse_exception.h"
 #include "silo/query_engine/query_parse_sequence_name.h"
 #include "silo/storage/database_partition.h"
 
@@ -111,7 +111,11 @@ void from_json(const nlohmann::json& json, std::unique_ptr<HasMutation<SymbolTyp
    if (json.contains("sequenceName")) {
       nuc_sequence_name = json["sequenceName"].get<std::string>();
    }
-   const uint32_t position_idx = json["position"].get<uint32_t>() - 1;
+   const uint32_t position_idx_1_indexed = json["position"].get<uint32_t>();
+   CHECK_SILO_QUERY(
+      position_idx_1_indexed > 0, "The field 'position' is 1-indexed. Value of 0 not allowed."
+   );
+   const uint32_t position_idx = position_idx_1_indexed - 1;
    filter = std::make_unique<HasMutation<SymbolType>>(nuc_sequence_name, position_idx);
 }
 

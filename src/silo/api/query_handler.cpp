@@ -12,7 +12,7 @@
 
 #include "silo/api/active_database.h"
 #include "silo/api/error_request_handler.h"
-#include "silo/query_engine/query_parse_exception.h"
+#include "silo/query_engine/bad_request.h"
 
 namespace silo::api {
 using silo::query_engine::QueryResultEntry;
@@ -48,11 +48,9 @@ void QueryHandler::post(
             );
          }
       }
-   } catch (const silo::QueryException& ex) {
+   } catch (const silo::BadRequest& ex) {
       response.setContentType("application/json");
-      SPDLOG_INFO(
-         "Query is invalid: {} - exception during {}: {}", query, ex.duringString(), ex.what()
-      );
+      SPDLOG_INFO("Query is invalid: {}", query, ex.what());
       response.setStatusAndReason(Poco::Net::HTTPResponse::HTTP_BAD_REQUEST);
       std::ostream& out_stream = response.send();
       out_stream << nlohmann::json(ErrorResponse{.error = "Bad request", .message = ex.what()});
