@@ -84,6 +84,12 @@ const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_DOT_RETURNS_REFERENCE = {
    .expected_query_result = nlohmann::json::parse(R"([{"count": 2}])")
 };
 
+const QueryTestScenario NUCLEOTIDE_EQUALS_OUT_OF_RANGE_EDGE_LOW = {
+   .name = "NUCLEOTIDE_EQUALS_OUT_OF_RANGE_EDGE_LOW",
+   .query = createNucleotideSymbolEqualsQuery(".", 0),
+   .expected_error_message = "The field 'position' is 1-indexed. Value of 0 not allowed."
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -92,6 +98,7 @@ QUERY_TEST(
    ::testing::Values(
       NUCLEOTIDE_EQUALS_WITH_SYMBOL,
       NUCLEOTIDE_EQUALS_SYMBOL_OUT_OF_RANGE,
-      NUCLEOTIDE_EQUALS_WITH_DOT_RETURNS_REFERENCE
+      NUCLEOTIDE_EQUALS_WITH_DOT_RETURNS_REFERENCE,
+      NUCLEOTIDE_EQUALS_OUT_OF_RANGE_EDGE_LOW
    )
 );

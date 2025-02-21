@@ -7,10 +7,10 @@
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
+#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/operators/empty.h"
 #include "silo/query_engine/operators/index_scan.h"
 #include "silo/query_engine/operators/operator.h"
-#include "silo/query_engine/query_parse_exception.h"
 #include "silo/storage/database_partition.h"
 
 namespace silo::query_engine::filter_expressions {
