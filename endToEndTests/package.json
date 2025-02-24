@@ -7,7 +7,7 @@
   },
   "dependencies": {
     "chai": "^5.2.0",
-    "prettier": "^3.5.1",
+    "prettier": "^3.5.2",
     "supertest": "^7.0.0"
   }
 }
