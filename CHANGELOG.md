@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.5](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.5.4...v0.5.5) (2025-02-25)
+
+
+### Bug Fixes
+
+* return proper error message when index is out of bounds for a HasMutations filter ([50e9f49](https://github.com/GenSpectrum/LAPIS-SILO/commit/50e9f49f562465eb32691388bc4c3de5d2644c55))
+
 ## [0.5.4](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.5.3...v0.5.4) (2025-02-20)
 
 
