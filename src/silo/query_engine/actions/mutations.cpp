@@ -11,6 +11,7 @@
 #include <fmt/format.h>
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/parallel_for.h>
+#include <boost/algorithm/string/join.hpp>
 #include <nlohmann/json.hpp>
 
 #include "silo/common/aa_symbols.h"
@@ -29,9 +30,18 @@ using silo::query_engine::CopyOnWriteBitmap;
 namespace silo::query_engine::actions {
 
 template <typename SymbolType>
-Mutations<SymbolType>::Mutations(std::vector<std::string>&& sequence_names, double min_proportion)
+Mutations<SymbolType>::Mutations(
+   std::vector<std::string>&& sequence_names,
+   double min_proportion,
+   std::vector<std::string_view>&& fields
+)
     : sequence_names(std::move(sequence_names)),
-      min_proportion(min_proportion) {}
+      min_proportion(min_proportion),
+      fields(std::move(fields)) {
+   if (this->fields.empty()) {
+      this->fields = std::vector<std::string_view>{VALID_FIELDS.begin(), VALID_FIELDS.end()};
+   }
+}
 
 template <typename SymbolType>
 std::unordered_map<std::string, typename Mutations<SymbolType>::PrefilteredBitmaps> Mutations<
@@ -166,27 +176,16 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
 
 template <typename SymbolType>
 void Mutations<SymbolType>::validateOrderByFields(const Database& /*database*/) const {
-   const std::vector<std::string> result_field_names{
-      {MUTATION_FIELD_NAME,
-       MUTATION_FROM_FIELD_NAME,
-       MUTATION_TO_FIELD_NAME,
-       POSITION_FIELD_NAME,
-       PROPORTION_FIELD_NAME,
-       SEQUENCE_FIELD_NAME,
-       COUNT_FIELD_NAME}
-   };
-
    for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
          std::ranges::any_of(
-            result_field_names,
-            [&](const std::string& result_field) { return result_field == field.name; }
+            fields, [&](const std::string_view& result_field) { return result_field == field.name; }
          ),
          fmt::format(
             "OrderByField {} is not contained in the result of this operation. "
             "Allowed values are {}.",
             field.name,
-            fmt::join(result_field_names, ", ")
+            fmt::join(fields, ", ")
          )
       );
    }
@@ -225,27 +224,45 @@ void Mutations<SymbolType>::addMutationsToOutput(
             const uint32_t count = count_of_mutations_per_position.at(symbol)[pos];
             if (count > threshold_count) {
                const double proportion = static_cast<double>(count) / static_cast<double>(total);
-               const std::map<std::string, common::JsonValueType> fields{
-                  {
+               std::map<std::string, common::JsonValueType> fields_for_row;
+               if (std::ranges::find(fields, MUTATION_FIELD_NAME) != fields.end()) {
+                  fields_for_row.emplace(
                      MUTATION_FIELD_NAME,
                      fmt::format(
                         "{}{}{}",
                         SymbolType::symbolToChar(symbol_in_reference_genome),
                         pos + 1,
                         SymbolType::symbolToChar(symbol)
-                     ),
-                  },
-                  {
+                     )
+                  );
+               }
+               if (std::ranges::find(fields, MUTATION_FROM_FIELD_NAME) != fields.end()) {
+                  fields_for_row.emplace(
                      MUTATION_FROM_FIELD_NAME,
-                     std::string(1, SymbolType::symbolToChar(symbol_in_reference_genome)),
-                  },
-                  {MUTATION_TO_FIELD_NAME, std::string(1, SymbolType::symbolToChar(symbol))},
-                  {POSITION_FIELD_NAME, static_cast<int32_t>(pos + 1)},
-                  {SEQUENCE_FIELD_NAME, sequence_name},
-                  {PROPORTION_FIELD_NAME, proportion},
-                  {COUNT_FIELD_NAME, static_cast<int32_t>(count)}
-               };
-               output.push_back({fields});
+                     std::string(1, SymbolType::symbolToChar(symbol_in_reference_genome))
+                  );
+               }
+               if (std::ranges::find(fields, MUTATION_TO_FIELD_NAME) != fields.end()) {
+                  fields_for_row.emplace(
+                     MUTATION_TO_FIELD_NAME, std::string(1, SymbolType::symbolToChar(symbol))
+                  );
+               }
+               if (std::ranges::find(fields, POSITION_FIELD_NAME) != fields.end()) {
+                  fields_for_row.emplace(POSITION_FIELD_NAME, static_cast<int32_t>(pos + 1));
+               }
+               if (std::ranges::find(fields, SEQUENCE_FIELD_NAME) != fields.end()) {
+                  fields_for_row.emplace(SEQUENCE_FIELD_NAME, sequence_name);
+               }
+               if (std::ranges::find(fields, PROPORTION_FIELD_NAME) != fields.end()) {
+                  fields_for_row.emplace(PROPORTION_FIELD_NAME, proportion);
+               }
+               if (std::ranges::find(fields, COUNT_FIELD_NAME) != fields.end()) {
+                  fields_for_row.emplace(COUNT_FIELD_NAME, static_cast<int32_t>(count));
+               }
+               if (std::ranges::find(fields, COVERAGE_FIELD_NAME) != fields.end()) {
+                  fields_for_row.emplace(COVERAGE_FIELD_NAME, static_cast<int32_t>(total));
+               }
+               output.push_back({fields_for_row});
             }
          }
       }
@@ -320,15 +337,50 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Mutations<SymbolType>
       json.contains("minProportion") && json["minProportion"].is_number(),
       "Mutations action must contain the field minProportion of type number with limits [0.0, "
       "1.0]. Only mutations are returned if the proportion of sequences having this mutation, "
-      "is "
-      "at least minProportion"
+      "is at least minProportion"
    );
    const double min_proportion = json["minProportion"].get<double>();
    if (min_proportion < 0 || min_proportion > 1) {
       throw BadRequest("Invalid proportion: minProportion must be in interval [0.0, 1.0]");
    }
 
-   action = std::make_unique<Mutations<SymbolType>>(std::move(sequence_names), min_proportion);
+   std::vector<std::string_view> fields;
+   if (json.contains("fields")) {
+      CHECK_SILO_QUERY(
+         json["fields"].is_array(),
+         "The field 'fields' for a Mutations action must be an array of strings"
+      );
+      for (const auto& field_json : json["fields"]) {
+         CHECK_SILO_QUERY(
+            field_json.is_string(),
+            "The field 'fields' for a Mutations action must be an array of strings"
+         );
+         const std::string field = field_json;
+         auto it =
+            std::ranges::find_if(Mutations<SymbolType>::VALID_FIELDS, [&](const auto& valid_field) {
+               return valid_field == field;
+            });
+         CHECK_SILO_QUERY(
+            it != Mutations<SymbolType>::VALID_FIELDS.end(),
+            fmt::format(
+               "The attribute 'fields' contains an invalid field '{}'. Valid fields are {}.",
+               field,
+               boost::join(
+                  std::vector<std::string>{
+                     Mutations<SymbolType>::VALID_FIELDS.begin(),
+                     Mutations<SymbolType>::VALID_FIELDS.end()
+                  },
+                  ", "
+               )
+            )
+         );
+         fields.push_back(*it);
+      }
+   }
+
+   action = std::make_unique<Mutations<SymbolType>>(
+      std::move(sequence_names), min_proportion, std::move(fields)
+   );
 }
 
 template class Mutations<AminoAcid>;

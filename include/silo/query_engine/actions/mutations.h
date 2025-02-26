@@ -20,16 +20,30 @@ namespace silo::query_engine::actions {
 
 template <typename SymbolType>
 class Mutations : public Action {
+  public:
+   static constexpr std::string_view MUTATION_FIELD_NAME = "mutation";
+   static constexpr std::string_view MUTATION_FROM_FIELD_NAME = "mutationFrom";
+   static constexpr std::string_view MUTATION_TO_FIELD_NAME = "mutationTo";
+   static constexpr std::string_view POSITION_FIELD_NAME = "position";
+   static constexpr std::string_view SEQUENCE_FIELD_NAME = "sequenceName";
+   static constexpr std::string_view PROPORTION_FIELD_NAME = "proportion";
+   static constexpr std::string_view COVERAGE_FIELD_NAME = "coverage";
+   static constexpr std::string_view COUNT_FIELD_NAME = "count";
+   static constexpr std::array<std::string_view, 8> VALID_FIELDS{
+      MUTATION_FIELD_NAME,
+      MUTATION_FROM_FIELD_NAME,
+      MUTATION_TO_FIELD_NAME,
+      POSITION_FIELD_NAME,
+      SEQUENCE_FIELD_NAME,
+      PROPORTION_FIELD_NAME,
+      COVERAGE_FIELD_NAME,
+      COUNT_FIELD_NAME
+   };
+
+  private:
    std::vector<std::string> sequence_names;
    double min_proportion;
-
-   const std::string MUTATION_FIELD_NAME = "mutation";
-   const std::string MUTATION_FROM_FIELD_NAME = "mutationFrom";
-   const std::string MUTATION_TO_FIELD_NAME = "mutationTo";
-   const std::string POSITION_FIELD_NAME = "position";
-   const std::string SEQUENCE_FIELD_NAME = "sequenceName";
-   const std::string PROPORTION_FIELD_NAME = "proportion";
-   const std::string COUNT_FIELD_NAME = "count";
+   std::vector<std::string_view> fields;
 
    struct PrefilteredBitmaps {
       std::vector<
@@ -75,7 +89,11 @@ class Mutations : public Action {
    ) const override;
 
   public:
-   explicit Mutations(std::vector<std::string>&& aa_sequence_names, double min_proportion);
+   explicit Mutations(
+      std::vector<std::string>&& aa_sequence_names,
+      double min_proportion,
+      std::vector<std::string_view>&& fields
+   );
 };
 
 template <typename SymbolType>
