@@ -13,6 +13,7 @@
   "expectedQueryResult": [
     {
       "count": 37,
+      "coverage": 91,
       "mutation": "G142D",
       "mutationFrom": "G",
       "mutationTo": "D",
@@ -22,6 +23,7 @@
     },
     {
       "count": 46,
+      "coverage": 100,
       "mutation": "R203K",
       "mutationFrom": "R",
       "mutationTo": "K",
@@ -31,6 +33,7 @@
     },
     {
       "count": 46,
+      "coverage": 100,
       "mutation": "G204R",
       "mutationFrom": "G",
       "mutationTo": "R",
@@ -40,6 +43,7 @@
     },
     {
       "count": 98,
+      "coverage": 100,
       "mutation": "P314L",
       "mutationFrom": "P",
       "mutationTo": "L",
@@ -49,6 +53,7 @@
     },
     {
       "count": 38,
+      "coverage": 88,
       "mutation": "L452R",
       "mutationFrom": "L",
       "mutationTo": "R",
@@ -58,6 +63,7 @@
     },
     {
       "count": 69,
+      "coverage": 94,
       "mutation": "T478K",
       "mutationFrom": "T",
       "mutationTo": "K",
@@ -67,6 +73,7 @@
     },
     {
       "count": 41,
+      "coverage": 93,
       "mutation": "N501Y",
       "mutationFrom": "N",
       "mutationTo": "Y",
@@ -76,6 +83,7 @@
     },
     {
       "count": 98,
+      "coverage": 99,
       "mutation": "D614G",
       "mutationFrom": "D",
       "mutationTo": "G",
@@ -85,6 +93,7 @@
     },
     {
       "count": 42,
+      "coverage": 100,
       "mutation": "P681H",
       "mutationFrom": "P",
       "mutationTo": "H",
@@ -94,6 +103,7 @@
     },
     {
       "count": 64,
+      "coverage": 99,
       "mutation": "T3255I",
       "mutationFrom": "T",
       "mutationTo": "I",
@@ -103,6 +113,7 @@
     },
     {
       "count": 44,
+      "coverage": 98,
       "mutation": "S3675-",
       "mutationFrom": "S",
       "mutationTo": "-",
@@ -112,6 +123,7 @@
     },
     {
       "count": 44,
+      "coverage": 99,
       "mutation": "G3676-",
       "mutationFrom": "G",
       "mutationTo": "-",
