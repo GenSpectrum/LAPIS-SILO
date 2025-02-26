@@ -14,6 +14,7 @@
   "expectedQueryResult": [
     {
       "count": 1,
+      "coverage": 99,
       "mutation": "F20L",
       "mutationFrom": "F",
       "mutationTo": "L",
@@ -23,6 +24,7 @@
     },
     {
       "count": 1,
+      "coverage": 99,
       "mutation": "L18I",
       "mutationFrom": "L",
       "mutationTo": "I",
@@ -32,6 +34,7 @@
     },
     {
       "count": 34,
+      "coverage": 98,
       "mutation": "T9I",
       "mutationFrom": "T",
       "mutationTo": "I",
