@@ -7,7 +7,6 @@
 #include <string_view>
 #include <unordered_map>
 
-#include <Poco/Util/OptionSet.h>
 #include <fmt/format.h>
 
 #include "config/config_interface.h"

@@ -39,7 +39,7 @@ find_package(Boost REQUIRED COMPONENTS system serialization iostreams)
 find_package(duckdb REQUIRED)
 find_package(LibLZMA REQUIRED)
 find_package(nlohmann_json REQUIRED)
-find_package(Poco REQUIRED COMPONENTS Net Util JSON)
+find_package(Crow REQUIRED COMPONENTS Net Util JSON)
 find_package(roaring REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(TBB REQUIRED)
@@ -117,9 +117,7 @@ target_link_libraries(
         TBB::tbb
         ${yaml-cpp_LIBRARIES}
         zstd::libzstd_static
-        Poco::Net
-        Poco::Util
-        Poco::JSON
+        Crow::Crow
         re2::re2
 )
 

@@ -1,8 +1,8 @@
 #include "silo/query_engine/filter/operators/complement.h"
 
 #include <gtest/gtest.h>
-#include <roaring/roaring.hh>
 
+#include "external/roaring_include_wrapper.h"
 #include "silo/query_engine/filter/operators/index_scan.h"
 
 using silo::query_engine::filter::operators::Complement;
