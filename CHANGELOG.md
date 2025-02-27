@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.6](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.5.5...v0.5.6) (2025-02-27)
+
+
+### Features
+
+* add coverage field to Mutations output and make it possible to only return subset of the fields ([2b11472](https://github.com/GenSpectrum/LAPIS-SILO/commit/2b114722c09eae26ebbfee2203d8c210a9bfe639))
+
 ## [0.5.5](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.5.4...v0.5.5) (2025-02-25)
 
 
