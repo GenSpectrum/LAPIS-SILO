@@ -295,7 +295,7 @@ QueryResult Fasta::execute(const Database& database, std::vector<CopyOnWriteBitm
             const uint32_t last_row_id = addSequencesToResultsForPartition(
                sequence_names,
                results,
-               database_partition,
+               *database_partition,
                bitmap,
                primary_key_column,
                result_row_indices.size()

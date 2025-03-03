@@ -10,6 +10,7 @@
 #include <spdlog/spdlog.h>
 #include <boost/algorithm/string.hpp>
 #include <duckdb.hpp>
+#include <nlohmann/json.hpp>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/date.h"
@@ -59,6 +60,45 @@ void ColumnPartitionGroup::addValueToColumn(
          return;
       case ColumnType::FLOAT:
          float_columns.at(column_name).insert(value.ToString());
+         return;
+   }
+   SILO_UNREACHABLE();
+}
+
+void ColumnPartitionGroup::addJsonValueToColumn(
+   const std::string& column_name,
+   ColumnType column_type,
+   const nlohmann::json& value
+) {
+   if (value.is_null()) {
+      addNullToColumn(column_name, column_type);
+      return;
+   }
+   switch (column_type) {
+      case ColumnType::INDEXED_STRING:
+         indexed_string_columns.at(column_name).insert(value.get<std::string>());
+         return;
+      case ColumnType::STRING:
+         string_columns.at(column_name).insert(value.get<std::string>());
+         return;
+      case ColumnType::DATE:
+         date_columns.at(column_name).insert(common::stringToDate(value.get<std::string>()));
+         return;
+      case ColumnType::BOOL:
+         if (!value.is_boolean()) {
+            auto str = nlohmann::to_string(value);
+            throw silo::preprocessing::PreprocessingException(
+               fmt::format("trying to insert the value '{}' into column '{}'", str, column_name)
+            );
+         } else {
+            bool_columns.at(column_name).insert(value.get<bool>());
+         }
+         return;
+      case ColumnType::INT:
+         int_columns.at(column_name).insert(nlohmann::to_string(value));
+         return;
+      case ColumnType::FLOAT:
+         float_columns.at(column_name).insert(nlohmann::to_string(value));
          return;
    }
    SILO_UNREACHABLE();

@@ -18,19 +18,20 @@ struct nlohmann::adl_serializer<silo::ReferenceGenomes> {
    // NOLINTNEXTLINE(readability-identifier-naming)
    static void to_json(nlohmann::json& js_object, const silo::ReferenceGenomes& reference_genomes) {
       nlohmann::json nucleotide_sequences_json;
-      for (size_t sequence_idx = 0; sequence_idx < reference_genomes.nucleotide_sequences.size();
+      for (size_t sequence_idx = 0;
+           sequence_idx < reference_genomes.nucleotide_sequence_names.size();
            ++sequence_idx) {
          const auto& name = reference_genomes.nucleotide_sequence_names.at(sequence_idx);
-         const auto& sequence = reference_genomes.nucleotide_sequences.at(sequence_idx);
+         const auto& sequence = reference_genomes.raw_nucleotide_sequences.at(sequence_idx);
          nucleotide_sequences_json.push_back({{"name", name}, {"sequence", sequence}});
       }
       js_object["nucleotideSequences"] = std::move(nucleotide_sequences_json);
 
       nlohmann::json aa_sequences_json;
-      for (size_t sequence_idx = 0; sequence_idx < reference_genomes.aa_sequences.size();
+      for (size_t sequence_idx = 0; sequence_idx < reference_genomes.aa_sequence_names.size();
            ++sequence_idx) {
          const auto& name = reference_genomes.aa_sequence_names.at(sequence_idx);
-         const auto& sequence = reference_genomes.aa_sequences.at(sequence_idx);
+         const auto& sequence = reference_genomes.raw_aa_sequences.at(sequence_idx);
          aa_sequences_json.push_back({{"name", name}, {"sequence", sequence}});
       }
       js_object["genes"] = std::move(aa_sequences_json);
@@ -44,20 +45,15 @@ ReferenceGenomes::ReferenceGenomes(
    const std::vector<std::pair<std::string, std::string>>& aa_sequences_
 ) {
    nucleotide_sequence_names.reserve(nucleotide_sequences_.size());
-   nucleotide_sequences.reserve(nucleotide_sequences_.size());
    raw_nucleotide_sequences.reserve(nucleotide_sequences_.size());
    for (const auto& [sequence_name, raw_nucleotide_sequence] : nucleotide_sequences_) {
       nucleotide_sequence_names.emplace_back(sequence_name);
-      nucleotide_sequences.emplace_back(stringToVector<Nucleotide>(raw_nucleotide_sequence));
       raw_nucleotide_sequences.emplace_back(raw_nucleotide_sequence);
    }
-
    aa_sequence_names.reserve(aa_sequences_.size());
-   aa_sequences.reserve(aa_sequences_.size());
    raw_aa_sequences.reserve(aa_sequences_.size());
    for (const auto& [sequence_name, raw_aa_sequence] : aa_sequences_) {
       aa_sequence_names.emplace_back(sequence_name);
-      aa_sequences.emplace_back(stringToVector<AminoAcid>(raw_aa_sequence));
       raw_aa_sequences.emplace_back(raw_aa_sequence);
    }
 }
@@ -175,23 +171,35 @@ void ReferenceGenomes::writeToFile(const std::filesystem::path& reference_genome
 }
 
 template <>
-const std::vector<std::string>& ReferenceGenomes::getSequenceNames<Nucleotide>() const {
+std::vector<std::string> ReferenceGenomes::getSequenceNames<Nucleotide>() const {
    return nucleotide_sequence_names;
 }
 
 template <>
-const std::vector<std::string>& ReferenceGenomes::getSequenceNames<AminoAcid>() const {
+std::vector<std::string> ReferenceGenomes::getSequenceNames<AminoAcid>() const {
    return aa_sequence_names;
 }
 
 template <>
-const std::vector<std::string>& ReferenceGenomes::getRawSequences<Nucleotide>() const {
-   return raw_nucleotide_sequences;
+std::vector<std::vector<Nucleotide::Symbol>> ReferenceGenomes::getReferenceSequences<Nucleotide>(
+) const {
+   std::vector<std::vector<Nucleotide::Symbol>> result;
+   result.reserve(raw_nucleotide_sequences.size());
+   for (const auto& raw_nucleotide_sequence : raw_nucleotide_sequences) {
+      result.emplace_back(stringToVector<Nucleotide>(raw_nucleotide_sequence));
+   }
+   return result;
 }
 
 template <>
-const std::vector<std::string>& ReferenceGenomes::getRawSequences<AminoAcid>() const {
-   return raw_aa_sequences;
+std::vector<std::vector<AminoAcid::Symbol>> ReferenceGenomes::getReferenceSequences<AminoAcid>(
+) const {
+   std::vector<std::vector<AminoAcid::Symbol>> result;
+   result.reserve(raw_aa_sequences.size());
+   for (const auto& raw_nucleotide_sequence : raw_aa_sequences) {
+      result.emplace_back(stringToVector<AminoAcid>(raw_nucleotide_sequence));
+   }
+   return result;
 }
 
 template <typename SymbolType>

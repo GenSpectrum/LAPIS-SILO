@@ -9,7 +9,6 @@
 
 #include "silo/common/date.h"
 #include "silo/database.h"
-#include "silo/preprocessing/partition.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/range_selection.h"
@@ -27,7 +26,7 @@ class DateBetween : public Expression {
    [[nodiscard]] std::vector<silo::query_engine::filter::operators::RangeSelection::Range>
    computeRangesOfSortedColumn(
       const silo::storage::column::DateColumnPartition& date_column,
-      const std::vector<silo::preprocessing::PartitionChunk>& chunks
+      const std::vector<size_t>& chunks
    ) const;
 
   public:

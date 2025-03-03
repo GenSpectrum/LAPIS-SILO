@@ -10,9 +10,6 @@
 
 namespace silo {
 
-DatabasePartition::DatabasePartition(std::vector<silo::preprocessing::PartitionChunk> chunks)
-    : chunks(std::move(chunks)) {}
-
 void DatabasePartition::validate() const {
    validateNucleotideSequences();
    validateAminoAcidSequences();
@@ -100,10 +97,6 @@ void DatabasePartition::validateMetadataColumns() const {
    validateColumnsHaveSize(columns.indexed_string_columns, "indexed_string_columns");
    validateColumnsHaveSize(columns.string_columns, "string_columns");
    validateColumnsHaveSize(columns.float_columns, "float_columns");
-}
-
-const std::vector<preprocessing::PartitionChunk>& DatabasePartition::getChunks() const {
-   return chunks;
 }
 
 void DatabasePartition::insertColumn(

@@ -11,10 +11,10 @@
 #include "silo/common/data_version.h"
 #include "silo/common/lineage_tree.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/common/silo_directory.h"
 #include "silo/config/database_config.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/database_info.h"
-#include "silo/preprocessing/partition.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/column_group.h"
 #include "silo/storage/database_partition.h"
@@ -22,20 +22,13 @@
 #include "silo/storage/sequence_store.h"
 #include "silo/storage/unaligned_sequence_store.h"
 
-namespace silo::preprocessing {
-// Forward declaration for friend class access. Include would introduce cyclic dependency
-class Preprocessor;
-}  // namespace silo::preprocessing
-
 namespace silo {
 
 class Database {
-   friend class preprocessing::Preprocessor;
-
   public:
    silo::config::DatabaseConfig database_config;
    common::LineageTreeAndIdMap lineage_tree;
-   std::vector<DatabasePartition> partitions;
+   std::vector<std::shared_ptr<DatabasePartition>> partitions;
    std::filesystem::path unaligned_sequences_directory;
 
    silo::storage::ColumnGroup columns;
@@ -51,8 +44,14 @@ class Database {
    DataVersion data_version_ = DataVersion::mineDataVersion();
 
   public:
-   Database(silo::config::DatabaseConfig&& database_config)
-       : database_config(database_config) {}
+   Database(
+      silo::config::DatabaseConfig&& database_config,
+      silo::common::LineageTreeAndIdMap&& lineage_tree,
+      std::vector<std::string>&& nuc_sequence_names,
+      std::vector<std::vector<Nucleotide::Symbol>>&& nuc_reference_sequences,
+      std::vector<std::string>&& aa_sequence_names,
+      std::vector<std::vector<AminoAcid::Symbol>>&& aa_reference_sequences
+   );
 
    Database() = delete;
 
@@ -65,9 +64,11 @@ class Database {
 
    void validate() const;
 
+   std::shared_ptr<DatabasePartition> addPartition();
+
    void saveDatabaseState(const std::filesystem::path& save_directory);
 
-   static Database loadDatabaseState(const std::filesystem::path& save_directory);
+   static Database loadDatabaseState(const silo::SiloDataSource& silo_data_source);
 
    [[nodiscard]] virtual DatabaseInfo getDatabaseInfo() const;
 
@@ -94,13 +95,18 @@ class Database {
 
    void initializeColumns();
    void initializeColumn(const config::DatabaseMetadata& metadata);
+   void addColumnToPartition(
+      const config::DatabaseMetadata& metadata,
+      std::shared_ptr<DatabasePartition>& partition
+   );
+
    void initializeNucSequences(
       const std::vector<std::string>& sequence_names,
-      const std::vector<std::vector<Nucleotide::Symbol>>& reference_sequences
+      std::vector<std::vector<Nucleotide::Symbol>>&& reference_sequences
    );
    void initializeAASequences(
       const std::vector<std::string>& sequence_names,
-      const std::vector<std::vector<AminoAcid::Symbol>>& reference_sequences
+      std::vector<std::vector<AminoAcid::Symbol>>&& reference_sequences
    );
 
    template <typename SymbolType>

@@ -1,5 +1,4 @@
 inputDirectory: "./testBaseData/exampleDataset/"
 outputDirectory: "./output/"
-ndjsonInputFilename: "input_file.ndjson"
 lineageDefinitionsFilename: "lineage_definitions.yaml"
 referenceGenomeFilename: "reference_genomes.json"

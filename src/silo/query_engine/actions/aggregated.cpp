@@ -108,7 +108,7 @@ QueryResult Aggregated::execute(
 
    for (const auto& partition : database.partitions) {
       tuple_maps.emplace_back();
-      tuple_factories.emplace_back(partition.columns, group_by_metadata);
+      tuple_factories.emplace_back(partition->columns, group_by_metadata);
    }
 
    tbb::parallel_for(
