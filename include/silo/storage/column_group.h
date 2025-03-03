@@ -10,6 +10,7 @@
 
 #include <boost/serialization/access.hpp>
 #include <duckdb.hpp>
+#include <nlohmann/json.hpp>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/json_value_type.h"
@@ -70,6 +71,12 @@ class ColumnPartitionGroup {
       const std::string& column_name,
       config::ColumnType column_type,
       const duckdb::Value& value
+   );
+
+   void addJsonValueToColumn(
+      const std::string& column_name,
+      config::ColumnType column_type,
+      const nlohmann::json& value
    );
 
    void addNullToColumn(const std::string& column_name, config::ColumnType column_type);

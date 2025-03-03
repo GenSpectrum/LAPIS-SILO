@@ -268,7 +268,7 @@ size_t silo::SequenceStorePartition<SymbolType>::computeSize() const {
 
 template <typename SymbolType>
 silo::SequenceStore<SymbolType>::SequenceStore(
-   std::vector<typename SymbolType::Symbol> reference_sequence
+   std::vector<typename SymbolType::Symbol>&& reference_sequence
 )
     : reference_sequence(std::move(reference_sequence)) {}
 

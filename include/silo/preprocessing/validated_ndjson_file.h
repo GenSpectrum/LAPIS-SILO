@@ -13,6 +13,18 @@ class ValidatedNdjsonFile {
 
    explicit ValidatedNdjsonFile(std::filesystem::path file_name, bool empty);
 
+   static bool isNdjsonFileEmpty(const std::filesystem::path& file_name);
+
+   static void validateNdjsonMetadata(
+      const std::filesystem::path& file_name,
+      const silo::config::DatabaseConfig& database_config
+   );
+
+   static void validateNdjsonSequenceData(
+      const std::filesystem::path& file_name,
+      const silo::ReferenceGenomes& reference_genomes
+   );
+
   public:
    std::filesystem::path getFileName() const;
 

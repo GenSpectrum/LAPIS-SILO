@@ -9,7 +9,6 @@
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/preprocessing/partition.h"
 #include "silo/storage/column/date_column.h"
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
@@ -27,7 +26,6 @@ class DatabasePartition {
    template <class Archive>
    void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
-      archive & chunks;
       // clang-format on
    }
 
@@ -48,10 +46,6 @@ class DatabasePartition {
       // clang-format on
    }
 
-  private:
-   std::vector<silo::preprocessing::PartitionChunk> chunks;
-
-  public:
    storage::ColumnPartitionGroup columns;
    std::map<std::string, SequenceStorePartition<Nucleotide>&> nuc_sequences;
    std::map<std::string, UnalignedSequenceStorePartition&> unaligned_nuc_sequences;
@@ -59,8 +53,6 @@ class DatabasePartition {
    uint32_t sequence_count = 0;
 
   private:
-   DatabasePartition() = default;
-
    void validateNucleotideSequences() const;
 
    void validateAminoAcidSequences() const;
@@ -74,11 +66,9 @@ class DatabasePartition {
    ) const;
 
   public:
-   explicit DatabasePartition(std::vector<silo::preprocessing::PartitionChunk> chunks);
+   DatabasePartition() = default;
 
    void validate() const;
-
-   [[nodiscard]] const std::vector<preprocessing::PartitionChunk>& getChunks() const;
 
    void insertColumn(const std::string& name, storage::column::StringColumnPartition& column);
    void insertColumn(

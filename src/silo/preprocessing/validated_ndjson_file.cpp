@@ -3,9 +3,7 @@
 #include <spdlog/spdlog.h>
 
 #include "silo/config/database_config.h"
-#include "silo/preprocessing/metadata_info.h"
 #include "silo/preprocessing/preprocessing_exception.h"
-#include "silo/preprocessing/sequence_info.h"
 #include "silo/storage/reference_genomes.h"
 
 namespace silo::preprocessing {
@@ -41,18 +39,38 @@ ValidatedNdjsonFile ValidatedNdjsonFile::validateFileAgainstConfig(
       );
    }
 
-   const bool empty = MetadataInfo::isNdjsonFileEmpty(file_name);
+   const bool empty = isNdjsonFileEmpty(file_name);
 
    SPDLOG_DEBUG("build - checking whether the file '{}' is empty: ", file_name.string());
 
    if (!empty) {
       SPDLOG_DEBUG("build - validating metadata file '{}' with config", file_name.string());
-      MetadataInfo::validateNdjsonFile(file_name, database_config);
+      validateNdjsonMetadata(file_name, database_config);
 
       SPDLOG_DEBUG("build - validating metadata file '{}' with config", file_name.string());
-      SequenceInfo::validateNdjsonFile(reference_genomes, file_name);
+      validateNdjsonSequenceData(file_name, reference_genomes);
    }
 
    return ValidatedNdjsonFile(file_name, empty);
 }
+
+bool ValidatedNdjsonFile::isNdjsonFileEmpty(const std::filesystem::path& ndjson_file) {
+   // TODO
+   return false;
+}
+
+void ValidatedNdjsonFile::validateNdjsonMetadata(
+   const std::filesystem::path& file_name,
+   const silo::config::DatabaseConfig& database_config
+) {
+   // TODO
+}
+
+void ValidatedNdjsonFile::validateNdjsonSequenceData(
+   const std::filesystem::path& file_name,
+   const silo::ReferenceGenomes& reference_genomes
+) {
+   // TODO
+}
+
 }  // namespace silo::preprocessing

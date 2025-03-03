@@ -29,20 +29,8 @@ ConfigKeyPath inputDirectoryOptionKey() {
 ConfigKeyPath outputDirectoryOptionKey() {
    return YamlFile::stringToConfigKeyPath("outputDirectory");
 }
-ConfigKeyPath intermediateResultsDirectoryOptionKey() {
-   return YamlFile::stringToConfigKeyPath("intermediateResultsDirectory");
-}
-ConfigKeyPath preprocessingDatabaseLocationOptionKey() {
-   return YamlFile::stringToConfigKeyPath("preprocessingDatabaseLocation");
-}
-ConfigKeyPath duckdbMemoryLimitInGTimeOptionKey() {
-   return YamlFile::stringToConfigKeyPath("duckdbMemoryLimitInG");
-}
 ConfigKeyPath lineageDefinitionsFilenameOptionKey() {
    return YamlFile::stringToConfigKeyPath("lineageDefinitionsFilename");
-}
-ConfigKeyPath ndjsonInputFilenameOptionKey() {
-   return YamlFile::stringToConfigKeyPath("ndjsonInputFilename");
 }
 ConfigKeyPath databaseConfigFileOptionKey() {
    return YamlFile::stringToConfigKeyPath("databaseConfig");
@@ -82,31 +70,10 @@ ConfigSpecification PreprocessingConfig::getConfigSpecification() {
             ConfigValue::fromPath(DEFAULT_OUTPUT_DIRECTORY),
             "The path to the directory to hold the output files."
          ),
-         ConfigAttributeSpecification::createWithDefault(
-            intermediateResultsDirectoryOptionKey(),
-            ConfigValue::fromPath("./temp/"),
-            "The path to the directory to hold temporary files."
-         ),
-         ConfigAttributeSpecification::createWithoutDefault(
-            preprocessingDatabaseLocationOptionKey(),
-            ConfigValueType::PATH,
-            "The file where the duckdb database will be stored, which is used during preprocessing."
-         ),
-         ConfigAttributeSpecification::createWithoutDefault(
-            duckdbMemoryLimitInGTimeOptionKey(),
-            ConfigValueType::UINT32,
-            "DuckDB memory limit in GB."
-         ),
          ConfigAttributeSpecification::createWithoutDefault(
             lineageDefinitionsFilenameOptionKey(),
             ConfigValueType::PATH,
             "File name of the file holding the lineage definitions. Relative from inputDirectory."
-         ),
-         ConfigAttributeSpecification::createWithoutDefault(
-            ndjsonInputFilenameOptionKey(),
-            ConfigValueType::PATH,
-            "File name of the file holding NDJSON input. This file may also be zstd or gzip "
-            "compressed. Relative from inputDirectory. Required."
          ),
          ConfigAttributeSpecification::createWithDefault(
             databaseConfigFileOptionKey(),
@@ -129,23 +96,7 @@ PreprocessingConfig PreprocessingConfig::withDefaults() {
    return result;
 }
 
-void PreprocessingConfig::validate() const {
-   if (!std::filesystem::exists(input_directory)) {
-      throw preprocessing::PreprocessingException(
-         "directory '" + input_directory.string() + "' does not exist"
-      );
-   }
-   if (!ndjson_input_filename.has_value()) {
-      throw preprocessing::PreprocessingException(fmt::format(
-         "'{}' must be specified as preprocessing option.",
-         YamlFile::configKeyPathToString(ndjsonInputFilenameOptionKey())
-      ));
-   }
-}
-
-std::optional<uint32_t> PreprocessingConfig::getDuckdbMemoryLimitInG() const {
-   return duckdb_memory_limit_in_g;
-}
+void PreprocessingConfig::validate() const {}
 
 std::filesystem::path PreprocessingConfig::getDatabaseConfigFilename() const {
    return input_directory / database_config_file;
@@ -161,39 +112,21 @@ std::filesystem::path PreprocessingConfig::getReferenceGenomeFilename() const {
    return input_directory / reference_genome_file;
 }
 
-std::optional<std::filesystem::path> PreprocessingConfig::getNdjsonInputFilename() const {
-   return ndjson_input_filename.has_value()
-             ? std::optional(input_directory / *ndjson_input_filename)
-             : std::nullopt;
-}
-
 void PreprocessingConfig::overwriteFrom(const VerifiedConfigAttributes& config_source) {
    if (auto var = config_source.getPath(inputDirectoryOptionKey())) {
       input_directory = var.value();
    }
-   if (auto var = config_source.getPath(outputDirectoryOptionKey())) {
-      output_directory = var.value();
-   }
-   if (auto var = config_source.getPath(intermediateResultsDirectoryOptionKey())) {
-      intermediate_results_directory = var.value();
-   }
-   if (auto var = config_source.getPath(preprocessingDatabaseLocationOptionKey())) {
-      preprocessing_database_location = var.value();
-   }
-   if (auto var = config_source.getUint32(duckdbMemoryLimitInGTimeOptionKey())) {
-      duckdb_memory_limit_in_g = var.value();
-   }
    if (auto var = config_source.getPath(lineageDefinitionsFilenameOptionKey())) {
       lineage_definitions_file = var.value();
-   }
-   if (auto var = config_source.getPath(ndjsonInputFilenameOptionKey())) {
-      ndjson_input_filename = var.value();
    }
    if (auto var = config_source.getPath(databaseConfigFileOptionKey())) {
       database_config_file = var.value();
    }
    if (auto var = config_source.getPath(referenceGenomeFilenameOptionKey())) {
       reference_genome_file = var.value();
+   }
+   if (auto var = config_source.getPath(outputDirectoryOptionKey())) {
+      output_directory = var.value();
    }
 }
 

@@ -34,6 +34,31 @@ inline void from_json(
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
+inline void to_json(
+   nlohmann::json& js_object,
+   const std::optional<std::string>& opt_string
+) {
+   if (opt_string.has_value()) {
+      js_object = opt_string.value();
+   } else {
+      js_object = nullptr;
+   }
+}
+
+// NOLINTNEXTLINE(readability-identifier-naming)
+inline void from_json(
+   const nlohmann::json& js_object,
+   std::optional<std::string>& opt_string
+) {
+   if (!js_object) {
+      opt_string = std::nullopt;
+   } else {
+      std::string string = js_object;
+      opt_string = string;
+   }
+}
+
+// NOLINTNEXTLINE(readability-identifier-naming)
 inline void to_json(nlohmann::json& js_object, const std::optional<uint32_t>& opt_uint) {
    if (opt_uint.has_value()) {
       js_object = opt_uint.value();

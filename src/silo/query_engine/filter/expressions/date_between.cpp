@@ -9,7 +9,6 @@
 
 #include "silo/common/date.h"
 #include "silo/database.h"
-#include "silo/preprocessing/partition.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/operators/range_selection.h"
 #include "silo/query_engine/filter/operators/selection.h"
@@ -53,50 +52,49 @@ std::unique_ptr<operators::Operator> DateBetween::compile(
 
    const auto& date_column = database_partition.columns.date_columns.at(column_name);
 
-   if (!date_column.isSorted()) {
-      std::vector<std::unique_ptr<operators::Predicate>> predicates;
-      predicates.emplace_back(
-         std::make_unique<operators::CompareToValueSelection<silo::common::Date>>(
-            date_column.getValues(),
-            operators::Comparator::HIGHER_OR_EQUALS,
-            date_from.value_or(silo::common::Date{1})
-         )
-      );
-      predicates.emplace_back(
-         std::make_unique<operators::CompareToValueSelection<silo::common::Date>>(
-            date_column.getValues(),
-            operators::Comparator::LESS_OR_EQUALS,
-            date_to.value_or(silo::common::Date{UINT32_MAX})
-         )
-      );
-      return std::make_unique<operators::Selection>(
-         std::move(predicates), database_partition.sequence_count
-      );
-   }
-
-   return std::make_unique<operators::RangeSelection>(
-      computeRangesOfSortedColumn(date_column, database_partition.getChunks()),
-      database_partition.sequence_count
+   // if (!date_column.isSorted()) {
+   std::vector<std::unique_ptr<operators::Predicate>> predicates;
+   predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<silo::common::Date>>(
+      date_column.getValues(),
+      operators::Comparator::HIGHER_OR_EQUALS,
+      date_from.value_or(silo::common::Date{1})
+   ));
+   predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<silo::common::Date>>(
+      date_column.getValues(),
+      operators::Comparator::LESS_OR_EQUALS,
+      date_to.value_or(silo::common::Date{UINT32_MAX})
+   ));
+   return std::make_unique<operators::Selection>(
+      std::move(predicates), database_partition.sequence_count
    );
+   // }
+   //
+   //   return std::make_unique<operators::RangeSelection>(
+   //      computeRangesOfSortedColumn(date_column, database_partition.getChunks()),
+   //      database_partition.sequence_count
+   //   );
 }
 
 std::vector<silo::query_engine::filter::operators::RangeSelection::Range> DateBetween::
    computeRangesOfSortedColumn(
       const silo::storage::column::DateColumnPartition& date_column,
-      const std::vector<silo::preprocessing::PartitionChunk>& chunks
+      const std::vector<size_t>& chunks
    ) const {
    std::vector<operators::RangeSelection::Range> ranges;
 
+   size_t offset = 0;
+
    const auto* base = date_column.getValues().data();
-   for (const auto& chunk : chunks) {
-      const auto* begin = &date_column.getValues()[chunk.offset];
-      const auto* end = &date_column.getValues()[chunk.offset + chunk.size];
+   for (const auto& sorted_chunk_size : chunks) {
+      const auto* begin = &date_column.getValues()[offset];
+      const auto* end = &date_column.getValues()[offset + sorted_chunk_size];
       // If lower bound is empty we use 1 as the lower-bound, as 0 represents NULL values
       const auto* lower = std::lower_bound(begin, end, date_from.value_or(1));
       const uint32_t lower_index = lower - base;
       const auto* upper = date_to.has_value() ? std::upper_bound(begin, end, date_to.value()) : end;
       const uint32_t upper_index = upper - base;
       ranges.emplace_back(lower_index, upper_index);
+      offset += sorted_chunk_size;
    }
    return ranges;
 }
