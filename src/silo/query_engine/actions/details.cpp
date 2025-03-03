@@ -193,7 +193,7 @@ QueryResult Details::executeAndOrder(
    std::vector<TupleFactory> tuple_factories;
    tuple_factories.reserve(database.partitions.size());
    for (const auto& partition : database.partitions) {
-      tuple_factories.emplace_back(partition.columns, field_metadata);
+      tuple_factories.emplace_back(partition->columns, field_metadata);
    }
 
    std::vector<actions::Tuple> tuples;

@@ -4,9 +4,11 @@
 
 #include "silo/api/api.h"
 #include "silo/api/logging.h"
+#include "silo/append/append.h"
 #include "silo/common/overloaded.h"
 #include "silo/common/panic.h"
 #include "silo/common/version.h"
+#include "silo/config/append_config.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/config/runtime_config.h"
 #include "silo/database.h"
@@ -38,10 +40,10 @@ int runPreprocessor(const silo::config::PreprocessingConfig& preprocessing_confi
          );
       }
 
-      auto preprocessor = silo::preprocessing::Preprocessor(
+      auto preprocessor = silo::preprocessing::Initializer(
          preprocessing_config, database_config, reference_genomes, std::move(lineage_definitions)
       );
-      auto database = preprocessor.preprocess();
+      auto database = preprocessor.initialize();
 
       database.saveDatabaseState(preprocessing_config.output_directory);
       return 0;
@@ -59,7 +61,7 @@ int runApi(const silo::config::RuntimeConfig& runtime_config) {
    return server.runApi(runtime_config);
 }
 
-enum class ExecutionMode { PREPROCESSING, API };
+enum class ExecutionMode { PREPROCESSING, APPEND, API };
 
 int mainWhichMayThrowExceptions(int argc, char** argv) {
    setupLogger();
@@ -83,12 +85,15 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
    args = {args.begin() + 1, args.end()};
    if (mode_argument == "preprocessing") {
       mode = ExecutionMode::PREPROCESSING;
+   } else if (mode_argument == "append") {
+      mode = ExecutionMode::APPEND;
    } else if (mode_argument == "api") {
       mode = ExecutionMode::API;
    } else {
-      std::cerr << program_name
-                << ": need either 'preprocessing' or 'api' as the first program argument, got '"
-                << mode_argument << "'\n";
+      std::cerr
+         << program_name
+         << ": need either 'preprocessing', 'append' or 'api' as the first program argument, got '"
+         << mode_argument << "'\n";
       return 1;
    }
 
@@ -120,6 +125,17 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
                [&](int32_t exit_code) { return exit_code; }
             },
             silo::config::getConfig<silo::config::PreprocessingConfig>(args, env_allow_list)
+         );
+      case ExecutionMode::APPEND:
+         return std::visit(
+            overloaded{
+               [&](const silo::config::AppendConfig& append_config) {
+                  SPDLOG_INFO("append_config = {}", append_config);
+                  return runAppend(append_config);
+               },
+               [&](int32_t exit_code) { return exit_code; }
+            },
+            silo::config::getConfig<silo::config::AppendConfig>(args, env_allow_list)
          );
       case ExecutionMode::API:
          return std::visit(

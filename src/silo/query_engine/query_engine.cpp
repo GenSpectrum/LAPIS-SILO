@@ -38,7 +38,7 @@ QueryResult QueryEngine::executeQuery(const std::string& query_string) const {
       for (size_t partition_index = 0; partition_index != database.partitions.size();
            partition_index++) {
          std::unique_ptr<Operator> part_filter = query.filter->compile(
-            database, database.partitions[partition_index], Expression::AmbiguityMode::NONE
+            database, *database.partitions[partition_index], Expression::AmbiguityMode::NONE
          );
          compiled_queries[partition_index] = part_filter->toString();
          partition_filters[partition_index] = part_filter->evaluate();
