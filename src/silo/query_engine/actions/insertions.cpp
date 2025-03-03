@@ -84,7 +84,7 @@ InsertionAggregation<SymbolType>::validateFieldsAndPreFilterBitmaps(
 
    std::unordered_map<std::string, PrefilteredBitmaps> pre_filtered_bitmaps;
    for (size_t i = 0; i < database.partitions.size(); ++i) {
-      const DatabasePartition& database_partition = database.partitions.at(i);
+      const DatabasePartition& database_partition = *database.partitions.at(i);
 
       for (auto& [sequence_name, sequence_store] :
            database_partition.getSequenceStores<SymbolType>()) {

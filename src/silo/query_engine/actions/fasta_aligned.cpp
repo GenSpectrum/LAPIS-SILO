@@ -196,7 +196,7 @@ QueryResult FastaAligned::execute(
             for (const uint32_t row_id : *bitmap) {
                results.emplace_back(makeEntry(
                   database.database_config.schema.primary_key,
-                  database_partition,
+                  *database_partition,
                   nuc_sequence_names,
                   aa_sequence_names,
                   row_id

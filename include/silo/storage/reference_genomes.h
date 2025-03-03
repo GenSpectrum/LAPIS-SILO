@@ -13,8 +13,6 @@ namespace silo {
 struct ReferenceGenomes {
    std::vector<std::string> nucleotide_sequence_names;
    std::vector<std::string> aa_sequence_names;
-   std::vector<std::vector<Nucleotide::Symbol>> nucleotide_sequences;
-   std::vector<std::vector<AminoAcid::Symbol>> aa_sequences;
    std::vector<std::string> raw_nucleotide_sequences;
    std::vector<std::string> raw_aa_sequences;
 
@@ -30,10 +28,10 @@ struct ReferenceGenomes {
    static ReferenceGenomes readFromFile(const std::filesystem::path& reference_genomes_path);
 
    template <typename SymbolType>
-   const std::vector<std::string>& getSequenceNames() const;
+   std::vector<std::string> getSequenceNames() const;
 
    template <typename SymbolType>
-   const std::vector<std::string>& getRawSequences() const;
+   std::vector<std::vector<typename SymbolType::Symbol>> getReferenceSequences() const;
 
    template <typename SymbolType>
    static std::vector<typename SymbolType::Symbol> stringToVector(const std::string& string);

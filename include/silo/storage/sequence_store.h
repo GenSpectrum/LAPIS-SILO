@@ -113,7 +113,7 @@ class SequenceStore {
    std::vector<typename SymbolType::Symbol> reference_sequence;
    std::deque<SequenceStorePartition<SymbolType>> partitions;
 
-   explicit SequenceStore(std::vector<typename SymbolType::Symbol> reference_sequence);
+   explicit SequenceStore(std::vector<typename SymbolType::Symbol>&& reference_sequence);
 
    SequenceStorePartition<SymbolType>& createPartition();
 };

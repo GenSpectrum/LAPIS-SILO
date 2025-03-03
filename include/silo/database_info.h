@@ -4,7 +4,8 @@
 #include <map>
 #include <vector>
 
-#include "fmt/format.h"
+#include <fmt/format.h>
+#include <nlohmann/json.hpp>
 
 #include "silo/common/format_number.h"
 #include "silo/common/nucleotide_symbols.h"
@@ -19,6 +20,9 @@ struct DatabaseInfo {
    uint64_t number_of_partitions;
 };
 
+// NOLINTNEXTLINE(readability-identifier-naming,misc-use-internal-linkage)
+void to_json(nlohmann::json& json, const silo::DatabaseInfo& databaseInfo);
+
 }  // namespace silo
 
 template <>
@@ -27,14 +31,7 @@ class [[maybe_unused]] fmt::formatter<silo::DatabaseInfo> {
    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
    [[maybe_unused]] static auto format(silo::DatabaseInfo database_info, format_context& ctx)
       -> decltype(ctx.out()) {
-      return fmt::format_to(
-         ctx.out(),
-         "version: {}, sequence count: {}, total size: {}, N bitmaps size: {}",
-         database_info.version,
-         database_info.sequence_count,
-         silo::formatNumber(database_info.total_size),
-         silo::formatNumber(database_info.n_bitmaps_size)
-      );
+      return fmt::format_to(ctx.out(), "{}", nlohmann::json{database_info}.dump());
    }
 };
 
