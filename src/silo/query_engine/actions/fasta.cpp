@@ -268,7 +268,7 @@ QueryResult Fasta::execute(const Database& database, std::vector<CopyOnWriteBitm
                                       // `fasta_aligned.cpp`.
                                       current_partition](std::vector<QueryResultEntry>& results
                                      ) mutable {
-      for (; current_partition < database.partitions.size();
+      for (; current_partition < database.getNumberOfPartitions();
            ++current_partition, remaining_result_row_indices = {}) {
          auto& bitmap = bitmap_filter[current_partition];
          if (!remaining_result_row_indices.has_value()) {
@@ -285,17 +285,17 @@ QueryResult Fasta::execute(const Database& database, std::vector<CopyOnWriteBitm
             SPDLOG_TRACE(
                "Fasta::execute: refill QueryResult for partition_index {}/{}, {}",
                current_partition,
-               database.partitions.size(),
+               database.getNumberOfPartitions(),
                result_row_indices.toString()
             );
             const std::string& primary_key_column = database.database_config.schema.primary_key;
-            const auto& database_partition = database.partitions[current_partition];
+            const auto& database_partition = database.getPartition(current_partition);
 
             results.resize(result_row_indices.size());
             const uint32_t last_row_id = addSequencesToResultsForPartition(
                sequence_names,
                results,
-               *database_partition,
+               database_partition,
                bitmap,
                primary_key_column,
                result_row_indices.size()

@@ -4,6 +4,8 @@
 #include <optional>
 #include <string>
 
+#include <yaml-cpp/yaml.h>
+
 namespace silo {
 
 class DataVersion {
@@ -51,6 +53,8 @@ class DataVersion {
    Timestamp getTimestamp() const;
 
    static DataVersion mineDataVersion();
+
+   static DataVersion mineDataVersionFromTimestamp(Timestamp timestamp);
 
    static std::optional<DataVersion> fromFile(const std::filesystem::path& filename);
 

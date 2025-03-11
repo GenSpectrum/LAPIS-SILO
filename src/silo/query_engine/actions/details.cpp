@@ -190,10 +190,12 @@ QueryResult Details::executeAndOrder(
    validateOrderByFields(database);
    const std::vector<storage::ColumnMetadata> field_metadata = parseFields(database, fields);
 
+   size_t num_partitions = database.getNumberOfPartitions();
+
    std::vector<TupleFactory> tuple_factories;
-   tuple_factories.reserve(database.partitions.size());
-   for (const auto& partition : database.partitions) {
-      tuple_factories.emplace_back(partition->columns, field_metadata);
+   tuple_factories.reserve(num_partitions);
+   for (size_t partition_idx = 0; partition_idx < num_partitions; ++partition_idx) {
+      tuple_factories.emplace_back(database.getPartition(partition_idx).columns, field_metadata);
    }
 
    std::vector<actions::Tuple> tuples;

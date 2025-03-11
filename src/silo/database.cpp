@@ -108,21 +108,21 @@ const std::map<std::string, SequenceStore<AminoAcid>>& Database::getSequenceStor
 }
 
 Database::Database(
-   silo::config::DatabaseConfig&& database_config,
-   silo::common::LineageTreeAndIdMap&& lineage_tree,
-   std::vector<std::string>&& nuc_sequence_names,
-   std::vector<std::vector<Nucleotide::Symbol>>&& nuc_reference_sequences,
-   std::vector<std::string>&& aa_sequence_names,
-   std::vector<std::vector<AminoAcid::Symbol>>&& aa_reference_sequences
+   silo::config::DatabaseConfig database_config,
+   silo::common::LineageTreeAndIdMap lineage_tree,
+   std::vector<std::string> nuc_sequence_names,
+   std::vector<std::vector<Nucleotide::Symbol>> nuc_reference_sequences,
+   std::vector<std::string> aa_sequence_names,
+   std::vector<std::vector<AminoAcid::Symbol>> aa_reference_sequences
 )
-    : database_config(database_config),
-      lineage_tree(lineage_tree),
-      nuc_sequence_names(nuc_sequence_names),
-      aa_sequence_names(aa_sequence_names) {
+    : database_config(std::move(database_config)),
+      lineage_tree(std::move(lineage_tree)),
+      nuc_sequence_names(std::move(nuc_sequence_names)),
+      aa_sequence_names(std::move(aa_sequence_names)) {
    SPDLOG_TRACE("Initializing columns");
    initializeColumns();
-   initializeNucSequences(nuc_sequence_names, std::move(nuc_reference_sequences));
-   initializeAASequences(aa_sequence_names, std::move(aa_reference_sequences));
+   initializeNucSequences(this->nuc_sequence_names, std::move(nuc_reference_sequences));
+   initializeAASequences(this->aa_sequence_names, std::move(aa_reference_sequences));
 }
 
 void Database::validate() const {
@@ -366,8 +366,16 @@ std::vector<std::vector<AminoAcid::Symbol>> Database::getAASequences() const {
    return aa_reference_sequences;
 }
 
+size_t Database::getNumberOfPartitions() const {
+   return partitions.size();
+}
+
+const DatabasePartition& Database::getPartition(size_t partition_idx) const {
+   return *partitions.at(partition_idx);
+}
+
 std::shared_ptr<DatabasePartition> Database::addPartition() {
-   auto& new_partition = partitions.emplace_back();
+   auto& new_partition = partitions.emplace_back(std::make_shared<DatabasePartition>());
 
    for (const auto& column_metadata : database_config.schema.metadata) {
       addColumnToPartition(column_metadata, new_partition);
@@ -591,7 +599,9 @@ Database Database::loadDatabaseState(const silo::SiloDataSource& silo_data_sourc
    ::boost::archive::binary_iarchive column_archive(column_file);
    column_archive >> database.columns;
 
-   SPDLOG_TRACE("Loading number of partitions from {}", (save_directory / "num_partitions.silo").string());
+   SPDLOG_TRACE(
+      "Loading number of partitions from {}", (save_directory / "num_partitions.silo").string()
+   );
    size_t num_partitions = 0;
    std::ifstream num_partitions_file = openInputFileOrThrow(save_directory / "num_partitions.silo");
    boost::archive::binary_iarchive num_partitions_archive(num_partitions_file);
@@ -657,7 +667,9 @@ void Database::initializeColumn(const config::DatabaseMetadata& metadata) {
          }
          for (auto& partition : partitions) {
             partition->columns.metadata.push_back({name, column_type});
-            partition->insertColumn(name, columns.indexed_string_columns.at(name).createPartition());
+            partition->insertColumn(
+               name, columns.indexed_string_columns.at(name).createPartition()
+            );
          }
       }
          return;

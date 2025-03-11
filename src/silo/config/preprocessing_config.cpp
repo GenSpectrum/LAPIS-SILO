@@ -38,6 +38,9 @@ ConfigKeyPath databaseConfigFileOptionKey() {
 ConfigKeyPath referenceGenomeFilenameOptionKey() {
    return YamlFile::stringToConfigKeyPath("referenceGenomeFilename");
 }
+ConfigKeyPath ndjsonInputFilenameOptionKey() {
+   return YamlFile::stringToConfigKeyPath("ndjsonInputFilename");
+}
 }  // namespace
 
 namespace silo::config {
@@ -86,47 +89,48 @@ ConfigSpecification PreprocessingConfig::getConfigSpecification() {
             ConfigValue::fromPath("reference_genomes.json"),
             "File name of the file holding the reference genome. Relative from inputDirectory."
          ),
+         ConfigAttributeSpecification::createWithDefault(
+            ndjsonInputFilenameOptionKey(),
+            ConfigValue::fromPath("reference_genomes.json"),
+            "File name of the file holding the reference genome. Relative from inputDirectory."
+         ),
       }
    };
 }
 
 PreprocessingConfig PreprocessingConfig::withDefaults() {
    PreprocessingConfig result;
+   result.initialize_config.overwriteFrom(
+      InitializeConfig::getConfigSpecification().getConfigSourceFromDefaults()
+   );
    result.overwriteFrom(getConfigSpecification().getConfigSourceFromDefaults());
    return result;
 }
 
-void PreprocessingConfig::validate() const {}
-
-std::filesystem::path PreprocessingConfig::getDatabaseConfigFilename() const {
-   return input_directory / database_config_file;
-}
-
-std::optional<std::filesystem::path> PreprocessingConfig::getLineageDefinitionsFilename() const {
-   return lineage_definitions_file.has_value()
-             ? std::optional(input_directory / lineage_definitions_file.value())
-             : std::nullopt;
-}
-
-std::filesystem::path PreprocessingConfig::getReferenceGenomeFilename() const {
-   return input_directory / reference_genome_file;
+void PreprocessingConfig::validate() const {
+   if (!input_file.has_value()) {
+      throw silo::preprocessing::PreprocessingException("The value 'inputFile' must be set.");
+   }
 }
 
 void PreprocessingConfig::overwriteFrom(const VerifiedConfigAttributes& config_source) {
    if (auto var = config_source.getPath(inputDirectoryOptionKey())) {
-      input_directory = var.value();
+      initialize_config.input_directory = var.value();
    }
    if (auto var = config_source.getPath(lineageDefinitionsFilenameOptionKey())) {
-      lineage_definitions_file = var.value();
+      initialize_config.lineage_definitions_file = var.value();
    }
    if (auto var = config_source.getPath(databaseConfigFileOptionKey())) {
-      database_config_file = var.value();
+      initialize_config.database_config_file = var.value();
    }
    if (auto var = config_source.getPath(referenceGenomeFilenameOptionKey())) {
-      reference_genome_file = var.value();
+      initialize_config.reference_genome_file = var.value();
    }
    if (auto var = config_source.getPath(outputDirectoryOptionKey())) {
-      output_directory = var.value();
+      initialize_config.output_directory = var.value();
+   }
+   if (auto var = config_source.getPath(ndjsonInputFilenameOptionKey())) {
+      input_file = var.value();
    }
 }
 
