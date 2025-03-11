@@ -46,17 +46,22 @@ ConfigSpecification AppendConfig::getConfigSpecification() {
             "The path to a silo-directory, a directory that contains silo outputs."
          ),
          ConfigAttributeSpecification::createWithoutDefault(
-            dataVersionOptionKey(), ConfigValueType::STRING, "The data version in the silo folder that should be appended to. If no data version is given, it will automatically append to the most recent data version instead."
+            dataVersionOptionKey(),
+            ConfigValueType::STRING,
+            "The data version of the new database. If not given, a new data version will be minted "
+            "instead."
          ),
          ConfigAttributeSpecification::createWithoutDefault(
             appendFileOptionKey(),
             ConfigValueType::PATH,
-            "The path to a file that contains the data that should be appended to the database. If no file is given, the data is expected on stdin instead."
+            "The path to a file that contains the data that should be appended to the database. If "
+            "no file is given, the data is expected on stdin instead."
          ),
          ConfigAttributeSpecification::createWithoutDefault(
             siloDataSourceOptionKey(),
             ConfigValueType::PATH,
-            "A directory that contains a valid silo state. If this is not given, the most recent database state from the silo-directory is taken instead."
+            "A directory that contains a valid silo state. If this is not given, the most recent "
+            "database state from the silo-directory is taken instead."
          )
       }
    };

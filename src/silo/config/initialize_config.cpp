@@ -1,4 +1,4 @@
-#include "silo/config/preprocessing_config.h"
+#include "silo/config/initialize_config.h"
 
 #include <filesystem>
 #include <system_error>
@@ -17,11 +17,8 @@ using silo::config::YamlFile;
 // Using functions instead of global variables because of
 // initialization order issues.
 
-ConfigKeyPath preprocessingConfigOptionKey() {
-   return YamlFile::stringToConfigKeyPath("preprocessingConfig");
-}
-ConfigKeyPath defaultPreprocessingConfigOptionKey() {
-   return YamlFile::stringToConfigKeyPath("defaultPreprocessingConfig");
+ConfigKeyPath initializeConfigOptionKey() {
+   return YamlFile::stringToConfigKeyPath("initializeConfig");
 }
 ConfigKeyPath inputDirectoryOptionKey() {
    return YamlFile::stringToConfigKeyPath("inputDirectory");
@@ -38,30 +35,20 @@ ConfigKeyPath databaseConfigFileOptionKey() {
 ConfigKeyPath referenceGenomeFilenameOptionKey() {
    return YamlFile::stringToConfigKeyPath("referenceGenomeFilename");
 }
-ConfigKeyPath ndjsonInputFilenameOptionKey() {
-   return YamlFile::stringToConfigKeyPath("ndjsonInputFilename");
-}
 }  // namespace
 
 namespace silo::config {
 
 // Specification of the fields in inputs to the PreprocessingConfig struct
-ConfigSpecification PreprocessingConfig::getConfigSpecification() {
+ConfigSpecification InitializeConfig::getConfigSpecification() {
    return ConfigSpecification{
-      .program_name = "silo preprocessing",
+      .program_name = "silo initialize",
       .attribute_specifications{
          ConfigAttributeSpecification::createWithoutDefault(
-            preprocessingConfigOptionKey(),
+            initializeConfigOptionKey(),
             ConfigValueType::PATH,
-            "The path to a preprocessing config that should be read before overwriting\n"
+            "The path to a initialize config that should be read before overwriting\n"
             "its values with environment variables and other CLI arguments."
-         ),
-         ConfigAttributeSpecification::createWithoutDefault(
-            defaultPreprocessingConfigOptionKey(),
-            ConfigValueType::PATH,
-            "The path to a default preprocessing config that should be read first.\n"
-            "This path will often be set by an environment variable, thus \n"
-            "providing defaults to a silo in a specific environment (e.g. Docker)."
          ),
          ConfigAttributeSpecification::createWithDefault(
             inputDirectoryOptionKey(),
@@ -89,62 +76,56 @@ ConfigSpecification PreprocessingConfig::getConfigSpecification() {
             ConfigValue::fromPath("reference_genomes.json"),
             "File name of the file holding the reference genome. Relative from inputDirectory."
          ),
-         ConfigAttributeSpecification::createWithDefault(
-            ndjsonInputFilenameOptionKey(),
-            ConfigValue::fromPath("reference_genomes.json"),
-            "File name of the file holding the reference genome. Relative from inputDirectory."
-         ),
       }
    };
 }
 
-PreprocessingConfig PreprocessingConfig::withDefaults() {
-   PreprocessingConfig result;
-   result.initialize_config.overwriteFrom(
-      InitializeConfig::getConfigSpecification().getConfigSourceFromDefaults()
-   );
+InitializeConfig InitializeConfig::withDefaults() {
+   InitializeConfig result;
    result.overwriteFrom(getConfigSpecification().getConfigSourceFromDefaults());
    return result;
 }
 
-void PreprocessingConfig::validate() const {
-   if (!input_file.has_value()) {
-      throw silo::preprocessing::PreprocessingException("The value 'inputFile' must be set.");
-   }
+void InitializeConfig::validate() const {}
+
+std::filesystem::path InitializeConfig::getDatabaseConfigFilename() const {
+   return input_directory / database_config_file;
 }
 
-void PreprocessingConfig::overwriteFrom(const VerifiedConfigAttributes& config_source) {
+std::optional<std::filesystem::path> InitializeConfig::getLineageDefinitionsFilename() const {
+   return lineage_definitions_file.has_value()
+             ? std::optional(input_directory / lineage_definitions_file.value())
+             : std::nullopt;
+}
+
+std::filesystem::path InitializeConfig::getReferenceGenomeFilename() const {
+   return input_directory / reference_genome_file;
+}
+
+void InitializeConfig::overwriteFrom(const VerifiedConfigAttributes& config_source) {
    if (auto var = config_source.getPath(inputDirectoryOptionKey())) {
-      initialize_config.input_directory = var.value();
+      input_directory = var.value();
    }
    if (auto var = config_source.getPath(lineageDefinitionsFilenameOptionKey())) {
-      initialize_config.lineage_definitions_file = var.value();
+      lineage_definitions_file = var.value();
    }
    if (auto var = config_source.getPath(databaseConfigFileOptionKey())) {
-      initialize_config.database_config_file = var.value();
+      database_config_file = var.value();
    }
    if (auto var = config_source.getPath(referenceGenomeFilenameOptionKey())) {
-      initialize_config.reference_genome_file = var.value();
+      reference_genome_file = var.value();
    }
    if (auto var = config_source.getPath(outputDirectoryOptionKey())) {
-      initialize_config.output_directory = var.value();
-   }
-   if (auto var = config_source.getPath(ndjsonInputFilenameOptionKey())) {
-      input_file = var.value();
+      output_directory = var.value();
    }
 }
 
-std::vector<std::filesystem::path> PreprocessingConfig::getConfigFilePaths(
+std::vector<std::filesystem::path> InitializeConfig::getConfigFilePaths(
    const VerifiedCommandLineArguments& cmd_source,
    const VerifiedConfigAttributes& env_source
 ) {
    std::vector<std::filesystem::path> result;
-   auto default_runtime_config =
-      getConfigFilePath(defaultPreprocessingConfigOptionKey(), cmd_source, env_source);
-   if (default_runtime_config.has_value()) {
-      result.emplace_back(default_runtime_config.value());
-   }
-   auto runtime_config = getConfigFilePath(preprocessingConfigOptionKey(), cmd_source, env_source);
+   auto runtime_config = getConfigFilePath(initializeConfigOptionKey(), cmd_source, env_source);
    if (runtime_config.has_value()) {
       result.emplace_back(runtime_config.value());
    }
@@ -153,10 +134,10 @@ std::vector<std::filesystem::path> PreprocessingConfig::getConfigFilePaths(
 
 }  // namespace silo::config
 
-[[maybe_unused]] auto fmt::formatter<silo::config::PreprocessingConfig>::format(
-   const silo::config::PreprocessingConfig& preprocessing_config,
+[[maybe_unused]] auto fmt::formatter<silo::config::InitializeConfig>::format(
+   const silo::config::InitializeConfig& initialize_config,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
-   nlohmann::json json = preprocessing_config;
+   nlohmann::json json = initialize_config;
    return fmt::format_to(ctx.out(), "{}", json);
 }

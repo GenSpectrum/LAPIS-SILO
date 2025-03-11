@@ -10,16 +10,18 @@ using silo::Database;
 
 class AppendError : public std::runtime_error {
   public:
-   AppendError(std::string error_message) : std::runtime_error(error_message) {}
+   AppendError(std::string error_message)
+       : std::runtime_error(error_message) {}
 };
 
-namespace silo{
+namespace silo {
 
-class DatabasePartitionInserter{
+class DatabasePartitionInserter {
    std::shared_ptr<DatabasePartition> database_partition;
 
   public:
-   DatabasePartitionInserter(std::shared_ptr<DatabasePartition> database_partition) : database_partition(database_partition)  {}
+   DatabasePartitionInserter(std::shared_ptr<DatabasePartition> database_partition)
+       : database_partition(database_partition) {}
 
    ~DatabasePartitionInserter() {
       database_partition->validate();
@@ -32,13 +34,16 @@ class DatabasePartitionInserter{
       }
    }
 
-   void insert(const nlohmann::json& ndjson_line){
+   void insert(const nlohmann::json& ndjson_line) {
       for (auto& column_metadata : database_partition->columns.metadata) {
          const auto& value = ndjson_line["metadata"][column_metadata.name];
-         database_partition->columns.addJsonValueToColumn(column_metadata.name, column_metadata.type, value);
+         database_partition->columns.addJsonValueToColumn(
+            column_metadata.name, column_metadata.type, value
+         );
       }
       SPDLOG_INFO(
-         "date count is {}", database_partition->columns.date_columns.begin()->second.getValues().size()
+         "date count is {}",
+         database_partition->columns.date_columns.begin()->second.getValues().size()
       );
 
       for (const auto& [sequence_name, sequence_store] : database_partition->nuc_sequences) {
@@ -70,46 +75,58 @@ class DatabasePartitionInserter{
    }
 };
 
-class DatabaseInserter{
+class DatabaseInserter {
    std::shared_ptr<silo::Database> database;
 
   public:
-   DatabaseInserter(std::shared_ptr<silo::Database> database) : database(database) {}
+   DatabaseInserter(std::shared_ptr<silo::Database> database)
+       : database(database) {}
 
-   ~DatabaseInserter() {
-      database->validate();
-   }
+   ~DatabaseInserter() { database->validate(); }
 
-   DatabasePartitionInserter openNewPartition(){
-      return DatabasePartitionInserter{ database->addPartition() };
+   DatabasePartitionInserter openNewPartition() {
+      return DatabasePartitionInserter{database->addPartition()};
    }
 };
-}
+}  // namespace silo
 
 namespace {
 
-silo::SiloDataSource getMostRecentOrSpecifiedDatabaseState(const silo::SiloDirectory& silo_directory, const std::optional<std::filesystem::path>& specified_directory){
-   if(specified_directory.has_value()){
-      auto specified_data_source = silo::SiloDataSource::checkValidDataSource(specified_directory.value());
-      if(specified_data_source == std::nullopt){
+silo::SiloDataSource getMostRecentOrSpecifiedDatabaseState(
+   const silo::SiloDirectory& silo_directory,
+   const std::optional<std::filesystem::path>& specified_directory
+) {
+   if (specified_directory.has_value()) {
+      auto specified_data_source =
+         silo::SiloDataSource::checkValidDataSource(specified_directory.value());
+      if (specified_data_source == std::nullopt) {
          throw AppendError{"The specified siloDataSource directory is not valid data-source."};
       }
    }
-   SPDLOG_INFO("No data directory specified, automatically using the most recent one in the silo-directory {}", silo_directory);
+   SPDLOG_INFO(
+      "No data directory specified, automatically using the most recent one in the silo-directory "
+      "{}",
+      silo_directory
+   );
    auto most_recent_data_directory = silo_directory.getMostRecentDataDirectory();
-   if(most_recent_data_directory == std::nullopt){
-      throw AppendError{"No data directory specified and the silo-directory does not contain any valid data source."};
+   if (most_recent_data_directory == std::nullopt) {
+      throw AppendError{
+         "No data directory specified and the silo-directory does not contain any valid data "
+         "source."
+      };
    }
    return most_recent_data_directory.value();
 }
 
-std::unique_ptr<std::istream> openInputFileOrStdIn(const std::optional<std::filesystem::path>& input_file) {
+std::unique_ptr<std::istream> openInputFileOrStdIn(
+   const std::optional<std::filesystem::path>& input_file
+) {
    if (input_file.has_value()) {
       // TODO maybe zstd compressed
       auto file = std::make_unique<std::ifstream>(input_file.value());
       if (!file->is_open()) {
          std::cerr << "Error: Unable to open file!" << std::endl;
-         throw std::runtime_error("TODO valid error message"); // TODO valid error
+         throw std::runtime_error("TODO valid error message");  // TODO valid error
       }
       return file;
    } else {
@@ -117,21 +134,35 @@ std::unique_ptr<std::istream> openInputFileOrStdIn(const std::optional<std::file
    }
 }
 
+silo::DataVersion getDataVersionFromStringOrMineNewDataVersion(
+   std::optional<std::string> data_version
+) {
+   if (data_version.has_value()) {
+      auto maybe_timestamp = silo::DataVersion::Timestamp::fromString(data_version.value());
+      if (!maybe_timestamp.has_value()) {
+         throw AppendError("The specified dataVersion: {} is not a valid Unix timestamp");
+      }
+      return silo::DataVersion::mineDataVersionFromTimestamp(maybe_timestamp.value());
+   }
+   return silo::DataVersion::mineDataVersion();
 }
+
+}  // namespace
 
 int runAppend(const silo::config::AppendConfig& append_config) {
    silo::SiloDirectory silo_directory{append_config.silo_directory};
 
-   silo::SiloDataSource database_state_directory = getMostRecentOrSpecifiedDatabaseState(silo_directory, append_config.silo_data_source);
+   silo::SiloDataSource database_state_directory =
+      getMostRecentOrSpecifiedDatabaseState(silo_directory, append_config.silo_data_source);
 
-   std::shared_ptr<Database> database = std::make_shared<Database>(Database::loadDatabaseState(database_state_directory));
+   std::shared_ptr<Database> database =
+      std::make_shared<Database>(Database::loadDatabaseState(database_state_directory));
 
    silo::DatabaseInserter database_inserter(database);
 
    silo::DatabasePartitionInserter partition_inserter = database_inserter.openNewPartition();
 
    std::unique_ptr<std::istream> input = openInputFileOrStdIn(append_config.append_file);
-
 
    std::string line;
    size_t count = 0;
@@ -152,7 +183,10 @@ int runAppend(const silo::config::AppendConfig& append_config) {
       }
    }
 
-   database->setDataVersion(silo::DataVersion::mineDataVersion());
+   const silo::DataVersion data_version =
+      getDataVersionFromStringOrMineNewDataVersion(append_config.data_version);
+
+   database->setDataVersion(data_version);
 
    database->saveDatabaseState(append_config.silo_directory);
 

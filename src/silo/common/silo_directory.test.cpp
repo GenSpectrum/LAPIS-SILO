@@ -26,8 +26,8 @@ TEST(DatabaseDirectoryWatcher, validNewFormatCurrentVersion) {
 }
 
 TEST(DatabaseDirectoryWatcher, validNewFormatIncompatible) {
-   auto data_version = SiloDirectory::checkValidDataSource("testBaseData/dataDirectories/9999999999991234"
-      );
+   auto data_version =
+      SiloDirectory::checkValidDataSource("testBaseData/dataDirectories/9999999999991234");
    ASSERT_TRUE(data_version.has_value());
    ASSERT_FALSE(data_version.value().isCompatibleVersion());
    ASSERT_EQ(

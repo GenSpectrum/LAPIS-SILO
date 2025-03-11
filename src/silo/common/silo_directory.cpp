@@ -2,7 +2,7 @@
 
 #include <spdlog/spdlog.h>
 
-namespace silo{
+namespace silo {
 
 std::optional<SiloDataSource> SiloDataSource::checkValidDataSource(
    const std::filesystem::path& candidate_data_source_path
@@ -11,9 +11,12 @@ std::optional<SiloDataSource> SiloDataSource::checkValidDataSource(
       SPDLOG_TRACE("Skipping {} because it is not a directory", candidate_data_source_path);
       return std::nullopt;
    }
-   auto folder_name_timestamp = silo::DataVersion::Timestamp::fromString(candidate_data_source_path.filename());
+   auto folder_name_timestamp =
+      silo::DataVersion::Timestamp::fromString(candidate_data_source_path.filename());
    if (folder_name_timestamp == std::nullopt) {
-      SPDLOG_TRACE("Skipping {}. Its name is not a valid data version.", candidate_data_source_path.string());
+      SPDLOG_TRACE(
+         "Skipping {}. Its name is not a valid data version.", candidate_data_source_path.string()
+      );
       return std::nullopt;
    }
    auto data_version_filename = candidate_data_source_path / "data_version.silo";
@@ -29,7 +32,8 @@ std::optional<SiloDataSource> SiloDataSource::checkValidDataSource(
    auto maybe_data_version_in_file = silo::DataVersion::fromFile(data_version_filename);
    if (maybe_data_version_in_file == std::nullopt) {
       SPDLOG_TRACE(
-         "Skipping {}. The data version in data_version.silo could not be parsed", candidate_data_source_path.string()
+         "Skipping {}. The data version in data_version.silo could not be parsed",
+         candidate_data_source_path.string()
       );
       return std::nullopt;
    }
@@ -86,4 +90,4 @@ std::optional<SiloDataSource> SiloDirectory::getMostRecentDataDirectory() const 
    return std::nullopt;
 }
 
-}
+}  // namespace silo

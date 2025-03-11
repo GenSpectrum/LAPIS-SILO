@@ -39,7 +39,9 @@ int Api::runApi(const silo::config::RuntimeConfig& runtime_config) {
    auto silo_request_handler_factory =
       std::make_unique<silo::api::SiloRequestHandlerFactory>(runtime_config, database);
 
-   const silo::api::SiloDirectoryWatcher watcher(SiloDirectory{runtime_config.data_directory}, database);
+   const silo::api::SiloDirectoryWatcher watcher(
+      SiloDirectory{runtime_config.data_directory}, database
+   );
 
    // HTTPServer will erase the memory of the request_handler, therefore we call `release`
    Poco::Net::HTTPServer server(
