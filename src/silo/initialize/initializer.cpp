@@ -1,4 +1,4 @@
-#include "silo/preprocessing/preprocessor.h"
+#include "silo/initialize/initializer.h"
 
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/parallel_for.h>
@@ -19,20 +19,20 @@
 #include "silo/storage/unaligned_sequence_store.h"
 #include "silo/zstd/zstd_decompressor.h"
 
-namespace silo::preprocessing {
+namespace silo::initialize {
 
-Preprocessor::Preprocessor(
-   config::PreprocessingConfig preprocessing_config_,
+Initializer::Initializer(
+   config::InitializeConfig initialize_config_,
    config::DatabaseConfig database_config_,
    ReferenceGenomes reference_genomes_,
    common::LineageTreeAndIdMap lineage_tree_
 )
-    : preprocessing_config(std::move(preprocessing_config_)),
+    : initialize_config(std::move(initialize_config_)),
       database_config(std::move(database_config_)),
       reference_genomes(std::move(reference_genomes_)),
       lineage_tree(std::move(lineage_tree_)) {}
 
-Database Preprocessor::initialize() {
+Database Initializer::initialize() {
    finalizeConfig();
    Database database{
       silo::config::DatabaseConfig{database_config},
@@ -48,7 +48,7 @@ Database Preprocessor::initialize() {
    return database;
 }
 
-void Preprocessor::finalizeConfig() {
+void Initializer::finalizeConfig() {
    const auto& nuc_sequence_names = reference_genomes.getSequenceNames<Nucleotide>();
    const auto& aa_sequence_names = reference_genomes.getSequenceNames<AminoAcid>();
    if (nuc_sequence_names.size() == 1 && !database_config.default_nucleotide_sequence.has_value()) {
@@ -61,7 +61,7 @@ void Preprocessor::finalizeConfig() {
    validateConfig();
 }
 
-void Preprocessor::validateConfig() {
+void Initializer::validateConfig() {
    const auto& nuc_sequence_names = reference_genomes.getSequenceNames<Nucleotide>();
    const auto& aa_sequence_names = reference_genomes.getSequenceNames<AminoAcid>();
    const bool default_nucleotide_sequence_is_not_in_reference =
@@ -86,4 +86,4 @@ void Preprocessor::validateConfig() {
    }
 }
 
-}  // namespace silo::preprocessing
+}  // namespace silo::initialize
