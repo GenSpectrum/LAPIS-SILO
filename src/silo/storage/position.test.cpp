@@ -8,6 +8,8 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/serialization/array.hpp>
 
+#include "silo/common/optional_bool.h"
+#include "silo/database.h"
 #include "silo/roaring/roaring_serialize.h"
 #include "silo/storage/serialize_optional.h"
 

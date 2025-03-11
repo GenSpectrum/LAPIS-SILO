@@ -25,10 +25,12 @@
 namespace silo {
 
 class Database {
+  private:
+   std::vector<std::shared_ptr<DatabasePartition>> partitions;
+
   public:
    silo::config::DatabaseConfig database_config;
    common::LineageTreeAndIdMap lineage_tree;
-   std::vector<std::shared_ptr<DatabasePartition>> partitions;
    std::filesystem::path unaligned_sequences_directory;
 
    silo::storage::ColumnGroup columns;
@@ -45,12 +47,12 @@ class Database {
 
   public:
    Database(
-      silo::config::DatabaseConfig&& database_config,
-      silo::common::LineageTreeAndIdMap&& lineage_tree,
-      std::vector<std::string>&& nuc_sequence_names,
-      std::vector<std::vector<Nucleotide::Symbol>>&& nuc_reference_sequences,
-      std::vector<std::string>&& aa_sequence_names,
-      std::vector<std::vector<AminoAcid::Symbol>>&& aa_reference_sequences
+      silo::config::DatabaseConfig database_config,
+      silo::common::LineageTreeAndIdMap lineage_tree,
+      std::vector<std::string> nuc_sequence_names,
+      std::vector<std::vector<Nucleotide::Symbol>> nuc_reference_sequences,
+      std::vector<std::string> aa_sequence_names,
+      std::vector<std::vector<AminoAcid::Symbol>> aa_reference_sequences
    );
 
    Database() = delete;
@@ -63,6 +65,10 @@ class Database {
    virtual ~Database() = default;
 
    void validate() const;
+
+   size_t getNumberOfPartitions() const;
+
+   const DatabasePartition& getPartition(size_t partition_idx) const;
 
    std::shared_ptr<DatabasePartition> addPartition();
 

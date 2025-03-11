@@ -14,14 +14,14 @@
 
 namespace silo::preprocessing {
 
-class Initializer {
+class Preprocessor {
    config::PreprocessingConfig preprocessing_config;
    config::DatabaseConfig database_config;
    ReferenceGenomes reference_genomes;
    common::LineageTreeAndIdMap lineage_tree;
 
   public:
-   Initializer(
+   Preprocessor(
       config::PreprocessingConfig preprocessing_config_,
       config::DatabaseConfig database_config_,
       ReferenceGenomes reference_genomes_,
@@ -33,7 +33,5 @@ class Initializer {
   private:
    void finalizeConfig();
    void validateConfig();
-
-   Database buildDatabase();
 };
 }  // namespace silo::preprocessing

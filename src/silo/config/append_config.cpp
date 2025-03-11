@@ -18,6 +18,9 @@ ConfigKeyPath siloDirectoryOptionKey() {
 ConfigKeyPath appendFileOptionKey() {
    return YamlFile::stringToConfigKeyPath("appendFile");
 }
+ConfigKeyPath partitionIdOptionKey() {
+   return YamlFile::stringToConfigKeyPath("partitionId");
+}
 ConfigKeyPath siloDataSourceOptionKey() {
    return YamlFile::stringToConfigKeyPath("siloDataSource");
 }
@@ -43,20 +46,30 @@ ConfigSpecification AppendConfig::getConfigSpecification() {
          ConfigAttributeSpecification::createWithDefault(
             siloDirectoryOptionKey(),
             ConfigValue::fromPath("."),
-            "The path to a silo-directory, a directory that contains silo outputs."
+            "The path to a silo-directory, a directory that contains silo outputs. This may be "
+            "used for input (see ..) and will be used for the output of the new silo state"
          ),
          ConfigAttributeSpecification::createWithoutDefault(
-            dataVersionOptionKey(), ConfigValueType::STRING, "The data version in the silo folder that should be appended to. If no data version is given, it will automatically append to the most recent data version instead."
+            dataVersionOptionKey(),
+            ConfigValueType::STRING,
+            "The data version of the new database. If not given, a new data version will be minted "
+            "instead."
          ),
          ConfigAttributeSpecification::createWithoutDefault(
             appendFileOptionKey(),
             ConfigValueType::PATH,
-            "The path to a file that contains the data that should be appended to the database. If no file is given, the data is expected on stdin instead."
+            "The path to one or multiple files that contains the data that should be appended to "
+            "the database. If "
+            "no file is given, the data is expected on stdin instead."
+         ),
+         ConfigAttributeSpecification::createWithoutDefault(
+            partitionIdOptionKey(), ConfigValueType::PATH, "1, new, ~auto"
          ),
          ConfigAttributeSpecification::createWithoutDefault(
             siloDataSourceOptionKey(),
             ConfigValueType::PATH,
-            "A directory that contains a valid silo state. If this is not given, the most recent database state from the silo-directory is taken instead."
+            "A directory that contains a valid silo state. If this is not given, the most recent "
+            "database state from the silo-directory is taken instead."
          )
       }
    };

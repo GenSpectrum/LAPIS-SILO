@@ -1,22 +1,25 @@
 #include "silo/database.h"
 
 #include <filesystem>
+#include <fstream>
+#include <istream>
 
 #include <gtest/gtest.h>
 
 #include "config/source/yaml_file.h"
+#include "silo/append/append.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/database_info.h"
-#include "silo/preprocessing/preprocessor.h"
-#include "silo/preprocessing/sql_function.h"
+#include "silo/database_inserter.h"
+#include "silo/initialize/initializer.h"
 #include "silo/query_engine/query_engine.h"
 #include "silo/storage/reference_genomes.h"
 
 using silo::config::PreprocessingConfig;
 
 namespace {
-silo::Database buildTestDatabase() {
+std::shared_ptr<silo::Database> buildTestDatabase() {
    const std::filesystem::path input_directory{"./testBaseData/unitTestDummyDataset/"};
 
    auto config = PreprocessingConfig::withDefaults();
@@ -24,78 +27,63 @@ silo::Database buildTestDatabase() {
       silo::config::YamlFile::readFile(input_directory / "preprocessing_config.yaml")
          .verify(PreprocessingConfig::getConfigSpecification())
    );
-   const auto database_config = silo::config::DatabaseConfig::getValidatedConfigFromFile(
+   auto database_config = silo::config::DatabaseConfig::getValidatedConfigFromFile(
       input_directory / "database_config.yaml"
    );
 
    const auto reference_genomes =
-      silo::ReferenceGenomes::readFromFile(config.getReferenceGenomeFilename());
+      silo::ReferenceGenomes::readFromFile(config.initialize_config.getReferenceGenomeFilename());
 
    silo::common::LineageTreeAndIdMap lineage_tree;
-   if (config.getLineageDefinitionsFilename().has_value()) {
+   if (config.initialize_config.getLineageDefinitionsFilename().has_value()) {
       lineage_tree = silo::common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(
-         config.getLineageDefinitionsFilename().value()
+         config.initialize_config.getLineageDefinitionsFilename().value()
       );
    }
 
-   silo::preprocessing::Preprocessor preprocessor(
-      config, database_config, reference_genomes, std::move(lineage_tree)
+   auto database = std::make_shared<silo::Database>(
+      silo::Database{std::move(database_config), std::move(lineage_tree), {}, {}, {}, {}}
    );
-   return preprocessor.preprocess();
+
+
+   silo::DatabaseInserter database_inserter(database);
+   silo::DatabasePartitionInserter partition_inserter = database_inserter.openNewPartition();
+
+   std::ifstream input(input_directory / "input.ndjson");
+
+   std::string line;
+   size_t count = 0;
+   while (std::getline(input, line)) {  // Read file line by line
+      if (line.empty())
+         continue;  // Skip empty lines
+
+      SPDLOG_INFO("Inserting line {}", count++);
+
+      nlohmann::json json_obj = nlohmann::json::parse(line);
+
+      partition_inserter.insert(json_obj);
+   }
+   return database;
 }
 }  // namespace
 
 TEST(DatabaseTest, shouldBuildDatabaseWithoutErrors) {
    auto database{buildTestDatabase()};
 
-   const auto simple_database_info = database.getDatabaseInfo();
+   const auto simple_database_info = database->getDatabaseInfo();
 
    EXPECT_GT(simple_database_info.total_size, 0);
    EXPECT_EQ(simple_database_info.sequence_count, 5);
    EXPECT_EQ(simple_database_info.number_of_partitions, 2);
 }
 
-TEST(DatabaseTest, shouldSuccessfullyBuildDatabaseWithoutPartitionBy) {
-   const std::filesystem::path input_directory{"./testBaseData/"};
-
-   auto config = PreprocessingConfig::withDefaults();
-   config.overwriteFrom(
-      silo::config::YamlFile::readFile(input_directory / "test_preprocessing_config.yaml")
-         .verify(PreprocessingConfig::getConfigSpecification())
-   );
-
-   const auto database_config = silo::config::DatabaseConfig::getValidatedConfigFromFile(
-      input_directory / "test_database_config_without_partition_by.yaml"
-   );
-
-   const auto reference_genomes =
-      silo::ReferenceGenomes::readFromFile(config.getReferenceGenomeFilename());
-
-   silo::common::LineageTreeAndIdMap lineage_tree;
-   if (config.getLineageDefinitionsFilename().has_value()) {
-      lineage_tree = silo::common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(
-         config.getLineageDefinitionsFilename().value()
-      );
-   }
-
-   silo::preprocessing::Preprocessor preprocessor(
-      config, database_config, reference_genomes, std::move(lineage_tree)
-   );
-   auto database = preprocessor.preprocess();
-
-   const auto simple_database_info = database.getDatabaseInfo();
-
-   EXPECT_GT(simple_database_info.total_size, 0);
-   EXPECT_EQ(simple_database_info.sequence_count, 100);
-   EXPECT_EQ(simple_database_info.number_of_partitions, 1);
-}
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(DatabaseTest, shouldReturnCorrectDatabaseInfo) {
    auto database{buildTestDatabase()};
 
-   const auto detailed_info = database.detailedDatabaseInfo().sequences.at("main");
-   const auto simple_info = database.getDatabaseInfo();
+   const auto detailed_info = database->detailedDatabaseInfo().sequences.at("main");
+   const auto simple_info = database->getDatabaseInfo();
 
    EXPECT_EQ(
       detailed_info.bitmap_size_per_symbol.size_in_bytes.at(silo::Nucleotide::Symbol::A), 148
@@ -145,11 +133,13 @@ TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
    std::filesystem::create_directories(directory);
 
    const silo::DataVersion::Timestamp data_version_timestamp =
-      first_database.getDataVersionTimestamp();
+      first_database->getDataVersionTimestamp();
 
-   first_database.saveDatabaseState(directory);
+   first_database->saveDatabaseState(directory);
 
-   auto database = silo::Database::loadDatabaseState(directory / data_version_timestamp.value);
+   silo::SiloDataSource data_source = silo::SiloDataSource::checkValidDataSource(directory / data_version_timestamp.value).value();
+
+   auto database = silo::Database::loadDatabaseState(data_source);
 
    const auto simple_database_info = database.getDatabaseInfo();
 

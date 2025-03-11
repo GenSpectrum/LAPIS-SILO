@@ -42,7 +42,13 @@ class AppendConfig {
       const VerifiedConfigAttributes& env_source
    );
 
-   NLOHMANN_DEFINE_TYPE_INTRUSIVE(AppendConfig, silo_directory, data_version, append_file, silo_data_source)
+   NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+      AppendConfig,
+      silo_directory,
+      data_version,
+      append_file,
+      silo_data_source
+   )
 };
 
 }  // namespace silo::config
