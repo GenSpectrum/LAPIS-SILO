@@ -157,7 +157,7 @@ QueryResult FastaAligned::execute(
                                       &database,
                                       partition_index](std::vector<QueryResultEntry>& results
                                      ) mutable {
-      for (; partition_index < database.partitions.size();
+      for (; partition_index < database.getNumberOfPartitions();
            ++partition_index, remaining_result_row_indices = {}) {
          // We drain the bitmaps in bitmap_filter as we process the
          // query, because roaring bitmaps don't come with
@@ -187,16 +187,16 @@ QueryResult FastaAligned::execute(
             SPDLOG_TRACE(
                "FastaAligned::execute: refill QueryResult for partition_index {}/{}, {}/{}",
                partition_index,
-               database.partitions.size(),
+               database.getNumberOfPartitions(),
                result_row_indices.toString(),
                remaining_result_row_indices->beyondLast()
             );
 
-            const auto& database_partition = database.partitions[partition_index];
+            const auto& database_partition = database.getPartition(partition_index);
             for (const uint32_t row_id : *bitmap) {
                results.emplace_back(makeEntry(
                   database.database_config.schema.primary_key,
-                  *database_partition,
+                  database_partition,
                   nuc_sequence_names,
                   aa_sequence_names,
                   row_id

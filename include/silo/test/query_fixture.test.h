@@ -14,8 +14,8 @@
 #include "silo/config/preprocessing_config.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
+#include "silo/database_inserter.h"
 #include "silo/preprocessing/preprocessor.h"
-#include "silo/preprocessing/sql_function.h"
 #include "silo/query_engine/query_engine.h"
 #include "silo/storage/reference_genomes.h"
 
@@ -35,13 +35,13 @@ namespace silo::test {
 #define QUERY_TEST(TEST_SUITE_NAME, TEST_DATA, TEST_VALUES)                                        \
    namespace {                                                                                     \
    struct TEST_SUITE_NAME##DataContainer {                                                         \
-      static std::unique_ptr<silo::Database> database;                                             \
+      static std::shared_ptr<silo::Database> database;                                             \
       static std::unique_ptr<silo::query_engine::QueryEngine> query_engine;                        \
       static std::filesystem::path input_directory;                                                \
                                                                                                    \
       const silo::test::QueryTestData test_data = TEST_DATA;                                       \
    };                                                                                              \
-   std::unique_ptr<silo::Database> TEST_SUITE_NAME##DataContainer::database = nullptr;             \
+   std::shared_ptr<silo::Database> TEST_SUITE_NAME##DataContainer::database;                       \
    std::unique_ptr<silo::query_engine::QueryEngine> TEST_SUITE_NAME##DataContainer::query_engine = \
       nullptr;                                                                                     \
    std::filesystem::path TEST_SUITE_NAME##DataContainer::input_directory = {};                     \
@@ -93,42 +93,25 @@ template <typename DataContainer>
 class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
   public:
    static void SetUpTestSuite() {
-      auto now = std::chrono::system_clock::now();
-      auto duration = now.time_since_epoch();
-      auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
-      std::filesystem::path input_directory = fmt::format("test{}", millis);
-      std::filesystem::create_directories(input_directory);
-
-      config::PreprocessingConfig config_with_input_dir =
-         config::PreprocessingConfig::withDefaults();
-      config_with_input_dir.input_directory = input_directory;
-      config_with_input_dir.intermediate_results_directory = input_directory;
-      config_with_input_dir.ndjson_input_filename = "input.json";
-      config_with_input_dir.validate();
-
-      DataContainer::input_directory = input_directory;
-
       const DataContainer data_container;
       const QueryTestData& test_data = data_container.test_data;
 
-      std::ofstream file(config_with_input_dir.getNdjsonInputFilename().value());
-
-      if (!file.is_open()) {
-         std::cerr << "Could not open file for writing" << std::endl;
-         return;
-      }
-      for (const auto& json : test_data.ndjson_input_data) {
-         file << json.dump() << std::endl;
-      }
-      file.close();
-
-      silo::preprocessing::Preprocessor preprocessor(
-         config_with_input_dir,
+      DataContainer::database = std::make_shared<Database>(
+         Database{
          silo::config::DatabaseConfig::getValidatedConfig(test_data.database_config),
-         test_data.reference_genomes,
-         test_data.lineage_tree
+         test_data.lineage_tree,
+         test_data.reference_genomes.nucleotide_sequence_names,
+         test_data.reference_genomes.getReferenceSequences<Nucleotide>(),
+         test_data.reference_genomes.aa_sequence_names,
+         test_data.reference_genomes.getReferenceSequences<AminoAcid>()}
       );
-      DataContainer::database = std::make_unique<Database>(preprocessor.preprocess());
+
+      silo::DatabaseInserter database_inserter(DataContainer::database);
+      silo::DatabasePartitionInserter partition_inserter = database_inserter.openNewPartition();
+
+      for (const auto& json : test_data.ndjson_input_data) {
+         partition_inserter.insert(json);
+      }
 
       DataContainer::query_engine =
          std::make_unique<silo::query_engine::QueryEngine>(*DataContainer::database);
