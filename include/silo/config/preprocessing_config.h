@@ -13,33 +13,23 @@
 #include "config/source/yaml_file.h"
 #include "silo/common/json_type_definitions.h"
 #include "silo/config/config_defaults.h"
+#include "silo/config/initialize_config.h"
 
 namespace silo::config {
 
 class PreprocessingConfig {
    friend class fmt::formatter<silo::config::PreprocessingConfig>;
 
-   PreprocessingConfig() = default;
-
-   std::optional<std::filesystem::path> lineage_definitions_file;
-   std::filesystem::path database_config_file;
-   std::filesystem::path reference_genome_file;
-   std::filesystem::path input_directory;
-
   public:
-   std::filesystem::path output_directory;
+   InitializeConfig initialize_config;
+   std::optional<std::filesystem::path> input_file;
+
    /// Create PreprocessingConfig with all default values from the specification
    static PreprocessingConfig withDefaults();
 
    static ConfigSpecification getConfigSpecification();
 
    void validate() const;
-
-   [[nodiscard]] std::filesystem::path getDatabaseConfigFilename() const;
-
-   [[nodiscard]] std::optional<std::filesystem::path> getLineageDefinitionsFilename() const;
-
-   [[nodiscard]] std::filesystem::path getReferenceGenomeFilename() const;
 
    void overwriteFrom(const VerifiedConfigAttributes& config_source);
 
@@ -48,14 +38,7 @@ class PreprocessingConfig {
       const VerifiedConfigAttributes& env_source
    );
 
-   NLOHMANN_DEFINE_TYPE_INTRUSIVE(
-      PreprocessingConfig,
-      input_directory,
-      lineage_definitions_file,
-      database_config_file,
-      reference_genome_file,
-      output_directory
-   )
+   NLOHMANN_DEFINE_TYPE_INTRUSIVE(PreprocessingConfig, initialize_config, input_file)
 };
 
 }  // namespace silo::config

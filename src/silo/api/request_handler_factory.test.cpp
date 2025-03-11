@@ -21,7 +21,7 @@ schema:
   metadata:
    - name: primaryKey
      type: string
-  primaryKey: primaryKey)-")});
+  primaryKey: primaryKey)-"), {}, {}, {}, {}, {}});
    auto request_handler = std::make_unique<SiloRequestHandlerFactory>(
       silo::config::RuntimeConfig::withDefaults(), handle
    );

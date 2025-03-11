@@ -30,22 +30,22 @@ QueryResult QueryEngine::executeQuery(const std::string& query_string) const {
 
    SPDLOG_DEBUG("Parsed query: {}", query.filter->toString());
 
-   std::vector<std::string> compiled_queries(database.partitions.size());
-   std::vector<CopyOnWriteBitmap> partition_filters(database.partitions.size());
+   std::vector<std::string> compiled_queries(database.getNumberOfPartitions());
+   std::vector<CopyOnWriteBitmap> partition_filters(database.getNumberOfPartitions());
    int64_t filter_time;
    {
       const silo::common::BlockTimer timer(filter_time);
-      for (size_t partition_index = 0; partition_index != database.partitions.size();
+      for (size_t partition_index = 0; partition_index != database.getNumberOfPartitions();
            partition_index++) {
          std::unique_ptr<Operator> part_filter = query.filter->compile(
-            database, *database.partitions[partition_index], Expression::AmbiguityMode::NONE
+            database, database.getPartition(partition_index), Expression::AmbiguityMode::NONE
          );
          compiled_queries[partition_index] = part_filter->toString();
          partition_filters[partition_index] = part_filter->evaluate();
       }
    }
 
-   for (uint32_t i = 0; i < database.partitions.size(); ++i) {
+   for (uint32_t i = 0; i < database.getNumberOfPartitions(); ++i) {
       SPDLOG_DEBUG("Simplified query for partition {}: {}", i, compiled_queries[i]);
    }
 

@@ -20,9 +20,9 @@ silo::api::SiloDirectoryWatcher::SiloDirectoryWatcher(
     : silo_directory(std::move(silo_directory)),
       database_handle(database_handle),
       timer(0, 2000) {
-   timer.start(Poco::TimerCallback<SiloDirectoryWatcher>(
-      *this, &SiloDirectoryWatcher::checkDirectoryForData
-   ));
+   timer.start(
+      Poco::TimerCallback<SiloDirectoryWatcher>(*this, &SiloDirectoryWatcher::checkDirectoryForData)
+   );
 }
 
 void silo::api::SiloDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*timer*/) {

@@ -48,8 +48,8 @@ std::unordered_map<std::string, typename Mutations<SymbolType>::PrefilteredBitma
    SymbolType>::
    preFilterBitmaps(const silo::Database& database, std::vector<CopyOnWriteBitmap>& bitmap_filter) {
    std::unordered_map<std::string, PrefilteredBitmaps> bitmaps_to_evaluate;
-   for (size_t i = 0; i < database.partitions.size(); ++i) {
-      const DatabasePartition& database_partition = *database.partitions.at(i);
+   for (size_t i = 0; i < database.getNumberOfPartitions(); ++i) {
+      const DatabasePartition& database_partition = database.getPartition(i);
       CopyOnWriteBitmap& filter = bitmap_filter[i];
       const size_t cardinality = filter->cardinality();
       if (cardinality == 0) {
