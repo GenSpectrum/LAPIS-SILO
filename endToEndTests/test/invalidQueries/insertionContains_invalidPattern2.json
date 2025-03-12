@@ -12,6 +12,6 @@
   },
   "expectedError": {
     "error": "Bad request",
-    "message": "The field 'value' in the InsertionContains expression does not contain a valid regex pattern: \"CC..*\". It must only consist of nucleotide symbols and the regex symbol '.*'."
+    "message": "The field 'value' in the InsertionContains expression does not contain a valid regex pattern: \"CC..*\". It must only consist of nucleotide symbols and the regex symbol '.*'. Also note that the stop codon * must be escaped correctly with a \\ in amino acid queries."
   }
 }

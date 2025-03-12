@@ -121,31 +121,6 @@ std::optional<AminoAcid::Symbol> AminoAcid::charToSymbol(char character) {
    }
 }
 
-std::optional<std::vector<AminoAcid::Symbol>> AminoAcid::stringToSymbolVector(
-   const std::string& sequence
-) {
-   const size_t size = sequence.size();
-   std::vector<AminoAcid::Symbol> result(size);
-   for (size_t i = 0; i < size; ++i) {
-      auto symbol = AminoAcid::charToSymbol(sequence[i]);
-      if (symbol == std::nullopt) {
-         return std::nullopt;
-      }
-      result[i] = *symbol;
-   }
-   return result;
-}
-
-std::optional<char> AminoAcid::findIllegalChar(const std::string& sequence) {
-   for (const auto aa_char : sequence) {
-      auto symbol = AminoAcid::charToSymbol(aa_char);
-      if (symbol == std::nullopt) {
-         return aa_char;
-      }
-   }
-   return std::nullopt;
-}
-
 const silo::SymbolMap<AminoAcid, std::vector<AminoAcid::Symbol>> AminoAcid::AMBIGUITY_SYMBOLS{{{
    {AminoAcid::Symbol::GAP, AminoAcid::Symbol::X},
    {AminoAcid::Symbol::A, AminoAcid::Symbol::X},

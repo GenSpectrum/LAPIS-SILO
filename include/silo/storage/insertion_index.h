@@ -17,6 +17,12 @@
 
 namespace silo::storage::insertion {
 
+class InsertionException : public std::runtime_error {
+  public:
+   explicit InsertionException(const std::string& error_message)
+       : runtime_error(error_message) {}
+};
+
 template <typename SymbolType>
 class ThreeMerHash {
   public:
