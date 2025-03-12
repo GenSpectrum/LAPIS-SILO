@@ -67,8 +67,12 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> InsertionContai
       sequence_stores.at(valid_sequence_name);
    return std::make_unique<operators::BitmapProducer>(
       [&]() {
-         auto search_result = sequence_store.insertion_index.search(position_idx, value);
-         return CopyOnWriteBitmap(std::move(*search_result));
+         try {
+            auto search_result = sequence_store.insertion_index.search(position_idx, value);
+            return CopyOnWriteBitmap(std::move(*search_result));
+         } catch (const silo::storage::insertion::InsertionException& insertionException) {
+            throw silo::BadRequest(insertionException.what());
+         }
       },
       database_partition.sequence_count
    );
@@ -77,12 +81,28 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> InsertionContai
 namespace {
 
 template <typename SymbolType>
-std::regex buildValidInsertionSearchRegex() {
+std::regex buildValidInsertionSearchRegex();
+template <>
+std::regex buildValidInsertionSearchRegex<AminoAcid>() {
    // Build the following regex pattern: ^([symbols]|\.\*)*$
    std::stringstream regex_pattern_string;
    regex_pattern_string << "^([";
-   for (const auto symbol : SymbolType::SYMBOLS) {
-      regex_pattern_string << SymbolType::symbolToChar(symbol);
+   for (const auto symbol : AminoAcid::SYMBOLS) {
+      if (symbol != AminoAcid::Symbol::STOP) {
+         regex_pattern_string << AminoAcid::symbolToChar(symbol);
+      }
+   }
+   regex_pattern_string << R"(]|(\\\*)|(\.\*))*$)";
+   return std::regex(regex_pattern_string.str());
+}
+
+template <>
+std::regex buildValidInsertionSearchRegex<Nucleotide>() {
+   // Build the following regex pattern: ^([symbols]|\.\*)*$
+   std::stringstream regex_pattern_string;
+   regex_pattern_string << "^([";
+   for (const auto symbol : Nucleotide::SYMBOLS) {
+      regex_pattern_string << Nucleotide::symbolToChar(symbol);
    }
    regex_pattern_string << "]|\\.\\*)*$";
    return std::regex(regex_pattern_string.str());
@@ -131,7 +151,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains<Sym
       "The field 'value' in the InsertionContains expression does not contain a valid regex "
       "pattern: \"" +
          value + "\". It must only consist of " + std::string(SymbolType::SYMBOL_NAME_LOWER_CASE) +
-         " symbols and the regex symbol '.*'."
+         " symbols and the regex symbol '.*'. Also note that the stop codon * must be escaped "
+         "correctly with a \\ in amino acid queries."
    );
    filter = std::make_unique<InsertionContains<SymbolType>>(sequence_name, position_idx, value);
 }

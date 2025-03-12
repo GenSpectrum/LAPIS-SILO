@@ -94,10 +94,6 @@ class AminoAcid {
    static char symbolToChar(Symbol symbol);
 
    static std::optional<Symbol> charToSymbol(char character);
-
-   static std::optional<std::vector<Symbol>> stringToSymbolVector(const std::string& sequence);
-
-   static std::optional<char> findIllegalChar(const std::string& sequence);
 };
 
 }  // namespace silo
