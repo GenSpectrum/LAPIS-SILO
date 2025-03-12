@@ -17,8 +17,3 @@ TEST(AminoAcidSymbol, conversionFromCharacter) {
    EXPECT_EQ(silo::AminoAcid::charToSymbol('J'), std::nullopt);
    EXPECT_EQ(silo::AminoAcid::charToSymbol(')'), std::nullopt);
 }
-
-TEST(AminoAcidSymbol, findIllegalAminoAcidChar) {
-   EXPECT_EQ(silo::AminoAcid::findIllegalChar("ACGT"), std::nullopt);
-   EXPECT_EQ(silo::AminoAcid::findIllegalChar("ACGTJ"), 'J');
-}

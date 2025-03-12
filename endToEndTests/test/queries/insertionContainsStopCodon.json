@@ -1,0 +1,23 @@
+{
+  "testCaseName": "insertionContains with a StopCodon",
+  "query": {
+    "action": {
+      "groupByFields": ["date"],
+      "orderByFields": [
+        {
+          "field": "date",
+          "order": "ascending"
+        }
+      ],
+      "randomize": false,
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "position": 214,
+      "value": "\\*E",
+      "sequenceName": "S",
+      "type": "AminoAcidInsertionContains"
+    }
+  },
+  "expectedQueryResult": [{ "count": 1, "date": "2021-01-25" }]
+}

@@ -81,31 +81,6 @@ std::optional<Nucleotide::Symbol> Nucleotide::charToSymbol(char character) {
    }
 }
 
-std::optional<std::vector<Nucleotide::Symbol>> Nucleotide::stringToSymbolVector(
-   const std::string& sequence
-) {
-   const size_t size = sequence.size();
-   std::vector<Symbol> result(size);
-   for (size_t i = 0; i < size; ++i) {
-      auto symbol = Nucleotide::charToSymbol(sequence[i]);
-      if (symbol == std::nullopt) {
-         return std::nullopt;
-      }
-      result[i] = *symbol;
-   }
-   return result;
-}
-
-std::optional<char> Nucleotide::findIllegalChar(const std::string& sequence) {
-   for (const auto nuc_char : sequence) {
-      auto symbol = Nucleotide::charToSymbol(nuc_char);
-      if (symbol == std::nullopt) {
-         return nuc_char;
-      }
-   }
-   return std::nullopt;
-}
-
 const silo::SymbolMap<Nucleotide, std::vector<Nucleotide::Symbol>> Nucleotide::AMBIGUITY_SYMBOLS{{{
    {Nucleotide::Symbol::GAP},
    {Nucleotide::Symbol::A,

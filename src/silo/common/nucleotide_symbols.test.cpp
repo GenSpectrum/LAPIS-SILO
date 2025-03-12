@@ -13,8 +13,3 @@ TEST(NucleotideSymbol, conversionFromCharacter) {
    EXPECT_EQ(silo::Nucleotide::charToSymbol('N'), silo::Nucleotide::Symbol::N);
    EXPECT_EQ(silo::Nucleotide::charToSymbol('X'), std::nullopt);
 }
-
-TEST(NucleotideSymbol, findIllegalNucleotideChar) {
-   EXPECT_EQ(silo::Nucleotide::findIllegalChar("ACGT"), std::nullopt);
-   EXPECT_EQ(silo::Nucleotide::findIllegalChar("ACGTZ"), 'Z');
-}

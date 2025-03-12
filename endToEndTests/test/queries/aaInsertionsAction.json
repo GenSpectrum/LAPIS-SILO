@@ -32,7 +32,14 @@
       "sequenceName": "S"
     },
     {
-      "count": 5,
+      "count": 1,
+      "insertedSymbols": "*EPE",
+      "insertion": "ins_S:214:*EPE",
+      "position": 214,
+      "sequenceName": "S"
+    },
+    {
+      "count": 4,
       "insertedSymbols": "EPE",
       "insertion": "ins_S:214:EPE",
       "position": 214,

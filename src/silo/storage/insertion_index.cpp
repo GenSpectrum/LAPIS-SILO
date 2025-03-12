@@ -7,13 +7,13 @@
 #include <unordered_set>
 #include <utility>
 
+#include <fmt/format.h>
 #include <boost/container_hash/hash.hpp>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/string_utils.h"
 #include "silo/common/symbol_map.h"
-#include "silo/preprocessing/preprocessing_exception.h"
 
 namespace silo::storage::insertion {
 
@@ -21,23 +21,35 @@ namespace {
 constexpr std::string_view REGEX_ANY = ".*";
 
 template <typename SymbolType>
+std::vector<typename SymbolType::Symbol> stringToSymbolVector(const std::string& sequence) {
+   const size_t size = sequence.size();
+   std::vector<typename SymbolType::Symbol> result;
+   result.reserve(size);
+   for (size_t i = 0; i < size; ++i) {
+      if (i + 1 < size && sequence[i] == '\\') {
+         ++i;
+      }
+      auto symbol = SymbolType::charToSymbol(sequence[i]);
+      if (symbol == std::nullopt) {
+         throw InsertionException(
+            fmt::format("Illegal nucleotide character '{}' in insertion: {}", sequence[i], sequence)
+         );
+      }
+      result.emplace_back(*symbol);
+   }
+   return result;
+}
+
+template <typename SymbolType>
 std::vector<std::array<typename SymbolType::Symbol, 3>> extractThreeMers(
    const std::string& search_pattern
 ) {
    std::unordered_set<std::array<typename SymbolType::Symbol, 3>, ThreeMerHash<SymbolType>> result;
    for (const auto& continuous_string : splitBy(search_pattern, REGEX_ANY)) {
-      auto continuous_symbols = SymbolType::stringToSymbolVector(continuous_string);
-      if (continuous_symbols == std::nullopt) {
-         const auto illegal_nuc_char = SymbolType::findIllegalChar(continuous_string);
-         throw std::runtime_error(
-            "Wrong symbol '" +
-            (illegal_nuc_char.has_value() ? std::to_string(*illegal_nuc_char) : "Internal Error") +
-            "' in pattern: " + search_pattern
-         );
-      }
-      for (size_t i = 0; (i + 2) < continuous_string.size(); i += 3) {
+      auto continuous_symbols = stringToSymbolVector<SymbolType>(continuous_string);
+      for (size_t i = 0; (i + 2) < continuous_symbols.size(); i += 3) {
          const std::array<typename SymbolType::Symbol, 3> three_mer{
-            continuous_symbols->at(i), continuous_symbols->at(i + 1), continuous_symbols->at(i + 2)
+            continuous_symbols.at(i), continuous_symbols.at(i + 1), continuous_symbols.at(i + 2)
          };
          result.insert(three_mer);
       }
@@ -152,16 +164,7 @@ void InsertionPosition<Nucleotide>::buildThreeMerIndex() {
          continue;
       }
 
-      const auto opt_nuc_symbol_ids = Nucleotide::stringToSymbolVector(insertion_value);
-      if (opt_nuc_symbol_ids == std::nullopt) {
-         const auto illegal_nuc_char = Nucleotide::findIllegalChar(insertion_value);
-         throw preprocessing::PreprocessingException(
-            "Illegal nucleotide character '" +
-            (illegal_nuc_char.has_value() ? std::to_string(*illegal_nuc_char) : "Internal Error") +
-            "' in insertion: " + insertion_value
-         );
-      }
-      const auto& nuc_symbol_ids = *opt_nuc_symbol_ids;
+      const auto nuc_symbol_ids = stringToSymbolVector<Nucleotide>(insertion_value);
 
       ThreeMersBitset unique_three_mers{};
       for (size_t i = 0; i < (nuc_symbol_ids.size() - 2); ++i) {
@@ -193,16 +196,7 @@ void InsertionPosition<AminoAcid>::buildThreeMerIndex() {
          continue;
       }
 
-      const auto opt_aa_symbol_ids = AminoAcid::stringToSymbolVector(insertion_value);
-      if (opt_aa_symbol_ids == std::nullopt) {
-         const auto illegal_aa_char = AminoAcid::findIllegalChar(insertion_value);
-         throw preprocessing::PreprocessingException(
-            "Illegal amino acid character '" +
-            (illegal_aa_char.has_value() ? std::to_string(*illegal_aa_char) : "Internal Error") +
-            "' in insertion: " + insertion_value
-         );
-      }
-      const auto& aa_symbol_ids = *opt_aa_symbol_ids;
+      const auto aa_symbol_ids = stringToSymbolVector<AminoAcid>(insertion_value);
 
       ThreeMersBitset unique_three_mers{};
       for (size_t i = 0; i < (aa_symbol_ids.size() - 2); ++i) {
