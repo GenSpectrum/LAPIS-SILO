@@ -24,7 +24,7 @@ class ActiveDatabase {
 
    void setActiveDatabase(silo::Database&& new_database);
 
-   std::shared_ptr<silo::Database> getActiveDatabase();
+   std::shared_ptr<const silo::Database> getActiveDatabase();
 };
 
 }  // namespace silo::api

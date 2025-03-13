@@ -1,7 +1,8 @@
 #include "silo/query_engine/filter/operators/full.h"
 
 #include <gtest/gtest.h>
-#include <roaring/roaring.hh>
+
+#include "external/roaring_include_wrapper.h"
 
 using silo::query_engine::filter::operators::Full;
 

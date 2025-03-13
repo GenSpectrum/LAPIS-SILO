@@ -1,57 +1,65 @@
 #include "silo/api/api.h"
 
-#include <Poco/Net/HTTPServer.h>
-#include <Poco/Net/HTTPServerParams.h>
-#include <Poco/Net/ServerSocket.h>
+#include <crow.h>
 #include <spdlog/spdlog.h>
 
 #include "silo/api/active_database.h"
+#include "silo/api/crow_spdlog_adapter.h"
 #include "silo/api/database_directory_watcher.h"
+#include "silo/api/info_handler.h"
+#include "silo/api/lineage_definition_handler.h"
+#include "silo/api/logging_request_middleware.h"
+#include "silo/api/query_handler.h"
 #include "silo/api/request_handler_factory.h"
+#include "silo/api/request_id_middleware.h"
 
 namespace silo::api {
 
 int Api::runApi(const silo::config::RuntimeConfig& runtime_config) {
    SPDLOG_INFO("Starting SILO API");
+   CrowSpdlogAdapter logger;
+   crow::logger::setHandler(&logger);
+   crow::logger::setLogLevel(crow::LogLevel::CRITICAL);
 
-   const Poco::Net::ServerSocket server_socket(runtime_config.api_options.port);
+   auto active_database = std::make_shared<ActiveDatabase>();
 
-   auto* const poco_parameter = new Poco::Net::HTTPServerParams;
+   silo::api::DatabaseDirectoryWatcher watcher(runtime_config.data_directory, active_database);
+   watcher.start();
 
-   SPDLOG_INFO("Using {} queued http connections", runtime_config.api_options.max_connections);
-   poco_parameter->setMaxQueued(runtime_config.api_options.max_connections);
+   crow::App<RequestIdMiddleware, LoggingRequestMiddleware> app;
 
-   SPDLOG_INFO(
-      "Using {} threads for http connections", runtime_config.api_options.parallel_threads
-   );
-   poco_parameter->setMaxThreads(runtime_config.api_options.parallel_threads);
+   //   if (path == "/info") {
+   //      return std::make_unique<silo::api::InfoHandler>(database);
+   //   }
+   //   if (segments.size() == 2 && segments.at(0) == "lineageDefinition") {
+   //      return std::make_unique<silo::api::LineageDefinitionHandler>(database, segments.at(1));
+   //   }
+   //   if (path == "/query") {
+   //      return std::make_unique<silo::api::QueryHandler>(database);
+   //   }
+   //   return std::make_unique<silo::api::NotFoundHandler>();
+   CROW_ROUTE(app, "/info")
+   ([&](crow::request& request, crow::response& response) {
+      InfoHandler::get(active_database->getActiveDatabase(), request, response);
+   });
 
-   // For better profiling, we do not want requests to allocate new threads in the thread pool.
-   // Instead, just allocate all of them directly on start-up (by setting minCapacity)
-   Poco::ThreadPool thread_pool(
-      /* minCapacity = */ runtime_config.api_options.parallel_threads,
-      /* maxCapacity = */ runtime_config.api_options.parallel_threads
-   );
+   CROW_ROUTE(app, "/lineageDefinition/<string>")
+   ([&](crow::request& request, crow::response& response, const std::string& column_name) {
+      LineageDefinitionHandler::get(
+         active_database->getActiveDatabase(), request, response, column_name
+      );
+   });
 
-   auto database = std::make_shared<ActiveDatabase>();
+   CROW_ROUTE(app, "/query")
+      .methods(crow::HTTPMethod::POST)([&](crow::request& request, crow::response& response) {
+         QueryHandler::post(active_database->getActiveDatabase(), request, response);
+      });
 
-   auto silo_request_handler_factory =
-      std::make_unique<silo::api::SiloRequestHandlerFactory>(runtime_config, database);
+   app.bindaddr("127.0.0.1").port(runtime_config.api_options.port).concurrency(4).run();
 
-   const silo::api::DatabaseDirectoryWatcher watcher(runtime_config.data_directory, database);
+   watcher.stop();
 
-   // HTTPServer will erase the memory of the request_handler, therefore we call `release`
-   Poco::Net::HTTPServer server(
-      silo_request_handler_factory.release(), thread_pool, server_socket, poco_parameter
-   );
-
-   SPDLOG_INFO("Listening on port {}", runtime_config.api_options.port);
-
-   server.start();
-   waitForTerminationRequest();
-   server.stop();
-
-   return Application::EXIT_OK;
+   return 0;
 }
 
 }  // namespace silo::api

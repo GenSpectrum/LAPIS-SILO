@@ -1,26 +1,5 @@
 #pragma once
 
-#include <Poco/Net/HTTPRequestHandler.h>
-#include <Poco/Net/HTTPServerRequest.h>
-#include <Poco/Net/HTTPServerResponse.h>
+#include <crow.h>
 
-namespace silo::api {
-
-class RestResource : public Poco::Net::HTTPRequestHandler {
-   void handleRequest(
-      Poco::Net::HTTPServerRequest& request,
-      Poco::Net::HTTPServerResponse& response
-   ) override;
-
-   [[maybe_unused]] virtual void get(
-      Poco::Net::HTTPServerRequest& request,
-      Poco::Net::HTTPServerResponse& response
-   );
-
-   [[maybe_unused]] virtual void post(
-      Poco::Net::HTTPServerRequest& request,
-      Poco::Net::HTTPServerResponse& response
-   );
-};
-
-};  // namespace silo::api
+namespace silo::api {};  // namespace silo::api
