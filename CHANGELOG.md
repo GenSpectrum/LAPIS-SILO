@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.7](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.5.6...v0.5.7) (2025-03-17)
+
+
+### Bug Fixes
+
+* correctly expect an escaped stop codon in requests ([9b3c27a](https://github.com/GenSpectrum/LAPIS-SILO/commit/9b3c27aa3f66b503671360fbf8ef2b74f877c3b9))
+
 ## [0.5.6](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.5.5...v0.5.6) (2025-02-27)
 
 
