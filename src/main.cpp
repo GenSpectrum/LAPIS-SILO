@@ -22,44 +22,43 @@ namespace {
 /// Does not throw exceptions
 int runInitializer(const silo::config::InitializeConfig& initialize_config) {
    // TODO (#656): move body of siloPreprocessing to preprocessing.{h,cpp} #656
-   try {
-      auto database_config = silo::config::DatabaseConfig::getValidatedConfigFromFile(
-         initialize_config.getDatabaseConfigFilename()
+   //   try {
+   auto database_config = silo::config::DatabaseConfig::getValidatedConfigFromFile(
+      initialize_config.getDatabaseConfigFilename()
+   );
+
+   SPDLOG_INFO("preprocessing - reading reference genome");
+   const auto reference_genomes =
+      silo::ReferenceGenomes::readFromFile(initialize_config.getReferenceGenomeFilename());
+
+   silo::common::LineageTreeAndIdMap lineage_definitions;
+   if (auto lineage_file_name = initialize_config.getLineageDefinitionsFilename()) {
+      SPDLOG_INFO(
+         "preprocessing - read and verify the lineage tree '{}'", lineage_file_name.value().string()
       );
-
-      SPDLOG_INFO("preprocessing - reading reference genome");
-      const auto reference_genomes =
-         silo::ReferenceGenomes::readFromFile(initialize_config.getReferenceGenomeFilename());
-
-      silo::common::LineageTreeAndIdMap lineage_definitions;
-      if (auto lineage_file_name = initialize_config.getLineageDefinitionsFilename()) {
-         SPDLOG_INFO(
-            "preprocessing - read and verify the lineage tree '{}'",
-            lineage_file_name.value().string()
+      lineage_definitions =
+         silo::common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(lineage_file_name.value()
          );
-         lineage_definitions = silo::common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(
-            lineage_file_name.value()
-         );
-      }
-
-      auto initializer = silo::initialize::Initializer(
-         initialize_config, database_config, reference_genomes, std::move(lineage_definitions)
-      );
-      auto database = initializer.initialize();
-
-      database.saveDatabaseState(initialize_config.output_directory);
-      return 0;
-   } catch (const silo::preprocessing::PreprocessingException& preprocessing_exception) {
-      SPDLOG_ERROR("Preprocessing Error: {}", preprocessing_exception.what());
-      return 1;
-   } catch (const std::runtime_error& error) {
-      SPDLOG_ERROR("Internal Error: {}", error.what());
-      return 1;
    }
+
+   auto initializer = silo::initialize::Initializer(
+      initialize_config, database_config, reference_genomes, std::move(lineage_definitions)
+   );
+   auto database = initializer.initialize();
+
+   database.saveDatabaseState(initialize_config.output_directory);
+   return 0;
+   //   } catch (const silo::preprocessing::PreprocessingException& preprocessing_exception) {
+   //      SPDLOG_ERROR("Preprocessing Error: {}", preprocessing_exception.what());
+   //      return 1;
+   //   }
 }
 
 int runPreprocessor(const silo::config::PreprocessingConfig& preprocessing_config) {
    int return_code_1 = runInitializer(preprocessing_config.initialize_config);
+   if (return_code_1 != 0) {
+      return return_code_1;
+   }
 
    auto append_config = silo::config::AppendConfig::withDefaults();
    append_config.silo_directory = preprocessing_config.initialize_config.output_directory;
@@ -183,10 +182,10 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
 }  // namespace
 
 int main(int argc, char** argv) {
-   try {
-      return mainWhichMayThrowExceptions(argc, argv);
-   } catch (const std::runtime_error& error) {
-      SPDLOG_ERROR("Internal Error: {}", error.what());
-      return 2;
-   }
+   //   try {
+   return mainWhichMayThrowExceptions(argc, argv);
+   //   } catch (const std::runtime_error& error) {
+   //      SPDLOG_ERROR("Internal Error: {}", error.what());
+   //      return 2;
+   //   }
 }

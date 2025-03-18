@@ -13,17 +13,18 @@
 #include <duckdb/main/connection.hpp>
 #include <roaring/roaring.hh>
 
+#include "insertion_index.h"
+#include "position.h"
 #include "silo/common/aa_symbols.h"
 #include "silo/common/format_number.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/symbol_map.h"
 #include "silo/common/table_reader.h"
-#include "silo/storage/insertion_index.h"
-#include "silo/storage/position.h"
+#include "silo/storage/reference_genomes.h"
 
-namespace silo {
+namespace silo::storage::column {
 
-struct SequenceStoreInfo {
+struct SequenceColumnInfo {
    uint32_t sequence_count;
    uint64_t size;
    size_t n_bitmaps_size;
@@ -43,9 +44,43 @@ struct ReadSequence {
 };
 
 template <typename SymbolType>
-class SequenceStorePartition {
-   friend class boost::serialization::access;
+class SequenceColumnMetadata : public CM {
+  public:
+   std::vector<typename SymbolType::Symbol> reference_sequence;
 
+   explicit SequenceColumnMetadata(
+      std::string column_name,
+      std::vector<typename SymbolType::Symbol>&& reference_sequence
+   );
+
+   YAML::Node toYAML() {
+      YAML::Node yaml_node;
+      yaml_node["referenceSequence"] =
+         ReferenceGenomes::vectorToString<SymbolType>(reference_sequence);
+      return yaml_node;
+   }
+
+   static std::shared_ptr<SequenceColumnMetadata<SymbolType>> fromYAML(
+      std::string column_name,
+      const YAML::Node& yaml_node
+   ) {
+      std::string reference_sequence_string = yaml_node["referenceSequence"].as<std::string>();
+      return std::make_shared<SequenceColumnMetadata<SymbolType>>(
+         std::move(column_name),
+         silo::ReferenceGenomes::stringToVector<SymbolType>(reference_sequence_string)
+      );
+   }
+};
+
+template <typename SymbolType>
+class SequenceColumnPartition {
+  public:
+   using Metadata = SequenceColumnMetadata<SymbolType>;
+
+   static constexpr schema::ColumnType TYPE = SymbolType::COLUMN_TYPE;
+
+  private:
+   friend class boost::serialization::access;
    template <class Archive>
    void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
@@ -60,7 +95,7 @@ class SequenceStorePartition {
    }
 
   public:
-   const std::vector<typename SymbolType::Symbol>& reference_sequence;
+   SequenceColumnMetadata<SymbolType>* metadata;
    std::vector<std::pair<size_t, typename SymbolType::Symbol>>
       indexing_differences_to_reference_sequence;
    std::vector<Position<SymbolType>> positions;
@@ -72,7 +107,7 @@ class SequenceStorePartition {
    static constexpr size_t BUFFER_SIZE = 1024;
    std::vector<ReadSequence> lazy_buffer;
 
-   void fillIndexes(const std::vector<ReadSequence>& reads);
+   void fillIndexes();
 
    void addSymbolsToPositions(
       size_t position_idx,
@@ -80,16 +115,14 @@ class SequenceStorePartition {
       size_t number_of_sequences
    );
 
-   void fillNBitmaps(const std::vector<ReadSequence>& reads);
+   void fillNBitmaps();
 
    void optimizeBitmaps();
 
-   void flushBuffer(const std::vector<ReadSequence>& reads);
+   void flushBuffer();
 
   public:
-   explicit SequenceStorePartition(
-      const std::vector<typename SymbolType::Symbol>& reference_sequence
-   );
+   explicit SequenceColumnPartition(Metadata* metadata);
 
    [[nodiscard]] size_t computeSize() const;
 
@@ -98,34 +131,22 @@ class SequenceStorePartition {
       typename SymbolType::Symbol symbol
    ) const;
 
-   [[nodiscard]] SequenceStoreInfo getInfo() const;
+   [[nodiscard]] SequenceColumnInfo getInfo() const;
 
    ReadSequence& appendNewSequenceRead();
 
-   void insertInsertion(size_t row_id, const std::string& insertion_and_position);
+   void appendInsertion(const std::string& insertion_and_position);
 
    void finalize();
 };
-
-template <typename SymbolType>
-class SequenceStore {
-  public:
-   std::vector<typename SymbolType::Symbol> reference_sequence;
-   std::deque<SequenceStorePartition<SymbolType>> partitions;
-
-   explicit SequenceStore(std::vector<typename SymbolType::Symbol>&& reference_sequence);
-
-   SequenceStorePartition<SymbolType>& createPartition();
-};
-
-}  // namespace silo
+}  // namespace silo::storage::column
 
 template <>
-class [[maybe_unused]] fmt::formatter<silo::SequenceStoreInfo> {
+class [[maybe_unused]] fmt::formatter<silo::storage::column::SequenceColumnInfo> {
   public:
    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
    [[maybe_unused]] static auto format(
-      const silo::SequenceStoreInfo& sequence_store_info,
+      const silo::storage::column::SequenceColumnInfo& sequence_store_info,
       format_context& ctx
    ) -> decltype(ctx.out());
 };

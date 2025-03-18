@@ -8,7 +8,7 @@
 #include "silo/database.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
-#include "silo/storage/database_partition.h"
+#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -20,7 +20,7 @@ class True : public Expression {
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::filter::operators::Operator> compile(
       const Database& database,
-      const DatabasePartition& database_partition,
+      const storage::TablePartition& database_partition,
       AmbiguityMode mode
    ) const override;
 };

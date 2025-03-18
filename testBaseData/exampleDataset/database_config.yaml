@@ -28,4 +28,3 @@ schema:
       type: boolean
   primaryKey: gisaid_epi_isl
   dateToSortBy: date
-defaultNucleotideSequence: "main"

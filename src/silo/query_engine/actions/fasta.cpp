@@ -46,8 +46,8 @@ namespace silo::query_engine::actions {
 Fasta::Fasta(std::vector<std::string>&& sequence_names)
     : sequence_names(sequence_names) {}
 
-void Fasta::validateOrderByFields(const Database& database) const {
-   const std::string& primary_key_field = database.database_config.schema.primary_key;
+void Fasta::validateOrderByFields(const schema::TableSchema& schema) const {
+   const std::string& primary_key_field = schema.primary_key.name;
    for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
          field.name == primary_key_field ||
@@ -68,14 +68,14 @@ namespace {
 /// Build SQL statement to retrieve all the entries as rows.
 std::string getTableQuery(
    const std::vector<std::string>& sequence_names,
-   const DatabasePartition& database_partition,
+   const storage::TablePartition& table_partition,
    const std::string& key_table_name
 ) {
    std::vector<std::filesystem::path> read_file_sqls;
    read_file_sqls.reserve(sequence_names.size());
    for (const auto& sequence_name : sequence_names) {
       read_file_sqls.emplace_back(
-         database_partition.unaligned_nuc_sequences.at(sequence_name).getReadSQL()
+         table_partition.columns.unaligned_nuc_sequences.at(sequence_name).getReadSQL()
       );
    }
 
@@ -104,14 +104,15 @@ void addSequencesFromResultTableToJson(
    duckdb::Connection& connection,
    const std::string& result_table_name,
    const std::vector<std::string>& sequence_names,
-   const DatabasePartition& database_partition,
+   const storage::TablePartition& database_partition,
    const std::string& primary_key_column,
    size_t num_result_rows
 ) {
    for (size_t sequence_idx = 0; sequence_idx < sequence_names.size(); sequence_idx++) {
       const std::string& sequence_name = sequence_names.at(sequence_idx);
       const std::string_view compression_dict =
-         database_partition.unaligned_nuc_sequences.at(sequence_name).compression_dictionary;
+         database_partition.columns.unaligned_nuc_sequences.at(sequence_name)
+            .compression_dictionary;
       silo::ZstdTableReader table_reader(
          connection,
          result_table_name,
@@ -150,7 +151,7 @@ void addSequencesFromResultTableToJson(
 uint32_t addSequencesToResultsForPartition(
    std::vector<std::string>& sequence_names,
    std::vector<QueryResultEntry>& results,
-   const DatabasePartition& database_partition,
+   const storage::TablePartition& database_partition,
    const CopyOnWriteBitmap& bitmap,
    const std::string& primary_key_column,
    size_t num_result_rows
@@ -268,7 +269,7 @@ QueryResult Fasta::execute(const Database& database, std::vector<CopyOnWriteBitm
                                       // `fasta_aligned.cpp`.
                                       current_partition](std::vector<QueryResultEntry>& results
                                      ) mutable {
-      for (; current_partition < database.getNumberOfPartitions();
+      for (; current_partition < database.table.getNumberOfPartitions();
            ++current_partition, remaining_result_row_indices = {}) {
          auto& bitmap = bitmap_filter[current_partition];
          if (!remaining_result_row_indices.has_value()) {
@@ -285,17 +286,17 @@ QueryResult Fasta::execute(const Database& database, std::vector<CopyOnWriteBitm
             SPDLOG_TRACE(
                "Fasta::execute: refill QueryResult for partition_index {}/{}, {}",
                current_partition,
-               database.getNumberOfPartitions(),
+               database.table.getNumberOfPartitions(),
                result_row_indices.toString()
             );
-            const std::string& primary_key_column = database.database_config.schema.primary_key;
-            const auto& database_partition = database.getPartition(current_partition);
+            const std::string& primary_key_column = database.table.schema.primary_key.name;
+            const auto& table_partition = database.table.getPartition(current_partition);
 
             results.resize(result_row_indices.size());
             const uint32_t last_row_id = addSequencesToResultsForPartition(
                sequence_names,
                results,
-               database_partition,
+               table_partition,
                bitmap,
                primary_key_column,
                result_row_indices.size()

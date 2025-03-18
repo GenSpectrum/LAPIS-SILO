@@ -42,26 +42,29 @@ std::shared_ptr<silo::Database> buildTestDatabase() {
    }
 
    auto database = std::make_shared<silo::Database>(
-      silo::Database{std::move(database_config), std::move(lineage_tree), {}, {}, {}, {}}
+      silo::Database{silo::initialize::Initializer::createSchemaFromConfigFiles(
+         std::move(database_config), std::move(reference_genomes), std::move(lineage_tree)
+      )}
    );
 
+   {
+      silo::TableInserter table_inserter(&database->table);
+      silo::TablePartitionInserter partition_inserter = table_inserter.openNewPartition();
 
-   silo::DatabaseInserter database_inserter(database);
-   silo::DatabasePartitionInserter partition_inserter = database_inserter.openNewPartition();
+      std::ifstream input(input_directory / "input.ndjson");
 
-   std::ifstream input(input_directory / "input.ndjson");
+      std::string line;
+      size_t count = 0;
+      while (std::getline(input, line)) {  // Read file line by line
+         if (line.empty())
+            continue;  // Skip empty lines
 
-   std::string line;
-   size_t count = 0;
-   while (std::getline(input, line)) {  // Read file line by line
-      if (line.empty())
-         continue;  // Skip empty lines
+         SPDLOG_INFO("Inserting line {}", count++);
 
-      SPDLOG_INFO("Inserting line {}", count++);
+         nlohmann::json json_obj = nlohmann::json::parse(line);
 
-      nlohmann::json json_obj = nlohmann::json::parse(line);
-
-      partition_inserter.insert(json_obj);
+         partition_inserter.insert(json_obj);
+      }
    }
    return database;
 }
@@ -74,51 +77,16 @@ TEST(DatabaseTest, shouldBuildDatabaseWithoutErrors) {
 
    EXPECT_GT(simple_database_info.total_size, 0);
    EXPECT_EQ(simple_database_info.sequence_count, 5);
-   EXPECT_EQ(simple_database_info.number_of_partitions, 2);
+   EXPECT_EQ(simple_database_info.number_of_partitions, 1);
 }
-
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(DatabaseTest, shouldReturnCorrectDatabaseInfo) {
    auto database{buildTestDatabase()};
 
-   const auto detailed_info = database->detailedDatabaseInfo().sequences.at("main");
    const auto simple_info = database->getDatabaseInfo();
 
-   EXPECT_EQ(
-      detailed_info.bitmap_size_per_symbol.size_in_bytes.at(silo::Nucleotide::Symbol::A), 148
-   );
-   EXPECT_EQ(
-      detailed_info.bitmap_size_per_symbol.size_in_bytes.at(silo::Nucleotide::Symbol::GAP), 128
-   );
-
-   EXPECT_EQ(
-      detailed_info.bitmap_container_size_per_genome_section.bitmap_container_size_statistic
-         .number_of_bitset_containers,
-      0
-   );
-   EXPECT_EQ(
-      detailed_info.bitmap_container_size_per_genome_section.bitmap_container_size_statistic
-         .number_of_values_stored_in_run_containers,
-      0
-   );
-   EXPECT_EQ(
-      detailed_info.bitmap_container_size_per_genome_section.bitmap_container_size_statistic
-         .total_bitmap_size_bitset_containers,
-      0
-   );
-
-   EXPECT_EQ(
-      detailed_info.bitmap_container_size_per_genome_section.total_bitmap_size_computed, 2108
-   );
-   EXPECT_EQ(detailed_info.bitmap_container_size_per_genome_section.total_bitmap_size_frozen, 1066);
-   EXPECT_EQ(
-      detailed_info.bitmap_container_size_per_genome_section.bitmap_container_size_statistic
-         .total_bitmap_size_array_containers,
-      12
-   );
-
-   EXPECT_EQ(simple_info.total_size, 1956);
+   EXPECT_EQ(simple_info.total_size, 996);
    EXPECT_EQ(simple_info.sequence_count, 5);
    EXPECT_EQ(simple_info.n_bitmaps_size, 62);
 }
@@ -137,7 +105,8 @@ TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
 
    first_database->saveDatabaseState(directory);
 
-   silo::SiloDataSource data_source = silo::SiloDataSource::checkValidDataSource(directory / data_version_timestamp.value).value();
+   silo::SiloDataSource data_source =
+      silo::SiloDataSource::checkValidDataSource(directory / data_version_timestamp.value).value();
 
    auto database = silo::Database::loadDatabaseState(data_source);
 
@@ -146,5 +115,5 @@ TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
    EXPECT_GT(simple_database_info.total_size, 0);
    EXPECT_EQ(simple_database_info.sequence_count, 5);
    EXPECT_GT(simple_database_info.n_bitmaps_size, 0);
-   EXPECT_EQ(simple_database_info.number_of_partitions, 2);
+   EXPECT_EQ(simple_database_info.number_of_partitions, 1);
 }

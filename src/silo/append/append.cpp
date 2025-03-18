@@ -72,21 +72,14 @@ silo::DataVersion getDataVersionFromStringOrMineNewDataVersion(
    return silo::DataVersion::mineDataVersion();
 }
 
-}  // namespace
-
-int runAppend(const silo::config::AppendConfig& append_config) {
-   silo::SiloDirectory silo_directory{append_config.silo_directory};
-
-   silo::SiloDataSource database_state_directory =
-      getMostRecentOrSpecifiedDatabaseState(silo_directory, append_config.silo_data_source);
-
-   std::shared_ptr<Database> database =
-      std::make_shared<Database>(Database::loadDatabaseState(database_state_directory));
-
-   silo::DatabaseInserter database_inserter(database);
+void appendDataToTable(
+   silo::storage::Table& table,
+   const silo::config::AppendConfig& append_config
+) {
+   silo::TableInserter table_inserter(&table);
 
    // TODO make partition configurable
-   silo::DatabasePartitionInserter partition_inserter = database_inserter.openNewPartition();
+   silo::TablePartitionInserter partition_inserter = table_inserter.openNewPartition();
 
    std::unique_ptr<std::istream> input = openInputFileOrStdIn(append_config.append_file);
 
@@ -104,11 +97,24 @@ int runAppend(const silo::config::AppendConfig& append_config) {
 
          partition_inserter.insert(json_obj);
 
-      } catch (const std::exception& e) {
+      } catch (const nlohmann::json::parse_error& e) {
          std::cerr << "Error parsing JSON: " << e.what() << std::endl;
-         return 1;
       }
    }
+}
+
+}  // namespace
+
+int runAppend(const silo::config::AppendConfig& append_config) {
+   silo::SiloDirectory silo_directory{append_config.silo_directory};
+
+   silo::SiloDataSource database_state_directory =
+      getMostRecentOrSpecifiedDatabaseState(silo_directory, append_config.silo_data_source);
+
+   std::shared_ptr<Database> database =
+      std::make_shared<Database>(Database::loadDatabaseState(database_state_directory));
+
+   appendDataToTable(database->table, append_config);
 
    const silo::DataVersion data_version =
       getDataVersionFromStringOrMineNewDataVersion(append_config.data_version);

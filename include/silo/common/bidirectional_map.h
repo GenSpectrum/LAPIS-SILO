@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include <boost/serialization/access.hpp>
+#include <yaml-cpp/yaml.h>
 
 #include "silo/common/types.h"
 
@@ -15,16 +15,6 @@ namespace silo::common {
 
 template <typename V>
 class BidirectionalMap {
-   friend class boost::serialization::access;
-
-   template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
-      // clang-format off
-      archive & value_to_id;
-      archive & id_to_value;
-      // clang-format on
-   }
-
    std::vector<V> id_to_value;
    std::unordered_map<V, Idx> value_to_id;
 
@@ -71,6 +61,22 @@ class BidirectionalMap {
       id_to_value.push_back(value);
       value_to_id[value] = identifier;
       return identifier;
+   }
+
+   static BidirectionalMap fromYAML(const YAML::Node& yaml_node) {
+      BidirectionalMap result;
+      for (const auto& value : yaml_node) {
+         (void)result.getOrCreateId(value.as<V>());
+      }
+      return result;
+   }
+
+   YAML::Node toYAML() const {
+      YAML::Node yaml_node{YAML::NodeType::Sequence};
+      for (const auto& value : id_to_value) {
+         yaml_node.push_back(YAML::Node{value});
+      }
+      return yaml_node;
    }
 };
 

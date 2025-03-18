@@ -8,8 +8,8 @@
 #include "silo/config/initialize_config.h"
 #include "silo/database.h"
 #include "silo/preprocessing/validated_ndjson_file.h"
+#include "silo/storage/column/sequence_column.h"
 #include "silo/storage/reference_genomes.h"
-#include "silo/storage/sequence_store.h"
 #include "silo/zstd/zstd_decompressor.h"
 
 namespace silo::initialize {
@@ -30,8 +30,10 @@ class Initializer {
 
    Database initialize();
 
-  private:
-   void finalizeConfig();
-   void validateConfig();
+   static silo::schema::DatabaseSchema createSchemaFromConfigFiles(
+      config::DatabaseConfig database_config,
+      ReferenceGenomes reference_genomes,
+      common::LineageTreeAndIdMap lineage_tree
+   );
 };
 }  // namespace silo::initialize

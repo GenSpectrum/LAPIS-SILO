@@ -17,7 +17,7 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/threshold.h"
 #include "silo/query_engine/filter/operators/union.h"
-#include "silo/storage/database_partition.h"
+#include "silo/storage/table_partition.h"
 
 namespace {
 
@@ -184,7 +184,7 @@ std::tuple<
    int>
 NOf::mapChildExpressions(
    const silo::Database& database,
-   const silo::DatabasePartition& database_partition,
+   const storage::TablePartition& database_partition,
    AmbiguityMode mode
 ) const {
    std::vector<std::unique_ptr<operators::Operator>> child_operators;
@@ -223,8 +223,8 @@ NOf::mapChildExpressions(
 }
 
 std::unique_ptr<operators::Operator> NOf::rewriteNonExact(
-   const silo::Database& database,
-   const silo::DatabasePartition& database_partition,
+   const Database& database,
+   const storage::TablePartition& database_partition,
    Expression::AmbiguityMode mode
 ) const {
    std::vector<std::unique_ptr<operators::Operator>> at_least_k;
@@ -263,8 +263,8 @@ std::unique_ptr<operators::Operator> NOf::rewriteNonExact(
 }
 
 std::unique_ptr<operators::Operator> NOf::compile(
-   const silo::Database& database,
-   const silo::DatabasePartition& database_partition,
+   const Database& database,
+   const storage::TablePartition& database_partition,
    Expression::AmbiguityMode mode
 ) const {
    auto [non_negated_child_operators, negated_child_operators, updated_number_of_matchers] =

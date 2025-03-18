@@ -1,4 +1,4 @@
-#include "silo/storage/unaligned_sequence_store.h"
+#include "silo/storage/column/unaligned_sequence_store.h"
 
 #include <array>
 #include <string>
