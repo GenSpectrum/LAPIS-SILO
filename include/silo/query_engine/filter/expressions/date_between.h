@@ -13,7 +13,7 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/range_selection.h"
 #include "silo/storage/column/date_column.h"
-#include "silo/storage/database_partition.h"
+#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -40,7 +40,7 @@ class DateBetween : public Expression {
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::filter::operators::Operator> compile(
       const Database& database,
-      const DatabasePartition& database_partition,
+      const storage::TablePartition& database_partition,
       AmbiguityMode mode
    ) const override;
 };

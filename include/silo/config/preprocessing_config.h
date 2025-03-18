@@ -21,8 +21,9 @@ class PreprocessingConfig {
    friend class fmt::formatter<silo::config::PreprocessingConfig>;
 
   public:
-   InitializeConfig initialize_config;
+   InitializationFiles initialization_files;
    std::optional<std::filesystem::path> input_file;
+   std::filesystem::path output_directory;
 
    /// Create PreprocessingConfig with all default values from the specification
    static PreprocessingConfig withDefaults();
@@ -38,7 +39,9 @@ class PreprocessingConfig {
       const VerifiedConfigAttributes& env_source
    );
 
-   NLOHMANN_DEFINE_TYPE_INTRUSIVE(PreprocessingConfig, initialize_config, input_file)
+   std::optional<std::filesystem::path> getInputFilePath() const;
+
+   NLOHMANN_DEFINE_TYPE_INTRUSIVE(PreprocessingConfig, initialization_files, input_file)
 };
 
 }  // namespace silo::config

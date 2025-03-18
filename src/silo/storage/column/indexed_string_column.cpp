@@ -9,21 +9,57 @@
 
 namespace silo::storage::column {
 
-IndexedStringColumnPartition::IndexedStringColumnPartition(
+IndexedStringColumnMetadata::IndexedStringColumnMetadata(
    std::string column_name,
-   common::BidirectionalMap<std::string>* lookup
+   common::LineageTreeAndIdMap lineage_tree_and_id_map
 )
-    : column_name(std::move(column_name)),
-      lookup(lookup) {}
+    : ColumnMetadata(std::move(column_name)),
+      dictionary(lineage_tree_and_id_map.lineage_id_lookup_map.copy()),
+      lineage_tree(std::move(lineage_tree_and_id_map)) {}
 
-IndexedStringColumnPartition::IndexedStringColumnPartition(
+IndexedStringColumnMetadata::IndexedStringColumnMetadata(
    std::string column_name,
-   common::BidirectionalMap<std::string>* lookup,
-   const common::LineageTree* lineage_tree
+   common::BidirectionalMap<std::string> dictionary,
+   common::LineageTreeAndIdMap lineage_tree_and_id_map
 )
-    : column_name(std::move(column_name)),
-      lineage_index(LineageIndex(lineage_tree)),
-      lookup(lookup) {}
+    : ColumnMetadata(std::move(column_name)),
+      dictionary(std::move(dictionary)),
+      lineage_tree(std::move(lineage_tree_and_id_map)) {}
+
+std::shared_ptr<IndexedStringColumnMetadata> IndexedStringColumnMetadata::fromYAML(
+   std::string column_name,
+   const YAML::Node& node
+) {
+   auto dictionary = common::BidirectionalMap<std::string>::fromYAML(node["dictionary"]);
+   if (node.IsDefined() && node["lineageTree"].IsDefined()) {
+      auto lineage_definition_file =
+         preprocessing::LineageDefinitionFile::fromYAML(node["lineageTree"]);
+      return std::make_shared<IndexedStringColumnMetadata>(
+         std::move(column_name),
+         std::move(dictionary),
+         common::LineageTreeAndIdMap::fromLineageDefinitionFile(std::move(lineage_definition_file))
+      );
+   }
+   return std::make_shared<IndexedStringColumnMetadata>(
+      std::move(column_name), std::move(dictionary)
+   );
+}
+
+YAML::Node IndexedStringColumnMetadata::toYAML() const {
+   YAML::Node yaml_node;
+   yaml_node["dictionary"] = dictionary.toYAML();
+   if (lineage_tree.has_value()) {
+      yaml_node["lineageTree"] = YAML::Load(lineage_tree.value().file);
+   }
+   return yaml_node;
+}
+
+IndexedStringColumnPartition::IndexedStringColumnPartition(IndexedStringColumnMetadata* metadata)
+    : metadata(metadata) {
+   if (metadata->lineage_tree.has_value()) {
+      lineage_index = LineageIndex{&metadata->lineage_tree->lineage_tree};
+   }
+}
 
 std::optional<const roaring::Roaring*> IndexedStringColumnPartition::filter(Idx value_id) const {
    if (indexed_values.contains(value_id)) {
@@ -35,7 +71,7 @@ std::optional<const roaring::Roaring*> IndexedStringColumnPartition::filter(Idx 
 std::optional<const roaring::Roaring*> IndexedStringColumnPartition::filter(
    const std::optional<std::string>& value
 ) const {
-   const auto& value_id = lookup->getId(value.value_or(""));
+   const auto& value_id = metadata->dictionary.getId(value.value_or(""));
    if (!value_id.has_value()) {
       return std::nullopt;
    }
@@ -46,26 +82,26 @@ void IndexedStringColumnPartition::insert(const std::string& value) {
    const size_t row_id = value_ids.size();
 
    if (lineage_index.has_value()) {
-      const auto value_id = lookup->getId(value);
+      const auto value_id = metadata->dictionary.getId(value);
       if (!value_id.has_value()) {
          throw silo::preprocessing::PreprocessingException(fmt::format(
             "The value '{}' is not a valid lineage value for column '{}'. "
             "Is your lineage definition file outdated?",
             value,
-            column_name
+            metadata->column_name
          ));
       }
       lineage_index->insert(row_id, value_id.value());
    }
 
-   const Idx value_id = lookup->getOrCreateId(value);
+   const Idx value_id = metadata->dictionary.getOrCreateId(value);
 
    indexed_values[value_id].add(row_id);
    value_ids.push_back(value_id);
 }
 
 void IndexedStringColumnPartition::insertNull() {
-   const Idx value_id = lookup->getOrCreateId("");
+   const Idx value_id = metadata->dictionary.getOrCreateId("");
 
    indexed_values[value_id].add(value_ids.size());
    value_ids.push_back(value_id);
@@ -80,36 +116,11 @@ const std::vector<silo::Idx>& IndexedStringColumnPartition::getValues() const {
 }
 
 std::optional<silo::Idx> IndexedStringColumnPartition::getValueId(const std::string& value) const {
-   return lookup->getId(value);
+   return metadata->dictionary.getId(value);
 }
 
 const std::optional<LineageIndex>& IndexedStringColumnPartition::getLineageIndex() const {
    return lineage_index;
-}
-
-IndexedStringColumn::IndexedStringColumn(std::string column_name)
-    : column_name(std::move(column_name)) {}
-
-IndexedStringColumn::IndexedStringColumn(
-   std::string column_name,
-   const common::LineageTreeAndIdMap& lineage_tree_and_id_map
-)
-    : column_name(std::move(column_name)) {
-   lineage_tree = lineage_tree_and_id_map.lineage_tree;
-   lookup = lineage_tree_and_id_map.lineage_id_lookup_map.copy();
-}
-
-IndexedStringColumnPartition& IndexedStringColumn::createPartition() {
-   if (lineage_tree.has_value()) {
-      return partitions.emplace_back(
-         IndexedStringColumnPartition{column_name, &lookup, &lineage_tree.value()}
-      );
-   }
-   return partitions.emplace_back(IndexedStringColumnPartition{column_name, &lookup});
-}
-
-bool IndexedStringColumn::hasLineageTree() const {
-   return lineage_tree.has_value();
 }
 
 }  // namespace silo::storage::column

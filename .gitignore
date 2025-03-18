@@ -4,7 +4,6 @@
 .DS_Store
 
 /logs/
-/test*
 
 # Conan
 conanprofile
@@ -74,4 +73,3 @@ conanprofile
 **/node_modules/
 
 
-/test*

@@ -3,6 +3,8 @@
 #include <filesystem>
 #include <vector>
 
+#include <yaml-cpp/yaml.h>
+
 #include "silo/common/lineage_name.h"
 
 namespace silo::preprocessing {
@@ -22,7 +24,9 @@ class LineageDefinitionFile {
 
    static LineageDefinitionFile fromYAMLFile(const std::filesystem::path& yaml_path);
 
-   static LineageDefinitionFile fromYAML(const std::string& yaml_string);
+   static LineageDefinitionFile fromYAMLString(const std::string& yaml_string);
+
+   static LineageDefinitionFile fromYAML(const YAML::Node& yaml_node);
 };
 
 }  // namespace silo::preprocessing

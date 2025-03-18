@@ -29,4 +29,3 @@ schema:
   primaryKey: primaryKey
   dateToSortBy: date
   partitionBy: pango_lineage
-defaultNucleotideSequence: "main"

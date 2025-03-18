@@ -10,7 +10,7 @@
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
-#include "silo/storage/database_partition.h"
+#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -23,7 +23,7 @@ std::string Negation::toString() const {
 
 std::unique_ptr<operators::Operator> Negation::compile(
    const silo::Database& database,
-   const silo::DatabasePartition& database_partition,
+   const storage::TablePartition& database_partition,
    AmbiguityMode mode
 ) const {
    auto child_operator = child->compile(database, database_partition, invertMode(mode));

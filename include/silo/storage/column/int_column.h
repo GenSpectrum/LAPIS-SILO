@@ -7,54 +7,41 @@
 
 #include <boost/serialization/access.hpp>
 
+#include "silo/schema/database_schema.h"
+#include "silo/storage/column/column_metadata.h"
+
 namespace silo::storage::column {
 
 class IntColumnPartition {
-   friend class boost::serialization::access;
+  public:
+   using Metadata = ColumnMetadata;
+
+   static constexpr schema::ColumnType TYPE = schema::ColumnType::INT;
+
+   static int32_t null() { return INT32_MIN; }
 
   private:
+   friend class boost::serialization::access;
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      archive & column_name;
       archive & values;
       // clang-format on
    }
 
-   std::string column_name;
    std::vector<int32_t> values;
+   Metadata* metadata;
 
   public:
-   explicit IntColumnPartition(std::string column_name);
+   explicit IntColumnPartition(Metadata* metadata);
 
    [[nodiscard]] const std::vector<int32_t>& getValues() const;
 
-   void insert(const std::string& value);
+   void insert(int32_t value);
 
    void insertNull();
 
    void reserve(size_t row_count);
-};
-
-class IntColumn {
-   friend class boost::serialization::access;
-
-   template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
-      // clang-format off
-      archive & column_name;
-      // clang-format on
-   }
-
-   std::string column_name;
-   std::deque<IntColumnPartition> partitions;
-
-  public:
-   static int32_t null() { return INT32_MIN; }
-
-   explicit IntColumn(std::string column_name);
-
-   IntColumnPartition& createPartition();
 };
 
 }  // namespace silo::storage::column

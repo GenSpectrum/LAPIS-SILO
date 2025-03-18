@@ -10,10 +10,11 @@
 #include <fmt/format.h>
 #include <yaml-cpp/yaml.h>
 
+#include "silo/schema/database_schema.h"
+
 namespace silo::config {
 
 enum class ValueType { STRING, DATE, BOOL, INT, FLOAT };
-enum class ColumnType { STRING, INDEXED_STRING, DATE, BOOL, INT, FLOAT };
 
 ValueType toDatabaseValueType(std::string_view type);
 
@@ -24,7 +25,7 @@ class DatabaseMetadata {
    bool generate_index;
    bool generate_lineage_index;
 
-   [[nodiscard]] ColumnType getColumnType() const;
+   [[nodiscard]] schema::ColumnType getColumnType() const;
 };
 
 class DatabaseSchema {
@@ -32,8 +33,6 @@ class DatabaseSchema {
    std::string instance_name;
    std::vector<DatabaseMetadata> metadata;
    std::string primary_key;
-   std::optional<std::string> date_to_sort_by;
-   std::optional<std::string> partition_by;
 };
 
 class DatabaseConfig {

@@ -1,37 +1,21 @@
 #pragma once
 
-#include <optional>
-
 #include "silo/common/lineage_tree.h"
-#include "silo/common/table_reader.h"
 #include "silo/config/database_config.h"
 #include "silo/config/initialize_config.h"
 #include "silo/database.h"
-#include "silo/preprocessing/validated_ndjson_file.h"
 #include "silo/storage/reference_genomes.h"
-#include "silo/storage/sequence_store.h"
-#include "silo/zstd/zstd_decompressor.h"
 
 namespace silo::initialize {
 
 class Initializer {
-   config::InitializeConfig initialize_config;
-   config::DatabaseConfig database_config;
-   ReferenceGenomes reference_genomes;
-   common::LineageTreeAndIdMap lineage_tree;
-
   public:
-   Initializer(
-      config::InitializeConfig initialize_config_,
-      config::DatabaseConfig database_config_,
-      ReferenceGenomes reference_genomes_,
-      common::LineageTreeAndIdMap lineage_tree_
+   static Database initializeDatabase(const config::InitializationFiles& initialization_files);
+
+   static silo::schema::DatabaseSchema createSchemaFromConfigFiles(
+      config::DatabaseConfig database_config,
+      ReferenceGenomes reference_genomes,
+      common::LineageTreeAndIdMap lineage_tree
    );
-
-   Database initialize();
-
-  private:
-   void finalizeConfig();
-   void validateConfig();
 };
 }  // namespace silo::initialize

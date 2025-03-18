@@ -15,7 +15,7 @@
 #include "silo/query_engine/filter/expressions/symbol_equals.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/query_parse_sequence_name.h"
-#include "silo/storage/database_partition.h"
+#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -36,11 +36,11 @@ std::string HasMutation<SymbolType>::toString() const {
 template <typename SymbolType>
 std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
    const silo::Database& database,
-   const silo::DatabasePartition& database_partition,
+   const storage::TablePartition& table_partition,
    AmbiguityMode mode
 ) const {
    CHECK_SILO_QUERY(
-      sequence_name.has_value() || database.getDefaultSequenceName<SymbolType>().has_value(),
+      sequence_name.has_value() || database.table->schema.getDefaultSequenceName<SymbolType>(),
       fmt::format(
          "Database does not have a default sequence name for {} Sequences. "
          "You need to provide the sequence name with the {}Mutation filter.",
@@ -50,22 +50,25 @@ std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
    );
 
    const auto valid_sequence_name =
-      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, database);
+      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, database.table->schema);
 
    const auto& seq_store_partition =
-      database.getSequenceStores<SymbolType>().at(valid_sequence_name);
+      table_partition.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
 
+   auto column_metadata =
+      database.table->schema.getColumnMetadata<typename SymbolType::Column>(valid_sequence_name)
+         .value();
    CHECK_SILO_QUERY(
-      position_idx < seq_store_partition.reference_sequence.size(),
+      position_idx < column_metadata->reference_sequence.size(),
       fmt::format(
          "Has{}Mutation position is out of bounds {} > {}",
          SymbolType::SYMBOL_NAME,
          position_idx + 1,
-         seq_store_partition.reference_sequence.size()
+         seq_store_partition.metadata->reference_sequence.size()
       )
    )
 
-   auto ref_symbol = seq_store_partition.reference_sequence.at(position_idx);
+   auto ref_symbol = seq_store_partition.metadata->reference_sequence.at(position_idx);
 
    std::vector<typename SymbolType::Symbol> symbols =
       std::vector(SymbolType::SYMBOLS.begin(), SymbolType::SYMBOLS.end());
@@ -88,7 +91,7 @@ std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
          );
       }
    );
-   return Or(std::move(symbol_filters)).compile(database, database_partition, NONE);
+   return Or(std::move(symbol_filters)).compile(database, table_partition, NONE);
 }
 
 template <typename SymbolType>

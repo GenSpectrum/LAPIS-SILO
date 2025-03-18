@@ -25,14 +25,14 @@ namespace silo::query_engine::actions {
 
 struct OrderByField;
 
-size_t getTupleSize(const std::vector<silo::storage::ColumnMetadata>& metadata_list);
+size_t getTupleSize(const std::vector<silo::schema::ColumnIdentifier>& column_list);
 
 class Tuple {
    friend class TupleFactory;
 
    struct ComparatorField {
       size_t offset;
-      silo::storage::ColumnMetadata type;
+      silo::schema::ColumnIdentifier type;
       bool ascending;
    };
 
@@ -41,7 +41,7 @@ class Tuple {
    size_t data_size;
 
    static std::vector<ComparatorField> getCompareFields(
-      const std::vector<silo::storage::ColumnMetadata>& columns_metadata,
+      const std::vector<silo::schema::ColumnIdentifier>& columns_metadata,
       const std::vector<OrderByField>& order_by_fields
    );
 
@@ -60,7 +60,7 @@ class Tuple {
    [[nodiscard]] std::map<std::string, common::JsonValueType> getFields() const;
 
    static Comparator getComparator(
-      const std::vector<silo::storage::ColumnMetadata>& columns_metadata,
+      const std::vector<silo::schema::ColumnIdentifier>& column_identifiers,
       const std::vector<OrderByField>& order_by_fields,
       const std::optional<uint32_t>& randomize_seed
    );
@@ -94,7 +94,7 @@ class TupleFactory {
   public:
    explicit TupleFactory(
       const silo::storage::ColumnPartitionGroup& all_columns,
-      const std::vector<silo::storage::ColumnMetadata>& fields
+      const std::vector<silo::schema::ColumnIdentifier>& fields
    );
 
    Tuple allocateOne(uint32_t sequence_id);

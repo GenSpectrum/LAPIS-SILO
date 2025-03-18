@@ -20,9 +20,10 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/union.h"
 #include "silo/query_engine/query_parse_sequence_name.h"
-#include "silo/storage/database_partition.h"
-#include "silo/storage/insertion_index.h"
-#include "silo/storage/sequence_store.h"
+#include "silo/storage/column/insertion_index.h"
+#include "silo/storage/column/sequence_column.h"
+#include "silo/storage/insertion_format_exception.h"
+#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -49,32 +50,32 @@ std::string InsertionContains<SymbolType>::toString() const {
 template <typename SymbolType>
 std::unique_ptr<silo::query_engine::filter::operators::Operator> InsertionContains<SymbolType>::
    compile(
-      const silo::Database& database,
-      const silo::DatabasePartition& database_partition,
+      const Database& database,
+      const storage::TablePartition& table_partition,
       Expression::AmbiguityMode /*mode*/
    ) const {
-   if (database_partition.getSequenceStores<SymbolType>().empty()) {
-      return std::make_unique<operators::Empty>(database_partition.sequence_count);
+   if (table_partition.columns.getColumns<typename SymbolType::Column>().empty()) {
+      return std::make_unique<operators::Empty>(table_partition.sequence_count);
    }
 
    const auto valid_sequence_name =
-      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, database);
+      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, database.table->schema);
 
-   const std::map<std::string, SequenceStorePartition<SymbolType>&>& sequence_stores =
-      database_partition.getSequenceStores<SymbolType>();
+   const std::map<std::string, storage::column::SequenceColumnPartition<SymbolType>>&
+      sequence_stores = table_partition.columns.getColumns<typename SymbolType::Column>();
 
-   const SequenceStorePartition<SymbolType>& sequence_store =
+   const storage::column::SequenceColumnPartition<SymbolType>& sequence_store =
       sequence_stores.at(valid_sequence_name);
    return std::make_unique<operators::BitmapProducer>(
       [&]() {
          try {
             auto search_result = sequence_store.insertion_index.search(position_idx, value);
             return CopyOnWriteBitmap(std::move(*search_result));
-         } catch (const silo::storage::insertion::InsertionException& insertionException) {
-            throw silo::BadRequest(insertionException.what());
+         } catch (const silo::storage::InsertionFormatException& exception) {
+            throw silo::BadRequest(exception.what());
          }
       },
-      database_partition.sequence_count
+      table_partition.sequence_count
    );
 }
 

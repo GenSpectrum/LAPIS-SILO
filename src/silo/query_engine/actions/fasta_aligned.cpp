@@ -23,7 +23,7 @@
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/query_result.h"
-#include "silo/storage/sequence_store.h"
+#include "silo/storage/column/sequence_column.h"
 
 using silo::common::add1;
 using silo::common::Range;
@@ -33,8 +33,8 @@ namespace silo::query_engine::actions {
 FastaAligned::FastaAligned(std::vector<std::string>&& sequence_names)
     : sequence_names(sequence_names) {}
 
-void FastaAligned::validateOrderByFields(const Database& database) const {
-   const std::string& primary_key_field = database.database_config.schema.primary_key;
+void FastaAligned::validateOrderByFields(const schema::TableSchema& schema) const {
+   const std::string& primary_key_field = schema.primary_key.name;
    for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
          field.name == primary_key_field ||
@@ -53,12 +53,12 @@ void FastaAligned::validateOrderByFields(const Database& database) const {
 namespace {
 template <typename SymbolType>
 std::string reconstructSequence(
-   const SequenceStorePartition<SymbolType>& sequence_store,
+   const storage::column::SequenceColumnPartition<SymbolType>& sequence_store,
    uint32_t row_id
 ) {
    std::string reconstructed_sequence;
    std::ranges::transform(
-      sequence_store.reference_sequence,
+      sequence_store.metadata->reference_sequence,
       std::back_inserter(reconstructed_sequence),
       SymbolType::symbolToChar
    );
@@ -94,18 +94,19 @@ const size_t PARTITION_CHUNK_SIZE = 100;
 
 /// Split items in sequence_names vector into two vectors
 void assortSequenceNamesInto(
-   const Database& database,
+   const schema::TableSchema& schema,
    const std::vector<std::string>& sequence_names,
    std::vector<std::string>& nuc_sequence_names,
    std::vector<std::string>& aa_sequence_names
 ) {
    for (const std::string& sequence_name : sequence_names) {
+      auto column = schema.getColumn(sequence_name);
       CHECK_SILO_QUERY(
-         database.nuc_sequences.contains(sequence_name) ||
-            database.aa_sequences.contains(sequence_name),
+         column.has_value() && (column.value().type == schema::ColumnType::NUCLEOTIDE_SEQUENCE ||
+                                column.value().type == schema::ColumnType::AMINO_ACID_SEQUENCE),
          "Database does not contain a sequence with name: '" + sequence_name + "'"
       );
-      if (database.nuc_sequences.contains(sequence_name)) {
+      if (column.value().type == schema::ColumnType::NUCLEOTIDE_SEQUENCE) {
          nuc_sequence_names.emplace_back(sequence_name);
       } else {
          aa_sequence_names.emplace_back(sequence_name);
@@ -115,23 +116,23 @@ void assortSequenceNamesInto(
 
 QueryResultEntry makeEntry(
    const std::string& primary_key_column,
-   const silo::DatabasePartition& database_partition,
+   const storage::TablePartition& table_partition,
    const std::vector<std::string>& nuc_sequence_names,
    const std::vector<std::string>& aa_sequence_names,
    const uint32_t row_id
 ) {
    QueryResultEntry entry;
    entry.fields.emplace(
-      primary_key_column, database_partition.columns.getValue(primary_key_column, row_id)
+      primary_key_column, table_partition.columns.getValue(primary_key_column, row_id)
    );
    for (const auto& nuc_sequence_name : nuc_sequence_names) {
-      const auto& sequence_store = database_partition.nuc_sequences.at(nuc_sequence_name);
+      const auto& sequence_store = table_partition.columns.nuc_columns.at(nuc_sequence_name);
       entry.fields.emplace(
          nuc_sequence_name, reconstructSequence<Nucleotide>(sequence_store, row_id)
       );
    }
    for (const auto& aa_sequence_name : aa_sequence_names) {
-      const auto& aa_store = database_partition.aa_sequences.at(aa_sequence_name);
+      const auto& aa_store = table_partition.columns.aa_columns.at(aa_sequence_name);
       entry.fields.emplace(aa_sequence_name, reconstructSequence<AminoAcid>(aa_store, row_id));
    }
    return entry;
@@ -146,7 +147,9 @@ QueryResult FastaAligned::execute(
    std::vector<std::string> nuc_sequence_names;
    std::vector<std::string> aa_sequence_names;
 
-   assortSequenceNamesInto(database, sequence_names, nuc_sequence_names, aa_sequence_names);
+   assortSequenceNamesInto(
+      database.table->schema, sequence_names, nuc_sequence_names, aa_sequence_names
+   );
 
    uint32_t partition_index = 0;
    std::optional<Range<uint32_t>> remaining_result_row_indices{};
@@ -157,7 +160,7 @@ QueryResult FastaAligned::execute(
                                       &database,
                                       partition_index](std::vector<QueryResultEntry>& results
                                      ) mutable {
-      for (; partition_index < database.getNumberOfPartitions();
+      for (; partition_index < database.table->getNumberOfPartitions();
            ++partition_index, remaining_result_row_indices = {}) {
          // We drain the bitmaps in bitmap_filter as we process the
          // query, because roaring bitmaps don't come with
@@ -187,15 +190,15 @@ QueryResult FastaAligned::execute(
             SPDLOG_TRACE(
                "FastaAligned::execute: refill QueryResult for partition_index {}/{}, {}/{}",
                partition_index,
-               database.getNumberOfPartitions(),
+               database.table->getNumberOfPartitions(),
                result_row_indices.toString(),
                remaining_result_row_indices->beyondLast()
             );
 
-            const auto& database_partition = database.getPartition(partition_index);
+            const auto& database_partition = database.table->getPartition(partition_index);
             for (const uint32_t row_id : *bitmap) {
                results.emplace_back(makeEntry(
-                  database.database_config.schema.primary_key,
+                  database.table->schema.primary_key.name,
                   database_partition,
                   nuc_sequence_names,
                   aa_sequence_names,

@@ -109,7 +109,7 @@ QueryResult Action::executeAndOrder(
    const Database& database,
    std::vector<CopyOnWriteBitmap> bitmap_filter
 ) const {
-   validateOrderByFields(database);
+   validateOrderByFields(database.table->schema);
 
    // Hacky solution to give the full feature set (randomization,
    // sorting) for small result sets, and streaming without those

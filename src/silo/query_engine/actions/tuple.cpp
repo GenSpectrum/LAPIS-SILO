@@ -16,6 +16,7 @@
 #include "silo/common/types.h"
 #include "silo/config/database_config.h"
 #include "silo/query_engine/actions/action.h"
+#include "silo/query_engine/bad_request.h"
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column_group.h"
 
@@ -27,63 +28,73 @@ using silo::common::Date;
 using silo::common::OptionalBool;
 using silo::common::String;
 using silo::common::STRING_SIZE;
-using silo::config::ColumnType;
+using silo::schema::ColumnType;
 
 void assignTupleField(
    std::byte** data_pointer,
    uint32_t sequence_id,
-   const silo::storage::ColumnMetadata& metadata,
+   const silo::schema::ColumnIdentifier& column_identifier,
    const silo::storage::ColumnPartitionGroup& columns
 ) {
-   switch (metadata.type) {
+   switch (column_identifier.type) {
       case ColumnType::DATE: {
-         const Date value = columns.date_columns.at(metadata.name).getValues()[sequence_id];
+         const Date value =
+            columns.date_columns.at(column_identifier.name).getValues()[sequence_id];
          *reinterpret_cast<Date*>(*data_pointer) = value;
          *data_pointer += sizeof(decltype(value));
          return;
       }
       case ColumnType::BOOL: {
-         const OptionalBool value = columns.bool_columns.at(metadata.name).getValues()[sequence_id];
+         const OptionalBool value =
+            columns.bool_columns.at(column_identifier.name).getValues()[sequence_id];
          *reinterpret_cast<OptionalBool*>(*data_pointer) = value;
          *data_pointer += sizeof(decltype(value));
          return;
       }
       case ColumnType::INT: {
-         const int32_t value = columns.int_columns.at(metadata.name).getValues()[sequence_id];
+         const int32_t value =
+            columns.int_columns.at(column_identifier.name).getValues()[sequence_id];
          *reinterpret_cast<int32_t*>(*data_pointer) = value;
          *data_pointer += sizeof(decltype(value));
          return;
       }
       case ColumnType::FLOAT: {
-         const double value = columns.float_columns.at(metadata.name).getValues()[sequence_id];
+         const double value =
+            columns.float_columns.at(column_identifier.name).getValues()[sequence_id];
          *reinterpret_cast<double*>(*data_pointer) = value;
          *data_pointer += sizeof(decltype(value));
          return;
       }
       case ColumnType::STRING: {
          const String<STRING_SIZE> value =
-            columns.string_columns.at(metadata.name).getValues()[sequence_id];
+            columns.string_columns.at(column_identifier.name).getValues()[sequence_id];
          *reinterpret_cast<String<STRING_SIZE>*>(*data_pointer) = value;
          *data_pointer += sizeof(decltype(value));
          return;
       }
       case ColumnType::INDEXED_STRING: {
          const silo::Idx value =
-            columns.indexed_string_columns.at(metadata.name).getValues()[sequence_id];
+            columns.indexed_string_columns.at(column_identifier.name).getValues()[sequence_id];
          *reinterpret_cast<silo::Idx*>(*data_pointer) = value;
          *data_pointer += sizeof(decltype(value));
          return;
       }
+      case ColumnType::ZSTD_COMPRESSED_STRING:
+         SILO_PANIC("tuples do not support sequence columns");
+      case ColumnType::AMINO_ACID_SEQUENCE:
+         SILO_PANIC("tuples do not support sequence columns");
+      case ColumnType::NUCLEOTIDE_SEQUENCE:
+         SILO_PANIC("tuples do not support sequence columns");
    }
    SILO_UNREACHABLE();
 }
 
 silo::common::JsonValueType tupleFieldToValueType(
    const std::byte** data_pointer,
-   const silo::storage::ColumnMetadata& metadata,
+   const silo::schema::ColumnIdentifier& column_identifier,
    const silo::storage::ColumnPartitionGroup& columns
 ) {
-   switch (metadata.type) {
+   switch (column_identifier.type) {
       case ColumnType::DATE: {
          const Date value = *reinterpret_cast<const Date*>(*data_pointer);
          *data_pointer += sizeof(decltype(value));
@@ -100,7 +111,7 @@ silo::common::JsonValueType tupleFieldToValueType(
       case ColumnType::INT: {
          const int32_t value = *reinterpret_cast<const int32_t*>(*data_pointer);
          *data_pointer += sizeof(decltype(value));
-         if (value == silo::storage::column::IntColumn::null()) {
+         if (value == silo::storage::column::IntColumnPartition::null()) {
             return std::nullopt;
          }
          return value;
@@ -117,7 +128,8 @@ silo::common::JsonValueType tupleFieldToValueType(
          const String<STRING_SIZE> value =
             *reinterpret_cast<const String<STRING_SIZE>*>(*data_pointer);
          *data_pointer += sizeof(decltype(value));
-         std::string string_value = columns.string_columns.at(metadata.name).lookupValue(value);
+         std::string string_value =
+            columns.string_columns.at(column_identifier.name).lookupValue(value);
          if (string_value.empty()) {
             return std::nullopt;
          }
@@ -127,12 +139,18 @@ silo::common::JsonValueType tupleFieldToValueType(
          const silo::Idx value = *reinterpret_cast<const silo::Idx*>(*data_pointer);
          *data_pointer += sizeof(decltype(value));
          std::string string_value =
-            columns.indexed_string_columns.at(metadata.name).lookupValue(value);
+            columns.indexed_string_columns.at(column_identifier.name).lookupValue(value);
          if (string_value.empty()) {
             return std::nullopt;
          }
          return std::move(string_value);
       }
+      case ColumnType::ZSTD_COMPRESSED_STRING:
+         SILO_PANIC("tuples do not support sequence columns");
+      case ColumnType::AMINO_ACID_SEQUENCE:
+         SILO_PANIC("tuples do not support sequence columns");
+      case ColumnType::NUCLEOTIDE_SEQUENCE:
+         SILO_PANIC("tuples do not support sequence columns");
    }
    SILO_UNREACHABLE();
 }
@@ -171,10 +189,10 @@ std::strong_ordering compareString(const std::string& value1, const std::string&
 std::strong_ordering compareTupleFields(
    const std::byte** data_pointer1,
    const std::byte** data_pointer2,
-   const silo::storage::ColumnMetadata& metadata,
+   const silo::schema::ColumnIdentifier& column_identifier,
    const silo::storage::ColumnPartitionGroup& columns
 ) {
-   switch (metadata.type) {
+   switch (column_identifier.type) {
       case ColumnType::DATE: {
          const Date value1 = *reinterpret_cast<const Date*>(*data_pointer1);
          *data_pointer1 += sizeof(decltype(value1));
@@ -216,27 +234,33 @@ std::strong_ordering compareTupleFields(
             return fast_compare.value();
          }
          const std::string string_value1 =
-            columns.string_columns.at(metadata.name).lookupValue(value1);
+            columns.string_columns.at(column_identifier.name).lookupValue(value1);
          const std::string string_value2 =
-            columns.string_columns.at(metadata.name).lookupValue(value2);
+            columns.string_columns.at(column_identifier.name).lookupValue(value2);
          return compareString(string_value1, string_value2);
       }
       case ColumnType::INDEXED_STRING: {
          const silo::Idx value1 = *reinterpret_cast<const silo::Idx*>(*data_pointer1);
          *data_pointer1 += sizeof(decltype(value1));
          const std::string string_value1 =
-            columns.indexed_string_columns.at(metadata.name).lookupValue(value1);
+            columns.indexed_string_columns.at(column_identifier.name).lookupValue(value1);
          const silo::Idx value2 = *reinterpret_cast<const silo::Idx*>(*data_pointer2);
          *data_pointer2 += sizeof(decltype(value2));
          const std::string string_value2 =
-            columns.indexed_string_columns.at(metadata.name).lookupValue(value2);
+            columns.indexed_string_columns.at(column_identifier.name).lookupValue(value2);
          return compareString(string_value1, string_value2);
       }
+      case ColumnType::ZSTD_COMPRESSED_STRING:
+         SILO_PANIC("tuples do not support sequence columns");
+      case ColumnType::AMINO_ACID_SEQUENCE:
+         SILO_PANIC("tuples do not support sequence columns");
+      case ColumnType::NUCLEOTIDE_SEQUENCE:
+         SILO_PANIC("tuples do not support sequence columns");
    }
    SILO_UNREACHABLE();
 }
 
-size_t getColumnSize(const silo::storage::ColumnMetadata& metadata) {
+size_t getColumnSize(const silo::schema::ColumnIdentifier& metadata) {
    switch (metadata.type) {
       case ColumnType::STRING: {
          return sizeof(silo::common::String<silo::common::STRING_SIZE>);
@@ -256,6 +280,12 @@ size_t getColumnSize(const silo::storage::ColumnMetadata& metadata) {
       case ColumnType::INDEXED_STRING: {
          return sizeof(silo::Idx);
       }
+      case ColumnType::ZSTD_COMPRESSED_STRING:
+         SILO_PANIC("tuples do not support sequence columns");
+      case ColumnType::AMINO_ACID_SEQUENCE:
+         SILO_PANIC("tuples do not support sequence columns");
+      case ColumnType::NUCLEOTIDE_SEQUENCE:
+         SILO_PANIC("tuples do not support sequence columns");
    }
    SILO_UNREACHABLE();
 }
@@ -263,7 +293,7 @@ size_t getColumnSize(const silo::storage::ColumnMetadata& metadata) {
 }  // namespace
 
 size_t silo::query_engine::actions::getTupleSize(
-   const std::vector<silo::storage::ColumnMetadata>& metadata_list
+   const std::vector<silo::schema::ColumnIdentifier>& metadata_list
 ) {
    size_t size = 0;
    for (const auto& metadata : metadata_list) {
@@ -309,13 +339,13 @@ std::map<std::string, silo::common::JsonValueType> Tuple::getFields() const {
 }
 
 std::vector<Tuple::ComparatorField> Tuple::getCompareFields(
-   const std::vector<silo::storage::ColumnMetadata>& columns_metadata,
+   const std::vector<silo::schema::ColumnIdentifier>& column_identifiers,
    const std::vector<OrderByField>& order_by_fields
 ) {
    std::vector<ComparatorField> tuple_field_comparators;
    tuple_field_comparators.resize(order_by_fields.size());
    size_t offset = 0;
-   for (const auto& metadata : columns_metadata) {
+   for (const auto& metadata : column_identifiers) {
       auto element = std::ranges::find_if(order_by_fields, [&](const auto& order_by_field) {
          return metadata.name == order_by_field.name;
       });
@@ -330,12 +360,12 @@ std::vector<Tuple::ComparatorField> Tuple::getCompareFields(
 }
 
 Tuple::Comparator Tuple::getComparator(
-   const std::vector<silo::storage::ColumnMetadata>& columns_metadata,
+   const std::vector<silo::schema::ColumnIdentifier>& column_identifiers,
    const std::vector<OrderByField>& order_by_fields,
    const std::optional<uint32_t>& randomize_seed
 ) {
    auto tuple_field_comparators =
-      actions::Tuple::getCompareFields(columns_metadata, order_by_fields);
+      actions::Tuple::getCompareFields(column_identifiers, order_by_fields);
    if (randomize_seed) {
       const size_t seed = *randomize_seed;
       return [tuple_field_comparators, seed](const Tuple& tuple1, const Tuple& tuple2) {
@@ -414,7 +444,7 @@ std::size_t std::hash<Tuple>::operator()(const silo::query_engine::actions::Tupl
 
 TupleFactory::TupleFactory(
    const silo::storage::ColumnPartitionGroup& all_columns,
-   const std::vector<silo::storage::ColumnMetadata>& fields
+   const std::vector<silo::schema::ColumnIdentifier>& fields
 ) {
    columns = all_columns.getSubgroup(fields);
    tuple_size = getTupleSize(columns.metadata);

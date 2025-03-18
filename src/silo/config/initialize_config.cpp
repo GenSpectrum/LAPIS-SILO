@@ -47,7 +47,7 @@ ConfigSpecification InitializeConfig::getConfigSpecification() {
          ConfigAttributeSpecification::createWithoutDefault(
             initializeConfigOptionKey(),
             ConfigValueType::PATH,
-            "The path to a initialize config that should be read before overwriting\n"
+            "The path to an initialize config that should be read before overwriting\n"
             "its values with environment variables and other CLI arguments."
          ),
          ConfigAttributeSpecification::createWithDefault(
@@ -88,32 +88,32 @@ InitializeConfig InitializeConfig::withDefaults() {
 
 void InitializeConfig::validate() const {}
 
-std::filesystem::path InitializeConfig::getDatabaseConfigFilename() const {
-   return input_directory / database_config_file;
+std::filesystem::path InitializationFiles::getDatabaseConfigFilename() const {
+   return directory / database_config_file;
 }
 
-std::optional<std::filesystem::path> InitializeConfig::getLineageDefinitionsFilename() const {
+std::optional<std::filesystem::path> InitializationFiles::getLineageDefinitionsFilename() const {
    return lineage_definitions_file.has_value()
-             ? std::optional(input_directory / lineage_definitions_file.value())
+             ? std::optional(directory / lineage_definitions_file.value())
              : std::nullopt;
 }
 
-std::filesystem::path InitializeConfig::getReferenceGenomeFilename() const {
-   return input_directory / reference_genome_file;
+std::filesystem::path InitializationFiles::getReferenceGenomeFilename() const {
+   return directory / reference_genome_file;
 }
 
 void InitializeConfig::overwriteFrom(const VerifiedConfigAttributes& config_source) {
    if (auto var = config_source.getPath(inputDirectoryOptionKey())) {
-      input_directory = var.value();
+      initialization_files.directory = var.value();
    }
    if (auto var = config_source.getPath(lineageDefinitionsFilenameOptionKey())) {
-      lineage_definitions_file = var.value();
+      initialization_files.lineage_definitions_file = var.value();
    }
    if (auto var = config_source.getPath(databaseConfigFileOptionKey())) {
-      database_config_file = var.value();
+      initialization_files.database_config_file = var.value();
    }
    if (auto var = config_source.getPath(referenceGenomeFilenameOptionKey())) {
-      reference_genome_file = var.value();
+      initialization_files.reference_genome_file = var.value();
    }
    if (auto var = config_source.getPath(outputDirectoryOptionKey())) {
       output_directory = var.value();

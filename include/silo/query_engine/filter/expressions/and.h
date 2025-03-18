@@ -11,7 +11,7 @@
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/selection.h"
-#include "silo/storage/database_partition.h"
+#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -25,7 +25,7 @@ class And : public Expression {
       std::vector<std::unique_ptr<operators::Predicate>>>
    compileChildren(
       const Database& database,
-      const DatabasePartition& database_partition,
+      const storage::TablePartition& database_partition,
       AmbiguityMode mode
    ) const;
 
@@ -36,7 +36,7 @@ class And : public Expression {
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::filter::operators::Operator> compile(
       const Database& database,
-      const DatabasePartition& database_partition,
+      const storage::TablePartition& database_partition,
       AmbiguityMode mode
    ) const override;
 };

@@ -10,8 +10,8 @@
 
 namespace silo {
 
-ZstdDecompressor::ZstdDecompressor(std::string_view dictionary_string)
-    : zstd_dictionary(ZstdDDictionary(dictionary_string)) {}
+ZstdDecompressor::ZstdDecompressor(std::shared_ptr<ZstdDDictionary> zstd_dictionary)
+    : zstd_dictionary(zstd_dictionary) {}
 
 void ZstdDecompressor::decompress(const std::string& input, std::string& buffer) {
    decompress(input.data(), input.size(), buffer);
@@ -45,7 +45,7 @@ void ZstdDecompressor::decompress(
       buffer.size(),
       input_data,
       input_length,
-      zstd_dictionary.value
+      zstd_dictionary->value
    );
    if (ZSTD_isError(size_or_error_code)) {
       const std::string error_name = ZSTD_getErrorName(size_or_error_code);

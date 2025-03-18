@@ -8,8 +8,14 @@
 #include <vector>
 
 #include "silo/common/symbol_map.h"
+#include "silo/schema/database_schema.h"
 
 namespace silo {
+
+namespace storage::column {
+template <typename SymbolType>
+class SequenceColumnPartition;
+}
 
 class Nucleotide {
   public:
@@ -32,6 +38,9 @@ class Nucleotide {
       V,    // A or C or G
       N,    // any base
    };
+
+   static constexpr schema::ColumnType COLUMN_TYPE = schema::ColumnType::NUCLEOTIDE_SEQUENCE;
+   using Column = storage::column::SequenceColumnPartition<Nucleotide>;
 
    static constexpr uint32_t COUNT = 16;
 

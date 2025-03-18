@@ -10,7 +10,7 @@ using silo::common::LineageTreeAndIdMap;
 using silo::preprocessing::LineageDefinitionFile;
 
 TEST(LineageTreeAndIdMap, correctSimpleTree) {
-   auto lineage_definition_file = LineageDefinitionFile::fromYAML(R"(
+   auto lineage_definition_file = LineageDefinitionFile::fromYAMLString(R"(
 BASE:
   parents: []
 CHILD:
@@ -37,7 +37,8 @@ CHILD:
 TEST(LineageTreeAndIdMap, errorOnMissingParent) {
    EXPECT_THAT(
       []() {
-         (void)LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAML(R"(
+         (void
+         )LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAMLString(R"(
 some_lineage:
   parents:
     - parent_that_does_not_exist
@@ -51,7 +52,7 @@ some_lineage:
 }
 
 TEST(LineageTreeAndIdMap, correctTreeRelations) {
-   auto lineage_definition_file = LineageDefinitionFile::fromYAML(R"(
+   auto lineage_definition_file = LineageDefinitionFile::fromYAMLString(R"(
 BASE:
   aliases: [ base_alias ]
   parents: []
@@ -90,7 +91,7 @@ GRANDCHILD2:
 
 TEST(LineageTreeAndIdMap, correctCycleErrorInFile) {
    auto throwing_lambda = []() {
-      LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAML(R"(
+      LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAMLString(R"(
 BASE:
   parents:
    - CHILD
@@ -110,7 +111,7 @@ CHILD:
 
 TEST(LineageTreeAndIdMap, correctSelfCycleErrorInFile) {
    auto throwing_lambda = []() {
-      LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAML(R"(
+      LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAMLString(R"(
 BASE:
   parents:
    - BASE
@@ -131,7 +132,7 @@ CHILD:
 
 TEST(LineageTreeAndIdMap, correctLassoCycleErrorInFile) {
    auto throwing_lambda = []() {
-      LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAML(R"(
+      LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAMLString(R"(
 BASE: {}
 CHILD1:
   parents:
@@ -156,7 +157,7 @@ CHILD3:
 
 TEST(LineageDefinitionFile, errorOnDuplicateKey) {
    auto throwing_lambda = []() {
-      LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAML(R"(
+      LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAMLString(R"(
 some_duplicate_lineage:
   parents:
   - some_other_key
@@ -177,7 +178,7 @@ some_duplicate_lineage:
 
 TEST(LineageDefinitionFile, errorOnDuplicateAlias) {
    auto throwing_lambda = []() {
-      LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAML(R"(
+      LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAMLString(R"(
 lineage1:
   aliases:
   - duplicate_alias
@@ -202,7 +203,7 @@ lineage3:
 
 TEST(LineageDefinitionFile, errorOnLineageAsAlias) {
    auto throwing_lambda = []() {
-      LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAML(R"(
+      LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAMLString(R"(
 lineage1:
   aliases:
   - some_alias

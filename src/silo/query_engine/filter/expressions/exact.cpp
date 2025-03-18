@@ -11,7 +11,7 @@
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
-#include "silo/storage/database_partition.h"
+#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -22,8 +22,8 @@ std::string Exact::toString() const {
    return fmt::format("Exact ({})", child->toString());
 }
 std::unique_ptr<silo::query_engine::filter::operators::Operator> Exact::compile(
-   const silo::Database& database,
-   const silo::DatabasePartition& database_partition,
+   const Database& database,
+   const storage::TablePartition& database_partition,
    silo::query_engine::filter::expressions::Expression::AmbiguityMode /*mode*/
 ) const {
    return child->compile(database, database_partition, AmbiguityMode::LOWER_BOUND);

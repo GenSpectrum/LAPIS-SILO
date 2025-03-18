@@ -19,8 +19,8 @@
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/query_result.h"
-#include "silo/storage/database_partition.h"
-#include "silo/storage/insertion_index.h"
+#include "silo/storage/column/insertion_index.h"
+#include "silo/storage/table_partition.h"
 
 using silo::query_engine::CopyOnWriteBitmap;
 using silo::storage::insertion::InsertionIndex;
@@ -32,7 +32,8 @@ InsertionAggregation<SymbolType>::InsertionAggregation(std::vector<std::string>&
     : sequence_names(std::move(sequence_names)) {}
 
 template <typename SymbolType>
-void InsertionAggregation<SymbolType>::validateOrderByFields(const Database& /*database*/) const {
+void InsertionAggregation<
+   SymbolType>::validateOrderByFields(const schema::TableSchema& /*database*/) const {
    const std::vector<std::string> result_field_names{
       {std::string{POSITION_FIELD_NAME},
        std::string{INSERTION_FIELD_NAME},
@@ -63,10 +64,10 @@ void validateSequenceNames(
    const Database& database,
    const std::vector<std::string>& sequence_names
 ) {
-   std::vector<std::string> all_sequence_names = database.getSequenceNames<SymbolType>();
    for (const std::string& sequence_name : sequence_names) {
+      auto column = database.table->schema.getColumn(sequence_name);
       CHECK_SILO_QUERY(
-         std::ranges::find(all_sequence_names, sequence_name) != all_sequence_names.end(),
+         column.has_value() && column.value().type == SymbolType::COLUMN_TYPE,
          "The database does not contain the " + std::string(SymbolType::SYMBOL_NAME) +
             " sequence '" + sequence_name + "'"
       );
@@ -83,11 +84,11 @@ InsertionAggregation<SymbolType>::validateFieldsAndPreFilterBitmaps(
    validateSequenceNames<SymbolType>(database, sequence_names);
 
    std::unordered_map<std::string, PrefilteredBitmaps> pre_filtered_bitmaps;
-   for (size_t i = 0; i < database.getNumberOfPartitions(); ++i) {
-      const DatabasePartition& database_partition = database.getPartition(i);
+   for (size_t i = 0; i < database.table->getNumberOfPartitions(); ++i) {
+      const storage::TablePartition& table_partition = database.table->getPartition(i);
 
-      for (auto& [sequence_name, sequence_store] :
-           database_partition.getSequenceStores<SymbolType>()) {
+      for (auto& [sequence_name, sequence_column] :
+           table_partition.columns.getColumns<typename SymbolType::Column>()) {
          if (sequence_names.empty() ||
              std::ranges::find(sequence_names, sequence_name) != sequence_names.end()) {
             CopyOnWriteBitmap& filter = bitmap_filter[i];
@@ -95,16 +96,16 @@ InsertionAggregation<SymbolType>::validateFieldsAndPreFilterBitmaps(
             if (cardinality == 0) {
                continue;
             }
-            if (cardinality == database_partition.sequence_count) {
+            if (cardinality == table_partition.sequence_count) {
                pre_filtered_bitmaps[sequence_name].bitmaps.emplace_back(
-                  filter, sequence_store.insertion_index
+                  filter, sequence_column.insertion_index
                );
             } else {
                if (filter.isMutable()) {
                   filter->runOptimize();
                }
                pre_filtered_bitmaps[sequence_name].bitmaps.emplace_back(
-                  filter, sequence_store.insertion_index
+                  filter, sequence_column.insertion_index
                );
             }
          }
@@ -195,10 +196,12 @@ QueryResult InsertionAggregation<SymbolType>::execute(
 
    std::vector<QueryResultEntry> insertion_counts;
    for (const auto& [sequence_name, prefiltered_bitmaps] : bitmaps_to_evaluate) {
-      const bool show_sequence_in_response =
-         sequence_name != database.getDefaultSequenceName<SymbolType>();
+      const auto default_sequence_name =
+         database.table->schema.getDefaultSequenceName<SymbolType>();
+      const bool omit_sequence_in_response =
+         default_sequence_name.has_value() && (default_sequence_name.value().name == sequence_name);
       addAggregatedInsertionsToInsertionCounts(
-         insertion_counts, sequence_name, show_sequence_in_response, prefiltered_bitmaps
+         insertion_counts, sequence_name, !omit_sequence_in_response, prefiltered_bitmaps
       );
    }
    return QueryResult::fromVector(std::move(insertion_counts));

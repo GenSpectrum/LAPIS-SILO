@@ -5,6 +5,9 @@
 #include "silo/api/api.h"
 #include "silo/api/logging.h"
 #include "silo/append/append.h"
+#include "silo/append/database_inserter.h"
+#include "silo/append/ndjson_line_reader.h"
+#include "silo/common/input_stream_wrapper.h"
 #include "silo/common/overloaded.h"
 #include "silo/common/panic.h"
 #include "silo/common/version.h"
@@ -13,62 +16,35 @@
 #include "silo/config/preprocessing_config.h"
 #include "silo/config/runtime_config.h"
 #include "silo/database.h"
+#include "silo/initialize/initialize_exception.h"
 #include "silo/initialize/initializer.h"
+#include "silo/preprocessing/preprocessing.h"
 #include "silo/preprocessing/preprocessing_exception.h"
-#include "silo/preprocessing/preprocessor.h"
 
 namespace {
 
 /// Does not throw exceptions
 int runInitializer(const silo::config::InitializeConfig& initialize_config) {
-   // TODO (#656): move body of siloPreprocessing to preprocessing.{h,cpp} #656
    try {
-      auto database_config = silo::config::DatabaseConfig::getValidatedConfigFromFile(
-         initialize_config.getDatabaseConfigFilename()
-      );
-
-      SPDLOG_INFO("preprocessing - reading reference genome");
-      const auto reference_genomes =
-         silo::ReferenceGenomes::readFromFile(initialize_config.getReferenceGenomeFilename());
-
-      silo::common::LineageTreeAndIdMap lineage_definitions;
-      if (auto lineage_file_name = initialize_config.getLineageDefinitionsFilename()) {
-         SPDLOG_INFO(
-            "preprocessing - read and verify the lineage tree '{}'",
-            lineage_file_name.value().string()
-         );
-         lineage_definitions = silo::common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(
-            lineage_file_name.value()
-         );
-      }
-
-      auto initializer = silo::initialize::Initializer(
-         initialize_config, database_config, reference_genomes, std::move(lineage_definitions)
-      );
-      auto database = initializer.initialize();
-
+      auto database =
+         silo::initialize::Initializer::initializeDatabase(initialize_config.initialization_files);
       database.saveDatabaseState(initialize_config.output_directory);
       return 0;
-   } catch (const silo::preprocessing::PreprocessingException& preprocessing_exception) {
-      SPDLOG_ERROR("Preprocessing Error: {}", preprocessing_exception.what());
-      return 1;
-   } catch (const std::runtime_error& error) {
-      SPDLOG_ERROR("Internal Error: {}", error.what());
+   } catch (const silo::initialize::InitializeException& preprocessing_exception) {
+      SPDLOG_ERROR("initialize - error: {}", preprocessing_exception.what());
       return 1;
    }
 }
 
 int runPreprocessor(const silo::config::PreprocessingConfig& preprocessing_config) {
-   int return_code_1 = runInitializer(preprocessing_config.initialize_config);
-
-   auto append_config = silo::config::AppendConfig::withDefaults();
-   append_config.silo_directory = preprocessing_config.initialize_config.output_directory;
-   const auto now_as_time_t =
-      std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-   append_config.data_version = std::to_string(now_as_time_t + 1);
-   append_config.append_file = preprocessing_config.initialize_config.input_directory /
-                               preprocessing_config.input_file.value();
-   return runAppend(append_config);
+   try {
+      auto database = silo::preprocessing::preprocessing(preprocessing_config);
+      database.saveDatabaseState(preprocessing_config.output_directory);
+      return 0;
+   } catch (const silo::preprocessing::PreprocessingException& preprocessing_exception) {
+      SPDLOG_ERROR("initialize - error: {}", preprocessing_exception.what());
+      return 1;
+   }
 }
 
 int runApi(const silo::config::RuntimeConfig& runtime_config) {
@@ -92,7 +68,8 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
    ExecutionMode mode;
    if (args.empty()) {
       std::cerr << program_name
-                << ": need either 'preprocessing' or 'api' as the first program argument\n";
+                << ": need 'preprocessing', 'initialize', 'append' or 'api' as the first program "
+                   "argument.\n";
       return 1;
    }
 
@@ -108,8 +85,8 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
       mode = ExecutionMode::INITIALIZE;
    } else {
       std::cerr << program_name
-                << ": need either 'preprocessing', 'initialize', 'append' or 'api' as the first "
-                   "program argument, got '"
+                << ": need 'preprocessing', 'initialize', 'append' or 'api' as the first program "
+                   "argument, got '"
                 << mode_argument << "'\n";
       return 1;
    }
@@ -159,7 +136,7 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
             overloaded{
                [&](const silo::config::AppendConfig& append_config) {
                   SPDLOG_INFO("append_config = {}", append_config);
-                  return runAppend(append_config);
+                  return silo::append::runAppend(append_config);
                },
                [&](int32_t exit_code) { return exit_code; }
             },

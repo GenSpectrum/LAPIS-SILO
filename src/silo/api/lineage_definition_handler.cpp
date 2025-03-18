@@ -27,10 +27,8 @@ void LineageDefinitionHandler::get(
 
    response.set("data-version", database->getDataVersionTimestamp().value);
 
-   auto column_metadata = std::ranges::find_if(
-      database->columns.metadata, [&](const auto& metadata) { return metadata.name == column_name; }
-   );
-   if (column_metadata == database->columns.metadata.end()) {
+   auto column_identifier = database->table->schema.getColumn(column_name);
+   if (column_identifier == std::nullopt) {
       response.setContentType("application/json");
       response.setStatusAndReason(Poco::Net::HTTPResponse::HTTP_BAD_REQUEST);
       std::ostream& out_stream = response.send();
@@ -38,9 +36,22 @@ void LineageDefinitionHandler::get(
          .error = "Bad request",
          .message = fmt::format("The column {} does not exist in this instance.", column_name)
       });
+      return;
    }
-   // TODO(#691) Change this check for containment to a selection of the correct lineage system
-   else if(column_metadata->type != config::ColumnType::INDEXED_STRING || !database->columns.indexed_string_columns.at(column_name).hasLineageTree()){
+   if (column_identifier.value().type != schema::ColumnType::INDEXED_STRING) {
+      response.setContentType("application/json");
+      response.setStatusAndReason(Poco::Net::HTTPResponse::HTTP_BAD_REQUEST);
+      std::ostream& out_stream = response.send();
+      out_stream << nlohmann::json(ErrorResponse{
+         .error = "Bad request",
+         .message = fmt::format("The column {} is not of type indexed-string.", column_name)
+      });
+      return;
+   }
+   auto metadata = database->table->schema
+                      .getColumnMetadata<storage::column::IndexedStringColumnPartition>(column_name)
+                      .value();
+   if (!metadata->lineage_tree.has_value()) {
       response.setContentType("application/json");
       response.setStatusAndReason(Poco::Net::HTTPResponse::HTTP_BAD_REQUEST);
       std::ostream& out_stream = response.send();
@@ -48,11 +59,11 @@ void LineageDefinitionHandler::get(
          .error = "Bad request",
          .message = fmt::format("The column {} does not have a lineageIndex defined.", column_name)
       });
-   } else {
-      const std::string lineage_definition_yaml = database->lineage_tree.file;
-      response.setContentType("application/yaml");
-      std::ostream& out_stream = response.send();
-      out_stream << lineage_definition_yaml;
+      return;
    }
+   const std::string lineage_definition_yaml = metadata->lineage_tree.value().file;
+   response.setContentType("application/yaml");
+   std::ostream& out_stream = response.send();
+   out_stream << lineage_definition_yaml;
 }
 }  // namespace silo::api
