@@ -1,4 +1,4 @@
-#include "silo/storage/sequence_store.h"
+#include "silo/storage/column/sequence_column.h"
 
 #include <fstream>
 #include <iostream>

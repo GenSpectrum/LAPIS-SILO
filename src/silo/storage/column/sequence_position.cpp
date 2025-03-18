@@ -1,4 +1,4 @@
-#include "silo/storage/position.h"
+#include "silo/storage/column/position.h"
 
 #include <spdlog/spdlog.h>
 

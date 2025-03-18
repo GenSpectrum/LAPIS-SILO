@@ -13,7 +13,7 @@
 #include "silo/query_engine/filter/operators/range_selection.h"
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/storage/column/date_column.h"
-#include "silo/storage/database_partition.h"
+#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -41,8 +41,8 @@ std::string DateBetween::toString() const {
 }
 
 std::unique_ptr<operators::Operator> DateBetween::compile(
-   const silo::Database& /*database*/,
-   const silo::DatabasePartition& database_partition,
+   const Database& /*database*/,
+   const storage::TablePartition& database_partition,
    AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(

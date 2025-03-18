@@ -8,9 +8,10 @@
 namespace silo {
 
 template <typename SymbolType>
-std::string validateSequenceName(std::string sequence_name, const silo::Database& database) {
+std::string validateSequenceName(std::string sequence_name, const schema::TableSchema& schema) {
    CHECK_SILO_QUERY(
-      database.getSequenceStores<SymbolType>().contains(sequence_name),
+      schema.getColumn(sequence_name).has_value() &&
+         schema.getColumn(sequence_name).value().type == SymbolType::COLUMN_TYPE,
       fmt::format(
          "Database does not contain the {} Sequence with name: '{}'",
          SymbolType::SYMBOL_NAME,
@@ -23,20 +24,19 @@ std::string validateSequenceName(std::string sequence_name, const silo::Database
 template <typename SymbolType>
 std::string validateSequenceNameOrGetDefault(
    std::optional<std::string> sequence_name,
-   const silo::Database& database
+   const schema::TableSchema& schema
 ) {
    if (sequence_name.has_value()) {
-      return validateSequenceName<SymbolType>(sequence_name.value(), database);
+      return validateSequenceName<SymbolType>(sequence_name.value(), schema);
    }
 
+   auto default_sequence = schema.getDefaultSequenceName<SymbolType>();
    CHECK_SILO_QUERY(
-      database.getDefaultSequenceName<SymbolType>().has_value(),
+      default_sequence.has_value(),
       "The database has no default " + std::string(SymbolType::SYMBOL_NAME_LOWER_CASE) +
          " sequence name"
    );
-
-   const auto default_sequence_name = database.getDefaultSequenceName<SymbolType>().value();
-   return validateSequenceName<SymbolType>(default_sequence_name, database);
+   return default_sequence.value().name;
 }
 
 }  // namespace silo

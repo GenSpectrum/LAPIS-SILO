@@ -13,7 +13,7 @@
 #include "silo/query_engine/filter/operators/empty.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/selection.h"
-#include "silo/storage/database_partition.h"
+#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -27,7 +27,7 @@ std::string FloatEquals::toString() const {
 
 std::unique_ptr<silo::query_engine::filter::operators::Operator> FloatEquals::compile(
    const silo::Database& /*database*/,
-   const silo::DatabasePartition& database_partition,
+   const storage::TablePartition& database_partition,
    silo::query_engine::filter::expressions::Expression::AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
@@ -61,8 +61,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<FloatEquals>& filter)
       "The field 'value' in an FloatEquals expression must be a float or null"
    );
    const std::string& column_name = json["column"];
-   const double& value =
-      json["value"].is_null() ? storage::column::FloatColumn::null() : json["value"].get<double>();
+   const double& value = json["value"].is_null() ? storage::column::FloatColumnPartition::null()
+                                                 : json["value"].get<double>();
    filter = std::make_unique<FloatEquals>(column_name, value);
 }
 

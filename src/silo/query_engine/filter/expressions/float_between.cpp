@@ -11,7 +11,7 @@
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/selection.h"
-#include "silo/storage/database_partition.h"
+#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -34,8 +34,8 @@ std::string FloatBetween::toString() const {
 }
 
 std::unique_ptr<silo::query_engine::filter::operators::Operator> FloatBetween::compile(
-   const silo::Database& /*database*/,
-   const silo::DatabasePartition& database_partition,
+   const Database& /*database*/,
+   const storage::TablePartition& database_partition,
    silo::query_engine::filter::expressions::Expression::AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
@@ -61,7 +61,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> FloatBetween::c
       predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<double>>(
          float_column.getValues(),
          operators::Comparator::NOT_EQUALS,
-         storage::column::FloatColumn::null()
+         storage::column::FloatColumnPartition::null()
       ));
    }
 

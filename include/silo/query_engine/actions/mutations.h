@@ -14,7 +14,7 @@
 #include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/query_result.h"
-#include "silo/storage/sequence_store.h"
+#include "silo/storage/column/sequence_column.h"
 
 namespace silo::query_engine::actions {
 
@@ -46,16 +46,21 @@ class Mutations : public Action {
    std::vector<std::string_view> fields;
 
    struct PrefilteredBitmaps {
-      std::vector<
-         std::pair<const CopyOnWriteBitmap&, const silo::SequenceStorePartition<SymbolType>&>>
+      std::vector<std::pair<
+         const CopyOnWriteBitmap&,
+         const storage::column::SequenceColumnPartition<SymbolType>&>>
          bitmaps;
-      std::vector<
-         std::pair<const CopyOnWriteBitmap&, const silo::SequenceStorePartition<SymbolType>&>>
+      std::vector<std::pair<
+         const CopyOnWriteBitmap&,
+         const storage::column::SequenceColumnPartition<SymbolType>&>>
          full_bitmaps;
    };
 
    static std::unordered_map<std::string, Mutations<SymbolType>::PrefilteredBitmaps>
-   preFilterBitmaps(const silo::Database& database, std::vector<CopyOnWriteBitmap>& bitmap_filter);
+   preFilterBitmaps(
+      const silo::storage::Table& table,
+      std::vector<CopyOnWriteBitmap>& bitmap_filter
+   );
 
    static void addPositionToMutationCountsForMixedBitmaps(
       uint32_t position_idx,
@@ -70,18 +75,18 @@ class Mutations : public Action {
    );
 
    static SymbolMap<SymbolType, std::vector<uint32_t>> calculateMutationsPerPosition(
-      const SequenceStore<SymbolType>& sequence_store,
+      const storage::column::SequenceColumnMetadata<SymbolType>& sequence_store,
       const PrefilteredBitmaps& bitmap_filter
    );
 
    void addMutationsToOutput(
       const std::string& sequence_name,
-      const SequenceStore<SymbolType>& sequence_store,
+      const storage::column::SequenceColumnMetadata<SymbolType>& sequence_store,
       const PrefilteredBitmaps& bitmap_filter,
       std::vector<QueryResultEntry>& output
    ) const;
 
-   void validateOrderByFields(const Database& database) const override;
+   void validateOrderByFields(const schema::TableSchema& schema) const override;
 
    [[nodiscard]] QueryResult execute(
       const Database& database,

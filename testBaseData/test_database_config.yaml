@@ -27,3 +27,4 @@ schema:
   primaryKey: gisaid_epi_isl
   dateToSortBy: date
   partitionBy: pango_lineage
+defaultNucleotideSequence: "main"

@@ -17,7 +17,7 @@ class ZstdCompressor {
    std::shared_ptr<ZstdCDictionary> dictionary;
    ZstdCContext zstd_context;
 
-   ZstdCompressor();
+   ZstdCompressor() = delete;
 
   public:
    explicit ZstdCompressor(std::shared_ptr<ZstdCDictionary> dictionary);

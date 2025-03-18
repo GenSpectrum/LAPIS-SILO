@@ -1,4 +1,4 @@
-#include "silo/storage/lineage_index.h"
+#include "silo/storage/column/lineage_index.h"
 
 #include <spdlog/spdlog.h>
 

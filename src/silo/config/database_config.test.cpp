@@ -5,12 +5,12 @@
 
 #include "config/config_exception.h"
 
-using silo::config::ColumnType;
 using silo::config::ConfigException;
 using silo::config::DatabaseConfig;
 using silo::config::DatabaseSchema;
 using silo::config::toDatabaseValueType;
 using silo::config::ValueType;
+using silo::schema::ColumnType;
 
 TEST(DatabaseMetadataType, shouldBeConvertableFromString) {
    ASSERT_TRUE(toDatabaseValueType("string") == ValueType::STRING);
@@ -140,7 +140,7 @@ TEST(DatabaseConfig, shouldReadConfigWithCorrectParameters) {
    ASSERT_EQ(config.schema.metadata[8].name, "qc_value");
    ASSERT_EQ(config.schema.metadata[8].type, ValueType::FLOAT);
    ASSERT_EQ(config.schema.metadata[8].generate_index, false);
-   ASSERT_EQ(config.default_nucleotide_sequence, std::nullopt);
+   ASSERT_EQ(config.default_nucleotide_sequence, "main");
    ASSERT_EQ(config.default_amino_acid_sequence, std::nullopt);
 }
 

@@ -1,4 +1,4 @@
-#include "silo/storage/insertion_index.h"
+#include "silo/storage/column/insertion_index.h"
 
 #include <functional>
 #include <optional>
