@@ -162,11 +162,13 @@ LineageTree LineageTree::fromEdgeList(
 
 LineageTreeAndIdMap::LineageTreeAndIdMap(const LineageTreeAndIdMap& other)
     : lineage_tree(other.lineage_tree),
-      lineage_id_lookup_map(other.lineage_id_lookup_map.copy()) {}
+      lineage_id_lookup_map(other.lineage_id_lookup_map.copy()),
+      file(other.file) {}
 
 LineageTreeAndIdMap& LineageTreeAndIdMap::operator=(const LineageTreeAndIdMap& other) {
    lineage_tree = other.lineage_tree;
    lineage_id_lookup_map = other.lineage_id_lookup_map.copy();
+   file = other.file;
    return *this;
 }
 

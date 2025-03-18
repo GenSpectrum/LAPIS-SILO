@@ -20,7 +20,7 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/query_engine/filter/operators/union.h"
-#include "silo/storage/database_partition.h"
+#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -91,7 +91,7 @@ void logCompiledChildren(
 std::tuple<OperatorVector, OperatorVector, std::vector<std::unique_ptr<operators::Predicate>>> And::
    compileChildren(
       const Database& database,
-      const DatabasePartition& database_partition,
+      const storage::TablePartition& database_partition,
       AmbiguityMode mode
    ) const {
    OperatorVector all_child_operators;
@@ -154,7 +154,7 @@ std::tuple<OperatorVector, OperatorVector, std::vector<std::unique_ptr<operators
 
 std::unique_ptr<Operator> And::compile(
    const Database& database,
-   const DatabasePartition& database_partition,
+   const storage::TablePartition& database_partition,
    AmbiguityMode mode
 ) const {
    auto [non_negated_child_operators, negated_child_operators, predicates] =

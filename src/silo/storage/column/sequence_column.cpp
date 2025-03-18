@@ -1,0 +1,308 @@
+#include "silo/storage/column/sequence_column.h"
+
+#include <string>
+#include <utility>
+#include <vector>
+
+#include <oneapi/tbb/blocked_range.h>
+#include <oneapi/tbb/enumerable_thread_specific.h>
+#include <oneapi/tbb/parallel_for.h>
+#include <spdlog/spdlog.h>
+#include <boost/lexical_cast.hpp>
+#include <roaring/roaring.hh>
+
+#include "silo/common/aa_symbols.h"
+#include "silo/common/nucleotide_symbols.h"
+#include "silo/common/string_utils.h"
+#include "silo/common/symbol_map.h"
+#include "silo/common/table_reader.h"
+#include "silo/preprocessing/preprocessing_exception.h"
+#include "silo/storage/column/position.h"
+#include "silo/storage/insertion_format_exception.h"
+#include "silo/storage/reference_genomes.h"
+#include "silo/zstd/zstd_decompressor.h"
+
+namespace silo::storage::column {
+
+template <typename SymbolType>
+SequenceColumnPartition<SymbolType>::SequenceColumnPartition(
+   SequenceColumnMetadata<SymbolType>* metadata
+)
+    : metadata(metadata) {
+   lazy_buffer.reserve(BUFFER_SIZE);
+   positions.reserve(metadata->reference_sequence.size());
+   for (const auto symbol : metadata->reference_sequence) {
+      positions.emplace_back(Position<SymbolType>::fromInitiallyFlipped(symbol));
+   }
+}
+
+template <typename SymbolType>
+ReadSequence& SequenceColumnPartition<SymbolType>::appendNewSequenceRead() {
+   if (lazy_buffer.size() > BUFFER_SIZE) {
+      flushBuffer();
+      lazy_buffer.clear();
+   }
+
+   lazy_buffer.emplace_back();
+
+   sequence_count += 1;
+
+   return lazy_buffer.back();
+}
+
+namespace {
+
+constexpr std::string_view DELIMITER_INSERTION = ":";
+
+struct InsertionEntry {
+   uint32_t position_idx;
+   std::string insertion;
+};
+
+InsertionEntry parseInsertion(const std::string& value) {
+   auto position_and_insertion = splitBy(value, DELIMITER_INSERTION);
+   std::ranges::transform(
+      position_and_insertion,
+      position_and_insertion.begin(),
+      [](const std::string& value) { return removeSymbol(value, '\"'); }
+   );
+   if (position_and_insertion.size() == 2) {
+      try {
+         const auto position = boost::lexical_cast<uint32_t>(position_and_insertion[0]);
+         const auto& insertion = position_and_insertion[1];
+         return {.position_idx = position, .insertion = insertion};
+      } catch (const boost::bad_lexical_cast& error) {
+         throw silo::storage::InsertionFormatException(
+            "Failed to parse insertion due to invalid format. Expected position that is parsable "
+            "as "
+            "an integer, instead got: '{}'",
+            value
+         );
+      }
+   }
+   throw silo::storage::InsertionFormatException(
+      "Failed to parse insertion due to invalid format. Expected two parts (position and insertion "
+      "value), instead got: '{}'",
+      value
+   );
+}
+}  // namespace
+
+template <typename SymbolType>
+void SequenceColumnPartition<SymbolType>::appendInsertion(const std::string& insertion_and_position
+) {
+   auto [position, insertion] = parseInsertion(insertion_and_position);
+   insertion_index.addLazily(position, insertion, sequence_count - 1);
+}
+
+template <typename SymbolType>
+void SequenceColumnPartition<SymbolType>::finalize() {
+   flushBuffer();
+   lazy_buffer.clear();
+
+   SPDLOG_DEBUG("Building insertion index");
+
+   insertion_index.buildIndex();
+
+   SPDLOG_DEBUG("Optimizing bitmaps");
+
+   const SequenceColumnInfo info_before_optimisation = getInfo();
+   optimizeBitmaps();
+
+   SPDLOG_DEBUG(
+      "Sequence store partition info after filling it: {}, and after optimising: {}",
+      info_before_optimisation,
+      getInfo()
+   );
+}
+}  // namespace silo::storage::column
+
+[[maybe_unused]] auto fmt::formatter<silo::storage::column::SequenceColumnInfo>::format(
+   const silo::storage::column::SequenceColumnInfo& sequence_store_info,
+   fmt::format_context& ctx
+) -> decltype(ctx.out()) {
+   return fmt::format_to(
+      ctx.out(),
+      "SequenceColumnInfo[sequence count: {}, size: {}, N bitmaps size: {}]",
+      sequence_store_info.sequence_count,
+      sequence_store_info.size,
+      silo::formatNumber(sequence_store_info.n_bitmaps_size)
+   );
+}
+
+namespace silo::storage::column {
+
+template <typename SymbolType>
+SequenceColumnInfo SequenceColumnPartition<SymbolType>::getInfo() const {
+   size_t n_bitmaps_size = 0;
+   for (const auto& bitmap : missing_symbol_bitmaps) {
+      n_bitmaps_size += bitmap.getSizeInBytes(false);
+   }
+   return SequenceColumnInfo{this->sequence_count, computeSize(), n_bitmaps_size};
+}
+
+template <typename SymbolType>
+const roaring::Roaring* SequenceColumnPartition<SymbolType>::getBitmap(
+   size_t position_idx,
+   typename SymbolType::Symbol symbol
+) const {
+   return positions[position_idx].getBitmap(symbol);
+}
+
+template <typename SymbolType>
+void SequenceColumnPartition<SymbolType>::fillIndexes() {
+   const size_t genome_length = positions.size();
+   static constexpr int DEFAULT_POSITION_BATCH_SIZE = 64;
+   const size_t sequence_id_base_for_buffer = sequence_count - lazy_buffer.size();
+   tbb::parallel_for(
+      tbb::blocked_range<size_t>(0, genome_length, genome_length / DEFAULT_POSITION_BATCH_SIZE),
+      [&](const auto& local) {
+         SymbolMap<SymbolType, std::vector<uint32_t>> ids_per_symbol_for_current_position;
+         for (size_t position_idx = local.begin(); position_idx != local.end(); ++position_idx) {
+            const size_t number_of_sequences = lazy_buffer.size();
+            for (size_t sequence_offset = 0; sequence_offset < number_of_sequences;
+                 ++sequence_offset) {
+               const auto& [is_valid, sequence, offset] = lazy_buffer[sequence_offset];
+               if (!is_valid || position_idx < offset || position_idx - offset >= sequence.size()) {
+                  continue;
+               }
+               const char character = sequence[position_idx - offset];
+               const auto symbol = SymbolType::charToSymbol(character);
+               if (!symbol.has_value()) {
+                  throw preprocessing::PreprocessingException(
+                     "Illegal character '{}' at position {} contained in sequence with index {} in "
+                     "the current buffer.",
+                     character,
+                     position_idx,
+                     sequence_offset
+                  );
+               }
+               if (symbol != SymbolType::SYMBOL_MISSING) {
+                  ids_per_symbol_for_current_position[*symbol].push_back(
+                     sequence_id_base_for_buffer + sequence_offset
+                  );
+               }
+            }
+            addSymbolsToPositions(
+               position_idx, ids_per_symbol_for_current_position, number_of_sequences
+            );
+         }
+      }
+   );
+}
+
+template <typename SymbolType>
+void SequenceColumnPartition<SymbolType>::addSymbolsToPositions(
+   size_t position_idx,
+   SymbolMap<SymbolType, std::vector<uint32_t>>& ids_per_symbol_for_current_position,
+   size_t number_of_sequences
+) {
+   for (const auto& symbol : SymbolType::SYMBOLS) {
+      positions[position_idx].addValues(
+         symbol,
+         ids_per_symbol_for_current_position.at(symbol),
+         sequence_count - number_of_sequences,
+         number_of_sequences
+      );
+      ids_per_symbol_for_current_position[symbol].clear();
+   }
+}
+
+template <typename SymbolType>
+void SequenceColumnPartition<SymbolType>::fillNBitmaps() {
+   const size_t genome_length = positions.size();
+
+   const size_t sequence_id_base_for_buffer = sequence_count - lazy_buffer.size();
+
+   missing_symbol_bitmaps.resize(sequence_count);
+
+   const tbb::blocked_range<size_t> range(0, lazy_buffer.size());
+   tbb::parallel_for(range, [&](const decltype(range)& local) {
+      std::vector<uint32_t> positions_with_symbol_missing;
+      for (size_t sequence_offset_in_buffer = local.begin();
+           sequence_offset_in_buffer != local.end();
+           ++sequence_offset_in_buffer) {
+         const auto& [is_valid, maybe_sequence, offset] = lazy_buffer[sequence_offset_in_buffer];
+
+         const size_t sequence_idx = sequence_id_base_for_buffer + sequence_offset_in_buffer;
+
+         if (!is_valid) {
+            missing_symbol_bitmaps[sequence_idx].addRange(0, genome_length);
+            missing_symbol_bitmaps[sequence_idx].runOptimize();
+            continue;
+         }
+
+         missing_symbol_bitmaps[sequence_idx].addRange(0, offset);
+
+         for (size_t position_idx = 0; position_idx < maybe_sequence.size(); ++position_idx) {
+            const char character = maybe_sequence[position_idx];
+            const auto symbol = SymbolType::charToSymbol(character);
+            if (symbol == SymbolType::SYMBOL_MISSING) {
+               positions_with_symbol_missing.push_back(position_idx + offset);
+            }
+         }
+
+         missing_symbol_bitmaps[sequence_idx].addRange(
+            offset + maybe_sequence.size(), genome_length
+         );
+
+         if (!positions_with_symbol_missing.empty()) {
+            missing_symbol_bitmaps[sequence_idx].addMany(
+               positions_with_symbol_missing.size(), positions_with_symbol_missing.data()
+            );
+            missing_symbol_bitmaps[sequence_idx].runOptimize();
+            positions_with_symbol_missing.clear();
+         }
+      }
+   });
+}
+
+template <typename SymbolType>
+void SequenceColumnPartition<SymbolType>::optimizeBitmaps() {
+   tbb::enumerable_thread_specific<decltype(indexing_differences_to_reference_sequence)>
+      index_changes_to_reference;
+
+   tbb::parallel_for(tbb::blocked_range<uint32_t>(0, positions.size()), [&](const auto& local) {
+      auto& local_index_changes = index_changes_to_reference.local();
+      for (auto position_idx = local.begin(); position_idx != local.end(); ++position_idx) {
+         auto symbol_changed = positions[position_idx].flipMostNumerousBitmap(sequence_count);
+         if (symbol_changed.has_value()) {
+            local_index_changes.emplace_back(position_idx, *symbol_changed);
+         }
+      }
+   });
+   for (const auto& local : index_changes_to_reference) {
+      for (const auto& element : local) {
+         indexing_differences_to_reference_sequence.emplace_back(element);
+      }
+   }
+}
+
+template <typename SymbolType>
+void SequenceColumnPartition<SymbolType>::flushBuffer() {
+   fillIndexes();
+   fillNBitmaps();
+}
+
+template <typename SymbolType>
+size_t SequenceColumnPartition<SymbolType>::computeSize() const {
+   size_t result = 0;
+   for (const auto& position : positions) {
+      result += position.computeSize();
+   }
+   return result;
+}
+
+template <typename SymbolType>
+SequenceColumnMetadata<SymbolType>::SequenceColumnMetadata(
+   std::string column_name,
+   std::vector<typename SymbolType::Symbol>&& reference_sequence
+)
+    : ColumnMetadata(std::move(column_name)),
+      reference_sequence(std::move(reference_sequence)) {}
+
+template class SequenceColumnPartition<Nucleotide>;
+template class SequenceColumnPartition<AminoAcid>;
+template class SequenceColumnMetadata<Nucleotide>;
+template class SequenceColumnMetadata<AminoAcid>;
+}  // namespace silo::storage::column

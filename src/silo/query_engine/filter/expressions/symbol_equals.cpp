@@ -21,7 +21,7 @@
 #include "silo/query_engine/filter/operators/index_scan.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/query_parse_sequence_name.h"
-#include "silo/storage/database_partition.h"
+#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -68,12 +68,12 @@ std::string SymbolEquals<SymbolType>::toString() const {
 
 template <typename SymbolType>
 std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<SymbolType>::compile(
-   const silo::Database& database,
-   const silo::DatabasePartition& database_partition,
+   const Database& database,
+   const storage::TablePartition& table_partition,
    Expression::AmbiguityMode mode
 ) const {
    CHECK_SILO_QUERY(
-      sequence_name.has_value() || database.getDefaultSequenceName<SymbolType>().has_value(),
+      sequence_name.has_value() || database.table->schema.getDefaultSequenceName<SymbolType>(),
       fmt::format(
          "Database does not have a default sequence name for {} Sequences. "
          "You need to provide the sequence name with the {}Equals filter.",
@@ -83,23 +83,24 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<Sy
    );
 
    const auto valid_sequence_name =
-      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, database);
+      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, database.table->schema);
 
    const auto& seq_store_partition =
-      database_partition.getSequenceStores<SymbolType>().at(valid_sequence_name);
+      table_partition.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
 
    CHECK_SILO_QUERY(
-      position_idx < seq_store_partition.reference_sequence.size(),
+      position_idx < seq_store_partition.metadata->reference_sequence.size(),
       fmt::format(
          "{}Equals position is out of bounds {} > {}",
          SymbolType::SYMBOL_NAME,
          position_idx + 1,
-         seq_store_partition.reference_sequence.size()
+         seq_store_partition.metadata->reference_sequence.size()
       )
    )
 
-   auto symbol =
-      value.getSymbolOrReplaceDotWith(seq_store_partition.reference_sequence.at(position_idx));
+   auto symbol = value.getSymbolOrReplaceDotWith(
+      seq_store_partition.metadata->reference_sequence.at(position_idx)
+   );
    if (mode == UPPER_BOUND) {
       auto symbols_to_match = SymbolType::AMBIGUITY_SYMBOLS.at(symbol);
       std::vector<std::unique_ptr<Expression>> symbol_filters;
@@ -112,7 +113,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<Sy
             );
          }
       );
-      return Or(std::move(symbol_filters)).compile(database, database_partition, NONE);
+      return Or(std::move(symbol_filters)).compile(database, table_partition, NONE);
    }
    if (symbol == SymbolType::SYMBOL_MISSING) {
       SPDLOG_TRACE(
@@ -144,9 +145,9 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<Sy
          std::make_unique<operators::IndexScan>(
             std::move(logical_equivalent_of_nested_index_scan),
             seq_store_partition.getBitmap(position_idx, symbol),
-            database_partition.sequence_count
+            table_partition.sequence_count
          ),
-         database_partition.sequence_count
+         table_partition.sequence_count
       );
    }
    if (seq_store_partition.positions[position_idx].isSymbolDeleted(symbol)) {
@@ -169,7 +170,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<Sy
             );
          }
       );
-      return And(std::move(symbol_filters)).compile(database, database_partition, NONE);
+      return And(std::move(symbol_filters)).compile(database, table_partition, NONE);
    }
    SPDLOG_TRACE(
       "Filtering for symbol '{}' at position {}", SymbolType::symbolToChar(symbol), position_idx
@@ -179,7 +180,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<Sy
    return std::make_unique<operators::IndexScan>(
       std::move(logical_equivalent),
       seq_store_partition.getBitmap(position_idx, symbol),
-      database_partition.sequence_count
+      table_partition.sequence_count
    );
 }
 

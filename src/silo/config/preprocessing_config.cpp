@@ -89,10 +89,10 @@ ConfigSpecification PreprocessingConfig::getConfigSpecification() {
             ConfigValue::fromPath("reference_genomes.json"),
             "File name of the file holding the reference genome. Relative from inputDirectory."
          ),
-         ConfigAttributeSpecification::createWithDefault(
+         ConfigAttributeSpecification::createWithoutDefault(
             ndjsonInputFilenameOptionKey(),
-            ConfigValue::fromPath("reference_genomes.json"),
-            "File name of the file holding the reference genome. Relative from inputDirectory."
+            ConfigValueType::PATH,
+            "Path to the input data. Relative from inputDirectory."
          ),
       }
    };
@@ -100,34 +100,33 @@ ConfigSpecification PreprocessingConfig::getConfigSpecification() {
 
 PreprocessingConfig PreprocessingConfig::withDefaults() {
    PreprocessingConfig result;
-   result.initialize_config.overwriteFrom(
-      InitializeConfig::getConfigSpecification().getConfigSourceFromDefaults()
-   );
    result.overwriteFrom(getConfigSpecification().getConfigSourceFromDefaults());
    return result;
 }
 
 void PreprocessingConfig::validate() const {
    if (!input_file.has_value()) {
-      throw silo::preprocessing::PreprocessingException("The value 'inputFile' must be set.");
+      throw silo::preprocessing::PreprocessingException(
+         "'ndjsonInputFilename' must be specified as preprocessing option."
+      );
    }
 }
 
 void PreprocessingConfig::overwriteFrom(const VerifiedConfigAttributes& config_source) {
    if (auto var = config_source.getPath(inputDirectoryOptionKey())) {
-      initialize_config.input_directory = var.value();
+      initialization_files.directory = var.value();
    }
    if (auto var = config_source.getPath(lineageDefinitionsFilenameOptionKey())) {
-      initialize_config.lineage_definitions_file = var.value();
+      initialization_files.lineage_definitions_file = var.value();
    }
    if (auto var = config_source.getPath(databaseConfigFileOptionKey())) {
-      initialize_config.database_config_file = var.value();
+      initialization_files.database_config_file = var.value();
    }
    if (auto var = config_source.getPath(referenceGenomeFilenameOptionKey())) {
-      initialize_config.reference_genome_file = var.value();
+      initialization_files.reference_genome_file = var.value();
    }
    if (auto var = config_source.getPath(outputDirectoryOptionKey())) {
-      initialize_config.output_directory = var.value();
+      output_directory = var.value();
    }
    if (auto var = config_source.getPath(ndjsonInputFilenameOptionKey())) {
       input_file = var.value();
@@ -149,6 +148,12 @@ std::vector<std::filesystem::path> PreprocessingConfig::getConfigFilePaths(
       result.emplace_back(runtime_config.value());
    }
    return result;
+}
+std::optional<std::filesystem::path> PreprocessingConfig::getInputFilePath() const {
+   if (input_file.has_value()) {
+      return initialization_files.directory / input_file.value();
+   }
+   return std::nullopt;
 }
 
 }  // namespace silo::config

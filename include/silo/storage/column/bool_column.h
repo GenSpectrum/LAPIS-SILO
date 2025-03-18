@@ -8,26 +8,30 @@
 #include <boost/serialization/access.hpp>
 
 #include "silo/common/optional_bool.h"
+#include "silo/schema/database_schema.h"
 
 namespace silo::storage::column {
 
 class BoolColumnPartition {
-   friend class boost::serialization::access;
+  public:
+   using Metadata = ColumnMetadata;
+
+   static constexpr schema::ColumnType TYPE = schema::ColumnType::BOOL;
 
   private:
+   friend class boost::serialization::access;
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      archive & column_name;
       archive & values;
       // clang-format on
    }
 
-   std::string column_name;
    std::vector<silo::common::OptionalBool> values;
+   Metadata* metadata;
 
   public:
-   explicit BoolColumnPartition(std::string column_name);
+   explicit BoolColumnPartition(Metadata* metadata);
 
    [[nodiscard]] const std::vector<silo::common::OptionalBool>& getValues() const;
 
@@ -36,25 +40,6 @@ class BoolColumnPartition {
    void insertNull();
 
    void reserve(size_t row_count);
-};
-
-class BoolColumn {
-   friend class boost::serialization::access;
-
-   template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
-      // clang-format off
-      archive & column_name;
-      // clang-format on
-   }
-
-   std::string column_name;
-   std::deque<BoolColumnPartition> partitions;
-
-  public:
-   explicit BoolColumn(std::string column_name);
-
-   BoolColumnPartition& createPartition();
 };
 
 }  // namespace silo::storage::column

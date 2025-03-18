@@ -11,7 +11,7 @@
 #include "silo/query_engine/filter/operators/empty.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/selection.h"
-#include "silo/storage/database_partition.h"
+#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -24,8 +24,8 @@ std::string IntEquals::toString() const {
 }
 
 std::unique_ptr<silo::query_engine::filter::operators::Operator> IntEquals::compile(
-   const silo::Database& /*database*/,
-   const silo::DatabasePartition& database_partition,
+   const Database& /*database*/,
+   const storage::TablePartition& database_partition,
    Expression::AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
@@ -54,16 +54,17 @@ void from_json(const nlohmann::json& json, std::unique_ptr<IntEquals>& filter) {
    CHECK_SILO_QUERY(
       json.contains("value"), "The field 'value' is required in an IntEquals expression"
    );
-   bool value_in_allowed_range = json["value"].is_number_integer() &&
-                                 json["value"].get<int32_t>() != storage::column::IntColumn::null();
+   bool value_in_allowed_range =
+      json["value"].is_number_integer() &&
+      json["value"].get<int32_t>() != storage::column::IntColumnPartition::null();
    CHECK_SILO_QUERY(
       value_in_allowed_range || json["value"].is_null(),
       "The field 'value' in an IntEquals expression must be an integer in [-2147483647; "
       "2147483647] or null"
    );
    const std::string& column = json["column"];
-   const int32_t& value =
-      json["value"].is_null() ? storage::column::IntColumn::null() : json["value"].get<int32_t>();
+   const int32_t& value = json["value"].is_null() ? storage::column::IntColumnPartition::null()
+                                                  : json["value"].get<int32_t>();
    filter = std::make_unique<IntEquals>(column, value);
 }
 

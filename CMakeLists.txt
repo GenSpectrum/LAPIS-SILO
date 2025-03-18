@@ -36,7 +36,6 @@ add_compile_definitions(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 # ---------------------------------------------------------------------------
 
 find_package(Boost REQUIRED COMPONENTS system serialization iostreams)
-find_package(duckdb REQUIRED)
 find_package(LibLZMA REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(Poco REQUIRED COMPONENTS Net Util JSON)

@@ -7,22 +7,40 @@
 
 // NOLINTBEGIN(bugprone-unchecked-optional-access)
 
-namespace {
-std::pair<silo::storage::ColumnGroup, silo::storage::ColumnPartitionGroup>
-createSinglePartitionColumns() {
-   std::pair<silo::storage::ColumnGroup, silo::storage::ColumnPartitionGroup> return_value;
-   auto& group = return_value.first;
-   auto& partition_group = return_value.second;
+using silo::schema::ColumnIdentifier;
+using silo::schema::ColumnType;
+using silo::schema::TableSchema;
+using silo::storage::ColumnPartitionGroup;
+using silo::storage::column::ColumnMetadata;
+using silo::storage::column::IndexedStringColumnMetadata;
+using silo::storage::column::StringColumnMetadata;
 
+namespace {
+std::pair<TableSchema, ColumnPartitionGroup> createSinglePartitionColumns() {
+   std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata;
+   ColumnPartitionGroup columns;
+   const std::string primary_key_column_name = "primary_key_column";
+   ColumnIdentifier primary_key_column_identifier{primary_key_column_name, ColumnType::STRING};
+   {
+      columns.metadata.push_back(primary_key_column_identifier);
+      auto metadata = std::make_shared<StringColumnMetadata>(primary_key_column_name);
+      columns.string_columns.emplace(primary_key_column_name, metadata.get());
+      column_metadata.emplace(primary_key_column_identifier, metadata);
+
+      columns.string_columns.at(primary_key_column_name).insert("k1");
+      columns.string_columns.at(primary_key_column_name).insert("k2");
+      columns.string_columns.at(primary_key_column_name).insert("k3");
+   }
    {
       const std::string string_column_name = "dummy_string_column";
-      group.string_columns.emplace(string_column_name, string_column_name);
-      partition_group.metadata.push_back({string_column_name, silo::config::ColumnType::STRING});
-      partition_group.string_columns.emplace(
-         string_column_name, group.string_columns.at(string_column_name).createPartition()
-      );
-      partition_group.string_columns.at(string_column_name).insert("ABCD");
-      partition_group.string_columns.at(string_column_name)
+      ColumnIdentifier column_identifier{string_column_name, ColumnType::STRING};
+      columns.metadata.push_back(column_identifier);
+      auto metadata = std::make_shared<StringColumnMetadata>(string_column_name);
+      columns.string_columns.emplace(string_column_name, metadata.get());
+      column_metadata.emplace(column_identifier, metadata);
+
+      columns.string_columns.at(string_column_name).insert("ABCD");
+      columns.string_columns.at(string_column_name)
          .insert(
             "some very long string some very long string some very long string some very long "
             "string "
@@ -30,20 +48,18 @@ createSinglePartitionColumns() {
             "string "
             "some very long string "
          );
-      partition_group.string_columns.at(string_column_name).insert("ABCD");
+      columns.string_columns.at(string_column_name).insert("ABCD");
    }
    {
       const std::string indexed_string_column_name = "dummy_indexed_string_column";
-      group.indexed_string_columns.emplace(indexed_string_column_name, indexed_string_column_name);
-      partition_group.metadata.push_back(
-         {indexed_string_column_name, silo::config::ColumnType::INDEXED_STRING}
-      );
-      partition_group.indexed_string_columns.emplace(
-         indexed_string_column_name,
-         group.indexed_string_columns.at(indexed_string_column_name).createPartition()
-      );
-      partition_group.indexed_string_columns.at(indexed_string_column_name).insert("ABCD");
-      partition_group.indexed_string_columns.at(indexed_string_column_name)
+      ColumnIdentifier column_identifier{indexed_string_column_name, ColumnType::INDEXED_STRING};
+      columns.metadata.push_back(column_identifier);
+      auto metadata = std::make_shared<IndexedStringColumnMetadata>(indexed_string_column_name);
+      columns.indexed_string_columns.emplace(indexed_string_column_name, metadata.get());
+      column_metadata.emplace(column_identifier, metadata);
+
+      columns.indexed_string_columns.at(indexed_string_column_name).insert("ABCD");
+      columns.indexed_string_columns.at(indexed_string_column_name)
          .insert(
             "some very long string some very long string some very long string some very long "
             "string "
@@ -51,48 +67,43 @@ createSinglePartitionColumns() {
             "string "
             "some very long string "
          );
-      partition_group.indexed_string_columns.at(indexed_string_column_name).insert("ABCD");
+      columns.indexed_string_columns.at(indexed_string_column_name).insert("ABCD");
    }
    {
       const std::string int_column_name = "dummy_int_column";
-      partition_group.metadata.push_back({int_column_name, silo::config::ColumnType::INT});
-      group.int_columns.emplace(int_column_name, int_column_name);
-      partition_group.int_columns.emplace(
-         int_column_name, group.int_columns.at(int_column_name).createPartition()
-      );
-      partition_group.int_columns.at(int_column_name).insert("42");
-      partition_group.int_columns.at(int_column_name).insert("-12389172");
-      partition_group.int_columns.at(int_column_name).insert("42");
+      ColumnIdentifier column_identifier{int_column_name, ColumnType::INT};
+      columns.metadata.push_back(column_identifier);
+      auto metadata = std::make_shared<ColumnMetadata>(int_column_name);
+      columns.int_columns.emplace(int_column_name, metadata.get());
+      column_metadata.emplace(column_identifier, metadata);
+      columns.int_columns.at(int_column_name).insert(42);
+      columns.int_columns.at(int_column_name).insert(-12389172);
+      columns.int_columns.at(int_column_name).insert(42);
    }
    {
       const std::string float_column_name = "dummy_float_column";
-      partition_group.metadata.push_back({float_column_name, silo::config::ColumnType::FLOAT});
-      group.float_columns.emplace(float_column_name, float_column_name);
-      partition_group.float_columns.emplace(
-         float_column_name, group.float_columns.at(float_column_name).createPartition()
-      );
-      partition_group.float_columns.at(float_column_name).insert("42.1");
-      partition_group.float_columns.at(float_column_name).insert("-12389172.24222");
-      partition_group.float_columns.at(float_column_name).insert("42.1");
+      ColumnIdentifier column_identifier{float_column_name, ColumnType::FLOAT};
+      columns.metadata.push_back(column_identifier);
+      auto metadata = std::make_shared<ColumnMetadata>(float_column_name);
+      columns.float_columns.emplace(float_column_name, metadata.get());
+      column_metadata.emplace(column_identifier, metadata);
+      columns.float_columns.at(float_column_name).insert(42.1);
+      columns.float_columns.at(float_column_name).insert(-12389172.24222);
+      columns.float_columns.at(float_column_name).insert(42.1);
    }
    {
       const std::string date_column_name = "dummy_date_column";
-      partition_group.metadata.push_back({date_column_name, silo::config::ColumnType::DATE});
-      group.date_columns.emplace(
-         date_column_name, silo::storage::column::DateColumn(date_column_name, false)
-      );
-      partition_group.date_columns.emplace(
-         date_column_name, group.date_columns.at(date_column_name).createPartition()
-      );
-      partition_group.date_columns.at(date_column_name)
-         .insert(silo::common::stringToDate("2023-01-01"));
-      partition_group.date_columns.at(date_column_name)
-         .insert(silo::common::stringToDate("2023-01-01"));
-      partition_group.date_columns.at(date_column_name)
-         .insert(silo::common::stringToDate("2023-01-01"));
+      ColumnIdentifier column_identifier{date_column_name, ColumnType::DATE};
+      columns.metadata.push_back(column_identifier);
+      auto metadata = std::make_shared<StringColumnMetadata>(date_column_name);
+      columns.date_columns.emplace(date_column_name, metadata.get());
+      column_metadata.emplace(column_identifier, metadata);
+      columns.date_columns.at(date_column_name).insert("2023-01-01");
+      columns.date_columns.at(date_column_name).insert("2023-01-01");
+      columns.date_columns.at(date_column_name).insert("2023-01-01");
    }
 
-   return return_value;
+   return {TableSchema{column_metadata, primary_key_column_identifier}, columns};
 }
 }  // namespace
 
@@ -189,7 +200,9 @@ TEST(TupleFactory, allocatesOneAllocatesManyEqual) {
 
 TEST(Tuple, equalityOperatorEquatesCorrectly) {
    auto columns = createSinglePartitionColumns();
-   TupleFactory factory(columns.second, columns.second.metadata);
+   auto all_columns = columns.second.metadata;
+   std::erase(all_columns, columns.first.primary_key);
+   TupleFactory factory(columns.second, all_columns);
    const Tuple under_test0a = factory.allocateOne(0);
    const Tuple under_test0b = factory.allocateOne(0);
    const Tuple under_test1 = factory.allocateOne(1);

@@ -6,7 +6,7 @@
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/full.h"
 #include "silo/query_engine/filter/operators/operator.h"
-#include "silo/storage/database_partition.h"
+#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -17,8 +17,8 @@ std::string True::toString() const {
 }
 
 std::unique_ptr<silo::query_engine::filter::operators::Operator> True::compile(
-   const silo::Database& /*database*/,
-   const silo::DatabasePartition& database_partition,
+   const Database& /*database*/,
+   const storage::TablePartition& database_partition,
    Expression::AmbiguityMode /*mode*/
 ) const {
    return std::make_unique<operators::Full>(database_partition.sequence_count);

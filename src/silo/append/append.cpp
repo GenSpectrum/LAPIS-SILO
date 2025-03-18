@@ -3,9 +3,11 @@
 #include <fstream>
 #include <istream>
 
+#include "silo/append/database_inserter.h"
+#include "silo/append/ndjson_line_reader.h"
+#include "silo/common/input_stream_wrapper.h"
 #include "silo/common/silo_directory.h"
 #include "silo/database.h"
-#include "silo/database_inserter.h"
 
 using silo::Database;
 
@@ -22,11 +24,7 @@ silo::SiloDataSource getMostRecentOrSpecifiedDatabaseState(
    const std::optional<std::filesystem::path>& specified_directory
 ) {
    if (specified_directory.has_value()) {
-      auto specified_data_source =
-         silo::SiloDataSource::checkValidDataSource(specified_directory.value());
-      if (specified_data_source == std::nullopt) {
-         throw AppendError{"The specified siloDataSource directory is not valid data-source."};
-      }
+      return silo::SiloDataSource::checkValidDataSource(specified_directory.value());
    }
    SPDLOG_INFO(
       "No data directory specified, automatically using the most recent one in the silo-directory "
@@ -43,81 +41,33 @@ silo::SiloDataSource getMostRecentOrSpecifiedDatabaseState(
    return most_recent_data_directory.value();
 }
 
-std::unique_ptr<std::istream> openInputFileOrStdIn(
-   const std::optional<std::filesystem::path>& input_file
-) {
-   if (input_file.has_value()) {
-      // TODO maybe zstd compressed
-      auto file = std::make_unique<std::ifstream>(input_file.value());
-      if (!file->is_open()) {
-         std::cerr << "Error: Unable to open file!" << std::endl;
-         throw std::runtime_error("TODO valid error message");  // TODO valid error
-      }
-      return file;
-   } else {
-      return std::make_unique<std::istream>(std::cin.rdbuf());  // Wrap std::cin in a unique_ptr
-   }
-}
-
-silo::DataVersion getDataVersionFromStringOrMineNewDataVersion(
-   std::optional<std::string> data_version
-) {
-   if (data_version.has_value()) {
-      auto maybe_timestamp = silo::DataVersion::Timestamp::fromString(data_version.value());
-      if (!maybe_timestamp.has_value()) {
-         throw AppendError("The specified dataVersion: {} is not a valid Unix timestamp");
-      }
-      return silo::DataVersion::mineDataVersionFromTimestamp(maybe_timestamp.value());
-   }
-   return silo::DataVersion::mineDataVersion();
-}
-
 }  // namespace
 
-int runAppend(const silo::config::AppendConfig& append_config) {
-   silo::SiloDirectory silo_directory{append_config.silo_directory};
+namespace silo::append {
 
-   silo::SiloDataSource database_state_directory =
+int runAppend(const silo::config::AppendConfig& append_config) {
+   const silo::SiloDirectory silo_directory{append_config.silo_directory};
+
+   const auto database_state_directory =
       getMostRecentOrSpecifiedDatabaseState(silo_directory, append_config.silo_data_source);
 
-   std::shared_ptr<Database> database =
-      std::make_shared<Database>(Database::loadDatabaseState(database_state_directory));
+   SPDLOG_INFO("append - Loading database from {}", database_state_directory.path);
+   Database database = Database::loadDatabaseState(database_state_directory);
 
-   silo::DatabaseInserter database_inserter(database);
+   SPDLOG_INFO("append - appending data to the database");
+   auto input = silo::InputStreamWrapper::openFileOrStdIn(append_config.append_file);
+   silo::append::appendDataToDatabase(
+      database, silo::append::NdjsonLineReader{input.getInputStream()}
+   );
 
-   // TODO make partition configurable
-   silo::DatabasePartitionInserter partition_inserter = database_inserter.openNewPartition();
+   SPDLOG_INFO("append - saving database to directory '{}'", append_config.silo_directory);
+   database.saveDatabaseState(append_config.silo_directory);
 
-   std::unique_ptr<std::istream> input = openInputFileOrStdIn(append_config.append_file);
-
-   // TODO refactor following lines to keep business logic separate
-   std::string line;
-   size_t count = 0;
-   while (std::getline(*input, line)) {  // Read file line by line
-      if (line.empty())
-         continue;  // Skip empty lines
-
-      SPDLOG_INFO("Inserting line {}", count++);
-
-      try {
-         nlohmann::json json_obj = nlohmann::json::parse(line);
-
-         partition_inserter.insert(json_obj);
-
-      } catch (const std::exception& e) {
-         std::cerr << "Error parsing JSON: " << e.what() << std::endl;
-         return 1;
-      }
-   }
-
-   const silo::DataVersion data_version =
-      getDataVersionFromStringOrMineNewDataVersion(append_config.data_version);
-
-   database->setDataVersion(data_version);
-
-   database->saveDatabaseState(append_config.silo_directory);
-
-   SPDLOG_INFO("{}", database->getDatabaseInfo());
+   SPDLOG_INFO(
+      "append - finished appending data, resulting database info: {}", database.getDatabaseInfo()
+   );
 
    return 0;
 }
+
+}  // namespace silo::append

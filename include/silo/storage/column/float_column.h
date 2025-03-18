@@ -8,54 +8,41 @@
 
 #include <boost/serialization/access.hpp>
 
+#include "silo/schema/database_schema.h"
+#include "silo/storage/column/column_metadata.h"
+
 namespace silo::storage::column {
 
 class FloatColumnPartition {
-   friend class boost::serialization::access;
+  public:
+   using Metadata = ColumnMetadata;
+
+   static constexpr schema::ColumnType TYPE = schema::ColumnType::FLOAT;
+
+   static double null() { return std::nan(""); }
 
   private:
+   friend class boost::serialization::access;
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      archive & column_name;
       archive & values;
       // clang-format on
    }
 
-   std::string column_name;
    std::vector<double> values;
+   Metadata* metadata;
 
   public:
-   explicit FloatColumnPartition(std::string column_name);
+   explicit FloatColumnPartition(ColumnMetadata* metadata);
 
    [[nodiscard]] const std::vector<double>& getValues() const;
 
-   void insert(const std::string& value);
+   void insert(double value);
 
    void insertNull();
 
    void reserve(size_t row_count);
-};
-
-class FloatColumn {
-   friend class boost::serialization::access;
-
-   template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
-      // clang-format off
-      archive & column_name;
-      // clang-format on
-   }
-
-   std::string column_name;
-   std::deque<FloatColumnPartition> partitions;
-
-  public:
-   static double null() { return std::nan(""); }
-
-   explicit FloatColumn(std::string column_name);
-
-   FloatColumnPartition& createPartition();
 };
 
 }  // namespace silo::storage::column

@@ -18,14 +18,8 @@ ConfigKeyPath siloDirectoryOptionKey() {
 ConfigKeyPath appendFileOptionKey() {
    return YamlFile::stringToConfigKeyPath("appendFile");
 }
-ConfigKeyPath partitionIdOptionKey() {
-   return YamlFile::stringToConfigKeyPath("partitionId");
-}
 ConfigKeyPath siloDataSourceOptionKey() {
    return YamlFile::stringToConfigKeyPath("siloDataSource");
-}
-ConfigKeyPath dataVersionOptionKey() {
-   return YamlFile::stringToConfigKeyPath("dataVersion");
 }
 }  // namespace
 
@@ -47,23 +41,14 @@ ConfigSpecification AppendConfig::getConfigSpecification() {
             siloDirectoryOptionKey(),
             ConfigValue::fromPath("."),
             "The path to a silo-directory, a directory that contains silo outputs. This may be "
-            "used for input (see ..) and will be used for the output of the new silo state"
-         ),
-         ConfigAttributeSpecification::createWithoutDefault(
-            dataVersionOptionKey(),
-            ConfigValueType::STRING,
-            "The data version of the new database. If not given, a new data version will be minted "
-            "instead."
+            "used for input (see `silo api --help`) and will be used for the output of the new "
+            "silo state"
          ),
          ConfigAttributeSpecification::createWithoutDefault(
             appendFileOptionKey(),
             ConfigValueType::PATH,
-            "The path to one or multiple files that contains the data that should be appended to "
-            "the database. If "
-            "no file is given, the data is expected on stdin instead."
-         ),
-         ConfigAttributeSpecification::createWithoutDefault(
-            partitionIdOptionKey(), ConfigValueType::PATH, "1, new, ~auto"
+            "The path to an ndjson file that contains the data that should be appended to "
+            "the database. If no file is given, the data is expected on stdin instead."
          ),
          ConfigAttributeSpecification::createWithoutDefault(
             siloDataSourceOptionKey(),
@@ -78,9 +63,6 @@ ConfigSpecification AppendConfig::getConfigSpecification() {
 void AppendConfig::overwriteFrom(const VerifiedConfigAttributes& config_source) {
    if (auto var = config_source.getPath(siloDirectoryOptionKey())) {
       silo_directory = var.value();
-   }
-   if (auto var = config_source.getString(dataVersionOptionKey())) {
-      data_version = var.value();
    }
    if (auto var = config_source.getPath(appendFileOptionKey())) {
       append_file = var.value();

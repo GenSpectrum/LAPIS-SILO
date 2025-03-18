@@ -9,6 +9,9 @@
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/yaml.h>
 
+#include "silo/common/fmt_formatters.h"
+#include "silo/persistence/exception.h"
+
 namespace silo {
 
 static const std::string TIMESTAMP_FIELD = "timestamp";
@@ -51,10 +54,6 @@ DataVersion DataVersion::mineDataVersion() {
    return DataVersion{
       *Timestamp::fromString(std::to_string(now_as_time_t)), {CURRENT_SILO_SERIALIZATION_VERSION}
    };
-}
-
-DataVersion DataVersion::mineDataVersionFromTimestamp(silo::DataVersion::Timestamp timestamp) {
-   return DataVersion{timestamp, {CURRENT_SILO_SERIALIZATION_VERSION}};
 }
 
 DataVersion::DataVersion(
@@ -132,11 +131,17 @@ std::optional<DataVersion> DataVersion::fromFile(const std::filesystem::path& fi
    }
 }
 
-void DataVersion::saveToFile(std::ofstream& save_file) const {
+void DataVersion::saveToFile(const std::filesystem::path& save_file) const {
+   std::ofstream file{save_file};
+   if (!file) {
+      throw silo::persistence::SaveDatabaseException(
+         fmt::format("Could not save data version to file '{}'", save_file)
+      );
+   }
    YAML::Node yaml_representation;
    yaml_representation[TIMESTAMP_FIELD] = timestamp.value;
    yaml_representation[SERIALIZATION_VERSION_FIELD] = serialization_version.value;
-   save_file << Dump(yaml_representation);
+   file << Dump(yaml_representation);
 }
 
 }  // namespace silo

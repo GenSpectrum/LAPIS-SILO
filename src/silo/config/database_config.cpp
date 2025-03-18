@@ -93,15 +93,16 @@ bool YAML::convert<silo::config::DatabaseSchema>::decode(
 ) {
    schema.instance_name = node["instanceName"].as<std::string>();
    schema.primary_key = node["primaryKey"].as<std::string>();
+   // DEPRECATED: TODO(#737) fully remove them after the next major release
    if (node["dateToSortBy"].IsDefined()) {
-      schema.date_to_sort_by = node["dateToSortBy"].as<std::string>();
-   } else {
-      schema.date_to_sort_by = std::nullopt;
+      SPDLOG_WARN(
+         "DatabaseConfig field `dateToSortBy` is deprecated and will be removed in future releases."
+      );
    }
    if (node["partitionBy"].IsDefined()) {
-      schema.partition_by = node["partitionBy"].as<std::string>();
-   } else {
-      schema.partition_by = std::nullopt;
+      SPDLOG_WARN(
+         "DatabaseConfig field `partitionBy` is deprecated and will be removed in future releases."
+      );
    }
 
    if (!node["metadata"].IsSequence()) {
@@ -120,12 +121,6 @@ YAML::Node YAML::convert<silo::config::DatabaseSchema>::encode(
    Node node;
    node["instanceName"] = schema.instance_name;
    node["primaryKey"] = schema.primary_key;
-   if (schema.partition_by.has_value()) {
-      node["partitionBy"] = *schema.partition_by;
-   }
-   if (schema.date_to_sort_by.has_value()) {
-      node["dateToSortBy"] = *schema.date_to_sort_by;
-   }
    node["metadata"] = schema.metadata;
    return node;
 }
@@ -163,26 +158,25 @@ YAML::Node YAML::convert<silo::config::DatabaseMetadata>::encode(
 
 namespace silo::config {
 
-ColumnType DatabaseMetadata::getColumnType() const {
+schema::ColumnType DatabaseMetadata::getColumnType() const {
    if (type == ValueType::STRING) {
       if (generate_index) {
-         return ColumnType::INDEXED_STRING;
+         return schema::ColumnType::INDEXED_STRING;
       }
-      return ColumnType::STRING;
+      return schema::ColumnType::STRING;
    }
    if (type == ValueType::DATE) {
-      return ColumnType::DATE;
+      return schema::ColumnType::DATE;
    }
    if (type == ValueType::BOOL) {
-      return ColumnType::BOOL;
+      return schema::ColumnType::BOOL;
    }
    if (type == ValueType::INT) {
-      return ColumnType::INT;
+      return schema::ColumnType::INT;
    }
    if (type == ValueType::FLOAT) {
-      return ColumnType::FLOAT;
+      return schema::ColumnType::FLOAT;
    }
-
    throw std::runtime_error("Did not find metadata with name: " + std::string(name));
 }
 
@@ -271,47 +265,6 @@ std::map<std::string, ValueType> validateMetadataDefinitions(const DatabaseConfi
    }
    return metadata_map;
 }
-
-void validateDateToSortBy(
-   const DatabaseConfig& config,
-   std::map<std::string, ValueType>& metadata_map
-) {
-   if (!config.schema.date_to_sort_by.has_value()) {
-      return;
-   }
-
-   const std::string date_to_sort_by = config.schema.date_to_sort_by.value();
-   if (metadata_map.find(date_to_sort_by) == metadata_map.end()) {
-      throw ConfigException("dateToSortBy '" + date_to_sort_by + "' is not in metadata");
-   }
-
-   if (metadata_map[date_to_sort_by] != ValueType::DATE) {
-      throw ConfigException("dateToSortBy '" + date_to_sort_by + "' must be of type DATE");
-   }
-}
-
-void validatePartitionBy(const DatabaseConfig& config) {
-   if (config.schema.partition_by == std::nullopt) {
-      return;
-   }
-
-   const std::string partition_by = config.schema.partition_by.value();
-
-   const auto& partition_by_metadata =
-      std::ranges::find_if(config.schema.metadata, [&](const DatabaseMetadata& metadata) {
-         return metadata.name == partition_by;
-      });
-   if (partition_by_metadata == config.schema.metadata.end()) {
-      throw ConfigException("partitionBy '" + partition_by + "' is not in metadata");
-   }
-
-   if (partition_by_metadata->type != ValueType::STRING || !partition_by_metadata->generate_lineage_index) {
-      throw ConfigException(
-         "partitionBy '" + partition_by +
-         "' must be of type STRING and needs 'generateLineageIndex' set"
-      );
-   }
-}
 }  // namespace
 
 void DatabaseConfig::validateConfig(const DatabaseConfig& config) {
@@ -324,10 +277,6 @@ void DatabaseConfig::validateConfig(const DatabaseConfig& config) {
    if (metadata_map.find(config.schema.primary_key) == metadata_map.end()) {
       throw ConfigException("Primary key is not in metadata");
    }
-
-   validateDateToSortBy(config, metadata_map);
-
-   validatePartitionBy(config);
 }
 
 }  // namespace silo::config
@@ -355,13 +304,9 @@ void DatabaseConfig::validateConfig(const DatabaseConfig& config) {
 ) -> decltype(ctx.out()) {
    return fmt::format_to(
       ctx.out(),
-      "{{ instance_name: '{}', primary_key: '{}', partition_by: {}, date_to_sort_by: {}, metadata: "
-      "[{}] }}",
+      "{{ instance_name: '{}', primary_key: '{}', metadata: [{}] }}",
       database_schema.instance_name,
       database_schema.primary_key,
-      database_schema.partition_by.has_value() ? "'" + *database_schema.partition_by + "'" : "none",
-      database_schema.date_to_sort_by.has_value() ? "'" + *database_schema.date_to_sort_by + "'"
-                                                  : "none",
       fmt::join(database_schema.metadata, ",")
    );
 }

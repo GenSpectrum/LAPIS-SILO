@@ -117,7 +117,7 @@ LineageDefinitionFile LineageDefinitionFile::fromYAMLFile(const std::filesystem:
       }
    }
    try {
-      return fromYAML(contents.str());
+      return fromYAMLString(contents.str());
    } catch (const YAML::ParserException& parser_exception) {
       throw silo::preprocessing::PreprocessingException(
          fmt::format("The YAML file '{}' does not contain valid YAML.", yaml_path)
@@ -128,11 +128,21 @@ LineageDefinitionFile LineageDefinitionFile::fromYAMLFile(const std::filesystem:
 // If the string does not contain valid YAML, it will throw a YAML::ParserException.
 // If the YAML is not of the expected structure, it will throw a different Error about what exactly
 // was not of the expected form.
-LineageDefinitionFile LineageDefinitionFile::fromYAML(const std::string& yaml_string) {
+LineageDefinitionFile LineageDefinitionFile::fromYAMLString(const std::string& yaml_string) {
    const YAML::Node yaml = YAML::Load(yaml_string);
    LineageDefinitionFile file;
    YAML::convert<LineageDefinitionFile>::decode(yaml, file);
    file.raw_file = yaml_string;
+   return file;
+}
+
+// If the string does not contain valid YAML, it will throw a YAML::ParserException.
+// If the YAML is not of the expected structure, it will throw a different Error about what exactly
+// was not of the expected form.
+LineageDefinitionFile LineageDefinitionFile::fromYAML(const YAML::Node& yaml_node) {
+   LineageDefinitionFile file;
+   YAML::convert<LineageDefinitionFile>::decode(yaml_node, file);
+   file.raw_file = YAML::Dump(yaml_node);
    return file;
 }
 

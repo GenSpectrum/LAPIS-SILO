@@ -8,10 +8,11 @@
 
 #include "config/source/yaml_file.h"
 #include "silo/append/append.h"
+#include "silo/append/database_inserter.h"
+#include "silo/append/ndjson_line_reader.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/database_info.h"
-#include "silo/database_inserter.h"
 #include "silo/initialize/initializer.h"
 #include "silo/query_engine/query_engine.h"
 #include "silo/storage/reference_genomes.h"
@@ -32,112 +33,39 @@ std::shared_ptr<silo::Database> buildTestDatabase() {
    );
 
    const auto reference_genomes =
-      silo::ReferenceGenomes::readFromFile(config.initialize_config.getReferenceGenomeFilename());
+      silo::ReferenceGenomes::readFromFile(config.initialization_files.getReferenceGenomeFilename()
+      );
 
    silo::common::LineageTreeAndIdMap lineage_tree;
-   if (config.initialize_config.getLineageDefinitionsFilename().has_value()) {
+   if (config.initialization_files.getLineageDefinitionsFilename().has_value()) {
       lineage_tree = silo::common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(
-         config.initialize_config.getLineageDefinitionsFilename().value()
+         config.initialization_files.getLineageDefinitionsFilename().value()
       );
    }
 
    auto database = std::make_shared<silo::Database>(
-      silo::Database{std::move(database_config), std::move(lineage_tree), {}, {}, {}, {}}
+      silo::Database{silo::initialize::Initializer::createSchemaFromConfigFiles(
+         std::move(database_config), std::move(reference_genomes), std::move(lineage_tree)
+      )}
    );
-
-
-   silo::DatabaseInserter database_inserter(database);
-   silo::DatabasePartitionInserter partition_inserter = database_inserter.openNewPartition();
-
    std::ifstream input(input_directory / "input.ndjson");
-
-   std::string line;
-   size_t count = 0;
-   while (std::getline(input, line)) {  // Read file line by line
-      if (line.empty())
-         continue;  // Skip empty lines
-
-      SPDLOG_INFO("Inserting line {}", count++);
-
-      nlohmann::json json_obj = nlohmann::json::parse(line);
-
-      partition_inserter.insert(json_obj);
-   }
+   silo::append::appendDataToDatabase(*database, silo::append::NdjsonLineReader{input});
    return database;
 }
 }  // namespace
 
-TEST(DatabaseTest, shouldBuildDatabaseWithoutErrors) {
-   auto database{buildTestDatabase()};
-
-   const auto simple_database_info = database->getDatabaseInfo();
-
-   EXPECT_GT(simple_database_info.total_size, 0);
-   EXPECT_EQ(simple_database_info.sequence_count, 5);
-   EXPECT_EQ(simple_database_info.number_of_partitions, 2);
-}
-
-
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
-TEST(DatabaseTest, shouldReturnCorrectDatabaseInfo) {
-   auto database{buildTestDatabase()};
-
-   const auto detailed_info = database->detailedDatabaseInfo().sequences.at("main");
-   const auto simple_info = database->getDatabaseInfo();
-
-   EXPECT_EQ(
-      detailed_info.bitmap_size_per_symbol.size_in_bytes.at(silo::Nucleotide::Symbol::A), 148
-   );
-   EXPECT_EQ(
-      detailed_info.bitmap_size_per_symbol.size_in_bytes.at(silo::Nucleotide::Symbol::GAP), 128
-   );
-
-   EXPECT_EQ(
-      detailed_info.bitmap_container_size_per_genome_section.bitmap_container_size_statistic
-         .number_of_bitset_containers,
-      0
-   );
-   EXPECT_EQ(
-      detailed_info.bitmap_container_size_per_genome_section.bitmap_container_size_statistic
-         .number_of_values_stored_in_run_containers,
-      0
-   );
-   EXPECT_EQ(
-      detailed_info.bitmap_container_size_per_genome_section.bitmap_container_size_statistic
-         .total_bitmap_size_bitset_containers,
-      0
-   );
-
-   EXPECT_EQ(
-      detailed_info.bitmap_container_size_per_genome_section.total_bitmap_size_computed, 2108
-   );
-   EXPECT_EQ(detailed_info.bitmap_container_size_per_genome_section.total_bitmap_size_frozen, 1066);
-   EXPECT_EQ(
-      detailed_info.bitmap_container_size_per_genome_section.bitmap_container_size_statistic
-         .total_bitmap_size_array_containers,
-      12
-   );
-
-   EXPECT_EQ(simple_info.total_size, 1956);
-   EXPECT_EQ(simple_info.sequence_count, 5);
-   EXPECT_EQ(simple_info.n_bitmaps_size, 62);
-}
-
 TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
    auto first_database = buildTestDatabase();
 
-   const std::filesystem::path directory = "output/test_serialized_state/";
-   if (std::filesystem::exists(directory)) {
-      std::filesystem::remove_all(directory);
-   }
-   std::filesystem::create_directories(directory);
+   const std::filesystem::path directory = "testBaseData/siloSerializedState";
 
    const silo::DataVersion::Timestamp data_version_timestamp =
       first_database->getDataVersionTimestamp();
 
    first_database->saveDatabaseState(directory);
 
-   silo::SiloDataSource data_source = silo::SiloDataSource::checkValidDataSource(directory / data_version_timestamp.value).value();
+   silo::SiloDataSource data_source =
+      silo::SiloDataSource::checkValidDataSource(directory / data_version_timestamp.value);
 
    auto database = silo::Database::loadDatabaseState(data_source);
 
@@ -146,5 +74,40 @@ TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
    EXPECT_GT(simple_database_info.total_size, 0);
    EXPECT_EQ(simple_database_info.sequence_count, 5);
    EXPECT_GT(simple_database_info.n_bitmaps_size, 0);
-   EXPECT_EQ(simple_database_info.number_of_partitions, 2);
+   EXPECT_EQ(simple_database_info.number_of_partitions, 1);
+
+   // If the serialization version changes, comment out the next line to build a new database for
+   // the next test. Then add the produced directory to Git and remove the old serialized state.
+   std::filesystem::remove_all(data_source.path);
+}
+
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+TEST(DatabaseTest, shouldReturnCorrectDatabaseInfoAfterAppendingNewSequences) {
+   auto database = silo::Database::loadDatabaseState(
+      silo::SiloDirectory{"testBaseData/siloSerializedState"}.getMostRecentDataDirectory().value()
+   );
+
+   const auto simple_info = database.getDatabaseInfo();
+   auto data_version = database.getDataVersionTimestamp();
+
+   EXPECT_GT(simple_info.total_size, 0);
+   EXPECT_EQ(simple_info.sequence_count, 5);
+   EXPECT_EQ(simple_info.n_bitmaps_size, 62);
+
+   std::vector<nlohmann::json> more_data{
+      nlohmann::json::parse(
+         R"({"metadata":{"primaryKey":"key6","pango_lineage":"XBB","date":"2021-03-19","region":"Europe","country":"Switzerland","division":"Solothurn","unsorted_date":"2021-02-10","age":54,"qc_value":0.94,"test_boolean_column":true},"aminoAcidInsertions":{"E":["214:EPE"],"M":[]},"nucleotideInsertions":{"main":[],"testSecondSequence":[]},"alignedAminoAcidSequences":{"E":"MYSF*","M":"XXXX*"},"alignedNucleotideSequences":{"main":"ACGTACGT","testSecondSequence":"ACGT"},"unalignedNucleotideSequences":{"main":"ACGTACGT","testSecondSequence":"ACGT"}})"
+      ),
+      nlohmann::json::parse(
+         R"({"metadata":{"primaryKey":"key7","pango_lineage":"B","date":"2021-03-21","region":"Europe","country":"Switzerland","division":"Basel","unsorted_date":null,"age":null,"qc_value":0.94,"test_boolean_column":true},"aminoAcidInsertions":{"E":["214:EPE"],"M":[]},"nucleotideInsertions":{"main":[],"testSecondSequence":[]},"alignedAminoAcidSequences":{"E":"MYSF*","M":"XXXX*"},"alignedNucleotideSequences":{"main":"AAAAAAAA","testSecondSequence":"ACAT"},"unalignedNucleotideSequences":{"main":"AAAAAAAA","testSecondSequence":"ACAT"}})"
+      )
+   };
+
+   silo::append::appendDataToDatabase(database, more_data);
+
+   const auto info_after_append = database.getDatabaseInfo();
+   auto data_version_after_append = database.getDataVersionTimestamp();
+
+   EXPECT_EQ(info_after_append.sequence_count, 7);
+   EXPECT_GT(data_version_after_append, data_version);
 }

@@ -63,7 +63,7 @@ std::string ConfigSpecification::helpText() const {
              << "\n"
              << "  Showing the options for `" << program_name
              << "`. To see the options for the other\n"
-             << "  mode, use 'silo api|preprocessing --help'.\n"
+             << "  modes, use 'silo <mode> --help'.\n"
              << "\n"
              << "  Options override environment variables which override YAML file entries.\n"
              << "  The following options are valid:\n"

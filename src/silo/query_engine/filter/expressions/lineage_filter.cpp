@@ -11,7 +11,7 @@
 #include "silo/query_engine/filter/operators/empty.h"
 #include "silo/query_engine/filter/operators/index_scan.h"
 #include "silo/query_engine/filter/operators/operator.h"
-#include "silo/storage/database_partition.h"
+#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -61,8 +61,8 @@ std::optional<const roaring::Roaring*> LineageFilter::getBitmapForValue(
 }
 
 std::unique_ptr<silo::query_engine::filter::operators::Operator> LineageFilter::compile(
-   const silo::Database& /*database*/,
-   const silo::DatabasePartition& database_partition,
+   const Database& /*database*/,
+   const storage::TablePartition& database_partition,
    AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(

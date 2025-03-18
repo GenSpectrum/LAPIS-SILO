@@ -22,8 +22,8 @@
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/query_result.h"
-#include "silo/storage/database_partition.h"
-#include "silo/storage/sequence_store.h"
+#include "silo/storage/column/sequence_column.h"
+#include "silo/storage/table_partition.h"
 
 using silo::query_engine::CopyOnWriteBitmap;
 
@@ -46,18 +46,21 @@ Mutations<SymbolType>::Mutations(
 template <typename SymbolType>
 std::unordered_map<std::string, typename Mutations<SymbolType>::PrefilteredBitmaps> Mutations<
    SymbolType>::
-   preFilterBitmaps(const silo::Database& database, std::vector<CopyOnWriteBitmap>& bitmap_filter) {
+   preFilterBitmaps(
+      const silo::storage::Table& table,
+      std::vector<CopyOnWriteBitmap>& bitmap_filter
+   ) {
    std::unordered_map<std::string, PrefilteredBitmaps> bitmaps_to_evaluate;
-   for (size_t i = 0; i < database.getNumberOfPartitions(); ++i) {
-      const DatabasePartition& database_partition = database.getPartition(i);
+   for (size_t i = 0; i < table.getNumberOfPartitions(); ++i) {
+      const storage::TablePartition& table_partition = table.getPartition(i);
       CopyOnWriteBitmap& filter = bitmap_filter[i];
       const size_t cardinality = filter->cardinality();
       if (cardinality == 0) {
          continue;
       }
-      if (cardinality == database_partition.sequence_count) {
+      if (cardinality == table_partition.sequence_count) {
          for (const auto& [sequence_name, sequence_store] :
-              database_partition.getSequenceStores<SymbolType>()) {
+              table_partition.columns.getColumns<typename SymbolType::Column>()) {
             bitmaps_to_evaluate[sequence_name].full_bitmaps.emplace_back(filter, sequence_store);
          }
       } else {
@@ -65,7 +68,7 @@ std::unordered_map<std::string, typename Mutations<SymbolType>::PrefilteredBitma
             filter->runOptimize();
          }
          for (const auto& [sequence_name, sequence_store] :
-              database_partition.getSequenceStores<SymbolType>()) {
+              table_partition.columns.getColumns<typename SymbolType::Column>()) {
             bitmaps_to_evaluate[sequence_name].bitmaps.emplace_back(filter, sequence_store);
          }
       }
@@ -148,10 +151,10 @@ void Mutations<SymbolType>::addPositionToMutationCountsForFullBitmaps(
 
 template <typename SymbolType>
 SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMutationsPerPosition(
-   const SequenceStore<SymbolType>& sequence_store,
+   const storage::column::SequenceColumnMetadata<SymbolType>& metadata,
    const PrefilteredBitmaps& bitmap_filter
 ) {
-   const size_t sequence_length = sequence_store.reference_sequence.size();
+   const size_t sequence_length = metadata.reference_sequence.size();
 
    SymbolMap<SymbolType, std::vector<uint32_t>> mutation_counts_per_position;
    for (const auto symbol : SymbolType::SYMBOLS) {
@@ -175,7 +178,7 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
 }
 
 template <typename SymbolType>
-void Mutations<SymbolType>::validateOrderByFields(const Database& /*database*/) const {
+void Mutations<SymbolType>::validateOrderByFields(const schema::TableSchema& /*database*/) const {
    for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
          std::ranges::any_of(
@@ -194,14 +197,14 @@ void Mutations<SymbolType>::validateOrderByFields(const Database& /*database*/) 
 template <typename SymbolType>
 void Mutations<SymbolType>::addMutationsToOutput(
    const std::string& sequence_name,
-   const SequenceStore<SymbolType>& sequence_store,
+   const storage::column::SequenceColumnMetadata<SymbolType>& sequence_column_metadata,
    const PrefilteredBitmaps& bitmap_filter,
    std::vector<QueryResultEntry>& output
 ) const {
-   const size_t sequence_length = sequence_store.reference_sequence.size();
+   const size_t sequence_length = sequence_column_metadata.reference_sequence.size();
 
    const SymbolMap<SymbolType, std::vector<uint32_t>> count_of_mutations_per_position =
-      calculateMutationsPerPosition(sequence_store, bitmap_filter);
+      calculateMutationsPerPosition(sequence_column_metadata, bitmap_filter);
 
    for (size_t pos = 0; pos < sequence_length; ++pos) {
       uint32_t total = 0;
@@ -217,7 +220,7 @@ void Mutations<SymbolType>::addMutationsToOutput(
             : static_cast<uint32_t>(std::ceil(static_cast<double>(total) * min_proportion) - 1);
 
       const typename SymbolType::Symbol symbol_in_reference_genome =
-         sequence_store.reference_sequence.at(pos);
+         sequence_column_metadata.reference_sequence.at(pos);
 
       for (const auto symbol : SymbolType::VALID_MUTATION_SYMBOLS) {
          if (symbol_in_reference_genome != symbol) {
@@ -274,33 +277,37 @@ QueryResult Mutations<SymbolType>::execute(
    const Database& database,
    std::vector<CopyOnWriteBitmap> bitmap_filter
 ) const {
+   const auto& table = database.table;
+
    std::vector<std::string> sequence_names_to_evaluate;
    for (const auto& sequence_name : sequence_names) {
+      auto column_identifier = table->schema.getColumn(sequence_name);
       CHECK_SILO_QUERY(
-         database.getSequenceStores<SymbolType>().contains(sequence_name),
+         column_identifier.has_value() && column_identifier.value().type == SymbolType::COLUMN_TYPE,
          "Database does not contain the " + std::string(SymbolType::SYMBOL_NAME_LOWER_CASE) +
             " sequence with name: '" + sequence_name + "'"
       );
       sequence_names_to_evaluate.emplace_back(sequence_name);
    }
    if (sequence_names.empty()) {
-      for (const auto& [sequence_name, _] : database.getSequenceStores<SymbolType>()) {
+      for (const auto& [sequence_name, _] :
+           table->schema.getColumnByType<typename SymbolType::Column>()) {
          sequence_names_to_evaluate.emplace_back(sequence_name);
       }
    }
 
    std::unordered_map<std::string, Mutations<SymbolType>::PrefilteredBitmaps> bitmaps_to_evaluate =
-      preFilterBitmaps(database, bitmap_filter);
+      preFilterBitmaps(*table, bitmap_filter);
 
    std::vector<QueryResultEntry> mutation_proportions;
    for (const auto& sequence_name : sequence_names_to_evaluate) {
-      const SequenceStore<SymbolType>& sequence_store =
-         database.getSequenceStores<SymbolType>().at(sequence_name);
+      const storage::column::SequenceColumnMetadata<SymbolType>* sequence_column_metadata =
+         table->schema.getColumnMetadata<typename SymbolType::Column>(sequence_name).value();
 
       if (bitmaps_to_evaluate.contains(sequence_name)) {
          addMutationsToOutput(
             sequence_name,
-            sequence_store,
+            *sequence_column_metadata,
             bitmaps_to_evaluate.at(sequence_name),
             mutation_proportions
          );

@@ -20,18 +20,28 @@
 
 namespace {
 
-std::vector<silo::storage::ColumnMetadata> parseFields(
-   const silo::Database& database,
+std::vector<silo::schema::ColumnIdentifier> parseFields(
+   const silo::schema::TableSchema& schema,
    const std::vector<std::string>& fields
 ) {
+   std::vector<silo::schema::ColumnIdentifier> field_metadata;
    if (fields.empty()) {
-      return database.columns.metadata;
+      for (const auto& column : schema.getColumnIdentifiers()) {
+         if (!isSequenceColumn(column.type)) {
+            field_metadata.push_back(column);
+         }
+      }
+      return field_metadata;
    }
-   std::vector<silo::storage::ColumnMetadata> field_metadata;
-   for (const std::string& field : fields) {
-      const auto& metadata = database.database_config.getMetadata(field);
-      CHECK_SILO_QUERY(metadata.has_value(), "Metadata field " + field + " not found.");
-      field_metadata.push_back({metadata->name, metadata->getColumnType()});
+   field_metadata.reserve(fields.size());
+   for (const auto& field : fields) {
+      auto column = schema.getColumn(field);
+      CHECK_SILO_QUERY(column.has_value(), "Metadata field " + field + " not found.");
+      CHECK_SILO_QUERY(
+         !isSequenceColumn(column.value().type),
+         "The Details action does not support sequence-type columns for now."
+      );
+      field_metadata.push_back(column.value());
    }
    return field_metadata;
 }
@@ -42,14 +52,14 @@ namespace silo::query_engine::actions {
 Details::Details(std::vector<std::string> fields)
     : fields(std::move(fields)) {}
 
-void Details::validateOrderByFields(const Database& database) const {
-   const std::vector<silo::storage::ColumnMetadata> field_metadata = parseFields(database, fields);
+void Details::validateOrderByFields(const schema::TableSchema& schema) const {
+   const std::vector<silo::schema::ColumnIdentifier> field_metadata = parseFields(schema, fields);
 
    for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
          std::ranges::any_of(
             field_metadata,
-            [&](const silo::storage::ColumnMetadata& metadata) {
+            [&](const silo::schema::ColumnIdentifier& metadata) {
                return metadata.name == field.name;
             }
          ),
@@ -187,15 +197,18 @@ QueryResult Details::executeAndOrder(
    const silo::Database& database,
    std::vector<CopyOnWriteBitmap> bitmap_filter
 ) const {
-   validateOrderByFields(database);
-   const std::vector<storage::ColumnMetadata> field_metadata = parseFields(database, fields);
+   validateOrderByFields(database.table->schema);
+   const std::vector<schema::ColumnIdentifier> field_identifiers =
+      parseFields(database.table->schema, fields);
 
-   size_t num_partitions = database.getNumberOfPartitions();
+   size_t num_partitions = database.table->getNumberOfPartitions();
 
    std::vector<TupleFactory> tuple_factories;
    tuple_factories.reserve(num_partitions);
    for (size_t partition_idx = 0; partition_idx < num_partitions; ++partition_idx) {
-      tuple_factories.emplace_back(database.getPartition(partition_idx).columns, field_metadata);
+      tuple_factories.emplace_back(
+         database.table->getPartition(partition_idx).columns, field_identifiers
+      );
    }
 
    std::vector<actions::Tuple> tuples;
@@ -203,14 +216,14 @@ QueryResult Details::executeAndOrder(
       tuples = produceSortedTuplesWithLimit(
          tuple_factories,
          bitmap_filter,
-         Tuple::getComparator(field_metadata, order_by_fields, randomize_seed),
+         Tuple::getComparator(field_identifiers, order_by_fields, randomize_seed),
          limit.value() + offset.value_or(0)
       );
    } else {
       tuples = produceAllTuples(tuple_factories, bitmap_filter);
       if (!order_by_fields.empty() || randomize_seed) {
          std::ranges::sort(
-            tuples, Tuple::getComparator(field_metadata, order_by_fields, randomize_seed)
+            tuples, Tuple::getComparator(field_identifiers, order_by_fields, randomize_seed)
          );
       }
    }

@@ -8,8 +8,14 @@
 #include <vector>
 
 #include "silo/common/symbol_map.h"
+#include "silo/schema/database_schema.h"
 
 namespace silo {
+
+namespace storage::column {
+template <typename SymbolType>
+class SequenceColumnPartition;
+}
 
 class AminoAcid {
   public:
@@ -41,6 +47,10 @@ class AminoAcid {
       STOP,  // Stop codon
       X,     // Any amino acid
    };
+
+   static constexpr schema::ColumnType COLUMN_TYPE = schema::ColumnType::AMINO_ACID_SEQUENCE;
+   using Column = storage::column::SequenceColumnPartition<AminoAcid>;
+
    static constexpr uint32_t COUNT = 25;
 
    static constexpr std::string_view SYMBOL_NAME = "AminoAcid";

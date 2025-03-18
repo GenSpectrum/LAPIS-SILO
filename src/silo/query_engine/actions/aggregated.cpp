@@ -27,17 +27,22 @@ using silo::query_engine::actions::Tuple;
 
 namespace {
 
-std::vector<silo::storage::ColumnMetadata> parseGroupByFields(
-   const silo::Database& database,
+std::vector<silo::schema::ColumnIdentifier> parseGroupByFields(
+   const silo::schema::TableSchema& schema,
    const std::vector<std::string>& group_by_fields
 ) {
-   std::vector<silo::storage::ColumnMetadata> group_by_metadata;
+   std::vector<silo::schema::ColumnIdentifier> group_by_metadata;
    for (const std::string& group_by_field : group_by_fields) {
-      const auto& metadata = database.database_config.getMetadata(group_by_field);
+      auto column = schema.getColumn(group_by_field);
       CHECK_SILO_QUERY(
-         metadata.has_value(), "Metadata field '" + group_by_field + "' to group by not found"
+         column.has_value(),
+         fmt::format("Metadata field '{}' to group by not found", group_by_field)
       );
-      group_by_metadata.push_back({metadata->name, metadata->getColumnType()});
+      CHECK_SILO_QUERY(
+         !isSequenceColumn(column.value().type),
+         "The Aggregated action does not support sequence-type columns for now."
+      );
+      group_by_metadata.push_back(column.value());
    }
    return group_by_metadata;
 }
@@ -72,15 +77,15 @@ namespace silo::query_engine::actions {
 Aggregated::Aggregated(std::vector<std::string> group_by_fields)
     : group_by_fields(std::move(group_by_fields)) {}
 
-void Aggregated::validateOrderByFields(const Database& database) const {
-   const std::vector<silo::storage::ColumnMetadata> field_metadata =
-      parseGroupByFields(database, group_by_fields);
+void Aggregated::validateOrderByFields(const schema::TableSchema& schema) const {
+   const std::vector<silo::schema::ColumnIdentifier> field_identifiers =
+      parseGroupByFields(schema, group_by_fields);
 
    for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
          field.name == COUNT_FIELD || std::ranges::any_of(
-                                         field_metadata,
-                                         [&](const silo::storage::ColumnMetadata& metadata) {
+                                         field_identifiers,
+                                         [&](const silo::schema::ColumnIdentifier& metadata) {
                                             return metadata.name == field.name;
                                          }
                                       ),
@@ -100,20 +105,22 @@ QueryResult Aggregated::execute(
    // TODO(#133) optimize when equal to partition_by field
    // TODO(#133) optimize single field groupby
 
-   const std::vector<silo::storage::ColumnMetadata> group_by_metadata =
-      parseGroupByFields(database, group_by_fields);
+   const std::vector<silo::schema::ColumnIdentifier> group_by_metadata =
+      parseGroupByFields(database.table->schema, group_by_fields);
 
    std::vector<std::unordered_map<Tuple, uint32_t>> tuple_maps;
    std::vector<TupleFactory> tuple_factories;
 
-   for (size_t partition_idx = 0; partition_idx < database.getNumberOfPartitions();
+   for (size_t partition_idx = 0; partition_idx < database.table->getNumberOfPartitions();
         ++partition_idx) {
       tuple_maps.emplace_back();
-      tuple_factories.emplace_back(database.getPartition(partition_idx).columns, group_by_metadata);
+      tuple_factories.emplace_back(
+         database.table->getPartition(partition_idx).columns, group_by_metadata
+      );
    }
 
    tbb::parallel_for(
-      tbb::blocked_range<uint32_t>(0, database.getNumberOfPartitions()),
+      tbb::blocked_range<uint32_t>(0, database.table->getNumberOfPartitions()),
       [&](tbb::blocked_range<uint32_t> range) {
          for (uint32_t partition_id = range.begin(); partition_id != range.end(); ++partition_id) {
             TupleFactory& tuple_factory = tuple_factories.at(partition_id);
@@ -139,7 +146,7 @@ QueryResult Aggregated::execute(
       }
    );
    std::unordered_map<Tuple, uint32_t> final_map;
-   for (uint32_t partition_id = 0; partition_id != database.getNumberOfPartitions();
+   for (uint32_t partition_id = 0; partition_id != database.table->getNumberOfPartitions();
         ++partition_id) {
       auto& tuple_factory = tuple_factories.at(partition_id);
       auto& map = tuple_maps.at(partition_id);
