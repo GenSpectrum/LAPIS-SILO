@@ -34,8 +34,7 @@ struct ReferenceGenomes {
    std::vector<std::vector<typename SymbolType::Symbol>> getReferenceSequences() const;
 
    template <typename SymbolType>
-   static std::vector<typename SymbolType::Symbol> stringToVector(const std::string& string
-   ) {
+   static std::vector<typename SymbolType::Symbol> stringToVector(const std::string& string) {
       std::vector<typename SymbolType::Symbol> sequence_vector;
 
       for (const char character : string) {

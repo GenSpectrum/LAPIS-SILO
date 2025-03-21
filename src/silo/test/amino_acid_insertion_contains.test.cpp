@@ -20,29 +20,16 @@ nlohmann::json createDataWithAminoAcidInsertions(
       {"alignedNucleotideSequences", {{"segment1", nullptr}, {"segment2", nullptr}}},
       {"unalignedNucleotideSequences", {{"segment1", nullptr}, {"segment2", nullptr}}},
       {"alignedAminoAcidSequences", {{"gene1", nullptr}, {"gene2", nullptr}}},
-      {"nucleotideInsertions",
-       {{"segment1", {}}, {"segment2", {}}}},
+      {"nucleotideInsertions", {{"segment1", {}}, {"segment2", {}}}},
       {"aminoAcidInsertions", aminoAcidInsertions}
    };
 }
 
 const std::vector<nlohmann::json> DATA = {
-   createDataWithAminoAcidInsertions(
-      "id_0",
-      {{"gene1", {"123:A"}}, {"gene2", {}}}
-   ),
-   createDataWithAminoAcidInsertions(
-      "id_1",
-      {{"gene1", {"123:A"}}, {"gene2", {}}}
-   ),
-   createDataWithAminoAcidInsertions(
-      "id_2",
-      {{"gene1", {"234:BB"}}, {"gene2", {}}}
-   ),
-   createDataWithAminoAcidInsertions(
-      "id_3",
-      {{"gene1", {"123:CCC"}}, {"gene2", {}}}
-   ),
+   createDataWithAminoAcidInsertions("id_0", {{"gene1", {"123:A"}}, {"gene2", {}}}),
+   createDataWithAminoAcidInsertions("id_1", {{"gene1", {"123:A"}}, {"gene2", {}}}),
+   createDataWithAminoAcidInsertions("id_2", {{"gene1", {"234:BB"}}, {"gene2", {}}}),
+   createDataWithAminoAcidInsertions("id_3", {{"gene1", {"123:CCC"}}, {"gene2", {}}}),
 };
 
 const auto DATABASE_CONFIG =

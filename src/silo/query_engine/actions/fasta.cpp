@@ -251,7 +251,7 @@ QueryResult Fasta::execute(const Database& database, std::vector<CopyOnWriteBitm
    const {
    for (const std::string& sequence_name : sequence_names) {
       CHECK_SILO_QUERY(
-         true, // TODO database.table.schema.contains(sequence_name),
+         true,  // TODO database.table.schema.contains(sequence_name),
          "Database does not contain an unaligned sequence with name: '" + sequence_name + "'"
       )
    }

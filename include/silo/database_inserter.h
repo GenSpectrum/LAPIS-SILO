@@ -21,10 +21,13 @@ class TablePartitionInserter {
 
    void insert(const nlohmann::json& ndjson_line) {
       for (auto& column_metadata : table_partition->columns.metadata) {
-         try{
+         try {
             table_partition->columns.addJsonValueToColumn(column_metadata, ndjson_line);
-         } catch(const nlohmann::json::type_error& error){
-            throw std::runtime_error(fmt::format("The following line does not conform to SILO's json specification: '{}'", ndjson_line.dump()));
+         } catch (const nlohmann::json::type_error& error) {
+            throw std::runtime_error(fmt::format(
+               "The following line does not conform to SILO's json specification: '{}'",
+               ndjson_line.dump()
+            ));
          }
       }
       table_partition->sequence_count++;
