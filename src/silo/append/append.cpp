@@ -3,6 +3,7 @@
 #include <fstream>
 #include <istream>
 
+#include "silo/common/input_stream_wrapper.h"
 #include "silo/common/silo_directory.h"
 #include "silo/database.h"
 #include "silo/database_inserter.h"
@@ -43,22 +44,6 @@ silo::SiloDataSource getMostRecentOrSpecifiedDatabaseState(
    return most_recent_data_directory.value();
 }
 
-std::unique_ptr<std::istream> openInputFileOrStdIn(
-   const std::optional<std::filesystem::path>& input_file
-) {
-   if (input_file.has_value()) {
-      // TODO maybe zstd compressed
-      auto file = std::make_unique<std::ifstream>(input_file.value());
-      if (!file->is_open()) {
-         std::cerr << "Error: Unable to open file!" << std::endl;
-         throw std::runtime_error("TODO valid error message");  // TODO valid error
-      }
-      return file;
-   } else {
-      return std::make_unique<std::istream>(std::cin.rdbuf());  // Wrap std::cin in a unique_ptr
-   }
-}
-
 silo::DataVersion getDataVersionFromStringOrMineNewDataVersion(
    std::optional<std::string> data_version
 ) {
@@ -81,12 +66,12 @@ void appendDataToTable(
    // TODO make partition configurable
    silo::TablePartitionInserter partition_inserter = table_inserter.openNewPartition();
 
-   std::unique_ptr<std::istream> input = openInputFileOrStdIn(append_config.append_file);
+   auto input = silo::InputStreamWrapper::openFileOrStdIn(append_config.append_file);
 
    // TODO refactor following lines to keep business logic separate
    std::string line;
    size_t count = 0;
-   while (std::getline(*input, line)) {  // Read file line by line
+   while (std::getline(input.getInputStream(), line)) {  // Read file line by line
       if (line.empty())
          continue;  // Skip empty lines
 
