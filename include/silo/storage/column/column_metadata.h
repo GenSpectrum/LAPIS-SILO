@@ -6,7 +6,6 @@
 
 namespace silo::storage::column {
 
-// TODO
 class ColumnMetadata {
   public:
    std::string column_name;
