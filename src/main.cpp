@@ -15,7 +15,6 @@
 #include "silo/database.h"
 #include "silo/initialize/initializer.h"
 #include "silo/preprocessing/preprocessing_exception.h"
-#include "silo/preprocessing/preprocessor.h"
 
 namespace {
 
