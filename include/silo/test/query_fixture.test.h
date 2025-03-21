@@ -17,7 +17,6 @@
 #include "silo/database_info.h"
 #include "silo/database_inserter.h"
 #include "silo/initialize/initializer.h"
-#include "silo/preprocessing/preprocessor.h"
 #include "silo/query_engine/query_engine.h"
 #include "silo/storage/reference_genomes.h"
 

@@ -14,7 +14,6 @@
 #include "silo/config/preprocessing_config.h"
 #include "silo/database.h"
 #include "silo/initialize/initialize_exception.h"
-#include "silo/preprocessing/validated_ndjson_file.h"
 #include "silo/storage/column/column_type_visitor.h"
 #include "silo/storage/column/unaligned_sequence_store.h"
 #include "silo/storage/reference_genomes.h"
