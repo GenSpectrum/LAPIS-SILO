@@ -48,7 +48,7 @@ Database Initializer::initialize() {
 struct ColumnMetadataInitializer {
    template <storage::column::Column ColumnType>
    void operator()(
-      std::shared_ptr<storage::column::CM>& metadata,
+      std::shared_ptr<storage::column::ColumnMetadata>& metadata,
       const config::DatabaseMetadata& config_metadata,
       const ReferenceGenomes& reference_genomes,
       const common::LineageTreeAndIdMap& lineage_tree
@@ -57,7 +57,7 @@ struct ColumnMetadataInitializer {
 
 template <>
 void ColumnMetadataInitializer::operator()<storage::column::IndexedStringColumnPartition>(
-   std::shared_ptr<storage::column::CM>& metadata,
+   std::shared_ptr<storage::column::ColumnMetadata>& metadata,
    const config::DatabaseMetadata& config_metadata,
    const ReferenceGenomes& reference_genomes,
    const common::LineageTreeAndIdMap& lineage_tree
@@ -75,7 +75,7 @@ void ColumnMetadataInitializer::operator()<storage::column::IndexedStringColumnP
 
 template <>
 void ColumnMetadataInitializer::operator()<storage::column::SequenceColumnPartition<Nucleotide>>(
-   std::shared_ptr<storage::column::CM>& metadata,
+   std::shared_ptr<storage::column::ColumnMetadata>& metadata,
    const config::DatabaseMetadata& config_metadata,
    const ReferenceGenomes& reference_genomes,
    const common::LineageTreeAndIdMap& lineage_tree
@@ -85,7 +85,7 @@ void ColumnMetadataInitializer::operator()<storage::column::SequenceColumnPartit
 
 template <>
 void ColumnMetadataInitializer::operator()<storage::column::SequenceColumnPartition<AminoAcid>>(
-   std::shared_ptr<storage::column::CM>& metadata,
+   std::shared_ptr<storage::column::ColumnMetadata>& metadata,
    const config::DatabaseMetadata& config_metadata,
    const ReferenceGenomes& reference_genomes,
    const common::LineageTreeAndIdMap& lineage_tree
@@ -95,7 +95,7 @@ void ColumnMetadataInitializer::operator()<storage::column::SequenceColumnPartit
 
 template <storage::column::Column ColumnType>
 void ColumnMetadataInitializer::operator()(
-   std::shared_ptr<storage::column::CM>& metadata,
+   std::shared_ptr<storage::column::ColumnMetadata>& metadata,
    const config::DatabaseMetadata& config_metadata,
    const ReferenceGenomes& /*reference_genomes*/,
    const common::LineageTreeAndIdMap& /*lineage_tree*/
@@ -154,12 +154,12 @@ silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
 
    schema::ColumnIdentifier primary_key{database_config.schema.primary_key, primary_key_type};
 
-   std::map<schema::ColumnIdentifier, std::shared_ptr<storage::column::CM>> column_metadata;
+   std::map<schema::ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>> column_metadata;
    for (const auto& config_metadata : database_config.schema.metadata) {
       schema::ColumnIdentifier column_identifier{
          .name = config_metadata.name, .type = config_metadata.getColumnType()
       };
-      std::shared_ptr<storage::column::CM> metadata;
+      std::shared_ptr<storage::column::ColumnMetadata> metadata;
       storage::column::visit(
          column_identifier.type,
          ColumnMetadataInitializer{},

@@ -11,13 +11,13 @@ using silo::schema::ColumnIdentifier;
 using silo::schema::ColumnType;
 using silo::schema::TableSchema;
 using silo::storage::ColumnPartitionGroup;
-using silo::storage::column::CM;
+using silo::storage::column::ColumnMetadata;
 using silo::storage::column::IndexedStringColumnMetadata;
 using silo::storage::column::StringColumnMetadata;
 
 namespace {
 std::pair<TableSchema, ColumnPartitionGroup> createSinglePartitionColumns() {
-   std::map<ColumnIdentifier, std::shared_ptr<CM>> column_metadata;
+   std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata;
    ColumnPartitionGroup columns;
    const std::string primary_key_column_name = "primary_key_column";
    ColumnIdentifier primary_key_column_identifier{primary_key_column_name, ColumnType::STRING};
@@ -73,7 +73,7 @@ std::pair<TableSchema, ColumnPartitionGroup> createSinglePartitionColumns() {
       const std::string int_column_name = "dummy_int_column";
       ColumnIdentifier column_identifier{int_column_name, ColumnType::INT};
       columns.metadata.push_back(column_identifier);
-      auto metadata = std::make_shared<CM>(int_column_name);
+      auto metadata = std::make_shared<ColumnMetadata>(int_column_name);
       columns.int_columns.emplace(int_column_name, metadata.get());
       column_metadata.emplace(column_identifier, metadata);
       columns.int_columns.at(int_column_name).insert(42);
@@ -84,7 +84,7 @@ std::pair<TableSchema, ColumnPartitionGroup> createSinglePartitionColumns() {
       const std::string float_column_name = "dummy_float_column";
       ColumnIdentifier column_identifier{float_column_name, ColumnType::FLOAT};
       columns.metadata.push_back(column_identifier);
-      auto metadata = std::make_shared<CM>(float_column_name);
+      auto metadata = std::make_shared<ColumnMetadata>(float_column_name);
       columns.float_columns.emplace(float_column_name, metadata.get());
       column_metadata.emplace(column_identifier, metadata);
       columns.float_columns.at(float_column_name).insert(42.1);

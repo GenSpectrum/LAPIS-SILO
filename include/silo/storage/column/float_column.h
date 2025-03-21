@@ -15,7 +15,7 @@ namespace silo::storage::column {
 
 class FloatColumnPartition {
   public:
-   using Metadata = CM;
+   using Metadata = ColumnMetadata;
 
    static constexpr schema::ColumnType TYPE = schema::ColumnType::FLOAT;
 
@@ -34,7 +34,7 @@ class FloatColumnPartition {
    Metadata* metadata;
 
   public:
-   explicit FloatColumnPartition(CM* metadata);
+   explicit FloatColumnPartition(ColumnMetadata* metadata);
 
    [[nodiscard]] const std::vector<double>& getValues() const;
 

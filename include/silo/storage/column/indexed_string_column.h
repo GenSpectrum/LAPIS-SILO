@@ -20,7 +20,7 @@
 
 namespace silo::storage::column {
 
-class IndexedStringColumnMetadata : public CM {
+class IndexedStringColumnMetadata : public ColumnMetadata {
    friend class boost::serialization::access;
 
    template <class Archive>
@@ -36,13 +36,13 @@ class IndexedStringColumnMetadata : public CM {
    std::optional<common::LineageTreeAndIdMap> lineage_tree;
 
    IndexedStringColumnMetadata(std::string column_name)
-       : CM(column_name) {}
+       : ColumnMetadata(column_name) {}
 
    IndexedStringColumnMetadata(
       std::string column_name,
       silo::common::BidirectionalMap<std::string> dictionary
    )
-       : CM(column_name),
+       : ColumnMetadata(column_name),
          dictionary(std::move(dictionary)) {}
 
    IndexedStringColumnMetadata(

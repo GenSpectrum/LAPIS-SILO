@@ -82,7 +82,7 @@ std::string columnTypeToString(ColumnType column_type) {
 class ColumnMetadataLoaderByType {
   public:
    template <typename ColumnType>
-   std::shared_ptr<storage::column::CM> operator()(
+   std::shared_ptr<storage::column::ColumnMetadata> operator()(
       std::string column_name,
       const YAML::Node& node
    ) {
@@ -91,7 +91,7 @@ class ColumnMetadataLoaderByType {
 };
 
 TableSchema TableSchema::fromYAML(const YAML::Node& yaml) {
-   std::map<ColumnIdentifier, std::shared_ptr<storage::column::CM>> column_metadata;
+   std::map<ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>> column_metadata;
    for (const auto entry : yaml["columns"]) {
       std::string column_name = entry["name"].as<std::string>();
       ColumnType column_type = columnTypeFromString(entry["type"].as<std::string>());

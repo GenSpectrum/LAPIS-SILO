@@ -14,7 +14,7 @@ namespace silo::storage::column {
 
 class BoolColumnPartition {
   public:
-   using Metadata = CM;
+   using Metadata = ColumnMetadata;
 
    static constexpr schema::ColumnType TYPE = schema::ColumnType::BOOL;
 

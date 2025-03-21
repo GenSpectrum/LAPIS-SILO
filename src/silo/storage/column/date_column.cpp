@@ -4,7 +4,7 @@
 
 namespace silo::storage::column {
 
-DateColumnPartition::DateColumnPartition(CM* metadata)
+DateColumnPartition::DateColumnPartition(ColumnMetadata* metadata)
     : metadata(metadata),
       is_sorted(true) {}
 

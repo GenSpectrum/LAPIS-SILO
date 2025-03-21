@@ -36,7 +36,7 @@ struct ColumnIdentifier {
 };
 
 class TableSchema {
-   std::map<ColumnIdentifier, std::shared_ptr<storage::column::CM>> column_metadata;
+   std::map<ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>> column_metadata;
 
   public:
    std::optional<ColumnIdentifier> default_nucleotide_sequence;
@@ -44,7 +44,7 @@ class TableSchema {
    const ColumnIdentifier primary_key;
 
    TableSchema(
-      std::map<ColumnIdentifier, std::shared_ptr<storage::column::CM>> column_metadata,
+      std::map<ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>> column_metadata,
       ColumnIdentifier primary_key
    )
        : column_metadata(std::move(column_metadata)),

@@ -6,7 +6,7 @@
 
 namespace silo::storage::column {
 
-BoolColumnPartition::BoolColumnPartition(CM* metadata)
+BoolColumnPartition::BoolColumnPartition(ColumnMetadata* metadata)
     : metadata(metadata) {}
 
 const std::vector<silo::common::OptionalBool>& BoolColumnPartition::getValues() const {

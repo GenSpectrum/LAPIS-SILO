@@ -8,7 +8,7 @@
 
 namespace silo::storage::column {
 
-IntColumnPartition::IntColumnPartition(CM* metadata)
+IntColumnPartition::IntColumnPartition(ColumnMetadata* metadata)
     : metadata(metadata) {}
 
 const std::vector<int32_t>& IntColumnPartition::getValues() const {

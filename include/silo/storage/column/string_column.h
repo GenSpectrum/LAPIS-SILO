@@ -16,7 +16,7 @@
 
 namespace silo::storage::column {
 
-class StringColumnMetadata : public CM {
+class StringColumnMetadata : public ColumnMetadata {
    friend class boost::serialization::access;
 
    template <class Archive>
@@ -30,13 +30,13 @@ class StringColumnMetadata : public CM {
    silo::common::BidirectionalMap<std::string> dictionary;
 
    StringColumnMetadata(std::string column_name)
-       : CM(std::move(column_name)) {}
+       : ColumnMetadata(std::move(column_name)) {}
 
    StringColumnMetadata(
       std::string column_name,
       silo::common::BidirectionalMap<std::string>&& dictionary
    )
-       : CM(std::move(column_name)),
+       : ColumnMetadata(std::move(column_name)),
          dictionary(std::move(dictionary)) {}
 
    StringColumnMetadata() = delete;

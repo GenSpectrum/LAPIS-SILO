@@ -7,17 +7,17 @@
 namespace silo::storage::column {
 
 // TODO
-class CM {
+class ColumnMetadata {
   public:
    std::string column_name;
 
-   explicit CM(std::string column_name)
+   explicit ColumnMetadata(std::string column_name)
        : column_name(column_name) {}
 
-   virtual ~CM() = default;
+   virtual ~ColumnMetadata() = default;
 
    virtual YAML::Node toYAML();
-   static std::shared_ptr<CM> fromYAML(std::string column_name, const YAML::Node& yaml);
+   static std::shared_ptr<ColumnMetadata> fromYAML(std::string column_name, const YAML::Node& yaml);
 };
 
 }  // namespace silo::storage::column

@@ -5,11 +5,11 @@
 
 #include "silo/preprocessing/preprocessing_exception.h"
 
-using silo::storage::column::CM;
+using silo::storage::column::ColumnMetadata;
 using silo::storage::column::IntColumnPartition;
 
 TEST(IntColumn, doesNotErrorOnValidInputs) {
-   CM column("int_column1");
+   ColumnMetadata column("int_column1");
    IntColumnPartition column_partition{&column};
    column_partition.insert(123);
    column_partition.insertNull();

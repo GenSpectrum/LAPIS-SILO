@@ -13,7 +13,7 @@ IndexedStringColumnMetadata::IndexedStringColumnMetadata(
    std::string column_name,
    common::LineageTreeAndIdMap lineage_tree_and_id_map
 )
-    : CM(std::move(column_name)),
+    : ColumnMetadata(std::move(column_name)),
       dictionary(lineage_tree_and_id_map.lineage_id_lookup_map.copy()),
       lineage_tree(std::move(lineage_tree_and_id_map)) {}
 
@@ -22,7 +22,7 @@ IndexedStringColumnMetadata::IndexedStringColumnMetadata(
    common::BidirectionalMap<std::string> dictionary,
    common::LineageTreeAndIdMap lineage_tree_and_id_map
 )
-    : CM(std::move(column_name)),
+    : ColumnMetadata(std::move(column_name)),
       dictionary(std::move(dictionary)),
       lineage_tree(std::move(lineage_tree_and_id_map)) {}
 

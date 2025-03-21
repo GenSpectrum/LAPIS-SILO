@@ -14,7 +14,7 @@ namespace silo::storage::column {
 
 class IntColumnPartition {
   public:
-   using Metadata = CM;
+   using Metadata = ColumnMetadata;
 
    static constexpr schema::ColumnType TYPE = schema::ColumnType::INT;
 

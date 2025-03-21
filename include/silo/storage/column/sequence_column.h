@@ -44,7 +44,7 @@ struct ReadSequence {
 };
 
 template <typename SymbolType>
-class SequenceColumnMetadata : public CM {
+class SequenceColumnMetadata : public ColumnMetadata {
   public:
    std::vector<typename SymbolType::Symbol> reference_sequence;
 

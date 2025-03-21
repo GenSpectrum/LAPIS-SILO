@@ -287,7 +287,7 @@ SequenceColumnMetadata<SymbolType>::SequenceColumnMetadata(
    std::string column_name,
    std::vector<typename SymbolType::Symbol>&& reference_sequence
 )
-    : CM(std::move(column_name)),
+    : ColumnMetadata(std::move(column_name)),
       reference_sequence(std::move(reference_sequence)) {}
 
 template class SequenceColumnPartition<Nucleotide>;
