@@ -7,7 +7,6 @@ class SiloRecipe(ConanFile):
 
     requires = [
         "boost/1.82.0",
-        "duckdb/1.0.0",
         "poco/1.13.3",
         "hwloc/2.9.3",
         "onetbb/2021.10.0",
@@ -25,10 +24,6 @@ class SiloRecipe(ConanFile):
         "yaml-cpp/*:shared": False,
 
         "zstd/*:shared": False,
-
-        "duckdb/*:shared": False,
-        "duckdb/*:with_json": True,
-        "duckdb/*:with_parquet": True,
 
         "roaring/*:shared": False,
 
@@ -101,7 +96,6 @@ class SiloRecipe(ConanFile):
     def generate(self):
         deps = CMakeDeps(self)
         deps.set_property("boost", "cmake_find_mode", "both")
-        deps.set_property("duckdb", "cmake_find_mode", "both")
         deps.set_property("gtest", "cmake_find_mode", "both")
         deps.set_property("hwloc", "cmake_find_mode", "both")
         deps.set_property("nlohmann_json", "cmake_find_mode", "both")

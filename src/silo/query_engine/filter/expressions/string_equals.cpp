@@ -15,7 +15,7 @@
 #include "silo/query_engine/filter/operators/index_scan.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/selection.h"
-#include "silo/storage/database_partition.h"
+#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -28,8 +28,8 @@ std::string StringEquals::toString() const {
 }
 
 std::unique_ptr<silo::query_engine::filter::operators::Operator> StringEquals::compile(
-   const silo::Database& /*database*/,
-   const silo::DatabasePartition& database_partition,
+   const Database& /*database*/,
+   const storage::TablePartition& database_partition,
    Expression::AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(

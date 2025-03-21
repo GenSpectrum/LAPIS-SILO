@@ -1,4 +1,3 @@
 ndjsonInputFilename: "input_file.ndjson"
 lineageDefinitionsFilename: "lineage_definitions.yaml"
 referenceGenomeFilename: "reference_genomes.json"
-duckdbMemoryLimitInG: 20

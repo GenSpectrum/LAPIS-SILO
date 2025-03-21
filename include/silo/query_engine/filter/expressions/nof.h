@@ -10,7 +10,7 @@
 #include "silo/database.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
-#include "silo/storage/database_partition.h"
+#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -26,13 +26,13 @@ class NOf : public Expression {
       int>
    mapChildExpressions(
       const silo::Database& database,
-      const silo::DatabasePartition& database_partition,
+      const storage::TablePartition& database_partition,
       AmbiguityMode mode
    ) const;
 
    std::unique_ptr<operators::Operator> rewriteNonExact(
       const silo::Database& database,
-      const silo::DatabasePartition& database_partition,
+      const storage::TablePartition& database_partition,
       Expression::AmbiguityMode mode
    ) const;
 
@@ -47,7 +47,7 @@ class NOf : public Expression {
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::filter::operators::Operator> compile(
       const Database& database,
-      const DatabasePartition& database_partition,
+      const storage::TablePartition& database_partition,
       AmbiguityMode mode
    ) const override;
 };

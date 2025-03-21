@@ -5,12 +5,12 @@
 
 #include "config/config_exception.h"
 
-using silo::config::ColumnType;
 using silo::config::ConfigException;
 using silo::config::DatabaseConfig;
 using silo::config::DatabaseSchema;
 using silo::config::toDatabaseValueType;
 using silo::config::ValueType;
+using silo::schema::ColumnType;
 
 TEST(DatabaseMetadataType, shouldBeConvertableFromString) {
    ASSERT_TRUE(toDatabaseValueType("string") == ValueType::STRING);

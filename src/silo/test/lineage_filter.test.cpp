@@ -66,7 +66,7 @@ const auto REFERENCE_GENOMES = ReferenceGenomes{
 };
 
 const auto LINEAGE_TREE =
-   LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAML(R"(
+   LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAMLString(R"(
 CHILD:
   parents:
   - BASE.1
@@ -75,7 +75,7 @@ BASE.1:
 )"));
 
 const QueryTestData TEST_DATA{
-   .ndjson_input_data = {DATA},
+   .ndjson_input_data = DATA,
    .database_config = DATABASE_CONFIG,
    .reference_genomes = REFERENCE_GENOMES,
    .lineage_tree = LINEAGE_TREE
