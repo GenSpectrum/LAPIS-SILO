@@ -9,7 +9,10 @@ YAML::Node ColumnMetadata::toYAML() {
    return YAML::Node(YAML::NodeType::Undefined);
 }
 
-std::shared_ptr<ColumnMetadata> ColumnMetadata::fromYAML(std::string column_name, const YAML::Node& yaml) {
+std::shared_ptr<ColumnMetadata> ColumnMetadata::fromYAML(
+   std::string column_name,
+   const YAML::Node& yaml
+) {
    return std::make_shared<ColumnMetadata>(std::move(column_name));
 }
 

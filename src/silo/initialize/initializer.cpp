@@ -154,7 +154,8 @@ silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
 
    schema::ColumnIdentifier primary_key{database_config.schema.primary_key, primary_key_type};
 
-   std::map<schema::ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>> column_metadata;
+   std::map<schema::ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>>
+      column_metadata;
    for (const auto& config_metadata : database_config.schema.metadata) {
       schema::ColumnIdentifier column_identifier{
          .name = config_metadata.name, .type = config_metadata.getColumnType()
