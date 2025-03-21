@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include <memory>
+#include <optional>
 #include <sstream>
 
 #include <boost/iostreams/filtering_stream.hpp>
@@ -16,10 +17,13 @@ class InputStreamWrapper {
   public:
    explicit InputStreamWrapper(const std::filesystem::path& filename);
    explicit InputStreamWrapper(const std::string& content);
-   explicit InputStreamWrapper(std::unique_ptr<std::istream> existing_stream) : input_stream(std::move(existing_stream)) {}
+   explicit InputStreamWrapper(std::unique_ptr<std::istream> existing_stream)
+       : input_stream(std::move(existing_stream)) {}
 
    [[nodiscard]] std::istream& getInputStream() const;
 
-   static InputStreamWrapper openFileOrStdIn(const std::optional<std::filesystem::path>& maybe_filename);
+   static InputStreamWrapper openFileOrStdIn(
+      const std::optional<std::filesystem::path>& maybe_filename
+   );
 };
 }  // namespace silo

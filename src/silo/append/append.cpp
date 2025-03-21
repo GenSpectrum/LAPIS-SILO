@@ -84,6 +84,8 @@ void appendDataToTable(
 
       } catch (const nlohmann::json::parse_error& e) {
          std::cerr << "Error parsing JSON: " << e.what() << std::endl;
+         // TODO throw silo::append::AppendException()
+         SILO_PANIC("Error parsing JSON: {}", e.what());
       }
    }
 }

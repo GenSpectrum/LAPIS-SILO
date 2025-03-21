@@ -1,8 +1,8 @@
 #include "silo/common/input_stream_wrapper.h"
 
-#include <string>
 #include <fstream>
 #include <iostream>
+#include <string>
 
 #include <spdlog/spdlog.h>
 #include <boost/iostreams/detail/error.hpp>
@@ -55,7 +55,9 @@ std::istream& silo::InputStreamWrapper::getInputStream() const {
    return *input_stream;
 }
 
-InputStreamWrapper InputStreamWrapper::openFileOrStdIn(const std::optional<std::filesystem::path>& maybe_filename) {
+InputStreamWrapper InputStreamWrapper::openFileOrStdIn(
+   const std::optional<std::filesystem::path>& maybe_filename
+) {
    if (maybe_filename.has_value()) {
       return InputStreamWrapper{maybe_filename.value()};
    } else {
