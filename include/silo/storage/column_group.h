@@ -9,7 +9,6 @@
 #include <vector>
 
 #include <boost/serialization/access.hpp>
-#include <duckdb.hpp>
 #include <nlohmann/json.hpp>
 
 #include "silo/common/aa_symbols.h"

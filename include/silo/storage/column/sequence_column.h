@@ -10,7 +10,6 @@
 
 #include <fmt/format.h>
 #include <boost/serialization/access.hpp>
-#include <duckdb/main/connection.hpp>
 #include <roaring/roaring.hh>
 
 #include "insertion_index.h"

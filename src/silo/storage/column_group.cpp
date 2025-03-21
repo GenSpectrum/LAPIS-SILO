@@ -9,7 +9,6 @@
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <boost/algorithm/string.hpp>
-#include <duckdb.hpp>
 #include <nlohmann/json.hpp>
 
 #include "silo/common/aa_symbols.h"
