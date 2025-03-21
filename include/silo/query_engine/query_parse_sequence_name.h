@@ -7,7 +7,6 @@
 
 namespace silo {
 
-// TODO change return type
 template <typename SymbolType>
 std::string validateSequenceName(std::string sequence_name, const schema::TableSchema& schema) {
    CHECK_SILO_QUERY(
@@ -22,7 +21,6 @@ std::string validateSequenceName(std::string sequence_name, const schema::TableS
    return sequence_name;
 }
 
-// TODO change return type
 template <typename SymbolType>
 std::string validateSequenceNameOrGetDefault(
    std::optional<std::string> sequence_name,

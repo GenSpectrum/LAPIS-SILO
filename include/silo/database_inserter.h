@@ -22,12 +22,7 @@ class TablePartitionInserter {
    void insert(const nlohmann::json& ndjson_line) {
       for (auto& column_metadata : table_partition->columns.metadata) {
          try{
-            // TODO remove if else
-            if (column_metadata.type != schema::ColumnType::NUCLEOTIDE_SEQUENCE && column_metadata.type != schema::ColumnType::AMINO_ACID_SEQUENCE) {
-               table_partition->columns.addJsonValueToColumn(column_metadata, ndjson_line);
-            } else {
-               table_partition->columns.addJsonValueToColumn(column_metadata, ndjson_line);
-            }
+            table_partition->columns.addJsonValueToColumn(column_metadata, ndjson_line);
          } catch(const nlohmann::json::type_error& error){
             throw std::runtime_error(fmt::format("The following line does not conform to SILO's json specification: '{}'", ndjson_line.dump()));
          }

@@ -31,9 +31,6 @@ class Database {
    schema::DatabaseSchema schema;
    storage::Table table;
 
-   // TODO
-   std::map<std::string, UnalignedSequenceStore> unaligned_nuc_sequences;
-
   private:
    DataVersion data_version_ = DataVersion::mineDataVersion();
 
