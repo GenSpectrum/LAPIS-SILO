@@ -8,6 +8,6 @@
   "dependencies": {
     "chai": "^5.2.0",
     "prettier": "^3.5.3",
-    "supertest": "^7.0.0"
+    "supertest": "^7.1.0"
   }
 }
