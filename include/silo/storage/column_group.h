@@ -9,25 +9,23 @@
 #include <vector>
 
 #include <boost/serialization/access.hpp>
-#include <duckdb.hpp>
+#include <nlohmann/json.hpp>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/json_value_type.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/config/database_config.h"
+#include "silo/schema/database_schema.h"
 #include "silo/storage/column/bool_column.h"
 #include "silo/storage/column/date_column.h"
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
 #include "silo/storage/column/int_column.h"
+#include "silo/storage/column/sequence_column.h"
 #include "silo/storage/column/string_column.h"
+#include "silo/storage/column/unaligned_sequence_store.h"
 
 namespace silo::storage {
-
-struct ColumnMetadata {
-   std::string name;
-   silo::config::ColumnType type;
-};
 
 class ColumnPartitionGroup {
    friend class boost::serialization::access;
@@ -53,77 +51,54 @@ class ColumnPartitionGroup {
       for(auto& [name, store] : date_columns){
          archive & store;
       }
+      for(auto& [name, store] : nuc_columns){
+         archive & store;
+      }
+      for(auto& [name, store] : aa_columns){
+         archive & store;
+      }
       // clang-format on
    }
 
   public:
-   std::vector<ColumnMetadata> metadata;
+   std::vector<silo::schema::ColumnIdentifier> metadata;
 
-   std::map<std::string, storage::column::StringColumnPartition&> string_columns;
-   std::map<std::string, storage::column::IndexedStringColumnPartition&> indexed_string_columns;
-   std::map<std::string, storage::column::BoolColumnPartition&> bool_columns;
-   std::map<std::string, storage::column::IntColumnPartition&> int_columns;
-   std::map<std::string, storage::column::FloatColumnPartition&> float_columns;
-   std::map<std::string, storage::column::DateColumnPartition&> date_columns;
+   std::map<std::string, column::StringColumnPartition> string_columns;
+   std::map<std::string, column::IndexedStringColumnPartition> indexed_string_columns;
+   std::map<std::string, column::BoolColumnPartition> bool_columns;
+   std::map<std::string, column::IntColumnPartition> int_columns;
+   std::map<std::string, column::FloatColumnPartition> float_columns;
+   std::map<std::string, column::DateColumnPartition> date_columns;
+   std::map<std::string, column::SequenceColumnPartition<Nucleotide>> nuc_columns;
+   std::map<std::string, column::SequenceColumnPartition<AminoAcid>> aa_columns;
+   // TODO
+   std::map<std::string, UnalignedSequenceStorePartition> unaligned_nuc_sequences;
 
-   void addValueToColumn(
-      const std::string& column_name,
-      config::ColumnType column_type,
-      const duckdb::Value& value
+   void addJsonValueToColumn(
+      const schema::ColumnIdentifier& column_identifier,
+      const nlohmann::json& value
    );
 
-   void addNullToColumn(const std::string& column_name, config::ColumnType column_type);
+   void addNullToColumn(const schema::ColumnIdentifier& column_identifier);
 
    void reserveSpaceInColumn(
       const std::string& column_name,
-      config::ColumnType column_type,
+      schema::ColumnType column_type,
       size_t row_count
    );
 
    [[nodiscard]] ColumnPartitionGroup getSubgroup(
-      const std::vector<silo::storage::ColumnMetadata>& fields
+      const std::vector<schema::ColumnIdentifier>& fields
    ) const;
 
    [[nodiscard]] common::JsonValueType getValue(const std::string& column, uint32_t sequence_id)
       const;
-};
 
-class ColumnGroup {
-   friend class boost::serialization::access;
+   template <column::Column ColumnType>
+   std::map<std::string, ColumnType>& getColumns();
 
-   template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
-      // clang-format off
-      for(auto& [_, store] : string_columns){
-         archive & store;
-      }
-      for(auto& [_, store] : indexed_string_columns){
-         archive & store;
-      }
-      for(auto& [_, store] : bool_columns){
-         archive & store;
-      }
-      for(auto& [_, store] : int_columns){
-         archive & store;
-      }
-      for(auto& [_, store] : float_columns){
-         archive & store;
-      }
-      for(auto& [_, store] : date_columns){
-         archive & store;
-      }
-      // clang-format on
-   }
-
-  public:
-   std::vector<ColumnMetadata> metadata;
-
-   std::map<std::string, storage::column::StringColumn> string_columns;
-   std::map<std::string, storage::column::IndexedStringColumn> indexed_string_columns;
-   std::map<std::string, storage::column::BoolColumn> bool_columns;
-   std::map<std::string, storage::column::IntColumn> int_columns;
-   std::map<std::string, storage::column::FloatColumn> float_columns;
-   std::map<std::string, storage::column::DateColumn> date_columns;
+   template <column::Column ColumnType>
+   const std::map<std::string, ColumnType>& getColumns() const;
 };
 
 }  // namespace silo::storage

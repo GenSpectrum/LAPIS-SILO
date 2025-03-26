@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <gtest/gtest.h>
+#include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
 #include "silo/common/fmt_formatters.h"
@@ -14,8 +15,8 @@
 #include "silo/config/preprocessing_config.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
-#include "silo/preprocessing/preprocessor.h"
-#include "silo/preprocessing/sql_function.h"
+#include "silo/database_inserter.h"
+#include "silo/initialize/initializer.h"
 #include "silo/query_engine/query_engine.h"
 #include "silo/storage/reference_genomes.h"
 
@@ -32,46 +33,25 @@ namespace silo::test {
  * @param TEST_VALUES The queries to be executed on the given dataset and the expected results.
  * Must be of the form `::testing::Values(silo::test::QueryTestScenario... scenarios)`.
  */
-#define QUERY_TEST(TEST_SUITE_NAME, TEST_DATA, TEST_VALUES)                                        \
-   namespace {                                                                                     \
-   struct TEST_SUITE_NAME##DataContainer {                                                         \
-      static std::unique_ptr<silo::Database> database;                                             \
-      static std::unique_ptr<silo::query_engine::QueryEngine> query_engine;                        \
-      static std::filesystem::path input_directory;                                                \
-                                                                                                   \
-      const silo::test::QueryTestData test_data = TEST_DATA;                                       \
-   };                                                                                              \
-   std::unique_ptr<silo::Database> TEST_SUITE_NAME##DataContainer::database = nullptr;             \
-   std::unique_ptr<silo::query_engine::QueryEngine> TEST_SUITE_NAME##DataContainer::query_engine = \
-      nullptr;                                                                                     \
-   std::filesystem::path TEST_SUITE_NAME##DataContainer::input_directory = {};                     \
-                                                                                                   \
-   using TEST_SUITE_NAME##FixtureAlias =                                                           \
-      silo::test::QueryTestFixture<TEST_SUITE_NAME##DataContainer>;                                \
-                                                                                                   \
-   INSTANTIATE_TEST_SUITE_P(                                                                       \
-      TEST_SUITE_NAME,                                                                             \
-      TEST_SUITE_NAME##FixtureAlias,                                                               \
-      TEST_VALUES,                                                                                 \
-      silo::test::printScenarioName                                                                \
-   );                                                                                              \
-                                                                                                   \
-   TEST_P(TEST_SUITE_NAME##FixtureAlias, testQuery) {                                              \
-      const auto scenario = GetParam();                                                            \
-      if (!scenario.expected_error_message.empty()) {                                              \
-         try {                                                                                     \
-            const auto result = query_engine.executeQuery(nlohmann::to_string(scenario.query));    \
-            FAIL() << "Expected an error in test case, but noting was thrown";                     \
-         } catch (const std::exception& e) {                                                       \
-            EXPECT_EQ(std::string(e.what()), scenario.expected_error_message);                     \
-         }                                                                                         \
-      } else {                                                                                     \
-         const auto result = query_engine.executeQuery(nlohmann::to_string(scenario.query));       \
-         const auto actual = nlohmann::json(result.entries());                                     \
-         ASSERT_EQ(actual, scenario.expected_query_result);                                        \
-      }                                                                                            \
-   }                                                                                               \
-   }  // namespace
+#define QUERY_TEST(TEST_SUITE_NAME, TEST_DATA, TEST_VALUES)                                      \
+   struct TEST_SUITE_NAME##DataContainer {                                                       \
+      const silo::test::QueryTestData test_data = TEST_DATA;                                     \
+   };                                                                                            \
+                                                                                                 \
+   using TEST_SUITE_NAME##FixtureAlias =                                                         \
+      silo::test::QueryTestFixture<TEST_SUITE_NAME##DataContainer>;                              \
+                                                                                                 \
+   template <>                                                                                   \
+   std::shared_ptr<silo::Database> TEST_SUITE_NAME##FixtureAlias::shared_database = nullptr;     \
+                                                                                                 \
+   INSTANTIATE_TEST_SUITE_P(                                                                     \
+      TEST_SUITE_NAME, TEST_SUITE_NAME##FixtureAlias, TEST_VALUES, silo::test::printScenarioName \
+   );                                                                                            \
+                                                                                                 \
+   TEST_P(TEST_SUITE_NAME##FixtureAlias, testQuery) {                                            \
+      const auto scenario = GetParam();                                                          \
+      runTest(scenario);                                                                         \
+   };
 
 struct QueryTestData {
    const std::vector<nlohmann::json> ndjson_input_data;
@@ -92,51 +72,52 @@ std::string printScenarioName(const ::testing::TestParamInfo<QueryTestScenario>&
 template <typename DataContainer>
 class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
   public:
+   static std::shared_ptr<silo::Database> shared_database;
+
    static void SetUpTestSuite() {
-      auto now = std::chrono::system_clock::now();
-      auto duration = now.time_since_epoch();
-      auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
-      std::filesystem::path input_directory = fmt::format("test{}", millis);
-      std::filesystem::create_directories(input_directory);
-
-      config::PreprocessingConfig config_with_input_dir =
-         config::PreprocessingConfig::withDefaults();
-      config_with_input_dir.input_directory = input_directory;
-      config_with_input_dir.intermediate_results_directory = input_directory;
-      config_with_input_dir.ndjson_input_filename = "input.json";
-      config_with_input_dir.validate();
-
-      DataContainer::input_directory = input_directory;
-
       const DataContainer data_container;
       const QueryTestData& test_data = data_container.test_data;
 
-      std::ofstream file(config_with_input_dir.getNdjsonInputFilename().value());
-
-      if (!file.is_open()) {
-         std::cerr << "Could not open file for writing" << std::endl;
-         return;
-      }
-      for (const auto& json : test_data.ndjson_input_data) {
-         file << json.dump() << std::endl;
-      }
-      file.close();
-
-      silo::preprocessing::Preprocessor preprocessor(
-         config_with_input_dir,
-         silo::config::DatabaseConfig::getValidatedConfig(test_data.database_config),
-         test_data.reference_genomes,
-         test_data.lineage_tree
+      auto database = std::make_shared<Database>(
+         Database{silo::initialize::Initializer::createSchemaFromConfigFiles(
+            silo::config::DatabaseConfig::getValidatedConfig(test_data.database_config),
+            std::move(test_data.reference_genomes),
+            std::move(test_data.lineage_tree)
+         )}
       );
-      DataContainer::database = std::make_unique<Database>(preprocessor.preprocess());
 
-      DataContainer::query_engine =
-         std::make_unique<silo::query_engine::QueryEngine>(*DataContainer::database);
+      {
+         silo::TableInserter table_inserter(&database->table);
+         silo::TablePartitionInserter partition_inserter = table_inserter.openNewPartition();
+
+         for (const auto& json : test_data.ndjson_input_data) {
+            partition_inserter.insert(json);
+         }
+      }
+
+      shared_database = database;
    }
 
-   static void TearDownTestSuite() { std::filesystem::remove_all(DataContainer::input_directory); }
-
-   silo::query_engine::QueryEngine& query_engine = *DataContainer::query_engine;
+   void runTest(silo::test::QueryTestScenario scenario) {
+      if (!shared_database) {
+         FAIL() << "There was an error when setting up the test suite. Database not initialized.";
+      }
+      if (!scenario.expected_error_message.empty()) {
+         try {
+            const auto result = silo::query_engine::executeQuery(
+               *shared_database, nlohmann::to_string(scenario.query)
+            );
+            FAIL() << "Expected an error in test case, but noting was thrown";
+         } catch (const std::exception& e) {
+            EXPECT_EQ(std::string(e.what()), scenario.expected_error_message);
+         }
+      } else {
+         const auto result =
+            silo::query_engine::executeQuery(*shared_database, nlohmann::to_string(scenario.query));
+         const auto actual = nlohmann::json(result.entries());
+         ASSERT_EQ(actual, scenario.expected_query_result);
+      }
+   }
 };
 
 }  // namespace silo::test

@@ -9,7 +9,7 @@
 using silo::preprocessing::LineageDefinitionFile;
 
 TEST(LineageDefinitionFile, correctlyParsesFromYAML) {
-   auto lineage_definition_file = LineageDefinitionFile::fromYAML(R"(
+   auto lineage_definition_file = LineageDefinitionFile::fromYAMLString(R"(
 BASE:
   parents: []
 CHILD:
@@ -26,7 +26,7 @@ CHILD:
 
 TEST(LineageDefinitionFile, unparsableOnBadFormat) {
    ASSERT_THROW(
-      LineageDefinitionFile::fromYAML(R"(
+      LineageDefinitionFile::fromYAMLString(R"(
 X
 SOME_lineage: "
 -:
@@ -37,7 +37,7 @@ SOME_lineage: "
 
 TEST(LineageDefinitionFile, errorOnMisspelledParents) {
    auto throwing_lambda = []() {
-      LineageDefinitionFile::fromYAML(R"(
+      LineageDefinitionFile::fromYAMLString(R"(
 some_lineage:
   parent:
   - anything
@@ -56,7 +56,7 @@ some_other_lineage:
 }
 
 TEST(LineageDefinitionFile, noErrorOnEmptyMap) {
-   EXPECT_NO_THROW(LineageDefinitionFile::fromYAML(R"(
+   EXPECT_NO_THROW(LineageDefinitionFile::fromYAMLString(R"(
 some_lineage: {}
 some_other_lineage:
   parents:
@@ -64,7 +64,7 @@ some_other_lineage:
 }
 
 TEST(LineageDefinitionFile, noErrorOnNull) {
-   EXPECT_NO_THROW(LineageDefinitionFile::fromYAML(R"(
+   EXPECT_NO_THROW(LineageDefinitionFile::fromYAMLString(R"(
 some_lineage:
 some_other_lineage:
   parents:
@@ -73,7 +73,7 @@ some_other_lineage:
 
 TEST(LineageDefinitionFile, errorOnExtraFields) {
    auto throwing_lambda = []() {
-      LineageDefinitionFile::fromYAML(R"(
+      LineageDefinitionFile::fromYAMLString(R"(
 some_lineage:
   parents: []
   some_extra_field: "some_value"

@@ -12,7 +12,7 @@
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/selection.h"
-#include "silo/storage/database_partition.h"
+#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -35,8 +35,8 @@ std::string IntBetween::toString() const {
 }
 
 std::unique_ptr<silo::query_engine::filter::operators::Operator> IntBetween::compile(
-   const silo::Database& /*database*/,
-   const silo::DatabasePartition& database_partition,
+   const Database& /*database*/,
+   const storage::TablePartition& database_partition,
    silo::query_engine::filter::expressions::Expression::AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
@@ -76,15 +76,16 @@ void from_json(const nlohmann::json& json, std::unique_ptr<IntBetween>& filter) 
    CHECK_SILO_QUERY(json.contains("from"), "The field 'from' is required in IntBetween expression");
    bool value_from_in_allowed_range =
       json["from"].is_number_integer() &&
-      json["from"].get<int32_t>() != storage::column::IntColumn::null();
+      json["from"].get<int32_t>() != storage::column::IntColumnPartition::null();
    CHECK_SILO_QUERY(
       value_from_in_allowed_range || json["from"].is_null(),
       "The field 'from' in an IntBetween expression must be an integer in [-2147483647; "
       "2147483647] or null"
    );
    CHECK_SILO_QUERY(json.contains("to"), "The field 'to' is required in a IntBetween expression");
-   bool value_to_in_allowed_range = json["to"].is_number_integer() &&
-                                    json["to"].get<int32_t>() != storage::column::IntColumn::null();
+   bool value_to_in_allowed_range =
+      json["to"].is_number_integer() &&
+      json["to"].get<int32_t>() != storage::column::IntColumnPartition::null();
    CHECK_SILO_QUERY(
       value_to_in_allowed_range || json["to"].is_null(),
       "The field 'to' in an IntBetween expression must be an integer in [-2147483647; 2147483647] "
