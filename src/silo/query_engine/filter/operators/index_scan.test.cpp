@@ -1,8 +1,8 @@
 #include "silo/query_engine/filter/operators/index_scan.h"
 
 #include <gtest/gtest.h>
-#include <roaring/roaring.hh>
 
+#include "external/roaring_include_wrapper.h"
 #include "silo/query_engine/filter/expressions/false.h"
 #include "silo/query_engine/filter/expressions/true.h"
 

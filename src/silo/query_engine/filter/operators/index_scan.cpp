@@ -3,8 +3,8 @@
 #include <string>
 
 #include <fmt/format.h>
-#include <roaring/roaring.hh>
 
+#include "external/roaring_include_wrapper.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/complement.h"

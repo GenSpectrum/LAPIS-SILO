@@ -6,10 +6,10 @@ class SiloRecipe(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
 
     requires = [
+        "asio/1.29.0",
         "boost/1.82.0",
+        "crowcpp-crow/1.2.0",
         "duckdb/1.0.0",
-        "poco/1.13.3",
-        "hwloc/2.9.3",
         "onetbb/2021.10.0",
         "nlohmann_json/3.11.2",
         "gtest/cci.20210126",
@@ -73,25 +73,7 @@ class SiloRecipe(ConanFile):
         "boost/*:without_type_erasure": True,
         "boost/*:without_wave": True,
 
-        "poco/*:shared": False,
-        "poco/*:enable_json": True,
-        "poco/*:enable_net": True,
-        "poco/*:enable_util": True,
-
-        "poco/*:enable_crypto": False,
-        "poco/*:enable_activerecord": False,
-        "poco/*:enable_active_record": False,
-        "poco/*:enable_data": False,
-        "poco/*:enable_data_mysql": False,
-        "poco/*:enable_data_postgresql": False,
-        "poco/*:enable_data_sqlite": False,
-        "poco/*:enable_encodings": False,
-        "poco/*:enable_jwt": False,
-        "poco/*:enable_mongodb": False,
-        "poco/*:enable_netssl": False,
-        "poco/*:enable_redis": False,
-        "poco/*:enable_xml": False,
-        "poco/*:enable_zip": False,
+        "crowcpp-crow/*:shared": False,
 
         "re2/*:shared": False,
 
@@ -102,12 +84,12 @@ class SiloRecipe(ConanFile):
         deps = CMakeDeps(self)
         deps.set_property("boost", "cmake_find_mode", "both")
         deps.set_property("duckdb", "cmake_find_mode", "both")
+        deps.set_property("crowcpp-crow", "cmake_find_mode", "both")
         deps.set_property("gtest", "cmake_find_mode", "both")
         deps.set_property("hwloc", "cmake_find_mode", "both")
         deps.set_property("nlohmann_json", "cmake_find_mode", "both")
         deps.set_property("onetbb", "cmake_find_mode", "both")
         deps.set_property("pcre2", "cmake_find_mode", "both")
-        deps.set_property("poco", "cmake_find_mode", "both")
         deps.set_property("roaring", "cmake_find_mode", "both")
         deps.set_property("spdlog", "cmake_find_mode", "both")
         deps.set_property("yaml-cpp", "cmake_find_mode", "both")

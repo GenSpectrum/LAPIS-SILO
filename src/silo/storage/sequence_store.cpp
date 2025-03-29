@@ -9,8 +9,8 @@
 #include <oneapi/tbb/parallel_for.h>
 #include <spdlog/spdlog.h>
 #include <boost/lexical_cast.hpp>
-#include <roaring/roaring.hh>
 
+#include "external/roaring_include_wrapper.h"
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/string_utils.h"
