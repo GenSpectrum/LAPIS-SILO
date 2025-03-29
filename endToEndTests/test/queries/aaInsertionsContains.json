@@ -15,9 +15,6 @@
   },
   "expectedQueryResult": [
     {
-      "gisaid_epi_isl": "EPI_ISL_1003629"
-    },
-    {
       "gisaid_epi_isl": "EPI_ISL_1408408"
     },
     {

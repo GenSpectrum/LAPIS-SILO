@@ -8,7 +8,7 @@
     "filterExpression": {
       "type": "AminoAcidInsertionContains",
       "sequenceName": "S",
-      "value": "E.*",
+      "value": ".*PE",
       "position": 214
     }
   },
