@@ -25,7 +25,9 @@ class TablePartitionInserter {
             table_partition->columns.addJsonValueToColumn(column_metadata, ndjson_line);
          } catch (const nlohmann::json::type_error& error) {
             throw std::runtime_error(fmt::format(
-               "The following line does not conform to SILO's json specification: '{}'",
+               "The following line does not conform to SILO's json specification error when adding "
+               "to database column {}: '{}'",
+               column_metadata.name,
                ndjson_line.dump()
             ));
          }
