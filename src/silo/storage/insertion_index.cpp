@@ -222,7 +222,7 @@ std::unique_ptr<roaring::Roaring> InsertionPosition<SymbolType>::search(
    const std::string& search_pattern
 ) const {
    const auto search_three_mers = extractThreeMers<SymbolType>(search_pattern);
-   const std::regex regex_search_pattern(search_pattern);
+   const std::regex regex_search_pattern("^" + search_pattern + "$");
 
    if (!search_three_mers.empty()) {
       // We can only use the ThreeMerIndex if there is at least one 3-mer in the search pattern

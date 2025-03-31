@@ -153,14 +153,15 @@ const QueryTestScenario HAS_AMINO_ACID_MUTATION_WITHOUT_SEQUENCE_NAME = {
 
 const QueryTestScenario NUCLEOTIDE_INSERTION_CONTAINS_WITHOUT_SEQUENCE_NAME = {
    .name = "nucleotideInsertionContainsWithoutSequenceName",
-   .query = createQueryWithFilter({{"type", "InsertionContains"}, {"value", "A"}, {"position", 1}}),
+   .query =
+      createQueryWithFilter({{"type", "InsertionContains"}, {"value", "AAA"}, {"position", 1}}),
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario AMINO_ACID_INSERTION_CONTAINS_WITHOUT_SEQUENCE_NAME = {
    .name = "aminoAcidInsertionContainsWithoutSequenceName",
    .query = createQueryWithFilter(
-      {{"type", "AminoAcidInsertionContains"}, {"value", "A"}, {"position", 1}}
+      {{"type", "AminoAcidInsertionContains"}, {"value", "AAA"}, {"position", 1}}
    ),
    .expected_query_result = EXPECTED_RESULT
 };
