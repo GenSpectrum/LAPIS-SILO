@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.8](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.5.7...v0.5.8) (2025-03-31)
+
+
+### Bug Fixes
+
+* the InsertionContains filter regex should match for the full string ([#735](https://github.com/GenSpectrum/LAPIS-SILO/issues/735)) ([4bb8320](https://github.com/GenSpectrum/LAPIS-SILO/commit/4bb832001ffa2a6c543607787c1dc59baa2614be))
+
 ## [0.5.7](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.5.6...v0.5.7) (2025-03-17)
 
 
