@@ -41,6 +41,16 @@ ConfigKeyPath referenceGenomeFilenameOptionKey() {
 ConfigKeyPath ndjsonInputFilenameOptionKey() {
    return YamlFile::stringToConfigKeyPath("ndjsonInputFilename");
 }
+// DEPRECATED: TODO(#737) fully remove them after the next major release
+ConfigKeyPath intermediateResultsDirectoryOptionKey() {
+   return YamlFile::stringToConfigKeyPath("intermediateResultsDirectory");
+}
+ConfigKeyPath preprocessingDatabaseLocationOptionKey() {
+   return YamlFile::stringToConfigKeyPath("preprocessingDatabaseLocation");
+}
+ConfigKeyPath duckdbMemoryLimitInGTimeOptionKey() {
+   return YamlFile::stringToConfigKeyPath("duckdbMemoryLimitInG");
+}
 }  // namespace
 
 namespace silo::config {
@@ -94,6 +104,16 @@ ConfigSpecification PreprocessingConfig::getConfigSpecification() {
             ConfigValueType::PATH,
             "Path to the input data. Relative from inputDirectory."
          ),
+         // DEPRECATED: TODO(#737) fully remove after next major release
+         ConfigAttributeSpecification::createWithDefault(
+            intermediateResultsDirectoryOptionKey(), ConfigValue::fromPath("./temp/"), "DEPRECATED."
+         ),
+         ConfigAttributeSpecification::createWithoutDefault(
+            preprocessingDatabaseLocationOptionKey(), ConfigValueType::PATH, "DEPRECATED."
+         ),
+         ConfigAttributeSpecification::createWithoutDefault(
+            duckdbMemoryLimitInGTimeOptionKey(), ConfigValueType::UINT32, "DEPRECATED."
+         )
       }
    };
 }
@@ -130,6 +150,24 @@ void PreprocessingConfig::overwriteFrom(const VerifiedConfigAttributes& config_s
    }
    if (auto var = config_source.getPath(ndjsonInputFilenameOptionKey())) {
       input_file = var.value();
+   }
+   if (auto var = config_source.getPath(intermediateResultsDirectoryOptionKey())) {
+      SPDLOG_WARN(
+         "The config value {} is deprecated. This will lead to errors in future versions.",
+         YamlFile::configKeyPathToString(intermediateResultsDirectoryOptionKey())
+      );
+   }
+   if (auto var = config_source.getPath(preprocessingDatabaseLocationOptionKey())) {
+      SPDLOG_WARN(
+         "The config value {} is deprecated. This will lead to errors in future versions.",
+         YamlFile::configKeyPathToString(preprocessingDatabaseLocationOptionKey())
+      );
+   }
+   if (auto var = config_source.getUint32(duckdbMemoryLimitInGTimeOptionKey())) {
+      SPDLOG_WARN(
+         "The config value {} is deprecated. This will lead to errors in future versions.",
+         YamlFile::configKeyPathToString(duckdbMemoryLimitInGTimeOptionKey())
+      );
    }
 }
 
