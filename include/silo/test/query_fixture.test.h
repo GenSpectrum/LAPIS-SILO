@@ -9,13 +9,13 @@
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
+#include "silo/append/database_inserter.h"
 #include "silo/common/fmt_formatters.h"
 #include "silo/common/lineage_tree.h"
 #include "silo/config/database_config.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
-#include "silo/database_inserter.h"
 #include "silo/initialize/initializer.h"
 #include "silo/query_engine/query_engine.h"
 #include "silo/storage/reference_genomes.h"
@@ -86,14 +86,7 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
          )}
       );
 
-      {
-         silo::TableInserter table_inserter(&database->table);
-         silo::TablePartitionInserter partition_inserter = table_inserter.openNewPartition();
-
-         for (const auto& json : test_data.ndjson_input_data) {
-            partition_inserter.insert(json);
-         }
-      }
+      silo::append::appendDataToDatabase(*database, test_data.ndjson_input_data);
 
       shared_database = database;
    }

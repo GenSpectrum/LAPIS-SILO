@@ -83,7 +83,7 @@ class TableSchema {
       if (it == column_metadata.end() || it->first.type != ColumnType::TYPE) {
          return std::nullopt;
       }
-      return dynamic_cast<ColumnType::Metadata*>(it->second.get());
+      return dynamic_cast<typename ColumnType::Metadata*>(it->second.get());
    }
 
    template <storage::column::Column ColumnType>
@@ -95,7 +95,7 @@ class TableSchema {
       if (it == column_metadata.end() || it->first.type != ColumnType::TYPE) {
          return std::nullopt;
       }
-      return dynamic_cast<ColumnType::Metadata*>(it->second.get());
+      return dynamic_cast<typename ColumnType::Metadata*>(it->second.get());
    }
 };
 

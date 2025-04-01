@@ -8,10 +8,11 @@
 
 #include "config/source/yaml_file.h"
 #include "silo/append/append.h"
+#include "silo/append/database_inserter.h"
+#include "silo/append/ndjson_line_reader.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/database_info.h"
-#include "silo/database_inserter.h"
 #include "silo/initialize/initializer.h"
 #include "silo/query_engine/query_engine.h"
 #include "silo/storage/reference_genomes.h"
@@ -32,12 +33,13 @@ std::shared_ptr<silo::Database> buildTestDatabase() {
    );
 
    const auto reference_genomes =
-      silo::ReferenceGenomes::readFromFile(config.initialize_config.getReferenceGenomeFilename());
+      silo::ReferenceGenomes::readFromFile(config.initialization_files.getReferenceGenomeFilename()
+      );
 
    silo::common::LineageTreeAndIdMap lineage_tree;
-   if (config.initialize_config.getLineageDefinitionsFilename().has_value()) {
+   if (config.initialization_files.getLineageDefinitionsFilename().has_value()) {
       lineage_tree = silo::common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(
-         config.initialize_config.getLineageDefinitionsFilename().value()
+         config.initialization_files.getLineageDefinitionsFilename().value()
       );
    }
 
@@ -46,26 +48,8 @@ std::shared_ptr<silo::Database> buildTestDatabase() {
          std::move(database_config), std::move(reference_genomes), std::move(lineage_tree)
       )}
    );
-
-   {
-      silo::TableInserter table_inserter(&database->table);
-      silo::TablePartitionInserter partition_inserter = table_inserter.openNewPartition();
-
-      std::ifstream input(input_directory / "input.ndjson");
-
-      std::string line;
-      size_t count = 0;
-      while (std::getline(input, line)) {  // Read file line by line
-         if (line.empty())
-            continue;  // Skip empty lines
-
-         SPDLOG_DEBUG("Inserting line {}", count++);
-
-         nlohmann::json json_obj = nlohmann::json::parse(line);
-
-         partition_inserter.insert(json_obj);
-      }
-   }
+   std::ifstream input(input_directory / "input.ndjson");
+   silo::append::appendDataToDatabase(*database, silo::append::NdjsonLineReader{input});
    return database;
 }
 }  // namespace

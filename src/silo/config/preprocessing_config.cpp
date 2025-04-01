@@ -120,9 +120,6 @@ ConfigSpecification PreprocessingConfig::getConfigSpecification() {
 
 PreprocessingConfig PreprocessingConfig::withDefaults() {
    PreprocessingConfig result;
-   result.initialize_config.overwriteFrom(
-      InitializeConfig::getConfigSpecification().getConfigSourceFromDefaults()
-   );
    result.overwriteFrom(getConfigSpecification().getConfigSourceFromDefaults());
    return result;
 }
@@ -135,19 +132,19 @@ void PreprocessingConfig::validate() const {
 
 void PreprocessingConfig::overwriteFrom(const VerifiedConfigAttributes& config_source) {
    if (auto var = config_source.getPath(inputDirectoryOptionKey())) {
-      initialize_config.input_directory = var.value();
+      initialization_files.directory = var.value();
    }
    if (auto var = config_source.getPath(lineageDefinitionsFilenameOptionKey())) {
-      initialize_config.lineage_definitions_file = var.value();
+      initialization_files.lineage_definitions_file = var.value();
    }
    if (auto var = config_source.getPath(databaseConfigFileOptionKey())) {
-      initialize_config.database_config_file = var.value();
+      initialization_files.database_config_file = var.value();
    }
    if (auto var = config_source.getPath(referenceGenomeFilenameOptionKey())) {
-      initialize_config.reference_genome_file = var.value();
+      initialization_files.reference_genome_file = var.value();
    }
    if (auto var = config_source.getPath(outputDirectoryOptionKey())) {
-      initialize_config.output_directory = var.value();
+      output_directory = var.value();
    }
    if (auto var = config_source.getPath(ndjsonInputFilenameOptionKey())) {
       input_file = var.value();

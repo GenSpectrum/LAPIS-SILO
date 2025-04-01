@@ -21,28 +21,21 @@
 
 namespace silo::initialize {
 
-Initializer::Initializer(
-   config::InitializeConfig initialize_config_,
-   config::DatabaseConfig database_config_,
-   ReferenceGenomes reference_genomes_,
-   common::LineageTreeAndIdMap lineage_tree_
-)
-    : initialize_config(std::move(initialize_config_)),
-      database_config(std::move(database_config_)),
-      reference_genomes(std::move(reference_genomes_)),
-      lineage_tree(std::move(lineage_tree_)) {}
-
-Database Initializer::initialize() {
+Database Initializer::initializeDatabase(config::InitializationFiles initialization_files) {
+   common::LineageTreeAndIdMap lineage_tree;
+   if (initialization_files.getLineageDefinitionsFilename().has_value()) {
+      lineage_tree = common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(
+         initialization_files.getLineageDefinitionsFilename().value()
+      );
+   }
    silo::schema::DatabaseSchema schema = createSchemaFromConfigFiles(
-      silo::config::DatabaseConfig{database_config},
-      std::move(reference_genomes),
+      config::DatabaseConfig::getValidatedConfigFromFile(
+         initialization_files.getDatabaseConfigFilename()
+      ),
+      ReferenceGenomes::readFromFile(initialization_files.getReferenceGenomeFilename()),
       std::move(lineage_tree)
    );
-   Database database(schema);
-   const DataVersion& data_version = DataVersion::mineDataVersion();
-   SPDLOG_INFO("preprocessing - mining data data_version: {}", data_version.toString());
-   database.setDataVersion(data_version);
-   return database;
+   return Database{schema};
 }
 
 struct ColumnMetadataInitializer {

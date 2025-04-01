@@ -18,18 +18,37 @@ namespace silo::config {
 
 class PreprocessingConfig;
 
+class InitializationFiles {
+  public:
+   std::optional<std::filesystem::path> lineage_definitions_file;
+   std::filesystem::path database_config_file;
+   std::filesystem::path reference_genome_file;
+
+   std::filesystem::path directory;
+
+   [[nodiscard]] std::filesystem::path getDatabaseConfigFilename() const;
+
+   [[nodiscard]] std::optional<std::filesystem::path> getLineageDefinitionsFilename() const;
+
+   [[nodiscard]] std::filesystem::path getReferenceGenomeFilename() const;
+
+   NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+      InitializationFiles,
+      directory,
+      lineage_definitions_file,
+      database_config_file,
+      reference_genome_file
+   );
+};
+
 class InitializeConfig {
    friend class PreprocessingConfig;
    friend class fmt::formatter<silo::config::InitializeConfig>;
 
    InitializeConfig() = default;
 
-   std::optional<std::filesystem::path> lineage_definitions_file;
-   std::filesystem::path database_config_file;
-   std::filesystem::path reference_genome_file;
-
   public:
-   std::filesystem::path input_directory;
+   InitializationFiles initialization_files;
    std::filesystem::path output_directory;
    /// Create PreprocessingConfig with all default values from the specification
    static InitializeConfig withDefaults();
@@ -38,12 +57,6 @@ class InitializeConfig {
 
    void validate() const;
 
-   [[nodiscard]] std::filesystem::path getDatabaseConfigFilename() const;
-
-   [[nodiscard]] std::optional<std::filesystem::path> getLineageDefinitionsFilename() const;
-
-   [[nodiscard]] std::filesystem::path getReferenceGenomeFilename() const;
-
    void overwriteFrom(const VerifiedConfigAttributes& config_source);
 
    [[nodiscard]] static std::vector<std::filesystem::path> getConfigFilePaths(
@@ -51,14 +64,7 @@ class InitializeConfig {
       const VerifiedConfigAttributes& env_source
    );
 
-   NLOHMANN_DEFINE_TYPE_INTRUSIVE(
-      InitializeConfig,
-      input_directory,
-      lineage_definitions_file,
-      database_config_file,
-      reference_genome_file,
-      output_directory
-   )
+   NLOHMANN_DEFINE_TYPE_INTRUSIVE(InitializeConfig, initialization_files, output_directory);
 };
 
 }  // namespace silo::config

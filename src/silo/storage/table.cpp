@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <istream>
+#include <unordered_set>
 
 #include <spdlog/spdlog.h>
 #include <boost/archive/binary_iarchive.hpp>
@@ -18,6 +19,7 @@
 #include "silo/common/fmt_formatters.h"
 #include "silo/persistence/exception.h"
 #include "silo/roaring/roaring_serialize.h"
+#include "silo/schema/duplicate_primary_key_exception.h"
 #include "silo/storage/serialize_optional.h"
 
 namespace silo::storage {
@@ -27,9 +29,26 @@ size_t Table::getNumberOfPartitions() const {
 }
 
 void Table::validate() const {
-   //   for (const auto& partition : partitions) {
-   //      partition->validate();
-   //   }
+   validatePrimaryKeyUnique();
+}
+
+void Table::validatePrimaryKeyUnique() const {
+   SPDLOG_DEBUG("Checking that primary keys are unique.");
+   const auto primary_key = schema.primary_key;
+   SILO_ASSERT(primary_key.type == schema::ColumnType::STRING);
+   std::unordered_set<common::SiloString> unique_keys;
+   for (auto& partition : partitions) {
+      auto& primary_key_column = partition->columns.string_columns.at(primary_key.name);
+      for (const auto x : primary_key_column.getValues()) {
+         if (unique_keys.contains(x)) {
+            throw schema::DuplicatePrimaryKeyException(
+               "Found duplicate primary key {}", primary_key_column.lookupValue(x)
+            );
+         }
+         unique_keys.insert(x);
+      }
+   }
+   SPDLOG_DEBUG("Found {} distinct primary keys.", unique_keys.size());
 }
 
 const TablePartition& Table::getPartition(size_t partition_idx) const {

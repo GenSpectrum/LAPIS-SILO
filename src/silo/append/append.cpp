@@ -3,10 +3,11 @@
 #include <fstream>
 #include <istream>
 
+#include "silo/append/database_inserter.h"
+#include "silo/append/ndjson_line_reader.h"
 #include "silo/common/input_stream_wrapper.h"
 #include "silo/common/silo_directory.h"
 #include "silo/database.h"
-#include "silo/database_inserter.h"
 
 using silo::Database;
 
@@ -57,43 +58,6 @@ silo::DataVersion getDataVersionFromStringOrMineNewDataVersion(
    return silo::DataVersion::mineDataVersion();
 }
 
-void appendDataToTable(
-   silo::storage::Table& table,
-   const silo::config::AppendConfig& append_config
-) {
-   silo::TableInserter table_inserter(&table);
-
-   // TODO make partition configurable
-   silo::TablePartitionInserter partition_inserter = table_inserter.openNewPartition();
-
-   auto input = silo::InputStreamWrapper::openFileOrStdIn(append_config.append_file);
-
-   // TODO refactor following lines to keep business logic separate
-   std::string line;
-   size_t line_count = 0;
-   while (std::getline(input.getInputStream(), line)) {  // Read file line by line
-      if (line.empty())
-         continue;  // Skip empty lines
-
-      SPDLOG_DEBUG("Inserting line {}", line_count);
-
-      try {
-         nlohmann::json json_obj = nlohmann::json::parse(line);
-
-         partition_inserter.insert(json_obj);
-
-      } catch (const nlohmann::json::parse_error& e) {
-         std::cerr << "Error parsing JSON: " << e.what() << std::endl;
-         // TODO throw silo::append::AppendException()
-         SILO_PANIC("Error parsing JSON: {}", e.what());
-      }
-      line_count++;
-      if (line_count % 10000 == 0) {
-         SPDLOG_INFO("Processed {} lines from the input file", line_count);
-      }
-   }
-}
-
 }  // namespace
 
 int runAppend(const silo::config::AppendConfig& append_config) {
@@ -105,7 +69,10 @@ int runAppend(const silo::config::AppendConfig& append_config) {
    std::shared_ptr<Database> database =
       std::make_shared<Database>(Database::loadDatabaseState(database_state_directory));
 
-   appendDataToTable(database->table, append_config);
+   auto input = silo::InputStreamWrapper::openFileOrStdIn(append_config.append_file);
+   silo::append::appendDataToDatabase(
+      *database, silo::append::NdjsonLineReader{input.getInputStream()}
+   );
 
    const silo::DataVersion data_version =
       getDataVersionFromStringOrMineNewDataVersion(append_config.data_version);

@@ -14,20 +14,8 @@
 namespace silo::initialize {
 
 class Initializer {
-   config::InitializeConfig initialize_config;
-   config::DatabaseConfig database_config;
-   ReferenceGenomes reference_genomes;
-   common::LineageTreeAndIdMap lineage_tree;
-
   public:
-   Initializer(
-      config::InitializeConfig initialize_config_,
-      config::DatabaseConfig database_config_,
-      ReferenceGenomes reference_genomes_,
-      common::LineageTreeAndIdMap lineage_tree_
-   );
-
-   Database initialize();
+   static Database initializeDatabase(config::InitializationFiles initialization_files);
 
    static silo::schema::DatabaseSchema createSchemaFromConfigFiles(
       config::DatabaseConfig database_config,

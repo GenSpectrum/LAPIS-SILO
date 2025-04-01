@@ -24,6 +24,7 @@ class Table {
 
    void loadData(const std::filesystem::path& save_directory);
    void saveData(const std::filesystem::path& save_directory);
+   void validatePrimaryKeyUnique() const;
 };
 
 }  // namespace silo::storage

@@ -41,7 +41,6 @@ struct ReferenceGenomes {
          auto symbol = SymbolType::charToSymbol(character);
 
          if (!symbol.has_value()) {
-            // TODO change error type
             throw std::runtime_error(fmt::format(
                "{} sequence with illegal {} code: {}",
                SymbolType::SYMBOL_NAME,
