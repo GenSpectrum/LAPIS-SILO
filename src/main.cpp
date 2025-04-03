@@ -79,7 +79,8 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
    ExecutionMode mode;
    if (args.empty()) {
       std::cerr << program_name
-                << ": need either 'preprocessing' or 'api' as the first program argument\n";
+                << ": need 'preprocessing', 'initialize', 'append' or 'api' as the first program "
+                   "argument.\n";
       return 1;
    }
 
@@ -146,7 +147,7 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
             overloaded{
                [&](const silo::config::AppendConfig& append_config) {
                   SPDLOG_INFO("append_config = {}", append_config);
-                  return runAppend(append_config);
+                  return silo::append::runAppend(append_config);
                },
                [&](int32_t exit_code) { return exit_code; }
             },

@@ -47,7 +47,7 @@ ConfigSpecification InitializeConfig::getConfigSpecification() {
          ConfigAttributeSpecification::createWithoutDefault(
             initializeConfigOptionKey(),
             ConfigValueType::PATH,
-            "The path to a initialize config that should be read before overwriting\n"
+            "The path to an initialize config that should be read before overwriting\n"
             "its values with environment variables and other CLI arguments."
          ),
          ConfigAttributeSpecification::createWithDefault(

@@ -64,8 +64,8 @@ class NdjsonLineReader {
    explicit NdjsonLineReader(std::istream& stream)
        : stream_(&stream) {}
 
-   Iterator begin() { return Iterator(stream_); }
-   Iterator end() { return Iterator(); }
+   [[nodiscard]] Iterator begin() const { return Iterator(stream_); }
+   [[nodiscard]] Iterator end() const { return Iterator(); }
 
   private:
    std::istream* stream_;

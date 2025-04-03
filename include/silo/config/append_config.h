@@ -24,7 +24,6 @@ class AppendConfig {
 
   public:
    std::filesystem::path silo_directory;
-   std::optional<std::string> data_version;
    std::optional<std::filesystem::path> append_file;
    std::optional<std::filesystem::path> silo_data_source;
 
@@ -42,13 +41,7 @@ class AppendConfig {
       const VerifiedConfigAttributes& env_source
    );
 
-   NLOHMANN_DEFINE_TYPE_INTRUSIVE(
-      AppendConfig,
-      silo_directory,
-      data_version,
-      append_file,
-      silo_data_source
-   )
+   NLOHMANN_DEFINE_TYPE_INTRUSIVE(AppendConfig, silo_directory, append_file, silo_data_source)
 };
 
 }  // namespace silo::config

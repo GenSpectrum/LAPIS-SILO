@@ -45,28 +45,17 @@ silo::SiloDataSource getMostRecentOrSpecifiedDatabaseState(
    return most_recent_data_directory.value();
 }
 
-silo::DataVersion getDataVersionFromStringOrMineNewDataVersion(
-   std::optional<std::string> data_version
-) {
-   if (data_version.has_value()) {
-      auto maybe_timestamp = silo::DataVersion::Timestamp::fromString(data_version.value());
-      if (!maybe_timestamp.has_value()) {
-         throw AppendError("The specified dataVersion: {} is not a valid Unix timestamp");
-      }
-      return silo::DataVersion::mineDataVersionFromTimestamp(maybe_timestamp.value());
-   }
-   return silo::DataVersion::mineDataVersion();
-}
-
 }  // namespace
 
-int runAppend(const silo::config::AppendConfig& append_config) {
-   silo::SiloDirectory silo_directory{append_config.silo_directory};
+namespace silo::append {
 
-   silo::SiloDataSource database_state_directory =
+int runAppend(const silo::config::AppendConfig& append_config) {
+   const silo::SiloDirectory silo_directory{append_config.silo_directory};
+
+   const auto database_state_directory =
       getMostRecentOrSpecifiedDatabaseState(silo_directory, append_config.silo_data_source);
 
-   std::shared_ptr<Database> database =
+   const auto database =
       std::make_shared<Database>(Database::loadDatabaseState(database_state_directory));
 
    auto input = silo::InputStreamWrapper::openFileOrStdIn(append_config.append_file);
@@ -74,14 +63,11 @@ int runAppend(const silo::config::AppendConfig& append_config) {
       *database, silo::append::NdjsonLineReader{input.getInputStream()}
    );
 
-   const silo::DataVersion data_version =
-      getDataVersionFromStringOrMineNewDataVersion(append_config.data_version);
-
-   database->setDataVersion(data_version);
-
    database->saveDatabaseState(append_config.silo_directory);
 
    SPDLOG_INFO("{}", database->getDatabaseInfo());
 
    return 0;
 }
+
+}  // namespace silo::append

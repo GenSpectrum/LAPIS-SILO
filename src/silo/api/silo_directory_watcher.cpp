@@ -70,8 +70,7 @@ void silo::api::SiloDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*timer
       SPDLOG_ERROR(ex);
    } catch (...) {
       SPDLOG_ERROR("Loading cancelled with uncatchable (...) exception");
-      const auto exception = std::current_exception();
-      if (exception) {
+      if (const auto exception = std::current_exception()) {
          const auto* message = abi::__cxa_current_exception_type()->name();
          SPDLOG_ERROR("current_exception: {}", message);
       }
