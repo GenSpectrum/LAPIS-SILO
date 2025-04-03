@@ -58,17 +58,7 @@ Details::Details(arrow::acero::ExecPlan* plan, std::vector<std::string> fields)
 void Details::validateOrderByFields(const schema::TableSchema& schema) const {
    const std::vector<silo::schema::ColumnIdentifier> field_metadata = parseFields(schema, fields);
 
-   for (const OrderByField& field : order_by_fields) {
-      CHECK_SILO_QUERY(
-         std::ranges::any_of(
-            field_metadata,
-            [&](const silo::schema::ColumnIdentifier& metadata) {
-               return metadata.name == field.name;
-            }
-         ),
-         "OrderByField " + field.name + " is not contained in the result of this operation."
-      );
-   }
+
 }
 
 QueryResult Details::execute(
