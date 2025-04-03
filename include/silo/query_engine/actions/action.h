@@ -54,6 +54,11 @@ class Action {
       const Database& database,
       std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const;
+
+   virtual void writeToResult(
+      const Database& database,
+      std::vector<CopyOnWriteBitmap> bitmap_filter
+   ) const;
 };
 
 std::optional<uint32_t> parseLimit(const nlohmann::json& json);

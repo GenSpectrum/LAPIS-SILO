@@ -17,10 +17,8 @@ class DetailsProducer : arrow::acero::ExecNode {
 
 };
 
-class Details {
+class Details : public Action {
    std::vector<std::string> fields;
-
-   void validateOrderByFields(const schema::TableSchema& schema) const override;
 
    [[nodiscard]] QueryResult execute(
       const Database& database,
