@@ -163,26 +163,25 @@ YAML::Node YAML::convert<silo::config::DatabaseMetadata>::encode(
 
 namespace silo::config {
 
-ColumnType DatabaseMetadata::getColumnType() const {
+schema::ColumnType DatabaseMetadata::getColumnType() const {
    if (type == ValueType::STRING) {
       if (generate_index) {
-         return ColumnType::INDEXED_STRING;
+         return schema::ColumnType::INDEXED_STRING;
       }
-      return ColumnType::STRING;
+      return schema::ColumnType::STRING;
    }
    if (type == ValueType::DATE) {
-      return ColumnType::DATE;
+      return schema::ColumnType::DATE;
    }
    if (type == ValueType::BOOL) {
-      return ColumnType::BOOL;
+      return schema::ColumnType::BOOL;
    }
    if (type == ValueType::INT) {
-      return ColumnType::INT;
+      return schema::ColumnType::INT;
    }
    if (type == ValueType::FLOAT) {
-      return ColumnType::FLOAT;
+      return schema::ColumnType::FLOAT;
    }
-
    throw std::runtime_error("Did not find metadata with name: " + std::string(name));
 }
 

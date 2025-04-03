@@ -29,6 +29,19 @@ ConfigKeyPath inputDirectoryOptionKey() {
 ConfigKeyPath outputDirectoryOptionKey() {
    return YamlFile::stringToConfigKeyPath("outputDirectory");
 }
+ConfigKeyPath lineageDefinitionsFilenameOptionKey() {
+   return YamlFile::stringToConfigKeyPath("lineageDefinitionsFilename");
+}
+ConfigKeyPath databaseConfigFileOptionKey() {
+   return YamlFile::stringToConfigKeyPath("databaseConfig");
+}
+ConfigKeyPath referenceGenomeFilenameOptionKey() {
+   return YamlFile::stringToConfigKeyPath("referenceGenomeFilename");
+}
+ConfigKeyPath ndjsonInputFilenameOptionKey() {
+   return YamlFile::stringToConfigKeyPath("ndjsonInputFilename");
+}
+// DEPRECATED: TODO(#737) fully remove them after the next major release
 ConfigKeyPath intermediateResultsDirectoryOptionKey() {
    return YamlFile::stringToConfigKeyPath("intermediateResultsDirectory");
 }
@@ -37,18 +50,6 @@ ConfigKeyPath preprocessingDatabaseLocationOptionKey() {
 }
 ConfigKeyPath duckdbMemoryLimitInGTimeOptionKey() {
    return YamlFile::stringToConfigKeyPath("duckdbMemoryLimitInG");
-}
-ConfigKeyPath lineageDefinitionsFilenameOptionKey() {
-   return YamlFile::stringToConfigKeyPath("lineageDefinitionsFilename");
-}
-ConfigKeyPath ndjsonInputFilenameOptionKey() {
-   return YamlFile::stringToConfigKeyPath("ndjsonInputFilename");
-}
-ConfigKeyPath databaseConfigFileOptionKey() {
-   return YamlFile::stringToConfigKeyPath("databaseConfig");
-}
-ConfigKeyPath referenceGenomeFilenameOptionKey() {
-   return YamlFile::stringToConfigKeyPath("referenceGenomeFilename");
 }
 }  // namespace
 
@@ -82,31 +83,10 @@ ConfigSpecification PreprocessingConfig::getConfigSpecification() {
             ConfigValue::fromPath(DEFAULT_OUTPUT_DIRECTORY),
             "The path to the directory to hold the output files."
          ),
-         ConfigAttributeSpecification::createWithDefault(
-            intermediateResultsDirectoryOptionKey(),
-            ConfigValue::fromPath("./temp/"),
-            "The path to the directory to hold temporary files."
-         ),
-         ConfigAttributeSpecification::createWithoutDefault(
-            preprocessingDatabaseLocationOptionKey(),
-            ConfigValueType::PATH,
-            "The file where the duckdb database will be stored, which is used during preprocessing."
-         ),
-         ConfigAttributeSpecification::createWithoutDefault(
-            duckdbMemoryLimitInGTimeOptionKey(),
-            ConfigValueType::UINT32,
-            "DuckDB memory limit in GB."
-         ),
          ConfigAttributeSpecification::createWithoutDefault(
             lineageDefinitionsFilenameOptionKey(),
             ConfigValueType::PATH,
             "File name of the file holding the lineage definitions. Relative from inputDirectory."
-         ),
-         ConfigAttributeSpecification::createWithoutDefault(
-            ndjsonInputFilenameOptionKey(),
-            ConfigValueType::PATH,
-            "File name of the file holding NDJSON input. This file may also be zstd or gzip "
-            "compressed. Relative from inputDirectory. Required."
          ),
          ConfigAttributeSpecification::createWithDefault(
             databaseConfigFileOptionKey(),
@@ -119,6 +99,21 @@ ConfigSpecification PreprocessingConfig::getConfigSpecification() {
             ConfigValue::fromPath("reference_genomes.json"),
             "File name of the file holding the reference genome. Relative from inputDirectory."
          ),
+         ConfigAttributeSpecification::createWithDefault(
+            ndjsonInputFilenameOptionKey(),
+            ConfigValue::fromPath("reference_genomes.json"),
+            "File name of the file holding the reference genome. Relative from inputDirectory."
+         ),
+         // DEPRECATED: TODO(#737) fully remove after next major release
+         ConfigAttributeSpecification::createWithDefault(
+            intermediateResultsDirectoryOptionKey(), ConfigValue::fromPath("./temp/"), "DEPRECATED."
+         ),
+         ConfigAttributeSpecification::createWithoutDefault(
+            preprocessingDatabaseLocationOptionKey(), ConfigValueType::PATH, "DEPRECATED."
+         ),
+         ConfigAttributeSpecification::createWithoutDefault(
+            duckdbMemoryLimitInGTimeOptionKey(), ConfigValueType::UINT32, "DEPRECATED."
+         )
       }
    };
 }
@@ -130,70 +125,47 @@ PreprocessingConfig PreprocessingConfig::withDefaults() {
 }
 
 void PreprocessingConfig::validate() const {
-   if (!std::filesystem::exists(input_directory)) {
-      throw preprocessing::PreprocessingException(
-         "directory '" + input_directory.string() + "' does not exist"
-      );
+   if (!input_file.has_value()) {
+      throw silo::preprocessing::PreprocessingException("The value 'inputFile' must be set.");
    }
-   if (!ndjson_input_filename.has_value()) {
-      throw preprocessing::PreprocessingException(fmt::format(
-         "'{}' must be specified as preprocessing option.",
-         YamlFile::configKeyPathToString(ndjsonInputFilenameOptionKey())
-      ));
-   }
-}
-
-std::optional<uint32_t> PreprocessingConfig::getDuckdbMemoryLimitInG() const {
-   return duckdb_memory_limit_in_g;
-}
-
-std::filesystem::path PreprocessingConfig::getDatabaseConfigFilename() const {
-   return input_directory / database_config_file;
-}
-
-std::optional<std::filesystem::path> PreprocessingConfig::getLineageDefinitionsFilename() const {
-   return lineage_definitions_file.has_value()
-             ? std::optional(input_directory / lineage_definitions_file.value())
-             : std::nullopt;
-}
-
-std::filesystem::path PreprocessingConfig::getReferenceGenomeFilename() const {
-   return input_directory / reference_genome_file;
-}
-
-std::optional<std::filesystem::path> PreprocessingConfig::getNdjsonInputFilename() const {
-   return ndjson_input_filename.has_value()
-             ? std::optional(input_directory / *ndjson_input_filename)
-             : std::nullopt;
 }
 
 void PreprocessingConfig::overwriteFrom(const VerifiedConfigAttributes& config_source) {
    if (auto var = config_source.getPath(inputDirectoryOptionKey())) {
-      input_directory = var.value();
+      initialization_files.directory = var.value();
+   }
+   if (auto var = config_source.getPath(lineageDefinitionsFilenameOptionKey())) {
+      initialization_files.lineage_definitions_file = var.value();
+   }
+   if (auto var = config_source.getPath(databaseConfigFileOptionKey())) {
+      initialization_files.database_config_file = var.value();
+   }
+   if (auto var = config_source.getPath(referenceGenomeFilenameOptionKey())) {
+      initialization_files.reference_genome_file = var.value();
    }
    if (auto var = config_source.getPath(outputDirectoryOptionKey())) {
       output_directory = var.value();
    }
+   if (auto var = config_source.getPath(ndjsonInputFilenameOptionKey())) {
+      input_file = var.value();
+   }
    if (auto var = config_source.getPath(intermediateResultsDirectoryOptionKey())) {
-      intermediate_results_directory = var.value();
+      SPDLOG_WARN(
+         "The config value {} is deprecated. This will lead to errors in future versions.",
+         YamlFile::configKeyPathToString(intermediateResultsDirectoryOptionKey())
+      );
    }
    if (auto var = config_source.getPath(preprocessingDatabaseLocationOptionKey())) {
-      preprocessing_database_location = var.value();
+      SPDLOG_WARN(
+         "The config value {} is deprecated. This will lead to errors in future versions.",
+         YamlFile::configKeyPathToString(preprocessingDatabaseLocationOptionKey())
+      );
    }
    if (auto var = config_source.getUint32(duckdbMemoryLimitInGTimeOptionKey())) {
-      duckdb_memory_limit_in_g = var.value();
-   }
-   if (auto var = config_source.getPath(lineageDefinitionsFilenameOptionKey())) {
-      lineage_definitions_file = var.value();
-   }
-   if (auto var = config_source.getPath(ndjsonInputFilenameOptionKey())) {
-      ndjson_input_filename = var.value();
-   }
-   if (auto var = config_source.getPath(databaseConfigFileOptionKey())) {
-      database_config_file = var.value();
-   }
-   if (auto var = config_source.getPath(referenceGenomeFilenameOptionKey())) {
-      reference_genome_file = var.value();
+      SPDLOG_WARN(
+         "The config value {} is deprecated. This will lead to errors in future versions.",
+         YamlFile::configKeyPathToString(duckdbMemoryLimitInGTimeOptionKey())
+      );
    }
 }
 

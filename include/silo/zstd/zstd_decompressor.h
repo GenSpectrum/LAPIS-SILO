@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <string_view>
 
@@ -11,11 +12,11 @@
 namespace silo {
 
 class ZstdDecompressor {
-   ZstdDDictionary zstd_dictionary;
+   std::shared_ptr<ZstdDDictionary> zstd_dictionary;
    ZstdDContext zstd_context;
 
   public:
-   explicit ZstdDecompressor(std::string_view dictionary_string);
+   explicit ZstdDecompressor(std::shared_ptr<ZstdDDictionary> zstd_dictionary);
 
    void decompress(const std::string& input, std::string& buffer);
 

@@ -15,7 +15,7 @@ class DataVersion {
       uint32_t value;
    };
 
-   static constexpr SerializationVersion CURRENT_SILO_SERIALIZATION_VERSION{5};
+   static constexpr SerializationVersion CURRENT_SILO_SERIALIZATION_VERSION{6};
 
    class Timestamp {
      public:
@@ -52,9 +52,11 @@ class DataVersion {
 
    static DataVersion mineDataVersion();
 
+   static DataVersion mineDataVersionFromTimestamp(Timestamp timestamp);
+
    static std::optional<DataVersion> fromFile(const std::filesystem::path& filename);
 
-   void saveToFile(std::ofstream& save_file) const;
+   void saveToFile(const std::filesystem::path& save_file) const;
 
   private:
    explicit DataVersion(Timestamp timestamp, SerializationVersion serialization_version);

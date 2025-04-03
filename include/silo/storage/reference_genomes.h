@@ -13,8 +13,6 @@ namespace silo {
 struct ReferenceGenomes {
    std::vector<std::string> nucleotide_sequence_names;
    std::vector<std::string> aa_sequence_names;
-   std::vector<std::vector<Nucleotide::Symbol>> nucleotide_sequences;
-   std::vector<std::vector<AminoAcid::Symbol>> aa_sequences;
    std::vector<std::string> raw_nucleotide_sequences;
    std::vector<std::string> raw_aa_sequences;
 
@@ -30,16 +28,43 @@ struct ReferenceGenomes {
    static ReferenceGenomes readFromFile(const std::filesystem::path& reference_genomes_path);
 
    template <typename SymbolType>
-   const std::vector<std::string>& getSequenceNames() const;
+   std::vector<std::string> getSequenceNames() const;
 
    template <typename SymbolType>
-   const std::vector<std::string>& getRawSequences() const;
+   std::vector<std::vector<typename SymbolType::Symbol>> getReferenceSequences() const;
 
    template <typename SymbolType>
-   static std::vector<typename SymbolType::Symbol> stringToVector(const std::string& string);
+   static std::vector<typename SymbolType::Symbol> stringToVector(const std::string& string) {
+      std::vector<typename SymbolType::Symbol> sequence_vector;
+
+      for (const char character : string) {
+         auto symbol = SymbolType::charToSymbol(character);
+
+         if (!symbol.has_value()) {
+            throw std::runtime_error(fmt::format(
+               "{} sequence with illegal {} code: {}",
+               SymbolType::SYMBOL_NAME,
+               SymbolType::SYMBOL_NAME_LOWER_CASE,
+               std::to_string(character)
+            ));
+         }
+
+         sequence_vector.push_back(*symbol);
+      }
+      return sequence_vector;
+   }
 
    template <typename SymbolType>
-   static std::string vectorToString(const std::vector<typename SymbolType::Symbol>& vector);
+   static std::string vectorToString(const std::vector<typename SymbolType::Symbol>& vector) {
+      std::string sequence_string;
+      sequence_string.reserve(vector.size());
+
+      for (const typename SymbolType::Symbol symbol : vector) {
+         auto character = SymbolType::symbolToChar(symbol);
+         sequence_string += character;
+      }
+      return sequence_string;
+   }
 };
 
 }  // namespace silo

@@ -7,32 +7,23 @@
 #include <string_view>
 #include <unordered_map>
 
-#include <Poco/Util/OptionSet.h>
 #include <fmt/format.h>
 
 #include "config/config_interface.h"
 #include "config/source/yaml_file.h"
 #include "silo/common/json_type_definitions.h"
 #include "silo/config/config_defaults.h"
+#include "silo/config/initialize_config.h"
 
 namespace silo::config {
 
 class PreprocessingConfig {
    friend class fmt::formatter<silo::config::PreprocessingConfig>;
 
-   PreprocessingConfig() = default;
-
-   std::optional<uint32_t> duckdb_memory_limit_in_g;
-   std::optional<std::filesystem::path> lineage_definitions_file;
-   std::filesystem::path database_config_file;
-   std::filesystem::path reference_genome_file;
-
   public:
-   std::filesystem::path input_directory;
+   InitializationFiles initialization_files;
+   std::optional<std::filesystem::path> input_file;
    std::filesystem::path output_directory;
-   std::filesystem::path intermediate_results_directory;
-   std::optional<std::filesystem::path> ndjson_input_filename;
-   std::optional<std::filesystem::path> preprocessing_database_location;
 
    /// Create PreprocessingConfig with all default values from the specification
    static PreprocessingConfig withDefaults();
@@ -41,16 +32,6 @@ class PreprocessingConfig {
 
    void validate() const;
 
-   [[nodiscard]] std::filesystem::path getDatabaseConfigFilename() const;
-
-   [[nodiscard]] std::optional<std::filesystem::path> getLineageDefinitionsFilename() const;
-
-   [[nodiscard]] std::filesystem::path getReferenceGenomeFilename() const;
-
-   [[nodiscard]] std::optional<std::filesystem::path> getNdjsonInputFilename() const;
-
-   [[nodiscard]] std::optional<uint32_t> getDuckdbMemoryLimitInG() const;
-
    void overwriteFrom(const VerifiedConfigAttributes& config_source);
 
    [[nodiscard]] static std::vector<std::filesystem::path> getConfigFilePaths(
@@ -58,18 +39,7 @@ class PreprocessingConfig {
       const VerifiedConfigAttributes& env_source
    );
 
-   NLOHMANN_DEFINE_TYPE_INTRUSIVE(
-      PreprocessingConfig,
-      input_directory,
-      output_directory,
-      intermediate_results_directory,
-      preprocessing_database_location,
-      duckdb_memory_limit_in_g,
-      lineage_definitions_file,
-      ndjson_input_filename,
-      database_config_file,
-      reference_genome_file
-   )
+   NLOHMANN_DEFINE_TYPE_INTRUSIVE(PreprocessingConfig, initialization_files, input_file)
 };
 
 }  // namespace silo::config

@@ -17,7 +17,7 @@ class Aggregated : public Action {
   private:
    std::vector<std::string> group_by_fields;
 
-   void validateOrderByFields(const Database& database) const override;
+   void validateOrderByFields(const schema::TableSchema& schema) const override;
 
    [[nodiscard]] QueryResult execute(
       const Database& database,
