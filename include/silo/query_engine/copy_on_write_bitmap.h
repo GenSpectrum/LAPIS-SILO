@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include <roaring/roaring.hh>
+#include "external/roaring_include_wrapper.h"
 
 namespace silo::query_engine {
 

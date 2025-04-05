@@ -3,9 +3,6 @@
 #include <map>
 #include <string>
 
-#include <Poco/Net/HTTPServerRequest.h>
-#include <Poco/Net/HTTPServerResponse.h>
-#include <Poco/URI.h>
 #include <nlohmann/json.hpp>
 
 #include "silo/api/active_database.h"
@@ -74,39 +71,23 @@ void to_json(nlohmann::json& json, const DetailedDatabaseInfo& databaseInfo) {
 
 }  // namespace silo
 
-namespace {
-std::map<std::string, std::string> getQueryParameter(const Poco::Net::HTTPServerRequest& request) {
-   std::map<std::string, std::string> map;
-   const Poco::URI uri(request.getURI());
-   const auto query_parameters = uri.getQueryParameters();
-
-   for (const auto& parameter : query_parameters) {
-      map.insert(parameter);
-   }
-   return map;
-}
-}  // namespace
-
 namespace silo::api {
 
-InfoHandler::InfoHandler(std::shared_ptr<Database> database)
-    : database(database) {}
-
 void InfoHandler::get(
-   Poco::Net::HTTPServerRequest& request,
-   Poco::Net::HTTPServerResponse& response
+   std::shared_ptr<const Database> database,
+   crow::request& request,
+   crow::response& response
 ) {
-   const auto request_parameter = getQueryParameter(request);
+   response.set_header("data-version", database->getDataVersionTimestamp().value);
 
-   response.set("data-version", database->getDataVersionTimestamp().value);
-
-   const bool return_detailed_info = request_parameter.find("details") != request_parameter.end() &&
-                                     request_parameter.at("details") == "true";
+   const char* details_given = request.url_params.get("details");
+   const bool return_detailed_info = details_given && details_given == std::string_view("true");
    const nlohmann::json database_info = return_detailed_info
                                            ? nlohmann::json(database->detailedDatabaseInfo())
                                            : nlohmann::json(database->getDatabaseInfo());
-   response.setContentType("application/json");
-   std::ostream& out_stream = response.send();
-   out_stream << database_info;
+   response.set_header("Content-Type", "application/json");
+   response.body = database_info.dump();
+   response.end();
 }
+
 }  // namespace silo::api

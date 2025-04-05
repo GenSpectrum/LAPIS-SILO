@@ -63,7 +63,7 @@ void silo::api::ActiveDatabase::setActiveDatabase(silo::Database&& new_database)
    );
 }
 
-std::shared_ptr<silo::Database> silo::api::ActiveDatabase::getActiveDatabase() {
+std::shared_ptr<const silo::Database> silo::api::ActiveDatabase::getActiveDatabase() {
    auto active_database = std::atomic_load(&database);
    if (active_database == nullptr) {
       throw silo::api::UninitializedDatabaseException();

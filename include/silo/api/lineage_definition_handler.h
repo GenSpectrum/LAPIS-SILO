@@ -1,23 +1,19 @@
 #pragma once
 
-#include <Poco/Net/HTTPServerRequest.h>
-#include <Poco/Net/HTTPServerResponse.h>
-
-#include "active_database.h"
-#include "rest_resource.h"
+#include "silo/api/active_database.h"
 
 namespace silo::api {
 
-class LineageDefinitionHandler : public RestResource {
-  private:
-   std::shared_ptr<Database> database;
-   std::string column_name;
+class LineageDefinitionHandler {
+   std::shared_ptr<ActiveDatabase> active_database;
 
   public:
-   explicit LineageDefinitionHandler(std::shared_ptr<Database> database, std::string column_name);
-
-   void get(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response)
-      override;
+   static void get(
+      std::shared_ptr<const Database> database,
+      crow::request& request,
+      crow::response& response,
+      const std::string& column_name
+   );
 };
 
 }  // namespace silo::api

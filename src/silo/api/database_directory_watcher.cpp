@@ -13,19 +13,35 @@
 #include "silo/common/data_version.h"
 #include "silo/database.h"
 
-silo::api::DatabaseDirectoryWatcher::DatabaseDirectoryWatcher(
+namespace silo::api {
+
+DatabaseDirectoryWatcher::DatabaseDirectoryWatcher(
    std::filesystem::path path,
-   std::shared_ptr<ActiveDatabase> database_handle
+   std::shared_ptr<ActiveDatabase> active_database
 )
     : path(std::move(path)),
-      database_handle(database_handle),
-      timer(0, 2000) {
-   timer.start(Poco::TimerCallback<DatabaseDirectoryWatcher>(
-      *this, &DatabaseDirectoryWatcher::checkDirectoryForData
-   ));
+      active_database(active_database) {}
+
+void DatabaseDirectoryWatcher::start() {
+   SILO_ASSERT(running.load() == false);
+   running.store(true);
+   std::thread([&]() {
+      while (running.load()) {
+         checkDirectoryForData();
+         std::this_thread::sleep_for(std::chrono::seconds(1));
+      }
+      stopped.store(true);
+   }).detach();
 }
 
-std::optional<silo::DataVersion> silo::api::DatabaseDirectoryWatcher::checkValidDataSource(
+void DatabaseDirectoryWatcher::stop() {
+   running.store(false);
+   while (!stopped.load()) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+   }
+}
+
+std::optional<silo::DataVersion> DatabaseDirectoryWatcher::checkValidDataSource(
    const std::filesystem::path& path
 ) {
    if (!std::filesystem::is_directory(path)) {
@@ -64,8 +80,8 @@ std::optional<silo::DataVersion> silo::api::DatabaseDirectoryWatcher::checkValid
    return data_version_in_file;
 }
 
-std::optional<std::pair<std::filesystem::path, silo::DataVersion>> silo::api::
-   DatabaseDirectoryWatcher::getMostRecentDataDirectory(const std::filesystem::path& path) {
+std::optional<std::pair<std::filesystem::path, silo::DataVersion>> DatabaseDirectoryWatcher::
+   getMostRecentDataDirectory(const std::filesystem::path& path) {
    SPDLOG_TRACE("Scanning path {} for valid data", path.string());
    std::vector<std::pair<std::filesystem::path, silo::DataVersion>> all_found_data;
    for (const auto& directory_entry : std::filesystem::directory_iterator{path}) {
@@ -105,7 +121,7 @@ std::optional<std::pair<std::filesystem::path, silo::DataVersion>> silo::api::
    return std::nullopt;
 }
 
-void silo::api::DatabaseDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*timer*/) {
+void DatabaseDirectoryWatcher::checkDirectoryForData() {
    auto most_recent_database_state = getMostRecentDataDirectory(path);
 
    if (most_recent_database_state == std::nullopt) {
@@ -116,7 +132,7 @@ void silo::api::DatabaseDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*t
    {
       try {
          const auto current_data_version_timestamp =
-            database_handle->getActiveDatabase()->getDataVersionTimestamp();
+            active_database->getActiveDatabase()->getDataVersionTimestamp();
          const auto most_recent_data_version_timestamp_found =
             most_recent_database_state->second.getTimestamp();
          if (current_data_version_timestamp >= most_recent_data_version_timestamp_found) {
@@ -135,7 +151,7 @@ void silo::api::DatabaseDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*t
 
    SPDLOG_INFO("New data version detected: {}", most_recent_database_state->first.string());
    try {
-      database_handle->setActiveDatabase(
+      active_database->setActiveDatabase(
          silo::Database::loadDatabaseState(most_recent_database_state->first)
       );
       SPDLOG_INFO(
@@ -160,3 +176,5 @@ void silo::api::DatabaseDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*t
       most_recent_database_state->first.string()
    );
 }
+
+}  // namespace silo::api

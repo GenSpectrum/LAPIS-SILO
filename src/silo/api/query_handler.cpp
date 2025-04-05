@@ -3,57 +3,44 @@
 #include <cxxabi.h>
 #include <string>
 
-#include <Poco/Net/HTTPResponse.h>
-#include <Poco/Net/HTTPServerRequest.h>
-#include <Poco/Net/HTTPServerResponse.h>
-#include <Poco/StreamCopier.h>
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
 #include "silo/api/active_database.h"
-#include "silo/api/error_request_handler.h"
 #include "silo/query_engine/bad_request.h"
 
 namespace silo::api {
-using silo::query_engine::QueryResultEntry;
-
-QueryHandler::QueryHandler(std::shared_ptr<Database> database)
-    : database(database) {}
 
 void QueryHandler::post(
-   Poco::Net::HTTPServerRequest& request,
-   Poco::Net::HTTPServerResponse& response
+   std::shared_ptr<const Database> database,
+   crow::request& request,
+   crow::response& response
 ) {
-   const auto request_id = response.get("X-Request-Id");
+   const auto request_id = response.get_header_value("X-Request-Id");
 
-   std::string query;
-   std::istream& istream = request.stream();
-   Poco::StreamCopier::copyToString(istream, query);
+   std::string query = request.body;
 
    SPDLOG_INFO("Request Id [{}] - received query: {}", request_id, query);
 
    try {
       auto query_result = database->executeQuery(query);
 
-      response.set("data-version", database->getDataVersionTimestamp().value);
+      response.set_header("data-version", database->getDataVersionTimestamp().value);
 
-      response.setContentType("application/x-ndjson");
-      std::ostream& out_stream = response.send();
-      std::optional<std::reference_wrapper<const QueryResultEntry>> entry;
+      response.set_header("Content-Type", "application/x-ndjson");
+      std::optional<std::reference_wrapper<const silo::query_engine::QueryResultEntry>> entry;
       while ((entry = query_result.next())) {
-         out_stream << nlohmann::json(*entry) << '\n';
-         if (!out_stream) {
-            throw std::runtime_error(
-               fmt::format("error writing to HTTP stream: {}", std::strerror(errno))
-            );
-         }
+         // TODO make streaming
+         response.body += nlohmann::json(*entry).dump() + "\n";
       }
+      response.end();
    } catch (const silo::BadRequest& ex) {
-      response.setContentType("application/json");
+      response.set_header("Content-Type", "application/json");
       SPDLOG_INFO("Query is invalid: {}", query, ex.what());
-      response.setStatusAndReason(Poco::Net::HTTPResponse::HTTP_BAD_REQUEST);
-      std::ostream& out_stream = response.send();
-      out_stream << nlohmann::json(ErrorResponse{.error = "Bad request", .message = ex.what()});
+      response.code = crow::BAD_REQUEST;
+      response.body = nlohmann::json{{"error", "Bad request"}, {"message", ex.what()}}.dump();
+      // response.body = nlohmann::json{{"error", "BadRequest"}, {"message", ex.what()}};
+      response.end();
    }
 }
 
