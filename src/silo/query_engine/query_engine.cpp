@@ -7,6 +7,7 @@
 
 #include <oneapi/tbb/parallel_for.h>
 #include <spdlog/spdlog.h>
+#include <evobench.hpp>
 
 #include "silo/common/block_timer.h"
 #include "silo/common/log.h"
