@@ -19,6 +19,7 @@ class SiloRecipe(ConanFile):
         "zstd/1.5.5",
         "re2/20240702",
         "abseil/20240116.1",
+        "evobench/0.1",
     ]
 
     default_options = {
