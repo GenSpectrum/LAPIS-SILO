@@ -15,7 +15,6 @@
 #include "silo/config/database_config.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/database_info.h"
-#include "silo/query_engine/query_result.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/column/zstd_compressed_string_column.h"
@@ -49,8 +48,6 @@ class Database {
 
    void setDataVersion(const DataVersion& data_version);
    virtual DataVersion::Timestamp getDataVersionTimestamp() const;
-
-   virtual query_engine::QueryResult executeQuery(const std::string& query) const;
 
   private:
 };

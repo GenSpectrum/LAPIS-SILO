@@ -222,6 +222,14 @@ QueryResult FastaAligned::execute(
    });
 }
 
+arrow::Schema FastaAligned::getOutputSchema(const silo::schema::TableSchema& table_schema) const {
+   auto fields = columnNamesToFields(this->sequence_names, table_schema);
+   fields.push_back(std::make_shared<arrow::Field>(
+      table_schema.primary_key.name, columnTypeToArrowType(table_schema.primary_key.type)
+   ));
+   return arrow::Schema{fields};
+}
+
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<FastaAligned>& action) {
    CHECK_SILO_QUERY(

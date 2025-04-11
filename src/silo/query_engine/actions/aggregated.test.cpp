@@ -107,7 +107,7 @@ arrow::Result<std::shared_ptr<arrow::Table>> AggregateArrowTable(
    SILO_TODO();
 }
 
-arrow::Status test(){
+arrow::Status test() {
    auto table = CreateTable().ValueUnsafe();
    std::cout << table->ToString() << std::endl;
    arrow::Datum result;
@@ -118,8 +118,7 @@ arrow::Status test(){
    arrow::Datum min_max;
 
    ARROW_ASSIGN_OR_RAISE(
-      min_max,
-      arrow::compute::Count({table->column(0)}, scalar_aggregate_options)
+      min_max, arrow::compute::Count({table->column(0)}, scalar_aggregate_options)
    );
 
    std::cout << "Res:" << std::endl;

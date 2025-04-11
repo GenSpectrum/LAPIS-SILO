@@ -8,10 +8,10 @@
 #include <random>
 #include <utility>
 
+#include <arrow/acero/exec_plan.h>
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
-#include <arrow/acero/exec_plan.h>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
@@ -267,6 +267,46 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
    auto offset = parseOffset(json);
    auto randomize_seed = parseRandomizeSeed(json);
    action->setOrdering(order_by_fields, limit, offset, randomize_seed);
+}
+
+std::vector<std::shared_ptr<arrow::Field>> columnNamesToFields(
+   const std::vector<std::string>& column_names,
+   const silo::schema::TableSchema& table_schema
+) {
+   std::vector<std::shared_ptr<arrow::Field>> fields;
+   for (const auto& column_name : column_names) {
+      auto column = table_schema.getColumn(column_name);
+      CHECK_SILO_QUERY(
+         column.has_value(), fmt::format("The table does not contain the field {}", column_name)
+      );
+      auto arrow_type = columnTypeToArrowType(column.value().type);
+      fields.emplace_back(std::make_shared<arrow::Field>(column_name, arrow_type));
+   }
+   return fields;
+}
+
+const std::shared_ptr<arrow::DataType> columnTypeToArrowType(schema::ColumnType column_type) {
+   switch (column_type) {
+      case schema::ColumnType::STRING:
+         return arrow::utf8();
+      case schema::ColumnType::INDEXED_STRING:
+         return arrow::utf8();
+      case schema::ColumnType::DATE:
+         return arrow::utf8();
+      case schema::ColumnType::BOOL:
+         return arrow::boolean();
+      case schema::ColumnType::INT:
+         return arrow::int32();
+      case schema::ColumnType::FLOAT:
+         return arrow::float64();
+      case schema::ColumnType::AMINO_ACID_SEQUENCE:
+         return arrow::utf8();
+      case schema::ColumnType::NUCLEOTIDE_SEQUENCE:
+         return arrow::utf8();
+      case schema::ColumnType::ZSTD_COMPRESSED_STRING:
+         return arrow::utf8();
+   }
+   SILO_UNREACHABLE();
 }
 
 }  // namespace silo::query_engine::actions

@@ -12,6 +12,7 @@
 #include "silo/database.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/query_result.h"
+#include "silo/schema/database_schema.h"
 
 namespace silo::query_engine::actions {
 
@@ -50,12 +51,9 @@ class Action {
       std::optional<uint32_t> randomize_seed
    );
 
-   [[nodiscard]] virtual QueryResult executeAndOrder(
-      const Database& database,
-      std::vector<CopyOnWriteBitmap> bitmap_filter
-   ) const;
+   virtual arrow::Schema getOutputSchema(const silo::schema::TableSchema& table_schema) const = 0;
 
-   virtual void writeToResult(
+   [[nodiscard]] virtual QueryResult executeAndOrder(
       const Database& database,
       std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const;
@@ -69,5 +67,16 @@ std::optional<uint32_t> parseRandomizeSeed(const nlohmann::json& json);
 
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action);
+
+std::vector<std::shared_ptr<arrow::Field>> columnNamesToFields(
+   const std::vector<std::string>& column_names,
+   const silo::schema::TableSchema& table_schema
+);
+std::vector<std::shared_ptr<arrow::Field>> columnNamesToFields(
+   const std::vector<std::string_view>& column_names,
+   const silo::schema::TableSchema& table_schema
+);
+
+const std::shared_ptr<arrow::DataType> columnTypeToArrowType(schema::ColumnType column_type);
 
 }  // namespace silo::query_engine::actions

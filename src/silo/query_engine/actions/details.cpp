@@ -51,14 +51,12 @@ std::vector<silo::schema::ColumnIdentifier> parseFields(
 }  // namespace
 
 namespace silo::query_engine::actions {
-Details::Details(arrow::acero::ExecPlan* plan, std::vector<std::string> fields)
-    : fields(std::move(fields)),
-      arrow::acero::ExecNode(plan, {}, {}, std::make_shared<arrow::Schema>()) {}
+
+Details::Details(std::vector<std::string> fields)
+    : fields(std::move(fields)) {}
 
 void Details::validateOrderByFields(const schema::TableSchema& schema) const {
    const std::vector<silo::schema::ColumnIdentifier> field_metadata = parseFields(schema, fields);
-
-
 }
 
 QueryResult Details::execute(
@@ -227,6 +225,13 @@ QueryResult Details::executeAndOrder(
    }
    applyOffsetAndLimit(results_in_format);
    return results_in_format;
+}
+
+arrow::Schema Details::getOutputSchema(const silo::schema::TableSchema& table_schema) const {
+   std::vector<std::shared_ptr<arrow::Field>> output_fields =
+      columnNamesToFields(this->fields, table_schema);
+   output_fields.push_back(std::make_shared<arrow::Field>("count", arrow::int32()));
+   return arrow::Schema{output_fields};
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

@@ -13,25 +13,25 @@
 
 namespace silo::query_engine::actions {
 
-class DetailsProducer : arrow::acero::ExecNode {
-
-};
-
 class Details : public Action {
    std::vector<std::string> fields;
 
    [[nodiscard]] QueryResult execute(
       const Database& database,
       std::vector<CopyOnWriteBitmap> bitmap_filter
-   ) const;
+   ) const override;
 
   public:
    explicit Details(std::vector<std::string> fields);
 
+   void validateOrderByFields(const schema::TableSchema& schema) const override;
+
    [[nodiscard]] QueryResult executeAndOrder(
       const Database& database,
       std::vector<CopyOnWriteBitmap> bitmap_filter
-   ) const;
+   ) const override;
+
+   arrow::Schema getOutputSchema(const silo::schema::TableSchema& table_schema) const override;
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)

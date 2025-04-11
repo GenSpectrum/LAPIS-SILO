@@ -152,6 +152,14 @@ QueryResult Fasta::execute(const Database& database, std::vector<CopyOnWriteBitm
    });
 }
 
+arrow::Schema Fasta::getOutputSchema(const silo::schema::TableSchema& table_schema) const {
+   auto fields = columnNamesToFields(this->sequence_names, table_schema);
+   fields.push_back(std::make_shared<arrow::Field>(
+      table_schema.primary_key.name, columnTypeToArrowType(table_schema.primary_key.type)
+   ));
+   return arrow::Schema{fields};
+}
+
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Fasta>& action) {
    CHECK_SILO_QUERY(

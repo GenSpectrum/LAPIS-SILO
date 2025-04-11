@@ -25,6 +25,8 @@ class FastaAligned : public Action {
 
   public:
    explicit FastaAligned(std::vector<std::string>&& sequence_names);
+
+   arrow::Schema getOutputSchema(const silo::schema::TableSchema& table_schema) const override;
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)
