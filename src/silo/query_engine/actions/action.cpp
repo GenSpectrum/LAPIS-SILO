@@ -237,7 +237,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
    } else if (expression_type == "Mutations") {
       action = json.get<std::unique_ptr<Mutations<Nucleotide>>>();
    } else if (expression_type == "Details") {
-      auto x = json.get<std::unique_ptr<Details>>();
+      action = json.get<std::unique_ptr<Details>>();
    } else if (expression_type == "AminoAcidMutations") {
       action = json.get<std::unique_ptr<Mutations<AminoAcid>>>();
    } else if (expression_type == "Fasta") {

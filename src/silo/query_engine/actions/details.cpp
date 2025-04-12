@@ -228,9 +228,11 @@ QueryResult Details::executeAndOrder(
 }
 
 arrow::Schema Details::getOutputSchema(const silo::schema::TableSchema& table_schema) const {
-   std::vector<std::shared_ptr<arrow::Field>> output_fields =
-      columnNamesToFields(this->fields, table_schema);
-   output_fields.push_back(std::make_shared<arrow::Field>("count", arrow::int32()));
+   auto output_columns = parseFields(table_schema, fields);
+   std::vector<std::shared_ptr<arrow::Field>> output_fields;
+   for(const auto& [name, type] : output_columns){
+      output_fields.emplace_back(std::make_shared<arrow::Field>(name, columnTypeToArrowType(type)));
+   }
    return arrow::Schema{output_fields};
 }
 

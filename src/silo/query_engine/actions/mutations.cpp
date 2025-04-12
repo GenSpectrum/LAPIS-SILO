@@ -320,29 +320,45 @@ template <typename SymbolType>
 arrow::Schema Mutations<SymbolType>::getOutputSchema(const silo::schema::TableSchema& table_schema
 ) const {
    std::vector<std::shared_ptr<arrow::Field>> output_fields;
-   if(!std::ranges::find(fields, MUTATION_FIELD_NAME)->empty()){
-      output_fields.push_back(std::make_shared<arrow::Field>(std::string(MUTATION_FIELD_NAME), arrow::utf8()));
+   if (!std::ranges::find(fields, MUTATION_FIELD_NAME)->empty()) {
+      output_fields.push_back(
+         std::make_shared<arrow::Field>(std::string(MUTATION_FIELD_NAME), arrow::utf8())
+      );
    }
-   if(!std::ranges::find(fields, MUTATION_FROM_FIELD_NAME)->empty()){
-      output_fields.push_back(std::make_shared<arrow::Field>(std::string(MUTATION_FROM_FIELD_NAME), arrow::utf8()));
+   if (!std::ranges::find(fields, MUTATION_FROM_FIELD_NAME)->empty()) {
+      output_fields.push_back(
+         std::make_shared<arrow::Field>(std::string(MUTATION_FROM_FIELD_NAME), arrow::utf8())
+      );
    }
-   if(!std::ranges::find(fields, MUTATION_TO_FIELD_NAME)->empty()){
-      output_fields.push_back(std::make_shared<arrow::Field>(std::string(MUTATION_TO_FIELD_NAME), arrow::utf8()));
+   if (!std::ranges::find(fields, MUTATION_TO_FIELD_NAME)->empty()) {
+      output_fields.push_back(
+         std::make_shared<arrow::Field>(std::string(MUTATION_TO_FIELD_NAME), arrow::utf8())
+      );
    }
-   if(!std::ranges::find(fields, SEQUENCE_FIELD_NAME)->empty()){
-      output_fields.push_back(std::make_shared<arrow::Field>(std::string(SEQUENCE_FIELD_NAME), arrow::utf8()));
+   if (!std::ranges::find(fields, SEQUENCE_FIELD_NAME)->empty()) {
+      output_fields.push_back(
+         std::make_shared<arrow::Field>(std::string(SEQUENCE_FIELD_NAME), arrow::utf8())
+      );
    }
-   if(!std::ranges::find(fields, POSITION_FIELD_NAME)->empty()){
-      output_fields.push_back(std::make_shared<arrow::Field>(std::string(POSITION_FIELD_NAME), arrow::int32()));
+   if (!std::ranges::find(fields, POSITION_FIELD_NAME)->empty()) {
+      output_fields.push_back(
+         std::make_shared<arrow::Field>(std::string(POSITION_FIELD_NAME), arrow::int32())
+      );
    }
-   if(!std::ranges::find(fields, PROPORTION_FIELD_NAME)->empty()){
-      output_fields.push_back(std::make_shared<arrow::Field>(std::string(PROPORTION_FIELD_NAME), arrow::float64()));
+   if (!std::ranges::find(fields, PROPORTION_FIELD_NAME)->empty()) {
+      output_fields.push_back(
+         std::make_shared<arrow::Field>(std::string(PROPORTION_FIELD_NAME), arrow::float64())
+      );
    }
-   if(!std::ranges::find(fields, COVERAGE_FIELD_NAME)->empty()){
-      output_fields.push_back(std::make_shared<arrow::Field>(std::string(COVERAGE_FIELD_NAME), arrow::int32()));
+   if (!std::ranges::find(fields, COVERAGE_FIELD_NAME)->empty()) {
+      output_fields.push_back(
+         std::make_shared<arrow::Field>(std::string(COVERAGE_FIELD_NAME), arrow::int32())
+      );
    }
-   if(!std::ranges::find(fields, COUNT_FIELD_NAME)->empty()){
-      output_fields.push_back(std::make_shared<arrow::Field>(std::string(COUNT_FIELD_NAME), arrow::int32()));
+   if (!std::ranges::find(fields, COUNT_FIELD_NAME)->empty()) {
+      output_fields.push_back(
+         std::make_shared<arrow::Field>(std::string(COUNT_FIELD_NAME), arrow::int32())
+      );
    }
    return arrow::Schema{output_fields};
 }

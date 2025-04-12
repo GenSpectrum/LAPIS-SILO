@@ -35,11 +35,13 @@ void QueryHandler::post(
 
    try {
       query_engine::optimizer::QueryPlanGenerator query_plan_generator(database);
-      auto query_plan = query_plan_generator.createQueryPlan(query_engine::Query{query});
+
       response.set("data-version", database->getDataVersionTimestamp().value);
       response.setContentType("application/x-ndjson");
       std::ostream& out_stream = response.send();
-      query_plan.writeToSink(out_stream);
+
+      auto query_plan = query_plan_generator.createQueryPlan(query_engine::Query{query}, out_stream);
+      query_plan.execute();
    } catch (const silo::BadRequest& ex) {
       response.setContentType("application/json");
       SPDLOG_INFO("Query is invalid: {}", query, ex.what());

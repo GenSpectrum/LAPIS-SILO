@@ -1,4 +1,5 @@
 #include "silo/query_engine/query_plan.h"
+#include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
 #include "arrow/acero/query_context.h"
@@ -61,11 +62,11 @@ arrow::Status writeToSinkImpl(std::ostream& output, arrow::acero::Declaration& d
    return arrow::Status::OK();
 }
 
-void silo::query_engine::QueryPlan::writeToSink(std::ostream& output) {
-   auto status = writeToSinkImpl(output, declaration);
-   if (!status.ok()) {
-      throw std::runtime_error(status.ToString());
-   }
+void silo::query_engine::QueryPlan::execute() {
+   arrow_plan->StartProducing();
+   arrow_plan->finished().Wait();
+   SPDLOG_INFO("All results were produced?");
+   arrow_plan->StopProducing();
 }
 
 }  // namespace silo::query_engine

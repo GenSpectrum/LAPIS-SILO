@@ -99,22 +99,28 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
       if (!scenario.expected_error_message.empty()) {
          try {
             silo::query_engine::optimizer::QueryPlanGenerator query_plan_generator(shared_database);
-            silo::query_engine::Query query{scenario.query};
-            auto query_plan = query_plan_generator.createQueryPlan(query);
+            silo::query_engine::Query query{scenario.query.dump()};
             std::stringstream buffer;
-            query_plan.writeToSink(buffer);
+            auto query_plan = query_plan_generator.createQueryPlan(query, buffer);
+            query_plan.execute();
             FAIL() << "Expected an error in test case, but noting was thrown";
          } catch (const std::exception& e) {
             EXPECT_EQ(std::string(e.what()), scenario.expected_error_message);
          }
       } else {
          silo::query_engine::optimizer::QueryPlanGenerator query_plan_generator(shared_database);
-         silo::query_engine::Query query{scenario.query};
-         auto query_plan = query_plan_generator.createQueryPlan(query);
+         silo::query_engine::Query query{scenario.query.dump()};
          std::stringstream buffer;
-         query_plan.writeToSink(buffer);
-         const auto actual = nlohmann::json(buffer.str());
-         ASSERT_EQ(actual, scenario.expected_query_result);
+         auto query_plan = query_plan_generator.createQueryPlan(query, buffer);
+         query_plan.execute();
+         nlohmann::json actual_ndjson_result_as_array = nlohmann::json::array();
+         std::string line;
+         while (std::getline(buffer, line)) {
+            auto line_object = nlohmann::json::parse(line);
+            std::cout << line_object.dump() << std::endl;
+            actual_ndjson_result_as_array.push_back(line_object);
+         }
+         ASSERT_EQ(actual_ndjson_result_as_array, scenario.expected_query_result);
       }
    }
 };
