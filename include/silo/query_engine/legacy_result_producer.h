@@ -164,24 +164,42 @@ class LegacyResultProducer : public arrow::acero::ExecNode {
       }
    }
 
+   arrow::Status flushOutput() {
+      std::vector<arrow::Datum> data;
+      for(auto& array : arrays){
+         data.push_back((std::move(array)).toDatum());
+      }
+      arrow::ExecBatch exec_batch;
+      ARROW_ASSIGN_OR_RAISE(exec_batch, arrow::compute::ExecBatch::Make(data));
+      ARROW_RETURN_NOT_OK(this->output_->InputReceived(this, exec_batch));
+      return arrow::Status::OK();
+   }
+
+   static constexpr size_t MATERIALIZATION_CUTOFF = 50000;
+
    arrow::Status produce() {
       if (running) {
          std::optional<QueryResultEntry> row;
+         size_t num_rows = 0;
          while((row = query_result.next())){
+            ++num_rows;
             for(size_t field_idx = 0; field_idx<field_names.size(); ++field_idx){
                const auto field_name = field_names.at(field_idx);
                const common::JsonValueType& field_value = row.value().fields.at(*field_name);
 
                auto status = arrays.at(field_idx).insert(field_value);
+               if(status.IsCapacityError()){
+                  throw std::runtime_error(fmt::format("Response size too large. Materializing {} rows required more than allowed {} bytes", MATERIALIZATION_CUTOFF, INT32_MAX));
+               }
+               ARROW_RETURN_NOT_OK(status);
+            }
+
+            if(num_rows > MATERIALIZATION_CUTOFF){
+               ARROW_RETURN_NOT_OK(flushOutput());
+               prepareOutputArrays();
             }
          }
-         std::vector<arrow::Datum> data;
-         for(auto& array : arrays){
-            data.push_back((std::move(array)).toDatum());
-         }
-         arrow::ExecBatch exec_batch;
-         ARROW_ASSIGN_OR_RAISE(exec_batch, arrow::compute::ExecBatch::Make(data));
-         ARROW_RETURN_NOT_OK(this->output_->InputReceived(this, exec_batch));
+         ARROW_RETURN_NOT_OK(flushOutput());
       }
       return arrow::Status::OK();
    }
