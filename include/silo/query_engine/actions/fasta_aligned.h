@@ -145,7 +145,7 @@ class FastaAlignedProducer : public arrow::acero::ExecNode {
 
    arrow::Status produce() {
       if (running) {
-         std::optional<QueryResultEntry> row;
+            std::optional<QueryResultEntry> row;
          for(size_t partition_idx = 0; partition_idx < table.getNumberOfPartitions(); ++partition_idx){
             auto& filter_for_partition = partition_filters.at(partition_idx);
             if(filter_for_partition->isEmpty()){
@@ -159,7 +159,7 @@ class FastaAlignedProducer : public arrow::acero::ExecNode {
                   break;
                }
                if(!filter_for_partition->select(num_rows_produced_in_part + MATERIALIZATION_CUTOFF - 1, &end_of_next_batch)){
-                  end_of_next_batch = filter_for_partition->select(filter_for_partition->cardinality() - 1, &end_of_next_batch);
+                  filter_for_partition->select(filter_for_partition->cardinality() - 1, &end_of_next_batch);
                   num_rows_produced_in_part = filter_for_partition->cardinality();
                }
                else {
@@ -225,7 +225,7 @@ class FastaAlignedProducer : public arrow::acero::ExecNode {
                continue;
             }
             for(size_t row_id : *position.getBitmap(symbol) & row_ids) {
-               reconstructed_sequences[row_id] = SymbolType::symbolToChar(symbol);
+               reconstructed_sequences[row_id][position_id] = SymbolType::symbolToChar(symbol);
             }
          }
       }
