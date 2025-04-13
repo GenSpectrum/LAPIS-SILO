@@ -137,6 +137,7 @@ class LegacyResultProducer : public arrow::acero::ExecNode {
       for(auto& field : output_schema_.get()->fields()){
          field_names.emplace_back(&field->name());
       }
+      prepareOutputArrays();
    }
 
    virtual const char* kind_name() const override { return "LegacyResultProducer"; }
