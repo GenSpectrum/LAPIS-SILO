@@ -33,42 +33,6 @@ class FastaAligned : public Action {
    arrow::Schema getOutputSchema(const silo::schema::TableSchema& table_schema) const override;
 };
 
-
-namespace {
-template <typename SymbolType>
-std::string reconstructSequence(
-   const storage::column::SequenceColumnPartition<SymbolType>& sequence_store,
-   uint32_t row_id
-) {
-   std::string reconstructed_sequence;
-   std::ranges::transform(
-      sequence_store.metadata->reference_sequence,
-      std::back_inserter(reconstructed_sequence),
-      SymbolType::symbolToChar
-   );
-
-   for (const auto& [position_id, symbol] :
-        sequence_store.indexing_differences_to_reference_sequence) {
-      reconstructed_sequence[position_id] = SymbolType::symbolToChar(symbol);
-   }
-
-   for (size_t position_id = 0; position_id < sequence_store.positions.size(); position_id++) {
-      const Position<SymbolType>& position = sequence_store.positions.at(position_id);
-      for (const auto symbol : SymbolType::SYMBOLS) {
-         if (!position.isSymbolFlipped(symbol) && !position.isSymbolDeleted(symbol) &&
-             position.getBitmap(symbol)->contains(row_id)) {
-            reconstructed_sequence[position_id] = SymbolType::symbolToChar(symbol);
-         }
-      }
-   }
-
-   for (const size_t position_idx : sequence_store.missing_symbol_bitmaps.at(row_id)) {
-      reconstructed_sequence[position_idx] = SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING);
-   }
-   return reconstructed_sequence;
-}
-}
-
 class FastaAlignedProducer : public arrow::acero::ExecNode {
    FastaAligned action;
   public:
@@ -141,6 +105,30 @@ class FastaAlignedProducer : public arrow::acero::ExecNode {
       SILO_PANIC("LegacyResultProducer does not support having inputs.");
    }
 
+   arrow::Status StartProducing() override {
+      running.store(true);
+      producer_thread = std::thread([this]() {
+         arrow::Status status = this->produce();
+         if (!status.ok()) {
+            // Handle error or propagate
+            throw std::runtime_error("Err: " + status.ToString());
+         }
+      });
+      return arrow::Status::OK();
+   }
+
+   arrow::Status StopProducing() override {
+      if (producer_thread.joinable()) {
+         producer_thread.join();
+      }
+      running.store(false);
+      return arrow::Status::OK();
+   }
+
+   void PauseProducing(arrow::acero::ExecNode* output, int32_t counter) override {}
+
+   void ResumeProducing(arrow::acero::ExecNode* output, int32_t counter) override {}
+
    arrow::Status flushOutput() {
       std::vector<arrow::Datum> data;
       for(auto& array : nuc_sequence_arrays){
@@ -180,9 +168,7 @@ class FastaAlignedProducer : public arrow::acero::ExecNode {
                auto row_ids = roaring::Roaring{};
                row_ids.addRange(start_of_next_batch, end_of_next_batch + 1);
                row_ids &= *filter_for_partition;
-               for(size_t row_id : row_ids){
-                  ARROW_RETURN_NOT_OK(appendEntry(table.getPartition(partition_idx), row_id));
-               }
+               ARROW_RETURN_NOT_OK(appendEntries(table.getPartition(partition_idx), row_ids));
                ARROW_RETURN_NOT_OK(flushOutput());
             }
          }
@@ -191,50 +177,67 @@ class FastaAlignedProducer : public arrow::acero::ExecNode {
       return arrow::Status::OK();
    }
 
-   arrow::Status appendEntry(
+   arrow::Status appendEntries(
       const storage::TablePartition& table_partition,
-      const uint32_t row_id
+      const roaring::Roaring& row_ids
    ) {
-      ARROW_RETURN_NOT_OK(primary_key_array.Append(get<std::string>(table_partition.columns.getValue(primary_key_column_name, row_id).value())));
+      for(auto row_id : row_ids){
+         ARROW_RETURN_NOT_OK(primary_key_array.Append(get<std::string>(table_partition.columns.getValue(primary_key_column_name, row_id).value())));
+      }
       size_t sequence_idx = 0;
       for (auto& output_array : nuc_sequence_arrays) {
          const auto& sequence_store = table_partition.columns.nuc_columns.at(output_schema_->field(sequence_idx)->name());
-         auto sequence = reconstructSequence<Nucleotide>(sequence_store, row_id);
-         ARROW_RETURN_NOT_OK(output_array.Append(sequence));
+         ARROW_RETURN_NOT_OK(appendSequences<Nucleotide>(sequence_store, row_ids, output_array));
          sequence_idx++;
       }
       for (auto& output_array : aa_sequence_arrays) {
          const auto& sequence_store = table_partition.columns.aa_columns.at(output_schema_->field(sequence_idx)->name());
-         auto sequence = reconstructSequence<AminoAcid>(sequence_store, row_id);
-         ARROW_RETURN_NOT_OK(output_array.Append(sequence));
+         ARROW_RETURN_NOT_OK(appendSequences<AminoAcid>(sequence_store, row_ids, output_array));
          sequence_idx++;
       }
       return arrow::Status::OK();
    }
 
-   arrow::Status StartProducing() override {
-      running.store(true);
-      producer_thread = std::thread([this]() {
-         arrow::Status status = this->produce();
-         if (!status.ok()) {
-            // Handle error or propagate
-            throw std::runtime_error("Err: " + status.ToString());
-         }
-      });
-      return arrow::Status::OK();
-   }
+   template <typename SymbolType>
+   arrow::Status appendSequences(
+      const storage::column::SequenceColumnPartition<SymbolType>& sequence_store,
+      const roaring::Roaring& row_ids,
+      arrow::StringBuilder& output_array
+   ) {
+      std::string partition_reference;
+      std::ranges::transform(
+         sequence_store.metadata->reference_sequence,
+         std::back_inserter(partition_reference),
+         SymbolType::symbolToChar
+      );
 
-   arrow::Status StopProducing() override {
-      if (producer_thread.joinable()) {
-         producer_thread.join();
+      for (const auto& [position_id, symbol] :
+           sequence_store.indexing_differences_to_reference_sequence) {
+         partition_reference[position_id] = SymbolType::symbolToChar(symbol);
       }
-      running.store(false);
+
+      std::vector<std::string> reconstructed_sequences(row_ids.cardinality(), partition_reference);
+
+      for (size_t position_id = 0; position_id < sequence_store.positions.size(); position_id++) {
+         const Position<SymbolType>& position = sequence_store.positions.at(position_id);
+         for (const auto symbol : SymbolType::SYMBOLS) {
+            if (position.isSymbolFlipped(symbol) || position.isSymbolDeleted(symbol) ){
+               continue;
+            }
+            for(size_t row_id : *position.getBitmap(symbol) & row_ids) {
+               reconstructed_sequences[row_id] = SymbolType::symbolToChar(symbol);
+            }
+         }
+      }
+
+      for(size_t row_id : row_ids){
+         for (const size_t position_idx : sequence_store.missing_symbol_bitmaps.at(row_id)) {
+            reconstructed_sequences[row_id][position_idx] = SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING);
+         }
+      }
+      ARROW_RETURN_NOT_OK(output_array.AppendValues(reconstructed_sequences));
       return arrow::Status::OK();
    }
-
-   void PauseProducing(arrow::acero::ExecNode* output, int32_t counter) override {}
-
-   void ResumeProducing(arrow::acero::ExecNode* output, int32_t counter) override {}
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)
