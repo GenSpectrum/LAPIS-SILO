@@ -105,7 +105,7 @@ const QueryTestScenario DOWNLOAD_ALL_SEQUENCES_SCENARIO = {
    .name = "downloadAllSequences",
    .query =
       {{"action",
-        {{"type", "Fasta"},
+        {{"type", "FastaAligned"},
          {"orderByFields", {"primaryKey"}},
          {"sequenceName", {"segment1", "segment2"}}}},
        {"filterExpression", {{"type", "True"}}}},

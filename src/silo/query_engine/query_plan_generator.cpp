@@ -4,6 +4,8 @@
 #include <arrow/acero/options.h>
 #include <arrow/ipc/writer.h>
 
+#include "silo/query_engine/actions/fasta.h"
+#include "silo/query_engine/actions/fasta_aligned.h"
 #include "silo/query_engine/legacy_result_producer.h"
 
 namespace silo::query_engine::optimizer {
@@ -57,7 +59,7 @@ class NdjsonSinkNode : public arrow::acero::ExecNode {
        : arrow::acero::ExecNode(plan, {input}, {"input"}, nullptr),
          output_stream(stream) {}
 
-   virtual const char* kind_name() const { return "NdjsonSinkNode"; }
+   virtual const char* kind_name() const override { return "NdjsonSinkNode"; }
 
    class ScalarToJsonTypeVisitor : public arrow::ScalarVisitor{
       std::ostream* output_stream;
@@ -199,9 +201,16 @@ QueryPlan QueryPlanGenerator::createQueryPlan(const Query& query, std::ostream& 
    auto table_schema = database->schema.tables.at(schema::TableName::getDefault());
    auto output_schema =
       std::make_shared<arrow::Schema>(query.action->getOutputSchema(table_schema));
-   LegacyResultProducerOptions options(output_schema, database, query);
-   std::unique_ptr<arrow::acero::ExecNode> source_node =
-      std::make_unique<LegacyResultProducer>(query_plan.arrow_plan.get(), options);
+   auto fasta_aligned_action = dynamic_cast<actions::FastaAligned*>(query.action.get());
+   std::unique_ptr<arrow::acero::ExecNode> source_node;
+   if(fasta_aligned_action != nullptr){
+      source_node = std::make_unique<actions::FastaAlignedProducer>(query_plan.arrow_plan.get(), *fasta_aligned_action, *query.filter, database);
+   }
+   else{
+      LegacyResultProducerOptions options(output_schema, database, query);
+      source_node =
+         std::make_unique<LegacyResultProducer>(query_plan.arrow_plan.get(), options);
+   }
    std::unique_ptr<arrow::acero::ExecNode> sink_node =
       std::make_unique<NdjsonSinkNode>(query_plan.arrow_plan.get(), &output_stream, source_node.get());
    // std::make_unique<ArrowSinkNode>(query_plan.arrow_plan.get(), &output_stream, source_node.get());

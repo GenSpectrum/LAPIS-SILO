@@ -1,9 +1,11 @@
 #pragma once
 
 #include <arrow/acero/exec_plan.h>
+#include <arrow/acero/options.h>
 #include <arrow/record_batch.h>
 #include <arrow/builder.h>
 
+#include "silo/query_engine/query.h"
 #include "silo/query_engine/query_result.h"
 
 namespace silo::query_engine {
@@ -11,6 +13,8 @@ namespace silo::query_engine {
 using filter::expressions::Expression;
 using filter::operators::Operator;
 
+
+namespace {
 QueryResult createLegacyQueryResult(const Query& query, const Database& database) {
    SPDLOG_DEBUG("Parsed query: {}", query.filter->toString());
 
@@ -31,8 +35,9 @@ QueryResult createLegacyQueryResult(const Query& query, const Database& database
 
    return query.action->executeAndOrder(database, std::move(partition_filters));
 }
+}
 
-class LegacyResultProducerOptions : public arrow::acero::ExecNodeOptions {
+class LegacyResultProducerOptions : public arrow::acero::ExecNodeOptions { // TODO this does not need to be this object anymroe
   public:
    std::shared_ptr<arrow::Schema> output_schema;
    std::shared_ptr<Database> database;
@@ -158,7 +163,7 @@ class LegacyResultProducer : public arrow::acero::ExecNode {
    }
 
    void prepareOutputArrays(){
-      arrays.clear();
+      arrays.clear(); // TODO builder are already reset, this is unnecessary
       for(auto& field : output_schema_.get()->fields()){
          arrays.emplace_back(field->type());
       }
@@ -196,7 +201,7 @@ class LegacyResultProducer : public arrow::acero::ExecNode {
 
             if(num_rows > MATERIALIZATION_CUTOFF){
                ARROW_RETURN_NOT_OK(flushOutput());
-               prepareOutputArrays();
+               prepareOutputArrays(); // TODO builder are already reset, this is unnecessary
             }
          }
          ARROW_RETURN_NOT_OK(flushOutput());
