@@ -1,11 +1,6 @@
 #include "silo/storage/column/float_column.h"
 
 #include <cmath>
-#include <stdexcept>
-
-#include <fmt/format.h>
-
-#include "silo/preprocessing/preprocessing_exception.h"
 
 namespace silo::storage::column {
 

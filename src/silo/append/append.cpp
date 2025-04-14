@@ -24,11 +24,7 @@ silo::SiloDataSource getMostRecentOrSpecifiedDatabaseState(
    const std::optional<std::filesystem::path>& specified_directory
 ) {
    if (specified_directory.has_value()) {
-      auto specified_data_source =
-         silo::SiloDataSource::checkValidDataSource(specified_directory.value());
-      if (specified_data_source == std::nullopt) {
-         throw AppendError{"The specified siloDataSource directory is not valid data-source."};
-      }
+      return silo::SiloDataSource::checkValidDataSource(specified_directory.value());
    }
    SPDLOG_INFO(
       "No data directory specified, automatically using the most recent one in the silo-directory "
@@ -55,17 +51,21 @@ int runAppend(const silo::config::AppendConfig& append_config) {
    const auto database_state_directory =
       getMostRecentOrSpecifiedDatabaseState(silo_directory, append_config.silo_data_source);
 
-   const auto database =
-      std::make_shared<Database>(Database::loadDatabaseState(database_state_directory));
+   SPDLOG_INFO("append - Loading database from {}", database_state_directory.path);
+   Database database = Database::loadDatabaseState(database_state_directory);
 
+   SPDLOG_INFO("append - appending data to the database");
    auto input = silo::InputStreamWrapper::openFileOrStdIn(append_config.append_file);
    silo::append::appendDataToDatabase(
-      *database, silo::append::NdjsonLineReader{input.getInputStream()}
+      database, silo::append::NdjsonLineReader{input.getInputStream()}
    );
 
-   database->saveDatabaseState(append_config.silo_directory);
+   SPDLOG_INFO("append - saving database to directory '{}'", append_config.silo_directory);
+   database.saveDatabaseState(append_config.silo_directory);
 
-   SPDLOG_INFO("{}", database->getDatabaseInfo());
+   SPDLOG_INFO(
+      "append - finished appending data, resulting database info: {}", database.getDatabaseInfo()
+   );
 
    return 0;
 }

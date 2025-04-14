@@ -18,6 +18,7 @@
 #include "silo/database.h"
 #include "silo/initialize/initialize_exception.h"
 #include "silo/initialize/initializer.h"
+#include "silo/preprocessing/preprocessing.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
 namespace {
@@ -30,32 +31,20 @@ int runInitializer(const silo::config::InitializeConfig& initialize_config) {
       database.saveDatabaseState(initialize_config.output_directory);
       return 0;
    } catch (const silo::initialize::InitializeException& preprocessing_exception) {
-      SPDLOG_ERROR("Preprocessing Error: {}", preprocessing_exception.what());
+      SPDLOG_ERROR("initialize - error: {}", preprocessing_exception.what());
       return 1;
    }
 }
 
 int runPreprocessor(const silo::config::PreprocessingConfig& preprocessing_config) {
-   SPDLOG_INFO("preprocessing - initializing Database");
-
-   auto database =
-      silo::initialize::Initializer::initializeDatabase(preprocessing_config.initialization_files);
-
-   SPDLOG_INFO("preprocessing - successfully initialized Database, now opening input");
-   auto input = silo::InputStreamWrapper::openFileOrStdIn(
-      preprocessing_config.initialization_files.directory / preprocessing_config.input_file.value()
-   );
-
-   SPDLOG_INFO("preprocessing - appending data to Database");
-   silo::append::appendDataToDatabase(
-      database, silo::append::NdjsonLineReader{input.getInputStream()}
-   );
-
-   SPDLOG_INFO("preprocessing - saving database output");
-   database.saveDatabaseState(preprocessing_config.output_directory);
-
-   SPDLOG_INFO("preprocessing - finished preprocessing");
-   return 0;
+   try {
+      auto database = silo::preprocessing::preprocessing(preprocessing_config);
+      database.saveDatabaseState(preprocessing_config.output_directory);
+      return 0;
+   } catch (const silo::preprocessing::PreprocessingException& preprocessing_exception) {
+      SPDLOG_ERROR("initialize - error: {}", preprocessing_exception.what());
+      return 1;
+   }
 }
 
 int runApi(const silo::config::RuntimeConfig& runtime_config) {

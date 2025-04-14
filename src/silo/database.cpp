@@ -39,7 +39,7 @@ namespace silo {
 
 Database::Database(silo::schema::DatabaseSchema database_schema)
     : schema(database_schema),
-      table(schema.tables.at(schema::TableName::getDefault())) {}
+      table(schema.getDefaultTableSchema()) {}
 
 DatabaseInfo Database::getDatabaseInfo() const {
    std::atomic<uint32_t> sequence_count = 0;
@@ -48,6 +48,7 @@ DatabaseInfo Database::getDatabaseInfo() const {
 
    for (size_t partition_idx = 0; partition_idx < table.getNumberOfPartitions(); ++partition_idx) {
       const storage::TablePartition& table_partition = table.getPartition(partition_idx);
+      // TODO(#743) also add other size estimates, and try to analyze its accuracy to RSS in general
       for (const auto& [_, seq_column] : table_partition.columns.nuc_columns) {
          total_size += seq_column.computeSize();
          for (const auto& bitmap : seq_column.missing_symbol_bitmaps) {
@@ -155,7 +156,8 @@ Database Database::loadDatabaseState(const silo::SiloDataSource& silo_data_sourc
    SPDLOG_DEBUG("Loading data for table ");
    database.table.loadData(save_directory / table_name);
 
-   database.setDataVersion(loadDataVersion(save_directory / "data_version.silo"));
+   database.data_version_ = loadDataVersion(save_directory / "data_version.silo");
+
    SPDLOG_INFO(
       "Finished loading data_version from {}", (save_directory / "data_version.silo").string()
    );
@@ -164,17 +166,17 @@ Database Database::loadDatabaseState(const silo::SiloDataSource& silo_data_sourc
    return database;
 }
 
-void Database::setDataVersion(const DataVersion& data_version) {
-   SPDLOG_DEBUG("Set data version to {}", data_version.toString());
-   data_version_ = data_version;
-}
-
 DataVersion::Timestamp Database::getDataVersionTimestamp() const {
    return data_version_.timestamp;
 }
 
 query_engine::QueryResult Database::executeQuery(const std::string& query) const {
    return silo::query_engine::executeQuery(*this, query);
+}
+
+void Database::updateDataVersion() {
+   data_version_ = DataVersion::mineDataVersion();
+   SPDLOG_DEBUG("Data version was set to {}", data_version_.toString());
 }
 
 }  // namespace silo

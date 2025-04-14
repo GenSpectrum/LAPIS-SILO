@@ -10,6 +10,16 @@
 
 namespace silo {
 
+class InvalidSiloDataSourceException : public std::runtime_error {
+  public:
+   explicit InvalidSiloDataSourceException(const std::string& error_message)
+       : std::runtime_error(error_message) {}
+
+   template <typename... Args>
+   explicit InvalidSiloDataSourceException(fmt::format_string<Args...> fmt_str, Args&&... args)
+       : std::runtime_error(fmt::format(fmt_str, std::forward<Args>(args)...)) {}
+};
+
 class SiloDataSource {
    SiloDataSource() = delete;
 
@@ -21,7 +31,7 @@ class SiloDataSource {
    std::filesystem::path path;
    silo::DataVersion data_version;
 
-   static std::optional<SiloDataSource> checkValidDataSource(
+   static SiloDataSource checkValidDataSource(
       const std::filesystem::path& candidate_data_source_path
    );
 };

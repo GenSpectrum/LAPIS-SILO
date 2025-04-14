@@ -7,6 +7,8 @@
 #include <atomic>
 #include <utility>
 
+#include <spdlog/spdlog.h>
+
 #include "silo/common/data_version.h"
 #include "silo/database.h"
 

@@ -82,14 +82,6 @@ class ColumnPartitionGroup {
       const nlohmann::json& value
    );
 
-   void addNullToColumn(const schema::ColumnIdentifier& column_identifier);
-
-   void reserveSpaceInColumn(
-      const std::string& column_name,
-      schema::ColumnType column_type,
-      size_t row_count
-   );
-
    [[nodiscard]] ColumnPartitionGroup getSubgroup(
       const std::vector<schema::ColumnIdentifier>& fields
    ) const;

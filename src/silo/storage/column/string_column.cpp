@@ -17,8 +17,7 @@ std::optional<String<STRING_SIZE>> StringColumnMetadata::embedString(const std::
 
 YAML::Node StringColumnMetadata::toYAML() const {
    YAML::Node yaml_node;
-   // TODO rename from dictionary to make distinct from indexedString column
-   yaml_node["dictionary"] = dictionary.toYAML();
+   yaml_node["sharedSuffixTable"] = dictionary.toYAML();
    return yaml_node;
 }
 
@@ -26,9 +25,9 @@ std::shared_ptr<StringColumnMetadata> StringColumnMetadata::fromYAML(
    std::string column_name,
    const YAML::Node& yaml_node
 ) {
-   if (yaml_node.IsDefined() && yaml_node["dictionary"].IsDefined()) {
+   if (yaml_node.IsDefined() && yaml_node["sharedSuffixTable"].IsDefined()) {
       auto dictionary =
-         silo::common::BidirectionalMap<std::string>::fromYAML(yaml_node["dictionary"]);
+         silo::common::BidirectionalMap<std::string>::fromYAML(yaml_node["sharedSuffixTable"]);
       return std::make_shared<StringColumnMetadata>(std::move(column_name), std::move(dictionary));
    }
    return std::make_shared<StringColumnMetadata>(std::move(column_name));

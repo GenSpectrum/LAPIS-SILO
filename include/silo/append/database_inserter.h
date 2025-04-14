@@ -2,6 +2,8 @@
 
 #include <memory>
 
+#include <spdlog/spdlog.h>
+
 #include "silo/append/append_exception.h"
 #include "silo/database.h"
 #include "silo/storage/table_partition.h"
@@ -83,6 +85,7 @@ template <std::ranges::range Data>
    requires std::same_as<std::ranges::range_value_t<Data>, nlohmann::json>
 void appendDataToDatabase(Database& database, Data input_data) {
    appendDataToTable(database.table, input_data);
+   database.updateDataVersion();
 }
 
 }  // namespace silo::append

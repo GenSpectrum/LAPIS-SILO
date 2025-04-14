@@ -39,6 +39,8 @@ class PreprocessingConfig {
       const VerifiedConfigAttributes& env_source
    );
 
+   std::optional<std::filesystem::path> getInputFilePath() const;
+
    NLOHMANN_DEFINE_TYPE_INTRUSIVE(PreprocessingConfig, initialization_files, input_file)
 };
 

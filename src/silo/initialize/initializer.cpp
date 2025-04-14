@@ -21,7 +21,7 @@
 
 namespace silo::initialize {
 
-Database Initializer::initializeDatabase(config::InitializationFiles initialization_files) {
+Database Initializer::initializeDatabase(const config::InitializationFiles& initialization_files) {
    common::LineageTreeAndIdMap lineage_tree;
    if (initialization_files.getLineageDefinitionsFilename().has_value()) {
       lineage_tree = common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(
@@ -106,10 +106,11 @@ void ColumnMetadataInitializer::operator()(
    metadata = std::make_shared<typename ColumnType::Metadata>(config_metadata.name);
 }
 
-silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
-   config::DatabaseConfig database_config,
-   ReferenceGenomes reference_genomes,
-   common::LineageTreeAndIdMap lineage_tree
+namespace {
+
+void setDefaultSequencesIfUnsetAndThereIsOnlyOne(
+   silo::config::DatabaseConfig& database_config,
+   const ReferenceGenomes& reference_genomes
 ) {
    const auto& nuc_sequence_names = reference_genomes.getSequenceNames<Nucleotide>();
    const auto& aa_sequence_names = reference_genomes.getSequenceNames<AminoAcid>();
@@ -119,6 +120,14 @@ silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
    if (aa_sequence_names.size() == 1 && !database_config.default_amino_acid_sequence.has_value()) {
       database_config.default_amino_acid_sequence = aa_sequence_names.at(0);
    }
+}
+
+void assertDefaultSequencesAreInReference(
+   const silo::config::DatabaseConfig& database_config,
+   const ReferenceGenomes& reference_genomes
+) {
+   const auto& nuc_sequence_names = reference_genomes.getSequenceNames<Nucleotide>();
+   const auto& aa_sequence_names = reference_genomes.getSequenceNames<AminoAcid>();
    const bool default_nucleotide_sequence_is_not_in_reference =
       database_config.default_nucleotide_sequence.has_value() &&
       std::ranges::find(nuc_sequence_names, *database_config.default_nucleotide_sequence) ==
@@ -139,6 +148,9 @@ silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
          "the reference genomes."
       );
    }
+}
+
+void assertPrimaryKeyInMetadata(const silo::config::DatabaseConfig& database_config) {
    auto primary_key_metadata = std::ranges::find_if(
       database_config.schema.metadata,
       [&database_config](const auto& metadata) {
@@ -150,12 +162,36 @@ silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
          "The primary key is not contained in the metadata."
       );
    }
+}
+
+void assertPrimaryKeyOfTypeString(const silo::config::DatabaseConfig& database_config) {
+   auto primary_key_metadata = std::ranges::find_if(
+      database_config.schema.metadata,
+      [&database_config](const auto& metadata) {
+         return database_config.schema.primary_key == metadata.name;
+      }
+   );
    auto primary_key_type = primary_key_metadata->getColumnType();
    if (primary_key_type != schema::ColumnType::STRING) {
       throw silo::initialize::InitializeException("The primary key must be of type STRING.");
    }
+}
 
-   schema::ColumnIdentifier primary_key{database_config.schema.primary_key, primary_key_type};
+}  // namespace
+
+silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
+   config::DatabaseConfig database_config,
+   ReferenceGenomes reference_genomes,
+   common::LineageTreeAndIdMap lineage_tree
+) {
+   setDefaultSequencesIfUnsetAndThereIsOnlyOne(database_config, reference_genomes);
+   assertDefaultSequencesAreInReference(database_config, reference_genomes);
+   assertPrimaryKeyInMetadata(database_config);
+   assertPrimaryKeyOfTypeString(database_config);
+
+   schema::ColumnIdentifier primary_key{
+      database_config.schema.primary_key, schema::ColumnType::STRING
+   };
 
    std::map<schema::ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>>
       column_metadata;
@@ -187,7 +223,7 @@ silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
       );
       column_metadata.emplace(column_identifier, std::move(metadata));
       schema::ColumnIdentifier column_identifier_unaligned{
-         "_" + sequence_name, schema::ColumnType::ZSTD_COMPRESSED_STRING
+         "unaligned_" + sequence_name, schema::ColumnType::ZSTD_COMPRESSED_STRING
       };
       auto metadata_unaligned =
          std::make_shared<storage::column::ZstdCompressedStringColumnMetadata>(

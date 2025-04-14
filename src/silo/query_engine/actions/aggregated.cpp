@@ -35,11 +35,12 @@ std::vector<silo::schema::ColumnIdentifier> parseGroupByFields(
    for (const std::string& group_by_field : group_by_fields) {
       auto column = schema.getColumn(group_by_field);
       CHECK_SILO_QUERY(
-         column.has_value() &&
-            column.value().type != silo::schema::ColumnType::NUCLEOTIDE_SEQUENCE &&
-            column.value().type != silo::schema::ColumnType::AMINO_ACID_SEQUENCE &&
-            column.value().type != silo::schema::ColumnType::ZSTD_COMPRESSED_STRING,
+         column.has_value(),
          fmt::format("Metadata field '{}' to group by not found", group_by_field)
+      );
+      CHECK_SILO_QUERY(
+         !isSequenceColumn(column.value().type),
+         "The Aggregated action does not support sequence-type columns for now."
       );
       group_by_metadata.push_back(column.value());
    }

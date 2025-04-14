@@ -5,6 +5,11 @@
 
 namespace silo::schema {
 
+bool isSequenceColumn(ColumnType type) {
+   return type == ColumnType::NUCLEOTIDE_SEQUENCE || type == ColumnType::AMINO_ACID_SEQUENCE ||
+          type == ColumnType::ZSTD_COMPRESSED_STRING;
+}
+
 std::optional<ColumnIdentifier> TableSchema::getColumn(std::string_view name) const {
    auto it = std::ranges::find_if(column_metadata, [&name](const auto& metadata_pair) {
       return metadata_pair.first.name == name;
@@ -162,6 +167,10 @@ TableName default_table_name{"default"};
 
 const TableName& TableName::getDefault() {
    return default_table_name;
+}
+
+const TableSchema& DatabaseSchema::getDefaultTableSchema() const {
+   return tables.at(TableName::getDefault());
 }
 
 YAML::Node DatabaseSchema::toYAML() const {

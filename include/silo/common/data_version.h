@@ -52,8 +52,6 @@ class DataVersion {
 
    static DataVersion mineDataVersion();
 
-   static DataVersion mineDataVersionFromTimestamp(Timestamp timestamp);
-
    static std::optional<DataVersion> fromFile(const std::filesystem::path& filename);
 
    void saveToFile(const std::filesystem::path& save_file) const;

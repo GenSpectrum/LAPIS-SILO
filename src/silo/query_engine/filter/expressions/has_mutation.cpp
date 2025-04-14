@@ -52,7 +52,7 @@ std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
    const auto valid_sequence_name =
       validateSequenceNameOrGetDefault<SymbolType>(sequence_name, database.table.schema);
 
-   auto seq_store_partition =
+   const auto& seq_store_partition =
       table_partition.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
 
    auto column_metadata =

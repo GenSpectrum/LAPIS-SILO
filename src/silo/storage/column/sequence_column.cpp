@@ -18,6 +18,7 @@
 #include "silo/common/table_reader.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/column/position.h"
+#include "silo/storage/insertion_format_exception.h"
 #include "silo/storage/reference_genomes.h"
 #include "silo/zstd/zstd_decompressor.h"
 
@@ -65,41 +66,33 @@ InsertionEntry parseInsertion(const std::string& value) {
       position_and_insertion.begin(),
       [](const std::string& value) { return removeSymbol(value, '\"'); }
    );
-   try {
-      if (position_and_insertion.size() == 2) {
+   if (position_and_insertion.size() == 2) {
+      try {
          const auto position = boost::lexical_cast<uint32_t>(position_and_insertion[0]);
          const auto& insertion = position_and_insertion[1];
          return {.position_idx = position, .insertion = insertion};
+      } catch (const boost::bad_lexical_cast& error) {
+         throw silo::storage::InsertionFormatException(
+            "Failed to parse insertion due to invalid format. Expected position that is parsable "
+            "as "
+            "an integer, instead got: '{}'",
+            value
+         );
       }
-   } catch (const boost::bad_lexical_cast& error) {
-      // TODO change error type
-      const std::string message = fmt::format(
-         "Failed to parse insertion due to invalid format. Expected position that is parsable as "
-         "an integer, instead got: '{}'",
-         value
-      );
-      throw std::runtime_error(message + ". Error: " + error.what());
    }
-   // TODO change error type
-   const std::string message = fmt::format(
+   throw silo::storage::InsertionFormatException(
       "Failed to parse insertion due to invalid format. Expected two parts (position and insertion "
       "value), instead got: '{}'",
       value
    );
-   throw std::runtime_error(message);
 }
 }  // namespace
 
 template <typename SymbolType>
 void SequenceColumnPartition<SymbolType>::appendInsertion(const std::string& insertion_and_position
 ) {
-   try {
-      auto [position, insertion] = parseInsertion(insertion_and_position);
-      insertion_index.addLazily(position, insertion, sequence_count - 1);
-   } catch (const std::runtime_error& error) {
-      SPDLOG_ERROR(error.what());
-      // TODO do something
-   }
+   auto [position, insertion] = parseInsertion(insertion_and_position);
+   insertion_index.addLazily(position, insertion, sequence_count - 1);
 }
 
 template <typename SymbolType>

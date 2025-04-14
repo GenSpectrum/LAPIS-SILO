@@ -1,4 +1,5 @@
 #include "silo/append/database_inserter.h"
+#include "silo/schema/duplicate_primary_key_exception.h"
 
 namespace silo::append {
 
@@ -8,9 +9,19 @@ void TablePartitionInserter::insert(const nlohmann::json& ndjson_line) {
          table_partition->columns.addJsonValueToColumn(column_metadata, ndjson_line);
       } catch (const nlohmann::json::type_error& error) {
          throw silo::append::AppendException(
-            "The following line does not conform to SILO's json specification error when adding "
+            "The following line does not conform to SILO's json specification when adding "
             "to database column {}: '{}'\n"
-            "json type_error: {}",
+            "We got a json type_error: {}",
+            column_metadata.name,
+            ndjson_line.dump(),
+            error.what()
+         );
+      } catch (const nlohmann::json::out_of_range& error) {
+         throw silo::append::AppendException(
+            "The following line does not conform to SILO's json specification when adding "
+            "to database column {}: '{}'\n"
+            "We got a json out_of_range error, indicating that an expected field was not present: "
+            "{}",
             column_metadata.name,
             ndjson_line.dump(),
             error.what()
@@ -31,8 +42,12 @@ TablePartitionInserter TableInserter::openNewPartition() {
 }
 
 TableInserter::Commit TableInserter::commit() {
-   table->validate();
-   return Commit{};
+   try {
+      table->validate();
+      return Commit{};
+   } catch (const silo::schema::DuplicatePrimaryKeyException& exception) {
+      throw silo::append::AppendException(exception.what());
+   }
 }
 
 }  // namespace silo::append

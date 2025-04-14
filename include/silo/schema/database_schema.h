@@ -23,6 +23,8 @@ enum class ColumnType {
    ZSTD_COMPRESSED_STRING
 };
 
+bool isSequenceColumn(ColumnType type);
+
 struct ColumnIdentifier {
    std::string name;
    silo::schema::ColumnType type;
@@ -118,6 +120,8 @@ class DatabaseSchema {
 
    YAML::Node toYAML() const;
    static DatabaseSchema fromYAML(const YAML::Node& yaml);
+
+   const TableSchema& getDefaultTableSchema() const;
 };
 
 }  // namespace silo::schema

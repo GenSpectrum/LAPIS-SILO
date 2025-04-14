@@ -27,7 +27,7 @@ std::vector<silo::schema::ColumnIdentifier> parseFields(
    std::vector<silo::schema::ColumnIdentifier> field_metadata;
    if (fields.empty()) {
       for (const auto& column : schema.getColumnIdentifiers()) {
-         if (column.type != silo::schema::ColumnType::NUCLEOTIDE_SEQUENCE && column.type != silo::schema::ColumnType::AMINO_ACID_SEQUENCE && column.type != silo::schema::ColumnType::ZSTD_COMPRESSED_STRING) {
+         if (!isSequenceColumn(column.type)) {
             field_metadata.push_back(column);
          }
       }
@@ -36,12 +36,10 @@ std::vector<silo::schema::ColumnIdentifier> parseFields(
    field_metadata.reserve(fields.size());
    for (const auto& field : fields) {
       auto column = schema.getColumn(field);
+      CHECK_SILO_QUERY(column.has_value(), "Metadata field " + field + " not found.");
       CHECK_SILO_QUERY(
-         column.has_value() &&
-            column.value().type != silo::schema::ColumnType::NUCLEOTIDE_SEQUENCE &&
-            column.value().type != silo::schema::ColumnType::AMINO_ACID_SEQUENCE &&
-            column.value().type != silo::schema::ColumnType::ZSTD_COMPRESSED_STRING,
-         "Metadata field " + field + " not found."
+         !isSequenceColumn(column.value().type),
+         "The Details action does not support sequence-type columns for now."
       );
       field_metadata.push_back(column.value());
    }

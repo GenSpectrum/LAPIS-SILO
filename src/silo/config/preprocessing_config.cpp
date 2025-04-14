@@ -99,10 +99,10 @@ ConfigSpecification PreprocessingConfig::getConfigSpecification() {
             ConfigValue::fromPath("reference_genomes.json"),
             "File name of the file holding the reference genome. Relative from inputDirectory."
          ),
-         ConfigAttributeSpecification::createWithDefault(
+         ConfigAttributeSpecification::createWithoutDefault(
             ndjsonInputFilenameOptionKey(),
-            ConfigValue::fromPath("reference_genomes.json"),
-            "File name of the file holding the reference genome. Relative from inputDirectory."
+            ConfigValueType::PATH,
+            "Path to the input data. Relative from inputDirectory."
          ),
          // DEPRECATED: TODO(#737) fully remove after next major release
          ConfigAttributeSpecification::createWithDefault(
@@ -126,7 +126,9 @@ PreprocessingConfig PreprocessingConfig::withDefaults() {
 
 void PreprocessingConfig::validate() const {
    if (!input_file.has_value()) {
-      throw silo::preprocessing::PreprocessingException("The value 'inputFile' must be set.");
+      throw silo::preprocessing::PreprocessingException(
+         "'ndjsonInputFilename' must be specified as preprocessing option."
+      );
    }
 }
 
@@ -184,6 +186,12 @@ std::vector<std::filesystem::path> PreprocessingConfig::getConfigFilePaths(
       result.emplace_back(runtime_config.value());
    }
    return result;
+}
+std::optional<std::filesystem::path> PreprocessingConfig::getInputFilePath() const {
+   if (input_file.has_value()) {
+      return initialization_files.directory / input_file.value();
+   }
+   return std::nullopt;
 }
 
 }  // namespace silo::config

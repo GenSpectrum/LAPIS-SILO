@@ -90,7 +90,7 @@ TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
    first_database->saveDatabaseState(directory);
 
    silo::SiloDataSource data_source =
-      silo::SiloDataSource::checkValidDataSource(directory / data_version_timestamp.value).value();
+      silo::SiloDataSource::checkValidDataSource(directory / data_version_timestamp.value);
 
    auto database = silo::Database::loadDatabaseState(data_source);
 

@@ -56,10 +56,6 @@ DataVersion DataVersion::mineDataVersion() {
    };
 }
 
-DataVersion DataVersion::mineDataVersionFromTimestamp(silo::DataVersion::Timestamp timestamp) {
-   return DataVersion{timestamp, {CURRENT_SILO_SERIALIZATION_VERSION}};
-}
-
 DataVersion::DataVersion(
    DataVersion::Timestamp timestamp,
    SerializationVersion serialization_version

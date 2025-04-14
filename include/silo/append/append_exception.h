@@ -9,7 +9,8 @@ namespace silo::append {
 
 class AppendException : public std::runtime_error {
   public:
-   explicit AppendException(const std::string& error_message);
+   explicit AppendException(const std::string& error_message)
+       : std::runtime_error(error_message) {}
 
    template <typename... Args>
    explicit AppendException(fmt::format_string<Args...> fmt_str, Args&&... args)

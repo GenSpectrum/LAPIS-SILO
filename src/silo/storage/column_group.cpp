@@ -170,9 +170,10 @@ void insertToSequenceColumn(
 ) {
    auto& sequence_column =
       columns.getColumns<column::SequenceColumnPartition<SymbolType>>().at(column.name);
-   const nlohmann::json& sequence = value[getNdjsonSequenceStructName<SymbolType>()][column.name];
+   const nlohmann::json& sequence =
+      value.at(getNdjsonSequenceStructName<SymbolType>()).at(column.name);
    const nlohmann::json& insertions =
-      value[getNdjsonInsertionStructName<SymbolType>()][column.name];
+      value.at(getNdjsonInsertionStructName<SymbolType>()).at(column.name);
    auto& read = sequence_column.appendNewSequenceRead();
    if (sequence.is_null()) {
       read.is_valid = false;
@@ -225,7 +226,11 @@ void ColumnValueInserter::operator()<column::ZstdCompressedStringColumnPartition
    const schema::ColumnIdentifier& column,
    const nlohmann::json& value
 ) {
-   auto column_value = value["unalignedNucleotideSequences"][column.name.substr(1)];
+   // TODO(#741) we prepend the unalignedSequence columns (which are using the type
+   // ZstdCompressedStringColumnPartition) with 'unaligned_'. This should be cleaned up with a
+   // refactor and breaking change of the current input format.
+   auto column_value =
+      value.at("unalignedNucleotideSequences").at(column.name.substr(strlen("unaligned_")));
    if (column_value.is_null()) {
       columns.getColumns<column::ZstdCompressedStringColumnPartition>()
          .at(column.name)
@@ -243,7 +248,7 @@ void ColumnValueInserter::operator()<column::IntColumnPartition>(
    const schema::ColumnIdentifier& column,
    const nlohmann::json& value
 ) {
-   auto column_value = value["metadata"][column.name];
+   auto column_value = value.at("metadata").at(column.name);
    if (column_value.is_null()) {
       columns.getColumns<column::IntColumnPartition>().at(column.name).insertNull();
    } else {
@@ -259,7 +264,7 @@ void ColumnValueInserter::operator()<column::FloatColumnPartition>(
    const schema::ColumnIdentifier& column,
    const nlohmann::json& value
 ) {
-   auto column_value = value["metadata"][column.name];
+   auto column_value = value.at("metadata").at(column.name);
    if (column_value.is_null()) {
       columns.getColumns<column::FloatColumnPartition>().at(column.name).insertNull();
    } else {
@@ -294,41 +299,6 @@ void ColumnPartitionGroup::addJsonValueToColumn(
    const nlohmann::json& value
 ) {
    column::visit(column.type, ColumnValueInserter{}, *this, column, value);
-}
-
-void ColumnPartitionGroup::reserveSpaceInColumn(
-   const std::string& column_name,
-   ColumnType column_type,
-   size_t row_count
-) {
-   switch (column_type) {
-      case ColumnType::INDEXED_STRING:
-         indexed_string_columns.at(column_name).reserve(row_count);
-         return;
-      case ColumnType::STRING:
-         string_columns.at(column_name).reserve(row_count);
-         return;
-      case ColumnType::DATE:
-         date_columns.at(column_name).reserve(row_count);
-         return;
-      case ColumnType::BOOL:
-         bool_columns.at(column_name).reserve(row_count);
-         return;
-      case ColumnType::INT:
-         int_columns.at(column_name).reserve(row_count);
-         return;
-      case ColumnType::FLOAT:
-         float_columns.at(column_name).reserve(row_count);
-         return;
-      case ColumnType::ZSTD_COMPRESSED_STRING:
-         zstd_compressed_string_columns.at(column_name).reserve(row_count);
-         return;
-      case ColumnType::AMINO_ACID_SEQUENCE:
-         break;
-      case ColumnType::NUCLEOTIDE_SEQUENCE:
-         break;
-   }
-   SILO_UNREACHABLE();
 }
 
 ColumnPartitionGroup ColumnPartitionGroup::getSubgroup(

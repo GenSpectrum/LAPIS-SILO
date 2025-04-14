@@ -57,7 +57,7 @@ QueryResultEntry makeEntry(
    );
    for (const auto& sequence_name : sequence_names) {
       const auto& column =
-         table_partition.columns.zstd_compressed_string_columns.at("_" + sequence_name);
+         table_partition.columns.zstd_compressed_string_columns.at("unaligned_" + sequence_name);
       entry.fields.emplace(sequence_name, column.getDecompressed(row_id));
    }
    return entry;
@@ -69,7 +69,7 @@ QueryResult Fasta::execute(const Database& database, std::vector<CopyOnWriteBitm
       database.table.schema.getColumnByType<storage::column::ZstdCompressedStringColumnPartition>();
    for (const std::string& sequence_name : sequence_names) {
       schema::ColumnIdentifier column_identifier_to_find{
-         "_" + sequence_name, schema::ColumnType::ZSTD_COMPRESSED_STRING
+         "unaligned_" + sequence_name, schema::ColumnType::ZSTD_COMPRESSED_STRING
       };
       CHECK_SILO_QUERY(
          std::ranges::find(columns_in_database, column_identifier_to_find) !=
