@@ -10,10 +10,10 @@ namespace silo::api {
 
 class InfoHandler : public RestResource {
   private:
-   std::shared_ptr<Database> database;
+   std::shared_ptr<ActiveDatabase> database_handle;
 
   public:
-   explicit InfoHandler(std::shared_ptr<Database> database);
+   explicit InfoHandler(std::shared_ptr<ActiveDatabase> database_handle);
 
    void get(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response)
       override;

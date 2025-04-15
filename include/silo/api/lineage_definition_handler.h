@@ -10,11 +10,14 @@ namespace silo::api {
 
 class LineageDefinitionHandler : public RestResource {
   private:
-   std::shared_ptr<Database> database;
+   std::shared_ptr<ActiveDatabase> database_handle;
    std::string column_name;
 
   public:
-   explicit LineageDefinitionHandler(std::shared_ptr<Database> database, std::string column_name);
+   explicit LineageDefinitionHandler(
+      std::shared_ptr<ActiveDatabase> database_handle,
+      std::string column_name
+   );
 
    void get(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response)
       override;
