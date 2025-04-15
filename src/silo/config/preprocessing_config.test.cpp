@@ -16,8 +16,12 @@ TEST(PreprocessingConfig, shouldReadConfigWithCorrectParametersAndDefaults) {
                            .verify(PreprocessingConfig::getConfigSpecification()));
 
    const std::string input_directory = "./testBaseData/exampleDataset/";
-   ASSERT_EQ(config.getNdjsonInputFilename(), input_directory + "input_file.ndjson");
-   ASSERT_EQ(config.getLineageDefinitionsFilename(), input_directory + "lineage_definitions.yaml");
+   ASSERT_TRUE(config.input_file.has_value());
+   ASSERT_EQ(config.getInputFilePath(), input_directory + "input_file.ndjson");
+   ASSERT_EQ(
+      config.initialization_files.getLineageDefinitionsFilename(),
+      input_directory + "lineage_definitions.yaml"
+   );
 }
 
 TEST(PreprocessingConfig, shouldReadConfigWithOverriddenDefaults) {
@@ -35,10 +39,12 @@ duckdbMemoryLimitInG: 8)")
                            .verify(PreprocessingConfig::getConfigSpecification()));
 
    const std::string input_directory = "./testBaseData/exampleDataset/";
-   ASSERT_EQ(config.getNdjsonInputFilename(), input_directory + "input_file.ndjson");
-   ASSERT_EQ(config.getLineageDefinitionsFilename(), input_directory + "lineage_definitions.yaml");
-   ASSERT_EQ(config.getDuckdbMemoryLimitInG(), 8);
-   ASSERT_EQ(config.preprocessing_database_location, "preprocessing.duckdb");
+   ASSERT_TRUE(config.input_file.has_value());
+   ASSERT_EQ(config.getInputFilePath(), input_directory + "input_file.ndjson");
+   ASSERT_EQ(
+      config.initialization_files.getLineageDefinitionsFilename(),
+      input_directory + "lineage_definitions.yaml"
+   );
 
    ASSERT_EQ(config.output_directory, "./output/custom/");
 }

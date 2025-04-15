@@ -5,12 +5,12 @@
 
 #include "config/config_exception.h"
 
-using silo::config::ColumnType;
 using silo::config::ConfigException;
 using silo::config::DatabaseConfig;
 using silo::config::DatabaseSchema;
 using silo::config::toDatabaseValueType;
 using silo::config::ValueType;
+using silo::schema::ColumnType;
 
 TEST(DatabaseMetadataType, shouldBeConvertableFromString) {
    ASSERT_TRUE(toDatabaseValueType("string") == ValueType::STRING);
@@ -108,7 +108,6 @@ TEST(DatabaseConfig, shouldReadConfigWithCorrectParameters) {
 
    ASSERT_EQ(config.schema.instance_name, "sars_cov-2_minimal_test_config");
    ASSERT_EQ(config.schema.primary_key, "gisaid_epi_isl");
-   ASSERT_EQ(config.schema.date_to_sort_by, "date");
    ASSERT_EQ(config.schema.partition_by, "pango_lineage");
    ASSERT_EQ(config.schema.metadata.size(), 9);
    ASSERT_EQ(config.schema.metadata[0].name, "gisaid_epi_isl");
@@ -140,7 +139,7 @@ TEST(DatabaseConfig, shouldReadConfigWithCorrectParameters) {
    ASSERT_EQ(config.schema.metadata[8].name, "qc_value");
    ASSERT_EQ(config.schema.metadata[8].type, ValueType::FLOAT);
    ASSERT_EQ(config.schema.metadata[8].generate_index, false);
-   ASSERT_EQ(config.default_nucleotide_sequence, std::nullopt);
+   ASSERT_EQ(config.default_nucleotide_sequence, "main");
    ASSERT_EQ(config.default_amino_acid_sequence, std::nullopt);
 }
 
@@ -196,21 +195,6 @@ schema:
          ::testing::HasSubstr("invalid node; first invalid key: \"metadata\"")
       )
    );
-}
-
-TEST(DatabaseConfig, shouldReadConfigWithoutDateToSortBy) {
-   const auto* yaml = R"-(
-schema:
-  instanceName: Having no dateToSortBy is valid
-  metadata:
-    - name: primaryKey
-      type: string
-  primaryKey: primaryKey
-)-";
-
-   const DatabaseConfig& config = silo::config::DatabaseConfig::getValidatedConfig(yaml);
-
-   ASSERT_EQ(config.schema.date_to_sort_by, std::nullopt);
 }
 
 TEST(DatabaseConfig, shouldReadConfigWithoutPartitionBy) {
@@ -321,50 +305,6 @@ schema:
 )";
 
    ASSERT_THROW(DatabaseConfig::getValidatedConfig(config_yaml), ConfigException);
-}
-
-TEST(DatabaseConfig, givenConfigWithDateToSortByThatIsNotConfiguredThenThrows) {
-   const auto config_yaml =
-      R"(
-defaultNucleotideSequence: "main"
-schema:
-  instanceName: "testInstanceName"
-  metadata:
-    - name: "testPrimaryKey"
-      type: "string"
-  primaryKey: "testPrimaryKey"
-  dateToSortBy: "notConfiguredDateToSortBy"
-)";
-
-   EXPECT_THAT(
-      [&config_yaml]() { DatabaseConfig::getValidatedConfig(config_yaml); },
-      ThrowsMessage<ConfigException>(
-         ::testing::HasSubstr("dateToSortBy 'notConfiguredDateToSortBy' is not in metadata")
-      )
-   );
-}
-
-TEST(DatabaseConfig, givenDateToSortByThatIsNotADateThenThrows) {
-   const auto config_yaml =
-      R"(
-defaultNucleotideSequence: "main"
-schema:
-  instanceName: "testInstanceName"
-  metadata:
-    - name: "testPrimaryKey"
-      type: "string"
-    - name: "not a date"
-      type: "string"
-  primaryKey: "testPrimaryKey"
-  dateToSortBy: "not a date"
-)";
-
-   EXPECT_THAT(
-      [&config_yaml]() { DatabaseConfig::getValidatedConfig(config_yaml); },
-      ThrowsMessage<ConfigException>(
-         ::testing::HasSubstr("dateToSortBy 'not a date' must be of type DATE")
-      )
-   );
 }
 
 TEST(DatabaseConfig, givenConfigPartitionByThatIsNotConfiguredThenThrows) {

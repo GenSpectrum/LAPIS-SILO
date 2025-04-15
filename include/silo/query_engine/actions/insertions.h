@@ -57,7 +57,7 @@ class InsertionAggregation : public Action {
   public:
    InsertionAggregation(std::vector<std::string>&& sequence_names);
 
-   void validateOrderByFields(const Database& database) const override;
+   void validateOrderByFields(const schema::TableSchema& schema) const override;
 
    [[nodiscard]] QueryResult execute(
       const Database& database,

@@ -9,12 +9,11 @@
 
 #include "silo/common/date.h"
 #include "silo/database.h"
-#include "silo/preprocessing/partition.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/operators/range_selection.h"
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/storage/column/date_column.h"
-#include "silo/storage/database_partition.h"
+#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -42,8 +41,8 @@ std::string DateBetween::toString() const {
 }
 
 std::unique_ptr<operators::Operator> DateBetween::compile(
-   const silo::Database& /*database*/,
-   const silo::DatabasePartition& database_partition,
+   const Database& /*database*/,
+   const storage::TablePartition& database_partition,
    AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
@@ -73,9 +72,8 @@ std::unique_ptr<operators::Operator> DateBetween::compile(
          std::move(predicates), database_partition.sequence_count
       );
    }
-
    return std::make_unique<operators::RangeSelection>(
-      computeRangesOfSortedColumn(date_column, database_partition.getChunks()),
+      computeRangesOfSortedColumn(date_column, {database_partition.sequence_count}),
       database_partition.sequence_count
    );
 }
@@ -83,20 +81,23 @@ std::unique_ptr<operators::Operator> DateBetween::compile(
 std::vector<silo::query_engine::filter::operators::RangeSelection::Range> DateBetween::
    computeRangesOfSortedColumn(
       const silo::storage::column::DateColumnPartition& date_column,
-      const std::vector<silo::preprocessing::PartitionChunk>& chunks
+      const std::vector<size_t>& chunk_sizes
    ) const {
    std::vector<operators::RangeSelection::Range> ranges;
 
+   size_t offset = 0;
+
    const auto* base = date_column.getValues().data();
-   for (const auto& chunk : chunks) {
-      const auto* begin = &date_column.getValues()[chunk.offset];
-      const auto* end = &date_column.getValues()[chunk.offset + chunk.size];
+   for (const auto& sorted_chunk_size : chunk_sizes) {
+      const auto* begin = &date_column.getValues()[offset];
+      const auto* end = &date_column.getValues()[offset + sorted_chunk_size];
       // If lower bound is empty we use 1 as the lower-bound, as 0 represents NULL values
       const auto* lower = std::lower_bound(begin, end, date_from.value_or(1));
       const uint32_t lower_index = lower - base;
       const auto* upper = date_to.has_value() ? std::upper_bound(begin, end, date_to.value()) : end;
       const uint32_t upper_index = upper - base;
       ranges.emplace_back(lower_index, upper_index);
+      offset += sorted_chunk_size;
    }
    return ranges;
 }

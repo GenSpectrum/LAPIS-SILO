@@ -29,7 +29,7 @@ class Action {
    void applySort(QueryResult& result) const;
    void applyOffsetAndLimit(QueryResult& result) const;
 
-   virtual void validateOrderByFields(const Database& database) const = 0;
+   virtual void validateOrderByFields(const schema::TableSchema& schema) const = 0;
 
    [[nodiscard]] virtual QueryResult execute(
       /// Life time: until query result was delivered (and the lock

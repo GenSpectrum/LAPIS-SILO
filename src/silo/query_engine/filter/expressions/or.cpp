@@ -15,7 +15,7 @@
 #include "silo/query_engine/filter/operators/full.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/union.h"
-#include "silo/storage/database_partition.h"
+#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -36,7 +36,7 @@ std::string Or::toString() const {
 
 std::unique_ptr<operators::Operator> Or::compile(
    const Database& database,
-   const DatabasePartition& database_partition,
+   const storage::TablePartition& database_partition,
    Expression::AmbiguityMode mode
 ) const {
    OperatorVector all_child_operators;

@@ -167,7 +167,7 @@ jobs:
         with:
           images: ${{ env.DOCKER_IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
+            type=ref,event=pr
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=commit-${{ env.HEAD_SHA }}
             type=semver,value=${{ env.SILO_VERSION }},enable=${{ env.SILO_VERSION != '' }},pattern={{version}}
