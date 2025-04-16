@@ -89,14 +89,16 @@ std::map<std::string, std::string> getQueryParameter(const Poco::Net::HTTPServer
 
 namespace silo::api {
 
-InfoHandler::InfoHandler(std::shared_ptr<Database> database)
-    : database(database) {}
+InfoHandler::InfoHandler(std::shared_ptr<ActiveDatabase> database_handle)
+    : database_handle(database_handle) {}
 
 void InfoHandler::get(
    Poco::Net::HTTPServerRequest& request,
    Poco::Net::HTTPServerResponse& response
 ) {
    const auto request_parameter = getQueryParameter(request);
+
+   const auto database = database_handle->getActiveDatabase();
 
    response.set("data-version", database->getDataVersionTimestamp().value);
 

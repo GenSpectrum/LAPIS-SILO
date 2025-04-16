@@ -41,15 +41,13 @@ std::unique_ptr<Poco::Net::HTTPRequestHandler> SiloRequestHandlerFactory::routeR
    uri.getPathSegments(segments);
 
    if (path == "/info") {
-      return std::make_unique<silo::api::InfoHandler>(database_handle->getActiveDatabase());
+      return std::make_unique<silo::api::InfoHandler>(database_handle);
    }
    if (segments.size() == 2 && segments.at(0) == "lineageDefinition") {
-      return std::make_unique<silo::api::LineageDefinitionHandler>(
-         database_handle->getActiveDatabase(), segments.at(1)
-      );
+      return std::make_unique<silo::api::LineageDefinitionHandler>(database_handle, segments.at(1));
    }
    if (path == "/query") {
-      return std::make_unique<silo::api::QueryHandler>(database_handle->getActiveDatabase());
+      return std::make_unique<silo::api::QueryHandler>(database_handle);
    }
    return std::make_unique<silo::api::NotFoundHandler>();
 }

@@ -17,13 +17,15 @@
 namespace silo::api {
 using silo::query_engine::QueryResultEntry;
 
-QueryHandler::QueryHandler(std::shared_ptr<Database> database)
-    : database(database) {}
+QueryHandler::QueryHandler(std::shared_ptr<ActiveDatabase> database_handle)
+    : database_handle(database_handle) {}
 
 void QueryHandler::post(
    Poco::Net::HTTPServerRequest& request,
    Poco::Net::HTTPServerResponse& response
 ) {
+   const auto database = database_handle->getActiveDatabase();
+
    const auto request_id = response.get("X-Request-Id");
 
    std::string query;

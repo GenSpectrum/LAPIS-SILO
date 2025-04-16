@@ -9,10 +9,10 @@
 namespace silo::api {
 class QueryHandler : public RestResource {
   private:
-   std::shared_ptr<Database> database;
+   std::shared_ptr<ActiveDatabase> database_handle;
 
   public:
-   explicit QueryHandler(std::shared_ptr<Database> database);
+   explicit QueryHandler(std::shared_ptr<ActiveDatabase> database_handle);
 
    void post(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response)
       override;

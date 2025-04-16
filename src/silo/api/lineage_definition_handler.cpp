@@ -5,7 +5,6 @@
 
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/Net/HTTPServerResponse.h>
-#include <Poco/URI.h>
 #include <nlohmann/json.hpp>
 
 #include "silo/api/active_database.h"
@@ -14,16 +13,18 @@
 namespace silo::api {
 
 LineageDefinitionHandler::LineageDefinitionHandler(
-   std::shared_ptr<Database> database,
+   std::shared_ptr<ActiveDatabase> database_handle,
    std::string column_name
 )
-    : database(database),
+    : database_handle(database_handle),
       column_name(std::move(column_name)) {}
 
 void LineageDefinitionHandler::get(
    Poco::Net::HTTPServerRequest& request,
    Poco::Net::HTTPServerResponse& response
 ) {
+   const auto database = database_handle->getActiveDatabase();
+
    response.set("data-version", database->getDataVersionTimestamp().value);
 
    auto column_metadata = std::ranges::find_if(
