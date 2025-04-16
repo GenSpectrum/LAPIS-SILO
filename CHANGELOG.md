@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.9](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.5.8...v0.5.9) (2025-04-16)
+
+
+### Bug Fixes
+
+* return 503 response when no database has been loaded yet ([#742](https://github.com/GenSpectrum/LAPIS-SILO/issues/742)) ([79ebbaa](https://github.com/GenSpectrum/LAPIS-SILO/commit/79ebbaacd47c51e8466fd2253aaf4647d759ff3b)), closes [#723](https://github.com/GenSpectrum/LAPIS-SILO/issues/723)
+
 ## [0.5.8](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.5.7...v0.5.8) (2025-03-31)
 
 
