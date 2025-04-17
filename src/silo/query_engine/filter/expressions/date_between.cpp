@@ -52,29 +52,25 @@ std::unique_ptr<operators::Operator> DateBetween::compile(
 
    const auto& date_column = database_partition.columns.date_columns.at(column_name);
 
-   if (!date_column.isSorted()) {
-      std::vector<std::unique_ptr<operators::Predicate>> predicates;
-      predicates.emplace_back(
-         std::make_unique<operators::CompareToValueSelection<silo::common::Date>>(
-            date_column.getValues(),
-            operators::Comparator::HIGHER_OR_EQUALS,
-            date_from.value_or(silo::common::Date{1})
-         )
-      );
-      predicates.emplace_back(
-         std::make_unique<operators::CompareToValueSelection<silo::common::Date>>(
-            date_column.getValues(),
-            operators::Comparator::LESS_OR_EQUALS,
-            date_to.value_or(silo::common::Date{UINT32_MAX})
-         )
-      );
-      return std::make_unique<operators::Selection>(
-         std::move(predicates), database_partition.sequence_count
+   if (date_column.isSorted()) {
+      return std::make_unique<operators::RangeSelection>(
+         computeRangesOfSortedColumn(date_column, {database_partition.sequence_count}),
+         database_partition.sequence_count
       );
    }
-   return std::make_unique<operators::RangeSelection>(
-      computeRangesOfSortedColumn(date_column, {database_partition.sequence_count}),
-      database_partition.sequence_count
+   std::vector<std::unique_ptr<operators::Predicate>> predicates;
+   predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<silo::common::Date>>(
+      date_column.getValues(),
+      operators::Comparator::HIGHER_OR_EQUALS,
+      date_from.value_or(silo::common::Date{1})
+   ));
+   predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<silo::common::Date>>(
+      date_column.getValues(),
+      operators::Comparator::LESS_OR_EQUALS,
+      date_to.value_or(silo::common::Date{UINT32_MAX})
+   ));
+   return std::make_unique<operators::Selection>(
+      std::move(predicates), database_partition.sequence_count
    );
 }
 
