@@ -26,7 +26,7 @@ void LineageDefinitionHandler::get(
 ) {
    response.set("data-version", database->getDataVersionTimestamp().value);
 
-   auto column_identifier = database->table.schema.getColumn(column_name);
+   auto column_identifier = database->table->schema.getColumn(column_name);
    if (column_identifier == std::nullopt) {
       response.setContentType("application/json");
       response.setStatusAndReason(Poco::Net::HTTPResponse::HTTP_BAD_REQUEST);
@@ -47,7 +47,7 @@ void LineageDefinitionHandler::get(
       });
       return;
    }
-   auto metadata = database->table.schema
+   auto metadata = database->table->schema
                       .getColumnMetadata<storage::column::IndexedStringColumnPartition>(column_name)
                       .value();
    if (!metadata->lineage_tree.has_value()) {

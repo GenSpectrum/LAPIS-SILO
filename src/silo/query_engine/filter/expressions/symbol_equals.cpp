@@ -73,7 +73,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<Sy
    Expression::AmbiguityMode mode
 ) const {
    CHECK_SILO_QUERY(
-      sequence_name.has_value() || database.table.schema.getDefaultSequenceName<SymbolType>(),
+      sequence_name.has_value() || database.table->schema.getDefaultSequenceName<SymbolType>(),
       fmt::format(
          "Database does not have a default sequence name for {} Sequences. "
          "You need to provide the sequence name with the {}Equals filter.",
@@ -83,7 +83,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<Sy
    );
 
    const auto valid_sequence_name =
-      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, database.table.schema);
+      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, database.table->schema);
 
    const auto& seq_store_partition =
       table_partition.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);

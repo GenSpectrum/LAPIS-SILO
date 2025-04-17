@@ -27,22 +27,22 @@ QueryResult executeQuery(const Database& database, const std::string& query_stri
 
    SPDLOG_DEBUG("Parsed query: {}", query.filter->toString());
 
-   std::vector<std::string> compiled_queries(database.table.getNumberOfPartitions());
-   std::vector<CopyOnWriteBitmap> partition_filters(database.table.getNumberOfPartitions());
+   std::vector<std::string> compiled_queries(database.table->getNumberOfPartitions());
+   std::vector<CopyOnWriteBitmap> partition_filters(database.table->getNumberOfPartitions());
    int64_t filter_time;
    {
       const silo::common::BlockTimer timer(filter_time);
-      for (size_t partition_index = 0; partition_index != database.table.getNumberOfPartitions();
+      for (size_t partition_index = 0; partition_index != database.table->getNumberOfPartitions();
            partition_index++) {
          std::unique_ptr<Operator> part_filter = query.filter->compile(
-            database, database.table.getPartition(partition_index), Expression::AmbiguityMode::NONE
+            database, database.table->getPartition(partition_index), Expression::AmbiguityMode::NONE
          );
          compiled_queries[partition_index] = part_filter->toString();
          partition_filters[partition_index] = part_filter->evaluate();
       }
    }
 
-   for (uint32_t i = 0; i < database.table.getNumberOfPartitions(); ++i) {
+   for (uint32_t i = 0; i < database.table->getNumberOfPartitions(); ++i) {
       SPDLOG_DEBUG("Simplified query for partition {}: {}", i, compiled_queries[i]);
    }
 

@@ -879,7 +879,72 @@ We got a json out_of_range error, indicating that an expected field was not pres
    }
 };
 
-INSTANTIATE_TEST_SUITE_P(PreprocessorTest, InvalidPreprocessorTestFixture, ::testing::Values(DUPLICATE_PRIMARY_KEY, MISSING_NUCLEOTIDE_SEQUENCE_INPUT), printTestName<Error>);
+const Scenario<Error> TYPE_ERROR = {
+   .test_name = "TYPE_ERROR",
+   .input_data =
+      []() {
+         std::vector<NdjsonInputLine> result{{.metadata = {{"accessionVersion", 0}}}};
+         return result;
+      },
+   .database_config =
+      R"(
+schema:
+  instanceName: "Test"
+  metadata:
+    - name: "accessionVersion"
+      type: "string"
+  primaryKey: "accessionVersion"
+)",
+   .reference_genomes = R"(
+{
+  "nucleotideSequences": [],
+  "genes": []
+}
+)",
+   .assertion{
+      .error_message =
+         R"(We got a json type_error: [json.exception.type_error.302] type must be string, but is number)"
+   }
+};
+
+const Scenario<Error> SEQUENCE_ILLEGAL_SYMBOL = {
+   .test_name = "SEQUENCE_ILLEGAL_SYMBOL",
+   .input_data =
+      []() {
+         std::vector<NdjsonInputLine> result{
+            {.metadata = {{"accessionVersion", "1"}},
+             .alignedNucleotideSequences = {{"main", "ACET"}},
+             .unalignedNucleotideSequences = {{"main", "ACGT"}},
+             .nucleotideInsertions = {{"main", {}}}}
+         };
+         return result;
+      },
+   .database_config =
+      R"(
+schema:
+  instanceName: "Test"
+  metadata:
+    - name: "accessionVersion"
+      type: "string"
+  primaryKey: "accessionVersion"
+)",
+   .reference_genomes = R"(
+{
+  "nucleotideSequences": [
+    {
+      "name": "main",
+      "sequence": "ACGT"
+    }
+  ],
+  "genes": []
+})",
+   .assertion{
+      .error_message =
+         R"(Illegal character 'E' at position 2 contained in sequence with index 0 in the current buffer.)"
+   }
+};
+
+INSTANTIATE_TEST_SUITE_P(PreprocessorTest, InvalidPreprocessorTestFixture, ::testing::Values(DUPLICATE_PRIMARY_KEY, MISSING_NUCLEOTIDE_SEQUENCE_INPUT, TYPE_ERROR, SEQUENCE_ILLEGAL_SYMBOL), printTestName<Error>);
 
 TEST_P(InvalidPreprocessorTestFixture, shouldNotProcessData) {
    const auto scenario = GetParam();

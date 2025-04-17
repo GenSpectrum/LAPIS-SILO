@@ -223,7 +223,8 @@ silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
       );
       column_metadata.emplace(column_identifier, std::move(metadata));
       schema::ColumnIdentifier column_identifier_unaligned{
-         "unaligned_" + sequence_name, schema::ColumnType::ZSTD_COMPRESSED_STRING
+         silo::storage::UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX + sequence_name,
+         schema::ColumnType::ZSTD_COMPRESSED_STRING
       };
       auto metadata_unaligned =
          std::make_shared<storage::column::ZstdCompressedStringColumnMetadata>(

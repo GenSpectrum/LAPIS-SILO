@@ -12,13 +12,13 @@
 #include <boost/serialization/access.hpp>
 #include <roaring/roaring.hh>
 
-#include "insertion_index.h"
-#include "position.h"
 #include "silo/common/aa_symbols.h"
 #include "silo/common/format_number.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/symbol_map.h"
 #include "silo/common/table_reader.h"
+#include "silo/storage/column/insertion_index.h"
+#include "silo/storage/column/position.h"
 #include "silo/storage/reference_genomes.h"
 
 namespace silo::storage::column {

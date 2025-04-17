@@ -230,7 +230,8 @@ void ColumnValueInserter::operator()<column::ZstdCompressedStringColumnPartition
    // ZstdCompressedStringColumnPartition) with 'unaligned_'. This should be cleaned up with a
    // refactor and breaking change of the current input format.
    auto column_value =
-      value.at("unalignedNucleotideSequences").at(column.name.substr(strlen("unaligned_")));
+      value.at("unalignedNucleotideSequences")
+         .at(column.name.substr(storage::UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX.length()));
    if (column_value.is_null()) {
       columns.getColumns<column::ZstdCompressedStringColumnPartition>()
          .at(column.name)

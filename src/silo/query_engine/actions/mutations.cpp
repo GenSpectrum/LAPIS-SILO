@@ -281,7 +281,7 @@ QueryResult Mutations<SymbolType>::execute(
 
    std::vector<std::string> sequence_names_to_evaluate;
    for (const auto& sequence_name : sequence_names) {
-      auto column_identifier = table.schema.getColumn(sequence_name);
+      auto column_identifier = table->schema.getColumn(sequence_name);
       CHECK_SILO_QUERY(
          column_identifier.has_value() && column_identifier.value().type == SymbolType::COLUMN_TYPE,
          "Database does not contain the " + std::string(SymbolType::SYMBOL_NAME_LOWER_CASE) +
@@ -291,18 +291,18 @@ QueryResult Mutations<SymbolType>::execute(
    }
    if (sequence_names.empty()) {
       for (const auto& [sequence_name, _] :
-           table.schema.getColumnByType<typename SymbolType::Column>()) {
+           table->schema.getColumnByType<typename SymbolType::Column>()) {
          sequence_names_to_evaluate.emplace_back(sequence_name);
       }
    }
 
    std::unordered_map<std::string, Mutations<SymbolType>::PrefilteredBitmaps> bitmaps_to_evaluate =
-      preFilterBitmaps(table, bitmap_filter);
+      preFilterBitmaps(*table, bitmap_filter);
 
    std::vector<QueryResultEntry> mutation_proportions;
    for (const auto& sequence_name : sequence_names_to_evaluate) {
       const storage::column::SequenceColumnMetadata<SymbolType>* sequence_column_metadata =
-         table.schema.getColumnMetadata<typename SymbolType::Column>(sequence_name).value();
+         table->schema.getColumnMetadata<typename SymbolType::Column>(sequence_name).value();
 
       if (bitmaps_to_evaluate.contains(sequence_name)) {
          addMutationsToOutput(

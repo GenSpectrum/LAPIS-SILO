@@ -54,35 +54,10 @@ std::shared_ptr<silo::Database> buildTestDatabase() {
 }
 }  // namespace
 
-TEST(DatabaseTest, shouldBuildDatabaseWithoutErrors) {
-   auto database{buildTestDatabase()};
-
-   const auto simple_database_info = database->getDatabaseInfo();
-
-   EXPECT_GT(simple_database_info.total_size, 0);
-   EXPECT_EQ(simple_database_info.sequence_count, 5);
-   EXPECT_EQ(simple_database_info.number_of_partitions, 1);
-}
-
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
-TEST(DatabaseTest, shouldReturnCorrectDatabaseInfo) {
-   auto database{buildTestDatabase()};
-
-   const auto simple_info = database->getDatabaseInfo();
-
-   EXPECT_EQ(simple_info.total_size, 996);
-   EXPECT_EQ(simple_info.sequence_count, 5);
-   EXPECT_EQ(simple_info.n_bitmaps_size, 62);
-}
-
 TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
    auto first_database = buildTestDatabase();
 
-   const std::filesystem::path directory = "output/test_serialized_state/";
-   if (std::filesystem::exists(directory)) {
-      std::filesystem::remove_all(directory);
-   }
-   std::filesystem::create_directories(directory);
+   const std::filesystem::path directory = "testBaseData/siloSerializedState";
 
    const silo::DataVersion::Timestamp data_version_timestamp =
       first_database->getDataVersionTimestamp();
@@ -100,4 +75,39 @@ TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
    EXPECT_EQ(simple_database_info.sequence_count, 5);
    EXPECT_GT(simple_database_info.n_bitmaps_size, 0);
    EXPECT_EQ(simple_database_info.number_of_partitions, 1);
+
+   // If the serialization version changes, comment out the next line to build a new database for
+   // the next test. Then add the produced directory to vcs.
+   std::filesystem::remove_all(data_source.path);
+}
+
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+TEST(DatabaseTest, shouldReturnCorrectDatabaseInfoAfterAppendingNewSequences) {
+   auto database = silo::Database::loadDatabaseState(
+      silo::SiloDirectory{"testBaseData/siloSerializedState"}.getMostRecentDataDirectory().value()
+   );
+
+   const auto simple_info = database.getDatabaseInfo();
+   auto data_version = database.getDataVersionTimestamp();
+
+   EXPECT_GT(simple_info.total_size, 0);
+   EXPECT_EQ(simple_info.sequence_count, 5);
+   EXPECT_EQ(simple_info.n_bitmaps_size, 62);
+
+   std::vector<nlohmann::json> more_data{
+      nlohmann::json::parse(
+         R"({"metadata":{"primaryKey":"key6","pango_lineage":"XBB","date":"2021-03-19","region":"Europe","country":"Switzerland","division":"Solothurn","unsorted_date":"2021-02-10","age":54,"qc_value":0.94,"test_boolean_column":true},"aminoAcidInsertions":{"E":["214:EPE"],"M":[]},"nucleotideInsertions":{"main":[],"testSecondSequence":[]},"alignedAminoAcidSequences":{"E":"MYSF*","M":"XXXX*"},"alignedNucleotideSequences":{"main":"ACGTACGT","testSecondSequence":"ACGT"},"unalignedNucleotideSequences":{"main":"ACGTACGT","testSecondSequence":"ACGT"}})"
+      ),
+      nlohmann::json::parse(
+         R"({"metadata":{"primaryKey":"key7","pango_lineage":"B","date":"2021-03-21","region":"Europe","country":"Switzerland","division":"Basel","unsorted_date":null,"age":null,"qc_value":0.94,"test_boolean_column":true},"aminoAcidInsertions":{"E":["214:EPE"],"M":[]},"nucleotideInsertions":{"main":[],"testSecondSequence":[]},"alignedAminoAcidSequences":{"E":"MYSF*","M":"XXXX*"},"alignedNucleotideSequences":{"main":"AAAAAAAA","testSecondSequence":"ACAT"},"unalignedNucleotideSequences":{"main":"AAAAAAAA","testSecondSequence":"ACAT"}})"
+      )
+   };
+
+   silo::append::appendDataToDatabase(database, more_data);
+
+   const auto info_after_append = database.getDatabaseInfo();
+   auto data_version_after_append = database.getDataVersionTimestamp();
+
+   EXPECT_EQ(info_after_append.sequence_count, 7);
+   EXPECT_GT(data_version_after_append, data_version);
 }

@@ -37,17 +37,17 @@
 
 namespace silo {
 
-Database::Database(silo::schema::DatabaseSchema database_schema)
+Database::Database(schema::DatabaseSchema database_schema)
     : schema(database_schema),
-      table(schema.getDefaultTableSchema()) {}
+      table(std::make_shared<storage::Table>(schema.getDefaultTableSchema())) {}
 
 DatabaseInfo Database::getDatabaseInfo() const {
    std::atomic<uint32_t> sequence_count = 0;
    std::atomic<uint64_t> total_size = 0;
    std::atomic<size_t> nucleotide_symbol_n_bitmaps_size = 0;
 
-   for (size_t partition_idx = 0; partition_idx < table.getNumberOfPartitions(); ++partition_idx) {
-      const storage::TablePartition& table_partition = table.getPartition(partition_idx);
+   for (size_t partition_idx = 0; partition_idx < table->getNumberOfPartitions(); ++partition_idx) {
+      const storage::TablePartition& table_partition = table->getPartition(partition_idx);
       // TODO(#743) also add other size estimates, and try to analyze its accuracy to RSS in general
       for (const auto& [_, seq_column] : table_partition.columns.nuc_columns) {
          total_size += seq_column.computeSize();
@@ -63,7 +63,7 @@ DatabaseInfo Database::getDatabaseInfo() const {
       .sequence_count = sequence_count,
       .total_size = total_size,
       .n_bitmaps_size = nucleotide_symbol_n_bitmaps_size,
-      .number_of_partitions = table.getNumberOfPartitions()
+      .number_of_partitions = table->getNumberOfPartitions()
    };
 }
 
@@ -104,7 +104,7 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
    SPDLOG_INFO("Saving database schema");
 
    auto yaml_string =
-      YAML::Dump(schema::DatabaseSchema{{{schema::TableName::getDefault(), table.schema}}}.toYAML()
+      YAML::Dump(schema::DatabaseSchema{{{schema::TableName::getDefault(), table->schema}}}.toYAML()
       );
    const auto database_schema_filename = versioned_save_directory / "database_schema.yaml";
    std::ofstream database_schema_file{database_schema_filename};
@@ -114,7 +114,7 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
    std::string table_name = schema.tables.begin()->first.getName();
    SPDLOG_DEBUG("Saving table data");
    std::filesystem::create_directory(versioned_save_directory / table_name);
-   table.saveData(versioned_save_directory / table_name);
+   table->saveData(versioned_save_directory / table_name);
 
    data_version_.saveToFile(versioned_save_directory / "data_version.silo");
 }
@@ -154,7 +154,7 @@ Database Database::loadDatabaseState(const silo::SiloDataSource& silo_data_sourc
 
    std::string table_name = schema.tables.begin()->first.getName();
    SPDLOG_DEBUG("Loading data for table ");
-   database.table.loadData(save_directory / table_name);
+   database.table->loadData(save_directory / table_name);
 
    database.data_version_ = loadDataVersion(save_directory / "data_version.silo");
 

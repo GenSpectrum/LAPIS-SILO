@@ -65,7 +65,7 @@ void validateSequenceNames(
    const std::vector<std::string>& sequence_names
 ) {
    for (const std::string& sequence_name : sequence_names) {
-      auto column = database.table.schema.getColumn(sequence_name);
+      auto column = database.table->schema.getColumn(sequence_name);
       CHECK_SILO_QUERY(
          column.has_value() && column.value().type == SymbolType::COLUMN_TYPE,
          "The database does not contain the " + std::string(SymbolType::SYMBOL_NAME) +
@@ -84,8 +84,8 @@ InsertionAggregation<SymbolType>::validateFieldsAndPreFilterBitmaps(
    validateSequenceNames<SymbolType>(database, sequence_names);
 
    std::unordered_map<std::string, PrefilteredBitmaps> pre_filtered_bitmaps;
-   for (size_t i = 0; i < database.table.getNumberOfPartitions(); ++i) {
-      const storage::TablePartition& table_partition = database.table.getPartition(i);
+   for (size_t i = 0; i < database.table->getNumberOfPartitions(); ++i) {
+      const storage::TablePartition& table_partition = database.table->getPartition(i);
 
       for (auto& [sequence_name, sequence_column] :
            table_partition.columns.getColumns<typename SymbolType::Column>()) {
@@ -196,7 +196,8 @@ QueryResult InsertionAggregation<SymbolType>::execute(
 
    std::vector<QueryResultEntry> insertion_counts;
    for (const auto& [sequence_name, prefiltered_bitmaps] : bitmaps_to_evaluate) {
-      const auto default_sequence_name = database.table.schema.getDefaultSequenceName<SymbolType>();
+      const auto default_sequence_name =
+         database.table->schema.getDefaultSequenceName<SymbolType>();
       const bool omit_sequence_in_response =
          default_sequence_name.has_value() && (default_sequence_name.value().name == sequence_name);
       addAggregatedInsertionsToInsertionCounts(

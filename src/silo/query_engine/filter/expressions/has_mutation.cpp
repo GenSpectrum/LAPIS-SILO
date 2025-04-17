@@ -40,7 +40,7 @@ std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
    AmbiguityMode mode
 ) const {
    CHECK_SILO_QUERY(
-      sequence_name.has_value() || database.table.schema.getDefaultSequenceName<SymbolType>(),
+      sequence_name.has_value() || database.table->schema.getDefaultSequenceName<SymbolType>(),
       fmt::format(
          "Database does not have a default sequence name for {} Sequences. "
          "You need to provide the sequence name with the {}Mutation filter.",
@@ -50,13 +50,13 @@ std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
    );
 
    const auto valid_sequence_name =
-      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, database.table.schema);
+      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, database.table->schema);
 
    const auto& seq_store_partition =
       table_partition.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
 
    auto column_metadata =
-      database.table.schema.getColumnMetadata<typename SymbolType::Column>(valid_sequence_name)
+      database.table->schema.getColumnMetadata<typename SymbolType::Column>(valid_sequence_name)
          .value();
    CHECK_SILO_QUERY(
       position_idx < column_metadata->reference_sequence.size(),

@@ -170,7 +170,11 @@ void SequenceColumnPartition<SymbolType>::fillIndexes() {
                const auto symbol = SymbolType::charToSymbol(character);
                if (!symbol.has_value()) {
                   throw preprocessing::PreprocessingException(
-                     "Illegal character " + std::to_string(character) + " contained in sequence."
+                     "Illegal character '{}' at position {} contained in sequence with index {} in "
+                     "the current buffer.",
+                     character,
+                     position_idx,
+                     sequence_offset
                   );
                }
                if (symbol != SymbolType::SYMBOL_MISSING) {

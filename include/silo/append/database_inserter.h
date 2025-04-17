@@ -23,13 +23,13 @@ class TablePartitionInserter {
    TablePartitionInserter(std::shared_ptr<storage::TablePartition> table_partition)
        : table_partition(table_partition) {}
 
-   void insert(const nlohmann::json& ndjson_line);
+   void insert(const nlohmann::json& ndjson_line) const;
 
-   Commit commit();
+   Commit commit() const;
 };
 
 class TableInserter {
-   storage::Table* table;
+   std::shared_ptr<storage::Table> table;
 
   public:
    class Commit {
@@ -38,12 +38,12 @@ class TableInserter {
       Commit() = default;
    };
 
-   TableInserter(storage::Table* table)
+   TableInserter(std::shared_ptr<storage::Table> table)
        : table(table) {}
 
-   TablePartitionInserter openNewPartition();
+   TablePartitionInserter openNewPartition() const;
 
-   Commit commit();
+   Commit commit() const;
 };
 
 template <std::ranges::range Data>
@@ -68,10 +68,10 @@ silo::append::TablePartitionInserter::Commit appendDataToTablePartition(
 template <std::ranges::range Data>
    requires std::same_as<std::ranges::range_value_t<Data>, nlohmann::json>
 silo::append::TableInserter::Commit appendDataToTable(
-   silo::storage::Table& table,
+   std::shared_ptr<silo::storage::Table> table,
    Data input_data
 ) {
-   TableInserter table_inserter(&table);
+   TableInserter table_inserter(table);
 
    // TODO(#738) make partition configurable
    auto table_partition = table_inserter.openNewPartition();

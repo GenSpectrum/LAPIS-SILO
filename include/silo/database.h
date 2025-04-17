@@ -16,7 +16,7 @@ namespace silo {
 class Database {
   public:
    schema::DatabaseSchema schema;
-   storage::Table table;
+   std::shared_ptr<storage::Table> table;
 
    void updateDataVersion();
 

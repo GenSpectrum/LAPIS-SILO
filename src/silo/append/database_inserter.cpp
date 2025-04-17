@@ -3,7 +3,7 @@
 
 namespace silo::append {
 
-void TablePartitionInserter::insert(const nlohmann::json& ndjson_line) {
+void TablePartitionInserter::insert(const nlohmann::json& ndjson_line) const {
    for (auto& column_metadata : table_partition->columns.metadata) {
       try {
          table_partition->columns.addJsonValueToColumn(column_metadata, ndjson_line);
@@ -31,17 +31,17 @@ void TablePartitionInserter::insert(const nlohmann::json& ndjson_line) {
    table_partition->sequence_count++;
 }
 
-TablePartitionInserter::Commit TablePartitionInserter::commit() {
+TablePartitionInserter::Commit TablePartitionInserter::commit() const {
    table_partition->finalize();
    table_partition->validate();
    return Commit{};
 }
 
-TablePartitionInserter TableInserter::openNewPartition() {
+TablePartitionInserter TableInserter::openNewPartition() const {
    return TablePartitionInserter{table->addPartition()};
 }
 
-TableInserter::Commit TableInserter::commit() {
+TableInserter::Commit TableInserter::commit() const {
    try {
       table->validate();
       return Commit{};

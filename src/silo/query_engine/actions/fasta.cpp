@@ -56,8 +56,9 @@ QueryResultEntry makeEntry(
       primary_key_column, table_partition.columns.getValue(primary_key_column, row_id)
    );
    for (const auto& sequence_name : sequence_names) {
-      const auto& column =
-         table_partition.columns.zstd_compressed_string_columns.at("unaligned_" + sequence_name);
+      const auto& column = table_partition.columns.zstd_compressed_string_columns.at(
+         storage::UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX + sequence_name
+      );
       entry.fields.emplace(sequence_name, column.getDecompressed(row_id));
    }
    return entry;
@@ -66,10 +67,12 @@ QueryResultEntry makeEntry(
 QueryResult Fasta::execute(const Database& database, std::vector<CopyOnWriteBitmap> bitmap_filter)
    const {
    auto columns_in_database =
-      database.table.schema.getColumnByType<storage::column::ZstdCompressedStringColumnPartition>();
+      database.table->schema.getColumnByType<storage::column::ZstdCompressedStringColumnPartition>(
+      );
    for (const std::string& sequence_name : sequence_names) {
       schema::ColumnIdentifier column_identifier_to_find{
-         "unaligned_" + sequence_name, schema::ColumnType::ZSTD_COMPRESSED_STRING
+         storage::UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX + sequence_name,
+         schema::ColumnType::ZSTD_COMPRESSED_STRING
       };
       CHECK_SILO_QUERY(
          std::ranges::find(columns_in_database, column_identifier_to_find) !=
@@ -94,7 +97,7 @@ QueryResult Fasta::execute(const Database& database, std::vector<CopyOnWriteBitm
                                       &database,
                                       partition_index](std::vector<QueryResultEntry>& results
                                      ) mutable {
-      for (; partition_index < database.table.getNumberOfPartitions();
+      for (; partition_index < database.table->getNumberOfPartitions();
            ++partition_index, remaining_result_row_indices = {}) {
          // We drain the bitmaps in bitmap_filter as we process the
          // query, because roaring bitmaps don't come with
@@ -124,15 +127,18 @@ QueryResult Fasta::execute(const Database& database, std::vector<CopyOnWriteBitm
             SPDLOG_TRACE(
                "FastaAligned::execute: refill QueryResult for partition_index {}/{}, {}/{}",
                partition_index,
-               database.table.getNumberOfPartitions(),
+               database.table->getNumberOfPartitions(),
                result_row_indices.toString(),
                remaining_result_row_indices->beyondLast()
             );
 
-            const auto& database_partition = database.table.getPartition(partition_index);
+            const auto& database_partition = database.table->getPartition(partition_index);
             for (const uint32_t row_id : *bitmap) {
                results.emplace_back(makeEntry(
-                  database.table.schema.primary_key.name, database_partition, sequence_names, row_id
+                  database.table->schema.primary_key.name,
+                  database_partition,
+                  sequence_names,
+                  row_id
                ));
 
                result_row_indices = result_row_indices.skip1();

@@ -22,6 +22,7 @@
 #include "silo/query_engine/query_parse_sequence_name.h"
 #include "silo/storage/column/insertion_index.h"
 #include "silo/storage/column/sequence_column.h"
+#include "silo/storage/insertion_format_exception.h"
 #include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
@@ -58,7 +59,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> InsertionContai
    }
 
    const auto valid_sequence_name =
-      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, database.table.schema);
+      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, database.table->schema);
 
    const std::map<std::string, storage::column::SequenceColumnPartition<SymbolType>>&
       sequence_stores = table_partition.columns.getColumns<typename SymbolType::Column>();
@@ -70,8 +71,8 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> InsertionContai
          try {
             auto search_result = sequence_store.insertion_index.search(position_idx, value);
             return CopyOnWriteBitmap(std::move(*search_result));
-         } catch (const silo::storage::insertion::InsertionException& insertionException) {
-            throw silo::BadRequest(insertionException.what());
+         } catch (const silo::storage::InsertionFormatException& exception) {
+            throw silo::BadRequest(exception.what());
          }
       },
       table_partition.sequence_count

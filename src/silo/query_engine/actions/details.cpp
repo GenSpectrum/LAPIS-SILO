@@ -197,17 +197,17 @@ QueryResult Details::executeAndOrder(
    const silo::Database& database,
    std::vector<CopyOnWriteBitmap> bitmap_filter
 ) const {
-   validateOrderByFields(database.table.schema);
+   validateOrderByFields(database.table->schema);
    const std::vector<schema::ColumnIdentifier> field_identifiers =
-      parseFields(database.table.schema, fields);
+      parseFields(database.table->schema, fields);
 
-   size_t num_partitions = database.table.getNumberOfPartitions();
+   size_t num_partitions = database.table->getNumberOfPartitions();
 
    std::vector<TupleFactory> tuple_factories;
    tuple_factories.reserve(num_partitions);
    for (size_t partition_idx = 0; partition_idx < num_partitions; ++partition_idx) {
       tuple_factories.emplace_back(
-         database.table.getPartition(partition_idx).columns, field_identifiers
+         database.table->getPartition(partition_idx).columns, field_identifiers
       );
    }
 

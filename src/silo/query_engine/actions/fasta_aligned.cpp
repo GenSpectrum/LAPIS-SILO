@@ -148,7 +148,7 @@ QueryResult FastaAligned::execute(
    std::vector<std::string> aa_sequence_names;
 
    assortSequenceNamesInto(
-      database.table.schema, sequence_names, nuc_sequence_names, aa_sequence_names
+      database.table->schema, sequence_names, nuc_sequence_names, aa_sequence_names
    );
 
    uint32_t partition_index = 0;
@@ -160,7 +160,7 @@ QueryResult FastaAligned::execute(
                                       &database,
                                       partition_index](std::vector<QueryResultEntry>& results
                                      ) mutable {
-      for (; partition_index < database.table.getNumberOfPartitions();
+      for (; partition_index < database.table->getNumberOfPartitions();
            ++partition_index, remaining_result_row_indices = {}) {
          // We drain the bitmaps in bitmap_filter as we process the
          // query, because roaring bitmaps don't come with
@@ -190,15 +190,15 @@ QueryResult FastaAligned::execute(
             SPDLOG_TRACE(
                "FastaAligned::execute: refill QueryResult for partition_index {}/{}, {}/{}",
                partition_index,
-               database.table.getNumberOfPartitions(),
+               database.table->getNumberOfPartitions(),
                result_row_indices.toString(),
                remaining_result_row_indices->beyondLast()
             );
 
-            const auto& database_partition = database.table.getPartition(partition_index);
+            const auto& database_partition = database.table->getPartition(partition_index);
             for (const uint32_t row_id : *bitmap) {
                results.emplace_back(makeEntry(
-                  database.table.schema.primary_key.name,
+                  database.table->schema.primary_key.name,
                   database_partition,
                   nuc_sequence_names,
                   aa_sequence_names,

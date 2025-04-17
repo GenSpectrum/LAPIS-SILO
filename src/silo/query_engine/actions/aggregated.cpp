@@ -106,21 +106,21 @@ QueryResult Aggregated::execute(
    // TODO(#133) optimize single field groupby
 
    const std::vector<silo::schema::ColumnIdentifier> group_by_metadata =
-      parseGroupByFields(database.table.schema, group_by_fields);
+      parseGroupByFields(database.table->schema, group_by_fields);
 
    std::vector<std::unordered_map<Tuple, uint32_t>> tuple_maps;
    std::vector<TupleFactory> tuple_factories;
 
-   for (size_t partition_idx = 0; partition_idx < database.table.getNumberOfPartitions();
+   for (size_t partition_idx = 0; partition_idx < database.table->getNumberOfPartitions();
         ++partition_idx) {
       tuple_maps.emplace_back();
       tuple_factories.emplace_back(
-         database.table.getPartition(partition_idx).columns, group_by_metadata
+         database.table->getPartition(partition_idx).columns, group_by_metadata
       );
    }
 
    tbb::parallel_for(
-      tbb::blocked_range<uint32_t>(0, database.table.getNumberOfPartitions()),
+      tbb::blocked_range<uint32_t>(0, database.table->getNumberOfPartitions()),
       [&](tbb::blocked_range<uint32_t> range) {
          for (uint32_t partition_id = range.begin(); partition_id != range.end(); ++partition_id) {
             TupleFactory& tuple_factory = tuple_factories.at(partition_id);
@@ -146,7 +146,7 @@ QueryResult Aggregated::execute(
       }
    );
    std::unordered_map<Tuple, uint32_t> final_map;
-   for (uint32_t partition_id = 0; partition_id != database.table.getNumberOfPartitions();
+   for (uint32_t partition_id = 0; partition_id != database.table->getNumberOfPartitions();
         ++partition_id) {
       auto& tuple_factory = tuple_factories.at(partition_id);
       auto& map = tuple_maps.at(partition_id);

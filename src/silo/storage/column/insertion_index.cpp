@@ -14,6 +14,7 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/string_utils.h"
 #include "silo/common/symbol_map.h"
+#include "silo/storage/insertion_format_exception.h"
 
 namespace silo::storage::insertion {
 
@@ -31,7 +32,7 @@ std::vector<typename SymbolType::Symbol> stringToSymbolVector(const std::string&
       }
       auto symbol = SymbolType::charToSymbol(sequence[i]);
       if (symbol == std::nullopt) {
-         throw InsertionException(
+         throw InsertionFormatException(
             fmt::format("Illegal nucleotide character '{}' in insertion: {}", sequence[i], sequence)
          );
       }

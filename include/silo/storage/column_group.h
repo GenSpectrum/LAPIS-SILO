@@ -27,6 +27,11 @@
 
 namespace silo::storage {
 
+// TODO(#741) we prepend the unalignedSequence columns (which are using the type
+// ZstdCompressedStringColumnPartition) with 'unaligned_'. This should be cleaned up with a
+// refactor and breaking change of the current input format.
+static const std::string UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX = "unaligned_";
+
 class ColumnPartitionGroup {
    friend class boost::serialization::access;
 

@@ -7,15 +7,7 @@
 
 #include <boost/serialization/access.hpp>
 
-#include "silo/common/aa_symbols.h"
-#include "silo/common/nucleotide_symbols.h"
-#include "silo/storage/column/date_column.h"
-#include "silo/storage/column/float_column.h"
-#include "silo/storage/column/indexed_string_column.h"
-#include "silo/storage/column/int_column.h"
-#include "silo/storage/column/sequence_column.h"
-#include "silo/storage/column/string_column.h"
-#include "silo/storage/column/zstd_compressed_string_column.h"
+#include "silo/schema/database_schema.h"
 #include "silo/storage/column_group.h"
 
 namespace silo::storage {
