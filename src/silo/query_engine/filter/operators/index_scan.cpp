@@ -9,6 +9,7 @@
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/operator.h"
+#include "evobench/evobench.hpp"
 
 namespace silo::query_engine::filter::operators {
 
@@ -40,6 +41,7 @@ Type IndexScan::type() const {
 }
 
 CopyOnWriteBitmap IndexScan::evaluate() const {
+   EVOBENCH_SCOPE("IndexScan", "evaluate");
    return CopyOnWriteBitmap(*bitmap);
 }
 std::unique_ptr<Operator> IndexScan::negate(std::unique_ptr<IndexScan>&& index_scan) {

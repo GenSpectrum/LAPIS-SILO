@@ -10,6 +10,7 @@
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/query_compilation_exception.h"
+#include "evobench/evobench.hpp"
 
 namespace silo::query_engine::filter::operators {
 
@@ -78,6 +79,7 @@ CopyOnWriteBitmap intersectTwo(CopyOnWriteBitmap first, CopyOnWriteBitmap second
 }  // namespace
 
 CopyOnWriteBitmap Intersection::evaluate() const {
+   EVOBENCH_SCOPE("Intersection", "evaluate");
    std::vector<CopyOnWriteBitmap> children_bm;
    children_bm.reserve(children.size());
    std::ranges::transform(children, std::back_inserter(children_bm), [&](const auto& child) {

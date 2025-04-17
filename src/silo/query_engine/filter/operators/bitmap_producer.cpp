@@ -5,6 +5,7 @@
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/operator.h"
+#include "evobench/evobench.hpp"
 
 namespace silo::query_engine::filter::operators {
 
@@ -23,6 +24,7 @@ Type BitmapProducer::type() const {
 }
 
 CopyOnWriteBitmap BitmapProducer::evaluate() const {
+   EVOBENCH_SCOPE("BitmapProducer", "evaluate");
    return producer();
 }
 

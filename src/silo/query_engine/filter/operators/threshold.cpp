@@ -10,6 +10,7 @@
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/query_compilation_exception.h"
+#include "evobench/evobench.hpp"
 
 namespace silo::query_engine::filter::operators {
 
@@ -62,6 +63,7 @@ Type Threshold::type() const {
 }
 
 CopyOnWriteBitmap Threshold::evaluate() const {
+   EVOBENCH_SCOPE("Threshold", "evaluate");
    uint32_t dp_table_size;
    if (this->match_exactly) {
       // We need to keep track of the ones that matched too many

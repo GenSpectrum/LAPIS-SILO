@@ -14,6 +14,7 @@
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/storage/column/date_column.h"
 #include "silo/storage/table_partition.h"
+#include "evobench/evobench.hpp"
 
 namespace silo::query_engine::filter::expressions {
 

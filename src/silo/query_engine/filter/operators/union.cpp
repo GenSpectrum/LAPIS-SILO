@@ -9,6 +9,7 @@
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/operator.h"
+#include "evobench/evobench.hpp"
 
 namespace silo::query_engine::filter::operators {
 
@@ -33,6 +34,7 @@ Type Union::type() const {
 }
 
 CopyOnWriteBitmap Union::evaluate() const {
+   EVOBENCH_SCOPE("Union", "evaluate");
    const uint32_t size_of_children = children.size();
    std::vector<const roaring::Roaring*> union_tmp(size_of_children);
    std::vector<CopyOnWriteBitmap> child_res(size_of_children);

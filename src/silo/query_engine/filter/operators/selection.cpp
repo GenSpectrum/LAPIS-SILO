@@ -21,6 +21,7 @@
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/operator.h"
+#include "evobench/evobench.hpp"
 
 namespace silo::query_engine::filter::operators {
 
@@ -97,6 +98,7 @@ bool Selection::matchesPredicates(uint32_t row) const {
 }
 
 CopyOnWriteBitmap Selection::evaluate() const {
+   EVOBENCH_SCOPE("Selection", "evaluate");
    CopyOnWriteBitmap result;
    if (child_operator.has_value()) {
       CopyOnWriteBitmap child_result = (*child_operator)->evaluate();
