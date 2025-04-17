@@ -6,6 +6,7 @@
 
 #include <boost/algorithm/string/join.hpp>
 
+#include "evobench/evobench.hpp"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/operators/operator.h"
 
@@ -39,6 +40,7 @@ Type RangeSelection::type() const {
 }
 
 CopyOnWriteBitmap RangeSelection::evaluate() const {
+   EVOBENCH_SCOPE("RangeSelection", "evaluate");
    CopyOnWriteBitmap result;
    for (const auto& range : ranges) {
       result->addRange(range.start, range.end);

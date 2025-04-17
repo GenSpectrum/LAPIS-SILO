@@ -5,6 +5,7 @@
 
 #include <roaring/roaring.hh>
 
+#include "evobench/evobench.hpp"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/operators/intersection.h"
 #include "silo/query_engine/filter/operators/operator.h"
@@ -50,6 +51,7 @@ Type Complement::type() const {
 }
 
 CopyOnWriteBitmap Complement::evaluate() const {
+   EVOBENCH_SCOPE("Complement", "evaluate");
    auto result = child->evaluate();
    result->flip(0, row_count);
    return result;
