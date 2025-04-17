@@ -14,6 +14,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <roaring/roaring.hh>
 
+#include "evobench/evobench.hpp"
 #include "silo/common/date.h"
 #include "silo/common/optional_bool.h"
 #include "silo/common/panic.h"
@@ -97,6 +98,7 @@ bool Selection::matchesPredicates(uint32_t row) const {
 }
 
 CopyOnWriteBitmap Selection::evaluate() const {
+   EVOBENCH_SCOPE("Selection", "evaluate");
    CopyOnWriteBitmap result;
    if (child_operator.has_value()) {
       CopyOnWriteBitmap child_result = (*child_operator)->evaluate();

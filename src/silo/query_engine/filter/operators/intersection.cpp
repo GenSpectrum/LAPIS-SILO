@@ -6,6 +6,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include "evobench/evobench.hpp"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/operator.h"
@@ -78,6 +79,7 @@ CopyOnWriteBitmap intersectTwo(CopyOnWriteBitmap first, CopyOnWriteBitmap second
 }  // namespace
 
 CopyOnWriteBitmap Intersection::evaluate() const {
+   EVOBENCH_SCOPE("Intersection", "evaluate");
    std::vector<CopyOnWriteBitmap> children_bm;
    children_bm.reserve(children.size());
    std::ranges::transform(children, std::back_inserter(children_bm), [&](const auto& child) {
