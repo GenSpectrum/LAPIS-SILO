@@ -5,6 +5,7 @@
 #include <fmt/format.h>
 #include <roaring/roaring.hh>
 
+#include "evobench/evobench.hpp"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/complement.h"
@@ -40,6 +41,7 @@ Type IndexScan::type() const {
 }
 
 CopyOnWriteBitmap IndexScan::evaluate() const {
+   EVOBENCH_SCOPE("IndexScan", "evaluate");
    return CopyOnWriteBitmap(*bitmap);
 }
 std::unique_ptr<Operator> IndexScan::negate(std::unique_ptr<IndexScan>&& index_scan) {
