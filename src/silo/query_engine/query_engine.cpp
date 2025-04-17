@@ -16,6 +16,7 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/query.h"
 #include "silo/query_engine/query_result.h"
+#include "evobench/evobench.hpp"
 
 namespace silo::query_engine {
 
@@ -29,9 +30,8 @@ QueryResult executeQuery(const Database& database, const std::string& query_stri
 
    std::vector<std::string> compiled_queries(database.table->getNumberOfPartitions());
    std::vector<CopyOnWriteBitmap> partition_filters(database.table->getNumberOfPartitions());
-   int64_t filter_time;
    {
-      const silo::common::BlockTimer timer(filter_time);
+      EVOBENCH_SCOPE("query_engine", "filter_time");
       for (size_t partition_index = 0; partition_index != database.table->getNumberOfPartitions();
            partition_index++) {
          std::unique_ptr<Operator> part_filter = query.filter->compile(
@@ -47,15 +47,10 @@ QueryResult executeQuery(const Database& database, const std::string& query_stri
    }
 
    QueryResult query_result;
-   int64_t action_time;
    {
-      const silo::common::BlockTimer timer(action_time);
+      EVOBENCH_SCOPE("query_engine", "action_time");
       query_result = query.action->executeAndOrder(database, std::move(partition_filters));
    }
-
-   LOG_PERFORMANCE("Query: {}", query_string);
-   LOG_PERFORMANCE("Execution (filter): {} microseconds", std::to_string(filter_time));
-   LOG_PERFORMANCE("Execution (action): {} microseconds", std::to_string(action_time));
 
    return query_result;
 }
