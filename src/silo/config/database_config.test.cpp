@@ -199,7 +199,7 @@ schema:
 TEST(DatabaseConfig, shouldReadConfigWithDefaultSequencesSet) {
    const auto* yaml = R"-(
 schema:
-  instanceName: dummy without partitionBy
+  instanceName: dummy with default
   metadata:
     - name: primaryKey
       type: string
@@ -217,7 +217,7 @@ defaultAminoAcidSequence: defaultAA
 TEST(DatabaseConfig, shouldReadConfigWithDefaultSequencesSetButNull) {
    const auto* yaml = R"-(
 schema:
-  instanceName: dummy without partitionBy
+  instanceName: dummy with no default explicitly
   metadata:
     - name: primaryKey
       type: string
@@ -248,7 +248,6 @@ schema:
     - name: "metadata2"
       type: "date"
   primaryKey: "testPrimaryKey"
-  partitionBy: "metadata1"
 )";
 
    ASSERT_NO_THROW(DatabaseConfig::getValidatedConfig(config_yaml));
@@ -301,8 +300,6 @@ schema:
       type: "date"
       generateIndex: true
   primaryKey: "testPrimaryKey"
-  dateToSortBy: null
-  partitionBy: "testPrimaryKey"
 )";
 
    EXPECT_THAT(
@@ -327,8 +324,6 @@ schema:
       type: "string"
       generateLineageIndex: true
   primaryKey: "testPrimaryKey"
-  dateToSortBy: null
-  partitionBy: "testPrimaryKey"
 )";
 
    EXPECT_THAT(

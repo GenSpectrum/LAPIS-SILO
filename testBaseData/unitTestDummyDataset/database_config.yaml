@@ -27,5 +27,3 @@ schema:
     - name: test_boolean_column
       type: boolean
   primaryKey: primaryKey
-  dateToSortBy: date
-  partitionBy: pango_lineage

@@ -27,5 +27,4 @@ schema:
     - name: test_boolean_column
       type: boolean
   primaryKey: gisaid_epi_isl
-  dateToSortBy: date
 defaultNucleotideSequence: "main"

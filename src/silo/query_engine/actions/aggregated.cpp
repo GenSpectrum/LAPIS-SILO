@@ -102,7 +102,6 @@ QueryResult Aggregated::execute(
    if (group_by_fields.empty()) {
       return aggregateWithoutGrouping(bitmap_filters);
    }
-   // TODO(#133) optimize when equal to partition_by field
    // TODO(#133) optimize single field groupby
 
    const std::vector<silo::schema::ColumnIdentifier> group_by_metadata =

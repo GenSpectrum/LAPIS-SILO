@@ -39,7 +39,6 @@ schema:
     - name: "unsorted_date"
       type: "date"
   primaryKey: "primaryKey"
-  dateToSortBy: "sorted_date"
 )";
 
 const auto REFERENCE_GENOMES = ReferenceGenomes{
