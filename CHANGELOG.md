@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.6.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.5.9...v0.6.0) (2025-04-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* the DatabaseConfig fields `dateToSortBy` and `partitionBy` have been deprecated and do no longer have any effect. The internal endpoint for more detailed database storage information has been removed.
+
+### Features
+
+* add `append` as a third silo execution mode for incremental preprocessing ([84c4ae3](https://github.com/GenSpectrum/LAPIS-SILO/commit/84c4ae3df0995a07ebec26c286bc8e17001ef60b)), closes [#368](https://github.com/GenSpectrum/LAPIS-SILO/issues/368)
+* introduce a database schema that actually describes the schema of the database ([be71e08](https://github.com/GenSpectrum/LAPIS-SILO/commit/be71e08a5413b9bb3b2c9566cdaa54b246745a56))
+* still enable `silo preprocessing` as a shorthand for initialize-then-append ([9a91d0e](https://github.com/GenSpectrum/LAPIS-SILO/commit/9a91d0e0512ecce904629cb940be78410eeba4b4))
+
 ## [0.5.9](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.5.8...v0.5.9) (2025-04-16)
 
 
