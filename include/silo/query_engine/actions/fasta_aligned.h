@@ -8,11 +8,11 @@
 
 #include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
+#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
+#include "silo/query_engine/exec_node/legacy_result_producer.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
-#include "silo/query_engine/bad_request.h"
-#include "silo/query_engine/legacy_result_producer.h"
 #include "silo/query_engine/query_result.h"
 
 namespace silo::query_engine::actions {
@@ -55,8 +55,8 @@ class FastaAlignedProducer : public arrow::acero::ExecNode {
          table(database->table) {
       for (size_t partition_index = 0; partition_index != database->table->getNumberOfPartitions();
            partition_index++) {
-         std::unique_ptr<Operator> part_filter = filter.compile(
-            *database, database->table->getPartition(partition_index), Expression::AmbiguityMode::NONE
+         std::unique_ptr<filter::operators::Operator> part_filter = filter.compile(
+            *database, database->table->getPartition(partition_index), filter::expressions::Expression::AmbiguityMode::NONE
          );
          partition_filters.emplace_back(part_filter->evaluate());
       }

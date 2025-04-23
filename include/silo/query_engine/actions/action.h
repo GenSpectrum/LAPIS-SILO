@@ -28,11 +28,13 @@ class Action {
    std::optional<uint32_t> offset;
    std::optional<uint32_t> randomize_seed;
 
+   // TODO(#758) Legacy sort, should be removed
    void applySort(QueryResult& result) const;
    void applyOffsetAndLimit(QueryResult& result) const;
 
    virtual void validateOrderByFields(const schema::TableSchema& schema) const = 0;
 
+   // TODO(#758) Legacy query engine implementations, should be removed
    [[nodiscard]] virtual QueryResult execute(
       /// Life time: until query result was delivered (and the lock
       /// inside `FixedDatabase` is released)

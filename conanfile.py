@@ -6,7 +6,7 @@ class SiloRecipe(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
 
     requires = [
-        "arrow/17.0.0",
+        "arrow/19.0.1",
         "boost/1.85.0",
         "poco/1.13.3",
         "hwloc/2.9.3",
