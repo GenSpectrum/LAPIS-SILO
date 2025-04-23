@@ -25,9 +25,6 @@
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/column/sequence_column.h"
 
-using silo::common::add1;
-using silo::common::Range;
-
 namespace silo::query_engine::actions {
 
 FastaAligned::FastaAligned(std::vector<std::string>&& sequence_names)
@@ -54,7 +51,7 @@ QueryResult FastaAligned::execute(
    const Database& database,
    std::vector<CopyOnWriteBitmap> bitmap_filter
 ) const {
-   SILO_PANIC("DEPRECATED");
+   SILO_PANIC("Legacy execute called on action already migrated action. Programming error.");
 }
 
 arrow::Schema FastaAligned::getOutputSchema(const silo::schema::TableSchema& table_schema) const {

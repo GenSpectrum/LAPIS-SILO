@@ -98,9 +98,12 @@ arrow::Datum JsonValueTypeArrayBuilder::toDatum() && {
    }, builder);
 }
 
-LegacyResultProducer::LegacyResultProducer(arrow::acero::ExecPlan* plan, const LegacyResultProducerOptions& options)
-       : arrow::acero::ExecNode(plan, {}, {}, options.output_schema) {
-      query_result = createLegacyQueryResult(options.query, *options.database);
+LegacyResultProducer::LegacyResultProducer(arrow::acero::ExecPlan* plan,
+                                           std::shared_ptr<arrow::Schema> output_schema,
+                                           std::shared_ptr<Database> database,
+                                           std::shared_ptr<Query> query)
+       : arrow::acero::ExecNode(plan, {}, {}, output_schema) {
+      query_result = createLegacyQueryResult(*query, *database);
       for(auto& field : output_schema_.get()->fields()){
          field_names.emplace_back(&field->name());
       }
@@ -128,48 +131,34 @@ arrow::Status LegacyResultProducer::flushOutput() {
 static constexpr size_t MATERIALIZATION_CUTOFF = 50000;
 
 arrow::Status LegacyResultProducer::produce() {
-   if (running) {
-      std::optional<QueryResultEntry> row;
-      size_t num_rows = 0;
-      while((row = query_result.next())){
-         ++num_rows;
-         for(size_t field_idx = 0; field_idx<field_names.size(); ++field_idx){
-            const auto field_name = field_names.at(field_idx);
-            const common::JsonValueType& field_value = row.value().fields.at(*field_name);
+   size_t num_rows = 0;
+   std::optional<QueryResultEntry> row;
+   while((row = query_result.next())){
+      ++num_rows;
+      for(size_t field_idx = 0; field_idx<field_names.size(); ++field_idx){
+         const auto field_name = field_names.at(field_idx);
+         const common::JsonValueType& field_value = row.value().fields.at(*field_name);
 
-            auto status = arrays.at(field_idx).insert(field_value);
-            if(status.IsCapacityError()){
-               throw std::runtime_error(fmt::format("Response size too large. Materializing {} rows required more than allowed {} bytes", MATERIALIZATION_CUTOFF, INT32_MAX));
-            }
-            ARROW_RETURN_NOT_OK(status);
+         auto status = arrays.at(field_idx).insert(field_value);
+         if(status.IsCapacityError()){
+            throw std::runtime_error(fmt::format("Response size too large. Materializing {} rows required more than allowed {} bytes", MATERIALIZATION_CUTOFF, INT32_MAX));
          }
-
-         if(num_rows > MATERIALIZATION_CUTOFF){
-            ARROW_RETURN_NOT_OK(flushOutput());
-         }
+         ARROW_RETURN_NOT_OK(status);
       }
-      ARROW_RETURN_NOT_OK(flushOutput());
+
+      if(num_rows > MATERIALIZATION_CUTOFF){
+         ARROW_RETURN_NOT_OK(flushOutput());
+      }
    }
+   ARROW_RETURN_NOT_OK(flushOutput());
    return arrow::Status::OK();
 }
 
 arrow::Status LegacyResultProducer::StartProducing() {
-   running.store(true);
-   producer_thread = std::thread([this]() {
-      arrow::Status status = this->produce();
-      if (!status.ok()) {
-         // Handle error or propagate
-         throw std::runtime_error("Err: " + status.ToString());
-      }
-   });
-   return arrow::Status::OK();
+   return produce();
 }
 
 arrow::Status LegacyResultProducer::StopProducing() {
-   if (producer_thread.joinable()) {
-      producer_thread.join();
-   }
-   running.store(false);
    return arrow::Status::OK();
 }
 

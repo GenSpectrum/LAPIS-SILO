@@ -99,7 +99,7 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
       if (!scenario.expected_error_message.empty()) {
          try {
             silo::query_engine::optimizer::QueryPlanGenerator query_plan_generator(shared_database);
-            silo::query_engine::Query query{scenario.query.dump()};
+            auto query = query_engine::Query::parseQuery(scenario.query.dump());
             std::stringstream buffer;
             auto query_plan = query_plan_generator.createQueryPlan(query, buffer);
             query_plan.execute();
@@ -109,7 +109,7 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
          }
       } else {
          silo::query_engine::optimizer::QueryPlanGenerator query_plan_generator(shared_database);
-         silo::query_engine::Query query{scenario.query.dump()};
+         auto query = query_engine::Query::parseQuery(scenario.query.dump());
          std::stringstream buffer;
          auto query_plan = query_plan_generator.createQueryPlan(query, buffer);
          query_plan.execute();

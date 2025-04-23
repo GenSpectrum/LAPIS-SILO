@@ -12,7 +12,10 @@ struct Query {
    std::unique_ptr<filter::expressions::Expression> filter;
    std::unique_ptr<actions::Action> action;
 
-   explicit Query(const std::string& query_string);
+   explicit Query(std::unique_ptr<filter::expressions::Expression> filter,
+                  std::unique_ptr<actions::Action> action) : filter(std::move(filter)), action(std::move(action)) {}
+
+   static std::shared_ptr<Query> parseQuery(const std::string& query_string);
 };
 
 }  // namespace silo::query_engine

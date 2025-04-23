@@ -13,22 +13,6 @@ namespace silo::query_engine::exec_node {
 using filter::expressions::Expression;
 using filter::operators::Operator;
 
-class LegacyResultProducerOptions {
-  public:
-   std::shared_ptr<arrow::Schema> output_schema;
-   std::shared_ptr<Database> database;
-   const Query& query;
-
-   LegacyResultProducerOptions(
-      std::shared_ptr<arrow::Schema> output_schema,
-      std::shared_ptr<Database> database,
-      const Query& query
-   )
-       : output_schema(output_schema),
-         database(database),
-         query(query) {}
-};
-
 class JsonValueTypeArrayBuilder{
    std::variant<arrow::Int32Builder, arrow::DoubleBuilder, arrow::StringBuilder, arrow::BooleanBuilder> builder;
   public:
@@ -42,14 +26,14 @@ class JsonValueTypeArrayBuilder{
 class LegacyResultProducer : public arrow::acero::ExecNode {
    QueryResult query_result;
 
-   std::atomic<bool> running = true;
-   std::thread producer_thread;
-
    std::vector<JsonValueTypeArrayBuilder> arrays;
    std::vector<const std::string*> field_names;
 
   public:
-   LegacyResultProducer(arrow::acero::ExecPlan* plan, const LegacyResultProducerOptions& options);
+   LegacyResultProducer(arrow::acero::ExecPlan* plan,
+                        std::shared_ptr<arrow::Schema> output_schema,
+                        std::shared_ptr<Database> database,
+                        std::shared_ptr<Query> query);
 
    virtual const char* kind_name() const override { return "LegacyResultProducer"; }
 
@@ -71,8 +55,6 @@ class LegacyResultProducer : public arrow::acero::ExecNode {
    void prepareOutputArrays();
 
    arrow::Status flushOutput();
-
-   static constexpr size_t MATERIALIZATION_CUTOFF = 50000;
 
    arrow::Status produce();
 

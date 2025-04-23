@@ -29,11 +29,11 @@ void QueryHandler::post(
 
    const auto request_id = response.get("X-Request-Id");
 
-   std::string query;
+   std::string query_string;
    std::istream& istream = request.stream();
-   Poco::StreamCopier::copyToString(istream, query);
+   Poco::StreamCopier::copyToString(istream, query_string);
 
-   SPDLOG_INFO("Request Id [{}] - received query: {}", request_id, query);
+   SPDLOG_INFO("Request Id [{}] - received query: {}", request_id, query_string);
 
    try {
       query_engine::optimizer::QueryPlanGenerator query_plan_generator(database);
@@ -42,11 +42,12 @@ void QueryHandler::post(
       response.setContentType("application/x-ndjson");
       std::ostream& out_stream = response.send();
 
-      auto query_plan = query_plan_generator.createQueryPlan(query_engine::Query{query}, out_stream);
+      auto query = query_engine::Query::parseQuery(query_string);
+      auto query_plan = query_plan_generator.createQueryPlan(query, out_stream);
       query_plan.execute();
    } catch (const silo::BadRequest& ex) {
       response.setContentType("application/json");
-      SPDLOG_INFO("Query is invalid: {}", query, ex.what());
+      SPDLOG_INFO("Query is invalid: {}", query_string, ex.what());
       response.setStatusAndReason(Poco::Net::HTTPResponse::HTTP_BAD_REQUEST);
       std::ostream& out_stream = response.send();
       out_stream << nlohmann::json(ErrorResponse{.error = "Bad request", .message = ex.what()});
