@@ -365,7 +365,6 @@ schema:
       generateIndex: true
       generateLineageIndex: true
   primaryKey: "accessionVersion"
-  partitionBy: "2"
 )",
    .reference_genomes = R"(
 {

@@ -25,6 +25,4 @@ schema:
     - name: qc_value
       type: float
   primaryKey: gisaid_epi_isl
-  dateToSortBy: date
-  partitionBy: pango_lineage
 defaultNucleotideSequence: "main"

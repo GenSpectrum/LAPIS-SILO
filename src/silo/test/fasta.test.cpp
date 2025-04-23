@@ -47,7 +47,6 @@ const auto DATABASE_CONFIG =
     - name: "date"
       type: "date"
   primaryKey: "primaryKey"
-  dateToSortBy: "date"
 )";
 
 const auto REFERENCE_GENOMES = ReferenceGenomes{
