@@ -798,7 +798,8 @@ TEST_P(PreprocessorTestFixture, shouldProcessData) {
 
    auto preprocessing_config = prepareInputDirAndPreprocessorForScenario(scenario);
 
-   auto database = std::make_shared<silo::Database>(silo::preprocessing::preprocessing(preprocessing_config));
+   auto database =
+      std::make_shared<silo::Database>(silo::preprocessing::preprocessing(preprocessing_config));
 
    const auto database_info = database->getDatabaseInfo();
 

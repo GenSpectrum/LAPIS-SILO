@@ -64,7 +64,9 @@ class InsertionAggregation : public Action {
       std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const override;
 
-   arrow::Schema getOutputSchema(const silo::schema::TableSchema& table_schema) const override;
+   std::vector<schema::ColumnIdentifier> getOutputSchema(
+      const silo::schema::TableSchema& table_schema
+   ) const override;
 };
 
 template <typename SymbolType>

@@ -10,12 +10,11 @@ class QueryPlan {
   public:
    std::shared_ptr<arrow::acero::ExecPlan> arrow_plan;
 
-   QueryPlan(){
+   QueryPlan() {
       auto tmp = arrow::acero::ExecPlan::Make();
-      if(tmp.ok()){
+      if (tmp.ok()) {
          arrow_plan = tmp.ValueUnsafe();
-      }
-      else{
+      } else {
          throw std::runtime_error("Could not create ExecPlan");
       }
    }

@@ -160,11 +160,13 @@ QueryResult Aggregated::execute(
    return QueryResult::fromVector(generateResult(final_map));
 }
 
-arrow::Schema Aggregated::getOutputSchema(const schema::TableSchema& table_schema) const {
-   std::vector<std::shared_ptr<arrow::Field>> fields =
+std::vector<schema::ColumnIdentifier> Aggregated::getOutputSchema(
+   const schema::TableSchema& table_schema
+) const {
+   std::vector<schema::ColumnIdentifier> fields =
       columnNamesToFields(this->group_by_fields, table_schema);
-   fields.push_back(std::make_shared<arrow::Field>("count", arrow::int32()));
-   return arrow::Schema{fields};
+   fields.emplace_back("count", schema::ColumnType::INT);
+   return fields;
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

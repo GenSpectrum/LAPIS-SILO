@@ -10,7 +10,7 @@
 
 namespace silo::query_engine {
 
-std::shared_ptr<Query> Query::parseQuery(const std::string& query_string){
+std::shared_ptr<Query> Query::parseQuery(const std::string& query_string) {
    try {
       nlohmann::json json = nlohmann::json::parse(query_string);
       if (!json.contains("filterExpression") || !json["filterExpression"].is_object() ||
@@ -18,7 +18,7 @@ std::shared_ptr<Query> Query::parseQuery(const std::string& query_string){
          throw BadRequest("Query json must contain filterExpression and action.");
       }
       auto filter = json["filterExpression"]
-                  .get<std::unique_ptr<silo::query_engine::filter::expressions::Expression>>();
+                       .get<std::unique_ptr<silo::query_engine::filter::expressions::Expression>>();
       auto action = json["action"].get<std::unique_ptr<silo::query_engine::actions::Action>>();
       return std::make_shared<Query>(std::move(filter), std::move(action));
    } catch (const nlohmann::json::parse_error& ex) {

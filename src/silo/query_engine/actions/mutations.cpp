@@ -317,50 +317,35 @@ QueryResult Mutations<SymbolType>::execute(
 }
 
 template <typename SymbolType>
-arrow::Schema Mutations<SymbolType>::getOutputSchema(const silo::schema::TableSchema& table_schema
+std::vector<schema::ColumnIdentifier> Mutations<SymbolType>::getOutputSchema(
+   const silo::schema::TableSchema& table_schema
 ) const {
-   std::vector<std::shared_ptr<arrow::Field>> output_fields;
+   std::vector<schema::ColumnIdentifier> output_fields;
    if (!std::ranges::find(fields, MUTATION_FIELD_NAME)->empty()) {
-      output_fields.push_back(
-         std::make_shared<arrow::Field>(std::string(MUTATION_FIELD_NAME), arrow::utf8())
-      );
+      output_fields.emplace_back(std::string(MUTATION_FIELD_NAME), schema::ColumnType::STRING);
    }
    if (!std::ranges::find(fields, MUTATION_FROM_FIELD_NAME)->empty()) {
-      output_fields.push_back(
-         std::make_shared<arrow::Field>(std::string(MUTATION_FROM_FIELD_NAME), arrow::utf8())
-      );
+      output_fields.emplace_back(std::string(MUTATION_FROM_FIELD_NAME), schema::ColumnType::STRING);
    }
    if (!std::ranges::find(fields, MUTATION_TO_FIELD_NAME)->empty()) {
-      output_fields.push_back(
-         std::make_shared<arrow::Field>(std::string(MUTATION_TO_FIELD_NAME), arrow::utf8())
-      );
+      output_fields.emplace_back(std::string(MUTATION_TO_FIELD_NAME), schema::ColumnType::STRING);
    }
    if (!std::ranges::find(fields, SEQUENCE_FIELD_NAME)->empty()) {
-      output_fields.push_back(
-         std::make_shared<arrow::Field>(std::string(SEQUENCE_FIELD_NAME), arrow::utf8())
-      );
+      output_fields.emplace_back(std::string(SEQUENCE_FIELD_NAME), schema::ColumnType::STRING);
    }
    if (!std::ranges::find(fields, POSITION_FIELD_NAME)->empty()) {
-      output_fields.push_back(
-         std::make_shared<arrow::Field>(std::string(POSITION_FIELD_NAME), arrow::int32())
-      );
+      output_fields.emplace_back(std::string(POSITION_FIELD_NAME), schema::ColumnType::INT);
    }
    if (!std::ranges::find(fields, PROPORTION_FIELD_NAME)->empty()) {
-      output_fields.push_back(
-         std::make_shared<arrow::Field>(std::string(PROPORTION_FIELD_NAME), arrow::float64())
-      );
+      output_fields.emplace_back(std::string(PROPORTION_FIELD_NAME), schema::ColumnType::FLOAT);
    }
    if (!std::ranges::find(fields, COVERAGE_FIELD_NAME)->empty()) {
-      output_fields.push_back(
-         std::make_shared<arrow::Field>(std::string(COVERAGE_FIELD_NAME), arrow::int32())
-      );
+      output_fields.emplace_back(std::string(COVERAGE_FIELD_NAME), schema::ColumnType::INT);
    }
    if (!std::ranges::find(fields, COUNT_FIELD_NAME)->empty()) {
-      output_fields.push_back(
-         std::make_shared<arrow::Field>(std::string(COUNT_FIELD_NAME), arrow::int32())
-      );
+      output_fields.emplace_back(std::string(COUNT_FIELD_NAME), schema::ColumnType::INT);
    }
-   return arrow::Schema{output_fields};
+   return output_fields;
 }
 
 template <typename SymbolType>

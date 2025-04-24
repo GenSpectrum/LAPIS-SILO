@@ -158,12 +158,16 @@ QueryResult Fasta::execute(const Database& database, std::vector<CopyOnWriteBitm
    });
 }
 
-arrow::Schema Fasta::getOutputSchema(const silo::schema::TableSchema& table_schema) const {
-   auto fields = columnNamesToFields(this->sequence_names, table_schema);
-   fields.push_back(std::make_shared<arrow::Field>(
-      table_schema.primary_key.name, columnTypeToArrowType(table_schema.primary_key.type)
-   ));
-   return arrow::Schema{fields};
+std::vector<schema::ColumnIdentifier> Fasta::getOutputSchema(
+   const silo::schema::TableSchema& table_schema
+) const {
+   std::vector<schema::ColumnIdentifier> fields;
+   for (const auto& sequence_name : sequence_names) {
+      // TODO leave it zstd compressed
+      fields.emplace_back(sequence_name, schema::ColumnType::STRING);
+   }
+   fields.push_back(table_schema.primary_key);
+   return fields;
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

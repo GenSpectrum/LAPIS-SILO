@@ -54,32 +54,17 @@ QueryResult FastaAligned::execute(
    SILO_PANIC("Legacy execute called on action already migrated action. Programming error.");
 }
 
-arrow::Schema FastaAligned::getOutputSchema(const silo::schema::TableSchema& table_schema) const {
-   std::vector<std::shared_ptr<arrow::Field>> fields;
-   for(const auto& sequence_name : sequence_names){
+std::vector<schema::ColumnIdentifier> FastaAligned::getOutputSchema(
+   const silo::schema::TableSchema& table_schema
+) const {
+   std::vector<schema::ColumnIdentifier> fields;
+   for (const auto& sequence_name : sequence_names) {
       auto column = table_schema.getColumn(sequence_name);
-      CHECK_SILO_QUERY(
-         column.has_value(), fmt::format("The table does not contain the field {}", sequence_name)
-      );
-      if(column->type == schema::ColumnType::NUCLEOTIDE_SEQUENCE){
-         auto arrow_type = columnTypeToArrowType(column.value().type);
-         fields.emplace_back(std::make_shared<arrow::Field>(sequence_name, arrow_type));
-      }
+      CHECK_SILO_QUERY(column.has_value(), "Needs to contain X TODO"); // TODO
+      fields.emplace_back(column.value());
    }
-   for(const auto& sequence_name : sequence_names){
-      auto column = table_schema.getColumn(sequence_name);
-      CHECK_SILO_QUERY(
-         column.has_value(), fmt::format("The table does not contain the field {}", sequence_name)
-      );
-      if(column->type == schema::ColumnType::AMINO_ACID_SEQUENCE){
-         auto arrow_type = columnTypeToArrowType(column.value().type);
-         fields.emplace_back(std::make_shared<arrow::Field>(sequence_name, arrow_type));
-      }
-   }
-   fields.push_back(std::make_shared<arrow::Field>(
-      table_schema.primary_key.name, columnTypeToArrowType(table_schema.primary_key.type)
-   ));
-   return arrow::Schema{fields};
+   fields.push_back(table_schema.primary_key);
+   return fields;
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

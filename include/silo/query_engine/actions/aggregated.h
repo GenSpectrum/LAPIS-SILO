@@ -27,7 +27,8 @@ class Aggregated : public Action {
   public:
    Aggregated(std::vector<std::string> group_by_fields);
 
-   arrow::Schema getOutputSchema(const schema::TableSchema& table_schema) const override;
+   std::vector<schema::ColumnIdentifier> getOutputSchema(const schema::TableSchema& table_schema
+   ) const override;
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)

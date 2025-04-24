@@ -100,7 +100,9 @@ class Mutations : public Action {
       std::vector<std::string_view>&& fields
    );
 
-   arrow::Schema getOutputSchema(const silo::schema::TableSchema& table_schema) const override;
+   std::vector<schema::ColumnIdentifier> getOutputSchema(
+      const silo::schema::TableSchema& table_schema
+   ) const override;
 };
 
 template <typename SymbolType>

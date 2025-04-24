@@ -1,8 +1,8 @@
 #pragma once
 
 #include <arrow/acero/exec_plan.h>
-#include <arrow/record_batch.h>
 #include <arrow/builder.h>
+#include <arrow/record_batch.h>
 #include <spdlog/spdlog.h>
 
 #include "silo/query_engine/query.h"
@@ -13,12 +13,19 @@ namespace silo::query_engine::exec_node {
 using filter::expressions::Expression;
 using filter::operators::Operator;
 
-class JsonValueTypeArrayBuilder{
-   std::variant<arrow::Int32Builder, arrow::DoubleBuilder, arrow::StringBuilder, arrow::BooleanBuilder> builder;
+class JsonValueTypeArrayBuilder {
+   std::variant<
+      arrow::Int32Builder,
+      arrow::DoubleBuilder,
+      arrow::StringBuilder,
+      arrow::BooleanBuilder>
+      builder;
+
   public:
    JsonValueTypeArrayBuilder(std::shared_ptr<arrow::DataType> type);
 
-   arrow::Status insert(const std::optional<std::variant<std::string, bool, int32_t, double>>& value);
+   arrow::Status insert(const std::optional<std::variant<std::string, bool, int32_t, double>>& value
+   );
 
    arrow::Datum toDatum() &&;
 };
@@ -30,10 +37,12 @@ class LegacyResultProducer : public arrow::acero::ExecNode {
    std::vector<const std::string*> field_names;
 
   public:
-   LegacyResultProducer(arrow::acero::ExecPlan* plan,
-                        std::shared_ptr<arrow::Schema> output_schema,
-                        std::shared_ptr<Database> database,
-                        std::shared_ptr<Query> query);
+   LegacyResultProducer(
+      arrow::acero::ExecPlan* plan,
+      const std::vector<silo::schema::ColumnIdentifier>& columns,  // TODO const & ?
+      std::shared_ptr<Database> database,
+      std::shared_ptr<Query> query
+   );
 
    virtual const char* kind_name() const override { return "LegacyResultProducer"; }
 
@@ -67,4 +76,4 @@ class LegacyResultProducer : public arrow::acero::ExecNode {
    void ResumeProducing(arrow::acero::ExecNode* output, int32_t counter) override {}
 };
 
-}  // namespace silo::query_engine
+}  // namespace silo::query_engine::exec_node

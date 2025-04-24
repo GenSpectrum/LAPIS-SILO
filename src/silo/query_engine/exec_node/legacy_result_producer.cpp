@@ -1,7 +1,8 @@
 #include "silo/query_engine/exec_node/legacy_result_producer.h"
 
-namespace silo::query_engine::exec_node {
+#include "silo/query_engine/exec_node/arrow_util.h"
 
+namespace silo::query_engine::exec_node {
 
 namespace {
 
@@ -28,97 +29,109 @@ QueryResult createLegacyQueryResult(const Query& query, const Database& database
 
    return query.action->executeAndOrder(database, std::move(partition_filters));
 }
-}
+}  // namespace
 
-JsonValueTypeArrayBuilder::JsonValueTypeArrayBuilder(std::shared_ptr<arrow::DataType> type){
-   if(type == arrow::int32()){
+JsonValueTypeArrayBuilder::JsonValueTypeArrayBuilder(std::shared_ptr<arrow::DataType> type) {
+   if (type == arrow::int32()) {
       builder = arrow::Int32Builder{};
-   }
-   else if(type == arrow::float64()){
+   } else if (type == arrow::float64()) {
       builder = arrow::DoubleBuilder{};
-   }
-   else if(type == arrow::utf8()){
+   } else if (type == arrow::utf8()) {
       builder = arrow::StringBuilder{};
-   }
-   else if(type == arrow::boolean()){
+   } else if (type == arrow::boolean()) {
       builder = arrow::BooleanBuilder{};
-   }
-   else {
+   } else {
       SILO_PANIC("Invalid type found: ", type->ToString());
    }
 }
 
-arrow::Status JsonValueTypeArrayBuilder::insert(const std::optional<std::variant<std::string, bool, int32_t, double>>& value){
+arrow::Status JsonValueTypeArrayBuilder::insert(
+   const std::optional<std::variant<std::string, bool, int32_t, double>>& value
+) {
    if (!value.has_value()) {
-      return std::visit([&](auto& b) {
-         ARROW_RETURN_NOT_OK(b.AppendNull());
-         return arrow::Status::OK();
-      }, builder);
+      return std::visit(
+         [&](auto& b) {
+            ARROW_RETURN_NOT_OK(b.AppendNull());
+            return arrow::Status::OK();
+         },
+         builder
+      );
    }
 
-   return std::visit([&](auto&& val){
-      using T = std::decay_t<decltype(val)>;
+   return std::visit(
+      [&](auto&& val) {
+         using T = std::decay_t<decltype(val)>;
 
-      return std::visit([&](auto& b){
-         using B = std::decay_t<decltype(b)>;
-         if constexpr (std::is_same_v<T, int32_t> && std::is_same_v<B, arrow::Int32Builder>) {
-            ARROW_RETURN_NOT_OK(b.Append(val));
-         } else if constexpr (std::is_same_v<T, double> && std::is_same_v<B, arrow::DoubleBuilder>) {
-            ARROW_RETURN_NOT_OK(b.Append(val));
-         } else if constexpr (std::is_same_v<T, std::string> && std::is_same_v<B, arrow::StringBuilder>) {
-            ARROW_RETURN_NOT_OK(b.Append(val));
-         } else if constexpr (std::is_same_v<T, bool> && std::is_same_v<B, arrow::BooleanBuilder>) {
-            ARROW_RETURN_NOT_OK(b.Append(val));
-         } else {
-            SILO_PANIC("Type mismatch between value and builder");
-         }
-         return arrow::Status::OK();
-      }, builder);
-   }, value.value());
+         return std::visit(
+            [&](auto& b) {
+               using B = std::decay_t<decltype(b)>;
+               if constexpr (std::is_same_v<T, int32_t> && std::is_same_v<B, arrow::Int32Builder>) {
+                  ARROW_RETURN_NOT_OK(b.Append(val));
+               } else if constexpr (std::is_same_v<T, double> && std::is_same_v<B, arrow::DoubleBuilder>) {
+                  ARROW_RETURN_NOT_OK(b.Append(val));
+               } else if constexpr (std::is_same_v<T, std::string> && std::is_same_v<B, arrow::StringBuilder>) {
+                  ARROW_RETURN_NOT_OK(b.Append(val));
+               } else if constexpr (std::is_same_v<T, bool> && std::is_same_v<B, arrow::BooleanBuilder>) {
+                  ARROW_RETURN_NOT_OK(b.Append(val));
+               } else {
+                  SILO_PANIC("Type mismatch between value and builder");
+               }
+               return arrow::Status::OK();
+            },
+            builder
+         );
+      },
+      value.value()
+   );
 }
 
 arrow::Datum JsonValueTypeArrayBuilder::toDatum() && {
-   return std::visit([&](auto& b){
-      using B = std::decay_t<decltype(b)>;
-      if constexpr (std::is_same_v<B, arrow::Int32Builder>) {
-         auto& array = get<arrow::Int32Builder>(builder);
-         return arrow::Datum{array.Finish().ValueOrDie()}; // TODO
-      } else if constexpr (std::is_same_v<B, arrow::DoubleBuilder>) {
-         auto& array = get<arrow::DoubleBuilder>(builder);
-         return arrow::Datum{array.Finish().ValueOrDie()}; // TODO
-      } else if constexpr (std::is_same_v<B, arrow::StringBuilder>) {
-         auto& array = get<arrow::StringBuilder>(builder);
-         return arrow::Datum{array.Finish().ValueOrDie()}; // TODO
-      } else if constexpr (std::is_same_v<B, arrow::BooleanBuilder>) {
-         auto& array = get<arrow::BooleanBuilder>(builder);
-         return arrow::Datum{array.Finish().ValueOrDie()}; // TODO
-      } else {
-         SILO_PANIC("Type mismatch between value and builder");
-      }
-   }, builder);
+   return std::visit(
+      [&](auto& b) {
+         using B = std::decay_t<decltype(b)>;
+         if constexpr (std::is_same_v<B, arrow::Int32Builder>) {
+            auto& array = get<arrow::Int32Builder>(builder);
+            return arrow::Datum{array.Finish().ValueOrDie()};  // TODO
+         } else if constexpr (std::is_same_v<B, arrow::DoubleBuilder>) {
+            auto& array = get<arrow::DoubleBuilder>(builder);
+            return arrow::Datum{array.Finish().ValueOrDie()};  // TODO
+         } else if constexpr (std::is_same_v<B, arrow::StringBuilder>) {
+            auto& array = get<arrow::StringBuilder>(builder);
+            return arrow::Datum{array.Finish().ValueOrDie()};  // TODO
+         } else if constexpr (std::is_same_v<B, arrow::BooleanBuilder>) {
+            auto& array = get<arrow::BooleanBuilder>(builder);
+            return arrow::Datum{array.Finish().ValueOrDie()};  // TODO
+         } else {
+            SILO_PANIC("Type mismatch between value and builder");
+         }
+      },
+      builder
+   );
 }
 
-LegacyResultProducer::LegacyResultProducer(arrow::acero::ExecPlan* plan,
-                                           std::shared_ptr<arrow::Schema> output_schema,
-                                           std::shared_ptr<Database> database,
-                                           std::shared_ptr<Query> query)
-       : arrow::acero::ExecNode(plan, {}, {}, output_schema) {
-      query_result = createLegacyQueryResult(*query, *database);
-      for(auto& field : output_schema_.get()->fields()){
-         field_names.emplace_back(&field->name());
-      }
-      prepareOutputArrays();
+LegacyResultProducer::LegacyResultProducer(
+   arrow::acero::ExecPlan* plan,
+   const std::vector<silo::schema::ColumnIdentifier>& columns,  // TODO const & ?
+   std::shared_ptr<Database> database,
+   std::shared_ptr<Query> query
+)
+    : arrow::acero::ExecNode(plan, {}, {}, columnsToArrowSchema(columns)) {
+   query_result = createLegacyQueryResult(*query, *database);
+   for (auto& field : output_schema_.get()->fields()) {
+      field_names.emplace_back(&field->name());
    }
+   prepareOutputArrays();
+}
 
-void LegacyResultProducer::prepareOutputArrays(){
-   for(auto& field : output_schema_.get()->fields()){
+void LegacyResultProducer::prepareOutputArrays() {
+   for (auto& field : output_schema_.get()->fields()) {
       arrays.emplace_back(field->type());
    }
 }
 
 arrow::Status LegacyResultProducer::flushOutput() {
    std::vector<arrow::Datum> data;
-   for(auto& array : arrays){
+   for (auto& array : arrays) {
       data.push_back((std::move(array)).toDatum());
    }
    arrow::ExecBatch exec_batch;
@@ -133,20 +146,24 @@ static constexpr size_t MATERIALIZATION_CUTOFF = 50000;
 arrow::Status LegacyResultProducer::produce() {
    size_t num_rows = 0;
    std::optional<QueryResultEntry> row;
-   while((row = query_result.next())){
+   while ((row = query_result.next())) {
       ++num_rows;
-      for(size_t field_idx = 0; field_idx<field_names.size(); ++field_idx){
+      for (size_t field_idx = 0; field_idx < field_names.size(); ++field_idx) {
          const auto field_name = field_names.at(field_idx);
          const common::JsonValueType& field_value = row.value().fields.at(*field_name);
 
          auto status = arrays.at(field_idx).insert(field_value);
-         if(status.IsCapacityError()){
-            throw std::runtime_error(fmt::format("Response size too large. Materializing {} rows required more than allowed {} bytes", MATERIALIZATION_CUTOFF, INT32_MAX));
+         if (status.IsCapacityError()) {
+            throw std::runtime_error(fmt::format(
+               "Response size too large. Materializing {} rows required more than allowed {} bytes",
+               MATERIALIZATION_CUTOFF,
+               INT32_MAX
+            ));
          }
          ARROW_RETURN_NOT_OK(status);
       }
 
-      if(num_rows > MATERIALIZATION_CUTOFF){
+      if (num_rows > MATERIALIZATION_CUTOFF) {
          ARROW_RETURN_NOT_OK(flushOutput());
       }
    }
@@ -162,4 +179,4 @@ arrow::Status LegacyResultProducer::StopProducing() {
    return arrow::Status::OK();
 }
 
-}  // namespace silo::query_engine
+}  // namespace silo::query_engine::exec_node

@@ -53,7 +53,9 @@ class Action {
       std::optional<uint32_t> randomize_seed
    );
 
-   virtual arrow::Schema getOutputSchema(const silo::schema::TableSchema& table_schema) const = 0;
+   virtual std::vector<schema::ColumnIdentifier> getOutputSchema(
+      const silo::schema::TableSchema& table_schema
+   ) const = 0;
 
    [[nodiscard]] virtual QueryResult executeAndOrder(
       const Database& database,
@@ -70,15 +72,9 @@ std::optional<uint32_t> parseRandomizeSeed(const nlohmann::json& json);
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action);
 
-std::vector<std::shared_ptr<arrow::Field>> columnNamesToFields(
+std::vector<silo::schema::ColumnIdentifier> columnNamesToFields(
    const std::vector<std::string>& column_names,
    const silo::schema::TableSchema& table_schema
 );
-std::vector<std::shared_ptr<arrow::Field>> columnNamesToFields(
-   const std::vector<std::string_view>& column_names,
-   const silo::schema::TableSchema& table_schema
-);
-
-const std::shared_ptr<arrow::DataType> columnTypeToArrowType(schema::ColumnType column_type);
 
 }  // namespace silo::query_engine::actions

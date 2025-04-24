@@ -17,7 +17,6 @@
 namespace silo::query_engine::actions {
 
 class FastaAligned : public Action {
-
    void validateOrderByFields(const schema::TableSchema& schema) const override;
 
    [[nodiscard]] QueryResult execute(
@@ -29,7 +28,9 @@ class FastaAligned : public Action {
    std::vector<std::string> sequence_names;
    explicit FastaAligned(std::vector<std::string>&& sequence_names);
 
-   arrow::Schema getOutputSchema(const silo::schema::TableSchema& table_schema) const override;
+   std::vector<schema::ColumnIdentifier> getOutputSchema(
+      const silo::schema::TableSchema& table_schema
+   ) const override;
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)

@@ -6,8 +6,8 @@
 
 #include "silo/query_engine/actions/fasta.h"
 #include "silo/query_engine/actions/fasta_aligned.h"
-#include "silo/query_engine/exec_node/select.h"
 #include "silo/query_engine/exec_node/legacy_result_producer.h"
+#include "silo/query_engine/exec_node/select.h"
 
 namespace silo::query_engine::optimizer {
 
@@ -62,67 +62,67 @@ class NdjsonSinkNode : public arrow::acero::ExecNode {
 
    virtual const char* kind_name() const override { return "NdjsonSinkNode"; }
 
-   class ScalarToJsonTypeVisitor : public arrow::ScalarVisitor{
+   class ScalarToJsonTypeVisitor : public arrow::ScalarVisitor {
       std::ostream* output_stream;
+
      public:
-      ScalarToJsonTypeVisitor(std::ostream* output_stream) : output_stream(output_stream) {}
+      ScalarToJsonTypeVisitor(std::ostream* output_stream)
+          : output_stream(output_stream) {}
 
-      arrow::Status Visit(const arrow::Int32Scalar &scalar) override {
+      arrow::Status Visit(const arrow::Int32Scalar& scalar) override {
          *output_stream << scalar.value;
          return arrow::Status::OK();
       }
 
-      arrow::Status Visit(const arrow::DoubleScalar &scalar) override {
+      arrow::Status Visit(const arrow::DoubleScalar& scalar) override {
          *output_stream << scalar.value;
          return arrow::Status::OK();
       }
 
-      arrow::Status Visit(const arrow::StringScalar &scalar) override {
+      arrow::Status Visit(const arrow::StringScalar& scalar) override {
          *output_stream << "\"" << scalar.ToString() << "\"";
          return arrow::Status::OK();
       }
 
-      arrow::Status Visit(const arrow::BooleanScalar &scalar) override {
+      arrow::Status Visit(const arrow::BooleanScalar& scalar) override {
          *output_stream << (scalar.value ? "true" : "false");
          return arrow::Status::OK();
       }
-
    };
 
-   void writeRecordBatchAsNdjson(std::shared_ptr<arrow::RecordBatch> record_batch){
+   void writeRecordBatchAsNdjson(std::shared_ptr<arrow::RecordBatch> record_batch) {
       arrow::Status status;
       size_t row_count = record_batch->num_rows();
       size_t column_count = record_batch->num_columns();
 
       std::vector<std::string> prepared_column_strings_for_json_attributes;
-      for(const auto& column : record_batch->schema()->field_names()){
+      for (const auto& column : record_batch->schema()->field_names()) {
          prepared_column_strings_for_json_attributes.emplace_back(fmt::format("\"{}\":", column));
       }
 
-      for(size_t row_idx = 0; row_idx < row_count; row_idx++){
+      for (size_t row_idx = 0; row_idx < row_count; row_idx++) {
          *output_stream << "{";
-         for(size_t column_idx = 0; column_idx < column_count; column_idx++){
-            if(column_idx != 0){
+         for (size_t column_idx = 0; column_idx < column_count; column_idx++) {
+            if (column_idx != 0) {
                *output_stream << ",";
             }
             const auto& column = record_batch->columns().at(column_idx);
             *output_stream << prepared_column_strings_for_json_attributes.at(column_idx);
 
-            if(column->IsNull(row_idx)){
+            if (column->IsNull(row_idx)) {
                *output_stream << "null";
-            }
-            else{
+            } else {
                const auto& scalar = column->GetScalar(row_idx).ValueOrDie();
                ScalarToJsonTypeVisitor my_visitor(output_stream);
-               status = scalar->Accept(&my_visitor); // TODO smth with status
-               if(!status.ok()){
+               status = scalar->Accept(&my_visitor);  // TODO smth with status
+               if (!status.ok()) {
                   throw std::runtime_error("ERR " + status.ToString());
                }
             }
          }
          *output_stream << "}\n";
       }
-  }
+   }
 
    arrow::Status InputReceived(arrow::acero::ExecNode* input, arrow::compute::ExecBatch batch)
       override {
@@ -197,25 +197,33 @@ class ArrowSinkNode : public arrow::acero::ExecNode {
    void PauseProducing(arrow::acero::ExecNode* output, int32_t counter) override {}
 };
 
-QueryPlan QueryPlanGenerator::createQueryPlan(std::shared_ptr<Query> query, std::ostream& output_stream) {
+QueryPlan QueryPlanGenerator::createQueryPlan(
+   std::shared_ptr<Query> query,
+   std::ostream& output_stream
+) {
    QueryPlan query_plan;
    auto table_schema = database->schema.tables.at(schema::TableName::getDefault());
-   auto output_schema =
-      std::make_shared<arrow::Schema>(query->action->getOutputSchema(table_schema));
    auto fasta_aligned_action = dynamic_cast<actions::FastaAligned*>(query->action.get());
    // TODO move to `toExecNode` method
    // but it will sometimes be more than one exec_node? select -> order -> limit
    std::unique_ptr<arrow::acero::ExecNode> source_node;
-   if(fasta_aligned_action != nullptr){
-      source_node = std::make_unique<exec_node::Select>(query_plan.arrow_plan.get(), *fasta_aligned_action, *query->filter, database);
+   if (fasta_aligned_action != nullptr) {
+      source_node = std::make_unique<exec_node::Select>(
+         query_plan.arrow_plan.get(),
+         fasta_aligned_action->getOutputSchema(table_schema),
+         *query->filter,
+         database
+      );
+   } else {
+      source_node = std::make_unique<exec_node::LegacyResultProducer>(
+         query_plan.arrow_plan.get(), query->action->getOutputSchema(table_schema), database, query
+      );
    }
-   else{
-      source_node =
-         std::make_unique<exec_node::LegacyResultProducer>(query_plan.arrow_plan.get(), output_schema, database, query);
-   }
-   std::unique_ptr<arrow::acero::ExecNode> sink_node =
-      std::make_unique<NdjsonSinkNode>(query_plan.arrow_plan.get(), &output_stream, source_node.get());
-   // TODO make configurable std::make_unique<ArrowSinkNode>(query_plan.arrow_plan.get(), &output_stream, source_node.get());
+   std::unique_ptr<arrow::acero::ExecNode> sink_node = std::make_unique<NdjsonSinkNode>(
+      query_plan.arrow_plan.get(), &output_stream, source_node.get()
+   );
+   // TODO make configurable std::make_unique<ArrowSinkNode>(query_plan.arrow_plan.get(),
+   // &output_stream, source_node.get());
 
    query_plan.arrow_plan->AddNode(std::move(source_node));
    query_plan.arrow_plan->AddNode(std::move(sink_node));

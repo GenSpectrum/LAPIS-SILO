@@ -225,13 +225,10 @@ QueryResult Details::executeAndOrder(
    return results_in_format;
 }
 
-arrow::Schema Details::getOutputSchema(const silo::schema::TableSchema& table_schema) const {
-   auto output_columns = parseFields(table_schema, fields);
-   std::vector<std::shared_ptr<arrow::Field>> output_fields;
-   for(const auto& [name, type] : output_columns){
-      output_fields.emplace_back(std::make_shared<arrow::Field>(name, columnTypeToArrowType(type)));
-   }
-   return arrow::Schema{output_fields};
+std::vector<schema::ColumnIdentifier> Details::getOutputSchema(
+   const silo::schema::TableSchema& table_schema
+) const {
+   return parseFields(table_schema, fields);
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
