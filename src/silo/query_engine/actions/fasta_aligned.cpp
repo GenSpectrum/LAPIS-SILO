@@ -27,8 +27,8 @@
 
 namespace silo::query_engine::actions {
 
-FastaAligned::FastaAligned(std::vector<std::string>&& sequence_names)
-    : sequence_names(sequence_names) {}
+FastaAligned::FastaAligned(std::vector<std::string>&& sequence_names, std::vector<std::string>&& additional_fields)
+    : sequence_names(sequence_names), additional_fields(additional_fields) {}
 
 void FastaAligned::validateOrderByFields(const schema::TableSchema& schema) const {
    const std::string& primary_key_field = schema.primary_key.name;
@@ -60,7 +60,12 @@ std::vector<schema::ColumnIdentifier> FastaAligned::getOutputSchema(
    std::vector<schema::ColumnIdentifier> fields;
    for (const auto& sequence_name : sequence_names) {
       auto column = table_schema.getColumn(sequence_name);
-      CHECK_SILO_QUERY(column.has_value(), "Needs to contain X TODO"); // TODO
+      CHECK_SILO_QUERY(column.has_value(), "Needs to contain X TODO");  // TODO also a sequence name
+      fields.emplace_back(column.value());
+   }
+   for (const auto& sequence_name : additional_fields) {
+      auto column = table_schema.getColumn(sequence_name);
+      CHECK_SILO_QUERY(column.has_value(), "Needs to contain X2 TODO");  // TODO
       fields.emplace_back(column.value());
    }
    fields.push_back(table_schema.primary_key);
@@ -89,7 +94,19 @@ void from_json(const nlohmann::json& json, std::unique_ptr<FastaAligned>& action
    } else {
       sequence_names.emplace_back(json["sequenceName"].get<std::string>());
    }
-   action = std::make_unique<FastaAligned>(std::move(sequence_names));
+   std::vector<std::string> additional_fields;
+   if (json.contains("additionalFields") && json["additionalFields"].is_array()) {
+      for (const auto& child : json["additionalFields"]) {
+         CHECK_SILO_QUERY(
+            child.is_string(),
+            "FastaAligned action must have the field sequenceName of type string or an array "
+            "of strings; while parsing array encountered the element " +
+               child.dump() + " which is not of type string"
+         );
+         additional_fields.emplace_back(child.get<std::string>());
+      }
+   }
+   action = std::make_unique<FastaAligned>(std::move(sequence_names), std::move(additional_fields));
 }
 
 }  // namespace silo::query_engine::actions

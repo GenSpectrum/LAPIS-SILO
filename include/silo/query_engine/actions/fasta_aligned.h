@@ -26,7 +26,8 @@ class FastaAligned : public Action {
 
   public:
    std::vector<std::string> sequence_names;
-   explicit FastaAligned(std::vector<std::string>&& sequence_names);
+   std::vector<std::string> additional_fields;
+   explicit FastaAligned(std::vector<std::string>&& sequence_names, std::vector<std::string>&& additional_fields);
 
    std::vector<schema::ColumnIdentifier> getOutputSchema(
       const silo::schema::TableSchema& table_schema

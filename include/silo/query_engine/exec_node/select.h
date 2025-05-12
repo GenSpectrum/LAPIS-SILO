@@ -14,15 +14,14 @@
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/query_result.h"
+#include "silo/storage/column/column_type_visitor.h"
 
 namespace silo::query_engine::exec_node {
 
 class Select : public arrow::acero::ExecNode {
   public:
-   std::string primary_key_column_name;
-   arrow::StringBuilder primary_key_array;
-
-#define X(Column, ColumnType, name) std::vector<ArrowBuilder<Column>> name##_arrays;
+   // TODO change from X Pattern to variant struct
+#define X(Column, ColumnType, name) std::map<std::string, ArrowBuilder<Column>> name##_arrays;
 #include "silo/storage/column/all_column_names.h"
 #undef X
 
@@ -52,21 +51,22 @@ class Select : public arrow::acero::ExecNode {
          partition_filters.emplace_back(part_filter->evaluate());
       }
       prepareOutputArrays();
-      primary_key_column_name = database->schema.getDefaultTableSchema().primary_key.name;
    }
 
-   void prepareOutputArrays() {
-      for (const auto& [name, type] : output_fields) {
-         switch (type) {
-#define X(Column, ColumnType, name) \
-   case ColumnType:                 \
-      name##_arrays.emplace_back(); \
-      break;
+  public:
+   template <storage::column::Column ActualColumn>
+   std::map<std::string, ArrowBuilder<ActualColumn>>& getColumnTypeArrayBuilders() {
+#define X(Column, ColumnType, name)                      \
+   if constexpr (std::is_same<Column, ActualColumn>()) { \
+      return name##_arrays;                              \
+   } else
 #include "silo/storage/column/all_column_names.h"
 #undef X
-         }
-      }
+      { SILO_UNREACHABLE(); }
    }
+
+  private:
+   void prepareOutputArrays();
 
    virtual const char* kind_name() const override { return "LegacyResultProducer"; }
 
@@ -93,126 +93,16 @@ class Select : public arrow::acero::ExecNode {
 
    void ResumeProducing(arrow::acero::ExecNode* output, int32_t counter) override {}
 
-   arrow::Status flushOutput() {
-      std::vector<arrow::Datum> data;
-      for (auto& array : nucleotide_sequence_column_arrays) {
-         data.push_back(array.get()->Finish().ValueOrDie());
-      }
-      for (auto& array : amino_acid_sequence_column_arrays) {
-         data.push_back(array.get()->Finish().ValueOrDie());
-      }
-      data.push_back(primary_key_array.Finish().ValueOrDie());
-      arrow::ExecBatch exec_batch;
-      ARROW_ASSIGN_OR_RAISE(exec_batch, arrow::compute::ExecBatch::Make(data));
-      Select* node = this;  // TODO remove this verbosity again
-      auto cast_node = static_cast<ExecNode*>(node);
-      ARROW_RETURN_NOT_OK(this->output_->InputReceived(cast_node, exec_batch));
-      return arrow::Status::OK();
-   }
+   arrow::Status flushOutput();
 
    static constexpr size_t MATERIALIZATION_CUTOFF = 50000;
 
-   arrow::Status produce() {
-      for (size_t partition_idx = 0; partition_idx < table->getNumberOfPartitions();
-           ++partition_idx) {
-         auto& filter_for_partition = partition_filters.at(partition_idx);
-         if (filter_for_partition->isEmpty()) {
-            continue;
-         }
-         size_t num_rows_produced_in_part = 0;
-         uint32_t start_of_next_batch;  // Row id in SILO
-         uint32_t end_of_next_batch;    // Row id in SILO
-         while (true) {
-            if (!filter_for_partition->select(num_rows_produced_in_part, &start_of_next_batch)) {
-               break;
-            }
-            if (!filter_for_partition->select(
-                   num_rows_produced_in_part + MATERIALIZATION_CUTOFF - 1, &end_of_next_batch
-                )) {
-               filter_for_partition->select(
-                  filter_for_partition->cardinality() - 1, &end_of_next_batch
-               );
-               num_rows_produced_in_part = filter_for_partition->cardinality();
-            } else {
-               num_rows_produced_in_part += MATERIALIZATION_CUTOFF;
-            };
-            auto row_ids = roaring::Roaring{};
-            row_ids.addRange(start_of_next_batch, end_of_next_batch + 1);
-            row_ids &= *filter_for_partition;
-            ARROW_RETURN_NOT_OK(appendEntries(table->getPartition(partition_idx), row_ids));
-            ARROW_RETURN_NOT_OK(flushOutput());
-         }
-      }
-      ARROW_RETURN_NOT_OK(flushOutput());
-      return arrow::Status::OK();
-   }
+   arrow::Status produce();
 
    arrow::Status appendEntries(
       const storage::TablePartition& table_partition,
       const roaring::Roaring& row_ids
-   ) {
-      for (auto row_id : row_ids) {
-         ARROW_RETURN_NOT_OK(primary_key_array.Append(get<std::string>(
-            table_partition.columns.getValue(primary_key_column_name, row_id).value()
-         )));
-      }
-      size_t sequence_idx = 0;
-      for (auto& output_array : nucleotide_sequence_column_arrays) {
-         const auto& sequence_store =
-            table_partition.columns.nuc_columns.at(output_schema_->field(sequence_idx)->name());
-         ARROW_RETURN_NOT_OK(appendSequences<Nucleotide>(sequence_store, row_ids, *output_array.get()));
-         sequence_idx++;
-      }
-      for (auto& output_array : amino_acid_sequence_column_arrays) {
-         const auto& sequence_store =
-            table_partition.columns.aa_columns.at(output_schema_->field(sequence_idx)->name());
-         ARROW_RETURN_NOT_OK(appendSequences<AminoAcid>(sequence_store, row_ids, *output_array.get()));
-         sequence_idx++;
-      }
-      return arrow::Status::OK();
-   }
-
-   template <typename SymbolType>
-   arrow::Status appendSequences(
-      const storage::column::SequenceColumnPartition<SymbolType>& sequence_store,
-      const roaring::Roaring& row_ids,
-      arrow::StringBuilder& output_array
-   ) {
-      std::string partition_reference;
-      std::ranges::transform(
-         sequence_store.metadata->reference_sequence,
-         std::back_inserter(partition_reference),
-         SymbolType::symbolToChar
-      );
-
-      for (const auto& [position_id, symbol] :
-           sequence_store.indexing_differences_to_reference_sequence) {
-         partition_reference[position_id] = SymbolType::symbolToChar(symbol);
-      }
-
-      std::vector<std::string> reconstructed_sequences(row_ids.cardinality(), partition_reference);
-
-      for (size_t position_id = 0; position_id < sequence_store.positions.size(); position_id++) {
-         const Position<SymbolType>& position = sequence_store.positions.at(position_id);
-         for (const auto symbol : SymbolType::SYMBOLS) {
-            if (position.isSymbolFlipped(symbol) || position.isSymbolDeleted(symbol)) {
-               continue;
-            }
-            for (size_t row_id : *position.getBitmap(symbol) & row_ids) {
-               reconstructed_sequences[row_id][position_id] = SymbolType::symbolToChar(symbol);
-            }
-         }
-      }
-
-      for (size_t row_id : row_ids) {
-         for (const size_t position_idx : sequence_store.missing_symbol_bitmaps.at(row_id)) {
-            reconstructed_sequences[row_id][position_idx] =
-               SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING);
-         }
-      }
-      ARROW_RETURN_NOT_OK(output_array.AppendValues(reconstructed_sequences));
-      return arrow::Status::OK();
-   }
+   );
 };
 
 }  // namespace silo::query_engine::exec_node

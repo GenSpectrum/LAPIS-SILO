@@ -118,7 +118,7 @@ const Scenario<Success> NDJSON_FILE_WITH_MISSING_SEGMENTS_AND_GENES = {
       []() {
          std::vector<NdjsonInputLine> result;
          result.push_back(
-            {.metadata = {{"accessionVersion", "1.1"}},
+            {.metadata = {{"accessionVersion", "1.1"}, {"country", "Switzerland"}},
              .alignedNucleotideSequences = {{"main", "NNACTGNN"}, {"secondSegment", nullptr}},
              .unalignedNucleotideSequences =
                 {{"main", "ATTAAAGGTTTATACCTTCCCAGGTAACAAACCAACCAACTTTCGATCT"},
@@ -131,7 +131,7 @@ const Scenario<Success> NDJSON_FILE_WITH_MISSING_SEGMENTS_AND_GENES = {
                 {{"someLongGene", {"123:RNRNRN"}}, {"someShortGene", {"123:RN"}}}}
          );
          result.push_back(
-            {.metadata = {{"accessionVersion", "1.3"}},
+            {.metadata = {{"accessionVersion", "1.3"}, {"country", "Germany"}},
              .alignedNucleotideSequences = {{"main", nullptr}, {"secondSegment", nullptr}},
              .unalignedNucleotideSequences = {{"main", nullptr}, {"secondSegment", nullptr}},
              .alignedAminoAcidSequences{{"someLongGene", nullptr}, {"someShortGene", nullptr}},
@@ -146,6 +146,8 @@ schema:
   instanceName: "Test"
   metadata:
     - name: "accessionVersion"
+      type: "string"
+    - name: "country"
       type: "string"
   primaryKey: "accessionVersion"
 )",
@@ -179,7 +181,8 @@ schema:
             "action": {
               "type": "FastaAligned",
               "sequenceName": ["someShortGene", "secondSegment"],
-              "orderByFields": ["accessionVersion"]
+               "orderByFields": ["accessionVersion"],
+               "additionalFields": ["country"]
             },
             "filterExpression": {
                "type": "True"
@@ -189,11 +192,13 @@ schema:
       .expected_query_result = nlohmann::json::parse(R"(
    [{
       "accessionVersion": "1.1",
+      "country": "Switzerland",
       "someShortGene": "MADS",
       "secondSegment": "NNNNNNNNNNNNNNNN"
    },
    {
       "accessionVersion": "1.3",
+      "country": "Germany",
       "someShortGene": "XXXX",
       "secondSegment": "NNNNNNNNNNNNNNNN"
    }])")
