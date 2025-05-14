@@ -82,17 +82,6 @@ struct ArrowBuilderSelector<storage::column::DateColumnPartition> {
 };
 
 template <storage::column::Column ColumnType>
-class ArrowBuilder {
-  public:
-   using BuilderType = typename ArrowBuilderSelector<ColumnType>::builder_type;
-
-   ArrowBuilder()
-       : builder(std::make_unique<BuilderType>()) {}
-
-   BuilderType* get() { return builder.get(); }
-
-  private:
-   std::unique_ptr<BuilderType> builder;
-};
+using ArrowBuilder = typename ArrowBuilderSelector<ColumnType>::builder_type;
 
 }  // namespace silo::query_engine::exec_node

@@ -18,13 +18,9 @@
 
 namespace silo::query_engine::exec_node {
 
-// TODO change to TableScan
 class TableScan : public arrow::acero::ExecNode {
   public:
-   // TODO change from X Pattern to variant struct
-#define X(Column, ColumnType, name) std::map<std::string, ArrowBuilder<Column>> name##_arrays;
-#include "silo/storage/column/all_column_names.h"
-#undef X
+   std::map<schema::ColumnType, std::map<std::string, std::unique_ptr<arrow::ArrayBuilder>>> array_builders;
 
    std::vector<CopyOnWriteBitmap> partition_filters;
 
@@ -52,16 +48,13 @@ class TableScan : public arrow::acero::ExecNode {
    }
 
   public:
-   template <storage::column::Column ActualColumn>
-   std::map<std::string, ArrowBuilder<ActualColumn>>& getColumnTypeArrayBuilders() {
-// TODO think whether we actually need the X-pattern
-#define X(Column, ColumnType, name)                      \
-   if constexpr (std::is_same<Column, ActualColumn>()) { \
-      return name##_arrays;                              \
-   } else
-#include "silo/storage/column/all_column_names.h"
-#undef X
-      { SILO_UNREACHABLE(); }
+   template <storage::column::Column Column>
+   std::map<std::string, ArrowBuilder<Column>*> getColumnTypeArrayBuilders() {
+      std::map<std::string, ArrowBuilder<Column>*> result;
+      for(auto& [builder_name, builder] : array_builders.at(Column::TYPE)){
+         result.emplace(builder_name, dynamic_cast<ArrowBuilder<Column>*>(builder.get()));
+      }
+      return result;
    }
 
   private:

@@ -50,7 +50,7 @@ class ColumnEntryAppender {
   public:
    template <storage::column::Column Column>
    arrow::Status operator()(
-      TableScan& select_node,
+      TableScan& table_scan_node,
       const std::string& column_name,
       const storage::TablePartition& table_partition,
       const roaring::Roaring& row_ids
@@ -59,49 +59,49 @@ class ColumnEntryAppender {
 
 template <>
 arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumnPartition<Nucleotide>>(
-   TableScan& select_node,
+   TableScan& table_scan_node,
    const std::string& column_name,
    const storage::TablePartition& table_partition,
    const roaring::Roaring& row_ids
 ) {
-   auto& array =
-      select_node.getColumnTypeArrayBuilders<storage::column::SequenceColumnPartition<Nucleotide>>()
+   auto array =
+      table_scan_node.getColumnTypeArrayBuilders<storage::column::SequenceColumnPartition<Nucleotide>>()
          .at(column_name);
    return appendSequences<Nucleotide>(
-      table_partition.columns.nuc_columns.at(column_name), row_ids, *array.get()
+      table_partition.columns.nuc_columns.at(column_name), row_ids, *array
    );
 }
 
 template <>
 arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumnPartition<AminoAcid>>(
-   TableScan& select_node,
+   TableScan& table_scan_node,
    const std::string& column_name,
    const storage::TablePartition& table_partition,
    const roaring::Roaring& row_ids
 ) {
-   auto& array =
-      select_node.getColumnTypeArrayBuilders<storage::column::SequenceColumnPartition<AminoAcid>>()
+   auto array =
+      table_scan_node.getColumnTypeArrayBuilders<storage::column::SequenceColumnPartition<AminoAcid>>()
          .at(column_name);
    return appendSequences<AminoAcid>(
-      table_partition.columns.aa_columns.at(column_name), row_ids, *array.get()
+      table_partition.columns.aa_columns.at(column_name), row_ids, *array
    );
 }
 
 template <storage::column::Column Column>
 arrow::Status ColumnEntryAppender::operator()(
-   TableScan& select_node,
+   TableScan& table_scan_node,
    const std::string& column_name,
    const storage::TablePartition& table_partition,
    const roaring::Roaring& row_ids
 ) {
-   auto& array = select_node.getColumnTypeArrayBuilders<Column>().at(column_name);
+   auto array = table_scan_node.getColumnTypeArrayBuilders<Column>().at(column_name);
    for (auto row_id : row_ids) {
       using type = ArrowBuilderSelector<Column>::value_type;
       auto value = table_partition.columns.getValue(column_name, row_id);
       if (!value.has_value()) {
          SILO_PANIC("Could not get value");  // TODO
       }
-      ARROW_RETURN_NOT_OK(array.get()->Append(get<type>(value.value())));
+      ARROW_RETURN_NOT_OK(array->Append(get<type>(value.value())));
    }
    return arrow::Status::OK();
 }
@@ -158,7 +158,7 @@ arrow::Status TableScan::produce() {
 void TableScan::prepareOutputArrays() {
    for (const auto& [name, type] : output_fields) {
       storage::column::visit(type, [&]<storage::column::Column Column>() {
-         getColumnTypeArrayBuilders<Column>().emplace(name, ArrowBuilder<Column>{});
+         array_builders[type].emplace(name, std::make_unique<ArrowBuilder<Column>>());
       });
    }
 }
@@ -167,8 +167,8 @@ arrow::Status TableScan::flushOutput() {
    std::vector<arrow::Datum> data;
    for (auto& field : output_fields) {
       storage::column::visit(field.type, [&]<storage::column::Column Column>() {
-         auto& array = getColumnTypeArrayBuilders<Column>().at(field.name);
-         data.push_back(array.get()->Finish().ValueOrDie());
+         auto array = getColumnTypeArrayBuilders<Column>().at(field.name);
+         data.push_back(array->Finish().ValueOrDie());
       });
    }
    arrow::ExecBatch exec_batch;
