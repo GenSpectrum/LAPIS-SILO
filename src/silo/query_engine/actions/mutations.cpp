@@ -274,7 +274,7 @@ void Mutations<SymbolType>::addMutationsToOutput(
 
 template <typename SymbolType>
 QueryResult Mutations<SymbolType>::execute(
-   const std::shared_ptr<const storage::Table>& table,
+   std::shared_ptr<const storage::Table> table,
    std::vector<CopyOnWriteBitmap> bitmap_filter
 ) const {
    std::vector<std::string> sequence_names_to_evaluate;

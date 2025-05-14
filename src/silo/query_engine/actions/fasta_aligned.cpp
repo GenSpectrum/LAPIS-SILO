@@ -54,7 +54,7 @@ void FastaAligned::validateOrderByFields(const schema::TableSchema& schema) cons
 }
 
 QueryResult FastaAligned::execute(
-   const std::shared_ptr<const storage::Table>& table,
+   std::shared_ptr<const storage::Table> table,
    std::vector<CopyOnWriteBitmap> bitmap_filter
 ) const {
    SILO_PANIC("Legacy execute called on action already migrated action. Programming error.");
@@ -79,7 +79,7 @@ std::vector<schema::ColumnIdentifier> FastaAligned::getOutputSchema(
 }
 
 QueryPlan FastaAligned::toQueryPlan(
-   const std::shared_ptr<const storage::Table>& table,
+   std::shared_ptr<const storage::Table> table,
    const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
    std::ostream& output_stream
 ) {

@@ -37,7 +37,8 @@ class Select : public arrow::acero::ExecNode {
       arrow::acero::ExecPlan* plan,
       const std::vector<silo::schema::ColumnIdentifier>& columns,
       const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
-      const std::shared_ptr<const storage::Table>& table
+      std::shared_ptr<const storage::Table> table,
+
    )
        : arrow::acero::ExecNode(plan, {}, {}, columnsToArrowSchema(columns)),
          output_fields(columns),

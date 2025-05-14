@@ -17,7 +17,8 @@ class Details : public Action {
    std::vector<std::string> fields;
 
    [[nodiscard]] QueryResult execute(
-      const std::shared_ptr<const storage::Table>& table,
+      std::shared_ptr<const storage::Table> table,
+
       std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const override;
 
@@ -27,7 +28,7 @@ class Details : public Action {
    void validateOrderByFields(const schema::TableSchema& schema) const override;
 
    [[nodiscard]] QueryResult executeAndOrder(
-      const std::shared_ptr<const storage::Table>& table,
+      std::shared_ptr<const storage::Table> table,
       std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const override;
 

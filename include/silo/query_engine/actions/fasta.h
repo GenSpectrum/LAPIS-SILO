@@ -21,7 +21,8 @@ class Fasta : public Action {
    void validateOrderByFields(const schema::TableSchema& schema) const override;
 
    [[nodiscard]] QueryResult execute(
-      const std::shared_ptr<const storage::Table>& table,
+      std::shared_ptr<const storage::Table> table,
+
       std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const override;
 

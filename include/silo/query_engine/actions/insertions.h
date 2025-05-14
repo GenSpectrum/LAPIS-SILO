@@ -50,7 +50,8 @@ class InsertionAggregation : public Action {
 
    std::unordered_map<std::string, InsertionAggregation<SymbolType>::PrefilteredBitmaps>
    validateFieldsAndPreFilterBitmaps(
-      const std::shared_ptr<const storage::Table>& table,
+      std::shared_ptr<const storage::Table> table,
+
       std::vector<CopyOnWriteBitmap>& bitmap_filter
    ) const;
 
@@ -60,7 +61,8 @@ class InsertionAggregation : public Action {
    void validateOrderByFields(const schema::TableSchema& schema) const override;
 
    [[nodiscard]] QueryResult execute(
-      const std::shared_ptr<const storage::Table>& table,
+      std::shared_ptr<const storage::Table> table,
+
       std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const override;
 

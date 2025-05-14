@@ -109,7 +109,8 @@ void Action::setOrdering(
 static const size_t MATERIALIZATION_CUTOFF = 10000;
 
 QueryResult Action::executeAndOrder(
-   const std::shared_ptr<const storage::Table>& table,
+   std::shared_ptr<const storage::Table> table,
+
    std::vector<CopyOnWriteBitmap> bitmap_filter
 ) const {
    validateOrderByFields(table->schema);
@@ -287,7 +288,8 @@ std::vector<schema::ColumnIdentifier> columnNamesToFields(
 }
 
 QueryPlan Action::toQueryPlan(
-   const std::shared_ptr<const storage::Table>& table,
+   std::shared_ptr<const storage::Table> table,
+
    const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
    std::ostream& output_stream
 ) {

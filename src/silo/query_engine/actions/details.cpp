@@ -57,7 +57,7 @@ void Details::validateOrderByFields(const schema::TableSchema& schema) const {
 }
 
 QueryResult Details::execute(
-   const std::shared_ptr<const storage::Table>& /*table*/,
+   std::shared_ptr<const storage::Table> table,
    std::vector<CopyOnWriteBitmap> /*bitmap_filter*/
 ) const {
    return QueryResult{};
@@ -182,7 +182,7 @@ std::vector<Tuple> produceAllTuples(
 }  // namespace
 
 QueryResult Details::executeAndOrder(
-   const std::shared_ptr<const storage::Table>& table,
+   std::shared_ptr<const storage::Table> table,
    std::vector<CopyOnWriteBitmap> bitmap_filter
 ) const {
    validateOrderByFields(table->schema);

@@ -60,7 +60,7 @@ void InsertionAggregation<
 namespace {
 template <typename SymbolType>
 void validateSequenceNames(
-   const std::shared_ptr<const storage::Table>& table,
+   std::shared_ptr<const storage::Table> table,
    const std::vector<std::string>& sequence_names
 ) {
    for (const std::string& sequence_name : sequence_names) {
@@ -77,7 +77,7 @@ void validateSequenceNames(
 template <typename SymbolType>
 std::unordered_map<std::string, typename InsertionAggregation<SymbolType>::PrefilteredBitmaps>
 InsertionAggregation<SymbolType>::validateFieldsAndPreFilterBitmaps(
-   const std::shared_ptr<const storage::Table>& table,
+   std::shared_ptr<const storage::Table> table,
    std::vector<CopyOnWriteBitmap>& bitmap_filter
 ) const {
    validateSequenceNames<SymbolType>(table, sequence_names);
@@ -188,7 +188,7 @@ void InsertionAggregation<SymbolType>::addAggregatedInsertionsToInsertionCounts(
 
 template <typename SymbolType>
 QueryResult InsertionAggregation<SymbolType>::execute(
-   const std::shared_ptr<const storage::Table>& table,
+   std::shared_ptr<const storage::Table> table,
    std::vector<CopyOnWriteBitmap> bitmap_filter
 ) const {
    const auto bitmaps_to_evaluate = validateFieldsAndPreFilterBitmaps(table, bitmap_filter);

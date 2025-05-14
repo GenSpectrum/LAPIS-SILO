@@ -12,7 +12,7 @@ using filter::operators::Operator;
 QueryResult createLegacyQueryResult(
    const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
    const actions::Action* action,
-   const std::shared_ptr<const storage::Table>& table
+   std::shared_ptr<const storage::Table> table
 ) {
    std::vector<CopyOnWriteBitmap> partition_filters;
    partition_filters.reserve(table->getNumberOfPartitions());
@@ -104,7 +104,7 @@ arrow::Datum JsonValueTypeArrayBuilder::toDatum() && {
 LegacyResultProducer::LegacyResultProducer(
    arrow::acero::ExecPlan* plan,
    const std::vector<silo::schema::ColumnIdentifier>& columns,  // TODO const & ?
-   const std::shared_ptr<const storage::Table>& table,
+   std::shared_ptr<const storage::Table> table,
    const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
    const actions::Action* action
 )

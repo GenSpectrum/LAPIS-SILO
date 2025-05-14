@@ -96,7 +96,7 @@ void Aggregated::validateOrderByFields(const schema::TableSchema& schema) const 
 }
 
 QueryResult Aggregated::execute(
-   const std::shared_ptr<const storage::Table>& table,
+   std::shared_ptr<const storage::Table> table,
    std::vector<CopyOnWriteBitmap> bitmap_filters
 ) const {
    if (group_by_fields.empty()) {

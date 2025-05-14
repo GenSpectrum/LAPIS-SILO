@@ -20,7 +20,7 @@ class FastaAligned : public Action {
    void validateOrderByFields(const schema::TableSchema& schema) const override;
 
    [[nodiscard]] QueryResult execute(
-      const std::shared_ptr<const storage::Table>& table,
+      std::shared_ptr<const storage::Table> table,
       std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const override;
 
@@ -33,7 +33,8 @@ class FastaAligned : public Action {
    );
 
    QueryPlan toQueryPlan(
-      const std::shared_ptr<const storage::Table>& table,
+      std::shared_ptr<const storage::Table> table,
+
       const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
       std::ostream& output_stream
    ) override;

@@ -40,7 +40,7 @@ class Action {
    [[nodiscard]] virtual QueryResult execute(
       /// Life time: until query result was delivered (and the lock
       /// inside `FixedDatabase` is released)
-      const std::shared_ptr<const storage::Table>& table,  // TODO remove const &
+      std::shared_ptr<const storage::Table> table,
       std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const = 0;
 
@@ -50,7 +50,8 @@ class Action {
 
    // If this method is not overloaded, a LegacyResultProducer will be created instead
    virtual QueryPlan toQueryPlan(
-      const std::shared_ptr<const storage::Table>& table,  // TODO remove const &
+      std::shared_ptr<const storage::Table> table,
+
       const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
       std::ostream& output_stream
    );
@@ -67,7 +68,7 @@ class Action {
    ) const = 0;
 
    [[nodiscard]] virtual QueryResult executeAndOrder(
-      const std::shared_ptr<const storage::Table>& table,  // TODO remove const &
+      std::shared_ptr<const storage::Table> table,
       std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const;
 };
