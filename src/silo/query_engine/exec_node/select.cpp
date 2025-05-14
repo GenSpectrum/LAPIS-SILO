@@ -151,6 +151,7 @@ arrow::Status Select::produce() {
       }
    }
    ARROW_RETURN_NOT_OK(flushOutput());
+   ARROW_RETURN_NOT_OK(output_->InputFinished(this, num_batches));
    return arrow::Status::OK();
 }
 
@@ -173,6 +174,7 @@ arrow::Status Select::flushOutput() {
    arrow::ExecBatch exec_batch;
    ARROW_ASSIGN_OR_RAISE(exec_batch, arrow::compute::ExecBatch::Make(data));
    ARROW_RETURN_NOT_OK(this->output_->InputReceived(static_cast<ExecNode*>(this), exec_batch));
+   ++num_batches;
    return arrow::Status::OK();
 }
 

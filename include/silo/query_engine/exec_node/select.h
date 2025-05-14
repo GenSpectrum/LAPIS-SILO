@@ -32,6 +32,9 @@ class Select : public arrow::acero::ExecNode {
 
    const std::shared_ptr<const storage::Table> table;
 
+   // We need to tell the consumer how many batches we produced in total
+   size_t num_batches;
+
   public:
    Select(
       arrow::acero::ExecPlan* plan,
@@ -89,6 +92,7 @@ class Select : public arrow::acero::ExecNode {
 
    void ResumeProducing(arrow::acero::ExecNode* output, int32_t counter) override {}
 
+  private:
    arrow::Status flushOutput();
 
    static constexpr size_t MATERIALIZATION_CUTOFF = 50000;

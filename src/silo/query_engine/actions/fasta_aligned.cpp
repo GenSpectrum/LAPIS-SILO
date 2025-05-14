@@ -5,13 +5,9 @@
 #include <optional>
 #include <utility>
 
+#include <arrow/acero/exec_plan.h>
 #include <fmt/format.h>
-#include <oneapi/tbb/blocked_range.h>
-#include <oneapi/tbb/parallel_for.h>
-#include <silo/common/numbers.h>
-#include <silo/common/range.h>
 #include <spdlog/spdlog.h>
-#include <boost/numeric/conversion/cast.hpp>
 #include <nlohmann/json.hpp>
 
 #include "silo/common/aa_symbols.h"
@@ -84,16 +80,19 @@ QueryPlan FastaAligned::toQueryPlan(
    std::ostream& output_stream
 ) {
    QueryPlan query_plan;
-   auto source_node = query_plan.arrow_plan->EmplaceNode<exec_node::Select>(
+   arrow::acero::ExecNode* node = query_plan.arrow_plan->EmplaceNode<exec_node::Select>(
       query_plan.arrow_plan.get(), getOutputSchema(table->schema), partition_filter_operators, table
    );
 
-   if(!order_by_fields.empty()){
-
+   if(auto ordering = getOrdering()){
+      node = arrow::acero::MakeExecNode(
+         std::string{arrow::acero::OrderByNodeOptions::kName}, query_plan.arrow_plan.get(),
+         {node},
+         arrow::acero::OrderByNodeOptions{ordering.value()}).ValueOrDie(); // TODO do not die
    }
 
-   auto sink_node = query_plan.arrow_plan->EmplaceNode<exec_node::NdjsonSink>(
-      query_plan.arrow_plan.get(), &output_stream, source_node
+   query_plan.arrow_plan->EmplaceNode<exec_node::NdjsonSink>(
+      query_plan.arrow_plan.get(), &output_stream, node
    );
    // TODO make configurable std::make_unique<ArrowSinkNode>(query_plan.arrow_plan.get(),
    // &output_stream, source_node.get());

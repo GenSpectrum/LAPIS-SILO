@@ -9,6 +9,7 @@
 #include <utility>
 
 #include <arrow/acero/exec_plan.h>
+#include <arrow/compute/ordering.h>
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
@@ -104,6 +105,19 @@ void Action::setOrdering(
    limit = limit_;
    offset = offset_;
    randomize_seed = randomize_seed_;
+}
+
+std::optional<arrow::Ordering> Action::getOrdering() {
+   using arrow::compute::SortOrder;
+   if(order_by_fields.empty()){
+      return std::nullopt;
+   }
+   std::vector<arrow::compute::SortKey> sort_keys;
+   for(auto order_by_field : order_by_fields){
+      auto sort_order = order_by_field.ascending ? SortOrder::Ascending : SortOrder::Descending;
+      sort_keys.emplace_back(order_by_field.name, sort_order);
+   }
+   return {sort_keys};
 }
 
 static const size_t MATERIALIZATION_CUTOFF = 10000;
