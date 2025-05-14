@@ -18,8 +18,12 @@
 namespace silo::api {
 using silo::query_engine::QueryResultEntry;
 
-QueryHandler::QueryHandler(std::shared_ptr<ActiveDatabase> database_handle)
-    : database_handle(database_handle) {}
+QueryHandler::QueryHandler(
+   std::shared_ptr<ActiveDatabase> database_handle,
+   config::QueryOptions query_options
+)
+    : query_options(std::move(query_options)),
+      database_handle(database_handle) {}
 
 void QueryHandler::post(
    Poco::Net::HTTPServerRequest& request,
@@ -43,7 +47,7 @@ void QueryHandler::post(
       std::ostream& out_stream = response.send();
 
       auto query = query_engine::Query::parseQuery(query_string);
-      auto query_plan = query_plan_generator.createQueryPlan(query, out_stream);
+      auto query_plan = query_plan_generator.createQueryPlan(query, out_stream, query_options);
       query_plan.execute();
    } catch (const silo::BadRequest& ex) {
       response.setContentType("application/json");

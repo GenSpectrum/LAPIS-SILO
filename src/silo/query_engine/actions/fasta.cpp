@@ -161,7 +161,7 @@ std::vector<schema::ColumnIdentifier> Fasta::getOutputSchema(
 ) const {
    std::vector<schema::ColumnIdentifier> fields;
    for (const auto& sequence_name : sequence_names) {
-      // TODO leave it zstd compressed
+      // TODO(#763) leave it zstd compressed
       fields.emplace_back(sequence_name, schema::ColumnType::STRING);
    }
    fields.push_back(table_schema.primary_key);

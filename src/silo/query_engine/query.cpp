@@ -30,8 +30,11 @@ std::shared_ptr<Query> Query::parseQuery(const std::string& query_string) {
    }
 }
 
-QueryPlan Query::toQueryPlan(std::shared_ptr<Database> database, std::ostream& output_stream)
-   const {
+QueryPlan Query::toQueryPlan(
+   std::shared_ptr<Database> database,
+   std::ostream& output_stream,
+   const config::QueryOptions& query_options
+) const {
    SPDLOG_DEBUG("Parsed filter: {}", filter->toString());
 
    std::vector<std::unique_ptr<filter::operators::Operator>> partition_filter_operators;
@@ -46,7 +49,9 @@ QueryPlan Query::toQueryPlan(std::shared_ptr<Database> database, std::ostream& o
       SPDLOG_DEBUG("Simplified query: {}", partition_filter_operators.back()->toString());
    };
 
-   return action->toQueryPlan(database->table, partition_filter_operators, output_stream);
+   return action->toQueryPlan(
+      database->table, partition_filter_operators, output_stream, query_options
+   );
 }
 
 }  // namespace silo::query_engine

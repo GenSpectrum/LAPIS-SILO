@@ -20,7 +20,8 @@ namespace silo::query_engine::exec_node {
 
 class TableScan : public arrow::acero::ExecNode {
   public:
-   std::map<schema::ColumnType, std::map<std::string, std::unique_ptr<arrow::ArrayBuilder>>> array_builders;
+   std::map<schema::ColumnType, std::map<std::string, std::unique_ptr<arrow::ArrayBuilder>>>
+      array_builders;
 
    std::vector<CopyOnWriteBitmap> partition_filters;
 
@@ -51,7 +52,7 @@ class TableScan : public arrow::acero::ExecNode {
    template <storage::column::Column Column>
    std::map<std::string, ArrowBuilder<Column>*> getColumnTypeArrayBuilders() {
       std::map<std::string, ArrowBuilder<Column>*> result;
-      for(auto& [builder_name, builder] : array_builders.at(Column::TYPE)){
+      for (auto& [builder_name, builder] : array_builders.at(Column::TYPE)) {
          result.emplace(builder_name, dynamic_cast<ArrowBuilder<Column>*>(builder.get()));
       }
       return result;

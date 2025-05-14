@@ -65,7 +65,8 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumnPar
    const roaring::Roaring& row_ids
 ) {
    auto array =
-      table_scan_node.getColumnTypeArrayBuilders<storage::column::SequenceColumnPartition<Nucleotide>>()
+      table_scan_node
+         .getColumnTypeArrayBuilders<storage::column::SequenceColumnPartition<Nucleotide>>()
          .at(column_name);
    return appendSequences<Nucleotide>(
       table_partition.columns.nuc_columns.at(column_name), row_ids, *array
@@ -80,7 +81,8 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumnPar
    const roaring::Roaring& row_ids
 ) {
    auto array =
-      table_scan_node.getColumnTypeArrayBuilders<storage::column::SequenceColumnPartition<AminoAcid>>()
+      table_scan_node
+         .getColumnTypeArrayBuilders<storage::column::SequenceColumnPartition<AminoAcid>>()
          .at(column_name);
    return appendSequences<AminoAcid>(
       table_partition.columns.aa_columns.at(column_name), row_ids, *array

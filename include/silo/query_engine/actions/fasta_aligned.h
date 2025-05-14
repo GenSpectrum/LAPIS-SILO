@@ -6,6 +6,7 @@
 
 #include <nlohmann/json_fwd.hpp>
 
+#include "silo/config/runtime_config.h"
 #include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/bad_request.h"
@@ -34,9 +35,9 @@ class FastaAligned : public Action {
 
    QueryPlan toQueryPlan(
       std::shared_ptr<const storage::Table> table,
-
       const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
-      std::ostream& output_stream
+      std::ostream& output_stream,
+      const config::QueryOptions& query_options
    ) override;
 
    std::vector<schema::ColumnIdentifier> getOutputSchema(

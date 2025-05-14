@@ -109,11 +109,11 @@ void Action::setOrdering(
 
 std::optional<arrow::Ordering> Action::getOrdering() {
    using arrow::compute::SortOrder;
-   if(order_by_fields.empty()){
+   if (order_by_fields.empty()) {
       return std::nullopt;
    }
    std::vector<arrow::compute::SortKey> sort_keys;
-   for(auto order_by_field : order_by_fields){
+   for (auto order_by_field : order_by_fields) {
       auto sort_order = order_by_field.ascending ? SortOrder::Ascending : SortOrder::Descending;
       sort_keys.emplace_back(order_by_field.name, sort_order);
    }
@@ -304,7 +304,8 @@ std::vector<schema::ColumnIdentifier> columnNamesToFields(
 QueryPlan Action::toQueryPlan(
    std::shared_ptr<const storage::Table> table,
    const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
-   std::ostream& output_stream
+   std::ostream& output_stream,
+   const config::QueryOptions& query_options
 ) {
    QueryPlan query_plan;
    auto source_node = query_plan.arrow_plan->EmplaceNode<exec_node::LegacyResultProducer>(
@@ -313,14 +314,13 @@ QueryPlan Action::toQueryPlan(
       table,
       partition_filter_operators,
       this,
-      50000 // TODO
+      query_options.materialization_cutoff
    );
 
-   auto sink_node = query_plan.arrow_plan->EmplaceNode<exec_node::NdjsonSink>(
+   // TODO(#764) make output format configurable
+   query_plan.arrow_plan->EmplaceNode<exec_node::NdjsonSink>(
       query_plan.arrow_plan.get(), &output_stream, source_node
    );
-   // TODO make configurable std::make_unique<ArrowSinkNode>(query_plan.arrow_plan.get(),
-   // &output_stream, source_node.get());
 
    return query_plan;
 }

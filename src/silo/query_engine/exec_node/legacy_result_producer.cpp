@@ -79,26 +79,27 @@ arrow::Status JsonValueTypeArrayBuilder::insert(
 
 arrow::Result<arrow::Datum> JsonValueTypeArrayBuilder::toDatum() {
    return std::visit(
-      [&](auto& b) {
-         using B = std::decay_t<decltype(b)>;
-         if constexpr (std::is_same_v<B, arrow::Int32Builder>) {
-            auto& array = get<arrow::Int32Builder>(builder);
-            return array.Finish();
-         } else if constexpr (std::is_same_v<B, arrow::DoubleBuilder>) {
-            auto& array = get<arrow::DoubleBuilder>(builder);
-            return array.Finish();
-         } else if constexpr (std::is_same_v<B, arrow::StringBuilder>) {
-            auto& array = get<arrow::StringBuilder>(builder);
-            return array.Finish();
-         } else if constexpr (std::is_same_v<B, arrow::BooleanBuilder>) {
-            auto& array = get<arrow::BooleanBuilder>(builder);
-            return array.Finish();
-         } else {
-            SILO_PANIC("Type mismatch between value and builder");
-         }
-      },
-      builder
-   ).Map([](auto&& x){return arrow::Datum{x};});
+             [&](auto& b) {
+                using B = std::decay_t<decltype(b)>;
+                if constexpr (std::is_same_v<B, arrow::Int32Builder>) {
+                   auto& array = get<arrow::Int32Builder>(builder);
+                   return array.Finish();
+                } else if constexpr (std::is_same_v<B, arrow::DoubleBuilder>) {
+                   auto& array = get<arrow::DoubleBuilder>(builder);
+                   return array.Finish();
+                } else if constexpr (std::is_same_v<B, arrow::StringBuilder>) {
+                   auto& array = get<arrow::StringBuilder>(builder);
+                   return array.Finish();
+                } else if constexpr (std::is_same_v<B, arrow::BooleanBuilder>) {
+                   auto& array = get<arrow::BooleanBuilder>(builder);
+                   return array.Finish();
+                } else {
+                   SILO_PANIC("Type mismatch between value and builder");
+                }
+             },
+             builder
+   )
+      .Map([](auto&& x) { return arrow::Datum{x}; });
 }
 
 LegacyResultProducer::LegacyResultProducer(
@@ -109,7 +110,8 @@ LegacyResultProducer::LegacyResultProducer(
    const actions::Action* action,
    size_t materialization_cutoff
 )
-    : arrow::acero::ExecNode(plan, {}, {}, columnsToArrowSchema(columns)), materialization_cutoff(materialization_cutoff) {
+    : arrow::acero::ExecNode(plan, {}, {}, columnsToArrowSchema(columns)),
+      materialization_cutoff(materialization_cutoff) {
    query_result = createLegacyQueryResult(partition_filter_operators, action, table);
    for (auto& field : output_schema_.get()->fields()) {
       field_names.emplace_back(&field->name());
@@ -163,7 +165,7 @@ arrow::Status LegacyResultProducer::produce() {
          num_rows = 0;
       }
    }
-   if(num_rows > 0){
+   if (num_rows > 0) {
       ARROW_RETURN_NOT_OK(flushOutput());
    }
    return arrow::Status::OK();

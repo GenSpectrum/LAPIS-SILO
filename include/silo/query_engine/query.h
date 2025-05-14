@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include "silo/config/runtime_config.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 
@@ -21,8 +22,11 @@ struct Query {
 
    static std::shared_ptr<Query> parseQuery(const std::string& query_string);
 
-   QueryPlan toQueryPlan(std::shared_ptr<silo::Database> database, std::ostream& output_stream)
-      const;
+   QueryPlan toQueryPlan(
+      std::shared_ptr<silo::Database> database,
+      std::ostream& output_stream,
+      const config::QueryOptions& query_options
+   ) const;
 };
 
 }  // namespace silo::query_engine

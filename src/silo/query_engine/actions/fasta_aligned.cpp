@@ -77,18 +77,22 @@ std::vector<schema::ColumnIdentifier> FastaAligned::getOutputSchema(
 QueryPlan FastaAligned::toQueryPlan(
    std::shared_ptr<const storage::Table> table,
    const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
-   std::ostream& output_stream
+   std::ostream& output_stream,
+   const config::QueryOptions& query_options
 ) {
    QueryPlan query_plan;
    arrow::acero::ExecNode* node = query_plan.arrow_plan->EmplaceNode<exec_node::TableScan>(
       query_plan.arrow_plan.get(), getOutputSchema(table->schema), partition_filter_operators, table
    );
 
-   if(auto ordering = getOrdering()){
+   if (auto ordering = getOrdering()) {
       node = arrow::acero::MakeExecNode(
-         std::string{arrow::acero::OrderByNodeOptions::kName}, query_plan.arrow_plan.get(),
-         {node},
-         arrow::acero::OrderByNodeOptions{ordering.value()}).ValueOrDie(); // TODO do not die
+                std::string{arrow::acero::OrderByNodeOptions::kName},
+                query_plan.arrow_plan.get(),
+                {node},
+                arrow::acero::OrderByNodeOptions{ordering.value()}
+      )
+                .ValueOrDie();  // TODO do not die
    }
 
    query_plan.arrow_plan->EmplaceNode<exec_node::NdjsonSink>(

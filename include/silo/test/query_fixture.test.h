@@ -101,7 +101,9 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
             silo::query_engine::optimizer::QueryPlanGenerator query_plan_generator(shared_database);
             auto query = query_engine::Query::parseQuery(scenario.query.dump());
             std::stringstream buffer;
-            auto query_plan = query_plan_generator.createQueryPlan(query, buffer);
+            auto query_plan = query_plan_generator.createQueryPlan(
+               query, buffer, config::RuntimeConfig::withDefaults().query_options
+            );
             query_plan.execute();
             FAIL() << "Expected an error in test case, but noting was thrown";
          } catch (const std::exception& e) {
@@ -111,7 +113,9 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
          silo::query_engine::optimizer::QueryPlanGenerator query_plan_generator(shared_database);
          auto query = query_engine::Query::parseQuery(scenario.query.dump());
          std::stringstream buffer;
-         auto query_plan = query_plan_generator.createQueryPlan(query, buffer);
+         auto query_plan = query_plan_generator.createQueryPlan(
+            query, buffer, config::RuntimeConfig::withDefaults().query_options
+         );
          query_plan.execute();
          nlohmann::json actual_ndjson_result_as_array = nlohmann::json::array();
          std::string line;

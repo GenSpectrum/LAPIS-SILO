@@ -9,6 +9,7 @@
 #include <arrow/acero/exec_plan.h>
 #include <nlohmann/json_fwd.hpp>
 
+#include "silo/config/runtime_config.h"
 #include "silo/database.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/operators/operator.h"
@@ -51,9 +52,9 @@ class Action {
    // If this method is not overloaded, a LegacyResultProducer will be created instead
    virtual QueryPlan toQueryPlan(
       std::shared_ptr<const storage::Table> table,
-
       const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
-      std::ostream& output_stream
+      std::ostream& output_stream,
+      const config::QueryOptions& query_options
    );
 
    void setOrdering(

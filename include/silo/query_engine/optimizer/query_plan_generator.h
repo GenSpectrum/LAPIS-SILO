@@ -12,7 +12,11 @@ class QueryPlanGenerator {
   public:
    QueryPlanGenerator(std::shared_ptr<silo::Database> database);
 
-   QueryPlan createQueryPlan(std::shared_ptr<Query> query, std::ostream& output_stream);
+   QueryPlan createQueryPlan(
+      std::shared_ptr<Query> query,
+      std::ostream& output_stream,
+      const config::QueryOptions& query_options
+   );
 };
 
 }  // namespace silo::query_engine::optimizer

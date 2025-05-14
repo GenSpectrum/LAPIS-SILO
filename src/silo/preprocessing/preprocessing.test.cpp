@@ -813,7 +813,9 @@ TEST_P(PreprocessorTestFixture, shouldProcessData) {
    std::stringstream actual_result_stream;
    silo::query_engine::optimizer::QueryPlanGenerator query_plan_generator(database);
    auto query = silo::query_engine::Query::parseQuery(scenario.assertion.query);
-   auto query_plan = query_plan_generator.createQueryPlan(query, actual_result_stream);
+   auto query_plan = query_plan_generator.createQueryPlan(
+      query, actual_result_stream, silo::config::RuntimeConfig::withDefaults().query_options
+   );
    query_plan.execute();
    nlohmann::json actual_ndjson_result_as_array = nlohmann::json::array();
    std::string line;

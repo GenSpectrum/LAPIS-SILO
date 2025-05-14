@@ -16,9 +16,10 @@ QueryPlanGenerator::QueryPlanGenerator(std::shared_ptr<silo::Database> database)
 
 QueryPlan QueryPlanGenerator::createQueryPlan(
    std::shared_ptr<Query> query,
-   std::ostream& output_stream
+   std::ostream& output_stream,
+   const config::QueryOptions& query_options
 ) {
-   return query->toQueryPlan(database, output_stream);
+   return query->toQueryPlan(database, output_stream, query_options);
 }
 
 }  // namespace silo::query_engine::optimizer
