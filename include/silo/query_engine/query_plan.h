@@ -10,9 +10,7 @@ class QueryPlan {
   public:
    std::shared_ptr<arrow::acero::ExecPlan> arrow_plan;
 
-   QueryPlan() {
-      arrow_plan = arrow::acero::ExecPlan::Make().ValueOrDie();  // TODO do not die
-   }
+   QueryPlan() { auto status = arrow::acero::ExecPlan::Make().Value(&arrow_plan); }
 
    void execute();
 };

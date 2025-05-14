@@ -86,13 +86,29 @@ QueryPlan FastaAligned::toQueryPlan(
    );
 
    if (auto ordering = getOrdering()) {
+      // Create an OrderByNode and put it on top, then replace `node` with the created OrderBy
       auto status = arrow::acero::MakeExecNode(
-                std::string{arrow::acero::OrderByNodeOptions::kName},
-                query_plan.arrow_plan.get(),
-                {node},
-                arrow::acero::OrderByNodeOptions{ordering.value()}
-      ).Value(&node);
-      if(!status.ok()){
+                       std::string{arrow::acero::OrderByNodeOptions::kName},
+                       query_plan.arrow_plan.get(),
+                       {node},
+                       arrow::acero::OrderByNodeOptions{ordering.value()}
+      )
+                       .Value(&node);
+      if (!status.ok()) {
+         SILO_PANIC("Arrow error: {}", status.ToString());
+      }
+   }
+   if (limit.has_value() || offset.has_value()) {
+      // Create a FetchNode and put it on top, then replace `node` with the created FetchNode
+      arrow::acero::FetchNodeOptions fetch_options(offset.value_or(0), limit.value_or(UINT32_MAX));
+      auto status = arrow::acero::MakeExecNode(
+                       std::string{arrow::acero::FetchNodeOptions::kName},
+                       query_plan.arrow_plan.get(),
+                       {node},
+                       fetch_options
+      )
+                       .Value(&node);
+      if (!status.ok()) {
          SILO_PANIC("Arrow error: {}", status.ToString());
       }
    }
