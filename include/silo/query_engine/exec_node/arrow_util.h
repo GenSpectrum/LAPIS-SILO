@@ -75,7 +75,6 @@ struct ArrowBuilderSelector<storage::column::IntColumnPartition> {
    using value_type = int32_t;
 };
 
-// TODO change name
 template <>
 struct ArrowBuilderSelector<storage::column::DateColumnPartition> {
    using builder_type = arrow::StringBuilder;

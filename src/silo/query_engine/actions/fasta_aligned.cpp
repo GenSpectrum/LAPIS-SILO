@@ -19,7 +19,7 @@
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
-#include "silo/query_engine/exec_node/select.h"
+#include "silo/query_engine/exec_node/table_scan.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/column/sequence_column.h"
 
@@ -80,7 +80,7 @@ QueryPlan FastaAligned::toQueryPlan(
    std::ostream& output_stream
 ) {
    QueryPlan query_plan;
-   arrow::acero::ExecNode* node = query_plan.arrow_plan->EmplaceNode<exec_node::Select>(
+   arrow::acero::ExecNode* node = query_plan.arrow_plan->EmplaceNode<exec_node::TableScan>(
       query_plan.arrow_plan.get(), getOutputSchema(table->schema), partition_filter_operators, table
    );
 

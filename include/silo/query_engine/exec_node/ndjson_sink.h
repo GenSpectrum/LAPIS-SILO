@@ -46,8 +46,7 @@ class NdjsonSink : public arrow::acero::ExecNode {
       }
    };
 
-   void writeRecordBatchAsNdjson(std::shared_ptr<arrow::RecordBatch> record_batch) {
-      arrow::Status status;
+   arrow::Status writeRecordBatchAsNdjson(std::shared_ptr<arrow::RecordBatch> record_batch) {
       size_t row_count = record_batch->num_rows();
       size_t column_count = record_batch->num_columns();
 
@@ -70,21 +69,19 @@ class NdjsonSink : public arrow::acero::ExecNode {
             } else {
                const auto& scalar = column->GetScalar(row_idx).ValueOrDie();
                ScalarToJsonTypeVisitor my_visitor(output_stream);
-               status = scalar->Accept(&my_visitor);  // TODO smth with status
-               if (!status.ok()) {
-                  throw std::runtime_error("ERR " + status.ToString());
-               }
+               ARROW_RETURN_NOT_OK(scalar->Accept(&my_visitor));
             }
          }
          *output_stream << "}\n";
       }
+      return arrow::Status::OK();
    }
 
    arrow::Status InputReceived(arrow::acero::ExecNode* input, arrow::compute::ExecBatch batch)
       override {
       std::shared_ptr<arrow::RecordBatch> record_batch;
       ARROW_ASSIGN_OR_RAISE(record_batch, batch.ToRecordBatch(input->output_schema()));
-      writeRecordBatchAsNdjson(record_batch);
+      ARROW_RETURN_NOT_OK(writeRecordBatchAsNdjson(record_batch));
       batches_written += 1;
       if (batches_written == total_batches_from_input) {
          output_stream = nullptr;

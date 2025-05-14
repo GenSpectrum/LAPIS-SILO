@@ -77,38 +77,39 @@ arrow::Status JsonValueTypeArrayBuilder::insert(
    );
 }
 
-arrow::Datum JsonValueTypeArrayBuilder::toDatum() && {
+arrow::Result<arrow::Datum> JsonValueTypeArrayBuilder::toDatum() {
    return std::visit(
       [&](auto& b) {
          using B = std::decay_t<decltype(b)>;
          if constexpr (std::is_same_v<B, arrow::Int32Builder>) {
             auto& array = get<arrow::Int32Builder>(builder);
-            return arrow::Datum{array.Finish().ValueOrDie()};  // TODO
+            return array.Finish();
          } else if constexpr (std::is_same_v<B, arrow::DoubleBuilder>) {
             auto& array = get<arrow::DoubleBuilder>(builder);
-            return arrow::Datum{array.Finish().ValueOrDie()};  // TODO
+            return array.Finish();
          } else if constexpr (std::is_same_v<B, arrow::StringBuilder>) {
             auto& array = get<arrow::StringBuilder>(builder);
-            return arrow::Datum{array.Finish().ValueOrDie()};  // TODO
+            return array.Finish();
          } else if constexpr (std::is_same_v<B, arrow::BooleanBuilder>) {
             auto& array = get<arrow::BooleanBuilder>(builder);
-            return arrow::Datum{array.Finish().ValueOrDie()};  // TODO
+            return array.Finish();
          } else {
             SILO_PANIC("Type mismatch between value and builder");
          }
       },
       builder
-   );
+   ).Map([](auto&& x){return arrow::Datum{x};});
 }
 
 LegacyResultProducer::LegacyResultProducer(
    arrow::acero::ExecPlan* plan,
-   const std::vector<silo::schema::ColumnIdentifier>& columns,  // TODO const & ?
+   const std::vector<silo::schema::ColumnIdentifier>& columns,
    std::shared_ptr<const storage::Table> table,
    const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
-   const actions::Action* action
+   const actions::Action* action,
+   size_t materialization_cutoff
 )
-    : arrow::acero::ExecNode(plan, {}, {}, columnsToArrowSchema(columns)) {
+    : arrow::acero::ExecNode(plan, {}, {}, columnsToArrowSchema(columns)), materialization_cutoff(materialization_cutoff) {
    query_result = createLegacyQueryResult(partition_filter_operators, action, table);
    for (auto& field : output_schema_.get()->fields()) {
       field_names.emplace_back(&field->name());
@@ -124,17 +125,18 @@ void LegacyResultProducer::prepareOutputArrays() {
 
 arrow::Status LegacyResultProducer::flushOutput() {
    std::vector<arrow::Datum> data;
+   data.reserve(arrays.size());
    for (auto& array : arrays) {
-      data.push_back((std::move(array)).toDatum());
+      arrow::Datum datum;
+      ARROW_ASSIGN_OR_RAISE(datum, array.toDatum());
+      data.push_back(std::move(datum));
    }
+
    arrow::ExecBatch exec_batch;
    ARROW_ASSIGN_OR_RAISE(exec_batch, arrow::compute::ExecBatch::Make(data));
    ARROW_RETURN_NOT_OK(this->output_->InputReceived(this, exec_batch));
    return arrow::Status::OK();
 }
-
-// TODO make configurable
-static constexpr size_t MATERIALIZATION_CUTOFF = 50000;
 
 arrow::Status LegacyResultProducer::produce() {
    size_t num_rows = 0;
@@ -149,18 +151,21 @@ arrow::Status LegacyResultProducer::produce() {
          if (status.IsCapacityError()) {
             throw std::runtime_error(fmt::format(
                "Response size too large. Materializing {} rows required more than allowed {} bytes",
-               MATERIALIZATION_CUTOFF,
+               materialization_cutoff,
                INT32_MAX
             ));
          }
          ARROW_RETURN_NOT_OK(status);
       }
 
-      if (num_rows > MATERIALIZATION_CUTOFF) {
+      if (num_rows > materialization_cutoff) {
          ARROW_RETURN_NOT_OK(flushOutput());
+         num_rows = 0;
       }
    }
-   ARROW_RETURN_NOT_OK(flushOutput());
+   if(num_rows > 0){
+      ARROW_RETURN_NOT_OK(flushOutput());
+   }
    return arrow::Status::OK();
 }
 

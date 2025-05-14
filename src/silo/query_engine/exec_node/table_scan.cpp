@@ -1,4 +1,4 @@
-#include "silo/query_engine/exec_node/select.h"
+#include "silo/query_engine/exec_node/table_scan.h"
 
 namespace silo::query_engine::exec_node {
 
@@ -50,7 +50,7 @@ class ColumnEntryAppender {
   public:
    template <storage::column::Column Column>
    arrow::Status operator()(
-      Select& select_node,
+      TableScan& select_node,
       const std::string& column_name,
       const storage::TablePartition& table_partition,
       const roaring::Roaring& row_ids
@@ -59,7 +59,7 @@ class ColumnEntryAppender {
 
 template <>
 arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumnPartition<Nucleotide>>(
-   Select& select_node,
+   TableScan& select_node,
    const std::string& column_name,
    const storage::TablePartition& table_partition,
    const roaring::Roaring& row_ids
@@ -74,7 +74,7 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumnPar
 
 template <>
 arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumnPartition<AminoAcid>>(
-   Select& select_node,
+   TableScan& select_node,
    const std::string& column_name,
    const storage::TablePartition& table_partition,
    const roaring::Roaring& row_ids
@@ -89,7 +89,7 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumnPar
 
 template <storage::column::Column Column>
 arrow::Status ColumnEntryAppender::operator()(
-   Select& select_node,
+   TableScan& select_node,
    const std::string& column_name,
    const storage::TablePartition& table_partition,
    const roaring::Roaring& row_ids
@@ -108,7 +108,7 @@ arrow::Status ColumnEntryAppender::operator()(
 
 }  // namespace
 
-arrow::Status Select::appendEntries(
+arrow::Status TableScan::appendEntries(
    const storage::TablePartition& table_partition,
    const roaring::Roaring& row_ids
 ) {
@@ -120,7 +120,7 @@ arrow::Status Select::appendEntries(
    return arrow::Status::OK();
 }
 
-arrow::Status Select::produce() {
+arrow::Status TableScan::produce() {
    for (size_t partition_idx = 0; partition_idx < table->getNumberOfPartitions(); ++partition_idx) {
       auto& filter_for_partition = partition_filters.at(partition_idx);
       if (filter_for_partition->isEmpty()) {
@@ -155,7 +155,7 @@ arrow::Status Select::produce() {
    return arrow::Status::OK();
 }
 
-void Select::prepareOutputArrays() {
+void TableScan::prepareOutputArrays() {
    for (const auto& [name, type] : output_fields) {
       storage::column::visit(type, [&]<storage::column::Column Column>() {
          getColumnTypeArrayBuilders<Column>().emplace(name, ArrowBuilder<Column>{});
@@ -163,7 +163,7 @@ void Select::prepareOutputArrays() {
    }
 }
 
-arrow::Status Select::flushOutput() {
+arrow::Status TableScan::flushOutput() {
    std::vector<arrow::Datum> data;
    for (auto& field : output_fields) {
       storage::column::visit(field.type, [&]<storage::column::Column Column>() {

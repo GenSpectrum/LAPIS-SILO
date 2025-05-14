@@ -19,7 +19,7 @@
 namespace silo::query_engine::exec_node {
 
 // TODO change to TableScan
-class Select : public arrow::acero::ExecNode {
+class TableScan : public arrow::acero::ExecNode {
   public:
    // TODO change from X Pattern to variant struct
 #define X(Column, ColumnType, name) std::map<std::string, ArrowBuilder<Column>> name##_arrays;
@@ -36,7 +36,7 @@ class Select : public arrow::acero::ExecNode {
    size_t num_batches;
 
   public:
-   Select(
+   TableScan(
       arrow::acero::ExecPlan* plan,
       const std::vector<silo::schema::ColumnIdentifier>& columns,
       const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,

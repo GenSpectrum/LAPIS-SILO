@@ -7,7 +7,7 @@
 #include "silo/query_engine/actions/fasta.h"
 #include "silo/query_engine/actions/fasta_aligned.h"
 #include "silo/query_engine/exec_node/legacy_result_producer.h"
-#include "silo/query_engine/exec_node/select.h"
+#include "silo/query_engine/exec_node/table_scan.h"
 
 namespace silo::query_engine::optimizer {
 

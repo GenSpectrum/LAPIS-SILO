@@ -27,11 +27,13 @@ class JsonValueTypeArrayBuilder {
    arrow::Status insert(const std::optional<std::variant<std::string, bool, int32_t, double>>& value
    );
 
-   arrow::Datum toDatum() &&;
+   arrow::Result<arrow::Datum> toDatum();
 };
 
 class LegacyResultProducer : public arrow::acero::ExecNode {
    QueryResult query_result;
+
+   size_t materialization_cutoff;
 
    std::vector<JsonValueTypeArrayBuilder> arrays;
    std::vector<const std::string*> field_names;
@@ -39,11 +41,11 @@ class LegacyResultProducer : public arrow::acero::ExecNode {
   public:
    LegacyResultProducer(
       arrow::acero::ExecPlan* plan,
-      const std::vector<silo::schema::ColumnIdentifier>& columns,  // TODO const & ?
+      const std::vector<silo::schema::ColumnIdentifier>& columns,
       std::shared_ptr<const storage::Table> table,
-
       const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
-      const actions::Action* action
+      const actions::Action* action,
+      size_t materialization_cutoff
    );
 
    virtual const char* kind_name() const override { return "LegacyResultProducer"; }

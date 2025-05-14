@@ -303,7 +303,6 @@ std::vector<schema::ColumnIdentifier> columnNamesToFields(
 
 QueryPlan Action::toQueryPlan(
    std::shared_ptr<const storage::Table> table,
-
    const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
    std::ostream& output_stream
 ) {
@@ -313,7 +312,8 @@ QueryPlan Action::toQueryPlan(
       getOutputSchema(table->schema),
       table,
       partition_filter_operators,
-      this
+      this,
+      50000 // TODO
    );
 
    auto sink_node = query_plan.arrow_plan->EmplaceNode<exec_node::NdjsonSink>(
