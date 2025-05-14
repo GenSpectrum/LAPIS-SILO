@@ -86,20 +86,21 @@ QueryPlan FastaAligned::toQueryPlan(
    );
 
    if (auto ordering = getOrdering()) {
-      node = arrow::acero::MakeExecNode(
+      auto status = arrow::acero::MakeExecNode(
                 std::string{arrow::acero::OrderByNodeOptions::kName},
                 query_plan.arrow_plan.get(),
                 {node},
                 arrow::acero::OrderByNodeOptions{ordering.value()}
-      )
-                .ValueOrDie();  // TODO do not die
+      ).Value(&node);
+      if(!status.ok()){
+         SILO_PANIC("Arrow error: {}", status.ToString());
+      }
    }
 
+   // TODO(#764) make output format configurable
    query_plan.arrow_plan->EmplaceNode<exec_node::NdjsonSink>(
       query_plan.arrow_plan.get(), &output_stream, node
    );
-   // TODO make configurable std::make_unique<ArrowSinkNode>(query_plan.arrow_plan.get(),
-   // &output_stream, source_node.get());
 
    return query_plan;
 }
