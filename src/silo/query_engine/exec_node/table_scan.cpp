@@ -99,7 +99,7 @@ arrow::Status ColumnEntryAppender::operator()(
       using type = ArrowBuilderSelector<Column>::value_type;
       auto value = table_partition.columns.getValue(column_name, row_id);
       if (!value.has_value()) {
-         SILO_PANIC("Could not get value");  // TODO
+         SILO_PANIC("Called getValue on column {} that does not exist", column_name);
       }
       ARROW_RETURN_NOT_OK(array->Append(get<type>(value.value())));
    }
