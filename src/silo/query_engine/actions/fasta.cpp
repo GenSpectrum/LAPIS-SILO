@@ -66,7 +66,6 @@ QueryResultEntry makeEntry(
 
 QueryResult Fasta::execute(
    std::shared_ptr<const storage::Table> table,
-
    std::vector<CopyOnWriteBitmap> bitmap_filter
 ) const {
    auto columns_in_database =

@@ -84,21 +84,19 @@ QueryPlan FastaAligned::toQueryPlan(
    std::ostream& output_stream
 ) {
    QueryPlan query_plan;
-   // TODO move to `toExecPlan` method
-   // but it will sometimes be more than one exec_node? select -> order -> limit
-   std::unique_ptr<arrow::acero::ExecNode> source_node;
-   source_node = std::make_unique<exec_node::Select>(
+   auto source_node = query_plan.arrow_plan->EmplaceNode<exec_node::Select>(
       query_plan.arrow_plan.get(), getOutputSchema(table->schema), partition_filter_operators, table
    );
 
-   std::unique_ptr<arrow::acero::ExecNode> sink_node = std::make_unique<exec_node::NdjsonSink>(
-      query_plan.arrow_plan.get(), &output_stream, source_node.get()
+   if(!order_by_fields.empty()){
+
+   }
+
+   auto sink_node = query_plan.arrow_plan->EmplaceNode<exec_node::NdjsonSink>(
+      query_plan.arrow_plan.get(), &output_stream, source_node
    );
    // TODO make configurable std::make_unique<ArrowSinkNode>(query_plan.arrow_plan.get(),
    // &output_stream, source_node.get());
-
-   query_plan.arrow_plan->AddNode(std::move(source_node));
-   query_plan.arrow_plan->AddNode(std::move(sink_node));
 
    return query_plan;
 }
