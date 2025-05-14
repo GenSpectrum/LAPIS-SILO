@@ -95,7 +95,7 @@ QueryResult Fasta::execute(
    return QueryResult::fromGenerator([sequence_names = std::move(sequence_names),
                                       bitmap_filter = std::move(bitmap_filter),
                                       remaining_result_row_indices,
-                                      &table,
+                                      table,
                                       partition_index](std::vector<QueryResultEntry>& results
                                      ) mutable {
       for (; partition_index < table->getNumberOfPartitions();
