@@ -294,7 +294,6 @@ QueryPlan Action::toQueryPlan(
    std::ostream& output_stream
 ) {
    QueryPlan query_plan;
-   // TODO move to `toExecPlan` method
    // but it will sometimes be more than one exec_node? select -> order -> limit
    std::unique_ptr<arrow::acero::ExecNode> source_node;
    source_node = std::make_unique<exec_node::LegacyResultProducer>(

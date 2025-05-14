@@ -35,6 +35,7 @@ QueryPlan Query::toQueryPlan(std::shared_ptr<Database> database, std::ostream& o
    SPDLOG_DEBUG("Parsed filter: {}", filter->toString());
 
    std::vector<std::unique_ptr<filter::operators::Operator>> partition_filter_operators;
+   partition_filter_operators.reserve(database->table->getNumberOfPartitions());
    for (size_t partition_index = 0; partition_index < database->table->getNumberOfPartitions();
         partition_index++) {
       partition_filter_operators.emplace_back(filter->compile(
@@ -42,7 +43,7 @@ QueryPlan Query::toQueryPlan(std::shared_ptr<Database> database, std::ostream& o
          database->table->getPartition(partition_index),
          filter::expressions::Expression::AmbiguityMode::NONE
       ));
-      SPDLOG_DEBUG("Simplified query: ", partition_filter_operators.back()->toString());
+      SPDLOG_DEBUG("Simplified query: {}", partition_filter_operators.back()->toString());
    };
 
    return action->toQueryPlan(database->table, partition_filter_operators, output_stream);
