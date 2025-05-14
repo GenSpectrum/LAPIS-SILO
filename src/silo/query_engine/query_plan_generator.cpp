@@ -14,12 +14,12 @@ namespace silo::query_engine::optimizer {
 QueryPlanGenerator::QueryPlanGenerator(std::shared_ptr<silo::Database> database)
     : database(database) {}
 
-class OutputStreamWrapper : public arrow::io::OutputStream {
+class ArrowOutputStreamWrapper : public arrow::io::OutputStream {
    std::ostream* output;
    bool is_closed = false;
 
   public:
-   OutputStreamWrapper(std::ostream* output)
+   ArrowOutputStreamWrapper(std::ostream* output)
        : output(output) {}
 
    arrow::Status Close() override {
@@ -154,7 +154,7 @@ class NdjsonSinkNode : public arrow::acero::ExecNode {
 };
 
 class ArrowSinkNode : public arrow::acero::ExecNode {
-   OutputStreamWrapper output_stream;
+   ArrowOutputStreamWrapper output_stream;
    std::shared_ptr<arrow::ipc::RecordBatchWriter> writer;
    int batches_written = 0;
    std::optional<int> total_batches_from_input = std::nullopt;
@@ -204,7 +204,7 @@ QueryPlan QueryPlanGenerator::createQueryPlan(
    QueryPlan query_plan;
    auto table_schema = database->schema.tables.at(schema::TableName::getDefault());
    auto fasta_aligned_action = dynamic_cast<actions::FastaAligned*>(query->action.get());
-   // TODO move to `toExecNode` method
+   // TODO move to `toExecPlan` method
    // but it will sometimes be more than one exec_node? select -> order -> limit
    std::unique_ptr<arrow::acero::ExecNode> source_node;
    if (fasta_aligned_action != nullptr) {

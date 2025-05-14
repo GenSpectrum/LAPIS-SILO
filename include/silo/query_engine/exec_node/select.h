@@ -18,6 +18,7 @@
 
 namespace silo::query_engine::exec_node {
 
+// TODO change to TableScan
 class Select : public arrow::acero::ExecNode {
   public:
    // TODO change from X Pattern to variant struct
@@ -56,6 +57,7 @@ class Select : public arrow::acero::ExecNode {
   public:
    template <storage::column::Column ActualColumn>
    std::map<std::string, ArrowBuilder<ActualColumn>>& getColumnTypeArrayBuilders() {
+// TODO think whether we actually need the X-pattern
 #define X(Column, ColumnType, name)                      \
    if constexpr (std::is_same<Column, ActualColumn>()) { \
       return name##_arrays;                              \

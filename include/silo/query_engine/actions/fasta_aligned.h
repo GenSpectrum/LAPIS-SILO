@@ -29,6 +29,8 @@ class FastaAligned : public Action {
    std::vector<std::string> additional_fields;
    explicit FastaAligned(std::vector<std::string>&& sequence_names, std::vector<std::string>&& additional_fields);
 
+   QueryPlan toQueryPlan() override;
+
    std::vector<schema::ColumnIdentifier> getOutputSchema(
       const silo::schema::TableSchema& table_schema
    ) const override;

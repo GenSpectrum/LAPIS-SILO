@@ -11,6 +11,7 @@
 
 #include "silo/database.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
+#include "silo/query_engine/query_plan.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/schema/database_schema.h"
 
@@ -45,6 +46,8 @@ class Action {
   public:
    Action();
    virtual ~Action() = default;
+
+   virtual QueryPlan toQueryPlan() = 0;
 
    void setOrdering(
       const std::vector<OrderByField>& order_by_fields,

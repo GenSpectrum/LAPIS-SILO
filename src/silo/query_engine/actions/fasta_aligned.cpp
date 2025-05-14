@@ -22,6 +22,7 @@
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
+#include "silo/query_engine/exec_node/select.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/column/sequence_column.h"
 
@@ -70,6 +71,31 @@ std::vector<schema::ColumnIdentifier> FastaAligned::getOutputSchema(
    }
    fields.push_back(table_schema.primary_key);
    return fields;
+}
+
+QueryPlan FastaAligned::toQueryPlan() {
+   QueryPlan query_plan;
+   auto table_schema = database->schema.tables.at(schema::TableName::getDefault());
+   // TODO move to `toExecPlan` method
+   // but it will sometimes be more than one exec_node? select -> order -> limit
+   std::unique_ptr<arrow::acero::ExecNode> source_node;
+   source_node = std::make_unique<exec_node::Select>(
+      query_plan.arrow_plan.get(),
+      getOutputSchema(table_schema),
+      ,
+      database
+   );
+
+   std::unique_ptr<arrow::acero::ExecNode> sink_node = std::make_unique<NdjsonSinkNode>(
+      query_plan.arrow_plan.get(), &output_stream, source_node.get()
+   );
+   // TODO make configurable std::make_unique<ArrowSinkNode>(query_plan.arrow_plan.get(),
+   // &output_stream, source_node.get());
+
+   query_plan.arrow_plan->AddNode(std::move(source_node));
+   query_plan.arrow_plan->AddNode(std::move(sink_node));
+
+   return query_plan;
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
