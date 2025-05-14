@@ -17,7 +17,6 @@
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/symbol_map.h"
-#include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
@@ -178,7 +177,8 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
 }
 
 template <typename SymbolType>
-void Mutations<SymbolType>::validateOrderByFields(const schema::TableSchema& /*database*/) const {
+void Mutations<SymbolType>::validateOrderByFields(const schema::TableSchema& /*table_schema*/)
+   const {
    for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
          std::ranges::any_of(
@@ -274,11 +274,9 @@ void Mutations<SymbolType>::addMutationsToOutput(
 
 template <typename SymbolType>
 QueryResult Mutations<SymbolType>::execute(
-   const Database& database,
+   const std::shared_ptr<const storage::Table>& table,
    std::vector<CopyOnWriteBitmap> bitmap_filter
 ) const {
-   const auto& table = database.table;
-
    std::vector<std::string> sequence_names_to_evaluate;
    for (const auto& sequence_name : sequence_names) {
       auto column_identifier = table->schema.getColumn(sequence_name);

@@ -19,8 +19,8 @@ nlohmann::json createDataWithNucleotideSequence(const std::string& nucleotideSeq
    static std::atomic_int id = 0;
    const auto primary_key = id++;
 
-   return
-      nlohmann::json::parse(fmt::format(R"(
+   return nlohmann::json::parse(fmt::format(
+      R"(
 {{
    "metadata": {{
       "primaryKey": "id_{}",
@@ -42,7 +42,10 @@ nlohmann::json createDataWithNucleotideSequence(const std::string& nucleotideSeq
       "gene1": null
    }}
 }}
-)", primary_key, nucleotideSequence));
+)",
+      primary_key,
+      nucleotideSequence
+   ));
 }
 
 const nlohmann::json DATA_SAME_AS_REFERENCE = createDataWithNucleotideSequence("ATGCN");
@@ -157,9 +160,5 @@ const QueryTestScenario FASTA_ALIGNED_DESCENDING = {
 QUERY_TEST(
    FastaAligned,
    TEST_DATA,
-   ::testing::Values(
-      FASTA_ALIGNED,
-      FASTA_ALIGNED_ADDITIONAL_HEADER,
-      FASTA_ALIGNED_DESCENDING
-   )
+   ::testing::Values(FASTA_ALIGNED, FASTA_ALIGNED_ADDITIONAL_HEADER, FASTA_ALIGNED_DESCENDING)
 );

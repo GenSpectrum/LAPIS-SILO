@@ -11,7 +11,7 @@ class QueryPlan {
    std::shared_ptr<arrow::acero::ExecPlan> arrow_plan;
 
    QueryPlan() {
-      arrow_plan = arrow::acero::ExecPlan::Make().ValueOrElse([]() -> std::shared_ptr<arrow::acero::ExecPlan> {throw std::runtime_error("Could not create ExecPlan"); SILO_UNREACHABLE(); }); // TODO error type
+      arrow_plan = arrow::acero::ExecPlan::Make().ValueOrDie();  // TODO do not die
    }
 
    void execute();

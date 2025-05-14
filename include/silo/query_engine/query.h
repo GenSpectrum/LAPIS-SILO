@@ -20,6 +20,9 @@ struct Query {
          action(std::move(action)) {}
 
    static std::shared_ptr<Query> parseQuery(const std::string& query_string);
+
+   QueryPlan toQueryPlan(std::shared_ptr<silo::Database> database, std::ostream& output_stream)
+      const;
 };
 
 }  // namespace silo::query_engine

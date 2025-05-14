@@ -20,16 +20,23 @@ class FastaAligned : public Action {
    void validateOrderByFields(const schema::TableSchema& schema) const override;
 
    [[nodiscard]] QueryResult execute(
-      const Database& database,
+      const std::shared_ptr<const storage::Table>& table,
       std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const override;
 
   public:
    std::vector<std::string> sequence_names;
    std::vector<std::string> additional_fields;
-   explicit FastaAligned(std::vector<std::string>&& sequence_names, std::vector<std::string>&& additional_fields);
+   explicit FastaAligned(
+      std::vector<std::string>&& sequence_names,
+      std::vector<std::string>&& additional_fields
+   );
 
-   QueryPlan toQueryPlan() override;
+   QueryPlan toQueryPlan(
+      const std::shared_ptr<const storage::Table>& table,
+      const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
+      std::ostream& output_stream
+   ) override;
 
    std::vector<schema::ColumnIdentifier> getOutputSchema(
       const silo::schema::TableSchema& table_schema

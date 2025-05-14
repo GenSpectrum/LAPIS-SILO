@@ -11,6 +11,7 @@
 
 #include "silo/database.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
+#include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/query_plan.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/schema/database_schema.h"
@@ -39,7 +40,7 @@ class Action {
    [[nodiscard]] virtual QueryResult execute(
       /// Life time: until query result was delivered (and the lock
       /// inside `FixedDatabase` is released)
-      const Database& database,
+      const std::shared_ptr<const storage::Table>& table,  // TODO remove const &
       std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const = 0;
 
@@ -47,7 +48,12 @@ class Action {
    Action();
    virtual ~Action() = default;
 
-   virtual QueryPlan toQueryPlan() = 0;
+   // If this method is not overloaded, a LegacyResultProducer will be created instead
+   virtual QueryPlan toQueryPlan(
+      const std::shared_ptr<const storage::Table>& table,  // TODO remove const &
+      const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
+      std::ostream& output_stream
+   );
 
    void setOrdering(
       const std::vector<OrderByField>& order_by_fields,
@@ -61,7 +67,7 @@ class Action {
    ) const = 0;
 
    [[nodiscard]] virtual QueryResult executeAndOrder(
-      const Database& database,
+      const std::shared_ptr<const storage::Table>& table,  // TODO remove const &
       std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const;
 };

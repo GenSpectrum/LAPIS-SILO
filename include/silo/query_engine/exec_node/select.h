@@ -30,26 +30,20 @@ class Select : public arrow::acero::ExecNode {
 
    std::vector<silo::schema::ColumnIdentifier> output_fields;
 
-   std::shared_ptr<storage::Table> table;
+   const std::shared_ptr<const storage::Table> table;
 
   public:
    Select(
       arrow::acero::ExecPlan* plan,
       const std::vector<silo::schema::ColumnIdentifier>& columns,
-      const filter::expressions::Expression& filter,
-      const std::shared_ptr<Database> database
+      const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
+      const std::shared_ptr<const storage::Table>& table
    )
        : arrow::acero::ExecNode(plan, {}, {}, columnsToArrowSchema(columns)),
          output_fields(columns),
-         table(database->table) {
-      for (size_t partition_index = 0; partition_index != database->table->getNumberOfPartitions();
-           partition_index++) {
-         std::unique_ptr<filter::operators::Operator> part_filter = filter.compile(
-            *database,
-            database->table->getPartition(partition_index),
-            filter::expressions::Expression::AmbiguityMode::NONE
-         );
-         partition_filters.emplace_back(part_filter->evaluate());
+         table(table) {
+      for (const auto& partition_filter_operator : partition_filter_operators) {
+         partition_filters.emplace_back(partition_filter_operator->evaluate());
       }
       prepareOutputArrays();
    }

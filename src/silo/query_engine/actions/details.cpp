@@ -10,7 +10,6 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/config/database_config.h"
-#include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/actions/tuple.h"
 #include "silo/query_engine/bad_request.h"
@@ -58,7 +57,7 @@ void Details::validateOrderByFields(const schema::TableSchema& schema) const {
 }
 
 QueryResult Details::execute(
-   const silo::Database& /*database*/,
+   const std::shared_ptr<const storage::Table>& /*table*/,
    std::vector<CopyOnWriteBitmap> /*bitmap_filter*/
 ) const {
    return QueryResult{};
@@ -183,21 +182,19 @@ std::vector<Tuple> produceAllTuples(
 }  // namespace
 
 QueryResult Details::executeAndOrder(
-   const silo::Database& database,
+   const std::shared_ptr<const storage::Table>& table,
    std::vector<CopyOnWriteBitmap> bitmap_filter
 ) const {
-   validateOrderByFields(database.table->schema);
+   validateOrderByFields(table->schema);
    const std::vector<schema::ColumnIdentifier> field_identifiers =
-      parseFields(database.table->schema, fields);
+      parseFields(table->schema, fields);
 
-   size_t num_partitions = database.table->getNumberOfPartitions();
+   size_t num_partitions = table->getNumberOfPartitions();
 
    std::vector<TupleFactory> tuple_factories;
    tuple_factories.reserve(num_partitions);
    for (size_t partition_idx = 0; partition_idx < num_partitions; ++partition_idx) {
-      tuple_factories.emplace_back(
-         database.table->getPartition(partition_idx).columns, field_identifiers
-      );
+      tuple_factories.emplace_back(table->getPartition(partition_idx).columns, field_identifiers);
    }
 
    std::vector<actions::Tuple> tuples;

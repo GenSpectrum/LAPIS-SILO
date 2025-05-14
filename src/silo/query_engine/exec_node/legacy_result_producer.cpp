@@ -9,25 +9,17 @@ namespace {
 using filter::expressions::Expression;
 using filter::operators::Operator;
 
-QueryResult createLegacyQueryResult(const Query& query, const Database& database) {
-   SPDLOG_DEBUG("Parsed query: {}", query.filter->toString());
-
-   std::vector<std::string> compiled_queries(database.table->getNumberOfPartitions());
-   std::vector<CopyOnWriteBitmap> partition_filters(database.table->getNumberOfPartitions());
-   for (size_t partition_index = 0; partition_index != database.table->getNumberOfPartitions();
-        partition_index++) {
-      std::unique_ptr<Operator> part_filter = query.filter->compile(
-         database, database.table->getPartition(partition_index), Expression::AmbiguityMode::NONE
-      );
-      compiled_queries[partition_index] = part_filter->toString();
-      partition_filters[partition_index] = part_filter->evaluate();
+QueryResult createLegacyQueryResult(
+   const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
+   const actions::Action* action,
+   const std::shared_ptr<const storage::Table>& table
+) {
+   std::vector<CopyOnWriteBitmap> partition_filters;
+   partition_filters.reserve(table->getNumberOfPartitions());
+   for (const auto& partition_filter_operator : partition_filter_operators) {
+      partition_filters.emplace_back(partition_filter_operator->evaluate());
    }
-
-   for (uint32_t i = 0; i < database.table->getNumberOfPartitions(); ++i) {
-      SPDLOG_DEBUG("Simplified query for partition {}: {}", i, compiled_queries[i]);
-   }
-
-   return query.action->executeAndOrder(database, std::move(partition_filters));
+   return action->executeAndOrder(table, std::move(partition_filters));
 }
 }  // namespace
 
@@ -112,11 +104,12 @@ arrow::Datum JsonValueTypeArrayBuilder::toDatum() && {
 LegacyResultProducer::LegacyResultProducer(
    arrow::acero::ExecPlan* plan,
    const std::vector<silo::schema::ColumnIdentifier>& columns,  // TODO const & ?
-   std::shared_ptr<Database> database,
-   std::shared_ptr<Query> query
+   const std::shared_ptr<const storage::Table>& table,
+   const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
+   const actions::Action* action
 )
     : arrow::acero::ExecNode(plan, {}, {}, columnsToArrowSchema(columns)) {
-   query_result = createLegacyQueryResult(*query, *database);
+   query_result = createLegacyQueryResult(partition_filter_operators, action, table);
    for (auto& field : output_schema_.get()->fields()) {
       field_names.emplace_back(&field->name());
    }
