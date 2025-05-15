@@ -5,6 +5,7 @@
 #include <arrow/acero/exec_plan.h>
 #include <arrow/builder.h>
 #include <arrow/record_batch.h>
+#include <spdlog/spdlog.h>
 #include <nlohmann/json_fwd.hpp>
 
 #include "silo/database.h"
@@ -78,9 +79,14 @@ class TableScan : public arrow::acero::ExecNode {
       SILO_PANIC("LegacyResultProducer does not support having inputs.");
    }
 
-   arrow::Status StartProducing() override { return produce(); }
+   arrow::Status StartProducing() override {
+      SPDLOG_TRACE("TableScan::StartProducing");
+      return produce(); }
 
-   arrow::Status StopProducing() override { return arrow::Status::OK(); }
+   arrow::Status StopProducing() override {
+      SPDLOG_TRACE("TableScan::StopProducing");
+      return arrow::Status::OK();
+   }
 
    void PauseProducing(arrow::acero::ExecNode* output, int32_t counter) override {}
 

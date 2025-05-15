@@ -82,6 +82,7 @@ class NdjsonSink : public arrow::acero::ExecNode {
 
    arrow::Status InputReceived(arrow::acero::ExecNode* input, arrow::compute::ExecBatch batch)
       override {
+      SPDLOG_TRACE("NdjsonSink::InputReceived");
       std::shared_ptr<arrow::RecordBatch> record_batch;
       ARROW_ASSIGN_OR_RAISE(record_batch, batch.ToRecordBatch(input->output_schema()));
       ARROW_RETURN_NOT_OK(writeRecordBatchAsNdjson(record_batch));
@@ -93,6 +94,7 @@ class NdjsonSink : public arrow::acero::ExecNode {
    }
 
    arrow::Status InputFinished(arrow::acero::ExecNode* input, int total_batches) override {
+      SPDLOG_TRACE("NdjsonSink::InputFinished");
       this->total_batches_from_input = total_batches;
       if (total_batches == 0) {
          output_stream = nullptr;
@@ -100,8 +102,12 @@ class NdjsonSink : public arrow::acero::ExecNode {
       return arrow::Status::OK();
    }
 
-   arrow::Status StartProducing() override { return arrow::Status::OK(); }
-   arrow::Status StopProducing() override { return arrow::Status::OK(); }
+   arrow::Status StartProducing() override {
+      SPDLOG_TRACE("NdjsonSink::StartProducing");
+      return arrow::Status::OK(); }
+   arrow::Status StopProducing() override {
+      SPDLOG_TRACE("NdjsonSink::StopProducing");
+      return arrow::Status::OK(); }
    arrow::Status StopProducingImpl() override { return arrow::Status::OK(); }
 
    void ResumeProducing(arrow::acero::ExecNode* output, int32_t counter) override {}
