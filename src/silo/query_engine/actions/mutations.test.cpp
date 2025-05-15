@@ -177,6 +177,7 @@ QUERY_TEST(
    TEST_DATA,
    ::testing::Values(
       MUTATIONS,
+      // TODO readd
       MUTATIONS_INVALID_FIELDS,
       MUTATIONS_INVALID_FIELD_TYPE
    )
