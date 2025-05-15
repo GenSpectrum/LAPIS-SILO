@@ -70,7 +70,7 @@ class NdjsonSink : public arrow::acero::ExecNode {
             if (column->IsNull(row_idx)) {
                *output_stream << "null";
             } else {
-               const auto& scalar = column->GetScalar(row_idx).ValueOrDie(); // TODO do not die
+               ARROW_ASSIGN_OR_RAISE(const auto& scalar, column->GetScalar(row_idx));
                ScalarToJsonTypeVisitor my_visitor(output_stream);
                ARROW_RETURN_NOT_OK(scalar->Accept(&my_visitor));
             }
