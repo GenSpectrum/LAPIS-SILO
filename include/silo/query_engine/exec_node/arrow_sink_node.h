@@ -5,7 +5,7 @@
 #include <arrow/ipc/writer.h>
 
 namespace silo::query_engine::exec_node {
-
+// TODO remove file for now
 class ArrowOutputStreamWrapper : public arrow::io::OutputStream {
    std::ostream* output;
    bool is_closed = false;
