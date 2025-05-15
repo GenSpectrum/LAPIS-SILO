@@ -123,6 +123,7 @@ arrow::Status TableScan::appendEntries(
 }
 
 arrow::Status TableScan::produce() {
+   SPDLOG_TRACE("TableScan::produce");
    for (size_t partition_idx = 0; partition_idx < table->getNumberOfPartitions(); ++partition_idx) {
       auto& filter_for_partition = partition_filters.at(partition_idx);
       if (filter_for_partition->isEmpty()) {
