@@ -15,7 +15,7 @@ class DataVersion {
       uint32_t value;
    };
 
-   static constexpr SerializationVersion CURRENT_SILO_SERIALIZATION_VERSION{6};
+   static constexpr SerializationVersion CURRENT_SILO_SERIALIZATION_VERSION{7};
 
    class Timestamp {
      public:

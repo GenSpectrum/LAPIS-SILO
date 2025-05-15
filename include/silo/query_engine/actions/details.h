@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include <nlohmann/json_fwd.hpp>
+#include <arrow/acero/exec_plan.h>
 
 #include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
@@ -16,23 +16,24 @@ namespace silo::query_engine::actions {
 class Details : public Action {
    std::vector<std::string> fields;
 
-   void validateOrderByFields(const schema::TableSchema& schema) const override;
-
    [[nodiscard]] QueryResult execute(
-      const Database& database,
+      std::shared_ptr<const storage::Table> table,
+
       std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const override;
 
   public:
-   Details(const Details&) = default;
-   Details(Details&&) = default;
-   Details& operator=(const Details&) = default;
-   Details& operator=(Details&&) = default;
    explicit Details(std::vector<std::string> fields);
 
+   void validateOrderByFields(const schema::TableSchema& schema) const override;
+
    [[nodiscard]] QueryResult executeAndOrder(
-      const Database& database,
+      std::shared_ptr<const storage::Table> table,
       std::vector<CopyOnWriteBitmap> bitmap_filter
+   ) const override;
+
+   std::vector<schema::ColumnIdentifier> getOutputSchema(
+      const silo::schema::TableSchema& table_schema
    ) const override;
 };
 

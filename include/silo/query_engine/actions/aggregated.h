@@ -20,12 +20,16 @@ class Aggregated : public Action {
    void validateOrderByFields(const schema::TableSchema& schema) const override;
 
    [[nodiscard]] QueryResult execute(
-      const Database& database,
+      std::shared_ptr<const storage::Table> table,
+
       std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const override;
 
   public:
    Aggregated(std::vector<std::string> group_by_fields);
+
+   std::vector<schema::ColumnIdentifier> getOutputSchema(const schema::TableSchema& table_schema
+   ) const override;
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)

@@ -21,12 +21,17 @@ class Fasta : public Action {
    void validateOrderByFields(const schema::TableSchema& schema) const override;
 
    [[nodiscard]] QueryResult execute(
-      const Database& database,
+      std::shared_ptr<const storage::Table> table,
+
       std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const override;
 
   public:
    explicit Fasta(std::vector<std::string>&& sequence_names);
+
+   std::vector<schema::ColumnIdentifier> getOutputSchema(
+      const silo::schema::TableSchema& table_schema
+   ) const override;
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)
