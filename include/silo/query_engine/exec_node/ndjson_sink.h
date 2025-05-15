@@ -36,6 +36,9 @@ class NdjsonSink : public arrow::acero::ExecNode {
       }
 
       arrow::Status Visit(const arrow::StringScalar& scalar) override {
+         // TODO maybe instead:
+         // nlohmann::json j = scalar.ToString();
+         // *output_stream << j;
          *output_stream << "\"" << scalar.ToString() << "\"";
          return arrow::Status::OK();
       }
@@ -67,7 +70,7 @@ class NdjsonSink : public arrow::acero::ExecNode {
             if (column->IsNull(row_idx)) {
                *output_stream << "null";
             } else {
-               const auto& scalar = column->GetScalar(row_idx).ValueOrDie();
+               const auto& scalar = column->GetScalar(row_idx).ValueOrDie(); // TODO do not die
                ScalarToJsonTypeVisitor my_visitor(output_stream);
                ARROW_RETURN_NOT_OK(scalar->Accept(&my_visitor));
             }
