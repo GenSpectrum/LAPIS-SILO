@@ -81,7 +81,8 @@ class TableScan : public arrow::acero::ExecNode {
 
    arrow::Status StartProducing() override {
       SPDLOG_TRACE("TableScan::StartProducing");
-      return produce(); }
+      return produce();
+   }
 
    arrow::Status StopProducing() override {
       SPDLOG_TRACE("TableScan::StopProducing");

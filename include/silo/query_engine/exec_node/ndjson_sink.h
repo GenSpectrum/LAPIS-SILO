@@ -104,10 +104,12 @@ class NdjsonSink : public arrow::acero::ExecNode {
 
    arrow::Status StartProducing() override {
       SPDLOG_TRACE("NdjsonSink::StartProducing");
-      return arrow::Status::OK(); }
+      return arrow::Status::OK();
+   }
    arrow::Status StopProducing() override {
       SPDLOG_TRACE("NdjsonSink::StopProducing");
-      return arrow::Status::OK(); }
+      return arrow::Status::OK();
+   }
    arrow::Status StopProducingImpl() override { return arrow::Status::OK(); }
 
    void ResumeProducing(arrow::acero::ExecNode* output, int32_t counter) override {}
