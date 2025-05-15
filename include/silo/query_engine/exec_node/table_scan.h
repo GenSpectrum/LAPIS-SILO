@@ -81,7 +81,11 @@ class TableScan : public arrow::acero::ExecNode {
 
    arrow::Status StartProducing() override {
       SPDLOG_TRACE("TableScan::StartProducing");
-      return produce();
+      auto status = produce();
+      if(!status.ok()){
+         SILO_PANIC("ARROW ERROR: {}", status.ToString());
+      }
+      return arrow::Status::OK();
    }
 
    arrow::Status StopProducing() override {
