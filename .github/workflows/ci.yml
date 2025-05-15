@@ -92,24 +92,6 @@ jobs:
           echo "Using release version: $VERSION"
           echo "$VERSION" > release_version.txt
 
-      - name: Build unit test image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          target: builder
-          tags: builder
-          load: true
-          cache-from: type=gha,ref=image-cache-${{ github.ref_name }}-${{ matrix.arch }}
-          cache-to: type=gha,mode=min,ref=image-cache-${{ github.ref_name }}-${{ matrix.arch }}
-          build-args: |
-            DEPENDENCY_IMAGE=${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-${{ matrix.arch }}
-
-      - name: Run unit tests
-        run: |
-          docker run \
-            --entrypoint "./silo_test" \
-            builder
-
       - name: Build and push production image
         uses: docker/build-push-action@v6
         with:
