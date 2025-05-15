@@ -181,8 +181,8 @@ schema:
             "action": {
               "type": "FastaAligned",
               "sequenceName": ["someShortGene", "secondSegment"],
-               "orderByFields": ["accessionVersion"],
-               "additionalFields": ["country"]
+              "orderByFields": ["accessionVersion"],
+              "additionalFields": ["country"]
             },
             "filterExpression": {
                "type": "True"

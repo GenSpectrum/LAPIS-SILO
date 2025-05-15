@@ -63,6 +63,7 @@ arrow::Status writeToSinkImpl(std::ostream& output, arrow::acero::Declaration& d
 }
 
 void silo::query_engine::QueryPlan::execute() {
+   SPDLOG_TRACE("{}", arrow_plan->ToString());
    arrow_plan->StartProducing();
    arrow_plan->finished().Wait();
    SPDLOG_INFO("All results were produced? Can now destroy the plan"); // TODO

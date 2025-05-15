@@ -153,7 +153,6 @@ arrow::Status TableScan::produce() {
          ARROW_RETURN_NOT_OK(flushOutput());
       }
    }
-   ARROW_RETURN_NOT_OK(flushOutput());
    ARROW_RETURN_NOT_OK(output_->InputFinished(this, num_batches));
    return arrow::Status::OK();
 }
@@ -169,10 +168,12 @@ void TableScan::prepareOutputArrays() {
 arrow::Status TableScan::flushOutput() {
    std::vector<arrow::Datum> data;
    for (auto& field : output_fields) {
-      storage::column::visit(field.type, [&]<storage::column::Column Column>() {
-         auto array = getColumnTypeArrayBuilders<Column>().at(field.name);
-         data.push_back(array->Finish().ValueOrDie());
+      auto status = storage::column::visit(field.type, [&]<storage::column::Column Column>() {
+         ARROW_ASSIGN_OR_RAISE(auto array, getColumnTypeArrayBuilders<Column>().at(field.name)->Finish());
+         data.push_back(array);
+         return arrow::Status::OK();
       });
+      ARROW_RETURN_NOT_OK(status);
    }
    arrow::ExecBatch exec_batch;
    ARROW_ASSIGN_OR_RAISE(exec_batch, arrow::compute::ExecBatch::Make(data));
