@@ -84,7 +84,7 @@ std::variant<C, int32_t> getConfig(
       if (!cmd_source.positional_arguments.empty()) {
          throw silo::config::ConfigException{fmt::format(
             "SILO does not expect positional arguments, found {}",
-            nlohmann::json{cmd_source.positional_arguments}
+            nlohmann::json{cmd_source.positional_arguments}.dump()
          )};
       }
 
