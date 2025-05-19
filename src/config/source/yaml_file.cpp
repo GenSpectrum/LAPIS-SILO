@@ -216,7 +216,7 @@ ConfigValue yamlNodeToConfigValue(
    } catch (YAML::BadConversion& error) {
       throw ConfigException(fmt::format(
          "cannot parse '{}' as {}: {}",
-         yaml,
+         YAML::Dump(yaml),
          configValueTypeToString(attribute_spec.type),
          error.what()
       ));
