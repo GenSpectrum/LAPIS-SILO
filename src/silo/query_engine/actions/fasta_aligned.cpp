@@ -8,6 +8,7 @@
 #include <arrow/acero/exec_plan.h>
 #include <arrow/acero/options.h>
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 

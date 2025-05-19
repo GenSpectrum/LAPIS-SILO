@@ -14,7 +14,7 @@ class SiloRecipe(ConanFile):
         "nlohmann_json/3.11.2",
         "gtest/cci.20210126",
         "roaring/1.0.0",
-        "spdlog/1.14.1",
+        "spdlog/1.15.1",
         "yaml-cpp/0.7.0",
         "zstd/1.5.5",
         "re2/20240702",
