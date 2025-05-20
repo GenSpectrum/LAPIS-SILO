@@ -82,6 +82,7 @@ TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(DatabaseTest, shouldReturnCorrectDatabaseInfoAfterAppendingNewSequences) {
+   // If this load fails, the serialization version likely needs to be increased
    auto database = silo::Database::loadDatabaseState(
       silo::SiloDirectory{"testBaseData/siloSerializedState"}.getMostRecentDataDirectory().value()
    );
