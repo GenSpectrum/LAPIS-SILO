@@ -69,8 +69,6 @@ arrow::Status NdjsonSink::writeRecordBatchAsNdjson(std::shared_ptr<arrow::Record
       *output_stream << "}\n";
    }
 
-   SPDLOG_TRACE("writeRecordBatchAsNdjson trace 3");
-
    return arrow::Status::OK();
 }
 

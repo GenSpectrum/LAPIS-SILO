@@ -34,6 +34,8 @@ class SiloDataSource {
    static SiloDataSource checkValidDataSource(
       const std::filesystem::path& candidate_data_source_path
    );
+
+   std::string toDebugString() const;
 };
 
 class SiloDirectory {

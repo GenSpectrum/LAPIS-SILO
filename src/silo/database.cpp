@@ -136,6 +136,7 @@ DataVersion loadDataVersion(const std::filesystem::path& filename) {
 }  // namespace
 
 Database Database::loadDatabaseState(const silo::SiloDataSource& silo_data_source) {
+   SPDLOG_INFO("Loading database from data source: {}", silo_data_source.toDebugString());
    const auto save_directory = silo_data_source.path;
 
    const auto database_schema_filename = save_directory / "database_schema.yaml";

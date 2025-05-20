@@ -89,4 +89,10 @@ std::optional<SiloDataSource> SiloDirectory::getMostRecentDataDirectory() const 
    return std::nullopt;
 }
 
+std::string SiloDataSource::toDebugString() const {
+   return fmt::format(
+      "{{path: '{}', data_version: {}}}", path.string(), this->data_version.toString()
+   );
+}
+
 }  // namespace silo
