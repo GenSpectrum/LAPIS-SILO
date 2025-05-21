@@ -112,14 +112,14 @@ LegacyResultProducer::LegacyResultProducer(
     : arrow::acero::ExecNode(plan, {}, {}, columnsToArrowSchema(columns)),
       materialization_cutoff(materialization_cutoff) {
    query_result = createLegacyQueryResult(partition_filter_operators, action, table);
-   for (auto& field : output_schema_.get()->fields()) {
+   for (auto& field : output_schema_->fields()) {
       field_names.emplace_back(&field->name());
    }
    prepareOutputArrays();
 }
 
 void LegacyResultProducer::prepareOutputArrays() {
-   for (auto& field : output_schema_.get()->fields()) {
+   for (auto& field : output_schema_->fields()) {
       arrays.emplace_back(field->type());
    }
 }
@@ -167,14 +167,6 @@ arrow::Status LegacyResultProducer::produce() {
    if (num_rows > 0) {
       ARROW_RETURN_NOT_OK(flushOutput());
    }
-   return arrow::Status::OK();
-}
-
-arrow::Status LegacyResultProducer::StartProducing() {
-   return produce();
-}
-
-arrow::Status LegacyResultProducer::StopProducing() {
    return arrow::Status::OK();
 }
 

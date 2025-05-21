@@ -14,7 +14,7 @@ class NdjsonSink : public arrow::acero::ExecNode {
        : arrow::acero::ExecNode(plan, {input}, {"input"}, nullptr),
          output_stream(stream) {}
 
-   virtual const char* kind_name() const override { return "NdjsonSinkNode"; }
+   const char* kind_name() const override { return "NdjsonSinkNode"; }
 
    arrow::Status writeRecordBatchAsNdjson(std::shared_ptr<arrow::RecordBatch> record_batch);
 

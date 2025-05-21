@@ -48,36 +48,30 @@ class LegacyResultProducer : public arrow::acero::ExecNode {
       size_t materialization_cutoff
    );
 
-   virtual const char* kind_name() const override { return "LegacyResultProducer"; }
+   const char* kind_name() const override { return "LegacyResultProducer"; }
 
-   virtual arrow::Status InputReceived(ExecNode* input, arrow::ExecBatch batch) override {
+   arrow::Status InputReceived(ExecNode* input, arrow::ExecBatch batch) override {
       SILO_PANIC("LegacyResultProducer does not support having inputs.");
    }
 
-   virtual arrow::Status StopProducingImpl() override { SILO_UNIMPLEMENTED(); }
-
-   /// Mark the inputs finished after the given number of batches.
-   ///
-   /// This may be called before all inputs are received.  This simply fixes
-   /// the total number of incoming batches for an input, so that the ExecNode
-   /// knows when it has received all input, regardless of order.
-   virtual arrow::Status InputFinished(ExecNode* input, int total_batches) override {
+   arrow::Status InputFinished(ExecNode* input, int total_batches) override {
       SILO_PANIC("LegacyResultProducer does not support having inputs.");
    }
 
+   arrow::Status StartProducing() override { return produce(); }
+
+   arrow::Status StopProducingImpl() override { return arrow::Status::OK(); }
+
+   void PauseProducing(arrow::acero::ExecNode* output, int32_t counter) override {}
+
+   void ResumeProducing(arrow::acero::ExecNode* output, int32_t counter) override {}
+
+  private:
    void prepareOutputArrays();
 
    arrow::Status flushOutput();
 
    arrow::Status produce();
-
-   arrow::Status StartProducing() override;
-
-   arrow::Status StopProducing() override;
-
-   void PauseProducing(arrow::acero::ExecNode* output, int32_t counter) override {}
-
-   void ResumeProducing(arrow::acero::ExecNode* output, int32_t counter) override {}
 };
 
 }  // namespace silo::query_engine::exec_node
