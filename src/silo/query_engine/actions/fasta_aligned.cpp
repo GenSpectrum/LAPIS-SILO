@@ -61,14 +61,14 @@ QueryResult FastaAligned::execute(
 std::vector<schema::ColumnIdentifier> FastaAligned::getOutputSchema(
    const silo::schema::TableSchema& table_schema
 ) const {
-   std::vector<schema::ColumnIdentifier> fields;
+   std::set<schema::ColumnIdentifier> fields;
    for (const auto& sequence_name : sequence_names) {
       auto column = table_schema.getColumn(sequence_name);
       CHECK_SILO_QUERY(
          column.has_value() && isSequenceColumn(column.value().type),
          fmt::format("The table does not contain the SequenceColumn '{}'", sequence_name)
       );
-      fields.emplace_back(column.value());
+      fields.emplace(column.value());
    }
    for (const auto& sequence_name : additional_fields) {
       auto column = table_schema.getColumn(sequence_name);
@@ -76,10 +76,11 @@ std::vector<schema::ColumnIdentifier> FastaAligned::getOutputSchema(
          column.has_value(),
          fmt::format("The table does not contain the Column '{}'", sequence_name)
       );
-      fields.emplace_back(column.value());
+      fields.emplace(column.value());
    }
-   fields.push_back(table_schema.primary_key);
-   return fields;
+   fields.emplace(table_schema.primary_key);
+   std::vector<schema::ColumnIdentifier> unique_fields{fields.begin(), fields.end()};
+   return unique_fields;
 }
 
 QueryPlan FastaAligned::toQueryPlan(

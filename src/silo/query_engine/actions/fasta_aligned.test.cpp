@@ -129,6 +129,56 @@ const QueryTestScenario FASTA_ALIGNED_ADDITIONAL_HEADER = {
    )
 };
 
+const QueryTestScenario FASTA_ALIGNED_EXPLICIT_PRIMARY_KEY = {
+   .name = "FASTA_ALIGNED_DUPLICATE_HEADER",
+   .query = nlohmann::json::parse(
+      R"(
+{
+   "action": {
+     "type": "FastaAligned",
+     "sequenceName": ["segment1"],
+     "additionalFields": ["primaryKey"]
+   },
+  "filterExpression": {
+    "type": "True"
+  }
+}
+)"
+   ),
+   .expected_query_result = nlohmann::json::parse(
+      R"(
+[{"primaryKey":"id_0","segment1":"ATGCN"},
+{"primaryKey":"id_1","segment1":"ATGCN"},
+{"primaryKey":"id_2","segment1":"NNNNN"},
+{"primaryKey":"id_3","segment1":"CATTT"}])"
+   )
+};
+
+const QueryTestScenario FASTA_ALIGNED_DUPLICATE_HEADER = {
+   .name = "FASTA_ALIGNED_DUPLICATE_HEADER",
+   .query = nlohmann::json::parse(
+      R"(
+{
+   "action": {
+     "type": "FastaAligned",
+     "sequenceName": ["segment1"],
+     "additionalFields": ["country", "primaryKey", "country"]
+   },
+  "filterExpression": {
+    "type": "True"
+  }
+}
+)"
+   ),
+   .expected_query_result = nlohmann::json::parse(
+      R"(
+[{"country":"Switzerland","primaryKey":"id_0","segment1":"ATGCN"},
+{"country":"Switzerland","primaryKey":"id_1","segment1":"ATGCN"},
+{"country":"Switzerland","primaryKey":"id_2","segment1":"NNNNN"},
+{"country":"Switzerland","primaryKey":"id_3","segment1":"CATTT"}])"
+   )
+};
+
 const QueryTestScenario FASTA_ALIGNED_DESCENDING = {
    .name = "FASTA_ALIGNED_DESCENDING",
    .query = nlohmann::json::parse(
@@ -160,5 +210,10 @@ const QueryTestScenario FASTA_ALIGNED_DESCENDING = {
 QUERY_TEST(
    FastaAligned,
    TEST_DATA,
-   ::testing::Values(FASTA_ALIGNED, FASTA_ALIGNED_ADDITIONAL_HEADER, FASTA_ALIGNED_DESCENDING)
+   ::testing::Values(
+      FASTA_ALIGNED,
+      FASTA_ALIGNED_ADDITIONAL_HEADER,
+      FASTA_ALIGNED_DUPLICATE_HEADER,
+      FASTA_ALIGNED_DESCENDING
+   )
 );

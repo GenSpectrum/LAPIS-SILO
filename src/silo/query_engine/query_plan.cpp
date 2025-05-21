@@ -65,8 +65,15 @@ arrow::Status writeToSinkImpl(std::ostream& output, arrow::acero::Declaration& d
 void silo::query_engine::QueryPlan::execute() {
    SPDLOG_TRACE("{}", arrow_plan->ToString());
    arrow_plan->StartProducing();
-   arrow_plan->finished().Wait();
-   SPDLOG_INFO("All results were produced? Can now destroy the plan");  // TODO
+   auto future = arrow_plan->finished();
+   future.Wait();
+   if (future.status().ok()) {
+      SPDLOG_DEBUG("All results successfully produced. Clearing ExecPlan.");
+   } else {
+      throw std::runtime_error(
+         fmt::format("Internal server error. Please notify developers.", future.status().ToString())
+      );
+   }
    arrow_plan->StopProducing();
 }
 
