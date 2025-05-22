@@ -102,6 +102,23 @@ class SequenceColumnPartition {
    storage::insertion::InsertionIndex<SymbolType> insertion_index;
    uint32_t sequence_count = 0;
 
+   explicit SequenceColumnPartition(Metadata* metadata);
+
+   [[nodiscard]] size_t computeSize() const;
+
+   [[nodiscard]] const roaring::Roaring* getBitmap(
+      size_t position_idx,
+      typename SymbolType::Symbol symbol
+   ) const;
+
+   [[nodiscard]] SequenceColumnInfo getInfo() const;
+
+   ReadSequence& appendNewSequenceRead();
+
+   void appendInsertion(const std::string& insertion_and_position);
+
+   void finalize();
+
   private:
    static constexpr size_t BUFFER_SIZE = 1024;
    std::vector<ReadSequence> lazy_buffer;
@@ -119,24 +136,6 @@ class SequenceColumnPartition {
    void optimizeBitmaps();
 
    void flushBuffer();
-
-  public:
-   explicit SequenceColumnPartition(Metadata* metadata);
-
-   [[nodiscard]] size_t computeSize() const;
-
-   [[nodiscard]] const roaring::Roaring* getBitmap(
-      size_t position_idx,
-      typename SymbolType::Symbol symbol
-   ) const;
-
-   [[nodiscard]] SequenceColumnInfo getInfo() const;
-
-   ReadSequence& appendNewSequenceRead();
-
-   void appendInsertion(const std::string& insertion_and_position);
-
-   void finalize();
 };
 }  // namespace silo::storage::column
 
