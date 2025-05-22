@@ -22,12 +22,10 @@ namespace silo::query_engine::exec_node {
 class TableScan : public arrow::acero::ExecNode {
    std::map<schema::ColumnType, std::map<std::string, std::unique_ptr<arrow::ArrayBuilder>>>
       array_builders;
-
    std::vector<CopyOnWriteBitmap> partition_filters;
-
    std::vector<silo::schema::ColumnIdentifier> output_fields;
-
    const std::shared_ptr<const storage::Table> table;
+   size_t batch_size_cutoff;
 
    // We need to tell the consumer how many batches we produced in total
    size_t num_batches = 0;
@@ -37,11 +35,13 @@ class TableScan : public arrow::acero::ExecNode {
       arrow::acero::ExecPlan* plan,
       const std::vector<silo::schema::ColumnIdentifier>& columns,
       const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
-      std::shared_ptr<const storage::Table> table
+      std::shared_ptr<const storage::Table> table,
+      size_t batch_size_cutoff
    )
        : arrow::acero::ExecNode(plan, {}, {}, columnsToArrowSchema(columns)),
          output_fields(columns),
-         table(table) {
+         table(table),
+         batch_size_cutoff(batch_size_cutoff) {
       for (const auto& partition_filter_operator : partition_filter_operators) {
          partition_filters.emplace_back(partition_filter_operator->evaluate());
       }
@@ -87,8 +87,6 @@ class TableScan : public arrow::acero::ExecNode {
 
   private:
    arrow::Status flushOutput();
-
-   static constexpr size_t MATERIALIZATION_CUTOFF = 50000;
 
    arrow::Status produce();
 

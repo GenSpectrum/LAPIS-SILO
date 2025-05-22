@@ -11,13 +11,14 @@ arrow::Status appendSequences(
    const roaring::Roaring& row_ids,
    arrow::StringBuilder& output_array
 ) {
-   std::string partition_reference;
+   std::string general_reference;
    std::ranges::transform(
       sequence_store.metadata->reference_sequence,
-      std::back_inserter(partition_reference),
+      std::back_inserter(general_reference),
       SymbolType::symbolToChar
    );
 
+   std::string partition_reference = general_reference;
    for (const auto& [position_id, symbol] :
         sequence_store.indexing_differences_to_reference_sequence) {
       partition_reference[position_id] = SymbolType::symbolToChar(symbol);
@@ -43,7 +44,13 @@ arrow::Status appendSequences(
             SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING);
       }
    }
-   ARROW_RETURN_NOT_OK(output_array.AppendValues(reconstructed_sequences));
+   ARROW_RETURN_NOT_OK(output_array.Reserve(reconstructed_sequences.size()));
+   auto reference_sequence = general_reference;
+   auto dictionary = std::make_shared<silo::ZstdCDictionary>(reference_sequence, 3);
+   silo::ZstdCompressor compressor{dictionary};
+   for (const auto& reconstructed_sequence : reconstructed_sequences) {
+      ARROW_RETURN_NOT_OK(output_array.Append(compressor.compress(reconstructed_sequence)));
+   }
    return arrow::Status::OK();
 }
 
@@ -127,9 +134,7 @@ arrow::Status TableScan::produce() {
    SPDLOG_TRACE("TableScan::produce");
    for (size_t partition_idx = 0; partition_idx < table->getNumberOfPartitions(); ++partition_idx) {
       auto& filter_for_partition = partition_filters.at(partition_idx);
-      silo::query_engine::BatchedBitmapReader reader{
-         filter_for_partition, MATERIALIZATION_CUTOFF - 1
-      };
+      silo::query_engine::BatchedBitmapReader reader{filter_for_partition, batch_size_cutoff - 1};
       while (auto row_ids = reader.nextBatch()) {
          ARROW_RETURN_NOT_OK(appendEntries(table->getPartition(partition_idx), row_ids.value()));
          ARROW_RETURN_NOT_OK(flushOutput());
