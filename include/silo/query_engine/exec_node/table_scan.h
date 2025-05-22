@@ -20,7 +20,6 @@
 namespace silo::query_engine::exec_node {
 
 class TableScan : public arrow::acero::ExecNode {
-  public:
    std::map<schema::ColumnType, std::map<std::string, std::unique_ptr<arrow::ArrayBuilder>>>
       array_builders;
 
@@ -49,7 +48,6 @@ class TableScan : public arrow::acero::ExecNode {
       prepareOutputArrays();
    }
 
-  public:
    template <storage::column::Column Column>
    std::map<std::string, ArrowBuilder<Column>*> getColumnTypeArrayBuilders() {
       std::map<std::string, ArrowBuilder<Column>*> result;
@@ -62,14 +60,14 @@ class TableScan : public arrow::acero::ExecNode {
   private:
    void prepareOutputArrays();
 
-   const char* kind_name() const override { return "LegacyResultProducer"; }
+   const char* kind_name() const override { return "TableScan"; }
 
    arrow::Status InputReceived(ExecNode* input, arrow::ExecBatch batch) override {
-      SILO_PANIC("LegacyResultProducer does not support having inputs.");
+      SILO_PANIC("TableScan does not support having inputs.");
    }
 
    arrow::Status InputFinished(ExecNode* input, int total_batches) override {
-      SILO_PANIC("LegacyResultProducer does not support having inputs.");
+      SILO_PANIC("TableScan does not support having inputs.");
    }
 
    arrow::Status StartProducing() override {

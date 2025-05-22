@@ -64,7 +64,7 @@ class Action {
       std::optional<uint32_t> randomize_seed
    );
 
-   std::optional<arrow::Ordering> getOrdering();
+   std::optional<arrow::Ordering> getOrdering() const;
 
    virtual std::vector<schema::ColumnIdentifier> getOutputSchema(
       const silo::schema::TableSchema& table_schema

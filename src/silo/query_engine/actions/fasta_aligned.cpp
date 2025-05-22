@@ -12,18 +12,14 @@
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
-#include "silo/common/aa_symbols.h"
-#include "silo/common/nucleotide_symbols.h"
 #include "silo/common/panic.h"
-#include "silo/config/database_config.h"
-#include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/bad_request.h"
-#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
 #include "silo/query_engine/exec_node/table_scan.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/column/sequence_column.h"
+#include "silo/storage/table.h"
 
 namespace silo::query_engine::actions {
 
@@ -90,36 +86,49 @@ QueryPlan FastaAligned::toQueryPlan(
    const config::QueryOptions& query_options
 ) {
    QueryPlan query_plan;
+   auto status = toQueryPlanImpl(table, partition_filter_operators, output_stream, query_options)
+                    .Value(&query_plan);
+   if (!status.ok()) {
+      SILO_PANIC("Arrow error: {}", status.ToString());
+   };
+   return query_plan;
+}
+
+arrow::Result<QueryPlan> FastaAligned::toQueryPlanImpl(
+   std::shared_ptr<const storage::Table> table,
+   const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
+   std::ostream& output_stream,
+   const config::QueryOptions& query_options
+) {
+   QueryPlan query_plan;
    arrow::acero::ExecNode* node = query_plan.arrow_plan->EmplaceNode<exec_node::TableScan>(
       query_plan.arrow_plan.get(), getOutputSchema(table->schema), partition_filter_operators, table
    );
 
    if (auto ordering = getOrdering()) {
       // Create an OrderByNode and put it on top, then replace `node` with the created OrderBy
-      auto status = arrow::acero::MakeExecNode(
-                       std::string{arrow::acero::OrderByNodeOptions::kName},
-                       query_plan.arrow_plan.get(),
-                       {node},
-                       arrow::acero::OrderByNodeOptions{ordering.value()}
-      )
-                       .Value(&node);
-      if (!status.ok()) {
-         SILO_PANIC("Arrow error: {}", status.ToString());
-      }
+      ARROW_ASSIGN_OR_RAISE(
+         node,
+         arrow::acero::MakeExecNode(
+            std::string{arrow::acero::OrderByNodeOptions::kName},
+            query_plan.arrow_plan.get(),
+            {node},
+            arrow::acero::OrderByNodeOptions{ordering.value()}
+         )
+      );
    }
    if (limit.has_value() || offset.has_value()) {
       // Create a FetchNode and put it on top, then replace `node` with the created FetchNode
       arrow::acero::FetchNodeOptions fetch_options(offset.value_or(0), limit.value_or(UINT32_MAX));
-      auto status = arrow::acero::MakeExecNode(
-                       std::string{arrow::acero::FetchNodeOptions::kName},
-                       query_plan.arrow_plan.get(),
-                       {node},
-                       fetch_options
-      )
-                       .Value(&node);
-      if (!status.ok()) {
-         SILO_PANIC("Arrow error: {}", status.ToString());
-      }
+      ARROW_ASSIGN_OR_RAISE(
+         node,
+         arrow::acero::MakeExecNode(
+            std::string{arrow::acero::FetchNodeOptions::kName},
+            query_plan.arrow_plan.get(),
+            {node},
+            fetch_options
+         )
+      );
    }
 
    // TODO(#764) make output format configurable
@@ -153,13 +162,17 @@ void from_json(const nlohmann::json& json, std::unique_ptr<FastaAligned>& action
       sequence_names.emplace_back(json["sequenceName"].get<std::string>());
    }
    std::vector<std::string> additional_fields;
-   if (json.contains("additionalFields") && json["additionalFields"].is_array()) {
+   if (json.contains("additionalFields")) {
+      CHECK_SILO_QUERY(
+         json["additionalFields"].is_array(),
+         "The field `additionalFields` in a FastaAligned action must be an array of strings."
+      );
       for (const auto& child : json["additionalFields"]) {
          CHECK_SILO_QUERY(
             child.is_string(),
-            "FastaAligned action must have the field sequenceName of type string or an array "
-            "of strings; while parsing array encountered the element " +
-               child.dump() + " which is not of type string"
+            "The field `additionalFields` in a FastaAligned action must be an array of strings. "
+            "Encountered non-string element: " +
+               child.dump()
          );
          additional_fields.emplace_back(child.get<std::string>());
       }

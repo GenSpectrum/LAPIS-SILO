@@ -88,8 +88,11 @@ arrow::Status NdjsonSink::InputReceived(
       }
       return arrow::Status::OK();
    } catch (const std::runtime_error& error) {
-      SPDLOG_WARN("NdjsonSink::InputReceived, exception thrown when not expected");
-      return arrow::Status::ExecutionError("Some exception thrown");
+      const auto error_message = fmt::format(
+         "NdjsonSink::InputReceived, exception thrown when not expected: {}", error.what()
+      );
+      SPDLOG_ERROR(error_message);
+      return arrow::Status::ExecutionError(error_message);
    }
 }
 

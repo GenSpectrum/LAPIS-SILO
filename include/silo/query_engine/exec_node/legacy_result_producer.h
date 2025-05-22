@@ -35,7 +35,7 @@ class LegacyResultProducer : public arrow::acero::ExecNode {
 
    size_t materialization_cutoff;
 
-   std::vector<JsonValueTypeArrayBuilder> arrays;
+   std::vector<JsonValueTypeArrayBuilder> array_builders;
    std::vector<const std::string*> field_names;
 
   public:

@@ -98,7 +98,7 @@ arrow::Status ColumnEntryAppender::operator()(
 ) {
    auto array = table_scan_node.getColumnTypeArrayBuilders<Column>().at(column_name);
    for (auto row_id : row_ids) {
-      using type = ArrowBuilderSelector<Column>::value_type;
+      using type = typename ArrowBuilderSelector<Column>::value_type;
       auto value = table_partition.columns.getValue(column_name, row_id);
       if (!value.has_value()) {
          SILO_PANIC("Called getValue on column {} that does not exist", column_name);

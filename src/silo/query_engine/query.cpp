@@ -48,7 +48,11 @@ QueryPlan Query::toQueryPlan(
          database->table->getPartition(partition_index),
          filter::expressions::Expression::AmbiguityMode::NONE
       ));
-      SPDLOG_DEBUG("Simplified query: {}", partition_filter_operators.back()->toString());
+      SPDLOG_DEBUG(
+         "Simplified query for partition {}: {}",
+         partition_index,
+         partition_filter_operators.back()->toString()
+      );
    };
 
    return action->toQueryPlan(

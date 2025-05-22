@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <arrow/acero/exec_plan.h>
+#include <nlohmann/json.hpp>
 
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
@@ -18,7 +19,6 @@ class Details : public Action {
 
    [[nodiscard]] QueryResult execute(
       std::shared_ptr<const storage::Table> table,
-
       std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const override;
 

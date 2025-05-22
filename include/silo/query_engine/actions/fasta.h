@@ -22,7 +22,6 @@ class Fasta : public Action {
 
    [[nodiscard]] QueryResult execute(
       std::shared_ptr<const storage::Table> table,
-
       std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const override;
 

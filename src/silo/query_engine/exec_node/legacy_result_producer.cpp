@@ -120,14 +120,14 @@ LegacyResultProducer::LegacyResultProducer(
 
 void LegacyResultProducer::prepareOutputArrays() {
    for (auto& field : output_schema_->fields()) {
-      arrays.emplace_back(field->type());
+      array_builders.emplace_back(field->type());
    }
 }
 
 arrow::Status LegacyResultProducer::flushOutput() {
    std::vector<arrow::Datum> data;
-   data.reserve(arrays.size());
-   for (auto& array : arrays) {
+   data.reserve(array_builders.size());
+   for (auto& array : array_builders) {
       arrow::Datum datum;
       ARROW_ASSIGN_OR_RAISE(datum, array.toDatum());
       data.push_back(std::move(datum));
@@ -148,7 +148,7 @@ arrow::Status LegacyResultProducer::produce() {
          const auto field_name = field_names.at(field_idx);
          const common::JsonValueType& field_value = row.value().fields.at(*field_name);
 
-         auto status = arrays.at(field_idx).insert(field_value);
+         auto status = array_builders.at(field_idx).insert(field_value);
          if (status.IsCapacityError()) {
             throw std::runtime_error(fmt::format(
                "Response size too large. Materializing {} rows required more than allowed {} bytes",

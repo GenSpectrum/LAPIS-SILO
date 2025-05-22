@@ -107,7 +107,7 @@ void Action::setOrdering(
    randomize_seed = randomize_seed_;
 }
 
-std::optional<arrow::Ordering> Action::getOrdering() {
+std::optional<arrow::Ordering> Action::getOrdering() const {
    using arrow::compute::SortOrder;
    if (order_by_fields.empty()) {
       return std::nullopt;

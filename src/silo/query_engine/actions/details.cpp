@@ -2,14 +2,11 @@
 
 #include <algorithm>
 #include <random>
-#include <ranges>
 #include <utility>
 
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/parallel_for.h>
-#include <nlohmann/json.hpp>
 
-#include "silo/config/database_config.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/actions/tuple.h"
 #include "silo/query_engine/bad_request.h"
