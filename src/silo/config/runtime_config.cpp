@@ -93,7 +93,7 @@ ConfigSpecification RuntimeConfig::getConfigSpecification() {
             ),
             ConfigAttributeSpecification::createWithDefault(
                queryMaterializationOptionKey(),
-               ConfigValue::fromUint32(10000),
+               ConfigValue::fromUint32(50000),
                "If a query results in fewer rows, the query result will be collected \n"
                "in memory before sending it to the client. If it affects more rows, \n"
                "it will be streamed by constructing the result items lazily."

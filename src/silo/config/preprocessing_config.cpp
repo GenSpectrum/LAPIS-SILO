@@ -201,5 +201,5 @@ std::optional<std::filesystem::path> PreprocessingConfig::getInputFilePath() con
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
    nlohmann::json json = preprocessing_config;
-   return fmt::format_to(ctx.out(), "{}", json);
+   return fmt::format_to(ctx.out(), "{}", json.dump());
 }

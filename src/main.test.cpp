@@ -15,7 +15,9 @@ int main(int argc, char* argv[]) {
       SPDLOG_ERROR(e.what());
       return 1;
    }
-   spdlog::set_level(spdlog::level::debug);
+   if (spdlog::get_level() > spdlog::level::debug) {
+      spdlog::set_level(spdlog::level::trace);
+   }
    spdlog::null_logger_mt(silo::PERFORMANCE_LOGGER_NAME);
    ::testing::InitGoogleMock(&argc, argv);
    return RUN_ALL_TESTS();

@@ -139,5 +139,5 @@ std::vector<std::filesystem::path> InitializeConfig::getConfigFilePaths(
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
    nlohmann::json json = initialize_config;
-   return fmt::format_to(ctx.out(), "{}", json);
+   return fmt::format_to(ctx.out(), "{}", json.dump());
 }

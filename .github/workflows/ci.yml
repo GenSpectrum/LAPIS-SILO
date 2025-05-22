@@ -231,44 +231,23 @@ jobs:
     needs: dockerImage
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    env:
-      PR_NUMBER: ${{ github.event.number }}
-    container:
-      image: ghcr.io/genspectrum/lapis-silo-dependencies:commit-${{ github.event.pull_request.head.sha }}-amd64
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - shell: bash
-        name: Configure and run clang-tidy on changed files
+      - name: Determine HEAD_SHA
         run: |
-          mv /src/build .
-          cmake -DBUILD_WITH_CLANG_TIDY=on -D CMAKE_BUILD_TYPE=Debug -B build/Debug
-          echo "Successfully configured cmake"
-          files=""
-          PAGE=1  
-          while true; do
-            page_files=$(curl -s \
-           "https://api.github.com/repos/${{ github.repository }}/pulls/${PR_NUMBER}/files?per_page=100&page=$PAGE" \
-           | jq -r '.[] | select(.status != "removed") | .filename')
-            # If there are no more files, break the loop
-            if [[ -z "$page_files" ]]; then
-              break
-            fi
-            files+="$page_files"$'\n'
-            PAGE=$((PAGE + 1))
-          done
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "HEAD_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
+          else
+            echo "HEAD_SHA=${{ github.sha }}" >> $GITHUB_ENV
+          fi
 
-          echo "Changed files of this PR:"
-          echo "$files"
-          IFS=$'\n'
-          for file in $files; do
-            echo "Check ending for file: $file"
-            if [[ $file == *.cpp ]]; then
-              echo "Now linting the file: $file"
-              echo "cmake --build build/Debug --target ${file%.cpp}.o"
-              cmake --build build/Debug --target ${file%.cpp}.o
-            fi
-          done
+      - name: Run linter script
+        run: bash ./linter_changes.bash ghcr.io/genspectrum/lapis-silo-dependencies:commit-${{ env.HEAD_SHA }}-amd64
+
 
   linterAll:
     name: Build/Run linter on all files

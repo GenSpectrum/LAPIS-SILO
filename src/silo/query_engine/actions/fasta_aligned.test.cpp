@@ -1,0 +1,220 @@
+#include "silo/query_engine/actions/fasta_aligned.h"
+
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+#include <nlohmann/json.hpp>
+
+#include "silo/test/query_fixture.test.h"
+
+namespace {
+using silo::ReferenceGenomes;
+using silo::config::DatabaseConfig;
+using silo::config::ValueType;
+using silo::test::QueryTestData;
+using silo::test::QueryTestScenario;
+
+using boost::uuids::random_generator;
+
+nlohmann::json createDataWithNucleotideSequence(const std::string& nucleotideSequence) {
+   static std::atomic_int id = 0;
+   const auto primary_key = id++;
+
+   return nlohmann::json::parse(fmt::format(
+      R"(
+{{
+   "metadata": {{
+      "primaryKey": "id_{}",
+      "country": "Switzerland"
+   }},
+   "alignedNucleotideSequences": {{
+      "segment1": "{}"
+   }},
+   "unalignedNucleotideSequences": {{
+      "segment1": null
+   }},
+   "nucleotideInsertions": {{
+      "segment1": null
+   }},
+   "alignedAminoAcidSequences": {{
+      "gene1": null
+   }},
+   "aminoAcidInsertions": {{
+      "gene1": null
+   }}
+}}
+)",
+      primary_key,
+      nucleotideSequence
+   ));
+}
+
+const nlohmann::json DATA_SAME_AS_REFERENCE = createDataWithNucleotideSequence("ATGCN");
+const nlohmann::json DATA_SAME_AS_REFERENCE2 = createDataWithNucleotideSequence("ATGCN");
+const nlohmann::json DATA_WITH_ALL_N = createDataWithNucleotideSequence("NNNNN");
+const nlohmann::json DATA_WITH_ALL_MUTATED = createDataWithNucleotideSequence("CATTT");
+
+const auto DATABASE_CONFIG =
+   R"(
+defaultNucleotideSequence: "segment1"
+schema:
+  instanceName: "dummy name"
+  metadata:
+   - name: "primaryKey"
+     type: "string"
+   - name: "country"
+     type: "string"
+  primaryKey: "primaryKey"
+)";
+
+const auto REFERENCE_GENOMES = ReferenceGenomes{
+   {{"segment1", "ATGCN"}},
+   {{"gene1", "M*"}},
+};
+
+const QueryTestData TEST_DATA{
+   .ndjson_input_data =
+      {DATA_SAME_AS_REFERENCE, DATA_SAME_AS_REFERENCE2, DATA_WITH_ALL_N, DATA_WITH_ALL_MUTATED},
+   .database_config = DATABASE_CONFIG,
+   .reference_genomes = REFERENCE_GENOMES
+};
+
+const QueryTestScenario FASTA_ALIGNED = {
+   .name = "FASTA_ALIGNED",
+   .query = nlohmann::json::parse(
+      R"(
+{
+   "action": {
+     "type": "FastaAligned",
+     "sequenceName": ["segment1"],
+     "orderByFields": ["primaryKey"]
+   },
+  "filterExpression": {
+    "type": "True"
+  }
+}
+)"
+   ),
+   .expected_query_result = nlohmann::json::parse(
+      R"(
+[{"primaryKey":"id_0","segment1":"ATGCN"},
+{"primaryKey":"id_1","segment1":"ATGCN"},
+{"primaryKey":"id_2","segment1":"NNNNN"},
+{"primaryKey":"id_3","segment1":"CATTT"}])"
+   )
+};
+
+const QueryTestScenario FASTA_ALIGNED_ADDITIONAL_HEADER = {
+   .name = "FASTA_ALIGNED_ADDITIONAL_HEADER",
+   .query = nlohmann::json::parse(
+      R"(
+{
+   "action": {
+     "type": "FastaAligned",
+     "sequenceName": ["segment1"],
+     "orderByFields": ["primaryKey"],
+     "additionalFields": ["country"]
+   },
+  "filterExpression": {
+    "type": "True"
+  }
+}
+)"
+   ),
+   .expected_query_result = nlohmann::json::parse(
+      R"(
+[{"country":"Switzerland","primaryKey":"id_0","segment1":"ATGCN"},
+{"country":"Switzerland","primaryKey":"id_1","segment1":"ATGCN"},
+{"country":"Switzerland","primaryKey":"id_2","segment1":"NNNNN"},
+{"country":"Switzerland","primaryKey":"id_3","segment1":"CATTT"}])"
+   )
+};
+
+const QueryTestScenario FASTA_ALIGNED_EXPLICIT_PRIMARY_KEY = {
+   .name = "FASTA_ALIGNED_EXPLICIT_PRIMARY_KEY",
+   .query = nlohmann::json::parse(
+      R"(
+{
+   "action": {
+     "type": "FastaAligned",
+     "sequenceName": ["segment1"],
+     "additionalFields": ["primaryKey"]
+   },
+  "filterExpression": {
+    "type": "True"
+  }
+}
+)"
+   ),
+   .expected_query_result = nlohmann::json::parse(
+      R"(
+[{"primaryKey":"id_0","segment1":"ATGCN"},
+{"primaryKey":"id_1","segment1":"ATGCN"},
+{"primaryKey":"id_2","segment1":"NNNNN"},
+{"primaryKey":"id_3","segment1":"CATTT"}])"
+   )
+};
+
+const QueryTestScenario FASTA_ALIGNED_DUPLICATE_HEADER = {
+   .name = "FASTA_ALIGNED_DUPLICATE_HEADER",
+   .query = nlohmann::json::parse(
+      R"(
+{
+   "action": {
+     "type": "FastaAligned",
+     "sequenceName": ["segment1"],
+     "additionalFields": ["country", "primaryKey", "country"]
+   },
+  "filterExpression": {
+    "type": "True"
+  }
+}
+)"
+   ),
+   .expected_query_result = nlohmann::json::parse(
+      R"(
+[{"country":"Switzerland","primaryKey":"id_0","segment1":"ATGCN"},
+{"country":"Switzerland","primaryKey":"id_1","segment1":"ATGCN"},
+{"country":"Switzerland","primaryKey":"id_2","segment1":"NNNNN"},
+{"country":"Switzerland","primaryKey":"id_3","segment1":"CATTT"}])"
+   )
+};
+
+const QueryTestScenario FASTA_ALIGNED_DESCENDING = {
+   .name = "FASTA_ALIGNED_DESCENDING",
+   .query = nlohmann::json::parse(
+      R"(
+{
+   "action": {
+     "type": "FastaAligned",
+     "sequenceName": ["segment1"],
+     "orderByFields": [{"field": "primaryKey", "order": "descending"}],
+     "additionalFields": ["country"]
+   },
+  "filterExpression": {
+    "type": "True"
+  }
+}
+)"
+   ),
+   .expected_query_result = nlohmann::json::parse(
+      R"(
+[{"country":"Switzerland","primaryKey":"id_3","segment1":"CATTT"},
+{"country":"Switzerland","primaryKey":"id_2","segment1":"NNNNN"},
+{"country":"Switzerland","primaryKey":"id_1","segment1":"ATGCN"},
+{"country":"Switzerland","primaryKey":"id_0","segment1":"ATGCN"}])"
+   )
+};
+
+}  // namespace
+
+QUERY_TEST(
+   FastaAligned,
+   TEST_DATA,
+   ::testing::Values(
+      FASTA_ALIGNED,
+      FASTA_ALIGNED_ADDITIONAL_HEADER,
+      FASTA_ALIGNED_DUPLICATE_HEADER,
+      FASTA_ALIGNED_EXPLICIT_PRIMARY_KEY,
+      FASTA_ALIGNED_DESCENDING
+   )
+);

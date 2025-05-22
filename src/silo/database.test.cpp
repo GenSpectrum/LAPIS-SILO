@@ -14,7 +14,6 @@
 #include "silo/config/preprocessing_config.h"
 #include "silo/database_info.h"
 #include "silo/initialize/initializer.h"
-#include "silo/query_engine/query_engine.h"
 #include "silo/storage/reference_genomes.h"
 
 using silo::config::PreprocessingConfig;
@@ -83,6 +82,7 @@ TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(DatabaseTest, shouldReturnCorrectDatabaseInfoAfterAppendingNewSequences) {
+   // If this load fails, the serialization version likely needs to be increased
    auto database = silo::Database::loadDatabaseState(
       silo::SiloDirectory{"testBaseData/siloSerializedState"}.getMostRecentDataDirectory().value()
    );

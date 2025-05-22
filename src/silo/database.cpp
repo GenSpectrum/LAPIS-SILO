@@ -28,8 +28,6 @@
 #include "silo/common/version.h"
 #include "silo/database_info.h"
 #include "silo/persistence/exception.h"
-#include "silo/query_engine/query_engine.h"
-#include "silo/query_engine/query_result.h"
 #include "silo/roaring/roaring_serialize.h"
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/serialize_optional.h"
@@ -138,6 +136,7 @@ DataVersion loadDataVersion(const std::filesystem::path& filename) {
 }  // namespace
 
 Database Database::loadDatabaseState(const silo::SiloDataSource& silo_data_source) {
+   SPDLOG_INFO("Loading database from data source: {}", silo_data_source.toDebugString());
    const auto save_directory = silo_data_source.path;
 
    const auto database_schema_filename = save_directory / "database_schema.yaml";
@@ -168,10 +167,6 @@ Database Database::loadDatabaseState(const silo::SiloDataSource& silo_data_sourc
 
 DataVersion::Timestamp Database::getDataVersionTimestamp() const {
    return data_version_.timestamp;
-}
-
-query_engine::QueryResult Database::executeQuery(const std::string& query) const {
-   return silo::query_engine::executeQuery(*this, query);
 }
 
 void Database::updateDataVersion() {

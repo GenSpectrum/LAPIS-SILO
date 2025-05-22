@@ -34,6 +34,8 @@ class SiloDataSource {
    static SiloDataSource checkValidDataSource(
       const std::filesystem::path& candidate_data_source_path
    );
+
+   std::string toDebugString() const;
 };
 
 class SiloDirectory {
@@ -56,7 +58,7 @@ struct [[maybe_unused]] fmt::formatter<silo::SiloDirectory> : fmt::formatter<std
       -> decltype(ctx.out()) {
       auto out = ctx.out();
       nlohmann::json json = val;
-      fmt::format_to(out, "{}", json);
+      fmt::format_to(out, "{}", json.dump());
       return out;
    }
 };
