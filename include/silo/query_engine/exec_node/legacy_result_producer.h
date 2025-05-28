@@ -61,7 +61,7 @@ class LegacyResultProducer : public arrow::acero::ExecNode {
    arrow::Status StartProducing() override {
       try {
          return produce();
-      } catch (const std::runtime_error& error) {
+      } catch (const std::exception& error) {
          SPDLOG_ERROR("TableScan::produce exited with error: {}", error.what());
          return arrow::Status::ExecutionError(error.what());
       }

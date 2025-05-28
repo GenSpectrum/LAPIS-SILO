@@ -87,7 +87,7 @@ arrow::Status NdjsonSink::InputReceived(
          output_stream = nullptr;
       }
       return arrow::Status::OK();
-   } catch (const std::runtime_error& error) {
+   } catch (const std::exception& error) {
       const auto error_message = fmt::format(
          "NdjsonSink::InputReceived, exception thrown when not expected: {}", error.what()
       );

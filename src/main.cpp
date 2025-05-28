@@ -162,7 +162,7 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
 int main(int argc, char** argv) {
    try {
       return mainWhichMayThrowExceptions(argc, argv);
-   } catch (const std::runtime_error& error) {
+   } catch (const std::exception& error) {
       SPDLOG_ERROR("Internal Error: {}", error.what());
       return 2;
    }

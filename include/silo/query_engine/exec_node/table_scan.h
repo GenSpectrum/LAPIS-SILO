@@ -72,8 +72,12 @@ class TableScan : public arrow::acero::ExecNode {
 
    arrow::Status StartProducing() override {
       SPDLOG_TRACE("TableScan::StartProducing");
-      ARROW_RETURN_NOT_OK(produce());
-      return arrow::Status::OK();
+      try {
+         ARROW_RETURN_NOT_OK(produce());
+         return arrow::Status::OK();
+      } catch (const std::exception& exception) {
+         return arrow::Status::ExecutionError(exception.what());
+      }
    }
 
    arrow::Status StopProducingImpl() override {
