@@ -31,17 +31,40 @@ arrow::Status appendSequences(
          if (position.isSymbolFlipped(symbol) || position.isSymbolDeleted(symbol)) {
             continue;
          }
-         for (size_t row_id : *position.getBitmap(symbol) & row_ids) {
-            reconstructed_sequences[row_id][position_id] = SymbolType::symbolToChar(symbol);
+         roaring::Roaring current_row_ids_with_that_mutation =
+            row_ids & *position.getBitmap(symbol);
+
+         std::vector<uint32_t> current_row_ids_with_that_mutation_as_vector(
+            current_row_ids_with_that_mutation.cardinality()
+         );
+         current_row_ids_with_that_mutation.toUint32Array(
+            current_row_ids_with_that_mutation_as_vector.data()
+         );
+
+         std::vector<uint64_t> ids_in_reconstructed_sequences(
+            current_row_ids_with_that_mutation_as_vector.size()
+         );
+         row_ids.rank_many(
+            current_row_ids_with_that_mutation_as_vector.begin().base(),
+            current_row_ids_with_that_mutation_as_vector.end().base(),
+            ids_in_reconstructed_sequences.data()
+         );
+
+         for (auto id_in_reconstructed_sequences : ids_in_reconstructed_sequences) {
+            // Ranks are 1-indexed
+            reconstructed_sequences.at(id_in_reconstructed_sequences - 1).at(position_id) =
+               SymbolType::symbolToChar(symbol);
          }
       }
    }
 
+   size_t id_in_reconstructed_sequences = 0;
    for (size_t row_id : row_ids) {
       for (const size_t position_idx : sequence_store.missing_symbol_bitmaps.at(row_id)) {
-         reconstructed_sequences[row_id][position_idx] =
+         reconstructed_sequences[id_in_reconstructed_sequences][position_idx] =
             SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING);
       }
+      id_in_reconstructed_sequences++;
    }
    ARROW_RETURN_NOT_OK(output_array.AppendValues(reconstructed_sequences));
    return arrow::Status::OK();

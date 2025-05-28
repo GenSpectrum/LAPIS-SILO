@@ -205,6 +205,46 @@ const QueryTestScenario FASTA_ALIGNED_DESCENDING = {
    )
 };
 
+const QueryTestScenario FASTA_ALIGNED_SUBSET = {
+   .name = "FASTA_ALIGNED_SUBSET",
+   .query = nlohmann::json::parse(
+      R"(
+{
+   "action": {
+     "type": "FastaAligned",
+     "sequenceName": ["segment1"]
+   },
+  "filterExpression": {
+    "type": "Or",
+    "children": [
+      {
+        "type": "StringEquals",
+        "column": "primaryKey",
+        "value": "id_0"
+      },
+      {
+        "type": "StringEquals",
+        "column": "primaryKey",
+        "value": "id_2"
+      },
+      {
+        "type": "StringEquals",
+        "column": "primaryKey",
+        "value": "id_3"
+      }
+    ]
+  }
+}
+)"
+   ),
+   .expected_query_result = nlohmann::json::parse(
+      R"(
+[{"primaryKey":"id_0","segment1":"ATGCN"},
+{"primaryKey":"id_2","segment1":"NNNNN"},
+{"primaryKey":"id_3","segment1":"CATTT"}])"
+   )
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -215,6 +255,7 @@ QUERY_TEST(
       FASTA_ALIGNED_ADDITIONAL_HEADER,
       FASTA_ALIGNED_DUPLICATE_HEADER,
       FASTA_ALIGNED_EXPLICIT_PRIMARY_KEY,
-      FASTA_ALIGNED_DESCENDING
+      FASTA_ALIGNED_DESCENDING,
+      FASTA_ALIGNED_SUBSET
    )
 );
