@@ -9,16 +9,14 @@ class SiloRecipe(ConanFile):
         "arrow/19.0.1",
         "boost/1.85.0",
         "poco/1.13.3",
-        "hwloc/2.9.3",
-        "onetbb/2021.10.0",
-        "nlohmann_json/3.11.2",
-        "gtest/cci.20210126",
-        "roaring/1.0.0",
+        "onetbb/2022.0.0",
+        "nlohmann_json/3.12.0",
+        "gtest/1.16.0",
+        "roaring/4.2.1",
         "spdlog/1.15.1",
-        "yaml-cpp/0.7.0",
-        "zstd/1.5.5",
+        "yaml-cpp/0.8.0",
+        "zstd/1.5.7",
         "re2/20240702",
-        "abseil/20240116.1",
     ]
 
     default_options = {
