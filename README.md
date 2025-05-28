@@ -10,6 +10,8 @@ Original genome indexing logic with roaring bitmaps by Prof. Neumann: https://db
 
 Use `./build_with_conan.py` to build SILO. `./build_with_conan.py --help` shows all available options.
 
+The conan center has been updated, if you installed conan before November 2024 you might need to update your center: `conan remote update conancenter --url="https://center2.conan.io"`
+
 We took the approach to scan directories for .cpp files to include instead of listing them manually in the
 CMakeLists.txt. This has the advantage that we don't need to maintain a list of files in the CMakeLists.txt.
 

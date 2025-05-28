@@ -45,7 +45,7 @@ def main(args):
     os.makedirs(build_folder, exist_ok=True)
 
     run_cmd("Conan install",
-            "conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile " + " ".join(
+            "conan install . --update --build=missing --profile ./conanprofile --profile:build ./conanprofile " + " ".join(
                 conan_options))
 
     run_cmd("CMake", "cmake " + " ".join(cmake_options) + f" -B {build_folder}")
