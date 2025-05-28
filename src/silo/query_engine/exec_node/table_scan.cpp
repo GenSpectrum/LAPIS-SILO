@@ -61,7 +61,7 @@ arrow::Status appendSequences(
    size_t id_in_reconstructed_sequences = 0;
    for (size_t row_id : row_ids) {
       for (const size_t position_idx : sequence_store.missing_symbol_bitmaps.at(row_id)) {
-         reconstructed_sequences[id_in_reconstructed_sequences][position_idx] =
+         reconstructed_sequences.at(id_in_reconstructed_sequences).at(position_idx) =
             SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING);
       }
       id_in_reconstructed_sequences++;
