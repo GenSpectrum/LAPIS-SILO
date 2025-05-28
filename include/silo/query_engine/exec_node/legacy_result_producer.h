@@ -58,7 +58,14 @@ class LegacyResultProducer : public arrow::acero::ExecNode {
       SILO_PANIC("LegacyResultProducer does not support having inputs.");
    }
 
-   arrow::Status StartProducing() override { return produce(); }
+   arrow::Status StartProducing() override {
+      try {
+         return produce();
+      } catch (const std::runtime_error& error) {
+         SPDLOG_ERROR("TableScan::produce exited with error: {}", error.what());
+         return arrow::Status::ExecutionError(error.what());
+      }
+   }
 
    arrow::Status StopProducingImpl() override { return arrow::Status::OK(); }
 
