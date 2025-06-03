@@ -301,28 +301,33 @@ std::vector<schema::ColumnIdentifier> columnNamesToFields(
    return fields;
 }
 
-QueryPlan Action::toQueryPlan(
+arrow::Result<QueryPlan> Action::toQueryPlanImpl(
    std::shared_ptr<const storage::Table> table,
    const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
-   std::ostream& output_stream,
    const config::QueryOptions& query_options
 ) {
-   QueryPlan query_plan;
-   auto source_node = query_plan.arrow_plan->EmplaceNode<exec_node::LegacyResultProducer>(
-      query_plan.arrow_plan.get(),
+   ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
+   auto source_node = arrow_plan->EmplaceNode<exec_node::LegacyResultProducer>(
+      arrow_plan.get(),
       getOutputSchema(table->schema),
       table,
       partition_filter_operators,
       this,
       query_options.materialization_cutoff
    );
+   return QueryPlan::makeQueryPlan(arrow_plan, source_node);
+}
 
-   // TODO(#764) make output format configurable
-   query_plan.arrow_plan->EmplaceNode<exec_node::NdjsonSink>(
-      query_plan.arrow_plan.get(), &output_stream, source_node
-   );
-
-   return query_plan;
+QueryPlan Action::toQueryPlan(
+   std::shared_ptr<const storage::Table> table,
+   const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
+   const config::QueryOptions& query_options
+) {
+   auto query_plan = toQueryPlanImpl(table, partition_filter_operators, query_options);
+   if (!query_plan.status().ok()) {
+      SILO_PANIC("Arrow error: {}", query_plan.status().ToString());
+   };
+   return query_plan.ValueUnsafe();
 }
 
 }  // namespace silo::query_engine::actions

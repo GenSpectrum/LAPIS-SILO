@@ -38,7 +38,7 @@ class TableScan : public arrow::acero::ExecNode {
       std::shared_ptr<const storage::Table> table,
       size_t batch_size_cutoff
    )
-       : arrow::acero::ExecNode(plan, {}, {}, columnsToArrowSchema(columns)),
+       : arrow::acero::ExecNode(plan, {}, {}, columnsToInternalArrowSchema(columns)),
          output_fields(columns),
          table(table),
          batch_size_cutoff(batch_size_cutoff) {

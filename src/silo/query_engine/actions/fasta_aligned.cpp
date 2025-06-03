@@ -84,16 +84,13 @@ std::vector<schema::ColumnIdentifier> FastaAligned::getOutputSchema(
 QueryPlan FastaAligned::toQueryPlan(
    std::shared_ptr<const storage::Table> table,
    const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
-   std::ostream& output_stream,
    const config::QueryOptions& query_options
 ) {
-   QueryPlan query_plan;
-   auto status = toQueryPlanImpl(table, partition_filter_operators, output_stream, query_options)
-                    .Value(&query_plan);
-   if (!status.ok()) {
-      SILO_PANIC("Arrow error: {}", status.ToString());
+   auto query_plan = toQueryPlanImpl(table, partition_filter_operators, query_options);
+   if (!query_plan.status().ok()) {
+      SILO_PANIC("Arrow error: {}", query_plan.status().ToString());
    };
-   return query_plan;
+   return query_plan.ValueUnsafe();
 }
 
 namespace {
@@ -164,12 +161,11 @@ std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
 arrow::Result<QueryPlan> FastaAligned::toQueryPlanImpl(
    std::shared_ptr<const storage::Table> table,
    const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
-   std::ostream& output_stream,
    const config::QueryOptions& query_options
 ) {
-   QueryPlan query_plan;
-   arrow::acero::ExecNode* node = query_plan.arrow_plan->EmplaceNode<exec_node::TableScan>(
-      query_plan.arrow_plan.get(),
+   ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
+   arrow::acero::ExecNode* node = arrow_plan->EmplaceNode<exec_node::TableScan>(
+      arrow_plan.get(),
       getOutputSchema(table->schema),
       partition_filter_operators,
       table,
@@ -182,7 +178,7 @@ arrow::Result<QueryPlan> FastaAligned::toQueryPlanImpl(
          node,
          arrow::acero::MakeExecNode(
             std::string{arrow::acero::OrderByNodeOptions::kName},
-            query_plan.arrow_plan.get(),
+            arrow_plan.get(),
             {node},
             arrow::acero::OrderByNodeOptions{ordering.value()}
          )
@@ -195,7 +191,7 @@ arrow::Result<QueryPlan> FastaAligned::toQueryPlanImpl(
          node,
          arrow::acero::MakeExecNode(
             std::string{arrow::acero::FetchNodeOptions::kName},
-            query_plan.arrow_plan.get(),
+            arrow_plan.get(),
             {node},
             fetch_options
          )
@@ -218,17 +214,10 @@ arrow::Result<QueryPlan> FastaAligned::toQueryPlanImpl(
    arrow::acero::ProjectNodeOptions project_options{column_expressions, column_names};
    ARROW_ASSIGN_OR_RAISE(
       node,
-      arrow::acero::MakeExecNode(
-         std::string{"project"}, query_plan.arrow_plan.get(), {node}, project_options
-      )
+      arrow::acero::MakeExecNode(std::string{"project"}, arrow_plan.get(), {node}, project_options)
    );
 
-   // TODO(#764) make output format configurable
-   query_plan.arrow_plan->EmplaceNode<exec_node::NdjsonSink>(
-      query_plan.arrow_plan.get(), &output_stream, node
-   );
-
-   return query_plan;
+   return QueryPlan::makeQueryPlan(arrow_plan, node);
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

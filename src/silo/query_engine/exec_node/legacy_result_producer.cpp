@@ -136,10 +136,12 @@ arrow::Status LegacyResultProducer::flushOutput() {
    arrow::ExecBatch exec_batch;
    ARROW_ASSIGN_OR_RAISE(exec_batch, arrow::compute::ExecBatch::Make(data));
    ARROW_RETURN_NOT_OK(this->output_->InputReceived(this, exec_batch));
+   ++num_batches_produced;
    return arrow::Status::OK();
 }
 
 arrow::Status LegacyResultProducer::produce() {
+   SPDLOG_TRACE("LegacyResultProducer::produce");
    size_t num_rows = 0;
    std::optional<QueryResultEntry> row;
    while ((row = query_result.next())) {
@@ -167,6 +169,7 @@ arrow::Status LegacyResultProducer::produce() {
    if (num_rows > 0) {
       ARROW_RETURN_NOT_OK(flushOutput());
    }
+   SPDLOG_TRACE("LegacyResultProducer::end");
    return arrow::Status::OK();
 }
 

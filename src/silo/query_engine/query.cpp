@@ -34,7 +34,6 @@ std::shared_ptr<Query> Query::parseQuery(const std::string& query_string) {
 
 QueryPlan Query::toQueryPlan(
    std::shared_ptr<Database> database,
-   std::ostream& output_stream,
    const config::QueryOptions& query_options
 ) const {
    SPDLOG_DEBUG("Parsed filter: {}", filter->toString());
@@ -55,9 +54,7 @@ QueryPlan Query::toQueryPlan(
       );
    };
 
-   return action->toQueryPlan(
-      database->table, partition_filter_operators, output_stream, query_options
-   );
+   return action->toQueryPlan(database->table, partition_filter_operators, query_options);
 }
 
 }  // namespace silo::query_engine

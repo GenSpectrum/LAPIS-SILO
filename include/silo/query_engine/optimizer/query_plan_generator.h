@@ -14,7 +14,6 @@ class QueryPlanGenerator {
 
    QueryPlan createQueryPlan(
       std::shared_ptr<Query> query,
-      std::ostream& output_stream,
       const config::QueryOptions& query_options
    );
 };

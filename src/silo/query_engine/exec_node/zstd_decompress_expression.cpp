@@ -29,6 +29,7 @@ struct BinaryDecompressKernel {
       const arrow::compute::ExecSpan& input,
       arrow::compute::ExecResult* out
    ) {
+      SPDLOG_INFO("BinaryDecompressKernel::Exec called!");
       if (input.num_values() != 2) {
          return arrow::Status::Invalid("Expected 2 input arrays, got ", input.num_values());
       }
@@ -36,8 +37,31 @@ struct BinaryDecompressKernel {
       if (!input.values[0].is_array()) {
          return arrow::Status::Invalid("Expected array input, got scalar/chunked array");
       }
-      const auto& input_span = input.values[0].array;
-
+      const arrow::ArraySpan& input_span = input.values[0].array;
+      std::string buffer_debug_info{fmt::format(
+         "buffers (data/size): [{}/{}, {}/{}, {}/{}]",
+         fmt::ptr(input_span.buffers[0].data),
+         input_span.buffers[0].size,
+         fmt::ptr(input_span.buffers[1].data),
+         input_span.buffers[1].size,
+         fmt::ptr(input_span.buffers[2].data),
+         input_span.buffers[2].size
+      )};
+      SPDLOG_TRACE(
+         "ArraySpan info: length: {}, offset: {}, num_buffers: {}, buffers: {}",
+         input_span.length,
+         input_span.offset,
+         input_span.num_buffers(),
+         buffer_debug_info
+      );
+      if (input_span.type->id() != arrow::Type::BINARY) {
+         return arrow::Status::Invalid(fmt::format(
+            "Expected string array input, got another type: {}", input_span.type->ToString()
+         ));
+      }
+      // TODO(#791) this is a copy of the Array's data, whereas the view should suffice
+      auto array = input_span.ToArray();
+      auto input_as_array = static_cast<const arrow::BinaryArray*>(array.get());
       if (!input.values[1].is_scalar()) {
          return arrow::Status::Invalid("Expected scalar input of type binary as second argument");
       }
@@ -49,18 +73,18 @@ struct BinaryDecompressKernel {
       arrow::StringBuilder builder(context->memory_pool());
       ARROW_RETURN_NOT_OK(builder.Reserve(input_span.length));
 
-      const int32_t* offsets = input_span.GetValues<const int32_t>(1);
-      const char* data = input_span.GetValues<const char>(2);
       for (int64_t i = 0; i < input_span.length; ++i) {
          if (input_span.IsNull(i)) {
             ARROW_RETURN_NOT_OK(builder.AppendNull());
          } else {
-            int64_t start_offset = offsets[i];
-            int64_t end_offset = offsets[i + 1];
-            size_t length = end_offset - start_offset;
-            const std::string_view value{data + start_offset, length};
+            const std::string_view value = input_as_array->Value(i);
             std::string decompressed_buffer;
-            decompressor.decompress(value.data(), value.length(), decompressed_buffer);
+            try {
+               decompressor.decompress(value.data(), value.length(), decompressed_buffer);
+            } catch (const std::exception& exception) {
+               SPDLOG_ERROR("Arrow execution exception: {}", exception.what());
+               return arrow::Status::ExecutionError(exception.what());
+            }
             ARROW_RETURN_NOT_OK(builder.Append(decompressed_buffer));
          }
       }
@@ -80,10 +104,9 @@ arrow::Result<std::string> RegisterCustomFunctionImpl() {
    auto registry = arrow::compute::GetFunctionRegistry();
 
    std::string summary =
-      "A function to decompress binary values with a statically known zstd dictionary";
+      "Decompresses each value of zstd_compressed_binary using the scalar dictionary";
    std::string description =
-      "This function takes a zstd-dictionary as argument and decompresses each value using this "
-      "dictionary. The output is written into the output batch.";
+      "Decompresses each value of zstd_compressed_binary using the scalar dictionary";
    std::vector<std::string> arg_names = {"zstd_compressed_binary", "dictionary"};
 
    // Create a new ScalarFunction
@@ -97,7 +120,7 @@ arrow::Result<std::string> RegisterCustomFunctionImpl() {
       arrow::compute::ScalarKernel kernel;
       kernel.exec = BinaryDecompressKernel::Exec;
       kernel.signature =
-         arrow::compute::KernelSignature::Make({arrow::utf8(), arrow::utf8()}, arrow::utf8());
+         arrow::compute::KernelSignature::Make({arrow::binary(), arrow::binary()}, arrow::utf8());
       kernel.null_handling = arrow::compute::NullHandling::INTERSECTION;
       kernel.mem_allocation = arrow::compute::MemAllocation::NO_PREALLOCATE;
       ARROW_RETURN_NOT_OK(custom_function->AddKernel(std::move(kernel)));
@@ -125,7 +148,7 @@ arrow::Expression ZstdDecompressExpression::Make(
    {
       static std::string function_name = RegisterCustomFunction();
 
-      auto dict_scalar = std::make_shared<arrow::StringScalar>(std::move(dictionary_string));
+      auto dict_scalar = std::make_shared<arrow::BinaryScalar>(std::move(dictionary_string));
 
       return arrow::compute::call(
          function_name, {input_expression, arrow::compute::literal(arrow::Datum(dict_scalar))}

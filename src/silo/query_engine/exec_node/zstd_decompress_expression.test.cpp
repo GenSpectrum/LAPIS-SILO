@@ -26,14 +26,14 @@ arrow::Result<std::shared_ptr<arrow::Table>> setupTestTable(
 ) {
    std::shared_ptr<arrow::Schema> schema = arrow::schema(
       {arrow::field("id", arrow::int32()),
-       arrow::field("some_zstd_compressed_column", arrow::utf8())}
+       arrow::field("some_zstd_compressed_column", arrow::binary())}
    );
 
    auto dictionary = std::make_shared<silo::ZstdCDictionary>(dictionary_string, 3);
    silo::ZstdCompressor compressor{dictionary};
 
    arrow::Int32Builder id_builder;
-   arrow::StringBuilder value_builder;
+   arrow::BinaryBuilder value_builder;
    int32_t id = 1;
    for (auto& value : values) {
       ARROW_RETURN_NOT_OK(id_builder.Append(id++));

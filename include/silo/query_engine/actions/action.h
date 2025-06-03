@@ -53,7 +53,6 @@ class Action {
    virtual QueryPlan toQueryPlan(
       std::shared_ptr<const storage::Table> table,
       const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
-      std::ostream& output_stream,
       const config::QueryOptions& query_options
    );
 
@@ -74,6 +73,13 @@ class Action {
       std::shared_ptr<const storage::Table> table,
       std::vector<CopyOnWriteBitmap> bitmap_filter
    ) const;
+
+  private:
+   arrow::Result<QueryPlan> toQueryPlanImpl(
+      std::shared_ptr<const storage::Table> table,
+      const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
+      const config::QueryOptions& query_options
+   );
 };
 
 std::optional<uint32_t> parseLimit(const nlohmann::json& json);

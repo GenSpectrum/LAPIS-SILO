@@ -33,7 +33,7 @@ void ZstdDecompressor::decompress(
    if (uncompressed_size == ZSTD_CONTENTSIZE_ERROR) {
       throw std::runtime_error(fmt::format(
          "ZSTD_Error: Error in dependency, when getting decompressed size for compressed data of "
-         "length {}"
+         "length {} "
          "(getFrameContentSize)",
          input_length
       ));
