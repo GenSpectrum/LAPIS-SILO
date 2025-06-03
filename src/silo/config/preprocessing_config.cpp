@@ -105,8 +105,8 @@ ConfigSpecification PreprocessingConfig::getConfigSpecification() {
             "Path to the input data. Relative from inputDirectory."
          ),
          // DEPRECATED: TODO(#737) fully remove after next major release
-         ConfigAttributeSpecification::createWithDefault(
-            intermediateResultsDirectoryOptionKey(), ConfigValue::fromPath("./temp/"), "DEPRECATED."
+         ConfigAttributeSpecification::createWithoutDefault(
+            intermediateResultsDirectoryOptionKey(), ConfigValueType::PATH, "DEPRECATED."
          ),
          ConfigAttributeSpecification::createWithoutDefault(
             preprocessingDatabaseLocationOptionKey(), ConfigValueType::PATH, "DEPRECATED."
