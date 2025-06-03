@@ -1,0 +1,6 @@
+{
+  "recommendations": [
+    "ms-vscode.cpptools-extension-pack",      // Microsoft C++ extension
+    "llvm-vs-code-extensions.lldb-dap",     // CodeLLDB debugger
+  ]
+}
