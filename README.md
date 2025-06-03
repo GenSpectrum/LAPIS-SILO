@@ -195,6 +195,17 @@ queries. To execute the tests:
 * `npm install`
 * `SILO_URL=localhost:8081 npm run test`
 
+# Local Debugging
+
+We recommend using [LLDB](https://lldb.llvm.org/) with Cmake for local debugging.
+
+If you are using VSCode we recommend installing the extensions listed in the `.vscode.extensions.json`. This will add a new icon for Cmake, to debug using Cmake and LLDB first configure the project (by selecting configure in the Cmake panel) and update the Cmake `settings.json` to use LLDB. This means adding the following to your settings.json.
+```
+"cmake.debugConfig": {
+    "MIMode": "lldb"
+  }
+```
+
 # Logging
 
 We use [spdlog](https://github.com/gabime/spdlog) for logging.
