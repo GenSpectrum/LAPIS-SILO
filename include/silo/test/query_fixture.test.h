@@ -66,6 +66,7 @@ struct QueryTestScenario {
    nlohmann::json query;
    nlohmann::json expected_query_result;
    std::string expected_error_message;
+   std::optional<silo::config::QueryOptions> query_options;
 };
 
 std::string printScenarioName(const ::testing::TestParamInfo<QueryTestScenario>& scenario);
@@ -96,15 +97,15 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
       if (!shared_database) {
          FAIL() << "There was an error when setting up the test suite. Database not initialized.";
       }
+      const auto query_options =
+         scenario.query_options.value_or(config::RuntimeConfig::withDefaults().query_options);
       if (!scenario.expected_error_message.empty()) {
          try {
             silo::query_engine::optimizer::QueryPlanGenerator query_plan_generator(shared_database);
             auto query = query_engine::Query::parseQuery(scenario.query.dump());
             std::stringstream buffer;
-            auto query_plan = query_plan_generator.createQueryPlan(
-               query, buffer, config::RuntimeConfig::withDefaults().query_options
-            );
-            query_plan.execute();
+            auto query_plan = query_plan_generator.createQueryPlan(query, query_options);
+            query_plan.executeAndWrite(&buffer);
             FAIL() << "Expected an error in test case, but noting was thrown";
          } catch (const std::exception& e) {
             EXPECT_EQ(std::string(e.what()), scenario.expected_error_message);
@@ -113,10 +114,8 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
          silo::query_engine::optimizer::QueryPlanGenerator query_plan_generator(shared_database);
          auto query = query_engine::Query::parseQuery(scenario.query.dump());
          std::stringstream buffer;
-         auto query_plan = query_plan_generator.createQueryPlan(
-            query, buffer, config::RuntimeConfig::withDefaults().query_options
-         );
-         query_plan.execute();
+         auto query_plan = query_plan_generator.createQueryPlan(query, query_options);
+         query_plan.executeAndWrite(&buffer);
          nlohmann::json actual_ndjson_result_as_array = nlohmann::json::array();
          std::string line;
          while (std::getline(buffer, line)) {

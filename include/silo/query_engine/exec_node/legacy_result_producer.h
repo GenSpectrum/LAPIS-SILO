@@ -38,6 +38,8 @@ class LegacyResultProducer : public arrow::acero::ExecNode {
    std::vector<JsonValueTypeArrayBuilder> array_builders;
    std::vector<const std::string*> field_names;
 
+   size_t num_batches_produced;
+
   public:
    LegacyResultProducer(
       arrow::acero::ExecPlan* plan,
@@ -60,7 +62,9 @@ class LegacyResultProducer : public arrow::acero::ExecNode {
 
    arrow::Status StartProducing() override {
       try {
-         return produce();
+         SPDLOG_TRACE("LegacyResultProducer::StartProducing");
+         ARROW_RETURN_NOT_OK(produce());
+         return output_->InputFinished(this, num_batches_produced);
       } catch (const std::exception& error) {
          SPDLOG_ERROR("TableScan::produce exited with error: {}", error.what());
          return arrow::Status::ExecutionError(error.what());

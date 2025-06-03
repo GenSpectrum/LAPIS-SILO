@@ -245,6 +245,109 @@ const QueryTestScenario FASTA_ALIGNED_SUBSET = {
    )
 };
 
+const QueryTestScenario FASTA_ALIGNED_SMALL_BATCHES = {
+   .name = "FASTA_ALIGNED_SMALL_BATCHES",
+   .query = nlohmann::json::parse(
+      R"(
+{
+   "action": {
+     "type": "FastaAligned",
+     "sequenceName": ["segment1"],
+     "additionalFields": ["country"],
+     "orderByFields": ["country"]
+   },
+  "filterExpression": {
+    "type": "True"
+  }
+}
+)"
+   ),
+   .expected_query_result = nlohmann::json::parse(
+      R"(
+[{"country":"Switzerland","primaryKey":"id_0","segment1":"ATGCN"},
+{"country":"Switzerland","primaryKey":"id_1","segment1":"ATGCN"},
+{"country":"Switzerland","primaryKey":"id_2","segment1":"NNNNN"},
+{"country":"Switzerland","primaryKey":"id_3","segment1":"CATTT"}])"
+   ),
+   .query_options = silo::config::QueryOptions{.materialization_cutoff = 0}
+};
+
+const QueryTestScenario FASTA_ALIGNED_WITH_OFFSET = {
+   .name = "FASTA_ALIGNED_WITH_OFFSET",
+   .query = nlohmann::json::parse(
+      R"(
+{
+   "action": {
+     "type": "FastaAligned",
+     "sequenceName": ["segment1"],
+     "orderByFields": ["primaryKey"],
+     "offset": 2
+   },
+  "filterExpression": {
+    "type": "True"
+  }
+}
+)"
+   ),
+   .expected_query_result = nlohmann::json::parse(
+      R"(
+[{"primaryKey":"id_2","segment1":"NNNNN"},
+{"primaryKey":"id_3","segment1":"CATTT"}])"
+   ),
+   .query_options = silo::config::QueryOptions{.materialization_cutoff = 1}
+};
+
+const QueryTestScenario FASTA_ALIGNED_WITH_LIMIT = {
+   .name = "FASTA_ALIGNED_WITH_LIMIT",
+   .query = nlohmann::json::parse(
+      R"(
+{
+   "action": {
+     "type": "FastaAligned",
+     "sequenceName": ["segment1"],
+     "orderByFields": ["primaryKey"],
+     "limit": 3
+   },
+  "filterExpression": {
+    "type": "True"
+  }
+}
+)"
+   ),
+   .expected_query_result = nlohmann::json::parse(
+      R"(
+[{"primaryKey":"id_0","segment1":"ATGCN"},
+{"primaryKey":"id_1","segment1":"ATGCN"},
+{"primaryKey":"id_2","segment1":"NNNNN"}])"
+   ),
+   .query_options = silo::config::QueryOptions{.materialization_cutoff = 1}
+};
+
+const QueryTestScenario FASTA_ALIGNED_WITH_OFFSET_AND_LIMIT = {
+   .name = "FASTA_ALIGNED_WITH_OFFSET_AND_LIMIT",
+   .query = nlohmann::json::parse(
+      R"(
+{
+   "action": {
+     "type": "FastaAligned",
+     "sequenceName": ["segment1"],
+     "orderByFields": ["primaryKey"],
+     "offset": 2,
+     "limit": 1
+   },
+  "filterExpression": {
+    "type": "True"
+  }
+}
+)"
+   ),
+   .expected_query_result = nlohmann::json::parse(
+      R"(
+[{"primaryKey":"id_2","segment1":"NNNNN"}])"
+   ),
+   .query_options = silo::config::QueryOptions{.materialization_cutoff = 1}
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -256,6 +359,10 @@ QUERY_TEST(
       FASTA_ALIGNED_DUPLICATE_HEADER,
       FASTA_ALIGNED_EXPLICIT_PRIMARY_KEY,
       FASTA_ALIGNED_DESCENDING,
-      FASTA_ALIGNED_SUBSET
+      FASTA_ALIGNED_SUBSET,
+      FASTA_ALIGNED_SMALL_BATCHES,
+      FASTA_ALIGNED_WITH_LIMIT,
+      FASTA_ALIGNED_WITH_OFFSET,
+      FASTA_ALIGNED_WITH_OFFSET_AND_LIMIT
    )
 );

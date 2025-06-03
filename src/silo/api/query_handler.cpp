@@ -42,20 +42,14 @@ void QueryHandler::post(
    try {
       query_engine::optimizer::QueryPlanGenerator query_plan_generator(database);
 
-      std::ostream proxy_out_stream(nullptr);
-
       auto query = query_engine::Query::parseQuery(query_string);
-      auto query_plan =
-         query_plan_generator.createQueryPlan(query, proxy_out_stream, query_options);
+      auto query_plan = query_plan_generator.createQueryPlan(query, query_options);
 
       response.set("data-version", database->getDataVersionTimestamp().value);
       response.setContentType("application/x-ndjson");
       std::ostream& out_stream = response.send();
 
-      // Redirect proxy_out_stream to out_stream's buffer
-      proxy_out_stream.rdbuf(out_stream.rdbuf());
-
-      query_plan.execute();
+      query_plan.executeAndWrite(&out_stream);
 
    } catch (const silo::BadRequest& ex) {
       response.setContentType("application/json");

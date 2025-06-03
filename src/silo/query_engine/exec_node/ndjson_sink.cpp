@@ -39,8 +39,12 @@ class ScalarToJsonTypeVisitor : public arrow::ScalarVisitor {
 };
 }  // namespace
 
-arrow::Status NdjsonSink::writeRecordBatchAsNdjson(std::shared_ptr<arrow::RecordBatch> record_batch
+arrow::Status writeBatchAsNdjson(
+   arrow::compute::ExecBatch batch,
+   const std::shared_ptr<arrow::Schema>& schema,
+   std::ostream* output_stream
 ) {
+   ARROW_ASSIGN_OR_RAISE(auto record_batch, batch.ToRecordBatch(schema));
    size_t row_count = record_batch->num_rows();
    size_t column_count = record_batch->num_columns();
    std::vector<std::string> prepared_column_strings_for_json_attributes;
@@ -72,47 +76,15 @@ arrow::Status NdjsonSink::writeRecordBatchAsNdjson(std::shared_ptr<arrow::Record
    return arrow::Status::OK();
 }
 
-arrow::Status NdjsonSink::InputReceived(
+arrow::Status createGenerator(
+   arrow::acero::ExecPlan* plan,
    arrow::acero::ExecNode* input,
-   arrow::compute::ExecBatch batch
+   std::function<arrow::Future<std::optional<arrow::ExecBatch>>()>* generator
 ) {
-   SPDLOG_TRACE("NdjsonSink::InputReceived");
-   try {
-      std::shared_ptr<arrow::RecordBatch> record_batch;
-      ARROW_ASSIGN_OR_RAISE(record_batch, batch.ToRecordBatch(input->output_schema()));
-      ARROW_RETURN_NOT_OK(writeRecordBatchAsNdjson(record_batch));
-      batches_written += 1;
-      if (batches_written == total_batches_from_input) {
-         output_stream->flush();
-         output_stream = nullptr;
-      }
-      return arrow::Status::OK();
-   } catch (const std::exception& error) {
-      const auto error_message = fmt::format(
-         "NdjsonSink::InputReceived, exception thrown when not expected: {}", error.what()
-      );
-      SPDLOG_ERROR(error_message);
-      return arrow::Status::ExecutionError(error_message);
-   }
-}
-
-arrow::Status NdjsonSink::StartProducing() {
-   SPDLOG_TRACE("NdjsonSink::StartProducing");
-   return arrow::Status::OK();
-}
-
-arrow::Status NdjsonSink::StopProducing() {
-   SPDLOG_TRACE("NdjsonSink::StopProducing");
-   return arrow::Status::OK();
-}
-
-arrow::Status NdjsonSink::InputFinished(arrow::acero::ExecNode* input, int total_batches) {
-   SPDLOG_TRACE("NdjsonSink::InputFinished({})", total_batches);
-   total_batches_from_input = total_batches;
-   if (batches_written == total_batches_from_input) {
-      output_stream->flush();
-      output_stream = nullptr;
-   }
+   arrow::acero::SinkNodeOptions options{generator};
+   ARROW_RETURN_NOT_OK(
+      arrow::acero::MakeExecNode(std::string{"sink"}, plan, {input}, options).status()
+   );
    return arrow::Status::OK();
 }
 

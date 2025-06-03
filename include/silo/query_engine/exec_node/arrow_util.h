@@ -24,6 +24,13 @@ std::shared_ptr<arrow::Schema> columnsToArrowSchema(
    const std::vector<silo::schema::ColumnIdentifier>& columns
 );
 
+const std::shared_ptr<arrow::DataType> columnTypeToInternalArrowType(schema::ColumnType column_type
+);
+
+std::shared_ptr<arrow::Schema> columnsToInternalArrowSchema(
+   const std::vector<silo::schema::ColumnIdentifier>& columns
+);
+
 template <storage::column::Column Column>
 struct ArrowBuilderSelector;
 
@@ -41,19 +48,19 @@ struct ArrowBuilderSelector<storage::column::IndexedStringColumnPartition> {
 
 template <>
 struct ArrowBuilderSelector<storage::column::SequenceColumnPartition<Nucleotide>> {
-   using builder_type = arrow::StringBuilder;
+   using builder_type = arrow::BinaryBuilder;
    using value_type = std::string;
 };
 
 template <>
 struct ArrowBuilderSelector<storage::column::SequenceColumnPartition<AminoAcid>> {
-   using builder_type = arrow::StringBuilder;
+   using builder_type = arrow::BinaryBuilder;
    using value_type = std::string;
 };
 
 template <>
 struct ArrowBuilderSelector<storage::column::ZstdCompressedStringColumnPartition> {
-   using builder_type = arrow::StringBuilder;
+   using builder_type = arrow::BinaryBuilder;
    using value_type = std::string;
 };
 

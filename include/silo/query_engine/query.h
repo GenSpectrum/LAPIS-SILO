@@ -24,7 +24,6 @@ struct Query {
 
    QueryPlan toQueryPlan(
       std::shared_ptr<silo::Database> database,
-      std::ostream& output_stream,
       const config::QueryOptions& query_options
    ) const;
 };

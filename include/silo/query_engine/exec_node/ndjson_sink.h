@@ -1,36 +1,24 @@
 #pragma once
 
 #include <arrow/acero/exec_plan.h>
+#include <arrow/acero/options.h>
+#include <arrow/acero/query_context.h>
+#include <spdlog/spdlog.h>
+
+#include "silo/common/panic.h"
 
 namespace silo::query_engine::exec_node {
 
-class NdjsonSink : public arrow::acero::ExecNode {
-   std::ostream* output_stream;
-   std::atomic<int> batches_written = 0;
-   std::atomic<int> total_batches_from_input = -1;
+arrow::Status writeBatchAsNdjson(
+   arrow::compute::ExecBatch batch,
+   const std::shared_ptr<arrow::Schema>& schema,
+   std::ostream* output_stream
+);
 
-  public:
-   NdjsonSink(arrow::acero::ExecPlan* plan, std::ostream* stream, arrow::acero::ExecNode* input)
-       : arrow::acero::ExecNode(plan, {input}, {"input"}, nullptr),
-         output_stream(stream) {}
-
-   const char* kind_name() const override { return "NdjsonSinkNode"; }
-
-   arrow::Status writeRecordBatchAsNdjson(std::shared_ptr<arrow::RecordBatch> record_batch);
-
-   arrow::Status InputReceived(arrow::acero::ExecNode* input, arrow::compute::ExecBatch batch)
-      override;
-
-   arrow::Status InputFinished(arrow::acero::ExecNode* input, int total_batches) override;
-
-   arrow::Status StartProducing() override;
-
-   arrow::Status StopProducing() override;
-   arrow::Status StopProducingImpl() override { return arrow::Status::OK(); }
-
-   void ResumeProducing(arrow::acero::ExecNode* output, int32_t counter) override {}
-
-   void PauseProducing(arrow::acero::ExecNode* output, int32_t counter) override {}
-};
+arrow::Status createGenerator(
+   arrow::acero::ExecPlan* plan,
+   arrow::acero::ExecNode* input,
+   std::function<arrow::Future<std::optional<arrow::ExecBatch>>()>* generator
+);
 
 }  // namespace silo::query_engine::exec_node

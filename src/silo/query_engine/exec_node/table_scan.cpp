@@ -9,7 +9,7 @@ template <typename SymbolType>
 arrow::Status appendSequences(
    const storage::column::SequenceColumnPartition<SymbolType>& sequence_store,
    const roaring::Roaring& row_ids,
-   arrow::StringBuilder& output_array
+   arrow::BinaryBuilder& output_array
 ) {
    std::string general_reference;
    std::ranges::transform(

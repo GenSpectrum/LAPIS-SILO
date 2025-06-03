@@ -29,7 +29,6 @@ class FastaAligned : public Action {
    QueryPlan toQueryPlan(
       std::shared_ptr<const storage::Table> table,
       const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
-      std::ostream& output_stream,
       const config::QueryOptions& query_options
    ) override;
 
@@ -48,7 +47,6 @@ class FastaAligned : public Action {
    arrow::Result<QueryPlan> toQueryPlanImpl(
       std::shared_ptr<const storage::Table> table,
       const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
-      std::ostream& output_stream,
       const config::QueryOptions& query_options
    );
 };
