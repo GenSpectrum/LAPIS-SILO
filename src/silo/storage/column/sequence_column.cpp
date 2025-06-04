@@ -54,22 +54,43 @@ namespace {
 
 constexpr std::string_view DELIMITER_INSERTION = ":";
 
+template <typename SymbolType>
 struct InsertionEntry {
    uint32_t position_idx;
    std::string insertion;
 };
 
-InsertionEntry parseInsertion(const std::string& value) {
+template <typename SymbolType>
+InsertionEntry<SymbolType> parseInsertion(const std::string& value) {
    auto position_and_insertion = splitBy(value, DELIMITER_INSERTION);
    std::ranges::transform(
       position_and_insertion,
       position_and_insertion.begin(),
       [](const std::string& value) { return removeSymbol(value, '\"'); }
    );
-   if (position_and_insertion.size() == 2) {
+   if (position_and_insertion.size() == 2 && !position_and_insertion.at(1).empty()) {
       try {
          const auto position = boost::lexical_cast<uint32_t>(position_and_insertion[0]);
          const auto& insertion = position_and_insertion[1];
+         if (insertion.empty()) {
+            throw silo::storage::InsertionFormatException(
+               "Failed to parse insertion due to invalid format. Expected position that is "
+               "parsable "
+               "as an integer, instead got: '{}'",
+               value
+            );
+         }
+         for (char character : insertion) {
+            auto symbol = SymbolType::charToSymbol(character);
+            if (symbol == std::nullopt) {
+               throw InsertionFormatException(fmt::format(
+                  "Illegal {} character '{}' in insertion: {}",
+                  SymbolType::SYMBOL_NAME_LOWER_CASE,
+                  character,
+                  value
+               ));
+            }
+         }
          return {.position_idx = position, .insertion = insertion};
       } catch (const boost::bad_lexical_cast& error) {
          throw silo::storage::InsertionFormatException(
@@ -81,7 +102,8 @@ InsertionEntry parseInsertion(const std::string& value) {
       }
    }
    throw silo::storage::InsertionFormatException(
-      "Failed to parse insertion due to invalid format. Expected two parts (position and insertion "
+      "Failed to parse insertion due to invalid format. Expected two parts (position and non-empty "
+      "insertion "
       "value), instead got: '{}'",
       value
    );
@@ -91,7 +113,7 @@ InsertionEntry parseInsertion(const std::string& value) {
 template <typename SymbolType>
 void SequenceColumnPartition<SymbolType>::appendInsertion(const std::string& insertion_and_position
 ) {
-   auto [position, insertion] = parseInsertion(insertion_and_position);
+   auto [position, insertion] = parseInsertion<SymbolType>(insertion_and_position);
    insertion_index.addLazily(position, insertion, sequence_count - 1);
 }
 
