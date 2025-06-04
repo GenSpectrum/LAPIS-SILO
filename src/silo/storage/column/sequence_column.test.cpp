@@ -19,7 +19,7 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_noTwoParts) {
       [&]() { under_test.appendInsertion("A"); },
       ThrowsMessage<InsertionFormatException>(
          ::testing::HasSubstr("Failed to parse insertion due to invalid format. Expected two parts "
-                              "(position and insertion value), instead got: 'A'")
+                              "(position and non-empty insertion value), instead got: 'A'")
       )
    );
 }
@@ -47,7 +47,32 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_secondPartIllegalSymbol) {
          under_test.finalize();
       },
       ThrowsMessage<InsertionFormatException>(
-         ::testing::HasSubstr("Illegal nucleotide character 'E' in insertion: EEEEE")
+         ::testing::HasSubstr("Illegal nucleotide character 'E' in insertion: 0:EEEEE")
+      )
+   );
+}
+
+TEST(SequenceColumn, validErrorOnBadInsertionFormat_secondPartIsANumber) {
+   SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {}};
+   SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
+   EXPECT_THAT(
+      // NOLINTNEXTLINE(clang-diagnostic-error)
+      [&]() { under_test.appendInsertion("0:0"); },
+      ThrowsMessage<InsertionFormatException>(
+         ::testing::HasSubstr("Illegal nucleotide character '0' in insertion: 0:0")
+      )
+   );
+}
+
+TEST(SequenceColumn, validErrorOnBadInsertionFormat_secondPartEmpty) {
+   SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {}};
+   SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
+   EXPECT_THAT(
+      // NOLINTNEXTLINE(clang-diagnostic-error)
+      [&]() { under_test.appendInsertion("0:"); },
+      ThrowsMessage<InsertionFormatException>(
+         ::testing::HasSubstr("Failed to parse insertion due to invalid format. Expected two parts "
+                              "(position and non-empty insertion value), instead got: '0:'")
       )
    );
 }
