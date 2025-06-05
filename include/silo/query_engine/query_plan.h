@@ -14,8 +14,8 @@ namespace silo::query_engine {
 class QueryPlan {
   public:
    std::shared_ptr<arrow::acero::ExecPlan> arrow_plan;
-   // The function which returns the exec batches in the correct order of the output
    std::shared_ptr<arrow::Schema> results_schema;
+   // The function which returns the exec batches in the correct order of the output
    std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> results_generator;
 
    static arrow::Result<QueryPlan> makeQueryPlan(

@@ -28,7 +28,7 @@ class TableScan : public arrow::acero::ExecNode {
    size_t batch_size_cutoff;
 
    // We need to tell the consumer how many batches we produced in total
-   size_t num_batches = 0;
+   size_t num_batches_produced = 0;
 
   public:
    TableScan(
@@ -59,6 +59,8 @@ class TableScan : public arrow::acero::ExecNode {
 
   private:
    void prepareOutputArrays();
+
+   const arrow::Ordering& ordering() const override { return arrow::Ordering::Implicit(); }
 
    const char* kind_name() const override { return "TableScan"; }
 

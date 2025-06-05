@@ -38,22 +38,6 @@ struct BinaryDecompressKernel {
          return arrow::Status::Invalid("Expected array input, got scalar/chunked array");
       }
       const arrow::ArraySpan& input_span = input.values[0].array;
-      std::string buffer_debug_info{fmt::format(
-         "buffers (data/size): [{}/{}, {}/{}, {}/{}]",
-         fmt::ptr(input_span.buffers[0].data),
-         input_span.buffers[0].size,
-         fmt::ptr(input_span.buffers[1].data),
-         input_span.buffers[1].size,
-         fmt::ptr(input_span.buffers[2].data),
-         input_span.buffers[2].size
-      )};
-      SPDLOG_TRACE(
-         "ArraySpan info: length: {}, offset: {}, num_buffers: {}, buffers: {}",
-         input_span.length,
-         input_span.offset,
-         input_span.num_buffers(),
-         buffer_debug_info
-      );
       if (input_span.type->id() != arrow::Type::BINARY) {
          return arrow::Status::Invalid(fmt::format(
             "Expected string array input, got another type: {}", input_span.type->ToString()

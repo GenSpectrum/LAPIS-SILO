@@ -135,8 +135,8 @@ arrow::Status LegacyResultProducer::flushOutput() {
 
    arrow::ExecBatch exec_batch;
    ARROW_ASSIGN_OR_RAISE(exec_batch, arrow::compute::ExecBatch::Make(data));
+   exec_batch.index = num_batches_produced++;
    ARROW_RETURN_NOT_OK(this->output_->InputReceived(this, exec_batch));
-   ++num_batches_produced;
    return arrow::Status::OK();
 }
 

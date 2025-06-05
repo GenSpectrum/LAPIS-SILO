@@ -28,14 +28,16 @@ arrow::Status QueryPlan::executeAndWriteImpl(std::ostream* output_stream) {
    SPDLOG_TRACE("Plan started producing, will now read the resulting batches.");
    while (true) {
       arrow::Future<std::optional<arrow::ExecBatch>> future_batch = results_generator();
+      SPDLOG_TRACE("await the next batch");
       ARROW_ASSIGN_OR_RAISE(std::optional<arrow::ExecBatch> optional_batch, future_batch.result());
-      SPDLOG_TRACE("Batch received.");
+      SPDLOG_TRACE("Batch received");
 
       if (!optional_batch.has_value()) {
          break;  // end of input
       }
+      SPDLOG_TRACE("Batch contains data with {} values.", optional_batch.value().length);
 
-      // TODO(#764) make output format configurablex
+      // TODO(#764) make output format configurable
       ARROW_RETURN_NOT_OK(
          exec_node::writeBatchAsNdjson(optional_batch.value(), results_schema, output_stream)
       );
