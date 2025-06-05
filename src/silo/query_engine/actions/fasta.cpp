@@ -1,14 +1,11 @@
 #include "silo/query_engine/actions/fasta.h"
 
-#if defined(__linux__)
-#include <malloc.h>
-#endif
+#include <memory>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
 #include <boost/numeric/conversion/cast.hpp>
-#include <memory>
 #include <nlohmann/json.hpp>
 
 #include "silo/common/numbers.h"
@@ -82,14 +79,6 @@ QueryResult Fasta::execute(
          "Database does not contain an unaligned sequence with name: '" + sequence_name + "'"
       )
    }
-
-#if defined(__linux__)
-   SPDLOG_INFO(
-      "Manually invoking malloc_trim() to give "
-      "back memory to OS."
-   );
-   malloc_trim(0);
-#endif
 
    uint32_t partition_index = 0;
    std::optional<Range<uint32_t>> remaining_result_row_indices{};

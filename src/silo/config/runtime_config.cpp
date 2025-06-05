@@ -39,6 +39,9 @@ ConfigKeyPath apiParallelThreadsOptionKey() {
 ConfigKeyPath apiEstimatedStartupTimeOptionKey() {
    return YamlFile::stringToConfigKeyPath("api.estimatedStartupTimeInMinutes");
 }
+ConfigKeyPath softMemoryLimitOptionKey() {
+   return YamlFile::stringToConfigKeyPath("api.softMemoryLimit");
+}
 ConfigKeyPath queryMaterializationOptionKey() {
    return YamlFile::stringToConfigKeyPath("query.materializationCutoff");
 }
@@ -91,6 +94,13 @@ ConfigSpecification RuntimeConfig::getConfigSpecification() {
                "As long as no database is loaded yet, SILO will throw a 503 error. \n"
                "This option allows SILO to compute a Retry-After header for the 503 response."
             ),
+            ConfigAttributeSpecification::createWithoutDefault(
+               softMemoryLimitOptionKey(),
+               ConfigValueType::UINT32,
+               "A soft-limit on the memory usage. If the rss of the process is higher than \n"
+               "this value, malloc_trim is called. \n"
+               "Only supported on Linux."
+            ),
             ConfigAttributeSpecification::createWithDefault(
                queryMaterializationOptionKey(),
                ConfigValue::fromUint32(50000),
@@ -142,6 +152,9 @@ void RuntimeConfig::overwriteFrom(const VerifiedConfigAttributes& config_source)
    if (auto var = config_source.getUint32(apiEstimatedStartupTimeOptionKey())) {
       const std::chrono::minutes minutes = std::chrono::minutes(var.value());
       api_options.estimated_startup_end = std::chrono::system_clock::now() + minutes;
+   }
+   if (auto var = config_source.getUint32(softMemoryLimitOptionKey())) {
+      api_options.soft_memory_limit = var.value();
    }
    if (auto var = config_source.getUint32(queryMaterializationOptionKey())) {
       query_options.materialization_cutoff = var.value();
