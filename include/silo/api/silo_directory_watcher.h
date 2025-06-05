@@ -5,7 +5,7 @@
 
 #include <Poco/Timer.h>
 
-#include "silo/api/request_handler_factory.h"
+#include "silo/api/active_database.h"
 #include "silo/common/data_version.h"
 #include "silo/common/silo_directory.h"
 
