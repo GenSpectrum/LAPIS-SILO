@@ -164,8 +164,7 @@ arrow::Status TableScan::produce() {
       }
    }
    SPDLOG_TRACE("Calling InputFinished on _output:");
-   ARROW_RETURN_NOT_OK(output_->InputFinished(this, num_batches));
-   return arrow::Status::OK();
+   return output_->InputFinished(this, num_batches_produced);
 }
 
 void TableScan::prepareOutputArrays() {
@@ -190,8 +189,8 @@ arrow::Status TableScan::flushOutput() {
    }
    arrow::ExecBatch exec_batch;
    ARROW_ASSIGN_OR_RAISE(exec_batch, arrow::compute::ExecBatch::Make(data));
+   exec_batch.index = num_batches_produced++;
    ARROW_RETURN_NOT_OK(this->output_->InputReceived(static_cast<ExecNode*>(this), exec_batch));
-   ++num_batches;
    return arrow::Status::OK();
 }
 

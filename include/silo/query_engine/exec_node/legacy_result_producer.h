@@ -38,7 +38,7 @@ class LegacyResultProducer : public arrow::acero::ExecNode {
    std::vector<JsonValueTypeArrayBuilder> array_builders;
    std::vector<const std::string*> field_names;
 
-   size_t num_batches_produced;
+   size_t num_batches_produced = 0;
 
   public:
    LegacyResultProducer(
@@ -49,6 +49,8 @@ class LegacyResultProducer : public arrow::acero::ExecNode {
       const actions::Action* action,
       size_t materialization_cutoff
    );
+
+   const arrow::Ordering& ordering() const override { return arrow::Ordering::Implicit(); }
 
    const char* kind_name() const override { return "LegacyResultProducer"; }
 
