@@ -363,7 +363,7 @@ common::JsonValueType ColumnPartitionGroup::getValue(
       }
       return value;
    }
-   return std::nullopt;
+   throw std::runtime_error("Called getValue for a column that does not exist");
 }
 
 }  // namespace silo::storage

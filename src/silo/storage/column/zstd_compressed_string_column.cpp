@@ -56,4 +56,12 @@ std::optional<std::string> ZstdCompressedStringColumnPartition::getDecompressed(
    return result_buffer;
 }
 
+std::optional<std::string> ZstdCompressedStringColumnPartition::getCompressed(size_t row_id) const {
+   auto value = values.at(row_id);
+   if (value.empty()) {
+      return std::nullopt;
+   }
+   return value;
+}
+
 }  // namespace silo::storage::column

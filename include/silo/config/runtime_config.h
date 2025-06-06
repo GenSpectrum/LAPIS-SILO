@@ -19,6 +19,7 @@ class ApiOptions {
    uint16_t port;
    std::optional<std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>>
       estimated_startup_end;
+   uint32_t soft_memory_limit;
 };
 
 class QueryOptions {
