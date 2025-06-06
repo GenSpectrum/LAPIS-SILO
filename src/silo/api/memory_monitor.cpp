@@ -54,13 +54,15 @@ std::optional<uint32_t> getResidentSetSize() noexcept {
    return std::nullopt;
 }
 
+const long FIVE_SECONDS = 5000;
+
 }  // namespace
 
 namespace silo::api {
 
 MemoryMonitor::MemoryMonitor(std::optional<uint32_t> soft_memory_limit_in_kb)
     : soft_memory_limit_in_kb(soft_memory_limit_in_kb),
-      timer(0, 5000) {
+      timer(0, FIVE_SECONDS) {
    timer.start(Poco::TimerCallback<MemoryMonitor>(*this, &MemoryMonitor::checkRssAndLimit));
 }
 

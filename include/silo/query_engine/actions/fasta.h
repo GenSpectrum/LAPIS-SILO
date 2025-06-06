@@ -6,24 +6,14 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-#include "silo/query_engine/actions/action.h"
-#include "silo/query_engine/copy_on_write_bitmap.h"
-#include "silo/query_engine/query_result.h"
+#include "silo/query_engine/actions/simple_select_action.h"
+#include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
 namespace silo::query_engine::actions {
 
-class Fasta : public Action {
-   static constexpr size_t SEQUENCE_LIMIT = 10'000;
-
+class Fasta : public SimpleSelectAction {
    std::vector<std::string> sequence_names;
-
-   void validateOrderByFields(const schema::TableSchema& schema) const override;
-
-   [[nodiscard]] QueryResult execute(
-      std::shared_ptr<const storage::Table> table,
-      std::vector<CopyOnWriteBitmap> bitmap_filter
-   ) const override;
 
   public:
    explicit Fasta(std::vector<std::string>&& sequence_names);

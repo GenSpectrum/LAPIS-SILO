@@ -3,7 +3,7 @@
   "query": {
     "action": {
       "type": "Fasta",
-      "sequenceName": "main"
+      "sequenceName": "unaligned_main"
     },
     "filterExpression": {
       "type": "StringEquals",
@@ -14,7 +14,7 @@
   "expectedQueryResult": [
     {
       "gisaid_epi_isl": "EPI_ISL_1749899",
-      "main": "some_very_short_string"
+      "unaligned_main": "some_very_short_string"
     }
   ]
 }

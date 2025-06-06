@@ -17,7 +17,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D SILO_DEBUG_ASSERTIONS=0")
 endif ()
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 
 # For find_package calls in Module mode (looking for the Find<lib>.cmake files)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_BINARY_DIR}/generators/")

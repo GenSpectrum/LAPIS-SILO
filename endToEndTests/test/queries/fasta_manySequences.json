@@ -3,7 +3,7 @@
   "query": {
     "action": {
       "type": "Fasta",
-      "sequenceName": "testSecondSequence",
+      "sequenceName": "unaligned_testSecondSequence",
       "orderByFields": ["gisaid_epi_isl"]
     },
     "filterExpression": {
@@ -15,31 +15,31 @@
   "expectedQueryResult": [
     {
       "gisaid_epi_isl": "EPI_ISL_1001493",
-      "testSecondSequence": "ACGT"
+      "unaligned_testSecondSequence": "ACGT"
     },
     {
       "gisaid_epi_isl": "EPI_ISL_1597890",
-      "testSecondSequence": "ACGT"
+      "unaligned_testSecondSequence": "ACGT"
     },
     {
       "gisaid_epi_isl": "EPI_ISL_2359636",
-      "testSecondSequence": "ACGT"
+      "unaligned_testSecondSequence": "ACGT"
     },
     {
       "gisaid_epi_isl": "EPI_ISL_2367431",
-      "testSecondSequence": "NCGT"
+      "unaligned_testSecondSequence": "NCGT"
     },
     {
       "gisaid_epi_isl": "EPI_ISL_2405276",
-      "testSecondSequence": "ACGT"
+      "unaligned_testSecondSequence": "ACGT"
     },
     {
       "gisaid_epi_isl": "EPI_ISL_3259931",
-      "testSecondSequence": "JRZFHVKQIQGIVPUNJZCDKLOPDFTWZWXEXKZIHLGFWZNIGUAAPJBXPQCJBFUYHHIOPNDMTMHAFPHMZRCNUGIBRZCNKAJZMWXMBMPQRTZQUHTIFSOBXAQWMESDRWVJQWRE"
+      "unaligned_testSecondSequence": "JRZFHVKQIQGIVPUNJZCDKLOPDFTWZWXEXKZIHLGFWZNIGUAAPJBXPQCJBFUYHHIOPNDMTMHAFPHMZRCNUGIBRZCNKAJZMWXMBMPQRTZQUHTIFSOBXAQWMESDRWVJQWRE"
     },
     {
       "gisaid_epi_isl": "EPI_ISL_3465732",
-      "testSecondSequence": "ACGT"
+      "unaligned_testSecondSequence": "ACGT"
     }
   ]
 }
