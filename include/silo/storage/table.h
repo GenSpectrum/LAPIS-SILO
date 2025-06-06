@@ -1,5 +1,6 @@
 #pragma once
 
+#include "silo/schema/database_schema.h"
 #include "silo/storage/column_group.h"
 #include "silo/storage/table_partition.h"
 

@@ -5,9 +5,6 @@
 #include <optional>
 #include <utility>
 
-#include <arrow/acero/exec_plan.h>
-#include <arrow/acero/options.h>
-#include <arrow/compute/expression.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
@@ -16,10 +13,6 @@
 #include "silo/common/panic.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/bad_request.h"
-#include "silo/query_engine/exec_node/ndjson_sink.h"
-#include "silo/query_engine/exec_node/table_scan.h"
-#include "silo/query_engine/exec_node/zstd_decompress_expression.h"
-#include "silo/query_engine/query_result.h"
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/table.h"
 
@@ -31,30 +24,6 @@ FastaAligned::FastaAligned(
 )
     : sequence_names(sequence_names),
       additional_fields(additional_fields) {}
-
-void FastaAligned::validateOrderByFields(const schema::TableSchema& schema) const {
-   const std::string& primary_key_field = schema.primary_key.name;
-   for (const OrderByField& field : order_by_fields) {
-      CHECK_SILO_QUERY(
-         field.name == primary_key_field ||
-            std::ranges::find(sequence_names, field.name) != std::end(sequence_names),
-         fmt::format(
-            "OrderByField {} is not contained in the result of this operation. "
-            "The only fields returned by the FastaAligned action are {} and {}",
-            field.name,
-            fmt::join(sequence_names, ","),
-            primary_key_field
-         )
-      );
-   }
-}
-
-QueryResult FastaAligned::execute(
-   std::shared_ptr<const storage::Table> table,
-   std::vector<CopyOnWriteBitmap> bitmap_filter
-) const {
-   SILO_PANIC("Legacy execute called on action already migrated action. Programming error.");
-}
 
 std::vector<schema::ColumnIdentifier> FastaAligned::getOutputSchema(
    const schema::TableSchema& table_schema
@@ -79,145 +48,6 @@ std::vector<schema::ColumnIdentifier> FastaAligned::getOutputSchema(
    fields.emplace(table_schema.primary_key);
    std::vector<schema::ColumnIdentifier> unique_fields{fields.begin(), fields.end()};
    return unique_fields;
-}
-
-QueryPlan FastaAligned::toQueryPlan(
-   std::shared_ptr<const storage::Table> table,
-   const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
-   const config::QueryOptions& query_options
-) {
-   auto query_plan = toQueryPlanImpl(table, partition_filter_operators, query_options);
-   if (!query_plan.status().ok()) {
-      SILO_PANIC("Arrow error: {}", query_plan.status().ToString());
-   };
-   return query_plan.ValueUnsafe();
-}
-
-namespace {
-
-using silo::schema::ColumnIdentifier;
-using silo::schema::TableSchema;
-using silo::storage::column::Column;
-using silo::storage::column::SequenceColumnPartition;
-using silo::storage::column::ZstdCompressedStringColumnPartition;
-
-class ColumnToReferenceSequenceVisitor {
-  public:
-   template <Column ColumnType>
-   std::optional<std::string> operator()(
-      const TableSchema& table_schema,
-      const ColumnIdentifier& column_identifier
-   ) {
-      return std::nullopt;
-   }
-};
-
-template <>
-std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
-)<SequenceColumnPartition<Nucleotide>>(
-   const TableSchema& table_schema,
-   const ColumnIdentifier& column_identifier
-) {
-   auto metadata =
-      table_schema.getColumnMetadata<SequenceColumnPartition<Nucleotide>>(column_identifier.name)
-         .value();
-   std::string reference;
-   std::ranges::transform(
-      metadata->reference_sequence, std::back_inserter(reference), Nucleotide::symbolToChar
-   );
-   return reference;
-}
-
-template <>
-std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
-)<SequenceColumnPartition<AminoAcid>>(
-   const TableSchema& table_schema,
-   const ColumnIdentifier& column_identifier
-) {
-   auto metadata =
-      table_schema.getColumnMetadata<SequenceColumnPartition<AminoAcid>>(column_identifier.name)
-         .value();
-   std::string reference;
-   std::ranges::transform(
-      metadata->reference_sequence, std::back_inserter(reference), AminoAcid::symbolToChar
-   );
-   return reference;
-}
-
-template <>
-std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
-)<ZstdCompressedStringColumnPartition>(
-   const TableSchema& table_schema,
-   const ColumnIdentifier& column_identifier
-) {
-   auto metadata =
-      table_schema.getColumnMetadata<ZstdCompressedStringColumnPartition>(column_identifier.name)
-         .value();
-   return metadata->dictionary_string;
-}
-
-}  // namespace
-
-arrow::Result<QueryPlan> FastaAligned::toQueryPlanImpl(
-   std::shared_ptr<const storage::Table> table,
-   const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
-   const config::QueryOptions& query_options
-) {
-   ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
-   arrow::acero::ExecNode* node = arrow_plan->EmplaceNode<exec_node::TableScan>(
-      arrow_plan.get(),
-      getOutputSchema(table->schema),
-      partition_filter_operators,
-      table,
-      query_options.materialization_cutoff
-   );
-
-   if (auto ordering = getOrdering()) {
-      // Create an OrderByNode and put it on top, then replace `node` with the created OrderBy
-      ARROW_ASSIGN_OR_RAISE(
-         node,
-         arrow::acero::MakeExecNode(
-            std::string{arrow::acero::OrderByNodeOptions::kName},
-            arrow_plan.get(),
-            {node},
-            arrow::acero::OrderByNodeOptions{ordering.value()}
-         )
-      );
-   }
-   if (limit.has_value() || offset.has_value()) {
-      // Create a FetchNode and put it on top, then replace `node` with the created FetchNode
-      arrow::acero::FetchNodeOptions fetch_options(offset.value_or(0), limit.value_or(UINT32_MAX));
-      ARROW_ASSIGN_OR_RAISE(
-         node,
-         arrow::acero::MakeExecNode(
-            std::string{arrow::acero::FetchNodeOptions::kName},
-            arrow_plan.get(),
-            {node},
-            fetch_options
-         )
-      );
-   }
-
-   std::vector<arrow::compute::Expression> column_expressions;
-   std::vector<std::string> column_names;
-   for (auto column : getOutputSchema(table->schema)) {
-      if (auto reference = storage::column::visit(column.type, ColumnToReferenceSequenceVisitor{}, table->schema, column)) {
-         column_expressions.push_back(exec_node::ZstdDecompressExpression::Make(
-            arrow::compute::field_ref(arrow::FieldRef{column.name}), reference.value()
-         ));
-      } else {
-         column_expressions.push_back(arrow::compute::field_ref(arrow::FieldRef{column.name}));
-      }
-      column_names.push_back(column.name);
-   }
-
-   arrow::acero::ProjectNodeOptions project_options{column_expressions, column_names};
-   ARROW_ASSIGN_OR_RAISE(
-      node,
-      arrow::acero::MakeExecNode(std::string{"project"}, arrow_plan.get(), {node}, project_options)
-   );
-
-   return QueryPlan::makeQueryPlan(arrow_plan, node);
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
