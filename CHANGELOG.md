@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.6.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.6.0...v0.6.1) (2025-06-06)
+
+
+### Features
+
+* arrow framework for query engine and specialized implementation for FastaAligned action ([b719e15](https://github.com/GenSpectrum/LAPIS-SILO/commit/b719e15c2fa682752518e2cc9c98707fbbb84a9d)), closes [#654](https://github.com/GenSpectrum/LAPIS-SILO/issues/654)
+* **silo:** add recommended vscode extensions to .vscode folder for developers using vscode ([d2c74db](https://github.com/GenSpectrum/LAPIS-SILO/commit/d2c74db6e2fb00d98f687a0dbf958d378127718b))
+* **silo:** improve the docs and update build_with_conan.py ([#779](https://github.com/GenSpectrum/LAPIS-SILO/issues/779)) ([f176fd6](https://github.com/GenSpectrum/LAPIS-SILO/commit/f176fd6c4e0a26e638a63f577bb90db49c89d9f4))
+* update onetbb, nlohmann_json, gtest, roaring, yaml-cpp and zstd to most recent versions ([3abd2d9](https://github.com/GenSpectrum/LAPIS-SILO/commit/3abd2d98acdcd0c50087a0b443fb8a6fd91cf6a8))
+
+
+### Bug Fixes
+
+* bug in table_scan, that confused row_id in the database with row_id in the current batch ([9b7dce4](https://github.com/GenSpectrum/LAPIS-SILO/commit/9b7dce4c171c0e1d87a4388d511dcb6dd354b392))
+* correctly error when the input data contains illegal insertion characters ([4867c32](https://github.com/GenSpectrum/LAPIS-SILO/commit/4867c320c495226add39a981c25287866bc49302))
+* make better use of the arrow::acero API, no longer rely on passing the stream inside an extra operator ([dabb186](https://github.com/GenSpectrum/LAPIS-SILO/commit/dabb18618bac8562ef0a56c069e923e96ccb1026))
+* properly catch exceptions during arrow execution to avoid program termination ([6caee0e](https://github.com/GenSpectrum/LAPIS-SILO/commit/6caee0ea17fbe4c95115d05d5de7eb78d71792bc))
+* remove erroneous warning printed on every preprocessing run ([82b65c8](https://github.com/GenSpectrum/LAPIS-SILO/commit/82b65c8a91aebe80bc15453a2196be98501e672a))
+
 ## [0.6.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.5.9...v0.6.0) (2025-04-23)
 
 
