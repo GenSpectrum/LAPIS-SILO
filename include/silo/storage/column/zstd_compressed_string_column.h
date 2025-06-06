@@ -56,6 +56,8 @@ class ZstdCompressedStringColumnPartition {
 
    std::optional<std::string> getDecompressed(size_t row_id) const;
 
+   std::optional<std::string> getCompressed(size_t row_id) const;
+
   private:
    friend class boost::serialization::access;
    template <class Archive>

@@ -120,6 +120,32 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumnPar
    );
 }
 
+template <>
+arrow::Status ColumnEntryAppender::operator()<storage::column::ZstdCompressedStringColumnPartition>(
+   TableScan& table_scan_node,
+   const std::string& column_name,
+   const storage::TablePartition& table_partition,
+   const roaring::Roaring& row_ids
+) {
+   auto array =
+      table_scan_node
+         .getColumnTypeArrayBuilders<storage::column::ZstdCompressedStringColumnPartition>()
+         .at(column_name);
+   auto column =
+      table_partition.columns.getColumns<storage::column::ZstdCompressedStringColumnPartition>().at(
+         column_name
+      );
+   for (auto row_id : row_ids) {
+      auto value = column.getCompressed(row_id);
+      if (value.has_value()) {
+         ARROW_RETURN_NOT_OK(array->Append(value.value()));
+      } else {
+         ARROW_RETURN_NOT_OK(array->AppendNull());
+      }
+   }
+   return arrow::Status::OK();
+}
+
 template <storage::column::Column Column>
 arrow::Status ColumnEntryAppender::operator()(
    TableScan& table_scan_node,
@@ -131,10 +157,11 @@ arrow::Status ColumnEntryAppender::operator()(
    for (auto row_id : row_ids) {
       using type = typename ArrowBuilderSelector<Column>::value_type;
       auto value = table_partition.columns.getValue(column_name, row_id);
-      if (!value.has_value()) {
-         SILO_PANIC("Called getValue on column {} that does not exist", column_name);
+      if (value.has_value()) {
+         ARROW_RETURN_NOT_OK(array->Append(get<type>(value.value())));
+      } else {
+         ARROW_RETURN_NOT_OK(array->AppendNull());
       }
-      ARROW_RETURN_NOT_OK(array->Append(get<type>(value.value())));
    }
    return arrow::Status::OK();
 }

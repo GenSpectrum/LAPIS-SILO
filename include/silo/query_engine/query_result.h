@@ -19,7 +19,7 @@ struct QueryResultEntry {
    std::map<std::string, common::JsonValueType> fields;
 };
 
-/// This class will be removed after the transition to Arrow is finished
+/// TODO(#758) This class will be removed after the transition to Arrow is finished
 class QueryResult {
    // Temporary chunk of the query result in the case of streaming, or
    // the whole result in the case of eager query evaluation.

@@ -330,4 +330,34 @@ QueryPlan Action::toQueryPlan(
    return query_plan.ValueUnsafe();
 }
 
+arrow::Result<arrow::acero::ExecNode*> Action::addSortNode(
+   arrow::acero::ExecPlan* arrow_plan,
+   arrow::acero::ExecNode* node
+) {
+   if (auto ordering = getOrdering()) {
+      // Create an OrderByNode and put it on top, then replace `node` with the created OrderBy
+      return arrow::acero::MakeExecNode(
+         std::string{arrow::acero::OrderByNodeOptions::kName},
+         arrow_plan,
+         {node},
+         arrow::acero::OrderByNodeOptions{ordering.value()}
+      );
+   }
+   return node;
+}
+
+arrow::Result<arrow::acero::ExecNode*> Action::addLimitAndOffsetNode(
+   arrow::acero::ExecPlan* arrow_plan,
+   arrow::acero::ExecNode* node
+) {
+   if (limit.has_value() || offset.has_value()) {
+      // Create a FetchNode and put it on top, then replace `node` with the created FetchNode
+      arrow::acero::FetchNodeOptions fetch_options(offset.value_or(0), limit.value_or(UINT32_MAX));
+      return arrow::acero::MakeExecNode(
+         std::string{arrow::acero::FetchNodeOptions::kName}, arrow_plan, {node}, fetch_options
+      );
+   }
+   return node;
+}
+
 }  // namespace silo::query_engine::actions
