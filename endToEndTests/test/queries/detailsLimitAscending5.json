@@ -18,10 +18,10 @@
   },
   "expectedQueryResult": [
     {
-      "division": null
+      "division": "Aargau"
     },
     {
-      "division": null
+      "division": "Aargau"
     },
     {
       "division": "Aargau"

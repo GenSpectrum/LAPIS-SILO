@@ -7,30 +7,16 @@
 #include <arrow/acero/exec_plan.h>
 #include <nlohmann/json.hpp>
 
-#include "silo/query_engine/actions/action.h"
-#include "silo/query_engine/copy_on_write_bitmap.h"
-#include "silo/query_engine/query_result.h"
+#include "silo/query_engine/actions/simple_select_action.h"
 #include "silo/storage/table.h"
 
 namespace silo::query_engine::actions {
 
-class Details : public Action {
+class Details : public SimpleSelectAction {
    std::vector<std::string> fields;
-
-   [[nodiscard]] QueryResult execute(
-      std::shared_ptr<const storage::Table> table,
-      std::vector<CopyOnWriteBitmap> bitmap_filter
-   ) const override;
 
   public:
    explicit Details(std::vector<std::string> fields);
-
-   void validateOrderByFields(const schema::TableSchema& schema) const override;
-
-   [[nodiscard]] QueryResult executeAndOrder(
-      std::shared_ptr<const storage::Table> table,
-      std::vector<CopyOnWriteBitmap> bitmap_filter
-   ) const override;
 
    std::vector<schema::ColumnIdentifier> getOutputSchema(
       const silo::schema::TableSchema& table_schema

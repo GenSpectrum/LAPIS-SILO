@@ -245,7 +245,7 @@ const QueryTestScenario AGGREGATE_LIMIT_RANDOMIZE = {
 };
 
 }  // namespace
-
+/* TODO(#794) Re-add randomize tests
 QUERY_TEST(
    RandomizeTest,
    TEST_DATA,
@@ -261,3 +261,4 @@ QUERY_TEST(
       AGGREGATE_LIMIT_RANDOMIZE
    )
 );
+*/

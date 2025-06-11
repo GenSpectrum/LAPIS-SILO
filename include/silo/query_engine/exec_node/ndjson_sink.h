@@ -18,7 +18,7 @@ arrow::Status writeBatchAsNdjson(
 arrow::Status createGenerator(
    arrow::acero::ExecPlan* plan,
    arrow::acero::ExecNode* input,
-   std::function<arrow::Future<std::optional<arrow::ExecBatch>>()>* generator
+   arrow::AsyncGenerator<std::optional<arrow::ExecBatch>>* generator
 );
 
 }  // namespace silo::query_engine::exec_node

@@ -26,6 +26,12 @@ class ScalarToJsonTypeVisitor : public arrow::ScalarVisitor {
       return arrow::Status::OK();
    }
 
+   arrow::Status Visit(const arrow::FloatScalar& scalar) override {
+      nlohmann::json j = scalar.value;
+      *output_stream << j;
+      return arrow::Status::OK();
+   }
+
    arrow::Status Visit(const arrow::StringScalar& scalar) override {
       nlohmann::json j = scalar.ToString();
       *output_stream << j;
@@ -79,7 +85,7 @@ arrow::Status writeBatchAsNdjson(
 arrow::Status createGenerator(
    arrow::acero::ExecPlan* plan,
    arrow::acero::ExecNode* input,
-   std::function<arrow::Future<std::optional<arrow::ExecBatch>>()>* generator
+   arrow::AsyncGenerator<std::optional<arrow::ExecBatch>>* generator
 ) {
    arrow::acero::SinkNodeOptions options{generator};
    ARROW_RETURN_NOT_OK(

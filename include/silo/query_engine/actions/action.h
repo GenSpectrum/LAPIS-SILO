@@ -84,13 +84,20 @@ class Action {
   protected:
    arrow::Result<arrow::acero::ExecNode*> addSortNode(
       arrow::acero::ExecPlan* arrow_plan,
-      arrow::acero::ExecNode* node
-   );
+      arrow::acero::ExecNode* node,
+      const silo::schema::TableSchema& table_schema
+   ) const;
 
    arrow::Result<arrow::acero::ExecNode*> addLimitAndOffsetNode(
       arrow::acero::ExecPlan* arrow_plan,
       arrow::acero::ExecNode* node
-   );
+   ) const;
+
+   arrow::Result<arrow::acero::ExecNode*> addZstdDecompressNode(
+      arrow::acero::ExecPlan* arrow_plan,
+      arrow::acero::ExecNode* node,
+      const silo::schema::TableSchema& table_schema
+   ) const;
 };
 
 std::optional<uint32_t> parseLimit(const nlohmann::json& json);

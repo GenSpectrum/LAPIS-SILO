@@ -330,14 +330,22 @@ common::JsonValueType ColumnPartitionGroup::getValue(
    uint32_t sequence_id
 ) const {
    if (string_columns.contains(column)) {
-      return string_columns.at(column).lookupValue(
-         string_columns.at(column).getValues().at(sequence_id)
-      );
+      auto value =
+         string_columns.at(column).lookupValue(string_columns.at(column).getValues().at(sequence_id)
+         );
+      if (value.empty()) {
+         return std::nullopt;
+      }
+      return value;
    }
    if (indexed_string_columns.contains(column)) {
-      return indexed_string_columns.at(column).lookupValue(
+      auto value = indexed_string_columns.at(column).lookupValue(
          indexed_string_columns.at(column).getValues().at(sequence_id)
       );
+      if (value.empty()) {
+         return std::nullopt;
+      }
+      return value;
    }
    if (date_columns.contains(column)) {
       return common::dateToString(date_columns.at(column).getValues().at(sequence_id));
