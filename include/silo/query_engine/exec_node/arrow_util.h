@@ -66,7 +66,7 @@ struct ArrowBuilderSelector<storage::column::ZstdCompressedStringColumnPartition
 
 template <>
 struct ArrowBuilderSelector<storage::column::FloatColumnPartition> {
-   using builder_type = arrow::FloatBuilder;
+   using builder_type = arrow::DoubleBuilder;
    using value_type = double;
 };
 

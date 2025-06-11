@@ -5,7 +5,7 @@
 #include <ostream>
 
 #include <arrow/acero/exec_plan.h>
-#include <arrow/util/future.h>
+#include <arrow/util/async_generator_fwd.h>
 
 #include "silo/common/panic.h"
 
@@ -16,7 +16,7 @@ class QueryPlan {
    std::shared_ptr<arrow::acero::ExecPlan> arrow_plan;
    std::shared_ptr<arrow::Schema> results_schema;
    // The function which returns the exec batches in the correct order of the output
-   std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> results_generator;
+   arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> results_generator;
 
    static arrow::Result<QueryPlan> makeQueryPlan(
       std::shared_ptr<arrow::acero::ExecPlan> arrow_plan,

@@ -24,9 +24,12 @@
 #include "silo/query_engine/actions/mutations.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
+#include "silo/query_engine/exec_node/arrow_util.h"
 #include "silo/query_engine/exec_node/legacy_result_producer.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
+#include "silo/query_engine/exec_node/zstd_decompress_expression.h"
 #include "silo/query_engine/query_result.h"
+#include "silo/storage/column/column_type_visitor.h"
 
 namespace silo::query_engine::actions {
 
@@ -117,7 +120,8 @@ std::optional<arrow::Ordering> Action::getOrdering() const {
       auto sort_order = order_by_field.ascending ? SortOrder::Ascending : SortOrder::Descending;
       sort_keys.emplace_back(order_by_field.name, sort_order);
    }
-   return {sort_keys};
+   // TODO(#801) arrow::compute::NullPlacement::AtStart
+   return arrow::Ordering{sort_keys, arrow::compute::NullPlacement::AtEnd};
 }
 
 static const size_t MATERIALIZATION_CUTOFF = 10000;
@@ -204,8 +208,9 @@ void from_json(const nlohmann::json& json, OrderByField& field) {
 
 std::optional<uint32_t> parseLimit(const nlohmann::json& json) {
    CHECK_SILO_QUERY(
-      !json.contains("limit") || json["limit"].is_number_unsigned(),
-      "If the action contains a limit, it must be a non-negative number"
+      !json.contains("limit") ||
+         (json["limit"].is_number_unsigned() && json["limit"].get<uint32_t>() > 0),
+      "If the action contains a limit, it must be a positive number"
    );
    return json.contains("limit") ? std::optional<uint32_t>(json["limit"].get<uint32_t>())
                                  : std::nullopt;
@@ -332,14 +337,43 @@ QueryPlan Action::toQueryPlan(
 
 arrow::Result<arrow::acero::ExecNode*> Action::addSortNode(
    arrow::acero::ExecPlan* arrow_plan,
-   arrow::acero::ExecNode* node
-) {
+   arrow::acero::ExecNode* node,
+   const silo::schema::TableSchema& table_schema
+) const {
    if (auto ordering = getOrdering()) {
+      arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> generator;
+      // TODO(#800) add optimized sorting when limit is supplied
+      //      if (limit.has_value()) {
+      //         auto number_of_rows_to_be_sorted = limit.value() + offset.value_or(0);
+      //         ARROW_ASSIGN_OR_RAISE(
+      //            node,
+      //            arrow::acero::MakeExecNode(
+      //               "select_k_sink",
+      //               arrow_plan,
+      //               {node},
+      //               arrow::acero::SelectKSinkNodeOptions{
+      //                  arrow::SelectKOptions(number_of_rows_to_be_sorted,
+      //                  ordering.value().sort_keys()), &generator
+      //               }
+      //            )
+      //         );
+      //      } else {
+      ARROW_ASSIGN_OR_RAISE(
+         node,
+         arrow::acero::MakeExecNode(
+            "order_by_sink",
+            arrow_plan,
+            {node},
+            arrow::acero::OrderBySinkNodeOptions{arrow::SortOptions{ordering.value()}, &generator}
+         )
+      );
+      //      }
+      auto schema = exec_node::columnsToInternalArrowSchema(getOutputSchema(table_schema));
       return arrow::acero::MakeExecNode(
-         std::string{arrow::acero::OrderByNodeOptions::kName},
+         "source",
          arrow_plan,
-         {node},
-         arrow::acero::OrderByNodeOptions{ordering.value()}
+         {},
+         arrow::acero::SourceNodeOptions{schema, std::move(generator), ordering.value()}
       );
    }
    return node;
@@ -348,11 +382,108 @@ arrow::Result<arrow::acero::ExecNode*> Action::addSortNode(
 arrow::Result<arrow::acero::ExecNode*> Action::addLimitAndOffsetNode(
    arrow::acero::ExecPlan* arrow_plan,
    arrow::acero::ExecNode* node
-) {
+) const {
    if (limit.has_value() || offset.has_value()) {
       arrow::acero::FetchNodeOptions fetch_options(offset.value_or(0), limit.value_or(UINT32_MAX));
       return arrow::acero::MakeExecNode(
          std::string{arrow::acero::FetchNodeOptions::kName}, arrow_plan, {node}, fetch_options
+      );
+   }
+   return node;
+}
+
+namespace {
+
+using silo::schema::ColumnIdentifier;
+using silo::schema::TableSchema;
+using silo::storage::column::Column;
+using silo::storage::column::SequenceColumnPartition;
+using silo::storage::column::ZstdCompressedStringColumnPartition;
+
+class ColumnToReferenceSequenceVisitor {
+  public:
+   template <Column ColumnType>
+   std::optional<std::string> operator()(
+      const TableSchema& table_schema,
+      const ColumnIdentifier& column_identifier
+   ) {
+      return std::nullopt;
+   }
+};
+
+template <>
+std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
+)<SequenceColumnPartition<Nucleotide>>(
+   const TableSchema& table_schema,
+   const ColumnIdentifier& column_identifier
+) {
+   auto metadata =
+      table_schema.getColumnMetadata<SequenceColumnPartition<Nucleotide>>(column_identifier.name)
+         .value();
+   std::string reference;
+   std::ranges::transform(
+      metadata->reference_sequence, std::back_inserter(reference), Nucleotide::symbolToChar
+   );
+   return reference;
+}
+
+template <>
+std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
+)<SequenceColumnPartition<AminoAcid>>(
+   const TableSchema& table_schema,
+   const ColumnIdentifier& column_identifier
+) {
+   auto metadata =
+      table_schema.getColumnMetadata<SequenceColumnPartition<AminoAcid>>(column_identifier.name)
+         .value();
+   std::string reference;
+   std::ranges::transform(
+      metadata->reference_sequence, std::back_inserter(reference), AminoAcid::symbolToChar
+   );
+   return reference;
+}
+
+template <>
+std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
+)<ZstdCompressedStringColumnPartition>(
+   const TableSchema& table_schema,
+   const ColumnIdentifier& column_identifier
+) {
+   auto metadata =
+      table_schema.getColumnMetadata<ZstdCompressedStringColumnPartition>(column_identifier.name)
+         .value();
+   return metadata->dictionary_string;
+}
+
+}  // namespace
+
+arrow::Result<arrow::acero::ExecNode*> Action::addZstdDecompressNode(
+   arrow::acero::ExecPlan* arrow_plan,
+   arrow::acero::ExecNode* node,
+   const silo::schema::TableSchema& table_schema
+) const {
+   auto output_fields = getOutputSchema(table_schema);
+   bool needs_decompression =
+      std::any_of(output_fields.begin(), output_fields.end(), [](const auto& column_identifier) {
+         return schema::isSequenceColumn(column_identifier.type);
+      });
+   if (needs_decompression) {
+      std::vector<arrow::compute::Expression> column_expressions;
+      std::vector<std::string> column_names;
+      for (auto column : getOutputSchema(table_schema)) {
+         if (auto reference = storage::column::visit(column.type, ColumnToReferenceSequenceVisitor{}, table_schema, column)) {
+            column_expressions.push_back(exec_node::ZstdDecompressExpression::Make(
+               arrow::compute::field_ref(arrow::FieldRef{column.name}), reference.value()
+            ));
+         } else {
+            column_expressions.push_back(arrow::compute::field_ref(arrow::FieldRef{column.name}));
+         }
+         column_names.push_back(column.name);
+      }
+
+      arrow::acero::ProjectNodeOptions project_options{column_expressions, column_names};
+      return arrow::acero::MakeExecNode(
+         std::string{"project"}, arrow_plan, {node}, project_options
       );
    }
    return node;
