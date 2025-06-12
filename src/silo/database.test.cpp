@@ -68,12 +68,12 @@ TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
 
    auto database = silo::Database::loadDatabaseState(data_source);
 
-   const auto simple_database_info = database.getDatabaseInfo();
+   const auto database_info = database.getDatabaseInfo();
 
-   EXPECT_GT(simple_database_info.total_size, 0);
-   EXPECT_EQ(simple_database_info.sequence_count, 5);
-   EXPECT_GT(simple_database_info.n_bitmaps_size, 0);
-   EXPECT_EQ(simple_database_info.number_of_partitions, 1);
+   EXPECT_EQ(database_info.sequence_count, 5);
+   EXPECT_GT(database_info.vertical_bitmaps_size, 0);
+   EXPECT_GT(database_info.horizontal_bitmaps_size, 0);
+   EXPECT_EQ(database_info.number_of_partitions, 1);
 
    // If the serialization version changes, comment out the next line to build a new database for
    // the next test. Then add the produced directory to Git and remove the old serialized state.
@@ -87,12 +87,12 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfoAfterAppendingNewSequences) {
       silo::SiloDirectory{"testBaseData/siloSerializedState"}.getMostRecentDataDirectory().value()
    );
 
-   const auto simple_info = database.getDatabaseInfo();
+   const auto database_info = database.getDatabaseInfo();
    auto data_version = database.getDataVersionTimestamp();
 
-   EXPECT_GT(simple_info.total_size, 0);
-   EXPECT_EQ(simple_info.sequence_count, 5);
-   EXPECT_EQ(simple_info.n_bitmaps_size, 62);
+   EXPECT_EQ(database_info.sequence_count, 5);
+   EXPECT_GT(database_info.vertical_bitmaps_size, 0);
+   EXPECT_EQ(database_info.horizontal_bitmaps_size, 123);
 
    std::vector<nlohmann::json> more_data{
       nlohmann::json::parse(
@@ -105,9 +105,9 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfoAfterAppendingNewSequences) {
 
    silo::append::appendDataToDatabase(database, more_data);
 
-   const auto info_after_append = database.getDatabaseInfo();
+   const auto database_info_after_append = database.getDatabaseInfo();
    auto data_version_after_append = database.getDataVersionTimestamp();
 
-   EXPECT_EQ(info_after_append.sequence_count, 7);
+   EXPECT_EQ(database_info_after_append.sequence_count, 7);
    EXPECT_GT(data_version_after_append, data_version);
 }
