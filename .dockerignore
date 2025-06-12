@@ -8,7 +8,6 @@
 !conanfile.py
 !.clang-tidy
 !src/
-!include/
 !testBaseData/
 !test/
 !release_version.txt/

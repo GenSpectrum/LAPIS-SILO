@@ -70,11 +70,11 @@ The images contain default configuration so that a user only needs to mount data
 For SILO, there are three different configuration files:
 
 - `DatabaseConfig` described in
-  file [database_config.h](include/silo/config/database_config.h)
+  file [database_config.h](src/silo/config/database_config.h)
 - `PreprocessingConfig` used when started with `preprocessing` and described in
-  file [preprocessing_config.h](include/silo/config/preprocessing_config.h)
+  file [preprocessing_config.h](src/silo/config/preprocessing_config.h)
 - `RuntimeConfig` used when started with `api` and described in
-  file [runtime_config.h](include/silo/config/preprocessing_config.h)
+  file [runtime_config.h](src/silo/config/preprocessing_config.h)
 
 The database config contains the schema of the database and is always required when preprocessing data. The database
 config will be saved together with the output of the preprocessing and is therefore not required when starting SILO as

@@ -9,19 +9,19 @@ file entries, and command line arguments override both.
 
 For a class representing application configuration data (from here on
 called "Config", because the config library defines a C++ concept
-called [`Config`](../include/config/config_interface.h) that the
+called [`Config`](../src/config/config_interface.h) that the
 "Config" class needs to implement--currently those are
 `PreprocessingConfig` or `RuntimeConfig`), the system needs metadata,
 represented with the
-[`ConfigSpecification`](../include/config/config_specification.h)
+[`ConfigSpecification`](../src/config/config_specification.h)
 type. This metadata is the basis for building the help text, and used
 by the configuration source "backends" (via the `verify` method
 implementations of the [`ConfigSource`
-interface](../include/config/config_source_interface.h)) to know which
+interface](../src/config/config_source_interface.h)) to know which
 user-provided values are valid, and what type they represent (which is
 used in the help text and to choose the right parser).
 
-As per the [`Config`](../include/config/config_interface.h) concept, a
+As per the [`Config`](../src/config/config_interface.h) concept, a
 "Config" needs to implement an `overwriteFrom` method, which receives
 the parsed and verified user-provided data from one of the config
 sources, and has to fill in all class fields with the values given by
@@ -59,7 +59,7 @@ There are some complications:
   values for an environment (for a Docker image), and another one
   optionally provided by the user of a Docker image; values in the latter
   should shadow values in the former. For this reason,
-  [`Config`](../include/config/config_interface.h) requires a
+  [`Config`](../src/config/config_interface.h) requires a
   `getConfigPaths` method that returns the paths to the default, and
   if given, user-provided config file (taken from (defaults,) env vars
   and command line options).
@@ -75,7 +75,7 @@ There are some complications:
   application prefix (`SILO_`) should be reported as usage errors.
 
 The logic for handling the precedence and these complications is in
-the templated [`getConfig`](../include/config/config_interface.h)
+the templated [`getConfig`](../src/config/config_interface.h)
 function, which returns a fully filled-in "Config"
 instance. `getConfig` needs an allow list for environment variables to
 satisfy the last point above; this is done in
@@ -88,32 +88,32 @@ the help text and the actual runtime.
 
 ## Code Overview
 
-[include/config/config_interface.h](../include/config/config_interface.h)
+[src/config/config_interface.h](../src/config/config_interface.h)
 
 The `Config` concept, and the `getConfig<Config>` function.
 
-[include/config/config_specification.h](../include/config/config_specification.h)
+[src/config/config_specification.h](../src/config/config_specification.h)
 
 `ConfigSpecification`, describing the "metadata" on a Config class
 using a `ConfigAttributeSpecification` for each field.
 
-[include/config/verified_config_attributes.h](../include/config/verified_config_attributes.h)
+[src/config/verified_config_attributes.h](../src/config/verified_config_attributes.h)
 
 `VerifiedConfigAttributes`: the result of the verification (`verify` method), input for `getConfig`.
 
-[include/config/config_key_path.h](../include/config/config_key_path.h)
+[src/config/config_key_path.h](../src/config/config_key_path.h)
 
 `ConfigKeyPath`: source-independent abstraction for a configuration key.
 
-[include/config/config_value.h](../include/config/config_value.h)
+[src/config/config_value.h](../src/config/config_value.h)
 
 `ConfigValue`: A parsed value from user config input.
 
-[include/config/config_source_interface.h](../include/config/config_source_interface.h)
+[src/config/config_source_interface.h](../src/config/config_source_interface.h)
 
 Declares the `verify` method.
 
-[include/config/source/](../include/config/source/)
+[src/config/source/](../src/config/source/)
 
 Contains the source "backends".
 

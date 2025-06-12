@@ -21,7 +21,6 @@ fi
 echo "Changed files:"
 echo "$files"
 docker run --rm \
-  -v "$(pwd)/include:/src/include" \
   -v "$(pwd)/src:/src/src" \
   -v "$(pwd)/CMakeLists.txt:/src/CMakeLists.txt" \
   -w /src \
