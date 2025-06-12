@@ -3,7 +3,7 @@
   "query": {
     "action": {
       "type": "Fasta",
-      "sequenceName": "unaligned_main"
+      "sequenceNames": ["unaligned_main"]
     },
     "filterExpression": {
       "type": "StringEquals",

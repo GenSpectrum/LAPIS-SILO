@@ -47,24 +47,18 @@ std::vector<schema::ColumnIdentifier> Fasta::getOutputSchema(
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Fasta>& action) {
    CHECK_SILO_QUERY(
-      json.contains("sequenceName") &&
-         (json["sequenceName"].is_string() || json["sequenceName"].is_array()),
-      "Fasta action must have the field sequenceName of type string or an array of "
-      "strings"
+      json.contains("sequenceNames") && json["sequenceNames"].is_array(),
+      "The Fasta action requires a sequenceNames field, which must be an array of strings"
    );
    std::vector<std::string> sequence_names;
-   if (json["sequenceName"].is_array()) {
-      for (const auto& child : json["sequenceName"]) {
-         CHECK_SILO_QUERY(
-            child.is_string(),
-            "Fasta action must have the field sequenceName of type string or an array "
-            "of strings; while parsing array encountered the element " +
-               child.dump() + " which is not of type string"
-         );
-         sequence_names.emplace_back(child.get<std::string>());
-      }
-   } else {
-      sequence_names.emplace_back(json["sequenceName"].get<std::string>());
+   for (const auto& child : json["sequenceNames"]) {
+      CHECK_SILO_QUERY(
+         child.is_string(),
+         "The Fasta action requires a sequenceNames field, which must be an array of strings; "
+         "while parsing array encountered the element " +
+            child.dump() + " which is not of type string"
+      );
+      sequence_names.emplace_back(child.get<std::string>());
    }
    action = std::make_unique<Fasta>(std::move(sequence_names));
 }

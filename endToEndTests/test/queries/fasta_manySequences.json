@@ -3,7 +3,7 @@
   "query": {
     "action": {
       "type": "Fasta",
-      "sequenceName": "unaligned_testSecondSequence",
+      "sequenceNames": ["unaligned_testSecondSequence"],
       "orderByFields": ["gisaid_epi_isl"]
     },
     "filterExpression": {

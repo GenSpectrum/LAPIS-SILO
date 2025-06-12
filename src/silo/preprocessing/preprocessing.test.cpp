@@ -180,7 +180,7 @@ schema:
          {
             "action": {
               "type": "FastaAligned",
-              "sequenceName": ["someShortGene", "secondSegment"],
+              "sequenceNames": ["someShortGene", "secondSegment"],
               "orderByFields": ["accessionVersion"],
               "additionalFields": ["country"]
             },
