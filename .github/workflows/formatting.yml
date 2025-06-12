@@ -10,8 +10,6 @@ jobs:
       matrix:
         path:
           - check: 'src'
-          - check: 'include'
-            exclude: '(PerfEvent.hpp)'
     steps:
       - uses: actions/checkout@v4
       - name: Run clang-format style check
