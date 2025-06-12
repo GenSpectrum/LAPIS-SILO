@@ -1,27 +1,29 @@
-#include "silo/storage/column/position.h"
+#include "silo/storage/column/sequence_position.h"
 
 #include <spdlog/spdlog.h>
 
+namespace silo::storage::column {
+
 template <typename SymbolType>
-silo::Position<SymbolType> silo::Position<SymbolType>::fromInitiallyDeleted(
+SequencePosition<SymbolType> SequencePosition<SymbolType>::fromInitiallyDeleted(
    typename SymbolType::Symbol symbol
 ) {
-   silo::Position<SymbolType> position;
+   SequencePosition<SymbolType> position;
    position.symbol_whose_bitmap_is_deleted = symbol;
    return position;
 }
 
 template <typename SymbolType>
-silo::Position<SymbolType> silo::Position<SymbolType>::fromInitiallyFlipped(
+SequencePosition<SymbolType> SequencePosition<SymbolType>::fromInitiallyFlipped(
    typename SymbolType::Symbol symbol
 ) {
-   silo::Position<SymbolType> position;
+   SequencePosition<SymbolType> position;
    position.symbol_whose_bitmap_is_flipped = symbol;
    return position;
 }
 
 template <typename SymbolType>
-void silo::Position<SymbolType>::addValues(
+void SequencePosition<SymbolType>::addValues(
    typename SymbolType::Symbol symbol,
    const std::vector<uint32_t>& values,
    size_t current_offset,
@@ -39,9 +41,8 @@ void silo::Position<SymbolType>::addValues(
 }
 
 template <typename SymbolType>
-std::optional<typename SymbolType::Symbol> silo::Position<SymbolType>::getHighestCardinalitySymbol(
-   uint32_t sequence_count
-) {
+std::optional<typename SymbolType::Symbol> SequencePosition<
+   SymbolType>::getHighestCardinalitySymbol(uint32_t sequence_count) {
    if (symbol_whose_bitmap_is_deleted.has_value()) {
       throw std::runtime_error(fmt::format(
          "Symbol '{}' is currently deleted. Cannot restore it implicitly and cannot calculate its "
@@ -68,7 +69,7 @@ std::optional<typename SymbolType::Symbol> silo::Position<SymbolType>::getHighes
 }
 
 template <typename SymbolType>
-std::optional<typename SymbolType::Symbol> silo::Position<SymbolType>::flipMostNumerousBitmap(
+std::optional<typename SymbolType::Symbol> SequencePosition<SymbolType>::flipMostNumerousBitmap(
    uint32_t sequence_count
 ) {
    if (symbol_whose_bitmap_is_deleted.has_value()) {
@@ -99,7 +100,7 @@ std::optional<typename SymbolType::Symbol> silo::Position<SymbolType>::flipMostN
 }
 
 template <typename SymbolType>
-std::optional<typename SymbolType::Symbol> silo::Position<SymbolType>::deleteMostNumerousBitmap(
+std::optional<typename SymbolType::Symbol> SequencePosition<SymbolType>::deleteMostNumerousBitmap(
    uint32_t sequence_count
 ) {
    if (symbol_whose_bitmap_is_deleted.has_value()) {
@@ -127,7 +128,7 @@ std::optional<typename SymbolType::Symbol> silo::Position<SymbolType>::deleteMos
 }
 
 template <typename SymbolType>
-size_t silo::Position<SymbolType>::computeSize() const {
+size_t SequencePosition<SymbolType>::computeSize() const {
    size_t result = 0;
    for (const auto symbol : SymbolType::SYMBOLS) {
       result += bitmaps.at(symbol).getSizeInBytes(false);
@@ -136,25 +137,27 @@ size_t silo::Position<SymbolType>::computeSize() const {
 }
 
 template <typename SymbolType>
-const roaring::Roaring* silo::Position<SymbolType>::getBitmap(typename SymbolType::Symbol symbol
+const roaring::Roaring* SequencePosition<SymbolType>::getBitmap(typename SymbolType::Symbol symbol
 ) const {
    return &bitmaps.at(symbol);
 }
 
 template <typename SymbolType>
-bool silo::Position<SymbolType>::isSymbolFlipped(typename SymbolType::Symbol symbol) const {
+bool SequencePosition<SymbolType>::isSymbolFlipped(typename SymbolType::Symbol symbol) const {
    return symbol == symbol_whose_bitmap_is_flipped;
 }
 
 template <typename SymbolType>
-bool silo::Position<SymbolType>::isSymbolDeleted(typename SymbolType::Symbol symbol) const {
+bool SequencePosition<SymbolType>::isSymbolDeleted(typename SymbolType::Symbol symbol) const {
    return symbol == symbol_whose_bitmap_is_deleted;
 }
 
 template <typename SymbolType>
-std::optional<typename SymbolType::Symbol> silo::Position<SymbolType>::getDeletedSymbol() const {
+std::optional<typename SymbolType::Symbol> SequencePosition<SymbolType>::getDeletedSymbol() const {
    return symbol_whose_bitmap_is_deleted;
 }
 
-template class silo::Position<silo::Nucleotide>;
-template class silo::Position<silo::AminoAcid>;
+template class SequencePosition<silo::Nucleotide>;
+template class SequencePosition<silo::AminoAcid>;
+
+}  // namespace silo::storage::column
