@@ -14,17 +14,17 @@
 #include "silo/storage/serialize_optional.h"
 
 using silo::Nucleotide;
-using silo::Position;
+using silo::storage::column::SequencePosition;
 
 namespace {
-void serializeToFile(const std::string& filename, const Position<Nucleotide>& position) {
+void serializeToFile(const std::string& filename, const SequencePosition<Nucleotide>& position) {
    std::ofstream output_file(filename.c_str(), std::ios::binary);
    ::boost::archive::binary_oarchive output_archive(output_file);
    output_archive << position;
    output_file.close();
 }
 
-void deserializeFromFile(const std::string& filename, Position<Nucleotide>& position) {
+void deserializeFromFile(const std::string& filename, SequencePosition<Nucleotide>& position) {
    std::ifstream input_file(filename, std::ios::binary);
    ::boost::archive::binary_iarchive input_archive(input_file);
    input_archive >> position;
@@ -32,8 +32,8 @@ void deserializeFromFile(const std::string& filename, Position<Nucleotide>& posi
 }
 }  // namespace
 
-TEST(Position, flipsMostNumerousCorrectlyFromInitiallyUnoptimized) {
-   Position<Nucleotide> under_test;
+TEST(SequencePosition, flipsMostNumerousCorrectlyFromInitiallyUnoptimized) {
+   SequencePosition<Nucleotide> under_test;
 
    under_test.addValues(Nucleotide::Symbol::C, std::vector<uint32_t>{1, 2, 3}, 0, 5);
    under_test.addValues(Nucleotide::Symbol::A, std::vector<uint32_t>{0, 4}, 0, 5);
@@ -49,9 +49,9 @@ TEST(Position, flipsMostNumerousCorrectlyFromInitiallyUnoptimized) {
    ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::A), roaring::Roaring({0, 4}));
 }
 
-TEST(Position, flipsMostNumerousCorrectlyFromInitiallyDifferentSymbolFlipped) {
-   Position<Nucleotide> under_test =
-      Position<Nucleotide>::fromInitiallyFlipped(Nucleotide::Symbol::A);
+TEST(SequencePosition, flipsMostNumerousCorrectlyFromInitiallyDifferentSymbolFlipped) {
+   SequencePosition<Nucleotide> under_test =
+      SequencePosition<Nucleotide>::fromInitiallyFlipped(Nucleotide::Symbol::A);
 
    under_test.addValues(Nucleotide::Symbol::C, std::vector<uint32_t>{1, 2, 3}, 0, 5);
    under_test.addValues(Nucleotide::Symbol::A, std::vector<uint32_t>{0, 4}, 0, 5);
@@ -67,9 +67,9 @@ TEST(Position, flipsMostNumerousCorrectlyFromInitiallyDifferentSymbolFlipped) {
    ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::A), roaring::Roaring({0, 4}));
 }
 
-TEST(Position, flipsMostNumerousCorrectlyFromInitiallySameSymbolFlipped) {
-   Position<Nucleotide> under_test =
-      Position<Nucleotide>::fromInitiallyFlipped(Nucleotide::Symbol::C);
+TEST(SequencePosition, flipsMostNumerousCorrectlyFromInitiallySameSymbolFlipped) {
+   SequencePosition<Nucleotide> under_test =
+      SequencePosition<Nucleotide>::fromInitiallyFlipped(Nucleotide::Symbol::C);
 
    under_test.addValues(Nucleotide::Symbol::C, std::vector<uint32_t>{1, 2, 3}, 0, 5);
    under_test.addValues(Nucleotide::Symbol::A, std::vector<uint32_t>{0, 4}, 0, 5);
@@ -85,8 +85,8 @@ TEST(Position, flipsMostNumerousCorrectlyFromInitiallySameSymbolFlipped) {
    ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::A), roaring::Roaring({0, 4}));
 }
 
-TEST(Position, deletesMostNumerousCorrectlyFromInitiallyUnoptimized) {
-   Position<Nucleotide> under_test;
+TEST(SequencePosition, deletesMostNumerousCorrectlyFromInitiallyUnoptimized) {
+   SequencePosition<Nucleotide> under_test;
 
    under_test.addValues(Nucleotide::Symbol::C, std::vector<uint32_t>{1, 2, 3}, 0, 5);
    under_test.addValues(Nucleotide::Symbol::A, std::vector<uint32_t>{0, 4}, 0, 5);
@@ -102,9 +102,9 @@ TEST(Position, deletesMostNumerousCorrectlyFromInitiallyUnoptimized) {
    ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::A), roaring::Roaring({0, 4}));
 }
 
-TEST(Position, deletesMostNumerousCorrectlyFromInitiallyDifferentSymbolFlipped) {
-   Position<Nucleotide> under_test =
-      Position<Nucleotide>::fromInitiallyDeleted(Nucleotide::Symbol::A);
+TEST(SequencePosition, deletesMostNumerousCorrectlyFromInitiallyDifferentSymbolFlipped) {
+   SequencePosition<Nucleotide> under_test =
+      SequencePosition<Nucleotide>::fromInitiallyDeleted(Nucleotide::Symbol::A);
 
    under_test.addValues(Nucleotide::Symbol::C, std::vector<uint32_t>{1, 2, 3}, 0, 5);
    under_test.addValues(Nucleotide::Symbol::A, std::vector<uint32_t>{0, 4}, 0, 5);
@@ -115,9 +115,9 @@ TEST(Position, deletesMostNumerousCorrectlyFromInitiallyDifferentSymbolFlipped) 
    ASSERT_THROW(under_test.deleteMostNumerousBitmap(5), std::runtime_error);
 }
 
-TEST(Position, deletesMostNumerousCorrectlyFromInitiallySameFlippedSymbol) {
-   Position<Nucleotide> under_test =
-      Position<Nucleotide>::fromInitiallyDeleted(Nucleotide::Symbol::C);
+TEST(SequencePosition, deletesMostNumerousCorrectlyFromInitiallySameFlippedSymbol) {
+   SequencePosition<Nucleotide> under_test =
+      SequencePosition<Nucleotide>::fromInitiallyDeleted(Nucleotide::Symbol::C);
 
    under_test.addValues(Nucleotide::Symbol::C, std::vector<uint32_t>{1, 2, 3}, 0, 5);
    under_test.addValues(Nucleotide::Symbol::A, std::vector<uint32_t>{0, 4}, 0, 5);
@@ -128,9 +128,9 @@ TEST(Position, deletesMostNumerousCorrectlyFromInitiallySameFlippedSymbol) {
    ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::A), roaring::Roaring({0, 4}));
 }
 
-TEST(Position, deletesCorrectlyFromInitiallyDifferentSymbolFlipped) {
-   Position<Nucleotide> under_test =
-      Position<Nucleotide>::fromInitiallyFlipped(Nucleotide::Symbol::A);
+TEST(SequencePosition, deletesCorrectlyFromInitiallyDifferentSymbolFlipped) {
+   SequencePosition<Nucleotide> under_test =
+      SequencePosition<Nucleotide>::fromInitiallyFlipped(Nucleotide::Symbol::A);
 
    under_test.addValues(Nucleotide::Symbol::C, std::vector<uint32_t>{1, 2, 3}, 0, 5);
    under_test.addValues(Nucleotide::Symbol::A, std::vector<uint32_t>{0, 4}, 0, 5);
@@ -144,9 +144,9 @@ TEST(Position, deletesCorrectlyFromInitiallyDifferentSymbolFlipped) {
    ASSERT_EQ(*under_test.getBitmap(Nucleotide::Symbol::A), roaring::Roaring({0, 4}));
 }
 
-TEST(Position, flipThenDeleteFromInitiallyDifferentSymbolFlipped) {
-   Position<Nucleotide> under_test =
-      Position<Nucleotide>::fromInitiallyFlipped(Nucleotide::Symbol::A);
+TEST(SequencePosition, flipThenDeleteFromInitiallyDifferentSymbolFlipped) {
+   SequencePosition<Nucleotide> under_test =
+      SequencePosition<Nucleotide>::fromInitiallyFlipped(Nucleotide::Symbol::A);
 
    under_test.addValues(Nucleotide::Symbol::C, std::vector<uint32_t>{1, 2, 3}, 0, 5);
    under_test.addValues(Nucleotide::Symbol::A, std::vector<uint32_t>{0, 4}, 0, 5);
@@ -166,13 +166,13 @@ TEST(Position, flipThenDeleteFromInitiallyDifferentSymbolFlipped) {
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-TEST(Position, shouldSerializeAndDeserializePositionsWithEmptyOptional) {
+TEST(SequencePosition, shouldSerializeAndDeserializePositionsWithEmptyOptional) {
    const std::string test_file = "test.bin";
 
-   const Position<Nucleotide> position_with_unset_optional;
+   const SequencePosition<Nucleotide> position_with_unset_optional;
    serializeToFile(test_file, position_with_unset_optional);
 
-   Position<Nucleotide> deserialized_position;
+   SequencePosition<Nucleotide> deserialized_position;
    deserializeFromFile(test_file, deserialized_position);
 
    for (const auto& symbol : Nucleotide::SYMBOLS) {
@@ -183,14 +183,14 @@ TEST(Position, shouldSerializeAndDeserializePositionsWithEmptyOptional) {
    ASSERT_NO_THROW(std::remove(test_file.c_str()));
 }
 
-TEST(Position, shouldSerializeAndDeserializePositionWithFlippedBitmap) {
+TEST(SequencePosition, shouldSerializeAndDeserializePositionWithFlippedBitmap) {
    const std::string test_file = "test.bin";
 
-   const Position<Nucleotide> position_with_set_optional =
-      Position<Nucleotide>::fromInitiallyFlipped(Nucleotide::Symbol::A);
+   const SequencePosition<Nucleotide> position_with_set_optional =
+      SequencePosition<Nucleotide>::fromInitiallyFlipped(Nucleotide::Symbol::A);
    serializeToFile(test_file, position_with_set_optional);
 
-   Position<Nucleotide> deserialized_position;
+   SequencePosition<Nucleotide> deserialized_position;
    deserializeFromFile(test_file, deserialized_position);
 
    EXPECT_TRUE(deserialized_position.isSymbolFlipped(Nucleotide::Symbol::A));
@@ -208,14 +208,14 @@ TEST(Position, shouldSerializeAndDeserializePositionWithFlippedBitmap) {
    ASSERT_NO_THROW(std::remove(test_file.c_str()));
 }
 
-TEST(Position, shouldSerializeAndDeserializePositionWithDeletedBitmap) {
+TEST(SequencePosition, shouldSerializeAndDeserializePositionWithDeletedBitmap) {
    const std::string test_file = "test.bin";
 
-   const Position<Nucleotide> position_with_set_optional =
-      Position<Nucleotide>::fromInitiallyDeleted(Nucleotide::Symbol::A);
+   const SequencePosition<Nucleotide> position_with_set_optional =
+      SequencePosition<Nucleotide>::fromInitiallyDeleted(Nucleotide::Symbol::A);
    serializeToFile(test_file, position_with_set_optional);
 
-   Position<Nucleotide> deserialized_position;
+   SequencePosition<Nucleotide> deserialized_position;
    deserializeFromFile(test_file, deserialized_position);
 
    EXPECT_TRUE(deserialized_position.isSymbolDeleted(Nucleotide::Symbol::A));

@@ -27,7 +27,8 @@ arrow::Status appendSequences(
    std::vector<std::string> reconstructed_sequences(row_ids.cardinality(), partition_reference);
 
    for (size_t position_id = 0; position_id < sequence_store.positions.size(); position_id++) {
-      const Position<SymbolType>& position = sequence_store.positions.at(position_id);
+      const storage::column::SequencePosition<SymbolType>& position =
+         sequence_store.positions.at(position_id);
       for (const auto symbol : SymbolType::SYMBOLS) {
          if (position.isSymbolFlipped(symbol) || position.isSymbolDeleted(symbol)) {
             continue;

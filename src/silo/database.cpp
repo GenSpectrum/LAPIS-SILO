@@ -40,18 +40,22 @@ Database::Database(schema::DatabaseSchema database_schema)
       table(std::make_shared<storage::Table>(schema.getDefaultTableSchema())) {}
 
 DatabaseInfo Database::getDatabaseInfo() const {
-   std::atomic<uint32_t> sequence_count = 0;
-   std::atomic<uint64_t> total_size = 0;
-   std::atomic<size_t> nucleotide_symbol_n_bitmaps_size = 0;
+   uint32_t sequence_count = 0;
+   uint64_t vertical_bitmaps_size = 0;
+   size_t horizontal_bitmaps_size = 0;
 
    for (size_t partition_idx = 0; partition_idx < table->getNumberOfPartitions(); ++partition_idx) {
       const storage::TablePartition& table_partition = table->getPartition(partition_idx);
-      // TODO(#743) also add other size estimates, and try to analyze its accuracy to RSS in general
+      // TODO(#743) try to analyze size accuracy relative to RSS
       for (const auto& [_, seq_column] : table_partition.columns.nuc_columns) {
-         total_size += seq_column.computeSize();
-         for (const auto& bitmap : seq_column.missing_symbol_bitmaps) {
-            nucleotide_symbol_n_bitmaps_size += bitmap.getSizeInBytes(false);
-         }
+         auto info = seq_column.getInfo();
+         vertical_bitmaps_size += info.vertical_bitmaps_size;
+         horizontal_bitmaps_size += info.horizontal_bitmaps_size;
+      }
+      for (const auto& [_, seq_column] : table_partition.columns.aa_columns) {
+         auto info = seq_column.getInfo();
+         vertical_bitmaps_size += info.vertical_bitmaps_size;
+         horizontal_bitmaps_size += info.horizontal_bitmaps_size;
       }
       sequence_count += table_partition.sequence_count;
    }
@@ -59,8 +63,8 @@ DatabaseInfo Database::getDatabaseInfo() const {
    return DatabaseInfo{
       .version = silo::RELEASE_VERSION,
       .sequence_count = sequence_count,
-      .total_size = total_size,
-      .n_bitmaps_size = nucleotide_symbol_n_bitmaps_size,
+      .vertical_bitmaps_size = vertical_bitmaps_size,
+      .horizontal_bitmaps_size = horizontal_bitmaps_size,
       .number_of_partitions = table->getNumberOfPartitions()
    };
 }

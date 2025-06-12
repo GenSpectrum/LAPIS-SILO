@@ -17,7 +17,7 @@
 #include "silo/common/symbol_map.h"
 #include "silo/common/table_reader.h"
 #include "silo/preprocessing/preprocessing_exception.h"
-#include "silo/storage/column/position.h"
+#include "silo/storage/column/sequence_position.h"
 #include "silo/storage/insertion_format_exception.h"
 #include "silo/storage/reference_genomes.h"
 #include "silo/zstd/zstd_decompressor.h"
@@ -32,7 +32,7 @@ SequenceColumnPartition<SymbolType>::SequenceColumnPartition(
    lazy_buffer.reserve(BUFFER_SIZE);
    positions.reserve(metadata->reference_sequence.size());
    for (const auto symbol : metadata->reference_sequence) {
-      positions.emplace_back(Position<SymbolType>::fromInitiallyFlipped(symbol));
+      positions.emplace_back(SequencePosition<SymbolType>::fromInitiallyFlipped(symbol));
    }
 }
 
@@ -128,13 +128,13 @@ void SequenceColumnPartition<SymbolType>::finalize() {
 
    SPDLOG_DEBUG("Optimizing bitmaps");
 
-   const SequenceColumnInfo info_before_optimisation = getInfo();
+   const SequenceColumnInfo info_before_optimisation = calculateInfo();
    optimizeBitmaps();
 
    SPDLOG_DEBUG(
       "Sequence store partition info after filling it: {}, and after optimising: {}",
       info_before_optimisation,
-      getInfo()
+      calculateInfo()
    );
 }
 }  // namespace silo::storage::column
@@ -145,22 +145,29 @@ void SequenceColumnPartition<SymbolType>::finalize() {
 ) -> decltype(ctx.out()) {
    return fmt::format_to(
       ctx.out(),
-      "SequenceColumnInfo[sequence count: {}, size: {}, N bitmaps size: {}]",
+      "SequenceColumnInfo[sequence count: {}, vertical bitmaps size: {}, horizontal bitmaps size: "
+      "{}]",
       sequence_store_info.sequence_count,
-      sequence_store_info.size,
-      silo::formatNumber(sequence_store_info.n_bitmaps_size)
+      sequence_store_info.vertical_bitmaps_size,
+      sequence_store_info.horizontal_bitmaps_size
    );
 }
 
 namespace silo::storage::column {
 
 template <typename SymbolType>
+SequenceColumnInfo SequenceColumnPartition<SymbolType>::calculateInfo() {
+   sequence_column_info = {
+      .sequence_count = sequence_count,
+      .vertical_bitmaps_size = computeVerticalBitmapsSize(),
+      .horizontal_bitmaps_size = computeHorizontalBitmapsSize()
+   };
+   return sequence_column_info;
+}
+
+template <typename SymbolType>
 SequenceColumnInfo SequenceColumnPartition<SymbolType>::getInfo() const {
-   size_t n_bitmaps_size = 0;
-   for (const auto& bitmap : missing_symbol_bitmaps) {
-      n_bitmaps_size += bitmap.getSizeInBytes(false);
-   }
-   return SequenceColumnInfo{this->sequence_count, computeSize(), n_bitmaps_size};
+   return sequence_column_info;
 }
 
 template <typename SymbolType>
@@ -307,10 +314,19 @@ void SequenceColumnPartition<SymbolType>::flushBuffer() {
 }
 
 template <typename SymbolType>
-size_t SequenceColumnPartition<SymbolType>::computeSize() const {
+size_t SequenceColumnPartition<SymbolType>::computeVerticalBitmapsSize() const {
    size_t result = 0;
    for (const auto& position : positions) {
       result += position.computeSize();
+   }
+   return result;
+}
+
+template <typename SymbolType>
+size_t SequenceColumnPartition<SymbolType>::computeHorizontalBitmapsSize() const {
+   size_t result = 0;
+   for (const auto& bitmap : missing_symbol_bitmaps) {
+      result += bitmap.getSizeInBytes(false);
    }
    return result;
 }

@@ -14,10 +14,10 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/symbol_map.h"
 
-namespace silo {
+namespace silo::storage::column {
 
 template <typename SymbolType>
-class Position {
+class SequencePosition {
    friend class boost::serialization::access;
 
    template <class Archive>
@@ -36,10 +36,10 @@ class Position {
    std::optional<typename SymbolType::Symbol> getHighestCardinalitySymbol(uint32_t sequence_count);
 
   public:
-   Position() = default;
+   SequencePosition() = default;
 
-   static Position<SymbolType> fromInitiallyDeleted(typename SymbolType::Symbol symbol);
-   static Position<SymbolType> fromInitiallyFlipped(typename SymbolType::Symbol symbol);
+   static SequencePosition<SymbolType> fromInitiallyDeleted(typename SymbolType::Symbol symbol);
+   static SequencePosition<SymbolType> fromInitiallyFlipped(typename SymbolType::Symbol symbol);
 
    void addValues(
       typename SymbolType::Symbol symbol,
@@ -62,4 +62,4 @@ class Position {
    const roaring::Roaring* getBitmap(typename SymbolType::Symbol symbol) const;
 };
 
-}  // namespace silo
+}  // namespace silo::storage::column

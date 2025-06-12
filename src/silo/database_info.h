@@ -15,8 +15,8 @@ namespace silo {
 struct DatabaseInfo {
    std::string_view version;
    uint32_t sequence_count;
-   uint64_t total_size;
-   size_t n_bitmaps_size;
+   uint64_t vertical_bitmaps_size;
+   uint64_t horizontal_bitmaps_size;
    uint64_t number_of_partitions;
 };
 

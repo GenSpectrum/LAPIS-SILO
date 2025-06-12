@@ -18,15 +18,25 @@
 #include "silo/common/symbol_map.h"
 #include "silo/common/table_reader.h"
 #include "silo/storage/column/insertion_index.h"
-#include "silo/storage/column/position.h"
+#include "silo/storage/column/sequence_position.h"
 #include "silo/storage/reference_genomes.h"
 
 namespace silo::storage::column {
 
-struct SequenceColumnInfo {
+class SequenceColumnInfo {
+  private:
+   friend class boost::serialization::access;
+   template <class Archive>
+   void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
+      archive & sequence_count;
+      archive & vertical_bitmaps_size;
+      archive & horizontal_bitmaps_size;
+   }
+
+  public:
    uint32_t sequence_count;
-   uint64_t size;
-   size_t n_bitmaps_size;
+   uint64_t vertical_bitmaps_size;
+   uint64_t horizontal_bitmaps_size;
 };
 
 struct ReadSequence {
@@ -83,6 +93,7 @@ class SequenceColumnPartition {
    template <class Archive>
    void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
+      archive & sequence_column_info;
       archive & indexing_differences_to_reference_sequence;
       for(auto& position : positions){
             archive & position;
@@ -95,16 +106,15 @@ class SequenceColumnPartition {
 
   public:
    SequenceColumnMetadata<SymbolType>* metadata;
+   SequenceColumnInfo sequence_column_info;
    std::vector<std::pair<size_t, typename SymbolType::Symbol>>
       indexing_differences_to_reference_sequence;
-   std::vector<Position<SymbolType>> positions;
+   std::vector<SequencePosition<SymbolType>> positions;
    std::vector<roaring::Roaring> missing_symbol_bitmaps;
    storage::insertion::InsertionIndex<SymbolType> insertion_index;
    uint32_t sequence_count = 0;
 
    explicit SequenceColumnPartition(Metadata* metadata);
-
-   [[nodiscard]] size_t computeSize() const;
 
    [[nodiscard]] const roaring::Roaring* getBitmap(
       size_t position_idx,
@@ -136,6 +146,12 @@ class SequenceColumnPartition {
    void optimizeBitmaps();
 
    void flushBuffer();
+
+   [[nodiscard]] SequenceColumnInfo calculateInfo();
+
+   [[nodiscard]] size_t computeVerticalBitmapsSize() const;
+
+   [[nodiscard]] size_t computeHorizontalBitmapsSize() const;
 };
 }  // namespace silo::storage::column
 
