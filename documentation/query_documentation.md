@@ -193,15 +193,15 @@ See `Mutations`.
 
 ### `Fasta`
 
-`{"sequenceName": string | string[]}`
+`{"sequenceNames": string[]}`
 
-Returns the unalignedNucleotideSequences of `sequenceName` (might be more than 1).
+Returns the unalignedNucleotideSequences of `sequenceNames` (might be more than 1).
 
 ### `FastaAligned`
 
-`{"sequenceName": string | string[]}`
+`{"sequenceNames": string[]}`
 
-Returns the alignedNucleotideSequences or alignedAminoAcidSequences of `sequenceName` (might be more than 1).
+Returns the alignedNucleotideSequences or alignedAminoAcidSequences of `sequenceNames` (might be more than 1).
 
 ### `Insertions`
 

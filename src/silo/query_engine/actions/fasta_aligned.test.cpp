@@ -85,7 +85,7 @@ const QueryTestScenario FASTA_ALIGNED = {
 {
   "action": {
     "type": "FastaAligned",
-    "sequenceName": [
+    "sequenceNames": [
       "segment1"
     ],
     "orderByFields": [
@@ -113,7 +113,7 @@ const QueryTestScenario FASTA_ALIGNED_ADDITIONAL_HEADER = {
 {
   "action": {
     "type": "FastaAligned",
-    "sequenceName": [
+    "sequenceNames": [
       "segment1"
     ],
     "orderByFields": [
@@ -145,7 +145,7 @@ const QueryTestScenario FASTA_ALIGNED_EXPLICIT_PRIMARY_KEY = {
 {
   "action": {
     "type": "FastaAligned",
-    "sequenceName": [
+    "sequenceNames": [
       "segment1"
     ],
     "additionalFields": [
@@ -174,7 +174,7 @@ const QueryTestScenario FASTA_ALIGNED_DUPLICATE_HEADER = {
 {
   "action": {
     "type": "FastaAligned",
-    "sequenceName": [
+    "sequenceNames": [
       "segment1"
     ],
     "additionalFields": [
@@ -205,7 +205,7 @@ const QueryTestScenario FASTA_ALIGNED_DESCENDING = {
 {
   "action": {
     "type": "FastaAligned",
-    "sequenceName": [
+    "sequenceNames": [
       "segment1"
     ],
     "orderByFields": [
@@ -240,7 +240,7 @@ const QueryTestScenario FASTA_ALIGNED_SUBSET = {
 {
   "action": {
     "type": "FastaAligned",
-    "sequenceName": [
+    "sequenceNames": [
       "segment1"
     ]
   },
@@ -282,7 +282,7 @@ const QueryTestScenario FASTA_ALIGNED_SMALL_BATCHES = {
 {
   "action": {
     "type": "FastaAligned",
-    "sequenceName": [
+    "sequenceNames": [
       "segment1"
     ],
     "additionalFields": [
@@ -315,7 +315,7 @@ const QueryTestScenario FASTA_ALIGNED_WITH_OFFSET = {
 {
   "action": {
     "type": "FastaAligned",
-    "sequenceName": [
+    "sequenceNames": [
       "segment1"
     ],
     "orderByFields": [
@@ -344,7 +344,7 @@ const QueryTestScenario FASTA_ALIGNED_WITH_LIMIT = {
 {
   "action": {
     "type": "FastaAligned",
-    "sequenceName": [
+    "sequenceNames": [
       "segment1"
     ],
     "orderByFields": [
@@ -377,7 +377,7 @@ const QueryTestScenario FASTA_ALIGNED_WITH_LIMIT_UNSORTED = {
 {
   "action": {
     "type": "FastaAligned",
-    "sequenceName": [
+    "sequenceNames": [
       "segment1"
     ],
     "limit": 3
@@ -404,7 +404,7 @@ const QueryTestScenario FASTA_ALIGNED_WITH_OFFSET_AND_LIMIT = {
 {
   "action": {
     "type": "FastaAligned",
-    "sequenceName": [
+    "sequenceNames": [
       "segment1"
     ],
     "orderByFields": [

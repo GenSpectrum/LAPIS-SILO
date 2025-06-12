@@ -62,7 +62,7 @@ nlohmann::json createHasNucleotideMutationQuery(int position) {
    return {
       {"action", {{"type", "Aggregated"}}},
       {"filterExpression",
-       {{"type", "HasNucleotideMutation"}, {"position", position}, {"sequenceName", "segment1"}}}
+       {{"type", "HasNucleotideMutation"}, {"position", position}, {"sequenceNames", {"segment1"}}}}
    };
 }
 
@@ -70,7 +70,7 @@ nlohmann::json createHasAminoAcidMutationQuery(int position) {
    return {
       {"action", {{"type", "Aggregated"}}},
       {"filterExpression",
-       {{"type", "HasAminoAcidMutation"}, {"position", position}, {"sequenceName", "gene1"}}}
+       {{"type", "HasAminoAcidMutation"}, {"position", position}, {"sequenceNames", {"gene1"}}}}
    };
 }
 

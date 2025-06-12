@@ -56,14 +56,23 @@ const QueryTestData TEST_DATA{
 };
 
 nlohmann::json createNucleotideSymbolEqualsQuery(const std::string& symbol, int position) {
-   return {
-      {"action", {{"type", "Aggregated"}}},
-      {"filterExpression",
-       {{"type", "NucleotideEquals"},
-        {"position", position},
-        {"symbol", symbol},
-        {"sequenceName", "segment1"}}}
-   };
+   return nlohmann::json::parse(fmt::format(
+      R"(
+{{
+  "action": {{
+    "type": "Aggregated"
+  }},
+  "filterExpression": {{
+    "type": "NucleotideEquals",
+    "position": {},
+    "symbol": "{}",
+    "sequenceName": "segment1"
+  }}
+}}
+)",
+      position,
+      symbol
+   ));
 }
 
 const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL = {
