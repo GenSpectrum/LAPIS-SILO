@@ -5,6 +5,7 @@
 #include <arrow/record_batch.h>
 #include <spdlog/spdlog.h>
 
+#include "silo/query_engine/exec_node/json_value_type_array_builder.h"
 #include "silo/query_engine/query.h"
 #include "silo/query_engine/query_result.h"
 
@@ -12,23 +13,6 @@ namespace silo::query_engine::exec_node {
 
 using filter::expressions::Expression;
 using filter::operators::Operator;
-
-class JsonValueTypeArrayBuilder {
-   std::variant<
-      arrow::Int32Builder,
-      arrow::DoubleBuilder,
-      arrow::StringBuilder,
-      arrow::BooleanBuilder>
-      builder;
-
-  public:
-   JsonValueTypeArrayBuilder(std::shared_ptr<arrow::DataType> type);
-
-   arrow::Status insert(const std::optional<std::variant<std::string, bool, int32_t, double>>& value
-   );
-
-   arrow::Result<arrow::Datum> toDatum();
-};
 
 class LegacyResultProducer : public arrow::acero::ExecNode {
    QueryResult query_result;
@@ -45,7 +29,8 @@ class LegacyResultProducer : public arrow::acero::ExecNode {
       arrow::acero::ExecPlan* plan,
       const std::vector<silo::schema::ColumnIdentifier>& columns,
       std::shared_ptr<const storage::Table> table,
-      const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
+      std::shared_ptr<std::vector<std::unique_ptr<filter::operators::Operator>>>
+         partition_filter_operators,
       const actions::Action* action,
       size_t materialization_cutoff
    );

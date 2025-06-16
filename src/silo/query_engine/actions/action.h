@@ -51,7 +51,8 @@ class Action {
 
    QueryPlan toQueryPlan(
       std::shared_ptr<const storage::Table> table,
-      const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
+      std::shared_ptr<std::vector<std::unique_ptr<filter::operators::Operator>>>
+         partition_filter_operators,
       const config::QueryOptions& query_options
    );
 
@@ -77,7 +78,8 @@ class Action {
    // If this method is not overloaded, a LegacyResultProducer will be created instead
    virtual arrow::Result<QueryPlan> toQueryPlanImpl(
       std::shared_ptr<const storage::Table> table,
-      const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
+      std::shared_ptr<std::vector<std::unique_ptr<filter::operators::Operator>>>
+         partition_filter_operators,
       const config::QueryOptions& query_options
    );
 

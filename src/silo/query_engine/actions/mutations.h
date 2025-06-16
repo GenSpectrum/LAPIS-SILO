@@ -8,10 +8,14 @@
 #include <utility>
 #include <vector>
 
+#include <arrow/array/builder_base.h>
+#include <arrow/array/builder_binary.h>
+#include <arrow/array/builder_primitive.h>
 #include <nlohmann/json_fwd.hpp>
 
 #include "silo/common/symbol_map.h"
 #include "silo/query_engine/actions/action.h"
+#include "silo/query_engine/exec_node/json_value_type_array_builder.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/table.h"
@@ -79,19 +83,29 @@ class Mutations : public Action {
       const PrefilteredBitmaps& bitmap_filter
    );
 
-   void addMutationsToOutput(
+   static arrow::Status addMutationsToOutput(
       const std::string& sequence_name,
       const storage::column::SequenceColumnMetadata<SymbolType>& sequence_store,
+      double min_proportion,
       const PrefilteredBitmaps& bitmap_filter,
-      std::vector<QueryResultEntry>& output
-   ) const;
+      std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder
+   );
 
    void validateOrderByFields(const schema::TableSchema& schema) const override;
 
-   [[nodiscard]] QueryResult execute(
+   QueryResult execute(
       std::shared_ptr<const storage::Table> table,
       std::vector<CopyOnWriteBitmap> bitmap_filter
-   ) const override;
+   ) const override {
+      SILO_PANIC("Legacy execute called on already migrated action. Programming error.");
+   }
+
+   arrow::Result<QueryPlan> toQueryPlanImpl(
+      std::shared_ptr<const storage::Table> table,
+      std::shared_ptr<std::vector<std::unique_ptr<filter::operators::Operator>>>
+         partition_filter_operators,
+      const config::QueryOptions& query_options
+   ) override;
 
   public:
    explicit Mutations(
