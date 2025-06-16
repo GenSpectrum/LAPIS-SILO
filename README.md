@@ -30,11 +30,13 @@ CLion should be able to detect those files automatically.
 
 ### Formatting
 
-We use clang-format as a code formatter. To run locally install [clang-format](https://github.com/llvm/llvm-project) and run
+We use clang-format as a code formatter. To run locally install [clang-format](https://github.com/llvm/llvm-project/releases/tag/llvmorg-17.0.6), update your PATH variables and run
 
 ```bash
 find ./src \( -name "*.cpp" -o -name "*.h" \) -exec clang-format -i {} +
 ```
+
+Note that your clang-format version should be exactly the same as that used by `jidicula/clang-format-action` for tests to pass. Currently we use `v.17.0.6`.
 
 ## With Conan
 
