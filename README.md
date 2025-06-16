@@ -28,6 +28,14 @@ decided for the approach with less maintenance effort, since it will automatical
 They assume that you configured CMake in CLion to use `./build` as build directory.
 CLion should be able to detect those files automatically.
 
+### Formatting
+
+We use clang-format as a code formatter. To run locally install [clang-format](https://github.com/llvm/llvm-project) and run
+
+```bash
+find ./src \( -name "*.cpp" -o -name "*.h" \) -exec clang-format -i {} +
+```
+
 ## With Conan
 
 We use Conan to install dependencies for local development. See Dockerfile for how to set up Conan and its requirements.
@@ -87,7 +95,7 @@ snake_case (`database_config.yaml`, `preprocessing_config.yaml`, `runtime_config
 overridden using the options `--database-config=X`, `--preprocessing-config=X`, and `--runtime-config=X`.
 
 Preprocessing and Runtime configurations contain default values for all fields and are thus only optional. Their
-parameters can also be provided as command-line arguments in snake_case and as environment variables prefixed with SILO_
+parameters can also be provided as command-line arguments in snake*case and as environment variables prefixed with SILO*
 in capital SNAKE_CASE. (e.g. SILO_INPUT_DIRECTORY).
 
 The precendence is `CLI argument > Environment Variable > Configuration File > Default Value`
@@ -118,7 +126,7 @@ silo preprocessing --preprocessing-config=./custom/preprocessing_config.yaml --d
 
 The Docker image contains a default preprocessing config that sets defaults specific for running SILO in Docker.
 Apart from that, there are default values if neither user-provided nor default config specify fields.
-The user-provided preprocessing config can be used to overwrite the default values. For a full reference, 
+The user-provided preprocessing config can be used to overwrite the default values. For a full reference,
 see the help text.
 
 ### Run docker container (api)
@@ -126,7 +134,7 @@ see the help text.
 After preprocessing the data, the api can be started with the following command:
 
 ```shell
-docker run 
+docker run
   -p 8081:8081
   -v your/preprocessing/output:/data
   silo api
@@ -151,9 +159,9 @@ On every commit on the `main` branch, it will update a Pull Request with a chang
 When the PR is merged, the release will be created.
 Creating a release means:
 
-* A new Git tag is created.
-* The Docker images of SILO are tagged with the new version.
-  * Suppose the created version is `2.4.5`, then it creates the tags `2`, `2.4` and `2.4.5` on the current `latest` image.
+- A new Git tag is created.
+- The Docker images of SILO are tagged with the new version.
+  - Suppose the created version is `2.4.5`, then it creates the tags `2`, `2.4` and `2.4.5` on the current `latest` image.
 
 The changelog and the version number are determined by the commit messages.
 Therefore, commit messages should follow the [Conventional Commits](https://www.conventionalcommits.org/) specification.
@@ -188,20 +196,20 @@ building with clang-tidy under alpine was not possible yet.)
 End-to-end tests are located in `/endToEndTests`. Those tests are used to verify the overall functionality of the SILO
 queries. To execute the tests:
 
-* have a running SILO instance with preprocessd data e.g. via
-    * `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-preprocessing.yml up`
-    * `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-api.yml up -d wait`
-* `cd endToEndTests`
-* `npm install`
-* `SILO_URL=localhost:8081 npm run test`
+- have a running SILO instance with preprocessd data e.g. via
+  - `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-preprocessing.yml up`
+  - `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-api.yml up -d wait`
+- `cd endToEndTests`
+- `npm install`
+- `SILO_URL=localhost:8081 npm run test`
 
 # Logging
 
 We use [spdlog](https://github.com/gabime/spdlog) for logging.
 The log level can be controlled via the environment variable `SPDLOG_LEVEL`:
 
-* Start SILO with `SPDLOG_LEVEL=off` to turn off logging.
-* Start SILO with `SPDLOG_LEVEL=debug` to log at debug level.
+- Start SILO with `SPDLOG_LEVEL=off` to turn off logging.
+- Start SILO with `SPDLOG_LEVEL=debug` to log at debug level.
 
 SILO will log to `./logs/silo_<date>.log` and to stdout.
 
@@ -235,10 +243,12 @@ Internal includes are marked by double quotes. External includes are marked by a
 We follow the [conventional commits](https://www.conventionalcommits.org/) guidelines for commit messages.
 This will allow to automatically generate a changelog.
 
-Please make sure to mention a reference in the commit message so that the generated changelog can be linked to 
+Please make sure to mention a reference in the commit message so that the generated changelog can be linked to
 either an issue or a pull request.
 This can be done via:
-* Referencing an issue via "resolves" to the commit footer (preferred solution):
+
+- Referencing an issue via "resolves" to the commit footer (preferred solution):
+
 ```
 feat: my fancy new feature
 
@@ -246,9 +256,10 @@ some description
 
 resolves #123
 ```
-* Referencing an issue in the commit message header: `feat: my fancy new feature (#123)`
-* Squash-merging on GitHub and adding the PR number to the commit message
-(useful for smaller changes that don't have a corresponding issue).
+
+- Referencing an issue in the commit message header: `feat: my fancy new feature (#123)`
+- Squash-merging on GitHub and adding the PR number to the commit message
+  (useful for smaller changes that don't have a corresponding issue).
 
 We use [commitlint](https://commitlint.js.org/) to enforce the commit message format.
 To use it locally, run `npm install`.
@@ -257,7 +268,7 @@ The last commit message can be checked with
 
 ```shell
 npm run commitlint:last-commit
-``` 
+```
 
 To check commit messages of a branch to the commit where it branches off from `main`, run
 
@@ -273,8 +284,9 @@ To test the generated changelog, run
 npm run release-please-dry-run -- --token=<GitHub PAT> --target-branch=<name of the upstream branch>
 ```
 
-where 
-* `<GitHub PAT>` is a GitHub Personal Access Token. It doesn't need any permissions.
-* `<name of the upstream branch>` is the name of the branch for which the changelog should be generated.
+where
 
-__NOTE: This command does not respect local changes. It will pull the commit messages from the remote repository.__
+- `<GitHub PAT>` is a GitHub Personal Access Token. It doesn't need any permissions.
+- `<name of the upstream branch>` is the name of the branch for which the changelog should be generated.
+
+**NOTE: This command does not respect local changes. It will pull the commit messages from the remote repository.**
