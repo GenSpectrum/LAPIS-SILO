@@ -22,6 +22,10 @@ class PhyloTreeFile {
    static PhyloTreeFile fromAuspiceJSONFile(const std::filesystem::path& json_path);
 
    static PhyloTreeFile fromAuspiceJSONString(const std::string& json_string);
+
+   static PhyloTreeFile fromNewickFile(const std::filesystem::path& newick_path);
+
+   static PhyloTreeFile fromNewickString(const std::string& newick_string);
 };
 
 }  // namespace silo::preprocessing
