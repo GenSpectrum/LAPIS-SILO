@@ -97,7 +97,7 @@ snake_case (`database_config.yaml`, `preprocessing_config.yaml`, `runtime_config
 overridden using the options `--database-config=X`, `--preprocessing-config=X`, and `--runtime-config=X`.
 
 Preprocessing and Runtime configurations contain default values for all fields and are thus only optional. Their
-parameters can also be provided as command-line arguments in snake*case and as environment variables prefixed with SILO*
+parameters can also be provided as command-line arguments in snake_case and as environment variables prefixed with SILO_
 in capital SNAKE_CASE. (e.g. SILO_INPUT_DIRECTORY).
 
 The precendence is `CLI argument > Environment Variable > Configuration File > Default Value`
