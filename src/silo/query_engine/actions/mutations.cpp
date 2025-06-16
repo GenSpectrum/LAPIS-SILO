@@ -8,6 +8,8 @@
 #include <variant>
 #include <vector>
 
+#include <arrow/acero/options.h>
+#include <arrow/compute/exec.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <oneapi/tbb/blocked_range.h>
@@ -21,7 +23,10 @@
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
+#include "silo/query_engine/exec_node/arrow_util.h"
+#include "silo/query_engine/exec_node/json_value_type_array_builder.h"
 #include "silo/query_engine/query_result.h"
+#include "silo/storage/column/column_type_visitor.h"
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/table_partition.h"
 
@@ -196,12 +201,13 @@ void Mutations<SymbolType>::validateOrderByFields(const schema::TableSchema& /*t
 }
 
 template <typename SymbolType>
-void Mutations<SymbolType>::addMutationsToOutput(
+arrow::Status Mutations<SymbolType>::addMutationsToOutput(
    const std::string& sequence_name,
    const storage::column::SequenceColumnMetadata<SymbolType>& sequence_column_metadata,
+   double min_proportion,
    const PrefilteredBitmaps& bitmap_filter,
-   std::vector<QueryResultEntry>& output
-) const {
+   std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder
+) {
    const size_t sequence_length = sequence_column_metadata.reference_sequence.size();
 
    const SymbolMap<SymbolType, std::vector<uint32_t>> count_of_mutations_per_position =
@@ -228,56 +234,62 @@ void Mutations<SymbolType>::addMutationsToOutput(
             const uint32_t count = count_of_mutations_per_position.at(symbol)[pos];
             if (count > threshold_count) {
                const double proportion = static_cast<double>(count) / static_cast<double>(total);
-               std::map<std::string, common::JsonValueType> fields_for_row;
-               if (std::ranges::find(fields, MUTATION_FIELD_NAME) != fields.end()) {
-                  fields_for_row.emplace(
-                     MUTATION_FIELD_NAME,
-                     fmt::format(
-                        "{}{}{}",
-                        SymbolType::symbolToChar(symbol_in_reference_genome),
-                        pos + 1,
-                        SymbolType::symbolToChar(symbol)
-                     )
+               if (auto builder = output_builder.find(MUTATION_FIELD_NAME);
+                   builder != output_builder.end()) {
+                  ARROW_RETURN_NOT_OK(builder->second.insert({fmt::format(
+                     "{}{}{}",
+                     SymbolType::symbolToChar(symbol_in_reference_genome),
+                     pos + 1,
+                     SymbolType::symbolToChar(symbol)
+                  )}));
+               }
+               if (auto builder = output_builder.find(MUTATION_FROM_FIELD_NAME);
+                   builder != output_builder.end()) {
+                  ARROW_RETURN_NOT_OK(builder->second.insert(
+                     {std::string(1, SymbolType::symbolToChar(symbol_in_reference_genome))}
+                  ));
+               }
+               if (auto builder = output_builder.find(MUTATION_TO_FIELD_NAME);
+                   builder != output_builder.end()) {
+                  ARROW_RETURN_NOT_OK(
+                     builder->second.insert({std::string(1, SymbolType::symbolToChar(symbol))})
                   );
                }
-               if (std::ranges::find(fields, MUTATION_FROM_FIELD_NAME) != fields.end()) {
-                  fields_for_row.emplace(
-                     MUTATION_FROM_FIELD_NAME,
-                     std::string(1, SymbolType::symbolToChar(symbol_in_reference_genome))
-                  );
+               if (auto builder = output_builder.find(POSITION_FIELD_NAME);
+                   builder != output_builder.end()) {
+                  ARROW_RETURN_NOT_OK(builder->second.insert({static_cast<int32_t>(pos + 1)}));
                }
-               if (std::ranges::find(fields, MUTATION_TO_FIELD_NAME) != fields.end()) {
-                  fields_for_row.emplace(
-                     MUTATION_TO_FIELD_NAME, std::string(1, SymbolType::symbolToChar(symbol))
-                  );
+               if (auto builder = output_builder.find(SEQUENCE_FIELD_NAME);
+                   builder != output_builder.end()) {
+                  ARROW_RETURN_NOT_OK(builder->second.insert({sequence_name}));
                }
-               if (std::ranges::find(fields, POSITION_FIELD_NAME) != fields.end()) {
-                  fields_for_row.emplace(POSITION_FIELD_NAME, static_cast<int32_t>(pos + 1));
+               if (auto builder = output_builder.find(PROPORTION_FIELD_NAME);
+                   builder != output_builder.end()) {
+                  ARROW_RETURN_NOT_OK(builder->second.insert({proportion}));
                }
-               if (std::ranges::find(fields, SEQUENCE_FIELD_NAME) != fields.end()) {
-                  fields_for_row.emplace(SEQUENCE_FIELD_NAME, sequence_name);
+               if (auto builder = output_builder.find(COUNT_FIELD_NAME);
+                   builder != output_builder.end()) {
+                  ARROW_RETURN_NOT_OK(builder->second.insert({static_cast<int32_t>(count)}));
                }
-               if (std::ranges::find(fields, PROPORTION_FIELD_NAME) != fields.end()) {
-                  fields_for_row.emplace(PROPORTION_FIELD_NAME, proportion);
+               if (auto builder = output_builder.find(COVERAGE_FIELD_NAME);
+                   builder != output_builder.end()) {
+                  ARROW_RETURN_NOT_OK(builder->second.insert({static_cast<int32_t>(total)}));
                }
-               if (std::ranges::find(fields, COUNT_FIELD_NAME) != fields.end()) {
-                  fields_for_row.emplace(COUNT_FIELD_NAME, static_cast<int32_t>(count));
-               }
-               if (std::ranges::find(fields, COVERAGE_FIELD_NAME) != fields.end()) {
-                  fields_for_row.emplace(COVERAGE_FIELD_NAME, static_cast<int32_t>(total));
-               }
-               output.push_back({fields_for_row});
             }
          }
       }
    }
+   return arrow::Status::OK();
 }
 
+using silo::query_engine::filter::operators::Operator;
+
 template <typename SymbolType>
-QueryResult Mutations<SymbolType>::execute(
+arrow::Result<QueryPlan> Mutations<SymbolType>::toQueryPlanImpl(
    std::shared_ptr<const storage::Table> table,
-   std::vector<CopyOnWriteBitmap> bitmap_filter
-) const {
+   std::shared_ptr<std::vector<std::unique_ptr<Operator>>> partition_filter_operators,
+   const config::QueryOptions& query_options
+) {
    std::vector<std::string> sequence_names_to_evaluate;
    for (const auto& sequence_name : sequence_names) {
       auto column_identifier = table->schema.getColumn(sequence_name);
@@ -295,54 +307,115 @@ QueryResult Mutations<SymbolType>::execute(
       }
    }
 
-   std::unordered_map<std::string, Mutations<SymbolType>::PrefilteredBitmaps> bitmaps_to_evaluate =
-      preFilterBitmaps(*table, bitmap_filter);
+   auto output_fields = getOutputSchema(table->schema);
 
-   std::vector<QueryResultEntry> mutation_proportions;
-   for (const auto& sequence_name : sequence_names_to_evaluate) {
-      const storage::column::SequenceColumnMetadata<SymbolType>* sequence_column_metadata =
-         table->schema.getColumnMetadata<typename SymbolType::Column>(sequence_name).value();
+   double given_min_proportion = min_proportion;
 
-      if (bitmaps_to_evaluate.contains(sequence_name)) {
-         addMutationsToOutput(
-            sequence_name,
-            *sequence_column_metadata,
-            bitmaps_to_evaluate.at(sequence_name),
-            mutation_proportions
+   std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
+      [table,
+       given_min_proportion,
+       output_fields,
+       partition_filter_operators,
+       sequence_names_to_evaluate,
+       produced = false]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
+      if (produced == true) {
+         std::optional<arrow::ExecBatch> result = std::nullopt;
+         return arrow::Future{result};
+      }
+      produced = true;
+      std::vector<CopyOnWriteBitmap> partition_filters;
+      partition_filters.reserve(partition_filter_operators->size());
+      for (const auto& partition_filter_operator : *partition_filter_operators) {
+         partition_filters.emplace_back(partition_filter_operator->evaluate());
+      }
+
+      std::unordered_map<std::string, Mutations<SymbolType>::PrefilteredBitmaps>
+         bitmaps_to_evaluate = preFilterBitmaps(*table, partition_filters);
+
+      std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder> output_builder;
+      for (const auto& output_field : output_fields) {
+         output_builder.emplace(
+            output_field.name, exec_node::columnTypeToArrowType(output_field.type)
          );
       }
-   }
-   return QueryResult::fromVector(std::move(mutation_proportions));
+
+      for (const auto& sequence_name : sequence_names_to_evaluate) {
+         const storage::column::SequenceColumnMetadata<SymbolType>* sequence_column_metadata =
+            table->schema.getColumnMetadata<typename SymbolType::Column>(sequence_name).value();
+
+         if (bitmaps_to_evaluate.contains(sequence_name)) {
+            ARROW_RETURN_NOT_OK(addMutationsToOutput(
+               sequence_name,
+               *sequence_column_metadata,
+               given_min_proportion,
+               bitmaps_to_evaluate.at(sequence_name),
+               output_builder
+            ));
+         }
+      }
+      // Order of result_columns is relevant as it needs to be consistent with vector in schema
+      std::vector<arrow::Datum> result_columns;
+      for (const auto& output_field : output_fields) {
+         if (auto array_builder = output_builder.find(output_field.name);
+             array_builder != output_builder.end()) {
+            arrow::Datum datum;
+            ARROW_ASSIGN_OR_RAISE(datum, array_builder->second.toDatum());
+            result_columns.push_back(std::move(datum));
+         }
+      }
+      ARROW_ASSIGN_OR_RAISE(
+         std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make(result_columns)
+      );
+      return arrow::Future{result};
+   };
+
+   ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
+
+   arrow::acero::SourceNodeOptions options{
+      exec_node::columnsToArrowSchema(getOutputSchema(table->schema)),
+      std::move(producer),
+      arrow::Ordering::Implicit()
+   };
+   ARROW_ASSIGN_OR_RAISE(
+      auto node, arrow::acero::MakeExecNode("source", arrow_plan.get(), {}, options)
+   );
+
+   ARROW_ASSIGN_OR_RAISE(node, addSortNode(arrow_plan.get(), node, table->schema));
+
+   ARROW_ASSIGN_OR_RAISE(node, addLimitAndOffsetNode(arrow_plan.get(), node));
+
+   return QueryPlan::makeQueryPlan(arrow_plan, node);
 }
 
 template <typename SymbolType>
 std::vector<schema::ColumnIdentifier> Mutations<SymbolType>::getOutputSchema(
    const silo::schema::TableSchema& table_schema
 ) const {
+   using silo::schema::ColumnType;
    std::vector<schema::ColumnIdentifier> output_fields;
    if (std::ranges::find(fields, MUTATION_FIELD_NAME) != fields.end()) {
-      output_fields.emplace_back(std::string(MUTATION_FIELD_NAME), schema::ColumnType::STRING);
+      output_fields.emplace_back(std::string(MUTATION_FIELD_NAME), ColumnType::STRING);
    }
    if (std::ranges::find(fields, MUTATION_FROM_FIELD_NAME) != fields.end()) {
-      output_fields.emplace_back(std::string(MUTATION_FROM_FIELD_NAME), schema::ColumnType::STRING);
+      output_fields.emplace_back(std::string(MUTATION_FROM_FIELD_NAME), ColumnType::STRING);
    }
    if (std::ranges::find(fields, MUTATION_TO_FIELD_NAME) != fields.end()) {
-      output_fields.emplace_back(std::string(MUTATION_TO_FIELD_NAME), schema::ColumnType::STRING);
+      output_fields.emplace_back(std::string(MUTATION_TO_FIELD_NAME), ColumnType::STRING);
    }
    if (std::ranges::find(fields, SEQUENCE_FIELD_NAME) != fields.end()) {
-      output_fields.emplace_back(std::string(SEQUENCE_FIELD_NAME), schema::ColumnType::STRING);
+      output_fields.emplace_back(std::string(SEQUENCE_FIELD_NAME), ColumnType::STRING);
    }
    if (std::ranges::find(fields, POSITION_FIELD_NAME) != fields.end()) {
-      output_fields.emplace_back(std::string(POSITION_FIELD_NAME), schema::ColumnType::INT);
+      output_fields.emplace_back(std::string(POSITION_FIELD_NAME), ColumnType::INT);
    }
    if (std::ranges::find(fields, PROPORTION_FIELD_NAME) != fields.end()) {
-      output_fields.emplace_back(std::string(PROPORTION_FIELD_NAME), schema::ColumnType::FLOAT);
+      output_fields.emplace_back(std::string(PROPORTION_FIELD_NAME), ColumnType::FLOAT);
    }
    if (std::ranges::find(fields, COVERAGE_FIELD_NAME) != fields.end()) {
-      output_fields.emplace_back(std::string(COVERAGE_FIELD_NAME), schema::ColumnType::INT);
+      output_fields.emplace_back(std::string(COVERAGE_FIELD_NAME), ColumnType::INT);
    }
    if (std::ranges::find(fields, COUNT_FIELD_NAME) != fields.end()) {
-      output_fields.emplace_back(std::string(COUNT_FIELD_NAME), schema::ColumnType::INT);
+      output_fields.emplace_back(std::string(COUNT_FIELD_NAME), ColumnType::INT);
    }
    return output_fields;
 }

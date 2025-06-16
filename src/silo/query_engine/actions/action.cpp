@@ -308,7 +308,8 @@ std::vector<schema::ColumnIdentifier> columnNamesToFields(
 
 arrow::Result<QueryPlan> Action::toQueryPlanImpl(
    std::shared_ptr<const storage::Table> table,
-   const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
+   std::shared_ptr<std::vector<std::unique_ptr<filter::operators::Operator>>>
+      partition_filter_operators,
    const config::QueryOptions& query_options
 ) {
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
@@ -325,7 +326,8 @@ arrow::Result<QueryPlan> Action::toQueryPlanImpl(
 
 QueryPlan Action::toQueryPlan(
    std::shared_ptr<const storage::Table> table,
-   const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
+   std::shared_ptr<std::vector<std::unique_ptr<filter::operators::Operator>>>
+      partition_filter_operators,
    const config::QueryOptions& query_options
 ) {
    auto query_plan = toQueryPlanImpl(table, partition_filter_operators, query_options);

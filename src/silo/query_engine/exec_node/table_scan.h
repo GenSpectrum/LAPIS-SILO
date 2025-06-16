@@ -22,7 +22,10 @@ namespace silo::query_engine::exec_node {
 class TableScan : public arrow::acero::ExecNode {
    std::map<schema::ColumnType, std::map<std::string, std::unique_ptr<arrow::ArrayBuilder>>>
       array_builders;
-   std::vector<CopyOnWriteBitmap> partition_filters;
+
+   std::shared_ptr<std::vector<std::unique_ptr<filter::operators::Operator>>>
+      partition_filter_operators;
+
    std::vector<silo::schema::ColumnIdentifier> output_fields;
    const std::shared_ptr<const storage::Table> table;
    size_t batch_size_cutoff;
@@ -34,17 +37,16 @@ class TableScan : public arrow::acero::ExecNode {
    TableScan(
       arrow::acero::ExecPlan* plan,
       const std::vector<silo::schema::ColumnIdentifier>& columns,
-      const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
+      std::shared_ptr<std::vector<std::unique_ptr<filter::operators::Operator>>>
+         partition_filter_operators,
       std::shared_ptr<const storage::Table> table,
       size_t batch_size_cutoff
    )
        : arrow::acero::ExecNode(plan, {}, {}, columnsToInternalArrowSchema(columns)),
+         partition_filter_operators(partition_filter_operators),
          output_fields(columns),
          table(table),
          batch_size_cutoff(batch_size_cutoff) {
-      for (const auto& partition_filter_operator : partition_filter_operators) {
-         partition_filters.emplace_back(partition_filter_operator->evaluate());
-      }
       prepareOutputArrays();
    }
 
