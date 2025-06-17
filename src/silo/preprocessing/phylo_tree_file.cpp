@@ -7,11 +7,12 @@
 #include "silo/preprocessing/preprocessing_exception.h"
 
 namespace silo::preprocessing {
+using silo::common::TreeNodeId;
 
 std::shared_ptr<TreeNode> parse_auspice_tree(
    const nlohmann::json& j,
    std::optional<std::shared_ptr<TreeNode>> parent,
-   std::unordered_map<std::string, std::shared_ptr<TreeNode>>& node_map,
+   std::unordered_map<TreeNodeId, std::shared_ptr<TreeNode>>& node_map,
    int depth = 0
 ) {
    auto node = std::make_shared<TreeNode>();
@@ -20,7 +21,7 @@ std::shared_ptr<TreeNode> parse_auspice_tree(
          "Invalid File: Auspice JSON node does not contain a 'name' entry."
       );
    }
-   node->node_id = j.at("name").get<std::string>();
+   node->node_id = TreeNodeId{j.at("name").get<std::string>()};
    node->parent = parent;
    node->depth = depth;
 
@@ -90,7 +91,7 @@ double parseBranchLength(std::string_view& sv) {
    return number.empty() ? 0.0 : std::stod(number);
 }
 
-std::string parseLabel(std::string_view& sv) {
+TreeNodeId parseLabel(std::string_view& sv) {
    std::string label;
    while (!sv.empty() && isValidLabelChar(sv.front())) {
       label += sv.front();
@@ -100,7 +101,7 @@ std::string parseLabel(std::string_view& sv) {
       sv.remove_prefix(1);
       parseBranchLength(sv);
    }
-   return label;
+   return TreeNodeId{label};
 }
 
 void skipWhitespace(std::string_view& sv) {
@@ -111,7 +112,7 @@ void skipWhitespace(std::string_view& sv) {
 
 std::shared_ptr<TreeNode> parseSubtree(
    std::string_view& sv,
-   std::unordered_map<std::string, std::shared_ptr<TreeNode>>& node_map,
+   std::unordered_map<TreeNodeId, std::shared_ptr<TreeNode>>& node_map,
    int depth = 0,
    std::optional<std::shared_ptr<TreeNode>> parent = std::nullopt
 ) {

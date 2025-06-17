@@ -5,11 +5,14 @@
 
 #include <nlohmann/json.hpp>
 
+#include "silo/common/tree_node_id.h"
+
 namespace silo::preprocessing {
+using silo::common::TreeNodeId;
 
 class TreeNode {
   public:
-   std::string node_id;
+   TreeNodeId node_id;
    std::vector<std::shared_ptr<TreeNode>> children;
    std::optional<std::shared_ptr<TreeNode>> parent;
    int depth;
@@ -17,7 +20,7 @@ class TreeNode {
 
 class PhyloTreeFile {
   public:
-   std::unordered_map<std::string, std::shared_ptr<TreeNode>> nodes;
+   std::unordered_map<TreeNodeId, std::shared_ptr<TreeNode>> nodes;
 
    static PhyloTreeFile fromAuspiceJSONFile(const std::filesystem::path& json_path);
 
