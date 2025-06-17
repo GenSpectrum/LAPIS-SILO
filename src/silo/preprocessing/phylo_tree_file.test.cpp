@@ -20,8 +20,7 @@ TEST(PhyloTreeFile, correctlyParsesFromJSON) {
       "\"name\": \"CHILD\","
       "\"children\": ["
       "{"
-      "\"name\": \"CHILD2\","
-      "\"children\": []"
+      "\"name\": \"CHILD2\""
       "}"
       "]"
       "}"
@@ -36,6 +35,13 @@ TEST(PhyloTreeFile, correctlyParsesFromJSON) {
    ASSERT_EQ(phylo_tree_file.nodes.at("CHILD").depth, 1);
    ASSERT_EQ(phylo_tree_file.nodes.at("CHILD").children.size(), 1);
    ASSERT_EQ(phylo_tree_file.nodes.at("CHILD").children.at(0), "CHILD2");
+}
+
+TEST(PhyloTreeFile, throwsOnInvalidJSON) {
+   EXPECT_THROW(
+      PhyloTreeFile::fromAuspiceJSONString("{\"invalid\": \"json\"}"),
+      silo::preprocessing::PreprocessingException
+   );
 }
 
 TEST(PhyloTreeFile, correctlyParsesFromNewick) {
@@ -61,4 +67,18 @@ TEST(PhyloTreeFile, correctlyParsesFromNewickWithBranchLengths) {
    ASSERT_EQ(phylo_tree_file.nodes.at("CHILD").children.size(), 2);
    ASSERT_EQ(phylo_tree_file.nodes.at("CHILD").children.at(0), "CHILD2");
    // ASSERT_EQ(phylo_tree_file.nodes.at("CHILD2").parent, "CHILD");
+}
+
+TEST(PhyloTreeFile, throwsOnInvalidNewick) {
+   EXPECT_THROW(
+      PhyloTreeFile::fromNewickString("((CHILD2)CHILD;"),
+      silo::preprocessing::PreprocessingException
+   );
+}
+
+TEST(PhyloTreeFile, throwsOnInvalidNewickNoSemicolon) {
+   EXPECT_THROW(
+      PhyloTreeFile::fromNewickString("((CHILD2)CHILD)ROOT"),
+      silo::preprocessing::PreprocessingException
+   );
 }

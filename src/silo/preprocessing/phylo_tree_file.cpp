@@ -15,11 +15,18 @@ TreeNode parse_auspice_tree(
    int depth = 0
 ) {
    TreeNode node;
+   if (!j.contains("name")) {
+      throw silo::preprocessing::PreprocessingException(
+         "Invalid File: Auspice JSON node does not contain a 'name' entry."
+      );
+   }
    node.node_id = j.at("name").get<std::string>();
    node.parent = parent;
    node.depth = depth;
 
-   for (const auto& child : j.at("children")) {
+   const auto& children = j.contains("children") ? j["children"] : nlohmann::json::array();
+
+   for (const auto& child : children) {
       TreeNode child_node = parse_auspice_tree(child, node.node_id, node_map, depth + 1);
       node.children.push_back(child_node.node_id);
    }
@@ -31,6 +38,12 @@ TreeNode parse_auspice_tree(
 
 PhyloTreeFile PhyloTreeFile::fromAuspiceJSONString(const std::string& json_string) {
    nlohmann::json j = nlohmann::json::parse(json_string);
+
+   if (!j.contains("tree")) {
+      throw silo::preprocessing::PreprocessingException(
+         "Invalid File: Auspice JSON does not contain a 'tree' entry."
+      );
+   }
 
    PhyloTreeFile file;
    TreeNode root = parse_auspice_tree(j["tree"], std::nullopt, file.nodes);
@@ -124,6 +137,12 @@ TreeNode parseSubtree(
       }
    }
 
+   if (depth != node.depth) {
+      throw silo::preprocessing::PreprocessingException(
+         "Parenthesis mismatch in Newick string - depth does not match"
+      );
+   }
+
    skipWhitespace(sv);
    node.node_id = parseLabel(sv);
    skipWhitespace(sv);
@@ -137,8 +156,26 @@ PhyloTreeFile PhyloTreeFile::fromNewickString(const std::string& newick_string) 
    PhyloTreeFile file;
 
    std::string_view sv(newick_string);
+   if (sv.empty()) {
+      throw silo::preprocessing::PreprocessingException(
+         "Error when parsing the Newick string - The string is empty"
+      );
+   }
+   if (sv.back() != ';') {
+      throw silo::preprocessing::PreprocessingException(
+         fmt::format(
+            "Error when parsing the Newick string: '{}' - string does not end in ';'", newick_string
+         )
+      );
+   }
+   sv.remove_suffix(1);
    try {
       auto root = parseSubtree(sv, file.nodes, 0);
+      if (!sv.empty()) {
+         throw silo::preprocessing::PreprocessingException(
+            fmt::format("Error when parsing the Newick string: '{}' - extra characters found", newick_string)
+         );
+      }
    } catch (const std::exception& e) {
       throw silo::preprocessing::PreprocessingException(
          fmt::format("Error when parsing the Newick string: '{}'", newick_string)
