@@ -58,6 +58,7 @@ inputDirectory: "./testBaseData/exampleDataset/"
 outputDirectory: "./output/"
 ndjsonInputFilename: "input_file.ndjson"
 lineageDefinitionsFilename: "lineage_definitions.yaml"
+phylogeneticTreeFilename: "phylogenetic_tree.yaml"
 referenceGenomeFilename: "reference_genomes.json"
 )"
    )
@@ -70,6 +71,8 @@ referenceGenomeFilename: "reference_genomes.json"
       {YamlFile::stringToConfigKeyPath("ndjsonInputFilename"), YAML::Node{"input_file.ndjson"}},
       {YamlFile::stringToConfigKeyPath("lineageDefinitionsFilename"),
        YAML::Node{"lineage_definitions.yaml"}},
+      {YamlFile::stringToConfigKeyPath("phylogeneticTreeFilename"),
+       YAML::Node{"phylogenetic_tree.yaml"}},
       {YamlFile::stringToConfigKeyPath("referenceGenomeFilename"),
        YAML::Node{"reference_genomes.json"}},
    };

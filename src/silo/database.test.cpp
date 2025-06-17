@@ -14,6 +14,7 @@
 #include "silo/config/preprocessing_config.h"
 #include "silo/database_info.h"
 #include "silo/initialize/initializer.h"
+#include "silo/preprocessing/phylo_tree_file.h"
 #include "silo/storage/reference_genomes.h"
 
 using silo::config::PreprocessingConfig;
@@ -40,6 +41,24 @@ std::shared_ptr<silo::Database> buildTestDatabase() {
       lineage_tree = silo::common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(
          config.initialization_files.getLineageDefinitionsFilename().value()
       );
+   }
+
+   silo::preprocessing::PhyloTreeFile phylo_tree_file;
+   auto opt_path = config.initialization_files.getPhylogeneticTreeFilename();
+   if (opt_path.has_value()) {
+      const auto& path = *opt_path;
+      auto ext = path.extension().string();
+
+      std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+      if (ext != ".nwk" && ext != ".json") {
+         throw std::invalid_argument("Path must end with .nwk or .json");
+      }
+      if (ext == ".nwk") {
+         phylo_tree_file = silo::preprocessing::PhyloTreeFile::fromNewickFile(path);
+      } else if (ext == ".json") {
+         phylo_tree_file = silo::preprocessing::PhyloTreeFile::fromAuspiceJSONFile(path);
+      }
    }
 
    auto database = std::make_shared<silo::Database>(

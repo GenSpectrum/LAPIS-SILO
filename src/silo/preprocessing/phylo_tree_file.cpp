@@ -1,6 +1,7 @@
 #include "silo/preprocessing/phylo_tree_file.h"
 
 #include <fstream>
+#include <sstream>
 
 #include <nlohmann/json.hpp>
 

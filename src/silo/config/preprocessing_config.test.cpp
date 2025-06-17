@@ -22,6 +22,10 @@ TEST(PreprocessingConfig, shouldReadConfigWithCorrectParametersAndDefaults) {
       config.initialization_files.getLineageDefinitionsFilename(),
       input_directory + "lineage_definitions.yaml"
    );
+   ASSERT_EQ(
+      config.initialization_files.getPhylogeneticTreeFilename(),
+      input_directory + "phylogenetic_tree.yaml"
+   );
 }
 
 TEST(PreprocessingConfig, shouldReadConfigWithOverriddenDefaults) {
@@ -33,6 +37,7 @@ outputDirectory: "./output/custom/"
 intermediateResultsDirectory: "./output/overriddenTemp/"
 ndjsonInputFilename: "input_file.ndjson"
 lineageDefinitionsFilename: "lineage_definitions.yaml"
+phylogeneticTreeFilename: "phylogenetic_tree.yaml"
 referenceGenomeFilename: "reference_genomes.json"
 preprocessingDatabaseLocation: "preprocessing.duckdb"
 duckdbMemoryLimitInG: 8)")
@@ -44,6 +49,10 @@ duckdbMemoryLimitInG: 8)")
    ASSERT_EQ(
       config.initialization_files.getLineageDefinitionsFilename(),
       input_directory + "lineage_definitions.yaml"
+   );
+   ASSERT_EQ(
+      config.initialization_files.getPhylogeneticTreeFilename(),
+      input_directory + "phylogenetic_tree.yaml"
    );
 
    ASSERT_EQ(config.output_directory, "./output/custom/");

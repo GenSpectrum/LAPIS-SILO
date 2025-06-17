@@ -14,6 +14,7 @@
 #include "silo/config/preprocessing_config.h"
 #include "silo/database.h"
 #include "silo/initialize/initialize_exception.h"
+#include "silo/preprocessing/phylo_tree_file.h"
 #include "silo/storage/column/column_type_visitor.h"
 #include "silo/storage/column/zstd_compressed_string_column.h"
 #include "silo/storage/reference_genomes.h"
@@ -27,6 +28,24 @@ Database Initializer::initializeDatabase(const config::InitializationFiles& init
       lineage_tree = common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(
          initialization_files.getLineageDefinitionsFilename().value()
       );
+   }
+
+   preprocessing::PhyloTreeFile phylo_tree_file;
+   auto opt_path = initialization_files.getPhylogeneticTreeFilename();
+   if (opt_path.has_value()) {
+      const auto& path = *opt_path;
+      auto ext = path.extension().string();
+
+      std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+      if (ext != ".nwk" && ext != ".json") {
+         throw std::invalid_argument("Path must end with .nwk or .json");
+      }
+      if (ext == ".nwk") {
+         phylo_tree_file = preprocessing::PhyloTreeFile::fromNewickFile(path);
+      } else if (ext == ".json") {
+         phylo_tree_file = preprocessing::PhyloTreeFile::fromAuspiceJSONFile(path);
+      }
    }
    silo::schema::DatabaseSchema schema = createSchemaFromConfigFiles(
       config::DatabaseConfig::getValidatedConfigFromFile(

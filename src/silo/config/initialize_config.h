@@ -21,6 +21,7 @@ class PreprocessingConfig;
 class InitializationFiles {
   public:
    std::optional<std::filesystem::path> lineage_definitions_file;
+   std::optional<std::filesystem::path> phylogenetic_tree_file;
    std::filesystem::path database_config_file;
    std::filesystem::path reference_genome_file;
 
@@ -30,12 +31,15 @@ class InitializationFiles {
 
    [[nodiscard]] std::optional<std::filesystem::path> getLineageDefinitionsFilename() const;
 
+   [[nodiscard]] std::optional<std::filesystem::path> getPhylogeneticTreeFilename() const;
+
    [[nodiscard]] std::filesystem::path getReferenceGenomeFilename() const;
 
    NLOHMANN_DEFINE_TYPE_INTRUSIVE(
       InitializationFiles,
       directory,
       lineage_definitions_file,
+      phylogenetic_tree_file,
       database_config_file,
       reference_genome_file
    );
