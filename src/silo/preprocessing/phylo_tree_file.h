@@ -10,14 +10,14 @@ namespace silo::preprocessing {
 class TreeNode {
   public:
    std::string node_id;
-   std::vector<std::string> children;
-   std::optional<std::string> parent;
+   std::vector<std::shared_ptr<TreeNode>> children;
+   std::optional<std::shared_ptr<TreeNode>> parent;
    int depth;
 };
 
 class PhyloTreeFile {
   public:
-   std::unordered_map<std::string, TreeNode> nodes;
+   std::unordered_map<std::string, std::shared_ptr<TreeNode>> nodes;
 
    static PhyloTreeFile fromAuspiceJSONFile(const std::filesystem::path& json_path);
 

@@ -8,31 +8,31 @@
 
 namespace silo::preprocessing {
 
-TreeNode parse_auspice_tree(
+std::shared_ptr<TreeNode> parse_auspice_tree(
    const nlohmann::json& j,
-   std::optional<std::string> parent,
-   std::unordered_map<std::string, TreeNode>& node_map,
+   std::optional<std::shared_ptr<TreeNode>> parent,
+   std::unordered_map<std::string, std::shared_ptr<TreeNode>>& node_map,
    int depth = 0
 ) {
-   TreeNode node;
+   auto node = std::make_shared<TreeNode>();
    if (!j.contains("name")) {
       throw silo::preprocessing::PreprocessingException(
          "Invalid File: Auspice JSON node does not contain a 'name' entry."
       );
    }
-   node.node_id = j.at("name").get<std::string>();
-   node.parent = parent;
-   node.depth = depth;
+   node->node_id = j.at("name").get<std::string>();
+   node->parent = parent;
+   node->depth = depth;
 
    const auto& children = j.contains("children") ? j["children"] : nlohmann::json::array();
 
    for (const auto& child : children) {
-      TreeNode child_node = parse_auspice_tree(child, node.node_id, node_map, depth + 1);
-      node.children.push_back(child_node.node_id);
+      auto child_node = parse_auspice_tree(child, node, node_map, depth + 1);
+      node->children.push_back(child_node);
    }
 
    // Insert node into the map *after* children so it's fully constructed
-   node_map[node.node_id] = node;
+   node_map[node->node_id] = node;
    return node;
 }
 
@@ -46,7 +46,7 @@ PhyloTreeFile PhyloTreeFile::fromAuspiceJSONString(const std::string& json_strin
    }
 
    PhyloTreeFile file;
-   TreeNode root = parse_auspice_tree(j["tree"], std::nullopt, file.nodes);
+   auto root = parse_auspice_tree(j["tree"], std::nullopt, file.nodes);
    return file;
 }
 
@@ -109,23 +109,23 @@ void skipWhitespace(std::string_view& sv) {
    }
 }
 
-TreeNode parseSubtree(
+std::shared_ptr<TreeNode> parseSubtree(
    std::string_view& sv,
-   std::unordered_map<std::string, TreeNode>& node_map,
+   std::unordered_map<std::string, std::shared_ptr<TreeNode>>& node_map,
    int depth = 0,
-   std::optional<std::string> parent = std::nullopt
+   std::optional<std::shared_ptr<TreeNode>> parent = std::nullopt
 ) {
-   TreeNode node;
-   node.depth = depth;
-   node.parent = parent;
+   auto node = std::make_shared<TreeNode>();
+   node->depth = depth;
+   node->parent = parent;
 
    skipWhitespace(sv);
    if (!sv.empty() && sv.front() == '(') {
       sv.remove_prefix(1);
       depth++;
       do {
-         TreeNode child_node = parseSubtree(sv, node_map, depth, node.node_id);
-         node.children.push_back(child_node.node_id);
+         auto child_node = parseSubtree(sv, node_map, depth, node);
+         node->children.push_back(child_node);
          skipWhitespace(sv);
          if (!sv.empty() && sv.front() == ',') {
             sv.remove_prefix(1);
@@ -137,17 +137,17 @@ TreeNode parseSubtree(
       }
    }
 
-   if (depth != node.depth) {
+   if (depth != node->depth) {
       throw silo::preprocessing::PreprocessingException(
          "Parenthesis mismatch in Newick string - depth does not match"
       );
    }
 
    skipWhitespace(sv);
-   node.node_id = parseLabel(sv);
+   node->node_id = parseLabel(sv);
    skipWhitespace(sv);
 
-   node_map[node.node_id] = node;
+   node_map[node->node_id] = node;
 
    return node;
 }
@@ -162,19 +162,17 @@ PhyloTreeFile PhyloTreeFile::fromNewickString(const std::string& newick_string) 
       );
    }
    if (sv.back() != ';') {
-      throw silo::preprocessing::PreprocessingException(
-         fmt::format(
-            "Error when parsing the Newick string: '{}' - string does not end in ';'", newick_string
-         )
-      );
+      throw silo::preprocessing::PreprocessingException(fmt::format(
+         "Error when parsing the Newick string: '{}' - string does not end in ';'", newick_string
+      ));
    }
    sv.remove_suffix(1);
    try {
       auto root = parseSubtree(sv, file.nodes, 0);
       if (!sv.empty()) {
-         throw silo::preprocessing::PreprocessingException(
-            fmt::format("Error when parsing the Newick string: '{}' - extra characters found", newick_string)
-         );
+         throw silo::preprocessing::PreprocessingException(fmt::format(
+            "Error when parsing the Newick string: '{}' - extra characters found", newick_string
+         ));
       }
    } catch (const std::exception& e) {
       throw silo::preprocessing::PreprocessingException(
