@@ -142,10 +142,10 @@ bool YAML::convert<silo::config::DatabaseMetadata>::decode(
    } else {
       metadata.generate_lineage_index = false;
    }
-   if (node["generatePhyloTreeIndex"].IsDefined()) {
-      metadata.generate_phylo_tree_index = node["generatePhyloTreeIndex"].as<bool>();
+   if (node["phyloTreeNodeIdentifier"].IsDefined()) {
+      metadata.phylo_tree_node_identifier = node["phyloTreeNodeIdentifier"].as<bool>();
    } else {
-      metadata.generate_phylo_tree_index = false;
+      metadata.phylo_tree_node_identifier = false;
    }
    return true;
 }
@@ -159,8 +159,8 @@ YAML::Node YAML::convert<silo::config::DatabaseMetadata>::encode(
    if (metadata.generate_lineage_index) {
       node["generateLineageIndex"] = true;
    }
-   if (metadata.generate_phylo_tree_index) {
-      node["generatePhyloTreeIndex"] = true;
+   if (metadata.phylo_tree_node_identifier) {
+      node["phyloTreeNodeIdentifier"] = true;
    }
    return node;
 }
@@ -254,11 +254,11 @@ std::map<std::string, ValueType> validateMetadataDefinitions(const DatabaseConfi
          );
       }
 
-      const auto generate_phylo_tree_indexed_field = metadata.generate_phylo_tree_index;
-      if (metadata.type != ValueType::STRING && generate_phylo_tree_indexed_field) {
+      const auto phylo_tree_node_identifiered_field = metadata.phylo_tree_node_identifier;
+      if (metadata.type != ValueType::STRING && phylo_tree_node_identifiered_field) {
          throw ConfigException(
             "Metadata '" + metadata.name +
-            "' generatePhyloTreeIndex is set, but the column is not of type STRING."
+            "' phyloTreeNodeIdentifier is set, but the column is not of type STRING."
          );
       }
 
@@ -277,10 +277,11 @@ std::map<std::string, ValueType> validateMetadataDefinitions(const DatabaseConfi
          );
       }
 
-      if (metadata.generate_index && generate_phylo_tree_indexed_field) {
+      if (metadata.generate_index && phylo_tree_node_identifiered_field) {
          throw ConfigException(
             "Metadata '" + metadata.name +
-            "' generatePhyloTreeIndex and generateIndex are both set, if generatePhyloTreeIndex is "
+            "' phyloTreeNodeIdentifier and generateIndex are both set, if phyloTreeNodeIdentifier "
+            "is "
             "set then generateIndex cannot be set."
          );
       }

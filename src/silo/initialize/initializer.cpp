@@ -84,7 +84,7 @@ void ColumnMetadataInitializer::operator()<storage::column::StringColumnPartitio
    const common::LineageTreeAndIdMap& lineage_tree,
    const preprocessing::PhyloTreeFile& phylo_tree_file
 ) {
-   if (config_metadata.generate_phylo_tree_index) {
+   if (config_metadata.phylo_tree_node_identifier) {
       metadata = std::make_shared<storage::column::StringColumnPartition::Metadata>(
          config_metadata.name, phylo_tree_file
       );

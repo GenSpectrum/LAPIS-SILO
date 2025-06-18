@@ -3,7 +3,7 @@ schema:
   metadata:
     - name: gisaid_epi_isl
       type: string
-      generatePhyloTreeIndex: true
+      phyloTreeNodeIdentifier: true
     - name: date
       type: date
     - name: unsorted_date
