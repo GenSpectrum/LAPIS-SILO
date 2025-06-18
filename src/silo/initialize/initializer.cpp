@@ -52,7 +52,8 @@ Database Initializer::initializeDatabase(const config::InitializationFiles& init
          initialization_files.getDatabaseConfigFilename()
       ),
       ReferenceGenomes::readFromFile(initialization_files.getReferenceGenomeFilename()),
-      std::move(lineage_tree)
+      std::move(lineage_tree),
+      std::move(phylo_tree_file)
    );
    return Database{schema};
 }
@@ -63,7 +64,8 @@ struct ColumnMetadataInitializer {
       std::shared_ptr<storage::column::ColumnMetadata>& metadata,
       const config::DatabaseMetadata& config_metadata,
       const ReferenceGenomes& reference_genomes,
-      const common::LineageTreeAndIdMap& lineage_tree
+      const common::LineageTreeAndIdMap& lineage_tree,
+      const preprocessing::PhyloTreeFile& phylo_tree_file
    );
 };
 
@@ -72,7 +74,8 @@ void ColumnMetadataInitializer::operator()<storage::column::IndexedStringColumnP
    std::shared_ptr<storage::column::ColumnMetadata>& metadata,
    const config::DatabaseMetadata& config_metadata,
    const ReferenceGenomes& reference_genomes,
-   const common::LineageTreeAndIdMap& lineage_tree
+   const common::LineageTreeAndIdMap& lineage_tree,
+   const preprocessing::PhyloTreeFile& phylo_tree_file
 ) {
    if (config_metadata.generate_lineage_index) {
       metadata = std::make_shared<storage::column::IndexedStringColumnPartition::Metadata>(
@@ -86,11 +89,30 @@ void ColumnMetadataInitializer::operator()<storage::column::IndexedStringColumnP
 }
 
 template <>
+void ColumnMetadataInitializer::operator()<storage::column::StringColumnPartition>(
+   std::shared_ptr<storage::column::ColumnMetadata>& metadata,
+   const config::DatabaseMetadata& config_metadata,
+   const ReferenceGenomes& reference_genomes,
+   const common::LineageTreeAndIdMap& lineage_tree,
+   const preprocessing::PhyloTreeFile& phylo_tree_file
+) {
+   if (config_metadata.generate_phylo_tree_index) {
+      metadata = std::make_shared<storage::column::StringColumnPartition::Metadata>(
+         config_metadata.name, phylo_tree_file
+      );
+   } else {
+      metadata =
+         std::make_shared<storage::column::StringColumnPartition::Metadata>(config_metadata.name);
+   }
+}
+
+template <>
 void ColumnMetadataInitializer::operator()<storage::column::ZstdCompressedStringColumnPartition>(
    std::shared_ptr<storage::column::ColumnMetadata>& metadata,
    const config::DatabaseMetadata& config_metadata,
    const ReferenceGenomes& reference_genomes,
-   const common::LineageTreeAndIdMap& lineage_tree
+   const common::LineageTreeAndIdMap& lineage_tree,
+   const preprocessing::PhyloTreeFile& phylo_tree_file
 ) {
    SILO_PANIC("unaligned nucleotide sequences cannot be in config::DatabaseMetadata");
 }
@@ -100,7 +122,8 @@ void ColumnMetadataInitializer::operator()<storage::column::SequenceColumnPartit
    std::shared_ptr<storage::column::ColumnMetadata>& metadata,
    const config::DatabaseMetadata& config_metadata,
    const ReferenceGenomes& reference_genomes,
-   const common::LineageTreeAndIdMap& lineage_tree
+   const common::LineageTreeAndIdMap& lineage_tree,
+   const preprocessing::PhyloTreeFile& phylo_tree_file
 ) {
    SILO_PANIC("nucleotides cannot be in config::DatabaseMetadata");
 }
@@ -110,7 +133,8 @@ void ColumnMetadataInitializer::operator()<storage::column::SequenceColumnPartit
    std::shared_ptr<storage::column::ColumnMetadata>& metadata,
    const config::DatabaseMetadata& config_metadata,
    const ReferenceGenomes& reference_genomes,
-   const common::LineageTreeAndIdMap& lineage_tree
+   const common::LineageTreeAndIdMap& lineage_tree,
+   const preprocessing::PhyloTreeFile& phylo_tree_file
 ) {
    SILO_PANIC("amino acid cannot be in config::DatabaseMetadata");
 }
@@ -120,7 +144,8 @@ void ColumnMetadataInitializer::operator()(
    std::shared_ptr<storage::column::ColumnMetadata>& metadata,
    const config::DatabaseMetadata& config_metadata,
    const ReferenceGenomes& /*reference_genomes*/,
-   const common::LineageTreeAndIdMap& /*lineage_tree*/
+   const common::LineageTreeAndIdMap& /*lineage_tree*/,
+   const preprocessing::PhyloTreeFile& /*phylo_tree_file*/
 ) {
    metadata = std::make_shared<typename ColumnType::Metadata>(config_metadata.name);
 }
@@ -201,7 +226,8 @@ void assertPrimaryKeyOfTypeString(const silo::config::DatabaseConfig& database_c
 silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
    config::DatabaseConfig database_config,
    ReferenceGenomes reference_genomes,
-   common::LineageTreeAndIdMap lineage_tree
+   common::LineageTreeAndIdMap lineage_tree,
+   preprocessing::PhyloTreeFile phylo_tree_file
 ) {
    setDefaultSequencesIfUnsetAndThereIsOnlyOne(database_config, reference_genomes);
    assertDefaultSequencesAreInReference(database_config, reference_genomes);
@@ -225,7 +251,8 @@ silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
          metadata,
          config_metadata,
          reference_genomes,
-         lineage_tree
+         lineage_tree,
+         phylo_tree_file
       );
       column_metadata.emplace(column_identifier, metadata);
    }

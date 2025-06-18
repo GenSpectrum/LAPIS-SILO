@@ -17,6 +17,7 @@
 #include "silo/database.h"
 #include "silo/database_info.h"
 #include "silo/initialize/initializer.h"
+#include "silo/preprocessing/phylo_tree_file.h"
 #include "silo/query_engine/optimizer/query_plan_generator.h"
 #include "silo/query_engine/query_plan.h"
 #include "silo/storage/reference_genomes.h"
@@ -59,6 +60,7 @@ struct QueryTestData {
    const std::string database_config;
    const silo::ReferenceGenomes reference_genomes;
    const silo::common::LineageTreeAndIdMap lineage_tree;
+   const silo::preprocessing::PhyloTreeFile phylo_tree_file;
 };
 
 struct QueryTestScenario {
@@ -84,7 +86,8 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
          Database{silo::initialize::Initializer::createSchemaFromConfigFiles(
             silo::config::DatabaseConfig::getValidatedConfig(test_data.database_config),
             std::move(test_data.reference_genomes),
-            std::move(test_data.lineage_tree)
+            std::move(test_data.lineage_tree),
+            std::move(test_data.phylo_tree_file)
          )}
       );
 

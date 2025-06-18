@@ -142,6 +142,11 @@ bool YAML::convert<silo::config::DatabaseMetadata>::decode(
    } else {
       metadata.generate_lineage_index = false;
    }
+   if (node["generatePhyloTreeIndex"].IsDefined()) {
+      metadata.generate_phylo_tree_index = node["generatePhyloTreeIndex"].as<bool>();
+   } else {
+      metadata.generate_phylo_tree_index = false;
+   }
    return true;
 }
 YAML::Node YAML::convert<silo::config::DatabaseMetadata>::encode(
@@ -153,6 +158,9 @@ YAML::Node YAML::convert<silo::config::DatabaseMetadata>::encode(
    node["generateIndex"] = metadata.generate_index;
    if (metadata.generate_lineage_index) {
       node["generateLineageIndex"] = true;
+   }
+   if (metadata.generate_phylo_tree_index) {
+      node["generatePhyloTreeIndex"] = true;
    }
    return node;
 }
@@ -238,11 +246,19 @@ std::map<std::string, ValueType> validateMetadataDefinitions(const DatabaseConfi
          throw ConfigException("Metadata " + metadata.name + " is defined twice in the config");
       }
 
-      const auto must_be_string = metadata.generate_lineage_index;
-      if (metadata.type != ValueType::STRING && must_be_string) {
+      const auto generate_lineage_indexed_field = metadata.generate_lineage_index;
+      if (metadata.type != ValueType::STRING && generate_lineage_indexed_field) {
          throw ConfigException(
             "Metadata '" + metadata.name +
             "' generateLineageIndex is set, but the column is not of type STRING."
+         );
+      }
+
+      const auto generate_phylo_tree_indexed_field = metadata.generate_phylo_tree_index;
+      if (metadata.type != ValueType::STRING && generate_phylo_tree_indexed_field) {
+         throw ConfigException(
+            "Metadata '" + metadata.name +
+            "' generatePhyloTreeIndex is set, but the column is not of type STRING."
          );
       }
 
@@ -254,11 +270,18 @@ std::map<std::string, ValueType> validateMetadataDefinitions(const DatabaseConfi
          );
       }
 
-      const auto must_generate_index = metadata.generate_lineage_index;
-      if (!metadata.generate_index && must_generate_index) {
+      if (!metadata.generate_index && generate_lineage_indexed_field) {
          throw ConfigException(
             "Metadata '" + metadata.name +
             "' generateLineageIndex is set, generateIndex must also be set."
+         );
+      }
+
+      if (metadata.generate_index && generate_phylo_tree_indexed_field) {
+         throw ConfigException(
+            "Metadata '" + metadata.name +
+            "' generatePhyloTreeIndex and generateIndex are both set, if generatePhyloTreeIndex is "
+            "set then generateIndex cannot be set."
          );
       }
 

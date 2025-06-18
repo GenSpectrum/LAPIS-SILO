@@ -63,7 +63,10 @@ std::shared_ptr<silo::Database> buildTestDatabase() {
 
    auto database = std::make_shared<silo::Database>(
       silo::Database{silo::initialize::Initializer::createSchemaFromConfigFiles(
-         std::move(database_config), std::move(reference_genomes), std::move(lineage_tree)
+         std::move(database_config),
+         std::move(reference_genomes),
+         std::move(lineage_tree),
+         std::move(phylo_tree_file)
       )}
    );
    std::ifstream input(input_directory / "input.ndjson");
