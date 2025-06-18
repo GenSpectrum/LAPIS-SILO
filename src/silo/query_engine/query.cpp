@@ -38,8 +38,7 @@ QueryPlan Query::toQueryPlan(
 ) const {
    SPDLOG_DEBUG("Parsed filter: {}", filter->toString());
 
-   auto partition_filter_operators =
-      std::make_shared<std::vector<std::unique_ptr<filter::operators::Operator>>>();
+   auto partition_filter_operators = std::make_shared<filter::operators::OperatorVector>();
    partition_filter_operators->reserve(database->table->getNumberOfPartitions());
    for (size_t partition_index = 0; partition_index < database->table->getNumberOfPartitions();
         partition_index++) {

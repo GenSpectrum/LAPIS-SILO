@@ -12,7 +12,7 @@
 
 namespace silo::query_engine::filter::operators {
 
-Union::Union(std::vector<std::unique_ptr<Operator>>&& children, uint32_t row_count)
+Union::Union(OperatorVector&& children, uint32_t row_count)
     : children(std::move(children)),
       row_count(row_count) {}
 

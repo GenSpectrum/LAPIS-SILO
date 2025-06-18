@@ -14,8 +14,8 @@
 namespace silo::query_engine::filter::operators {
 
 Intersection::Intersection(
-   std::vector<std::unique_ptr<Operator>>&& children,
-   std::vector<std::unique_ptr<Operator>>&& negated_children,
+   OperatorVector&& children,
+   OperatorVector&& negated_children,
    uint32_t row_count
 )
     : children(std::move(children)),

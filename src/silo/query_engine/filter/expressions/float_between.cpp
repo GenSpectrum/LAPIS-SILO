@@ -44,7 +44,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> FloatBetween::c
    );
    const auto& float_column = database_partition.columns.float_columns.at(column_name);
 
-   std::vector<std::unique_ptr<operators::Predicate>> predicates;
+   operators::PredicateVector predicates;
    if (from.has_value()) {
       predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<double>>(
          float_column.getValues(), operators::Comparator::HIGHER_OR_EQUALS, from.value()

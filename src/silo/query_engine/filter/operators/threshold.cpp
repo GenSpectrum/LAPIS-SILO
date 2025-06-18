@@ -14,8 +14,8 @@
 namespace silo::query_engine::filter::operators {
 
 Threshold::Threshold(
-   std::vector<std::unique_ptr<Operator>>&& non_negated_children,
-   std::vector<std::unique_ptr<Operator>>&& negated_children,
+   OperatorVector&& non_negated_children,
+   OperatorVector&& negated_children,
    uint32_t number_of_matchers,
    bool match_exactly,
    uint32_t row_count

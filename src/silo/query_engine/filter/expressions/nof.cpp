@@ -22,6 +22,7 @@
 namespace {
 
 using Operator = silo::query_engine::filter::operators::Operator;
+using OperatorVector = silo::query_engine::filter::operators::OperatorVector;
 using Empty = silo::query_engine::filter::operators::Empty;
 using Full = silo::query_engine::filter::operators::Full;
 using Complement = silo::query_engine::filter::operators::Complement;
@@ -31,8 +32,8 @@ using Threshold = silo::query_engine::filter::operators::Threshold;
 
 std::unique_ptr<Operator> handleTrivialCases(
    const int updated_number_of_matchers,
-   std::vector<std::unique_ptr<Operator>>& non_negated_child_operators,
-   std::vector<std::unique_ptr<Operator>>& negated_child_operators,
+   OperatorVector& non_negated_child_operators,
+   OperatorVector& negated_child_operators,
    bool match_exactly,
    uint32_t sequence_count
 ) {
@@ -85,8 +86,8 @@ std::unique_ptr<Operator> handleTrivialCases(
 }
 
 std::unique_ptr<Operator> handleAndCase(
-   std::vector<std::unique_ptr<Operator>>& non_negated_child_operators,
-   std::vector<std::unique_ptr<Operator>>& negated_child_operators,
+   OperatorVector& non_negated_child_operators,
+   OperatorVector& negated_child_operators,
    uint32_t sequence_count
 ) {
    if (non_negated_child_operators.empty()) {
@@ -100,8 +101,8 @@ std::unique_ptr<Operator> handleAndCase(
 }
 
 std::unique_ptr<Operator> handleOrCase(
-   std::vector<std::unique_ptr<Operator>>& non_negated_child_operators,
-   std::vector<std::unique_ptr<Operator>>& negated_child_operators,
+   OperatorVector& non_negated_child_operators,
+   OperatorVector& negated_child_operators,
    uint32_t sequence_count
 ) {
    if (negated_child_operators.empty()) {
@@ -116,8 +117,8 @@ std::unique_ptr<Operator> handleOrCase(
 
 std::unique_ptr<Operator> toOperator(
    const int updated_number_of_matchers,
-   std::vector<std::unique_ptr<Operator>>&& non_negated_child_operators,
-   std::vector<std::unique_ptr<Operator>>&& negated_child_operators,
+   OperatorVector&& non_negated_child_operators,
+   OperatorVector&& negated_child_operators,
    bool match_exactly,
    uint32_t sequence_count
 ) {
@@ -154,11 +155,7 @@ std::unique_ptr<Operator> toOperator(
 
 namespace silo::query_engine::filter::expressions {
 
-NOf::NOf(
-   std::vector<std::unique_ptr<Expression>>&& children,
-   int number_of_matchers,
-   bool match_exactly
-)
+NOf::NOf(ExpressionVector&& children, int number_of_matchers, bool match_exactly)
     : children(std::move(children)),
       number_of_matchers(number_of_matchers),
       match_exactly(match_exactly) {}
@@ -178,23 +175,19 @@ std::string NOf::toString() const {
    return res;
 }
 
-std::tuple<
-   std::vector<std::unique_ptr<operators::Operator>>,
-   std::vector<std::unique_ptr<operators::Operator>>,
-   int>
-NOf::mapChildExpressions(
+std::tuple<operators::OperatorVector, operators::OperatorVector, int> NOf::mapChildExpressions(
    const silo::Database& database,
    const storage::TablePartition& database_partition,
    AmbiguityMode mode
 ) const {
-   std::vector<std::unique_ptr<operators::Operator>> child_operators;
+   operators::OperatorVector child_operators;
    child_operators.reserve(children.size());
    for (const auto& child_expression : children) {
       child_operators.push_back(child_expression->compile(database, database_partition, mode));
    }
 
-   std::vector<std::unique_ptr<operators::Operator>> non_negated_child_operators;
-   std::vector<std::unique_ptr<operators::Operator>> negated_child_operators;
+   operators::OperatorVector non_negated_child_operators;
+   operators::OperatorVector negated_child_operators;
    int updated_number_of_matchers = number_of_matchers;
 
    for (auto& child_operator : child_operators) {
@@ -212,10 +205,7 @@ NOf::mapChildExpressions(
       }
       non_negated_child_operators.push_back(std::move(child_operator));
    }
-   return std::tuple<
-      std::vector<std::unique_ptr<operators::Operator>>,
-      std::vector<std::unique_ptr<operators::Operator>>,
-      int>{
+   return std::tuple<operators::OperatorVector, operators::OperatorVector, int>{
       std::move(non_negated_child_operators),
       std::move(negated_child_operators),
       updated_number_of_matchers
@@ -227,7 +217,7 @@ std::unique_ptr<operators::Operator> NOf::rewriteNonExact(
    const storage::TablePartition& database_partition,
    Expression::AmbiguityMode mode
 ) const {
-   std::vector<std::unique_ptr<operators::Operator>> at_least_k;
+   operators::OperatorVector at_least_k;
    {
       auto [non_negated_child_operators, negated_child_operators, updated_number_of_matchers] =
          mapChildExpressions(database, database_partition, mode);
@@ -240,7 +230,7 @@ std::unique_ptr<operators::Operator> NOf::rewriteNonExact(
       ));
    }
 
-   std::vector<std::unique_ptr<operators::Operator>> at_least_k_plus_one;
+   operators::OperatorVector at_least_k_plus_one;
    {
       auto [non_negated_child_operators, negated_child_operators, updated_number_of_matchers] =
          mapChildExpressions(database, database_partition, mode);
@@ -310,7 +300,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<NOf>& filter) {
 
    const uint32_t number_of_matchers = json["numberOfMatchers"];
    const bool match_exactly = json["matchExactly"];
-   auto children = json["children"].get<std::vector<std::unique_ptr<Expression>>>();
+   auto children = json["children"].get<ExpressionVector>();
    filter = std::make_unique<NOf>(std::move(children), number_of_matchers, match_exactly);
 }
 

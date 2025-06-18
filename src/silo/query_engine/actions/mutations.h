@@ -102,8 +102,7 @@ class Mutations : public Action {
 
    arrow::Result<QueryPlan> toQueryPlanImpl(
       std::shared_ptr<const storage::Table> table,
-      std::shared_ptr<std::vector<std::unique_ptr<filter::operators::Operator>>>
-         partition_filter_operators,
+      std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
       const config::QueryOptions& query_options
    ) override;
 

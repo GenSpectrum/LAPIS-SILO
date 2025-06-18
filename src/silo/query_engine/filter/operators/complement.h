@@ -19,10 +19,7 @@ class Complement : public Operator {
   public:
    explicit Complement(std::unique_ptr<Operator> child, uint32_t row_count);
 
-   static std::unique_ptr<Complement> fromDeMorgan(
-      std::vector<std::unique_ptr<Operator>> disjunction,
-      uint32_t row_count
-   );
+   static std::unique_ptr<Complement> fromDeMorgan(OperatorVector disjunction, uint32_t row_count);
 
    ~Complement() noexcept override;
 

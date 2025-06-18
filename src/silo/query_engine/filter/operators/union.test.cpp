@@ -10,7 +10,7 @@ using silo::query_engine::filter::operators::IndexScan;
 using silo::query_engine::filter::operators::Operator;
 using silo::query_engine::filter::operators::Union;
 
-using OperatorVector = std::vector<std::unique_ptr<Operator>>;
+using silo::query_engine::filter::operators::OperatorVector;
 
 namespace {
 OperatorVector generateTestInput(const std::vector<roaring::Roaring>& bitmaps, uint32_t row_count) {

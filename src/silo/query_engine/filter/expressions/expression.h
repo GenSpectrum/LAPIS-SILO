@@ -38,4 +38,6 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter);
 
 Expression::AmbiguityMode invertMode(Expression::AmbiguityMode mode);
 
+using ExpressionVector = std::vector<std::unique_ptr<Expression>>;
+
 }  // namespace silo::query_engine::filter::expressions
