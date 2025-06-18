@@ -23,8 +23,7 @@ class TableScan : public arrow::acero::ExecNode {
    std::map<schema::ColumnType, std::map<std::string, std::unique_ptr<arrow::ArrayBuilder>>>
       array_builders;
 
-   std::shared_ptr<std::vector<std::unique_ptr<filter::operators::Operator>>>
-      partition_filter_operators;
+   std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators;
 
    std::vector<silo::schema::ColumnIdentifier> output_fields;
    const std::shared_ptr<const storage::Table> table;
@@ -37,8 +36,7 @@ class TableScan : public arrow::acero::ExecNode {
    TableScan(
       arrow::acero::ExecPlan* plan,
       const std::vector<silo::schema::ColumnIdentifier>& columns,
-      std::shared_ptr<std::vector<std::unique_ptr<filter::operators::Operator>>>
-         partition_filter_operators,
+      std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
       std::shared_ptr<const storage::Table> table,
       size_t batch_size_cutoff
    )

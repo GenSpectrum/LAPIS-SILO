@@ -20,11 +20,11 @@ class Union : public Operator {
    friend class silo::query_engine::filter::expressions::Or;
    friend class silo::query_engine::filter::expressions::NOf;
 
-   std::vector<std::unique_ptr<Operator>> children;
+   OperatorVector children;
    uint32_t row_count;
 
   public:
-   explicit Union(std::vector<std::unique_ptr<Operator>>&& children, uint32_t row_count);
+   explicit Union(OperatorVector&& children, uint32_t row_count);
 
    ~Union() noexcept override;
 

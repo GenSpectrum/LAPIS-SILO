@@ -10,7 +10,7 @@ using filter::expressions::Expression;
 using filter::operators::Operator;
 
 QueryResult createLegacyQueryResult(
-   const std::vector<std::unique_ptr<filter::operators::Operator>>& partition_filter_operators,
+   const filter::operators::OperatorVector& partition_filter_operators,
    const actions::Action* action,
    std::shared_ptr<const storage::Table> table
 ) {
@@ -27,8 +27,7 @@ LegacyResultProducer::LegacyResultProducer(
    arrow::acero::ExecPlan* plan,
    const std::vector<silo::schema::ColumnIdentifier>& columns,
    std::shared_ptr<const storage::Table> table,
-   std::shared_ptr<std::vector<std::unique_ptr<filter::operators::Operator>>>
-      partition_filter_operators,
+   std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
    const actions::Action* action,
    size_t materialization_cutoff
 )

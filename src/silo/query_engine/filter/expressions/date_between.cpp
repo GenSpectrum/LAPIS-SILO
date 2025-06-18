@@ -53,7 +53,7 @@ std::unique_ptr<operators::Operator> DateBetween::compile(
    const auto& date_column = database_partition.columns.date_columns.at(column_name);
 
    if (!date_column.isSorted()) {
-      std::vector<std::unique_ptr<operators::Predicate>> predicates;
+      operators::PredicateVector predicates;
       predicates.emplace_back(
          std::make_unique<operators::CompareToValueSelection<silo::common::Date>>(
             date_column.getValues(),

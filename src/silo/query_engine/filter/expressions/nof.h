@@ -16,15 +16,11 @@ namespace silo::query_engine::filter::expressions {
 
 class NOf : public Expression {
   private:
-   std::vector<std::unique_ptr<Expression>> children;
+   ExpressionVector children;
    int number_of_matchers;
    bool match_exactly;
 
-   std::tuple<
-      std::vector<std::unique_ptr<operators::Operator>>,
-      std::vector<std::unique_ptr<operators::Operator>>,
-      int>
-   mapChildExpressions(
+   std::tuple<operators::OperatorVector, operators::OperatorVector, int> mapChildExpressions(
       const silo::Database& database,
       const storage::TablePartition& database_partition,
       AmbiguityMode mode
@@ -37,11 +33,7 @@ class NOf : public Expression {
    ) const;
 
   public:
-   explicit NOf(
-      std::vector<std::unique_ptr<Expression>>&& children,
-      int number_of_matchers,
-      bool match_exactly
-   );
+   explicit NOf(ExpressionVector&& children, int number_of_matchers, bool match_exactly);
 
    std::string toString() const override;
 

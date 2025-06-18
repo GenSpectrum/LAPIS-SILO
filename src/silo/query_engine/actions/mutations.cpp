@@ -287,7 +287,7 @@ using silo::query_engine::filter::operators::Operator;
 template <typename SymbolType>
 arrow::Result<QueryPlan> Mutations<SymbolType>::toQueryPlanImpl(
    std::shared_ptr<const storage::Table> table,
-   std::shared_ptr<std::vector<std::unique_ptr<Operator>>> partition_filter_operators,
+   std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
    const config::QueryOptions& query_options
 ) {
    std::vector<std::string> sequence_names_to_evaluate;

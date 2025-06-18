@@ -19,9 +19,9 @@
 
 namespace silo::query_engine::filter::expressions {
 
-using OperatorVector = std::vector<std::unique_ptr<operators::Operator>>;
+using operators::OperatorVector;
 
-Or::Or(std::vector<std::unique_ptr<Expression>>&& children)
+Or::Or(ExpressionVector&& children)
     : children(std::move(children)) {}
 
 std::string Or::toString() const {
@@ -93,7 +93,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Or>& filter) {
    CHECK_SILO_QUERY(
       json["children"].is_array(), "The field 'children' in an Or expression needs to be an array"
    );
-   auto children = json["children"].get<std::vector<std::unique_ptr<Expression>>>();
+   auto children = json["children"].get<ExpressionVector>();
    filter = std::make_unique<Or>(std::move(children));
 }
 

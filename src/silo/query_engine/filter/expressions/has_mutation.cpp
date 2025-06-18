@@ -81,7 +81,7 @@ std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
          std::erase(symbols, symbol);
       }
    }
-   std::vector<std::unique_ptr<Expression>> symbol_filters;
+   ExpressionVector symbol_filters;
    std::ranges::transform(
       symbols,
       std::back_inserter(symbol_filters),

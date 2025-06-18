@@ -14,10 +14,10 @@
 namespace silo::query_engine::filter::expressions {
 
 class Or : public Expression {
-   std::vector<std::unique_ptr<Expression>> children;
+   ExpressionVector children;
 
   public:
-   Or(std::vector<std::unique_ptr<Expression>>&& children);
+   Or(ExpressionVector&& children);
 
    std::string toString() const override;
 

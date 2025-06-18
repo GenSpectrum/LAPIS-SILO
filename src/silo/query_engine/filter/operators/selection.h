@@ -26,6 +26,8 @@ class Predicate {
    [[nodiscard]] virtual std::unique_ptr<Predicate> negate() const = 0;
 };
 
+using PredicateVector = std::vector<std::unique_ptr<Predicate>>;
+
 enum class Comparator { EQUALS, LESS, HIGHER, LESS_OR_EQUALS, HIGHER_OR_EQUALS, NOT_EQUALS };
 
 template <typename T>

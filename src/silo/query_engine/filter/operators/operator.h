@@ -3,6 +3,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "silo/query_engine/copy_on_write_bitmap.h"
 
@@ -36,5 +37,7 @@ class Operator {
 
    static std::unique_ptr<Operator> negate(std::unique_ptr<Operator>&& some_operator);
 };
+
+using OperatorVector = std::vector<std::unique_ptr<filter::operators::Operator>>;
 
 }  // namespace silo::query_engine::filter::operators

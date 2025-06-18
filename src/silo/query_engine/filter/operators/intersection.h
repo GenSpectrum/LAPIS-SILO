@@ -20,14 +20,14 @@ class Intersection : public Operator {
    friend class silo::query_engine::filter::expressions::And;
    friend class silo::query_engine::filter::expressions::NOf;
 
-   std::vector<std::unique_ptr<Operator>> children;
-   std::vector<std::unique_ptr<Operator>> negated_children;
+   OperatorVector children;
+   OperatorVector negated_children;
    uint32_t row_count;
 
   public:
    explicit Intersection(
-      std::vector<std::unique_ptr<Operator>>&& children,
-      std::vector<std::unique_ptr<Operator>>&& negated_children,
+      OperatorVector&& children,
+      OperatorVector&& negated_children,
       uint32_t row_count
    );
 

@@ -46,7 +46,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> IntBetween::com
 
    const auto& int_column = database_partition.columns.int_columns.at(column_name);
 
-   std::vector<std::unique_ptr<operators::Predicate>> predicates;
+   operators::PredicateVector predicates;
    predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<int32_t>>(
       int_column.getValues(), operators::Comparator::HIGHER_OR_EQUALS, from.value_or(INT32_MIN + 1)
    ));

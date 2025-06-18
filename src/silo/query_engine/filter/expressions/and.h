@@ -17,12 +17,9 @@ namespace silo::query_engine::filter::expressions {
 
 class And : public Expression {
   private:
-   std::vector<std::unique_ptr<Expression>> children;
+   ExpressionVector children;
 
-   std::tuple<
-      std::vector<std::unique_ptr<operators::Operator>>,
-      std::vector<std::unique_ptr<operators::Operator>>,
-      std::vector<std::unique_ptr<operators::Predicate>>>
+   std::tuple<operators::OperatorVector, operators::OperatorVector, operators::PredicateVector>
    compileChildren(
       const Database& database,
       const storage::TablePartition& database_partition,
@@ -30,7 +27,7 @@ class And : public Expression {
    ) const;
 
   public:
-   explicit And(std::vector<std::unique_ptr<Expression>>&& children);
+   explicit And(ExpressionVector&& children);
 
    std::string toString() const override;
 

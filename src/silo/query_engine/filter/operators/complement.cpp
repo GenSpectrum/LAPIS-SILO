@@ -19,7 +19,7 @@ Complement::Complement(std::unique_ptr<Operator> child, uint32_t row_count)
 
 Complement::~Complement() noexcept = default;
 
-using OperatorVector = std::vector<std::unique_ptr<Operator>>;
+using operators::OperatorVector;
 
 std::unique_ptr<Complement> Complement::fromDeMorgan(
    OperatorVector disjunction,

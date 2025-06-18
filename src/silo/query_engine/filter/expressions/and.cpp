@@ -25,10 +25,10 @@
 
 namespace silo::query_engine::filter::expressions {
 
-using OperatorVector = std::vector<std::unique_ptr<operators::Operator>>;
 using operators::Operator;
+using operators::OperatorVector;
 
-And::And(std::vector<std::unique_ptr<Expression>>&& children)
+And::And(ExpressionVector&& children)
     : children(std::move(children)) {}
 
 std::string And::toString() const {
@@ -56,7 +56,7 @@ void inline appendVectorToVector(
 void logCompiledChildren(
    OperatorVector& non_negated_child_operators,
    OperatorVector& negated_child_operators,
-   std::vector<std::unique_ptr<operators::Predicate>>& predicates
+   operators::PredicateVector& predicates
 ) {
    std::vector<std::string> child_operator_strings;
    std::ranges::transform(
@@ -89,12 +89,11 @@ void logCompiledChildren(
 }
 }  // namespace
 
-std::tuple<OperatorVector, OperatorVector, std::vector<std::unique_ptr<operators::Predicate>>> And::
-   compileChildren(
-      const Database& database,
-      const storage::TablePartition& database_partition,
-      AmbiguityMode mode
-   ) const {
+std::tuple<OperatorVector, OperatorVector, operators::PredicateVector> And::compileChildren(
+   const Database& database,
+   const storage::TablePartition& database_partition,
+   AmbiguityMode mode
+) const {
    OperatorVector all_child_operators;
    std::ranges::transform(
       children,
@@ -105,7 +104,7 @@ std::tuple<OperatorVector, OperatorVector, std::vector<std::unique_ptr<operators
    );
    OperatorVector non_negated_child_operators;
    OperatorVector negated_child_operators;
-   std::vector<std::unique_ptr<operators::Predicate>> predicates;
+   operators::PredicateVector predicates;
    for (auto& child : all_child_operators) {
       if (child->type() == operators::FULL) {
          SPDLOG_TRACE("Skipping full child");
@@ -115,9 +114,7 @@ std::tuple<OperatorVector, OperatorVector, std::vector<std::unique_ptr<operators
          SPDLOG_TRACE("Shortcutting because found empty child");
          OperatorVector empty;
          empty.emplace_back(std::make_unique<operators::Empty>(database_partition.sequence_count));
-         return {
-            std::move(empty), OperatorVector(), std::vector<std::unique_ptr<operators::Predicate>>{}
-         };
+         return {std::move(empty), OperatorVector(), operators::PredicateVector{}};
       }
       if (child->type() == operators::INTERSECTION) {
          auto* intersection_child = dynamic_cast<operators::Intersection*>(child.get());
@@ -224,7 +221,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<And>& filter) {
    CHECK_SILO_QUERY(
       json["children"].is_array(), "The field 'children' in an And expression needs to be an array"
    );
-   auto children = json.at("children").get<std::vector<std::unique_ptr<Expression>>>();
+   auto children = json.at("children").get<ExpressionVector>();
    filter = std::make_unique<And>(std::move(children));
 }
 
