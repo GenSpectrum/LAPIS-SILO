@@ -94,9 +94,9 @@ ConfigSpecification RuntimeConfig::getConfigSpecification() {
                "As long as no database is loaded yet, SILO will throw a 503 error. \n"
                "This option allows SILO to compute a Retry-After header for the 503 response."
             ),
-            ConfigAttributeSpecification::createWithoutDefault(
+            ConfigAttributeSpecification::createWithDefault(
                softMemoryLimitOptionKey(),
-               ConfigValueType::UINT32,
+               ConfigValue::fromUint32(0),
                "A soft-limit on the memory usage. If the rss of the process is higher than \n"
                "this value, malloc_trim is called. \n"
                "Only supported on Linux."
