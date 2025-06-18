@@ -33,19 +33,7 @@ Database Initializer::initializeDatabase(const config::InitializationFiles& init
    preprocessing::PhyloTreeFile phylo_tree_file;
    auto opt_path = initialization_files.getPhylogeneticTreeFilename();
    if (opt_path.has_value()) {
-      const auto& path = *opt_path;
-      auto ext = path.extension().string();
-
-      std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-
-      if (ext != ".nwk" && ext != ".json") {
-         throw std::invalid_argument("Path must end with .nwk or .json");
-      }
-      if (ext == ".nwk") {
-         phylo_tree_file = preprocessing::PhyloTreeFile::fromNewickFile(path);
-      } else if (ext == ".json") {
-         phylo_tree_file = preprocessing::PhyloTreeFile::fromAuspiceJSONFile(path);
-      }
+      phylo_tree_file = preprocessing::PhyloTreeFile::fromFile(opt_path.value());
    }
    silo::schema::DatabaseSchema schema = createSchemaFromConfigFiles(
       config::DatabaseConfig::getValidatedConfigFromFile(

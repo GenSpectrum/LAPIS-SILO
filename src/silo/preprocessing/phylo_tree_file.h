@@ -29,6 +29,8 @@ class PhyloTreeFile {
    static PhyloTreeFile fromNewickFile(const std::filesystem::path& newick_path);
 
    static PhyloTreeFile fromNewickString(const std::string& newick_string);
+
+   static PhyloTreeFile fromFile(const std::filesystem::path& path);
 };
 
 }  // namespace silo::preprocessing

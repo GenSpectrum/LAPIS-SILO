@@ -211,4 +211,19 @@ PhyloTreeFile PhyloTreeFile::fromNewickFile(const std::filesystem::path& newick_
    }
 }
 
+PhyloTreeFile PhyloTreeFile::fromFile(const std::filesystem::path& path) {
+   auto ext = path.extension().string();
+
+   std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+   if (ext != ".nwk" && ext != ".json") {
+      throw std::invalid_argument("Path must end with .nwk or .json");
+   }
+   if (ext == ".nwk") {
+      return preprocessing::PhyloTreeFile::fromNewickFile(path);
+   } else if (ext == ".json") {
+      return preprocessing::PhyloTreeFile::fromAuspiceJSONFile(path);
+   }
+}
+
 }  // namespace silo::preprocessing
