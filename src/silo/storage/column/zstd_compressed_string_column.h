@@ -6,6 +6,7 @@
 #include <string>
 
 #include <boost/serialization/access.hpp>
+#include <boost/serialization/split_free.hpp>
 
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/column_metadata.h"
@@ -25,12 +26,6 @@ class ZstdCompressedStringColumnMetadata : public ColumnMetadata {
    explicit ZstdCompressedStringColumnMetadata(
       std::string column_name,
       std::string dictionary_string
-   );
-
-   YAML::Node toYAML() const override;
-   static std::shared_ptr<ZstdCompressedStringColumnMetadata> fromYAML(
-      std::string column_name,
-      const YAML::Node& node
    );
 };
 
@@ -69,3 +64,35 @@ class ZstdCompressedStringColumnPartition {
 };
 
 }  // namespace silo::storage::column
+
+BOOST_SERIALIZATION_SPLIT_FREE(silo::storage::column::ZstdCompressedStringColumnMetadata);
+namespace boost::serialization {
+template <class Archive>
+[[maybe_unused]] void save(
+   Archive& ar,
+   const silo::storage::column::ZstdCompressedStringColumnMetadata& object,
+   [[maybe_unused]] const uint32_t version
+) {
+   ar & object.column_name;
+   ar & object.dictionary_string;
+}
+}  // namespace boost::serialization
+
+BOOST_SERIALIZATION_SPLIT_FREE(std::shared_ptr<
+                               silo::storage::column::ZstdCompressedStringColumnMetadata>);
+namespace boost::serialization {
+template <class Archive>
+[[maybe_unused]] void load(
+   Archive& ar,
+   std::shared_ptr<silo::storage::column::ZstdCompressedStringColumnMetadata>& object,
+   [[maybe_unused]] const uint32_t version
+) {
+   std::string column_name;
+   std::string dictionary_string;
+   ar & column_name;
+   ar & dictionary_string;
+   object = std::make_shared<silo::storage::column::ZstdCompressedStringColumnMetadata>(
+      std::move(column_name), std::move(dictionary_string)
+   );
+}
+}  // namespace boost::serialization

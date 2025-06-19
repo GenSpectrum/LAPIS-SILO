@@ -15,15 +15,15 @@ namespace {
 
 std::unique_ptr<SiloRequestHandlerFactory> createRequestHandlerWithInitializedDatabase() {
    auto handle = std::make_shared<silo::api::ActiveDatabase>();
-   handle->setActiveDatabase(silo::Database{silo::schema::DatabaseSchema::fromYAML(YAML::Load(R"(
-default:
-  primaryKey: primary_key
-  columns:
-    - name: primary_key
-      type: string
-      metadata:
-         dictionary: []
-)"))});
+   silo::schema::TableSchema table_schema;
+   table_schema.primary_key = {"primary_key", silo::schema::ColumnType::STRING};
+   table_schema.column_metadata.emplace(
+      silo::schema::ColumnIdentifier{"primary_key", silo::schema::ColumnType::STRING},
+      std::make_shared<silo::storage::column::StringColumnMetadata>("primary_key")
+   );
+   silo::schema::DatabaseSchema schema;
+   schema.tables.emplace(silo::schema::TableName::getDefault(), table_schema);
+   handle->setActiveDatabase(silo::Database(schema));
    auto request_handler = std::make_unique<SiloRequestHandlerFactory>(
       silo::config::RuntimeConfig::withDefaults(), handle
    );

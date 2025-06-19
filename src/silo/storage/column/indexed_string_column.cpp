@@ -26,34 +26,6 @@ IndexedStringColumnMetadata::IndexedStringColumnMetadata(
       dictionary(std::move(dictionary)),
       lineage_tree(std::move(lineage_tree_and_id_map)) {}
 
-std::shared_ptr<IndexedStringColumnMetadata> IndexedStringColumnMetadata::fromYAML(
-   std::string column_name,
-   const YAML::Node& node
-) {
-   auto dictionary = common::BidirectionalMap<std::string>::fromYAML(node["dictionary"]);
-   if (node.IsDefined() && node["lineageTree"].IsDefined()) {
-      auto lineage_definition_file =
-         preprocessing::LineageDefinitionFile::fromYAML(node["lineageTree"]);
-      return std::make_shared<IndexedStringColumnMetadata>(
-         std::move(column_name),
-         std::move(dictionary),
-         common::LineageTreeAndIdMap::fromLineageDefinitionFile(std::move(lineage_definition_file))
-      );
-   }
-   return std::make_shared<IndexedStringColumnMetadata>(
-      std::move(column_name), std::move(dictionary)
-   );
-}
-
-YAML::Node IndexedStringColumnMetadata::toYAML() const {
-   YAML::Node yaml_node;
-   yaml_node["dictionary"] = dictionary.toYAML();
-   if (lineage_tree.has_value()) {
-      yaml_node["lineageTree"] = YAML::Load(lineage_tree.value().file);
-   }
-   return yaml_node;
-}
-
 IndexedStringColumnPartition::IndexedStringColumnPartition(IndexedStringColumnMetadata* metadata)
     : metadata(metadata) {
    if (metadata->lineage_tree.has_value()) {

@@ -2,7 +2,10 @@
 
 #include <gtest/gtest.h>
 
-#include <spdlog/spdlog.h>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/serialization/unordered_map.hpp>
+#include <boost/serialization/vector.hpp>
 
 namespace silo::common {
 
@@ -44,12 +47,14 @@ TEST(BidirectionalMap, correctRoundtripOfNonUtf8Data) {
    std::string non_utf8_string = example_string.substr(1);
    original_map.getOrCreateId(non_utf8_string);
 
-   auto yaml = original_map.toYAML();
-   std::string serialized = YAML::Dump(yaml);
-   SPDLOG_INFO(serialized);
-   YAML::Node deserialized = YAML::Load(serialized);
+   std::ostringstream oss;
+   boost::archive::binary_oarchive oarchive(oss);
+   oarchive << original_map;
 
-   auto under_test = BidirectionalMap<std::string>::fromYAML(deserialized);
+   std::istringstream iss(oss.str());
+   boost::archive::binary_iarchive iarchive(iss);
+   BidirectionalMap<std::string> under_test;
+   iarchive >> under_test;
 
    EXPECT_TRUE(under_test.getId(non_utf8_string).has_value());
 }

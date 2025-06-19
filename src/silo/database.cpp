@@ -22,6 +22,7 @@
 #include "silo/common/data_version.h"
 #include "silo/common/file_to_string.h"
 #include "silo/common/format_number.h"
+#include "silo/common/lineage_tree.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/panic.h"
 #include "silo/common/silo_directory.h"
@@ -29,8 +30,7 @@
 #include "silo/database_info.h"
 #include "silo/persistence/exception.h"
 #include "silo/roaring/roaring_serialize.h"
-#include "silo/storage/column/sequence_column.h"
-#include "silo/storage/serialize_optional.h"
+#include "silo/schema/database_schema.h"
 #include "silo/storage/table_partition.h"
 
 namespace silo {
@@ -69,6 +69,9 @@ DatabaseInfo Database::getDatabaseInfo() const {
    };
 }
 
+const std::string DATABASE_SCHEMA_FILENAME = "database_schema.silo";
+const std::string DATA_VERSION_FILENAME = "data_version.silo";
+
 void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
    if (getDataVersionTimestamp().value.empty()) {
       throw persistence::SaveDatabaseException(
@@ -105,20 +108,15 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
 
    SPDLOG_INFO("Saving database schema");
 
-   auto yaml_string =
-      YAML::Dump(schema::DatabaseSchema{{{schema::TableName::getDefault(), table->schema}}}.toYAML()
-      );
-   const auto database_schema_filename = versioned_save_directory / "database_schema.yaml";
-   std::ofstream database_schema_file{database_schema_filename};
-   database_schema_file << yaml_string;
-   database_schema_file.close();
+   const auto database_schema_path = versioned_save_directory / DATABASE_SCHEMA_FILENAME;
+   schema.saveToFile(database_schema_path);
 
    std::string table_name = schema.tables.begin()->first.getName();
    SPDLOG_DEBUG("Saving table data");
    std::filesystem::create_directory(versioned_save_directory / table_name);
    table->saveData(versioned_save_directory / table_name);
 
-   data_version_.saveToFile(versioned_save_directory / "data_version.silo");
+   data_version_.saveToFile(versioned_save_directory / DATA_VERSION_FILENAME);
 }
 
 namespace {
@@ -143,15 +141,8 @@ Database Database::loadDatabaseState(const silo::SiloDataSource& silo_data_sourc
    SPDLOG_INFO("Loading database from data source: {}", silo_data_source.toDebugString());
    const auto save_directory = silo_data_source.path;
 
-   const auto database_schema_filename = save_directory / "database_schema.yaml";
-   auto yaml_string = common::fileToString(database_schema_filename);
-   if (yaml_string == std::nullopt) {
-      throw silo::persistence::LoadDatabaseException(
-         fmt::format("Could not load DatabaseSchema from {}", database_schema_filename)
-      );
-   }
-   YAML::Node yaml_schema = YAML::Load(yaml_string.value());
-   schema::DatabaseSchema schema = schema::DatabaseSchema::fromYAML(yaml_schema);
+   const auto database_schema_path = save_directory / DATABASE_SCHEMA_FILENAME;
+   auto schema = schema::DatabaseSchema::loadFromFile(database_schema_path);
 
    Database database{schema};
 
@@ -159,10 +150,10 @@ Database Database::loadDatabaseState(const silo::SiloDataSource& silo_data_sourc
    SPDLOG_DEBUG("Loading data for table ");
    database.table->loadData(save_directory / table_name);
 
-   database.data_version_ = loadDataVersion(save_directory / "data_version.silo");
+   database.data_version_ = loadDataVersion(save_directory / DATA_VERSION_FILENAME);
 
    SPDLOG_INFO(
-      "Finished loading data_version from {}", (save_directory / "data_version.silo").string()
+      "Finished loading data_version from {}", (save_directory / DATA_VERSION_FILENAME).string()
    );
    SPDLOG_INFO("Database info after loading: {}", database.getDatabaseInfo());
 

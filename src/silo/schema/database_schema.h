@@ -1,9 +1,13 @@
 #pragma once
 
-#include <yaml-cpp/node/node.h>
+#include <filesystem>
 #include <map>
 #include <optional>
+#include <ranges>
 #include <vector>
+
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/split_member.hpp>
 
 #include "silo/common/panic.h"
 #include "silo/storage/column/column.h"
@@ -36,15 +40,22 @@ struct ColumnIdentifier {
    bool operator==(const ColumnIdentifier& other) const {
       return std::tie(name, type) == std::tie(other.name, other.type);
    }
+
+  private:
+   friend class boost::serialization::access;
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+      archive & name;
+      archive & type;
+   }
 };
 
 class TableSchema {
-   std::map<ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>> column_metadata;
-
   public:
+   std::map<ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>> column_metadata;
    std::optional<ColumnIdentifier> default_nucleotide_sequence;
    std::optional<ColumnIdentifier> default_aa_sequence;
-   const ColumnIdentifier primary_key;
+   ColumnIdentifier primary_key;
 
    TableSchema(
       std::map<ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>> column_metadata,
@@ -61,10 +72,6 @@ class TableSchema {
 
    template <typename SymbolType>
    std::optional<ColumnIdentifier> getDefaultSequenceName() const;
-
-   YAML::Node toYAML() const;
-
-   static TableSchema fromYAML(const YAML::Node& yaml);
 
    template <silo::storage::column::Column ColumnType>
    std::vector<ColumnIdentifier> getColumnByType() const {
@@ -99,6 +106,21 @@ class TableSchema {
       }
       return dynamic_cast<typename ColumnType::Metadata*>(it->second.get());
    }
+
+   TableSchema() = default;
+
+  private:
+   friend class boost::serialization::access;
+   template <class Archive>
+   void save(Archive& ar, const unsigned int version) const;
+
+   template <class Archive>
+   void load(Archive& ar, const unsigned int version);
+
+   template <class Archive>
+   void serialize(Archive& ar, const unsigned int version) {
+      boost::serialization::split_member(ar, *this, version);
+   }
 };
 
 class TableName {
@@ -112,16 +134,25 @@ class TableName {
    static const TableName& getDefault();
 
    bool operator<(const TableName& other) const { return name < other.name; }
+
+   TableName() = default;
+
+  private:
+   friend class boost::serialization::access;
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+      archive & name;
+   }
 };
 
 class DatabaseSchema {
   public:
    std::map<TableName, TableSchema> tables;
 
-   YAML::Node toYAML() const;
-   static DatabaseSchema fromYAML(const YAML::Node& yaml);
-
    const TableSchema& getDefaultTableSchema() const;
+
+   static DatabaseSchema loadFromFile(const std::filesystem::path& file_path);
+   void saveToFile(const std::filesystem::path& file_path);
 };
 
 }  // namespace silo::schema

@@ -11,22 +11,6 @@ ZstdCompressedStringColumnMetadata::ZstdCompressedStringColumnMetadata(
       decompressor(std::make_shared<ZstdDDictionary>(dictionary_string)),
       dictionary_string(std::move(dictionary_string)) {}
 
-YAML::Node ZstdCompressedStringColumnMetadata::toYAML() const {
-   YAML::Node result;
-   result["zstdDictionary"] = dictionary_string;
-   return result;
-}
-
-std::shared_ptr<ZstdCompressedStringColumnMetadata> ZstdCompressedStringColumnMetadata::fromYAML(
-   std::string column_name,
-   const YAML::Node& node
-) {
-   auto dictionary_string = node["zstdDictionary"].as<std::string>();
-   return std::make_shared<ZstdCompressedStringColumnMetadata>(
-      std::move(column_name), std::move(dictionary_string)
-   );
-}
-
 ZstdCompressedStringColumnPartition::ZstdCompressedStringColumnPartition(
    silo::storage::column::ZstdCompressedStringColumnPartition::Metadata* metadata
 )
