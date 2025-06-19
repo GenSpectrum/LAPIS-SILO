@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <boost/serialization/access.hpp>
+#include <boost/serialization/assume_abstract.hpp>
 #include <roaring/roaring.hh>
 
 #include "silo/common/bidirectional_map.h"
@@ -21,16 +22,6 @@
 namespace silo::storage::column {
 
 class IndexedStringColumnMetadata : public ColumnMetadata {
-   friend class boost::serialization::access;
-
-   template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
-      // clang-format off
-      archive & dictionary;
-      archive & lineage_tree;
-      // clang-format on
-   }
-
   public:
    common::BidirectionalMap<std::string> dictionary;
    std::optional<common::LineageTreeAndIdMap> lineage_tree;
@@ -61,12 +52,6 @@ class IndexedStringColumnMetadata : public ColumnMetadata {
    IndexedStringColumnMetadata(IndexedStringColumnMetadata&& other) = delete;
    IndexedStringColumnMetadata& operator=(const IndexedStringColumnMetadata& other) = delete;
    IndexedStringColumnMetadata& operator=(IndexedStringColumnMetadata&& other) = delete;
-
-   YAML::Node toYAML() const override;
-   static std::shared_ptr<IndexedStringColumnMetadata> fromYAML(
-      std::string column_name,
-      const YAML::Node& node
-   );
 };
 
 class IndexedStringColumnPartition {
@@ -119,3 +104,43 @@ class IndexedStringColumnPartition {
 };
 
 }  // namespace silo::storage::column
+
+BOOST_SERIALIZATION_SPLIT_FREE(silo::storage::column::IndexedStringColumnMetadata);
+namespace boost::serialization {
+template <class Archive>
+[[maybe_unused]] void save(
+   Archive& ar,
+   const silo::storage::column::IndexedStringColumnMetadata& object,
+   [[maybe_unused]] const uint32_t version
+) {
+   ar & object.column_name;
+   ar & object.dictionary;
+   ar & object.lineage_tree;
+}
+}  // namespace boost::serialization
+
+BOOST_SERIALIZATION_SPLIT_FREE(std::shared_ptr<silo::storage::column::IndexedStringColumnMetadata>);
+namespace boost::serialization {
+template <class Archive>
+[[maybe_unused]] void load(
+   Archive& ar,
+   std::shared_ptr<silo::storage::column::IndexedStringColumnMetadata>& object,
+   [[maybe_unused]] const uint32_t version
+) {
+   std::string column_name;
+   silo::common::BidirectionalMap<std::string> dictionary;
+   std::optional<silo::common::LineageTreeAndIdMap> lineage_tree;
+   ar & column_name;
+   ar & dictionary;
+   ar & lineage_tree;
+   if (lineage_tree.has_value()) {
+      object = std::make_shared<silo::storage::column::IndexedStringColumnMetadata>(
+         std::move(column_name), std::move(dictionary), std::move(lineage_tree.value())
+      );
+   } else {
+      object = std::make_shared<silo::storage::column::IndexedStringColumnMetadata>(
+         std::move(column_name), std::move(dictionary)
+      );
+   }
+}
+}  // namespace boost::serialization

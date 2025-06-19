@@ -70,6 +70,16 @@ class LineageTreeAndIdMap {
       BidirectionalMap<std::string>&& lineage_id_lookup_map,
       std::string&& file
    );
+
+   friend class boost::serialization::access;
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+      // clang-format off
+      archive & lineage_tree;
+      archive & lineage_id_lookup_map;
+      archive & file;
+      // clang-format on
+   }
 };
 
 std::optional<std::vector<Idx>> containsCycle(

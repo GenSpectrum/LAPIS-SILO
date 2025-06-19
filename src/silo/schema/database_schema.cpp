@@ -1,7 +1,26 @@
 #include "silo/schema/database_schema.h"
 
+#include <fstream>
+#include <optional>
+
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/detail/interface_iarchive.hpp>
+#include <boost/archive/detail/interface_oarchive.hpp>
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/array.hpp>
+#include <boost/serialization/map.hpp>
+#include <boost/serialization/optional.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/serialization/utility.hpp>
+#include <boost/serialization/vector.hpp>
+
+#include "silo/storage/column/column_metadata.h"
 #include "silo/storage/column/column_type_visitor.h"
-#include "yaml-cpp/yaml.h"
+#include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/sequence_column.h"
+#include "silo/storage/column/string_column.h"
+#include "silo/storage/column/zstd_compressed_string_column.h"
 
 namespace silo::schema {
 
@@ -38,120 +57,60 @@ std::optional<ColumnIdentifier> TableSchema::getDefaultSequenceName<AminoAcid>()
    return default_aa_sequence;
 }
 
-namespace {
-
-ColumnType columnTypeFromString(const std::string& string) {
-   if (string == "string") {
-      return ColumnType::STRING;
-   } else if (string == "indexedString") {
-      return ColumnType::INDEXED_STRING;
-   } else if (string == "date") {
-      return ColumnType::DATE;
-   } else if (string == "aminoAcidSequence") {
-      return ColumnType::AMINO_ACID_SEQUENCE;
-   } else if (string == "nucleotideSequence") {
-      return ColumnType::NUCLEOTIDE_SEQUENCE;
-   } else if (string == "float") {
-      return ColumnType::FLOAT;
-   } else if (string == "integer") {
-      return ColumnType::INT;
-   } else if (string == "bool") {
-      return ColumnType::BOOL;
-   } else if (string == "zstdCompressedString") {
-      return ColumnType::ZSTD_COMPRESSED_STRING;
-   }
-   SILO_UNREACHABLE();
-}
-
-std::string columnTypeToString(ColumnType column_type) {
-   switch (column_type) {
-      case ColumnType::STRING:
-         return "string";
-      case ColumnType::INDEXED_STRING:
-         return "indexedString";
-      case ColumnType::DATE:
-         return "date";
-      case ColumnType::FLOAT:
-         return "float";
-      case ColumnType::INT:
-         return "integer";
-      case ColumnType::BOOL:
-         return "bool";
-      case ColumnType::NUCLEOTIDE_SEQUENCE:
-         return "nucleotideSequence";
-      case ColumnType::AMINO_ACID_SEQUENCE:
-         return "aminoAcidSequence";
-      case ColumnType::ZSTD_COMPRESSED_STRING:
-         return "zstdCompressedString";
-   }
-   SILO_UNREACHABLE();
-}
-}  // namespace
-
-class ColumnMetadataLoaderByType {
+class ColumnMetadataSaverByType {
   public:
-   template <typename ColumnType>
-   std::shared_ptr<storage::column::ColumnMetadata> operator()(
-      std::string column_name,
-      const YAML::Node& node
-   ) {
-      return ColumnType::Metadata::fromYAML(column_name, node);
+   template <storage::column::Column ColumnType, class Archive>
+   void operator()(Archive& archive, std::shared_ptr<storage::column::ColumnMetadata> metadata) {
+      auto typed_metadata = dynamic_cast<typename ColumnType::Metadata*>(metadata.get());
+      SILO_ASSERT(typed_metadata != nullptr);
+      archive << *typed_metadata;
    }
 };
 
-TableSchema TableSchema::fromYAML(const YAML::Node& yaml_node) {
-   std::map<ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>> column_metadata;
-   for (const auto entry : yaml_node["columns"]) {
-      std::string column_name = entry["name"].as<std::string>();
-      ColumnType column_type = columnTypeFromString(entry["type"].as<std::string>());
-      column_metadata.emplace(
-         ColumnIdentifier{column_name, column_type},
-         storage::column::visit(
-            column_type, ColumnMetadataLoaderByType{}, column_name, entry["metadata"]
-         )
+class ColumnMetadataLoaderByType {
+  public:
+   template <storage::column::Column ColumnType, class Archive>
+   std::shared_ptr<storage::column::ColumnMetadata> operator()(Archive& archive) {
+      std::shared_ptr<typename ColumnType::Metadata> metadata;
+      archive >> metadata;
+      return metadata;
+   }
+};
+
+template <class Archive>
+void TableSchema::save(Archive& archive, const unsigned int version) const {
+   archive & default_nucleotide_sequence;
+   archive & default_aa_sequence;
+   archive & primary_key;
+
+   std::vector<ColumnIdentifier> column_identifiers;
+   for (const auto& [column_identifier, _] : column_metadata) {
+      column_identifiers.push_back(column_identifier);
+   }
+   archive & column_identifiers;
+
+   for (const auto& [column_identifier, metadata] : column_metadata) {
+      storage::column::visit(
+         column_identifier.type, ColumnMetadataSaverByType{}, archive, metadata
       );
    }
-   std::string primary_key_name = yaml_node["primaryKey"].as<std::string>();
-   ColumnType primary_key_type =
-      std::ranges::find_if(column_metadata, [&primary_key_name](const auto& key_and_metadata) {
-         return primary_key_name == key_and_metadata.first.name;
-      })->first.type;
-   TableSchema schema{column_metadata, ColumnIdentifier{primary_key_name, primary_key_type}};
-   if (yaml_node["defaultAASequence"].IsDefined()) {
-      schema.default_aa_sequence = {
-         yaml_node["defaultAASequence"].as<std::string>(), ColumnType::AMINO_ACID_SEQUENCE
-      };
-   }
-   if (yaml_node["defaultNucleotideSequence"].IsDefined()) {
-      schema.default_nucleotide_sequence = {
-         yaml_node["defaultNucleotideSequence"].as<std::string>(), ColumnType::NUCLEOTIDE_SEQUENCE
-      };
-   }
-   return schema;
 }
 
-YAML::Node TableSchema::toYAML() const {
-   YAML::Node yaml_node;
-   YAML::Node columns_node{YAML::NodeType::Sequence};
-   for (const auto& [identifier, metadata] : column_metadata) {
-      YAML::Node column_node{YAML::NodeType::Map};
-      column_node["name"] = identifier.name;
-      column_node["type"] = columnTypeToString(identifier.type);
-      auto metadata_node = metadata->toYAML();
-      if (metadata_node.IsDefined()) {
-         column_node["metadata"] = metadata_node;
-      }
-      columns_node.push_back(std::move(column_node));
+template <class Archive>
+void TableSchema::load(Archive& archive, const unsigned int version) {
+   archive & default_nucleotide_sequence;
+   archive & default_aa_sequence;
+   archive & primary_key;
+
+   std::vector<ColumnIdentifier> column_identifiers;
+   archive & column_identifiers;
+
+   for (const auto& column_identifier : column_identifiers) {
+      column_metadata.emplace(
+         column_identifier,
+         storage::column::visit(column_identifier.type, ColumnMetadataLoaderByType{}, archive)
+      );
    }
-   yaml_node["columns"] = std::move(columns_node);
-   yaml_node["primaryKey"] = primary_key.name;
-   if (default_aa_sequence.has_value()) {
-      yaml_node["defaultAASequence"] = default_aa_sequence.value().name;
-   }
-   if (default_nucleotide_sequence.has_value()) {
-      yaml_node["defaultNucleotideSequence"] = default_nucleotide_sequence.value().name;
-   }
-   return yaml_node;
 }
 
 TableName::TableName(std::string_view name) {
@@ -173,21 +132,22 @@ const TableSchema& DatabaseSchema::getDefaultTableSchema() const {
    return tables.at(TableName::getDefault());
 }
 
-YAML::Node DatabaseSchema::toYAML() const {
-   YAML::Node node;
-   for (const auto& [table_name, table] : tables) {
-      node[table_name.getName()] = table.toYAML();
-   }
-   return node;
+}  // namespace silo::schema
+
+namespace silo::schema {
+
+void DatabaseSchema::saveToFile(const std::filesystem::path& file_path) {
+   std::ofstream database_schema_file{file_path, std::ios::binary};
+   boost::archive::binary_oarchive output_archive(database_schema_file);
+   output_archive << tables;
 }
 
-DatabaseSchema DatabaseSchema::fromYAML(const YAML::Node& yaml) {
-   std::map<TableName, TableSchema> tables;
-   for (const auto& entry : yaml) {
-      TableName table_name{entry.first.as<std::string>()};
-      tables.emplace(table_name, TableSchema::fromYAML(entry.second));
-   }
-   return DatabaseSchema{.tables = tables};
+DatabaseSchema DatabaseSchema::loadFromFile(const std::filesystem::path& file_path) {
+   std::ifstream database_schema_file{file_path, std::ios::binary};
+   boost::archive::binary_iarchive input_archive(database_schema_file);
+   schema::DatabaseSchema schema;
+   input_archive >> schema.tables;
+   return schema;
 }
 
 }  // namespace silo::schema

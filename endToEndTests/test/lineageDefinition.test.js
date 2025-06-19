@@ -7,10 +7,10 @@ describe('The /lineageDefinition endpoint', () => {
     let searchString = `A: \{\}
 A.1:
   parents:
-    - A
+  - A
 A.11:
   parents:
-    - A`;
+  - A`;
     await server
       .get('/lineageDefinition/pango_lineage')
       .expect(200)

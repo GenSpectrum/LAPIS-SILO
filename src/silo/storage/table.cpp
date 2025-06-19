@@ -21,7 +21,6 @@
 #include "silo/persistence/exception.h"
 #include "silo/roaring/roaring_serialize.h"
 #include "silo/schema/duplicate_primary_key_exception.h"
-#include "silo/storage/serialize_optional.h"
 
 namespace silo::storage {
 
@@ -63,7 +62,7 @@ std::shared_ptr<storage::TablePartition> Table::addPartition() {
 namespace {
 
 std::ifstream openInputFileOrThrow(const std::string& path) {
-   std::ifstream file(path);
+   std::ifstream file(path, std::ios::binary);
    if (!file) {
       auto error = fmt::format("Input file {} could not be opened.", path);
       throw persistence::LoadDatabaseException(error);
@@ -72,7 +71,7 @@ std::ifstream openInputFileOrThrow(const std::string& path) {
 }
 
 std::ofstream openOutputFileOrThrow(const std::string& path) {
-   std::ofstream file(path);
+   std::ofstream file(path, std::ios::binary);
    if (!file) {
       auto error = fmt::format("Output file {} could not be opened.", path);
       throw persistence::SaveDatabaseException(error);

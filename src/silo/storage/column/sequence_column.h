@@ -10,6 +10,7 @@
 
 #include <fmt/format.h>
 #include <boost/serialization/access.hpp>
+#include <boost/serialization/split_free.hpp>
 #include <roaring/roaring.hh>
 
 #include "silo/common/aa_symbols.h"
@@ -61,24 +62,6 @@ class SequenceColumnMetadata : public ColumnMetadata {
       std::string column_name,
       std::vector<typename SymbolType::Symbol>&& reference_sequence
    );
-
-   YAML::Node toYAML() const {
-      YAML::Node yaml_node;
-      yaml_node["referenceSequence"] =
-         ReferenceGenomes::vectorToString<SymbolType>(reference_sequence);
-      return yaml_node;
-   }
-
-   static std::shared_ptr<SequenceColumnMetadata<SymbolType>> fromYAML(
-      std::string column_name,
-      const YAML::Node& yaml_node
-   ) {
-      std::string reference_sequence_string = yaml_node["referenceSequence"].as<std::string>();
-      return std::make_shared<SequenceColumnMetadata<SymbolType>>(
-         std::move(column_name),
-         silo::ReferenceGenomes::stringToVector<SymbolType>(reference_sequence_string)
-      );
-   }
 };
 
 template <typename SymbolType>
@@ -164,3 +147,67 @@ class [[maybe_unused]] fmt::formatter<silo::storage::column::SequenceColumnInfo>
       format_context& ctx
    ) -> decltype(ctx.out());
 };
+
+BOOST_SERIALIZATION_SPLIT_FREE(silo::storage::column::SequenceColumnMetadata<silo::AminoAcid>);
+namespace boost::serialization {
+template <class Archive>
+[[maybe_unused]] void save(
+   Archive& ar,
+   const silo::storage::column::SequenceColumnMetadata<silo::AminoAcid>& object,
+   [[maybe_unused]] const uint32_t version
+) {
+   ar & object.column_name;
+   ar & object.reference_sequence;
+}
+}  // namespace boost::serialization
+
+BOOST_SERIALIZATION_SPLIT_FREE(std::shared_ptr<
+                               silo::storage::column::SequenceColumnMetadata<silo::AminoAcid>>);
+namespace boost::serialization {
+template <class Archive>
+[[maybe_unused]] void load(
+   Archive& ar,
+   std::shared_ptr<silo::storage::column::SequenceColumnMetadata<silo::AminoAcid>>& object,
+   [[maybe_unused]] const uint32_t version
+) {
+   std::string column_name;
+   std::vector<silo::AminoAcid::Symbol> reference_sequence;
+   ar & column_name;
+   ar & reference_sequence;
+   object = std::make_shared<silo::storage::column::SequenceColumnMetadata<silo::AminoAcid>>(
+      std::move(column_name), std::move(reference_sequence)
+   );
+}
+}  // namespace boost::serialization
+
+BOOST_SERIALIZATION_SPLIT_FREE(silo::storage::column::SequenceColumnMetadata<silo::Nucleotide>);
+namespace boost::serialization {
+template <class Archive>
+[[maybe_unused]] void save(
+   Archive& ar,
+   const silo::storage::column::SequenceColumnMetadata<silo::Nucleotide>& object,
+   [[maybe_unused]] const uint32_t version
+) {
+   ar & object.column_name;
+   ar & object.reference_sequence;
+}
+}  // namespace boost::serialization
+
+BOOST_SERIALIZATION_SPLIT_FREE(std::shared_ptr<
+                               silo::storage::column::SequenceColumnMetadata<silo::Nucleotide>>);
+namespace boost::serialization {
+template <class Archive>
+[[maybe_unused]] void load(
+   Archive& ar,
+   std::shared_ptr<silo::storage::column::SequenceColumnMetadata<silo::Nucleotide>>& object,
+   [[maybe_unused]] const uint32_t version
+) {
+   std::string column_name;
+   std::vector<silo::Nucleotide::Symbol> reference_sequence;
+   ar & column_name;
+   ar & reference_sequence;
+   object = std::make_shared<silo::storage::column::SequenceColumnMetadata<silo::Nucleotide>>(
+      std::move(column_name), std::move(reference_sequence)
+   );
+}
+}  // namespace boost::serialization

@@ -63,20 +63,10 @@ class BidirectionalMap {
       return identifier;
    }
 
-   static BidirectionalMap fromYAML(const YAML::Node& yaml_node) {
-      BidirectionalMap result;
-      for (const auto& value : yaml_node) {
-         (void)result.getOrCreateId(value.as<V>());
-      }
-      return result;
-   }
-
-   YAML::Node toYAML() const {
-      YAML::Node yaml_node{YAML::NodeType::Sequence};
-      for (const auto& value : id_to_value) {
-         yaml_node.push_back(YAML::Node{value});
-      }
-      return yaml_node;
+   template <class Archive>
+   void serialize(Archive& archive, const uint32_t /* version */) {
+      archive & id_to_value;
+      archive & value_to_id;
    }
 };
 

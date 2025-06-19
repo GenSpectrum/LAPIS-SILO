@@ -7,11 +7,11 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/serialization/array.hpp>
+#include <boost/serialization/optional.hpp>
 
 #include "silo/common/optional_bool.h"
 #include "silo/database.h"
 #include "silo/roaring/roaring_serialize.h"
-#include "silo/storage/serialize_optional.h"
 
 using silo::Nucleotide;
 using silo::storage::column::SequencePosition;
