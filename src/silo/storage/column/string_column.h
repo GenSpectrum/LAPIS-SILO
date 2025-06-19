@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <boost/serialization/access.hpp>
+#include <boost/serialization/split_free.hpp>
 
 #include "silo/common/bidirectional_map.h"
 #include "silo/common/phylo_tree.h"
@@ -47,6 +48,7 @@ class StringColumnMetadata : public ColumnMetadata {
          phylo_tree(std::move(phylo_tree)) {}
 
    StringColumnMetadata() = delete;
+
    StringColumnMetadata(const StringColumnMetadata& other) = delete;
    StringColumnMetadata(StringColumnMetadata&& other) = delete;
    StringColumnMetadata& operator=(const StringColumnMetadata& other) = delete;
