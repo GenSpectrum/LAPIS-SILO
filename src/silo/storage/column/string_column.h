@@ -30,7 +30,7 @@ class StringColumnMetadata : public ColumnMetadata {
   public:
    silo::common::BidirectionalMap<std::string> dictionary;
 
-   std::optional<silo::preprocessing::PhyloTreeFile> phylo_tree;  // TODO initialize
+   std::optional<silo::preprocessing::PhyloTreeFile> phylo_tree;
 
    StringColumnMetadata(std::string column_name)
        : ColumnMetadata(std::move(column_name)) {}

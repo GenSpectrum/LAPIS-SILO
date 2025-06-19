@@ -32,8 +32,8 @@ ConfigKeyPath outputDirectoryOptionKey() {
 ConfigKeyPath lineageDefinitionsFilenameOptionKey() {
    return YamlFile::stringToConfigKeyPath("lineageDefinitionsFilename");
 }
-ConfigKeyPath phylogeneticTreeFilenameOptionKey() {
-   return YamlFile::stringToConfigKeyPath("phylogeneticTreeFilename");
+ConfigKeyPath phyloTreeFilenameOptionKey() {
+   return YamlFile::stringToConfigKeyPath("phyloTreeFilename");
 }
 ConfigKeyPath databaseConfigFileOptionKey() {
    return YamlFile::stringToConfigKeyPath("databaseConfig");
@@ -92,7 +92,7 @@ ConfigSpecification PreprocessingConfig::getConfigSpecification() {
             "File name of the file holding the lineage definitions. Relative from inputDirectory."
          ),
          ConfigAttributeSpecification::createWithoutDefault(
-            phylogeneticTreeFilenameOptionKey(),
+            phyloTreeFilenameOptionKey(),
             ConfigValueType::PATH,
             "File name of the file holding the phylogenetic tree. Relative from inputDirectory."
          ),
@@ -147,7 +147,7 @@ void PreprocessingConfig::overwriteFrom(const VerifiedConfigAttributes& config_s
    if (auto var = config_source.getPath(lineageDefinitionsFilenameOptionKey())) {
       initialization_files.lineage_definitions_file = var.value();
    }
-   if (auto var = config_source.getPath(phylogeneticTreeFilenameOptionKey())) {
+   if (auto var = config_source.getPath(phyloTreeFilenameOptionKey())) {
       initialization_files.phylogenetic_tree_file = var.value();
    }
    if (auto var = config_source.getPath(databaseConfigFileOptionKey())) {

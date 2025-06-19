@@ -31,7 +31,7 @@ class InitializationFiles {
 
    [[nodiscard]] std::optional<std::filesystem::path> getLineageDefinitionsFilename() const;
 
-   [[nodiscard]] std::optional<std::filesystem::path> getPhylogeneticTreeFilename() const;
+   [[nodiscard]] std::optional<std::filesystem::path> getphyloTreeFilename() const;
 
    [[nodiscard]] std::filesystem::path getReferenceGenomeFilename() const;
 

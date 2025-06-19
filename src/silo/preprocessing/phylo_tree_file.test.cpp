@@ -11,23 +11,23 @@ using silo::preprocessing::PhyloTreeFile;
 
 TEST(PhyloTreeFile, correctlyParsesFromJSON) {
    auto phylo_tree_file = PhyloTreeFile::fromAuspiceJSONString(
-      "{"
-      "\"version\": \"schema version\","
-      "\"meta\": {},"
-      "\"tree\": {"
-      "\"name\": \"ROOT\","
-      "\"children\": ["
-      "{"
-      "\"name\": \"CHILD\","
-      "\"children\": ["
-      "{"
-      "\"name\": \"CHILD2\""
-      "}"
-      "]"
-      "}"
-      "]"
-      "}"
-      "}"
+      R"({  
+  "version": "schema version",  
+  "meta": {},  
+  "tree": {  
+    "name": "ROOT",  
+    "children": [  
+      {  
+        "name": "CHILD",  
+        "children": [  
+          {  
+            "name": "CHILD2"  
+          }  
+        ]  
+      }  
+    ]  
+  }  
+})"
    );
    ASSERT_EQ(phylo_tree_file.nodes.size(), 3);
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"ROOT"})->parent, std::nullopt);

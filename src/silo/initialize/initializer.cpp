@@ -31,7 +31,7 @@ Database Initializer::initializeDatabase(const config::InitializationFiles& init
    }
 
    preprocessing::PhyloTreeFile phylo_tree_file;
-   auto opt_path = initialization_files.getPhylogeneticTreeFilename();
+   auto opt_path = initialization_files.getphyloTreeFilename();
    if (opt_path.has_value()) {
       phylo_tree_file = preprocessing::PhyloTreeFile::fromFile(opt_path.value());
    }

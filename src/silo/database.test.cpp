@@ -44,7 +44,7 @@ std::shared_ptr<silo::Database> buildTestDatabase() {
    }
 
    silo::preprocessing::PhyloTreeFile phylo_tree_file;
-   auto opt_path = config.initialization_files.getPhylogeneticTreeFilename();
+   auto opt_path = config.initialization_files.getphyloTreeFilename();
    if (opt_path.has_value()) {
       phylo_tree_file = silo::preprocessing::PhyloTreeFile::fromFile(opt_path.value());
    }
