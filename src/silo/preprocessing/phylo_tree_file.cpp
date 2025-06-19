@@ -202,13 +202,7 @@ PhyloTreeFile PhyloTreeFile::fromNewickFile(const std::filesystem::path& newick_
          );
       }
    }
-   try {
-      return fromNewickString(contents.str());
-   } catch (const std::exception& e) {
-      throw silo::preprocessing::PreprocessingException(
-         fmt::format("Error when parsing the Newick file: '{}'", newick_path.string())
-      );
-   }
+   return fromNewickString(contents.str());
 }
 
 PhyloTreeFile PhyloTreeFile::fromFile(const std::filesystem::path& path) {
