@@ -10,6 +10,7 @@
 
 #include "silo/common/panic.h"
 #include "silo/common/tree_node_id.h"
+#include "silo/query_engine/batched_bitmap_reader.h"
 
 namespace silo::common {
 using silo::common::TreeNodeId;
@@ -17,9 +18,14 @@ using silo::common::TreeNodeId;
 class TreeNode {
   public:
    TreeNodeId node_id;
+   std::optional<size_t> row_index;  // index of corresponding sequence in the database (will be
+                                     // empty for internal nodes)
    std::vector<TreeNodeId> children;
    std::optional<TreeNodeId> parent;
    int depth;
+
+   bool isLeaf() { return children.empty(); }
+   bool rowIndexExists() const { return row_index.has_value(); }
 
    friend class boost::serialization::access;
    template <class Archive>
@@ -37,6 +43,8 @@ class PhyloTree {
   public:
    std::unordered_map<TreeNodeId, std::shared_ptr<TreeNode>> nodes;
 
+   // Functions for reading and parsing phylogenetic trees
+
    static PhyloTree fromAuspiceJSONFile(const std::filesystem::path& json_path);
 
    static PhyloTree fromAuspiceJSONString(const std::string& json_string);
@@ -46,6 +54,17 @@ class PhyloTree {
    static PhyloTree fromNewickString(const std::string& newick_string);
 
    static PhyloTree fromFile(const std::filesystem::path& path);
+
+   // Functions for querying the phylogenetic tree
+
+   void validateNodeExists(const TreeNodeId& node_id);
+
+   void validateNodeExists(const std::string& node_label);
+
+   // returns a bitmap of all descendants node{node_id} that are also in the database
+   roaring::Roaring getDescendants(const TreeNodeId& node_id);
+
+   roaring::Roaring getDescendants(const std::string& node_label);
 
   private:
    friend class boost::serialization::access;

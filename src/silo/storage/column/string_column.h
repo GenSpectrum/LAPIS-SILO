@@ -13,6 +13,7 @@
 #include "silo/common/bidirectional_map.h"
 #include "silo/common/phylo_tree.h"
 #include "silo/common/string.h"
+#include "silo/common/tree_node_id.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/column_metadata.h"
 
@@ -94,6 +95,13 @@ class StringColumnPartition {
    [[nodiscard]] inline std::string lookupValue(common::String<silo::common::STRING_SIZE> string
    ) const {
       return string.toString(metadata->dictionary);
+   }
+
+   [[nodiscard]] inline roaring::Roaring getDescendants(const std::string& parent) const {
+      if (!metadata->phylo_tree.has_value()) {
+         return roaring::Roaring();
+      }
+      return metadata->phylo_tree->getDescendants(parent);
    }
 };
 

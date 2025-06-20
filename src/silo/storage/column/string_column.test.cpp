@@ -1,6 +1,7 @@
 #include "silo/storage/column/string_column.h"
 
 #include <gtest/gtest.h>
+#include "silo/common/phylo_tree.h"
 
 using silo::storage::column::StringColumnMetadata;
 using silo::storage::column::StringColumnPartition;
@@ -25,6 +26,25 @@ TEST(StringColumnPartition, rawInsertedValuesRequeried) {
       "some string that is a little longer 1"
    );
    EXPECT_EQ(under_test.getValues()[5].toString(metadata.dictionary), "value 1");
+}
+
+TEST(StringColumnPartition, rawInsertedValuesWithPhyloTreeRequeried) {
+   auto phylo_tree = silo::common::PhyloTree::fromNewickString(
+      "((CHILD2:0.5, CHILD3:1)CHILD:0.1, NOT_IN_DATASET:1.5)ROOT;"
+   );
+   StringColumnMetadata metadata{"string_column", std::move(phylo_tree)};
+   StringColumnPartition under_test(&metadata);
+
+   under_test.insert("CHILD2");
+   under_test.insert("CHILD3");
+   under_test.insert("NOT_IN_TREE");
+
+   EXPECT_EQ(under_test.getValues()[0].toString(metadata.dictionary), "CHILD2");
+   EXPECT_EQ(under_test.getValues()[1].toString(metadata.dictionary), "CHILD3");
+   EXPECT_EQ(under_test.getValues()[2].toString(metadata.dictionary), "NOT_IN_TREE");
+   EXPECT_EQ(under_test.getDescendants("CHILD2").cardinality(), 0);
+   EXPECT_EQ(under_test.getDescendants("CHILD").cardinality(), 2);
+   EXPECT_EQ(under_test.getDescendants("ROOT").cardinality(), 2);
 }
 
 TEST(StringColumn, rawInsertedValuesRequeried) {
