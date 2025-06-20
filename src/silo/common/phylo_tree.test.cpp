@@ -50,6 +50,29 @@ TEST(PhyloTree, throwsOnInvalidJSON) {
    );
 }
 
+TEST(PhyloTree, throwsOnInvalidAuspiceJSONDuplicateNodeId) {
+   EXPECT_THROW(
+      PhyloTree::fromAuspiceJSONString(R"({  
+  "version": "schema version",  
+  "meta": {},  
+  "tree": {  
+    "name": "ROOT",  
+    "children": [  
+      {  
+        "name": "CHILD",  
+        "children": [  
+          {  
+            "name": "CHILD"  
+          }  
+        ]  
+      }  
+    ]  
+  }  
+})"),
+      silo::preprocessing::PreprocessingException
+   );
+}
+
 TEST(PhyloTree, correctlyParsesFromNewick) {
    auto phylo_tree_file = PhyloTree::fromNewickString("((CHILD2)CHILD)ROOT;");
    ASSERT_EQ(phylo_tree_file.nodes.size(), 3);
@@ -93,5 +116,11 @@ TEST(PhyloTree, throwsOnInvalidNewickNoSemicolon) {
    EXPECT_THROW(
       PhyloTree::fromNewickString("((CHILD2)CHILD)ROOT"),
       silo::preprocessing::PreprocessingException
+   );
+}
+
+TEST(PhyloTree, throwsOnInvalidNewickWithDuplicateNodeId) {
+   EXPECT_THROW(
+      PhyloTree::fromNewickString("((CHILD)CHILD)ROOT"), silo::preprocessing::PreprocessingException
    );
 }

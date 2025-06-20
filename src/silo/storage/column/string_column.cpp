@@ -4,9 +4,12 @@
 
 #include "silo/common/bidirectional_map.h"
 #include "silo/common/string.h"
+#include "silo/common/tree_node_id.h"
+#include "silo/initialize/initialize_exception.h"
 
 using silo::common::String;
 using silo::common::STRING_SIZE;
+using silo::common::TreeNodeId;
 
 namespace silo::storage::column {
 
@@ -21,6 +24,18 @@ StringColumnPartition::StringColumnPartition(StringColumnMetadata* metadata)
 void StringColumnPartition::insert(const std::string& value) {
    const String<STRING_SIZE> tmp(value, metadata->dictionary);
    values.push_back(tmp);
+   if (metadata->phylo_tree.has_value()) {
+      auto child_it = (metadata->phylo_tree->nodes).find(TreeNodeId{value});
+      if (child_it == metadata->phylo_tree->nodes.end()) {
+         return;
+      }
+      if (child_it->second->rowIndexExists()) {
+         throw silo::initialize::InitializeException(
+            fmt::format("Node '{}' already exists in the phylogenetic tree.", value)
+         );
+      }
+      child_it->second->row_index = values.size() - 1;
+   }
 }
 
 void StringColumnPartition::insertNull() {

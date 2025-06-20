@@ -1,0 +1,82 @@
+#include "silo/query_engine/filter/expressions/phylo_tree_filter.h"
+
+#include <optional>
+#include <utility>
+
+#include <fmt/format.h>
+#include <nlohmann/json.hpp>
+
+#include "silo/common/panic.h"
+#include "silo/common/string.h"
+#include "silo/database.h"
+#include "silo/query_engine/bad_request.h"
+#include "silo/query_engine/filter/expressions/expression.h"
+#include "silo/query_engine/filter/operators/bitmap_producer.h"
+#include "silo/query_engine/filter/operators/operator.h"
+#include "silo/storage/table_partition.h"
+
+namespace silo::query_engine::filter::expressions {
+
+PhyloChildFilter::PhyloChildFilter(std::string column_name, std::string internal_node)
+    : column_name(std::move(column_name)),
+      internal_node(std::move(internal_node)) {}
+
+std::string PhyloChildFilter::toString() const {
+   return fmt::format("column {} phylo_child_of {}", column_name, internal_node);
+};
+
+namespace {
+std::unique_ptr<silo::query_engine::filter::operators::Operator> createMatchingBitmap(
+   const storage::column::StringColumnPartition& string_column,
+   const std::string& internal_node,
+   size_t row_count
+) {
+   return std::make_unique<operators::BitmapProducer>(
+      [&, row_count]() {
+         roaring::Roaring result_bitmap = string_column.getDescendants(internal_node);
+         return CopyOnWriteBitmap(std::move(result_bitmap));
+      },
+      row_count
+   );
+}
+
+}  // namespace
+
+std::unique_ptr<silo::query_engine::filter::operators::Operator> PhyloChildFilter::compile(
+   const Database& /*database*/,
+   const storage::TablePartition& database_partition,
+   Expression::AmbiguityMode /*mode*/
+) const {
+   CHECK_SILO_QUERY(
+      database_partition.columns.string_columns.contains(column_name),
+      fmt::format("The database does not contain the string column '{}'", column_name)
+   );
+
+   SILO_ASSERT(database_partition.columns.string_columns.contains(column_name));
+   const auto& string_column = database_partition.columns.string_columns.at(column_name);
+   return createMatchingBitmap(string_column, internal_node, database_partition.sequence_count);
+}
+
+// NOLINTNEXTLINE(readability-identifier-naming)
+void from_json(const nlohmann::json& json, std::unique_ptr<PhyloChildFilter>& filter) {
+   CHECK_SILO_QUERY(
+      json.contains("column"), "The field 'column' is required in an PhyloChildFilter expression"
+   )
+   CHECK_SILO_QUERY(
+      json["column"].is_string(),
+      "The field 'column' in an PhyloChildFilter expression needs to be a string"
+   )
+   CHECK_SILO_QUERY(
+      json.contains("internal_node"),
+      "The field 'internal_node' is required in an PhyloChildFilter expression"
+   )
+   CHECK_SILO_QUERY(
+      json["internal_node"].is_string(),
+      "The field 'internal_node' in an PhyloChildFilter expression needs to be a string"
+   )
+   filter = std::make_unique<PhyloChildFilter>(
+      json["column"].get<std::string>(), json["internal_node"].get<std::string>()
+   );
+}
+
+}  // namespace silo::query_engine::filter::expressions
