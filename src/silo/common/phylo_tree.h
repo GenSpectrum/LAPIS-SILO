@@ -13,6 +13,7 @@ using silo::common::TreeNodeId;
 class TreeNode {
   public:
    TreeNodeId node_id;
+   // TODO(#815) remove these cyclic references
    std::vector<std::shared_ptr<TreeNode>> children;
    std::optional<std::shared_ptr<TreeNode>> parent;
    int depth;
