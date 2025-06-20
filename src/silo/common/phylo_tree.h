@@ -12,6 +12,7 @@
 
 #include "silo/common/panic.h"
 #include "silo/common/tree_node_id.h"
+#include "silo/query_engine/batched_bitmap_reader.h"
 
 namespace silo::common {
 using silo::common::TreeNodeId;
