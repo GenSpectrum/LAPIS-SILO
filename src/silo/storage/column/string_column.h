@@ -10,8 +10,8 @@
 #include <boost/serialization/access.hpp>
 
 #include "silo/common/bidirectional_map.h"
+#include "silo/common/phylo_tree.h"
 #include "silo/common/string.h"
-#include "silo/preprocessing/phylo_tree_file.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/column_metadata.h"
 
@@ -30,12 +30,12 @@ class StringColumnMetadata : public ColumnMetadata {
   public:
    silo::common::BidirectionalMap<std::string> dictionary;
 
-   std::optional<silo::preprocessing::PhyloTreeFile> phylo_tree;
+   std::optional<silo::common::PhyloTree> phylo_tree;
 
    StringColumnMetadata(std::string column_name)
        : ColumnMetadata(std::move(column_name)) {}
 
-   StringColumnMetadata(std::string column_name, silo::preprocessing::PhyloTreeFile phylo_tree)
+   StringColumnMetadata(std::string column_name, silo::common::PhyloTree phylo_tree)
        : ColumnMetadata(std::move(column_name)),
          phylo_tree(std::move(phylo_tree)) {}
 
@@ -49,7 +49,7 @@ class StringColumnMetadata : public ColumnMetadata {
    StringColumnMetadata(
       std::string column_name,
       silo::common::BidirectionalMap<std::string>&& dictionary,
-      silo::preprocessing::PhyloTreeFile phylo_tree
+      silo::common::PhyloTree phylo_tree
    )
        : ColumnMetadata(std::move(column_name)),
          dictionary(std::move(dictionary)),

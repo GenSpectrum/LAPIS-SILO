@@ -106,7 +106,7 @@ std::optional<std::filesystem::path> InitializationFiles::getLineageDefinitionsF
              : std::nullopt;
 }
 
-std::optional<std::filesystem::path> InitializationFiles::getphyloTreeFilename() const {
+std::optional<std::filesystem::path> InitializationFiles::getPhyloTreeFilename() const {
    return phylogenetic_tree_file.has_value()
              ? std::optional(directory / phylogenetic_tree_file.value())
              : std::nullopt;

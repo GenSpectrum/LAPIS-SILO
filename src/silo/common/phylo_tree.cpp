@@ -1,4 +1,4 @@
-#include "silo/preprocessing/phylo_tree_file.h"
+#include "silo/common/phylo_tree.h"
 
 #include <fstream>
 #include <sstream>
@@ -6,8 +6,9 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/preprocessing/preprocessing_exception.h"
+#include "silo/query_engine/batched_bitmap_reader.h"
 
-namespace silo::preprocessing {
+namespace silo::common {
 using silo::common::TreeNodeId;
 
 std::shared_ptr<TreeNode> parse_auspice_tree(
@@ -38,7 +39,7 @@ std::shared_ptr<TreeNode> parse_auspice_tree(
    return node;
 }
 
-PhyloTreeFile PhyloTreeFile::fromAuspiceJSONString(const std::string& json_string) {
+PhyloTree PhyloTree::fromAuspiceJSONString(const std::string& json_string) {
    nlohmann::json j = nlohmann::json::parse(json_string);
 
    if (!j.contains("tree")) {
@@ -47,12 +48,12 @@ PhyloTreeFile PhyloTreeFile::fromAuspiceJSONString(const std::string& json_strin
       );
    }
 
-   PhyloTreeFile file;
+   PhyloTree file;
    auto root = parse_auspice_tree(j["tree"], std::nullopt, file.nodes);
    return file;
 }
 
-PhyloTreeFile PhyloTreeFile::fromAuspiceJSONFile(const std::filesystem::path& json_path) {
+PhyloTree PhyloTree::fromAuspiceJSONFile(const std::filesystem::path& json_path) {
    std::ifstream file(json_path, std::ios::in | std::ios::binary);
    if (!file) {
       throw silo::preprocessing::PreprocessingException(
@@ -154,8 +155,8 @@ std::shared_ptr<TreeNode> parseSubtree(
    return node;
 }
 
-PhyloTreeFile PhyloTreeFile::fromNewickString(const std::string& newick_string) {
-   PhyloTreeFile file;
+PhyloTree PhyloTree::fromNewickString(const std::string& newick_string) {
+   PhyloTree file;
 
    std::string_view sv(newick_string);
    if (sv.empty()) {
@@ -185,7 +186,7 @@ PhyloTreeFile PhyloTreeFile::fromNewickString(const std::string& newick_string) 
    return file;
 }
 
-PhyloTreeFile PhyloTreeFile::fromNewickFile(const std::filesystem::path& newick_path) {
+PhyloTree PhyloTree::fromNewickFile(const std::filesystem::path& newick_path) {
    std::ifstream file(newick_path, std::ios::in | std::ios::binary);
    if (!file) {
       throw silo::preprocessing::PreprocessingException(
@@ -202,10 +203,16 @@ PhyloTreeFile PhyloTreeFile::fromNewickFile(const std::filesystem::path& newick_
          );
       }
    }
-   return fromNewickString(contents.str());
+   try {
+      return fromNewickString(contents.str());
+   } catch (const std::exception& e) {
+      throw silo::preprocessing::PreprocessingException(
+         fmt::format("Error when parsing the Newick file: '{}'", newick_path.string())
+      );
+   }
 }
 
-PhyloTreeFile PhyloTreeFile::fromFile(const std::filesystem::path& path) {
+PhyloTree PhyloTree::fromFile(const std::filesystem::path& path) {
    auto ext = path.extension().string();
 
    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
@@ -214,10 +221,10 @@ PhyloTreeFile PhyloTreeFile::fromFile(const std::filesystem::path& path) {
       throw std::invalid_argument("Path must end with .nwk or .json");
    }
    if (ext == ".nwk") {
-      return preprocessing::PhyloTreeFile::fromNewickFile(path);
+      return common::PhyloTree::fromNewickFile(path);
    } else if (ext == ".json") {
-      return preprocessing::PhyloTreeFile::fromAuspiceJSONFile(path);
+      return common::PhyloTree::fromAuspiceJSONFile(path);
    }
 }
 
-}  // namespace silo::preprocessing
+}  // namespace silo::common

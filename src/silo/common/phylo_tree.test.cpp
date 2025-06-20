@@ -1,4 +1,4 @@
-#include "silo/preprocessing/phylo_tree_file.h"
+#include "silo/common/phylo_tree.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -6,11 +6,11 @@
 
 #include "silo/preprocessing/preprocessing_exception.h"
 
+using silo::common::PhyloTree;
 using silo::common::TreeNodeId;
-using silo::preprocessing::PhyloTreeFile;
 
-TEST(PhyloTreeFile, correctlyParsesFromJSON) {
-   auto phylo_tree_file = PhyloTreeFile::fromAuspiceJSONString(
+TEST(PhyloTree, correctlyParsesFromJSON) {
+   auto phylo_tree_file = PhyloTree::fromAuspiceJSONString(
       R"({  
   "version": "schema version",  
   "meta": {},  
@@ -43,15 +43,15 @@ TEST(PhyloTreeFile, correctlyParsesFromJSON) {
    );
 }
 
-TEST(PhyloTreeFile, throwsOnInvalidJSON) {
+TEST(PhyloTree, throwsOnInvalidJSON) {
    EXPECT_THROW(
-      PhyloTreeFile::fromAuspiceJSONString("{\"invalid\": \"json\"}"),
+      PhyloTree::fromAuspiceJSONString("{\"invalid\": \"json\"}"),
       silo::preprocessing::PreprocessingException
    );
 }
 
-TEST(PhyloTreeFile, correctlyParsesFromNewick) {
-   auto phylo_tree_file = PhyloTreeFile::fromNewickString("((CHILD2)CHILD)ROOT;");
+TEST(PhyloTree, correctlyParsesFromNewick) {
+   auto phylo_tree_file = PhyloTree::fromNewickString("((CHILD2)CHILD)ROOT;");
    ASSERT_EQ(phylo_tree_file.nodes.size(), 3);
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"ROOT"})->parent, std::nullopt);
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"ROOT"})->depth, 0);
@@ -66,9 +66,9 @@ TEST(PhyloTreeFile, correctlyParsesFromNewick) {
    );
 }
 
-TEST(PhyloTreeFile, correctlyParsesFromNewickWithBranchLengths) {
+TEST(PhyloTree, correctlyParsesFromNewickWithBranchLengths) {
    auto phylo_tree_file =
-      PhyloTreeFile::fromNewickString("((CHILD2:0.5, CHILD3:1)CHILD:0.1, CHILD4:1.5)ROOT;");
+      PhyloTree::fromNewickString("((CHILD2:0.5, CHILD3:1)CHILD:0.1, CHILD4:1.5)ROOT;");
    ASSERT_EQ(phylo_tree_file.nodes.size(), 5);
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"ROOT"})->parent, std::nullopt);
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"ROOT"})->depth, 0);
@@ -83,16 +83,15 @@ TEST(PhyloTreeFile, correctlyParsesFromNewickWithBranchLengths) {
    );
 }
 
-TEST(PhyloTreeFile, throwsOnInvalidNewick) {
+TEST(PhyloTree, throwsOnInvalidNewick) {
    EXPECT_THROW(
-      PhyloTreeFile::fromNewickString("((CHILD2)CHILD;"),
-      silo::preprocessing::PreprocessingException
+      PhyloTree::fromNewickString("((CHILD2)CHILD;"), silo::preprocessing::PreprocessingException
    );
 }
 
-TEST(PhyloTreeFile, throwsOnInvalidNewickNoSemicolon) {
+TEST(PhyloTree, throwsOnInvalidNewickNoSemicolon) {
    EXPECT_THROW(
-      PhyloTreeFile::fromNewickString("((CHILD2)CHILD)ROOT"),
+      PhyloTree::fromNewickString("((CHILD2)CHILD)ROOT"),
       silo::preprocessing::PreprocessingException
    );
 }

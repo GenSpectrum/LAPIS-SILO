@@ -12,12 +12,12 @@
 #include "silo/append/database_inserter.h"
 #include "silo/common/fmt_formatters.h"
 #include "silo/common/lineage_tree.h"
+#include "silo/common/phylo_tree.h"
 #include "silo/config/database_config.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
 #include "silo/initialize/initializer.h"
-#include "silo/preprocessing/phylo_tree_file.h"
 #include "silo/query_engine/optimizer/query_plan_generator.h"
 #include "silo/query_engine/query_plan.h"
 #include "silo/storage/reference_genomes.h"
@@ -60,7 +60,7 @@ struct QueryTestData {
    const std::string database_config;
    const silo::ReferenceGenomes reference_genomes;
    const silo::common::LineageTreeAndIdMap lineage_tree;
-   const silo::preprocessing::PhyloTreeFile phylo_tree_file;
+   const silo::common::PhyloTree phylo_tree_file;
 };
 
 struct QueryTestScenario {

@@ -10,10 +10,9 @@ TEST(Initializer, correctlyCreatesSchemaFromInitializationFiles) {
    silo::ReferenceGenomes reference_genomes = silo::ReferenceGenomes::readFromFile(
       "testBaseData/unitTestDummyDataset/reference_genomes.json"
    );
-   silo::preprocessing::PhyloTreeFile phylo_tree_file =
-      silo::preprocessing::PhyloTreeFile::fromNewickFile(
-         "testBaseData/unitTestDummyDataset/phylogenetic_tree.nwk"
-      );
+   silo::common::PhyloTree phylo_tree_file = silo::common::PhyloTree::fromNewickFile(
+      "testBaseData/unitTestDummyDataset/phylogenetic_tree.nwk"
+   );
    auto lineage_tree = silo::common::LineageTreeAndIdMap::fromLineageDefinitionFile(
       silo::preprocessing::LineageDefinitionFile::fromYAMLString(R"(
 A:

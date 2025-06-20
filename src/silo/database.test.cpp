@@ -11,10 +11,10 @@
 #include "silo/append/database_inserter.h"
 #include "silo/append/ndjson_line_reader.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/common/phylo_tree.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/database_info.h"
 #include "silo/initialize/initializer.h"
-#include "silo/preprocessing/phylo_tree_file.h"
 #include "silo/storage/reference_genomes.h"
 
 using silo::config::PreprocessingConfig;
@@ -43,10 +43,10 @@ std::shared_ptr<silo::Database> buildTestDatabase() {
       );
    }
 
-   silo::preprocessing::PhyloTreeFile phylo_tree_file;
-   auto opt_path = config.initialization_files.getphyloTreeFilename();
+   silo::common::PhyloTree phylo_tree_file;
+   auto opt_path = config.initialization_files.getPhyloTreeFilename();
    if (opt_path.has_value()) {
-      phylo_tree_file = silo::preprocessing::PhyloTreeFile::fromFile(opt_path.value());
+      phylo_tree_file = silo::common::PhyloTree::fromFile(opt_path.value());
    }
 
    auto database = std::make_shared<silo::Database>(

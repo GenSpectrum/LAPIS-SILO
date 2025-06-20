@@ -23,7 +23,7 @@ TEST(PreprocessingConfig, shouldReadConfigWithCorrectParametersAndDefaults) {
       input_directory + "lineage_definitions.yaml"
    );
    ASSERT_EQ(
-      config.initialization_files.getphyloTreeFilename(), input_directory + "phylogenetic_tree.yaml"
+      config.initialization_files.getPhyloTreeFilename(), input_directory + "phylogenetic_tree.yaml"
    );
 }
 
@@ -50,7 +50,7 @@ duckdbMemoryLimitInG: 8)")
       input_directory + "lineage_definitions.yaml"
    );
    ASSERT_EQ(
-      config.initialization_files.getphyloTreeFilename(), input_directory + "phylogenetic_tree.yaml"
+      config.initialization_files.getPhyloTreeFilename(), input_directory + "phylogenetic_tree.yaml"
    );
 
    ASSERT_EQ(config.output_directory, "./output/custom/");
