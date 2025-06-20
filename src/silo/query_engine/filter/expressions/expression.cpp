@@ -23,6 +23,7 @@
 #include "silo/query_engine/filter/expressions/negation.h"
 #include "silo/query_engine/filter/expressions/nof.h"
 #include "silo/query_engine/filter/expressions/or.h"
+#include "silo/query_engine/filter/expressions/phylo_tree_filter.h"
 #include "silo/query_engine/filter/expressions/string_equals.h"
 #include "silo/query_engine/filter/expressions/string_search.h"
 #include "silo/query_engine/filter/expressions/symbol_equals.h"
@@ -75,6 +76,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) 
       filter = json.get<std::unique_ptr<HasMutation<AminoAcid>>>();
    } else if (expression_type == "Lineage") {
       filter = json.get<std::unique_ptr<LineageFilter>>();
+   } else if (expression_type == "PhyloDescendentOf") {
+      filter = json.get<std::unique_ptr<PhyloChildFilter>>();
    } else if (expression_type == "StringEquals") {
       filter = json.get<std::unique_ptr<StringEquals>>();
    } else if (expression_type == "StringSearch") {
