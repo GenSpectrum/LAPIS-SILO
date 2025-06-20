@@ -46,6 +46,7 @@ struct TestParameter {
    ValueType value_type;
    bool generate_index;
    bool generate_lineage_index;
+   bool phylo_tree_node_identifier;
    ColumnType expected_column_type;
 };
 
@@ -58,6 +59,7 @@ TEST_P(DatabaseMetadataFixture, getColumnTypeShouldReturnCorrectColumnType) {
       .name = "testName",
       .type = test_parameter.value_type,
       .generate_index = test_parameter.generate_index,
+      .phylo_tree_node_identifier = test_parameter.phylo_tree_node_identifier,
    };
 
    ASSERT_EQ(under_test.getColumnType(), test_parameter.expected_column_type);
@@ -70,7 +72,8 @@ INSTANTIATE_TEST_SUITE_P(
       TestParameter{
          .value_type = ValueType::STRING,
          .generate_index = false,
-         .expected_column_type = ColumnType::STRING
+         .phylo_tree_node_identifier = true,
+         .expected_column_type = ColumnType::STRING,
       },
       TestParameter{
          .value_type = ValueType::STRING,
@@ -111,6 +114,9 @@ TEST(DatabaseConfig, shouldReadConfigWithCorrectParameters) {
    ASSERT_EQ(config.schema.metadata.size(), 9);
    ASSERT_EQ(config.schema.metadata[0].name, "gisaid_epi_isl");
    ASSERT_EQ(config.schema.metadata[0].type, ValueType::STRING);
+   ASSERT_EQ(config.schema.metadata[0].generate_index, false);
+   ASSERT_EQ(config.schema.metadata[0].generate_lineage_index, false);
+   ASSERT_EQ(config.schema.metadata[0].phylo_tree_node_identifier, true);
    ASSERT_EQ(config.schema.metadata[0].generate_index, false);
    ASSERT_EQ(config.schema.metadata[1].name, "date");
    ASSERT_EQ(config.schema.metadata[1].type, ValueType::DATE);
@@ -247,6 +253,9 @@ schema:
       generateLineageIndex: true
     - name: "metadata2"
       type: "date"
+    - name: "metadata3"
+      type: "string"
+      phyloTreeNodeIdentifier: true
   primaryKey: "testPrimaryKey"
 )";
 
@@ -331,6 +340,32 @@ schema:
       ThrowsMessage<ConfigException>(
          ::testing::HasSubstr("Metadata 'some lineage' generateLineageIndex is set, "
                               "generateIndex must also be set")
+      )
+   );
+}
+
+TEST(DatabaseConfig, givenPhyloTreeIndexAndGenerateThenThrows) {
+   const auto config_yaml =
+      R"(
+defaultNucleotideSequence: "main"
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+    - name: "some lineage"
+      type: "string"
+      phyloTreeNodeIdentifier: true
+      generateIndex: true
+  primaryKey: "testPrimaryKey"
+)";
+
+   EXPECT_THAT(
+      [&config_yaml]() { DatabaseConfig::getValidatedConfig(config_yaml); },
+      ThrowsMessage<ConfigException>(
+         ::testing::HasSubstr("Metadata 'some lineage' phyloTreeNodeIdentifier and generateIndex "
+                              "are both set, if phyloTreeNodeIdentifier is "
+                              "set then generateIndex cannot be set.")
       )
    );
 }

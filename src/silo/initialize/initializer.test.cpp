@@ -10,6 +10,9 @@ TEST(Initializer, correctlyCreatesSchemaFromInitializationFiles) {
    silo::ReferenceGenomes reference_genomes = silo::ReferenceGenomes::readFromFile(
       "testBaseData/unitTestDummyDataset/reference_genomes.json"
    );
+   silo::common::PhyloTree phylo_tree_file = silo::common::PhyloTree::fromNewickFile(
+      "testBaseData/unitTestDummyDataset/phylogenetic_tree.nwk"
+   );
    auto lineage_tree = silo::common::LineageTreeAndIdMap::fromLineageDefinitionFile(
       silo::preprocessing::LineageDefinitionFile::fromYAMLString(R"(
 A:
@@ -27,7 +30,7 @@ A.11:
 )")
    );
    auto schema = silo::initialize::Initializer::createSchemaFromConfigFiles(
-      database_config, reference_genomes, lineage_tree
+      database_config, reference_genomes, lineage_tree, phylo_tree_file
    );
 
    ASSERT_EQ(schema.tables.size(), 1);

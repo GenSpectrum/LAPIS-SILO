@@ -1,6 +1,7 @@
 #pragma once
 
 #include "silo/common/lineage_tree.h"
+#include "silo/common/phylo_tree.h"
 #include "silo/config/database_config.h"
 #include "silo/config/initialize_config.h"
 #include "silo/database.h"
@@ -15,7 +16,8 @@ class Initializer {
    static silo::schema::DatabaseSchema createSchemaFromConfigFiles(
       config::DatabaseConfig database_config,
       ReferenceGenomes reference_genomes,
-      common::LineageTreeAndIdMap lineage_tree
+      common::LineageTreeAndIdMap lineage_tree,
+      common::PhyloTree phylo_tree_file
    );
 };
 }  // namespace silo::initialize

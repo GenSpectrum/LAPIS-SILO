@@ -11,6 +11,7 @@
 #include "silo/append/database_inserter.h"
 #include "silo/append/ndjson_line_reader.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/common/phylo_tree.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/database_info.h"
 #include "silo/initialize/initializer.h"
@@ -42,9 +43,18 @@ std::shared_ptr<silo::Database> buildTestDatabase() {
       );
    }
 
+   silo::common::PhyloTree phylo_tree_file;
+   auto opt_path = config.initialization_files.getPhyloTreeFilename();
+   if (opt_path.has_value()) {
+      phylo_tree_file = silo::common::PhyloTree::fromFile(opt_path.value());
+   }
+
    auto database = std::make_shared<silo::Database>(
       silo::Database{silo::initialize::Initializer::createSchemaFromConfigFiles(
-         std::move(database_config), std::move(reference_genomes), std::move(lineage_tree)
+         std::move(database_config),
+         std::move(reference_genomes),
+         std::move(lineage_tree),
+         std::move(phylo_tree_file)
       )}
    );
    std::ifstream input(input_directory / "input.ndjson");

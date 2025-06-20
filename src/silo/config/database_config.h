@@ -24,6 +24,7 @@ class DatabaseMetadata {
    ValueType type;
    bool generate_index;
    bool generate_lineage_index;
+   bool phylo_tree_node_identifier;
 
    [[nodiscard]] schema::ColumnType getColumnType() const;
 };
