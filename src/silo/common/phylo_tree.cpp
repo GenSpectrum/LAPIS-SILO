@@ -218,7 +218,9 @@ PhyloTree PhyloTree::fromFile(const std::filesystem::path& path) {
    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
 
    if (ext != ".nwk" && ext != ".json") {
-      throw std::invalid_argument("Path must end with .nwk or .json");
+      throw silo::preprocessing::PreprocessingException(fmt::format(
+         "Error when parsing tree file: '{}'. Path must end with .nwk or .json", path.string()
+      ));
    }
    if (ext == ".nwk") {
       return common::PhyloTree::fromNewickFile(path);
