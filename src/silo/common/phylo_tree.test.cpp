@@ -36,10 +36,12 @@ TEST(PhyloTree, correctlyParsesFromJSON) {
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->depth, 1);
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->children.size(), 1);
    ASSERT_EQ(
-      phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->children.at(0)->node_id, TreeNodeId{"CHILD2"}
+      phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->children.at(0).lock()->node_id,
+      TreeNodeId{"CHILD2"}
    );
    ASSERT_EQ(
-      phylo_tree_file.nodes.at(TreeNodeId{"CHILD2"})->parent->get()->node_id, TreeNodeId{"CHILD"}
+      phylo_tree_file.nodes.at(TreeNodeId{"CHILD2"})->parent.value().lock()->node_id,
+      TreeNodeId{"CHILD"}
    );
 }
 
@@ -82,10 +84,12 @@ TEST(PhyloTree, correctlyParsesFromNewick) {
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->depth, 1);
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->children.size(), 1);
    ASSERT_EQ(
-      phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->children.at(0)->node_id, TreeNodeId{"CHILD2"}
+      phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->children.at(0).lock()->node_id,
+      TreeNodeId{"CHILD2"}
    );
    ASSERT_EQ(
-      phylo_tree_file.nodes.at(TreeNodeId{"CHILD2"})->parent->get()->node_id, TreeNodeId{"CHILD"}
+      phylo_tree_file.nodes.at(TreeNodeId{"CHILD2"})->parent.value().lock()->node_id,
+      TreeNodeId{"CHILD"}
    );
 }
 
@@ -99,10 +103,12 @@ TEST(PhyloTree, correctlyParsesFromNewickWithBranchLengths) {
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->depth, 1);
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->children.size(), 2);
    ASSERT_EQ(
-      phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->children.at(0)->node_id, TreeNodeId{"CHILD2"}
+      phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->children.at(0).lock()->node_id,
+      TreeNodeId{"CHILD2"}
    );
    ASSERT_EQ(
-      phylo_tree_file.nodes.at(TreeNodeId{"CHILD2"})->parent->get()->node_id, TreeNodeId{"CHILD"}
+      phylo_tree_file.nodes.at(TreeNodeId{"CHILD2"})->parent.value().lock()->node_id,
+      TreeNodeId{"CHILD"}
    );
 }
 

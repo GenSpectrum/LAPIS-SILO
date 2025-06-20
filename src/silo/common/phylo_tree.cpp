@@ -8,19 +8,19 @@
 #include <boost/serialization/export.hpp>
 #include <boost/serialization/optional.hpp>
 #include <boost/serialization/shared_ptr.hpp>
+#include <boost/serialization/unordered_map.hpp>
 #include <boost/serialization/vector.hpp>
+#include <boost/serialization/weak_ptr.hpp>
 
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/query_engine/batched_bitmap_reader.h"
 
-BOOST_CLASS_EXPORT(silo::common::TreeNode)
-
 namespace silo::common {
 using silo::common::TreeNodeId;
 
-std::shared_ptr<TreeNode> parse_auspice_tree(
+std::weak_ptr<TreeNode> parse_auspice_tree(
    const nlohmann::json& j,
-   std::optional<std::shared_ptr<TreeNode>> parent,
+   std::optional<std::weak_ptr<TreeNode>> parent,
    std::unordered_map<TreeNodeId, std::shared_ptr<TreeNode>>& node_map,
    int depth = 0
 ) {
@@ -47,7 +47,8 @@ std::shared_ptr<TreeNode> parse_auspice_tree(
       );
    }
    node_map[node->node_id] = node;
-   return node;
+   std::weak_ptr<TreeNode> weak = node;
+   return weak;
 }
 
 PhyloTree PhyloTree::fromAuspiceJSONString(const std::string& json_string) {
@@ -123,11 +124,11 @@ void skipWhitespace(std::string_view& sv) {
    }
 }
 
-std::shared_ptr<TreeNode> parseSubtree(
+std::weak_ptr<TreeNode> parseSubtree(
    std::string_view& sv,
    std::unordered_map<TreeNodeId, std::shared_ptr<TreeNode>>& node_map,
    int depth = 0,
-   std::optional<std::shared_ptr<TreeNode>> parent = std::nullopt
+   std::optional<std::weak_ptr<TreeNode>> parent = std::nullopt
 ) {
    auto node = std::make_shared<TreeNode>();
    node->depth = depth;
@@ -168,7 +169,9 @@ std::shared_ptr<TreeNode> parseSubtree(
    }
    node_map[node->node_id] = node;
 
-   return node;
+   std::weak_ptr<TreeNode> weak = node;
+
+   return weak;
 }
 
 PhyloTree PhyloTree::fromNewickString(const std::string& newick_string) {
@@ -265,17 +268,17 @@ roaring::Roaring PhyloTree::getDescendants(const TreeNodeId& node_id) {
    if (!child_it->second) {
       throw silo::preprocessing::PreprocessingException("Node is null.");
    }
-   std::function<void(const std::shared_ptr<TreeNode>&)> dfs =
-      [&](const std::shared_ptr<TreeNode>& current) {
-         if (!current)
-            return;
-         if (current->isLeaf()) {
-            if (current->row_index.has_value()) {
-               result_bitmap.add(current->row_index.value());
+   std::function<void(const std::weak_ptr<TreeNode>&)> dfs =
+      [&](const std::weak_ptr<TreeNode>& current) {
+         if (auto shared = current.lock()) {
+            if (shared->isLeaf()) {
+               if (shared->row_index.has_value()) {
+                  result_bitmap.add(shared->row_index.value());
+               }
             }
-         }
-         for (const auto& child : current->children) {
-            dfs(child);
+            for (const auto& child : shared->children) {
+               dfs(child);
+            }
          }
       };
    if (child_it->second->isLeaf()) {

@@ -3,6 +3,13 @@
 #include <filesystem>
 #include <vector>
 
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/export.hpp>
+#include <boost/serialization/optional.hpp>
+#include <boost/serialization/shared_ptr.hpp>
+#include <boost/serialization/unordered_map.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/weak_ptr.hpp>
 #include <nlohmann/json.hpp>
 
 #include "silo/common/tree_node_id.h"
@@ -16,8 +23,8 @@ class TreeNode {
    TreeNodeId node_id;
    std::optional<size_t> row_index;  // index of corresponding sequence in the database (will be
                                      // empty for internal nodes)
-   std::vector<std::shared_ptr<TreeNode>> children;
-   std::optional<std::shared_ptr<TreeNode>> parent;
+   std::vector<std::weak_ptr<TreeNode>> children;
+   std::optional<std::weak_ptr<TreeNode>> parent;
    int depth;
 
    bool isLeaf() { return children.empty(); }
