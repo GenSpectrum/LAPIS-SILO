@@ -48,7 +48,6 @@ class StringColumnMetadata : public ColumnMetadata {
          phylo_tree(std::move(phylo_tree)) {}
 
    StringColumnMetadata() = delete;
-
    StringColumnMetadata(const StringColumnMetadata& other) = delete;
    StringColumnMetadata(StringColumnMetadata&& other) = delete;
    StringColumnMetadata& operator=(const StringColumnMetadata& other) = delete;
