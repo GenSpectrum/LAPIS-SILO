@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <spdlog/spdlog.h>
+
 namespace silo::common {
 
 TEST(BidirectionalMap, correctStdStringDict) {
@@ -34,6 +36,22 @@ TEST(BidirectionalMap, correctStdStringDictWithExplicitInitialization) {
 
    EXPECT_EQ(under_test.getValue(0), std::string{"Now in dict"});
    EXPECT_EQ(under_test.getValue(1), std::string{"Second in dict"});
+}
+
+TEST(BidirectionalMap, correctRoundtripOfNonUtf8Data) {
+   BidirectionalMap<std::string> original_map;
+   std::string example_string = "ü:";
+   std::string non_utf8_string = example_string.substr(1);
+   original_map.getOrCreateId(non_utf8_string);
+
+   auto yaml = original_map.toYAML();
+   std::string serialized = YAML::Dump(yaml);
+   SPDLOG_INFO(serialized);
+   YAML::Node deserialized = YAML::Load(serialized);
+
+   auto under_test = BidirectionalMap<std::string>::fromYAML(deserialized);
+
+   EXPECT_TRUE(under_test.getId(non_utf8_string).has_value());
 }
 
 }  // namespace silo::common
