@@ -34,7 +34,6 @@ std::shared_ptr<TreeNode> parse_auspice_tree(
       node->children.push_back(child_node);
    }
 
-   // Insert node into the map *after* children so it's fully constructed
    node_map[node->node_id] = node;
    return node;
 }
