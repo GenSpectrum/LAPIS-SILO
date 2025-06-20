@@ -22,6 +22,20 @@ class TreeNode {
 
    bool isLeaf() { return children.empty(); }
    bool rowIndexExists() const { return row_index.has_value(); }
+
+   virtual ~TreeNode() = default;
+
+   friend class boost::serialization::access;
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+      // clang-format off
+    archive & node_id;
+    archive & row_index;
+    archive & children;
+    archive & parent;
+    archive & depth;
+      // clang-format on
+   }
 };
 
 class PhyloTree {
@@ -50,6 +64,14 @@ class PhyloTree {
    roaring::Roaring getDescendants(const TreeNodeId& node_id);
 
    roaring::Roaring getDescendants(const std::string& node_label);
+
+   friend class boost::serialization::access;
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+      // clang-format off
+      archive & nodes;
+      // clang-format on
+   }
 };
 
 }  // namespace silo::common

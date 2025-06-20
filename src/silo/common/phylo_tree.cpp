@@ -5,8 +5,15 @@
 
 #include <nlohmann/json.hpp>
 
+#include <boost/serialization/export.hpp>
+#include <boost/serialization/optional.hpp>
+#include <boost/serialization/shared_ptr.hpp>
+#include <boost/serialization/vector.hpp>
+
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/query_engine/batched_bitmap_reader.h"
+
+BOOST_CLASS_EXPORT(silo::common::TreeNode)
 
 namespace silo::common {
 using silo::common::TreeNodeId;
