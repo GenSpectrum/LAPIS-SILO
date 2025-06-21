@@ -8,10 +8,12 @@
 #include <vector>
 
 #include <boost/serialization/access.hpp>
+#include <boost/serialization/split_free.hpp>
 
 #include "silo/common/bidirectional_map.h"
 #include "silo/common/phylo_tree.h"
 #include "silo/common/string.h"
+#include "silo/common/tree_node_id.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/column_metadata.h"
 
@@ -94,6 +96,13 @@ class StringColumnPartition {
    ) const {
       return string.toString(metadata->dictionary);
    }
+
+   [[nodiscard]] inline roaring::Roaring getDescendants(const std::string& parent) const {
+      if (!metadata->phylo_tree.has_value()) {
+         return roaring::Roaring();
+      }
+      return metadata->phylo_tree->getDescendants(parent);
+   }
 };
 
 }  // namespace silo::storage::column
@@ -108,8 +117,7 @@ template <class Archive>
 ) {
    ar & object.column_name;
    ar & object.dictionary;
-   // TODO(#815) add serialization function for phylo_tree
-   // ar & object.phylo_tree;
+   ar & object.phylo_tree;
 }
 }  // namespace boost::serialization
 
@@ -123,20 +131,18 @@ template <class Archive>
 ) {
    std::string column_name;
    silo::common::BidirectionalMap<std::string> dictionary;
-   // TODO(#815) add serialization function for phylo_tree
-   // std::optional<silo::common::PhyloTree> phylo_tree;
+   std::optional<silo::common::PhyloTree> phylo_tree;
    ar & column_name;
    ar & dictionary;
-   // ar & phylo_tree;
-   //   if(phylo_tree.has_value()){
-   //      object = std::make_shared<silo::storage::column::StringColumnMetadata>(
-   //         std::move(column_name), std::move(dictionary), std::move(phylo_tree)
-   //      );
-   //   }
-   //   else{
-   object = std::make_shared<silo::storage::column::StringColumnMetadata>(
-      std::move(column_name), std::move(dictionary)
-   );
-   //   }
+   ar & phylo_tree;
+   if (phylo_tree.has_value()) {
+      object = std::make_shared<silo::storage::column::StringColumnMetadata>(
+         std::move(column_name), std::move(dictionary), std::move(phylo_tree.value())
+      );
+   } else {
+      object = std::make_shared<silo::storage::column::StringColumnMetadata>(
+         std::move(column_name), std::move(dictionary)
+      );
+   }
 }
 }  // namespace boost::serialization

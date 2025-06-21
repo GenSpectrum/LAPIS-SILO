@@ -15,6 +15,7 @@
 #include "silo/config/preprocessing_config.h"
 #include "silo/database.h"
 #include "silo/initialize/initialize_exception.h"
+#include "silo/schema/database_schema.h"
 #include "silo/storage/column/column_type_visitor.h"
 #include "silo/storage/column/zstd_compressed_string_column.h"
 #include "silo/storage/reference_genomes.h"

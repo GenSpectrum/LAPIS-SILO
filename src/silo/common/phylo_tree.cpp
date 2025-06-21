@@ -5,15 +5,22 @@
 
 #include <nlohmann/json.hpp>
 
+#include <boost/serialization/export.hpp>
+#include <boost/serialization/optional.hpp>
+#include <boost/serialization/shared_ptr.hpp>
+#include <boost/serialization/unordered_map.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/weak_ptr.hpp>
+
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/query_engine/batched_bitmap_reader.h"
 
 namespace silo::common {
 using silo::common::TreeNodeId;
 
-std::shared_ptr<TreeNode> parse_auspice_tree(
+std::weak_ptr<TreeNode> parse_auspice_tree(
    const nlohmann::json& j,
-   std::optional<std::shared_ptr<TreeNode>> parent,
+   std::optional<std::weak_ptr<TreeNode>> parent,
    std::unordered_map<TreeNodeId, std::shared_ptr<TreeNode>>& node_map,
    int depth = 0
 ) {
@@ -34,8 +41,14 @@ std::shared_ptr<TreeNode> parse_auspice_tree(
       node->children.push_back(child_node);
    }
 
+   if (node_map.find(node->node_id) != node_map.end()) {
+      throw silo::preprocessing::PreprocessingException(
+         fmt::format("Duplicate node ID found in Newick string: '{}'", node->node_id.string)
+      );
+   }
    node_map[node->node_id] = node;
-   return node;
+   std::weak_ptr<TreeNode> weak = node;
+   return weak;
 }
 
 PhyloTree PhyloTree::fromAuspiceJSONString(const std::string& json_string) {
@@ -111,11 +124,11 @@ void skipWhitespace(std::string_view& sv) {
    }
 }
 
-std::shared_ptr<TreeNode> parseSubtree(
+std::weak_ptr<TreeNode> parseSubtree(
    std::string_view& sv,
    std::unordered_map<TreeNodeId, std::shared_ptr<TreeNode>>& node_map,
    int depth = 0,
-   std::optional<std::shared_ptr<TreeNode>> parent = std::nullopt
+   std::optional<std::weak_ptr<TreeNode>> parent = std::nullopt
 ) {
    auto node = std::make_shared<TreeNode>();
    node->depth = depth;
@@ -149,9 +162,16 @@ std::shared_ptr<TreeNode> parseSubtree(
    node->node_id = parseLabel(sv);
    skipWhitespace(sv);
 
+   if (node_map.find(node->node_id) != node_map.end()) {
+      throw silo::preprocessing::PreprocessingException(
+         fmt::format("Duplicate node ID found in Newick string: '{}'", node->node_id.string)
+      );
+   }
    node_map[node->node_id] = node;
 
-   return node;
+   std::weak_ptr<TreeNode> weak = node;
+
+   return weak;
 }
 
 PhyloTree PhyloTree::fromNewickString(const std::string& newick_string) {
@@ -178,7 +198,7 @@ PhyloTree PhyloTree::fromNewickString(const std::string& newick_string) {
       }
    } catch (const std::exception& e) {
       throw silo::preprocessing::PreprocessingException(
-         fmt::format("Error when parsing the Newick string: '{}'", newick_string)
+         fmt::format("Error when parsing the Newick string '{}': {}", newick_string, e.what())
       );
    }
 
@@ -206,7 +226,7 @@ PhyloTree PhyloTree::fromNewickFile(const std::filesystem::path& newick_path) {
       return fromNewickString(contents.str());
    } catch (const std::exception& e) {
       throw silo::preprocessing::PreprocessingException(
-         fmt::format("Error when parsing the Newick file: '{}'", newick_path.string())
+         fmt::format("Error when parsing the Newick file '{}': {}", newick_path.string(), e.what())
       );
    }
 }
@@ -216,14 +236,60 @@ PhyloTree PhyloTree::fromFile(const std::filesystem::path& path) {
 
    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
 
+   if (ext != ".nwk" && ext != ".json") {
+      throw silo::preprocessing::PreprocessingException(fmt::format(
+         "Error when parsing tree file: '{}'. Path must end with .nwk or .json", path.string()
+      ));
+   }
    if (ext == ".nwk") {
       return common::PhyloTree::fromNewickFile(path);
    } else if (ext == ".json") {
       return common::PhyloTree::fromAuspiceJSONFile(path);
    }
-   throw silo::preprocessing::PreprocessingException(fmt::format(
-      "Error when parsing tree file: '{}'. Path must end with .nwk or .json", path.string()
-   ));
+}
+
+void PhyloTree::validateNodeExists(const TreeNodeId& node_id) {
+   if (nodes.find(node_id) == nodes.end()) {
+      throw silo::preprocessing::PreprocessingException(
+         fmt::format("Node '{}' not found in the tree.", node_id.string)
+      );
+   }
+}
+
+void PhyloTree::validateNodeExists(const std::string& node_label) {
+   auto node_id = TreeNodeId{node_label};
+   validateNodeExists(node_id);
+}
+
+roaring::Roaring PhyloTree::getDescendants(const TreeNodeId& node_id) {
+   validateNodeExists(node_id);
+   auto child_it = nodes.find(node_id);
+   roaring::Roaring result_bitmap;
+   if (!child_it->second) {
+      throw silo::preprocessing::PreprocessingException("Node is null.");
+   }
+   std::function<void(const std::weak_ptr<TreeNode>&)> dfs =
+      [&](const std::weak_ptr<TreeNode>& current) {
+         if (auto shared = current.lock()) {
+            if (shared->isLeaf()) {
+               if (shared->row_index.has_value()) {
+                  result_bitmap.add(shared->row_index.value());
+               }
+            }
+            for (const auto& child : shared->children) {
+               dfs(child);
+            }
+         }
+      };
+   if (child_it->second->isLeaf()) {
+      return result_bitmap;
+   }
+   dfs(child_it->second);
+   return result_bitmap;
+}
+
+roaring::Roaring PhyloTree::getDescendants(const std::string& node_label) {
+   return getDescendants(TreeNodeId{node_label});
 }
 
 }  // namespace silo::common
