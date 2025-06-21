@@ -13,6 +13,25 @@
 #include "silo/storage/column/column.h"
 #include "silo/storage/column/column_metadata.h"
 
+namespace boost {
+namespace serialization {
+
+template<class Archive>
+void serialize(Archive& ar, silo::schema::ColumnType& type, const unsigned int /*version*/) {
+    using Underlying = std::underlying_type<silo::schema::ColumnType>::type;
+    if constexpr (Archive::is_saving::value) {
+        Underlying val = static_cast<Underlying>(type);
+        ar & val;
+    } else {
+        Underlying val;
+        ar & val;
+        type = static_cast<silo::schema::ColumnType>(val);
+    }
+}
+
+} // namespace serialization
+} // namespace boost
+
 namespace silo::schema {
 
 enum class ColumnType {
@@ -29,7 +48,8 @@ enum class ColumnType {
 
 bool isSequenceColumn(ColumnType type);
 
-struct ColumnIdentifier {
+class ColumnIdentifier {
+  public:
    std::string name;
    silo::schema::ColumnType type;
 
@@ -96,7 +116,8 @@ class TableSchema {
    }
 
    template <storage::column::Column ColumnType>
-   const std::optional<typename ColumnType::Metadata*> getColumnMetadata(std::string_view name
+   const std::optional<typename ColumnType::Metadata*> getColumnMetadata(
+      std::string_view name
    ) const {
       auto it = std::ranges::find_if(column_metadata, [&name](const auto& metadata_pair) {
          return metadata_pair.first.name == name;
