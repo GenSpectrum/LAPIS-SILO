@@ -7,8 +7,8 @@
 #include <vector>
 
 #include <boost/serialization/access.hpp>
-#include <boost/serialization/split_member.hpp>
 #include <boost/serialization/enum.hpp>
+#include <boost/serialization/split_member.hpp>
 
 #include "silo/common/panic.h"
 #include "silo/storage/column/column.h"
