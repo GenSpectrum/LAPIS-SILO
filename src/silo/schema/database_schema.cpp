@@ -93,7 +93,6 @@ void TableSchema::save(Archive& archive, const unsigned int version) const {
       storage::column::visit(
          column_identifier.type, ColumnMetadataSaverByType{}, archive, metadata
       );
-      //      archive&* metadata;
    }
 }
 
@@ -113,6 +112,15 @@ void TableSchema::load(Archive& archive, const unsigned int version) {
       );
    }
 }
+
+template void TableSchema::save<boost::archive::binary_oarchive>(
+   boost::archive::binary_oarchive& archive,
+   const unsigned int version
+) const;
+template void TableSchema::load<boost::archive::binary_iarchive>(
+   boost::archive::binary_iarchive& archive,
+   const unsigned int version
+);
 
 TableName::TableName(std::string_view name) {
    for (char c : name) {
