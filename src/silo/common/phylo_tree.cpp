@@ -11,9 +11,9 @@
 namespace silo::common {
 using silo::common::TreeNodeId;
 
-std::shared_ptr<TreeNode> parse_auspice_tree(
+std::weak_ptr<TreeNode> parse_auspice_tree(
    const nlohmann::json& j,
-   std::optional<std::shared_ptr<TreeNode>> parent,
+   std::optional<std::weak_ptr<TreeNode>> parent,
    std::unordered_map<TreeNodeId, std::shared_ptr<TreeNode>>& node_map,
    int depth = 0
 ) {
@@ -34,8 +34,14 @@ std::shared_ptr<TreeNode> parse_auspice_tree(
       node->children.push_back(child_node);
    }
 
+   if (node_map.find(node->node_id) != node_map.end()) {
+      throw silo::preprocessing::PreprocessingException(
+         fmt::format("Duplicate node ID found in Newick string: '{}'", node->node_id.string)
+      );
+   }
    node_map[node->node_id] = node;
-   return node;
+   std::weak_ptr<TreeNode> weak = node;
+   return weak;
 }
 
 PhyloTree PhyloTree::fromAuspiceJSONString(const std::string& json_string) {
@@ -111,11 +117,11 @@ void skipWhitespace(std::string_view& sv) {
    }
 }
 
-std::shared_ptr<TreeNode> parseSubtree(
+std::weak_ptr<TreeNode> parseSubtree(
    std::string_view& sv,
    std::unordered_map<TreeNodeId, std::shared_ptr<TreeNode>>& node_map,
    int depth = 0,
-   std::optional<std::shared_ptr<TreeNode>> parent = std::nullopt
+   std::optional<std::weak_ptr<TreeNode>> parent = std::nullopt
 ) {
    auto node = std::make_shared<TreeNode>();
    node->depth = depth;
@@ -149,9 +155,16 @@ std::shared_ptr<TreeNode> parseSubtree(
    node->node_id = parseLabel(sv);
    skipWhitespace(sv);
 
+   if (node_map.find(node->node_id) != node_map.end()) {
+      throw silo::preprocessing::PreprocessingException(
+         fmt::format("Duplicate node ID found in Newick string: '{}'", node->node_id.string)
+      );
+   }
    node_map[node->node_id] = node;
 
-   return node;
+   std::weak_ptr<TreeNode> weak = node;
+
+   return weak;
 }
 
 PhyloTree PhyloTree::fromNewickString(const std::string& newick_string) {
@@ -178,7 +191,7 @@ PhyloTree PhyloTree::fromNewickString(const std::string& newick_string) {
       }
    } catch (const std::exception& e) {
       throw silo::preprocessing::PreprocessingException(
-         fmt::format("Error when parsing the Newick string: '{}'", newick_string)
+         fmt::format("Error when parsing the Newick string '{}': {}", newick_string, e.what())
       );
    }
 
@@ -205,9 +218,9 @@ PhyloTree PhyloTree::fromNewickFile(const std::filesystem::path& newick_path) {
    try {
       return fromNewickString(contents.str());
    } catch (const std::exception& e) {
-      throw silo::preprocessing::PreprocessingException(
-         fmt::format("Error when parsing the Newick file: '{}'", newick_path.string())
-      );
+      throw silo::preprocessing::PreprocessingException(fmt::format(
+         "Error when parsing the Newick string '{}': {}", newick_path.string(), e.what()
+      ));
    }
 }
 
