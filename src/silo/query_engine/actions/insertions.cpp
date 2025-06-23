@@ -96,8 +96,8 @@ InsertionAggregation<SymbolType>::validateFieldsAndPreFilterBitmaps(
                continue;
             }
             if (cardinality == table_partition.sequence_count) {
-               pre_filtered_bitmaps[sequence_name].bitmaps.emplace_back(
-                  filter, sequence_column.insertion_index
+               pre_filtered_bitmaps[sequence_name].full_bitmaps.emplace_back(
+                  cardinality, sequence_column.insertion_index
                );
             } else {
                if (filter.isMutable()) {
@@ -204,8 +204,8 @@ QueryResult InsertionAggregation<SymbolType>::execute(
    }
    return QueryResult::fromVector(std::move(insertion_counts));
 }
-template <typename SymbolType>
 
+template <typename SymbolType>
 std::vector<schema::ColumnIdentifier> InsertionAggregation<SymbolType>::getOutputSchema(
    const silo::schema::TableSchema& table_schema
 ) const {
