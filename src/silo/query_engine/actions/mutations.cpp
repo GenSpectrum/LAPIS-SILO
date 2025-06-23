@@ -25,7 +25,6 @@
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/exec_node/arrow_util.h"
 #include "silo/query_engine/exec_node/json_value_type_array_builder.h"
-#include "silo/query_engine/query_result.h"
 #include "silo/storage/column/column_type_visitor.h"
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/table_partition.h"
@@ -289,7 +288,7 @@ arrow::Result<QueryPlan> Mutations<SymbolType>::toQueryPlanImpl(
    std::shared_ptr<const storage::Table> table,
    std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
    const config::QueryOptions& query_options
-) {
+) const {
    std::vector<std::string> sequence_names_to_evaluate;
    for (const auto& sequence_name : sequence_names) {
       auto column_identifier = table->schema.getColumn(sequence_name);

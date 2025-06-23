@@ -13,10 +13,9 @@
 #include "silo/api/active_database.h"
 #include "silo/api/error_request_handler.h"
 #include "silo/query_engine/bad_request.h"
-#include "silo/query_engine/optimizer/query_plan_generator.h"
+#include "silo/query_engine/query.h"
 
 namespace silo::api {
-using silo::query_engine::QueryResultEntry;
 
 QueryHandler::QueryHandler(
    std::shared_ptr<ActiveDatabase> database_handle,
@@ -40,10 +39,8 @@ void QueryHandler::post(
    SPDLOG_INFO("Request Id [{}] - received query: {}", request_id, query_string);
 
    try {
-      query_engine::optimizer::QueryPlanGenerator query_plan_generator(database);
-
       auto query = query_engine::Query::parseQuery(query_string);
-      auto query_plan = query_plan_generator.createQueryPlan(query, query_options);
+      auto query_plan = query->toQueryPlan(database, query_options);
 
       response.set("data-version", database->getDataVersionTimestamp().value);
       response.setContentType("application/x-ndjson");

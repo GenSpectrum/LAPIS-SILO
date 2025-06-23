@@ -13,7 +13,6 @@
 #include "silo/query_engine/exec_node/arrow_util.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
-#include "silo/query_engine/query_result.h"
 #include "silo/storage/column/column_type_visitor.h"
 #include "silo/storage/table.h"
 

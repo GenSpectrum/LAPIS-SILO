@@ -13,7 +13,7 @@
 #include "silo/database.h"
 #include "silo/database_info.h"
 #include "silo/preprocessing/preprocessing_exception.h"
-#include "silo/query_engine/optimizer/query_plan_generator.h"
+#include "silo/query_engine/query.h"
 #include "silo/query_engine/query_plan.h"
 
 namespace {
@@ -810,11 +810,9 @@ TEST_P(PreprocessorTestFixture, shouldProcessData) {
 
    EXPECT_EQ(database_info.sequence_count, scenario.assertion.expected_sequence_count);
 
-   silo::query_engine::optimizer::QueryPlanGenerator query_plan_generator(database);
    auto query = silo::query_engine::Query::parseQuery(scenario.assertion.query);
-   auto query_plan = query_plan_generator.createQueryPlan(
-      query, silo::config::RuntimeConfig::withDefaults().query_options
-   );
+   auto query_plan =
+      query->toQueryPlan(database, silo::config::RuntimeConfig::withDefaults().query_options);
    std::stringstream actual_result_stream;
    query_plan.executeAndWrite(&actual_result_stream);
    nlohmann::json actual_ndjson_result_as_array = nlohmann::json::array();

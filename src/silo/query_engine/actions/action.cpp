@@ -25,78 +25,13 @@
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/exec_node/arrow_util.h"
-#include "silo/query_engine/exec_node/legacy_result_producer.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
 #include "silo/query_engine/exec_node/zstd_decompress_expression.h"
-#include "silo/query_engine/query_result.h"
 #include "silo/storage/column/column_type_visitor.h"
 
 namespace silo::query_engine::actions {
 
 Action::Action() = default;
-
-void Action::applySort(QueryResult& result) const {
-   auto& result_vector = result.entriesMut();
-
-   auto cmp = [&](const QueryResultEntry& entry1, const QueryResultEntry& entry2) {
-      for (const OrderByField& field : order_by_fields) {
-         if (entry1.fields.at(field.name) == entry2.fields.at(field.name)) {
-            continue;
-         }
-         return entry1.fields.at(field.name) < entry2.fields.at(field.name) ? field.ascending
-                                                                            : !field.ascending;
-      }
-      return false;
-   };
-   const size_t end_of_sort = std::min(
-      static_cast<size_t>(limit.value_or(result_vector.size()) + offset.value_or(0UL)),
-      result_vector.size()
-   );
-   if (randomize_seed) {
-      std::default_random_engine rng(*randomize_seed);
-      std::shuffle(
-         result_vector.begin(), result_vector.begin() + static_cast<int64_t>(end_of_sort), rng
-      );
-   }
-   if (!order_by_fields.empty()) {
-      if (end_of_sort < result_vector.size()) {
-         std::partial_sort(
-            result_vector.begin(),
-            result_vector.begin() + static_cast<int64_t>(end_of_sort),
-            result_vector.end(),
-            cmp
-         );
-      } else {
-         std::ranges::sort(result_vector, cmp);
-      }
-   }
-}
-
-void Action::applyOffsetAndLimit(QueryResult& result) const {
-   auto& result_vector = result.entriesMut();
-
-   size_t end_of_sort = std::min(
-      static_cast<size_t>(limit.value_or(result_vector.size()) + offset.value_or(0UL)),
-      result_vector.size()
-   );
-
-   if (offset.has_value() && offset.value() >= end_of_sort) {
-      result.clear();
-      return;
-   }
-
-   if (offset.has_value() && offset.value() > 0) {
-      auto begin = result_vector.begin() + offset.value();
-      auto end = end_of_sort < result_vector.size()
-                    ? result_vector.begin() + static_cast<int64_t>(end_of_sort)
-                    : result_vector.end();
-      std::copy(begin, end, result_vector.begin());
-      end_of_sort -= offset.value();
-   }
-   if (end_of_sort < result_vector.size()) {
-      result_vector.resize(end_of_sort);
-   }
-}
 
 void Action::setOrdering(
    const std::vector<OrderByField>& order_by_fields_,
@@ -127,64 +62,6 @@ std::optional<arrow::Ordering> Action::getOrdering() const {
    const auto null_placement =
       first_order_by_field.ascending ? NullPlacement::AtStart : NullPlacement::AtEnd;
    return arrow::Ordering{sort_keys, null_placement};
-}
-
-static const size_t MATERIALIZATION_CUTOFF = 10000;
-
-QueryResult Action::executeAndOrder(
-   std::shared_ptr<const storage::Table> table,
-
-   std::vector<CopyOnWriteBitmap> bitmap_filter
-) const {
-   validateOrderByFields(table->schema);
-
-   // Hacky solution to give the full feature set (randomization,
-   // sorting) for small result sets, and streaming without those
-   // features for larger ones.
-
-   size_t num_rows = 0;
-   for (auto& bitmap : bitmap_filter) {
-      num_rows += bitmap->cardinality();
-   }
-   const bool is_large = num_rows > MATERIALIZATION_CUTOFF;
-
-   QueryResult result = execute(table, std::move(bitmap_filter));
-
-   if (result.isMaterialized() || !is_large) {
-      SPDLOG_TRACE("materialized or small -> full featured sort, offset+limit");
-      result.materialize();
-      if (offset.has_value() && offset.value() >= result.entriesMut().size()) {
-         // Optimization: avoid sorting the result set, if the
-         // offset+limit yields an empty result.
-         return {};
-      }
-      applySort(result);
-      applyOffsetAndLimit(result);
-   } else {
-      // Report an error if the unimplemented limit / offset or sort
-      // features are relevant for the query.  Currently *assumes* that
-      // none of the actions actually implement limit+offset
-      auto error = [&](const std::string_view& what) {
-         throw BadRequest(fmt::format(
-            "{} not supported for streaming endpoints when returning more than {} rows, but got "
-            "{}",
-            what,
-            MATERIALIZATION_CUTOFF,
-            num_rows
-         ));
-      };
-      if (offset.has_value() && offset.value() > 0) {
-         error("offset");
-      }
-      if (limit.has_value()) {
-         error("limit");
-      }
-      if (!order_by_fields.empty()) {
-         error("sorting");
-      }
-   }
-
-   return result;
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming,misc-use-internal-linkage)
@@ -308,23 +185,6 @@ std::vector<schema::ColumnIdentifier> columnNamesToFields(
       fields.emplace_back(column_name, column.value().type);
    }
    return fields;
-}
-
-arrow::Result<QueryPlan> Action::toQueryPlanImpl(
-   std::shared_ptr<const storage::Table> table,
-   std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
-   const config::QueryOptions& query_options
-) {
-   ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
-   auto source_node = arrow_plan->EmplaceNode<exec_node::LegacyResultProducer>(
-      arrow_plan.get(),
-      getOutputSchema(table->schema),
-      table,
-      partition_filter_operators,
-      this,
-      query_options.materialization_cutoff
-   );
-   return QueryPlan::makeQueryPlan(arrow_plan, source_node);
 }
 
 QueryPlan Action::toQueryPlan(

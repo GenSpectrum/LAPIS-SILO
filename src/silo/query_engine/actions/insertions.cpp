@@ -21,7 +21,6 @@
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/exec_node/arrow_util.h"
-#include "silo/query_engine/query_result.h"
 #include "silo/storage/column/insertion_index.h"
 #include "silo/storage/table_partition.h"
 
@@ -206,7 +205,7 @@ arrow::Result<QueryPlan> InsertionAggregation<SymbolType>::toQueryPlanImpl(
    std::shared_ptr<const storage::Table> table,
    std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
    const config::QueryOptions& query_options
-) {
+) const {
    validateSequenceNames<SymbolType>(table, sequence_names);
    validateOrderByFields(table->schema);
    auto sequence_names_to_evaluate = sequence_names;
