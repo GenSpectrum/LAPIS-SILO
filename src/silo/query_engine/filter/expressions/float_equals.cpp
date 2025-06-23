@@ -32,7 +32,8 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> FloatEquals::co
 ) const {
    CHECK_SILO_QUERY(
       database_partition.columns.float_columns.contains(column_name),
-      fmt::format("The database does not contain the column '{}'", column_name)
+      "The database does not contain the column '{}'",
+      column_name
    );
 
    const auto& float_column = database_partition.columns.float_columns.at(column_name);

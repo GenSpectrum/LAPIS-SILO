@@ -47,8 +47,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) 
    CHECK_SILO_QUERY(json.contains("type"), "The field 'type' is required in any filter expression");
    CHECK_SILO_QUERY(
       json["type"].is_string(),
-      "The field 'type' in all filter expressions needs to be a string, but is: " +
-         json["type"].dump()
+      "The field 'type' in all filter expressions needs to be a string, but is: {}",
+      json["type"].dump()
    );
    const std::string expression_type = json["type"];
    if (expression_type == "True") {

@@ -190,12 +190,10 @@ void Mutations<SymbolType>::validateOrderByFields(const schema::TableSchema& /*t
          std::ranges::any_of(
             fields, [&](const std::string_view& result_field) { return result_field == field.name; }
          ),
-         fmt::format(
-            "OrderByField {} is not contained in the result of this operation. "
-            "Allowed values are {}.",
-            field.name,
-            fmt::join(fields, ", ")
-         )
+         "OrderByField {} is not contained in the result of this operation. "
+         "Allowed values are {}.",
+         field.name,
+         fmt::join(fields, ", ")
       );
    }
 }
@@ -295,8 +293,9 @@ arrow::Result<QueryPlan> Mutations<SymbolType>::toQueryPlanImpl(
       auto column_identifier = table->schema.getColumn(sequence_name);
       CHECK_SILO_QUERY(
          column_identifier.has_value() && column_identifier.value().type == SymbolType::COLUMN_TYPE,
-         "Database does not contain the " + std::string(SymbolType::SYMBOL_NAME_LOWER_CASE) +
-            " sequence with name: '" + sequence_name + "'"
+         "Database does not contain the {} sequence with name: '{}'",
+         SymbolType::SYMBOL_NAME_LOWER_CASE,
+         sequence_name
       );
       sequence_names_to_evaluate.emplace_back(sequence_name);
    }
@@ -434,17 +433,18 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Mutations<SymbolType>
    if (json.contains(SEQUENCE_NAMES_FIELD_NAME)) {
       CHECK_SILO_QUERY(
          json[SEQUENCE_NAMES_FIELD_NAME].is_array(),
-         "Mutations action can have the field " + SEQUENCE_NAMES_FIELD_NAME +
-            " of type array of "
-            "strings, but no other type"
+         "Mutations action can have the field {} of type array of "
+         "strings, but no other type",
+         SEQUENCE_NAMES_FIELD_NAME
       );
       for (const auto& child : json[SEQUENCE_NAMES_FIELD_NAME]) {
          CHECK_SILO_QUERY(
             child.is_string(),
-            "The field " + SEQUENCE_NAMES_FIELD_NAME +
-               " of Mutations action must have type "
-               "array, if present. Found:" +
-               child.dump()
+            "The field {}"
+            " of Mutations action must have type "
+            "array, if present. Found: {}",
+            SEQUENCE_NAMES_FIELD_NAME,
+            child.dump()
          );
          sequence_names.emplace_back(child.get<std::string>());
       }
@@ -452,11 +452,11 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Mutations<SymbolType>
 
    CHECK_SILO_QUERY(
       json.contains(MIN_PROPORTION_FIELD_NAME) && json[MIN_PROPORTION_FIELD_NAME].is_number(),
-      "Mutations action must contain the field " + MIN_PROPORTION_FIELD_NAME +
-         " of type number with limits [0.0, "
-         "1.0]. Only mutations are returned if the proportion of sequences having this mutation, "
-         "is at least " +
-         MIN_PROPORTION_FIELD_NAME
+      "Mutations action must contain the field {0}"
+      " of type number with limits [0.0, "
+      "1.0]. Only mutations are returned if the proportion of sequences having this mutation, "
+      "is at least {0}",
+      MIN_PROPORTION_FIELD_NAME
    );
    const double min_proportion = json[MIN_PROPORTION_FIELD_NAME].get<double>();
    if (min_proportion < 0 || min_proportion > 1) {
@@ -483,16 +483,14 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Mutations<SymbolType>
             });
          CHECK_SILO_QUERY(
             it != Mutations<SymbolType>::VALID_FIELDS.end(),
-            fmt::format(
-               "The attribute 'fields' contains an invalid field '{}'. Valid fields are {}.",
-               field,
-               boost::join(
-                  std::vector<std::string>{
-                     Mutations<SymbolType>::VALID_FIELDS.begin(),
-                     Mutations<SymbolType>::VALID_FIELDS.end()
-                  },
-                  ", "
-               )
+            "The attribute 'fields' contains an invalid field '{}'. Valid fields are {}.",
+            field,
+            boost::join(
+               std::vector<std::string>{
+                  Mutations<SymbolType>::VALID_FIELDS.begin(),
+                  Mutations<SymbolType>::VALID_FIELDS.end()
+               },
+               ", "
             )
          );
          fields.push_back(*it);

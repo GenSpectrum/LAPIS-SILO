@@ -33,7 +33,7 @@ std::vector<schema::ColumnIdentifier> Details::getOutputSchema(
    field_metadata.reserve(fields.size());
    for (const auto& field : fields) {
       auto column = table_schema.getColumn(field);
-      CHECK_SILO_QUERY(column.has_value(), "Metadata field " + field + " not found.");
+      CHECK_SILO_QUERY(column.has_value(), "Metadata field {} not found.", field);
       CHECK_SILO_QUERY(
          !isSequenceColumn(column.value().type),
          "The Details action does not support sequence-type columns for now."

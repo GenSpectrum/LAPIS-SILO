@@ -41,7 +41,8 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> IntBetween::com
 ) const {
    CHECK_SILO_QUERY(
       database_partition.columns.int_columns.contains(column_name),
-      fmt::format("The database does not contain the column '{}'", column_name)
+      "The database does not contain the column '{}'",
+      column_name
    );
 
    const auto& int_column = database_partition.columns.int_columns.at(column_name);

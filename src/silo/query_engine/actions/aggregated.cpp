@@ -35,8 +35,7 @@ std::vector<silo::schema::ColumnIdentifier> parseGroupByFields(
    for (const std::string& group_by_field : group_by_fields) {
       auto column = schema.getColumn(group_by_field);
       CHECK_SILO_QUERY(
-         column.has_value(),
-         fmt::format("Metadata field '{}' to group by not found", group_by_field)
+         column.has_value(), "Metadata field '{}' to group by not found", group_by_field
       );
       CHECK_SILO_QUERY(
          !isSequenceColumn(column.value().type),
@@ -89,8 +88,8 @@ void Aggregated::validateOrderByFields(const schema::TableSchema& schema) const 
                                             return metadata.name == field.name;
                                          }
                                       ),
-         "The orderByField '" + field.name +
-            "' cannot be ordered by, as it does not appear in the groupByFields."
+         "The orderByField '{}' cannot be ordered by, as it does not appear in the groupByFields.",
+         field.name
       );
    }
 }

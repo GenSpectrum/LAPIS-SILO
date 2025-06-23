@@ -41,12 +41,10 @@ std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
 ) const {
    CHECK_SILO_QUERY(
       sequence_name.has_value() || database.table->schema.getDefaultSequenceName<SymbolType>(),
-      fmt::format(
-         "Database does not have a default sequence name for {} Sequences. "
-         "You need to provide the sequence name with the {}Mutation filter.",
-         SymbolType::SYMBOL_NAME,
-         SymbolType::SYMBOL_NAME
-      )
+      "Database does not have a default sequence name for {} Sequences. "
+      "You need to provide the sequence name with the {}Mutation filter.",
+      SymbolType::SYMBOL_NAME,
+      SymbolType::SYMBOL_NAME
    );
 
    const auto valid_sequence_name =
@@ -60,12 +58,10 @@ std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
          .value();
    CHECK_SILO_QUERY(
       position_idx < column_metadata->reference_sequence.size(),
-      fmt::format(
-         "Has{}Mutation position is out of bounds {} > {}",
-         SymbolType::SYMBOL_NAME,
-         position_idx + 1,
-         seq_store_partition.metadata->reference_sequence.size()
-      )
+      "Has{}Mutation position is out of bounds {} > {}",
+      SymbolType::SYMBOL_NAME,
+      position_idx + 1,
+      seq_store_partition.metadata->reference_sequence.size()
    )
 
    auto ref_symbol = seq_store_partition.metadata->reference_sequence.at(position_idx);
@@ -99,16 +95,13 @@ template <typename SymbolType>
 void from_json(const nlohmann::json& json, std::unique_ptr<HasMutation<SymbolType>>& filter) {
    CHECK_SILO_QUERY(
       json.contains("position"),
-      fmt::format(
-         "The field 'position' is required in a Has{}Mutation expression", SymbolType::SYMBOL_NAME
-      )
+      "The field 'position' is required in a Has{}Mutation expression",
+      SymbolType::SYMBOL_NAME
    );
    CHECK_SILO_QUERY(
       json["position"].is_number_unsigned(),
-      fmt::format(
-         "The field 'position' in a Has{}Mutation expression needs to be an unsigned integer",
-         SymbolType::SYMBOL_NAME
-      )
+      "The field 'position' in a Has{}Mutation expression needs to be an unsigned integer",
+      SymbolType::SYMBOL_NAME
    );
    std::optional<std::string> nuc_sequence_name;
    if (json.contains("sequenceName")) {
