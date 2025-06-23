@@ -420,39 +420,49 @@ std::vector<schema::ColumnIdentifier> Mutations<SymbolType>::getOutputSchema(
    return output_fields;
 }
 
+namespace {
+
+const std::string SEQUENCE_NAMES_FIELD_NAME = "sequenceNames";
+const std::string MIN_PROPORTION_FIELD_NAME = "minProportion";
+
+}  // namespace
+
 template <typename SymbolType>
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Mutations<SymbolType>>& action) {
-   CHECK_SILO_QUERY(
-      !json.contains("sequenceName") ||
-         (json["sequenceName"].is_string() || json["sequenceName"].is_array()),
-      "Mutations action can have the field sequenceName of type string or an array of "
-      "strings, but no other type"
-   );
    std::vector<std::string> sequence_names;
-   if (json.contains("sequenceName") && json["sequenceName"].is_array()) {
-      for (const auto& child : json["sequenceName"]) {
+   if (json.contains(SEQUENCE_NAMES_FIELD_NAME)) {
+      CHECK_SILO_QUERY(
+         json[SEQUENCE_NAMES_FIELD_NAME].is_array(),
+         "Mutations action can have the field " + SEQUENCE_NAMES_FIELD_NAME +
+            " of type array of "
+            "strings, but no other type"
+      );
+      for (const auto& child : json[SEQUENCE_NAMES_FIELD_NAME]) {
          CHECK_SILO_QUERY(
             child.is_string(),
-            "The field sequenceName of Mutations action must have type string or an "
-            "array, if present. Found:" +
+            "The field " + SEQUENCE_NAMES_FIELD_NAME +
+               " of Mutations action must have type "
+               "array, if present. Found:" +
                child.dump()
          );
          sequence_names.emplace_back(child.get<std::string>());
       }
-   } else if (json.contains("sequenceName") && json["sequenceName"].is_string()) {
-      sequence_names.emplace_back(json["sequenceName"].get<std::string>());
    }
 
    CHECK_SILO_QUERY(
-      json.contains("minProportion") && json["minProportion"].is_number(),
-      "Mutations action must contain the field minProportion of type number with limits [0.0, "
-      "1.0]. Only mutations are returned if the proportion of sequences having this mutation, "
-      "is at least minProportion"
+      json.contains(MIN_PROPORTION_FIELD_NAME) && json[MIN_PROPORTION_FIELD_NAME].is_number(),
+      "Mutations action must contain the field " + MIN_PROPORTION_FIELD_NAME +
+         " of type number with limits [0.0, "
+         "1.0]. Only mutations are returned if the proportion of sequences having this mutation, "
+         "is at least " +
+         MIN_PROPORTION_FIELD_NAME
    );
-   const double min_proportion = json["minProportion"].get<double>();
+   const double min_proportion = json[MIN_PROPORTION_FIELD_NAME].get<double>();
    if (min_proportion < 0 || min_proportion > 1) {
-      throw BadRequest("Invalid proportion: minProportion must be in interval [0.0, 1.0]");
+      throw BadRequest(
+         "Invalid proportion: " + MIN_PROPORTION_FIELD_NAME + " must be in interval [0.0, 1.0]"
+      );
    }
 
    std::vector<std::string_view> fields;
