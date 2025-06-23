@@ -3,7 +3,6 @@
 #include <fstream>
 #include <sstream>
 
-#include <nlohmann/json.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/serialization/access.hpp>
@@ -13,6 +12,7 @@
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/utility.hpp>
 #include <boost/serialization/vector.hpp>
+#include <nlohmann/json.hpp>
 
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/query_engine/batched_bitmap_reader.h"
@@ -22,7 +22,6 @@ using silo::common::TreeNodeId;
 
 template <class Archive>
 void PhyloTree::save(Archive& archive, const unsigned int version) const {
-
    std::vector<TreeNodeId> node_ids;
    for (const auto& [node_id, _] : nodes) {
       node_ids.push_back(node_id);
@@ -36,10 +35,8 @@ void PhyloTree::save(Archive& archive, const unsigned int version) const {
    }
 }
 
-
 template <class Archive>
 void PhyloTree::load(Archive& archive, const unsigned int version) {
-
    std::vector<TreeNodeId> node_ids;
    archive & node_ids;
 
@@ -50,9 +47,14 @@ void PhyloTree::load(Archive& archive, const unsigned int version) {
    }
 }
 
-template void PhyloTree::save<boost::archive::binary_oarchive>(boost::archive::binary_oarchive&, const unsigned int) const;
-template void PhyloTree::load<boost::archive::binary_iarchive>(boost::archive::binary_iarchive&, const unsigned int);
-
+template void PhyloTree::save<boost::archive::binary_oarchive>(
+   boost::archive::binary_oarchive&,
+   const unsigned int
+) const;
+template void PhyloTree::load<boost::archive::binary_iarchive>(
+   boost::archive::binary_iarchive&,
+   const unsigned int
+);
 
 TreeNodeId parse_auspice_tree(
    const nlohmann::json& j,
