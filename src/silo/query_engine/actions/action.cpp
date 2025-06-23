@@ -191,17 +191,17 @@ void from_json(const nlohmann::json& json, OrderByField& field) {
    CHECK_SILO_QUERY(
       json.is_object() && json.contains("field") && json.contains("order") &&
          json["field"].is_string() && json["order"].is_string(),
-      "The orderByField '" + json.dump() +
-         "' must be either a string or an object containing the fields 'field':string and "
-         "'order':string, where the value of order is 'ascending' or 'descending'"
+      "The orderByField '{}' must be either a string or an object containing the fields "
+      "'field':string and 'order':string, where the value of order is 'ascending' or 'descending'",
+      json.dump()
    );
    const std::string field_name = json["field"].get<std::string>();
    const std::string order_string = json["order"].get<std::string>();
    CHECK_SILO_QUERY(
       order_string == "ascending" || order_string == "descending",
-      "The orderByField '" + json.dump() +
-         "' must be either a string or an object containing the fields 'field':string and "
-         "'order':string, where the value of order is 'ascending' or 'descending'"
+      "The orderByField '{}' must be either a string or an object containing the fields "
+      "'field':string and 'order':string, where the value of order is 'ascending' or 'descending'",
+      json.dump()
    );
    field = {.name = field_name, .ascending = order_string == "ascending"};
 }
@@ -251,7 +251,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
    CHECK_SILO_QUERY(json.contains("type"), "The field 'type' is required in any action");
    CHECK_SILO_QUERY(
       json["type"].is_string(),
-      "The field 'type' in all actions needs to be a string, but is: " + json["type"].dump()
+      "The field 'type' in all actions needs to be a string, but is: {}",
+      json["type"].dump()
    );
    const std::string expression_type = json["type"];
    if (expression_type == "Aggregated") {
@@ -298,9 +299,7 @@ std::vector<schema::ColumnIdentifier> columnNamesToFields(
    std::vector<schema::ColumnIdentifier> fields;
    for (const auto& column_name : column_names) {
       auto column = table_schema.getColumn(column_name);
-      CHECK_SILO_QUERY(
-         column.has_value(), fmt::format("The table does not contain the field {}", column_name)
-      );
+      CHECK_SILO_QUERY(column.has_value(), "The table does not contain the field {}", column_name);
       fields.emplace_back(column_name, column.value().type);
    }
    return fields;

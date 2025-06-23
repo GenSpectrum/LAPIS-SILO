@@ -150,10 +150,10 @@ void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains<Sym
    CHECK_SILO_QUERY(
       validateInsertionSearchValue<SymbolType>(value),
       "The field 'value' in the InsertionContains expression does not contain a valid regex "
-      "pattern: \"" +
-         value + "\". It must only consist of " + std::string(SymbolType::SYMBOL_NAME_LOWER_CASE) +
-         " symbols and the regex symbol '.*'. Also note that the stop codon * must be escaped "
-         "correctly with a \\ in amino acid queries."
+      "pattern: \"{}\". It must only consist of {} symbols and the regex symbol '.*'. Also note "
+      "that the stop codon * must be escaped correctly with a \\ in amino acid queries.",
+      value,
+      SymbolType::SYMBOL_NAME_LOWER_CASE
    );
    filter = std::make_unique<InsertionContains<SymbolType>>(sequence_name, position_idx, value);
 }

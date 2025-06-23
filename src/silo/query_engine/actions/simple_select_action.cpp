@@ -21,12 +21,10 @@ void SimpleSelectAction::validateOrderByFields(const schema::TableSchema& schema
    for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
          std::ranges::find(output_schema_fields, field.name) != std::end(output_schema_fields),
-         fmt::format(
-            "OrderByField {} is not contained in the result of this operation. "
-            "The only fields returned by this action are {}",
-            field.name,
-            fmt::join(output_schema_fields, ", ")
-         )
+         "OrderByField {} is not contained in the result of this operation. "
+         "The only fields returned by this action are {}",
+         field.name,
+         fmt::join(output_schema_fields, ", ")
       )
    }
 }

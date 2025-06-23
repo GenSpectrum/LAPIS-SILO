@@ -35,7 +35,8 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> StringEquals::c
    CHECK_SILO_QUERY(
       database_partition.columns.string_columns.contains(column_name) ||
          database_partition.columns.indexed_string_columns.contains(column_name),
-      fmt::format("The database does not contain the column '{}'", column_name)
+      "The database does not contain the column '{}'",
+      column_name
    );
 
    if (database_partition.columns.indexed_string_columns.contains(column_name)) {

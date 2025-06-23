@@ -3,9 +3,9 @@
 #include <stdexcept>
 #include <string>
 
-#define CHECK_SILO_QUERY(condition, message) \
-   if (!(condition)) {                       \
-      throw silo::BadRequest(message);       \
+#define CHECK_SILO_QUERY(condition, ...)                \
+   if (!(condition)) {                                  \
+      throw silo::BadRequest(fmt::format(__VA_ARGS__)); \
    }
 
 namespace silo {

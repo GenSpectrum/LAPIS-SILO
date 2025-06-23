@@ -47,9 +47,9 @@ std::optional<const roaring::Roaring*> LineageFilter::getBitmapForValue(
 
    CHECK_SILO_QUERY(
       value_id_opt.has_value(),
-      fmt::format(
-         "The lineage '{}' is not a valid lineage for column '{}'.", lineage.value(), column_name
-      )
+      "The lineage '{}' is not a valid lineage for column '{}'.",
+      lineage.value(),
+      column_name
    );
 
    const Idx value_id = value_id_opt.value();
@@ -67,13 +67,15 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> LineageFilter::
 ) const {
    CHECK_SILO_QUERY(
       database_partition.columns.indexed_string_columns.contains(column_name),
-      fmt::format("The database does not contain the column '{}'", column_name)
+      "The database does not contain the column '{}'",
+      column_name
    );
    CHECK_SILO_QUERY(
       database_partition.columns.indexed_string_columns.at(column_name)
          .getLineageIndex()
          .has_value(),
-      fmt::format("The database does not contain a lineage index for the column '{}'", column_name)
+      "The database does not contain a lineage index for the column '{}'",
+      column_name
    );
 
    const auto& lineage_column = database_partition.columns.indexed_string_columns.at(column_name);

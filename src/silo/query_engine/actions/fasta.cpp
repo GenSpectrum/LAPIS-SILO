@@ -36,7 +36,8 @@ std::vector<schema::ColumnIdentifier> Fasta::getOutputSchema(
       };
       CHECK_SILO_QUERY(
          std::ranges::find(columns_in_database, column_identifier) != columns_in_database.end(),
-         "Database does not contain an unaligned sequence with name: '" + sequence_name + "'"
+         "Database does not contain an unaligned sequence with name: '{}'",
+         sequence_name
       )
       fields.emplace_back(column_identifier);
    }
@@ -55,8 +56,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Fasta>& action) {
       CHECK_SILO_QUERY(
          child.is_string(),
          "The Fasta action requires a sequenceNames field, which must be an array of strings; "
-         "while parsing array encountered the element " +
-            child.dump() + " which is not of type string"
+         "while parsing array encountered the element {} which is not of type string",
+         child.dump()
       );
       sequence_names.emplace_back(child.get<std::string>());
    }

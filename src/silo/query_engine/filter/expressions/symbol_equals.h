@@ -54,6 +54,9 @@ class SymbolEquals : public Expression {
       const storage::TablePartition& database_partition,
       AmbiguityMode mode
    ) const override;
+
+  private:
+   static std::string getFilterName() { return fmt::format("{}Equals", SymbolType::SYMBOL_NAME); }
 };
 
 template <typename SymbolType>

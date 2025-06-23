@@ -74,12 +74,10 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<Sy
 ) const {
    CHECK_SILO_QUERY(
       sequence_name.has_value() || database.table->schema.getDefaultSequenceName<SymbolType>(),
-      fmt::format(
-         "Database does not have a default sequence name for {} Sequences. "
-         "You need to provide the sequence name with the {}Equals filter.",
-         SymbolType::SYMBOL_NAME,
-         SymbolType::SYMBOL_NAME
-      )
+      "Database does not have a default sequence name for {} sequences. "
+      "You need to provide the sequence name with the {} filter.",
+      SymbolType::SYMBOL_NAME,
+      getFilterName()
    );
 
    const auto valid_sequence_name =
@@ -90,12 +88,10 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<Sy
 
    CHECK_SILO_QUERY(
       position_idx < seq_store_partition.metadata->reference_sequence.size(),
-      fmt::format(
-         "{}Equals position is out of bounds {} > {}",
-         SymbolType::SYMBOL_NAME,
-         position_idx + 1,
-         seq_store_partition.metadata->reference_sequence.size()
-      )
+      "{} position is out of bounds {} > {}",
+      getFilterName(),
+      position_idx + 1,
+      seq_store_partition.metadata->reference_sequence.size()
    )
 
    auto symbol = value.getSymbolOrReplaceDotWith(
@@ -227,10 +223,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<SymbolEquals<SymbolTy
       SymbolType::charToSymbol(symbol.at(0));
    CHECK_SILO_QUERY(
       symbol_value.has_value(),
-      fmt::format(
-         "The string field 'symbol' must be either a valid {} symbol or the '.' symbol.",
-         SymbolType::SYMBOL_NAME
-      )
+      "The string field 'symbol' must be either a valid {} symbol or the '.' symbol.",
+      SymbolType::SYMBOL_NAME
    );
    filter = std::make_unique<SymbolEquals<SymbolType>>(sequence_name, position_idx, *symbol_value);
 }

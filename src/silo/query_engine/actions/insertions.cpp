@@ -48,12 +48,10 @@ void InsertionAggregation<
             result_field_names,
             [&](const std::string& result_field) { return result_field == field.name; }
          ),
-         fmt::format(
-            "OrderByField {} is not contained in the result of this operation. "
-            "Allowed values are {}.",
-            field.name,
-            fmt::join(result_field_names, ", ")
-         )
+         "OrderByField {} is not contained in the result of this operation. "
+         "Allowed values are {}.",
+         field.name,
+         fmt::join(result_field_names, ", ")
       );
    }
 }
@@ -68,8 +66,9 @@ void validateSequenceNames(
       auto column = table->schema.getColumn(sequence_name);
       CHECK_SILO_QUERY(
          column.has_value() && column.value().type == SymbolType::COLUMN_TYPE,
-         "The database does not contain the " + std::string(SymbolType::SYMBOL_NAME) +
-            " sequence '" + sequence_name + "'"
+         "The database does not contain the {} sequence '{}'",
+         SymbolType::SYMBOL_NAME,
+         sequence_name
       );
    }
 }
@@ -228,8 +227,8 @@ void from_json(
    CHECK_SILO_QUERY(
       !json.contains("sequenceName") || json["sequenceName"].is_string() ||
          json["sequenceName"].is_array(),
-      "The field 'sequenceName' of the insertions action must be of type string or array, was " +
-         std::string(json["sequenceName"].type_name())
+      "The field 'sequenceName' of the insertions action must be of type string or array, was ",
+      std::string(json["sequenceName"].type_name())
    );
    std::vector<std::string> sequence_names;
    if (json.contains("sequenceName") && json["sequenceName"].is_array()) {
@@ -237,8 +236,8 @@ void from_json(
          CHECK_SILO_QUERY(
             child.is_string(),
             "The field sequenceName of the Insertions action must have type string or an "
-            "array, if present. Found:" +
-               child.dump()
+            "array, if present. Found:",
+            child.dump()
          );
          sequence_names.emplace_back(child.get<std::string>());
       }

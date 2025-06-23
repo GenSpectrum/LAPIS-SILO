@@ -58,7 +58,8 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> StringSearch::c
    CHECK_SILO_QUERY(
       database_partition.columns.string_columns.contains(column_name) ||
          database_partition.columns.indexed_string_columns.contains(column_name),
-      fmt::format("The database does not contain the string column '{}'", column_name)
+      "The database does not contain the string column '{}'",
+      column_name
    )
 
    if (database_partition.columns.indexed_string_columns.contains(column_name)) {
@@ -96,11 +97,9 @@ void from_json(const nlohmann::json& json, std::unique_ptr<StringSearch>& filter
    auto search_expression = std::make_unique<re2::RE2>(search_expression_string);
    CHECK_SILO_QUERY(
       search_expression->ok(),
-      fmt::format(
-         "Invalid Regular Expression. The parsing of the regular expression failed with the error "
-         "'{}'. See https://github.com/google/re2/wiki/Syntax for a Syntax specification.",
-         search_expression->error()
-      )
+      "Invalid Regular Expression. The parsing of the regular expression failed with the error "
+      "'{}'. See https://github.com/google/re2/wiki/Syntax for a Syntax specification.",
+      search_expression->error()
    )
    filter = std::make_unique<StringSearch>(column, std::move(search_expression));
 }
