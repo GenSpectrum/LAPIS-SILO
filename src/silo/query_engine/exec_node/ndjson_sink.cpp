@@ -20,6 +20,11 @@ class ScalarToJsonTypeVisitor : public arrow::ScalarVisitor {
       return arrow::Status::OK();
    }
 
+   arrow::Status Visit(const arrow::Int64Scalar& scalar) override {
+      *output_stream << scalar.value;
+      return arrow::Status::OK();
+   }
+
    arrow::Status Visit(const arrow::DoubleScalar& scalar) override {
       nlohmann::json j = scalar.value;
       *output_stream << j;

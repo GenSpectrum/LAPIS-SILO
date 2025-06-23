@@ -14,7 +14,6 @@
 #include "silo/database.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
-#include "silo/query_engine/query_result.h"
 
 using silo::common::add1;
 using silo::common::Range;

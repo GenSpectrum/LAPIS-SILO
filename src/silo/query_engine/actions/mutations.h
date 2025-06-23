@@ -16,7 +16,6 @@
 #include "silo/common/symbol_map.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/exec_node/json_value_type_array_builder.h"
-#include "silo/query_engine/query_result.h"
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/table.h"
 
@@ -91,18 +90,11 @@ class Mutations : public Action {
 
    void validateOrderByFields(const schema::TableSchema& schema) const override;
 
-   QueryResult execute(
-      std::shared_ptr<const storage::Table> table,
-      std::vector<CopyOnWriteBitmap> bitmap_filter
-   ) const override {
-      SILO_PANIC("Legacy execute called on already migrated action. Programming error.");
-   }
-
    arrow::Result<QueryPlan> toQueryPlanImpl(
       std::shared_ptr<const storage::Table> table,
       std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
       const config::QueryOptions& query_options
-   ) override;
+   ) const override;
 
   public:
    explicit Mutations(

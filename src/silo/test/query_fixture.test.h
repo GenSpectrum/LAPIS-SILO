@@ -18,7 +18,7 @@
 #include "silo/database.h"
 #include "silo/database_info.h"
 #include "silo/initialize/initializer.h"
-#include "silo/query_engine/optimizer/query_plan_generator.h"
+#include "silo/query_engine/query.h"
 #include "silo/query_engine/query_plan.h"
 #include "silo/storage/reference_genomes.h"
 
@@ -104,20 +104,18 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
          scenario.query_options.value_or(config::RuntimeConfig::withDefaults().query_options);
       if (!scenario.expected_error_message.empty()) {
          try {
-            silo::query_engine::optimizer::QueryPlanGenerator query_plan_generator(shared_database);
             auto query = query_engine::Query::parseQuery(scenario.query.dump());
             std::stringstream buffer;
-            auto query_plan = query_plan_generator.createQueryPlan(query, query_options);
+            auto query_plan = query->toQueryPlan(shared_database, query_options);
             query_plan.executeAndWrite(&buffer);
             FAIL() << "Expected an error in test case, but noting was thrown";
          } catch (const std::exception& e) {
             EXPECT_EQ(std::string(e.what()), scenario.expected_error_message);
          }
       } else {
-         silo::query_engine::optimizer::QueryPlanGenerator query_plan_generator(shared_database);
          auto query = query_engine::Query::parseQuery(scenario.query.dump());
          std::stringstream buffer;
-         auto query_plan = query_plan_generator.createQueryPlan(query, query_options);
+         auto query_plan = query->toQueryPlan(shared_database, query_options);
          query_plan.executeAndWrite(&buffer);
          nlohmann::json actual_ndjson_result_as_array = nlohmann::json::array();
          std::string line;

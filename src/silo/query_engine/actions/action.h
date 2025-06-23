@@ -13,7 +13,6 @@
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/query_plan.h"
-#include "silo/query_engine/query_result.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
@@ -31,19 +30,7 @@ class Action {
    std::optional<uint32_t> offset;
    std::optional<uint32_t> randomize_seed;
 
-   // TODO(#758) Legacy sort, should be removed
-   void applySort(QueryResult& result) const;
-   void applyOffsetAndLimit(QueryResult& result) const;
-
    virtual void validateOrderByFields(const schema::TableSchema& schema) const = 0;
-
-   // TODO(#758) Legacy query engine implementations, should be removed
-   [[nodiscard]] virtual QueryResult execute(
-      /// Life time: until query result was delivered (and the lock
-      /// inside `FixedDatabase` is released)
-      std::shared_ptr<const storage::Table> table,
-      std::vector<CopyOnWriteBitmap> bitmap_filter
-   ) const = 0;
 
   public:
    Action();
@@ -68,18 +55,12 @@ class Action {
       const silo::schema::TableSchema& table_schema
    ) const = 0;
 
-   [[nodiscard]] virtual QueryResult executeAndOrder(
-      std::shared_ptr<const storage::Table> table,
-      std::vector<CopyOnWriteBitmap> bitmap_filter
-   ) const;
-
   private:
-   // If this method is not overloaded, a LegacyResultProducer will be created instead
    virtual arrow::Result<QueryPlan> toQueryPlanImpl(
       std::shared_ptr<const storage::Table> table,
       std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
       const config::QueryOptions& query_options
-   );
+   ) const = 0;
 
   protected:
    arrow::Result<arrow::acero::ExecNode*> addSortNode(

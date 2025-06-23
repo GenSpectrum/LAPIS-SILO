@@ -8,10 +8,8 @@
 #include <oneapi/tbb/parallel_for.h>
 
 #include "silo/query_engine/actions/action.h"
-#include "silo/query_engine/actions/tuple.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
-#include "silo/query_engine/query_result.h"
 #include "silo/storage/column_group.h"
 
 namespace silo::query_engine::actions {

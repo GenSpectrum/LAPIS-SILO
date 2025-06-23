@@ -33,7 +33,7 @@ arrow::Result<QueryPlan> SimpleSelectAction::toQueryPlanImpl(
    std::shared_ptr<const storage::Table> table,
    std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
    const config::QueryOptions& query_options
-) {
+) const {
    validateOrderByFields(table->schema);
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
    arrow::acero::ExecNode* node = arrow_plan->EmplaceNode<exec_node::TableScan>(

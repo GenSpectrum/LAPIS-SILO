@@ -7,23 +7,22 @@
 #include <variant>
 #include <vector>
 
+#include <arrow/acero/options.h>
+#include <arrow/compute/api.h>
+#include <arrow/compute/expression.h>
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/parallel_for.h>
 #include <nlohmann/json.hpp>
 
 #include "silo/config/database_config.h"
 #include "silo/query_engine/actions/action.h"
-#include "silo/query_engine/actions/tuple.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
-#include "silo/query_engine/query_result.h"
+#include "silo/query_engine/exec_node/table_scan.h"
 #include "silo/storage/column_group.h"
 #include "silo/storage/table.h"
 
 using silo::query_engine::CopyOnWriteBitmap;
-using silo::query_engine::QueryResult;
-using silo::query_engine::QueryResultEntry;
-using silo::query_engine::actions::Tuple;
 
 namespace {
 
@@ -47,27 +46,6 @@ std::vector<silo::schema::ColumnIdentifier> parseGroupByFields(
 }
 
 const std::string COUNT_FIELD = "count";
-
-std::vector<QueryResultEntry> generateResult(std::unordered_map<Tuple, uint32_t>& tuple_counts) {
-   std::vector<QueryResultEntry> result;
-   result.reserve(tuple_counts.size());
-   for (auto& [tuple, count] : tuple_counts) {
-      std::map<std::string, silo::common::JsonValueType> fields = tuple.getFields();
-      fields[COUNT_FIELD] = static_cast<int32_t>(count);
-      result.push_back({fields});
-   }
-   return result;
-}
-
-QueryResult aggregateWithoutGrouping(const std::vector<CopyOnWriteBitmap>& bitmap_filters) {
-   uint32_t count = 0;
-   for (const auto& filter : bitmap_filters) {
-      count += filter->cardinality();
-   }
-   std::map<std::string, silo::common::JsonValueType> tuple_fields;
-   tuple_fields[COUNT_FIELD] = static_cast<int32_t>(count);
-   return QueryResult::fromVector(std::vector<QueryResultEntry>{{tuple_fields}});
-}
 
 }  // namespace
 
@@ -94,65 +72,107 @@ void Aggregated::validateOrderByFields(const schema::TableSchema& schema) const 
    }
 }
 
-QueryResult Aggregated::execute(
+arrow::Result<QueryPlan> Aggregated::toQueryPlanImpl(
    std::shared_ptr<const storage::Table> table,
-   std::vector<CopyOnWriteBitmap> bitmap_filters
+   std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
+   const config::QueryOptions& query_options
 ) const {
+   validateOrderByFields(table->schema);
+
    if (group_by_fields.empty()) {
-      return aggregateWithoutGrouping(bitmap_filters);
+      return makeAggregateWithoutGrouping(table, partition_filter_operators, query_options);
+   } else {
+      return makeAggregateWithGrouping(table, partition_filter_operators, query_options);
    }
-   // TODO(#133) optimize single field groupby
+}
 
-   const std::vector<silo::schema::ColumnIdentifier> group_by_metadata =
-      parseGroupByFields(table->schema, group_by_fields);
-
-   std::vector<std::unordered_map<Tuple, uint32_t>> tuple_maps;
-   std::vector<TupleFactory> tuple_factories;
-
-   for (size_t partition_idx = 0; partition_idx < table->getNumberOfPartitions(); ++partition_idx) {
-      tuple_maps.emplace_back();
-      tuple_factories.emplace_back(table->getPartition(partition_idx).columns, group_by_metadata);
-   }
-
-   tbb::parallel_for(
-      tbb::blocked_range<uint32_t>(0, table->getNumberOfPartitions()),
-      [&](tbb::blocked_range<uint32_t> range) {
-         for (uint32_t partition_id = range.begin(); partition_id != range.end(); ++partition_id) {
-            TupleFactory& tuple_factory = tuple_factories.at(partition_id);
-            std::unordered_map<Tuple, uint32_t>& map = tuple_maps.at(partition_id);
-            CopyOnWriteBitmap& bitmap = bitmap_filters[partition_id];
-
-            auto iterator = bitmap->begin();
-            auto end = bitmap->end();
-            if (iterator != end) {
-               Tuple current_tuple = tuple_factory.allocateOne(*iterator);
-               map.emplace(tuple_factory.copyTuple(current_tuple), 1);
-               iterator++;
-               for (; iterator != end; iterator++) {
-                  tuple_factory.overwrite(current_tuple, *iterator);
-                  if (map.contains(current_tuple)) {
-                     ++map.at(current_tuple);
-                  } else {
-                     map.emplace(tuple_factory.copyTuple(current_tuple), 1);
-                  }
-               }
-            }
-         }
+arrow::Result<QueryPlan> Aggregated::makeAggregateWithoutGrouping(
+   std::shared_ptr<const storage::Table> table,
+   std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
+   const config::QueryOptions& /*query_options*/
+) const {
+   std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
+      [table, partition_filter_operators, produced = false](
+      ) mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
+      if (produced == true) {
+         std::optional<arrow::ExecBatch> result = std::nullopt;
+         return arrow::Future{result};
       }
+      produced = true;
+
+      int32_t result_count = 0;
+
+      for (const auto& partition_filter_operator : *partition_filter_operators) {
+         result_count += partition_filter_operator->evaluate()->cardinality();
+      }
+
+      arrow::Int32Builder result_builder{};
+      ARROW_RETURN_NOT_OK(result_builder.Append(result_count));
+
+      arrow::Datum datum;
+      ARROW_ASSIGN_OR_RAISE(datum, result_builder.Finish());
+
+      ARROW_ASSIGN_OR_RAISE(
+         std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make({datum})
+      );
+      return arrow::Future{result};
+   };
+
+   ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
+
+   arrow::acero::SourceNodeOptions options{
+      exec_node::columnsToArrowSchema(getOutputSchema(table->schema)),
+      std::move(producer),
+      arrow::Ordering::Implicit()
+   };
+   ARROW_ASSIGN_OR_RAISE(
+      auto node, arrow::acero::MakeExecNode("source", arrow_plan.get(), {}, options)
    );
-   std::unordered_map<Tuple, uint32_t> final_map;
-   for (uint32_t partition_id = 0; partition_id != table->getNumberOfPartitions(); ++partition_id) {
-      auto& tuple_factory = tuple_factories.at(partition_id);
-      auto& map = tuple_maps.at(partition_id);
-      for (auto& [tuple, value] : map) {
-         if (final_map.contains(tuple)) {
-            final_map.at(tuple) += value;
-         } else {
-            final_map.emplace(tuple_factory.copyTuple(tuple), value);
-         }
-      }
+
+   return QueryPlan::makeQueryPlan(arrow_plan, node);
+}
+
+arrow::Result<QueryPlan> Aggregated::makeAggregateWithGrouping(
+   std::shared_ptr<const storage::Table> table,
+   std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
+   const config::QueryOptions& query_options
+) const {
+   ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
+
+   std::vector<schema::ColumnIdentifier> group_by_fields_identifiers =
+      columnNamesToFields(group_by_fields, table->schema);
+
+   arrow::acero::ExecNode* node = arrow_plan->EmplaceNode<exec_node::TableScan>(
+      arrow_plan.get(),
+      group_by_fields_identifiers,
+      partition_filter_operators,
+      table,
+      query_options.materialization_cutoff
+   );
+
+   auto count_options =
+      std::make_shared<arrow::compute::CountOptions>(arrow::compute::CountOptions::CountMode::ALL);
+   arrow::compute::Aggregate aggregate{
+      "hash_count_all", count_options, std::vector<arrow::FieldRef>{}, COUNT_FIELD
+   };
+
+   std::vector<arrow::FieldRef> field_refs;
+   for (auto group_by_field : group_by_fields_identifiers) {
+      field_refs.emplace_back(arrow::FieldRef{group_by_field.name});
    }
-   return QueryResult::fromVector(generateResult(final_map));
+   arrow::acero::AggregateNodeOptions aggregate_node_options({aggregate}, field_refs);
+   ARROW_ASSIGN_OR_RAISE(
+      node,
+      arrow::acero::MakeExecNode("aggregate", arrow_plan.get(), {node}, aggregate_node_options)
+   );
+
+   ARROW_ASSIGN_OR_RAISE(node, addSortNode(arrow_plan.get(), node, table->schema));
+
+   ARROW_ASSIGN_OR_RAISE(node, addLimitAndOffsetNode(arrow_plan.get(), node));
+
+   ARROW_ASSIGN_OR_RAISE(node, addZstdDecompressNode(arrow_plan.get(), node, table->schema));
+
+   return QueryPlan::makeQueryPlan(arrow_plan, node);
 }
 
 std::vector<schema::ColumnIdentifier> Aggregated::getOutputSchema(
@@ -160,7 +180,7 @@ std::vector<schema::ColumnIdentifier> Aggregated::getOutputSchema(
 ) const {
    std::vector<schema::ColumnIdentifier> fields =
       columnNamesToFields(this->group_by_fields, table_schema);
-   fields.emplace_back("count", schema::ColumnType::INT);
+   fields.emplace_back(COUNT_FIELD, schema::ColumnType::INT);
    return fields;
 }
 
