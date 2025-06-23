@@ -35,9 +35,7 @@ class InsertionAggregation : public Action {
          const CopyOnWriteBitmap&,
          const silo::storage::insertion::InsertionIndex<SymbolType>&>>
          bitmaps;
-      std::vector<std::pair<
-         const CopyOnWriteBitmap&,
-         const silo::storage::insertion::InsertionIndex<SymbolType>&>>
+      std::vector<std::pair<size_t, const silo::storage::insertion::InsertionIndex<SymbolType>&>>
          full_bitmaps;
    };
 

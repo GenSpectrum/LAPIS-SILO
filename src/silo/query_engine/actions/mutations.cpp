@@ -66,7 +66,9 @@ std::unordered_map<std::string, typename Mutations<SymbolType>::PrefilteredBitma
       if (cardinality == table_partition.sequence_count) {
          for (const auto& [sequence_name, sequence_store] :
               table_partition.columns.getColumns<typename SymbolType::Column>()) {
-            bitmaps_to_evaluate[sequence_name].full_bitmaps.emplace_back(filter, sequence_store);
+            bitmaps_to_evaluate[sequence_name].full_bitmaps.emplace_back(
+               cardinality, sequence_store
+            );
          }
       } else {
          if (filter.isMutable()) {
@@ -124,7 +126,7 @@ void Mutations<SymbolType>::addPositionToMutationCountsForFullBitmaps(
 ) {
    // For these partitions, we have full bitmaps. Do not need to bother with AND
    // cardinality
-   for (const auto& [filter, sequence_store_partition] : bitmaps_to_evaluate.full_bitmaps) {
+   for (const auto& [_, sequence_store_partition] : bitmaps_to_evaluate.full_bitmaps) {
       for (const auto symbol : SymbolType::SYMBOLS) {
          const auto& current_position = sequence_store_partition.positions[position_idx];
          if (current_position.isSymbolDeleted(symbol)) {
