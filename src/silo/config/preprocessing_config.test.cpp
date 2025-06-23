@@ -23,7 +23,7 @@ TEST(PreprocessingConfig, shouldReadConfigWithCorrectParametersAndDefaults) {
       input_directory + "lineage_definitions.yaml"
    );
    ASSERT_EQ(
-      config.initialization_files.getPhyloTreeFilename(), input_directory + "phylogenetic_tree.yaml"
+      config.initialization_files.getPhyloTreeFilename(), input_directory + "phylogenetic_tree.nwk"
    );
 }
 

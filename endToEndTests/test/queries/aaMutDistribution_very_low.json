@@ -3,7 +3,7 @@
   "query": {
     "action": {
       "type": "AminoAcidMutations",
-      "sequenceName": "E",
+      "sequenceNames": ["E"],
       "minProportion": 0.0001,
       "orderByFields": ["mutation"]
     },
