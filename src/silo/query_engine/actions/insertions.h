@@ -9,12 +9,15 @@
 #include <utility>
 #include <vector>
 
+#include <arrow/result.h>
+#include <arrow/status.h>
 #include <nlohmann/json_fwd.hpp>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
+#include "silo/query_engine/exec_node/json_value_type_array_builder.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/table.h"
 
@@ -39,28 +42,37 @@ class InsertionAggregation : public Action {
          full_bitmaps;
    };
 
-   void addAggregatedInsertionsToInsertionCounts(
-      std::vector<QueryResultEntry>& output,
+   static arrow::Status addAggregatedInsertionsToInsertionCounts(
       const std::string& sequence_name,
       bool show_sequence_in_response,
-      const PrefilteredBitmaps& prefiltered_bitmaps
-   ) const;
+      const PrefilteredBitmaps& prefiltered_bitmaps,
+      std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder
+   );
 
-   std::unordered_map<std::string, InsertionAggregation<SymbolType>::PrefilteredBitmaps>
-   validateFieldsAndPreFilterBitmaps(
-      std::shared_ptr<const storage::Table> table,
-      std::vector<CopyOnWriteBitmap>& bitmap_filter
-   ) const;
+   std::
+      unordered_map<std::string, InsertionAggregation<SymbolType>::PrefilteredBitmaps> static preFilterBitmaps(
+         std::shared_ptr<const storage::Table> table,
+         const std::vector<std::string>& sequence_names,
+         std::vector<CopyOnWriteBitmap>& bitmap_filter
+      );
 
   public:
    InsertionAggregation(std::vector<std::string>&& sequence_names);
 
    void validateOrderByFields(const schema::TableSchema& schema) const override;
 
-   [[nodiscard]] QueryResult execute(
+   QueryResult execute(
       std::shared_ptr<const storage::Table> table,
       std::vector<CopyOnWriteBitmap> bitmap_filter
-   ) const override;
+   ) const override {
+      SILO_PANIC("Legacy execute called on already migrated action. Programming error.");
+   }
+
+   arrow::Result<QueryPlan> toQueryPlanImpl(
+      std::shared_ptr<const storage::Table> table,
+      std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
+      const config::QueryOptions& query_options
+   ) override;
 
    std::vector<schema::ColumnIdentifier> getOutputSchema(
       const silo::schema::TableSchema& table_schema

@@ -8,6 +8,8 @@
 #include <variant>
 #include <vector>
 
+#include <arrow/acero/options.h>
+#include <arrow/compute/exec.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <boost/container_hash/hash.hpp>
@@ -18,6 +20,7 @@
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
+#include "silo/query_engine/exec_node/arrow_util.h"
 #include "silo/query_engine/query_result.h"
 #include "silo/storage/column/insertion_index.h"
 #include "silo/storage/table_partition.h"
@@ -76,12 +79,11 @@ void validateSequenceNames(
 
 template <typename SymbolType>
 std::unordered_map<std::string, typename InsertionAggregation<SymbolType>::PrefilteredBitmaps>
-InsertionAggregation<SymbolType>::validateFieldsAndPreFilterBitmaps(
+InsertionAggregation<SymbolType>::preFilterBitmaps(
    std::shared_ptr<const storage::Table> table,
+   const std::vector<std::string>& sequence_names,
    std::vector<CopyOnWriteBitmap>& bitmap_filter
-) const {
-   validateSequenceNames<SymbolType>(table, sequence_names);
-
+) {
    std::unordered_map<std::string, PrefilteredBitmaps> pre_filtered_bitmaps;
    for (size_t i = 0; i < table->getNumberOfPartitions(); ++i) {
       const storage::TablePartition& table_partition = table->getPartition(i);
@@ -138,12 +140,12 @@ struct std::hash<PositionAndInsertion> {
 namespace silo::query_engine::actions {
 
 template <typename SymbolType>
-void InsertionAggregation<SymbolType>::addAggregatedInsertionsToInsertionCounts(
-   std::vector<QueryResultEntry>& output,
+arrow::Status InsertionAggregation<SymbolType>::addAggregatedInsertionsToInsertionCounts(
    const std::string& sequence_name,
    bool show_sequence_in_response,
-   const PrefilteredBitmaps& prefiltered_bitmaps
-) const {
+   const PrefilteredBitmaps& prefiltered_bitmaps,
+   std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder
+) {
    std::unordered_map<PositionAndInsertion, uint32_t> all_insertions;
    for (const auto& [_, insertion_index] : prefiltered_bitmaps.full_bitmaps) {
       for (const auto& [position, insertions_at_position] :
@@ -167,42 +169,118 @@ void InsertionAggregation<SymbolType>::addAggregatedInsertionsToInsertionCounts(
    }
    const std::string sequence_in_response = show_sequence_in_response ? sequence_name + ":" : "";
    for (const auto& [position_and_insertion, count] : all_insertions) {
-      const std::map<std::string, common::JsonValueType> fields{
-         {std::string(POSITION_FIELD_NAME),
-          static_cast<int32_t>(position_and_insertion.position_idx)},
-         {std::string(INSERTED_SYMBOLS_FIELD_NAME),
-          std::string(position_and_insertion.insertion_value)},
-         {std::string(SEQUENCE_FIELD_NAME), sequence_name},
-         {std::string(INSERTION_FIELD_NAME),
-          fmt::format(
-             "ins_{}{}:{}",
-             sequence_in_response,
-             position_and_insertion.position_idx,
-             position_and_insertion.insertion_value
-          )},
-         {std::string(COUNT_FIELD_NAME), static_cast<int32_t>(count)}
-      };
-      output.push_back({fields});
+      if (auto builder = output_builder.find(POSITION_FIELD_NAME);
+          builder != output_builder.end()) {
+         ARROW_RETURN_NOT_OK(
+            builder->second.insert(static_cast<int32_t>(position_and_insertion.position_idx))
+         );
+      }
+      if (auto builder = output_builder.find(INSERTED_SYMBOLS_FIELD_NAME);
+          builder != output_builder.end()) {
+         ARROW_RETURN_NOT_OK(
+            builder->second.insert(std::string(position_and_insertion.insertion_value))
+         );
+      }
+      if (auto builder = output_builder.find(SEQUENCE_FIELD_NAME);
+          builder != output_builder.end()) {
+         ARROW_RETURN_NOT_OK(builder->second.insert(sequence_name));
+      }
+      if (auto builder = output_builder.find(INSERTION_FIELD_NAME);
+          builder != output_builder.end()) {
+         ARROW_RETURN_NOT_OK(builder->second.insert({fmt::format(
+            "ins_{}{}:{}",
+            sequence_in_response,
+            position_and_insertion.position_idx,
+            position_and_insertion.insertion_value
+         )}));
+      }
+      if (auto builder = output_builder.find(COUNT_FIELD_NAME); builder != output_builder.end()) {
+         ARROW_RETURN_NOT_OK(builder->second.insert({static_cast<int32_t>(count)}));
+      }
    }
+   return arrow::Status::OK();
 }
 
 template <typename SymbolType>
-QueryResult InsertionAggregation<SymbolType>::execute(
+arrow::Result<QueryPlan> InsertionAggregation<SymbolType>::toQueryPlanImpl(
    std::shared_ptr<const storage::Table> table,
-   std::vector<CopyOnWriteBitmap> bitmap_filter
-) const {
-   const auto bitmaps_to_evaluate = validateFieldsAndPreFilterBitmaps(table, bitmap_filter);
+   std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
+   const config::QueryOptions& query_options
+) {
+   validateSequenceNames<SymbolType>(table, sequence_names);
+   validateOrderByFields(table->schema);
+   auto sequence_names_to_evaluate = sequence_names;
 
-   std::vector<QueryResultEntry> insertion_counts;
-   for (const auto& [sequence_name, prefiltered_bitmaps] : bitmaps_to_evaluate) {
-      const auto default_sequence_name = table->schema.getDefaultSequenceName<SymbolType>();
-      const bool omit_sequence_in_response =
-         default_sequence_name.has_value() && (default_sequence_name.value().name == sequence_name);
-      addAggregatedInsertionsToInsertionCounts(
-         insertion_counts, sequence_name, !omit_sequence_in_response, prefiltered_bitmaps
+   auto output_fields = getOutputSchema(table->schema);
+
+   std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
+      [table,
+       output_fields,
+       partition_filter_operators,
+       sequence_names_to_evaluate,
+       produced = false]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
+      if (produced == true) {
+         std::optional<arrow::ExecBatch> result = std::nullopt;
+         return arrow::Future{result};
+      }
+      produced = true;
+      std::vector<CopyOnWriteBitmap> partition_filters;
+      partition_filters.reserve(partition_filter_operators->size());
+      for (const auto& partition_filter_operator : *partition_filter_operators) {
+         partition_filters.emplace_back(partition_filter_operator->evaluate());
+      }
+
+      std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder> output_builder;
+      for (const auto& output_field : output_fields) {
+         output_builder.emplace(
+            output_field.name, exec_node::columnTypeToArrowType(output_field.type)
+         );
+      }
+
+      const auto bitmaps_to_evaluate =
+         preFilterBitmaps(table, sequence_names_to_evaluate, partition_filters);
+      for (const auto& [sequence_name, prefiltered_bitmaps] : bitmaps_to_evaluate) {
+         const auto default_sequence_name = table->schema.getDefaultSequenceName<SymbolType>();
+         const bool omit_sequence_in_response =
+            default_sequence_name.has_value() &&
+            (default_sequence_name.value().name == sequence_name);
+         ARROW_RETURN_NOT_OK(addAggregatedInsertionsToInsertionCounts(
+            sequence_name, !omit_sequence_in_response, prefiltered_bitmaps, output_builder
+         ));
+      }
+
+      // Order of result_columns is relevant as it needs to be consistent with vector in schema
+      std::vector<arrow::Datum> result_columns;
+      for (const auto& output_field : output_fields) {
+         if (auto array_builder = output_builder.find(output_field.name);
+             array_builder != output_builder.end()) {
+            arrow::Datum datum;
+            ARROW_ASSIGN_OR_RAISE(datum, array_builder->second.toDatum());
+            result_columns.push_back(std::move(datum));
+         }
+      }
+      ARROW_ASSIGN_OR_RAISE(
+         std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make(result_columns)
       );
-   }
-   return QueryResult::fromVector(std::move(insertion_counts));
+      return arrow::Future{result};
+   };
+
+   ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
+
+   arrow::acero::SourceNodeOptions options{
+      exec_node::columnsToArrowSchema(getOutputSchema(table->schema)),
+      std::move(producer),
+      arrow::Ordering::Implicit()
+   };
+   ARROW_ASSIGN_OR_RAISE(
+      auto node, arrow::acero::MakeExecNode("source", arrow_plan.get(), {}, options)
+   );
+
+   ARROW_ASSIGN_OR_RAISE(node, addSortNode(arrow_plan.get(), node, table->schema));
+
+   ARROW_ASSIGN_OR_RAISE(node, addLimitAndOffsetNode(arrow_plan.get(), node));
+
+   return QueryPlan::makeQueryPlan(arrow_plan, node);
 }
 
 template <typename SymbolType>
