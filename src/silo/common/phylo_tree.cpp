@@ -13,15 +13,6 @@
 #include <boost/serialization/utility.hpp>
 #include <boost/serialization/vector.hpp>
 #include <nlohmann/json.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/serialization/access.hpp>
-#include <boost/serialization/array.hpp>
-#include <boost/serialization/map.hpp>
-#include <boost/serialization/optional.hpp>
-#include <boost/serialization/string.hpp>
-#include <boost/serialization/utility.hpp>
-#include <boost/serialization/vector.hpp>
 
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/query_engine/batched_bitmap_reader.h"
