@@ -54,9 +54,7 @@ class Mutations : public Action {
          const CopyOnWriteBitmap&,
          const storage::column::SequenceColumnPartition<SymbolType>&>>
          bitmaps;
-      std::vector<std::pair<
-         const CopyOnWriteBitmap&,
-         const storage::column::SequenceColumnPartition<SymbolType>&>>
+      std::vector<std::pair<size_t, const storage::column::SequenceColumnPartition<SymbolType>&>>
          full_bitmaps;
    };
 
