@@ -240,6 +240,8 @@ template <typename T>
       case Comparator::LESS_OR_EQUALS:
          negated_comparator = Comparator::HIGHER;
          break;
+      default:
+         throw std::logic_error("Unknown comparator in negate()");
    }
    return std::make_unique<CompareToValueSelection<T>>(column, negated_comparator, value);
 }

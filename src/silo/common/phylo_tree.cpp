@@ -3,6 +3,15 @@
 #include <fstream>
 #include <sstream>
 
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/array.hpp>
+#include <boost/serialization/map.hpp>
+#include <boost/serialization/optional.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/serialization/utility.hpp>
+#include <boost/serialization/vector.hpp>
 #include <nlohmann/json.hpp>
 
 #include "silo/preprocessing/preprocessing_exception.h"
@@ -11,9 +20,45 @@
 namespace silo::common {
 using silo::common::TreeNodeId;
 
-std::shared_ptr<TreeNode> parse_auspice_tree(
+template <class Archive>
+void PhyloTree::save(Archive& archive, const unsigned int version) const {
+   std::vector<TreeNodeId> node_ids;
+   for (const auto& [node_id, _] : nodes) {
+      node_ids.push_back(node_id);
+   }
+   archive & node_ids;
+
+   for (const auto& [node_id, node] : nodes) {
+      auto called_node = node.get();
+      SILO_ASSERT(called_node != nullptr);
+      archive << *called_node;
+   }
+}
+
+template <class Archive>
+void PhyloTree::load(Archive& archive, const unsigned int version) {
+   std::vector<TreeNodeId> node_ids;
+   archive & node_ids;
+
+   for (const auto& node_id : node_ids) {
+      auto node = std::make_shared<TreeNode>();
+      archive >> *node;
+      nodes.emplace(node_id, std::move(node));
+   }
+}
+
+template void PhyloTree::save<boost::archive::binary_oarchive>(
+   boost::archive::binary_oarchive&,
+   const unsigned int
+) const;
+template void PhyloTree::load<boost::archive::binary_iarchive>(
+   boost::archive::binary_iarchive&,
+   const unsigned int
+);
+
+TreeNodeId parse_auspice_tree(
    const nlohmann::json& j,
-   std::optional<std::shared_ptr<TreeNode>> parent,
+   std::optional<TreeNodeId> parent,
    std::unordered_map<TreeNodeId, std::shared_ptr<TreeNode>>& node_map,
    int depth = 0
 ) {
@@ -30,12 +75,18 @@ std::shared_ptr<TreeNode> parse_auspice_tree(
    const auto& children = j.contains("children") ? j["children"] : nlohmann::json::array();
 
    for (const auto& child : children) {
-      auto child_node = parse_auspice_tree(child, node, node_map, depth + 1);
+      auto child_node = parse_auspice_tree(child, node->node_id, node_map, depth + 1);
       node->children.push_back(child_node);
    }
 
+   if (node_map.find(node->node_id) != node_map.end()) {
+      throw silo::preprocessing::PreprocessingException(
+         fmt::format("Duplicate node ID found in Auspice JSON string: '{}'", node->node_id.string)
+      );
+   }
+
    node_map[node->node_id] = node;
-   return node;
+   return node->node_id;
 }
 
 PhyloTree PhyloTree::fromAuspiceJSONString(const std::string& json_string) {
@@ -82,59 +133,73 @@ bool isValidLabelChar(char c) {
    return isalnum(c) || c == '_' || c == '.' || c == '-';
 }
 
-double parseBranchLength(std::string_view& sv) {
-   std::string number;
-   while (!sv.empty() && (isdigit(sv.front()) || sv.front() == '.' || sv.front() == '-' ||
-                          sv.front() == '+' || sv.front() == 'e')) {
-      number += sv.front();
-      sv.remove_prefix(1);
-   }
-   return number.empty() ? 0.0 : std::stod(number);
+bool isValidLength(char c) {
+   return isdigit(c) || c == '.' || c == '-' || c == '+' || c == 'e';
 }
 
 TreeNodeId parseLabel(std::string_view& sv) {
    std::string label;
-   while (!sv.empty() && isValidLabelChar(sv.front())) {
-      label += sv.front();
-      sv.remove_prefix(1);
+   while (!sv.empty() && isValidLabelChar(sv.back())) {
+      label += sv.back();
+      sv.remove_suffix(1);
    }
-   if (!sv.empty() && sv.front() == ':') {
-      sv.remove_prefix(1);
-      parseBranchLength(sv);
-   }
+   std::reverse(label.begin(), label.end());
    return TreeNodeId{label};
 }
 
+TreeNodeId parseFullLabel(std::string_view& sv) {
+   std::string fullLabel;
+   while (!sv.empty() && (isValidLabelChar(sv.back()) || isValidLength(sv.back()))) {
+      fullLabel += sv.back();
+      sv.remove_suffix(1);
+   }
+   if (!sv.empty() && sv.back() == ':') {
+      // fullLabel contains length information, we ignore it
+      sv.remove_suffix(1);
+      return parseLabel(sv);
+   }
+   if (!std::all_of(fullLabel.begin(), fullLabel.end(), isValidLabelChar)) {
+      throw silo::preprocessing::PreprocessingException(
+         fmt::format("Label '{}' in Newick string contains invalid characters", fullLabel)
+      );
+   }
+   std::reverse(fullLabel.begin(), fullLabel.end());
+   return TreeNodeId{fullLabel};
+}
+
 void skipWhitespace(std::string_view& sv) {
-   while (!sv.empty() && std::isspace(sv.front())) {
-      sv.remove_prefix(1);
+   while (!sv.empty() && std::isspace(sv.back())) {
+      sv.remove_suffix(1);
    }
 }
 
-std::shared_ptr<TreeNode> parseSubtree(
+TreeNodeId parseSubtree(
    std::string_view& sv,
    std::unordered_map<TreeNodeId, std::shared_ptr<TreeNode>>& node_map,
    int depth = 0,
-   std::optional<std::shared_ptr<TreeNode>> parent = std::nullopt
+   std::optional<TreeNodeId> parent = std::nullopt
 ) {
+   // We iterate through the string view from back to front inorder to know the name of the parent
+   // node when we encounter a child node.
    auto node = std::make_shared<TreeNode>();
    node->depth = depth;
    node->parent = parent;
 
    skipWhitespace(sv);
-   if (!sv.empty() && sv.front() == '(') {
-      sv.remove_prefix(1);
+   node->node_id = parseFullLabel(sv);
+   if (!sv.empty() && sv.back() == ')') {
+      sv.remove_suffix(1);
       depth++;
       do {
-         auto child_node = parseSubtree(sv, node_map, depth, node);
+         auto child_node = parseSubtree(sv, node_map, depth, node->node_id);
          node->children.push_back(child_node);
          skipWhitespace(sv);
-         if (!sv.empty() && sv.front() == ',') {
-            sv.remove_prefix(1);
+         if (!sv.empty() && sv.back() == ',') {
+            sv.remove_suffix(1);
          }
-      } while (!sv.empty() && sv.front() != ')');
-      if (!sv.empty() && sv.front() == ')') {
-         sv.remove_prefix(1);
+      } while (!sv.empty() && sv.back() != '(');
+      if (!sv.empty() && sv.back() == '(') {
+         sv.remove_suffix(1);
          depth--;
       }
    }
@@ -146,12 +211,14 @@ std::shared_ptr<TreeNode> parseSubtree(
    }
 
    skipWhitespace(sv);
-   node->node_id = parseLabel(sv);
-   skipWhitespace(sv);
-
+   if (node_map.find(node->node_id) != node_map.end()) {
+      throw silo::preprocessing::PreprocessingException(
+         fmt::format("Duplicate node ID found in Newick string: '{}'", node->node_id.string)
+      );
+   }
    node_map[node->node_id] = node;
 
-   return node;
+   return node->node_id;
 }
 
 PhyloTree PhyloTree::fromNewickString(const std::string& newick_string) {
@@ -178,7 +245,7 @@ PhyloTree PhyloTree::fromNewickString(const std::string& newick_string) {
       }
    } catch (const std::exception& e) {
       throw silo::preprocessing::PreprocessingException(
-         fmt::format("Error when parsing the Newick string: '{}'", newick_string)
+         fmt::format("Error when parsing the Newick string '{}': {}", newick_string, e.what())
       );
    }
 
@@ -205,9 +272,9 @@ PhyloTree PhyloTree::fromNewickFile(const std::filesystem::path& newick_path) {
    try {
       return fromNewickString(contents.str());
    } catch (const std::exception& e) {
-      throw silo::preprocessing::PreprocessingException(
-         fmt::format("Error when parsing the Newick file: '{}'", newick_path.string())
-      );
+      throw silo::preprocessing::PreprocessingException(fmt::format(
+         "Error when parsing the Newick string '{}': {}", newick_path.string(), e.what()
+      ));
    }
 }
 
