@@ -12,6 +12,6 @@
   },
   "expectedError": {
     "error": "Bad request",
-    "message": "Node 'NON_EXISTING_NODE' does not exist in tree"
+    "message": "Node 'NON_EXISTING_NODE' does not exist in tree."
   }
 }
