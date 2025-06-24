@@ -32,7 +32,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> createMatchingB
    size_t row_count
 ) {
    return std::make_unique<operators::BitmapProducer>(
-      [&, row_count]() {
+      [&]() {
          roaring::Roaring result_bitmap = string_column.getDescendants(internal_node);
          return CopyOnWriteBitmap(std::move(result_bitmap));
       },
@@ -49,7 +49,8 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> PhyloChildFilte
 ) const {
    CHECK_SILO_QUERY(
       database_partition.columns.string_columns.contains(column_name),
-      fmt::format("The database does not contain the string column '{}'", column_name)
+      "The database does not contain the column '{}'",
+      column_name
    );
 
    SILO_ASSERT(database_partition.columns.string_columns.contains(column_name));
