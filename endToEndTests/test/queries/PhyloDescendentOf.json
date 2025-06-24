@@ -14,7 +14,7 @@
     "filterExpression": {
       "type": "PhyloDescendentOf",
       "column": "gisaid_epi_isl",
-      "searchExpression": "NODE_0000072"
+      "internalNode": "NODE_0000072"
     }
   },
   "expectedQueryResult": [
