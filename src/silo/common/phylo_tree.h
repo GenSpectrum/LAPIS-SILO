@@ -35,6 +35,7 @@ class TreeNode {
     archive & children;
     archive & parent;
     archive & depth;
+    archive & row_index;
       // clang-format on
    }
 };
