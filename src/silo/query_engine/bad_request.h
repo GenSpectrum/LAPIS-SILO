@@ -3,6 +3,8 @@
 #include <stdexcept>
 #include <string>
 
+#include <fmt/format.h>
+
 #define CHECK_SILO_QUERY(condition, ...)                \
    if (!(condition)) {                                  \
       throw silo::BadRequest(fmt::format(__VA_ARGS__)); \

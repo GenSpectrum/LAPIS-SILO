@@ -3,7 +3,7 @@
   "query": {
     "action": {
       "type": "Insertions",
-      "sequenceName": "main"
+      "sequenceNames": ["main"]
     },
     "filterExpression": {
       "type": "InsertionContains",
