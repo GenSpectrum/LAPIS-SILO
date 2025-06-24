@@ -76,7 +76,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) 
       filter = json.get<std::unique_ptr<HasMutation<AminoAcid>>>();
    } else if (expression_type == "Lineage") {
       filter = json.get<std::unique_ptr<LineageFilter>>();
-   } else if (expression_type == "PhyloDescendentOf") {
+   } else if (expression_type == "PhyloDescendantOf") {
       filter = json.get<std::unique_ptr<PhyloChildFilter>>();
    } else if (expression_type == "StringEquals") {
       filter = json.get<std::unique_ptr<StringEquals>>();

@@ -1,5 +1,5 @@
 {
-  "testCaseName": "PhyloDescendentOf should return only descendent nodes of a given node",
+  "testCaseName": "PhyloDescendantOf should return only descendent nodes of a given node",
   "query": {
     "action": {
       "type": "Aggregated",
@@ -12,7 +12,7 @@
       ]
     },
     "filterExpression": {
-      "type": "PhyloDescendentOf",
+      "type": "PhyloDescendantOf",
       "column": "gisaid_epi_isl",
       "internalNode": "NODE_0000072"
     }
