@@ -31,7 +31,7 @@ class FloatColumnPartition {
    }
 
    std::vector<double> values;
-   Metadata* metadata;
+   [[maybe_unused]] Metadata* metadata;
 
   public:
    explicit FloatColumnPartition(ColumnMetadata* metadata);
