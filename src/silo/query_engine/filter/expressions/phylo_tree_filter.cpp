@@ -38,8 +38,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> PhyloChildFilte
 
    SILO_ASSERT(database_partition.columns.string_columns.contains(column_name));
    const auto& string_column = database_partition.columns.string_columns.at(column_name);
-   roaring::Roaring internal_node_descendants =
-      string_column.getDescendants(internal_node);
+   roaring::Roaring internal_node_descendants = string_column.getDescendants(internal_node);
    return std::make_unique<operators::IndexScan>(
       &internal_node_descendants, database_partition.sequence_count
    );

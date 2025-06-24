@@ -1,0 +1,17 @@
+{
+  "testCaseName": "PhyloDescendantOf called on aa node that does not exist in the tree",
+  "query": {
+    "action": {
+      "type": "Aggregated"
+    },
+    "filterExpression": {
+      "type": "PhyloDescendantOf",
+      "column": "gisaid_epi_isl",
+      "internalNode": "NON_EXISTING_NODE"
+    }
+  },
+  "expectedError": {
+    "error": "Bad request",
+    "message": "Node 'NON_EXISTING_NODE' does not exist in tree"
+  }
+}
