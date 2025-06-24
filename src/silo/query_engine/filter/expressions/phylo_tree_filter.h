@@ -26,11 +26,6 @@ class PhyloChildFilter : public Expression {
       const storage::TablePartition& database_partition,
       AmbiguityMode mode
    ) const override;
-
-  private:
-   std::optional<const roaring::Roaring*> getBitmapForValue(
-      const silo::storage::column::StringColumnPartition& phylo_tree_index_column
-   ) const;
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)

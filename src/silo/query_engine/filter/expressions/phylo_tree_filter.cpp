@@ -11,7 +11,7 @@
 #include "silo/database.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
-#include "silo/query_engine/filter/operators/bitmap_producer.h"
+#include "silo/query_engine/filter/operators/index_scan.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/storage/table_partition.h"
 
@@ -24,23 +24,6 @@ PhyloChildFilter::PhyloChildFilter(std::string column_name, std::string internal
 std::string PhyloChildFilter::toString() const {
    return fmt::format("column {} phylo_child_of {}", column_name, internal_node);
 };
-
-namespace {
-std::unique_ptr<silo::query_engine::filter::operators::Operator> createMatchingBitmap(
-   const storage::column::StringColumnPartition& string_column,
-   const std::string& internal_node,
-   size_t row_count
-) {
-   return std::make_unique<operators::BitmapProducer>(
-      [&]() {
-         roaring::Roaring result_bitmap = string_column.getDescendants(internal_node);
-         return CopyOnWriteBitmap(std::move(result_bitmap));
-      },
-      row_count
-   );
-}
-
-}  // namespace
 
 std::unique_ptr<silo::query_engine::filter::operators::Operator> PhyloChildFilter::compile(
    const Database& /*database*/,
@@ -55,7 +38,11 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> PhyloChildFilte
 
    SILO_ASSERT(database_partition.columns.string_columns.contains(column_name));
    const auto& string_column = database_partition.columns.string_columns.at(column_name);
-   return createMatchingBitmap(string_column, internal_node, database_partition.sequence_count);
+   roaring::Roaring internal_node_descendants =
+      string_column.getDescendants(internal_node);
+   return std::make_unique<operators::IndexScan>(
+      &internal_node_descendants, database_partition.sequence_count
+   );
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
