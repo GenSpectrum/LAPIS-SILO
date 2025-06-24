@@ -3,7 +3,7 @@
   "query": {
     "action": {
       "type": "Insertions",
-      "sequenceName": "S"
+      "sequenceNames": ["S"]
     },
     "filterExpression": {
       "type": "True"

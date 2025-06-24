@@ -296,31 +296,36 @@ std::vector<schema::ColumnIdentifier> InsertionAggregation<SymbolType>::getOutpu
    return fields;
 }
 
+namespace {
+
+const std::string SEQUENCE_NAMES_FIELD_NAME = "sequenceNames";
+
+}  // namespace
+
 template <typename SymbolType>
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(
    const nlohmann::json& json,
    std::unique_ptr<InsertionAggregation<SymbolType>>& action
 ) {
-   CHECK_SILO_QUERY(
-      !json.contains("sequenceName") || json["sequenceName"].is_string() ||
-         json["sequenceName"].is_array(),
-      "The field 'sequenceName' of the insertions action must be of type string or array, was ",
-      std::string(json["sequenceName"].type_name())
-   );
    std::vector<std::string> sequence_names;
-   if (json.contains("sequenceName") && json["sequenceName"].is_array()) {
-      for (const auto& child : json["sequenceName"]) {
+   if (json.contains(SEQUENCE_NAMES_FIELD_NAME)) {
+      CHECK_SILO_QUERY(
+         json[SEQUENCE_NAMES_FIELD_NAME].is_array(),
+         "The field '{}' of the insertions action must be of type string or array, was {}",
+         SEQUENCE_NAMES_FIELD_NAME,
+         std::string(json[SEQUENCE_NAMES_FIELD_NAME].type_name())
+      );
+      for (const auto& child : json[SEQUENCE_NAMES_FIELD_NAME]) {
          CHECK_SILO_QUERY(
             child.is_string(),
-            "The field sequenceName of the Insertions action must have type string or an "
-            "array, if present. Found:",
+            "The field {} of the Insertions action must have type string or an "
+            "array, if present. Found: {}",
+            SEQUENCE_NAMES_FIELD_NAME,
             child.dump()
          );
          sequence_names.emplace_back(child.get<std::string>());
       }
-   } else if (json.contains("sequenceName") && json["sequenceName"].is_string()) {
-      sequence_names.emplace_back(json["sequenceName"].get<std::string>());
    }
 
    action = std::make_unique<InsertionAggregation<SymbolType>>(std::move(sequence_names));

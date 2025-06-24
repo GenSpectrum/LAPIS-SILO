@@ -3,7 +3,7 @@
   "query": {
     "action": {
       "type": "Insertions",
-      "sequenceName": "notAValidSequence"
+      "sequenceNames": ["notAValidSequence"]
     },
     "filterExpression": {
       "type": "True"
