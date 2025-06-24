@@ -32,7 +32,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> createMatchingB
    size_t row_count
 ) {
    return std::make_unique<operators::BitmapProducer>(
-      [&]() {
+      [&string_column, internal_node]() {
          roaring::Roaring result_bitmap = string_column.getDescendants(internal_node);
          return CopyOnWriteBitmap(std::move(result_bitmap));
       },
