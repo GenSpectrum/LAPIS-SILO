@@ -68,15 +68,15 @@ void from_json(const nlohmann::json& json, std::unique_ptr<PhyloChildFilter>& fi
       "The field 'column' in an PhyloChildFilter expression needs to be a string"
    )
    CHECK_SILO_QUERY(
-      json.contains("internal_node"),
-      "The field 'internal_node' is required in an PhyloChildFilter expression"
+      json.contains("internalNode"),
+      "The field 'internalNode' is required in an PhyloChildFilter expression"
    )
    CHECK_SILO_QUERY(
-      json["internal_node"].is_string(),
-      "The field 'internal_node' in an PhyloChildFilter expression needs to be a string"
+      json["internalNode"].is_string(),
+      "The field 'internalNode' in an PhyloChildFilter expression needs to be a string"
    )
    filter = std::make_unique<PhyloChildFilter>(
-      json["column"].get<std::string>(), json["internal_node"].get<std::string>()
+      json["column"].get<std::string>(), json["internalNode"].get<std::string>()
    );
 }
 
