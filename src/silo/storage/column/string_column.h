@@ -97,7 +97,7 @@ class StringColumnPartition {
       return string.toString(metadata->dictionary);
    }
 
-   [[nodiscard]] inline roaring::Roaring getDescendants(const std::string& parent) const {
+   inline roaring::Roaring getDescendants(const std::string& parent) const {
       if (!metadata->phylo_tree.has_value()) {
          return roaring::Roaring();
       }

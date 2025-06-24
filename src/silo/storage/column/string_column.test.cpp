@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 #include "silo/common/phylo_tree.h"
+#include "silo/query_engine/bad_request.h"
 
 using silo::storage::column::StringColumnMetadata;
 using silo::storage::column::StringColumnPartition;
@@ -45,6 +46,8 @@ TEST(StringColumnPartition, rawInsertedValuesWithPhyloTreeRequeried) {
    EXPECT_EQ(under_test.getDescendants("CHILD2").cardinality(), 0);
    EXPECT_EQ(under_test.getDescendants("CHILD").cardinality(), 2);
    EXPECT_EQ(under_test.getDescendants("ROOT").cardinality(), 2);
+
+   ASSERT_THROW(under_test.getDescendants("NOT_IN_TREE"), silo::BadRequest);
 }
 
 TEST(StringColumn, rawInsertedValuesRequeried) {

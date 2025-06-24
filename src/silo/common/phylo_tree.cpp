@@ -15,6 +15,7 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/preprocessing/preprocessing_exception.h"
+#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/batched_bitmap_reader.h"
 
 namespace silo::common {
@@ -295,9 +296,7 @@ PhyloTree PhyloTree::fromFile(const std::filesystem::path& path) {
 
 void PhyloTree::validateNodeExists(const TreeNodeId& node_id) {
    if (nodes.find(node_id) == nodes.end()) {
-      throw silo::preprocessing::PreprocessingException(
-         fmt::format("Node '{}' not found in the tree.", node_id.string)
-      );
+      throw silo::BadRequest(fmt::format("Node '{}' does not exist in tree.", node_id.string));
    }
 }
 
@@ -311,15 +310,15 @@ roaring::Roaring PhyloTree::getDescendants(const TreeNodeId& node_id) {
    auto child_it = nodes.find(node_id);
    roaring::Roaring result_bitmap;
    if (!child_it->second) {
-      throw silo::preprocessing::PreprocessingException(
-         fmt::format("Node '{}' is null.", node_id.string)
+      throw std::runtime_error(
+         fmt::format("Node '{}' is null - this is an internal error.", node_id.string)
       );
    }
    std::function<void(const TreeNodeId&)> dfs = [&](const TreeNodeId& current) {
       auto current_node = nodes.find(current);
       if (!current_node->second) {
-         throw silo::preprocessing::PreprocessingException(
-            fmt::format("Node '{}' is null.", current.string)
+         throw std::runtime_error(
+            fmt::format("Node '{}' is null - this is an internal error.", current.string)
          );
       }
       if (current_node->second->isLeaf()) {
