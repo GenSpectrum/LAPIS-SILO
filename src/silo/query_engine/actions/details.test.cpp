@@ -18,7 +18,7 @@ using boost::uuids::random_generator;
 nlohmann::json createData(const std::string& country, const std::string& date) {
    static std::atomic_int id = 0;
    const auto primary_key = id++;
-   int age = 3 * id + 4;
+   std::string age = id % 2 == 0 ? "null" : fmt::format("{}", 3 * id + 4);
    float coverage = 0.9;
 
    return nlohmann::json::parse(fmt::format(
@@ -112,11 +112,11 @@ const QueryTestScenario ALL_DATA = {
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"age":7,"country":"Switzerland","coverage":0.9,"date":"2020-01-01","primaryKey":"id_0"},
-{"age":10,"country":"Germany","coverage":0.9,"date":"2000-03-07","primaryKey":"id_1"},
+{"age":null,"country":"Germany","coverage":0.9,"date":"2000-03-07","primaryKey":"id_1"},
 {"age":13,"country":"Germany","coverage":0.9,"date":"2009-06-07","primaryKey":"id_2"},
-{"age":16,"country":"Switzerland","coverage":0.9,"date":"2003-07-02","primaryKey":"id_3"},
+{"age":null,"country":"Switzerland","coverage":0.9,"date":"2003-07-02","primaryKey":"id_3"},
 {"age":19,"country":"Switzerland","coverage":0.9,"date":"2002-01-04","primaryKey":"id_4"},
-{"age":22,"country":"Switzerland","coverage":0.9,"date":"2001-12-07","primaryKey":"id_5"}])"
+{"age":null,"country":"Switzerland","coverage":0.9,"date":"2001-12-07","primaryKey":"id_5"}])"
    )
 };
 
@@ -140,9 +140,9 @@ const QueryTestScenario LIMIT_OFFSET = {
    ),
    .expected_query_result = nlohmann::json::parse(
       R"(
-[{"age":10,"country":"Germany","coverage":0.9,"date":"2000-03-07","primaryKey":"id_1"},
+[{"age":null,"country":"Germany","coverage":0.9,"date":"2000-03-07","primaryKey":"id_1"},
 {"age":13,"country":"Germany","coverage":0.9,"date":"2009-06-07","primaryKey":"id_2"},
-{"age":16,"country":"Switzerland","coverage":0.9,"date":"2003-07-02","primaryKey":"id_3"}])"
+{"age":null,"country":"Switzerland","coverage":0.9,"date":"2003-07-02","primaryKey":"id_3"}])"
    )
 };
 
@@ -226,7 +226,7 @@ const QueryTestScenario LIMIT = {
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"age":7,"country":"Switzerland","coverage":0.9,"date":"2020-01-01","primaryKey":"id_0"},
-{"age":10,"country":"Germany","coverage":0.9,"date":"2000-03-07","primaryKey":"id_1"},
+{"age":null,"country":"Germany","coverage":0.9,"date":"2000-03-07","primaryKey":"id_1"},
 {"age":13,"country":"Germany","coverage":0.9,"date":"2009-06-07","primaryKey":"id_2"}])"
    )
 };
@@ -259,7 +259,62 @@ const QueryTestScenario LIMIT_LARGE = {
   "action": {
     "type": "Details",
     "orderByFields": [
-      "primaryKey"
+      "age", "primaryKey"
+    ],
+    "limit": 1000
+  },
+  "filterExpression": {
+    "type": "True"
+  }
+})"
+   ),
+   .expected_query_result = nlohmann::json::parse(
+      R"(
+[{"age":null,"country":"Germany","coverage":0.9,"date":"2000-03-07","primaryKey":"id_1"},
+{"age":null,"country":"Switzerland","coverage":0.9,"date":"2003-07-02","primaryKey":"id_3"},
+{"age":null,"country":"Switzerland","coverage":0.9,"date":"2001-12-07","primaryKey":"id_5"},
+{"age":7,"country":"Switzerland","coverage":0.9,"date":"2020-01-01","primaryKey":"id_0"},
+{"age":13,"country":"Germany","coverage":0.9,"date":"2009-06-07","primaryKey":"id_2"},
+{"age":19,"country":"Switzerland","coverage":0.9,"date":"2002-01-04","primaryKey":"id_4"}])"
+   )
+};
+
+const QueryTestScenario SINGLE_FIELD_DESCENDING = {
+   .name = "SINGLE_FIELD_DESCENDING",
+   .query = nlohmann::json::parse(
+      R"(
+{
+  "action": {
+    "type": "Details",
+    "orderByFields": [
+      {"field": "age", "order": "descending"}
+    ]
+  },
+  "filterExpression": {
+    "type": "True"
+  }
+})"
+   ),
+   .expected_query_result = nlohmann::json::parse(
+      R"(
+[{"age":19,"country":"Switzerland","coverage":0.9,"date":"2002-01-04","primaryKey":"id_4"},
+{"age":13,"country":"Germany","coverage":0.9,"date":"2009-06-07","primaryKey":"id_2"},
+{"age":7,"country":"Switzerland","coverage":0.9,"date":"2020-01-01","primaryKey":"id_0"},
+{"age":null,"country":"Germany","coverage":0.9,"date":"2000-03-07","primaryKey":"id_1"},
+{"age":null,"country":"Switzerland","coverage":0.9,"date":"2003-07-02","primaryKey":"id_3"},
+{"age":null,"country":"Switzerland","coverage":0.9,"date":"2001-12-07","primaryKey":"id_5"}])"
+   )
+};
+
+const QueryTestScenario MULTI_FIELD_SORT = {
+   .name = "MULTI_FIELD_SORT",
+   .query = nlohmann::json::parse(
+      R"(
+{
+  "action": {
+    "type": "Details",
+    "orderByFields": [
+      {"field": "country", "order": "descending"}, "age"
     ],
     "limit": 1000
   },
@@ -271,11 +326,11 @@ const QueryTestScenario LIMIT_LARGE = {
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"age":7,"country":"Switzerland","coverage":0.9,"date":"2020-01-01","primaryKey":"id_0"},
-{"age":10,"country":"Germany","coverage":0.9,"date":"2000-03-07","primaryKey":"id_1"},
-{"age":13,"country":"Germany","coverage":0.9,"date":"2009-06-07","primaryKey":"id_2"},
-{"age":16,"country":"Switzerland","coverage":0.9,"date":"2003-07-02","primaryKey":"id_3"},
 {"age":19,"country":"Switzerland","coverage":0.9,"date":"2002-01-04","primaryKey":"id_4"},
-{"age":22,"country":"Switzerland","coverage":0.9,"date":"2001-12-07","primaryKey":"id_5"}])"
+{"age":null,"country":"Switzerland","coverage":0.9,"date":"2003-07-02","primaryKey":"id_3"},
+{"age":null,"country":"Switzerland","coverage":0.9,"date":"2001-12-07","primaryKey":"id_5"},
+{"age":13,"country":"Germany","coverage":0.9,"date":"2009-06-07","primaryKey":"id_2"},
+{"age":null,"country":"Germany","coverage":0.9,"date":"2000-03-07","primaryKey":"id_1"}])"
    )
 };
 
@@ -298,9 +353,9 @@ const QueryTestScenario OFFSET = {
    ),
    .expected_query_result = nlohmann::json::parse(
       R"(
-[{"age":16,"country":"Switzerland","coverage":0.9,"date":"2003-07-02","primaryKey":"id_3"},
+[{"age":null,"country":"Switzerland","coverage":0.9,"date":"2003-07-02","primaryKey":"id_3"},
 {"age":19,"country":"Switzerland","coverage":0.9,"date":"2002-01-04","primaryKey":"id_4"},
-{"age":22,"country":"Switzerland","coverage":0.9,"date":"2001-12-07","primaryKey":"id_5"}])"
+{"age":null,"country":"Switzerland","coverage":0.9,"date":"2001-12-07","primaryKey":"id_5"}])"
    )
 };
 
@@ -324,11 +379,11 @@ const QueryTestScenario OFFSET_0 = {
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"age":7,"country":"Switzerland","coverage":0.9,"date":"2020-01-01","primaryKey":"id_0"},
-{"age":10,"country":"Germany","coverage":0.9,"date":"2000-03-07","primaryKey":"id_1"},
+{"age":null,"country":"Germany","coverage":0.9,"date":"2000-03-07","primaryKey":"id_1"},
 {"age":13,"country":"Germany","coverage":0.9,"date":"2009-06-07","primaryKey":"id_2"},
-{"age":16,"country":"Switzerland","coverage":0.9,"date":"2003-07-02","primaryKey":"id_3"},
+{"age":null,"country":"Switzerland","coverage":0.9,"date":"2003-07-02","primaryKey":"id_3"},
 {"age":19,"country":"Switzerland","coverage":0.9,"date":"2002-01-04","primaryKey":"id_4"},
-{"age":22,"country":"Switzerland","coverage":0.9,"date":"2001-12-07","primaryKey":"id_5"}])"
+{"age":null,"country":"Switzerland","coverage":0.9,"date":"2001-12-07","primaryKey":"id_5"}])"
    )
 };
 
@@ -368,6 +423,8 @@ QUERY_TEST(
       LIMIT,
       LIMIT_0,
       LIMIT_LARGE,
+      SINGLE_FIELD_DESCENDING,
+      MULTI_FIELD_SORT,
       OFFSET,
       OFFSET_0,
       OFFSET_LARGE

@@ -110,18 +110,23 @@ void Action::setOrdering(
    randomize_seed = randomize_seed_;
 }
 
+using arrow::compute::NullPlacement;
+
 std::optional<arrow::Ordering> Action::getOrdering() const {
    using arrow::compute::SortOrder;
    if (order_by_fields.empty()) {
       return std::nullopt;
    }
+   auto first_order_by_field = order_by_fields.at(0);
+
    std::vector<arrow::compute::SortKey> sort_keys;
    for (auto order_by_field : order_by_fields) {
       auto sort_order = order_by_field.ascending ? SortOrder::Ascending : SortOrder::Descending;
       sort_keys.emplace_back(order_by_field.name, sort_order);
    }
-   // TODO(#801) arrow::compute::NullPlacement::AtStart
-   return arrow::Ordering{sort_keys, arrow::compute::NullPlacement::AtEnd};
+   const auto null_placement =
+      first_order_by_field.ascending ? NullPlacement::AtStart : NullPlacement::AtEnd;
+   return arrow::Ordering{sort_keys, null_placement};
 }
 
 static const size_t MATERIALIZATION_CUTOFF = 10000;
