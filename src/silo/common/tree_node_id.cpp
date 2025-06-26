@@ -15,4 +15,8 @@ bool TreeNodeId::operator==(const TreeNodeId& other) const {
    return string == other.string;
 }
 
+bool TreeNodeId::operator<(const TreeNodeId& other) const {
+   return string < other.string;
+}
+
 }  // namespace silo::common
