@@ -94,10 +94,10 @@ std::tuple<OperatorVector, OperatorVector, operators::PredicateVector> And::comp
    const storage::TablePartition& database_partition,
    AmbiguityMode mode
 ) const {
-   OperatorVector all_child_operators;
+   OperatorVector unprocessed_child_operators;
    std::ranges::transform(
       children,
-      std::back_inserter(all_child_operators),
+      std::back_inserter(unprocessed_child_operators),
       [&](const std::unique_ptr<Expression>& expression) {
          return expression->compile(database, database_partition, mode);
       }
@@ -105,7 +105,9 @@ std::tuple<OperatorVector, OperatorVector, operators::PredicateVector> And::comp
    OperatorVector non_negated_child_operators;
    OperatorVector negated_child_operators;
    operators::PredicateVector predicates;
-   for (auto& child : all_child_operators) {
+   while (!unprocessed_child_operators.empty()) {
+      auto child = std::move(unprocessed_child_operators.back());
+      unprocessed_child_operators.pop_back();
       if (child->type() == operators::FULL) {
          SPDLOG_TRACE("Skipping full child");
          continue;
@@ -129,10 +131,9 @@ std::tuple<OperatorVector, OperatorVector, operators::PredicateVector> And::comp
             "Found selection, appended {} predicates", selection_child->predicates.size()
          );
          if (selection_child->child_operator.has_value()) {
-            SPDLOG_TRACE(
-               "Appending child of selection {}", selection_child->child_operator->get()->toString()
-            );
-            all_child_operators.emplace_back(std::move(*selection_child->child_operator));
+            auto child_operator = std::move(selection_child->child_operator.value());
+            SPDLOG_TRACE("Appending child of selection {}", child_operator->toString());
+            unprocessed_child_operators.emplace_back(std::move(child_operator));
          }
       } else {
          non_negated_child_operators.push_back(std::move(child));
