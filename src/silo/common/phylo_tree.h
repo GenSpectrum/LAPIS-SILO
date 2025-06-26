@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <set>
 #include <vector>
 
 #include <boost/serialization/access.hpp>
@@ -46,8 +47,6 @@ class MRCAResponse {
    std::vector<std::string> not_in_tree;
 };
 
-}  // namespace silo::common
-
 class PhyloTree {
   public:
    std::unordered_map<TreeNodeId, std::shared_ptr<TreeNode>> nodes;
@@ -76,6 +75,12 @@ class PhyloTree {
    roaring::Roaring getDescendants(const std::string& node_label);
 
    MRCAResponse getMRCA(const std::vector<std::string>& node_labels);
+
+   void getSetOfAncestorsAtDepth(
+      std::set<TreeNodeId>& nodes_to_group,
+      std::set<TreeNodeId>& ancestors_at_depth,
+      int depth
+   );
 
   private:
    friend class boost::serialization::access;

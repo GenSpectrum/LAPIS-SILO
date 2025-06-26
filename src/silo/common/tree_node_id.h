@@ -22,6 +22,7 @@ class TreeNodeId {
    std::string string;
 
    bool operator==(const TreeNodeId& other) const;
+   bool operator<(const TreeNodeId& other) const;
 };
 
 }  // namespace silo::common
