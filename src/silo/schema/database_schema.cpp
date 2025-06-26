@@ -93,7 +93,6 @@ void TableSchema::save(Archive& archive, const unsigned int version) const {
       storage::column::visit(
          column_identifier.type, ColumnMetadataSaverByType{}, archive, metadata
       );
-      //      archive&* metadata;
    }
 }
 

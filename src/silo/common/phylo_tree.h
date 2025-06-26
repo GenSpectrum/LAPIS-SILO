@@ -3,6 +3,8 @@
 #include <filesystem>
 #include <vector>
 
+#include <roaring/roaring.h>
+
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/split_member.hpp>
 
@@ -10,7 +12,6 @@
 
 #include "silo/common/panic.h"
 #include "silo/common/tree_node_id.h"
-#include "silo/query_engine/batched_bitmap_reader.h"
 
 namespace silo::common {
 using silo::common::TreeNodeId;
