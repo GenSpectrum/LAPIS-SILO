@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <set>
 #include <vector>
 
 #include <roaring/roaring.hh>
@@ -41,6 +42,12 @@ class TreeNode {
    }
 };
 
+class MRCAResponse {
+  public:
+   std::optional<TreeNodeId> mrca_node_id;
+   std::vector<std::string> not_in_tree;
+};
+
 class PhyloTree {
   public:
    std::unordered_map<TreeNodeId, std::shared_ptr<TreeNode>> nodes;
@@ -63,6 +70,14 @@ class PhyloTree {
 
    // returns a bitmap of all descendants node{node_id} that are also in the database
    roaring::Roaring getDescendants(const TreeNodeId& node_id);
+
+   MRCAResponse getMRCA(const std::vector<std::string>& node_labels);
+
+   void getSetOfAncestorsAtDepth(
+      std::set<TreeNodeId>& nodes_to_group,
+      std::set<TreeNodeId>& ancestors_at_depth,
+      int depth
+   );
 
   private:
    friend class boost::serialization::access;
