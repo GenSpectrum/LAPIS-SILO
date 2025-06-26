@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <vector>
 
-#include <roaring/roaring.h>
+#include <roaring/roaring.hh>
 
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/split_member.hpp>

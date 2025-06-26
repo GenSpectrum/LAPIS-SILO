@@ -3,6 +3,8 @@
 #include <fstream>
 #include <sstream>
 
+#include <roaring/roaring.hh>
+
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/serialization/access.hpp>
@@ -16,7 +18,6 @@
 
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/query_engine/bad_request.h"
-#include "silo/query_engine/batched_bitmap_reader.h"
 
 namespace silo::common {
 using silo::common::TreeNodeId;
