@@ -83,57 +83,70 @@ const QueryTestData TEST_DATA{
 };
 
 const QueryTestScenario RANDOMIZE_SEED = {
-   .name = "seed1231ProvidedShouldShuffleResults",
+   .name = "RANDOMIZE_SEED",
    .query = json::parse(
       R"({"action": {"type": "Details", "fields": ["key"], "randomize": {"seed": 1231}},
          "filterExpression": {"type": "True"}})"
    ),
-#ifdef TARGET_CPU_ARM
    .expected_query_result = json::parse(
-      R"([{"key": "id1"},
-          {"key": "id4"},
-          {"key": "id3"},
-          {"key": "id5"},
-          {"key": "id2"}])"
-   )
-#else
-   .expected_query_result = json::parse(
-      R"([{"key": "id4"},
+      R"([{"key": "id5"},
           {"key": "id1"},
-          {"key": "id5"},
+          {"key": "id4"},
           {"key": "id2"},
           {"key": "id3"}])"
    )
-#endif
 };
 
-const QueryTestScenario RANDOMIZE_SEED_DIFFERENT = {
-   .name = "seed12312ProvidedShouldShuffleResultsDifferently",
+const QueryTestScenario RANDOMIZE_INDEPENDENT_ON_COL_NUMS = {
+   .name = "RANDOMIZE_INDEPENDENT_ON_COL_NUMS",
+   .query = json::parse(
+      R"({"action": {"type": "Details", "fields": ["key", "col"], "randomize": {"seed": 1231}},
+         "filterExpression": {"type": "True"}})"
+   ),
+   .expected_query_result = json::parse(
+      R"(
+[{"col":"A","key":"id5"},
+{"col":"A","key":"id1"},
+{"col":"B","key":"id4"},
+{"col":"B","key":"id2"},
+{"col":"A","key":"id3"}]
+)"
+   )
+};
+
+const QueryTestScenario RANDOMIZE_INDEPENDENT_ON_BATCH_SIZE = {
+   .name = "RANDOMIZE_INDEPENDENT_ON_BATCH_SIZE",
+   .query = json::parse(
+      R"({"action": {"type": "Details", "fields": ["key"], "randomize": {"seed": 1231}},
+         "filterExpression": {"type": "True"}})"
+   ),
+   .expected_query_result = json::parse(
+      R"([{"key": "id5"},
+          {"key": "id1"},
+          {"key": "id4"},
+          {"key": "id2"},
+          {"key": "id3"}])"
+   ),
+   .query_options = silo::config::QueryOptions{.materialization_cutoff = 2}
+};
+
+const QueryTestScenario DIFFERENT_RANDOMIZE_SEED_DIFFERENT_RESULT = {
+   .name = "DIFFERENT_RANDOMIZE_SEED_DIFFERENT_RESULT",
    .query = json::parse(
       R"({"action": {"type": "Details", "fields": ["key"], "randomize": {"seed": 12312}},
          "filterExpression": {"type": "True"}})"
    ),
-#ifdef TARGET_CPU_ARM
-   .expected_query_result = json::parse(
-      R"([{"key": "id2"},
-          {"key": "id1"},
-          {"key": "id4"},
-          {"key": "id5"},
-          {"key": "id3"}])"
-   )
-#else
    .expected_query_result = json::parse(
       R"([{"key": "id1"},
-          {"key": "id4"},
           {"key": "id3"},
+          {"key": "id5"},
           {"key": "id2"},
-          {"key": "id5"}])"
+          {"key": "id4"}])"
    )
-#endif
 };
 
 const QueryTestScenario EXPLICIT_DO_NOT_RANDOMIZE = {
-   .name = "explicitlyDoNotRandomize",
+   .name = "EXPLICIT_DO_NOT_RANDOMIZE",
    .query = json::parse(
       R"({"action": {"type": "Details", "fields": ["key"], "randomize": false},
          "filterExpression": {"type": "True"}})"
@@ -147,43 +160,37 @@ const QueryTestScenario EXPLICIT_DO_NOT_RANDOMIZE = {
    )
 };
 
-const QueryTestScenario AGGREGATE = {
-   .name = "aggregateRandomize",
+const QueryTestScenario AGGREGATE_RANDOMIZE = {
+   .name = "AGGREGATE_RANDOMIZE",
    .query = json::parse(
       R"({"action": {"type": "Aggregated", "groupByFields": ["key"], "randomize": {"seed": 12321}},
          "filterExpression": {"type": "True"}})"
    ),
-#ifdef TARGET_CPU_ARM
    .expected_query_result = json::parse(
-      R"([{"count": 1, "key": "id1"},
-          {"count": 1, "key": "id4"},
-          {"count": 1, "key": "id2"},
-          {"count": 1, "key": "id3"},
-          {"count": 1, "key": "id5"}])"
+      R"([
+{"count": 1, "key": "id4"},
+{"count": 1, "key": "id5"},
+{"count": 1, "key": "id1"},
+{"count": 1, "key": "id3"},
+{"count": 1, "key": "id2"}
+])"
    )
-#else
-   .expected_query_result = json::parse(
-      R"([{"count": 1, "key": "id3"},
-          {"count": 1, "key": "id1"},
-          {"count": 1, "key": "id4"},
-          {"count": 1, "key": "id5"},
-          {"count": 1, "key": "id2"}])"
-   )
-#endif
 };
 
 const QueryTestScenario ORDER_BY_PRECEDENCE = {
    .name = "orderByTakePrecedenceOverRandomize",
    .query = json::parse(
-      R"({"action": {"type": "Details", "fields": ["key", "col"], "randomize": {"seed": 123212}, "orderByFields": ["col"]},
+      R"({"action": {"type": "Details", "fields": ["key", "col"], "randomize": {"seed": 12321}, "orderByFields": ["col"]},
          "filterExpression": {"type": "True"}})"
    ),
    .expected_query_result = json::parse(
-      R"([{"key": "id5", "col": "A"},
-          {"key": "id1", "col": "A"},
-          {"key": "id3", "col": "A"},
-          {"key": "id2", "col": "B"},
-          {"key": "id4", "col": "B"}])"
+      R"([
+{"key": "id5", "col": "A"},
+{"key": "id1", "col": "A"},
+{"key": "id3", "col": "A"},
+{"key": "id4", "col": "B"},
+{"key": "id2", "col": "B"}
+])"
    )
 };
 
@@ -202,7 +209,7 @@ const QueryTestScenario ORDER_BY_AGGREGATE_RANDOMIZE = {
 const QueryTestScenario LIMIT_2_RANDOMIZE = {
    .name = "detailsWithLimit2AndOffsetRandomized",
    .query = json::parse(
-      R"({"action": {"type": "Details", "fields": ["key", "col"],
+      R"({"action": {"type": "Details", "fields": ["key", "col"], "randomize": true,
                      "orderByFields": ["col", "key"], "limit": 2, "offset": 2},
          "filterExpression": {"type": "True"}})"
    ),
@@ -215,7 +222,7 @@ const QueryTestScenario LIMIT_2_RANDOMIZE = {
 const QueryTestScenario LIMIT_3_RANDOMIZE = {
    .name = "detailsWithLimit3AndOffsetRandomized",
    .query = json::parse(
-      R"({"action": {"type": "Details", "fields": ["key", "col"],
+      R"({"action": {"type": "Details", "fields": ["key", "col"], "randomize": true,
                      "orderByFields": ["col", "key"], "limit": 3, "offset": 2},
          "filterExpression": {"type": "True"}})"
    ),
@@ -229,31 +236,28 @@ const QueryTestScenario LIMIT_3_RANDOMIZE = {
 const QueryTestScenario AGGREGATE_LIMIT_RANDOMIZE = {
    .name = "aggregateWithLimitAndOffsetRandomized",
    .query = json::parse(
-      R"({"action": {"type": "Aggregated", "groupByFields": ["key", "col"], "randomize": {"seed": 123},
-                     "orderByFields": ["col"], "limit": 2, "offset": 1},
+      R"({"action": {"type": "Aggregated", "groupByFields": ["key"], "randomize": {"seed": 12321},
+"limit": 2, "offset": 1},
          "filterExpression": {"type": "True"}})"
    ),
    .expected_query_result = json::parse(
-#ifdef TARGET_CPU_ARM
-      R"([{"count": 1, "key": "id5", "col": "A"},
-          {"count": 1, "key": "id3", "col": "A"}])"
-#else
-      R"([{"count": 1, "key": "id1", "col": "A"},
-          {"count": 1, "key": "id3", "col": "A"}])"
-#endif
+      R"([{"count": 1, "key": "id5"},
+          {"count": 1, "key": "id1"}])"
    )
 };
 
 }  // namespace
-/* TODO(#794) Re-add randomize tests
+
 QUERY_TEST(
    RandomizeTest,
    TEST_DATA,
    ::testing::Values(
       RANDOMIZE_SEED,
-      RANDOMIZE_SEED_DIFFERENT,
+      RANDOMIZE_INDEPENDENT_ON_COL_NUMS,
+      RANDOMIZE_INDEPENDENT_ON_BATCH_SIZE,
+      DIFFERENT_RANDOMIZE_SEED_DIFFERENT_RESULT,
       EXPLICIT_DO_NOT_RANDOMIZE,
-      AGGREGATE,
+      AGGREGATE_RANDOMIZE,
       ORDER_BY_PRECEDENCE,
       ORDER_BY_AGGREGATE_RANDOMIZE,
       LIMIT_2_RANDOMIZE,
@@ -261,4 +265,3 @@ QUERY_TEST(
       AGGREGATE_LIMIT_RANDOMIZE
    )
 );
-*/

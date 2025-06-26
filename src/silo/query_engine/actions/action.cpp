@@ -47,20 +47,30 @@ void Action::setOrdering(
 
 using arrow::compute::NullPlacement;
 
+const std::string RANDOMIZE_HASH_FIELD_NAME{"__SILO_RANDOMIZE_HASH"};
+
 std::optional<arrow::Ordering> Action::getOrdering() const {
    using arrow::compute::SortOrder;
-   if (order_by_fields.empty()) {
-      return std::nullopt;
-   }
-   auto first_order_by_field = order_by_fields.at(0);
 
    std::vector<arrow::compute::SortKey> sort_keys;
    for (auto order_by_field : order_by_fields) {
       auto sort_order = order_by_field.ascending ? SortOrder::Ascending : SortOrder::Descending;
       sort_keys.emplace_back(order_by_field.name, sort_order);
    }
-   const auto null_placement =
-      first_order_by_field.ascending ? NullPlacement::AtStart : NullPlacement::AtEnd;
+
+   if (randomize_seed.has_value()) {
+      sort_keys.emplace_back(RANDOMIZE_HASH_FIELD_NAME);
+   }
+
+   if (sort_keys.empty()) {
+      return std::nullopt;
+   }
+
+   auto first_sort_key = sort_keys.at(0);
+   const auto null_placement = first_sort_key.order == arrow::compute::SortOrder::Ascending
+                                  ? NullPlacement::AtStart
+                                  : NullPlacement::AtEnd;
+
    return arrow::Ordering{sort_keys, null_placement};
 }
 
@@ -199,47 +209,155 @@ QueryPlan Action::toQueryPlan(
    return query_plan.ValueUnsafe();
 }
 
-arrow::Result<arrow::acero::ExecNode*> Action::addSortNode(
+arrow::Result<arrow::acero::ExecNode*> Action::addOrderingNodes(
    arrow::acero::ExecPlan* arrow_plan,
    arrow::acero::ExecNode* node,
    const silo::schema::TableSchema& table_schema
 ) const {
    if (auto ordering = getOrdering()) {
-      arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> generator;
-      // TODO(#800) add optimized sorting when limit is supplied
-      //      if (limit.has_value()) {
-      //         auto number_of_rows_to_be_sorted = limit.value() + offset.value_or(0);
-      //         ARROW_ASSIGN_OR_RAISE(
-      //            node,
-      //            arrow::acero::MakeExecNode(
-      //               "select_k_sink",
-      //               arrow_plan,
-      //               {node},
-      //               arrow::acero::SelectKSinkNodeOptions{
-      //                  arrow::SelectKOptions(number_of_rows_to_be_sorted,
-      //                  ordering.value().sort_keys()), &generator
-      //               }
-      //            )
-      //         );
-      //      } else {
-      ARROW_ASSIGN_OR_RAISE(
-         node,
-         arrow::acero::MakeExecNode(
-            "order_by_sink",
-            arrow_plan,
-            {node},
-            arrow::acero::OrderBySinkNodeOptions{arrow::SortOptions{ordering.value()}, &generator}
-         )
+      std::optional<uint32_t> num_rows_to_produce;
+      if (limit.has_value()) {
+         num_rows_to_produce = limit.value() + offset.value_or(0);
+      }
+
+      auto randomize = randomize_seed;
+      if (randomize) {
+         ARROW_ASSIGN_OR_RAISE(node, addRandomizeColumn(arrow_plan, node, randomize_seed.value()));
+      }
+      return addSortNode(
+         arrow_plan, node, getOutputSchema(table_schema), ordering.value(), num_rows_to_produce
       );
-      //      }
-      auto schema = exec_node::columnsToInternalArrowSchema(getOutputSchema(table_schema));
-      return arrow::acero::MakeExecNode(
+   }
+   return node;
+}
+
+arrow::Result<arrow::acero::ExecNode*> Action::addSortNode(
+   arrow::acero::ExecPlan* arrow_plan,
+   arrow::acero::ExecNode* node,
+   const std::vector<schema::ColumnIdentifier>& output_fields,
+   const arrow::Ordering ordering,
+   std::optional<size_t> /*num_rows_to_produce*/
+) {
+   arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> generator;
+   // TODO(#800) add optimized sorting when limit is supplied
+   //      if (limit.has_value()) {
+   //         auto number_of_rows_to_be_sorted = limit.value() + offset.value_or(0);
+   //         ARROW_ASSIGN_OR_RAISE(
+   //            node,
+   //            arrow::acero::MakeExecNode(
+   //               "select_k_sink",
+   //               arrow_plan,
+   //               {node},
+   //               arrow::acero::SelectKSinkNodeOptions{
+   //                  arrow::SelectKOptions(number_of_rows_to_be_sorted,
+   //                  ordering.value().sort_keys()), &generator
+   //               }
+   //            )
+   //         );
+   //      } else {
+   ARROW_ASSIGN_OR_RAISE(
+      node,
+      arrow::acero::MakeExecNode(
+         "order_by_sink",
+         arrow_plan,
+         {node},
+         arrow::acero::OrderBySinkNodeOptions{arrow::SortOptions{ordering}, &generator}
+      )
+   );
+   node->SetLabel("order by");
+   //      }
+   auto schema = exec_node::columnsToInternalArrowSchema(output_fields);
+   return arrow::acero::MakeExecNode(
+      "source",
+      arrow_plan,
+      {},
+      arrow::acero::SourceNodeOptions{schema, std::move(generator), ordering}
+   );
+}
+
+namespace {
+
+uint64_t hash64(uint64_t x, uint64_t seed) {
+   x ^= seed;
+   x ^= x >> 33;
+   x *= 0xff51afd7ed558ccdULL;
+   x ^= x >> 33;
+   x *= 0xc4ceb9fe1a85ec53ULL;
+   x ^= x >> 33;
+   return x;
+}
+
+}  // namespace
+
+arrow::Result<arrow::acero::ExecNode*> Action::addRandomizeColumn(
+   arrow::acero::ExecPlan* arrow_plan,
+   arrow::acero::ExecNode* node,
+   size_t randomize_seed
+) {
+   arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> sequenced_batches;
+   std::shared_ptr<arrow::Schema> schema_of_sequence_batches;
+   ARROW_ASSIGN_OR_RAISE(
+      node,
+      arrow::acero::MakeExecNode(
+         "sink",
+         arrow_plan,
+         {node},
+         arrow::acero::SinkNodeOptions{&sequenced_batches, &schema_of_sequence_batches}
+      )
+   );
+   node->SetLabel("input to randomize column projection");
+   auto output_schema_fields = schema_of_sequence_batches->fields();
+   output_schema_fields.emplace_back(
+      std::make_shared<arrow::Field>(RANDOMIZE_HASH_FIELD_NAME, arrow::uint64())
+   );
+   auto output_schema = arrow::schema(output_schema_fields);
+   size_t start_of_batch = 0;
+   arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> sequenced_batches_with_hash_id =
+      [sequenced_batches, start_of_batch, randomize_seed](
+      ) mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
+      SPDLOG_TRACE("randomize column projection awaits the next batch");
+      auto future = sequenced_batches();
+
+      return future.Then(
+         [&](std::optional<arrow::ExecBatch> maybe_input_batch
+         ) mutable -> arrow::Result<std::optional<arrow::ExecBatch>> {
+            SPDLOG_TRACE("randomize column projection received next batch");
+
+            if (!maybe_input_batch.has_value()) {
+               return std::nullopt;
+            }
+
+            auto input_batch = maybe_input_batch.value();
+            SILO_ASSERT(!input_batch.values.empty());
+            auto rows_in_batch = input_batch.values.at(0).length();
+            SILO_ASSERT_NE(rows_in_batch, arrow::Datum::kUnknownLength);
+
+            arrow::UInt64Builder randomize_column_builder;
+            for (size_t i = 0; i < rows_in_batch; ++i) {
+               uint64_t hash = hash64(start_of_batch + i, randomize_seed);
+               ARROW_RETURN_NOT_OK(randomize_column_builder.Append(hash));
+            }
+
+            ARROW_ASSIGN_OR_RAISE(auto randomize_column, randomize_column_builder.Finish());
+            start_of_batch += rows_in_batch;
+
+            auto output_columns = input_batch.values;
+            output_columns.emplace_back(randomize_column);
+            auto output_batch = arrow::ExecBatch::Make(output_columns);
+            return output_batch;
+         }
+      );
+   };
+   ARROW_ASSIGN_OR_RAISE(
+      node,
+      arrow::acero::MakeExecNode(
          "source",
          arrow_plan,
          {},
-         arrow::acero::SourceNodeOptions{schema, std::move(generator), ordering.value()}
-      );
-   }
+         arrow::acero::SourceNodeOptions{output_schema, std::move(sequenced_batches_with_hash_id)}
+      )
+   );
+   node->SetLabel("output of randomize column projection");
    return node;
 }
 
