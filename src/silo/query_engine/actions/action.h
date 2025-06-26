@@ -55,20 +55,13 @@ class Action {
       const silo::schema::TableSchema& table_schema
    ) const = 0;
 
-  private:
-   virtual arrow::Result<QueryPlan> toQueryPlanImpl(
-      std::shared_ptr<const storage::Table> table,
-      std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
-      const config::QueryOptions& query_options
-   ) const = 0;
-
-  protected:
-   arrow::Result<arrow::acero::ExecNode*> addSortNode(
+   arrow::Result<arrow::acero::ExecNode*> addOrderingNodes(
       arrow::acero::ExecPlan* arrow_plan,
       arrow::acero::ExecNode* node,
       const silo::schema::TableSchema& table_schema
    ) const;
 
+  protected:
    arrow::Result<arrow::acero::ExecNode*> addLimitAndOffsetNode(
       arrow::acero::ExecPlan* arrow_plan,
       arrow::acero::ExecNode* node
@@ -79,6 +72,27 @@ class Action {
       arrow::acero::ExecNode* node,
       const silo::schema::TableSchema& table_schema
    ) const;
+
+  private:
+   virtual arrow::Result<QueryPlan> toQueryPlanImpl(
+      std::shared_ptr<const storage::Table> table,
+      std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
+      const config::QueryOptions& query_options
+   ) const = 0;
+
+   static arrow::Result<arrow::acero::ExecNode*> addSortNode(
+      arrow::acero::ExecPlan* arrow_plan,
+      arrow::acero::ExecNode* node,
+      const std::vector<schema::ColumnIdentifier>& output_fields,
+      const arrow::Ordering ordering,
+      std::optional<size_t> num_rows_to_produce
+   );
+
+   static arrow::Result<arrow::acero::ExecNode*> addRandomizeColumn(
+      arrow::acero::ExecPlan* arrow_plan,
+      arrow::acero::ExecNode* node,
+      size_t randomize_seed
+   );
 };
 
 std::optional<uint32_t> parseLimit(const nlohmann::json& json);

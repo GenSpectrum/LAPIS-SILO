@@ -44,7 +44,7 @@ arrow::Result<QueryPlan> SimpleSelectAction::toQueryPlanImpl(
       query_options.materialization_cutoff
    );
 
-   ARROW_ASSIGN_OR_RAISE(node, addSortNode(arrow_plan.get(), node, table->schema));
+   ARROW_ASSIGN_OR_RAISE(node, addOrderingNodes(arrow_plan.get(), node, table->schema));
 
    ARROW_ASSIGN_OR_RAISE(node, addLimitAndOffsetNode(arrow_plan.get(), node));
 

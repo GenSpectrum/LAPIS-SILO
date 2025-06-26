@@ -166,7 +166,7 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithGrouping(
       arrow::acero::MakeExecNode("aggregate", arrow_plan.get(), {node}, aggregate_node_options)
    );
 
-   ARROW_ASSIGN_OR_RAISE(node, addSortNode(arrow_plan.get(), node, table->schema));
+   ARROW_ASSIGN_OR_RAISE(node, addOrderingNodes(arrow_plan.get(), node, table->schema));
 
    ARROW_ASSIGN_OR_RAISE(node, addLimitAndOffsetNode(arrow_plan.get(), node));
 
