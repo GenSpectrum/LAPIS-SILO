@@ -19,6 +19,8 @@ arrow::Result<QueryPlan> QueryPlan::makeQueryPlan(
       exec_node::createGenerator(arrow_plan.get(), root, &query_plan.results_generator)
    );
    query_plan.results_schema = root->output_schema();
+   // ARROW_RETURN_NOT_OK(query_plan.results_schema->AddField(0,
+   // std::make_shared<arrow::Field>("__SILO_RANDOMIZE_HASH", arrow::uint64()))); // TODO remove
    return query_plan;
 }
 

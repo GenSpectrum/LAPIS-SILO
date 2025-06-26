@@ -380,7 +380,7 @@ arrow::Result<QueryPlan> Mutations<SymbolType>::toQueryPlanImpl(
       auto node, arrow::acero::MakeExecNode("source", arrow_plan.get(), {}, options)
    );
 
-   ARROW_ASSIGN_OR_RAISE(node, addSortNode(arrow_plan.get(), node, table->schema));
+   ARROW_ASSIGN_OR_RAISE(node, addOrderingNodes(arrow_plan.get(), node, table->schema));
 
    ARROW_ASSIGN_OR_RAISE(node, addLimitAndOffsetNode(arrow_plan.get(), node));
 
