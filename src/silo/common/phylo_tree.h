@@ -40,6 +40,14 @@ class TreeNode {
    }
 };
 
+class MRCAResponse {
+  public:
+   std::optional<TreeNodeId> mrca_node_id;
+   std::vector<std::string> not_in_tree;
+};
+
+}  // namespace silo::common
+
 class PhyloTree {
   public:
    std::unordered_map<TreeNodeId, std::shared_ptr<TreeNode>> nodes;
@@ -66,6 +74,8 @@ class PhyloTree {
    roaring::Roaring getDescendants(const TreeNodeId& node_id);
 
    roaring::Roaring getDescendants(const std::string& node_label);
+
+   MRCAResponse getMRCA(const std::vector<std::string>& node_labels);
 
   private:
    friend class boost::serialization::access;

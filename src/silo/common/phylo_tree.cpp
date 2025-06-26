@@ -232,17 +232,21 @@ PhyloTree PhyloTree::fromNewickString(const std::string& newick_string) {
       );
    }
    if (sv.back() != ';') {
-      throw silo::preprocessing::PreprocessingException(fmt::format(
-         "Error when parsing the Newick string: '{}' - string does not end in ';'", newick_string
-      ));
+      throw silo::preprocessing::PreprocessingException(
+         fmt::format(
+            "Error when parsing the Newick string: '{}' - string does not end in ';'", newick_string
+         )
+      );
    }
    sv.remove_suffix(1);
    try {
       auto root = parseSubtree(sv, file.nodes, 0);
       if (!sv.empty()) {
-         throw silo::preprocessing::PreprocessingException(fmt::format(
-            "Error when parsing the Newick string: '{}' - extra characters found", newick_string
-         ));
+         throw silo::preprocessing::PreprocessingException(
+            fmt::format(
+               "Error when parsing the Newick string: '{}' - extra characters found", newick_string
+            )
+         );
       }
    } catch (const std::exception& e) {
       throw silo::preprocessing::PreprocessingException(
@@ -273,9 +277,11 @@ PhyloTree PhyloTree::fromNewickFile(const std::filesystem::path& newick_path) {
    try {
       return fromNewickString(contents.str());
    } catch (const std::exception& e) {
-      throw silo::preprocessing::PreprocessingException(fmt::format(
-         "Error when parsing the Newick string '{}': {}", newick_path.string(), e.what()
-      ));
+      throw silo::preprocessing::PreprocessingException(
+         fmt::format(
+            "Error when parsing the Newick string '{}': {}", newick_path.string(), e.what()
+         )
+      );
    }
 }
 
@@ -289,9 +295,11 @@ PhyloTree PhyloTree::fromFile(const std::filesystem::path& path) {
    } else if (ext == ".json") {
       return common::PhyloTree::fromAuspiceJSONFile(path);
    }
-   throw silo::preprocessing::PreprocessingException(fmt::format(
-      "Error when parsing tree file: '{}'. Path must end with .nwk or .json", path.string()
-   ));
+   throw silo::preprocessing::PreprocessingException(
+      fmt::format(
+         "Error when parsing tree file: '{}'. Path must end with .nwk or .json", path.string()
+      )
+   );
 }
 
 void PhyloTree::validateNodeExists(const TreeNodeId& node_id) {
@@ -339,6 +347,74 @@ roaring::Roaring PhyloTree::getDescendants(const TreeNodeId& node_id) {
 
 roaring::Roaring PhyloTree::getDescendants(const std::string& node_label) {
    return getDescendants(TreeNodeId{node_label});
+}
+
+
+void getSetOfAncestorsAtDepth(
+   std::set<TreeNodeId>& nodes_to_group,
+   std::set<TreeNodeId>& ancestors_at_depth,
+   int depth
+) {
+   for (const auto& node_id : nodes_to_group) {
+      auto node_it = nodes.find(node_id);
+      while (node_it != nodes.end() && node_it->second->depth > min_depth) {
+         if (node_it->second->parent.has_value()) {
+            node_it = nodes.find(node_it->second->parent.value());
+         } else {
+            break;
+         }
+      }
+      if (node_it == nodes.end()) {
+         throw std::runtime_error(fmt::format("Node '{}' does not exist in tree.", node_id.string));
+      }
+      ancestors_at_depth.insert(node_it->first->node_id);
+   }
+}
+
+
+MRCAResponse getMRCA(const std::vector<std::string>& node_labels) {
+   MRCAResponse response;
+   std::set<TreeNodeId> nodes_to_group;
+
+   for (const auto& node_label : node_labels) {
+      auto node_it = nodes.find(TreeNodeId{node_label});
+      if (node_it == nodes.end()) {
+         response.not_in_tree.push_back(node_label);
+      } else {
+         nodes_to_group.push_back(TreeNodeId{node_label});
+      }
+   }
+
+   if (nodes_to_group.empty()) {
+      response.mrca_node_id = std::nullopt;
+      return response;
+   }
+
+   min_depth = std::numeric_limits<int>::max();
+   for (const auto& node_id : nodes_to_group) {
+      auto node_it = nodes.find(node_id);
+      if (node_it == nodes.end()) {
+         throw std::runtime_error(fmt::format("Node '{}' does not exist in tree.", node_id.string));
+      }
+      if (node_it->second->depth < min_depth) {
+         min_depth = node_it->second->depth;
+      }
+   }
+   std::set<TreeNodeId> set_at_min_depth;
+   getSetOfAncestorsAtDepth(nodes_to_group, set_at_min_depth, min_depth);
+
+   while (set_at_min_depth.size() > 1) {
+      std::set<TreeNodeId> next_set_at_min_depth;
+      getSetOfAncestorsAtDepth(nodes_to_group, next_set_at_min_depth, min_depth);
+      set_at_min_depth = next_set_at_min_depth;
+   }
+   if (set_at_min_depth.empty()) {
+      throw std::runtime_error(
+         "No common ancestor found for the provided nodes. This is an internal error."
+      );
+   }
+   response.mrca_node_id = *set_at_min_depth.begin();
+   return response;
 }
 
 }  // namespace silo::common
