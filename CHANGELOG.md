@@ -1,5 +1,49 @@
 # Changelog
 
+## [0.7.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.6.0...v0.7.0) (2025-06-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* change field sequenceName to sequenceNames in Insertions action
+* change field sequenceName to sequenceNames in Mutations action
+* rename DatabaseInfo field `totalSize` to `verticalBitmapsSize` and `nBitmapsSize` to `horizontalBitmapsSize`
+* the field sequenceName in the Fasta and FastaAligned is now named sequenceNames and required to be an array
+* streaming implementation of Details action. select-k also for Fasta and FastaAligned
+* streaming implementation of the Fasta action with the arrow framework
+
+### Features
+
+* arrow framework for query engine and specialized implementation for FastaAligned action ([b719e15](https://github.com/GenSpectrum/LAPIS-SILO/commit/b719e15c2fa682752518e2cc9c98707fbbb84a9d)), closes [#654](https://github.com/GenSpectrum/LAPIS-SILO/issues/654)
+* cache DatabaseInfo, add amino acid sequence columns to size info ([bc0d0a2](https://github.com/GenSpectrum/LAPIS-SILO/commit/bc0d0a2210922bf712bf744d9f1d4bf889054541))
+* make ordering backwards-compatible if ordering is requested for only a single field ([a9dfb73](https://github.com/GenSpectrum/LAPIS-SILO/commit/a9dfb73d1a6ff7c768788f3ae4b364cc6f376ae6))
+* **silo:** add function to get all clades that are descendants of an internal node ([#815](https://github.com/GenSpectrum/LAPIS-SILO/issues/815)) ([d1f9989](https://github.com/GenSpectrum/LAPIS-SILO/commit/d1f99894b603d4dd398fd890d48276b698c83661))
+* **silo:** add recommended vscode extensions to .vscode folder for developers using vscode ([d2c74db](https://github.com/GenSpectrum/LAPIS-SILO/commit/d2c74db6e2fb00d98f687a0dbf958d378127718b))
+* **silo:** improve the docs and update build_with_conan.py ([#779](https://github.com/GenSpectrum/LAPIS-SILO/issues/779)) ([f176fd6](https://github.com/GenSpectrum/LAPIS-SILO/commit/f176fd6c4e0a26e638a63f577bb90db49c89d9f4))
+* **silo:** read in phylogenetic tree files and create tree structure ([#806](https://github.com/GenSpectrum/LAPIS-SILO/issues/806)) ([f3d3f36](https://github.com/GenSpectrum/LAPIS-SILO/commit/f3d3f36fea44f0d6b8727fdc66a8fed6501110e3))
+* **silo:** refactor phylotree to use nodeId for children and parent and serialize ([#822](https://github.com/GenSpectrum/LAPIS-SILO/issues/822)) ([29e8361](https://github.com/GenSpectrum/LAPIS-SILO/commit/29e83611fa191e439894407222917d660f1aefb6))
+* streaming implementation of the Fasta action with the arrow framework ([0392207](https://github.com/GenSpectrum/LAPIS-SILO/commit/03922072ed3cf9a40b873c6cda93eba33c112ea1))
+* update onetbb, nlohmann_json, gtest, roaring, yaml-cpp and zstd to most recent versions ([3abd2d9](https://github.com/GenSpectrum/LAPIS-SILO/commit/3abd2d98acdcd0c50087a0b443fb8a6fd91cf6a8))
+
+
+### Bug Fixes
+
+* avoid dropping the input bitmap of Selections in a nested And query ([e87093c](https://github.com/GenSpectrum/LAPIS-SILO/commit/e87093c4f0b254d526663bfe1658c1be3209a1ee))
+* bug in table_scan, that confused row_id in the database with row_id in the current batch ([9b7dce4](https://github.com/GenSpectrum/LAPIS-SILO/commit/9b7dce4c171c0e1d87a4388d511dcb6dd354b392))
+* correctly error when the input data contains illegal insertion characters ([4867c32](https://github.com/GenSpectrum/LAPIS-SILO/commit/4867c320c495226add39a981c25287866bc49302))
+* make better use of the arrow::acero API, no longer rely on passing the stream inside an extra operator ([dabb186](https://github.com/GenSpectrum/LAPIS-SILO/commit/dabb18618bac8562ef0a56c069e923e96ccb1026))
+* missing initialization of uint32_t in config struct, set default value in ConfigSpecification instead ([#812](https://github.com/GenSpectrum/LAPIS-SILO/issues/812)) ([baf0fcc](https://github.com/GenSpectrum/LAPIS-SILO/commit/baf0fcc4aa874ad2dc8f2484c37fed452643af96))
+* properly catch exceptions during arrow execution to avoid program termination ([6caee0e](https://github.com/GenSpectrum/LAPIS-SILO/commit/6caee0ea17fbe4c95115d05d5de7eb78d71792bc))
+* remove erroneous warning printed on every preprocessing run ([82b65c8](https://github.com/GenSpectrum/LAPIS-SILO/commit/82b65c8a91aebe80bc15453a2196be98501e672a))
+
+
+### Code Refactoring
+
+* change field sequenceName to sequenceNames in Insertions action ([57685a2](https://github.com/GenSpectrum/LAPIS-SILO/commit/57685a2e048f1a0bde8032d2ba64dd2965eedf48))
+* change field sequenceName to sequenceNames in Mutations action ([851b5a9](https://github.com/GenSpectrum/LAPIS-SILO/commit/851b5a9ea1456f0155e34b12bc58cffa05c4edca))
+* make sequenceName in Fasta and FastaAligned actions an array ([6c345fb](https://github.com/GenSpectrum/LAPIS-SILO/commit/6c345fbac600bc125dc51e24570e3885e82f54d1))
+* streaming implementation of Details action. select-k also for Fasta and FastaAligned ([bfbb3ee](https://github.com/GenSpectrum/LAPIS-SILO/commit/bfbb3ee81792cb4e515f217fabde41a8fb44d7da))
+
 ## [0.6.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.5.9...v0.6.0) (2025-04-23)
 
 
