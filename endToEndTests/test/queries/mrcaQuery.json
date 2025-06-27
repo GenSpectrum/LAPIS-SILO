@@ -1,0 +1,31 @@
+{
+  "testCaseName": "amino acid insertions action and insertion contains filter",
+  "query": {
+    "action": {
+      "type": "MRCA",
+      "columnName": "gisaid_epi_isl",
+      "orderByFields": ["mrca_node"]
+    },
+    "filterExpression": {
+      "type": "Or",
+      "children": [
+        {
+          "type": "StringEquals",
+          "column": "gisaid_epi_isl",
+          "value": "EPI_ISL_1003849"
+        },
+        {
+          "type": "StringEquals",
+          "column": "gisaid_epi_isl",
+          "value": "EPI_ISL_1260480"
+        }
+      ]
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "mrcaNode": "NODE_0000072",
+      "missingNodeCount": 0
+    }
+  ]
+}
