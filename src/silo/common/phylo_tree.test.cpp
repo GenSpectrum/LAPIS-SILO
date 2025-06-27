@@ -112,3 +112,26 @@ TEST(PhyloTree, throwsOnInvalidNewickWithDuplicateNodeId) {
       PhyloTree::fromNewickString("((CHILD)CHILD)ROOT"), silo::preprocessing::PreprocessingException
    );
 }
+
+TEST(PhyloTree, correctlyReturnsMRCA) {
+   auto phylo_tree_file = PhyloTree::fromNewickString("((CHILD2, CHILD3)CHILD, CHILD4)ROOT;");
+   auto mrca_response = phylo_tree_file.getMRCA({"CHILD2", "CHILD3"});
+   ASSERT_TRUE(mrca_response.mrca_node_id.has_value());
+   ASSERT_EQ(mrca_response.mrca_node_id.value(), TreeNodeId{"CHILD"});
+   ASSERT_TRUE(mrca_response.not_in_tree.empty());
+
+   mrca_response = phylo_tree_file.getMRCA({"CHILD2", "NOT_IN_TREE"});
+   ASSERT_TRUE(mrca_response.mrca_node_id.has_value());
+   ASSERT_EQ(mrca_response.mrca_node_id.value(), TreeNodeId{"CHILD2"});
+   ASSERT_TRUE(mrca_response.not_in_tree.size() == 1 && mrca_response.not_in_tree[0] == "NOT_IN_TREE");
+
+   mrca_response = phylo_tree_file.getMRCA({"CHILD2", "CHILD3", "CHILD4"});
+   ASSERT_TRUE(mrca_response.mrca_node_id.has_value());
+   ASSERT_EQ(mrca_response.mrca_node_id.value(), TreeNodeId{"ROOT"});
+   ASSERT_TRUE(mrca_response.not_in_tree.empty());
+
+   mrca_response = phylo_tree_file.getMRCA({"NOT_IN_TREE", "NOT_IN_TREE2"});
+   ASSERT_FALSE(mrca_response.mrca_node_id.has_value());
+   ASSERT_TRUE(mrca_response.not_in_tree.size() == 2 && mrca_response.not_in_tree[0] == "NOT_IN_TREE" &&
+                      mrca_response.not_in_tree[1] == "NOT_IN_TREE2");
+}
