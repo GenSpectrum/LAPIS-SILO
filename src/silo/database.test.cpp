@@ -87,6 +87,7 @@ TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
 
    // If the serialization version changes, comment out the next line to build a new database for
    // the next test. Then add the produced directory to Git and remove the old serialized state.
+   // Also bump CURRENT_SILO_SERIALIZATION_VERSION in src/silo/common/data_version.h
    std::filesystem::remove_all(data_source.path);
 }
 
