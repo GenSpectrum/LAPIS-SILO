@@ -34,7 +34,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> createMatchingB
    auto internal_tree_node = string_column.metadata->phylo_tree->getTreeNodeId(internal_node);
    CHECK_SILO_QUERY(
       internal_tree_node.has_value(),
-      "The internal node '{}' does not exist in the phylogenetic tree of column '{}'",
+      "The node '{}' does not exist in the phylogenetic tree of column '{}'",
       internal_node,
       string_column.metadata->column_name
    );

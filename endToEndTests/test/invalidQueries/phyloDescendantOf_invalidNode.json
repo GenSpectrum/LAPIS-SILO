@@ -12,6 +12,6 @@
   },
   "expectedError": {
     "error": "Bad request",
-    "message": "Node 'NON_EXISTING_NODE' does not exist in tree."
+    "message": "The node 'NON_EXISTING_NODE' does not exist in the phylogenetic tree of column 'gisaid_epi_isl'"
   }
 }
