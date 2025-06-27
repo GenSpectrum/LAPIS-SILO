@@ -1,0 +1,30 @@
+{
+  "testCaseName": "PhyloDescendantOf should return only descendent nodes of a given node",
+  "query": {
+    "action": {
+      "type": "Aggregated",
+      "groupByFields": ["gisaid_epi_isl"],
+      "orderByFields": [
+        {
+          "field": "gisaid_epi_isl",
+          "order": "ascending"
+        }
+      ]
+    },
+    "filterExpression": {
+      "type": "PhyloDescendantOf",
+      "column": "gisaid_epi_isl",
+      "internalNode": "NODE_0000072"
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "count": 1,
+      "gisaid_epi_isl": "EPI_ISL_1003849"
+    },
+    {
+      "count": 1,
+      "gisaid_epi_isl": "EPI_ISL_1260480"
+    }
+  ]
+}

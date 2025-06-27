@@ -3,6 +3,8 @@
 #include <fstream>
 #include <sstream>
 
+#include <roaring/roaring.hh>
+
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/serialization/access.hpp>
@@ -15,7 +17,7 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/preprocessing/preprocessing_exception.h"
-#include "silo/query_engine/batched_bitmap_reader.h"
+#include "silo/query_engine/bad_request.h"
 
 namespace silo::common {
 using silo::common::TreeNodeId;
@@ -291,6 +293,45 @@ PhyloTree PhyloTree::fromFile(const std::filesystem::path& path) {
    throw silo::preprocessing::PreprocessingException(fmt::format(
       "Error when parsing tree file: '{}'. Path must end with .nwk or .json", path.string()
    ));
+}
+
+std::optional<TreeNodeId> PhyloTree::getTreeNodeId(const std::string& node_label) {
+   auto node_id = TreeNodeId{node_label};
+   if (nodes.find(node_id) == nodes.end()) {
+      return std::nullopt;
+   }
+   return node_id;
+}
+
+roaring::Roaring PhyloTree::getDescendants(const TreeNodeId& node_id) {
+   auto child_it = nodes.find(node_id);
+   roaring::Roaring result_bitmap;
+   if (child_it == nodes.end() || !child_it->second) {
+      throw std::runtime_error(
+         fmt::format("Node '{}' is null - this is an internal error.", node_id.string)
+      );
+   }
+   std::function<void(const TreeNodeId&)> dfs = [&](const TreeNodeId& current) {
+      auto current_node = nodes.find(current);
+      if (!current_node->second) {
+         throw std::runtime_error(
+            fmt::format("Node '{}' is null - this is an internal error.", current.string)
+         );
+      }
+      if (current_node->second->isLeaf()) {
+         if (current_node->second->row_index.has_value()) {
+            result_bitmap.add(current_node->second->row_index.value());
+         }
+      }
+      for (const auto& child : current_node->second->children) {
+         dfs(child);
+      }
+   };
+   if (child_it->second->isLeaf()) {
+      return result_bitmap;
+   }
+   dfs(node_id);
+   return result_bitmap;
 }
 
 }  // namespace silo::common

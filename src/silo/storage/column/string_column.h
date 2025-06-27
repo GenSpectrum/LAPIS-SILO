@@ -8,14 +8,17 @@
 #include <vector>
 
 #include <boost/serialization/access.hpp>
+#include <boost/serialization/split_free.hpp>
 
 #include "silo/common/bidirectional_map.h"
 #include "silo/common/phylo_tree.h"
 #include "silo/common/string.h"
+#include "silo/common/tree_node_id.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/column_metadata.h"
 
 namespace silo::storage::column {
+using TreeNodeId = silo::common::TreeNodeId;
 
 class StringColumnMetadata : public ColumnMetadata {
   public:
@@ -63,6 +66,8 @@ class StringColumnPartition {
 
    static constexpr schema::ColumnType TYPE = schema::ColumnType::STRING;
 
+   Metadata* metadata;
+
   private:
    friend class boost::serialization::access;
    template <class Archive>
@@ -73,7 +78,6 @@ class StringColumnPartition {
    }
 
    std::vector<common::String<silo::common::STRING_SIZE>> values;
-   Metadata* metadata;
 
   public:
    explicit StringColumnPartition(Metadata* metadata);
@@ -93,6 +97,13 @@ class StringColumnPartition {
    [[nodiscard]] inline std::string lookupValue(common::String<silo::common::STRING_SIZE> string
    ) const {
       return string.toString(metadata->dictionary);
+   }
+
+   inline roaring::Roaring getDescendants(const TreeNodeId& parent) const {
+      if (!metadata->phylo_tree.has_value()) {
+         return roaring::Roaring();
+      }
+      return metadata->phylo_tree->getDescendants(parent);
    }
 };
 

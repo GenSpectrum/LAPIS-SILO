@@ -3,6 +3,8 @@
 #include <filesystem>
 #include <vector>
 
+#include <roaring/roaring.hh>
+
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/split_member.hpp>
 
@@ -17,9 +19,14 @@ using silo::common::TreeNodeId;
 class TreeNode {
   public:
    TreeNodeId node_id;
+   std::optional<size_t> row_index;  // index of corresponding sequence in the database (will be
+                                     // empty for internal nodes)
    std::vector<TreeNodeId> children;
    std::optional<TreeNodeId> parent;
    int depth;
+
+   bool isLeaf() { return children.empty(); }
+   bool rowIndexExists() const { return row_index.has_value(); }
 
    friend class boost::serialization::access;
    template <class Archive>
@@ -29,6 +36,7 @@ class TreeNode {
     archive & children;
     archive & parent;
     archive & depth;
+    archive & row_index;
       // clang-format on
    }
 };
@@ -36,6 +44,8 @@ class TreeNode {
 class PhyloTree {
   public:
    std::unordered_map<TreeNodeId, std::shared_ptr<TreeNode>> nodes;
+
+   // Functions for reading and parsing phylogenetic trees
 
    static PhyloTree fromAuspiceJSONFile(const std::filesystem::path& json_path);
 
@@ -46,6 +56,13 @@ class PhyloTree {
    static PhyloTree fromNewickString(const std::string& newick_string);
 
    static PhyloTree fromFile(const std::filesystem::path& path);
+
+   // Functions for querying the phylogenetic tree
+
+   std::optional<TreeNodeId> getTreeNodeId(const std::string& node_label);
+
+   // returns a bitmap of all descendants node{node_id} that are also in the database
+   roaring::Roaring getDescendants(const TreeNodeId& node_id);
 
   private:
    friend class boost::serialization::access;
