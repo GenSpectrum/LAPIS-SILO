@@ -198,10 +198,10 @@ std::vector<schema::ColumnIdentifier> columnNamesToFields(
 
 QueryPlan Action::toQueryPlan(
    std::shared_ptr<const storage::Table> table,
-   std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
+   std::vector<CopyOnWriteBitmap> partition_filters,
    const config::QueryOptions& query_options
 ) {
-   auto query_plan = toQueryPlanImpl(table, partition_filter_operators, query_options);
+   auto query_plan = toQueryPlanImpl(table, partition_filters, query_options);
    if (!query_plan.status().ok()) {
       SILO_PANIC("Arrow error: {}", query_plan.status().ToString());
    };
