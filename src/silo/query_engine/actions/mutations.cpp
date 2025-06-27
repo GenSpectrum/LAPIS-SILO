@@ -281,12 +281,10 @@ arrow::Status Mutations<SymbolType>::addMutationsToOutput(
    return arrow::Status::OK();
 }
 
-using silo::query_engine::filter::operators::Operator;
-
 template <typename SymbolType>
 arrow::Result<QueryPlan> Mutations<SymbolType>::toQueryPlanImpl(
    std::shared_ptr<const storage::Table> table,
-   std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
+   std::vector<CopyOnWriteBitmap> partition_filters,
    const config::QueryOptions& query_options
 ) const {
    std::vector<std::string> sequence_names_to_evaluate;
@@ -315,7 +313,7 @@ arrow::Result<QueryPlan> Mutations<SymbolType>::toQueryPlanImpl(
       [table,
        given_min_proportion,
        output_fields,
-       partition_filter_operators,
+       partition_filters,
        sequence_names_to_evaluate,
        produced = false]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
       if (produced == true) {
@@ -323,11 +321,6 @@ arrow::Result<QueryPlan> Mutations<SymbolType>::toQueryPlanImpl(
          return arrow::Future{result};
       }
       produced = true;
-      std::vector<CopyOnWriteBitmap> partition_filters;
-      partition_filters.reserve(partition_filter_operators->size());
-      for (const auto& partition_filter_operator : *partition_filter_operators) {
-         partition_filters.emplace_back(partition_filter_operator->evaluate());
-      }
 
       std::unordered_map<std::string, Mutations<SymbolType>::PrefilteredBitmaps>
          bitmaps_to_evaluate = preFilterBitmaps(*table, partition_filters);

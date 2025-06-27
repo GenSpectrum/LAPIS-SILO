@@ -38,7 +38,7 @@ class Action {
 
    QueryPlan toQueryPlan(
       std::shared_ptr<const storage::Table> table,
-      std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
+      std::vector<CopyOnWriteBitmap> partition_filters,
       const config::QueryOptions& query_options
    );
 
@@ -76,7 +76,7 @@ class Action {
   private:
    virtual arrow::Result<QueryPlan> toQueryPlanImpl(
       std::shared_ptr<const storage::Table> table,
-      std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
+      std::vector<CopyOnWriteBitmap> partition_filters,
       const config::QueryOptions& query_options
    ) const = 0;
 

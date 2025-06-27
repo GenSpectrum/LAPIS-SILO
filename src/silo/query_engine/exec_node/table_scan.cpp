@@ -184,8 +184,9 @@ arrow::Status TableScan::appendEntries(
 arrow::Status TableScan::produce() {
    SPDLOG_TRACE("TableScan::produce");
    for (size_t partition_idx = 0; partition_idx < table->getNumberOfPartitions(); ++partition_idx) {
-      auto filter_for_partition = partition_filter_operators->at(partition_idx)->evaluate();
-      silo::query_engine::BatchedBitmapReader reader{filter_for_partition, batch_size_cutoff - 1};
+      silo::query_engine::BatchedBitmapReader reader{
+         partition_filters.at(partition_idx), batch_size_cutoff - 1
+      };
       while (auto row_ids = reader.nextBatch()) {
          ARROW_RETURN_NOT_OK(appendEntries(table->getPartition(partition_idx), row_ids.value()));
          ARROW_RETURN_NOT_OK(flushOutput());

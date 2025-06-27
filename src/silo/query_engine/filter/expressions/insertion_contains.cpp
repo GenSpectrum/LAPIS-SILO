@@ -72,52 +72,20 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> InsertionContai
             auto search_result = sequence_store.insertion_index.search(position_idx, value);
             return CopyOnWriteBitmap(std::move(*search_result));
          } catch (const silo::storage::InsertionFormatException& exception) {
-            throw silo::BadRequest(exception.what());
+            throw silo::BadRequest(
+               "The field 'value' in the InsertionContains expression does not contain a valid "
+               "regex "
+               "pattern: \"{}\". It must only consist of {} symbols and the regex symbol '.*'. "
+               "Also note "
+               "that the stop codon * must be escaped correctly with a \\ in amino acid queries.",
+               value,
+               SymbolType::SYMBOL_NAME_LOWER_CASE
+            );
          }
       },
       table_partition.sequence_count
    );
 }
-
-namespace {
-
-template <typename SymbolType>
-std::regex buildValidInsertionSearchRegex();
-template <>
-std::regex buildValidInsertionSearchRegex<AminoAcid>() {
-   // Build the following regex pattern: ^([symbols]|\.\*)*$
-   std::stringstream regex_pattern_string;
-   regex_pattern_string << "^([";
-   for (const auto symbol : AminoAcid::SYMBOLS) {
-      if (symbol != AminoAcid::Symbol::STOP) {
-         regex_pattern_string << AminoAcid::symbolToChar(symbol);
-      }
-   }
-   regex_pattern_string << R"(]|(\\\*)|(\.\*))*$)";
-   return std::regex(regex_pattern_string.str());
-}
-
-template <>
-std::regex buildValidInsertionSearchRegex<Nucleotide>() {
-   // Build the following regex pattern: ^([symbols]|\.\*)*$
-   std::stringstream regex_pattern_string;
-   regex_pattern_string << "^([";
-   for (const auto symbol : Nucleotide::SYMBOLS) {
-      regex_pattern_string << Nucleotide::symbolToChar(symbol);
-   }
-   regex_pattern_string << "]|\\.\\*)*$";
-   return std::regex(regex_pattern_string.str());
-}
-
-template <typename SymbolType>
-const std::regex VALID_INSERTION_SEARCH_VALUE_REGEX = buildValidInsertionSearchRegex<SymbolType>();
-
-template <typename SymbolType>
-bool validateInsertionSearchValue(const std::string& value) {
-   return std::regex_search(value, VALID_INSERTION_SEARCH_VALUE_REGEX<SymbolType>);
-}
-
-}  // namespace
 
 template <typename SymbolType>
 // NOLINTNEXTLINE(readability-identifier-naming)
@@ -146,14 +114,6 @@ void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains<Sym
    CHECK_SILO_QUERY(
       !value.empty(),
       "The field 'value' in an InsertionContains expression must not be an empty string"
-   );
-   CHECK_SILO_QUERY(
-      validateInsertionSearchValue<SymbolType>(value),
-      "The field 'value' in the InsertionContains expression does not contain a valid regex "
-      "pattern: \"{}\". It must only consist of {} symbols and the regex symbol '.*'. Also note "
-      "that the stop codon * must be escaped correctly with a \\ in amino acid queries.",
-      value,
-      SymbolType::SYMBOL_NAME_LOWER_CASE
    );
    filter = std::make_unique<InsertionContains<SymbolType>>(sequence_name, position_idx, value);
 }
