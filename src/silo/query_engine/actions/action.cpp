@@ -21,6 +21,7 @@
 #include "silo/query_engine/actions/fasta.h"
 #include "silo/query_engine/actions/fasta_aligned.h"
 #include "silo/query_engine/actions/insertions.h"
+#include "silo/query_engine/actions/most_recent_common_ancestor.h"
 #include "silo/query_engine/actions/mutations.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
@@ -149,6 +150,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
    const std::string expression_type = json["type"];
    if (expression_type == "Aggregated") {
       action = json.get<std::unique_ptr<Aggregated>>();
+   } else if (expression_type == "MRCA") {
+      action = json.get<std::unique_ptr<MostRecentCommonAncestor>>();
    } else if (expression_type == "Mutations") {
       action = json.get<std::unique_ptr<Mutations<Nucleotide>>>();
    } else if (expression_type == "Details") {

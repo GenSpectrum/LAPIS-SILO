@@ -18,7 +18,8 @@
 #include "silo/storage/column/column_metadata.h"
 
 namespace silo::storage::column {
-using TreeNodeId = silo::common::TreeNodeId;
+using silo::common::MRCAResponse;
+using silo::common::TreeNodeId;
 
 class StringColumnMetadata : public ColumnMetadata {
   public:
@@ -104,6 +105,16 @@ class StringColumnPartition {
          return roaring::Roaring();
       }
       return metadata->phylo_tree->getDescendants(parent);
+   }
+
+   inline MRCAResponse getMRCA(const std::vector<std::string>& node_labels) const {
+      if (!metadata->phylo_tree.has_value()) {
+         return MRCAResponse{
+            std::nullopt,
+            {},
+         };
+      }
+      return metadata->phylo_tree->getMRCA(node_labels);
    }
 };
 
