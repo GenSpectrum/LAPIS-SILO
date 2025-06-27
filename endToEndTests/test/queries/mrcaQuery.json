@@ -1,10 +1,10 @@
 {
-  "testCaseName": "amino acid insertions action and insertion contains filter",
+  "testCaseName": "MRCA query returns correct node",
   "query": {
     "action": {
       "type": "MRCA",
       "columnName": "gisaid_epi_isl",
-      "orderByFields": ["mrca_node"]
+      "orderByFields": ["mrcaNode"]
     },
     "filterExpression": {
       "type": "Or",
