@@ -146,6 +146,7 @@ arrow::Result<QueryPlan> MostRecentCommonAncestor::toQueryPlanImpl(
 
       auto all_node_ids = GetNodeValues(table, column_name_to_evaluate, partition_filters);
 
+      // all partitions of the tree link to the same phylo tree, so we can just use the first
       const storage::TablePartition& first_table_partition = table->getPartition(0);
       const auto& string_column =
          first_table_partition.columns.string_columns.at(column_name_to_evaluate);
