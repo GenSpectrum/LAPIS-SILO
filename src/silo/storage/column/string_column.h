@@ -18,6 +18,7 @@
 #include "silo/storage/column/column_metadata.h"
 
 namespace silo::storage::column {
+using TreeNodeId = silo::common::TreeNodeId;
 
 class StringColumnMetadata : public ColumnMetadata {
   public:
@@ -65,6 +66,8 @@ class StringColumnPartition {
 
    static constexpr schema::ColumnType TYPE = schema::ColumnType::STRING;
 
+   Metadata* metadata;
+
   private:
    friend class boost::serialization::access;
    template <class Archive>
@@ -75,7 +78,6 @@ class StringColumnPartition {
    }
 
    std::vector<common::String<silo::common::STRING_SIZE>> values;
-   Metadata* metadata;
 
   public:
    explicit StringColumnPartition(Metadata* metadata);
@@ -97,7 +99,7 @@ class StringColumnPartition {
       return string.toString(metadata->dictionary);
    }
 
-   inline roaring::Roaring getDescendants(const std::string& parent) const {
+   inline roaring::Roaring getDescendants(const TreeNodeId& parent) const {
       if (!metadata->phylo_tree.has_value()) {
          return roaring::Roaring();
       }

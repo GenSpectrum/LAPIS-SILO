@@ -9,7 +9,6 @@
 #include <gtest/gtest.h>
 #include "silo/common/phylo_tree.h"
 #include "silo/common/tree_node_id.h"
-#include "silo/query_engine/bad_request.h"
 
 using silo::storage::column::StringColumnMetadata;
 using silo::storage::column::StringColumnPartition;
@@ -89,14 +88,20 @@ TEST(StringColumnPartition, rawInsertedValuesWithPhyloTreeRequeried) {
    under_test.insert("CHILD3");
    under_test.insert("NOT_IN_TREE");
 
+   auto tree_node_id_child = metadata.phylo_tree->getTreeNodeId("CHILD");
+   auto tree_node_id_child2 = metadata.phylo_tree->getTreeNodeId("CHILD2");
+   auto tree_node_id_child3 = metadata.phylo_tree->getTreeNodeId("CHILD3");
+   auto tree_node_id_not_in_tree = metadata.phylo_tree->getTreeNodeId("NOT_IN_TREE");
+   auto tree_node_id_root = metadata.phylo_tree->getTreeNodeId("ROOT");
+
    EXPECT_EQ(under_test.getValues()[0].toString(metadata.dictionary), "CHILD2");
    EXPECT_EQ(under_test.getValues()[1].toString(metadata.dictionary), "CHILD3");
    EXPECT_EQ(under_test.getValues()[2].toString(metadata.dictionary), "NOT_IN_TREE");
-   EXPECT_EQ(under_test.getDescendants("CHILD2").cardinality(), 0);
-   EXPECT_EQ(under_test.getDescendants("CHILD").cardinality(), 2);
-   EXPECT_EQ(under_test.getDescendants("ROOT").cardinality(), 2);
+   EXPECT_EQ(under_test.getDescendants(tree_node_id_child2.value()).cardinality(), 0);
+   EXPECT_EQ(under_test.getDescendants(tree_node_id_child.value()).cardinality(), 2);
+   EXPECT_EQ(under_test.getDescendants(tree_node_id_root.value()).cardinality(), 2);
 
-   ASSERT_THROW(under_test.getDescendants("NOT_IN_TREE"), silo::BadRequest);
+   EXPECT_EQ(tree_node_id_not_in_tree, std::nullopt);
 }
 
 TEST(StringColumn, rawInsertedValuesRequeried) {

@@ -295,22 +295,18 @@ PhyloTree PhyloTree::fromFile(const std::filesystem::path& path) {
    ));
 }
 
-void PhyloTree::validateNodeExists(const TreeNodeId& node_id) {
-   if (nodes.find(node_id) == nodes.end()) {
-      throw silo::BadRequest(fmt::format("Node '{}' does not exist in tree.", node_id.string));
-   }
-}
-
-void PhyloTree::validateNodeExists(const std::string& node_label) {
+std::optional<TreeNodeId> PhyloTree::getTreeNodeId(const std::string& node_label) {
    auto node_id = TreeNodeId{node_label};
-   validateNodeExists(node_id);
+   if (nodes.find(node_id) == nodes.end()) {
+      return std::nullopt;
+   }
+   return node_id;
 }
 
 roaring::Roaring PhyloTree::getDescendants(const TreeNodeId& node_id) {
-   validateNodeExists(node_id);
    auto child_it = nodes.find(node_id);
    roaring::Roaring result_bitmap;
-   if (!child_it->second) {
+   if (child_it == nodes.end() || !child_it->second) {
       throw std::runtime_error(
          fmt::format("Node '{}' is null - this is an internal error.", node_id.string)
       );
@@ -336,10 +332,6 @@ roaring::Roaring PhyloTree::getDescendants(const TreeNodeId& node_id) {
    }
    dfs(node_id);
    return result_bitmap;
-}
-
-roaring::Roaring PhyloTree::getDescendants(const std::string& node_label) {
-   return getDescendants(TreeNodeId{node_label});
 }
 
 }  // namespace silo::common

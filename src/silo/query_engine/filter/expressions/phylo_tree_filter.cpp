@@ -31,9 +31,16 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> createMatchingB
    const std::string& internal_node,
    size_t row_count
 ) {
+   auto internal_tree_node = string_column.metadata->phylo_tree->getTreeNodeId(internal_node);
+   CHECK_SILO_QUERY(
+      internal_tree_node.has_value(),
+      "The internal node '{}' does not exist in the phylogenetic tree of column '{}'",
+      internal_node,
+      string_column.metadata->column_name
+   );
    return std::make_unique<operators::BitmapProducer>(
-      [&string_column, internal_node]() {
-         roaring::Roaring result_bitmap = string_column.getDescendants(internal_node);
+      [&string_column, internal_tree_node]() {
+         roaring::Roaring result_bitmap = string_column.getDescendants(internal_tree_node.value());
          return CopyOnWriteBitmap(std::move(result_bitmap));
       },
       row_count

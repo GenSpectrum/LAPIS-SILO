@@ -59,14 +59,10 @@ class PhyloTree {
 
    // Functions for querying the phylogenetic tree
 
-   void validateNodeExists(const TreeNodeId& node_id);
-
-   void validateNodeExists(const std::string& node_label);
+   std::optional<TreeNodeId> getTreeNodeId(const std::string& node_label);
 
    // returns a bitmap of all descendants node{node_id} that are also in the database
    roaring::Roaring getDescendants(const TreeNodeId& node_id);
-
-   roaring::Roaring getDescendants(const std::string& node_label);
 
   private:
    friend class boost::serialization::access;
