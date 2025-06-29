@@ -36,9 +36,7 @@ using silo::query_engine::filter::operators::Operator;
 
 void MostRecentCommonAncestor::validateOrderByFields(const schema::TableSchema& /*table_schema*/)
    const {
-   const std::vector<std::string_view> fields{
-      "mrcaNode", "missingNodeCount", "node_ids_not_in_tree"
-   };
+   const std::vector<std::string_view> fields{"mrcaNode", "missingNodeCount", "missingFromTree"};
    for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
          std::ranges::any_of(
