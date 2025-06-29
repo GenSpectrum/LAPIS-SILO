@@ -1,6 +1,8 @@
 #include "silo/common/phylo_tree.h"
 
 #include <fstream>
+#include <limits>
+#include <set>
 #include <sstream>
 
 #include <roaring/roaring.hh>
@@ -332,6 +334,67 @@ roaring::Roaring PhyloTree::getDescendants(const TreeNodeId& node_id) {
    }
    dfs(node_id);
    return result_bitmap;
+}
+
+void PhyloTree::getSetOfAncestorsAtDepth(
+   std::set<TreeNodeId>& nodes_to_group,
+   std::set<TreeNodeId>& ancestors_at_depth,
+   int depth
+) {
+   for (const auto& node_id : nodes_to_group) {
+      auto node_it = nodes.find(node_id);
+      while (node_it != nodes.end() && node_it->second->depth > depth) {
+         if (node_it->second->parent.has_value()) {
+            node_it = nodes.find(node_it->second->parent.value());
+         } else {
+            break;
+         }
+      }
+      if (node_it == nodes.end()) {
+         throw std::runtime_error(fmt::format("Node '{}' does not exist in tree.", node_id.string));
+      }
+      ancestors_at_depth.insert(node_it->first);
+   }
+}
+
+MRCAResponse PhyloTree::getMRCA(const std::vector<std::string>& node_labels) {
+   MRCAResponse response;
+   std::set<TreeNodeId> nodes_to_group;
+   int min_depth = std::numeric_limits<int>::max();
+
+   for (const auto& node_label : node_labels) {
+      auto node_it = nodes.find(TreeNodeId{node_label});
+      if (node_it == nodes.end()) {
+         response.not_in_tree.push_back(node_label);
+      } else {
+         nodes_to_group.insert(TreeNodeId{node_label});
+         if (node_it->second->depth < min_depth) {
+            min_depth = node_it->second->depth;
+         }
+      }
+   }
+
+   if (nodes_to_group.empty()) {
+      response.mrca_node_id = std::nullopt;
+      return response;
+   }
+
+   std::set<TreeNodeId> set_at_min_depth;
+   getSetOfAncestorsAtDepth(nodes_to_group, set_at_min_depth, min_depth);
+
+   while (set_at_min_depth.size() > 1) {
+      min_depth--;
+      std::set<TreeNodeId> next_set_at_min_depth;
+      getSetOfAncestorsAtDepth(nodes_to_group, next_set_at_min_depth, min_depth);
+      set_at_min_depth = next_set_at_min_depth;
+   }
+   if (set_at_min_depth.empty()) {
+      throw std::runtime_error(
+         "No common ancestor found for the provided nodes. This is an internal error."
+      );
+   }
+   response.mrca_node_id = *set_at_min_depth.begin();
+   return response;
 }
 
 }  // namespace silo::common
