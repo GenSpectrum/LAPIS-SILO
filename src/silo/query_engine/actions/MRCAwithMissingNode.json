@@ -1,0 +1,42 @@
+{
+    "testCaseName": "MRCA query returns correct node with missingNode",
+    "query": {
+        "action": {
+            "type": "MRCA",
+            "columnName": "gisaid_epi_isl",
+            "orderByFields": [
+                "mrcaNode"
+            ],
+            "printNodesNotInTree": true
+        },
+        "filterExpression": {
+            "type": "Or",
+            "children": [
+                {
+                    "type": "StringEquals",
+                    "column": "gisaid_epi_isl",
+                    "value": "EPI_ISL_1001493"
+                },
+                {
+                    "type": "StringEquals",
+                    "column": "gisaid_epi_isl",
+                    "value": "EPI_ISL_1004495"
+                },
+                {
+                    "type": "StringEquals",
+                    "column": "gisaid_epi_isl",
+                    "value": "EPI_ISL_1003373"
+                }
+            ]
+        }
+    },
+    "expectedQueryResult": [
+        {
+            "mrcaNode": "NODE_0000096",
+            "missingNodeCount": 1,
+            "missingFromTree": [
+                "EPI_ISL_1001493"
+            ]
+        }
+    ]
+}
