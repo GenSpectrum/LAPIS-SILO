@@ -26,6 +26,11 @@
                     "type": "StringEquals",
                     "column": "gisaid_epi_isl",
                     "value": "EPI_ISL_1003373"
+                },
+                {
+                    "type": "StringEquals",
+                    "column": "gisaid_epi_isl",
+                    "value": "EPI_ISL_1747752"
                 }
             ]
         }
@@ -33,10 +38,8 @@
     "expectedQueryResult": [
         {
             "mrcaNode": "NODE_0000096",
-            "missingNodeCount": 1,
-            "missingFromTree": [
-                "EPI_ISL_1001493"
-            ]
+            "missingNodeCount": 2,
+            "missingFromTree": "EPI_ISL_1001493,EPI_ISL_1747752"
         }
     ]
 }
