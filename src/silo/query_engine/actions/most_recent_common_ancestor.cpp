@@ -18,12 +18,14 @@
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/exec_node/arrow_util.h"
 #include "silo/query_engine/exec_node/json_value_type_array_builder.h"
+#include "silo/schema/database_schema.h"
 #include "silo/storage/column_group.h"
 #include "silo/storage/table.h"
 
 namespace silo::query_engine::actions {
 using silo::common::MRCAResponse;
 using silo::common::TreeNodeId;
+using silo::schema::ColumnType;
 
 MostRecentCommonAncestor::MostRecentCommonAncestor(
    std::string column_name,
@@ -111,17 +113,33 @@ arrow::Result<QueryPlan> MostRecentCommonAncestor::toQueryPlanImpl(
       "Column '{}' not found in table schema",
       column_name
    );
-   // TODO: assert column is of type STRING and has a phylotree
+   CHECK_SILO_QUERY(
+      table->schema.getColumn(column_name).has_value() &&
+         table->schema.getColumn(column_name).value().type == ColumnType::STRING,
+      "MRCA action cannot be called on column '{}' as it is not a column of type STRING",
+      column_name
+   );
+   // all partitions of the tree link to the same phylo tree, so we can just use the first
+   const storage::TablePartition& first_table_partition = table->getPartition(0);
+   const auto& string_column = first_table_partition.columns.string_columns.at(column_name);
+   CHECK_SILO_QUERY(
+      string_column.metadata->phylo_tree.has_value(),
+      "MRCA action cannot be called on Column '{}' as it does not have a phylogenetic tree "
+      "associated with it",
+      column_name
+   );
    auto output_fields = getOutputSchema(table->schema);
 
    auto column_name_to_evaluate = column_name;
    auto print_missing_nodes = print_nodes_not_in_tree;
+   auto string_column_to_evaluate = string_column;
 
    std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
       [table,
        column_name_to_evaluate,
        output_fields,
        partition_filter_operators,
+       string_column_to_evaluate,
        produced = false,
        print_missing_nodes]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
       if (produced == true) {
@@ -144,14 +162,9 @@ arrow::Result<QueryPlan> MostRecentCommonAncestor::toQueryPlanImpl(
 
       auto all_node_ids = GetNodeValues(table, column_name_to_evaluate, partition_filters);
 
-      // all partitions of the tree link to the same phylo tree, so we can just use the first
-      const storage::TablePartition& first_table_partition = table->getPartition(0);
-      const auto& string_column =
-         first_table_partition.columns.string_columns.at(column_name_to_evaluate);
-
-      ARROW_RETURN_NOT_OK(
-         addMRCAResponseToBuilder(all_node_ids, output_builder, string_column, print_missing_nodes)
-      );
+      ARROW_RETURN_NOT_OK(addMRCAResponseToBuilder(
+         all_node_ids, output_builder, string_column_to_evaluate, print_missing_nodes
+      ));
 
       // Order of result_columns is relevant as it needs to be consistent with vector in schema
       std::vector<arrow::Datum> result_columns;
