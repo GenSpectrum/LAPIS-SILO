@@ -68,7 +68,11 @@ Executables are located in `build/` upon a successful build.
 Build docker container
 
 ```shell
-docker build . --tag=silo
+docker build -f Dockerfile_dependencies . --tag=silo_dependencies
+```
+
+```shell 
+docker build --build-arg DEPENDENCY_IMAGE=silo_dependencies . --tag=silo
 ```
 
 The Docker images are built in such a way that they can be used for both,
@@ -199,7 +203,7 @@ End-to-end tests are located in `/endToEndTests`. Those tests are used to verify
 queries. To execute the tests:
 
 - have a running SILO instance with preprocessd data e.g. via
-  - `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-preprocessing.yml up`
+  - `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-preprocessing-from-ndjson.yml up`
   - `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-api.yml up -d wait`
 - `cd endToEndTests`
 - `npm install`
