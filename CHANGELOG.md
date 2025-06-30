@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.7.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.6.0...v0.7.0) (2025-06-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* the field sequenceName in the Fasta and FastaAligned is now named sequenceNames and required to be an array ([#804](https://github.com/GenSpectrum/LAPIS-SILO/issues/804))
+* change field sequenceName to sequenceNames in Insertions action ([#821](https://github.com/GenSpectrum/LAPIS-SILO/issues/821))
+* change field sequenceName to sequenceNames in Mutations action ([#819](https://github.com/GenSpectrum/LAPIS-SILO/issues/819))
+* rename DatabaseInfo field `totalSize` to `verticalBitmapsSize` and `nBitmapsSize` to `horizontalBitmapsSize` ([#805](https://github.com/GenSpectrum/LAPIS-SILO/issues/805))
+* Null values are no longer ordered as the smallest element, but at the start or end instead. This is decided based on the sort-order of the first orderByField to mimic old behavior. This leads to a breaking change when ordering by multiple fields with mismatching order direction ([#799](https://github.com/GenSpectrum/LAPIS-SILO/issues/799)) 
+* all unaligned nucleotide sequences are prefixed with `unaligned_` in the api requests and response ([#795](https://github.com/GenSpectrum/LAPIS-SILO/issues/795))
+
+### Features
+
+* streaming implementation of the SILO query engine based on the arrow framework ([#765](https://github.com/GenSpectrum/LAPIS-SILO/issues/765), [#775](https://github.com/GenSpectrum/LAPIS-SILO/issues/775), [#792](https://github.com/GenSpectrum/LAPIS-SILO/issues/792), [#795](https://github.com/GenSpectrum/LAPIS-SILO/issues/795), [#799](https://github.com/GenSpectrum/LAPIS-SILO/issues/799), [#809](https://github.com/GenSpectrum/LAPIS-SILO/issues/809), [#821](https://github.com/GenSpectrum/LAPIS-SILO/issues/821), [#829](https://github.com/GenSpectrum/LAPIS-SILO/issues/829), [#837](https://github.com/GenSpectrum/LAPIS-SILO/issues/837))
+* cache DatabaseInfo, add amino acid sequence columns to size info ([bc0d0a2](https://github.com/GenSpectrum/LAPIS-SILO/commit/bc0d0a2210922bf712bf744d9f1d4bf889054541))
+* **silo:** add function to get all clades that are descendants of an internal node ([#815](https://github.com/GenSpectrum/LAPIS-SILO/issues/815)) ([d1f9989](https://github.com/GenSpectrum/LAPIS-SILO/commit/d1f99894b603d4dd398fd890d48276b698c83661))
+* **silo:** add recommended vscode extensions to .vscode folder for developers using vscode ([d2c74db](https://github.com/GenSpectrum/LAPIS-SILO/commit/d2c74db6e2fb00d98f687a0dbf958d378127718b))
+* **silo:** improve the docs and update build_with_conan.py ([#779](https://github.com/GenSpectrum/LAPIS-SILO/issues/779)) ([f176fd6](https://github.com/GenSpectrum/LAPIS-SILO/commit/f176fd6c4e0a26e638a63f577bb90db49c89d9f4))
+* **silo:** read in phylogenetic tree files and create tree structure ([#806](https://github.com/GenSpectrum/LAPIS-SILO/issues/806)) ([f3d3f36](https://github.com/GenSpectrum/LAPIS-SILO/commit/f3d3f36fea44f0d6b8727fdc66a8fed6501110e3))
+* **silo:** refactor phylotree to use nodeId for children and parent and serialize ([#822](https://github.com/GenSpectrum/LAPIS-SILO/issues/822)) ([29e8361](https://github.com/GenSpectrum/LAPIS-SILO/commit/29e83611fa191e439894407222917d660f1aefb6))
+
+
+### Bug Fixes
+
+* avoid dropping the input bitmap of Selections in a nested And query ([e87093c](https://github.com/GenSpectrum/LAPIS-SILO/commit/e87093c4f0b254d526663bfe1658c1be3209a1ee))
+* correctly error when the input data contains illegal insertion characters ([4867c32](https://github.com/GenSpectrum/LAPIS-SILO/commit/4867c320c495226add39a981c25287866bc49302))
+* remove erroneous warning printed on every preprocessing run ([82b65c8](https://github.com/GenSpectrum/LAPIS-SILO/commit/82b65c8a91aebe80bc15453a2196be98501e672a))
+
 ## [0.6.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.5.9...v0.6.0) (2025-04-23)
 
 
