@@ -313,6 +313,83 @@ const QueryTestScenario AGGREGATE_NULLABLE = {
    )
 };
 
+const QueryTestScenario INVALID_GROUP_BY_FIELD_OBJECT = {
+   .name = "INVALID_GROUP_BY_FIELD_OBJECT",
+   .query = nlohmann::json::parse(
+      R"(
+{
+  "action": {
+    "groupByFields": [
+      {
+        "field": "test_boolean_column",
+        "order": "ascending"
+      }
+    ],
+    "type": "Aggregated"
+  },
+  "filterExpression": {
+    "type": "True"
+  }
+})"
+   ),
+   .expected_error_message =
+      "{\"field\":\"test_boolean_column\",\"order\":\"ascending\"} is not a valid entry in "
+      "groupByFields. Expected type string, got object"
+};
+
+const QueryTestScenario INVALID_GROUP_BY_FIELDS = {
+   .name = "INVALID_GROUP_BY_FIELDS",
+   .query = nlohmann::json::parse(
+      R"(
+{
+  "action": {
+    "groupByFields": "test_boolean_column",
+    "type": "Aggregated"
+  },
+  "filterExpression": {
+    "type": "True"
+  }
+})"
+   ),
+   .expected_error_message = "groupByFields must be an array"
+};
+
+const QueryTestScenario INVALID_ORDER_BY_FIELD_OBJECT = {
+   .name = "INVALID_ORDER_BY_FIELD_OBJECT",
+   .query = nlohmann::json::parse(
+      R"(
+{
+  "action": {
+    "orderByFields": [1],
+    "type": "Aggregated"
+  },
+  "filterExpression": {
+    "type": "True"
+  }
+})"
+   ),
+   .expected_error_message =
+      "The orderByField '1' must be either a string or an object containing the fields "
+      "'field':string and 'order':string, where the value of order is 'ascending' or 'descending'"
+};
+
+const QueryTestScenario INVALID_ORDER_BY_FIELDS = {
+   .name = "INVALID_ORDER_BY_FIELDS",
+   .query = nlohmann::json::parse(
+      R"(
+{
+  "action": {
+    "orderByFields": "test_boolean_column",
+    "type": "Aggregated"
+  },
+  "filterExpression": {
+    "type": "True"
+  }
+})"
+   ),
+   .expected_error_message = "orderByFields must be an array"
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -326,6 +403,10 @@ QUERY_TEST(
       AGGREGATED_LIMIT_OFFSET,
       AGGREGATE_UNIQUE,
       AGGREGATE_ONE,
-      AGGREGATE_NULLABLE
+      AGGREGATE_NULLABLE,
+      INVALID_GROUP_BY_FIELD_OBJECT,
+      INVALID_GROUP_BY_FIELDS,
+      INVALID_ORDER_BY_FIELD_OBJECT,
+      INVALID_ORDER_BY_FIELDS
    )
 );

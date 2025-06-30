@@ -126,11 +126,11 @@ void from_json(const nlohmann::json& json, std::unique_ptr<DateBetween>& filter)
    );
    const std::string& column_name = json["column"];
    std::optional<silo::common::Date> date_from;
-   if (json["from"].type() == nlohmann::detail::value_t::string) {
+   if (json["from"].is_string()) {
       date_from = common::stringToDate(json["from"].get<std::string>());
    }
    std::optional<silo::common::Date> date_to;
-   if (json["to"].type() == nlohmann::detail::value_t::string) {
+   if (json["to"].is_string()) {
       date_to = common::stringToDate(json["to"].get<std::string>());
    }
    filter = std::make_unique<DateBetween>(column_name, date_from, date_to);
