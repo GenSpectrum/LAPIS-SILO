@@ -87,6 +87,7 @@ TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
 
    // If the serialization version changes, comment out the next line to build a new database for
    // the next test. Then add the produced directory to Git and remove the old serialized state.
+   // And also bump the serialization version.
    std::filesystem::remove_all(data_source.path);
 }
 
