@@ -960,7 +960,76 @@ schema:
    }
 };
 
-INSTANTIATE_TEST_SUITE_P(PreprocessorTest, InvalidPreprocessorTestFixture, ::testing::Values(DUPLICATE_PRIMARY_KEY, MISSING_NUCLEOTIDE_SEQUENCE_INPUT, TYPE_ERROR, SEQUENCE_ILLEGAL_SYMBOL), printTestName<Error>);
+const Scenario<Error> NDJSON_FILE_WITH_SOME_MISSING_KEYS = {
+   .test_name = "NDJSON_FILE_WITH_SOME_MISSING_KEYS",
+   .input_data =
+      []() {
+         std::vector<NdjsonInputLine> result;
+         result.push_back(
+            {.metadata = {{"accessionVersion", "1.1"}, {"country", "Switzerland"}},
+             .alignedNucleotideSequences = {{"main", "NNACTGNN"}, {"secondSegment", nullptr}},
+             .unalignedNucleotideSequences =
+                {{"main", "ATTAAAGGTTTATACCTTCCCAGGTAACAAACCAACCAACTTTCGATCT"},
+                 {"secondSegment", nullptr}},
+             .alignedAminoAcidSequences{
+                {"someLongGene", "ACDEFGHIKLMNPQRSTVWYBZX-*"}, {"someShortGene", "MADS"}
+             },
+             .nucleotideInsertions = {{"main", {"123:ACTG"}}, {"secondSegment", {}}},
+             .aminoAcidInsertions =
+                {{"someLongGene", {"123:RNRNRN"}}, {"someShortGene", {"123:RN"}}}}
+         );
+         result.push_back(
+            {.metadata = {{"accessionVersion", "1.3"}},
+             .alignedNucleotideSequences = {{"main", nullptr}, {"secondSegment", nullptr}},
+             .unalignedNucleotideSequences = {{"main", nullptr}, {"secondSegment", nullptr}},
+             .alignedAminoAcidSequences{{"someLongGene", nullptr}, {"someShortGene", nullptr}},
+             .nucleotideInsertions = {{"main", {}}, {"secondSegment", {}}},
+             .aminoAcidInsertions = {{"someLongGene", {}}, {"someShortGene", {}}}}
+         );
+         return result;
+      },
+   .database_config =
+      R"(
+schema:
+  instanceName: "Test"
+  metadata:
+    - name: "accessionVersion"
+      type: "string"
+    - name: "country"
+      type: "string"
+  primaryKey: "accessionVersion"
+)",
+   .reference_genomes = R"(
+{
+  "nucleotideSequences": [
+    {
+      "name": "main",
+      "sequence": "ATTAAAGGTTTATACCTTCCCAGGTAACAAACCAACCAACTTTCGATCT"
+    },
+    {
+      "name": "secondSegment",
+      "sequence": "AAAAAAAAAAAAAAAA"
+    }
+  ],
+  "genes": [
+    {
+      "name": "someLongGene",
+      "sequence": "AAAAAAAAAAAAAAAAAAAAAAAAA"
+    },
+    {
+      "name": "someShortGene",
+      "sequence": "MADS"
+    }
+  ]
+})",
+   .assertion{
+      .error_message =
+         R"(preprocessing - exception when appending data: The following line does not conform to SILO's json specification when adding to database column country: '{"alignedAminoAcidSequences":{"someLongGene":null,"someShortGene":null},"alignedNucleotideSequences":{"main":null,"secondSegment":null},"aminoAcidInsertions":{"someLongGene":null,"someShortGene":null},"metadata":{"accessionVersion":"1.3"},"nucleotideInsertions":{"main":null,"secondSegment":null},"unalignedNucleotideSequences":{"main":null,"secondSegment":null}}'
+We got a json out_of_range error, indicating that an expected field was not present: [json.exception.out_of_range.403] key 'country' not found)"
+   }
+};
+
+INSTANTIATE_TEST_SUITE_P(PreprocessorTest, InvalidPreprocessorTestFixture, ::testing::Values(DUPLICATE_PRIMARY_KEY, MISSING_NUCLEOTIDE_SEQUENCE_INPUT, TYPE_ERROR, SEQUENCE_ILLEGAL_SYMBOL, NDJSON_FILE_WITH_SOME_MISSING_KEYS), printTestName<Error>);
 
 TEST_P(InvalidPreprocessorTestFixture, shouldNotProcessData) {
    const auto scenario = GetParam();

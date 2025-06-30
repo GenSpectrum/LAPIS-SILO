@@ -195,7 +195,7 @@ class ColumnValueInserter {
       const schema::ColumnIdentifier& column,
       const nlohmann::json& value
    ) {
-      auto column_value = value["metadata"][column.name];
+      auto column_value = value.at("metadata").at(column.name);
       if (column_value.is_null()) {
          columns.getColumns<ColumnType>().at(column.name).insertNull();
       } else {
@@ -210,7 +210,7 @@ void ColumnValueInserter::operator()<column::BoolColumnPartition>(
    const schema::ColumnIdentifier& column,
    const nlohmann::json& value
 ) {
-   auto column_value = value["metadata"][column.name];
+   auto column_value = value.at("metadata").at(column.name);
    if (column_value.is_null()) {
       columns.getColumns<column::BoolColumnPartition>().at(column.name).insertNull();
    } else {
