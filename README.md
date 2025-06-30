@@ -172,6 +172,8 @@ or see [Conventional Commits](#conventional-commits) below.
 
 # Testing
 
+Before committing, run `make ci` to execute the formatter and all tests (unit and e2e) locally.
+
 ## Unit Tests
 
 For testing, we use the framework [gtest](http://google.github.io/googletest/)
