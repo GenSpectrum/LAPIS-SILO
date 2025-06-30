@@ -25,16 +25,19 @@
 using silo::query_engine::CopyOnWriteBitmap;
 
 namespace {
+using silo::query_engine::actions::GroupByField;
 
-std::vector<silo::schema::ColumnIdentifier> parseGroupByFields(
+const std::string GROUP_BY_FIELDS_FIELD_NAME = "groupByFields";
+
+std::vector<silo::schema::ColumnIdentifier> bindGroupByFields(
    const silo::schema::TableSchema& schema,
-   const std::vector<std::string>& group_by_fields
+   const std::vector<GroupByField>& group_by_fields
 ) {
    std::vector<silo::schema::ColumnIdentifier> group_by_metadata;
-   for (const std::string& group_by_field : group_by_fields) {
-      auto column = schema.getColumn(group_by_field);
+   for (const GroupByField& group_by_field : group_by_fields) {
+      auto column = schema.getColumn(group_by_field.name);
       CHECK_SILO_QUERY(
-         column.has_value(), "Metadata field '{}' to group by not found", group_by_field
+         column.has_value(), "Metadata field '{}' to group by not found", group_by_field.name
       );
       CHECK_SILO_QUERY(
          !isSequenceColumn(column.value().type),
@@ -51,12 +54,12 @@ const std::string COUNT_FIELD = "count";
 
 namespace silo::query_engine::actions {
 
-Aggregated::Aggregated(std::vector<std::string> group_by_fields)
+Aggregated::Aggregated(std::vector<GroupByField> group_by_fields)
     : group_by_fields(std::move(group_by_fields)) {}
 
 void Aggregated::validateOrderByFields(const schema::TableSchema& schema) const {
    const std::vector<silo::schema::ColumnIdentifier> field_identifiers =
-      parseGroupByFields(schema, group_by_fields);
+      bindGroupByFields(schema, group_by_fields);
 
    for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
@@ -66,8 +69,9 @@ void Aggregated::validateOrderByFields(const schema::TableSchema& schema) const 
                                             return metadata.name == field.name;
                                          }
                                       ),
-         "The orderByField '{}' cannot be ordered by, as it does not appear in the groupByFields.",
-         field.name
+         "The orderByField '{}' cannot be ordered by, as it does not appear in the {}.",
+         field.name,
+         GROUP_BY_FIELDS_FIELD_NAME
       );
    }
 }
@@ -140,7 +144,7 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithGrouping(
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
 
    std::vector<schema::ColumnIdentifier> group_by_fields_identifiers =
-      columnNamesToFields(group_by_fields, table->schema);
+      bindGroupByFields(table->schema, group_by_fields);
 
    arrow::acero::ExecNode* node = arrow_plan->EmplaceNode<exec_node::TableScan>(
       arrow_plan.get(),
@@ -178,16 +182,34 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithGrouping(
 std::vector<schema::ColumnIdentifier> Aggregated::getOutputSchema(
    const schema::TableSchema& table_schema
 ) const {
-   std::vector<schema::ColumnIdentifier> fields =
-      columnNamesToFields(this->group_by_fields, table_schema);
+   std::vector<schema::ColumnIdentifier> fields = bindGroupByFields(table_schema, group_by_fields);
    fields.emplace_back(COUNT_FIELD, schema::ColumnType::INT);
    return fields;
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
+void from_json(const nlohmann::json& json, GroupByField& group_by_field) {
+   CHECK_SILO_QUERY(
+      json.is_string(),
+      "{} is not a valid entry in {}. Expected type string, got {}",
+      json.dump(),
+      GROUP_BY_FIELDS_FIELD_NAME,
+      json.type_name()
+   );
+   group_by_field = GroupByField{json.get<std::string>()};
+}
+
+// NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Aggregated>& action) {
-   const std::vector<std::string> group_by_fields =
-      json.value("groupByFields", std::vector<std::string>());
+   std::vector<GroupByField> group_by_fields;
+   if (json.contains(GROUP_BY_FIELDS_FIELD_NAME)) {
+      CHECK_SILO_QUERY(
+         json[GROUP_BY_FIELDS_FIELD_NAME].is_array(),
+         "{} must be an array",
+         GROUP_BY_FIELDS_FIELD_NAME
+      );
+      group_by_fields = json.value(GROUP_BY_FIELDS_FIELD_NAME, std::vector<GroupByField>());
+   }
    action = std::make_unique<Aggregated>(group_by_fields);
 }
 

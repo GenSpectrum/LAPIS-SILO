@@ -167,13 +167,12 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
       throw BadRequest(expression_type + " is not a valid action");
    }
 
-   CHECK_SILO_QUERY(
-      !json.contains("orderByFields") || json["orderByFields"].is_array(),
-      "orderByFields must be an array."
-   );
-   auto order_by_fields = json.contains("orderByFields")
-                             ? json["orderByFields"].get<std::vector<OrderByField>>()
-                             : std::vector<OrderByField>();
+   std::vector<OrderByField> order_by_fields;
+   if (json.contains("orderByFields")) {
+      CHECK_SILO_QUERY(json["orderByFields"].is_array(), "orderByFields must be an array");
+      order_by_fields = json["orderByFields"].get<std::vector<OrderByField>>();
+   }
+
    CHECK_SILO_QUERY(
       !json.contains("offset") || json["offset"].is_number_unsigned(),
       "If the action contains an offset, it must be a non-negative number"
