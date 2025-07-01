@@ -203,31 +203,22 @@ arrow::Status InsertionAggregation<SymbolType>::addAggregatedInsertionsToInserti
 template <typename SymbolType>
 arrow::Result<QueryPlan> InsertionAggregation<SymbolType>::toQueryPlanImpl(
    std::shared_ptr<const storage::Table> table,
-   std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
+   std::vector<CopyOnWriteBitmap> partition_filters,
    const config::QueryOptions& query_options
 ) const {
    validateSequenceNames<SymbolType>(table, sequence_names);
-   validateOrderByFields(table->schema);
    auto sequence_names_to_evaluate = sequence_names;
 
    auto output_fields = getOutputSchema(table->schema);
 
    std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
-      [table,
-       output_fields,
-       partition_filter_operators,
-       sequence_names_to_evaluate,
-       produced = false]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
+      [table, output_fields, partition_filters, sequence_names_to_evaluate, produced = false](
+      ) mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
       if (produced == true) {
          std::optional<arrow::ExecBatch> result = std::nullopt;
          return arrow::Future{result};
       }
       produced = true;
-      std::vector<CopyOnWriteBitmap> partition_filters;
-      partition_filters.reserve(partition_filter_operators->size());
-      for (const auto& partition_filter_operator : *partition_filter_operators) {
-         partition_filters.emplace_back(partition_filter_operator->evaluate());
-      }
 
       std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder> output_builder;
       for (const auto& output_field : output_fields) {

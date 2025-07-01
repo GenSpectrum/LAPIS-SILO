@@ -38,23 +38,22 @@ QueryPlan Query::toQueryPlan(
 ) const {
    SPDLOG_DEBUG("Parsed filter: {}", filter->toString());
 
-   auto partition_filter_operators = std::make_shared<filter::operators::OperatorVector>();
-   partition_filter_operators->reserve(database->table->getNumberOfPartitions());
+   std::vector<CopyOnWriteBitmap> partition_filters;
+   partition_filters.reserve(database->table->getNumberOfPartitions());
    for (size_t partition_index = 0; partition_index < database->table->getNumberOfPartitions();
         partition_index++) {
-      partition_filter_operators->emplace_back(filter->compile(
+      auto filter_operator = filter->compile(
          *database,
          database->table->getPartition(partition_index),
          filter::expressions::Expression::AmbiguityMode::NONE
-      ));
-      SPDLOG_DEBUG(
-         "Simplified query for partition {}: {}",
-         partition_index,
-         partition_filter_operators->back()->toString()
       );
+      SPDLOG_DEBUG(
+         "Simplified query for partition {}: {}", partition_index, filter_operator->toString()
+      );
+      partition_filters.emplace_back(filter_operator->evaluate());
    };
 
-   return action->toQueryPlan(database->table, partition_filter_operators, query_options);
+   return action->toQueryPlan(database->table, partition_filters, query_options);
 }
 
 }  // namespace silo::query_engine

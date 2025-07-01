@@ -78,25 +78,23 @@ void Aggregated::validateOrderByFields(const schema::TableSchema& schema) const 
 
 arrow::Result<QueryPlan> Aggregated::toQueryPlanImpl(
    std::shared_ptr<const storage::Table> table,
-   std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
+   std::vector<CopyOnWriteBitmap> partition_filters,
    const config::QueryOptions& query_options
 ) const {
-   validateOrderByFields(table->schema);
-
    if (group_by_fields.empty()) {
-      return makeAggregateWithoutGrouping(table, partition_filter_operators, query_options);
+      return makeAggregateWithoutGrouping(table, partition_filters, query_options);
    } else {
-      return makeAggregateWithGrouping(table, partition_filter_operators, query_options);
+      return makeAggregateWithGrouping(table, partition_filters, query_options);
    }
 }
 
 arrow::Result<QueryPlan> Aggregated::makeAggregateWithoutGrouping(
    std::shared_ptr<const storage::Table> table,
-   std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
+   std::vector<CopyOnWriteBitmap> partition_filters,
    const config::QueryOptions& /*query_options*/
 ) const {
    std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
-      [table, partition_filter_operators, produced = false](
+      [table, partition_filters, produced = false](
       ) mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
       if (produced == true) {
          std::optional<arrow::ExecBatch> result = std::nullopt;
@@ -106,8 +104,8 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithoutGrouping(
 
       int32_t result_count = 0;
 
-      for (const auto& partition_filter_operator : *partition_filter_operators) {
-         result_count += partition_filter_operator->evaluate()->cardinality();
+      for (const auto& partition_filter : partition_filters) {
+         result_count += partition_filter->cardinality();
       }
 
       arrow::Int32Builder result_builder{};
@@ -138,7 +136,7 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithoutGrouping(
 
 arrow::Result<QueryPlan> Aggregated::makeAggregateWithGrouping(
    std::shared_ptr<const storage::Table> table,
-   std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
+   std::vector<CopyOnWriteBitmap> partition_filters,
    const config::QueryOptions& query_options
 ) const {
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
@@ -149,7 +147,7 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithGrouping(
    arrow::acero::ExecNode* node = arrow_plan->EmplaceNode<exec_node::TableScan>(
       arrow_plan.get(),
       group_by_fields_identifiers,
-      partition_filter_operators,
+      partition_filters,
       table,
       query_options.materialization_cutoff
    );

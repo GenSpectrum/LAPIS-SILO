@@ -31,15 +31,14 @@ void SimpleSelectAction::validateOrderByFields(const schema::TableSchema& schema
 
 arrow::Result<QueryPlan> SimpleSelectAction::toQueryPlanImpl(
    std::shared_ptr<const storage::Table> table,
-   std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
+   std::vector<CopyOnWriteBitmap> partition_filters,
    const config::QueryOptions& query_options
 ) const {
-   validateOrderByFields(table->schema);
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
    arrow::acero::ExecNode* node = arrow_plan->EmplaceNode<exec_node::TableScan>(
       arrow_plan.get(),
       getOutputSchema(table->schema),
-      partition_filter_operators,
+      partition_filters,
       table,
       query_options.materialization_cutoff
    );
