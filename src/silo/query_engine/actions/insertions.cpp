@@ -207,7 +207,6 @@ arrow::Result<QueryPlan> InsertionAggregation<SymbolType>::toQueryPlanImpl(
    const config::QueryOptions& query_options
 ) const {
    validateSequenceNames<SymbolType>(table, sequence_names);
-   validateOrderByFields(table->schema);
    auto sequence_names_to_evaluate = sequence_names;
 
    auto output_fields = getOutputSchema(table->schema);

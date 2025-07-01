@@ -201,6 +201,7 @@ QueryPlan Action::toQueryPlan(
    std::vector<CopyOnWriteBitmap> partition_filters,
    const config::QueryOptions& query_options
 ) {
+   validateOrderByFields(table->schema);
    auto query_plan = toQueryPlanImpl(table, partition_filters, query_options);
    if (!query_plan.status().ok()) {
       SILO_PANIC("Arrow error: {}", query_plan.status().ToString());

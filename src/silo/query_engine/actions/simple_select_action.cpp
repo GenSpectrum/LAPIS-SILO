@@ -34,7 +34,6 @@ arrow::Result<QueryPlan> SimpleSelectAction::toQueryPlanImpl(
    std::vector<CopyOnWriteBitmap> partition_filters,
    const config::QueryOptions& query_options
 ) const {
-   validateOrderByFields(table->schema);
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
    arrow::acero::ExecNode* node = arrow_plan->EmplaceNode<exec_node::TableScan>(
       arrow_plan.get(),

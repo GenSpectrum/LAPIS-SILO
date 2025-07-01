@@ -81,8 +81,6 @@ arrow::Result<QueryPlan> Aggregated::toQueryPlanImpl(
    std::vector<CopyOnWriteBitmap> partition_filters,
    const config::QueryOptions& query_options
 ) const {
-   validateOrderByFields(table->schema);
-
    if (group_by_fields.empty()) {
       return makeAggregateWithoutGrouping(table, partition_filters, query_options);
    } else {
