@@ -71,13 +71,13 @@ class PhyloTree {
    // returns a bitmap of all descendants node{node_id} that are also in the database
    roaring::Roaring getDescendants(const TreeNodeId& node_id);
 
-   MRCAResponse getMRCA(const std::vector<std::string>& node_labels);
+   MRCAResponse getMRCA(const std::vector<std::string>& node_labels) const;
 
    void getSetOfAncestorsAtDepth(
       std::set<TreeNodeId>& nodes_to_group,
       std::set<TreeNodeId>& ancestors_at_depth,
       int depth
-   );
+   ) const;
 
   private:
    friend class boost::serialization::access;

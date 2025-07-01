@@ -59,6 +59,16 @@ class StringColumnMetadata : public ColumnMetadata {
    [[nodiscard]] std::optional<common::String<silo::common::STRING_SIZE>> embedString(
       const std::string& string
    ) const;
+
+   inline MRCAResponse getMRCA(const std::vector<std::string>& node_labels) const {
+      if (!phylo_tree.has_value()) {
+         return MRCAResponse{
+            std::nullopt,
+            {},
+         };
+      }
+      return phylo_tree->getMRCA(node_labels);
+   }
 };
 
 class StringColumnPartition {
@@ -105,16 +115,6 @@ class StringColumnPartition {
          return roaring::Roaring();
       }
       return metadata->phylo_tree->getDescendants(parent);
-   }
-
-   inline MRCAResponse getMRCA(const std::vector<std::string>& node_labels) const {
-      if (!metadata->phylo_tree.has_value()) {
-         return MRCAResponse{
-            std::nullopt,
-            {},
-         };
-      }
-      return metadata->phylo_tree->getMRCA(node_labels);
    }
 };
 

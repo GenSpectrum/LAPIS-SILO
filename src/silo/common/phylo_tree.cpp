@@ -340,7 +340,7 @@ void PhyloTree::getSetOfAncestorsAtDepth(
    std::set<TreeNodeId>& nodes_to_group,
    std::set<TreeNodeId>& ancestors_at_depth,
    int depth
-) {
+) const {
    for (const auto& node_id : nodes_to_group) {
       auto node_it = nodes.find(node_id);
       while (node_it != nodes.end() && node_it->second->depth > depth) {
@@ -357,7 +357,7 @@ void PhyloTree::getSetOfAncestorsAtDepth(
    }
 }
 
-MRCAResponse PhyloTree::getMRCA(const std::vector<std::string>& node_labels) {
+MRCAResponse PhyloTree::getMRCA(const std::vector<std::string>& node_labels) const {
    MRCAResponse response;
    std::set<TreeNodeId> nodes_to_group;
    int min_depth = std::numeric_limits<int>::max();
