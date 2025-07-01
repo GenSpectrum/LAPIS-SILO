@@ -2,6 +2,7 @@
 
 #include <Poco/Net/HTTPServer.h>
 #include <Poco/Net/HTTPServerParams.h>
+#include <Poco/Net/NetException.h>
 #include <Poco/Net/ServerSocket.h>
 #include <spdlog/spdlog.h>
 
@@ -16,7 +17,16 @@ namespace silo::api {
 int Api::runApi(const silo::config::RuntimeConfig& runtime_config) {
    SPDLOG_INFO("Starting SILO API");
 
-   const Poco::Net::ServerSocket server_socket(runtime_config.api_options.port);
+   Poco::Net::SocketAddress address(runtime_config.api_options.port);
+
+   Poco::Net::ServerSocket server_socket;
+   try {
+      server_socket.bind(address);
+      server_socket.listen();
+   } catch (const Poco::Net::NetException& e) {
+      SPDLOG_ERROR("Failed to bind to port {}", runtime_config.api_options.port);
+      return EXIT_FAILURE;
+   }
 
    auto* const poco_parameter = new Poco::Net::HTTPServerParams;
 
