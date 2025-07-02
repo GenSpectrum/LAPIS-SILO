@@ -105,6 +105,46 @@ const QueryTestScenario UNSORTED_DATE_WITH_FROM_ONLY_SCENARIO = {
    .expected_query_result = EXPECTED_RESULT
 };
 
+const QueryTestScenario UNSORTED_DATE_WITH_COLUMN_NOT_IN_DB = {
+   .name = "UNSORTED_DATE_WITH_COLUMN_NOT_IN_DB",
+   .query = nlohmann::json::parse(
+      R"(
+{
+  "action": {
+    "type": "Details"
+  },
+  "filterExpression": {
+    "type": "DateBetween",
+    "column": "something_not_in_database",
+    "from": null,
+    "to": null
+  }
+}
+)"
+   ),
+   .expected_error_message = "The database does not contain the column 'something_not_in_database'"
+};
+
+const QueryTestScenario UNSORTED_DATE_WITH_NON_DATE_COLUMN = {
+   .name = "UNSORTED_DATE_WITH_NON_DATE_COLUMN",
+   .query = nlohmann::json::parse(
+      R"(
+{
+  "action": {
+    "type": "Details"
+  },
+  "filterExpression": {
+    "type": "DateBetween",
+    "column": "primaryKey",
+    "from": null,
+    "to": null
+  }
+}
+)"
+   ),
+   .expected_error_message = "The column 'primaryKey' is not of type date"
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -116,6 +156,8 @@ QUERY_TEST(
       SORTED_DATE_WITH_FROM_ONLY_SCENARIO,
       UNSORTED_DATE_WITH_TO_AND_FROM_SCENARIO,
       UNSORTED_DATE_WITH_TO_ONLY_SCENARIO,
-      UNSORTED_DATE_WITH_FROM_ONLY_SCENARIO
+      UNSORTED_DATE_WITH_FROM_ONLY_SCENARIO,
+      UNSORTED_DATE_WITH_COLUMN_NOT_IN_DB,
+      UNSORTED_DATE_WITH_NON_DATE_COLUMN
    )
 );
