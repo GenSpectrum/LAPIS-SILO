@@ -22,8 +22,6 @@ class TableScan : public arrow::acero::ExecNode {
 
    std::vector<CopyOnWriteBitmap> partition_filters;
 
-   std::atomic<bool> stopped;
-
    std::vector<silo::schema::ColumnIdentifier> output_fields;
    const std::shared_ptr<const storage::Table> table;
    size_t batch_size_cutoff;
@@ -82,8 +80,7 @@ class TableScan : public arrow::acero::ExecNode {
    }
 
    arrow::Status StopProducingImpl() override {
-      SPDLOG_TRACE("TableScan::StopProducing");
-      stopped = true;
+      SPDLOG_TRACE("TableScan::StopProducingImpl");
       return arrow::Status::OK();
    }
 

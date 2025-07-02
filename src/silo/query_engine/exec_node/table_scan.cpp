@@ -189,7 +189,7 @@ arrow::Status TableScan::produce() {
          partition_filters.at(partition_idx), batch_size_cutoff - 1
       };
       while (auto row_ids = reader.nextBatch()) {
-         if (stopped) {
+         if (stopped_) {
             SPDLOG_TRACE(
                "TableScan::produce returning already after {} batches (batch_size: {})",
                num_batches_produced,
