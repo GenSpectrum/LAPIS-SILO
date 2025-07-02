@@ -1,4 +1,5 @@
 #include "silo/query_engine/exec_node/table_scan.h"
+
 #include "silo/query_engine/batched_bitmap_reader.h"
 
 namespace silo::query_engine::exec_node {
@@ -188,6 +189,14 @@ arrow::Status TableScan::produce() {
          partition_filters.at(partition_idx), batch_size_cutoff - 1
       };
       while (auto row_ids = reader.nextBatch()) {
+         if (stopped) {
+            SPDLOG_TRACE(
+               "TableScan::produce returning already after {} batches (batch_size: {})",
+               num_batches_produced,
+               batch_size_cutoff
+            );
+            return output_->InputFinished(this, num_batches_produced);
+         }
          ARROW_RETURN_NOT_OK(appendEntries(table->getPartition(partition_idx), row_ids.value()));
          ARROW_RETURN_NOT_OK(flushOutput());
       }

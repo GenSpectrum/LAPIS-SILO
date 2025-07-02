@@ -29,7 +29,7 @@ struct BinaryDecompressKernel {
       const arrow::compute::ExecSpan& input,
       arrow::compute::ExecResult* out
    ) {
-      SPDLOG_INFO("BinaryDecompressKernel::Exec called!");
+      SPDLOG_TRACE("BinaryDecompressKernel::Exec");
       if (input.num_values() != 2) {
          return arrow::Status::Invalid("Expected 2 input arrays, got ", input.num_values());
       }
