@@ -24,23 +24,23 @@ std::string IntEquals::toString() const {
 }
 
 std::unique_ptr<silo::query_engine::filter::operators::Operator> IntEquals::compile(
-   const Database& /*database*/,
-   const storage::TablePartition& database_partition,
+   const storage::Table& /*table*/,
+   const storage::TablePartition& table_partition,
    Expression::AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
-      database_partition.columns.int_columns.contains(column_name),
+      table_partition.columns.int_columns.contains(column_name),
       "The database does not contain the column '{}'",
       column_name
    );
 
-   const auto& int_column = database_partition.columns.int_columns.at(column_name);
+   const auto& int_column = table_partition.columns.int_columns.at(column_name);
 
    return std::make_unique<operators::Selection>(
       std::make_unique<operators::CompareToValueSelection<int32_t>>(
          int_column.getValues(), operators::Comparator::EQUALS, value
       ),
-      database_partition.sequence_count
+      table_partition.sequence_count
    );
 }
 

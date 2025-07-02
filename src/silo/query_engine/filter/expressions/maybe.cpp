@@ -21,11 +21,11 @@ std::string Maybe::toString() const {
    return "Maybe (" + child->toString() + ")";
 }
 std::unique_ptr<silo::query_engine::filter::operators::Operator> Maybe::compile(
-   const silo::Database& database,
-   const silo::storage::TablePartition& database_partition,
+   const storage::Table& table,
+   const silo::storage::TablePartition& table_partition,
    silo::query_engine::filter::expressions::Expression::AmbiguityMode /*mode*/
 ) const {
-   return child->compile(database, database_partition, AmbiguityMode::UPPER_BOUND);
+   return child->compile(table, table_partition, AmbiguityMode::UPPER_BOUND);
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

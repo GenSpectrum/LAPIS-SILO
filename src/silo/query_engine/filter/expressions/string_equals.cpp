@@ -28,40 +28,38 @@ std::string StringEquals::toString() const {
 }
 
 std::unique_ptr<silo::query_engine::filter::operators::Operator> StringEquals::compile(
-   const Database& /*database*/,
-   const storage::TablePartition& database_partition,
+   const storage::Table& /*table*/,
+   const storage::TablePartition& table_partition,
    Expression::AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
-      database_partition.columns.string_columns.contains(column_name) ||
-         database_partition.columns.indexed_string_columns.contains(column_name),
+      table_partition.columns.string_columns.contains(column_name) ||
+         table_partition.columns.indexed_string_columns.contains(column_name),
       "The database does not contain the column '{}'",
       column_name
    );
 
-   if (database_partition.columns.indexed_string_columns.contains(column_name)) {
-      const auto& string_column = database_partition.columns.indexed_string_columns.at(column_name);
+   if (table_partition.columns.indexed_string_columns.contains(column_name)) {
+      const auto& string_column = table_partition.columns.indexed_string_columns.at(column_name);
       const auto bitmap = string_column.filter(value);
 
       if (bitmap == std::nullopt || bitmap.value()->isEmpty()) {
-         return std::make_unique<operators::Empty>(database_partition.sequence_count);
+         return std::make_unique<operators::Empty>(table_partition.sequence_count);
       }
-      return std::make_unique<operators::IndexScan>(
-         bitmap.value(), database_partition.sequence_count
-      );
+      return std::make_unique<operators::IndexScan>(bitmap.value(), table_partition.sequence_count);
    }
-   SILO_ASSERT(database_partition.columns.string_columns.contains(column_name));
-   const auto& string_column = database_partition.columns.string_columns.at(column_name);
+   SILO_ASSERT(table_partition.columns.string_columns.contains(column_name));
+   const auto& string_column = table_partition.columns.string_columns.at(column_name);
    const auto& embedded_string = string_column.embedString(value);
    if (embedded_string.has_value()) {
       return std::make_unique<operators::Selection>(
          std::make_unique<operators::CompareToValueSelection<common::SiloString>>(
             string_column.getValues(), operators::Comparator::EQUALS, embedded_string.value()
          ),
-         database_partition.sequence_count
+         table_partition.sequence_count
       );
    }
-   return std::make_unique<operators::Empty>(database_partition.sequence_count);
+   return std::make_unique<operators::Empty>(table_partition.sequence_count);
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

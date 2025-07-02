@@ -39,8 +39,8 @@ class DateBetween : public Expression {
    std::string toString() const override;
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::filter::operators::Operator> compile(
-      const Database& database,
-      const storage::TablePartition& database_partition,
+      const storage::Table& table,
+      const storage::TablePartition& table_partition,
       AmbiguityMode mode
    ) const override;
 };

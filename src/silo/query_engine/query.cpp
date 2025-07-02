@@ -43,7 +43,7 @@ QueryPlan Query::toQueryPlan(
    for (size_t partition_index = 0; partition_index < database->table->getNumberOfPartitions();
         partition_index++) {
       auto filter_operator = filter->compile(
-         *database,
+         *database->table,
          database->table->getPartition(partition_index),
          filter::expressions::Expression::AmbiguityMode::NONE
       );

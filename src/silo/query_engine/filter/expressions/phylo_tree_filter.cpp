@@ -50,19 +50,19 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> createMatchingB
 }  // namespace
 
 std::unique_ptr<silo::query_engine::filter::operators::Operator> PhyloChildFilter::compile(
-   const Database& /*database*/,
-   const storage::TablePartition& database_partition,
+   const storage::Table& /*table*/,
+   const storage::TablePartition& table_partition,
    Expression::AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
-      database_partition.columns.string_columns.contains(column_name),
+      table_partition.columns.string_columns.contains(column_name),
       "The database does not contain the column '{}'",
       column_name
    );
 
-   SILO_ASSERT(database_partition.columns.string_columns.contains(column_name));
-   const auto& string_column = database_partition.columns.string_columns.at(column_name);
-   return createMatchingBitmap(string_column, internal_node, database_partition.sequence_count);
+   SILO_ASSERT(table_partition.columns.string_columns.contains(column_name));
+   const auto& string_column = table_partition.columns.string_columns.at(column_name);
+   return createMatchingBitmap(string_column, internal_node, table_partition.sequence_count);
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

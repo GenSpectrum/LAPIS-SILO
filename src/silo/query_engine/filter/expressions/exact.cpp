@@ -22,11 +22,11 @@ std::string Exact::toString() const {
    return fmt::format("Exact ({})", child->toString());
 }
 std::unique_ptr<silo::query_engine::filter::operators::Operator> Exact::compile(
-   const Database& database,
-   const storage::TablePartition& database_partition,
+   const storage::Table& table,
+   const storage::TablePartition& table_partition,
    silo::query_engine::filter::expressions::Expression::AmbiguityMode /*mode*/
 ) const {
-   return child->compile(database, database_partition, AmbiguityMode::LOWER_BOUND);
+   return child->compile(table, table_partition, AmbiguityMode::LOWER_BOUND);
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

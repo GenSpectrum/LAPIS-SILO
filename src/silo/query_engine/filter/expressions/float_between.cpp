@@ -34,16 +34,16 @@ std::string FloatBetween::toString() const {
 }
 
 std::unique_ptr<silo::query_engine::filter::operators::Operator> FloatBetween::compile(
-   const Database& /*database*/,
-   const storage::TablePartition& database_partition,
+   const storage::Table& /*table*/,
+   const storage::TablePartition& table_partition,
    silo::query_engine::filter::expressions::Expression::AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
-      database_partition.columns.float_columns.contains(column_name),
+      table_partition.columns.float_columns.contains(column_name),
       "The database does not contain the float column '{}'",
       column_name
    );
-   const auto& float_column = database_partition.columns.float_columns.at(column_name);
+   const auto& float_column = table_partition.columns.float_columns.at(column_name);
 
    operators::PredicateVector predicates;
    if (from.has_value()) {
@@ -67,7 +67,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> FloatBetween::c
    }
 
    return std::make_unique<operators::Selection>(
-      std::move(predicates), database_partition.sequence_count
+      std::move(predicates), table_partition.sequence_count
    );
 }
 

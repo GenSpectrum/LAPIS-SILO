@@ -68,12 +68,12 @@ std::string SymbolEquals<SymbolType>::toString() const {
 
 template <typename SymbolType>
 std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<SymbolType>::compile(
-   const Database& database,
+   const storage::Table& table,
    const storage::TablePartition& table_partition,
    Expression::AmbiguityMode mode
 ) const {
    CHECK_SILO_QUERY(
-      sequence_name.has_value() || database.table->schema.getDefaultSequenceName<SymbolType>(),
+      sequence_name.has_value() || table.schema.getDefaultSequenceName<SymbolType>(),
       "Database does not have a default sequence name for {} sequences. "
       "You need to provide the sequence name with the {} filter.",
       SymbolType::SYMBOL_NAME,
@@ -81,7 +81,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<Sy
    );
 
    const auto valid_sequence_name =
-      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, database.table->schema);
+      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, table.schema);
 
    const auto& seq_store_partition =
       table_partition.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
@@ -109,7 +109,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<Sy
             );
          }
       );
-      return Or(std::move(symbol_filters)).compile(database, table_partition, NONE);
+      return Or(std::move(symbol_filters)).compile(table, table_partition, NONE);
    }
    if (symbol == SymbolType::SYMBOL_MISSING) {
       SPDLOG_TRACE(
@@ -166,7 +166,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<Sy
             );
          }
       );
-      return And(std::move(symbol_filters)).compile(database, table_partition, NONE);
+      return And(std::move(symbol_filters)).compile(table, table_partition, NONE);
    }
    SPDLOG_TRACE(
       "Filtering for symbol '{}' at position {}", SymbolType::symbolToChar(symbol), position_idx

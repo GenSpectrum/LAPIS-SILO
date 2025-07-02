@@ -26,23 +26,23 @@ std::string BoolEquals::toString() const {
 }
 
 std::unique_ptr<silo::query_engine::filter::operators::Operator> BoolEquals::compile(
-   const silo::Database& /*database*/,
-   const silo::storage::TablePartition& database_partition,
+   const storage::Table& /*table*/,
+   const silo::storage::TablePartition& table_partition,
    Expression::AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
-      database_partition.columns.bool_columns.contains(column_name),
+      table_partition.columns.bool_columns.contains(column_name),
       "The database does not contain the column '{}'",
       column_name
    );
 
-   const auto& bool_column = database_partition.columns.bool_columns.at(column_name);
+   const auto& bool_column = table_partition.columns.bool_columns.at(column_name);
 
    return std::make_unique<operators::Selection>(
       std::make_unique<operators::CompareToValueSelection<OptionalBool>>(
          bool_column.getValues(), operators::Comparator::EQUALS, value
       ),
-      database_partition.sequence_count
+      table_partition.sequence_count
    );
 }
 

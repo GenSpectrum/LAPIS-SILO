@@ -35,17 +35,17 @@ std::string IntBetween::toString() const {
 }
 
 std::unique_ptr<silo::query_engine::filter::operators::Operator> IntBetween::compile(
-   const Database& /*database*/,
-   const storage::TablePartition& database_partition,
+   const storage::Table& /*table*/,
+   const storage::TablePartition& table_partition,
    silo::query_engine::filter::expressions::Expression::AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
-      database_partition.columns.int_columns.contains(column_name),
+      table_partition.columns.int_columns.contains(column_name),
       "The database does not contain the column '{}'",
       column_name
    );
 
-   const auto& int_column = database_partition.columns.int_columns.at(column_name);
+   const auto& int_column = table_partition.columns.int_columns.at(column_name);
 
    operators::PredicateVector predicates;
    predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<int32_t>>(
@@ -57,9 +57,8 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> IntBetween::com
       ));
    }
 
-   auto result = std::make_unique<operators::Selection>(
-      std::move(predicates), database_partition.sequence_count
-   );
+   auto result =
+      std::make_unique<operators::Selection>(std::move(predicates), table_partition.sequence_count);
 
    SPDLOG_TRACE("Compiled IntBetween filter expression to {}", result->toString());
 

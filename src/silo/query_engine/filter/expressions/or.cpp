@@ -35,8 +35,8 @@ std::string Or::toString() const {
 }
 
 std::unique_ptr<operators::Operator> Or::compile(
-   const Database& database,
-   const storage::TablePartition& database_partition,
+   const storage::Table& table,
+   const storage::TablePartition& table_partition,
    Expression::AmbiguityMode mode
 ) const {
    OperatorVector all_child_operators;
@@ -44,7 +44,7 @@ std::unique_ptr<operators::Operator> Or::compile(
       children,
       std::back_inserter(all_child_operators),
       [&](const std::unique_ptr<Expression>& expression) {
-         return expression->compile(database, database_partition, mode);
+         return expression->compile(table, table_partition, mode);
       }
    );
    OperatorVector filtered_child_operators;
@@ -53,7 +53,7 @@ std::unique_ptr<operators::Operator> Or::compile(
          continue;
       }
       if (child->type() == operators::FULL) {
-         return std::make_unique<operators::Full>(database_partition.sequence_count);
+         return std::make_unique<operators::Full>(table_partition.sequence_count);
       }
       if (child->type() == operators::UNION) {
          auto* or_child = dynamic_cast<operators::Union*>(child.get());
@@ -67,7 +67,7 @@ std::unique_ptr<operators::Operator> Or::compile(
       }
    }
    if (filtered_child_operators.empty()) {
-      return std::make_unique<operators::Empty>(database_partition.sequence_count);
+      return std::make_unique<operators::Empty>(table_partition.sequence_count);
    }
    if (filtered_child_operators.size() == 1) {
       return std::move(filtered_child_operators[0]);
@@ -77,11 +77,11 @@ std::unique_ptr<operators::Operator> Or::compile(
           return child->type() == operators::COMPLEMENT;
        })) {
       return operators::Complement::fromDeMorgan(
-         std::move(filtered_child_operators), database_partition.sequence_count
+         std::move(filtered_child_operators), table_partition.sequence_count
       );
    }
    return std::make_unique<operators::Union>(
-      std::move(filtered_child_operators), database_partition.sequence_count
+      std::move(filtered_child_operators), table_partition.sequence_count
    );
 }
 

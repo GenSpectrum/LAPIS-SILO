@@ -16,11 +16,11 @@ std::string False::toString() const {
 }
 
 std::unique_ptr<silo::query_engine::filter::operators::Operator> False::compile(
-   const silo::Database& /*database*/,
-   const silo::storage::TablePartition& database_partition,
+   const storage::Table& /*table*/,
+   const silo::storage::TablePartition& table_partition,
    AmbiguityMode /*mode*/
 ) const {
-   return std::make_unique<operators::Empty>(database_partition.sequence_count);
+   return std::make_unique<operators::Empty>(table_partition.sequence_count);
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

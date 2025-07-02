@@ -21,14 +21,14 @@ class NOf : public Expression {
    bool match_exactly;
 
    std::tuple<operators::OperatorVector, operators::OperatorVector, int> mapChildExpressions(
-      const silo::Database& database,
-      const storage::TablePartition& database_partition,
+      const storage::Table& table,
+      const storage::TablePartition& table_partition,
       AmbiguityMode mode
    ) const;
 
    std::unique_ptr<operators::Operator> rewriteNonExact(
-      const silo::Database& database,
-      const storage::TablePartition& database_partition,
+      const storage::Table& table,
+      const storage::TablePartition& table_partition,
       Expression::AmbiguityMode mode
    ) const;
 
@@ -38,8 +38,8 @@ class NOf : public Expression {
    std::string toString() const override;
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::filter::operators::Operator> compile(
-      const Database& database,
-      const storage::TablePartition& database_partition,
+      const storage::Table& table,
+      const storage::TablePartition& table_partition,
       AmbiguityMode mode
    ) const override;
 };

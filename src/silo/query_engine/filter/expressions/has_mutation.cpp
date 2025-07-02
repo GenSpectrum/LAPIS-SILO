@@ -35,12 +35,12 @@ std::string HasMutation<SymbolType>::toString() const {
 
 template <typename SymbolType>
 std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
-   const silo::Database& database,
+   const storage::Table& table,
    const storage::TablePartition& table_partition,
    AmbiguityMode mode
 ) const {
    CHECK_SILO_QUERY(
-      sequence_name.has_value() || database.table->schema.getDefaultSequenceName<SymbolType>(),
+      sequence_name.has_value() || table.schema.getDefaultSequenceName<SymbolType>(),
       "Database does not have a default sequence name for {} Sequences. "
       "You need to provide the sequence name with the {}Mutation filter.",
       SymbolType::SYMBOL_NAME,
@@ -48,14 +48,13 @@ std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
    );
 
    const auto valid_sequence_name =
-      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, database.table->schema);
+      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, table.schema);
 
    const auto& seq_store_partition =
       table_partition.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
 
    auto column_metadata =
-      database.table->schema.getColumnMetadata<typename SymbolType::Column>(valid_sequence_name)
-         .value();
+      table.schema.getColumnMetadata<typename SymbolType::Column>(valid_sequence_name).value();
    CHECK_SILO_QUERY(
       position_idx < column_metadata->reference_sequence.size(),
       "Has{}Mutation position is out of bounds {} > {}",
@@ -87,7 +86,7 @@ std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
          );
       }
    );
-   return Or(std::move(symbol_filters)).compile(database, table_partition, NONE);
+   return Or(std::move(symbol_filters)).compile(table, table_partition, NONE);
 }
 
 template <typename SymbolType>
