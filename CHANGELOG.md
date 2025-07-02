@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.7.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.0...v0.7.1) (2025-07-02)
+
+
+### Bug Fixes
+
+* add proper error messages for invalid groupByFields ([2c8babb](https://github.com/GenSpectrum/LAPIS-SILO/commit/2c8babb68e7f628228581d4c30bdad83cff53b06))
+* evaluate the bitmaps in the preparation of the QueryPlan to not send wrong http headers ([9c831c9](https://github.com/GenSpectrum/LAPIS-SILO/commit/9c831c95f45bb45ed013186db18db6051f2c7d38))
+* make TableScan react to StopProducing calls ([#855](https://github.com/GenSpectrum/LAPIS-SILO/issues/855)) ([ea3ee7d](https://github.com/GenSpectrum/LAPIS-SILO/commit/ea3ee7df8438564ca559b12d0569b19741b86222))
+* throw an error when silo tries to start on a port that is already in use ([e0ee23b](https://github.com/GenSpectrum/LAPIS-SILO/commit/e0ee23b9d1467a9e7f586ca183b5697ad60a9e92))
+
 ## [0.7.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.6.0...v0.7.0) (2025-06-30)
 
 
