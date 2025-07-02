@@ -41,13 +41,18 @@ std::string DateBetween::toString() const {
 }
 
 std::unique_ptr<operators::Operator> DateBetween::compile(
-   const storage::Table& /*database*/,
+   const storage::Table& table,
    const storage::TablePartition& table_partition,
    AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
-      table_partition.columns.date_columns.contains(column_name),
+      table.schema.getColumn(column_name).has_value(),
       "The database does not contain the column '{}'",
+      column_name
+   );
+   CHECK_SILO_QUERY(
+      table_partition.columns.date_columns.contains(column_name),
+      "The column '{}' is not of type date",
       column_name
    );
 
