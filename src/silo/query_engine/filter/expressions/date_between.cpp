@@ -41,17 +41,17 @@ std::string DateBetween::toString() const {
 }
 
 std::unique_ptr<operators::Operator> DateBetween::compile(
-   const Database& /*database*/,
-   const storage::TablePartition& database_partition,
+   const storage::Table& /*database*/,
+   const storage::TablePartition& table_partition,
    AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
-      database_partition.columns.date_columns.contains(column_name),
+      table_partition.columns.date_columns.contains(column_name),
       "The database does not contain the column '{}'",
       column_name
    );
 
-   const auto& date_column = database_partition.columns.date_columns.at(column_name);
+   const auto& date_column = table_partition.columns.date_columns.at(column_name);
 
    if (!date_column.isSorted()) {
       operators::PredicateVector predicates;
@@ -70,12 +70,12 @@ std::unique_ptr<operators::Operator> DateBetween::compile(
          )
       );
       return std::make_unique<operators::Selection>(
-         std::move(predicates), database_partition.sequence_count
+         std::move(predicates), table_partition.sequence_count
       );
    }
    return std::make_unique<operators::RangeSelection>(
-      computeRangesOfSortedColumn(date_column, {database_partition.sequence_count}),
-      database_partition.sequence_count
+      computeRangesOfSortedColumn(date_column, {table_partition.sequence_count}),
+      table_partition.sequence_count
    );
 }
 

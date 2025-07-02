@@ -61,30 +61,28 @@ std::optional<const roaring::Roaring*> LineageFilter::getBitmapForValue(
 }
 
 std::unique_ptr<silo::query_engine::filter::operators::Operator> LineageFilter::compile(
-   const Database& /*database*/,
-   const storage::TablePartition& database_partition,
+   const storage::Table& /*table*/,
+   const storage::TablePartition& table_partition,
    AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
-      database_partition.columns.indexed_string_columns.contains(column_name),
+      table_partition.columns.indexed_string_columns.contains(column_name),
       "The database does not contain the column '{}'",
       column_name
    );
    CHECK_SILO_QUERY(
-      database_partition.columns.indexed_string_columns.at(column_name)
-         .getLineageIndex()
-         .has_value(),
+      table_partition.columns.indexed_string_columns.at(column_name).getLineageIndex().has_value(),
       "The database does not contain a lineage index for the column '{}'",
       column_name
    );
 
-   const auto& lineage_column = database_partition.columns.indexed_string_columns.at(column_name);
+   const auto& lineage_column = table_partition.columns.indexed_string_columns.at(column_name);
    std::optional<const roaring::Roaring*> bitmap = getBitmapForValue(lineage_column);
 
    if (bitmap == std::nullopt) {
-      return std::make_unique<operators::Empty>(database_partition.sequence_count);
+      return std::make_unique<operators::Empty>(table_partition.sequence_count);
    }
-   return std::make_unique<operators::IndexScan>(bitmap.value(), database_partition.sequence_count);
+   return std::make_unique<operators::IndexScan>(bitmap.value(), table_partition.sequence_count);
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

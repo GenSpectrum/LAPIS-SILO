@@ -22,11 +22,11 @@ std::string Negation::toString() const {
 }
 
 std::unique_ptr<operators::Operator> Negation::compile(
-   const silo::Database& database,
-   const storage::TablePartition& database_partition,
+   const storage::Table& table,
+   const storage::TablePartition& table_partition,
    AmbiguityMode mode
 ) const {
-   auto child_operator = child->compile(database, database_partition, invertMode(mode));
+   auto child_operator = child->compile(table, table_partition, invertMode(mode));
    return operators::Operator::negate(std::move(child_operator));
 }
 

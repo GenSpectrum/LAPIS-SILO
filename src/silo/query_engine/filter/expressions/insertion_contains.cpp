@@ -50,7 +50,7 @@ std::string InsertionContains<SymbolType>::toString() const {
 template <typename SymbolType>
 std::unique_ptr<silo::query_engine::filter::operators::Operator> InsertionContains<SymbolType>::
    compile(
-      const Database& database,
+      const storage::Table& table,
       const storage::TablePartition& table_partition,
       Expression::AmbiguityMode /*mode*/
    ) const {
@@ -59,7 +59,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> InsertionContai
    }
 
    const auto valid_sequence_name =
-      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, database.table->schema);
+      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, table.schema);
 
    const std::map<std::string, storage::column::SequenceColumnPartition<SymbolType>>&
       sequence_stores = table_partition.columns.getColumns<typename SymbolType::Column>();

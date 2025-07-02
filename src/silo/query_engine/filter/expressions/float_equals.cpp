@@ -26,23 +26,23 @@ std::string FloatEquals::toString() const {
 }
 
 std::unique_ptr<silo::query_engine::filter::operators::Operator> FloatEquals::compile(
-   const silo::Database& /*database*/,
-   const storage::TablePartition& database_partition,
+   const storage::Table& /*table*/,
+   const storage::TablePartition& table_partition,
    silo::query_engine::filter::expressions::Expression::AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
-      database_partition.columns.float_columns.contains(column_name),
+      table_partition.columns.float_columns.contains(column_name),
       "The database does not contain the column '{}'",
       column_name
    );
 
-   const auto& float_column = database_partition.columns.float_columns.at(column_name);
+   const auto& float_column = table_partition.columns.float_columns.at(column_name);
 
    return std::make_unique<operators::Selection>(
       std::make_unique<operators::CompareToValueSelection<double>>(
          float_column.getValues(), operators::Comparator::EQUALS, value
       ),
-      database_partition.sequence_count
+      table_partition.sequence_count
    );
 }
 
