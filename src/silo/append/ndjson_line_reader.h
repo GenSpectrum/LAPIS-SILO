@@ -2,6 +2,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include "silo/append/append_exception.h"
+
 namespace silo::append {
 
 class NdjsonLineReader {
@@ -33,7 +35,13 @@ class NdjsonLineReader {
          while (std::getline(*stream_, line)) {
             if (line.empty())
                continue;
-            json_buffer = nlohmann::json::parse(line);
+            try {
+               json_buffer = nlohmann::json::parse(line);
+            } catch (const nlohmann::json::parse_error& parse_error) {
+               throw silo::append::AppendException(
+                  "Error while parsing ndjson file: {}", parse_error.what()
+               );
+            }
             ++line_number;
             return *this;
          }
