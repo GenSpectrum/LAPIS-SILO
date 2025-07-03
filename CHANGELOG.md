@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.2](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.1...v0.7.2) (2025-07-03)
+
+
+### Bug Fixes
+
+* better error message if the DateBetween column is not of type date ([9b7fa99](https://github.com/GenSpectrum/LAPIS-SILO/commit/9b7fa9961e07cce58694bf5aba4441e405cdb67c))
+* improve error messages when ndjson file is invalid ([#850](https://github.com/GenSpectrum/LAPIS-SILO/issues/850)) ([dcff2e9](https://github.com/GenSpectrum/LAPIS-SILO/commit/dcff2e9278c1a12854680a8434e13665b82ff8b6))
+
 ## [0.7.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.0...v0.7.1) (2025-07-02)
 
 
