@@ -6,7 +6,10 @@
 #include "silo/preprocessing/lineage_definition_file.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
+using silo::Idx;
+using silo::common::LineageTree;
 using silo::common::LineageTreeAndIdMap;
+using silo::common::RecombinantEdgeFollowingMode;
 using silo::preprocessing::LineageDefinitionFile;
 
 TEST(LineageTreeAndIdMap, correctSimpleTree) {
@@ -24,13 +27,24 @@ CHILD:
    ASSERT_FALSE(lineage_tree.lineage_id_lookup_map.getId("Base").has_value());
    ASSERT_FALSE(lineage_tree.lineage_id_lookup_map.getId("base").has_value());
 
-   ASSERT_TRUE(lineage_tree.lineage_tree
-                  .getParent(lineage_tree.lineage_id_lookup_map.getId("CHILD").value())
-                  .has_value());
    ASSERT_EQ(
-      lineage_tree.lineage_tree.getParent(lineage_tree.lineage_id_lookup_map.getId("CHILD").value()
+      lineage_tree.lineage_tree
+         .getAllParents(
+            lineage_tree.lineage_id_lookup_map.getId("CHILD").value(),
+            RecombinantEdgeFollowingMode::DO_NOT_FOLLOW
+         )
+         .size(),
+      2
+   );
+   ASSERT_EQ(
+      lineage_tree.lineage_tree.getAllParents(
+         lineage_tree.lineage_id_lookup_map.getId("CHILD").value(),
+         RecombinantEdgeFollowingMode::DO_NOT_FOLLOW
       ),
-      lineage_tree.lineage_id_lookup_map.getId("BASE")
+      (std::set<Idx>{
+         lineage_tree.lineage_id_lookup_map.getId("BASE").value(),
+         lineage_tree.lineage_id_lookup_map.getId("CHILD").value()
+      })
    );
 }
 
@@ -82,11 +96,23 @@ GRANDCHILD2:
    auto grandchild1 = lineage_tree.lineage_id_lookup_map.getId("GRANDCHILD1").value();
    auto grandchild2 = lineage_tree.lineage_id_lookup_map.getId("GRANDCHILD2").value();
 
-   ASSERT_EQ(lineage_tree.lineage_tree.getParent(grandchild1).value(), child1);
-   ASSERT_EQ(lineage_tree.lineage_tree.getParent(grandchild2).value(), child1);
-   ASSERT_EQ(lineage_tree.lineage_tree.getParent(child1).value(), base);
-   ASSERT_EQ(lineage_tree.lineage_tree.getParent(child2).value(), base);
-   ASSERT_EQ(lineage_tree.lineage_tree.getParent(base), std::nullopt);
+   auto ancestors_of_grandchild1 = lineage_tree.lineage_tree.getAllParents(
+      grandchild1, RecombinantEdgeFollowingMode::DO_NOT_FOLLOW
+   );
+   ASSERT_EQ(ancestors_of_grandchild1, (std::set<Idx>{base, child1, grandchild1}));
+   auto ancestors_of_grandchild2 = lineage_tree.lineage_tree.getAllParents(
+      grandchild2, RecombinantEdgeFollowingMode::DO_NOT_FOLLOW
+   );
+   ASSERT_EQ(ancestors_of_grandchild2, (std::set<Idx>{base, child1, grandchild2}));
+   auto ancestors_of_child1 =
+      lineage_tree.lineage_tree.getAllParents(child1, RecombinantEdgeFollowingMode::DO_NOT_FOLLOW);
+   ASSERT_EQ(ancestors_of_child1, (std::set<Idx>{base, child1}));
+   auto ancestors_of_child2 =
+      lineage_tree.lineage_tree.getAllParents(child2, RecombinantEdgeFollowingMode::DO_NOT_FOLLOW);
+   ASSERT_EQ(ancestors_of_child2, (std::set<Idx>{base, child2}));
+   auto ancestors_of_base =
+      lineage_tree.lineage_tree.getAllParents(base, RecombinantEdgeFollowingMode::DO_NOT_FOLLOW);
+   ASSERT_EQ(ancestors_of_base, (std::set<Idx>{base}));
 }
 
 TEST(LineageTreeAndIdMap, correctCycleErrorInFile) {
@@ -317,4 +343,281 @@ TEST(containsCycle, correctDirectedAcyclicGraphs) {
 
    // 2. Chain of 5 nodes and first to last shortcut
    ASSERT_FALSE(silo::common::containsCycle(5, {{0, 1}, {1, 2}, {2, 3}, {3, 4}, {0, 4}}));
+}
+
+/*        v
+ *        1
+ *     /     \
+ *    /       \
+ *  2          0
+ *    \       /
+ *     \     /
+ *        3
+ */
+
+namespace {
+LineageTree createDiamondLineageTree() {
+   return LineageTree::fromEdgeList(4, {{1, 2}, {2, 3}, {1, 0}, {0, 3}}, {}, {});
+}
+}  // namespace
+
+TEST(LineageTree, correctLeastCommonAncestorOfRecombinantSimple) {
+   auto lineage_tree = createDiamondLineageTree();
+   std::unordered_map<Idx, std::optional<Idx>> correct_lca{{3, {1}}};
+   ASSERT_EQ(
+      LineageTree::computeRecombinantCladeAncestors(lineage_tree.getChildToParentRelation()),
+      correct_lca
+   );
+}
+
+TEST(LineageTree, correctAncestorsInRecombinantGraph) {
+   auto lineage_tree = createDiamondLineageTree();
+   std::set<Idx> ancestors_of_0{0, 1};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(0, RecombinantEdgeFollowingMode::DO_NOT_FOLLOW), ancestors_of_0
+   );
+   std::set<Idx> ancestors_of_1{1};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(1, RecombinantEdgeFollowingMode::DO_NOT_FOLLOW), ancestors_of_1
+   );
+   std::set<Idx> ancestors_of_2{2, 1};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(2, RecombinantEdgeFollowingMode::DO_NOT_FOLLOW), ancestors_of_2
+   );
+   std::set<Idx> ancestors_of_3{3};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(3, RecombinantEdgeFollowingMode::DO_NOT_FOLLOW), ancestors_of_3
+   );
+}
+
+TEST(LineageTree, correctAncestorsInRecombinantGraphWithAllRecombinantEdges) {
+   auto lineage_tree = createDiamondLineageTree();
+   std::set<Idx> ancestors_of_0{0, 1};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(0, silo::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
+      ancestors_of_0
+   );
+   std::set<Idx> ancestors_of_1{1};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(1, silo::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
+      ancestors_of_1
+   );
+   std::set<Idx> ancestors_of_2{2, 1};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(2, silo::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
+      ancestors_of_2
+   );
+   std::set<Idx> ancestors_of_3{0, 1, 2, 3};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(3, silo::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
+      ancestors_of_3
+   );
+}
+
+TEST(LineageTree, correctAncestorsInRecombinantGraphWithCladeRecombinantEdges) {
+   auto lineage_tree = createDiamondLineageTree();
+   std::set<Idx> ancestors_of_0{0, 1};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(
+         0, silo::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
+      ),
+      ancestors_of_0
+   );
+   std::set<Idx> ancestors_of_1{1};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(
+         1, silo::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
+      ),
+      ancestors_of_1
+   );
+   std::set<Idx> ancestors_of_2{2, 1};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(
+         2, silo::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
+      ),
+      ancestors_of_2
+   );
+   std::set<Idx> ancestors_of_3{1, 3};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(
+         3, silo::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
+      ),
+      ancestors_of_3
+   );
+}
+
+/*      v
+ *      1
+ *     / \
+ *    /   \
+ *   2     0
+ *    \   / \
+ *     \ /   \
+ *      3     5
+ *       \   /
+ *        \ /
+ *         4
+ */
+
+namespace {
+
+LineageTree createDoubleDiamondLineageTree() {
+   return LineageTree::fromEdgeList(
+      6, {{1, 2}, {2, 3}, {1, 0}, {0, 3}, {3, 4}, {0, 5}, {5, 4}}, {}, {}
+   );
+}
+}  // namespace
+
+TEST(LineageTree, correctLeastCommonAncestorOfRecombinantComplex) {
+   auto lineage_tree = createDoubleDiamondLineageTree();
+   std::unordered_map<Idx, std::optional<Idx>> correct_lca{{3, {1}}, {4, {1}}};
+   ASSERT_EQ(
+      LineageTree::computeRecombinantCladeAncestors(lineage_tree.getChildToParentRelation()),
+      correct_lca
+   );
+}
+
+TEST(LineageTree, correctAncestorsInRecombinantGraphComplex) {
+   auto lineage_tree = createDoubleDiamondLineageTree();
+   std::set<Idx> ancestors_of_0{0, 1};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(0, RecombinantEdgeFollowingMode::DO_NOT_FOLLOW), ancestors_of_0
+   );
+   std::set<Idx> ancestors_of_1{1};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(1, RecombinantEdgeFollowingMode::DO_NOT_FOLLOW), ancestors_of_1
+   );
+   std::set<Idx> ancestors_of_2{2, 1};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(2, RecombinantEdgeFollowingMode::DO_NOT_FOLLOW), ancestors_of_2
+   );
+   std::set<Idx> ancestors_of_3{3};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(3, RecombinantEdgeFollowingMode::DO_NOT_FOLLOW), ancestors_of_3
+   );
+   std::set<Idx> ancestors_of_4{4};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(4, RecombinantEdgeFollowingMode::DO_NOT_FOLLOW), ancestors_of_4
+   );
+   std::set<Idx> ancestors_of_5{0, 1, 5};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(5, RecombinantEdgeFollowingMode::DO_NOT_FOLLOW), ancestors_of_5
+   );
+}
+
+TEST(LineageTree, correctAncestorsInRecombinantGraphWithAllRecombinantEdgesComplex) {
+   auto lineage_tree = createDoubleDiamondLineageTree();
+   std::set<Idx> ancestors_of_0{0, 1};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(0, silo::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
+      ancestors_of_0
+   );
+   std::set<Idx> ancestors_of_1{1};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(1, silo::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
+      ancestors_of_1
+   );
+   std::set<Idx> ancestors_of_2{2, 1};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(2, silo::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
+      ancestors_of_2
+   );
+   std::set<Idx> ancestors_of_3{0, 1, 2, 3};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(3, silo::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
+      ancestors_of_3
+   );
+   std::set<Idx> ancestors_of_4{0, 1, 2, 3, 4, 5};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(4, silo::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
+      ancestors_of_4
+   );
+   std::set<Idx> ancestors_of_5{0, 1, 5};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(5, silo::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
+      ancestors_of_5
+   );
+}
+
+TEST(LineageTree, correctAncestorsInRecombinantGraphWithCladeRecombinantEdgesComplex) {
+   auto lineage_tree = createDoubleDiamondLineageTree();
+   std::set<Idx> ancestors_of_0{0, 1};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(
+         0, silo::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
+      ),
+      ancestors_of_0
+   );
+   std::set<Idx> ancestors_of_1{1};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(
+         1, silo::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
+      ),
+      ancestors_of_1
+   );
+   std::set<Idx> ancestors_of_2{2, 1};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(
+         2, silo::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
+      ),
+      ancestors_of_2
+   );
+   std::set<Idx> ancestors_of_3{1, 3};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(
+         3, silo::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
+      ),
+      ancestors_of_3
+   );
+   std::set<Idx> ancestors_of_4{1, 4};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(
+         4, silo::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
+      ),
+      ancestors_of_4
+   );
+   std::set<Idx> ancestors_of_5{0, 1, 5};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(
+         5, silo::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
+      ),
+      ancestors_of_5
+   );
+}
+
+/*   v     v
+ *   2     0
+ *    \   / \
+ *     \ /   \
+ *      3     1
+ *       \   /
+ *        \ /
+ *         4
+ */
+
+namespace {
+
+LineageTree createDiamondLineageTreeWithTwoRoots() {
+   return LineageTree::fromEdgeList(6, {{2, 3}, {0, 3}, {3, 4}, {0, 1}, {1, 4}}, {}, {});
+}
+}  // namespace
+
+TEST(LineageTree, noLeastCommonAncestor) {
+   auto lineage_tree = createDiamondLineageTreeWithTwoRoots();
+   std::unordered_map<Idx, std::optional<Idx>> correct_lca{{3, std::nullopt}, {4, std::nullopt}};
+   ASSERT_EQ(
+      LineageTree::computeRecombinantCladeAncestors(lineage_tree.getChildToParentRelation()),
+      correct_lca
+   );
+}
+
+TEST(LineageTree, correctlyHasNoAncestors) {
+   auto lineage_tree = createDiamondLineageTreeWithTwoRoots();
+   std::set<Idx> ancestors_of_4{4};
+   ASSERT_EQ(
+      lineage_tree.getAllParents(
+         4, silo::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
+      ),
+      ancestors_of_4
+   );
 }

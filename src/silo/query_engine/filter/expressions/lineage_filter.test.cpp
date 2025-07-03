@@ -16,6 +16,7 @@ using silo::test::QueryTestScenario;
 
 const std::string SOME_BASE_LINEAGE = "BASE.1";
 const std::string SOME_SUBLINEAGE = "CHILD";
+const std::string RECOMBINANT_LINEAGE = "RECOMBINANT";
 
 nlohmann::json createDataWithLineageValue(const std::string& primaryKey, std::string value) {
    return {
@@ -42,7 +43,8 @@ const std::vector<nlohmann::json> DATA = {
    createDataWithLineageValue("id_0", SOME_BASE_LINEAGE),
    createDataWithLineageValue("id_1", SOME_BASE_LINEAGE),
    createDataWithLineageValue("id_2", SOME_SUBLINEAGE),
-   createDataWithLineageNullValue("id_3")
+   createDataWithLineageNullValue("id_3"),
+   createDataWithLineageValue("id_4", RECOMBINANT_LINEAGE)
 };
 
 const auto DATABASE_CONFIG =
@@ -70,8 +72,15 @@ const auto LINEAGE_TREE =
 CHILD:
   parents:
   - BASE.1
+CHILD.2:
+  parents:
+  - BASE.1
 BASE.1:
   parents: []
+RECOMBINANT:
+  parents:
+  - CHILD
+  - CHILD.2
 )"));
 
 const QueryTestData TEST_DATA{
@@ -123,6 +132,84 @@ const QueryTestScenario LINEAGE_FILTER_NULL_INCLUDING_SUBLINEAGES_SCENARIO = {
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_3"}, {"pango_lineage", nullptr}}})
 };
 
+const QueryTestScenario FILTER_INCLUDING_RECOMBINANTS = {
+   .name = "FILTER_INCLUDING_RECOMBINANTS",
+   .query = nlohmann::json::parse(R"(
+{
+  "action": {"type": "Details"},
+  "filterExpression": {
+    "type": "Lineage",
+    "column": "pango_lineage",
+    "value": "CHILD",
+    "includeSublineages": true,
+    "recombinantFollowingMode": "alwaysFollow"
+  }
+})"),
+   .expected_query_result = nlohmann::json::parse(R"(
+[{"pango_lineage":"CHILD","primaryKey":"id_2"},
+{"pango_lineage":"RECOMBINANT","primaryKey":"id_4"}]
+)")
+};
+
+const QueryTestScenario FILTER_INCLUDING_CONTAINED_RECOMBINANTS = {
+   .name = "FILTER_INCLUDING_CONTAINED_RECOMBINANTS",
+   .query = nlohmann::json::parse(R"(
+{
+  "action": {"type": "Details"},
+  "filterExpression": {
+    "type": "Lineage",
+    "column": "pango_lineage",
+    "value": "BASE.1",
+    "includeSublineages": true,
+    "recombinantFollowingMode": "followIfFullyContainedInClade"
+  }
+})"),
+   .expected_query_result = nlohmann::json::parse(R"(
+[{"pango_lineage":"BASE.1","primaryKey":"id_0"},
+{"pango_lineage":"BASE.1","primaryKey":"id_1"},
+{"pango_lineage":"CHILD","primaryKey":"id_2"},
+{"pango_lineage":"RECOMBINANT","primaryKey":"id_4"}]
+)")
+};
+
+const QueryTestScenario DOES_NOT_FILTER_NON_INCLUDED_RECOMBINANTS = {
+   .name = "DOES_NOT_FILTER_NON_INCLUDED_RECOMBINANTS",
+   .query = nlohmann::json::parse(R"(
+{
+  "action": {"type": "Details"},
+  "filterExpression": {
+    "type": "Lineage",
+    "column": "pango_lineage",
+    "value": "CHILD",
+    "includeSublineages": true,
+    "recombinantFollowingMode": "followIfFullyContainedInClade"
+  }
+})"),
+   .expected_query_result = nlohmann::json::parse(R"(
+[{"pango_lineage":"CHILD","primaryKey":"id_2"}]
+)")
+};
+
+const QueryTestScenario EXPLICIT_DO_NOT_FOLLOW = {
+   .name = "EXPLICIT_DO_NOT_FOLLOW",
+   .query = nlohmann::json::parse(R"(
+{
+  "action": {"type": "Details"},
+  "filterExpression": {
+    "type": "Lineage",
+    "column": "pango_lineage",
+    "value": "BASE.1",
+    "includeSublineages": true,
+    "recombinantFollowingMode": "doNotFollow"
+  }
+})"),
+   .expected_query_result = nlohmann::json::parse(R"(
+[{"pango_lineage":"BASE.1","primaryKey":"id_0"},
+{"pango_lineage":"BASE.1","primaryKey":"id_1"},
+{"pango_lineage":"CHILD","primaryKey":"id_2"}]
+)")
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -132,6 +219,10 @@ QUERY_TEST(
       LINEAGE_FILTER_SCENARIO,
       LINEAGE_FILTER_INCLUDING_SUBLINEAGES_SCENARIO,
       LINEAGE_FILTER_NULL_SCENARIO,
-      LINEAGE_FILTER_NULL_INCLUDING_SUBLINEAGES_SCENARIO
+      LINEAGE_FILTER_NULL_INCLUDING_SUBLINEAGES_SCENARIO,
+      FILTER_INCLUDING_RECOMBINANTS,
+      FILTER_INCLUDING_CONTAINED_RECOMBINANTS,
+      DOES_NOT_FILTER_NON_INCLUDED_RECOMBINANTS,
+      EXPLICIT_DO_NOT_FOLLOW
    )
 )

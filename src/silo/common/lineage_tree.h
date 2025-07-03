@@ -1,5 +1,6 @@
 #pragma once
 
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -13,16 +14,50 @@
 
 namespace silo::common {
 
+/*
+ *  subtree(A.1, DO_NOT_FOLLOW) returns A.1
+ *  subtree(A.1, ALWAYS_FOLLOW) returns A.1, XBB
+ *  subtree(A.1, FOLLOW_IF_FULLY_CONTAINED_IN_CLADE) returns A.1
+ *  subtree(A, DO_NOT_FOLLOW) returns A, A.1, A.2
+ *  subtree(A, ALWAYS_FOLLOW) returns A, A.1, A.2, XBB
+ *  subtree(A, FOLLOW_IF_FULLY_CONTAINED_IN_CLADE) returns A, A.1, A.2, _XBB_
+ *        v
+ *        A
+ *     /     \
+ *    /       \
+ *  A.1       A.2
+ *    \       /
+ *     \     /
+ *       XBB
+ */
+
+enum class RecombinantEdgeFollowingMode {
+   DO_NOT_FOLLOW,
+   FOLLOW_IF_FULLY_CONTAINED_IN_CLADE,
+   ALWAYS_FOLLOW,
+};
+
+const std::vector<RecombinantEdgeFollowingMode> ALL_RECOMBINANT_EDGE_FOLLOWING_MODES{
+   RecombinantEdgeFollowingMode::DO_NOT_FOLLOW,
+   RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE,
+   RecombinantEdgeFollowingMode::ALWAYS_FOLLOW
+};
+
 // The tree is allowed to be disconnected
 class LineageTree {
    friend class boost::serialization::access;
-   std::vector<std::vector<Idx>> parent_relation;
+   std::vector<std::vector<Idx>> child_to_parent_relation;
+   // These edges are the least common ancestor of the parents of a recombinant node
+   // We save these because then we do not need to recompute which nodes can reach a given
+   // recombinant node
+   std::unordered_map<Idx, std::optional<Idx>> recombinant_clade_ancestors;
    std::unordered_map<Idx, Idx> alias_mapping;
 
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-      archive & parent_relation;
+      archive & child_to_parent_relation;
+      archive & recombinant_clade_ancestors;
       archive & alias_mapping;
       // clang-format on
    }
@@ -34,6 +69,14 @@ class LineageTree {
    LineageTree& operator=(const LineageTree& other) = default;
    LineageTree& operator=(LineageTree&& other) = default;
 
+   const std::vector<std::vector<Idx>>& getChildToParentRelation() {
+      return child_to_parent_relation;
+   }
+
+   static std::unordered_map<Idx, std::optional<Idx>> computeRecombinantCladeAncestors(
+      const std::vector<std::vector<Idx>>& child_to_parent_relation
+   );
+
    static LineageTree fromEdgeList(
       size_t n_vertices,
       const std::vector<std::pair<Idx, Idx>>& edge_list,
@@ -41,7 +84,8 @@ class LineageTree {
       std::unordered_map<Idx, Idx>&& alias_mapping
    );
 
-   std::optional<Idx> getParent(Idx value_id) const;
+   std::set<Idx> getAllParents(Idx value_id, RecombinantEdgeFollowingMode follow_recombinant_edges)
+      const;
 
    Idx resolveAlias(Idx value_id) const;
 };
