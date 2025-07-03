@@ -1,5 +1,11 @@
 #include "silo/common/lineage_tree.h"
 
+#include <deque>
+#include <numeric>
+#include <queue>
+#include <set>
+#include <vector>
+
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <boost/algorithm/string/join.hpp>
@@ -125,12 +131,35 @@ std::optional<std::vector<Idx>> containsCycle(
    return graph.getCycle();
 }
 
-std::optional<Idx> LineageTree::getParent(silo::Idx value_id) const {
-   // TODO(#589) Recombinant lineage not yet supported -> do not follow their edges
-   if (parent_relation.at(value_id).size() != 1) {
-      return std::nullopt;
+std::set<Idx> LineageTree::getAllParents(
+   Idx value_id,
+   silo::common::RecombinantEdgeFollowingMode follow_recombinant_edges
+) const {
+   std::set<Idx> result;
+   std::vector<Idx> queue;
+   queue.emplace_back(value_id);
+   while (!queue.empty()) {
+      auto current = queue.back();
+      queue.pop_back();
+      auto was_newly_inserted = result.insert(current).second;
+      if (was_newly_inserted) {
+         const auto& current_parents = parent_relation.at(current);
+         if (current_parents.empty()) {
+            continue;
+         } else if (current_parents.size() == 1) {
+            queue.emplace_back(current_parents.at(0));
+         } else if (follow_recombinant_edges == RecombinantEdgeFollowingMode::ALWAYS_FOLLOW) {
+            for (Idx parent : current_parents) {
+               queue.emplace_back(parent);
+            }
+         } else if (follow_recombinant_edges == RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE) {
+            if (auto ancestor = recombinant_clade_ancestors.at(current)) {
+               queue.emplace_back(ancestor.value());
+            }
+         }
+      }
    }
-   return parent_relation.at(value_id).at(0);
+   return result;
 }
 
 Idx LineageTree::resolveAlias(Idx value_id) const {
@@ -138,6 +167,96 @@ Idx LineageTree::resolveAlias(Idx value_id) const {
       return alias_mapping.at(value_id);
    }
    return value_id;
+}
+
+bool nodesContainedInClade(std::vector<Idx> nodes, std::set<Idx> clade) {
+   return std::ranges::all_of(nodes, [&clade](Idx node) { return clade.contains(node); });
+}
+
+std::optional<Idx> getLeastAncestor(
+   Idx node,
+   const std::vector<std::vector<Idx>>& parent_relation,
+   const std::vector<size_t>& topological_rank
+) {
+   static auto max_heap_comparator = [](const std::pair<size_t, Idx>& a,
+                                        const std::pair<size_t, Idx>& b) {
+      return a.first < b.first;
+   };
+   SILO_ASSERT(parent_relation.at(node).size() >= 2);
+   std::priority_queue<
+      std::pair<size_t, Idx>,
+      std::vector<std::pair<size_t, Idx>>,
+      decltype(max_heap_comparator)>
+      pq(max_heap_comparator);
+   std::set<Idx> seen;
+   for (auto parent : parent_relation.at(node)) {
+      seen.emplace(parent);
+      pq.emplace(topological_rank.at(parent), parent);
+   }
+   while (pq.size() > 1) {
+      Idx current = pq.top().second;
+      pq.pop();
+      if (parent_relation.at(current).empty()) {
+         return std::nullopt;
+      }
+      for (Idx parent : parent_relation.at(current)) {
+         if (!seen.contains(parent)) {
+            seen.emplace(parent);
+            pq.emplace(topological_rank.at(parent), parent);
+         }
+      }
+   }
+   return pq.top().second;
+}
+
+std::unordered_map<Idx, std::optional<Idx>> LineageTree::computeRecombinantCladeAncestors(
+   const std::vector<std::vector<Idx>>& parent_relation
+) {
+   // Relation to map from nodes to their children
+   std::vector<std::vector<Idx>> child_relation(parent_relation.size());
+   for (Idx child = 0; child < parent_relation.size(); ++child) {
+      for (Idx parent : parent_relation.at(child)) {
+         child_relation.at(parent).emplace_back(child);
+      }
+   }
+
+   // Start with all root nodes in the queue
+   std::deque<Idx> queue;
+   // Keep track of the number of remaining incoming edges for all nodes in Kahn's algorithm
+   std::vector<size_t> indegree(parent_relation.size());
+   for (Idx node = 0; node < parent_relation.size(); ++node) {
+      if (parent_relation.at(node).empty()) {
+         queue.push_back(node);
+      }
+      indegree.at(node) = parent_relation.at(node).size();
+   }
+
+   // Kahn's algorithm for topological sort
+   std::vector<size_t> topological_rank(parent_relation.size());
+   size_t current_rank = 0;
+   while (!queue.empty()) {
+      Idx current = queue.front();
+      queue.pop_front();
+      topological_rank.at(current) = current_rank++;
+
+      for (size_t child : child_relation.at(current)) {
+         indegree.at(child)--;
+         if (indegree.at(child) == 0) {
+            queue.push_back(child);
+         }
+      }
+   }
+
+   std::unordered_map<Idx, std::optional<Idx>> least_recombinant_clade_ancestors;
+   for (Idx node = 0; node < parent_relation.size(); ++node) {
+      if (parent_relation.at(node).size() >= 2) {
+         least_recombinant_clade_ancestors.emplace(
+            node, getLeastAncestor(node, parent_relation, topological_rank)
+         );
+      }
+   }
+
+   return least_recombinant_clade_ancestors;
 }
 
 LineageTree LineageTree::fromEdgeList(
@@ -157,6 +276,7 @@ LineageTree LineageTree::fromEdgeList(
    for (const auto& [parent_id, vertex_id] : edge_list) {
       result.parent_relation.at(vertex_id).emplace_back(parent_id);
    }
+   result.recombinant_clade_ancestors = computeRecombinantCladeAncestors(result.parent_relation);
    return result;
 }
 

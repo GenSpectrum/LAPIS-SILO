@@ -2,9 +2,11 @@
 
 #include <cctype>
 #include <optional>
+#include <ranges>
 #include <utility>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <nlohmann/json.hpp>
 
 #include "silo/query_engine/bad_request.h"
@@ -15,22 +17,23 @@
 
 namespace silo::query_engine::filter::expressions {
 
+using silo::common::RecombinantEdgeFollowingMode;
 using silo::storage::column::IndexedStringColumnPartition;
 
 LineageFilter::LineageFilter(
    std::string column_name,
    std::optional<std::string> lineage,
-   bool include_sublineages
+   std::optional<RecombinantEdgeFollowingMode> sublineage_mode
 )
     : column_name(std::move(column_name)),
       lineage(std::move(lineage)),
-      include_sublineages(include_sublineages) {}
+      sublineage_mode(sublineage_mode) {}
 
 std::string LineageFilter::toString() const {
    if (!lineage.has_value()) {
       return "NULL";
    }
-   if (include_sublineages) {
+   if (sublineage_mode.has_value()) {
       return "'" + lineage.value() + "*'";
    }
    return "'" + lineage.value() + "'";
@@ -54,8 +57,10 @@ std::optional<const roaring::Roaring*> LineageFilter::getBitmapForValue(
 
    const Idx value_id = value_id_opt.value();
 
-   if (include_sublineages) {
-      return lineage_column.getLineageIndex()->filterIncludingSublineages(value_id);
+   if (sublineage_mode.has_value()) {
+      return lineage_column.getLineageIndex()->filterIncludingSublineages(
+         value_id, sublineage_mode.value()
+      );
    }
    return lineage_column.getLineageIndex()->filterExcludingSublineages(value_id);
 }
@@ -85,36 +90,81 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> LineageFilter::
    return std::make_unique<operators::IndexScan>(bitmap.value(), table_partition.sequence_count);
 }
 
+namespace {
+
+const std::string COLUMN_FIELD_NAME = "column";
+const std::string VALUE_FIELD_NAME = "value";
+const std::string INCLUDE_SUBLINEAGES_FIELD_NAME = "includeSublineages";
+const std::string RECOMBINANT_FOLLOWING_MODE_FIELD_NAME = "recombinantFollowingMode";
+}  // namespace
+
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<LineageFilter>& filter) {
    CHECK_SILO_QUERY(
-      json.contains("column"), "The field 'column' is required in a Lineage expression"
+      json.contains(COLUMN_FIELD_NAME),
+      "The field '{}' is required in a Lineage expression",
+      COLUMN_FIELD_NAME
    );
    CHECK_SILO_QUERY(
-      json["column"].is_string(), "The field 'column' in a Lineage expression needs to be a string"
+      json[COLUMN_FIELD_NAME].is_string(),
+      "The field '{}' in a Lineage expression needs to be a string",
+      COLUMN_FIELD_NAME
    );
-   CHECK_SILO_QUERY(
-      json.contains("value"), "The field 'value' is required in a Lineage expression"
-   );
-   CHECK_SILO_QUERY(
-      json["value"].is_string() || json["value"].is_null(),
-      "The field 'value' in a Lineage expression needs to be a string or null"
-   );
-   CHECK_SILO_QUERY(
-      json.contains("includeSublineages"),
-      "The field 'includeSublineages' is required in a Lineage expression"
-   );
-   CHECK_SILO_QUERY(
-      json["includeSublineages"].is_boolean(),
-      "The field 'includeSublineages' in a Lineage expression needs to be a boolean"
-   );
-   const std::string& column_name = json["column"];
+   const std::string& column_name = json[COLUMN_FIELD_NAME];
+
    std::optional<std::string> lineage;
-   if (json["value"].is_string()) {
-      lineage = json["value"].get<std::string>();
+   CHECK_SILO_QUERY(
+      json.contains(VALUE_FIELD_NAME),
+      "The field '{}' is required in a Lineage expression",
+      VALUE_FIELD_NAME
+   );
+   CHECK_SILO_QUERY(
+      json[VALUE_FIELD_NAME].is_string() || json[VALUE_FIELD_NAME].is_null(),
+      "The field '{}' in a Lineage expression needs to be a string or null",
+      VALUE_FIELD_NAME
+   );
+   if (json[VALUE_FIELD_NAME].is_string()) {
+      lineage = json[VALUE_FIELD_NAME].get<std::string>();
    }
-   const bool include_sublineages = json["includeSublineages"];
-   filter = std::make_unique<LineageFilter>(column_name, lineage, include_sublineages);
+
+   CHECK_SILO_QUERY(
+      json.contains(INCLUDE_SUBLINEAGES_FIELD_NAME),
+      "The field '{}' is required in a Lineage expression",
+      INCLUDE_SUBLINEAGES_FIELD_NAME
+   );
+   CHECK_SILO_QUERY(
+      json[INCLUDE_SUBLINEAGES_FIELD_NAME].is_boolean(),
+      "The field '{}' in a Lineage expression needs to be a boolean",
+      INCLUDE_SUBLINEAGES_FIELD_NAME
+   );
+   const bool include_sublineages = json[INCLUDE_SUBLINEAGES_FIELD_NAME];
+   std::optional<RecombinantEdgeFollowingMode> sublineage_mode = std::nullopt;
+   if (include_sublineages) {
+      sublineage_mode = RecombinantEdgeFollowingMode::DO_NOT_FOLLOW;
+      if (json.contains(RECOMBINANT_FOLLOWING_MODE_FIELD_NAME)) {
+         static std::unordered_map<std::string, RecombinantEdgeFollowingMode>
+            recombinant_following_mode_options{
+               {"doNotFollow", RecombinantEdgeFollowingMode::DO_NOT_FOLLOW},
+               {"followIfFullyContainedInClade",
+                RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE},
+               {"alwaysFollow", RecombinantEdgeFollowingMode::ALWAYS_FOLLOW}
+            };
+         CHECK_SILO_QUERY(
+            json.at(RECOMBINANT_FOLLOWING_MODE_FIELD_NAME).is_string() &&
+               recombinant_following_mode_options.contains(
+                  json.at(RECOMBINANT_FOLLOWING_MODE_FIELD_NAME).get<std::string>()
+               ),
+            "The field '{}' in a Lineage expression needs to be one of: {}",
+            RECOMBINANT_FOLLOWING_MODE_FIELD_NAME,
+            fmt::join(recombinant_following_mode_options | std::views::keys, ",")
+         );
+         sublineage_mode = recombinant_following_mode_options.at(
+            json.at(RECOMBINANT_FOLLOWING_MODE_FIELD_NAME).get<std::string>()
+         );
+      }
+   }
+
+   filter = std::make_unique<LineageFilter>(column_name, lineage, sublineage_mode);
 }
 
 }  // namespace silo::query_engine::filter::expressions
