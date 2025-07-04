@@ -36,8 +36,8 @@ MostRecentCommonAncestor::MostRecentCommonAncestor(
 
 using silo::query_engine::filter::operators::Operator;
 
-void MostRecentCommonAncestor::
-   validateOrderByFields(const schema::TableSchema& /*table_schema*/) const {
+void MostRecentCommonAncestor::validateOrderByFields(const schema::TableSchema& /*table_schema*/)
+   const {
    const std::vector<std::string_view> fields{"mrcaNode", "missingNodeCount", "missingFromTree"};
    for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
@@ -94,8 +94,7 @@ arrow::Status addMRCAResponseToBuilder(
       ARROW_RETURN_NOT_OK(builder->second.insert(mrca_node));
    }
    if (auto builder = output_builder.find("missingNodeCount"); builder != output_builder.end()) {
-      ARROW_RETURN_NOT_OK(
-         builder->second.insert(static_cast<int32_t>(response.not_in_tree.size()))
+      ARROW_RETURN_NOT_OK(builder->second.insert(static_cast<int32_t>(response.not_in_tree.size()))
       );
    }
    if (auto builder = output_builder.find("missingFromTree"); builder != output_builder.end()) {
@@ -210,13 +209,21 @@ std::vector<schema::ColumnIdentifier> MostRecentCommonAncestor::getOutputSchema(
 
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<MostRecentCommonAncestor>& action) {
-   const bool print_nodes_not_in_tree = json.value("printNodesNotInTree", false);
-
    CHECK_SILO_QUERY(
       json.contains("columnName"),
       "error: 'columnName' field is required in MostRecentCommonAncestor action"
    );
-
+   CHECK_SILO_QUERY(
+      json["columnName"].is_string(),
+      "error: 'columnName' field in MostRecentCommonAncestor action must be a string"
+   );
+   if (json.contains("printNodesNotInTree")) {
+      CHECK_SILO_QUERY(
+         json["printNodesNotInTree"].is_boolean(),
+         "error: 'printNodesNotInTree' field in MostRecentCommonAncestor action must be a boolean"
+      );
+   }
+   const bool print_nodes_not_in_tree = json.value("printNodesNotInTree", false);
    std::string column_name = json["columnName"].get<std::string>();
    action = std::make_unique<MostRecentCommonAncestor>(column_name, print_nodes_not_in_tree);
 }

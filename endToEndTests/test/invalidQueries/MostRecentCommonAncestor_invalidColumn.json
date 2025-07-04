@@ -1,5 +1,5 @@
 {
-  "testCaseName": "MRCA action on column not labelled as phyloTreeNodeIdentifier",
+  "testCaseName": "MostRecentCommonAncestor action on column not labelled as phyloTreeNodeIdentifier",
   "query": {
     "action": {
       "type": "MostRecentCommonAncestor",
