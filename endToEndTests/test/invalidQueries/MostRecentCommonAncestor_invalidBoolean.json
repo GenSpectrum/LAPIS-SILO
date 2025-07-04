@@ -1,0 +1,20 @@
+{
+  "testCaseName": "MostRecentCommonAncestor action with invalid printNodesNotInTree value ",
+  "query": {
+    "action": {
+      "type": "MostRecentCommonAncestor",
+      "columnName": "gisaid_epi_isl",
+      "orderByFields": ["mrcaNode"],
+      "printNodesNotInTree": "T"
+    },
+    "filterExpression": {
+      "type": "StringEquals",
+      "column": "country",
+      "value": "Switzerland"
+    }
+  },
+  "expectedError": {
+    "error": "Bad request",
+    "message": "error: 'printNodesNotInTree' field in MostRecentCommonAncestor action must be a boolean"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "testCaseName": "MostRecentCommonAncestor query returns correct node",
+  "query": {
+    "action": {
+      "type": "MostRecentCommonAncestor",
+      "columnName": "gisaid_epi_isl",
+      "orderByFields": ["mrcaNode"]
+    },
+    "filterExpression": {
+      "type": "Or",
+      "children": [
+        {
+          "type": "StringEquals",
+          "column": "gisaid_epi_isl",
+          "value": "EPI_ISL_1003849"
+        },
+        {
+          "type": "StringEquals",
+          "column": "gisaid_epi_isl",
+          "value": "EPI_ISL_1260480"
+        }
+      ]
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "mrcaNode": "NODE_0000072",
+      "missingNodeCount": 0
+    }
+  ]
+}

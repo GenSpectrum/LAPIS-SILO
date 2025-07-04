@@ -31,6 +31,12 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> createMatchingB
    const std::string& internal_node,
    size_t row_count
 ) {
+   CHECK_SILO_QUERY(
+      string_column.metadata->phylo_tree.has_value(),
+      "Phylotree filter cannot be called on Column '{}' as it does not have a phylogenetic tree "
+      "associated with it",
+      string_column.metadata->column_name
+   );
    auto internal_tree_node = string_column.metadata->phylo_tree->getTreeNodeId(internal_node);
    CHECK_SILO_QUERY(
       internal_tree_node.has_value(),

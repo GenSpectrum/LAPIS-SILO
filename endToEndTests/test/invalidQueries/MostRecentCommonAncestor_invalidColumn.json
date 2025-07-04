@@ -1,0 +1,20 @@
+{
+  "testCaseName": "MostRecentCommonAncestor action on column not labelled as phyloTreeNodeIdentifier",
+  "query": {
+    "action": {
+      "type": "MostRecentCommonAncestor",
+      "columnName": "country",
+      "orderByFields": ["mrcaNode"],
+      "printNodesNotInTree": true
+    },
+    "filterExpression": {
+      "type": "StringEquals",
+      "column": "country",
+      "value": "Switzerland"
+    }
+  },
+  "expectedError": {
+    "error": "Bad request",
+    "message": "MRCA action cannot be called on Column 'country' as it does not have a phylogenetic tree associated with it"
+  }
+}
