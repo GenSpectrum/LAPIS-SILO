@@ -6,6 +6,7 @@
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
+#include "evobench/evobench.hpp"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
 
 namespace silo::query_engine {
@@ -23,6 +24,7 @@ arrow::Result<QueryPlan> QueryPlan::makeQueryPlan(
 }
 
 arrow::Status QueryPlan::executeAndWriteImpl(std::ostream* output_stream) {
+   EVOBENCH_SCOPE("QueryPlan", "execute");
    SPDLOG_TRACE("{}", arrow_plan->ToString());
    arrow_plan->StartProducing();
    SPDLOG_TRACE("Plan started producing, will now read the resulting batches.");
