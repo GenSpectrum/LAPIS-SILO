@@ -105,7 +105,7 @@ arrow::Status addMRCAResponseToBuilder(
 
 arrow::Result<QueryPlan> MostRecentCommonAncestor::toQueryPlanImpl(
    std::shared_ptr<const storage::Table> table,
-   std::shared_ptr<filter::operators::OperatorVector> partition_filter_operators,
+   std::vector<CopyOnWriteBitmap> partition_filters,
    const config::QueryOptions& query_options
 ) const {
    CHECK_SILO_QUERY(
@@ -130,6 +130,7 @@ arrow::Result<QueryPlan> MostRecentCommonAncestor::toQueryPlanImpl(
    );
    auto table_metadata = optional_table_metadata.value();
    auto output_fields = getOutputSchema(table->schema);
+   auto evaluated_partition_filters = partition_filters;
 
    auto column_name_to_evaluate = column_name;
    auto print_missing_nodes = print_nodes_not_in_tree;
@@ -138,7 +139,7 @@ arrow::Result<QueryPlan> MostRecentCommonAncestor::toQueryPlanImpl(
       [table,
        column_name_to_evaluate,
        output_fields,
-       partition_filter_operators,
+       evaluated_partition_filters,
        table_metadata,
        produced = false,
        print_missing_nodes]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
@@ -147,11 +148,6 @@ arrow::Result<QueryPlan> MostRecentCommonAncestor::toQueryPlanImpl(
          return arrow::Future{result};
       }
       produced = true;
-      std::vector<CopyOnWriteBitmap> partition_filters;
-      partition_filters.reserve(partition_filter_operators->size());
-      for (const auto& partition_filter_operator : *partition_filter_operators) {
-         partition_filters.emplace_back(partition_filter_operator->evaluate());
-      }
 
       std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder> output_builder;
       for (const auto& output_field : output_fields) {
@@ -160,7 +156,7 @@ arrow::Result<QueryPlan> MostRecentCommonAncestor::toQueryPlanImpl(
          );
       }
 
-      auto all_node_ids = GetNodeValues(table, column_name_to_evaluate, partition_filters);
+      auto all_node_ids = GetNodeValues(table, column_name_to_evaluate, evaluated_partition_filters);
 
       ARROW_RETURN_NOT_OK(
          addMRCAResponseToBuilder(all_node_ids, output_builder, table_metadata, print_missing_nodes)
