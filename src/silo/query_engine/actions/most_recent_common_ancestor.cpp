@@ -36,8 +36,8 @@ MostRecentCommonAncestor::MostRecentCommonAncestor(
 
 using silo::query_engine::filter::operators::Operator;
 
-void MostRecentCommonAncestor::validateOrderByFields(const schema::TableSchema& /*table_schema*/)
-   const {
+void MostRecentCommonAncestor::
+   validateOrderByFields(const schema::TableSchema& /*table_schema*/) const {
    const std::vector<std::string_view> fields{"mrcaNode", "missingNodeCount", "missingFromTree"};
    for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
@@ -52,7 +52,7 @@ void MostRecentCommonAncestor::validateOrderByFields(const schema::TableSchema& 
    }
 }
 
-std::vector<std::string> GetNodeValues(
+std::vector<std::string> getNodeValues(
    std::shared_ptr<const storage::Table> table,
    const std::string& column_name,
    std::vector<CopyOnWriteBitmap>& bitmap_filter
@@ -85,14 +85,17 @@ arrow::Status addMRCAResponseToBuilder(
    bool print_nodes_not_in_tree
 ) {
    MRCAResponse response = metadata->getMRCA(all_node_ids);
+   std::optional<std::string> mrca_node =
+      response.mrca_node_id.has_value()
+         ? std::make_optional<std::string>(response.mrca_node_id.value().string)
+         : std::nullopt;
 
    if (auto builder = output_builder.find("mrcaNode"); builder != output_builder.end()) {
-      ARROW_RETURN_NOT_OK(
-         builder->second.insert(std::string(response.mrca_node_id.value_or(TreeNodeId{}).string))
-      );
+      ARROW_RETURN_NOT_OK(builder->second.insert(mrca_node));
    }
    if (auto builder = output_builder.find("missingNodeCount"); builder != output_builder.end()) {
-      ARROW_RETURN_NOT_OK(builder->second.insert(static_cast<int32_t>(response.not_in_tree.size()))
+      ARROW_RETURN_NOT_OK(
+         builder->second.insert(static_cast<int32_t>(response.not_in_tree.size()))
       );
    }
    if (auto builder = output_builder.find("missingFromTree"); builder != output_builder.end()) {
@@ -156,7 +159,8 @@ arrow::Result<QueryPlan> MostRecentCommonAncestor::toQueryPlanImpl(
          );
       }
 
-      auto all_node_ids = GetNodeValues(table, column_name_to_evaluate, evaluated_partition_filters);
+      auto all_node_ids =
+         getNodeValues(table, column_name_to_evaluate, evaluated_partition_filters);
 
       ARROW_RETURN_NOT_OK(
          addMRCAResponseToBuilder(all_node_ids, output_builder, table_metadata, print_missing_nodes)

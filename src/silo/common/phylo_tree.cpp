@@ -337,7 +337,7 @@ roaring::Roaring PhyloTree::getDescendants(const TreeNodeId& node_id) {
 }
 
 void PhyloTree::getSetOfAncestorsAtDepth(
-   std::set<TreeNodeId>& nodes_to_group,
+   const std::set<TreeNodeId>& nodes_to_group,
    std::set<TreeNodeId>& ancestors_at_depth,
    int depth
 ) const {

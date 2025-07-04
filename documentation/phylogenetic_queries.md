@@ -28,7 +28,7 @@ Filters sequences to the subset of all sequences that are a child of an internal
 
 ## Phylogenetic Actions
 
-### MRCA (Most recent common ancestor)
+### MostRecentCommonAncestor
 
 ```json
 "action": {

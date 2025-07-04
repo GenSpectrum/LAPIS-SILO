@@ -74,7 +74,7 @@ class PhyloTree {
    MRCAResponse getMRCA(const std::vector<std::string>& node_labels) const;
 
    void getSetOfAncestorsAtDepth(
-      std::set<TreeNodeId>& nodes_to_group,
+      const std::set<TreeNodeId>& nodes_to_group,
       std::set<TreeNodeId>& ancestors_at_depth,
       int depth
    ) const;
