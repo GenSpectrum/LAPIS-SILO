@@ -383,6 +383,7 @@ MRCAResponse PhyloTree::getMRCA(const std::vector<std::string>& node_labels) con
    getSetOfAncestorsAtDepth(nodes_to_group, set_at_min_depth, min_depth);
 
    while (set_at_min_depth.size() > 1) {
+      SILO_ASSERT(min_depth > 0);
       min_depth--;
       std::set<TreeNodeId> next_set_at_min_depth;
       getSetOfAncestorsAtDepth(nodes_to_group, next_set_at_min_depth, min_depth);

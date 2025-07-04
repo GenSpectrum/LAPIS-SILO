@@ -150,7 +150,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
    const std::string expression_type = json["type"];
    if (expression_type == "Aggregated") {
       action = json.get<std::unique_ptr<Aggregated>>();
-   } else if (expression_type == "MRCA") {
+   } else if (expression_type == "MostRecentCommonAncestor") {
       action = json.get<std::unique_ptr<MostRecentCommonAncestor>>();
    } else if (expression_type == "Mutations") {
       action = json.get<std::unique_ptr<Mutations<Nucleotide>>>();

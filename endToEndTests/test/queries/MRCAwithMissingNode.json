@@ -2,7 +2,7 @@
   "testCaseName": "MRCA query returns correct node with missingNode",
   "query": {
     "action": {
-      "type": "MRCA",
+      "type": "MostRecentCommonAncestor",
       "columnName": "gisaid_epi_isl",
       "orderByFields": ["mrcaNode"],
       "printNodesNotInTree": true

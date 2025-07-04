@@ -28,11 +28,11 @@ Filters sequences to the subset of all sequences that are a child of an internal
 
 ## Phylogenetic Actions
 
-### MCRA (Most common recent ancestor)
+### MRCA (Most recent common ancestor)
 
 ```json
 "action": {
-      "type": "MRCA",
+      "type": "MostRecentCommonAncestor",
       "columnName": "COLUMN_NAME",
       "printNodesNotInTree": true
     }

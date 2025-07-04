@@ -2,7 +2,7 @@
   "testCaseName": "MRCA action on column not labelled as phyloTreeNodeIdentifier",
   "query": {
     "action": {
-      "type": "MRCA",
+      "type": "MostRecentCommonAncestor",
       "columnName": "country",
       "orderByFields": ["mrcaNode"],
       "printNodesNotInTree": true
