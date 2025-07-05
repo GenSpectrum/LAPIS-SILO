@@ -1,0 +1,22 @@
+#!/bin/bash
+set -meuo pipefail
+IFS=
+
+if [ -e .silo.pid ]; then
+    pid=$(cat .silo.pid)
+    if kill -INT "$pid"; then
+
+        echo -n "Waiting for silo (PID $pid) to shut down..."
+        while kill -0 "$pid"; do 
+            sleep 0.5
+        done
+    fi
+
+    rm -f .silo.pid
+    
+    echo done.
+    
+else
+    echo "Not running (there is no .silo.pid file)"
+fi
+

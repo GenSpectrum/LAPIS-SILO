@@ -1,0 +1,5 @@
+#!/bin/bash
+set -meuo pipefail
+IFS=
+
+( cd .. ; git describe --tags )
