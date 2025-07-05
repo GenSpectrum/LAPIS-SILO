@@ -1,0 +1,18 @@
+#!/bin/bash
+set -meuo pipefail
+IFS=
+
+cd ..
+
+set -x
+
+if ! [ -e conanprofile ]; then
+    cp conanprofile.example conanprofile
+fi
+
+python3 build_with_conan.py --release
+
+# `ln` works, too, currently (the SILO build does not overwrite the
+# original file in place), but it's dicey, so better use 'cp'
+cp build/Release/silo{,_"$COMMIT_ID"}
+# cp build/Release/silo_test{,_"$COMMIT_ID"}
