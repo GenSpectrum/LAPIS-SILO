@@ -7,7 +7,6 @@
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
-#include "evobench/evobench.hpp"
 #include "silo/common/date.h"
 #include "silo/database.h"
 #include "silo/query_engine/bad_request.h"
@@ -60,7 +59,6 @@ std::unique_ptr<operators::Operator> DateBetween::compile(
    const auto& date_column = table_partition.columns.date_columns.at(column_name);
 
    if (!date_column.isSorted()) {
-      EVOBENCH_KEY_VALUE("Date sort optimization", "false");
       operators::PredicateVector predicates;
       predicates.emplace_back(
          std::make_unique<operators::CompareToValueSelection<silo::common::Date>>(
@@ -80,7 +78,6 @@ std::unique_ptr<operators::Operator> DateBetween::compile(
          std::move(predicates), table_partition.sequence_count
       );
    }
-   EVOBENCH_KEY_VALUE("Date sort optimization", "true");
    return std::make_unique<operators::RangeSelection>(
       computeRangesOfSortedColumn(date_column, {table_partition.sequence_count}),
       table_partition.sequence_count
