@@ -5,6 +5,7 @@
 #include <fmt/format.h>
 #include <roaring/roaring.hh>
 
+#include "evobench/evobench.hpp"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
@@ -49,6 +50,7 @@ Type BitmapSelection::type() const {
 }
 
 CopyOnWriteBitmap BitmapSelection::evaluate() const {
+   EVOBENCH_SCOPE("BitmapSelection", "evaluate");
    CopyOnWriteBitmap bitmap;
    switch (this->comparator) {
       case CONTAINS:

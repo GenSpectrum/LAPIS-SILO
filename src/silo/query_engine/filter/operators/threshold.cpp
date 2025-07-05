@@ -6,6 +6,7 @@
 
 #include <roaring/roaring.hh>
 
+#include "evobench/evobench.hpp"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/operator.h"
@@ -62,6 +63,7 @@ Type Threshold::type() const {
 }
 
 CopyOnWriteBitmap Threshold::evaluate() const {
+   EVOBENCH_SCOPE("Threshold", "evaluate");
    uint32_t dp_table_size;
    if (this->match_exactly) {
       // We need to keep track of the ones that matched too many

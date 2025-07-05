@@ -1,0 +1,13 @@
+api-query/
+WisePulse/
+
+merger_tmp/
+sorted_chunks/
+
+output/
+sorted_output/
+logs/
+
+.silo.pid
+.silo.stopped
+
