@@ -36,12 +36,12 @@ A.11:
 
   it('should return an error for column name that does not have a lineage index', async () => {
     await server
-      .get('/lineageDefinition/country')
+      .get('/lineageDefinition/region')
       .expect(400)
       .expect('Content-Type', 'application/json')
       .expect(expectHeaderToHaveDataVersion)
       .then(response => {
-        expect(response.body.message).to.equal('The column country does not have a lineageIndex defined.');
+        expect(response.body.message).to.equal('The column region does not have a lineageIndex defined.');
       });
   });
 });

@@ -13,7 +13,6 @@ schema:
       generateIndex: true
     - name: country
       type: string
-      generateIndex: true
     - name: pango_lineage
       type: string
       generateIndex: true
