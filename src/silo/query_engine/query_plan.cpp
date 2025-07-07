@@ -66,11 +66,15 @@ arrow::Status QueryPlan::executeAndWriteImpl(std::ostream* output_stream) {
 void QueryPlan::executeAndWrite(std::ostream* output_stream) {
    auto status = executeAndWriteImpl(output_stream);
    if (!status.ok()) {
-      throw std::runtime_error(fmt::format(
-         "Internal server error. Please notify developers. SILO constructed an invalid arrow plan. "
-         "It is likely that more user-input validation needs to be added: {}",
-         status.ToString()
-      ));
+      if (status.IsIOError()) {
+         SPDLOG_ERROR("The request {} encountered an IO Error when sending the response");
+      } else {
+         throw std::runtime_error(fmt::format(
+            "Internal server error. Please notify developers. SILO likely constructed an invalid "
+            "arrow plan and more user-input validation needs to be added: {}",
+            status.ToString()
+         ));
+      }
    }
 }
 
