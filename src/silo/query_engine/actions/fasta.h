@@ -14,9 +14,15 @@ namespace silo::query_engine::actions {
 
 class Fasta : public SimpleSelectAction {
    std::vector<std::string> sequence_names;
+   std::vector<std::string> additional_fields;
 
   public:
-   explicit Fasta(std::vector<std::string>&& sequence_names);
+   explicit Fasta(
+      std::vector<std::string>&& sequence_names,
+      std::vector<std::string>&& additional_fields
+   )
+       : sequence_names(std::move(sequence_names)),
+         additional_fields(std::move(additional_fields)) {}
 
    std::vector<schema::ColumnIdentifier> getOutputSchema(
       const silo::schema::TableSchema& table_schema

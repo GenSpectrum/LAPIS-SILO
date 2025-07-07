@@ -38,10 +38,10 @@ std::vector<schema::ColumnIdentifier> FastaAligned::getOutputSchema(
       );
       fields.emplace(column.value());
    }
-   for (const auto& sequence_name : additional_fields) {
-      auto column = table_schema.getColumn(sequence_name);
+   for (const auto& additional_field : additional_fields) {
+      auto column = table_schema.getColumn(additional_field);
       CHECK_SILO_QUERY(
-         column.has_value(), "The table does not contain the Column '{}'", sequence_name
+         column.has_value(), "The table does not contain the Column '{}'", additional_field
       );
       fields.emplace(column.value());
    }
@@ -50,33 +50,44 @@ std::vector<schema::ColumnIdentifier> FastaAligned::getOutputSchema(
    return unique_fields;
 }
 
+namespace {
+
+const std::string SEQUENCE_NAMES_FIELD_NAME = "sequenceNames";
+const std::string ADDITIONAL_FIELDS_FIELD_NAME = "additionalFields";
+
+}  // namespace
+
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<FastaAligned>& action) {
    CHECK_SILO_QUERY(
-      json.contains("sequenceNames") && json["sequenceNames"].is_array(),
-      "The FastaAligned action requires a sequenceNames field, which must be an array of strings"
+      json.contains(SEQUENCE_NAMES_FIELD_NAME) && json[SEQUENCE_NAMES_FIELD_NAME].is_array(),
+      "The FastaAligned action requires a {} field, which must be an array of strings",
+      SEQUENCE_NAMES_FIELD_NAME
    );
    std::vector<std::string> sequence_names;
-   for (const auto& child : json["sequenceNames"]) {
+   for (const auto& child : json[SEQUENCE_NAMES_FIELD_NAME]) {
       CHECK_SILO_QUERY(
          child.is_string(),
-         "The FastaAligned action requires a sequenceNames field, which must be an array of "
+         "The FastaAligned action requires a {} field, which must be an array of "
          "strings; while parsing array encountered the element {} which is not of type string",
+         SEQUENCE_NAMES_FIELD_NAME,
          child.dump()
       );
       sequence_names.emplace_back(child.get<std::string>());
    }
    std::vector<std::string> additional_fields;
-   if (json.contains("additionalFields")) {
+   if (json.contains(ADDITIONAL_FIELDS_FIELD_NAME)) {
       CHECK_SILO_QUERY(
-         json["additionalFields"].is_array(),
-         "The field `additionalFields` in a FastaAligned action must be an array of strings."
+         json[ADDITIONAL_FIELDS_FIELD_NAME].is_array(),
+         "The field `{}` in a FastaAligned action must be an array of strings.",
+         ADDITIONAL_FIELDS_FIELD_NAME
       );
-      for (const auto& child : json["additionalFields"]) {
+      for (const auto& child : json[ADDITIONAL_FIELDS_FIELD_NAME]) {
          CHECK_SILO_QUERY(
             child.is_string(),
-            "The field `additionalFields` in a FastaAligned action must be an array of strings. "
+            "The field `{}` in a FastaAligned action must be an array of strings. "
             "Encountered non-string element: {}",
+            ADDITIONAL_FIELDS_FIELD_NAME,
             child.dump()
          );
          additional_fields.emplace_back(child.get<std::string>());
