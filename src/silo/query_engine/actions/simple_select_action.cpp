@@ -35,12 +35,17 @@ arrow::Result<QueryPlan> SimpleSelectAction::toQueryPlanImpl(
    const config::QueryOptions& query_options
 ) const {
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
-   arrow::acero::ExecNode* node = arrow_plan->EmplaceNode<exec_node::TableScan>(
-      arrow_plan.get(),
-      getOutputSchema(table->schema),
-      partition_filters,
-      table,
-      query_options.materialization_cutoff
+
+   arrow::acero::ExecNode* node;
+   ARROW_ASSIGN_OR_RAISE(
+      node,
+      exec_node::makeTableScan(
+         arrow_plan.get(),
+         getOutputSchema(table->schema),
+         partition_filters,
+         table,
+         query_options.materialization_cutoff
+      )
    );
 
    ARROW_ASSIGN_OR_RAISE(node, addOrderingNodes(arrow_plan.get(), node, table->schema));
