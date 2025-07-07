@@ -61,27 +61,33 @@ arrow::Status writeBatchAsNdjson(
    std::vector<std::string> prepared_column_strings_for_json_attributes;
    auto column_names = record_batch->schema()->fields();
    for (const auto& column_name : column_names) {
-      const auto json_formatted_column_name = fmt::format("\"{}\":", column_name->name());
-      prepared_column_strings_for_json_attributes.emplace_back(json_formatted_column_name);
+      nlohmann::json json_formatted_column_name = column_name->name();
+      prepared_column_strings_for_json_attributes.emplace_back(json_formatted_column_name.dump());
    }
    for (size_t row_idx = 0; row_idx < row_count; row_idx++) {
-      *output_stream << "{";
+      std::stringstream ndjson_line_stream;
+      ndjson_line_stream << "{";
       for (size_t column_idx = 0; column_idx < column_count; column_idx++) {
          if (column_idx != 0) {
-            *output_stream << ",";
+            ndjson_line_stream << ",";
          }
          const auto& column = record_batch->columns().at(column_idx);
-         *output_stream << prepared_column_strings_for_json_attributes.at(column_idx);
+         ndjson_line_stream << prepared_column_strings_for_json_attributes.at(column_idx);
+         ndjson_line_stream << ":";
 
          if (column->IsNull(row_idx)) {
-            *output_stream << "null";
+            ndjson_line_stream << "null";
          } else {
             ARROW_ASSIGN_OR_RAISE(const auto& scalar, column->GetScalar(row_idx));
-            ScalarToJsonTypeVisitor my_visitor(output_stream);
+            ScalarToJsonTypeVisitor my_visitor(&ndjson_line_stream);
             ARROW_RETURN_NOT_OK(scalar->Accept(&my_visitor));
          }
       }
-      *output_stream << "}\n";
+      ndjson_line_stream << "}\n";
+      *output_stream << ndjson_line_stream.rdbuf();
+      if (!*output_stream) {
+         return arrow::Status::IOError("Could not write to network stream");
+      }
    }
 
    return arrow::Status::OK();
