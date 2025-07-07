@@ -86,13 +86,13 @@ dependencies: $(API_QUERY) $(WISEPULSE)
 
 # ---- Sorting input -----------------------------------------------------------
 
-sorted_input_file.ndjson.zst: input_file.ndjson.zst $(WISEPULSE)
+$(BENCHMARK_DATASET_DIR)/sorted_input_file.ndjson.zst: $(BENCHMARK_DATASET_DIR)/input_file.ndjson.zst $(WISEPULSE)
 	rm -rf sorted_chunks merger_tmp 
-	zstdcat input_file.ndjson.zst \
+	zstdcat $(BENCHMARK_DATASET_DIR)/input_file.ndjson.zst \
 	    | $(WISEPULSE_BIN)/split_into_sorted_chunks --output-path sorted_chunks --chunk-size 100000 --sort-field date \
 	    | $(WISEPULSE_BIN)/merge_sorted_chunks --tmp-directory merger_tmp --sort-field date \
-	    | zstd > sorted_input_file.ndjson.zst.tmp
-	mv sorted_input_file.ndjson.zst.tmp sorted_input_file.ndjson.zst
+	    | zstd > $(BENCHMARK_DATASET_DIR)/sorted_input_file.ndjson.zst.tmp
+	mv $(BENCHMARK_DATASET_DIR)/sorted_input_file.ndjson.zst.tmp $(BENCHMARK_DATASET_DIR)/sorted_input_file.ndjson.zst
 
 # ---- Running silo -----------------------------------------------------------
 
@@ -125,7 +125,7 @@ bench: $(BENCHMARK_DATASET_DIR)/silo_queries.ndjson $(API_QUERY) .silo.stopped
 	make .silo.stopped
 
 clean:
-	rm -rf output sorted_output logs sorted_chunks merger_tmp sorted_input_file.ndjson.zst
+	rm -rf output sorted_output logs sorted_chunks merger_tmp
 
 clean-fully: clean
 	rm -rf ../build
