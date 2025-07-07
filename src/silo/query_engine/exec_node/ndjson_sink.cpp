@@ -92,7 +92,9 @@ arrow::Status createGenerator(
    arrow::acero::ExecNode* input,
    arrow::AsyncGenerator<std::optional<arrow::ExecBatch>>* generator
 ) {
-   arrow::acero::SinkNodeOptions options{generator};
+   arrow::acero::SinkNodeOptions options{
+      generator, arrow::acero::BackpressureOptions::DefaultBackpressure()
+   };
    ARROW_RETURN_NOT_OK(
       arrow::acero::MakeExecNode(std::string{"sink"}, plan, {input}, options).status()
    );
