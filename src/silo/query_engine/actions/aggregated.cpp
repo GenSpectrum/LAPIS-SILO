@@ -144,12 +144,16 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithGrouping(
    std::vector<schema::ColumnIdentifier> group_by_fields_identifiers =
       bindGroupByFields(table->schema, group_by_fields);
 
-   arrow::acero::ExecNode* node = arrow_plan->EmplaceNode<exec_node::TableScan>(
-      arrow_plan.get(),
-      group_by_fields_identifiers,
-      partition_filters,
-      table,
-      query_options.materialization_cutoff
+   arrow::acero::ExecNode* node;
+   ARROW_ASSIGN_OR_RAISE(
+      node,
+      exec_node::makeTableScan(
+         arrow_plan.get(),
+         group_by_fields_identifiers,
+         partition_filters,
+         table,
+         query_options.materialization_cutoff
+      )
    );
 
    auto count_options =

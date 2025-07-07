@@ -83,7 +83,7 @@ class ColumnEntryAppender {
   public:
    template <storage::column::Column Column>
    arrow::Status operator()(
-      TableScan& table_scan_node,
+      ExecBatchBuilder& table_scan_node,
       const std::string& column_name,
       const storage::TablePartition& table_partition,
       const roaring::Roaring& row_ids
@@ -92,7 +92,7 @@ class ColumnEntryAppender {
 
 template <>
 arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumnPartition<Nucleotide>>(
-   TableScan& table_scan_node,
+   ExecBatchBuilder& table_scan_node,
    const std::string& column_name,
    const storage::TablePartition& table_partition,
    const roaring::Roaring& row_ids
@@ -108,7 +108,7 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumnPar
 
 template <>
 arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumnPartition<AminoAcid>>(
-   TableScan& table_scan_node,
+   ExecBatchBuilder& table_scan_node,
    const std::string& column_name,
    const storage::TablePartition& table_partition,
    const roaring::Roaring& row_ids
@@ -124,7 +124,7 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumnPar
 
 template <>
 arrow::Status ColumnEntryAppender::operator()<storage::column::ZstdCompressedStringColumnPartition>(
-   TableScan& table_scan_node,
+   ExecBatchBuilder& table_scan_node,
    const std::string& column_name,
    const storage::TablePartition& table_partition,
    const roaring::Roaring& row_ids
@@ -150,7 +150,7 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::ZstdCompressedStr
 
 template <storage::column::Column Column>
 arrow::Status ColumnEntryAppender::operator()(
-   TableScan& table_scan_node,
+   ExecBatchBuilder& table_scan_node,
    const std::string& column_name,
    const storage::TablePartition& table_partition,
    const roaring::Roaring& row_ids
@@ -170,7 +170,16 @@ arrow::Status ColumnEntryAppender::operator()(
 
 }  // namespace
 
-arrow::Status TableScan::appendEntries(
+ExecBatchBuilder::ExecBatchBuilder(std::vector<silo::schema::ColumnIdentifier> output_fields_)
+    : output_fields(std::move(output_fields_)) {
+   for (const auto& [name, type] : output_fields) {
+      storage::column::visit(type, [&]<storage::column::Column Column>() {
+         array_builders[type].emplace(name, std::make_shared<ArrowBuilder<Column>>());
+      });
+   }
+}
+
+arrow::Status ExecBatchBuilder::appendEntries(
    const storage::TablePartition& table_partition,
    const roaring::Roaring& row_ids
 ) {
@@ -182,38 +191,7 @@ arrow::Status TableScan::appendEntries(
    return arrow::Status::OK();
 }
 
-arrow::Status TableScan::produce() {
-   SPDLOG_TRACE("TableScan::produce");
-   for (size_t partition_idx = 0; partition_idx < table->getNumberOfPartitions(); ++partition_idx) {
-      silo::query_engine::BatchedBitmapReader reader{
-         partition_filters.at(partition_idx), batch_size_cutoff - 1
-      };
-      while (auto row_ids = reader.nextBatch()) {
-         if (stopped_) {
-            SPDLOG_TRACE(
-               "TableScan::produce returning already after {} batches (batch_size: {})",
-               num_batches_produced,
-               batch_size_cutoff
-            );
-            return output_->InputFinished(this, num_batches_produced);
-         }
-         ARROW_RETURN_NOT_OK(appendEntries(table->getPartition(partition_idx), row_ids.value()));
-         ARROW_RETURN_NOT_OK(flushOutput());
-      }
-   }
-   SPDLOG_TRACE("Calling InputFinished on _output:");
-   return output_->InputFinished(this, num_batches_produced);
-}
-
-void TableScan::prepareOutputArrays() {
-   for (const auto& [name, type] : output_fields) {
-      storage::column::visit(type, [&]<storage::column::Column Column>() {
-         array_builders[type].emplace(name, std::make_unique<ArrowBuilder<Column>>());
-      });
-   }
-}
-
-arrow::Status TableScan::flushOutput() {
+arrow::Result<arrow::ExecBatch> ExecBatchBuilder::finishBatch() {
    std::vector<arrow::Datum> data;
    for (auto& field : output_fields) {
       auto status = storage::column::visit(field.type, [&]<storage::column::Column Column>() {
@@ -225,11 +203,44 @@ arrow::Status TableScan::flushOutput() {
       });
       ARROW_RETURN_NOT_OK(status);
    }
-   arrow::ExecBatch exec_batch;
-   ARROW_ASSIGN_OR_RAISE(exec_batch, arrow::compute::ExecBatch::Make(data));
-   exec_batch.index = num_batches_produced++;
-   ARROW_RETURN_NOT_OK(this->output_->InputReceived(static_cast<ExecNode*>(this), exec_batch));
-   return arrow::Status::OK();
+   return arrow::compute::ExecBatch::Make(data);
+}
+
+arrow::Result<std::optional<arrow::ExecBatch>> TableScanGenerator::produceNextBatch() {
+   if (!current_bitmap_reader.has_value()) {
+      return std::nullopt;
+   }
+   while (true) {
+      auto row_ids = current_bitmap_reader.value().nextBatch();
+      if (row_ids.has_value()) {
+         ARROW_RETURN_NOT_OK(exec_batch_builder.appendEntries(
+            table->getPartition(current_partition_idx), row_ids.value()
+         ));
+         return exec_batch_builder.finishBatch();
+      }
+      current_partition_idx++;
+      if (current_partition_idx < partition_filters.size()) {
+         current_bitmap_reader =
+            BatchedBitmapReader{partition_filters.at(current_partition_idx), batch_size_cutoff};
+      } else {
+         current_bitmap_reader = std::nullopt;
+      }
+      return std::nullopt;
+   }
+}
+
+arrow::Result<arrow::acero::ExecNode*> makeTableScan(
+   arrow::acero::ExecPlan* plan,
+   const std::vector<silo::schema::ColumnIdentifier>& columns,
+   std::vector<CopyOnWriteBitmap> partition_filters_,
+   std::shared_ptr<const storage::Table> table,
+   size_t batch_size_cutoff
+) {
+   exec_node::TableScanGenerator generator(columns, partition_filters_, table, batch_size_cutoff);
+   arrow::acero::SourceNodeOptions source_node_options{
+      exec_node::columnsToInternalArrowSchema(columns), generator, arrow::Ordering::Implicit()
+   };
+   return arrow::acero::MakeExecNode("source", plan, {}, source_node_options);
 }
 
 }  // namespace silo::query_engine::exec_node
