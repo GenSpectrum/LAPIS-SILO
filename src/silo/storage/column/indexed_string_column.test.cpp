@@ -6,6 +6,7 @@
 #include "silo/preprocessing/preprocessing_exception.h"
 
 using silo::common::LineageTreeAndIdMap;
+using silo::common::RecombinantEdgeFollowingMode;
 using silo::preprocessing::LineageDefinitionFile;
 using silo::storage::column::IndexedStringColumnMetadata;
 using silo::storage::column::IndexedStringColumnPartition;
@@ -69,7 +70,9 @@ TEST(IndexedStringColumnPartition, addingLineageAndThenSublineageFiltersCorrectl
    EXPECT_EQ(*under_test.filter({"BA.1.1"}).value(), roaring::Roaring({0, 1, 4}));
    EXPECT_EQ(
       *under_test.getLineageIndex()
-          ->filterIncludingSublineages(under_test.getValueId("BA.1.1").value())
+          ->filterIncludingSublineages(
+             under_test.getValueId("BA.1.1").value(), RecombinantEdgeFollowingMode::DO_NOT_FOLLOW
+          )
           .value(),
       roaring::Roaring({0, 1, 2, 3, 4})
    );
@@ -77,7 +80,9 @@ TEST(IndexedStringColumnPartition, addingLineageAndThenSublineageFiltersCorrectl
    EXPECT_EQ(*under_test.filter({"BA.1.1.1"}).value(), roaring::Roaring({2}));
    EXPECT_EQ(
       *under_test.getLineageIndex()
-          ->filterIncludingSublineages(under_test.getValueId("BA.1.1.1").value())
+          ->filterIncludingSublineages(
+             under_test.getValueId("BA.1.1.1").value(), RecombinantEdgeFollowingMode::DO_NOT_FOLLOW
+          )
           .value(),
       roaring::Roaring({2, 3})
    );
@@ -106,20 +111,26 @@ TEST(IndexedStringColumnPartition, addingSublineageAndThenLineageFiltersCorrectl
    );
    EXPECT_EQ(
       *under_test.getLineageIndex()
-          ->filterIncludingSublineages(under_test.getValueId("BA.1.1").value())
+          ->filterIncludingSublineages(
+             under_test.getValueId("BA.1.1").value(), RecombinantEdgeFollowingMode::DO_NOT_FOLLOW
+          )
           .value(),
       roaring::Roaring({0, 1, 3, 4})
    );
 
    EXPECT_EQ(
       *under_test.getLineageIndex()
-          ->filterIncludingSublineages(under_test.getValueId("BA.1.1.1").value())
+          ->filterIncludingSublineages(
+             under_test.getValueId("BA.1.1.1").value(), RecombinantEdgeFollowingMode::DO_NOT_FOLLOW
+          )
           .value(),
       roaring::Roaring({0, 1, 4})
    );
    EXPECT_EQ(
       *under_test.getLineageIndex()
-          ->filterIncludingSublineages(under_test.getValueId("BA.1.1.1").value())
+          ->filterIncludingSublineages(
+             under_test.getValueId("BA.1.1.1").value(), RecombinantEdgeFollowingMode::DO_NOT_FOLLOW
+          )
           .value(),
       roaring::Roaring({0, 1, 4})
    );
@@ -144,7 +155,9 @@ TEST(IndexedStringColumnPartition, queryParentLineageThatWasNeverInserted) {
    );
    EXPECT_EQ(
       *under_test.getLineageIndex()
-          ->filterIncludingSublineages(under_test.getValueId("BA.1").value())
+          ->filterIncludingSublineages(
+             under_test.getValueId("BA.1").value(), RecombinantEdgeFollowingMode::DO_NOT_FOLLOW
+          )
           .value(),
       roaring::Roaring({0, 1, 3})
    );

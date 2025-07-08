@@ -15,13 +15,13 @@ namespace silo::query_engine::filter::expressions {
 class LineageFilter : public Expression {
    std::string column_name;
    std::optional<std::string> lineage;
-   bool include_sublineages;
+   std::optional<silo::common::RecombinantEdgeFollowingMode> sublineage_mode;
 
   public:
    explicit LineageFilter(
       std::string column_name,
       std::optional<std::string> lineage,
-      bool include_sublineages
+      std::optional<silo::common::RecombinantEdgeFollowingMode> sublineage_mode
    );
 
    std::string toString() const override;
