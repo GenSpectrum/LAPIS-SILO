@@ -21,14 +21,14 @@ namespace silo::common {
  *  subtree(A, DO_NOT_FOLLOW) returns A, A.1, A.2
  *  subtree(A, ALWAYS_FOLLOW) returns A, A.1, A.2, XBB
  *  subtree(A, FOLLOW_IF_FULLY_CONTAINED_IN_CLADE) returns A, A.1, A.2, _XBB_
- *
- *       A.1
+ *        v
+ *        A
  *     /     \
  *    /       \
- *  A          XBB
+ *  A.1       A.2
  *    \       /
  *     \     /
- *       A.2
+ *       XBB
  */
 
 enum class RecombinantEdgeFollowingMode {
