@@ -50,6 +50,9 @@ ConfigKeyPath queryMaterializationOptionKey() {
 
 namespace silo::config {
 
+// arrow::acero::SourceNode reslices batches if they are bigger than 32768
+const uint32_t DEFAULT_ARROW_BATCH_SIZE = 32767;
+
 ConfigSpecification RuntimeConfig::getConfigSpecification() {
    return {
       .program_name = "silo api",
@@ -103,7 +106,7 @@ ConfigSpecification RuntimeConfig::getConfigSpecification() {
             ),
             ConfigAttributeSpecification::createWithDefault(
                queryMaterializationOptionKey(),
-               ConfigValue::fromUint32(50000),
+               ConfigValue::fromUint32(DEFAULT_ARROW_BATCH_SIZE),
                "If a query results in fewer rows, the query result will be collected \n"
                "in memory before sending it to the client. If it affects more rows, \n"
                "it will be streamed by constructing the result items lazily."
