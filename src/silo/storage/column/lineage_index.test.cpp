@@ -12,17 +12,17 @@ using silo::storage::LineageIndex;
 using silo::storage::column::IndexedStringColumnMetadata;
 using silo::storage::column::IndexedStringColumnPartition;
 
-/*
- *      2
+/*      v
+ *      1
  *     / \
  *    /   \
- *   1     3
+ *   2     0
  *    \   / \
  *     \ /   \
- *      0     4
+ *      3     5
  *       \   /
  *        \ /
- *         5
+ *         4
  */
 
 void assertEqualHelper(std::optional<const roaring::Roaring*>& actual, roaring::Roaring& expected) {

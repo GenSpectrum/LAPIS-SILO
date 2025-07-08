@@ -345,14 +345,14 @@ TEST(containsCycle, correctDirectedAcyclicGraphs) {
    ASSERT_FALSE(silo::common::containsCycle(5, {{0, 1}, {1, 2}, {2, 3}, {3, 4}, {0, 4}}));
 }
 
-/*
- *        2
+/*        v
+ *        1
  *     /     \
  *    /       \
- *  1          3
+ *  2          0
  *    \       /
  *     \     /
- *        0
+ *        3
  */
 
 TEST(LineageTree, correctLeastCommonAncestorOfRecombinantSimple) {
@@ -436,17 +436,17 @@ TEST(LineageTree, correctAncestorsInRecombinantGraphWithCladeRecombinantEdges) {
    );
 }
 
-/*
- *      2
+/*      v
+ *      1
  *     / \
  *    /   \
- *   1     3
+ *   2     0
  *    \   / \
  *     \ /   \
- *      0     4
+ *      3     5
  *       \   /
  *        \ /
- *         5
+ *         4
  */
 
 TEST(LineageTree, correctLeastCommonAncestorOfRecombinantComplex) {
