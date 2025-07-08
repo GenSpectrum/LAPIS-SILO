@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.7.2](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.1...v0.7.2) (2025-07-08)
+
+
+### Features
+
+* add the field `additionalFields` to Fasta action ([#861](https://github.com/GenSpectrum/LAPIS-SILO/issues/861)) ([80777f1](https://github.com/GenSpectrum/LAPIS-SILO/commit/80777f188d58137d067a908a2f37420f497c466a))
+* **benchmarking:** add benchmarking/ directory with benchmark runner code ([be93833](https://github.com/GenSpectrum/LAPIS-SILO/commit/be938338e30d2fc0547e6c15244dd6efef28f080))
+* **benchmarking:** add copy of the evobench-probes library ([b73e414](https://github.com/GenSpectrum/LAPIS-SILO/commit/b73e4144876c3b3a91cf642208c4dfb375993568))
+* **benchmarking:** add probe on query plan execution ([f2d96df](https://github.com/GenSpectrum/LAPIS-SILO/commit/f2d96df44244b7e6a69649166fec825a9b0868e1))
+* **benchmarking:** add probes on all operator evaluate methods ([96b14c6](https://github.com/GenSpectrum/LAPIS-SILO/commit/96b14c6ae87ef57ca74ef97d1cec527173bdd85c))
+* **benchmarking:** add probes on Date sort optimization ([44b61de](https://github.com/GenSpectrum/LAPIS-SILO/commit/44b61de097a6a5fd30ae3fb911fd17ef2315af55))
+* **benchmarking:** re-use the TCP address/port immediately ([8d8940f](https://github.com/GenSpectrum/LAPIS-SILO/commit/8d8940f3077a606e447d938e7c211df73ae4a5b8))
+* enable Backpressure when streaming batches ([3af7d04](https://github.com/GenSpectrum/LAPIS-SILO/commit/3af7d04d46b7febfd1534177122c3d75fc6d9d7d))
+* show the error message when failing with a Poco::Net::NetException ([07c42b2](https://github.com/GenSpectrum/LAPIS-SILO/commit/07c42b24be8995585a8ec0a4c830937aa384dc26))
+* **silo:** add MostRecentCommonAncestor action ([#834](https://github.com/GenSpectrum/LAPIS-SILO/issues/834)) ([157f186](https://github.com/GenSpectrum/LAPIS-SILO/commit/157f1868e608560009fd2c1f0f3f015333e4a081))
+
+
+### Bug Fixes
+
+* **benchmarking:** update location of sorted_input_file.* ([02daf40](https://github.com/GenSpectrum/LAPIS-SILO/commit/02daf405593f6da0fb715441bb8f94e4779b6adb))
+* better error message if the DateBetween column is not of type date ([9b7fa99](https://github.com/GenSpectrum/LAPIS-SILO/commit/9b7fa9961e07cce58694bf5aba4441e405cdb67c))
+* change default streaming batch size from 50000 to 32767 to avoid reslicing batches ([718fd22](https://github.com/GenSpectrum/LAPIS-SILO/commit/718fd22f9ea8abe01c2f29182718b37c121e0e43))
+* improve error messages when ndjson file is invalid ([#850](https://github.com/GenSpectrum/LAPIS-SILO/issues/850)) ([dcff2e9](https://github.com/GenSpectrum/LAPIS-SILO/commit/dcff2e9278c1a12854680a8434e13665b82ff8b6))
+* stop streaming response when network stream is interrupted ([d58d668](https://github.com/GenSpectrum/LAPIS-SILO/commit/d58d668e09e6d08ea6cb8eb4e01713a1053cc7fa))
+* use arrow::acero::SourceNode when constructing a TableScan ([7035f1f](https://github.com/GenSpectrum/LAPIS-SILO/commit/7035f1f60258749e1568b2659d83aadf45d4e08e))
+
 ## [0.7.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.0...v0.7.1) (2025-07-02)
 
 
