@@ -22,25 +22,15 @@ nlohmann::json createDataWithNucleotideSequence(const std::string& nucleotideSeq
    return nlohmann::json::parse(fmt::format(
       R"(
 {{
-   "metadata": {{
-      "primaryKey": "id_{}",
-      "country": "Switzerland"
+
+   "primaryKey": "id_{}",
+   "country": "Switzerland",
+   "segment1": {{
+      "seq": "{}",
+      "insertions": []
    }},
-   "alignedNucleotideSequences": {{
-      "segment1": "{}"
-   }},
-   "unalignedNucleotideSequences": {{
-      "segment1": null
-   }},
-   "nucleotideInsertions": {{
-      "segment1": null
-   }},
-   "alignedAminoAcidSequences": {{
-      "gene1": null
-   }},
-   "aminoAcidInsertions": {{
-      "gene1": null
-   }}
+   "unaligned_segment1": null,
+   "gene1": null
 }}
 )",
       primary_key,

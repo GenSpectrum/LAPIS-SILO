@@ -1,6 +1,9 @@
 #pragma once
 
-#include <nlohmann/json.hpp>
+#include <iterator>
+#include <ranges>
+
+#include <simdjson.h>
 
 #include "evobench/evobench.hpp"
 #include "silo/append/append_exception.h"
@@ -9,76 +12,107 @@ namespace silo::append {
 
 class NdjsonLineReader {
   public:
-   class Iterator {
+   class iterator {
      public:
-      using value_type = nlohmann::json;
-      using reference = const nlohmann::json&;
-      using pointer = const nlohmann::json*;
-      using iterator_category = std::input_iterator_tag;
+      using value_type = simdjson::simdjson_result<simdjson::ondemand::document>;
+      using reference = simdjson::simdjson_result<simdjson::ondemand::document_reference>;
+      using pointer = void;
       using difference_type = std::ptrdiff_t;
+      using iterator_category = std::input_iterator_tag;
 
-      Iterator()
-          : stream_(nullptr),
+      iterator()
+          : stream(nullptr),
             at_end(true) {}
 
-      Iterator(std::istream* stream)
-          : stream_(stream),
-            line_number(0),
+      iterator(NdjsonLineReader* stream)
+          : stream(stream),
             at_end(false) {
          ++(*this);  // prime first json
       }
 
-      reference operator*() const { return json_buffer; }
-      pointer operator->() const { return &json_buffer; }
+      simdjson::simdjson_result<simdjson::ondemand::document_reference> operator*() {
+         return simdjson::simdjson_result<simdjson::ondemand::document_reference>(
+            stream->json_document_buffer, stream->error
+         );
+      }
 
-      Iterator& operator++() {
+      iterator& operator++() {
          EVOBENCH_SCOPE("NdjsonLineReader::Iterator", "operator++");
-         std::string line;
-         while (std::getline(*stream_, line)) {
-            if (line.empty())
-               continue;
-            try {
-               json_buffer = nlohmann::json::parse(line);
-            } catch (const nlohmann::json::parse_error& parse_error) {
-               throw silo::append::AppendException(
-                  "Error while parsing ndjson file: {}", parse_error.what()
-               );
-            }
-            ++line_number;
-            return *this;
+         if (stream->error) {
+            at_end = true;
          }
-         at_end = true;
-         stream_ = nullptr;
+         // if stream->next() ever returns true, it will not be read from again
+         if (stream->next()) {
+            at_end = true;
+         }
          return *this;
       }
 
-      Iterator operator++(int) {
-         Iterator tmp = *this;
+      iterator operator++(int) {
+         iterator tmp = *this;
          ++(*this);
          return tmp;
       }
 
-      bool operator==(const Iterator& other) const {
-         return (at_end && other.at_end) || (stream_ == other.stream_);
-      }
+      bool operator==(const iterator& other) const { return at_end && other.at_end; }
 
-      bool operator!=(const Iterator& other) const { return !(*this == other); }
+      bool operator!=(const iterator& other) const { return !(*this == other); }
 
      private:
-      std::istream* stream_;
-      nlohmann::json json_buffer;
-      size_t line_number = 0;
+      // The stream in which the iterator is operating
+      NdjsonLineReader* stream;
       bool at_end = false;
    };
 
-   explicit NdjsonLineReader(std::istream& stream)
-       : stream_(&stream) {}
+   explicit NdjsonLineReader(std::istream& input_stream)
+       : input_stream(&input_stream),
+         line_buffer(),
+         parser(),
+         json_document_buffer(),
+         error(){};
 
-   [[nodiscard]] Iterator begin() const { return Iterator(stream_); }
-   [[nodiscard]] Iterator end() const { return Iterator(); }
+   [[nodiscard]] iterator begin() { return iterator(this); }
+   [[nodiscard]] iterator end() const { return iterator(); }
 
   private:
-   std::istream* stream_;
+   bool next() {
+      if (error) {
+         return true;
+      }
+      while (true) {
+         // We need this check here, because we only check for 'eof && empty'
+         // after we read to also allow files that do not end with a line-break
+         if (input_stream->eof()) {
+            return true;
+         }
+         std::getline(*input_stream, line_buffer);
+
+         if (input_stream->eof() && line_buffer.empty()) {
+            return true;
+         }
+         if (input_stream->fail()) {
+            error = simdjson::IO_ERROR;
+            return true;
+         }
+
+         error = parser.iterate(line_buffer).get(json_document_buffer);
+         if (error == simdjson::EMPTY) {
+            continue;
+         }
+         return false;
+      }
+   }
+
+   std::istream* input_stream;
+   std::string line_buffer;
+   simdjson::ondemand::parser parser;
+   simdjson::ondemand::document json_document_buffer;
+   simdjson::error_code error;
 };
 
 }  // namespace silo::append
+
+static_assert(std::ranges::range<silo::append::NdjsonLineReader>);
+static_assert(std::same_as<
+              std::ranges::range_value_t<silo::append::NdjsonLineReader>,
+              simdjson::simdjson_result<simdjson::ondemand::document>>);

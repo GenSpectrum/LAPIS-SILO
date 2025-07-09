@@ -15,15 +15,12 @@ const std::string SORTED_DATE_VALUE = "2020-12-24";
 const std::string UNSORTED_DATE_VALUE = "2023-01-20";
 
 const nlohmann::json DATA = {
-   {"metadata",
-    {{"primaryKey", "id"},
-     {"sorted_date", SORTED_DATE_VALUE},
-     {"unsorted_date", UNSORTED_DATE_VALUE}}},
-   {"alignedNucleotideSequences", {{"segment1", nullptr}}},
-   {"unalignedNucleotideSequences", {{"segment1", nullptr}}},
-   {"alignedAminoAcidSequences", {{"gene1", nullptr}}},
-   {"nucleotideInsertions", {{"segment1", {}}}},
-   {"aminoAcidInsertions", {{"gene1", {}}}}
+   {"primaryKey", "id"},
+   {"sorted_date", SORTED_DATE_VALUE},
+   {"unsorted_date", UNSORTED_DATE_VALUE},
+   {"segment1", nullptr},
+   {"unaligned_segment1", nullptr},
+   {"gene1", nullptr}
 };
 
 const auto DATABASE_CONFIG =

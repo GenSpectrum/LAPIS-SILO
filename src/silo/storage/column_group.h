@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <expected>
 #include <filesystem>
 #include <map>
 #include <optional>
@@ -8,8 +9,8 @@
 #include <variant>
 #include <vector>
 
+#include <simdjson.h>
 #include <boost/serialization/access.hpp>
-#include <nlohmann/json.hpp>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/json_value_type.h"
@@ -26,11 +27,6 @@
 #include "silo/storage/column/zstd_compressed_string_column.h"
 
 namespace silo::storage {
-
-// TODO(#741) we prepend the unalignedSequence columns (which are using the type
-// ZstdCompressedStringColumnPartition) with 'unaligned_'. This should be cleaned up with a
-// refactor and breaking change of the current input format.
-static const std::string UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX = "unaligned_";
 
 class ColumnPartitionGroup {
    friend class boost::serialization::access;
@@ -82,9 +78,9 @@ class ColumnPartitionGroup {
    std::map<std::string, column::ZstdCompressedStringColumnPartition>
       zstd_compressed_string_columns;
 
-   void addJsonValueToColumn(
+   std::expected<void, std::string> addJsonValueToColumn(
       const schema::ColumnIdentifier& column_identifier,
-      const nlohmann::json& value
+      simdjson::ondemand::value& value
    );
 
    [[nodiscard]] ColumnPartitionGroup getSubgroup(

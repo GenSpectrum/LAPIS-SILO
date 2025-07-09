@@ -10,7 +10,7 @@ typedef uint32_t Date;
 
 const Date NULL_DATE = 0;
 
-silo::common::Date stringToDate(const std::string& value);
+silo::common::Date stringToDate(std::string_view value);
 
 std::optional<std::string> dateToString(silo::common::Date date);
 

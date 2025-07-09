@@ -24,26 +24,6 @@ using silo::config::PreprocessingConfig;
 using silo::config::ValueType;
 using silo::preprocessing::PreprocessingException;
 
-struct NdjsonInputLine {
-   std::map<std::string, nlohmann::json> metadata;
-   std::map<std::string, nlohmann::json> alignedNucleotideSequences;
-   std::map<std::string, nlohmann::json> unalignedNucleotideSequences;
-   std::map<std::string, nlohmann::json> alignedAminoAcidSequences;
-   std::map<std::string, nlohmann::json> nucleotideInsertions;
-   std::map<std::string, nlohmann::json> aminoAcidInsertions;
-
-   [[nodiscard]] nlohmann::json toJson() const {
-      return nlohmann::json{
-         {"metadata", metadata},
-         {"alignedNucleotideSequences", alignedNucleotideSequences},
-         {"unalignedNucleotideSequences", unalignedNucleotideSequences},
-         {"alignedAminoAcidSequences", alignedAminoAcidSequences},
-         {"nucleotideInsertions", nucleotideInsertions},
-         {"aminoAcidInsertions", aminoAcidInsertions}
-      };
-   }
-};
-
 struct Error {
    std::string error_message;
 };
@@ -57,7 +37,7 @@ struct Success {
 template <typename Assertion>
 struct Scenario {
    std::string test_name;
-   std::function<std::vector<NdjsonInputLine>()> input_data;
+   std::function<std::vector<nlohmann::json>()> input_data;
    std::string database_config;
    std::string reference_genomes;
    std::string lineage_tree;
@@ -98,7 +78,7 @@ silo::config::PreprocessingConfig prepareInputDirAndPreprocessorForScenario(
       throw std::runtime_error("Could not open file for writing ndjson data");
    }
    for (const auto& line : scenario.input_data()) {
-      file << line.toJson().dump() << std::endl;
+      file << line.dump() << std::endl;
    }
    file.close();
 
@@ -116,28 +96,27 @@ const Scenario<Success> NDJSON_FILE_WITH_MISSING_SEGMENTS_AND_GENES = {
    .test_name = "NDJSON_FILE_WITH_MISSING_SEGMENTS_AND_GENES",
    .input_data =
       []() {
-         std::vector<NdjsonInputLine> result;
-         result.push_back(
-            {.metadata = {{"accessionVersion", "1.1"}, {"country", "Switzerland"}},
-             .alignedNucleotideSequences = {{"main", "NNACTGNN"}, {"secondSegment", nullptr}},
-             .unalignedNucleotideSequences =
-                {{"main", "ATTAAAGGTTTATACCTTCCCAGGTAACAAACCAACCAACTTTCGATCT"},
-                 {"secondSegment", nullptr}},
-             .alignedAminoAcidSequences{
-                {"someLongGene", "ACDEFGHIKLMNPQRSTVWYBZX-*"}, {"someShortGene", "MADS"}
-             },
-             .nucleotideInsertions = {{"main", {"123:ACTG"}}, {"secondSegment", {}}},
-             .aminoAcidInsertions =
-                {{"someLongGene", {"123:RNRNRN"}}, {"someShortGene", {"123:RN"}}}}
-         );
-         result.push_back(
-            {.metadata = {{"accessionVersion", "1.3"}, {"country", "Germany"}},
-             .alignedNucleotideSequences = {{"main", nullptr}, {"secondSegment", nullptr}},
-             .unalignedNucleotideSequences = {{"main", nullptr}, {"secondSegment", nullptr}},
-             .alignedAminoAcidSequences{{"someLongGene", nullptr}, {"someShortGene", nullptr}},
-             .nucleotideInsertions = {{"main", {}}, {"secondSegment", {}}},
-             .aminoAcidInsertions = {{"someLongGene", {}}, {"someShortGene", {}}}}
-         );
+         std::vector<nlohmann::json> result;
+         result.push_back(nlohmann::json::parse(R"({
+"accessionVersion": "1.1",
+"country": "Switzerland",
+"main": {"seq": "NNACTGNN", "insertions": ["123:ACTG"]},
+"secondSegment": null,
+"someLongGene": {"seq": "ACDEFGHIKLMNPQRSTVWYBZX-*", "insertions": ["123:RNRNRN"]},
+"someShortGene": {"seq": "MADS", "insertions": ["123:RN"]},
+"unaligned_main": "ATTAAAGGTTTATACCTTCCCAGGTAACAAACCAACCAACTTTCGATCT",
+"unaligned_secondSegment": null
+})"));
+         result.push_back(nlohmann::json::parse(R"({
+"accessionVersion": "1.3",
+"country": "Germany",
+"main": null,
+"secondSegment": null,
+"someLongGene": null,
+"someShortGene": null,
+"unaligned_main": null,
+"unaligned_secondSegment": null
+})"));
          return result;
       },
    .database_config =
@@ -209,23 +188,21 @@ const Scenario<Success> NDJSON_WITH_SQL_KEYWORD_AS_FIELD = {
    .test_name = "NDJSON_WITH_SQL_KEYWORD_AS_FIELD",
    .input_data =
       []() {
-         std::vector<NdjsonInputLine> result;
-         result.push_back(
-            {.metadata = {{"primaryKey", "1.1"}, {"group", "dummyValue"}},
-             .alignedNucleotideSequences = {{"main", "A"}},
-             .unalignedNucleotideSequences = {{"main", "A"}},
-             .alignedAminoAcidSequences{{"mainGene", "A*"}},
-             .nucleotideInsertions = {{"main", {}}},
-             .aminoAcidInsertions = {{"mainGene", {}}}}
-         );
-         result.push_back(
-            {.metadata = {{"primaryKey", "1.2"}, {"group", nullptr}},
-             .alignedNucleotideSequences = {{"main", nullptr}},
-             .unalignedNucleotideSequences = {{"main", nullptr}},
-             .alignedAminoAcidSequences{{"mainGene", nullptr}},
-             .nucleotideInsertions = {{"main", {}}},
-             .aminoAcidInsertions = {{"mainGene", {}}}}
-         );
+         std::vector<nlohmann::json> result;
+         result.push_back(nlohmann::json::parse(R"({
+"primaryKey": "1.1",
+"group": "dummyValue",
+"main": {"seq": "A", "insertions": []},
+"mainGene": {"seq": "A*", "insertions": []},
+"unaligned_main": "A"
+})"));
+         result.push_back(nlohmann::json::parse(R"({
+"primaryKey": "1.2",
+"group": null,
+"main": null,
+"mainGene": null,
+"unaligned_main": null
+})"));
          return result;
       },
    .database_config =
@@ -280,23 +257,27 @@ const Scenario<Success> NDJSON_WITH_NUMERIC_NAMES = {
    .test_name = "NDJSON_WITH_NUMERIC_NAMES",
    .input_data =
       []() {
-         std::vector<NdjsonInputLine> result;
-         result.push_back(
-            {.metadata = {{"2", "google.com"}, {"accessionVersion", "1.1"}},
-             .alignedNucleotideSequences = {{"main", "A"}, {"3", "AA"}},
-             .unalignedNucleotideSequences = {{"main", "A"}, {"3", "AA"}},
-             .alignedAminoAcidSequences{{"someGene", "AA*"}, {"4", "A*"}},
-             .nucleotideInsertions = {{"main", {}}, {"3", {}}},
-             .aminoAcidInsertions = {{"someGene", {}}, {"4", {}}}}
-         );
-         result.push_back(
-            {.metadata = {{"2", nullptr}, {"accessionVersion", "1.3"}},
-             .alignedNucleotideSequences = {{"main", nullptr}, {"3", nullptr}},
-             .unalignedNucleotideSequences = {{"main", nullptr}, {"3", nullptr}},
-             .alignedAminoAcidSequences{{"someGene", nullptr}, {"4", nullptr}},
-             .nucleotideInsertions = {{"main", {}}, {"3", {}}},
-             .aminoAcidInsertions = {{"someGene", {}}, {"4", {}}}}
-         );
+         std::vector<nlohmann::json> result;
+         result.push_back(nlohmann::json::parse(R"({
+"2": "google.com",
+"accessionVersion": "1.1",
+"main": {"seq": "A", "insertions": []},
+"3": {"seq": "AA", "insertions": []},
+"someGene": {"seq": "AA*", "insertions": []},
+"4": {"seq": "AA*", "insertions": []},
+"unaligned_main": "A",
+"unaligned_3": "AA"
+})"));
+         result.push_back(nlohmann::json::parse(R"({
+"2": null,
+"accessionVersion": "1.3",
+"main": null,
+"3": null,
+"someGene": null,
+"4": null,
+"unaligned_main": null,
+"unaligned_3": null
+})"));
          return result;
       },
    .database_config =
@@ -358,7 +339,7 @@ schema:
 
 const Scenario<Success> EMPTY_INPUT_NDJSON = {
    .test_name = "EMPTY_INPUT_NDJSON",
-   .input_data = []() { return std::vector<NdjsonInputLine>{}; },
+   .input_data = []() { return std::vector<nlohmann::json>{}; },
    .database_config =
       R"(
 schema:
@@ -414,7 +395,7 @@ schema:
 
 const Scenario<Success> EMPTY_INPUT_NDJSON_UNPARTITIONED = {
    .test_name = "EMPTY_INPUT_NDJSON_UNPARTITIONED",
-   .input_data = []() { return std::vector<NdjsonInputLine>{}; },
+   .input_data = []() { return std::vector<nlohmann::json>{}; },
    .database_config =
       R"(
 schema:
@@ -470,14 +451,21 @@ const Scenario<Success> NO_GENES = {
    .test_name = "NO_GENES",
    .input_data =
       []() {
-         std::vector<NdjsonInputLine> result;
+         std::vector<nlohmann::json> result;
          for (size_t i = 0; i < 100; i++) {
-            result.push_back(
-               {.metadata = {{"accessionVersion", fmt::format("{}.1", i)}},
-                .alignedNucleotideSequences = {{"main", "ACGT"}},
-                .unalignedNucleotideSequences = {{"main", "ACGT"}},
-                .nucleotideInsertions = {{"main", {}}}}
-            );
+            result.push_back(nlohmann::json::parse(fmt::format(
+               R"({{
+"2": null,
+"accessionVersion": "{}.1",
+"main": null,
+"3": null,
+"someGene": null,
+"4": null,
+"unaligned_main": null,
+"unaligned_3": null
+}})",
+               i
+            )));
          }
          return result;
       },
@@ -521,13 +509,15 @@ const Scenario<Success> NO_NUCLEOTIDE_SEQUENCES = {
    .test_name = "NO_NUCLEOTIDE_SEQUENCES",
    .input_data =
       []() {
-         std::vector<NdjsonInputLine> result;
+         std::vector<nlohmann::json> result;
          for (size_t i = 0; i < 100; i++) {
-            result.push_back(
-               {.metadata = {{"accessionVersion", fmt::format("{}.1", i)}},
-                .alignedAminoAcidSequences = {{"someGene", "AAAA"}},
-                .aminoAcidInsertions = {{"someGene", {}}}}
-            );
+            result.push_back(nlohmann::json::parse(fmt::format(
+               R"({{
+"accessionVersion": "{}.1",
+"someGene": {{"seq": "AAAA", "insertions": []}}
+}})",
+               i
+            )));
          }
          return result;
       },
@@ -571,9 +561,14 @@ const Scenario<Success> NO_SEQUENCES = {
    .test_name = "NO_SEQUENCES",
    .input_data =
       []() {
-         std::vector<NdjsonInputLine> result;
+         std::vector<nlohmann::json> result;
          for (size_t i = 0; i < 100; i++) {
-            result.push_back({.metadata = {{"accessionVersion", fmt::format("{}.1", i)}}});
+            result.push_back(nlohmann::json::parse(fmt::format(
+               R"({{
+"accessionVersion": "{}.1"
+}})",
+               i
+            )));
          }
          return result;
       },
@@ -613,41 +608,45 @@ const Scenario<Success> DIVERSE_SEQUENCE_NAMES_NDJSON = {
    .test_name = "DIVERSE_SEQUENCE_NAMES_NDJSON",
    .input_data =
       []() {
-         std::vector<NdjsonInputLine> result;
-         for (size_t i = 0; i < 2; i++) {
-            result.push_back(
-               {.metadata = {{"accessionVersion", fmt::format("{}.1", i)}},
-                .alignedNucleotideSequences = {{"\"", "ACGTACGT"}, {".", "ACGT"}},
-                .unalignedNucleotideSequences = {{"\"", "ACGTACGT"}, {".", "ACGT"}},
-                .alignedAminoAcidSequences =
-                   {{"---", "MYSF"},
-                    {"\"\\\"", "MADS"},
-                    {";|\\$!", "MSDN"},
-                    {"S-;", "MESL"},
-                    {"≤", "RVC*"},
-                    {"ł", "MDL*"},
-                    {"select", "MFH*"},
-                    {"S_-%", "MKI*"},
-                    {"S:;", "MIELSLIDFYLCFLAFLLFLVLIMLIIFWFSLELQDHNETCHA*"},
-                    {"#", "MKF*"},
-                    {"{{}}", "MDP*"},
-                    {"•", "MFV*"}},
-                .nucleotideInsertions = {{"\"", {}}, {".", {}}},
-                .aminoAcidInsertions =
-                   {{"---", {}},
-                    {"\"\\\"", {}},
-                    {";|\\$!", {}},
-                    {"S-;", {}},
-                    {"≤", {}},
-                    {"ł", {}},
-                    {"select", {}},
-                    {"S_-%", {}},
-                    {"S:;", {}},
-                    {"#", {}},
-                    {"{{}}", {}},
-                    {"•", {}}}}
-            );
-         }
+         std::vector<nlohmann::json> result;
+         result.push_back(nlohmann::json::parse(R"({
+"accessionVersion":"1.1",
+"\"":{"seq":"ACGTACGT","insertions":[]},
+".":{"seq":"ACGT","insertions":[]},
+"---":{"seq":"MYSF","insertions":[]},
+"\"\\\"":{"seq":"MADS","insertions":[]},
+";|\\$!":{"seq":"MSDN","insertions":[]},
+"S-;":{"seq":"MESL","insertions":[]},
+"≤":{"seq":"RVC*","insertions":[]},
+"ł":{"seq":"MDL*","insertions":[]},
+"select":{"seq":"MFH*","insertions":[]},
+"S_-%":{"seq":"MKI*","insertions":[]},
+"S:;":{"seq":"MIELSLIDFYLCFLAFLLFLVLIMLIIFWFSLELQDHNETCHA*","insertions":[]},
+"#":{"seq":"MKF*","insertions":[]},
+"{{}}":{"seq":"MDP*","insertions":[]},
+"•":{"seq":"MFV*","insertions":[]},
+"unaligned_\"":"ACGTACGT",
+"unaligned_.":"ACGT"
+})"));
+         result.push_back(nlohmann::json::parse(R"({
+"accessionVersion":"1.2",
+"\"":{"seq":"ACGTACGT","insertions":[]},
+".":{"seq":"ACGT","insertions":[]},
+"---":{"seq":"MYSF","insertions":[]},
+"\"\\\"":{"seq":"MADS","insertions":[]},
+";|\\$!":{"seq":"MSDN","insertions":[]},
+"S-;":{"seq":"MESL","insertions":[]},
+"≤":{"seq":"RVC*","insertions":[]},
+"ł":{"seq":"MDL*","insertions":[]},
+"select":{"seq":"MFH*","insertions":[]},
+"S_-%":{"seq":"MKI*","insertions":[]},
+"S:;":{"seq":"MIELSLIDFYLCFLAFLLFLVLIMLIIFWFSLELQDHNETCHA*","insertions":[]},
+"#":{"seq":"MKF*","insertions":[]},
+"{{}}":{"seq":"MDP*","insertions":[]},
+"•":{"seq":"MFV*","insertions":[]},
+"unaligned_\"":"ACGTACGT",
+"unaligned_.":"ACGT"
+})"));
          return result;
       },
    .database_config =
@@ -743,10 +742,16 @@ const Scenario<Success> PREVENT_LATE_AUTO_CASTING = {
    .test_name = "PREVENT_LATE_AUTO_CASTING",
    .input_data =
       []() {
-         std::vector<NdjsonInputLine> result;
-         result.push_back({.metadata = {{"accessionVersion", "0"}}});
-         result.push_back({.metadata = {{"accessionVersion", "0.12"}}});
-         result.push_back({.metadata = {{"accessionVersion", "text_without_quotes"}}});
+         std::vector<nlohmann::json> result;
+         result.push_back(nlohmann::json::parse(R"({
+"accessionVersion": "0"
+})"));
+         result.push_back(nlohmann::json::parse(R"({
+"accessionVersion": "0.12"
+})"));
+         result.push_back(nlohmann::json::parse(R"({
+"accessionVersion": "text_without_quotes"
+})"));
          return result;
       },
    .database_config =
@@ -834,11 +839,11 @@ const Scenario<Error> DUPLICATE_PRIMARY_KEY{
    .test_name = "duplicate_primary_key",
    .input_data =
       []() {
-         std::vector<NdjsonInputLine> result;
-         result.emplace_back(NdjsonInputLine{.metadata = {{"primaryKey", "id_1"}}});
-         result.emplace_back(NdjsonInputLine{.metadata = {{"primaryKey", "id_1"}}});
-         result.emplace_back(NdjsonInputLine{.metadata = {{"primaryKey", "id_2"}}});
-         result.emplace_back(NdjsonInputLine{.metadata = {{"primaryKey", "id_2"}}});
+         std::vector<nlohmann::json> result;
+         result.emplace_back(nlohmann::json::parse(R"({"primaryKey": "id_1"})"));
+         result.emplace_back(nlohmann::json::parse(R"({"primaryKey": "id_1"})"));
+         result.emplace_back(nlohmann::json::parse(R"({"primaryKey": "id_2"})"));
+         result.emplace_back(nlohmann::json::parse(R"({"primaryKey": "id_2"})"));
          return result;
       },
    .database_config =
@@ -862,9 +867,11 @@ const Scenario<Error> MISSING_NUCLEOTIDE_SEQUENCE_INPUT = {
    .test_name = "MISSING_NUCLEOTIDE_SEQUENCE_INPUT",
    .input_data =
       []() {
-         std::vector<NdjsonInputLine> result;
+         std::vector<nlohmann::json> result;
          for (size_t i = 0; i < 100; i++) {
-            result.push_back({.metadata = {{"accessionVersion", fmt::format("{}.1", i)}}});
+            result.emplace_back(
+               nlohmann::json::parse(fmt::format(R"({{"accessionVersion": "{}.1"}})", i))
+            );
          }
          return result;
       },
@@ -890,8 +897,7 @@ schema:
 )",
    .assertion{
       .error_message =
-         R"(preprocessing - exception when appending data: The following line does not conform to SILO's json specification when adding to database column someSequence: '{"alignedAminoAcidSequences":{},"alignedNucleotideSequences":{},"aminoAcidInsertions":{},"metadata":{"accessionVersion":"0.1"},"nucleotideInsertions":{},"unalignedNucleotideSequences":{}}'
-We got a json out_of_range error, indicating that an expected field was not present: [json.exception.out_of_range.403] key 'someSequence' not found)"
+         R"(preprocessing - exception when appending data: the column 'someSequence' is not contained in the following ndjson line: {"accessionVersion":"0.1"})"
    }
 };
 
@@ -899,7 +905,9 @@ const Scenario<Error> TYPE_ERROR = {
    .test_name = "TYPE_ERROR",
    .input_data =
       []() {
-         std::vector<NdjsonInputLine> result{{.metadata = {{"accessionVersion", 0}}}};
+         std::vector<nlohmann::json> result{nlohmann::json::parse(R"({
+"accessionVersion": 0
+})")};
          return result;
       },
    .database_config =
@@ -919,7 +927,7 @@ schema:
 )",
    .assertion{
       .error_message =
-         R"(We got a json type_error: [json.exception.type_error.302] type must be string, but is number)"
+         R"(preprocessing - exception when appending data: When trying to get string value of column 'accessionVersion' got error: INCORRECT_TYPE: The JSON element does not have the requested type. in the following ndjson line: {"accessionVersion":0})"
    }
 };
 
@@ -927,12 +935,11 @@ const Scenario<Error> SEQUENCE_ILLEGAL_SYMBOL = {
    .test_name = "SEQUENCE_ILLEGAL_SYMBOL",
    .input_data =
       []() {
-         std::vector<NdjsonInputLine> result{
-            {.metadata = {{"accessionVersion", "1"}},
-             .alignedNucleotideSequences = {{"main", "ACET"}},
-             .unalignedNucleotideSequences = {{"main", "ACGT"}},
-             .nucleotideInsertions = {{"main", {}}}}
-         };
+         std::vector<nlohmann::json> result{nlohmann::json::parse(R"({
+"accessionVersion": "1.3",
+"main": {"seq": "ACET", "insertions": []},
+"unaligned_main": "ACGT"
+})")};
          return result;
       },
    .database_config =
@@ -964,28 +971,20 @@ const Scenario<Error> NDJSON_FILE_WITH_SOME_MISSING_KEYS = {
    .test_name = "NDJSON_FILE_WITH_SOME_MISSING_KEYS",
    .input_data =
       []() {
-         std::vector<NdjsonInputLine> result;
-         result.push_back(
-            {.metadata = {{"accessionVersion", "1.1"}, {"country", "Switzerland"}},
-             .alignedNucleotideSequences = {{"main", "NNACTGNN"}, {"secondSegment", nullptr}},
-             .unalignedNucleotideSequences =
-                {{"main", "ATTAAAGGTTTATACCTTCCCAGGTAACAAACCAACCAACTTTCGATCT"},
-                 {"secondSegment", nullptr}},
-             .alignedAminoAcidSequences{
-                {"someLongGene", "ACDEFGHIKLMNPQRSTVWYBZX-*"}, {"someShortGene", "MADS"}
-             },
-             .nucleotideInsertions = {{"main", {"123:ACTG"}}, {"secondSegment", {}}},
-             .aminoAcidInsertions =
-                {{"someLongGene", {"123:RNRNRN"}}, {"someShortGene", {"123:RN"}}}}
-         );
-         result.push_back(
-            {.metadata = {{"accessionVersion", "1.3"}},
-             .alignedNucleotideSequences = {{"main", nullptr}, {"secondSegment", nullptr}},
-             .unalignedNucleotideSequences = {{"main", nullptr}, {"secondSegment", nullptr}},
-             .alignedAminoAcidSequences{{"someLongGene", nullptr}, {"someShortGene", nullptr}},
-             .nucleotideInsertions = {{"main", {}}, {"secondSegment", {}}},
-             .aminoAcidInsertions = {{"someLongGene", {}}, {"someShortGene", {}}}}
-         );
+         std::vector<nlohmann::json> result;
+         result.push_back(nlohmann::json::parse(R"({
+"accessionVersion": "1.1",
+"country": "Switzerland",
+"main": {"seq": "ACET", "insertions": ["123:RNRNRN"]},
+"secondSegment": {"seq": "ACET", "insertions": ["123:RNRNRN"]},
+"someLongGene": {"seq": "ACDEFGHIKLMNPQRSTVWYBZX", "insertions": []},
+"someShortGene": {"seq": "MADS", "insertions": ["123:RN"]},
+"unaligned_main": "ACGT",
+"unaligned_secondSegment": null
+})"));
+         result.push_back(nlohmann::json::parse(R"({
+"accessionVersion": "1.3"
+})"));
          return result;
       },
    .database_config =
@@ -1024,8 +1023,7 @@ schema:
 })",
    .assertion{
       .error_message =
-         R"(preprocessing - exception when appending data: The following line does not conform to SILO's json specification when adding to database column country: '{"alignedAminoAcidSequences":{"someLongGene":null,"someShortGene":null},"alignedNucleotideSequences":{"main":null,"secondSegment":null},"aminoAcidInsertions":{"someLongGene":null,"someShortGene":null},"metadata":{"accessionVersion":"1.3"},"nucleotideInsertions":{"main":null,"secondSegment":null},"unalignedNucleotideSequences":{"main":null,"secondSegment":null}}'
-We got a json out_of_range error, indicating that an expected field was not present: [json.exception.out_of_range.403] key 'country' not found)"
+         R"(preprocessing - exception when appending data: the column 'country' is not contained in the following ndjson line: {"accessionVersion":"1.3"})"
    }
 };
 

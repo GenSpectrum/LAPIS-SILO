@@ -58,7 +58,8 @@ std::shared_ptr<silo::Database> buildTestDatabase() {
       )}
    );
    std::ifstream input(input_directory / "input.ndjson");
-   silo::append::appendDataToDatabase(*database, silo::append::NdjsonLineReader{input});
+   auto input_data_stream = silo::append::NdjsonLineReader{input};
+   silo::append::appendDataToDatabase(*database, input_data_stream);
    return database;
 }
 }  // namespace
@@ -105,16 +106,15 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfoAfterAppendingNewSequences) {
    EXPECT_GT(database_info.vertical_bitmaps_size, 0);
    EXPECT_EQ(database_info.horizontal_bitmaps_size, 123);
 
-   std::vector<nlohmann::json> more_data{
-      nlohmann::json::parse(
-         R"({"metadata":{"primaryKey":"key6","pango_lineage":"XBB","date":"2021-03-19","region":"Europe","country":"Switzerland","division":"Solothurn","unsorted_date":"2021-02-10","age":54,"qc_value":0.94,"test_boolean_column":true},"aminoAcidInsertions":{"E":["214:EPE"],"M":[]},"nucleotideInsertions":{"main":[],"testSecondSequence":[]},"alignedAminoAcidSequences":{"E":"MYSF*","M":"XXXX*"},"alignedNucleotideSequences":{"main":"ACGTACGT","testSecondSequence":"ACGT"},"unalignedNucleotideSequences":{"main":"ACGTACGT","testSecondSequence":"ACGT"}})"
-      ),
-      nlohmann::json::parse(
-         R"({"metadata":{"primaryKey":"key7","pango_lineage":"B","date":"2021-03-21","region":"Europe","country":"Switzerland","division":"Basel","unsorted_date":null,"age":null,"qc_value":0.94,"test_boolean_column":true},"aminoAcidInsertions":{"E":["214:EPE"],"M":[]},"nucleotideInsertions":{"main":[],"testSecondSequence":[]},"alignedAminoAcidSequences":{"E":"MYSF*","M":"XXXX*"},"alignedNucleotideSequences":{"main":"AAAAAAAA","testSecondSequence":"ACAT"},"unalignedNucleotideSequences":{"main":"AAAAAAAA","testSecondSequence":"ACAT"}})"
-      )
-   };
+   std::string more_data =
+      R"(
+{"primaryKey": "key6", "pango_lineage": "XBB", "date": "2021-03-19", "region": "Europe", "country": "Switzerland", "division": "Solothurn", "unsorted_date": "2021-02-10", "age": 54, "qc_value": 0.94, "test_boolean_column": true, "float_value": null, "main": {"seq": "ACGTACGT", "insertions": []}, "testSecondSequence": {"seq": "ACGT", "insertions": []}, "unaligned_main": "ACGTACGT", "unaligned_testSecondSequence": "ACGT", "E": {"seq": "MYSF*", "insertions": ["214:EPE"]}, "M": {"seq": "XXXX*", "insertions": []}}
+{"primaryKey": "key7", "pango_lineage": "B", "date": "2021-03-21", "region": "Europe", "country": "Switzerland", "division": "Basel", "unsorted_date": null, "age": null, "qc_value": 0.94, "test_boolean_column": true, "float_value": null, "main": {"seq": "AAAAAAAA", "insertions": []}, "testSecondSequence": {"seq": "ACAT", "insertions": []}, "unaligned_main": "AAAAAAAA", "unaligned_testSecondSequence": "ACAT", "E": {"seq": "MYSF*", "insertions": ["214:EPE"]}, "M": {"seq": "XXXX*", "insertions": []}}
+)";
+   std::stringstream more_data_stream{more_data};
+   silo::append::NdjsonLineReader reader(more_data_stream);
 
-   silo::append::appendDataToDatabase(database, more_data);
+   silo::append::appendDataToDatabase(database, reader);
 
    const auto database_info_after_append = database.getDatabaseInfo();
    auto data_version_after_append = database.getDataVersionTimestamp();
