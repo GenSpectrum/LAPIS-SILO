@@ -47,7 +47,7 @@ class ZstdCompressedStringColumnPartition {
 
    void reserve(size_t row_count);
    void insertNull();
-   void insert(const std::string& value);
+   void insert(std::string_view value);
 
    std::optional<std::string> getDecompressed(size_t row_id) const;
 

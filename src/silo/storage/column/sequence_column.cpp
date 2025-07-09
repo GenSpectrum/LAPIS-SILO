@@ -40,13 +40,16 @@ template <typename SymbolType>
 ReadSequence& SequenceColumnPartition<SymbolType>::appendNewSequenceRead() {
    if (lazy_buffer.size() > BUFFER_SIZE) {
       flushBuffer();
+      // TODO(#878) do not clear buffer but reset an offset instead
       lazy_buffer.clear();
    }
 
+   // TODO(#878) use [offset] instead of emplace_back()
    lazy_buffer.emplace_back();
 
    sequence_count += 1;
 
+   // TODO(#878) use .at(offset) instead of back()
    return lazy_buffer.back();
 }
 
