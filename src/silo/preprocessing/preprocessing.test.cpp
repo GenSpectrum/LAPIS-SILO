@@ -33,14 +33,32 @@ struct NdjsonInputLine {
    std::map<std::string, nlohmann::json> aminoAcidInsertions;
 
    [[nodiscard]] nlohmann::json toJson() const {
-      return nlohmann::json{
-         {"metadata", metadata},
-         {"alignedNucleotideSequences", alignedNucleotideSequences},
-         {"unalignedNucleotideSequences", unalignedNucleotideSequences},
-         {"alignedAminoAcidSequences", alignedAminoAcidSequences},
-         {"nucleotideInsertions", nucleotideInsertions},
-         {"aminoAcidInsertions", aminoAcidInsertions}
-      };
+      std::map<std::string, nlohmann::json> joined;
+      for (auto [key, value] : metadata) {
+         joined[key] = value;
+      }
+      for (auto [key, value] : unalignedNucleotideSequences) {
+         joined["unaligned_" + key] = value;
+      }
+      for (auto [key, value] : alignedNucleotideSequences) {
+         if (value.is_null()) {
+            joined[key] = nullptr;
+         } else {
+            joined[key] = nlohmann::json::object();
+            joined[key]["seq"] = value.get<std::string>();
+            joined[key]["insertions"] = nucleotideInsertions.at(key);
+         }
+      }
+      for (auto [key, value] : alignedAminoAcidSequences) {
+         if (value.is_null()) {
+            joined[key] = nullptr;
+         } else {
+            joined[key] = nlohmann::json::object();
+            joined[key]["seq"] = value.get<std::string>();
+            joined[key]["insertions"] = aminoAcidInsertions.at(key);
+         }
+      }
+      return joined;
    }
 };
 
@@ -215,16 +233,16 @@ const Scenario<Success> NDJSON_WITH_SQL_KEYWORD_AS_FIELD = {
              .alignedNucleotideSequences = {{"main", "A"}},
              .unalignedNucleotideSequences = {{"main", "A"}},
              .alignedAminoAcidSequences{{"mainGene", "A*"}},
-             .nucleotideInsertions = {{"main", {}}},
-             .aminoAcidInsertions = {{"mainGene", {}}}}
+             .nucleotideInsertions = {{"main", nlohmann::json::array()}},
+             .aminoAcidInsertions = {{"mainGene", nlohmann::json::array()}}}
          );
          result.push_back(
             {.metadata = {{"primaryKey", "1.2"}, {"group", nullptr}},
              .alignedNucleotideSequences = {{"main", nullptr}},
              .unalignedNucleotideSequences = {{"main", nullptr}},
              .alignedAminoAcidSequences{{"mainGene", nullptr}},
-             .nucleotideInsertions = {{"main", {}}},
-             .aminoAcidInsertions = {{"mainGene", {}}}}
+             .nucleotideInsertions = {{"main", nlohmann::json::array()}},
+             .aminoAcidInsertions = {{"mainGene", nlohmann::json::array()}}}
          );
          return result;
       },
@@ -286,16 +304,20 @@ const Scenario<Success> NDJSON_WITH_NUMERIC_NAMES = {
              .alignedNucleotideSequences = {{"main", "A"}, {"3", "AA"}},
              .unalignedNucleotideSequences = {{"main", "A"}, {"3", "AA"}},
              .alignedAminoAcidSequences{{"someGene", "AA*"}, {"4", "A*"}},
-             .nucleotideInsertions = {{"main", {}}, {"3", {}}},
-             .aminoAcidInsertions = {{"someGene", {}}, {"4", {}}}}
+             .nucleotideInsertions =
+                {{"main", nlohmann::json::array()}, {"3", nlohmann::json::array()}},
+             .aminoAcidInsertions =
+                {{"someGene", nlohmann::json::array()}, {"4", nlohmann::json::array()}}}
          );
          result.push_back(
             {.metadata = {{"2", nullptr}, {"accessionVersion", "1.3"}},
              .alignedNucleotideSequences = {{"main", nullptr}, {"3", nullptr}},
              .unalignedNucleotideSequences = {{"main", nullptr}, {"3", nullptr}},
              .alignedAminoAcidSequences{{"someGene", nullptr}, {"4", nullptr}},
-             .nucleotideInsertions = {{"main", {}}, {"3", {}}},
-             .aminoAcidInsertions = {{"someGene", {}}, {"4", {}}}}
+             .nucleotideInsertions =
+                {{"main", nlohmann::json::array()}, {"3", nlohmann::json::array()}},
+             .aminoAcidInsertions =
+                {{"someGene", nlohmann::json::array()}, {"4", nlohmann::json::array()}}}
          );
          return result;
       },
@@ -476,7 +498,7 @@ const Scenario<Success> NO_GENES = {
                {.metadata = {{"accessionVersion", fmt::format("{}.1", i)}},
                 .alignedNucleotideSequences = {{"main", "ACGT"}},
                 .unalignedNucleotideSequences = {{"main", "ACGT"}},
-                .nucleotideInsertions = {{"main", {}}}}
+                .nucleotideInsertions = {{"main", nlohmann::json::array()}}}
             );
          }
          return result;
@@ -526,7 +548,7 @@ const Scenario<Success> NO_NUCLEOTIDE_SEQUENCES = {
             result.push_back(
                {.metadata = {{"accessionVersion", fmt::format("{}.1", i)}},
                 .alignedAminoAcidSequences = {{"someGene", "AAAA"}},
-                .aminoAcidInsertions = {{"someGene", {}}}}
+                .aminoAcidInsertions = {{"someGene", nlohmann::json::array()}}}
             );
          }
          return result;
@@ -632,20 +654,21 @@ const Scenario<Success> DIVERSE_SEQUENCE_NAMES_NDJSON = {
                     {"#", "MKF*"},
                     {"{{}}", "MDP*"},
                     {"•", "MFV*"}},
-                .nucleotideInsertions = {{"\"", {}}, {".", {}}},
+                .nucleotideInsertions =
+                   {{"\"", nlohmann::json::array()}, {".", nlohmann::json::array()}},
                 .aminoAcidInsertions =
-                   {{"---", {}},
-                    {"\"\\\"", {}},
-                    {";|\\$!", {}},
-                    {"S-;", {}},
-                    {"≤", {}},
-                    {"ł", {}},
-                    {"select", {}},
-                    {"S_-%", {}},
-                    {"S:;", {}},
-                    {"#", {}},
-                    {"{{}}", {}},
-                    {"•", {}}}}
+                   {{"---", nlohmann::json::array()},
+                    {"\"\\\"", nlohmann::json::array()},
+                    {";|\\$!", nlohmann::json::array()},
+                    {"S-;", nlohmann::json::array()},
+                    {"≤", nlohmann::json::array()},
+                    {"ł", nlohmann::json::array()},
+                    {"select", nlohmann::json::array()},
+                    {"S_-%", nlohmann::json::array()},
+                    {"S:;", nlohmann::json::array()},
+                    {"#", nlohmann::json::array()},
+                    {"{{}}", nlohmann::json::array()},
+                    {"•", nlohmann::json::array()}}}
             );
          }
          return result;
@@ -890,8 +913,7 @@ schema:
 )",
    .assertion{
       .error_message =
-         R"(preprocessing - exception when appending data: The following line does not conform to SILO's json specification when adding to database column someSequence: '{"alignedAminoAcidSequences":{},"alignedNucleotideSequences":{},"aminoAcidInsertions":{},"metadata":{"accessionVersion":"0.1"},"nucleotideInsertions":{},"unalignedNucleotideSequences":{}}'
-We got a json out_of_range error, indicating that an expected field was not present: [json.exception.out_of_range.403] key 'someSequence' not found)"
+         R"(preprocessing - exception when appending data: the column 'someSequence' is not contained in the following ndjson line: {"accessionVersion":"0.1"})"
    }
 };
 
@@ -919,7 +941,7 @@ schema:
 )",
    .assertion{
       .error_message =
-         R"(We got a json type_error: [json.exception.type_error.302] type must be string, but is number)"
+         R"(preprocessing - exception when appending data: When trying to get string value of column 'accessionVersion' got error: INCORRECT_TYPE: The JSON element does not have the requested type. in the following ndjson line: {"accessionVersion":0})"
    }
 };
 
@@ -956,7 +978,7 @@ schema:
 })",
    .assertion{
       .error_message =
-         R"(Illegal character 'E' at position 2 contained in sequence with index 0 in the current buffer.)"
+         R"(preprocessing - exception when appending data: When getting field 'insertions' in column field 'main' got error: INCORRECT_TYPE: The JSON element does not have the requested type. in the following ndjson line: {"accessionVersion":"1","main":{"insertions":null,"seq":"ACET"},"unaligned_main":"ACGT"})"
    }
 };
 
@@ -1024,8 +1046,7 @@ schema:
 })",
    .assertion{
       .error_message =
-         R"(preprocessing - exception when appending data: The following line does not conform to SILO's json specification when adding to database column country: '{"alignedAminoAcidSequences":{"someLongGene":null,"someShortGene":null},"alignedNucleotideSequences":{"main":null,"secondSegment":null},"aminoAcidInsertions":{"someLongGene":null,"someShortGene":null},"metadata":{"accessionVersion":"1.3"},"nucleotideInsertions":{"main":null,"secondSegment":null},"unalignedNucleotideSequences":{"main":null,"secondSegment":null}}'
-We got a json out_of_range error, indicating that an expected field was not present: [json.exception.out_of_range.403] key 'country' not found)"
+         R"(preprocessing - exception when appending data: the column 'country' is not contained in the following ndjson line: {"accessionVersion":"1.3","main":null,"secondSegment":null,"someLongGene":null,"someShortGene":null,"unaligned_main":null,"unaligned_secondSegment":null})"
    }
 };
 

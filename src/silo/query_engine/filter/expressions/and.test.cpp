@@ -22,27 +22,19 @@ nlohmann::json createData(const std::string& country, const std::string& date) {
    return nlohmann::json::parse(fmt::format(
       R"(
 {{
-   "metadata": {{
-      "primaryKey": "id_{}",
-      "country": "{}",
-      "age": {},
-      "coverage": {},
-      "date": "{}"
+   "primaryKey": "id_{}",
+   "country": "{}",
+   "age": {},
+   "coverage": {},
+   "date": "{}",
+   "segment1": {{
+      "seq": "ACGT",
+      "insertions": ["2:A"]
    }},
-   "alignedNucleotideSequences": {{
-      "segment1": "ACGT"
-   }},
-   "unalignedNucleotideSequences": {{
-      "segment1": "ACGT"
-   }},
-   "nucleotideInsertions": {{
-      "segment1": ["2:A"]
-   }},
-   "alignedAminoAcidSequences": {{
-      "gene1": "V"
-   }},
-   "aminoAcidInsertions": {{
-      "gene1": []
+   "unaligned_segment1": "ACGT",
+   "gene1": {{
+      "seq": "V",
+      "insertions": []
    }}
 }}
 )",

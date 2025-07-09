@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <cstdlib>
+#include <expected>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -137,172 +138,193 @@ const std::map<std::string, column::ZstdCompressedStringColumnPartition>& Column
 
 namespace {
 
-template <typename SymbolType>
-std::string getNdjsonSequenceStructName();
-
-template <>
-std::string getNdjsonSequenceStructName<Nucleotide>() {
-   return "alignedNucleotideSequences";
-}
-
-template <>
-std::string getNdjsonSequenceStructName<AminoAcid>() {
-   return "alignedAminoAcidSequences";
-}
-
-template <typename SymbolType>
-std::string getNdjsonInsertionStructName();
-
-template <>
-std::string getNdjsonInsertionStructName<Nucleotide>() {
-   return "nucleotideInsertions";
-}
-
-template <>
-std::string getNdjsonInsertionStructName<AminoAcid>() {
-   return "aminoAcidInsertions";
-}
+#define RAISE_STRING_ERROR_WITH_CONTEXT(error, value, ...)                                  \
+   if (error) {                                                                             \
+      simdjson::ondemand::raw_json_string line_context;                                     \
+      auto error_when_getting_line_context = value.get_raw_json_string().get(line_context); \
+      if (error_when_getting_line_context) {                                                \
+         return std::unexpected{fmt::format(__VA_ARGS__, simdjson::error_message(error))};  \
+      } else {                                                                              \
+         return std::unexpected{fmt::format(                                                \
+            "{}. Current line: {}",                                                         \
+            fmt::format(__VA_ARGS__, simdjson::error_message(error)),                       \
+            line_context.raw()                                                              \
+         )};                                                                                \
+      }                                                                                     \
+   }
 
 template <typename SymbolType>
-void insertToSequenceColumn(
+std::expected<void, std::string> insertToSequenceColumn(
    ColumnPartitionGroup& columns,
    const schema::ColumnIdentifier& column,
-   const nlohmann::json& value
+   simdjson::ondemand::value& value
 ) {
    auto& sequence_column =
       columns.getColumns<column::SequenceColumnPartition<SymbolType>>().at(column.name);
-   const nlohmann::json& sequence =
-      value.at(getNdjsonSequenceStructName<SymbolType>()).at(column.name);
-   const nlohmann::json& insertions =
-      value.at(getNdjsonInsertionStructName<SymbolType>()).at(column.name);
    auto& read = sequence_column.appendNewSequenceRead();
-   if (sequence.is_null()) {
+   bool is_null;
+   auto error = value.is_null().get(is_null);
+   RAISE_STRING_ERROR_WITH_CONTEXT(
+      error, value, "When checking column field '{}' for null got error: {}", column.name
+   );
+   if (is_null) {
       read.is_valid = false;
-   } else {
-      read.sequence = sequence.get<std::string>();
-      read.offset = 0;
-      read.is_valid = true;
+      return {};
    }
+   std::string_view sequence;
+   error = value["seq"].get(sequence);
+   RAISE_STRING_ERROR_WITH_CONTEXT(
+      error, value, "When getting field 'seq' in column field '{}' got error: {}", column.name
+   );
+   // TODO(#877) std::optional<uint32_t> offset = value["offset"].get<std::optional<uint32_t>>();
+   std::vector<std::string> insertions;
+   error = value["insertions"].get(insertions);
+   RAISE_STRING_ERROR_WITH_CONTEXT(
+      error,
+      value,
+      "When getting field 'insertions' in column field '{}' got error: {}",
+      column.name
+   );
+   read.sequence = sequence;
+   // TODO(#877) read.offset = offset.value_or(0);
+   read.offset = 0;
+   read.is_valid = true;
    for (auto& insertion : insertions) {
-      sequence_column.appendInsertion(insertion.get<std::string>());
+      sequence_column.appendInsertion(insertion);
    }
+   return {};
 }
 
 class ColumnValueInserter {
   public:
    template <column::Column ColumnType>
-   void operator()(
+   std::expected<void, std::string> operator()(
       ColumnPartitionGroup& columns,
       const schema::ColumnIdentifier& column,
-      const nlohmann::json& value
+      simdjson::ondemand::value& value
    ) {
-      auto column_value = value.at("metadata").at(column.name);
-      if (column_value.is_null()) {
+      bool is_null;
+      auto error = value.is_null().get(is_null);
+      RAISE_STRING_ERROR_WITH_CONTEXT(
+         error, value, "When checking column field '{}' for null got error: {}", column.name
+      );
+      if (is_null) {
          columns.getColumns<ColumnType>().at(column.name).insertNull();
       } else {
-         std::string column_string_value = column_value.get<std::string>();
-         columns.getColumns<ColumnType>().at(column.name).insert(column_string_value);
+         std::string_view column_value;
+         error = value.get(column_value);
+         RAISE_STRING_ERROR_WITH_CONTEXT(
+            error,
+            value,
+            "When trying to get string value of column '{}' got error: {}",
+            column.name
+         );
+         columns.getColumns<ColumnType>().at(column.name).insert(column_value);
       }
+      return {};
    }
 };
 
 template <>
-void ColumnValueInserter::operator()<column::BoolColumnPartition>(
+std::expected<void, std::string> ColumnValueInserter::operator()<column::BoolColumnPartition>(
    ColumnPartitionGroup& columns,
    const schema::ColumnIdentifier& column,
-   const nlohmann::json& value
+   simdjson::ondemand::value& value
 ) {
-   auto column_value = value.at("metadata").at(column.name);
-   if (column_value.is_null()) {
+   bool is_null;
+   auto error = value.is_null().get(is_null);
+   RAISE_STRING_ERROR_WITH_CONTEXT(
+      error, value, "When checking column field '{}' for null got error: {}", column.name
+   );
+   if (is_null) {
       columns.getColumns<column::BoolColumnPartition>().at(column.name).insertNull();
    } else {
-      columns.getColumns<column::BoolColumnPartition>()
-         .at(column.name)
-         .insert(column_value.get<bool>());
+      bool column_value;
+      error = value.get(column_value);
+      RAISE_STRING_ERROR_WITH_CONTEXT(
+         error, value, "When trying to get bool value of column '{}' got error: {}", column.name
+      );
+      columns.getColumns<column::BoolColumnPartition>().at(column.name).insert(column_value);
    }
+   return {};
 }
 
 template <>
-void ColumnValueInserter::operator()<column::ZstdCompressedStringColumnPartition>(
+std::expected<void, std::string> ColumnValueInserter::operator()<column::IntColumnPartition>(
    ColumnPartitionGroup& columns,
    const schema::ColumnIdentifier& column,
-   const nlohmann::json& value
+   simdjson::ondemand::value& value
 ) {
-   // TODO(#741) we prepend the unalignedSequence columns (which are using the type
-   // ZstdCompressedStringColumnPartition) with 'unaligned_'. This should be cleaned up with a
-   // refactor and breaking change of the current input format.
-   auto column_value =
-      value.at("unalignedNucleotideSequences")
-         .at(column.name.substr(storage::UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX.length()));
-   if (column_value.is_null()) {
-      columns.getColumns<column::ZstdCompressedStringColumnPartition>()
-         .at(column.name)
-         .insertNull();
-   } else {
-      columns.getColumns<column::ZstdCompressedStringColumnPartition>()
-         .at(column.name)
-         .insert(column_value.get<std::string>());
-   }
-}
-
-template <>
-void ColumnValueInserter::operator()<column::IntColumnPartition>(
-   ColumnPartitionGroup& columns,
-   const schema::ColumnIdentifier& column,
-   const nlohmann::json& value
-) {
-   auto column_value = value.at("metadata").at(column.name);
-   if (column_value.is_null()) {
+   bool is_null;
+   auto error = value.is_null().get(is_null);
+   RAISE_STRING_ERROR_WITH_CONTEXT(
+      error, value, "When checking column field '{}' for null got error: {}", column.name
+   );
+   if (is_null) {
       columns.getColumns<column::IntColumnPartition>().at(column.name).insertNull();
    } else {
-      columns.getColumns<column::IntColumnPartition>()
-         .at(column.name)
-         .insert(column_value.get<int32_t>());
+      int32_t column_value;
+      error = value.get(column_value);
+      RAISE_STRING_ERROR_WITH_CONTEXT(
+         error, value, "When trying to get int32_t value of column '{}' got error: {}", column.name
+      );
+      columns.getColumns<column::IntColumnPartition>().at(column.name).insert(column_value);
    }
+   return {};
 }
 
 template <>
-void ColumnValueInserter::operator()<column::FloatColumnPartition>(
+std::expected<void, std::string> ColumnValueInserter::operator()<column::FloatColumnPartition>(
    ColumnPartitionGroup& columns,
    const schema::ColumnIdentifier& column,
-   const nlohmann::json& value
+   simdjson::ondemand::value& value
 ) {
-   auto column_value = value.at("metadata").at(column.name);
-   if (column_value.is_null()) {
+   bool is_null;
+   auto error = value.is_null().get(is_null);
+   RAISE_STRING_ERROR_WITH_CONTEXT(
+      error, value, "When checking column field '{}' for null got error: {}", column.name
+   );
+   if (is_null) {
       columns.getColumns<column::FloatColumnPartition>().at(column.name).insertNull();
    } else {
-      columns.getColumns<column::FloatColumnPartition>()
-         .at(column.name)
-         .insert(column_value.get<double>());
+      double column_value;
+      error = value.get(column_value);
+      RAISE_STRING_ERROR_WITH_CONTEXT(
+         error, value, "When trying to get double value of column '{}' got error: {}", column.name
+      );
+      columns.getColumns<column::FloatColumnPartition>().at(column.name).insert(column_value);
    }
+   return {};
 }
 
 template <>
-void ColumnValueInserter::operator()<column::SequenceColumnPartition<AminoAcid>>(
+std::expected<void, std::string> ColumnValueInserter::operator(
+)<column::SequenceColumnPartition<AminoAcid>>(
    ColumnPartitionGroup& columns,
    const schema::ColumnIdentifier& column,
-   const nlohmann::json& value
+   simdjson::ondemand::value& value
 ) {
-   insertToSequenceColumn<AminoAcid>(columns, column, value);
+   return insertToSequenceColumn<AminoAcid>(columns, column, value);
 }
 
 template <>
-void ColumnValueInserter::operator()<column::SequenceColumnPartition<Nucleotide>>(
+std::expected<void, std::string> ColumnValueInserter::operator(
+)<column::SequenceColumnPartition<Nucleotide>>(
    ColumnPartitionGroup& columns,
    const schema::ColumnIdentifier& column,
-   const nlohmann::json& value
+   simdjson::ondemand::value& value
 ) {
-   insertToSequenceColumn<Nucleotide>(columns, column, value);
+   return insertToSequenceColumn<Nucleotide>(columns, column, value);
 }
 
 }  // namespace
 
-void ColumnPartitionGroup::addJsonValueToColumn(
+std::expected<void, std::string> ColumnPartitionGroup::addJsonValueToColumn(
    const schema::ColumnIdentifier& column,
-   const nlohmann::json& value
+   simdjson::ondemand::value& value
 ) {
    EVOBENCH_SCOPE("ColumnPartitionGroup", "addJsonValueToColumn");
-   column::visit(column.type, ColumnValueInserter{}, *this, column, value);
+   return column::visit(column.type, ColumnValueInserter{}, *this, column, value);
 }
 
 ColumnPartitionGroup ColumnPartitionGroup::getSubgroup(

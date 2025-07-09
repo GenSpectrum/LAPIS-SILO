@@ -26,10 +26,11 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_BINARY_DIR}/generators/")
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${CMAKE_BINARY_DIR}/generators/")
 
 # ---------------------------------------------------------------------------
-# Logging
+# Compile definitions
 # ---------------------------------------------------------------------------
 
 add_compile_definitions(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
+add_compile_definitions(SIMDJSON_EXCEPTIONS=0)
 
 # ---------------------------------------------------------------------------
 # Dependencies
@@ -40,12 +41,13 @@ find_package(Boost REQUIRED COMPONENTS system serialization iostreams)
 find_package(LibLZMA REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(Poco REQUIRED COMPONENTS Net Util JSON)
+find_package(re2 REQUIRED)
 find_package(roaring REQUIRED)
 find_package(spdlog REQUIRED)
+find_package(simdjson REQUIRED)
 find_package(TBB REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(zstd REQUIRED)
-find_package(re2 REQUIRED)
 
 # ---------------------------------------------------------------------------
 # Version
@@ -116,6 +118,7 @@ target_link_libraries(
         nlohmann_json::nlohmann_json
         ${roaring_LIBRARIES}
         ${spdlog_LIBRARIES}
+        ${simdjson_LIBRARIES}
         TBB::tbb
         ${yaml-cpp_LIBRARIES}
         zstd::libzstd_static
