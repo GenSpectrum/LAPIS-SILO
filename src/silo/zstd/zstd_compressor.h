@@ -22,7 +22,6 @@ class ZstdCompressor {
   public:
    explicit ZstdCompressor(std::shared_ptr<ZstdCDictionary> dictionary);
 
-   std::string_view compress(const std::string& input);
    std::string_view compress(const char* input_data, size_t input_size);
 };
 

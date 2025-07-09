@@ -19,14 +19,11 @@ nlohmann::json createDataWithSequences(
 ) {
    random_generator generator;
    const auto primary_key = generator();
-
    return {
-      {"metadata", {{"primaryKey", "id_" + to_string(primary_key)}}},
-      {"alignedNucleotideSequences", {{"segment1", nucleotideSequence}}},
-      {"unalignedNucleotideSequences", {{"segment1", {}}}},
-      {"alignedAminoAcidSequences", {{"gene1", aminoAcidSequence}}},
-      {"nucleotideInsertions", {{"segment1", {}}}},
-      {"aminoAcidInsertions", {{"gene1", {}}}}
+      {"primaryKey", "id_" + to_string(primary_key)},
+      {"unaligned_segment1", {}},
+      {"segment1", {{"sequence", nucleotideSequence}, {"insertions", nlohmann::json::array()}}},
+      {"gene1", {{"sequence", aminoAcidSequence}, {"insertions", nlohmann::json::array()}}}
    };
 }
 

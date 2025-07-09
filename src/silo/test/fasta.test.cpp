@@ -18,12 +18,14 @@ nlohmann::json createDataWithUnalignedSequences(
    const nlohmann::json& segment2
 ) {
    return {
-      {"metadata", {{"primaryKey", primaryKey}, {"date", date}}},
-      {"alignedNucleotideSequences", {{"segment1", nullptr}, {"segment2", nullptr}}},
-      {"unalignedNucleotideSequences", {{"segment1", segment1}, {"segment2", segment2}}},
-      {"alignedAminoAcidSequences", {{"gene1", nullptr}, {"gene2", nullptr}}},
-      {"nucleotideInsertions", {{"segment1", {}}, {"segment2", {}}}},
-      {"aminoAcidInsertions", {{"gene1", {}}, {"gene2", {}}}}
+      {"primaryKey", primaryKey},
+      {"date", date},
+      {"segment1", nullptr},
+      {"segment2", nullptr},
+      {"unaligned_segment1", segment1},
+      {"unaligned_segment2", segment2},
+      {"gene1", nullptr},
+      {"gene2", nullptr}
    };
 }
 

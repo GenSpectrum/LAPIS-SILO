@@ -13,23 +13,24 @@ using silo::test::QueryTestScenario;
 namespace {
 nlohmann::json createDataWithNucleotideInsertions(
    const std::string& primaryKey,
-   const nlohmann::json& nucleotideInsertions
+   const nlohmann::json::array_t nucleotideInsertionsSegment1,
+   const nlohmann::json::array_t& nucleotideInsertionsSegment2
 ) {
    return {
-      {"metadata", {{"primaryKey", primaryKey}}},
-      {"alignedNucleotideSequences", {{"segment1", nullptr}, {"segment2", nullptr}}},
-      {"unalignedNucleotideSequences", {{"segment1", nullptr}, {"segment2", nullptr}}},
-      {"alignedAminoAcidSequences", {{"gene1", nullptr}}},
-      {"nucleotideInsertions", nucleotideInsertions},
-      {"aminoAcidInsertions", {{"gene1", {}}}}
+      {"primaryKey", primaryKey},
+      {"segment1", {{"sequence", ""}, {"insertions", nucleotideInsertionsSegment1}}},
+      {"segment2", {{"sequence", ""}, {"insertions", nucleotideInsertionsSegment2}}},
+      {"unaligned_segment1", nullptr},
+      {"unaligned_segment2", nullptr},
+      {"gene1", nullptr}
    };
 }
 
 const std::vector<nlohmann::json> DATA = {
-   createDataWithNucleotideInsertions("id_0", {{"segment1", {"123:A"}}, {"segment2", {}}}),
-   createDataWithNucleotideInsertions("id_1", {{"segment1", {"123:A"}}, {"segment2", {}}}),
-   createDataWithNucleotideInsertions("id_2", {{"segment1", {"234:TT"}}, {"segment2", {}}}),
-   createDataWithNucleotideInsertions("id_3", {{"segment1", {"123:CCC"}}, {"segment2", {}}}),
+   createDataWithNucleotideInsertions("id_0", {"123:A"}, {}),
+   createDataWithNucleotideInsertions("id_1", {"123:A"}, {}),
+   createDataWithNucleotideInsertions("id_2", {"234:TT"}, {}),
+   createDataWithNucleotideInsertions("id_3", {"123:CCC"}, {}),
 };
 
 const auto DATABASE_CONFIG =
