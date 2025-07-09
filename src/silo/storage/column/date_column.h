@@ -37,7 +37,7 @@ class DateColumnPartition {
 
    [[nodiscard]] bool isSorted() const;
 
-   void insert(const std::string& value);
+   void insert(std::string_view value);
 
    void insertNull();
 
