@@ -19,9 +19,8 @@ Database preprocessing(const config::PreprocessingConfig& preprocessing_config) 
 
    try {
       SPDLOG_INFO("preprocessing - appending data to Database");
-      silo::append::appendDataToDatabase(
-         database, silo::append::NdjsonLineReader{input.getInputStream()}
-      );
+      auto input_data = silo::append::NdjsonLineReader{input.getInputStream()};
+      silo::append::appendDataToDatabase(database, input_data);
    } catch (const silo::append::AppendException& exception) {
       throw silo::preprocessing::PreprocessingException(
          "preprocessing - exception when appending data: {}", exception.what()

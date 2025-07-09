@@ -12,7 +12,7 @@ bool DateColumnPartition::isSorted() const {
    return is_sorted;
 }
 
-void DateColumnPartition::insert(const std::string& value) {
+void DateColumnPartition::insert(std::string_view value) {
    const auto date_value = silo::common::stringToDate(value);
    if (!values.empty() && date_value < values.back()) {
       is_sorted = false;
