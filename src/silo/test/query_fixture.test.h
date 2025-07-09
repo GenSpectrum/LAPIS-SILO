@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <gtest/gtest.h>
+#include <simdjson.h>
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
@@ -91,7 +92,14 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
          )}
       );
 
-      silo::append::appendDataToDatabase(*database, test_data.ndjson_input_data);
+      std::stringstream ndjson_objects;
+      for (const auto& object : test_data.ndjson_input_data) {
+         ndjson_objects << object.dump() << "\n";
+      }
+      std::istream ndjson_objects_istream(ndjson_objects.rdbuf());
+
+      silo::append::NdjsonLineReader reader{ndjson_objects_istream};
+      silo::append::appendDataToDatabase(*database, reader);
 
       shared_database = database;
    }

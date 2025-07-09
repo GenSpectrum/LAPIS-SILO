@@ -1,0 +1,16 @@
+[package]
+name = "legacyNdjsonTransfomer"
+version = "0.1.0"
+edition = "2021"
+authors = ["Alexander Taepper"]
+readme = "README.md"
+keywords = ["json", "ndjson", "bioinformatics", "sequence", "transform"]
+categories = ["command-line-utilities", "science"]
+
+[[bin]]
+name = "legacy-ndjson-transformer"
+path = "main.rs"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

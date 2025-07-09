@@ -24,8 +24,8 @@ void ZstdCompressedStringColumnPartition::insertNull() {
    values.push_back({});
 }
 
-void ZstdCompressedStringColumnPartition::insert(const std::string& value) {
-   auto compressed = metadata->compressor.compress(value);
+void ZstdCompressedStringColumnPartition::insert(std::string_view value) {
+   auto compressed = metadata->compressor.compress(value.data(), value.size());
    values.push_back(std::string{compressed});
 }
 

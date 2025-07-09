@@ -74,7 +74,9 @@ arrow::Status appendSequences(
    auto dictionary = std::make_shared<silo::ZstdCDictionary>(reference_sequence, 3);
    silo::ZstdCompressor compressor{dictionary};
    for (const auto& reconstructed_sequence : reconstructed_sequences) {
-      ARROW_RETURN_NOT_OK(output_array.Append(compressor.compress(reconstructed_sequence)));
+      ARROW_RETURN_NOT_OK(output_array.Append(
+         compressor.compress(reconstructed_sequence.data(), reconstructed_sequence.size())
+      ));
    }
    return arrow::Status::OK();
 }

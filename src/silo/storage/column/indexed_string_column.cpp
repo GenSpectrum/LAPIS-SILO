@@ -50,7 +50,7 @@ std::optional<const roaring::Roaring*> IndexedStringColumnPartition::filter(
    return filter(value_id.value());
 }
 
-void IndexedStringColumnPartition::insert(const std::string& value) {
+void IndexedStringColumnPartition::insert(std::string_view value) {
    const size_t row_id = value_ids.size();
 
    if (lineage_index.has_value()) {
