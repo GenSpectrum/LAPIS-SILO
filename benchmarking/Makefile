@@ -86,7 +86,8 @@ dependencies: $(API_QUERY) $(WISEPULSE)
 
 # ---- Sorting input -----------------------------------------------------------
 
-$(BENCHMARK_DATASET_DIR)/sorted_input_file.ndjson.zst: $(BENCHMARK_DATASET_DIR)/input_file.ndjson.zst $(WISEPULSE)
+$(BENCHMARK_DATASET_DIR)/sorted_input_file.ndjson.zst: $(BENCHMARK_DATASET_DIR)/input_file.ndjson.zst
+	make $(WISEPULSE)
 	rm -rf sorted_chunks merger_tmp 
 	zstdcat $(BENCHMARK_DATASET_DIR)/input_file.ndjson.zst \
 	    | $(WISEPULSE_BIN)/split_into_sorted_chunks --output-path sorted_chunks --chunk-size 100000 --sort-field date \
