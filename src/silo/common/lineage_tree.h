@@ -6,7 +6,7 @@
 
 #include <boost/serialization/access.hpp>
 
-#include "silo/common/bidirectional_map.h"
+#include "silo/common/bidirectional_string_map.h"
 #include "silo/common/lineage_name.h"
 #include "silo/common/types.h"
 #include "silo/preprocessing/lineage_definition_file.h"
@@ -37,7 +37,7 @@ class LineageTree {
    static LineageTree fromEdgeList(
       size_t n_vertices,
       const std::vector<std::pair<Idx, Idx>>& edge_list,
-      const BidirectionalMap<std::string>& lookup,
+      const BidirectionalStringMap& lookup,
       std::unordered_map<Idx, Idx>&& alias_mapping
    );
 
@@ -49,7 +49,7 @@ class LineageTree {
 class LineageTreeAndIdMap {
   public:
    LineageTree lineage_tree;
-   BidirectionalMap<std::string> lineage_id_lookup_map;
+   BidirectionalStringMap lineage_id_lookup_map;
    std::string file;
 
    LineageTreeAndIdMap() = default;
@@ -67,7 +67,7 @@ class LineageTreeAndIdMap {
   private:
    LineageTreeAndIdMap(
       LineageTree&& lineage_tree,
-      BidirectionalMap<std::string>&& lineage_id_lookup_map,
+      BidirectionalStringMap&& lineage_id_lookup_map,
       std::string&& file
    );
 

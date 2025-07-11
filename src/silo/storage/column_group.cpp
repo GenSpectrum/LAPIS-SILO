@@ -199,7 +199,8 @@ class ColumnValueInserter {
       if (column_value.is_null()) {
          columns.getColumns<ColumnType>().at(column.name).insertNull();
       } else {
-         columns.getColumns<ColumnType>().at(column.name).insert(column_value.get<std::string>());
+         std::string column_string_value = column_value.get<std::string>();
+         columns.getColumns<ColumnType>().at(column.name).insert(column_string_value);
       }
    }
 };
@@ -345,7 +346,7 @@ common::JsonValueType ColumnPartitionGroup::getValue(
       if (value.empty()) {
          return std::nullopt;
       }
-      return value;
+      return std::string{value};
    }
    if (date_columns.contains(column)) {
       return common::dateToString(date_columns.at(column).getValues().at(sequence_id));

@@ -1,4 +1,4 @@
-#include "silo/common/bidirectional_map.h"
+#include "silo/common/bidirectional_string_map.h"
 
 #include <gtest/gtest.h>
 
@@ -10,7 +10,7 @@
 namespace silo::common {
 
 TEST(BidirectionalMap, correctStdStringDict) {
-   BidirectionalMap<std::string> under_test;
+   BidirectionalStringMap under_test;
    EXPECT_EQ(under_test.getId("Not in dict"), std::nullopt);
 
    EXPECT_EQ(under_test.getOrCreateId("Now in dict"), 0);
@@ -26,7 +26,7 @@ TEST(BidirectionalMap, correctStdStringDict) {
 }
 
 TEST(BidirectionalMap, correctStdStringDictWithExplicitInitialization) {
-   BidirectionalMap<std::string> under_test;
+   BidirectionalStringMap under_test;
    EXPECT_EQ(under_test.getId(std::string{"Not in dict"}), std::nullopt);
 
    EXPECT_EQ(under_test.getOrCreateId(std::string{"Now in dict"}), 0);
@@ -42,7 +42,7 @@ TEST(BidirectionalMap, correctStdStringDictWithExplicitInitialization) {
 }
 
 TEST(BidirectionalMap, correctRoundtripOfNonUtf8Data) {
-   BidirectionalMap<std::string> original_map;
+   BidirectionalStringMap original_map;
    std::string example_string = "ü:";
    std::string non_utf8_string = example_string.substr(1);
    original_map.getOrCreateId(non_utf8_string);
@@ -53,7 +53,7 @@ TEST(BidirectionalMap, correctRoundtripOfNonUtf8Data) {
 
    std::istringstream iss(oss.str());
    boost::archive::binary_iarchive iarchive(iss);
-   BidirectionalMap<std::string> under_test;
+   BidirectionalStringMap under_test;
    iarchive >> under_test;
 
    EXPECT_TRUE(under_test.getId(non_utf8_string).has_value());
