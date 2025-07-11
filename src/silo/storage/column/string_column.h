@@ -10,7 +10,7 @@
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/split_free.hpp>
 
-#include "silo/common/bidirectional_map.h"
+#include "silo/common/bidirectional_string_map.h"
 #include "silo/common/phylo_tree.h"
 #include "silo/common/string.h"
 #include "silo/common/tree_node_id.h"
@@ -23,7 +23,7 @@ using silo::common::TreeNodeId;
 
 class StringColumnMetadata : public ColumnMetadata {
   public:
-   silo::common::BidirectionalMap<std::string> dictionary;
+   silo::common::BidirectionalStringMap dictionary;
 
    std::optional<silo::common::PhyloTree> phylo_tree;
 
@@ -34,16 +34,13 @@ class StringColumnMetadata : public ColumnMetadata {
        : ColumnMetadata(std::move(column_name)),
          phylo_tree(std::move(phylo_tree)) {}
 
-   StringColumnMetadata(
-      std::string column_name,
-      silo::common::BidirectionalMap<std::string>&& dictionary
-   )
+   StringColumnMetadata(std::string column_name, silo::common::BidirectionalStringMap&& dictionary)
        : ColumnMetadata(std::move(column_name)),
          dictionary(std::move(dictionary)) {}
 
    StringColumnMetadata(
       std::string column_name,
-      silo::common::BidirectionalMap<std::string>&& dictionary,
+      silo::common::BidirectionalStringMap&& dictionary,
       silo::common::PhyloTree phylo_tree
    )
        : ColumnMetadata(std::move(column_name)),
@@ -95,7 +92,7 @@ class StringColumnPartition {
 
    [[nodiscard]] const std::vector<common::String<silo::common::STRING_SIZE>>& getValues() const;
 
-   void insert(const std::string& value);
+   void insert(std::string_view value);
 
    void insertNull();
 
@@ -143,7 +140,7 @@ template <class Archive>
    [[maybe_unused]] const uint32_t version
 ) {
    std::string column_name;
-   silo::common::BidirectionalMap<std::string> dictionary;
+   silo::common::BidirectionalStringMap dictionary;
    std::optional<silo::common::PhyloTree> phylo_tree;
    ar & column_name;
    ar & dictionary;

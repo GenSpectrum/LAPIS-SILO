@@ -4,7 +4,7 @@
 
 #include <fmt/format.h>
 
-#include "silo/common/bidirectional_map.h"
+#include "silo/common/bidirectional_string_map.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
 namespace silo::storage::column {
@@ -19,7 +19,7 @@ IndexedStringColumnMetadata::IndexedStringColumnMetadata(
 
 IndexedStringColumnMetadata::IndexedStringColumnMetadata(
    std::string column_name,
-   common::BidirectionalMap<std::string> dictionary,
+   common::BidirectionalStringMap dictionary,
    common::LineageTreeAndIdMap lineage_tree_and_id_map
 )
     : ColumnMetadata(std::move(column_name)),

@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "silo/common/bidirectional_map.h"
+#include "silo/common/bidirectional_string_map.h"
 #include "silo/common/string.h"
 #include "silo/common/tree_node_id.h"
 #include "silo/initialize/initialize_exception.h"
@@ -21,11 +21,11 @@ std::optional<String<STRING_SIZE>> StringColumnMetadata::embedString(const std::
 StringColumnPartition::StringColumnPartition(StringColumnMetadata* metadata)
     : metadata(metadata) {}
 
-void StringColumnPartition::insert(const std::string& value) {
+void StringColumnPartition::insert(std::string_view value) {
    const String<STRING_SIZE> tmp(value, metadata->dictionary);
    values.push_back(tmp);
    if (metadata->phylo_tree.has_value()) {
-      auto child_it = (metadata->phylo_tree->nodes).find(TreeNodeId{value});
+      auto child_it = (metadata->phylo_tree->nodes).find(TreeNodeId{std::string{value}});
       if (child_it == metadata->phylo_tree->nodes.end()) {
          return;
       }

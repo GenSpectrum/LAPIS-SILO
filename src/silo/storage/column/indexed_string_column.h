@@ -12,7 +12,7 @@
 #include <boost/serialization/assume_abstract.hpp>
 #include <roaring/roaring.hh>
 
-#include "silo/common/bidirectional_map.h"
+#include "silo/common/bidirectional_string_map.h"
 #include "silo/common/lineage_tree.h"
 #include "silo/common/types.h"
 #include "silo/schema/database_schema.h"
@@ -23,7 +23,7 @@ namespace silo::storage::column {
 
 class IndexedStringColumnMetadata : public ColumnMetadata {
   public:
-   common::BidirectionalMap<std::string> dictionary;
+   common::BidirectionalStringMap dictionary;
    std::optional<common::LineageTreeAndIdMap> lineage_tree;
 
    IndexedStringColumnMetadata(std::string column_name)
@@ -31,7 +31,7 @@ class IndexedStringColumnMetadata : public ColumnMetadata {
 
    IndexedStringColumnMetadata(
       std::string column_name,
-      silo::common::BidirectionalMap<std::string> dictionary
+      silo::common::BidirectionalStringMap dictionary
    )
        : ColumnMetadata(column_name),
          dictionary(std::move(dictionary)) {}
@@ -43,7 +43,7 @@ class IndexedStringColumnMetadata : public ColumnMetadata {
 
    IndexedStringColumnMetadata(
       std::string column_name,
-      silo::common::BidirectionalMap<std::string> dictionary,
+      silo::common::BidirectionalStringMap dictionary,
       common::LineageTreeAndIdMap lineage_tree_and_id_map
    );
 
@@ -94,7 +94,7 @@ class IndexedStringColumnPartition {
 
    [[nodiscard]] const std::vector<silo::Idx>& getValues() const;
 
-   [[nodiscard]] inline std::string lookupValue(Idx id) const {
+   [[nodiscard]] inline std::string_view lookupValue(Idx id) const {
       return metadata->dictionary.getValue(id);
    }
 
@@ -128,7 +128,7 @@ template <class Archive>
    [[maybe_unused]] const uint32_t version
 ) {
    std::string column_name;
-   silo::common::BidirectionalMap<std::string> dictionary;
+   silo::common::BidirectionalStringMap dictionary;
    std::optional<silo::common::LineageTreeAndIdMap> lineage_tree;
    ar & column_name;
    ar & dictionary;
