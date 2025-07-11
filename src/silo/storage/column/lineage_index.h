@@ -7,7 +7,7 @@
 #include <boost/serialization/unordered_map.hpp>
 #include <roaring/roaring.hh>
 
-#include "silo/common/bidirectional_map.h"
+#include "silo/common/bidirectional_string_map.h"
 #include "silo/common/lineage_tree.h"
 #include "silo/common/types.h"
 

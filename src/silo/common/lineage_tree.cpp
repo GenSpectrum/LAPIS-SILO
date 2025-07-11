@@ -11,10 +11,7 @@ namespace silo::common {
 
 namespace {
 
-std::string edgesToString(
-   const std::vector<Idx>& ids,
-   const BidirectionalMap<std::string>& lookup
-) {
+std::string edgesToString(const std::vector<Idx>& ids, const BidirectionalStringMap& lookup) {
    std::ostringstream oss;
    for (size_t i = 0; i < ids.size(); ++i) {
       oss << lookup.getValue(ids[i]);
@@ -143,7 +140,7 @@ Idx LineageTree::resolveAlias(Idx value_id) const {
 LineageTree LineageTree::fromEdgeList(
    size_t n_vertices,
    const std::vector<std::pair<Idx, Idx>>& edge_list,
-   const BidirectionalMap<std::string>& lookup,
+   const BidirectionalStringMap& lookup,
    std::unordered_map<Idx, Idx>&& alias_mapping
 ) {
    LineageTree result;
@@ -174,7 +171,7 @@ LineageTreeAndIdMap& LineageTreeAndIdMap::operator=(const LineageTreeAndIdMap& o
 
 LineageTreeAndIdMap::LineageTreeAndIdMap(
    LineageTree&& lineage_tree,
-   BidirectionalMap<std::string>&& lineage_id_lookup_map,
+   BidirectionalStringMap&& lineage_id_lookup_map,
    std::string&& file
 )
     : lineage_tree(std::move(lineage_tree)),
@@ -185,7 +182,7 @@ namespace {
 
 void assignLineageIds(
    const preprocessing::LineageDefinitionFile& file,
-   BidirectionalMap<std::string>& lookup
+   BidirectionalStringMap& lookup
 ) {
    for (const auto& lineage : file.lineages) {
       if (lookup.getId(lineage.lineage_name.string).has_value()) {
@@ -199,7 +196,7 @@ void assignLineageIds(
 
 std::unordered_map<Idx, Idx> assignAliasIdsAndGetAliasMapping(
    const preprocessing::LineageDefinitionFile& file,
-   BidirectionalMap<std::string>& lookup
+   BidirectionalStringMap& lookup
 ) {
    std::unordered_map<Idx, Idx> alias_mapping;
    for (const auto& lineage : file.lineages) {
@@ -222,7 +219,7 @@ std::unordered_map<Idx, Idx> assignAliasIdsAndGetAliasMapping(
 
 std::vector<std::pair<Idx, Idx>> getParentChildEdges(
    const preprocessing::LineageDefinitionFile& file,
-   const BidirectionalMap<std::string>& lookup,
+   const BidirectionalStringMap& lookup,
    const std::unordered_map<Idx, Idx>& alias_mapping
 ) {
    std::vector<std::pair<Idx, Idx>> edge_list;
@@ -254,7 +251,7 @@ std::vector<std::pair<Idx, Idx>> getParentChildEdges(
 LineageTreeAndIdMap LineageTreeAndIdMap::fromLineageDefinitionFile(
    preprocessing::LineageDefinitionFile&& file
 ) {
-   BidirectionalMap<std::string> lookup;
+   BidirectionalStringMap lookup;
    assignLineageIds(file, lookup);
    std::unordered_map<Idx, Idx> alias_mapping = assignAliasIdsAndGetAliasMapping(file, lookup);
 
