@@ -1,35 +1,35 @@
 #include "silo/common/string.h"
-#include "silo/common/bidirectional_map.h"
+#include "silo/common/bidirectional_string_map.h"
 
 #include <gtest/gtest.h>
 
-using silo::common::BidirectionalMap;
+using silo::common::BidirectionalStringMap;
 using silo::common::String;
 using silo::common::STRING_SIZE;
 
 TEST(String, correctToString) {
-   BidirectionalMap<std::string> dict;
+   BidirectionalStringMap dict;
    const String<STRING_SIZE> under_test("value 1", dict);
 
    EXPECT_EQ(under_test.toString(dict), "value 1");
 }
 
 TEST(String, correctWithEmptyString) {
-   BidirectionalMap<std::string> dict;
+   BidirectionalStringMap dict;
    const String<STRING_SIZE> under_test("", dict);
 
    EXPECT_EQ(under_test.toString(dict), "");
 }
 
 TEST(String, correctToStringLong) {
-   BidirectionalMap<std::string> dict;
+   BidirectionalStringMap dict;
    const String<STRING_SIZE> under_test("some longer value 1", dict);
 
    EXPECT_EQ(under_test.toString(dict), "some longer value 1");
 }
 
 TEST(String, correctToStringVeryLong) {
-   BidirectionalMap<std::string> dict;
+   BidirectionalStringMap dict;
    const std::string value =
       "some very long value 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 "
       "6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0";
@@ -39,7 +39,7 @@ TEST(String, correctToStringVeryLong) {
 }
 
 TEST(String, comparesCorrectlySameValues) {
-   BidirectionalMap<std::string> dict;
+   BidirectionalStringMap dict;
    const std::string value =
       "some very long value 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 "
       "6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0";
@@ -50,7 +50,7 @@ TEST(String, comparesCorrectlySameValues) {
 }
 
 TEST(String, comparesCorrectUnequalValues) {
-   BidirectionalMap<std::string> dict;
+   BidirectionalStringMap dict;
    const std::string value =
       "some very long value 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 "
       "6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0";
@@ -61,7 +61,7 @@ TEST(String, comparesCorrectUnequalValues) {
 }
 
 TEST(String, comparesCorrectlyIfPrefixesMatchUpTo32Positions) {
-   BidirectionalMap<std::string> dict;
+   BidirectionalStringMap dict;
    const std::string value = "1234567890abcdefghijklmnopqrstuv";
    for (size_t i = 0; i < value.size(); ++i) {
       const String<STRING_SIZE> under_test1(value.substr(0, i) + "x", dict);
@@ -74,7 +74,7 @@ TEST(String, comparesCorrectlyIfPrefixesMatchUpTo32Positions) {
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(String, fastComparesCorrectlyIfPrefixesMatchUpTo32Positions) {
-   BidirectionalMap<std::string> dict;
+   BidirectionalStringMap dict;
    const std::string value = "1234567890abcdefghijklmnopqrstuv";
    for (size_t i = 0; i < 16; ++i) {
       const String<STRING_SIZE> under_test1(value.substr(0, i) + "x", dict);
