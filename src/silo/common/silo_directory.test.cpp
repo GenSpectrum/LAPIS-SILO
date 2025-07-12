@@ -23,12 +23,19 @@ TEST(DatabaseDirectoryWatcher, validNewFormatOldVersion) {
 }
 
 TEST(DatabaseDirectoryWatcher, validNewFormatCurrentVersion) {
-   auto under_test =
-      silo::SiloDataSource::checkValidDataSource("testBaseData/dataDirectories/1237");
+   auto most_recent = silo::DataVersion::mineDataVersion();
+
+   std::filesystem::path test_data_directories_dir{"testBaseData/dataDirectories"};
+   auto most_recent_save_dir = test_data_directories_dir / most_recent.getTimestamp().value;
+   std::filesystem::create_directory(most_recent_save_dir);
+
+   most_recent.saveToFile(most_recent_save_dir / "data_version.silo");
+
+   auto under_test = silo::SiloDataSource::checkValidDataSource(most_recent_save_dir);
    ASSERT_TRUE(under_test.data_version.isCompatibleVersion());
-   ASSERT_EQ(
-      under_test.data_version.getTimestamp(), silo::DataVersion::Timestamp::fromString("1237")
-   );
+   ASSERT_EQ(under_test.data_version.getTimestamp(), most_recent.getTimestamp());
+
+   std::filesystem::remove_all(most_recent_save_dir);
 }
 
 TEST(DatabaseDirectoryWatcher, validNewFormatIncompatible) {
@@ -57,13 +64,22 @@ TEST(DatabaseDirectoryWatcher, invalidYAML) {
 }
 
 TEST(DatabaseDirectoryWatcher, getsMostRecentCompatible) {
+   auto most_recent = silo::DataVersion::mineDataVersion();
+
+   std::filesystem::path test_data_directories_dir{"testBaseData/dataDirectories"};
+   auto most_recent_save_dir = test_data_directories_dir / most_recent.getTimestamp().value;
+   std::filesystem::create_directory(most_recent_save_dir);
+
+   most_recent.saveToFile(most_recent_save_dir / "data_version.silo");
+
    auto under_test = SiloDirectory{"testBaseData/dataDirectories"};
-   auto most_recent = under_test.getMostRecentDataDirectory();
-   ASSERT_TRUE(most_recent.has_value());
-   ASSERT_EQ(most_recent.value().path, "testBaseData/dataDirectories/1237");
-   ASSERT_TRUE(most_recent.value().data_version.isCompatibleVersion());
+   auto under_test_most_recent = under_test.getMostRecentDataDirectory();
+   ASSERT_TRUE(under_test_most_recent.has_value());
+   ASSERT_EQ(under_test_most_recent.value().path, most_recent_save_dir);
+   ASSERT_TRUE(under_test_most_recent.value().data_version.isCompatibleVersion());
    ASSERT_EQ(
-      most_recent.value().data_version.getTimestamp(),
-      silo::DataVersion::Timestamp::fromString("1237")
+      under_test_most_recent.value().data_version.getTimestamp(), most_recent.getTimestamp()
    );
+
+   std::filesystem::remove_all(most_recent_save_dir);
 }

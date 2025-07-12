@@ -5,7 +5,6 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
-#include <boost/numeric/conversion/cast.hpp>
 #include <nlohmann/json.hpp>
 
 #include "silo/common/numbers.h"

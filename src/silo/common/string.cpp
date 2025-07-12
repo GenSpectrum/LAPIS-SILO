@@ -5,19 +5,20 @@
 #include <sstream>
 #include <string_view>
 
-#include "silo/common/bidirectional_map.h"
+#include "silo/common/bidirectional_string_map.h"
 
 namespace silo::common {
 
 template <size_t I>
-String<I>::String(const std::string& string, BidirectionalMap<std::string>& dictionary) {
+String<I>::String(std::string_view string, BidirectionalStringMap& dictionary) {
    const uint32_t length = string.length();
    *reinterpret_cast<uint32_t*>(data.data()) = length;
    if (length <= I) {
       memcpy(data.data() + 4, string.data(), length);
       memset(data.data() + 4 + length, '\0', I - length);
    } else {
-      const Idx idx = dictionary.getOrCreateId(string.substr(I - 4));
+      std::string_view suffix = string.substr(I - 4);
+      const Idx idx = dictionary.getOrCreateId(suffix);
       memcpy(data.data() + 4, string.data(), I - 4);
       *reinterpret_cast<uint32_t*>(data.data() + I) = idx;
    }
@@ -32,7 +33,7 @@ std::string String<I>::dataAsHexString() const {
 }
 
 template <size_t I>
-std::string String<I>::toString(const BidirectionalMap<std::string>& dictionary) const {
+std::string String<I>::toString(const BidirectionalStringMap& dictionary) const {
    const uint32_t length = *reinterpret_cast<const uint32_t*>(data.data());
    if (length <= I) {
       const char* payload = reinterpret_cast<const char*>(data.data() + 4);
@@ -48,7 +49,7 @@ std::string String<I>::toString(const BidirectionalMap<std::string>& dictionary)
 template <size_t I>
 std::optional<common::String<I>> String<I>::embedString(
    const std::string& string,
-   const BidirectionalMap<std::string>& dictionary
+   const BidirectionalStringMap& dictionary
 ) {
    String result;
    const uint32_t length = string.length();

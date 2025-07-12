@@ -19,15 +19,13 @@ const std::string INDEXED_TEST_COLUMN = "indexed_test_column";
 
 nlohmann::json createDataEntry(std::string primary_key, nlohmann::json test_column_value) {
    return {
-      {"metadata",
-       {{"primaryKey", primary_key},
-        {TEST_COLUMN, test_column_value},
-        {INDEXED_TEST_COLUMN, test_column_value}}},
-      {"alignedNucleotideSequences", {{"segment1", nullptr}}},
-      {"unalignedNucleotideSequences", {{"segment1", nullptr}}},
-      {"alignedAminoAcidSequences", {{"gene1", nullptr}}},
-      {"nucleotideInsertions", {{"segment1", {}}}},
-      {"aminoAcidInsertions", {{"gene1", {}}}}
+      {"primaryKey", primary_key},
+      {TEST_COLUMN, test_column_value},
+      {INDEXED_TEST_COLUMN, test_column_value},
+      {"float_value", nullptr},
+      {"segment1", nullptr},
+      {"unaligned_segment1", nullptr},
+      {"gene1", nullptr}
    };
 }
 
