@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.3](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.2...v0.7.3) (2025-07-12)
+
+
+### Bug Fixes
+
+* **benchmarking:** only depend on WisePulse for the tool to run, not for the data ([#875](https://github.com/GenSpectrum/LAPIS-SILO/issues/875)) ([1aa4dc9](https://github.com/GenSpectrum/LAPIS-SILO/commit/1aa4dc9661b7840a9ad35f35474886b752f7df5d))
+
 ## [0.7.2](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.1...v0.7.2) (2025-07-08)
 
 
