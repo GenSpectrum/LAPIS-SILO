@@ -10,7 +10,7 @@
 
 #include <boost/serialization/access.hpp>
 
-#include "silo/common/bidirectional_map.h"
+#include "silo/common/bidirectional_string_map.h"
 
 namespace silo::common {
 
@@ -37,7 +37,7 @@ class String {
    String() = default;
 
   public:
-   String(const std::string& string, BidirectionalMap<std::string>& dictionary);
+   String(std::string_view string, BidirectionalStringMap& dictionary);
 
    std::string dataAsHexString() const;
 
@@ -45,10 +45,10 @@ class String {
 
    static std::optional<common::String<I>> embedString(
       const std::string& string,
-      const BidirectionalMap<std::string>& dictionary
+      const BidirectionalStringMap& dictionary
    );
 
-   [[nodiscard]] std::string toString(const BidirectionalMap<std::string>& dictionary) const;
+   [[nodiscard]] std::string toString(const BidirectionalStringMap& dictionary) const;
 
    bool operator==(const String& other) const;
 

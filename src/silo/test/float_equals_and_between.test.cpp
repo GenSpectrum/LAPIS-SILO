@@ -20,23 +20,21 @@ const double ABOVE_FILTER = 1.5;
 
 nlohmann::json createDataWithFloatValue(const std::string& primaryKey, double value) {
    return {
-      {"metadata", {{"primaryKey", primaryKey}, {"float_value", value}}},
-      {"alignedNucleotideSequences", {{"segment1", nullptr}}},
-      {"unalignedNucleotideSequences", {{"segment1", nullptr}}},
-      {"alignedAminoAcidSequences", {{"gene1", nullptr}}},
-      {"nucleotideInsertions", {{"segment1", {}}}},
-      {"aminoAcidInsertions", {{"gene1", {}}}}
+      {"primaryKey", primaryKey},
+      {"float_value", value},
+      {"segment1", nullptr},
+      {"unaligned_segment1", nullptr},
+      {"gene1", nullptr}
    };
 }
 
 nlohmann::json createDataWithFloatNullValue(const std::string& primaryKey) {
    return {
-      {"metadata", {{"primaryKey", primaryKey}, {"float_value", nullptr}}},
-      {"alignedNucleotideSequences", {{"segment1", nullptr}}},
-      {"unalignedNucleotideSequences", {{"segment1", nullptr}}},
-      {"alignedAminoAcidSequences", {{"gene1", nullptr}}},
-      {"nucleotideInsertions", {{"segment1", {}}}},
-      {"aminoAcidInsertions", {{"gene1", {}}}}
+      {"primaryKey", primaryKey},
+      {"float_value", nullptr},
+      {"segment1", nullptr},
+      {"unaligned_segment1", nullptr},
+      {"gene1", nullptr}
    };
 }
 const std::vector<nlohmann::json> DATA = {
