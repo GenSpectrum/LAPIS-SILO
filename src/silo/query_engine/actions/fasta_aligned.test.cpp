@@ -289,7 +289,7 @@ const QueryTestScenario FASTA_ALIGNED_SMALL_BATCHES = {
       "country"
     ],
     "orderByFields": [
-      "country"
+      "country","primaryKey"
     ]
   },
   "filterExpression": {
