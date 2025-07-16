@@ -83,10 +83,6 @@ void IndexedStringColumnPartition::reserve(size_t row_count) {
    value_ids.reserve(value_ids.size() + row_count);
 }
 
-const std::vector<silo::Idx>& IndexedStringColumnPartition::getValues() const {
-   return this->value_ids;
-}
-
 std::optional<silo::Idx> IndexedStringColumnPartition::getValueId(const std::string& value) const {
    return metadata->dictionary.getId(value);
 }
