@@ -36,24 +36,16 @@ nlohmann::json createData(
    return nlohmann::json::parse(fmt::format(
       R"(
 {{
-   "metadata": {{
-      "primaryKey": "id_{}",
-      "country": "{}"
+   "primaryKey": "id_{}",
+   "country": "{}",
+   "unaligned_segment1": null,
+   "segment1": {{
+      "seq": "",
+      "insertions": [{}]
    }},
-   "alignedNucleotideSequences": {{
-      "segment1": null
-   }},
-   "unalignedNucleotideSequences": {{
-      "segment1": null
-   }},
-   "nucleotideInsertions": {{
-      "segment1": [{}]
-   }},
-   "alignedAminoAcidSequences": {{
-      "gene1": null
-   }},
-   "aminoAcidInsertions": {{
-      "gene1": [{}]
+   "gene1": {{
+      "seq": "",
+      "insertions": [{}]
    }}
 }}
 )",
