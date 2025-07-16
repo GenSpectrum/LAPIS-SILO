@@ -13,7 +13,8 @@ TEST(IntColumn, doesNotErrorOnValidInputs) {
    IntColumnPartition column_partition{&column};
    column_partition.insert(123);
    column_partition.insertNull();
-   ASSERT_EQ(column_partition.getValues().size(), 2);
-   ASSERT_EQ(column_partition.getValues().at(0), 123);
-   ASSERT_EQ(column_partition.getValues().at(1), IntColumnPartition::null());
+   ASSERT_EQ(column_partition.numValues(), 2);
+   ASSERT_FALSE(column_partition.isNull(0));
+   ASSERT_EQ(column_partition.getValue(0), 123);
+   ASSERT_TRUE(column_partition.isNull(1));
 }

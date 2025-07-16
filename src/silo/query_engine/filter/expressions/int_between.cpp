@@ -14,6 +14,8 @@
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/storage/table_partition.h"
 
+using silo::storage::column::IntColumnPartition;
+
 namespace silo::query_engine::filter::expressions {
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters,readability-identifier-length)
@@ -48,13 +50,15 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> IntBetween::com
    const auto& int_column = table_partition.columns.int_columns.at(column_name);
 
    operators::PredicateVector predicates;
-   predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<int32_t>>(
-      int_column.getValues(), operators::Comparator::HIGHER_OR_EQUALS, from.value_or(INT32_MIN + 1)
+   predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<IntColumnPartition>>(
+      int_column, operators::Comparator::HIGHER_OR_EQUALS, from.value_or(INT32_MIN + 1)
    ));
    if (to.has_value()) {
-      predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<int32_t>>(
-         int_column.getValues(), operators::Comparator::LESS_OR_EQUALS, to.value()
-      ));
+      predicates.emplace_back(
+         std::make_unique<operators::CompareToValueSelection<IntColumnPartition>>(
+            int_column, operators::Comparator::LESS_OR_EQUALS, to.value()
+         )
+      );
    }
 
    auto result =

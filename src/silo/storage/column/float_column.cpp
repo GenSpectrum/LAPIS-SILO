@@ -7,10 +7,6 @@ namespace silo::storage::column {
 FloatColumnPartition::FloatColumnPartition(ColumnMetadata* metadata)
     : metadata(metadata) {}
 
-const std::vector<double>& FloatColumnPartition::getValues() const {
-   return values;
-}
-
 void FloatColumnPartition::insert(double value) {
    values.push_back(value);
 }

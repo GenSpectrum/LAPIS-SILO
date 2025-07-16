@@ -6,8 +6,8 @@
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
+#include "silo/common/german_string.h"
 #include "silo/common/panic.h"
-#include "silo/common/string.h"
 #include "silo/database.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
@@ -36,9 +36,8 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> createMatchingB
       [&, row_count]() {
          roaring::Roaring result_bitmap;
          for (size_t row_idx = 0; row_idx < row_count; ++row_idx) {
-            const auto& embedded_value = string_column.getValues().at(row_idx);
-            const auto& string_value = string_column.lookupValue(embedded_value);
-            if (re2::RE2::PartialMatch(string_value, search_expression)) {
+            std::string full_string = string_column.getValueString(row_idx);
+            if (re2::RE2::PartialMatch(full_string, search_expression)) {
                result_bitmap.add(row_idx);
             }
          }
