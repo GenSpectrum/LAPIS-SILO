@@ -1,6 +1,6 @@
 # Documentation: Phylogenetic Queries
 
-By default SILO does not support phylogeny-based queries. In order to enable these queries a file containing the phylogeny of all (or a subset) of sequences as leaf nodes needs to be imported during pre-processing. The tree file can be specified with the `lineageDefinitionsFilename` field of the preprocessing config. Additionally, to enable querying users must specify which metadata column corresponds to the nodes in the tree file. This should be done by adding the `phyloTreeNodeIdentifier` to the respective metadata field in the database config.
+By default SILO does not support phylogeny-based queries. In order to enable these queries a file containing the phylogeny of all (or a subset) of sequences as leaf nodes needs to be imported during pre-processing. The tree file can be specified with the `phyloTreeFilename` field of the preprocessing config. Additionally, to enable querying users must specify which metadata column corresponds to the nodes in the tree file. This should be done by adding the `phyloTreeNodeIdentifier` to the respective metadata field in the database config.
 
 > **Warning**
 >
