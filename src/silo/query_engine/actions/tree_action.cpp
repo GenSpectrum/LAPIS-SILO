@@ -70,9 +70,8 @@ NodeValuesResponse TreeAction::getNodeValues(
          continue;
       }
       for (uint32_t row_in_table_partition : *filter) {
-         auto value =
-            string_column.lookupValue(string_column.getValues().at(row_in_table_partition));
-         if (!value.empty()) {
+         if (!string_column.isNull(row_in_table_partition)) {
+            auto value = string_column.getValueString(row_in_table_partition);
             all_tree_node_ids.insert(value);
          } else {
             ++num_empty;

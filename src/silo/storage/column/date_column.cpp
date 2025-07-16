@@ -5,8 +5,8 @@
 namespace silo::storage::column {
 
 DateColumnPartition::DateColumnPartition(ColumnMetadata* metadata)
-    : metadata(metadata),
-      is_sorted(true) {}
+    : is_sorted(true),
+      metadata(metadata) {}
 
 bool DateColumnPartition::isSorted() const {
    return is_sorted;

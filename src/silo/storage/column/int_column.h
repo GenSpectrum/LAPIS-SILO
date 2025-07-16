@@ -17,6 +17,7 @@ class IntColumnPartition {
    using Metadata = ColumnMetadata;
 
    static constexpr schema::ColumnType TYPE = schema::ColumnType::INT32;
+   using value_type = int32_t;
 
    static int32_t null() { return INT32_MIN; }
 
@@ -30,18 +31,21 @@ class IntColumnPartition {
    }
 
    std::vector<int32_t> values;
-   Metadata* metadata;
 
   public:
+   Metadata* metadata;
+
    explicit IntColumnPartition(Metadata* metadata);
 
-   [[nodiscard]] const std::vector<int32_t>& getValues() const;
+   [[nodiscard]] bool isNull(size_t row_id) const { return values.at(row_id) == null(); }
+
+   [[nodiscard]] int32_t getValue(size_t row_id) const { return values.at(row_id); }
+
+   size_t numValues() const { return values.size(); }
 
    void insert(int32_t value);
 
    void insertNull();
-
-   void reserve(size_t row_count);
 };
 
 }  // namespace silo::storage::column

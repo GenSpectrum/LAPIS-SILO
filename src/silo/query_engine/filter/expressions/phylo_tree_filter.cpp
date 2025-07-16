@@ -6,8 +6,8 @@
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
+#include "silo/common/german_string.h"
 #include "silo/common/panic.h"
-#include "silo/common/string.h"
 #include "silo/database.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"

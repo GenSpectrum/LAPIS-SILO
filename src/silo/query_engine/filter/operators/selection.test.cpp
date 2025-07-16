@@ -3,16 +3,38 @@
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
 
+#include "silo/storage/column/int_column.h"
+
 using silo::query_engine::filter::operators::Comparator;
 using silo::query_engine::filter::operators::CompareToValueSelection;
 using silo::query_engine::filter::operators::Selection;
+using silo::storage::column::ColumnMetadata;
+using silo::storage::column::IntColumnPartition;
+
+namespace {
+
+std::pair<std::shared_ptr<ColumnMetadata>, IntColumnPartition> makeTestColumn(
+   const std::vector<int32_t> values
+) {
+   auto metadata = std::make_shared<ColumnMetadata>("test");
+   IntColumnPartition test_column{metadata.get()};
+   for (auto value : values) {
+      test_column.insert(value);
+   }
+   return {metadata, test_column};
+}
+
+}  // namespace
 
 TEST(OperatorSelection, equalsShouldReturnCorrectValues) {
-   const std::vector<int32_t> test_column({{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}});
-   const uint32_t row_count = test_column.size();
+   const std::vector<int32_t> values({{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}});
+   auto [metadata, test_column] = makeTestColumn(values);
+   const uint32_t row_count = values.size();
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<CompareToValueSelection<int32_t>>(test_column, Comparator::EQUALS, 1),
+      std::make_unique<CompareToValueSelection<IntColumnPartition>>(
+         test_column, Comparator::EQUALS, 1
+      ),
       row_count
    );
 
@@ -22,11 +44,14 @@ TEST(OperatorSelection, equalsShouldReturnCorrectValues) {
 }
 
 TEST(OperatorSelection, notEqualsShouldReturnCorrectValues) {
-   const std::vector<int32_t> test_column({{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}});
-   const uint32_t row_count = test_column.size();
+   const std::vector<int32_t> values({{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}});
+   auto [metadata, test_column] = makeTestColumn(values);
+   const uint32_t row_count = values.size();
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<CompareToValueSelection<int32_t>>(test_column, Comparator::NOT_EQUALS, 1),
+      std::make_unique<CompareToValueSelection<IntColumnPartition>>(
+         test_column, Comparator::NOT_EQUALS, 1
+      ),
       row_count
    );
 
@@ -36,11 +61,14 @@ TEST(OperatorSelection, notEqualsShouldReturnCorrectValues) {
 }
 
 TEST(OperatorSelection, lessShouldReturnCorrectValues) {
-   const std::vector<int32_t> test_column({{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}});
-   const uint32_t row_count = test_column.size();
+   const std::vector<int32_t> values({{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}});
+   auto [metadata, test_column] = makeTestColumn(values);
+   const uint32_t row_count = values.size();
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<CompareToValueSelection<int32_t>>(test_column, Comparator::LESS, 1),
+      std::make_unique<CompareToValueSelection<IntColumnPartition>>(
+         test_column, Comparator::LESS, 1
+      ),
       row_count
    );
 
@@ -50,11 +78,12 @@ TEST(OperatorSelection, lessShouldReturnCorrectValues) {
 }
 
 TEST(OperatorSelection, lessOrEqualsShouldReturnCorrectValues) {
-   const std::vector<int32_t> test_column({{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}});
-   const uint32_t row_count = test_column.size();
+   const std::vector<int32_t> values({{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}});
+   auto [metadata, test_column] = makeTestColumn(values);
+   const uint32_t row_count = values.size();
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<CompareToValueSelection<int32_t>>(
+      std::make_unique<CompareToValueSelection<IntColumnPartition>>(
          test_column, Comparator::LESS_OR_EQUALS, 1
       ),
       row_count
@@ -66,11 +95,12 @@ TEST(OperatorSelection, lessOrEqualsShouldReturnCorrectValues) {
 }
 
 TEST(OperatorSelection, higherOrEqualsShouldReturnCorrectValues) {
-   const std::vector<int32_t> test_column({{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}});
-   const uint32_t row_count = test_column.size();
+   const std::vector<int32_t> values({{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}});
+   auto [metadata, test_column] = makeTestColumn(values);
+   const uint32_t row_count = values.size();
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<CompareToValueSelection<int32_t>>(
+      std::make_unique<CompareToValueSelection<IntColumnPartition>>(
          test_column, Comparator::HIGHER_OR_EQUALS, 1
       ),
       row_count
@@ -82,11 +112,14 @@ TEST(OperatorSelection, higherOrEqualsShouldReturnCorrectValues) {
 }
 
 TEST(OperatorSelection, higherShouldReturnCorrectValues) {
-   const std::vector<int32_t> test_column({{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}});
-   const uint32_t row_count = test_column.size();
+   const std::vector<int32_t> values({{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}});
+   auto [metadata, test_column] = makeTestColumn(values);
+   const uint32_t row_count = values.size();
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<CompareToValueSelection<int32_t>>(test_column, Comparator::HIGHER, 1),
+      std::make_unique<CompareToValueSelection<IntColumnPartition>>(
+         test_column, Comparator::HIGHER, 1
+      ),
       row_count
    );
 
@@ -96,11 +129,14 @@ TEST(OperatorSelection, higherShouldReturnCorrectValues) {
 }
 
 TEST(OperatorSelection, correctWithNegativeNumbers) {
-   const std::vector<int32_t> test_column({{0, -1, 4, 4, 4, -1, -1, -1, -1, -1}});
-   const uint32_t row_count = test_column.size();
+   const std::vector<int32_t> values({{0, -1, 4, 4, 4, -1, -1, -1, -1, -1}});
+   auto [metadata, test_column] = makeTestColumn(values);
+   const uint32_t row_count = values.size();
 
    const Selection under_test(
-      std::make_unique<CompareToValueSelection<int32_t>>(test_column, Comparator::EQUALS, -1),
+      std::make_unique<CompareToValueSelection<IntColumnPartition>>(
+         test_column, Comparator::EQUALS, -1
+      ),
       row_count
    );
 
@@ -108,11 +144,14 @@ TEST(OperatorSelection, correctWithNegativeNumbers) {
 }
 
 TEST(OperatorSelection, returnsCorrectTypeInfo) {
-   const std::vector<int32_t> test_column({{0, -1, 4, 4, 4, -1, -1, -1, -1, -1}});
-   const uint32_t row_count = test_column.size();
+   std::vector<int32_t> values{{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}};
+   auto [metadata, test_column] = makeTestColumn(values);
+   const uint32_t row_count = values.size();
 
    const Selection under_test(
-      std::make_unique<CompareToValueSelection<int32_t>>(test_column, Comparator::EQUALS, -1),
+      std::make_unique<CompareToValueSelection<IntColumnPartition>>(
+         test_column, Comparator::EQUALS, -1
+      ),
       row_count
    );
 

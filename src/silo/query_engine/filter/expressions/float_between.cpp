@@ -13,6 +13,8 @@
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/storage/table_partition.h"
 
+using silo::storage::column::FloatColumnPartition;
+
 namespace silo::query_engine::filter::expressions {
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters,readability-identifier-length)
@@ -47,23 +49,29 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> FloatBetween::c
 
    operators::PredicateVector predicates;
    if (from.has_value()) {
-      predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<double>>(
-         float_column.getValues(), operators::Comparator::HIGHER_OR_EQUALS, from.value()
-      ));
+      predicates.emplace_back(
+         std::make_unique<operators::CompareToValueSelection<FloatColumnPartition>>(
+            float_column, operators::Comparator::HIGHER_OR_EQUALS, from.value()
+         )
+      );
    }
 
    if (to.has_value()) {
-      predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<double>>(
-         float_column.getValues(), operators::Comparator::LESS, to.value()
-      ));
+      predicates.emplace_back(
+         std::make_unique<operators::CompareToValueSelection<FloatColumnPartition>>(
+            float_column, operators::Comparator::LESS, to.value()
+         )
+      );
    }
 
    if (predicates.empty()) {
-      predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<double>>(
-         float_column.getValues(),
-         operators::Comparator::NOT_EQUALS,
-         storage::column::FloatColumnPartition::null()
-      ));
+      predicates.emplace_back(
+         std::make_unique<operators::CompareToValueSelection<FloatColumnPartition>>(
+            float_column,
+            operators::Comparator::NOT_EQUALS,
+            storage::column::FloatColumnPartition::null()
+         )
+      );
    }
 
    return std::make_unique<operators::Selection>(

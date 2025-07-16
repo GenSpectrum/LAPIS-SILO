@@ -9,10 +9,6 @@ namespace silo::storage::column {
 BoolColumnPartition::BoolColumnPartition(ColumnMetadata* metadata)
     : metadata(metadata) {}
 
-const std::vector<silo::common::OptionalBool>& BoolColumnPartition::getValues() const {
-   return values;
-}
-
 void BoolColumnPartition::insert(bool value) {
    values.emplace_back(value);
 }

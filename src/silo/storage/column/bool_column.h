@@ -17,6 +17,7 @@ class BoolColumnPartition {
    using Metadata = ColumnMetadata;
 
    static constexpr schema::ColumnType TYPE = schema::ColumnType::BOOL;
+   using value_type = bool;
 
   private:
    friend class boost::serialization::access;
@@ -27,13 +28,17 @@ class BoolColumnPartition {
       // clang-format on
    }
 
-   std::vector<silo::common::OptionalBool> values;
-   Metadata* metadata;
+   std::vector<common::OptionalBool> values;
 
   public:
+   Metadata* metadata;
    explicit BoolColumnPartition(Metadata* metadata);
 
-   [[nodiscard]] const std::vector<silo::common::OptionalBool>& getValues() const;
+   size_t numValues() const { return values.size(); }
+
+   [[nodiscard]] bool getValue(size_t row_id) const { return values.at(row_id).value().value(); }
+
+   [[nodiscard]] bool isNull(size_t row_id) const { return values.at(row_id).isNull(); }
 
    void insert(bool value);
 

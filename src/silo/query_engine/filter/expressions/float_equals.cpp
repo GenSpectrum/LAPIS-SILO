@@ -15,6 +15,8 @@
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/storage/table_partition.h"
 
+using silo::storage::column::FloatColumnPartition;
+
 namespace silo::query_engine::filter::expressions {
 
 FloatEquals::FloatEquals(std::string column_name, double value)
@@ -39,8 +41,8 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> FloatEquals::co
    const auto& float_column = table_partition.columns.float_columns.at(column_name);
 
    return std::make_unique<operators::Selection>(
-      std::make_unique<operators::CompareToValueSelection<double>>(
-         float_column.getValues(), operators::Comparator::EQUALS, value
+      std::make_unique<operators::CompareToValueSelection<FloatColumnPartition>>(
+         float_column, operators::Comparator::EQUALS, value
       ),
       table_partition.sequence_count
    );
