@@ -92,7 +92,16 @@ class IndexedStringColumnPartition {
 
    void reserve(size_t row_count);
 
-   [[nodiscard]] const std::vector<silo::Idx>& getValues() const;
+   size_t numValues() const { return value_ids.size(); }
+
+   [[nodiscard]] const silo::Idx& getValue(size_t row_id) const { return value_ids.at(row_id); }
+
+   [[nodiscard]] bool isNull(size_t row_id) const {
+      return lookupValue(value_ids.at(row_id)).empty();
+   }
+   [[nodiscard]] std::string getValueString(size_t row_id) const {
+      return std::string{lookupValue(getValue(row_id))};
+   }
 
    [[nodiscard]] inline std::string_view lookupValue(Idx id) const {
       return metadata->dictionary.getValue(id);

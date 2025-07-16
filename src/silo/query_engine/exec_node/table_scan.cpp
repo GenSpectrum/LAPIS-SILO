@@ -147,7 +147,7 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::ZstdCompressedStr
       table_scan_node
          .getColumnTypeArrayBuilders<storage::column::ZstdCompressedStringColumnPartition>()
          .at(column_name);
-   auto column =
+   auto& column =
       table_partition.columns.getColumns<storage::column::ZstdCompressedStringColumnPartition>().at(
          column_name
       );
@@ -172,12 +172,24 @@ arrow::Status ColumnEntryAppender::operator()(
    EVOBENCH_SCOPE("ColumnEntryAppender", columnTypeToString(Column::TYPE));
    auto array = table_scan_node.getColumnTypeArrayBuilders<Column>().at(column_name);
    for (auto row_id : row_ids) {
-      using type = typename ArrowBuilderSelector<Column>::value_type;
-      auto value = table_partition.columns.getValue(column_name, row_id);
-      if (value.has_value()) {
-         ARROW_RETURN_NOT_OK(array->Append(get<type>(value.value())));
-      } else {
+      auto& column = table_partition.columns.getColumns<Column>().at(column_name);
+      if (column.isNull(row_id)) {
          ARROW_RETURN_NOT_OK(array->AppendNull());
+      } else {
+         if constexpr (std::is_same_v<Column, storage::column::StringColumnPartition>) {
+            auto value = column.getValueString(row_id);
+            ARROW_RETURN_NOT_OK(array->Append(value));
+         } else if constexpr (std::
+                                 is_same_v<Column, storage::column::IndexedStringColumnPartition>) {
+            auto value = column.getValueString(row_id);
+            ARROW_RETURN_NOT_OK(array->Append(value));
+         } else if constexpr (std::is_same_v<Column, storage::column::DateColumnPartition>) {
+            auto value = common::dateToString(column.getValue(row_id)).value();
+            ARROW_RETURN_NOT_OK(array->Append(value));
+         } else {
+            auto value = column.getValue(row_id);
+            ARROW_RETURN_NOT_OK(array->Append(value));
+         }
       }
    }
    return arrow::Status::OK();

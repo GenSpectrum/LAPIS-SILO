@@ -24,15 +24,12 @@ TEST(StringColumnPartition, rawInsertedValuesRequeried) {
    under_test.insert("some string that is a little longer 1");
    under_test.insert("value 1");
 
-   EXPECT_EQ(under_test.getValues()[0].toString(metadata.dictionary), "value 1");
-   EXPECT_EQ(under_test.getValues()[1].toString(metadata.dictionary), "value 2");
-   EXPECT_EQ(under_test.getValues()[2].toString(metadata.dictionary), "value 2");
-   EXPECT_EQ(under_test.getValues()[3].toString(metadata.dictionary), "value 3");
-   EXPECT_EQ(
-      under_test.getValues()[4].toString(metadata.dictionary),
-      "some string that is a little longer 1"
-   );
-   EXPECT_EQ(under_test.getValues()[5].toString(metadata.dictionary), "value 1");
+   EXPECT_EQ(under_test.getValueString(0), "value 1");
+   EXPECT_EQ(under_test.getValueString(1), "value 2");
+   EXPECT_EQ(under_test.getValueString(2), "value 2");
+   EXPECT_EQ(under_test.getValueString(3), "value 3");
+   EXPECT_EQ(under_test.getValueString(4), "some string that is a little longer 1");
+   EXPECT_EQ(under_test.getValueString(5), "value 1");
 }
 
 TEST(StringColumnPartition, serializationOfMetadataWorks) {
@@ -94,9 +91,9 @@ TEST(StringColumnPartition, rawInsertedValuesWithPhyloTreeRequeried) {
    auto tree_node_id_not_in_tree = metadata.phylo_tree->getTreeNodeId("NOT_IN_TREE");
    auto tree_node_id_root = metadata.phylo_tree->getTreeNodeId("ROOT");
 
-   EXPECT_EQ(under_test.getValues()[0].toString(metadata.dictionary), "CHILD2");
-   EXPECT_EQ(under_test.getValues()[1].toString(metadata.dictionary), "CHILD3");
-   EXPECT_EQ(under_test.getValues()[2].toString(metadata.dictionary), "NOT_IN_TREE");
+   EXPECT_EQ(under_test.getValueString(0), "CHILD2");
+   EXPECT_EQ(under_test.getValueString(1), "CHILD3");
+   EXPECT_EQ(under_test.getValueString(2), "NOT_IN_TREE");
    EXPECT_EQ(under_test.getDescendants(tree_node_id_child2.value()).cardinality(), 0);
    EXPECT_EQ(under_test.getDescendants(tree_node_id_child.value()).cardinality(), 2);
    EXPECT_EQ(under_test.getDescendants(tree_node_id_root.value()).cardinality(), 2);
@@ -115,7 +112,7 @@ TEST(StringColumn, rawInsertedValuesRequeried) {
    under_test.insert("some string that is a little longer 1");
    under_test.insert("value 1");
 
-   const silo::common::String somehow_acquired_element_representation = under_test.getValues()[4];
+   const silo::SiloString somehow_acquired_element_representation = under_test.getValue(4);
 
    EXPECT_EQ(
       under_test.lookupValue(somehow_acquired_element_representation),
@@ -141,7 +138,62 @@ TEST(StringColumn, compareAcrossPartitions) {
    partition_2.insert("some string that is a little longer 1");
    partition_2.insert("other value 1");
 
-   EXPECT_EQ(partition_1.getValues()[0], partition_1.getValues()[5]);
-   EXPECT_EQ(partition_1.getValues()[5], partition_2.getValues()[2]);
-   EXPECT_EQ(partition_1.getValues()[4], partition_2.getValues()[4]);
+   EXPECT_EQ(partition_1.getValueString(0), partition_1.getValueString(5));
+   EXPECT_EQ(partition_1.getValueString(5), partition_2.getValueString(2));
+   EXPECT_EQ(partition_1.getValueString(4), partition_2.getValueString(4));
+}
+
+TEST(StringColumn, manyLongValues) {
+   std::vector<std::string> test_values;
+   test_values.reserve(50000);
+   for (size_t i = 0; i < 50000; ++i) {
+      test_values.push_back(fmt::format("SOME_{}_LONG_{}_STRING", i, i));
+   }
+
+   StringColumnMetadata under_test("string_column");
+   StringColumnPartition partition{&under_test};
+
+   for (auto& value : test_values) {
+      partition.insert(value);
+   }
+
+   for (size_t i = 0; i < 50000; ++i) {
+      ASSERT_EQ(partition.getValue(i).fastCompare(test_values.at(i)), std::nullopt);
+      ASSERT_EQ(partition.getValueString(i), test_values.at(i));
+   }
+}
+
+TEST(StringColumn, manyMixedValues) {
+   std::vector<std::string> test_values;
+   test_values.reserve(50001);
+   for (size_t i = 0; i < 50001; ++i) {
+      if (i % 2 == 1) {
+         test_values.push_back("SHRT");
+      } else if (i % 10000 == 0) {
+         test_values.push_back(fmt::format("{}_VERY_VERY_LONG_STRING_{}", i, std::string(i, 'x')));
+      } else {
+         test_values.push_back(fmt::format("{}_LONG_STRING_{}", i, std::string(100, 'x')));
+      }
+   }
+
+   StringColumnMetadata under_test("string_column");
+   StringColumnPartition partition{&under_test};
+
+   for (auto& value : test_values) {
+      partition.insert(value);
+   }
+
+   for (size_t i = 0; i < 50001; ++i) {
+      if (i % 2 == 1) {
+         ASSERT_TRUE(partition.getValue(i).fastCompare(test_values.at(i)).has_value());
+         ASSERT_EQ(
+            partition.getValue(i).fastCompare(test_values.at(i)).value(),
+            std::strong_ordering::equal
+         );
+         ASSERT_EQ(partition.getValueString(i), test_values.at(i));
+      } else {
+         ASSERT_EQ(partition.getValue(i).fastCompare(test_values.at(i)), std::nullopt);
+         ASSERT_EQ(partition.getValueString(i), test_values.at(i));
+      }
+   }
 }

@@ -83,13 +83,6 @@ class ColumnPartitionGroup {
       simdjson::ondemand::value& value
    );
 
-   [[nodiscard]] ColumnPartitionGroup getSubgroup(
-      const std::vector<schema::ColumnIdentifier>& fields
-   ) const;
-
-   [[nodiscard]] common::JsonValueType getValue(const std::string& column, uint32_t sequence_id)
-      const;
-
    template <column::Column ColumnType>
    std::map<std::string, ColumnType>& getColumns();
 

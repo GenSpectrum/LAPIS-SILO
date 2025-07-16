@@ -13,7 +13,7 @@ TEST(FloatColumn, doesNotErrorOnValidInputs) {
    FloatColumnPartition column_partition{&column};
    column_partition.insert(0.1);
    column_partition.insertNull();
-   ASSERT_EQ(column_partition.getValues().size(), 2);
-   ASSERT_EQ(column_partition.getValues().at(0), 0.1);
-   ASSERT_TRUE(std::isnan(column_partition.getValues().at(1)));
+   ASSERT_EQ(column_partition.numValues(), 2);
+   ASSERT_EQ(column_partition.getValue(0), 0.1);
+   ASSERT_TRUE(std::isnan(column_partition.getValue(1)));
 }

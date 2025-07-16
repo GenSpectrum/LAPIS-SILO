@@ -6,8 +6,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include "silo/common/german_string.h"
 #include "silo/common/panic.h"
-#include "silo/common/string.h"
 #include "silo/database.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
@@ -18,6 +18,8 @@
 #include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
+
+using storage::column::StringColumnPartition;
 
 StringEquals::StringEquals(std::string column_name, std::string value)
     : column_name(std::move(column_name)),
@@ -50,16 +52,12 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> StringEquals::c
    }
    SILO_ASSERT(table_partition.columns.string_columns.contains(column_name));
    const auto& string_column = table_partition.columns.string_columns.at(column_name);
-   const auto& embedded_string = string_column.embedString(value);
-   if (embedded_string.has_value()) {
-      return std::make_unique<operators::Selection>(
-         std::make_unique<operators::CompareToValueSelection<common::SiloString>>(
-            string_column.getValues(), operators::Comparator::EQUALS, embedded_string.value()
-         ),
-         table_partition.sequence_count
-      );
-   }
-   return std::make_unique<operators::Empty>(table_partition.sequence_count);
+   return std::make_unique<operators::Selection>(
+      std::make_unique<operators::CompareToValueSelection<StringColumnPartition>>(
+         string_column, operators::Comparator::EQUALS, value
+      ),
+      table_partition.sequence_count
+   );
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
