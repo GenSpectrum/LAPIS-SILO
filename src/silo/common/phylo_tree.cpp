@@ -247,21 +247,17 @@ PhyloTree PhyloTree::fromNewickString(const std::string& newick_string) {
       );
    }
    if (sv.back() != ';') {
-      throw silo::preprocessing::PreprocessingException(
-         fmt::format(
-            "Error when parsing the Newick string: '{}' - string does not end in ';'", newick_string
-         )
-      );
+      throw silo::preprocessing::PreprocessingException(fmt::format(
+         "Error when parsing the Newick string: '{}' - string does not end in ';'", newick_string
+      ));
    }
    sv.remove_suffix(1);
    try {
       auto root = parseSubtree(sv, file.nodes, 0);
       if (!sv.empty()) {
-         throw silo::preprocessing::PreprocessingException(
-            fmt::format(
-               "Error when parsing the Newick string: '{}' - extra characters found", newick_string
-            )
-         );
+         throw silo::preprocessing::PreprocessingException(fmt::format(
+            "Error when parsing the Newick string: '{}' - extra characters found", newick_string
+         ));
       }
    } catch (const std::exception& e) {
       throw silo::preprocessing::PreprocessingException(
@@ -292,11 +288,9 @@ PhyloTree PhyloTree::fromNewickFile(const std::filesystem::path& newick_path) {
    try {
       return fromNewickString(contents.str());
    } catch (const std::exception& e) {
-      throw silo::preprocessing::PreprocessingException(
-         fmt::format(
-            "Error when parsing the Newick string '{}': {}", newick_path.string(), e.what()
-         )
-      );
+      throw silo::preprocessing::PreprocessingException(fmt::format(
+         "Error when parsing the Newick string '{}': {}", newick_path.string(), e.what()
+      ));
    }
 }
 
@@ -310,11 +304,9 @@ PhyloTree PhyloTree::fromFile(const std::filesystem::path& path) {
    } else if (ext == ".json") {
       return common::PhyloTree::fromAuspiceJSONFile(path);
    }
-   throw silo::preprocessing::PreprocessingException(
-      fmt::format(
-         "Error when parsing tree file: '{}'. Path must end with .nwk or .json", path.string()
-      )
-   );
+   throw silo::preprocessing::PreprocessingException(fmt::format(
+      "Error when parsing tree file: '{}'. Path must end with .nwk or .json", path.string()
+   ));
 }
 
 std::optional<TreeNodeId> PhyloTree::getTreeNodeId(const std::string& node_label) {
