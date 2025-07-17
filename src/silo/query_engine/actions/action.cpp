@@ -288,7 +288,6 @@ arrow::Result<arrow::acero::ExecNode*> removeRandomizeColumn(
    std::vector<arrow::Expression> field_refs;
    for (const auto& field : node->output_schema()->fields()) {
       if (field->name() != RANDOMIZE_HASH_FIELD_NAME) {
-         SPDLOG_ERROR("{}: {}", field->name(), field->type()->name());
          field_refs.push_back(arrow::compute::field_ref(field->name()));
       }
    }
