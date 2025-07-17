@@ -39,8 +39,23 @@ class ScalarToJsonTypeVisitor : public arrow::ScalarVisitor {
    }
 
    arrow::Status Visit(const arrow::StringScalar& scalar) override {
-      nlohmann::json j = scalar.view();
-      *output_stream << j;
+      for (char c : scalar.view()) {
+         switch (c) {
+            case '"':  *output_stream << "\\\""; break;
+            case '\\': *output_stream << "\\\\"; break;
+            case '\b': *output_stream << "\\b"; break;
+            case '\f': *output_stream << "\\f"; break;
+            case '\n': *output_stream << "\\n"; break;
+            case '\r': *output_stream << "\\r"; break;
+            case '\t': *output_stream << "\\t"; break;
+            default:
+               if (c < 0x20) {
+                  *output_stream << "\\u" << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(c);
+               } else {
+                  *output_stream << c;
+               }
+         }
+      }
       return arrow::Status::OK();
    }
 
