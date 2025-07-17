@@ -15,6 +15,7 @@
 #include <boost/container_hash/hash.hpp>
 #include <nlohmann/json.hpp>
 
+#include "evobench/evobench.hpp"
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/actions/action.h"
@@ -206,6 +207,7 @@ arrow::Result<QueryPlan> InsertionAggregation<SymbolType>::toQueryPlanImpl(
    std::vector<CopyOnWriteBitmap> partition_filters,
    const config::QueryOptions& query_options
 ) const {
+   EVOBENCH_SCOPE("InsertionAggregation", "toQueryPlanImpl");
    validateSequenceNames<SymbolType>(table, sequence_names);
    auto sequence_names_to_evaluate = sequence_names;
 
@@ -214,6 +216,7 @@ arrow::Result<QueryPlan> InsertionAggregation<SymbolType>::toQueryPlanImpl(
    std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
       [table, output_fields, partition_filters, sequence_names_to_evaluate, produced = false](
       ) mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
+      EVOBENCH_SCOPE("InsertionAggregation", "producer");
       if (produced == true) {
          std::optional<arrow::ExecBatch> result = std::nullopt;
          return arrow::Future{result};
