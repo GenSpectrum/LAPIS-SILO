@@ -86,7 +86,10 @@ arrow::Status writeBatchAsNdjson(
          }
       }
       ndjson_line_stream << "}\n";
-      *output_stream << ndjson_line_stream.rdbuf();
+      {
+         EVOBENCH_SCOPE("QueryPlan", "sendDataToOutputStream");
+         *output_stream << ndjson_line_stream.rdbuf();
+      }
       if (!*output_stream) {
          return arrow::Status::IOError("Could not write to network stream");
       }
