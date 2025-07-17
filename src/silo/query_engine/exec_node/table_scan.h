@@ -9,6 +9,7 @@
 #include <spdlog/spdlog.h>
 #include <nlohmann/json_fwd.hpp>
 
+#include "evobench/evobench.hpp"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/batched_bitmap_reader.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"

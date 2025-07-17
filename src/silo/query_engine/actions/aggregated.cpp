@@ -14,6 +14,7 @@
 #include <oneapi/tbb/parallel_for.h>
 #include <nlohmann/json.hpp>
 
+#include "evobench/evobench.hpp"
 #include "silo/config/database_config.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/bad_request.h"
@@ -81,6 +82,7 @@ arrow::Result<QueryPlan> Aggregated::toQueryPlanImpl(
    std::vector<CopyOnWriteBitmap> partition_filters,
    const config::QueryOptions& query_options
 ) const {
+   EVOBENCH_SCOPE("Aggregated", "toQueryPlanImpl");
    if (group_by_fields.empty()) {
       return makeAggregateWithoutGrouping(table, partition_filters, query_options);
    } else {

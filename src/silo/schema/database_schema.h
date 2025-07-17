@@ -27,6 +27,29 @@ enum class ColumnType {
    ZSTD_COMPRESSED_STRING
 };
 
+constexpr std::string_view columnTypeToString(ColumnType type) {
+   switch (type) {
+      case ColumnType::STRING:
+         return "STRING";
+      case ColumnType::INDEXED_STRING:
+         return "INDEXED_STRING";
+      case ColumnType::DATE:
+         return "DATE";
+      case ColumnType::BOOL:
+         return "BOOL";
+      case ColumnType::INT:
+         return "INT";
+      case ColumnType::FLOAT:
+         return "FLOAT";
+      case ColumnType::AMINO_ACID_SEQUENCE:
+         return "AMINO_ACID_SEQUENCE";
+      case ColumnType::NUCLEOTIDE_SEQUENCE:
+         return "NUCLEOTIDE_SEQUENCE";
+      case ColumnType::ZSTD_COMPRESSED_STRING:
+         return "ZSTD_COMPRESSED_STRING";
+   }
+}
+
 bool isSequenceColumn(ColumnType type);
 
 struct ColumnIdentifier {

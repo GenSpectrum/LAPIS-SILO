@@ -15,6 +15,7 @@
 #include <arrow/type_traits.h>
 #include <spdlog/spdlog.h>
 
+#include "evobench/evobench.hpp"
 #include "silo/common/panic.h"
 #include "silo/zstd/zstd_context.h"
 #include "silo/zstd/zstd_decompressor.h"
@@ -29,6 +30,8 @@ struct BinaryDecompressKernel {
       const arrow::compute::ExecSpan& input,
       arrow::compute::ExecResult* out
    ) {
+      EVOBENCH_SCOPE("BinaryDecompressKernel", "Exec");
+
       SPDLOG_TRACE("BinaryDecompressKernel::Exec");
       if (input.num_values() != 2) {
          return arrow::Status::Invalid("Expected 2 input arrays, got ", input.num_values());
@@ -129,15 +132,13 @@ arrow::Expression ZstdDecompressExpression::Make(
    arrow::Expression input_expression,
    std::string dictionary_string
 ) {
-   {
-      static std::string function_name = RegisterCustomFunction();
+   static std::string function_name = RegisterCustomFunction();
 
-      auto dict_scalar = std::make_shared<arrow::BinaryScalar>(std::move(dictionary_string));
+   auto dict_scalar = std::make_shared<arrow::BinaryScalar>(std::move(dictionary_string));
 
-      return arrow::compute::call(
-         function_name, {input_expression, arrow::compute::literal(arrow::Datum(dict_scalar))}
-      );
-   }
+   return arrow::compute::call(
+      function_name, {input_expression, arrow::compute::literal(arrow::Datum(dict_scalar))}
+   );
 }
 
 }  // namespace silo::query_engine::exec_node

@@ -1,4 +1,5 @@
 #include "silo/query_engine/exec_node/ndjson_sink.h"
+#include "evobench/evobench.hpp"
 
 #include <arrow/acero/options.h>
 #include <fmt/format.h>
@@ -55,6 +56,7 @@ arrow::Status writeBatchAsNdjson(
    const std::shared_ptr<arrow::Schema>& schema,
    std::ostream* output_stream
 ) {
+   EVOBENCH_SCOPE("QueryPlan", "writeBatchAsNdjson");
    ARROW_ASSIGN_OR_RAISE(auto record_batch, batch.ToRecordBatch(schema));
    size_t row_count = record_batch->num_rows();
    size_t column_count = record_batch->num_columns();

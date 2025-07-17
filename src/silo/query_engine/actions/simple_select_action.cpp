@@ -7,6 +7,7 @@
 #include <arrow/compute/expression.h>
 #include <fmt/ranges.h>
 
+#include "evobench/evobench.hpp"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
 #include "silo/query_engine/exec_node/table_scan.h"
 #include "silo/schema/database_schema.h"
@@ -34,6 +35,7 @@ arrow::Result<QueryPlan> SimpleSelectAction::toQueryPlanImpl(
    std::vector<CopyOnWriteBitmap> partition_filters,
    const config::QueryOptions& query_options
 ) const {
+   EVOBENCH_SCOPE("Select", "toQueryPlanImpl");
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
 
    arrow::acero::ExecNode* node;
