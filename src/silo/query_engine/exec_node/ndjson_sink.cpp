@@ -17,28 +17,33 @@ class ScalarToJsonTypeVisitor : public arrow::ScalarVisitor {
        : output_stream(output_stream) {}
 
    arrow::Status Visit(const arrow::Int32Scalar& scalar) override {
+      EVOBENCH_SCOPE("ScalarToJsonTypeVisitor", "Int32Scalar");
       *output_stream << scalar.value;
       return arrow::Status::OK();
    }
 
    arrow::Status Visit(const arrow::Int64Scalar& scalar) override {
+      EVOBENCH_SCOPE("ScalarToJsonTypeVisitor", "Int64Scalar");
       *output_stream << scalar.value;
       return arrow::Status::OK();
    }
 
    arrow::Status Visit(const arrow::DoubleScalar& scalar) override {
+      EVOBENCH_SCOPE("ScalarToJsonTypeVisitor", "DoubleScalar");
       nlohmann::json j = scalar.value;
       *output_stream << j;
       return arrow::Status::OK();
    }
 
    arrow::Status Visit(const arrow::FloatScalar& scalar) override {
+      EVOBENCH_SCOPE("ScalarToJsonTypeVisitor", "FloatScalar");
       nlohmann::json j = scalar.value;
       *output_stream << j;
       return arrow::Status::OK();
    }
 
    arrow::Status Visit(const arrow::StringScalar& scalar) override {
+      EVOBENCH_SCOPE("ScalarToJsonTypeVisitor", "StringScalar");
       for (char c : scalar.view()) {
          switch (c) {
             case '"':  *output_stream << "\\\""; break;
@@ -60,6 +65,7 @@ class ScalarToJsonTypeVisitor : public arrow::ScalarVisitor {
    }
 
    arrow::Status Visit(const arrow::BooleanScalar& scalar) override {
+      EVOBENCH_SCOPE("ScalarToJsonTypeVisitor", "BooleanScalar");
       *output_stream << (scalar.value ? "true" : "false");
       return arrow::Status::OK();
    }
@@ -95,6 +101,7 @@ arrow::Status writeBatchAsNdjson(
          if (column->IsNull(row_idx)) {
             ndjson_line_stream << "null";
          } else {
+            EVOBENCH_SCOPE("QueryPlan", "writeBatchAsNdjson(inner_scalar scope)");
             ARROW_ASSIGN_OR_RAISE(const auto& scalar, column->GetScalar(row_idx));
             ScalarToJsonTypeVisitor my_visitor(&ndjson_line_stream);
             ARROW_RETURN_NOT_OK(scalar->Accept(&my_visitor));
