@@ -105,7 +105,7 @@ struct fixed_string {
    constexpr operator const char*() const { return data; }
 };
 
-consteval std::string concat3(std::string str1, std::string_view str2, std::string_view str3) {
+consteval std::string& concat3(std::string& str1, std::string_view str2, std::string_view str3) {
    str1 += str2;
    str1 += str3;
    return str1;
