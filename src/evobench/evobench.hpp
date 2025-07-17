@@ -102,7 +102,8 @@ struct fixed_string {
 
    consteval size_t size() { return N; }
 
-   consteval fixed_string() : data{} {};
+   consteval fixed_string()
+       : data{} {};
 
    consteval fixed_string(std::string_view str) { std::copy_n(str.data(), str.size(), data); }
 
@@ -150,8 +151,7 @@ class Scope {
 #define EVOBENCH_POINT(module, action)
 #define EVOBENCH_KEY_VALUE(key, value)
 #else
-#define EVOBENCH_SCOPE_INTERNAL2(scope_name) \
-   evobench::Scope<scope_name> __evobench_scope{};
+#define EVOBENCH_SCOPE_INTERNAL2(scope_name) evobench::Scope<scope_name> __evobench_scope{};
 #define EVOBENCH_SCOPE_INTERNAL1(module, action)                                 \
    EVOBENCH_SCOPE_INTERNAL2((evobench::concat3<module.size(), 1, action.size()>( \
       evobench::fixed_string<module.size()>{module},                             \
