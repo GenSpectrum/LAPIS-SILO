@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.7.3](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.2...v0.7.3) (2025-07-17)
+
+
+### Features
+
+* enable filtering for recombinant lineages with specifiable mode for including all recombinant sublineages or only the ones that are fully contained in the clade of the filtered node ([6e335dd](https://github.com/GenSpectrum/LAPIS-SILO/commit/6e335dda520c2e9c12d34165f2188a0daa5aa74f))
+
+
+### Bug Fixes
+
+* **benchmarking:** only depend on WisePulse for the tool to run, not for the data ([#875](https://github.com/GenSpectrum/LAPIS-SILO/issues/875)) ([1aa4dc9](https://github.com/GenSpectrum/LAPIS-SILO/commit/1aa4dc9661b7840a9ad35f35474886b752f7df5d))
+* **silo:** handle newick files with new line at end ([#889](https://github.com/GenSpectrum/LAPIS-SILO/issues/889)) ([7f31fa7](https://github.com/GenSpectrum/LAPIS-SILO/commit/7f31fa75b8a3bb1501b1e30c65dd525b178bfc3c))
+
 ## [0.7.2](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.1...v0.7.2) (2025-07-08)
 
 
