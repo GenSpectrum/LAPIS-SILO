@@ -105,11 +105,10 @@ struct fixed_string {
    constexpr operator const char*() const { return data; }
 };
 
-consteval std::string concat3(std::string_view str1, std::string_view str2, std::string_view str3) {
-   std::string res{str1};
-   res += str2;
-   res += str3;
-   return res;
+consteval std::string concat3(std::string str1, std::string_view str2, std::string_view str3) {
+   str1 += str2;
+   str1 += str3;
+   return str1;
 }
 
 /// Log at the object creation as "TS" and its destruction as
