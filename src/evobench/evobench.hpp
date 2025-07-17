@@ -100,15 +100,26 @@ template <std::size_t N>
 struct fixed_string {
    char data[N];
 
+   consteval size_t size() { return N; }
+
+   consteval fixed_string() : data{} {};
+
    consteval fixed_string(std::string_view str) { std::copy_n(str.data(), str.size(), data); }
 
    constexpr operator const char*() const { return data; }
 };
 
-consteval std::string& concat3(std::string& str1, std::string_view str2, std::string_view str3) {
-   str1 += str2;
-   str1 += str3;
-   return str1;
+template <size_t N1, size_t N2, size_t N3>
+consteval fixed_string<N1 + N2 + N3> concat3(
+   fixed_string<N1> str1,
+   fixed_string<N2> str2,
+   fixed_string<N3> str3
+) {
+   fixed_string<N1 + N2 + N3> result;
+   std::copy_n(str1.data, N1, result.data);
+   std::copy_n(str2.data, N2, result.data);
+   std::copy_n(str3.data, N3, result.data);
+   return result;
 }
 
 /// Log at the object creation as "TS" and its destruction as
@@ -139,11 +150,15 @@ class Scope {
 #define EVOBENCH_POINT(module, action)
 #define EVOBENCH_KEY_VALUE(key, value)
 #else
-#define EVOBENCH_SCOPE_INTERNAL(scope_name) \
-   evobench::Scope<evobench::fixed_string<scope_name.size()>{scope_name.data()}> __evobench_scope{};
+#define EVOBENCH_SCOPE_INTERNAL2(scope_name) \
+   evobench::Scope<scope_name> __evobench_scope{};
+#define EVOBENCH_SCOPE_INTERNAL1(module, action)                                 \
+   EVOBENCH_SCOPE_INTERNAL2((evobench::concat3<module.size(), 1, action.size()>( \
+      evobench::fixed_string<module.size()>{module},                             \
+      evobench::fixed_string<1>{"|"},                                            \
+      evobench::fixed_string<action.size()>{action}                              \
+   )))
 #define EVOBENCH_SCOPE(module, action) \
-   EVOBENCH_SCOPE_INTERNAL(evobench::concat3(module, "|", action))
-#define EVOBENCH_POINT(module, action) \
-   evobench::log_point(evobench::concat3(module, "|", action).data());
+   EVOBENCH_SCOPE_INTERNAL1(std::string_view{module}, std::string_view{action})
 #define EVOBENCH_KEY_VALUE(key, value) evobench::log_key_value(key, value)
 #endif
