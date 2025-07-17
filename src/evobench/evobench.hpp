@@ -98,7 +98,7 @@ inline static void log_point(const char* probe_name) {
 
 template <std::size_t N>
 struct fixed_string {
-   char data[N];
+   char data[N + 1];
 
    consteval size_t size() { return N; }
 
@@ -118,8 +118,8 @@ consteval fixed_string<N1 + N2 + N3> concat3(
 ) {
    fixed_string<N1 + N2 + N3> result;
    std::copy_n(str1.data, N1, result.data);
-   std::copy_n(str2.data, N2, result.data);
-   std::copy_n(str3.data, N3, result.data);
+   std::copy_n(str2.data, N2, result.data + N1);
+   std::copy_n(str3.data, N3, result.data + N1 + N2);
    return result;
 }
 
