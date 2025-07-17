@@ -105,7 +105,7 @@ struct fixed_string {
    consteval fixed_string()
        : data{} {};
 
-   consteval fixed_string(std::string_view str) { std::copy_n(str.data(), str.size(), data); }
+   consteval fixed_string(std::string_view str) : data{} { std::copy_n(str.data(), str.size(), data); }
 
    constexpr operator const char*() const { return data; }
 };
