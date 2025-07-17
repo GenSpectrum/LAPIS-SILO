@@ -2,6 +2,8 @@
 #include "evobench/evobench.hpp"
 
 #include <arrow/acero/options.h>
+#include <arrow/array.h>
+#include <arrow/array/array_binary.h>
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
@@ -9,42 +11,43 @@
 namespace silo::query_engine::exec_node {
 
 namespace {
-class ScalarToJsonTypeVisitor : public arrow::ScalarVisitor {
+class ArrayToJsonTypeVisitor : public arrow::ArrayVisitor {
    std::ostream* output_stream;
+   size_t row;
 
   public:
-   ScalarToJsonTypeVisitor(std::ostream* output_stream)
-       : output_stream(output_stream) {}
+   ArrayToJsonTypeVisitor(std::ostream* output_stream, size_t row)
+       : output_stream(output_stream), row(row) {}
 
-   arrow::Status Visit(const arrow::Int32Scalar& scalar) override {
-      EVOBENCH_SCOPE("ScalarToJsonTypeVisitor", "Int32Scalar");
-      *output_stream << scalar.value;
+   arrow::Status Visit(const arrow::Int32Array& array) override {
+      EVOBENCH_SCOPE("ArrayToJsonTypeVisitor", "Int32Array");
+      *output_stream << array.GetView(row);
       return arrow::Status::OK();
    }
 
-   arrow::Status Visit(const arrow::Int64Scalar& scalar) override {
-      EVOBENCH_SCOPE("ScalarToJsonTypeVisitor", "Int64Scalar");
-      *output_stream << scalar.value;
+   arrow::Status Visit(const arrow::Int64Array& array) override {
+      EVOBENCH_SCOPE("ArrayToJsonTypeVisitor", "Int64Array");
+      *output_stream << array.GetView(row);
       return arrow::Status::OK();
    }
 
-   arrow::Status Visit(const arrow::DoubleScalar& scalar) override {
-      EVOBENCH_SCOPE("ScalarToJsonTypeVisitor", "DoubleScalar");
-      nlohmann::json j = scalar.value;
+   arrow::Status Visit(const arrow::DoubleArray& array) override {
+      EVOBENCH_SCOPE("ArrayToJsonTypeVisitor", "DoubleArray");
+      nlohmann::json j = array.GetView(row);
       *output_stream << j;
       return arrow::Status::OK();
    }
 
-   arrow::Status Visit(const arrow::FloatScalar& scalar) override {
-      EVOBENCH_SCOPE("ScalarToJsonTypeVisitor", "FloatScalar");
-      nlohmann::json j = scalar.value;
+   arrow::Status Visit(const arrow::FloatArray& array) override {
+      EVOBENCH_SCOPE("ArrayToJsonTypeVisitor", "FloatArray");
+      nlohmann::json j = array.GetView(row);
       *output_stream << j;
       return arrow::Status::OK();
    }
 
-   arrow::Status Visit(const arrow::StringScalar& scalar) override {
-      EVOBENCH_SCOPE("ScalarToJsonTypeVisitor", "StringScalar");
-      for (char c : scalar.view()) {
+   arrow::Status Visit(const arrow::StringArray& array) override {
+      EVOBENCH_SCOPE("ArrayToJsonTypeVisitor", "StringArray");
+      for (char c : array.GetView(row)) {
          switch (c) {
             case '"':  *output_stream << "\\\""; break;
             case '\\': *output_stream << "\\\\"; break;
@@ -64,9 +67,9 @@ class ScalarToJsonTypeVisitor : public arrow::ScalarVisitor {
       return arrow::Status::OK();
    }
 
-   arrow::Status Visit(const arrow::BooleanScalar& scalar) override {
-      EVOBENCH_SCOPE("ScalarToJsonTypeVisitor", "BooleanScalar");
-      *output_stream << (scalar.value ? "true" : "false");
+   arrow::Status Visit(const arrow::BooleanArray& array) override {
+      EVOBENCH_SCOPE("ArrayToJsonTypeVisitor", "BooleanArray");
+      *output_stream << (array.GetView(row) ? "true" : "false");
       return arrow::Status::OK();
    }
 };
@@ -101,10 +104,9 @@ arrow::Status writeBatchAsNdjson(
          if (column->IsNull(row_idx)) {
             ndjson_line_stream << "null";
          } else {
-            EVOBENCH_SCOPE("QueryPlan", "writeBatchAsNdjson(inner_scalar scope)");
-            ARROW_ASSIGN_OR_RAISE(const auto& scalar, column->GetScalar(row_idx));
-            ScalarToJsonTypeVisitor my_visitor(&ndjson_line_stream);
-            ARROW_RETURN_NOT_OK(scalar->Accept(&my_visitor));
+            EVOBENCH_SCOPE("QueryPlan", "writeBatchAsNdjson(innermost_scope)");
+            ArrayToJsonTypeVisitor my_visitor(&ndjson_line_stream, row_idx);
+            ARROW_RETURN_NOT_OK(column->Accept(&my_visitor));
          }
       }
       ndjson_line_stream << "}\n";
