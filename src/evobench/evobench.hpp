@@ -151,14 +151,16 @@ class Scope {
 #define EVOBENCH_POINT(module, action)
 #define EVOBENCH_KEY_VALUE(key, value)
 #else
-#define EVOBENCH_SCOPE_INTERNAL2(scope_name) evobench::Scope<scope_name> __evobench_scope{};
-#define EVOBENCH_SCOPE_INTERNAL1(module, action)                                 \
-   EVOBENCH_SCOPE_INTERNAL2((evobench::concat3<module.size(), 1, action.size()>( \
-      evobench::fixed_string<module.size()>{module},                             \
-      evobench::fixed_string<1>{"|"},                                            \
-      evobench::fixed_string<action.size()>{action}                              \
-   )))
-#define EVOBENCH_SCOPE(module, action) \
-   EVOBENCH_SCOPE_INTERNAL1(std::string_view{module}, std::string_view{action})
+#define CONCAT_WITH_PIPE(left, right)                                                    \
+   (evobench::concat3<std::string_view{left}.size(), 1, std::string_view{right}.size()>( \
+      evobench::fixed_string<std::string_view{left}.size()>{std::string_view{left}},     \
+      evobench::fixed_string<1>{"|"},                                                    \
+      evobench::fixed_string<std::string_view{right}.size()>{std::string_view{right}}    \
+   ))
+#define EVOBENCH_SCOPE_INTERNAL(scope_name, line) \
+   evobench::Scope<scope_name> __evobench_scope##line{};
+#define EVOBENCH_SCOPE_INTERNAL2(module, action, line) \
+   EVOBENCH_SCOPE_INTERNAL(CONCAT_WITH_PIPE(module, action), line)
+#define EVOBENCH_SCOPE(module, action) EVOBENCH_SCOPE_INTERNAL2(module, action, __LINE__)
 #define EVOBENCH_KEY_VALUE(key, value) evobench::log_key_value(key, value)
 #endif
