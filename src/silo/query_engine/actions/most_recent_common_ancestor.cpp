@@ -10,6 +10,7 @@
 #include <fmt/ranges.h>
 #include <nlohmann/json.hpp>
 
+#include "evobench/evobench.hpp"
 #include "silo/common/phylo_tree.h"
 #include "silo/common/tree_node_id.h"
 #include "silo/config/database_config.h"
@@ -145,6 +146,7 @@ arrow::Result<QueryPlan> MostRecentCommonAncestor::toQueryPlanImpl(
        table_metadata,
        produced = false,
        print_missing_nodes]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
+      EVOBENCH_SCOPE("MostRecentCommonAncestor", "producer");
       if (produced == true) {
          std::optional<arrow::ExecBatch> result = std::nullopt;
          return arrow::Future{result};
