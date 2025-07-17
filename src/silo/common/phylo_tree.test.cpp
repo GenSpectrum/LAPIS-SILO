@@ -81,6 +81,16 @@ TEST(PhyloTree, correctlyParsesFromNewick) {
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD2"})->parent, TreeNodeId{"CHILD"});
 }
 
+TEST(PhyloTree, correctlyParsesFromNewickWithNewLine) {
+   auto phylo_tree_file = PhyloTree::fromNewickString("(CHILD)ROOT;\n");
+   ASSERT_EQ(phylo_tree_file.nodes.size(), 2);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"ROOT"})->parent, std::nullopt);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"ROOT"})->depth, 0);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"ROOT"})->children.size(), 1);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->depth, 1);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->children.size(), 1);
+}
+
 TEST(PhyloTree, correctlyParsesFromNewickWithBranchLengths) {
    auto phylo_tree_file =
       PhyloTree::fromNewickString("((CHILD2:0.5, CHILD3:1)CHILD:0.1, CHILD4:1.5)ROOT;");

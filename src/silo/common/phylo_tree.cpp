@@ -225,10 +225,21 @@ TreeNodeId parseSubtree(
    return node->node_id;
 }
 
+void trim(std::string_view& sv) {
+    while (!sv.empty() && std::isspace(static_cast<unsigned char>(sv.front()))) {
+        sv.remove_prefix(1);
+    }
+
+    while (!sv.empty() && std::isspace(static_cast<unsigned char>(sv.back()))) {
+        sv.remove_suffix(1);
+    }
+}
+
 PhyloTree PhyloTree::fromNewickString(const std::string& newick_string) {
    PhyloTree file;
 
    std::string_view sv(newick_string);
+   trim(sv);
    if (sv.empty()) {
       throw silo::preprocessing::PreprocessingException(
          "Error when parsing the Newick string - The string is empty"
