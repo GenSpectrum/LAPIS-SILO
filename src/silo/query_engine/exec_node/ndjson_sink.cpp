@@ -39,7 +39,7 @@ class ScalarToJsonTypeVisitor : public arrow::ScalarVisitor {
    }
 
    arrow::Status Visit(const arrow::StringScalar& scalar) override {
-      nlohmann::json j = scalar.ToString();
+      nlohmann::json j = scalar.view();
       *output_stream << j;
       return arrow::Status::OK();
    }
