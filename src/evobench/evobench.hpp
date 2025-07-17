@@ -78,7 +78,7 @@ class Buffer {
 };
 
 // These are private; only call if is_enabled is true!
-void _log_any(const char* module_and_action, PointKind kind);
+void _log_any(const char* probe_name, PointKind kind);
 void _log_key_value(std::string_view key, std::string_view value);
 
 /// Log a key value pair, without timings, for information
@@ -90,9 +90,9 @@ inline static void log_key_value(std::string_view key, std::string_view value) {
 }
 
 /// Log at the point of call as a single "T" event.
-inline static void log_point(const char* module_and_action) {
+inline static void log_point(const char* probe_name) {
    if (output.is_enabled) {
-      _log_any(module_and_action, PointKind::T);
+      _log_any(probe_name, PointKind::T);
    }
 }
 

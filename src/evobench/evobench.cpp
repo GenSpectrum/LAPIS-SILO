@@ -234,7 +234,7 @@ void log_start(std::string& out) {
    // clang-format on
 }
 
-void log_resource_usage(const char* module_and_action, evobench::PointKind kind, std::string& out) {
+void log_resource_usage(const char* probe_name, evobench::PointKind kind, std::string& out) {
    struct timespec t;
    ERRCHECK(clock_gettime(CLOCK_REALTIME, &t));
 
@@ -251,7 +251,7 @@ void log_resource_usage(const char* module_and_action, evobench::PointKind kind,
 
    // clang-format off
    OBJ(KV(point_kind_name[kind],
-	  OBJ(KV("pn", ATOM(module_and_action))
+	  OBJ(KV("pn", ATOM(probe_name))
 	      COMMA
 	      KV("pid", SLOW(getpid()))
 	      COMMA
@@ -432,10 +432,10 @@ void _log_key_value(std::string_view key, std::string_view value) {
    NEWLINE;
 }
 
-void _log_any(const char* module_and_action, PointKind kind) {
-   log_resource_usage(module_and_action, kind, local_buffer.string);
+void _log_any(const char* probe_name, PointKind kind) {
+   log_resource_usage(probe_name, kind, local_buffer.string);
    if (local_buffer.possibly_flush()) {
-      log_resource_usage(module_and_action, PointKind::TIO, local_buffer.string);
+      log_resource_usage(probe_name, PointKind::TIO, local_buffer.string);
    }
 }
 
