@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <mutex>
 #include <string>
 #include <string_view>
@@ -77,7 +78,7 @@ class Buffer {
 };
 
 // These are private; only call if is_enabled is true!
-void _log_any(const char* module_and_action, PointKind kind);
+void _log_any(const char* probe_name, PointKind kind);
 void _log_key_value(std::string_view key, std::string_view value);
 
 /// Log a key value pair, without timings, for information
@@ -89,29 +90,43 @@ inline static void log_key_value(std::string_view key, std::string_view value) {
 }
 
 /// Log at the point of call as a single "T" event.
-inline static void log_point(const char* module_and_action) {
+inline static void log_point(const char* probe_name) {
    if (output.is_enabled) {
-      _log_any(module_and_action, PointKind::T);
+      _log_any(probe_name, PointKind::T);
    }
+}
+
+template <std::size_t N>
+struct fixed_string {
+   char data[N];
+
+   consteval fixed_string(std::string_view str) { std::copy_n(str.data(), str.size(), data); }
+
+   constexpr operator const char*() const { return data; }
+};
+
+consteval std::string concat3(std::string_view str1, std::string_view str2, std::string_view str3) {
+   std::string res{str1};
+   res += str2;
+   res += str3;
+   return res;
 }
 
 /// Log at the object creation as "TS" and its destruction as
 /// "TE" event.
+// Keep this object small, to keep overhead low when
+// !output.is_enabled.
+template <fixed_string ProbeName>
 class Scope {
-   // Keep this object small, to keep overhead low when
-   // !output.is_enabled.
-   const char* module_and_action;
-
   public:
-   inline Scope(const char* module_and_action_)
-       : module_and_action(module_and_action_) {
+   inline Scope() {
       if (output.is_enabled) {
-         _log_any(module_and_action_, PointKind::TS);
+         _log_any(ProbeName, PointKind::TS);
       }
    }
    inline ~Scope() {
       if (output.is_enabled) {
-         _log_any(module_and_action, PointKind::TE);
+         _log_any(ProbeName, PointKind::TE);
       }
    }
 };
@@ -125,7 +140,11 @@ class Scope {
 #define EVOBENCH_POINT(module, action)
 #define EVOBENCH_KEY_VALUE(key, value)
 #else
-#define EVOBENCH_SCOPE(module, action) evobench::Scope __evobench_scope{module "|" action};
-#define EVOBENCH_POINT(module, action) evobench::log_point(module "|" action);
+#define EVOBENCH_SCOPE_INTERNAL(scope_name) \
+   evobench::Scope<evobench::fixed_string<scope_name.size()>{scope_name.data()}> __evobench_scope{};
+#define EVOBENCH_SCOPE(module, action) \
+   EVOBENCH_SCOPE_INTERNAL(evobench::concat3(module, "|", action))
+#define EVOBENCH_POINT(module, action) \
+   evobench::log_point(evobench::concat3(module, "|", action).data());
 #define EVOBENCH_KEY_VALUE(key, value) evobench::log_key_value(key, value)
 #endif
