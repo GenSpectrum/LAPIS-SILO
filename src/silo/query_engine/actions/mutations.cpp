@@ -17,6 +17,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <nlohmann/json.hpp>
 
+#include "evobench/evobench.hpp"
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/symbol_map.h"
@@ -287,6 +288,7 @@ arrow::Result<QueryPlan> Mutations<SymbolType>::toQueryPlanImpl(
    std::vector<CopyOnWriteBitmap> partition_filters,
    const config::QueryOptions& query_options
 ) const {
+   EVOBENCH_SCOPE("Mutations", "toQueryPlanImpl");
    std::vector<std::string> sequence_names_to_evaluate;
    for (const auto& sequence_name : sequence_names) {
       auto column_identifier = table->schema.getColumn(sequence_name);
@@ -316,6 +318,8 @@ arrow::Result<QueryPlan> Mutations<SymbolType>::toQueryPlanImpl(
        partition_filters,
        sequence_names_to_evaluate,
        produced = false]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
+      EVOBENCH_SCOPE("Mutations", "producer");
+
       if (produced == true) {
          std::optional<arrow::ExecBatch> result = std::nullopt;
          return arrow::Future{result};

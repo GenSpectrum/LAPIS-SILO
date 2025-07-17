@@ -97,6 +97,10 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumnPar
    const storage::TablePartition& table_partition,
    const roaring::Roaring& row_ids
 ) {
+   EVOBENCH_SCOPE(
+      "ColumnEntryAppender",
+      columnTypeToString(storage::column::SequenceColumnPartition<Nucleotide>::TYPE)
+   );
    auto array =
       table_scan_node
          .getColumnTypeArrayBuilders<storage::column::SequenceColumnPartition<Nucleotide>>()
@@ -113,6 +117,10 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumnPar
    const storage::TablePartition& table_partition,
    const roaring::Roaring& row_ids
 ) {
+   EVOBENCH_SCOPE(
+      "ColumnEntryAppender",
+      columnTypeToString(storage::column::SequenceColumnPartition<AminoAcid>::TYPE)
+   );
    auto array =
       table_scan_node
          .getColumnTypeArrayBuilders<storage::column::SequenceColumnPartition<AminoAcid>>()
@@ -129,6 +137,10 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::ZstdCompressedStr
    const storage::TablePartition& table_partition,
    const roaring::Roaring& row_ids
 ) {
+   EVOBENCH_SCOPE(
+      "ColumnEntryAppender",
+      columnTypeToString(storage::column::ZstdCompressedStringColumnPartition::TYPE)
+   );
    auto array =
       table_scan_node
          .getColumnTypeArrayBuilders<storage::column::ZstdCompressedStringColumnPartition>()
@@ -155,6 +167,7 @@ arrow::Status ColumnEntryAppender::operator()(
    const storage::TablePartition& table_partition,
    const roaring::Roaring& row_ids
 ) {
+   EVOBENCH_SCOPE("ColumnEntryAppender", columnTypeToString(Column::TYPE));
    auto array = table_scan_node.getColumnTypeArrayBuilders<Column>().at(column_name);
    for (auto row_id : row_ids) {
       using type = typename ArrowBuilderSelector<Column>::value_type;
@@ -183,6 +196,7 @@ arrow::Status ExecBatchBuilder::appendEntries(
    const storage::TablePartition& table_partition,
    const roaring::Roaring& row_ids
 ) {
+   EVOBENCH_SCOPE("ExecBatchBuilder", "appendEntries");
    for (const auto& field : output_fields) {
       ARROW_RETURN_NOT_OK(storage::column::visit(
          field.type, ColumnEntryAppender{}, *this, field.name, table_partition, row_ids
@@ -192,6 +206,7 @@ arrow::Status ExecBatchBuilder::appendEntries(
 }
 
 arrow::Result<arrow::ExecBatch> ExecBatchBuilder::finishBatch() {
+   EVOBENCH_SCOPE("ExecBatchBuilder", "finishBatch");
    std::vector<arrow::Datum> data;
    for (auto& field : output_fields) {
       auto status = storage::column::visit(field.type, [&]<storage::column::Column Column>() {
@@ -207,6 +222,7 @@ arrow::Result<arrow::ExecBatch> ExecBatchBuilder::finishBatch() {
 }
 
 arrow::Result<std::optional<arrow::ExecBatch>> TableScanGenerator::produceNextBatch() {
+   EVOBENCH_SCOPE("TableScanGenerator", "produceNextBatch");
    if (!current_bitmap_reader.has_value()) {
       return std::nullopt;
    }
