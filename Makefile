@@ -39,7 +39,7 @@ test: ${SILO_EXECUTABLE}
 all-tests: test e2e
 
 format:
-	find src -iname '*.h' -o -iname '*.cpp' | xargs clang-format -i
+	find src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs clang-format -i
 
 clean-api:
 	@if [ -f ${RUNNING_SILO_FLAG} ]; then \

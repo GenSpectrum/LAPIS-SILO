@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <mutex>
 #include <string>
 #include <string_view>
@@ -77,7 +78,7 @@ class Buffer {
 };
 
 // These are private; only call if is_enabled is true!
-void _log_any(const char* module_and_action, PointKind kind);
+void _log_any(const char* probe_name, PointKind kind);
 void _log_key_value(std::string_view key, std::string_view value);
 
 /// Log a key value pair, without timings, for information
@@ -89,29 +90,58 @@ inline static void log_key_value(std::string_view key, std::string_view value) {
 }
 
 /// Log at the point of call as a single "T" event.
-inline static void log_point(const char* module_and_action) {
+inline static void log_point(const char* probe_name) {
    if (output.is_enabled) {
-      _log_any(module_and_action, PointKind::T);
+      _log_any(probe_name, PointKind::T);
    }
+}
+
+template <std::size_t N>
+struct fixed_string {
+   char data[N + 1];
+
+   consteval size_t size() { return N; }
+
+   consteval fixed_string()
+       : data{} {};
+
+   consteval fixed_string(std::string_view str)
+       : data{} {
+      // Can't do that since `str` is not a const expr: static_assert(N == str.size());
+      std::copy_n(str.data(), N, data);
+   }
+
+   constexpr operator const char*() const { return data; }
+};
+
+template <size_t N1, size_t N2, size_t N3>
+consteval fixed_string<N1 + N2 + N3> concat3(
+   fixed_string<N1> str1,
+   fixed_string<N2> str2,
+   fixed_string<N3> str3
+) {
+   fixed_string<N1 + N2 + N3> result;
+   std::copy_n(str1.data, N1, result.data);
+   std::copy_n(str2.data, N2, result.data + N1);
+   std::copy_n(str3.data, N3, result.data + N1 + N2);
+   return result;
 }
 
 /// Log at the object creation as "TS" and its destruction as
 /// "TE" event.
+// Keep this object small, to keep overhead low when
+// !output.is_enabled.
+template <fixed_string ProbeName>
 class Scope {
-   // Keep this object small, to keep overhead low when
-   // !output.is_enabled.
-   const char* module_and_action;
-
   public:
-   inline Scope(const char* module_and_action_)
-       : module_and_action(module_and_action_) {
+   inline Scope() {
       if (output.is_enabled) {
-         _log_any(module_and_action_, PointKind::TS);
+         _log_any(ProbeName, PointKind::TS);
       }
    }
    inline ~Scope() {
       if (output.is_enabled) {
-         _log_any(module_and_action, PointKind::TE);
+         _log_any(ProbeName, PointKind::TE);
       }
    }
 };
@@ -125,7 +155,17 @@ class Scope {
 #define EVOBENCH_POINT(module, action)
 #define EVOBENCH_KEY_VALUE(key, value)
 #else
-#define EVOBENCH_SCOPE(module, action) evobench::Scope __evobench_scope{module "|" action};
-#define EVOBENCH_POINT(module, action) evobench::log_point(module "|" action);
+#define CONCAT_WITH_PIPE(left, right)                                                    \
+   (evobench::concat3<std::string_view{left}.size(), 1, std::string_view{right}.size()>( \
+      evobench::fixed_string<std::string_view{left}.size()>{std::string_view{left}},     \
+      evobench::fixed_string<1>{"|"},                                                    \
+      evobench::fixed_string<std::string_view{right}.size()>{std::string_view{right}}    \
+   ))
+#define EVOBENCH_SCOPE_INTERNAL(scope_name, line) \
+   evobench::Scope<scope_name> __evobench_scope##line{};
+#define EVOBENCH_SCOPE_INTERNAL2(module, action, line) \
+   EVOBENCH_SCOPE_INTERNAL(CONCAT_WITH_PIPE(module, action), line)
+#define EVOBENCH_SCOPE(module, action) EVOBENCH_SCOPE_INTERNAL2(module, action, __LINE__)
+#define EVOBENCH_POINT(module, action) evobench::log_point(CONCAT_WITH_PIPE(module, action));
 #define EVOBENCH_KEY_VALUE(key, value) evobench::log_key_value(key, value)
 #endif
