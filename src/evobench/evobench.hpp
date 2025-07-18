@@ -107,7 +107,8 @@ struct fixed_string {
 
    consteval fixed_string(std::string_view str)
        : data{} {
-      std::copy_n(str.data(), str.size(), data);
+      // Can't do that since `str` is not a const expr: static_assert(N == str.size());
+      std::copy_n(str.data(), N, data);
    }
 
    constexpr operator const char*() const { return data; }
