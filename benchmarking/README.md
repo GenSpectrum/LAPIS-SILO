@@ -40,12 +40,14 @@ a server on
     `~/silo-benchmark-datasets/$DATASET` (where `$DATASET` is the
     value of the `DATASET` setting in the `~/.evobench-run.ron` file
     that you use, with these files (or symlinks to them):
-    
+
         database_config.yaml
         input_file.ndjson.zst
-        lineage_definitions.yaml
+        preprocessing_config.yaml
         reference_genomes.json
         silo_queries.ndjson
+
+        possibly: lineage_definitions.yaml
 
     Currently, get these files from gs-staging-1, or when running
     there, use the folder `~christian/silo-benchmark-datasets` (it is
