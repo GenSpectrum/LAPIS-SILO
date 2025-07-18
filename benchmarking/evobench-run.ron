@@ -86,7 +86,7 @@ RunConfig(
     custom_parameters_required: {
         "SORTED": true,
         "RANDOMIZED": true,
-        "BENCHMARK_DATASET_NAME": true,
+        "DATASET": true,
     },
 
     // Each `CustomParameters` group is used for a separate benchmark
@@ -95,12 +95,12 @@ RunConfig(
         CustomParameters({
             "SORTED": "1",
             "RANDOMIZED": "1",
-            "BENCHMARK_DATASET_NAME": "full",
+            "DATASET": "full",
         }),
         CustomParameters({
             "SORTED": "0",
             "RANDOMIZED": "1",
-            "BENCHMARK_DATASET_NAME": "full",
+            "DATASET": "full",
         }),
     ]),
 
