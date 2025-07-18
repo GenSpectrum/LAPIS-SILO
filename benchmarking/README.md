@@ -33,9 +33,9 @@ This is meant to be run via the `evobench-run` tool from
     config-save` to recode an already-placed file.)
 
  1. Make sure that you have a folder
-    `~/silo-benchmark-datasets/$BENCHMARK_DATASET_NAME` (where
-    `$BENCHMARK_DATASET_NAME` is the value of the
-    `BENCHMARK_DATASET_NAME` setting in [the config
+    `~/silo-benchmark-datasets/$DATASET` (where
+    `$DATASET` is the value of the
+    `DATASET` setting in [the config
     file](evobench-run.ron) that you use), with these files (or symlinks to them):
     
         database_config.yaml
