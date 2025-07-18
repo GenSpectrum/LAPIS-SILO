@@ -156,6 +156,35 @@ class ArrayToJsonTypeVisitor : public arrow::ArrayVisitor {
    }
 };
 
+template <size_t parallel_lines>
+void sendJsonLinesInBatches(
+   size_t& row_idx_base,
+   size_t row_count,
+   size_t column_count,
+   const std::vector<std::string>& prepared_column_strings_for_json_attributes,
+   const std::vector<std::shared_ptr<arrow::Array>>& arrays,
+   std::ostream& output_stream
+) {
+   ParallelStringStream<parallel_lines> ndjson_line_streams;
+   ArrayToJsonTypeVisitor<parallel_lines> my_visitor(ndjson_line_streams);
+   for (; row_idx_base + parallel_lines <= row_count; row_idx_base += parallel_lines) {
+      ndjson_line_streams << "{";
+      for (size_t column_idx = 0; column_idx < column_count; column_idx++) {
+         const auto& column = arrays.at(column_idx);
+         ndjson_line_streams << prepared_column_strings_for_json_attributes.at(column_idx);
+
+         EVOBENCH_SCOPE("QueryPlan", "writeBatchAsNdjson(innermost_scope)");
+         (void)column->Accept(&my_visitor);
+      }
+      ndjson_line_streams << "}\n";
+      {
+         EVOBENCH_SCOPE("QueryPlan", "sendDataToOutputStream");
+         ndjson_line_streams >> output_stream;
+      }
+      my_visitor.next();
+   }
+}
+
 }  // namespace
 
 arrow::Status writeBatchAsNdjson(
@@ -164,6 +193,8 @@ arrow::Status writeBatchAsNdjson(
    std::ostream* output_stream
 ) {
    EVOBENCH_SCOPE("QueryPlan", "writeBatchAsNdjson");
+   SPDLOG_TRACE("writeBatchAsNdjson_start");
+
    size_t row_count = batch.length;
    size_t column_count = schema->fields().size();
    std::vector<std::shared_ptr<arrow::Array>> arrays;
@@ -176,33 +207,31 @@ arrow::Status writeBatchAsNdjson(
    for (const auto& column_name : schema->fields()) {
       nlohmann::json column_name_json = column_name->name();
       std::string json_formatted_column_name;
-      if (first_column)
+      if (!first_column)
          json_formatted_column_name += ",";
       first_column = false;
-      json_formatted_column_name = column_name_json.dump();
+      json_formatted_column_name += column_name_json.dump();
       json_formatted_column_name += ":";
       prepared_column_strings_for_json_attributes.emplace_back(json_formatted_column_name);
    }
+   size_t row_idx = 0;
    constexpr size_t parallel_lines = 8;
-   ParallelStringStream<parallel_lines> ndjson_line_streams;
-   ArrayToJsonTypeVisitor<parallel_lines> my_visitor(ndjson_line_streams);
-   for (size_t row_idx_base = 0; row_idx_base + parallel_lines < row_count;
-        row_idx_base += parallel_lines) {
-      ndjson_line_streams << "{";
-      for (size_t column_idx = 0; column_idx < column_count; column_idx++) {
-         const auto& column = arrays.at(column_idx);
-         ndjson_line_streams << prepared_column_strings_for_json_attributes.at(column_idx);
-
-         EVOBENCH_SCOPE("QueryPlan", "writeBatchAsNdjson(innermost_scope)");
-         ARROW_RETURN_NOT_OK(column->Accept(&my_visitor));
-      }
-      ndjson_line_streams << "}\n";
-      {
-         EVOBENCH_SCOPE("QueryPlan", "sendDataToOutputStream");
-         ndjson_line_streams >> *output_stream;
-      }
-      my_visitor.next();
-   }
+   sendJsonLinesInBatches<parallel_lines>(
+      row_idx,
+      row_count,
+      column_count,
+      prepared_column_strings_for_json_attributes,
+      arrays,
+      *output_stream
+   );
+   sendJsonLinesInBatches<1>(
+      row_idx,
+      row_count,
+      column_count,
+      prepared_column_strings_for_json_attributes,
+      arrays,
+      *output_stream
+   );
    if (!*output_stream) {
       return arrow::Status::IOError("Could not write to network stream");
    }
