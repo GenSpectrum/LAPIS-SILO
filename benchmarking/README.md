@@ -37,12 +37,14 @@ This is meant to be run via the `evobench-run` tool from
     `$BENCHMARK_DATASET_NAME` is the value of the
     `BENCHMARK_DATASET_NAME` setting in [the config
     file](evobench-run.ron) that you use), with these files (or symlinks to them):
-    
+
         database_config.yaml
         input_file.ndjson.zst
-        lineage_definitions.yaml
+        preprocessing_config.yaml
         reference_genomes.json
         silo_queries.ndjson
+
+        possibly: lineage_definitions.yaml
 
     Currently, get these files from gs-staging-1, or when running
     there, use the folder `~christian/silo-benchmark-datasets` (it is
