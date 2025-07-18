@@ -16,8 +16,12 @@ class ArrayToJsonTypeVisitor : public arrow::ArrayVisitor {
    size_t row;
 
   public:
-   ArrayToJsonTypeVisitor(std::ostream* output_stream, size_t row)
-       : output_stream(output_stream), row(row) {}
+   ArrayToJsonTypeVisitor(std::ostream* output_stream)
+       : output_stream(output_stream), row(0) {}
+
+   void next(){
+      ++row;
+   }
 
    arrow::Status Visit(const arrow::Int32Array& array) override {
       EVOBENCH_SCOPE("ArrayToJsonTypeVisitor", "Int32Array");
@@ -81,23 +85,27 @@ arrow::Status writeBatchAsNdjson(
    std::ostream* output_stream
 ) {
    EVOBENCH_SCOPE("QueryPlan", "writeBatchAsNdjson");
-   ARROW_ASSIGN_OR_RAISE(auto record_batch, batch.ToRecordBatch(schema));
-   size_t row_count = record_batch->num_rows();
-   size_t column_count = record_batch->num_columns();
+   size_t row_count = batch.length;
+   size_t column_count = batch.values.size();
+   std::vector<std::shared_ptr<arrow::Array>> arrays;
+   for (const auto& datum : batch.values) {
+      SILO_ASSERT(datum.is_array());
+      arrays.emplace_back(datum.make_array());
+   }
    std::vector<std::string> prepared_column_strings_for_json_attributes;
-   auto column_names = record_batch->schema()->fields();
-   for (const auto& column_name : column_names) {
+   for (const auto& column_name : schema->fields()) {
       nlohmann::json json_formatted_column_name = column_name->name();
       prepared_column_strings_for_json_attributes.emplace_back(json_formatted_column_name.dump());
    }
+   std::stringstream ndjson_line_stream;
+   ArrayToJsonTypeVisitor my_visitor(&ndjson_line_stream);
    for (size_t row_idx = 0; row_idx < row_count; row_idx++) {
-      std::stringstream ndjson_line_stream;
       ndjson_line_stream << "{";
       for (size_t column_idx = 0; column_idx < column_count; column_idx++) {
          if (column_idx != 0) {
             ndjson_line_stream << ",";
          }
-         const auto& column = record_batch->columns().at(column_idx);
+         const auto& column = arrays.at(column_idx);
          ndjson_line_stream << prepared_column_strings_for_json_attributes.at(column_idx);
          ndjson_line_stream << ":";
 
@@ -105,19 +113,20 @@ arrow::Status writeBatchAsNdjson(
             ndjson_line_stream << "null";
          } else {
             EVOBENCH_SCOPE("QueryPlan", "writeBatchAsNdjson(innermost_scope)");
-            ArrayToJsonTypeVisitor my_visitor(&ndjson_line_stream, row_idx);
             ARROW_RETURN_NOT_OK(column->Accept(&my_visitor));
          }
       }
       ndjson_line_stream << "}\n";
-      {
-         EVOBENCH_SCOPE("QueryPlan", "sendDataToOutputStream");
-         *output_stream << ndjson_line_stream.rdbuf();
-      }
-      if (!*output_stream) {
-         return arrow::Status::IOError("Could not write to network stream");
-      }
+      my_visitor.next();
    }
+   {
+      EVOBENCH_SCOPE("QueryPlan", "sendDataToOutputStream");
+      *output_stream << ndjson_line_stream.rdbuf();
+   }
+   if (!*output_stream) {
+      return arrow::Status::IOError("Could not write to network stream");
+   }
+   SPDLOG_TRACE("writeBatchAsNdjson_end");
 
    return arrow::Status::OK();
 }
