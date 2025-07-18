@@ -162,5 +162,6 @@ class Scope {
 #define EVOBENCH_SCOPE_INTERNAL2(module, action, line) \
    EVOBENCH_SCOPE_INTERNAL(CONCAT_WITH_PIPE(module, action), line)
 #define EVOBENCH_SCOPE(module, action) EVOBENCH_SCOPE_INTERNAL2(module, action, __LINE__)
+#define EVOBENCH_POINT(module, action) evobench::log_point(CONCAT_WITH_PIPE(module, action));
 #define EVOBENCH_KEY_VALUE(key, value) evobench::log_key_value(key, value)
 #endif
