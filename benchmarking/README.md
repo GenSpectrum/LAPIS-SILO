@@ -1,7 +1,10 @@
 # Makefile / scripts to do SILO benchmarking runs
 
 This is meant to be run via the `evobench-run` tool from
-[evobench](https://github.com/GenSpectrum/evobench/).
+[evobench](https://github.com/GenSpectrum/evobench/). Note that there
+is a separate repository with files to set up a benchmarking daemon on
+a server on
+[silo-benchmark-ci](https://github.com/GenSpectrum/silo-benchmark-ci/).
 
  1. Make sure you have the Rust compiler, version 1.86.0 or later,
     installed: get it via [rustup.rs](https://rustup.rs/) (if you
@@ -18,14 +21,15 @@ This is meant to be run via the `evobench-run` tool from
 
  1. Set up configuration for `evobench-run`, currently at
     `~/.evobench-run.ron` (if you need configuration in a local
-    directory, please submit a feature request); copy the included
-    file [evobench-run.ron](evobench-run.ron) and adapt it to your
-    local paths and wishes. For local (interactive) use, you will want
-    to make sure `benchmarking_job_settings.error_budget` is set to 1,
-    since chances are high that you have a failure preventing the
-    benchmark from running, and you don't want the benchmarking
-    process to re-try. You may also want to change
-    `custom_parameters_set` to only use one `CustomParameters`.
+    directory, please submit a feature request); copy the file
+    [evobench-run.ron](https://github.com/GenSpectrum/silo-benchmark-ci/blob/master/etc/evobench-run.ron)
+    and adapt it to your local paths and wishes. For local
+    (interactive) use, you will want to make sure
+    `benchmarking_job_settings.error_budget` is set to 1, since
+    chances are high that you have a failure preventing the benchmark
+    from running, and you don't want the benchmarking process to
+    re-try. You may also want to change `custom_parameters_set` to
+    only use one `CustomParameters`.
     
     (While RON works best to represent the types referred to in the
     configuration, other config file formats are supported, too--run
@@ -33,10 +37,9 @@ This is meant to be run via the `evobench-run` tool from
     config-save` to recode an already-placed file.)
 
  1. Make sure that you have a folder
-    `~/silo-benchmark-datasets/$DATASET` (where
-    `$DATASET` is the value of the
-    `DATASET` setting in [the config
-    file](evobench-run.ron) that you use), with these files (or symlinks to them):
+    `~/silo-benchmark-datasets/$DATASET` (where `$DATASET` is the
+    value of the `DATASET` setting in the `~/.evobench-run.ron` file
+    that you use, with these files (or symlinks to them):
     
         database_config.yaml
         input_file.ndjson.zst
