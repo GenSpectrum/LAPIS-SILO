@@ -11,74 +11,151 @@
 namespace silo::query_engine::exec_node {
 
 namespace {
+
+template <size_t PARALLEL_STREAMS>
+struct ParallelStringStream {
+   std::array<std::stringstream, PARALLEL_STREAMS> streams;
+
+   void operator<<(std::string_view bytes) {
+      for (size_t i = 0; i < PARALLEL_STREAMS; ++i) {
+         streams[i] << bytes;
+      }
+   }
+
+   void operator>>(std::ostream& output) {
+      for (size_t i = 0; i < PARALLEL_STREAMS; ++i) {
+         output << streams[i].rdbuf();
+      }
+   }
+};
+
+template <size_t PARALLEL_LINES>
 class ArrayToJsonTypeVisitor : public arrow::ArrayVisitor {
-   std::ostream* output_stream;
-   size_t row;
+   ParallelStringStream<PARALLEL_LINES>& output_stream;
+   size_t row_base;
 
   public:
-   ArrayToJsonTypeVisitor(std::ostream* output_stream)
-       : output_stream(output_stream), row(0) {}
+   ArrayToJsonTypeVisitor(ParallelStringStream<PARALLEL_LINES>& output_stream)
+       : output_stream(output_stream),
+         row_base(0) {}
 
-   void next(){
-      ++row;
-   }
+   void next() { row_base += PARALLEL_LINES; }
 
    arrow::Status Visit(const arrow::Int32Array& array) override {
       EVOBENCH_SCOPE("ArrayToJsonTypeVisitor", "Int32Array");
-      *output_stream << array.GetView(row);
+      for (size_t i = 0; i < PARALLEL_LINES; ++i) {
+         if (array.IsNull(row_base + i)) {
+            output_stream.streams.at(i) << "null";
+         } else {
+            output_stream.streams.at(i) << array.GetView(row_base + i);
+         }
+      }
       return arrow::Status::OK();
    }
 
    arrow::Status Visit(const arrow::Int64Array& array) override {
       EVOBENCH_SCOPE("ArrayToJsonTypeVisitor", "Int64Array");
-      *output_stream << array.GetView(row);
+      for (size_t i = 0; i < PARALLEL_LINES; ++i) {
+         if (array.IsNull(row_base + i)) {
+            output_stream.streams.at(i) << "null";
+         } else {
+            output_stream.streams.at(i) << array.GetView(row_base + i);
+         }
+      }
       return arrow::Status::OK();
    }
 
    arrow::Status Visit(const arrow::DoubleArray& array) override {
       EVOBENCH_SCOPE("ArrayToJsonTypeVisitor", "DoubleArray");
-      nlohmann::json j = array.GetView(row);
-      *output_stream << j;
+      for (size_t i = 0; i < PARALLEL_LINES; ++i) {
+         if (array.IsNull(row_base + i)) {
+            output_stream.streams.at(i) << "null";
+         } else {
+            nlohmann::json j = array.GetView(row_base + i);
+            output_stream.streams.at(i) << j;
+         }
+      }
       return arrow::Status::OK();
    }
 
    arrow::Status Visit(const arrow::FloatArray& array) override {
       EVOBENCH_SCOPE("ArrayToJsonTypeVisitor", "FloatArray");
-      nlohmann::json j = array.GetView(row);
-      *output_stream << j;
+      for (size_t i = 0; i < PARALLEL_LINES; ++i) {
+         if (array.IsNull(row_base + i)) {
+            output_stream.streams.at(i) << "null";
+         } else {
+            nlohmann::json j = array.GetView(row_base + i);
+            output_stream.streams.at(i) << j;
+         }
+      }
       return arrow::Status::OK();
+   }
+
+   static inline void serializeStringToStream(
+      std::string_view string,
+      std::ostream& output_stream
+   ) {
+      output_stream << "\"";
+      for (char c : string) {
+         switch (c) {
+            case '"':
+               output_stream << "\\\"";
+               break;
+            case '\\':
+               output_stream << "\\\\";
+               break;
+            case '\b':
+               output_stream << "\\b";
+               break;
+            case '\f':
+               output_stream << "\\f";
+               break;
+            case '\n':
+               output_stream << "\\n";
+               break;
+            case '\r':
+               output_stream << "\\r";
+               break;
+            case '\t':
+               output_stream << "\\t";
+               break;
+            default:
+               if (c < 0x20) {
+                  output_stream << "\\u" << std::hex << std::setw(4) << std::setfill('0')
+                                << static_cast<int>(c);
+               } else {
+                  output_stream << c;
+               }
+         }
+      }
+      output_stream << "\"";
    }
 
    arrow::Status Visit(const arrow::StringArray& array) override {
       EVOBENCH_SCOPE("ArrayToJsonTypeVisitor", "StringArray");
-      *output_stream << "\"";
-      for (char c : array.GetView(row)) {
-         switch (c) {
-            case '"':  *output_stream << "\\\""; break;
-            case '\\': *output_stream << "\\\\"; break;
-            case '\b': *output_stream << "\\b"; break;
-            case '\f': *output_stream << "\\f"; break;
-            case '\n': *output_stream << "\\n"; break;
-            case '\r': *output_stream << "\\r"; break;
-            case '\t': *output_stream << "\\t"; break;
-            default:
-               if (c < 0x20) {
-                  *output_stream << "\\u" << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(c);
-               } else {
-                  *output_stream << c;
-               }
+      for (size_t i = 0; i < PARALLEL_LINES; ++i) {
+         if (array.IsNull(row_base + i)) {
+            output_stream.streams.at(i) << "null";
+         } else {
+            serializeStringToStream(array.GetView(row_base + i), output_stream.streams.at(i));
          }
       }
-      *output_stream << "\"";
       return arrow::Status::OK();
    }
 
    arrow::Status Visit(const arrow::BooleanArray& array) override {
       EVOBENCH_SCOPE("ArrayToJsonTypeVisitor", "BooleanArray");
-      *output_stream << (array.GetView(row) ? "true" : "false");
+      for (size_t i = 0; i < PARALLEL_LINES; ++i) {
+         if (array.IsNull(row_base + i)) {
+            output_stream.streams.at(i) << "null";
+         } else {
+            output_stream.streams.at(i) << (array.GetView(row_base + i) ? "true" : "false");
+         }
+      }
       return arrow::Status::OK();
    }
 };
+
 }  // namespace
 
 arrow::Status writeBatchAsNdjson(
@@ -95,35 +172,36 @@ arrow::Status writeBatchAsNdjson(
       arrays.emplace_back(datum.make_array());
    }
    std::vector<std::string> prepared_column_strings_for_json_attributes;
+   bool first_column = true;
    for (const auto& column_name : schema->fields()) {
-      nlohmann::json json_formatted_column_name = column_name->name();
-      prepared_column_strings_for_json_attributes.emplace_back(json_formatted_column_name.dump());
+      nlohmann::json column_name_json = column_name->name();
+      std::string json_formatted_column_name;
+      if (first_column)
+         json_formatted_column_name += ",";
+      first_column = false;
+      json_formatted_column_name = column_name_json.dump();
+      json_formatted_column_name += ":";
+      prepared_column_strings_for_json_attributes.emplace_back(json_formatted_column_name);
    }
-   std::stringstream ndjson_line_stream;
-   ArrayToJsonTypeVisitor my_visitor(&ndjson_line_stream);
-   for (size_t row_idx = 0; row_idx < row_count; row_idx++) {
-      ndjson_line_stream << "{";
+   constexpr size_t parallel_lines = 8;
+   ParallelStringStream<parallel_lines> ndjson_line_streams;
+   ArrayToJsonTypeVisitor<parallel_lines> my_visitor(ndjson_line_streams);
+   for (size_t row_idx_base = 0; row_idx_base + parallel_lines < row_count;
+        row_idx_base += parallel_lines) {
+      ndjson_line_streams << "{";
       for (size_t column_idx = 0; column_idx < column_count; column_idx++) {
-         if (column_idx != 0) {
-            ndjson_line_stream << ",";
-         }
          const auto& column = arrays.at(column_idx);
-         ndjson_line_stream << prepared_column_strings_for_json_attributes.at(column_idx);
-         ndjson_line_stream << ":";
+         ndjson_line_streams << prepared_column_strings_for_json_attributes.at(column_idx);
 
-         if (column->IsNull(row_idx)) {
-            ndjson_line_stream << "null";
-         } else {
-            EVOBENCH_SCOPE("QueryPlan", "writeBatchAsNdjson(innermost_scope)");
-            ARROW_RETURN_NOT_OK(column->Accept(&my_visitor));
-         }
+         EVOBENCH_SCOPE("QueryPlan", "writeBatchAsNdjson(innermost_scope)");
+         ARROW_RETURN_NOT_OK(column->Accept(&my_visitor));
       }
-      ndjson_line_stream << "}\n";
+      ndjson_line_streams << "}\n";
+      {
+         EVOBENCH_SCOPE("QueryPlan", "sendDataToOutputStream");
+         ndjson_line_streams >> *output_stream;
+      }
       my_visitor.next();
-   }
-   {
-      EVOBENCH_SCOPE("QueryPlan", "sendDataToOutputStream");
-      *output_stream << ndjson_line_stream.rdbuf();
    }
    if (!*output_stream) {
       return arrow::Status::IOError("Could not write to network stream");
