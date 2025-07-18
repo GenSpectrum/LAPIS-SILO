@@ -51,6 +51,7 @@ class ArrayToJsonTypeVisitor : public arrow::ArrayVisitor {
 
    arrow::Status Visit(const arrow::StringArray& array) override {
       EVOBENCH_SCOPE("ArrayToJsonTypeVisitor", "StringArray");
+      *output_stream << "\"";
       for (char c : array.GetView(row)) {
          switch (c) {
             case '"':  *output_stream << "\\\""; break;
@@ -68,6 +69,7 @@ class ArrayToJsonTypeVisitor : public arrow::ArrayVisitor {
                }
          }
       }
+      *output_stream << "\"";
       return arrow::Status::OK();
    }
 
@@ -86,7 +88,7 @@ arrow::Status writeBatchAsNdjson(
 ) {
    EVOBENCH_SCOPE("QueryPlan", "writeBatchAsNdjson");
    size_t row_count = batch.length;
-   size_t column_count = batch.values.size();
+   size_t column_count = schema->fields().size();
    std::vector<std::shared_ptr<arrow::Array>> arrays;
    for (const auto& datum : batch.values) {
       SILO_ASSERT(datum.is_array());
