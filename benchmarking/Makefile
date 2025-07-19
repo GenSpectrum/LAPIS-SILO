@@ -23,11 +23,30 @@ else
 $(error "RANDOMIZED must be either 0 or 1, got '$(RANDOMIZED)'")
 endif
 
+# Passed to api-query
+ifeq ($(CONCURRENCY),)
+$(error "CONCURRENCY must be a natural number, missing")
+endif
+
+# Passed to api-query
+ifeq ($(REPEAT),)
+$(error "REPEAT must be a natural number, missing")
+endif
+
+
 # The name of a subfolder of `~/silo-benchmark-datasets/` where the
 # dataset is stored
 ifeq ($(DATASET),)
 $(error "DATASET must be a subfolder name, got '$(DATASET)'")
 endif
+
+
+# ---
+# Added by evobench-run, and we rely on it
+ifeq ($(COMMIT_ID),)
+$(error "COMMIT_ID must be set")
+endif
+
 
 # ---- General -----------------------------------------------------------------
 
@@ -45,7 +64,7 @@ all: bench
 
 # ---- Get dependencies --------------------------------------------------------
 
-API_QUERY_VERSION=f1d7ff35b03ac740a58186578bf38e8cc39acc67
+API_QUERY_VERSION=b5cf48baa00b8a1b95feaa28ade374b0b68de7e4
 
 API_QUERY_DIR=api-query
 API_QUERY_CLONE=$(API_QUERY_DIR)/Cargo.toml
@@ -122,7 +141,7 @@ $(PREPROCESSING_STAMP): $(SILO) $(INPUT_FILE)
 bench: $(BENCHMARK_DATASET_DIR)/silo_queries.ndjson $(API_QUERY) .silo.stopped
 	@echo "running benchmark"
 	make .silo.pid
-	$(API_QUERY) iter $(API_QUERY_OPTS) $(BENCHMARK_DATASET_DIR)/silo_queries.ndjson --drop --concurrency 50
+	$(API_QUERY) iter $(API_QUERY_OPTS) --repeat $(REPEAT) $(BENCHMARK_DATASET_DIR)/silo_queries.ndjson --drop --concurrency $(CONCURRENCY)
 	make .silo.stopped
 
 clean:
