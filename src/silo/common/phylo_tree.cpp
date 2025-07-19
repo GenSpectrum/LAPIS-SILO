@@ -1,6 +1,5 @@
 #include "silo/common/phylo_tree.h"
 
-#include <fmt/ranges.h>
 #include <fstream>
 #include <limits>
 #include <set>
@@ -8,6 +7,7 @@
 
 #include <roaring/roaring.hh>
 
+#include <fmt/ranges.h>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/serialization/access.hpp>
