@@ -2,13 +2,21 @@
 
 Sequence Indexing engine for Large Order of genomic data
 
-# License
+# Build requirements
 
-Original genome indexing logic with roaring bitmaps by Prof. Neumann: https://db.in.tum.de/~neumann/gi/
+For building SILO you require the following tools:
+- cmake (installable via apt / homebrew)
+- conan (installable via pip)
+
+Furthermore, we require an explicit file `conanprofile` in the project root. Run `conan profile detect` to
+automatically deduce a conan profile for your system and then `conan profile show --context build > conanprofile` to 
+create the file from that profile. We currently do not support cross-compilation.
 
 # Building
 
 Use `./build_with_conan.py` to build SILO. `./build_with_conan.py --help` shows all available options.
+
+Executables are located in `build/` upon a successful build.
 
 The conan center has been updated, if you installed conan before November 2024 you might need to update your center: `conan remote update conancenter --url="https://center2.conan.io"`
 
@@ -38,7 +46,7 @@ find src -iname '*.h' -o -iname '*.cpp' | xargs clang-format -i
 
 Note that your clang-format version should be exactly the same as that used by `jidicula/clang-format-action` for tests to pass. Currently we use `v.17.0.6`.
 
-## With Conan
+## Conan
 
 We use Conan to install dependencies for local development. See Dockerfile for how to set up Conan and its requirements.
 This has been tested on Ubuntu 22.04 and is not guaranteed to work on other systems.
@@ -59,9 +67,8 @@ hand).
 ./build_with_conan.py
 ```
 
-Executables are located in `build/` upon a successful build.
 
-## With Docker:
+## Build with Docker:
 
 (for CI and release)
 
@@ -233,6 +240,10 @@ at compile time by adjusting `add_compile_definitions(SPDLOG_ACTIVE_LEVEL=SPDLOG
 via CMake. This might be desirable for benchmarking SILO. However, the default should be `SPDLOG_LEVEL_TRACE` to give
 the maintainer the possibility to adjust the log level to a log level that they prefer, without the need to recompile
 SILO.
+
+# Acknowledgments
+
+Original genome indexing logic with roaring bitmaps by Prof. Neumann: https://db.in.tum.de/~neumann/gi/
 
 # Code Style Guidelines
 

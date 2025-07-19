@@ -25,13 +25,13 @@ endif
 
 # The name of a subfolder of `~/silo-benchmark-datasets/` where the
 # dataset is stored
-ifeq ($(BENCHMARK_DATASET_NAME),)
-$(error "BENCHMARK_DATASET_NAME must be a subfolder name, got '$(BENCHMARK_DATASET_NAME)'")
+ifeq ($(DATASET),)
+$(error "DATASET must be a subfolder name, got '$(DATASET)'")
 endif
 
 # ---- General -----------------------------------------------------------------
 
-BENCHMARK_DATASET_DIR=$(HOME)/silo-benchmark-datasets/$(BENCHMARK_DATASET_NAME)
+BENCHMARK_DATASET_DIR=$(HOME)/silo-benchmark-datasets/$(DATASET)
 
 SILO_PREPROCESSING_CONFIG=$(BENCHMARK_DATASET_DIR)/preprocessing_config.yaml
 export SILO_PREPROCESSING_CONFIG
