@@ -108,6 +108,7 @@ $(SILO):
 
 $(PREPROCESSING_STAMP): $(SILO) $(INPUT_FILE)
 	$(SILO) preprocessing --ndjson-input-filename $(INPUT_FILE) --output-directory $(OUTPUT_DIR)
+	mv -f $(EVOBENCH_LOG) $(EVOBENCH_LOG)-preprocessing.log
 	touch $(PREPROCESSING_STAMP)
 
 .silo.pid: $(PREPROCESSING_STAMP)
