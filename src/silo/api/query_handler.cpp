@@ -10,6 +10,7 @@
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
+#include "evobench/evobench.hpp"
 #include "silo/api/active_database.h"
 #include "silo/api/error_request_handler.h"
 #include "silo/query_engine/bad_request.h"
@@ -28,6 +29,7 @@ void QueryHandler::post(
    Poco::Net::HTTPServerRequest& request,
    Poco::Net::HTTPServerResponse& response
 ) {
+   EVOBENCH_SCOPE("QueryHandler", "post");
    const auto database = database_handle->getActiveDatabase();
 
    const auto request_id = response.get("X-Request-Id");
@@ -46,6 +48,9 @@ void QueryHandler::post(
       response.setContentType("application/x-ndjson");
       std::ostream& out_stream = response.send();
 
+      // This function is not inside executeAndWrite, because we need the context from query->action
+      EVOBENCH_SCOPE("QueryPlan", "executeAndWrite");
+      EVOBENCH_KEY_VALUE("of query_type", query->action->getType());
       query_plan.executeAndWrite(&out_stream);
 
    } catch (const silo::BadRequest& ex) {

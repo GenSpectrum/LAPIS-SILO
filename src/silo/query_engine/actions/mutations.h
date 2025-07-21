@@ -106,6 +106,8 @@ class Mutations : public Action {
    std::vector<schema::ColumnIdentifier> getOutputSchema(
       const silo::schema::TableSchema& table_schema
    ) const override;
+
+   std::string_view getType() const override { return "Mutations"; }
 };
 
 template <typename SymbolType>

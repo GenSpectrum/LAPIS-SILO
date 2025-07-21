@@ -36,6 +36,9 @@ class Action {
    Action();
    virtual ~Action() = default;
 
+   // Returns the type of this action, which is used for logging the performance by Action type
+   virtual std::string_view getType() const = 0;
+
    QueryPlan toQueryPlan(
       std::shared_ptr<const storage::Table> table,
       std::vector<CopyOnWriteBitmap> partition_filters,
