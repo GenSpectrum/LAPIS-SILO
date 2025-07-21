@@ -2,6 +2,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include "evobench/evobench.hpp"
 #include "silo/api/api.h"
 #include "silo/api/logging.h"
 #include "silo/append/append.h"
@@ -25,6 +26,7 @@ namespace {
 
 /// Does not throw exceptions
 int runInitializer(const silo::config::InitializeConfig& initialize_config) {
+   EVOBENCH_SCOPE("top-level", "runInitializer");
    try {
       auto database =
          silo::initialize::Initializer::initializeDatabase(initialize_config.initialization_files);
@@ -37,6 +39,7 @@ int runInitializer(const silo::config::InitializeConfig& initialize_config) {
 }
 
 int runPreprocessor(const silo::config::PreprocessingConfig& preprocessing_config) {
+   EVOBENCH_SCOPE("top-level", "runPreprocessor");
    try {
       auto database = silo::preprocessing::preprocessing(preprocessing_config);
       database.saveDatabaseState(preprocessing_config.output_directory);
@@ -45,6 +48,11 @@ int runPreprocessor(const silo::config::PreprocessingConfig& preprocessing_confi
       SPDLOG_ERROR("initialize - error: {}", preprocessing_exception.what());
       return 1;
    }
+}
+
+int runAppend(const silo::config::AppendConfig& append_config) {
+   EVOBENCH_SCOPE("top-level", "runAppend");
+   return silo::append::runAppend(append_config);
 }
 
 int runApi(const silo::config::RuntimeConfig& runtime_config) {
@@ -136,7 +144,7 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
             overloaded{
                [&](const silo::config::AppendConfig& append_config) {
                   SPDLOG_INFO("append_config = {}", append_config);
-                  return silo::append::runAppend(append_config);
+                  return runAppend(append_config);
                },
                [&](int32_t exit_code) { return exit_code; }
             },

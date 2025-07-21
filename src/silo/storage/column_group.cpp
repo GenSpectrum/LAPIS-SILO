@@ -11,6 +11,7 @@
 #include <boost/algorithm/string.hpp>
 #include <nlohmann/json.hpp>
 
+#include "evobench/evobench.hpp"
 #include "silo/common/aa_symbols.h"
 #include "silo/common/date.h"
 #include "silo/common/json_value_type.h"
@@ -300,6 +301,7 @@ void ColumnPartitionGroup::addJsonValueToColumn(
    const schema::ColumnIdentifier& column,
    const nlohmann::json& value
 ) {
+   EVOBENCH_SCOPE("ColumnPartitionGroup", "addJsonValueToColumn");
    column::visit(column.type, ColumnValueInserter{}, *this, column, value);
 }
 

@@ -9,6 +9,7 @@
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
+#include "evobench/evobench.hpp"
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/preprocessing/preprocessing_exception.h"
@@ -138,6 +139,7 @@ ReferenceGenomes readFromJson(const std::filesystem::path& reference_genomes_pat
 
 ReferenceGenomes ReferenceGenomes::readFromFile(const std::filesystem::path& reference_genomes_path
 ) {
+   EVOBENCH_SCOPE("ReferenceGenomes", "readFromFile");
    if (!std::filesystem::exists(reference_genomes_path)) {
       throw std::filesystem::filesystem_error(
          "Reference genomes file " + reference_genomes_path.string() + " does not exist",
