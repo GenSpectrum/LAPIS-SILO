@@ -206,6 +206,36 @@ const QueryTestScenario ALL_DATES_AND_COUNTRIES = {
    )
 };
 
+const QueryTestScenario DUPLICATE_COUNTRY = {
+   .name = "DUPLICATE_COUNTRY",
+   .query = nlohmann::json::parse(
+      R"(
+{
+  "action": {
+    "type": "Details",
+    "fields": [
+      "country", "country"
+    ],
+    "orderByFields": [
+      {"field": "country", "order": "descending"}
+    ]
+  },
+  "filterExpression": {
+    "type": "True"
+  }
+})"
+   ),
+   .expected_query_result = nlohmann::json::parse(
+      R"(
+[{"country":"Switzerland"},
+{"country":"Switzerland"},
+{"country":"Switzerland"},
+{"country":"Switzerland"},
+{"country":"Germany"},
+{"country":"Germany"}])"
+   )
+};
+
 const QueryTestScenario LIMIT = {
    .name = "LIMIT",
    .query = nlohmann::json::parse(
@@ -420,6 +450,7 @@ QUERY_TEST(
       LIMIT_OFFSET,
       ALL_DATES,
       ALL_DATES_AND_COUNTRIES,
+      DUPLICATE_COUNTRY,
       LIMIT,
       LIMIT_0,
       LIMIT_LARGE,

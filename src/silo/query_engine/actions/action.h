@@ -61,6 +61,9 @@ class Action {
       const silo::schema::TableSchema& table_schema
    ) const;
 
+   static std::vector<std::string> deduplicateOrderPreserving(const std::vector<std::string>& fields
+   );
+
   protected:
    arrow::Result<arrow::acero::ExecNode*> addLimitAndOffsetNode(
       arrow::acero::ExecPlan* arrow_plan,
