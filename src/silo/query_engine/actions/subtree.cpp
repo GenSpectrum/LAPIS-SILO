@@ -27,18 +27,16 @@ using silo::common::NewickResponse;
 using silo::common::TreeNodeId;
 using silo::schema::ColumnType;
 
-Subtree::Subtree(
-   std::string column_name,
-   bool print_nodes_not_in_tree
-)
+Subtree::Subtree(std::string column_name, bool print_nodes_not_in_tree)
     : column_name(std::move(column_name)),
-    print_nodes_not_in_tree(print_nodes_not_in_tree) {}
+      print_nodes_not_in_tree(print_nodes_not_in_tree) {}
 
 using silo::query_engine::filter::operators::Operator;
 
-void Subtree::validateOrderByFields(const schema::TableSchema& /*table_schema*/)
-   const {
-   const std::vector<std::string_view> fields{"subtreeNewick", "missingNodeCount", "missingFromTree"};
+void Subtree::validateOrderByFields(const schema::TableSchema& /*table_schema*/) const {
+   const std::vector<std::string_view> fields{
+      "subtreeNewick", "missingNodeCount", "missingFromTree"
+   };
    for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
          std::ranges::any_of(
@@ -157,9 +155,9 @@ arrow::Result<QueryPlan> Subtree::toQueryPlanImpl(
       auto all_node_ids =
          getAllNodeValues(table, column_name_to_evaluate, evaluated_partition_filters);
 
-      ARROW_RETURN_NOT_OK(
-         addSubtreeResponseToBuilder(all_node_ids, output_builder, table_metadata, print_missing_nodes)
-      );
+      ARROW_RETURN_NOT_OK(addSubtreeResponseToBuilder(
+         all_node_ids, output_builder, table_metadata, print_missing_nodes
+      ));
 
       // Order of result_columns is relevant as it needs to be consistent with vector in schema
       std::vector<arrow::Datum> result_columns;
@@ -206,12 +204,10 @@ std::vector<schema::ColumnIdentifier> Subtree::getOutputSchema(
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Subtree>& action) {
    CHECK_SILO_QUERY(
-      json.contains("columnName"),
-      "error: 'columnName' field is required in Subtree action"
+      json.contains("columnName"), "error: 'columnName' field is required in Subtree action"
    );
    CHECK_SILO_QUERY(
-      json["columnName"].is_string(),
-      "error: 'columnName' field in Subtree action must be a string"
+      json["columnName"].is_string(), "error: 'columnName' field in Subtree action must be a string"
    );
    if (json.contains("printNodesNotInTree")) {
       CHECK_SILO_QUERY(
