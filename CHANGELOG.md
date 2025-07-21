@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.4](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.3...v0.7.4) (2025-07-21)
+
+
+### Bug Fixes
+
+* **silo:** accept more characters in newick string and improve error messages ([#891](https://github.com/GenSpectrum/LAPIS-SILO/issues/891)) ([5f8bc9e](https://github.com/GenSpectrum/LAPIS-SILO/commit/5f8bc9e5c2672089f16ea545766fae48fc31d391))
+* **silo:** correctly deduplicate requested fields ([78f4146](https://github.com/GenSpectrum/LAPIS-SILO/commit/78f41460cfff10a182c1ec8712ea6c69c2f7eb1e))
+
 ## [0.7.3](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.2...v0.7.3) (2025-07-17)
 
 
