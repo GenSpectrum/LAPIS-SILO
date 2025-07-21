@@ -139,6 +139,19 @@ std::optional<uint32_t> parseRandomizeSeed(const nlohmann::json& json) {
    return json["randomize"]["seed"].get<uint32_t>();
 }
 
+std::vector<std::string> Action::deduplicateOrderPreserving(const std::vector<std::string>& fields
+) {
+   std::vector<std::string> unique_fields;
+   std::unordered_set<std::string> seen;
+
+   for (const auto& field : fields) {
+      if (seen.insert(field).second) {
+         unique_fields.push_back(field);
+      }
+   }
+   return unique_fields;
+}
+
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
    CHECK_SILO_QUERY(json.contains("type"), "The field 'type' is required in any action");

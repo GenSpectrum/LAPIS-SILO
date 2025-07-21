@@ -138,6 +138,40 @@ const QueryTestScenario FASTA_ALIGNED_ADDITIONAL_HEADER = {
    )
 };
 
+const QueryTestScenario DUPLICATE_FIELDS = {
+   .name = "DUPLICATE_FIELDS",
+   .query = nlohmann::json::parse(
+      R"(
+{
+  "action": {
+    "type": "FastaAligned",
+    "sequenceNames": [
+      "segment1",
+      "segment1"
+    ],
+    "orderByFields": [
+      "primaryKey"
+    ],
+    "additionalFields": [
+      "country",
+      "country"
+    ]
+  },
+  "filterExpression": {
+    "type": "True"
+  }
+}
+)"
+   ),
+   .expected_query_result = nlohmann::json::parse(
+      R"(
+[{"country":"Switzerland","primaryKey":"id_0","segment1":"ATGCN"},
+{"country":"Switzerland","primaryKey":"id_1","segment1":"ATGCN"},
+{"country":"Switzerland","primaryKey":"id_2","segment1":"NNNNN"},
+{"country":"Switzerland","primaryKey":"id_3","segment1":"CATTT"}])"
+   )
+};
+
 const QueryTestScenario FASTA_ALIGNED_EXPLICIT_PRIMARY_KEY = {
    .name = "FASTA_ALIGNED_EXPLICIT_PRIMARY_KEY",
    .query = nlohmann::json::parse(
@@ -435,6 +469,7 @@ QUERY_TEST(
       FASTA_ALIGNED,
       FASTA_ALIGNED_ADDITIONAL_HEADER,
       FASTA_ALIGNED_DUPLICATE_HEADER,
+      DUPLICATE_FIELDS,
       FASTA_ALIGNED_EXPLICIT_PRIMARY_KEY,
       FASTA_ALIGNED_DESCENDING,
       FASTA_ALIGNED_SUBSET,

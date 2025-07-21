@@ -185,6 +185,41 @@ const QueryTestScenario DOWNLOAD_ALL_DATA = {
    )
 };
 
+const QueryTestScenario DUPLICATE_FIELDS = {
+   .name = "DUPLICATE_FIELDS",
+   .query = nlohmann::json::parse(R"(
+{
+  "action": {
+    "type": "Fasta",
+    "orderByFields": [
+      "primaryKey"
+    ],
+    "sequenceNames": [
+      "unaligned_segment1",
+      "unaligned_segment2",
+      "unaligned_segment1"
+    ],
+    "additionalFields": [
+      "date",
+      "date"
+    ]
+  },
+  "filterExpression": {
+    "type": "True"
+  }
+}
+)"),
+   .expected_query_result = nlohmann::json::parse(R"(
+[{"date":"2024-08-05","primaryKey":"1","unaligned_segment1":null,"unaligned_segment2":"A"},
+{"date":"2024-08-03","primaryKey":"2","unaligned_segment1":null,"unaligned_segment2":null},
+{"date":"2024-08-02","primaryKey":"3","unaligned_segment1":null,"unaligned_segment2":"AA"},
+{"date":"2024-08-01","primaryKey":"bothSegments","unaligned_segment1":"A","unaligned_segment2":"G"},
+{"date":"2024-08-08","primaryKey":"noSegment","unaligned_segment1":null,"unaligned_segment2":null},
+{"date":"2024-08-03","primaryKey":"onlySegment1","unaligned_segment1":"T","unaligned_segment2":null},
+{"date":"2024-08-02","primaryKey":"onlySegment2","unaligned_segment1":null,"unaligned_segment2":"T"}])"
+   )
+};
+
 const QueryTestScenario ORDER_BY_NOT_IN_OUTPUT = {
    .name = "ORDER_BY_NOT_IN_OUTPUT",
    .query = nlohmann::json::parse(R"(
@@ -261,6 +296,7 @@ QUERY_TEST(
       DOWNLOAD_ALL_SEQUENCES_SCENARIO,
       DOWNLOAD_ALL_DATA,
       ORDER_BY_NOT_IN_OUTPUT,
-      ORDER_BY_ADDITIONAL_FIELD
+      ORDER_BY_ADDITIONAL_FIELD,
+      DUPLICATE_FIELDS
    )
 );

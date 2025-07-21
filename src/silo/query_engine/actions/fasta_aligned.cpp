@@ -93,7 +93,10 @@ void from_json(const nlohmann::json& json, std::unique_ptr<FastaAligned>& action
          additional_fields.emplace_back(child.get<std::string>());
       }
    }
-   action = std::make_unique<FastaAligned>(std::move(sequence_names), std::move(additional_fields));
+   action = std::make_unique<FastaAligned>(
+      Action::deduplicateOrderPreserving(sequence_names),
+      Action::deduplicateOrderPreserving(additional_fields)
+   );
 }
 
 }  // namespace silo::query_engine::actions

@@ -313,6 +313,34 @@ const QueryTestScenario AGGREGATE_NULLABLE = {
    )
 };
 
+const QueryTestScenario DUPLICATE_AGGREGATE = {
+   .name = "DUPLICATE_AGGREGATE",
+   .query = nlohmann::json::parse(
+      R"(
+{
+  "action": {
+    "type": "Aggregated",
+    "groupByFields": [
+      "age", "age"
+    ],
+    "orderByFields": [
+      "count", {"field": "age", "order": "descending"}
+    ]
+  },
+  "filterExpression": {
+    "type": "True"
+  }
+})"
+   ),
+   .expected_query_result = nlohmann::json::parse(
+      R"(
+[{"age":19,"count":1},
+{"age":13,"count":1},
+{"age":7,"count":1},
+{"age":null,"count":3}])"
+   )
+};
+
 const QueryTestScenario INVALID_GROUP_BY_FIELD_OBJECT = {
    .name = "INVALID_GROUP_BY_FIELD_OBJECT",
    .query = nlohmann::json::parse(
@@ -404,6 +432,7 @@ QUERY_TEST(
       AGGREGATE_UNIQUE,
       AGGREGATE_ONE,
       AGGREGATE_NULLABLE,
+      DUPLICATE_AGGREGATE,
       INVALID_GROUP_BY_FIELD_OBJECT,
       INVALID_GROUP_BY_FIELDS,
       INVALID_ORDER_BY_FIELD_OBJECT,
