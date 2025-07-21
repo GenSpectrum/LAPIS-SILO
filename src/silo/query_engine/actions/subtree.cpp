@@ -50,32 +50,6 @@ void Subtree::validateOrderByFields(const schema::TableSchema& /*table_schema*/)
    }
 }
 
-std::vector<std::string> getAllNodeValues(
-   std::shared_ptr<const storage::Table> table,
-   const std::string& column_name,
-   std::vector<CopyOnWriteBitmap>& bitmap_filter
-) {
-   std::vector<std::string> all_tree_node_ids;
-   for (size_t i = 0; i < table->getNumberOfPartitions(); ++i) {
-      const storage::TablePartition& table_partition = table->getPartition(i);
-      const auto& string_column = table_partition.columns.string_columns.at(column_name);
-
-      CopyOnWriteBitmap& filter = bitmap_filter[i];
-      const size_t cardinality = filter->cardinality();
-      if (cardinality == 0) {
-         continue;
-      }
-      for (uint32_t row_in_table_partition : *filter) {
-         auto value =
-            string_column.lookupValue(string_column.getValues().at(row_in_table_partition));
-         if (!value.empty()) {
-            all_tree_node_ids.push_back(value);
-         }
-      }
-   }
-   return all_tree_node_ids;
-}
-
 arrow::Status addSubtreeResponseToBuilder(
    std::vector<std::string>& all_node_ids,
    std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder,
@@ -153,7 +127,7 @@ arrow::Result<QueryPlan> Subtree::toQueryPlanImpl(
       }
 
       auto all_node_ids =
-         getAllNodeValues(table, column_name_to_evaluate, evaluated_partition_filters);
+         getNodeValues(table, column_name_to_evaluate, evaluated_partition_filters);
 
       ARROW_RETURN_NOT_OK(addSubtreeResponseToBuilder(
          all_node_ids, output_builder, table_metadata, print_missing_nodes

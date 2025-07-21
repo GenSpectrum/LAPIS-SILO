@@ -482,6 +482,32 @@ arrow::Result<arrow::acero::ExecNode*> Action::addZstdDecompressNode(
    return node;
 }
 
+std::vector<std::string> getNodeValues(
+   std::shared_ptr<const storage::Table> table,
+   const std::string& column_name,
+   std::vector<CopyOnWriteBitmap>& bitmap_filter
+) {
+   std::vector<std::string> all_tree_node_ids;
+   for (size_t i = 0; i < table->getNumberOfPartitions(); ++i) {
+      const storage::TablePartition& table_partition = table->getPartition(i);
+      const auto& string_column = table_partition.columns.string_columns.at(column_name);
+
+      CopyOnWriteBitmap& filter = bitmap_filter[i];
+      const size_t cardinality = filter->cardinality();
+      if (cardinality == 0) {
+         continue;
+      }
+      for (uint32_t row_in_table_partition : *filter) {
+         auto value =
+            string_column.lookupValue(string_column.getValues().at(row_in_table_partition));
+         if (!value.empty()) {
+            all_tree_node_ids.push_back(value);
+         }
+      }
+   }
+   return all_tree_node_ids;
+}
+
 arrow::Result<arrow::acero::ExecNode*> Action::addOrderingNodes(
    arrow::acero::ExecPlan* arrow_plan,
    arrow::acero::ExecNode* node,
