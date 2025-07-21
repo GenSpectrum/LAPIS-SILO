@@ -12,6 +12,9 @@ class SimpleSelectAction : public Action {
       std::vector<CopyOnWriteBitmap> partition_filters,
       const config::QueryOptions& query_options
    ) const override;
+
+   // Already log "Select", it will be changed by TODO(#863)
+   std::string_view getType() const override { return "Select"; }
 };
 
 }  // namespace silo::query_engine::actions

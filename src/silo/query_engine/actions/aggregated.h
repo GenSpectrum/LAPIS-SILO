@@ -23,6 +23,8 @@ class Aggregated : public Action {
    std::vector<schema::ColumnIdentifier> getOutputSchema(const schema::TableSchema& table_schema
    ) const override;
 
+   std::string_view getType() const override { return "Aggregated"; }
+
   private:
    std::vector<GroupByField> group_by_fields;
 
