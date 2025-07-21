@@ -430,4 +430,101 @@ MRCAResponse PhyloTree::getMRCA(const std::vector<std::string>& node_labels) con
    return response;
 }
 
+bool isInFilter(const std::string& str, const std::vector<std::string>& filter) {
+   return std::find(filter.begin(), filter.end(), str) != filter.end();
+}
+
+std::string newickJoin(
+   const std::vector<std::string>& child_newick_strings,
+   std::optional<std::string> self_id = std::nullopt
+) {
+   std::string result = self_id.has_value() ? "(" : "";
+   for (size_t i = 0; i < child_newick_strings.size(); ++i) {
+      if (i > 0)
+         result += ",";
+      result += child_newick_strings[child_newick_strings.size() - i - 1];
+   }
+   result += self_id.has_value() ? ")" + self_id.value() : "";
+   return result;
+}
+
+PartialNewickResponse PhyloTree::partialNewickString(
+   const std::vector<std::string>& filter,
+   const TreeNodeId& ancestor
+) const {
+   PartialNewickResponse response;
+
+   auto node_it = nodes.find(ancestor);
+   if (node_it == nodes.end()) {
+      throw std::runtime_error(fmt::format("Ancestor '{}' not found in tree.", ancestor.string));
+   }
+   std::vector<PartialNewickResponse> responses;
+   if (node_it->second->isLeaf()) {
+      response.newick_string_with_self =
+         isInFilter(ancestor.string, filter) ? std::make_optional(ancestor.string) : std::nullopt;
+      response.newick_string_without_self =
+         std::nullopt;  // make it clear that self must be included
+      return response;
+   }
+   for (const auto& child : node_it->second->children) {
+      responses.push_back(partialNewickString(filter, child));
+   }
+   std::erase_if(responses, [](const PartialNewickResponse& resp) {
+      return !resp.newick_string_with_self.has_value();
+   });
+   if (responses.empty()) {
+      response.newick_string_with_self = std::nullopt;
+      response.newick_string_without_self = std::nullopt;
+      return response;
+   }
+   if (responses.size() == 1) {
+      if (responses[0].newick_string_without_self.has_value()) {
+         response.newick_string_without_self = responses[0].newick_string_without_self.value();
+      } else {
+         response.newick_string_without_self = responses[0].newick_string_with_self.value_or("");
+      }
+      response.newick_string_with_self =
+         newickJoin({responses[0].newick_string_with_self.value_or("")}, ancestor.string);
+      return response;
+   }
+   std::vector<std::string> strings;
+   strings.reserve(responses.size());
+   for (const auto& resp : responses) {
+      strings.push_back(resp.newick_string_with_self.value_or(""));
+   }
+   response.newick_string_with_self = newickJoin(strings, ancestor.string);
+   response.newick_string_without_self = std::nullopt;  // make it clear that self must be included
+   return response;
+}
+
+std::string PhyloTree::toNewickString(const std::vector<std::string>& filter) const {
+   auto node_it = nodes.find(root_id);
+   if (node_it == nodes.end()) {
+      throw std::runtime_error(fmt::format("Ancestor '{}' not found in tree.", root_id.string));
+   }
+   std::vector<PartialNewickResponse> responses;
+   for (const auto& child : node_it->second->children) {
+      responses.push_back(partialNewickString(filter, child));
+   }
+   std::erase_if(responses, [](const PartialNewickResponse& resp) {
+      return !resp.newick_string_with_self.has_value();
+   });
+   if (responses.empty()) {
+      return "";
+   }
+   if (responses.size() == 1) {
+      if (responses[0].newick_string_without_self.has_value()) {
+         return responses[0].newick_string_without_self.value() + ";";
+      } else {
+         return responses[0].newick_string_with_self.value_or("") + ";";
+      }
+   }
+   std::vector<std::string> strings;
+   strings.reserve(responses.size());
+   for (const auto& resp : responses) {
+      strings.push_back(resp.newick_string_with_self.value_or(""));
+   }
+   return newickJoin(strings, root_id.string) + ";";
+}
+
 }  // namespace silo::common
