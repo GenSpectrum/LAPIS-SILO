@@ -6,6 +6,7 @@
 #include <spdlog/spdlog.h>
 #include <boost/algorithm/string/join.hpp>
 
+#include "evobench/evobench.hpp"
 #include "silo/common/block_timer.h"
 #include "silo/common/fmt_formatters.h"
 #include "silo/common/panic.h"
@@ -23,6 +24,7 @@
 namespace silo::initialize {
 
 Database Initializer::initializeDatabase(const config::InitializationFiles& initialization_files) {
+   EVOBENCH_SCOPE("Initializer", "initializeDatabase");
    common::LineageTreeAndIdMap lineage_tree;
    if (initialization_files.getLineageDefinitionsFilename().has_value()) {
       lineage_tree = common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(

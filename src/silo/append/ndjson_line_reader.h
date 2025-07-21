@@ -2,6 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "evobench/evobench.hpp"
 #include "silo/append/append_exception.h"
 
 namespace silo::append {
@@ -31,6 +32,7 @@ class NdjsonLineReader {
       pointer operator->() const { return &json_buffer; }
 
       Iterator& operator++() {
+         EVOBENCH_SCOPE("NdjsonLineReader::Iterator", "operator++");
          std::string line;
          while (std::getline(*stream_, line)) {
             if (line.empty())

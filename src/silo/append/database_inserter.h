@@ -4,6 +4,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include "evobench/evobench.hpp"
 #include "silo/append/append_exception.h"
 #include "silo/database.h"
 #include "silo/storage/table_partition.h"
@@ -52,6 +53,7 @@ silo::append::TablePartitionInserter::Commit appendDataToTablePartition(
    silo::append::TablePartitionInserter partition_inserter,
    Data input_data
 ) {
+   EVOBENCH_SCOPE("TablePartitionInserter", "appendDataToTablePartition");
    size_t line_count = 0;
    for (const auto& json_obj : input_data) {
       partition_inserter.insert(json_obj);

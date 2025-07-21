@@ -10,6 +10,7 @@
 #include <spdlog/spdlog.h>
 #include <boost/algorithm/string/join.hpp>
 
+#include "evobench/evobench.hpp"
 #include "silo/common/panic.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
@@ -403,6 +404,7 @@ LineageTreeAndIdMap LineageTreeAndIdMap::fromLineageDefinitionFile(
 LineageTreeAndIdMap LineageTreeAndIdMap::fromLineageDefinitionFilePath(
    const std::filesystem::path& file_path
 ) {
+   EVOBENCH_SCOPE("LineageTreeAndIdMap", "fromLineageDefinitionFilePath");
    auto definition_file = preprocessing::LineageDefinitionFile::fromYAMLFile(file_path);
 
    return fromLineageDefinitionFile(std::move(definition_file));

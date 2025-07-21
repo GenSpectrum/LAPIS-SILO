@@ -4,6 +4,7 @@
 namespace silo::append {
 
 void TablePartitionInserter::insert(const nlohmann::json& ndjson_line) const {
+   EVOBENCH_SCOPE("TablePartitionInserter", "insert");
    for (auto& column_metadata : table_partition->columns.metadata) {
       try {
          table_partition->columns.addJsonValueToColumn(column_metadata, ndjson_line);

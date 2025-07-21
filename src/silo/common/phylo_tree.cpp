@@ -5,8 +5,6 @@
 #include <set>
 #include <sstream>
 
-#include <roaring/roaring.hh>
-
 #include <fmt/ranges.h>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
@@ -18,7 +16,9 @@
 #include <boost/serialization/utility.hpp>
 #include <boost/serialization/vector.hpp>
 #include <nlohmann/json.hpp>
+#include <roaring/roaring.hh>
 
+#include "evobench/evobench.hpp"
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/query_engine/bad_request.h"
 
@@ -311,6 +311,8 @@ PhyloTree PhyloTree::fromNewickFile(const std::filesystem::path& newick_path) {
 }
 
 PhyloTree PhyloTree::fromFile(const std::filesystem::path& path) {
+   EVOBENCH_SCOPE("PhyloTree", "fromFile");
+
    auto ext = path.extension().string();
 
    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
