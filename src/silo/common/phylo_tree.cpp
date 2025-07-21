@@ -508,6 +508,10 @@ NewickResponse PhyloTree::toNewickString(const std::vector<std::string>& filter)
          in_tree.push_back(node_label);
       }
    }
+   if (in_tree.empty()) {
+      response.newick_string = "";
+      return response;
+   }
    auto node_it = nodes.find(root_id);
    if (node_it == nodes.end()) {
       throw std::runtime_error(fmt::format("Ancestor '{}' not found in tree.", root_id.string));
@@ -520,18 +524,26 @@ NewickResponse PhyloTree::toNewickString(const std::vector<std::string>& filter)
       return !resp.newick_string_with_self.has_value();
    });
    if (responses.empty()) {
-      response.newick_string = "";
-      return response;
+      throw std::runtime_error(
+         fmt::format("Newick should contain nodes '{}' but returned <empty>.", in_tree)
+      );
    }
    if (responses.size() == 1) {
-      if (responses[0].newick_string_without_self.has_value()) {
-         response.newick_string = responses[0].newick_string_without_self.value() + ";";
+      // Only one child has nodes in the filter, root is not needed
+      // The output nwk's root should be the MRCA of the nodes in the filter
+      if (not responses[0].newick_string_without_self.has_value()) {
+         // The child is the MRCA of the nodes in the filter and should be the root of the nwk
+         response.newick_string = responses[0].newick_string_with_self.value_or("") + ";";
          return response;
       } else {
-         response.newick_string = responses[0].newick_string_with_self.value_or("") + ";";
+         // The child is not the MRCA, return the nwk string which contains the last node that was
+         // an ancestor of multiple nodes in the filter - this will be the MRCA of the nodes in the
+         // filter
+         response.newick_string = responses[0].newick_string_without_self.value() + ";";
          return response;
       }
    }
+   // Multiple children have nodes in the filter, the root is the MRCA of the nodes in the filter
    std::vector<std::string> strings;
    strings.reserve(responses.size());
    for (const auto& resp : responses) {
