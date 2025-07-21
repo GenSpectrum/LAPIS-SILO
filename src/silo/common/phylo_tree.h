@@ -51,6 +51,7 @@ class MRCAResponse {
 class PhyloTree {
   public:
    std::unordered_map<TreeNodeId, std::shared_ptr<TreeNode>> nodes;
+   TreeNodeId root_id;
 
    // Functions for reading and parsing phylogenetic trees
 

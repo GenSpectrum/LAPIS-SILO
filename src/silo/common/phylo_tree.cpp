@@ -32,6 +32,7 @@ void PhyloTree::save(Archive& archive, const unsigned int version) const {
       node_ids.push_back(node_id);
    }
    archive & node_ids;
+   archive & root_id;
 
    for (const auto& [node_id, node] : nodes) {
       auto called_node = node.get();
@@ -44,6 +45,7 @@ template <class Archive>
 void PhyloTree::load(Archive& archive, const unsigned int version) {
    std::vector<TreeNodeId> node_ids;
    archive & node_ids;
+   archive & root_id;
 
    for (const auto& node_id : node_ids) {
       auto node = std::make_shared<TreeNode>();
@@ -104,7 +106,7 @@ PhyloTree PhyloTree::fromAuspiceJSONString(const std::string& json_string) {
    }
 
    PhyloTree file;
-   auto root = parse_auspice_tree(j["tree"], std::nullopt, file.nodes);
+   file.root_id = parse_auspice_tree(j["tree"], std::nullopt, file.nodes);
    return file;
 }
 
@@ -263,7 +265,7 @@ PhyloTree PhyloTree::fromNewickString(const std::string& newick_string) {
    }
    sv.remove_suffix(1);
    try {
-      auto root = parseSubtree(sv, file.nodes, 0);
+      file.root_id = parseSubtree(sv, file.nodes, 0);
       if (!sv.empty()) {
          std::string shortened =
             newick_string.size() > 200 ? newick_string.substr(0, 200) + "..." : newick_string;
