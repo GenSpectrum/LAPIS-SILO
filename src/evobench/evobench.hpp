@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <mutex>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 
@@ -107,7 +108,10 @@ struct fixed_string {
 
    consteval fixed_string(std::string_view str)
        : data{} {
-      std::copy_n(str.data(), str.size(), data);
+      if (str.size() != N) {
+         throw std::invalid_argument("str is of wrong size");
+      }
+      std::copy_n(str.data(), N, data);
    }
 
    constexpr operator const char*() const { return data; }
