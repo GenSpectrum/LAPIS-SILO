@@ -7,6 +7,7 @@
 
 #include <roaring/roaring.hh>
 
+#include <fmt/ranges.h>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/serialization/access.hpp>
@@ -134,7 +135,8 @@ PhyloTree PhyloTree::fromAuspiceJSONFile(const std::filesystem::path& json_path)
 }
 
 bool isValidLabelChar(char c) {
-   return isalnum(c) || c == '_' || c == '.' || c == '-';
+   return isalnum(c) || c == '_' || c == '.' || c == '-' || c == '|' || c == '/' || c == '\\' ||
+          c == '=' || c == '@';
 }
 
 bool isValidLength(char c) {
@@ -164,7 +166,12 @@ TreeNodeId parseFullLabel(std::string_view& sv) {
    }
    if (!std::all_of(fullLabel.begin(), fullLabel.end(), isValidLabelChar)) {
       throw silo::preprocessing::PreprocessingException(
-         fmt::format("Label '{}' in Newick string contains invalid characters", fullLabel)
+         fmt::format("Label of node in Newick string contains invalid characters: '{}'", fullLabel)
+      );
+   }
+   if (sv.back() != ')' && sv.back() != '(' && sv.back() != ',' && sv.back() != ' ') {
+      throw silo::preprocessing::PreprocessingException(
+         fmt::format("Newick string contains invalid characters: '{}'", sv.back())
       );
    }
    std::reverse(fullLabel.begin(), fullLabel.end());
@@ -247,21 +254,30 @@ PhyloTree PhyloTree::fromNewickString(const std::string& newick_string) {
       );
    }
    if (sv.back() != ';') {
+      std::string shortened =
+         newick_string.size() > 200 ? newick_string.substr(0, 200) + "..." : newick_string;
+
       throw silo::preprocessing::PreprocessingException(fmt::format(
-         "Error when parsing the Newick string: '{}' - string does not end in ';'", newick_string
+         "Error when parsing the Newick string: '{}' - string does not end in ';'", shortened
       ));
    }
    sv.remove_suffix(1);
    try {
       auto root = parseSubtree(sv, file.nodes, 0);
       if (!sv.empty()) {
+         std::string shortened =
+            newick_string.size() > 200 ? newick_string.substr(0, 200) + "..." : newick_string;
          throw silo::preprocessing::PreprocessingException(fmt::format(
-            "Error when parsing the Newick string: '{}' - extra characters found", newick_string
+            "Error when parsing the Newick string: '{}' - extra characters found: '{}'",
+            shortened,
+            sv
          ));
       }
    } catch (const std::exception& e) {
+      std::string shortened =
+         newick_string.size() > 200 ? newick_string.substr(0, 200) + "..." : newick_string;
       throw silo::preprocessing::PreprocessingException(
-         fmt::format("Error when parsing the Newick string '{}': {}", newick_string, e.what())
+         fmt::format("Error when parsing the Newick string '{}': {}", shortened, e.what())
       );
    }
 
