@@ -497,26 +497,39 @@ PartialNewickResponse PhyloTree::partialNewickString(
    return response;
 }
 
-std::string PhyloTree::toNewickString(const std::vector<std::string>& filter) const {
+NewickResponse PhyloTree::toNewickString(const std::vector<std::string>& filter) const {
+   NewickResponse response;
+   std::vector<std::string> in_tree;
+   for (const auto& node_label : filter) {
+      auto node_it = nodes.find(TreeNodeId{node_label});
+      if (node_it == nodes.end()) {
+         response.not_in_tree.push_back(node_label);
+      } else {
+         in_tree.push_back(node_label);
+      }
+   }
    auto node_it = nodes.find(root_id);
    if (node_it == nodes.end()) {
       throw std::runtime_error(fmt::format("Ancestor '{}' not found in tree.", root_id.string));
    }
    std::vector<PartialNewickResponse> responses;
    for (const auto& child : node_it->second->children) {
-      responses.push_back(partialNewickString(filter, child));
+      responses.push_back(partialNewickString(in_tree, child));
    }
    std::erase_if(responses, [](const PartialNewickResponse& resp) {
       return !resp.newick_string_with_self.has_value();
    });
    if (responses.empty()) {
-      return "";
+      response.newick_string = "";
+      return response;
    }
    if (responses.size() == 1) {
       if (responses[0].newick_string_without_self.has_value()) {
-         return responses[0].newick_string_without_self.value() + ";";
+         response.newick_string = responses[0].newick_string_without_self.value() + ";";
+         return response;
       } else {
-         return responses[0].newick_string_with_self.value_or("") + ";";
+         response.newick_string = responses[0].newick_string_with_self.value_or("") + ";";
+         return response;
       }
    }
    std::vector<std::string> strings;
@@ -524,7 +537,8 @@ std::string PhyloTree::toNewickString(const std::vector<std::string>& filter) co
    for (const auto& resp : responses) {
       strings.push_back(resp.newick_string_with_self.value_or(""));
    }
-   return newickJoin(strings, root_id.string) + ";";
+   response.newick_string = newickJoin(strings, root_id.string) + ";";
+   return response;
 }
 
 }  // namespace silo::common

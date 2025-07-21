@@ -48,6 +48,12 @@ class MRCAResponse {
    std::vector<std::string> not_in_tree;
 };
 
+class NewickResponse {
+  public:
+   std::string newick_string;
+   std::vector<std::string> not_in_tree;
+};
+
 class PartialNewickResponse {
   public:
    std::optional<std::string> newick_string_without_self;
@@ -80,7 +86,7 @@ class PhyloTree {
 
    MRCAResponse getMRCA(const std::vector<std::string>& node_labels) const;
 
-   std::string toNewickString(const std::vector<std::string>& filter) const;
+   NewickResponse toNewickString(const std::vector<std::string>& filter) const;
 
    PartialNewickResponse partialNewickString(
       const std::vector<std::string>& filter,

@@ -19,6 +19,7 @@
 
 namespace silo::storage::column {
 using silo::common::MRCAResponse;
+using silo::common::NewickResponse;
 using silo::common::TreeNodeId;
 
 class StringColumnMetadata : public ColumnMetadata {
@@ -65,6 +66,16 @@ class StringColumnMetadata : public ColumnMetadata {
          };
       }
       return phylo_tree->getMRCA(node_labels);
+   }
+
+   inline NewickResponse toNewickString(const std::vector<std::string>& node_labels) const {
+      if (!phylo_tree.has_value()) {
+         return NewickResponse{
+            "",
+            {},
+         };
+      }
+      return phylo_tree->toNewickString(node_labels);
    }
 };
 
