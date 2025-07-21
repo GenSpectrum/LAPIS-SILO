@@ -49,3 +49,27 @@ The result of such a query is a ndjson with a single row, where `missingFromTree
   "missingFromTree": "MISSING_NODE1,MISSING_NODE2"
 }
 ```
+
+### Subtree
+
+```json
+"action": {
+  "type": "Subtree",
+  "columnName": "COLUMN_NAME",
+  "printNodesNotInTree": true
+}
+```
+
+Returns a subtree of all sequences in the filter it is applied to in newick format (`.nwk`). The subtree is produced from the phylogenetic tree, leaf nodes are only shown in the newick if they were included in the filter. Internal nodes are included if they are part of the subtree created from the leaves in the filter, where the root is the most recent common ancestor that includes all nodes.
+
+If sequences included in the filter do not exist in the phylogenetic tree they are ignored and the count of such missing sequences is added as a field `missingNodeCount`. Additionally, if desired, a list of all missing nodes can be returned as a comma-separated list by setting `printNodesNotInTree` to true (default is false). Note in the query shown above `COLUMN_NAME` must correspond to the name of a STRING column with the `phyloTreeNodeIdentifier` and a corresponding tree.
+
+The result of such a query is a ndjson with a single row. `subtreeNewick` is a valid nwk string, `missingFromTree` is only added if `printNodesNotInTree` is set to true:
+
+```json
+{
+  "subtreeNewick": "SUBTREE_NEWICK",
+  "missingNodeCount": "INT",
+  "missingFromTree": "MISSING_NODE1,MISSING_NODE2"
+}
+```
