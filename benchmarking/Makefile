@@ -1,14 +1,20 @@
 
 # Required env vars:
 
+# The name of a subfolder of `~/silo-benchmark-datasets/` where the
+# dataset is stored
+ifeq ($(DATASET),)
+$(error "DATASET must be a subfolder name, got '$(DATASET)'")
+endif
+
 # Should sorted input be used?
 ifeq ($(SORTED),0)
 INPUT_FILE = $(BENCHMARK_DATASET_DIR)/input_file.ndjson.zst
-OUTPUT_DIR = output
+OUTPUT_DIR = $(DATASET)-output
 else ifeq ($(SORTED),1)
 # OK to write back into the $(BENCHMARK_DATASET_DIR)?
 INPUT_FILE = $(BENCHMARK_DATASET_DIR)/sorted_input_file.ndjson.zst
-OUTPUT_DIR = sorted_output
+OUTPUT_DIR = $(DATASET)-sorted_output
 else
 $(error "SORTED must be either 0 or 1, got '$(SORTED)'")
 endif
@@ -31,13 +37,6 @@ endif
 # Passed to api-query
 ifeq ($(REPEAT),)
 $(error "REPEAT must be a natural number, missing")
-endif
-
-
-# The name of a subfolder of `~/silo-benchmark-datasets/` where the
-# dataset is stored
-ifeq ($(DATASET),)
-$(error "DATASET must be a subfolder name, got '$(DATASET)'")
 endif
 
 
@@ -142,7 +141,7 @@ bench: $(BENCHMARK_DATASET_DIR)/silo_queries.ndjson $(API_QUERY) .silo.stopped
 	make .silo.stopped
 
 clean:
-	rm -rf output sorted_output logs sorted_chunks merger_tmp
+	rm -rf *-output/ *-sorted_output/ logs sorted_chunks merger_tmp
 
 clean-fully: clean
 	rm -rf ../build
