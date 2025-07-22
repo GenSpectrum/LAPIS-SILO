@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.7.5](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.4...v0.7.5) (2025-07-22)
+
+
+### Features
+
+* **benchmarking:** add benchmarking probes to preprocessing ([8fbebe1](https://github.com/GenSpectrum/LAPIS-SILO/commit/8fbebe11cb0fc115cdfe96a32363cc4a01aeb597))
+* **benchmarking:** add probes to "action" part of query evaluation ([f63eb41](https://github.com/GenSpectrum/LAPIS-SILO/commit/f63eb41b61dde69fd11f868d5a375cdaf166f821))
+* **benchmarking:** add query type to benchmark context before query execution ([e62677c](https://github.com/GenSpectrum/LAPIS-SILO/commit/e62677c63bef5dc2dcc8e28764e7f8faca43acdd))
+* **benchmarking:** hack: save evobench log file from preprocessing phase ([5193ae8](https://github.com/GenSpectrum/LAPIS-SILO/commit/5193ae8a6bc4bdf703b1606dcc866bb99dd2316b))
+* **benchmarking:** optimize & add possibility to pass constexpr string variables ([3e7a41b](https://github.com/GenSpectrum/LAPIS-SILO/commit/3e7a41b243e45b95e80a06e2fda7511a67a5ca5b))
+* **benchmarking:** update api-query, add REPEAT, CONCURRENCY vars ([4a063d8](https://github.com/GenSpectrum/LAPIS-SILO/commit/4a063d83d548aa99928d560c3bb57a48b5405eb8))
+
+
+### Bug Fixes
+
+* **benchmarking:** also prefix output dir name with $COMMIT_ID ([e18c881](https://github.com/GenSpectrum/LAPIS-SILO/commit/e18c8813f1aca534bf16fdd2046d7aa1eec4b41f))
+* **benchmarking:** prefix output dir name with $DATASET ([df6405e](https://github.com/GenSpectrum/LAPIS-SILO/commit/df6405e6c2eb73fb14244615c8053862db2d7124))
+* **build:** change format target to also include .hpp files ([7c90965](https://github.com/GenSpectrum/LAPIS-SILO/commit/7c9096503cd409a87c7c96e72c734b32a4cce207))
+
 ## [0.7.4](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.3...v0.7.4) (2025-07-21)
 
 
