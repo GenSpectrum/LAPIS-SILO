@@ -16,11 +16,11 @@ endif
 
 # Should sorted input be used?
 ifeq ($(SORTED),0)
-INPUT_FILE = $(BENCHMARK_DATASET_DIR)/input_file.ndjson.zst
+INPUT_FILE = $(DATASET_DIR)/input_file.ndjson.zst
 OUTPUT_DIR = $(DATASET)-$(COMMIT_ID)-output
 else ifeq ($(SORTED),1)
-# OK to write back into the $(BENCHMARK_DATASET_DIR)?
-INPUT_FILE = $(BENCHMARK_DATASET_DIR)/sorted_input_file.ndjson.zst
+# OK to write back into the $(DATASET_DIR)?
+INPUT_FILE = $(DATASET_DIR)/sorted_input_file.ndjson.zst
 OUTPUT_DIR = $(DATASET)-$(COMMIT_ID)-sorted_output
 else
 $(error "SORTED must be either 0 or 1, got '$(SORTED)'")
@@ -49,11 +49,11 @@ endif
 
 # ---- General -----------------------------------------------------------------
 
-BENCHMARK_DATASET_DIR=$(HOME)/silo-benchmark-datasets/$(DATASET)
+DATASET_DIR=$(HOME)/silo-benchmark-datasets/$(DATASET)
 
-SILO_PREPROCESSING_CONFIG=$(BENCHMARK_DATASET_DIR)/preprocessing_config.yaml
+SILO_PREPROCESSING_CONFIG=$(DATASET_DIR)/preprocessing_config.yaml
 export SILO_PREPROCESSING_CONFIG
-SILO_INPUT_DIRECTORY=$(BENCHMARK_DATASET_DIR)
+SILO_INPUT_DIRECTORY=$(DATASET_DIR)
 export SILO_INPUT_DIRECTORY
 
 all: bench
@@ -101,14 +101,14 @@ dependencies: $(API_QUERY) $(WISEPULSE)
 
 # ---- Sorting input -----------------------------------------------------------
 
-$(BENCHMARK_DATASET_DIR)/sorted_input_file.ndjson.zst: $(BENCHMARK_DATASET_DIR)/input_file.ndjson.zst
+$(DATASET_DIR)/sorted_input_file.ndjson.zst: $(DATASET_DIR)/input_file.ndjson.zst
 	make $(WISEPULSE)
 	rm -rf sorted_chunks merger_tmp 
-	zstdcat $(BENCHMARK_DATASET_DIR)/input_file.ndjson.zst \
+	zstdcat $(DATASET_DIR)/input_file.ndjson.zst \
 	    | $(WISEPULSE_BIN)/split_into_sorted_chunks --output-path sorted_chunks --chunk-size 100000 --sort-field date \
 	    | $(WISEPULSE_BIN)/merge_sorted_chunks --tmp-directory merger_tmp --sort-field date \
-	    | zstd > $(BENCHMARK_DATASET_DIR)/sorted_input_file.ndjson.zst.tmp
-	mv $(BENCHMARK_DATASET_DIR)/sorted_input_file.ndjson.zst.tmp $(BENCHMARK_DATASET_DIR)/sorted_input_file.ndjson.zst
+	    | zstd > $(DATASET_DIR)/sorted_input_file.ndjson.zst.tmp
+	mv $(DATASET_DIR)/sorted_input_file.ndjson.zst.tmp $(DATASET_DIR)/sorted_input_file.ndjson.zst
 
 # ---- Running silo -----------------------------------------------------------
 
@@ -134,10 +134,10 @@ $(PREPROCESSING_STAMP): $(SILO) $(INPUT_FILE)
 	bin/stop-silo
 	touch .silo.stopped
 
-bench: $(BENCHMARK_DATASET_DIR)/silo_queries.ndjson $(API_QUERY) .silo.stopped
+bench: $(DATASET_DIR)/silo_queries.ndjson $(API_QUERY) .silo.stopped
 	@echo "running benchmark"
 	make .silo.pid
-	$(API_QUERY) iter $(API_QUERY_OPTS) --repeat $(REPEAT) $(BENCHMARK_DATASET_DIR)/silo_queries.ndjson --drop --concurrency $(CONCURRENCY)
+	$(API_QUERY) iter $(API_QUERY_OPTS) --repeat $(REPEAT) $(DATASET_DIR)/silo_queries.ndjson --drop --concurrency $(CONCURRENCY)
 	make .silo.stopped
 
 clean:
