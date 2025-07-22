@@ -55,9 +55,9 @@ int runAppend(const silo::config::AppendConfig& append_config) {
    Database database = Database::loadDatabaseState(database_state_directory);
 
    SPDLOG_INFO("append - appending data to the database");
-   auto input = silo::InputStreamWrapper::openFileOrStdIn(append_config.append_file);
-   auto json_stream = silo::append::NdjsonLineReader{input.getInputStream()};
-   silo::append::appendDataToDatabase(database, json_stream);
+   auto input = InputStreamWrapper::openFileOrStdIn(append_config.append_file);
+   auto json_stream = NdjsonLineReader{input.getInputStream()};
+   appendDataToDatabase(database, json_stream);
 
    SPDLOG_INFO("append - saving database to directory '{}'", append_config.silo_directory);
    database.saveDatabaseState(append_config.silo_directory);

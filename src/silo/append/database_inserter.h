@@ -73,6 +73,10 @@ silo::append::TablePartitionInserter::Commit appendDataToTablePartition(
 ) {
    EVOBENCH_SCOPE("TablePartitionInserter", "appendDataToTablePartition");
    size_t line_count = 0;
+
+   bool first_line = true;
+
+   std::vector<TablePartitionInserter::SniffedField> sniffed_field_order;
    for (simdjson::simdjson_result<simdjson::ondemand::document_reference> json_obj_or_error :
         input_data) {
       simdjson::ondemand::document_reference ndjson_line;
@@ -80,7 +84,12 @@ silo::append::TablePartitionInserter::Commit appendDataToTablePartition(
       if (error) {
          throw silo::append::AppendException("err: {}", simdjson::error_message(error));
       }
-      auto sniffed_field_order = partition_inserter.sniffFieldOrder(ndjson_line);
+
+      if (first_line) {
+         sniffed_field_order = partition_inserter.sniffFieldOrder(ndjson_line);
+         first_line = false;
+      }
+
       partition_inserter.insert(ndjson_line, sniffed_field_order);
 
       line_count++;

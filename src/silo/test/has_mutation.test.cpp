@@ -21,7 +21,6 @@ nlohmann::json createDataWithSequences(
    const auto primary_key = generator();
    return {
       {"primaryKey", "id_" + to_string(primary_key)},
-      {"float_value", nullptr},
       {"unaligned_segment1", {}},
       {"segment1", {{"seq", nucleotideSequence}, {"insertions", nlohmann::json::array()}}},
       {"gene1", {{"seq", aminoAcidSequence}, {"insertions", nlohmann::json::array()}}}

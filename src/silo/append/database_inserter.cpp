@@ -148,7 +148,7 @@ void TablePartitionInserter::insert(
       auto column_value = findFieldWithFallbacks(object, sniffed_field);
       if (!column_value.has_value()) {
          throw silo::append::AppendException(
-            "Key {} not found in the following ndjson line: {}",
+            "the column '{}' is not contained in the following ndjson line: {}",
             sniffed_field.column_identifier.name,
             contextForError(ndjson_line)
          );
