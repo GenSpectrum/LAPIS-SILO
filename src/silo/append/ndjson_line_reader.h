@@ -4,11 +4,9 @@
 #include <ranges>
 
 #include <simdjson.h>
-#include <spdlog/spdlog.h>
 
 #include "evobench/evobench.hpp"
 #include "silo/append/append_exception.h"
-#include "silo/common/panic.h"
 
 namespace silo::append {
 
@@ -43,9 +41,8 @@ class NdjsonLineReader {
          if (stream->error) {
             at_end = true;
          }
-         stream->next();
-         // If stream->next() ever sets the error flag to EMPTY it will not be read from again
-         if (stream->error == simdjson::EMPTY) {
+         // if stream->next() ever returns true, it will not be read from again
+         if (stream->next()) {
             at_end = true;
          }
          return *this;
@@ -67,8 +64,8 @@ class NdjsonLineReader {
       bool at_end = false;
    };
 
-   explicit NdjsonLineReader(std::istream& stream)
-       : stream_(&stream),
+   explicit NdjsonLineReader(std::istream& input_stream)
+       : input_stream(&input_stream),
          line_buffer(),
          parser(),
          json_document_buffer(),
@@ -78,34 +75,35 @@ class NdjsonLineReader {
    [[nodiscard]] iterator end() const { return iterator(); }
 
   private:
-   void next() {
+   bool next() {
       if (error) {
-         return;
+         return true;
       }
       while (true) {
          // We need this check here, because we only check for 'eof && empty'
          // after we read to also allow files that do not end with a line-break
-         if (stream_->eof()) {
-            error = simdjson::EMPTY;
-            return;
+         if (input_stream->eof()) {
+            return true;
          }
-         std::getline(*stream_, line_buffer);
+         std::getline(*input_stream, line_buffer);
 
-         if (stream_->eof() && line_buffer.empty()) {
-            error = simdjson::EMPTY;
-            return;
+         if (input_stream->eof() && line_buffer.empty()) {
+            return true;
          }
-         if (stream_->fail()) {
+         if (input_stream->fail()) {
             error = simdjson::IO_ERROR;
-            return;
+            return true;
          }
 
          error = parser.iterate(line_buffer).get(json_document_buffer);
-         return;
+         if (error == simdjson::EMPTY) {
+            continue;
+         }
+         return false;
       }
    }
 
-   std::istream* stream_;
+   std::istream* input_stream;
    std::string line_buffer;
    simdjson::ondemand::parser parser;
    simdjson::ondemand::document json_document_buffer;
@@ -114,7 +112,6 @@ class NdjsonLineReader {
 
 }  // namespace silo::append
 
-// If the above doesn't work, try this explicit instantiation approach:
 static_assert(std::ranges::range<silo::append::NdjsonLineReader>);
 static_assert(std::same_as<
               std::ranges::range_value_t<silo::append::NdjsonLineReader>,

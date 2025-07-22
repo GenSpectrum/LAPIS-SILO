@@ -107,8 +107,10 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfoAfterAppendingNewSequences) {
    EXPECT_EQ(database_info.horizontal_bitmaps_size, 123);
 
    std::string more_data =
-      R"({"primaryKey": "key6", "pango_lineage": "XBB", "date": "2021-03-19", "region": "Europe", "country": "Switzerland", "division": "Solothurn", "unsorted_date": "2021-02-10", "age": 54, "qc_value": 0.94, "test_boolean_column": true, "float_value": null, "main": {"seq": "ACGTACGT", "insertions": []}, "testSecondSequence": {"seq": "ACGT", "insertions": []}, "unaligned_main": "ACGTACGT", "unaligned_testSecondSequence": "ACGT", "E": {"seq": "MYSF*", "insertions": ["214:EPE"]}, "M": {"seq": "XXXX*", "insertions": []}}
-{"primaryKey": "key7", "pango_lineage": "B", "date": "2021-03-21", "region": "Europe", "country": "Switzerland", "division": "Basel", "unsorted_date": null, "age": null, "qc_value": 0.94, "test_boolean_column": true, "float_value": null, "main": {"seq": "AAAAAAAA", "insertions": []}, "testSecondSequence": {"seq": "ACAT", "insertions": []}, "unaligned_main": "AAAAAAAA", "unaligned_testSecondSequence": "ACAT", "E": {"seq": "MYSF*", "insertions": ["214:EPE"]}, "M": {"seq": "XXXX*", "insertions": []}})";
+      R"(
+{"primaryKey": "key6", "pango_lineage": "XBB", "date": "2021-03-19", "region": "Europe", "country": "Switzerland", "division": "Solothurn", "unsorted_date": "2021-02-10", "age": 54, "qc_value": 0.94, "test_boolean_column": true, "float_value": null, "main": {"seq": "ACGTACGT", "insertions": []}, "testSecondSequence": {"seq": "ACGT", "insertions": []}, "unaligned_main": "ACGTACGT", "unaligned_testSecondSequence": "ACGT", "E": {"seq": "MYSF*", "insertions": ["214:EPE"]}, "M": {"seq": "XXXX*", "insertions": []}}
+{"primaryKey": "key7", "pango_lineage": "B", "date": "2021-03-21", "region": "Europe", "country": "Switzerland", "division": "Basel", "unsorted_date": null, "age": null, "qc_value": 0.94, "test_boolean_column": true, "float_value": null, "main": {"seq": "AAAAAAAA", "insertions": []}, "testSecondSequence": {"seq": "ACAT", "insertions": []}, "unaligned_main": "AAAAAAAA", "unaligned_testSecondSequence": "ACAT", "E": {"seq": "MYSF*", "insertions": ["214:EPE"]}, "M": {"seq": "XXXX*", "insertions": []}}
+)";
    std::stringstream more_data_stream{more_data};
    silo::append::NdjsonLineReader reader(more_data_stream);
 

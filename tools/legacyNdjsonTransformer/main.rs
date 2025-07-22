@@ -78,18 +78,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let line = line?;
         let line = line.trim();
 
-        // Skip empty lines
         if line.is_empty() {
             continue;
         }
 
-        // Parse the input JSON
         let input_data: InputData = serde_json::from_str(line)?;
 
-        // Transform the data
         let transformed = transform_data(input_data);
 
-        // Convert back to JSON and print
         let output = serde_json::to_string(&transformed)?;
         println!("{}", output);
     }
