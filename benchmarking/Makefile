@@ -1,6 +1,13 @@
 
 # Required env vars:
 
+# Added by evobench-run, and we rely on it
+ifeq ($(COMMIT_ID),)
+$(error "COMMIT_ID must be set")
+endif
+
+# Our custom parameters:
+
 # The name of a subfolder of `~/silo-benchmark-datasets/` where the
 # dataset is stored
 ifeq ($(DATASET),)
@@ -10,11 +17,11 @@ endif
 # Should sorted input be used?
 ifeq ($(SORTED),0)
 INPUT_FILE = $(BENCHMARK_DATASET_DIR)/input_file.ndjson.zst
-OUTPUT_DIR = $(DATASET)-output
+OUTPUT_DIR = $(DATASET)-$(COMMIT_ID)-output
 else ifeq ($(SORTED),1)
 # OK to write back into the $(BENCHMARK_DATASET_DIR)?
 INPUT_FILE = $(BENCHMARK_DATASET_DIR)/sorted_input_file.ndjson.zst
-OUTPUT_DIR = $(DATASET)-sorted_output
+OUTPUT_DIR = $(DATASET)-$(COMMIT_ID)-sorted_output
 else
 $(error "SORTED must be either 0 or 1, got '$(SORTED)'")
 endif
@@ -37,13 +44,6 @@ endif
 # Passed to api-query
 ifeq ($(REPEAT),)
 $(error "REPEAT must be a natural number, missing")
-endif
-
-
-# ---
-# Added by evobench-run, and we rely on it
-ifeq ($(COMMIT_ID),)
-$(error "COMMIT_ID must be set")
 endif
 
 
