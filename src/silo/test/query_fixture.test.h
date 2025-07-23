@@ -94,14 +94,12 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
 
       std::stringstream ndjson_objects;
       for (const auto& object : test_data.ndjson_input_data) {
-         ndjson_objects << object.dump();
+         ndjson_objects << object.dump() << "\n";
       }
-      std::string ndjson_object_buffer{ndjson_objects.str()};
+      std::istream ndjson_objects_istream(ndjson_objects.rdbuf());
 
-      simdjson::ondemand::parser parser;
-      auto doc_stream = parser.iterate_many(ndjson_object_buffer).value_unsafe();
-
-      silo::append::appendDataToDatabase(*database, doc_stream);
+      silo::append::NdjsonLineReader reader{ndjson_objects_istream};
+      silo::append::appendDataToDatabase(*database, reader);
 
       shared_database = database;
    }

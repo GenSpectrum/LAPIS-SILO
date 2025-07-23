@@ -7,6 +7,7 @@
 
 #include "evobench/evobench.hpp"
 #include "silo/append/append_exception.h"
+#include "silo/append/ndjson_line_reader.h"
 #include "silo/database.h"
 #include "silo/storage/table_partition.h"
 
@@ -35,10 +36,12 @@ class TablePartitionInserter {
 
    // Inserting is faster if we parse the fields in the correct order.
    // Sniff the order from the first json in the ndjson stream
-   std::vector<SniffedField> sniffFieldOrder(simdjson::ondemand::document& ndjson_line) const;
+   std::expected<std::vector<SniffedField>, std::string> sniffFieldOrder(
+      simdjson::ondemand::document_reference ndjson_line
+   ) const;
 
-   void insert(
-      simdjson::ondemand::document& ndjson_line,
+   std::expected<void, std::string> insert(
+      simdjson::ondemand::document_reference ndjson_line,
       const std::vector<SniffedField>& field_order_hint
    ) const;
 
@@ -63,69 +66,16 @@ class TableInserter {
    Commit commit() const;
 };
 
-template <typename Data>
-   requires std::same_as<
-      typename Data::iterator::value_type,
-      simdjson::simdjson_result<simdjson::ondemand::document>>
-silo::append::TablePartitionInserter::Commit appendDataToTablePartition(
-   silo::append::TablePartitionInserter partition_inserter,
-   Data& input_data
-) {
-   EVOBENCH_SCOPE("TablePartitionInserter", "appendDataToTablePartition");
-   size_t line_count = 0;
+TablePartitionInserter::Commit appendDataToTablePartition(
+   TablePartitionInserter partition_inserter,
+   NdjsonLineReader& input_data
+);
 
-   bool first_line = true;
-
-   std::vector<TablePartitionInserter::SniffedField> sniffed_field_order;
-   for (simdjson::simdjson_result<simdjson::ondemand::document_reference> json_obj_or_error :
-        input_data) {
-      simdjson::ondemand::document_reference ndjson_line;
-      auto error = json_obj_or_error.get(ndjson_line);
-      if (error) {
-         throw silo::append::AppendException("err: {}", simdjson::error_message(error));
-      }
-
-      if (first_line) {
-         sniffed_field_order = partition_inserter.sniffFieldOrder(ndjson_line);
-         first_line = false;
-      }
-
-      partition_inserter.insert(ndjson_line, sniffed_field_order);
-
-      line_count++;
-      if (line_count % 10000 == 0) {
-         SPDLOG_INFO("Processed {} json objects from the input file", line_count);
-      }
-   }
-
-   return partition_inserter.commit();
-}
-
-template <typename Data>
-   requires std::same_as<
-      typename Data::iterator::value_type,
-      simdjson::simdjson_result<simdjson::ondemand::document>>
-silo::append::TableInserter::Commit appendDataToTable(
+TableInserter::Commit appendDataToTable(
    std::shared_ptr<silo::storage::Table> table,
-   Data& input_data
-) {
-   TableInserter table_inserter(table);
+   NdjsonLineReader& input_data
+);
 
-   // TODO(#738) make partition configurable
-   auto table_partition = table_inserter.openNewPartition();
-
-   appendDataToTablePartition(table_partition, input_data);
-
-   return table_inserter.commit();
-}
-
-template <typename Data>
-   requires std::same_as<
-      typename Data::iterator::value_type,
-      simdjson::simdjson_result<simdjson::ondemand::document>>
-void appendDataToDatabase(Database& database, Data& input_data) {
-   appendDataToTable(database.table, input_data);
-   database.updateDataVersion();
-}
+void appendDataToDatabase(Database& database, NdjsonLineReader& input_data);
 
 }  // namespace silo::append

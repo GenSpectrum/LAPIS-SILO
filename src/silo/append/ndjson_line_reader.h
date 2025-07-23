@@ -11,11 +11,19 @@
 namespace silo::append {
 
 class NdjsonLineReader {
+   std::istream* input_stream;
+   std::string line_buffer;
+   simdjson::ondemand::parser parser;
+   simdjson::ondemand::document json_document_buffer;
+   simdjson::error_code error;
+
   public:
    class iterator {
      public:
-      using value_type = simdjson::simdjson_result<simdjson::ondemand::document>;
-      using reference = simdjson::simdjson_result<simdjson::ondemand::document_reference>;
+      using value_type =
+         std::pair<simdjson::simdjson_result<simdjson::ondemand::document>, std::string_view>;
+      using reference = std::
+         pair<simdjson::simdjson_result<simdjson::ondemand::document_reference>, std::string_view>;
       using pointer = void;
       using difference_type = std::ptrdiff_t;
       using iterator_category = std::input_iterator_tag;
@@ -30,10 +38,13 @@ class NdjsonLineReader {
          ++(*this);  // prime first json
       }
 
-      simdjson::simdjson_result<simdjson::ondemand::document_reference> operator*() {
-         return simdjson::simdjson_result<simdjson::ondemand::document_reference>(
-            stream->json_document_buffer, stream->error
-         );
+      reference operator*() {
+         return {
+            simdjson::simdjson_result<simdjson::ondemand::document_reference>(
+               stream->json_document_buffer, stream->error
+            ),
+            stream->line_buffer
+         };
       }
 
       iterator& operator++() {
@@ -102,17 +113,6 @@ class NdjsonLineReader {
          return false;
       }
    }
-
-   std::istream* input_stream;
-   std::string line_buffer;
-   simdjson::ondemand::parser parser;
-   simdjson::ondemand::document json_document_buffer;
-   simdjson::error_code error;
 };
 
 }  // namespace silo::append
-
-static_assert(std::ranges::range<silo::append::NdjsonLineReader>);
-static_assert(std::same_as<
-              std::ranges::range_value_t<silo::append::NdjsonLineReader>,
-              simdjson::simdjson_result<simdjson::ondemand::document>>);

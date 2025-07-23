@@ -11,10 +11,14 @@ TEST(NdjsonLineReader, returnsErrorResultOnInvalidLines) {
    std::stringstream invalid_json_stream{invalid_json};
    NdjsonLineReader reader{invalid_json_stream};
    auto it = reader.begin();
-   auto first_line = *it;
-   ASSERT_FALSE(first_line.error());
-   auto second_line = *(++it);
-   ASSERT_EQ(second_line.value_unsafe().get_object().error(), simdjson::INCOMPLETE_ARRAY_OR_OBJECT);
+   auto [first_object, first_line] = *it;
+   ASSERT_FALSE(first_object.error());
+   ASSERT_EQ(first_line, "{}");
+   auto [second_object, second_line] = *(++it);
+   ASSERT_EQ(
+      second_object.value_unsafe().get_object().error(), simdjson::INCOMPLETE_ARRAY_OR_OBJECT
+   );
+   ASSERT_EQ(second_line, "{");
 }
 
 TEST(NdjsonLineReader, throwsAppendErrorOnInvalidJsonString) {
@@ -22,10 +26,10 @@ TEST(NdjsonLineReader, throwsAppendErrorOnInvalidJsonString) {
    std::stringstream invalid_json_stream{invalid_json};
    NdjsonLineReader reader{invalid_json_stream};
    auto it = reader.begin();
-   auto first_line = *it;
-   ASSERT_FALSE(first_line.error());
-   auto second_line = *(++it);
-   ASSERT_TRUE(second_line.error());
+   auto [first_object, first_line] = *it;
+   ASSERT_FALSE(first_object.error());
+   auto [second_object, second_line] = *(++it);
+   ASSERT_TRUE(second_object.error());
 }
 
 TEST(NdjsonLineReader, validOnEmptyString) {
@@ -41,8 +45,8 @@ TEST(NdjsonLineReader, validOnNoNewLine) {
    NdjsonLineReader reader{invalid_json_stream};
    auto it = reader.begin();
    ASSERT_TRUE(it != reader.end());
-   auto first_line = *it;
-   ASSERT_FALSE(first_line.error());
+   auto [first_object, first_line] = *it;
+   ASSERT_FALSE(first_object.error());
    ++it;
    ASSERT_TRUE(it == reader.end());
 }
@@ -53,8 +57,8 @@ TEST(NdjsonLineReader, validOnTerminatedLine) {
    NdjsonLineReader reader{invalid_json_stream};
    auto it = reader.begin();
    ASSERT_TRUE(it != reader.end());
-   auto first_line = *it;
-   ASSERT_FALSE(first_line.error());
+   auto [first_object, first_line] = *it;
+   ASSERT_FALSE(first_object.error());
    ++it;
    ASSERT_TRUE(it == reader.end());
 }
