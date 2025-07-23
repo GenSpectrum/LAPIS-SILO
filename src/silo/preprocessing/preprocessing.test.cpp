@@ -455,14 +455,9 @@ const Scenario<Success> NO_GENES = {
          for (size_t i = 0; i < 100; i++) {
             result.push_back(nlohmann::json::parse(fmt::format(
                R"({{
-"2": null,
 "accessionVersion": "{}.1",
 "main": null,
-"3": null,
-"someGene": null,
-"4": null,
-"unaligned_main": null,
-"unaligned_3": null
+"unaligned_main": null
 }})",
                i
             )));
@@ -897,7 +892,7 @@ schema:
 )",
    .assertion{
       .error_message =
-         R"(preprocessing - exception when appending data: the column 'someSequence' is not contained in the following ndjson line: {"accessionVersion":"0.1"})"
+         R"(preprocessing - exception when appending data: the column 'someSequence' is not contained in the object - current line: {"accessionVersion":"0.1"})"
    }
 };
 
@@ -927,7 +922,7 @@ schema:
 )",
    .assertion{
       .error_message =
-         R"(preprocessing - exception when appending data: When trying to get string value of column 'accessionVersion' got error: INCORRECT_TYPE: The JSON element does not have the requested type. in the following ndjson line: {"accessionVersion":0})"
+         R"(preprocessing - exception when appending data: When trying to get string value of column 'accessionVersion' got error: INCORRECT_TYPE: The JSON element does not have the requested type. - current line: {"accessionVersion":0})"
    }
 };
 
@@ -1023,7 +1018,7 @@ schema:
 })",
    .assertion{
       .error_message =
-         R"(preprocessing - exception when appending data: the column 'country' is not contained in the following ndjson line: {"accessionVersion":"1.3"})"
+         R"(preprocessing - exception when appending data: Did not find the field 'country' in the given json - current line: {"accessionVersion":"1.3"})"
    }
 };
 
