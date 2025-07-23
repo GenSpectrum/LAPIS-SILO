@@ -225,28 +225,6 @@ QueryPlan Action::toQueryPlan(
    return query_plan.ValueUnsafe();
 }
 
-arrow::Result<arrow::acero::ExecNode*> Action::addOrderingNodes(
-   arrow::acero::ExecPlan* arrow_plan,
-   arrow::acero::ExecNode* node,
-   const silo::schema::TableSchema& table_schema
-) const {
-   if (auto ordering = getOrdering()) {
-      std::optional<uint32_t> num_rows_to_produce;
-      if (limit.has_value()) {
-         num_rows_to_produce = limit.value() + offset.value_or(0);
-      }
-
-      auto randomize = randomize_seed;
-      if (randomize) {
-         ARROW_ASSIGN_OR_RAISE(node, addRandomizeColumn(arrow_plan, node, randomize_seed.value()));
-      }
-      return addSortNode(
-         arrow_plan, node, getOutputSchema(table_schema), ordering.value(), num_rows_to_produce
-      );
-   }
-   return node;
-}
-
 arrow::Result<arrow::acero::ExecNode*> Action::addSortNode(
    arrow::acero::ExecPlan* arrow_plan,
    arrow::acero::ExecNode* node,
@@ -282,7 +260,7 @@ arrow::Result<arrow::acero::ExecNode*> Action::addSortNode(
    );
    node->SetLabel("order by");
    //      }
-   auto schema = exec_node::columnsToInternalArrowSchema(output_fields);
+   auto schema = exec_node::columnsToArrowSchema(output_fields);
    return arrow::acero::MakeExecNode(
       "source",
       arrow_plan,
@@ -301,6 +279,21 @@ uint64_t hash64(uint64_t x, uint64_t seed) {
    x *= 0xc4ceb9fe1a85ec53ULL;
    x ^= x >> 33;
    return x;
+}
+
+arrow::Result<arrow::acero::ExecNode*> removeRandomizeColumn(
+   arrow::acero::ExecPlan* arrow_plan,
+   arrow::acero::ExecNode* node
+) {
+   std::vector<arrow::Expression> field_refs;
+   for (const auto& field : node->output_schema()->fields()) {
+      if (field->name() != RANDOMIZE_HASH_FIELD_NAME) {
+         SPDLOG_ERROR("{}: {}", field->name(), field->type()->name());
+         field_refs.push_back(arrow::compute::field_ref(field->name()));
+      }
+   }
+   auto options = arrow::acero::ProjectNodeOptions(field_refs);
+   return arrow::acero::MakeExecNode("project", arrow_plan, {node}, options);
 }
 
 }  // namespace
@@ -483,6 +476,34 @@ arrow::Result<arrow::acero::ExecNode*> Action::addZstdDecompressNode(
       return arrow::acero::MakeExecNode(
          std::string{"project"}, arrow_plan, {node}, project_options
       );
+   }
+   return node;
+}
+
+arrow::Result<arrow::acero::ExecNode*> Action::addOrderingNodes(
+   arrow::acero::ExecPlan* arrow_plan,
+   arrow::acero::ExecNode* node,
+   const silo::schema::TableSchema& table_schema
+) const {
+   if (auto ordering = getOrdering()) {
+      std::optional<uint32_t> num_rows_to_produce;
+      if (limit.has_value()) {
+         num_rows_to_produce = limit.value() + offset.value_or(0);
+      }
+
+      auto randomize = randomize_seed;
+      if (randomize) {
+         ARROW_ASSIGN_OR_RAISE(node, addRandomizeColumn(arrow_plan, node, randomize_seed.value()));
+      }
+      ARROW_ASSIGN_OR_RAISE(
+         node,
+         addSortNode(
+            arrow_plan, node, getOutputSchema(table_schema), ordering.value(), num_rows_to_produce
+         )
+      );
+      if (randomize) {
+         ARROW_ASSIGN_OR_RAISE(node, removeRandomizeColumn(arrow_plan, node));
+      }
    }
    return node;
 }
