@@ -28,8 +28,10 @@ static decltype(auto) visit(schema::ColumnType type, VisitorFunction&& func, Arg
          return func.template operator()<DateColumnPartition>(std::forward<Args>(args)...);
       case schema::ColumnType::BOOL:
          return func.template operator()<BoolColumnPartition>(std::forward<Args>(args)...);
-      case schema::ColumnType::INT:
+      case schema::ColumnType::INT32:
          return func.template operator()<IntColumnPartition>(std::forward<Args>(args)...);
+      case schema::ColumnType::INT64:
+         SILO_UNIMPLEMENTED();
       case schema::ColumnType::FLOAT:
          return func.template operator()<FloatColumnPartition>(std::forward<Args>(args)...);
       case schema::ColumnType::NUCLEOTIDE_SEQUENCE:

@@ -61,7 +61,7 @@ A.11:
    );
 
    ASSERT_TRUE(table_schema.getColumn("age").has_value());
-   ASSERT_EQ(table_schema.getColumn("age").value().type, ColumnType::INT);
+   ASSERT_EQ(table_schema.getColumn("age").value().type, ColumnType::INT32);
 
    ASSERT_TRUE(table_schema.getColumn("country").has_value());
    ASSERT_EQ(table_schema.getColumn("country").value().type, ColumnType::INDEXED_STRING);

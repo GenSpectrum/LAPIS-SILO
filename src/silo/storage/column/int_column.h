@@ -16,7 +16,7 @@ class IntColumnPartition {
   public:
    using Metadata = ColumnMetadata;
 
-   static constexpr schema::ColumnType TYPE = schema::ColumnType::INT;
+   static constexpr schema::ColumnType TYPE = schema::ColumnType::INT32;
 
    static int32_t null() { return INT32_MIN; }
 

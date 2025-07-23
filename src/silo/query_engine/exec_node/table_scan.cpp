@@ -254,7 +254,7 @@ arrow::Result<arrow::acero::ExecNode*> makeTableScan(
 ) {
    exec_node::TableScanGenerator generator(columns, partition_filters_, table, batch_size_cutoff);
    arrow::acero::SourceNodeOptions source_node_options{
-      exec_node::columnsToInternalArrowSchema(columns), generator, arrow::Ordering::Implicit()
+      exec_node::columnsToArrowSchema(columns), generator, arrow::Ordering::Implicit()
    };
    return arrow::acero::MakeExecNode("source", plan, {}, source_node_options);
 }

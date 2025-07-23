@@ -202,7 +202,7 @@ std::vector<schema::ColumnIdentifier> MostRecentCommonAncestor::getOutputSchema(
 ) const {
    std::vector<schema::ColumnIdentifier> fields;
    fields.emplace_back("mrcaNode", schema::ColumnType::STRING);
-   fields.emplace_back("missingNodeCount", schema::ColumnType::INT);
+   fields.emplace_back("missingNodeCount", schema::ColumnType::INT32);
    if (print_nodes_not_in_tree) {
       fields.emplace_back("missingFromTree", schema::ColumnType::STRING);
    }

@@ -94,7 +94,7 @@ INSTANTIATE_TEST_SUITE_P(
       TestParameter{
          .value_type = ValueType::INT,
          .generate_index = false,
-         .expected_column_type = ColumnType::INT
+         .expected_column_type = ColumnType::INT32
       },
       TestParameter{
          .value_type = ValueType::FLOAT,

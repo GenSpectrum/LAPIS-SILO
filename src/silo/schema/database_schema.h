@@ -20,11 +20,12 @@ enum class ColumnType {
    INDEXED_STRING,
    DATE,
    BOOL,
-   INT,
+   INT32,
    FLOAT,
    AMINO_ACID_SEQUENCE,
    NUCLEOTIDE_SEQUENCE,
-   ZSTD_COMPRESSED_STRING
+   ZSTD_COMPRESSED_STRING,
+   INT64
 };
 
 constexpr std::string_view columnTypeToString(ColumnType type) {
@@ -37,8 +38,10 @@ constexpr std::string_view columnTypeToString(ColumnType type) {
          return "DATE";
       case ColumnType::BOOL:
          return "BOOL";
-      case ColumnType::INT:
-         return "INT";
+      case ColumnType::INT32:
+         return "INT32";
+      case ColumnType::INT64:
+         return "INT64";
       case ColumnType::FLOAT:
          return "FLOAT";
       case ColumnType::AMINO_ACID_SEQUENCE:
