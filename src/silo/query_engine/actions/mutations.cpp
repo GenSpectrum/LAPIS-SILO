@@ -403,16 +403,16 @@ std::vector<schema::ColumnIdentifier> Mutations<SymbolType>::getOutputSchema(
       output_fields.emplace_back(std::string(SEQUENCE_FIELD_NAME), ColumnType::STRING);
    }
    if (std::ranges::find(fields, POSITION_FIELD_NAME) != fields.end()) {
-      output_fields.emplace_back(std::string(POSITION_FIELD_NAME), ColumnType::INT);
+      output_fields.emplace_back(std::string(POSITION_FIELD_NAME), ColumnType::INT32);
    }
    if (std::ranges::find(fields, PROPORTION_FIELD_NAME) != fields.end()) {
       output_fields.emplace_back(std::string(PROPORTION_FIELD_NAME), ColumnType::FLOAT);
    }
    if (std::ranges::find(fields, COVERAGE_FIELD_NAME) != fields.end()) {
-      output_fields.emplace_back(std::string(COVERAGE_FIELD_NAME), ColumnType::INT);
+      output_fields.emplace_back(std::string(COVERAGE_FIELD_NAME), ColumnType::INT32);
    }
    if (std::ranges::find(fields, COUNT_FIELD_NAME) != fields.end()) {
-      output_fields.emplace_back(std::string(COUNT_FIELD_NAME), ColumnType::INT);
+      output_fields.emplace_back(std::string(COUNT_FIELD_NAME), ColumnType::INT32);
    }
    return output_fields;
 }

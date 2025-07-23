@@ -191,7 +191,7 @@ std::vector<schema::ColumnIdentifier> Aggregated::getOutputSchema(
    const schema::TableSchema& table_schema
 ) const {
    std::vector<schema::ColumnIdentifier> fields = bindGroupByFields(table_schema, group_by_fields);
-   fields.emplace_back(COUNT_FIELD, schema::ColumnType::INT);
+   fields.emplace_back(COUNT_FIELD, schema::ColumnType::INT64);
    return fields;
 }
 

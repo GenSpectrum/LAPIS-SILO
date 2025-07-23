@@ -181,7 +181,7 @@ schema::ColumnType DatabaseMetadata::getColumnType() const {
       return schema::ColumnType::BOOL;
    }
    if (type == ValueType::INT) {
-      return schema::ColumnType::INT;
+      return schema::ColumnType::INT32;
    }
    if (type == ValueType::FLOAT) {
       return schema::ColumnType::FLOAT;

@@ -24,13 +24,6 @@ std::shared_ptr<arrow::Schema> columnsToArrowSchema(
    const std::vector<silo::schema::ColumnIdentifier>& columns
 );
 
-const std::shared_ptr<arrow::DataType> columnTypeToInternalArrowType(schema::ColumnType column_type
-);
-
-std::shared_ptr<arrow::Schema> columnsToInternalArrowSchema(
-   const std::vector<silo::schema::ColumnIdentifier>& columns
-);
-
 template <storage::column::Column Column>
 struct ArrowBuilderSelector;
 
