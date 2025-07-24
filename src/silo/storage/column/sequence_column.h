@@ -59,7 +59,7 @@ class SequenceColumnMetadata : public ColumnMetadata {
    std::vector<typename SymbolType::Symbol> reference_sequence;
 
    explicit SequenceColumnMetadata(
-      std::string phylo_tree_field,
+      std::string column_name,
       std::vector<typename SymbolType::Symbol>&& reference_sequence
    );
 };
@@ -156,7 +156,7 @@ template <class Archive>
    const silo::storage::column::SequenceColumnMetadata<silo::AminoAcid>& object,
    [[maybe_unused]] const uint32_t version
 ) {
-   ar & object.phylo_tree_field;
+   ar & object.column_name;
    ar & object.reference_sequence;
 }
 }  // namespace boost::serialization
@@ -170,12 +170,12 @@ template <class Archive>
    std::shared_ptr<silo::storage::column::SequenceColumnMetadata<silo::AminoAcid>>& object,
    [[maybe_unused]] const uint32_t version
 ) {
-   std::string phylo_tree_field;
+   std::string column_name;
    std::vector<silo::AminoAcid::Symbol> reference_sequence;
-   ar & phylo_tree_field;
+   ar & column_name;
    ar & reference_sequence;
    object = std::make_shared<silo::storage::column::SequenceColumnMetadata<silo::AminoAcid>>(
-      std::move(phylo_tree_field), std::move(reference_sequence)
+      std::move(column_name), std::move(reference_sequence)
    );
 }
 }  // namespace boost::serialization
@@ -188,7 +188,7 @@ template <class Archive>
    const silo::storage::column::SequenceColumnMetadata<silo::Nucleotide>& object,
    [[maybe_unused]] const uint32_t version
 ) {
-   ar & object.phylo_tree_field;
+   ar & object.column_name;
    ar & object.reference_sequence;
 }
 }  // namespace boost::serialization
@@ -202,12 +202,12 @@ template <class Archive>
    std::shared_ptr<silo::storage::column::SequenceColumnMetadata<silo::Nucleotide>>& object,
    [[maybe_unused]] const uint32_t version
 ) {
-   std::string phylo_tree_field;
+   std::string column_name;
    std::vector<silo::Nucleotide::Symbol> reference_sequence;
-   ar & phylo_tree_field;
+   ar & column_name;
    ar & reference_sequence;
    object = std::make_shared<silo::storage::column::SequenceColumnMetadata<silo::Nucleotide>>(
-      std::move(phylo_tree_field), std::move(reference_sequence)
+      std::move(column_name), std::move(reference_sequence)
    );
 }
 }  // namespace boost::serialization
