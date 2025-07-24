@@ -29,7 +29,7 @@ class Subtree : public TreeAction {
    ) const override;
 
    std::string_view getType() const override { return "Subtree"; }
-   std::string_view myResultFieldName() const override { return "subtree"; }
+   std::string_view myResultFieldName() const override { return "subtreeNewick"; }
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)
