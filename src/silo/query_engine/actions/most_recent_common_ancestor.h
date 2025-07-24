@@ -19,8 +19,6 @@ class MostRecentCommonAncestor : public TreeAction {
    std::string column_name;
    bool print_nodes_not_in_tree;
 
-   void validateOrderByFields(const schema::TableSchema& schema) const override;
-
   public:
    MostRecentCommonAncestor(std::string column_name, bool print_nodes_not_in_tree);
 
@@ -35,6 +33,8 @@ class MostRecentCommonAncestor : public TreeAction {
    ) const override;
 
    std::string_view getType() const override { return "MostRecentCommonAncestor"; }
+
+   std::string_view myResultFieldName() const override { return "mrcaNode"; }
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)

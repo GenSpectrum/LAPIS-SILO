@@ -19,8 +19,6 @@ class Subtree : public TreeAction {
    std::string column_name;
    bool print_nodes_not_in_tree;
 
-   void validateOrderByFields(const schema::TableSchema& schema) const override;
-
   public:
    Subtree(std::string column_name, bool print_nodes_not_in_tree);
 
@@ -35,6 +33,7 @@ class Subtree : public TreeAction {
    ) const override;
 
    std::string_view getType() const override { return "Subtree"; }
+   std::string_view myResultFieldName() const override { return "subtree"; }
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)

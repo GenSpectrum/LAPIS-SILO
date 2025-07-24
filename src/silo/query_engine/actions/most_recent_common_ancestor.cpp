@@ -36,22 +36,6 @@ MostRecentCommonAncestor::MostRecentCommonAncestor(
 
 using silo::query_engine::filter::operators::Operator;
 
-void MostRecentCommonAncestor::validateOrderByFields(const schema::TableSchema& /*table_schema*/)
-   const {
-   const std::vector<std::string_view> fields{"mrcaNode", "missingNodeCount", "missingFromTree"};
-   for (const OrderByField& field : order_by_fields) {
-      CHECK_SILO_QUERY(
-         std::ranges::any_of(
-            fields, [&](const std::string_view& result_field) { return result_field == field.name; }
-         ),
-         "OrderByField {} is not contained in the result of this operation. "
-         "Allowed values are {}.",
-         field.name,
-         fmt::join(fields, ", ")
-      );
-   }
-}
-
 arrow::Status MostRecentCommonAncestor::addResponseToBuilder(
    std::vector<std::string>& all_node_ids,
    std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder,
@@ -82,13 +66,9 @@ arrow::Status MostRecentCommonAncestor::addResponseToBuilder(
 std::vector<schema::ColumnIdentifier> MostRecentCommonAncestor::getOutputSchema(
    const schema::TableSchema& table_schema
 ) const {
-   std::vector<schema::ColumnIdentifier> fields;
-   fields.emplace_back("mrcaNode", schema::ColumnType::STRING);
-   fields.emplace_back("missingNodeCount", schema::ColumnType::INT32);
-   if (print_nodes_not_in_tree) {
-      fields.emplace_back("missingFromTree", schema::ColumnType::STRING);
-   }
-   return fields;
+   auto base = makeBaseOutputSchema();
+   base.emplace_back("mrcaNode", schema::ColumnType::STRING);
+   return base;
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

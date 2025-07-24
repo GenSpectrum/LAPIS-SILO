@@ -30,6 +30,24 @@ TreeAction::TreeAction(std::string column_name, bool print_nodes_not_in_tree)
 
 using silo::query_engine::filter::operators::Operator;
 
+void TreeAction::validateOrderByFields(const schema::TableSchema& schema) const {
+   std::vector<std::string_view> allowed{myResultFieldName(), "missingNodeCount"};
+   if (print_nodes_not_in_tree) {
+      allowed.push_back("missingFromTree");
+   }
+
+   for (const auto& field : order_by_fields) {
+      bool ok = std::ranges::any_of(allowed, [&](std::string_view f) { return f == field.name; });
+      CHECK_SILO_QUERY(
+         ok,
+         "OrderByField {} is not contained in the result of this operation. "
+         "Allowed values are {}.",
+         field.name,
+         fmt::join(allowed, ", ")
+      );
+   }
+}
+
 std::vector<std::string> TreeAction::getNodeValues(
    std::shared_ptr<const storage::Table> table,
    const std::string& column_name,

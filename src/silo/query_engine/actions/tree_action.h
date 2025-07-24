@@ -13,6 +13,7 @@
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/storage/table.h"
 
+#include <silo/query_engine/bad_request.h>
 #include "silo/query_engine/exec_node/arrow_util.h"
 #include "silo/query_engine/exec_node/json_value_type_array_builder.h"
 
@@ -22,6 +23,20 @@ class TreeAction : public Action {
   private:
    std::string column_name;
    bool print_nodes_not_in_tree;
+
+  protected:
+   virtual std::string_view myResultFieldName() const = 0;
+
+   std::vector<schema::ColumnIdentifier> makeBaseOutputSchema() const {
+      std::vector<schema::ColumnIdentifier> fields;
+      fields.emplace_back("missingNodeCount", schema::ColumnType::INT32);
+      if (print_nodes_not_in_tree) {
+         fields.emplace_back("missingFromTree", schema::ColumnType::STRING);
+      }
+      return fields;
+   }
+
+   void validateOrderByFields(const schema::TableSchema& schema) const override;
 
   public:
    TreeAction(std::string column_name, bool print_nodes_not_in_tree);
