@@ -34,7 +34,10 @@ class StringColumnMetadata : public ColumnMetadata {
        : ColumnMetadata(std::move(phylo_tree_field)),
          phylo_tree(std::move(phylo_tree)) {}
 
-   StringColumnMetadata(std::string phylo_tree_field, silo::common::BidirectionalStringMap&& dictionary)
+   StringColumnMetadata(
+      std::string phylo_tree_field,
+      silo::common::BidirectionalStringMap&& dictionary
+   )
        : ColumnMetadata(std::move(phylo_tree_field)),
          dictionary(std::move(dictionary)) {}
 
