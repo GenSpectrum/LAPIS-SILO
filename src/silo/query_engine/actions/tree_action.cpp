@@ -95,7 +95,7 @@ arrow::Result<QueryPlan> TreeAction::toQueryPlanImpl(
    CHECK_SILO_QUERY(
       optional_table_metadata.has_value() &&
          optional_table_metadata.value()->phylo_tree.has_value(),
-      "TreeAction action cannot be called on Column '{}' as it does not have a phylogenetic tree "
+      "TreeAction cannot be called on Column '{}' as it does not have a phylogenetic tree "
       "associated with it",
       column_name
    );

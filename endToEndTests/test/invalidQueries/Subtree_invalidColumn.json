@@ -15,6 +15,6 @@
   },
   "expectedError": {
     "error": "Bad request",
-    "message": "Subtree action cannot be called on Column 'country' as it does not have a phylogenetic tree associated with it"
+    "message": "TreeAction cannot be called on Column 'country' as it does not have a phylogenetic tree associated with it"
   }
 }
