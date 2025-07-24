@@ -27,26 +27,26 @@ class StringColumnMetadata : public ColumnMetadata {
 
    std::optional<silo::common::PhyloTree> phylo_tree;
 
-   StringColumnMetadata(std::string phylo_tree_field)
-       : ColumnMetadata(std::move(phylo_tree_field)) {}
+   StringColumnMetadata(std::string column_name)
+       : ColumnMetadata(std::move(column_name)) {}
 
-   StringColumnMetadata(std::string phylo_tree_field, silo::common::PhyloTree phylo_tree)
-       : ColumnMetadata(std::move(phylo_tree_field)),
+   StringColumnMetadata(std::string column_name, silo::common::PhyloTree phylo_tree)
+       : ColumnMetadata(std::move(column_name)),
          phylo_tree(std::move(phylo_tree)) {}
 
    StringColumnMetadata(
-      std::string phylo_tree_field,
+      std::string column_name,
       silo::common::BidirectionalStringMap&& dictionary
    )
-       : ColumnMetadata(std::move(phylo_tree_field)),
+       : ColumnMetadata(std::move(column_name)),
          dictionary(std::move(dictionary)) {}
 
    StringColumnMetadata(
-      std::string phylo_tree_field,
+      std::string column_name,
       silo::common::BidirectionalStringMap&& dictionary,
       silo::common::PhyloTree phylo_tree
    )
-       : ColumnMetadata(std::move(phylo_tree_field)),
+       : ColumnMetadata(std::move(column_name)),
          dictionary(std::move(dictionary)),
          phylo_tree(std::move(phylo_tree)) {}
 
@@ -128,7 +128,7 @@ template <class Archive>
    const silo::storage::column::StringColumnMetadata& object,
    [[maybe_unused]] const uint32_t version
 ) {
-   ar & object.phylo_tree_field;
+   ar & object.column_name;
    ar & object.dictionary;
    ar & object.phylo_tree;
 }
@@ -142,19 +142,19 @@ template <class Archive>
    std::shared_ptr<silo::storage::column::StringColumnMetadata>& object,
    [[maybe_unused]] const uint32_t version
 ) {
-   std::string phylo_tree_field;
+   std::string column_name;
    silo::common::BidirectionalStringMap dictionary;
    std::optional<silo::common::PhyloTree> phylo_tree;
-   ar & phylo_tree_field;
+   ar & column_name;
    ar & dictionary;
    ar & phylo_tree;
    if (phylo_tree.has_value()) {
       object = std::make_shared<silo::storage::column::StringColumnMetadata>(
-         std::move(phylo_tree_field), std::move(dictionary), std::move(phylo_tree.value())
+         std::move(column_name), std::move(dictionary), std::move(phylo_tree.value())
       );
    } else {
       object = std::make_shared<silo::storage::column::StringColumnMetadata>(
-         std::move(phylo_tree_field), std::move(dictionary)
+         std::move(column_name), std::move(dictionary)
       );
    }
 }
