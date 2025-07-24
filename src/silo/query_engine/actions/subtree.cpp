@@ -28,8 +28,7 @@ using silo::common::TreeNodeId;
 using silo::schema::ColumnType;
 
 Subtree::Subtree(std::string column_name, bool print_nodes_not_in_tree)
-    : column_name(std::move(column_name)),
-      print_nodes_not_in_tree(print_nodes_not_in_tree) {}
+    : TreeAction(std::move(column_name), print_nodes_not_in_tree) {}
 
 using silo::query_engine::filter::operators::Operator;
 
@@ -50,12 +49,12 @@ void Subtree::validateOrderByFields(const schema::TableSchema& /*table_schema*/)
    }
 }
 
-arrow::Status addSubtreeResponseToBuilder(
+arrow::Status Subtree::addResponseToBuilder(
    std::vector<std::string>& all_node_ids,
    std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder,
    const storage::column::StringColumnMetadata* metadata,
    bool print_nodes_not_in_tree
-) {
+) const {
    NewickResponse response = metadata->toNewickString(all_node_ids);
 
    if (auto builder = output_builder.find("subtreeNewick"); builder != output_builder.end()) {
@@ -71,96 +70,6 @@ arrow::Status addSubtreeResponseToBuilder(
       );
    }
    return arrow::Status::OK();
-}
-
-arrow::Result<QueryPlan> Subtree::toQueryPlanImpl(
-   std::shared_ptr<const storage::Table> table,
-   std::vector<CopyOnWriteBitmap> partition_filters,
-   const config::QueryOptions& query_options
-) const {
-   CHECK_SILO_QUERY(
-      table->schema.getColumn(column_name).has_value(),
-      "Column '{}' not found in table schema",
-      column_name
-   );
-   CHECK_SILO_QUERY(
-      table->schema.getColumn(column_name).has_value() &&
-         table->schema.getColumn(column_name).value().type == ColumnType::STRING,
-      "Subtree action cannot be called on column '{}' as it is not a column of type STRING",
-      column_name
-   );
-   const auto& optional_table_metadata =
-      table->schema.getColumnMetadata<storage::column::StringColumnPartition>(column_name);
-   CHECK_SILO_QUERY(
-      optional_table_metadata.has_value() &&
-         optional_table_metadata.value()->phylo_tree.has_value(),
-      "Subtree action cannot be called on Column '{}' as it does not have a phylogenetic tree "
-      "associated with it",
-      column_name
-   );
-   auto table_metadata = optional_table_metadata.value();
-   auto output_fields = getOutputSchema(table->schema);
-   auto evaluated_partition_filters = partition_filters;
-
-   auto column_name_to_evaluate = column_name;
-   auto print_missing_nodes = print_nodes_not_in_tree;
-
-   std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
-      [table,
-       column_name_to_evaluate,
-       output_fields,
-       evaluated_partition_filters,
-       table_metadata,
-       produced = false,
-       print_missing_nodes]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
-      if (produced == true) {
-         std::optional<arrow::ExecBatch> result = std::nullopt;
-         return arrow::Future{result};
-      }
-      produced = true;
-
-      std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder> output_builder;
-      for (const auto& output_field : output_fields) {
-         output_builder.emplace(
-            output_field.name, exec_node::columnTypeToArrowType(output_field.type)
-         );
-      }
-
-      auto all_node_ids =
-         getNodeValues(table, column_name_to_evaluate, evaluated_partition_filters);
-
-      ARROW_RETURN_NOT_OK(addSubtreeResponseToBuilder(
-         all_node_ids, output_builder, table_metadata, print_missing_nodes
-      ));
-
-      // Order of result_columns is relevant as it needs to be consistent with vector in schema
-      std::vector<arrow::Datum> result_columns;
-      for (const auto& output_field : output_fields) {
-         if (auto array_builder = output_builder.find(output_field.name);
-             array_builder != output_builder.end()) {
-            arrow::Datum datum;
-            ARROW_ASSIGN_OR_RAISE(datum, array_builder->second.toDatum());
-            result_columns.push_back(std::move(datum));
-         }
-      }
-      ARROW_ASSIGN_OR_RAISE(
-         std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make(result_columns)
-      );
-      return arrow::Future{result};
-   };
-
-   ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
-
-   arrow::acero::SourceNodeOptions options{
-      exec_node::columnsToArrowSchema(getOutputSchema(table->schema)),
-      std::move(producer),
-      arrow::Ordering::Implicit()
-   };
-   ARROW_ASSIGN_OR_RAISE(
-      auto node, arrow::acero::MakeExecNode("source", arrow_plan.get(), {}, options)
-   );
-
-   return QueryPlan::makeQueryPlan(arrow_plan, node);
 }
 
 std::vector<schema::ColumnIdentifier> Subtree::getOutputSchema(

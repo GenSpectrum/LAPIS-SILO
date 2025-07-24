@@ -115,10 +115,4 @@ std::vector<silo::schema::ColumnIdentifier> columnNamesToFields(
    const silo::schema::TableSchema& table_schema
 );
 
-std::vector<std::string> getNodeValues(
-   std::shared_ptr<const storage::Table> table,
-   const std::string& column_name,
-   std::vector<CopyOnWriteBitmap>& bitmap_filter
-);
-
 }  // namespace silo::query_engine::actions
