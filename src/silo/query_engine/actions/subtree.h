@@ -15,10 +15,6 @@
 namespace silo::query_engine::actions {
 
 class Subtree : public TreeAction {
-  private:
-   std::string column_name;
-   bool print_nodes_not_in_tree;
-
   public:
    Subtree(std::string column_name, bool print_nodes_not_in_tree);
 

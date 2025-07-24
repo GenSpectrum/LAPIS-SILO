@@ -65,21 +65,7 @@ std::vector<schema::ColumnIdentifier> Subtree::getOutputSchema(
 
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Subtree>& action) {
-   CHECK_SILO_QUERY(
-      json.contains("columnName"), "error: 'columnName' field is required in Subtree action"
-   );
-   CHECK_SILO_QUERY(
-      json["columnName"].is_string(), "error: 'columnName' field in Subtree action must be a string"
-   );
-   if (json.contains("printNodesNotInTree")) {
-      CHECK_SILO_QUERY(
-         json["printNodesNotInTree"].is_boolean(),
-         "error: 'printNodesNotInTree' field in Subtree action must be a boolean"
-      );
-   }
-   const bool print_nodes_not_in_tree = json.value("printNodesNotInTree", false);
-   std::string column_name = json["columnName"].get<std::string>();
-   action = std::make_unique<Subtree>(column_name, print_nodes_not_in_tree);
+   action = makeTreeAction<Subtree>(json, "Subtree");
 }
 
 }  // namespace silo::query_engine::actions

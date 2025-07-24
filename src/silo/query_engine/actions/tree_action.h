@@ -61,4 +61,28 @@ class TreeAction : public Action {
    ) const override;
 };
 
+template <class ActionT>
+std::unique_ptr<ActionT> makeTreeAction(const nlohmann::json& json, std::string_view actionName) {
+   CHECK_SILO_QUERY(
+      json.contains("columnName"), "error: 'columnName' field is required in {} action", actionName
+   );
+   CHECK_SILO_QUERY(
+      json["columnName"].is_string(),
+      "error: 'columnName' field in {} action must be a string",
+      actionName
+   );
+   if (json.contains("printNodesNotInTree")) {
+      CHECK_SILO_QUERY(
+         json["printNodesNotInTree"].is_boolean(),
+         "error: 'printNodesNotInTree' field in {} action must be a boolean",
+         actionName
+      );
+   }
+
+   bool print_nodes_not_in_tree = json.value("printNodesNotInTree", false);
+   std::string column_name = json["columnName"].get<std::string>();
+
+   return std::make_unique<ActionT>(std::move(column_name), print_nodes_not_in_tree);
+}
+
 }  // namespace silo::query_engine::actions
