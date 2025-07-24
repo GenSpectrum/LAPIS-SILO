@@ -13,11 +13,11 @@
 namespace silo::query_engine::filter::expressions {
 
 class PhyloChildFilter : public Expression {
-   std::string column_name;
+   std::string phylo_tree_field;
    std::string internal_node;
 
   public:
-   explicit PhyloChildFilter(std::string column_name, std::string internal_node);
+   explicit PhyloChildFilter(std::string phylo_tree_field, std::string internal_node);
 
    std::string toString() const override;
 

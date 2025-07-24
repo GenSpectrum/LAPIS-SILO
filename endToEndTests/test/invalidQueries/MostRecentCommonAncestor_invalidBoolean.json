@@ -3,7 +3,7 @@
   "query": {
     "action": {
       "type": "MostRecentCommonAncestor",
-      "columnName": "gisaid_epi_isl",
+      "phyloTreeField": "gisaid_epi_isl",
       "orderByFields": ["mrcaNode"],
       "printNodesNotInTree": "T"
     },

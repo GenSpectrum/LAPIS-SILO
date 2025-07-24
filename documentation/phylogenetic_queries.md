@@ -16,12 +16,12 @@ As described in [Query Documentation](query_documentation.md) queries consist of
 
 ### PhyloDescendantOf
 
-Filters sequences to the subset of all sequences that are a child of an internal node in the tree. `COLUMN_NAME` must correspond to the name of a STRING column with the `phyloTreeNodeIdentifier` and a corresponding tree. `INTERNAL_NODE_NAME` must correspond to a node that exists in the linked tree.
+Filters sequences to the subset of all sequences that are a child of an internal node in the tree. `PHYLO_TREE_FIELD` must correspond to the name of a STRING column with the `phyloTreeNodeIdentifier` and a corresponding tree. `INTERNAL_NODE_NAME` must correspond to a node that exists in the linked tree.
 
 ```json
 "filterExpression": {
   "type": "PhyloDescendantOf",
-  "column": "COLUMN_NAME",
+  "column": "PHYLO_TREE_FIELD",
   "internalNode": "INTERNAL_NODE_NAME"
 }
 ```
@@ -33,12 +33,12 @@ Filters sequences to the subset of all sequences that are a child of an internal
 ```json
 "action": {
   "type": "MostRecentCommonAncestor",
-  "columnName": "COLUMN_NAME",
+  "phyloTreeField": "PHYLO_TREE_FIELD",
   "printNodesNotInTree": true
 }
 ```
 
-Returns the most recent common ancestor of all sequences in the filter it is applied to. If sequences included in the filter do not exist in the phylogenetic tree they are ignored and the count of such missing sequences is added as a field `missingNodeCount`. Additionally, if desired, a list of all missing nodes can be returned as a comma-separated list by setting `printNodesNotInTree` to true (default is false). Note in the query shown above `COLUMN_NAME` must correspond to the name of a STRING column with the `phyloTreeNodeIdentifier` and a corresponding tree.
+Returns the most recent common ancestor of all sequences in the filter it is applied to. If sequences included in the filter do not exist in the phylogenetic tree they are ignored and the count of such missing sequences is added as a field `missingNodeCount`. Additionally, if desired, a list of all missing nodes can be returned as a comma-separated list by setting `printNodesNotInTree` to true (default is false). Note in the query shown above `PHYLO_TREE_FIELD` must correspond to the name of a STRING column with the `phyloTreeNodeIdentifier` and a corresponding tree.
 
 The result of such a query is a ndjson with a single row, where `missingFromTree` is only added if `printNodesNotInTree` is set to true:
 

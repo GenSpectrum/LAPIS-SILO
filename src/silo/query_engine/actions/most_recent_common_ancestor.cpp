@@ -29,10 +29,10 @@ using silo::common::TreeNodeId;
 using silo::schema::ColumnType;
 
 MostRecentCommonAncestor::MostRecentCommonAncestor(
-   std::string column_name,
+   std::string phylo_tree_field,
    bool print_nodes_not_in_tree
 )
-    : column_name(std::move(column_name)),
+    : phylo_tree_field(std::move(phylo_tree_field)),
       print_nodes_not_in_tree(print_nodes_not_in_tree) {}
 
 using silo::query_engine::filter::operators::Operator;
@@ -55,13 +55,13 @@ void MostRecentCommonAncestor::validateOrderByFields(const schema::TableSchema& 
 
 std::vector<std::string> getNodeValues(
    std::shared_ptr<const storage::Table> table,
-   const std::string& column_name,
+   const std::string& phylo_tree_field,
    std::vector<CopyOnWriteBitmap>& bitmap_filter
 ) {
    std::vector<std::string> all_tree_node_ids;
    for (size_t i = 0; i < table->getNumberOfPartitions(); ++i) {
       const storage::TablePartition& table_partition = table->getPartition(i);
-      const auto& string_column = table_partition.columns.string_columns.at(column_name);
+      const auto& string_column = table_partition.columns.string_columns.at(phylo_tree_field);
 
       CopyOnWriteBitmap& filter = bitmap_filter[i];
       const size_t cardinality = filter->cardinality();
@@ -112,35 +112,35 @@ arrow::Result<QueryPlan> MostRecentCommonAncestor::toQueryPlanImpl(
    const config::QueryOptions& query_options
 ) const {
    CHECK_SILO_QUERY(
-      table->schema.getColumn(column_name).has_value(),
+      table->schema.getColumn(phylo_tree_field).has_value(),
       "Column '{}' not found in table schema",
-      column_name
+      phylo_tree_field
    );
    CHECK_SILO_QUERY(
-      table->schema.getColumn(column_name).has_value() &&
-         table->schema.getColumn(column_name).value().type == ColumnType::STRING,
+      table->schema.getColumn(phylo_tree_field).has_value() &&
+         table->schema.getColumn(phylo_tree_field).value().type == ColumnType::STRING,
       "MRCA action cannot be called on column '{}' as it is not a column of type STRING",
-      column_name
+      phylo_tree_field
    );
    const auto& optional_table_metadata =
-      table->schema.getColumnMetadata<storage::column::StringColumnPartition>(column_name);
+      table->schema.getColumnMetadata<storage::column::StringColumnPartition>(phylo_tree_field);
    CHECK_SILO_QUERY(
       optional_table_metadata.has_value() &&
          optional_table_metadata.value()->phylo_tree.has_value(),
       "MRCA action cannot be called on Column '{}' as it does not have a phylogenetic tree "
       "associated with it",
-      column_name
+      phylo_tree_field
    );
    auto table_metadata = optional_table_metadata.value();
    auto output_fields = getOutputSchema(table->schema);
    auto evaluated_partition_filters = partition_filters;
 
-   auto column_name_to_evaluate = column_name;
+   auto phylo_tree_field_to_evaluate = phylo_tree_field;
    auto print_missing_nodes = print_nodes_not_in_tree;
 
    std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
       [table,
-       column_name_to_evaluate,
+       phylo_tree_field_to_evaluate,
        output_fields,
        evaluated_partition_filters,
        table_metadata,
@@ -161,7 +161,7 @@ arrow::Result<QueryPlan> MostRecentCommonAncestor::toQueryPlanImpl(
       }
 
       auto all_node_ids =
-         getNodeValues(table, column_name_to_evaluate, evaluated_partition_filters);
+         getNodeValues(table, phylo_tree_field_to_evaluate, evaluated_partition_filters);
 
       ARROW_RETURN_NOT_OK(
          addMRCAResponseToBuilder(all_node_ids, output_builder, table_metadata, print_missing_nodes)
@@ -212,12 +212,12 @@ std::vector<schema::ColumnIdentifier> MostRecentCommonAncestor::getOutputSchema(
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<MostRecentCommonAncestor>& action) {
    CHECK_SILO_QUERY(
-      json.contains("columnName"),
-      "error: 'columnName' field is required in MostRecentCommonAncestor action"
+      json.contains("phyloTreeField"),
+      "error: 'phyloTreeField' field is required in MostRecentCommonAncestor action"
    );
    CHECK_SILO_QUERY(
-      json["columnName"].is_string(),
-      "error: 'columnName' field in MostRecentCommonAncestor action must be a string"
+      json["phyloTreeField"].is_string(),
+      "error: 'phyloTreeField' field in MostRecentCommonAncestor action must be a string"
    );
    if (json.contains("printNodesNotInTree")) {
       CHECK_SILO_QUERY(
@@ -226,8 +226,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<MostRecentCommonAnces
       );
    }
    const bool print_nodes_not_in_tree = json.value("printNodesNotInTree", false);
-   std::string column_name = json["columnName"].get<std::string>();
-   action = std::make_unique<MostRecentCommonAncestor>(column_name, print_nodes_not_in_tree);
+   std::string phylo_tree_field = json["phyloTreeField"].get<std::string>();
+   action = std::make_unique<MostRecentCommonAncestor>(phylo_tree_field, print_nodes_not_in_tree);
 }
 
 }  // namespace silo::query_engine::actions

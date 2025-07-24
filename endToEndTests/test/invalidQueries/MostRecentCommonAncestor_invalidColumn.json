@@ -3,7 +3,7 @@
   "query": {
     "action": {
       "type": "MostRecentCommonAncestor",
-      "columnName": "country",
+      "phyloTreeField": "country",
       "orderByFields": ["mrcaNode"],
       "printNodesNotInTree": true
     },

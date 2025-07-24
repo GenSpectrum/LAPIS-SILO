@@ -16,13 +16,13 @@ namespace silo::query_engine::actions {
 
 class MostRecentCommonAncestor : public Action {
   private:
-   std::string column_name;
+   std::string phylo_tree_field;
    bool print_nodes_not_in_tree;
 
    void validateOrderByFields(const schema::TableSchema& schema) const override;
 
   public:
-   MostRecentCommonAncestor(std::string column_name, bool print_nodes_not_in_tree);
+   MostRecentCommonAncestor(std::string phylo_tree_field, bool print_nodes_not_in_tree);
 
    arrow::Result<QueryPlan> toQueryPlanImpl(
       std::shared_ptr<const storage::Table> table,
