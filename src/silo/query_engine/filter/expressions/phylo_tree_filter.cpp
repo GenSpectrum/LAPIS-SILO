@@ -17,12 +17,12 @@
 
 namespace silo::query_engine::filter::expressions {
 
-PhyloChildFilter::PhyloChildFilter(std::string column_name, std::string internal_node)
-    : column_name(std::move(column_name)),
+PhyloChildFilter::PhyloChildFilter(std::string phylo_tree_field, std::string internal_node)
+    : phylo_tree_field(std::move(phylo_tree_field)),
       internal_node(std::move(internal_node)) {}
 
 std::string PhyloChildFilter::toString() const {
-   return fmt::format("column {} phylo_child_of {}", column_name, internal_node);
+   return fmt::format("column {} phylo_child_of {}", phylo_tree_field, internal_node);
 };
 
 namespace {
@@ -61,13 +61,13 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> PhyloChildFilte
    Expression::AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
-      table_partition.columns.string_columns.contains(column_name),
+      table_partition.columns.string_columns.contains(phylo_tree_field),
       "The database does not contain the column '{}'",
-      column_name
+      phylo_tree_field
    );
 
-   SILO_ASSERT(table_partition.columns.string_columns.contains(column_name));
-   const auto& string_column = table_partition.columns.string_columns.at(column_name);
+   SILO_ASSERT(table_partition.columns.string_columns.contains(phylo_tree_field));
+   const auto& string_column = table_partition.columns.string_columns.at(phylo_tree_field);
    return createMatchingBitmap(string_column, internal_node, table_partition.sequence_count);
 }
 

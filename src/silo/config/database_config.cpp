@@ -142,8 +142,8 @@ bool YAML::convert<silo::config::DatabaseMetadata>::decode(
    } else {
       metadata.generate_lineage_index = false;
    }
-   if (node["phyloTreeNodeIdentifier"].IsDefined()) {
-      metadata.phylo_tree_node_identifier = node["phyloTreeNodeIdentifier"].as<bool>();
+   if (node["isPhyloTreeField"].IsDefined()) {
+      metadata.phylo_tree_node_identifier = node["isPhyloTreeField"].as<bool>();
    } else {
       metadata.phylo_tree_node_identifier = false;
    }
@@ -160,7 +160,7 @@ YAML::Node YAML::convert<silo::config::DatabaseMetadata>::encode(
       node["generateLineageIndex"] = true;
    }
    if (metadata.phylo_tree_node_identifier) {
-      node["phyloTreeNodeIdentifier"] = true;
+      node["isPhyloTreeField"] = true;
    }
    return node;
 }
@@ -258,7 +258,7 @@ std::map<std::string, ValueType> validateMetadataDefinitions(const DatabaseConfi
       if (metadata.type != ValueType::STRING && phylo_tree_node_identifiered_field) {
          throw ConfigException(
             "Metadata '" + metadata.name +
-            "' phyloTreeNodeIdentifier is set, but the column is not of type STRING."
+            "' isPhyloTreeField is set, but the column is not of type STRING."
          );
       }
 
@@ -280,7 +280,7 @@ std::map<std::string, ValueType> validateMetadataDefinitions(const DatabaseConfi
       if (metadata.generate_index && phylo_tree_node_identifiered_field) {
          throw ConfigException(
             "Metadata '" + metadata.name +
-            "' phyloTreeNodeIdentifier and generateIndex are both set, if phyloTreeNodeIdentifier "
+            "' isPhyloTreeField and generateIndex are both set, if isPhyloTreeField "
             "is "
             "set then generateIndex cannot be set."
          );
