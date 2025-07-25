@@ -464,9 +464,7 @@ PartialNewickResponse PhyloTree::partialNewickString(
    PartialNewickResponse response;
 
    auto node_it = nodes.find(ancestor);
-   if (node_it == nodes.end()) {
-      throw std::runtime_error(fmt::format("Ancestor '{}' not found in tree.", ancestor.string));
-   }
+   SILO_ASSERT(node_it != nodes.end());
    std::vector<PartialNewickResponse> responses;
    if (node_it->second->isLeaf()) {
       response.newick_string_with_self =
@@ -522,9 +520,7 @@ NewickResponse PhyloTree::toNewickString(const std::vector<std::string>& filter)
       return response;
    }
    auto node_it = nodes.find(root_id);
-   if (node_it == nodes.end()) {
-      throw std::runtime_error(fmt::format("Ancestor '{}' not found in tree.", root_id.string));
-   }
+   SILO_ASSERT(node_it != nodes.end());
    std::vector<PartialNewickResponse> responses;
    for (const auto& child : node_it->second->children) {
       responses.push_back(partialNewickString(filter_in_tree, child));
@@ -532,11 +528,7 @@ NewickResponse PhyloTree::toNewickString(const std::vector<std::string>& filter)
    std::erase_if(responses, [](const PartialNewickResponse& resp) {
       return !resp.newick_string_with_self.has_value();
    });
-   if (responses.empty()) {
-      throw std::runtime_error(
-         fmt::format("Newick should contain nodes '{}' but returned <empty>.", filter_in_tree)
-      );
-   }
+   SILO_ASSERT(!responses.empty());
    if (responses.size() == 1) {
       // Only one child has nodes in the filter, root is not needed
       // The output nwk's root should be the MRCA of the nodes in the filter
