@@ -4,9 +4,7 @@
     "action": {
       "type": "MostRecentCommonAncestor",
       "columnName": "country",
-      "orderByFields": [
-        "mrcaNode"
-      ],
+      "orderByFields": ["mrcaNode"],
       "printNodesNotInTree": true
     },
     "filterExpression": {

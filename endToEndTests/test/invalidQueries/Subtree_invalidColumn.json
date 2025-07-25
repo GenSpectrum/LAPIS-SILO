@@ -4,9 +4,7 @@
     "action": {
       "type": "Subtree",
       "columnName": "country",
-      "orderByFields": [
-        "subtreeNewick"
-      ],
+      "orderByFields": ["subtreeNewick"],
       "printNodesNotInTree": true
     },
     "filterExpression": {
