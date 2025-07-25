@@ -87,7 +87,7 @@ arrow::Result<QueryPlan> TreeAction::toQueryPlanImpl(
    CHECK_SILO_QUERY(
       table->schema.getColumn(column_name).has_value() &&
          table->schema.getColumn(column_name).value().type == ColumnType::STRING,
-      "'{}' action cannot be called on column '{}' as it is not a column of type STRING",
+      "{} action cannot be called on column '{}' as it is not a column of type STRING",
       getType(),
       column_name
    );
@@ -96,7 +96,7 @@ arrow::Result<QueryPlan> TreeAction::toQueryPlanImpl(
    CHECK_SILO_QUERY(
       optional_table_metadata.has_value() &&
          optional_table_metadata.value()->phylo_tree.has_value(),
-      "'{}' action cannot be called on Column '{}' as it does not have a phylogenetic tree "
+      "{} action cannot be called on Column '{}' as it does not have a phylogenetic tree "
       "associated with it",
       getType(),
       column_name
