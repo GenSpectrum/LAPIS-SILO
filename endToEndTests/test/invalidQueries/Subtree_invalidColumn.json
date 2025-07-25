@@ -4,7 +4,9 @@
     "action": {
       "type": "Subtree",
       "columnName": "country",
-      "orderByFields": ["subtreeNewick"],
+      "orderByFields": [
+        "subtreeNewick"
+      ],
       "printNodesNotInTree": true
     },
     "filterExpression": {
@@ -15,6 +17,6 @@
   },
   "expectedError": {
     "error": "Bad request",
-    "message": "TreeAction cannot be called on Column 'country' as it does not have a phylogenetic tree associated with it"
+    "message": "Subtree action cannot be called on Column 'country' as it does not have a phylogenetic tree associated with it"
   }
 }
