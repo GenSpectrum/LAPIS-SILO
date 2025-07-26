@@ -86,11 +86,15 @@ class PhyloTree {
 
    MRCAResponse getMRCA(const std::vector<std::string>& node_labels) const;
 
-   NewickResponse toNewickString(const std::vector<std::string>& filter) const;
+   NewickResponse toNewickString(
+      const std::vector<std::string>& filter,
+      bool contract_unary_nodes = false
+   ) const;
 
    PartialNewickResponse partialNewickString(
       const std::vector<std::string>& filter,
-      const TreeNodeId& ancestor
+      const TreeNodeId& ancestor,
+      bool contract_unary_nodes = false
    ) const;
 
    void getSetOfAncestorsAtDepth(

@@ -460,7 +460,8 @@ std::string newickJoin(
 
 PartialNewickResponse PhyloTree::partialNewickString(
    const std::vector<std::string>& filter,
-   const TreeNodeId& ancestor
+   const TreeNodeId& ancestor,
+   bool contract_unary_nodes
 ) const {
    PartialNewickResponse response;
 
@@ -475,7 +476,7 @@ PartialNewickResponse PhyloTree::partialNewickString(
       return response;
    }
    for (const auto& child : node_it->second->children) {
-      responses.push_back(partialNewickString(filter, child));
+      responses.push_back(partialNewickString(filter, child, contract_unary_nodes));
    }
    std::erase_if(responses, [](const PartialNewickResponse& resp) {
       return !resp.newick_string_with_self.has_value();
@@ -491,8 +492,12 @@ PartialNewickResponse PhyloTree::partialNewickString(
       } else {
          response.newick_string_without_self = responses[0].newick_string_with_self;
       }
-      response.newick_string_with_self =
-         newickJoin({responses[0].newick_string_with_self}, ancestor.string);
+      if (contract_unary_nodes) {
+         response.newick_string_with_self = responses[0].newick_string_with_self;
+      } else {
+         response.newick_string_with_self =
+            newickJoin({responses[0].newick_string_with_self}, ancestor.string);
+      }
       return response;
    }
    std::vector<std::optional<std::string>> strings;
@@ -505,7 +510,10 @@ PartialNewickResponse PhyloTree::partialNewickString(
    return response;
 }
 
-NewickResponse PhyloTree::toNewickString(const std::vector<std::string>& filter) const {
+NewickResponse PhyloTree::toNewickString(
+   const std::vector<std::string>& filter,
+   bool contract_unary_nodes
+) const {
    NewickResponse response;
    std::vector<std::string> filter_in_tree;
    for (const auto& node_label : filter) {
@@ -524,7 +532,7 @@ NewickResponse PhyloTree::toNewickString(const std::vector<std::string>& filter)
    SILO_ASSERT(node_it != nodes.end());
    std::vector<PartialNewickResponse> responses;
    for (const auto& child : node_it->second->children) {
-      responses.push_back(partialNewickString(filter_in_tree, child));
+      responses.push_back(partialNewickString(filter_in_tree, child, contract_unary_nodes));
    }
    std::erase_if(responses, [](const PartialNewickResponse& resp) {
       return !resp.newick_string_with_self.has_value();
