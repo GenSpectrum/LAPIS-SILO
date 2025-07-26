@@ -434,13 +434,14 @@ bool isInFilter(const std::string& str, const std::vector<std::string>& filter) 
    return std::find(filter.begin(), filter.end(), str) != filter.end();
 }
 
-std::optional<std::string> newickJoin(
+std::string newickJoin(
    const std::vector<std::optional<std::string>>& child_newick_strings,
-   std::optional<std::string> self_id = std::nullopt
+   const std::string& self_id
 ) {
-   std::string result = self_id.has_value() ? "(" : "";
+   std::string result = "(";
    bool has_value = false;
    for (size_t i = 0; i < child_newick_strings.size(); ++i) {
+      // reverse the order of children to match the Newick format
       if (!child_newick_strings[child_newick_strings.size() - i - 1].has_value()) {
          continue;
       }
@@ -453,7 +454,7 @@ std::optional<std::string> newickJoin(
    if (!has_value) {
       return self_id;
    }
-   result += self_id.has_value() ? ")" + self_id.value() : "";
+   result += ")" + self_id;
    return result;
 }
 
@@ -550,7 +551,7 @@ NewickResponse PhyloTree::toNewickString(const std::vector<std::string>& filter)
    for (const auto& resp : responses) {
       strings.push_back(resp.newick_string_with_self);
    }
-   response.newick_string = newickJoin(strings, root_id.string).value_or("") + ";";
+   response.newick_string = newickJoin(strings, root_id.string) + ";";
    return response;
 }
 
