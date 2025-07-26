@@ -535,6 +535,7 @@ NewickResponse PhyloTree::toNewickString(const std::vector<std::string>& filter)
       // The output nwk's root should be the MRCA of the nodes in the filter
       if (!responses[0].newick_string_without_self.has_value()) {
          // The child is the MRCA of the nodes in the filter and should be the root of the nwk
+         SILO_ASSERT(responses[0].newick_string_with_self.has_value());
          response.newick_string = responses[0].newick_string_with_self.value_or("") + ";";
          return response;
       } else {
