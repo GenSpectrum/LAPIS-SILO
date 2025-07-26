@@ -42,7 +42,7 @@ arrow::Status MostRecentCommonAncestor::addResponseToBuilder(
    const storage::column::StringColumnMetadata* metadata,
    bool print_nodes_not_in_tree
 ) const {
-   MRCAResponse response = metadata->getMRCA(all_node_ids);
+   MRCAResponse response = metadata->phylo_tree->getMRCA(all_node_ids);
    std::optional<std::string> mrca_node =
       response.mrca_node_id.has_value()
          ? std::make_optional<std::string>(response.mrca_node_id.value().string)
@@ -73,7 +73,24 @@ std::vector<schema::ColumnIdentifier> MostRecentCommonAncestor::getOutputSchema(
 
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<MostRecentCommonAncestor>& action) {
-   action = makeTreeAction<MostRecentCommonAncestor>(json, "MostRecentCommonAncestor");
+   CHECK_SILO_QUERY(
+      json.contains("columnName"),
+      "error: 'columnName' field is required in MostRecentCommonAncestor action"
+   );
+   CHECK_SILO_QUERY(
+      json["columnName"].is_string(),
+      "error: 'columnName' field in MostRecentCommonAncestor action must be a string"
+   );
+   if (json.contains("printNodesNotInTree")) {
+      CHECK_SILO_QUERY(
+         json["printNodesNotInTree"].is_boolean(),
+         "error: 'printNodesNotInTree' field in MostRecentCommonAncestor action must be a boolean"
+      );
+   }
+   bool print_nodes_not_in_tree = json.value("printNodesNotInTree", false);
+   std::string column_name = json["columnName"].get<std::string>();
+
+   action = std::make_unique<MostRecentCommonAncestor>(column_name, print_nodes_not_in_tree);
 }
 
 }  // namespace silo::query_engine::actions

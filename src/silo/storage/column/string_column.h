@@ -57,26 +57,6 @@ class StringColumnMetadata : public ColumnMetadata {
    [[nodiscard]] std::optional<common::String<silo::common::STRING_SIZE>> embedString(
       const std::string& string
    ) const;
-
-   inline MRCAResponse getMRCA(const std::vector<std::string>& node_labels) const {
-      if (!phylo_tree.has_value()) {
-         return MRCAResponse{
-            std::nullopt,
-            {},
-         };
-      }
-      return phylo_tree->getMRCA(node_labels);
-   }
-
-   inline NewickResponse toNewickString(const std::vector<std::string>& node_labels) const {
-      if (!phylo_tree.has_value()) {
-         return NewickResponse{
-            "",
-            {},
-         };
-      }
-      return phylo_tree->toNewickString(node_labels);
-   }
 };
 
 class StringColumnPartition {

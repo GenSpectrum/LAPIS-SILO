@@ -27,8 +27,9 @@ using silo::common::NewickResponse;
 using silo::common::TreeNodeId;
 using silo::schema::ColumnType;
 
-Subtree::Subtree(std::string column_name, bool print_nodes_not_in_tree)
-    : TreeAction(std::move(column_name), print_nodes_not_in_tree) {}
+Subtree::Subtree(std::string column_name, bool print_nodes_not_in_tree, bool contract_unary_nodes)
+    : TreeAction(std::move(column_name), print_nodes_not_in_tree),
+      contract_unary_nodes(contract_unary_nodes) {}
 
 using silo::query_engine::filter::operators::Operator;
 
@@ -38,7 +39,8 @@ arrow::Status Subtree::addResponseToBuilder(
    const storage::column::StringColumnMetadata* metadata,
    bool print_nodes_not_in_tree
 ) const {
-   NewickResponse response = metadata->toNewickString(all_node_ids);
+   NewickResponse response =
+      metadata->phylo_tree->toNewickString(all_node_ids, contract_unary_nodes);
 
    if (auto builder = output_builder.find("subtreeNewick"); builder != output_builder.end()) {
       ARROW_RETURN_NOT_OK(builder->second.insert(response.newick_string));
@@ -65,7 +67,29 @@ std::vector<schema::ColumnIdentifier> Subtree::getOutputSchema(
 
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<Subtree>& action) {
-   action = makeTreeAction<Subtree>(json, "Subtree");
+   CHECK_SILO_QUERY(
+      json.contains("columnName"), "error: 'columnName' field is required in Subtree action"
+   );
+   CHECK_SILO_QUERY(
+      json["columnName"].is_string(), "error: 'columnName' field in Subtree action must be a string"
+   );
+   if (json.contains("printNodesNotInTree")) {
+      CHECK_SILO_QUERY(
+         json["printNodesNotInTree"].is_boolean(),
+         "error: 'printNodesNotInTree' field in Subtree action must be a boolean"
+      );
+   }
+   if (json.contains("contractUnaryNodes")) {
+      CHECK_SILO_QUERY(
+         json["contractUnaryNodes"].is_boolean(),
+         "error: 'contractUnaryNodes' field in Subtree action must be a boolean"
+      );
+   }
+   bool print_nodes_not_in_tree = json.value("printNodesNotInTree", false);
+   bool contract_unary_nodes = json.value("contractUnaryNodes", false);
+   std::string column_name = json["columnName"].get<std::string>();
+
+   action = std::make_unique<Subtree>(column_name, print_nodes_not_in_tree, contract_unary_nodes);
 }
 
 }  // namespace silo::query_engine::actions

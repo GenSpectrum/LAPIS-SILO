@@ -16,7 +16,8 @@ namespace silo::query_engine::actions {
 
 class Subtree : public TreeAction {
   public:
-   Subtree(std::string column_name, bool print_nodes_not_in_tree);
+   bool contract_unary_nodes = false;
+   Subtree(std::string column_name, bool print_nodes_not_in_tree, bool contract_unary_nodes);
 
    arrow::Status addResponseToBuilder(
       std::vector<std::string>& all_node_ids,
