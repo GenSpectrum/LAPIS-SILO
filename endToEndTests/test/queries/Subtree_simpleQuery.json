@@ -1,0 +1,31 @@
+{
+  "testCaseName": "Subtree query returns correct nwk",
+  "query": {
+    "action": {
+      "type": "Subtree",
+      "columnName": "gisaid_epi_isl",
+      "orderByFields": ["subtreeNewick"]
+    },
+    "filterExpression": {
+      "type": "Or",
+      "children": [
+        {
+          "type": "StringEquals",
+          "column": "gisaid_epi_isl",
+          "value": "EPI_ISL_3247294"
+        },
+        {
+          "type": "StringEquals",
+          "column": "gisaid_epi_isl",
+          "value": "EPI_ISL_3465732"
+        }
+      ]
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "subtreeNewick": "((EPI_ISL_3247294)NODE_0000077,((((EPI_ISL_3465732)NODE_0000082)NODE_0000081)NODE_0000080)NODE_0000079)NODE_0000076;",
+      "missingNodeCount": 0
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "testCaseName": "Subtree query returns correct nwk with only missing nodes",
+  "query": {
+    "action": {
+      "type": "Subtree",
+      "columnName": "gisaid_epi_isl",
+      "orderByFields": ["subtreeNewick"],
+      "printNodesNotInTree": true
+    },
+    "filterExpression": {
+      "type": "Or",
+      "children": [
+        {
+          "type": "StringEquals",
+          "column": "gisaid_epi_isl",
+          "value": "EPI_ISL_1001493"
+        },
+        {
+          "type": "StringEquals",
+          "column": "gisaid_epi_isl",
+          "value": "EPI_ISL_1747752"
+        }
+      ]
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "subtreeNewick": "",
+      "missingNodeCount": 2,
+      "missingFromTree": "EPI_ISL_1001493,EPI_ISL_1747752"
+    }
+  ]
+}

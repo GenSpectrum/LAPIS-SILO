@@ -48,9 +48,22 @@ class MRCAResponse {
    std::vector<std::string> not_in_tree;
 };
 
+class NewickResponse {
+  public:
+   std::string newick_string;
+   std::vector<std::string> not_in_tree;
+};
+
+class PartialNewickResponse {
+  public:
+   std::optional<std::string> newick_string_without_self;
+   std::optional<std::string> newick_string_with_self;
+};
+
 class PhyloTree {
   public:
    std::unordered_map<TreeNodeId, std::shared_ptr<TreeNode>> nodes;
+   TreeNodeId root_id;
 
    // Functions for reading and parsing phylogenetic trees
 
@@ -72,6 +85,17 @@ class PhyloTree {
    roaring::Roaring getDescendants(const TreeNodeId& node_id);
 
    MRCAResponse getMRCA(const std::vector<std::string>& node_labels) const;
+
+   NewickResponse toNewickString(
+      const std::vector<std::string>& filter,
+      bool contract_unary_nodes = false
+   ) const;
+
+   PartialNewickResponse partialNewickString(
+      const std::vector<std::string>& filter,
+      const TreeNodeId& ancestor,
+      bool contract_unary_nodes = false
+   ) const;
 
    void getSetOfAncestorsAtDepth(
       const std::set<TreeNodeId>& nodes_to_group,

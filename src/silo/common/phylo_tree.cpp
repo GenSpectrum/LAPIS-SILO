@@ -32,6 +32,7 @@ void PhyloTree::save(Archive& archive, const unsigned int version) const {
       node_ids.push_back(node_id);
    }
    archive & node_ids;
+   archive & root_id;
 
    for (const auto& [node_id, node] : nodes) {
       auto called_node = node.get();
@@ -44,6 +45,7 @@ template <class Archive>
 void PhyloTree::load(Archive& archive, const unsigned int version) {
    std::vector<TreeNodeId> node_ids;
    archive & node_ids;
+   archive & root_id;
 
    for (const auto& node_id : node_ids) {
       auto node = std::make_shared<TreeNode>();
@@ -104,7 +106,7 @@ PhyloTree PhyloTree::fromAuspiceJSONString(const std::string& json_string) {
    }
 
    PhyloTree file;
-   auto root = parse_auspice_tree(j["tree"], std::nullopt, file.nodes);
+   file.root_id = parse_auspice_tree(j["tree"], std::nullopt, file.nodes);
    return file;
 }
 
@@ -263,7 +265,7 @@ PhyloTree PhyloTree::fromNewickString(const std::string& newick_string) {
    }
    sv.remove_suffix(1);
    try {
-      auto root = parseSubtree(sv, file.nodes, 0);
+      file.root_id = parseSubtree(sv, file.nodes, 0);
       if (!sv.empty()) {
          std::string shortened =
             newick_string.size() > 200 ? newick_string.substr(0, 200) + "..." : newick_string;
@@ -425,6 +427,140 @@ MRCAResponse PhyloTree::getMRCA(const std::vector<std::string>& node_labels) con
       );
    }
    response.mrca_node_id = *set_at_min_depth.begin();
+   return response;
+}
+
+bool isInFilter(const std::string& str, const std::vector<std::string>& filter) {
+   return std::find(filter.begin(), filter.end(), str) != filter.end();
+}
+
+std::string newickJoin(
+   const std::vector<std::optional<std::string>>& child_newick_strings,
+   const std::string& self_id
+) {
+   std::string result = "(";
+   bool has_value = false;
+   for (size_t i = 0; i < child_newick_strings.size(); ++i) {
+      // reverse the order of children to match the Newick format
+      if (!child_newick_strings[child_newick_strings.size() - i - 1].has_value()) {
+         continue;
+      }
+      if (has_value) {
+         result += ",";
+      }
+      result += child_newick_strings[child_newick_strings.size() - i - 1].value();
+      has_value = true;
+   }
+   if (!has_value) {
+      return self_id;
+   }
+   result += ")" + self_id;
+   return result;
+}
+
+PartialNewickResponse PhyloTree::partialNewickString(
+   const std::vector<std::string>& filter,
+   const TreeNodeId& ancestor,
+   bool contract_unary_nodes
+) const {
+   PartialNewickResponse response;
+
+   auto node_it = nodes.find(ancestor);
+   SILO_ASSERT(node_it != nodes.end());
+   std::vector<PartialNewickResponse> responses;
+   if (node_it->second->isLeaf()) {
+      response.newick_string_with_self =
+         isInFilter(ancestor.string, filter) ? std::make_optional(ancestor.string) : std::nullopt;
+      response.newick_string_without_self =
+         std::nullopt;  // make it clear that self must be included
+      return response;
+   }
+   for (const auto& child : node_it->second->children) {
+      responses.push_back(partialNewickString(filter, child, contract_unary_nodes));
+   }
+   std::erase_if(responses, [](const PartialNewickResponse& resp) {
+      return !resp.newick_string_with_self.has_value();
+   });
+   if (responses.empty()) {
+      response.newick_string_with_self = std::nullopt;
+      response.newick_string_without_self = std::nullopt;
+      return response;
+   }
+   if (responses.size() == 1) {
+      if (responses[0].newick_string_without_self.has_value()) {
+         response.newick_string_without_self = responses[0].newick_string_without_self.value();
+      } else {
+         response.newick_string_without_self = responses[0].newick_string_with_self;
+      }
+      if (contract_unary_nodes) {
+         response.newick_string_with_self = responses[0].newick_string_with_self;
+      } else {
+         response.newick_string_with_self =
+            newickJoin({responses[0].newick_string_with_self}, ancestor.string);
+      }
+      return response;
+   }
+   std::vector<std::optional<std::string>> strings;
+   strings.reserve(responses.size());
+   for (const auto& resp : responses) {
+      strings.push_back(resp.newick_string_with_self);
+   }
+   response.newick_string_with_self = newickJoin(strings, ancestor.string);
+   response.newick_string_without_self = std::nullopt;  // make it clear that self must be included
+   return response;
+}
+
+NewickResponse PhyloTree::toNewickString(
+   const std::vector<std::string>& filter,
+   bool contract_unary_nodes
+) const {
+   NewickResponse response;
+   std::vector<std::string> filter_in_tree;
+   for (const auto& node_label : filter) {
+      auto node_it = nodes.find(TreeNodeId{node_label});
+      if (node_it == nodes.end()) {
+         response.not_in_tree.push_back(node_label);
+      } else {
+         filter_in_tree.push_back(node_label);
+      }
+   }
+   if (filter_in_tree.empty()) {
+      response.newick_string = "";
+      return response;
+   }
+   auto node_it = nodes.find(root_id);
+   SILO_ASSERT(node_it != nodes.end());
+   std::vector<PartialNewickResponse> responses;
+   for (const auto& child : node_it->second->children) {
+      responses.push_back(partialNewickString(filter_in_tree, child, contract_unary_nodes));
+   }
+   std::erase_if(responses, [](const PartialNewickResponse& resp) {
+      return !resp.newick_string_with_self.has_value();
+   });
+   SILO_ASSERT(!responses.empty());
+   if (responses.size() == 1) {
+      // Only one child has nodes in the filter, root is not needed
+      // The output nwk's root should be the MRCA of the nodes in the filter
+      if (!responses[0].newick_string_without_self.has_value()) {
+         // The child is the MRCA of the nodes in the filter and should be the root of the nwk
+         SILO_ASSERT(responses[0].newick_string_with_self.has_value());
+         response.newick_string = responses[0].newick_string_with_self.value_or("") + ";";
+         return response;
+      } else {
+         // The child is not the MRCA, return the nwk string which contains the last node that was
+         // an ancestor of multiple nodes in the filter - this will be the MRCA of the nodes in the
+         // filter
+         response.newick_string = responses[0].newick_string_without_self.value() + ";";
+         return response;
+      }
+   }
+   // Multiple children have nodes in the filter, the root is the MRCA of the nodes in the filter
+   std::vector<std::optional<std::string>> strings;
+   strings.reserve(responses.size());
+   for (const auto& resp : responses) {
+      strings.push_back(resp.newick_string_with_self);
+   }
+   response.newick_string = newickJoin(strings, root_id.string) + ";";
    return response;
 }
 
