@@ -522,22 +522,13 @@ NewickResponse PhyloTree::toNewickString(
    }
    MRCAResponse mrca = getMRCA(filter_in_tree);
    SILO_ASSERT(mrca.mrca_node_id.has_value());
-   std::vector<std::optional<std::string>> responses;
    auto mrca_node = nodes.find(mrca.mrca_node_id.value());
-   for (const auto& child : mrca_node->second->children) {
-      responses.push_back(partialNewickString(filter_in_tree, child, contract_unary_nodes));
-   }
-   std::erase_if(responses, [](const std::optional<std::string>& resp) {
-      return !resp.has_value();
-   });
-   SILO_ASSERT(!responses.empty());
-   SILO_ASSERT(responses.size() > 1);
-   std::vector<std::optional<std::string>> strings;
-   strings.reserve(responses.size());
-   for (const auto& resp : responses) {
-      strings.push_back(resp);
-   }
-   response.newick_string = newickJoin(strings, mrca_node->first.string) + ";";
+   SILO_ASSERT(mrca_node != nodes.end());
+
+   std::optional<std::string> newick_string =
+      partialNewickString(filter_in_tree, mrca_node->first, contract_unary_nodes);
+   SILO_ASSERT(newick_string.has_value());
+   response.newick_string = newick_string.value() + ";";
    return response;
 }
 
