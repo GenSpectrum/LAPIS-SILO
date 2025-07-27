@@ -520,6 +520,8 @@ NewickResponse PhyloTree::toNewickString(
       response.newick_string = filter_in_tree[0] + ";";
       return response;
    }
+
+   // The MRCA will be the root of the subtree that contains all nodes in the filter.
    MRCAResponse mrca = getMRCA(filter_in_tree);
    SILO_ASSERT(mrca.mrca_node_id.has_value());
    auto mrca_node = nodes.find(mrca.mrca_node_id.value());
