@@ -512,7 +512,7 @@ NewickResponse PhyloTree::toNewickString(
          filter_in_tree.push_back(node_label);
       }
    }
-   if (filter_in_tree.empty()) { 
+   if (filter_in_tree.empty()) {
       response.newick_string = "";
       return response;
    }
