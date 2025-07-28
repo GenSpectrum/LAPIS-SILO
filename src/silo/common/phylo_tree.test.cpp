@@ -9,6 +9,12 @@
 using silo::common::PhyloTree;
 using silo::common::TreeNodeId;
 
+namespace {
+bool isInResponse(const std::string& str, const std::vector<std::string>& filter) {
+   return std::find(filter.begin(), filter.end(), str) != filter.end();
+}
+}  // namespace
+
 TEST(PhyloTree, correctlyParsesFromJSON) {
    auto phylo_tree_file = PhyloTree::fromAuspiceJSONString(
       R"({  

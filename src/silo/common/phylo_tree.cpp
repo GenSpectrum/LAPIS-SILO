@@ -507,8 +507,6 @@ NewickResponse PhyloTree::toNewickString(
    bool contract_unary_nodes
 ) const {
    NewickResponse response;
-   std::ostringstream oss;
-
    std::unordered_set<std::string> filter_in_tree;
    for (const auto& node_label : filter) {
       auto node_it = nodes.find(TreeNodeId{node_label});
@@ -524,8 +522,7 @@ NewickResponse PhyloTree::toNewickString(
       return response;
    }
    if (filter_in_tree.size() == 1) {
-      oss << *filter_in_tree.begin() << ";";
-      response.newick_string = oss.str();
+      response.newick_string = *filter_in_tree.begin() + ";";
       return response;
    }
 
