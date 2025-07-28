@@ -159,9 +159,7 @@ TEST(PhyloTree, correctlyReturnsMRCA) {
    std::vector<std::string> expected = {"NOT_IN_TREE", "NOT_IN_TREE2"};
    mrca_response = phylo_tree_file.getMRCA({"NOT_IN_TREE", "NOT_IN_TREE2"});
    ASSERT_FALSE(mrca_response.mrca_node_id.has_value());
-   ASSERT_TRUE(
-      mrca_response.not_in_tree.size() == 2 && mrca_response.not_in_tree == expected
-   );
+   ASSERT_TRUE(mrca_response.not_in_tree.size() == 2 && mrca_response.not_in_tree == expected);
 }
 
 TEST(PhyloTree, correctlyReturnsSubTreeNewick) {
