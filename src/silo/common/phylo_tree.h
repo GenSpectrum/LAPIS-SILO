@@ -78,10 +78,10 @@ class PhyloTree {
    // returns a bitmap of all descendants node{node_id} that are also in the database
    roaring::Roaring getDescendants(const TreeNodeId& node_id);
 
-   MRCAResponse getMRCA(const std::vector<std::string>& node_labels) const;
+   MRCAResponse getMRCA(const std::unordered_set<std::string>& node_labels) const;
 
    NewickResponse toNewickString(
-      const std::vector<std::string>& filter,
+      const std::unordered_set<std::string>& filter,
       bool contract_unary_nodes = true
    ) const;
 

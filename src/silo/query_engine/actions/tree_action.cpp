@@ -48,7 +48,7 @@ void TreeAction::validateOrderByFields(const schema::TableSchema& schema) const 
    }
 }
 
-std::vector<std::string> TreeAction::getNodeValues(
+std::unordered_set<std::string> TreeAction::getNodeValues(
    std::shared_ptr<const storage::Table> table,
    const std::string& column_name,
    std::vector<CopyOnWriteBitmap>& bitmap_filter
@@ -58,8 +58,7 @@ std::vector<std::string> TreeAction::getNodeValues(
       num_rows += filter->cardinality();
    }
 
-   std::vector<std::string> all_tree_node_ids;
-   all_tree_node_ids.reserve(num_rows);
+   std::unordered_set<std::string> all_tree_node_ids;
    for (size_t i = 0; i < table->getNumberOfPartitions(); ++i) {
       const storage::TablePartition& table_partition = table->getPartition(i);
       const auto& string_column = table_partition.columns.string_columns.at(column_name);
@@ -73,7 +72,7 @@ std::vector<std::string> TreeAction::getNodeValues(
          auto value =
             string_column.lookupValue(string_column.getValues().at(row_in_table_partition));
          if (!value.empty()) {
-            all_tree_node_ids.push_back(value);
+            all_tree_node_ids.insert(value);
          }
       }
    }
