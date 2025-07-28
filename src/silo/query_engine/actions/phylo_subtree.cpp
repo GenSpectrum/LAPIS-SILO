@@ -1,4 +1,4 @@
-#include "silo/query_engine/actions/most_recent_common_ancestor.h"
+#include "silo/query_engine/actions/phylo_subtree.h"
 
 #include <optional>
 #include <string>
@@ -10,7 +10,6 @@
 #include <fmt/ranges.h>
 #include <nlohmann/json.hpp>
 
-#include "evobench/evobench.hpp"
 #include "silo/common/phylo_tree.h"
 #include "silo/common/tree_node_id.h"
 #include "silo/config/database_config.h"
@@ -24,32 +23,31 @@
 #include "silo/storage/table.h"
 
 namespace silo::query_engine::actions {
-using silo::common::MRCAResponse;
+using silo::common::NewickResponse;
 using silo::common::TreeNodeId;
 using silo::schema::ColumnType;
 
-MostRecentCommonAncestor::MostRecentCommonAncestor(
+PhyloSubtree::PhyloSubtree(
    std::string column_name,
-   bool print_nodes_not_in_tree
+   bool print_nodes_not_in_tree,
+   bool contract_unary_nodes
 )
-    : TreeAction(std::move(column_name), print_nodes_not_in_tree) {}
+    : TreeAction(std::move(column_name), print_nodes_not_in_tree),
+      contract_unary_nodes(contract_unary_nodes) {}
 
 using silo::query_engine::filter::operators::Operator;
 
-arrow::Status MostRecentCommonAncestor::addResponseToBuilder(
+arrow::Status PhyloSubtree::addResponseToBuilder(
    std::vector<std::string>& all_node_ids,
    std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder,
    const storage::column::StringColumnMetadata* metadata,
    bool print_nodes_not_in_tree
 ) const {
-   MRCAResponse response = metadata->phylo_tree->getMRCA(all_node_ids);
-   std::optional<std::string> mrca_node =
-      response.mrca_node_id.has_value()
-         ? std::make_optional<std::string>(response.mrca_node_id.value().string)
-         : std::nullopt;
+   NewickResponse response =
+      metadata->phylo_tree->toNewickString(all_node_ids, contract_unary_nodes);
 
-   if (auto builder = output_builder.find("mrcaNode"); builder != output_builder.end()) {
-      ARROW_RETURN_NOT_OK(builder->second.insert(mrca_node));
+   if (auto builder = output_builder.find("subtreeNewick"); builder != output_builder.end()) {
+      ARROW_RETURN_NOT_OK(builder->second.insert(response.newick_string));
    }
    if (auto builder = output_builder.find("missingNodeCount"); builder != output_builder.end()) {
       ARROW_RETURN_NOT_OK(builder->second.insert(static_cast<int32_t>(response.not_in_tree.size()))
@@ -63,34 +61,41 @@ arrow::Status MostRecentCommonAncestor::addResponseToBuilder(
    return arrow::Status::OK();
 }
 
-std::vector<schema::ColumnIdentifier> MostRecentCommonAncestor::getOutputSchema(
+std::vector<schema::ColumnIdentifier> PhyloSubtree::getOutputSchema(
    const schema::TableSchema& table_schema
 ) const {
    auto base = makeBaseOutputSchema();
-   base.emplace_back("mrcaNode", schema::ColumnType::STRING);
+   base.emplace_back("subtreeNewick", schema::ColumnType::STRING);
    return base;
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<MostRecentCommonAncestor>& action) {
+void from_json(const nlohmann::json& json, std::unique_ptr<PhyloSubtree>& action) {
    CHECK_SILO_QUERY(
-      json.contains("columnName"),
-      "error: 'columnName' field is required in MostRecentCommonAncestor action"
+      json.contains("columnName"), "error: 'columnName' field is required in PhyloSubtree action"
    );
    CHECK_SILO_QUERY(
       json["columnName"].is_string(),
-      "error: 'columnName' field in MostRecentCommonAncestor action must be a string"
+      "error: 'columnName' field in PhyloSubtree action must be a string"
    );
    if (json.contains("printNodesNotInTree")) {
       CHECK_SILO_QUERY(
          json["printNodesNotInTree"].is_boolean(),
-         "error: 'printNodesNotInTree' field in MostRecentCommonAncestor action must be a boolean"
+         "error: 'printNodesNotInTree' field in PhyloSubtree action must be a boolean"
+      );
+   }
+   if (json.contains("contractUnaryNodes")) {
+      CHECK_SILO_QUERY(
+         json["contractUnaryNodes"].is_boolean(),
+         "error: 'contractUnaryNodes' field in PhyloSubtree action must be a boolean"
       );
    }
    bool print_nodes_not_in_tree = json.value("printNodesNotInTree", false);
+   bool contract_unary_nodes = json.value("contractUnaryNodes", true);
    std::string column_name = json["columnName"].get<std::string>();
 
-   action = std::make_unique<MostRecentCommonAncestor>(column_name, print_nodes_not_in_tree);
+   action =
+      std::make_unique<PhyloSubtree>(column_name, print_nodes_not_in_tree, contract_unary_nodes);
 }
 
 }  // namespace silo::query_engine::actions

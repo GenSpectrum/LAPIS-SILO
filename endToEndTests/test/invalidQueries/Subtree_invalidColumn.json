@@ -1,0 +1,20 @@
+{
+  "testCaseName": "PhyloSubtree action on column not labelled as phyloTreeNodeIdentifier",
+  "query": {
+    "action": {
+      "type": "PhyloSubtree",
+      "columnName": "country",
+      "orderByFields": ["subtreeNewick"],
+      "printNodesNotInTree": true
+    },
+    "filterExpression": {
+      "type": "StringEquals",
+      "column": "country",
+      "value": "Switzerland"
+    }
+  },
+  "expectedError": {
+    "error": "Bad request",
+    "message": "PhyloSubtree action cannot be called on Column 'country' as it does not have a phylogenetic tree associated with it"
+  }
+}

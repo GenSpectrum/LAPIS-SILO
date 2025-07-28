@@ -163,3 +163,37 @@ TEST(PhyloTree, correctlyReturnsMRCA) {
       mrca_response.not_in_tree[1] == "NOT_IN_TREE2"
    );
 }
+
+TEST(PhyloTree, correctlyReturnsSubTreeNewick) {
+   auto phylo_tree =
+      PhyloTree::fromNewickString("(((A1.1, A1.2)A1,(A2.1)A2)A,(B1,(B2.1,B2.2)B2)B)R;");
+   auto subtree_left_side =
+      phylo_tree.toNewickString({"A1.1", "A1.2", "A2.1"}, false).newick_string;
+   ASSERT_EQ(subtree_left_side, "((A1.1,A1.2)A1,(A2.1)A2)A;");
+   auto subtree_right_side = phylo_tree.toNewickString({"B1", "B2.1", "B2.2"}, false).newick_string;
+   ASSERT_EQ(subtree_right_side, "(B1,(B2.1,B2.2)B2)B;");
+   auto subtree_full =
+      phylo_tree.toNewickString({"A1.1", "A1.2", "A2.1", "B1", "B2.1", "B2.2"}, false)
+         .newick_string;
+   ASSERT_EQ(subtree_full, "(((A1.1,A1.2)A1,(A2.1)A2)A,(B1,(B2.1,B2.2)B2)B)R;");
+   auto subtree_empty = phylo_tree.toNewickString({"NOT_IN_TREE"}, false).newick_string;
+   ASSERT_EQ(subtree_empty, "");
+   auto subtree_one_node = phylo_tree.toNewickString({"A1.1"}, false).newick_string;
+   ASSERT_EQ(subtree_one_node, "A1.1;");
+}
+
+TEST(PhyloTree, correctlyReturnsSubTreeNewickWithContractUnaryNodes) {
+   auto phylo_tree =
+      PhyloTree::fromNewickString("(((A1.1, A1.2)A1,(A2.1)A2)A,(B1,(B2.1,B2.2)B2)B)R;");
+   auto subtree_left_side = phylo_tree.toNewickString({"A1.1", "A1.2", "A2.1"}, true).newick_string;
+   ASSERT_EQ(subtree_left_side, "((A1.1,A1.2)A1,A2.1)A;");
+   auto subtree_right_side = phylo_tree.toNewickString({"B1", "B2.1", "B2.2"}, true).newick_string;
+   ASSERT_EQ(subtree_right_side, "(B1,(B2.1,B2.2)B2)B;");
+   auto subtree_full =
+      phylo_tree.toNewickString({"A1.1", "A1.2", "A2.1", "B1", "B2.1", "B2.2"}, true).newick_string;
+   ASSERT_EQ(subtree_full, "(((A1.1,A1.2)A1,A2.1)A,(B1,(B2.1,B2.2)B2)B)R;");
+   auto subtree_empty = phylo_tree.toNewickString({"NOT_IN_TREE"}, true).newick_string;
+   ASSERT_EQ(subtree_empty, "");
+   auto subtree_one_node = phylo_tree.toNewickString({"A1.1"}, true).newick_string;
+   ASSERT_EQ(subtree_one_node, "A1.1;");
+}
