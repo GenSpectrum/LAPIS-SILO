@@ -48,7 +48,7 @@ class TreeNode {
 class NodeLabel {
   public:
    TreeNodeId label;
-   std::optional<float16_t> branch_length = std::nullopt;
+   std::optional<float> branch_length = std::nullopt;
 };
 
 class MRCAResponse {
