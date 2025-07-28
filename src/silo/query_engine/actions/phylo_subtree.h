@@ -22,7 +22,7 @@ class PhyloSubtree : public TreeAction {
    arrow::Status addResponseToBuilder(
       std::vector<std::string>& all_node_ids,
       std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder,
-      const storage::column::StringColumnMetadata* metadata,
+      const common::PhyloTree& phylo_tree,
       bool print_nodes_not_in_tree
    ) const override;
 

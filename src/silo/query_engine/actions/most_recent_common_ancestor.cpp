@@ -25,6 +25,7 @@
 
 namespace silo::query_engine::actions {
 using silo::common::MRCAResponse;
+using silo::common::PhyloTree;
 using silo::common::TreeNodeId;
 using silo::schema::ColumnType;
 
@@ -39,10 +40,10 @@ using silo::query_engine::filter::operators::Operator;
 arrow::Status MostRecentCommonAncestor::addResponseToBuilder(
    std::vector<std::string>& all_node_ids,
    std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder,
-   const storage::column::StringColumnMetadata* metadata,
+   const PhyloTree& phylo_tree,
    bool print_nodes_not_in_tree
 ) const {
-   MRCAResponse response = metadata->phylo_tree->getMRCA(all_node_ids);
+   MRCAResponse response = phylo_tree.getMRCA(all_node_ids);
    std::optional<std::string> mrca_node =
       response.mrca_node_id.has_value()
          ? std::make_optional<std::string>(response.mrca_node_id.value().string)
