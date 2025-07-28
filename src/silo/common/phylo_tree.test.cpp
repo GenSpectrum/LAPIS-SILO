@@ -96,9 +96,16 @@ TEST(PhyloTree, correctlyParsesFromNewickWithBranchLengths) {
       PhyloTree::fromNewickString("((CHILD2:0.5, CHILD3:1)CHILD:0.1, CHILD4:1.5)ROOT;");
    ASSERT_EQ(phylo_tree_file.nodes.size(), 5);
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"ROOT"})->parent, std::nullopt);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"ROOT"})->branch_length, std::nullopt);
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"ROOT"})->depth, 0);
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"ROOT"})->children.size(), 2);
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->depth, 1);
+   const double EPSILON = 0.0001; // TODO: find the correct bound for float
+   double error = std::abs(static_cast<double>(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->branch_length.value()) - 0.1);
+   ASSERT_LE(error, EPSILON);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD2"})->branch_length, 0.5);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD3"})->branch_length, 1.0);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD4"})->branch_length, 1.5);
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->children.size(), 2);
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->children.at(1), TreeNodeId{"CHILD2"});
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD2"})->parent, TreeNodeId{"CHILD"});

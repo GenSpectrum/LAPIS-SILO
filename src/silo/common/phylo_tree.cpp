@@ -77,6 +77,11 @@ TreeNodeId parse_auspice_tree(
    node->node_id = TreeNodeId{j.at("name").get<std::string>()};
    node->parent = parent;
    node->depth = depth;
+   if (j.contains("node_attrs")) {
+      if (j["node_attrs"].contains("div")) {
+         node->branch_length = j["node_attrs"]["div"].get<float>();
+   }
+   }
 
    const auto& children = j.contains("children") ? j["children"] : nlohmann::json::array();
 
@@ -154,16 +159,27 @@ TreeNodeId parseLabel(std::string_view& sv) {
    return TreeNodeId{label};
 }
 
-TreeNodeId parseFullLabel(std::string_view& sv) {
+NodeLabel parseFullLabel(std::string_view& sv) {
    std::string fullLabel;
    while (!sv.empty() && (isValidLabelChar(sv.back()) || isValidLength(sv.back()))) {
       fullLabel += sv.back();
       sv.remove_suffix(1);
    }
    if (!sv.empty() && sv.back() == ':') {
-      // fullLabel contains length information, we ignore it
       sv.remove_suffix(1);
-      return parseLabel(sv);
+      try {
+         std::string reversed = std::string(fullLabel.rbegin(), fullLabel.rend());
+         float branch_length = std::stof(reversed);
+         return NodeLabel{parseLabel(sv), branch_length};
+      } catch (const std::invalid_argument& e) {
+         throw silo::preprocessing::PreprocessingException(
+            fmt::format("Invalid branch length '{}' in Newick string", fullLabel)
+         );
+      } catch (const std::out_of_range& e) {
+         throw silo::preprocessing::PreprocessingException(
+            fmt::format("Branch length out of range '{}' in Newick string", fullLabel)
+         );
+      }
    }
    if (!std::all_of(fullLabel.begin(), fullLabel.end(), isValidLabelChar)) {
       throw silo::preprocessing::PreprocessingException(
@@ -176,7 +192,7 @@ TreeNodeId parseFullLabel(std::string_view& sv) {
       );
    }
    std::reverse(fullLabel.begin(), fullLabel.end());
-   return TreeNodeId{fullLabel};
+   return NodeLabel{TreeNodeId{fullLabel}};
 }
 
 void skipWhitespace(std::string_view& sv) {
@@ -198,7 +214,9 @@ TreeNodeId parseSubtree(
    node->parent = parent;
 
    skipWhitespace(sv);
-   node->node_id = parseFullLabel(sv);
+   NodeLabel nodeLabel = parseFullLabel(sv);
+   node->node_id = nodeLabel.label;
+   node->branch_length = nodeLabel.branch_length;
    if (!sv.empty() && sv.back() == ')') {
       sv.remove_suffix(1);
       depth++;

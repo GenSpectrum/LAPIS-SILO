@@ -25,6 +25,7 @@ class TreeNode {
                                      // empty for internal nodes)
    std::vector<TreeNodeId> children;
    std::optional<TreeNodeId> parent;
+   std::optional<float> branch_length;
    int depth;
 
    bool isLeaf() { return children.empty(); }
@@ -39,8 +40,15 @@ class TreeNode {
     archive & parent;
     archive & depth;
     archive & row_index;
+    archive & branch_length;
       // clang-format on
    }
+};
+
+class NodeLabel {
+  public:
+   TreeNodeId label;
+   std::optional<float16_t> branch_length = std::nullopt;
 };
 
 class MRCAResponse {
