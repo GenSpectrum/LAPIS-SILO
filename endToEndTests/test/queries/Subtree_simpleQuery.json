@@ -4,7 +4,8 @@
     "action": {
       "type": "Subtree",
       "columnName": "gisaid_epi_isl",
-      "orderByFields": ["subtreeNewick"]
+      "orderByFields": ["subtreeNewick"],
+      "contractUnaryNodes": false
     },
     "filterExpression": {
       "type": "Or",

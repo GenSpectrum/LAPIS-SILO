@@ -81,13 +81,13 @@ class PhyloTree {
 
    NewickResponse toNewickString(
       const std::vector<std::string>& filter,
-      bool contract_unary_nodes = false
+      bool contract_unary_nodes = true
    ) const;
 
    std::optional<std::string> partialNewickString(
       const std::vector<std::string>& filter,
       const TreeNodeId& ancestor,
-      bool contract_unary_nodes = false
+      bool contract_unary_nodes = true
    ) const;
 
    void getSetOfAncestorsAtDepth(

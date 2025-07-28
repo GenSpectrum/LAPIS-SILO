@@ -86,7 +86,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Subtree>& action) {
       );
    }
    bool print_nodes_not_in_tree = json.value("printNodesNotInTree", false);
-   bool contract_unary_nodes = json.value("contractUnaryNodes", false);
+   bool contract_unary_nodes = json.value("contractUnaryNodes", true);
    std::string column_name = json["columnName"].get<std::string>();
 
    action = std::make_unique<Subtree>(column_name, print_nodes_not_in_tree, contract_unary_nodes);
