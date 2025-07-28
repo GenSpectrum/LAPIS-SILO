@@ -80,7 +80,7 @@ TreeNodeId parse_auspice_tree(
    if (j.contains("node_attrs")) {
       if (j["node_attrs"].contains("div")) {
          node->branch_length = j["node_attrs"]["div"].get<float>();
-   }
+      }
    }
 
    const auto& children = j.contains("children") ? j["children"] : nlohmann::json::array();

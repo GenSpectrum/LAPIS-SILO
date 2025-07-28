@@ -100,8 +100,11 @@ TEST(PhyloTree, correctlyParsesFromNewickWithBranchLengths) {
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"ROOT"})->depth, 0);
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"ROOT"})->children.size(), 2);
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->depth, 1);
-   const double EPSILON = 0.0001; // TODO: find the correct bound for float
-   double error = std::abs(static_cast<double>(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->branch_length.value()) - 0.1);
+   const double EPSILON = 0.0001;  // TODO: find the correct bound for float
+   double error = std::abs(
+      static_cast<double>(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->branch_length.value()) -
+      0.1
+   );
    ASSERT_LE(error, EPSILON);
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD2"})->branch_length, 0.5);
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD3"})->branch_length, 1.0);
