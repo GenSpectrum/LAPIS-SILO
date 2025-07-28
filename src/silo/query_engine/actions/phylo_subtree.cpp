@@ -24,6 +24,7 @@
 
 namespace silo::query_engine::actions {
 using silo::common::NewickResponse;
+using silo::common::PhyloTree;
 using silo::common::TreeNodeId;
 using silo::schema::ColumnType;
 
@@ -40,11 +41,10 @@ using silo::query_engine::filter::operators::Operator;
 arrow::Status PhyloSubtree::addResponseToBuilder(
    std::vector<std::string>& all_node_ids,
    std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder,
-   const storage::column::StringColumnMetadata* metadata,
+   const PhyloTree& phylo_tree,
    bool print_nodes_not_in_tree
 ) const {
-   NewickResponse response =
-      metadata->phylo_tree->toNewickString(all_node_ids, contract_unary_nodes);
+   NewickResponse response = phylo_tree.toNewickString(all_node_ids, contract_unary_nodes);
 
    if (auto builder = output_builder.find("subtreeNewick"); builder != output_builder.end()) {
       ARROW_RETURN_NOT_OK(builder->second.insert(response.newick_string));

@@ -101,7 +101,7 @@ arrow::Result<QueryPlan> TreeAction::toQueryPlanImpl(
       getType(),
       column_name
    );
-   auto table_metadata = optional_table_metadata.value();
+   const auto& phylo_tree = optional_table_metadata.value()->phylo_tree.value();
    auto output_fields = getOutputSchema(table->schema);
    auto evaluated_partition_filters = partition_filters;
 
@@ -114,7 +114,7 @@ arrow::Result<QueryPlan> TreeAction::toQueryPlanImpl(
        column_name_to_evaluate,
        output_fields,
        evaluated_partition_filters,
-       table_metadata,
+       &phylo_tree,
        produced = false,
        print_missing_nodes]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
       EVOBENCH_SCOPE("TreeAction", "producer");
@@ -134,9 +134,9 @@ arrow::Result<QueryPlan> TreeAction::toQueryPlanImpl(
       auto all_node_ids =
          this->getNodeValues(table, column_name_to_evaluate, evaluated_partition_filters);
 
-      ARROW_RETURN_NOT_OK(this->addResponseToBuilder(
-         all_node_ids, output_builder, table_metadata, print_missing_nodes
-      ));
+      ARROW_RETURN_NOT_OK(
+         this->addResponseToBuilder(all_node_ids, output_builder, phylo_tree, print_missing_nodes)
+      );
 
       // Order of result_columns is relevant as it needs to be consistent with vector in schema
       std::vector<arrow::Datum> result_columns;
