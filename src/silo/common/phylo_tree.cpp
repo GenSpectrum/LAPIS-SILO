@@ -453,7 +453,7 @@ bool isInFilter(const std::string& str, const std::unordered_set<std::string>& f
 }
 
 std::string newickJoin(
-   const std::vector<std::optional<std::string>>& child_newick_strings,
+   const std::vector<NewickLabel>& child_newick_strings,
    const std::string& self_id
 ) {
    std::ostringstream oss;
@@ -461,13 +461,17 @@ std::string newickJoin(
    bool has_value = false;
    for (size_t i = 0; i < child_newick_strings.size(); ++i) {
       // reverse the order of children to match the Newick format
-      if (!child_newick_strings[child_newick_strings.size() - i - 1].has_value()) {
+      if (!child_newick_strings[child_newick_strings.size() - i - 1].label.has_value()) {
          continue;
       }
       if (has_value) {
          oss << ",";
       }
-      oss << child_newick_strings[child_newick_strings.size() - i - 1].value();
+      oss << child_newick_strings[child_newick_strings.size() - i - 1].label.value();
+      if (child_newick_strings[child_newick_strings.size() - i - 1].branch_length.has_value()) {
+         oss << ":";
+         oss << child_newick_strings[child_newick_strings.size() - i - 1].branch_length.value();
+      }
       has_value = true;
    }
    if (!has_value) {
@@ -477,46 +481,60 @@ std::string newickJoin(
    return oss.str();
 }
 
-std::optional<std::string> PhyloTree::partialNewickString(
+std::optional<float> addBranchLengths(std::optional<float> a, std::optional<float> b) {
+   if (a && b)
+      return *a + *b;
+   else if (a)
+      return a;
+   else if (b)
+      return b;
+   else
+      return std::nullopt;
+}
+
+NewickLabel PhyloTree::partialNewickString(
    const std::unordered_set<std::string>& filter,
    const TreeNodeId& ancestor,
    bool contract_unary_nodes
 ) const {
-   std::optional<std::string> response;
+   NewickLabel response;
 
    auto node_it = nodes.find(ancestor);
    SILO_ASSERT(node_it != nodes.end());
-   std::vector<std::optional<std::string>> responses;
+   std::vector<NewickLabel> responses;
    responses.reserve(node_it->second->children.size());
    if (node_it->second->isLeaf()) {
-      response =
-         isInFilter(ancestor.string, filter) ? std::make_optional(ancestor.string) : std::nullopt;
+      if (isInFilter(ancestor.string, filter)) {
+         response.label = std::make_optional(ancestor.string);
+         response.branch_length = node_it->second->branch_length;
+      } else {
+         response.label = std::nullopt;
+         response.branch_length = std::nullopt;
+      }
       return response;
    }
    for (const auto& child : node_it->second->children) {
       responses.push_back(partialNewickString(filter, child, contract_unary_nodes));
    }
-   std::erase_if(responses, [](const std::optional<std::string>& resp) {
-      return !resp.has_value();
-   });
+   std::erase_if(responses, [](const NewickLabel& resp) { return !resp.label.has_value(); });
    if (responses.empty()) {
-      response = std::nullopt;
+      response.label = std::nullopt;
+      response.branch_length = std::nullopt;
       return response;
    }
    if (responses.size() == 1) {
       if (contract_unary_nodes) {
-         response = responses[0];
+         response.label = responses[0].label;
+         response.branch_length =
+            addBranchLengths(responses[0].branch_length, node_it->second->branch_length);
       } else {
-         response = newickJoin({responses[0]}, ancestor.string);
+         response.label = newickJoin({responses[0]}, ancestor.string);
+         response.branch_length = node_it->second->branch_length;
       }
       return response;
    }
-   std::vector<std::optional<std::string>> strings;
-   strings.reserve(responses.size());
-   for (const auto& resp : responses) {
-      strings.push_back(resp);
-   }
-   response = newickJoin(strings, ancestor.string);
+   response.label = newickJoin(responses, ancestor.string);
+   response.branch_length = node_it->second->branch_length;
    return response;
 }
 
@@ -550,10 +568,10 @@ NewickResponse PhyloTree::toNewickString(
    auto mrca_node = nodes.find(mrca.mrca_node_id.value());
    SILO_ASSERT(mrca_node != nodes.end());
 
-   std::optional<std::string> newick_string =
+   NewickLabel newick_string =
       partialNewickString(filter_in_tree, mrca_node->first, contract_unary_nodes);
-   SILO_ASSERT(newick_string.has_value());
-   response.newick_string = newick_string.value() + ";";
+   SILO_ASSERT(newick_string.label.has_value());
+   response.newick_string = newick_string.label.value() + ";";
    return response;
 }
 

@@ -51,6 +51,12 @@ class NodeLabel {
    std::optional<float> branch_length = std::nullopt;
 };
 
+class NewickLabel {
+  public:
+   std::optional<std::string> label;
+   std::optional<float> branch_length = std::nullopt;
+};
+
 class MRCAResponse {
   public:
    std::optional<TreeNodeId> mrca_node_id;
@@ -93,7 +99,7 @@ class PhyloTree {
       bool contract_unary_nodes = true
    ) const;
 
-   std::optional<std::string> partialNewickString(
+   NewickLabel partialNewickString(
       const std::unordered_set<std::string>& filter,
       const TreeNodeId& ancestor,
       bool contract_unary_nodes = true
