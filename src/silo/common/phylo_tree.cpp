@@ -404,6 +404,7 @@ MRCAResponse PhyloTree::getMRCA(const std::unordered_set<std::string>& node_labe
          }
       }
    }
+   std::sort(response.not_in_tree.begin(), response.not_in_tree.end());
 
    if (nodes_to_group.empty()) {
       response.mrca_node_id = std::nullopt;
@@ -515,6 +516,7 @@ NewickResponse PhyloTree::toNewickString(
          filter_in_tree.insert(node_label);
       }
    }
+   std::sort(response.not_in_tree.begin(), response.not_in_tree.end());
    if (filter_in_tree.empty()) {
       response.newick_string = "";
       return response;

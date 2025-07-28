@@ -9,12 +9,6 @@
 using silo::common::PhyloTree;
 using silo::common::TreeNodeId;
 
-namespace {
-bool isInResponse(const std::string& str, const std::vector<std::string>& filter) {
-   return std::find(filter.begin(), filter.end(), str) != filter.end();
-}
-}  // namespace
-
 TEST(PhyloTree, correctlyParsesFromJSON) {
    auto phylo_tree_file = PhyloTree::fromAuspiceJSONString(
       R"({  
@@ -162,12 +156,11 @@ TEST(PhyloTree, correctlyReturnsMRCA) {
    ASSERT_EQ(mrca_response.mrca_node_id.value(), TreeNodeId{"ROOT"});
    ASSERT_TRUE(mrca_response.not_in_tree.empty());
 
+   std::vector<std::string> expected = {"NOT_IN_TREE", "NOT_IN_TREE2"};
    mrca_response = phylo_tree_file.getMRCA({"NOT_IN_TREE", "NOT_IN_TREE2"});
    ASSERT_FALSE(mrca_response.mrca_node_id.has_value());
    ASSERT_TRUE(
-      mrca_response.not_in_tree.size() == 2 &&
-      isInResponse("NOT_IN_TREE", mrca_response.not_in_tree) &&
-      isInResponse("NOT_IN_TREE2", mrca_response.not_in_tree)
+      mrca_response.not_in_tree.size() == 2 && mrca_response.not_in_tree == expected
    );
 }
 
