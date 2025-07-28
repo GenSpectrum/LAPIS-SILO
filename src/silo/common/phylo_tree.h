@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <set>
+#include <unordered_set>
 #include <vector>
 
 #include <roaring/roaring.hh>
@@ -85,7 +86,7 @@ class PhyloTree {
    ) const;
 
    std::optional<std::string> partialNewickString(
-      const std::vector<std::string>& filter,
+      const std::unordered_set<std::string>& filter,
       const TreeNodeId& ancestor,
       bool contract_unary_nodes = true
    ) const;

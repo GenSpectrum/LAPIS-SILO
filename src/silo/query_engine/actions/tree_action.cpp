@@ -53,7 +53,13 @@ std::vector<std::string> TreeAction::getNodeValues(
    const std::string& column_name,
    std::vector<CopyOnWriteBitmap>& bitmap_filter
 ) const {
+   size_t num_rows = 0;
+   for (const auto& filter : bitmap_filter) {
+      num_rows += filter->cardinality();
+   }
+
    std::vector<std::string> all_tree_node_ids;
+   all_tree_node_ids.reserve(num_rows);
    for (size_t i = 0; i < table->getNumberOfPartitions(); ++i) {
       const storage::TablePartition& table_partition = table->getPartition(i);
       const auto& string_column = table_partition.columns.string_columns.at(column_name);

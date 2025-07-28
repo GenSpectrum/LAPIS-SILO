@@ -4,6 +4,7 @@
 #include <limits>
 #include <set>
 #include <sstream>
+#include <unordered_set>
 
 #include <fmt/ranges.h>
 #include <boost/archive/binary_iarchive.hpp>
@@ -428,15 +429,16 @@ MRCAResponse PhyloTree::getMRCA(const std::vector<std::string>& node_labels) con
    return response;
 }
 
-bool isInFilter(const std::string& str, const std::vector<std::string>& filter) {
-   return std::find(filter.begin(), filter.end(), str) != filter.end();
+bool isInFilter(const std::string& str, const std::unordered_set<std::string>& filter) {
+   return filter.find(str) != filter.end();
 }
 
 std::string newickJoin(
    const std::vector<std::optional<std::string>>& child_newick_strings,
    const std::string& self_id
 ) {
-   std::string result = "(";
+   std::ostringstream oss;
+   oss << "(";
    bool has_value = false;
    for (size_t i = 0; i < child_newick_strings.size(); ++i) {
       // reverse the order of children to match the Newick format
@@ -444,20 +446,20 @@ std::string newickJoin(
          continue;
       }
       if (has_value) {
-         result += ",";
+         oss << ",";
       }
-      result += child_newick_strings[child_newick_strings.size() - i - 1].value();
+      oss << child_newick_strings[child_newick_strings.size() - i - 1].value();
       has_value = true;
    }
    if (!has_value) {
       return self_id;
    }
-   result += ")" + self_id;
-   return result;
+   oss << ")" << self_id;
+   return oss.str();
 }
 
 std::optional<std::string> PhyloTree::partialNewickString(
-   const std::vector<std::string>& filter,
+   const std::unordered_set<std::string>& filter,
    const TreeNodeId& ancestor,
    bool contract_unary_nodes
 ) const {
@@ -527,8 +529,10 @@ NewickResponse PhyloTree::toNewickString(
    auto mrca_node = nodes.find(mrca.mrca_node_id.value());
    SILO_ASSERT(mrca_node != nodes.end());
 
+   std::unordered_set<std::string> filter_set(filter_in_tree.begin(), filter_in_tree.end());
+
    std::optional<std::string> newick_string =
-      partialNewickString(filter_in_tree, mrca_node->first, contract_unary_nodes);
+      partialNewickString(filter_set, mrca_node->first, contract_unary_nodes);
    SILO_ASSERT(newick_string.has_value());
    response.newick_string = newick_string.value() + ";";
    return response;
