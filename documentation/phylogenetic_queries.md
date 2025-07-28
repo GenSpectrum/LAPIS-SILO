@@ -50,11 +50,11 @@ The result of such a query is a ndjson with a single row, where `missingFromTree
 }
 ```
 
-### Subtree
+### PhyloSubtree
 
 ```json
 "action": {
-  "type": "Subtree",
+  "type": "PhyloSubtree",
   "columnName": "COLUMN_NAME",
   "printNodesNotInTree": true,
   "contractUnaryNodes": true

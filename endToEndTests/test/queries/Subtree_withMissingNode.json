@@ -1,8 +1,8 @@
 {
-  "testCaseName": "Subtree query returns correct nwk with missingNode",
+  "testCaseName": "PhyloSubtree query returns correct nwk with missingNode",
   "query": {
     "action": {
-      "type": "Subtree",
+      "type": "PhyloSubtree",
       "columnName": "gisaid_epi_isl",
       "orderByFields": ["subtreeNewick"],
       "printNodesNotInTree": true

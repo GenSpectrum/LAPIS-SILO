@@ -1,4 +1,4 @@
-#include "silo/query_engine/actions/subtree.h"
+#include "silo/query_engine/actions/phylo_subtree.h"
 
 #include <optional>
 #include <string>
@@ -27,13 +27,17 @@ using silo::common::NewickResponse;
 using silo::common::TreeNodeId;
 using silo::schema::ColumnType;
 
-Subtree::Subtree(std::string column_name, bool print_nodes_not_in_tree, bool contract_unary_nodes)
+PhyloSubtree::PhyloSubtree(
+   std::string column_name,
+   bool print_nodes_not_in_tree,
+   bool contract_unary_nodes
+)
     : TreeAction(std::move(column_name), print_nodes_not_in_tree),
       contract_unary_nodes(contract_unary_nodes) {}
 
 using silo::query_engine::filter::operators::Operator;
 
-arrow::Status Subtree::addResponseToBuilder(
+arrow::Status PhyloSubtree::addResponseToBuilder(
    std::vector<std::string>& all_node_ids,
    std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder,
    const storage::column::StringColumnMetadata* metadata,
@@ -57,7 +61,7 @@ arrow::Status Subtree::addResponseToBuilder(
    return arrow::Status::OK();
 }
 
-std::vector<schema::ColumnIdentifier> Subtree::getOutputSchema(
+std::vector<schema::ColumnIdentifier> PhyloSubtree::getOutputSchema(
    const schema::TableSchema& table_schema
 ) const {
    auto base = makeBaseOutputSchema();
@@ -66,30 +70,32 @@ std::vector<schema::ColumnIdentifier> Subtree::getOutputSchema(
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<Subtree>& action) {
+void from_json(const nlohmann::json& json, std::unique_ptr<PhyloSubtree>& action) {
    CHECK_SILO_QUERY(
-      json.contains("columnName"), "error: 'columnName' field is required in Subtree action"
+      json.contains("columnName"), "error: 'columnName' field is required in PhyloSubtree action"
    );
    CHECK_SILO_QUERY(
-      json["columnName"].is_string(), "error: 'columnName' field in Subtree action must be a string"
+      json["columnName"].is_string(),
+      "error: 'columnName' field in PhyloSubtree action must be a string"
    );
    if (json.contains("printNodesNotInTree")) {
       CHECK_SILO_QUERY(
          json["printNodesNotInTree"].is_boolean(),
-         "error: 'printNodesNotInTree' field in Subtree action must be a boolean"
+         "error: 'printNodesNotInTree' field in PhyloSubtree action must be a boolean"
       );
    }
    if (json.contains("contractUnaryNodes")) {
       CHECK_SILO_QUERY(
          json["contractUnaryNodes"].is_boolean(),
-         "error: 'contractUnaryNodes' field in Subtree action must be a boolean"
+         "error: 'contractUnaryNodes' field in PhyloSubtree action must be a boolean"
       );
    }
    bool print_nodes_not_in_tree = json.value("printNodesNotInTree", false);
    bool contract_unary_nodes = json.value("contractUnaryNodes", true);
    std::string column_name = json["columnName"].get<std::string>();
 
-   action = std::make_unique<Subtree>(column_name, print_nodes_not_in_tree, contract_unary_nodes);
+   action =
+      std::make_unique<PhyloSubtree>(column_name, print_nodes_not_in_tree, contract_unary_nodes);
 }
 
 }  // namespace silo::query_engine::actions

@@ -1,8 +1,8 @@
 {
-  "testCaseName": "Subtree query returns correct nwk without unary nodes",
+  "testCaseName": "PhyloSubtree query returns correct nwk without unary nodes",
   "query": {
     "action": {
-      "type": "Subtree",
+      "type": "PhyloSubtree",
       "columnName": "gisaid_epi_isl",
       "orderByFields": ["subtreeNewick"],
       "contractUnaryNodes": true
