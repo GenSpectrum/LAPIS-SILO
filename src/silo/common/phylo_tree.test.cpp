@@ -35,8 +35,47 @@ TEST(PhyloTree, correctlyParsesFromJSON) {
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"ROOT"})->children.size(), 1);
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->depth, 1);
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->children.size(), 1);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->branch_length, std::nullopt);
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->children.at(0), TreeNodeId{"CHILD2"});
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD2"})->parent, TreeNodeId{"CHILD"});
+}
+
+TEST(PhyloTree, correctlyParsesFromJSONwithBranchLengths) {
+   auto phylo_tree_file = PhyloTree::fromAuspiceJSONString(
+      R"({  
+  "version": "schema version",  
+  "meta": {},  
+  "tree": {  
+    "name": "ROOT",  
+    "children": [  
+      {  
+        "name": "CHILD",  
+         "node_attrs": {  
+            "div": 0.1  
+         },
+        "children": [  
+          {  
+            "name": "CHILD2",
+            "node_attrs": {  
+              "div": 0.5  
+            } 
+          }  
+        ]  
+      }  
+    ]  
+  }  
+})"
+   );
+   ASSERT_EQ(phylo_tree_file.nodes.size(), 3);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"ROOT"})->parent, std::nullopt);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"ROOT"})->depth, 0);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"ROOT"})->children.size(), 1);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->depth, 1);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->children.size(), 1);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->branch_length, 0.1f);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->children.at(0), TreeNodeId{"CHILD2"});
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD2"})->parent, TreeNodeId{"CHILD"});
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD2"})->branch_length, 0.5f);
 }
 
 TEST(PhyloTree, throwsOnInvalidJSON) {
@@ -89,6 +128,7 @@ TEST(PhyloTree, correctlyParsesFromNewickWithNewLine) {
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"ROOT"})->children.size(), 1);
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->depth, 1);
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->children.size(), 0);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->branch_length, std::nullopt);
 }
 
 TEST(PhyloTree, correctlyParsesFromNewickWithBranchLengths) {
