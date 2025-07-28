@@ -538,8 +538,7 @@ NewickResponse PhyloTree::toNewickString(
    std::optional<std::string> newick_string =
       partialNewickString(filter_in_tree, mrca_node->first, contract_unary_nodes);
    SILO_ASSERT(newick_string.has_value());
-   oss << newick_string.value() << ";";
-   response.newick_string = oss.str();
+   response.newick_string = newick_string.value() + ";";
    return response;
 }
 
