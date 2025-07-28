@@ -54,8 +54,8 @@ std::vector<std::string> TreeAction::getNodeValues(
    std::vector<CopyOnWriteBitmap>& bitmap_filter
 ) const {
    size_t num_rows = 0;
-   for(const auto& filter : bitmap_filter){
-     num_rows += filter->cardinality();
+   for (const auto& filter : bitmap_filter) {
+      num_rows += filter->cardinality();
    }
 
    std::vector<std::string> all_tree_node_ids;
