@@ -40,11 +40,11 @@ nlohmann::json createData(
    "country": "{}",
    "unaligned_segment1": null,
    "segment1": {{
-      "seq": "",
+      "sequence": "",
       "insertions": [{}]
    }},
    "gene1": {{
-      "seq": "",
+      "sequence": "",
       "insertions": [{}]
    }}
 }}

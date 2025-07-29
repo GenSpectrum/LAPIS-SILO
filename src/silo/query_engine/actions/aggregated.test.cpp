@@ -30,12 +30,12 @@ nlohmann::json createData(const std::string& country, const std::string& date) {
    "coverage": {},
    "date": "{}",
    "segment1": {{
-      "seq": "ACGT",
+      "sequence": "ACGT",
       "insertions": ["2:A"]
    }},
    "unaligned_segment1": "ACGT",
    "gene1": {{
-      "seq": "V",
+      "sequence": "V",
       "insertions": []
    }}
 }}

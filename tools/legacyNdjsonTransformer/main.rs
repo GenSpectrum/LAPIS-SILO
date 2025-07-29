@@ -36,7 +36,7 @@ fn transform_data(input: InputData) -> Map<String, Value> {
                 .unwrap_or(Value::Array(vec![]));
 
             let mut seq_obj = Map::new();
-            seq_obj.insert("seq".to_string(), sequence_value);
+            seq_obj.insert("sequence".to_string(), sequence_value);
             seq_obj.insert("insertions".to_string(), insertions);
 
             result.insert(segment_key, Value::Object(seq_obj));
@@ -54,7 +54,7 @@ fn transform_data(input: InputData) -> Map<String, Value> {
                 .unwrap_or(Value::Array(vec![]));
 
             let mut seq_obj = Map::new();
-            seq_obj.insert("seq".to_string(), sequence_value);
+            seq_obj.insert("sequence".to_string(), sequence_value);
             seq_obj.insert("insertions".to_string(), insertions);
 
             result.insert(gene_key, Value::Object(seq_obj));
@@ -138,11 +138,11 @@ mod tests {
         assert_eq!(result.get("unaligned_segment1"), Some(&json!("C")));
 
         let segment1 = result.get("segment1").unwrap();
-        assert_eq!(segment1.get("seq"), Some(&json!("A")));
+        assert_eq!(segment1.get("sequence"), Some(&json!("A")));
         assert_eq!(segment1.get("insertions"), Some(&json!(["123", "456"])));
 
         let gene1 = result.get("gene1").unwrap();
-        assert_eq!(gene1.get("seq"), Some(&json!("Y")));
+        assert_eq!(gene1.get("sequence"), Some(&json!("Y")));
         assert_eq!(gene1.get("insertions"), Some(&json!(["1", "2"])));
     }
 }

@@ -43,11 +43,11 @@ The tool transforms the data into SILO's expected format:
   "key": "sample_id",
   "col": "value",
   "segment1": {
-    "seq": "ATCG...",
+    "sequence": "ATCG...",
     "insertions": ["123:A", "456:T"]
   },
   "gene1": {
-    "seq": "MYKW...",
+    "sequence": "MYKW...",
     "insertions": ["1:M", "2:Y"]
   },
   "unaligned_segment1": "ATCG..."
@@ -88,7 +88,7 @@ cargo test
 ## Transformation Rules
 
 1. **Metadata fields** are copied directly to the output root level
-2. **Aligned sequences** (nucleotide/amino acid) are transformed into objects with `seq` and `insertions` fields
+2. **Aligned sequences** (nucleotide/amino acid) are transformed into objects with `sequence` and `insertions` fields
 3. **Unaligned nucleotide sequences** are prefixed with `unaligned_` and added as direct values
 4. **Null sequences** remain as null values in the output
 5. **Missing insertions** default to empty arrays

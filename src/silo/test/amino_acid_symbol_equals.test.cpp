@@ -18,7 +18,7 @@ nlohmann::json createDataWithAminoAcidSequence(const std::string& aminoAcidSeque
    return {
       {"primaryKey", fmt::format("id_{}", idx++)},
       {"segment1", nullptr},
-      {GENE, {{"seq", aminoAcidSequence}, {"insertions", nlohmann::json::array()}}},
+      {GENE, {{"sequence", aminoAcidSequence}, {"insertions", nlohmann::json::array()}}},
       {"unaligned_segment1", {}}
    };
 }
