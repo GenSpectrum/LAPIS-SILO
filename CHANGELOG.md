@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.7.6](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.5...v0.7.6) (2025-07-29)
+
+
+### Features
+
+* **silo:** add an endpoint to export a newick of the nodes in the filter ([#911](https://github.com/GenSpectrum/LAPIS-SILO/issues/911)) ([0bb94b7](https://github.com/GenSpectrum/LAPIS-SILO/commit/0bb94b7434ceb48232146d7116cc2306138a75a4))
+* **silo:** optimize phyloSubtree action ([#916](https://github.com/GenSpectrum/LAPIS-SILO/issues/916)) ([7c218d4](https://github.com/GenSpectrum/LAPIS-SILO/commit/7c218d487a9ca89983a08f92878c6a11e598112f))
+* **silo:** refactor config - rename `phyloTreeNodeIdentifier` to `isPhyloTreeField` ([#921](https://github.com/GenSpectrum/LAPIS-SILO/issues/921)) ([3085059](https://github.com/GenSpectrum/LAPIS-SILO/commit/30850594d157d6f21ef6a39e28e82e8a470c8a78))
+
 ## [0.7.5](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.4...v0.7.5) (2025-07-23)
 
 
