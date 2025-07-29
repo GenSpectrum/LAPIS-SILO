@@ -172,9 +172,9 @@ std::expected<void, std::string> insertToSequenceColumn(
       return {};
    }
    std::string_view sequence;
-   error = value["seq"].get(sequence);
+   error = value["sequence"].get(sequence);
    RAISE_STRING_ERROR_WITH_CONTEXT(
-      error, value, "When getting field 'seq' in column field '{}' got error: {}", column.name
+      error, value, "When getting field 'sequence' in column field '{}' got error: {}", column.name
    );
    // TODO(#877) std::optional<uint32_t> offset = value["offset"].get<std::optional<uint32_t>>();
    std::vector<std::string> insertions;

@@ -100,10 +100,10 @@ const Scenario<Success> NDJSON_FILE_WITH_MISSING_SEGMENTS_AND_GENES = {
          result.push_back(nlohmann::json::parse(R"({
 "accessionVersion": "1.1",
 "country": "Switzerland",
-"main": {"seq": "NNACTGNN", "insertions": ["123:ACTG"]},
+"main": {"sequence": "NNACTGNN", "insertions": ["123:ACTG"]},
 "secondSegment": null,
-"someLongGene": {"seq": "ACDEFGHIKLMNPQRSTVWYBZX-*", "insertions": ["123:RNRNRN"]},
-"someShortGene": {"seq": "MADS", "insertions": ["123:RN"]},
+"someLongGene": {"sequence": "ACDEFGHIKLMNPQRSTVWYBZX-*", "insertions": ["123:RNRNRN"]},
+"someShortGene": {"sequence": "MADS", "insertions": ["123:RN"]},
 "unaligned_main": "ATTAAAGGTTTATACCTTCCCAGGTAACAAACCAACCAACTTTCGATCT",
 "unaligned_secondSegment": null
 })"));
@@ -192,8 +192,8 @@ const Scenario<Success> NDJSON_WITH_SQL_KEYWORD_AS_FIELD = {
          result.push_back(nlohmann::json::parse(R"({
 "primaryKey": "1.1",
 "group": "dummyValue",
-"main": {"seq": "A", "insertions": []},
-"mainGene": {"seq": "A*", "insertions": []},
+"main": {"sequence": "A", "insertions": []},
+"mainGene": {"sequence": "A*", "insertions": []},
 "unaligned_main": "A"
 })"));
          result.push_back(nlohmann::json::parse(R"({
@@ -261,10 +261,10 @@ const Scenario<Success> NDJSON_WITH_NUMERIC_NAMES = {
          result.push_back(nlohmann::json::parse(R"({
 "2": "google.com",
 "accessionVersion": "1.1",
-"main": {"seq": "A", "insertions": []},
-"3": {"seq": "AA", "insertions": []},
-"someGene": {"seq": "AA*", "insertions": []},
-"4": {"seq": "AA*", "insertions": []},
+"main": {"sequence": "A", "insertions": []},
+"3": {"sequence": "AA", "insertions": []},
+"someGene": {"sequence": "AA*", "insertions": []},
+"4": {"sequence": "AA*", "insertions": []},
 "unaligned_main": "A",
 "unaligned_3": "AA"
 })"));
@@ -509,7 +509,7 @@ const Scenario<Success> NO_NUCLEOTIDE_SEQUENCES = {
             result.push_back(nlohmann::json::parse(fmt::format(
                R"({{
 "accessionVersion": "{}.1",
-"someGene": {{"seq": "AAAA", "insertions": []}}
+"someGene": {{"sequence": "AAAA", "insertions": []}}
 }})",
                i
             )));
@@ -606,39 +606,39 @@ const Scenario<Success> DIVERSE_SEQUENCE_NAMES_NDJSON = {
          std::vector<nlohmann::json> result;
          result.push_back(nlohmann::json::parse(R"({
 "accessionVersion":"1.1",
-"\"":{"seq":"ACGTACGT","insertions":[]},
-".":{"seq":"ACGT","insertions":[]},
-"---":{"seq":"MYSF","insertions":[]},
-"\"\\\"":{"seq":"MADS","insertions":[]},
-";|\\$!":{"seq":"MSDN","insertions":[]},
-"S-;":{"seq":"MESL","insertions":[]},
-"≤":{"seq":"RVC*","insertions":[]},
-"ł":{"seq":"MDL*","insertions":[]},
-"select":{"seq":"MFH*","insertions":[]},
-"S_-%":{"seq":"MKI*","insertions":[]},
-"S:;":{"seq":"MIELSLIDFYLCFLAFLLFLVLIMLIIFWFSLELQDHNETCHA*","insertions":[]},
-"#":{"seq":"MKF*","insertions":[]},
-"{{}}":{"seq":"MDP*","insertions":[]},
-"•":{"seq":"MFV*","insertions":[]},
+"\"":{"sequence":"ACGTACGT","insertions":[]},
+".":{"sequence":"ACGT","insertions":[]},
+"---":{"sequence":"MYSF","insertions":[]},
+"\"\\\"":{"sequence":"MADS","insertions":[]},
+";|\\$!":{"sequence":"MSDN","insertions":[]},
+"S-;":{"sequence":"MESL","insertions":[]},
+"≤":{"sequence":"RVC*","insertions":[]},
+"ł":{"sequence":"MDL*","insertions":[]},
+"select":{"sequence":"MFH*","insertions":[]},
+"S_-%":{"sequence":"MKI*","insertions":[]},
+"S:;":{"sequence":"MIELSLIDFYLCFLAFLLFLVLIMLIIFWFSLELQDHNETCHA*","insertions":[]},
+"#":{"sequence":"MKF*","insertions":[]},
+"{{}}":{"sequence":"MDP*","insertions":[]},
+"•":{"sequence":"MFV*","insertions":[]},
 "unaligned_\"":"ACGTACGT",
 "unaligned_.":"ACGT"
 })"));
          result.push_back(nlohmann::json::parse(R"({
 "accessionVersion":"1.2",
-"\"":{"seq":"ACGTACGT","insertions":[]},
-".":{"seq":"ACGT","insertions":[]},
-"---":{"seq":"MYSF","insertions":[]},
-"\"\\\"":{"seq":"MADS","insertions":[]},
-";|\\$!":{"seq":"MSDN","insertions":[]},
-"S-;":{"seq":"MESL","insertions":[]},
-"≤":{"seq":"RVC*","insertions":[]},
-"ł":{"seq":"MDL*","insertions":[]},
-"select":{"seq":"MFH*","insertions":[]},
-"S_-%":{"seq":"MKI*","insertions":[]},
-"S:;":{"seq":"MIELSLIDFYLCFLAFLLFLVLIMLIIFWFSLELQDHNETCHA*","insertions":[]},
-"#":{"seq":"MKF*","insertions":[]},
-"{{}}":{"seq":"MDP*","insertions":[]},
-"•":{"seq":"MFV*","insertions":[]},
+"\"":{"sequence":"ACGTACGT","insertions":[]},
+".":{"sequence":"ACGT","insertions":[]},
+"---":{"sequence":"MYSF","insertions":[]},
+"\"\\\"":{"sequence":"MADS","insertions":[]},
+";|\\$!":{"sequence":"MSDN","insertions":[]},
+"S-;":{"sequence":"MESL","insertions":[]},
+"≤":{"sequence":"RVC*","insertions":[]},
+"ł":{"sequence":"MDL*","insertions":[]},
+"select":{"sequence":"MFH*","insertions":[]},
+"S_-%":{"sequence":"MKI*","insertions":[]},
+"S:;":{"sequence":"MIELSLIDFYLCFLAFLLFLVLIMLIIFWFSLELQDHNETCHA*","insertions":[]},
+"#":{"sequence":"MKF*","insertions":[]},
+"{{}}":{"sequence":"MDP*","insertions":[]},
+"•":{"sequence":"MFV*","insertions":[]},
 "unaligned_\"":"ACGTACGT",
 "unaligned_.":"ACGT"
 })"));
@@ -932,7 +932,7 @@ const Scenario<Error> SEQUENCE_ILLEGAL_SYMBOL = {
       []() {
          std::vector<nlohmann::json> result{nlohmann::json::parse(R"({
 "accessionVersion": "1.3",
-"main": {"seq": "ACET", "insertions": []},
+"main": {"sequence": "ACET", "insertions": []},
 "unaligned_main": "ACGT"
 })")};
          return result;
@@ -970,10 +970,10 @@ const Scenario<Error> NDJSON_FILE_WITH_SOME_MISSING_KEYS = {
          result.push_back(nlohmann::json::parse(R"({
 "accessionVersion": "1.1",
 "country": "Switzerland",
-"main": {"seq": "ACET", "insertions": ["123:RNRNRN"]},
-"secondSegment": {"seq": "ACET", "insertions": ["123:RNRNRN"]},
-"someLongGene": {"seq": "ACDEFGHIKLMNPQRSTVWYBZX", "insertions": []},
-"someShortGene": {"seq": "MADS", "insertions": ["123:RN"]},
+"main": {"sequence": "ACET", "insertions": ["123:RNRNRN"]},
+"secondSegment": {"sequence": "ACET", "insertions": ["123:RNRNRN"]},
+"someLongGene": {"sequence": "ACDEFGHIKLMNPQRSTVWYBZX", "insertions": []},
+"someShortGene": {"sequence": "MADS", "insertions": ["123:RN"]},
 "unaligned_main": "ACGT",
 "unaligned_secondSegment": null
 })"));

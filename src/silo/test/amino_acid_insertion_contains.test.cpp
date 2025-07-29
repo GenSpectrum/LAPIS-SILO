@@ -22,8 +22,8 @@ nlohmann::json createDataWithAminoAcidInsertions(
       {"segment2", nullptr},
       {"unaligned_segment1", nullptr},
       {"unaligned_segment2", nullptr},
-      {"gene1", {{"seq", ""}, {"insertions", aminoAcidInsertionsGene1}}},
-      {"gene2", {{"seq", ""}, {"insertions", aminoAcidInsertionsGene2}}}
+      {"gene1", {{"sequence", ""}, {"insertions", aminoAcidInsertionsGene1}}},
+      {"gene2", {{"sequence", ""}, {"insertions", aminoAcidInsertionsGene2}}}
    };
 }
 

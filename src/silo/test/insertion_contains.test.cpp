@@ -18,8 +18,8 @@ nlohmann::json createDataWithNucleotideInsertions(
 ) {
    return {
       {"primaryKey", primaryKey},
-      {"segment1", {{"seq", ""}, {"insertions", nucleotideInsertionsSegment1}}},
-      {"segment2", {{"seq", ""}, {"insertions", nucleotideInsertionsSegment2}}},
+      {"segment1", {{"sequence", ""}, {"insertions", nucleotideInsertionsSegment1}}},
+      {"segment2", {{"sequence", ""}, {"insertions", nucleotideInsertionsSegment2}}},
       {"unaligned_segment1", nullptr},
       {"unaligned_segment2", nullptr},
       {"gene1", nullptr}

@@ -16,20 +16,20 @@ const std::string VALUE_SEGMENT_2 = "C";
 
 const nlohmann::json DATA_DIFFERENT_FROM_REFERENCE = {
    {"primaryKey", "id"},
-   {"segment1", {{"seq", VALUE_SEGMENT_1}, {"insertions", {"1:AAA"}}}},
-   {"segment2", {{"seq", VALUE_SEGMENT_2}, {"insertions", {"1:GGG"}}}},
+   {"segment1", {{"sequence", VALUE_SEGMENT_1}, {"insertions", {"1:AAA"}}}},
+   {"segment2", {{"sequence", VALUE_SEGMENT_2}, {"insertions", {"1:GGG"}}}},
    {"unaligned_segment1", nullptr},
    {"unaligned_segment2", nullptr},
-   {"gene1", {{"seq", VALUE_SEGMENT_1 + "*"}, {"insertions", {"1:AAA"}}}},
-   {"gene2", {{"seq", VALUE_SEGMENT_2 + "*"}, {"insertions", {"1:GGG"}}}},
+   {"gene1", {{"sequence", VALUE_SEGMENT_1 + "*"}, {"insertions", {"1:AAA"}}}},
+   {"gene2", {{"sequence", VALUE_SEGMENT_2 + "*"}, {"insertions", {"1:GGG"}}}},
 };
 
 const nlohmann::json DATA_EQUALS_TO_REFERENCE = {
    {"primaryKey", "equal to reference"},
-   {"segment1", {{"seq", "T"}, {"insertions", nlohmann::json::array()}}},
-   {"segment2", {{"seq", "T"}, {"insertions", nlohmann::json::array()}}},
-   {"gene1", {{"seq", "T*"}, {"insertions", nlohmann::json::array()}}},
-   {"gene2", {{"seq", "T*"}, {"insertions", nlohmann::json::array()}}},
+   {"segment1", {{"sequence", "T"}, {"insertions", nlohmann::json::array()}}},
+   {"segment2", {{"sequence", "T"}, {"insertions", nlohmann::json::array()}}},
+   {"gene1", {{"sequence", "T*"}, {"insertions", nlohmann::json::array()}}},
+   {"gene2", {{"sequence", "T*"}, {"insertions", nlohmann::json::array()}}},
    {"unaligned_segment1", nullptr},
    {"unaligned_segment2", nullptr},
 };
