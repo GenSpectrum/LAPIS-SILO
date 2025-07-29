@@ -255,7 +255,7 @@ schema:
       type: "date"
     - name: "metadata3"
       type: "string"
-      phyloTreeNodeIdentifier: true
+      isPhyloTreeField: true
   primaryKey: "testPrimaryKey"
 )";
 
@@ -355,7 +355,7 @@ schema:
       type: "string"
     - name: "some lineage"
       type: "string"
-      phyloTreeNodeIdentifier: true
+      isPhyloTreeField: true
       generateIndex: true
   primaryKey: "testPrimaryKey"
 )";
@@ -363,8 +363,8 @@ schema:
    EXPECT_THAT(
       [&config_yaml]() { DatabaseConfig::getValidatedConfig(config_yaml); },
       ThrowsMessage<ConfigException>(
-         ::testing::HasSubstr("Metadata 'some lineage' phyloTreeNodeIdentifier and generateIndex "
-                              "are both set, if phyloTreeNodeIdentifier is "
+         ::testing::HasSubstr("Metadata 'some lineage' isPhyloTreeField and generateIndex "
+                              "are both set, if isPhyloTreeField is "
                               "set then generateIndex cannot be set.")
       )
    );
