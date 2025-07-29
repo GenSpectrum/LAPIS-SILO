@@ -174,7 +174,16 @@ std::expected<void, std::string> insertToSequenceColumn(
    RAISE_STRING_ERROR_WITH_CONTEXT(
       error, value, "When getting field 'sequence' in column field '{}' got error: {}", column.name
    );
-   // TODO(#877) std::optional<uint32_t> offset = value["offset"].get<std::optional<uint32_t>>();
+   uint32_t offset = 0;
+   auto offset_in_file = value["offset"];
+   if(!offset_in_file.error()){
+      error = offset_in_file.get<uint32_t>().get(offset);
+      RAISE_STRING_ERROR_WITH_CONTEXT(
+         error,
+         value,
+         "When getting field 'offset' as uint32_t in column field '{}' got error: {}",
+         column.name);
+   }
    std::vector<std::string> insertions;
    error = value["insertions"].get(insertions);
    RAISE_STRING_ERROR_WITH_CONTEXT(
@@ -184,8 +193,7 @@ std::expected<void, std::string> insertToSequenceColumn(
       column.name
    );
    read.sequence = sequence;
-   // TODO(#877) read.offset = offset.value_or(0);
-   read.offset = 0;
+   read.offset = offset;
    read.is_valid = true;
    for (auto& insertion : insertions) {
       sequence_column.appendInsertion(insertion);
