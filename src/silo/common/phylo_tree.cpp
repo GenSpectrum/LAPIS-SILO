@@ -155,6 +155,11 @@ TreeNodeId parseLabel(std::string_view& sv) {
       label += sv.back();
       sv.remove_suffix(1);
    }
+   if (sv.back() != ')' && sv.back() != '(' && sv.back() != ',' && sv.back() != ' ') {
+      throw silo::preprocessing::PreprocessingException(
+         fmt::format("Newick string contains invalid characters: '{}'", sv.back())
+      );
+   }
    std::reverse(label.begin(), label.end());
    return TreeNodeId{label};
 }
