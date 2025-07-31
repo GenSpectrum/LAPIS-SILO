@@ -20,7 +20,7 @@ class PhyloSubtree : public TreeAction {
    PhyloSubtree(std::string column_name, bool print_nodes_not_in_tree, bool contract_unary_nodes);
 
    arrow::Status addResponseToBuilder(
-      std::vector<std::string>& all_node_ids,
+      std::unordered_set<std::string>& all_node_ids,
       std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder,
       const common::PhyloTree& phylo_tree,
       bool print_nodes_not_in_tree

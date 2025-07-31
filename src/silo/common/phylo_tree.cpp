@@ -388,7 +388,7 @@ void PhyloTree::getSetOfAncestorsAtDepth(
    }
 }
 
-MRCAResponse PhyloTree::getMRCA(const std::vector<std::string>& node_labels) const {
+MRCAResponse PhyloTree::getMRCA(const std::unordered_set<std::string>& node_labels) const {
    MRCAResponse response;
    std::set<TreeNodeId> nodes_to_group;
    int min_depth = std::numeric_limits<int>::max();
@@ -404,6 +404,7 @@ MRCAResponse PhyloTree::getMRCA(const std::vector<std::string>& node_labels) con
          }
       }
    }
+   std::sort(response.not_in_tree.begin(), response.not_in_tree.end());
 
    if (nodes_to_group.empty()) {
       response.mrca_node_id = std::nullopt;
@@ -468,6 +469,7 @@ std::optional<std::string> PhyloTree::partialNewickString(
    auto node_it = nodes.find(ancestor);
    SILO_ASSERT(node_it != nodes.end());
    std::vector<std::optional<std::string>> responses;
+   responses.reserve(node_it->second->children.size());
    if (node_it->second->isLeaf()) {
       response =
          isInFilter(ancestor.string, filter) ? std::make_optional(ancestor.string) : std::nullopt;
@@ -501,25 +503,26 @@ std::optional<std::string> PhyloTree::partialNewickString(
 }
 
 NewickResponse PhyloTree::toNewickString(
-   const std::vector<std::string>& filter,
+   const std::unordered_set<std::string>& filter,
    bool contract_unary_nodes
 ) const {
    NewickResponse response;
-   std::vector<std::string> filter_in_tree;
+   std::unordered_set<std::string> filter_in_tree;
    for (const auto& node_label : filter) {
       auto node_it = nodes.find(TreeNodeId{node_label});
       if (node_it == nodes.end()) {
          response.not_in_tree.push_back(node_label);
       } else {
-         filter_in_tree.push_back(node_label);
+         filter_in_tree.insert(node_label);
       }
    }
+   std::sort(response.not_in_tree.begin(), response.not_in_tree.end());
    if (filter_in_tree.empty()) {
       response.newick_string = "";
       return response;
    }
    if (filter_in_tree.size() == 1) {
-      response.newick_string = filter_in_tree[0] + ";";
+      response.newick_string = *filter_in_tree.begin() + ";";
       return response;
    }
 
@@ -529,10 +532,8 @@ NewickResponse PhyloTree::toNewickString(
    auto mrca_node = nodes.find(mrca.mrca_node_id.value());
    SILO_ASSERT(mrca_node != nodes.end());
 
-   std::unordered_set<std::string> filter_set(filter_in_tree.begin(), filter_in_tree.end());
-
    std::optional<std::string> newick_string =
-      partialNewickString(filter_set, mrca_node->first, contract_unary_nodes);
+      partialNewickString(filter_in_tree, mrca_node->first, contract_unary_nodes);
    SILO_ASSERT(newick_string.has_value());
    response.newick_string = newick_string.value() + ";";
    return response;

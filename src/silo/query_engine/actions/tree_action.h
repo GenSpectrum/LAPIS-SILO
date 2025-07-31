@@ -41,14 +41,14 @@ class TreeAction : public Action {
   public:
    TreeAction(std::string column_name, bool print_nodes_not_in_tree);
 
-   std::vector<std::string> getNodeValues(
+   std::unordered_set<std::string> getNodeValues(
       std::shared_ptr<const storage::Table> table,
       const std::string& column_name,
       std::vector<CopyOnWriteBitmap>& bitmap_filter
    ) const;
 
    virtual arrow::Status addResponseToBuilder(
-      std::vector<std::string>& all_node_ids,
+      std::unordered_set<std::string>& all_node_ids,
       std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder,
       const common::PhyloTree& phylo_tree,
       bool print_nodes_not_in_tree

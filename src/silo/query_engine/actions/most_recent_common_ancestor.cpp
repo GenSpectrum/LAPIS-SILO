@@ -38,7 +38,7 @@ MostRecentCommonAncestor::MostRecentCommonAncestor(
 using silo::query_engine::filter::operators::Operator;
 
 arrow::Status MostRecentCommonAncestor::addResponseToBuilder(
-   std::vector<std::string>& all_node_ids,
+   std::unordered_set<std::string>& all_node_ids,
    std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder,
    const PhyloTree& phylo_tree,
    bool print_nodes_not_in_tree
