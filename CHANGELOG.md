@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.7](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.6...v0.7.7) (2025-07-31)
+
+
+### Features
+
+* **silo:** further optimizations of queries using the phylo tree - use hash sets instead of vectors ([#917](https://github.com/GenSpectrum/LAPIS-SILO/issues/917)) ([8164013](https://github.com/GenSpectrum/LAPIS-SILO/commit/816401342d2e4d7b26c11a71173a0ab8441247ce))
+
 ## [0.7.6](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.5...v0.7.6) (2025-07-29)
 
 
