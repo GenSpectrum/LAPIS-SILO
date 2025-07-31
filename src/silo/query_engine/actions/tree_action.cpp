@@ -59,6 +59,7 @@ std::unordered_set<std::string> TreeAction::getNodeValues(
    }
 
    std::unordered_set<std::string> all_tree_node_ids;
+   all_tree_node_ids.reserve(num_rows);
    for (size_t i = 0; i < table->getNumberOfPartitions(); ++i) {
       const storage::TablePartition& table_partition = table->getPartition(i);
       const auto& string_column = table_partition.columns.string_columns.at(column_name);
