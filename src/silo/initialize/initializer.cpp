@@ -211,6 +211,11 @@ void assertPrimaryKeyOfTypeString(const silo::config::DatabaseConfig& database_c
    }
 }
 
+// TODO(#741) we prepend the unalignedSequence columns (which are using the type
+// ZstdCompressedStringColumnPartition) with 'unaligned_'. This should be cleaned up with a
+// refactor and breaking change of the current input format.
+static const std::string UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX = "unaligned_";
+
 }  // namespace
 
 silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
@@ -259,7 +264,7 @@ silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
       );
       column_metadata.emplace(column_identifier, std::move(metadata));
       schema::ColumnIdentifier column_identifier_unaligned{
-         silo::storage::UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX + sequence_name,
+         UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX + sequence_name,
          schema::ColumnType::ZSTD_COMPRESSED_STRING
       };
       auto metadata_unaligned =

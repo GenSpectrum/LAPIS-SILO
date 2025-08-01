@@ -20,23 +20,23 @@ const std::string RECOMBINANT_LINEAGE = "RECOMBINANT";
 
 nlohmann::json createDataWithLineageValue(const std::string& primaryKey, std::string value) {
    return {
-      {"metadata", {{"primaryKey", primaryKey}, {"pango_lineage", value}}},
-      {"alignedNucleotideSequences", {{"segment1", nullptr}}},
-      {"unalignedNucleotideSequences", {{"segment1", nullptr}}},
-      {"alignedAminoAcidSequences", {{"gene1", nullptr}}},
-      {"nucleotideInsertions", {{"segment1", {}}}},
-      {"aminoAcidInsertions", {{"gene1", {}}}}
+      {"primaryKey", primaryKey},
+      {"pango_lineage", value},
+      {"float_value", nullptr},
+      {"segment1", nullptr},
+      {"unaligned_segment1", nullptr},
+      {"gene1", nullptr}
    };
 }
 
 nlohmann::json createDataWithLineageNullValue(const std::string& primaryKey) {
    return {
-      {"metadata", {{"primaryKey", primaryKey}, {"pango_lineage", nullptr}}},
-      {"alignedNucleotideSequences", {{"segment1", nullptr}}},
-      {"unalignedNucleotideSequences", {{"segment1", nullptr}}},
-      {"alignedAminoAcidSequences", {{"gene1", nullptr}}},
-      {"nucleotideInsertions", {{"segment1", {}}}},
-      {"aminoAcidInsertions", {{"gene1", {}}}}
+      {"primaryKey", primaryKey},
+      {"pango_lineage", nullptr},
+      {"float_value", nullptr},
+      {"segment1", nullptr},
+      {"unaligned_segment1", nullptr},
+      {"gene1", nullptr}
    };
 }
 const std::vector<nlohmann::json> DATA = {

@@ -12,11 +12,12 @@ class SiloRecipe(ConanFile):
         "onetbb/2022.0.0",
         "nlohmann_json/3.12.0",
         "gtest/1.16.0",
+        "re2/20240702",
         "roaring/4.2.1",
+        "simdjson/3.12.3",
         "spdlog/1.15.1",
         "yaml-cpp/0.8.0",
         "zstd/1.5.7",
-        "re2/20240702",
     ]
 
     default_options = {
@@ -89,6 +90,10 @@ class SiloRecipe(ConanFile):
 
         "roaring/*:shared": False,
 
+        "simdjson/*:shared": False,
+
+        "spdlog/*:shared": False,
+
         "yaml-cpp/*:shared": False,
 
         "zstd/*:shared": False,
@@ -96,6 +101,7 @@ class SiloRecipe(ConanFile):
 
     def generate(self):
         deps = CMakeDeps(self)
+        deps.set_property("abseil", "cmake_find_mode", "both")
         deps.set_property("boost", "cmake_find_mode", "both")
         deps.set_property("gtest", "cmake_find_mode", "both")
         deps.set_property("hwloc", "cmake_find_mode", "both")
@@ -103,10 +109,10 @@ class SiloRecipe(ConanFile):
         deps.set_property("onetbb", "cmake_find_mode", "both")
         deps.set_property("pcre2", "cmake_find_mode", "both")
         deps.set_property("poco", "cmake_find_mode", "both")
+        deps.set_property("re2", "cmake_find_mode", "both")
         deps.set_property("roaring", "cmake_find_mode", "both")
         deps.set_property("spdlog", "cmake_find_mode", "both")
+        deps.set_property("simdjson", "cmake_find_mode", "both")
         deps.set_property("yaml-cpp", "cmake_find_mode", "both")
         deps.set_property("zstd", "cmake_find_mode", "both")
-        deps.set_property("re2", "cmake_find_mode", "both")
-        deps.set_property("abseil", "cmake_find_mode", "both")
         deps.generate()
