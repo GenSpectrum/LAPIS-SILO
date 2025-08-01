@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.8](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.7...v0.7.8) (2025-08-01)
+
+
+### Features
+
+* **silo:** store branch lengths and export them in subtree newick ([#918](https://github.com/GenSpectrum/LAPIS-SILO/issues/918)) ([624f248](https://github.com/GenSpectrum/LAPIS-SILO/commit/624f248adc3da807ac75bcee84fdba6227c7dad2))
+
 ## [0.7.7](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.6...v0.7.7) (2025-07-31)
 
 
