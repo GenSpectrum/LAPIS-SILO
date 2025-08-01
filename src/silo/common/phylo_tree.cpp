@@ -77,6 +77,11 @@ TreeNodeId parse_auspice_tree(
    node->node_id = TreeNodeId{j.at("name").get<std::string>()};
    node->parent = parent;
    node->depth = depth;
+   if (j.contains("node_attrs")) {
+      if (j["node_attrs"].contains("div")) {
+         node->branch_length = j["node_attrs"]["div"].get<float>();
+      }
+   }
 
    const auto& children = j.contains("children") ? j["children"] : nlohmann::json::array();
 
@@ -150,20 +155,36 @@ TreeNodeId parseLabel(std::string_view& sv) {
       label += sv.back();
       sv.remove_suffix(1);
    }
+   if (sv.back() != ')' && sv.back() != '(' && sv.back() != ',' && sv.back() != ' ') {
+      throw silo::preprocessing::PreprocessingException(
+         fmt::format("Newick string contains invalid characters: '{}'", sv.back())
+      );
+   }
    std::reverse(label.begin(), label.end());
    return TreeNodeId{label};
 }
 
-TreeNodeId parseFullLabel(std::string_view& sv) {
+TreeNodeInfo parseFullLabel(std::string_view& sv) {
    std::string fullLabel;
    while (!sv.empty() && (isValidLabelChar(sv.back()) || isValidLength(sv.back()))) {
       fullLabel += sv.back();
       sv.remove_suffix(1);
    }
    if (!sv.empty() && sv.back() == ':') {
-      // fullLabel contains length information, we ignore it
       sv.remove_suffix(1);
-      return parseLabel(sv);
+      try {
+         std::string reversed = std::string(fullLabel.rbegin(), fullLabel.rend());
+         float branch_length = std::stof(reversed);
+         return TreeNodeInfo{parseLabel(sv), branch_length};
+      } catch (const std::invalid_argument& e) {
+         throw silo::preprocessing::PreprocessingException(
+            fmt::format("Invalid branch length '{}' in Newick string", fullLabel)
+         );
+      } catch (const std::out_of_range& e) {
+         throw silo::preprocessing::PreprocessingException(
+            fmt::format("Branch length out of range '{}' in Newick string", fullLabel)
+         );
+      }
    }
    if (!std::all_of(fullLabel.begin(), fullLabel.end(), isValidLabelChar)) {
       throw silo::preprocessing::PreprocessingException(
@@ -176,7 +197,7 @@ TreeNodeId parseFullLabel(std::string_view& sv) {
       );
    }
    std::reverse(fullLabel.begin(), fullLabel.end());
-   return TreeNodeId{fullLabel};
+   return TreeNodeInfo{TreeNodeId{fullLabel}};
 }
 
 void skipWhitespace(std::string_view& sv) {
@@ -198,7 +219,9 @@ TreeNodeId parseSubtree(
    node->parent = parent;
 
    skipWhitespace(sv);
-   node->node_id = parseFullLabel(sv);
+   TreeNodeInfo treeNodeInfo = parseFullLabel(sv);
+   node->node_id = treeNodeInfo.node_id;
+   node->branch_length = treeNodeInfo.branch_length;
    if (!sv.empty() && sv.back() == ')') {
       sv.remove_suffix(1);
       depth++;
@@ -435,7 +458,7 @@ bool isInFilter(const std::string& str, const std::unordered_set<std::string>& f
 }
 
 std::string newickJoin(
-   const std::vector<std::optional<std::string>>& child_newick_strings,
+   const std::vector<NewickFragment>& child_newick_strings,
    const std::string& self_id
 ) {
    std::ostringstream oss;
@@ -443,13 +466,17 @@ std::string newickJoin(
    bool has_value = false;
    for (size_t i = 0; i < child_newick_strings.size(); ++i) {
       // reverse the order of children to match the Newick format
-      if (!child_newick_strings[child_newick_strings.size() - i - 1].has_value()) {
+      if (!child_newick_strings[child_newick_strings.size() - i - 1].fragment.has_value()) {
          continue;
       }
       if (has_value) {
          oss << ",";
       }
-      oss << child_newick_strings[child_newick_strings.size() - i - 1].value();
+      oss << child_newick_strings[child_newick_strings.size() - i - 1].fragment.value();
+      if (child_newick_strings[child_newick_strings.size() - i - 1].branch_length.has_value()) {
+         oss << ":";
+         oss << child_newick_strings[child_newick_strings.size() - i - 1].branch_length.value();
+      }
       has_value = true;
    }
    if (!has_value) {
@@ -459,46 +486,60 @@ std::string newickJoin(
    return oss.str();
 }
 
-std::optional<std::string> PhyloTree::partialNewickString(
+std::optional<float> addBranchLengths(std::optional<float> a, std::optional<float> b) {
+   if (a && b)
+      return *a + *b;
+   else if (a)
+      return a;
+   else if (b)
+      return b;
+   else
+      return std::nullopt;
+}
+
+NewickFragment PhyloTree::partialNewickString(
    const std::unordered_set<std::string>& filter,
    const TreeNodeId& ancestor,
    bool contract_unary_nodes
 ) const {
-   std::optional<std::string> response;
+   NewickFragment response;
 
    auto node_it = nodes.find(ancestor);
    SILO_ASSERT(node_it != nodes.end());
-   std::vector<std::optional<std::string>> responses;
+   std::vector<NewickFragment> responses;
    responses.reserve(node_it->second->children.size());
    if (node_it->second->isLeaf()) {
-      response =
-         isInFilter(ancestor.string, filter) ? std::make_optional(ancestor.string) : std::nullopt;
+      if (isInFilter(ancestor.string, filter)) {
+         response.fragment = std::make_optional(ancestor.string);
+         response.branch_length = node_it->second->branch_length;
+      } else {
+         response.fragment = std::nullopt;
+         response.branch_length = std::nullopt;
+      }
       return response;
    }
    for (const auto& child : node_it->second->children) {
       responses.push_back(partialNewickString(filter, child, contract_unary_nodes));
    }
-   std::erase_if(responses, [](const std::optional<std::string>& resp) {
-      return !resp.has_value();
-   });
+   std::erase_if(responses, [](const NewickFragment& resp) { return !resp.fragment.has_value(); });
    if (responses.empty()) {
-      response = std::nullopt;
+      response.fragment = std::nullopt;
+      response.branch_length = std::nullopt;
       return response;
    }
    if (responses.size() == 1) {
       if (contract_unary_nodes) {
-         response = responses[0];
+         response.fragment = responses[0].fragment;
+         response.branch_length =
+            addBranchLengths(responses[0].branch_length, node_it->second->branch_length);
       } else {
-         response = newickJoin({responses[0]}, ancestor.string);
+         response.fragment = newickJoin({responses[0]}, ancestor.string);
+         response.branch_length = node_it->second->branch_length;
       }
       return response;
    }
-   std::vector<std::optional<std::string>> strings;
-   strings.reserve(responses.size());
-   for (const auto& resp : responses) {
-      strings.push_back(resp);
-   }
-   response = newickJoin(strings, ancestor.string);
+   response.fragment = newickJoin(responses, ancestor.string);
+   response.branch_length = node_it->second->branch_length;
    return response;
 }
 
@@ -532,10 +573,10 @@ NewickResponse PhyloTree::toNewickString(
    auto mrca_node = nodes.find(mrca.mrca_node_id.value());
    SILO_ASSERT(mrca_node != nodes.end());
 
-   std::optional<std::string> newick_string =
+   NewickFragment newick_string =
       partialNewickString(filter_in_tree, mrca_node->first, contract_unary_nodes);
-   SILO_ASSERT(newick_string.has_value());
-   response.newick_string = newick_string.value() + ";";
+   SILO_ASSERT(newick_string.fragment.has_value());
+   response.newick_string = newick_string.fragment.value() + ";";
    return response;
 }
 

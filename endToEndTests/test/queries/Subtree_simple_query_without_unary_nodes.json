@@ -25,7 +25,7 @@
   },
   "expectedQueryResult": [
     {
-      "subtreeNewick": "(EPI_ISL_3247294,EPI_ISL_3465732)NODE_0000076;",
+      "subtreeNewick": "(EPI_ISL_3247294:0.00030342,EPI_ISL_3465732:0.00023744)NODE_0000076;",
       "missingNodeCount": 0
     }
   ]

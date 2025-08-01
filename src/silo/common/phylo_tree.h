@@ -25,6 +25,7 @@ class TreeNode {
                                      // empty for internal nodes)
    std::vector<TreeNodeId> children;
    std::optional<TreeNodeId> parent;
+   std::optional<float> branch_length;
    int depth;
 
    bool isLeaf() { return children.empty(); }
@@ -39,8 +40,21 @@ class TreeNode {
     archive & parent;
     archive & depth;
     archive & row_index;
+    archive & branch_length;
       // clang-format on
    }
+};
+
+class TreeNodeInfo {
+  public:
+   TreeNodeId node_id;
+   std::optional<float> branch_length = std::nullopt;
+};
+
+class NewickFragment {
+  public:
+   std::optional<std::string> fragment;
+   std::optional<float> branch_length = std::nullopt;
 };
 
 class MRCAResponse {
@@ -85,7 +99,7 @@ class PhyloTree {
       bool contract_unary_nodes = true
    ) const;
 
-   std::optional<std::string> partialNewickString(
+   NewickFragment partialNewickString(
       const std::unordered_set<std::string>& filter,
       const TreeNodeId& ancestor,
       bool contract_unary_nodes = true
