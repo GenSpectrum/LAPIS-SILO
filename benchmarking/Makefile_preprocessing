@@ -1,0 +1,43 @@
+all: $(PREPROCESSING_STAMP)
+
+# ---- Get dependencies --------------------------------------------------------
+
+WISEPULSE_DIR=WisePulse
+WISEPULSE_CHECKOUT=$(WISEPULSE_DIR)/Cargo.toml
+WISEPULSE_BIN=$(WISEPULSE_DIR)/target/release
+# Build the other binaries at the same time, too
+WISEPULSE=$(WISEPULSE_BIN)/split_into_sorted_chunks
+
+$(WISEPULSE_CHECKOUT):
+	git clone https://github.com/cbg-ethz/WisePulse $(WISEPULSE_DIR)
+	cd $(WISEPULSE_DIR) && git checkout -b sort-by-metadata-hack origin/sort-by-metadata-hack
+
+$(WISEPULSE): $(WISEPULSE_CHECKOUT)
+	cd $(WISEPULSE_DIR) && cargo build --release
+
+
+# just for manual call comfort
+dependencies: $(WISEPULSE)
+
+
+# ---- Sorting input -----------------------------------------------------------
+
+# Potentially run as $(INPUT_FILE)
+$(DATASET_DIR)/sorted_input_file.ndjson.zst: $(DATASET_DIR)/input_file.ndjson.zst
+	make -f Makefile_preprocessing $(WISEPULSE)
+	rm -rf sorted_chunks merger_tmp 
+	zstdcat $(DATASET_DIR)/input_file.ndjson.zst \
+	    | $(WISEPULSE_BIN)/split_into_sorted_chunks --output-path sorted_chunks --chunk-size 100000 --sort-field date \
+	    | $(WISEPULSE_BIN)/merge_sorted_chunks --tmp-directory merger_tmp --sort-field date \
+	    | zstd > $(DATASET_DIR)/sorted_input_file.ndjson.zst.tmp
+	mv $(DATASET_DIR)/sorted_input_file.ndjson.zst.tmp $(DATASET_DIR)/sorted_input_file.ndjson.zst
+
+# ---- Running silo -----------------------------------------------------------
+
+# $(SILO) was built in parent Makefile already
+$(PREPROCESSING_STAMP): $(SILO) $(INPUT_FILE)
+	$(SILO) preprocessing --ndjson-input-filename $(INPUT_FILE) --output-directory $(OUTPUT_DIR)
+	touch $(PREPROCESSING_STAMP)
+
+
+.PHONY: all
