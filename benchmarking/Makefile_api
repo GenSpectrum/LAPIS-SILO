@@ -1,0 +1,69 @@
+all: bench
+
+# Required env vars, besides those already checked in `Makefile`:
+
+# Our custom parameters:
+
+# Should API query order be randomized?
+ifeq ($(RANDOMIZED),0)
+API_QUERY_OPTS=
+else ifeq ($(RANDOMIZED),1)
+API_QUERY_OPTS=--randomize
+else
+$(error "RANDOMIZED must be either 0 or 1, got '$(RANDOMIZED)'")
+endif
+
+# Passed to api-query
+ifeq ($(CONCURRENCY),)
+$(error "CONCURRENCY must be a natural number, missing")
+endif
+
+# Passed to api-query
+ifeq ($(REPEAT),)
+$(error "REPEAT must be a natural number, missing")
+endif
+
+# ---- Get dependencies --------------------------------------------------------
+
+API_QUERY_VERSION=b5cf48baa00b8a1b95feaa28ade374b0b68de7e4
+
+API_QUERY_DIR=api-query
+API_QUERY_CLONE=$(API_QUERY_DIR)/Cargo.toml
+API_QUERY_CHECKOUT_STAMP_DIR=$(API_QUERY_DIR)/.git/.checkout
+API_QUERY_CHECKOUT=$(API_QUERY_CHECKOUT_STAMP_DIR)/$(API_QUERY_VERSION)
+API_QUERY=$(API_QUERY_DIR)/target/release/api-query
+
+$(API_QUERY_CLONE):
+	git clone https://github.com/GenSpectrum/api-query $(API_QUERY_DIR)
+
+$(API_QUERY_CHECKOUT): $(API_QUERY_CLONE)
+	rm -rf $(API_QUERY_CHECKOUT_STAMP_DIR) # remove previous version stamp
+	( cd $(API_QUERY_DIR) && git remote update && git checkout -b local_hidden_$(API_QUERY_VERSION) $(API_QUERY_VERSION) )
+	mkdir -p $(API_QUERY_CHECKOUT_STAMP_DIR)
+	touch $(API_QUERY_CHECKOUT)
+
+$(API_QUERY): $(API_QUERY_CHECKOUT)
+	cd $(API_QUERY_DIR) && cargo build --release
+
+
+# just for manual call comfort
+dependencies: $(API_QUERY)
+
+# ---- Running silo -----------------------------------------------------------
+
+API_OPTIONS=--api-threads-for-http-connections 16
+export API_OPTIONS
+
+.silo.pid: $(PREPROCESSING_STAMP)
+	rm -f .silo.stopped
+	bin/start-silo
+
+.silo.stopped:
+	bin/stop-silo
+	touch .silo.stopped
+
+bench: $(DATASET_DIR)/silo_queries.ndjson $(API_QUERY) .silo.stopped
+	@echo "running benchmark"
+	make -f Makefile_api .silo.pid
+	$(API_QUERY) iter $(API_QUERY_OPTS) --repeat $(REPEAT) $(DATASET_DIR)/silo_queries.ndjson --drop --concurrency $(CONCURRENCY)
+	make -f Makefile_api .silo.stopped
