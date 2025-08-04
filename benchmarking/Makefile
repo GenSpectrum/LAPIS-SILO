@@ -1,9 +1,12 @@
 
 # Required env vars:
 
-# Added by evobench-run, and we rely on it
+# Added by evobench-run, and we rely on them
 ifeq ($(COMMIT_ID),)
 $(error "COMMIT_ID must be set")
+endif
+ifeq ($(BENCH_OUTPUT_LOG),)
+$(error "BENCH_OUTPUT_LOG must be set")
 endif
 
 # Our custom parameters:
