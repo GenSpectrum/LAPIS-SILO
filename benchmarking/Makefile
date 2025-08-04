@@ -149,4 +149,4 @@ clean-fully: clean
 # ----------------------------------------------------------------------------
 
 .PHONY:
-	bench clean clean-fully $(SILO)
+	bench clean clean-fully
