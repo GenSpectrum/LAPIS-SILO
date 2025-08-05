@@ -44,6 +44,9 @@ ConfigKeyPath referenceGenomeFilenameOptionKey() {
 ConfigKeyPath ndjsonInputFilenameOptionKey() {
    return YamlFile::stringToConfigKeyPath("ndjsonInputFilename");
 }
+ConfigKeyPath withoutUnalignedSequencesOptionKey() {
+   return YamlFile::stringToConfigKeyPath("withoutUnalignedSequences");
+}
 // DEPRECATED: TODO(#737) fully remove them after the next major release
 ConfigKeyPath intermediateResultsDirectoryOptionKey() {
    return YamlFile::stringToConfigKeyPath("intermediateResultsDirectory");
@@ -112,6 +115,11 @@ ConfigSpecification PreprocessingConfig::getConfigSpecification() {
             ConfigValueType::PATH,
             "Path to the input data. Relative from inputDirectory."
          ),
+         ConfigAttributeSpecification::createWithDefault(
+            withoutUnalignedSequencesOptionKey(),
+            ConfigValue::fromBool(false),
+            "Whether unaligned sequences should be omitted for each aligned nucleotide sequence."
+         ),
          // DEPRECATED: TODO(#737) fully remove after next major release
          ConfigAttributeSpecification::createWithoutDefault(
             intermediateResultsDirectoryOptionKey(), ConfigValueType::PATH, "DEPRECATED."
@@ -155,6 +163,9 @@ void PreprocessingConfig::overwriteFrom(const VerifiedConfigAttributes& config_s
    }
    if (auto var = config_source.getPath(referenceGenomeFilenameOptionKey())) {
       initialization_files.reference_genome_file = var.value();
+   }
+   if (auto var = config_source.getBool(withoutUnalignedSequencesOptionKey())) {
+      initialization_files.without_unaligned_sequences = var.value();
    }
    if (auto var = config_source.getPath(outputDirectoryOptionKey())) {
       output_directory = var.value();

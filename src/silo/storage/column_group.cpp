@@ -176,13 +176,14 @@ std::expected<void, std::string> insertToSequenceColumn(
    );
    uint32_t offset = 0;
    auto offset_in_file = value["offset"];
-   if(!offset_in_file.error()){
+   if (!offset_in_file.error()) {
       error = offset_in_file.get<uint32_t>().get(offset);
       RAISE_STRING_ERROR_WITH_CONTEXT(
          error,
          value,
          "When getting field 'offset' as uint32_t in column field '{}' got error: {}",
-         column.name);
+         column.name
+      );
    }
    std::vector<std::string> insertions;
    error = value["insertions"].get(insertions);

@@ -62,6 +62,7 @@ struct QueryTestData {
    const silo::ReferenceGenomes reference_genomes;
    const silo::common::LineageTreeAndIdMap lineage_tree;
    const silo::common::PhyloTree phylo_tree_file;
+   const bool without_unaligned_sequences = false;
 };
 
 struct QueryTestScenario {
@@ -88,7 +89,8 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
             silo::config::DatabaseConfig::getValidatedConfig(test_data.database_config),
             std::move(test_data.reference_genomes),
             std::move(test_data.lineage_tree),
-            std::move(test_data.phylo_tree_file)
+            std::move(test_data.phylo_tree_file),
+            test_data.without_unaligned_sequences
          )}
       );
 

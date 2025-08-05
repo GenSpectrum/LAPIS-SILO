@@ -24,6 +24,7 @@ class InitializationFiles {
    std::optional<std::filesystem::path> phylogenetic_tree_file;
    std::filesystem::path database_config_file;
    std::filesystem::path reference_genome_file;
+   bool without_unaligned_sequences;
 
    std::filesystem::path directory;
 

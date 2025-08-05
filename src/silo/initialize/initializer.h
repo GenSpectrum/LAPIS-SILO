@@ -17,7 +17,8 @@ class Initializer {
       config::DatabaseConfig database_config,
       ReferenceGenomes reference_genomes,
       common::LineageTreeAndIdMap lineage_tree,
-      common::PhyloTree phylo_tree_file
+      common::PhyloTree phylo_tree_file,
+      bool without_unaligned_columns
    );
 };
 }  // namespace silo::initialize

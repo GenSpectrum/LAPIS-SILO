@@ -33,7 +33,6 @@ nlohmann::json createData(const std::string& country, const std::string& date) {
       "sequence": "ACGT",
       "insertions": ["2:A"]
    }},
-   "unaligned_segment1": "ACGT",
    "gene1": {{
       "sequence": "V",
       "insertions": []
@@ -82,7 +81,8 @@ const QueryTestData TEST_DATA{
        createData("Switzerland", "2002-01-04"),
        createData("Switzerland", "2001-12-07")},
    .database_config = DATABASE_CONFIG,
-   .reference_genomes = REFERENCE_GENOMES
+   .reference_genomes = REFERENCE_GENOMES,
+   .without_unaligned_sequences = true
 };
 
 const QueryTestScenario COUNT_ALL = {

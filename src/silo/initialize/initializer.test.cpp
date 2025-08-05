@@ -33,7 +33,11 @@ A.11:
 )")
    );
    auto schema = silo::initialize::Initializer::createSchemaFromConfigFiles(
-      database_config, reference_genomes, lineage_tree, phylo_tree_file
+      database_config,
+      reference_genomes,
+      lineage_tree,
+      phylo_tree_file,
+      /*without_unaligned_columns=*/false
    );
    const auto& table_schema = schema.getDefaultTableSchema();
 
