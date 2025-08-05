@@ -54,7 +54,8 @@ std::shared_ptr<silo::Database> buildTestDatabase() {
          std::move(database_config),
          std::move(reference_genomes),
          std::move(lineage_tree),
-         std::move(phylo_tree_file)
+         std::move(phylo_tree_file),
+         /*with_unaligned_columns=*/true
       )}
    );
    std::ifstream input(input_directory / "input.ndjson");
