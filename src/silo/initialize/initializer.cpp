@@ -43,7 +43,8 @@ Database Initializer::initializeDatabase(const config::InitializationFiles& init
       ),
       ReferenceGenomes::readFromFile(initialization_files.getReferenceGenomeFilename()),
       std::move(lineage_tree),
-      std::move(phylo_tree_file)
+      std::move(phylo_tree_file),
+      initialization_files.without_unaligned_sequences
    );
    return Database{schema};
 }
@@ -222,7 +223,8 @@ silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
    config::DatabaseConfig database_config,
    ReferenceGenomes reference_genomes,
    common::LineageTreeAndIdMap lineage_tree,
-   common::PhyloTree phylo_tree_file
+   common::PhyloTree phylo_tree_file,
+   bool without_unaligned_sequences
 ) {
    setDefaultSequencesIfUnsetAndThereIsOnlyOne(database_config, reference_genomes);
    assertDefaultSequencesAreInReference(database_config, reference_genomes);
@@ -263,15 +265,18 @@ silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
          sequence_name, ReferenceGenomes::stringToVector<Nucleotide>(reference_sequence)
       );
       column_metadata.emplace(column_identifier, std::move(metadata));
-      schema::ColumnIdentifier column_identifier_unaligned{
-         UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX + sequence_name,
-         schema::ColumnType::ZSTD_COMPRESSED_STRING
-      };
-      auto metadata_unaligned =
-         std::make_shared<storage::column::ZstdCompressedStringColumnMetadata>(
-            sequence_name, reference_sequence
-         );
-      column_metadata.emplace(column_identifier_unaligned, std::move(metadata_unaligned));
+
+      if (!without_unaligned_sequences) {
+         schema::ColumnIdentifier column_identifier_unaligned{
+            UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX + sequence_name,
+            schema::ColumnType::ZSTD_COMPRESSED_STRING
+         };
+         auto metadata_unaligned =
+            std::make_shared<storage::column::ZstdCompressedStringColumnMetadata>(
+               sequence_name, reference_sequence
+            );
+         column_metadata.emplace(column_identifier_unaligned, std::move(metadata_unaligned));
+      }
    }
 
    for (size_t sequence_idx = 0; sequence_idx < reference_genomes.aa_sequence_names.size();
