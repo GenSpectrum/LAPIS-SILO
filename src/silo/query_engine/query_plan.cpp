@@ -20,6 +20,7 @@ arrow::Result<QueryPlan> QueryPlan::makeQueryPlan(
       exec_node::createGenerator(arrow_plan.get(), root, &query_plan.results_generator)
    );
    query_plan.results_schema = root->output_schema();
+   ARROW_RETURN_NOT_OK(query_plan.arrow_plan->Validate());
    return query_plan;
 }
 
