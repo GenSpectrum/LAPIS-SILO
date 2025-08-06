@@ -74,7 +74,7 @@ cat legacy_data.ndjson | cargo run > transformed_data.ndjson
 cat legacy_data.ndjson | ./target/release/legacy-ndjson-transformer > transformed_data.ndjson
 
 # Chain with other commands if the files are big
-curl zstdcat input_file.old.ndjson.zst | ./target/release/legacy-ndjson-transformer | zstd > zstdcat input_file.ndjson.zst
+zstdcat input_file.old.ndjson.zst | ./target/release/legacy-ndjson-transformer | zstd > input_file.ndjson.zst
 ```
 
 ## Testing
