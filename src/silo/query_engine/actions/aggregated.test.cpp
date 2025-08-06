@@ -209,7 +209,14 @@ const QueryTestScenario AGGREGATED_LIMIT_OFFSET = {
       R"(
 {
   "action": {
-    "type": "Details",
+    "type": "Aggregated",
+    "groupByFields": [
+      "age",
+      "country",
+      "coverage",
+      "date",
+      "primaryKey"
+    ],
     "orderByFields": [
       "primaryKey"
     ],
@@ -223,10 +230,31 @@ const QueryTestScenario AGGREGATED_LIMIT_OFFSET = {
    ),
    .expected_query_result = nlohmann::json::parse(
       R"(
-[{"age":null,"country":"Germany","coverage":0.9,"date":"2000-03-07","primaryKey":"id_1"},
-{"age":13,"country":"Germany","coverage":0.9,"date":"2009-06-07","primaryKey":"id_2"},
-{"age":null,"country":"Switzerland","coverage":0.9,"date":"2003-07-02","primaryKey":"id_3"}])"
+[{"age":null,"count":1,"country":"Germany","coverage":0.9,"date":"2000-03-07","primaryKey":"id_1"},
+{"age":13,"count":1,"country":"Germany","coverage":0.9,"date":"2009-06-07","primaryKey":"id_2"},
+{"age":null,"count":1,"country":"Switzerland","coverage":0.9,"date":"2003-07-02","primaryKey":"id_3"}])"
    )
+};
+
+const QueryTestScenario AGGREGATED_LIMIT_WITHOUT_ORDER = {
+   .name = "AGGREGATED_LIMIT_WITHOUT_ORDER",
+   .query = nlohmann::json::parse(
+      R"(
+{
+  "action": {
+    "type": "Aggregated",
+    "groupByFields": ["primaryKey"],
+    "limit": 1
+  },
+  "filterExpression": {
+    "type": "True"
+  }
+})"
+   ),
+   .expected_error_message =
+      "Offset and limit can only be applied if the output of the operation has some ordering. "
+      "Implicit ordering such as in the case of Details/Fasta is also allowed, Aggregated "
+      "however produces unordered results."
 };
 
 const QueryTestScenario AGGREGATE_UNIQUE = {
@@ -429,6 +457,7 @@ QUERY_TEST(
       AGGREGATE_ALMOST_ALL,
       AGGREGATE_SOME,
       AGGREGATED_LIMIT_OFFSET,
+      AGGREGATED_LIMIT_WITHOUT_ORDER,
       AGGREGATE_UNIQUE,
       AGGREGATE_ONE,
       AGGREGATE_NULLABLE,

@@ -377,6 +377,12 @@ arrow::Result<arrow::acero::ExecNode*> Action::addLimitAndOffsetNode(
    arrow::acero::ExecNode* node
 ) const {
    if (limit.has_value() || offset.has_value()) {
+      CHECK_SILO_QUERY(
+         !node->ordering().is_unordered(),
+         "Offset and limit can only be applied if the output of the operation has some ordering. "
+         "Implicit ordering such as in the case of Details/Fasta is also allowed, Aggregated "
+         "however produces unordered results."
+      );
       arrow::acero::FetchNodeOptions fetch_options(offset.value_or(0), limit.value_or(UINT32_MAX));
       return arrow::acero::MakeExecNode(
          std::string{arrow::acero::FetchNodeOptions::kName}, arrow_plan, {node}, fetch_options

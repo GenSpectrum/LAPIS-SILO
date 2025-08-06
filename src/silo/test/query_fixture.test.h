@@ -108,7 +108,7 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
             std::stringstream buffer;
             auto query_plan = query->toQueryPlan(shared_database, query_options);
             query_plan.executeAndWrite(&buffer);
-            FAIL() << "Expected an error in test case, but noting was thrown";
+            FAIL() << "Expected an error in test case, but nothing was thrown";
          } catch (const std::exception& e) {
             EXPECT_EQ(std::string(e.what()), scenario.expected_error_message);
          }
