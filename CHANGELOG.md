@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.10](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.9...v0.7.10) (2025-08-07)
+
+
+### Bug Fixes
+
+* bump the silo serialization version ([d7adad5](https://github.com/GenSpectrum/LAPIS-SILO/commit/d7adad51afe567a96b22f3dd9c6f149d9f9eadbc))
+
 ## [0.7.9](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.8...v0.7.9) (2025-08-07)
 
 
