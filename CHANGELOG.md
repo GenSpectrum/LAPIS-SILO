@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.7.9](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.8...v0.7.9) (2025-08-07)
+
+
+### Features
+
+* **benchmarking:** add a separate target for the preprocessing ([5c18daf](https://github.com/GenSpectrum/LAPIS-SILO/commit/5c18dafdfd99eb98453da10f895b38deca251064)), closes [#919](https://github.com/GenSpectrum/LAPIS-SILO/issues/919)
+
+
+### Bug Fixes
+
+* **benchmarking:** check for the presence of the BENCH_OUTPUT_LOG var ([d04789b](https://github.com/GenSpectrum/LAPIS-SILO/commit/d04789bbe4f14b2e525e78ea1fa916ebd263a423))
+* **ci:** do not cancel in-progress runs, which could lead to non-generation of released images ([32a9b83](https://github.com/GenSpectrum/LAPIS-SILO/commit/32a9b83ba1b22d867dd20af147889e38215bed25))
+* throw an error when a user requests a limit without specifying ordering ([3ad8dfe](https://github.com/GenSpectrum/LAPIS-SILO/commit/3ad8dfe8670514b1029c060797a41e7c6f215d96))
+* validate a arrow query plan before executing it to catch errors that might lead to dying requests ([c49a698](https://github.com/GenSpectrum/LAPIS-SILO/commit/c49a6981dce34a934e9818f0392a8bd23e6a6472))
+
 ## [0.7.8](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.7...v0.7.8) (2025-08-01)
 
 
