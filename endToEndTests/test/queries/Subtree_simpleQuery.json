@@ -12,12 +12,12 @@
       "children": [
         {
           "type": "StringEquals",
-          "column": "usherTree",
+          "column": "gisaid_epi_isl",
           "value": "EPI_ISL_3247294"
         },
         {
           "type": "StringEquals",
-          "column": "usherTree",
+          "column": "gisaid_epi_isl",
           "value": "EPI_ISL_3465732"
         }
       ]

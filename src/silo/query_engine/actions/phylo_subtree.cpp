@@ -39,19 +39,21 @@ PhyloSubtree::PhyloSubtree(
 using silo::query_engine::filter::operators::Operator;
 
 arrow::Status PhyloSubtree::addResponseToBuilder(
-   std::unordered_set<std::string>& all_node_ids,
+   NodeValuesResponse& all_node_ids,
    std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder,
    const PhyloTree& phylo_tree,
    bool print_nodes_not_in_tree
 ) const {
-   NewickResponse response = phylo_tree.toNewickString(all_node_ids, contract_unary_nodes);
+   NewickResponse response =
+      phylo_tree.toNewickString(all_node_ids.node_values, contract_unary_nodes);
+   int32_t missing_node_count =
+      all_node_ids.missing_node_count + static_cast<int32_t>(response.not_in_tree.size());
 
    if (auto builder = output_builder.find("subtreeNewick"); builder != output_builder.end()) {
       ARROW_RETURN_NOT_OK(builder->second.insert(response.newick_string));
    }
    if (auto builder = output_builder.find("missingNodeCount"); builder != output_builder.end()) {
-      ARROW_RETURN_NOT_OK(builder->second.insert(static_cast<int32_t>(response.not_in_tree.size()))
-      );
+      ARROW_RETURN_NOT_OK(builder->second.insert(missing_node_count));
    }
    if (auto builder = output_builder.find("missingFromTree"); builder != output_builder.end()) {
       ARROW_RETURN_NOT_OK(

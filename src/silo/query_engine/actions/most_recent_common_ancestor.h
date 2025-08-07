@@ -19,7 +19,7 @@ class MostRecentCommonAncestor : public TreeAction {
    MostRecentCommonAncestor(std::string column_name, bool print_nodes_not_in_tree);
 
    arrow::Status addResponseToBuilder(
-      std::unordered_set<std::string>& all_node_ids,
+      NodeValuesResponse& all_node_ids,
       std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder,
       const common::PhyloTree& phylo_tree,
       bool print_nodes_not_in_tree

@@ -38,23 +38,25 @@ MostRecentCommonAncestor::MostRecentCommonAncestor(
 using silo::query_engine::filter::operators::Operator;
 
 arrow::Status MostRecentCommonAncestor::addResponseToBuilder(
-   std::unordered_set<std::string>& all_node_ids,
+   NodeValuesResponse& all_node_ids,
    std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder,
    const PhyloTree& phylo_tree,
    bool print_nodes_not_in_tree
 ) const {
-   MRCAResponse response = phylo_tree.getMRCA(all_node_ids);
+   MRCAResponse response = phylo_tree.getMRCA(all_node_ids.node_values);
    std::optional<std::string> mrca_node =
       response.mrca_node_id.has_value()
          ? std::make_optional<std::string>(response.mrca_node_id.value().string)
          : std::nullopt;
 
+   int32_t missing_node_count =
+      all_node_ids.missing_node_count + static_cast<int32_t>(response.not_in_tree.size());
+
    if (auto builder = output_builder.find("mrcaNode"); builder != output_builder.end()) {
       ARROW_RETURN_NOT_OK(builder->second.insert(mrca_node));
    }
    if (auto builder = output_builder.find("missingNodeCount"); builder != output_builder.end()) {
-      ARROW_RETURN_NOT_OK(builder->second.insert(static_cast<int32_t>(response.not_in_tree.size()))
-      );
+      ARROW_RETURN_NOT_OK(builder->second.insert(missing_node_count));
    }
    if (auto builder = output_builder.find("missingFromTree"); builder != output_builder.end()) {
       ARROW_RETURN_NOT_OK(
