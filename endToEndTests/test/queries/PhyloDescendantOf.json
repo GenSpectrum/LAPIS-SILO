@@ -3,28 +3,28 @@
   "query": {
     "action": {
       "type": "Aggregated",
-      "groupByFields": ["gisaid_epi_isl"],
+      "groupByFields": ["usherTree"],
       "orderByFields": [
         {
-          "field": "gisaid_epi_isl",
+          "field": "usherTree",
           "order": "ascending"
         }
       ]
     },
     "filterExpression": {
       "type": "PhyloDescendantOf",
-      "column": "gisaid_epi_isl",
+      "column": "usherTree",
       "internalNode": "NODE_0000072"
     }
   },
   "expectedQueryResult": [
     {
       "count": 1,
-      "gisaid_epi_isl": "EPI_ISL_1003849"
+      "usherTree": "EPI_ISL_1003849"
     },
     {
       "count": 1,
-      "gisaid_epi_isl": "EPI_ISL_1260480"
+      "usherTree": "EPI_ISL_1260480"
     }
   ]
 }

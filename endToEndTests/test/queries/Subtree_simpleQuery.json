@@ -3,7 +3,7 @@
   "query": {
     "action": {
       "type": "PhyloSubtree",
-      "columnName": "gisaid_epi_isl",
+      "columnName": "usherTree",
       "orderByFields": ["subtreeNewick"],
       "contractUnaryNodes": false
     },
@@ -12,12 +12,12 @@
       "children": [
         {
           "type": "StringEquals",
-          "column": "gisaid_epi_isl",
+          "column": "usherTree",
           "value": "EPI_ISL_3247294"
         },
         {
           "type": "StringEquals",
-          "column": "gisaid_epi_isl",
+          "column": "usherTree",
           "value": "EPI_ISL_3465732"
         }
       ]

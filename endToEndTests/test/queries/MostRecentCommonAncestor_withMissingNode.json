@@ -3,7 +3,7 @@
   "query": {
     "action": {
       "type": "MostRecentCommonAncestor",
-      "columnName": "gisaid_epi_isl",
+      "columnName": "usherTree",
       "orderByFields": ["mrcaNode"],
       "printNodesNotInTree": true
     },
@@ -12,22 +12,22 @@
       "children": [
         {
           "type": "StringEquals",
-          "column": "gisaid_epi_isl",
+          "column": "usherTree",
           "value": "EPI_ISL_1001493"
         },
         {
           "type": "StringEquals",
-          "column": "gisaid_epi_isl",
+          "column": "usherTree",
           "value": "EPI_ISL_1004495"
         },
         {
           "type": "StringEquals",
-          "column": "gisaid_epi_isl",
+          "column": "usherTree",
           "value": "EPI_ISL_1003373"
         },
         {
           "type": "StringEquals",
-          "column": "gisaid_epi_isl",
+          "column": "usherTree",
           "value": "EPI_ISL_1747752"
         }
       ]

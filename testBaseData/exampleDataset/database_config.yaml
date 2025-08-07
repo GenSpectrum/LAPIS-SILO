@@ -3,6 +3,8 @@ schema:
   metadata:
     - name: gisaid_epi_isl
       type: string
+    - name: usherTree
+      type: string
       isPhyloTreeField: true
     - name: date
       type: date
