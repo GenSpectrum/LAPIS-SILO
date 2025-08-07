@@ -3,7 +3,7 @@
   "query": {
     "action": {
       "type": "PhyloSubtree",
-      "columnName": "gisaid_epi_isl",
+      "columnName": "usherTree",
       "orderByFields": ["subtreeNewick"],
       "contractUnaryNodes": true
     },

@@ -3,7 +3,7 @@
   "query": {
     "action": {
       "type": "PhyloSubtree",
-      "columnName": "gisaid_epi_isl",
+      "columnName": "usherTree",
       "orderByFields": ["subtreeNewick"],
       "printNodesNotInTree": true
     },
@@ -19,6 +19,11 @@
           "type": "StringEquals",
           "column": "gisaid_epi_isl",
           "value": "EPI_ISL_1747752"
+        },
+        {
+          "type": "StringEquals",
+          "column": "gisaid_epi_isl",
+          "value": "EPI_ISL_1408408"
         }
       ]
     }
@@ -26,7 +31,7 @@
   "expectedQueryResult": [
     {
       "subtreeNewick": "",
-      "missingNodeCount": 2,
+      "missingNodeCount": 3,
       "missingFromTree": "EPI_ISL_1001493,EPI_ISL_1747752"
     }
   ]

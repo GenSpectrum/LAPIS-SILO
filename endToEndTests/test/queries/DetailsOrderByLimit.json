@@ -35,7 +35,8 @@
       "qc_value": 0.98,
       "region": "Europe",
       "test_boolean_column": true,
-      "unsorted_date": null
+      "unsorted_date": null,
+      "usherTree": null
     },
     {
       "age": 51,
@@ -47,7 +48,8 @@
       "qc_value": 0.96,
       "region": null,
       "test_boolean_column": true,
-      "unsorted_date": "2021-01-25"
+      "unsorted_date": "2021-01-25",
+      "usherTree": "EPI_ISL_1597890"
     }
   ]
 }

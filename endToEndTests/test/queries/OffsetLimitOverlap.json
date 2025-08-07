@@ -22,7 +22,8 @@
       "qc_value": 0.9,
       "region": "Europe",
       "test_boolean_column": false,
-      "unsorted_date": "2021-03-15"
+      "unsorted_date": "2021-03-15",
+      "usherTree": "EPI_ISL_721941"
     },
     {
       "age": 53,
@@ -34,7 +35,8 @@
       "qc_value": 0.92,
       "region": "Europe",
       "test_boolean_column": true,
-      "unsorted_date": "2021-05-14"
+      "unsorted_date": "2021-05-14",
+      "usherTree": "EPI_ISL_737604"
     },
     {
       "age": 56,
@@ -46,7 +48,8 @@
       "qc_value": 0.89,
       "region": "Europe",
       "test_boolean_column": null,
-      "unsorted_date": "2021-05-16"
+      "unsorted_date": "2021-05-16",
+      "usherTree": "EPI_ISL_737715"
     },
     {
       "age": 56,
@@ -58,7 +61,8 @@
       "qc_value": 0.97,
       "region": "Europe",
       "test_boolean_column": false,
-      "unsorted_date": "2021-04-28"
+      "unsorted_date": "2021-04-28",
+      "usherTree": "EPI_ISL_737860"
     },
     {
       "age": 56,
@@ -70,7 +74,8 @@
       "qc_value": 0.98,
       "region": "Europe",
       "test_boolean_column": true,
-      "unsorted_date": "2020-03-16"
+      "unsorted_date": "2020-03-16",
+      "usherTree": "EPI_ISL_768148"
     },
     {
       "age": 50,
@@ -82,7 +87,8 @@
       "qc_value": 0.97,
       "region": "Europe",
       "test_boolean_column": false,
-      "unsorted_date": "2021-03-03"
+      "unsorted_date": "2021-03-03",
+      "usherTree": "EPI_ISL_830864"
     },
     {
       "age": 59,
@@ -94,7 +100,8 @@
       "qc_value": 0.96,
       "region": "Europe",
       "test_boolean_column": true,
-      "unsorted_date": "2021-07-14"
+      "unsorted_date": "2021-07-14",
+      "usherTree": "EPI_ISL_899725"
     },
     {
       "age": 58,
@@ -106,7 +113,8 @@
       "qc_value": 0.97,
       "region": "Europe",
       "test_boolean_column": false,
-      "unsorted_date": "2021-07-19"
+      "unsorted_date": "2021-07-19",
+      "usherTree": "EPI_ISL_899762"
     },
     {
       "age": 50,
@@ -118,7 +126,8 @@
       "qc_value": 0.95,
       "region": "Europe",
       "test_boolean_column": false,
-      "unsorted_date": "2021-05-10"
+      "unsorted_date": "2021-05-10",
+      "usherTree": "EPI_ISL_931031"
     },
     {
       "age": 50,
@@ -130,7 +139,8 @@
       "qc_value": 0.96,
       "region": "Europe",
       "test_boolean_column": true,
-      "unsorted_date": "2021-05-11"
+      "unsorted_date": "2021-05-11",
+      "usherTree": "EPI_ISL_931279"
     }
   ]
 }

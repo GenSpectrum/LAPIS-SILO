@@ -3,7 +3,7 @@
   "query": {
     "action": {
       "type": "MostRecentCommonAncestor",
-      "columnName": "gisaid_epi_isl",
+      "columnName": "usherTree",
       "orderByFields": ["mrcaNode"]
     },
     "filterExpression": {
