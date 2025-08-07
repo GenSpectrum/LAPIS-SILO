@@ -26,7 +26,7 @@
   "expectedQueryResult": [
     {
       "mrcaNode": null,
-      "missingNodeCount": 3,
+      "missingNodeCount": 2,
       "missingFromTree": "EPI_ISL_1001493,EPI_ISL_1747752"
     }
   ]
