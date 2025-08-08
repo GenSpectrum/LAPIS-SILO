@@ -22,6 +22,7 @@
 #include "silo/query_engine/actions/fasta_aligned.h"
 #include "silo/query_engine/actions/insertions.h"
 #include "silo/query_engine/actions/most_recent_common_ancestor.h"
+#include "silo/query_engine/actions/phylo_parents.h"
 #include "silo/query_engine/actions/mutations.h"
 #include "silo/query_engine/actions/phylo_subtree.h"
 #include "silo/query_engine/bad_request.h"
@@ -166,6 +167,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
       action = json.get<std::unique_ptr<Aggregated>>();
    } else if (expression_type == "MostRecentCommonAncestor") {
       action = json.get<std::unique_ptr<MostRecentCommonAncestor>>();
+   } else if (expression_type == "PhyloParents") {
+      action = json.get<std::unique_ptr<PhyloParents>>();
    } else if (expression_type == "PhyloSubtree") {
       action = json.get<std::unique_ptr<PhyloSubtree>>();
    } else if (expression_type == "Mutations") {

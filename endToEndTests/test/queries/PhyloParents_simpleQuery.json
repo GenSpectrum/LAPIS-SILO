@@ -1,0 +1,30 @@
+{
+  "testCaseName": "PhyloParents query returns correct parentNodes",
+  "query": {
+    "action": {
+      "type": "PhyloParents",
+      "columnName": "gisaid_epi_isl"
+    },
+    "filterExpression": {
+      "type": "Or",
+      "children": [
+        {
+          "type": "StringEquals",
+          "column": "gisaid_epi_isl",
+          "value": "EPI_ISL_3247294"
+        },
+        {
+          "type": "StringEquals",
+          "column": "gisaid_epi_isl",
+          "value": "EPI_ISL_3465732"
+        }
+      ]
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "parentNodes": "NODE_0000082,NODE_0000077",
+      "missingNodeCount": 0
+    }
+  ]
+}

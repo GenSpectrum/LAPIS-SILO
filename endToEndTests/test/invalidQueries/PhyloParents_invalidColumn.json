@@ -1,0 +1,19 @@
+{
+  "testCaseName": "PhyloParents action on column not labelled as isPhyloTreeField",
+  "query": {
+    "action": {
+      "type": "PhyloParents",
+      "columnName": "country",
+      "printNodesNotInTree": true
+    },
+    "filterExpression": {
+      "type": "StringEquals",
+      "column": "country",
+      "value": "Switzerland"
+    }
+  },
+  "expectedError": {
+    "error": "Bad request",
+    "message": "PhyloParents action cannot be called on Column 'country' as it does not have a phylogenetic tree associated with it"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "testCaseName": "PhyloParents query returns correct parentNodes with only missing nodes",
+  "query": {
+    "action": {
+      "type": "PhyloParents",
+      "columnName": "gisaid_epi_isl",
+      "orderByFields": ["parentNodes"],
+      "printNodesNotInTree": true
+    },
+    "filterExpression": {
+      "type": "Or",
+      "children": [
+        {
+          "type": "StringEquals",
+          "column": "gisaid_epi_isl",
+          "value": "EPI_ISL_1001493"
+        },
+        {
+          "type": "StringEquals",
+          "column": "gisaid_epi_isl",
+          "value": "EPI_ISL_1747752"
+        }
+      ]
+    }
+  },
+  "expectedQueryResult": [
+    {
+      "parentNodes": null,
+      "missingNodeCount": 2,
+      "missingFromTree": "EPI_ISL_1001493,EPI_ISL_1747752"
+    }
+  ]
+}
