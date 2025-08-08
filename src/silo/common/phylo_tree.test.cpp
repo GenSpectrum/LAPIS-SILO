@@ -207,6 +207,35 @@ TEST(PhyloTree, correctlyReturnsMRCA) {
    ASSERT_TRUE(mrca_response.not_in_tree.size() == 2 && mrca_response.not_in_tree == expected);
 }
 
+TEST(PhyloTree, correctlyReturnsParents) {
+   auto phylo_tree_file = PhyloTree::fromNewickString("((CHILD2, CHILD3)CHILD, CHILD4)ROOT;");
+   auto parents_response = phylo_tree_file.getParents({"CHILD2", "CHILD3"});
+   ASSERT_TRUE(parents_response.parent_node_ids.size() == 1);
+   std::unordered_set<std::optional<TreeNodeId>> expected_parents = {TreeNodeId{"CHILD"}};
+   ASSERT_EQ(parents_response.parent_node_ids, expected_parents);
+   ASSERT_TRUE(parents_response.not_in_tree.empty());
+
+   parents_response = phylo_tree_file.getParents({"CHILD2", "NOT_IN_TREE"});
+   ASSERT_TRUE(parents_response.parent_node_ids.size() == 1);
+   ASSERT_EQ(parents_response.parent_node_ids, expected_parents);
+   ASSERT_TRUE(
+      parents_response.not_in_tree.size() == 1 && parents_response.not_in_tree[0] == "NOT_IN_TREE"
+   );
+
+   parents_response = phylo_tree_file.getParents({"CHILD2", "CHILD3", "CHILD4"});
+   ASSERT_TRUE(parents_response.parent_node_ids.size() == 2);
+   expected_parents = {TreeNodeId{"ROOT"}, TreeNodeId{"CHILD"}};
+   ASSERT_EQ(parents_response.parent_node_ids, expected_parents);
+   ASSERT_TRUE(parents_response.not_in_tree.empty());
+
+   std::vector<std::string> expected = {"NOT_IN_TREE", "NOT_IN_TREE2"};
+   parents_response = phylo_tree_file.getParents({"NOT_IN_TREE", "NOT_IN_TREE2"});
+   ASSERT_TRUE(parents_response.parent_node_ids.size() == 0);
+   ASSERT_TRUE(
+      parents_response.not_in_tree.size() == 2 && parents_response.not_in_tree == expected
+   );
+}
+
 TEST(PhyloTree, correctlyReturnsSubTreeNewick) {
    auto phylo_tree =
       PhyloTree::fromNewickString("(((A1.1, A1.2)A1,(A2.1)A2)A,(B1,(B2.1,B2.2)B2)B)R;");
