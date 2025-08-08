@@ -411,6 +411,33 @@ void PhyloTree::getSetOfAncestorsAtDepth(
    }
 }
 
+ParentResponse PhyloTree::getParents(const std::unordered_set<std::string>& node_labels) const {
+   ParentResponse response;
+   std::set<TreeNodeId> nodes_to_group;
+   for (const auto& node_label : node_labels) {
+      auto node_it = nodes.find(TreeNodeId{node_label});
+      if (node_it == nodes.end()) {
+         response.not_in_tree.push_back(node_label);
+      } else {
+         nodes_to_group.insert(node_it->first);
+      }
+   }
+   std::sort(response.not_in_tree.begin(), response.not_in_tree.end());
+
+   if (nodes_to_group.empty()) {
+      return response;
+   }
+
+   for (const auto& node_id : nodes_to_group) {
+      auto node_it = nodes.find(node_id);
+      if (node_it == nodes.end()) {
+         throw std::runtime_error(fmt::format("Node '{}' does not exist in tree.", node_id.string));
+      }
+      response.parent_node_ids.insert(node_it->second->parent);
+   }
+   return response;
+}
+
 MRCAResponse PhyloTree::getMRCA(const std::unordered_set<std::string>& node_labels) const {
    MRCAResponse response;
    std::set<TreeNodeId> nodes_to_group;
