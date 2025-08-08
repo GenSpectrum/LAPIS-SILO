@@ -25,6 +25,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_BINARY_DIR}/generators/")
 # (looking for the <lib>-config.cmake files of transitive dependencies of modules, e.g. spdlog->fmt)
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${CMAKE_BINARY_DIR}/generators/")
 
+# Export compile commands for configuring language servers or debugging the build
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
