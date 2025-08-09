@@ -38,7 +38,8 @@ arrow::Result<std::shared_ptr<arrow::Table>> setupTestTable(
    for (auto& value : values) {
       ARROW_RETURN_NOT_OK(id_builder.Append(id++));
       if (value.has_value()) {
-         ARROW_RETURN_NOT_OK(value_builder.Append(compressor.compress(value.value())));
+         ARROW_RETURN_NOT_OK(value_builder.Append(compressor.compress(value->data(), value->size()))
+         );
       } else {
          ARROW_RETURN_NOT_OK(value_builder.AppendNull());
       }

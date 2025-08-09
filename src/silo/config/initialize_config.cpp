@@ -38,6 +38,9 @@ ConfigKeyPath databaseConfigFileOptionKey() {
 ConfigKeyPath referenceGenomeFilenameOptionKey() {
    return YamlFile::stringToConfigKeyPath("referenceGenomeFilename");
 }
+ConfigKeyPath withUnalignedSequencesOptionKey() {
+   return YamlFile::stringToConfigKeyPath("withUnalignedSequences");
+}
 }  // namespace
 
 namespace silo::config {
@@ -83,6 +86,11 @@ ConfigSpecification InitializeConfig::getConfigSpecification() {
             referenceGenomeFilenameOptionKey(),
             ConfigValue::fromPath("reference_genomes.json"),
             "File name of the file holding the reference genome. Relative from inputDirectory."
+         ),
+         ConfigAttributeSpecification::createWithDefault(
+            withUnalignedSequencesOptionKey(),
+            ConfigValue::fromBool(true),
+            "Whether an unaligned sequence should be added for each aligned nucleotide sequence."
          ),
       }
    };
@@ -134,6 +142,9 @@ void InitializeConfig::overwriteFrom(const VerifiedConfigAttributes& config_sour
    }
    if (auto var = config_source.getPath(outputDirectoryOptionKey())) {
       output_directory = var.value();
+   }
+   if (auto var = config_source.getBool(withUnalignedSequencesOptionKey())) {
+      initialization_files.with_unaligned_sequences = var.value();
    }
 }
 

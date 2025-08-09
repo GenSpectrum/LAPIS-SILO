@@ -15,22 +15,23 @@ const std::string VALUE_SEGMENT_1 = "A";
 const std::string VALUE_SEGMENT_2 = "C";
 
 const nlohmann::json DATA_DIFFERENT_FROM_REFERENCE = {
-   {"metadata", {{"primaryKey", "id"}}},
-   {"alignedNucleotideSequences", {{"segment1", VALUE_SEGMENT_1}, {"segment2", VALUE_SEGMENT_2}}},
-   {"unalignedNucleotideSequences", {{"segment1", nullptr}, {"segment2", nullptr}}},
-   {"alignedAminoAcidSequences",
-    {{"gene1", VALUE_SEGMENT_1 + "*"}, {"gene2", VALUE_SEGMENT_2 + "*"}}},
-   {"nucleotideInsertions", {{"segment1", {"1:AAA"}}, {"segment2", {"1:GGG"}}}},
-   {"aminoAcidInsertions", {{"gene1", {"1:AAA"}}, {"gene2", {"1:GGG"}}}}
+   {"primaryKey", "id"},
+   {"segment1", {{"sequence", VALUE_SEGMENT_1}, {"insertions", {"1:AAA"}}}},
+   {"segment2", {{"sequence", VALUE_SEGMENT_2}, {"insertions", {"1:GGG"}}}},
+   {"unaligned_segment1", nullptr},
+   {"unaligned_segment2", nullptr},
+   {"gene1", {{"sequence", VALUE_SEGMENT_1 + "*"}, {"insertions", {"1:AAA"}}}},
+   {"gene2", {{"sequence", VALUE_SEGMENT_2 + "*"}, {"insertions", {"1:GGG"}}}},
 };
 
 const nlohmann::json DATA_EQUALS_TO_REFERENCE = {
-   {"metadata", {{"primaryKey", "equal to reference"}}},
-   {"alignedNucleotideSequences", {{"segment1", "T"}, {"segment2", "T"}}},
-   {"unalignedNucleotideSequences", {{"segment1", nullptr}, {"segment2", nullptr}}},
-   {"alignedAminoAcidSequences", {{"gene1", "T*"}, {"gene2", "T*"}}},
-   {"nucleotideInsertions", {{"segment1", {}}, {"segment2", {}}}},
-   {"aminoAcidInsertions", {{"gene1", {}}, {"gene2", {}}}}
+   {"primaryKey", "equal to reference"},
+   {"segment1", {{"sequence", "T"}, {"insertions", nlohmann::json::array()}}},
+   {"segment2", {{"sequence", "T"}, {"insertions", nlohmann::json::array()}}},
+   {"gene1", {{"sequence", "T*"}, {"insertions", nlohmann::json::array()}}},
+   {"gene2", {{"sequence", "T*"}, {"insertions", nlohmann::json::array()}}},
+   {"unaligned_segment1", nullptr},
+   {"unaligned_segment2", nullptr},
 };
 
 const auto DATABASE_CONFIG =
