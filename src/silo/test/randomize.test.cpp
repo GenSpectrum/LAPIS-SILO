@@ -13,48 +13,50 @@ using silo::config::ValueType;
 using silo::test::QueryTestData;
 using silo::test::QueryTestScenario;
 
-const auto DATA_JSON = R"([
-   {
-      "metadata": {"key": "id1", "col": "A"},
-      "alignedNucleotideSequences": {"segment1": null},
-      "unalignedNucleotideSequences": {"segment1": null},
-      "alignedAminoAcidSequences": {"gene1": null},
-      "nucleotideInsertions": {"segment1": []},
-      "aminoAcidInsertions": {"gene1": []}
-   },
-   {
-      "metadata": {"key": "id2", "col": "B"},
-      "alignedNucleotideSequences": {"segment1": null},
-      "unalignedNucleotideSequences": {"segment1": null},
-      "alignedAminoAcidSequences": {"gene1": null},
-      "nucleotideInsertions": {"segment1": []},
-      "aminoAcidInsertions": {"gene1": []}
-   },
-   {
-      "metadata": {"key": "id3", "col": "A"},
-      "alignedNucleotideSequences": {"segment1": null},
-      "unalignedNucleotideSequences": {"segment1": null},
-      "alignedAminoAcidSequences": {"gene1": null},
-      "nucleotideInsertions": {"segment1": []},
-      "aminoAcidInsertions": {"gene1": []}
-   },
-   {
-      "metadata": {"key": "id4", "col": "B"},
-      "alignedNucleotideSequences": {"segment1": null},
-      "unalignedNucleotideSequences": {"segment1": null},
-      "alignedAminoAcidSequences": {"gene1": null},
-      "nucleotideInsertions": {"segment1": []},
-      "aminoAcidInsertions": {"gene1": []}
-   },
-   {
-      "metadata": {"key": "id5", "col": "A"},
-      "alignedNucleotideSequences": {"segment1": null},
-      "unalignedNucleotideSequences": {"segment1": null},
-      "alignedAminoAcidSequences": {"gene1": null},
-      "nucleotideInsertions": {"segment1": []},
-      "aminoAcidInsertions": {"gene1": []}
-   }
-])";
+const auto DATA_JSON = R"(
+[
+  {
+    "key": "id1",
+    "col": "A",
+    "float_value": null,
+    "segment1": null,
+    "unaligned_segment1": null,
+    "gene1": null
+  },
+  {
+    "key": "id2",
+    "col": "B",
+    "float_value": null,
+    "segment1": null,
+    "unaligned_segment1": null,
+    "gene1": null
+  },
+  {
+    "key": "id3",
+    "col": "A",
+    "float_value": null,
+    "segment1": null,
+    "unaligned_segment1": null,
+    "gene1": null
+  },
+  {
+    "key": "id4",
+    "col": "B",
+    "float_value": null,
+    "segment1": null,
+    "unaligned_segment1": null,
+    "gene1": null
+  },
+  {
+    "key": "id5",
+    "col": "A",
+    "float_value": null,
+    "segment1": null,
+    "unaligned_segment1": null,
+    "gene1": null
+  }
+]
+)";
 
 const std::vector<json> DATA = json::parse(DATA_JSON);
 

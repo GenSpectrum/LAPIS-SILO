@@ -86,7 +86,7 @@ class IndexedStringColumnPartition {
 
    std::optional<const roaring::Roaring*> filter(const std::optional<std::string>& value) const;
 
-   void insert(const std::string& value);
+   void insert(std::string_view value);
 
    void insertNull();
 
