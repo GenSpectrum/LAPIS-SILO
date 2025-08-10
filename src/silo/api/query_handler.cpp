@@ -25,6 +25,12 @@ QueryHandler::QueryHandler(
     : query_options(std::move(query_options)),
       database_handle(database_handle) {}
 
+namespace {
+
+uint64_t DEFAULT_TIMEOUT_TWO_MINUTES = 120;
+
+}
+
 void QueryHandler::post(
    Poco::Net::HTTPServerRequest& request,
    Poco::Net::HTTPServerResponse& response
@@ -51,7 +57,7 @@ void QueryHandler::post(
       // This function is not inside executeAndWrite, because we need the context from query->action
       EVOBENCH_SCOPE("QueryPlan", "executeAndWrite");
       EVOBENCH_KEY_VALUE("of query_type", query->action->getType());
-      query_plan.executeAndWrite(&out_stream);
+      query_plan.executeAndWrite(&out_stream, DEFAULT_TIMEOUT_TWO_MINUTES);
 
    } catch (const silo::BadRequest& ex) {
       response.setContentType("application/json");

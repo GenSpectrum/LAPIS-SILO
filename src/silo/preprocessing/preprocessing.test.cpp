@@ -814,7 +814,7 @@ TEST_P(PreprocessorTestFixture, shouldProcessData) {
    auto query_plan =
       query->toQueryPlan(database, silo::config::RuntimeConfig::withDefaults().query_options);
    std::stringstream actual_result_stream;
-   query_plan.executeAndWrite(&actual_result_stream);
+   query_plan.executeAndWrite(&actual_result_stream, /*timeout_in_seconds=*/3);
    nlohmann::json actual_ndjson_result_as_array = nlohmann::json::array();
    std::string line;
    while (std::getline(actual_result_stream, line)) {
