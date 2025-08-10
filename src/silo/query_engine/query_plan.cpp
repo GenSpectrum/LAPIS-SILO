@@ -24,7 +24,10 @@ arrow::Result<QueryPlan> QueryPlan::makeQueryPlan(
    return query_plan;
 }
 
-arrow::Status QueryPlan::executeAndWriteImpl(std::ostream* output_stream) {
+arrow::Status QueryPlan::executeAndWriteImpl(
+   std::ostream* output_stream,
+   uint64_t timeout_in_seconds
+) {
    EVOBENCH_SCOPE("QueryPlan", "execute");
    SPDLOG_TRACE("{}", arrow_plan->ToString());
    arrow_plan->StartProducing();
@@ -32,6 +35,13 @@ arrow::Status QueryPlan::executeAndWriteImpl(std::ostream* output_stream) {
    while (true) {
       arrow::Future<std::optional<arrow::ExecBatch>> future_batch = results_generator();
       SPDLOG_TRACE("await the next batch");
+      bool finished_batch_in_time = future_batch.Wait(timeout_in_seconds);
+      if (!finished_batch_in_time) {
+         return arrow::Status::ExecutionError(fmt::format(
+            "Request timed out, could not detect any progress within {} seconds.",
+            timeout_in_seconds
+         ));
+      }
       ARROW_ASSIGN_OR_RAISE(std::optional<arrow::ExecBatch> optional_batch, future_batch.result());
       SPDLOG_TRACE("Batch received");
 
@@ -64,8 +74,8 @@ arrow::Status QueryPlan::executeAndWriteImpl(std::ostream* output_stream) {
    return arrow::Status::OK();
 }
 
-void QueryPlan::executeAndWrite(std::ostream* output_stream) {
-   auto status = executeAndWriteImpl(output_stream);
+void QueryPlan::executeAndWrite(std::ostream* output_stream, uint64_t timeout_in_seconds) {
+   auto status = executeAndWriteImpl(output_stream, timeout_in_seconds);
    if (!status.ok()) {
       if (status.IsIOError()) {
          SPDLOG_ERROR("The request {} encountered an IO Error when sending the response");
@@ -73,7 +83,7 @@ void QueryPlan::executeAndWrite(std::ostream* output_stream) {
          throw std::runtime_error(fmt::format(
             "Internal server error. Please notify developers. SILO likely constructed an invalid "
             "arrow plan and more user-input validation needs to be added: {}",
-            status.ToString()
+            status.message()
          ));
       }
    }

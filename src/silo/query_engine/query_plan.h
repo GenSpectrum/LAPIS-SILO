@@ -23,13 +23,13 @@ class QueryPlan {
       arrow::acero::ExecNode* root
    );
 
-   void executeAndWrite(std::ostream* output_stream);
+   void executeAndWrite(std::ostream* output_stream, uint64_t timeout_in_seconds);
 
   private:
    QueryPlan(std::shared_ptr<arrow::acero::ExecPlan> arrow_plan)
        : arrow_plan(arrow_plan) {}
 
-   arrow::Status executeAndWriteImpl(std::ostream* output_stream);
+   arrow::Status executeAndWriteImpl(std::ostream* output_stream, uint64_t timeout_in_seconds);
 };
 
 }  // namespace silo::query_engine
