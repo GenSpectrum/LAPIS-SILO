@@ -48,7 +48,7 @@ void TreeAction::validateOrderByFields(const schema::TableSchema& schema) const 
    }
 }
 
-std::unordered_set<std::string> TreeAction::getNodeValues(
+NodeValuesResponse TreeAction::getNodeValues(
    std::shared_ptr<const storage::Table> table,
    const std::string& column_name,
    std::vector<CopyOnWriteBitmap>& bitmap_filter
@@ -58,6 +58,7 @@ std::unordered_set<std::string> TreeAction::getNodeValues(
       num_rows += filter->cardinality();
    }
    std::unordered_set<std::string> all_tree_node_ids;
+   uint32_t num_empty = 0;
    all_tree_node_ids.reserve(num_rows);
    for (size_t i = 0; i < table->getNumberOfPartitions(); ++i) {
       const storage::TablePartition& table_partition = table->getPartition(i);
@@ -73,10 +74,12 @@ std::unordered_set<std::string> TreeAction::getNodeValues(
             string_column.lookupValue(string_column.getValues().at(row_in_table_partition));
          if (!value.empty()) {
             all_tree_node_ids.insert(value);
+         } else {
+            ++num_empty;
          }
       }
    }
-   return all_tree_node_ids;
+   return NodeValuesResponse{std::move(all_tree_node_ids), num_empty};
 }
 
 arrow::Result<QueryPlan> TreeAction::toQueryPlanImpl(
@@ -136,11 +139,11 @@ arrow::Result<QueryPlan> TreeAction::toQueryPlanImpl(
          );
       }
 
-      auto all_node_ids =
+      auto node_values =
          this->getNodeValues(table, column_name_to_evaluate, evaluated_partition_filters);
 
       ARROW_RETURN_NOT_OK(
-         this->addResponseToBuilder(all_node_ids, output_builder, phylo_tree, print_missing_nodes)
+         this->addResponseToBuilder(node_values, output_builder, phylo_tree, print_missing_nodes)
       );
 
       // Order of result_columns is relevant as it needs to be consistent with vector in schema

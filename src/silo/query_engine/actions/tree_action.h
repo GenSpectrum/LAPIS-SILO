@@ -19,6 +19,12 @@
 
 namespace silo::query_engine::actions {
 
+class NodeValuesResponse {
+  public:
+   std::unordered_set<std::string> node_values;
+   uint32_t missing_node_count = 0;
+};
+
 class TreeAction : public Action {
   private:
    std::string column_name;
@@ -41,14 +47,14 @@ class TreeAction : public Action {
   public:
    TreeAction(std::string column_name, bool print_nodes_not_in_tree);
 
-   std::unordered_set<std::string> getNodeValues(
+   NodeValuesResponse getNodeValues(
       std::shared_ptr<const storage::Table> table,
       const std::string& column_name,
       std::vector<CopyOnWriteBitmap>& bitmap_filter
    ) const;
 
    virtual arrow::Status addResponseToBuilder(
-      std::unordered_set<std::string>& all_node_ids,
+      NodeValuesResponse& all_node_ids,
       std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder,
       const common::PhyloTree& phylo_tree,
       bool print_nodes_not_in_tree

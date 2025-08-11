@@ -6,12 +6,12 @@
     },
     "filterExpression": {
       "type": "PhyloDescendantOf",
-      "column": "gisaid_epi_isl",
+      "column": "usherTree",
       "internalNode": "NON_EXISTING_NODE"
     }
   },
   "expectedError": {
     "error": "Bad request",
-    "message": "The node 'NON_EXISTING_NODE' does not exist in the phylogenetic tree of column 'gisaid_epi_isl'"
+    "message": "The node 'NON_EXISTING_NODE' does not exist in the phylogenetic tree of column 'usherTree'"
   }
 }
