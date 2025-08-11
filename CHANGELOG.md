@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.8.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.11...v0.8.0) (2025-08-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* the schema of the expected ndjson file changed. Pass all data flat, and aligned sequence data as a json object together with corresponding insertions. SILO no longer appends "unaligned_" internally when looking for fields in the ndjson
+
+### Features
+
+* use simdjson as json parser during preprocessing ([542d231](https://github.com/GenSpectrum/LAPIS-SILO/commit/542d231973fe7459d9cf9aa15e54c980332babdc))
+
 ## [0.7.11](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.10...v0.7.11) (2025-08-11)
 
 
