@@ -58,7 +58,7 @@ NodeValuesResponse TreeAction::getNodeValues(
       num_rows += filter->cardinality();
    }
    std::unordered_set<std::string> all_tree_node_ids;
-   int num_empty = 0;
+   uint32_t num_empty = 0;
    all_tree_node_ids.reserve(num_rows);
    for (size_t i = 0; i < table->getNumberOfPartitions(); ++i) {
       const storage::TablePartition& table_partition = table->getPartition(i);

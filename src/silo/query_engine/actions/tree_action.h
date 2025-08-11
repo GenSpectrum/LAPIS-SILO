@@ -22,7 +22,7 @@ namespace silo::query_engine::actions {
 class NodeValuesResponse {
   public:
    std::unordered_set<std::string> node_values;
-   int32_t missing_node_count = 0;
+   uint32_t missing_node_count = 0;
 };
 
 class TreeAction : public Action {
