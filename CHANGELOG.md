@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.11](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.10...v0.7.11) (2025-08-11)
+
+
+### Features
+
+* **silo:** include null values in phyloTree column in missingNodeCount ([#936](https://github.com/GenSpectrum/LAPIS-SILO/issues/936)) ([8f121cf](https://github.com/GenSpectrum/LAPIS-SILO/commit/8f121cfec8589b4dcbaf4104e9d41d026c58045d))
+
 ## [0.7.10](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.9...v0.7.10) (2025-08-07)
 
 
