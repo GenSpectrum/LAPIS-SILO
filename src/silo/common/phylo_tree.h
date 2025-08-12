@@ -35,12 +35,12 @@ class TreeNode {
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
-    archive & node_id;
-    archive & children;
-    archive & parent;
-    archive & depth;
-    archive & row_index;
-    archive & branch_length;
+      archive & node_id;
+      archive & children;
+      archive & parent;
+      archive & depth;
+      archive & row_index;
+      archive & branch_length;
       // clang-format on
    }
 };
@@ -61,6 +61,8 @@ class MRCAResponse {
   public:
    std::optional<TreeNodeId> mrca_node_id;
    std::vector<std::string> not_in_tree;
+   std::optional<TreeNodeId> parent_id_of_mrca;
+   std::optional<int> mrca_depth;
 };
 
 class NewickResponse {
