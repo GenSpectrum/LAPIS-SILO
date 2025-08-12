@@ -45,15 +45,21 @@ arrow::Status MostRecentCommonAncestor::addResponseToBuilder(
 ) const {
    MRCAResponse response = phylo_tree.getMRCA(all_node_ids.node_values);
    std::optional<std::string> mrca_node =
-      response.mrca_node_id.has_value()
-         ? std::make_optional<std::string>(response.mrca_node_id.value().string)
-         : std::nullopt;
+      response.mrca_node_id.transform([](const auto& id) { return id.string; });
+   std::optional<std::string> mrca_parent =
+      response.parent_id_of_mrca.transform([](const auto& id) { return id.string; });
 
    int32_t missing_node_count =
       all_node_ids.missing_node_count + static_cast<int32_t>(response.not_in_tree.size());
 
    if (auto builder = output_builder.find("mrcaNode"); builder != output_builder.end()) {
       ARROW_RETURN_NOT_OK(builder->second.insert(mrca_node));
+   }
+   if (auto builder = output_builder.find("mrcaParent"); builder != output_builder.end()) {
+      ARROW_RETURN_NOT_OK(builder->second.insert(mrca_parent));
+   }
+   if (auto builder = output_builder.find("mrcaDepth"); builder != output_builder.end()) {
+      ARROW_RETURN_NOT_OK(builder->second.insert(response.mrca_depth));
    }
    if (auto builder = output_builder.find("missingNodeCount"); builder != output_builder.end()) {
       ARROW_RETURN_NOT_OK(builder->second.insert(missing_node_count));
@@ -71,6 +77,8 @@ std::vector<schema::ColumnIdentifier> MostRecentCommonAncestor::getOutputSchema(
 ) const {
    auto base = makeBaseOutputSchema();
    base.emplace_back("mrcaNode", schema::ColumnType::STRING);
+   base.emplace_back("mrcaParent", schema::ColumnType::STRING);
+   base.emplace_back("mrcaDepth", schema::ColumnType::INT32);
    return base;
 }
 

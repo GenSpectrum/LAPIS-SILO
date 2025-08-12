@@ -42,7 +42,9 @@
     {
       "mrcaNode": "NODE_0000096",
       "missingNodeCount": 3,
-      "missingFromTree": "EPI_ISL_1001493,EPI_ISL_1747752"
+      "missingFromTree": "EPI_ISL_1001493,EPI_ISL_1747752",
+      "mrcaParent": "NODE_0000095",
+      "mrcaDepth": 25
     }
   ]
 }

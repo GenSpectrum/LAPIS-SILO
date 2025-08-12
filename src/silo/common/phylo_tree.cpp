@@ -431,6 +431,7 @@ MRCAResponse PhyloTree::getMRCA(const std::unordered_set<std::string>& node_labe
 
    if (nodes_to_group.empty()) {
       response.mrca_node_id = std::nullopt;
+      response.parent_id_of_mrca = std::nullopt;
       return response;
    }
 
@@ -449,7 +450,14 @@ MRCAResponse PhyloTree::getMRCA(const std::unordered_set<std::string>& node_labe
          "No common ancestor found for the provided nodes. This is an internal error."
       );
    }
-   response.mrca_node_id = *set_at_min_depth.begin();
+
+   const TreeNodeId& mrca_node_id = *set_at_min_depth.begin();
+   SILO_ASSERT(nodes.contains(mrca_node_id));
+   std::shared_ptr<TreeNode> mrca_node = nodes.find(mrca_node_id)->second;
+
+   response.mrca_node_id = mrca_node->node_id;
+   response.parent_id_of_mrca = mrca_node->parent;
+   response.mrca_depth = mrca_node->depth;
    return response;
 }
 

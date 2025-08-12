@@ -25,7 +25,9 @@
   "expectedQueryResult": [
     {
       "mrcaNode": "NODE_0000072",
-      "missingNodeCount": 0
+      "missingNodeCount": 0,
+      "mrcaParent": "NODE_0000070",
+      "mrcaDepth": 23
     }
   ]
 }
