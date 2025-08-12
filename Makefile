@@ -6,8 +6,15 @@ RUNNING_SILO_FLAG=running_silo.flag
 
 ci: format all-tests
 
-${SILO_EXECUTABLE}: $(shell find src -type f)
-	python3 build_with_conan.py
+build/Debug/generators.file:
+	conan install . --update --build=missing --profile ./conanprofile --profile:build ./conanprofile \
+	  --settings '&:build_type=Debug' --output-folder=build/Debug/generators
+
+build/Debug/build.ninja: build/Debug/generators.file
+	cmake -B build/Debug -D CMAKE_BUILD_TYPE=Debug
+
+${SILO_EXECUTABLE}: build/Debug/build.ninja $(shell find src -type f)
+	cmake --build build/Debug --parallel 16
 
 output: ${SILO_EXECUTABLE}
 	${SILO_EXECUTABLE} preprocessing --database-config database_config.yaml --preprocessing-config testBaseData/test_preprocessing_config.yaml
