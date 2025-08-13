@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.8.0...v0.8.1) (2025-08-13)
+
+
+### Features
+
+* add a default timeout of 2 minutes between sending response batches of requests ([f5effef](https://github.com/GenSpectrum/LAPIS-SILO/commit/f5effefbfcb219f309a0979c1a81d2c9bc676bd3))
+* add mrcaParent and mrcaDepth to response of MostRecentCommonAncestor queries ([f49177b](https://github.com/GenSpectrum/LAPIS-SILO/commit/f49177bd10a8d0af6f64d70ed18b671c187cbd94))
+
 ## [0.8.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.7.11...v0.8.0) (2025-08-11)
 
 
