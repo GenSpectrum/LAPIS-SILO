@@ -45,6 +45,8 @@ The result of such a query is a ndjson with a single row, where `missingFromTree
 ```json
 {
   "mrcaNode": "MRCA_NODE",
+  "mrcaParent": "<parent of MRCA_NODE>",
+  "mrcaDepth": "<distance MRCA_NODE-root>",
   "missingNodeCount": "INT",
   "missingFromTree": "MISSING_NODE1,MISSING_NODE2"
 }
