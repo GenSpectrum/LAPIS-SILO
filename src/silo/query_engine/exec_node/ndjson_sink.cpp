@@ -131,7 +131,7 @@ void sendJsonLinesInBatches(
       }
       ndjson_line_streams << "}\n";
       {
-         EVOBENCH_SCOPE("QueryPlan", "sendDataToOutputStream");
+         EVOBENCH_SCOPE_EVERY(100, "QueryPlan", "sendDataToOutputStream");
          ndjson_line_streams >> output_stream;
       }
    }
