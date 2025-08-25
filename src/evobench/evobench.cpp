@@ -133,6 +133,36 @@ void js_print(uint32_t value, std::string& out) {
    }
 }
 
+void js_print(int32_t value, std::string& out) {
+   char buffer[12];
+   auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), value);
+   if (ec == std::errc()) {
+      out.append(buffer, ptr);
+   } else {
+      abort();
+   }
+}
+
+// void js_print(uint64_t value, std::string& out) {
+//     char buffer[21];
+//     auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), value);
+//     if (ec == std::errc()) {
+//         out.append(buffer, ptr);
+//     } else {
+//         abort();
+//     }
+// }
+
+void js_print(int64_t value, std::string& out) {
+   char buffer[22];
+   auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), value);
+   if (ec == std::errc()) {
+      out.append(buffer, ptr);
+   } else {
+      abort();
+   }
+}
+
 void js_print(const std::string_view input, std::string& out) {
    out.push_back('"');
    for (char ch : input) {
@@ -176,11 +206,11 @@ void js_print(const std::string_view input, std::string& out) {
 }
 
 void js_print(const timespec& t, std::string& out) {
-   OBJ(KV("sec", SLOW(t.tv_sec)) COMMA KV("nsec", SLOW(t.tv_nsec)))
+   OBJ(KV("sec", ATOM(t.tv_sec)) COMMA KV("nsec", ATOM(t.tv_nsec)))
 }
 
 void js_print(const timeval& t, std::string& out) {
-   OBJ(KV("sec", SLOW(t.tv_sec)) COMMA KV("usec", SLOW(t.tv_usec)))
+   OBJ(KV("sec", ATOM(t.tv_sec)) COMMA KV("usec", ATOM(t.tv_usec)))
 }
 
 // Keep in sync with `PointKind` ! XX better solution?
@@ -269,9 +299,9 @@ void log_resource_usage(
    OBJ(KV(point_kind_name[kind],
 	  OBJ(KV("pn", ATOM(probe_name))
 	      COMMA
-	      KV("pid", SLOW(getpid()))
+	      KV("pid", ATOM(getpid()))
 	      COMMA
-	      KV("tid", SLOW(our_get_thread_id()))
+	      KV("tid", ATOM(our_get_thread_id()))
 	      COMMA
 	      KV("n", ATOM(num_calls))
 	      COMMA
@@ -284,7 +314,7 @@ void log_resource_usage(
 	      COMMA
 	      // Some of these are per process, but when do we
 	      // want to know, still per thread action?
-	      KV("maxrss", SLOW(r.ru_maxrss))
+	      KV("maxrss", ATOM(r.ru_maxrss))
 	      COMMA
 	      // KV("ixrss", ATOM(r.ru_ixrss)) -- This field is currently unused on Linux.
 	      // COMMA
@@ -292,15 +322,15 @@ void log_resource_usage(
 	      // COMMA
 	      // KV("isrss", ATOM(r.ru_isrss)) -- This field is currently unused on Linux.
 	      // COMMA
-	      KV("minflt", SLOW(r.ru_minflt))
+	      KV("minflt", ATOM(r.ru_minflt))
 	      COMMA
-	      KV("majflt", SLOW(r.ru_majflt))
+	      KV("majflt", ATOM(r.ru_majflt))
 	      COMMA
 	      // KV("nswap", ATOM(r.ru_nswap)) -- This field is currently unused on Linux.
 	      // COMMA
-	      KV("inblock", SLOW(r.ru_inblock))
+	      KV("inblock", ATOM(r.ru_inblock))
 	      COMMA
-	      KV("oublock", SLOW(r.ru_oublock))
+	      KV("oublock", ATOM(r.ru_oublock))
 	      COMMA
 	      // KV("msgsnd", ATOM(r.ru_msgsnd)) -- This field is currently unused on Linux.
 	      // COMMA
@@ -308,9 +338,9 @@ void log_resource_usage(
 	      // COMMA
 	      // KV("nsignals", ATOM(r.ru_nsignals)) -- This field is currently unused on Linux.
 	      // COMMA
-	      KV("nvcsw", SLOW(r.ru_nvcsw))
+	      KV("nvcsw", ATOM(r.ru_nvcsw))
 	      COMMA
-	      KV("nivcsw", SLOW(r.ru_nivcsw))
+	      KV("nivcsw", ATOM(r.ru_nivcsw))
 #endif
 	      )));
    NEWLINE;
