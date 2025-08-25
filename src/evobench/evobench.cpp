@@ -4,6 +4,7 @@
 
 #include "evobench/evobench.hpp"
 
+#include <charconv>
 #include <cstdint>
 #include <cstring>
 #include <iomanip>
@@ -122,6 +123,46 @@ void js_print_slow(T val, std::string& out) {
    out.append(tmpout.str());
 }
 
+void js_print(uint32_t value, std::string& out) {
+   char buffer[11];
+   auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), value);
+   if (ec == std::errc()) {
+      out.append(buffer, ptr);
+   } else {
+      abort();
+   }
+}
+
+void js_print(int32_t value, std::string& out) {
+   char buffer[12];
+   auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), value);
+   if (ec == std::errc()) {
+      out.append(buffer, ptr);
+   } else {
+      abort();
+   }
+}
+
+// void js_print(uint64_t value, std::string& out) {
+//     char buffer[21];
+//     auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), value);
+//     if (ec == std::errc()) {
+//         out.append(buffer, ptr);
+//     } else {
+//         abort();
+//     }
+// }
+
+void js_print(int64_t value, std::string& out) {
+   char buffer[22];
+   auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), value);
+   if (ec == std::errc()) {
+      out.append(buffer, ptr);
+   } else {
+      abort();
+   }
+}
+
 void js_print(const std::string_view input, std::string& out) {
    out.push_back('"');
    for (char ch : input) {
@@ -165,11 +206,11 @@ void js_print(const std::string_view input, std::string& out) {
 }
 
 void js_print(const timespec& t, std::string& out) {
-   OBJ(KV("sec", SLOW(t.tv_sec)) COMMA KV("nsec", SLOW(t.tv_nsec)))
+   OBJ(KV("sec", ATOM(t.tv_sec)) COMMA KV("nsec", ATOM(t.tv_nsec)))
 }
 
 void js_print(const timeval& t, std::string& out) {
-   OBJ(KV("sec", SLOW(t.tv_sec)) COMMA KV("usec", SLOW(t.tv_usec)))
+   OBJ(KV("sec", ATOM(t.tv_sec)) COMMA KV("usec", ATOM(t.tv_usec)))
 }
 
 // Keep in sync with `PointKind` ! XX better solution?
@@ -234,7 +275,12 @@ void log_start(std::string& out) {
    // clang-format on
 }
 
-void log_resource_usage(const char* probe_name, evobench::PointKind kind, std::string& out) {
+void log_resource_usage(
+   const char* probe_name,
+   evobench::PointKind kind,
+   std::string& out,
+   uint32_t num_calls
+) {
    struct timespec t;
    ERRCHECK(clock_gettime(CLOCK_REALTIME, &t));
 
@@ -253,9 +299,11 @@ void log_resource_usage(const char* probe_name, evobench::PointKind kind, std::s
    OBJ(KV(point_kind_name[kind],
 	  OBJ(KV("pn", ATOM(probe_name))
 	      COMMA
-	      KV("pid", SLOW(getpid()))
+	      KV("pid", ATOM(getpid()))
 	      COMMA
-	      KV("tid", SLOW(our_get_thread_id()))
+	      KV("tid", ATOM(our_get_thread_id()))
+	      COMMA
+	      KV("n", ATOM(num_calls))
 	      COMMA
 	      KV("r", ATOM(t))
 	      COMMA
@@ -266,7 +314,7 @@ void log_resource_usage(const char* probe_name, evobench::PointKind kind, std::s
 	      COMMA
 	      // Some of these are per process, but when do we
 	      // want to know, still per thread action?
-	      KV("maxrss", SLOW(r.ru_maxrss))
+	      KV("maxrss", ATOM(r.ru_maxrss))
 	      COMMA
 	      // KV("ixrss", ATOM(r.ru_ixrss)) -- This field is currently unused on Linux.
 	      // COMMA
@@ -274,15 +322,15 @@ void log_resource_usage(const char* probe_name, evobench::PointKind kind, std::s
 	      // COMMA
 	      // KV("isrss", ATOM(r.ru_isrss)) -- This field is currently unused on Linux.
 	      // COMMA
-	      KV("minflt", SLOW(r.ru_minflt))
+	      KV("minflt", ATOM(r.ru_minflt))
 	      COMMA
-	      KV("majflt", SLOW(r.ru_majflt))
+	      KV("majflt", ATOM(r.ru_majflt))
 	      COMMA
 	      // KV("nswap", ATOM(r.ru_nswap)) -- This field is currently unused on Linux.
 	      // COMMA
-	      KV("inblock", SLOW(r.ru_inblock))
+	      KV("inblock", ATOM(r.ru_inblock))
 	      COMMA
-	      KV("oublock", SLOW(r.ru_oublock))
+	      KV("oublock", ATOM(r.ru_oublock))
 	      COMMA
 	      // KV("msgsnd", ATOM(r.ru_msgsnd)) -- This field is currently unused on Linux.
 	      // COMMA
@@ -290,9 +338,9 @@ void log_resource_usage(const char* probe_name, evobench::PointKind kind, std::s
 	      // COMMA
 	      // KV("nsignals", ATOM(r.ru_nsignals)) -- This field is currently unused on Linux.
 	      // COMMA
-	      KV("nvcsw", SLOW(r.ru_nvcsw))
+	      KV("nvcsw", ATOM(r.ru_nvcsw))
 	      COMMA
-	      KV("nivcsw", SLOW(r.ru_nivcsw))
+	      KV("nivcsw", ATOM(r.ru_nivcsw))
 #endif
 	      )));
    NEWLINE;
@@ -348,7 +396,7 @@ Output::Output(const char* maybe_output_path) {
       // thread, and write the benchmark file header.
       Buffer buffer{true};
       log_start(buffer.string);
-      log_resource_usage("-", PointKind::TStart, buffer.string);
+      log_resource_usage("-", PointKind::TStart, buffer.string, 1);
    }
 }
 
@@ -359,7 +407,7 @@ Output::~Output() {
    if (is_enabled) {
       {
          Buffer out{true};
-         log_resource_usage("-", PointKind::TEnd, out.string);
+         log_resource_usage("-", PointKind::TEnd, out.string, 1);
       }
       is_enabled = false;
    }
@@ -407,14 +455,14 @@ bool Buffer::possibly_flush() {
 Buffer::Buffer(bool is_manual_)
     : is_manual(is_manual_) {
    if (!is_manual) {
-      _log_any("-", PointKind::TThreadStart);
+      _log_any("-", PointKind::TThreadStart, 1);
    }
 }
 
 Buffer::~Buffer() {
    if (output.is_enabled) {
       if (!is_manual) {
-         _log_any("-", PointKind::TThreadEnd);
+         _log_any("-", PointKind::TThreadEnd, 0);
       }
       flush();
    }
@@ -432,10 +480,10 @@ void _log_key_value(std::string_view key, std::string_view value) {
    NEWLINE;
 }
 
-void _log_any(const char* probe_name, PointKind kind) {
-   log_resource_usage(probe_name, kind, local_buffer.string);
+void _log_any(const char* probe_name, PointKind kind, uint32_t num_calls) {
+   log_resource_usage(probe_name, kind, local_buffer.string, num_calls);
    if (local_buffer.possibly_flush()) {
-      log_resource_usage(probe_name, PointKind::TIO, local_buffer.string);
+      log_resource_usage(probe_name, PointKind::TIO, local_buffer.string, 1);
    }
 }
 
