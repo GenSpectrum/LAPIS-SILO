@@ -4,6 +4,7 @@
 
 #include "evobench/evobench.hpp"
 
+#include <charconv>
 #include <cstdint>
 #include <cstring>
 #include <iomanip>
@@ -122,6 +123,16 @@ void js_print_slow(T val, std::string& out) {
    out.append(tmpout.str());
 }
 
+void js_print(uint32_t value, std::string& out) {
+   char buffer[11];
+   auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), value);
+   if (ec == std::errc()) {
+      out.append(buffer, ptr);
+   } else {
+      abort();
+   }
+}
+
 void js_print(const std::string_view input, std::string& out) {
    out.push_back('"');
    for (char ch : input) {
@@ -234,7 +245,12 @@ void log_start(std::string& out) {
    // clang-format on
 }
 
-void log_resource_usage(const char* probe_name, evobench::PointKind kind, std::string& out) {
+void log_resource_usage(
+   const char* probe_name,
+   evobench::PointKind kind,
+   std::string& out,
+   uint32_t num_calls
+) {
    struct timespec t;
    ERRCHECK(clock_gettime(CLOCK_REALTIME, &t));
 
@@ -256,6 +272,8 @@ void log_resource_usage(const char* probe_name, evobench::PointKind kind, std::s
 	      KV("pid", SLOW(getpid()))
 	      COMMA
 	      KV("tid", SLOW(our_get_thread_id()))
+	      COMMA
+	      KV("n", ATOM(num_calls))
 	      COMMA
 	      KV("r", ATOM(t))
 	      COMMA
@@ -348,7 +366,7 @@ Output::Output(const char* maybe_output_path) {
       // thread, and write the benchmark file header.
       Buffer buffer{true};
       log_start(buffer.string);
-      log_resource_usage("-", PointKind::TStart, buffer.string);
+      log_resource_usage("-", PointKind::TStart, buffer.string, 1);
    }
 }
 
@@ -359,7 +377,7 @@ Output::~Output() {
    if (is_enabled) {
       {
          Buffer out{true};
-         log_resource_usage("-", PointKind::TEnd, out.string);
+         log_resource_usage("-", PointKind::TEnd, out.string, 1);
       }
       is_enabled = false;
    }
@@ -407,14 +425,14 @@ bool Buffer::possibly_flush() {
 Buffer::Buffer(bool is_manual_)
     : is_manual(is_manual_) {
    if (!is_manual) {
-      _log_any("-", PointKind::TThreadStart);
+      _log_any("-", PointKind::TThreadStart, 1);
    }
 }
 
 Buffer::~Buffer() {
    if (output.is_enabled) {
       if (!is_manual) {
-         _log_any("-", PointKind::TThreadEnd);
+         _log_any("-", PointKind::TThreadEnd, 0);
       }
       flush();
    }
@@ -432,10 +450,10 @@ void _log_key_value(std::string_view key, std::string_view value) {
    NEWLINE;
 }
 
-void _log_any(const char* probe_name, PointKind kind) {
-   log_resource_usage(probe_name, kind, local_buffer.string);
+void _log_any(const char* probe_name, PointKind kind, uint32_t num_calls) {
+   log_resource_usage(probe_name, kind, local_buffer.string, num_calls);
    if (local_buffer.possibly_flush()) {
-      log_resource_usage(probe_name, PointKind::TIO, local_buffer.string);
+      log_resource_usage(probe_name, PointKind::TIO, local_buffer.string, 1);
    }
 }
 
