@@ -6,12 +6,12 @@
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/expressions/symbol_equals.h"
 #include "silo/query_engine/filter/operators/bitmap_producer.h"
-#include "silo/query_engine/filter/operators/bitmap_selection.h"
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/empty.h"
 #include "silo/query_engine/filter/operators/full.h"
 #include "silo/query_engine/filter/operators/index_scan.h"
 #include "silo/query_engine/filter/operators/intersection.h"
+#include "silo/query_engine/filter/operators/is_in_covered_region.h"
 #include "silo/query_engine/filter/operators/range_selection.h"
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/query_engine/filter/operators/threshold.h"
@@ -53,9 +53,9 @@ std::unique_ptr<Operator> Operator::negate(std::unique_ptr<Operator>&& some_oper
          auto* selection = dynamic_cast<Selection*>(some_operator.release());
          return Selection::negate(std::unique_ptr<Selection>(selection));
       }
-      case BITMAP_SELECTION: {
-         auto* bitmap_selection = dynamic_cast<BitmapSelection*>(some_operator.release());
-         return BitmapSelection::negate(std::unique_ptr<BitmapSelection>(bitmap_selection));
+      case IS_IN_COVERED_REGION: {
+         auto* is_in_covered_region = dynamic_cast<IsInCoveredRegion*>(some_operator.release());
+         return IsInCoveredRegion::negate(std::unique_ptr<IsInCoveredRegion>(is_in_covered_region));
       }
       case THRESHOLD: {
          auto* threshold = dynamic_cast<Threshold*>(some_operator.release());

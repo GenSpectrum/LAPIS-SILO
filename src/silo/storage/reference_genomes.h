@@ -1,12 +1,10 @@
 #pragma once
 
 #include <filesystem>
-#include <map>
 #include <string>
 #include <vector>
 
-#include "silo/common/aa_symbols.h"
-#include "silo/common/nucleotide_symbols.h"
+#include <fmt/format.h>
 
 namespace silo {
 
@@ -28,7 +26,7 @@ struct ReferenceGenomes {
    static ReferenceGenomes readFromFile(const std::filesystem::path& reference_genomes_path);
 
    template <typename SymbolType>
-   std::vector<std::string> getSequenceNames() const;
+   [[nodiscard]] std::vector<std::string> getSequenceNames() const;
 
    template <typename SymbolType>
    std::vector<std::vector<typename SymbolType::Symbol>> getReferenceSequences() const;
@@ -42,7 +40,7 @@ struct ReferenceGenomes {
 
          if (!symbol.has_value()) {
             throw std::runtime_error(fmt::format(
-               "{} sequence with illegal {} code: {}",
+               "{} reference sequence with illegal {} code: {}",
                SymbolType::SYMBOL_NAME,
                SymbolType::SYMBOL_NAME_LOWER_CASE,
                std::to_string(character)

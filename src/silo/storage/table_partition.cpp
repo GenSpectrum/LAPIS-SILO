@@ -49,19 +49,8 @@ void TablePartition::validateNucleotideSequences() const {
             partition_size
          );
       }
-      if (nuc_column.positions.size() != nuc_column.metadata->reference_sequence.size()) {
-         SILO_PANIC(
-            "nuc_store positions {} ({}) has size unequal to reference (expected {}).",
-            name,
-            nuc_column.positions.size(),
-            nuc_column.metadata->reference_sequence.size()
-         );
-      }
       if (nuc_column.metadata->reference_sequence.empty()) {
          SILO_PANIC("reference_sequence {} is empty.", name);
-      }
-      if (nuc_column.missing_symbol_bitmaps.size() > partition_size) {
-         SILO_PANIC("nuc_store.missing_symbol_bitmaps {} has invalid size.", name);
       }
    }
 }
@@ -78,14 +67,8 @@ void TablePartition::validateAminoAcidSequences() const {
             partition_size
          );
       }
-      if (aa_column.positions.size() != aa_column.metadata->reference_sequence.size()) {
-         SILO_PANIC("aa_store {} has invalid position size.", name);
-      }
       if (aa_column.metadata->reference_sequence.empty()) {
          SILO_PANIC("reference_sequence {} is empty.", name);
-      }
-      if (aa_column.missing_symbol_bitmaps.size() > partition_size) {
-         SILO_PANIC("aa_store.missing_symbol_bitmaps {} has invalid size.", name);
       }
    }
 }
