@@ -11,15 +11,16 @@
 #include <fmt/format.h>
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/split_free.hpp>
+#include <boost/serialization/string.hpp>
 #include <roaring/roaring.hh>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/format_number.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/common/symbol_map.h"
 #include "silo/common/table_reader.h"
+#include "silo/storage/column/horizontal_coverage_index.h"
 #include "silo/storage/column/insertion_index.h"
-#include "silo/storage/column/sequence_position.h"
+#include "silo/storage/column/vertical_sequence_index.h"
 #include "silo/storage/reference_genomes.h"
 
 namespace silo::storage::column {
@@ -76,35 +77,46 @@ class SequenceColumnPartition {
    template <class Archive>
    void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
-      archive & sequence_column_info;
       archive & indexing_differences_to_reference_sequence;
-      for(auto& position : positions){
-            archive & position;
-      }
+      archive & vertical_sequence_index;
+      archive & horizontal_coverage_index;
       archive & insertion_index;
-      archive & missing_symbol_bitmaps;
+      archive & sequence_column_info;
       archive & sequence_count;
       // clang-format on
    }
 
   public:
-   SequenceColumnMetadata<SymbolType>* metadata;
-   SequenceColumnInfo sequence_column_info;
-   std::vector<std::pair<size_t, typename SymbolType::Symbol>>
-      indexing_differences_to_reference_sequence;
-   std::vector<SequencePosition<SymbolType>> positions;
-   std::vector<roaring::Roaring> missing_symbol_bitmaps;
+   const SequenceColumnMetadata<SymbolType>* metadata;
+   const size_t genome_length;
+
+   std::map<size_t, typename SymbolType::Symbol> indexing_differences_to_reference_sequence;
+   VerticalSequenceIndex<SymbolType> vertical_sequence_index;
+   HorizontalCoverageIndex<SymbolType> horizontal_coverage_index;
    storage::insertion::InsertionIndex<SymbolType> insertion_index;
+   SequenceColumnInfo sequence_column_info;
    uint32_t sequence_count = 0;
 
    explicit SequenceColumnPartition(Metadata* metadata);
 
    size_t numValues() const { return sequence_count; }
 
-   [[nodiscard]] const roaring::Roaring* getBitmap(
-      size_t position_idx,
-      typename SymbolType::Symbol symbol
-   ) const;
+   std::vector<typename SymbolType::Symbol> getLocalReference() const {
+      std::vector<typename SymbolType::Symbol> local_reference = metadata->reference_sequence;
+      for (auto [pos, symbol] : indexing_differences_to_reference_sequence) {
+         local_reference.at(pos) = symbol;
+      }
+      return local_reference;
+   }
+
+   SymbolType::Symbol getLocalReferencePosition(size_t position) const {
+      SILO_ASSERT(position < metadata->reference_sequence.size());
+      auto iter = indexing_differences_to_reference_sequence.find(position);
+      if (iter != indexing_differences_to_reference_sequence.end()) {
+         return iter->second;
+      }
+      return metadata->reference_sequence.at(position);
+   }
 
    [[nodiscard]] SequenceColumnInfo getInfo() const;
 
@@ -119,12 +131,6 @@ class SequenceColumnPartition {
    std::vector<ReadSequence> lazy_buffer;
 
    void fillIndexes();
-
-   void addSymbolsToPositions(
-      size_t position_idx,
-      SymbolMap<SymbolType, std::vector<uint32_t>>& ids_per_symbol_for_current_position,
-      size_t number_of_sequences
-   );
 
    void fillNBitmaps();
 

@@ -181,3 +181,160 @@ QUERY_TEST(
       MUTATIONS_INVALID_FIELD_TYPE
    )
 );
+
+namespace {
+
+const QueryTestData TEST_DATA2{
+   .ndjson_input_data =
+      []() {
+         std::vector<nlohmann::json> data;
+         data.reserve(100000);
+         for (int i = 0; i < 20000; ++i) {
+            data.push_back(createDataWithNucleotideSequence("CATTT"));
+         }
+         for (int i = 0; i < 20000; ++i) {
+            data.push_back(createDataWithNucleotideSequence("ATGCN"));
+         }
+         for (int i = 0; i < 20000; ++i) {
+            data.push_back(createDataWithNucleotideSequence("CATTT"));
+         }
+         for (int i = 0; i < 20000; ++i) {
+            data.push_back(createDataWithNucleotideSequence("NNCNN"));
+         }
+         for (int i = 0; i < 20000; ++i) {
+            data.push_back(createDataWithNucleotideSequence("ANCNN"));
+         }
+         return data;
+      }(),
+   .database_config = DATABASE_CONFIG,
+   .reference_genomes = REFERENCE_GENOMES
+};
+
+const QueryTestScenario MUTATIONS_BIG = {
+   .name = "MUTATIONS_BIG",
+   .query = nlohmann::json::parse(
+      R"(
+{
+  "action": {
+    "type": "Mutations",
+    "minProportion": 0.05
+  },
+  "filterExpression": {
+    "type": "True"
+  }
+}
+)"
+   ),
+   .expected_query_result = nlohmann::json::parse(
+      R"([
+{"count":40000,"coverage":80000,"mutation":"A1C","mutationFrom":"A","mutationTo":"C","position":1,"proportion":0.5,"sequenceName":"segment1"},
+{"count":40000,"coverage":60000,"mutation":"T2A","mutationFrom":"T","mutationTo":"A","position":2,"proportion":0.6666666666666666,"sequenceName":"segment1"},
+{"count":40000,"coverage":100000,"mutation":"G3C","mutationFrom":"G","mutationTo":"C","position":3,"proportion":0.4,"sequenceName":"segment1"},
+{"count":40000,"coverage":100000,"mutation":"G3T","mutationFrom":"G","mutationTo":"T","position":3,"proportion":0.4,"sequenceName":"segment1"},
+{"count":40000,"coverage":60000,"mutation":"C4T","mutationFrom":"C","mutationTo":"T","position":4,"proportion":0.6666666666666666,"sequenceName":"segment1"},
+{"count":40000,"coverage":40000,"mutation":"N5T","mutationFrom":"N","mutationTo":"T","position":5,"proportion":1.0,"sequenceName":"segment1"}])"
+   )
+};
+
+const QueryTestScenario MUTATIONS_BIG_SELECTIVE = {
+   .name = "MUTATIONS_BIG_SELECTIVE",
+   .query = nlohmann::json::parse(
+      R"(
+{
+  "action": {
+    "type": "Mutations",
+    "minProportion": 0.05
+  },
+  "filterExpression": {
+    "type": "NucleotideEquals",
+    "position": 3,
+    "symbol": "C",
+    "sequenceName": "segment1"
+  }
+}
+)"
+   ),
+   .expected_query_result = nlohmann::json::parse(
+      R"([
+{"count":40000,"coverage":40000,"mutation":"G3C","mutationFrom":"G","mutationTo":"C","position":3,"proportion":1.0,"sequenceName":"segment1"}
+])"
+   )
+};
+
+const QueryTestScenario MUTATIONS_BIG_SELECTIVE2 = {
+   .name = "MUTATIONS_BIG_SELECTIVE2",
+   .query = nlohmann::json::parse(
+      R"(
+{
+  "action": {
+    "type": "Mutations",
+    "minProportion": 0.05
+  },
+  "filterExpression": {
+    "type": "NucleotideEquals",
+    "position": 1,
+    "symbol": "C",
+    "sequenceName": "segment1"
+  }
+}
+)"
+   ),
+   .expected_query_result = nlohmann::json::parse(
+      R"([
+{"count":40000,"coverage":40000,"mutation":"A1C","mutationFrom":"A","mutationTo":"C","position":1,"proportion":1.0,"sequenceName":"segment1"},
+{"count":40000,"coverage":40000,"mutation":"T2A","mutationFrom":"T","mutationTo":"A","position":2,"proportion":1.0,"sequenceName":"segment1"},
+{"count":40000,"coverage":40000,"mutation":"G3T","mutationFrom":"G","mutationTo":"T","position":3,"proportion":1.0,"sequenceName":"segment1"},
+{"count":40000,"coverage":40000,"mutation":"C4T","mutationFrom":"C","mutationTo":"T","position":4,"proportion":1.0,"sequenceName":"segment1"},
+{"count":40000,"coverage":40000,"mutation":"N5T","mutationFrom":"N","mutationTo":"T","position":5,"proportion":1.0,"sequenceName":"segment1"}
+])"
+   )
+};
+
+const QueryTestScenario MUTATIONS_BIG_SELECTIVE_END = {
+   .name = "MUTATIONS_BIG_SELECTIVE_END",
+   .query = nlohmann::json::parse(
+      R"(
+{
+  "action": {
+    "type": "Mutations",
+    "minProportion": 0.05
+  },
+  "filterExpression": {
+    "type": "And",
+    "children": [
+      {
+        "type": "NucleotideEquals",
+        "position": 1,
+        "symbol": "A",
+        "sequenceName": "segment1"
+      },
+      {
+        "type": "NucleotideEquals",
+        "position": 3,
+        "symbol": "C",
+        "sequenceName": "segment1"
+      }
+    ]
+  }
+}
+)"
+   ),
+   .expected_query_result = nlohmann::json::parse(
+      R"([
+{"count":20000,"coverage":20000,"mutation":"G3C","mutationFrom":"G","mutationTo":"C","position":3,"proportion":1.0,"sequenceName":"segment1"}
+])"
+   )
+};
+
+}  // namespace
+
+QUERY_TEST(
+   MutationsBig,
+   TEST_DATA2,
+   ::testing::Values(
+      MUTATIONS_BIG,
+      MUTATIONS_BIG_SELECTIVE,
+      MUTATIONS_BIG_SELECTIVE2,
+      MUTATIONS_BIG_SELECTIVE_END
+   )
+);
