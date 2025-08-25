@@ -11,7 +11,7 @@ using silo::storage::column::SequenceColumnMetadata;
 using silo::storage::column::SequenceColumnPartition;
 
 TEST(SequenceColumn, validErrorOnBadInsertionFormat_noTwoParts) {
-   SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {}};
+   SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {Nucleotide::Symbol::A}};
    SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
 
    EXPECT_THAT(
@@ -25,7 +25,7 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_noTwoParts) {
 }
 
 TEST(SequenceColumn, validErrorOnBadInsertionFormat_firstPartNotANumber) {
-   SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {}};
+   SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {Nucleotide::Symbol::A}};
    SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
@@ -38,7 +38,7 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_firstPartNotANumber) {
 }
 
 TEST(SequenceColumn, validErrorOnBadInsertionFormat_secondPartIllegalSymbol) {
-   SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {}};
+   SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {Nucleotide::Symbol::A}};
    SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
@@ -53,7 +53,7 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_secondPartIllegalSymbol) {
 }
 
 TEST(SequenceColumn, validErrorOnBadInsertionFormat_secondPartIsANumber) {
-   SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {}};
+   SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {Nucleotide::Symbol::A}};
    SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
@@ -65,7 +65,7 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_secondPartIsANumber) {
 }
 
 TEST(SequenceColumn, validErrorOnBadInsertionFormat_secondPartEmpty) {
-   SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {}};
+   SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {Nucleotide::Symbol::A}};
    SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
@@ -78,7 +78,7 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_secondPartEmpty) {
 }
 
 TEST(SequenceColumn, validErrorOnBadInsertionFormat_firstPartEmpty) {
-   SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {}};
+   SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {Nucleotide::Symbol::A}};
    SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)

@@ -275,7 +275,7 @@ const Scenario<Success> NDJSON_WITH_NUMERIC_NAMES = {
 "main": {"sequence": "A", "insertions": []},
 "3": {"sequence": "AA", "insertions": []},
 "someGene": {"sequence": "AA*", "insertions": []},
-"4": {"sequence": "AA*", "insertions": []},
+"4": {"sequence": "A*", "insertions": []},
 "unaligned_main": "A",
 "unaligned_3": "AA"
 })"));
@@ -1045,7 +1045,7 @@ schema:
 })",
    .assertion{
       .error_message =
-         R"(Illegal character 'E' at position 2 contained in sequence with index 0 in the current buffer.)"
+         R"(preprocessing - exception when appending data: illegal character 'E' at position 2 contained in sequence with index 0 in the current buffer.)"
    }
 };
 
@@ -1109,7 +1109,44 @@ schema:
    }
 };
 
-INSTANTIATE_TEST_SUITE_P(PreprocessorTest, InvalidPreprocessorTestFixture, ::testing::Values(DUPLICATE_PRIMARY_KEY, MISSING_NUCLEOTIDE_SEQUENCE_INPUT, TYPE_ERROR, SEQUENCE_ILLEGAL_SYMBOL, NDJSON_FILE_WITH_SOME_MISSING_KEYS), printTestName<Error>);
+const Scenario<Error> SEQUENCE_LONGER_THAN_REFERENCE = {
+   .test_name = "SEQUENCE_LONGER_THAN_REFERENCE",
+   .input_data =
+      []() {
+         std::vector<nlohmann::json> result;
+         result.push_back(nlohmann::json::parse(R"({
+"accessionVersion": "1.1",
+"main": {"sequence": "ACGTA", "insertions": []},
+"unaligned_main": "ACGT"
+})"));
+         return result;
+      },
+   .database_config =
+      R"(
+schema:
+  instanceName: "Test"
+  metadata:
+    - name: "accessionVersion"
+      type: "string"
+  primaryKey: "accessionVersion"
+)",
+   .reference_genomes = R"(
+{
+  "nucleotideSequences": [
+    {
+      "name": "main",
+      "sequence": "ACGT"
+    }
+  ],
+  "genes": []
+})",
+   .assertion{
+      .error_message =
+         R"(preprocessing - exception when appending data: the sequence 'ACGTA' which was inserted with an offset 0 is larger than the length of the reference genome: 4)"
+   }
+};
+
+INSTANTIATE_TEST_SUITE_P(PreprocessorTest, InvalidPreprocessorTestFixture, ::testing::Values(DUPLICATE_PRIMARY_KEY, MISSING_NUCLEOTIDE_SEQUENCE_INPUT, TYPE_ERROR, SEQUENCE_ILLEGAL_SYMBOL, NDJSON_FILE_WITH_SOME_MISSING_KEYS, SEQUENCE_LONGER_THAN_REFERENCE), printTestName<Error>);
 
 TEST_P(InvalidPreprocessorTestFixture, shouldNotProcessData) {
    const auto scenario = GetParam();
