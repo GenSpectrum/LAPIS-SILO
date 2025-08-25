@@ -43,11 +43,11 @@ TEST(IndexedStringColumnPartition, insertValuesToPartition) {
    under_test.insert("value 3");
    under_test.insert("value 1");
 
-   EXPECT_EQ(under_test.getValues()[0], 0U);
-   EXPECT_EQ(under_test.getValues()[1], 1U);
-   EXPECT_EQ(under_test.getValues()[2], 1U);
-   EXPECT_EQ(under_test.getValues()[3], 2U);
-   EXPECT_EQ(under_test.getValues()[4], 0U);
+   EXPECT_EQ(under_test.getValue(0), 0U);
+   EXPECT_EQ(under_test.getValue(1), 1U);
+   EXPECT_EQ(under_test.getValue(2), 1U);
+   EXPECT_EQ(under_test.getValue(3), 2U);
+   EXPECT_EQ(under_test.getValue(4), 0U);
 
    EXPECT_EQ(under_test.lookupValue(0U), "value 1");
    EXPECT_EQ(under_test.lookupValue(1U), "value 2");

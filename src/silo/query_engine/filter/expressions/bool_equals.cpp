@@ -16,13 +16,14 @@
 namespace silo::query_engine::filter::expressions {
 
 using silo::common::OptionalBool;
+using storage::column::BoolColumnPartition;
 
-BoolEquals::BoolEquals(std::string column_name, OptionalBool value)
+BoolEquals::BoolEquals(std::string column_name, bool value)
     : column_name(std::move(column_name)),
       value(value) {}
 
 std::string BoolEquals::toString() const {
-   return fmt::format("{} = '{}'", column_name, value.asStr());
+   return fmt::format("{} = {}", column_name, value ? "true" : "false");
 }
 
 std::unique_ptr<silo::query_engine::filter::operators::Operator> BoolEquals::compile(
@@ -39,8 +40,8 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> BoolEquals::com
    const auto& bool_column = table_partition.columns.bool_columns.at(column_name);
 
    return std::make_unique<operators::Selection>(
-      std::make_unique<operators::CompareToValueSelection<OptionalBool>>(
-         bool_column.getValues(), operators::Comparator::EQUALS, value
+      std::make_unique<operators::CompareToValueSelection<BoolColumnPartition>>(
+         bool_column, operators::Comparator::EQUALS, value
       ),
       table_partition.sequence_count
    );
@@ -58,12 +59,10 @@ void from_json(const nlohmann::json& json, std::unique_ptr<BoolEquals>& filter) 
       json.contains("value"), "The field 'value' is required in an BoolEquals expression"
    );
    CHECK_SILO_QUERY(
-      json["value"].is_boolean() || json["value"].is_null(),
-      "The field 'value' in an BoolEquals expression must be a boolean or null"
+      json["value"].is_boolean(), "The field 'value' in an BoolEquals expression must be a boolean"
    );
    const std::string& column_name = json["column"];
-   const OptionalBool value =
-      json["value"].is_null() ? OptionalBool() : OptionalBool(json["value"].get<bool>());
+   auto value = json["value"].get<bool>();
    filter = std::make_unique<BoolEquals>(column_name, value);
 }
 

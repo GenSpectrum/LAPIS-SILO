@@ -97,12 +97,6 @@ const QueryTestScenario INT_EQUALS_VALUE_SCENARIO = {
    )
 };
 
-const QueryTestScenario INT_EQUALS_NULL_SCENARIO = {
-   .name = "intEqualsNull",
-   .query = createIntEqualsQuery("int_value", nullptr),
-   .expected_query_result = nlohmann::json({{{"primaryKey", "id_4"}, {"int_value", nullptr}}})
-};
-
 const QueryTestScenario INT_BETWEEN_WITH_FROM_AND_TO_SCENARIO = {
    .name = "intBetweenWithFromAndTo",
    .query = createIntBetweenQuery("int_value", BELOW_FILTER, ABOVE_FILTER),
@@ -148,7 +142,7 @@ const QueryTestScenario INT_EQUALS_WITH_INVALID_VALUE = {
    .query = createIntEqualsQuery("int_value", INT32_MIN),
    .expected_error_message =
       "The field 'value' in an IntEquals expression must be an integer in [-2147483647; "
-      "2147483647] or null"
+      "2147483647]"
 };
 
 const QueryTestScenario INT_BETWEEN_WITH_INVALID_FROM_VALUE = {
@@ -173,7 +167,6 @@ QUERY_TEST(
    TEST_DATA,
    ::testing::Values(
       INT_EQUALS_VALUE_SCENARIO,
-      INT_EQUALS_NULL_SCENARIO,
       INT_BETWEEN_WITH_FROM_AND_TO_SCENARIO,
       INT_BETWEEN_WITH_FROM_SCENARIO,
       INT_BETWEEN_WITH_TO_SCENARIO,

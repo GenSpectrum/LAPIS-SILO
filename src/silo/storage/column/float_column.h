@@ -18,6 +18,7 @@ class FloatColumnPartition {
    using Metadata = ColumnMetadata;
 
    static constexpr schema::ColumnType TYPE = schema::ColumnType::FLOAT;
+   using value_type = double;
 
    static double null() { return std::nan(""); }
 
@@ -31,12 +32,17 @@ class FloatColumnPartition {
    }
 
    std::vector<double> values;
-   [[maybe_unused]] Metadata* metadata;
 
   public:
+   [[maybe_unused]] Metadata* metadata;
+
    explicit FloatColumnPartition(ColumnMetadata* metadata);
 
-   [[nodiscard]] const std::vector<double>& getValues() const;
+   size_t numValues() const { return values.size(); }
+
+   [[nodiscard]] bool isNull(size_t row_id) const { return values.at(row_id) == null(); }
+
+   double getValue(size_t row_id) const { return values.at(row_id); }
 
    void insert(double value);
 
