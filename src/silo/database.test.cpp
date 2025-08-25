@@ -105,7 +105,7 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfoAfterAppendingNewSequences) {
 
    EXPECT_EQ(database_info.sequence_count, 5);
    EXPECT_GT(database_info.vertical_bitmaps_size, 0);
-   EXPECT_EQ(database_info.horizontal_bitmaps_size, 123);
+   EXPECT_EQ(database_info.horizontal_bitmaps_size, 104);
 
    std::string more_data =
       R"(

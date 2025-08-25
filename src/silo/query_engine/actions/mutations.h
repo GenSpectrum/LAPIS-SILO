@@ -63,26 +63,24 @@ class Mutations : public Action {
       std::vector<CopyOnWriteBitmap>& bitmap_filter
    );
 
-   static void addPositionToMutationCountsForMixedBitmaps(
-      uint32_t position_idx,
+   static void addMutationCountsForMixedBitmaps(
       const PrefilteredBitmaps& bitmaps_to_evaluate,
       SymbolMap<SymbolType, std::vector<uint32_t>>& count_of_mutations_per_position
    );
 
-   static void addPositionToMutationCountsForFullBitmaps(
-      uint32_t position_idx,
+   static void addMutationCountsForFullBitmaps(
       const PrefilteredBitmaps& bitmaps_to_evaluate,
       SymbolMap<SymbolType, std::vector<uint32_t>>& count_of_mutations_per_position
    );
 
    static SymbolMap<SymbolType, std::vector<uint32_t>> calculateMutationsPerPosition(
-      const storage::column::SequenceColumnMetadata<SymbolType>& sequence_store,
+      const storage::column::SequenceColumnMetadata<SymbolType>& column_metadata,
       const PrefilteredBitmaps& bitmap_filter
    );
 
    static arrow::Status addMutationsToOutput(
       const std::string& sequence_name,
-      const storage::column::SequenceColumnMetadata<SymbolType>& sequence_store,
+      const storage::column::SequenceColumnMetadata<SymbolType>& column_metadata,
       double min_proportion,
       const PrefilteredBitmaps& bitmap_filter,
       std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder
@@ -90,7 +88,7 @@ class Mutations : public Action {
 
    void validateOrderByFields(const schema::TableSchema& schema) const override;
 
-   arrow::Result<QueryPlan> toQueryPlanImpl(
+   [[nodiscard]] arrow::Result<QueryPlan> toQueryPlanImpl(
       std::shared_ptr<const storage::Table> table,
       std::vector<CopyOnWriteBitmap> partition_filters,
       const config::QueryOptions& query_options,
@@ -104,11 +102,11 @@ class Mutations : public Action {
       std::vector<std::string_view>&& fields
    );
 
-   std::vector<schema::ColumnIdentifier> getOutputSchema(
+   [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema(
       const silo::schema::TableSchema& table_schema
    ) const override;
 
-   std::string_view getType() const override { return "Mutations"; }
+   [[nodiscard]] std::string_view getType() const override { return "Mutations"; }
 };
 
 template <typename SymbolType>
