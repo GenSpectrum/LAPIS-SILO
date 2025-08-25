@@ -9,8 +9,6 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
-#include "config/source/yaml_file.h"
-#include "silo/config/database_config.h"
 #include "silo/database.h"
 #include "silo/database_info.h"
 #include "silo/preprocessing/preprocessing_exception.h"
@@ -18,11 +16,7 @@
 #include "silo/query_engine/query_plan.h"
 
 namespace {
-using silo::ReferenceGenomes;
-using silo::common::LineageTreeAndIdMap;
-using silo::config::DatabaseConfig;
 using silo::config::PreprocessingConfig;
-using silo::config::ValueType;
 using silo::preprocessing::PreprocessingException;
 
 struct Error {
@@ -76,8 +70,9 @@ silo::config::PreprocessingConfig prepareInputDirAndPreprocessorForScenario(
    config_with_input_dir.initialization_files.directory = input_directory;
    config_with_input_dir.input_file = "input.json";
    if (not scenario.lineage_trees.empty()) {
-      auto keys = scenario.lineage_trees | std::views::keys |
-                  std::views::transform([](const std::filesystem::path& p) { return p.string(); });
+      auto keys =
+         scenario.lineage_trees | std::views::keys |
+         std::views::transform([](const std::filesystem::path& path) { return path.string(); });
       config_with_input_dir.initialization_files.lineage_definition_files =
          std::vector<std::string>(keys.begin(), keys.end());
    }
@@ -275,7 +270,7 @@ const Scenario<Success> NDJSON_WITH_NUMERIC_NAMES = {
 "main": {"sequence": "A", "insertions": []},
 "3": {"sequence": "AA", "insertions": []},
 "someGene": {"sequence": "AA*", "insertions": []},
-"4": {"sequence": "AA*", "insertions": []},
+"4": {"sequence": "A*", "insertions": []},
 "unaligned_main": "A",
 "unaligned_3": "AA"
 })"));
@@ -464,6 +459,7 @@ const Scenario<Success> NO_GENES = {
    .input_data =
       []() {
          std::vector<nlohmann::json> result;
+         result.reserve(100);
          for (size_t i = 0; i < 100; i++) {
             result.push_back(nlohmann::json::parse(fmt::format(
                R"({{
@@ -517,6 +513,7 @@ const Scenario<Success> NO_NUCLEOTIDE_SEQUENCES = {
    .input_data =
       []() {
          std::vector<nlohmann::json> result;
+         result.reserve(100);
          for (size_t i = 0; i < 100; i++) {
             result.push_back(nlohmann::json::parse(fmt::format(
                R"({{
@@ -569,6 +566,7 @@ const Scenario<Success> NO_SEQUENCES = {
    .input_data =
       []() {
          std::vector<nlohmann::json> result;
+         result.reserve(100);
          for (size_t i = 0; i < 100; i++) {
             result.push_back(nlohmann::json::parse(fmt::format(
                R"({{
@@ -868,7 +866,7 @@ child_2:
 
 class PreprocessorTestFixture : public ::testing::TestWithParam<Scenario<Success>> {};
 
-const auto testCases = ::testing::Values(
+const auto TEST_CASES = ::testing::Values(
    NDJSON_FILE_WITH_MISSING_SEGMENTS_AND_GENES,
    NDJSON_WITH_SQL_KEYWORD_AS_FIELD,
    NDJSON_WITH_NUMERIC_NAMES,
@@ -882,10 +880,10 @@ const auto testCases = ::testing::Values(
    TWO_LINEAGE_SYSTEMS
 );
 
-INSTANTIATE_TEST_SUITE_P(PreprocessorTest, PreprocessorTestFixture, testCases, printTestName<Success>);
+INSTANTIATE_TEST_SUITE_P(PreprocessorTest, PreprocessorTestFixture, TEST_CASES, printTestName<Success>);
 
 TEST_P(PreprocessorTestFixture, shouldProcessData) {
-   const auto scenario = GetParam();
+   const auto& scenario = GetParam();
 
    auto preprocessing_config = prepareInputDirAndPreprocessorForScenario(scenario);
 
@@ -906,7 +904,7 @@ TEST_P(PreprocessorTestFixture, shouldProcessData) {
    std::string line;
    while (std::getline(actual_result_stream, line)) {
       auto line_object = nlohmann::json::parse(line);
-      std::cout << line_object.dump() << std::endl;
+      std::cout << line_object.dump() << '\n';
       actual_ndjson_result_as_array.push_back(line_object);
    }
 
@@ -950,6 +948,7 @@ const Scenario<Error> MISSING_NUCLEOTIDE_SEQUENCE_INPUT = {
    .input_data =
       []() {
          std::vector<nlohmann::json> result;
+         result.reserve(100);
          for (size_t i = 0; i < 100; i++) {
             result.emplace_back(
                nlohmann::json::parse(fmt::format(R"({{"accessionVersion": "{}.1"}})", i))
@@ -1045,7 +1044,7 @@ schema:
 })",
    .assertion{
       .error_message =
-         R"(Illegal character 'E' at position 2 contained in sequence with index 0 in the current buffer.)"
+         R"(preprocessing - exception when appending data: illegal character 'E' at position 2 contained in sequence with index 0 in the current buffer.)"
    }
 };
 
@@ -1109,10 +1108,47 @@ schema:
    }
 };
 
-INSTANTIATE_TEST_SUITE_P(PreprocessorTest, InvalidPreprocessorTestFixture, ::testing::Values(DUPLICATE_PRIMARY_KEY, MISSING_NUCLEOTIDE_SEQUENCE_INPUT, TYPE_ERROR, SEQUENCE_ILLEGAL_SYMBOL, NDJSON_FILE_WITH_SOME_MISSING_KEYS), printTestName<Error>);
+const Scenario<Error> SEQUENCE_LONGER_THAN_REFERENCE = {
+   .test_name = "SEQUENCE_LONGER_THAN_REFERENCE",
+   .input_data =
+      []() {
+         std::vector<nlohmann::json> result;
+         result.push_back(nlohmann::json::parse(R"({
+"accessionVersion": "1.1",
+"main": {"sequence": "ACGTA", "insertions": []},
+"unaligned_main": "ACGT"
+})"));
+         return result;
+      },
+   .database_config =
+      R"(
+schema:
+  instanceName: "Test"
+  metadata:
+    - name: "accessionVersion"
+      type: "string"
+  primaryKey: "accessionVersion"
+)",
+   .reference_genomes = R"(
+{
+  "nucleotideSequences": [
+    {
+      "name": "main",
+      "sequence": "ACGT"
+    }
+  ],
+  "genes": []
+})",
+   .assertion{
+      .error_message =
+         R"(preprocessing - exception when appending data: the sequence 'ACGTA' which was inserted with an offset 0 is larger than the length of the reference genome: 4)"
+   }
+};
+
+INSTANTIATE_TEST_SUITE_P(PreprocessorTest, InvalidPreprocessorTestFixture, ::testing::Values(DUPLICATE_PRIMARY_KEY, MISSING_NUCLEOTIDE_SEQUENCE_INPUT, TYPE_ERROR, SEQUENCE_ILLEGAL_SYMBOL, NDJSON_FILE_WITH_SOME_MISSING_KEYS, SEQUENCE_LONGER_THAN_REFERENCE), printTestName<Error>);
 
 TEST_P(InvalidPreprocessorTestFixture, shouldNotProcessData) {
-   const auto scenario = GetParam();
+   const auto& scenario = GetParam();
 
    auto preprocessing_config = prepareInputDirAndPreprocessorForScenario(scenario);
    EXPECT_THAT(

@@ -1,5 +1,12 @@
 #include "silo/query_engine/exec_node/table_scan.h"
 
+#include <roaring/containers/array.h>
+#include <roaring/containers/bitset.h>
+#include <roaring/containers/containers.h>
+#include <roaring/containers/run.h>
+#include <roaring/roaring.h>
+#include <roaring/roaring.hh>
+
 #include "silo/query_engine/batched_bitmap_reader.h"
 
 namespace silo::query_engine::exec_node {
@@ -8,68 +15,32 @@ namespace {
 
 template <typename SymbolType>
 arrow::Status appendSequences(
-   const storage::column::SequenceColumnPartition<SymbolType>& sequence_store,
+   const storage::column::SequenceColumnPartition<SymbolType>& sequence_column_partition,
    const roaring::Roaring& row_ids,
    arrow::BinaryBuilder& output_array
 ) {
-   std::string general_reference;
-   std::ranges::transform(
-      sequence_store.metadata->reference_sequence,
-      std::back_inserter(general_reference),
-      SymbolType::symbolToChar
-   );
+   size_t cardinality = row_ids.cardinality();
+
+   std::string general_reference = sequence_column_partition.reference_sequence_string;
 
    std::string partition_reference = general_reference;
    for (const auto& [position_id, symbol] :
-        sequence_store.indexing_differences_to_reference_sequence) {
+        sequence_column_partition.indexing_differences_to_reference_sequence) {
       partition_reference[position_id] = SymbolType::symbolToChar(symbol);
    }
 
-   std::vector<std::string> reconstructed_sequences(row_ids.cardinality(), partition_reference);
+   std::vector<std::string> reconstructed_sequences;
+   reconstructed_sequences.resize(cardinality, partition_reference);
 
-   for (size_t position_id = 0; position_id < sequence_store.positions.size(); position_id++) {
-      const storage::column::SequencePosition<SymbolType>& position =
-         sequence_store.positions.at(position_id);
-      for (const auto symbol : SymbolType::SYMBOLS) {
-         if (position.isSymbolFlipped(symbol) || position.isSymbolDeleted(symbol)) {
-            continue;
-         }
-         roaring::Roaring current_row_ids_with_that_mutation =
-            row_ids & *position.getBitmap(symbol);
+   sequence_column_partition.vertical_sequence_index.overwriteSymbolsInSequences(
+      reconstructed_sequences, row_ids
+   );
 
-         std::vector<uint32_t> current_row_ids_with_that_mutation_as_vector(
-            current_row_ids_with_that_mutation.cardinality()
-         );
-         current_row_ids_with_that_mutation.toUint32Array(
-            current_row_ids_with_that_mutation_as_vector.data()
-         );
+   sequence_column_partition.horizontal_coverage_index.overwriteCoverageInSequence(
+      reconstructed_sequences, row_ids
+   );
 
-         std::vector<uint64_t> ids_in_reconstructed_sequences(
-            current_row_ids_with_that_mutation_as_vector.size()
-         );
-         row_ids.rank_many(
-            current_row_ids_with_that_mutation_as_vector.begin().base(),
-            current_row_ids_with_that_mutation_as_vector.end().base(),
-            ids_in_reconstructed_sequences.data()
-         );
-
-         for (auto id_in_reconstructed_sequences : ids_in_reconstructed_sequences) {
-            // Ranks are 1-indexed
-            reconstructed_sequences.at(id_in_reconstructed_sequences - 1).at(position_id) =
-               SymbolType::symbolToChar(symbol);
-         }
-      }
-   }
-
-   size_t id_in_reconstructed_sequences = 0;
-   for (size_t row_id : row_ids) {
-      for (const size_t position_idx : sequence_store.missing_symbol_bitmaps.at(row_id)) {
-         reconstructed_sequences.at(id_in_reconstructed_sequences).at(position_idx) =
-            SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING);
-      }
-      id_in_reconstructed_sequences++;
-   }
-   ARROW_RETURN_NOT_OK(output_array.Reserve(reconstructed_sequences.size()));
+   ARROW_RETURN_NOT_OK(output_array.Reserve(cardinality));
    auto reference_sequence = general_reference;
    auto dictionary = std::make_shared<silo::ZstdCDictionary>(reference_sequence, 3);
    silo::ZstdCompressor compressor{dictionary};
