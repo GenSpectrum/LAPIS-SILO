@@ -30,10 +30,7 @@ SequenceColumnPartition<SymbolType>::SequenceColumnPartition(
 )
     : metadata(metadata) {
    lazy_buffer.reserve(BUFFER_SIZE);
-   positions.reserve(metadata->reference_sequence.size());
-   for (const auto symbol : metadata->reference_sequence) {
-      positions.emplace_back(SequencePosition<SymbolType>::fromInitiallyFlipped(symbol));
-   }
+   genome_length = metadata->reference_sequence.size();
 }
 
 template <typename SymbolType>
@@ -174,79 +171,127 @@ SequenceColumnInfo SequenceColumnPartition<SymbolType>::getInfo() const {
 }
 
 template <typename SymbolType>
-const roaring::Roaring* SequenceColumnPartition<SymbolType>::getBitmap(
-   size_t position_idx,
-   typename SymbolType::Symbol symbol
-) const {
-   return positions[position_idx].getBitmap(symbol);
-}
-
-template <typename SymbolType>
 void SequenceColumnPartition<SymbolType>::fillIndexes() {
-   const size_t genome_length = positions.size();
-   static constexpr int DEFAULT_POSITION_BATCH_SIZE = 64;
    const size_t sequence_id_base_for_buffer = sequence_count - lazy_buffer.size();
-   tbb::parallel_for(
-      tbb::blocked_range<size_t>(0, genome_length, genome_length / DEFAULT_POSITION_BATCH_SIZE),
-      [&](const auto& local) {
-         SymbolMap<SymbolType, std::vector<uint32_t>> ids_per_symbol_for_current_position;
-         for (size_t position_idx = local.begin(); position_idx != local.end(); ++position_idx) {
-            const size_t number_of_sequences = lazy_buffer.size();
-            for (size_t sequence_offset = 0; sequence_offset < number_of_sequences;
-                 ++sequence_offset) {
-               const auto& [is_valid, sequence, offset] = lazy_buffer[sequence_offset];
-               if (!is_valid || position_idx < offset || position_idx - offset >= sequence.size()) {
-                  continue;
-               }
-               const char character = sequence[position_idx - offset];
-               const auto symbol = SymbolType::charToSymbol(character);
-               if (!symbol.has_value()) {
-                  throw preprocessing::PreprocessingException(
-                     "Illegal character '{}' at position {} contained in sequence with index {} in "
-                     "the current buffer.",
-                     character,
-                     position_idx,
-                     sequence_offset
-                  );
-               }
-               if (symbol != SymbolType::SYMBOL_MISSING) {
-                  ids_per_symbol_for_current_position[*symbol].push_back(
-                     sequence_id_base_for_buffer + sequence_offset
-                  );
-               }
-            }
-            addSymbolsToPositions(
-               position_idx, ids_per_symbol_for_current_position, number_of_sequences
+   SymbolMap<SymbolType, std::vector<uint32_t>> ids_per_symbol_for_current_position;
+   for (size_t position_idx = 0; position_idx != genome_length; ++position_idx) {
+      const size_t number_of_sequences = lazy_buffer.size();
+      for (size_t sequence_offset = 0; sequence_offset < number_of_sequences; ++sequence_offset) {
+         const auto& [is_valid, sequence, offset] = lazy_buffer[sequence_offset];
+         if (!is_valid || position_idx < offset || position_idx - offset >= sequence.size()) {
+            continue;
+         }
+         const char character = sequence[position_idx - offset];
+         const auto symbol = SymbolType::charToSymbol(character);
+         if (!symbol.has_value()) {
+            throw preprocessing::PreprocessingException(
+               "Illegal character '{}' at position {} contained in sequence with index {} in "
+               "the current buffer.",
+               character,
+               position_idx,
+               sequence_offset
+            );
+         }
+         if (symbol != SymbolType::SYMBOL_MISSING && symbol != metadata->reference_sequence.at(position_idx)) {
+            ids_per_symbol_for_current_position[*symbol].push_back(
+               sequence_id_base_for_buffer + sequence_offset
             );
          }
       }
-   );
+      addSymbolsToPositions(position_idx, ids_per_symbol_for_current_position, number_of_sequences);
+   }
 }
+
+namespace {
+
+// TODO tests
+std::vector<std::pair<uint16_t, std::vector<uint16_t>>> splitIdsIntoBatches(
+   const std::vector<uint32_t>& sorted_ids
+) {
+   std::vector<std::pair<uint16_t, std::vector<uint16_t>>> ids_in_batches;
+
+   if (sorted_ids.empty()) {
+      return ids_in_batches;
+   }
+
+   uint16_t current_upper_bits = sorted_ids.front() >> 16;
+   ids_in_batches.push_back(std::make_pair<uint16_t, std::vector<uint16_t>>(
+      sorted_ids.front() >> 16, std::vector<uint16_t>{}
+   ));
+
+   for (uint32_t id : sorted_ids) {
+      uint16_t upper_bits = id >> 16;
+      uint16_t lower_bits = id & 0xFFFF;
+
+      // If the upper bits changed, start a new batch
+      if (upper_bits != current_upper_bits) {
+         current_upper_bits = upper_bits;
+         ids_in_batches.push_back(std::make_pair(upper_bits, std::vector<uint16_t>{}));
+      }
+
+      // Add the lower bits to the current batch
+      ids_in_batches.back().second.push_back(lower_bits);
+   }
+
+   return ids_in_batches;
+}
+
+}  // namespace
 
 template <typename SymbolType>
 void SequenceColumnPartition<SymbolType>::addSymbolsToPositions(
-   size_t position_idx,
+   uint32_t position_idx,
    SymbolMap<SymbolType, std::vector<uint32_t>>& ids_per_symbol_for_current_position,
    size_t number_of_sequences
 ) {
    for (const auto& symbol : SymbolType::SYMBOLS) {
-      positions[position_idx].addValues(
-         symbol,
-         ids_per_symbol_for_current_position.at(symbol),
-         sequence_count - number_of_sequences,
-         number_of_sequences
-      );
+      std::vector<std::pair<uint16_t, std::vector<uint16_t>>> ids_in_batches =
+         splitIdsIntoBatches(ids_per_symbol_for_current_position[symbol]);
+      for (const auto& [upper_bits, lower_bits_vector] : ids_in_batches) {
+         SequenceDiffKey key{
+            .position = position_idx, .vertical_tile_index = upper_bits, .symbol = symbol
+         };
+         SequenceDiff* sequence_diff;
+
+         auto iter = vertical_bitmaps.find(key);
+         if (iter != vertical_bitmaps.end()) {
+            sequence_diff = &iter->second;
+         } else {
+            // TODO reserve size and/or maybe allocate bitset if card is big
+            sequence_diff = &vertical_bitmaps
+                                .insert(
+                                   {key,
+                                    SequenceDiff{
+                                       .container = roaring::internal::array_container_create(),
+                                       .cardinality = 0,
+                                       .typecode = ARRAY_CONTAINER_TYPE
+                                    }}
+                                )
+                                .first->second;
+         }
+
+         for (auto id : lower_bits_vector) {
+            uint8_t new_container_type;
+            auto new_container = roaring::internal::container_add(
+               sequence_diff->container, id, sequence_diff->typecode, &new_container_type
+            );
+            if (new_container != sequence_diff->container) {
+               roaring::internal::container_free(sequence_diff->container, sequence_diff->typecode);
+               sequence_diff->container = new_container;
+               sequence_diff->typecode = new_container_type;
+            }
+            sequence_diff->cardinality += 1;
+         }
+      }
       ids_per_symbol_for_current_position[symbol].clear();
    }
 }
 
 template <typename SymbolType>
 void SequenceColumnPartition<SymbolType>::fillNBitmaps() {
-   const size_t genome_length = positions.size();
-
    const size_t sequence_id_base_for_buffer = sequence_count - lazy_buffer.size();
 
-   missing_symbol_bitmaps.resize(sequence_count);
+   horizontal_bitmaps.resize(sequence_count);
 
    const tbb::blocked_range<size_t> range(0, lazy_buffer.size());
    tbb::parallel_for(range, [&](const decltype(range)& local) {
@@ -259,12 +304,12 @@ void SequenceColumnPartition<SymbolType>::fillNBitmaps() {
          const size_t sequence_idx = sequence_id_base_for_buffer + sequence_offset_in_buffer;
 
          if (!is_valid) {
-            missing_symbol_bitmaps[sequence_idx].addRange(0, genome_length);
-            missing_symbol_bitmaps[sequence_idx].runOptimize();
+            horizontal_bitmaps[sequence_idx].addRange(0, genome_length);
+            horizontal_bitmaps[sequence_idx].runOptimize();
             continue;
          }
 
-         missing_symbol_bitmaps[sequence_idx].addRange(0, offset);
+         horizontal_bitmaps[sequence_idx].addRange(0, offset);
 
          for (size_t position_idx = 0; position_idx < maybe_sequence.size(); ++position_idx) {
             const char character = maybe_sequence[position_idx];
@@ -274,15 +319,13 @@ void SequenceColumnPartition<SymbolType>::fillNBitmaps() {
             }
          }
 
-         missing_symbol_bitmaps[sequence_idx].addRange(
-            offset + maybe_sequence.size(), genome_length
-         );
+         horizontal_bitmaps[sequence_idx].addRange(offset + maybe_sequence.size(), genome_length);
 
          if (!positions_with_symbol_missing.empty()) {
-            missing_symbol_bitmaps[sequence_idx].addMany(
+            horizontal_bitmaps[sequence_idx].addMany(
                positions_with_symbol_missing.size(), positions_with_symbol_missing.data()
             );
-            missing_symbol_bitmaps[sequence_idx].runOptimize();
+            horizontal_bitmaps[sequence_idx].runOptimize();
             positions_with_symbol_missing.clear();
          }
       }
@@ -291,23 +334,7 @@ void SequenceColumnPartition<SymbolType>::fillNBitmaps() {
 
 template <typename SymbolType>
 void SequenceColumnPartition<SymbolType>::optimizeBitmaps() {
-   tbb::enumerable_thread_specific<decltype(indexing_differences_to_reference_sequence)>
-      index_changes_to_reference;
-
-   tbb::parallel_for(tbb::blocked_range<uint32_t>(0, positions.size()), [&](const auto& local) {
-      auto& local_index_changes = index_changes_to_reference.local();
-      for (auto position_idx = local.begin(); position_idx != local.end(); ++position_idx) {
-         auto symbol_changed = positions[position_idx].flipMostNumerousBitmap(sequence_count);
-         if (symbol_changed.has_value()) {
-            local_index_changes.emplace_back(position_idx, *symbol_changed);
-         }
-      }
-   });
-   for (const auto& local : index_changes_to_reference) {
-      for (const auto& element : local) {
-         indexing_differences_to_reference_sequence.emplace_back(element);
-      }
-   }
+   // TODO
 }
 
 template <typename SymbolType>
@@ -319,8 +346,10 @@ void SequenceColumnPartition<SymbolType>::flushBuffer() {
 template <typename SymbolType>
 size_t SequenceColumnPartition<SymbolType>::computeVerticalBitmapsSize() const {
    size_t result = 0;
-   for (const auto& position : positions) {
-      result += position.computeSize();
+   for (const auto& [_, sequence_diff] : vertical_bitmaps) {
+      result += roaring::internal::container_size_in_bytes(
+         sequence_diff.container, sequence_diff.typecode
+      );
    }
    return result;
 }
@@ -328,7 +357,7 @@ size_t SequenceColumnPartition<SymbolType>::computeVerticalBitmapsSize() const {
 template <typename SymbolType>
 size_t SequenceColumnPartition<SymbolType>::computeHorizontalBitmapsSize() const {
    size_t result = 0;
-   for (const auto& bitmap : missing_symbol_bitmaps) {
+   for (const auto& bitmap : horizontal_bitmaps) {
       result += bitmap.getSizeInBytes(false);
    }
    return result;

@@ -20,6 +20,7 @@
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/index_scan.h"
 #include "silo/query_engine/filter/operators/operator.h"
+#include "silo/query_engine/filter/operators/union.h"
 #include "silo/query_engine/query_parse_sequence_name.h"
 #include "silo/storage/table_partition.h"
 
@@ -83,19 +84,19 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<Sy
    const auto valid_sequence_name =
       validateSequenceNameOrGetDefault<SymbolType>(sequence_name, table.schema);
 
-   const auto& seq_store_partition =
+   const auto& sequence_column_partition =
       table_partition.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
 
    CHECK_SILO_QUERY(
-      position_idx < seq_store_partition.metadata->reference_sequence.size(),
+      position_idx < sequence_column_partition.metadata->reference_sequence.size(),
       "{} position is out of bounds {} > {}",
       getFilterName(),
       position_idx + 1,
-      seq_store_partition.metadata->reference_sequence.size()
+      sequence_column_partition.metadata->reference_sequence.size()
    )
 
    auto symbol = value.getSymbolOrReplaceDotWith(
-      seq_store_partition.metadata->reference_sequence.at(position_idx)
+      sequence_column_partition.metadata->reference_sequence.at(position_idx)
    );
    if (mode == UPPER_BOUND) {
       auto symbols_to_match = SymbolType::AMBIGUITY_SYMBOLS.at(symbol);
@@ -122,62 +123,117 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<Sy
       );
       return std::make_unique<operators::BitmapSelection>(
          std::move(logical_equivalent),
-         seq_store_partition.missing_symbol_bitmaps.data(),
-         seq_store_partition.missing_symbol_bitmaps.size(),
+         sequence_column_partition.horizontal_bitmaps.data(),
+         sequence_column_partition.horizontal_bitmaps.size(),
          operators::BitmapSelection::CONTAINS,
          position_idx
       );
    }
-   if (seq_store_partition.positions[position_idx].isSymbolFlipped(symbol)) {
-      SPDLOG_TRACE(
-         "Filtering for flipped symbol '{}' at position {}",
-         SymbolType::symbolToChar(symbol),
+
+   auto local_reference_symbol = sequence_column_partition.getLocalReferencePosition(position_idx);
+
+   using Key = storage::column::SequenceColumnPartition<SymbolType>::SequenceDiffKey;
+
+   // We compute the range of bitmap containers that are relevant for our position
+   auto start = sequence_column_partition.vertical_bitmaps.lower_bound(
+      Key{position_idx, 0, static_cast<SymbolType::Symbol>(0)}
+   );
+   auto end = sequence_column_partition.vertical_bitmaps.lower_bound(
+      Key{position_idx + 1, 0, static_cast<SymbolType::Symbol>(0)}
+   );
+
+   if (symbol != local_reference_symbol) {
+      // We construct a roaring bitmap of all bitmap containers that are of my symbol
+      roaring::Roaring bitmap;
+      for (auto it = start; it != end; ++it) {
+         const auto& [sequence_diff_key, sequence_diff] = *it;
+         if (sequence_diff_key.symbol == symbol) {
+            roaring::internal::array_container_t* tmp_container =
+               roaring::internal::array_container_create();
+            uint8_t result_typecode;
+            roaring::internal::container_t* result_container = roaring::internal::container_ior(
+               tmp_container,
+               ARRAY_CONTAINER_TYPE,
+               sequence_diff.container,
+               sequence_diff.typecode,
+               &result_typecode
+            );
+            if (tmp_container != result_container) {
+               roaring::internal::array_container_free(tmp_container);
+            }
+            roaring::internal::ra_append(
+               &bitmap.roaring.high_low_container,
+               sequence_diff_key.vertical_tile_index,
+               result_container,
+               result_typecode
+            );
+         }
+      }
+      return std::make_unique<operators::IndexScan>(
+         CopyOnWriteBitmap{std::move(bitmap)}, table_partition.sequence_count
+      );
+   } else {
+      // We need to union all bitmap containers at this position and return the inverse
+      roaring::Roaring bitmap;
+      int32_t current_v_tile_index = -1;
+      roaring::internal::container_t* current_container = nullptr;
+      uint8_t current_typecode = -1;
+      for (auto it = start; it != end; ++it) {
+         const auto& [sequence_diff_key, sequence_diff] = *it;
+
+         SILO_ASSERT(current_v_tile_index <= sequence_diff_key.vertical_tile_index);
+         if (current_v_tile_index != sequence_diff_key.vertical_tile_index) {
+            if (current_container != nullptr) {
+               roaring::internal::ra_append(
+                  &bitmap.roaring.high_low_container,
+                  current_v_tile_index,
+                  current_container,
+                  current_typecode
+               );
+            }
+            current_v_tile_index = sequence_diff_key.vertical_tile_index;
+            current_container = roaring::internal::array_container_create();
+            current_typecode = ARRAY_CONTAINER_TYPE;
+         }
+         SILO_ASSERT(current_container != nullptr);
+         uint8_t result_typecode;
+         roaring::internal::container_t* result_container = roaring::internal::container_ior(
+            current_container,
+            current_typecode,
+            sequence_diff.container,
+            sequence_diff.typecode,
+            &result_typecode
+         );
+         if (result_container != current_container) {
+            roaring::internal::container_free(current_container, current_typecode);
+            current_container = result_container;
+            current_typecode = result_typecode;
+         }
+      }
+
+      if (current_container != nullptr) {
+         roaring::internal::ra_append(
+            &bitmap.roaring.high_low_container,
+            current_v_tile_index,
+            current_container,
+            current_typecode
+         );
+      }
+      operators::OperatorVector children;
+      children.push_back(std::make_unique<operators::IndexScan>(
+         CopyOnWriteBitmap{std::move(bitmap)}, table_partition.sequence_count
+      ));
+      children.push_back(std::make_unique<operators::BitmapSelection>(
+         sequence_column_partition.horizontal_bitmaps.data(),
+         sequence_column_partition.horizontal_bitmaps.size(),
+         operators::BitmapSelection::CONTAINS,
          position_idx
-      );
-      auto logical_equivalent_of_nested_index_scan = std::make_unique<Negation>(
-         std::make_unique<SymbolEquals>(valid_sequence_name, position_idx, symbol)
-      );
+      ));
       return std::make_unique<operators::Complement>(
-         std::make_unique<operators::IndexScan>(
-            std::move(logical_equivalent_of_nested_index_scan),
-            seq_store_partition.getBitmap(position_idx, symbol),
-            table_partition.sequence_count
-         ),
+         std::make_unique<operators::Union>(std::move(children), table_partition.sequence_count),
          table_partition.sequence_count
       );
    }
-   if (seq_store_partition.positions[position_idx].isSymbolDeleted(symbol)) {
-      SPDLOG_TRACE(
-         "Filtering for deleted symbol '{}' at position {}",
-         SymbolType::symbolToChar(symbol),
-         position_idx
-      );
-      std::vector<typename SymbolType::Symbol> symbols = std::vector<typename SymbolType::Symbol>(
-         SymbolType::SYMBOLS.begin(), SymbolType::SYMBOLS.end()
-      );
-      std::erase(symbols, symbol);
-      ExpressionVector symbol_filters;
-      std::ranges::transform(
-         symbols,
-         std::back_inserter(symbol_filters),
-         [&](typename SymbolType::Symbol symbol) {
-            return std::make_unique<Negation>(
-               std::make_unique<SymbolEquals<SymbolType>>(valid_sequence_name, position_idx, symbol)
-            );
-         }
-      );
-      return And(std::move(symbol_filters)).compile(table, table_partition, NONE);
-   }
-   SPDLOG_TRACE(
-      "Filtering for symbol '{}' at position {}", SymbolType::symbolToChar(symbol), position_idx
-   );
-   auto logical_equivalent =
-      std::make_unique<SymbolEquals>(valid_sequence_name, position_idx, symbol);
-   return std::make_unique<operators::IndexScan>(
-      std::move(logical_equivalent),
-      seq_store_partition.getBitmap(position_idx, symbol),
-      table_partition.sequence_count
-   );
 }
 
 template <typename SymbolType>

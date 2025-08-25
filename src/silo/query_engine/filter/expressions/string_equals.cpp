@@ -51,7 +51,9 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> StringEquals::c
       if (bitmap == std::nullopt || bitmap.value()->isEmpty()) {
          return std::make_unique<operators::Empty>(table_partition.sequence_count);
       }
-      return std::make_unique<operators::IndexScan>(bitmap.value(), table_partition.sequence_count);
+      return std::make_unique<operators::IndexScan>(
+         CopyOnWriteBitmap{bitmap.value()}, table_partition.sequence_count
+      );
    }
    SILO_ASSERT(table_partition.columns.string_columns.contains(column_name));
    const auto& string_column = table_partition.columns.string_columns.at(column_name);
@@ -64,7 +66,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> StringEquals::c
       );
    }
    return std::make_unique<operators::IndexScan>(
-      &string_column.null_bitmap, table_partition.sequence_count
+      CopyOnWriteBitmap{&string_column.null_bitmap}, table_partition.sequence_count
    );
 }
 

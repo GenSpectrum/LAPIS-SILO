@@ -1,82 +1,153 @@
 #include "silo/query_engine/exec_node/table_scan.h"
 
+#include <roaring/containers/array.h>
+#include <roaring/containers/bitset.h>
+#include <roaring/containers/containers.h>
+#include <roaring/containers/run.h>
+#include <roaring/roaring.h>
+#include <roaring/roaring.hh>
+
 #include "silo/query_engine/batched_bitmap_reader.h"
 
 namespace silo::query_engine::exec_node {
 
 namespace {
 
+// Get the subset of A & B and compute their ranks with respect to A
+// Example:    A     B     rank in A
+//             3
+//             4 --- 4 --> 2
+//             5 --- 5 --> 3
+//                   6
+//             7
+//             9 --- 9 --> 5
+// TODO add tests
+std::vector<uint64_t> roaringSubsetRanks(
+   const roaring::internal::container_t* c_a,
+   uint8_t type_a,
+   const roaring::internal::container_t* c_b,
+   uint8_t type_b,
+   uint32_t base
+) {
+   uint8_t type_a_and_b;
+   auto c_a_and_b = roaring::internal::container_and(c_a, type_a, c_b, type_b, &type_a_and_b);
+
+   std::vector<uint32_t> a_and_b_as_vector;
+   size_t required_cardinality =
+      roaring::internal::container_get_cardinality(c_a_and_b, type_a_and_b);
+   a_and_b_as_vector.resize(required_cardinality);
+
+   roaring::internal::container_to_uint32_array(
+      a_and_b_as_vector.data(), c_a_and_b, type_a_and_b, base
+   );
+
+   std::vector<uint64_t> ids_in_reconstructed_sequences(a_and_b_as_vector.size());
+   roaring::internal::container_rank_many(
+      c_a,
+      type_a,
+      base,
+      a_and_b_as_vector.begin().base(),
+      a_and_b_as_vector.end().base(),
+      ids_in_reconstructed_sequences.data()
+   );
+
+   return ids_in_reconstructed_sequences;
+}
+
 template <typename SymbolType>
 arrow::Status appendSequences(
-   const storage::column::SequenceColumnPartition<SymbolType>& sequence_store,
+   const storage::column::SequenceColumnPartition<SymbolType>& sequence_column_partition,
    const roaring::Roaring& row_ids,
    arrow::BinaryBuilder& output_array
 ) {
    std::string general_reference;
    std::ranges::transform(
-      sequence_store.metadata->reference_sequence,
+      sequence_column_partition.metadata->reference_sequence,
       std::back_inserter(general_reference),
       SymbolType::symbolToChar
    );
 
    std::string partition_reference = general_reference;
    for (const auto& [position_id, symbol] :
-        sequence_store.indexing_differences_to_reference_sequence) {
+        sequence_column_partition.indexing_differences_to_reference_sequence) {
       partition_reference[position_id] = SymbolType::symbolToChar(symbol);
    }
 
-   std::vector<std::string> reconstructed_sequences(row_ids.cardinality(), partition_reference);
+   size_t total_cardinality = 0;
+   std::vector<std::vector<std::string>> reconstructed_sequences_by_roaring_container(
+      row_ids.roaring.high_low_container.size
+   );
+   for (size_t idx = 0; idx < row_ids.roaring.high_low_container.size; ++idx) {
+      auto cardinality = roaring::internal::container_get_cardinality(
+         row_ids.roaring.high_low_container.containers[idx],
+         row_ids.roaring.high_low_container.typecodes[idx]
+      );
+      total_cardinality += cardinality;
+      reconstructed_sequences_by_roaring_container.at(idx).resize(cardinality, partition_reference);
+   }
 
-   for (size_t position_id = 0; position_id < sequence_store.positions.size(); position_id++) {
-      const storage::column::SequencePosition<SymbolType>& position =
-         sequence_store.positions.at(position_id);
-      for (const auto symbol : SymbolType::SYMBOLS) {
-         if (position.isSymbolFlipped(symbol) || position.isSymbolDeleted(symbol)) {
-            continue;
-         }
-         roaring::Roaring current_row_ids_with_that_mutation =
-            row_ids & *position.getBitmap(symbol);
+   for (const auto& [sequence_diff_key, sequence_diff] :
+        sequence_column_partition.vertical_bitmaps) {
+      if(sequence_diff_key.vertical_tile_index >= row_ids.roaring.high_low_container.size &&
+          // There are no sequences to reconstruct here
+          !reconstructed_sequences_by_roaring_container.at(sequence_diff_key.vertical_tile_index).empty()){
+         continue;
+      }
 
-         std::vector<uint32_t> current_row_ids_with_that_mutation_as_vector(
-            current_row_ids_with_that_mutation.cardinality()
-         );
-         current_row_ids_with_that_mutation.toUint32Array(
-            current_row_ids_with_that_mutation_as_vector.data()
-         );
+      auto v_index = sequence_diff_key.vertical_tile_index;
 
-         std::vector<uint64_t> ids_in_reconstructed_sequences(
-            current_row_ids_with_that_mutation_as_vector.size()
-         );
-         row_ids.rank_many(
-            current_row_ids_with_that_mutation_as_vector.begin().base(),
-            current_row_ids_with_that_mutation_as_vector.end().base(),
-            ids_in_reconstructed_sequences.data()
-         );
+      auto ranks_in_reconstructed_sequences = roaringSubsetRanks(
+         row_ids.roaring.high_low_container.containers[v_index],
+         row_ids.roaring.high_low_container.typecodes[v_index],
+         sequence_diff.container,
+         sequence_diff.typecode,
+         /*base=*/0  // Base rank is 0, because we have a reconstructed_sequences vector per
+                     // container
+      );
 
-         for (auto id_in_reconstructed_sequences : ids_in_reconstructed_sequences) {
-            // Ranks are 1-indexed
-            reconstructed_sequences.at(id_in_reconstructed_sequences - 1).at(position_id) =
-               SymbolType::symbolToChar(symbol);
-         }
+      auto& reconstructed_sequences =
+         reconstructed_sequences_by_roaring_container.at(sequence_diff_key.vertical_tile_index);
+      for (auto rank_in_reconstructed_sequences : ranks_in_reconstructed_sequences) {
+         // Ranks are 1-indexed
+         uint32_t id_in_reconstructed_sequences = rank_in_reconstructed_sequences - 1;
+         reconstructed_sequences.at(id_in_reconstructed_sequences).at(sequence_diff_key.position) =
+            SymbolType::symbolToChar(sequence_diff_key.symbol);
       }
    }
 
-   size_t id_in_reconstructed_sequences = 0;
-   for (size_t row_id : row_ids) {
-      for (const size_t position_idx : sequence_store.missing_symbol_bitmaps.at(row_id)) {
-         reconstructed_sequences.at(id_in_reconstructed_sequences).at(position_idx) =
-            SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING);
+   for (size_t roaring_container_idx = 0;
+        roaring_container_idx < row_ids.roaring.high_low_container.size;
+        ++roaring_container_idx) {
+      size_t id_in_reconstructed_sequences = 0;
+      auto& reconstructed_sequences =
+         reconstructed_sequences_by_roaring_container.at(roaring_container_idx);
+      std::vector<uint32_t> current_row_ids_as_vector(reconstructed_sequences.size());
+      roaring::internal::container_to_uint32_array(
+         current_row_ids_as_vector.data(),
+         row_ids.roaring.high_low_container.containers[roaring_container_idx],
+         row_ids.roaring.high_low_container.typecodes[roaring_container_idx],
+         row_ids.roaring.high_low_container.keys[roaring_container_idx]
+      );
+      for (size_t row_id : row_ids) {
+         for (const size_t position_idx : sequence_column_partition.horizontal_bitmaps.at(row_id)) {
+            reconstructed_sequences.at(id_in_reconstructed_sequences).at(position_idx) =
+               SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING);
+         }
+         id_in_reconstructed_sequences++;
       }
-      id_in_reconstructed_sequences++;
    }
-   ARROW_RETURN_NOT_OK(output_array.Reserve(reconstructed_sequences.size()));
+
+   ARROW_RETURN_NOT_OK(output_array.Reserve(total_cardinality));
    auto reference_sequence = general_reference;
    auto dictionary = std::make_shared<silo::ZstdCDictionary>(reference_sequence, 3);
    silo::ZstdCompressor compressor{dictionary};
-   for (const auto& reconstructed_sequence : reconstructed_sequences) {
-      ARROW_RETURN_NOT_OK(output_array.Append(
-         compressor.compress(reconstructed_sequence.data(), reconstructed_sequence.size())
-      ));
+   for (const auto& reconstructed_sequences_subvector :
+        reconstructed_sequences_by_roaring_container) {
+      for (const auto& reconstructed_sequence : reconstructed_sequences_subvector) {
+         ARROW_RETURN_NOT_OK(output_array.Append(
+            compressor.compress(reconstructed_sequence.data(), reconstructed_sequence.size())
+         ));
+      }
    }
    return arrow::Status::OK();
 }

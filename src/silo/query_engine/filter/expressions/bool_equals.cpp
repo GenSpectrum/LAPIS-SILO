@@ -43,16 +43,16 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> BoolEquals::com
 
    if (value == std::nullopt) {
       return std::make_unique<operators::IndexScan>(
-         &bool_column.null_bitmap, table_partition.sequence_count
+         CopyOnWriteBitmap{&bool_column.null_bitmap}, table_partition.sequence_count
       );
    }
    if (value.value()) {
       return std::make_unique<operators::IndexScan>(
-         &bool_column.true_bitmap, table_partition.sequence_count
+         CopyOnWriteBitmap{&bool_column.true_bitmap}, table_partition.sequence_count
       );
    } else {
       return std::make_unique<operators::IndexScan>(
-         &bool_column.false_bitmap, table_partition.sequence_count
+         CopyOnWriteBitmap{&bool_column.false_bitmap}, table_partition.sequence_count
       );
    }
    SILO_UNREACHABLE();

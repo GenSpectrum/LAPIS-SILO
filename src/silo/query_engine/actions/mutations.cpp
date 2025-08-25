@@ -84,74 +84,87 @@ std::unordered_map<std::string, typename Mutations<SymbolType>::PrefilteredBitma
 }
 
 template <typename SymbolType>
-void Mutations<SymbolType>::addPositionToMutationCountsForMixedBitmaps(
-   uint32_t position_idx,
+void Mutations<SymbolType>::addMutationCountsForMixedBitmaps(
    const PrefilteredBitmaps& bitmaps_to_evaluate,
    SymbolMap<SymbolType, std::vector<uint32_t>>& count_of_mutations_per_position
 ) {
-   for (const auto& [filter, sequence_store_partition] : bitmaps_to_evaluate.bitmaps) {
-      for (const auto symbol : SymbolType::SYMBOLS) {
-         const auto& current_position = sequence_store_partition.positions[position_idx];
-         if (current_position.isSymbolDeleted(symbol)) {
-            count_of_mutations_per_position[symbol][position_idx] += filter->cardinality();
-            for (const uint32_t idx : *filter) {
-               const roaring::Roaring& n_bitmap =
-                  sequence_store_partition.missing_symbol_bitmaps[idx];
-               if (n_bitmap.contains(position_idx)) {
-                  count_of_mutations_per_position[symbol][position_idx] -= 1;
-               }
-            }
-            continue;
-         }
-         const uint32_t symbol_count =
-            current_position.isSymbolFlipped(symbol)
-               ? filter->andnot_cardinality(*current_position.getBitmap(symbol))
-               : filter->and_cardinality(*current_position.getBitmap(symbol));
+   size_t sequence_length =
+      count_of_mutations_per_position[static_cast<SymbolType::Symbol>(0)].size();
 
-         count_of_mutations_per_position[symbol][position_idx] += symbol_count;
+   for (const auto& [filter, sequence_column_partition] : bitmaps_to_evaluate.bitmaps) {
+      auto local_reference = sequence_column_partition.getLocalReference();
 
-         const auto deleted_symbol = current_position.getDeletedSymbol();
-         if (deleted_symbol.has_value() && symbol != *deleted_symbol) {
-            count_of_mutations_per_position[*deleted_symbol][position_idx] -= symbol_count;
+      for (size_t position_idx = 0; position_idx < sequence_length; ++position_idx) {
+         count_of_mutations_per_position[local_reference.at(position_idx)][position_idx] +=
+            sequence_column_partition.sequence_count;
+      }
+      for (const uint32_t idx : *filter) {
+         const roaring::Roaring& n_bitmap = sequence_column_partition.horizontal_bitmaps[idx];
+         for (size_t position_idx : n_bitmap) {
+            count_of_mutations_per_position[local_reference.at(position_idx)][position_idx] -= 1;
          }
+      }
+
+      const roaring::Roaring& x = *filter;
+      std::vector<roaring::internal::container_t*> filter_containers;
+      std::vector<uint8_t> filter_container_typecodes;
+      filter_containers.reserve(x.roaring.high_low_container.size);
+      for (size_t idx = 0; idx < x.roaring.high_low_container.size; ++idx) {
+         filter_containers.push_back(x.roaring.high_low_container.containers[idx]);
+         filter_container_typecodes.push_back(x.roaring.high_low_container.typecodes[idx]);
+      }
+
+      for (const auto& [sequence_diff_key, sequence_diff] :
+           sequence_column_partition.vertical_bitmaps) {
+         auto filter_container = filter_containers.at(sequence_diff_key.vertical_tile_index);
+         uint8_t filter_container_typecode =
+            filter_container_typecodes.at(sequence_diff_key.vertical_tile_index);
+
+         auto contained_count = roaring::internal::container_and_cardinality(
+            filter_container,
+            filter_container_typecode,
+            sequence_diff.container,
+            sequence_diff.typecode
+         );
+
+         count_of_mutations_per_position[sequence_diff_key.symbol][sequence_diff_key.position] +=
+            contained_count;
+         count_of_mutations_per_position[local_reference.at(sequence_diff_key.position)]
+                                        [sequence_diff_key.position] -= contained_count;
       }
    }
 }
 
 template <typename SymbolType>
-void Mutations<SymbolType>::addPositionToMutationCountsForFullBitmaps(
-   uint32_t position_idx,
+void Mutations<SymbolType>::addMutationCountsForFullBitmaps(
    const PrefilteredBitmaps& bitmaps_to_evaluate,
    SymbolMap<SymbolType, std::vector<uint32_t>>& count_of_mutations_per_position
 ) {
+   size_t sequence_length =
+      count_of_mutations_per_position[static_cast<SymbolType::Symbol>(0)].size();
+
    // For these partitions, we have full bitmaps. Do not need to bother with AND
    // cardinality
-   for (const auto& [_, sequence_store_partition] : bitmaps_to_evaluate.full_bitmaps) {
-      for (const auto symbol : SymbolType::SYMBOLS) {
-         const auto& current_position = sequence_store_partition.positions[position_idx];
-         if (current_position.isSymbolDeleted(symbol)) {
-            count_of_mutations_per_position[symbol][position_idx] +=
-               sequence_store_partition.sequence_count;
-            for (const roaring::Roaring& n_bitmap :
-                 sequence_store_partition.missing_symbol_bitmaps) {
-               if (n_bitmap.contains(position_idx)) {
-                  count_of_mutations_per_position[symbol][position_idx] -= 1;
-               }
-            }
-            continue;
-         }
-         const uint32_t symbol_count = current_position.isSymbolFlipped(symbol)
-                                          ? sequence_store_partition.sequence_count -
-                                               current_position.getBitmap(symbol)->cardinality()
-                                          : current_position.getBitmap(symbol)->cardinality();
+   for (const auto& [_, sequence_column_partition] : bitmaps_to_evaluate.full_bitmaps) {
+      auto local_reference = sequence_column_partition.getLocalReference();
 
-         count_of_mutations_per_position[symbol][position_idx] += symbol_count;
+      for (size_t position_idx = 0; position_idx < sequence_length; ++position_idx) {
+         count_of_mutations_per_position[local_reference.at(position_idx)][position_idx] +=
+            sequence_column_partition.sequence_count;
+      }
 
-         const auto deleted_symbol = current_position.getDeletedSymbol();
-         if (deleted_symbol.has_value() && symbol != *deleted_symbol) {
-            count_of_mutations_per_position[*deleted_symbol][position_idx] -=
-               sequence_store_partition.positions[position_idx].getBitmap(symbol)->cardinality();
+      for (const roaring::Roaring& n_bitmap : sequence_column_partition.horizontal_bitmaps) {
+         for (size_t position_idx : n_bitmap) {
+            count_of_mutations_per_position[local_reference.at(position_idx)][position_idx] -= 1;
          }
+      }
+
+      for (const auto& [sequence_diff_key, sequence_diff] :
+           sequence_column_partition.vertical_bitmaps) {
+         count_of_mutations_per_position[sequence_diff_key.symbol][sequence_diff_key.position] +=
+            sequence_diff.cardinality;
+         count_of_mutations_per_position[local_reference.at(sequence_diff_key.position)]
+                                        [sequence_diff_key.position] -= sequence_diff.cardinality;
       }
    }
 }
@@ -163,25 +176,13 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
 ) {
    const size_t sequence_length = metadata.reference_sequence.size();
 
-   SymbolMap<SymbolType, std::vector<uint32_t>> mutation_counts_per_position;
+   SymbolMap<SymbolType, std::vector<uint32_t>> count_of_mutations_per_position;
    for (const auto symbol : SymbolType::SYMBOLS) {
-      mutation_counts_per_position[symbol].resize(sequence_length);
+      count_of_mutations_per_position[symbol] = std::vector<uint32_t>(sequence_length, 0);
    }
-   static constexpr int POSITIONS_PER_PROCESS = 300;
-   tbb::parallel_for(
-      tbb::blocked_range<uint32_t>(0, sequence_length, /*grain_size=*/POSITIONS_PER_PROCESS),
-      [&](const auto& local) {
-         for (uint32_t pos = local.begin(); pos != local.end(); ++pos) {
-            addPositionToMutationCountsForMixedBitmaps(
-               pos, bitmap_filter, mutation_counts_per_position
-            );
-            addPositionToMutationCountsForFullBitmaps(
-               pos, bitmap_filter, mutation_counts_per_position
-            );
-         }
-      }
-   );
-   return mutation_counts_per_position;
+   addMutationCountsForMixedBitmaps(bitmap_filter, count_of_mutations_per_position);
+   addMutationCountsForFullBitmaps(bitmap_filter, count_of_mutations_per_position);
+   return count_of_mutations_per_position;
 }
 
 template <typename SymbolType>
