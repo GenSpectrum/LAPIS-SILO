@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cstdint>
 #include <mutex>
 #include <stdexcept>
 #include <string>
@@ -78,8 +79,18 @@ class Buffer {
    ~Buffer();
 };
 
-// These are private; only call if is_enabled is true!
-void _log_any(const char* probe_name, PointKind kind);
+// The `_log_*` functions are used by the macros (quasi private); only
+// call if is_enabled is true!
+
+// `num_calls`: how many calls this log entry represents; it is the
+// `every_n` parameter from `EVOBENCH_SCOPE_EVERY` or statically 1, or
+// 0 when unknown (0 does not make sense as a value and is hence used
+// as a null value; evobench-evaluator checks that it never uses 0 for
+// spans, the spans always have the valid number from the start timing
+// record, hence the macro doesn't need to specify the value when
+// ending the scope).
+void _log_any(const char* probe_name, PointKind kind, uint32_t num_calls);
+
 void _log_key_value(std::string_view key, std::string_view value);
 
 /// Log a key value pair, without timings, for information
@@ -93,7 +104,7 @@ inline static void log_key_value(std::string_view key, std::string_view value) {
 /// Log at the point of call as a single "T" event.
 inline static void log_point(const char* probe_name) {
    if (output.is_enabled) {
-      _log_any(probe_name, PointKind::T);
+      _log_any(probe_name, PointKind::T, 1);
    }
 }
 
@@ -139,12 +150,46 @@ class Scope {
   public:
    inline Scope() {
       if (output.is_enabled) {
-         _log_any(ProbeName, PointKind::TS);
+         _log_any(ProbeName, PointKind::TS, 1);
       }
    }
    inline ~Scope() {
       if (output.is_enabled) {
-         _log_any(ProbeName, PointKind::TE);
+         // For consistency with `~ScopeEveryN`, just send 0 as the
+         // `num_calls` value for this scope end, too (it doesn't
+         // currently matter what we send as evobench-evaluator
+         // ignores the value for end scope timings)
+         _log_any(ProbeName, PointKind::TE, 0);
+      }
+   }
+};
+
+/// Same as `Scope` but only logs every `every_n` steps.
+template <fixed_string ProbeName>
+class ScopeEveryN {
+   bool log_this_time;
+
+  public:
+   inline ScopeEveryN(uint32_t every_n, uint32_t* skip) {
+      if (output.is_enabled) {
+         if (*skip > 0) {
+            (*skip)--;
+            log_this_time = false;
+         } else {
+            *skip = every_n - 1;
+            log_this_time = true;
+            _log_any(ProbeName, PointKind::TS, every_n);
+         }
+      } else {
+         log_this_time = false;
+      }
+   }
+   inline ~ScopeEveryN() {
+      if (output.is_enabled && log_this_time) {
+         // There's no need to remember the `every_n` value, since
+         // start and end timing records are always paired anyway,
+         // thus just give the non-value 0 as the `num_calls` value.
+         _log_any(ProbeName, PointKind::TE, 0);
       }
    }
 };
@@ -154,21 +199,38 @@ class Scope {
 /// `NO_EVOBENCH` disables the probe points; the logfile will still be
 /// written but with just the TStart and TEnd points.
 #ifdef NO_EVOBENCH
+
 #define EVOBENCH_SCOPE(module, action)
 #define EVOBENCH_POINT(module, action)
 #define EVOBENCH_KEY_VALUE(key, value)
+#define EVOBENCH_SCOPE_EVERY(n, module, action)
+
 #else
+
 #define CONCAT_WITH_PIPE(left, right)                                                    \
    (evobench::concat3<std::string_view{left}.size(), 1, std::string_view{right}.size()>( \
       evobench::fixed_string<std::string_view{left}.size()>{std::string_view{left}},     \
       evobench::fixed_string<1>{"|"},                                                    \
       evobench::fixed_string<std::string_view{right}.size()>{std::string_view{right}}    \
    ))
+
 #define EVOBENCH_SCOPE_INTERNAL(scope_name, line) \
    evobench::Scope<scope_name> __evobench_scope##line{};
 #define EVOBENCH_SCOPE_INTERNAL2(module, action, line) \
    EVOBENCH_SCOPE_INTERNAL(CONCAT_WITH_PIPE(module, action), line)
 #define EVOBENCH_SCOPE(module, action) EVOBENCH_SCOPE_INTERNAL2(module, action, __LINE__)
+
+#define EVOBENCH_SCOPE_EVERY_INTERNAL(n, scope_name, line)                \
+   thread_local static uint32_t __evobench_scope_every_n_skip_##line = 0; \
+   evobench::ScopeEveryN<scope_name> __evobench_scope_everyn_##line{      \
+      n, &__evobench_scope_every_n_skip_##line                            \
+   };
+#define EVOBENCH_SCOPE_EVERY_INTERNAL2(n, module, action, line) \
+   EVOBENCH_SCOPE_EVERY_INTERNAL(n, CONCAT_WITH_PIPE(module, action), line)
+#define EVOBENCH_SCOPE_EVERY(n, module, action) \
+   EVOBENCH_SCOPE_EVERY_INTERNAL2(n, module, action, __LINE__)
+
 #define EVOBENCH_POINT(module, action) evobench::log_point(CONCAT_WITH_PIPE(module, action));
 #define EVOBENCH_KEY_VALUE(key, value) evobench::log_key_value(key, value)
+
 #endif
