@@ -82,12 +82,12 @@ ConfigSpecification RuntimeConfig::getConfigSpecification() {
             ),
             ConfigAttributeSpecification::createWithDefault(
                apiMaxConnectionsOptionKey(),
-               ConfigValue::fromInt32(64),
+               ConfigValue::fromInt32(256),
                "The maximum number of concurrent connections accepted at any time."
             ),
             ConfigAttributeSpecification::createWithDefault(
                apiParallelThreadsOptionKey(),
-               ConfigValue::fromInt32(4),
+               ConfigValue::fromInt32(8),
                "The number of worker threads."
             ),
             ConfigAttributeSpecification::createWithoutDefault(
