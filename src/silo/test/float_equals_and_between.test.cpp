@@ -7,6 +7,7 @@
 using silo::ReferenceGenomes;
 using silo::config::DatabaseConfig;
 using silo::config::ValueType;
+using silo::test::negateFilter;
 using silo::test::QueryTestData;
 using silo::test::QueryTestScenario;
 
@@ -37,6 +38,7 @@ nlohmann::json createDataWithFloatNullValue(const std::string& primaryKey) {
       {"gene1", nullptr}
    };
 }
+
 const std::vector<nlohmann::json> DATA = {
    createDataWithFloatValue("id_0", VALUE_IN_FILTER),
    createDataWithFloatValue("id_1", VALUE_IN_FILTER),
@@ -89,7 +91,7 @@ nlohmann::json createFloatBetweenQuery(
 }
 
 const QueryTestScenario FLOAT_EQUALS_VALUE_SCENARIO = {
-   .name = "floatEqualsValue",
+   .name = "FLOAT_EQUALS_VALUE_SCENARIO",
    .query = createFloatEqualsQuery("float_value", VALUE_IN_FILTER),
    .expected_query_result = nlohmann::json(
       {{{"primaryKey", "id_0"}, {"float_value", VALUE_IN_FILTER}},
@@ -97,14 +99,35 @@ const QueryTestScenario FLOAT_EQUALS_VALUE_SCENARIO = {
    )
 };
 
+const QueryTestScenario NEGATED_FLOAT_EQUALS_VALUE_SCENARIO = {
+   .name = "NEGATED_FLOAT_EQUALS_VALUE_SCENARIO",
+   .query = negateFilter(createFloatEqualsQuery("float_value", VALUE_IN_FILTER)),
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_2"}, {"float_value", VALUE_BELOW_FILTER}},
+       {{"primaryKey", "id_3"}, {"float_value", VALUE_ABOVE_FILTER}},
+       {{"primaryKey", "id_4"}, {"float_value", nullptr}}}
+   )
+};
+
 const QueryTestScenario FLOAT_EQUALS_NULL_SCENARIO = {
-   .name = "floatEqualsNull",
+   .name = "FLOAT_EQUALS_NULL_SCENARIO",
    .query = createFloatEqualsQuery("float_value", nullptr),
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_4"}, {"float_value", nullptr}}})
 };
 
+const QueryTestScenario NEGATED_FLOAT_EQUALS_NULL_SCENARIO = {
+   .name = "NEGATED_FLOAT_EQUALS_NULL_SCENARIO",
+   .query = negateFilter(createFloatEqualsQuery("float_value", nullptr)),
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}, {"float_value", VALUE_IN_FILTER}},
+       {{"primaryKey", "id_1"}, {"float_value", VALUE_IN_FILTER}},
+       {{"primaryKey", "id_2"}, {"float_value", VALUE_BELOW_FILTER}},
+       {{"primaryKey", "id_3"}, {"float_value", VALUE_ABOVE_FILTER}}}
+   )
+};
+
 const QueryTestScenario FLOAT_BETWEEN_WITH_FROM_AND_TO_SCENARIO = {
-   .name = "floatBetweenWithFromAndTo",
+   .name = "FLOAT_BETWEEN_WITH_FROM_AND_TO_SCENARIO",
    .query = createFloatBetweenQuery("float_value", BELOW_FILTER, ABOVE_FILTER),
    .expected_query_result = nlohmann::json({
       {{"primaryKey", "id_0"}, {"float_value", VALUE_IN_FILTER}},
@@ -112,8 +135,18 @@ const QueryTestScenario FLOAT_BETWEEN_WITH_FROM_AND_TO_SCENARIO = {
    })
 };
 
+const QueryTestScenario NEGATED_FLOAT_BETWEEN_WITH_FROM_AND_TO_SCENARIO = {
+   .name = "NEGATED_FLOAT_BETWEEN_WITH_FROM_AND_TO_SCENARIO",
+   .query = negateFilter(createFloatBetweenQuery("float_value", BELOW_FILTER, ABOVE_FILTER)),
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_2"}, {"float_value", VALUE_BELOW_FILTER}},
+       {{"primaryKey", "id_3"}, {"float_value", VALUE_ABOVE_FILTER}},
+       {{"primaryKey", "id_4"}, {"float_value", nullptr}}}
+   )
+};
+
 const QueryTestScenario FLOAT_BETWEEN_WITH_FROM_SCENARIO = {
-   .name = "floatBetweenWithFrom",
+   .name = "FLOAT_BETWEEN_WITH_FROM_SCENARIO",
    .query = createFloatBetweenQuery("float_value", BELOW_FILTER, nullptr),
    .expected_query_result = nlohmann::json(
       {{{"primaryKey", "id_0"}, {"float_value", VALUE_IN_FILTER}},
@@ -122,8 +155,17 @@ const QueryTestScenario FLOAT_BETWEEN_WITH_FROM_SCENARIO = {
    )
 };
 
+const QueryTestScenario NEGATED_FLOAT_BETWEEN_WITH_FROM_SCENARIO = {
+   .name = "NEGATED_FLOAT_BETWEEN_WITH_FROM_SCENARIO",
+   .query = negateFilter(createFloatBetweenQuery("float_value", BELOW_FILTER, nullptr)),
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_2"}, {"float_value", VALUE_BELOW_FILTER}},
+       {{"primaryKey", "id_4"}, {"float_value", nullptr}}}
+   )
+};
+
 const QueryTestScenario FLOAT_BETWEEN_WITH_TO_SCENARIO = {
-   .name = "floatBetweenWithTo",
+   .name = "FLOAT_BETWEEN_WITH_TO_SCENARIO",
    .query = createFloatBetweenQuery("float_value", nullptr, ABOVE_FILTER),
    .expected_query_result = nlohmann::json(
       {{{"primaryKey", "id_0"}, {"float_value", VALUE_IN_FILTER}},
@@ -132,8 +174,17 @@ const QueryTestScenario FLOAT_BETWEEN_WITH_TO_SCENARIO = {
    )
 };
 
+const QueryTestScenario NEGATED_FLOAT_BETWEEN_WITH_TO_SCENARIO = {
+   .name = "NEGATED_FLOAT_BETWEEN_WITH_TO_SCENARIO",
+   .query = negateFilter(createFloatBetweenQuery("float_value", nullptr, ABOVE_FILTER)),
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_3"}, {"float_value", VALUE_ABOVE_FILTER}},
+       {{"primaryKey", "id_4"}, {"float_value", nullptr}}}
+   )
+};
+
 const QueryTestScenario FLOAT_BETWEEN_WITH_FROM_AND_TO_NULL_SCENARIO = {
-   .name = "floatBetweenWithFromAndToNull",
+   .name = "FLOAT_BETWEEN_WITH_FROM_AND_TO_NULL_SCENARIO",
    .query = createFloatBetweenQuery("float_value", nullptr, nullptr),
    .expected_query_result = nlohmann::json(
       {{{"primaryKey", "id_0"}, {"float_value", VALUE_IN_FILTER}},
@@ -143,6 +194,29 @@ const QueryTestScenario FLOAT_BETWEEN_WITH_FROM_AND_TO_NULL_SCENARIO = {
    )
 };
 
+const QueryTestScenario NEGATED_FLOAT_BETWEEN_WITH_FROM_AND_TO_NULL_SCENARIO = {
+   .name = "NEGATED_FLOAT_BETWEEN_WITH_FROM_AND_TO_NULL_SCENARIO",
+   .query = negateFilter(createFloatBetweenQuery("float_value", nullptr, nullptr)),
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_4"}, {"float_value", nullptr}}})
+};
+
+const QueryTestScenario FLOAT_EQUALS_WITH_INVALID_VALUE = {
+   .name = "FLOAT_EQUALS_WITH_INVALID_VALUE",
+   .query = createFloatEqualsQuery("float_value", "not_a_number"),
+   .expected_error_message = "The field 'value' in a FloatEquals expression must be a float or null"
+};
+
+const QueryTestScenario FLOAT_BETWEEN_WITH_INVALID_FROM_VALUE = {
+   .name = "FLOAT_BETWEEN_WITH_INVALID_FROM_VALUE",
+   .query = createFloatBetweenQuery("float_value", false, 1.0),
+   .expected_error_message = "The field 'from' in a FloatBetween expression must be a float or null"
+};
+
+const QueryTestScenario FLOAT_BETWEEN_WITH_INVALID_TO_VALUE = {
+   .name = "FLOAT_BETWEEN_WITH_INVALID_TO_VALUE",
+   .query = createFloatBetweenQuery("float_value", 0.0, "test"),
+   .expected_error_message = "The field 'to' in a FloatBetween expression must be a float or null"
+};
 }  // namespace
 
 QUERY_TEST(
@@ -150,10 +224,19 @@ QUERY_TEST(
    TEST_DATA,
    ::testing::Values(
       FLOAT_EQUALS_VALUE_SCENARIO,
+      NEGATED_FLOAT_EQUALS_VALUE_SCENARIO,
       FLOAT_EQUALS_NULL_SCENARIO,
+      NEGATED_FLOAT_EQUALS_NULL_SCENARIO,
       FLOAT_BETWEEN_WITH_FROM_AND_TO_SCENARIO,
+      NEGATED_FLOAT_BETWEEN_WITH_FROM_AND_TO_SCENARIO,
       FLOAT_BETWEEN_WITH_FROM_SCENARIO,
+      NEGATED_FLOAT_BETWEEN_WITH_FROM_SCENARIO,
       FLOAT_BETWEEN_WITH_TO_SCENARIO,
-      FLOAT_BETWEEN_WITH_FROM_AND_TO_NULL_SCENARIO
+      NEGATED_FLOAT_BETWEEN_WITH_TO_SCENARIO,
+      FLOAT_BETWEEN_WITH_FROM_AND_TO_NULL_SCENARIO,
+      NEGATED_FLOAT_BETWEEN_WITH_FROM_AND_TO_NULL_SCENARIO,
+      FLOAT_EQUALS_WITH_INVALID_VALUE,
+      FLOAT_BETWEEN_WITH_INVALID_FROM_VALUE,
+      FLOAT_BETWEEN_WITH_INVALID_TO_VALUE
    )
 );

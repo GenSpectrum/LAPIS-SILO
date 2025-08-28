@@ -6,7 +6,6 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-#include "silo/common/optional_bool.h"
 #include "silo/database.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
@@ -14,15 +13,13 @@
 
 namespace silo::query_engine::filter::expressions {
 
-using silo::common::OptionalBool;
-
 struct BoolEquals : public Expression {
   private:
    std::string column_name;
-   bool value;
+   std::optional<bool> value;
 
   public:
-   explicit BoolEquals(std::string column_name, bool value);
+   explicit BoolEquals(std::string column_name, std::optional<bool> value);
 
    [[nodiscard]] std::string toString() const override;
 

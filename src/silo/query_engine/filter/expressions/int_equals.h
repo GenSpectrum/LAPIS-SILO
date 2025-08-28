@@ -16,10 +16,10 @@ namespace silo::query_engine::filter::expressions {
 class IntEquals : public Expression {
   private:
    std::string column_name;
-   uint32_t value;
+   std::optional<uint32_t> value;
 
   public:
-   explicit IntEquals(std::string column_name, uint32_t value);
+   explicit IntEquals(std::string column_name, std::optional<uint32_t> value);
 
    [[nodiscard]] std::string toString() const override;
 

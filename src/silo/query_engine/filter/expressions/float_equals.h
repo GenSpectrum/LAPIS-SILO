@@ -15,10 +15,10 @@ namespace silo::query_engine::filter::expressions {
 class FloatEquals : public Expression {
   private:
    std::string column_name;
-   double value;
+   std::optional<double> value;
 
   public:
-   FloatEquals(std::string column_name, double value);
+   FloatEquals(std::string column_name, std::optional<double> value);
 
    std::string toString() const override;
 

@@ -137,4 +137,6 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
    }
 };
 
+nlohmann::json negateFilter(const nlohmann::json& filter);
+
 }  // namespace silo::test

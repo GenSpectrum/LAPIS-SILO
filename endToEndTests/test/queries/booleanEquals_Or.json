@@ -10,7 +10,7 @@
         {
           "type": "BooleanEquals",
           "column": "test_boolean_column",
-          "value": false
+          "value": null
         },
         {
           "type": "Lineage",
@@ -23,7 +23,7 @@
   },
   "expectedQueryResult": [
     {
-      "count": 76
+      "count": 68
     }
   ]
 }

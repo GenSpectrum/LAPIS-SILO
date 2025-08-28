@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <boost/serialization/access.hpp>
+#include <roaring/roaring.hh>
 
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/column_metadata.h"
@@ -20,27 +21,19 @@ class FloatColumnPartition {
    static constexpr schema::ColumnType TYPE = schema::ColumnType::FLOAT;
    using value_type = double;
 
-   static double null() { return std::nan(""); }
-
   private:
-   friend class boost::serialization::access;
-   template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
-      // clang-format off
-      archive & values;
-      // clang-format on
-   }
-
    std::vector<double> values;
 
   public:
+   roaring::Roaring null_bitmap;
+
    [[maybe_unused]] Metadata* metadata;
 
    explicit FloatColumnPartition(ColumnMetadata* metadata);
 
    size_t numValues() const { return values.size(); }
 
-   [[nodiscard]] bool isNull(size_t row_id) const { return values.at(row_id) == null(); }
+   [[nodiscard]] bool isNull(size_t row_id) const { return null_bitmap.contains(row_id); }
 
    double getValue(size_t row_id) const { return values.at(row_id); }
 
@@ -49,6 +42,16 @@ class FloatColumnPartition {
    void insertNull();
 
    void reserve(size_t row_count);
+
+  private:
+   friend class boost::serialization::access;
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+      // clang-format off
+      archive & values;
+      archive & null_bitmap;
+      // clang-format on
+   }
 };
 
 }  // namespace silo::storage::column

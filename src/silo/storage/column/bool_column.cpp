@@ -10,15 +10,14 @@ BoolColumnPartition::BoolColumnPartition(ColumnMetadata* metadata)
     : metadata(metadata) {}
 
 void BoolColumnPartition::insert(bool value) {
-   values.emplace_back(value);
+   if (value == true) {
+      true_bitmap.add(num_values++);
+   } else {
+      false_bitmap.add(num_values++);
+   }
 }
 
 void BoolColumnPartition::insertNull() {
-   values.emplace_back();
+   null_bitmap.add(num_values++);
 }
-
-void BoolColumnPartition::reserve(size_t row_count) {
-   values.reserve(values.size() + row_count);
-}
-
 }  // namespace silo::storage::column

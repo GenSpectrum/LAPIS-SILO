@@ -16,7 +16,8 @@ void IntColumnPartition::insert(int32_t value) {
 }
 
 void IntColumnPartition::insertNull() {
-   values.push_back(IntColumnPartition::null());
+   null_bitmap.add(values.size());
+   values.push_back(0);
 }
 
 }  // namespace silo::storage::column

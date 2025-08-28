@@ -11,6 +11,9 @@
 #include "silo/database.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
+#include "silo/query_engine/filter/operators/complement.h"
+#include "silo/query_engine/filter/operators/index_scan.h"
+#include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/storage/table_partition.h"
 
@@ -50,14 +53,27 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> IntBetween::com
    const auto& int_column = table_partition.columns.int_columns.at(column_name);
 
    operators::PredicateVector predicates;
-   predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<IntColumnPartition>>(
-      int_column, operators::Comparator::HIGHER_OR_EQUALS, from.value_or(INT32_MIN + 1)
-   ));
+   if (from.has_value()) {
+      predicates.emplace_back(
+         std::make_unique<operators::CompareToValueSelection<IntColumnPartition>>(
+            int_column, operators::Comparator::HIGHER_OR_EQUALS, from.value()
+         )
+      );
+   }
    if (to.has_value()) {
       predicates.emplace_back(
          std::make_unique<operators::CompareToValueSelection<IntColumnPartition>>(
             int_column, operators::Comparator::LESS_OR_EQUALS, to.value()
          )
+      );
+   }
+
+   if (predicates.empty()) {
+      return std::make_unique<operators::Complement>(
+         std::make_unique<operators::IndexScan>(
+            &int_column.null_bitmap, table_partition.sequence_count
+         ),
+         table_partition.sequence_count
       );
    }
 
@@ -78,21 +94,15 @@ void from_json(const nlohmann::json& json, std::unique_ptr<IntBetween>& filter) 
       json["column"].is_string(), "The field 'column' in a IntBetween expression must be a string"
    );
    CHECK_SILO_QUERY(json.contains("from"), "The field 'from' is required in IntBetween expression");
-   bool value_from_in_allowed_range =
-      json["from"].is_number_integer() &&
-      json["from"].get<int32_t>() != storage::column::IntColumnPartition::null();
    CHECK_SILO_QUERY(
-      value_from_in_allowed_range || json["from"].is_null(),
-      "The field 'from' in an IntBetween expression must be an integer in [-2147483647; "
+      json["from"].is_number_integer() || json["from"].is_null(),
+      "The field 'from' in an IntBetween expression must be an integer in [-2147483648; "
       "2147483647] or null"
    );
    CHECK_SILO_QUERY(json.contains("to"), "The field 'to' is required in a IntBetween expression");
-   bool value_to_in_allowed_range =
-      json["to"].is_number_integer() &&
-      json["to"].get<int32_t>() != storage::column::IntColumnPartition::null();
    CHECK_SILO_QUERY(
-      value_to_in_allowed_range || json["to"].is_null(),
-      "The field 'to' in an IntBetween expression must be an integer in [-2147483647; 2147483647] "
+      json["to"].is_number_integer() && json["to"].is_number_integer() || json["to"].is_null(),
+      "The field 'to' in an IntBetween expression must be an integer in [-2147483648; 2147483647] "
       "or null"
    );
    const std::string& column_name = json["column"];
