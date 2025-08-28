@@ -21,12 +21,15 @@ namespace silo::query_engine::filter::expressions {
 
 using storage::column::StringColumnPartition;
 
-StringEquals::StringEquals(std::string column_name, std::string value)
+StringEquals::StringEquals(std::string column_name, std::optional<std::string> value)
     : column_name(std::move(column_name)),
       value(std::move(value)) {}
 
 std::string StringEquals::toString() const {
-   return fmt::format("{} = '{}'", column_name, value);
+   if (value.has_value()) {
+      return fmt::format("{} = '{}'", column_name, value.value());
+   }
+   return fmt::format("{} IS NULL", column_name);
 }
 
 std::unique_ptr<silo::query_engine::filter::operators::Operator> StringEquals::compile(
@@ -52,11 +55,16 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> StringEquals::c
    }
    SILO_ASSERT(table_partition.columns.string_columns.contains(column_name));
    const auto& string_column = table_partition.columns.string_columns.at(column_name);
-   return std::make_unique<operators::Selection>(
-      std::make_unique<operators::CompareToValueSelection<StringColumnPartition>>(
-         string_column, operators::Comparator::EQUALS, value
-      ),
-      table_partition.sequence_count
+   if (value.has_value()) {
+      return std::make_unique<operators::Selection>(
+         std::make_unique<operators::CompareToValueSelection<StringColumnPartition>>(
+            string_column, operators::Comparator::EQUALS, value.value()
+         ),
+         table_partition.sequence_count
+      );
+   }
+   return std::make_unique<operators::IndexScan>(
+      &string_column.null_bitmap, table_partition.sequence_count
    );
 }
 
@@ -77,7 +85,10 @@ void from_json(const nlohmann::json& json, std::unique_ptr<StringEquals>& filter
       "The field 'value' in an StringEquals expression needs to be a string or null"
    );
    const std::string& column_name = json["column"];
-   const std::string& value = json["value"].is_null() ? "" : json["value"].get<std::string>();
+   std::optional<std::string> value;
+   if (!json["value"].is_null()) {
+      value = json["value"].get<std::string>();
+   }
    filter = std::make_unique<StringEquals>(column_name, value);
 }
 

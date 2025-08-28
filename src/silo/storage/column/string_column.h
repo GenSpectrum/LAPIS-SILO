@@ -64,16 +64,9 @@ class StringColumnPartition {
 
    Metadata* metadata;
 
-  private:
-   friend class boost::serialization::access;
-   template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
-      // clang-format off
-      archive & fixed_string_data;
-      archive & variable_string_data;
-      // clang-format on
-   }
+   roaring::Roaring null_bitmap;
 
+  private:
    vector::GermanStringRegistry fixed_string_data;
 
    // These pages contain the variable string suffixes. Strings that are shorter than 12 bytes are
@@ -122,6 +115,17 @@ class StringColumnPartition {
          return roaring::Roaring();
       }
       return metadata->phylo_tree->getDescendants(parent);
+   }
+
+  private:
+   friend class boost::serialization::access;
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+      // clang-format off
+      archive & null_bitmap;
+      archive & fixed_string_data;
+      archive & variable_string_data;
+      // clang-format on
    }
 };
 

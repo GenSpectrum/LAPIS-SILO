@@ -17,7 +17,6 @@
 #include "silo/common/date.h"
 #include "silo/common/json_value_type.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/common/optional_bool.h"
 #include "silo/common/panic.h"
 #include "silo/config/database_config.h"
 #include "silo/preprocessing/preprocessing_exception.h"
@@ -25,7 +24,6 @@
 
 namespace silo::storage {
 
-using silo::common::OptionalBool;
 using silo::schema::ColumnType;
 
 template <>

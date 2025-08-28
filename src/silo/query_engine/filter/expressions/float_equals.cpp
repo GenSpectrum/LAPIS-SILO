@@ -11,6 +11,7 @@
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/empty.h"
+#include "silo/query_engine/filter/operators/index_scan.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/storage/table_partition.h"
@@ -19,12 +20,15 @@ using silo::storage::column::FloatColumnPartition;
 
 namespace silo::query_engine::filter::expressions {
 
-FloatEquals::FloatEquals(std::string column_name, double value)
+FloatEquals::FloatEquals(std::string column_name, std::optional<double> value)
     : column_name(std::move(column_name)),
       value(value) {}
 
 std::string FloatEquals::toString() const {
-   return fmt::format("{} = '{}'", column_name, std::to_string(value));
+   if (value.has_value()) {
+      return fmt::format("{} = '{}'", column_name, value.value());
+   }
+   return fmt::format("{} IS NULL", column_name);
 }
 
 std::unique_ptr<silo::query_engine::filter::operators::Operator> FloatEquals::compile(
@@ -40,32 +44,39 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> FloatEquals::co
 
    const auto& float_column = table_partition.columns.float_columns.at(column_name);
 
-   return std::make_unique<operators::Selection>(
-      std::make_unique<operators::CompareToValueSelection<FloatColumnPartition>>(
-         float_column, operators::Comparator::EQUALS, value
-      ),
-      table_partition.sequence_count
+   if (value.has_value()) {
+      return std::make_unique<operators::Selection>(
+         std::make_unique<operators::CompareToValueSelection<FloatColumnPartition>>(
+            float_column, operators::Comparator::EQUALS, value.value()
+         ),
+         table_partition.sequence_count
+      );
+   }
+   return std::make_unique<operators::IndexScan>(
+      &float_column.null_bitmap, table_partition.sequence_count
    );
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
 void from_json(const nlohmann::json& json, std::unique_ptr<FloatEquals>& filter) {
    CHECK_SILO_QUERY(
-      json.contains("column"), "The field 'column' is required in an FloatEquals expression"
+      json.contains("column"), "The field 'column' is required in a FloatEquals expression"
    );
    CHECK_SILO_QUERY(
-      json["column"].is_string(), "The field 'column' in an FloatEquals expression must be a string"
+      json["column"].is_string(), "The field 'column' in a FloatEquals expression must be a string"
    );
    CHECK_SILO_QUERY(
-      json.contains("value"), "The field 'value' is required in an FloatEquals expression"
+      json.contains("value"), "The field 'value' is required in a FloatEquals expression"
    );
    CHECK_SILO_QUERY(
       json["value"].is_number_float() || json["value"].is_null(),
-      "The field 'value' in an FloatEquals expression must be a float or null"
+      "The field 'value' in a FloatEquals expression must be a float or null"
    );
    const std::string& column_name = json["column"];
-   const double& value = json["value"].is_null() ? storage::column::FloatColumnPartition::null()
-                                                 : json["value"].get<double>();
+   std::optional<double> value;
+   if (!json["value"].is_null()) {
+      value = json["value"].get<double>();
+   }
    filter = std::make_unique<FloatEquals>(column_name, value);
 }
 

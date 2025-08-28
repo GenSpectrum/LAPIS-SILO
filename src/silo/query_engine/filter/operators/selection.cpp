@@ -17,7 +17,6 @@
 #include "evobench/evobench.hpp"
 #include "silo/common/date.h"
 #include "silo/common/german_string.h"
-#include "silo/common/optional_bool.h"
 #include "silo/common/panic.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/operators/complement.h"
@@ -25,8 +24,6 @@
 
 namespace silo::query_engine::filter::operators {
 
-using silo::common::OptionalBool;
-using storage::column::FloatColumnPartition;
 using storage::column::StringColumnPartition;
 
 Selection::Selection(
@@ -107,34 +104,6 @@ std::unique_ptr<Operator> Selection::negate(std::unique_ptr<Selection>&& selecti
    return std::make_unique<Complement>(std::move(selection), row_count);
 }
 
-template <>
-bool CompareToValueSelection<FloatColumnPartition>::match(uint32_t row_id) const {
-   switch (comparator) {
-      case Comparator::EQUALS:
-         if (std::isnan(value)) {
-            return std::isnan(column.getValue(row_id));
-         }
-         return column.getValue(row_id) == value;
-      case Comparator::NOT_EQUALS:
-         if (std::isnan(value)) {
-            return !std::isnan(column.getValue(row_id));
-         }
-         return column.getValue(row_id) != value;
-      case Comparator::LESS:
-         return column.getValue(row_id) < value;
-      case Comparator::HIGHER_OR_EQUALS:
-         return column.getValue(row_id) >= value;
-      case Comparator::HIGHER:
-         return column.getValue(row_id) > value;
-      case Comparator::LESS_OR_EQUALS:
-         return column.getValue(row_id) <= value;
-   }
-   throw std::runtime_error(
-      "Uncovered enum switch case in CompareToValueSelection<double>::match should be covered by "
-      "linter."
-   );
-}
-
 namespace {
 
 bool strongOrderingMatchesComparator(std::strong_ordering strong_ordering, Comparator comparator) {
@@ -155,6 +124,10 @@ bool strongOrderingMatchesComparator(std::strong_ordering strong_ordering, Compa
 
 template <>
 bool CompareToValueSelection<StringColumnPartition>::match(uint32_t row_id) const {
+   if (column.isNull(row_id)) {
+      return with_nulls;
+   }
+
    SiloString row_value = column.getValue(row_id);
 
    auto fast_compare = row_value.fastCompare(value);

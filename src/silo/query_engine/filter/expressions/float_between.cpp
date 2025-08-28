@@ -10,6 +10,8 @@
 #include "silo/database.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
+#include "silo/query_engine/filter/operators/complement.h"
+#include "silo/query_engine/filter/operators/index_scan.h"
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/storage/table_partition.h"
 
@@ -65,12 +67,11 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> FloatBetween::c
    }
 
    if (predicates.empty()) {
-      predicates.emplace_back(
-         std::make_unique<operators::CompareToValueSelection<FloatColumnPartition>>(
-            float_column,
-            operators::Comparator::NOT_EQUALS,
-            storage::column::FloatColumnPartition::null()
-         )
+      return std::make_unique<operators::Complement>(
+         std::make_unique<operators::IndexScan>(
+            &float_column.null_bitmap, table_partition.sequence_count
+         ),
+         table_partition.sequence_count
       );
    }
 

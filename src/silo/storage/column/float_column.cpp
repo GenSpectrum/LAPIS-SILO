@@ -12,6 +12,7 @@ void FloatColumnPartition::insert(double value) {
 }
 
 void FloatColumnPartition::insertNull() {
+   null_bitmap.add(values.size());
    values.push_back(std::nan(""));
 }
 

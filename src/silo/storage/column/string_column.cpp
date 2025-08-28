@@ -42,13 +42,12 @@ void StringColumnPartition::insert(std::string_view value) {
 }
 
 void StringColumnPartition::insertNull() {
-   // TODO(#930) do not interpret empty string as null, but use a null bitmap instead
-   this->fixed_string_data.insert(SiloString(""));
+   null_bitmap.add(fixed_string_data.numValues());
+   fixed_string_data.insert(SiloString(""));
 }
 
 bool StringColumnPartition::isNull(size_t row_id) const {
-   // TODO(#930) do not interpret empty string as null, but use a null bitmap instead
-   return fixed_string_data.get(row_id).length() == 0;
+   return null_bitmap.contains(row_id);
 }
 
 }  // namespace silo::storage::column

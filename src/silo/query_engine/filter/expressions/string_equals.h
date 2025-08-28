@@ -15,10 +15,10 @@ namespace silo::query_engine::filter::expressions {
 class StringEquals : public Expression {
   private:
    std::string column_name;
-   std::string value;
+   std::optional<std::string> value;
 
   public:
-   explicit StringEquals(std::string column_name, std::string value);
+   explicit StringEquals(std::string column_name, std::optional<std::string> value);
 
    std::string toString() const override;
 

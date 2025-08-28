@@ -57,16 +57,26 @@ class CompareToValueSelection : public Predicate {
    const ColumnType& column;
    Comparator comparator;
    ColumnType::value_type value;
+   bool with_nulls;
 
   public:
-   explicit CompareToValueSelection(
+   CompareToValueSelection(
+      const ColumnType& column,
+      Comparator comparator,
+      ColumnType::value_type value,
+      bool with_nulls
+   )
+       : column(column),
+         comparator(comparator),
+         value(value),
+         with_nulls(with_nulls) {}
+
+   CompareToValueSelection(
       const ColumnType& column,
       Comparator comparator,
       ColumnType::value_type value
    )
-       : column(column),
-         comparator(comparator),
-         value(value) {}
+       : CompareToValueSelection(column, comparator, value, false) {}
 
    [[nodiscard]] std::string toString() const override {
       return fmt::format(
@@ -80,7 +90,7 @@ class CompareToValueSelection : public Predicate {
 
    [[nodiscard]] bool match(uint32_t row_id) const override {
       if (column.isNull(row_id)) {
-         return false;
+         return with_nulls;
       }
       switch (comparator) {
          case Comparator::EQUALS:
@@ -106,21 +116,29 @@ class CompareToValueSelection : public Predicate {
    [[nodiscard]] std::unique_ptr<Predicate> negate() const override {
       switch (comparator) {
          case Comparator::EQUALS:
-            return std::make_unique<CompareToValueSelection>(column, Comparator::NOT_EQUALS, value);
+            return std::make_unique<CompareToValueSelection>(
+               column, Comparator::NOT_EQUALS, value, !with_nulls
+            );
          case Comparator::NOT_EQUALS:
-            return std::make_unique<CompareToValueSelection>(column, Comparator::EQUALS, value);
+            return std::make_unique<CompareToValueSelection>(
+               column, Comparator::EQUALS, value, !with_nulls
+            );
          case Comparator::LESS:
             return std::make_unique<CompareToValueSelection>(
-               column, Comparator::HIGHER_OR_EQUALS, value
+               column, Comparator::HIGHER_OR_EQUALS, value, !with_nulls
             );
          case Comparator::HIGHER_OR_EQUALS:
-            return std::make_unique<CompareToValueSelection>(column, Comparator::LESS, value);
+            return std::make_unique<CompareToValueSelection>(
+               column, Comparator::LESS, value, !with_nulls
+            );
          case Comparator::HIGHER:
             return std::make_unique<CompareToValueSelection>(
-               column, Comparator::LESS_OR_EQUALS, value
+               column, Comparator::LESS_OR_EQUALS, value, !with_nulls
             );
          case Comparator::LESS_OR_EQUALS:
-            return std::make_unique<CompareToValueSelection>(column, Comparator::HIGHER, value);
+            return std::make_unique<CompareToValueSelection>(
+               column, Comparator::HIGHER, value, !with_nulls
+            );
       }
       SILO_UNREACHABLE();
    }
@@ -128,10 +146,6 @@ class CompareToValueSelection : public Predicate {
 
 template <>
 bool CompareToValueSelection<silo::storage::column::StringColumnPartition>::match(uint32_t row_id
-) const;
-
-template <>
-bool CompareToValueSelection<silo::storage::column::FloatColumnPartition>::match(uint32_t row_id
 ) const;
 
 class Selection : public Operator {

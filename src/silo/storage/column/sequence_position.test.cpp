@@ -9,7 +9,6 @@
 #include <boost/serialization/array.hpp>
 #include <boost/serialization/optional.hpp>
 
-#include "silo/common/optional_bool.h"
 #include "silo/database.h"
 #include "silo/roaring/roaring_serialize.h"
 

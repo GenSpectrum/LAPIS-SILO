@@ -9,21 +9,23 @@
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/empty.h"
+#include "silo/query_engine/filter/operators/index_scan.h"
 #include "silo/query_engine/filter/operators/operator.h"
-#include "silo/query_engine/filter/operators/selection.h"
 #include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
-using silo::common::OptionalBool;
 using storage::column::BoolColumnPartition;
 
-BoolEquals::BoolEquals(std::string column_name, bool value)
+BoolEquals::BoolEquals(std::string column_name, std::optional<bool> value)
     : column_name(std::move(column_name)),
       value(value) {}
 
 std::string BoolEquals::toString() const {
-   return fmt::format("{} = {}", column_name, value ? "true" : "false");
+   if (value.has_value()) {
+      return fmt::format("{} = {}", column_name, value.value() ? "true" : "false");
+   }
+   return fmt::format("{} IS NULL", column_name);
 }
 
 std::unique_ptr<silo::query_engine::filter::operators::Operator> BoolEquals::compile(
@@ -39,12 +41,21 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> BoolEquals::com
 
    const auto& bool_column = table_partition.columns.bool_columns.at(column_name);
 
-   return std::make_unique<operators::Selection>(
-      std::make_unique<operators::CompareToValueSelection<BoolColumnPartition>>(
-         bool_column, operators::Comparator::EQUALS, value
-      ),
-      table_partition.sequence_count
-   );
+   if (value == std::nullopt) {
+      return std::make_unique<operators::IndexScan>(
+         &bool_column.null_bitmap, table_partition.sequence_count
+      );
+   }
+   if (value.value()) {
+      return std::make_unique<operators::IndexScan>(
+         &bool_column.true_bitmap, table_partition.sequence_count
+      );
+   } else {
+      return std::make_unique<operators::IndexScan>(
+         &bool_column.false_bitmap, table_partition.sequence_count
+      );
+   }
+   SILO_UNREACHABLE();
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
@@ -59,10 +70,14 @@ void from_json(const nlohmann::json& json, std::unique_ptr<BoolEquals>& filter) 
       json.contains("value"), "The field 'value' is required in an BoolEquals expression"
    );
    CHECK_SILO_QUERY(
-      json["value"].is_boolean(), "The field 'value' in an BoolEquals expression must be a boolean"
+      json["value"].is_boolean() || json["value"].is_null(),
+      "The field 'value' in an BoolEquals expression must be a boolean or null"
    );
    const std::string& column_name = json["column"];
-   auto value = json["value"].get<bool>();
+   std::optional<bool> value;
+   if (!json["value"].is_null()) {
+      value = json["value"].get<bool>();
+   }
    filter = std::make_unique<BoolEquals>(column_name, value);
 }
 
