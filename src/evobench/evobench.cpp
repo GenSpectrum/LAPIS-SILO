@@ -123,7 +123,7 @@ void js_print_slow(T val, std::string& out) {
    out.append(tmpout.str());
 }
 
-void js_print(uint32_t value, std::string& out) {
+[[maybe_unused]] void js_print(uint32_t value, std::string& out) {
    char buffer[11];
    auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), value);
    if (ec == std::errc()) {
@@ -133,7 +133,7 @@ void js_print(uint32_t value, std::string& out) {
    }
 }
 
-void js_print(int32_t value, std::string& out) {
+[[maybe_unused]] void js_print(int32_t value, std::string& out) {
    char buffer[12];
    auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), value);
    if (ec == std::errc()) {
@@ -143,17 +143,17 @@ void js_print(int32_t value, std::string& out) {
    }
 }
 
-// void js_print(uint64_t value, std::string& out) {
-//     char buffer[21];
-//     auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), value);
-//     if (ec == std::errc()) {
-//         out.append(buffer, ptr);
-//     } else {
-//         abort();
-//     }
-// }
+[[maybe_unused]] void js_print(uint64_t value, std::string& out) {
+   char buffer[21];
+   auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), value);
+   if (ec == std::errc()) {
+      out.append(buffer, ptr);
+   } else {
+      abort();
+   }
+}
 
-void js_print(int64_t value, std::string& out) {
+[[maybe_unused]] void js_print(int64_t value, std::string& out) {
    char buffer[22];
    auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), value);
    if (ec == std::errc()) {
@@ -206,11 +206,12 @@ void js_print(const std::string_view input, std::string& out) {
 }
 
 void js_print(const timespec& t, std::string& out) {
-   OBJ(KV("sec", ATOM(t.tv_sec)) COMMA KV("nsec", ATOM(t.tv_nsec)))
+   OBJ(KV("sec", ATOM(static_cast<int64_t>(t.tv_sec)))
+          COMMA KV("nsec", ATOM(static_cast<int64_t>(t.tv_nsec))))
 }
 
 void js_print(const timeval& t, std::string& out) {
-   OBJ(KV("sec", ATOM(t.tv_sec)) COMMA KV("usec", ATOM(t.tv_usec)))
+   OBJ(KV("sec", ATOM(static_cast<int64_t>(t.tv_sec))) COMMA KV("usec", ATOM(t.tv_usec)))
 }
 
 // Keep in sync with `PointKind` ! XX better solution?
