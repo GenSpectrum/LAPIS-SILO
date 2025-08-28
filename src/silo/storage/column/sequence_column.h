@@ -99,6 +99,8 @@ class SequenceColumnPartition {
 
    explicit SequenceColumnPartition(Metadata* metadata);
 
+   size_t numValues() const { return sequence_count; }
+
    [[nodiscard]] const roaring::Roaring* getBitmap(
       size_t position_idx,
       typename SymbolType::Symbol symbol

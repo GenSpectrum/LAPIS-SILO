@@ -3,27 +3,30 @@
 #include <string>
 
 #include "silo/common/bidirectional_string_map.h"
-#include "silo/common/string.h"
+#include "silo/common/german_string.h"
 #include "silo/common/tree_node_id.h"
 #include "silo/initialize/initialize_exception.h"
 
-using silo::common::String;
-using silo::common::STRING_SIZE;
 using silo::common::TreeNodeId;
 
 namespace silo::storage::column {
-
-std::optional<String<STRING_SIZE>> StringColumnMetadata::embedString(const std::string& string
-) const {
-   return String<STRING_SIZE>::embedString(string, dictionary);
-}
 
 StringColumnPartition::StringColumnPartition(StringColumnMetadata* metadata)
     : metadata(metadata) {}
 
 void StringColumnPartition::insert(std::string_view value) {
-   const String<STRING_SIZE> tmp(value, metadata->dictionary);
-   values.push_back(tmp);
+   size_t row_id;
+   if (value.size() <= SiloString::SHORT_STRING_SIZE) {
+      row_id = fixed_string_data.insert(SiloString{value});
+   } else {
+      SILO_ASSERT(value.length() < UINT32_MAX);
+      auto suffix_id = variable_string_data.insert(value.substr(SiloString::PREFIX_LENGTH));
+      row_id = fixed_string_data.insert(SiloString{
+         static_cast<uint32_t>(value.length()),
+         value.substr(0, SiloString::PREFIX_LENGTH),
+         suffix_id
+      });
+   }
    if (metadata->phylo_tree.has_value()) {
       auto child_it = (metadata->phylo_tree->nodes).find(TreeNodeId{std::string{value}});
       if (child_it == metadata->phylo_tree->nodes.end()) {
@@ -34,26 +37,18 @@ void StringColumnPartition::insert(std::string_view value) {
             fmt::format("Node '{}' already exists in the phylogenetic tree.", value)
          );
       }
-      child_it->second->row_index = values.size() - 1;
+      child_it->second->row_index = row_id;
    }
 }
 
 void StringColumnPartition::insertNull() {
-   const String<STRING_SIZE> tmp("", metadata->dictionary);
-   values.push_back(tmp);
+   // TODO(#930) do not interpret empty string as null, but use a null bitmap instead
+   this->fixed_string_data.insert(SiloString(""));
 }
 
-void StringColumnPartition::reserve(size_t row_count) {
-   values.reserve(values.size() + row_count);
-}
-
-const std::vector<String<STRING_SIZE>>& StringColumnPartition::getValues() const {
-   return values;
-}
-
-std::optional<String<STRING_SIZE>> StringColumnPartition::embedString(const std::string& string
-) const {
-   return String<STRING_SIZE>::embedString(string, metadata->dictionary);
+bool StringColumnPartition::isNull(size_t row_id) const {
+   // TODO(#930) do not interpret empty string as null, but use a null bitmap instead
+   return fixed_string_data.get(row_id).length() == 0;
 }
 
 }  // namespace silo::storage::column

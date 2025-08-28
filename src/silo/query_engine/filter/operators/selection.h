@@ -6,9 +6,13 @@
 #include <string>
 #include <vector>
 
-#include "silo/common/string.h"
+#include "silo/common/german_string.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/operators/operator.h"
+#include "silo/schema/database_schema.h"
+#include "silo/storage/column/column.h"
+#include "silo/storage/column/float_column.h"
+#include "silo/storage/column/string_column.h"
 
 namespace silo::query_engine::filter::expressions {
 class And;
@@ -30,20 +34,105 @@ using PredicateVector = std::vector<std::unique_ptr<Predicate>>;
 
 enum class Comparator { EQUALS, LESS, HIGHER, LESS_OR_EQUALS, HIGHER_OR_EQUALS, NOT_EQUALS };
 
-template <typename T>
+inline std::string displayComparator(Comparator comparator) {
+   switch (comparator) {
+      case Comparator::EQUALS:
+         return "=";
+      case Comparator::NOT_EQUALS:
+         return "!=";
+      case Comparator::LESS:
+         return "<";
+      case Comparator::HIGHER:
+         return ">";
+      case Comparator::LESS_OR_EQUALS:
+         return "<=";
+      case Comparator::HIGHER_OR_EQUALS:
+         return ">=";
+   }
+   SILO_UNREACHABLE();
+}
+
+template <storage::column::Column ColumnType>
 class CompareToValueSelection : public Predicate {
-   const std::vector<T>& column;
+   const ColumnType& column;
    Comparator comparator;
-   T value;
+   ColumnType::value_type value;
 
   public:
-   explicit CompareToValueSelection(const std::vector<T>& column, Comparator comparator, T value);
+   explicit CompareToValueSelection(
+      const ColumnType& column,
+      Comparator comparator,
+      ColumnType::value_type value
+   )
+       : column(column),
+         comparator(comparator),
+         value(value) {}
 
-   [[nodiscard]] std::string toString() const override;
-   [[nodiscard]] bool match(uint32_t row_id) const override;
-   [[nodiscard]] std::unique_ptr<Predicate> copy() const override;
-   [[nodiscard]] std::unique_ptr<Predicate> negate() const override;
+   [[nodiscard]] std::string toString() const override {
+      return fmt::format(
+         "${} {} {} {}",
+         schema::columnTypeToString(ColumnType::TYPE),
+         column.metadata->column_name,
+         displayComparator(comparator),
+         value
+      );
+   }
+
+   [[nodiscard]] bool match(uint32_t row_id) const override {
+      if (column.isNull(row_id)) {
+         return false;
+      }
+      switch (comparator) {
+         case Comparator::EQUALS:
+            return column.getValue(row_id) == value;
+         case Comparator::NOT_EQUALS:
+            return column.getValue(row_id) != value;
+         case Comparator::LESS:
+            return column.getValue(row_id) < value;
+         case Comparator::HIGHER_OR_EQUALS:
+            return column.getValue(row_id) >= value;
+         case Comparator::HIGHER:
+            return column.getValue(row_id) > value;
+         case Comparator::LESS_OR_EQUALS:
+            return column.getValue(row_id) <= value;
+      }
+      SILO_UNREACHABLE();
+   }
+
+   [[nodiscard]] std::unique_ptr<Predicate> copy() const override {
+      return std::make_unique<CompareToValueSelection<ColumnType>>(column, comparator, value);
+   }
+
+   [[nodiscard]] std::unique_ptr<Predicate> negate() const override {
+      switch (comparator) {
+         case Comparator::EQUALS:
+            return std::make_unique<CompareToValueSelection>(column, Comparator::NOT_EQUALS, value);
+         case Comparator::NOT_EQUALS:
+            return std::make_unique<CompareToValueSelection>(column, Comparator::EQUALS, value);
+         case Comparator::LESS:
+            return std::make_unique<CompareToValueSelection>(
+               column, Comparator::HIGHER_OR_EQUALS, value
+            );
+         case Comparator::HIGHER_OR_EQUALS:
+            return std::make_unique<CompareToValueSelection>(column, Comparator::LESS, value);
+         case Comparator::HIGHER:
+            return std::make_unique<CompareToValueSelection>(
+               column, Comparator::LESS_OR_EQUALS, value
+            );
+         case Comparator::LESS_OR_EQUALS:
+            return std::make_unique<CompareToValueSelection>(column, Comparator::HIGHER, value);
+      }
+      SILO_UNREACHABLE();
+   }
 };
+
+template <>
+bool CompareToValueSelection<silo::storage::column::StringColumnPartition>::match(uint32_t row_id
+) const;
+
+template <>
+bool CompareToValueSelection<silo::storage::column::FloatColumnPartition>::match(uint32_t row_id
+) const;
 
 class Selection : public Operator {
    friend class filter::expressions::And;

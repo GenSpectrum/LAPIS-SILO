@@ -36,14 +36,14 @@ void Table::validatePrimaryKeyUnique() const {
    SPDLOG_DEBUG("Checking that primary keys are unique.");
    const auto primary_key = schema.primary_key;
    SILO_ASSERT(primary_key.type == schema::ColumnType::STRING);
-   std::unordered_set<common::SiloString> unique_keys;
+   std::unordered_set<std::string> unique_keys;
    for (auto& partition : partitions) {
       auto& primary_key_column = partition->columns.string_columns.at(primary_key.name);
-      for (const auto x : primary_key_column.getValues()) {
+      auto num_values = primary_key_column.numValues();
+      for (size_t i = 0; i < num_values; ++i) {
+         auto x = primary_key_column.getValueString(i);
          if (unique_keys.contains(x)) {
-            throw schema::DuplicatePrimaryKeyException(
-               "Found duplicate primary key {}", primary_key_column.lookupValue(x)
-            );
+            throw schema::DuplicatePrimaryKeyException("Found duplicate primary key {}", x);
          }
          unique_keys.insert(x);
       }

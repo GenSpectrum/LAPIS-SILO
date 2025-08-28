@@ -34,7 +34,7 @@ TablePartition::TablePartition(schema::TableSchema& schema) {
                              ) {
       ColumnType column(schema.getColumnMetadata<ColumnType>(column_identifier.name).value());
       column_group.metadata.emplace_back(column_identifier);
-      column_group.getColumns<ColumnType>().emplace(column_identifier.name, column);
+      column_group.getColumns<ColumnType>().emplace(column_identifier.name, std::move(column));
    };
    for (const auto& column : schema.getColumnIdentifiers()) {
       column::visit(column.type, column_initializer, columns, column, schema);
@@ -100,10 +100,10 @@ void TablePartition::validateColumnsHaveSize(
    const std::string& columnType
 ) const {
    for (const auto& column : columnsOfTheType) {
-      if (column.second.getValues().size() != sequence_count) {
+      if (column.second.numValues() != sequence_count) {
          throw preprocessing::PreprocessingException(
             columnType + " " + column.first + " has invalid size " +
-            std::to_string(column.second.getValues().size())
+            std::to_string(column.second.numValues())
          );
       }
    }
