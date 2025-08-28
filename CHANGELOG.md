@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.2](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.8.1...v0.8.2) (2025-08-28)
+
+
+### Features
+
+* increase default concurrent connections to 256 and number of worker threads to 8 ([987717c](https://github.com/GenSpectrum/LAPIS-SILO/commit/987717c9e16f63062c7326cbf3f7dac72d85d45b))
+
 ## [0.8.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.8.0...v0.8.1) (2025-08-13)
 
 
