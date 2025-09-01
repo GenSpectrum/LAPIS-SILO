@@ -1,7 +1,6 @@
 #include "silo/storage/table.h"
 
 #include <fstream>
-#include <istream>
 #include <unordered_set>
 
 #include <oneapi/tbb/parallel_for.h>
