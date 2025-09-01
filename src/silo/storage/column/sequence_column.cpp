@@ -19,8 +19,6 @@
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/column/sequence_position.h"
 #include "silo/storage/insertion_format_exception.h"
-#include "silo/storage/reference_genomes.h"
-#include "silo/zstd/zstd_decompressor.h"
 
 namespace silo::storage::column {
 
