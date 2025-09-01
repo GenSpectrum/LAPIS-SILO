@@ -10,8 +10,6 @@
 #include <arrow/compute/exec.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
-#include <oneapi/tbb/blocked_range.h>
-#include <oneapi/tbb/parallel_for.h>
 #include <boost/algorithm/string/join.hpp>
 #include <nlohmann/json.hpp>
 
@@ -166,19 +164,15 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
       mutation_counts_per_position[symbol].resize(sequence_length);
    }
    static constexpr int POSITIONS_PER_PROCESS = 300;
-   tbb::parallel_for(
-      tbb::blocked_range<uint32_t>(0, sequence_length, /*grain_size=*/POSITIONS_PER_PROCESS),
-      [&](const auto& local) {
-         for (uint32_t pos = local.begin(); pos != local.end(); ++pos) {
-            addPositionToMutationCountsForMixedBitmaps(
-               pos, bitmap_filter, mutation_counts_per_position
-            );
-            addPositionToMutationCountsForFullBitmaps(
-               pos, bitmap_filter, mutation_counts_per_position
-            );
-         }
-      }
-   );
+   // XX POSITIONS_PER_PROCESS
+   for (uint32_t pos = 0; pos < sequence_length; pos++) {
+      addPositionToMutationCountsForMixedBitmaps(
+         pos, bitmap_filter, mutation_counts_per_position
+         );
+      addPositionToMutationCountsForFullBitmaps(
+         pos, bitmap_filter, mutation_counts_per_position
+         );
+   }
    return mutation_counts_per_position;
 }
 
