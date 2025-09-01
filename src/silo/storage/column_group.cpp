@@ -323,7 +323,7 @@ std::expected<void, std::string> ColumnPartitionGroup::addJsonValueToColumn(
    const schema::ColumnIdentifier& column,
    simdjson::ondemand::value& value
 ) {
-   EVOBENCH_SCOPE("ColumnPartitionGroup", "addJsonValueToColumn");
+   EVOBENCH_SCOPE_EVERY(200, "ColumnPartitionGroup", "addJsonValueToColumn");
    return column::visit(column.type, ColumnValueInserter{}, *this, column, value);
 }
 
