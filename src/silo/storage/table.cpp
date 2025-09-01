@@ -17,6 +17,7 @@
 #include <boost/serialization/vector.hpp>
 
 #include "silo/persistence/exception.h"
+#include "silo/roaring/roaring_serialize.h"
 #include "silo/schema/duplicate_primary_key_exception.h"
 
 namespace silo::storage {
