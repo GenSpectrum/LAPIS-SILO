@@ -1,11 +1,9 @@
 #include "silo/query_engine/actions/mutations.h"
 
 #include <cmath>
-#include <map>
 #include <optional>
 #include <unordered_map>
 #include <utility>
-#include <variant>
 #include <vector>
 
 #include <arrow/acero/options.h>
@@ -26,7 +24,6 @@
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/exec_node/arrow_util.h"
 #include "silo/query_engine/exec_node/json_value_type_array_builder.h"
-#include "silo/storage/column/column_type_visitor.h"
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/table_partition.h"
 
