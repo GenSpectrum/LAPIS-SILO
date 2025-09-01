@@ -16,6 +16,7 @@
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/vector.hpp>
 
+#include "evobench/evobench.hpp"
 #include "silo/common/fmt_formatters.h"
 #include "silo/persistence/exception.h"
 #include "silo/roaring/roaring_serialize.h"
@@ -81,6 +82,7 @@ std::ofstream openOutputFileOrThrow(const std::string& path) {
 }  // namespace
 
 void Table::saveData(const std::filesystem::path& save_directory) {
+   EVOBENCH_SCOPE("Table", "saveData");
    std::vector<std::ofstream> partition_archives;
    for (uint32_t i = 0; i < getNumberOfPartitions(); ++i) {
       const auto& partition_archive = save_directory / ("P" + std::to_string(i) + ".silo");
@@ -107,6 +109,7 @@ void Table::saveData(const std::filesystem::path& save_directory) {
 }
 
 void Table::loadData(const std::filesystem::path& save_directory) {
+   EVOBENCH_SCOPE("Table", "loadData");
    std::vector<std::ifstream> file_vec;
    for (const std::filesystem::path& file : std::filesystem::directory_iterator(save_directory)) {
       if (file.extension() == ".silo") {

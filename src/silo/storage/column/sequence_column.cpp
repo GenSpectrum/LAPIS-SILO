@@ -11,6 +11,7 @@
 #include <boost/lexical_cast.hpp>
 #include <roaring/roaring.hh>
 
+#include "evobench/evobench.hpp"
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/string_utils.h"
@@ -181,6 +182,7 @@ const roaring::Roaring* SequenceColumnPartition<SymbolType>::getBitmap(
 
 template <typename SymbolType>
 void SequenceColumnPartition<SymbolType>::fillIndexes() {
+   EVOBENCH_SCOPE("SequenceColumnPartition", "fillIndexes");
    const size_t genome_length = positions.size();
    static constexpr int DEFAULT_POSITION_BATCH_SIZE = 64;
    const size_t sequence_id_base_for_buffer = sequence_count - lazy_buffer.size();
@@ -240,6 +242,7 @@ void SequenceColumnPartition<SymbolType>::addSymbolsToPositions(
 
 template <typename SymbolType>
 void SequenceColumnPartition<SymbolType>::fillNBitmaps() {
+   EVOBENCH_SCOPE("SequenceColumnPartition", "fillNBitmaps");
    const size_t genome_length = positions.size();
 
    const size_t sequence_id_base_for_buffer = sequence_count - lazy_buffer.size();
@@ -289,6 +292,7 @@ void SequenceColumnPartition<SymbolType>::fillNBitmaps() {
 
 template <typename SymbolType>
 void SequenceColumnPartition<SymbolType>::optimizeBitmaps() {
+   EVOBENCH_SCOPE("SequenceColumnPartition", "optimizeBitmaps");
    tbb::enumerable_thread_specific<decltype(indexing_differences_to_reference_sequence)>
       index_changes_to_reference;
 
