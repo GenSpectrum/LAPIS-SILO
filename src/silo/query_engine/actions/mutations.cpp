@@ -164,7 +164,7 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
       mutation_counts_per_position[symbol].resize(sequence_length);
    }
    static constexpr int POSITIONS_PER_PROCESS = 300;
-   // XX POSITIONS_PER_PROCESS
+#pragma omp parallel for schedule(static, POSITIONS_PER_PROCESS)
    for (uint32_t pos = 0; pos < sequence_length; pos++) {
       addPositionToMutationCountsForMixedBitmaps(
          pos, bitmap_filter, mutation_counts_per_position
