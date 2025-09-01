@@ -16,6 +16,7 @@
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/vector.hpp>
 
+#include "silo/common/fmt_formatters.h"
 #include "silo/persistence/exception.h"
 #include "silo/roaring/roaring_serialize.h"
 #include "silo/schema/duplicate_primary_key_exception.h"
