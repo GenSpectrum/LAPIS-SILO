@@ -87,8 +87,9 @@ ConfigSpecification RuntimeConfig::getConfigSpecification() {
             ),
             ConfigAttributeSpecification::createWithDefault(
                apiParallelThreadsOptionKey(),
-               ConfigValue::fromInt32(8),
-               "The number of worker threads."
+               ConfigValue::fromInt32(0),
+               "The number of worker threads. If set to 0 it will be set to the number of "
+               "processors."
             ),
             ConfigAttributeSpecification::createWithoutDefault(
                apiEstimatedStartupTimeOptionKey(),
