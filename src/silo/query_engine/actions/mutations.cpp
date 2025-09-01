@@ -158,6 +158,7 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
    const storage::column::SequenceColumnMetadata<SymbolType>& metadata,
    const PrefilteredBitmaps& bitmap_filter
 ) {
+   EVOBENCH_SCOPE("Mutations", "calculateMutationsPerPosition");
    const size_t sequence_length = metadata.reference_sequence.size();
 
    SymbolMap<SymbolType, std::vector<uint32_t>> mutation_counts_per_position;
