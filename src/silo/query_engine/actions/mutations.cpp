@@ -1,11 +1,9 @@
 #include "silo/query_engine/actions/mutations.h"
 
 #include <cmath>
-#include <map>
 #include <optional>
 #include <unordered_map>
 #include <utility>
-#include <variant>
 #include <vector>
 
 #include <arrow/acero/options.h>
@@ -26,7 +24,6 @@
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/exec_node/arrow_util.h"
 #include "silo/query_engine/exec_node/json_value_type_array_builder.h"
-#include "silo/storage/column/column_type_visitor.h"
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/table_partition.h"
 
@@ -161,6 +158,7 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
    const storage::column::SequenceColumnMetadata<SymbolType>& metadata,
    const PrefilteredBitmaps& bitmap_filter
 ) {
+   EVOBENCH_SCOPE("Mutations", "calculateMutationsPerPosition");
    const size_t sequence_length = metadata.reference_sequence.size();
 
    SymbolMap<SymbolType, std::vector<uint32_t>> mutation_counts_per_position;
@@ -168,19 +166,15 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
       mutation_counts_per_position[symbol].resize(sequence_length);
    }
    static constexpr int POSITIONS_PER_PROCESS = 300;
-   tbb::parallel_for(
-      tbb::blocked_range<uint32_t>(0, sequence_length, /*grain_size=*/POSITIONS_PER_PROCESS),
-      [&](const auto& local) {
-         for (uint32_t pos = local.begin(); pos != local.end(); ++pos) {
-            addPositionToMutationCountsForMixedBitmaps(
-               pos, bitmap_filter, mutation_counts_per_position
-            );
-            addPositionToMutationCountsForFullBitmaps(
-               pos, bitmap_filter, mutation_counts_per_position
-            );
-         }
-      }
-   );
+#pragma omp parallel for schedule(static, POSITIONS_PER_PROCESS)
+   for (uint32_t pos = 0; pos < sequence_length; pos++) {
+      addPositionToMutationCountsForMixedBitmaps(
+         pos, bitmap_filter, mutation_counts_per_position
+         );
+      addPositionToMutationCountsForFullBitmaps(
+         pos, bitmap_filter, mutation_counts_per_position
+         );
+   }
    return mutation_counts_per_position;
 }
 

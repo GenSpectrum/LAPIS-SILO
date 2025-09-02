@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "evobench/evobench.hpp"
 #include "silo/common/error.h"
 #include "silo/schema/duplicate_primary_key_exception.h"
 
@@ -164,7 +165,7 @@ std::expected<void, std::string> TablePartitionInserter::insert(
    simdjson::ondemand::document_reference ndjson_line,
    const std::vector<TablePartitionInserter::SniffedField>& field_order_hint
 ) const {
-   EVOBENCH_SCOPE("TablePartitionInserter", "insert");
+   EVOBENCH_SCOPE_EVERY(20, "TablePartitionInserter", "insert");
    ASSIGN_OR_RAISE(auto object, iterateToObject(ndjson_line));
    for (auto sniffed_field : field_order_hint) {
       ASSIGN_OR_RAISE(auto column_value, findFieldWithFallbacks(object, sniffed_field));
