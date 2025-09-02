@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.3](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.8.2...v0.8.3) (2025-09-02)
+
+
+### Features
+
+* default to using number of threads equal to processors ([9795d28](https://github.com/GenSpectrum/LAPIS-SILO/commit/9795d28337ae61375965e31e2da2ad3c029c7458))
+
 ## [0.8.2](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.8.1...v0.8.2) (2025-08-28)
 
 
