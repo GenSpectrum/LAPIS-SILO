@@ -48,7 +48,7 @@ class NdjsonLineReader {
       }
 
       iterator& operator++() {
-         EVOBENCH_SCOPE("NdjsonLineReader::Iterator", "operator++");
+         EVOBENCH_SCOPE_EVERY(21, "NdjsonLineReader::Iterator", "operator++");
          if (stream->error) {
             at_end = true;
          }
