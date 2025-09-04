@@ -101,9 +101,141 @@ class AminoAcid {
 
    static constexpr Symbol SYMBOL_MISSING = Symbol::X;
 
-   static char symbolToChar(Symbol symbol);
+   static inline char symbolToChar(AminoAcid::Symbol symbol) {
+      switch (symbol) {
+         case AminoAcid::Symbol::GAP:
+            return '-';
+         case AminoAcid::Symbol::A:
+            return 'A';
+         case AminoAcid::Symbol::C:
+            return 'C';
+         case AminoAcid::Symbol::D:
+            return 'D';
+         case AminoAcid::Symbol::E:
+            return 'E';
+         case AminoAcid::Symbol::F:
+            return 'F';
+         case AminoAcid::Symbol::G:
+            return 'G';
+         case AminoAcid::Symbol::H:
+            return 'H';
+         case AminoAcid::Symbol::I:
+            return 'I';
+         case AminoAcid::Symbol::K:
+            return 'K';
+         case AminoAcid::Symbol::L:
+            return 'L';
+         case AminoAcid::Symbol::N:
+            return 'N';
+         case AminoAcid::Symbol::M:
+            return 'M';
+         case AminoAcid::Symbol::P:
+            return 'P';
+         case AminoAcid::Symbol::Q:
+            return 'Q';
+         case AminoAcid::Symbol::R:
+            return 'R';
+         case AminoAcid::Symbol::S:
+            return 'S';
+         case AminoAcid::Symbol::T:
+            return 'T';
+         case AminoAcid::Symbol::V:
+            return 'V';
+         case AminoAcid::Symbol::W:
+            return 'W';
+         case AminoAcid::Symbol::Y:
+            return 'Y';
+         case AminoAcid::Symbol::B:
+            return 'B';
+         case AminoAcid::Symbol::Z:
+            return 'Z';
+         case AminoAcid::Symbol::X:
+            return 'X';
+         case AminoAcid::Symbol::STOP:
+            return '*';
+      }
+      SILO_UNREACHABLE();
+   }
 
-   static std::optional<Symbol> charToSymbol(char character);
+   static inline std::optional<AminoAcid::Symbol> charToSymbol(char character) {
+      switch (character) {
+         case '-':
+            return AminoAcid::Symbol::GAP;
+         case 'A':
+         case 'a':
+            return AminoAcid::Symbol::A;
+         case 'C':
+         case 'c':
+            return AminoAcid::Symbol::C;
+         case 'D':
+         case 'd':
+            return AminoAcid::Symbol::D;
+         case 'E':
+         case 'e':
+            return AminoAcid::Symbol::E;
+         case 'F':
+         case 'f':
+            return AminoAcid::Symbol::F;
+         case 'G':
+         case 'g':
+            return AminoAcid::Symbol::G;
+         case 'H':
+         case 'h':
+            return AminoAcid::Symbol::H;
+         case 'I':
+         case 'i':
+            return AminoAcid::Symbol::I;
+         case 'K':
+         case 'k':
+            return AminoAcid::Symbol::K;
+         case 'L':
+         case 'l':
+            return AminoAcid::Symbol::L;
+         case 'N':
+         case 'n':
+            return AminoAcid::Symbol::N;
+         case 'M':
+         case 'm':
+            return AminoAcid::Symbol::M;
+         case 'P':
+         case 'p':
+            return AminoAcid::Symbol::P;
+         case 'Q':
+         case 'q':
+            return AminoAcid::Symbol::Q;
+         case 'R':
+         case 'r':
+            return AminoAcid::Symbol::R;
+         case 'S':
+         case 's':
+            return AminoAcid::Symbol::S;
+         case 'T':
+         case 't':
+            return AminoAcid::Symbol::T;
+         case 'V':
+         case 'v':
+            return AminoAcid::Symbol::V;
+         case 'W':
+         case 'w':
+            return AminoAcid::Symbol::W;
+         case 'Y':
+         case 'y':
+            return AminoAcid::Symbol::Y;
+         case 'B':
+         case 'b':
+            return AminoAcid::Symbol::B;
+         case 'Z':
+         case 'z':
+            return AminoAcid::Symbol::Z;
+         case 'X':
+         case 'x':
+            return AminoAcid::Symbol::X;
+         case '*':
+            return AminoAcid::Symbol::STOP;
+         default:
+            return std::nullopt;
+      }
+   }
 };
 
 }  // namespace silo
