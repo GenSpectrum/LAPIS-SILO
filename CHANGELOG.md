@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.4](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.8.3...v0.8.4) (2025-09-04)
+
+
+### Features
+
+* bump version manually to release major refactor separately ([0a06315](https://github.com/GenSpectrum/LAPIS-SILO/commit/0a0631502af9c1474ce8b0611f9b345f70f77b8d))
+
 ## [0.8.3](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.8.2...v0.8.3) (2025-09-02)
 
 
