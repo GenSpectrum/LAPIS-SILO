@@ -12,9 +12,11 @@
 #include <fmt/ranges.h>
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/parallel_for.h>
+#include <spdlog/spdlog.h>
 #include <boost/algorithm/string/join.hpp>
 #include <nlohmann/json.hpp>
 
+#include "evobench/count_threads.hpp"
 #include "evobench/evobench.hpp"
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
@@ -175,6 +177,7 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
          pos, bitmap_filter, mutation_counts_per_position
          );
    }
+   SPDLOG_INFO("thread count = {}", evobench::count_threads());
    return mutation_counts_per_position;
 }
 
