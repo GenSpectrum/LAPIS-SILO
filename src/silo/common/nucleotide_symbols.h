@@ -95,9 +95,99 @@ class Nucleotide {
 
    static constexpr Symbol SYMBOL_MISSING = Symbol::N;
 
-   static char symbolToChar(Symbol symbol);
+   static inline char symbolToChar(Nucleotide::Symbol symbol) {
+      switch (symbol) {
+         case Symbol::GAP:
+            return '-';
+         case Symbol::A:
+            return 'A';
+         case Symbol::C:
+            return 'C';
+         case Symbol::G:
+            return 'G';
+         case Symbol::T:
+            return 'T';
+         case Symbol::R:
+            return 'R';
+         case Symbol::Y:
+            return 'Y';
+         case Symbol::S:
+            return 'S';
+         case Symbol::W:
+            return 'W';
+         case Symbol::K:
+            return 'K';
+         case Symbol::M:
+            return 'M';
+         case Symbol::B:
+            return 'B';
+         case Symbol::D:
+            return 'D';
+         case Symbol::H:
+            return 'H';
+         case Symbol::V:
+            return 'V';
+         case Symbol::N:
+            return 'N';
+      }
+      SILO_UNREACHABLE();
+   }
 
-   static std::optional<Symbol> charToSymbol(char character);
+   static inline std::optional<Nucleotide::Symbol> charToSymbol(char character) {
+      switch (character) {
+         case '-':
+            return Symbol::GAP;
+         case 'A':
+         case 'a':
+            return Symbol::A;
+         case 'C':
+         case 'c':
+            return Symbol::C;
+         case 'G':
+         case 'g':
+            return Symbol::G;
+         case 'T':
+         case 'U':
+         case 't':
+         case 'u':
+            return Symbol::T;
+         case 'R':
+         case 'r':
+            return Symbol::R;
+         case 'Y':
+         case 'y':
+            return Symbol::Y;
+         case 'S':
+         case 's':
+            return Symbol::S;
+         case 'W':
+         case 'w':
+            return Symbol::W;
+         case 'K':
+         case 'k':
+            return Symbol::K;
+         case 'M':
+         case 'm':
+            return Symbol::M;
+         case 'B':
+         case 'b':
+            return Symbol::B;
+         case 'D':
+         case 'd':
+            return Symbol::D;
+         case 'H':
+         case 'h':
+            return Symbol::H;
+         case 'V':
+         case 'v':
+            return Symbol::V;
+         case 'N':
+         case 'n':
+            return Symbol::N;
+         default:
+            return std::nullopt;
+      }
+   }
 };
 
 }  // namespace silo
