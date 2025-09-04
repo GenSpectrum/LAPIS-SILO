@@ -96,7 +96,8 @@ For SILO, there are three different configuration files:
 The database config contains the schema of the database and is always required when preprocessing data. The database
 config will be saved together with the output of the preprocessing and is therefore not required when starting SILO as
 an API.
-An example of a configuration file can be seen
+
+An example configuration file can be seen
 in [testBaseData/exampleDataset/database_config.yaml](testBaseData/exampleDataset/database_config.yaml).
 
 By default, the config files are expected to be YAML files in the current working directory in
