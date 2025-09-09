@@ -7,6 +7,7 @@
 #include <Poco/URI.h>
 
 #include "silo/api/error_request_handler.h"
+#include "silo/api/health_handler.h"
 #include "silo/api/info_handler.h"
 #include "silo/api/lineage_definition_handler.h"
 #include "silo/api/logging_request_handler.h"
@@ -40,6 +41,9 @@ std::unique_ptr<Poco::Net::HTTPRequestHandler> SiloRequestHandlerFactory::routeR
    std::vector<std::string> segments;
    uri.getPathSegments(segments);
 
+   if (path == "/health") {
+      return std::make_unique<silo::api::HealthHandler>();
+   }
    if (path == "/info") {
       return std::make_unique<silo::api::InfoHandler>(database_handle);
    }
