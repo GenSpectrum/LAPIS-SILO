@@ -1,8 +1,5 @@
 #!/bin/bash
 set -meuo pipefail
-IFS=' '
 
 echo "$$" > .silo.pid
-exec "$SILO" api --data-directory "$OUTPUT_DIR" $API_OPTIONS
-
-
+exec "$SILO" api --data-directory "$OUTPUT_DIR"

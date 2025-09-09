@@ -51,9 +51,6 @@ dependencies: $(API_QUERY)
 
 # ---- Running silo -----------------------------------------------------------
 
-API_OPTIONS=--api-threads-for-http-connections 16
-export API_OPTIONS
-
 .silo.pid: $(PREPROCESSING_STAMP)
 	rm -f .silo.stopped
 	bin/start-silo
