@@ -43,7 +43,7 @@ arrow::Status QueryPlan::executeAndWriteImpl(
    while (true) {
       arrow::Future<std::optional<arrow::ExecBatch>> future_batch = results_generator();
       SPDLOG_TRACE("await the next batch");
-      bool finished_batch_in_time = future_batch.Wait(static_cast<double>(timeout_in_seconds));
+      bool finished_batch_in_time = future_batch.Wait(timeout_in_seconds);
       if (!finished_batch_in_time) {
          SPDLOG_WARN("Batch wait timed out after {} s — stopping plan.", timeout_in_seconds);
          arrow_plan->StopProducing();  // best-effort cancel
@@ -57,7 +57,7 @@ arrow::Status QueryPlan::executeAndWriteImpl(
       if (!optional_batch.has_value()) {
          break;  // end of input
       }
-      SPDLOG_TRACE("Batch contains {} rows.", optional_batch->length);
+      SPDLOG_TRACE("Batch contains data with {} values.", optional_batch.value().length);
 
       // TODO(#764) make output format configurable
       ARROW_RETURN_NOT_OK(
