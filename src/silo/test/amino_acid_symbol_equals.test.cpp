@@ -65,13 +65,13 @@ nlohmann::json createAminoAcidSymbolEqualsQuery(
 }
 
 const QueryTestScenario AMINO_ACID_EQUALS_D = {
-   .name = "aminoAcidEqualsD",
+   .name = "AMINO_ACID_EQUALS_D",
    .query = createAminoAcidSymbolEqualsQuery("D", 1, GENE),
    .expected_query_result = nlohmann::json::parse(R"([{"count": 1}])")
 };
 
 const QueryTestScenario AMINO_ACID_EQUALS_WITH_DOT_RETURNS_AS_IF_REFERENCE = {
-   .name = "aminoAcidEqualsM",
+   .name = "AMINO_ACID_EQUALS_WITH_DOT_RETURNS_AS_IF_REFERENCE",
    .query = createAminoAcidSymbolEqualsQuery(".", 1, GENE),
    .expected_query_result = nlohmann::json::parse(R"([{"count": 2}])")
 };
