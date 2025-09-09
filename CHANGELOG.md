@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.8.5](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.8.4...v0.8.5) (2025-09-09)
+
+
+### Features
+
+* **silo:** add possibility to disable generation of unaligned sequence columns in schema ([b3bf856](https://github.com/GenSpectrum/LAPIS-SILO/commit/b3bf856399d3bbb0a6793ec3115c3ffc3635f502))
+* **silo:** add possibility to specify offset in the input ndjson ([bf3a1d9](https://github.com/GenSpectrum/LAPIS-SILO/commit/bf3a1d93d9869fb034240358b32deaba3bfc34d8))
+* **silo:** also allow lower-case characters as input in sequences ([97bba59](https://github.com/GenSpectrum/LAPIS-SILO/commit/97bba59247add0cffa9dae879a9e9100af10259b))
+
 ## [0.8.4](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.8.3...v0.8.4) (2025-09-04)
 
 
