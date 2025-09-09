@@ -33,15 +33,42 @@ arrow::Status QueryPlan::executeAndWriteImpl(
    SPDLOG_TRACE("{}", arrow_plan->ToString());
    arrow_plan->StartProducing();
    SPDLOG_TRACE("Plan started producing, will now read the resulting batches.");
+
+   // Ensure plan is stopped on any exit path (timeout/error/exception).
+   struct PlanStopGuard {
+      std::shared_ptr<arrow::acero::ExecPlan> plan;
+      ~PlanStopGuard() {
+         constexpr double kGraceShutdownSeconds = 5.0;  // avoid hanging on teardown
+         try {
+            if (plan) {
+               SPDLOG_DEBUG("Stopping arrow execution plan");
+               plan->StopProducing();
+               auto finished_future = plan->finished();
+               const bool drained = finished_future.Wait(kGraceShutdownSeconds);
+               if (!drained) {
+                  SPDLOG_WARN(
+                     "ExecPlan cleanup exceeded {} s grace; continuing.", kGraceShutdownSeconds
+                  );
+               }
+            }
+         } catch (...) {
+            SPDLOG_ERROR(
+               "Error while tearing down Arrow::acero::ExecPlan. But cannot throw exception in "
+               "destructor."
+            );
+         }
+      }
+   } guard{arrow_plan};
+
    while (true) {
       arrow::Future<std::optional<arrow::ExecBatch>> future_batch = results_generator();
       SPDLOG_DEBUG("await the next batch");
-      bool finished_batch_in_time = future_batch.Wait(timeout_in_seconds);
+      bool finished_batch_in_time = future_batch.Wait(static_cast<double>(timeout_in_seconds));
       if (!finished_batch_in_time) {
-         return arrow::Status::ExecutionError(fmt::format(
-            "Request timed out, could not detect any progress within {} seconds.",
-            timeout_in_seconds
-         ));
+         SPDLOG_WARN("Batch wait timed out after {} s — stopping plan.", timeout_in_seconds);
+         return arrow::Status::ExecutionError(
+            fmt::format("Request timed out, no batch within {} seconds.", timeout_in_seconds)
+         );
       }
       ARROW_ASSIGN_OR_RAISE(std::optional<arrow::ExecBatch> optional_batch, future_batch.result());
       SPDLOG_DEBUG("Batch received");
@@ -62,21 +89,6 @@ arrow::Status QueryPlan::executeAndWriteImpl(
       );
    };
    SPDLOG_DEBUG("Finished reading all batches.");
-   auto future = arrow_plan->finished();
-   if (future.state() == arrow::FutureState::PENDING) {
-      SPDLOG_DEBUG(
-         "Plan still pending, but no more results in the future? Not a problem in itself as it "
-         "could be a race condition so the next await will clear this, but be a hint in case we "
-         "detect some weird behavior."
-      );
-   }
-   future.Wait();
-   if (future.status().ok()) {
-      SPDLOG_DEBUG("All results successfully produced. Clearing ExecPlan.");
-   } else {
-      return future.status();
-   }
-   arrow_plan->StopProducing();
    return arrow::Status::OK();
 }
 
