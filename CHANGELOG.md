@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.6](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.8.5...v0.8.6) (2025-09-11)
+
+
+### Features
+
+* **silo:** add a health endpoint that checks whether the api is able to answer requests ([5422ff1](https://github.com/GenSpectrum/LAPIS-SILO/commit/5422ff13dc6132c4bd6fc3388304b6e00831241b))
+
 ## [0.8.5](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.8.4...v0.8.5) (2025-09-09)
 
 
