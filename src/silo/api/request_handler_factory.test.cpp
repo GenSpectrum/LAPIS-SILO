@@ -2,6 +2,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "silo/api/health_handler.h"
 #include "silo/api/info_handler.h"
 #include "silo/api/lineage_definition_handler.h"
 #include "silo/api/manual_poco_mocks.test.h"
@@ -127,4 +128,14 @@ TEST(SiloRequestHandlerFactory, routesUnknownUrlToNotFoundHandler) {
    auto handler = under_test->routeRequest(uri);
 
    assertHoldsHandlerType<silo::api::NotFoundHandler>(handler);
+}
+
+TEST(SiloRequestHandlerFactory, routesToHealth) {
+   Poco::URI uri("/health");
+
+   auto under_test = createRequestHandlerWithInitializedDatabase();
+
+   auto handler = under_test->routeRequest(uri);
+
+   assertHoldsHandlerType<silo::api::HealthHandler>(handler);
 }
