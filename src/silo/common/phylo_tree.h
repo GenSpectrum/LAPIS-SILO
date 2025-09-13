@@ -65,6 +65,12 @@ class MRCAResponse {
    std::optional<int> mrca_depth;
 };
 
+class ParentResponse {
+  public:
+   std::unordered_set<std::optional<TreeNodeId>> parent_node_ids;
+   std::vector<std::string> not_in_tree;
+};
+
 class NewickResponse {
   public:
    std::string newick_string;
@@ -95,6 +101,8 @@ class PhyloTree {
    roaring::Roaring getDescendants(const TreeNodeId& node_id);
 
    MRCAResponse getMRCA(const std::unordered_set<std::string>& node_labels) const;
+
+   ParentResponse getParents(const std::unordered_set<std::string>& node_labels) const;
 
    NewickResponse toNewickString(
       const std::unordered_set<std::string>& filter,
