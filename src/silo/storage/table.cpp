@@ -100,6 +100,7 @@ void Table::saveData(const std::filesystem::path& save_directory) {
       common::blocked_range{0, getNumberOfPartitions()},
       1,  // positions_per_process
       [&](common::blocked_range local) {
+         EVOBENCH_SCOPE_EVERY(100, "Table", "saveData-chunk");
          for (size_t partition_idx = local.begin(); partition_idx < local.end(); ++partition_idx) {
             ::boost::archive::binary_oarchive output_archive(partition_archives[partition_idx]);
             partitions[partition_idx]->serializeData(output_archive, 0);
@@ -128,6 +129,7 @@ void Table::loadData(const std::filesystem::path& save_directory) {
       common::blocked_range(0, getNumberOfPartitions()),
       1,  // positions_per_process, there might be better values
       [&](const auto& local) {
+         EVOBENCH_SCOPE_EVERY(100, "Table", "loadData-chunk");
          for (size_t partition_index = local.begin(); partition_index != local.end();
               ++partition_index) {
             ::boost::archive::binary_iarchive input_archive(file_vec[partition_index]);

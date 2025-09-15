@@ -191,6 +191,7 @@ void SequenceColumnPartition<SymbolType>::fillIndexes() {
       common::blocked_range(0, genome_length),
       genome_length / DEFAULT_POSITION_BATCH_SIZE,
       [&](const auto& local) {
+         EVOBENCH_SCOPE_EVERY(100, "SequenceColumnPartition", "fillIndexes-chunk");
          SymbolMap<SymbolType, std::vector<uint32_t>> ids_per_symbol_for_current_position;
          for (size_t position_idx = local.begin(); position_idx != local.end(); ++position_idx) {
             const size_t number_of_sequences = lazy_buffer.size();
@@ -255,6 +256,7 @@ void SequenceColumnPartition<SymbolType>::fillNBitmaps() {
       common::blocked_range{0, lazy_buffer.size()},
       1,  // positions_per_process
       [&](common::blocked_range local) {
+         EVOBENCH_SCOPE_EVERY(100, "SequenceColumnPartition", "fillNBitmaps-chunk");
          std::vector<uint32_t> positions_with_symbol_missing;
          for (size_t sequence_offset_in_buffer = local.begin();
               sequence_offset_in_buffer != local.end();
@@ -302,6 +304,7 @@ void SequenceColumnPartition<SymbolType>::optimizeBitmaps() {
       index_changes_to_reference;
 
    tbb::parallel_for(tbb::blocked_range<uint32_t>(0, positions.size()), [&](const auto& local) {
+      EVOBENCH_SCOPE_EVERY(100, "SequenceColumnPartition", "optimizeBitmaps-chunk");
       auto& local_index_changes = index_changes_to_reference.local();
       for (auto position_idx = local.begin(); position_idx != local.end(); ++position_idx) {
          auto symbol_changed = positions[position_idx].flipMostNumerousBitmap(sequence_count);
