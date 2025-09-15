@@ -172,6 +172,7 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
       common::blocked_range{0, sequence_length},
       POSITIONS_PER_PROCESS,
       [&mutation_counts_per_position, &bitmap_filter](common::blocked_range local) {
+         EVOBENCH_SCOPE_EVERY(100, "Mutations", "calculateMutationsPerPosition-chunk");
          for (size_t pos = local.begin(); pos < local.end(); pos++) {
             addPositionToMutationCountsForMixedBitmaps(
                pos, bitmap_filter, mutation_counts_per_position
