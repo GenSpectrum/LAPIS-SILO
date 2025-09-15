@@ -169,6 +169,7 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
    tbb::parallel_for(
       tbb::blocked_range<uint32_t>(0, sequence_length, /*grain_size=*/POSITIONS_PER_PROCESS),
       [&](const auto& local) {
+         EVOBENCH_SCOPE_EVERY(100, "Mutations", "calculateMutationsPerPosition-chunk");
          for (uint32_t pos = local.begin(); pos != local.end(); ++pos) {
             addPositionToMutationCountsForMixedBitmaps(
                pos, bitmap_filter, mutation_counts_per_position
