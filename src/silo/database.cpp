@@ -1,35 +1,22 @@
 #include "silo/database.h"
 
 #include <array>
-#include <atomic>
 #include <cstdint>
 #include <cstdlib>
-#include <deque>
 #include <filesystem>
-#include <fstream>
-#include <functional>
 #include <map>
 #include <optional>
-#include <stdexcept>
 #include <string>
 #include <utility>
-#include <vector>
 
 #include <fmt/format.h>
-#include <oneapi/tbb/parallel_for.h>
 #include <spdlog/spdlog.h>
 
 #include "silo/common/data_version.h"
-#include "silo/common/file_to_string.h"
-#include "silo/common/format_number.h"
-#include "silo/common/lineage_tree.h"
-#include "silo/common/nucleotide_symbols.h"
-#include "silo/common/panic.h"
 #include "silo/common/silo_directory.h"
 #include "silo/common/version.h"
 #include "silo/database_info.h"
 #include "silo/persistence/exception.h"
-#include "silo/roaring/roaring_serialize.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table_partition.h"
 
