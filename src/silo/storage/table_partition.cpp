@@ -2,10 +2,6 @@
 
 #include <utility>
 
-#include <oneapi/tbb/blocked_range.h>
-#include <oneapi/tbb/enumerable_thread_specific.h>
-#include <oneapi/tbb/parallel_for.h>
-
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/column/column_type_visitor.h"
 
