@@ -187,7 +187,7 @@ void SequenceColumnPartition<SymbolType>::fillIndexes() {
    static constexpr int DEFAULT_POSITION_BATCH_SIZE = 64;
    const size_t sequence_id_base_for_buffer = sequence_count - lazy_buffer.size();
    tbb::parallel_for(
-      tbb::blocked_range<size_t>(0, genome_length, genome_length / DEFAULT_POSITION_BATCH_SIZE),
+      tbb::blocked_range<size_t>(0, genome_length, DEFAULT_POSITION_BATCH_SIZE),
       [&](const auto& local) {
          EVOBENCH_SCOPE_EVERY(100, "SequenceColumnPartition", "fillIndexes-chunk");
          SymbolMap<SymbolType, std::vector<uint32_t>> ids_per_symbol_for_current_position;
