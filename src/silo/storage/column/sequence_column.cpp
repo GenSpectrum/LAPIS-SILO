@@ -189,7 +189,7 @@ void SequenceColumnPartition<SymbolType>::fillIndexes() {
    const size_t sequence_id_base_for_buffer = sequence_count - lazy_buffer.size();
    common::parallel_for(
       common::blocked_range(0, genome_length),
-      genome_length / DEFAULT_POSITION_BATCH_SIZE,
+      DEFAULT_POSITION_BATCH_SIZE,
       [&](const auto& local) {
          EVOBENCH_SCOPE_EVERY(100, "SequenceColumnPartition", "fillIndexes-chunk");
          SymbolMap<SymbolType, std::vector<uint32_t>> ids_per_symbol_for_current_position;
