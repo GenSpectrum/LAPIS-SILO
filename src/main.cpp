@@ -2,6 +2,8 @@
 
 #include <spdlog/spdlog.h>
 
+#include <arrow/compute/api.h>
+
 #include "evobench/evobench.hpp"
 #include "silo/api/api.h"
 #include "silo/api/logging.h"
@@ -64,6 +66,7 @@ enum class ExecutionMode { INITIALIZE, APPEND, API, PREPROCESSING };
 
 int mainWhichMayThrowExceptions(int argc, char** argv) {
    setupLogger();
+   SILO_ASSERT(arrow::compute::Initialize().ok());
 
    std::vector<std::string> all_args(argv, argv + argc);
 

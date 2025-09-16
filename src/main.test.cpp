@@ -3,10 +3,12 @@
 
 #include <filesystem>
 
+#include <arrow/compute/api.h>
 #include <spdlog/sinks/null_sink.h>
 #include <spdlog/spdlog.h>
 
 #include "silo/common/log.h"
+#include "silo/common/panic.h"
 
 int changeCwdToTestFolder() {
    // Look for the test data directory (`testBaseData`) in the current directory and up to
@@ -35,6 +37,7 @@ int main(int argc, char* argv[]) {
       spdlog::set_level(spdlog::level::trace);
    }
    spdlog::null_logger_mt(silo::PERFORMANCE_LOGGER_NAME);
+   SILO_ASSERT(arrow::compute::Initialize().ok());
    ::testing::InitGoogleMock(&argc, argv);
    return RUN_ALL_TESTS();
 }
