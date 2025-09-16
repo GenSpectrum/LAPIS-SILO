@@ -3,6 +3,7 @@
 #include <arrow/acero/exec_plan.h>
 #include <arrow/acero/options.h>
 #include <arrow/acero/query_context.h>
+#include <arrow/util/async_generator_fwd.h>
 #include <spdlog/spdlog.h>
 
 #include "silo/common/panic.h"

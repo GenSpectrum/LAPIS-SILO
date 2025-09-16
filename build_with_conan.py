@@ -36,6 +36,9 @@ def main(args):
         conan_options.append("--settings '&:build_type=Debug'")
         conan_options.append("--output-folder=build/Debug/generators")
 
+    # TODO(#986) remove this when arrow is fixed
+    conan_options.append("--settings 'arrow:compiler.cppstd=20'")
+
     if args.clean:
         print("----------------------------------")
         print(f"cleaning build directory {build_folder}")
