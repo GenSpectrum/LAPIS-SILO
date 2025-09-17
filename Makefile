@@ -22,14 +22,14 @@ output: ${SILO_EXECUTABLE}
 
 ${RUNNING_SILO_FLAG}: ${SILO_EXECUTABLE} output
 	@{ \
-		if lsof -i :8081 > /dev/null 2>&1; then \
-			echo "Error: Port 8081 is already in use. Another SILO instance might already be running."; \
+``		if lsof -i :8093 > /dev/null 2>&1; then \
+			echo "Error: Port 8093 is already in use. Another SILO instance might already be running."; \
 			exit 1; \
 		fi; \
-		${SILO_EXECUTABLE} api & \
+		${SILO_EXECUTABLE} api --api-port 8093 & \
 		pid=$$!; \
 		echo "Waiting for silo (PID $$pid) to be ready..."; \
-		until curl -s -o /dev/null -w "%{http_code}" http://localhost:8081/info | grep -q "200"; do \
+		until curl -s -o /dev/null -w "%{http_code}" http://localhost:8093/info | grep -q "200"; do \
 			sleep 0.2; \
 		done; \
 		echo $$pid > ${RUNNING_SILO_FLAG}; \
@@ -38,7 +38,7 @@ ${RUNNING_SILO_FLAG}: ${SILO_EXECUTABLE} output
 
 e2e: ${RUNNING_SILO_FLAG}
 	trap 'make clean-api' EXIT; \
-	(cd endToEndTests && SILO_URL=localhost:8081 npm run test)
+	(cd endToEndTests && SILO_URL=localhost:8093 npm run test)
 
 test: ${SILO_EXECUTABLE}
 	build/Debug/silo_test --gtest_filter=* --gtest_color=no
