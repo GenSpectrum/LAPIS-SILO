@@ -178,25 +178,34 @@ arrow::Status writeBatchAsNdjson(
    sendJsonLinesInBatches<BATCH_SIZE>(
       row_idx, row_count, prepared_column_strings_for_json_attributes, column_arrays, *output_stream
    );
+   SPDLOG_INFO("Flushing outgoing buffer");
    output_stream->flush();
+   SPDLOG_INFO("Outgoing buffer flushed");
    if (!*output_stream) {
       return arrow::Status::IOError("Could not write to network stream");
    }
    return arrow::Status::OK();
 }
 
-arrow::Status createGenerator(
+arrow::Result<arrow::acero::BackpressureMonitor*> createGenerator(
    arrow::acero::ExecPlan* plan,
    arrow::acero::ExecNode* input,
    arrow::AsyncGenerator<std::optional<arrow::ExecBatch>>* generator
 ) {
+   arrow::acero::BackpressureMonitor* backpressure_monitor;
    arrow::acero::SinkNodeOptions options{
-      generator, arrow::acero::BackpressureOptions::DefaultBackpressure()
+      generator,
+      arrow::acero::BackpressureOptions{
+         /*.resume_if_below =*/1 << 24,  // 16 MB
+         /*.pause_if_above =*/1 << 26    // 64 MB
+      },
+      &backpressure_monitor
    };
+
    ARROW_RETURN_NOT_OK(
       arrow::acero::MakeExecNode(std::string{"sink"}, plan, {input}, options).status()
    );
-   return arrow::Status::OK();
+   return backpressure_monitor;
 }
 
 }  // namespace silo::query_engine::exec_node
