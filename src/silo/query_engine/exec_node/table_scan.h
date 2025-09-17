@@ -74,11 +74,18 @@ class TableScanGenerator {
 
    arrow::Future<std::optional<arrow::ExecBatch>> operator()() {
       SPDLOG_TRACE("TableScanGenerator::operator()");
-      try {
-         return produceNextBatch();
-      } catch (const std::exception& exception) {
-         return arrow::Status::ExecutionError(exception.what());
-      }
+      auto future = arrow::Future<std::optional<arrow::ExecBatch>>::Make();
+      // We do this to guard against https://github.com/apache/arrow/issues/47641
+      // and https://github.com/apache/arrow/issues/47642
+      std::thread([future, this]() mutable {
+         try {
+            auto result = produceNextBatch();
+            future.MarkFinished(std::move(result));
+         } catch (const std::exception& exception) {
+            future.MarkFinished(arrow::Status::ExecutionError(exception.what()));
+         }
+      }).detach();
+      return future;
    };
 
   private:

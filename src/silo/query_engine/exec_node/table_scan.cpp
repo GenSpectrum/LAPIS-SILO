@@ -223,16 +223,15 @@ arrow::Result<arrow::ExecBatch> ExecBatchBuilder::finishBatch() {
 
 arrow::Result<std::optional<arrow::ExecBatch>> TableScanGenerator::produceNextBatch() {
    EVOBENCH_SCOPE("TableScanGenerator", "produceNextBatch");
-   if (!current_bitmap_reader.has_value()) {
-      return std::nullopt;
-   }
-   while (true) {
+   while (current_bitmap_reader.has_value()) {
       auto row_ids = current_bitmap_reader.value().nextBatch();
       if (row_ids.has_value()) {
          ARROW_RETURN_NOT_OK(exec_batch_builder.appendEntries(
             table->getPartition(current_partition_idx), row_ids.value()
          ));
-         return exec_batch_builder.finishBatch();
+         ARROW_ASSIGN_OR_RAISE(auto batch, exec_batch_builder.finishBatch());
+         SPDLOG_DEBUG("Finished arrow::ExecBatch with length: {}", batch.length);
+         return batch;
       }
       current_partition_idx++;
       if (current_partition_idx < partition_filters.size()) {
@@ -241,8 +240,8 @@ arrow::Result<std::optional<arrow::ExecBatch>> TableScanGenerator::produceNextBa
       } else {
          current_bitmap_reader = std::nullopt;
       }
-      return std::nullopt;
    }
+   return std::nullopt;
 }
 
 arrow::Result<arrow::acero::ExecNode*> makeTableScan(
