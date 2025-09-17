@@ -196,7 +196,7 @@ arrow::Result<arrow::acero::BackpressureMonitor*> createGenerator(
    arrow::acero::SinkNodeOptions options{
       generator,
       arrow::acero::BackpressureOptions{
-         /*.resume_if_below =*/1 << 24,  // 16 MB
+         /*.resume_if_below =*/1 << 12,  // 16 MB
          /*.pause_if_above =*/1 << 26    // 64 MB
       },
       &backpressure_monitor
