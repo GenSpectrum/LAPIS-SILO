@@ -151,7 +151,8 @@ const QueryTestScenario DOWNLOAD_ALL_SEQUENCES_SCENARIO = {
        },
        {{"primaryKey", "onlySegment2"}, {"unaligned_segment1", nullptr}, {"unaligned_segment2", "T"}
        }}
-   )
+   ),
+   .query_options = silo::config::QueryOptions{.materialization_cutoff = 0}
 };
 
 const QueryTestScenario DOWNLOAD_ALL_DATA = {

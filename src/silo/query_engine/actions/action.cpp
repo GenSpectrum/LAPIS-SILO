@@ -16,6 +16,7 @@
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/common/size_constants.h"
 #include "silo/query_engine/actions/aggregated.h"
 #include "silo/query_engine/actions/details.h"
 #include "silo/query_engine/actions/fasta.h"
@@ -28,6 +29,7 @@
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/exec_node/arrow_util.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
+#include "silo/query_engine/exec_node/throttled_batch_reslicer.h"
 #include "silo/query_engine/exec_node/zstd_decompress_expression.h"
 #include "silo/storage/column/column_type_visitor.h"
 
@@ -467,6 +469,8 @@ arrow::Result<arrow::acero::ExecNode*> Action::addZstdDecompressNode(
          return schema::isSequenceColumn(column_identifier.type);
       });
    if (needs_decompression) {
+      size_t sum_of_reference_genome_sizes = 0;
+
       std::vector<arrow::compute::Expression> column_expressions;
       std::vector<std::string> column_names;
       for (auto column : getOutputSchema(table_schema)) {
@@ -474,11 +478,65 @@ arrow::Result<arrow::acero::ExecNode*> Action::addZstdDecompressNode(
             column_expressions.push_back(exec_node::ZstdDecompressExpression::Make(
                arrow::compute::field_ref(arrow::FieldRef{column.name}), reference.value()
             ));
+            sum_of_reference_genome_sizes += reference.value().length();
          } else {
             column_expressions.push_back(arrow::compute::field_ref(arrow::FieldRef{column.name}));
          }
          column_names.push_back(column.name);
       }
+
+      // We add a sink and source to let arrow apply correct backpressure
+      arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> batch_generator;
+      arrow::acero::BackpressureMonitor* backpressure_monitor;
+      std::shared_ptr<arrow::Schema> schema_of_sequence_batches;
+      ARROW_ASSIGN_OR_RAISE(
+         node,
+         arrow::acero::MakeExecNode(
+            "sink",
+            arrow_plan,
+            {node},
+            arrow::acero::SinkNodeOptions{
+               &batch_generator,
+               &schema_of_sequence_batches,
+               arrow::acero::BackpressureOptions{
+                  /*.resume_if_below =*/common::S_16_KB,  // 16 KB
+                  /*.pause_if_above =*/common::S_64_MB    // 64 MB
+               },
+               &backpressure_monitor
+            }
+         )
+      );
+      node->SetLabel(
+         "additional sink node to help backpressure application before zstd decompression"
+      );
+
+      SILO_ASSERT_GT(sum_of_reference_genome_sizes, 0);
+
+      // We aim for 64 MB batch size to give the plan time to apply backpressure
+      size_t maximum_batch_size = std::max(common::S_64_MB / sum_of_reference_genome_sizes, 1UL);
+
+      // Delay delivery of large number of batches to about 100 MB per second
+      // A batch targets 64 MB, therefore we allow 1.5 batches per second.
+      // Therefore, we should never emit more than one resliced batch per 0.667 seconds
+      constexpr std::chrono::milliseconds target_batch_rate{667};
+
+      ARROW_ASSIGN_OR_RAISE(
+         node,
+         arrow::acero::MakeExecNode(
+            "source",
+            arrow_plan,
+            {},
+            arrow::acero::SourceNodeOptions{
+               schema_of_sequence_batches,
+               exec_node::ThrottledBatchReslicer{
+                  batch_generator, maximum_batch_size, target_batch_rate, backpressure_monitor
+               }
+            }
+         )
+      );
+      node->SetLabel(
+         "additional source node to help backpressure application before zstd decompression"
+      );
 
       arrow::acero::ProjectNodeOptions project_options{column_expressions, column_names};
       return arrow::acero::MakeExecNode(
