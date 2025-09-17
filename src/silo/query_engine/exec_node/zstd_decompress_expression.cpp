@@ -31,8 +31,8 @@ struct BinaryDecompressKernel {
       arrow::compute::ExecResult* out
    ) {
       EVOBENCH_SCOPE("BinaryDecompressKernel", "Exec");
+      SPDLOG_DEBUG("BinaryDecompressKernel::Exec called");
 
-      SPDLOG_TRACE("BinaryDecompressKernel::Exec");
       if (input.num_values() != 2) {
          return arrow::Status::Invalid("Expected 2 input arrays, got ", input.num_values());
       }
