@@ -16,7 +16,8 @@ arrow::Result<QueryPlan> QueryPlan::makeQueryPlan(
    arrow::acero::ExecNode* root
 ) {
    QueryPlan query_plan{arrow_plan};
-   ARROW_RETURN_NOT_OK(
+   ARROW_ASSIGN_OR_RAISE(
+      query_plan.backpressure_monitor,
       exec_node::createGenerator(arrow_plan.get(), root, &query_plan.results_generator)
    );
    query_plan.results_schema = root->output_schema();
@@ -34,7 +35,7 @@ arrow::Status QueryPlan::executeAndWriteImpl(
    SPDLOG_TRACE("Plan started producing, will now read the resulting batches.");
    while (true) {
       arrow::Future<std::optional<arrow::ExecBatch>> future_batch = results_generator();
-      SPDLOG_TRACE("await the next batch");
+      SPDLOG_DEBUG("await the next batch");
       bool finished_batch_in_time = future_batch.Wait(timeout_in_seconds);
       if (!finished_batch_in_time) {
          return arrow::Status::ExecutionError(fmt::format(
@@ -43,7 +44,12 @@ arrow::Status QueryPlan::executeAndWriteImpl(
          ));
       }
       ARROW_ASSIGN_OR_RAISE(std::optional<arrow::ExecBatch> optional_batch, future_batch.result());
-      SPDLOG_TRACE("Batch received");
+      SPDLOG_DEBUG("Batch received");
+      SPDLOG_DEBUG(
+         "Current backpressure size: {} bytes, operation is {}",
+         backpressure_monitor->bytes_in_use(),
+         backpressure_monitor->is_paused() ? "paused" : "running"
+      );
 
       if (!optional_batch.has_value()) {
          break;  // end of input
@@ -55,7 +61,7 @@ arrow::Status QueryPlan::executeAndWriteImpl(
          exec_node::writeBatchAsNdjson(optional_batch.value(), results_schema, output_stream)
       );
    };
-   SPDLOG_TRACE("Finished reading all batches.");
+   SPDLOG_DEBUG("Finished reading all batches.");
    auto future = arrow_plan->finished();
    if (future.state() == arrow::FutureState::PENDING) {
       SPDLOG_DEBUG(
