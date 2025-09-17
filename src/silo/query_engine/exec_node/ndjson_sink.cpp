@@ -178,6 +178,7 @@ arrow::Status writeBatchAsNdjson(
    sendJsonLinesInBatches<BATCH_SIZE>(
       row_idx, row_count, prepared_column_strings_for_json_attributes, column_arrays, *output_stream
    );
+   output_stream->flush();
    if (!*output_stream) {
       return arrow::Status::IOError("Could not write to network stream");
    }
