@@ -1,26 +1,19 @@
 #include "silo/query_engine/actions/aggregated.h"
 
-#include <map>
 #include <optional>
-#include <unordered_map>
 #include <utility>
-#include <variant>
 #include <vector>
 
 #include <arrow/acero/options.h>
 #include <arrow/compute/api.h>
 #include <arrow/compute/expression.h>
-#include <oneapi/tbb/blocked_range.h>
-#include <oneapi/tbb/parallel_for.h>
 #include <nlohmann/json.hpp>
 
 #include "evobench/evobench.hpp"
-#include "silo/config/database_config.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/exec_node/table_scan.h"
-#include "silo/storage/column_group.h"
 #include "silo/storage/table.h"
 
 using silo::query_engine::CopyOnWriteBitmap;

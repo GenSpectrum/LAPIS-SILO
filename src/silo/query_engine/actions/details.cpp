@@ -1,16 +1,9 @@
 #include "silo/query_engine/actions/details.h"
 
-#include <algorithm>
-#include <random>
 #include <utility>
-
-#include <oneapi/tbb/blocked_range.h>
-#include <oneapi/tbb/parallel_for.h>
 
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/bad_request.h"
-#include "silo/query_engine/copy_on_write_bitmap.h"
-#include "silo/storage/column_group.h"
 
 namespace silo::query_engine::actions {
 Details::Details(std::vector<std::string> fields)
