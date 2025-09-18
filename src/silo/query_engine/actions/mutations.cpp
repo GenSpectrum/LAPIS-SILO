@@ -1,6 +1,7 @@
 #include "silo/query_engine/actions/mutations.h"
 
 #include <cmath>
+#include <cstddef>
 #include <optional>
 #include <unordered_map>
 #include <utility>
@@ -8,6 +9,7 @@
 
 #include <arrow/acero/options.h>
 #include <arrow/compute/exec.h>
+#include <arrow/util/future.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <boost/algorithm/string/join.hpp>
@@ -16,6 +18,7 @@
 #include "evobench/evobench.hpp"
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/common/parallel.h"
 #include "silo/common/symbol_map.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/bad_request.h"
@@ -163,16 +166,23 @@ SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMut
    for (const auto symbol : SymbolType::SYMBOLS) {
       mutation_counts_per_position[symbol].resize(sequence_length);
    }
-   static constexpr int POSITIONS_PER_PROCESS = 300;
-#pragma omp parallel for schedule(static, POSITIONS_PER_PROCESS)
-   for (uint32_t pos = 0; pos < sequence_length; pos++) {
-      addPositionToMutationCountsForMixedBitmaps(
-         pos, bitmap_filter, mutation_counts_per_position
-         );
-      addPositionToMutationCountsForFullBitmaps(
-         pos, bitmap_filter, mutation_counts_per_position
-         );
-   }
+
+   static constexpr size_t POSITIONS_PER_PROCESS = 300;
+   common::parallel_for(
+      common::blocked_range{0, sequence_length},
+      POSITIONS_PER_PROCESS,
+      [&mutation_counts_per_position, &bitmap_filter](common::blocked_range local) {
+         for (size_t pos = local.begin(); pos < local.end(); pos++) {
+            addPositionToMutationCountsForMixedBitmaps(
+               pos, bitmap_filter, mutation_counts_per_position
+            );
+            addPositionToMutationCountsForFullBitmaps(
+               pos, bitmap_filter, mutation_counts_per_position
+            );
+         }
+      }
+   );
+
    return mutation_counts_per_position;
 }
 
