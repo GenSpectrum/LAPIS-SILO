@@ -46,7 +46,7 @@ TEST(SiloRequestHandlerFactory, returns503ResponseWhenDatabaseIsNotInitializedOn
    auto handle = std::make_shared<silo::api::ActiveDatabase>();
    SiloRequestHandlerFactory under_test{silo::config::RuntimeConfig::withDefaults(), handle};
 
-   const auto handler = under_test.createRequestHandler(request);
+   std::unique_ptr<Poco::Net::HTTPRequestHandler> handler{under_test.createRequestHandler(request)};
 
    handler->handleRequest(request, response);
 
@@ -63,7 +63,7 @@ TEST(SiloRequestHandlerFactory, returns503ResponseWhenDatabaseIsNotInitializedOn
    auto handle = std::make_shared<silo::api::ActiveDatabase>();
    SiloRequestHandlerFactory under_test{silo::config::RuntimeConfig::withDefaults(), handle};
 
-   const auto handler = under_test.createRequestHandler(request);
+   std::unique_ptr<Poco::Net::HTTPRequestHandler> handler{under_test.createRequestHandler(request)};
 
    handler->handleRequest(request, response);
 
@@ -82,7 +82,7 @@ TEST(
    auto handle = std::make_shared<silo::api::ActiveDatabase>();
    SiloRequestHandlerFactory under_test{silo::config::RuntimeConfig::withDefaults(), handle};
 
-   const auto handler = under_test.createRequestHandler(request);
+   std::unique_ptr<Poco::Net::HTTPRequestHandler> handler{under_test.createRequestHandler(request)};
 
    handler->handleRequest(request, response);
 
