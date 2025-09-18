@@ -14,6 +14,7 @@
 #include "evobench/evobench.hpp"
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/common/parallel.h"
 #include "silo/common/string_utils.h"
 #include "silo/common/symbol_map.h"
 #include "silo/common/table_reader.h"
@@ -186,8 +187,9 @@ void SequenceColumnPartition<SymbolType>::fillIndexes() {
    const size_t genome_length = positions.size();
    static constexpr int DEFAULT_POSITION_BATCH_SIZE = 64;
    const size_t sequence_id_base_for_buffer = sequence_count - lazy_buffer.size();
-   tbb::parallel_for(
-      tbb::blocked_range<size_t>(0, genome_length, genome_length / DEFAULT_POSITION_BATCH_SIZE),
+   common::parallel_for(
+      common::blocked_range(0, genome_length),
+      genome_length / DEFAULT_POSITION_BATCH_SIZE,
       [&](const auto& local) {
          SymbolMap<SymbolType, std::vector<uint32_t>> ids_per_symbol_for_current_position;
          for (size_t position_idx = local.begin(); position_idx != local.end(); ++position_idx) {
@@ -249,45 +251,48 @@ void SequenceColumnPartition<SymbolType>::fillNBitmaps() {
 
    missing_symbol_bitmaps.resize(sequence_count);
 
-   const tbb::blocked_range<size_t> range(0, lazy_buffer.size());
-   tbb::parallel_for(range, [&](const decltype(range)& local) {
-      std::vector<uint32_t> positions_with_symbol_missing;
-      for (size_t sequence_offset_in_buffer = local.begin();
-           sequence_offset_in_buffer != local.end();
-           ++sequence_offset_in_buffer) {
-         const auto& [is_valid, maybe_sequence, offset] = lazy_buffer[sequence_offset_in_buffer];
+   common::parallel_for(
+      common::blocked_range{0, lazy_buffer.size()},
+      1,  // positions_per_process
+      [&](common::blocked_range local) {
+         std::vector<uint32_t> positions_with_symbol_missing;
+         for (size_t sequence_offset_in_buffer = local.begin();
+              sequence_offset_in_buffer != local.end();
+              ++sequence_offset_in_buffer) {
+            const auto& [is_valid, maybe_sequence, offset] = lazy_buffer[sequence_offset_in_buffer];
 
-         const size_t sequence_idx = sequence_id_base_for_buffer + sequence_offset_in_buffer;
+            const size_t sequence_idx = sequence_id_base_for_buffer + sequence_offset_in_buffer;
 
-         if (!is_valid) {
-            missing_symbol_bitmaps[sequence_idx].addRange(0, genome_length);
-            missing_symbol_bitmaps[sequence_idx].runOptimize();
-            continue;
-         }
+            if (!is_valid) {
+               missing_symbol_bitmaps[sequence_idx].addRange(0, genome_length);
+               missing_symbol_bitmaps[sequence_idx].runOptimize();
+               continue;
+            }
 
-         missing_symbol_bitmaps[sequence_idx].addRange(0, offset);
+            missing_symbol_bitmaps[sequence_idx].addRange(0, offset);
 
-         for (size_t position_idx = 0; position_idx < maybe_sequence.size(); ++position_idx) {
-            const char character = maybe_sequence[position_idx];
-            const auto symbol = SymbolType::charToSymbol(character);
-            if (symbol == SymbolType::SYMBOL_MISSING) {
-               positions_with_symbol_missing.push_back(position_idx + offset);
+            for (size_t position_idx = 0; position_idx < maybe_sequence.size(); ++position_idx) {
+               const char character = maybe_sequence[position_idx];
+               const auto symbol = SymbolType::charToSymbol(character);
+               if (symbol == SymbolType::SYMBOL_MISSING) {
+                  positions_with_symbol_missing.push_back(position_idx + offset);
+               }
+            }
+
+            missing_symbol_bitmaps[sequence_idx].addRange(
+               offset + maybe_sequence.size(), genome_length
+            );
+
+            if (!positions_with_symbol_missing.empty()) {
+               missing_symbol_bitmaps[sequence_idx].addMany(
+                  positions_with_symbol_missing.size(), positions_with_symbol_missing.data()
+               );
+               missing_symbol_bitmaps[sequence_idx].runOptimize();
+               positions_with_symbol_missing.clear();
             }
          }
-
-         missing_symbol_bitmaps[sequence_idx].addRange(
-            offset + maybe_sequence.size(), genome_length
-         );
-
-         if (!positions_with_symbol_missing.empty()) {
-            missing_symbol_bitmaps[sequence_idx].addMany(
-               positions_with_symbol_missing.size(), positions_with_symbol_missing.data()
-            );
-            missing_symbol_bitmaps[sequence_idx].runOptimize();
-            positions_with_symbol_missing.clear();
-         }
       }
-   });
+   );
 }
 
 template <typename SymbolType>
