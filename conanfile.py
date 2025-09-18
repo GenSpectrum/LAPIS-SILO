@@ -9,7 +9,6 @@ class SiloRecipe(ConanFile):
         "arrow/21.0.0",
         "boost/1.85.0",
         "poco/1.13.3",
-        "onetbb/2022.0.0",
         "nlohmann_json/3.12.0",
         "gtest/1.16.0",
         "re2/20240702",
@@ -106,7 +105,6 @@ class SiloRecipe(ConanFile):
         deps.set_property("gtest", "cmake_find_mode", "both")
         deps.set_property("hwloc", "cmake_find_mode", "both")
         deps.set_property("nlohmann_json", "cmake_find_mode", "both")
-        deps.set_property("onetbb", "cmake_find_mode", "both")
         deps.set_property("pcre2", "cmake_find_mode", "both")
         deps.set_property("poco", "cmake_find_mode", "both")
         deps.set_property("re2", "cmake_find_mode", "both")
