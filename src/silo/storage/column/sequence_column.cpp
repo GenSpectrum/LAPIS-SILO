@@ -4,9 +4,6 @@
 #include <utility>
 #include <vector>
 
-#include <oneapi/tbb/blocked_range.h>
-#include <oneapi/tbb/enumerable_thread_specific.h>
-#include <oneapi/tbb/parallel_for.h>
 #include <spdlog/spdlog.h>
 #include <boost/lexical_cast.hpp>
 #include <roaring/roaring.hh>
@@ -300,24 +297,26 @@ void SequenceColumnPartition<SymbolType>::fillNBitmaps() {
 template <typename SymbolType>
 void SequenceColumnPartition<SymbolType>::optimizeBitmaps() {
    EVOBENCH_SCOPE("SequenceColumnPartition", "optimizeBitmaps");
-   tbb::enumerable_thread_specific<decltype(indexing_differences_to_reference_sequence)>
-      index_changes_to_reference;
+   std::mutex access_indexing_differences;
+   common::parallel_for(
+      common::blocked_range(0, positions.size()),
+      1,  // positions_per_process, there might be better values
+      [&](const auto& local) {
+         EVOBENCH_SCOPE_EVERY(100, "SequenceColumnPartition", "optimizeBitmaps-chunk");
+         decltype(indexing_differences_to_reference_sequence) local_index_changes{};
+         for (auto position_idx = local.begin(); position_idx != local.end(); ++position_idx) {
+            auto symbol_changed = positions[position_idx].flipMostNumerousBitmap(sequence_count);
+            if (symbol_changed.has_value()) {
+               local_index_changes.emplace_back(position_idx, *symbol_changed);
+            }
+         }
 
-   tbb::parallel_for(tbb::blocked_range<uint32_t>(0, positions.size()), [&](const auto& local) {
-      EVOBENCH_SCOPE_EVERY(100, "SequenceColumnPartition", "optimizeBitmaps-chunk");
-      auto& local_index_changes = index_changes_to_reference.local();
-      for (auto position_idx = local.begin(); position_idx != local.end(); ++position_idx) {
-         auto symbol_changed = positions[position_idx].flipMostNumerousBitmap(sequence_count);
-         if (symbol_changed.has_value()) {
-            local_index_changes.emplace_back(position_idx, *symbol_changed);
+         std::lock_guard<std::mutex> guard(access_indexing_differences);
+         for (const auto& element : local_index_changes) {
+            indexing_differences_to_reference_sequence.emplace_back(element);
          }
       }
-   });
-   for (const auto& local : index_changes_to_reference) {
-      for (const auto& element : local) {
-         indexing_differences_to_reference_sequence.emplace_back(element);
-      }
-   }
+   );
 }
 
 template <typename SymbolType>
