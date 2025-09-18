@@ -191,7 +191,7 @@ void SequenceColumnPartition<SymbolType>::fillIndexes() {
       [&](const auto& local) {
          EVOBENCH_SCOPE_EVERY(100, "SequenceColumnPartition", "fillIndexes-chunk");
          SymbolMap<SymbolType, std::vector<uint32_t>> ids_per_symbol_for_current_position;
-         for (size_t position_idx = local.begin(); position_idx != local.end(); ++position_idx) {
+         for (size_t position_idx = local.begin(); position_idx < local.end(); ++position_idx) {
             const size_t number_of_sequences = lazy_buffer.size();
             for (size_t sequence_offset = 0; sequence_offset < number_of_sequences;
                  ++sequence_offset) {
