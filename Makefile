@@ -22,7 +22,7 @@ output: ${SILO_EXECUTABLE}
 
 ${RUNNING_SILO_FLAG}: ${SILO_EXECUTABLE} output
 	@{ \
-``		if lsof -i :8093 > /dev/null 2>&1; then \
+		if lsof -i :8093 > /dev/null 2>&1; then \
 			echo "Error: Port 8093 is already in use. Another SILO instance might already be running."; \
 			exit 1; \
 		fi; \
@@ -41,7 +41,7 @@ e2e: ${RUNNING_SILO_FLAG}
 	(cd endToEndTests && SILO_URL=localhost:8093 npm run test)
 
 test: ${SILO_EXECUTABLE}
-	build/Debug/silo_test --gtest_filter=* --gtest_color=no
+	build/Debug/silo_test --gtest_filter='*' --gtest_color=no
 
 all-tests: test e2e
 
@@ -50,9 +50,9 @@ format:
 
 clean-api:
 	@if [ -f ${RUNNING_SILO_FLAG} ]; then \
-    		kill $$(cat ${RUNNING_SILO_FLAG}) || true; \
-    		rm -f ${RUNNING_SILO_FLAG}; \
-    	fi
+		kill $$(cat ${RUNNING_SILO_FLAG}) || true; \
+		rm -f ${RUNNING_SILO_FLAG}; \
+	fi
 
 clean: clean-api
 	rm -rf output logs
