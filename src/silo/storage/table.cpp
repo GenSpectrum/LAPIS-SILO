@@ -3,7 +3,6 @@
 #include <fstream>
 #include <unordered_set>
 
-#include <oneapi/tbb/parallel_for.h>
 #include <spdlog/spdlog.h>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
@@ -18,6 +17,7 @@
 
 #include "evobench/evobench.hpp"
 #include "silo/common/fmt_formatters.h"
+#include "silo/common/parallel.h"
 #include "silo/persistence/exception.h"
 #include "silo/roaring/roaring_serialize.h"
 #include "silo/schema/duplicate_primary_key_exception.h"
@@ -96,10 +96,11 @@ void Table::saveData(const std::filesystem::path& save_directory) {
    }
 
    SPDLOG_INFO("Saving {} partitions...", getNumberOfPartitions());
-   tbb::parallel_for(
-      tbb::blocked_range<size_t>(0, getNumberOfPartitions()),
-      [&](const auto& local) {
-         for (size_t partition_idx = local.begin(); partition_idx != local.end(); ++partition_idx) {
+   common::parallel_for(
+      common::blocked_range{0, getNumberOfPartitions()},
+      1,  // positions_per_process
+      [&](common::blocked_range local) {
+         for (size_t partition_idx = local.begin(); partition_idx < local.end(); ++partition_idx) {
             ::boost::archive::binary_oarchive output_archive(partition_archives[partition_idx]);
             partitions[partition_idx]->serializeData(output_archive, 0);
          }
@@ -123,8 +124,9 @@ void Table::loadData(const std::filesystem::path& save_directory) {
          }
       }
    }
-   tbb::parallel_for(
-      tbb::blocked_range<size_t>(0, getNumberOfPartitions()),
+   common::parallel_for(
+      common::blocked_range(0, getNumberOfPartitions()),
+      1,  // positions_per_process, there might be better values
       [&](const auto& local) {
          for (size_t partition_index = local.begin(); partition_index != local.end();
               ++partition_index) {
