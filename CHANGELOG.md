@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.8.6](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.8.5...v0.8.6) (2025-09-18)
+
+
+### Features
+
+* **silo:** add a health endpoint that checks whether the api is able to answer requests ([5422ff1](https://github.com/GenSpectrum/LAPIS-SILO/commit/5422ff13dc6132c4bd6fc3388304b6e00831241b))
+* update arrow to version 21.0.0 ([478366e](https://github.com/GenSpectrum/LAPIS-SILO/commit/478366e957c5fa69857ae2ac2647055396bfe316))
+
+
+### Bug Fixes
+
+* **test:** properly free request handlers in tests ([0f9e0d9](https://github.com/GenSpectrum/LAPIS-SILO/commit/0f9e0d9d16f5b778f8e11f5c8248c6afcc0322c4))
+
 ## [0.8.5](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.8.4...v0.8.5) (2025-09-09)
 
 
