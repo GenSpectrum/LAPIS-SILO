@@ -3,7 +3,6 @@
 #include <fstream>
 #include <unordered_set>
 
-#include <oneapi/tbb/parallel_for.h>
 #include <spdlog/spdlog.h>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
@@ -96,16 +95,10 @@ void Table::saveData(const std::filesystem::path& save_directory) {
    }
 
    SPDLOG_INFO("Saving {} partitions...", getNumberOfPartitions());
-   tbb::parallel_for(
-      tbb::blocked_range<size_t>(0, getNumberOfPartitions()),
-      [&](const auto& local) {
-         EVOBENCH_SCOPE_EVERY(100, "Table", "saveData-chunk");
-         for (size_t partition_idx = local.begin(); partition_idx != local.end(); ++partition_idx) {
-            ::boost::archive::binary_oarchive output_archive(partition_archives[partition_idx]);
-            partitions[partition_idx]->serializeData(output_archive, 0);
-         }
-      }
-   );
+   for (size_t partition_idx = 0; partition_idx != getNumberOfPartitions(); ++partition_idx) {
+      ::boost::archive::binary_oarchive output_archive(partition_archives[partition_idx]);
+      partitions[partition_idx]->serializeData(output_archive, 0);
+   }
    SPDLOG_INFO("Finished saving partitions");
 }
 
@@ -124,17 +117,10 @@ void Table::loadData(const std::filesystem::path& save_directory) {
          }
       }
    }
-   tbb::parallel_for(
-      tbb::blocked_range<size_t>(0, getNumberOfPartitions()),
-      [&](const auto& local) {
-         EVOBENCH_SCOPE_EVERY(100, "Table", "loadData-chunk");
-         for (size_t partition_index = local.begin(); partition_index != local.end();
-              ++partition_index) {
-            ::boost::archive::binary_iarchive input_archive(file_vec[partition_index]);
-            partitions[partition_index]->serializeData(input_archive, 0);
-         }
-      }
-   );
+   for (size_t partition_index = 0; partition_index != getNumberOfPartitions(); ++partition_index) {
+      ::boost::archive::binary_iarchive input_archive(file_vec[partition_index]);
+      partitions[partition_index]->serializeData(input_archive, 0);
+   }
    SPDLOG_INFO("Finished loading partition data");
 }
 
