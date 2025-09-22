@@ -17,7 +17,6 @@
 
 #include "evobench/evobench.hpp"
 #include "silo/common/fmt_formatters.h"
-#include "silo/common/parallel.h"
 #include "silo/persistence/exception.h"
 #include "silo/roaring/roaring_serialize.h"
 #include "silo/schema/duplicate_primary_key_exception.h"
@@ -96,17 +95,10 @@ void Table::saveData(const std::filesystem::path& save_directory) {
    }
 
    SPDLOG_INFO("Saving {} partitions...", getNumberOfPartitions());
-   common::parallel_for(
-      common::blocked_range{0, getNumberOfPartitions()},
-      1,  // positions_per_process
-      [&](common::blocked_range local) {
-         EVOBENCH_SCOPE_EVERY(100, "Table", "saveData-chunk");
-         for (size_t partition_idx = local.begin(); partition_idx < local.end(); ++partition_idx) {
-            ::boost::archive::binary_oarchive output_archive(partition_archives[partition_idx]);
-            partitions[partition_idx]->serializeData(output_archive, 0);
-         }
-      }
-   );
+   for (size_t partition_idx = 0; partition_idx < getNumberOfPartitions(); ++partition_idx) {
+      ::boost::archive::binary_oarchive output_archive(partition_archives[partition_idx]);
+      partitions[partition_idx]->serializeData(output_archive, 0);
+   }
    SPDLOG_INFO("Finished saving partitions");
 }
 
@@ -125,18 +117,10 @@ void Table::loadData(const std::filesystem::path& save_directory) {
          }
       }
    }
-   common::parallel_for(
-      common::blocked_range(0, getNumberOfPartitions()),
-      1,  // positions_per_process, there might be better values
-      [&](const auto& local) {
-         EVOBENCH_SCOPE_EVERY(100, "Table", "loadData-chunk");
-         for (size_t partition_index = local.begin(); partition_index != local.end();
-              ++partition_index) {
-            ::boost::archive::binary_iarchive input_archive(file_vec[partition_index]);
-            partitions[partition_index]->serializeData(input_archive, 0);
-         }
-      }
-   );
+   for (size_t partition_index = 0; partition_index != getNumberOfPartitions(); ++partition_index) {
+      ::boost::archive::binary_iarchive input_archive(file_vec[partition_index]);
+      partitions[partition_index]->serializeData(input_archive, 0);
+   }
    SPDLOG_INFO("Finished loading partition data");
 }
 
