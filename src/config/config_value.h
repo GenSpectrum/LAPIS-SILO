@@ -12,7 +12,7 @@
 
 namespace silo::config {
 
-enum class ConfigValueType { STRING, PATH, INT32, UINT32, UINT16, BOOL };
+enum class ConfigValueType { STRING, PATH, INT32, UINT32, UINT16, BOOL, LIST };
 
 constexpr std::string_view configValueTypeToString(ConfigValueType type) {
    switch (type) {
@@ -28,18 +28,33 @@ constexpr std::string_view configValueTypeToString(ConfigValueType type) {
          return "u16";
       case ConfigValueType::BOOL:
          return "bool";
+      case ConfigValueType::LIST:
+         return "list";
    }
    SILO_UNREACHABLE();
 }
 
 class ConfigValue {
-   explicit ConfigValue(
-      std::variant<std::string, std::filesystem::path, int32_t, uint32_t, uint16_t, bool> value
-   )
+   explicit ConfigValue(std::variant<
+                        std::string,
+                        std::filesystem::path,
+                        int32_t,
+                        uint32_t,
+                        uint16_t,
+                        bool,
+                        std::vector<std::string>> value)
        : value(std::move(value)) {}
 
   public:
-   std::variant<std::string, std::filesystem::path, int32_t, uint32_t, uint16_t, bool> value;
+   std::variant<
+      std::string,
+      std::filesystem::path,
+      int32_t,
+      uint32_t,
+      uint16_t,
+      bool,
+      std::vector<std::string>>
+      value;
 
    static ConfigValue fromString(const std::string& value) { return ConfigValue{value}; }
 
@@ -56,6 +71,8 @@ class ConfigValue {
    static ConfigValue fromUint16(uint16_t value) { return ConfigValue{value}; }
 
    static ConfigValue fromBool(bool value) { return ConfigValue{value}; }
+
+   static ConfigValue fromList(const std::vector<std::string>& value) { return ConfigValue{value}; }
 
    [[nodiscard]] ConfigValueType getValueType() const;
 

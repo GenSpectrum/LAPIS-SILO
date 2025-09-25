@@ -17,6 +17,13 @@ using silo::config::ConfigKeyPath;
 
 namespace {
 
+bool isSequenceOfScalars(const YAML::Node& node) {
+   if (!node.IsSequence()) {
+      return false;
+   }
+   return std::ranges::all_of(node, [](const auto& element) { return element.IsScalar(); });
+}
+
 bool isProperSingularValue(const YAML::Node& node) {
    if (node.IsMap()) {
       SPDLOG_TRACE("isProperSingularValue = false, node is a map");
@@ -26,8 +33,8 @@ bool isProperSingularValue(const YAML::Node& node) {
       SPDLOG_TRACE("isProperSingularValue = false, node is not defined");
       return false;
    }
-   if (!node.IsScalar()) {
-      SPDLOG_TRACE("isProperSingularValue = false, node is not a scalar");
+   if (!node.IsScalar() && !isSequenceOfScalars(node)) {
+      SPDLOG_TRACE("isProperSingularValue = false, node is not a scalar or sequence of strings");
       return false;
    }
    return true;
@@ -211,6 +218,8 @@ ConfigValue yamlNodeToConfigValue(
             return ConfigValue::fromUint16(yaml.as<uint16_t>());
          case ConfigValueType::BOOL:
             return ConfigValue::fromBool(yaml.as<bool>());
+         case ConfigValueType::LIST:
+            return ConfigValue::fromList(yaml.as<std::vector<std::string>>());
       }
       SILO_UNREACHABLE();
    } catch (YAML::BadConversion& error) {

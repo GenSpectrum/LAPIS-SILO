@@ -26,8 +26,8 @@ ConfigKeyPath inputDirectoryOptionKey() {
 ConfigKeyPath outputDirectoryOptionKey() {
    return YamlFile::stringToConfigKeyPath("outputDirectory");
 }
-ConfigKeyPath lineageDefinitionsFilenameOptionKey() {
-   return YamlFile::stringToConfigKeyPath("lineageDefinitionsFilename");
+ConfigKeyPath lineageDefinitionFilenamesOptionKey() {
+   return YamlFile::stringToConfigKeyPath("lineageDefinitionFilenames");
 }
 ConfigKeyPath phyloTreeFilenameOptionKey() {
    return YamlFile::stringToConfigKeyPath("phyloTreeFilename");
@@ -67,9 +67,9 @@ ConfigSpecification InitializeConfig::getConfigSpecification() {
             "The path to the directory to hold the output files."
          ),
          ConfigAttributeSpecification::createWithoutDefault(
-            lineageDefinitionsFilenameOptionKey(),
-            ConfigValueType::PATH,
-            "File name of the file holding the lineage definitions. Relative from inputDirectory."
+            lineageDefinitionFilenamesOptionKey(),
+            ConfigValueType::LIST,
+            "List of file names holding the lineage definitions. Relative from inputDirectory."
          ),
          ConfigAttributeSpecification::createWithoutDefault(
             phyloTreeFilenameOptionKey(),
@@ -108,10 +108,12 @@ std::filesystem::path InitializationFiles::getDatabaseConfigFilename() const {
    return directory / database_config_file;
 }
 
-std::optional<std::filesystem::path> InitializationFiles::getLineageDefinitionsFilename() const {
-   return lineage_definitions_file.has_value()
-             ? std::optional(directory / lineage_definitions_file.value())
-             : std::nullopt;
+std::vector<std::filesystem::path> InitializationFiles::getLineageDefinitionFilenames() const {
+   std::vector<std::filesystem::path> paths;
+   for (const auto& file_name : lineage_definition_files) {
+      paths.push_back(directory / file_name);
+   }
+   return paths;
 }
 
 std::optional<std::filesystem::path> InitializationFiles::getPhyloTreeFilename() const {
@@ -128,8 +130,8 @@ void InitializeConfig::overwriteFrom(const VerifiedConfigAttributes& config_sour
    if (auto var = config_source.getPath(inputDirectoryOptionKey())) {
       initialization_files.directory = var.value();
    }
-   if (auto var = config_source.getPath(lineageDefinitionsFilenameOptionKey())) {
-      initialization_files.lineage_definitions_file = var.value();
+   if (auto var = config_source.getList(lineageDefinitionFilenamesOptionKey())) {
+      initialization_files.lineage_definition_files = var.value();
    }
    if (auto var = config_source.getPath(phyloTreeFilenameOptionKey())) {
       initialization_files.phylogenetic_tree_file = var.value();

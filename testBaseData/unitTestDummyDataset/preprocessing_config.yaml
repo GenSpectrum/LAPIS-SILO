@@ -1,6 +1,7 @@
 inputDirectory: "./testBaseData/unitTestDummyDataset/"
 outputDirectory: "./output/"
 ndjsonInputFilename: "input.ndjson"
-lineageDefinitionsFilename: "lineage_definitions.yaml"
+lineageDefinitionFilenames:
+  - "test_lineage_definition.yaml"
 phyloTreeFilename: "phylogenetic_tree.nwk"
 referenceGenomeFilename: "reference_genomes.json"

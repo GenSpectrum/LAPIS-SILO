@@ -4,6 +4,7 @@
 #include <functional>
 #include <vector>
 
+#include <fmt/ranges.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
@@ -40,7 +41,7 @@ struct Scenario {
    std::function<std::vector<nlohmann::json>()> input_data;
    std::string database_config;
    std::string reference_genomes;
-   std::string lineage_tree;
+   std::map<std::filesystem::path, std::string> lineage_trees;
    Assertion assertion;
 };
 
@@ -63,13 +64,23 @@ silo::config::PreprocessingConfig prepareInputDirAndPreprocessorForScenario(
    reference_genomes_file << scenario.reference_genomes;
    reference_genomes_file.close();
 
-   std::ofstream lineage_definitions_file(input_directory / "lineage_definitions.yaml");
-   lineage_definitions_file << scenario.lineage_tree;
-   lineage_definitions_file.close();
+   for (const auto& [filename, lineage_tree] : scenario.lineage_trees) {
+      // Assert that 'filename' is a filename and not a path
+      SILO_ASSERT_EQ(filename.filename(), filename);
+      std::ofstream lineage_definition_file(input_directory / filename);
+      lineage_definition_file << lineage_tree;
+      lineage_definition_file.close();
+   }
 
    auto config_with_input_dir = PreprocessingConfig::withDefaults();
    config_with_input_dir.initialization_files.directory = input_directory;
    config_with_input_dir.input_file = "input.json";
+   if (not scenario.lineage_trees.empty()) {
+      auto keys = scenario.lineage_trees | std::views::keys |
+                  std::views::transform([](const std::filesystem::path& p) { return p.string(); });
+      config_with_input_dir.initialization_files.lineage_definition_files =
+         std::vector<std::string>(keys.begin(), keys.end());
+   }
    config_with_input_dir.validate();
 
    std::ofstream file(config_with_input_dir.getInputFilePath().value());
@@ -350,7 +361,7 @@ schema:
     - name: "2"
       type: "string"
       generateIndex: true
-      generateLineageIndex: true
+      generateLineageIndex: test_lineage_definition.yaml
   primaryKey: "accessionVersion"
 )",
    .reference_genomes = R"(
@@ -376,6 +387,7 @@ schema:
     }
   ]
 })",
+   .lineage_trees = {{"test_lineage_definition.yaml", "main: ~\n"}},
    .assertion{
       .expected_sequence_count = 0,
       .query = R"(
@@ -781,6 +793,79 @@ schema:
    }
 };
 
+const Scenario<Success> TWO_LINEAGE_SYSTEMS = {
+   .test_name = "TWO_LINEAGE_SYSTEMS",
+   .input_data =
+      []() {
+         std::vector<nlohmann::json> result;
+         result.push_back(nlohmann::json::parse(R"({
+"accessionVersion": "0", "lineage_1": "root_1", "lineage_2": "root_2"
+})"));
+         result.push_back(nlohmann::json::parse(R"({
+"accessionVersion": "1", "lineage_1": "child_1", "lineage_2": null
+})"));
+         result.push_back(nlohmann::json::parse(R"({
+"accessionVersion": "2", "lineage_1": null, "lineage_2": "child_2"
+})"));
+         return result;
+      },
+   .database_config =
+      R"(
+schema:
+  instanceName: "Test"
+  metadata:
+    - name: "accessionVersion"
+      type: "string"
+    - name: "lineage_1"
+      type: "string"
+      generateIndex: true
+      generateLineageIndex: lineage_definition_1
+    - name: "lineage_2"
+      type: "string"
+      generateIndex: true
+      generateLineageIndex: lineage_definition_2
+  primaryKey: "accessionVersion"
+)",
+   .reference_genomes = R"(
+{
+  "nucleotideSequences": [],
+  "genes": []
+})",
+   .lineage_trees =
+      {{"lineage_definition_1.yaml", R"(
+root_1: ~
+child_1:
+  parents:
+    - root_1
+  )"},
+       {"lineage_definition_2.yaml", R"(
+root_2: ~
+child_2:
+  parents:
+    - root_2)"}},
+   .assertion{
+      .expected_sequence_count = 3,
+      .query = R"(
+      {
+         "action": {
+           "type": "Details",
+           "orderByFields": ["accessionVersion"]
+         },
+         "filterExpression": {
+            "type": "Lineage",
+            "column": "lineage_1",
+            "value": "root_1",
+            "includeSublineages": true
+         }
+      }
+   )",
+      .expected_query_result = nlohmann::json::parse(R"([
+{"accessionVersion":"0","lineage_1":"root_1","lineage_2":"root_2"},
+{"accessionVersion":"1","lineage_1":"child_1","lineage_2":null}
+])")
+   }
+};
+
 class PreprocessorTestFixture : public ::testing::TestWithParam<Scenario<Success>> {};
 
 const auto testCases = ::testing::Values(
@@ -793,7 +878,8 @@ const auto testCases = ::testing::Values(
    NO_NUCLEOTIDE_SEQUENCES,
    NO_SEQUENCES,
    DIVERSE_SEQUENCE_NAMES_NDJSON,
-   PREVENT_LATE_AUTO_CASTING
+   PREVENT_LATE_AUTO_CASTING,
+   TWO_LINEAGE_SYSTEMS
 );
 
 INSTANTIATE_TEST_SUITE_P(PreprocessorTest, PreprocessorTestFixture, testCases, printTestName<Success>);

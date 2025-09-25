@@ -1,5 +1,6 @@
 #include "silo/initialize/initializer.h"
 
+#include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
 #include <boost/algorithm/string/join.hpp>
 
@@ -17,11 +18,10 @@ namespace silo::initialize {
 
 Database Initializer::initializeDatabase(const config::InitializationFiles& initialization_files) {
    EVOBENCH_SCOPE("Initializer", "initializeDatabase");
-   common::LineageTreeAndIdMap lineage_tree;
-   if (initialization_files.getLineageDefinitionsFilename().has_value()) {
-      lineage_tree = common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(
-         initialization_files.getLineageDefinitionsFilename().value()
-      );
+   std::map<std::filesystem::path, common::LineageTreeAndIdMap> lineage_trees;
+   for (auto filename : initialization_files.getLineageDefinitionFilenames()) {
+      lineage_trees[filename] =
+         common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(filename);
    }
 
    common::PhyloTree phylo_tree_file;
@@ -29,12 +29,15 @@ Database Initializer::initializeDatabase(const config::InitializationFiles& init
    if (opt_path.has_value()) {
       phylo_tree_file = common::PhyloTree::fromFile(opt_path.value());
    }
+
+   auto validated_config = config::DatabaseConfig::getValidatedConfigFromFile(
+      initialization_files.getDatabaseConfigFilename()
+   );
+
    silo::schema::DatabaseSchema schema = createSchemaFromConfigFiles(
-      config::DatabaseConfig::getValidatedConfigFromFile(
-         initialization_files.getDatabaseConfigFilename()
-      ),
+      validated_config,
       ReferenceGenomes::readFromFile(initialization_files.getReferenceGenomeFilename()),
-      std::move(lineage_tree),
+      std::move(lineage_trees),
       std::move(phylo_tree_file),
       initialization_files.without_unaligned_sequences
    );
@@ -47,7 +50,7 @@ struct ColumnMetadataInitializer {
       std::shared_ptr<storage::column::ColumnMetadata>& metadata,
       const config::DatabaseMetadata& config_metadata,
       const ReferenceGenomes& reference_genomes,
-      const common::LineageTreeAndIdMap& lineage_tree,
+      const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
       const common::PhyloTree& phylo_tree_file
    );
 };
@@ -56,13 +59,27 @@ template <>
 void ColumnMetadataInitializer::operator()<storage::column::IndexedStringColumnPartition>(
    std::shared_ptr<storage::column::ColumnMetadata>& metadata,
    const config::DatabaseMetadata& config_metadata,
-   const ReferenceGenomes& reference_genomes,
-   const common::LineageTreeAndIdMap& lineage_tree,
-   const common::PhyloTree& phylo_tree_file
+   const ReferenceGenomes& /*reference_genomes*/,
+   const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
+   const common::PhyloTree& /*phylo_tree_file*/
 ) {
-   if (config_metadata.generate_lineage_index) {
+   if (config_metadata.generate_lineage_index.has_value()) {
+      auto lineage_tree_name = config_metadata.generate_lineage_index.value();
+      auto lineage_tree = Initializer::findLineageTreeForName(lineage_trees, lineage_tree_name);
+      if (not lineage_tree.has_value()) {
+         auto keys =
+            lineage_trees | std::views::keys |
+            std::views::transform([](const std::filesystem::path& p) { return p.string(); });
+         throw silo::initialize::InitializeException(
+            "Column '{}' has lineage tree '{}' configured, but did not find corresponding lineage "
+            "tree in the provided lineageDefinitionFilenames: {}",
+            config_metadata.name,
+            config_metadata.generate_lineage_index.value(),
+            fmt::join(keys, ",")
+         );
+      }
       metadata = std::make_shared<storage::column::IndexedStringColumnPartition::Metadata>(
-         config_metadata.name, lineage_tree
+         config_metadata.name, lineage_tree.value()
       );
    } else {
       metadata = std::make_shared<storage::column::IndexedStringColumnPartition::Metadata>(
@@ -75,8 +92,8 @@ template <>
 void ColumnMetadataInitializer::operator()<storage::column::StringColumnPartition>(
    std::shared_ptr<storage::column::ColumnMetadata>& metadata,
    const config::DatabaseMetadata& config_metadata,
-   const ReferenceGenomes& reference_genomes,
-   const common::LineageTreeAndIdMap& lineage_tree,
+   const ReferenceGenomes& /*reference_genomes*/,
+   const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& /*lineage_trees*/,
    const common::PhyloTree& phylo_tree_file
 ) {
    if (config_metadata.phylo_tree_node_identifier) {
@@ -93,9 +110,9 @@ template <>
 void ColumnMetadataInitializer::operator()<storage::column::ZstdCompressedStringColumnPartition>(
    std::shared_ptr<storage::column::ColumnMetadata>& metadata,
    const config::DatabaseMetadata& config_metadata,
-   const ReferenceGenomes& reference_genomes,
-   const common::LineageTreeAndIdMap& lineage_tree,
-   const common::PhyloTree& phylo_tree_file
+   const ReferenceGenomes& /*reference_genomes*/,
+   const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& /*lineage_trees*/,
+   const common::PhyloTree& /*phylo_tree_file*/
 ) {
    SILO_PANIC("unaligned nucleotide sequences cannot be in config::DatabaseMetadata");
 }
@@ -104,9 +121,9 @@ template <>
 void ColumnMetadataInitializer::operator()<storage::column::SequenceColumnPartition<Nucleotide>>(
    std::shared_ptr<storage::column::ColumnMetadata>& metadata,
    const config::DatabaseMetadata& config_metadata,
-   const ReferenceGenomes& reference_genomes,
-   const common::LineageTreeAndIdMap& lineage_tree,
-   const common::PhyloTree& phylo_tree_file
+   const ReferenceGenomes& /*reference_genomes*/,
+   const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& /*lineage_trees*/,
+   const common::PhyloTree& /*phylo_tree_file*/
 ) {
    SILO_PANIC("nucleotides cannot be in config::DatabaseMetadata");
 }
@@ -115,9 +132,9 @@ template <>
 void ColumnMetadataInitializer::operator()<storage::column::SequenceColumnPartition<AminoAcid>>(
    std::shared_ptr<storage::column::ColumnMetadata>& metadata,
    const config::DatabaseMetadata& config_metadata,
-   const ReferenceGenomes& reference_genomes,
-   const common::LineageTreeAndIdMap& lineage_tree,
-   const common::PhyloTree& phylo_tree_file
+   const ReferenceGenomes& /*reference_genomes*/,
+   const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& /*lineage_trees*/,
+   const common::PhyloTree& /*phylo_tree_file*/
 ) {
    SILO_PANIC("amino acid cannot be in config::DatabaseMetadata");
 }
@@ -127,7 +144,7 @@ void ColumnMetadataInitializer::operator()(
    std::shared_ptr<storage::column::ColumnMetadata>& metadata,
    const config::DatabaseMetadata& config_metadata,
    const ReferenceGenomes& /*reference_genomes*/,
-   const common::LineageTreeAndIdMap& /*lineage_tree*/,
+   const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& /*lineage_trees*/,
    const common::PhyloTree& /*phylo_tree_file*/
 ) {
    metadata = std::make_shared<typename ColumnType::Metadata>(config_metadata.name);
@@ -214,7 +231,7 @@ static const std::string UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX = "unaligned_";
 silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
    config::DatabaseConfig database_config,
    ReferenceGenomes reference_genomes,
-   common::LineageTreeAndIdMap lineage_tree,
+   std::map<std::filesystem::path, common::LineageTreeAndIdMap> lineage_trees,
    common::PhyloTree phylo_tree_file,
    bool without_unaligned_sequences
 ) {
@@ -240,7 +257,7 @@ silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
          metadata,
          config_metadata,
          reference_genomes,
-         lineage_tree,
+         lineage_trees,
          phylo_tree_file
       );
       column_metadata.emplace(column_identifier, metadata);
@@ -298,6 +315,18 @@ silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
       };
    }
    return silo::schema::DatabaseSchema{.tables = {{schema::TableName{"default"}, table_schema}}};
+}
+
+std::optional<common::LineageTreeAndIdMap> Initializer::findLineageTreeForName(
+   const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
+   std::string lineage_tree_name
+) {
+   for (const auto& [path, lineage_tree] : lineage_trees) {
+      if (path.filename() == lineage_tree_name || path.filename() == lineage_tree_name + ".yaml") {
+         return lineage_tree;
+      }
+   }
+   return std::nullopt;
 }
 
 }  // namespace silo::initialize

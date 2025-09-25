@@ -88,6 +88,12 @@ std::optional<bool> VerifiedConfigAttributes::getBool(const ConfigKeyPath& confi
    return std::nullopt;
 }
 
+std::optional<std::vector<std::string>> VerifiedConfigAttributes::getList(
+   const ConfigKeyPath& config_key_path
+) const {
+   return getValue<std::vector<std::string>, ConfigValueType::LIST>(config_key_path, config_values);
+}
+
 VerifiedCommandLineArguments VerifiedCommandLineArguments::askingForHelp() {
    VerifiedCommandLineArguments result;
    result.asks_for_help = true;
