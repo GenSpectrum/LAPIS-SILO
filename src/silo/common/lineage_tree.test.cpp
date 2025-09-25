@@ -254,7 +254,7 @@ lineage3:
 
 TEST(containsCycle, doesNotFindCycleInPangoLineageTree) {
    ASSERT_NO_THROW(LineageTreeAndIdMap::fromLineageDefinitionFilePath(
-      "testBaseData/exampleDataset/lineage_definitions.yaml"
+      "testBaseData/exampleDataset/lineage_definition.yaml"
    ));
 }
 

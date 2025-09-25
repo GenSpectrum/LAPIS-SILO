@@ -57,7 +57,7 @@ TEST(YamlFile, containsCorrectFieldsFromFlatYAML) {
 inputDirectory: "./testBaseData/exampleDataset/"
 outputDirectory: "./output/"
 ndjsonInputFilename: "input_file.ndjson"
-lineageDefinitionsFilename: "lineage_definitions.yaml"
+lineageDefinitionFilenames: "lineage_definition.yaml"
 phyloTreeFilename: "phylogenetic_tree.yaml"
 referenceGenomeFilename: "reference_genomes.json"
 )"
@@ -69,8 +69,8 @@ referenceGenomeFilename: "reference_genomes.json"
        YAML::Node{"./testBaseData/exampleDataset/"}},
       {YamlFile::stringToConfigKeyPath("outputDirectory"), YAML::Node{"./output/"}},
       {YamlFile::stringToConfigKeyPath("ndjsonInputFilename"), YAML::Node{"input_file.ndjson"}},
-      {YamlFile::stringToConfigKeyPath("lineageDefinitionsFilename"),
-       YAML::Node{"lineage_definitions.yaml"}},
+      {YamlFile::stringToConfigKeyPath("lineageDefinitionFilenames"),
+       YAML::Node{"lineage_definition.yaml"}},
       {YamlFile::stringToConfigKeyPath("phyloTreeFilename"), YAML::Node{"phylogenetic_tree.yaml"}},
       {YamlFile::stringToConfigKeyPath("referenceGenomeFilename"),
        YAML::Node{"reference_genomes.json"}},

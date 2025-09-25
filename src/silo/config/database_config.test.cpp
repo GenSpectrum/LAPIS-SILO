@@ -115,7 +115,7 @@ TEST(DatabaseConfig, shouldReadConfigWithCorrectParameters) {
    ASSERT_EQ(config.schema.metadata[0].name, "gisaid_epi_isl");
    ASSERT_EQ(config.schema.metadata[0].type, ValueType::STRING);
    ASSERT_EQ(config.schema.metadata[0].generate_index, false);
-   ASSERT_EQ(config.schema.metadata[0].generate_lineage_index, false);
+   ASSERT_EQ(config.schema.metadata[0].generate_lineage_index, std::nullopt);
    ASSERT_EQ(config.schema.metadata[0].phylo_tree_node_identifier, true);
    ASSERT_EQ(config.schema.metadata[0].generate_index, false);
    ASSERT_EQ(config.schema.metadata[1].name, "date");
@@ -133,11 +133,11 @@ TEST(DatabaseConfig, shouldReadConfigWithCorrectParameters) {
    ASSERT_EQ(config.schema.metadata[5].name, "pango_lineage");
    ASSERT_EQ(config.schema.metadata[5].type, ValueType::STRING);
    ASSERT_EQ(config.schema.metadata[5].generate_index, true);
-   ASSERT_EQ(config.schema.metadata[5].generate_lineage_index, true);
+   ASSERT_EQ(config.schema.metadata[5].generate_lineage_index, "some_test_value");
    ASSERT_EQ(config.schema.metadata[6].name, "division");
    ASSERT_EQ(config.schema.metadata[6].type, ValueType::STRING);
    ASSERT_EQ(config.schema.metadata[6].generate_index, true);
-   ASSERT_EQ(config.schema.metadata[6].generate_lineage_index, false);
+   ASSERT_EQ(config.schema.metadata[6].generate_lineage_index, std::nullopt);
    ASSERT_EQ(config.schema.metadata[7].name, "age");
    ASSERT_EQ(config.schema.metadata[7].type, ValueType::INT);
    ASSERT_EQ(config.schema.metadata[7].generate_index, false);
@@ -250,7 +250,7 @@ schema:
     - name: "metadata1"
       type: "string"
       generateIndex: true
-      generateLineageIndex: true
+      generateLineageIndex: lineage
     - name: "metadata2"
       type: "date"
     - name: "metadata3"
@@ -331,7 +331,7 @@ schema:
       type: "string"
     - name: "some lineage"
       type: "string"
-      generateLineageIndex: true
+      generateLineageIndex: lineage
   primaryKey: "testPrimaryKey"
 )";
 

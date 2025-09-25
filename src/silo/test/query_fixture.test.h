@@ -60,7 +60,7 @@ struct QueryTestData {
    const std::vector<nlohmann::json> ndjson_input_data;
    const std::string database_config;
    const silo::ReferenceGenomes reference_genomes;
-   const silo::common::LineageTreeAndIdMap lineage_tree;
+   const std::map<std::filesystem::path, silo::common::LineageTreeAndIdMap> lineage_trees;
    const silo::common::PhyloTree phylo_tree_file;
    const bool without_unaligned_sequences = false;
 };
@@ -88,7 +88,7 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
          Database{silo::initialize::Initializer::createSchemaFromConfigFiles(
             silo::config::DatabaseConfig::getValidatedConfig(test_data.database_config),
             std::move(test_data.reference_genomes),
-            std::move(test_data.lineage_tree),
+            std::move(test_data.lineage_trees),
             std::move(test_data.phylo_tree_file),
             test_data.without_unaligned_sequences
          )}

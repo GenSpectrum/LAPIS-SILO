@@ -55,10 +55,10 @@ TEST(IndexedStringColumnPartition, insertValuesToPartition) {
 }
 
 TEST(IndexedStringColumnPartition, addingLineageAndThenSublineageFiltersCorrectly) {
-   auto lineage_definitions = LineageTreeAndIdMap::fromLineageDefinitionFilePath(
-      "testBaseData/exampleDataset/lineage_definitions.yaml"
+   auto lineage_definition = LineageTreeAndIdMap::fromLineageDefinitionFilePath(
+      "testBaseData/exampleDataset/lineage_definition.yaml"
    );
-   IndexedStringColumnMetadata column_metadata("some_column", lineage_definitions);
+   IndexedStringColumnMetadata column_metadata("some_column", lineage_definition);
    IndexedStringColumnPartition under_test{&column_metadata};
 
    under_test.insert({"BA.1.1"});
@@ -89,10 +89,10 @@ TEST(IndexedStringColumnPartition, addingLineageAndThenSublineageFiltersCorrectl
 }
 
 TEST(IndexedStringColumnPartition, addingSublineageAndThenLineageFiltersCorrectly) {
-   auto lineage_definitions = LineageTreeAndIdMap::fromLineageDefinitionFilePath(
-      "testBaseData/exampleDataset/lineage_definitions.yaml"
+   auto lineage_definition = LineageTreeAndIdMap::fromLineageDefinitionFilePath(
+      "testBaseData/exampleDataset/lineage_definition.yaml"
    );
-   IndexedStringColumnMetadata column_metadata("some_column", lineage_definitions);
+   IndexedStringColumnMetadata column_metadata("some_column", lineage_definition);
    IndexedStringColumnPartition under_test{&column_metadata};
 
    under_test.insert({"BA.1.1.1"});
@@ -137,10 +137,10 @@ TEST(IndexedStringColumnPartition, addingSublineageAndThenLineageFiltersCorrectl
 }
 
 TEST(IndexedStringColumnPartition, queryParentLineageThatWasNeverInserted) {
-   auto lineage_definitions = LineageTreeAndIdMap::fromLineageDefinitionFilePath(
-      "testBaseData/exampleDataset/lineage_definitions.yaml"
+   auto lineage_definition = LineageTreeAndIdMap::fromLineageDefinitionFilePath(
+      "testBaseData/exampleDataset/lineage_definition.yaml"
    );
-   IndexedStringColumnMetadata column_metadata("some_column", lineage_definitions);
+   IndexedStringColumnMetadata column_metadata("some_column", lineage_definition);
    IndexedStringColumnPartition under_test{&column_metadata};
 
    under_test.insert({"BA.1.1.1"});
@@ -164,13 +164,13 @@ TEST(IndexedStringColumnPartition, queryParentLineageThatWasNeverInserted) {
 }
 
 TEST(IndexedStringColumnPartition, errorWhenInsertingIncorrectLineages) {
-   auto lineage_definitions =
+   auto lineage_definition =
       LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAMLString(R"(
 A: {}
 A.1:
   parents: ["A"]
 )"));
-   IndexedStringColumnMetadata column_metadata("some_column", lineage_definitions);
+   IndexedStringColumnMetadata column_metadata("some_column", lineage_definition);
    IndexedStringColumnPartition under_test{&column_metadata};
    under_test.insert({"A"});
    EXPECT_THAT(
