@@ -15,15 +15,15 @@ TEST(PreprocessingConfig, shouldReadConfigWithCorrectParametersAndDefaults) {
    config.overwriteFrom(YamlFile::readFile("./testBaseData/test_preprocessing_config.yaml")
                            .verify(PreprocessingConfig::getConfigSpecification()));
 
-   const std::string input_directory = "./testBaseData/exampleDataset/";
+   const std::filesystem::path input_directory = "./testBaseData/exampleDataset/";
    ASSERT_TRUE(config.input_file.has_value());
-   ASSERT_EQ(config.getInputFilePath(), input_directory + "input_file.ndjson");
+   ASSERT_EQ(config.getInputFilePath(), input_directory / "input_file.ndjson");
    ASSERT_EQ(
-      config.initialization_files.getLineageDefinitionsFilename(),
-      input_directory + "lineage_definitions.yaml"
+      config.initialization_files.getLineageDefinitionFilenames(),
+      (std::vector<std::filesystem::path>{input_directory / "lineage_definition.yaml"})
    );
    ASSERT_EQ(
-      config.initialization_files.getPhyloTreeFilename(), input_directory + "phylogenetic_tree.nwk"
+      config.initialization_files.getPhyloTreeFilename(), input_directory / "phylogenetic_tree.nwk"
    );
 }
 
@@ -35,22 +35,23 @@ inputDirectory: "./testBaseData/exampleDataset/"
 outputDirectory: "./output/custom/"
 intermediateResultsDirectory: "./output/overriddenTemp/"
 ndjsonInputFilename: "input_file.ndjson"
-lineageDefinitionsFilename: "lineage_definitions.yaml"
+lineageDefinitionFilenames:
+  - "lineage_definition.yaml"
 phyloTreeFilename: "phylogenetic_tree.yaml"
 referenceGenomeFilename: "reference_genomes.json"
 preprocessingDatabaseLocation: "preprocessing.duckdb"
 duckdbMemoryLimitInG: 8)")
                            .verify(PreprocessingConfig::getConfigSpecification()));
 
-   const std::string input_directory = "./testBaseData/exampleDataset/";
+   const std::filesystem::path input_directory = "./testBaseData/exampleDataset/";
    ASSERT_TRUE(config.input_file.has_value());
-   ASSERT_EQ(config.getInputFilePath(), input_directory + "input_file.ndjson");
+   ASSERT_EQ(config.getInputFilePath(), input_directory / "input_file.ndjson");
    ASSERT_EQ(
-      config.initialization_files.getLineageDefinitionsFilename(),
-      input_directory + "lineage_definitions.yaml"
+      config.initialization_files.getLineageDefinitionFilenames(),
+      std::vector<std::filesystem::path>{input_directory / "lineage_definition.yaml"}
    );
    ASSERT_EQ(
-      config.initialization_files.getPhyloTreeFilename(), input_directory + "phylogenetic_tree.yaml"
+      config.initialization_files.getPhyloTreeFilename(), input_directory / "phylogenetic_tree.yaml"
    );
 
    ASSERT_EQ(config.output_directory, "./output/custom/");
