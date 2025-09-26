@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.8.6](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.8.5...v0.8.6) (2025-09-26)
+
+
+### Features
+
+* improve logging in the query_plan ([bd2b494](https://github.com/GenSpectrum/LAPIS-SILO/commit/bd2b494687cdd17bdc043c15ebe83be094e871d6))
+* **silo:** add a health endpoint that checks whether the api is able to answer requests ([5422ff1](https://github.com/GenSpectrum/LAPIS-SILO/commit/5422ff13dc6132c4bd6fc3388304b6e00831241b))
+* **silo:** add throttled reslicing of ExecBatches before zstd decompression ([8ac2859](https://github.com/GenSpectrum/LAPIS-SILO/commit/8ac285982890eb4ed84cc582e3ddd476d0be0b97))
+* **silo:** remove TBB dependency ([#985](https://github.com/GenSpectrum/LAPIS-SILO/issues/985)) ([91ec897](https://github.com/GenSpectrum/LAPIS-SILO/commit/91ec89736f92ef5f2a9982e4c2643ef004619924)), closes [#873](https://github.com/GenSpectrum/LAPIS-SILO/issues/873)
+* update arrow to version 21.0.0 ([478366e](https://github.com/GenSpectrum/LAPIS-SILO/commit/478366e957c5fa69857ae2ac2647055396bfe316))
+
+
+### Bug Fixes
+
+* improvements of the arrow plan teardown after a query finishes ([223e5c6](https://github.com/GenSpectrum/LAPIS-SILO/commit/223e5c68f32167b2746c99038835adf2a817551c))
+* **test:** properly free request handlers in tests ([0f9e0d9](https://github.com/GenSpectrum/LAPIS-SILO/commit/0f9e0d9d16f5b778f8e11f5c8248c6afcc0322c4))
+
 ## [0.8.5](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.8.4...v0.8.5) (2025-09-09)
 
 
