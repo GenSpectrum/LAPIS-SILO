@@ -48,7 +48,7 @@ TEST(QueryPlan, timesOutWhenAnInvalidPlanDoesNotFinish) {
          )
                    .ValueOrDie();
 
-         auto under_test = QueryPlan::makeQueryPlan(arrow_plan, node).ValueOrDie();
+         auto under_test = QueryPlan::makeQueryPlan(arrow_plan, node, "some_id").ValueOrDie();
 
          std::stringstream dummy_output{};
          // Set time-out to zero, so it immediately cancels execution (only works with pipeline
