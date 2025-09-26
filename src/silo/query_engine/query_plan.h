@@ -19,17 +19,20 @@ class QueryPlan {
    // The function which returns the exec batches in the correct order of the output
    arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> results_generator;
    arrow::acero::BackpressureMonitor* backpressure_monitor;
+   std::string_view request_id;
 
    static arrow::Result<QueryPlan> makeQueryPlan(
       std::shared_ptr<arrow::acero::ExecPlan> arrow_plan,
-      arrow::acero::ExecNode* root
+      arrow::acero::ExecNode* root,
+      std::string_view request_id
    );
 
    void executeAndWrite(std::ostream* output_stream, uint64_t timeout_in_seconds);
 
   private:
-   QueryPlan(std::shared_ptr<arrow::acero::ExecPlan> arrow_plan)
-       : arrow_plan(arrow_plan) {}
+   QueryPlan(std::shared_ptr<arrow::acero::ExecPlan> arrow_plan, std::string_view request_id)
+       : arrow_plan(arrow_plan),
+         request_id(request_id) {}
 
    arrow::Status executeAndWriteImpl(std::ostream* output_stream, uint64_t timeout_in_seconds);
 };

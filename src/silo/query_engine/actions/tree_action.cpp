@@ -82,7 +82,8 @@ std::unordered_set<std::string> TreeAction::getNodeValues(
 arrow::Result<QueryPlan> TreeAction::toQueryPlanImpl(
    std::shared_ptr<const storage::Table> table,
    std::vector<CopyOnWriteBitmap> partition_filters,
-   const config::QueryOptions& query_options
+   const config::QueryOptions& query_options,
+   std::string_view request_id
 ) const {
    CHECK_SILO_QUERY(
       table->schema.getColumn(column_name).has_value(),
@@ -170,7 +171,7 @@ arrow::Result<QueryPlan> TreeAction::toQueryPlanImpl(
       auto node, arrow::acero::MakeExecNode("source", arrow_plan.get(), {}, options)
    );
 
-   return QueryPlan::makeQueryPlan(arrow_plan, node);
+   return QueryPlan::makeQueryPlan(arrow_plan, node, request_id);
 }
 
 }  // namespace silo::query_engine::actions
