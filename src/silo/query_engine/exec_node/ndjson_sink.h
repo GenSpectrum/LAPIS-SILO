@@ -15,7 +15,7 @@ arrow::Status writeBatchAsNdjson(
    std::ostream* output_stream
 );
 
-arrow::Status createGenerator(
+arrow::Result<arrow::acero::BackpressureMonitor*> createGenerator(
    arrow::acero::ExecPlan* plan,
    arrow::acero::ExecNode* input,
    arrow::AsyncGenerator<std::optional<arrow::ExecBatch>>* generator

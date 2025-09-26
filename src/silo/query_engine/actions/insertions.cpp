@@ -205,7 +205,8 @@ template <typename SymbolType>
 arrow::Result<QueryPlan> InsertionAggregation<SymbolType>::toQueryPlanImpl(
    std::shared_ptr<const storage::Table> table,
    std::vector<CopyOnWriteBitmap> partition_filters,
-   const config::QueryOptions& query_options
+   const config::QueryOptions& query_options,
+   std::string_view request_id
 ) const {
    EVOBENCH_SCOPE("InsertionAggregation", "toQueryPlanImpl");
    validateSequenceNames<SymbolType>(table, sequence_names);
@@ -273,7 +274,7 @@ arrow::Result<QueryPlan> InsertionAggregation<SymbolType>::toQueryPlanImpl(
 
    ARROW_ASSIGN_OR_RAISE(node, addLimitAndOffsetNode(arrow_plan.get(), node));
 
-   return QueryPlan::makeQueryPlan(arrow_plan, node);
+   return QueryPlan::makeQueryPlan(arrow_plan, node, request_id);
 }
 
 template <typename SymbolType>
