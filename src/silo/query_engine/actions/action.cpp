@@ -220,10 +220,11 @@ std::vector<schema::ColumnIdentifier> columnNamesToFields(
 QueryPlan Action::toQueryPlan(
    std::shared_ptr<const storage::Table> table,
    std::vector<CopyOnWriteBitmap> partition_filters,
-   const config::QueryOptions& query_options
+   const config::QueryOptions& query_options,
+   std::string_view request_id
 ) {
    validateOrderByFields(table->schema);
-   auto query_plan = toQueryPlanImpl(table, partition_filters, query_options);
+   auto query_plan = toQueryPlanImpl(table, partition_filters, query_options, request_id);
    if (!query_plan.status().ok()) {
       SILO_PANIC("Arrow error: {}", query_plan.status().ToString());
    };
