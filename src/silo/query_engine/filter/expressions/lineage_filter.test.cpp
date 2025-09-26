@@ -58,7 +58,7 @@ schema:
     - name: "pango_lineage"
       type: "string"
       generateIndex: true
-      generateLineageIndex: true
+      generateLineageIndex: test_lineage_index
   primaryKey: "primaryKey"
 )";
 
@@ -87,7 +87,7 @@ const QueryTestData TEST_DATA{
    .ndjson_input_data = DATA,
    .database_config = DATABASE_CONFIG,
    .reference_genomes = REFERENCE_GENOMES,
-   .lineage_tree = LINEAGE_TREE
+   .lineage_trees = {{"test_lineage_index", LINEAGE_TREE}}
 };
 
 nlohmann::json createLineageQuery(const nlohmann::json value, bool include_sublineages) {

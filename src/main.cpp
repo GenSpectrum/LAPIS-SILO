@@ -47,7 +47,7 @@ int runPreprocessor(const silo::config::PreprocessingConfig& preprocessing_confi
       database.saveDatabaseState(preprocessing_config.output_directory);
       return 0;
    } catch (const silo::preprocessing::PreprocessingException& preprocessing_exception) {
-      SPDLOG_ERROR("initialize - error: {}", preprocessing_exception.what());
+      SPDLOG_ERROR("preprocessing - error: {}", preprocessing_exception.what());
       return 1;
    }
 }

@@ -26,8 +26,8 @@ ConfigKeyPath inputDirectoryOptionKey() {
 ConfigKeyPath outputDirectoryOptionKey() {
    return YamlFile::stringToConfigKeyPath("outputDirectory");
 }
-ConfigKeyPath lineageDefinitionsFilenameOptionKey() {
-   return YamlFile::stringToConfigKeyPath("lineageDefinitionsFilename");
+ConfigKeyPath lineageDefinitionFilenamesOptionKey() {
+   return YamlFile::stringToConfigKeyPath("lineageDefinitionFilenames");
 }
 ConfigKeyPath phyloTreeFilenameOptionKey() {
    return YamlFile::stringToConfigKeyPath("phyloTreeFilename");
@@ -67,9 +67,10 @@ ConfigSpecification InitializeConfig::getConfigSpecification() {
             "The path to the directory to hold the output files."
          ),
          ConfigAttributeSpecification::createWithoutDefault(
-            lineageDefinitionsFilenameOptionKey(),
-            ConfigValueType::PATH,
-            "File name of the file holding the lineage definitions. Relative from inputDirectory."
+            lineageDefinitionFilenamesOptionKey(),
+            ConfigValueType::STRING,
+            "Comma separated list of file names holding the lineage definitions. This can also be "
+            "a Sequence in YAML. Relative from inputDirectory."
          ),
          ConfigAttributeSpecification::createWithoutDefault(
             phyloTreeFilenameOptionKey(),
@@ -108,10 +109,22 @@ std::filesystem::path InitializationFiles::getDatabaseConfigFilename() const {
    return directory / database_config_file;
 }
 
-std::optional<std::filesystem::path> InitializationFiles::getLineageDefinitionsFilename() const {
-   return lineage_definitions_file.has_value()
-             ? std::optional(directory / lineage_definitions_file.value())
-             : std::nullopt;
+std::vector<std::filesystem::path> InitializationFiles::getLineageDefinitionFilenames() const {
+   if (not lineage_definition_files.has_value()) {
+      return {};
+   }
+   auto comma_separated_string = lineage_definition_files.value();
+   std::vector<std::filesystem::path> filenames;
+   std::stringstream ss(comma_separated_string);
+   std::string item;
+
+   while (std::getline(ss, item, ',')) {
+      if (!item.empty()) {
+         filenames.emplace_back(directory / item);
+      }
+   }
+
+   return filenames;
 }
 
 std::optional<std::filesystem::path> InitializationFiles::getPhyloTreeFilename() const {
@@ -128,8 +141,8 @@ void InitializeConfig::overwriteFrom(const VerifiedConfigAttributes& config_sour
    if (auto var = config_source.getPath(inputDirectoryOptionKey())) {
       initialization_files.directory = var.value();
    }
-   if (auto var = config_source.getPath(lineageDefinitionsFilenameOptionKey())) {
-      initialization_files.lineage_definitions_file = var.value();
+   if (auto var = config_source.getString(lineageDefinitionFilenamesOptionKey())) {
+      initialization_files.lineage_definition_files = var.value();
    }
    if (auto var = config_source.getPath(phyloTreeFilenameOptionKey())) {
       initialization_files.phylogenetic_tree_file = var.value();

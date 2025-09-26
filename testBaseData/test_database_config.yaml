@@ -17,7 +17,7 @@ schema:
     - name: pango_lineage
       type: string
       generateIndex: true
-      generateLineageIndex: true
+      generateLineageIndex: some_test_value
     - name: division
       type: string
       generateIndex: true

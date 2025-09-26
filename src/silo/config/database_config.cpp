@@ -138,9 +138,9 @@ bool YAML::convert<silo::config::DatabaseMetadata>::decode(
       metadata.generate_index = false;
    }
    if (node["generateLineageIndex"].IsDefined()) {
-      metadata.generate_lineage_index = node["generateLineageIndex"].as<bool>();
+      metadata.generate_lineage_index = node["generateLineageIndex"].as<std::string>();
    } else {
-      metadata.generate_lineage_index = false;
+      metadata.generate_lineage_index = std::nullopt;
    }
    if (node["isPhyloTreeField"].IsDefined()) {
       metadata.phylo_tree_node_identifier = node["isPhyloTreeField"].as<bool>();

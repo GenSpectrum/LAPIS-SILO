@@ -5,19 +5,24 @@
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/column/zstd_compressed_string_column.h"
 
+using silo::ReferenceGenomes;
+using silo::common::LineageTreeAndIdMap;
+using silo::common::PhyloTree;
+using silo::initialize::Initializer;
+
 TEST(Initializer, correctlyCreatesSchemaFromInitializationFiles) {
    silo::config::DatabaseConfig database_config =
       silo::config::DatabaseConfig::getValidatedConfigFromFile(
          "testBaseData/unitTestDummyDataset/database_config.yaml"
       );
-   silo::ReferenceGenomes reference_genomes = silo::ReferenceGenomes::readFromFile(
-      "testBaseData/unitTestDummyDataset/reference_genomes.json"
-   );
-   silo::common::PhyloTree phylo_tree_file = silo::common::PhyloTree::fromNewickFile(
-      "testBaseData/unitTestDummyDataset/phylogenetic_tree.nwk"
-   );
-   auto lineage_tree = silo::common::LineageTreeAndIdMap::fromLineageDefinitionFile(
-      silo::preprocessing::LineageDefinitionFile::fromYAMLString(R"(
+   ReferenceGenomes reference_genomes =
+      ReferenceGenomes::readFromFile("testBaseData/unitTestDummyDataset/reference_genomes.json");
+   PhyloTree phylo_tree_file =
+      PhyloTree::fromNewickFile("testBaseData/unitTestDummyDataset/phylogenetic_tree.nwk");
+   std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees{
+      {"test",
+       LineageTreeAndIdMap::fromLineageDefinitionFile(
+          silo::preprocessing::LineageDefinitionFile::fromYAMLString(R"(
 A:
   aliases:
   - X
@@ -31,11 +36,12 @@ A.11:
   parents:
   - A
 )")
-   );
-   auto schema = silo::initialize::Initializer::createSchemaFromConfigFiles(
+       )}
+   };
+   auto schema = Initializer::createSchemaFromConfigFiles(
       database_config,
       reference_genomes,
-      lineage_tree,
+      lineage_trees,
       phylo_tree_file,
       /*without_unaligned_columns=*/false
    );
@@ -201,4 +207,172 @@ A.11:
 
    ASSERT_EQ(table_schema.primary_key.name, "primaryKey");
    ASSERT_EQ(table_schema.primary_key.type, ColumnType::STRING);
+}
+
+class findLineageTreeForName : public ::testing::Test {
+  protected:
+   void SetUp() override {
+      // Set up test data
+      test_lineage_tree1 = {};
+      test_lineage_tree2 = LineageTreeAndIdMap::fromLineageDefinitionFile(
+         silo::preprocessing::LineageDefinitionFile::fromYAMLString(R"(
+some_lineage:
+  parents:
+    - some_parent
+some_parent: ~)")
+      );
+      test_lineage_tree3 = LineageTreeAndIdMap::fromLineageDefinitionFile(
+         silo::preprocessing::LineageDefinitionFile::fromYAMLString(R"(
+some_other_lineage:
+  parents:
+    - some_parent
+some_parent: ~)")
+      );
+   }
+
+   LineageTreeAndIdMap test_lineage_tree1;
+   LineageTreeAndIdMap test_lineage_tree2;
+   LineageTreeAndIdMap test_lineage_tree3;
+};
+
+// Test finding with exact match (no prefix/suffix)
+TEST_F(findLineageTreeForName, FindLineageTree_ExactMatch) {
+   std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees;
+   lineage_trees["test_tree"] = test_lineage_tree1;
+
+   auto result = Initializer::findLineageTreeForName(lineage_trees, "test_tree");
+
+   ASSERT_TRUE(result.has_value());
+   EXPECT_EQ(result.value().file, test_lineage_tree1.file);
+}
+
+// Test finding with various prefixes
+TEST_F(findLineageTreeForName, FindLineageTree_WithPrefixes) {
+   std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees;
+
+   // Test each prefix
+   lineage_trees["lineage_definition_test"] = test_lineage_tree1;
+   lineage_trees["lineage_definitions_test"] = test_lineage_tree2;
+   lineage_trees["lineage_test"] = test_lineage_tree3;
+
+   auto result1 = Initializer::findLineageTreeForName(lineage_trees, "test");
+   ASSERT_TRUE(result1.has_value());
+   EXPECT_EQ(result1.value().file, test_lineage_tree1.file);  // Should find first match
+}
+
+// Test finding with various suffixes
+TEST_F(findLineageTreeForName, FindLineageTree_WithSuffixes) {
+   std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees;
+
+   lineage_trees["test.yaml"] = test_lineage_tree1;
+   lineage_trees["test_lineage_definition.yaml"] = test_lineage_tree2;
+   lineage_trees["testLineageDefinition.yaml"] = test_lineage_tree3;
+
+   auto result1 = Initializer::findLineageTreeForName(lineage_trees, "test");
+   ASSERT_TRUE(result1.has_value());
+   EXPECT_EQ(
+      result1.value().file, test_lineage_tree1.file
+   );  // Should find first match (.yaml comes before _lineage_definition.yaml in the order)
+}
+
+// Test finding with both prefix and suffix
+TEST_F(findLineageTreeForName, FindLineageTree_WithPrefixAndSuffix) {
+   std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees;
+
+   lineage_trees["lineage_definition_test.yaml"] = test_lineage_tree1;
+   lineage_trees["lineage_test_lineage_definition.yaml"] = test_lineage_tree2;
+
+   auto result = Initializer::findLineageTreeForName(lineage_trees, "test");
+   ASSERT_TRUE(result.has_value());
+   EXPECT_EQ(
+      result.value().file, test_lineage_tree1.file
+   );  // Should find first match based on prefix/suffix order
+}
+
+// Test not found scenario
+TEST_F(findLineageTreeForName, FindLineageTree_NotFound) {
+   std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees;
+
+   lineage_trees["completely_different_name"] = test_lineage_tree1;
+   lineage_trees["another_name.yaml"] = test_lineage_tree2;
+
+   auto result = Initializer::findLineageTreeForName(lineage_trees, "test");
+   EXPECT_FALSE(result.has_value());
+}
+
+// Test empty map
+TEST_F(findLineageTreeForName, FindLineageTree_EmptyMap) {
+   std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees;
+
+   auto result = Initializer::findLineageTreeForName(lineage_trees, "test");
+   EXPECT_FALSE(result.has_value());
+}
+
+// Test empty name
+TEST_F(findLineageTreeForName, FindLineageTree_EmptyName) {
+   std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees;
+
+   lineage_trees[""] = test_lineage_tree1;  // Empty key matches empty name with empty prefix/suffix
+   lineage_trees[".yaml"] = test_lineage_tree2;
+   lineage_trees["lineage_definition_"] = test_lineage_tree3;
+
+   auto result = Initializer::findLineageTreeForName(lineage_trees, "");
+   ASSERT_TRUE(result.has_value());
+   EXPECT_EQ(result.value().file, test_lineage_tree1.file);  // Should find empty key first
+}
+
+// Test priority order - prefixes are tried in order, then suffixes
+TEST_F(findLineageTreeForName, FindLineageTree_PriorityOrder) {
+   std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees;
+
+   // Add multiple matches to test priority
+   lineage_trees["test.yaml"] = test_lineage_tree1;  // empty prefix + .yaml suffix
+   lineage_trees["lineage_definition_test"] =
+      test_lineage_tree2;                       // lineage_definition_ prefix + empty suffix
+   lineage_trees["test"] = test_lineage_tree3;  // empty prefix + empty suffix
+
+   auto result = Initializer::findLineageTreeForName(lineage_trees, "test");
+   ASSERT_TRUE(result.has_value());
+   EXPECT_EQ(
+      result.value().file, test_lineage_tree3.file
+   );  // Should find "test" first (empty prefix, empty suffix)
+}
+
+// Test case sensitivity
+TEST_F(findLineageTreeForName, FindLineageTree_CaseSensitive) {
+   std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees;
+
+   lineage_trees["Test"] = test_lineage_tree1;
+   lineage_trees["TEST"] = test_lineage_tree2;
+
+   auto result = Initializer::findLineageTreeForName(lineage_trees, "test");
+   EXPECT_FALSE(result.has_value());  // Should not find due to case mismatch
+
+   auto result_correct_case = Initializer::findLineageTreeForName(lineage_trees, "Test");
+   ASSERT_TRUE(result_correct_case.has_value());
+   EXPECT_EQ(result_correct_case.value().file, test_lineage_tree1.file);
+}
+
+// Test with special characters in name
+TEST_F(findLineageTreeForName, FindLineageTree_SpecialCharacters) {
+   std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees;
+
+   lineage_trees["test-name_123"] = test_lineage_tree1;
+   lineage_trees["lineage_definition_test-name_123.yaml"] = test_lineage_tree2;
+
+   auto result = Initializer::findLineageTreeForName(lineage_trees, "test-name_123");
+   ASSERT_TRUE(result.has_value());
+   EXPECT_EQ(result.value().file, test_lineage_tree1.file);
+}
+
+// Test all possible combinations are tried
+TEST_F(findLineageTreeForName, FindLineageTree_AllCombinationsTried) {
+   std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees;
+
+   // Add a match that would only be found with the last prefix and last suffix
+   lineage_trees["lineageTestLineage.yaml"] = test_lineage_tree1;
+
+   auto result = Initializer::findLineageTreeForName(lineage_trees, "Test");
+   ASSERT_TRUE(result.has_value());
+   EXPECT_EQ(result.value().file, test_lineage_tree1.file);
 }

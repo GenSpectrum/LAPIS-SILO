@@ -10,25 +10,29 @@
 namespace silo::preprocessing {
 
 Database preprocessing(const config::PreprocessingConfig& preprocessing_config) {
-   SPDLOG_INFO("preprocessing - initializing Database");
-   auto database =
-      initialize::Initializer::initializeDatabase(preprocessing_config.initialization_files);
-
-   SPDLOG_INFO("preprocessing - successfully initialized Database, now opening input");
-   auto input = InputStreamWrapper::openFileOrStdIn(preprocessing_config.getInputFilePath());
-
    try {
+      SPDLOG_INFO("preprocessing - initializing Database");
+      auto database =
+         initialize::Initializer::initializeDatabase(preprocessing_config.initialization_files);
+
+      SPDLOG_INFO("preprocessing - successfully initialized Database, now opening input");
+      auto input = InputStreamWrapper::openFileOrStdIn(preprocessing_config.getInputFilePath());
+
       SPDLOG_INFO("preprocessing - appending data to Database");
       auto input_data = append::NdjsonLineReader{input.getInputStream()};
       append::appendDataToDatabase(database, input_data);
+
+      SPDLOG_INFO("preprocessing - finished preprocessing");
+      return database;
+   } catch (const initialize::InitializeException& exception) {
+      throw preprocessing::PreprocessingException(
+         "preprocessing - exception when initializing database: {}", exception.what()
+      );
    } catch (const append::AppendException& exception) {
       throw preprocessing::PreprocessingException(
          "preprocessing - exception when appending data: {}", exception.what()
       );
    }
-
-   SPDLOG_INFO("preprocessing - finished preprocessing");
-   return database;
 }
 
 }  // namespace silo::preprocessing

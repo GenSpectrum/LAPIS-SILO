@@ -17,6 +17,20 @@ using silo::config::ConfigKeyPath;
 
 namespace {
 
+bool isSequenceOfScalars(const YAML::Node& node) {
+   if (!node.IsSequence()) {
+      SPDLOG_TRACE("isSequenceOfScalars = false, node is not a sequence");
+      return false;
+   }
+   for (auto element : node) {
+      if (!element.IsScalar()) {
+         SPDLOG_TRACE("isSequenceOfScalars = false, list element is not a string");
+         return false;
+      }
+   }
+   return true;
+}
+
 bool isProperSingularValue(const YAML::Node& node) {
    if (node.IsMap()) {
       SPDLOG_TRACE("isProperSingularValue = false, node is a map");
@@ -26,8 +40,8 @@ bool isProperSingularValue(const YAML::Node& node) {
       SPDLOG_TRACE("isProperSingularValue = false, node is not defined");
       return false;
    }
-   if (!node.IsScalar()) {
-      SPDLOG_TRACE("isProperSingularValue = false, node is not a scalar");
+   if (!node.IsScalar() && !isSequenceOfScalars(node)) {
+      SPDLOG_TRACE("isProperSingularValue = false, node is not a scalar or sequence of strings");
       return false;
    }
    return true;
@@ -200,7 +214,19 @@ ConfigValue yamlNodeToConfigValue(
    try {
       switch (attribute_spec.type) {
          case ConfigValueType::STRING:
-            return ConfigValue::fromString(yaml.as<std::string>());
+            if (yaml.IsSequence()) {
+               std::vector<std::string> scalars_as_string;
+               std::ranges::transform(
+                  yaml.begin(),
+                  yaml.end(),
+                  std::back_inserter(scalars_as_string),
+                  [](const YAML::Node& element) { return element.as<std::string>(); }
+               );
+               auto joined_scalars = boost::join(scalars_as_string, ",");
+               return ConfigValue::fromString(joined_scalars);
+            } else {
+               return ConfigValue::fromString(yaml.as<std::string>());
+            }
          case ConfigValueType::PATH:
             return ConfigValue::fromPath({std::filesystem::path{yaml.as<std::string>()}});
          case ConfigValueType::INT32:

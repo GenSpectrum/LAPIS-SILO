@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include <istream>
+#include <map>
 
 #include <gtest/gtest.h>
 
@@ -36,11 +37,10 @@ std::shared_ptr<silo::Database> buildTestDatabase() {
       silo::ReferenceGenomes::readFromFile(config.initialization_files.getReferenceGenomeFilename()
       );
 
-   silo::common::LineageTreeAndIdMap lineage_tree;
-   if (config.initialization_files.getLineageDefinitionsFilename().has_value()) {
-      lineage_tree = silo::common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(
-         config.initialization_files.getLineageDefinitionsFilename().value()
-      );
+   std::map<std::filesystem::path, silo::common::LineageTreeAndIdMap> lineage_trees;
+   for (auto filename : config.initialization_files.getLineageDefinitionFilenames()) {
+      lineage_trees[filename] =
+         silo::common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(filename);
    }
 
    silo::common::PhyloTree phylo_tree_file;
@@ -53,7 +53,7 @@ std::shared_ptr<silo::Database> buildTestDatabase() {
       silo::Database{silo::initialize::Initializer::createSchemaFromConfigFiles(
          std::move(database_config),
          std::move(reference_genomes),
-         std::move(lineage_tree),
+         std::move(lineage_trees),
          std::move(phylo_tree_file),
          /*without_unaligned_columns=*/false
       )}
