@@ -34,9 +34,10 @@ std::shared_ptr<Query> Query::parseQuery(const std::string& query_string) {
 
 QueryPlan Query::toQueryPlan(
    std::shared_ptr<Database> database,
-   const config::QueryOptions& query_options
+   const config::QueryOptions& query_options,
+   std::string_view request_id
 ) const {
-   SPDLOG_DEBUG("Parsed filter: {}", filter->toString());
+   SPDLOG_DEBUG("Request Id [{}] - Parsed filter: {}", request_id, filter->toString());
 
    std::vector<CopyOnWriteBitmap> partition_filters;
    partition_filters.reserve(database->table->getNumberOfPartitions());
@@ -48,12 +49,15 @@ QueryPlan Query::toQueryPlan(
          filter::expressions::Expression::AmbiguityMode::NONE
       );
       SPDLOG_DEBUG(
-         "Simplified query for partition {}: {}", partition_index, filter_operator->toString()
+         "Request Id [{}] - Simplified query for partition {}: {}",
+         request_id,
+         partition_index,
+         filter_operator->toString()
       );
       partition_filters.emplace_back(filter_operator->evaluate());
    };
 
-   return action->toQueryPlan(database->table, partition_filters, query_options);
+   return action->toQueryPlan(database->table, partition_filters, query_options, request_id);
 }
 
 }  // namespace silo::query_engine

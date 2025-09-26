@@ -42,7 +42,8 @@ class Action {
    QueryPlan toQueryPlan(
       std::shared_ptr<const storage::Table> table,
       std::vector<CopyOnWriteBitmap> partition_filters,
-      const config::QueryOptions& query_options
+      const config::QueryOptions& query_options,
+      std::string_view request_id
    );
 
    void setOrdering(
@@ -83,7 +84,8 @@ class Action {
    virtual arrow::Result<QueryPlan> toQueryPlanImpl(
       std::shared_ptr<const storage::Table> table,
       std::vector<CopyOnWriteBitmap> partition_filters,
-      const config::QueryOptions& query_options
+      const config::QueryOptions& query_options,
+      std::string_view request_id
    ) const = 0;
 
    static arrow::Result<arrow::acero::ExecNode*> addSortNode(

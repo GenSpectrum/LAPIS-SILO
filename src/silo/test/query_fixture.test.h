@@ -116,7 +116,7 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
          try {
             auto query = query_engine::Query::parseQuery(scenario.query.dump());
             std::stringstream buffer;
-            auto query_plan = query->toQueryPlan(shared_database, query_options);
+            auto query_plan = query->toQueryPlan(shared_database, query_options, "some_id");
             query_plan.executeAndWrite(&buffer, /*timeout_in_seconds=*/3);
             FAIL() << "Expected an error in test case, but nothing was thrown";
          } catch (const std::exception& e) {
@@ -125,7 +125,7 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
       } else {
          auto query = query_engine::Query::parseQuery(scenario.query.dump());
          std::stringstream buffer;
-         auto query_plan = query->toQueryPlan(shared_database, query_options);
+         auto query_plan = query->toQueryPlan(shared_database, query_options, "some_id");
          query_plan.executeAndWrite(&buffer, /*timeout_in_seconds=*/3);
          nlohmann::json actual_ndjson_result_as_array = nlohmann::json::array();
          std::string line;

@@ -48,7 +48,7 @@ void QueryHandler::post(
 
    try {
       auto query = query_engine::Query::parseQuery(query_string);
-      auto query_plan = query->toQueryPlan(database, query_options);
+      auto query_plan = query->toQueryPlan(database, query_options, request_id);
 
       response.set("data-version", database->getDataVersionTimestamp().value);
       response.setContentType("application/x-ndjson");

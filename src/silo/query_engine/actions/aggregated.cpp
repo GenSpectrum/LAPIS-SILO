@@ -77,20 +77,22 @@ void Aggregated::validateOrderByFields(const schema::TableSchema& schema) const 
 arrow::Result<QueryPlan> Aggregated::toQueryPlanImpl(
    std::shared_ptr<const storage::Table> table,
    std::vector<CopyOnWriteBitmap> partition_filters,
-   const config::QueryOptions& query_options
+   const config::QueryOptions& query_options,
+   std::string_view request_id
 ) const {
    EVOBENCH_SCOPE("Aggregated", "toQueryPlanImpl");
    if (group_by_fields.empty()) {
-      return makeAggregateWithoutGrouping(table, partition_filters, query_options);
+      return makeAggregateWithoutGrouping(table, partition_filters, query_options, request_id);
    } else {
-      return makeAggregateWithGrouping(table, partition_filters, query_options);
+      return makeAggregateWithGrouping(table, partition_filters, query_options, request_id);
    }
 }
 
 arrow::Result<QueryPlan> Aggregated::makeAggregateWithoutGrouping(
    std::shared_ptr<const storage::Table> table,
    std::vector<CopyOnWriteBitmap> partition_filters,
-   const config::QueryOptions& /*query_options*/
+   const config::QueryOptions& /*query_options*/,
+   std::string_view request_id
 ) const {
    std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
       [table, partition_filters, produced = false](
@@ -130,13 +132,14 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithoutGrouping(
       auto node, arrow::acero::MakeExecNode("source", arrow_plan.get(), {}, options)
    );
 
-   return QueryPlan::makeQueryPlan(arrow_plan, node);
+   return QueryPlan::makeQueryPlan(arrow_plan, node, request_id);
 }
 
 arrow::Result<QueryPlan> Aggregated::makeAggregateWithGrouping(
    std::shared_ptr<const storage::Table> table,
    std::vector<CopyOnWriteBitmap> partition_filters,
-   const config::QueryOptions& query_options
+   const config::QueryOptions& query_options,
+   std::string_view request_id
 ) const {
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
 
@@ -177,7 +180,7 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithGrouping(
 
    ARROW_ASSIGN_OR_RAISE(node, addZstdDecompressNode(arrow_plan.get(), node, table->schema));
 
-   return QueryPlan::makeQueryPlan(arrow_plan, node);
+   return QueryPlan::makeQueryPlan(arrow_plan, node, request_id);
 }
 
 std::vector<schema::ColumnIdentifier> Aggregated::getOutputSchema(

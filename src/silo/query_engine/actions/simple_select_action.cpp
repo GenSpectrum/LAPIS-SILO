@@ -33,7 +33,8 @@ void SimpleSelectAction::validateOrderByFields(const schema::TableSchema& schema
 arrow::Result<QueryPlan> SimpleSelectAction::toQueryPlanImpl(
    std::shared_ptr<const storage::Table> table,
    std::vector<CopyOnWriteBitmap> partition_filters,
-   const config::QueryOptions& query_options
+   const config::QueryOptions& query_options,
+   std::string_view request_id
 ) const {
    EVOBENCH_SCOPE("Select", "toQueryPlanImpl");
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
@@ -56,7 +57,7 @@ arrow::Result<QueryPlan> SimpleSelectAction::toQueryPlanImpl(
 
    ARROW_ASSIGN_OR_RAISE(node, addZstdDecompressNode(arrow_plan.get(), node, table->schema));
 
-   return QueryPlan::makeQueryPlan(arrow_plan, node);
+   return QueryPlan::makeQueryPlan(arrow_plan, node, request_id);
 }
 
 }  // namespace silo::query_engine::actions
