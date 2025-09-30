@@ -811,8 +811,9 @@ TEST_P(PreprocessorTestFixture, shouldProcessData) {
    EXPECT_EQ(database_info.sequence_count, scenario.assertion.expected_sequence_count);
 
    auto query = silo::query_engine::Query::parseQuery(scenario.assertion.query);
-   auto query_plan =
-      query->toQueryPlan(database, silo::config::RuntimeConfig::withDefaults().query_options);
+   auto query_plan = query->toQueryPlan(
+      database, silo::config::RuntimeConfig::withDefaults().query_options, "some_id"
+   );
    std::stringstream actual_result_stream;
    query_plan.executeAndWrite(&actual_result_stream, /*timeout_in_seconds=*/3);
    nlohmann::json actual_ndjson_result_as_array = nlohmann::json::array();
