@@ -193,6 +193,14 @@ TablePartitionInserter TableInserter::openNewPartition() const {
    return TablePartitionInserter{table->getPartition(0)};
 }
 
+TablePartitionInserter TableInserter::openLastPartition() const {
+   if (table->getNumberOfPartitions() == 0) {
+      return openNewPartition();
+   } else {
+      return TablePartitionInserter{table->getPartition(table->getNumberOfPartitions() - 1)};
+   }
+}
+
 TableInserter::Commit TableInserter::commit() const {
    try {
       table->validate();
@@ -255,7 +263,7 @@ TableInserter::Commit appendDataToTable(
    TableInserter table_inserter(std::move(table));
 
    // TODO(#738) make partition configurable
-   auto table_partition = table_inserter.openNewPartition();
+   auto table_partition = table_inserter.openLastPartition();
 
    appendDataToTablePartition(table_partition, input_data);
 

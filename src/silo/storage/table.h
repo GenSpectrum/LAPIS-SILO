@@ -18,6 +18,8 @@ class Table {
 
    [[nodiscard]] std::shared_ptr<TablePartition> getPartition(size_t partition_idx) const;
 
+   std::shared_ptr<TablePartition> getPartition(size_t partition_idx);
+
    std::shared_ptr<TablePartition> addPartition();
 
    void validate() const;
