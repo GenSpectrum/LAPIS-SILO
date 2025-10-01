@@ -149,3 +149,9 @@ if (NOT GTest_LIBRARIES)
     set(GTest_LIBRARIES gtest gmock)
 endif ()
 target_link_libraries(silo_test PUBLIC ${GTest_LIBRARIES} silolib)
+
+# ---------------------------------------------------------------------------
+# Benchmarks
+# ---------------------------------------------------------------------------
+
+add_subdirectory(performance)
