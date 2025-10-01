@@ -116,6 +116,69 @@ jobs:
           tags: ${{ env.DOCKER_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-${{ matrix.arch }}
           build-args: |
             DEPENDENCY_IMAGE=${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-${{ matrix.arch }}
+      
+      - name: Run clang-tidy inside builder
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/src" \
+            -w /src \
+            builder \
+            bash -eo pipefail -c '
+              # Install tools needed for the analysis (kept inside container)
+              if command -v apt-get >/dev/null 2>&1; then
+                apt-get update -y
+                # clang-tidy + helpers. jq used to read compile_commands.json
+                apt-get install -y --no-install-recommends clang clang-tidy jq python3
+              fi
+
+              # 2a) Ensure deps are generated (your Makefile would do this, but do it here explicitly)
+              conan --version >/dev/null 2>&1 || { echo "Conan missing in builder image"; exit 1; }
+
+              # Generate CMake files and compile_commands.json (explicitly set export flag)
+              cmake -S . -B build/Debug \
+                    -D CMAKE_BUILD_TYPE=Debug \
+                    -D CMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+              # Optional: build to materialize any generated headers if your project needs them
+              cmake --build build/Debug -j "$(nproc)"
+
+              # Sanity check
+              test -f build/Debug/compile_commands.json || { echo "compile_commands.json not found"; exit 2; }
+
+              # Choose checks. Start strict but practical.
+              CHECKS="-*,bugprone-*,clang-analyzer-*,cppcoreguidelines-*,cert-*,performance-*,readability-*"
+              # Treat every diagnostic as error to block merges
+              WARNERR="*"
+
+              # Run clang-tidy over all TU paths from the compile database.
+              # This avoids missing files and respects per-target flags.
+              FILES=$(jq -r ".[].file" build/Debug/compile_commands.json | sort -u)
+              if [ -z "$FILES" ]; then
+                echo "No files in compile_commands.json"; exit 3;
+              fi
+
+              # Use parallelism; fall back if run-clang-tidy isn’t present.
+              if command -v run-clang-tidy >/dev/null 2>&1; then
+                run-clang-tidy \
+                  -p build/Debug \
+                  -j "$(nproc)" \
+                  -header-filter="^src/|^include/" \
+                  -checks="$CHECKS" \
+                  -warnings-as-errors="$WARNERR"
+              else
+                # Manual loop if run-clang-tidy isn’t available
+                failed=0
+                for f in $FILES; do
+                  echo "=== clang-tidy: $f ==="
+                  clang-tidy "$f" \
+                    -p build/Debug \
+                    -checks="$CHECKS" \
+                    -warnings-as-errors="$WARNERR" \
+                    || failed=1
+                done
+                exit $failed
+              fi
+            '
 
   multiPlatformImages:
     name: Create multi-platform images
