@@ -1,0 +1,6 @@
+function(add_benchmark BENCH_NAME)
+    add_executable(${BENCH_NAME} ${BENCH_NAME}.cpp)
+    target_link_libraries(${BENCH_NAME} silolib)
+endfunction(add_benchmark)
+
+add_benchmark(mutation_benchmark)
