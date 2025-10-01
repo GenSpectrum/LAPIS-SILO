@@ -5,7 +5,7 @@
   "description": "Utility for the SILO repository",
   "type": "module",
   "devDependencies": {
-    "@commitlint/cli": "^19.8.1",
+    "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^19.8.1",
     "@commitlint/types": "^20.0.0",
     "release-please": "^17.1.2"
