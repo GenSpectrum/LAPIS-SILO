@@ -2,15 +2,14 @@ name: clang-tidy
 on:
   pull_request:
   push:
-    branches: [ main ]
-
+    branches: [main]
 jobs:
   tidy:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       # 1) Build the same Docker "builder" stage your tests use
       - name: Build unit test/builder image
         uses: docker/build-push-action@v6
@@ -23,7 +22,6 @@ jobs:
           cache-to: type=gha,mode=min,ref=image-cache-${{ github.ref_name }}-${{ runner.arch }}
           build-args: |
             DEPENDENCY_IMAGE=${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-${{ runner.arch }}
-
       # 2) Run clang-tidy inside that image, bind mounting the workspace.
       #    We install clang-tidy in the container (in case the builder image doesn't have it).
       - name: Run clang-tidy inside builder
