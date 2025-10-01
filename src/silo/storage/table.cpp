@@ -60,6 +60,10 @@ std::shared_ptr<TablePartition> Table::getPartition(size_t partition_idx) const 
    return partitions.at(partition_idx);
 }
 
+std::shared_ptr<TablePartition> Table::getPartition(size_t partition_idx) {
+   return partitions.at(partition_idx);
+}
+
 std::shared_ptr<storage::TablePartition> Table::addPartition() {
    return partitions.emplace_back(std::make_shared<TablePartition>(schema));
 }

@@ -62,6 +62,8 @@ class TableInserter {
 
    [[nodiscard]] TablePartitionInserter openNewPartition() const;
 
+   [[nodiscard]] TablePartitionInserter openLastPartition() const;
+
    [[nodiscard]] Commit commit() const;
 };
 
