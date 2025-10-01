@@ -3,6 +3,10 @@ on:
   pull_request:
   push:
     branches: [main]
+env:
+  DOCKER_DEPENDENCY_IMAGE_NAME: ghcr.io/genspectrum/lapis-silo-dependencies
+  DOCKER_IMAGE_NAME: ghcr.io/genspectrum/lapis-silo
+
 jobs:
   tidy:
     runs-on: ubuntu-latest
@@ -24,7 +28,7 @@ jobs:
         with:
           context: .
           target: builder
-          tags: builder:latest
+          tags: builder
           load: true
           cache-from: type=gha,ref=image-cache-${{ github.ref_name }}-${{ runner.arch }}
           cache-to: type=gha,mode=min,ref=image-cache-${{ github.ref_name }}-${{ runner.arch }}
@@ -37,7 +41,7 @@ jobs:
           docker run --rm \
             -v "$GITHUB_WORKSPACE:/src" \
             -w /src \
-            builder:latest \
+            builder \
             bash -eo pipefail -c '
               # Install tools needed for the analysis (kept inside container)
               if command -v apt-get >/dev/null 2>&1; then
