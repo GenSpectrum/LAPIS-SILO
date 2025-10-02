@@ -118,7 +118,9 @@ class TableSchema {
       if (it == column_metadata.end() || it->first.type != ColumnType::TYPE) {
          return std::nullopt;
       }
-      return dynamic_cast<typename ColumnType::Metadata*>(it->second.get());
+      auto typed_metadata = dynamic_cast<typename ColumnType::Metadata*>(it->second.get());
+      SILO_ASSERT(typed_metadata != nullptr);
+      return typed_metadata;
    }
 
    template <storage::column::Column ColumnType>
@@ -130,7 +132,9 @@ class TableSchema {
       if (it == column_metadata.end() || it->first.type != ColumnType::TYPE) {
          return std::nullopt;
       }
-      return dynamic_cast<typename ColumnType::Metadata*>(it->second.get());
+      auto typed_metadata = dynamic_cast<typename ColumnType::Metadata*>(it->second.get());
+      SILO_ASSERT(typed_metadata != nullptr);
+      return typed_metadata;
    }
 
    TableSchema() = default;
