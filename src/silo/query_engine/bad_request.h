@@ -7,7 +7,7 @@
 
 #define CHECK_SILO_QUERY(condition, ...)             \
    do {                                              \
-      if (!(condition)) {                                 \
+      if (!(condition)) {                            \
          throw BadRequest(fmt::format(__VA_ARGS__)); \
       }                                              \
    } while (0)
