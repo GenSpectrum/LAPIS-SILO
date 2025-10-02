@@ -7,7 +7,6 @@ Checks: >-
   google-*,
   misc-*,
   modernize-*,
-  performance-*,
   portability-*,
   readability-*,
   performance-*,
