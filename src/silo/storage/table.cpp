@@ -35,16 +35,23 @@ void Table::validatePrimaryKeyUnique() const {
    SPDLOG_DEBUG("Checking that primary keys are unique.");
    const auto primary_key = schema.primary_key;
    SILO_ASSERT(primary_key.type == schema::ColumnType::STRING);
+
+   size_t total_rows = 0;
+   for (const auto& partition : partitions) {
+      total_rows += partition->sequence_count;
+   }
+
    std::unordered_set<std::string> unique_keys;
+   unique_keys.reserve(total_rows);
    for (auto& partition : partitions) {
       auto& primary_key_column = partition->columns.string_columns.at(primary_key.name);
       auto num_values = primary_key_column.numValues();
       for (size_t i = 0; i < num_values; ++i) {
-         auto x = primary_key_column.getValueString(i);
-         if (unique_keys.contains(x)) {
-            throw schema::DuplicatePrimaryKeyException("Found duplicate primary key {}", x);
+         std::string value = primary_key_column.getValueString(i);
+         if (unique_keys.contains(value)) {
+            throw schema::DuplicatePrimaryKeyException("Found duplicate primary key {}", value);
          }
-         unique_keys.insert(x);
+         unique_keys.insert(value);
       }
    }
    SPDLOG_DEBUG("Found {} distinct primary keys.", unique_keys.size());
