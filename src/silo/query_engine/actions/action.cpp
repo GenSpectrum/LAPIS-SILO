@@ -511,7 +511,7 @@ arrow::Result<arrow::acero::ExecNode*> Action::addZstdDecompressNode(
          "additional sink node to help backpressure application before zstd decompression"
       );
 
-      SILO_ASSERT_GT(sum_of_reference_genome_sizes, 0);
+      SILO_ASSERT_GT(sum_of_reference_genome_sizes, 0u);
 
       // We aim for 64 MB batch size to give the plan time to apply backpressure
       size_t maximum_batch_size = std::max(common::S_64_MB / sum_of_reference_genome_sizes, 1UL);
