@@ -66,10 +66,14 @@ conanprofile
 # Generated html files from markdown files
 *.html
 
+# Files created by running SILO instances
 **/output/
 **/logs/
 **/temp/
 
+# Node modules
+
 **/node_modules/
 
-
+# Rust build output files
+**/target/
