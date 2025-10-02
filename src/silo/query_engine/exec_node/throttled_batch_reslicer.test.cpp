@@ -244,8 +244,6 @@ TEST_F(ThrottledBatchReslicerTest, ThrottlingDelay) {
    const auto delay = std::chrono::milliseconds(50);
    ThrottledBatchReslicer reslicer(generator, 100, delay, mock_backpressure_monitor.get());
 
-   auto start_time = std::chrono::system_clock::now();
-
    // First call should not have delay (no previous batch)
    auto future1 = reslicer();
    auto result1 = future1.result();
