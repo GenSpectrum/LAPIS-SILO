@@ -25,9 +25,7 @@ class Page {
       return *this;
    }
 
-   ~Page() {
-      delete[] buffer;
-   }
+   ~Page() { delete[] buffer; }
 
    Page(const Page& other) = delete;
    Page operator=(const Page& other) = delete;
