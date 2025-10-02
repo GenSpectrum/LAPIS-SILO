@@ -5,10 +5,12 @@
 
 #include <fmt/format.h>
 
-#define CHECK_SILO_QUERY(condition, ...)   \
-   if (!(condition)) {                     \
-      throw silo::BadRequest(__VA_ARGS__); \
-   }
+#define CHECK_SILO_QUERY(condition, ...)             \
+   do {                                              \
+      if (!(cond)) {                                 \
+         throw BadRequest(fmt::format(__VA_ARGS__)); \
+      }                                              \
+   } while (0)
 
 namespace silo {
 
