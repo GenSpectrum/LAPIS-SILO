@@ -347,7 +347,7 @@ arrow::Result<arrow::acero::ExecNode*> Action::addRandomizeColumn(
             SILO_ASSERT_NE(rows_in_batch, arrow::Datum::kUnknownLength);
 
             arrow::UInt64Builder randomize_column_builder;
-            for (size_t i = 0; i < rows_in_batch; ++i) {
+            for (int64_t i = 0; i < rows_in_batch; ++i) {
                uint64_t hash = hash64(start_of_batch + i, randomize_seed);
                ARROW_RETURN_NOT_OK(randomize_column_builder.Append(hash));
             }
