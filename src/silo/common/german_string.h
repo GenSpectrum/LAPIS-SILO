@@ -52,6 +52,8 @@ class GermanString {
    GermanString(length_type length, std::string_view prefix, suffix_id_type suffix_offset) {
       SILO_ASSERT(length > SHORT_STRING_SIZE);
       SILO_ASSERT(prefix.size() == PREFIX_LENGTH);
+      SILO_ASSERT(PREFIX_START + PREFIX_LENGTH <= data.size());
+      SILO_ASSERT(SUFFIX_ID_START + sizeof(suffix_id_type) <= data.size());
       *reinterpret_cast<length_type*>(data.data()) = length;
       std::memcpy(data.data() + PREFIX_START, prefix.data(), PREFIX_LENGTH);
       *reinterpret_cast<suffix_id_type*>(data.data() + SUFFIX_ID_START) = suffix_offset;
