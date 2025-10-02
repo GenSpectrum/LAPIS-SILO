@@ -1,6 +1,6 @@
 ---
 WarningsAsErrors: "*"
-Checks: >
+Checks: >-
   -*,
   abseil-*,
   bugprone-*,
@@ -12,7 +12,6 @@ Checks: >
   readability-*,
   performance-*,
   readability-magic-numbers,
-# clang-analyzer-cplusplus.NewDeleteLeaks TODO(#632) readd
   -misc-non-private-member-variables-in-classes,
   -misc-include-cleaner,
   -google-readability-avoid-underscore-in-googletest-name,
