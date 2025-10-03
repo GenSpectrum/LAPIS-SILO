@@ -16,7 +16,7 @@ using arrow::acero::BackpressureMonitor;
 
 class ThrottledBatchReslicer {
    arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> input_batches;
-   size_t batch_size;
+   int64_t batch_size;
    std::chrono::milliseconds target_batch_rate;
    BackpressureMonitor* backpressure_monitor;
 
@@ -29,7 +29,7 @@ class ThrottledBatchReslicer {
   public:
    ThrottledBatchReslicer(
       arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> input_batches,
-      size_t batch_size,
+      int64_t batch_size,
       std::chrono::milliseconds target_batch_rate,
       BackpressureMonitor* backpressure_monitor
    )
