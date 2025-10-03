@@ -29,8 +29,8 @@ ConfigKeyPath inputDirectoryOptionKey() {
 ConfigKeyPath outputDirectoryOptionKey() {
    return YamlFile::stringToConfigKeyPath("outputDirectory");
 }
-ConfigKeyPath lineageDefinitionsFilenameOptionKey() {
-   return YamlFile::stringToConfigKeyPath("lineageDefinitionsFilename");
+ConfigKeyPath lineageDefinitionFilenamesOptionKey() {
+   return YamlFile::stringToConfigKeyPath("lineageDefinitionFilenames");
 }
 ConfigKeyPath phyloTreeFilenameOptionKey() {
    return YamlFile::stringToConfigKeyPath("phyloTreeFilename");
@@ -90,9 +90,9 @@ ConfigSpecification PreprocessingConfig::getConfigSpecification() {
             "The path to the directory to hold the output files."
          ),
          ConfigAttributeSpecification::createWithoutDefault(
-            lineageDefinitionsFilenameOptionKey(),
-            ConfigValueType::PATH,
-            "File name of the file holding the lineage definitions. Relative from inputDirectory."
+            lineageDefinitionFilenamesOptionKey(),
+            ConfigValueType::LIST,
+            "List of file names holding the lineage definitions. Relative from inputDirectory."
          ),
          ConfigAttributeSpecification::createWithoutDefault(
             phyloTreeFilenameOptionKey(),
@@ -152,8 +152,8 @@ void PreprocessingConfig::overwriteFrom(const VerifiedConfigAttributes& config_s
    if (auto var = config_source.getPath(inputDirectoryOptionKey())) {
       initialization_files.directory = var.value();
    }
-   if (auto var = config_source.getPath(lineageDefinitionsFilenameOptionKey())) {
-      initialization_files.lineage_definitions_file = var.value();
+   if (auto var = config_source.getList(lineageDefinitionFilenamesOptionKey())) {
+      initialization_files.lineage_definition_files = var.value();
    }
    if (auto var = config_source.getPath(phyloTreeFilenameOptionKey())) {
       initialization_files.phylogenetic_tree_file = var.value();

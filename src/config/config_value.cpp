@@ -1,5 +1,6 @@
 #include "config/config_value.h"
 
+#include <fmt/ranges.h>
 #include <boost/functional/hash.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -28,6 +29,9 @@ ConfigValueType ConfigValue::getValueType() const {
    if (std::holds_alternative<bool>(value)) {
       return ConfigValueType::BOOL;
    }
+   if (std::holds_alternative<std::vector<std::string>>(value)) {
+      return ConfigValueType::LIST;
+   }
    SILO_UNREACHABLE();
 }
 
@@ -39,6 +43,8 @@ std::string ConfigValue::toString() const {
             return fmt::format("'{}'", value);
          } else if constexpr (std::is_same_v<T, std::filesystem::path>) {
             return fmt::format("'{}'", value.string());
+         } else if constexpr (std::is_same_v<T, std::vector<std::string>>) {
+            return fmt::format("{}", fmt::join(value, ","));
          } else {
             return fmt::format("{}", value);
          }

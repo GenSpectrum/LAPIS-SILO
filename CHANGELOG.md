@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.9.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.8.6...v0.9.0) (2025-10-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* **silo:** Multiple breaking changes to lineage configuration:
+    - PreprocessingConfig: `lineageDefinitionsFilename` renamed to
+      `lineageDefinitionFilenames` and changed from string to list
+    - DatabaseConfig: `generateLineageIndex` changed from boolean to string
+      (expects lineage definition filename)
+
+### Features
+
+* **silo:** support multiple lineage systems ([f4be635](https://github.com/GenSpectrum/LAPIS-SILO/commit/f4be63507cfb656e773c4cc2d44b4537319312f0))
+
 ## [0.8.6](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.8.5...v0.8.6) (2025-09-26)
 
 

@@ -152,6 +152,8 @@ ConfigValue ConfigAttributeSpecification::parseValueFromString(std::string value
             throw ConfigException(
                fmt::format("'{}' is not a valid string for a boolean", value_string)
             );
+         case ConfigValueType::LIST:
+            throw ConfigException("List values can currently no be specified as strings.");
       }
       SILO_UNREACHABLE();
    } catch (boost::bad_lexical_cast&) {
