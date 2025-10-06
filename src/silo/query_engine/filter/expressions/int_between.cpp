@@ -101,7 +101,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<IntBetween>& filter) 
    );
    CHECK_SILO_QUERY(json.contains("to"), "The field 'to' is required in a IntBetween expression");
    CHECK_SILO_QUERY(
-      json["to"].is_number_integer() && json["to"].is_number_integer() || json["to"].is_null(),
+      (json["to"].is_number_integer() && json["to"].is_number_integer()) || json["to"].is_null(),
       "The field 'to' in an IntBetween expression must be an integer in [-2147483648; 2147483647] "
       "or null"
    );

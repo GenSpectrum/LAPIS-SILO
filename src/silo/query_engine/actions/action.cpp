@@ -347,7 +347,7 @@ arrow::Result<arrow::acero::ExecNode*> Action::addRandomizeColumn(
             SILO_ASSERT_NE(rows_in_batch, arrow::Datum::kUnknownLength);
 
             arrow::UInt64Builder randomize_column_builder;
-            for (size_t i = 0; i < rows_in_batch; ++i) {
+            for (int64_t i = 0; i < rows_in_batch; ++i) {
                uint64_t hash = hash64(start_of_batch + i, randomize_seed);
                ARROW_RETURN_NOT_OK(randomize_column_builder.Append(hash));
             }
@@ -511,10 +511,11 @@ arrow::Result<arrow::acero::ExecNode*> Action::addZstdDecompressNode(
          "additional sink node to help backpressure application before zstd decompression"
       );
 
-      SILO_ASSERT_GT(sum_of_reference_genome_sizes, 0);
+      SILO_ASSERT_GT(sum_of_reference_genome_sizes, 0u);
 
       // We aim for 64 MB batch size to give the plan time to apply backpressure
-      size_t maximum_batch_size = std::max(common::S_64_MB / sum_of_reference_genome_sizes, 1UL);
+      auto maximum_batch_size =
+         static_cast<int64_t>(std::max(common::S_64_MB / sum_of_reference_genome_sizes, 1UL));
 
       // Delay delivery of large number of batches to about 100 MB per second
       // A batch targets 64 MB, therefore we allow 1.5 batches per second.

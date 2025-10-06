@@ -33,7 +33,7 @@ std::vector<schema::ColumnIdentifier> Fasta::getOutputSchema(
          std::ranges::find(columns_in_database, column_identifier) != columns_in_database.end(),
          "Database does not contain an unaligned sequence with name: '{}'",
          sequence_name
-      )
+      );
       fields.emplace(column_identifier);
    }
    for (const auto& additional_field : additional_fields) {

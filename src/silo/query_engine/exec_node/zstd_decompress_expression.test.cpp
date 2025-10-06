@@ -87,7 +87,7 @@ void assertDecompressedStringArray(
    const std::vector<std::optional<std::string>>& expected_values,
    const std::shared_ptr<arrow::Table>& result_table
 ) {
-   for (size_t chunk_id = 0; chunk_id < result_table->column(1)->num_chunks(); ++chunk_id) {
+   for (int chunk_id = 0; chunk_id < result_table->column(1)->num_chunks(); ++chunk_id) {
       std::shared_ptr<arrow::StringArray> string_array =
          std::static_pointer_cast<arrow::StringArray>(result_table->column(1)->chunk(0));
 
