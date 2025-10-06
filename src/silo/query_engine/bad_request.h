@@ -10,7 +10,7 @@
       if (!(condition)) {                     \
          throw silo::BadRequest(__VA_ARGS__); \
       }                                       \
-   } while (0)
+   } while (0);
 
 namespace silo {
 
