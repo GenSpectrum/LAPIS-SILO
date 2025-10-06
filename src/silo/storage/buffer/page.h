@@ -13,6 +13,7 @@ class Page {
   public:
    uint8_t* buffer;
 
+   // On a failed allocation std::bad_alloc is thrown
    Page() { buffer = new uint8_t[PAGE_SIZE]; }
 
    Page(Page&& other) noexcept
