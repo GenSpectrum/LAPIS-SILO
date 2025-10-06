@@ -514,7 +514,8 @@ arrow::Result<arrow::acero::ExecNode*> Action::addZstdDecompressNode(
       SILO_ASSERT_GT(sum_of_reference_genome_sizes, 0u);
 
       // We aim for 64 MB batch size to give the plan time to apply backpressure
-      size_t maximum_batch_size = std::max(common::S_64_MB / sum_of_reference_genome_sizes, 1UL);
+      auto maximum_batch_size =
+         static_cast<int64_t>(std::max(common::S_64_MB / sum_of_reference_genome_sizes, 1UL));
 
       // Delay delivery of large number of batches to about 100 MB per second
       // A batch targets 64 MB, therefore we allow 1.5 batches per second.
