@@ -21,8 +21,8 @@ int Api::runApi(const silo::config::RuntimeConfig& runtime_config) {
 
    Poco::Net::ServerSocket server_socket;
    // Set timeouts to avoid hanging connections
-   server_socket.setReceiveTimeout(Poco::Timespan(30,0));
-   server_socket.setSendTimeout(Poco::Timespan(120,0));
+   server_socket.setReceiveTimeout(Poco::Timespan(30, 0));
+   server_socket.setSendTimeout(Poco::Timespan(120, 0));
    try {
       server_socket.bind(address, true);
       server_socket.listen();
@@ -34,10 +34,6 @@ int Api::runApi(const silo::config::RuntimeConfig& runtime_config) {
    }
 
    auto* const poco_parameter = new Poco::Net::HTTPServerParams;
-
-   poco_parameter->setKeepAlive(true);
-   // close idle connections after 10 seconds
-   poco_parameter->setKeepAliveTimeout(Poco::Timespan(10, 0));
 
    SPDLOG_INFO("Using {} queued http connections", runtime_config.api_options.max_connections);
    poco_parameter->setMaxQueued(runtime_config.api_options.max_connections);
