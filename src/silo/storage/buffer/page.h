@@ -13,7 +13,8 @@ class Page {
   public:
    uint8_t* buffer;
 
-   Page() { buffer = reinterpret_cast<uint8_t*>(malloc(PAGE_SIZE)); }
+   // On a failed allocation std::bad_alloc is thrown
+   Page() { buffer = new uint8_t[PAGE_SIZE]; }
 
    Page(Page&& other) noexcept
        : buffer(other.buffer) {
@@ -25,11 +26,7 @@ class Page {
       return *this;
    }
 
-   ~Page() {
-      if (buffer) {
-         free(buffer);
-      }
-   }
+   ~Page() { delete[] buffer; }
 
    Page(const Page& other) = delete;
    Page operator=(const Page& other) = delete;
