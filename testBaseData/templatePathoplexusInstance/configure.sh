@@ -65,7 +65,7 @@ config_file="${OUTDIR}/processing_config.yaml"
       echo "  - \"lineage_definition_${name}.yaml\""
     done
   fi
-  echo "referenceGenomeFilename: \"reference_genomes.json\""
+  echo "referenceGenomeFilename: \"reference_genome.json\""
 } > "$config_file"
 
 echo "Created ${config_file}"
