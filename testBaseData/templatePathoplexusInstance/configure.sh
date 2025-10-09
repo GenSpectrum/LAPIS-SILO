@@ -42,17 +42,13 @@ done
 # For v.0.9.0 and later, we need to refactor the database config to the new lineage definition format
 echo "Refactor database config to new lineage definition format ..."
 yq '
-.schema.metadata |= (
-  .[] 
-  | select(.generateLineageIndex != false)
-  | if .generateLineageIndex == true then
-      .generateLineageIndex = "lineage_definition_" + .name
-    else
-      .
-    end
-  | .
-) | [.] | flatten
+  # change true -> "lineage_definition_<name>"
+  (.schema.metadata[] | select(.generateLineageIndex == true or .generateLineageIndex == "true"))
+    |= (.generateLineageIndex = "lineage_definition_" + .name)
+  |
+  del(.schema.metadata[] | select(.generateLineageIndex == false or .generateLineageIndex == "false") | .generateLineageIndex)
 ' "${ORGANISM}/database_config.yaml" > "${ORGANISM}/database_config.modified.yaml"
+
 mv "${ORGANISM}/database_config.yaml" "${ORGANISM}/database_config.old.yaml"
 mv "${ORGANISM}/database_config.modified.yaml" "${ORGANISM}/database_config.yaml"
 
@@ -60,10 +56,10 @@ echo "Creating processing config ..."
 config_file="${OUTDIR}/processing_config.yaml"
 
 {
-  echo "inputDirectory: \"./\""
+  echo "inputDirectory: \".\""
   echo "outputDirectory: \"./output/\""
   echo "ndjsonInputFilename: \"get-released-data.transformed.ndjson.zst\""
-  if (( ${#names[@]} > 0 )); then
+  if (( $names > 0 )); then
     echo "lineageDefinitionFilenames:"
     for name in $names; do
       echo "  - \"lineage_definition_${name}.yaml\""

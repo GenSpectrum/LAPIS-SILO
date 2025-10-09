@@ -1,6 +1,8 @@
 # Template Pathoplexus Instance
 
-This is a config for reproducing the current Pathoplexus LAPIS-SILO instances locally or in a docker container using the latest LAPIS/SILO version. The script requires passing the Pathoplexus organism as an argument, it will create a folder <ORGANISM> with the config. Run the script with:
+This repo contains a script for reproducing the current Pathoplexus LAPIS, SILO instances locally or in a docker container using the latest LAPIS, SILO versions. The script requires passing the Pathoplexus organism name as an argument, it will create a folder <ORGANISM> with the configuration required to run SILO, LAPIS. 
+
+Run the script with:
 
 ```bash
 bash configure.sh <ORGANISM>
@@ -19,6 +21,10 @@ To run SILO and LAPIS in a docker container you can run:
 ```bash
 SILO_PORT=8093 LAPIS_PORT=8092 docker compose -f docker-compose.yml up
 ```
+If you only want to run SILO locally and have LAPIS in a container you can update the docker compose LAPIS instance to use `command: "--silo.url=http://host.docker.internal:${SILO_PORT}"`.
+
+### Testing
+
 To test the instance you can send LAPIS queries in the form of:
 
 ```
@@ -43,7 +49,7 @@ curl -X POST http://localhost:8093/query \
 
 To test thread-related issues it makes sense to limit the number of requests that can be handled by SILO using `--api-max-queued-http-connections` when running the SILO api.
 
-## Earlier SILO/LAPIS versions
+### Earlier SILO/LAPIS versions
 
 To use a version of SILO older than v0.9.0 use the `database_config.old.yaml` instead of the `database_config.yaml`, for versions older than v0.8 additionally use `get-released-data.ndjson.zst` instead of `get-released-data.modified.ndjson.zst`.
 
