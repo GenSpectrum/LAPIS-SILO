@@ -52,8 +52,8 @@ yq '
 mv "${ORGANISM}/database_config.yaml" "${ORGANISM}/database_config.old.yaml"
 mv "${ORGANISM}/database_config.modified.yaml" "${ORGANISM}/database_config.yaml"
 
-echo "Creating processing config ..."
-config_file="${OUTDIR}/processing_config.yaml"
+echo "Creating preprocessing config ..."
+config_file="${OUTDIR}/preprocessing_config.yaml"
 
 {
   echo "inputDirectory: \".\""
