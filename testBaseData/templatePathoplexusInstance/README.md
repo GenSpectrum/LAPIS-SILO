@@ -19,7 +19,7 @@ cd <ORGANISM>
 To run SILO and LAPIS in a docker container you can run:
 
 ```bash
-SILO_PORT=8093 LAPIS_PORT=8092 docker compose -f docker-compose.yml up
+SILO_TAG=latest LAPIS_TAG=latest SILO_PORT=8093 LAPIS_PORT=8092 docker compose -f docker_compose.yml up
 ```
 If you only want to run SILO locally and have LAPIS in a container you can update the docker compose LAPIS instance to use `command: "--silo.url=http://host.docker.internal:${SILO_PORT}"`.
 
