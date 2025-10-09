@@ -1,5 +1,6 @@
 # Template Pathoplexus Instance
 
+
 This repo contains a script for reproducing the current Pathoplexus LAPIS, SILO instances locally or in a docker container using the latest LAPIS, SILO versions. The script requires passing the Pathoplexus organism name as an argument, it will create a folder <ORGANISM> with the configuration required to run SILO, LAPIS. 
 
 Run the script with:
