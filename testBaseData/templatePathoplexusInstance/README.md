@@ -13,13 +13,13 @@ To run SILO locally using this configuration:
 ```bash
 cd <ORGANISM>
 ../../../build/Release/silo preprocessing --database-config database_config.yaml --preprocessing-config preprocessing_config.yaml
-../../../build/Release/silo api --api-port 8093
+../../../build/Release/silo api --api-port 8081
 ```
 
 To run SILO and LAPIS in a docker container you can run:
 
 ```bash
-SILO_TAG=latest LAPIS_TAG=latest SILO_PORT=8093 LAPIS_PORT=8092 docker compose -f docker_compose.yml up
+SILO_TAG=main LAPIS_TAG=main docker compose -f docker_compose.yml up
 ```
 If you only want to run SILO locally and have LAPIS in a container you can update the docker compose LAPIS instance to use `command: "--silo.url=http://host.docker.internal:${SILO_PORT}"`.
 
@@ -28,13 +28,13 @@ If you only want to run SILO locally and have LAPIS in a container you can updat
 To test the instance you can send LAPIS queries in the form of:
 
 ```
-curl http://localhost:8092/sample/unalignedNucleotideSequences
+curl http://localhost:8080/sample/unalignedNucleotideSequences
 ```
 
 and SILO queries in the form of:
 
 ```
-curl -X POST http://localhost:8093/query \
+curl -X POST http://localhost:8081/query \
   -H "Content-Type: application/json" \
   -d '{
       "action": {

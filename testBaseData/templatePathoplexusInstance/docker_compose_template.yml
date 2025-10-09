@@ -6,13 +6,11 @@ services:
     command: --silo.url=http://silo:8081
     volumes:
       - type: bind
-        source: ./database_config.json
+        source: ./database_config.yaml
         target: /workspace/database_config.yaml
-        read_only: true
       - type: bind
         source: ./reference_genomes.json
         target: /workspace/reference_genomes.json
-        read_only: true
 
   silo:
     image: ghcr.io/genspectrum/lapis-silo:${SILO_TAG}
@@ -29,8 +27,7 @@ services:
     image: ghcr.io/genspectrum/lapis-silo:${SILO_TAG}
     command: preprocessing
     volumes:
-      - .:/preprocessing/input
+      - ./:/preprocessing/input
       - ./output:/preprocessing/output
       - ./preprocessing_config.yaml:/app/preprocessing_config.yaml
-      - ./database_config.yaml:/preprocessing/input/database_config.yaml
 

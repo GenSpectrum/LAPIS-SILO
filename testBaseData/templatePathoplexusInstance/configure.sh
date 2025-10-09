@@ -27,7 +27,7 @@ curl -X 'GET' \
 echo "Fetching reference genome ..."
 curl -X 'GET' \
   "https://lapis.pathoplexus.org/${ORGANISM}/sample/referenceGenome?downloadAsFile=false" \
-  -H 'accept: application/json' -o "${ORGANISM}/reference_genome.json"
+  -H 'accept: application/json' -o "${ORGANISM}/reference_genomes.json"
 
 echo "Parse database config to see if lineage definitions are required ..."
 names=$(yq '.schema.metadata[] | select(.generateLineageIndex == true or .generateLineageIndex == "true") | .name' "${ORGANISM}/database_config.yaml")
@@ -65,7 +65,7 @@ config_file="${OUTDIR}/preprocessing_config.yaml"
       echo "  - \"lineage_definition_${name}.yaml\""
     done
   fi
-  echo "referenceGenomeFilename: \"reference_genome.json\""
+  echo "referenceGenomeFilename: \"reference_genomes.json\""
 } > "$config_file"
 
 echo "Created ${config_file}"
