@@ -14,7 +14,7 @@ To run SILO locally using this configuration:
 ```bash
 cd <ORGANISM>
 ../../../build/Release/silo preprocessing --database-config database_config.yaml --preprocessing-config preprocessing_config.yaml
-../../../build/Release/silo api --api-port 8081
+../../../build/Release/silo api --api-port 8091
 ```
 
 To run SILO and LAPIS in a docker container you can run:
@@ -29,13 +29,13 @@ If you only want to run SILO locally and have LAPIS in a container you can updat
 To test the instance you can send LAPIS queries in the form of:
 
 ```
-curl http://localhost:8080/sample/unalignedNucleotideSequences
+curl http://localhost:8090/sample/unalignedNucleotideSequences
 ```
 
 and SILO queries in the form of:
 
 ```
-curl -X POST http://localhost:8081/query \
+curl -X POST http://localhost:8091/query \
   -H "Content-Type: application/json" \
   -d '{
       "action": {
@@ -48,7 +48,7 @@ curl -X POST http://localhost:8081/query \
   }'
 ```
 
-To test thread-related issues it makes sense to limit the number of requests that can be handled by SILO using `--api-max-queued-http-connections` when running the SILO api.
+To test thread-related issues it makes sense to limit the number of requests that can be handled by SILO using `--api-threads-for-http-connections` when running the SILO api.
 
 ### Earlier SILO/LAPIS versions
 
