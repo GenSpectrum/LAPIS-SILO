@@ -14,22 +14,23 @@ curl -X 'GET' \
 
 # Run legacyNdjsonTransformer on data
 echo "Transforming data for ${ORGANISM} ..."
-cargo build --release --bin legacy-ndjson-transformer
-zstdcat "${ORGANISM}/get-released-data.ndjson.zst" | ./target/release/legacy-ndjson-transformer | zstd > "${ORGANISM}/get-released-data.transformed.ndjson.zst"
+zstdcat "${ORGANISM}/get-released-data.ndjson.zst" | \
+    "../../tools/legacyNdjsonTransformer/target/release/legacy-ndjson-transformer" | \
+    zstd > "${ORGANISM}/get-released-data.transformed.ndjson.zst"
 
 # Get config files from LAPIS
 echo "Fetching config files for ${ORGANISM} ..."
 echo "Fetching database config ..."
 curl -X 'GET' \
-  'https://lapis.pathoplexus.org/${ORGANISM}/sample/databaseConfig?downloadAsFile=false' \
-  -H 'accept: application/json' -o "${ORGANISM}/database_config.yaml"
+  "https://lapis.pathoplexus.org/${ORGANISM}/sample/databaseConfig?downloadAsFile=false" \
+  -H 'accept: application/yaml' -o "${ORGANISM}/database_config.yaml"
 echo "Fetching reference genome ..."
 curl -X 'GET' \
-  'https://lapis.pathoplexus.org/mpox/sample/referenceGenome?downloadAsFile=false' \
-  -H 'accept: application/json' -o "${ORGANISM}/reference_genome.yaml"
+  "https://lapis.pathoplexus.org/${ORGANISM}/sample/referenceGenome?downloadAsFile=false" \
+  -H 'accept: application/json' -o "${ORGANISM}/reference_genome.json"
 
 echo "Parse database config to see if lineage definitions are required ..."
-names=$(yq '.schema.metadata[] | select(.generateLineageIndex == true or .generateLineageIndex == "true") | .name' file.yaml)
+names=$(yq '.schema.metadata[] | select(.generateLineageIndex == true or .generateLineageIndex == "true") | .name' "${ORGANISM}/database_config.yaml")
 for name in $names; do
   echo "Fetching lineage definition for $name ..."
   curl -s -X 'GET' \
@@ -41,16 +42,16 @@ done
 # For v.0.9.0 and later, we need to refactor the database config to the new lineage definition format
 echo "Refactor database config to new lineage definition format ..."
 yq '
-.schema.metadata |=
-  [
-    .[] |
-    select(.generateLineageIndex != false) |
-    if .generateLineageIndex == true then
+.schema.metadata |= (
+  .[] 
+  | select(.generateLineageIndex != false)
+  | if .generateLineageIndex == true then
       .generateLineageIndex = "lineage_definition_" + .name
     else
       .
     end
-  ]
+  | .
+) | [.] | flatten
 ' "${ORGANISM}/database_config.yaml" > "${ORGANISM}/database_config.modified.yaml"
 mv "${ORGANISM}/database_config.yaml" "${ORGANISM}/database_config.old.yaml"
 mv "${ORGANISM}/database_config.modified.yaml" "${ORGANISM}/database_config.yaml"

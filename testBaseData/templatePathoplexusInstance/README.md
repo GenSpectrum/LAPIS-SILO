@@ -1,9 +1,9 @@
 # Template Pathoplexus Instance
 
-This is a config for reproducing the current Pathoplexus LAPIS-SILO instances locally or in a docker container using the latest LAPIS/SILO version. The script requires passing the Pathoplexus organism as an argument, it will create a folder <ORGANISM> with the config required to run
+This is a config for reproducing the current Pathoplexus LAPIS-SILO instances locally or in a docker container using the latest LAPIS/SILO version. The script requires passing the Pathoplexus organism as an argument, it will create a folder <ORGANISM> with the config. Run the script with:
 
 ```bash
-configure.sh <ORGANISM>
+bash configure.sh <ORGANISM>
 ```
 
 To run SILO locally using this configuration:
