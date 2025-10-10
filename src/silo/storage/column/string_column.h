@@ -99,6 +99,7 @@ class StringColumnPartition {
          return std::string{string_view};
       }
       std::string result{string.prefix()};
+      result.reserve(string.length());
 
       auto suffix_id = string.suffixId();
       vector::VariableDataRegistry::DataList suffix_chunks = variable_string_data.get(suffix_id);
