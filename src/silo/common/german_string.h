@@ -111,22 +111,8 @@ class GermanString {
       // Prefix matches, so we cannot decide without looking at the suffix
       return std::nullopt;
    }
-
-   bool operator==(const GermanString<I, suffix_id_type>& other) const {
-      return memcmp(this->data.data(), other.data.data(), I + sizeof(length_type)) == 0;
-   }
-
-   bool operator!=(const GermanString<I, suffix_id_type>& other) const { return !(*this == other); }
 };
 
 using SiloString = GermanString<12, storage::vector::VariableDataRegistry::Identifier>;
 
 }  // namespace silo
-
-template <size_t I, typename suffix_id_type>
-struct std::hash<silo::GermanString<I, suffix_id_type>> {
-   std::size_t operator()(const silo::GermanString<I, suffix_id_type>& str) const {
-      const std::string_view str_view(str.data.data(), str.data.size());
-      return std::hash<std::string_view>{}(str_view);
-   }
-};
