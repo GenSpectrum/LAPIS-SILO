@@ -9,7 +9,7 @@ mkdir -p "$OUTDIR"
 # Get data from Loculus backend
 echo "Fetching data for ${ORGANISM} ..."
 curl -X 'GET' \
-  'https://backend.pathoplexus.org/ebola-sudan/get-released-data?compression=ZSTD' \
+  'https://backend.pathoplexus.org/${ORGANISM}/get-released-data?compression=ZSTD' \
   -H 'accept: application/x-ndjson' -o "${ORGANISM}/get-released-data.ndjson.zst"
 
 # Run legacyNdjsonTransformer on data
