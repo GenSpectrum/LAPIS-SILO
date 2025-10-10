@@ -15,7 +15,7 @@ class CopyOnWriteBitmap {
 
   public:
    CopyOnWriteBitmap();
-   explicit CopyOnWriteBitmap(const roaring::Roaring& bitmap);
+   explicit CopyOnWriteBitmap(const roaring::Roaring* bitmap);
    explicit CopyOnWriteBitmap(roaring::Roaring&& bitmap);
 
    roaring::Roaring& operator*();

@@ -87,7 +87,9 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> LineageFilter::
    if (bitmap == std::nullopt) {
       return std::make_unique<operators::Empty>(table_partition.sequence_count);
    }
-   return std::make_unique<operators::IndexScan>(bitmap.value(), table_partition.sequence_count);
+   return std::make_unique<operators::IndexScan>(
+      CopyOnWriteBitmap{bitmap.value()}, table_partition.sequence_count
+   );
 }
 
 namespace {
