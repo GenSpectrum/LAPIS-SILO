@@ -6,6 +6,7 @@
 #include "silo/query_engine/filter/operators/index_scan.h"
 #include "silo/query_engine/query_compilation_exception.h"
 
+using silo::query_engine::CopyOnWriteBitmap;
 using silo::query_engine::filter::operators::IndexScan;
 using silo::query_engine::filter::operators::Operator;
 using silo::query_engine::filter::operators::Threshold;
@@ -19,7 +20,7 @@ OperatorVector generateTestInput(
 ) {
    OperatorVector result;
    std::ranges::transform(bitmaps, std::back_inserter(result), [&](const auto& bitmap) {
-      return std::make_unique<IndexScan>(&bitmap, row_count);
+      return std::make_unique<IndexScan>(CopyOnWriteBitmap{&bitmap}, row_count);
    });
    return result;
 }

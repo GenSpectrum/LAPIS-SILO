@@ -53,7 +53,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> FloatEquals::co
       );
    }
    return std::make_unique<operators::IndexScan>(
-      &float_column.null_bitmap, table_partition.sequence_count
+      CopyOnWriteBitmap{&float_column.null_bitmap}, table_partition.sequence_count
    );
 }
 

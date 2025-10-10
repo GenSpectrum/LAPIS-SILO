@@ -36,6 +36,8 @@ void QueryHandler::post(
    Poco::Net::HTTPServerResponse& response
 ) {
    EVOBENCH_SCOPE("QueryHandler", "post");
+
+   // This fixes the database to outlive the execution of the query
    const auto database = database_handle->getActiveDatabase();
 
    const auto request_id = response.get("X-Request-Id");

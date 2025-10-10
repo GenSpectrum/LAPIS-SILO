@@ -55,7 +55,7 @@ TEST(BatchedBitmapReader, batchesCorrectlyHundredsOfValues) {
    initial_bitmap.add(1002);
    initial_bitmap.add(1004);
 
-   CopyOnWriteBitmap bitmap{initial_bitmap};
+   CopyOnWriteBitmap bitmap{&initial_bitmap};
    BatchedBitmapReader under_test{bitmap, batch_size - 1};
 
    size_t expected_batches = (initial_bitmap.cardinality() + batch_size - 1) / batch_size;

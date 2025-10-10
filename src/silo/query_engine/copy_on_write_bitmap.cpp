@@ -10,9 +10,9 @@ CopyOnWriteBitmap::CopyOnWriteBitmap()
     : mutable_bitmap(std::make_shared<roaring::Roaring>()),
       immutable_bitmap(nullptr) {}
 
-CopyOnWriteBitmap::CopyOnWriteBitmap(const roaring::Roaring& bitmap)
+CopyOnWriteBitmap::CopyOnWriteBitmap(const roaring::Roaring* bitmap)
     : mutable_bitmap(nullptr),
-      immutable_bitmap(&bitmap) {}
+      immutable_bitmap(bitmap) {}
 
 CopyOnWriteBitmap::CopyOnWriteBitmap(roaring::Roaring&& bitmap)
     : mutable_bitmap(std::make_shared<roaring::Roaring>(std::move(bitmap))),

@@ -140,7 +140,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<Sy
       return std::make_unique<operators::Complement>(
          std::make_unique<operators::IndexScan>(
             std::move(logical_equivalent_of_nested_index_scan),
-            seq_store_partition.getBitmap(position_idx, symbol),
+            CopyOnWriteBitmap{seq_store_partition.getBitmap(position_idx, symbol)},
             table_partition.sequence_count
          ),
          table_partition.sequence_count
@@ -175,7 +175,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<Sy
       std::make_unique<SymbolEquals>(valid_sequence_name, position_idx, symbol);
    return std::make_unique<operators::IndexScan>(
       std::move(logical_equivalent),
-      seq_store_partition.getBitmap(position_idx, symbol),
+      CopyOnWriteBitmap{seq_store_partition.getBitmap(position_idx, symbol)},
       table_partition.sequence_count
    );
 }

@@ -71,7 +71,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> IntBetween::com
    if (predicates.empty()) {
       return std::make_unique<operators::Complement>(
          std::make_unique<operators::IndexScan>(
-            &int_column.null_bitmap, table_partition.sequence_count
+            CopyOnWriteBitmap{&int_column.null_bitmap}, table_partition.sequence_count
          ),
          table_partition.sequence_count
       );
