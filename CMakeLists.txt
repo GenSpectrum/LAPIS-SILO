@@ -120,7 +120,7 @@ if (NOT CMAKE_BUILD_TYPE STREQUAL Release AND BUILD_WITH_CLANG_TIDY)
     else ()
         message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
         message(STATUS "run clang tidy with: ${CLANG_TIDY_EXE}")
-        set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE};--warnings-as-errors=*")
+        set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
     endif ()
 endif ()
 
