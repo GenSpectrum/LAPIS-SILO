@@ -98,7 +98,9 @@ class StringColumnPartition {
          auto string_view = string.getShortString();
          return std::string{string_view};
       }
-      std::string result{string.prefix()};
+      std::string result;
+      result.reserve(string.length());
+      result += string.prefix();
 
       auto suffix_id = string.suffixId();
       vector::VariableDataRegistry::DataList suffix_chunks = variable_string_data.get(suffix_id);
