@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.9.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.0...v0.9.1) (2025-10-10)
+
+
+### Features
+
+* **silo:** address memory leak concerns ([#1008](https://github.com/GenSpectrum/LAPIS-SILO/issues/1008)) ([7359eea](https://github.com/GenSpectrum/LAPIS-SILO/commit/7359eeaf89ebf1a5e1e5316047d5c1d475576ce3))
+* **silo:** fix clang-tidy configs (no comment allowed in checks), error on warnings in CMake clang-tidy option ([#1009](https://github.com/GenSpectrum/LAPIS-SILO/issues/1009)) ([d5bbaba](https://github.com/GenSpectrum/LAPIS-SILO/commit/d5bbaba6fbe93a6af7751e562ec62dcf8a35f319))
+
+
+### Bug Fixes
+
+* **e2e:** remove obsolete version tag in docker compose files leading to warning ([5beabad](https://github.com/GenSpectrum/LAPIS-SILO/commit/5beabade64f6568293f60d197497067e3e974c63))
+
 ## [0.9.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.8.6...v0.9.0) (2025-10-03)
 
 
