@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <string>
 
@@ -16,37 +17,29 @@ class Expression;
 
 namespace silo::query_engine::filter::operators {
 
-class BitmapSelection : public Operator {
+class IsInCoveredRegion : public Operator {
    friend class Operator;
 
   public:
    enum Comparator { CONTAINS, NOT_CONTAINS };
 
   private:
-   std::optional<std::unique_ptr<silo::query_engine::filter::expressions::Expression>>
-      logical_equivalent;
-   const roaring::Roaring* bitmaps;
+   const std::vector<std::pair<size_t, size_t>>* covered_region_ranges;
+   const std::map<size_t, roaring::Roaring>* covered_region_bitmaps;
    uint32_t row_count;
    Comparator comparator;
    uint32_t value;
 
   public:
-   explicit BitmapSelection(
-      const roaring::Roaring* bitmaps,
+   explicit IsInCoveredRegion(
+      const std::vector<std::pair<size_t, size_t>>* covered_region_ranges,
+      const std::map<size_t, roaring::Roaring>* covered_region_bitmaps,
       uint32_t row_count,
       Comparator comparator,
       uint32_t value
    );
 
-   explicit BitmapSelection(
-      std::unique_ptr<silo::query_engine::filter::expressions::Expression>&& logical_equivalent,
-      const roaring::Roaring* bitmaps,
-      uint32_t row_count,
-      Comparator comparator,
-      uint32_t value
-   );
-
-   ~BitmapSelection() noexcept override;
+   ~IsInCoveredRegion() noexcept override;
 
    [[nodiscard]] virtual Type type() const override;
 
@@ -54,7 +47,7 @@ class BitmapSelection : public Operator {
 
    virtual std::string toString() const override;
 
-   static std::unique_ptr<Operator> negate(std::unique_ptr<BitmapSelection>&& bitmap_selection);
+   static std::unique_ptr<Operator> negate(std::unique_ptr<IsInCoveredRegion>&& bitmap_selection);
 };
 
 }  // namespace silo::query_engine::filter::operators
