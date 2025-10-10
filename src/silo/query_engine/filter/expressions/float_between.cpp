@@ -69,7 +69,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> FloatBetween::c
    if (predicates.empty()) {
       return std::make_unique<operators::Complement>(
          std::make_unique<operators::IndexScan>(
-            &float_column.null_bitmap, table_partition.sequence_count
+            CopyOnWriteBitmap{&float_column.null_bitmap}, table_partition.sequence_count
          ),
          table_partition.sequence_count
       );

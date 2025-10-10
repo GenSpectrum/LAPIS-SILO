@@ -15,7 +15,11 @@ class CopyOnWriteBitmap {
 
   public:
    CopyOnWriteBitmap();
-   explicit CopyOnWriteBitmap(const roaring::Roaring& bitmap);
+
+   // A CopyOnWriteBitmap pointing into an immutable bitmap should only be constructed
+   // when the CopyOnWriteBitmap's lifetime is contained by bitmap
+   explicit CopyOnWriteBitmap(const roaring::Roaring* bitmap);
+
    explicit CopyOnWriteBitmap(roaring::Roaring&& bitmap);
 
    roaring::Roaring& operator*();

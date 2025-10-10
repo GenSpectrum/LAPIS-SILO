@@ -13,17 +13,17 @@
 
 namespace silo::query_engine::filter::operators {
 
-IndexScan::IndexScan(const roaring::Roaring* bitmap, uint32_t row_count)
-    : bitmap(bitmap),
+IndexScan::IndexScan(CopyOnWriteBitmap bitmap, uint32_t row_count)
+    : bitmap(std::move(bitmap)),
       row_count(row_count) {}
 
 IndexScan::IndexScan(
    std::unique_ptr<query_engine::filter::expressions::Expression>&& logical_equivalent,
-   const roaring::Roaring* bitmap,
+   CopyOnWriteBitmap bitmap,
    uint32_t row_count
 )
     : logical_equivalent(std::move(logical_equivalent)),
-      bitmap(bitmap),
+      bitmap(std::move(bitmap)),
       row_count(row_count) {}
 
 IndexScan::~IndexScan() noexcept = default;
@@ -42,7 +42,7 @@ Type IndexScan::type() const {
 
 CopyOnWriteBitmap IndexScan::evaluate() const {
    EVOBENCH_SCOPE("IndexScan", "evaluate");
-   return CopyOnWriteBitmap(*bitmap);
+   return bitmap;
 }
 std::unique_ptr<Operator> IndexScan::negate(std::unique_ptr<IndexScan>&& index_scan) {
    const uint32_t row_count = index_scan->row_count;

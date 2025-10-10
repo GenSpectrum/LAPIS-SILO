@@ -21,15 +21,15 @@ class IndexScan : public Operator {
 
   private:
    std::optional<std::unique_ptr<query_engine::filter::expressions::Expression>> logical_equivalent;
-   const roaring::Roaring* bitmap;
+   CopyOnWriteBitmap bitmap;
    uint32_t row_count;
 
   public:
-   explicit IndexScan(const roaring::Roaring* bitmap, uint32_t row_count);
+   explicit IndexScan(CopyOnWriteBitmap bitmap, uint32_t row_count);
 
    explicit IndexScan(
       std::unique_ptr<query_engine::filter::expressions::Expression>&& logical_equivalent,
-      const roaring::Roaring* bitmap,
+      CopyOnWriteBitmap bitmap,
       uint32_t row_count
    );
 

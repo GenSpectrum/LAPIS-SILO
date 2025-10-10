@@ -21,7 +21,6 @@
 
 #include "evobench/evobench.hpp"
 #include "silo/preprocessing/preprocessing_exception.h"
-#include "silo/query_engine/bad_request.h"
 
 namespace silo::common {
 using silo::common::TreeNodeId;
