@@ -18,7 +18,7 @@
 #include "evobench/evobench.hpp"
 #include "silo/common/fmt_formatters.h"
 #include "silo/persistence/exception.h"
-#include "silo/roaring/roaring_serialize.h"
+#include "silo/roaring_util/roaring_serialize.h"
 #include "silo/schema/duplicate_primary_key_exception.h"
 
 namespace silo::storage {

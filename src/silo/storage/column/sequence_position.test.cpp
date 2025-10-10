@@ -10,7 +10,7 @@
 #include <boost/serialization/optional.hpp>
 
 #include "silo/database.h"
-#include "silo/roaring/roaring_serialize.h"
+#include "silo/roaring_util/roaring_serialize.h"
 
 using silo::Nucleotide;
 using silo::storage::column::SequencePosition;
