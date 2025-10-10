@@ -22,6 +22,7 @@ fi
 echo "Changed files:"
 echo "$files"
 docker run --rm \
+  -v "$(pwd)/.clang-tidy:/src/.clang-tidy" \
   -v "$(pwd)/performance:/src/performance" \
   -v "$(pwd)/src:/src/src" \
   -v "$(pwd)/CMakeLists.txt:/src/CMakeLists.txt" \
