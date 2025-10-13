@@ -9,28 +9,28 @@ mkdir -p "$OUTDIR"
 # Get data from Loculus backend
 echo "Fetching data for ${ORGANISM} ..."
 curl -X 'GET' \
-  'https://backend.pathoplexus.org/${ORGANISM}/get-released-data?compression=ZSTD' \
-  -H 'accept: application/x-ndjson' -o "${ORGANISM}/get-released-data.ndjson.zst"
+  "https://backend.pathoplexus.org/${ORGANISM}/get-released-data?compression=ZSTD" \
+  -H 'accept: application/x-ndjson' -o "${OUTDIR}/get-released-data.ndjson.zst"
 
 # Run legacyNdjsonTransformer on data
 echo "Transforming data for ${ORGANISM} ..."
-zstdcat "${ORGANISM}/get-released-data.ndjson.zst" | \
-    "../../tools/legacyNdjsonTransformer/target/release/legacy-ndjson-transformer" | \
-    zstd > "${ORGANISM}/get-released-data.transformed.ndjson.zst"
+zstdcat "${OUTDIR}/get-released-data.ndjson.zst" | \
+    "../legacyNdjsonTransformer/target/release/legacy-ndjson-transformer" | \
+    zstd > "${OUTDIR}/get-released-data.transformed.ndjson.zst"
 
 # Get config files from LAPIS
 echo "Fetching config files for ${ORGANISM} ..."
 echo "Fetching database config ..."
 curl -X 'GET' \
   "https://lapis.pathoplexus.org/${ORGANISM}/sample/databaseConfig?downloadAsFile=false" \
-  -H 'accept: application/yaml' -o "${ORGANISM}/database_config.yaml"
+  -H 'accept: application/yaml' -o "${OUTDIR}/database_config.yaml"
 echo "Fetching reference genome ..."
 curl -X 'GET' \
   "https://lapis.pathoplexus.org/${ORGANISM}/sample/referenceGenome?downloadAsFile=false" \
-  -H 'accept: application/json' -o "${ORGANISM}/reference_genomes.json"
+  -H 'accept: application/json' -o "${OUTDIR}/reference_genomes.json"
 
 echo "Parse database config to see if lineage definitions are required ..."
-names=$(yq '.schema.metadata[] | select(.generateLineageIndex == true or .generateLineageIndex == "true") | .name' "${ORGANISM}/database_config.yaml")
+names=$(yq '.schema.metadata[] | select(.generateLineageIndex == true or .generateLineageIndex == "true") | .name' "${OUTDIR}/database_config.yaml")
 for name in $names; do
   echo "Fetching lineage definition for $name ..."
   curl -s -X 'GET' \
@@ -47,10 +47,10 @@ yq '
     |= (.generateLineageIndex = "lineage_definition_" + .name)
   |
   del(.schema.metadata[] | select(.generateLineageIndex == false or .generateLineageIndex == "false") | .generateLineageIndex)
-' "${ORGANISM}/database_config.yaml" > "${ORGANISM}/database_config.modified.yaml"
+' "${OUTDIR}/database_config.yaml" > "${OUTDIR}/database_config.modified.yaml"
 
-mv "${ORGANISM}/database_config.yaml" "${ORGANISM}/database_config.old.yaml"
-mv "${ORGANISM}/database_config.modified.yaml" "${ORGANISM}/database_config.yaml"
+mv "${OUTDIR}/database_config.yaml" "${OUTDIR}/database_config.old.yaml"
+mv "${OUTDIR}/database_config.modified.yaml" "${OUTDIR}/database_config.yaml"
 
 echo "Creating preprocessing config ..."
 config_file="${OUTDIR}/preprocessing_config.yaml"
@@ -59,7 +59,7 @@ config_file="${OUTDIR}/preprocessing_config.yaml"
   echo "inputDirectory: \".\""
   echo "outputDirectory: \"./output/\""
   echo "ndjsonInputFilename: \"get-released-data.transformed.ndjson.zst\""
-  if (( $names > 0 )); then
+  if [[ -n "$names" ]]; then
     echo "lineageDefinitionFilenames:"
     for name in $names; do
       echo "  - \"lineage_definition_${name}.yaml\""
