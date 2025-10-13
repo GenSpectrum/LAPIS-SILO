@@ -13,10 +13,25 @@ endif
 # Our custom parameters (the shared ones, there can be more checks in
 # the `Makefile_*` files):
 
-# The name of a subfolder of `~/silo-benchmark-datasets/` where the
-# dataset is stored
+# The name of a subfolder of the setting in
+# `versioned_datasets_base_dir`, where the versioned datasets are
+# stored; in spite of `DATASET_DIR` below having the full path, we
+# still also use this dataset name, thus require it to be set
+# (guaranteed when running via evobench-run, but not when running
+# manually).
 ifeq ($(DATASET),)
 $(error "DATASET must be a subfolder name, got '$(DATASET)'")
+endif
+
+# Set by `evobench-run run`--chosen according to the optional
+# `versioned_datasets_base_dir` setting in `evobench-run.ron`, the
+# value of the `DATASET` custom variable, the current commit id, and
+# the names of the subdirectories of `DATASET_DIR` representing git
+# revision names. See documentation in the `evobench-run.ron` file,
+# and [Offer dataset versioning
+# #32](https://github.com/GenSpectrum/evobench/issues/32).
+ifeq ($(DATASET_DIR),)
+$(error "DATASET_DIR must be the path to the appropriate dataset folder")
 endif
 
 # Should sorted input be used?
@@ -35,9 +50,6 @@ export OUTPUT_DIR
 
 
 # ---- General -----------------------------------------------------------------
-
-DATASET_DIR=$(HOME)/silo-benchmark-datasets/$(DATASET)
-export DATASET_DIR
 
 SILO_PREPROCESSING_CONFIG=$(DATASET_DIR)/preprocessing_config.yaml
 export SILO_PREPROCESSING_CONFIG
