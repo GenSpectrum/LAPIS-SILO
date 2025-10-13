@@ -12,7 +12,7 @@ bash configure.sh <ORGANISM>
 To run SILO locally using this configuration:
 
 ```bash
-cd <ORGANISM>
+cd ../../testBaseData/ppxData/<ORGANISM>
 ../../../build/Release/silo preprocessing --database-config database_config.yaml --preprocessing-config preprocessing_config.yaml
 ../../../build/Release/silo api --api-port 8091
 ```
