@@ -36,10 +36,7 @@ a server on
     `evobench-run config-formats` to see which, and `evobench-run
     config-save` to recode an already-placed file.)
 
- 1. Make sure that you have a folder
-    `~/silo-benchmark-datasets/$DATASET` (where `$DATASET` is the
-    value of the `DATASET` setting in the `~/.evobench-run.ron` file
-    that you use, with these files (or symlinks to them):
+ 1. Make sure that you have dataset folders as configured in the evobench config file (`evobench-run.ron`); see [Offer dataset versioning #32](https://github.com/GenSpectrum/evobench/issues/32) for the required folder structure. Each versioned dataset folder needs these files (or symlinks to them):
 
         database_config.yaml
         input_file.ndjson.zst
@@ -48,10 +45,6 @@ a server on
         silo_queries.ndjson
 
         possibly: lineage_definitions.yaml
-
-    Currently, get these files from gs-staging-1, or when running
-    there, use the folder `~christian/silo-benchmark-datasets` (it is
-    planned to fetch these via S3 in the future).
 
  1. Run an instance of a daemon, `evobench-run --verbose run daemon`
     (the `--verbose` allows you to see what's going on, feel free to
