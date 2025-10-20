@@ -217,7 +217,10 @@ void assertPrimaryKeyOfTypeString(const silo::config::DatabaseConfig& database_c
    );
    auto primary_key_type = primary_key_metadata->getColumnType();
    if (primary_key_type != schema::ColumnType::STRING) {
-      throw silo::initialize::InitializeException("The primary key must be of type STRING.");
+      throw silo::initialize::InitializeException(
+         "The primary key must be of type STRING but it is of type {}",
+         columnTypeToString(primary_key_type)
+      );
    }
 }
 
