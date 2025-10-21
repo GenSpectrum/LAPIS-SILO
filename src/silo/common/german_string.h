@@ -66,13 +66,6 @@ class GermanString {
       std::memcpy(data.data() + PREFIX_START, short_string.data(), short_string_length);
    }
 
-   std::string dataAsHexString() const {
-      std::stringstream sstream;
-      sstream << "0x" << std::setfill('0') << std::setw(static_cast<int>(data.size() * 2))
-              << std::hex << data.data();
-      return sstream.str();
-   }
-
    inline length_type length() const { return *reinterpret_cast<const length_type*>(data.data()); }
 
    inline bool isInPlace() const { return length() <= I; }
