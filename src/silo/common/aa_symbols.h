@@ -34,15 +34,18 @@ class AminoAcid {
       L,     // Leucine
       M,     // Methionine
       N,     // Asparagine
+      O,     // Pyrrolysine
       P,     // Proline
       Q,     // Glutamine
       R,     // Arginine
       S,     // Serine
       T,     // Threonine
+      U,     // Selenocysteine
       V,     // Valine
       W,     // Tryptophan
       Y,     // Tyrosine
       B,     // Aspartic acid or Asparagine
+      J,     // Leucine or Isoleucine
       Z,     // Glutamine or Glutamic acid
       STOP,  // Stop codon
       X,     // Any amino acid
@@ -51,48 +54,52 @@ class AminoAcid {
    static constexpr schema::ColumnType COLUMN_TYPE = schema::ColumnType::AMINO_ACID_SEQUENCE;
    using Column = storage::column::SequenceColumnPartition<AminoAcid>;
 
-   static constexpr uint32_t COUNT = 25;
+   static constexpr uint32_t COUNT = 28;
+   static_assert(COUNT == static_cast<uint32_t>(Symbol::X) + 1);
 
    static constexpr std::string_view SYMBOL_NAME = "AminoAcid";
    static constexpr std::string_view SYMBOL_NAME_LOWER_CASE = "amino acid";
    static constexpr std::string_view PREFIX = "aa_";
 
    static constexpr std::array<Symbol, COUNT> SYMBOLS{
-      Symbol::GAP, Symbol::A, Symbol::C, Symbol::D,    Symbol::E, Symbol::F, Symbol::G,
-      Symbol::H,   Symbol::I, Symbol::K, Symbol::L,    Symbol::M, Symbol::N, Symbol::P,
-      Symbol::Q,   Symbol::R, Symbol::S, Symbol::T,    Symbol::V, Symbol::W, Symbol::Y,
-      Symbol::B,   Symbol::Z, Symbol::X, Symbol::STOP,
+      Symbol::GAP, Symbol::A, Symbol::C, Symbol::D, Symbol::E, Symbol::F,    Symbol::G,
+      Symbol::H,   Symbol::I, Symbol::K, Symbol::L, Symbol::M, Symbol::N,    Symbol::O,
+      Symbol::P,   Symbol::Q, Symbol::R, Symbol::S, Symbol::T, Symbol::U,    Symbol::V,
+      Symbol::W,   Symbol::Y, Symbol::B, Symbol::J, Symbol::Z, Symbol::STOP, Symbol::X,
    };
 
-   static constexpr std::array<Symbol, 22> VALID_MUTATION_SYMBOLS{
-      AminoAcid::Symbol::GAP,   // Gap, deletion in sequence
-      AminoAcid::Symbol::A,     // Alanine
-      AminoAcid::Symbol::C,     // Cysteine
-      AminoAcid::Symbol::D,     // Aspartic Acid
-      AminoAcid::Symbol::E,     // Glutamic Acid
-      AminoAcid::Symbol::F,     // Phenylalanine
-      AminoAcid::Symbol::G,     // Glycine
-      AminoAcid::Symbol::H,     // Histidine
-      AminoAcid::Symbol::I,     // Isoleucine
-      AminoAcid::Symbol::K,     // Lysine
-      AminoAcid::Symbol::L,     // Leucine
-      AminoAcid::Symbol::M,     // Methionine
-      AminoAcid::Symbol::N,     // Asparagine
-      AminoAcid::Symbol::P,     // Proline
-      AminoAcid::Symbol::Q,     // Glutamine
-      AminoAcid::Symbol::R,     // Arginine
-      AminoAcid::Symbol::S,     // Serine
-      AminoAcid::Symbol::T,     // Threonine
-      AminoAcid::Symbol::V,     // Valine
-      AminoAcid::Symbol::W,     // Tryptophan
-      AminoAcid::Symbol::Y,     // Tyrosine
-      AminoAcid::Symbol::STOP,  // Stop codon, Star-character in sequence
+   static constexpr std::array<Symbol, 24> VALID_MUTATION_SYMBOLS{
+      Symbol::GAP,   // Gap, deletion in sequence
+      Symbol::A,     // Alanine
+      Symbol::C,     // Cysteine
+      Symbol::D,     // Aspartic Acid
+      Symbol::E,     // Glutamic Acid
+      Symbol::F,     // Phenylalanine
+      Symbol::G,     // Glycine
+      Symbol::H,     // Histidine
+      Symbol::I,     // Isoleucine
+      Symbol::K,     // Lysine
+      Symbol::L,     // Leucine
+      Symbol::M,     // Methionine
+      Symbol::N,     // Asparagine
+      Symbol::O,     // Pyrrolysine
+      Symbol::P,     // Proline
+      Symbol::Q,     // Glutamine
+      Symbol::R,     // Arginine
+      Symbol::S,     // Serine
+      Symbol::T,     // Threonine
+      Symbol::U,     // Selenocysteine
+      Symbol::V,     // Valine
+      Symbol::W,     // Tryptophan
+      Symbol::Y,     // Tyrosine
+      Symbol::STOP,  // Stop codon, Star-character in sequence
    };
 
-   static constexpr std::array<Symbol, 3> INVALID_MUTATION_SYMBOLS{
-      AminoAcid::Symbol::B,  // Aspartic acid or Asparagine
-      AminoAcid::Symbol::Z,  // Glutamine or Glutamic acid
-      AminoAcid::Symbol::X,  // Any amino acid
+   static constexpr std::array<Symbol, 4> INVALID_MUTATION_SYMBOLS{
+      Symbol::B,  // Aspartic acid or Asparagine
+      Symbol::J,  // Leucine or Isoleucine
+      Symbol::Z,  // Glutamine or Glutamic acid
+      Symbol::X,  // Any amino acid
    };
 
    static_assert(INVALID_MUTATION_SYMBOLS.size() + VALID_MUTATION_SYMBOLS.size() == SYMBOLS.size());
@@ -103,55 +110,61 @@ class AminoAcid {
 
    static inline char symbolToChar(AminoAcid::Symbol symbol) {
       switch (symbol) {
-         case AminoAcid::Symbol::GAP:
+         case Symbol::GAP:
             return '-';
-         case AminoAcid::Symbol::A:
+         case Symbol::A:
             return 'A';
-         case AminoAcid::Symbol::C:
+         case Symbol::C:
             return 'C';
-         case AminoAcid::Symbol::D:
+         case Symbol::D:
             return 'D';
-         case AminoAcid::Symbol::E:
+         case Symbol::E:
             return 'E';
-         case AminoAcid::Symbol::F:
+         case Symbol::F:
             return 'F';
-         case AminoAcid::Symbol::G:
+         case Symbol::G:
             return 'G';
-         case AminoAcid::Symbol::H:
+         case Symbol::H:
             return 'H';
-         case AminoAcid::Symbol::I:
+         case Symbol::I:
             return 'I';
-         case AminoAcid::Symbol::K:
+         case Symbol::K:
             return 'K';
-         case AminoAcid::Symbol::L:
+         case Symbol::L:
             return 'L';
-         case AminoAcid::Symbol::N:
+         case Symbol::N:
             return 'N';
-         case AminoAcid::Symbol::M:
+         case Symbol::M:
             return 'M';
-         case AminoAcid::Symbol::P:
+         case Symbol::O:
+            return 'O';
+         case Symbol::P:
             return 'P';
-         case AminoAcid::Symbol::Q:
+         case Symbol::Q:
             return 'Q';
-         case AminoAcid::Symbol::R:
+         case Symbol::R:
             return 'R';
-         case AminoAcid::Symbol::S:
+         case Symbol::S:
             return 'S';
-         case AminoAcid::Symbol::T:
+         case Symbol::T:
             return 'T';
-         case AminoAcid::Symbol::V:
+         case Symbol::U:
+            return 'U';
+         case Symbol::V:
             return 'V';
-         case AminoAcid::Symbol::W:
+         case Symbol::W:
             return 'W';
-         case AminoAcid::Symbol::Y:
+         case Symbol::Y:
             return 'Y';
-         case AminoAcid::Symbol::B:
+         case Symbol::B:
             return 'B';
-         case AminoAcid::Symbol::Z:
+         case Symbol::J:
+            return 'J';
+         case Symbol::Z:
             return 'Z';
-         case AminoAcid::Symbol::X:
+         case Symbol::X:
             return 'X';
-         case AminoAcid::Symbol::STOP:
+         case Symbol::STOP:
             return '*';
       }
       SILO_UNREACHABLE();
@@ -160,78 +173,87 @@ class AminoAcid {
    static inline std::optional<AminoAcid::Symbol> charToSymbol(char character) {
       switch (character) {
          case '-':
-            return AminoAcid::Symbol::GAP;
+            return Symbol::GAP;
          case 'A':
          case 'a':
-            return AminoAcid::Symbol::A;
+            return Symbol::A;
          case 'C':
          case 'c':
-            return AminoAcid::Symbol::C;
+            return Symbol::C;
          case 'D':
          case 'd':
-            return AminoAcid::Symbol::D;
+            return Symbol::D;
          case 'E':
          case 'e':
-            return AminoAcid::Symbol::E;
+            return Symbol::E;
          case 'F':
          case 'f':
-            return AminoAcid::Symbol::F;
+            return Symbol::F;
          case 'G':
          case 'g':
-            return AminoAcid::Symbol::G;
+            return Symbol::G;
          case 'H':
          case 'h':
-            return AminoAcid::Symbol::H;
+            return Symbol::H;
          case 'I':
          case 'i':
-            return AminoAcid::Symbol::I;
+            return Symbol::I;
          case 'K':
          case 'k':
-            return AminoAcid::Symbol::K;
+            return Symbol::K;
          case 'L':
          case 'l':
-            return AminoAcid::Symbol::L;
-         case 'N':
-         case 'n':
-            return AminoAcid::Symbol::N;
+            return Symbol::L;
          case 'M':
          case 'm':
-            return AminoAcid::Symbol::M;
+            return Symbol::M;
+         case 'N':
+         case 'n':
+            return Symbol::N;
+         case 'O':
+         case 'o':
+            return Symbol::O;
          case 'P':
          case 'p':
-            return AminoAcid::Symbol::P;
+            return Symbol::P;
          case 'Q':
          case 'q':
-            return AminoAcid::Symbol::Q;
+            return Symbol::Q;
          case 'R':
          case 'r':
-            return AminoAcid::Symbol::R;
+            return Symbol::R;
          case 'S':
          case 's':
-            return AminoAcid::Symbol::S;
+            return Symbol::S;
          case 'T':
          case 't':
-            return AminoAcid::Symbol::T;
+            return Symbol::T;
+         case 'U':
+         case 'u':
+            return Symbol::U;
          case 'V':
          case 'v':
-            return AminoAcid::Symbol::V;
+            return Symbol::V;
          case 'W':
          case 'w':
-            return AminoAcid::Symbol::W;
+            return Symbol::W;
          case 'Y':
          case 'y':
-            return AminoAcid::Symbol::Y;
+            return Symbol::Y;
          case 'B':
          case 'b':
-            return AminoAcid::Symbol::B;
+            return Symbol::B;
+         case 'J':
+         case 'j':
+            return Symbol::J;
          case 'Z':
          case 'z':
-            return AminoAcid::Symbol::Z;
+            return Symbol::Z;
          case 'X':
          case 'x':
-            return AminoAcid::Symbol::X;
+            return Symbol::X;
          case '*':
-            return AminoAcid::Symbol::STOP;
+            return Symbol::STOP;
          default:
             return std::nullopt;
       }
