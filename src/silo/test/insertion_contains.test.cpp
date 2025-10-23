@@ -18,8 +18,12 @@ nlohmann::json createDataWithNucleotideInsertions(
 ) {
    return {
       {"primaryKey", primaryKey},
-      {"segment1", {{"sequence", ""}, {"insertions", nucleotideInsertionsSegment1}}},
-      {"segment2", {{"sequence", ""}, {"insertions", nucleotideInsertionsSegment2}}},
+      {"segment1",
+       {{"sequence", "AAAACCCCGGGGTTTTAAAACCCCGGGGTTTT"},
+        {"insertions", nucleotideInsertionsSegment1}}},
+      {"segment2",
+       {{"sequence", "CCCCGGGGTTTTAAAACCCCGGGGTTTTAAAA"},
+        {"insertions", nucleotideInsertionsSegment2}}},
       {"unaligned_segment1", nullptr},
       {"unaligned_segment2", nullptr},
       {"gene1", nullptr}
@@ -27,10 +31,10 @@ nlohmann::json createDataWithNucleotideInsertions(
 }
 
 const std::vector<nlohmann::json> DATA = {
-   createDataWithNucleotideInsertions("id_0", {"123:A"}, {}),
-   createDataWithNucleotideInsertions("id_1", {"123:A"}, {}),
-   createDataWithNucleotideInsertions("id_2", {"234:TT"}, {}),
-   createDataWithNucleotideInsertions("id_3", {"123:CCC"}, {}),
+   createDataWithNucleotideInsertions("id_0", {"12:A"}, {}),
+   createDataWithNucleotideInsertions("id_1", {"12:A"}, {}),
+   createDataWithNucleotideInsertions("id_2", {"23:TT"}, {}),
+   createDataWithNucleotideInsertions("id_3", {"12:CCC"}, {}),
 };
 
 const auto DATABASE_CONFIG =
@@ -45,7 +49,8 @@ schema:
 )";
 
 const auto REFERENCE_GENOMES = ReferenceGenomes{
-   {{"segment1", "A"}, {"segment2", "T"}},
+   {{"segment1", "AAAACCCCGGGGTTTTAAAACCCCGGGGTTTT"},
+    {"segment2", "CCCCGGGGTTTTAAAACCCCGGGGTTTTAAAA"}},
    {{"gene1", "*"}},
 };
 
@@ -86,23 +91,40 @@ nlohmann::json createInsertionContainsQueryWithEmptySequenceName(
 }
 
 const QueryTestScenario INSERTION_CONTAINS_SCENARIO = {
-   .name = "insertionContains",
-   .query = createInsertionContainsQuery("segment1", 123, "A"),
+   .name = "INSERTION_CONTAINS_SCENARIO",
+   .query = createInsertionContainsQuery("segment1", 12, "A"),
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}, {{"primaryKey", "id_1"}}})
 };
 
 const QueryTestScenario INSERTION_CONTAINS_WITH_EMPTY_SEGMENT_SCENARIO = {
-   .name = "insertionContainsWithNullSegmentDefaultsToDefaultSegment",
-   .query = createInsertionContainsQueryWithEmptySequenceName(123, "A"),
+   .name = "INSERTION_CONTAINS_WITH_EMPTY_SEGMENT_SCENARIO",
+   .query = createInsertionContainsQueryWithEmptySequenceName(12, "A"),
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}, {{"primaryKey", "id_1"}}})
 };
 
 const QueryTestScenario INSERTION_CONTAINS_WITH_UNKNOWN_SEGMENT_SCENARIO = {
-   .name = "insertionContainsWithUnknownSegment",
-   .query = createInsertionContainsQuery("unknownSegmentName", 123, "A"),
+   .name = "INSERTION_CONTAINS_WITH_UNKNOWN_SEGMENT_SCENARIO",
+   .query = createInsertionContainsQuery("unknownSegmentName", 12, "A"),
    .expected_error_message =
       "Database does not contain the Nucleotide Sequence with name: 'unknownSegmentName'"
 };
+
+const QueryTestScenario INSERTION_CONTAINS_POSITION_OUT_OF_RANGE = {
+   .name = "INSERTION_CONTAINS_POSITION_OUT_OF_RANGE",
+   .query = createInsertionContainsQuery("segment2", 100, "A"),
+   .expected_error_message =
+      "the requested insertion position (100) is larger than the length of the reference sequence "
+      "(32) for sequence 'segment2'"
+};
+
+const QueryTestScenario INSERTION_CONTAINS_POSITION_OUT_OF_RANGE_DEFAULT_SEQUENCE = {
+   .name = "INSERTION_CONTAINS_POSITION_OUT_OF_RANGE_DEFAULT_SEQUENCE",
+   .query = createInsertionContainsQueryWithEmptySequenceName(100, "A"),
+   .expected_error_message =
+      "the requested insertion position (100) is larger than the length of the reference sequence "
+      "(32) for sequence 'segment1'"
+};
+
 }  // namespace
 QUERY_TEST(
    InsertionContainsTest,
@@ -110,6 +132,8 @@ QUERY_TEST(
    ::testing::Values(
       INSERTION_CONTAINS_SCENARIO,
       INSERTION_CONTAINS_WITH_EMPTY_SEGMENT_SCENARIO,
-      INSERTION_CONTAINS_WITH_UNKNOWN_SEGMENT_SCENARIO
+      INSERTION_CONTAINS_WITH_UNKNOWN_SEGMENT_SCENARIO,
+      INSERTION_CONTAINS_POSITION_OUT_OF_RANGE,
+      INSERTION_CONTAINS_POSITION_OUT_OF_RANGE_DEFAULT_SEQUENCE
    )
 );

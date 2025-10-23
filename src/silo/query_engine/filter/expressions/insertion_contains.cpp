@@ -54,10 +54,6 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> InsertionContai
       const storage::TablePartition& table_partition,
       Expression::AmbiguityMode /*mode*/
    ) const {
-   if (table_partition.columns.getColumns<typename SymbolType::Column>().empty()) {
-      return std::make_unique<operators::Empty>(table_partition.sequence_count);
-   }
-
    const auto valid_sequence_name =
       validateSequenceNameOrGetDefault<SymbolType>(sequence_name, table.schema);
 
@@ -66,6 +62,15 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> InsertionContai
 
    const storage::column::SequenceColumnPartition<SymbolType>& sequence_store =
       sequence_stores.at(valid_sequence_name);
+   const size_t reference_sequence_size = sequence_store.metadata->reference_sequence.size();
+   CHECK_SILO_QUERY(
+      position_idx <= reference_sequence_size,
+      "the requested insertion position ({}) is larger than the length of the reference sequence "
+      "({}) for sequence '{}'",
+      position_idx,
+      reference_sequence_size,
+      valid_sequence_name
+   );
    return std::make_unique<operators::BitmapProducer>(
       [&]() {
          try {
