@@ -22,16 +22,17 @@ nlohmann::json createDataWithAminoAcidInsertions(
       {"segment2", nullptr},
       {"unaligned_segment1", nullptr},
       {"unaligned_segment2", nullptr},
-      {"gene1", {{"sequence", ""}, {"insertions", aminoAcidInsertionsGene1}}},
-      {"gene2", {{"sequence", ""}, {"insertions", aminoAcidInsertionsGene2}}}
+      {"gene1", {{"sequence", "ABCDEFGHIKLMNPQRSTVWYZ*"}, {"insertions", aminoAcidInsertionsGene1}}
+      },
+      {"gene2", {{"sequence", "ABCDEFGHIKLMNPQRSTVWYZ*"}, {"insertions", aminoAcidInsertionsGene2}}}
    };
 }
 
 const std::vector<nlohmann::json> DATA = {
-   createDataWithAminoAcidInsertions("id_0", {"123:A"}, nlohmann::json::array()),
-   createDataWithAminoAcidInsertions("id_1", {"123:A"}, nlohmann::json::array()),
-   createDataWithAminoAcidInsertions("id_2", {"234:BB"}, nlohmann::json::array()),
-   createDataWithAminoAcidInsertions("id_3", {"123:CCC"}, nlohmann::json::array()),
+   createDataWithAminoAcidInsertions("id_0", {"12:A"}, nlohmann::json::array()),
+   createDataWithAminoAcidInsertions("id_1", {"12:A"}, nlohmann::json::array()),
+   createDataWithAminoAcidInsertions("id_2", {"23:BB"}, nlohmann::json::array()),
+   createDataWithAminoAcidInsertions("id_3", {"12:CCC"}, nlohmann::json::array()),
 };
 
 const auto DATABASE_CONFIG =
@@ -47,7 +48,7 @@ schema:
 
 const auto REFERENCE_GENOMES = ReferenceGenomes{
    {{"segment1", "A"}, {"segment2", "T"}},
-   {{"gene1", "*"}, {"gene2", "*"}},
+   {{"gene1", "ABCDEFGHIKLMNPQRSTVWYZ*"}, {"gene2", "ABCDEFGHIKLMNPQRSTVWYZ*"}},
 };
 
 const QueryTestData TEST_DATA{
@@ -88,13 +89,13 @@ nlohmann::json createAminoAcidInsertionContainsQueryWithEmptySequenceName(
 
 const QueryTestScenario AMINO_ACID_INSERTION_CONTAINS_SCENARIO = {
    .name = "aminoAcidInsertionContains",
-   .query = createAminoAcidInsertionContainsQuery("gene1", 123, "A"),
+   .query = createAminoAcidInsertionContainsQuery("gene1", 12, "A"),
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}, {{"primaryKey", "id_1"}}})
 };
 
 const QueryTestScenario AMINO_ACID_INSERTION_CONTAINS_WITH_NULL_SEGMENT_SCENARIO = {
    .name = "aminoAcidInsertionWithNullSegment",
-   .query = createAminoAcidInsertionContainsQueryWithEmptySequenceName(123, "A"),
+   .query = createAminoAcidInsertionContainsQueryWithEmptySequenceName(12, "A"),
    .expected_error_message = "The database has no default amino acid sequence name",
 };
 

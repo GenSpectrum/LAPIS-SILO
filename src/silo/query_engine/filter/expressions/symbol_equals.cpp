@@ -92,7 +92,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<Sy
       getFilterName(),
       position_idx + 1,
       seq_store_partition.metadata->reference_sequence.size()
-   )
+   );
 
    auto symbol = value.getSymbolOrReplaceDotWith(
       seq_store_partition.metadata->reference_sequence.at(position_idx)
