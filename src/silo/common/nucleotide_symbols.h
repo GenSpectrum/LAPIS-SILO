@@ -68,25 +68,25 @@ class Nucleotide {
    };
 
    static constexpr std::array<Symbol, 5> VALID_MUTATION_SYMBOLS{
-      Nucleotide::Symbol::GAP,
-      Nucleotide::Symbol::A,
-      Nucleotide::Symbol::C,
-      Nucleotide::Symbol::G,
-      Nucleotide::Symbol::T,
+      Symbol::GAP,
+      Symbol::A,
+      Symbol::C,
+      Symbol::G,
+      Symbol::T,
    };
 
    static constexpr std::array<Symbol, 11> INVALID_MUTATION_SYMBOLS{
-      Nucleotide::Symbol::R,  // A or G
-      Nucleotide::Symbol::Y,  // C or T
-      Nucleotide::Symbol::S,  // G or C
-      Nucleotide::Symbol::W,  // A or T
-      Nucleotide::Symbol::K,  // G or T
-      Nucleotide::Symbol::M,  // A or C
-      Nucleotide::Symbol::B,  // C or G or T
-      Nucleotide::Symbol::D,  // A or G or T
-      Nucleotide::Symbol::H,  // A or C or T
-      Nucleotide::Symbol::V,  // A or C or G
-      Nucleotide::Symbol::N,  // any base
+      Symbol::R,  // A or G
+      Symbol::Y,  // C or T
+      Symbol::S,  // G or C
+      Symbol::W,  // A or T
+      Symbol::K,  // G or T
+      Symbol::M,  // A or C
+      Symbol::B,  // C or G or T
+      Symbol::D,  // A or G or T
+      Symbol::H,  // A or C or T
+      Symbol::V,  // A or C or G
+      Symbol::N,  // any base
    };
 
    static_assert(INVALID_MUTATION_SYMBOLS.size() + VALID_MUTATION_SYMBOLS.size() == SYMBOLS.size());
