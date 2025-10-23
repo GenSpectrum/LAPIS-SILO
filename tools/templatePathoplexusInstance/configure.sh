@@ -56,8 +56,6 @@ echo "Creating preprocessing config ..."
 config_file="${OUTDIR}/preprocessing_config.yaml"
 
 {
-  echo "inputDirectory: \".\""
-  echo "outputDirectory: \"./output/\""
   echo "ndjsonInputFilename: \"get-released-data.transformed.ndjson.zst\""
   if [[ -n "$names" ]]; then
     echo "lineageDefinitionFilenames:"
