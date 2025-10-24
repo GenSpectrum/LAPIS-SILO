@@ -61,7 +61,7 @@ class VerticalSequenceIndex {
    static_assert(sizeof(SequenceDiffKey) == 8);
    struct SequenceDiff {
       roaring::internal::container_t* container;
-      uint16_t cardinality;
+      uint32_t cardinality;
       uint8_t typecode;
 
       template <class Archive>

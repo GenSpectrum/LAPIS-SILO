@@ -16,6 +16,8 @@ void VerticalSequenceIndex<SymbolType>::addSymbolsToPositions(
       std::vector<std::pair<uint16_t, std::vector<uint16_t>>> ids_in_batches =
          splitIdsIntoBatches(ids_per_symbol.at(symbol));
       for (const auto& [upper_bits, lower_bits_vector] : ids_in_batches) {
+         SILO_ASSERT_GT(lower_bits_vector.size(), 0);
+
          SequenceDiffKey key{.position = position_idx, .v_index = upper_bits, .symbol = symbol};
          SequenceDiff& sequence_diff =
             getContainerOrCreateWithCapacity(key, lower_bits_vector.size());
