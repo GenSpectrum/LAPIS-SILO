@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.9.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.0...v0.9.1) (2025-10-28)
+
+
+### Features
+
+* **benchmarking:** support versioned datasets ([#1031](https://github.com/GenSpectrum/LAPIS-SILO/issues/1031)) ([4a7399b](https://github.com/GenSpectrum/LAPIS-SILO/commit/4a7399b4147fbd45f51b95c14ab721dcd6ee337e)), closes [#1018](https://github.com/GenSpectrum/LAPIS-SILO/issues/1018)
+* **performance:** add performance benchmark subdirectory with a benchmark on mutation queries ([23af5c1](https://github.com/GenSpectrum/LAPIS-SILO/commit/23af5c1e8d4bbe60633c474cc7bf5aca7860e1f9))
+* **silo:** add amino acid codes J, O, U and clean some code ([ccf15ed](https://github.com/GenSpectrum/LAPIS-SILO/commit/ccf15ed862a8df1d4f747984857f92845252995c))
+* **silo:** add template to run ppx instances ([#1019](https://github.com/GenSpectrum/LAPIS-SILO/issues/1019)) ([129b428](https://github.com/GenSpectrum/LAPIS-SILO/commit/129b42833e5ac832918cc1005ce538f8aaaf232d))
+* **silo:** address memory leak concerns ([#1008](https://github.com/GenSpectrum/LAPIS-SILO/issues/1008)) ([7359eea](https://github.com/GenSpectrum/LAPIS-SILO/commit/7359eeaf89ebf1a5e1e5316047d5c1d475576ce3))
+* **silo:** fix clang-tidy configs (no comment allowed in checks), error on warnings in CMake clang-tidy option ([#1009](https://github.com/GenSpectrum/LAPIS-SILO/issues/1009)) ([d5bbaba](https://github.com/GenSpectrum/LAPIS-SILO/commit/d5bbaba6fbe93a6af7751e562ec62dcf8a35f319))
+* **silo:** improve error message if primary key is of type lineage ([#1030](https://github.com/GenSpectrum/LAPIS-SILO/issues/1030)) ([a861141](https://github.com/GenSpectrum/LAPIS-SILO/commit/a86114177c3e5215fc4c36927ced8e83eebe9483))
+
+
+### Bug Fixes
+
+* **e2e:** remove obsolete version tag in docker compose files leading to warning ([5beabad](https://github.com/GenSpectrum/LAPIS-SILO/commit/5beabade64f6568293f60d197497067e3e974c63))
+* **silo:** correctly error when requested insertion positions are larger than reference sequence size ([befbc76](https://github.com/GenSpectrum/LAPIS-SILO/commit/befbc76594358017f1c5b040fe75d3c9792968d8))
+* **silo:** optimize check for unique keys ([4738a27](https://github.com/GenSpectrum/LAPIS-SILO/commit/4738a2729075893c1abdc639c870d905aaa8d8e0))
+
 ## [0.9.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.8.6...v0.9.0) (2025-10-03)
 
 
