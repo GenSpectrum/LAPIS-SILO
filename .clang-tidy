@@ -1,5 +1,5 @@
 ---
-WarningsAsErrors: "*"
+WarningsAsErrors: '*'
 Checks: >-
   -*,
   abseil-*,
@@ -11,6 +11,7 @@ Checks: >-
   readability-*,
   performance-*,
   readability-magic-numbers,
+  -modernize-use-trailing-return-type,
   -misc-non-private-member-variables-in-classes,
   -misc-include-cleaner,
   -google-readability-avoid-underscore-in-googletest-name,
@@ -19,24 +20,43 @@ Checks: >-
   -bugprone-unchecked-optional-access,
   -bugprone-unused-return-value,
   -readability-magic-numbers
-#  TODO(someone): clean up misc-non-private-member-variables-in-classes and add option back in
-# Not using google-readability-avoid-underscore-in-googletest-name because it also fails for test_name
-# Not using abseil-string-find-str-contains because we don't want to include more libraries
-# Not using bugprone-unused-return-value because we get spurious positives for overridden 'T& operator=(T&)'
+# Not using google-readability-avoid-underscore-in-googletest-name
+# because it also fails for test_name.
+# Not using abseil-string-find-str-contains because we don't want
+# to include more libraries.
+# Not using bugprone-unused-return-value because we get spurious
+# positives for overridden 'T& operator=(T&)'.
 CheckOptions:
-  - { key: readability-identifier-naming.NamespaceCase,          value: lower_case }
-  - { key: readability-identifier-naming.ClassCase,              value: CamelCase }
-  - { key: readability-identifier-naming.StructCase,             value: CamelCase }
-  - { key: readability-identifier-naming.TemplateParameterCase,  value: CamelCase }
-  - { key: readability-identifier-naming.FunctionCase,           value: camelBack }
-  - { key: readability-identifier-naming.VariableCase,           value: lower_case }
-  - { key: readability-identifier-naming.ClassMemberCase,        value: lower_case }
-  - { key: readability-identifier-naming.EnumConstantCase,         value: UPPER_CASE }
-  - { key: readability-identifier-naming.GlobalConstantCase,       value: UPPER_CASE }
-  - { key: readability-identifier-naming.ConstexprVariableCase,    value: UPPER_CASE }
-  - { key: readability-identifier-naming.TypeTemplateParameterIgnoredRegexp, value: expr-type }
-  - { key: readability-implicit-bool-conversion.AllowIntegerConditions,  value: 1 }
-  - { key: readability-implicit-bool-conversion.AllowPointerConditions,  value: 1 }
-  - { key: bugprone-easily-swappable-parameters.MinimumLength, value: 2 }
-
-# readability-identifier-naming.TypeTemplateParameterIgnoredRegexp is workaround for error of clang-tidy with ubuntu (https://github.com/llvm/llvm-project/issues/46097)
+  - key: readability-identifier-length.IgnoredVariableNames
+    value: \_
+  - key: readability-identifier-naming.NamespaceCase
+    value: lower_case
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+  - key: readability-identifier-naming.TemplateParameterCase
+    value: CamelCase
+  - key: readability-identifier-naming.FunctionCase
+    value: camelBack
+  - key: readability-identifier-naming.VariableCase
+    value: lower_case
+  - key: readability-identifier-naming.ClassMemberCase
+    value: lower_case
+  - key: readability-identifier-naming.EnumConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.GlobalConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.ConstexprVariableCase
+    value: UPPER_CASE
+# readability-identifier-naming.TypeTemplateParameterIgnoredRegexp
+# is workaround for error of clang-tidy with ubuntu
+# (https://github.com/llvm/llvm-project/issues/46097)
+  - key: readability-identifier-naming.TypeTemplateParameterIgnoredRegexp
+    value: expr-type
+  - key: readability-implicit-bool-conversion.AllowIntegerConditions
+    value: 1
+  - key: readability-implicit-bool-conversion.AllowPointerConditions
+    value: 1
+  - key: bugprone-easily-swappable-parameters.MinimumLength
+    value: 2
