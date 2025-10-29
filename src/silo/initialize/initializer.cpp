@@ -5,6 +5,8 @@
 #include <boost/algorithm/string/join.hpp>
 
 #include "evobench/evobench.hpp"
+#include "silo/common/aa_symbols.h"
+#include "silo/common/nucleotide_symbols.h"
 #include "silo/common/panic.h"
 #include "silo/common/phylo_tree.h"
 #include "silo/common/table_reader.h"
@@ -19,7 +21,7 @@ namespace silo::initialize {
 Database Initializer::initializeDatabase(const config::InitializationFiles& initialization_files) {
    EVOBENCH_SCOPE("Initializer", "initializeDatabase");
    std::map<std::filesystem::path, common::LineageTreeAndIdMap> lineage_trees;
-   for (auto filename : initialization_files.getLineageDefinitionFilenames()) {
+   for (const auto& filename : initialization_files.getLineageDefinitionFilenames()) {
       lineage_trees[filename] =
          common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(filename);
    }
@@ -37,8 +39,8 @@ Database Initializer::initializeDatabase(const config::InitializationFiles& init
    silo::schema::DatabaseSchema schema = createSchemaFromConfigFiles(
       validated_config,
       ReferenceGenomes::readFromFile(initialization_files.getReferenceGenomeFilename()),
-      std::move(lineage_trees),
-      std::move(phylo_tree_file),
+      lineage_trees,
+      phylo_tree_file,
       initialization_files.without_unaligned_sequences
    );
    return Database{schema};
@@ -69,7 +71,7 @@ void ColumnMetadataInitializer::operator()<storage::column::IndexedStringColumnP
       if (not lineage_tree.has_value()) {
          auto keys =
             lineage_trees | std::views::keys |
-            std::views::transform([](const std::filesystem::path& p) { return p.string(); });
+            std::views::transform([](const std::filesystem::path& path) { return path.string(); });
          throw silo::initialize::InitializeException(
             "Column '{}' has lineage tree '{}' configured, but did not find corresponding lineage "
             "tree in the provided lineageDefinitionFilenames: {}",
@@ -108,8 +110,8 @@ void ColumnMetadataInitializer::operator()<storage::column::StringColumnPartitio
 
 template <>
 void ColumnMetadataInitializer::operator()<storage::column::ZstdCompressedStringColumnPartition>(
-   std::shared_ptr<storage::column::ColumnMetadata>& metadata,
-   const config::DatabaseMetadata& config_metadata,
+   std::shared_ptr<storage::column::ColumnMetadata>& /*metadata*/,
+   const config::DatabaseMetadata& /*config_metadata*/,
    const ReferenceGenomes& /*reference_genomes*/,
    const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& /*lineage_trees*/,
    const common::PhyloTree& /*phylo_tree_file*/
@@ -119,8 +121,8 @@ void ColumnMetadataInitializer::operator()<storage::column::ZstdCompressedString
 
 template <>
 void ColumnMetadataInitializer::operator()<storage::column::SequenceColumnPartition<Nucleotide>>(
-   std::shared_ptr<storage::column::ColumnMetadata>& metadata,
-   const config::DatabaseMetadata& config_metadata,
+   std::shared_ptr<storage::column::ColumnMetadata>& /*metadata*/,
+   const config::DatabaseMetadata& /*config_metadata*/,
    const ReferenceGenomes& /*reference_genomes*/,
    const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& /*lineage_trees*/,
    const common::PhyloTree& /*phylo_tree_file*/
@@ -130,8 +132,8 @@ void ColumnMetadataInitializer::operator()<storage::column::SequenceColumnPartit
 
 template <>
 void ColumnMetadataInitializer::operator()<storage::column::SequenceColumnPartition<AminoAcid>>(
-   std::shared_ptr<storage::column::ColumnMetadata>& metadata,
-   const config::DatabaseMetadata& config_metadata,
+   std::shared_ptr<storage::column::ColumnMetadata>& /*metadata*/,
+   const config::DatabaseMetadata& /*config_metadata*/,
    const ReferenceGenomes& /*reference_genomes*/,
    const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& /*lineage_trees*/,
    const common::PhyloTree& /*phylo_tree_file*/
@@ -227,15 +229,15 @@ void assertPrimaryKeyOfTypeString(const silo::config::DatabaseConfig& database_c
 // TODO(#741) we prepend the unalignedSequence columns (which are using the type
 // ZstdCompressedStringColumnPartition) with 'unaligned_'. This should be cleaned up with a
 // refactor and breaking change of the current input format.
-static const std::string UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX = "unaligned_";
+const std::string UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX = "unaligned_";
 
 }  // namespace
 
 silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
    config::DatabaseConfig database_config,
    ReferenceGenomes reference_genomes,
-   std::map<std::filesystem::path, common::LineageTreeAndIdMap> lineage_trees,
-   common::PhyloTree phylo_tree_file,
+   const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
+   const common::PhyloTree& phylo_tree_file,
    bool without_unaligned_sequences
 ) {
    setDefaultSequencesIfUnsetAndThereIsOnlyOne(database_config, reference_genomes);
@@ -244,7 +246,7 @@ silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
    assertPrimaryKeyOfTypeString(database_config);
 
    schema::ColumnIdentifier primary_key{
-      database_config.schema.primary_key, schema::ColumnType::STRING
+      .name = database_config.schema.primary_key, .type = schema::ColumnType::STRING
    };
 
    std::map<schema::ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>>
@@ -271,7 +273,7 @@ silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
       const auto& sequence_name = reference_genomes.nucleotide_sequence_names.at(sequence_idx);
       const auto& reference_sequence = reference_genomes.raw_nucleotide_sequences.at(sequence_idx);
       schema::ColumnIdentifier column_identifier{
-         sequence_name, schema::ColumnType::NUCLEOTIDE_SEQUENCE
+         .name = sequence_name, .type = schema::ColumnType::NUCLEOTIDE_SEQUENCE
       };
       auto metadata = std::make_shared<storage::column::SequenceColumnMetadata<Nucleotide>>(
          sequence_name, ReferenceGenomes::stringToVector<Nucleotide>(reference_sequence)
@@ -280,8 +282,8 @@ silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
 
       if (!without_unaligned_sequences) {
          schema::ColumnIdentifier column_identifier_unaligned{
-            UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX + sequence_name,
-            schema::ColumnType::ZSTD_COMPRESSED_STRING
+            .name = UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX + sequence_name,
+            .type = schema::ColumnType::ZSTD_COMPRESSED_STRING
          };
          auto metadata_unaligned =
             std::make_shared<storage::column::ZstdCompressedStringColumnMetadata>(
@@ -296,7 +298,7 @@ silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
       const auto& sequence_name = reference_genomes.aa_sequence_names.at(sequence_idx);
       const auto& reference_sequence = reference_genomes.raw_aa_sequences.at(sequence_idx);
       schema::ColumnIdentifier column_identifier{
-         sequence_name, schema::ColumnType::AMINO_ACID_SEQUENCE
+         .name = sequence_name, .type = schema::ColumnType::AMINO_ACID_SEQUENCE
       };
       auto metadata = std::make_shared<storage::column::SequenceColumnMetadata<AminoAcid>>(
          sequence_name, ReferenceGenomes::stringToVector<AminoAcid>(reference_sequence)
@@ -322,7 +324,7 @@ silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
 
 std::optional<common::LineageTreeAndIdMap> Initializer::findLineageTreeForName(
    const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
-   std::string lineage_tree_name
+   const std::string& lineage_tree_name
 ) {
    for (const auto& [path, lineage_tree] : lineage_trees) {
       if (path.filename() == lineage_tree_name || path.filename() == lineage_tree_name + ".yaml") {

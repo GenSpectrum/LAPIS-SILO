@@ -22,7 +22,7 @@ struct Query {
 
    static std::shared_ptr<Query> parseQuery(const std::string& query_string);
 
-   QueryPlan toQueryPlan(
+   [[nodiscard]] QueryPlan toQueryPlan(
       std::shared_ptr<silo::Database> database,
       const config::QueryOptions& query_options,
       std::string_view request_id

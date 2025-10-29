@@ -7,7 +7,8 @@
 
 #define CHECK_SILO_QUERY(condition, ...)      \
    do {                                       \
-      if (!(condition)) {                     \
+      bool condition_bool = condition;        \
+      if (!(condition_bool)) {                \
          throw silo::BadRequest(__VA_ARGS__); \
       }                                       \
    } while (0);
