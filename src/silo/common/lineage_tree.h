@@ -8,7 +8,6 @@
 #include <boost/serialization/access.hpp>
 
 #include "silo/common/bidirectional_string_map.h"
-#include "silo/common/lineage_name.h"
 #include "silo/common/types.h"
 #include "silo/preprocessing/lineage_definition_file.h"
 
@@ -31,7 +30,7 @@ namespace silo::common {
  *       XBB
  */
 
-enum class RecombinantEdgeFollowingMode {
+enum class RecombinantEdgeFollowingMode : uint8_t {
    DO_NOT_FOLLOW,
    FOLLOW_IF_FULLY_CONTAINED_IN_CLADE,
    ALWAYS_FOLLOW,

@@ -1,9 +1,10 @@
 #pragma once
 
+#include <cstdint>
 #include <type_traits>
 
 namespace silo::schema {
-enum class ColumnType;
+enum class ColumnType : uint8_t;
 }
 
 namespace silo::storage::column {
@@ -22,4 +23,4 @@ concept Column = requires(T t) {
    { T::TYPE } -> std::convertible_to<schema::ColumnType>;
 };
 
-}
+}  // namespace silo::storage::column

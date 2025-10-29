@@ -16,14 +16,14 @@ class Initializer {
    static silo::schema::DatabaseSchema createSchemaFromConfigFiles(
       config::DatabaseConfig database_config,
       ReferenceGenomes reference_genomes,
-      std::map<std::filesystem::path, common::LineageTreeAndIdMap> lineage_trees,
-      common::PhyloTree phylo_tree_file,
-      bool without_unaligned_columns
+      const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
+      const common::PhyloTree& phylo_tree_file,
+      bool without_unaligned_sequences
    );
 
    static std::optional<common::LineageTreeAndIdMap> findLineageTreeForName(
       const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
-      std::string lineage_tree_name
+      const std::string& lineage_tree_name
    );
 };
 }  // namespace silo::initialize

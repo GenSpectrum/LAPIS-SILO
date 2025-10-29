@@ -1,3 +1,5 @@
+#include <utility>
+
 #include "silo/append/database_inserter.h"
 #include "silo/append/ndjson_line_reader.h"
 #include "silo/initialize/initializer.h"
@@ -6,6 +8,8 @@
 #include "silo/query_engine/filter/expressions/negation.h"
 #include "silo/query_engine/filter/expressions/string_equals.h"
 #include "silo/query_engine/query.h"
+
+namespace {
 
 using silo::query_engine::Query;
 using silo::query_engine::filter::expressions::True;
@@ -25,7 +29,7 @@ schema:
   primaryKey: key
 )");
 
-   const silo::ReferenceGenomes reference_genomes{{{"main", reference}}, {}};
+   silo::ReferenceGenomes reference_genomes{{{"main", reference}}, {}};
 
    return std::make_shared<silo::Database>(
       silo::Database{silo::initialize::Initializer::createSchemaFromConfigFiles(
@@ -33,7 +37,7 @@ schema:
          std::move(reference_genomes),
          {},
          silo::common::PhyloTree{},
-         /*without_unaligned_columns=*/true
+         /*without_unaligned_sequences=*/true
       )}
    );
 }
@@ -82,7 +86,7 @@ std::shared_ptr<Database> setupTestDatabase(){
    return database;
 }
 
-void printClipped(std::string output){
+void printClipped(const std::string& output){
    std::istringstream iss(output);
    std::string line;
    int line_count = 0;
@@ -110,7 +114,7 @@ void executeMutationsAllQuery(std::shared_ptr<Database> database){
 
    Query query{std::make_unique<True>(), std::make_unique<Mutations<Nucleotide>>(std::vector<std::string>{"main"}, 0.05, std::move(all_fields))};
 
-   auto query_plan = query.toQueryPlan(database, {}, "test_query");
+   auto query_plan = query.toQueryPlan(std::move(database), {}, "test_query");
    std::stringstream result;
    query_plan.executeAndWrite(&result, /*timeout_in_seconds=*/3);
    printClipped(result.str());
@@ -121,11 +125,12 @@ void executeMutationsAlmostAllQuery(std::shared_ptr<Database> database){
 
    Query query{std::make_unique<Negation>(std::make_unique<StringEquals>("key", "3")), std::make_unique<Mutations<Nucleotide>>(std::vector<std::string>{"main"}, 0.05, std::move(all_fields))};
 
-   auto query_plan = query.toQueryPlan(database, {}, "test_query");
+   auto query_plan = query.toQueryPlan(std::move(database), {}, "test_query");
    std::stringstream result;
    query_plan.executeAndWrite(&result, /*timeout_in_seconds=*/3);
    printClipped(result.str());
 }
+}  // namespace
 
 int main(){
    SPDLOG_INFO("Starting micro benchmark:");
@@ -133,18 +138,18 @@ int main(){
    auto start0 = std::chrono::high_resolution_clock::now();
    auto database = setupTestDatabase();
    auto end0 = std::chrono::high_resolution_clock::now();
-   auto duration0 = std::chrono::duration_cast<std::chrono::milliseconds>(end0 - start0).count() / 1000.0;
-   SPDLOG_INFO("Added all data in {} seconds", duration0);
+   auto duration0 = std::chrono::duration_cast<std::chrono::milliseconds>(end0 - start0).count();
+   SPDLOG_INFO("Added all data in {}.{:03} seconds", duration0 / 1000, duration0 % 1000);
 
    auto start1 = std::chrono::high_resolution_clock::now();
    executeMutationsAllQuery(database);
    auto end1 = std::chrono::high_resolution_clock::now();
-   auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start1).count() / 1000.0;
-   SPDLOG_INFO("Finished executeMutationsAllQuery in {} seconds", duration1);
+   auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start1).count();
+   SPDLOG_INFO("Finished executeMutationsAllQuery in {}.{:03} seconds", duration1 / 1000, duration1 % 1000);
 
    auto start2 = std::chrono::high_resolution_clock::now();
    executeMutationsAlmostAllQuery(database);
    auto end2 = std::chrono::high_resolution_clock::now();
-   auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(end2 - start2).count() / 1000.0;
-   SPDLOG_INFO("Finished executeMutationsAlmostAllQuery in {} seconds", duration2);
+   auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(end2 - start2).count();
+   SPDLOG_INFO("Finished executeMutationsAlmostAllQuery in {}.{:03} seconds", duration2 / 1000, duration2 % 1000);
 }

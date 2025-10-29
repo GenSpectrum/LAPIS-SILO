@@ -15,7 +15,7 @@
 
 namespace silo::schema {
 
-enum class ColumnType {
+enum class ColumnType : uint8_t {
    STRING,
    INDEXED_STRING,
    DATE,
@@ -51,6 +51,7 @@ constexpr std::string_view columnTypeToString(ColumnType type) {
       case ColumnType::ZSTD_COMPRESSED_STRING:
          return "ZSTD_COMPRESSED_STRING";
    }
+   SILO_UNREACHABLE();
 }
 
 bool isSequenceColumn(ColumnType type);
@@ -92,15 +93,15 @@ class TableSchema {
       SILO_ASSERT(this->column_metadata.contains(this->primary_key));
    }
 
-   std::optional<ColumnIdentifier> getColumn(std::string_view name) const;
+   [[nodiscard]] std::optional<ColumnIdentifier> getColumn(std::string_view name) const;
 
-   std::vector<ColumnIdentifier> getColumnIdentifiers() const;
+   [[nodiscard]] std::vector<ColumnIdentifier> getColumnIdentifiers() const;
 
    template <typename SymbolType>
-   std::optional<ColumnIdentifier> getDefaultSequenceName() const;
+   [[nodiscard]] std::optional<ColumnIdentifier> getDefaultSequenceName() const;
 
    template <silo::storage::column::Column ColumnType>
-   std::vector<ColumnIdentifier> getColumnByType() const {
+   [[nodiscard]] std::vector<ColumnIdentifier> getColumnByType() const {
       std::vector<ColumnIdentifier> result;
       for (const auto& [column_identifier, _] : column_metadata) {
          if (column_identifier.type == ColumnType::TYPE) {
@@ -112,27 +113,26 @@ class TableSchema {
 
    template <storage::column::Column ColumnType>
    std::optional<typename ColumnType::Metadata*> getColumnMetadata(std::string_view name) {
-      auto it = std::ranges::find_if(column_metadata, [&name](const auto& metadata_pair) {
+      auto iter = std::ranges::find_if(column_metadata, [&name](const auto& metadata_pair) {
          return metadata_pair.first.name == name;
       });
-      if (it == column_metadata.end() || it->first.type != ColumnType::TYPE) {
+      if (iter == column_metadata.end() || iter->first.type != ColumnType::TYPE) {
          return std::nullopt;
       }
-      auto typed_metadata = dynamic_cast<typename ColumnType::Metadata*>(it->second.get());
+      auto typed_metadata = dynamic_cast<typename ColumnType::Metadata*>(iter->second.get());
       SILO_ASSERT(typed_metadata != nullptr);
       return typed_metadata;
    }
 
    template <storage::column::Column ColumnType>
-   const std::optional<typename ColumnType::Metadata*> getColumnMetadata(std::string_view name
-   ) const {
-      auto it = std::ranges::find_if(column_metadata, [&name](const auto& metadata_pair) {
+   std::optional<typename ColumnType::Metadata*> getColumnMetadata(std::string_view name) const {
+      auto iter = std::ranges::find_if(column_metadata, [&name](const auto& metadata_pair) {
          return metadata_pair.first.name == name;
       });
-      if (it == column_metadata.end() || it->first.type != ColumnType::TYPE) {
+      if (iter == column_metadata.end() || iter->first.type != ColumnType::TYPE) {
          return std::nullopt;
       }
-      auto typed_metadata = dynamic_cast<typename ColumnType::Metadata*>(it->second.get());
+      auto typed_metadata = dynamic_cast<typename ColumnType::Metadata*>(iter->second.get());
       SILO_ASSERT(typed_metadata != nullptr);
       return typed_metadata;
    }
@@ -142,14 +142,14 @@ class TableSchema {
   private:
    friend class boost::serialization::access;
    template <class Archive>
-   void save(Archive& ar, const unsigned int version) const;
+   void save(Archive& archive, unsigned int version) const;
 
    template <class Archive>
-   void load(Archive& ar, const unsigned int version);
+   void load(Archive& archive, unsigned int version);
 
    template <class Archive>
-   void serialize(Archive& ar, const unsigned int version) {
-      boost::serialization::split_member(ar, *this, version);
+   void serialize(Archive& archive, const unsigned int version) {
+      boost::serialization::split_member(archive, *this, version);
    }
 };
 
@@ -157,9 +157,9 @@ class TableName {
    std::string name;
 
   public:
-   TableName(std::string_view name);
+   explicit TableName(std::string_view name);
 
-   const std::string& getName() const { return name; }
+   [[nodiscard]] const std::string& getName() const { return name; }
 
    static const TableName& getDefault();
 
@@ -179,7 +179,7 @@ class DatabaseSchema {
   public:
    std::map<TableName, TableSchema> tables;
 
-   const TableSchema& getDefaultTableSchema() const;
+   [[nodiscard]] const TableSchema& getDefaultTableSchema() const;
 
    static DatabaseSchema loadFromFile(const std::filesystem::path& file_path);
    void saveToFile(const std::filesystem::path& file_path);
