@@ -114,7 +114,7 @@ target_link_libraries(
         silolib
         PUBLIC
         Arrow::arrow_static
-        Acero::arrow_acero_static
+        ArrowAcero::arrow_acero_static
         ${Boost_LIBRARIES}
         ${duckdb_LIBRARIES}
         nlohmann_json::nlohmann_json
