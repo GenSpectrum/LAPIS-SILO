@@ -2,7 +2,7 @@
 
 #if defined(__linux__)
 
-#include <malloc.h>
+#include <mimalloc.h>
 
 #include <fstream>
 #include <optional>
@@ -72,8 +72,9 @@ void MemoryMonitor::checkRssAndLimit(Poco::Timer& /*timer*/) {
       SPDLOG_INFO("Current memory consumption: {} KB", rss.value());
 
       if (soft_memory_limit_in_kb.has_value() && rss.value() > soft_memory_limit_in_kb.value()) {
-         SPDLOG_INFO("Manually invoking malloc_trim() to give back memory to OS.");
-         malloc_trim(0);
+         SPDLOG_INFO("Manually invoking mi_collect(true) to give back memory to OS.");
+         mi_collect(true);
+         mi_collect(true);  // This should be invoked twice
       }
    }
 }

@@ -39,6 +39,7 @@ add_compile_definitions(SIMDJSON_EXCEPTIONS=0)
 # Dependencies
 # ---------------------------------------------------------------------------
 
+find_package(mimalloc REQUIRED)
 find_package(Arrow REQUIRED COMPONENTS Acero XYZ)
 find_package(Boost REQUIRED COMPONENTS system serialization iostreams)
 find_package(LibLZMA REQUIRED)
@@ -113,6 +114,7 @@ add_library(silolib OBJECT ${SRC_SILO_WITHOUT_MAIN})
 target_link_libraries(
         silolib
         PUBLIC
+        mimalloc-static # this should be first
         Arrow::arrow_static
         ArrowAcero::arrow_acero_static
         ${Boost_LIBRARIES}

@@ -1,16 +1,14 @@
+#include <mimalloc.h>
+
 #include <filesystem>
 
-#include <spdlog/spdlog.h>
-
 #include <arrow/compute/api.h>
+#include <spdlog/spdlog.h>
 
 #include "evobench/evobench.hpp"
 #include "silo/api/api.h"
 #include "silo/api/logging.h"
 #include "silo/append/append.h"
-#include "silo/append/database_inserter.h"
-#include "silo/append/ndjson_line_reader.h"
-#include "silo/common/input_stream_wrapper.h"
 #include "silo/common/overloaded.h"
 #include "silo/common/panic.h"
 #include "silo/common/version.h"
@@ -171,6 +169,10 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
 }  // namespace
 
 int main(int argc, char** argv) {
+   // If this option is not set, memory remains very high even when no requests are sent
+   // Also reduces peak memory usage under concurrency
+   mi_option_set(mi_option_purge_delay, 0);
+
    try {
       return mainWhichMayThrowExceptions(argc, argv);
    } catch (const std::exception& error) {
