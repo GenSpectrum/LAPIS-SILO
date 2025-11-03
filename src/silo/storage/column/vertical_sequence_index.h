@@ -10,36 +10,11 @@
 
 namespace silo::storage::column {
 
+// For documentation of this data-structure see:
+// documentation/developer/sequence_storage.md
 template <typename SymbolType>
 class VerticalSequenceIndex {
   public:
-   // We conceptually divide the sequence space into tilings with a side length of 2^16
-   //
-   //        0      2^16   2*2^16 3*2^16
-   //        |      |      |      |
-   //      0-┌──────┬──────┬──────┬──────┬────>
-   //        │      │      │      │      │  Position (x-axis)
-   //        │ Tile │ Tile │ Tile │ Tile │
-   //        │ 0,0  │ 0,1  │ 0,2  │ 0,3  │
-   //   2^16-├──────┼──────┼──────┼──────┼
-   //        │      │      │      │      │
-   //        │ Tile │ Tile │ Tile │ Tile │
-   //        │ 1,0  │ 1,1  │ 1,2  │ 1,3  │
-   // 2*2^16-├──────┼──────┼──────┼──────┼
-   //        │      │      │      │      │
-   //        │ Tile │ Tile │ Tile │ Tile │
-   //        │ 2,0  │ 2,1  │ 2,2  │ 2,3  │
-   //        ├──────┼──────┼──────┼──────┼
-   //        │
-   //        v
-   //    Sequence Number (y-axis)
-   //
-   // An important concept is the v_index, which will always refer to the y-axis of the tile id
-   //
-   // For every tile we store the difference (mutations) of the sequences to the reference
-   // in a vertical bitmap container per symbol
-   // These bitmap containers are structured in a tree for fast iteration and lookup
-
    struct SequenceDiffKey {
       // The position in the bitmap
       uint32_t position;
