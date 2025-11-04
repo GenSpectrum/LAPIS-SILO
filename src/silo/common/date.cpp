@@ -73,9 +73,5 @@ std::optional<std::string> silo::common::dateToString(silo::common::Date date) {
    const uint32_t month = (date >> BYTES_FOR_DAYS) & 0xF;
    const uint32_t day = date & 0xFFF;
 
-   std::ostringstream result_string;
-   result_string << std::setfill('0') << std::setw(4) << year << "-" << std::setw(2) << month << "-"
-                 << std::setw(2) << day;
-
-   return result_string.str();
+   return fmt::format("{:04}-{:02}-{:02}", year, month, day);
 }
