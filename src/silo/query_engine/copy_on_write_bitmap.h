@@ -22,10 +22,9 @@ class CopyOnWriteBitmap {
 
    explicit CopyOnWriteBitmap(roaring::Roaring&& bitmap);
 
-   roaring::Roaring& operator*();
-   const roaring::Roaring& operator*() const;
-   std::shared_ptr<roaring::Roaring> operator->();
-   const roaring::Roaring* operator->() const;
+   [[nodiscard]] roaring::Roaring& getMutable();
+
+   [[nodiscard]] const roaring::Roaring& getConstReference() const;
 
    [[nodiscard]] bool isMutable() const;
 };

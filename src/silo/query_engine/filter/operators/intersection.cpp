@@ -66,12 +66,12 @@ CopyOnWriteBitmap intersectTwo(CopyOnWriteBitmap first, CopyOnWriteBitmap second
    CopyOnWriteBitmap result;
    if (first.isMutable()) {
       result = std::move(first);
-      *result &= *second;
+      result.getMutable() &= second.getConstReference();
    } else if (second.isMutable()) {
       result = std::move(second);
-      *result &= *first;
+      result.getMutable() &= first.getConstReference();
    } else {
-      result = CopyOnWriteBitmap(*first & *second);
+      result = CopyOnWriteBitmap(first.getConstReference() & second.getConstReference());
    }
    return result;
 }
@@ -96,14 +96,16 @@ CopyOnWriteBitmap Intersection::evaluate() const {
    std::ranges::sort(
       children_bm,
       [](const CopyOnWriteBitmap& expression1, const CopyOnWriteBitmap& expression2) {
-         return expression1->cardinality() < expression2->cardinality();
+         return expression1.getConstReference().cardinality() <
+                expression2.getConstReference().cardinality();
       }
    );
    // Sort negated children descending by size
    std::ranges::sort(
       negated_children_bm,
       [](const CopyOnWriteBitmap& expression_result1, const CopyOnWriteBitmap& expression_result2) {
-         return expression_result1->cardinality() > expression_result2->cardinality();
+         return expression_result1.getConstReference().cardinality() >
+                expression_result2.getConstReference().cardinality();
       }
    );
 
@@ -112,16 +114,16 @@ CopyOnWriteBitmap Intersection::evaluate() const {
       // negated_children_bm cannot be empty because of size assertion in constructor
       CopyOnWriteBitmap& result = children_bm[0];
       for (auto& neg_bm : negated_children_bm) {
-         *result -= *neg_bm;
+         result.getMutable() -= neg_bm.getConstReference();
       }
       return std::move(result);
    }
    auto result = intersectTwo(std::move(children_bm[0]), std::move(children_bm[1]));
    for (uint32_t i = 2; i < children.size(); i++) {
-      *result &= *children_bm[i];
+      result.getMutable() &= children_bm[i].getConstReference();
    }
    for (auto& neg_bm : negated_children_bm) {
-      *result -= *neg_bm;
+      result.getMutable() -= neg_bm.getConstReference();
    }
    return result;
 }

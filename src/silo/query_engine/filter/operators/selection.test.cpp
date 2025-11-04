@@ -38,9 +38,9 @@ TEST(OperatorSelection, equalsShouldReturnCorrectValues) {
       row_count
    );
 
-   ASSERT_EQ(*under_test->evaluate(), roaring::Roaring({1, 5, 6, 7, 8, 9}));
+   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({1, 5, 6, 7, 8, 9}));
    auto negated = Selection::negate(std::move(under_test));
-   ASSERT_EQ(*negated->evaluate(), roaring::Roaring({0, 2, 3, 4}));
+   ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring({0, 2, 3, 4}));
 }
 
 TEST(OperatorSelection, notEqualsShouldReturnCorrectValues) {
@@ -55,9 +55,9 @@ TEST(OperatorSelection, notEqualsShouldReturnCorrectValues) {
       row_count
    );
 
-   ASSERT_EQ(*under_test->evaluate(), roaring::Roaring({0, 2, 3, 4}));
+   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0, 2, 3, 4}));
    auto negated = Selection::negate(std::move(under_test));
-   ASSERT_EQ(*negated->evaluate(), roaring::Roaring({1, 5, 6, 7, 8, 9}));
+   ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring({1, 5, 6, 7, 8, 9}));
 }
 
 TEST(OperatorSelection, lessShouldReturnCorrectValues) {
@@ -72,9 +72,11 @@ TEST(OperatorSelection, lessShouldReturnCorrectValues) {
       row_count
    );
 
-   ASSERT_EQ(*under_test->evaluate(), roaring::Roaring({0}));
+   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0}));
    auto negated = Selection::negate(std::move(under_test));
-   ASSERT_EQ(*negated->evaluate(), roaring::Roaring({1, 2, 3, 4, 5, 6, 7, 8, 9}));
+   ASSERT_EQ(
+      negated->evaluate().getConstReference(), roaring::Roaring({1, 2, 3, 4, 5, 6, 7, 8, 9})
+   );
 }
 
 TEST(OperatorSelection, lessOrEqualsShouldReturnCorrectValues) {
@@ -89,9 +91,9 @@ TEST(OperatorSelection, lessOrEqualsShouldReturnCorrectValues) {
       row_count
    );
 
-   ASSERT_EQ(*under_test->evaluate(), roaring::Roaring({0, 1, 5, 6, 7, 8, 9}));
+   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0, 1, 5, 6, 7, 8, 9}));
    auto negated = Selection::negate(std::move(under_test));
-   ASSERT_EQ(*negated->evaluate(), roaring::Roaring({2, 3, 4}));
+   ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring({2, 3, 4}));
 }
 
 TEST(OperatorSelection, higherOrEqualsShouldReturnCorrectValues) {
@@ -106,9 +108,11 @@ TEST(OperatorSelection, higherOrEqualsShouldReturnCorrectValues) {
       row_count
    );
 
-   ASSERT_EQ(*under_test->evaluate(), roaring::Roaring({1, 2, 3, 4, 5, 6, 7, 8, 9}));
+   ASSERT_EQ(
+      under_test->evaluate().getConstReference(), roaring::Roaring({1, 2, 3, 4, 5, 6, 7, 8, 9})
+   );
    auto negated = Selection::negate(std::move(under_test));
-   ASSERT_EQ(*negated->evaluate(), roaring::Roaring({0}));
+   ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring({0}));
 }
 
 TEST(OperatorSelection, higherShouldReturnCorrectValues) {
@@ -123,9 +127,9 @@ TEST(OperatorSelection, higherShouldReturnCorrectValues) {
       row_count
    );
 
-   ASSERT_EQ(*under_test->evaluate(), roaring::Roaring({2, 3, 4}));
+   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({2, 3, 4}));
    auto negated = Selection::negate(std::move(under_test));
-   ASSERT_EQ(*negated->evaluate(), roaring::Roaring({0, 1, 5, 6, 7, 8, 9}));
+   ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring({0, 1, 5, 6, 7, 8, 9}));
 }
 
 TEST(OperatorSelection, correctWithNegativeNumbers) {
@@ -140,7 +144,7 @@ TEST(OperatorSelection, correctWithNegativeNumbers) {
       row_count
    );
 
-   ASSERT_EQ(*under_test.evaluate(), roaring::Roaring({1, 5, 6, 7, 8, 9}));
+   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring({1, 5, 6, 7, 8, 9}));
 }
 
 TEST(OperatorSelection, returnsCorrectTypeInfo) {

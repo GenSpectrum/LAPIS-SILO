@@ -220,8 +220,9 @@ arrow::Result<std::optional<arrow::ExecBatch>> TableScanGenerator::produceNextBa
       }
       current_partition_idx++;
       if (current_partition_idx < partition_filters.size()) {
-         current_bitmap_reader =
-            BatchedBitmapReader{partition_filters.at(current_partition_idx), batch_size_cutoff};
+         current_bitmap_reader = BatchedBitmapReader{
+            partition_filters.at(current_partition_idx).getConstReference(), batch_size_cutoff
+         };
       } else {
          current_bitmap_reader = std::nullopt;
       }

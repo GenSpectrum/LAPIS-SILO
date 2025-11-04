@@ -53,7 +53,7 @@ Type Complement::type() const {
 CopyOnWriteBitmap Complement::evaluate() const {
    EVOBENCH_SCOPE("Complement", "evaluate");
    auto result = child->evaluate();
-   result->flip(0, row_count);
+   result.getMutable().flip(0, row_count);
    return result;
 }
 

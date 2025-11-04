@@ -9,7 +9,6 @@
 using silo::query_engine::CopyOnWriteBitmap;
 using silo::query_engine::filter::operators::IndexScan;
 using silo::query_engine::filter::operators::Intersection;
-using silo::query_engine::filter::operators::Operator;
 using silo::query_engine::filter::operators::OperatorVector;
 
 namespace {
@@ -69,7 +68,7 @@ TEST(OperatorIntersection, evaluateShouldReturnCorrectValuesNoNegated) {
    OperatorVector non_negated = generateTestInput(test_bitmaps, row_count);
    OperatorVector negated;
    const Intersection under_test(std::move(non_negated), std::move(negated), row_count);
-   ASSERT_EQ(*under_test.evaluate(), roaring::Roaring({1, 3}));
+   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring({1, 3}));
 }
 
 TEST(OperatorIntersection, evaluateShouldReturnCorrectValues) {
@@ -84,7 +83,7 @@ TEST(OperatorIntersection, evaluateShouldReturnCorrectValues) {
    OperatorVector non_negated = generateTestInput(test_bitmaps, row_count);
    OperatorVector negated = generateTestInput(test_negated_bitmaps, row_count);
    const Intersection under_test(std::move(non_negated), std::move(negated), row_count);
-   ASSERT_EQ(*under_test.evaluate(), roaring::Roaring({1}));
+   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring({1}));
 }
 
 TEST(OperatorIntersection, evaluateShouldReturnCorrectValuesManyNegated) {
@@ -100,7 +99,7 @@ TEST(OperatorIntersection, evaluateShouldReturnCorrectValuesManyNegated) {
    OperatorVector non_negated = generateTestInput(test_bitmaps, row_count);
    OperatorVector negated = generateTestInput(test_negated_bitmaps, row_count);
    const Intersection under_test(std::move(non_negated), std::move(negated), row_count);
-   ASSERT_EQ(*under_test.evaluate(), roaring::Roaring({1}));
+   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring({1}));
 }
 
 TEST(OperatorIntersection, evaluateShouldReturnCorrectValuesEmptyInput) {
@@ -115,7 +114,7 @@ TEST(OperatorIntersection, evaluateShouldReturnCorrectValuesEmptyInput) {
    OperatorVector non_negated = generateTestInput(test_bitmaps, row_count);
    OperatorVector negated = generateTestInput(test_negated_bitmaps, row_count);
    const Intersection under_test(std::move(non_negated), std::move(negated), row_count);
-   ASSERT_EQ(*under_test.evaluate(), roaring::Roaring());
+   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring());
 }
 
 TEST(OperatorIntersection, correctTypeInfo) {

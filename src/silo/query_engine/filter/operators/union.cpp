@@ -40,7 +40,7 @@ CopyOnWriteBitmap Union::evaluate() const {
    std::vector<CopyOnWriteBitmap> child_res(size_of_children);
    for (uint32_t i = 0; i < size_of_children; i++) {
       child_res[i] = children[i]->evaluate();
-      const roaring::Roaring& const_bitmap = *child_res[i];
+      const roaring::Roaring& const_bitmap = child_res[i].getConstReference();
       union_tmp[i] = &const_bitmap;
    }
    return CopyOnWriteBitmap(roaring::Roaring::fastunion(union_tmp.size(), union_tmp.data()));

@@ -7,7 +7,7 @@ using silo::query_engine::filter::operators::Empty;
 
 TEST(OperatorEmpty, evaluateShouldReturnNoValues) {
    const Empty under_test(1);
-   ASSERT_EQ(*under_test.evaluate(), roaring::Roaring());
+   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring());
 }
 
 TEST(OperatorEmpty, correctTypeInfo) {

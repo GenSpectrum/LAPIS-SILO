@@ -13,7 +13,7 @@ TEST(OperatorBitmapProducer, evaluateShouldReturnCorrectValues) {
    const uint32_t row_count = 5;
 
    const BitmapProducer under_test([&]() { return CopyOnWriteBitmap(&test_bitmap); }, row_count);
-   ASSERT_EQ(*under_test.evaluate(), roaring::Roaring({1, 2, 3}));
+   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring({1, 2, 3}));
 }
 
 TEST(OperatorBitmapProducer, evaluateShouldReturnCorrectValuesWhenNegated) {
@@ -25,7 +25,7 @@ TEST(OperatorBitmapProducer, evaluateShouldReturnCorrectValuesWhenNegated) {
    );
    const auto negated = BitmapProducer::negate(std::move(under_test));
 
-   ASSERT_EQ(*negated->evaluate(), roaring::Roaring({0, 4}));
+   ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring({0, 4}));
 }
 
 TEST(OperatorBitmapProducer, correctTypeInfo) {

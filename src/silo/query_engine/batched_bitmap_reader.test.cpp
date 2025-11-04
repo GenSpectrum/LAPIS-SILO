@@ -5,10 +5,9 @@
 #include <roaring/roaring.hh>
 
 using silo::query_engine::BatchedBitmapReader;
-using silo::query_engine::CopyOnWriteBitmap;
 
 TEST(BatchedBitmapReader, batchesCorrectly) {
-   CopyOnWriteBitmap bitmap{roaring::Roaring{0, 1, 2, 3, 4}};
+   roaring::Roaring bitmap{0, 1, 2, 3, 4};
    BatchedBitmapReader under_test{bitmap, 1};
    ASSERT_EQ(under_test.nextBatch(), (roaring::Roaring{0, 1}));
    ASSERT_EQ(under_test.nextBatch(), (roaring::Roaring{2, 3}));
@@ -17,7 +16,7 @@ TEST(BatchedBitmapReader, batchesCorrectly) {
 }
 
 TEST(BatchedBitmapReader, batchesCorrectlySingletons) {
-   CopyOnWriteBitmap bitmap{roaring::Roaring{0, 1, 3, 4}};
+   roaring::Roaring bitmap{0, 1, 3, 4};
    BatchedBitmapReader under_test{bitmap, 0};
    ASSERT_EQ(under_test.nextBatch(), (roaring::Roaring{0}));
    ASSERT_EQ(under_test.nextBatch(), (roaring::Roaring{1}));
@@ -27,16 +26,16 @@ TEST(BatchedBitmapReader, batchesCorrectlySingletons) {
 }
 
 TEST(BatchedBitmapReader, batchesCorrectlyEmpty) {
-   CopyOnWriteBitmap bitmap{roaring::Roaring{}};
+   roaring::Roaring bitmap{};
    BatchedBitmapReader under_test{bitmap, 22};
    ASSERT_EQ(under_test.nextBatch(), std::nullopt);
 }
 
 TEST(BatchedBitmapReader, batchesCorrectlyLargeValues) {
    uint32_t offset = 1 << 20;
-   CopyOnWriteBitmap bitmap{roaring::Roaring{
+   roaring::Roaring bitmap{
       offset + 1, offset + 3, offset + 5, offset + 7, offset + 9, offset + 11, offset + 13
-   }};
+   };
    BatchedBitmapReader under_test{bitmap, 2};
    ASSERT_EQ(under_test.nextBatch(), (roaring::Roaring{offset + 1, offset + 3, offset + 5}));
    ASSERT_EQ(under_test.nextBatch(), (roaring::Roaring{offset + 7, offset + 9, offset + 11}));
@@ -55,8 +54,7 @@ TEST(BatchedBitmapReader, batchesCorrectlyHundredsOfValues) {
    initial_bitmap.add(1002);
    initial_bitmap.add(1004);
 
-   CopyOnWriteBitmap bitmap{&initial_bitmap};
-   BatchedBitmapReader under_test{bitmap, batch_size - 1};
+   BatchedBitmapReader under_test{initial_bitmap, batch_size - 1};
 
    size_t expected_batches = (initial_bitmap.cardinality() + batch_size - 1) / batch_size;
    size_t current_value_idx = 0;

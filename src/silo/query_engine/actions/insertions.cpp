@@ -93,7 +93,7 @@ InsertionAggregation<SymbolType>::preFilterBitmaps(
          if (sequence_names.empty() ||
              std::ranges::find(sequence_names, sequence_name) != sequence_names.end()) {
             CopyOnWriteBitmap& filter = bitmap_filter[i];
-            const size_t cardinality = filter->cardinality();
+            const size_t cardinality = filter.getConstReference().cardinality();
             if (cardinality == 0) {
                continue;
             }
@@ -103,7 +103,7 @@ InsertionAggregation<SymbolType>::preFilterBitmaps(
                );
             } else {
                if (filter.isMutable()) {
-                  filter->runOptimize();
+                  filter.getMutable().runOptimize();
                }
                pre_filtered_bitmaps[sequence_name].bitmaps.emplace_back(
                   filter, sequence_column.insertion_index
@@ -160,7 +160,8 @@ arrow::Status InsertionAggregation<SymbolType>::addAggregatedInsertionsToInserti
       for (const auto& [position, insertions_at_position] :
            insertion_index.getInsertionPositions()) {
          for (const auto& insertion : insertions_at_position.insertions) {
-            const uint32_t count = insertion.row_ids.and_cardinality(*bitmap_filter);
+            const uint32_t count =
+               insertion.row_ids.and_cardinality(bitmap_filter.getConstReference());
             if (count > 0) {
                all_insertions[PositionAndInsertion{position, insertion.value}] += count;
             }
