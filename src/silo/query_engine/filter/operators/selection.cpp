@@ -78,22 +78,22 @@ bool Selection::matchesPredicates(uint32_t row) const {
 
 CopyOnWriteBitmap Selection::evaluate() const {
    EVOBENCH_SCOPE("Selection", "evaluate");
-   CopyOnWriteBitmap result;
+   roaring::Roaring result;
    if (child_operator.has_value()) {
       CopyOnWriteBitmap child_result = (*child_operator)->evaluate();
-      for (const uint32_t row : *child_result) {
+      for (const uint32_t row : child_result.getConstReference()) {
          if (matchesPredicates(row)) {
-            result->add(row);
+            result.add(row);
          }
       }
    } else {
       for (uint32_t row = 0; row < row_count; ++row) {
          if (matchesPredicates(row)) {
-            result->add(row);
+            result.add(row);
          }
       }
    }
-   return result;
+   return CopyOnWriteBitmap{std::move(result)};
 }
 
 std::unique_ptr<Operator> Selection::negate(std::unique_ptr<Selection>&& selection) {

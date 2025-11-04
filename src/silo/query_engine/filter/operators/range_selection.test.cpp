@@ -12,9 +12,9 @@ TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValues) {
    const uint32_t row_count = 8;
 
    auto under_test = std::make_unique<RangeSelection>(std::move(test_ranges), row_count);
-   ASSERT_EQ(*under_test->evaluate(), roaring::Roaring({0, 1, 3, 4}));
+   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0, 1, 3, 4}));
    auto negated = RangeSelection::negate(std::move(under_test));
-   ASSERT_EQ(*negated->evaluate(), roaring::Roaring({2, 5, 6, 7}));
+   ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring({2, 5, 6, 7}));
 }
 
 TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValuesEmptyDatabase) {
@@ -22,9 +22,9 @@ TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValuesEmptyDatabase) {
    const uint32_t row_count = 0;
 
    auto under_test = std::make_unique<RangeSelection>(std::move(test_ranges), row_count);
-   ASSERT_EQ(*under_test->evaluate(), roaring::Roaring());
+   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring());
    auto negated = RangeSelection::negate(std::move(under_test));
-   ASSERT_EQ(*negated->evaluate(), roaring::Roaring());
+   ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring());
 }
 
 TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValuesEmptyRanges) {
@@ -34,9 +34,11 @@ TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValuesEmptyRanges) {
    const uint32_t row_count = 9;
 
    auto under_test = std::make_unique<RangeSelection>(std::move(test_ranges), row_count);
-   ASSERT_EQ(*under_test->evaluate(), roaring::Roaring());
+   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring());
    auto negated = RangeSelection::negate(std::move(under_test));
-   ASSERT_EQ(*negated->evaluate(), roaring::Roaring({0, 1, 2, 3, 4, 5, 6, 7, 8}));
+   ASSERT_EQ(
+      negated->evaluate().getConstReference(), roaring::Roaring({0, 1, 2, 3, 4, 5, 6, 7, 8})
+   );
 }
 
 TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValuesFullRange) {
@@ -45,9 +47,11 @@ TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValuesFullRange) {
    const uint32_t row_count = 8;
 
    auto under_test = std::make_unique<RangeSelection>(std::move(test_ranges), row_count);
-   ASSERT_EQ(*under_test->evaluate(), roaring::Roaring({0, 1, 2, 3, 4, 5, 6, 7}));
+   ASSERT_EQ(
+      under_test->evaluate().getConstReference(), roaring::Roaring({0, 1, 2, 3, 4, 5, 6, 7})
+   );
    auto negated = RangeSelection::negate(std::move(under_test));
-   ASSERT_EQ(*negated->evaluate(), roaring::Roaring());
+   ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring());
 }
 
 TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValuesMeetingRanges) {
@@ -57,9 +61,9 @@ TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValuesMeetingRanges) {
    const uint32_t row_count = 9;
 
    auto under_test = std::make_unique<RangeSelection>(std::move(test_ranges), row_count);
-   ASSERT_EQ(*under_test->evaluate(), roaring::Roaring({0, 1, 2, 3}));
+   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0, 1, 2, 3}));
    auto negated = RangeSelection::negate(std::move(under_test));
-   ASSERT_EQ(*negated->evaluate(), roaring::Roaring({4, 5, 6, 7, 8}));
+   ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring({4, 5, 6, 7, 8}));
 }
 
 TEST(OperatorRangeSelection, returnsCorrectTypeInfo) {

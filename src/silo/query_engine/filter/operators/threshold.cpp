@@ -74,9 +74,9 @@ CopyOnWriteBitmap Threshold::evaluate() const {
    std::vector<roaring::Roaring> partition_bitmaps(dp_table_size);
    // Copy bitmap of first child if immutable, otherwise use it directly
    if (non_negated_children.empty()) {
-      partition_bitmaps[0] = *negated_children[0]->evaluate();
+      partition_bitmaps[0] = negated_children[0]->evaluate().getConstReference();
    } else {
-      partition_bitmaps[0] = *non_negated_children[0]->evaluate();
+      partition_bitmaps[0] = non_negated_children[0]->evaluate().getConstReference();
    }
 
    if (non_negated_children.empty()) {
@@ -99,10 +99,10 @@ CopyOnWriteBitmap Threshold::evaluate() const {
       // positions lower than n - k + i - 1 are unable to affect the result, because only (k - i)
       // iterations are left
       for (int j = std::min(max_table_index, i); j > std::max(0, n - k + i - 1); --j) {
-         partition_bitmaps[j] |= partition_bitmaps[j - 1] & *bitmap;
+         partition_bitmaps[j] |= partition_bitmaps[j - 1] & bitmap.getConstReference();
       }
       if (k - i > n - 1) {
-         partition_bitmaps[0] |= *bitmap;
+         partition_bitmaps[0] |= bitmap.getConstReference();
       }
    }
 
@@ -121,11 +121,11 @@ CopyOnWriteBitmap Threshold::evaluate() const {
       // positions lower than n - k + i - 1 are unable to affect the result, because only (k - i)
       // iterations are left
       for (int j = std::min(max_table_index, i); j > std::max(0, n - k + i - 1); --j) {
-         partition_bitmaps[j] |= partition_bitmaps[j - 1] - *bitmap;
+         partition_bitmaps[j] |= partition_bitmaps[j - 1] - bitmap.getConstReference();
       }
       if (k - i > n - 1) {
-         bitmap->flip(0, row_count);
-         partition_bitmaps[0] |= *bitmap;
+         bitmap.getMutable().flip(0, row_count);
+         partition_bitmaps[0] |= bitmap.getConstReference();
       }
    }
    // NOLINTEND(readability-identifier-length)

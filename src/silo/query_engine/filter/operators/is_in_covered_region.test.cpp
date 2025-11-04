@@ -22,9 +22,9 @@ TEST(IsInCoveredRegion, containsCheckShouldReturnCorrectValues) {
    auto under_test = std::make_unique<IsInCoveredRegion>(
       &start_ends, &test_bitmaps, test_bitmaps.size(), IsInCoveredRegion::Comparator::NOT_COVERED, 2
    );
-   ASSERT_EQ(*under_test->evaluate(), roaring::Roaring({0, 2, 7}));
+   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0, 2, 7}));
    auto negated = IsInCoveredRegion::negate(std::move(under_test));
-   ASSERT_EQ(*negated->evaluate(), roaring::Roaring({1, 3, 4, 5, 6}));
+   ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring({1, 3, 4, 5, 6}));
 }
 
 TEST(IsInCoveredRegion, notContainsCheckShouldReturnCorrectValues) {
@@ -44,9 +44,9 @@ TEST(IsInCoveredRegion, notContainsCheckShouldReturnCorrectValues) {
    auto under_test = std::make_unique<IsInCoveredRegion>(
       &start_ends, &test_bitmaps, test_bitmaps.size(), IsInCoveredRegion::Comparator::COVERED, 2
    );
-   ASSERT_EQ(*under_test->evaluate(), roaring::Roaring({1, 3, 4, 5, 6}));
+   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({1, 3, 4, 5, 6}));
    auto negated = IsInCoveredRegion::negate(std::move(under_test));
-   ASSERT_EQ(*negated->evaluate(), roaring::Roaring({0, 2, 7}));
+   ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring({0, 2, 7}));
 }
 
 TEST(IsInCoveredRegion, containsCheckOutsideRegion) {
@@ -66,9 +66,9 @@ TEST(IsInCoveredRegion, containsCheckOutsideRegion) {
    auto under_test = std::make_unique<IsInCoveredRegion>(
       &start_ends, &test_bitmaps, test_bitmaps.size(), IsInCoveredRegion::Comparator::COVERED, 7
    );
-   ASSERT_EQ(*under_test->evaluate(), roaring::Roaring({}));
+   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({}));
    auto negated = IsInCoveredRegion::negate(std::move(under_test));
-   ASSERT_EQ(*negated->evaluate(), roaring::Roaring({0, 1, 2, 3, 4, 5, 6, 7}));
+   ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring({0, 1, 2, 3, 4, 5, 6, 7}));
 }
 
 TEST(IsInCoveredRegion, correctTypeInfo) {

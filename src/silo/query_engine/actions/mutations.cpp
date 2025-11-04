@@ -57,7 +57,7 @@ std::unordered_map<std::string, typename Mutations<SymbolType>::PrefilteredBitma
    for (size_t i = 0; i < table.getNumberOfPartitions(); ++i) {
       const storage::TablePartition& table_partition = table.getPartition(i);
       CopyOnWriteBitmap& filter = bitmap_filter[i];
-      const size_t cardinality = filter->cardinality();
+      const size_t cardinality = filter.getConstReference().cardinality();
       if (cardinality == 0) {
          continue;
       }
@@ -70,7 +70,7 @@ std::unordered_map<std::string, typename Mutations<SymbolType>::PrefilteredBitma
          }
       } else {
          if (filter.isMutable()) {
-            filter->runOptimize();
+            filter.getMutable().runOptimize();
          }
          for (const auto& [sequence_name, sequence_store] :
               table_partition.columns.getColumns<typename SymbolType::Column>()) {
@@ -163,7 +163,7 @@ __attribute__((noinline)) void subtractFilteredNCounts(
    EVOBENCH_SCOPE("Mutations", "subtractFilteredNCounts");
    std::vector<size_t> cumulative_starts(sequence_length + 1);
    std::vector<size_t> cumulative_ends(sequence_length + 1);
-   for (const uint32_t idx : *filter) {
+   for (const uint32_t idx : filter.getConstReference()) {
       auto iter = horizontal_bitmaps.find(idx);
       if (iter != horizontal_bitmaps.end()) {
          const roaring::Roaring& n_bitmap = iter->second;
@@ -211,7 +211,7 @@ void countActualFilteredMutations(
    const std::map<SequenceDiffKey<SymbolType>, SequenceDiff<SymbolType>>& vertical_bitmaps
 ) {
    EVOBENCH_SCOPE("Mutations", "countActualFilteredMutations");
-   const auto& filter_roaring_array = filter->roaring.high_low_container;
+   const auto& filter_roaring_array = filter.getConstReference().roaring.high_low_container;
    std::map<size_t, roaring::internal::container_t*> filter_containers;
    std::map<size_t, uint8_t> filter_container_typecodes;
    for (int32_t idx = 0; idx < filter_roaring_array.size; ++idx) {
@@ -267,7 +267,9 @@ void Mutations<SymbolType>::addMutationCountsForMixedBitmaps(
       size_t sequence_length = local_reference.size();
       std::vector<uint32_t> count_per_local_reference_position(sequence_length);
 
-      initializeCountsWithSequenceCount(count_per_local_reference_position, filter->cardinality());
+      initializeCountsWithSequenceCount(
+         count_per_local_reference_position, filter.getConstReference().cardinality()
+      );
 
       subtractFilteredNCounts(
          count_per_local_reference_position,

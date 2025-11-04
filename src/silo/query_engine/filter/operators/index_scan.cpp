@@ -32,7 +32,7 @@ std::string IndexScan::toString() const {
    return fmt::format(
       "IndexScan(Logical Equivalent: {}, Cardinality: {})",
       logical_equivalent ? logical_equivalent.value()->toString() : "undefined",
-      std::to_string(bitmap->cardinality())
+      std::to_string(bitmap.getConstReference().cardinality())
    );
 }
 

@@ -14,7 +14,7 @@ using silo::query_engine::filter::operators::IndexScan;
 TEST(OperatorIndexScan, evaluateShouldReturnCorrectValues) {
    const roaring::Roaring test_bitmap(roaring::Roaring({1, 3}));
    const IndexScan under_test(CopyOnWriteBitmap{&test_bitmap}, 5);
-   ASSERT_EQ(*under_test.evaluate(), roaring::Roaring({1, 3}));
+   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring({1, 3}));
 }
 
 TEST(OperatorIndexScan, correctTypeInfo) {

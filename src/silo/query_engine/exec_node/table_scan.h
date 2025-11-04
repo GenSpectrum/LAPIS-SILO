@@ -68,7 +68,8 @@ class TableScanGenerator {
          batch_size_cutoff(batch_size_cutoff) {
       current_partition_idx = 0;
       if (!partition_filters.empty()) {
-         current_bitmap_reader = BatchedBitmapReader{partition_filters.front(), batch_size_cutoff};
+         current_bitmap_reader =
+            BatchedBitmapReader{partition_filters.front().getConstReference(), batch_size_cutoff};
       }
    }
 

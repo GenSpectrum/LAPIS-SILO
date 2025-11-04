@@ -55,7 +55,7 @@ NodeValuesResponse TreeAction::getNodeValues(
 ) const {
    size_t num_rows = 0;
    for (const auto& filter : bitmap_filter) {
-      num_rows += filter->cardinality();
+      num_rows += filter.getConstReference().cardinality();
    }
    std::unordered_set<std::string> all_tree_node_ids;
    uint32_t num_empty = 0;
@@ -65,11 +65,11 @@ NodeValuesResponse TreeAction::getNodeValues(
       const auto& string_column = table_partition.columns.string_columns.at(column_name);
 
       CopyOnWriteBitmap& filter = bitmap_filter[i];
-      const size_t cardinality = filter->cardinality();
+      const size_t cardinality = filter.getConstReference().cardinality();
       if (cardinality == 0) {
          continue;
       }
-      for (uint32_t row_in_table_partition : *filter) {
+      for (uint32_t row_in_table_partition : filter.getConstReference()) {
          if (!string_column.isNull(row_in_table_partition)) {
             auto value = string_column.getValueString(row_in_table_partition);
             all_tree_node_ids.insert(value);

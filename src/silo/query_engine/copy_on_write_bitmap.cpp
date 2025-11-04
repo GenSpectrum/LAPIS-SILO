@@ -18,28 +18,16 @@ CopyOnWriteBitmap::CopyOnWriteBitmap(roaring::Roaring&& bitmap)
     : mutable_bitmap(std::make_shared<roaring::Roaring>(std::move(bitmap))),
       immutable_bitmap(nullptr) {}
 
-const roaring::Roaring& CopyOnWriteBitmap::operator*() const {
+const roaring::Roaring& CopyOnWriteBitmap::getConstReference() const {
    return immutable_bitmap ? *immutable_bitmap : *mutable_bitmap;
 }
 
-roaring::Roaring& CopyOnWriteBitmap::operator*() {
+roaring::Roaring& CopyOnWriteBitmap::getMutable() {
    if (!mutable_bitmap) {
       mutable_bitmap = std::make_shared<roaring::Roaring>(*immutable_bitmap);
       immutable_bitmap = nullptr;
    }
    return *mutable_bitmap;
-}
-
-std::shared_ptr<roaring::Roaring> CopyOnWriteBitmap::operator->() {
-   if (!mutable_bitmap) {
-      mutable_bitmap = std::make_shared<roaring::Roaring>(*immutable_bitmap);
-      immutable_bitmap = nullptr;
-   }
-   return mutable_bitmap;
-}
-
-const roaring::Roaring* CopyOnWriteBitmap::operator->() const {
-   return immutable_bitmap ? immutable_bitmap : mutable_bitmap.get();
 }
 
 bool CopyOnWriteBitmap::isMutable() const {

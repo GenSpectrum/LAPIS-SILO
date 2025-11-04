@@ -1,23 +1,19 @@
 #pragma once
 
-#include <iostream>
-#include <memory>
 #include <optional>
+#include <roaring/roaring.hh>
 
 #include <roaring/roaring.h>
-
-#include "silo/query_engine/copy_on_write_bitmap.h"
 
 namespace silo::query_engine {
 
 class BatchedBitmapReader {
   public:
-   explicit BatchedBitmapReader(CopyOnWriteBitmap filter, size_t batch_size_minus_one)
-       : filter(std::move(filter)),
-         num_rows_produced(0),
-         cardinality(0),
-         batch_size_minus_one(batch_size_minus_one) {
-      cardinality = this->filter->cardinality();
+   explicit BatchedBitmapReader(roaring::Roaring _bitmap, size_t _batch_size_minus_one)
+       : bitmap(std::move(_bitmap)),
+         cardinality(bitmap.cardinality()),
+         batch_size_minus_one(_batch_size_minus_one) {
+      ;
    }
 
    /**
@@ -28,8 +24,8 @@ class BatchedBitmapReader {
    std::optional<roaring::Roaring> nextBatch();
 
   private:
-   CopyOnWriteBitmap filter;
-   size_t num_rows_produced;
+   roaring::Roaring bitmap;
+   size_t num_rows_produced = 0;
    size_t cardinality;  // Cache the cardinality for efficiency
    size_t batch_size_minus_one;
 };

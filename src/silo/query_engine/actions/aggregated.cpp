@@ -106,7 +106,7 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithoutGrouping(
       int32_t result_count = 0;
 
       for (const auto& partition_filter : partition_filters) {
-         result_count += partition_filter->cardinality();
+         result_count += static_cast<uint32_t>(partition_filter.getConstReference().cardinality());
       }
 
       arrow::Int32Builder result_builder{};

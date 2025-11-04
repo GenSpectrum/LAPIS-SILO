@@ -1,5 +1,6 @@
 #include "silo/query_engine/filter/operators/full.h"
 
+#include <roaring/roaring.hh>
 #include <string>
 
 #include "evobench/evobench.hpp"
@@ -24,9 +25,9 @@ Type Full::type() const {
 
 CopyOnWriteBitmap Full::evaluate() const {
    EVOBENCH_SCOPE("Full", "evaluate");
-   CopyOnWriteBitmap result;
-   result->addRange(0, row_count);
-   return result;
+   roaring::Roaring result;
+   result.addRange(0, row_count);
+   return CopyOnWriteBitmap{std::move(result)};
 }
 
 std::unique_ptr<Operator> Full::negate(std::unique_ptr<Full>&& full) {

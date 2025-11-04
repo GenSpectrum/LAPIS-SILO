@@ -1,5 +1,6 @@
 #include "silo/query_engine/filter/operators/range_selection.h"
 
+#include <roaring/roaring.hh>
 #include <string>
 #include <utility>
 #include <vector>
@@ -41,11 +42,11 @@ Type RangeSelection::type() const {
 
 CopyOnWriteBitmap RangeSelection::evaluate() const {
    EVOBENCH_SCOPE("RangeSelection", "evaluate");
-   CopyOnWriteBitmap result;
+   roaring::Roaring result_bitmap;
    for (const auto& range : ranges) {
-      result->addRange(range.start, range.end);
+      result_bitmap.addRange(range.start, range.end);
    }
-   return result;
+   return CopyOnWriteBitmap{std::move(result_bitmap)};
 }
 
 std::unique_ptr<Operator> RangeSelection::negate(std::unique_ptr<RangeSelection>&& range_selection

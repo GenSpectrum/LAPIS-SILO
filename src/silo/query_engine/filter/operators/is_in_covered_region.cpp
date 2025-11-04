@@ -39,7 +39,7 @@ Type IsInCoveredRegion::type() const {
 
 CopyOnWriteBitmap IsInCoveredRegion::evaluate() const {
    EVOBENCH_SCOPE("IsInCoveredRegion", "evaluate");
-   CopyOnWriteBitmap result_bitmap;
+   roaring::Roaring result_bitmap;
    auto bitmap_iter = covered_region_bitmaps->begin();
    for (size_t row_idx = 0; row_idx < row_count; ++row_idx) {
       const auto& [start, end] = covered_region_ranges->at(row_idx);
@@ -51,14 +51,14 @@ CopyOnWriteBitmap IsInCoveredRegion::evaluate() const {
       // Check whether `value` is covered -> value in [start, end) and not in row_bitmap
       if (start <= value && value < end) {
          if (!row_bitmap.has_value() || !row_bitmap.value()->contains(value)) {
-            result_bitmap->add(row_idx);
+            result_bitmap.add(row_idx);
          }
       }
    }
    if (comparator == Comparator::NOT_COVERED) {
-      result_bitmap->flip(0, row_count);
+      result_bitmap.flip(0, row_count);
    }
-   return result_bitmap;
+   return CopyOnWriteBitmap{std::move(result_bitmap)};
 }
 
 std::unique_ptr<Operator> IsInCoveredRegion::negate(
