@@ -10,12 +10,10 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
-#include "silo/query_engine/filter/expressions/or.h"
 #include "silo/query_engine/filter/expressions/symbol_in_set.h"
 #include "silo/query_engine/filter/operators/index_scan.h"
-#include "silo/query_engine/filter/operators/is_in_covered_region.h"
 #include "silo/query_engine/filter/operators/operator.h"
-#include "silo/query_engine/filter/operators/union.h"
+#include "silo/query_engine/query_compilation_exception.h"
 #include "silo/query_engine/query_parse_sequence_name.h"
 #include "silo/storage/table_partition.h"
 
@@ -63,10 +61,10 @@ std::string SymbolEquals<SymbolType>::toString() const {
 }
 
 template <typename SymbolType>
-std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<SymbolType>::compile(
+std::unique_ptr<Expression> SymbolEquals<SymbolType>::rewrite(
    const storage::Table& table,
    const storage::TablePartition& table_partition,
-   Expression::AmbiguityMode mode
+   AmbiguityMode mode
 ) const {
    CHECK_SILO_QUERY(
       sequence_name.has_value() || table.schema.getDefaultSequenceName<SymbolType>(),
@@ -96,15 +94,21 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<Sy
    if (mode == UPPER_BOUND) {
       auto symbols_to_match = SymbolType::AMBIGUITY_SYMBOLS.at(symbol);
       return std::make_unique<SymbolInSet<SymbolType>>(
-                valid_sequence_name, position_idx, symbols_to_match
-      )
-         ->compile(table, table_partition, NONE);
+         valid_sequence_name, position_idx, symbols_to_match
+      );
    }
 
    return std::make_unique<SymbolInSet<SymbolType>>(
-             valid_sequence_name, position_idx, std::vector<typename SymbolType::Symbol>{symbol}
-   )
-      ->compile(table, table_partition, NONE);
+      valid_sequence_name, position_idx, std::vector<typename SymbolType::Symbol>{symbol}
+   );
+}
+
+template <typename SymbolType>
+std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<SymbolType>::compile(
+   const storage::Table& /*table*/,
+   const storage::TablePartition& /*table_partition*/
+) const {
+   throw QueryCompilationException("SymbolEquals should have been rewritten before compilation");
 }
 
 template <typename SymbolType>

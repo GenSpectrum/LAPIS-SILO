@@ -18,6 +18,7 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/query_engine/filter/operators/union.h"
+#include "silo/query_engine/query_compilation_exception.h"
 #include "silo/query_engine/query_parse_sequence_name.h"
 
 using silo::storage::column::SequenceColumnPartition;
@@ -196,10 +197,21 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> compileOnlyMuta
 }  // namespace
 
 template <typename SymbolType>
+std::unique_ptr<Expression> SymbolInSet<SymbolType>::rewrite(
+   const storage::Table& /*table*/,
+   const storage::TablePartition& /*table_partition*/,
+   AmbiguityMode /*mode*/
+) const {
+   throw QueryCompilationException(
+      "Cannot rewrite SymbolInSet - this expression should only be created during query rewrites "
+      "and not directly used"
+   );
+}
+
+template <typename SymbolType>
 std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolInSet<SymbolType>::compile(
    const storage::Table& table,
-   const storage::TablePartition& table_partition,
-   Expression::AmbiguityMode /*mode*/
+   const storage::TablePartition& table_partition
 ) const {
    CHECK_SILO_QUERY(
       sequence_name.has_value() || table.schema.getDefaultSequenceName<SymbolType>(),

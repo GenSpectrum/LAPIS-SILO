@@ -8,7 +8,6 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/common/date.h"
-#include "silo/database.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/operators/range_selection.h"
 #include "silo/query_engine/filter/operators/selection.h"
@@ -42,10 +41,17 @@ std::string DateBetween::toString() const {
    return res;
 }
 
+std::unique_ptr<Expression> DateBetween::rewrite(
+   const storage::Table& /*table*/,
+   const storage::TablePartition& /*table_partition*/,
+   AmbiguityMode /*mode*/
+) const {
+   return std::make_unique<DateBetween>(column_name, date_from, date_to);
+}
+
 std::unique_ptr<operators::Operator> DateBetween::compile(
    const storage::Table& table,
-   const storage::TablePartition& table_partition,
-   AmbiguityMode /*mode*/
+   const storage::TablePartition& table_partition
 ) const {
    CHECK_SILO_QUERY(
       table.schema.getColumn(column_name).has_value(),

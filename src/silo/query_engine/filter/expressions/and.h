@@ -3,11 +3,9 @@
 #include <memory>
 #include <string>
 #include <tuple>
-#include <vector>
 
 #include <nlohmann/json_fwd.hpp>
 
-#include "silo/database.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/selection.h"
@@ -19,22 +17,25 @@ class And : public Expression {
   private:
    ExpressionVector children;
 
-   std::tuple<operators::OperatorVector, operators::OperatorVector, operators::PredicateVector>
-   compileChildren(
-      const storage::Table& table,
-      const storage::TablePartition& table_partition,
-      AmbiguityMode mode
-   ) const;
+   [[nodiscard]] std::
+      tuple<operators::OperatorVector, operators::OperatorVector, operators::PredicateVector>
+      compileChildren(const storage::Table& table, const storage::TablePartition& table_partition)
+         const;
 
   public:
    explicit And(ExpressionVector&& children);
 
    [[nodiscard]] std::string toString() const override;
 
-   [[nodiscard]] std::unique_ptr<silo::query_engine::filter::operators::Operator> compile(
+   [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,
       const storage::TablePartition& table_partition,
       AmbiguityMode mode
+   ) const override;
+
+   [[nodiscard]] std::unique_ptr<operators::Operator> compile(
+      const storage::Table& table,
+      const storage::TablePartition& table_partition
    ) const override;
 };
 

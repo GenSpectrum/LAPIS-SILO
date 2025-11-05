@@ -3,11 +3,9 @@
 #include <cmath>
 #include <memory>
 #include <utility>
-#include <vector>
 
 #include <nlohmann/json.hpp>
 
-#include "silo/database.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/complement.h"
@@ -37,10 +35,17 @@ std::string FloatBetween::toString() const {
    return "[FloatBetween " + from_string + " - " + to_string + "]";
 }
 
+std::unique_ptr<Expression> FloatBetween::rewrite(
+   const storage::Table& /*table*/,
+   const storage::TablePartition& /*table_partition*/,
+   AmbiguityMode /*mode*/
+) const {
+   return std::make_unique<FloatBetween>(column_name, from, to);
+}
+
 std::unique_ptr<silo::query_engine::filter::operators::Operator> FloatBetween::compile(
    const storage::Table& /*table*/,
-   const storage::TablePartition& table_partition,
-   silo::query_engine::filter::expressions::Expression::AmbiguityMode /*mode*/
+   const storage::TablePartition& table_partition
 ) const {
    CHECK_SILO_QUERY(
       table_partition.columns.float_columns.contains(column_name),

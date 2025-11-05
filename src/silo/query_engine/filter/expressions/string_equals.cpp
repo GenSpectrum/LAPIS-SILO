@@ -6,9 +6,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "silo/common/german_string.h"
 #include "silo/common/panic.h"
-#include "silo/database.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/empty.h"
@@ -32,10 +30,17 @@ std::string StringEquals::toString() const {
    return fmt::format("{} IS NULL", column_name);
 }
 
+std::unique_ptr<Expression> StringEquals::rewrite(
+   const storage::Table& /*table*/,
+   const storage::TablePartition& /*table_partition*/,
+   AmbiguityMode /*mode*/
+) const {
+   return std::make_unique<StringEquals>(column_name, value);
+}
+
 std::unique_ptr<silo::query_engine::filter::operators::Operator> StringEquals::compile(
    const storage::Table& /*table*/,
-   const storage::TablePartition& table_partition,
-   Expression::AmbiguityMode /*mode*/
+   const storage::TablePartition& table_partition
 ) const {
    CHECK_SILO_QUERY(
       table_partition.columns.string_columns.contains(column_name) ||

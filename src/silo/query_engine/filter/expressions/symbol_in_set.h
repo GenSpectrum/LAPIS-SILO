@@ -28,10 +28,15 @@ class SymbolInSet : public Expression {
 
    [[nodiscard]] std::string toString() const override;
 
-   [[nodiscard]] std::unique_ptr<silo::query_engine::filter::operators::Operator> compile(
+   [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,
       const storage::TablePartition& table_partition,
       AmbiguityMode mode
+   ) const override;
+
+   [[nodiscard]] std::unique_ptr<operators::Operator> compile(
+      const storage::Table& table,
+      const storage::TablePartition& table_partition
    ) const override;
 
   private:

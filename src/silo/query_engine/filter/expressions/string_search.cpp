@@ -1,14 +1,11 @@
 #include "silo/query_engine/filter/expressions/string_search.h"
 
-#include <optional>
 #include <utility>
 
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
-#include "silo/common/german_string.h"
 #include "silo/common/panic.h"
-#include "silo/database.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/bitmap_producer.h"
@@ -49,10 +46,19 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> createMatchingB
 
 }  // namespace
 
+std::unique_ptr<Expression> StringSearch::rewrite(
+   const storage::Table& /*table*/,
+   const storage::TablePartition& /*table_partition*/,
+   AmbiguityMode /*mode*/
+) const {
+   return std::make_unique<StringSearch>(
+      column_name, std::make_unique<re2::RE2>(search_expression->pattern())
+   );
+}
+
 std::unique_ptr<silo::query_engine::filter::operators::Operator> StringSearch::compile(
    const storage::Table& /*table*/,
-   const storage::TablePartition& table_partition,
-   Expression::AmbiguityMode /*mode*/
+   const storage::TablePartition& table_partition
 ) const {
    CHECK_SILO_QUERY(
       table_partition.columns.string_columns.contains(column_name) ||

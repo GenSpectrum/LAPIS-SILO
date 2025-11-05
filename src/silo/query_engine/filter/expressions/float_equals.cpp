@@ -7,10 +7,8 @@
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
-#include "silo/database.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
-#include "silo/query_engine/filter/operators/empty.h"
 #include "silo/query_engine/filter/operators/index_scan.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/selection.h"
@@ -31,10 +29,17 @@ std::string FloatEquals::toString() const {
    return fmt::format("{} IS NULL", column_name);
 }
 
+std::unique_ptr<Expression> FloatEquals::rewrite(
+   const storage::Table& /*table*/,
+   const storage::TablePartition& /*table_partition*/,
+   AmbiguityMode /*mode*/
+) const {
+   return std::make_unique<FloatEquals>(column_name, value);
+}
+
 std::unique_ptr<silo::query_engine::filter::operators::Operator> FloatEquals::compile(
    const storage::Table& /*table*/,
-   const storage::TablePartition& table_partition,
-   silo::query_engine::filter::expressions::Expression::AmbiguityMode /*mode*/
+   const storage::TablePartition& table_partition
 ) const {
    CHECK_SILO_QUERY(
       table_partition.columns.float_columns.contains(column_name),
