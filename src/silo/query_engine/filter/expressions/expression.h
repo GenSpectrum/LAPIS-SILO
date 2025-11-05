@@ -26,10 +26,16 @@ class Expression {
 
    [[nodiscard]] virtual std::string toString() const = 0;
 
-   [[nodiscard]] virtual std::unique_ptr<silo::query_engine::filter::operators::Operator> compile(
+   [[nodiscard]] virtual std::unique_ptr<silo::query_engine::filter::expressions::Expression>
+   rewrite(
       const storage::Table& table,
       const storage::TablePartition& table_partition,
       AmbiguityMode mode
+   ) const = 0;
+
+   [[nodiscard]] virtual std::unique_ptr<silo::query_engine::filter::operators::Operator> compile(
+      const storage::Table& table,
+      const storage::TablePartition& table_partition
    ) const = 0;
 };
 

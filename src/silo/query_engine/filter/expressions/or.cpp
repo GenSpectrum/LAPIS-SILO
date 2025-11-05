@@ -7,7 +7,6 @@
 #include <boost/algorithm/string/join.hpp>
 #include <nlohmann/json.hpp>
 
-#include "silo/database.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/complement.h"
@@ -34,17 +33,32 @@ std::string Or::toString() const {
    return "Or(" + boost::algorithm::join(child_strings, " | ") + ")";
 }
 
-std::unique_ptr<operators::Operator> Or::compile(
+std::unique_ptr<Expression> Or::rewrite(
    const storage::Table& table,
    const storage::TablePartition& table_partition,
    Expression::AmbiguityMode mode
+) const {
+   ExpressionVector rewritten_children;
+   std::ranges::transform(
+      children,
+      std::back_inserter(rewritten_children),
+      [&](const std::unique_ptr<Expression>& child) {
+         return child->rewrite(table, table_partition, mode);
+      }
+   );
+   return std::make_unique<Or>(std::move(rewritten_children));
+}
+
+std::unique_ptr<operators::Operator> Or::compile(
+   const storage::Table& table,
+   const storage::TablePartition& table_partition
 ) const {
    OperatorVector all_child_operators;
    std::ranges::transform(
       children,
       std::back_inserter(all_child_operators),
       [&](const std::unique_ptr<Expression>& expression) {
-         return expression->compile(table, table_partition, mode);
+         return expression->compile(table, table_partition);
       }
    );
    OperatorVector filtered_child_operators;

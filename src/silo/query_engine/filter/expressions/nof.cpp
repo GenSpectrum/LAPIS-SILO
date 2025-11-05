@@ -3,13 +3,13 @@
 #include <memory>
 #include <string>
 #include <utility>
-#include <vector>
 
 #include <nlohmann/json.hpp>
 
-#include "silo/database.h"
 #include "silo/query_engine/bad_request.h"
+#include "silo/query_engine/filter/expressions/and.h"
 #include "silo/query_engine/filter/expressions/expression.h"
+#include "silo/query_engine/filter/expressions/negation.h"
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/empty.h"
 #include "silo/query_engine/filter/operators/full.h"
@@ -177,13 +177,12 @@ std::string NOf::toString() const {
 
 std::tuple<operators::OperatorVector, operators::OperatorVector, int> NOf::mapChildExpressions(
    const storage::Table& table,
-   const storage::TablePartition& table_partition,
-   AmbiguityMode mode
+   const storage::TablePartition& table_partition
 ) const {
    operators::OperatorVector child_operators;
    child_operators.reserve(children.size());
    for (const auto& child_expression : children) {
-      child_operators.push_back(child_expression->compile(table, table_partition, mode));
+      child_operators.push_back(child_expression->compile(table, table_partition));
    }
 
    operators::OperatorVector non_negated_child_operators;
@@ -212,58 +211,62 @@ std::tuple<operators::OperatorVector, operators::OperatorVector, int> NOf::mapCh
    };
 }
 
-std::unique_ptr<operators::Operator> NOf::rewriteNonExact(
+ExpressionVector NOf::rewriteChildren(
    const storage::Table& table,
    const storage::TablePartition& table_partition,
    Expression::AmbiguityMode mode
 ) const {
-   operators::OperatorVector at_least_k;
-   {
-      auto [non_negated_child_operators, negated_child_operators, updated_number_of_matchers] =
-         mapChildExpressions(table, table_partition, mode);
-      at_least_k.emplace_back(toOperator(
-         updated_number_of_matchers,
-         std::move(non_negated_child_operators),
-         std::move(negated_child_operators),
-         false,
-         table_partition.sequence_count
-      ));
+   ExpressionVector rewritten_children;
+   rewritten_children.reserve(children.size());
+   for (const auto& child : children) {
+      rewritten_children.push_back(child->rewrite(table, table_partition, mode));
+   }
+   return rewritten_children;
+}
+
+std::unique_ptr<Expression> NOf::rewriteToNonExact(
+   const storage::Table& table,
+   const storage::TablePartition& table_partition,
+   Expression::AmbiguityMode mode
+) const {
+   auto at_least_k = std::make_unique<NOf>(
+      rewriteChildren(table, table_partition, mode),
+      this->number_of_matchers,
+      /*match_exactly=*/false
+   );
+   auto at_least_k_plus_one = std::make_unique<NOf>(
+      rewriteChildren(table, table_partition, mode),
+      this->number_of_matchers + 1,
+      /*match_exactly=*/false
+   );
+   ;
+   ExpressionVector and_children;
+   and_children.push_back(std::move(at_least_k));
+   and_children.push_back(std::make_unique<Negation>(std::move(at_least_k_plus_one)));
+   return std::make_unique<And>(std::move(and_children));
+}
+
+std::unique_ptr<Expression> NOf::rewrite(
+   const storage::Table& table,
+   const storage::TablePartition& table_partition,
+   AmbiguityMode mode
+) const {
+   // We cannot easily map ambiguity modes through an exact NOf expression -> rewrite without exact
+   if (mode != NONE && match_exactly && number_of_matchers < static_cast<int>(children.size())) {
+      return rewriteToNonExact(table, table_partition, mode);
    }
 
-   operators::OperatorVector at_least_k_plus_one;
-   {
-      auto [non_negated_child_operators, negated_child_operators, updated_number_of_matchers] =
-         mapChildExpressions(table, table_partition, mode);
-      at_least_k_plus_one.emplace_back(toOperator(
-         updated_number_of_matchers + 1,
-         std::move(non_negated_child_operators),
-         std::move(negated_child_operators),
-         false,
-         table_partition.sequence_count
-      ));
-   }
-
-   return toOperator(
-      2,
-      std::move(at_least_k),
-      std::move(at_least_k_plus_one),
-      false,
-      table_partition.sequence_count
+   return std::make_unique<NOf>(
+      rewriteChildren(table, table_partition, mode), number_of_matchers, match_exactly
    );
 }
 
 std::unique_ptr<operators::Operator> NOf::compile(
    const storage::Table& table,
-   const storage::TablePartition& table_partition,
-   Expression::AmbiguityMode mode
+   const storage::TablePartition& table_partition
 ) const {
    auto [non_negated_child_operators, negated_child_operators, updated_number_of_matchers] =
-      mapChildExpressions(table, table_partition, mode);
-
-   // We cannot easily map ambiguity modes through an exact NOf expression -> rewrite without exact
-   if (mode != NONE && match_exactly && number_of_matchers < static_cast<int>(children.size())) {
-      return rewriteNonExact(table, table_partition, mode);
-   }
+      mapChildExpressions(table, table_partition);
 
    return toOperator(
       updated_number_of_matchers,

@@ -7,10 +7,10 @@
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
-#include "silo/database.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
+#include "silo/query_engine/query_compilation_exception.h"
 #include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
@@ -21,12 +21,20 @@ Exact::Exact(std::unique_ptr<Expression> child)
 std::string Exact::toString() const {
    return fmt::format("Exact ({})", child->toString());
 }
-std::unique_ptr<silo::query_engine::filter::operators::Operator> Exact::compile(
+
+std::unique_ptr<Expression> Exact::rewrite(
    const storage::Table& table,
    const storage::TablePartition& table_partition,
-   silo::query_engine::filter::expressions::Expression::AmbiguityMode /*mode*/
+   AmbiguityMode /*mode*/
 ) const {
-   return child->compile(table, table_partition, AmbiguityMode::LOWER_BOUND);
+   return child->rewrite(table, table_partition, AmbiguityMode::LOWER_BOUND);
+}
+
+std::unique_ptr<silo::query_engine::filter::operators::Operator> Exact::compile(
+   const storage::Table& /*table*/,
+   const storage::TablePartition& /*table_partition*/
+) const {
+   throw QueryCompilationException{"Exact expression must be elimitated in query rewrite phase"};
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

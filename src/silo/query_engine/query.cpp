@@ -42,13 +42,22 @@ QueryPlan Query::toQueryPlan(
    partition_filters.reserve(database->table->getNumberOfPartitions());
    for (size_t partition_index = 0; partition_index < database->table->getNumberOfPartitions();
         partition_index++) {
-      auto filter_operator = filter->compile(
+      auto filter_after_rewrite = filter->rewrite(
          *database->table,
          database->table->getPartition(partition_index),
          filter::expressions::Expression::AmbiguityMode::NONE
       );
       SPDLOG_DEBUG(
-         "Request Id [{}] - Simplified query for partition {}: {}",
+         "Request Id [{}] - Filter after rewrite for partition {}: {}",
+         request_id,
+         partition_index,
+         filter_after_rewrite->toString()
+      );
+      auto filter_operator = filter_after_rewrite->compile(
+         *database->table, database->table->getPartition(partition_index)
+      );
+      SPDLOG_DEBUG(
+         "Request Id [{}] - Filter operator tree for partition {}: {}",
          request_id,
          partition_index,
          filter_operator->toString()

@@ -6,7 +6,6 @@
 
 #include <nlohmann/json.hpp>
 
-#include "silo/database.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
@@ -21,13 +20,19 @@ std::string Negation::toString() const {
    return "!(" + child->toString() + ")";
 }
 
-std::unique_ptr<operators::Operator> Negation::compile(
+std::unique_ptr<Expression> Negation::rewrite(
    const storage::Table& table,
    const storage::TablePartition& table_partition,
    AmbiguityMode mode
 ) const {
-   auto child_operator = child->compile(table, table_partition, invertMode(mode));
-   return operators::Operator::negate(std::move(child_operator));
+   return std::make_unique<Negation>(child->rewrite(table, table_partition, invertMode(mode)));
+}
+
+std::unique_ptr<operators::Operator> Negation::compile(
+   const storage::Table& table,
+   const storage::TablePartition& table_partition
+) const {
+   return operators::Operator::negate(child->compile(table, table_partition));
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

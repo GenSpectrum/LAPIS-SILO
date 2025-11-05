@@ -11,7 +11,6 @@
 #include <boost/algorithm/string/join.hpp>
 #include <nlohmann/json.hpp>
 
-#include "silo/database.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/complement.h"
@@ -91,15 +90,14 @@ void logCompiledChildren(
 
 std::tuple<OperatorVector, OperatorVector, operators::PredicateVector> And::compileChildren(
    const storage::Table& table,
-   const storage::TablePartition& table_partition,
-   AmbiguityMode mode
+   const storage::TablePartition& table_partition
 ) const {
    OperatorVector unprocessed_child_operators;
    std::ranges::transform(
       children,
       std::back_inserter(unprocessed_child_operators),
       [&](const std::unique_ptr<Expression>& expression) {
-         return expression->compile(table, table_partition, mode);
+         return expression->compile(table, table_partition);
       }
    );
    OperatorVector non_negated_child_operators;
@@ -151,13 +149,25 @@ std::tuple<OperatorVector, OperatorVector, operators::PredicateVector> And::comp
    };
 }
 
-std::unique_ptr<Operator> And::compile(
+std::unique_ptr<Expression> And::rewrite(
    const storage::Table& table,
    const storage::TablePartition& table_partition,
    AmbiguityMode mode
 ) const {
+   ExpressionVector rewritten_children;
+   rewritten_children.reserve(children.size());
+   for (const auto& child : children) {
+      rewritten_children.emplace_back(child->rewrite(table, table_partition, mode));
+   }
+   return std::make_unique<And>(std::move(rewritten_children));
+}
+
+std::unique_ptr<Operator> And::compile(
+   const storage::Table& table,
+   const storage::TablePartition& table_partition
+) const {
    auto [non_negated_child_operators, negated_child_operators, predicates] =
-      compileChildren(table, table_partition, mode);
+      compileChildren(table, table_partition);
 
    if (non_negated_child_operators.empty() && negated_child_operators.empty()) {
       if (predicates.empty()) {

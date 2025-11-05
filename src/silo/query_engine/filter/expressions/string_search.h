@@ -21,12 +21,17 @@ class StringSearch : public Expression {
   public:
    explicit StringSearch(std::string column_name, std::unique_ptr<re2::RE2> search_expression);
 
-   std::string toString() const override;
+   [[nodiscard]] std::string toString() const override;
 
-   [[nodiscard]] std::unique_ptr<silo::query_engine::filter::operators::Operator> compile(
+   [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,
       const storage::TablePartition& table_partition,
       AmbiguityMode mode
+   ) const override;
+
+   [[nodiscard]] std::unique_ptr<operators::Operator> compile(
+      const storage::Table& table,
+      const storage::TablePartition& table_partition
    ) const override;
 };
 

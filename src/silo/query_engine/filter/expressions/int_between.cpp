@@ -2,13 +2,11 @@
 
 #include <memory>
 #include <utility>
-#include <vector>
 
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
-#include "silo/database.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/complement.h"
@@ -39,10 +37,17 @@ std::string IntBetween::toString() const {
    return "[IntBetween " + from_string + " - " + to_string + "]";
 }
 
+std::unique_ptr<silo::query_engine::filter::expressions::Expression> IntBetween::rewrite(
+   const storage::Table& /*table*/,
+   const storage::TablePartition& /*table_partition*/,
+   silo::query_engine::filter::expressions::Expression::AmbiguityMode /*mode*/
+) const {
+   return std::make_unique<IntBetween>(column_name, from, to);
+}
+
 std::unique_ptr<silo::query_engine::filter::operators::Operator> IntBetween::compile(
    const storage::Table& /*table*/,
-   const storage::TablePartition& table_partition,
-   silo::query_engine::filter::expressions::Expression::AmbiguityMode /*mode*/
+   const storage::TablePartition& table_partition
 ) const {
    CHECK_SILO_QUERY(
       table_partition.columns.int_columns.contains(column_name),

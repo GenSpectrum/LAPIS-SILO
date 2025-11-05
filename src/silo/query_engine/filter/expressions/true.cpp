@@ -2,7 +2,6 @@
 
 #include <string>
 
-#include "silo/database.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/full.h"
 #include "silo/query_engine/filter/operators/operator.h"
@@ -16,10 +15,17 @@ std::string True::toString() const {
    return "True";
 }
 
+std::unique_ptr<Expression> True::rewrite(
+   const storage::Table& /*table*/,
+   const storage::TablePartition& /*table_partition*/,
+   Expression::AmbiguityMode /*mode*/
+) const {
+   return std::make_unique<True>();
+}
+
 std::unique_ptr<silo::query_engine::filter::operators::Operator> True::compile(
    const storage::Table& /*table*/,
-   const storage::TablePartition& table_partition,
-   Expression::AmbiguityMode /*mode*/
+   const storage::TablePartition& table_partition
 ) const {
    return std::make_unique<operators::Full>(table_partition.sequence_count);
 }

@@ -19,16 +19,21 @@ class PhyloChildFilter : public Expression {
   public:
    explicit PhyloChildFilter(std::string column_name, std::string internal_node);
 
-   std::string toString() const override;
+   [[nodiscard]] std::string toString() const override;
 
-   [[nodiscard]] std::unique_ptr<silo::query_engine::filter::operators::Operator> compile(
+   [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,
       const storage::TablePartition& table_partition,
       AmbiguityMode mode
    ) const override;
 
+   [[nodiscard]] std::unique_ptr<operators::Operator> compile(
+      const storage::Table& table,
+      const storage::TablePartition& table_partition
+   ) const override;
+
   private:
-   std::optional<const roaring::Roaring*> getBitmapForValue(
+   [[nodiscard]] std::optional<const roaring::Roaring*> getBitmapForValue(
       const silo::storage::column::StringColumnPartition& phylo_tree_index_column
    ) const;
 };

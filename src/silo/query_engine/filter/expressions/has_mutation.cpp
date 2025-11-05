@@ -1,5 +1,6 @@
 #include "silo/query_engine/filter/expressions/has_mutation.h"
 
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -10,6 +11,7 @@
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/expressions/symbol_in_set.h"
 #include "silo/query_engine/filter/operators/operator.h"
+#include "silo/query_engine/query_compilation_exception.h"
 #include "silo/query_engine/query_parse_sequence_name.h"
 #include "silo/storage/table.h"
 #include "silo/storage/table_partition.h"
@@ -31,7 +33,7 @@ std::string HasMutation<SymbolType>::toString() const {
 }
 
 template <typename SymbolType>
-std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
+std::unique_ptr<Expression> HasMutation<SymbolType>::rewrite(
    const storage::Table& table,
    const storage::TablePartition& table_partition,
    AmbiguityMode mode
@@ -73,8 +75,19 @@ std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
          std::erase(symbols, symbol);
       }
    }
-   return SymbolInSet<SymbolType>(valid_sequence_name, position_idx, std::move(symbols))
-      .compile(table, table_partition, NONE);
+   return std::make_unique<SymbolInSet<SymbolType>>(
+      valid_sequence_name, position_idx, std::move(symbols)
+   );
+}
+
+template <typename SymbolType>
+std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
+   const storage::Table& /*table*/,
+   const storage::TablePartition& /*table_partition*/
+) const {
+   throw QueryCompilationException{
+      "Has{}Mutation expression must be eliminated in query rewrite phase", SymbolType::SYMBOL_NAME
+   };
 }
 
 template <typename SymbolType>

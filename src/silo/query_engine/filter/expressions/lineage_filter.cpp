@@ -65,10 +65,17 @@ std::optional<const roaring::Roaring*> LineageFilter::getBitmapForValue(
    return lineage_column.getLineageIndex()->filterExcludingSublineages(value_id);
 }
 
+std::unique_ptr<silo::query_engine::filter::expressions::Expression> LineageFilter::rewrite(
+   const storage::Table& /*table*/,
+   const storage::TablePartition& /*table_partition*/,
+   AmbiguityMode /*mode*/
+) const {
+   return std::make_unique<LineageFilter>(column_name, lineage, sublineage_mode);
+}
+
 std::unique_ptr<silo::query_engine::filter::operators::Operator> LineageFilter::compile(
    const storage::Table& /*table*/,
-   const storage::TablePartition& table_partition,
-   AmbiguityMode /*mode*/
+   const storage::TablePartition& table_partition
 ) const {
    CHECK_SILO_QUERY(
       table_partition.columns.indexed_string_columns.contains(column_name),
@@ -100,7 +107,7 @@ const std::string INCLUDE_SUBLINEAGES_FIELD_NAME = "includeSublineages";
 const std::string RECOMBINANT_FOLLOWING_MODE_FIELD_NAME = "recombinantFollowingMode";
 }  // namespace
 
-// NOLINTNEXTLINE(readability-identifier-naming)
+// NOLINTNEXTLINE(readability-identifier-naming, readability-function-cognitive-complexity)
 void from_json(const nlohmann::json& json, std::unique_ptr<LineageFilter>& filter) {
    CHECK_SILO_QUERY(
       json.contains(COLUMN_FIELD_NAME),

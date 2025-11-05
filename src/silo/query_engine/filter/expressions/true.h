@@ -5,7 +5,6 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-#include "silo/database.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/storage/table_partition.h"
@@ -16,12 +15,17 @@ class True : public Expression {
   public:
    explicit True();
 
-   std::string toString() const override;
+   [[nodiscard]] std::string toString() const override;
 
-   [[nodiscard]] std::unique_ptr<silo::query_engine::filter::operators::Operator> compile(
+   [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,
       const storage::TablePartition& table_partition,
       AmbiguityMode mode
+   ) const override;
+
+   [[nodiscard]] std::unique_ptr<operators::Operator> compile(
+      const storage::Table& table,
+      const storage::TablePartition& table_partition
    ) const override;
 };
 
