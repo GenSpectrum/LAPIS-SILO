@@ -80,16 +80,130 @@ const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL = {
    .expected_query_result = nlohmann::json::parse(R"([{"count": 1}])")
 };
 
-const QueryTestScenario NUCLEOTIDE_EQUALS_SYMBOL_OUT_OF_RANGE = {
-   .name = "NUCLEOTIDE_EQUALS_SYMBOL_OUT_OF_RANGE",
-   .query = createNucleotideSymbolEqualsQuery("C", 1000),
-   .expected_error_message = "SymbolEquals<Nucleotide> position is out of bounds 1000 > 5"
-};
-
 const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_DOT_RETURNS_REFERENCE = {
    .name = "NUCLEOTIDE_EQUALS_WITH_DOT_RETURNS_REFERENCE",
    .query = createNucleotideSymbolEqualsQuery(".", 1),
    .expected_query_result = nlohmann::json::parse(R"([{"count": 2}])")
+};
+
+const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL_C_AT_2 = {
+   .name = "NUCLEOTIDE_EQUALS_WITH_SYMBOL_C_AT_2",
+   .query = createNucleotideSymbolEqualsQuery("C", 2),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 0}])")
+};
+
+const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL_C_AT_3 = {
+   .name = "NUCLEOTIDE_EQUALS_WITH_SYMBOL_C_AT_3",
+   .query = createNucleotideSymbolEqualsQuery("C", 3),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 0}])")
+};
+
+const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL_C_AT_4 = {
+   .name = "NUCLEOTIDE_EQUALS_WITH_SYMBOL_C_AT_4",
+   .query = createNucleotideSymbolEqualsQuery("C", 4),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 2}])")
+};
+
+const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL_C_AT_5 = {
+   .name = "NUCLEOTIDE_EQUALS_WITH_SYMBOL_C_AT_5",
+   .query = createNucleotideSymbolEqualsQuery("C", 5),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 0}])")
+};
+
+const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL_A_AT_1 = {
+   .name = "NUCLEOTIDE_EQUALS_WITH_SYMBOL_A_AT_1",
+   .query = createNucleotideSymbolEqualsQuery("A", 1),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 2}])")
+};
+
+const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL_A_AT_2 = {
+   .name = "NUCLEOTIDE_EQUALS_WITH_SYMBOL_A_AT_2",
+   .query = createNucleotideSymbolEqualsQuery("A", 2),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 1}])")
+};
+
+const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL_A_AT_3 = {
+   .name = "NUCLEOTIDE_EQUALS_WITH_SYMBOL_A_AT_3",
+   .query = createNucleotideSymbolEqualsQuery("A", 3),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 0}])")
+};
+
+const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL_A_AT_4 = {
+   .name = "NUCLEOTIDE_EQUALS_WITH_SYMBOL_A_AT_4",
+   .query = createNucleotideSymbolEqualsQuery("A", 4),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 0}])")
+};
+
+const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL_A_AT_5 = {
+   .name = "NUCLEOTIDE_EQUALS_WITH_SYMBOL_A_AT_5",
+   .query = createNucleotideSymbolEqualsQuery("A", 5),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 0}])")
+};
+
+const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL_G_AT_1 = {
+   .name = "NUCLEOTIDE_EQUALS_WITH_SYMBOL_G_AT_1",
+   .query = createNucleotideSymbolEqualsQuery("G", 1),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 0}])")
+};
+
+const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL_G_AT_2 = {
+   .name = "NUCLEOTIDE_EQUALS_WITH_SYMBOL_G_AT_2",
+   .query = createNucleotideSymbolEqualsQuery("G", 2),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 0}])")
+};
+
+const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL_G_AT_3 = {
+   .name = "NUCLEOTIDE_EQUALS_WITH_SYMBOL_G_AT_3",
+   .query = createNucleotideSymbolEqualsQuery("G", 3),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 2}])")
+};
+
+const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL_G_AT_4 = {
+   .name = "NUCLEOTIDE_EQUALS_WITH_SYMBOL_G_AT_4",
+   .query = createNucleotideSymbolEqualsQuery("G", 4),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 0}])")
+};
+
+const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL_G_AT_5 = {
+   .name = "NUCLEOTIDE_EQUALS_WITH_SYMBOL_G_AT_5",
+   .query = createNucleotideSymbolEqualsQuery("G", 5),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 0}])")
+};
+
+const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_1 = {
+   .name = "NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_1",
+   .query = createNucleotideSymbolEqualsQuery("T", 1),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 0}])")
+};
+
+const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_2 = {
+   .name = "NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_2",
+   .query = createNucleotideSymbolEqualsQuery("T", 2),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 2}])")
+};
+
+const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_3 = {
+   .name = "NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_3",
+   .query = createNucleotideSymbolEqualsQuery("T", 3),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 1}])")
+};
+
+const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_4 = {
+   .name = "NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_4",
+   .query = createNucleotideSymbolEqualsQuery("T", 4),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 1}])")
+};
+
+const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_5 = {
+   .name = "NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_5",
+   .query = createNucleotideSymbolEqualsQuery("T", 5),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 1}])")
+};
+
+const QueryTestScenario NUCLEOTIDE_EQUALS_SYMBOL_OUT_OF_RANGE = {
+   .name = "NUCLEOTIDE_EQUALS_SYMBOL_OUT_OF_RANGE",
+   .query = createNucleotideSymbolEqualsQuery("C", 1000),
+   .expected_error_message = "SymbolEquals<Nucleotide> position is out of bounds 1000 > 5"
 };
 
 const QueryTestScenario NUCLEOTIDE_EQUALS_OUT_OF_RANGE_EDGE_LOW = {
@@ -105,8 +219,27 @@ QUERY_TEST(
    TEST_DATA,
    ::testing::Values(
       NUCLEOTIDE_EQUALS_WITH_SYMBOL,
-      NUCLEOTIDE_EQUALS_SYMBOL_OUT_OF_RANGE,
       NUCLEOTIDE_EQUALS_WITH_DOT_RETURNS_REFERENCE,
-      NUCLEOTIDE_EQUALS_OUT_OF_RANGE_EDGE_LOW
+      NUCLEOTIDE_EQUALS_SYMBOL_OUT_OF_RANGE,
+      NUCLEOTIDE_EQUALS_OUT_OF_RANGE_EDGE_LOW,
+      NUCLEOTIDE_EQUALS_WITH_SYMBOL_C_AT_2,
+      NUCLEOTIDE_EQUALS_WITH_SYMBOL_C_AT_3,
+      NUCLEOTIDE_EQUALS_WITH_SYMBOL_C_AT_4,
+      NUCLEOTIDE_EQUALS_WITH_SYMBOL_C_AT_5,
+      NUCLEOTIDE_EQUALS_WITH_SYMBOL_A_AT_1,
+      NUCLEOTIDE_EQUALS_WITH_SYMBOL_A_AT_2,
+      NUCLEOTIDE_EQUALS_WITH_SYMBOL_A_AT_3,
+      NUCLEOTIDE_EQUALS_WITH_SYMBOL_A_AT_4,
+      NUCLEOTIDE_EQUALS_WITH_SYMBOL_A_AT_5,
+      NUCLEOTIDE_EQUALS_WITH_SYMBOL_G_AT_1,
+      NUCLEOTIDE_EQUALS_WITH_SYMBOL_G_AT_2,
+      NUCLEOTIDE_EQUALS_WITH_SYMBOL_G_AT_3,
+      NUCLEOTIDE_EQUALS_WITH_SYMBOL_G_AT_4,
+      NUCLEOTIDE_EQUALS_WITH_SYMBOL_G_AT_5,
+      NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_1,
+      NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_2,
+      NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_3,
+      NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_4,
+      NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_5
    )
 );

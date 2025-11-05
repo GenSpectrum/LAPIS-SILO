@@ -1,20 +1,17 @@
 #include "silo/query_engine/filter/expressions/has_mutation.h"
 
-#include <map>
 #include <utility>
 #include <vector>
 
 #include <nlohmann/json.hpp>
 
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/config/database_config.h"
-#include "silo/database.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
-#include "silo/query_engine/filter/expressions/or.h"
-#include "silo/query_engine/filter/expressions/symbol_equals.h"
+#include "silo/query_engine/filter/expressions/symbol_in_set.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/query_parse_sequence_name.h"
+#include "silo/storage/table.h"
 #include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
@@ -76,17 +73,8 @@ std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
          std::erase(symbols, symbol);
       }
    }
-   ExpressionVector symbol_filters;
-   std::ranges::transform(
-      symbols,
-      std::back_inserter(symbol_filters),
-      [&](typename SymbolType::Symbol symbol) {
-         return std::make_unique<SymbolEquals<SymbolType>>(
-            valid_sequence_name, position_idx, SymbolOrDot<SymbolType>{symbol}
-         );
-      }
-   );
-   return Or(std::move(symbol_filters)).compile(table, table_partition, NONE);
+   return SymbolInSet<SymbolType>(valid_sequence_name, position_idx, std::move(symbols))
+      .compile(table, table_partition, NONE);
 }
 
 template <typename SymbolType>
