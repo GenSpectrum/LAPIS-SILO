@@ -11,7 +11,7 @@
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/expressions/or.h"
-#include "silo/query_engine/filter/operators/complement.h"
+#include "silo/query_engine/filter/expressions/symbol_in_set.h"
 #include "silo/query_engine/filter/operators/index_scan.h"
 #include "silo/query_engine/filter/operators/is_in_covered_region.h"
 #include "silo/query_engine/filter/operators/operator.h"
@@ -95,65 +95,16 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<Sy
    );
    if (mode == UPPER_BOUND) {
       auto symbols_to_match = SymbolType::AMBIGUITY_SYMBOLS.at(symbol);
-      ExpressionVector symbol_filters;
-      std::ranges::transform(
-         symbols_to_match,
-         std::back_inserter(symbol_filters),
-         [&](typename SymbolType::Symbol symbol) {
-            return std::make_unique<SymbolEquals<SymbolType>>(
-               valid_sequence_name, position_idx, SymbolOrDot<SymbolType>{symbol}
-            );
-         }
-      );
-      return Or(std::move(symbol_filters)).compile(table, table_partition, NONE);
-   }
-   if (symbol == SymbolType::SYMBOL_MISSING) {
-      SPDLOG_TRACE(
-         "Filtering for '{}' at position {}",
-         SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING),
-         position_idx
-      );
-      return std::make_unique<operators::IsInCoveredRegion>(
-         &sequence_column_partition.horizontal_coverage_index.start_end,
-         &sequence_column_partition.horizontal_coverage_index.horizontal_bitmaps,
-         table_partition.sequence_count,
-         operators::IsInCoveredRegion::Comparator::NOT_COVERED,
-         position_idx
-      );
+      return std::make_unique<SymbolInSet<SymbolType>>(
+                valid_sequence_name, position_idx, symbols_to_match
+      )
+         ->compile(table, table_partition, NONE);
    }
 
-   auto local_reference_symbol = sequence_column_partition.getLocalReferencePosition(position_idx);
-
-   if (symbol != local_reference_symbol) {
-      roaring::Roaring bitmap =
-         sequence_column_partition.vertical_sequence_index.getMatchingContainersAsBitmap(
-            position_idx, symbol
-         );
-      return std::make_unique<operators::IndexScan>(
-         CopyOnWriteBitmap{std::move(bitmap)}, table_partition.sequence_count
-      );
-   }
-
-   roaring::Roaring bitmap =
-      sequence_column_partition.vertical_sequence_index.getNonMatchingContainersAsBitmap(
-         position_idx, symbol
-      );
-
-   operators::OperatorVector children;
-   children.push_back(std::make_unique<operators::IndexScan>(
-      CopyOnWriteBitmap{std::move(bitmap)}, table_partition.sequence_count
-   ));
-   children.push_back(std::make_unique<operators::IsInCoveredRegion>(
-      &sequence_column_partition.horizontal_coverage_index.start_end,
-      &sequence_column_partition.horizontal_coverage_index.horizontal_bitmaps,
-      table_partition.sequence_count,
-      operators::IsInCoveredRegion::Comparator::NOT_COVERED,
-      position_idx
-   ));
-   return std::make_unique<operators::Complement>(
-      std::make_unique<operators::Union>(std::move(children), table_partition.sequence_count),
-      table_partition.sequence_count
-   );
+   return std::make_unique<SymbolInSet<SymbolType>>(
+             valid_sequence_name, position_idx, std::vector<typename SymbolType::Symbol>{symbol}
+   )
+      ->compile(table, table_partition, NONE);
 }
 
 template <typename SymbolType>

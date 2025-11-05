@@ -82,19 +82,20 @@ class VerticalSequenceIndex {
 
    std::map<SequenceDiffKey, SequenceDiff> vertical_bitmaps;
 
+   using const_iterator = typename std::map<SequenceDiffKey, SequenceDiff>::const_iterator;
+
    void addSymbolsToPositions(
       uint32_t position_idx,
       const SymbolMap<SymbolType, std::vector<uint32_t>>& ids_per_symbol
    );
 
-   SequenceDiff& getContainerOrCreateWithCapacity(const SequenceDiffKey& key, size_t capacity);
+   std::pair<const_iterator, const_iterator> getRangeForPosition(uint32_t position_idx) const;
 
-   roaring::Roaring getMatchingContainersAsBitmap(uint32_t position_idx, SymbolType::Symbol symbol)
-      const;
+   SequenceDiff& getContainerOrCreateWithCapacity(const SequenceDiffKey& key, int32_t capacity);
 
-   roaring::Roaring getNonMatchingContainersAsBitmap(
+   roaring::Roaring getMatchingContainersAsBitmap(
       uint32_t position_idx,
-      SymbolType::Symbol symbol
+      std::vector<typename SymbolType::Symbol> symbol
    ) const;
 
    void overwriteSymbolsInSequences(

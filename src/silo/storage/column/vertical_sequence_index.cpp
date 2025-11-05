@@ -1,8 +1,13 @@
 #include "silo/storage/column/vertical_sequence_index.h"
 
+#include <optional>
+#include <roaring/roaring.hh>
+
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/panic.h"
+#include "silo/common/symbol_map.h"
+#include "silo/roaring_util/bitmap_builder.h"
 #include "silo/roaring_util/subset_ranks.h"
 
 namespace silo::storage::column {
@@ -22,10 +27,10 @@ void VerticalSequenceIndex<SymbolType>::addSymbolsToPositions(
          SequenceDiff& sequence_diff =
             getContainerOrCreateWithCapacity(key, lower_bits_vector.size());
 
-         for (auto id : lower_bits_vector) {
+         for (auto id_lower_bits : lower_bits_vector) {
             uint8_t new_container_type;
             auto new_container = roaring::internal::container_add(
-               sequence_diff.container, id, sequence_diff.typecode, &new_container_type
+               sequence_diff.container, id_lower_bits, sequence_diff.typecode, &new_container_type
             );
             if (new_container != sequence_diff.container) {
                roaring::internal::container_free(sequence_diff.container, sequence_diff.typecode);
@@ -39,123 +44,71 @@ void VerticalSequenceIndex<SymbolType>::addSymbolsToPositions(
 }
 
 template <typename SymbolType>
+using const_iterator = typename VerticalSequenceIndex<SymbolType>::const_iterator;
+
+template <typename SymbolType>
+std::pair<const_iterator<SymbolType>, const_iterator<SymbolType>> VerticalSequenceIndex<
+   SymbolType>::getRangeForPosition(uint32_t position_idx) const {
+   return {
+      vertical_bitmaps.lower_bound(
+         SequenceDiffKey{position_idx, 0, static_cast<SymbolType::Symbol>(0)}
+      ),
+      vertical_bitmaps.lower_bound(
+         SequenceDiffKey{position_idx + 1, 0, static_cast<SymbolType::Symbol>(0)}
+      )
+   };
+}
+
+template <typename SymbolType>
 VerticalSequenceIndex<SymbolType>::SequenceDiff& VerticalSequenceIndex<
-   SymbolType>::getContainerOrCreateWithCapacity(const SequenceDiffKey& key, size_t capacity) {
+   SymbolType>::getContainerOrCreateWithCapacity(const SequenceDiffKey& key, int32_t capacity) {
    auto iter = vertical_bitmaps.find(key);
    if (iter != vertical_bitmaps.end()) {
       return iter->second;
-   } else {
-      roaring::internal::container_t* container;
-      uint8_t typecode;
-      // If roaring::internal::DEFAULT_MAX_SIZE specifies the maximum size for array containers
-      if (capacity <= roaring::internal::DEFAULT_MAX_SIZE) {
-         container = roaring::internal::array_container_create_given_capacity(capacity);
-         typecode = ARRAY_CONTAINER_TYPE;
-      } else {
-         container = roaring::internal::bitset_container_create();
-         typecode = BITSET_CONTAINER_TYPE;
-      }
-      SILO_ASSERT(container != nullptr);
-      return vertical_bitmaps
-         .insert({key, SequenceDiff{.container = container, .cardinality = 0, .typecode = typecode}}
-         )
-         .first->second;
    }
+   roaring::internal::container_t* container;
+   uint8_t typecode;
+   // If roaring::internal::DEFAULT_MAX_SIZE specifies the maximum size for array containers
+   if (capacity <= roaring::internal::DEFAULT_MAX_SIZE) {
+      container = roaring::internal::array_container_create_given_capacity(capacity);
+      typecode = ARRAY_CONTAINER_TYPE;
+   } else {
+      container = roaring::internal::bitset_container_create();
+      typecode = BITSET_CONTAINER_TYPE;
+   }
+   SILO_ASSERT(container != nullptr);
+   return vertical_bitmaps
+      .insert({key, SequenceDiff{.container = container, .cardinality = 0, .typecode = typecode}})
+      .first->second;
 }
+
+using silo::roaring_util::BitmapBuilderByContainer;
 
 template <typename SymbolType>
 roaring::Roaring VerticalSequenceIndex<SymbolType>::getMatchingContainersAsBitmap(
    uint32_t position_idx,
-   SymbolType::Symbol symbol
+   std::vector<typename SymbolType::Symbol> symbols
 ) const {
    // We compute the range of bitmap containers that are relevant for our position
-   auto start = vertical_bitmaps.lower_bound(
-      SequenceDiffKey{position_idx, 0, static_cast<SymbolType::Symbol>(0)}
-   );
-   auto end = vertical_bitmaps.lower_bound(
-      SequenceDiffKey{position_idx + 1, 0, static_cast<SymbolType::Symbol>(0)}
-   );
-   // We construct a roaring bitmap of all bitmap containers that are of my symbol
-   roaring::Roaring bitmap;
-   for (auto it = start; it != end; ++it) {
-      const auto& [sequence_diff_key, sequence_diff] = *it;
-      if (sequence_diff_key.symbol == symbol) {
-         uint8_t result_typecode = sequence_diff.typecode;
-         roaring::internal::container_t* result_container =
-            roaring::internal::container_clone(sequence_diff.container, sequence_diff.typecode);
-         roaring::internal::ra_append(
-            &bitmap.roaring.high_low_container,
-            sequence_diff_key.v_index,
-            result_container,
-            result_typecode
-         );
-      }
-   }
-   return bitmap;
-}
+   auto [start, end] = getRangeForPosition(position_idx);
 
-template <typename SymbolType>
-roaring::Roaring VerticalSequenceIndex<SymbolType>::getNonMatchingContainersAsBitmap(
-   uint32_t position_idx,
-   SymbolType::Symbol symbol
-) const {
-   // We compute the range of bitmap containers that are relevant for our position
-   auto start = vertical_bitmaps.lower_bound(
-      SequenceDiffKey{position_idx, 0, static_cast<SymbolType::Symbol>(0)}
-   );
-   auto end = vertical_bitmaps.lower_bound(
-      SequenceDiffKey{position_idx + 1, 0, static_cast<SymbolType::Symbol>(0)}
-   );
    // We need to union all bitmap containers at this position
-   roaring::Roaring bitmap;
-   int32_t current_v_tile_index = -1;
-   roaring::internal::container_t* current_container = nullptr;
-   uint8_t current_typecode = 0;
+
+   BitmapBuilderByContainer builder;
+
    for (auto it = start; it != end; ++it) {
       const auto& [sequence_diff_key, sequence_diff] = *it;
       SILO_ASSERT(sequence_diff.cardinality > 0);
 
-      SILO_ASSERT(current_v_tile_index <= sequence_diff_key.v_index);
-      if (current_v_tile_index != sequence_diff_key.v_index) {
-         if (current_container != nullptr) {
-            roaring::internal::ra_append(
-               &bitmap.roaring.high_low_container,
-               current_v_tile_index,
-               current_container,
-               current_typecode
-            );
-         }
-         current_v_tile_index = sequence_diff_key.v_index;
-         current_typecode = sequence_diff.typecode;
-         current_container =
-            roaring::internal::container_clone(sequence_diff.container, sequence_diff.typecode);
-      } else { /* current_v_tile_index == sequence_diff_key.v_index */
-         SILO_ASSERT(current_container != nullptr);
-         uint8_t result_typecode;
-         roaring::internal::container_t* result_container = roaring::internal::container_ior(
-            current_container,
-            current_typecode,
-            sequence_diff.container,
-            sequence_diff.typecode,
-            &result_typecode
-         );
-         if (result_container != current_container) {
-            roaring::internal::container_free(current_container, current_typecode);
-            current_container = result_container;
-            current_typecode = result_typecode;
-         }
+      // Only consider when the symbol is in the requested set
+      if (std::find(symbols.begin(), symbols.end(), sequence_diff_key.symbol) == symbols.end()) {
+         continue;
       }
-   }
-
-   if (current_container != nullptr) {
-      roaring::internal::ra_append(
-         &bitmap.roaring.high_low_container,
-         current_v_tile_index,
-         current_container,
-         current_typecode
+      builder.addContainer(
+         sequence_diff_key.v_index, sequence_diff.container, sequence_diff.typecode
       );
    }
-   return bitmap;
+   return std::move(builder).getBitmap();
 }
 
 using silo::roaring_util::roaringSubsetRanks;
@@ -237,13 +190,11 @@ std::vector<std::pair<uint16_t, std::vector<uint16_t>>> splitIdsIntoBatches(
    }
 
    uint16_t current_upper_bits = sorted_ids.front() >> 16;
-   ids_in_batches.push_back(std::make_pair<uint16_t, std::vector<uint16_t>>(
-      std::move(current_upper_bits), std::vector<uint16_t>{}
-   ));
+   ids_in_batches.emplace_back(current_upper_bits, std::vector<uint16_t>{});
 
-   for (uint32_t id : sorted_ids) {
-      uint16_t upper_bits = id >> 16;
-      uint16_t lower_bits = id & 0xFFFF;
+   for (uint32_t sorted_id : sorted_ids) {
+      uint16_t upper_bits = sorted_id >> 16;
+      uint16_t lower_bits = sorted_id & 0xFFFF;
 
       // If the upper bits changed, start a new batch
       if (upper_bits != current_upper_bits) {
