@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.2](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.1...v0.9.2) (2025-11-05)
+
+
+### Features
+
+* **build:** tag images with branch name again ([670817c](https://github.com/GenSpectrum/LAPIS-SILO/commit/670817c3f92a902033e8dcae8dcff18798449a4d))
+
 ## [0.9.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.0...v0.9.1) (2025-10-28)
 
 
