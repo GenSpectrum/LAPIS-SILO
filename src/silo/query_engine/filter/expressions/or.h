@@ -25,6 +25,9 @@ class Or : public Expression {
       AmbiguityMode mode
    ) const override;
 
+   template <typename SymbolType>
+   [[nodiscard]] static ExpressionVector rewriteSymbolInSetExpressions(ExpressionVector children);
+
    [[nodiscard]] std::unique_ptr<operators::Operator> compile(
       const storage::Table& table,
       const storage::TablePartition& table_partition
