@@ -13,8 +13,12 @@
 
 namespace silo::query_engine::filter::expressions {
 
+class Or;
+
 template <typename SymbolType>
 class SymbolInSet : public Expression {
+   friend class Or;  // For optimization under Or
+
    std::optional<std::string> sequence_name;
    uint32_t position_idx;
    std::vector<typename SymbolType::Symbol> symbols;

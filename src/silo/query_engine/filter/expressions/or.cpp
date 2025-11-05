@@ -15,6 +15,7 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/union.h"
 #include "silo/storage/table_partition.h"
+#include "symbol_in_set.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -33,6 +34,33 @@ std::string Or::toString() const {
    return "Or(" + boost::algorithm::join(child_strings, " | ") + ")";
 }
 
+template <typename SymbolType>
+ExpressionVector Or::rewriteSymbolInSetExpressions(ExpressionVector children) {
+   ExpressionVector new_children;
+   using SequenceNameAndPosition = std::pair<std::optional<std::string>, uint32_t>;
+   using Symbols = std::vector<typename SymbolType::Symbol>;
+   std::map<SequenceNameAndPosition, Symbols> symbol_in_set_children;
+   for (auto& child : children) {
+      if (auto symbol_in_set_child = dynamic_cast<SymbolInSet<SymbolType>*>(child.get());
+          symbol_in_set_child != nullptr) {
+         std::vector<typename SymbolType::Symbol>& symbols_so_far = symbol_in_set_children[{
+            symbol_in_set_child->sequence_name, symbol_in_set_child->position_idx
+         }];
+         std::ranges::copy(symbol_in_set_child->symbols, std::back_inserter(symbols_so_far));
+      } else {
+         new_children.emplace_back(std::move(child));
+      }
+   }
+
+   for (auto& [sequence_name_and_position, symbols] : symbol_in_set_children) {
+      new_children.emplace_back(std::make_unique<SymbolInSet<SymbolType>>(
+         sequence_name_and_position.first, sequence_name_and_position.second, std::move(symbols)
+      ));
+   }
+
+   return new_children;
+}
+
 std::unique_ptr<Expression> Or::rewrite(
    const storage::Table& table,
    const storage::TablePartition& table_partition,
@@ -46,6 +74,11 @@ std::unique_ptr<Expression> Or::rewrite(
          return child->rewrite(table, table_partition, mode);
       }
    );
+   rewritten_children = rewriteSymbolInSetExpressions<Nucleotide>(std::move(rewritten_children));
+   rewritten_children = rewriteSymbolInSetExpressions<AminoAcid>(std::move(rewritten_children));
+   if (rewritten_children.size() == 1) {
+      return std::move(rewritten_children[0]);
+   }
    return std::make_unique<Or>(std::move(rewritten_children));
 }
 
