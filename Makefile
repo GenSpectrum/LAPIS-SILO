@@ -3,14 +3,16 @@
 ## If something fails during execution, it might be necessary to kill the daemon using `make clean-api`.
 SILO_EXECUTABLE=./build/Debug/silo
 RUNNING_SILO_FLAG=running_silo.flag
+DEPENDENCIES_FLAG=dependencies
 
 ci: format all-tests
 
-build/Debug/generators.file:
+${DEPENDENCIES_FLAG}: conanfile.py conanprofile
 	conan install . --update --build=missing --profile ./conanprofile --profile:build ./conanprofile \
-	  --settings '&:build_type=Debug' --output-folder=build/Debug/generators
+	  --settings '&:build_type=Debug' --output-folder=build/Debug/generators && \
+	touch ${DEPENDENCIES_FLAG}
 
-build/Debug/build.ninja: build/Debug/generators.file
+build/Debug/build.ninja: ${DEPENDENCIES_FLAG}
 	cmake -B build/Debug -D CMAKE_BUILD_TYPE=Debug
 
 ${SILO_EXECUTABLE}: build/Debug/build.ninja $(shell find src -type f)
@@ -55,7 +57,7 @@ clean-api:
 	fi
 
 clean: clean-api
-	rm -rf output logs
+	rm -rf output logs ${DEPENDENCIES_FLAG}
 
 full-clean: clean
 	rm -rf build
