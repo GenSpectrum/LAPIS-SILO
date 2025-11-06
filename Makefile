@@ -19,7 +19,8 @@ ${SILO_EXECUTABLE}: build/Debug/build.ninja $(shell find src -type f)
 	cmake --build build/Debug --parallel 16
 
 output: ${SILO_EXECUTABLE}
-	${SILO_EXECUTABLE} preprocessing --database-config database_config.yaml --preprocessing-config testBaseData/test_preprocessing_config.yaml
+	export SPDLOG_LEVEL=debug; \
+    ${SILO_EXECUTABLE} preprocessing --database-config database_config.yaml --preprocessing-config testBaseData/test_preprocessing_config.yaml
 
 
 ${RUNNING_SILO_FLAG}: ${SILO_EXECUTABLE} output
