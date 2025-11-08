@@ -55,16 +55,20 @@ arrow::Status QueryPlan::executeAndWriteImpl(
                SPDLOG_DEBUG(
                   "Request Id [{}] - QueryPlan - Stopping arrow execution plan", request_id
                );
-               plan->StopProducing();
                auto finished_future = plan->finished();
-               const bool drained = finished_future.Wait(GRACE_SHUTDOWN_SECONDS);
-               if (!drained) {
-                  SPDLOG_WARN(
-                     "Request Id [{}] - QueryPlan - ExecPlan cleanup exceeded {} s grace; "
-                     "continuing.",
-                     request_id,
-                     GRACE_SHUTDOWN_SECONDS
-                  );
+               // Guard against the case, where the plan was not properly started, only call
+               // StopProducing when the plan is still FutureState::PENDING (== not finished)
+               if (!finished_future.is_finished()) {
+                  plan->StopProducing();
+                  const bool drained = finished_future.Wait(GRACE_SHUTDOWN_SECONDS);
+                  if (!drained) {
+                     SPDLOG_WARN(
+                        "Request Id [{}] - QueryPlan - ExecPlan cleanup exceeded {} s grace; "
+                        "continuing.",
+                        request_id,
+                        GRACE_SHUTDOWN_SECONDS
+                     );
+                  }
                }
             }
          } catch (const std::exception& e) {
