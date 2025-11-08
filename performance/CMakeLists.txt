@@ -5,3 +5,4 @@ endfunction(add_benchmark)
 
 add_benchmark(mutation_benchmark)
 add_benchmark(many_string_equals)
+add_benchmark(many_short_read_filters)
