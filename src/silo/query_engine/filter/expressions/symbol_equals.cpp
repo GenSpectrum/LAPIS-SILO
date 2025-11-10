@@ -1,6 +1,5 @@
 #include "silo/query_engine/filter/expressions/symbol_equals.h"
 
-#include <array>
 #include <utility>
 #include <vector>
 
@@ -9,17 +8,14 @@
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/config/database_config.h"
-#include "silo/database.h"
 #include "silo/query_engine/bad_request.h"
-#include "silo/query_engine/filter/expressions/and.h"
 #include "silo/query_engine/filter/expressions/expression.h"
-#include "silo/query_engine/filter/expressions/negation.h"
 #include "silo/query_engine/filter/expressions/or.h"
-#include "silo/query_engine/filter/operators/bitmap_selection.h"
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/index_scan.h"
+#include "silo/query_engine/filter/operators/is_in_covered_region.h"
 #include "silo/query_engine/filter/operators/operator.h"
+#include "silo/query_engine/filter/operators/union.h"
 #include "silo/query_engine/query_parse_sequence_name.h"
 #include "silo/storage/table_partition.h"
 
@@ -83,19 +79,19 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<Sy
    const auto valid_sequence_name =
       validateSequenceNameOrGetDefault<SymbolType>(sequence_name, table.schema);
 
-   const auto& seq_store_partition =
+   const auto& sequence_column_partition =
       table_partition.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
 
    CHECK_SILO_QUERY(
-      position_idx < seq_store_partition.metadata->reference_sequence.size(),
+      position_idx < sequence_column_partition.metadata->reference_sequence.size(),
       "{} position is out of bounds {} > {}",
       getFilterName(),
       position_idx + 1,
-      seq_store_partition.metadata->reference_sequence.size()
+      sequence_column_partition.metadata->reference_sequence.size()
    );
 
    auto symbol = value.getSymbolOrReplaceDotWith(
-      seq_store_partition.metadata->reference_sequence.at(position_idx)
+      sequence_column_partition.metadata->reference_sequence.at(position_idx)
    );
    if (mode == UPPER_BOUND) {
       auto symbols_to_match = SymbolType::AMBIGUITY_SYMBOLS.at(symbol);
@@ -117,65 +113,45 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<Sy
          SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING),
          position_idx
       );
-      auto logical_equivalent = std::make_unique<SymbolEquals>(
-         valid_sequence_name, position_idx, SymbolType::SYMBOL_MISSING
-      );
-      return std::make_unique<operators::BitmapSelection>(
-         std::move(logical_equivalent),
-         seq_store_partition.missing_symbol_bitmaps.data(),
-         seq_store_partition.missing_symbol_bitmaps.size(),
-         operators::BitmapSelection::CONTAINS,
+      return std::make_unique<operators::IsInCoveredRegion>(
+         &sequence_column_partition.horizontal_coverage_index.start_end,
+         &sequence_column_partition.horizontal_coverage_index.horizontal_bitmaps,
+         table_partition.sequence_count,
+         operators::IsInCoveredRegion::Comparator::NOT_COVERED,
          position_idx
       );
    }
-   if (seq_store_partition.positions[position_idx].isSymbolFlipped(symbol)) {
-      SPDLOG_TRACE(
-         "Filtering for flipped symbol '{}' at position {}",
-         SymbolType::symbolToChar(symbol),
-         position_idx
-      );
-      auto logical_equivalent_of_nested_index_scan = std::make_unique<Negation>(
-         std::make_unique<SymbolEquals>(valid_sequence_name, position_idx, symbol)
-      );
-      return std::make_unique<operators::Complement>(
-         std::make_unique<operators::IndexScan>(
-            std::move(logical_equivalent_of_nested_index_scan),
-            CopyOnWriteBitmap{seq_store_partition.getBitmap(position_idx, symbol)},
-            table_partition.sequence_count
-         ),
-         table_partition.sequence_count
+
+   auto local_reference_symbol = sequence_column_partition.getLocalReferencePosition(position_idx);
+
+   if (symbol != local_reference_symbol) {
+      roaring::Roaring bitmap =
+         sequence_column_partition.vertical_sequence_index.getMatchingContainersAsBitmap(
+            position_idx, symbol
+         );
+      return std::make_unique<operators::IndexScan>(
+         CopyOnWriteBitmap{std::move(bitmap)}, table_partition.sequence_count
       );
    }
-   if (seq_store_partition.positions[position_idx].isSymbolDeleted(symbol)) {
-      SPDLOG_TRACE(
-         "Filtering for deleted symbol '{}' at position {}",
-         SymbolType::symbolToChar(symbol),
-         position_idx
+
+   roaring::Roaring bitmap =
+      sequence_column_partition.vertical_sequence_index.getNonMatchingContainersAsBitmap(
+         position_idx, symbol
       );
-      std::vector<typename SymbolType::Symbol> symbols = std::vector<typename SymbolType::Symbol>(
-         SymbolType::SYMBOLS.begin(), SymbolType::SYMBOLS.end()
-      );
-      std::erase(symbols, symbol);
-      ExpressionVector symbol_filters;
-      std::ranges::transform(
-         symbols,
-         std::back_inserter(symbol_filters),
-         [&](typename SymbolType::Symbol symbol) {
-            return std::make_unique<Negation>(
-               std::make_unique<SymbolEquals<SymbolType>>(valid_sequence_name, position_idx, symbol)
-            );
-         }
-      );
-      return And(std::move(symbol_filters)).compile(table, table_partition, NONE);
-   }
-   SPDLOG_TRACE(
-      "Filtering for symbol '{}' at position {}", SymbolType::symbolToChar(symbol), position_idx
-   );
-   auto logical_equivalent =
-      std::make_unique<SymbolEquals>(valid_sequence_name, position_idx, symbol);
-   return std::make_unique<operators::IndexScan>(
-      std::move(logical_equivalent),
-      CopyOnWriteBitmap{seq_store_partition.getBitmap(position_idx, symbol)},
+
+   operators::OperatorVector children;
+   children.push_back(std::make_unique<operators::IndexScan>(
+      CopyOnWriteBitmap{std::move(bitmap)}, table_partition.sequence_count
+   ));
+   children.push_back(std::make_unique<operators::IsInCoveredRegion>(
+      &sequence_column_partition.horizontal_coverage_index.start_end,
+      &sequence_column_partition.horizontal_coverage_index.horizontal_bitmaps,
+      table_partition.sequence_count,
+      operators::IsInCoveredRegion::Comparator::NOT_COVERED,
+      position_idx
+   ));
+   return std::make_unique<operators::Complement>(
+      std::make_unique<operators::Union>(std::move(children), table_partition.sequence_count),
       table_partition.sequence_count
    );
 }

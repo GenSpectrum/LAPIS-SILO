@@ -2,8 +2,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <deque>
-#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -11,16 +9,15 @@
 #include <fmt/format.h>
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/split_free.hpp>
+#include <boost/serialization/string.hpp>
 #include <roaring/roaring.hh>
 
 #include "silo/common/aa_symbols.h"
-#include "silo/common/format_number.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/common/symbol_map.h"
 #include "silo/common/table_reader.h"
+#include "silo/storage/column/horizontal_coverage_index.h"
 #include "silo/storage/column/insertion_index.h"
-#include "silo/storage/column/sequence_position.h"
-#include "silo/storage/reference_genomes.h"
+#include "silo/storage/column/vertical_sequence_index.h"
 
 namespace silo::storage::column {
 
@@ -42,15 +39,15 @@ class SequenceColumnInfo {
 
 struct ReadSequence {
    bool is_valid = false;
-   std::string sequence = "";
+   std::string sequence;
    uint32_t offset;
 
-   ReadSequence(std::string_view _sequence, uint32_t _offset = 0)
+   explicit ReadSequence(std::string_view _sequence, uint32_t _offset = 0)
        : is_valid(true),
-         sequence(std::move(_sequence)),
+         sequence(_sequence),
          offset(_offset) {}
 
-   ReadSequence() {}
+   ReadSequence() = default;
 };
 
 template <typename SymbolType>
@@ -76,35 +73,48 @@ class SequenceColumnPartition {
    template <class Archive>
    void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
-      archive & sequence_column_info;
       archive & indexing_differences_to_reference_sequence;
-      for(auto& position : positions){
-            archive & position;
-      }
+      archive & vertical_sequence_index;
+      archive & horizontal_coverage_index;
       archive & insertion_index;
-      archive & missing_symbol_bitmaps;
+      archive & sequence_column_info;
       archive & sequence_count;
       // clang-format on
    }
 
   public:
-   SequenceColumnMetadata<SymbolType>* metadata;
-   SequenceColumnInfo sequence_column_info;
-   std::vector<std::pair<size_t, typename SymbolType::Symbol>>
-      indexing_differences_to_reference_sequence;
-   std::vector<SequencePosition<SymbolType>> positions;
-   std::vector<roaring::Roaring> missing_symbol_bitmaps;
+   const SequenceColumnMetadata<SymbolType>* metadata;
+   const size_t genome_length;
+   // Also store it as a string to speed up insertions
+   const std::string reference_sequence_string;
+
+   std::map<size_t, typename SymbolType::Symbol> indexing_differences_to_reference_sequence;
+   VerticalSequenceIndex<SymbolType> vertical_sequence_index;
+   HorizontalCoverageIndex<SymbolType> horizontal_coverage_index;
    storage::insertion::InsertionIndex<SymbolType> insertion_index;
+   SequenceColumnInfo sequence_column_info;
    uint32_t sequence_count = 0;
 
    explicit SequenceColumnPartition(Metadata* metadata);
 
-   size_t numValues() const { return sequence_count; }
+   [[nodiscard]] size_t numValues() const { return sequence_count; }
 
-   [[nodiscard]] const roaring::Roaring* getBitmap(
-      size_t position_idx,
-      typename SymbolType::Symbol symbol
-   ) const;
+   std::vector<typename SymbolType::Symbol> getLocalReference() const {
+      std::vector<typename SymbolType::Symbol> local_reference = metadata->reference_sequence;
+      for (auto [pos, symbol] : indexing_differences_to_reference_sequence) {
+         local_reference.at(pos) = symbol;
+      }
+      return local_reference;
+   }
+
+   SymbolType::Symbol getLocalReferencePosition(size_t position) const {
+      SILO_ASSERT(position < metadata->reference_sequence.size());
+      auto iter = indexing_differences_to_reference_sequence.find(position);
+      if (iter != indexing_differences_to_reference_sequence.end()) {
+         return iter->second;
+      }
+      return metadata->reference_sequence.at(position);
+   }
 
    [[nodiscard]] SequenceColumnInfo getInfo() const;
 
@@ -119,12 +129,6 @@ class SequenceColumnPartition {
    std::vector<ReadSequence> lazy_buffer;
 
    void fillIndexes();
-
-   void addSymbolsToPositions(
-      size_t position_idx,
-      SymbolMap<SymbolType, std::vector<uint32_t>>& ids_per_symbol_for_current_position,
-      size_t number_of_sequences
-   );
 
    void fillNBitmaps();
 
@@ -154,12 +158,12 @@ BOOST_SERIALIZATION_SPLIT_FREE(silo::storage::column::SequenceColumnMetadata<sil
 namespace boost::serialization {
 template <class Archive>
 [[maybe_unused]] void save(
-   Archive& ar,
+   Archive& archive,
    const silo::storage::column::SequenceColumnMetadata<silo::AminoAcid>& object,
    [[maybe_unused]] const uint32_t version
 ) {
-   ar & object.column_name;
-   ar & object.reference_sequence;
+   archive & object.column_name;
+   archive & object.reference_sequence;
 }
 }  // namespace boost::serialization
 
@@ -168,14 +172,14 @@ BOOST_SERIALIZATION_SPLIT_FREE(std::shared_ptr<
 namespace boost::serialization {
 template <class Archive>
 [[maybe_unused]] void load(
-   Archive& ar,
+   Archive& archive,
    std::shared_ptr<silo::storage::column::SequenceColumnMetadata<silo::AminoAcid>>& object,
    [[maybe_unused]] const uint32_t version
 ) {
    std::string column_name;
    std::vector<silo::AminoAcid::Symbol> reference_sequence;
-   ar & column_name;
-   ar & reference_sequence;
+   archive & column_name;
+   archive & reference_sequence;
    object = std::make_shared<silo::storage::column::SequenceColumnMetadata<silo::AminoAcid>>(
       std::move(column_name), std::move(reference_sequence)
    );
@@ -186,12 +190,12 @@ BOOST_SERIALIZATION_SPLIT_FREE(silo::storage::column::SequenceColumnMetadata<sil
 namespace boost::serialization {
 template <class Archive>
 [[maybe_unused]] void save(
-   Archive& ar,
+   Archive& archive,
    const silo::storage::column::SequenceColumnMetadata<silo::Nucleotide>& object,
    [[maybe_unused]] const uint32_t version
 ) {
-   ar & object.column_name;
-   ar & object.reference_sequence;
+   archive & object.column_name;
+   archive & object.reference_sequence;
 }
 }  // namespace boost::serialization
 
@@ -200,14 +204,14 @@ BOOST_SERIALIZATION_SPLIT_FREE(std::shared_ptr<
 namespace boost::serialization {
 template <class Archive>
 [[maybe_unused]] void load(
-   Archive& ar,
+   Archive& archive,
    std::shared_ptr<silo::storage::column::SequenceColumnMetadata<silo::Nucleotide>>& object,
    [[maybe_unused]] const uint32_t version
 ) {
    std::string column_name;
    std::vector<silo::Nucleotide::Symbol> reference_sequence;
-   ar & column_name;
-   ar & reference_sequence;
+   archive & column_name;
+   archive & reference_sequence;
    object = std::make_shared<silo::storage::column::SequenceColumnMetadata<silo::Nucleotide>>(
       std::move(column_name), std::move(reference_sequence)
    );

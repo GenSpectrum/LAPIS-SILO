@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <unordered_map>
 #include <utility>
@@ -18,7 +19,6 @@
 #include "evobench/evobench.hpp"
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/common/parallel.h"
 #include "silo/common/symbol_map.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/bad_request.h"
@@ -81,110 +81,268 @@ std::unordered_map<std::string, typename Mutations<SymbolType>::PrefilteredBitma
    return bitmaps_to_evaluate;
 }
 
-template <typename SymbolType>
-void Mutations<SymbolType>::addPositionToMutationCountsForMixedBitmaps(
-   uint32_t position_idx,
-   const PrefilteredBitmaps& bitmaps_to_evaluate,
-   SymbolMap<SymbolType, std::vector<uint32_t>>& count_of_mutations_per_position
+namespace {
+
+__attribute__((noinline)) void initializeCountsWithSequenceCount(
+   std::vector<uint32_t>& count_per_local_reference_position,
+   uint32_t sequence_count
 ) {
-   for (const auto& [filter, sequence_store_partition] : bitmaps_to_evaluate.bitmaps) {
-      for (const auto symbol : SymbolType::SYMBOLS) {
-         const auto& current_position = sequence_store_partition.positions[position_idx];
-         if (current_position.isSymbolDeleted(symbol)) {
-            count_of_mutations_per_position[symbol][position_idx] += filter->cardinality();
-            for (const uint32_t idx : *filter) {
-               const roaring::Roaring& n_bitmap =
-                  sequence_store_partition.missing_symbol_bitmaps[idx];
-               if (n_bitmap.contains(position_idx)) {
-                  count_of_mutations_per_position[symbol][position_idx] -= 1;
-               }
-            }
-            continue;
-         }
-         const uint32_t symbol_count =
-            current_position.isSymbolFlipped(symbol)
-               ? filter->andnot_cardinality(*current_position.getBitmap(symbol))
-               : filter->and_cardinality(*current_position.getBitmap(symbol));
+   EVOBENCH_SCOPE("Mutations", "initializeCountsWithSequenceCount");
+   for (size_t position_idx = 0; position_idx < count_per_local_reference_position.size();
+        ++position_idx) {
+      count_per_local_reference_position[position_idx] += sequence_count;
+   }
+}
 
-         count_of_mutations_per_position[symbol][position_idx] += symbol_count;
+__attribute__((noinline)) void subtractHorizontalBitmapCounts(
+   std::vector<uint32_t>& count_per_local_reference_position,
+   const std::map<size_t, roaring::Roaring>& horizontal_bitmaps
+) {
+   EVOBENCH_SCOPE("Mutations", "subtractHorizontalBitmapCounts");
+   for (const auto& [_, n_bitmap] : horizontal_bitmaps) {
+      for (size_t position_idx : n_bitmap) {
+         count_per_local_reference_position[position_idx] -= 1;
+      }
+   }
+}
 
-         const auto deleted_symbol = current_position.getDeletedSymbol();
-         if (deleted_symbol.has_value() && symbol != *deleted_symbol) {
-            count_of_mutations_per_position[*deleted_symbol][position_idx] -= symbol_count;
+void subtractCumulativeNsFromPositions(
+   std::vector<uint32_t>& count_per_local_reference_position,
+   size_t sequence_length,
+   const std::vector<size_t>& cumulative_starts,
+   const std::vector<size_t>& cumulative_ends
+) {
+   EVOBENCH_SCOPE("Mutations", "subtractCumulativeNsFromPositions");
+   size_t running_total_start_n_offset = cumulative_starts.at(sequence_length);
+   size_t start_position_iter = sequence_length - 1;
+   while (true) {
+      count_per_local_reference_position.at(start_position_iter) -= running_total_start_n_offset;
+      running_total_start_n_offset += cumulative_starts.at(start_position_iter);
+      if (start_position_iter == 0) {
+         break;
+      }
+      start_position_iter -= 1;
+   }
+   // Indexes are not symmetric to start_n, because end is exclusive!
+   size_t running_total_end_n_offset = cumulative_ends.at(0);
+   size_t end_position_iter = 0;
+   while (true) {
+      count_per_local_reference_position.at(end_position_iter) -= running_total_end_n_offset;
+      running_total_end_n_offset += cumulative_ends.at(end_position_iter + 1);
+      if (end_position_iter == sequence_length - 1) {
+         break;
+      }
+      end_position_iter += 1;
+   }
+}
+
+__attribute__((noinline)) void subtractStartAndEndNCounts(
+   std::vector<uint32_t>& count_per_local_reference_position,
+   const std::vector<std::pair<size_t, size_t>>& start_end,
+   size_t sequence_length
+) {
+   EVOBENCH_SCOPE("Mutations", "subtractStartAndEndNCounts");
+   std::vector<size_t> cumulative_starts(sequence_length + 1);
+   std::vector<size_t> cumulative_ends(sequence_length + 1);
+   for (const auto& [start, end] : start_end) {
+      cumulative_starts.at(start) += 1;
+      cumulative_ends.at(end) += 1;
+   }
+   subtractCumulativeNsFromPositions(
+      count_per_local_reference_position, sequence_length, cumulative_starts, cumulative_ends
+   );
+}
+
+__attribute__((noinline)) void subtractFilteredNCounts(
+   std::vector<uint32_t>& count_per_local_reference_position,
+   const CopyOnWriteBitmap& filter,
+   size_t sequence_length,
+   const std::map<size_t, roaring::Roaring>& horizontal_bitmaps,
+   const std::vector<std::pair<size_t, size_t>>& start_end
+) {
+   EVOBENCH_SCOPE("Mutations", "subtractFilteredNCounts");
+   std::vector<size_t> cumulative_starts(sequence_length + 1);
+   std::vector<size_t> cumulative_ends(sequence_length + 1);
+   for (const uint32_t idx : *filter) {
+      auto iter = horizontal_bitmaps.find(idx);
+      if (iter != horizontal_bitmaps.end()) {
+         const roaring::Roaring& n_bitmap = iter->second;
+         for (size_t position_idx : n_bitmap) {
+            count_per_local_reference_position[position_idx] -= 1;
          }
+      }
+      auto [start, end] = start_end.at(idx);
+      cumulative_starts.at(start) += 1;
+      cumulative_ends.at(end) += 1;
+   }
+   subtractCumulativeNsFromPositions(
+      count_per_local_reference_position, sequence_length, cumulative_starts, cumulative_ends
+   );
+}
+
+using silo::storage::column::SequenceColumnPartition;
+using silo::storage::column::VerticalSequenceIndex;
+
+template <typename SymbolType>
+using SequenceDiffKey = typename VerticalSequenceIndex<SymbolType>::SequenceDiffKey;
+
+template <typename SymbolType>
+using SequenceDiff = typename VerticalSequenceIndex<SymbolType>::SequenceDiff;
+
+template <typename SymbolType>
+void countActualMutations(
+   SymbolMap<SymbolType, std::vector<uint32_t>>& count_of_mutations_per_position,
+   std::vector<uint32_t>& count_per_local_reference_position,
+   const std::map<SequenceDiffKey<SymbolType>, SequenceDiff<SymbolType>>& vertical_bitmaps
+) {
+   EVOBENCH_SCOPE("Mutations", "countActualMutations");
+   for (const auto& [sequence_diff_key, sequence_diff] : vertical_bitmaps) {
+      count_of_mutations_per_position[sequence_diff_key.symbol][sequence_diff_key.position] +=
+         sequence_diff.cardinality;
+      count_per_local_reference_position[sequence_diff_key.position] -= sequence_diff.cardinality;
+   }
+}
+
+template <typename SymbolType>
+void countActualFilteredMutations(
+   SymbolMap<SymbolType, std::vector<uint32_t>>& count_of_mutations_per_position,
+   std::vector<uint32_t>& count_per_local_reference_position,
+   const CopyOnWriteBitmap& filter,
+   const std::map<SequenceDiffKey<SymbolType>, SequenceDiff<SymbolType>>& vertical_bitmaps
+) {
+   EVOBENCH_SCOPE("Mutations", "countActualFilteredMutations");
+   const auto& filter_roaring_array = filter->roaring.high_low_container;
+   std::map<size_t, roaring::internal::container_t*> filter_containers;
+   std::map<size_t, uint8_t> filter_container_typecodes;
+   for (int32_t idx = 0; idx < filter_roaring_array.size; ++idx) {
+      filter_containers[filter_roaring_array.keys[idx]] = filter_roaring_array.containers[idx];
+      filter_container_typecodes[filter_roaring_array.keys[idx]] =
+         filter_roaring_array.typecodes[idx];
+   }
+
+   for (const auto& [sequence_diff_key, sequence_diff] : vertical_bitmaps) {
+      auto iter = filter_containers.find(sequence_diff_key.v_index);
+      if (iter != filter_containers.end()) {
+         auto filter_container = iter->second;
+         uint8_t filter_container_typecode =
+            filter_container_typecodes.at(sequence_diff_key.v_index);
+
+         auto contained_count = roaring::internal::container_and_cardinality(
+            filter_container,
+            filter_container_typecode,
+            sequence_diff.container,
+            sequence_diff.typecode
+         );
+
+         count_of_mutations_per_position[sequence_diff_key.symbol][sequence_diff_key.position] +=
+            contained_count;
+         count_per_local_reference_position[sequence_diff_key.position] -= contained_count;
       }
    }
 }
 
 template <typename SymbolType>
-void Mutations<SymbolType>::addPositionToMutationCountsForFullBitmaps(
-   uint32_t position_idx,
+__attribute__((noinline)) void accumulateFinalCounts(
+   const std::vector<uint32_t>& count_per_local_reference_position,
+   const std::vector<typename SymbolType::Symbol>& local_reference,
+   SymbolMap<SymbolType, std::vector<uint32_t>>& count_of_mutations_per_position
+) {
+   EVOBENCH_SCOPE("Mutations", "accumulateFinalCounts");
+   for (size_t position_idx = 0; position_idx < count_per_local_reference_position.size();
+        ++position_idx) {
+      count_of_mutations_per_position[local_reference.at(position_idx)][position_idx] +=
+         count_per_local_reference_position[position_idx];
+   }
+}
+
+}  // anonymous namespace
+
+template <typename SymbolType>
+void Mutations<SymbolType>::addMutationCountsForMixedBitmaps(
+   const PrefilteredBitmaps& bitmaps_to_evaluate,
+   SymbolMap<SymbolType, std::vector<uint32_t>>& count_of_mutations_per_position
+) {
+   for (const auto& [filter, sequence_column_partition] : bitmaps_to_evaluate.bitmaps) {
+      auto local_reference = sequence_column_partition.getLocalReference();
+      size_t sequence_length = local_reference.size();
+      std::vector<uint32_t> count_per_local_reference_position(sequence_length);
+
+      initializeCountsWithSequenceCount(count_per_local_reference_position, filter->cardinality());
+
+      subtractFilteredNCounts(
+         count_per_local_reference_position,
+         filter,
+         sequence_length,
+         sequence_column_partition.horizontal_coverage_index.horizontal_bitmaps,
+         sequence_column_partition.horizontal_coverage_index.start_end
+      );
+
+      countActualFilteredMutations(
+         count_of_mutations_per_position,
+         count_per_local_reference_position,
+         filter,
+         sequence_column_partition.vertical_sequence_index.vertical_bitmaps
+      );
+
+      accumulateFinalCounts(
+         count_per_local_reference_position, local_reference, count_of_mutations_per_position
+      );
+   }
+}
+
+template <typename SymbolType>
+void Mutations<SymbolType>::addMutationCountsForFullBitmaps(
    const PrefilteredBitmaps& bitmaps_to_evaluate,
    SymbolMap<SymbolType, std::vector<uint32_t>>& count_of_mutations_per_position
 ) {
    // For these partitions, we have full bitmaps. Do not need to bother with AND
    // cardinality
-   for (const auto& [_, sequence_store_partition] : bitmaps_to_evaluate.full_bitmaps) {
-      for (const auto symbol : SymbolType::SYMBOLS) {
-         const auto& current_position = sequence_store_partition.positions[position_idx];
-         if (current_position.isSymbolDeleted(symbol)) {
-            count_of_mutations_per_position[symbol][position_idx] +=
-               sequence_store_partition.sequence_count;
-            for (const roaring::Roaring& n_bitmap :
-                 sequence_store_partition.missing_symbol_bitmaps) {
-               if (n_bitmap.contains(position_idx)) {
-                  count_of_mutations_per_position[symbol][position_idx] -= 1;
-               }
-            }
-            continue;
-         }
-         const uint32_t symbol_count = current_position.isSymbolFlipped(symbol)
-                                          ? sequence_store_partition.sequence_count -
-                                               current_position.getBitmap(symbol)->cardinality()
-                                          : current_position.getBitmap(symbol)->cardinality();
+   for (const auto& [_, sequence_column_partition] : bitmaps_to_evaluate.full_bitmaps) {
+      auto local_reference = sequence_column_partition.getLocalReference();
+      size_t sequence_length = local_reference.size();
+      std::vector<uint32_t> count_per_local_reference_position(sequence_length);
 
-         count_of_mutations_per_position[symbol][position_idx] += symbol_count;
+      initializeCountsWithSequenceCount(
+         count_per_local_reference_position, sequence_column_partition.sequence_count
+      );
 
-         const auto deleted_symbol = current_position.getDeletedSymbol();
-         if (deleted_symbol.has_value() && symbol != *deleted_symbol) {
-            count_of_mutations_per_position[*deleted_symbol][position_idx] -=
-               sequence_store_partition.positions[position_idx].getBitmap(symbol)->cardinality();
-         }
-      }
+      subtractHorizontalBitmapCounts(
+         count_per_local_reference_position,
+         sequence_column_partition.horizontal_coverage_index.horizontal_bitmaps
+      );
+
+      subtractStartAndEndNCounts(
+         count_per_local_reference_position,
+         sequence_column_partition.horizontal_coverage_index.start_end,
+         sequence_length
+      );
+
+      countActualMutations(
+         count_of_mutations_per_position,
+         count_per_local_reference_position,
+         sequence_column_partition.vertical_sequence_index.vertical_bitmaps
+      );
+
+      accumulateFinalCounts(
+         count_per_local_reference_position, local_reference, count_of_mutations_per_position
+      );
    }
 }
 
 template <typename SymbolType>
 SymbolMap<SymbolType, std::vector<uint32_t>> Mutations<SymbolType>::calculateMutationsPerPosition(
-   const storage::column::SequenceColumnMetadata<SymbolType>& metadata,
+   const storage::column::SequenceColumnMetadata<SymbolType>& column_metadata,
    const PrefilteredBitmaps& bitmap_filter
 ) {
-   EVOBENCH_SCOPE("Mutations", "calculateMutationsPerPosition");
-   const size_t sequence_length = metadata.reference_sequence.size();
+   const size_t sequence_length = column_metadata.reference_sequence.size();
 
-   SymbolMap<SymbolType, std::vector<uint32_t>> mutation_counts_per_position;
+   SymbolMap<SymbolType, std::vector<uint32_t>> count_of_mutations_per_position;
    for (const auto symbol : SymbolType::SYMBOLS) {
-      mutation_counts_per_position[symbol].resize(sequence_length);
+      count_of_mutations_per_position[symbol] = std::vector<uint32_t>(sequence_length, 0);
    }
-
-   static constexpr size_t POSITIONS_PER_PROCESS = 300;
-   common::parallel_for(
-      common::blocked_range{0, sequence_length},
-      POSITIONS_PER_PROCESS,
-      [&mutation_counts_per_position, &bitmap_filter](common::blocked_range local) {
-         EVOBENCH_SCOPE_EVERY(100, "Mutations", "calculateMutationsPerPosition-chunk");
-         for (size_t pos = local.begin(); pos < local.end(); pos++) {
-            addPositionToMutationCountsForMixedBitmaps(
-               pos, bitmap_filter, mutation_counts_per_position
-            );
-            addPositionToMutationCountsForFullBitmaps(
-               pos, bitmap_filter, mutation_counts_per_position
-            );
-         }
-      }
-   );
-
-   return mutation_counts_per_position;
+   addMutationCountsForMixedBitmaps(bitmap_filter, count_of_mutations_per_position);
+   addMutationCountsForFullBitmaps(bitmap_filter, count_of_mutations_per_position);
+   return count_of_mutations_per_position;
 }
 
 template <typename SymbolType>
@@ -206,15 +364,15 @@ void Mutations<SymbolType>::validateOrderByFields(const schema::TableSchema& /*t
 template <typename SymbolType>
 arrow::Status Mutations<SymbolType>::addMutationsToOutput(
    const std::string& sequence_name,
-   const storage::column::SequenceColumnMetadata<SymbolType>& sequence_column_metadata,
+   const storage::column::SequenceColumnMetadata<SymbolType>& column_metadata,
    double min_proportion,
    const PrefilteredBitmaps& bitmap_filter,
    std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder
 ) {
-   const size_t sequence_length = sequence_column_metadata.reference_sequence.size();
+   const size_t sequence_length = column_metadata.reference_sequence.size();
 
    const SymbolMap<SymbolType, std::vector<uint32_t>> count_of_mutations_per_position =
-      calculateMutationsPerPosition(sequence_column_metadata, bitmap_filter);
+      calculateMutationsPerPosition(column_metadata, bitmap_filter);
 
    for (size_t pos = 0; pos < sequence_length; ++pos) {
       uint32_t total = 0;
@@ -230,7 +388,7 @@ arrow::Status Mutations<SymbolType>::addMutationsToOutput(
             : static_cast<uint32_t>(std::ceil(static_cast<double>(total) * min_proportion) - 1);
 
       const typename SymbolType::Symbol symbol_in_reference_genome =
-         sequence_column_metadata.reference_sequence.at(pos);
+         column_metadata.reference_sequence.at(pos);
 
       for (const auto symbol : SymbolType::VALID_MUTATION_SYMBOLS) {
          if (symbol_in_reference_genome != symbol) {
@@ -289,7 +447,7 @@ template <typename SymbolType>
 arrow::Result<QueryPlan> Mutations<SymbolType>::toQueryPlanImpl(
    std::shared_ptr<const storage::Table> table,
    std::vector<CopyOnWriteBitmap> partition_filters,
-   const config::QueryOptions& query_options,
+   const config::QueryOptions& /*query_options*/,
    std::string_view request_id
 ) const {
    EVOBENCH_SCOPE("Mutations", "toQueryPlanImpl");
@@ -324,7 +482,7 @@ arrow::Result<QueryPlan> Mutations<SymbolType>::toQueryPlanImpl(
        produced = false]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
       EVOBENCH_SCOPE("Mutations", "producer");
 
-      if (produced == true) {
+      if (produced) {
          std::optional<arrow::ExecBatch> result = std::nullopt;
          return arrow::Future{result};
       }
@@ -390,7 +548,7 @@ arrow::Result<QueryPlan> Mutations<SymbolType>::toQueryPlanImpl(
 
 template <typename SymbolType>
 std::vector<schema::ColumnIdentifier> Mutations<SymbolType>::getOutputSchema(
-   const silo::schema::TableSchema& table_schema
+   const silo::schema::TableSchema& /*table_schema*/
 ) const {
    using silo::schema::ColumnType;
    std::vector<schema::ColumnIdentifier> output_fields;
@@ -479,12 +637,12 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Mutations<SymbolType>
             "The field 'fields' for a Mutations action must be an array of strings"
          );
          const std::string field = field_json;
-         auto it =
+         auto iter =
             std::ranges::find_if(Mutations<SymbolType>::VALID_FIELDS, [&](const auto& valid_field) {
                return valid_field == field;
             });
          CHECK_SILO_QUERY(
-            it != Mutations<SymbolType>::VALID_FIELDS.end(),
+            iter != Mutations<SymbolType>::VALID_FIELDS.end(),
             "The attribute 'fields' contains an invalid field '{}'. Valid fields are {}.",
             field,
             boost::join(
@@ -495,7 +653,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Mutations<SymbolType>
                ", "
             )
          );
-         fields.push_back(*it);
+         fields.push_back(*iter);
       }
    }
 
