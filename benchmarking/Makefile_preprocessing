@@ -1,5 +1,11 @@
 all: $(PREPROCESSING_STAMP)
 
+SILO_PREPROCESSING_CONFIG=$(DATASET_DIR)/preprocessing_config.yaml
+export SILO_PREPROCESSING_CONFIG
+SILO_INPUT_DIRECTORY=$(DATASET_DIR)
+export SILO_INPUT_DIRECTORY
+
+
 # ---- Get dependencies --------------------------------------------------------
 
 WISEPULSE_DIR=WisePulse
