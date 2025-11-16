@@ -51,11 +51,6 @@ export OUTPUT_DIR
 
 # ---- General -----------------------------------------------------------------
 
-SILO_PREPROCESSING_CONFIG=$(DATASET_DIR)/preprocessing_config.yaml
-export SILO_PREPROCESSING_CONFIG
-SILO_INPUT_DIRECTORY=$(DATASET_DIR)
-export SILO_INPUT_DIRECTORY
-
 SILO=../build/Release/silo_$(COMMIT_ID)
 export SILO
 PREPROCESSING_STAMP = $(OUTPUT_DIR)/.done
