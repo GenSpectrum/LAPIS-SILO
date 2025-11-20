@@ -10,6 +10,10 @@ SILO uses a hybrid storage approach that separates:
 
 Both storage types use bitmaps, but we provide separate data structures holding the respective Roaring bitmap containers. This separation enables optimizations for both storage efficiency and query performance.
 
+These special structures are introduced to allow efficient operations on the sequence data with minimal storage requirements.
+In particular, we do not want to store entire bitmaps for all positions, because these can be mostly empty. It is still advantageous to keep bitmap containers for all variation in the sequence as this still allows very fast computations.
+The containers are organized in a tree-map for fast iteration. 
+
 ## Roaring Bitmap Containers
 
 A Roaring bitmap container represents a bitmap with a domain of `[0, 2^16)` (0 to 65,535).
