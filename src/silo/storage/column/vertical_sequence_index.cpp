@@ -106,7 +106,7 @@ roaring::Roaring VerticalSequenceIndex<SymbolType>::getNonMatchingContainersAsBi
    auto end = vertical_bitmaps.lower_bound(
       SequenceDiffKey{position_idx + 1, 0, static_cast<SymbolType::Symbol>(0)}
    );
-   // We need to union all bitmap containers at this position and return the inverse
+   // We need to union all bitmap containers at this position
    roaring::Roaring bitmap;
    int32_t current_v_tile_index = -1;
    roaring::internal::container_t* current_container = nullptr;
