@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Run cleanup tasks of cachesl
         run: echo "A branch was deleted, or a pull request was closed. Do cleanup caches tasks here."
