@@ -10,9 +10,18 @@ if ! [ -e conanprofile ]; then
     cp conanprofile.example conanprofile
 fi
 
-python3 build_with_conan.py --release
+case "$BUILD" in
+    Release)
+        python3 build_with_conan.py --release
+        ;;
+    Debug)
+        python3 build_with_conan.py --debug
+        ;;
+    *)
+        echo "invalid BUILD value '$BUILD'"
+        exit 1
+esac
 
 # `ln` works, too, currently (the SILO build does not overwrite the
 # original file in place), but it's dicey, so better use 'cp'
-cp build/Release/silo{,_"$COMMIT_ID"}
-# cp build/Release/silo_test{,_"$COMMIT_ID"}
+cp build/"$BUILD"/silo{,_"$COMMIT_ID"}
