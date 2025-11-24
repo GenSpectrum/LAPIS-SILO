@@ -25,13 +25,15 @@ endif
 
 # ---- Get dependencies --------------------------------------------------------
 
-API_QUERY_VERSION=b5cf48baa00b8a1b95feaa28ade374b0b68de7e4
+API_QUERY_VERSION=f28f644b54427575319a6e98f668fc023824b303
 
 API_QUERY_DIR=api-query
 API_QUERY_CLONE=$(API_QUERY_DIR)/Cargo.toml
 API_QUERY_CHECKOUT_STAMP_DIR=$(API_QUERY_DIR)/.git/.checkout
 API_QUERY_CHECKOUT=$(API_QUERY_CHECKOUT_STAMP_DIR)/$(API_QUERY_VERSION)
 API_QUERY=$(API_QUERY_DIR)/target/release/api-query
+
+API_QUERY_LOG_CSV:=$(OUTPUT_DIR)/api-query-log-$(shell bin/date-rfc-3339).csv
 
 $(API_QUERY_CLONE):
 	git clone https://github.com/GenSpectrum/api-query $(API_QUERY_DIR)
@@ -62,5 +64,6 @@ dependencies: $(API_QUERY)
 bench: $(DATASET_DIR)/silo_queries.ndjson $(API_QUERY) .silo.stopped
 	@echo "running benchmark"
 	make -f Makefile_api .silo.pid
-	$(API_QUERY) iter $(API_QUERY_OPTS) --repeat $(REPEAT) $(DATASET_DIR)/silo_queries.ndjson --drop --concurrency $(CONCURRENCY)
+	$(API_QUERY) iter $(API_QUERY_OPTS) --repeat $(REPEAT) $(DATASET_DIR)/silo_queries.ndjson --drop --log-csv $(API_QUERY_LOG_CSV) --concurrency $(CONCURRENCY)
 	make -f Makefile_api .silo.stopped
+	$(API_QUERY)-log compare --queries $(DATASET_DIR)/silo_queries.ndjson --ignore-from $(DATASET_DIR)/ignore_queries_for_checksum_regex.txt $(DATASET_DIR)/good-api-query-log.csv $(API_QUERY_LOG_CSV)

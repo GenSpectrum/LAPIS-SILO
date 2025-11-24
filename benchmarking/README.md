@@ -39,12 +39,13 @@ a server on
  1. Make sure that you have dataset folders as configured in the evobench config file (`evobench-run.ron`); see [Offer dataset versioning #32](https://github.com/GenSpectrum/evobench/issues/32) for the required folder structure. Each versioned dataset folder needs these files (or symlinks to them):
 
         database_config.yaml
+        good-api-query-log.csv
+        ignore_queries_for_checksum_regex.txt
         input_file.ndjson.zst
+        possibly: lineage_definitions.yaml
         preprocessing_config.yaml
         reference_genomes.json
         silo_queries.ndjson
-
-        possibly: lineage_definitions.yaml
 
  1. Run an instance of a daemon, `evobench-run --verbose run daemon`
     (the `--verbose` allows you to see what's going on, feel free to
