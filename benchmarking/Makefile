@@ -48,10 +48,17 @@ endif
 export INPUT_FILE
 export OUTPUT_DIR
 
+# Should a debug build be used?
+ifeq ($(DEBUG),)
+BUILD=Release
+else
+BUILD=Debug
+endif
+export BUILD
 
 # ---- General -----------------------------------------------------------------
 
-SILO=../build/Release/silo_$(COMMIT_ID)
+SILO=../build/$(BUILD)/silo_$(COMMIT_ID)
 export SILO
 PREPROCESSING_STAMP = $(OUTPUT_DIR)/.done
 export PREPROCESSING_STAMP
