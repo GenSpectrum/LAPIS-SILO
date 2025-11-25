@@ -27,7 +27,7 @@ Intersection::Intersection(
          "Compilation bug: Intersection without non-negated children is not allowed. "
          "Should be compiled as a union."
       );
-      throw silo::QueryCompilationException(
+      throw QueryCompilationException(
          "Compilation bug: Intersection without non-negated children is not allowed. "
          "Should be compiled as a union."
       );
@@ -35,9 +35,7 @@ Intersection::Intersection(
    if (this->children.size() + this->negated_children.size() < 2) {
       SPDLOG_ERROR("Compilation bug: Intersection needs at least two children.");
 
-      throw silo::QueryCompilationException(
-         "Compilation bug: Intersection needs at least two children."
-      );
+      throw QueryCompilationException("Compilation bug: Intersection needs at least two children.");
    }
 }
 

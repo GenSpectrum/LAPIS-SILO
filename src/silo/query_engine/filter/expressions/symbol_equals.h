@@ -7,9 +7,6 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-#include "silo/common/aa_symbols.h"
-#include "silo/common/nucleotide_symbols.h"
-#include "silo/database.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/storage/table_partition.h"
@@ -25,13 +22,13 @@ class SymbolOrDot {
   public:
    static SymbolOrDot<SymbolType> dot();
 
-   SymbolOrDot(typename SymbolType::Symbol symbol);
+   explicit SymbolOrDot(typename SymbolType::Symbol symbol);
 
    typename SymbolType::Symbol getSymbolOrReplaceDotWith(
       typename SymbolType::Symbol replace_dot_with
    ) const;
 
-   char asChar() const;
+   [[nodiscard]] char asChar() const;
 };
 
 template <typename SymbolType>
@@ -47,7 +44,7 @@ class SymbolEquals : public Expression {
       SymbolOrDot<SymbolType> value
    );
 
-   std::string toString() const override;
+   [[nodiscard]] std::string toString() const override;
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::filter::operators::Operator> compile(
       const storage::Table& table,
@@ -56,7 +53,9 @@ class SymbolEquals : public Expression {
    ) const override;
 
   private:
-   static std::string getFilterName() { return fmt::format("{}Equals", SymbolType::SYMBOL_NAME); }
+   static std::string getFilterName() {
+      return fmt::format("SymbolEquals<{}>", SymbolType::SYMBOL_NAME);
+   }
 };
 
 template <typename SymbolType>

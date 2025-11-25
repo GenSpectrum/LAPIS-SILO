@@ -101,7 +101,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<Sy
          std::back_inserter(symbol_filters),
          [&](typename SymbolType::Symbol symbol) {
             return std::make_unique<SymbolEquals<SymbolType>>(
-               valid_sequence_name, position_idx, symbol
+               valid_sequence_name, position_idx, SymbolOrDot<SymbolType>{symbol}
             );
          }
       );
@@ -195,14 +195,16 @@ void from_json(const nlohmann::json& json, std::unique_ptr<SymbolEquals<SymbolTy
       );
       return;
    }
-   const std::optional<typename SymbolType::Symbol> symbol_value =
+   const std::optional<typename SymbolType::Symbol> symbol_char =
       SymbolType::charToSymbol(symbol.at(0));
    CHECK_SILO_QUERY(
-      symbol_value.has_value(),
+      symbol_char.has_value(),
       "The string field 'symbol' must be either a valid {} symbol or the '.' symbol.",
       SymbolType::SYMBOL_NAME
    );
-   filter = std::make_unique<SymbolEquals<SymbolType>>(sequence_name, position_idx, *symbol_value);
+   filter = std::make_unique<SymbolEquals<SymbolType>>(
+      sequence_name, position_idx, SymbolOrDot<SymbolType>{symbol_char.value()}
+   );
 }
 
 template void from_json<Nucleotide>(

@@ -32,7 +32,7 @@ TEST(OperatorThreshold, evaluatesCorrectOnEmptyInput) {
 
    ASSERT_THROW(
       const Threshold under_test(std::move(non_negated), std::move(negated), 2, true, 0),
-      silo::QueryCompilationException
+      silo::query_engine::QueryCompilationException
    );
 }
 

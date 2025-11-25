@@ -26,7 +26,7 @@ class FloatBetween : public Expression {
       std::optional<double> to
    );
 
-   std::string toString() const override;
+   [[nodiscard]] std::string toString() const override;
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::filter::operators::Operator> compile(
       const storage::Table& table,

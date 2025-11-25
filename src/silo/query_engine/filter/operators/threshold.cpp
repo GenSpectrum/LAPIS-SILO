@@ -27,13 +27,13 @@ Threshold::Threshold(
       match_exactly(match_exactly),
       row_count(row_count) {
    if (number_of_matchers >= this->non_negated_children.size() + this->negated_children.size()) {
-      throw silo::QueryCompilationException(
+      throw QueryCompilationException(
          "Compilation Error: number_of_matchers must be less than the number of children of a "
          "threshold expression"
       );
    }
    if (number_of_matchers == 0) {
-      throw silo::QueryCompilationException(
+      throw QueryCompilationException(
          "Compilation Error: number_of_matchers must be greater than zero"
       );
    }
