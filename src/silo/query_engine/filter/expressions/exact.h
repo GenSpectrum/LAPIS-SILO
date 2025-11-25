@@ -18,7 +18,7 @@ class Exact : public Expression {
   public:
    explicit Exact(std::unique_ptr<Expression> child);
 
-   std::string toString() const override;
+   [[nodiscard]] std::string toString() const override;
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::filter::operators::Operator> compile(
       const storage::Table& table,

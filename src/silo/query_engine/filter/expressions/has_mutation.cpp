@@ -82,7 +82,7 @@ std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
       std::back_inserter(symbol_filters),
       [&](typename SymbolType::Symbol symbol) {
          return std::make_unique<SymbolEquals<SymbolType>>(
-            valid_sequence_name, position_idx, symbol
+            valid_sequence_name, position_idx, SymbolOrDot<SymbolType>{symbol}
          );
       }
    );

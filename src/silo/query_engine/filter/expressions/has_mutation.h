@@ -23,7 +23,7 @@ class HasMutation : public Expression {
   public:
    explicit HasMutation(std::optional<std::string> sequence_name, uint32_t position_idx);
 
-   std::string toString() const override;
+   [[nodiscard]] std::string toString() const override;
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::filter::operators::Operator> compile(
       const storage::Table& table,

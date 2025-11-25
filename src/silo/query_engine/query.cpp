@@ -8,7 +8,6 @@
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
-#include "silo/query_engine/filter/operators/operator.h"
 
 using silo::query_engine::actions::Action;
 using silo::query_engine::filter::expressions::Expression;

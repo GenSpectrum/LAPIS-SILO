@@ -29,6 +29,8 @@ Checks: >-
 CheckOptions:
   - key: readability-identifier-length.IgnoredVariableNames
     value: \_
+  - key: readability-identifier-length.IgnoredVariableNames
+    value: to
   - key: readability-identifier-naming.NamespaceCase
     value: lower_case
   - key: readability-identifier-naming.ClassCase

@@ -36,7 +36,7 @@ class DateBetween : public Expression {
       std::optional<silo::common::Date> date_to
    );
 
-   std::string toString() const override;
+   [[nodiscard]] std::string toString() const override;
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::filter::operators::Operator> compile(
       const storage::Table& table,

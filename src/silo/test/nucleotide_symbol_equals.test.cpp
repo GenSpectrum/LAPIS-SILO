@@ -83,7 +83,7 @@ const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL = {
 const QueryTestScenario NUCLEOTIDE_EQUALS_SYMBOL_OUT_OF_RANGE = {
    .name = "NUCLEOTIDE_EQUALS_SYMBOL_OUT_OF_RANGE",
    .query = createNucleotideSymbolEqualsQuery("C", 1000),
-   .expected_error_message = "NucleotideEquals position is out of bounds 1000 > 5"
+   .expected_error_message = "SymbolEquals<Nucleotide> position is out of bounds 1000 > 5"
 };
 
 const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_DOT_RETURNS_REFERENCE = {

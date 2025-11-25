@@ -7,6 +7,7 @@
 #include "silo/query_engine/query_compilation_exception.h"
 
 using silo::query_engine::CopyOnWriteBitmap;
+using silo::query_engine::QueryCompilationException;
 using silo::query_engine::filter::operators::IndexScan;
 using silo::query_engine::filter::operators::Intersection;
 using silo::query_engine::filter::operators::OperatorVector;
@@ -29,7 +30,7 @@ TEST(OperatorIntersection, shouldFailOnEmptyInput) {
 
    ASSERT_THROW(
       const Intersection under_test(std::move(non_negated), std::move(negated), row_count),
-      silo::QueryCompilationException
+      QueryCompilationException
    );
 }
 
@@ -43,7 +44,7 @@ TEST(OperatorIntersection, shouldFailOnOnlyNegated) {
    OperatorVector negated = generateTestInput(test_negated_bitmaps, row_count);
    ASSERT_THROW(
       const Intersection under_test(std::move(non_negated), std::move(negated), row_count),
-      silo::QueryCompilationException
+      QueryCompilationException
    );
 }
 

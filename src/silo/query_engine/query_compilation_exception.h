@@ -3,10 +3,16 @@
 #include <stdexcept>
 #include <string>
 
-namespace silo {
+#include <fmt/format.h>
+
+namespace silo::query_engine {
 
 class [[maybe_unused]] QueryCompilationException : public std::runtime_error {
   public:
-   [[maybe_unused]] QueryCompilationException(const std::string& error_message);
+   [[maybe_unused]] explicit QueryCompilationException(const std::string& error_message);
+
+   template <typename... Args>
+   explicit QueryCompilationException(fmt::format_string<Args...> fmt_str, Args&&... args)
+       : std::runtime_error(fmt::format(fmt_str, std::forward<Args>(args)...)) {}
 };
-}  // namespace silo
+}  // namespace silo::query_engine

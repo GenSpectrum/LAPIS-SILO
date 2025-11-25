@@ -27,7 +27,7 @@ class IntBetween : public Expression {
       std::optional<uint32_t> to
    );
 
-   std::string toString() const override;
+   [[nodiscard]] std::string toString() const override;
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::filter::operators::Operator> compile(
       const storage::Table& table,

@@ -29,7 +29,7 @@ class And : public Expression {
   public:
    explicit And(ExpressionVector&& children);
 
-   std::string toString() const override;
+   [[nodiscard]] std::string toString() const override;
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::filter::operators::Operator> compile(
       const storage::Table& table,

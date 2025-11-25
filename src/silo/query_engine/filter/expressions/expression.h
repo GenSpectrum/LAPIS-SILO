@@ -5,8 +5,8 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-#include "silo/database.h"
 #include "silo/query_engine/filter/operators/operator.h"
+#include "silo/storage/table.h"
 #include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
@@ -22,9 +22,9 @@ class Expression {
    /// codes count as matches), LOWER_BOUND returns the lower bound of sequences matching this
    /// expression (i.e. ambiguous codes in negations count as matches)
    /// NONE does not specially consider ambiguous symbols
-   enum AmbiguityMode { UPPER_BOUND, LOWER_BOUND, NONE };
+   enum AmbiguityMode : uint8_t { UPPER_BOUND, LOWER_BOUND, NONE };
 
-   virtual std::string toString() const = 0;
+   [[nodiscard]] virtual std::string toString() const = 0;
 
    [[nodiscard]] virtual std::unique_ptr<silo::query_engine::filter::operators::Operator> compile(
       const storage::Table& table,

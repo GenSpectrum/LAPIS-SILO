@@ -20,7 +20,7 @@ class FloatEquals : public Expression {
   public:
    FloatEquals(std::string column_name, std::optional<double> value);
 
-   std::string toString() const override;
+   [[nodiscard]] std::string toString() const override;
 
    [[nodiscard]] std::unique_ptr<silo::query_engine::filter::operators::Operator> compile(
       const storage::Table& table,

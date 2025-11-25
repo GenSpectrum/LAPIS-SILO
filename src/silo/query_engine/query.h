@@ -4,6 +4,7 @@
 #include <string>
 
 #include "silo/config/runtime_config.h"
+#include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 
