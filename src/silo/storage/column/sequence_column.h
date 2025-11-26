@@ -90,7 +90,7 @@ class SequenceColumnPartition {
 
    std::map<size_t, typename SymbolType::Symbol> indexing_differences_to_reference_sequence;
    VerticalSequenceIndex<SymbolType> vertical_sequence_index;
-   HorizontalCoverageIndex<SymbolType> horizontal_coverage_index;
+   HorizontalCoverageIndex horizontal_coverage_index;
    storage::insertion::InsertionIndex<SymbolType> insertion_index;
    SequenceColumnInfo sequence_column_info;
    uint32_t sequence_count = 0;

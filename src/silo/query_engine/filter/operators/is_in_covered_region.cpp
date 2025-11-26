@@ -13,8 +13,8 @@
 namespace silo::query_engine::filter::operators {
 
 IsInCoveredRegion::IsInCoveredRegion(
-   const std::vector<std::pair<size_t, size_t>>* covered_region_ranges,
-   const std::map<size_t, roaring::Roaring>* covered_region_bitmaps,
+   const std::vector<std::pair<uint32_t, uint32_t>>* covered_region_ranges,
+   const std::map<uint32_t, roaring::Roaring>* covered_region_bitmaps,
    uint32_t row_count,
    Comparator comparator,
    uint32_t value

@@ -88,7 +88,7 @@ __attribute__((noinline)) void initializeCountsWithSequenceCount(
    uint32_t sequence_count
 ) {
    EVOBENCH_SCOPE("Mutations", "initializeCountsWithSequenceCount");
-   for (size_t position_idx = 0; position_idx < count_per_local_reference_position.size();
+   for (uint32_t position_idx = 0; position_idx < count_per_local_reference_position.size();
         ++position_idx) {
       count_per_local_reference_position[position_idx] += sequence_count;
    }
@@ -96,11 +96,11 @@ __attribute__((noinline)) void initializeCountsWithSequenceCount(
 
 __attribute__((noinline)) void subtractHorizontalBitmapCounts(
    std::vector<uint32_t>& count_per_local_reference_position,
-   const std::map<size_t, roaring::Roaring>& horizontal_bitmaps
+   const std::map<uint32_t, roaring::Roaring>& horizontal_bitmaps
 ) {
    EVOBENCH_SCOPE("Mutations", "subtractHorizontalBitmapCounts");
    for (const auto& [_, n_bitmap] : horizontal_bitmaps) {
-      for (size_t position_idx : n_bitmap) {
+      for (uint32_t position_idx : n_bitmap) {
          count_per_local_reference_position[position_idx] -= 1;
       }
    }
@@ -108,7 +108,7 @@ __attribute__((noinline)) void subtractHorizontalBitmapCounts(
 
 void subtractCumulativeNsFromPositions(
    std::vector<uint32_t>& count_per_local_reference_position,
-   size_t sequence_length,
+   uint32_t sequence_length,
    const std::vector<size_t>& cumulative_starts,
    const std::vector<size_t>& cumulative_ends
 ) {
@@ -138,7 +138,7 @@ void subtractCumulativeNsFromPositions(
 
 __attribute__((noinline)) void subtractStartAndEndNCounts(
    std::vector<uint32_t>& count_per_local_reference_position,
-   const std::vector<std::pair<size_t, size_t>>& start_end,
+   const std::vector<std::pair<uint32_t, uint32_t>>& start_end,
    size_t sequence_length
 ) {
    EVOBENCH_SCOPE("Mutations", "subtractStartAndEndNCounts");
@@ -157,8 +157,8 @@ __attribute__((noinline)) void subtractFilteredNCounts(
    std::vector<uint32_t>& count_per_local_reference_position,
    const CopyOnWriteBitmap& filter,
    size_t sequence_length,
-   const std::map<size_t, roaring::Roaring>& horizontal_bitmaps,
-   const std::vector<std::pair<size_t, size_t>>& start_end
+   const std::map<uint32_t, roaring::Roaring>& horizontal_bitmaps,
+   const std::vector<std::pair<uint32_t, uint32_t>>& start_end
 ) {
    EVOBENCH_SCOPE("Mutations", "subtractFilteredNCounts");
    std::vector<size_t> cumulative_starts(sequence_length + 1);
@@ -371,12 +371,12 @@ arrow::Status Mutations<SymbolType>::addMutationsToOutput(
    const PrefilteredBitmaps& bitmap_filter,
    std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder
 ) {
-   const size_t sequence_length = column_metadata.reference_sequence.size();
+   const uint32_t sequence_length = column_metadata.reference_sequence.size();
 
    const SymbolMap<SymbolType, std::vector<uint32_t>> count_of_mutations_per_position =
       calculateMutationsPerPosition(column_metadata, bitmap_filter);
 
-   for (size_t pos = 0; pos < sequence_length; ++pos) {
+   for (uint32_t pos = 0; pos < sequence_length; ++pos) {
       uint32_t total = 0;
       for (const typename SymbolType::Symbol symbol : SymbolType::VALID_MUTATION_SYMBOLS) {
          total += count_of_mutations_per_position.at(symbol)[pos];
