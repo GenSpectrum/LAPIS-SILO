@@ -17,7 +17,7 @@ describe('The /info endpoint', () => {
         const { version, ...infoWithoutVersion } = returnedInfo;
         expect(infoWithoutVersion).to.deep.equal({
           sequenceCount: 100,
-          horizontalBitmapsSize: 5899,
+          horizontalBitmapsSize: 5594,
           verticalBitmapsSize: 32016,
           numberOfPartitions: 1,
         });
