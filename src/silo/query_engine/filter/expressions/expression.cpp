@@ -23,7 +23,7 @@
 #include "silo/query_engine/filter/expressions/negation.h"
 #include "silo/query_engine/filter/expressions/nof.h"
 #include "silo/query_engine/filter/expressions/or.h"
-#include "silo/query_engine/filter/expressions/phylo_tree_filter.h"
+#include "silo/query_engine/filter/expressions/phylo_child_filter.h"
 #include "silo/query_engine/filter/expressions/string_equals.h"
 #include "silo/query_engine/filter/expressions/string_search.h"
 #include "silo/query_engine/filter/expressions/symbol_equals.h"
@@ -53,7 +53,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) 
    );
    const std::string expression_type = json["type"];
    if (expression_type == "True") {
-      filter = json.get<std::unique_ptr<silo::query_engine::filter::expressions::True>>();
+      filter = json.get<std::unique_ptr<True>>();
    } else if (expression_type == "False") {
       filter = json.get<std::unique_ptr<False>>();
    } else if (expression_type == "And") {

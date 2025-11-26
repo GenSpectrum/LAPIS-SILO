@@ -48,18 +48,19 @@ std::string InsertionContains<SymbolType>::toString() const {
 }
 
 template <typename SymbolType>
-std::unique_ptr<silo::query_engine::filter::expressions::Expression> InsertionContains<SymbolType>::
-   rewrite(
-      const storage::Table& /*table*/,
-      const storage::TablePartition& /*table_partition*/,
-      AmbiguityMode /*mode*/
-   ) const {
+std::unique_ptr<Expression> InsertionContains<SymbolType>::rewrite(
+   const storage::Table& /*table*/,
+   const storage::TablePartition& /*table_partition*/,
+   AmbiguityMode /*mode*/
+) const {
    return std::make_unique<InsertionContains<SymbolType>>(sequence_name, position_idx, value);
 }
 
 template <typename SymbolType>
-std::unique_ptr<silo::query_engine::filter::operators::Operator> InsertionContains<SymbolType>::
-   compile(const storage::Table& table, const storage::TablePartition& table_partition) const {
+std::unique_ptr<operators::Operator> InsertionContains<SymbolType>::compile(
+   const storage::Table& table,
+   const storage::TablePartition& table_partition
+) const {
    const auto valid_sequence_name =
       validateSequenceNameOrGetDefault<SymbolType>(sequence_name, table.schema);
 

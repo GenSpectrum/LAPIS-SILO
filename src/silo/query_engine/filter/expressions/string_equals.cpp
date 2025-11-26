@@ -38,7 +38,7 @@ std::unique_ptr<Expression> StringEquals::rewrite(
    return std::make_unique<StringEquals>(column_name, value);
 }
 
-std::unique_ptr<silo::query_engine::filter::operators::Operator> StringEquals::compile(
+std::unique_ptr<operators::Operator> StringEquals::compile(
    const storage::Table& /*table*/,
    const storage::TablePartition& table_partition
 ) const {

@@ -38,6 +38,6 @@ class Operator {
    static std::unique_ptr<Operator> negate(std::unique_ptr<Operator>&& some_operator);
 };
 
-using OperatorVector = std::vector<std::unique_ptr<filter::operators::Operator>>;
+using OperatorVector = std::vector<std::unique_ptr<Operator>>;
 
 }  // namespace silo::query_engine::filter::operators

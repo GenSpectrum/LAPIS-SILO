@@ -30,7 +30,7 @@ std::unique_ptr<Expression> Exact::rewrite(
    return child->rewrite(table, table_partition, AmbiguityMode::LOWER_BOUND);
 }
 
-std::unique_ptr<silo::query_engine::filter::operators::Operator> Exact::compile(
+std::unique_ptr<operators::Operator> Exact::compile(
    const storage::Table& /*table*/,
    const storage::TablePartition& /*table_partition*/
 ) const {

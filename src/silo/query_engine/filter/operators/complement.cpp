@@ -10,8 +10,6 @@
 #include "silo/query_engine/filter/operators/intersection.h"
 #include "silo/query_engine/filter/operators/operator.h"
 
-using silo::query_engine::filter::operators::Operator;
-
 namespace silo::query_engine::filter::operators {
 
 Complement::Complement(std::unique_ptr<Operator> child, uint32_t row_count)

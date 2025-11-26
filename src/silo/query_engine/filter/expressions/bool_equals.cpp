@@ -32,7 +32,7 @@ std::unique_ptr<Expression> BoolEquals::rewrite(
    return std::make_unique<BoolEquals>(column_name, value);
 }
 
-std::unique_ptr<silo::query_engine::filter::operators::Operator> BoolEquals::compile(
+std::unique_ptr<operators::Operator> BoolEquals::compile(
    const storage::Table& /*table*/,
    const silo::storage::TablePartition& table_partition
 ) const {
