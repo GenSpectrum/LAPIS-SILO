@@ -36,9 +36,8 @@ arrow::Status appendSequences(
       reconstructed_sequences, row_ids
    );
 
-   sequence_column_partition.horizontal_coverage_index.overwriteCoverageInSequence(
-      reconstructed_sequences, row_ids
-   );
+   sequence_column_partition.horizontal_coverage_index
+      .template overwriteCoverageInSequence<SymbolType>(reconstructed_sequences, row_ids);
 
    ARROW_RETURN_NOT_OK(output_array.Reserve(cardinality));
    auto reference_sequence = general_reference;

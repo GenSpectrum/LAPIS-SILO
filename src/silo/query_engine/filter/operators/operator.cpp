@@ -3,8 +3,6 @@
 #include <cstdlib>
 
 #include "silo/common/panic.h"
-#include "silo/query_engine/filter/expressions/expression.h"
-#include "silo/query_engine/filter/expressions/symbol_equals.h"
 #include "silo/query_engine/filter/operators/bitmap_producer.h"
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/empty.h"

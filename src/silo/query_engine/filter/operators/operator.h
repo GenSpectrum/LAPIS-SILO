@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <optional>
 #include <string>
 #include <vector>
 
@@ -9,7 +8,7 @@
 
 namespace silo::query_engine::filter::operators {
 
-enum Type {
+enum Type : uint8_t {
    EMPTY,
    FULL,
    INDEX_SCAN,
@@ -31,9 +30,9 @@ class Operator {
 
    [[nodiscard]] virtual Type type() const = 0;
 
-   virtual CopyOnWriteBitmap evaluate() const = 0;
+   [[nodiscard]] virtual CopyOnWriteBitmap evaluate() const = 0;
 
-   virtual std::string toString() const = 0;
+   [[nodiscard]] virtual std::string toString() const = 0;
 
    static std::unique_ptr<Operator> negate(std::unique_ptr<Operator>&& some_operator);
 };

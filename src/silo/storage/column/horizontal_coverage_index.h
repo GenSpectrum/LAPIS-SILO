@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <map>
 #include <vector>
 
@@ -8,21 +9,28 @@
 
 namespace silo::storage::column {
 
-template <typename SymbolType>
 class HorizontalCoverageIndex {
   public:
    const size_t genome_length;
 
-   std::map<size_t, roaring::Roaring> horizontal_bitmaps;
-   std::vector<std::pair<size_t, size_t>> start_end;
+   std::map<uint32_t, roaring::Roaring> horizontal_bitmaps;
+   std::vector<std::pair<uint32_t, uint32_t>> start_end;
 
-   explicit HorizontalCoverageIndex(size_t genome_length)
+   explicit HorizontalCoverageIndex(uint32_t genome_length)
        : genome_length(genome_length) {}
+
+   void insertCoverage(
+      uint32_t start,
+      uint32_t end,
+      const std::vector<uint32_t>& positions_with_symbol_missing
+   );
 
    void insertNullSequence();
 
-   void insertCoverage(size_t sequence_idx, std::string sequence, uint32_t offset);
+   template <typename SymbolType>
+   void insertSequenceCoverage(std::string sequence, uint32_t offset);
 
+   template <typename SymbolType>
    void overwriteCoverageInSequence(
       std::vector<std::string>& sequences,
       const roaring::Roaring& row_ids
