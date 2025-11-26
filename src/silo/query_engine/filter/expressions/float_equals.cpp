@@ -37,7 +37,7 @@ std::unique_ptr<Expression> FloatEquals::rewrite(
    return std::make_unique<FloatEquals>(column_name, value);
 }
 
-std::unique_ptr<silo::query_engine::filter::operators::Operator> FloatEquals::compile(
+std::unique_ptr<operators::Operator> FloatEquals::compile(
    const storage::Table& /*table*/,
    const storage::TablePartition& table_partition
 ) const {

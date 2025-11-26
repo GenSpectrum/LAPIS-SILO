@@ -5,8 +5,6 @@
 #include <vector>
 
 #include <fmt/ranges.h>
-#include <spdlog/spdlog.h>
-#include <nlohmann/json.hpp>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
@@ -103,8 +101,7 @@ std::unique_ptr<operators::Operator> makeDifference(
 }
 
 template <typename SymbolType>
-std::unique_ptr<silo::query_engine::filter::operators::Operator>
-compileWithMissingSymbolOrReference(
+std::unique_ptr<operators::Operator> compileWithMissingSymbolOrReference(
    const SequenceColumnPartition<SymbolType>& sequence_column_partition,
    uint32_t position_idx,
    const std::vector<typename SymbolType::Symbol>& symbols
@@ -124,7 +121,7 @@ compileWithMissingSymbolOrReference(
 }
 
 template <typename SymbolType>
-std::unique_ptr<silo::query_engine::filter::operators::Operator> compileWithMissingSymbol(
+std::unique_ptr<operators::Operator> compileWithMissingSymbol(
    const SequenceColumnPartition<SymbolType>& sequence_column_partition,
    uint32_t position_idx,
    const std::vector<typename SymbolType::Symbol>& symbols
@@ -152,7 +149,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> compileWithMiss
 }
 
 template <typename SymbolType>
-std::unique_ptr<silo::query_engine::filter::operators::Operator> compileWithReference(
+std::unique_ptr<operators::Operator> compileWithReference(
    const SequenceColumnPartition<SymbolType>& sequence_column_partition,
    uint32_t position_idx,
    const std::vector<typename SymbolType::Symbol>& symbols
@@ -180,7 +177,7 @@ std::unique_ptr<silo::query_engine::filter::operators::Operator> compileWithRefe
 }
 
 template <typename SymbolType>
-std::unique_ptr<silo::query_engine::filter::operators::Operator> compileOnlyMutations(
+std::unique_ptr<operators::Operator> compileOnlyMutations(
    const SequenceColumnPartition<SymbolType>& sequence_column_partition,
    uint32_t position_idx,
    const std::vector<typename SymbolType::Symbol>& symbols
@@ -209,7 +206,7 @@ std::unique_ptr<Expression> SymbolInSet<SymbolType>::rewrite(
 }
 
 template <typename SymbolType>
-std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolInSet<SymbolType>::compile(
+std::unique_ptr<operators::Operator> SymbolInSet<SymbolType>::compile(
    const storage::Table& table,
    const storage::TablePartition& table_partition
 ) const {

@@ -20,7 +20,7 @@ class IndexScan : public Operator {
    friend class Operator;
 
   private:
-   std::optional<std::unique_ptr<query_engine::filter::expressions::Expression>> logical_equivalent;
+   std::optional<std::unique_ptr<expressions::Expression>> logical_equivalent;
    CopyOnWriteBitmap bitmap;
    uint32_t row_count;
 

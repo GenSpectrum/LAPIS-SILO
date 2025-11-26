@@ -37,15 +37,15 @@ std::string IntBetween::toString() const {
    return "[IntBetween " + from_string + " - " + to_string + "]";
 }
 
-std::unique_ptr<silo::query_engine::filter::expressions::Expression> IntBetween::rewrite(
+std::unique_ptr<Expression> IntBetween::rewrite(
    const storage::Table& /*table*/,
    const storage::TablePartition& /*table_partition*/,
-   silo::query_engine::filter::expressions::Expression::AmbiguityMode /*mode*/
+   AmbiguityMode /*mode*/
 ) const {
    return std::make_unique<IntBetween>(column_name, from, to);
 }
 
-std::unique_ptr<silo::query_engine::filter::operators::Operator> IntBetween::compile(
+std::unique_ptr<operators::Operator> IntBetween::compile(
    const storage::Table& /*table*/,
    const storage::TablePartition& table_partition
 ) const {

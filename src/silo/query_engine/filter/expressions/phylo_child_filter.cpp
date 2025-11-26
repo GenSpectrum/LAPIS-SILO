@@ -1,4 +1,4 @@
-#include "silo/query_engine/filter/expressions/phylo_tree_filter.h"
+#include "silo/query_engine/filter/expressions/phylo_child_filter.h"
 
 #include <optional>
 #include <utility>
@@ -24,7 +24,7 @@ std::string PhyloChildFilter::toString() const {
 };
 
 namespace {
-std::unique_ptr<silo::query_engine::filter::operators::Operator> createMatchingBitmap(
+std::unique_ptr<operators::Operator> createMatchingBitmap(
    const storage::column::StringColumnPartition& string_column,
    const std::string& internal_node,
    size_t row_count
@@ -61,7 +61,7 @@ std::unique_ptr<Expression> PhyloChildFilter::rewrite(
    return std::make_unique<PhyloChildFilter>(column_name, internal_node);
 }
 
-std::unique_ptr<silo::query_engine::filter::operators::Operator> PhyloChildFilter::compile(
+std::unique_ptr<operators::Operator> PhyloChildFilter::compile(
    const storage::Table& /*table*/,
    const storage::TablePartition& table_partition
 ) const {

@@ -104,7 +104,7 @@ std::unique_ptr<Expression> SymbolEquals<SymbolType>::rewrite(
 }
 
 template <typename SymbolType>
-std::unique_ptr<silo::query_engine::filter::operators::Operator> SymbolEquals<SymbolType>::compile(
+std::unique_ptr<operators::Operator> SymbolEquals<SymbolType>::compile(
    const storage::Table& /*table*/,
    const storage::TablePartition& /*table_partition*/
 ) const {

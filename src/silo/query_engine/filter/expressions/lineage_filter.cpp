@@ -65,7 +65,7 @@ std::optional<const roaring::Roaring*> LineageFilter::getBitmapForValue(
    return lineage_column.getLineageIndex()->filterExcludingSublineages(value_id);
 }
 
-std::unique_ptr<silo::query_engine::filter::expressions::Expression> LineageFilter::rewrite(
+std::unique_ptr<Expression> LineageFilter::rewrite(
    const storage::Table& /*table*/,
    const storage::TablePartition& /*table_partition*/,
    AmbiguityMode /*mode*/
@@ -73,7 +73,7 @@ std::unique_ptr<silo::query_engine::filter::expressions::Expression> LineageFilt
    return std::make_unique<LineageFilter>(column_name, lineage, sublineage_mode);
 }
 
-std::unique_ptr<silo::query_engine::filter::operators::Operator> LineageFilter::compile(
+std::unique_ptr<operators::Operator> LineageFilter::compile(
    const storage::Table& /*table*/,
    const storage::TablePartition& table_partition
 ) const {

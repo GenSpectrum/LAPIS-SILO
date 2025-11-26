@@ -27,7 +27,7 @@ std::string IntEquals::toString() const {
    return fmt::format("{} IS NULL", column_name);
 }
 
-std::unique_ptr<silo::query_engine::filter::expressions::Expression> IntEquals::rewrite(
+std::unique_ptr<Expression> IntEquals::rewrite(
    const storage::Table& /*table*/,
    const storage::TablePartition& /*table_partition*/,
    AmbiguityMode /*mode*/
@@ -35,7 +35,7 @@ std::unique_ptr<silo::query_engine::filter::expressions::Expression> IntEquals::
    return std::make_unique<IntEquals>(column_name, value);
 }
 
-std::unique_ptr<silo::query_engine::filter::operators::Operator> IntEquals::compile(
+std::unique_ptr<operators::Operator> IntEquals::compile(
    const storage::Table& /*table*/,
    const storage::TablePartition& table_partition
 ) const {

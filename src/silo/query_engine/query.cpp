@@ -45,7 +45,7 @@ QueryPlan Query::toQueryPlan(
       auto filter_after_rewrite = filter->rewrite(
          *database->table,
          database->table->getPartition(partition_index),
-         filter::expressions::Expression::AmbiguityMode::NONE
+         Expression::AmbiguityMode::NONE
       );
       SPDLOG_DEBUG(
          "Request Id [{}] - Filter after rewrite for partition {}: {}",

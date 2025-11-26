@@ -15,7 +15,7 @@ std::string False::toString() const {
    return "False";
 }
 
-std::unique_ptr<silo::query_engine::filter::expressions::Expression> False::rewrite(
+std::unique_ptr<Expression> False::rewrite(
    const storage::Table& /*table*/,
    const storage::TablePartition& /*table_partition*/,
    AmbiguityMode /*mode*/
@@ -23,7 +23,7 @@ std::unique_ptr<silo::query_engine::filter::expressions::Expression> False::rewr
    return std::make_unique<False>();
 }
 
-std::unique_ptr<silo::query_engine::filter::operators::Operator> False::compile(
+std::unique_ptr<operators::Operator> False::compile(
    const storage::Table& /*table*/,
    const silo::storage::TablePartition& table_partition
 ) const {

@@ -10,14 +10,13 @@
 
 namespace silo::query_engine {
 
+using filter::expressions::Expression;
+
 struct Query {
-   std::unique_ptr<filter::expressions::Expression> filter;
+   std::unique_ptr<Expression> filter;
    std::unique_ptr<actions::Action> action;
 
-   explicit Query(
-      std::unique_ptr<filter::expressions::Expression> filter,
-      std::unique_ptr<actions::Action> action
-   )
+   explicit Query(std::unique_ptr<Expression> filter, std::unique_ptr<actions::Action> action)
        : filter(std::move(filter)),
          action(std::move(action)) {}
 

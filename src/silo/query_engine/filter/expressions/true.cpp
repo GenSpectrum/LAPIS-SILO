@@ -23,7 +23,7 @@ std::unique_ptr<Expression> True::rewrite(
    return std::make_unique<True>();
 }
 
-std::unique_ptr<silo::query_engine::filter::operators::Operator> True::compile(
+std::unique_ptr<operators::Operator> True::compile(
    const storage::Table& /*table*/,
    const storage::TablePartition& table_partition
 ) const {

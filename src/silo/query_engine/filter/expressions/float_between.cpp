@@ -43,7 +43,7 @@ std::unique_ptr<Expression> FloatBetween::rewrite(
    return std::make_unique<FloatBetween>(column_name, from, to);
 }
 
-std::unique_ptr<silo::query_engine::filter::operators::Operator> FloatBetween::compile(
+std::unique_ptr<operators::Operator> FloatBetween::compile(
    const storage::Table& /*table*/,
    const storage::TablePartition& table_partition
 ) const {

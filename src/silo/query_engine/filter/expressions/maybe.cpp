@@ -29,7 +29,7 @@ std::unique_ptr<Expression> Maybe::rewrite(
    return child->rewrite(table, table_partition, AmbiguityMode::UPPER_BOUND);
 }
 
-std::unique_ptr<silo::query_engine::filter::operators::Operator> Maybe::compile(
+std::unique_ptr<operators::Operator> Maybe::compile(
    const storage::Table& /*table*/,
    const storage::TablePartition& /*table_partition*/
 ) const {

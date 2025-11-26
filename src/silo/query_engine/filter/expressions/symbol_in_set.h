@@ -49,8 +49,4 @@ class SymbolInSet : public Expression {
    }
 };
 
-template <typename SymbolType>
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<SymbolInSet<SymbolType>>& filter);
-
 }  // namespace silo::query_engine::filter::expressions

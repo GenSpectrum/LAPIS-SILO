@@ -18,7 +18,7 @@ IndexScan::IndexScan(CopyOnWriteBitmap bitmap, uint32_t row_count)
       row_count(row_count) {}
 
 IndexScan::IndexScan(
-   std::unique_ptr<query_engine::filter::expressions::Expression>&& logical_equivalent,
+   std::unique_ptr<expressions::Expression>&& logical_equivalent,
    CopyOnWriteBitmap bitmap,
    uint32_t row_count
 )

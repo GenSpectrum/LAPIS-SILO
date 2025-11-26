@@ -24,7 +24,7 @@ std::string StringSearch::toString() const {
 
 namespace {
 template <typename GenericStringColumn>
-std::unique_ptr<silo::query_engine::filter::operators::Operator> createMatchingBitmap(
+std::unique_ptr<operators::Operator> createMatchingBitmap(
    const GenericStringColumn& string_column,
    const RE2& search_expression,
    size_t row_count
@@ -56,7 +56,7 @@ std::unique_ptr<Expression> StringSearch::rewrite(
    );
 }
 
-std::unique_ptr<silo::query_engine::filter::operators::Operator> StringSearch::compile(
+std::unique_ptr<operators::Operator> StringSearch::compile(
    const storage::Table& /*table*/,
    const storage::TablePartition& table_partition
 ) const {
