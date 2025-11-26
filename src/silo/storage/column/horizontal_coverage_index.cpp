@@ -23,17 +23,17 @@ void HorizontalCoverageIndex::insertCoverage(
 
    start_end.emplace_back(start, end);
 
-   if (not positions_with_symbol_missing.empty()) {
-      // We also have a row_wise bitmap, that covers all N symbols that are within the covered region
-      roaring::Roaring horizontal_bitmap;
-      horizontal_bitmap.addMany(
-         positions_with_symbol_missing.size(), positions_with_symbol_missing.data()
-      );
-      horizontal_bitmap.removeRange(0, start);
-      horizontal_bitmap.removeRange(end, genome_length);
-      horizontal_bitmap.runOptimize();
-      horizontal_bitmap.shrinkToFit();
+   // We also have a row_wise bitmap, that covers all N symbols that are within the covered region
+   roaring::Roaring horizontal_bitmap;
+   horizontal_bitmap.addMany(
+      positions_with_symbol_missing.size(), positions_with_symbol_missing.data()
+   );
+   horizontal_bitmap.removeRange(0, start);
+   horizontal_bitmap.removeRange(end, genome_length);
+   horizontal_bitmap.runOptimize();
+   horizontal_bitmap.shrinkToFit();
 
+   if (horizontal_bitmap.cardinality() > 0) {
       horizontal_bitmaps.emplace(sequence_idx, std::move(horizontal_bitmap));
    }
 }
