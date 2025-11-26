@@ -55,7 +55,8 @@ namespace silo::common {
 /// performance overrides safety, use `SILO_DEBUG_ASSERT` instead.
 #define SILO_ASSERT(e)                                        \
    do {                                                       \
-      if (!(e)) {                                             \
+      bool condition = (e);                                   \
+      if (!condition) {                                       \
          silo::common::assertFailure(#e, __FILE__, __LINE__); \
       }                                                       \
    } while (0)
