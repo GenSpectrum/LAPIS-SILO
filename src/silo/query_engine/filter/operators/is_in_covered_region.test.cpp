@@ -6,10 +6,10 @@
 using silo::query_engine::filter::operators::IsInCoveredRegion;
 
 TEST(IsInCoveredRegion, containsCheckShouldReturnCorrectValues) {
-   const std::vector<std::pair<size_t, size_t>> start_ends{
+   const std::vector<std::pair<uint32_t, uint32_t>> start_ends{
       {0, 5}, {0, 5}, {0, 5}, {0, 5}, {0, 5}, {0, 5}, {0, 5}, {0, 5}
    };
-   const std::map<size_t, roaring::Roaring> test_bitmaps({{
+   const std::map<uint32_t, roaring::Roaring> test_bitmaps({{
       {0, roaring::Roaring({1, 2, 3})},
       {1, roaring::Roaring({1, 3})},
       {2, roaring::Roaring({1, 2, 3})},
@@ -28,10 +28,10 @@ TEST(IsInCoveredRegion, containsCheckShouldReturnCorrectValues) {
 }
 
 TEST(IsInCoveredRegion, notContainsCheckShouldReturnCorrectValues) {
-   const std::vector<std::pair<size_t, size_t>> start_ends{
+   const std::vector<std::pair<uint32_t, uint32_t>> start_ends{
       {0, 5}, {0, 5}, {0, 5}, {0, 5}, {0, 5}, {0, 5}, {0, 5}, {0, 5}
    };
-   const std::map<size_t, roaring::Roaring> test_bitmaps({{
+   const std::map<uint32_t, roaring::Roaring> test_bitmaps({{
       {0, roaring::Roaring({1, 2, 3})},
       {1, roaring::Roaring({1, 3})},
       {2, roaring::Roaring({1, 2, 3})},
@@ -50,10 +50,10 @@ TEST(IsInCoveredRegion, notContainsCheckShouldReturnCorrectValues) {
 }
 
 TEST(IsInCoveredRegion, containsCheckOutsideRegion) {
-   const std::vector<std::pair<size_t, size_t>> start_ends{
+   const std::vector<std::pair<uint32_t, uint32_t>> start_ends{
       {0, 5}, {0, 5}, {0, 5}, {0, 5}, {0, 5}, {0, 5}, {0, 5}, {0, 5}
    };
-   const std::map<size_t, roaring::Roaring> test_bitmaps({{
+   const std::map<uint32_t, roaring::Roaring> test_bitmaps({{
       {0, roaring::Roaring({1, 2, 3})},
       {1, roaring::Roaring({1, 3})},
       {2, roaring::Roaring({1, 2, 3})},
@@ -72,10 +72,10 @@ TEST(IsInCoveredRegion, containsCheckOutsideRegion) {
 }
 
 TEST(IsInCoveredRegion, correctTypeInfo) {
-   const std::vector<std::pair<size_t, size_t>> start_ends{
+   const std::vector<std::pair<uint32_t, uint32_t>> start_ends{
       {0, 5}, {0, 5}, {0, 5}, {0, 5}, {0, 5}, {0, 5}, {0, 5}, {0, 5}
    };
-   const std::map<size_t, roaring::Roaring> test_bitmaps({{
+   const std::map<uint32_t, roaring::Roaring> test_bitmaps({{
       {0, roaring::Roaring({1, 2, 3})},
       {1, roaring::Roaring({1, 3})},
       {2, roaring::Roaring({1, 2, 3})},

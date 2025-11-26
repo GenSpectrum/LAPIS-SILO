@@ -237,18 +237,11 @@ void SequenceColumnPartition<SymbolType>::fillIndexes() {
 
 template <typename SymbolType>
 void SequenceColumnPartition<SymbolType>::fillNBitmaps() {
-   const size_t sequence_id_base_for_buffer = sequence_count - lazy_buffer.size();
-
-   for (size_t sequence_offset_in_buffer = 0; sequence_offset_in_buffer < lazy_buffer.size();
-        ++sequence_offset_in_buffer) {
-      const auto& [is_valid, maybe_sequence, offset] = lazy_buffer[sequence_offset_in_buffer];
-
-      const size_t sequence_idx = sequence_id_base_for_buffer + sequence_offset_in_buffer;
-
+   for (const auto& [is_valid, maybe_sequence, offset] : lazy_buffer) {
       if (!is_valid) {
          horizontal_coverage_index.insertNullSequence();
       } else {
-         horizontal_coverage_index.insertCoverage(sequence_idx, maybe_sequence, offset);
+         horizontal_coverage_index.insertSequenceCoverage<SymbolType>(maybe_sequence, offset);
       }
    }
 }
